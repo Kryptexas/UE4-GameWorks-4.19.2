@@ -70,15 +70,10 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
 		if (CVar && CVar->GetValueOnAnyThread() != 0)
 		{
-			ensure(0);
-			//#todo-rco:...
-#if 0
-			Buffer = AllocateBufferFromPool(Device, InLayout.ConstantBufferSize, Usage);
-
-			void* Data = Buffer->Lock(InLayout.ConstantBufferSize);
+			const bool bRT = IsInRenderingThread();
+			void* Data = Lock(bRT, RLM_WriteOnly, InLayout.ConstantBufferSize, 0);
 			FMemory::Memcpy(Data, Contents, InLayout.ConstantBufferSize);
-			Buffer->Unlock();
-#endif
+			Unlock(bRT);
 		}
 		else
 		{

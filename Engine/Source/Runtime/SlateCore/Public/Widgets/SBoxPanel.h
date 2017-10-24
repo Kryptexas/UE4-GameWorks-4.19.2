@@ -35,21 +35,22 @@ public:
 	public:		
 		/** Horizontal and Vertical Boxes inherit from FSlot */
 		virtual ~FSlot(){}
-		/**
-		 * How much space this slot should occupy along panel's direction.
-		 *   When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
-		 *   When SizeRule is SizeRule_Stretch, the available space will be distributed proportionately between
-		 *   peer Widgets depending on the Value property. Available space is space remaining after all the
-		 *   peers' SizeRule_Auto requirements have been satisfied.
-		 */
-		FSizeParam SizeParam;
 		
 		/** Horizontal positioning of child within the allocated slot */
-		EHorizontalAlignment HAlignment;
+		TEnumAsByte<EHorizontalAlignment> HAlignment;
 		
 		/** Vertical positioning of child within the allocated slot */
-		EVerticalAlignment VAlignment;
-		
+		TEnumAsByte<EVerticalAlignment> VAlignment;
+
+		/**
+		* How much space this slot should occupy along panel's direction.
+		*   When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
+		*   When SizeRule is SizeRule_Stretch, the available space will be distributed proportionately between
+		*   peer Widgets depending on the Value property. Available space is space remaining after all the
+		*   peers' SizeRule_Auto requirements have been satisfied.
+		*/
+		FSizeParam SizeParam;
+
 		/** The padding to add around the child. */
 		TAttribute<FMargin> SlotPadding;
 		
@@ -60,9 +61,9 @@ public:
 		/** Default values for a slot. */
 		FSlot()
 			: TSlotBase<FSlot>()
-			, SizeParam( FStretch(1) )
 			, HAlignment( HAlign_Fill )
 			, VAlignment( VAlign_Fill )
+			, SizeParam( FStretch(1) )
 			, SlotPadding( FMargin(0) )
 			, MaxSize( 0.0f )
 		{ }
@@ -101,10 +102,11 @@ protected:
 	 */
 	SBoxPanel( EOrientation InOrientation );
 
-	/** The Box Panel's orientation; determined at construct time. */
-	const EOrientation Orientation;
 	/** The Box Panel's children. */
 	TPanelChildren<FSlot> Children;
+
+	/** The Box Panel's orientation; determined at construct time. */
+	const EOrientation Orientation;
 };
 
 

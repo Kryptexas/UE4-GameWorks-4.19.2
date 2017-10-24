@@ -31,11 +31,12 @@
 /// \file gf/vec4d.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/diagnostic.h"
+#include "pxr/base/gf/api.h"
 #include "pxr/base/gf/limits.h"
 #include "pxr/base/gf/traits.h"
 #include "pxr/base/gf/math.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -43,6 +44,10 @@
 #include <cmath>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+class GfVec4d;
 
 template <>
 struct GfIsGfVec<class GfVec4d> { static const bool value = true; };
@@ -89,15 +94,12 @@ public:
     explicit GfVec4d(Scl const *p) { Set(p); }
 
     /// Implicitly convert from GfVec4f.
-    GF_API
     GfVec4d(class GfVec4f const &other);
 
     /// Implicitly convert from GfVec4h.
-    GF_API
     GfVec4d(class GfVec4h const &other);
 
     /// Implicitly convert from GfVec4i.
-    GF_API
     GfVec4d(class GfVec4i const &other);
  
     /// Create a unit vector along the X-axis.
@@ -169,9 +171,9 @@ public:
 
     /// Equality comparison.
     bool operator==(GfVec4d const &other) const {
-        return _data[0] == other[0] and
-               _data[1] == other[1] and
-               _data[2] == other[2] and
+        return _data[0] == other[0] &&
+               _data[1] == other[1] &&
+               _data[2] == other[2] &&
                _data[3] == other[3];
     }
     bool operator!=(GfVec4d const &other) const {
@@ -309,9 +311,39 @@ private:
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfVec4d const &);
 
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #include "pxr/base/gf/vec4f.h"
 #include "pxr/base/gf/vec4h.h"
 #include "pxr/base/gf/vec4i.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+inline
+GfVec4d::GfVec4d(class GfVec4f const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+    _data[2] = other[2];
+    _data[3] = other[3];
+}
+inline
+GfVec4d::GfVec4d(class GfVec4h const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+    _data[2] = other[2];
+    _data[3] = other[3];
+}
+inline
+GfVec4d::GfVec4d(class GfVec4i const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+    _data[2] = other[2];
+    _data[3] = other[3];
+}
 
 /// Returns component-wise multiplication of vectors \p v1 and \p v2.
 inline GfVec4d
@@ -398,4 +430,6 @@ GfIsClose(GfVec4d const &v1, GfVec4d const &v2, double tolerance)
 
  
  
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #endif // GF_VEC4D_H

@@ -1200,7 +1200,7 @@ namespace ClassViewer
 				if( Object->IsA(UBlueprint::StaticClass()) )
 				{
 					InOutClassNode->Blueprint = Cast<UBlueprint>(Object);
-					InOutClassNode->Class = Cast<UClass>(InOutClassNode->Blueprint->GeneratedClass);
+					InOutClassNode->Class = *InOutClassNode->Blueprint->GeneratedClass;
 
 					// Tell the original node to update so when a refresh happens it will still know about the newly loaded class.
 					ClassViewer::Helpers::UpdateClassInNode(InOutClassNode->GeneratedClassPackage, InOutClassNode->Class.Get(), InOutClassNode->Blueprint.Get() );
@@ -1257,17 +1257,10 @@ namespace ClassViewer
 		 *
 		 * @param	InClass		The class to open source for.
 		 */
-		static void OpenClassHeaderFileInIDE(UClass* InClass)
+		static void OpenClassInIDE(UClass* InClass)
 		{
-			if( InClass != NULL )
-			{
-				FString ClassHeaderPath;
-				if( FSourceCodeNavigation::FindClassHeaderPath( InClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
-				{
-					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
-					FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-				}
-			}
+			//ignore result
+			FSourceCodeNavigation::NavigateToClass(InClass);
 		}
 
 		/**
@@ -1347,8 +1340,8 @@ namespace ClassViewer
 				{
 					MenuBuilder.BeginSection("ClassViewerIsCode");
 					{
-						FUIAction Action(FExecuteAction::CreateStatic(&ClassViewer::Helpers::OpenClassHeaderFileInIDE, Class));
-						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuOpenCPlusPlusClass", "Open C++ Header..."), LOCTEXT("ClassViewerMenuOpenCPlusPlusClass_Tooltip", "Open the header file for this class in the IDE."), FSlateIcon(), Action);
+						FUIAction Action(FExecuteAction::CreateStatic(&ClassViewer::Helpers::OpenClassInIDE, Class));
+						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuOpenCPlusPlusClass", "Open Source Code..."), LOCTEXT("ClassViewerMenuOpenCPlusPlusClass_Tooltip", "Open the source file for this class in the IDE."), FSlateIcon(), Action);
 					}
 					{
 						FUIAction Action(FExecuteAction::CreateStatic(&ClassViewer::Helpers::OpenCreateCPlusPlusClassWizard, Class));
@@ -1528,7 +1521,7 @@ private:
 			}
 			else
 			{
-				ClassViewer::Helpers::OpenClassHeaderFileInIDE(AssociatedNode->Class.Get());
+				ClassViewer::Helpers::OpenClassInIDE(AssociatedNode->Class.Get());
 			}
 		}
 		else
@@ -1954,7 +1947,7 @@ void FClassHierarchy::FindClass(TSharedPtr< FClassViewerNode > InOutClassNode)
 				InOutClassNode->Blueprint = Cast<UBlueprint>(Object);
 				if (InOutClassNode->Blueprint.IsValid())
 				{
-					InOutClassNode->Class = Cast<UClass>(InOutClassNode->Blueprint->GeneratedClass);
+					InOutClassNode->Class = *InOutClassNode->Blueprint->GeneratedClass;
 				}
 			}
 			else if (UClass* Class = Cast<UClass>(Object))
@@ -2129,20 +2122,39 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 		}
 	}
 
-	// Build the top menu.
-	TSharedRef< FUICommandList > CommandList(new FUICommandList());
-	FMenuBarBuilder MenuBarBuilder( CommandList );
+	TSharedRef<SWidget> FiltersWidget = SNullWidget::NullWidget;
+	// Build the top menu
+	if(InitOptions.Mode == EClassViewerMode::ClassBrowsing)
 	{
-		if( InitOptions.Mode == EClassViewerMode::ClassBrowsing )
-		{
-			MenuBarBuilder.AddPullDownMenu( LOCTEXT("Filters", "Filters"), LOCTEXT("Filters_Tooltip", "Filter options for the Class Viewer."), FNewMenuDelegate::CreateRaw( this, &SClassViewer::FillFilterEntries ) );
-		}
-		
-		// Only want the options this menu generates if in tree view.
-		if( InitOptions.Mode == EClassViewerMode::ClassBrowsing && InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView )
-		{
-			MenuBarBuilder.AddPullDownMenu( LOCTEXT("View", "View"), LOCTEXT("Tree_Tooltip", "Tree options for the Class Viewer."), FNewMenuDelegate::CreateRaw( this, &SClassViewer::FillTreeEntries ) );
-		}
+		FiltersWidget = 
+		SNew(SComboButton)
+		.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
+		.ForegroundColor(FLinearColor::White)
+		.ContentPadding(0)
+		.ToolTipText(LOCTEXT("Filters_Tooltip", "Filter options for the Class Viewer."))
+		.OnGetMenuContent(this, &SClassViewer::FillFilterEntries)
+		.HasDownArrow(true)
+		.ContentPadding(FMargin(1, 0))
+		.ButtonContent()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
+				.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2, 0, 0, 0)
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+				.Text(LOCTEXT("Filters", "Filters"))
+			]
+		];
 	}
 
 	// Create the asset discovery indicator
@@ -2172,7 +2184,8 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 			+ SHeaderRow::Column(TEXT("Class"))
 			.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
 		);
-	SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
+
+		SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
 		.SelectionMode(ESelectionMode::Single)
 		.TreeItemsSource(&RootTreeItems)
 		// Called to child items for any given parent item
@@ -2202,126 +2215,136 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 	// Holds the bulk of the class viewer's sub-widgets, to be added to the widget after construction
 	TSharedPtr< SWidget > ClassViewerContent;
 
-	SAssignNew(ClassViewerContent, SVerticalBox)
-	+SVerticalBox::Slot()
-	.AutoHeight()
+	ClassViewerContent = 
+	SNew(SBorder)
+	.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 	[
-		MenuBarBuilder.MakeWidget()
-	]
-
-	+SVerticalBox::Slot()
-	.AutoHeight()
-	.Padding( 1.0f, 0.0f, 1.0f, 0.0f )
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.VAlign(VAlign_Center)
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding( 1.0f, 0.0f, 1.0f, 0.0f )
 		[
-			SNew(STextBlock)
-			.Visibility(bHasTitle ? EVisibility::Visible : EVisibility::Collapsed)
-			.ColorAndOpacity(FEditorStyle::GetColor("MultiboxHookColor"))
-			.Text(InitOptions.ViewerTitleString)
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Visibility(bHasTitle ? EVisibility::Visible : EVisibility::Collapsed)
+				.ColorAndOpacity(FEditorStyle::GetColor("MultiboxHookColor"))
+				.Text(InitOptions.ViewerTitleString)
+			]
 		]
-	]
-	+SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		SAssignNew(SearchBox, SSearchBox)
-			.OnTextChanged( this, &SClassViewer::OnFilterTextChanged )
-			.OnTextCommitted( this, &SClassViewer::OnFilterTextCommitted )
-	]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 2.0f)
+			[
+				FiltersWidget
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f, 2.0f)
+			[
+				SAssignNew(SearchBox, SSearchBox)
+				.OnTextChanged( this, &SClassViewer::OnFilterTextChanged )
+				.OnTextCommitted( this, &SClassViewer::OnFilterTextCommitted )
+			]
+		]
 
-	+SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		SNew(SSeparator)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SSeparator)
 			.Visibility(HeaderVisibility)
-	]
+		]
 
-	+SVerticalBox::Slot()
-	.FillHeight(1.0f)
-	[
-		SNew(SOverlay)
-
-		+SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
+		+SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox)
+			SNew(SOverlay)
 
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
 			[
-				SNew(SScrollBorder, ClassTreeView)
-				.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView ? EVisibility::Visible : EVisibility::Collapsed)
+				SNew(SVerticalBox)
+
+				+SVerticalBox::Slot()
+				.FillHeight(1.0f)
 				[
-					ClassTreeView
+					SNew(SScrollBorder, ClassTreeView)
+					.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView ? EVisibility::Visible : EVisibility::Collapsed)
+					[
+						ClassTreeView
+					]
+				]
+
+				+SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				[
+					SNew(SScrollBorder, ClassListView)
+					.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
+					[
+						ClassListView
+					]
 				]
 			]
 
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			.Padding(FMargin(24, 0, 24, 0))
 			[
-				SNew(SScrollBorder, ClassListView)
-				.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
-				[
-					ClassListView
-				]
+				// Asset discovery indicator
+				AssetDiscoveryIndicator
 			]
 		]
 
-		+SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Bottom)
-		.Padding(FMargin(24, 0, 24, 0))
+		// Bottom panel
+		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			// Asset discovery indicator
-			AssetDiscoveryIndicator
-		]
-	]
+			SNew(SHorizontalBox)
 
-	// Bottom panel
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		SNew(SHorizontalBox)
-
-		// Asset count
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.f)
-		.VAlign(VAlign_Center)
-		.Padding(8, 0)
-		[
-			SNew(STextBlock)
-			.Text(this, &SClassViewer::GetClassCountText)
-		]
-
-		// View mode combo button
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SAssignNew(ViewOptionsComboButton, SComboButton)
-			.ContentPadding(0)
-			.ForegroundColor(this, &SClassViewer::GetViewButtonForegroundColor)
-			.ButtonStyle(FEditorStyle::Get(), "ToggleButton") // Use the tool bar item style for this button
-			.OnGetMenuContent(this, &SClassViewer::GetViewButtonContent)
-			.ButtonContent()
+			// Asset count
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			.VAlign(VAlign_Center)
+			.Padding(8, 0)
 			[
-				SNew(SHorizontalBox)
+				SNew(STextBlock)
+				.Text(this, &SClassViewer::GetClassCountText)
+			]
+
+			// View mode combo button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SAssignNew(ViewOptionsComboButton, SComboButton)
+				.ContentPadding(0)
+				.ForegroundColor(this, &SClassViewer::GetViewButtonForegroundColor)
+				.ButtonStyle(FEditorStyle::Get(), "ToggleButton") // Use the tool bar item style for this button
+				.OnGetMenuContent(this, &SClassViewer::GetViewButtonContent)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SImage).Image(FEditorStyle::GetBrush("GenericViewButton"))
+					]
+
 					+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage).Image(FEditorStyle::GetBrush("GenericViewButton"))
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2, 0, 0, 0)
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(LOCTEXT("ViewButton", "View Options"))
+					.AutoWidth()
+					.Padding(2, 0, 0, 0)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock).Text(LOCTEXT("ViewButton", "View Options"))
+					]
 				]
 			]
 		]
@@ -2337,19 +2360,19 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 	if ( InitOptions.Mode == EClassViewerMode::ClassPicker && InitOptions.DisplayMode == EClassViewerDisplayMode::ListView )
 	{
 		this->ChildSlot
+		[
+			SNew(SListViewSelectorDropdownMenu<TSharedPtr<FClassViewerNode>>, SearchBox, ClassList)
 			[
-				SNew(SListViewSelectorDropdownMenu<TSharedPtr<FClassViewerNode>>, SearchBox, ClassList)
-				[
-					ClassViewerContent.ToSharedRef()
-				]
-			];
+				ClassViewerContent.ToSharedRef()
+			]
+		];
 	}
 	else
 	{
 		this->ChildSlot
-			[
-				ClassViewerContent.ToSharedRef()
-			];
+		[
+			ClassViewerContent.ToSharedRef()
+		];
 	}
 
 	// Construct the class hierarchy.
@@ -2554,6 +2577,10 @@ TSharedRef<SWidget> SClassViewer::GetViewButtonContent()
 	// Get all menu extenders for this context menu from the content browser module
 
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL, NULL, /*bCloseSelfOnly=*/ true);
+
+	MenuBuilder.AddMenuEntry(LOCTEXT("ExpandAll", "Expand All"), LOCTEXT("ExpandAll_Tooltip", "Expands the entire tree"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SClassViewer::SetAllExpansionStates, bool(true))), NAME_None, EUserInterfaceActionType::Button);
+	MenuBuilder.AddMenuEntry(LOCTEXT("CollapseAll", "Collapse All"), LOCTEXT("CollapseAll_Tooltip", "Collapses the entire tree"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SClassViewer::SetAllExpansionStates, bool(false))), NAME_None, EUserInterfaceActionType::Button);
+
 	MenuBuilder.BeginSection("Filters", LOCTEXT("ClassViewerFiltersHeading", "Class Filters"));
 	{
 		MenuBuilder.AddMenuEntry(
@@ -2616,6 +2643,8 @@ TSharedRef<SWidget> SClassViewer::GetViewButtonContent()
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+
+	return MenuBuilder.MakeWidget();
 }
 
 void SClassViewer::SetCurrentDeveloperViewType(EClassViewerDeveloperType NewType)
@@ -2642,7 +2671,7 @@ bool SClassViewer::IsCurrentDeveloperViewType(EClassViewerDeveloperType ViewType
 	return GetCurrentDeveloperViewType() == ViewType;
 }
 
-void SClassViewer::GetInternalOnlyClasses(TArray<FStringClassReference>& Classes)
+void SClassViewer::GetInternalOnlyClasses(TArray<FSoftClassPath>& Classes)
 {
 	if (!InitOptions.bAllowViewOptions)
 	{
@@ -2848,8 +2877,9 @@ bool SClassViewer::MenuBlueprintBasesOnly_IsChecked() const
 	return bIsBlueprintBaseOnly;
 }
 
-void SClassViewer::FillFilterEntries( FMenuBuilder& MenuBuilder )
+TSharedRef<SWidget> SClassViewer::FillFilterEntries()
 {
+	FMenuBuilder MenuBuilder(true, nullptr);
 	MenuBuilder.BeginSection("ClassViewerFilterEntries");
 	{
 		MenuBuilder.AddMenuEntry( LOCTEXT("ActorsOnly", "Actors Only"), LOCTEXT( "ActorsOnly_Tooltip", "Filter the Class Viewer to show only actors" ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuActorsOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuActorsOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
@@ -2862,12 +2892,8 @@ void SClassViewer::FillFilterEntries( FMenuBuilder& MenuBuilder )
 		MenuBuilder.AddMenuEntry( LOCTEXT("BlueprintsOnly", "Blueprint Class Bases Only"), LOCTEXT( "BlueprinsOnly_Tooltip", "Filter the Class Viewer to show only base blueprint classes." ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
 	}
 	MenuBuilder.EndSection();
-}
 
-void SClassViewer::FillTreeEntries( FMenuBuilder& MenuBuilder )
-{
-	MenuBuilder.AddMenuEntry( LOCTEXT("ExpandAll", "Expand All"), LOCTEXT( "ExpandAll_Tooltip", "Expands the entire tree" ), FSlateIcon(), FUIAction( FExecuteAction::CreateSP(this, &SClassViewer::SetAllExpansionStates, bool(true)) ), NAME_None, EUserInterfaceActionType::Button );
-	MenuBuilder.AddMenuEntry( LOCTEXT("CollapseAll", "Collapse All"), LOCTEXT( "CollapseAll_Tooltip", "Collapses the entire tree" ), FSlateIcon(), FUIAction( FExecuteAction::CreateSP(this, &SClassViewer::SetAllExpansionStates, bool(false)) ), NAME_None, EUserInterfaceActionType::Button );
+	return MenuBuilder.MakeWidget();
 }
 
 void SClassViewer::SetAllExpansionStates(bool bInExpansionState)
@@ -2992,7 +3018,7 @@ void SClassViewer::Populate()
 
 	bool ShowingInternalClasses = IsShowingInternalClasses();
 
-	TArray<FStringClassReference> InternalClassNames;
+	TArray<FSoftClassPath> InternalClassNames;
 	TArray<UClass*> InternalClasses;
 	TArray<FDirectoryPath> InternalPaths;
 	// If we aren't showing the internal classes, then we need to know what classes to consider Internal Only, so let's gather them up from the settings object.

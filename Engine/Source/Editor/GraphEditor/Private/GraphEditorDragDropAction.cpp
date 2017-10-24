@@ -195,21 +195,33 @@ EVisibility FGraphEditorDragDropAction::GetErrorIconVisible() const
 
 void FGraphSchemaActionDragDropAction::HoverTargetChanged()
 {
-	if(ActionNode.IsValid())
+	if (SourceAction.IsValid())
 	{
-		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
+		const FSlateBrush* PrimarySymbol;
+		const FSlateBrush* SecondarySymbol;
+		FSlateColor PrimaryColor;
+		FSlateColor SecondaryColor;
+		GetDefaultStatusSymbol(/*out*/ PrimarySymbol, /*out*/ PrimaryColor, /*out*/ SecondarySymbol, /*out*/ SecondaryColor);
 
 		//Create feedback message with the function name.
-		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, ActionNode->GetMenuDescription());
+		SetSimpleFeedbackMessage(PrimarySymbol, PrimaryColor, SourceAction->GetMenuDescription(), SecondarySymbol, SecondaryColor);
 	}
+}
+
+void FGraphSchemaActionDragDropAction::GetDefaultStatusSymbol(const FSlateBrush*& PrimaryBrushOut, FSlateColor& IconColorOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut) const
+{
+	PrimaryBrushOut = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
+	IconColorOut = FLinearColor::White;
+	SecondaryBrushOut = nullptr;
+	SecondaryColorOut = FLinearColor::White;
 }
 
 FReply FGraphSchemaActionDragDropAction::DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph)
 {
-	if(ActionNode.IsValid())
+	if (SourceAction.IsValid())
 	{
 		TArray<UEdGraphPin*> DummyPins;
-		ActionNode->PerformAction(&Graph, DummyPins, GraphPosition);
+		SourceAction->PerformAction(&Graph, DummyPins, GraphPosition);
 
 		return FReply::Handled();
 	}
@@ -220,7 +232,7 @@ FReply FGraphSchemaActionDragDropAction::DroppedOnPin(FVector2D ScreenPosition, 
 {
 	if (UEdGraph* Graph = GetHoveredGraph())
 	{
-		if (ActionNode.IsValid())
+		if (SourceAction.IsValid())
 		{
 			TArray<UEdGraphPin*> DummyPins;
 			if (UEdGraphPin* Pin = GetHoveredPin())
@@ -228,7 +240,7 @@ FReply FGraphSchemaActionDragDropAction::DroppedOnPin(FVector2D ScreenPosition, 
 				DummyPins.Add(Pin);
 			}
 
-			ActionNode->PerformAction(Graph, DummyPins, GraphPosition);
+			SourceAction->PerformAction(Graph, DummyPins, GraphPosition);
 
 			return FReply::Handled();
 		}

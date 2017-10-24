@@ -182,6 +182,8 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
+	BLUEPRINTGRAPH_API virtual bool CanJumpToDefinition() const override;
+	BLUEPRINTGRAPH_API virtual void JumpToDefinition() const override;
 	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
@@ -266,9 +268,9 @@ class UK2Node : public UEdGraphNode
 	/** Performs a node-specific deprecation fixup, which may delete this node and replace it with another one */
 	BLUEPRINTGRAPH_API virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) {}
 
-	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return NULL; }
+	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return nullptr; }
 
-	BLUEPRINTGRAPH_API void ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
+	BLUEPRINTGRAPH_API UK2Node* ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);
 
 	/**
 	 * Query if this is a node that is safe to ignore (e.g., a comment node or other non-structural annotation that can be pruned with no warnings).
@@ -300,7 +302,7 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @return	Reference to an actor corresponding to this node, or NULL if no actors are referenced
 	 */
-	virtual AActor* GetReferencedLevelActor() const { return NULL; }
+	virtual AActor* GetReferencedLevelActor() const { return nullptr; }
 
 	// Can this node be created under the specified schema
 	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
@@ -339,7 +341,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
 
 	/** Called before compilation begins, giving a blueprint time to force the linker to load data */
-	BLUEPRINTGRAPH_API virtual void PreloadRequiredAssets();
+	BLUEPRINTGRAPH_API virtual void PreloadRequiredAssets() { }
 
 	/** 
 	 * Replacement for GetMenuEntries(). Override to add specific 
@@ -395,8 +397,7 @@ protected:
 	{
 		ERedirectType_None,
 		ERedirectType_Name,
-		ERedirectType_Value,
-		ERedirectType_Custom // DEPRECATED
+		ERedirectType_Value
 	};
 
 	// Handles the actual reconstruction (copying data, links, name, etc...) from two pins that have already been matched together
@@ -407,9 +408,6 @@ protected:
 
 	// Helper function to properly destroy a set of pins
 	BLUEPRINTGRAPH_API void DestroyPinList(TArray<UEdGraphPin*>& InPins);
-
-	DEPRECATED(4.16, "This function is deprecated, override ReconstructSinglePin instead ")
-	BLUEPRINTGRAPH_API virtual void CustomMapParamValue(UEdGraphPin& Pin);
 
 	/** Whether or not two pins match for purposes of reconnection after reconstruction.  This allows pins that may have had their names changed via reconstruction to be matched to their old values on a node-by-node basis, if needed*/
 	BLUEPRINTGRAPH_API virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const;

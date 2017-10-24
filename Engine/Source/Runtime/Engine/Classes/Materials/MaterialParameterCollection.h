@@ -94,6 +94,7 @@ class UMaterialParameterCollection : public UObject
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
+	virtual bool CanBeInCluster() const override { return false; }
 	//~ End UObject Interface.
 
 	/** Finds a parameter name given an Id, returns NAME_None if the parameter was not found. */

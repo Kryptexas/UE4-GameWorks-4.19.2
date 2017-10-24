@@ -249,7 +249,7 @@ void FSpeedTreeImportDataDetails::CustomizeDetails(IDetailLayoutBuilder& DetailL
 	{
 		for (TSharedRef<IPropertyHandle> Handle : MaterialCategoryDefaultProperties)
 		{
-			FString MetaData = Handle->GetMetaData(TEXT("EditCondition"));
+			const FString& MetaData = Handle->GetMetaData(TEXT("EditCondition"));
 			if (MetaData.Compare(TEXT("MakeMaterialsCheck")) == 0 && IncludeVertexProcessingCheckProp->GetProperty() != Handle->GetProperty())
 			{
 				MaterialsCategoryBuilder.AddProperty(Handle);
@@ -259,7 +259,7 @@ void FSpeedTreeImportDataDetails::CustomizeDetails(IDetailLayoutBuilder& DetailL
 		VertexProcessingGroup.AddPropertyRow(IncludeVertexProcessingCheckProp);
 		for (TSharedRef<IPropertyHandle> Handle : MaterialCategoryDefaultProperties)
 		{
-			FString MetaData = Handle->GetMetaData(TEXT("EditCondition"));
+			const FString& MetaData = Handle->GetMetaData(TEXT("EditCondition"));
 			if (MetaData.Compare(TEXT("IncludeVertexProcessingCheck")) == 0)
 			{
 				VertexProcessingGroup.AddPropertyRow(Handle);

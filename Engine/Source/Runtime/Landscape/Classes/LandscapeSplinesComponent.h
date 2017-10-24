@@ -133,7 +133,7 @@ protected:
 #if WITH_EDITORONLY_DATA
 	// Serialized
 	UPROPERTY(TextExportTransient)
-	TMap<TAssetPtr<UWorld>, FForeignWorldSplineData> ForeignWorldSplineDataMap;
+	TMap<TSoftObjectPtr<UWorld>, FForeignWorldSplineData> ForeignWorldSplineDataMap;
 
 	// Transient - rebuilt on load
 	TMap<UMeshComponent*, UObject*> MeshComponentLocalOwnersMap;

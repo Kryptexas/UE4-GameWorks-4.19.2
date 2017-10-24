@@ -544,10 +544,10 @@ void SEditorViewport::OnScreenCapture()
 
 void SEditorViewport::OnScreenCaptureForProjectThumbnail()
 {
-	if ( FApp::HasGameName() )
+	if ( FApp::HasProjectName() )
 	{
-		const FString BaseFilename = FString(FApp::GetGameName()) + TEXT(".png");
-		const FString ScreenshotFilename = FPaths::Combine(*FPaths::GameDir(), *BaseFilename);
+		const FString BaseFilename = FString(FApp::GetProjectName()) + TEXT(".png");
+		const FString ScreenshotFilename = FPaths::Combine(*FPaths::ProjectDir(), *BaseFilename);
 		UThumbnailManager::CaptureProjectThumbnail(Client->Viewport, ScreenshotFilename, true);
 	}
 }

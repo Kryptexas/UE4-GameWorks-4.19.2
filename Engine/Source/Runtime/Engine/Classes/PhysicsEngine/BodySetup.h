@@ -138,7 +138,7 @@ class UBodySetup : public UObject
 	FName BoneName;
 
 	/** 
-	 *	If Unfixed it will use physics. If fixed, it will use kinematic. Default will inherit from OwnerComponent's behavior.
+	 *	If simulated it will use physics, if kinematic it will not be affected by physics, but can interact with physically simulated bodies. Default will inherit from OwnerComponent's behavior.
 	 */
 	UPROPERTY(EditAnywhere, Category=Physics)
 	TEnumAsByte<EPhysicsType> PhysicsType;
@@ -396,15 +396,6 @@ public:
 #endif // WITH_EDITOR
 
 #if WITH_PHYSX
-	/** 
-	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
-	 */
-	DEPRECATED(4.8, "Please call AddShapesToRigidActor_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	ENGINE_API void AddShapesToRigidActor(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM = FTransform::Identity, TArray<physx::PxShape*>* NewShapes = NULL)
-	{
-		AddShapesToRigidActor_AssumesLocked(OwningInstance, PDestActor, SceneType, Scale3D, SimpleMaterial, ComplexMaterials, ShapeData, RelativeTM, NewShapes);
-	}
-
 	/** 
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */

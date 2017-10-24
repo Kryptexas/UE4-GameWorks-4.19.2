@@ -19,30 +19,21 @@ class TFunction;
  */
 struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 {
-	static class GenericApplication* CreateApplication();
-
-	static void RequestMinimize();
 	static void RequestExit( bool Force );
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static void PlatformTearDown();
 	static void PlatformHandleSplashScreen(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
-	static void* GetHardwareWindow();
-	static void SetHardwareWindow(void* InWindow);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool AllowRenderThread();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
+	static void SetThreadName(const char* name);
 	static bool SupportsES30();
-	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& OutScreenDensity);
 
 public:
 
@@ -64,34 +55,29 @@ public:
 
 	struct FCPUState
 	{
+		const static int32			MaxSupportedCores = 16; //Core count 16 is maximum for now
 		int32						CoreCount;
 		int32						ActivatedCoreCount;
-		ANSICHAR					Name[5];
-		FAndroidMisc::FCPUStatTime	CurrentUsage[8]; //Core count 8 is maximum for now
-		FAndroidMisc::FCPUStatTime	PreviousUsage[8];
-		int32						Status[8];
-		double						Utilization[8];
+		ANSICHAR					Name[6];
+		FAndroidMisc::FCPUStatTime	CurrentUsage[MaxSupportedCores]; 
+		FAndroidMisc::FCPUStatTime	PreviousUsage[MaxSupportedCores];
+		int32						Status[MaxSupportedCores];
+		double						Utilization[MaxSupportedCores];
 		double						AverageUtilization;
 		
 	};
 
 	static FCPUState& GetCPUState();
 	static int32 NumberOfCores();
-	static void LoadPreInitModules();
-	static void BeforeRenderThreadStarts();
 	static bool SupportsLocalCaching();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool GetUseVirtualJoysticks();
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
+	static bool SupportsTouchInput();
 	static const TCHAR* GetDefaultDeviceProfileName() { return TEXT("Android_Default"); }
 	static bool GetVolumeButtonsHandledBySystem();
 	static void SetVolumeButtonsHandledBySystem(bool enabled);
-	static void ResetGamepadAssignments();
-	static void ResetGamepadAssignmentToController(int32 ControllerId);
-	static bool IsControllerAssignedToGamepad(int32 ControllerId);
 	// Returns current volume, 0-15
 	static int GetVolumeState(double* OutTimeOfChangeInSec = nullptr);
 	static const TCHAR* GamePersistentDownloadDir();
@@ -101,7 +87,8 @@ public:
 	static FString GetCPUVendor();
 	static FString GetCPUBrand();
 	static void GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel);
-
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
+	
 	enum EBatteryState
 	{
 		BATTERY_STATE_UNKNOWN = 1,
@@ -151,7 +138,6 @@ public:
 	static ReInitWindowCallbackType GetOnReInitWindowCallback();
 	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
 	static FString GetOSVersion();
-	static float GetWindowUpscaleFactor();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
@@ -208,8 +194,6 @@ public:
 	static void EndNamedEvent();
 #endif
 
-	static void* NativeWindow ; //raw platform Main window
-
 #if STATS
 	static int32 TraceMarkerFileDescriptor;
 #endif
@@ -224,6 +208,15 @@ public:
 	static int32 AndroidBuildVersion;
 
 	static bool VolumeButtonsHandledBySystem;
+
+	enum class ECoreFrequencyProperty
+	{
+		CurrentFrequency,
+		MaxFrequency,
+		MinFrequency,
+	};
+
+	static uint32 GetCoreFrequency(int32 CoreIndex, ECoreFrequencyProperty CoreFrequencyProperty);
 };
 
 typedef FAndroidMisc FPlatformMisc;

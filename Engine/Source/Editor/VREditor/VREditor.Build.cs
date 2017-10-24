@@ -11,6 +11,7 @@ namespace UnrealBuildTool.Rules
                     "AppFramework",
 				    "Core",
 				    "CoreUObject",
+					"ApplicationCore",
 				    "Engine",
                     "InputCore",
 				    "Slate",

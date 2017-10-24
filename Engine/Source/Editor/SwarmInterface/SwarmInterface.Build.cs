@@ -21,7 +21,7 @@ public class SwarmInterface : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PrivateDependencyModuleNames.Add("Messaging");
+			PrivateIncludePathModuleNames.Add("MessagingCommon");
 		}
 	}
 }

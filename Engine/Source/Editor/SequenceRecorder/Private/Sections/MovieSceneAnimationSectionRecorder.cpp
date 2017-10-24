@@ -15,9 +15,9 @@ TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneAnimationSectionRecorderFactor
 	return nullptr;
 }
 
-TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const
+TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UAnimSequence* InAnimSequence, const FAnimationRecordingSettings& InAnimationSettings) const
 {
-	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InAnimationSettings, InActorRecording->TargetAnimation.Get()));
+	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InAnimationSettings, InAnimSequence));
 }
 
 bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const

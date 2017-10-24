@@ -26,11 +26,15 @@
 
 /// \file js/utils.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/js/api.h"
 #include "pxr/base/js/value.h"
+
 #include <boost/none.hpp>
 #include <boost/optional.hpp>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 typedef boost::optional<JsValue> JsOptionalValue;
 
@@ -38,10 +42,12 @@ typedef boost::optional<JsValue> JsOptionalValue;
 /// such key exists, and the supplied default is not supplied, this method
 /// returns an uninitialized optional JsValue. Otherwise, the \p 
 /// defaultValue is returned.
-
-JS_API JsOptionalValue JsFindValue(
+JS_API
+JsOptionalValue JsFindValue(
     const JsObject& object,
     const std::string& key,
     const JsOptionalValue& defaultValue = boost::none);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // JS_UTILS_H

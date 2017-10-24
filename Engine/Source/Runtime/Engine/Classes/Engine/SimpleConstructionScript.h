@@ -133,7 +133,7 @@ private:
 
 #if WITH_EDITOR
 	/** Helper function for generating list of currently used names */
-	void GenerateListOfExistingNames(TArray<FName>& CurrentNames) const;
+	void GenerateListOfExistingNames(TSet<FName>& CurrentNames) const;
 
 	/** Helper function for generating a name for a new node, DesiredName can be used to optionally request a name, ComponentClass is mandatory */
 	FName GenerateNewComponentName(const UClass* ComponentClass, FName DesiredName = NAME_None) const;

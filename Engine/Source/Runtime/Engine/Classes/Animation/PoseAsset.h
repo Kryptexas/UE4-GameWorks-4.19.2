@@ -204,9 +204,15 @@ public:
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive = true) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 	// End AnimationAsset interface
-#endif
 
 	ENGINE_API bool ModifyPoseName(FName OldPoseName, FName NewPoseName, const SmartName::UID_Type* NewUID);
+
+	// Rename the smart names used by this Pose Asset
+	ENGINE_API void RenameSmartName(const FName& InOriginalName, const FName& InNewName);
+
+	// Remove poses or curves using the smart names supplied
+	ENGINE_API void RemoveSmartNames(const TArray<FName>& InNamesToRemove);
+#endif
 
 	ENGINE_API int32 DeletePoses(TArray<FName> PoseNamesToDelete);
 	ENGINE_API int32 DeleteCurves(TArray<FName> CurveNamesToDelete);

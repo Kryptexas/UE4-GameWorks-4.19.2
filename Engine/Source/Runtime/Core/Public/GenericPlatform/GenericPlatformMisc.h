@@ -118,6 +118,31 @@ enum class EConvertibleLaptopMode
 	Tablet
 };
 
+/** Device orientations for screens. e.g. Landscape, Portrait, etc.*/
+enum class EDeviceScreenOrientation : uint8
+{
+	/** The orientation is not known */
+	Unknown,
+	
+	/** The orientation is portrait with the home button at the bottom */
+	Portrait,
+	
+	/** The orientation is portrait with the home button at the top */
+	PortraitUpsideDown,
+	
+	/** The orientation is landscape with the home button at the right side */
+	LandscapeLeft,
+	
+	/** The orientation is landscape with the home button at the left side */
+	LandscapeRight,
+	
+	/** The orientation is as if place on a desk with the screen upward */
+	FaceUp,
+	
+	/** The orientation is as if place on a desk with the screen downward */
+	FaceDown
+};
+
 
 namespace EErrorReportMode
 {
@@ -187,16 +212,6 @@ struct CORE_API FSHA256Signature
 };
 
 /**
- * The accuracy when dealing with physical characteristics of the monitor/screen of the device we're running on.
- */
-enum class EScreenPhysicalAccuracy
-{
-	Unknown,
-	Approximation,
-	Truth
-};
-
-/**
 * Generic implementation for most platforms
 **/
 struct CORE_API FGenericPlatformMisc
@@ -206,7 +221,6 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void PlatformPreInit();
 	static void PlatformInit() { }
-	static void PlatformPostInit() { }
 
 	/**
 	* Called to dismiss splash screen
@@ -217,12 +231,6 @@ struct CORE_API FGenericPlatformMisc
 	 * Called during AppExit(). Log, Config still exist at this point, but not much else does.
 	 */
 	static void PlatformTearDown() { }
-	static GenericApplication* CreateApplication();
-
-	static void* GetHardwareWindow()
-	{
-		return nullptr;
-	}
 
 	/** Set/restore the Console Interrupt (Control-C, Control-Break, Close) handler. */
 	static void SetGracefulTerminationHandler() { }
@@ -358,6 +366,11 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static uint32 GetCPUInfo();
 
+	/** @return whether this cpu supports certain required instructions or not */
+	static bool HasNonoptionalCPUFeatures();
+	/** @return whether to check for specific CPU compatibility or not */
+	static bool NeedsNonoptionalCPUFeaturesCheck();
+
 	/** 
 	 * Uses cpuid instruction to get the CPU brand string
 	 *
@@ -429,41 +442,12 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 
-	/**
-	 *	Pumps Windows messages.
-	 *	@param bFromMainLoop if true, this is from the main loop, otherwise we are spinning waiting for the render thread
-	 */
-	FORCEINLINE static void PumpMessages(bool bFromMainLoop)
-	{
-	}
-
-	FORCEINLINE static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-	{
-		return 0;
-	}
-
-	FORCEINLINE static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-	{
-		return 0;
-	}
-
 	FORCEINLINE static uint32 GetLastError()
 	{
 		return 0;
 	}
 
 	static void RaiseException( uint32 ExceptionCode );
-
-protected:
-
-	/**
-	* Retrieves some standard key code mappings (usually called by a subclass's GetCharKeyMap)
-	*
-	* @param OutKeyMap Key map to add to.
-	* @param bMapUppercaseKeys If true, will map A, B, C, etc to EKeys::A, EKeys::B, EKeys::C
-	* @param bMapLowercaseKeys If true, will map a, b, c, etc to EKeys::A, EKeys::B, EKeys::C
-	*/
-	static uint32 GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys);
 
 public:
 
@@ -557,9 +541,6 @@ public:
 	 */
 	static bool HasSeparateChannelForDebugOutput();
 
-	/** Request application to minimize (goto background). **/
-	static void RequestMinimize();
-
 	/**
 	 * Requests application exit.
 	 *
@@ -587,9 +568,11 @@ public:
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 
 	/** Copies text to the operating system clipboard. */
+	DEPRECATED(4.18, "FPlatformMisc::ClipboardCopy() has been superseded by FPlatformApplicationMisc::ClipboardCopy()")
 	static void ClipboardCopy(const TCHAR* Str);
 
 	/** Pastes in text from the operating system clipboard. */
+	DEPRECATED(4.18, "FPlatformMisc::ClipboardPaste() has been superseded by FPlatformApplicationMisc::ClipboardPaste()")
 	static void ClipboardPaste(class FString& Dest);
 
 	/** Create a new globally unique identifier. **/
@@ -603,31 +586,6 @@ public:
 	 * @return Very strange convention...not really EAppReturnType, see implementation
 	 */
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-
-	/**
-	 * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
-	 * Vista in the presence of a group policy for password protected screen saver.
-	 */
-	static void PreventScreenSaver()
-	{
-	}
-
-	enum EScreenSaverAction
-	{
-		Disable,
-		Enable
-	};
-
-	/**
-	 * Disables screensaver (if platform supports such an API)
-	 *
-	 * @param Action enable or disable
-	 * @return true if succeeded, false if platform does not have this API and PreventScreenSaver() hack is needed
-	 */
-	static bool ControlScreensaver(EScreenSaverAction Action)
-	{
-		return false;
-	}
 
 	/**
 	 * Handles Game Explorer, Firewall and FirstInstall commands, typically from the installer
@@ -751,9 +709,9 @@ public:
 	static void CacheLaunchDir();
 
 	/**
-	 *	Return the GameDir
+	 *	Return the project directory
 	 */
-	static const TCHAR* GameDir();
+	static const TCHAR* ProjectDir();
 
 	/**
 	*	Return the CloudDir.  CloudDir can be per-user.
@@ -766,20 +724,6 @@ public:
 	*	This dir is always per-game.
 	*/
 	static const TCHAR* GamePersistentDownloadDir();
-
-	/**
-	 * Load the preinit modules required by this platform, typically they are the renderer modules
-	 */
-	static void LoadPreInitModules()
-	{
-	}
-
-	/**
-	 * Load the platform-specific startup modules
-	 */
-	static void LoadStartupModules()
-	{
-	}
 
 	static const TCHAR* GetUBTPlatform();
 
@@ -832,20 +776,6 @@ public:
 	}
 
 	/**
-	 * Searches for a window that matches the window name or the title starts with a particular text. When
-	 * found, it returns the title text for that window
-	 *
-	 * @param TitleStartsWith an alternative search method that knows part of the title text
-	 * @param OutTitle the string the data is copied into
-	 *
-	 * @return whether the window was found and the text copied or not
-	 */
-	static bool GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle)
-	{
-		return false;
-	}
-
-	/**
 	* Generates the SHA256 signature of the given data.
 	* 
 	*
@@ -892,15 +822,6 @@ public:
 	/** @return Get the name of the platform specific file manager (eg, Explorer on Windows, Finder on OS X) */
 	static FText GetFileManagerName();
 
-	/**
-	 * Sample the displayed pixel color from anywhere on the screen using the OS
-	 *
-	 * @param	InScreenPos		The screen coords to sample for current pixel color
-	 * @param	InGamma			Optional gamma correction to apply to the screen color
-	 * @return					The color of the pixel displayed at the chosen location
-	 */
-	static struct FLinearColor GetScreenPixelColor(const struct FVector2D& InScreenPos, float InGamma = 1.0f);
-
 #if !UE_BUILD_SHIPPING
 	static void SetShouldPromptForRemoteDebugging(bool bInShouldPrompt)
 	{
@@ -946,7 +867,10 @@ public:
 	/** 
 	 * Allows a game/program/etc to control the game directory in a special place (for instance, monolithic programs that don't have .uprojects)
 	 */
-	static void SetOverrideGameDir(const FString& InOverrideDir);
+	static void SetOverrideProjectDir(const FString& InOverrideDir);
+
+	DEPRECATED(4.18, "FPaths::SetOverrideGameDir() has been superseded by FPaths::SetOverrideProjectDir().")
+	static FORCEINLINE void SetOverrideGameDir(const FString& InOverrideDir) { return SetOverrideProjectDir(InOverrideDir); }
 
 	/**
 	 * Return an ordered list of target platforms this runtime can support (ie Android_DXT, Android
@@ -962,32 +886,17 @@ public:
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
 
+	static bool SupportsTouchInput()
+	{
+		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
+	}
+
 	/*
 	 * Returns whether the volume buttons are handled by the system
 	 */
 	static bool GetVolumeButtonsHandledBySystem()
 	{
 		return true;
-	}
-
-	/*
-	 * Resets the gamepad to player controller id assignments
-	 */
-	static void ResetGamepadAssignments()
-	{}
-
-	/*
-	* Resets the gamepad assignment to player controller id
-	*/
-	static void ResetGamepadAssignmentToController(int32 ControllerId)
-	{}
-
-	/*
-	 * Returns true if controller id assigned to a gamepad
-	 */
-	static bool IsControllerAssignedToGamepad(int32 ControllerId)
-	{
-		return (ControllerId == 0);
 	}
 
 	/*
@@ -998,13 +907,6 @@ public:
 
 	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
 	static TArray<uint8> GetSystemFontBytes();
-	/**
-	* Returns whether the platform wants to use a touch screen for a virtual keyboard.
-	*/
-	static bool GetRequiresVirtualKeyboard()
-	{
-		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
-	}
 
 	/**
 	 * Returns whether WiFi connection is currently active
@@ -1035,6 +937,12 @@ public:
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+	
+	/**
+	 * Returns the orientation of the device: e.g. Portrait, LandscapeRight.
+	 * @see EScreenOrientation
+	 */
+	static EDeviceScreenOrientation GetDeviceOrientation();
 
 	/**
 	 * Get (or create) the unique ID used to identify this computer.
@@ -1112,46 +1020,14 @@ public:
 	static void RegisterForRemoteNotifications();
 
 	/**
+	 * Returns whether or not the device has been registered to receive remote notifications.
+	 */
+	static bool IsRegisteredForRemoteNotifications();
+
+	/**
 	* Requests unregistering from receiving remote notifications on the user's device.
 	*/
 	static void UnregisterForRemoteNotifications();
-
-	/**
-	 * Gets the physical size of the screen if possible.  Some platforms lie, some platforms don't know.
-	 */
-	static EScreenPhysicalAccuracy GetPhysicalScreenDensity(int32& OutScreenDensity);
-
-	/**
-	 * Gets the physical size of the screen if possible.  Some platforms lie, some platforms don't know.
-	 */
-	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& OutScreenDensity);
-
-	/**
-	 * If we know or can approximate the pixel density of the screen we will convert the incoming inches
-	 * to pixels on the device.  If the accuracy is unknown OutPixels will be set to 0.
-	 */
-	static EScreenPhysicalAccuracy ConvertInchesToPixels(float Inches, float& OutPixels);
-
-	/**
-	 * If we know or can approximate the pixel density of the screen we will convert the incoming pixels
-	 * to inches on the device.  If the accuracy is unknown OutInches will be set to 0.
-	 */
-	static EScreenPhysicalAccuracy ConvertPixelsToInches(float Pixels, float& OutInches);
-
-	/**
-	* Execute platform dependent pre load map actions
-	*/
-	static const void PreLoadMap(FString&, FString&, void*)
-	{}
-
-	/**
-	* Returns monitor's DPI scale factor at given screen coordinates (expressed in pixels)
-	* @return Monitor's DPI scale factor at given point
-	*/
-	static float GetDPIScaleFactorAtPoint(float X, float Y)
-	{
-		return 1.0f;
-	}
 
 	/**
 	 * Allows platform at runtime to disable unsupported plugins
@@ -1178,10 +1054,13 @@ public:
 		return true;
 	}
 
-protected:
-	static bool CachedPhysicalScreenData;
-	static EScreenPhysicalAccuracy CachedPhysicalScreenAccuracy;
-	static int32 CachedPhysicalScreenDensity;
+	/**
+	 * Allows the OS to enable high DPI mode 
+	 */
+	static void SetHighDPIMode()
+	{
+
+	}
 
 #if !UE_BUILD_SHIPPING
 protected:

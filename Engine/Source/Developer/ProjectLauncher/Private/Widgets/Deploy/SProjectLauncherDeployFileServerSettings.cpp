@@ -1,12 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Deploy/SProjectLauncherDeployFileServerSettings.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherDeployFileServerSettings.h"
+
+#include "EditorStyleSet.h"
 #include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "EditorStyleSet.h"
+
+#include "Models/ProjectLauncherModel.h"
 #include "Widgets/Deploy/SProjectLauncherDeployTargets.h"
 #include "Widgets/Layout/SExpandableArea.h"
 
@@ -17,7 +20,7 @@
 /* SProjectLauncherDeployFileServerSettings interface
  *****************************************************************************/
 
-void SProjectLauncherDeployFileServerSettings::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherDeployFileServerSettings::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -90,7 +93,7 @@ void SProjectLauncherDeployFileServerSettings::Construct( const FArguments& InAr
 /* SProjectLauncherDeployFileServerSettings callbacks
  *****************************************************************************/
 
-void SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStateChanged( ECheckBoxState NewState )
+void SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStateChanged(ECheckBoxState NewState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -101,7 +104,7 @@ void SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStat
 }
 
 
-ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -117,7 +120,7 @@ ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBo
 }
 
 
-void SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxCheckStateChanged( ECheckBoxState NewState )
+void SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxCheckStateChanged(ECheckBoxState NewState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -128,7 +131,7 @@ void SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxChec
 }
 
 
-ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 

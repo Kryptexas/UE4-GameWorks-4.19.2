@@ -9,6 +9,7 @@ public class WidgetCarousel : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"InputCore",

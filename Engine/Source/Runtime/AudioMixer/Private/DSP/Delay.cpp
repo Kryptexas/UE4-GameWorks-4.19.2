@@ -14,7 +14,6 @@ namespace Audio
 		, SampleRate(0)
 		, DelayInSamples(0.0f)
 		, EaseDelayMsec(0.0f, 0.0001f)
-		, DelayMsec(0.0f)
 		, OutputAttenuation(1.0f)
 		, OutputAttenuationDB(0.0f)
 	{
@@ -33,7 +32,7 @@ namespace Audio
 	void FDelay::Init(const float InSampleRate, const float InBufferLengthSec)
 	{
 		SampleRate = InSampleRate;
-		AudioBufferSize = (int32) (InBufferLengthSec * (float)InSampleRate);
+		AudioBufferSize = (int32) (InBufferLengthSec * (float)InSampleRate) + 1;
 
 		if (AudioBuffer)
 		{
@@ -61,7 +60,13 @@ namespace Audio
 	void FDelay::SetDelayMsec(const float InDelayMsec)
 	{
 		// Directly set the delay
-		DelayMsec = InDelayMsec;
+		DelayInSamples = InDelayMsec * SampleRate * 0.001f;
+		Update(true);
+	}
+
+	void FDelay::SetDelaySamples(const float InDelaySamples)
+	{
+		DelayInSamples = InDelaySamples;
 		Update(true);
 	}
 
@@ -70,7 +75,7 @@ namespace Audio
 		EaseDelayMsec.SetValue(InDelayMsec, bIsInit);
 		if (bIsInit)
 		{
-			DelayMsec = InDelayMsec;
+			DelayInSamples = InDelayMsec * SampleRate * 0.001f;
 		}
 		Update(bIsInit);
 	}
@@ -171,15 +176,10 @@ namespace Audio
 			// If we're easing, then get the delay based on the current value of the ease
 			if (!EaseDelayMsec.IsDone())
 			{
-				DelayMsec = EaseDelayMsec.GetValue();
+				DelayInSamples = EaseDelayMsec.GetValue() * SampleRate * 0.001f;
 			}
 
-			DelayInSamples = DelayMsec * ((float)SampleRate / 1000.0f);
-
-			if (DelayInSamples >= (float)AudioBufferSize)
-			{
-				DelayInSamples = (float)AudioBufferSize;
-			}
+			DelayInSamples = FMath::Clamp(DelayInSamples, 0.0f, (float)(AudioBufferSize - 1));
 
 			// Subtract from write index the delay in samples (will do interpolation during read)
 			ReadIndex = WriteIndex - (int32)(DelayInSamples + 1.0f);

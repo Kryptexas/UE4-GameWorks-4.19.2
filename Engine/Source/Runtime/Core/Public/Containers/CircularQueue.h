@@ -25,10 +25,10 @@ public:
 	/**
 	 * Default constructor.
 	 *
-	 * @param Size The number of elements that the queue can hold (will be rounded up to the next power of 2).
+	 * @param CapacityPlusOne The number of elements that the queue can hold (will be rounded up to the next power of 2).
 	 */
-	TCircularQueue(uint32 Size)
-		: Buffer(Size)
+	TCircularQueue(uint32 CapacityPlusOne)
+		: Buffer(CapacityPlusOne)
 		, Head(0)
 		, Tail(0)
 	{ }
@@ -40,6 +40,9 @@ public:
 
 	/**
 	 * Gets the number of elements in the queue.
+	 *
+	 * The result reflects the calling thread's current view. Since no
+	 * locking is used, different threads may return different results.
 	 *
 	 * @return Number of queued elements.
 	 */
@@ -60,6 +63,7 @@ public:
 	 *
 	 * @param OutElement Will contain the element if the queue is not empty.
 	 * @return true if an element has been returned, false if the queue was empty.
+	 * @note To be called only from consumer thread.
 	 */
 	bool Dequeue(ElementType& OutElement)
 	{
@@ -77,6 +81,7 @@ public:
 	/**
 	 * Empties the queue.
 	 *
+	 * @note To be called only from consumer thread.
 	 * @see IsEmpty
 	 */
 	void Empty()
@@ -89,6 +94,7 @@ public:
 	 *
 	 * @param Element The element to add.
 	 * @return true if the item was added, false if the queue was full.
+	 * @note To be called only from producer thread.
 	 */
 	bool Enqueue(const ElementType& Element)
 	{
@@ -108,6 +114,9 @@ public:
 	/**
 	 * Checks whether the queue is empty.
 	 *
+	 * The result reflects the calling thread's current view. Since no
+	 * locking is used, different threads may return different results.
+	 *
 	 * @return true if the queue is empty, false otherwise.
 	 * @see Empty, IsFull
 	 */
@@ -118,6 +127,9 @@ public:
 
 	/**
 	 * Checks whether the queue is full.
+	 *
+	 * The result reflects the calling thread's current view. Since no
+	 * locking is used, different threads may return different results.
 	 *
 	 * @return true if the queue is full, false otherwise.
 	 * @see IsEmpty
@@ -132,6 +144,7 @@ public:
 	 *
 	 * @param OutItem Will contain the item if the queue is not empty.
 	 * @return true if an item has been returned, false if the queue was empty.
+	 * @note To be called only from consumer thread.
 	 */
 	bool Peek(ElementType& OutItem)
 	{

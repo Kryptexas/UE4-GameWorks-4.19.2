@@ -14,13 +14,8 @@
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
 #include "IOSChunkInstaller.h"
-#include "IOSInputInterface.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
-#include "Apple/ApplePlatformDebugEvents.h"
-#include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
-
 #include "Apple/ApplePlatformCrashContext.h"
 #include "IOSPlatformCrashContext.h"
 #if !PLATFORM_TVOS
@@ -28,6 +23,7 @@
 #include "PLCrashReport.h"
 #include "PLCrashReportTextFormatter.h"
 #endif
+#include "HAL/FileManager.h"
 #include "HAL/PlatformOutputDevices.h"
 #include "Misc/OutputDeviceError.h"
 #include "Misc/OutputDeviceRedirector.h"
@@ -44,7 +40,8 @@
 #include <netinet/in.h>
 
 //#include <libproc.h>
-#include <mach-o/dyld.h>
+// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+//#include <mach-o/dyld.h>
 
 /** Amount of free memory in MB reported by the system at startup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -69,8 +66,6 @@ static int32 GetFreeMemoryMB()
 	host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&Stats, &StatsSize);
 	return (Stats.free_count * PageSize) / 1024 / 1024;
 }
-
-FIOSApplication* FPlatformMisc::CachedApplication = nullptr;
 
 void FIOSPlatformMisc::PlatformInit()
 {
@@ -102,294 +97,10 @@ void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 //    GShowSplashScreen = ShowSplashScreen;
 }
 
-GenericApplication* FIOSPlatformMisc::CreateApplication()
-{
-	CachedApplication = FIOSApplication::CreateIOSApplication();
-	return CachedApplication;
-}
-
-void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
-{
-	ANSICHAR *AnsiResult = getenv(TCHAR_TO_ANSI(VariableName));
-	if (AnsiResult)
-	{
-		wcsncpy(Result, ANSI_TO_TCHAR(AnsiResult), ResultLength);
-	}
-	else
-	{
-		*Result = 0;
-	}
-}
-
-// Make sure that SetStoredValue and GetStoredValue generate the same key
-static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
-{
-	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
-}
-
-bool FIOSPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-
-	// convert input to an NSString
-	NSString* StoredValue = [NSString stringWithFString:InValue];
-
-	// store it
-	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	return true;
-}
-
-bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-	
-	// get the stored NSString
-	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	// if it was there, convert back to FString
-	if (StoredValue != nil)
-	{
-		OutValue = StoredValue;
-		return true;
-	}
-
-	return false;
-}
-
-bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
-{
-	// No Implementation (currently only used by editor code so not needed on iOS)
-	return false;
-}
-
-//void FIOSPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
-//{
-//
-//}
-
-void FIOSPlatformMisc::LowLevelOutputDebugString( const TCHAR *Message )
-{
-	//NsLog will out to all iOS output consoles, instead of just the Xcode console.
-	NSLog(@"%@", [NSString stringWithUTF8String:TCHAR_TO_UTF8(Message)]);
-}
-
-const TCHAR* FIOSPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
-{
-	// There's no iOS equivalent for GetLastError()
-	check(OutBuffer && BufferCount);
-	*OutBuffer = TEXT('\0');
-	return OutBuffer;
-}
-
-void FIOSPlatformMisc::ClipboardCopy(const TCHAR* Str)
-{
-#if !PLATFORM_TVOS
-	CFStringRef CocoaString = FPlatformString::TCHARToCFString(Str);
-	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
-	[Pasteboard setString:(NSString*)CocoaString];
-#endif
-}
-
-void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
-{
-#if !PLATFORM_TVOS
-	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
-	NSString* CocoaString = [Pasteboard string];
-	if(CocoaString)
-	{
-		TArray<TCHAR> Ch;
-		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
-		Result = Ch.GetData();
-	}
-	else
-	{
-		Result = TEXT("");
-	}
-#endif
-}
-
-FString FIOSPlatformMisc::GetDefaultLanguage()
-{
-	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
-	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFRelease(Languages);
-
-	return LangCode;
-}
-
-FString FIOSPlatformMisc::GetDefaultLocale()
-{
-	CFLocaleRef Locale = CFLocaleCopyCurrent();
-	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
-	FString CountryCode((__bridge NSString*)CountryCodeStr);
-	CFRelease(Locale);
-
-	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
-}
-
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-#if UE_BUILD_SHIPPING || PLATFORM_TVOS
-	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
-#else
-	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);
-	NSString* CocoaCaption = (NSString*)FPlatformString::TCHARToCFString(Caption);
-
-	NSMutableArray* StringArray = [NSMutableArray arrayWithCapacity:7];
-
-	[StringArray addObject:CocoaCaption];
-	[StringArray addObject:CocoaText];
-
-	// Figured that the order of all of these should be the same as their enum name.
-	switch (MsgType)
-	{
-		case EAppMsgType::YesNo:
-			[StringArray addObject:@"Yes"];
-			[StringArray addObject:@"No"];
-			break;
-		case EAppMsgType::OkCancel:
-			[StringArray addObject:@"Ok"];
-			[StringArray addObject:@"Cancel"];
-			break;
-		case EAppMsgType::YesNoCancel:
-			[StringArray addObject:@"Yes"];
-			[StringArray addObject:@"No"];
-			[StringArray addObject:@"Cancel"];
-			break;
-		case EAppMsgType::CancelRetryContinue:
-			[StringArray addObject:@"Cancel"];
-			[StringArray addObject:@"Retry"];
-			[StringArray addObject:@"Continue"];
-			break;
-		case EAppMsgType::YesNoYesAllNoAll:
-			[StringArray addObject:@"Yes"];
-			[StringArray addObject:@"No"];
-			[StringArray addObject:@"Yes To All"];
-			[StringArray addObject:@"No To All"];
-			break;
-		case EAppMsgType::YesNoYesAllNoAllCancel:
-			[StringArray addObject:@"Yes"];
-			[StringArray addObject:@"No"];
-			[StringArray addObject:@"Yes To All"];
-			[StringArray addObject:@"No To All"];
-			[StringArray addObject:@"Cancel"];
-			break;
-		case EAppMsgType::YesNoYesAll:
-			[StringArray addObject : @"Yes"];
-			[StringArray addObject : @"No"];
-			[StringArray addObject : @"Yes To All"];
-			break;
-		default:
-			[StringArray addObject:@"Ok"];
-			break;
-	}
-
-	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	
-	// reset our response to unset
-	AppDelegate.AlertResponse = -1;
-
-	[AppDelegate performSelectorOnMainThread:@selector(ShowAlert:) withObject:StringArray waitUntilDone:NO];
-
-	while (AppDelegate.AlertResponse == -1)
-	{
-		FPlatformProcess::Sleep(.1);
-	}
-
-	EAppReturnType::Type Result = (EAppReturnType::Type)AppDelegate.AlertResponse;
-
-	// Need to remap the return type to the correct one, since AlertResponse actually returns a button index.
-	switch (MsgType)
-	{
-	case EAppMsgType::YesNo:
-		Result = (Result == EAppReturnType::No ? EAppReturnType::Yes : EAppReturnType::No);
-		break;
-	case EAppMsgType::OkCancel:
-		// return 1 for Ok, 0 for Cancel
-		Result = (Result == EAppReturnType::No ? EAppReturnType::Ok : EAppReturnType::Cancel);
-		break;
-	case EAppMsgType::YesNoCancel:
-		// return 0 for Yes, 1 for No, 2 for Cancel
-		if(Result == EAppReturnType::No)
-		{
-			Result = EAppReturnType::Yes;
-		}
-		else if(Result == EAppReturnType::Yes)
-		{
-			Result = EAppReturnType::No;
-		}
-		else
-		{
-			Result = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::CancelRetryContinue:
-		// return 0 for Cancel, 1 for Retry, 2 for Continue
-		if(Result == EAppReturnType::No)
-		{
-			Result = EAppReturnType::Cancel;
-		}
-		else if(Result == EAppReturnType::Yes)
-		{
-			Result = EAppReturnType::Retry;
-		}
-		else
-		{
-			Result = EAppReturnType::Continue;
-		}
-		break;
-	case EAppMsgType::YesNoYesAllNoAll:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll
-		break;
-	case EAppMsgType::YesNoYesAllNoAllCancel:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll, 4 for Cancel
-		break;
-	case EAppMsgType::YesNoYesAll:
-		// return 0 for No, 1 for Yes, 2 for YesToAll
-		break;
-	default:
-		Result = EAppReturnType::Ok;
-		break;
-	}
-
-	CFRelease((CFStringRef)CocoaCaption);
-	CFRelease((CFStringRef)CocoaText);
-
-	return Result;
-#endif
-}
-
-uint32 FIOSPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-{
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, true);
-}
-
-uint32 FIOSPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
-	
-	uint32 NumMappings = 0;
-	
-	// we only handle a few "fake" keys from the IOS keyboard delegate stuff in IOSView.cpp
-	if (KeyCodes && KeyNames && (MaxMappings > 0))
-	{
-		ADDKEYMAP(KEYCODE_ENTER, TEXT("Enter"));
-		ADDKEYMAP(KEYCODE_BACKSPACE, TEXT("BackSpace"));
-		ADDKEYMAP(KEYCODE_ESCAPE, TEXT("Escape"));
-	}
-	return NumMappings;
-}
-
-bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
-{
-	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	[AppDelegate EnableIdleTimer : (Action == FGenericPlatformMisc::Enable)];
-	return true;
+	extern EAppReturnType::Type MessageBoxExtImpl( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
+	return MessageBoxExtImpl(MsgType, Text, Caption);
 }
 
 int FIOSPlatformMisc::GetAudioVolume()
@@ -412,45 +123,33 @@ bool FIOSPlatformMisc::IsRunningOnBattery()
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
 }
 
-int32 FIOSPlatformMisc::NumberOfCores()
+#if !PLATFORM_TVOS
+EDeviceScreenOrientation ConvertFromUIDeviceOrientation(UIDeviceOrientation Orientation)
 {
-	// cache the number of cores
-	static int32 NumberOfCores = -1;
-	if (NumberOfCores == -1)
+	switch(Orientation)
 	{
-		SIZE_T Size = sizeof(int32);
-		if (sysctlbyname("hw.ncpu", &NumberOfCores, &Size, NULL, 0) != 0)
-		{
-			NumberOfCores = 1;
-		}
+		default:
+		case UIDeviceOrientationUnknown : return EDeviceScreenOrientation::Unknown; break;
+		case UIDeviceOrientationPortrait : return EDeviceScreenOrientation::Portrait; break;
+		case UIDeviceOrientationPortraitUpsideDown : return EDeviceScreenOrientation::PortraitUpsideDown; break;
+		case UIDeviceOrientationLandscapeLeft : return EDeviceScreenOrientation::LandscapeLeft; break;
+		case UIDeviceOrientationLandscapeRight : return EDeviceScreenOrientation::LandscapeRight; break;
+		case UIDeviceOrientationFaceUp : return EDeviceScreenOrientation::FaceUp; break;
+		case UIDeviceOrientationFaceDown : return EDeviceScreenOrientation::FaceDown; break;
 	}
-	return NumberOfCores;
+}
+#endif
+
+EDeviceScreenOrientation FIOSPlatformMisc::GetDeviceOrientation()
+{
+#if !PLATFORM_TVOS
+	return ConvertFromUIDeviceOrientation([[UIDevice currentDevice] orientation]);
+#else
+	return EDeviceScreenOrientation::Unknown;
+#endif
 }
 
 #include "ModuleManager.h"
-
-void FIOSPlatformMisc::LoadPreInitModules()
-{
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-	FModuleManager::Get().LoadModule(TEXT("IOSAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
-}
-
-void* FIOSPlatformMisc::CreateAutoreleasePool()
-{
-	return [[NSAutoreleasePool alloc] init];
-}
-
-void FIOSPlatformMisc::ReleaseAutoreleasePool(void *Pool)
-{
-	[(NSAutoreleasePool*)Pool release];
-}
-
-void* FIOSPlatformMisc::GetHardwareWindow()
-{
-	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-    return AppDelegate.IOSView; 
-}
 
 bool FIOSPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
@@ -577,11 +276,27 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			{
 				DeviceType = IOS_IPadPro_97;
 			}
+			else if (Minor == 11 || Minor == 12)
+			{
+				DeviceType = IOS_IPad5;
+			}
 			else
 			{
 				DeviceType = IOS_IPadPro_129;
 			}
 		}
+		else if (Major == 7)
+		{
+			if (Minor == 3 || Minor == 4)
+			{
+				DeviceType = IOS_IPadPro_105;
+			}
+			else
+			{
+				DeviceType = IOS_IPadPro2_129;
+			}
+		}
+
 		// Default to highest settings currently available for any future device
 		else if (Major > 6)
 		{
@@ -649,24 +364,54 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
                 DeviceType = IOS_IPhone7Plus;
             }
 		}
-        else if (Major >= 10)
+        else if (Major == 10)
         {
-            // for going forward into unknown devices (like 8/8+?), we can't use Minor,
-            // so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
-            if ([UIScreen mainScreen].scale > 2.5f)
-            {
-                DeviceType = IOS_IPhone7Plus;
-            }
-            else
-            {
-                DeviceType = IOS_IPhone7;
-            }
-        }
+			if (Minor == 1 || Minor == 4)
+			{
+				DeviceType = IOS_IPhone8;
+			}
+			else if (Minor == 2 || Minor == 5)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else if (Minor == 3 || Minor == 6)
+			{
+				DeviceType = IOS_IPhoneX;
+			}
+		}
+		else if (Major >= 10)
+		{
+			// for going forward into unknown devices (like 8/8+?), we can't use Minor,
+			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
+			if ([UIScreen mainScreen].scale > 2.5f)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else
+			{
+				DeviceType = IOS_IPhone8;
+			}
+		}
 	}
 	// tvOS
 	else if (DeviceIDString.StartsWith(TEXT("AppleTV")))
 	{
-		DeviceType = IOS_AppleTV;
+		const int Major = FCString::Atoi(&DeviceIDString[7]);
+		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 6);
+		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
+
+		if (Major == 5)
+		{
+			DeviceType = IOS_AppleTV;
+		}
+		else if (Major == 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
+		else if (Major >= 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
 	}
 	// simulator
 	else if (DeviceIDString.StartsWith(TEXT("x86")))
@@ -704,6 +449,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	}
 
 	return DeviceType;
+}
+
+int FIOSPlatformMisc::GetDefaultStackSize()
+{
+	return 4 * 1024 * 1024;
 }
 
 void FIOSPlatformMisc::SetMemoryWarningHandler(void (* InHandler)(const FGenericMemoryWarningContext& Context))
@@ -780,6 +530,18 @@ FString FIOSPlatformMisc::GetOSVersion()
 	return FString([[UIDevice currentDevice] systemVersion]);
 }
 
+bool FIOSPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	NSDictionary<NSFileAttributeKey, id>* FSStat = [[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
+	if (FSStat)
+	{
+		TotalNumberOfBytes = [[FSStat objectForKey:NSFileSystemSize] longLongValue];
+		NumberOfFreeBytes = [[FSStat objectForKey:NSFileSystemFreeSize] longLongValue];
+		return true;
+	}
+	return false;
+}
+
 
 /**
 * Returns a unique string for advertising identification
@@ -839,187 +601,6 @@ class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 	return ChunkInstall;
 }
 
-
-struct FFontHeader
-{
-	int32 Version;
-	uint16 NumTables;
-	uint16 SearchRange;
-	uint16 EntrySelector;
-	uint16 RangeShift;
-};
-
-struct FFontTableEntry
-{
-	uint32 Tag;
-	uint32 CheckSum;
-	uint32 Offset;
-	uint32 Length;
-};
-
-
-static uint32 CalcTableCheckSum(const uint32 *Table, uint32 NumberOfBytesInTable)
-{
-	uint32 Sum = 0;
-	uint32 NumLongs = (NumberOfBytesInTable + 3) / 4;
-	while (NumLongs-- > 0)
-	{
-		Sum += CFSwapInt32HostToBig(*Table++);
-	}
-	return Sum;
-}
-
-static uint32 CalcTableDataRefCheckSum(CFDataRef DataRef)
-{
-	const uint32 *DataBuff = (const uint32 *)CFDataGetBytePtr(DataRef);
-	uint32 DataLength = (uint32)CFDataGetLength(DataRef);
-	return CalcTableCheckSum(DataBuff, DataLength);
-}
-
-/**
- * In order to get a system font from IOS we need to build one from the data we can gather from a CGFontRef
- * @param InFontName - The name of the system font we are seeking to load.
- * @param OutBytes - The data we have built for the font.
- */
-void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
-{
-	CGFontRef cgFont = CGFontCreateWithFontName((CFStringRef)InFontName);
-
-	if (cgFont)
-	{
-		CFRetain(cgFont);
-
-		// Gather information on the font tags
-		CFArrayRef Tags = CGFontCopyTableTags(cgFont);
-		int TableCount = CFArrayGetCount(Tags);
-
-		// Collate the table sizes
-		TArray<size_t> TableSizes;
-
-		bool bContainsCFFTable = false;
-
-		size_t TotalSize = sizeof(FFontHeader)+sizeof(FFontTableEntry)* TableCount;
-		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
-		{
-			size_t TableSize = 0;
-			
-			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
-			if (aTag == 'CFF ' && !bContainsCFFTable)
-			{
-				bContainsCFFTable = true;
-			}
-
-			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
-			if (TableDataRef != NULL)
-			{
-				TableSize = CFDataGetLength(TableDataRef);
-				CFRelease(TableDataRef);
-			}
-
-			TotalSize += (TableSize + 3) & ~3;
-			TableSizes.Add( TableSize );
-		}
-
-		OutBytes.Reserve( TotalSize );
-		OutBytes.AddZeroed( TotalSize );
-
-		// Start copying the table data into our buffer
-		uint8* DataStart = OutBytes.GetData();
-		uint8* DataPtr = DataStart;
-
-		// Compute font header entries
-		uint16 EntrySelector = 0;
-		uint16 SearchRange = 1;
-		while (SearchRange < TableCount >> 1)
-		{
-			EntrySelector++;
-			SearchRange <<= 1;
-		}
-		SearchRange <<= 4;
-
-		uint16 RangeShift = (TableCount << 4) - SearchRange;
-
-		// Write font header (also called sfnt header, offset subtable)
-		FFontHeader* OffsetTable = (FFontHeader*)DataPtr;
-
-		// OpenType Font contains CFF Table use 'OTTO' as version, and with .otf extension
-		// otherwise 0001 0000
-		OffsetTable->Version = bContainsCFFTable ? 'OTTO' : CFSwapInt16HostToBig(1);
-		OffsetTable->NumTables = CFSwapInt16HostToBig((uint16)TableCount);
-		OffsetTable->SearchRange = CFSwapInt16HostToBig((uint16)SearchRange);
-		OffsetTable->EntrySelector = CFSwapInt16HostToBig((uint16)EntrySelector);
-		OffsetTable->RangeShift = CFSwapInt16HostToBig((uint16)RangeShift);
-
-		DataPtr += sizeof(FFontHeader);
-
-		// Write tables
-		FFontTableEntry* CurrentTableEntry = (FFontTableEntry*)DataPtr;
-		DataPtr += sizeof(FFontTableEntry) * TableCount;
-
-		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
-		{
-			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
-			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
-			uint32 TableSize = CFDataGetLength(TableDataRef);
-
-			FMemory::Memcpy(DataPtr, CFDataGetBytePtr(TableDataRef), TableSize);
-
-			CurrentTableEntry->Tag = CFSwapInt32HostToBig((uint32_t)aTag);
-			CurrentTableEntry->CheckSum = CFSwapInt32HostToBig(CalcTableCheckSum((uint32 *)DataPtr, TableSize));
-
-			uint32 Offset = DataPtr - DataStart;
-			CurrentTableEntry->Offset = CFSwapInt32HostToBig((uint32)Offset);
-			CurrentTableEntry->Length = CFSwapInt32HostToBig((uint32)TableSize);
-
-			DataPtr += (TableSize + 3) & ~3;
-			++CurrentTableEntry;
-
-			CFRelease(TableDataRef);
-		}
-
-		CFRelease(cgFont);
-	}
-}
-
-
-TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
-{
-#if PLATFORM_TVOS
-	NSString* SystemFontName = [UIFont preferredFontForTextStyle:UIFontTextStyleBody].fontName;
-#else
-	// Gather some details about the system font
-	uint32 SystemFontSize = [UIFont systemFontSize];
-	NSString* SystemFontName = [UIFont systemFontOfSize:SystemFontSize].fontName;
-#endif
-
-	TArray<uint8> FontBytes;
-	GetBytesForFont(SystemFontName, FontBytes);
-
-	return FontBytes;
-}
-
-TArray<FString> FIOSPlatformMisc::GetPreferredLanguages()
-{
-	TArray<FString> Results;
-
-	NSArray* Languages = [NSLocale preferredLanguages];
-	for (NSString* Language in Languages)
-	{
-		Results.Add(FString(Language));
-	}
-	return Results;
-}
-
-FString FIOSPlatformMisc::GetLocalCurrencyCode()
-{
-	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]);
-}
-
-FString FIOSPlatformMisc::GetLocalCurrencySymbol()
-{
-	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
-}
-
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 #if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
@@ -1042,6 +623,16 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 #endif
 }
 
+bool FIOSPlatformMisc::IsRegisteredForRemoteNotifications()
+{
+	return false;
+}
+
+void FIOSPlatformMisc::UnregisterForRemoteNotifications()
+{
+
+}
+
 void FIOSPlatformMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 {
 	// this is only used to cook with the proper TargetPlatform with COTF, it's not the runtime platform (which is just IOS for both)
@@ -1058,7 +649,7 @@ bool FIOSPlatformMisc::HasActiveWiFiConnection()
 	FMemory::Memzero(&ZeroAddress, sizeof(ZeroAddress));
 	ZeroAddress.sin_len = sizeof(ZeroAddress);
 	ZeroAddress.sin_family = AF_INET;
-
+	
 	SCNetworkReachabilityRef ReachabilityRef = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr*)&ZeroAddress);
 	SCNetworkReachabilityFlags ReachabilityFlags;
 	bool bFlagsAvailable = SCNetworkReachabilityGetFlags(ReachabilityRef, &ReachabilityFlags);
@@ -1067,49 +658,16 @@ bool FIOSPlatformMisc::HasActiveWiFiConnection()
 	bool bHasActiveWiFiConnection = false;
 	if (bFlagsAvailable)
 	{
-        bool bReachable =	(ReachabilityFlags & kSCNetworkReachabilityFlagsReachable) != 0 && 
-							(ReachabilityFlags & kSCNetworkReachabilityFlagsConnectionRequired) == 0 &&
-							// in case kSCNetworkReachabilityFlagsConnectionOnDemand  || kSCNetworkReachabilityFlagsConnectionOnTraffic
-							(ReachabilityFlags & kSCNetworkReachabilityFlagsInterventionRequired) == 0; 
-					
+		bool bReachable =	(ReachabilityFlags & kSCNetworkReachabilityFlagsReachable) != 0 &&
+		(ReachabilityFlags & kSCNetworkReachabilityFlagsConnectionRequired) == 0 &&
+		// in case kSCNetworkReachabilityFlagsConnectionOnDemand  || kSCNetworkReachabilityFlagsConnectionOnTraffic
+		(ReachabilityFlags & kSCNetworkReachabilityFlagsInterventionRequired) == 0;
+		
 		bHasActiveWiFiConnection = bReachable && (ReachabilityFlags & kSCNetworkReachabilityFlagsIsWWAN) == 0;
 	}
 	
-	return bHasActiveWiFiConnection; 
+	return bHasActiveWiFiConnection;
 }
-
-void FIOSPlatformMisc::ResetGamepadAssignments()
-{
-	UE_LOG(LogIOS, Warning, TEXT("Restting gamepad assignments is not allowed in IOS"))
-}
-
-void FIOSPlatformMisc::ResetGamepadAssignmentToController(int32 ControllerId)
-{
-	
-}
-
-bool FIOSPlatformMisc::IsControllerAssignedToGamepad(int32 ControllerId)
-{
-	FIOSInputInterface* InputInterface = (FIOSInputInterface*)CachedApplication->GetInputInterface();
-	return InputInterface->IsControllerAssignedToGamepad(ControllerId);
-}
-
-#if IOS_PROFILING_ENABLED
-void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
-{
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
-{
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FIOSPlatformMisc::EndNamedEvent()
-{
-	FApplePlatformDebugEvents::EndNamedEvent();
-}
-#endif
 
 FString FIOSPlatformMisc::GetCPUVendor()
 {
@@ -1155,81 +713,6 @@ int32 FIOSPlatformMisc::IOSVersionCompare(uint8 Major, uint8 Minor, uint8 Revisi
 	return 0;
 }
 
-EScreenPhysicalAccuracy FIOSPlatformMisc::ComputePhysicalScreenDensity(int32& ScreenDensity)
-{
-	EIOSDevice Device = GetIOSDeviceType();
-	static_assert( EIOSDevice::IOS_Unknown == 25, "Every device needs to be handled here." );
-
-	ScreenDensity = 0;
-	EScreenPhysicalAccuracy Accuracy = EScreenPhysicalAccuracy::Unknown;
-
-	// look up what the device can support
-	const float NativeScale =[[UIScreen mainScreen] scale];
-
-	switch ( Device )
-	{
-	case IOS_IPhoneSE:
-	case IOS_IPhone4:
-	case IOS_IPhone4S:
-	case IOS_IPhone5:
-	case IOS_IPhone5S:
-	case IOS_IPodTouch5:
-	case IOS_IPodTouch6:
-	case IOS_IPhone6:
-	case IOS_IPhone6S:
-	case IOS_IPhone7:
-		ScreenDensity = 326;
-		Accuracy = EScreenPhysicalAccuracy::Truth;
-		break;
-	case IOS_IPhone6Plus:
-	case IOS_IPhone6SPlus:
-	case IOS_IPhone7Plus:
-		ScreenDensity = 401;
-		Accuracy = EScreenPhysicalAccuracy::Truth;
-		break;
-	case IOS_IPadMini:
-	case IOS_IPadMini2: // also the iPadMini3
-	case IOS_IPadMini4:
-		ScreenDensity = 401;
-		Accuracy = EScreenPhysicalAccuracy::Truth;
-		break;
-	case IOS_IPad2:
-	case IOS_IPad3:
-	case IOS_IPad4:
-	case IOS_IPadAir:
-	case IOS_IPadAir2:
-	case IOS_IPadPro_97:
-		ScreenDensity = 264;
-		Accuracy = EScreenPhysicalAccuracy::Truth;
-		break;
-	case IOS_IPadPro:
-	case IOS_IPadPro_129:
-		ScreenDensity = 264;
-		Accuracy = EScreenPhysicalAccuracy::Truth;
-		break;
-	case IOS_AppleTV:
-		Accuracy = EScreenPhysicalAccuracy::Unknown;
-		break;
-	default:
-		// If we don't know, assume that the density is a multiple of the 
-		// native Content Scaling Factor.  Won't be exact, but should be close enough.
-		ScreenDensity = 163 * NativeScale;
-		Accuracy = EScreenPhysicalAccuracy::Approximation;
-		break;
-	}
-
-	// look up the current scale factor
-	UIView* View = [IOSAppDelegate GetDelegate].IOSView;
-	const float ContentScaleFactor = View.contentScaleFactor;
-
-	if ( ContentScaleFactor != 0 )
-	{
-		ScreenDensity = ScreenDensity * ( ContentScaleFactor / NativeScale );
-	}
-
-	return Accuracy;
-}
-
 /*------------------------------------------------------------------------------
  FIOSApplicationInfo - class to contain all state for crash reporting that is unsafe to acquire in a signal.
  ------------------------------------------------------------------------------*/
@@ -1244,7 +727,7 @@ struct FIOSApplicationInfo
     {
         SCOPED_AUTORELEASE_POOL;
         
-        AppName = FApp::GetGameName();
+        AppName = FApp::GetProjectName();
         FCStringAnsi::Strcpy(AppNameUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*AppName));
         
         ExecutableName = FPlatformProcess::ExecutableName();
@@ -1295,7 +778,7 @@ struct FIOSApplicationInfo
        BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
         
         // Get the paths that the files will actually have been saved to
-        FString LogDirectory = FPaths::GameLogDir();
+        FString LogDirectory = FPaths::ProjectLogDir();
         TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
         
         // Use the log file specified on the commandline if there is one
@@ -1494,6 +977,48 @@ void FIOSPlatformMisc::PlatformPreInit()
     signal(SIGPIPE, SIG_IGN);
 }
 
+// Make sure that SetStoredValue and GetStoredValue generate the same key
+static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
+{
+	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
+}
+
+bool FIOSPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+
+	// convert input to an NSString
+	NSString* StoredValue = [NSString stringWithFString:InValue];
+
+	// store it
+	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	return true;
+}
+
+bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+
+	// get the stored NSString
+	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	// if it was there, convert back to FString
+	if (StoredValue != nil)
+	{
+		OutValue = StoredValue;
+		return true;
+	}
+
+	return false;
+}
+
+bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{
+	// No Implementation (currently only used by editor code so not needed on iOS)
+	return false;
+}
+
 void FIOSPlatformMisc::SetGracefulTerminationHandler()
 {
     struct sigaction Action;
@@ -1559,7 +1084,8 @@ void FIOSPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 
 void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
 {
-    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
+	// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+/*    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
     if (ReportFile != -1)
     {
         TCHAR Line[PATH_MAX] = {};
@@ -1750,7 +1276,7 @@ void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
         WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
         
         close(ReportFile);
-    }
+    }*/
 }
 
 void FIOSCrashContext::CopyMinidump(char const* OutputPath, char const* InputPath) const
@@ -1965,7 +1491,7 @@ void FIOSCrashContext::GenerateEnsureInfo() const
         
         // Use a slightly different output folder name to not conflict with a subequent crash
         const FGuid Guid = FGuid::NewGuid();
-        FString GameName = FApp::GetGameName();
+        FString GameName = FApp::GetProjectName();
         FString EnsureLogFolder = FString(GIOSAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
         
         const bool bIsEnsure = true;

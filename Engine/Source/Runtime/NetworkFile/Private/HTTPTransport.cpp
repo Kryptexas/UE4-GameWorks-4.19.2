@@ -7,11 +7,7 @@
 #include "Serialization/BufferArchive.h"
 #include "NetworkMessage.h"
 
-#if PLATFORM_HTML5_WIN32
-#include "WinHttp.h"
-#endif
-
-#if PLATFORM_HTML5_BROWSER
+#if PLATFORM_HTML5
 #include "HTML5JavaScriptFx.h"
 #include <emscripten/emscripten.h>
 #endif
@@ -46,13 +42,7 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 #if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest();
 	HttpRequest->SetURL(Url);
-#endif
-
-#if PLATFORM_HTML5_WIN32
-	HTML5Win32::NFSHttp::Init(TCHAR_TO_ANSI(Url));
-#endif
-
-#if PLATFORM_HTML5_BROWSER
+#else
 	emscripten_log(EM_LOG_CONSOLE , "Unreal File Server URL : %s ", TCHAR_TO_ANSI(Url));
 #endif
 
@@ -136,12 +126,7 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 
 	bool RetVal = true;
 
-#if PLATFORM_HTML5_WIN32
-	RetVal = HTML5Win32::NFSHttp::SendPayLoadAndRecieve(Ar.GetData(), Ar.Num(), &OutData, OutSize);
-#endif
-#if PLATFORM_HTML5_BROWSER
 	UE_SendAndRecievePayLoad(TCHAR_TO_ANSI(Url),(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
-#endif
 
 //	if (!Ar.Num())
 	{
@@ -151,19 +136,12 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 		RecieveBuffer.Append((uint8*)&Size,sizeof(uint32));
 	}
 
-
 	if (OutSize)
 	{
 		RecieveBuffer.Append(OutData,OutSize);
 
-#if PLATFORM_HTML5_WIN32
-		free (OutData);
-#endif
-#if PLATFORM_HTML5_BROWSER
 		// don't go through the Unreal Memory system.
 		::free(OutData);
-#endif
-
 	}
 
 	return RetVal & ReceiveResponse(Out);
@@ -188,4 +166,4 @@ bool FHTTPTransport::ReceiveResponse(TArray<uint8> &Out)
 	return true;
 }
 
-#endif
+#endif // ENABLE_HTTP_FOR_NF

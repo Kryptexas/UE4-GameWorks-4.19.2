@@ -19,6 +19,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
+					"ApplicationCore",
 					"Engine",
 					"InputCore",
 					"HeadMountedDisplay",

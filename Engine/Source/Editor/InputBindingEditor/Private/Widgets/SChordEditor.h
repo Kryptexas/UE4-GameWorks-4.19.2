@@ -40,7 +40,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InputCommand
 	 */
-	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand );
+	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand, EMultipleKeyBindingIndex ChordIndex);
 	
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
@@ -66,7 +66,7 @@ public:
 	bool IsEditedChordValid() const { return EditingInputChord.IsValidChord(); }
 
 	/** @return Whether or not the command has a valid chord. */
-	bool IsActiveChordValid() const { return CommandInfo->GetActiveChord()->IsValidChord(); }
+	bool IsActiveChordValid() const { return CommandInfo->GetActiveChord(ChordIndex)->IsValidChord(); }
 
 	/** @return the Notification message being displayed if any. */
 	const FText& GetNotificationText() const { return NotificationMessage; };
@@ -110,6 +110,9 @@ private:
 
 	/** The command we are editing a chord for. */
 	TSharedPtr<FUICommandInfo> CommandInfo;
+
+	/** The index of the chord we are editing (within the multiple key bindings. */
+	EMultipleKeyBindingIndex ChordIndex;
 
 	/** Delegate to execute when the edit box loses focus. */
 	FSimpleDelegate OnEditBoxLostFocus;

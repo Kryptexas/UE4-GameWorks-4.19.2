@@ -2,8 +2,9 @@
 
 #include "DetailMultiTopLevelObjectRootNode.h"
 #include "IDetailRootObjectCustomization.h"
+#include "DetailWidgetRow.h"
 
-void SDetailMultiTopLevelObjectTableRow::Construct( const FArguments& InArgs, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<SWidget>& InCustomizedWidgetContents, const TSharedRef<STableViewBase>& InOwnerTableView )
+void SDetailMultiTopLevelObjectTableRow::Construct( const FArguments& InArgs, TSharedRef<FDetailTreeNode> InOwnerTreeNode, const TSharedRef<SWidget>& InCustomizedWidgetContents, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
 	OwnerTreeNode = InOwnerTreeNode;
 	bShowExpansionArrow = InArgs._ShowExpansionArrow;
@@ -29,7 +30,7 @@ void SDetailMultiTopLevelObjectTableRow::Construct( const FArguments& InArgs, TS
 		]
 	];
 
-	STableRow< TSharedPtr< IDetailTreeNode > >::ConstructInternal(
+	STableRow< TSharedPtr< FDetailTreeNode > >::ConstructInternal(
 		STableRow::FArguments()
 			.Style(FEditorStyle::Get(), "DetailsView.TreeView.TableRow")
 			.ShowSelection(false),
@@ -69,7 +70,7 @@ FReply SDetailMultiTopLevelObjectTableRow::OnMouseButtonDoubleClick( const FGeom
 }
 
 
-FDetailMultiTopLevelObjectRootNode::FDetailMultiTopLevelObjectRootNode( const FDetailNodeList& InChildNodes, const TSharedPtr<IDetailRootObjectCustomization>& InRootObjectCustomization, IDetailsViewPrivate& InDetailsView, const UObject& InRootObject )
+FDetailMultiTopLevelObjectRootNode::FDetailMultiTopLevelObjectRootNode( const FDetailNodeList& InChildNodes, const TSharedPtr<IDetailRootObjectCustomization>& InRootObjectCustomization, IDetailsViewPrivate* InDetailsView, const UObject& InRootObject )
 	: ChildNodes(InChildNodes)
 	, DetailsView(InDetailsView)
 	, RootObjectCustomization(InRootObjectCustomization)
@@ -94,15 +95,24 @@ ENodeVisibility FDetailMultiTopLevelObjectRootNode::GetVisibility() const
 	return FinalVisibility;
 }
 
-TSharedRef< ITableRow > FDetailMultiTopLevelObjectRootNode::GenerateNodeWidget(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef< ITableRow > FDetailMultiTopLevelObjectRootNode::GenerateWidgetForTableView(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem)
+{
+	FDetailWidgetRow Row;
+	GenerateStandaloneWidget(Row);
+
+	return SNew(SDetailMultiTopLevelObjectTableRow, AsShared(), Row.NameWidget.Widget, OwnerTable);
+}
+
+
+bool FDetailMultiTopLevelObjectRootNode::GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const
 {
 	TSharedPtr<SWidget> HeaderWidget;
-	if(RootObjectCustomization.IsValid() && RootObject.IsValid())
+	if (RootObjectCustomization.IsValid() && RootObject.IsValid())
 	{
 		HeaderWidget = RootObjectCustomization.Pin()->CustomizeObjectHeader(RootObject.Get());
 	}
 
-	if(!HeaderWidget.IsValid())
+	if (!HeaderWidget.IsValid())
 	{
 		// no customization was supplied or was passed back from the interface as invalid
 		// just make a text block with the name
@@ -112,15 +122,20 @@ TSharedRef< ITableRow > FDetailMultiTopLevelObjectRootNode::GenerateNodeWidget(c
 			.Text(FText::FromName(NodeName));
 	}
 
-	return SNew(SDetailMultiTopLevelObjectTableRow, AsShared(), HeaderWidget.ToSharedRef(), OwnerTable);
+	OutRow.NameContent()
+	[
+		HeaderWidget.ToSharedRef()
+	];
+
+	return true;
 }
 
 
-void FDetailMultiTopLevelObjectRootNode::GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )
+void FDetailMultiTopLevelObjectRootNode::GetChildren(FDetailNodeList& OutChildren )
 {
 	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
 	{
-		TSharedRef<IDetailTreeNode>& Child = ChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = ChildNodes[ChildIndex];
 		if( Child->GetVisibility() == ENodeVisibility::Visible )
 		{
 			if( Child->ShouldShowOnlyChildren() )
@@ -140,7 +155,7 @@ void FDetailMultiTopLevelObjectRootNode::FilterNode( const FDetailFilter& InFilt
 	bShouldBeVisible = false;
 	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
 	{
-		TSharedRef<IDetailTreeNode>& Child = ChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = ChildNodes[ChildIndex];
 
 		Child->FilterNode( InFilter );
 
@@ -148,7 +163,10 @@ void FDetailMultiTopLevelObjectRootNode::FilterNode( const FDetailFilter& InFilt
 		{
 			bShouldBeVisible = true;
 
-			DetailsView.RequestItemExpanded( Child, Child->ShouldBeExpanded() );
+			if (DetailsView)
+			{
+				DetailsView->RequestItemExpanded(Child, Child->ShouldBeExpanded());
+			}
 		}
 	}
 }

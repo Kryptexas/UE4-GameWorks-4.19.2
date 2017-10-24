@@ -20,7 +20,7 @@ public class APEX : ModuleRules
 		switch (Config)
 		{
 			case UnrealTargetConfiguration.Debug:
-                if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     return APEXLibraryMode.Debug;
                 }
@@ -35,11 +35,11 @@ public class APEX : ModuleRules
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
 			default:
-                if(BuildConfiguration.bUseShippingPhysXLibraries)
+                if(Target.bUseShippingPhysXLibraries)
                 {
                     return APEXLibraryMode.Shipping;
                 }
-                else if (BuildConfiguration.bUseCheckedPhysXLibraries)
+                else if (Target.bUseCheckedPhysXLibraries)
                 {
                     return APEXLibraryMode.Checked;
                 }
@@ -76,15 +76,14 @@ public class APEX : ModuleRules
 
 		string ApexVersion = "APEX_1.4";
 
-        string APEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/" + ApexVersion + "/";
+        string APEXDir = Target.UEThirdPartySourceDirectory + "PhysX/" + ApexVersion + "/";
 
-		string APEXLibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/Lib";
+		string APEXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib";
 
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
                 APEXDir + "include",
                 APEXDir + "include/clothing",
-                APEXDir + "include/destructible",
                 APEXDir + "include/nvparameterized",
                 APEXDir + "include/legacy",
                 APEXDir + "include/PhysX3",
@@ -107,7 +106,6 @@ public class APEX : ModuleRules
 				"ApexCommon{0}",
 				"ApexFramework{0}",
 				"ApexShared{0}",
-				"APEX_Destructible{0}",
 				"APEX_Clothing{0}",
 			});
 		string LibraryFormatString = null;
@@ -118,7 +116,7 @@ public class APEX : ModuleRules
 		// Libraries and DLLs for windows platform
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			APEXLibDir += "/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			APEXLibDir += "/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			PublicAdditionalLibraries.Add(String.Format("APEXFramework{0}_x64.lib", LibrarySuffix));
@@ -127,12 +125,11 @@ public class APEX : ModuleRules
 			string[] RuntimeDependenciesX64 =
 			{
 				"APEX_Clothing{0}_x64.dll",
-				"APEX_Destructible{0}_x64.dll",
 				"APEX_Legacy{0}_x64.dll",
 				"ApexFramework{0}_x64.dll",
 			};
 
-			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string RuntimeDependency in RuntimeDependenciesX64)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -147,7 +144,7 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			APEXLibDir += "/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			APEXLibDir += "/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			PublicAdditionalLibraries.Add(String.Format("APEXFramework{0}_x86.lib", LibrarySuffix));
@@ -156,12 +153,11 @@ public class APEX : ModuleRules
 			string[] RuntimeDependenciesX86 =
 			{
 				"APEX_Clothing{0}_x86.dll",
-				"APEX_Destructible{0}_x86.dll",
 				"APEX_Legacy{0}_x86.dll",
 				"ApexFramework{0}_x86.dll",
 			};
 
-			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string RuntimeDependency in RuntimeDependenciesX86)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -189,12 +185,11 @@ public class APEX : ModuleRules
 
 			string[] DynamicLibrariesMac = new string[] {
 				"/libAPEX_Clothing{0}.dylib",
-				"/libAPEX_Destructible{0}.dylib",
 				"/libAPEX_Legacy{0}.dylib",
 				"/libApexFramework{0}.dylib"
 			};
 
-			string PhysXBinariesDir = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "PhysX/Mac";
+			string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX/Mac";
 			foreach (string Lib in DynamicLibrariesMac)
 			{
 				string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);
@@ -214,7 +209,6 @@ public class APEX : ModuleRules
 				bIsApexStaticallyLinked = true;
 
 				ApexLibraries.Add("APEX_Clothing{0}");
-				ApexLibraries.Add("APEX_Destructible{0}");
 				ApexLibraries.Add("APEX_Legacy{0}");
 				ApexLibraries.Add("ApexFramework{0}");
 				LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";

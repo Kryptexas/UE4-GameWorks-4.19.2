@@ -1,14 +1,16 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Cook/SProjectLauncherCookOnTheFlySettings.h"
-#include "Widgets/SBoxPanel.h"
-#include "Styling/SlateTypes.h"
+#include "SProjectLauncherCookOnTheFlySettings.h"
+
 #include "SlateOptMacros.h"
-#include "Widgets/Text/STextBlock.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Shared/SProjectLauncherFormLabel.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Text/STextBlock.h"
+
+#include "Widgets/Shared/SProjectLauncherFormLabel.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherCookOnTheFlySettings"
@@ -17,7 +19,7 @@
 /* SProjectLauncherCookOnTheFlySettings structors
  *****************************************************************************/
 
-SProjectLauncherCookOnTheFlySettings::~SProjectLauncherCookOnTheFlySettings( )
+SProjectLauncherCookOnTheFlySettings::~SProjectLauncherCookOnTheFlySettings()
 {
 	if (Model.IsValid())
 	{
@@ -30,7 +32,7 @@ SProjectLauncherCookOnTheFlySettings::~SProjectLauncherCookOnTheFlySettings( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherCookOnTheFlySettings::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherCookOnTheFlySettings::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -96,7 +98,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 /* SProjectLauncherCookOnTheFlySettings callbacks
  *****************************************************************************/
 
-void SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
+void SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxCheckStateChanged(ECheckBoxState NewState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -107,7 +109,7 @@ void SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxCheckStateCh
 }
 
 
-ECheckBoxState SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -123,13 +125,13 @@ ECheckBoxState SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxIs
 }
 
 
-void SProjectLauncherCookOnTheFlySettings::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherCookOnTheFlySettings::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 
 }
 
 
-EVisibility SProjectLauncherCookOnTheFlySettings::HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const
+EVisibility SProjectLauncherCookOnTheFlySettings::HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -143,6 +145,7 @@ EVisibility SProjectLauncherCookOnTheFlySettings::HandleValidationErrorIconVisib
 
 	return EVisibility::Hidden;
 }
+
 
 FText SProjectLauncherCookOnTheFlySettings::HandleCookOptionsTextBlockText() const
 {
@@ -158,6 +161,7 @@ FText SProjectLauncherCookOnTheFlySettings::HandleCookOptionsTextBlockText() con
 	return result;
 }
 
+
 void SProjectLauncherCookOnTheFlySettings::HandleCookerOptionsCommitted(const FText& NewText, ETextCommit::Type CommitType)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -171,6 +175,7 @@ void SProjectLauncherCookOnTheFlySettings::HandleCookerOptionsCommitted(const FT
 		case ETextCommit::OnCleared:
 			useOptions = TEXT("");
 			break;
+
 		default:
 			break;
 		}

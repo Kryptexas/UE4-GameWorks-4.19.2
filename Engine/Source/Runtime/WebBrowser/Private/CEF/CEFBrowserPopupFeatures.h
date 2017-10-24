@@ -80,7 +80,6 @@ private:
 
 	bool bIsFullscreen;
 	bool bIsDialog;
-	TArray<FString> AdditionalFeatures;
 };
 
 #endif

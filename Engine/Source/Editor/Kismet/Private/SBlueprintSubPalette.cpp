@@ -331,21 +331,17 @@ FReply SBlueprintSubPalette::OnActionDragged( const TArray< TSharedPtr<FEdGraphS
 		else if(InAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)InAction.Get();
-
-			UClass* VarClass = VarAction->GetVariableClass();
-			if(VarClass != NULL)
+			if (UClass* VarClass = VarAction->GetVariableClass())
 			{
-				return FReply::Handled().BeginDragDrop(FKismetVariableDragDropAction::New(VarAction->GetVariableName(), VarClass, AnalyticsDelegate));
+				return FReply::Handled().BeginDragDrop(FKismetVariableDragDropAction::New(InAction, VarAction->GetVariableName(), VarClass, AnalyticsDelegate));
 			}
 		}
 		else if(InAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)InAction.Get();
-			UClass* VarClass = DelegateAction->GetDelegateClass();
-			check(VarClass);
-			if(VarClass != NULL)
+			if (UClass* VarClass = DelegateAction->GetDelegateClass())
 			{
-				return FReply::Handled().BeginDragDrop(FKismetDelegateDragDropAction::New(DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate));
+				return FReply::Handled().BeginDragDrop(FKismetDelegateDragDropAction::New(InAction, DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate));
 			}
 		}
 		else if (InAction->GetTypeId() == FBlueprintDragDropMenuItem::StaticGetTypeId())

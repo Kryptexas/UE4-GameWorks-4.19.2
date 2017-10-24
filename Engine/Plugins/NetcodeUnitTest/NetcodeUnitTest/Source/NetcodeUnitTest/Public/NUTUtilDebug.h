@@ -133,6 +133,10 @@ public:
 };
 
 
+// @todo #JohnB: When you continue implementing this, as a part of the ProcessEvent stack trace feature below,
+//					merge this class with the very similar 'FProcessEventHook' class in NUTUtilNet.h,
+//					then make the stack trace hook use that.
+#if 0
 #if !UE_BUILD_SHIPPING
 /**
  * Base class for transparently hooking ProcessEvent
@@ -162,8 +166,13 @@ protected:
 	/** If a 'Actor::ProcessEventDelegate' value was already set, this caches it so it can be transparently hooked and restored later */
 	FOnProcessEvent		OrigEventHook;
 };
+#endif
+#endif
 
 
+
+// @todo #JohnB: Reimplement this, by refactoring the above commented class, when this debug feature is next needed
+#if 0
 /**
  * A class for hooking and logging all ProcessEvent calls, within a particular code scope, similar to the above code
  */
@@ -427,7 +436,7 @@ public:
 	/**
 	 * Destructor
 	 */
-	~FLogStackTraceManager()
+	virtual ~FLogStackTraceManager() override
 	{
 		if (GLog != nullptr)
 		{

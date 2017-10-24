@@ -48,15 +48,16 @@ public:
 		ShadingModelMaskInView.Bind(Initializer.ParameterMap,TEXT("ShadingModelMaskInView"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context, uint16 InShadingModelMaskInView)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, uint16 InShadingModelMaskInView)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		static FLinearColor SoftBits[sizeof(InShadingModelMaskInView) * 8] = {};	// init with 0.0f
 
@@ -73,7 +74,7 @@ public:
 			}
 		}
 
-		SetShaderValueArray(Context.RHICmdList, ShaderRHI, ShadingModelMaskInView, SoftBits, sizeof(InShadingModelMaskInView) * 8);
+		SetShaderValueArray(RHICmdList, ShaderRHI, ShadingModelMaskInView, SoftBits, sizeof(InShadingModelMaskInView) * 8);
 	}
 	
 	// FShader interface.
@@ -127,7 +128,7 @@ void FRCPassPostProcessVisualizeShadingModels::Process(FRenderingCompositePassCo
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetPS(Context, ((FViewInfo&)View).ShadingModelMaskInView);
+	PixelShader->SetPS(Context.RHICmdList, Context, ((FViewInfo&)View).ShadingModelMaskInView);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

@@ -53,6 +53,10 @@ class HEADMOUNTEDDISPLAY_API UVRNotificationsComponent : public UActorComponent
 	UPROPERTY(BlueprintAssignable)
 	FVRNotificationsDelegate HMDRemovedFromHeadDelegate;
 
+	// This will be called when the VR system recenters a controller.  
+	UPROPERTY(BlueprintAssignable)
+	FVRNotificationsDelegate VRControllerRecenteredDelegate;
+
 public:
 	void OnRegister() override;
 	void OnUnregister() override;
@@ -67,6 +71,7 @@ private:
 	void HMDConnectCanceledDelegate_Handler() { HMDConnectCanceledDelegate.Broadcast(); }
 	void HMDPutOnHeadDelegate_Handler() { HMDPutOnHeadDelegate.Broadcast(); }
 	void HMDRemovedFromHeadDelegate_Handler() { HMDRemovedFromHeadDelegate.Broadcast(); }
+	void VRControllerRecentered_Handler() { VRControllerRecenteredDelegate.Broadcast(); }
 };
 
 

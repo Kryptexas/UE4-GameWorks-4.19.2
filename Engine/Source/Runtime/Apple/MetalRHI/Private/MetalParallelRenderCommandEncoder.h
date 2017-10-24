@@ -8,11 +8,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface FMetalDebugParallelRenderCommandEncoder : FApplePlatformObject<MTLParallelRenderCommandEncoder>
 {
-    @private
-#pragma mark - Private Member Variables -
-    FMetalDebugBufferBindings ShaderBuffers[EMetalShaderRenderNum];
-    FMetalDebugTextureBindings ShaderTextures[EMetalShaderRenderNum];
-    FMetalDebugSamplerBindings ShaderSamplers[EMetalShaderRenderNum];
 }
 
 /** The wrapped native command-encoder for which we collect debug information. */

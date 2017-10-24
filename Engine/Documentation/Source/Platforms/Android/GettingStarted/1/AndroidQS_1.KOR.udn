@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3482177
 Availability:Public
 Title:1. 필수 안드로이드 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -119,7 +119,7 @@ CodeWorks for Android 1R6 는 에디터와 런처 둘 다 닫힌 상태로 설�
 	이 위치는 기본 위치로 놔둬도 전혀 상관 없습니다.
 	[/region]
 
-1.	**CodeWorks for Android 1R6** 설치중인지 확인한 뒤 **다음** 버튼을 누릅니다.
+1.	**CodeWorks for Android 1r6u1** 설치중인지 확인한 뒤 **다음** 버튼을 누릅니다.
 	
 	![](AndroidWorks_03.png)
 

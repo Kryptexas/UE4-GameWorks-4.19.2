@@ -29,13 +29,13 @@ class LauncherLocalization : BuildCommand
 		if (P4Enabled)
 		{
 			Log("Sync necessary content to head revision");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
+			P4.Sync(P4Env.Branch + "/Engine/Config/...");
+			P4.Sync(P4Env.Branch + "/Engine/Content/...");
+			P4.Sync(P4Env.Branch + "/Engine/Source/...");
 
-            P4.Sync(P4Env.BuildRootP4 + "/Portal/Config/...");
-            P4.Sync(P4Env.BuildRootP4 + "/Portal/Content/...");
-            P4.Sync(P4Env.BuildRootP4 + "/Portal/Source/...");
+            P4.Sync(P4Env.Branch + "/Portal/Config/...");
+            P4.Sync(P4Env.Branch + "/Portal/Content/...");
+            P4.Sync(P4Env.Branch + "/Portal/Source/...");
 		}
 
 		OneSkyConfigData OneSkyConfig = OneSkyConfigHelper.Find("OneSkyConfig_EpicGames");
@@ -58,7 +58,7 @@ class LauncherLocalization : BuildCommand
 		string EditorArguments = String.Empty;
 		if (P4Enabled)
 		{
-			EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, P4.GetAuthenticationToken());
+			EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4}", "Perforce", P4Env.ServerAndPort, P4Env.User, P4Env.Client, P4.GetAuthenticationToken());
 		}
 		else
 		{

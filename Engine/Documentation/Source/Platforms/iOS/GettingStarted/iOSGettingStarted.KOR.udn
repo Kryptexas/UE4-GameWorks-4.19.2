@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability: Public
 Title: 고급 iOS PC/Mac 작업방식
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -9,6 +9,7 @@ SkillLevel: Intermediate
 parent:Platforms/iOS
 order:0
 type:overview
+related:Platforms/iOS/Windows
 
 [TOC(start:2 end:2)]
 
@@ -78,7 +79,7 @@ XCode 는 App Store 에서 [무료로 다운로드 가능](https://itunes.apple.
 
 ## Apple iOS 개발자로 시작하기
 
-[Apple IOS Developer Program](https://developer.apple.com/programs/ios/) 에 가입해야 합니다.
+[Apple iOS Developer Program](https://developer.apple.com/programs/ios/) 에 가입해야 합니다.
 * 개인 - 혼자 작업하는 경우, 아니면 한 명만 iOS 계정 Admin 접근이 필요한 소규모 팀의 경우입니다.
 * 회사 - 회사의 소규모 팀인 경우, 이 옵션으로 팀에 사람을 추가한 뒤 다양한 접근권한을 부여할 수 있습니다.
 
@@ -265,10 +266,10 @@ Certificate 설치시, 마법사의 기본 옵션으로 대부분의 경우 통�
 * Xcode 에서 UE4/UE4.xcodeproj 를 엽니다.
 * QAGame - Mac 을 선택합니다.
 * 스키마에서 (Option-Command-R) Development 를 선택한 다음 Done 을 클릭합니다. Command-B 키로 맥 실행파일을 빌드합니다.
-* Terminal 에서 IOS 쿠커를 실행합니다.
+* Terminal 에서 iOS 쿠커를 실행합니다.
     * Terminal.app 을 실행한 다음 UE4/Engine/Binaries/Mac 디렉토리로 cd 하고서 (QAGame 은 자신의 게임 이름으로 바꾸고) 이렇게 실행합니다:
 	    * open UE4Editor.app --args QAGame -run=cook -targetplatform=ios -cookonthefly
-* <GameName> - IOS (Run) 타겟을 선택한 다음 실행시킬 디바이스를 선택합니다.
+* **[GameName] - IOS (Run)** 타겟을 선택한 다음 실행시킬 디바이스를 선택합니다.
 * 스키마에서 (Option-Command-R), Info 에 Development 를 선택한 다음 Arguments 로 갑니다.
     * 게임에 필요한 명령줄 옵션과 아울러 다음 부분도 추가해 줍니다:
 	    * -filehostip=xx.xx.xx.xx

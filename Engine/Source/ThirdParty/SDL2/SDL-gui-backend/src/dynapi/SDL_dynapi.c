@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -216,21 +216,7 @@ static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
     return retval;
 }
 
-#elif defined(__HAIKU__)
-#include <os/kernel/image.h>
-static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
-{
-    image_id lib = load_add_on(fname);
-    void *retval = NULL;
-    if (lib >= 0) {
-        if (get_image_symbol(lib, sym, B_SYMBOL_TYPE_TEXT, &retval) != B_NO_ERROR) {
-            unload_add_on(lib);
-            retval = NULL;
-        }
-    }
-    return retval;
-}
-#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__) || defined(__QNX__)
 #include <dlfcn.h>
 static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
 {
@@ -316,4 +302,3 @@ SDL_InitDynamicAPI(void)
 #endif  /* SDL_DYNAMIC_API */
 
 /* vi: set ts=4 sw=4 expandtab: */
-

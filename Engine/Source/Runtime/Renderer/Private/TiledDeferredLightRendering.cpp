@@ -162,21 +162,12 @@ public:
 				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[StartIndex + LightIndex];
 				const FLightSceneInfo* const LightSceneInfo = SortedLightInfo.LightSceneInfo;
 
-				FVector NormalizedLightDirection;
-				FVector2D SpotAngles;
-				float SourceRadius;
-				float SourceLength;
-				float MinRoughness;
+				FLightParameters LightParameters;
 
-				// Get the light parameters
-				LightSceneInfo->Proxy->GetParameters(
-					LightData.LightPositionAndInvRadius[LightIndex],
-					LightData.LightColorAndFalloffExponent[LightIndex],
-					NormalizedLightDirection,
-					SpotAngles,
-					SourceRadius,
-					SourceLength,
-					MinRoughness);
+				LightSceneInfo->Proxy->GetParameters(LightParameters);
+
+				LightData.LightPositionAndInvRadius[LightIndex] = LightParameters.LightPositionAndInvRadius;
+				LightData.LightColorAndFalloffExponent[LightIndex] = LightParameters.LightColorAndFalloffExponent;
 
 				if (LightSceneInfo->Proxy->IsInverseSquared())
 				{
@@ -197,12 +188,16 @@ public:
 
 				{
 					// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
-					float W = FMath::Max(0.0001f, MinRoughness) * ((LightSceneInfo->Proxy->GetLightType() == LightType_Spot) ? 1 : -1);
+					float W = FMath::Max(0.0001f, LightParameters.LightMinRoughness) * ((LightSceneInfo->Proxy->GetLightType() == LightType_Spot) ? 1 : -1);
 
-					LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
+					LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(LightParameters.NormalizedLightDirection, W);
 				}
 
-				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, SourceLength);
+				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(
+						LightParameters.SpotAngles.X,
+						LightParameters.SpotAngles.Y,
+						LightParameters.LightSourceRadius,
+						LightParameters.LightSourceLength);
 
 				int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
 

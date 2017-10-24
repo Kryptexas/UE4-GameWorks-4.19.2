@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability: Docs
 Title:2.5 - 디렉터 그룹
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -34,6 +34,6 @@ Director Group (디렉터 그룹) 없이 Camera Group (카메라 그룹)만 가�
 
 Fade (페이드)는 페이드 인/아웃입니다.
 
-Slomo (슬로모션)은 time = 1 인 경우 보통 속도, 작으면 슬로 모션, 1 보다 크면 빠른 동작으로 재생 속도가 변경됩니다.
+Slomo (슬로모션)은 time 이 1 인 경우 보통 속도, 1 보다 작으면 슬로 모션, 1 보다 크면 빠른 동작으로 재생 속도가 변경됩니다.
 
 

@@ -31,6 +31,8 @@
 #include "LandscapeSplineControlPoint.h"
 #include "ControlPointMeshComponent.h"
 #include "Containers/Algo/Copy.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "UnrealExporter.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -1626,7 +1628,7 @@ public:
 	virtual EEditAction::Type GetActionEditPaste() override
 	{
 		FString PasteString;
-		FPlatformMisc::ClipboardPaste(PasteString);
+		FPlatformApplicationMisc::ClipboardPaste(PasteString);
 		if (PasteString.StartsWith("BEGIN SPLINES"))
 		{
 			return EEditAction::Process;
@@ -1733,10 +1735,12 @@ public:
 
 			// Perform export to text format
 			FStringOutputDevice Ar;
+			const FExportObjectInnerContext Context;
+
 			Ar.Logf(TEXT("Begin Splines\r\n"));
 			for (UObject* Object : Objects)
 			{
-				UExporter::ExportToOutputDevice(NULL, Object, NULL, Ar, TEXT("copy"), 3, PPF_None, false);
+				UExporter::ExportToOutputDevice(&Context, Object, NULL, Ar, TEXT("copy"), 3, PPF_ExportsNotFullyQualified | PPF_Copy | PPF_Delimited, false);
 			}
 			Ar.Logf(TEXT("End Splines\r\n"));
 
@@ -1746,7 +1750,7 @@ public:
 			}
 			else
 			{
-				FPlatformMisc::ClipboardCopy(*Ar);
+				FPlatformApplicationMisc::ClipboardCopy(*Ar);
 			}
 		}
 	}
@@ -1775,7 +1779,7 @@ public:
 		}
 		else
 		{
-			FPlatformMisc::ClipboardPaste(PasteString);
+			FPlatformApplicationMisc::ClipboardPaste(PasteString);
 			Data = *PasteString;
 		}
 

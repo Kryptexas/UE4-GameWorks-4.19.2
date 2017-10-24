@@ -226,6 +226,7 @@ public:
 	FLinearColor VolumetricFogEmissive;
 	float VolumetricFogExtinctionScale;
 	float VolumetricFogDistance;
+	float VolumetricFogStaticLightingScatteringIntensity;
 	bool bOverrideLightColorsWithFogInscatteringColors;
 
 	/** Initialization constructor. */

@@ -10,9 +10,10 @@
  * Delegate fired when the list of files has been returned from the network store
  *
  * @param bWasSuccessful whether the file list was successful or not
+ * @param Error string representing the error condition
  *
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnumerateFilesComplete, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnumerateFilesComplete, bool, const FString&);
 typedef FOnEnumerateFilesComplete::FDelegate FOnEnumerateFilesCompleteDelegate;
 
 /**
@@ -88,9 +89,10 @@ public:
 	 * Delegate fired when the list of files has been returned from the network store
 	 *
 	 * @param bWasSuccessful whether the file list was successful or not
+	 * @param Error string representing the error condition
 	 *
 	 */
-	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnEnumerateFilesComplete, bool);
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnEnumerateFilesComplete, bool, const FString&);
 
 	/**
 	 * Returns the list of files that was returned by the network store

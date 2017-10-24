@@ -712,26 +712,11 @@ public:
 	 */
 	virtual bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL ) { return false; }
 
-	/** Returns true if the viewport is allowed to be possessed by Matinee for previewing sequences */
-	DEPRECATED(4.9, "AllowMatineePreview is deprecated.  Use AllowsCinematicPreview instead")
-	bool AllowMatineePreview() const { return AllowsCinematicPreview(); }
-
-	
-	DEPRECATED(4.9, "SetAllowMatineePreview is deprecated.  Use SetAllowCinematicPreview instead")
-	void SetAllowMatineePreview(const bool bInAllowCinematicPreview)
-	{
-		SetAllowCinematicPreview( bInAllowCinematicPreview );
-	}
-
 	/** Returns true if the viewport is allowed to be possessed for previewing cinematic sequences or keyframe animations*/
 	bool AllowsCinematicPreview() const { return bAllowCinematicPreview; }
 
 	/** Sets whether or not this viewport is allowed to be possessed by cinematic/scrubbing tools */
 	void SetAllowCinematicPreview( bool bInAllowCinematicPreview ) { bAllowCinematicPreview = bInAllowCinematicPreview; }
-protected:
-
-	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
-	bool bAllowCinematicPreview;
 
 public:
 	/** True if the window is maximized or floating */
@@ -982,6 +967,9 @@ public:
 
 protected:
 
+	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
+	bool bAllowCinematicPreview;
+
 	/** Camera speed setting */
 	int32 CameraSpeedSetting;
 
@@ -1057,6 +1045,13 @@ public:
 	/** Show or hide the widget. */
 	void ShowWidget(const bool bShow);
 
+	/**
+	 * Returns whether or not the flight camera is active
+	 *
+	 * @return true if the flight camera is active
+	 */
+	bool IsFlightCameraActive() const;
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1076,6 +1071,10 @@ protected:
 
 	/** Invalidates this and other linked viewports (anything viewing the same scene) */
 	virtual void RedrawAllViewportsIntoThisScene();
+
+
+	/** FCommonViewportClient interface */
+	virtual float GetViewportClientWindowDPIScale() const override;
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -1181,13 +1180,6 @@ protected:
 	void OnChangeCameraSpeed( const struct FInputEventState& InputState );
 	
 	/**
-	 * Returns whether or not the flight camera is active
-	 *
-	 * @return true if the flight camera is active
-	 */
-	bool IsFlightCameraActive() const;
-
-	/**
 	 * Stops any mouse tracking
 	 */
 	void StopTracking();
@@ -1272,6 +1264,9 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
+	/** Delegate handler for when a window DPI changes and we might need to adjust the scenes resolution */
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
 
 	/** Handle the camera about to be moved or stopped **/
 	virtual void BeginCameraMovement(bool bHasMovement) {}

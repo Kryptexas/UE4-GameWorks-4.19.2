@@ -26,6 +26,7 @@
 
 /// \file usdGeom/boundable.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/usdGeom/xformable.h"
 #include "pxr/usd/usd/prim.h"
@@ -40,6 +41,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -130,6 +133,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDGEOM_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -174,10 +178,35 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
+    
+    /// Compute the extent for the Boundable prim \p boundable at time
+    /// \p time.  If successful, populates \p extent with the result and
+    /// returns \c true, otherwise returns \c false.
+    ///
+    /// The extent computation is based on the concrete type of the prim
+    /// represented by \p boundable.  Plugins that provide a Boundable
+    /// prim type may implement and register an extent computation for that
+    /// type using #UsdGeomRegisterComputeExtentFunction.
+    /// ComputeExtentFromPlugins will use this function to compute extents
+    /// for all prims of that type.  If no function has been registered for
+    /// a prim type, but a function has been registered for one of its 
+    /// base types, that function will be used instead.
+    ///
+    /// \note This function may load plugins in order to access the extent
+    /// computation for a prim type.
+    USDGEOM_API
+    static bool ComputeExtentFromPlugins(const UsdGeomBoundable &boundable,
+                                         const UsdTimeCode &time,
+                                         VtVec3fArray *extent);
+
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

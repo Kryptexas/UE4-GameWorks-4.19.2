@@ -1,10 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/SMediaPlayerEditorPlaylist.h"
+#include "SMediaPlayerEditorPlaylist.h"
+
+#include "Containers/Array.h"
+#include "Editor.h"
 #include "EditorStyleSet.h"
+#include "FileHelpers.h"
+#include "IMediaEventSink.h"
 #include "IMediaPlayer.h"
 #include "MediaPlayer.h"
 #include "MediaPlaylist.h"
+#include "UObject/Package.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/SMediaSourceTableRow.h"
 
@@ -44,19 +51,163 @@ void SMediaPlayerEditorPlaylist::Construct(const FArguments& InArgs, UMediaPlaye
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2.0f)
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						// play list name
+						SNew(STextBlock)
+							.Text_Lambda([this]() -> FText
+							{
+								UMediaPlaylist& Playlist = MediaPlayer->GetPlaylistRef();
+								if ((Playlist.GetFlags() & RF_Transient) != 0)
+								{
+									return LOCTEXT("UnsavedPlaylistLabel", "[Unsaved play list]");
+								}
+								else
+								{
+									FString PlaylistName;
+									MediaPlayer->GetPlaylistRef().GetName(PlaylistName);
+									return FText::FromString(PlaylistName);
+								}
+							})
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					[
+						// browse button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+							.ContentPadding(4.0f)
+							.ForegroundColor(FSlateColor::UseForeground())
+							.IsEnabled_Lambda([this]() -> bool {
+								return ((MediaPlayer->GetPlaylistRef().GetFlags() & RF_Transient) == 0);
+							})
+							.OnClicked_Lambda([this]() -> FReply
+							{
+								TArray<UObject*> AssetsToSync;
+								AssetsToSync.Add(MediaPlayer->GetPlaylist());
+								GEditor->SyncBrowserToObjects(AssetsToSync);
+								return FReply::Handled();
+							})
+							.ToolTipText(LOCTEXT("FindPlaylistButtonToolTip", "Find this playlist in the Content Browser"))
+							[
+								SNew(SImage)
+									.ColorAndOpacity(FSlateColor::UseForeground())
+									.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						// save button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+							.ContentPadding(4.0f)
+							.ForegroundColor(FSlateColor::UseForeground())
+							.IsEnabled_Lambda([this]() -> bool {
+								UMediaPlaylist& Playlist = MediaPlayer->GetPlaylistRef();
+								UPackage* Package = Playlist.GetOutermost();
+								return ((Playlist.GetFlags() & RF_Transient) != 0) || ((Package != nullptr) && Package->IsDirty());
+							})
+							.OnClicked(this, &SMediaPlayerEditorPlaylist::HandleSavePlaylistButtonClicked)
+							.ToolTipText(LOCTEXT("SavePlaylistButtonToolTip", "Save this playlist"))
+							[
+								SNew(SImage)
+									.ColorAndOpacity(FSlateColor::UseForeground())
+									.Image_Lambda([this]() -> const FSlateBrush*
+									{
+										return FEditorStyle::GetBrush(
+											((MediaPlayer->GetPlaylistRef().GetFlags() & RF_Transient) != 0)
+												? "LevelEditor.Save"
+												: "LevelEditor.SaveAs"
+										);
+									})
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					[
+						// previous item button
+						SNew(SButton)
+							.IsEnabled_Lambda([this]() -> bool {
+								return (MediaPlayer->GetPlaylistRef().Loop || (MediaPlayer->GetPlaylistIndex() > 0));
+							})
+							.OnClicked_Lambda([this]() -> FReply
+							{
+								MediaPlayer->Previous();
+								return FReply::Handled();
+							})
+							.ToolTipText(LOCTEXT("PreviousPlaylistItemButtonToolTip", "Jump to the previous item in the playlist"))
+							[
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("ContentBrowser.HistoryBack"))
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					[
+						// next item button
+						SNew(SButton)
+							.IsEnabled_Lambda([this]() -> bool {
+								return (MediaPlayer->GetPlaylistRef().Loop || (MediaPlayer->GetPlaylistIndex() + 1 < MediaPlayer->GetPlaylistRef().Num()));
+							})
+							.OnClicked_Lambda([this]() -> FReply
+							{
+								MediaPlayer->Next();
+								return FReply::Handled();
+							})
+							.ToolTipText(LOCTEXT("NextPlaylistItemButtonToolTip", "Jump to the next item in the playlist"))
+							[
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("ContentBrowser.HistoryForward"))
+							]
+					]
+			]
+
+		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
 				SNew(SBorder)
 					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 					.Padding(0.0f)
 					[
-						// message list
+						// media source list
 						SAssignNew(MediaSourceListView, SListView<TSharedPtr<FMediaSourceTableEntry>>)
 							.ItemHeight(24.0f)
 							.ListItemsSource(&MediaSourceList)
 							.SelectionMode(ESelectionMode::Single)
-							.OnGenerateRow(this, &SMediaPlayerEditorPlaylist::HandleMediaSourceListGenerateRow)
-							.OnMouseButtonDoubleClick(this, &SMediaPlayerEditorPlaylist::HandleMediaSourceListDoubleClick)
+							.OnGenerateRow_Lambda([this](TSharedPtr<FMediaSourceTableEntry> Entry, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
+							{
+								return SNew(SMediaSourceTableRow, OwnerTable)
+									.Entry(Entry)
+									.Opened_Lambda([=]() { return MediaPlayer->GetPlaylistIndex() == Entry->Index; })
+									.Style(Style);
+							})
+							.OnMouseButtonDoubleClick_Lambda([this](TSharedPtr<FMediaSourceTableEntry> InItem)
+							{
+								if (InItem.IsValid())
+								{
+									MediaPlayer->OpenPlaylistIndex(&MediaPlayer->GetPlaylistRef(), InItem->Index);
+								}
+							})
 							.HeaderRow
 							(
 								SNew(SHeaderRow)
@@ -95,14 +246,11 @@ void SMediaPlayerEditorPlaylist::ReloadMediaSourceList()
 {
 	MediaSourceList.Reset();
 
-	UMediaPlaylist* Playlist = MediaPlayer->GetPlaylist();
+	UMediaPlaylist& Playlist = MediaPlayer->GetPlaylistRef();
 
-	if (Playlist != nullptr)
+	for (int32 EntryIndex = 0; EntryIndex < Playlist.Num(); ++EntryIndex)
 	{
-		for (int32 EntryIndex = 0; EntryIndex < Playlist->Num(); ++EntryIndex)
-		{
-			MediaSourceList.Add(MakeShareable(new FMediaSourceTableEntry(EntryIndex, Playlist->Get(EntryIndex))));
-		}
+		MediaSourceList.Add(MakeShareable(new FMediaSourceTableEntry(EntryIndex, Playlist.Get(EntryIndex))));
 	}
 
 	MediaSourceListView->RequestListRefresh();
@@ -114,7 +262,7 @@ void SMediaPlayerEditorPlaylist::ReloadMediaSourceList()
 
 void SMediaPlayerEditorPlaylist::HandleCoreObjectPropertyChanged(UObject* Object, struct FPropertyChangedEvent& ChangedEvent)
 {
-	if ((Object != nullptr) && (Object == MediaPlayer->GetPlaylist()))
+	if ((Object != nullptr) && (Object == &MediaPlayer->GetPlaylistRef()))
 	{
 		ReloadMediaSourceList();
 	}
@@ -130,21 +278,59 @@ void SMediaPlayerEditorPlaylist::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 }
 
 
-void SMediaPlayerEditorPlaylist::HandleMediaSourceListDoubleClick(TSharedPtr<FMediaSourceTableEntry> InItem)
+FReply SMediaPlayerEditorPlaylist::HandleSavePlaylistButtonClicked()
 {
-	if (InItem.IsValid())
+	UMediaPlaylist& Playlist = MediaPlayer->GetPlaylistRef();
+
+	// first save any transient media sources
+	for (int32 MediaSourceIndex = 0; MediaSourceIndex < Playlist.Num(); ++MediaSourceIndex)
 	{
-		MediaPlayer->OpenPlaylistIndex(MediaPlayer->GetPlaylist(), InItem->Index);
+		UMediaSource* MediaSource = Playlist.Get(MediaSourceIndex);
+
+		if ((MediaSource != nullptr) && MediaSource->HasAnyFlags(RF_Transient))
+		{
+			TArray<UObject*> MediaSourcesToSave;
+			TArray<UObject*> SavedMediaSources;
+
+			MediaSourcesToSave.Add(MediaSource);
+			FEditorFileUtils::SaveAssetsAs(MediaSourcesToSave, SavedMediaSources);
+
+			if ((SavedMediaSources.Num() != 1) || (SavedMediaSources[0] == MediaSourcesToSave[0]))
+			{
+				return FReply::Handled(); // user canceled
+			}
+
+			Playlist.Replace(MediaSourceIndex, CastChecked<UMediaSource>(SavedMediaSources[0]));
+		}
 	}
-}
 
+	// then save play list itself
+	if ((Playlist.GetFlags() & RF_Transient) == 0)
+	{
+		// save existing play list asset
+		TArray<UPackage*> PackagesToSave;
 
-TSharedRef<ITableRow> SMediaPlayerEditorPlaylist::HandleMediaSourceListGenerateRow(TSharedPtr<FMediaSourceTableEntry> Entry, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	return SNew(SMediaSourceTableRow, OwnerTable)
-		.Entry(Entry)
-		.Opened_Lambda([=]() { return MediaPlayer->GetPlaylistIndex() == Entry->Index; })
-		.Style(Style);
+		PackagesToSave.Add(Playlist.GetOutermost());
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false /*bCheckDirty*/, false /*bPromptToSave*/);
+	}
+	else
+	{
+		// create & save new play list asset
+		TArray<UObject*> PlaylistsToSave;
+		TArray<UObject*> SavedPlaylists;
+
+		PlaylistsToSave.Add(&Playlist);
+		FEditorFileUtils::SaveAssetsAs(PlaylistsToSave, SavedPlaylists);
+
+		if ((SavedPlaylists.Num() != 1) || (SavedPlaylists[0] == &Playlist))
+		{
+			return FReply::Handled(); // user canceled
+		}
+
+		MediaPlayer->OpenPlaylistIndex(CastChecked<UMediaPlaylist>(SavedPlaylists[0]), MediaPlayer->GetPlaylistIndex());
+	}
+
+	return FReply::Handled();
 }
 
 

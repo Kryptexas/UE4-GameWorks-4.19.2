@@ -2125,8 +2125,12 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 	for (auto& LandscapeInfoPair : LandscapeInfoMap.Map)
 	{
 		ULandscapeInfo* LandscapeInfo = LandscapeInfoPair.Value;
-		LandscapeInfo->Modify();
-		LandscapeInfo->Reset();
+
+		if (LandscapeInfo != nullptr)
+		{
+			LandscapeInfo->Modify();
+			LandscapeInfo->Reset();
+		}
 	}
 
 	TMap<FGuid, TArray<ALandscapeProxy*>> ValidLandscapesMap;

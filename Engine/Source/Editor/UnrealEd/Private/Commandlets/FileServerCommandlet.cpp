@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FileServerCommandlet.cpp: Implements the UFileServerCommandlet class.
-=============================================================================*/
-
 #include "Commandlets/FileServerCommandlet.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/App.h"
@@ -16,10 +12,10 @@
 #include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
-#include "Interfaces/INetworkFileServer.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileServer.h"
+#include "INetworkFileSystemModule.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
 #include "IPAddress.h"
 
 
@@ -90,7 +86,7 @@ int32 UFileServerCommandlet::Main( const FString& Params )
 			AddressStringList.Add(AddressList[AddressIndex]->ToString(true));
 		}
 
-		FMessageEndpointPtr MessageEndpoint = FMessageEndpoint::Builder("UFileServerCommandlet").Build();
+		TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint = FMessageEndpoint::Builder("UFileServerCommandlet").Build();
 
 		if (MessageEndpoint.IsValid())
 		{

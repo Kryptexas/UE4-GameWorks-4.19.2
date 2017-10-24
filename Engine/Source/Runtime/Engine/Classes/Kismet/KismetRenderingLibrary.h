@@ -7,12 +7,12 @@
 #include "RHI.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "KismetRenderingLibrary.generated.h"
 
 class UCanvas;
 class UMaterialInterface;
 class UTexture2D;
-class UTextureRenderTarget2D;
 template<typename TRHICmdList> struct TDrawEvent;
 
 USTRUCT(BlueprintType)
@@ -47,7 +47,7 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	 * Creates a new render target and initializes it to the specified dimensions
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(WorldContext="WorldContextObject"))
-	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256);
+	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256, ETextureRenderTargetFormat Format = RTF_RGBA16f);
 	
 	/**
 	 * Manually releases GPU resources of a render target. This is useful for blueprint creating a lot of render target that would
@@ -65,6 +65,13 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API void DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material);
 
 	/**
+	* Creates a new Static Texture from a Render Target 2D. Render Target Must be power of two and use four channels.
+	* Only works in the editor
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Render Target Create Static Texture Editor Only", Keywords = "Create Static Texture from Render Target", UnsafeDuringActorConstruction = "true"), Category = Game)
+	static ENGINE_API UTexture2D* RenderTargetCreateStaticTexture2DEditorOnly(UTextureRenderTarget2D* RenderTarget, FString Name = "Texture", enum TextureCompressionSettings CompressionSettings = TC_Default, enum TextureMipGenSettings MipSettings = TMGS_FromTextureGroup);
+
+	/**
 	 * Copies the contents of a render target to a UTexture2D
 	 * Only works in the editor
 	 */
@@ -72,14 +79,14 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API void ConvertRenderTargetToTexture2DEditorOnly(UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture);
 
 	/**
-	* Exports a render target as a HDR image onto the disk.
-	*/
+	 * Exports a render target as a HDR or PNG image onto the disk (depending on the format of the render target)
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Rendering", meta = (Keywords = "ExportRenderTarget", WorldContext = "WorldContextObject"))
 	static ENGINE_API void ExportRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, const FString& FilePath, const FString& FileName);
 
 	/**
-	* Exports a Texture2D as a HDR image onto the disk.
-	*/
+	 * Exports a Texture2D as a HDR image onto the disk.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Rendering", meta = (Keywords = "ExportTexture2D", WorldContext = "WorldContextObject"))
 	static ENGINE_API void ExportTexture2D(UObject* WorldContextObject, UTexture2D* Texture, const FString& FilePath, const FString& FileName);
 

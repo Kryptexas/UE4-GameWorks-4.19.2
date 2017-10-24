@@ -10,8 +10,8 @@
 #include "include/base/cef_thread_checker.h"
 #include "include/cef_app.h"
 #include "include/cef_command_line.h"
-#include "cefclient/browser/main_context.h"
-#include "cefclient/browser/root_window_manager.h"
+#include "tests/cefclient/browser/main_context.h"
+#include "tests/cefclient/browser/root_window_manager.h"
 
 namespace client {
 
@@ -27,6 +27,8 @@ class MainContextImpl : public MainContext {
   std::string GetAppWorkingDirectory() OVERRIDE;
   std::string GetMainURL() OVERRIDE;
   cef_color_t GetBackgroundColor() OVERRIDE;
+  bool UseViews() OVERRIDE;
+  bool UseWindowlessRendering() OVERRIDE;
   void PopulateSettings(CefSettings* settings) OVERRIDE;
   void PopulateBrowserSettings(CefBrowserSettings* settings) OVERRIDE;
   void PopulateOsrSettings(OsrRenderer::Settings* settings) OVERRIDE;
@@ -66,6 +68,9 @@ class MainContextImpl : public MainContext {
 
   std::string main_url_;
   cef_color_t background_color_;
+  cef_color_t browser_background_color_;
+  bool use_windowless_rendering_;
+  bool use_views_;
 
   scoped_ptr<RootWindowManager> root_window_manager_;
 

@@ -47,7 +47,11 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	/**
 	 * If this component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
 	 * When disabled, the component will revert to using the stored RelativeRotation of the component.
-	 * @see APawn::GetViewRotation()
+	 * Note that this component itself does not rotate, but instead maintains its relative rotation to its parent as normal,
+	 * and just repositions and rotates its children as desired by the inherited rotation settings. Use GetTargetRotation()
+	 * if you want the rotation target based on all the settings (UsePawnControlRotation, InheritPitch, etc).
+	 *
+	 * @see GetTargetRotation(), APawn::GetViewRotation()
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bUsePawnControlRotation:1;
@@ -108,6 +112,13 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition="bEnableCameraLag", ClampMin="0.0", UIMin = "0.0"))
 	float CameraLagMaxDistance;
 
+	/**
+	 * Get the target rotation we inherit, used as the base target for the boom rotation.
+	 * This is derived from attachment to our parent and considering the UsePawnControlRotation and absolute rotation flags.
+	 */
+	UFUNCTION(BlueprintCallable, Category=SpringArm)
+	FRotator GetTargetRotation() const;
+
 	/** Temporary variables when using camera lag, to record previous camera position */
 	FVector PreviousDesiredLoc;
 	FVector PreviousArmOrigin;
@@ -144,14 +155,4 @@ protected:
 	 * by default it returns bHitSomething ? TraceHitLocation : DesiredArmLocation
 	 */
 	virtual FVector BlendLocations(const FVector& DesiredArmLocation, const FVector& TraceHitLocation, bool bHitSomething, float DeltaTime);
-
-public:
-
-	/**
-	* DEPRECATED variable: use "bUsePawnControlRotation" instead. Existing code using this value may not behave correctly.
-	* This is not a UPROPERTY, with good reason: we don't want to serialize in old values.
-	*/
-	DEPRECATED(4.5, "This variable is deprecated; existing code using this value may not behave correctly. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
-	bool bUseControllerViewRotation;
-
 };

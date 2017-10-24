@@ -2,6 +2,10 @@
 
 #include "Bridge/MessageBridge.h"
 
+#include "IMessageBus.h"
+#include "IMessageSubscription.h"
+#include "IMessageTransport.h"
+
 
 /* FMessageBridge structors
  *****************************************************************************/
@@ -18,14 +22,12 @@ FMessageBridge::FMessageBridge(
 	, Transport(InTransport)
 {
 	Bus->OnShutdown().AddRaw(this, &FMessageBridge::HandleMessageBusShutdown);
-	Transport->OnNodeLost().BindRaw(this, &FMessageBridge::HandleTransportNodeLost);
-	Transport->OnMessageReceived().BindRaw(this, &FMessageBridge::HandleTransportMessageReceived);
 }
 
 
 FMessageBridge::~FMessageBridge()
 {
-	Shutdown();
+	Disable();
 
 	if (Bus.IsValid())
 	{
@@ -76,7 +78,7 @@ void FMessageBridge::Enable()
 	}
 
 	// enable subscription & transport
-	if (!Transport->StartTransport())
+	if (!Transport->StartTransport(*this))
 	{
 		return;
 	}
@@ -96,10 +98,40 @@ void FMessageBridge::Enable()
 }
 
 
-/* IReceiveMessages interface
+bool FMessageBridge::IsEnabled() const
+{
+	return Enabled;
+}
+
+
+/* IMessageReceiver interface
  *****************************************************************************/
 
-void FMessageBridge::ReceiveMessage(const IMessageContextRef& Context)
+FName FMessageBridge::GetDebugName() const
+{
+	return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
+}
+
+
+const FGuid& FMessageBridge::GetRecipientId() const
+{
+	return Id;
+}
+
+
+ENamedThreads::Type FMessageBridge::GetRecipientThread() const
+{
+	return ENamedThreads::AnyThread;
+}
+
+
+bool FMessageBridge::IsLocal() const
+{
+	return false;
+}
+
+
+void FMessageBridge::ReceiveMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!Enabled)
 	{
@@ -124,8 +156,14 @@ void FMessageBridge::ReceiveMessage(const IMessageContextRef& Context)
 }
 
 
-/* ISendMessages interface
+/* IMessageSender interface
  *****************************************************************************/
+
+FMessageAddress FMessageBridge::GetSenderAddress()
+{
+	return Address;
+}
+
 
 void FMessageBridge::NotifyMessageError(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FString& Error)
 {
@@ -133,32 +171,34 @@ void FMessageBridge::NotifyMessageError(const TSharedRef<IMessageContext, ESPMod
 }
 
 
-/* FMessageBridge implementation
+/* IMessageTransportHandler interface
  *****************************************************************************/
 
-void FMessageBridge::Shutdown()
+void FMessageBridge::DiscoverTransportNode(const FGuid& NodeId)
 {
-	Disable();
+	// do nothing (address book is updated in ReceiveTransportMessage)
+}
 
-	if (Transport.IsValid())
+
+void FMessageBridge::ForgetTransportNode(const FGuid& NodeId)
+{
+	TArray<FMessageAddress> RemovedAddresses;
+
+	// update address book
+	AddressBook.RemoveNode(NodeId, RemovedAddresses);
+
+	// unregister endpoints
+	if (Bus.IsValid())
 	{
-		Transport->OnMessageReceived().Unbind();
-		Transport->OnNodeLost().Unbind();
+		for (const auto& RemovedAddress : RemovedAddresses)
+		{
+			Bus->Unregister(RemovedAddress);
+		}
 	}
 }
 
 
-/* FMessageBridge callbacks
- *****************************************************************************/
-
-void FMessageBridge::HandleMessageBusShutdown()
-{
-	Shutdown();
-	Bus.Reset();
-}
-
-
-void FMessageBridge::HandleTransportMessageReceived(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FGuid& NodeId)
+void FMessageBridge::ReceiveTransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FGuid& NodeId)
 {
 	if (!Enabled || !Bus.IsValid())
 	{
@@ -183,19 +223,11 @@ void FMessageBridge::HandleTransportMessageReceived(const TSharedRef<IMessageCon
 }
 
 
-void FMessageBridge::HandleTransportNodeLost(const FGuid& NodeId)
+/* FMessageBridge callbacks
+ *****************************************************************************/
+
+void FMessageBridge::HandleMessageBusShutdown()
 {
-	TArray<FMessageAddress> RemovedAddresses;
-
-	// update address book
-	AddressBook.RemoveNode(NodeId, RemovedAddresses);
-
-	// unregister endpoints
-	if (Bus.IsValid())
-	{
-		for (const auto& RemovedAddress : RemovedAddresses)
-		{
-			Bus->Unregister(RemovedAddress);
-		}
-	}
+	Disable();
+	Bus.Reset();
 }

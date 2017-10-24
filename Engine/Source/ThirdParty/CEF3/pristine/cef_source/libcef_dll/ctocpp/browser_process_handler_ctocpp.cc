@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -79,24 +79,36 @@ CefRefPtr<CefPrintHandler> CefBrowserProcessHandlerCToCpp::GetPrintHandler() {
   return CefPrintHandlerCToCpp::Wrap(_retval);
 }
 
+void CefBrowserProcessHandlerCToCpp::OnScheduleMessagePumpWork(int64 delay_ms) {
+  cef_browser_process_handler_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, on_schedule_message_pump_work))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->on_schedule_message_pump_work(_struct,
+      delay_ms);
+}
+
 
 // CONSTRUCTOR - Do not edit by hand.
 
 CefBrowserProcessHandlerCToCpp::CefBrowserProcessHandlerCToCpp() {
 }
 
-template<> cef_browser_process_handler_t* CefCToCpp<CefBrowserProcessHandlerCToCpp,
+template<> cef_browser_process_handler_t* CefCToCppRefCounted<CefBrowserProcessHandlerCToCpp,
     CefBrowserProcessHandler, cef_browser_process_handler_t>::UnwrapDerived(
     CefWrapperType type, CefBrowserProcessHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefBrowserProcessHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefBrowserProcessHandlerCToCpp,
     CefBrowserProcessHandler, cef_browser_process_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefBrowserProcessHandlerCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefBrowserProcessHandlerCToCpp,
     CefBrowserProcessHandler, cef_browser_process_handler_t>::kWrapperType =
     WT_BROWSER_PROCESS_HANDLER;

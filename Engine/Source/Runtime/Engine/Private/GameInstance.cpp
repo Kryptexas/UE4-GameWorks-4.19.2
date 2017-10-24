@@ -90,6 +90,9 @@ void UGameInstance::Init()
 				App->RegisterConsoleCommandListener(GenericApplication::FOnConsoleCommandListener::CreateUObject(this, &ThisClass::OnConsoleInput));
 			}
 		}
+
+		FNetDelegates::OnReceivedNetworkEncryptionToken.BindUObject(this, &ThisClass::ReceivedNetworkEncryptionToken);
+		FNetDelegates::OnReceivedNetworkEncryptionAck.BindUObject(this, &ThisClass::ReceivedNetworkEncryptionAck);
 	}
 }
 
@@ -127,6 +130,9 @@ void UGameInstance::Shutdown()
 			RemoveLocalPlayer(Player);
 		}
 	}
+
+	FNetDelegates::OnReceivedNetworkEncryptionToken.Unbind();
+	FNetDelegates::OnReceivedNetworkEncryptionAck.Unbind();
 
 	// Clear the world context pointer to prevent further access.
 	WorldContext = nullptr;
@@ -184,12 +190,6 @@ FGameInstancePIEResult UGameInstance::InitializeForPlayInEditor(int32 PIEInstanc
 	{
 		// We are going to connect, so just load an empty world
 		NewWorld = EditorEngine->CreatePIEWorldFromEntry(*WorldContext, EditorEngine->EditorWorld, PIEMapName);
-	}
-	else if (PlayNetMode == PIE_ListenServer && !CanRunUnderOneProcess)
-	{
-		// We *have* to save the world to disk in order to be a listen server that allows other processes to connect.
-		// Otherwise, clients would not be able to load the world we are using
-		NewWorld = EditorEngine->CreatePIEWorldBySavingToTemp(*WorldContext, EditorEngine->EditorWorld, PIEMapName);
 	}
 	else
 	{
@@ -258,7 +258,15 @@ FGameInstancePIEResult UGameInstance::StartPlayInEditorGameInstance(ULocalPlayer
 	{
 		FString Error;
 		FURL BaseURL = WorldContext->LastURL;
-		if (EditorEngine->Browse(*WorldContext, FURL(&BaseURL, TEXT("127.0.0.1"), (ETravelType)TRAVEL_Absolute), Error) == EBrowseReturnVal::Pending)
+
+		FString URLString(TEXT("127.0.0.1"));
+		uint16 ServerPort = 0;
+		if (PlayInSettings->GetServerPort(ServerPort))
+		{
+			URLString += FString::Printf(TEXT(":%hu"), ServerPort);
+		}
+
+		if (EditorEngine->Browse(*WorldContext, FURL(&BaseURL, *URLString, (ETravelType)TRAVEL_Absolute), Error) == EBrowseReturnVal::Pending)
 		{
 			EditorEngine->TransitionType = TT_WaitingToConnect;
 		}
@@ -333,6 +341,13 @@ FGameInstancePIEResult UGameInstance::StartPlayInEditorGameInstance(ULocalPlayer
 		
 		if (PlayNetMode == PIE_ListenServer)
 		{
+			// Add port
+			uint16 ServerPort = 0;
+			if (PlayInSettings->GetServerPort(ServerPort))
+			{
+				URL.Port = ServerPort;
+			}
+
 			// start listen server with the built URL
 			PlayWorld->Listen(URL);
 		}
@@ -420,7 +435,7 @@ void UGameInstance::StartGameInstance()
 	}
 
 	// If waiting for a network connection, go into the starting level.
-	if (BrowseRet != EBrowseReturnVal::Success)
+	if (BrowseRet == EBrowseReturnVal::Failure)
 	{
 		UE_LOG(LogLoad, Error, TEXT("%s"), *FString::Printf(TEXT("Failed to enter %s: %s. Please check the log for errors."), *URL.Map, *Error));
 
@@ -450,7 +465,7 @@ void UGameInstance::StartGameInstance()
 	}
 
 	// Handle failure.
-	if (BrowseRet != EBrowseReturnVal::Success)
+	if (BrowseRet == EBrowseReturnVal::Failure)
 	{
 		UE_LOG(LogLoad, Error, TEXT("%s"), *FString::Printf(TEXT("Failed to enter %s: %s. Please check the log for errors."), *DefaultMap, *Error));
 		const FText Message = FText::Format(NSLOCTEXT("Engine", "DefaultMapNotFound", "The default map '{0}' could not be found. Exiting."), FText::FromString(DefaultMap));
@@ -691,7 +706,7 @@ APlayerController* UGameInstance::GetPrimaryPlayerController() const
 	APlayerController* PrimaryController = nullptr;
 	for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* NextPlayer = Cast<APlayerController>(*Iterator);
+		APlayerController* NextPlayer = Iterator->Get();
 		if (NextPlayer && NextPlayer->PlayerState && NextPlayer->PlayerState->UniqueId.IsValid() && NextPlayer->IsPrimaryPlayer())
 		{
 			PrimaryController = NextPlayer;
@@ -983,6 +998,18 @@ void UGameInstance::AddUserToReplay(const FString& UserString)
 	{
 		CurrentWorld->DemoNetDriver->AddUserToReplay( UserString );
 	}
+}
+
+void UGameInstance::ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate)
+{
+	FEncryptionKeyResponse Response(EEncryptionResponse::Failure, TEXT("ReceivedNetworkEncryptionToken not implemented"));
+	Delegate.ExecuteIfBound(Response);
+}
+
+void UGameInstance::ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate)
+{
+	FEncryptionKeyResponse Response(EEncryptionResponse::Failure, TEXT("ReceivedNetworkEncryptionAck not implemented"));
+	Delegate.ExecuteIfBound(Response);
 }
 
 TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()

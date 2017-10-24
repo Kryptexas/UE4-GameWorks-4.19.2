@@ -262,6 +262,7 @@ void FPrimitiveSceneProxy::UpdateUniformBuffer()
 			HasDistanceFieldRepresentation(), 
 			HasDynamicIndirectShadowCasterRepresentation(), 
 			UseSingleSampleShadowFromStationaryLights(),
+			Scene->HasPrecomputedVolumetricLightmap_RenderThread(),
 			UseEditorDepthTest(), 
 			GetLightingChannelMask(),
 			LpvBiasMultiplier);

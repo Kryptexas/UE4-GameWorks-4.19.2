@@ -31,11 +31,12 @@
 /// \file gf/vec2d.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/diagnostic.h"
+#include "pxr/base/gf/api.h"
 #include "pxr/base/gf/limits.h"
 #include "pxr/base/gf/traits.h"
 #include "pxr/base/gf/math.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -43,6 +44,10 @@
 #include <cmath>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+class GfVec2d;
 
 template <>
 struct GfIsGfVec<class GfVec2d> { static const bool value = true; };
@@ -87,13 +92,13 @@ public:
     explicit GfVec2d(Scl const *p) { Set(p); }
 
     /// Implicitly convert from GfVec2f.
-    GF_API GfVec2d(class GfVec2f const &other);
+    GfVec2d(class GfVec2f const &other);
 
     /// Implicitly convert from GfVec2h.
-    GF_API GfVec2d(class GfVec2h const &other);
+    GfVec2d(class GfVec2h const &other);
 
     /// Implicitly convert from GfVec2i.
-    GF_API GfVec2d(class GfVec2i const &other);
+    GfVec2d(class GfVec2i const &other);
  
     /// Create a unit vector along the X-axis.
     static GfVec2d XAxis() {
@@ -148,7 +153,7 @@ public:
 
     /// Equality comparison.
     bool operator==(GfVec2d const &other) const {
-        return _data[0] == other[0] and
+        return _data[0] == other[0] &&
                _data[1] == other[1];
     }
     bool operator!=(GfVec2d const &other) const {
@@ -159,11 +164,11 @@ public:
     /// Equality comparison.
     GF_API
     bool operator==(class GfVec2f const &other) const;
-    GF_API
     /// Equality comparison.
+    GF_API
     bool operator==(class GfVec2h const &other) const;
-    GF_API
     /// Equality comparison.
+    GF_API
     bool operator==(class GfVec2i const &other) const;
     
     /// Create a vec with negated elements.
@@ -280,9 +285,33 @@ private:
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfVec2d const &);
 
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #include "pxr/base/gf/vec2f.h"
 #include "pxr/base/gf/vec2h.h"
 #include "pxr/base/gf/vec2i.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+inline
+GfVec2d::GfVec2d(class GfVec2f const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+}
+inline
+GfVec2d::GfVec2d(class GfVec2h const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+}
+inline
+GfVec2d::GfVec2d(class GfVec2i const &other)
+{
+    _data[0] = other[0];
+    _data[1] = other[1];
+}
 
 /// Returns component-wise multiplication of vectors \p v1 and \p v2.
 inline GfVec2d
@@ -365,4 +394,6 @@ GfIsClose(GfVec2d const &v1, GfVec2d const &v2, double tolerance)
 
  
  
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #endif // GF_VEC2D_H

@@ -88,7 +88,6 @@ namespace FNameDefs
 #endif
 }
 
-
 enum ELinkerNameTableConstructor    {ENAME_LinkerConstructor};
 
 /** Enumeration for finding name. */
@@ -929,7 +928,7 @@ public:
 	 * Inequality operator.
 	 *
 	 * @param	Other	String to compare this name to
-	 * @return true if name matches the string, false otherwise
+	 * @return true if name does not match the string, false otherwise
 	 */
 	template <typename CharType>
 	bool operator!=(const CharType* Other) const
@@ -1147,6 +1146,18 @@ inline uint32 GetTypeHash( const FName N )
 	return N.GetComparisonIndex() + N.GetNumber();
 }
 
+namespace Lex
+{
+	FORCEINLINE FString ToString(const FName& Name)
+	{
+		return Name.ToString();
+	}
+
+	FORCEINLINE void FromString(FName& Name, const TCHAR* Str)
+	{
+		Name = FName(Str);
+	}
+}
 
 FORCEINLINE FMinimalName NameToMinimalName(const FName& InName)
 {

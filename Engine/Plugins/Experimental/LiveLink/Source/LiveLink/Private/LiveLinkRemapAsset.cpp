@@ -7,21 +7,63 @@
 ULiveLinkRemapAsset::ULiveLinkRemapAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
+	if (Blueprint)
+	{
+		OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddUObject(this, &ULiveLinkRemapAsset::OnBlueprintClassCompiled);
+	}
 }
 
-void ULiveLinkRemapAsset::BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, TSharedPtr<FLiveLinkRetargetContext> InOutContext, FCompactPose& OutPose, FBlendedCurve& OutCurve) const
+void ULiveLinkRemapAsset::BeginDestroy()
 {
-	const TArray<FName>& BoneNames = InFrame.RefSkeleton.GetBoneNames();
-
-	if ((BoneNames.Num() == 0) || (InFrame.Transforms.Num() == 0) || (BoneNames.Num() != InFrame.Transforms.Num()))
+	if (OnBlueprintCompiledDelegate.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), BoneNames.Num(), InFrame.Transforms.Num());
+		UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
+		check(Blueprint);
+		Blueprint->OnCompiled().Remove(OnBlueprintCompiledDelegate);
+		OnBlueprintCompiledDelegate.Reset();
+	}
+
+	Super::BeginDestroy();
+}
+
+void ULiveLinkRemapAsset::OnBlueprintClassCompiled(UBlueprint* TargetBlueprint)
+{
+	NameMap.Reset();
+}
+
+void ULiveLinkRemapAsset::BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, FCompactPose& OutPose, FBlendedCurve& OutCurve)
+{
+	const TArray<FName>& SourceBoneNames = InFrame.RefSkeleton.GetBoneNames();
+
+	if ((SourceBoneNames.Num() == 0) || (InFrame.Transforms.Num() == 0) || (SourceBoneNames.Num() != InFrame.Transforms.Num()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), SourceBoneNames.Num(), InFrame.Transforms.Num());
 		return;
 	}
 
-	for (int32 i = 0; i < BoneNames.Num(); ++i)
+	TArray<FName, TMemStackAllocator<>> TransformedBoneNames;
+	TransformedBoneNames.Reserve(SourceBoneNames.Num());
+
+	for (const FName& SrcBoneName : SourceBoneNames)
 	{
-		FName BoneName = BoneNames[i];
+		FName* TargetBoneName = NameMap.Find(SrcBoneName);
+		if (TargetBoneName == nullptr)
+		{
+			FName NewName = GetRemappedBoneName(SrcBoneName);
+			TransformedBoneNames.Add(NewName);
+			NameMap.Add(SrcBoneName, NewName);
+		}
+		else
+		{
+			TransformedBoneNames.Add(*TargetBoneName);
+		}
+	}
+
+	for (int32 i = 0; i < TransformedBoneNames.Num(); ++i)
+	{
+		FName BoneName = TransformedBoneNames[i];
+
 		FTransform BoneTransform = InFrame.Transforms[i];
 
 		int32 MeshIndex = OutPose.GetBoneContainer().GetPoseBoneIndexForBoneName(BoneName);
@@ -36,4 +78,9 @@ void ULiveLinkRemapAsset::BuildPoseForSubject(const FLiveLinkSubjectFrame& InFra
 	}
 
 	BuildCurveData(InFrame, OutPose, OutCurve);
+}
+
+FName ULiveLinkRemapAsset::GetRemappedBoneName_Implementation(FName BoneName) const
+{
+	return BoneName;
 }

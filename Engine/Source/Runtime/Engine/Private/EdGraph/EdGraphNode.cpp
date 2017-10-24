@@ -17,6 +17,17 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+FEdGraphTerminalType FEdGraphTerminalType::FromPinType(const FEdGraphPinType& PinType)
+{
+	FEdGraphTerminalType TerminalType;
+	TerminalType.TerminalCategory = PinType.PinCategory;
+	TerminalType.TerminalSubCategory = PinType.PinSubCategory;
+	TerminalType.TerminalSubCategoryObject = PinType.PinSubCategoryObject;
+	TerminalType.bTerminalIsConst = PinType.bIsConst;
+	TerminalType.bTerminalIsWeakPointer = PinType.bIsWeakPointer;
+	return TerminalType;
+}
+
 FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
 {
 	Ar << T.TerminalCategory;
@@ -593,7 +604,17 @@ FString UEdGraphNode::GetFindReferenceSearchString() const
 
 UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 {
-	return NULL;
+	return nullptr;
+}
+
+bool UEdGraphNode::CanJumpToDefinition() const
+{
+	return false;
+}
+
+void UEdGraphNode::JumpToDefinition() const
+{
+	// No implementation in the base graph node
 }
 
 FText UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
@@ -695,6 +716,18 @@ bool UEdGraphNode::IsInDevelopmentMode() const
 #else
 	return false;
 #endif
+}
+
+bool UEdGraphNode::IsAutomaticallyPlacedGhostNode() const
+{
+	return !bUserSetEnabledState && (EnabledState == ENodeEnabledState::Disabled);
+}
+
+void UEdGraphNode::MakeAutomaticallyPlacedGhostNode()
+{
+	EnabledState = ENodeEnabledState::Disabled;
+	NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
+	bUserSetEnabledState = false;
 }
 
 /////////////////////////////////////////////////////

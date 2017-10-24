@@ -11,11 +11,11 @@
 
 #if WITH_OGGVORBIS
 
-// hack to get ogg types right for HTML5. 
-#if PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32
-#define _WIN32 
+// hack to get ogg types right for HTML5.
+#if PLATFORM_HTML5
+#define _WIN32
 #define __MINGW32__
-#endif 
+#endif
 #pragma pack(push, 8)
 #include "ogg/ogg.h"
 #include "vorbis/vorbisenc.h"
@@ -23,10 +23,10 @@
 #pragma pack(pop)
 #endif
 
-#if PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32
-#undef  _WIN32 
+#if PLATFORM_HTML5
+#undef  _WIN32
 #undef __MINGW32__
-#endif 
+#endif
 
 #if PLATFORM_LITTLE_ENDIAN
 #define VORBIS_BYTE_ORDER 0
@@ -67,7 +67,7 @@ struct FVorbisFileWrapper
 	~FVorbisFileWrapper()
 	{
 #if WITH_OGGVORBIS
-		ov_clear( &vf ); 
+		ov_clear( &vf );
 #endif
 	}
 
@@ -81,7 +81,7 @@ struct FVorbisFileWrapper
 /*------------------------------------------------------------------------------------
 	FVorbisAudioInfo.
 ------------------------------------------------------------------------------------*/
-FVorbisAudioInfo::FVorbisAudioInfo( void ) 
+FVorbisAudioInfo::FVorbisAudioInfo( void )
 	: VFWrapper(new FVorbisFileWrapper())
 	, SrcBufferData(NULL)
 	, SrcBufferDataSize(0)
@@ -89,13 +89,13 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 	, bPerformingOperation(false)
 	, StreamingSoundWave(NULL)
 	, StreamingChunksSize(0)
-{ 
+{
 	// Make sure we have properly allocated a VFWrapper
 	check(VFWrapper != NULL);
 }
 
-FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
-{ 
+FVorbisAudioInfo::~FVorbisAudioInfo( void )
+{
 	// Make sure we're not deleting ourselves while performing an operation
 	ensure(!bPerformingOperation);
 
@@ -185,7 +185,7 @@ size_t FVorbisAudioInfo::ReadStreaming( void *Ptr, uint32 Size )
 		uint32	CurChunkSize = 0;
 
 		uint8 const* ChunkData = IStreamingManager::Get().GetAudioStreamingManager().GetLoadedChunk(StreamingSoundWave, BufferOffset / StreamingChunksSize, &CurChunkSize);
-		
+
 		check(CurChunkSize >= (BufferOffset % StreamingChunksSize));
 		size_t	BytesToCopy = FMath::Min<uint32>(CurChunkSize - (BufferOffset % StreamingChunksSize), Size);
 		check((BufferOffset % StreamingChunksSize) + BytesToCopy <= CurChunkSize);
@@ -257,9 +257,9 @@ bool FVorbisAudioInfo::GetCompressedInfoCommon(void* Callbacks, FSoundQualityInf
 	return true;
 }
 
-/** 
+/**
  * Reads the header information of an ogg vorbis file
- * 
+ *
  * @param	Resource		Info about vorbis data
  */
 bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, FSoundQualityInfo* QualityInfo )
@@ -295,7 +295,7 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 }
 
 
-/** 
+/**
  * Decompress an entire ogg vorbis data file to a TArray
  */
 void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityInfo )
@@ -336,9 +336,9 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
 
 
 
-/** 
- * Decompresses ogg vorbis data to raw PCM data. 
- * 
+/**
+ * Decompresses ogg vorbis data to raw PCM data.
+ *
  * @param	PCMData		where to place the decompressed sound
  * @param	bLooping	whether to loop the wav by seeking to the start, or pad the buffer with zeroes
  * @param	BufferSize	number of bytes of PCM data to create. A value of 0 means decompress the entire sound.

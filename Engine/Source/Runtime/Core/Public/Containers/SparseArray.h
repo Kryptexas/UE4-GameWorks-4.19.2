@@ -16,6 +16,13 @@
 #include "Containers/ScriptArray.h"
 #include "Containers/BitArray.h"
 
+
+#if UE_BUILD_SHIPPING || UE_BUILD_TEST
+	#define TSPARSEARRAY_RANGED_FOR_CHECKS 0
+#else
+	#define TSPARSEARRAY_RANGED_FOR_CHECKS 1
+#endif
+
 // Forward declarations.
 template<typename ElementType,typename Allocator = FDefaultSparseArrayAllocator >
 class TSparseArray;
@@ -54,9 +61,11 @@ class FScriptSparseArray;
  * to store whether each element index is allocated (for fast iteration over allocated elements).
  *
  **/
-template<typename ElementType,typename Allocator /*= FDefaultSparseArrayAllocator */>
+template<typename InElementType,typename Allocator /*= FDefaultSparseArrayAllocator */>
 class TSparseArray
 {
+	using ElementType = InElementType;
+
 	friend struct TContainerTraits<TSparseArray>;
 	friend class  FScriptSparseArray;
 
@@ -749,6 +758,59 @@ public:
 		}
 	};
 
+	#if TSPARSEARRAY_RANGED_FOR_CHECKS
+		class TRangedForIterator : public TIterator
+		{
+		public:
+			TRangedForIterator(TSparseArray& InArray, const typename TBaseIterator<false>::BitArrayItType& InBitArrayIt)
+				: TIterator (InArray, InBitArrayIt)
+				, InitialNum(InArray.Num())
+			{
+			}
+
+		private:
+			int32 InitialNum;
+
+			friend FORCEINLINE bool operator!=(const TRangedForIterator& Lhs, const TRangedForIterator& Rhs)
+			{
+				// We only need to do the check in this operator, because no other operator will be
+				// called until after this one returns.
+				//
+				// Also, we should only need to check one side of this comparison - if the other iterator isn't
+				// even from the same array then the compiler has generated bad code.
+				ensureMsgf(Lhs.Array.Num() == Lhs.InitialNum, TEXT("Container has changed during ranged-for iteration!"));
+				return *(TIterator*)&Lhs != *(TIterator*)&Rhs;
+			}
+		};
+
+		class TRangedForConstIterator : public TConstIterator
+		{
+		public:
+			TRangedForConstIterator(const TSparseArray& InArray, const typename TBaseIterator<true>::BitArrayItType& InBitArrayIt)
+				: TConstIterator(InArray, InBitArrayIt)
+				, InitialNum    (InArray.Num())
+			{
+			}
+
+		private:
+			int32 InitialNum;
+
+			friend FORCEINLINE bool operator!=(const TRangedForConstIterator& Lhs, const TRangedForConstIterator& Rhs)
+			{
+				// We only need to do the check in this operator, because no other operator will be
+				// called until after this one returns.
+				//
+				// Also, we should only need to check one side of this comparison - if the other iterator isn't
+				// even from the same array then the compiler has generated bad code.
+				ensureMsgf(Lhs.Array.Num() == Lhs.InitialNum, TEXT("Container has changed during ranged-for iteration!"));
+				return *(TIterator*)&Lhs != *(TIterator*)&Rhs;
+			}
+		};
+	#else
+		using TRangedForIterator      = TIterator;
+		using TRangedForConstIterator = TConstIterator;
+	#endif
+
 	/** Creates an iterator for the contents of this array */
 	TIterator CreateIterator()
 	{
@@ -766,10 +828,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TIterator      begin(      TSparseArray& Array) { return TIterator     (Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags)); }
-	FORCEINLINE friend TConstIterator begin(const TSparseArray& Array) { return TConstIterator(Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags)); }
-	FORCEINLINE friend TIterator      end  (      TSparseArray& Array) { return TIterator     (Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags, Array.AllocationFlags.Num())); }
-	FORCEINLINE friend TConstIterator end  (const TSparseArray& Array) { return TConstIterator(Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags, Array.AllocationFlags.Num())); }
+	FORCEINLINE friend TRangedForIterator      begin(      TSparseArray& Array) { return TRangedForIterator     (Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags)); }
+	FORCEINLINE friend TRangedForConstIterator begin(const TSparseArray& Array) { return TRangedForConstIterator(Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags)); }
+	FORCEINLINE friend TRangedForIterator      end  (      TSparseArray& Array) { return TRangedForIterator     (Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags, Array.AllocationFlags.Num())); }
+	FORCEINLINE friend TRangedForConstIterator end  (const TSparseArray& Array) { return TRangedForConstIterator(Array, TConstSetBitIterator<typename Allocator::BitArrayAllocator>(Array.AllocationFlags, Array.AllocationFlags.Num())); }
 
 public:
 	/** An iterator which only iterates over the elements of the array which correspond to set bits in a separate bit array. */

@@ -31,7 +31,7 @@ void AQosBeaconClient::SendQosRequest(const FOnlineSessionSearchResult& DesiredH
 		if (SessionInt.IsValid())
 		{
 			FString ConnectInfo;
-			if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
+			if (SessionInt->GetResolvedConnectString(DesiredHost, NAME_BeaconPort, ConnectInfo))
 			{
 				FURL ConnectURL(NULL, *ConnectInfo, TRAVEL_Absolute);
 				if (InitClient(ConnectURL) && DesiredHost.Session.SessionInfo.IsValid())

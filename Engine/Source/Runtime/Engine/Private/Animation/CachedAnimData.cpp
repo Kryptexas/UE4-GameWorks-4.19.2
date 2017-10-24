@@ -58,6 +58,11 @@ bool FCachedAnimStateData::IsRelevant(UAnimInstance& InAnimInstance) const
 	return FAnimWeight::IsRelevant(GetWeight(InAnimInstance));
 }
 
+bool FCachedAnimStateData::IsActiveState(class UAnimInstance& InAnimInstance) const
+{
+	return IsValid(InAnimInstance) ? (InAnimInstance.GetCurrentStateName(MachineIndex) == StateName) : false;
+}
+
 bool FCachedAnimStateArray::IsValid(UAnimInstance& InAnimInstance) const
 {
 	// Make sure the setup validates our assumptions.

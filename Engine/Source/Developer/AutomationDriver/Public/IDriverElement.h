@@ -311,6 +311,11 @@ public:
 	virtual TAsyncResult<bool> IsVisible() const = 0;
 
 	/**
+	 * @return whether the element is currently checked; will return false if the element is uncheckable
+	 */
+	virtual TAsyncResult<bool> IsChecked() const = 0;
+
+	/**
 	 * @return whether the element is currently interactable; the element must be on screen
 	 */
 	virtual TAsyncResult<bool> IsInteractable() const = 0;
@@ -359,6 +364,12 @@ public:
 	 * @return the elements discovered by the locator at this current moment; calling this multiple times may return different elements
 	 */
 	virtual TAsyncResult<TArray<TSharedRef<IAsyncDriverElement, ESPMode::ThreadSafe>>> GetElements() = 0;
+};
+
+class FEmptyAsyncDriverElementFactory
+{
+public:
+	static TSharedRef<IAsyncDriverElement, ESPMode::ThreadSafe> Create();
 };
 
 /**
@@ -666,6 +677,11 @@ public:
 	virtual bool IsVisible() const = 0;
 
 	/**
+	 * @return whether the element is currently checked; will return false if the element is uncheckable
+	 */
+	virtual bool IsChecked() const = 0;
+
+	/**
 	 * @return whether the element is currently interactable; the element must be on screen
 	 */
 	virtual bool IsInteractable() const = 0;
@@ -713,4 +729,10 @@ public:
 	 * @return the elements discovered by the locator at this current moment; calling this multiple times may return different elements
 	 */
 	virtual TArray<TSharedRef<IDriverElement, ESPMode::ThreadSafe>> GetElements() = 0;
+};
+
+class FEmptyDriverElementFactory
+{
+public:
+	static TSharedRef<IDriverElement, ESPMode::ThreadSafe> Create();
 };

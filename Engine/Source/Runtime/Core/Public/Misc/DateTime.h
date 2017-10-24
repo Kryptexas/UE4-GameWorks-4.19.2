@@ -6,6 +6,11 @@
 #include "Containers/UnrealString.h"
 #include "Misc/Timespan.h"
 
+class FArchive;
+class FOutputDevice;
+class UObject;
+
+
 /**
  * Enumerates the days of the week in 7-day calendars.
  */
@@ -75,7 +80,7 @@ public:
 	 *
 	 * @param Ticks The ticks representing the date and time.
 	 */
-	FDateTime( int64 InTicks )
+	FDateTime(int64 InTicks)
 		: Ticks(InTicks)
 	{ }
 
@@ -90,7 +95,7 @@ public:
 	 * @param Second The second (optional).
 	 * @param Millisecond The millisecond (optional).
 	 */
-	CORE_API FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0 );
+	CORE_API FDateTime(int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0);
 
 public:
 
@@ -100,7 +105,7 @@ public:
 	 * @return A date whose value is the sum of this date and the given time span.
 	 * @see FTimespan
 	 */
-	FDateTime operator+( const FTimespan& Other ) const
+	FDateTime operator+(const FTimespan& Other) const
 	{
 		return FDateTime(Ticks + Other.GetTicks());
 	}
@@ -111,7 +116,7 @@ public:
 	 * @return This date.
 	 * @see FTimespan
 	 */
-	FDateTime& operator+=( const FTimespan& Other )
+	FDateTime& operator+=(const FTimespan& Other)
 	{
 		Ticks += Other.GetTicks();
 
@@ -124,7 +129,7 @@ public:
 	 * @return A time span whose value is the difference of this date and the given date.
 	 * @see FTimespan
 	 */
-	FTimespan operator-( const FDateTime& Other ) const
+	FTimespan operator-(const FDateTime& Other) const
 	{
 		return FTimespan(Ticks - Other.Ticks);
 	}
@@ -135,7 +140,7 @@ public:
 	 * @return A date whose value is the difference of this date and the given time span.
 	 * @see FTimespan
 	 */
-	FDateTime operator-( const FTimespan& Other ) const
+	FDateTime operator-(const FTimespan& Other) const
 	{
 		return FDateTime(Ticks - Other.GetTicks());
 	}
@@ -146,7 +151,7 @@ public:
 	 * @return This date.
 	 * @see FTimespan
 	 */
-	FDateTime& operator-=( const FTimespan& Other )
+	FDateTime& operator-=(const FTimespan& Other)
 	{
 		Ticks -= Other.GetTicks();
 
@@ -159,7 +164,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if the dates are equal, false otherwise.
 	 */
-	bool operator==( const FDateTime& Other ) const
+	bool operator==(const FDateTime& Other) const
 	{
 		return (Ticks == Other.Ticks);
 	}
@@ -170,7 +175,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if the dates are not equal, false otherwise.
 	 */
-	bool operator!=( const FDateTime& Other ) const
+	bool operator!=(const FDateTime& Other) const
 	{
 		return (Ticks != Other.Ticks);
 	}
@@ -181,7 +186,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if this date is greater, false otherwise.
 	 */
-	bool operator>( const FDateTime& Other ) const
+	bool operator>(const FDateTime& Other) const
 	{
 		return (Ticks > Other.Ticks);
 	}
@@ -192,7 +197,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if this date is greater or equal, false otherwise.
 	 */
-	bool operator>=( const FDateTime& Other ) const
+	bool operator>=(const FDateTime& Other) const
 	{
 		return (Ticks >= Other.Ticks);
 	}
@@ -203,7 +208,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if this date is less, false otherwise.
 	 */
-	bool operator<( const FDateTime& Other ) const
+	bool operator<(const FDateTime& Other) const
 	{
 		return (Ticks < Other.Ticks);
 	}
@@ -214,7 +219,7 @@ public:
 	 * @param other The date to compare with.
 	 * @return true if this date is less or equal, false otherwise.
 	 */
-	bool operator<=( const FDateTime& Other ) const
+	bool operator<=(const FDateTime& Other) const
 	{
 		return (Ticks <= Other.Ticks);
 	}
@@ -232,7 +237,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see ImportTextItem
 	 */
-	CORE_API bool ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const;
+	CORE_API bool ExportTextItem(FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 
 	/**
 	 * Gets the date part of this date.
@@ -253,7 +258,7 @@ public:
 	 * @param OutMonth Will contain the number of the month (1-12).
 	 * @param OutDay Will contain the number of the day (1-31).
 	 */
-	CORE_API void GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const;
+	CORE_API void GetDate(int32& OutYear, int32& OutMonth, int32& OutDay) const;
 
 	/**
 	 * Gets this date's day part (1 to 31).
@@ -418,7 +423,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see ExportTextItem
 	 */
-	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
+	CORE_API bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
 	/**
 	 * Gets whether this date's time is in the afternoon.
@@ -448,17 +453,7 @@ public:
 	 * @param Ar The archive to serialize from or into.
 	 * @return true on success, false otherwise.
 	 */
-	CORE_API bool Serialize( FArchive& Ar );
-
-	/**
-	 * Returns the ISO-8601 string representation of the FDateTime.
-	 *
-	 * The resulting string assumes that the FDateTime is in UTC.
-	 * 
-	 * @return String representation.
-	 * @see ParseIso8601, ToString
-	 */
-	CORE_API FString ToIso8601() const;
+	CORE_API bool Serialize(FArchive& Ar);
 
 	/**
 	 * Returns the RFC 1123 string representation of the FDateTime.
@@ -466,9 +461,19 @@ public:
 	 * The resulting string assumes that the FDateTime is in UTC.
 	 * 
 	 * @return String representation.
-	 * @see ParseHttpDate, ToString
+	 * @see ParseHttpDate, ToIso8601, ToString
 	 */
 	CORE_API FString ToHttpDate() const;
+
+	/**
+	 * Returns the ISO-8601 string representation of the FDateTime.
+	 *
+	 * The resulting string assumes that the FDateTime is in UTC.
+	 * 
+	 * @return String representation.
+	 * @see ParseIso8601, ToHttpDate, ToString
+	 */
+	CORE_API FString ToIso8601() const;
 
 	/**
 	 * Returns the string representation of this date using a default format.
@@ -488,7 +493,7 @@ public:
 	 * @return String representation.
 	 * @see Parse, ToIso8601
 	 */
-	CORE_API FString ToString( const TCHAR* Format ) const;
+	CORE_API FString ToString(const TCHAR* Format) const;
 
 	/**
 	 * Returns this date as the number of seconds since the Unix Epoch (January 1st of 1970).
@@ -511,7 +516,7 @@ public:
 	 * @return The number of days
 	 * @see DaysInYear
 	 */
-	static CORE_API int32 DaysInMonth( int32 Year, int32 Month );
+	static CORE_API int32 DaysInMonth(int32 Year, int32 Month);
 
 	/**
 	 * Gets the number of days in the given year.
@@ -520,7 +525,7 @@ public:
 	 * @return The number of days.
 	 * @see DaysInMonth
 	 */
-	static CORE_API int32 DaysInYear( int32 Year );
+	static CORE_API int32 DaysInYear(int32 Year);
 
 	/**
 	 * Returns the proleptic Gregorian date for the given Julian Day.
@@ -529,7 +534,7 @@ public:
 	 * @return Gregorian date and time.
 	 * @see GetJulianDay
 	 */
-	static FDateTime FromJulianDay( double JulianDay )
+	static FDateTime FromJulianDay(double JulianDay)
 	{
 		return FDateTime((int64)((JulianDay - 1721425.5) * ETimespan::TicksPerDay));
 	}
@@ -541,7 +546,7 @@ public:
 	 * @return Gregorian date and time.
 	 * @see ToUnixTimestamp
 	 */
-	static FDateTime FromUnixTimestamp( int64 UnixTime )
+	static FDateTime FromUnixTimestamp(int64 UnixTime)
 	{
 		return FDateTime(1970, 1, 1) + FTimespan(UnixTime * ETimespan::TicksPerSecond);
 	}
@@ -556,7 +561,7 @@ public:
 	 * @param Year The year to check.
 	 * @return true if the year is a leap year, false otherwise.
 	 */
-	static CORE_API bool IsLeapYear( int32 Year );
+	static CORE_API bool IsLeapYear(int32 Year);
 
 	/**
 	 * Returns the maximum date value.
@@ -603,8 +608,32 @@ public:
 	 * @param DateTimeString The string to convert.
 	 * @param OutDateTime Will contain the parsed date and time.
 	 * @return true if the string was converted successfully, false otherwise.
+	 * @see ParseHttpDate, ParseIso8601, ToString
 	 */
-	static CORE_API bool Parse( const FString& DateTimeString, FDateTime& OutDateTime );
+	static CORE_API bool Parse(const FString& DateTimeString, FDateTime& OutDateTime);
+
+	/**
+	 * Parses a date string in HTTP-date format (rfc1123-date | rfc850-date | asctime-date)
+	 * https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3.1
+	 *
+ 	 * HTTP-date    = rfc1123-date | rfc850-date | asctime-date
+	 * rfc1123-date = wkday "," SP date1 SP time SP "GMT"
+	 * rfc850-date  = weekday "," SP date2 SP time SP "GMT"
+	 * asctime-date = wkday SP date3 SP time SP 4DIGIT
+	 * date1        = 2DIGIT SP month SP 4DIGIT ; day month year (e.g., 02 Jun 1982)
+	 * date2        = 2DIGIT "-" month "-" 2DIGIT ; day-month-year (e.g., 02-Jun-82)
+	 * date3        = month SP (2DIGIT | (SP 1DIGIT)) ; month day (e.g., Jun  2)
+	 * time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT ; 00:00:00 - 23:59:59
+	 * wkday        = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"
+	 * weekday      = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
+	 * month        = "Jan" | "Feb" | "Mar" | "Apr" | "May" | "Jun" | "Jul" | "Aug" | "Sep" | "Oct" | "Nov" | "Dec"
+	 *
+	 * @param HttpDate The string to be parsed
+	 * @param OutDateTime FDateTime object (assumes UTC) corresponding to the input string.
+	 * @return true if the string was converted successfully, false otherwise.
+	 * @see Parse, ToHttpDate, ParseIso8601
+	 */
+	static CORE_API bool ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime);
 
 	/**
 	 * Parses a date string in ISO-8601 format.
@@ -612,20 +641,9 @@ public:
 	 * @param DateTimeString The string to be parsed
 	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
 	 * @return true if the string was converted successfully, false otherwise.
-	 * @see Parse, ToIso8601
+	 * @see Parse, ParseHttpDate, ToIso8601
 	 */
-	static CORE_API bool ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime );
-
-	/**
-	 * Parses a date string in HTTP-date format (rfc1123-date | rfc850-date | asctime-date)
-	 * https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3.1
-	 * 
-	 * @param HttpDate The string to be parsed
-	 * @param OutDateTime FDateTime object (assumes UTC) corresponding to the input string.
-	 * @return true if the string was converted successfully, false otherwise.
-	 * @see Parse
-	 */
-	static CORE_API bool ParseHttpDate( const FString& HttpDate, FDateTime& OutDateTime );
+	static CORE_API bool ParseIso8601(const TCHAR* DateTimeString, FDateTime& OutDateTime);
 
 	/**
 	 * Gets the local date on this computer.
@@ -667,7 +685,7 @@ public:
 	 *
 	 * @return true if the components are valid, false otherwise.
 	 */
-	static CORE_API bool Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond );
+	static CORE_API bool Validate(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond);
 
 public:
 
@@ -677,10 +695,11 @@ public:
 	 * @param Ar The archive to serialize from or into.
 	 * @param DateTime The date and time value to serialize.
 	 * @return The archive.
-	 *
-	 * @todo gmp: Figure out better include order in Core.h so this can be inlined.
 	 */
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FDateTime& DateTime );
+	friend CORE_API FArchive& operator<<(FArchive& Ar, FDateTime& DateTime)
+	{
+		return Ar << DateTime.Ticks;
+	}
 
 	/**
 	 * Gets the hash for the specified date and time.
@@ -688,7 +707,10 @@ public:
 	 * @param DateTime The date and time to get the hash for.
 	 * @return Hash value.
 	 */
-	friend CORE_API uint32 GetTypeHash(const FDateTime& DateTime);
+	friend CORE_API uint32 GetTypeHash(const FDateTime& DateTime)
+	{
+		return GetTypeHash(DateTime.Ticks);
+	}
 
 protected:
 

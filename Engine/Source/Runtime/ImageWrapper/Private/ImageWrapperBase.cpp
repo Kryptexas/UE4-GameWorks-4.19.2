@@ -6,7 +6,7 @@
 /* FImageWrapperBase structors
  *****************************************************************************/
 
-FImageWrapperBase::FImageWrapperBase( )
+FImageWrapperBase::FImageWrapperBase()
 	: RawFormat(ERGBFormat::Invalid)
 	, RawBitDepth(0)
 	, Format(ERGBFormat::Invalid)
@@ -19,7 +19,7 @@ FImageWrapperBase::FImageWrapperBase( )
 /* FImageWrapperBase interface
  *****************************************************************************/
 
-void FImageWrapperBase::Reset( )
+void FImageWrapperBase::Reset()
 {
 	LastError.Empty();
 
@@ -32,7 +32,7 @@ void FImageWrapperBase::Reset( )
 }
 
 
-void FImageWrapperBase::SetError( const TCHAR* ErrorMessage )
+void FImageWrapperBase::SetError(const TCHAR* ErrorMessage)
 {
 	LastError = ErrorMessage;
 }
@@ -50,7 +50,7 @@ const TArray<uint8>& FImageWrapperBase::GetCompressed(int32 Quality)
 }
 
 
-bool FImageWrapperBase::GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData )
+bool FImageWrapperBase::GetRaw(const ERGBFormat InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData)
 {
 	LastError.Empty();
 	Uncompress(InFormat, InBitDepth);
@@ -64,9 +64,9 @@ bool FImageWrapperBase::GetRaw( const ERGBFormat::Type InFormat, int32 InBitDept
 }
 
 
-bool FImageWrapperBase::SetCompressed( const void* InCompressedData, int32 InCompressedSize )
+bool FImageWrapperBase::SetCompressed(const void* InCompressedData, int32 InCompressedSize)
 {
-	if( InCompressedSize > 0 && InCompressedData != nullptr )
+	if(InCompressedSize > 0 && InCompressedData != nullptr)
 	{
 		Reset();
 		RawData.Empty();			// Invalidates the raw data too
@@ -82,7 +82,7 @@ bool FImageWrapperBase::SetCompressed( const void* InCompressedData, int32 InCom
 }
 
 
-bool FImageWrapperBase::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
+bool FImageWrapperBase::SetRaw(const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat InFormat, const int32 InBitDepth)
 {
 	check(InRawData != NULL);
 	check(InRawSize > 0);

@@ -6,6 +6,7 @@
 #include "Styling/SlateColor.h"
 #include "Widgets/SWidget.h"
 #include "IDetailCustomization.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
@@ -100,4 +101,7 @@ protected:
 private:
 	/** Reference to the target shader formats property view */
 	TSharedPtr<FLinuxTargetShaderFormatsPropertyDetails> TargetShaderFormatsDetails;
+
+	/** Manager for Audio Plugin widget. */
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
 };

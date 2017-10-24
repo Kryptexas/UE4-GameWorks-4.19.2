@@ -14,7 +14,6 @@ public:
 	virtual void ExitMode() override;
 	virtual FVector GetWidgetLocation() const override;
 	virtual FWidget::EWidgetMode GetWidgetMode() const override;
-	virtual FName GetSelectedBone() const override;
 	virtual void DoTranslation(FVector& InTranslation) override;
 
 private:

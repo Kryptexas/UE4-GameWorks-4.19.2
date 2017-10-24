@@ -6,12 +6,14 @@
 #include "StandaloneRendererPrivate.h"
 #include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/IImageWrapperModule.h"
-
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogSlateD3D, Log, All);
+
 
 FSlateD3DTextureManager::FDynamicTextureResource::FDynamicTextureResource( FSlateD3DTexture* ExistingTexture )
 	: Proxy( new FSlateShaderResourceProxy )
@@ -212,7 +214,7 @@ bool FSlateD3DTextureManager::LoadTexture( const FSlateBrush& InBrush, uint32& O
 	if( FFileHelper::LoadFileToArray( RawFileData, *ResourcePath ) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 		if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawFileData.GetData(), RawFileData.Num() ) )
 		{
 			OutWidth = ImageWrapper->GetWidth();
@@ -231,13 +233,13 @@ bool FSlateD3DTextureManager::LoadTexture( const FSlateBrush& InBrush, uint32& O
 		}
 		else
 		{
-			UE_LOG(LogSlateD3D, Log, TEXT("Only pngs are supported in Slate"));
+			UE_LOG(LogSlateD3D, Log, TEXT("Only pngs are supported in Slate. [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 			bSucceeded = false;
 		}
 	}
 	else
 	{
-		UE_LOG(LogSlateD3D, Log, TEXT("Could not find file for Slate resource: %s"), *InBrush.GetResourceName().ToString() );
+		UE_LOG(LogSlateD3D, Log, TEXT("Could not find file for Slate resource: [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 		bSucceeded = false;
 	}
 

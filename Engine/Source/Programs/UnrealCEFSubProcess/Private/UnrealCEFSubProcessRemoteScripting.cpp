@@ -33,7 +33,11 @@ CefRefPtr<CefV8Value> FUnrealCEFSubProcessRemoteScripting::CreateUObjectProxy(FG
 {
 	CefRefPtr<CefV8Context> Context = CefV8Context::GetCurrentContext();
 	CefRefPtr<CefBrowser> Browser = Context->GetBrowser();
+#if PLATFORM_LINUX
 	CefRefPtr<CefV8Value> Result = CefV8Value::CreateObject(nullptr);
+#else
+	CefRefPtr<CefV8Value> Result = CefV8Value::CreateObject(nullptr, nullptr);
+#endif
 	CefRefPtr<FUnrealCEFSubProcessRemoteObject> Remote = new FUnrealCEFSubProcessRemoteObject(this, Browser, ObjectId);
 	for (size_t I=0; I < Methods->GetSize(); ++I)
 	{
@@ -48,7 +52,11 @@ CefRefPtr<CefV8Value> FUnrealCEFSubProcessRemoteScripting::CreateUObjectProxy(FG
 
 CefRefPtr<CefV8Value> FUnrealCEFSubProcessRemoteScripting::CefToPlainV8Object(CefRefPtr<CefDictionaryValue> Dictionary)
 {
+#if PLATFORM_LINUX
 	CefRefPtr<CefV8Value> Result = CefV8Value::CreateObject(nullptr);
+#else
+	CefRefPtr<CefV8Value> Result = CefV8Value::CreateObject(nullptr, nullptr);
+#endif
 	CefDictionaryValue::KeyList Keys;
 	Dictionary->GetKeys(Keys);
 	for (CefString Key : Keys)
@@ -344,7 +352,11 @@ void FUnrealCEFSubProcessRemoteScripting::OnContextCreated(CefRefPtr<CefBrowser>
 	CefRefPtr<CefV8Value> Global = Context->GetGlobal();
 	if ( !Global->HasValue("ue") )
 	{
+#if PLATFORM_LINUX
 		Global->SetValue("ue", CefV8Value::CreateObject(nullptr), V8_PROPERTY_ATTRIBUTE_DONTDELETE);
+#else
+		Global->SetValue("ue", CefV8Value::CreateObject(nullptr, nullptr), V8_PROPERTY_ATTRIBUTE_DONTDELETE);
+#endif
 	}
 	CefRefPtr<CefV8Value> RootObject = Context->GetGlobal()->GetValue("ue");
 

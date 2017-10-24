@@ -253,6 +253,7 @@ struct FAudioStreamingManager : public IAudioStreamingManager
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) override;
 	virtual void AddLevel( class ULevel* Level ) override;
 	virtual void RemoveLevel( class ULevel* Level ) override;
+	virtual void NotifyLevelOffset( class ULevel* Level, const FVector& Offset ) override;
 	// End IStreamingManager interface
 
 	// IAudioStreamingManager interface

@@ -38,6 +38,10 @@ struct FCameraLookatTrackingSettings
 	/** Offset from actor position to look at. Relative to actor if tracking an actor, relative to world otherwise. */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "LookAt")
 	FVector RelativeOffset;
+
+	/** True to allow user-defined roll, false otherwise. */
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "LookAt")
+	uint8 bAllowRoll : 1;
 };
 
 /** 

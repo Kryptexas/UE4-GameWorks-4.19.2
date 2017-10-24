@@ -1137,7 +1137,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 }
 
 #if WITH_EDITOR
-void USimpleConstructionScript::GenerateListOfExistingNames(TArray<FName>& CurrentNames) const
+void USimpleConstructionScript::GenerateListOfExistingNames(TSet<FName>& CurrentNames) const
 {
 	TArray<const USCS_Node*> ChildrenNodes = GetAllNodesConst();
 	const UBlueprintGeneratedClass* OwnerClass = Cast<const UBlueprintGeneratedClass>(GetOuter());
@@ -1181,13 +1181,13 @@ void USimpleConstructionScript::GenerateListOfExistingNames(TArray<FName>& Curre
 
 	if (GetDefaultSceneRootNode())
 	{
-		CurrentNames.AddUnique(GetDefaultSceneRootNode()->GetVariableName());
+		CurrentNames.Add(GetDefaultSceneRootNode()->GetVariableName());
 	}
 }
 
 FName USimpleConstructionScript::GenerateNewComponentName(const UClass* ComponentClass, FName DesiredName ) const
 {
-	TArray<FName> CurrentNames;
+	TSet<FName> CurrentNames;
 	GenerateListOfExistingNames(CurrentNames);
 
 	FName NewName;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:エディタ内テスト （プレイ＆シミュレート）
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -97,9 +97,37 @@ $ Viewport :ゲームプレイはアクティブになっているレベル エ�
 
 	**ここをクリックしてフルサイズ表示にする**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_viewport.png)(w:300)](PIE_viewport.png)
-	[/REGION:lightbox]
+	[![](PIEViewport_Windows.png)(w:500)](PIEViewport_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PIEViewport_Mac.png)(w:500)](PIEViewport_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	これは、[Possess (制御取得)] と [Eject (制御解除)] ボタンを使って _Play In Editor_ と _Simulate in Editor_ の切り替えが可能な唯一の表示タイプです。**Viewport** モードでは、[Pause (一時停止)] や [Stop (停止)]ボタンでもゲームプレイを中断できます。
 
@@ -124,9 +152,37 @@ $ New Window :ゲームプレイは新規ウィンドウに表示されます。
 
 	**ここをクリックしてフルサイズ表示にする**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_newwindow.png)(w:300)](PIE_newwindow.png)
-	[/REGION:lightbox]
+	[![](NewWindow_Windows.png)(w:500)](NewWindow_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](NewWindows_Mac.png)(w:500)](NewWindows_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	新規ウィンドウでゲーム プレビューを再生する場合、_Simulate In Editor_ セッションに切り替えることができません。ただし、表示される [ツールバー] ボタンでゲームプレイの一時停止や停止はできます。
 
@@ -138,9 +194,37 @@ $ Standalone Game :ゲームプレイはそのプロセスで実行している�
 
 	**ここをクリックしてフルサイズ表示にする**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_standalone.png)(w:300)](PIE_standalone.png)
-	[/REGION:lightbox]
+	[![](Standalone_Windows.png)(w:500)](Standalone_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Standalone_Mac.png)(w:500)](Standalone_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	そのプロセスの中でゲームを再生させる表示タイプなので、ゲームの一時停止または停止はできません。_Simulate In Editor_ への切り替えもできません。つまり、スタンドアローンのゲーム プレビューの再生中は、[ツールバー] ボタンは変りません。
 

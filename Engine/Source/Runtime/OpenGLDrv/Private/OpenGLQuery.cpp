@@ -77,6 +77,7 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 			if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
 			{
 				PlatformReleaseRenderQuery(Query->Resource, Query->ResourceContext);
+				Query->Resource = 0;
 				Query->bInvalidResource = true;
 			}
 
@@ -90,6 +91,13 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		}
 		else if(Query->QueryType == RQT_AbsoluteTime)
 		{
+			// query can be silently invalidated in GetRenderQueryResult
+			if (Query->bInvalidResource)
+			{
+				PlatformGetNewRenderQuery(&Query->Resource, &Query->ResourceContext);
+				Query->bInvalidResource = false;
+			}
+
 			FOpenGL::QueryTimestampCounter(Query->Resource);
 			Query->bResultIsCached = false;
 		}
@@ -115,6 +123,7 @@ bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 	if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
 	{
 		PlatformReleaseRenderQuery(Query->Resource, Query->ResourceContext);
+		Query->Resource = 0;
 		Query->bInvalidResource = true;
 	}
 
@@ -188,7 +197,7 @@ bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 	if(Query->QueryType == RQT_AbsoluteTime)
 	{
 		// GetTimingFrequency is the number of ticks per second
-		uint64 Div = FOpenGLBufferedGPUTiming::GetTimingFrequency() / (1000 * 1000);
+		uint64 Div = FMath::Max(1llu, FOpenGLBufferedGPUTiming::GetTimingFrequency() / (1000 * 1000));
 
 		// convert from GPU specific timestamp to micro sec (1 / 1 000 000 s) which seems a reasonable resolution
 		OutResult = Query->Result / Div;

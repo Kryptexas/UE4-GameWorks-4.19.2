@@ -270,6 +270,10 @@ struct FStaticMeshLODResources
 	struct FSplineMeshVertexFactory* SplineVertexFactory;
 	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
 
+#if STATS
+	uint32 StaticMeshIndexMemory;
+#endif
+	
 	/** Default constructor. */
 	FStaticMeshLODResources();
 
@@ -674,6 +678,7 @@ struct FInstanceStream
 	FloatType InstanceTransform2[4]; // hitproxy.g in .w
 	FloatType InstanceTransform3[4]; // hitproxy.b in .w
 	int16 InstanceLightmapAndShadowMapUVBias[4]; 
+	bool IsUsed;
 
 	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID)
 	{
@@ -704,6 +709,8 @@ struct FInstanceStream
 		Me->InstanceLightmapAndShadowMapUVBias[1] = 0;
 		Me->InstanceLightmapAndShadowMapUVBias[2] = 0;
 		Me->InstanceLightmapAndShadowMapUVBias[3] = 0;
+
+		Me->IsUsed = true;
 	}
 
 	FORCEINLINE void GetInstanceTransform(FMatrix& Transform) const
@@ -790,6 +797,8 @@ struct FInstanceStream
 		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.0f), MIN_int16, MAX_int16);
+
+		Me->IsUsed = true;
 	}
 
 	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
@@ -823,6 +832,8 @@ struct FInstanceStream
 		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.0f), MIN_int16, MAX_int16);
+
+		Me->IsUsed = true;
 	}
 
 	FORCEINLINE void NullifyInstance()
@@ -843,6 +854,8 @@ struct FInstanceStream
 		Me->InstanceTransform3[1] = FloatType();
 		Me->InstanceTransform3[2] = FloatType();
 		Me->InstanceTransform3[3] = FloatType();
+
+		Me->IsUsed = false;
 	}
 
 	FORCEINLINE void SetInstanceEditorData(FColor HitProxyColor, bool bSelected)
@@ -852,6 +865,8 @@ struct FInstanceStream
 		Me->InstanceTransform1[3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
 		Me->InstanceTransform2[3] = (float)HitProxyColor.G;
 		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
+
+		Me->IsUsed = true;
 	}
 	
 	friend FArchive& operator<<( FArchive& Ar, FInstanceStream& V )
@@ -1029,6 +1044,32 @@ public:
 		{
 			InstanceStream32[InstanceIndex].GetInstanceShaderValues(InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
 		}
+	}
+
+	FORCEINLINE int32 GetNextAvailableInstanceIndex() const
+	{
+		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		{
+			for (int32 i = 0; i < InstanceStream16.Num(); ++i)
+			{
+				if (!InstanceStream16[i].IsUsed)
+				{
+					return i;
+				}
+			}
+		}
+		else
+		{
+			for (int32 i = 0; i < InstanceStream32.Num(); ++i)
+			{
+				if (!InstanceStream32[i].IsUsed)
+				{
+					return i;
+				}
+			}
+		}
+
+		return INDEX_NONE;
 	}
 
 	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)

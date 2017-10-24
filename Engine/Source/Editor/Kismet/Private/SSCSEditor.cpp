@@ -318,12 +318,24 @@ void FSCSRowDragDropOp::HoverTargetChanged()
 		}
 	}
 
-	UProperty* VariableProperty = GetVariableProperty();
-	if (!bHoverHandled && (VariableProperty == nullptr))
+	if (!bHoverHandled)
 	{
-		FText Message = LOCTEXT("CannotFindProperty", "Cannot find corresponding variable (make sure component has been assigned to one)");
-		SetSimpleFeedbackMessage(ErrorSymbol, IconTint, Message);
+		if (UProperty* VariableProperty = GetVariableProperty())
+		{
+			const FSlateBrush* PrimarySymbol;
+			const FSlateBrush* SecondarySymbol;
+			FSlateColor PrimaryColor;
+			FSlateColor SecondaryColor;
+			GetDefaultStatusSymbol(/*out*/ PrimarySymbol, /*out*/ PrimaryColor, /*out*/ SecondarySymbol, /*out*/ SecondaryColor);
 
+			//Create feedback message with the function name.
+			SetSimpleFeedbackMessage(PrimarySymbol, PrimaryColor, VariableProperty->GetDisplayNameText(), SecondarySymbol, SecondaryColor);
+		}
+		else
+		{
+			FText Message = LOCTEXT("CannotFindProperty", "Cannot find corresponding variable (make sure component has been assigned to one)");
+			SetSimpleFeedbackMessage(ErrorSymbol, IconTint, Message);
+		}
 		bHoverHandled = true;
 	}
 
@@ -1403,7 +1415,7 @@ void FSCSEditorTreeNodeRootActor::OnCompleteRename(const FText& InNewName)
 	if (Actor && Actor->IsActorLabelEditable() && !InNewName.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("SCSEditorRenameActorTransaction", "Rename Actor"));
-		Actor->SetActorLabel(InNewName.ToString());
+		FActorLabelUtilities::RenameExistingActor(Actor, InNewName.ToString());
 	}
 }
 
@@ -3269,7 +3281,7 @@ FText SSCS_RowWidget_ActorRoot::GetActorDisplayText() const
 			{
 				FString Name;
 				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(DefaultActor->GetClass());
-				if(Blueprint != nullptr)
+				if(Blueprint != nullptr && SCSEditorPtr->GetEditorMode() != EComponentEditorMode::ActorInstance)
 				{
 					Blueprint->GetName(Name);
 				}
@@ -4035,7 +4047,11 @@ void SSCSEditor::OnFindReferences()
 		if (FoundAssetEditor.IsValid())
 		{
 			const FString VariableName = SelectedNodes[0]->GetVariableName().ToString();
-			const FString SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+\"%s\"))"), *VariableName);
+
+			// Search for both an explicit variable reference (finds get/sets of exactly that var, without including related-sounding variables)
+			// and a softer search for (VariableName) to capture bound component/widget event nodes which wouldn't otherwise show up
+			//@TODO: This logic is duplicated in SMyBlueprint::OnFindReference(), keep in sync
+			const FString SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+\"%s\") || Name=\"(%s)\")"), *VariableName, *VariableName);
 
 			TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
 			BlueprintEditor->SummonSearchUI(true, SearchTerm);
@@ -4437,7 +4453,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		if (EditorMode == EComponentEditorMode::BlueprintSCS)
 		{
 			// Get the class default object
-			AActor* CDO = NULL;
+			AActor* CDO = nullptr;
 			TArray<UBlueprint*> ParentBPStack;
 
 			if(AActor* Actor = GetActorContext())
@@ -4452,7 +4468,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 			}
 
-			if(CDO != NULL)
+			if(CDO != nullptr)
 			{
 				
 				TInlineComponentArray<UActorComponent*> Components;
@@ -4460,7 +4476,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 
 				// Add the native root component
 				USceneComponent* RootComponent = CDO->GetRootComponent();
-				if(RootComponent != NULL)
+				if(RootComponent != nullptr)
 				{
 					Components.Remove(RootComponent);
 					AddTreeNodeFromComponent(RootComponent);
@@ -4489,29 +4505,45 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 			// Add the full SCS tree node hierarchy (including SCS nodes inherited from parent blueprints)
 			for(int32 StackIndex = ParentBPStack.Num() - 1; StackIndex >= 0; --StackIndex)
 			{
-				if(ParentBPStack[StackIndex]->SimpleConstructionScript != NULL)
+				if(ParentBPStack[StackIndex]->SimpleConstructionScript != nullptr)
 				{
 					const TArray<USCS_Node*>& SCS_RootNodes = ParentBPStack[StackIndex]->SimpleConstructionScript->GetRootNodes();
 					for(int32 NodeIndex = 0; NodeIndex < SCS_RootNodes.Num(); ++NodeIndex)
 					{
 						USCS_Node* SCS_Node = SCS_RootNodes[NodeIndex];
-						check(SCS_Node != NULL);
+						check(SCS_Node != nullptr);
 
+						FSCSEditorTreeNodePtrType NewNodePtr;
 						if(SCS_Node->ParentComponentOrVariableName != NAME_None)
 						{
 							USceneComponent* ParentComponent = SCS_Node->GetParentComponentTemplate(ParentBPStack[0]);
-							if(ParentComponent != NULL)
+							if(ParentComponent != nullptr)
 							{
 								FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(ParentComponent);
 								if(ParentNodePtr.IsValid())
 								{
-									AddTreeNode(SCS_Node, ParentNodePtr, StackIndex > 0);
+									NewNodePtr = AddTreeNode(SCS_Node, ParentNodePtr, StackIndex > 0);
 								}
 							}
 						}
 						else
 						{
-							AddTreeNode(SCS_Node, SceneRootNodePtr, StackIndex > 0);
+							NewNodePtr = AddTreeNode(SCS_Node, SceneRootNodePtr, StackIndex > 0);
+						}
+
+						// Only necessary to do the following for inherited nodes (StackIndex > 0).
+						if (NewNodePtr.IsValid() && StackIndex > 0)
+						{
+							// This call creates ICH override templates for the current Blueprint. Without this, the parent node
+							// search above can fail when attempting to match an inherited node in the tree via component template.
+							NewNodePtr->GetEditableComponentTemplate(ParentBPStack[0]);
+							for (FSCSEditorTreeNodePtrType ChildNodePtr : NewNodePtr->GetChildren())
+							{
+								if (ensure(ChildNodePtr.IsValid()))
+								{
+									ChildNodePtr->GetEditableComponentTemplate(ParentBPStack[0]);
+								}
+							}
 						}
 					}
 				}
@@ -5627,18 +5659,35 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 			// Clear the delegate
 			SCS_Node->SetOnNameChanged(FSCSNodeNameChanged());
 
-			// on removal, since we don't move the template from the 
-			// GeneratedClass (which we shouldn't, as it would create a 
-			// discrepancy with existing instances), we rename it instead so that 
-			// we can re-use the name without having to compile (we still have a 
-			// problem if they attempt to name it to what ever we choose here, 
-			// but that is unlikely)
+			// on removal, since we don't move the template from the GeneratedClass (which we shouldn't, as it would create a 
+			// discrepancy with existing instances), we rename it instead so that we can re-use the name without having to compile  
+			// (we still have a problem if they attempt to name it to what ever we choose here, but that is unlikely)
 			// note: skip this for the default scene root; we don't actually destroy that node when it's removed, so we don't need the template to be renamed.
 			if (!InNodePtr->IsDefaultSceneRoot() && SCS_Node->ComponentTemplate != nullptr)
 			{
-				SCS_Node->ComponentTemplate->Modify();
+				const FName TemplateName = SCS_Node->ComponentTemplate->GetFName();
 				const FString RemovedName = SCS_Node->GetVariableName().ToString() + TEXT("_REMOVED_") + FGuid::NewGuid().ToString();
+
+				SCS_Node->ComponentTemplate->Modify();
 				SCS_Node->ComponentTemplate->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+
+				if (Blueprint)
+				{
+					// Children need to have their inherited component template instance of the component renamed out of the way as well
+					TArray<UClass*> ChildrenOfClass;
+					GetDerivedClasses(Blueprint->GeneratedClass, ChildrenOfClass);
+
+					for (UClass* ChildClass : ChildrenOfClass)
+					{
+						UBlueprintGeneratedClass* BPChildClass = CastChecked<UBlueprintGeneratedClass>(ChildClass);
+
+						if (UActorComponent* Component = (UActorComponent*)FindObjectWithOuter(BPChildClass, UActorComponent::StaticClass(), TemplateName))
+						{
+							Component->Modify();
+							Component->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -6162,7 +6211,7 @@ void SSCSEditor::OnOpenBlueprintEditor(bool bForceCodeEditing) const
 		{
 			if (bForceCodeEditing && (Blueprint->UbergraphPages.Num() > 0))
 			{
-				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Blueprint->UbergraphPages[0]);
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Blueprint->GetLastEditedUberGraph());
 			}
 			else
 			{

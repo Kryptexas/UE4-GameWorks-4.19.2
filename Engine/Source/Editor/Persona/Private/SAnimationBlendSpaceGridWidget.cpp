@@ -92,6 +92,8 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	TextMargin = 16.0f;
 	GridMargin = FMargin(MaxVerticalAxisTextWidth + (TextMargin * 2.0f), TextMargin, (HorizontalAxisMaxTextWidth * 0.5f) + TextMargin, MaxHorizontalAxisTextHeight + (TextMargin * 2.0f));
 
+	bPreviewToolTipHidden = false;
+
 	const bool bShowInputBoxLabel = true;
 	// Widget construction
 	this->ChildSlot
@@ -115,91 +117,118 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 					.DesiredSizeScale(FVector2D(1.0f, 1.0f))
 					.Padding_Lambda([&]() { return FMargin(GridMargin.Left + 6, GridMargin.Top + 6, 0, 0) + GridRatioMargin; })
 					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetTriangulationButtonVisibility)))		
-							.VAlign(VAlign_Center)
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
 							[
-								SNew(SButton)
-								.ToolTipText(LOCTEXT("ShowTriangulation", "Show Triangulation"))
-								.OnClicked(this, &SBlendSpaceGridWidget::ToggleTriangulationVisibility)
-								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowTriangulation ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
-								.ContentPadding(1)
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+								.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetTriangulationButtonVisibility)))		
+								.VAlign(VAlign_Center)
 								[
-									SNew(SImage)
-									.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleTriangulation"))
-									.ColorAndOpacity(FSlateColor::UseForeground())
+									SNew(SButton)
+									.ToolTipText(LOCTEXT("ShowTriangulation", "Show Triangulation"))
+									.OnClicked(this, &SBlendSpaceGridWidget::ToggleTriangulationVisibility)
+									.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowTriangulation ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
+									.ContentPadding(1)
+									[
+										SNew(SImage)
+										.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleTriangulation"))
+										.ColorAndOpacity(FSlateColor::UseForeground())										
+									]
+								]
+							]
+	
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+								.VAlign(VAlign_Center)
+								[
+									SNew(SButton)
+									.ToolTipText(LOCTEXT("ShowAnimationNames", "Show Animation Names"))
+									.OnClicked(this, &SBlendSpaceGridWidget::ToggleShowAnimationNames)
+									.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowAnimationNames ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
+									.ContentPadding(1)
+									[
+										SNew(SImage)
+										.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleLabels"))
+										.ColorAndOpacity(FSlateColor::UseForeground())
+									]
+								]
+							]
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+								.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetFittingButtonVisibility)))
+								.VAlign(VAlign_Center)
+								[
+									SNew(SButton)
+									.ToolTipText(this, &SBlendSpaceGridWidget::GetFittingTypeButtonToolTipText)
+									.OnClicked(this, &SBlendSpaceGridWidget::ToggleFittingType)
+									.ContentPadding(1)
+									.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bStretchToFit ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
+									[
+										SNew(SImage)
+										.Image(FEditorStyle::GetBrush("WidgetDesigner.ZoomToFit"))
+										.ColorAndOpacity(FSlateColor::UseForeground())
+									]
+								]
+							]
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+								.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetInputBoxVisibility, 0)))
+								.VAlign(VAlign_Center)
+								[
+									CreateGridEntryBox(0, bShowInputBoxLabel).ToSharedRef()
+								]
+							]
+	
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+								.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetInputBoxVisibility, 1)))
+								.VAlign(VAlign_Center)
+								[
+									CreateGridEntryBox(1, bShowInputBoxLabel).ToSharedRef()
 								]
 							]
 						]
-	
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
+						
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(FMargin(2.0f, 3.0f, 0.0f, 0.0f ))
 						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-							.VAlign(VAlign_Center)
-							[
-								SNew(SButton)
-								.ToolTipText(LOCTEXT("ShowAnimationNames", "Show Animation Names"))
-								.OnClicked(this, &SBlendSpaceGridWidget::ToggleShowAnimationNames)
-								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowAnimationNames ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
-								.ContentPadding(1)
-								[
-									SNew(SImage)
-									.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleLabels"))
-									.ColorAndOpacity(FSlateColor::UseForeground())
-								]
-							]
+							SNew(STextBlock)
+							.Text(LOCTEXT("BlendSpaceSamplesToolTip", "Drag and Drop Animations from the Asset Browser to place Sample Points"))
+							.Font(FEditorStyle::GetFontStyle(TEXT("AnimViewport.MessageFont")))
+							.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.7f))
+							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetSampleToolTipVisibility)))
 						]
 
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(FMargin(2.0f, 3.0f, 0.0f, 0.0f))
 						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetFittingButtonVisibility)))
-							.VAlign(VAlign_Center)
-							[
-								SNew(SButton)
-								.ToolTipText(this, &SBlendSpaceGridWidget::GetFittingTypeButtonToolTipText)
-								.OnClicked(this, &SBlendSpaceGridWidget::ToggleFittingType)
-								.ContentPadding(1)
-								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bStretchToFit ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
-								[
-									SNew(SImage)
-									.Image(FEditorStyle::GetBrush("WidgetDesigner.ZoomToFit"))
-									.ColorAndOpacity(FSlateColor::UseForeground())
-								]
-							]
-						]
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetInputBoxVisibility, 0)))
-							.VAlign(VAlign_Center)
-							[
-								CreateGridEntryBox(0, bShowInputBoxLabel).ToSharedRef()
-							]
-						]
-	
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetInputBoxVisibility, 1)))
-							.VAlign(VAlign_Center)
-							[
-								CreateGridEntryBox(1, bShowInputBoxLabel).ToSharedRef()
-							]
+							SNew(STextBlock)
+							.Text(LOCTEXT("BlendspacePreviewToolTip", "Click and Drag or Hold Shift to move the Preview (Green) Pin" ))
+							.Font(FEditorStyle::GetFontStyle(TEXT("AnimViewport.MessageFont")))
+							.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.7f))
+							.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SBlendSpaceGridWidget::GetPreviewToolTipVisibility)))
 						]
 					]
 				]
@@ -237,7 +266,7 @@ TSharedPtr<SWidget> SBlendSpaceGridWidget::CreateGridEntryBox(const int32 BoxInd
 		.Value(this, &SBlendSpaceGridWidget::GetInputBoxValue, BoxIndex)
 		.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 		.OnValueCommitted(this, &SBlendSpaceGridWidget::OnInputBoxValueCommited, BoxIndex)
-		.OnValueChanged(this, &SBlendSpaceGridWidget::OnInputBoxValueChanged, BoxIndex)
+		.OnValueChanged(this, &SBlendSpaceGridWidget::OnInputBoxValueChanged, BoxIndex, true)
 		.LabelVAlign(VAlign_Center)
 		.AllowSpin(true)
 		.MinValue(this, &SBlendSpaceGridWidget::GetInputBoxMinValue, BoxIndex)
@@ -454,11 +483,12 @@ void SBlendSpaceGridWidget::PaintAnimationNames(const FGeometry& AllottedGeometr
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FVector2D GridCenter = CachedGridRectangle.GetCenter();
 	const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
-	for (const FBlendSample& Sample : Samples)
+	for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
 	{
+		const FBlendSample& Sample = Samples[SampleIndex];
 		if (Sample.Animation)
 		{
-			const FString Name = Sample.Animation->GetName();
+			const FString Name = Sample.Animation->GetName() + FString::Printf(TEXT(" (%i)"), SampleIndex);
 			const FVector2D TextSize = FontMeasure->Measure(Name, FontInfo);
 
 			FVector2D GridPosition = SampleValueToGridPosition(Sample.SampleValue);
@@ -563,6 +593,12 @@ FReply SBlendSpaceGridWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const
 			// Process drag ending			
 			ResetToolTip();
 		}
+		else if (DragState == EDragState::DragPreview)
+		{
+			// Process preview drag ending			
+			ResetToolTip();
+			StopPreviewing();
+		}
 
 		// Reset drag state and index
 		DragState = EDragState::None;
@@ -583,7 +619,18 @@ FReply SBlendSpaceGridWidget::OnMouseButtonDown(const FGeometry& MyGeometry, con
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		// If we are over a sample, make it our currently (dragged) sample
-		if (HighlightedSampleIndex != INDEX_NONE)
+		if (bHighlightPreviewPin)
+		{
+			ResetToolTip();
+			DragState = EDragState::DragPreview;
+			MouseDownPosition = LocalMousePosition;
+			StartPreviewing();
+			ShowToolTip();
+
+			// Start mouse capture
+			return FReply::Handled().CaptureMouse(SharedThis(this));
+		}
+		else if (HighlightedSampleIndex != INDEX_NONE)
 		{
 			DraggedSampleIndex = SelectedSampleIndex = HighlightedSampleIndex;
 			HighlightedSampleIndex = INDEX_NONE;
@@ -638,10 +685,7 @@ FReply SBlendSpaceGridWidget::OnMouseMove(const FGeometry& MyGeometry, const FPo
 			ShowToolTip();			
 
 			// Set flag for showing advanced preview info in tooltip
-			if (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown())
-			{
-				bAdvancedPreview = true;
-			}
+			bAdvancedPreview = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
 		}
 		else if (bSamplePreviewing)
 		{
@@ -723,7 +767,7 @@ FReply SBlendSpaceGridWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 	// Start previewing when either one of the shift keys is pressed
 	if (bMouseIsOverGeometry)
 	{
-		if ((InKeyEvent.GetKey() == EKeys::LeftShift) || (InKeyEvent.GetKey() == EKeys::RightShift))
+		if (DragState != EDragState::DragPreview && ((InKeyEvent.GetKey() == EKeys::LeftShift) || (InKeyEvent.GetKey() == EKeys::RightShift)))
 		{
 			StartPreviewing();
 			DragState = EDragState::Preview;
@@ -746,7 +790,7 @@ FReply SBlendSpaceGridWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 FReply SBlendSpaceGridWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {	
 	// Stop previewing when shift keys are released 
-	if ((InKeyEvent.GetKey() == EKeys::LeftShift) || (InKeyEvent.GetKey() == EKeys::RightShift))
+	if (DragState != EDragState::DragPreview && ((InKeyEvent.GetKey() == EKeys::LeftShift) || (InKeyEvent.GetKey() == EKeys::RightShift)))
 	{
 		StopPreviewing();
 		DragState = EDragState::None;
@@ -817,7 +861,7 @@ TSharedPtr<SWidget> SBlendSpaceGridWidget::CreateBlendSampleContextMenu()
 		.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("SampleData", "Blend Sample"));
 	{
 		const FBlendSample& Sample = BlendSpace->GetBlendSample(HighlightedSampleIndex);		
-		StructureDetailsView->GetDetailsView().SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FBlendSampleDetails::MakeInstance, BlendSpace, this));
+		StructureDetailsView->GetDetailsView()->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FBlendSampleDetails::MakeInstance, BlendSpace, this));
 
 		FStructOnScope* Struct = new FStructOnScope(FBlendSample::StaticStruct(), (uint8*)&Sample);
 		Struct->SetPackage(BlendSpace->GetOutermost());
@@ -950,6 +994,7 @@ void SBlendSpaceGridWidget::StartPreviewing()
 	LastPreviewingMousePosition = LocalMousePosition;
 	LastPreviewingSampleValue = GridPositionToSampleValue(LastPreviewingMousePosition);
 	bPreviewPositionSet = true;	
+	bPreviewToolTipHidden = true;
 }
 
 void SBlendSpaceGridWidget::StopPreviewing()
@@ -968,7 +1013,7 @@ FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
 		{		
 			if (bHighlightPreviewPin)
 			{
-				const FText PreviewPinText = LOCTEXT("HighlightPreviewPinTooltipText", "Preview Value (Hold Shift to Move)");
+				const FText PreviewPinText = LOCTEXT("HighlightPreviewPinTooltipText", "Preview Value (Click and Drag or Hold Shift to Move)");
 				ToolTipText = PreviewPinText;
 			}
 			else if (HighlightedSampleIndex != INDEX_NONE && BlendSpace->IsValidBlendSampleIndex(HighlightedSampleIndex))
@@ -1016,6 +1061,7 @@ FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
 		
 		// If we are previewing return a descriptive label
 		case EDragState::Preview:
+		case EDragState::DragPreview:
 		{
 			const FText AdvancedPreviewText = LOCTEXT("AdvancedPreviewValueTooltip", "Preview Value");
 			const FText BasicPreviewText = LOCTEXT("BasicPreviewValueTooltip", "Preview Value (Hold Ctrl for Weight Details)");	
@@ -1102,6 +1148,7 @@ FText SBlendSpaceGridWidget::GetToolTipSampleValue() const
 		}
 
 		// If we are setting the preview value return the current preview sample value
+		case EDragState::DragPreview:
 		case EDragState::Preview:
 		{
 			FFormatOrderedArguments PreviewTextArguments;
@@ -1207,10 +1254,10 @@ float SBlendSpaceGridWidget::GetInputBoxDelta(const int32 ParameterIndex) const
 
 void SBlendSpaceGridWidget::OnInputBoxValueCommited(const float NewValue, ETextCommit::Type CommitType, const int32 ParameterIndex)
 {
-	OnInputBoxValueChanged(NewValue, ParameterIndex);
+	OnInputBoxValueChanged(NewValue, ParameterIndex, false);
 }
 
-void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex)
+void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex, bool bIsInteractive)
 {
 	checkf(ParameterIndex < 3, TEXT("Invalid parameter index, suppose to be within FVector array range"));
 
@@ -1229,8 +1276,20 @@ void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const i
 
 		// Temporary snap this value to closest point on grid (since the spin box delta does not provide the desired functionality)
 		SampleValue[ParameterIndex] = SampleValueMin[ParameterIndex] + (FlooredSteps * SampleGridDelta[ParameterIndex]);
-		OnSampleMoved.ExecuteIfBound(SelectedSampleIndex, SampleValue);
+		OnSampleMoved.ExecuteIfBound(SelectedSampleIndex, SampleValue, bIsInteractive);
 	}
+}
+
+EVisibility SBlendSpaceGridWidget::GetSampleToolTipVisibility() const
+{
+	// Show tool tip when the grid is empty
+	return BlendSpace->GetNumberOfBlendSamples() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SBlendSpaceGridWidget::GetPreviewToolTipVisibility() const
+{
+	// Only show preview tooltip until the user discovers the functionality
+	return !bPreviewToolTipHidden ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SBlendSpaceGridWidget::GetTriangulationButtonVisibility() const
@@ -1350,9 +1409,6 @@ void SBlendSpaceGridWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPoi
 void SBlendSpaceGridWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseLeave(MouseEvent);
-	StopPreviewing();
-	DragState = EDragState::None;
-	ResetToolTip();
 	bMouseIsOverGeometry = false;
 }
 
@@ -1429,7 +1485,7 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 		if (SampleValue != LastDragPosition)
 		{
 			LastDragPosition = SampleValue;
-			OnSampleMoved.ExecuteIfBound(DraggedSampleIndex, SampleValue);
+			OnSampleMoved.ExecuteIfBound(DraggedSampleIndex, SampleValue, false);
 		}
 	}
 	else if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)

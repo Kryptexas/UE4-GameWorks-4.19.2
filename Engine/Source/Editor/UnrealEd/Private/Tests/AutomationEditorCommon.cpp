@@ -30,16 +30,17 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "ShaderCompiler.h"
 #include "AssetSelection.h"
-
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/ILauncherWorker.h"
-
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceServicesModule.h"
+#include "ILauncherWorker.h"
 #include "CookOnTheSide/CookOnTheFlyServer.h"
 #include "LightingBuildOptions.h"
+
 
 #define COOK_TIMEOUT 3600
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
+
 
 UWorld* FAutomationEditorCommonUtils::CreateNewMap()
 {
@@ -438,12 +439,12 @@ void FAutomationEditorCommonUtils::GetLaunchOnDeviceID(FString& OutDeviceID, con
 			// shared devices section
 			ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 			// for each platform...
-			TArray<ITargetDeviceProxyPtr> DeviceProxies;
+			TArray<TSharedPtr<ITargetDeviceProxy>> DeviceProxies;
 			TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*LaunchOnSettings), true, DeviceProxies);
 			// for each proxy...
 			for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
 			{
-				ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+				TSharedPtr<ITargetDeviceProxy> DeviceProxy = *DeviceProxyIt;
 				if (DeviceProxy->IsConnected())
 				{
 					OutDeviceID = DeviceProxy->GetTargetDeviceId((FName)*LaunchOnSettings);
@@ -465,12 +466,12 @@ void FAutomationEditorCommonUtils::GetLaunchOnDeviceID(FString& OutDeviceID, con
 	// shared devices section
 	ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 	// for each platform...
-	TArray<ITargetDeviceProxyPtr> DeviceProxies;
+	TArray<TSharedPtr<ITargetDeviceProxy>> DeviceProxies;
 	TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*InDeviceName), true, DeviceProxies);
 	// for each proxy...
 	for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
 	{
-		ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+		TSharedPtr<ITargetDeviceProxy> DeviceProxy = *DeviceProxyIt;
 		if (DeviceProxy->IsConnected())
 		{
 			OutDeviceID = DeviceProxy->GetTargetDeviceId((FName)*InDeviceName);
@@ -516,7 +517,7 @@ FString FAutomationEditorCommonUtils::ConvertPackagePathToAssetPath(const FStrin
 		const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
 		return AssetName;
 	}
-	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
+	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::ProjectContentDir()) && !GameFileName.Contains(TEXT("../")))
 	{
 		const FString ShortName = FPaths::GetBaseFilename(GameFileName);
 		const FString PathName = FPaths::GetPath(GameFileName);
@@ -924,7 +925,7 @@ bool FSaveLevelCommand::Update()
 		UWorld* World = GEditor->GetEditorWorldContext().World();
 		ULevel* Level = World->GetCurrentLevel();
 		MapName += TEXT("_Copy.umap");
-		FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"), *MapName);
+		FString TempMapLocation = FPaths::Combine(*FPaths::ProjectContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"), *MapName);
 		FEditorFileUtils::SaveLevel(Level, TempMapLocation);
 
 		return true;

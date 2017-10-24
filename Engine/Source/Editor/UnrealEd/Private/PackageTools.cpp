@@ -45,15 +45,12 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageTools, Log, All);
 
-/** Pointer to a function Called during GC, after reachability analysis is performed but before garbage is purged. */
-typedef void (*EditorPostReachabilityAnalysisCallbackType)();
-extern CORE_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback;
-
 namespace PackageTools
 {
 	/** State passed to RestoreStandaloneOnReachableObjects. */
 	static UPackage* PackageBeingUnloaded = nullptr;
 	static TMap<UObject*,UObject*> ObjectsThatHadFlagsCleared;
+	static FDelegateHandle ReachabilityCallbackHandle;
 
 	/**
 	 * Called during GC, after reachability analysis is performed but before garbage is purged.
@@ -61,6 +58,8 @@ namespace PackageTools
 	 */
 	void RestoreStandaloneOnReachableObjects()
 	{
+		check(GIsEditor);
+
 		ForEachObjectWithOuter(PackageBeingUnloaded, [](UObject* Object)
 			{
 				if ( ObjectsThatHadFlagsCleared.Find(Object) )
@@ -94,7 +93,7 @@ namespace PackageTools
 			bool bIsSupported = ObjectTools::IsObjectBrowsable( Obj );
 			if( bIsSupported )
 			{
-				UPackage* ObjectPackage = Cast< UPackage >( Obj->GetOutermost() );
+				UPackage* ObjectPackage = Obj->GetOutermost();
 				if( ObjectPackage != NULL )
 				{
 					OutFilteredPackageMap.Add( ObjectPackage );
@@ -204,7 +203,7 @@ namespace PackageTools
 		Arguments.Add(TEXT("PackageName"), FText::FromString(InFilename));
 		FMessageLog("LoadErrors").NewPage(FText::Format(LOCTEXT("LoadPackageLogPage", "Loading package: {PackageName}"), Arguments));
 
-		UPackage* Package = Cast<UPackage>(::LoadPackage( NULL, *InFilename, 0 ));
+		UPackage* Package = ::LoadPackage( NULL, *InFilename, 0 );
 
 		// display any load errors that happened while loading the package
 		FEditorDelegates::DisplayLoadErrors.Broadcast();
@@ -294,7 +293,7 @@ namespace PackageTools
 			// Set the callback for restoring RF_Standalone post reachability analysis.
 			// GC will call this function before purging objects, allowing us to restore RF_Standalone
 			// to any objects that have not been marked RF_Unreachable.
-			EditorPostReachabilityAnalysisCallback = RestoreStandaloneOnReachableObjects;
+			ReachabilityCallbackHandle = FCoreUObjectDelegates::PostReachabilityAnalysis.AddStatic(RestoreStandaloneOnReachableObjects);
 
 			bool bScriptPackageWasUnloaded = false;
 
@@ -380,8 +379,8 @@ namespace PackageTools
 
 			GWarn->EndSlowTask();
 
-			// Set the post reachability callback.
-			EditorPostReachabilityAnalysisCallback = NULL;
+			// Remove the post reachability callback.
+			FCoreUObjectDelegates::PostReachabilityAnalysis.Remove(ReachabilityCallbackHandle);
 
 			// Clear the standalone flag on metadata objects that are going to be GC'd below.
 			// This resolves the circular dependency between metadata and packages.
@@ -550,9 +549,19 @@ namespace PackageTools
 		});
 
 		// Unload the current world (if needed).
+		TMap<FName, const UMapBuildDataRegistry*> LevelsToMapBuildData;
 		if (!WorldNameToReload.IsNone())
 		{
 			GEditor->CreateNewMapForEditing();
+		}
+		// Cache the current map build data for the levels of the current world so we can see if they change due to a reload (we skip this if reloading the current world).
+		else if (UWorld* EditorWorld = GEditor->GetEditorWorldContext().World())
+		{
+			for (int32 LevelIndex = 0; LevelIndex < EditorWorld->GetNumLevels(); ++LevelIndex)
+			{
+				ULevel* Level = EditorWorld->GetLevel(LevelIndex);
+				LevelsToMapBuildData.Add(Level->GetFName(), Level->MapBuildData);
+			}
 		}
 
 		if (PackagesToReload.Num() > 0)
@@ -574,6 +583,7 @@ namespace PackageTools
 			PackagesToReloadData.Reserve(PackagesToReload.Num());
 			for (UPackage* PackageToReload : PackagesToReload)
 			{
+				check(PackageToReload);
 				bScriptPackageWasReloaded |= PackageToReload->HasAnyPackageFlags(PKG_ContainsScript);
 				PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
 			}
@@ -630,6 +640,24 @@ namespace PackageTools
 			TArray<FName> WorldNamesToReload;
 			WorldNamesToReload.Add(WorldNameToReload);
 			FAssetEditorManager::Get().OpenEditorsForAssets(WorldNamesToReload);
+		}
+		// Update the rendering resources for the levels of the current world if their map build data has changed (we skip this if reloading the current world).
+		else if (LevelsToMapBuildData.Num() > 0)
+		{
+			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			check(EditorWorld);
+
+			for (int32 LevelIndex = 0; LevelIndex < EditorWorld->GetNumLevels(); ++LevelIndex)
+			{
+				ULevel* Level = EditorWorld->GetLevel(LevelIndex);
+				const UMapBuildDataRegistry* OldMapBuildData = LevelsToMapBuildData.FindRef(Level->GetFName());
+
+				if (OldMapBuildData && OldMapBuildData != Level->MapBuildData)
+				{
+					Level->ReleaseRenderingResources();
+					Level->InitializeRenderingResources();
+				}
+			}
 		}
 
 		OutErrorMessage = ErrorMessageBuilder.ToText();
@@ -907,7 +935,7 @@ namespace PackageTools
 		FString PackageFileName;
 		if ( FPackageName::DoesPackageExist(PackageName, NULL, &PackageFileName) )
 		{
-			return FPaths::GetExtension(PackageFileName, /*bIncludeDot=*/true).ToLower() == FPackageName::GetAssetPackageExtension();
+			return FPaths::GetExtension(PackageFileName, /*bIncludeDot=*/true) == FPackageName::GetAssetPackageExtension();
 		}
 
 		// If it wasn't found in the package file cache, this package does not yet

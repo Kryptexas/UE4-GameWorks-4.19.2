@@ -161,6 +161,15 @@ void AEQSTestingPawn::PostLoad()
 
 	if (QueryParams.Num() > 0)
 	{
+		// handle legacy props reading
+		for (FEnvNamedValue& NamedValue : QueryParams)
+		{
+			if (uint8(NamedValue.ParamType) >= uint8(EAIParamType::MAX))
+			{
+				NamedValue.ParamType = EAIParamType::Float;
+			}
+		}
+
 		FAIDynamicParam::GenerateConfigurableParamsFromNamedValues(*this, QueryConfig, QueryParams);
 		QueryParams.Empty();
 	}

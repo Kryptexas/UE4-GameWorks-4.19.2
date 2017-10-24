@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3521235
 Availability:Public
+Crumbs: %ROOT%
 Title:Google VR と Daydream デバイス
-Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Daydream デバイス固有の Google VR 機能
-Navigation:platform
-Skilllevel:Intermediate
+Type:Overview
+SkillLevel:Intermediate
 Version:4.16
-parent:Platforms/GoogleVR
-type:overview
-tags:VR
+Parent:Platforms/GoogleVR
+Order:2
 tags:Google VR
 tags:Daydream
 topic-image:Platforms\GoogleVR\GoogleVR_Topic_Image.png
@@ -27,10 +26,10 @@ Google Daydream VR のビルド済み機能をすべて取得するためには�
 
 * [Google VR Github Pull](https://github.com/googlevr-unreal/UnrealEngine/releases)
 
-ダウンロードが完了したら、[Github からアンリアルをZipでダウンロードする方法](GettingStarted/DownloadingUnrealEngine/DownloadZip) の説明に従って残りのセットアップを完了させます。
+ダウンロードが完了したら、[Github からアンリアルをZipでダウンロードする方法](https://docs.unrealengine.com/latest/INT/GettingStarted/DownloadingUnrealEngine/DownloadZip/) の説明に従って残りのセットアップを完了させます。
 
 ## Android NDK 12b
-Daydream の機能へのフルアクセスには、Android NDK version 12b のダウンロードおよびインストールが必要となります。 
+Daydream のすべての機能にアクセスするためには、Android NDK version 12b のダウンロードおよびインストールが必要となります。 
 
 * [NDK 12b Downlaod](https://developer.android.com/ndk/downloads/older_releases.html)
 
@@ -44,49 +43,49 @@ Daydream の機能へのフルアクセスには、Android NDK version 12b の�
 クリックしてフルサイズで表示
 [/REGION]
 
-## Scanline Racing
-**Scanline Racing** は、VR プロジェクトでのレイテンシーを低減できる Daydream 固有の機能です。Daydream デバイス向け Google VR プロジェクトで Scanline Racing を有効にするには、以下の操作を行います。
+## スキャンライン レーシング
+**スキャンライン レーシング** は、VR プロジェクトでのレイテンシーを低減できる Daydream 固有の機能です。Daydream デバイス向け Google VR プロジェクトでスキャンライン レーシングを有効にするには、以下の操作を行います。
 
 1. **[Project Settings (プロジェクト設定)]** の **[Platforms]** で **[Android]** を選択します。**[APKPackaging]** セクションで、以下の設定を行います。 
 
-	* Minimum SDK Version:**24**
-	* Target SDK Version:**24**
+    * Minimum SDK Version:**24**
+    * Target SDK Version:**24**
 
-	[REGION:lightbox]
-	[![](GDaydream_Arm64_Support_00.png)(w:502)](GDaydream_Arm64_Support_00.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Arm64_Support_00.png)(w:502)](GDaydream_Arm64_Support_00.png)
+    [/REGION]
 
-	[REGION:caption]
-	クリックしてフルサイズで表示
-	[/REGION]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
 1. **[Build]** セクションで以下の設定を行います。
-	* Support armv7(aka armeabi-v7a):**Disabled** 
-	* Support arm64 (aka arm64-v8a):**Enabled**
+    * Support armv7(aka armeabi-v7a):**Disabled** 
+    * Support arm64 (aka arm64-v8a):**Enabled**
 
-	[REGION:lightbox]
-	[![](GDaydream_Build_Support.png)(w:502)](GDaydream_Build_Support.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Build_Support.png)(w:502)](GDaydream_Build_Support.png)
+    [/REGION]
 
-	[REGION:caption]
-	クリックしてフルサイズで表示
-	[/REGION]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
     [region:note]
     これを有効にしておくと、arm64 ライブラリのコンパイルが必要な時に、初回クック時間が大幅に追加されます。
     [/region]
 
 1. 次に、**[Advanced APKPackaging]** セクションの以下のオプションを有効にします。
-	* [Configure GoogleVR Deployment Mode]:**Daydream**
-	* [Configure GoogleVR for sustained-performance mode]:**Enabled**
+    * [Configure GoogleVR Deployment Mode]:**Daydream**
+    * [Configure GoogleVR for sustained-performance mode]:**Enabled**
 
-	[REGION:lightbox]
-	[![](GDaydream_Scanline_Racing_Support_00.png)(w:502)](GDaydream_Scanline_Racing_Support_00.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Scanline_Racing_Support_00.png)(w:502)](GDaydream_Scanline_Racing_Support_00.png)
+    [/REGION]
 
-	[REGION:caption]
-	クリックしてフルサイズで表示
-	[/REGION]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
 
 次回 UE プロジェクトをクックし、それを Daydream デバイスにデプロイする時に、低レイテンシー レンダリング設定が有効になります。
@@ -100,13 +99,13 @@ UE4 で Google Daydream Controller のモーション コントローラーを�
 
 1. まず、プロジェクトの [Plugins] メニューを開き、[Input] セクションで **[Google VR Motion Controller]** を有効にします。
 
-	[REGION:lightbox]
-	[![](GDaydream_Plugins.png)(w:692)](GDaydream_Plugins.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Plugins.png)(w:692)](GDaydream_Plugins.png)
+    [/REGION]
 
-	[REGION:caption]
-	クリックしてフルサイズで表示
-	[/REGION]
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
 
     [region:note]
     プラグインを使用するためには、UE4 エディタを再起動する必要があります。再起動しないと、Google VR モーション コントローラーを使用することができません。 
@@ -122,29 +121,19 @@ UE4 で Google Daydream Controller のモーション コントローラーを�
 
 1. プロジェクトを実行すると、モーション コントローラーはこのようになります。
 
-	[REGION:lightbox]
-	[![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
+    [/REGION]
 
-	[region:note]
-	UE4 の 4.14 バイナリ ビルドを使用している場合、上のコンテンツはなくなるので、代わりに標準の Motion Controller コンポーネントを使用します。この機能のすべては、UE4 バージョン 4.15 以降のリリースに含まれます。この機能がすぐに必要な場合、[UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr) のダウンロードおよびコンパイルが必要になります。
-	[/region]
+    [region:note]
+    UE4 の 4.14 バイナリ ビルドを使用している場合、上のコンテンツはなくなるので、代わりに標準の Motion Controller コンポーネントを使用します。この機能のすべては、UE4 バージョン 4.15 以降のリリースに含まれます。この機能がすぐに必要な場合、[UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr) のダウンロードおよびコンパイルが必要になります。
+    [/region]
 
 Google VR Motion Controller コンポーネントをポーンに設定したので、ブループリント エディタで **Google VR** を検索して見つけたノードを使用して、Motion Controller の機能の編集および調整をすることができます。 
 
 ## トレーニング ストリーム
 
 これらのトレーニング ストリームは、Motion Controller の設定、Motion Controller を使った VR でのインタラクション作成に関する追加リソースです。 
-
-[PARAMLITERAL:width]
-320
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-170
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-px
-[/PARAMLITERAL]
 
 
 [OBJECT:VideoSeriesLink]
@@ -154,12 +143,12 @@ px
     [PARAMLITERAL:videoid]
     6ALnsdQnkVQ
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	1:05:05
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    1:05:05
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -169,6 +158,7 @@ px
     https://i.ytimg.com/vi/6ALnsdQnkVQ/maxresdefault.jpg
     [/PARAMLITERAL]
 [/OBJECT]
+
 [OBJECT:VideoSeriesLink]
     [PARAMLITERAL:title]
     01 - モーション コントローラーで VR でインタラクションを作成するブループリント
@@ -176,13 +166,13 @@ px
     [PARAMLITERAL:videoid]
     eRNtgFo6iU0
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	59:50
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    59:50
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
     block
@@ -191,6 +181,7 @@ px
     https://i.ytimg.com/vi/eRNtgFo6iU0/maxresdefault.jpg
     [/PARAMLITERAL]
 [/OBJECT]
+
 [OBJECT:VideoSeriesLink]
     [PARAMLITERAL:title]
     02 - モーション コントローラーで VR でインタラクションを作成するブループリント
@@ -198,12 +189,12 @@ px
     [PARAMLITERAL:videoid]
     utOahIZgKgc
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	57:44
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    57:44
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -220,12 +211,12 @@ px
     [PARAMLITERAL:videoid]
     fcmRGkpWefY
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	48:20
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    48:20
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -236,5 +227,7 @@ px
     [/PARAMLITERAL]
 [/OBJECT]
 
+[region:blank]
 
+[/region]
 

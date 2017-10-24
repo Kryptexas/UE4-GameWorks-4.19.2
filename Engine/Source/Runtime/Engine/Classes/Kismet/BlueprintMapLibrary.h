@@ -26,7 +26,7 @@ public:
 	 * @return	True if a Value was added, or False if the Key was already present and has been overwritten
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Add", CompactNodeTitle = "ADD", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value"), Category = "Utilities|Map")
-	static bool Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
+	static void Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
 	
 	/** 
 	 * Removes a key and its associated value from the map.
@@ -46,7 +46,7 @@ public:
 	 * @param	Value			The value associated with the key, default constructed if key was not found
 	 * @return	True if an item was found (False indicates nothing in the map uses the provided key)
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Find", CompactNodeTitle = "FIND", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value"), Category = "Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Find", CompactNodeTitle = "FIND", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value", BlueprintThreadSafe), Category = "Utilities|Map")
 	static bool Map_Find(const TMap<int32, int32>& TargetMap, const int32& Key, int32& Value);
 	
 	/** 
@@ -56,7 +56,7 @@ public:
 	 * @param	Key				The key that will be used to lookup
 	 * @return	True if an item was found (False indicates nothing in the map uses the provided key)
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains", CompactNodeTitle = "CONTAINS", MapParam = "TargetMap", MapKeyParam = "Key", AutoCreateRefTerm = "Key"), Category = "Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains", CompactNodeTitle = "CONTAINS", MapParam = "TargetMap", MapKeyParam = "Key", AutoCreateRefTerm = "Key", BlueprintThreadSafe), Category = "Utilities|Map")
 	static bool Map_Contains(const TMap<int32, int32>& TargetMap, const int32& Key);
 	
 	/** 
@@ -83,7 +83,7 @@ public:
 	 * @param	TargetMap		The map in question
 	 * @return	The number of entries in the map
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", MapParam = "TargetMap", Keywords = "num size count"), Category="Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", MapParam = "TargetMap", Keywords = "num size count", BlueprintThreadSafe), Category="Utilities|Map")
 	static int32 Map_Length(const TMap<int32, int32>& TargetMap);
 	
 	/** 
@@ -95,8 +95,8 @@ public:
 	static void Map_Clear(const TMap<int32, int32>& TargetMap);
 
 	/** 
-	 * Not exposed to users. Supports setting a map property on an object by name.
-	 */
+	* Not exposed to users. Supports setting a map property on an object by name.
+	*/
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", MapParam = "Value"))
 	static void SetMapPropertyByName(UObject* Object, FName PropertyName, const TMap<int32, int32>& Value);
 
@@ -133,7 +133,7 @@ public:
 		P_FINISH;
 
 		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
+		GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
 		P_NATIVE_END;
 		
 		CurrValueProp->DestroyValue(ValueStorageSpace);
@@ -345,7 +345,7 @@ public:
 		P_NATIVE_END;
 	}
 
-	static bool GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
+	static void GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
 	static bool GenericMap_Remove(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr);
 	static bool GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* ValuePtr);
 	static void GenericMap_Keys(const void* MapAddr, const UMapProperty* MapProperty, const void* ArrayAddr, const UArrayProperty* ArrayProperty);

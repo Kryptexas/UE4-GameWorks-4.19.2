@@ -24,7 +24,10 @@
 #ifndef SDF_CHANGEBLOCK_H
 #define SDF_CHANGEBLOCK_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class SdfChangeBlock
 ///
@@ -65,6 +68,7 @@
 /// inside a changeblock without talking to any downstream libraries.
 /// For example, this is how Csd performs namespace edits.
 ///
+
 class SdfChangeBlock {
 public:
     SDF_API
@@ -72,5 +76,7 @@ public:
     SDF_API
     ~SdfChangeBlock();
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_CHANGEBLOCK_H

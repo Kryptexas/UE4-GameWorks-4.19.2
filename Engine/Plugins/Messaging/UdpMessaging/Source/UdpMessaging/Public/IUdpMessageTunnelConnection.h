@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Internationalization/Text.h"
+#include "Misc/Timespan.h"
+
 
 /**
  * Interface for message tunnel connections.

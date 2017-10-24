@@ -8,6 +8,7 @@
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/App.h"
 #include "Internationalization/Internationalization.h"
+#include "Windows/WindowsPlatformApplicationMisc.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
@@ -192,7 +193,7 @@ DWORD FWindowsNativeFeedbackContext::SlowTaskThreadProc(void* ThreadParam)
 	WndClassEx.cbSize = sizeof(WndClassEx);
 	WndClassEx.style = CS_HREDRAW | CS_VREDRAW | (Context->bShowCancelButton? 0 : CS_NOCLOSE);
 	WndClassEx.lpfnWndProc = &SlowTaskWindowProc;
-	WndClassEx.hIcon = LoadIcon(HInstance, MAKEINTRESOURCE(FWindowsPlatformMisc::GetAppIcon()));
+	WndClassEx.hIcon = LoadIcon(HInstance, MAKEINTRESOURCE(FWindowsPlatformApplicationMisc::GetAppIcon()));
 	WndClassEx.hCursor = LoadCursor(NULL, IDC_ARROW);
 	WndClassEx.hInstance = HInstance;
 	WndClassEx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);

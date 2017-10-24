@@ -293,7 +293,7 @@ void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bA
 	}
 }
 
-void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
+void USkeletalMeshComponent::SetAllPhysicsAngularVelocityInRadians(FVector const& NewAngVel, bool bAddToCurrent)
 {
 	if(RootBodyData.BodyIndex != INDEX_NONE && RootBodyData.BodyIndex < Bodies.Num())
 	{
@@ -310,7 +310,7 @@ void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngV
 			FBodyInstance* const BI = Bodies[i];
 			check(BI);
 
-			BI->SetAngularVelocity(NewAngVel, bAddToCurrent);
+			BI->SetAngularVelocityInRadians(NewAngVel, bAddToCurrent);
 		}
 	}
 }
@@ -551,14 +551,20 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	uint32 SkelMeshCompID = GetUniqueID();
 	PhysScene->DeferredAddCollisionDisableTable(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
 
-	int32 NumBodies = PhysicsAsset->SkeletalBodySetups.Num();
-	if(Aggregate == NULL && NumBodies > RagdollAggregateThreshold && NumBodies <= AggregateMaxSize)
+	int32 NumShapes = 0;
+	const int32 NumBodies = PhysicsAsset->SkeletalBodySetups.Num();
+	for(int32 BodyIndex = 0; BodyIndex < NumBodies; ++BodyIndex)
+	{
+		NumShapes += PhysicsAsset->SkeletalBodySetups[BodyIndex]->AggGeom.GetElementCount();
+	}
+
+	if(Aggregate == NULL && NumShapes > RagdollAggregateThreshold && NumShapes <= AggregateMaxSize)
 	{
 		Aggregate = GPhysXSDK->createAggregate(PhysicsAsset->SkeletalBodySetups.Num(), true);
 	}
-	else if(Aggregate && NumBodies > AggregateMaxSize)
+	else if(Aggregate && NumShapes > AggregateMaxSize)
 	{
-		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Too many bodies to create aggregate, Max: %u, This: %d"), AggregateMaxSize, NumBodies);
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Too many shapes to create aggregate, Max: %u, This: %d"), AggregateMaxSize, NumShapes);
 	}
 #endif //WITH_PHYSX
 
@@ -592,6 +598,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 	// Create all the OutBodies.
 	check(OutBodies.Num() == 0);
 	OutBodies.AddZeroed(NumOutBodies);
+
 	for (int32 BodyIdx = 0; BodyIdx<NumOutBodies; BodyIdx++)
 	{
 		UBodySetup* PhysicsAssetBodySetup = PhysAsset.SkeletalBodySetups[BodyIdx];
@@ -635,7 +642,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 			else
 			{
 				BodyInst->DOFMode = EDOFMode::None;
-				if (!CVarEnableRagdollPhysics.GetValueOnGameThread())
+				if (PhysScene != nullptr && !CVarEnableRagdollPhysics.GetValueOnGameThread())	//We only limit creation of the global physx scenes and not assets related to immedate mode
 				{
 					continue;
 				}
@@ -1527,9 +1534,9 @@ int32 USkeletalMeshComponent::ForEachBodyBelow(FName BoneName, bool bIncludeSelf
 		PhysicsAsset->GetBodyIndicesBelow(BodyIndices, BoneName, SkeletalMesh, bIncludeSelf);
 
 		int32 NumBodiesFound = 0;
-		for (int32 BodyIdx = 0; BodyIdx < BodyIndices.Num(); BodyIdx++)
+		for (int32 BodyIdx : BodyIndices)
 		{
-			FBodyInstance* BI = Bodies[BodyIndices[BodyIdx]];
+			FBodyInstance* BI = Bodies[BodyIdx];
 			if (bSkipCustomType)
 			{
 				if (UBodySetup* PhysAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx])
@@ -1841,6 +1848,7 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 
 				const FSkelMeshSection& ClothSection = Model.Sections[Section.CorrespondClothSectionIndex];
 				ClothAssetIndex = ClothSection.CorrespondClothAssetIndex;
+				ClothAssetGuid = ClothSection.ClothingData.AssetGuid;
 
 				// the index can exceed the range because this vertex index is based on the corresponding original section
 				// the number of cloth chunk's vertices is not always same as the corresponding one 
@@ -2135,12 +2143,12 @@ void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, co
 
 void USkeletalMeshComponent::RecreateClothingActors()
 {
+	ReleaseAllClothingResources();
+
 	if(SkeletalMesh == nullptr)
 	{
 		return;
 	}
-
-	ReleaseAllClothingResources();
 
 	if (bDisableClothSimulation)
 	{
@@ -2786,7 +2794,7 @@ bool USkeletalMeshComponent::GetClothSimulatedPosition_GameThread(const FGuid& A
 
 		if(ActorData && ActorData->Positions.IsValidIndex(VertexIndex))
 		{
-			OutSimulPos = GetComponentTransform().TransformPosition(ActorData->Positions[VertexIndex]);
+			OutSimulPos = ActorData->Positions[VertexIndex];
 
 			bSucceed = true;
 		}

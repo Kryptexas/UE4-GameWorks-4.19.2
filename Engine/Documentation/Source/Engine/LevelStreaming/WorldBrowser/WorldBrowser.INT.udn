@@ -143,7 +143,7 @@ To see the details for any level in the Level window, select it and then click o
 
 Each level in the world composition can have up to 4 LOD streaming levels. LOD streaming levels are similar to 
 mesh LOD. Depending on streaming distance settings streaming level will be replaced with  corresponding LOD level. LOD 
-levels automatically discovered by World Composition using pattern <Package name>_LOD#. Where number should be from 1 to 4.
+levels automatically discovered by World Composition using pattern [Package name]_LOD#. Where number should be from 1 to 4.
 LOD levels can be created manually or with automatic LOD map generator which requires Simplygon.
 
 [REGION:note]

@@ -145,7 +145,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 								.ButtonContent()
 								[
 									SNew(STextBlock)
-									.TextStyle(FLogVisualizerStyle::Get(), "Filters.Text")
+									.TextStyle(FLogVisualizerStyle::Get(), "GenericFilters.TextStyle")
 									.Text(LOCTEXT("FilterClasses", "Classes"))
 								]
 							]

@@ -4,6 +4,7 @@
 #include "AudioMixerDevice.h"
 #include "HAL/RunnableThread.h"
 #include "Misc/ConfigCacheIni.h"
+#include "HAL/ThreadSafeCounter.h"
 
 // Command to enable logging to display accurate audio render times
 static int32 LogRenderTimesCVar = 0;
@@ -29,6 +30,8 @@ DEFINE_STAT(STAT_AudioMixerMasterEQ);
 namespace Audio
 {
 	int32 sRenderInstanceIds = 0;
+
+	FThreadSafeCounter AudioMixerTaskCounter;
 
 	FAudioRenderTimeAnalysis::FAudioRenderTimeAnalysis()
 		: AvgRenderTime(0.0)
@@ -140,7 +143,7 @@ namespace Audio
 		bIsReady = true;
  	}
  
-	const uint8* FOutputBuffer::GetBufferData()
+	const uint8* FOutputBuffer::GetBufferData() const
 	{
 		if (DataFormat == EAudioMixerStreamDataFormat::Float)
 		{
@@ -150,6 +153,23 @@ namespace Audio
 		{
 			return (const uint8*)FormattedBuffer.GetData();
 		}
+	}
+
+	uint8* FOutputBuffer::GetBufferData()
+	{
+		if (DataFormat == EAudioMixerStreamDataFormat::Float)
+		{
+			return (uint8*)Buffer.GetData();
+		}
+		else
+		{
+			return (uint8*)FormattedBuffer.GetData();
+		}
+	}
+
+	int32 FOutputBuffer::GetNumFrames() const
+	{
+		return Buffer.Num();
 	}
 
 	void FOutputBuffer::Reset(const int32 InNewNumSamples)
@@ -184,13 +204,14 @@ namespace Audio
 		, CurrentBufferReadIndex(INDEX_NONE)
 		, CurrentBufferWriteIndex(INDEX_NONE)
 		, NumOutputBuffers(0)
+		, FadeVolume(0.0f)
 		, LastError(TEXT("None"))
 		, bAudioDeviceChanging(false)
-		, bFadingIn(true)
-		, bFadingOut(false)
+		, bPerformingFade(true)
 		, bFadedOut(false)
-		, FadeEnvelopeValue(0.0f)
+		, bIsDeviceInitialized(false)
 	{
+		FadeParam.SetValue(0.0f);
 	}
 
 	IAudioMixerPlatformInterface::~IAudioMixerPlatformInterface()
@@ -200,75 +221,67 @@ namespace Audio
 
 	void IAudioMixerPlatformInterface::FadeIn()
 	{
-		bFadingIn = true;
-		bFadingOut = false;
+		bPerformingFade = true;
 		bFadedOut = false;
+		FadeVolume = 1.0f;
 	}
 
 	void IAudioMixerPlatformInterface::FadeOut()
 	{
-		if (FadeEnvelopeValue == 0.0f)
+		if (bFadedOut || FadeVolume == 0.0f)
 		{
 			return;
 		}
 
-		bFadingOut = true;
+		bPerformingFade = true;
 		AudioFadeEvent->Wait();
+		FadeVolume = 0.0f;
 	}
 
-	void IAudioMixerPlatformInterface::PerformFades()
+	void IAudioMixerPlatformInterface::PostInitializeHardware()
+	{
+		bIsDeviceInitialized = true;
+	}
+
+	template<typename BufferType>
+	void IAudioMixerPlatformInterface::ApplyAttenuationInternal(BufferType* BufferDataPtr, const int32 NumFrames)
+	{
+		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
+		if (bPerformingFade)
+		{
+			FadeParam.SetValue(FadeVolume, NumFrames);
+
+			for (int32 i = 0; i < NumFrames; ++i)
+			{
+				BufferDataPtr[i] = (BufferType)(BufferDataPtr[i] * FadeParam.Update());
+			}
+
+			bPerformingFade = false;
+			AudioFadeEvent->Trigger();
+		}
+		else if (bFadedOut)
+		{
+			// If we're faded out, then just zero the data.
+			FPlatformMemory::Memzero((void*)BufferDataPtr, sizeof(BufferType)*NumFrames);
+		}
+		FadeParam.Reset();
+	}
+
+	void IAudioMixerPlatformInterface::ApplyMasterAttenuation()
 	{
 		const int32 NextReadIndex = (CurrentBufferReadIndex + 1) % NumOutputBuffers;
 		FOutputBuffer& CurrentReadBuffer = OutputBuffers[NextReadIndex];
 
-		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
-		if (bFadingIn)
+		EAudioMixerStreamDataFormat::Type Format = CurrentReadBuffer.GetFormat();
+		uint8* BufferDataPtr = CurrentReadBuffer.GetBufferData();
+		
+		if (Format == EAudioMixerStreamDataFormat::Float)
 		{
-			if (FadeEnvelopeValue >= 1.0f)
-			{
-				bFadingIn = false;
-				FadeEnvelopeValue = 1.0f;
-			}
-			else
-			{
-				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
-				const float Slope = 1.0f / Buffer.Num();
-				for (int32 i = 0; i < Buffer.Num(); ++i)
-				{
-					Buffer[i] *= FadeEnvelopeValue;
-					FadeEnvelopeValue += Slope;
-				}
-			}
+			ApplyAttenuationInternal((float*)BufferDataPtr, CurrentReadBuffer.GetNumFrames());
 		}
-
-		if (bFadingOut)
+		else
 		{
-			if (FadeEnvelopeValue <= 0.0f)
-			{
-				bFadingOut = false;
-				bFadedOut = true;
-				FadeEnvelopeValue = 0.0f;
-			}
-			else
-			{
-				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
-				const float Slope = 1.0f / Buffer.Num();
-				for (int32 i = 0; i < Buffer.Num(); ++i)
-				{
-					Buffer[i] *= FadeEnvelopeValue;
-					FadeEnvelopeValue -= Slope;
-				}
-
-			}
-
-			AudioFadeEvent->Trigger();
-		}
-
-		if (bFadedOut)
-		{
-			// If we're faded out, then just zero the data.
-			TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
-			FPlatformMemory::Memzero(Buffer.GetData(), sizeof(float)*Buffer.Num());
+			ApplyAttenuationInternal((int16*)BufferDataPtr, CurrentReadBuffer.GetNumFrames());
 		}
 	}
 
@@ -302,7 +315,7 @@ namespace Audio
 			
 			if (!bWarnedBufferUnderrun)
 			{						
-				UE_LOG(LogAudioMixer, Error, TEXT("Audio Buffer Underrun detected."));
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio Buffer Underrun detected."));
 				bWarnedBufferUnderrun = true;
 			}
 		
@@ -310,12 +323,12 @@ namespace Audio
 		}
 		else
 		{
-			PerformFades();
+			ApplyMasterAttenuation();
 
 			// As soon as a valid buffer goes through, allow more warning
 			if (bWarnedBufferUnderrun)
 			{
-				UE_LOG(LogAudioMixer, Error, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
+				UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio had %d underruns [Total: %d]."), CurrentUnderrunCount, UnderrunCount);
 			}
 			CurrentUnderrunCount = 0;
 			bWarnedBufferUnderrun = false;
@@ -364,7 +377,7 @@ namespace Audio
 		check(AudioFadeEvent != nullptr);
 
 		check(AudioRenderThread == nullptr);
-		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_Highest);
+		AudioRenderThread = FRunnableThread::Create(this, *FString::Printf(TEXT("AudioMixerRenderThread(%d)"), AudioMixerTaskCounter.Increment()), 0, TPri_Highest, FPlatformAffinity::GetAudioThreadMask());
 		check(AudioRenderThread != nullptr);
 	}
 
@@ -405,6 +418,24 @@ namespace Audio
 		}
 	}
 
+	void IAudioMixerPlatformInterface::Tick()
+	{
+		// In single-threaded mode, we simply render buffers until we run out of space
+		// The single-thread audio backend will consume these rendered buffers when they need to
+		if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running && bIsDeviceInitialized)
+		{
+			// Render mixed buffers till our queued buffers are filled up
+			while (CurrentBufferReadIndex != CurrentBufferWriteIndex)
+			{
+				RenderTimeAnalysis.Start();
+				OutputBuffers[CurrentBufferWriteIndex].MixNextBuffer();
+				RenderTimeAnalysis.End();
+
+				CurrentBufferWriteIndex = (CurrentBufferWriteIndex + 1) % NumOutputBuffers;
+			}
+		}
+	}
+
 	uint32 IAudioMixerPlatformInterface::MainAudioDeviceRun()
 	{
 		return RunInternal();
@@ -427,7 +458,7 @@ namespace Audio
 			RenderTimeAnalysis.Start();
 
 			// Render mixed buffers till our queued buffers are filled up
-			while (CurrentBufferReadIndex != CurrentBufferWriteIndex)
+			while (CurrentBufferReadIndex != CurrentBufferWriteIndex && bIsDeviceInitialized)
 			{
 				OutputBuffers[CurrentBufferWriteIndex].MixNextBuffer();
 
@@ -439,6 +470,8 @@ namespace Audio
 			// Now wait for a buffer to be consumed, which will bump up the read index.
 			AudioRenderEvent->Wait();
 		}
+
+		OpenStreamParams.AudioMixer->OnAudioStreamShutdown();
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
 		return 0;

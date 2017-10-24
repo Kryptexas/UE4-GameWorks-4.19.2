@@ -143,7 +143,7 @@ void FAggregatorModChannel::AddModsFrom(const FAggregatorModChannel& Other)
 	}
 }
 
-void FAggregatorModChannel::DebugGetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const
+void FAggregatorModChannel::GetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>* >& OutMods) const
 {
 	OutMods.Add(Channel, Mods);
 }
@@ -278,14 +278,14 @@ void FAggregatorModChannelContainer::AddModsFrom(const FAggregatorModChannelCont
 	}
 }
 
-void FAggregatorModChannelContainer::DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const
+void FAggregatorModChannelContainer::GetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const
 {
 	for (const auto& ChannelEntry : ModChannelsMap)
 	{
 		EGameplayModEvaluationChannel CurChannelEnum = ChannelEntry.Key;
 		const FAggregatorModChannel& CurChannel = ChannelEntry.Value;
 		
-		CurChannel.DebugGetAllAggregatorMods(CurChannelEnum, OutMods);
+		CurChannel.GetAllAggregatorMods(CurChannelEnum, OutMods);
 	}
 }
 
@@ -446,9 +446,9 @@ void FAggregator::RemoveDependent(FActiveGameplayEffectHandle Handle)
 	Dependents.Remove(Handle);
 }
 
-void FAggregator::DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const
+void FAggregator::GetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const
 {
-	ModChannels.DebugGetAllAggregatorMods(OutMods);
+	ModChannels.GetAllAggregatorMods(OutMods);
 }
 
 void FAggregator::OnActiveEffectDependenciesSwapped(const TMap<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwappedDependencies)

@@ -50,7 +50,7 @@ public:
 	* @param Command - The command name to set
 	* @param NewChord - The new input chord to assign
 	*/
-	UNREALED_API static bool SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputChord& NewChord);
+	UNREALED_API static bool SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputChord& NewChord, const FInputChord& NewAlternateChord = FInputChord());
 
 	
 	/**

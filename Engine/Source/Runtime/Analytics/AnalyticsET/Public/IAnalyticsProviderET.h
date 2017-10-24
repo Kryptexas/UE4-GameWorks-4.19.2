@@ -18,7 +18,7 @@ public:
 	 *
 	 * @param AppID The new AppID to set
 	 */
-	virtual void SetAppID(const FString&& AppID) = 0;
+	virtual void SetAppID(FString&& AppID) = 0;
 
 	
 	/**
@@ -87,4 +87,12 @@ public:
 	* @param Attributes array of attributes that should be appended to every event.
 	*/
 	virtual const TArray<FAnalyticsEventAttribute>& GetDefaultEventAttributes() const = 0;
+
+	/**
+	* Set a callback to be invoked any time an event is queued.
+	* 
+	* @param the callback
+	*/
+	typedef TFunction<void(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attrs, bool bJson)> OnEventRecorded;
+	virtual void SetEventCallback(const OnEventRecorded& Callback) = 0;
 };

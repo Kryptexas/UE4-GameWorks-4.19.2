@@ -12,6 +12,7 @@
 #include "UObject/CoreNet.h"
 #include "GameFramework/WorldSettings.h"
 #include "PacketHandler.h"
+#include "Channel.h"
 
 #include "NetDriver.generated.h"
 
@@ -27,6 +28,26 @@ class FVoicePacket;
 class StatelessConnectHandlerComponent;
 class UNetConnection;
 struct FNetworkObjectInfo;
+
+extern ENGINE_API TAutoConsoleVariable<int32> CVarNetAllowEncryption;
+
+// Delegates
+
+#if !UE_BUILD_SHIPPING
+/**
+ * Delegate for hooking ProcessRemoteFunction (used by NetcodeUnitTest)
+ *
+ * @param Actor				The actor the RPC will be called in
+ * @param Function			The RPC to call
+ * @param Parameters		The parameters data blob
+ * @param OutParms			Out parameter information (irrelevant for RPC's)
+ * @param Stack				The script stack
+ * @param SubObject			The sub-object the RPC is being called in (if applicable)
+ * @param bBlockSendRPC		Whether or not to block sending of the RPC (defaults to false)
+ */
+DECLARE_DELEGATE_SevenParams(FOnSendRPC, AActor* /*Actor*/, UFunction* /*Function*/, void* /*Parameters*/,
+									FOutParmRec* /*OutParms*/, FFrame* /*Stack*/, UObject* /*SubObject*/, bool& /*bBlockSendRPC*/);
+#endif
 
 //
 // Whether to support net lag and packet loss testing.
@@ -160,6 +181,7 @@ struct FCompareFActorPriority
 
 struct FActorDestructionInfo
 {
+	TWeakObjectPtr<ULevel>		Level;
 	TWeakObjectPtr<UObject>		ObjOuter;
 	FVector			DestroyedPosition;
 	FNetworkGUID	NetGUID;
@@ -286,6 +308,15 @@ public:
 	/** Used to specify the net driver to filter actors with (NAME_None || NAME_GameNetDriver is the default net driver) */
 	UPROPERTY(Config)
 	FName NetDriverName;
+
+	/** The UChannel classes that should be used under this net driver */
+	UClass* ChannelClasses[CHTYPE_MAX];
+	
+	/** @return true if the specified channel type exists. */
+	FORCEINLINE bool IsKnownChannelType(int32 Type)
+	{
+		return Type >= 0 && Type < CHTYPE_MAX && ChannelClasses[Type] != nullptr;
+	}
 
 	/** Change the NetDriver's NetDriverName. This will also reinit packet simulation settings so that settings can be qualified to a specific driver. */
 	void SetNetDriverName(FName NewNetDriverNamed);
@@ -424,6 +455,11 @@ public:
 	FDelegateHandle TickDispatchDelegateHandle;
 	FDelegateHandle TickFlushDelegateHandle;
 	FDelegateHandle PostTickFlushDelegateHandle;
+
+#if !UE_BUILD_SHIPPING
+	/** Delegate for hooking ProcessRemoteFunction */
+	FOnSendRPC	SendRPCDel;
+#endif
 
 	/** Tracks the amount of time spent during the current frame processing queued bunches. */
 	float ProcessQueuedBunchesCurrentFrameMilliseconds;
@@ -773,7 +809,14 @@ protected:
 	int32 ServerReplicateActors_ProcessPrioritizedActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, FActorPriority** PriorityActors, const int32 FinalSortedCount, int32& OutUpdated );
 #endif
 
+	/** Used to handle any NetDriver specific cleanup once a level has been removed from the world. */
+	ENGINE_API virtual void OnLevelRemovedFromWorld(class ULevel* Level, class UWorld* World);
+
+	/** Handle that tracks OnLevelRemovedFromWorld. */
+	FDelegateHandle OnLevelRemovedFromWorldHandle;
+
 private:
+
 	/** Stores the list of objects to replicate into the replay stream. This should be a TUniquePtr, but it appears the generated.cpp file needs the full definition of the pointed-to type. */
 	TSharedPtr<FNetworkObjectList> NetworkObjects;
 

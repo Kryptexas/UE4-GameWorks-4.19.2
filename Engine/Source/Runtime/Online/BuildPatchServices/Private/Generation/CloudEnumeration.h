@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
 #include "Misc/SecureHash.h"
-#include "Generation/StatsCollector.h"
+#include "Common/StatsCollector.h"
 
 namespace BuildPatchServices
 {

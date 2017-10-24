@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Models/ProjectLauncherModel.h"
 
+class FArguments;
+class FProjectLauncherModel;
 enum class ECheckBoxState : uint8;
+
 
 /**
  * Implements the deploy-to-device settings panel.
@@ -28,25 +30,24 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel );
-
-
-private:
-
-	// Callback for check state changes of the 'Hide Window' check box.
-	void HandleHideWindowCheckBoxCheckStateChanged( ECheckBoxState NewState );
-
-	// Callback for determining the checked state of the 'Hide Window' check box.
-	ECheckBoxState HandleHideWindowCheckBoxIsChecked( ) const;
-
-	// Callback for check state changes of the 'Streaming Server' check box.
-	void HandleStreamingServerCheckBoxCheckStateChanged( ECheckBoxState NewState );
-
-	// Callback for determining the checked state of the 'Streaming Server' check box.
-	ECheckBoxState HandleStreamingServerCheckBoxIsChecked( ) const;
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel);
 
 private:
 
-	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	/** Callback for check state changes of the 'Hide Window' check box. */
+	void HandleHideWindowCheckBoxCheckStateChanged(ECheckBoxState NewState);
+
+	/** Callback for determining the checked state of the 'Hide Window' check box. */
+	ECheckBoxState HandleHideWindowCheckBoxIsChecked() const;
+
+	/** Callback for check state changes of the 'Streaming Server' check box. */
+	void HandleStreamingServerCheckBoxCheckStateChanged(ECheckBoxState NewState);
+
+	/** Callback for determining the checked state of the 'Streaming Server' check box. */
+	ECheckBoxState HandleStreamingServerCheckBoxIsChecked() const;
+
+private:
+
+	/** Holds a pointer to the data model. */
+	TSharedPtr<FProjectLauncherModel> Model;
 };

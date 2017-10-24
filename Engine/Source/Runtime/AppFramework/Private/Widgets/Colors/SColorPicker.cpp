@@ -204,7 +204,7 @@ void SColorPicker::SetColors(const FLinearColor& InColor)
 {
 	for (int32 i = 0; i < TargetFColors.Num(); ++i)
 	{
-		*TargetFColors[i] = InColor.ToFColor(false);
+		*TargetFColors[i] = InColor.ToFColor(true);
 	}
 
 	for (int32 i = 0; i < TargetLinearColors.Num(); ++i)
@@ -1639,7 +1639,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 
 	if (Args.ColorArray && Args.ColorArray->Num() > 0)
 	{
-		OldColor = (*Args.ColorArray)[0]->ReinterpretAsLinear();
+		OldColor = FLinearColor(*(*Args.ColorArray)[0]);
 	}
 	else if (Args.LinearColorArray && Args.LinearColorArray->Num() > 0)
 	{
@@ -1658,10 +1658,12 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	}
 		
 	// Determine the position of the window so that it will spawn near the mouse, but not go off the screen.
-	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+	FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+
 	FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
 
-	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, FVector2D::ZeroVector, Orient_Horizontal );
+	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, true, FVector2D::ZeroVector, Orient_Horizontal );
+
 
 	// Only override the color picker window creation behavior if we are not creating a modal color picker
 	const bool bOverrideNonModalCreation = (SColorPicker::OnColorPickerNonModalCreateOverride.IsBound() && !Args.bIsModal);

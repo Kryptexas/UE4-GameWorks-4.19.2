@@ -14,6 +14,7 @@
 #include "Framework/Docking/LayoutService.h"
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/PlatformProcess.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define IDEAL_FRAMERATE 60;
 
@@ -121,7 +122,7 @@ void FUserInterfaceCommand::InitializeSlateApplication( const FString& LayoutIni
 		}
 	}
 
-	const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(10.0f, 10.0f);
+	const float DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(10.0f, 10.0f);
 
 	// restore application layout
 	TSharedRef<FTabManager::FLayout> NewLayout = FTabManager::NewLayout("SessionFrontendLayout_v1.1")

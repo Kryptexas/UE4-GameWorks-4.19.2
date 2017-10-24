@@ -52,7 +52,6 @@
 #include "AssetTypeActions/AssetTypeActions_CurveLinearColor.h"
 #include "AssetTypeActions/AssetTypeActions_DataAsset.h"
 #include "AssetTypeActions/AssetTypeActions_DataTable.h"
-#include "AssetTypeActions/AssetTypeActions_DestructibleMesh.h"
 #include "AssetTypeActions/AssetTypeActions_Enum.h"
 #include "AssetTypeActions/AssetTypeActions_Class.h"
 #include "AssetTypeActions/AssetTypeActions_Struct.h"
@@ -165,7 +164,6 @@ UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveLinearColor));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataAsset));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataTable));
-	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DestructibleMesh));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Enum));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Class));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Struct));
@@ -586,6 +584,11 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
 	AssetRenameManager->RenameAssets(AssetsAndNames);
+}
+
+void UAssetToolsImpl::FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const
+{
+	AssetRenameManager->FindSoftReferencesToObject(TargetObject, ReferencingObjects);
 }
 
 TArray<UObject*> UAssetToolsImpl::ImportAssets(const FString& DestinationPath)
@@ -1634,6 +1637,9 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 	TArray<UExporter*> Exporters;
 	ObjectTools::AssembleListOfExporters(Exporters);
 
+	//Array to control the batch mode and the show options for the exporters that will be use by the selected assets
+	TArray<UExporter*> UsedExporters;
+
 	// Export the objects.
 	bool bAnyObjectMissingSourceData = false;
 	for (int32 Index = 0; Index < ObjectsToExport.Num(); Index++)
@@ -1855,6 +1861,14 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 			{
 				const FScopedBusyCursor BusyCursor;
 
+				if (!UsedExporters.Contains(ExporterToUse))
+				{
+					ExporterToUse->SetBatchMode(ObjectsToExport.Num() > 1 && !bPromptIndividualFilenames);
+					ExporterToUse->SetCancelBatch(false);
+					ExporterToUse->SetShowExportOption(true);
+					UsedExporters.Add(ExporterToUse);
+				}
+
 				UExporter::FExportToFileParams Params;
 				Params.Object = ObjectToExport;
 				Params.Exporter = ExporterToUse;
@@ -1865,9 +1879,23 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 				Params.bUseFileArchive = ObjectToExport->IsA(UPackage::StaticClass());
 				Params.WriteEmptyFiles = false;
 				UExporter::ExportToFileEx(Params);
+				if (ExporterToUse->GetBatchMode() && ExporterToUse->GetCancelBatch())
+				{
+					//Exit the export file loop when there is a cancel all
+					break;
+				}
 			}
 		}
 	}
+
+	//Set back the default value for the all used exporters
+	for (UExporter* UsedExporter : UsedExporters)
+	{
+		UsedExporter->SetBatchMode(false);
+		UsedExporter->SetCancelBatch(false);
+		UsedExporter->SetShowExportOption(true);
+	}
+	UsedExporters.Empty();
 
 	if (bAnyObjectMissingSourceData)
 	{
@@ -2154,7 +2182,7 @@ void UAssetToolsImpl::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedP
 			}
 			else
 			{
-				const FString DestFilename = SrcFilename.Replace(*FPaths::GameContentDir(), *DestinationFolder);
+				const FString DestFilename = SrcFilename.Replace(*FPaths::ProjectContentDir(), *DestinationFolder);
 
 				bool bFileOKToCopy = true;
 				if ( IFileManager::Get().FileSize(*DestFilename) > 0 )

@@ -5,7 +5,6 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_AchievementType.h"
-#include <stddef.h>
 
 typedef struct ovrAchievementDefinition *ovrAchievementDefinitionHandle;
 

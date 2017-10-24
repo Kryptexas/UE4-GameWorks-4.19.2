@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3487380
 Availability: Public
 Title:6. 비주얼 이펙트 추가
 Crumbs:%ROOT%
@@ -52,7 +52,7 @@ checkpoint:mod_extend
 
 8. 그 노드의 출력 실행 핀에서 **Spawn Sound at Location** 노드를 추가합니다.
 
-9. 그 **Sound** 를 `GrendaeExplosion_C_Cue` 로 설정합니다.
+9. 그 **Sound** 를 `GrenadeExplosion_C_Cue` 로 설정합니다.
 
 	![image alt text](image_7.png)(w:662 h:242 convert:false)
 

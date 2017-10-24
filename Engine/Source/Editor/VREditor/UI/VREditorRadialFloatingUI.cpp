@@ -11,6 +11,7 @@
 #include "SlateApplication.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VREditorAssetContainer.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
@@ -324,7 +325,7 @@ void AVREditorRadialFloatingUI::UpdateFadingState( const float DeltaTime )
 		}
 
  		// Set material color
-		const float UIBrightness = FadeAlpha * VREd::RadialUIBrightness->GetFloat();
+		const float UIBrightness = FadeAlpha * GetDefault<UVRModeSettings>()->UIBrightness;;
 		for (UVREditorWidgetComponent* WidgetComponent : WidgetComponents)
 		{
 			WidgetComponent->SetTintColorAndOpacity(FLinearColor(UIBrightness, UIBrightness, UIBrightness).CopyWithNewOpacity(FadeAlpha));
@@ -433,7 +434,7 @@ const void AVREditorRadialFloatingUI::HighlightSlot(const FVector2D& TrackpadPos
 	{
 		if (CurrentlyHoveredButton.Get() != nullptr)
 		{
-			const FPointerEvent& SimulatedPointer = FPointerEvent::FPointerEvent();
+			const FPointerEvent& SimulatedPointer = FPointerEvent();
 			CurrentlyHoveredButton->OnMouseLeave(SimulatedPointer);
 			if (CurrentlyHoveredWidget != nullptr)
 			{
@@ -495,7 +496,7 @@ const void AVREditorRadialFloatingUI::HighlightSlot(const FVector2D& TrackpadPos
 	{
 		CurrentlyHoveredButton = StaticCastSharedRef<SButton>(TestWidget);
 		CurrentlyHoveredWidget = WidgetComponents[Index];
-		const FPointerEvent& SimulatedPointer = FPointerEvent::FPointerEvent();
+		const FPointerEvent& SimulatedPointer = FPointerEvent();
 		const FGeometry& ChildGeometry = FGeometry();
 
 		// Simulate mouse entering event for the button if it was not previously hovered

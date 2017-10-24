@@ -25,48 +25,6 @@ enum
 };
 
 /**
- * Implements a class that stores information about installed builds that are registered with the module
- */
-class FBuildPatchInstallationInfo
-{
-private:
-	// Stores a list of installations available on this machine
-	TMap<FString, FBuildPatchAppManifestPtr> AvailableInstallations;
-
-	// Stores the information for which chunks can be gathered from which installations
-	TMap<FGuid, FBuildPatchAppManifestPtr> RecyclableChunks;
-
-public:
-	/**
-	 * Registers an installation on this machine. This information is used to gather a list of install locations that can be used as chunk sources.
-	 * @param AppManifest			Ref to the manifest for this installation
-	 * @param AppInstallDirectory	The install location
-	 */
-	void RegisterAppInstallation(IBuildManifestRef AppManifest, const FString& AppInstallDirectory);
-
-	/**
-	 * Populates an array of chunks that should be producible from the list of installations on the machine.
-	 * @param ChunksRequired	IN		A list of chunks that are needed.
-	 * @param ChunksAvailable	OUT		A list to receive the chunks that could be constructed locally.
-	 */
-	void EnumerateProducibleChunks(const TArray< FGuid >& ChunksRequired, TArray< FGuid >& ChunksAvailable);
-
-	/**
-	 * Get the manifest for the installation that a given chunk can be recycled from.
-	 * @param ChunkGuid		The GUID for the chunk required
-	 * @return Shared pointer to the installed manifest that contains this chunk
-	 */
-	FBuildPatchAppManifestPtr GetManifestContainingChunk(const FGuid& ChunkGuid);
-
-	/**
-	 * Get the installation directory for a given manifest
-	 * @param AppManifest	The manifest that has been registered with this system
-	 * @return The installation directory
-	 */
-	const FString GetManifestInstallDir(FBuildPatchAppManifestPtr AppManifest);
-};
-
-/**
  * Implements the BuildPatchServicesModule.
  */
 class FBuildPatchServicesModule
@@ -74,12 +32,12 @@ class FBuildPatchServicesModule
 {
 public:
 
-	//~ Begin IModuleInterface Interface
+	// IModuleInterface interface begin.
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	//~ End IModuleInterface Interface
+	// IModuleInterface interface end.
 
-	//~ Begin IBuildPatchServicesModule Interface
+	// IBuildPatchServicesModule interface begin.
 	virtual IBuildManifestPtr LoadManifestFromFile(const FString& Filename) override;
 	virtual IBuildManifestPtr MakeManifestFromData(const TArray<uint8>& ManifestData) override;
 	virtual bool SaveManifestToFile(const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary = true) override;
@@ -95,12 +53,14 @@ public:
 	virtual void RegisterAppInstallation(IBuildManifestRef AppManifest, const FString AppInstallDirectory) override;
 	virtual void CancelAllInstallers(bool WaitForThreads) override;
 	virtual bool GenerateChunksManifestFromDirectory(const BuildPatchServices::FGenerationConfiguration& Settings) override;
-	virtual bool CompactifyCloudDirectory(float DataAgeThreshold, ECompactifyMode::Type Mode, const FString& DeletedChunkLogFile) override;
-	virtual bool EnumerateManifestData(const FString& ManifestFilePath, const FString& OutputFile, bool bIncludeSizes) override;
+	virtual bool CompactifyCloudDirectory(const FString& CloudDirectory, float DataAgeThreshold, ECompactifyMode::Type Mode, const FString& DeletedChunkLogFile) override;
+	virtual bool EnumeratePatchData(const FString& InputFile, const FString& OutputFile, bool bIncludeSizes) override;
+	virtual bool VerifyChunkData(const FString& SearchPath, const FString& OutputFile) override;
+	virtual bool PackageChunkData(const FString& ManifestFilePath, const FString& OutputFile, const FString& CloudDir, uint64 MaxOutputFileSize) override;
 	virtual bool MergeManifests(const FString& ManifestFilePathA, const FString& ManifestFilePathB, const FString& ManifestFilePathC, const FString& NewVersionString, const FString& SelectionDetailFilePath) override;
 	virtual bool DiffManifests(const FString& ManifestFilePathA, const TSet<FString>& TagSetA, const FString& ManifestFilePathB, const TSet<FString>& TagSetB, const FString& OutputFilePath) override;
 	virtual IBuildManifestPtr MakeManifestFromJSON(const FString& ManifestJSON) override;
-	//~ End IBuildPatchServicesModule Interface
+	// IBuildPatchServicesModule interface end.
 
 	/**
 	 * Gets the directory used for staging intermediate files.
@@ -151,6 +111,12 @@ private:
 	void NormalizeCloudPaths(TArray<FString>& InOutCloudPaths);
 
 private:
+	// The analytics provider interface
+	static TSharedPtr<IAnalyticsProvider> Analytics;
+
+	// The http tracker service interface
+	static TSharedPtr<FHttpServiceTracker> HttpTracker;
+
 	// Holds the cloud directories where chunks should belong
 	static TArray<FString> CloudDirectories;
 
@@ -169,8 +135,8 @@ private:
 	// Save the ptr to the build installer thread that we create
 	TArray< FBuildPatchInstallerPtr > BuildPatchInstallers;
 
-	// The system that holds available installations used for recycling install data
-	FBuildPatchInstallationInfo InstallationInfo;
+	// Holds available installations used for recycling install data
+	TMap<FString, FBuildPatchAppManifestRef> AvailableInstallations;
 
 	// Handle to the registered Tick delegate
 	FDelegateHandle TickDelegateHandle;

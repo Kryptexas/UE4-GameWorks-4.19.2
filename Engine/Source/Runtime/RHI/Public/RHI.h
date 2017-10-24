@@ -11,27 +11,11 @@
 #include "RHIDefinitions.h"
 #include "Containers/StaticArray.h"
 
-#define INVALID_FENCE_ID (0xffffffffffffffffull)
-
-class FRenderTarget;
 class FResourceArrayInterface;
 class FResourceBulkDataInterface;
-struct Rect;
-
-inline const bool IsValidFenceID( const uint64 FenceID )
-{
-	return ( ( FenceID & 0x8000000000000000ull ) == 0 );
-}
-
-// 0:faster rendering (CPU) / 1:allows to get a name for resource transitions
-#define SUPPORT_RESOURCE_NAME (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 /** Uniform buffer structs must be aligned to 16-byte boundaries. */
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
-
-// Forward declarations.
-class FSceneView;
-struct FMeshBatch;
 
 /** RHI Logging. */
 RHI_API DECLARE_LOG_CATEGORY_EXTERN(LogRHI,Log,VeryVerbose);
@@ -110,6 +94,37 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform);
 
 // helper to check if a preview feature level has been requested.
 RHI_API bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT);
+
+inline bool RHISupportsInstancedStereo(const EShaderPlatform Platform)
+{
+	// Only D3D SM5, PS4 and Metal SM5 supports Instanced Stereo
+	return (Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4 || Platform == EShaderPlatform::SP_METAL_SM5);
+}
+
+inline bool RHISupportsMultiView(const EShaderPlatform Platform)
+{
+	// Only PS4 and Metal SM5 from 10.13 onward supports Multi-View
+	return (Platform == EShaderPlatform::SP_PS4) || (Platform == EShaderPlatform::SP_METAL_SM5 && RHIGetShaderLanguageVersion(Platform) >= 3);
+}
+
+inline bool RHISupportsMSAA(EShaderPlatform Platform)
+{
+	return Platform != SP_PS4
+		//@todo-rco: Fix when iOS OpenGL supports MSAA
+		&& Platform != SP_OPENGL_ES2_IOS
+		// @todo marksatt Metal on macOS 10.12 and earlier (or Intel on any macOS) don't reliably support our MSAA usage & custom resolve.
+#if PLATFORM_MAC
+		&& IsMetalPlatform(Platform) && !IsRHIDeviceIntel() && (FPlatformMisc::MacOSXVersionCompare(10, 13, 0) >= 0)
+#endif
+		// @todo marksatt iOS Desktop Forward needs more work internally
+		&& Platform != SP_METAL_MRT;
+}
+
+/** Whether the platform supports reading from volume textures (does not cover rendering to volume textures). */
+inline bool RHISupportsVolumeTextures(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FeatureLevel >= ERHIFeatureLevel::SM4;
+}
 
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
 template <typename TValueType>
@@ -238,6 +253,9 @@ extern RHI_API bool GSupportsParallelOcclusionQueries;
 
 /** true if the RHI supports aliasing of transient resources */
 extern RHI_API bool GSupportsTransientResourceAliasing;
+
+/** true if the RHI requires a valid RT bound during UAV scatter operation inside the pixel shader */
+extern RHI_API bool GRHIRequiresRenderTargetForPixelShaderUAVs;
 
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
@@ -1376,7 +1394,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Get/Create PSO"), STAT_GetOrCreatePSO, STATGROUP
 extern RHI_API void RHIInit(bool bHasEditorToken);
 
 /** Performs additional RHI initialization before the render thread starts. */
-extern RHI_API void RHIPostInit();
+extern RHI_API void RHIPostInit(const TArray<uint32>& InPixelFormatByteWidth);
 
 /** Shuts down the RHI. */
 extern RHI_API void RHIExit();

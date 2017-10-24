@@ -69,7 +69,9 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 				const UMovieSceneSequence* Sequence = Player.State.FindSequence(Operand.SequenceID);
 				if (Sequence)
 				{
-					Player.GetSpawnRegister().SpawnObject(Operand.ObjectBindingID, *Sequence->GetMovieScene(), Operand.SequenceID, Player);
+					UObject* SpawnedObject = Player.GetSpawnRegister().SpawnObject(Operand.ObjectBindingID, *Sequence->GetMovieScene(), Operand.SequenceID, Player);
+
+					Player.OnObjectSpawned(SpawnedObject, Operand);
 				}
 			}
 

@@ -234,7 +234,7 @@ void FCPPRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FStrin
 			FRunInfo RunInfo(TEXT("SyntaxHighlight.CPP.Normal"));
 			FTextBlockStyle TextBlockStyle = SyntaxTextStyle.NormalTextStyle;
 
-			const bool bIsWhitespace = FString(TokenText).TrimTrailing().IsEmpty();
+			const bool bIsWhitespace = FString(TokenText).TrimEnd().IsEmpty();
 			if(!bIsWhitespace)
 			{
 				bool bHasMatchedSyntax = false;

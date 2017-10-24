@@ -2,36 +2,36 @@
 
 #include "IOSTargetPlatform.h"
 #include "Interfaces/ITargetPlatformModule.h"
+#include "Modules/ModuleManager.h"
+
 
 /**
  * Holds the target platform singleton.
  */
-static ITargetPlatform* Singleton = NULL;
+static ITargetPlatform* Singleton = nullptr;
 
 
 /**
  * Module for iOS as a target platform
  */
-class FIOSTargetPlatformModule : public ITargetPlatformModule
+class FIOSTargetPlatformModule
+	: public ITargetPlatformModule
 {
 public:
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FIOSTargetPlatformModule()
 	{
-		Singleton = NULL;
+		Singleton = nullptr;
 	}
-
 
 public:
 
-	// Begin ITargetPlatformModule interface
+	//~ ITargetPlatformModule interface
 
 	virtual ITargetPlatform* GetTargetPlatform()
 	{
-		if (Singleton == NULL)
+		if (Singleton == nullptr)
 		{
 			Singleton = new FIOSTargetPlatform(false);
 		}
@@ -39,20 +39,13 @@ public:
 		return Singleton;
 	}
 
-	// End ITargetPlatformModule interface
-
-
 public:
 
-	// Begin IModuleInterface interface
-	virtual void StartupModule() override
-	{
-	}
+	//~ IModuleInterface interface
 
-	virtual void ShutdownModule() override
-	{
-	}
-	// End IModuleInterface interface
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
 };
 
-IMPLEMENT_MODULE( FIOSTargetPlatformModule, IOSTargetPlatform);
+
+IMPLEMENT_MODULE(FIOSTargetPlatformModule, IOSTargetPlatform);

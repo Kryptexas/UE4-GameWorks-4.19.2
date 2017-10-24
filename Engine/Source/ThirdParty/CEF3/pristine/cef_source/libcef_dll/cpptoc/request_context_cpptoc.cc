@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -58,7 +58,7 @@ CEF_EXPORT cef_request_context_t* cef_request_context_create_context(
   return CefRequestContextCppToC::Wrap(_retval);
 }
 
-CEF_EXPORT cef_request_context_t* create_context_shared(
+CEF_EXPORT cef_request_context_t* cef_create_context_shared(
     cef_request_context_t* other,
     struct _cef_request_context_handler_t* handler) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -469,17 +469,18 @@ CefRequestContextCppToC::CefRequestContextCppToC() {
   GetStruct()->resolve_host_cached = request_context_resolve_host_cached;
 }
 
-template<> CefRefPtr<CefRequestContext> CefCppToC<CefRequestContextCppToC,
+template<> CefRefPtr<CefRequestContext> CefCppToCRefCounted<CefRequestContextCppToC,
     CefRequestContext, cef_request_context_t>::UnwrapDerived(
     CefWrapperType type, cef_request_context_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefRequestContextCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefRequestContextCppToC,
     CefRequestContext, cef_request_context_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefRequestContextCppToC, CefRequestContext,
-    cef_request_context_t>::kWrapperType = WT_REQUEST_CONTEXT;
+template<> CefWrapperType CefCppToCRefCounted<CefRequestContextCppToC,
+    CefRequestContext, cef_request_context_t>::kWrapperType =
+    WT_REQUEST_CONTEXT;

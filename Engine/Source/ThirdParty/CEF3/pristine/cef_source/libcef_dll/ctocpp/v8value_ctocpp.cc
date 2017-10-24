@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,9 +10,10 @@
 // for more information.
 //
 
-#include "libcef_dll/cpptoc/base_cpptoc.h"
+#include "libcef_dll/cpptoc/base_ref_counted_cpptoc.h"
 #include "libcef_dll/cpptoc/v8accessor_cpptoc.h"
 #include "libcef_dll/cpptoc/v8handler_cpptoc.h"
+#include "libcef_dll/cpptoc/v8interceptor_cpptoc.h"
 #include "libcef_dll/ctocpp/v8context_ctocpp.h"
 #include "libcef_dll/ctocpp/v8exception_ctocpp.h"
 #include "libcef_dll/ctocpp/v8value_ctocpp.h"
@@ -110,14 +111,16 @@ CefRefPtr<CefV8Value> CefV8Value::CreateString(const CefString& value) {
 }
 
 CefRefPtr<CefV8Value> CefV8Value::CreateObject(
-    CefRefPtr<CefV8Accessor> accessor) {
+    CefRefPtr<CefV8Accessor> accessor,
+    CefRefPtr<CefV8Interceptor> interceptor) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
-  // Unverified params: accessor
+  // Unverified params: accessor, interceptor
 
   // Execute
   cef_v8value_t* _retval = cef_v8value_create_object(
-      CefV8AccessorCppToC::Wrap(accessor));
+      CefV8AccessorCppToC::Wrap(accessor),
+      CefV8InterceptorCppToC::Wrap(interceptor));
 
   // Return type: refptr_same
   return CefV8ValueCToCpp::Wrap(_retval);
@@ -726,7 +729,7 @@ bool CefV8ValueCToCpp::GetKeys(std::vector<CefString>& keys) {
   return _retval?true:false;
 }
 
-bool CefV8ValueCToCpp::SetUserData(CefRefPtr<CefBase> user_data) {
+bool CefV8ValueCToCpp::SetUserData(CefRefPtr<CefBaseRefCounted> user_data) {
   cef_v8value_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, set_user_data))
     return false;
@@ -737,13 +740,13 @@ bool CefV8ValueCToCpp::SetUserData(CefRefPtr<CefBase> user_data) {
 
   // Execute
   int _retval = _struct->set_user_data(_struct,
-      CefBaseCppToC::Wrap(user_data));
+      CefBaseRefCountedCppToC::Wrap(user_data));
 
   // Return type: bool
   return _retval?true:false;
 }
 
-CefRefPtr<CefBase> CefV8ValueCToCpp::GetUserData() {
+CefRefPtr<CefBaseRefCounted> CefV8ValueCToCpp::GetUserData() {
   cef_v8value_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, get_user_data))
     return NULL;
@@ -751,10 +754,10 @@ CefRefPtr<CefBase> CefV8ValueCToCpp::GetUserData() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  cef_base_t* _retval = _struct->get_user_data(_struct);
+  cef_base_ref_counted_t* _retval = _struct->get_user_data(_struct);
 
   // Return type: refptr_diff
-  return CefBaseCppToC::Unwrap(_retval);
+  return CefBaseRefCountedCppToC::Unwrap(_retval);
 }
 
 int CefV8ValueCToCpp::GetExternallyAllocatedMemory() {
@@ -916,16 +919,16 @@ CefRefPtr<CefV8Value> CefV8ValueCToCpp::ExecuteFunctionWithContext(
 CefV8ValueCToCpp::CefV8ValueCToCpp() {
 }
 
-template<> cef_v8value_t* CefCToCpp<CefV8ValueCToCpp, CefV8Value,
+template<> cef_v8value_t* CefCToCppRefCounted<CefV8ValueCToCpp, CefV8Value,
     cef_v8value_t>::UnwrapDerived(CefWrapperType type, CefV8Value* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefV8ValueCToCpp, CefV8Value,
-    cef_v8value_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefV8ValueCToCpp,
+    CefV8Value, cef_v8value_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefV8ValueCToCpp, CefV8Value,
+template<> CefWrapperType CefCToCppRefCounted<CefV8ValueCToCpp, CefV8Value,
     cef_v8value_t>::kWrapperType = WT_V8VALUE;

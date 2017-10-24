@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -11,11 +11,46 @@
 //
 
 #include "libcef_dll/cpptoc/menu_model_cpptoc.h"
+#include "libcef_dll/ctocpp/menu_model_delegate_ctocpp.h"
+
+
+// GLOBAL FUNCTIONS - Body may be edited by hand.
+
+CEF_EXPORT cef_menu_model_t* cef_menu_model_create(
+    struct _cef_menu_model_delegate_t* delegate) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: delegate; type: refptr_diff
+  DCHECK(delegate);
+  if (!delegate)
+    return NULL;
+
+  // Execute
+  CefRefPtr<CefMenuModel> _retval = CefMenuModel::CreateMenuModel(
+      CefMenuModelDelegateCToCpp::Wrap(delegate));
+
+  // Return type: refptr_same
+  return CefMenuModelCppToC::Wrap(_retval);
+}
 
 
 namespace {
 
 // MEMBER FUNCTIONS - Body may be edited by hand.
+
+int CEF_CALLBACK menu_model_is_sub_menu(struct _cef_menu_model_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->IsSubMenu();
+
+  // Return type: bool
+  return _retval;
+}
 
 int CEF_CALLBACK menu_model_clear(struct _cef_menu_model_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -959,12 +994,143 @@ int CEF_CALLBACK menu_model_get_accelerator_at(struct _cef_menu_model_t* self,
   return _retval;
 }
 
+int CEF_CALLBACK menu_model_set_color(struct _cef_menu_model_t* self,
+    int command_id, cef_menu_color_type_t color_type, cef_color_t color) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->SetColor(
+      command_id,
+      color_type,
+      color);
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK menu_model_set_color_at(struct _cef_menu_model_t* self,
+    int index, cef_menu_color_type_t color_type, cef_color_t color) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->SetColorAt(
+      index,
+      color_type,
+      color);
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK menu_model_get_color(struct _cef_menu_model_t* self,
+    int command_id, cef_menu_color_type_t color_type, cef_color_t* color) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: color; type: simple_byref
+  DCHECK(color);
+  if (!color)
+    return 0;
+
+  // Translate param: color; type: simple_byref
+  cef_color_t colorVal = color?*color:0;
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->GetColor(
+      command_id,
+      color_type,
+      colorVal);
+
+  // Restore param: color; type: simple_byref
+  if (color)
+    *color = colorVal;
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK menu_model_get_color_at(struct _cef_menu_model_t* self,
+    int index, cef_menu_color_type_t color_type, cef_color_t* color) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: color; type: simple_byref
+  DCHECK(color);
+  if (!color)
+    return 0;
+
+  // Translate param: color; type: simple_byref
+  cef_color_t colorVal = color?*color:0;
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->GetColorAt(
+      index,
+      color_type,
+      colorVal);
+
+  // Restore param: color; type: simple_byref
+  if (color)
+    *color = colorVal;
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK menu_model_set_font_list(struct _cef_menu_model_t* self,
+    int command_id, const cef_string_t* font_list) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Unverified params: font_list
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->SetFontList(
+      command_id,
+      CefString(font_list));
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK menu_model_set_font_list_at(struct _cef_menu_model_t* self,
+    int index, const cef_string_t* font_list) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Unverified params: font_list
+
+  // Execute
+  bool _retval = CefMenuModelCppToC::Get(self)->SetFontListAt(
+      index,
+      CefString(font_list));
+
+  // Return type: bool
+  return _retval;
+}
+
 }  // namespace
 
 
 // CONSTRUCTOR - Do not edit by hand.
 
 CefMenuModelCppToC::CefMenuModelCppToC() {
+  GetStruct()->is_sub_menu = menu_model_is_sub_menu;
   GetStruct()->clear = menu_model_clear;
   GetStruct()->get_count = menu_model_get_count;
   GetStruct()->add_separator = menu_model_add_separator;
@@ -1014,19 +1180,25 @@ CefMenuModelCppToC::CefMenuModelCppToC() {
   GetStruct()->remove_accelerator_at = menu_model_remove_accelerator_at;
   GetStruct()->get_accelerator = menu_model_get_accelerator;
   GetStruct()->get_accelerator_at = menu_model_get_accelerator_at;
+  GetStruct()->set_color = menu_model_set_color;
+  GetStruct()->set_color_at = menu_model_set_color_at;
+  GetStruct()->get_color = menu_model_get_color;
+  GetStruct()->get_color_at = menu_model_get_color_at;
+  GetStruct()->set_font_list = menu_model_set_font_list;
+  GetStruct()->set_font_list_at = menu_model_set_font_list_at;
 }
 
-template<> CefRefPtr<CefMenuModel> CefCppToC<CefMenuModelCppToC, CefMenuModel,
-    cef_menu_model_t>::UnwrapDerived(CefWrapperType type,
+template<> CefRefPtr<CefMenuModel> CefCppToCRefCounted<CefMenuModelCppToC,
+    CefMenuModel, cef_menu_model_t>::UnwrapDerived(CefWrapperType type,
     cef_menu_model_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefMenuModelCppToC, CefMenuModel,
-    cef_menu_model_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefMenuModelCppToC,
+    CefMenuModel, cef_menu_model_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefMenuModelCppToC, CefMenuModel,
+template<> CefWrapperType CefCppToCRefCounted<CefMenuModelCppToC, CefMenuModel,
     cef_menu_model_t>::kWrapperType = WT_MENU_MODEL;

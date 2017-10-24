@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 /** Sub-classes should override to provide the OSQueueHead* necessary to allocate from - handled by the macro */
-+ (OSQueueHead*)classAllocator;
++ (nullable OSQueueHead*)classAllocator;
 
 /** Sub-classes should override allocWithZone & alloc to call allocClass */
 + (id)allocClass: (Class)NewClass;
@@ -35,7 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 #define APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(ClassName)		\
-+ (OSQueueHead*)classAllocator											\
++ (nullable OSQueueHead*)classAllocator							\
 {																\
 	static OSQueueHead Queue = OS_ATOMIC_QUEUE_INIT;			\
 	return &Queue;												\
@@ -49,14 +49,29 @@ NS_ASSUME_NONNULL_BEGIN
 	return (ClassName*)[FApplePlatformObject allocClass:self];	\
 }
 
-NS_ASSUME_NONNULL_END
+/**
+ *	Max implementation of the FGenericPlatformMemoryStats.
+ */
+struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
+{};
 
 /**
  * Common Apple platform memory functions.
  */
-class FApplePlatformMemory
+struct CORE_API FApplePlatformMemory : public FGenericPlatformMemory
 {
-public:
+	//~ Begin FGenericPlatformMemory Interface
+	static void Init();
+	static FPlatformMemoryStats GetStats();
+	static const FPlatformMemoryConstants& GetConstants();
+	static FMalloc* BaseAllocator();
+	static bool PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite);
+	static void* BinnedAllocFromOS( SIZE_T Size );
+	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
+	//~ End FGenericPlatformMemory Interface
+	
 	/** Setup the current default CFAllocator to use our malloc functions. */
 	static void ConfigureDefaultCFAllocator(void);
 };
+
+NS_ASSUME_NONNULL_END

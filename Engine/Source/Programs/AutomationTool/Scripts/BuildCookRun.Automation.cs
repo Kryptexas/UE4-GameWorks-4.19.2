@@ -6,6 +6,7 @@ using System.Threading;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help(@"Builds/Cooks/Runs a project.
 
@@ -214,29 +215,7 @@ public class BuildCookRun : BuildCommand
             // as well (which would be built above)
             Project.Build(this, Params, WorkingCL, ClientTargets | ProjectBuildTargets.CrashReporter);
         }
-        else
-        {
-            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, Params.RawProjectPath.Directory, HostPlatform.Current.HostEditorPlatform);
-            if (GameIni != null)
-            {
-                List<string> NativizeBlueprintAssets = null;
-                string BlueprintNativizationMethod = "Disabled";
-                bool bWarnIfPackagedWithoutNativizationFlag = true;
-                GameIni.GetString("/Script/UnrealEd.ProjectPackagingSettings", "BlueprintNativizationMethod", out BlueprintNativizationMethod);
-                GameIni.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bWarnIfPackagedWithoutNativizationFlag", out bWarnIfPackagedWithoutNativizationFlag);
-                GameIni.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "NativizeBlueprintAssets", out NativizeBlueprintAssets);
-
-                if (bWarnIfPackagedWithoutNativizationFlag && BlueprintNativizationMethod != "Disabled")
-                {
-                    // Warn if we're cooking without the -nativizeAssets flag, when the project settings specify a nativization method.
-                    // If the "exclusive" (whitelist) method is set, we only warn if at least one asset has been selected for conversion.
-                    if (BlueprintNativizationMethod != "Exclusive" || (NativizeBlueprintAssets != null && NativizeBlueprintAssets.Count > 0))
-                    {
-                        LogWarning("Project is configured for Blueprint nativization, but the conversion flag (-nativizeAssets) was omitted from the command line. No nativized assets have been built as a result.");
-                    }
-                }
-            }
-        }
+        
 		Project.CopyBuildToStagingDirectory(Params);
 		Project.Package(Params, WorkingCL);
 		Project.Archive(Params);
@@ -273,7 +252,7 @@ public class BuildCookRun : BuildCommand
 		RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
-		var Ini = new VersionFileUpdater(IniFile);
+		var Ini = new VersionFileUpdater(new FileReference(IniFile));
 		Ini.ReplaceLine("GameName=", DestSample);
 		Ini.Commit();
 	}
@@ -299,7 +278,7 @@ public class BuildCookRun : BuildCommand
 		//RenameFile(CombinePaths(Dest, Sample + ".uproject"), CombinePaths(Dest, DestSample + ".uproject"));
 
 		var IniFile = CombinePaths(Dest, "Config", "DefaultEngine.ini");
-		var Ini = new VersionFileUpdater(IniFile);
+		var Ini = new VersionFileUpdater(new FileReference(IniFile));
 		Ini.ReplaceLine("GameName=", DestSample);
 		Ini.Commit();
 	}

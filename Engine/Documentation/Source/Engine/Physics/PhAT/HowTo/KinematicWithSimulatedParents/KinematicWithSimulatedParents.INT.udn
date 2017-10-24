@@ -17,7 +17,7 @@ tags:PhAT
 
 The [](Engine/Physics/PhAT) provides several different ways in which you can simulate physics bodies including the ability to have kinematic physics bodies with simulated parents. 
 This enables you to define child bodies that can be driven by animation data while the parents of those bodies are driven by physics simulation data. 
-This can be useful if you have a character hanging from a ledge playing a hanging idle or traversing across a ledge but want them to react to impulses like falling rocks or other debris and generate a physics based reaction. 
+This can be useful if you have a character that you want to perform a physics based reaction while playing a hanging idle or hanging traversal animation.
 
 In this How-to, we use kinematic bodies with simulated parents to generate the effect of a character hanging from a ledge while the rest of the body is simulated with physics. 
 
@@ -45,7 +45,7 @@ For this guide, we are using the **Blueprint Third Person Template** project wit
 
 	By setting these bones to Kinematic, they will not simulate physics and will follow any animation data. 
 
-	Alternatively, you can **Right-click** bones in the hierarchy list and set their **Physics Type** from the roll-out menu. 
+	Alternatively, you can right-click bones in the hierarchy list and set their **Physics Type** from the roll-out menu. 
 
 	![](KinematicHowTo_04.png)
 
@@ -69,7 +69,7 @@ For this guide, we are using the **Blueprint Third Person Template** project wit
 
 	![](KinematicHowTo_08.png)
 
-	The hands (because they are set to kinematic) will follow the animation data contained within the ThirdPersonJump_Loop motion. 
+	The hands (because they are set to kinematic) will follow the animation data contained within the **ThirdPersonJump_Loop** motion. 
 
 	![](KinematicHowTo_09.png)
 
@@ -137,6 +137,7 @@ The arms and head are set to Kinematic (denoted below with Gold Boxes) while the
 
 
 	
+
 
 
 

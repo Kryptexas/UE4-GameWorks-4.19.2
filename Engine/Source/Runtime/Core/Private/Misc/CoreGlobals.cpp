@@ -125,7 +125,7 @@ bool					GIsClient						= false;					/* Whether engine was launched as a client 
 bool					GIsServer						= false;					/* Whether engine was launched as a server, true if GIsClient */
 bool					GIsCriticalError				= false;					/* An appError() has occured */
 bool					GIsGuarded						= false;					/* Whether execution is happening within main()/WinMain()'s try/catch handler */
-bool					GIsRunning						= false;					/* Whether execution is happening within MainLoop() */
+TSAN_ATOMIC(bool)		GIsRunning(false);											/* Whether execution is happening within MainLoop() */
 bool					GIsDuplicatingClassForReinstancing = false;					/* Whether we are currently using SDO on a UClass or CDO for live reinstancing */
 /** This specifies whether the engine was launched as a build machine process								*/
 bool					GIsBuildMachine					= false;
@@ -172,10 +172,10 @@ FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers = nullptr;
 /** Game name, used for base game directory and ini among other things										*/
 #if (!IS_MONOLITHIC && !IS_PROGRAM)
 // In modular game builds, the game name will be set when the application launches
-TCHAR					GInternalGameName[64]					= TEXT("None");
+TCHAR					GInternalProjectName[64]					= TEXT("None");
 #elif !IS_MONOLITHIC && IS_PROGRAM
 // In non-monolithic programs builds, the game name will be set by the module, but not just yet, so we need to NOT initialize it!
-TCHAR					GInternalGameName[64];
+TCHAR					GInternalProjectName[64];
 #else
 // For monolithic builds, the game name variable definition will be set by the IMPLEMENT_GAME_MODULE
 // macro for the game's main game module.
@@ -203,6 +203,8 @@ bool (*IsAsyncLoading)() = &IsAsyncLoadingCoreInternal;
 void (*SuspendAsyncLoading)() = &appNoop;
 void (*ResumeAsyncLoading)() = &appNoop;
 bool (*IsAsyncLoadingMultithreaded)() = &IsAsyncLoadingCoreInternal;
+void (*SuspendTextureStreamingRenderTasks)() = &appNoop;
+void (*ResumeTextureStreamingRenderTasks)() = &appNoop;
 
 /** Whether the editor is currently loading a package or not												*/
 bool					GIsEditorLoadingPackage				= false;
@@ -228,7 +230,7 @@ bool					GEventDrivenLoaderEnabled = false;
 bool					GPakCache_AcceptPrecacheRequests = true;
 
 /** Steadily increasing frame counter.																		*/
-uint64					GFrameCounter					= 0;
+TSAN_ATOMIC(uint64)		GFrameCounter(0);
 uint64					GLastGCFrame					= 0;
 /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */
 uint32					GFrameNumber					= 1;
@@ -299,6 +301,7 @@ DEFINE_STAT(STAT_MemoryICUDataFileAllocationSize);
 DEFINE_STAT(STAT_AnimationMemory);
 DEFINE_STAT(STAT_PrecomputedVisibilityMemory);
 DEFINE_STAT(STAT_PrecomputedLightVolumeMemory);
+DEFINE_STAT(STAT_PrecomputedVolumetricLightmapMemory);
 DEFINE_STAT(STAT_SkeletalMeshVertexMemory);
 DEFINE_STAT(STAT_SkeletalMeshIndexMemory);
 DEFINE_STAT(STAT_SkeletalMeshMotionBlurSkinningMemory);

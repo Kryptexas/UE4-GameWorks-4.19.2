@@ -37,7 +37,7 @@ void FUProjectDictionary::Refresh()
 		{
 			for(const FString& Line: Lines)
 			{
-				FString Entry = FString(Line).Trim();
+				FString Entry = Line.TrimStart();
 				if(!Entry.IsEmpty() && !Entry.StartsWith(";"))
 				{
 					FString DirectoryName = FPaths::ConvertRelativePathToFull(RootDir, Entry);

@@ -30,8 +30,9 @@ class GOOGLEVRCONTROLLER_API UGoogleVRControllerEventManager : public UObject
 
 public:
 
+	/** DEPRECATED:  Please use VRNotificationsComponent's VRControllerRecentered delegate instead! */
 	UPROPERTY(BlueprintAssignable)
-	FGoogleVRControllerRecenterDelegate OnControllerRecenteredDelegate;
+	FGoogleVRControllerRecenterDelegate OnControllerRecenteredDelegate_DEPRECATED;
 
 	UPROPERTY(BlueprintAssignable)
 	FGoogleVRControllerStateChangeDelegate OnControllerStateChangedDelegate;

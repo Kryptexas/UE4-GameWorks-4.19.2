@@ -2,13 +2,31 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.17
+Version: 4.18
+
+### XboxOnePlatform
+
+$ Compiler : Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
 
 ### BuildConfiguration
 
 $ bGeneratedSYMFile : Whether to generate dSYM files Lists Architectures that you want to build
 
+$ bEnableAddressSanitizer : Enables address sanitizer (ASan)
+
+$ bEnableThreadSanitizer : Enables thread sanitizer (TSan)
+
+$ bEnableUndefinedBehaviorSanitizer : Enables undefined behavior sanitizer (UBSan)
+
+$ bAddFastPDBToProjects : Whether to add the -FastPDB option to build command lines by default
+
+$ bUsePerFileIntellisense : Whether to generate per-file intellisense data
+
+$ bEditorDependsOnShaderCompileWorker : Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
+
 $ bDebugBuildsActuallyUseDebugCRT : Enables the debug C++ runtime (CRT) for debug builds. By default we always use the release runtime, since the debug version isn't particularly useful when debugging Unreal Engine projects, and linking against the debug CRT libraries forces our third party library dependencies to also be compiled using the debug CRT (and often perform more slowly). Often it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply so that you can debug your program's code.
+
+$ bUseXGEController : Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
 
 $ bUseUnityBuild : Whether to unify C++ code into larger files for faster compilation.
 
@@ -120,8 +138,6 @@ $ bUseUBTMakefiles : Enables support for very fast iterative builds by caching t
     * You can force regeneration of the 'UBT Makefile' by passing the '-gather' argument, or simply regenerating project files 
     * This also enables the fast include file dependency scanning and caching system that allows Unreal Build Tool to detect out of date dependencies very quickly.  When enabled, a deep C++ include graph does not have to be generated, and instead we only scan and cache indirect includes for after a dependent build product was already found to be out of date.  During the next build, we'll load those cached indirect includes and check for outdatedness.
 
-$ bUseUHTMakefiles : Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or *.uhtmanifest gets changed, all modules up to first changed one get loaded from makefile and the rest is parsed regularly. This feature is new and can have issues that weren't discovered in isolated testing so disabling by default.
-
 $ bAllowDistcc : Whether DMUCS/Distcc may be used. Distcc requires some setup - so by default disable it so we don't break local or remote building
 
 $ bIgnoreJunk : Whether to skip checking for files identified by the junk manifest
@@ -140,17 +156,25 @@ $ ProcessorCountMultiplier : Processor count multiplier for local execution. Can
 
 $ MaxProcessorCount : Maximum processor count for local execution.
 
-$ bAddFastPDBToProjects : Whether to add the -FastPDB option to build command lines by default
-
-$ bUsePerFileIntellisense : Whether to generate per-file intellisense data
-
-$ bEditorDependsOnShaderCompileWorker : Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
-
 $ bXGENoWatchdogThread : Whether to use the no_watchdog_thread option to prevent VS2015 toolchain stalls.
 
 $ bShowXGEMonitor : Whether to display the XGE build monitor.
 
 $ bStopXGECompilationAfterErrors : When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
+
+### ProjectFileGenerator
+
+### VCProjectFileGenerator
+
+$ Version : The version of Visual Studio to generate project files for.
+
+### SourceFileWorkingSet
+
+$ Provider : Sets the provider to use for determining the working set
+
+$ RepositoryPath : Sets the path to use for the repository. Interpreted relative to the UE root directory (ie. folder above the Engine folder) if relative.
+
+$ GitPath : Sets the path to use for the Git executable. Defaults to "git" (assuming it's in the PATH).
 
 ### IOSToolChain
 
@@ -162,7 +186,7 @@ $ bUseDangerouslyFastMode : If this is set, then we don't do any post-compile st
 
 ### HTML5Platform
 
-$ HTML5Architecture : Architecture to build for. Use -win32 for win32 builds (build html5 platform as a win32 binary for debugging).
+$ HTML5Architecture : Architecture to build for.
 
 ### UEBuildConfiguration
 
@@ -181,12 +205,6 @@ $ bForceDebugUnrealHeaderTool : If true, the Debug version of UnrealHeaderTool w
 $ ProcessorCountMultiplier : Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
 
 $ MaxProcessorCount : Maximum processor count for local execution.
-
-### ProjectFileGenerator
-
-### VCProjectFileGenerator
-
-$ Version : The version of Visual Studio to generate project files for.
 
 ### RemoteToolChain
 
@@ -211,4 +229,10 @@ $ RSyncUsername : Username on the remote machine to connect to with RSync
 $ Compiler : Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
 
 $ StaticAnalyzer : The static analyzer to use
+
+$ bStrictConformanceMode : Enables strict standard conformance mode (/permissive-) in VS2017+.
+
+### WindowsTargetRules
+
+$ ObjSrcMapFile : Whether we should export a file containing .obj->source file mappings.
 

@@ -27,6 +27,7 @@
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "GameFramework/PlayerState.h"
 #include "Components/PawnNoiseEmitterComponent.h"
+#include "GameFramework/GameNetworkManager.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -1052,7 +1053,8 @@ bool APawn::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget,
 		}
 	}
 
-	return ((SrcLocation - GetActorLocation()).SizeSquared() < NetCullDistanceSquared);
+	return !GetDefault<AGameNetworkManager>()->bUseDistanceBasedRelevancy ||
+			IsWithinNetRelevancyDistance(SrcLocation);
 }
 
 void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

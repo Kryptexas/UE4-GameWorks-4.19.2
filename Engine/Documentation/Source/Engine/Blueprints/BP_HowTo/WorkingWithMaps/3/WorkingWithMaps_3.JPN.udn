@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413824
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:3 - キーと値を Map に追加する
 Description:キー / 値のペアを Blueprint Map に追加して、最終的に Map のキーおよび関連づいている値を表示する
 Crumbs:%ROOT%
@@ -90,7 +90,6 @@ Map のキーと関連付けられた値を結果として表示する方法を�
 	[/REGION]
 
 	[REGION:note]
-
 	キーと値のプロパティがそれぞれ Integer-String 型の Blueprint マップである **Weapon Inventory Map** を作成するために、キーと値のプロパティがそれぞれ Integer-String 型の Blueprint マップを複製したため、UE4 がこの警告を出しました。 
 	複製中、エンジンは、**Weapon Inventory Map** のキー / 値のペアへそれらをコピーしようとして、**Instruction Map** に属するキー / 値のペアをパースし、それが警告の原因のビヘイビアとなりました。 
 	[REGION:lightbox]

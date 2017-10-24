@@ -37,7 +37,7 @@ void FFileManagerGeneric::ProcessCommandLineOptions()
 
 	if( FParse::Param( FCommandLine::Get(),TEXT( "CLEANLOGS" ) ) )
 	{
-		DeleteDirectory( *FPaths::GameLogDir(), false, true );
+		DeleteDirectory( *FPaths::ProjectLogDir(), false, true );
 	}
 #endif
 }

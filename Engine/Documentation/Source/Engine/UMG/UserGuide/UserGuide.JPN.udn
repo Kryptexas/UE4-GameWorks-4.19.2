@@ -1,244 +1,31 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:UMG UI デザイナ ユーザーガイド
-Crumbs:%ROOT%, Engine, Engine/UMG
-Description:UMG を使用して UI エレメントを作成するためのガイド 
-version:4.9
-tags:UMG UI Designer
+Description:UMG を使用して UI エレメントを作成するためのガイド
+Type:Landing
+Version:4.17
+Parent:Engine/UMG
+Order:
+Tags:UMG UI Designer
 
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG:title%](UMG_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UMG:title%](UMG_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth raw]
 ![](UserGuideHeader.png)(w:940 h:160 convert:false)
 [/REGION]
 
-
 [EXCERPT:umgheader]
 **Unreal Motion Graphics UI デザイナ (UMG)** は、ビジュアル UI オーサリングツールです。ユーザー向けに表示するインゲームの HUD、メニューやその他のインターフェース関連のグラフィックスを作成するために使用できます。UMG の中核をなすのは、ウィジェットです。これは、一連の事前作成された関数でインターフェース (ボタン、チェックボックス、スライダー、進捗バーなど) を作成するために使用できます。こうしたウィジェットは、特殊な Widget ブループリントで編集され、以下の 2 つのタブを作成に使用します。Designer タブでは、インターフェースと基本的関数を視覚的にレイアウトできます。Graph タブでは、使用されるウィジェットの背後の機能を提供します。 
 [/EXCERPT:umgheader]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		はじめよう
-	[/PARAM]
-	[PARAM:links]
-		[REGION:topics fourth]
-		[INCLUDE:#topics]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
 
-<!--
-[EXCERPT:Topics]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/UserGuide/WidgetBlueprints:title%](WidgetBlueprintTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/UserGuide/WidgetBlueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/UserGuide/WidgetBlueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/WidgetBlueprints]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/UserGuide/CreatingWidgets:title%](CreateWidgetTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/UserGuide/CreatingWidgets:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/UserGuide/CreatingWidgets:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/CreatingWidgets]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/UserGuide/WidgetTypeReference:title%](WidgetTypeRefTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/UserGuide/WidgetTypeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/UserGuide/WidgetTypeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\UMG\UserGuide\BestPractices:title%](Engine\UMG\UserGuide\BestPractices\BestPractices.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\UMG\UserGuide\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\UMG\UserGuide\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\UMG\UserGuide\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
--->
+## はじめよう
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		参考文献
-	[/PARAM]
-	[PARAM:links]
-	[REGION:topics third]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](AnchorsTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			アンカー
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Anchors]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](AnimationTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			アニメーション
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Animation]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](EventsTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			イベント
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Events]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](PropertyBindingTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			プロパティのバインディング
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/PropertyBinding]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](ScalingTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			DPI スケーリング
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/DPIScaling]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](FontsTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			フォント
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Fonts]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](StylingTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			スタイリング
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Styling]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](SlotTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			スロット
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine/UMG/UserGuide/Slots]
-		[/PARAM]
-	[/OBJECT]
-	[/REGION]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"Getting Started" end:"1")]
+
+
+## 参考文献
+
+[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"!Getting Started" end:"1")]
+

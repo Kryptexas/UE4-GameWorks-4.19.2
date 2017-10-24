@@ -23,11 +23,7 @@ public:
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
 	virtual bool IsImportedAsset() const override { return true; }
 	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override;
-
-protected:
-	/** Gets additional actions that do not apply to destructible meshes */
-	virtual void GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder);
-
+	
 private:
 	/** Handler for when skeletal mesh LOD import is selected */
 	void LODImport(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
@@ -58,9 +54,6 @@ private:
 
 	// Helper functions
 private:
-	/** Creates a physics asset based on the mesh */
-	void CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh, bool bSetToMesh) const;
-
 	/** Assigns a skeleton to the mesh */
 	void AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const;
 

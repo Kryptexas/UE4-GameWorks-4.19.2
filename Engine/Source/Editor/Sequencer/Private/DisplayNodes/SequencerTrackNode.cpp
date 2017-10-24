@@ -89,13 +89,13 @@ void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 	if (Track && Track->GetSupportedBlendTypes().Num() > 0)
 	{
 		int32 NewRowIndex = SubTrackMode == ESubTrackMode::SubTrack ? GetRowIndex() : Track->GetMaxRowIndex() + 1;
-		TSharedPtr<ISequencer> SharedSequencer = GetSequencer().AsShared();
+		TWeakPtr<ISequencer> WeakSequencer = GetSequencer().AsShared();
 
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("AddSection", "Add Section"),
 			FText(),
 			FNewMenuDelegate::CreateLambda([=](FMenuBuilder& SubMenuBuilder){
-				FSequencerUtilities::PopulateMenu_CreateNewSection(SubMenuBuilder, NewRowIndex, Track, SharedSequencer);
+				FSequencerUtilities::PopulateMenu_CreateNewSection(SubMenuBuilder, NewRowIndex, Track, WeakSequencer);
 			})
 		);
 		

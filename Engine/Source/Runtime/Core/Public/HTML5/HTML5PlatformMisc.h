@@ -18,10 +18,6 @@
 struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
-	static void PlatformPostInit();
-	static class GenericApplication* CreateApplication();
-	static uint32 GetKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static const TCHAR* GetPlatformFeaturesModuleName();
 	static FString GetDefaultLocale();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
@@ -53,15 +49,11 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	{
 		if (IsDebuggerPresent())
 		{
-#if PLATFORM_HTML5_WIN32
-			__debugbreak();
-#else
 			emscripten_log(255, "DebugBreak() called!");
 			EM_ASM(
 				var callstack = new Error;
 				throw callstack.stack;
 			);
-#endif
 		}
 	}
 
@@ -93,8 +85,6 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	{
 		wprintf(TEXT("%ls"), Str);
 	}
-
-	static const void PreLoadMap(FString&, FString&, void*);
 };
 
 typedef FHTML5Misc FPlatformMisc;

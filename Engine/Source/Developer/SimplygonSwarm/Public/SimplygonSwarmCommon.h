@@ -11,7 +11,7 @@
 THIRD_PARTY_INCLUDES_START
 #include "ssf.h"
 THIRD_PARTY_INCLUDES_END
-#include "Interfaces/IImageWrapper.h"
+#include "IImageWrapper.h"
 #include "SPLInclude.h"
 
 namespace SPL = Simplygon::SPL::v80;

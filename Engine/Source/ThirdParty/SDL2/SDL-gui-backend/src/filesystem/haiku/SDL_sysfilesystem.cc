@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,10 +25,10 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* System dependent filesystem routines                                */
 
-#include <os/kernel/image.h>
-#include <os/storage/Directory.h>
-#include <os/storage/Entry.h>
-#include <os/storage/Path.h>
+#include <kernel/image.h>
+#include <storage/Directory.h>
+#include <storage/Entry.h>
+#include <storage/Path.h>
 
 #include "SDL_error.h"
 #include "SDL_stdinc.h"
@@ -75,8 +75,12 @@ SDL_GetPrefPath(const char *org, const char *app)
 {
     // !!! FIXME: is there a better way to do this?
     const char *home = SDL_getenv("HOME");
-    const char *append = "config/settings/";
-    const size_t len = SDL_strlen(home) + SDL_strlen(append) + SDL_strlen(org) + SDL_strlen(app) + 3;
+    const char *append = "/config/settings/";
+    size_t len = SDL_strlen(home);
+    if (!len || (home[len - 1] == '/')) {
+        ++append; // home empty or ends with separator, skip the one from append
+    }
+    len += SDL_strlen(append) + SDL_strlen(org) + SDL_strlen(app) + 3;
     char *retval = (char *) SDL_malloc(len);
     if (!retval) {
         SDL_OutOfMemory();

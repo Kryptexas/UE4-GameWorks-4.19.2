@@ -26,14 +26,18 @@
 
 /// \file js/value.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/js/api.h"
 #include "pxr/base/js/types.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Value API Version
 // 1 (or undefined) - Initial version.
@@ -69,7 +73,7 @@ public:
     };
 
     /// Constructs a null value.
-	JS_API JsValue();
+    JS_API JsValue();
 
     /// Constructs a value holding the given object.
     JS_API JsValue(const JsObject& value);
@@ -111,17 +115,17 @@ public:
     /// Returns the string held by this value. If this value is not holding a
     /// string, this method raises a coding error and an empty string is
     /// returned.
-	JS_API const std::string& GetString() const;
+    JS_API const std::string& GetString() const;
 
     /// Returns the bool held by this value. If this value is not holding a
     /// bool, this method raises a coding error and false is returned.
-	JS_API bool GetBool() const;
+    JS_API bool GetBool() const;
 
     /// Returns the integer held by this value. If this value is not holding
     /// an int, this method raises a coding error and zero is returned. If the
     /// value is holding a 64-bit integer larger than the platform int may
     /// hold, the value is truncated.
-	JS_API int GetInt() const;
+    JS_API int GetInt() const;
 
     /// Returns the 64-bit integer held by this value. If this value is not
     /// holding a 64-bit integer, this method raises a coding error and zero
@@ -135,7 +139,7 @@ public:
 
     /// Returns the double held by this value. If this value is not holding a
     /// double, this method raises a coding error and zero is returned.
-	JS_API double GetReal() const;
+    JS_API double GetReal() const;
 
     /// Returns the value corresponding to the C++ type specified in the
     /// template parameter if it is holding such a value. Calling this
@@ -147,8 +151,8 @@ public:
     /// value returned in this case.
     template <typename T,
               typename ReturnType = typename std::conditional<
-                  std::is_same<T, JsObject>::value or 
-                  std::is_same<T, JsArray>::value or
+                  std::is_same<T, JsObject>::value || 
+                  std::is_same<T, JsArray>::value || 
                   std::is_same<T, std::string>::value,
                   const T&, T>::type>
     ReturnType Get() const {
@@ -168,28 +172,28 @@ public:
     JS_API Type GetType() const;
 
     /// Returns a display name for the type of this value.
-	JS_API std::string GetTypeName() const;
+    JS_API std::string GetTypeName() const;
 
     /// Returns true if this value is holding an object type.
-	JS_API bool IsObject() const;
+    JS_API bool IsObject() const;
 
     /// Returns true if this value is holding an array type.
-	JS_API bool IsArray() const;
+    JS_API bool IsArray() const;
 
     /// Returns true if this value is holding a string type.
-	JS_API bool IsString() const;
+    JS_API bool IsString() const;
 
     /// Returns true if this value is holding a boolean type.
-	JS_API bool IsBool() const;
+    JS_API bool IsBool() const;
 
     /// Returns true if this value is holding an integer type.
-	JS_API bool IsInt() const;
+    JS_API bool IsInt() const;
 
     /// Returns true if this value is holding a real type.
-	JS_API bool IsReal() const;
+    JS_API bool IsReal() const;
 
     /// Returns true if this value is holding a 64-bit unsigned integer.
-	JS_API bool IsUInt64() const;
+    JS_API bool IsUInt64() const;
 
     /// Returns true if this value is holding a type that corresponds
     /// to the C++ type specified as the template parameter.
@@ -204,7 +208,7 @@ public:
     bool IsArrayOf() const;
 
     /// Returns true if this value is null, false otherwise.
-	JS_API bool IsNull() const;
+    JS_API bool IsNull() const;
 
     /// Evaluates to true if this value is not null.
     JS_API explicit operator bool() const;
@@ -270,12 +274,14 @@ inline std::vector<T> JsValue::GetArrayOf() const
 template <typename T>
 inline bool JsValue::IsArrayOf() const 
 {
-    if (not IsArray()) {
+    if (!IsArray()) {
         return false;
     }
     const JsArray& array = GetJsArray();
     return std::all_of(array.begin(), array.end(),
                        [](const JsValue& v) { return v.Is<T>(); });
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // JS_VALUE_H

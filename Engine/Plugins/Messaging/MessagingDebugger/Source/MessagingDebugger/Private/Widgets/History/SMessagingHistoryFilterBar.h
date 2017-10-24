@@ -2,11 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Widgets/SNullWidget.h"
+#include "CoreTypes.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/SCompoundWidget.h"
+
 #include "Models/MessagingDebuggerMessageFilter.h"
+
 
 #define LOCTEXT_NAMESPACE "SMessagingHistoryFilterBar"
 

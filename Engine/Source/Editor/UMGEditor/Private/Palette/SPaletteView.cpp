@@ -411,7 +411,7 @@ void SPaletteView::BuildClassWidgetList()
 	auto ActiveWidgetBlueprintClass = GetBlueprint()->GeneratedClass;
 	FName ActiveWidgetBlueprintClassName = ActiveWidgetBlueprintClass->GetFName();
 
-	TArray<FStringClassReference> WidgetClassesToHide = GetDefault<UUMGEditorProjectSettings>()->WidgetClassesToHide;
+	TArray<FSoftClassPath> WidgetClassesToHide = GetDefault<UUMGEditorProjectSettings>()->WidgetClassesToHide;
 
 	// Locate all UWidget classes from code and loaded widget BPs
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -446,7 +446,7 @@ void SPaletteView::BuildClassWidgetList()
 
 		// Excludes this widget if it is on the hide list
 		bool bIsOnList = false;
-		for (FStringClassReference Widget : WidgetClassesToHide)
+		for (FSoftClassPath Widget : WidgetClassesToHide)
 		{
 			if (WidgetAssetData.ObjectPath.ToString().Find(Widget.ToString()) == 0)
 			{
@@ -519,7 +519,7 @@ void SPaletteView::BuildClassWidgetList()
 
 		// Excludes this widget if it is on the hide list
 		bool bIsOnList = false;
-		for (FStringClassReference Widget : WidgetClassesToHide)
+		for (FSoftClassPath Widget : WidgetClassesToHide)
 		{
 			if (Widget.ToString().Find(WidgetBPAssetData.ObjectPath.ToString()) == 0)
 			{

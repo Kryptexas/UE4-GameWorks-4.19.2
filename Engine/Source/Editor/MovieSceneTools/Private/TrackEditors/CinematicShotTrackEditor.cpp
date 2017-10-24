@@ -31,6 +31,7 @@
 #include "TrackEditorThumbnail/TrackEditorThumbnailPool.h"
 #include "MovieSceneToolsProjectSettings.h"
 #include "Editor.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "FCinematicShotTrackEditor"
 
@@ -216,6 +217,65 @@ const FSlateBrush* FCinematicShotTrackEditor::GetIconBrush() const
 	return FEditorStyle::GetBrush("Sequencer.Tracks.CinematicShot");
 }
 
+bool FCinematicShotTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneCinematicShotTrack::StaticClass()))
+	{
+		return false;
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		return false;
+	}
+	
+	TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
+
+	for (const FAssetData& AssetData : DragDropOp->GetAssets())
+	{
+		if (Cast<UMovieSceneSequence>(AssetData.GetAsset()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+FReply FCinematicShotTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneCinematicShotTrack::StaticClass()))
+	{
+		return FReply::Unhandled();
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		return FReply::Unhandled();
+	}
+	
+	TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
+	
+	bool bAnyDropped = false;
+	for (const FAssetData& AssetData : DragDropOp->GetAssets())
+	{
+		UMovieSceneSequence* Sequence = Cast<UMovieSceneSequence>(AssetData.GetAsset());
+
+		if (Sequence)
+		{
+			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FCinematicShotTrackEditor::AddKeyInternal, Sequence) );
+			
+			bAnyDropped = true;
+		}
+	}
+
+	return bAnyDropped ? FReply::Handled() : FReply::Unhandled();
+}
 
 UMovieSceneSubSection* FCinematicShotTrackEditor::CreateShotInternal(FString& NewShotName, float NewShotStartTime, UMovieSceneCinematicShotSection* ShotToDuplicate)
 {

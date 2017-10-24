@@ -1331,7 +1331,7 @@ bool FGameplayTag::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject
 	return false;
 }
 
-void FGameplayTag::FromExportString(FString ExportString)
+void FGameplayTag::FromExportString(const FString& ExportString)
 {
 	TagName = NAME_None;
 

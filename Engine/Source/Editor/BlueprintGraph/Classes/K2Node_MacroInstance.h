@@ -55,6 +55,7 @@ public:
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetMacroGraph(); }
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface

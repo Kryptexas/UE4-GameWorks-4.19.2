@@ -82,7 +82,6 @@ class ENGINE_API UControlChannel
 	UControlChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 		: UChannel(ObjectInitializer)
 	{
-		ChannelClasses[CHTYPE_Control]      = GetClass();
 		ChType								= CHTYPE_Control;
 	}
 

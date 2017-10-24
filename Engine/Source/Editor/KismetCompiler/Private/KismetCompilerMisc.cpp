@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "KismetCompilerMisc.h"
+
+#include "BlueprintCompilationManager.h"
 #include "Misc/CoreMisc.h"
 #include "UObject/MetaData.h"
 #include "UObject/UnrealType.h"
@@ -19,6 +21,7 @@
 #include "EdGraphUtilities.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
+#include "K2Node_BaseAsyncTask.h"
 #include "K2Node_Event.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_CallArrayFunction.h"
@@ -72,7 +75,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 		UEnumProperty* EnumProperty = Cast<UEnumProperty>(TestProperty);
 		bTypeMismatch = (ByteProperty == nullptr) && (EnumProperty == nullptr || !EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>());
 	}
-	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
+	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_SoftClass))
 	{
 		const UClass* ClassType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -87,9 +90,9 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 			{
 				MetaClass = ClassProperty->MetaClass;
 			}
-			else if (auto AssetClassProperty = Cast<UAssetClassProperty>(TestProperty))
+			else if (auto SoftClassProperty = Cast<USoftClassProperty>(TestProperty))
 			{
-				MetaClass = AssetClassProperty->MetaClass;
+				MetaClass = SoftClassProperty->MetaClass;
 			}
 
 			if (MetaClass != NULL)
@@ -102,7 +105,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
 
-				if ((PinCategory == Schema->PC_AssetClass) && (!TestProperty->IsA<UAssetClassProperty>()))
+				if ((PinCategory == Schema->PC_SoftClass) && (!TestProperty->IsA<USoftClassProperty>()))
 				{
 					bTypeMismatch = true;
 				}
@@ -137,7 +140,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 			&& PropertyDelegate->SignatureFunction 
 			&& PropertyDelegate->SignatureFunction->IsSignatureCompatibleWith(SignatureFunction));
 	}
-	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_Asset))
+	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_SoftObject))
 	{
 		const UClass* ObjectType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -184,7 +187,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
 
-				if ((PinCategory == Schema->PC_Asset) && (!TestProperty->IsA<UAssetObjectProperty>()))
+				if ((PinCategory == Schema->PC_SoftObject) && (!TestProperty->IsA<USoftObjectProperty>()))
 				{
 					bTypeMismatch = true;
 				}
@@ -285,7 +288,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			if(OwningFunction)
 			{
 				// Check for the magic ArrayParm property, which always matches array types
-				FString ArrayPointerMetaData = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
+				const FString& ArrayPointerMetaData = OwningFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
 				TArray<FString> ArrayPinComboNames;
 				ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
@@ -741,12 +744,21 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 					continue;
 				}
 
-				if (ForClass->ClassDefaultObject)
+				// We don't want to generate an assignment node unless the default value 
+				// differs from the value in the CDO:
+				FString DefaultValueAsString;
+					
+				if (FBlueprintCompilationManager::GetDefaultValue(ForClass, Property, DefaultValueAsString))
 				{
-					// We don't want to generate an assignment node unless the default value 
-					// differs from the value in the CDO:
-					FString DefaultValueAsString;
+					if (DefaultValueAsString == OrgPin->GetDefaultAsString())
+					{
+						continue;
+					}
+				}
+				else if(ForClass->ClassDefaultObject)
+				{
 					FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ForClass->ClassDefaultObject, DefaultValueAsString);
+
 					if (DefaultValueAsString == OrgPin->GetDefaultAsString())
 					{
 						continue;
@@ -863,7 +875,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 	UProperty* NewProperty = nullptr;
 	//@TODO: Nasty string if-else tree
-	if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_Asset))
+	if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_SoftObject))
 	{
 		UClass* SubType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(PinSubCategoryObject);
 
@@ -891,9 +903,9 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 			{
 				UObjectPropertyBase* NewPropertyObj = NULL;
 
-				if (PinCategory == Schema->PC_Asset)
+				if (PinCategory == Schema->PC_SoftObject)
 				{
-					NewPropertyObj = NewObject<UAssetObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+					NewPropertyObj = NewObject<USoftObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
 				else if (bIsWeakPointer)
 				{
@@ -946,7 +958,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 			}
 		}
 	}
-	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
+	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_SoftClass))
 	{
 		UClass* SubType = Cast<UClass>(PinSubCategoryObject);
 
@@ -964,16 +976,16 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 		if (SubType)
 		{
-			if (PinCategory == Schema->PC_AssetClass)
+			if (PinCategory == Schema->PC_SoftClass)
 			{
-				UAssetClassProperty* AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				USoftClassProperty* SoftClassProperty = NewObject<USoftClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				// we want to use this setter function instead of setting the 
 				// MetaClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
-				AssetClassProperty->SetMetaClass(SubType);
-				AssetClassProperty->PropertyClass = UClass::StaticClass();
-				AssetClassProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
-				NewProperty = AssetClassProperty;
+				SoftClassProperty->SetMetaClass(SubType);
+				SoftClassProperty->PropertyClass = UClass::StaticClass();
+				SoftClassProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
+				NewProperty = SoftClassProperty;
 			}
 			else
 			{
@@ -1019,9 +1031,10 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 		if (Enum && Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
 		{
-			UEnumProperty* EnumProp = new (EC_InternalUseOnlyConstructor, PropertyScope, ValidatedPropertyName, ObjectFlags) UEnumProperty(FObjectInitializer(), CastChecked<UEnum>(PinSubCategoryObject));
+			UEnumProperty* EnumProp = NewObject<UEnumProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			UNumericProperty* UnderlyingProp = NewObject<UByteProperty>(EnumProp, TEXT("UnderlyingType"), ObjectFlags);
 
+			EnumProp->SetEnum(Enum);
 			EnumProp->AddCppProperty(UnderlyingProp);
 
 			NewProperty = EnumProp;
@@ -1558,7 +1571,7 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 		TargetNode = ThenExecPin->LinkedTo[0]->GetOwningNode();
 	}
 
-	if (Context.bCreateDebugData && (!Context.bInstrumentScriptCode || Context.IsInstrumentationRequiredForPin(ThenExecPin)))
+	if (Context.bCreateDebugData)
 	{
 		FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(&Node);
 		TraceStatement.Type = Context.GetWireTraceType();
@@ -1703,7 +1716,7 @@ FString FNetNameMapping::MakeBaseName(const UAnimGraphNode_Base* Net)
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp)
 	: Blueprint(InBlueprint)
 	, SourceGraph(nullptr)
 	, EntryPoint(nullptr)
@@ -1717,7 +1730,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	, bEnforceConstCorrectness(false)
-	, bInstrumentScriptCode(bInWantsInstrumentation)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
@@ -1883,10 +1895,8 @@ void FKismetFunctionContext::ResolveGotoFixups()
 			{
 				continue;
 			}
-			if (!bInstrumentScriptCode || IsInstrumentationRequiredForPin(GotoIt->Value))
-			{
-				InsertWireTrace(GotoIt.Key(), GotoIt.Value());
-			}
+
+			InsertWireTrace(GotoIt.Key(), GotoIt.Value());
 		}
 	}
 
@@ -1933,7 +1943,7 @@ void FKismetFunctionContext::ResolveGotoFixups()
 
 void FKismetFunctionContext::FinalSortLinearExecList()
 {
-	auto K2Schema = CastChecked<UEdGraphSchema_K2>(Schema);
+	auto K2Schema = Schema;
 	LinearExecutionList.RemoveAllSwap([&](UEdGraphNode* CurrentNode)
 	{
 		auto CurStatementList = StatementsPerNode.Find(CurrentNode);
@@ -2103,7 +2113,7 @@ struct FEventGraphUtils
 		return Results;
 	}
 
-	static bool PinRepresentsSharedTerminal(const UEdGraphPin& Net)
+	static bool PinRepresentsSharedTerminal(const UEdGraphPin& Net, FCompilerResultsLog& MessageLog)
 	{
 		// TODO: Strange cases..
 		if ((Net.Direction != EEdGraphPinDirection::EGPD_Output)
@@ -2122,6 +2132,13 @@ struct FEventGraphUtils
 		ensure(OwnerNode);
 		const UK2Node_CallFunction* CallFunction = Cast<const UK2Node_CallFunction>(OwnerNode);
 		if (!CallFunction || (&Net != CallFunction->GetReturnValuePin()))
+		{
+			return true;
+		}
+
+		// If the function call node is an intermediate node resulting from expansion of an async task node, then the return value term must also be persistent.
+		const UEdGraphNode* SourceNode = MessageLog.GetSourceNode(OwnerNode);
+		if (SourceNode && SourceNode->IsA<UK2Node_BaseAsyncTask>())
 		{
 			return true;
 		}
@@ -2207,7 +2224,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
 
 		// Pin's connections are checked, to tell if created terminal is shared, or if it could be a local variable.
-		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net);
+		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net, MessageLog);
 	}
 	FBPTerminal* Term = new (bSharedTerm ? EventGraphLocals : Locals) FBPTerminal();
 	Term->CopyFromPin(Net, NewName);

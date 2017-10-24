@@ -12,6 +12,8 @@ public class Launch : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AutomationController",
+				"Media",
+                "MediaUtils",
 				"TaskGraph",
 			}
 		);
@@ -22,8 +24,7 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
-				"MediaAssets",
-                "MoviePlayer",
+				"MoviePlayer",
 				"Networking",
 				"PakFile",
 				"Projects",
@@ -32,27 +33,29 @@ public class Launch : ModuleRules
 				"SandboxFile",
 				"Serialization",
 				"ShaderCore",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"Sockets",
                 "Overlay",
+				"UtilityShaders",
 			}
 		);
 
 		// Enable the LauncherCheck module to be used for platforms that support the Launcher.
-		// Projects should set UEBuildConfiguration.bUseLauncherChecks in their Target.cs to enable the functionality.
-		if (UEBuildConfiguration.bUseLauncherChecks &&
-            ((Target.Platform == UnrealTargetPlatform.Win32) ||
+		// Projects should set Target.bUseLauncherChecks in their Target.cs to enable the functionality.
+		if (Target.bUseLauncherChecks &&
+			((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Mac)))
 		{
-            PrivateDependencyModuleNames.Add("LauncherCheck");
-            Definitions.Add("WITH_LAUNCHERCHECK=1");
+			PrivateDependencyModuleNames.Add("LauncherCheck");
+			Definitions.Add("WITH_LAUNCHERCHECK=1");
 		}
-        else
-        {
-            Definitions.Add("WITH_LAUNCHERCHECK=0");
-        }
+		else
+		{
+			Definitions.Add("WITH_LAUNCHERCHECK=0");
+		}
 
 		if (Target.Type != TargetType.Server)
 		{
@@ -79,23 +82,24 @@ public class Launch : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				DynamicallyLoadedModuleNames.Add("ALAudio");
+				DynamicallyLoadedModuleNames.Add("AudioMixerSDL");
 				PrivateDependencyModuleNames.Add("Json");
 			}
 
 			PrivateIncludePathModuleNames.AddRange(
-                new string[] {
-			        "SlateNullRenderer",
+				new string[] {
+					"SlateNullRenderer",
 					"SlateRHIRenderer"
-		        }
-            );
+				}
+			);
 
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-			        "SlateNullRenderer",
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateNullRenderer",
 					"SlateRHIRenderer"
-		        }
-            );
-        }
+				}
+			);
+		}
 
 		// UFS clients are not available in shipping builds
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -105,30 +109,36 @@ public class Launch : ModuleRules
 					"NetworkFile",
 					"StreamingFile",
 					"CookedIterativeFile",
-    				"AutomationWorker",
+					"AutomationWorker",
 				}
 			);
 		}
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
-                "Media",
+				"Media",
 				"Renderer",
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
-			PrivateIncludePathModuleNames.Add("Messaging");
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"MessagingCommon",
+					"MediaAssets"
+				}
+			);
+
 			PublicDependencyModuleNames.Add("SessionServices");
 			PrivateIncludePaths.Add("Developer/DerivedDataCache/Public");
 
-            // LaunchEngineLoop.cpp will still attempt to load XMPP but not all projects require it so it will silently fail unless referenced by the project's build.cs file.
-            // DynamicallyLoadedModuleNames.Add("XMPP");
-            DynamicallyLoadedModuleNames.Add("HTTP");
+			// LaunchEngineLoop.cpp will still attempt to load XMPP but not all projects require it so it will silently fail unless referenced by the project's build.cs file.
+			// DynamicallyLoadedModuleNames.Add("XMPP");
+			DynamicallyLoadedModuleNames.Add("HTTP");
 
-            PrivateDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
-            PrivateDependencyModuleNames.Add("ClothingSystemRuntime");
+			PrivateDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+			PrivateDependencyModuleNames.Add("ClothingSystemRuntime");
 		}
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -136,15 +146,15 @@ public class Launch : ModuleRules
 			PublicIncludePathModuleNames.Add("ProfilerService");
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "TaskGraph", "RealtimeProfiler", "ProfilerService" });
 		}
-		
+
 		// The engine can use AutomationController in any connfiguration besides shipping.  This module is loaded
 		// dynamically in LaunchEngineLoop.cpp in non-shipping configurations
-		if (UEBuildConfiguration.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
+		if (Target.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "AutomationController" });
 		}
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			PublicIncludePathModuleNames.Add("ProfilerClient");
 
@@ -201,9 +211,9 @@ public class Launch : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			PrivateDependencyModuleNames.Add("OpenGLDrv"); 
+			PrivateDependencyModuleNames.Add("OpenGLDrv");
 			PrivateDependencyModuleNames.Add("AndroidAudio");
-            PrivateDependencyModuleNames.Add("AudioMixerAndroid");
+			PrivateDependencyModuleNames.Add("AudioMixerAndroid");
 			DynamicallyLoadedModuleNames.Add("AndroidRuntimeSettings");
 			DynamicallyLoadedModuleNames.Add("AndroidLocalNotification");
 		}
@@ -212,20 +222,16 @@ public class Launch : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetType.Server))
 		{
-            // TODO: re-enable after implementing resource tables for OpenGL.
+			// TODO: re-enable after implementing resource tables for OpenGL.
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 		}
 
-        if (Target.Platform == UnrealTargetPlatform.HTML5 )
-        {
+		if (Target.Platform == UnrealTargetPlatform.HTML5 )
+		{
 			PrivateDependencyModuleNames.Add("ALAudio");
-			if (Target.Architecture == "-win32")
-			{
-                PrivateDependencyModuleNames.Add("HTML5Win32");
-                PublicIncludePathModuleNames.Add("HTML5Win32");
-			}
+            PrivateDependencyModuleNames.Add("AudioMixerSDL");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
-        }
+		}
 
 		// @todo ps4 clang bug: this works around a PS4/clang compiler bug (optimizations)
 		if (Target.Platform == UnrealTargetPlatform.PS4)

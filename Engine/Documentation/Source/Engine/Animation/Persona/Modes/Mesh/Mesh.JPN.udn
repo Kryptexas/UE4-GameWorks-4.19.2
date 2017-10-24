@@ -1,19 +1,22 @@
-﻿INTSourceChangelist:3481084
-Availability:Public
-Title:スケルタルメッシュ エディタ
+﻿INTSourceChangelist:3484673
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title:スケルタルメッシュ エディタ
 Description:UE4 のスケルタルメッシュ エディタの主な機能 
-version:4.14
-Related:Engine\Animation\Persona\Modes\Skeleton
-Related:Engine\Animation\Persona\Modes\Animation
-Related:Engine\Animation\Persona\Modes\Graph
-Related:Engine/Content/FBX/SkeletalMeshes
-type:landing
-topic-image:skelMeshEditor_topic.png
+Type:Landing
+version:4.16
+Parent:Engine/Animation/Persona/Modes
+Order:1
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 tags:Tools
+topic-image:skelMeshEditor_topic.png
+
+[REGION:banner]
+![](SkeletalMeshEditorBanner.png)
+[/REGION]
+
 
 [EXCERPT:Overview]
 **コンテンツ ブラウザ** 内で (または **エディタ ツールバー** から) **Skeletal Mesh** アセットを開くと 、**スケルタルメッシュ エディタ** が開きます。 
@@ -22,11 +25,13 @@ tags:Tools
 
 [/EXCERPT:Overview]
 
+スケルタルメッシュ エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
+
 [REGION:fullwidth]
 ![](SkeletalMeshEditor.png)
 [/REGION]
 
-スケルタルメッシュ エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
+
 
 ## 1.ツールバー
 
@@ -47,5 +52,7 @@ APEX Clothing を割り当てて調整したり、ラグドール タイプの�
 ## 4.モーフターゲットのプレビュー
 
 [Morph Target Preview] タブでは現在のスケルタルメッシュで利用できる [モーフターゲット](Engine/Animation/Persona/MorphTargetPreviewer) (ブレンド シェイプ) をプレビューすることができます。 
+
+このセクションには、[Preview Settings](Engine\Animation\Persona\PreviewSettings) のタブもあります。このタブでは、プレビューとして使う **アニメーション モード** や **アニメーション** を定義、プレビューに使う **スケルタルメッシュ** の切替え、適用するビューポートのライティング、ポスト プロセスの設定を切り替えることが可能であり、様々なライティングを適用した設定をプレビューすることができます。 
 
 

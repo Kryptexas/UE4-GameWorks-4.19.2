@@ -297,6 +297,9 @@ struct FLinearColor
 	/** Quantizes the linear color and returns the result as a FColor.  This bypasses the SRGB conversion. */
 	CORE_API FColor Quantize() const;
 
+	/** Quantizes the linear color with rounding and returns the result as a FColor.  This bypasses the SRGB conversion. */
+	CORE_API FColor QuantizeRound() const;
+
 	/** Quantizes the linear color and returns the result as a FColor with optional sRGB conversion and quality as goal. */
 	CORE_API FColor ToFColor(const bool bSRGB) const;
 
@@ -309,7 +312,10 @@ struct FLinearColor
 	CORE_API FLinearColor Desaturate( float Desaturation ) const;
 
 	/** Computes the perceptually weighted luminance value of a color. */
-	CORE_API float ComputeLuminance() const;
+	inline float ComputeLuminance() const
+	{		
+		return R * 0.3f + G * 0.59f + B * 0.11f;
+	}
 
 	/**
 	 * Returns the maximum value in this color structure
@@ -386,6 +392,9 @@ FORCEINLINE FLinearColor operator*(float Scalar,const FLinearColor& Color)
 
 //
 //	FColor
+//	Stores a color with 8 bits of precision per channel.  
+//	Note: Linear color values should always be converted to gamma space before stored in an FColor, as 8 bits of precision is not enough to store linear space colors!
+//	This can be done with FLinearColor::ToFColor(true) 
 //
 
 struct FColor

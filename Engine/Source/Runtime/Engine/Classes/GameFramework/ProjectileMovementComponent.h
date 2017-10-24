@@ -164,10 +164,6 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 
 	bool ShouldApplyGravity() const { return ProjectileGravityScale != 0.f; }
 
-	/** DEPRECATED: renamed to ComputeVelocity(). */
-	DEPRECATED(4.6, "CalculateVelocity() is deprecated, use ComputeVelocity() instead.")
-	virtual FVector CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled_UNUSED) const;
-
 	/**
 	 * Given an initial velocity and a time step, compute a new velocity.
 	 * Default implementation applies the result of ComputeAcceleration() to velocity.
@@ -301,9 +297,6 @@ public:
 	virtual float GetGravityZ() const override;
 
 protected:
-	DEPRECATED(4.9, "GetEffectiveGravityZ() is deprecated, use GetGravityZ() instead, or UMovementComponent::GetGravityZ() if you want only the unmodified gravity.")
-	float GetEffectiveGravityZ() const;
-
 	/** Minimum delta time considered when ticking. Delta times below this are not considered. This is a very small non-zero positive value to avoid potential divide-by-zero in simulation code. */
 	static const float MIN_TICK_TIME;
 };

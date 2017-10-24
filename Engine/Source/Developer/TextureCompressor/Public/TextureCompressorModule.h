@@ -132,32 +132,34 @@ struct FTextureBuildSettings
 	FColor ChromaKeyColor;
 	/** The threshold that components have to match for the texel to be considered equal to the ChromaKeyColor when chroma keying (<=, set to 0 to require a perfect exact match) */
 	float ChromaKeyThreshold;
+	/** The quality of the compression algorithm (min 0 - lowest quality, highest cook speed, 4 - highest quality, lowest cook speed)*/
+	int32 CompressionQuality;
 
 	/** Default settings. */
 	FTextureBuildSettings()
 		: AlphaCoverageThresholds(0, 0, 0, 0)
-		, MipSharpening( 0.0f )
-		, DiffuseConvolveMipLevel( 0 )
-		, SharpenMipKernelSize( 2 )
+		, MipSharpening(0.0f)
+		, DiffuseConvolveMipLevel(0)
+		, SharpenMipKernelSize(2)
 		, MaxTextureResolution(TNumericLimits<uint32>::Max())
-		, MipGenSettings( 1 /*TMGS_SimpleAverage*/ )
-		, bCubemap( false )
+		, MipGenSettings(1 /*TMGS_SimpleAverage*/)
+		, bCubemap(false)
 		, bLongLatSource(false)
-		, bSRGB( false )
-		, bUseLegacyGamma( false )
-		, bPreserveBorder( false )
-		, bDitherMipMapAlpha( false )
-		, bComputeBokehAlpha( false )
-		, bReplicateRed( false )
-		, bReplicateAlpha( false )
-		, bDownsampleWithAverage( false )
-		, bSharpenWithoutColorShift( false )
-		, bBorderColorBlack( false )
-		, bFlipGreenChannel( false )
-		, bApplyKernelToTopMip( false )
-		, bRenormalizeTopMip( false )
-		, CompositeTextureMode( 0 /*CTM_Disabled*/ )
-		, CompositePower( 1.0f )
+		, bSRGB(false)
+		, bUseLegacyGamma(false)
+		, bPreserveBorder(false)
+		, bDitherMipMapAlpha(false)
+		, bComputeBokehAlpha(false)
+		, bReplicateRed(false)
+		, bReplicateAlpha(false)
+		, bDownsampleWithAverage(false)
+		, bSharpenWithoutColorShift(false)
+		, bBorderColorBlack(false)
+		, bFlipGreenChannel(false)
+		, bApplyKernelToTopMip(false)
+		, bRenormalizeTopMip(false)
+		, CompositeTextureMode(0 /*CTM_Disabled*/)
+		, CompositePower(1.0f)
 		, LODBias(0)
 		, TopMipSize(0, 0)
 		, bStreamable(false)
@@ -166,6 +168,7 @@ struct FTextureBuildSettings
 		, PaddingColor(FColor::Black)
 		, ChromaKeyColor(FColorList::Magenta)
 		, ChromaKeyThreshold(1.0f / 255.0f)
+		, CompressionQuality(-1)
 	{
 	}
 

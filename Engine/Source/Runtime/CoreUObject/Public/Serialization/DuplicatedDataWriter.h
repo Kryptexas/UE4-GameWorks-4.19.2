@@ -7,7 +7,6 @@
 #include "UObject/UObjectAnnotation.h"
 #include "Serialization/DuplicatedObject.h"
 
-class FLazyObjectPtr;
 struct FObjectInstancingGraph;
 
 /*----------------------------------------------------------------------------

@@ -337,6 +337,8 @@ void FMovieSceneObjectBindingIDPicker::Initialize()
 		DataTree = MakeShared<FSequenceBindingTree>();
 	}
 
+	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+
 	UMovieSceneSequence* Sequence = Sequencer.IsValid() ? Sequencer->GetRootMovieSceneSequence() : GetSequence();
 	UMovieSceneSequence* ActiveSequence = Sequencer.IsValid() ? Sequencer->GetFocusedMovieSceneSequence() : GetSequence();
 	FMovieSceneSequenceID ActiveSequenceID = Sequencer.IsValid() ? Sequencer->GetFocusedTemplateID() : MovieSceneSequenceID::Root;
@@ -405,7 +407,8 @@ void FMovieSceneObjectBindingIDPicker::OnGetMenuContent(FMenuBuilder& MenuBuilde
 
 TSharedRef<SWidget> FMovieSceneObjectBindingIDPicker::GetPickerMenu()
 {
-	FMenuBuilder MenuBuilder(true, nullptr);
+	// Close self only to enable use inside context menus
+	FMenuBuilder MenuBuilder(true, nullptr, nullptr, true);
 
 	Initialize();
 	OnGetMenuContent(MenuBuilder, DataTree->GetRootNode());
@@ -510,6 +513,8 @@ FMovieSceneObjectBindingID FMovieSceneObjectBindingIDPicker::GetRemappedCurrentV
 {
 	FMovieSceneObjectBindingID ID = GetCurrentValue();
 
+	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+
 	// If the ID is in local space, remap it to the root space as according to the LocalSequenceID we were created with
 	if (Sequencer.IsValid() && LocalSequenceID != MovieSceneSequenceID::Root && ID.IsValid() && ID.GetBindingSpace() == EMovieSceneObjectBindingSpace::Local)
 	{
@@ -521,6 +526,8 @@ FMovieSceneObjectBindingID FMovieSceneObjectBindingIDPicker::GetRemappedCurrentV
 
 void FMovieSceneObjectBindingIDPicker::SetRemappedCurrentValue(FMovieSceneObjectBindingID InValue)
 {
+	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+
 	// If we have a local sequence ID set, and the supplied binding is in root space, we attempt to remap it into the local sequence ID's space, and use a sequence ID
 	// that will resolve from LocalSequenceID instead of from the root. This ensures that you can work on sub sequences on their own, or within a master sequence
 	// and the binding will resolve correctly.

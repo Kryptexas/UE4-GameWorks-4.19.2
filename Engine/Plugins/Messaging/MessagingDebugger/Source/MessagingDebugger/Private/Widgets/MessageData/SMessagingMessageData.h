@@ -2,17 +2,19 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Styling/ISlateStyle.h"
-#include "Layout/Visibility.h"
+#include "CoreTypes.h"
+#include "Misc/NotifyHook.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Models/MessagingDebuggerModel.h"
-#include "Misc/NotifyHook.h"
 
+class FMessagingDebuggerModel;
+class ISlateStyle;
 class IStructureDetailsView;
 class SMultiLineEditableTextBox;
+
 struct FPropertyChangedEvent;
+
 
 /**
  * Implements the message data panel.
@@ -34,7 +36,7 @@ public:
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InModel The view model to use.

@@ -70,8 +70,8 @@ ultimately launch or install on your iOS device.
 
 [REGION:warning]
 The PC-only workflow described in this guide requires a pure Blueprint project. If you wish to use code in your 
-project, you will also need a Mac in order to compile the code. You can follow the workflow outlined on the 
-[](Platforms/iOS/GettingStarted) page to develop code-based projects for iOS on a PC.
+project, you will also need a Mac in order to compile the code. You can follow the [](Platforms/iOS/Windows) 
+page to develop code-based projects for iOS on a PC.
 [/REGION]
 [/EXCERPT:windows]
 [EXCERPT:macos]

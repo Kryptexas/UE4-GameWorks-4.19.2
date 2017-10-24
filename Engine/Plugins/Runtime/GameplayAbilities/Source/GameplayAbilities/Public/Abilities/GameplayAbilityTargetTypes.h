@@ -548,7 +548,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	FGameplayAbilityTargetData_SingleTargetHit()
 	{ }
 
-	FGameplayAbilityTargetData_SingleTargetHit(const FHitResult InHitResult)
+	FGameplayAbilityTargetData_SingleTargetHit(FHitResult InHitResult)
 		: HitResult(MoveTemp(InHitResult))
 	{ }
 

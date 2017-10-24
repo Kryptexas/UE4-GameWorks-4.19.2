@@ -21,6 +21,7 @@ float3 GetWorldPositionForLightFunctionTexturePosition(float2 ScreenPosition)
 }
 
 void Main(
+	in noperspective float4 UV : TEXCOORD0,
 	in float4 SvPosition : SV_Position,	
 	out float4 OutColor : SV_Target0
 	)

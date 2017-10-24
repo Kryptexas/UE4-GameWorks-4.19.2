@@ -10,22 +10,19 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"CoreUObject",
-				}
-			);
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[]
 				{
 					"Runtime/EngineMessages/Private",
-				}
-			);
+				});
 		}
 	}
 }

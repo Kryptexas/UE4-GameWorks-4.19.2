@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3356804
+﻿INTSourceChangelist:3518154
 Availability: Public
 Title: IWYU 레퍼런스 가이드
 Crumbs:
@@ -125,3 +125,4 @@ IWYU 모드를 켜려면, 모듈이 IWYU 규칙으로 컴파일되는지 확인�
 1.	각 헤더 파일 상단에 `CoreMinimal.h` 를 포함합니다.
 1.	모든 소스 파일에 모든 필수 종속성이 포함되는지 검증하려면, PCH 파일을 끄고 non-unity 빌드로 게임 프로젝트를 컴파일합니다.
 1.	`Runtime\Engine\Classes\Engine\Engine.h` 에 정의된 **UEngine** 또는 **GEngine** 에 접근하려면, (`Runtime\Engine\Public\Engine.h` 에 위치한 모놀리식 헤더 파일과 구분해서) `#include Engine/Engine.h` 하면 됩니다.
+1.	컴파일러가 인식하지 못하는 클래스를 사용하는데, 무엇을 포함시킬지 모르는 경우 헤더 파일이 없을 수 있습니다. 제대로 컴파일되는 비 IWYU 코드에서 변환하는 경우 특히 그렇습니다. [API Documentation](API) 에서 클래스를 찾아 페이지 하단에서 필요한 모듈과 헤더 파일을 확인할 수 있습니다.

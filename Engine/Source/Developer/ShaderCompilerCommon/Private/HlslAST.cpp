@@ -272,7 +272,7 @@ namespace CrossCompiler
 				Writer << TEXT("*MISSING_");
 				Writer << (uint32)Operator;
 				Writer << (TCHAR)'*';
-				checkf(0, TEXT("Unhandled AST Operator %d!"), Operator);
+				checkf(0, TEXT("Unhandled AST Operator %d!"), (uint32)Operator);
 				break;
 			}
 		}
@@ -295,7 +295,7 @@ namespace CrossCompiler
 				Writer << TEXT("*MISSING_");
 				Writer << (uint32)Operator;
 				Writer << (TCHAR)'*';
-				checkf(0, TEXT("Unhandled AST Operator %d!"), Operator);
+				checkf(0, TEXT("Unhandled AST Operator %d!"), (int32)Operator);
 				break;
 			}
 		}
@@ -397,7 +397,7 @@ namespace CrossCompiler
 				break;
 
 			default:
-				if (Writer.ExpressionScope != 0)
+				if (Writer.ExpressionScope != 0 && !IsAssignmentOperator(Operator))
 				{
 					Writer << (TCHAR)'(';
 				}
@@ -408,7 +408,7 @@ namespace CrossCompiler
 				Writer << (TCHAR)' ';
 				SubExpressions[1]->Write(Writer);
 				--Writer.ExpressionScope;
-				if (Writer.ExpressionScope != 0)
+				if (Writer.ExpressionScope != 0 && !IsAssignmentOperator(Operator))
 				{
 					Writer << (TCHAR)')';
 				}
@@ -620,7 +620,7 @@ namespace CrossCompiler
 				Writer << TEXT("*MISSING_");
 				Writer << (uint32)Type;
 				Writer << (TCHAR)'*';
-				checkf(0, TEXT("Unhandled AST jump type %d!"), Type);
+				checkf(0, TEXT("Unhandled AST jump type %d!"), (int32)Type);
 				break;
 			}
 
@@ -780,14 +780,14 @@ namespace CrossCompiler
 
 		void FTypeQualifier::Write(FASTWriter& Writer) const
 		{
-			if (bConstant)
-			{
-				Writer << TEXT("const ");
-			}
-
 			if (bIsStatic)
 			{
 				Writer << TEXT("static ");
+			}
+
+			if (bConstant)
+			{
+				Writer << TEXT("const ");
 			}
 
 			if (bShared)
@@ -1112,7 +1112,7 @@ namespace CrossCompiler
 				break;
 
 			default:
-				checkf(0, TEXT("Unhandled AST iteration type %d!"), Type);
+				checkf(0, TEXT("Unhandled AST iteration type %d!"), (int32)Type);
 				break;
 			}
 		}

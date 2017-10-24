@@ -508,7 +508,7 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 						DetermineStyleOfExecWire(/*inout*/ Params.WireThickness, /*inout*/ Params.WireColor, /*inout*/ Params.bDrawBubbles, *ExecTiming);
 					}
 				}
-				
+
 				if (!bExecuted)
 				{
 					// It's not followed, fade it and keep it thin
@@ -529,6 +529,31 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 			{
 				Params.WireThickness = DefaultExecutionWireThickness;
 			}
+		}
+
+
+		// If either end of the connection is not enabled (and not a passthru to something else), draw the wire differently
+		bool bWireIsOnDisabledNodeAndNotPassthru = false;
+		if (OutputNode && !OutputNode->IsNodeEnabled())
+		{
+			if (OutputNode->GetPassThroughPin(OutputPin) == nullptr)
+			{
+				bWireIsOnDisabledNodeAndNotPassthru = true;
+			}
+		}
+		
+		if (InputNode && !InputNode->IsNodeEnabled())
+		{
+			if (InputNode->GetPassThroughPin(InputPin) == nullptr)
+			{
+				bWireIsOnDisabledNodeAndNotPassthru = true;
+			}
+		}
+
+		if (bWireIsOnDisabledNodeAndNotPassthru)
+		{
+			Params.WireColor *= 0.5f;
+			Params.WireThickness = 0.5f;
 		}
 	}
 

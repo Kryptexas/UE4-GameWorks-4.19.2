@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -39,16 +39,17 @@ void CefDOMVisitorCToCpp::Visit(CefRefPtr<CefDOMDocument> document) {
 CefDOMVisitorCToCpp::CefDOMVisitorCToCpp() {
 }
 
-template<> cef_domvisitor_t* CefCToCpp<CefDOMVisitorCToCpp, CefDOMVisitor,
-    cef_domvisitor_t>::UnwrapDerived(CefWrapperType type, CefDOMVisitor* c) {
+template<> cef_domvisitor_t* CefCToCppRefCounted<CefDOMVisitorCToCpp,
+    CefDOMVisitor, cef_domvisitor_t>::UnwrapDerived(CefWrapperType type,
+    CefDOMVisitor* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefDOMVisitorCToCpp, CefDOMVisitor,
-    cef_domvisitor_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDOMVisitorCToCpp,
+    CefDOMVisitor, cef_domvisitor_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDOMVisitorCToCpp, CefDOMVisitor,
-    cef_domvisitor_t>::kWrapperType = WT_DOMVISITOR;
+template<> CefWrapperType CefCToCppRefCounted<CefDOMVisitorCToCpp,
+    CefDOMVisitor, cef_domvisitor_t>::kWrapperType = WT_DOMVISITOR;

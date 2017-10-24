@@ -204,7 +204,7 @@ void FSequencerEntityWalker::HandleSingleNode(const ISequencerEntityVisitor& Vis
 				// Only handle grouped keys if we actually have children
 				if (InNode->GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
 				{
-					TSharedRef<IKeyArea> KeyArea = InNode->UpdateKeyGrouping(Section);
+					TSharedRef<IKeyArea> KeyArea = InNode->GetKeyGrouping(Section);
 					HandleKeyArea(Visitor, KeyArea, Section, InNode);
 				}
 			}

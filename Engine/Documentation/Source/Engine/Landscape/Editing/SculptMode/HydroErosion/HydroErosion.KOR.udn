@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3482403
 Availability: Public
 Crumbs: %ROOT%
-Title: Hydro-Erosion
-Description: This is an overview of the Hydro-Erosion painting tool.
+Title: 수성 침식
+Description: Hydro-Erosion, 수성 침식 페인팅 툴 개요입니다.
 Type: Reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
@@ -12,11 +12,11 @@ Topic-image:HydroErosion_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Hydro Erosion** tool uses a hydraulic erosion simulation (erosion from water) to adjust the height of the Landscape heightmap. A noise filter is used to determine where the initial rain is 
-distributed for the simulation. Then the simulation is calculated to determine water flow from the initial rain as well as dissolving, water transfer, and evaporation. The result of the calculation
-provides the actual value used to lower the heightmap.
+**Hydro Erosion** (수성 침식) 툴은 수성 침식 시뮬레이션(물에 의한 침식)을 통해 랜드스케이프 하이트맵의 높이를 조절합니다. 노이즈 필터로 시뮬레이션의 초기 강우 지역 분포를 결정합니다.
+그 후 초기 강우 지역으로부터 물의 흐름과 용해, 운반, 기화 등의 작용을 시뮬레이션해 냅니다. 
+계산 결과 하이트맵 하강에 사용되는 실제 값이 나옵니다.
 
-## Using the Hydro Erosion Tool
+## 수성 침식 툴 사용
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -36,53 +36,53 @@ provides the actual value used to lower the heightmap.
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, the Hydro Erosion tool has been used to paint rain erosion onto the surface of the hillside. This makes it appear that parts of the Landscape have eroded away over time as rain 
-has fallen. The tool settings can enable the amount of rain and areas that it affects to help define the look.
+이 예제에서, 수성 침식 툴을 사용하여 산비탈 표면에 강우에 의한 침식 지역을 칠했습니다. 그렇게 하면 랜드스케이프 해당 영역은 강우에 따라 서서히 침식된 듯 보이게 만들어 줍니다.
+툴 세팅으로 강우량과 영향 지역을 설정하여 외형 설정에 도움을 줄 수 있습니다.
 
-Use the following controls to Sculpt with Hydro Erosion for your Landscape heightmap:
+랜드스케이프 하이트맵을 수성 침식으로 조각하기 위한 조작법은 다음과 같습니다:
 
-| **Controls** | **Operation** |
+| **조작** | **작업** |
 | --- | --- |
-| **Left Mouse Button** | A noise filter is used to erode parts of the heightmap. |
+| **좌클릭** | 노이즈 필터를 사용하여 하이트맵 일부를 침식시킵니다. |
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Before](Hydro1.png)(w:750)
+	![이전](Hydro1.png)(w:750)
 	[/PARAM]
 	[PARAM:after]
-	![After](Hydro2.png)(w:750)
+	![이후](Hydro2.png)(w:750)
 	[/PARAM]
 [/OBJECT]
 
-In this example, as Hydro Erosion is used to paint onto the Landscape the heightmap runs a simulation that treats the heightmap as if rain has eroded away its surface over time. This can 
-create interesting looks and crevices to the Landscape.
+이 예제에서, 수성 침식을 사용하여 랜드스케이프에 칠을 하면, 시뮬레이션을 통해 비에 서서히 침식된 듯한 모양으로 하이트맵을 처리해 줍니다.
+랜드스케이프에 흥미로운 모양과 틈을 만들 수 있습니다.
 
 
-## Tool Settings
+## 툴 세기
 
 [REGION:imagetable]
-| ![Hydro Erosion Tool](Landscape_HydroErosion.png)(h:75) | ![](HydroErosionToolProperties.png)(h:200) |
+| ![수성 침식 툴](Landscape_HydroErosion.png)(h:75) | ![](HydroErosionToolProperties.png)(h:200) |
 | --- | --- |
 |||
 [/REGION]
 
-| **Property** | **Description** |
+| **프로퍼티** | **설명** |
 | ------------ | --------------- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Rain Amount** | The amount of rain to apply to the surface. Larger values will result in more erosion. |
-| **Sediment Cap.** | The amount of sediment that the water can carry. Larger values will result in more erosion. |
-| **Iterations** | The number of iterations performed. Larger values result in more levels of erosion. |
-| **Initial Rain Distribution** | Whether rain is applied randomly or to the entire area. [INCLUDE:#raindist] |
-| **Rain Dist Scale** | The size of the noise filter for applying initial rain to the surface. The noise filter is related to position and scale, which means if you do not change **Rain Dist. Scale**, the same filter is applied to the same position many times. | 
-| **Detail Smooth** | If checked, performs a detail-preserving smoothing to the erosion effect using the specified detail-smoothing value. Larger detail-smoothing values remove more details, while smaller values preserve more details. |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크 세기를 조절합니다. |
+| **Rain Amount** | 강우량 - 표면에 내릴 강우량입니다. 값이 크면 침식량이 많아집니다. |
+| **Sediment Cap.** | 침전물 한계 - 물이 운반할 수 있는 침전물 양입니다. 값이 크면 침식량이 많아집니다. |
+| **Iterations** | 반복처리 - 반복처리 횟수입니다. 값이 크면 침식 정도가 커집니다. |
+| **Initial Rain Distribution** | 초기 강우 분포 - 비를 무작위로 내릴지 전체 영역에 내릴지 입니다. [INCLUDE:#raindist] |
+| **Rain Dist Scale** | 강우 분포 스케일 - 표면에 초기 강우 지역을 적용하기 위한 노이즈 필터 크기입니다. 노이즈 필터는 위치와 스케일에 관계되며, **Rain Dist. Scale** 옵션을 변경하지 않는 한 같은 위치에 같은 필터를 여러 번 적용합니다. |
+| **Detail Smooth** | 디테일 스무드 - 체크하면 지정된 디테일 보존 값을 사용하여 침식 효과에 디테일 보존 스무딩을 적용합니다. 디테일 스무딩 값이 크면 제거되는 디테일이, 작으면 보존되는 디테일이 많아집니다. |
 
 <!---
 [INCLUDE:#raindist]
 [EXCERPT:raindist]
-|Selection | Description |
+|선택 | 설명 |
 | --- | --- |
-| **Both** | This will use a random pattern that acts like it has rained in some places and not others to erode parts of the heightmap. |
-| **Positive** | This will act as if it has rained in all parts of the applied area to erode parts of the heightmap.  |
+| **Both** | 양쪽 - 하이트맵 부분 침식을 어디는 비가 내려도 다른 곳은 내리지 않는 식의 무작위 패턴을 사용합니다. |
+| **Positive** | 포지티브 - 하이트맵 부분 침식을 적용 영역 모든 부분에 비가 내린 것처럼 처리합니다. |
 [/EXCERPT:raindist]
 
 --->

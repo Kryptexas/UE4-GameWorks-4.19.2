@@ -43,7 +43,7 @@ TSubclassOf<USignificanceManager> FSignificanceManagerModule::SignificanceManage
 void FSignificanceManagerModule::StartupModule()
 {
 	FWorldDelegates::OnPreWorldInitialization.AddStatic(&FSignificanceManagerModule::OnWorldInit);
-	FWorldDelegates::OnWorldCleanup.AddStatic(&FSignificanceManagerModule::OnWorldCleanup);
+	FWorldDelegates::OnPostWorldCleanup.AddStatic(&FSignificanceManagerModule::OnWorldCleanup);
 	if (!IsRunningDedicatedServer())
 	{
 		AHUD::OnShowDebugInfo.AddStatic(&FSignificanceManagerModule::OnShowDebugInfo);
@@ -115,7 +115,7 @@ void FSignificanceManagerModule::PopulateAutoCompleteEntries(TArray<FAutoComplet
 USignificanceManager::USignificanceManager()
 	: Super()
 {
-	SignificanceManagerClassName = FStringClassReference(GetClass()); 
+	SignificanceManagerClassName = FSoftClassPath(GetClass()); 
 
 	bCreateOnClient = true;
 	bCreateOnServer = true;

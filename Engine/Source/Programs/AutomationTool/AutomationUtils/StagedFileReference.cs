@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 /// <summary>
@@ -70,6 +71,27 @@ public class StagedFileReference : StagedFileSystemReference, IEquatable<StagedF
 				}
 			}
 			StartIdx = Idx + 1;
+		}
+	}
+
+	/// <summary>
+	/// Attempts to remap this file reference from one directory to another
+	/// </summary>
+	/// <param name="SourceDir">Directory to map from</param>
+	/// <param name="TargetDir">Directory to map to</param>
+	/// <param name="RemappedFile">On success, receives the new staged file location</param>
+	/// <returns>True if the file was remapped, false otherwise</returns>
+	public static bool TryRemap(StagedFileReference InputFile, StagedDirectoryReference SourceDir, StagedDirectoryReference TargetDir, out StagedFileReference RemappedFile)
+	{
+		if (InputFile.CanonicalName.StartsWith(SourceDir.CanonicalName) && InputFile.CanonicalName.Length > SourceDir.CanonicalName.Length && InputFile.CanonicalName[SourceDir.CanonicalName.Length] == '/')
+		{
+			RemappedFile = new StagedFileReference(TargetDir.Name + InputFile.Name.Substring(SourceDir.Name.Length), TargetDir.CanonicalName + InputFile.CanonicalName.Substring(SourceDir.CanonicalName.Length));
+			return true;
+		}
+		else
+		{
+			RemappedFile = null;
+			return false;
 		}
 	}
 

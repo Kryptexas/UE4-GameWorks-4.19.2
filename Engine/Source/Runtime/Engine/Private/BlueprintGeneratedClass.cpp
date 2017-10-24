@@ -41,7 +41,6 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	NumReplicatedProperties = 0;
-	bHasInstrumentation = false;
 	bHasNativizedParent = false;
 	bCustomPropertyListForPostConstructionInitialized = false;
 }
@@ -104,7 +103,6 @@ void UBlueprintGeneratedClass::PostLoad()
 			ClassFlags |= CLASS_Deprecated;
 		}
 	}
-#endif // WITH_EDITORONLY_DATA
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	// Patch the fast calls (needed as we can't bump engine version to serialize it directly in UFunction right now)
@@ -114,6 +112,7 @@ void UBlueprintGeneratedClass::PostLoad()
 		Pair.FunctionToPatch->EventGraphCallOffset = Pair.EventGraphCallOffset;
 	}
 #endif
+#endif // WITH_EDITORONLY_DATA
 
 	// Generate "fast path" instancing data for UCS/AddComponent node templates.
 	if (CookedComponentInstancingData.Num() > 0)
@@ -1363,28 +1362,6 @@ bool UBlueprintGeneratedClass::CanBeClusterRoot() const
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
-	// Ensure that function netflags equate to any super function in a parent BP prior to linking; it may have been changed by the user
-	// and won't be reflected in the child class until it is recompiled. Without this, UClass::Link() will assert if they are out of sync.
-	for(UField* Field = Children; Field; Field = Field->Next)
-	{
-		Ar.Preload(Field);
-
-		UFunction* Function = dynamic_cast<UFunction*>(Field);
-		if(Function != nullptr)
-		{
-			UFunction* ParentFunction = Function->GetSuperFunction();
-			if(ParentFunction != nullptr)
-			{
-				const EFunctionFlags ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
-				if(ParentNetFlags != (Function->FunctionFlags & FUNC_NetFuncFlags))
-				{
-					Function->FunctionFlags &= ~FUNC_NetFuncFlags;
-					Function->FunctionFlags |= ParentNetFlags;
-				}
-			}
-		}
-	}
-
 	Super::Link(Ar, bRelinkExistingProperties);
 
 	if (UsePersistentUberGraphFrame() && UberGraphFunction)
@@ -1413,11 +1390,11 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 	UberGraphFunction = NULL;
 #if WITH_EDITORONLY_DATA
 	OverridenArchetypeForCDO = NULL;
-#endif //WITH_EDITOR
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	FastCallPairs_DEPRECATED.Empty();
 #endif
+#endif //WITH_EDITOR
 }
 
 void UBlueprintGeneratedClass::Bind()
@@ -1429,58 +1406,6 @@ void UBlueprintGeneratedClass::Bind()
 		ClassAddReferencedObjects = &UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame;
 	}
 }
-
-class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
-{
-public:
-	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
-		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
-	{}
-
-protected:
-	virtual FArchive& operator<<(UObject*& Object) override
-	{
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		if (!ensureMsgf( (Object == nullptr) || Object->IsValidLowLevelFast()
-			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
-			, (int64)(PTRINT)Object
-			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
-			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL") ))
-		{
-			// clear the property value (it's garbage)... the ubergraph-frame
-			// has just lost a reference to whatever it was attempting to hold onto
-			Object = nullptr;
-		}
-#endif
-		if (Object)
-		{
-			bool bWeakRef = false;
-
-			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
-			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
-			{
-				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
-
-				if (ObjectProperty)
-				{
-					// This was a raw UObject* serialized by UObjectProperty, so just save the address
-					bWeakRef = true;
-				}
-			}
-
-			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
-			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
-
-			if (!bWeakRef)
-			{
-				// This is a hard reference or we don't know what's serializing it, so serialize it normally
-				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
-			}
-		}
-
-		return *this;
-	}
-};
 
 void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -1496,8 +1421,7 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				if (PointerToUberGraphFrame->RawPointer)
 				{
 					checkSlow(BPGC->UberGraphFunction);
-					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
-					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
+					BPGC->UberGraphFunction->SerializeBin(Collector.GetInternalPersisnentFrameReferenceCollectorArchive(), PointerToUberGraphFrame->RawPointer);
 				}
 			}
 		}

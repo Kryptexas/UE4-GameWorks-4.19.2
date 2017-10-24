@@ -8,6 +8,7 @@
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 #include "HAL/ExceptionHandling.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/CoreStats.h"
 #include "Misc/TimeGuard.h"
@@ -21,6 +22,7 @@
 #include "HAL/ThreadHeartBeat.h"
 #include "RenderResource.h"
 #include "ScopeLock.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //
 // Globals
@@ -155,7 +157,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 
 /** Destructor that starts the renderthread again */
 FSuspendRenderingThread::~FSuspendRenderingThread()
-{	
+{
 	if ( bRecreateThread )
 	{
 		GUseThreadedRendering = bUseRenderingThread;
@@ -269,7 +271,7 @@ public:
 
 	virtual uint32 Run() override
 	{
-		LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(RHIThreadMemory);
+		LLM_SCOPE(ELLMTag::RHIMisc);
 
 		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
@@ -286,7 +288,7 @@ public:
 
 	void Start()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_SlightlyBelowNormal, 
+		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, FPlatformAffinity::GetRHIThreadPriority(),
 			FPlatformAffinity::GetRHIThreadMask()
 			);
 		check(Thread);
@@ -296,7 +298,7 @@ public:
 /** The rendering thread main loop */
 void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 {
-	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(RenderingThreadMemory);
+	LLM_SCOPE(ELLMTag::RenderingThreadMemory);
 
 	ENamedThreads::RenderThread = ENamedThreads::Type(ENamedThreads::ActualRenderingThread);
 	ENamedThreads::RenderThread_Local = ENamedThreads::Type(ENamedThreads::ActualRenderingThread_Local);
@@ -668,10 +670,10 @@ void StartRenderingThread()
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
 		GRHIThread_InternalUseOnly = FRHIThread::Get().Thread;
 		check(GRHIThread_InternalUseOnly);
-		GRHICommandList.LatchBypass();
 		GIsRunningRHIInDedicatedThread_InternalUseOnly = true;
 		GIsRunningRHIInSeparateThread_InternalUseOnly = true;
 		GRHIThreadId = GRHIThread_InternalUseOnly->GetThreadID();
+		GRHICommandList.LatchBypass();
 	}
 	else if (GUseRHITaskThreads_InternalUseOnly)
 	{
@@ -821,7 +823,7 @@ void CheckRenderingThreadHealth()
 		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
 		SCOPE_CYCLE_COUNTER(STAT_PumpMessages);
-		FPlatformMisc::PumpMessages(false);
+		FPlatformApplicationMisc::PumpMessages(false);
 	}
 }
 
@@ -951,6 +953,11 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			NumRecursiveCalls++;
 			if (NumRecursiveCalls > 1)
 			{
+				if(GIsAutomationTesting)
+				{
+					// temp test to log callstacks for this being triggered during automation tests
+					ensureMsgf(false, TEXT("FlushRenderingCommands called recursively! %d calls on the stack."));
+				}
 				UE_LOG(LogRendererCore,Warning,TEXT("FlushRenderingCommands called recursively! %d calls on the stack."), NumRecursiveCalls);
 			}
 			if (NumRecursiveCalls > 1 || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread))
@@ -982,18 +989,34 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 				bDone = Event->Wait(WaitTime);
 
+#if !WITH_EDITOR
 				// editor threads can block for quite a while... 
-				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
+				if (!bDone && !FPlatformMisc::IsDebuggerPresent())
 				{
 					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+					static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
 
+					if (bGPUDebugging && FPlatformTime::Seconds() > 2.0f)
+					{
+						bool IsGpuAlive = true;
+						if (GDynamicRHI)
+						{
+							IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
+						}
+
+						UE_CLOG(!IsGpuAlive, LogRendererCore, Fatal, TEXT("CheckGpuHeartbeat returned false after %.02f secs of waiting for the GPU"), FPlatformTime::Seconds() - StartTime);
+					}
+		
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
+#if !PLATFORM_IOS // @todo MetalMRT: Timeout isn't long enough...
 					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
 					{
 						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
 					}
+#endif
 				}
+#endif
 			}
 			while (!bDone);
 

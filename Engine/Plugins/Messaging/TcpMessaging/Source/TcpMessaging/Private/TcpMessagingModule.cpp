@@ -1,21 +1,24 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "TcpMessagingPrivate.h"
+
 #include "CoreMinimal.h"
+#include "MessageBridgeBuilder.h"
 #include "Misc/CoreMisc.h"
 #include "Misc/CommandLine.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageBridgeBuilder.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "TcpMessagingPrivate.h"
 #include "Settings/TcpMessagingSettings.h"
-#include "Transport/TcpMessageTransport.h"
+
 #if WITH_EDITOR
-#include "ISettingsModule.h"
-#include "ISettingsSection.h"
+	#include "ISettingsModule.h"
+	#include "ISettingsSection.h"
 #endif
+
 #include "ITcpMessagingModule.h"
+#include "Transport/TcpMessageTransport.h"
 
 
 DEFINE_LOG_CATEGORY(LogTcpMessaging);
@@ -43,8 +46,6 @@ public:
 
 		if (FParse::Command(&Cmd, TEXT("STATUS")))
 		{
-			UTcpMessagingSettings* Settings = GetMutableDefault<UTcpMessagingSettings>();
-
 			// general information
 			Ar.Logf(TEXT("Protocol Version: %d"), (int32)ETcpMessagingVersion::LatestVersion);
 
@@ -196,17 +197,22 @@ protected:
 		FIPv4Endpoint ListenEndpoint;
 		TArray<FIPv4Endpoint> ConnectToEndpoints;
 
-		if (!FIPv4Endpoint::Parse(Settings->ListenEndpoint, ListenEndpoint))
+		FString ListenEndpointString = Settings->GetListenEndpoint();
+
+		if (!FIPv4Endpoint::Parse(ListenEndpointString, ListenEndpoint))
 		{
-			if (!Settings->ListenEndpoint.IsEmpty())
+			if (!ListenEndpointString.IsEmpty())
 			{
-				UE_LOG(LogTcpMessaging, Warning, TEXT("Invalid setting for ListenEndpoint '%s', listening disabled"), *Settings->ListenEndpoint);
+				UE_LOG(LogTcpMessaging, Warning, TEXT("Invalid setting for ListenEndpoint '%s', listening disabled"), *ListenEndpointString);
 			}
 
 			ListenEndpoint = FIPv4Endpoint::Any;
 		}
 		
-		for (auto& ConnectToEndpointString : Settings->ConnectToEndpoints)
+		TArray<FString> ConnectToEndpointStrings;
+		Settings->GetConnectToEndpoints(ConnectToEndpointStrings);
+
+		for (FString& ConnectToEndpointString : ConnectToEndpointStrings)
 		{
 			FIPv4Endpoint ConnectToEndpoint;
 			if (FIPv4Endpoint::Parse(ConnectToEndpointString, ConnectToEndpoint) )
@@ -232,7 +238,7 @@ protected:
 
 		UE_LOG(LogTcpMessaging, Log, TEXT("%s"), *Status);
 
-		TSharedRef<FTcpMessageTransport, ESPMode::ThreadSafe> Transport = MakeShareable(new FTcpMessageTransport(ListenEndpoint, ConnectToEndpoints, Settings->ConnectionRetryDelay));
+		TSharedRef<FTcpMessageTransport, ESPMode::ThreadSafe> Transport = MakeShareable(new FTcpMessageTransport(ListenEndpoint, ConnectToEndpoints, Settings->GetConnectionRetryDelay()));
 		
 		// Safe weak pointer for adding/removing connections
 		MessageTransportPtr = Transport;
@@ -245,7 +251,7 @@ protected:
 	{
 		const UTcpMessagingSettings* Settings = GetDefault<UTcpMessagingSettings>();
 
-		if (Settings->EnableTransport)
+		if (Settings->IsTransportEnabled())
 		{
 			InitializeBridge();
 		}
@@ -328,11 +334,48 @@ private:
 
 IMPLEMENT_MODULE(FTcpMessagingModule, TcpMessaging);
 
-/** UTcpMessagingSettings constructor */
-UTcpMessagingSettings::UTcpMessagingSettings(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+bool UTcpMessagingSettings::IsTransportEnabled() const
 {
-	// default values are taken from the ini configuration
+	if (EnableTransport)
+	{
+		return true;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("TcpMessagingListen=")) || FParse::Param(FCommandLine::Get(), TEXT("TcpMessagingConnect=")))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+FString UTcpMessagingSettings::GetListenEndpoint() const
+{
+	FString HostString = ListenEndpoint;
+	
+	// Read command line override
+	FParse::Value(FCommandLine::Get(), TEXT("TcpMessagingListen="), HostString);
+
+	return HostString;
+}
+
+void UTcpMessagingSettings::GetConnectToEndpoints(TArray<FString>& Endpoints) const
+{
+	for (const FString& ConnectEndpoint : ConnectToEndpoints)
+	{
+		Endpoints.Add(ConnectEndpoint);
+	}
+
+	FString ConnectString;
+	if (FParse::Value(FCommandLine::Get(), TEXT("TcpMessagingConnect="), ConnectString))
+	{
+		ConnectString.ParseIntoArray(Endpoints, TEXT(","));
+	}
+}
+
+int32 UTcpMessagingSettings::GetConnectionRetryDelay() const
+{
+	return ConnectionRetryDelay;
 }
 
 #undef LOCTEXT_NAMESPACE

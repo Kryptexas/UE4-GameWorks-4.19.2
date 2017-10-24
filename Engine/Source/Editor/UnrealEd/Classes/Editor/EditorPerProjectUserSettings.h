@@ -8,18 +8,6 @@
 #include "Engine/EngineTypes.h"
 #include "EditorPerProjectUserSettings.generated.h"
 
-// Fbx export compatibility
-UENUM()
-enum class EFbxExportCompatibility : uint8
-{
-	FBX_2010,
-	FBX_2011,
-	FBX_2012,
-	FBX_2013,
-	FBX_2014,
-	FBX_2016
-};
-
 UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup), hidecategories=(Object, Options, Grid, RotationGrid), config=EditorPerProjectUserSettings)
 class UEditorPerProjectUserSettings : public UObject
 {
@@ -94,22 +82,6 @@ class UEditorPerProjectUserSettings : public UObject
 	/** If enabled, export level with attachment hierarchy set */
 	UPROPERTY(EditAnywhere, config, Category=Export)
 	uint32 bKeepAttachHierarchy:1;
-
-	/** Map skeletal actor motion to the root bone of the skeleton. */
-	UPROPERTY(EditAnywhere, config, category=Export)
-	bool bMapSkeletalMotionToRoot;
-
-	/** This will set the fbx sdk compatibility when exporting to fbx file. The default value is 2013 */
-	UPROPERTY(EditAnywhere, config, Category = Export)
-	EFbxExportCompatibility FbxExportCompatibility;
-
-	/** If enabled, FBX export level will export collision mesh with UCX_ as a name suffix. */
-	UPROPERTY(EditAnywhere, config, Category = Export)
-	uint32 bFbxExportCollisionMesh : 1;
-
-	/** If enabled, export with X axis as the front axis instead of default -Y */
-	UPROPERTY(EditAnywhere, config, Category = Export)
-	uint32 bForceFrontXAxis : 1;
 
 	/** If enabled, will compare an animation's sequence length and curves against the old data and inform the user if something changed */
 	UPROPERTY(EditAnywhere, config, Category = Import)

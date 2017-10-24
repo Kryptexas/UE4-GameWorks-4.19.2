@@ -2,11 +2,7 @@
 
 #pragma once
 
-/* Public dependencies
-*****************************************************************************/
-
 #include "CoreMinimal.h"
-
 #include "AudioMixerBuffer.h"
 #include "AudioMixerSourceManager.h"
 
@@ -21,26 +17,24 @@ namespace Audio
 	static const int32 MAX_BUFFERS_QUEUED = 3;
 	static const int32 LOOP_FOREVER = -1;
 
-
-	/** Struct defining a source voice buffer. */
-	struct FMixerSourceVoiceBuffer
+	struct FRawPCMDataBuffer
 	{
-		/** Raw audio PCM data. */
-		TArray<uint8> AudioData;
-
-		/** The amount of real audio data in the byte array (may not be the size of the array in the case of procedural audio. */
-		uint32 AudioBytes;
-
-		/** How many times this buffer will loop. */
+		uint8* Data;
+		uint32 DataSize;
 		int32 LoopCount;
+		uint32 CurrentSample;
+		uint32 NumSamples;
 
-		/** If this buffer is from real-time decoding and needs to make callbacks for more data. */
-		uint32 bRealTimeBuffer : 1;
+		bool GetNextBuffer(FMixerSourceBufferPtr OutSourceBufferPtr, const uint32 NumSampleToGet);
 
-		FMixerSourceVoiceBuffer()
-		{
-			FMemory::Memzero(this, sizeof(*this));
-		}
+
+		FRawPCMDataBuffer()
+			: Data(nullptr)
+			, DataSize(0)
+			, LoopCount(0)
+			, CurrentSample(0)
+			, NumSamples(0)
+		{}
 	};
 
 	/** 
@@ -72,8 +66,7 @@ namespace Audio
 
 		//~Begin ISourceBufferQueueListener
 		void OnSourceBufferEnd() override;
-		void OnRelease() override;
-		void OnUpdatePendingDecodes() override;
+		void OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData) override;
 		//~End ISourceBufferQueueListener
 
 	private:
@@ -134,7 +127,7 @@ namespace Audio
 		bool ComputeChannelMap(const int32 NumChannels);
 
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
-		bool UseHRTSpatialization() const;
+		bool UseObjectBasedSpatialization() const;
 
 		/** Whether or not to use the spatialization plugin. */
 		bool UseSpatializationPlugin() const;
@@ -151,23 +144,9 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		IAudioTask* AsyncRealtimeAudioTask;
-		
-		// Task used to store pending release/decode data
-		struct FPendingReleaseData
-		{
-			FSoundBuffer* Buffer;
-			IAudioTask* Task;
-
-			FPendingReleaseData()
-				: Buffer(nullptr)
-				, Task(nullptr)
-			{}
-		};
 
 		// Queue of pending release data. Pushed from audio thread, updated on audio render thread.
 		TQueue<FPendingReleaseData*> PendingReleases;
-		// Array of task data waiting to finished. Processed on audio render thread.
-		TArray<FPendingReleaseData*> TasksWaitingToFinish;
 
 		FCriticalSection RenderThreadCritSect;
 
@@ -181,6 +160,9 @@ namespace Audio
 		// will need to have a ref while playing back the sound. There is a small window where a 
 		// flushed/destroyed sound can destroy the buffer before the sound finishes using the buffer.
 		TArray<FMixerSourceBufferPtr> SourceVoiceBuffers;
+
+		// Raw uncompressed, non-float PCM data (int16)
+		FRawPCMDataBuffer RawPCMDataBuffer;
 
 		FSpatializationParams SpatializationParams;
 

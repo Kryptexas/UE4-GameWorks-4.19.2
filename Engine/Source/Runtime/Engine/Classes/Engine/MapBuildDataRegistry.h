@@ -13,9 +13,11 @@
 #include "Engine/EngineTypes.h"
 #include "SceneTypes.h"
 #include "UObject/UObjectAnnotation.h"
+#include "RenderCommandFence.h"
 #include "MapBuildDataRegistry.generated.h"
 
 class FPrecomputedLightVolumeData;
+class FPrecomputedVolumetricLightmapData;
 
 struct ENGINE_API FPerInstanceLightmapData
 {
@@ -180,6 +182,8 @@ public:
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void FinishDestroy() override;
 	//~ End UObject Interface
 
 	/** 
@@ -194,10 +198,19 @@ public:
 	 * Allocates a new FPrecomputedLightVolumeData from the registry.
 	 * Warning: Further allocations will invalidate the returned reference.
 	 */
-	ENGINE_API FPrecomputedLightVolumeData& AllocateLevelBuildData(const FGuid& LevelId);
-	ENGINE_API void AddLevelBuildData(const FGuid& LevelId, FPrecomputedLightVolumeData* InData);
-	ENGINE_API const FPrecomputedLightVolumeData* GetLevelBuildData(FGuid LevelId) const;
-	ENGINE_API FPrecomputedLightVolumeData* GetLevelBuildData(FGuid LevelId);
+	ENGINE_API FPrecomputedLightVolumeData& AllocateLevelPrecomputedLightVolumeBuildData(const FGuid& LevelId);
+	ENGINE_API void AddLevelPrecomputedLightVolumeBuildData(const FGuid& LevelId, FPrecomputedLightVolumeData* InData);
+	ENGINE_API const FPrecomputedLightVolumeData* GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId) const;
+	ENGINE_API FPrecomputedLightVolumeData* GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId);
+
+	/** 
+	 * Allocates a new FPrecomputedVolumetricLightmapData from the registry.
+	 * Warning: Further allocations will invalidate the returned reference.
+	 */
+	ENGINE_API FPrecomputedVolumetricLightmapData& AllocateLevelPrecomputedVolumetricLightmapBuildData(const FGuid& LevelId);
+	ENGINE_API void AddLevelPrecomputedVolumetricLightmapBuildData(const FGuid& LevelId, FPrecomputedVolumetricLightmapData* InData);
+	ENGINE_API const FPrecomputedVolumetricLightmapData* GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId) const;
+	ENGINE_API FPrecomputedVolumetricLightmapData* GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId);
 
 	/** 
 	 * Allocates a new FLightComponentMapBuildData from the registry.
@@ -213,11 +226,15 @@ public:
 
 private:
 
+	ENGINE_API void ReleaseResources();
 	ENGINE_API void EmptyData();
 
 	TMap<FGuid, FMeshMapBuildData> MeshBuildData;
-	TMap<FGuid, FPrecomputedLightVolumeData*> LevelBuildData;
+	TMap<FGuid, FPrecomputedLightVolumeData*> LevelPrecomputedLightVolumeBuildData;
+	TMap<FGuid, FPrecomputedVolumetricLightmapData*> LevelPrecomputedVolumetricLightmapBuildData;
 	TMap<FGuid, FLightComponentMapBuildData> LightBuildData;
+
+	FRenderCommandFence DestroyFence;
 };
 
 extern ENGINE_API FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;

@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Interfaces/IImageWrapper.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/EnumAsByte.h"
+#include "Containers/UnrealString.h"
+#include "IImageWrapper.h"
+
 
 /**
  * The abstract helper class for handling the different image formats
@@ -13,10 +17,8 @@ class FImageWrapperBase
 {
 public:
 
-	/**
-	 * Default Constructor.
-	 */
-	FImageWrapperBase( );
+	/** Default Constructor. */
+	FImageWrapperBase();
 
 public:
 
@@ -37,57 +39,57 @@ public:
 	 *
 	 * @param Quality The compression quality.
 	 */
-	virtual void Compress( int32 Quality ) = 0;
+	virtual void Compress(int32 Quality) = 0;
 
 	/**
 	 * Resets the local variables.
 	 */
-	virtual void Reset( );
+	virtual void Reset();
 
 	/**
 	 * Sets last error message.
 	 *
 	 * @param ErrorMessage The error message to set.
 	 */
-	virtual void SetError( const TCHAR* ErrorMessage );
+	virtual void SetError(const TCHAR* ErrorMessage);
 
 	/**  
 	 * Function to uncompress our data 
 	 *
 	 * @param InFormat How we want to manipulate the RGB data
 	 */
-	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) = 0;
+	virtual void Uncompress(const ERGBFormat InFormat, int32 InBitDepth) = 0;
 
 public:
 
-	// IImageWrapper interface
+	//~ IImageWrapper interface
 
-	virtual const TArray<uint8>& GetCompressed( int32 Quality = 0 ) override;
+	virtual const TArray<uint8>& GetCompressed(int32 Quality = 0) override;
 
-	virtual int32 GetBitDepth( ) const override
+	virtual int32 GetBitDepth() const override
 	{
 		return BitDepth;
 	}
 
-	virtual ERGBFormat::Type GetFormat() const override
+	virtual ERGBFormat GetFormat() const override
 	{
 		return Format;
 	}
 
-	virtual int32 GetHeight( ) const override
+	virtual int32 GetHeight() const override
 	{
 		return Height;
 	}
 
-	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) override;
+	virtual bool GetRaw(const ERGBFormat InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData) override;
 
-	virtual int32 GetWidth( ) const override
+	virtual int32 GetWidth() const override
 	{
 		return Width;
 	}
 
-	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
-	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) override;
+	virtual bool SetCompressed(const void* InCompressedData, int32 InCompressedSize) override;
+	virtual bool SetRaw(const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat InFormat, const int32 InBitDepth) override;
 
 protected:
 
@@ -96,11 +98,11 @@ protected:
 	TArray<uint8> CompressedData;
 
 	/** Format of the raw data */
-	TEnumAsByte<ERGBFormat::Type> RawFormat;
+	ERGBFormat RawFormat;
 	int8 RawBitDepth;
 
 	/** Format of the image */
-	TEnumAsByte<ERGBFormat::Type> Format;
+	ERGBFormat Format;
 
 	/** Bit depth of the image */
 	int8 BitDepth;

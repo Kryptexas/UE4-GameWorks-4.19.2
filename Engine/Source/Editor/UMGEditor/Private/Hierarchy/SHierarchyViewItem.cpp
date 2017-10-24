@@ -135,7 +135,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 
 	if ( TargetTemplate && ( DropZone == EItemDropZone::AboveItem || DropZone == EItemDropZone::BelowItem ) )
 	{
-		if ( UPanelWidget* TargetParentTemplate = Cast<UPanelWidget>(TargetTemplate->GetParent()) )
+		if ( UPanelWidget* TargetParentTemplate = TargetTemplate->GetParent() )
 		{
 			int32 InsertIndex = TargetParentTemplate->GetChildIndex(TargetTemplate);
 			InsertIndex += ( DropZone == EItemDropZone::AboveItem ) ? 0 : 1;
@@ -1083,6 +1083,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			// Widget icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
 				.ColorAndOpacity(FLinearColor(1,1,1,0.5))

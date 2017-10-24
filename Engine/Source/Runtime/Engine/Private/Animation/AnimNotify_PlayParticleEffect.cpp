@@ -14,6 +14,7 @@ UAnimNotify_PlayParticleEffect::UAnimNotify_PlayParticleEffect()
 	: Super()
 {
 	Attached = true;
+	Scale = FVector(1.f);
 
 #if WITH_EDITORONLY_DATA
 	NotifyColor = FColor(192, 255, 99, 255);
@@ -52,7 +53,7 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 
 		if (Attached)
 		{
-			UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset);
+			UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset, Scale);
 		}
 		else
 		{
@@ -60,6 +61,7 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 			FTransform SpawnTransform;
 			SpawnTransform.SetLocation(MeshTransform.TransformPosition(LocationOffset));
 			SpawnTransform.SetRotation(MeshTransform.GetRotation() * RotationOffsetQuat);
+			SpawnTransform.SetScale3D(Scale);
 			UGameplayStatics::SpawnEmitterAtLocation(MeshComp->GetWorld(), PSTemplate, SpawnTransform);
 		}
 	}

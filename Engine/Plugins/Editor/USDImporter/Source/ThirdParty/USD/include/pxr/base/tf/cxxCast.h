@@ -31,8 +31,10 @@
 #error This include file can only be included in C++ programs.
 #endif
 
-#include <ciso646>
+#include "pxr/pxr.h"
 #include <type_traits>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <class Src, class Dst>
 using Tf_CopyConst =
@@ -69,10 +71,12 @@ TfCastToMostDerivedType(T* ptr)
 
 template <typename T>
 inline typename std::enable_if<
-    not std::is_polymorphic<T>::value, Tf_CopyCV<T, void>*>::type
+    !std::is_polymorphic<T>::value, Tf_CopyCV<T, void>*>::type
 TfCastToMostDerivedType(T* ptr)
 {
     return static_cast<Tf_CopyCV<T, void>*>(ptr);
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

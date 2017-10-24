@@ -1,25 +1,27 @@
+Availability: Public
+Crumbs: %ROOT%
 Title: Samsung Gear VR Headset Prerequisites
-Description:Required initial setup for the Gear VR Headset
-Availability:Public
-Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Navigation:platform
-Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.16
-prereq: Engine\Blueprints\GettingStarted
-type:overview
+Description: Required initial setup for the Gear VR Headset
+Type: Reference
+Version: 4.17
 parent:Platforms/GearVR
+Order: 3
 tags:VR
 tags:GearVR
+tags:Basics
+prereq: Engine\Blueprints\GettingStarted
+prereq:Platforms/Android/GettingStarted/
+topic-image:Platforms\GearVR\SamsungGearVRDevelopment_topic.png
+
+
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
 [REGION:warning]
-Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later. Also, Codeworks for Android 1R6 supports Android-24, however, you will still need to use Android-19 or Android-21 when targeting the GearVR.
+Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later.
 [/REGION]
 
-With the 4.7 release of Unreal Engine 4 (UE4), you can now build Virtual Reality (VR) projects for the Samsung Gear VR Headset that can transform your supported Samsung Galaxy Smartphone into an immersive VR device. 
-In the following sections, we will go over everything you need to know to get your Samsung Galaxy Smartphone properly setup so that it can work with the Samsung Gear VR headset.
+Unreal Engine 4 (UE4), offeres support for building Virtual Reality (VR) projects for the Samsung Gear VR Headset that can transform your supported Samsung Galaxy Smartphone into an immersive VR device. In the following sections, we will go over everything you need to know to get your Samsung Galaxy Smartphone properly setup so that it can work with the Samsung Gear VR headset.
 
 ## Gear VR Official Documentation
 
@@ -27,6 +29,7 @@ For a more in-depth look at how the Gear VR SDK works or for more information on
 
 * [Oculus Mobile Software Development Kit(SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)
 * [Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)
+
 
 ## Gear VR Headset Prerequisites 
 
@@ -66,7 +69,7 @@ If you are not sure how to get your Smartphone's **Device ID**, the [Oculus webs
 Then, place that folder in **Engine/Build/Android/Java**. 
 
 	[region:warning]
-	If you do not do this, your project will not be able to run on your Galaxy Smartphone.
+	If you do not do this, your project will fail to launch on your Smartphone.
 	[/region]
 	
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)

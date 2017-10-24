@@ -30,7 +30,7 @@ bool UReimportSpeedTreeFactory::CanReimport(UObject* Obj, TArray<FString>& OutFi
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && Mesh->AssetImportData)
 	{
-		if (FPaths::GetExtension(Mesh->AssetImportData->GetFirstFilename()).ToLower() == "srt")
+		if (FPaths::GetExtension(Mesh->AssetImportData->GetFirstFilename()) == TEXT("srt"))
 		{
 			// SpeedTrees file extension matches with filepath			
 			Mesh->AssetImportData->ExtractFilenames(OutFilenames);

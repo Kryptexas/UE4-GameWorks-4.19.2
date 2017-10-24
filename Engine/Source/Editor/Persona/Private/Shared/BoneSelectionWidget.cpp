@@ -8,6 +8,7 @@
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "IEditableSkeleton.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"
 
@@ -16,7 +17,9 @@ void SBoneTreeMenu::Construct(const FArguments& InArgs)
 {
 	OnSelectionChangedDelegate = InArgs._OnBoneSelectionChanged;
 	OnGetReferenceSkeletonDelegate = InArgs._OnGetReferenceSkeleton;
+	OnGetSocketListDelegate = InArgs._OnGetSocketList;
 	bShowVirtualBones = InArgs._bShowVirtualBones;
+	bShowSocket = InArgs._bShowSocket;
 
 	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
 
@@ -169,6 +172,50 @@ void SBoneTreeMenu::RebuildBoneList(const FName& SelectedBone)
 		}
 	}
 
+
+	if (bShowSocket && ensure(OnGetSocketListDelegate.IsBound()))
+	{
+		const TArray<class USkeletalMeshSocket*>& Sockets = OnGetSocketListDelegate.Execute();
+		const int32 MaxSockets = Sockets.Num();
+
+		for (int32 SocketIdx = 0; SocketIdx < MaxSockets; ++SocketIdx)
+		{
+			const USkeletalMeshSocket* Socket = Sockets[SocketIdx];
+			const FName SocketName = Socket->SocketName;
+			TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(SocketName));
+
+			// Filter if Necessary
+			if (!FilterText.IsEmpty() && !BoneInfo->BoneName.ToString().Contains(FilterText.ToString()))
+			{
+				continue;
+			}
+
+			const FName ParentBoneName = Socket->BoneName;
+			if (FilterText.IsEmpty())
+			{
+				for (int32 FlatListIdx = 0; FlatListIdx < SkeletonTreeInfoFlat.Num(); ++FlatListIdx)
+				{
+					TSharedPtr<FBoneNameInfo> InfoEntry = SkeletonTreeInfoFlat[FlatListIdx];
+					if (InfoEntry->BoneName == ParentBoneName)
+					{
+						SkeletonTreeInfoFlat[FlatListIdx]->Children.Add(BoneInfo);
+						break;
+					}
+				}
+			}
+			else
+			{
+				SkeletonTreeInfo.Add(BoneInfo);
+			}
+
+			TreeView->SetItemExpansion(BoneInfo, true);
+			if (SocketName == SelectedBone)
+			{
+				TreeView->SetItemSelection(BoneInfo, true);
+				TreeView->RequestScrollIntoView(BoneInfo);
+			}
+		}
+	}
 	TreeView->RequestTreeRefresh();
 }
 
@@ -179,6 +226,8 @@ void SBoneSelectionWidget::Construct(const FArguments& InArgs)
 	OnBoneSelectionChanged = InArgs._OnBoneSelectionChanged;
 	OnGetSelectedBone = InArgs._OnGetSelectedBone;
 	OnGetReferenceSkeleton = InArgs._OnGetReferenceSkeleton;
+	OnGetSocketList = InArgs._OnGetSocketList;
+	bShowSocket = InArgs._bShowSocket;
 
 	SuppliedToolTip = InArgs._ToolTipText.Get();
 
@@ -209,6 +258,8 @@ TSharedRef<SWidget> SBoneSelectionWidget::CreateSkeletonWidgetMenu()
 	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu)
 		.OnBoneSelectionChanged(this, &SBoneSelectionWidget::OnSelectionChanged)
 		.OnGetReferenceSkeleton(OnGetReferenceSkeleton)
+		.OnGetSocketList(OnGetSocketList)
+		.bShowSocket(bShowSocket)
 		.SelectedBone(CurrentBoneName);
 
 	BonePickerButton->SetMenuContentWidgetToFocus(MenuWidget->FilterTextWidget);

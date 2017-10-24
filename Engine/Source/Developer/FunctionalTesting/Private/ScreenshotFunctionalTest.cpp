@@ -12,86 +12,46 @@
 #include "Misc/AutomationTest.h"
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
-	: AFunctionalTest(ObjectInitializer)
-	, ScreenshotOptions(EComparisonTolerance::Low)
+	: AScreenshotFunctionalTestBase(ObjectInitializer)
+	, bCameraCutOnScreenshotPrep(false)
 {
-	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	ScreenshotCamera->SetupAttachment(RootComponent);
 }
 
 void AScreenshotFunctionalTest::PrepareTest()
 {
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PlayerController->SetViewTarget(this, FViewTargetTransitionParams());
-
-	// It's possible the defaults for certain tolerance levels have changed, so reset them on test start.
-	ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
-
 	Super::PrepareTest();
-}
 
-bool AScreenshotFunctionalTest::IsReady_Implementation()
-{
-	if ( (GetWorld()->GetTimeSeconds() - RunTime) > ScreenshotOptions.Delay )
+	// Apply a camera cut if requested
+	if (bCameraCutOnScreenshotPrep)
 	{
-		return ( GFrameNumber - RunFrame ) > 5;
-	}
-	
-	return false;
-}
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
-void AScreenshotFunctionalTest::StartTest()
-{
-	Super::StartTest();
-
-	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(this, GetName(), ScreenshotOptions);
-
-	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTakenAndCompared);
-}
-
-void AScreenshotFunctionalTest::OnScreenshotTakenAndCompared()
-{
-	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
-
-	FinishTest(EFunctionalTestResult::Succeeded, TEXT(""));
-}
-
-#if WITH_EDITOR
-
-bool AScreenshotFunctionalTest::CanEditChange(const UProperty* InProperty) const
-{
-	bool bIsEditable = Super::CanEditChange(InProperty);
-	if ( bIsEditable && InProperty )
-	{
-		const FName PropertyName = InProperty->GetFName();
-
-		if ( PropertyName == GET_MEMBER_NAME_CHECKED(FAutomationScreenshotOptions, ToleranceAmount) )
+		if (PlayerController && PlayerController->PlayerCameraManager)
 		{
-			bIsEditable = ScreenshotOptions.Tolerance == EComparisonTolerance::Custom;
-		}
-		else if ( PropertyName == TEXT("ObservationPoint") )
-		{
-			// You can't ever observe from anywhere but the camera on the screenshot test.
-			bIsEditable = false;
+			PlayerController->PlayerCameraManager->bGameCameraCutThisFrame = true;
+			if (ScreenshotCamera)
+			{
+				ScreenshotCamera->NotifyCameraCut();
+			}
 		}
 	}
 
-	return bIsEditable;
+	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
 }
 
-void AScreenshotFunctionalTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void AScreenshotFunctionalTest::RequestScreenshot()
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	Super::RequestScreenshot();
 
-	if ( PropertyChangedEvent.Property )
-	{
-		const FName PropertyName = PropertyChangedEvent.Property->GetFName();
-
-		if ( PropertyName == GET_MEMBER_NAME_CHECKED(FAutomationScreenshotOptions, Tolerance) )
-		{
-			ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
-		}
-	}
+	// Screenshots in UE4 work in this way:
+	// 1. Call FScreenshotRequest::RequestScreenshot to ask the system to take a screenshot. The screenshot
+	//    will have the same resolution as the current viewport;
+	// 2. Register a callback to UGameViewportClient::OnScreenshotCaptured() delegate. The call back will be
+	//    called with screenshot pixel data when the shot is taken;
+	// 3. Wait till the next frame or call FSceneViewport::Invalidate to force a redraw. Screenshot is not
+	//    taken until next draw where UGameViewportClient::ProcessScreenshots or
+	//    FEditorViewportClient::ProcessScreenshots is called to read pixels back from the viewport. It also
+	//    trigger the callback function registered in step 2.
+	bool bShowUI = false;
+	FScreenshotRequest::RequestScreenshot(bShowUI);
 }
-
-#endif

@@ -297,6 +297,7 @@ public:
 
 	/** Return true if currently aiming to teleport. */
 	bool IsAimingTeleport() const;
+	bool IsTeleporting() const;
 
 	/** Toggles the debug mode. */
 	static void ToggleDebugMode();
@@ -309,9 +310,8 @@ public:
 	FOnToggleVRModeDebug& OnToggleDebugMode() { return OnToggleDebugModeEvent; };
 
 protected:
-
+	
 	virtual void TransitionWorld(UWorld* NewWorld) override;
-	virtual void LeftSimulateInEditor(UWorld* SimulateWorld) override;
 
 private:
 
@@ -373,6 +373,7 @@ protected:
 	//
 
 	/** Actor with components to represent the VR avatar in the world, including motion controller meshes */
+	UPROPERTY()
 	class AVREditorAvatarActor* AvatarActor;
 
 

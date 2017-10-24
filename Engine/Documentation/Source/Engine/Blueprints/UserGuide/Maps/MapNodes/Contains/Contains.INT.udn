@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:Contains
 Description:This node checks to see if a key exists in a provided Map.
 Crumbs:%ROOT%

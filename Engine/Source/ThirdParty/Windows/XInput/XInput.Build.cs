@@ -7,7 +7,7 @@ public class XInput : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
+		string DirectXSDKDir = Target.UEThirdPartySourceDirectory + "Windows/DirectX";
 
 		// Ensure correct include and link paths for xinput so the correct dll is loaded (xinput1_3.dll)
 		PublicSystemIncludePaths.Add(DirectXSDKDir + "/include");

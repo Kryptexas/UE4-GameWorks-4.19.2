@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "ClassViewerProjectSettings.generated.h"
 
 
@@ -25,6 +25,6 @@ class CLASSVIEWER_API UClassViewerProjectSettings : public UObject
 
 	/** The base classes to be considered Internal Only for the class picker.*/
 	UPROPERTY(EditAnywhere, config, Category = ClassVisibilityManagement, meta = (MetaClass = "Object", DisplayName = "List of base classes to consider Internal Only.", AllowAbstract = "true", ShowTreeView, HideViewOptions))
-	TArray<FStringClassReference> InternalOnlyClasses;
+	TArray<FSoftClassPath> InternalOnlyClasses;
 #endif
 };

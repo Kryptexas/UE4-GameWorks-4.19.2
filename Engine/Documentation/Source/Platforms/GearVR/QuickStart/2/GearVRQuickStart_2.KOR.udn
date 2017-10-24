@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3537135
 Availability:Public
 Title:2. 기어 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
@@ -24,7 +24,7 @@ Checkpoint:GearVRQS
 	언리얼 엔진 4.8 이상 버전에 블루프린트 기반 프로젝트를 사용하시는 경우, Visual Studio 는 필요치 않아 열리지 않을 것입니다.
 	[/region]
 
-1. UE4 에디터가 로드되면, **메인 툴바** 에서 **창** 탭을 열고 **플러그인** 메뉴를 선택합니다.
+1. UE4 에디터가 로드되면, **메인 툴바** 에서 **편집** 탭을 열고 **플러그인** 메뉴를 선택합니다.
 	
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:videoid]
@@ -44,7 +44,7 @@ Checkpoint:GearVRQS
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. **Plugins** 메뉴에서 **Head Mounted Displays** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
+1. **Plugins** 메뉴에서 **Virtual Reality** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
 
 	![](GVR_Plugin_Options_Toggle.png)
 

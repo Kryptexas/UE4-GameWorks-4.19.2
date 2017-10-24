@@ -1,12 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SAsyncImage.h"
-#include "Widgets/SOverlay.h"
+
 #include "HAL/FileManager.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Misc/FileHelper.h"
-#include "Interfaces/IImageWrapperModule.h"
-#include "SlateApplication.h"
 #include "ModuleManager.h"
+#include "SlateApplication.h"
+#include "Widgets/SOverlay.h"
+
 
 void SAsyncImage::Construct(const FArguments& InArgs)
 {
@@ -86,14 +89,14 @@ FSlateTextureDataPtr SAsyncImage::LoadScreenshot(FString ImagePath)
 	if ( FFileHelper::LoadFileToArray(RawFileData, *ImagePath) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-		IImageWrapperPtr ImageWrappers[3] =
+		TSharedPtr<IImageWrapper> ImageWrappers[3] =
 		{
 			ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG),
 			ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG),
 			ImageWrapperModule.CreateImageWrapper(EImageFormat::BMP),
 		};
 
-		for ( IImageWrapperPtr ImageWrapper : ImageWrappers )
+		for ( TSharedPtr<IImageWrapper> ImageWrapper : ImageWrappers )
 		{
 			if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed(RawFileData.GetData(), RawFileData.Num()) )
 			{

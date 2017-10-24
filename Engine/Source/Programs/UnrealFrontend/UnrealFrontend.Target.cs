@@ -22,12 +22,12 @@ public class UnrealFrontendTarget : TargetRules
 		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration)
 	{
-		UEBuildConfiguration.bBuildEditor = false;
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
-		UEBuildConfiguration.bForceBuildTargetPlatforms = true;
-		UEBuildConfiguration.bCompileWithStatsWithoutEngine = true;
-		UEBuildConfiguration.bCompileWithPluginSupport = true;
+		bBuildEditor = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = true;
+		bForceBuildTargetPlatforms = true;
+		bCompileWithStatsWithoutEngine = true;
+		bCompileWithPluginSupport = true;
 
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 	}

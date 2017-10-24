@@ -33,6 +33,7 @@
 #include "LightMapHelpers.h"
 
 #define SHOW_WIREFRAME_MESH 0
+#define SAVE_INTERMEDIATE_TEXTURES 0
 
 FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth, int32 InImageHeight, bool bIsNormalMap)
 {
@@ -953,8 +954,6 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 	}
 
 	PerformUVBorderSmear(OutBMP, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), bNormalmap);
-
-#define SAVE_INTERMEDIATE_TEXTURES 1
 #ifdef SAVE_INTERMEDIATE_TEXTURES
 	FString FilenameString = FString::Printf(
 		TEXT( "D:/TextureTest/%s-mat%d-prop%d.bmp"),

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Title: TArray: 언리얼 엔진의 배열
 Crumbs:
 Description:
@@ -42,7 +42,7 @@ Add 와 Emplace 함수를 사용해서 배열 끝에 새 오브젝트를 만들 
 * Add 는 엘리먼트 유형의 인스턴스를 배열에 복사 (또는 이동)합니다.
 * Emplace 는 지정한 인수를 사용하여 엘리먼트 유형의 인스턴스를 새로 생성합니다.
 
-즉 우리 TArray<FString> 의 경우, Add 는 스트링 리터럴에서 임시 FString 을 생성한 다음, 그 임시 내용물을 컨테이너 안의 새로운 FString 으로 이동합니다. 반면 Emplace 는 스트링 리터럴을 사용해서 FString 을 직접 만듭니다. 최종 결과는 같지만, Emplace 는 임시 생성을 하지 않습니다. FString 처럼 복잡한 값 유형은 임시 생성을 하면 퍼포먼스상 바람직하지 않은 경우가 많지요. Add 의 동의어로 Push 를 사용할 수도 있습니다.
+즉 우리 `TArray<FString>` 의 경우, Add 는 스트링 리터럴에서 임시 FString 을 생성한 다음, 그 임시 내용물을 컨테이너 안의 새로운 FString 으로 이동합니다. 반면 Emplace 는 스트링 리터럴을 사용해서 FString 을 직접 만듭니다. 최종 결과는 같지만, Emplace 는 임시 생성을 하지 않습니다. FString 처럼 복잡한 값 유형은 임시 생성을 하면 퍼포먼스상 바람직하지 않은 경우가 많지요. Add 의 동의어로 Push 를 사용할 수도 있습니다.
 
 일반적으로 호출되는 곳에 임시 생성 후 컨테이너에 복사 내지 이동하는 불필요한 절차를 피할 수 있다는 점에서 Emplace 가 Add 보다 낫습니다. 일반적인 경험 법칙으로는, 사소한 유형에는 Add 를, 그 외에는 Emplace 를 사용하면 됩니다. Emplace 가 Add 보다 효율이 떨어질 일은 절대 없지만, 가끔은 Add 의 가독성이 나을 수도 있습니다.
 

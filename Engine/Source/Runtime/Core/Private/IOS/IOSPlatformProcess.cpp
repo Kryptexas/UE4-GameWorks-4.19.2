@@ -41,21 +41,17 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 {
 	UE_LOG(LogIOS, Log,  TEXT("LaunchURL %s %s"), URL, Parms?Parms:TEXT("") );
 	NSString* CFUrl = (NSString*)FPlatformString::TCHARToCFString( URL );
-    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [NSCharacterSet URLQueryAllowedCharacterSet]];
-	[[UIApplication sharedApplication] openURL: [NSURL URLWithString:( NSString *)CFUrl]];
-
+	bool Result = [[UIApplication sharedApplication] openURL: [NSURL URLWithString: CFUrl]];
 	if (Error != nullptr)
 	{
-		*Error = TEXT("");
+		*Error = Result ? TEXT("") : TEXT("unable to open url");
 	}
 }
 
 bool FIOSPlatformProcess::CanLaunchURL(const TCHAR* URL)
 {
 	NSString* CFUrl = (NSString*)FPlatformString::TCHARToCFString(URL);
-    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [NSCharacterSet URLQueryAllowedCharacterSet]];
-	bool Result = [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString : (NSString *)CFUrl]];
-
+    bool Result = [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString: CFUrl]];
 	return Result;
 }
 

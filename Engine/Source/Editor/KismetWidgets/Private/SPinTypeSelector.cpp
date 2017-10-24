@@ -714,17 +714,17 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
-	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::AssetID))
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::SoftObject))
 	{
-		PinType.PinCategory = UEdGraphSchema_K2::PC_Asset;
+		PinType.PinCategory = UEdGraphSchema_K2::PC_SoftObject;
 		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("AssetTooltip", "Path to an instanced object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the object reference."), Args));
 		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
 		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
-	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ClassAssetID))
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::SoftClass))
 	{
-		PinType.PinCategory = UEdGraphSchema_K2::PC_AssetClass;
+		PinType.PinCategory = UEdGraphSchema_K2::PC_SoftClass;
 		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("ClassAssetTooltip", "Path to a class object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the class."), Args));
 		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
 		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
@@ -1059,29 +1059,39 @@ bool SPinTypeSelector::GetChildrenMatchingSearch(const FText& InSearchText, cons
 
 FText SPinTypeSelector::GetToolTipForComboBoxType() const
 {
+	FText EditText;
 	if(IsEnabled())
 	{
 		if (bIsCompactSelector)
 		{
-			return LOCTEXT("CompactPinTypeSelector", "Left click to select the variable's pin type. Right click to toggle the type as an array.");
+			EditText = LOCTEXT("CompactPinTypeSelector", "Left click to select the variable's pin type. Right click to toggle the type as an array.");
 		}
 		else
 		{
-			return LOCTEXT("PinTypeSelector", "Select the variable's pin type.");
+			EditText = LOCTEXT("PinTypeSelector", "Select the variable's pin type.");
 		}
 	}
+	else
+	{
+		EditText = LOCTEXT("PinTypeSelector_Disabled", "Cannot edit variable type when they are inherited from parent.");
+	}
 
-	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit variable type when they are inherited from parent.");
+	return FText::Format(LOCTEXT("PrimaryTypeTwoLines", "{0}\nCurrent Type: {1}"), EditText, GetTypeDescription());
 }
 
 FText SPinTypeSelector::GetToolTipForComboBoxSecondaryType() const
 {
+	FText EditText;
 	if (IsEnabled())
 	{
-		return LOCTEXT("PinTypeValueSelector", "Select the map's value type.");
+		EditText = LOCTEXT("PinTypeValueSelector", "Select the map's value type.");
+	}
+	else
+	{
+		EditText = LOCTEXT("PinTypeSelector_ValueDisabled", "Cannot edit map value type when they are inherited from parent.");
 	}
 
-	return LOCTEXT("PinTypeSelector_ValueDisabled", "Cannot edit map value type when they are inherited from parent.");
+	return FText::Format(LOCTEXT("SecondaryTypeTwoLines", "{0}\nValue Type: {1}"), EditText, GetSecondaryTypeDescription());
 }
 
 FText SPinTypeSelector::GetToolTipForArrayWidget() const
@@ -1101,17 +1111,38 @@ FText SPinTypeSelector::GetToolTipForArrayWidget() const
 
 FText SPinTypeSelector::GetToolTipForContainerWidget() const
 {
-	if (IsEnabled())
+	if (TargetPinType.Get().PinCategory == Schema->PC_Exec)
 	{
 		// The entire widget may be enabled, but the container type button may be disabled because it is an "exec" pin.
-		if (TargetPinType.Get().PinCategory == Schema->PC_Exec)
-		{
-			return LOCTEXT("ContainerType_ExecDisabled", "Exec pins cannot be containers.");
-		}
-		return LOCTEXT("ContainerType", "Make this variable a container (array, set, or map) of selected type.");
+		return LOCTEXT("ContainerType_ExecDisabled", "Exec pins cannot be containers.");
 	}
+	else
+	{
+		FText EditText;
+		if (IsEnabled())
+		{
+			EditText = LOCTEXT("ContainerType", "Make this variable a container (array, set, or map) of selected type.");
+		}
+		else
+		{
+			EditText = LOCTEXT("ContainerType_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
+		}
 
-	return LOCTEXT("ContainerType_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
+		FText ContainerTypeText;
+		switch (TargetPinType.Get().ContainerType)
+		{
+		case EPinContainerType::Array:
+			ContainerTypeText = LOCTEXT("ContainerTypeTooltip_Array", "Array");
+			break;
+		case EPinContainerType::Set:
+			ContainerTypeText = LOCTEXT("ContainerTypeTooltip_Set", "Set");
+			break;
+		case EPinContainerType::Map:
+			ContainerTypeText = LOCTEXT("ContainerTypeTooltip_Map", "Map (Dictionary)");
+			break;
+		}
+		return ContainerTypeText.IsEmpty() ? EditText : FText::Format(LOCTEXT("ContainerTypeTwoLines", "{0}\nContainer Type: {1}"), EditText, ContainerTypeText);
+	}
 }
 
 FReply SPinTypeSelector::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

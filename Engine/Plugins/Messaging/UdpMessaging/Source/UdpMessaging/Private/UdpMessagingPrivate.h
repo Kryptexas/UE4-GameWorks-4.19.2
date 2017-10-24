@@ -2,17 +2,10 @@
 
 #pragma once
 
-
-/* Private dependencies
- *****************************************************************************/
-
-#include "CoreMinimal.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Logging/LogMacros.h"
 
-
-/* Private constants
- *****************************************************************************/
 
 /** Declares a log category for this module. */
 DECLARE_LOG_CATEGORY_EXTERN(LogUdpMessaging, Log, All);
@@ -32,17 +25,3 @@ DECLARE_LOG_CATEGORY_EXTERN(LogUdpMessaging, Log, All);
 
 /** Defines the protocol version of the UDP message transport. */
 #define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 10
-
-
-/* Private includes
- *****************************************************************************/
-
-// shared
-
-// transport
-
-#if PLATFORM_DESKTOP
-
-// tunnel
-
-#endif

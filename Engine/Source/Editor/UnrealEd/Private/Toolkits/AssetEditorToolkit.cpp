@@ -241,7 +241,8 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
-		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ) );
+		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ),
+		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanFindInContentBrowser ));
 	
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().ViewReferences,
@@ -659,6 +660,19 @@ void FAssetEditorToolkit::SetAssetEditorModeManager(FAssetEditorModeManager* InM
 	AssetEditorModeManager = InModeManager;
 }
 
+void FAssetEditorToolkit::RemoveEditingAsset(UObject* Asset)
+{
+	// Just close the editor tab if it's the last element
+	if (EditingObjects.Num() == 1 && EditingObjects.Contains(Asset))
+	{
+		CloseWindow();
+	}
+	else
+	{
+		RemoveEditingObject(Asset);
+	}
+}
+
 void FAssetEditorToolkit::SwitchToStandaloneEditor_Execute( TWeakPtr< FAssetEditorToolkit > ThisToolkitWeakRef )
 {
 	// NOTE: We're being very careful here with pointer handling because we need to make sure the tookit's
@@ -982,7 +996,7 @@ void FAssetEditorToolkit::GenerateToolbar()
 	ToolbarBuilder.BeginSection("Asset");
 	{
 		ToolbarBuilder.AddToolBarButton(FAssetEditorCommonCommands::Get().SaveAsset);
-		ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Find in CB"));
+		ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Browse"));
 	}
 	ToolbarBuilder.EndSection();
 

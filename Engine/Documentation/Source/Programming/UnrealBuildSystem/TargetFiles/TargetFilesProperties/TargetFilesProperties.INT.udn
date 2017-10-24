@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.17
+Version: 4.18
 
 ### Read-Only Properties
 
@@ -96,6 +96,8 @@ $ bCompileSpeedTree (Boolean): Whether to compile SpeedTree support.
 
 $ bForceEnableExceptions (Boolean): Enable exceptions for all modules.
 
+$ bForceEnableObjCExceptions (Boolean): Enable exceptions for all modules.
+
 $ bForceEnableRTTI (Boolean): Enable RTTI for all modules.
 
 $ bWithServerCode (Boolean): Compile server-only code.
@@ -103,6 +105,8 @@ $ bWithServerCode (Boolean): Compile server-only code.
 $ bCompileWithStatsWithoutEngine (Boolean): Whether to include stats support even without the engine.
 
 $ bCompileWithPluginSupport (Boolean): Whether to include plugin support.
+
+$ bIncludePluginsForTargetPlatforms (Boolean): Whether to allow plugins which support all target platforms.
 
 $ bWithPerfCounters (Boolean): Whether to include PerfCounters support.
 
@@ -123,6 +127,8 @@ $ bForceCompileDevelopmentAutomationTests (Boolean): Whether to compile developm
 $ bForceCompilePerformanceAutomationTests (Boolean): Whether to compile performance automation tests.
 
 $ bEventDrivenLoader (Boolean): If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor.
+
+$ bUseXGEController (Boolean): Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
 
 $ bEnforceIWYU (Boolean): Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 
@@ -233,6 +239,10 @@ $ GlobalDefinitions (List&lt;String&gt;): Macros to define globally across the w
 $ ExtraModuleNames (List&lt;String&gt;): List of additional modules to be compiled into the target.
 
 $ BuildEnvironment (TargetBuildEnvironment): Specifies the build environment for this target. See TargetBuildEnvironment for more infomation on the available options.
+
+$ PreBuildSteps (List&lt;String&gt;): Specifies a list of steps which should be executed before this target is built, in the context of the host platform's shell. The following variables will be expanded before execution: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+
+$ PostBuildSteps (List&lt;String&gt;): Specifies a list of steps which should be executed after this target is built, in the context of the host platform's shell. The following variables will be expanded before execution: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
 
 $ OverrideExecutableFileExtension (String): Can be set to override the file extension of the executable file (normally .exe or .dll on Windows, for example)
 

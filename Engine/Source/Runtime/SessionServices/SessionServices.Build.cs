@@ -7,25 +7,21 @@ public class SessionServices : ModuleRules
 	public SessionServices(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
-			}
-		);
+			});
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"CoreUObject",
 				"EngineMessages",
 				"SessionMessages",
-			}
-		);
+			});
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Messaging",
-			}
-		);
+				"MessagingCommon",
+			});
 	}
 }

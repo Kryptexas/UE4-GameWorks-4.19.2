@@ -211,7 +211,7 @@ private:
 	FRunnableThread* Thread;
 
 	// Is the thread running? 
-	bool bIsRunning;
+	TSAN_ATOMIC(bool) bIsRunning;
 
 	// Holds the URL of the executable to launch. */
 	FString URL;

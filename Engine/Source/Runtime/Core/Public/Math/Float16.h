@@ -45,25 +45,25 @@ public:
 	};
 
 	/** Default constructor */
-	FFloat16( );
+	FFloat16();
 
 	/** Copy constructor. */
-	FFloat16( const FFloat16& FP16Value );
+	FFloat16(const FFloat16& FP16Value);
 
 	/** Conversion constructor. Convert from Fp32 to Fp16. */
-	FFloat16( float FP32Value );	
+	FFloat16(float FP32Value);	
 
 	/** Assignment operator. Convert from Fp32 to Fp16. */
-	FFloat16& operator=( float FP32Value );
+	FFloat16& operator=(float FP32Value);
 
 	/** Assignment operator. Copy Fp16 value. */
-	FFloat16& operator=( const FFloat16& FP16Value );
+	FFloat16& operator=(const FFloat16& FP16Value);
 
 	/** Convert from Fp16 to Fp32. */
 	operator float() const;
 
 	/** Convert from Fp32 to Fp16. */
-	void Set( float FP32Value );
+	void Set(float FP32Value);
 	
 	/**
 	 * Convert from Fp32 to Fp16 without doing any checks if
@@ -73,7 +73,7 @@ public:
 	 *
 	 * @param FP32Value Single precision float to be set as half precision.
 	 */
-	void SetWithoutBoundsChecks( const float FP32Value );
+	void SetWithoutBoundsChecks(const float FP32Value);
 
 	/** Convert from Fp16 to Fp32. */
 	float GetFloat() const;
@@ -86,38 +86,38 @@ public:
 	 *
 	 * @return Reference to the Archive after serialization.
 	 */
-	friend FArchive& operator<<( FArchive& Ar, FFloat16& V )
+	friend FArchive& operator<<(FArchive& Ar, FFloat16& V)
 	{
 		return Ar << V.Encoded;
 	}
 };
 
 
-FORCEINLINE FFloat16::FFloat16( )
+FORCEINLINE FFloat16::FFloat16()
 	:	Encoded(0)
 { }
 
 
-FORCEINLINE FFloat16::FFloat16( const FFloat16& FP16Value )
+FORCEINLINE FFloat16::FFloat16(const FFloat16& FP16Value)
 {
 	Encoded = FP16Value.Encoded;
 }
 
 
-FORCEINLINE FFloat16::FFloat16( float FP32Value )
+FORCEINLINE FFloat16::FFloat16(float FP32Value)
 {
-	Set( FP32Value );
+	Set(FP32Value);
 }	
 
 
-FORCEINLINE FFloat16& FFloat16::operator=( float FP32Value )
+FORCEINLINE FFloat16& FFloat16::operator=(float FP32Value)
 {
-	Set( FP32Value );
+	Set(FP32Value);
 	return *this;
 }
 
 
-FORCEINLINE FFloat16& FFloat16::operator=( const FFloat16& FP16Value )
+FORCEINLINE FFloat16& FFloat16::operator=(const FFloat16& FP16Value)
 {
 	Encoded = FP16Value.Encoded;
 	return *this;
@@ -130,7 +130,7 @@ FORCEINLINE FFloat16::operator float() const
 }
 
 
-FORCEINLINE void FFloat16::Set( float FP32Value )
+FORCEINLINE void FFloat16::Set(float FP32Value)
 {
 	FFloat32 FP32(FP32Value);
 
@@ -138,14 +138,14 @@ FORCEINLINE void FFloat16::Set( float FP32Value )
 	Components.Sign = FP32.Components.Sign;
 
 	// Check for zero, denormal or too small value.
-	if ( FP32.Components.Exponent <= 112 )			// Too small exponent? (0+127-15)
+	if (FP32.Components.Exponent <= 112)			// Too small exponent? (0+127-15)
 	{
 		// Set to 0.
 		Components.Exponent = 0;
 		Components.Mantissa = 0;
 	}
 	// Check for INF or NaN, or too high value
-	else if ( FP32.Components.Exponent >= 143 )		// Too large exponent? (31+127-15)
+	else if (FP32.Components.Exponent >= 143)		// Too large exponent? (31+127-15)
 	{
 		// Set to 65504.0 (max value)
 		Components.Exponent = 30;
@@ -160,7 +160,7 @@ FORCEINLINE void FFloat16::Set( float FP32Value )
 }
 
 
-FORCEINLINE void FFloat16::SetWithoutBoundsChecks( const float FP32Value )
+FORCEINLINE void FFloat16::SetWithoutBoundsChecks(const float FP32Value)
 {
 	const FFloat32 FP32(FP32Value);
 
@@ -182,7 +182,7 @@ FORCEINLINE float FFloat16::GetFloat() const
 	if (Components.Exponent == 0)
 	{
 		uint32 Mantissa = Components.Mantissa;
-		if( Mantissa == 0 )
+		if(Mantissa == 0)
 		{
 			// Zero.
 			Result.Components.Exponent = 0;

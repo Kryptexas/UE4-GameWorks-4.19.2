@@ -411,6 +411,9 @@ public:
 	void SetPostRollTime(float InPostRollTime) { PostRollTime = InPostRollTime; }
 	float GetPostRollTime() const { return PostRollTime; }
 
+	/** The optional offset time of this section */
+	virtual TOptional<float> GetOffsetTime() const { return TOptional<float>(); }
+
 	/** Gets the time for the key referenced by the supplied key handle. */
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const PURE_VIRTUAL( UAISenseEvent::GetKeyTime, return TOptional<float>(); );
 

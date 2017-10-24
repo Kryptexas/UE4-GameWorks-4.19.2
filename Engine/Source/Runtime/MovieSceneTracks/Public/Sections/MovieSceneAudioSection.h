@@ -173,6 +173,7 @@ public:
 	virtual UMovieSceneSection* SplitSection(float SplitTime) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
+	virtual TOptional<float> GetOffsetTime() const override { return TOptional<float>(StartOffset); }
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;

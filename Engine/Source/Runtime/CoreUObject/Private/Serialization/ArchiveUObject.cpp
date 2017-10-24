@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogArchiveUObject, Log, All);
  * don't need to bother serializing lazy object pointers.  However, serialization is required if you
  * want to load and save your object.
  */
-FArchive& FArchiveUObject::operator<<(class FLazyObjectPtr& LazyObjectPtr)
+FArchive& FArchiveUObject::operator<<(FLazyObjectPtr& Value)
 {
 	FArchive& Ar = *this;
 	// We never serialize our reference while the garbage collector is harvesting references
@@ -38,60 +38,60 @@ FArchive& FArchiveUObject::operator<<(class FLazyObjectPtr& LazyObjectPtr)
 			if (Ar.IsLoading())
 			{
 				// Reset before serializing to clear the internal weak pointer. 
-				LazyObjectPtr.Reset();
+				Value.Reset();
 			}
-			Ar << LazyObjectPtr.GetUniqueID();
+			Ar << Value.GetUniqueID();
 		}
 		else
 #endif
 		{
-			UObject* Object = LazyObjectPtr.Get();
+			UObject* Object = Value.Get();
 
 			Ar << Object;
 
 			if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
 			{
-				LazyObjectPtr = Object;
+				Value = Object;
 			}
 		}
 	}
 	return Ar;
 }
 
-FArchive& FArchiveUObject::operator<<( class FAssetPtr& AssetPtr )
+FArchive& FArchiveUObject::operator<<(FSoftObjectPtr& Value)
 {
 	FArchive& Ar = *this;
 	if (Ar.IsSaving() || Ar.IsLoading())
 	{
 		// Reset before serializing to clear the internal weak pointer. 
-		AssetPtr.ResetWeakPtr();
-		Ar << AssetPtr.GetUniqueID();
+		Value.ResetWeakPtr();
+		Ar << Value.GetUniqueID();
 	}
 	else if (!IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences())
 	{
 		// Treat this like a weak pointer object, as we are doing something like replacing references in memory
-		UObject* Object = AssetPtr.Get();
+		UObject* Object = Value.Get();
 
 		Ar << Object;
 
 		if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
 		{
-			AssetPtr = Object;
+			Value = Object;
 		}
 	}
 
 	return Ar;
 }
 
-FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
+FArchive& FArchiveUObject::operator<<(FSoftObjectPath& Value)
 {
 	Value.SerializePath(*this);
 	return *this;
 }
 
-FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& WeakObjectPtr)
+FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& Value)
 {
-	WeakObjectPtr.Serialize(*this);
+	Value.Serialize(*this);
 	return *this;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -46,17 +46,17 @@ void CefFindHandlerCToCpp::OnFindResult(CefRefPtr<CefBrowser> browser,
 CefFindHandlerCToCpp::CefFindHandlerCToCpp() {
 }
 
-template<> cef_find_handler_t* CefCToCpp<CefFindHandlerCToCpp, CefFindHandler,
-    cef_find_handler_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_find_handler_t* CefCToCppRefCounted<CefFindHandlerCToCpp,
+    CefFindHandler, cef_find_handler_t>::UnwrapDerived(CefWrapperType type,
     CefFindHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefFindHandlerCToCpp, CefFindHandler,
-    cef_find_handler_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefFindHandlerCToCpp,
+    CefFindHandler, cef_find_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefFindHandlerCToCpp, CefFindHandler,
-    cef_find_handler_t>::kWrapperType = WT_FIND_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefFindHandlerCToCpp,
+    CefFindHandler, cef_find_handler_t>::kWrapperType = WT_FIND_HANDLER;

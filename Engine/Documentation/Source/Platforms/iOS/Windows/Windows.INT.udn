@@ -10,6 +10,7 @@ parent:Platforms/iOS
 tags:Mobile
 tags:iOS
 prereq:Platforms/iOS/QuickStart
+related:Platforms/iOS/GettingStarted
 
 While building for iOS requires a Mac, using remote compilation means that a whole team that primarily uses Windows machines can build for iOS using one Mac. 
 

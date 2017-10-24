@@ -44,7 +44,7 @@ float GetTexCoordSizeAccuracy(in FDebugPSIn Inputs, int CoordIndex, float CPUSiz
 
 	float2 TexCoord = GetTexCoord(Inputs, CoordIndex);
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && COMPILER_HLSL
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float2 CoordDDX = ddx_fine(TexCoord);
 	float2 CoordDDY = ddy_fine(TexCoord);
 	float3 WorldPosDDX = ddx_fine(WorldPosition);

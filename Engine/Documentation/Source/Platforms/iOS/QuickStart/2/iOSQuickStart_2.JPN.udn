@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2744680
-Title:2.プロジェクトを作成する
+﻿INTSourceChangelist:3565221
+Title:2.プロジェクトの作成
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:アンリアル エンジンのゲーム プロジェクトを作成する
 Availability:Public
@@ -18,7 +18,7 @@ SkillLevel:Intermediate
 		[クイック スタートのホーム](Platforms/iOS/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
+		[前のステップ](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -26,7 +26,7 @@ SkillLevel:Intermediate
 %Steps%
 
 [REGION:note]
-この時点でこの手順は必ずしも必要ではありませんが、デプロイのテストを行うためにプロジェクトの準備ができているのは良いことです。[プロジェクトの準備ができていれば、このセクションはスキップできます。](Platforms/iOS/QuickStart/3 "")
+この時点でこの手順は必ずしも必要ではありませんが、デプロイのテストを行うためにプロジェクトの準備ができているのは良いことです。[プロジェクトの準備ができていれば、このセクションはスキップできます。](Platforms/iOS/QuickStart/3)
 [/REGION]
 
 %Globals:OSSelect%
@@ -71,8 +71,8 @@ SkillLevel:Intermediate
 
 [REGION:warning]
 このガイドで説明する PC のみのワークフローでは、純粋なブループリント プロジェクトを必要とします。プロジェクトでコードを使用する場合、 
-コードをコンパイルするために Mac も必要になります。PC で iOS 用のコード ベースのプロジェクトを開発する場合は、 
-[](Platforms/iOS/GettingStarted) ページで概説しているワークフローに従ってください。
+コードをコンパイルするために Mac も必要になります。PC で iOS 向けのコードベース プロジェクトを開発するためには、 
+[](Platforms/iOS/Windows) ページで概説しているワークフローに従ってください。
 [/REGION]
 [/EXCERPT:windows]
 [EXCERPT:macos]

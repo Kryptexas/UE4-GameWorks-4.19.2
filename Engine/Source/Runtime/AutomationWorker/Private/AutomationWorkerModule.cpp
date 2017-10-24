@@ -1,27 +1,30 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWorkerModule.h"
+
+#include "AutomationAnalytics.h"
+#include "AutomationWorkerMessages.h"
 #include "HAL/FileManager.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+#include "JsonObjectConverter.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageEndpointBuilder.h"
-#include "AutomationWorkerMessages.h"
-#include "AutomationAnalytics.h"
-#include "JsonObjectConverter.h"
 
 #if WITH_ENGINE
-#include "ImageUtils.h"
-#include "Engine/Engine.h"
-#include "Engine/GameViewportClient.h"
-#include "UnrealClient.h"
-#include "Tests/AutomationCommon.h"
+	#include "Engine/Engine.h"
+	#include "Engine/GameViewportClient.h"
+	#include "ImageUtils.h"
+	#include "Tests/AutomationCommon.h"
+	#include "UnrealClient.h"
 #endif
 
 #if WITH_EDITOR
-#include "AssetRegistryModule.h"
+	#include "AssetRegistryModule.h"
 #endif
+
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
 
@@ -259,18 +262,20 @@ void FAutomationWorkerModule::ReportTestComplete()
 
 void FAutomationWorkerModule::SendTests( const FMessageAddress& ControllerAddress )
 {
+	FAutomationWorkerRequestTestsReplyComplete* Reply = new FAutomationWorkerRequestTestsReplyComplete();
 	for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); TestIndex++ )
 	{
-		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex], TestInfo.Num()), ControllerAddress);
+		Reply->Tests.Emplace(FAutomationWorkerSingleTestReply(TestInfo[TestIndex]));
 	}
-	MessageEndpoint->Send(new FAutomationWorkerRequestTestsReplyComplete(), ControllerAddress);
+
+	MessageEndpoint->Send(Reply, ControllerAddress);
 }
 
 
 /* FAutomationWorkerModule callbacks
  *****************************************************************************/
 
-void FAutomationWorkerModule::HandleFindWorkersMessage(const FAutomationWorkerFindWorkers& Message, const IMessageContextRef& Context)
+void FAutomationWorkerModule::HandleFindWorkersMessage(const FAutomationWorkerFindWorkers& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// Set the Instance name to be the same as the session browser. This information should be shared at some point
 	if ((Message.SessionId == FApp::GetSessionId()) && (Message.Changelist == 10000))
@@ -306,7 +311,7 @@ void FAutomationWorkerModule::SendWorkerFound()
 	FPlatformMisc::GetOSVersions(OSMajorVersionString, OSSubVersionString);
 
 	FString OSVersionString = OSMajorVersionString + TEXT(" ") + OSSubVersionString;
-	FString CPUModelString = FPlatformMisc::GetCPUBrand().Trim();
+	FString CPUModelString = FPlatformMisc::GetCPUBrand().TrimStart();
 
 	Response->DeviceName = FPlatformProcess::ComputerName();
 	Response->InstanceName = FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());
@@ -328,7 +333,7 @@ void FAutomationWorkerModule::SendWorkerFound()
 }
 
 
-void FAutomationWorkerModule::HandleNextNetworkCommandReplyMessage( const FAutomationWorkerNextNetworkCommandReply& Message, const IMessageContextRef& Context )
+void FAutomationWorkerModule::HandleNextNetworkCommandReplyMessage( const FAutomationWorkerNextNetworkCommandReply& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	// Allow the next command to execute
 	bExecuteNextNetworkCommand = true;
@@ -338,19 +343,19 @@ void FAutomationWorkerModule::HandleNextNetworkCommandReplyMessage( const FAutom
 }
 
 
-void FAutomationWorkerModule::HandlePingMessage( const FAutomationWorkerPing& Message, const IMessageContextRef& Context )
+void FAutomationWorkerModule::HandlePingMessage( const FAutomationWorkerPing& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	MessageEndpoint->Send(new FAutomationWorkerPong(), Context->GetSender());
 }
 
 
-void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTests& Message, const IMessageContextRef& Context )
+void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FAutomationTestFramework::Get().ResetTests();
 }
 
 
-void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorkerRequestTests& Message, const IMessageContextRef& Context )
+void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorkerRequestTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FAutomationTestFramework::Get().LoadTestModules();
 	FAutomationTestFramework::Get().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
@@ -364,11 +369,6 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 void FAutomationWorkerModule::HandlePreTestingEvent()
 {
 #if WITH_ENGINE
-	if (!GIsEditor && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
-	}
-	//Register the editor screen shot callback
 	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
 #endif
 }
@@ -377,43 +377,28 @@ void FAutomationWorkerModule::HandlePreTestingEvent()
 void FAutomationWorkerModule::HandlePostTestingEvent()
 {
 #if WITH_ENGINE
-	if (!GIsEditor && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
-	}
-	//Register the editor screen shot callback
-	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+	FAutomationTestFramework::Get().OnScreenshotCaptured().Unbind();
 #endif
 }
 
 
-void FAutomationWorkerModule::HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const IMessageContextRef& Context)
+void FAutomationWorkerModule::HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// Image comparison finished.
 	FAutomationTestFramework::Get().NotifyScreenshotComparisonComplete(Message.bNew, Message.bSimilar, Message.MaxLocalDifference, Message.GlobalDifference, Message.ErrorMessage);
 }
 
-void FAutomationWorkerModule::HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const IMessageContextRef& Context)
+void FAutomationWorkerModule::HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FAutomationTestFramework::Get().NotifyTestDataRetrieved(Message.bIsNew, Message.JsonData);
 }
 
-void FAutomationWorkerModule::HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const IMessageContextRef& Context)
+void FAutomationWorkerModule::HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FAutomationTestFramework::Get().NotifyPerformanceDataRetrieved(Message.bSuccess, Message.ErrorMessage);
 }
 
 #if WITH_ENGINE
-void FAutomationWorkerModule::HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap)
-{
-	FAutomationScreenshotData Data;
-	Data.Width = Width;
-	Data.Height = Height;
-	Data.Path = FScreenshotRequest::GetFilename();
-
-	HandleScreenShotCapturedWithName(Bitmap, Data);
-}
-
 void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data)
 {
 	int32 NewHeight = Data.Height;
@@ -453,7 +438,7 @@ void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FCol
 #endif
 
 
-void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context )
+void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	ExecutionCount = Message.ExecutionCount;
 	TestName = Message.TestName;

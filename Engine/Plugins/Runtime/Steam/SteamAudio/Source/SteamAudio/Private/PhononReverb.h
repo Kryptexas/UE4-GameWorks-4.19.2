@@ -23,13 +23,16 @@ namespace SteamAudio
 		TArray<float> IndirectInArray;
 	};
 
+	/************************************************************************/
+	/* FPhononReverb. Reverb plugin for Steam Audio.                        */
+	/************************************************************************/
 	class FPhononReverb : public IAudioReverb
 	{
 	public:
 		FPhononReverb();
 		~FPhononReverb();
 
-		virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize) override;
+		virtual void Initialize(const FAudioPluginInitializationParams InitializationParams) override;
 		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UReverbPluginSourceSettingsBase* InSettings) override;
 		virtual void OnReleaseSource(const uint32 SourceId) override;
 		virtual class FSoundEffectSubmix* GetEffectSubmix(class USoundSubmix* Submix) override;
@@ -37,6 +40,7 @@ namespace SteamAudio
 		
 		void ProcessMixedAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData);
 		void SetEnvironmentalRenderer(IPLhandle EnvironmentalRenderer);
+		void SetEnvironmentCriticalSection(FCriticalSection* CriticalSection);
 		void CreateReverbEffect();
 		void UpdateListener(const FVector& Position, const FVector& Forward, const FVector& Up);
 
@@ -66,6 +70,8 @@ namespace SteamAudio
 		IPLVector3 ListenerForward;
 		IPLVector3 ListenerUp;
 
+		EIplSpatializationMethod CachedSpatializationMethod;
+
 		IPLRenderingSettings RenderingSettings;
 
 		TArray<FReverbSource> ReverbSources;
@@ -73,7 +79,9 @@ namespace SteamAudio
 		float ReverbIndirectContribution;
 		TArray<float> ReverbIndirectInArray;
 
-		class FSteamAudioModule* SteamAudioModule;
+		TAudioPluginListenerPtr PluginManagerPtr;
+
+		FCriticalSection* EnvironmentalCriticalSectionHandle;
 	};
 }
 

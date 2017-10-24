@@ -26,6 +26,7 @@ public class Landscape : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Engine",
 				"RenderCore", 
 				"RHI",
@@ -36,12 +37,12 @@ public class Landscape : ModuleRules
 		);
 
 		SetupModulePhysXAPEXSupport(Target);
-		if (UEBuildConfiguration.bCompilePhysX && UEBuildConfiguration.bBuildEditor)
+		if (Target.bCompilePhysX && Target.bBuildEditor)
 		{
 			DynamicallyLoadedModuleNames.Add("PhysXCooking");
 		}
 
-		if (UEBuildConfiguration.bBuildDeveloperTools && Target.Type != TargetType.Server)
+		if (Target.bBuildDeveloperTools && Target.Type != TargetType.Server)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -50,7 +51,7 @@ public class Landscape : ModuleRules
 			);
 		}
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			// TODO: Remove all landscape editing code from the Landscape module!!!
 			PrivateIncludePathModuleNames.Add("LandscapeEditor");

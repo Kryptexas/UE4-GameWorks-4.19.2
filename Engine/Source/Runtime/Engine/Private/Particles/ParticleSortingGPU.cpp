@@ -336,7 +336,7 @@ int32 SortParticlesGPU(
 		const int32 StreamCount = 2;
 		for (int32 StreamIndex = 0; StreamIndex < StreamCount; ++StreamIndex)
 		{
-			RHICmdList.SetStreamSource(StreamIndex, FVertexBufferRHIParamRef(), 0, 0);
+			RHICmdList.SetStreamSource(StreamIndex, FVertexBufferRHIParamRef(), 0);
 		}
 	}
 

@@ -13,7 +13,7 @@ Creating a new material expression in UE4 is straightforward.  As an example, I 
 
 ## Declaration
 
-First, add a new engine script file with a new type that derives from MaterialExpression.  Declare the expression's inputs and virtual functions, for example:<br> 
+First, add a new engine script file with a new type that derives from MaterialExpression.  Declare the expression's inputs and virtual functions, for example: 
 
 	MaterialExpressionSquare.h
 

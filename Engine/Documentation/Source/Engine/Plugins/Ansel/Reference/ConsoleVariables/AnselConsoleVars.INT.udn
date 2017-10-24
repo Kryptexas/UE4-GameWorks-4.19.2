@@ -1,6 +1,6 @@
 Availability:Public
-TItle:Ansel Console Variable Reference
-Description:Reference of the configuration variables available for the Nvidia Ansel Photography Plugin
+TItle:NVIDIA Ansel Console Variable Reference
+Description:Reference of the configuration variables available for the NVIDIA Ansel Photography Plugin
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:3
@@ -10,7 +10,7 @@ tags:Ansel
 version:4.14
 topic-image:Console_Topic.png
 
-The following console variables are available for configuring the behavior of the Nvidia Ansel Photography Plugin and can be set manually from the console, through your .ini files, or dynamically by a Blueprint. Most of them should be configured during development instead of at runtime, though `r.Photography.Allow` is useful to set dynamically.
+The following console variables are available for configuring the behavior of the NVIDIA Ansel Photography Plugin and can be set manually from the console, through your .ini files, or dynamically by a Blueprint. Most of them should be configured during development instead of at runtime, though `r.Photography.Allow` is useful to set dynamically.
 
 | Variable | Default | Description |
 | --- | --- | --- |

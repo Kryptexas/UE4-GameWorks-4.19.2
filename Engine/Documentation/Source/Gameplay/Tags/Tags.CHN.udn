@@ -1,68 +1,64 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Gameplay Tags
-Crumbs: %ROOT%, Engine, Engine/Gameplay
-Description: Gameplay Tags can be used to identify, categorize, match, and filter objects.
-version: 4.15
+﻿INTSourceChangelist:3599948
+Availability:Public
+Title:游戏性标记
+Crumbs: %ROOT%
+Description:游戏性标记可用于辨识、分类、匹配和过滤对象。
+version:4.15
 skilllevel:Intermediate
 Parent:Engine/Gameplay
+Order:
 type:overview
+tags:Gameplay
 
-## Gameplay Tags
-**Gameplay Tags** are conceptual, hierarchical labels with user-defined names. These tags can have any number of hierarchical levels, separated by the �.� character; for example, a Gameplay Tag with three levels would take the form of �Family.Genus.Species�, with �Family� being the broadest identifier in the hierarchy, and �Species� being the most specific. Note that the existence of �Family.Genus.Species� implicitly means that �Family.Genus� and �Family� Gameplay Tags also exist. Individual tags are lightweight, and use the type `FGameplayTag`. Since game objects frequently have multiple tags, **Gameplay Tag Containers** (using the type `FGameplayTagContainer`) are provided, and can handle a variety of additional queries. Gameplay Tags (or Gameplay Tag Containers) can be added to any object to associate it with conceptual labels that can then be used to identify, match, categorize, or filter as needed for your project.
+[toc(start:2 end:2)]
 
-### Creating Gameplay Tags
-Gameplay Tags must be added to the central tag dictionary for the engine to be aware of them. This can be done in three ways via editor functionality. Tags can be added manually in the **Project Settings** menu, with .ini files, through creating data table assets. All three methods are set up under **Project Settings**, by opening the **Gameplay Tags** tab under the **Project** section.
+**游戏性标记（Gameplay Tags）** 是用户定义命名的概念性层级标记。这些标记可拥有任意数量的层级等级，由“.”字符隔开。举例而言，带三个层级的游戏性标记的形式为“Family.Genus.Species”，“Family”为层级中最广泛的辨识符，而“Species”则是最特定的辨识符。注意“Family.Genus.Species”隐藏式地说明了“Family.Genus”和“Family”游戏性标记同样存在。个体标记很轻量级，使用 `FGameplayTag` 类型。游戏对象通常拥有多个标记，因此提供了 **游戏性标记容器**（使用 `FGameplayTagContainer` 类型），可处理大量额外查询。游戏性标记（或游戏性标记容器）可被添加至任意项目，将对象和概念标记关联起来。这些概念标记即可按需求用于辨识、匹配、分类或过滤项目的对象。
 
+## 创建游戏性标记
+游戏性标记必须被添加到中央标记词典，以便引擎了解。此操作可通过编辑器功能以三种方式执行。标记可在 **Project Settings** 菜单中用 .ini 文件或创建数据表资源进行手动添加。 
+
+全部三种方法均在 **Project Settings** 下进行设置，在 **Project** 部分中打开 **Gameplay Tags** 标记即可。
 ![Gameplay Tags menu in Project Settings](ProjectSettings.png)
 
-#### Manually Adding Tags
+### 手动添加标记
 
-The easiest way to add gameplay tags is to use enter them manually in the **Project Settings** menu. By checking the **Import Tags From Config** option, `Config/DefaultGameplayTags.Ini` will be loaded, as well as all Gameplay Tags in any .Ini files found under the `Config/Tags� path. An option labeled **Add New Gameplay Tag** will appear, and this option can be used to add new Gameplay Tags to any existing Gameplay Tag .Ini files, including the default file. Tags added in this way will also have an optional field for entering a brief description, which will appear as a tooltip in the editor.
+添加游戏性标记的最简单方法是在 **Project Settings** 菜单中手动进行输入。勾选 **Import Tags From Config** 选项后将加载 `Config/DefaultGameplayTags.ini`，以及 `Config/Tags` 路径下.ini 文件中的全部游戏性标记。将出现一个标记为 **Add New Gameplay Tag** 的选项，此选项可用于将新游戏性标记添加到现有的任意游戏性标记 .ini 文件中（包括默认文件）。以此法添加的标记也拥有一个输入简单描述的任选域，将作为提示文本出现在编辑器中。
 
 ![Manually Adding Tags in Project Settings](AddNewTag.png)
 
-#### Editing .Ini Files Directly
-To add tags using your own .Ini files, the **Import Tags From Config** option must be enabled. Gameplay Tags will then be loaded from each of the .Ini files found your project�s `Config/Tags/` path, which are easy to hand-edit. If these edits are made while the editor is running, turning the **Import Tags From Config** option off and back on will reload the files. The format within these files looks like this:
-
-	[UserTags]
-	GameplayTags=Vehicle.Air.Helicopter
-	GameplayTags=Movement.Flying
-	GameplayTags=Movement.Hovering
-
-If a hand-written file is modified by the editor�s **Add New Gameplay Tag** feature, all of the old tags, as well as the new tag, will be copied into a new section. The �[UserTags]� section will remain in the file, but will be ignored during load operations. For example, if �Movement.Landing� were added to our file above, the new file would look like this:
-
-	[UserTags]
-	GameplayTags=Vehicle.Air.Helicopter
-	GameplayTags=Movement.Flying
-	GameplayTags=Movement.Hovering
+### 直接编辑 .ini 文件
+如要添加使用自有 .ini 文件的标记，必须启用 **Import Tags From Config** 选项。游戏性标记将从项目的 `Config/Tags/` 路径中找到的每个 .ini 文件进行加载，十分易于手动编辑。如果这些编辑在编辑器运行时执行，先关闭 **Import Tags From Config** 选项，然后再重新启动则可重新加载文件。这些文件中的格式如下：
 
 	[/Script/GameplayTags.GameplayTagsList]
-	GameplayTagList=(Tag="Vehicle.Air.Helicopter",DevComment="")
+	GameplayTagList=(Tag="Vehicle.Air.Helicopter",DevComment="This is a custom tooltip!")
 	GameplayTagList=(Tag="Movement.Flying",DevComment="")
 	GameplayTagList=(Tag="Movement.Hovering",DevComment="")
 	GameplayTagList=(Tag="Movement.Landing",DevComment="")
 
-[REGION:note]It is not recommended to hand-edit a tag .Ini file after using the **Project Settings** menu to add tags to that file.[/REGION]
+此法便于同事添加其自建的标记。`Config/Tags` 中的 .ini 文件十分易于编辑，可以任意文件命名规则对其命名。
 
-This method is very convenient as a way to enable members of your team to add their own tags, since .Ini files in `Config/Tags` are easily-edited text files that can be named with any file-naming convention you like.
+前往 **Project Settings** 中的 **Gameplay Tags Developer** 菜单，在 **Developer Config Name** 中填入所需的文件名后，即可使用“开发者标记”配置文件。启用后将会把添加（由用户添加）至默认 .ini 文件的全部标记保存到一个用户指定的 .ini 文件中。您的 .ini 文件将保存在 `Config/Tags` 文件夹中，无需更多修改便可传给其他开发者或提交到源控制系统。这在拥有数千个标记的大型项目中十分实用，或作为一种区分特定开发者所创建标记的方式，或结合特定的游戏功能使用。这完全为任选，但有助于一些团队和工作流将特定的标记保存在单独的文件中。
 
-A �Developer Tag� config file can be used by going to the **Gameplay Tags Developer** menu within **Project Settings** and filling in the **Developer Config Name** with your desired filename. If set, this will save all tags you personally add to the default .Ini file to your specified .Ini file instead. Your .Ini file will reside in the `Config/Tags` folder, and can be passed to other developers or submitted to your source control system without further modification. This can be useful on large projects with thousands of tags, or simply as a way to separate tags created by specific developers or for use with specific game features. This is entirely optional, but it can be helpful for some teams and workflows to have certain tags stored in separate files.
-
-#### Data Table Assets
-Finally, tags can be added via [DataTable](Gameplay/DataDriven/#datatables) assets with the row type `GameplayTagTableRow`. This is especially useful for importing Gameplay Tags from an external source, such as an Excel spreadsheet file. Once your asset is created, add it to the **GameplayTagTableList** in the **Project Settings** menu and all tags contained within it will be added to the **Gameplay Tag Manager**. Note that this system supports multiple assets being listed, so you can separate out your project�s tags into different spreadsheets if this helps your workflow or organization.
+### 数据表资源
+最后，[数据表](Gameplay/DataDriven/#datatables) 资源结合行类型 `GameplayTagTableRow` 也可添加标记。从外部源（如 Excel 电子表格）中导入游戏性标记时尤为实用，但也可不导入文件自建资源，并在编辑器中使用。资源创建后，将其添加至 **Project Settings** 菜单中的 **GameplayTagTableList**，其中包含的所有标记将被添加至 **Gameplay Tag Manager**。注意：此系统支持多个资源被列出，因此您可以将项目的标记分隔为不同的电子表格（如有助于工作流或组织）。
 
 ![Gameplay Tags in a Data Table Asset](DataAsset.png)
 
-### Managing Gameplay Tags
-Once your Gameplay Tags have been added, you can manage them by searching for references to them, deleting them, or renaming them. All of these actions can be accessed with the caret dropdown next to a tag in the **Project Settings** menu. Tags can only be deleted in this menu if they were added via a .Ini file (either hand-edited or added via the **Project Settings** menu), and are not referenced by anything else. Renamed tags will cause additions to be made to the GameplayTagRedirects list, and any renamed tags will be silently fixed on load.
+[REGION:caption]数据表资源使用虚幻引擎资源而非 .ini 文件，可在编辑器运行时进行查看和修改（与其他游戏资源类似）。[/REGION]
 
-#### Gameplay Tag Test Operations
-There are a number of test operations, all based on the concept of matching tags to other tags, that can be performed on Gameplay Tags and Gameplay Tag Containers. Each of these functions will be called on a Gameplay Tag or Gameplay Tag Container, and will take a single Gameplay Tag or Gameplay Tag Container as a parameter.
+## 管理游戏性标记
+添加游戏性标记后，可通过搜索对其的引用、将其删除、对其重命名进行管理。可在 **Project Settings** 中标记旁的插入符下拉菜单中执行这些操作。如果标记通过 .ini 文件添加（手动编辑或通过 **Project Settings** 菜单添加），且未被其他元素所引用，则只能在此菜单中进行删除。重命名标记将在 GameplayTagRedirects 列表中进行添加，被重命名的标记在加载时将被修复（无提醒）。
 
-The following table details the operations available for tags and tag containers. In this table, the format �A.1� represents a single Gameplay Tag, while �{A.1}� represents that same tag as part of a Gameplay Tag Container. A container with multiple tags will be of the format �{A.1, B.1}�.
+![Editing Individual Gameplay Tags In Project Settings](ProjectSettingsEditTag.png)
 
-| Source | Function/Operation | Input Parameter | Return Value |
+[REGION:caption]可通过插入符下拉菜单在 Project Settings 中编辑游戏性标记。[/REGION]
+
+### 游戏性标记测试运算
+存在的大量测试运算均基于将标记和其他标记进行匹配这一概念。可在游戏性标记和游戏性标记容器上执行。这些函数将在游戏性标记或游戏性标记容器上进行调用，将把单个游戏性标记或游戏性标记容器视作参数。
+
+下表详述了标记和标记容器可进行的运算。在此表中，格式“A.1”代表一个单一的游戏性标记，而“{A.1}”则代表作为游戏性标记容器一部分的同一个标记。拥有多个标记的容器格式为“{A.1, B.1}”。
+
+| 源 | 函数/运算 | 输入参数 | 返回值 |
 | --- | --- | --- | --- |
 | A.1 | MatchesTag | A | true |
 | A.1 | MatchesTagExact (or ==) | A | false |
@@ -77,25 +73,41 @@ The following table details the operations available for tags and tag containers
 | {A.1, B.1} | HasAll | {A, B} | true |
 | {A.1, B.1} | HasAllExact | {A, B} | false |
 
-Note that providing empty or default Gameplay Tag Containers as the input parameter will cause all operations to return false, except for `HasAll`, `HasAllExact`, `MatchesAll`, and `MatchesAllExact`. The justification for this is that there are no tags in the parameter container that aren�t in the source set, and this is consistent with set theory.
+需要注意的是，将空白或默认游戏性标记容器作为输入参数将导致所有运算返回 false。`HasAll`、`HasAllExact`、`MatchesAll` 和 `MatchesAllExact` 除外。出现此情况的原因是源集中不包含的参数容器中没有标记。
 
-### Gameplay Tag Queries
-Certain types of queries for Gameplay Tag Containers can be stored in a **Gameplay Tag Query** variable in order to make them data-driven, perform them in many places without having to edit more than one variable or piece of code, and speed them up. Gameplay Tag Queries are limited to three basic tests:
-**Any Tags Match** succeeds if at least one tag from the query is found in the container.
-**All Tags Match** succeeds if there are no tags in the query that are not also found in the container. (This includes the case that no tags are present in the query.)
-**No Tags Match** succeeds if there are no tags in the query that are also found in the container. (This includes the case that no tags are present in the query.)
-However, those tests can be combined together via three larger expressions, each of which contains an array of additional expressions or tests:
-**Any Expressions Match** succeeds when any of its sub-expressions or tests succeeds.
-**All Expressions Match** succeeds when none of its sub-expressions or tests fail. (This includes the case that no sub-expressions or tests are present in the query.)
-**No Expressions Match** succeeds when none of its sub-expressions or tests succeed. (This includes the case that no sub-expressions or tests are present in the query.)
-[REGION:note]Note that all three test types refer to �exact� matching as per the table of operations above.[/REGION]
+举例而言，以下蓝图将使用部分如上命名的运算，检测一个游戏性标记容器是否拥有 `TestTag.One` 或 `TestTag.Three`，但不检查是否同时拥有这两者，也不检查是否拥有 `TestTag.Two`（测试 Actor 生成到游戏中时）。在此测试中，我们将使用蓝图中的文字容器值进行测试，但对 Actor 的容器使用蓝图（或 C++）变量。
 
-![Sample Gameplay Tag Query](TagQuery.png)
+![Sample Gameplay Tag Operations In A Blueprint](TagOperationsInBP.png)
 
-In the above sample query, either TestTag.One or TestTag.Three (but not both) must be in the source container, and TestTag.Two must not be.
+## 游戏性标记查询
+游戏性标记容器特定查询类型可保存在一个 **Gameplay Tag Query** 变量中，使其为数据驱动式，无需对多个变量或一部分代码进行编辑即可在多处执行，并调高速度。游戏性标记查询限于三种基础测试：
 
-### Using Gameplay Tags In Your Game
-To apply the tags you have created to objects in your game, add Gameplay Tags (C++ type `FGameplayTag`) or Gameplay Tag Containers (C++ type `FGameplayTagContainer`) properties to the objects. You can also add **Gameplay Tag Queries** (C++ type `FGameplayTagQuery`) to your objects as desired, or you can use the tag operations directly in Blueprints or C++ code. Once these properties have been added, you can edit them from the code or editor, like any other variable.
+* 如容器中的查询拥有至少一个标记，则 **Any Tags Match** 成功。
 
-### Accessing Gameplay Tags Quickly (Requires C++)
-The `IGameplayTagAssetInterface` can be implemented in C++. Doing so, and overriding the `GetOwnedGameplayTags` function, will create a Blueprint-accessible way to populate a Gameplay Tag Container with the tags associated with that object. In most cases, this just means copying the tags from the base class into a new container, but your implementation of the class could gather tags from multiple containers, call a Blueprint function to get access to Blueprint-declared tags, or whatever your object requires. The advantage of this interface is that it enables you to interact with a variety of disparate object types in a standardized way, so that you can get an object�s tags without explicitly casting the object and then writing custom code for each possible type to get the correct tag variable (or variables). This is especially useful on larger projects, where it can help to avoid hard-to-reproduce bugs and make code cleaner, faster, and easier to maintain.
+* 如容器中未找到查询，查询中也没有标记，则 **All Tags Match** 成功。_这包括查询中未出现标记的情况。_
+
+* 如容器中有查询，而查询中没有标记，则 **No Tags Match** 成功。_这包括查询中未出现标记的情况。_
+
+然而，这些测试可通过三个较大的表达式组合起来，每个表达式均包含一个额外表达式或测试的阵列：
+
+* 任意子表达式或测试成功，则 **Any Expressions Match** 成功。
+
+* 无子表达式或测试失败，则 **All Expressions Match** 成功。_这包括查询中未出现子表达式或测试的情况。_
+
+* 无子表达式或测试成功，则 **No Expressions Match** 成功。_这包括查询中未出现子表达式或测试的情况。_
+
+[REGION:note]注意：全部三种测试类型均参考上方运算表中的“完全”匹配。[/REGION]
+
+需要 `TestTag.One` 或 `TestTag.Three`（非两者同时）处于源容器中时，要求 `TestTag.Two` 不要位于源容器中，使用单一游戏性标记查询，即可重建之前的测试范例。在此测试中，我们将专门使用蓝图（或 C++）变量，但同时也支持文字值。这是我们的测试查询变量：
+
+![Sample Gameplay Tag Query Variable](TagQuery.png)
+
+设置好这个查询后，我们便可如下在测试 Actor 的蓝图中对游戏性标记容器进行求值：
+
+![Sample Gameplay Tag Query In A Blueprint](TagQueryInBP.png)
+
+## 在游戏中使用游戏性标记
+将游戏性标记（C++ 类 `FGameplayTag`）或游戏性标记容器（C++ 类 `FGameplayTagContainer`）属性添加到对象，即可将创建的标记应用到游戏中的对象。也可根据需要将 **游戏性标记查询**（C++ 类 `FGameplayTagQuery`）添加到对象，或直接在蓝图/C++ 代码中使用标记运算。添加这些属性后，即可像其他变量一样在代码或编辑器中对其进行编辑。
+
+## 快速在 C++ 中访问游戏性标记
+`IGameplayTagAssetInterface` 可在 C++ 中实现。执行此操作并覆盖 `GetOwnedGameplayTags` 函数将创建一种以蓝图访问的方式，用与对象相关的标记填充游戏性标记容器。在多数情况下，这只意味着从基础类复制标记到新的容器中，但类的实现可从多个容器收集标记，或调用蓝图函数访问蓝图声明的标记（或对象所需的任意内容）。此接口的优势是使用户以标准化的方式和大量不同的对象类型进行交互，因此用户可获得对象的标记，而无需显式计算对象并为获得正确的标记变量而对每种可能的类型编写自定义代码。这在大型项目上尤为实用，有助于避免出现（难以重现）的 bug，使代码更加干净、快捷、易于维护。

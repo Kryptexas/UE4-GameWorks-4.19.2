@@ -7,24 +7,16 @@
 #pragma once
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Mac/MacSystemIncludes.h"
-
-#ifndef MAC_PROFILING_ENABLED
-#define MAC_PROFILING_ENABLED (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
-#endif
-
-typedef void (*UpdateCachedMacMenuStateProc)(void);
+#include "Apple/ApplePlatformMisc.h"
 
 /**
 * Mac implementation of the misc OS functions
 **/
-struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
+struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static void PlatformTearDown();
-	static class GenericApplication* CreateApplication();
-	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
 	static const TCHAR* GetPathVarDelimiter()
 	{
@@ -33,75 +25,12 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	DEPRECATED(4.14, "GetMacAddress is deprecated. It is not reliable on all platforms")
 	static TArray<uint8> GetMacAddress();
-#if !UE_BUILD_SHIPPING
-	FORCEINLINE static bool IsDebuggerPresent()
-	{
-		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-braces"
-		struct kinfo_proc Info = { 0 };
-#pragma clang diagnostic pop
-		int32 Mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-		SIZE_T Size = sizeof(Info);
-
-		sysctl( Mib, sizeof( Mib ) / sizeof( *Mib ), &Info, &Size, NULL, 0 );
-
-		return ( Info.kp_proc.p_flag & P_TRACED ) != 0;
-	}
-	FORCEINLINE static void DebugBreak()
-	{
-		if( IsDebuggerPresent() )
-		{
-			__asm__ ( "int $3" );
-		}
-	}
-#endif
-
-	/** Break into debugger. Returning false allows this function to be used in conditionals. */
-	FORCEINLINE static bool DebugBreakReturningFalse()
-	{
-#if !UE_BUILD_SHIPPING
-		DebugBreak();
-#endif
-		return false;
-	}
-
-	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
-	static FORCEINLINE bool DebugBreakAndPromptForRemoteReturningFalse(bool bIsEnsure = false)
-	{
-#if !UE_BUILD_SHIPPING
-		if (!IsDebuggerPresent())
-		{
-			PromptForRemoteDebugging(bIsEnsure);
-		}
-
-		DebugBreak();
-#endif
-
-		return false;
-	}
-
-	FORCEINLINE static void MemoryBarrier()
-	{
-		__sync_synchronize();
-	}
-
-	static void PumpMessages(bool bFromMainLoop);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static void RequestExit(bool Force);
-	static void RequestMinimize();
-	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
-	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
-	static void LoadPreInitModules();
 	static void NormalizePath(FString& InPath);
 	static FString GetPrimaryGPUBrand();
 	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
@@ -120,16 +49,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	{ 
 		return TEXT("GLSL_150"); 
 	}
-
-	/**
-	 * Sample the displayed pixel color from anywhere on the screen using the OS
-	 *
-	 * @param	InScreenPos		The screen coords to sample for current pixel color
-	 * @param	InGamma			Optional gamma correction to apply to the screen color
-	 *
-	 * @return					The color of the pixel displayed at the chosen location
-	 */
-	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
 
 	/**
 	 * Uses cpuid instruction to get the vendor string
@@ -153,22 +72,16 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-	
+
+    static bool HasNonoptionalCPUFeatures() { return true; }
+    static bool NeedsNonoptionalCPUFeaturesCheck() { return PLATFORM_ENABLE_POPCNT_INTRINSIC; }
+
 	static void SetGracefulTerminationHandler();
 	
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 
-	static FString GetDefaultLanguage();
-	static FString GetDefaultLocale();
-
 	/** @return Get the name of the platform specific file manager (Finder) */
 	static FText GetFileManagerName();
-
-	static void UpdateWindowMenu();
-
-	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;
-
-	static void ActivateApplication();
 
 	/**
 	 * Returns whether the platform is running on battery power or not.
@@ -193,10 +106,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static FString GetXcodePath();
 
 	static bool IsSupportedXcodeVersionInstalled();
-
-	static bool bChachedMacMenuStateNeedsUpdate;
-
-	static id<NSObject> CommandletActivity;
     
     static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString DefaultArguments);
 	
@@ -232,41 +141,11 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
     /** Update the driver monitor statistics for the given GPU - called once a frame by the Mac RHI's, no need to call otherwise - use GetPerformanceStatistics instead. */
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
-	static float GetDPIScaleFactorAtPoint(float X, float Y);
-	
-#if MAC_PROFILING_ENABLED
-	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
-	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);
-	static void EndNamedEvent();
-#endif
-	static void* CreateAutoreleasePool();
-	static void ReleaseAutoreleasePool(void *Pool);
+	static int GetDefaultStackSize();
+
+	/** Updates variables in GMacAppInfo that cannot be initialized before PlatformPostInit() */
+	static void PostInitMacAppInfoUpdate();
 };
-
-#ifdef __OBJC__
-
-class FScopeAutoreleasePool
-{
-public:
-
-	FScopeAutoreleasePool()
-	{
-		Pool = [[NSAutoreleasePool alloc] init];
-	}
-
-	~FScopeAutoreleasePool()
-	{
-		[Pool release];
-	}
-
-private:
-
-	NSAutoreleasePool*	Pool;
-};
-
-#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool PREPROCESSOR_JOIN(Pool,__LINE__);
-
-#endif // __OBJC__
 
 typedef FMacPlatformMisc FPlatformMisc;
 

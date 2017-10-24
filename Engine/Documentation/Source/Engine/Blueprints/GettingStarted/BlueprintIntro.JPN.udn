@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3482294
 Availability:Public
 Title:ブループリント入門
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -151,9 +151,38 @@ UE4 を使う場合、ブループリントを使って定義したオブジェ�
 
 Level ブループリントでも Blueprint クラスでも、[ブループリント エディタ](Engine/Blueprints/Editor) の [ブループリント エレメント](Engine/Blueprints\UserGuide) を使用します。  
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
-	[![](Engine/Blueprints/Editor/blueprint_editor_example.png)(w:480)](Engine/Blueprints/Editor/blueprint_editor_example.png)
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 
 作業しているブループリントのタイプに合わせて、様々な **ブループリント エディタ** が利用可能になります。**ブループリント エディタ** のメイン機能は **Graph** モードです。 

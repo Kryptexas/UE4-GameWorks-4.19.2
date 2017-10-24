@@ -21,6 +21,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
+#include "Materials/MaterialExpressionReroute.h"
 
 #include "Toolkits/ToolkitManager.h"
 #include "MaterialEditor.h"
@@ -241,8 +242,15 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 
 bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
 {
+	// Trace any re-route nodes between the input pin and the actual expression
+	UMaterialExpression* TracedExpression = SwitchValueExpression;
+	if (UMaterialExpressionReroute* Reroute = Cast<UMaterialExpressionReroute>(TracedExpression))
+	{
+		TracedExpression = Reroute->TraceInputsToRealInput().Expression;
+	}
+
 	// If switch value is a function input expression then we must recursively find the associated input expressions from the parent function/material to evaluate the value.
-	UMaterialExpressionFunctionInput* FunctionInputExpression =  Cast<UMaterialExpressionFunctionInput>(SwitchValueExpression);
+	UMaterialExpressionFunctionInput* FunctionInputExpression =  Cast<UMaterialExpressionFunctionInput>(TracedExpression);
 	if(FunctionInputExpression && FunctionInputExpression->InputType == FunctionInput_StaticBool)
 	{
 		FGetVisibleMaterialParametersFunctionState* TopmostFunctionState = FunctionStack.Pop();
@@ -263,9 +271,9 @@ bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance*
 		FunctionStack.Push(TopmostFunctionState);
 	}
 
-	if(SwitchValueExpression)
+	if(TracedExpression)
 	{
-		UMaterialExpressionStaticBoolParameter* SwitchParamValue = Cast<UMaterialExpressionStaticBoolParameter>(SwitchValueExpression);
+		UMaterialExpressionStaticBoolParameter* SwitchParamValue = Cast<UMaterialExpressionStaticBoolParameter>(TracedExpression);
 
 		if(SwitchParamValue)
 		{
@@ -274,7 +282,7 @@ bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance*
 		}
 	}
 
-	UMaterialExpressionStaticBool* StaticSwitchValue = Cast<UMaterialExpressionStaticBool>(SwitchValueExpression);
+	UMaterialExpressionStaticBool* StaticSwitchValue = Cast<UMaterialExpressionStaticBool>(TracedExpression);
 	if(StaticSwitchValue)
 	{
 		OutValue = StaticSwitchValue->Value;

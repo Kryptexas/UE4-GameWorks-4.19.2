@@ -71,8 +71,12 @@ public:
 	virtual IPlatformChunkInstall* GetPlatformChunkInstall() = 0;
 };
 
-
+/** Deprecated delegate */
 DECLARE_DELEGATE_OneParam(FPlatformChunkInstallCompleteDelegate, uint32);
+
+/** Delegate called when a chunk either successfully installs or fails to install, bool is success */
+DECLARE_DELEGATE_TwoParams(FPlatformChunkInstallDelegate, uint32, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FPlatformChunkInstallMultiDelegate, uint32, bool);
 
 /**
 * Interface for platform specific chunk based install
@@ -129,48 +133,42 @@ public:
 	/**
 	 * For platforms that support emulation of the Chunk install.  Starts transfer of the next chunk.
 	 * Does nothing in a shipping build.
-	 * @return				true if the opreation succeeds.
+	 * @return				true if the operation succeeds.
 	 **/
 	virtual bool DebugStartNextChunk() = 0;
 
 	/** 
-	 * Request a delegate callback on chunk install completion. Request may not be respected.
-	 * @param ChunkID		The id of the chunk of interest.
-	 * @param Delegate		The delegate to call when the chunk is installed.
-	 * @return				False if the delegate was not registered. True on success.
+	 * Request a delegate callback on chunk install completion or failure. Request may not be respected.
+	 * @param Delegate		The delegate to call when any chunk is installed or fails to install
+	 * @return				Handle to the bound delegate
 	 */
-	virtual FDelegateHandle SetChunkInstallDelgate( uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate ) = 0;
+	virtual FDelegateHandle AddChunkInstallDelegate( FPlatformChunkInstallDelegate Delegate ) = 0;
 
 	/**
-	* Remove a delegate callback on chunk install completion.
-	* @param ChunkID		The id of the chunk of interest.
-	* @param Delegate		The delegate to remove.
-	*/
-	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FDelegateHandle Delegate) = 0;
+	 * Remove a delegate callback on chunk install completion.
+	 * @param Delegate		The delegate to remove.
+	 */
+	virtual void RemoveChunkInstallDelegate( FDelegateHandle Delegate ) = 0;
+
+	DEPRECATED(4.18, "Call AddChunkInstallDelegate instead, which is now bound for all chunk ids")
+	virtual FDelegateHandle SetChunkInstallDelgate( uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate ) = 0;
+
+	DEPRECATED(4.18, "Call RemoveChunkInstallDelegate instead")
+	virtual void RemoveChunkInstallDelgate( uint32 ChunkID, FDelegateHandle Delegate ) = 0;
 };
 
-
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 /**
-* Generic implementation of chunk based install
-**/
+ * Generic implementation of chunk based install
+ */
 class CORE_API FGenericPlatformChunkInstall : public IPlatformChunkInstall
 {
 public:
-	/**
-	 * Get the current location of a chunk.
-	 * @param ChunkID		The id of the chunk to check.
-	 * @return				Enum specifying whether the chunk is available to use, waiting to install, or does not exist.
-	 **/
 	virtual EChunkLocation::Type GetChunkLocation( uint32 ChunkID ) override
 	{
 		return EChunkLocation::LocalFast;
 	}
 
-	/** 
-	 * Check if a given reporting type is supported.
-	 * @param ReportType	Enum specifying how progress is reported.
-	 * @return				true if reporting type is supported on the current platform.
-	 **/
 	virtual bool GetProgressReportingTypeSupported(EChunkProgressReportingType::Type ReportType) override
 	{
 		if (ReportType == EChunkProgressReportingType::PercentageComplete)
@@ -181,12 +179,6 @@ public:
 		return false;
 	}
 
-	/**
-	 * Get the current install progress of a chunk.  Let the user specify report type for platforms that support more than one.
-	 * @param ChunkID		The id of the chunk to check.
-	 * @param ReportType	The type of progress report you want.
-	 * @return				A value whose meaning is dependent on the ReportType param.
-	 **/
 	virtual float GetChunkProgress( uint32 ChunkID, EChunkProgressReportingType::Type ReportType ) override
 	{
 		if (ReportType == EChunkProgressReportingType::PercentageComplete)
@@ -196,64 +188,50 @@ public:
 		return 0.0f;
 	}
 
-	/**
-	 * Inquire about the priority of chunk installation vs. game IO.
-	 * @return				Paused, low or high priority.
-	 **/
 	virtual EChunkInstallSpeed::Type GetInstallSpeed() override
 	{
 		return EChunkInstallSpeed::Paused;
 	}
 
-	/**
-	 * Specify the priority of chunk installation vs. game IO.
-	 * @param InstallSpeed	Pause, low or high priority.
-	 * @return				false if the operation is not allowed, otherwise true.
-	 **/
 	virtual bool SetInstallSpeed( EChunkInstallSpeed::Type InstallSpeed ) override
 	{
 		return false;
 	}
 	
-	/**
-	 * Hint to the installer that we would like to prioritize a specific chunk (moves it to the head of the list.)
-	 * @param ChunkID		The id of the chunk to prioritize.
-	 * @return				false if the operation is not allowed or the chunk doesn't exist, otherwise true.
-	 **/
 	virtual bool PrioritizeChunk( uint32 ChunkID, EChunkPriority::Type Priority ) override
 	{
 		return false;
 	}
 
-	/**
-	 * For platforms that support emulation of the Chunk install.  Starts transfer of the next chunk.
-	 * Does nothing in a shipping build.
-	 * @return				true if the opreation succeeds.
-	 **/
 	virtual bool DebugStartNextChunk() override
 	{
 		return true;
 	}
 
-	/**
-	* Request a delegate callback on chunk install completion. Request may not be respected.
-	* @param ChunkID		The id of the chunk of interest.
-	* @param Delegate		The delegate when the chunk is installed.
-	* @return				False if the delegate was not registered or the chunk is already installed. True on success.
-	*/
+	virtual FDelegateHandle AddChunkInstallDelegate(FPlatformChunkInstallDelegate Delegate) override
+	{
+		return InstallDelegate.Add(Delegate);
+	}
+
+	virtual void RemoveChunkInstallDelegate(FDelegateHandle Delegate) override
+	{
+		InstallDelegate.Remove(Delegate);
+	}
+
 	virtual FDelegateHandle SetChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate) override
 	{
 		return FDelegateHandle();
 	}
 
-	/**
-	* Remove a delegate callback on chunk install completion.
-	* @param ChunkID		The id of the chunk of interest.
-	* @param Delegate		The delegate to remove.
-	* @return				False if the delegate was not registered with a call to SetChunkInstallDelgate. True on success.
-	*/
 	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FDelegateHandle Delegate) override
 	{
 		return;
 	}
+
+protected:
+
+	/** Delegate called when installation succeeds or fails */
+	FPlatformChunkInstallMultiDelegate InstallDelegate;
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

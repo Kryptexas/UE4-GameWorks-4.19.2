@@ -149,6 +149,7 @@ public:
 	 */
 	void SetStrides(int32 InDynamicVertexStride, int32 InDynamicParameterVertexStride)
 	{
+		ensure(!IsInitialized());
 		DynamicVertexStride = InDynamicVertexStride;
 		DynamicParameterVertexStride = InDynamicParameterVertexStride;
 	}

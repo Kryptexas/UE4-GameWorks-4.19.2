@@ -107,6 +107,11 @@ public:
 	const FSectionInfo& GetSection(int32 SectionIndex) const;
 	/** Clears out unique section to be replaced with the baked material one */
 	void AddBakedMaterialSection(const FSectionInfo& SectionInfo);
+	
+	/** Add a material slot name for a unique material instance. */
+	void AddMaterialSlotName(UMaterialInterface *MaterialInterface, FName MaterialSlotName);
+	/** Get the material slot name from a unique material instance. */
+	FName GetMaterialSlotName(UMaterialInterface *MaterialInterface) const;
 
 	/** Adds a LOD index which will be part of the final merged mesh */
 	void AddLODIndex(int32 LODIndex);
@@ -114,6 +119,11 @@ public:
 	int32 GetNumLODsForMergedMesh() const;
 	/** Iterates over LOD indices for mesh */
 	TConstLODIndexIterator GetLODIndexIterator() const;
+
+	/** Add number of lightmap pixels used for one of the Meshes */
+	void AddLightMapPixels(int32 Pixels);
+	/** Returns the texture dimension required to distribute all of the lightmap pixels */
+	int32 GetLightMapDimension() const;
 
 	/** Returns whether or not any raw mesh entry contains vertex colors for the specified LOD index */
 	bool DoesLODContainVertexColors(int32 LODIndex) const;
@@ -133,12 +143,16 @@ protected:
 
 	// Whether a key requires unique UVs 
 	TArray<FMeshLODKey> RequiresUniqueUVs;
+
+	//Use this map to recycle the material slot name
+	TMap<UMaterialInterface *, FName> MaterialInterfaceToMaterialSlotName;
 	
 	/** Flags for UV and vertex color usage */
 	bool bWithVertexColors[MAX_STATIC_MESH_LODS];
 	bool bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS];
 	/** First available UV channel across all RawMesh entries */
 	int32 AvailableLightMapUVChannel;
+	int32 SummedLightMapPixels;
 
 	/** Remapping pairs for each mesh and LOD index combination */
 	TMultiMap<FMeshLODKey, SectionRemapPair> UniqueSectionIndexPerLOD;

@@ -1386,7 +1386,7 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 	{
 		ParamTag = FBlueprintMetadata::MD_ArrayParam;
 	}
-	const FString FlaggedParamMetaData = ArrayFunction->GetMetaData(ParamTag);
+	const FString& FlaggedParamMetaData = ArrayFunction->GetMetaData(ParamTag);
 
 	TArray<FString> WildcardPinNames;
 	FlaggedParamMetaData.ParseIntoArray(WildcardPinNames, TEXT(","), /*CullEmpty =*/true);

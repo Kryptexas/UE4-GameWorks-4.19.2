@@ -26,19 +26,24 @@
 
 /// \file sdf/textFileFormat.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareHandles.h" 
 #include "pxr/usd/sdf/fileFormat.h"
-#include "pxr/usd/sdf/api.h"
 #include "pxr/base/tf/staticTokens.h"
+
 #include <iosfwd>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 #define SDF_TEXT_FILE_FORMAT_TOKENS \
     ((Id,      "sdf"))              \
     ((Version, "1.4.32"))           \
     ((Target,  "sdf"))
 
-TF_DECLARE_PUBLIC_TOKENS(SdfTextFileFormatTokens, SDF_API, SDF_TEXT_FILE_FORMAT_TOKENS);
+TF_DECLARE_PUBLIC_TOKENS(SdfTextFileFormatTokens,
+                         SDF_API, SDF_TEXT_FILE_FORMAT_TOKENS);
 
 TF_DECLARE_WEAK_AND_REF_PTRS(SdfTextFileFormat);
 TF_DECLARE_WEAK_AND_REF_PTRS(SdfLayerBase);
@@ -76,9 +81,9 @@ public:
     virtual bool CanRead(const std::string &file) const;
 
     SDF_API
-    virtual bool ReadFromFile(
+    virtual bool Read(
         const SdfLayerBasePtr& layerBase,
-        const std::string& filePath,
+        const std::string& resolvedPath,
         bool metadataOnly) const;
 
     SDF_API
@@ -133,5 +138,7 @@ private:
 
     SDF_API virtual bool _IsStreamingLayer(const SdfLayerBase& layer) const;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_TEXT_FILE_FORMAT_H

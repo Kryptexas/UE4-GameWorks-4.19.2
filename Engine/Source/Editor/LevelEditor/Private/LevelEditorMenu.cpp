@@ -18,111 +18,6 @@
 
 #define LOCTEXT_NAMESPACE "LevelEditorMenu"
 
-class SFavouriteMenuEntry : public SCompoundWidget
-{
-	public:
-
-	SLATE_BEGIN_ARGS( SFavouriteMenuEntry ){}
-		SLATE_ARGUMENT( FText, LabelOverride )
-		/** Called to when an entry is clicked */
-		SLATE_EVENT( FExecuteAction, OnOpenClickedDelegate )
-		/** Called to when the button remove an entry is clicked */
-		SLATE_EVENT( FExecuteAction, OnRemoveClickedDelegate )
-	SLATE_END_ARGS()
-
-	/**
-	 * Construct this widget.  Called by the SNew() Slate macro.
-	 *
-	 * @param	InArgs				Declaration used by the SNew() macro to construct this widget
-	 */
-	void Construct( const FArguments& InArgs )
-	{
-		const FText AssetDisplayName = InArgs._LabelOverride;
-		OnOpenClickedDelegate = InArgs._OnOpenClickedDelegate;
-		OnRemoveClickedDelegate = InArgs._OnRemoveClickedDelegate;
-
-		const FText OpenDisplayName = FText::Format( LOCTEXT("OpenLevelToolTipFmt", "Open level: {0}"), AssetDisplayName );
-		FSlateFontInfo MenuEntryFont = FEditorStyle::GetFontStyle( "Menu.Label.Font" );
-
-		ChildSlot
-		[
-			SNew(SButton)
-			.ButtonStyle( FEditorStyle::Get(), "Menu.Button" )
-			.ForegroundColor( TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw( this, &SFavouriteMenuEntry::InvertOnHover ) ) )
-			.Text( AssetDisplayName )
-			.ToolTipText( OpenDisplayName )
-			.OnClicked(this, &SFavouriteMenuEntry::OnOpen)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Fill)
-			.ContentPadding( FMargin(4.0, 0.0) )
-			[
-				SNew( SOverlay )
-
-				+SOverlay::Slot()
-				.Padding( FMargin( 12.0, 0.0 ) )
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				[
-					SNew( STextBlock )
-					.Font( MenuEntryFont )
-					.ColorAndOpacity( TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw( this, &SFavouriteMenuEntry::InvertOnHover ) ) )
-					.Text( AssetDisplayName )
-				]
-
-				+SOverlay::Slot()
-				.Padding( FMargin( 0.0, 0.0 ) )
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				[
-					SNew(SButton)
-					.ContentPadding( FMargin(4.0, 0.0) )
-					.ButtonStyle( FEditorStyle::Get(), "Docking.Tab.CloseButton" )
-					.ToolTipText( FText::Format( LOCTEXT("RemoveFavoriteToolTipFmt", "Remove {0} from Favorites"), AssetDisplayName ) )
-					.OnClicked(this, &SFavouriteMenuEntry::OnRemove)
-				]
-			]
-		];
-	}
-
-	/**
-	 * Calls the open-a-level delegate, dismisses the menu
-	 */
-	FReply OnOpen()
-	{
-		OnOpenClickedDelegate.ExecuteIfBound();
-		// Dismiss the entire menu stack when a button is clicked to close all sub-menus
-		FSlateApplication::Get().DismissAllMenus();
-		return FReply::Handled();
-	}
-
-	/**
-	 * Calls the remove-a-favourite delegate, dismisses the menu
-	 */
-	FReply OnRemove()
-	{
-		OnRemoveClickedDelegate.ExecuteIfBound();
-		// Dismiss the entire menu stack when a button is clicked to close all sub-menus
-		FSlateApplication::Get().DismissAllMenus();
-		return FReply::Handled();
-	}
-
-private:
-	FSlateColor InvertOnHover() const
-	{
-		if ( this->IsHovered() )
-		{
-			return FLinearColor::Black;
-		}
-		else
-		{
-			return FSlateColor::UseForeground();
-		}
-	}
-
-	FExecuteAction OnOpenClickedDelegate;
-	FExecuteAction OnRemoveClickedDelegate;
-};
-
 TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FUICommandList>& CommandList, TSharedPtr<class SLevelEditor> LevelEditor )
 {
 	struct Local
@@ -169,99 +64,75 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 				MenuBuilder.EndSection();
 			}
 
-			// Favorite files
+
+			// Favorite Menus
 			{
-				static const int32 FavoritesToDisplayInMainMenu = 5;
-				const int32 NumFavorites = RecentsAndFavorites.GetNumFavorites();
-
-				MenuBuilder.BeginSection("FileFavorites", LOCTEXT("FavoriteFilesHeading", "Favorites") );
-
-				if( NumFavorites > 0 )
+				struct FFavoriteLevelMenu
 				{
-					// Display the most recent favorites on the main menu
-					const int32 MainMenuFavorites = FMath::Min( NumFavorites, FavoritesToDisplayInMainMenu );
-					for (int32 CurFavoriteIndex = 0; CurFavoriteIndex < MainMenuFavorites; ++CurFavoriteIndex)
-					{
-						const FString CurFavorite = FPaths::GetBaseFilename(RecentsAndFavorites.GetFavoritesItem( CurFavoriteIndex ));
-						const bool bNoIndent = false;
-
-						MenuBuilder.AddWidget(
-							SNew(SFavouriteMenuEntry)
-								.LabelOverride( FText::FromString(FPaths::GetBaseFilename(CurFavorite)) )
-								.OnOpenClickedDelegate(FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenFavoriteFile, CurFavoriteIndex))
-								.OnRemoveClickedDelegate(FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::RemoveFavorite, CurFavoriteIndex)), 
-								FText(), bNoIndent );
-					}
-
-					// Any remaining favorites go into a submenu
-					if (NumFavorites > FavoritesToDisplayInMainMenu)
-					{
-						struct Local
-						{
-							static void MakeFavoriteLevelMenu(FMenuBuilder& InMenuBuilder)
-							{
-								const FMainMRUFavoritesList& MRUFavorites = *FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame").GetMRUFavoritesList();
-								const int32 NumMRUFavorites = MRUFavorites.GetNumFavorites();
-
-								for (int32 CurFavoriteIndex = FavoritesToDisplayInMainMenu; CurFavoriteIndex < NumMRUFavorites; ++CurFavoriteIndex)
-								{
-									const FString CurFavorite = FPaths::GetBaseFilename(MRUFavorites.GetFavoritesItem(CurFavoriteIndex));
-									const bool bNoIndent = true;
-
-									InMenuBuilder.AddWidget(
-										SNew(SFavouriteMenuEntry)
-										.LabelOverride(FText::FromString(FPaths::GetBaseFilename(CurFavorite)))
-										.OnOpenClickedDelegate(FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenFavoriteFile, CurFavoriteIndex))
-										.OnRemoveClickedDelegate(FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::RemoveFavorite, CurFavoriteIndex)),
-										FText(), bNoIndent);
-								}
-							}
-						};
-
-						MenuBuilder.AddSubMenu(
-							LOCTEXT("MoreFavoriteFilesSubMenu", "More Favorites"),
-							LOCTEXT("MoreFavoriteFilesTooltip", "Select other favorite levels"),
-							FNewMenuDelegate::CreateStatic(&Local::MakeFavoriteLevelMenu),
-							false,
-							FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.FavoriteLevels")
-							);
-					}
-				}
-
-				MenuBuilder.EndSection();
-
-				// Add a button to add/remove the currently loaded map as a favorite
-				if( FLevelEditorActionCallbacks::ToggleFavorite_CanExecute() )
-				{
+					// Add a button to add/remove the currently loaded map as a favorite
 					struct Local
 					{
 						static FText GetToggleFavoriteLabelText()
 						{
-							if( FLevelEditorActionCallbacks::ToggleFavorite_CanExecute() )
+							const FText LevelName = FText::FromString(FPackageName::GetShortName(GWorld->GetOutermost()->GetFName()));
+							if (FLevelEditorActionCallbacks::ToggleFavorite_CanExecute())
 							{
-								const FText LevelName = FText::FromString( FPackageName::GetShortName( GWorld->GetOutermost()->GetFName() ) );
-								if( !FLevelEditorActionCallbacks::ToggleFavorite_IsChecked() )
+
+								if (!FLevelEditorActionCallbacks::ToggleFavorite_IsChecked())
 								{
-									return FText::Format( LOCTEXT("ToggleFavorite_Add", "Add {0} to Favorites"), LevelName );
+									return FText::Format(LOCTEXT("ToggleFavorite_Add", "Add {0} to Favorites"), LevelName);
 								}
 							}
-							return LOCTEXT("ToggleFavorite", "Toggle Favorite");
+							return FText::Format(LOCTEXT("ToggleFavorite_Remove", "Remove {0} from Favorites"), LevelName);
 						}
 					};
 
-					const FString LevelName = FPackageName::GetShortName( GWorld->GetOutermost()->GetFName() );
-					if( !FLevelEditorActionCallbacks::ToggleFavorite_IsChecked() )
+					static void MakeFavoriteLevelMenu(FMenuBuilder& InMenuBuilder)
 					{
-						TAttribute<FText> ToggleFavoriteLabel;
-						ToggleFavoriteLabel.BindStatic( &Local::GetToggleFavoriteLabelText );
-
-						MenuBuilder.BeginSection("LevelEditorToggleFavorite");
+						// Add a button to add/remove the currently loaded map as a favorite
+						if (FLevelEditorActionCallbacks::ToggleFavorite_CanExecute())
 						{
-							MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ToggleFavorite, NAME_None, ToggleFavoriteLabel );
+							InMenuBuilder.BeginSection("LevelEditorToggleFavorite");
+							{
+								const FString LevelName = FPackageName::GetShortName(GWorld->GetOutermost()->GetFName());
+
+								TAttribute<FText> ToggleFavoriteLabel;
+								ToggleFavoriteLabel.BindStatic(&Local::GetToggleFavoriteLabelText);
+								InMenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ToggleFavorite, NAME_None, ToggleFavoriteLabel);
+							}
+							InMenuBuilder.EndSection();
+							InMenuBuilder.AddMenuSeparator();
 						}
-						MenuBuilder.EndSection();
+						const FMainMRUFavoritesList& MRUFavorites = *FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame").GetMRUFavoritesList();
+						const int32 NumFavorites = MRUFavorites.GetNumFavorites();
+						
+						const bool bNoIndent = false;
+						const int32 AllowedFavorites = FMath::Min(NumFavorites, FLevelEditorCommands::Get().OpenFavoriteFileCommands.Num());
+						for (int32 CurFavoriteIndex = 0; CurFavoriteIndex < AllowedFavorites; ++CurFavoriteIndex)
+						{
+							TSharedPtr< FUICommandInfo > OpenFavoriteFile = FLevelEditorCommands::Get().OpenFavoriteFileCommands[CurFavoriteIndex];
+							const FString CurFavorite = FPaths::GetBaseFilename(MRUFavorites.GetFavoritesItem(CurFavoriteIndex));
+							const FText ToolTip = FText::Format(LOCTEXT("FavoriteLevelToolTip", "Opens favorite level: {0}"), FText::FromString(CurFavorite));
+							const FText Label = FText::FromString(FPaths::GetBaseFilename(CurFavorite));
+
+							InMenuBuilder.AddMenuEntry(OpenFavoriteFile, NAME_None, Label, ToolTip);
+						}
 					}
+				};
+
+				const int32 NumRecents = RecentsAndFavorites.GetNumItems();
+
+				MenuBuilder.BeginSection("FileFavoriteLevels");
+
+				if (NumRecents > 0)
+				{
+					MenuBuilder.AddSubMenu(
+						LOCTEXT("FavoriteLevelsSubMenu", "Favorite Levels"),
+						LOCTEXT("RecentLevelsSubMenu_ToolTip", "Select a level to load"),
+						FNewMenuDelegate::CreateStatic(&FFavoriteLevelMenu::MakeFavoriteLevelMenu), false, FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.FavoriteLevels"));
 				}
+
+				MenuBuilder.EndSection();
 			}
 
 			// Recent files
@@ -327,10 +198,8 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 			{
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseDocumentation );
 
-				if(IDocumentation::Get()->CanOpenAPIHome())
-				{
-					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseAPIReference );
-				}
+				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseAPIReference );
+
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BrowseCVars );
 
 				MenuBuilder.AddMenuSeparator();

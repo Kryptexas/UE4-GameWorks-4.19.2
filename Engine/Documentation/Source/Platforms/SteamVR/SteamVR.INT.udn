@@ -20,7 +20,7 @@ Topic-image:SteamVRDevelopment_topic.png
 ## SteamVR Topics
 
 [DIR(output:"listbutton" type:"overview" parent:"Platforms/SteamVR")]
-
+[DIR(output:"listbutton" type:"landing" parent:"Platforms/SteamVR")]
 
 
 

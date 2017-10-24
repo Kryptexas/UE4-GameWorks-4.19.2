@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:3230896
-Availability: Docs
+﻿INTSourceChangelist:3603669
+Availability: Public
 Title: 프리컴퓨티드 라이팅 시나리오
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description: UE4 의 프리컴퓨티드 라이팅 시나리오에 대한 개요입니다.
 Version: 4.14
 Parent: Engine/Rendering/LightingAndShadows
-Tags: Rendering
+Order: 1
 Type: Reference
+Tags: Rendering
+Tags: Lighting
+Tags: Lightmass
 topic-image:PCLS_Header.png
 
 [TOC(start:1 end:4)]
@@ -21,7 +24,7 @@ topic-image:PCLS_Header.png
 위 그림에서 디렉셔널 라이트, 스카이 라이트, 스카이박스가 `Day Scenario` 라는 라이팅 시나리오 레벨에 배치되었습니다. 가로수의 스포트라이트는 `Night Scenario` 라는 다른 라이팅 시나리오에 배치되었습니다.
 [/REGION]
 
-## 프리컴퓨티드 라이팅 시나리오 한계
+## 기능적 한계
 프리컴퓨티드 라이팅 시나리오에는 장점이 많지만, 사용 시 주의해야 하는 단점과 한계점이 몇 가지 있습니다.
 여기서는 그 한계점 몇 가지와 해결( 또는 우회)법을 알아보겠습니다.
 

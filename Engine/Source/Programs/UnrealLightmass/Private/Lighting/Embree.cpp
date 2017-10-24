@@ -63,7 +63,6 @@ FEmbreeRay::FEmbreeRay(
 	bTwoSidedCollision(!InDirectShadowingRay),
 	bFlipSidedness((TraceFlags & LIGHTRAY_FLIP_SIDEDNESS) != 0),
 	ElementIndex(-1),
-	RelativeVertexIndex(-1),
 	TextureCoordinates(0, 0),
 	LightmapCoordinates(0, 0)
 {
@@ -73,6 +72,39 @@ FEmbreeRay::FEmbreeRay(
 	geomID = -1;
 	instID = -1;
 	primID = -1;
+}
+
+FEmbreeRay4::FEmbreeRay4(
+	const FStaticLightingMesh* InShadowMesh, 
+	const FStaticLightingMesh* InMappingMesh, 
+	uint32 InTraceFlags,
+	bool InFindClosestIntersection, 
+	bool InCalculateTransmission, 
+	bool InDirectShadowingRay
+	) :
+	ShadowMesh(InShadowMesh),
+	MappingMesh(InMappingMesh),
+	TraceFlags(InTraceFlags),
+	bFindClosestIntersection(InFindClosestIntersection),
+	bCalculateTransmission(InCalculateTransmission),
+	bDirectShadowingRay(InDirectShadowingRay),
+	bStaticAndOpaqueOnly((TraceFlags & LIGHTRAY_STATIC_AND_OPAQUEONLY) != 0),
+	bTwoSidedCollision(!InDirectShadowingRay),
+	bFlipSidedness((TraceFlags & LIGHTRAY_FLIP_SIDEDNESS) != 0)
+{
+	for (int32 i = 0; i < 4; i++)
+	{
+		u[i] = v[i] = 0;
+		time[i] = 0;
+		mask[i] = 0xFFFFFFFF;
+		geomID[i] = -1;
+		instID[i] = -1;
+		primID[i] = -1;
+
+		ElementIndex[i] = -1,
+		TextureCoordinates[i] = FVector2D(0, 0);
+		LightmapCoordinates[i] = FVector2D(0, 0);
+	}
 }
 
 struct FEmbreeFilterProcessor
@@ -92,7 +124,6 @@ struct FEmbreeFilterProcessor
 	int32 Index1;
 	int32 Index2;
 
-	int32 RelativeVertexIndex; // Which index is closer.
 	FVector2D TextureCoordinates; // Material Coordinates
 
 	bool bCoordsDirty;
@@ -286,13 +317,10 @@ void FEmbreeFilterProcessor::UpdateRay()
 		Geo.Mesh->GetTriangleIndices(Ray.primID, Index0, Index1, Index2);
 	}
 
-	// RelativeVertexIndex
-	Ray.RelativeVertexIndex = (Ray.u > s) ? (Ray.v > Ray.u ? Index2 : Index1) : (Ray.v > s ? Index2 : Index0);
-
-
 	// Transmission : updated outside of this scope.
 }
 
+// Warning: EmbreeFilterFunc must only modify RTCRay outputs!  Nothing else is copied back to FEmbreeRay4.
 void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay)
 {
 	FEmbreeFilterProcessor Proc((FEmbreeRay&)InRay, *(FEmbreeGeometry*)UserPtr);
@@ -349,6 +377,18 @@ void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay)
 	// Ray Properties need to be updated only once everything has been validated.
 	// Otherwise, after a valid collision, a failed collision could be tested which must not change any property.
 	Proc.UpdateRay();
+}
+
+void EmbreeFilterFunc4(const void* valid, void* UserPtr, RTCRay4& InRay)
+{
+	FEmbreeRay4& EmbreeRay4 = (FEmbreeRay4&)InRay;
+
+	for (int32 i = 0; i < 4; i++)
+	{
+		FEmbreeRay SingleRay = EmbreeRay4.BuildSingleRay(i);
+		EmbreeFilterFunc(UserPtr, SingleRay);
+		EmbreeRay4.SetFromSingleRay(SingleRay, i);
+	}
 }
 
 FEmbreeGeometry::FEmbreeGeometry(
@@ -460,7 +500,14 @@ FEmbreeAggregateMesh::FEmbreeAggregateMesh(const FScene& InScene):
 	rtcDeviceSetMemoryMonitorFunction(InScene.EmbreeDevice, EmbreeMemoryMonitor);
 
 	EmbreeDevice = InScene.EmbreeDevice;
-	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC, RTC_INTERSECT1);
+	uint32 AlgorithmFlags = RTC_INTERSECT1;
+
+	if (InScene.GeneralSettings.bUseEmbreePacketTracing)
+	{
+		AlgorithmFlags |= RTC_INTERSECT4;
+	}
+
+	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC, (RTCAlgorithmFlags)AlgorithmFlags);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
 }
 
@@ -490,6 +537,9 @@ void FEmbreeAggregateMesh::AddMesh(const FStaticLightingMesh* Mesh, const FStati
 		rtcSetUserData(EmbreeScene, Geo->GeomID, Geo);
 		rtcSetIntersectionFilterFunction(EmbreeScene, Geo->GeomID, EmbreeFilterFunc);
 		rtcSetOcclusionFilterFunction(EmbreeScene, Geo->GeomID, EmbreeFilterFunc);
+
+		rtcSetIntersectionFilterFunction4(EmbreeScene, Geo->GeomID, EmbreeFilterFunc4);
+		rtcSetOcclusionFilterFunction4(EmbreeScene, Geo->GeomID, EmbreeFilterFunc4);
 
 		bHasShadowCastingPrimitives |= Geo->bHasShadowCastingPrimitives;
 
@@ -576,14 +626,14 @@ bool FEmbreeAggregateMesh::IntersectLightRay(
 	{
 		const FEmbreeGeometry& Geo = *(FEmbreeGeometry*)rtcGetUserData(EmbreeScene, EmbreeRay.geomID);
 
-		FStaticLightingVertex EmbreeVertex;
+		FMinimalStaticLightingVertex EmbreeVertex;
 		EmbreeVertex.WorldPosition = LightRay.Start + LightRay.Direction * EmbreeRay.tfar;
 		EmbreeVertex.WorldTangentZ = FVector(EmbreeRay.Ng[0], EmbreeRay.Ng[1], EmbreeRay.Ng[2]).GetSafeNormal();
 
 		EmbreeVertex.TextureCoordinates[0] = EmbreeRay.TextureCoordinates;
 		EmbreeVertex.TextureCoordinates[1] = EmbreeRay.LightmapCoordinates;
 
-		ClosestIntersection = FLightRayIntersection(true, EmbreeVertex, Geo.Mesh, Geo.Mapping, EmbreeRay.RelativeVertexIndex, EmbreeRay.ElementIndex);
+		ClosestIntersection = FLightRayIntersection(true, EmbreeVertex, Geo.Mesh, Geo.Mapping, EmbreeRay.ElementIndex);
 
 		EmbreeRay.TransmissionAcc.Resolve(ClosestIntersection.Transmission, EmbreeRay.tfar);
 	}
@@ -593,6 +643,77 @@ bool FEmbreeAggregateMesh::IntersectLightRay(
 	}
 
 	return ClosestIntersection.bIntersects;
+}
+
+void FEmbreeAggregateMesh::IntersectLightRays4(
+	const FLightRay* LightRays,
+	bool bFindClosestIntersection,
+	bool bCalculateTransmission,
+	bool bDirectShadowingRay,
+	FCoherentRayCache& CoherentRayCache,
+	FLightRayIntersection* ClosestIntersections) const
+{
+	LIGHTINGSTAT(FScopedRDTSCTimer RayTraceTimer(bFindClosestIntersection ? CoherentRayCache.FirstHitRayTraceTime : CoherentRayCache.BooleanRayTraceTime);)
+	bFindClosestIntersection ? CoherentRayCache.NumFirstHitRaysTraced+=4 : CoherentRayCache.NumBooleanRaysTraced+=4;
+	// Calculating transmission requires finding the closest intersection for now
+	//@todo - allow boolean visibility tests while calculating transmission
+	checkSlow(!bCalculateTransmission || bFindClosestIntersection);
+
+	FEmbreeRay4 EmbreeRay(
+		LightRays[0].Mesh, 
+		LightRays[0].Mapping ? LightRays[0].Mapping->Mesh : NULL,
+		LightRays[0].TraceFlags, 
+		bFindClosestIntersection, 
+		bCalculateTransmission, 
+		bDirectShadowingRay);
+
+	for (int32 i = 0; i < 4; i++)
+	{
+		ClosestIntersections[i].bIntersects = false;
+		EmbreeRay.orgx[i] = LightRays[i].Start.X;
+		EmbreeRay.orgy[i] = LightRays[i].Start.Y;
+		EmbreeRay.orgz[i] = LightRays[i].Start.Z;
+		EmbreeRay.dirx[i] = LightRays[i].Direction.X;
+		EmbreeRay.diry[i] = LightRays[i].Direction.Y;
+		EmbreeRay.dirz[i] = LightRays[i].Direction.Z;
+		EmbreeRay.tnear[i] = 0;
+		EmbreeRay.tfar[i] = LightRays[i].Length;
+	}
+
+	// We use geomID instead
+	alignas(16) int32 UnusedValidMask[4] = { -1, -1, -1, -1 };
+
+	if (bFindClosestIntersection)
+	{
+		rtcIntersect4(UnusedValidMask, EmbreeScene, EmbreeRay);
+	}
+	else
+	{
+		rtcOccluded4(UnusedValidMask, EmbreeScene, EmbreeRay);
+	}
+
+	for (int32 i = 0; i < 4; i++)
+	{
+		if (EmbreeRay.geomID[i] != -1 && EmbreeRay.primID[i] != -1)
+		{
+			const FEmbreeGeometry& Geo = *(FEmbreeGeometry*)rtcGetUserData(EmbreeScene, EmbreeRay.geomID[i]);
+
+			FMinimalStaticLightingVertex EmbreeVertex;
+			EmbreeVertex.WorldPosition = LightRays[i].Start + LightRays[i].Direction * EmbreeRay.tfar[i];
+			EmbreeVertex.WorldTangentZ = FVector(EmbreeRay.Ngx[i], EmbreeRay.Ngy[i], EmbreeRay.Ngz[i]).GetSafeNormal();
+
+			EmbreeVertex.TextureCoordinates[0] = EmbreeRay.TextureCoordinates[i];
+			EmbreeVertex.TextureCoordinates[1] = EmbreeRay.LightmapCoordinates[i];
+
+			ClosestIntersections[i] = FLightRayIntersection(true, EmbreeVertex, Geo.Mesh, Geo.Mapping, EmbreeRay.ElementIndex[i]);
+
+			EmbreeRay.TransmissionAcc[i].Resolve(ClosestIntersections[i].Transmission, EmbreeRay.tfar[i]);
+		}
+		else
+		{
+			EmbreeRay.TransmissionAcc[i].Resolve(ClosestIntersections[i].Transmission);
+		}
+	}
 }
 
 FEmbreeVerifyAggregateMesh::FEmbreeVerifyAggregateMesh(const FScene& InScene) :
@@ -674,11 +795,6 @@ bool FEmbreeVerifyAggregateMesh::VerifyChecks(const FLightRayIntersection& Embre
 			return false;
 		}
 
-		if (EmbreeIntersection.VertexIndex != ClosestIntersection.VertexIndex)
-		{
-			return false;
-		}
-
 		const_cast<float&>(EmbreeIntersection.IntersectionVertex.WorldPosition.W) = const_cast<float&>(ClosestIntersection.IntersectionVertex.WorldPosition.W) = 1;
 		if (!EmbreeIntersection.IntersectionVertex.WorldPosition.Equals(ClosestIntersection.IntersectionVertex.WorldPosition, .1f))
 		{
@@ -704,7 +820,6 @@ bool FEmbreeVerifyAggregateMesh::VerifyChecks(const FLightRayIntersection& Embre
 
 	return true;
 }
-
 
 bool FEmbreeVerifyAggregateMesh::IntersectLightRay(
 	const FLightRay& LightRay,

@@ -11,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "Misc/App.h"
 #include "Misc/MonitoredProcess.h"
+#include "Logging/MessageLog.h"
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
 #endif
@@ -91,19 +92,33 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 	return Devices.FindRef(DeviceId);
 }
 
+static FString OutputMessage;
+static void OnOutput(FString Message)
+{
+    OutputMessage += Message;
+    UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
+}
 
 bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const
 {
 #if PLATFORM_MAC
 	OutTutorialPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
-	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
-    
-    // Check for Xcode betas
-    if(!biOSSDKInstalled
-       && IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform")))
-    {
-        biOSSDKInstalled = true;
-    }
+
+	// run xcode-select and get the location of Xcode
+	FString CmdExe = TEXT("/usr/bin/xcode-select");
+	FString CommandLine = FString::Printf(TEXT("--print-path"));
+	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+	OutputMessage = TEXT("");
+	IPPProcess->OnOutput().BindStatic(&OnOutput);
+	IPPProcess->Launch();
+	while (IPPProcess->Update())
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}
+	int RetCode = IPPProcess->GetReturnCode();
+	UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
+
+	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(*OutputMessage);
 #else
 	OutTutorialPath = FString("/Engine/Tutorial/Mobile/InstallingiTunesTutorial.InstallingiTunesTutorial");
 
@@ -142,15 +157,10 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutori
 	return biOSSDKInstalled;
 }
 
-static FString OutputMessage;
-static void OnOutput(FString Message)
+int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath, FText& CustomizedLogMessage) const
 {
-	OutputMessage += Message;
-	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
-}
+	OutDocumentationPath = TEXT("Platforms/iOS/QuickStart/6");
 
-int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
-{
 	int32 bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))
 	{
@@ -182,7 +192,7 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 
 	FString BundleIdentifier;
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("BundleIdentifier"), BundleIdentifier, GEngineIni);
-	BundleIdentifier = BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetGameName());
+	BundleIdentifier = BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetProjectName());
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("_"), TEXT(""));
 #if PLATFORM_MAC
     FString CmdExe = TEXT("/bin/sh");
@@ -272,7 +282,7 @@ void FIOSTargetPlatform::PingNetworkDevices()
 /* FIOSTargetPlatform callbacks
  *****************************************************************************/
 
-void FIOSTargetPlatform::HandlePongMessage( const FIOSLaunchDaemonPong& Message, const IMessageContextRef& Context )
+void FIOSTargetPlatform::HandlePongMessage( const FIOSLaunchDaemonPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FTargetDeviceId DeviceId;
 	FTargetDeviceId::Parse(Message.DeviceID, DeviceId);
@@ -328,7 +338,7 @@ void FIOSTargetPlatform::HandleDeviceConnected(const FIOSLaunchDaemonPong& Messa
 	}
 	
 	// Add a very long time period to prevent the devices from getting disconnected due to a lack of pong messages
-	Device->LastPinged = FDateTime::UtcNow() + FTimespan(100, 0, 0, 0, 0);
+	Device->LastPinged = FDateTime::UtcNow() + FTimespan::FromDays(100.0);
 }
 
 
@@ -346,7 +356,7 @@ void FIOSTargetPlatform::HandleDeviceDisconnected(const FIOSLaunchDaemonPong& Me
 	}
 }
 
-bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
+bool FIOSTargetPlatform::HandleTicker(float DeltaTime)
 {
 	PingNetworkDevices();
 
@@ -505,6 +515,14 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	bool bFoundRemap = false;
 	bool bIncludePVRTC = !bIsTVOS && CookPVRTC();
 	bool bIncludeASTC = bIsTVOS || CookASTC();
+
+	if (Texture->bForcePVRTC4 && CookPVRTC())
+	{
+		OutFormats.AddUnique(FName(TEXT("PVRTC4")));
+		OutFormats.AddUnique(FName(TEXT("PVRTCN")));
+		return;
+	}
+
 	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
 	{
 		if (TextureFormatName == FormatRemap[RemapIndex])

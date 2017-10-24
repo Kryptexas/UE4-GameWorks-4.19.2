@@ -71,11 +71,10 @@ public:
 	/** If true, render grid the preview scene. */
 	bool bShowGrid;
 	
-	FPreviewScene PreviewScene;
 	/** The material editor has been added to a tab */
 	void OnAddedToTab( const TSharedRef<SDockTab>& OwnerTab );
 
-
+	TSharedRef<class FAdvancedPreviewScene> GetPreviewScene() { return AdvancedPreviewScene.ToSharedRef(); }
 
 	/** Event handlers */
 	void OnSetPreviewPrimitive(EThumbnailPrimType PrimType, bool bInitialLoad = false);
@@ -86,6 +85,8 @@ public:
 	bool IsTogglePreviewGridChecked() const;
 	void TogglePreviewBackground();
 	bool IsTogglePreviewBackgroundChecked() const;
+	/** Call back for when the user changes preview scene settings in the UI */
+	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 
 	// ICommonEditorViewportToolbarInfoProvider interface
 	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
@@ -111,6 +112,9 @@ private:
 
 	/** Level viewport client */
 	TSharedPtr<class FMaterialEditorViewportClient> EditorViewportClient;
+
+	/** Preview Scene - uses advanced preview settings */
+	TSharedPtr<class FAdvancedPreviewScene> AdvancedPreviewScene;
 };
 
 /**

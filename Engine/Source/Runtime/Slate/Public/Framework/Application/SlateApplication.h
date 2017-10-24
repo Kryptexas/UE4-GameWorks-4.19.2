@@ -127,6 +127,8 @@ public:
 
 	FGestureDetector GestureDetector;
 
+	TSharedPtr<FNavigationConfig> NavigationConfig;
+
 private:
 	FORCEINLINE bool HasValidFocusPath() const
 	{
@@ -346,8 +348,9 @@ public:
 	/** Returns true if this slate application is ready to display windows. */
 	bool CanDisplayWindows() const;
 
-	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const override;
-	
+	virtual EUINavigation GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const override;
+	virtual EUINavigation GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent) override;
+
 	/**
 	 * Adds a modal window to the application.  
 	 * In most cases, this function does not return until the modal window is closed (the only exception is a modal window for slow tasks)  
@@ -439,7 +442,7 @@ public:
 	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
 
 	/** @return	Returns true if there are any pop-up menus summoned */
-	bool AnyMenusVisible() const;
+	virtual bool AnyMenusVisible() const override;
 
 	/**
 	 * Attempt to locate a menu that contains the specified widget
@@ -612,6 +615,9 @@ public:
 	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationMousePreInputButtonDownListener, const FPointerEvent&);
 	FOnApplicationMousePreInputButtonDownListener& OnApplicationMousePreInputButtonDownListener() { return OnApplicationMousePreInputButtonDownListenerEvent; }
 
+	/** Gets a delegate that is invoked in the editor when a windows dpi scale changes */
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnWindowDPIScaleChanged, TSharedRef<SWindow>);
+	FOnWindowDPIScaleChanged& OnWindowDPIScaleChanged() { return OnWindowDPIScaleChangedEvent; }
 #endif //WITH_EDITOR
 
 	/**
@@ -799,7 +805,7 @@ public:
 	 *								If horizontal it will attempt to open below the anchor but will open above if there is no room.
 	 * @return The adjusted position
 	 */
-	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
+	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, bool bAutoAdjustForDPIScale = true, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
 
 	/**
 	 * Is the window in the app's destroy queue? If so it will be destroyed next tick.
@@ -840,6 +846,9 @@ public:
 	 * @param TextEntryWidget The widget that will receive the input from the virtual keyboard
 	 */
 	void ShowVirtualKeyboard( bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget = nullptr );
+
+	/** @return true if the current platform allows cursor positioning in editable text boxes */
+	bool AllowMoveCursor();
 
 	/** Get the work area that has the largest intersection with the specified rectangle */
 	FSlateRect GetWorkArea( const FSlateRect& InRect ) const;
@@ -940,23 +949,7 @@ protected:
 	 * Locates the SlateUser object corresponding to the index, if one can't be found, it will create a slate user at
 	 * the provided index.  If the index is less than 0, null is returned.
 	 */
-	FORCEINLINE FSlateUser* GetOrCreateUser(int32 UserIndex)
-	{
-		if ( UserIndex < 0 )
-		{
-			return nullptr;
-		}
-
-		if ( FSlateUser* User = GetUser(UserIndex) )
-		{
-			return User;
-		}
-
-		TSharedRef<FSlateUser> NewUser = MakeShareable(new FSlateUser(UserIndex, false));
-		RegisterUser(NewUser);
-
-		return &NewUser.Get();
-	}
+	FSlateUser* GetOrCreateUser(int32 UserIndex);
 
 	friend class FAnalogCursor;
 	friend class FEventRouter;
@@ -1150,7 +1143,9 @@ public:
 
 public:
 
-	void SetNavigationConfig( TSharedRef<FNavigationConfig> Config );
+	TSharedRef<FNavigationConfig> GetNavigationConfig() const { return NavigationConfigFactory(); }
+	
+	void SetNavigationConfigFactory( TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory );
 
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
@@ -1401,6 +1396,7 @@ public:
 	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
+	virtual void HandleDPIScaleChanged(const TSharedRef<FGenericWindow>& Window) override;
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation ActivationType ) override;
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
@@ -2073,10 +2069,10 @@ private:
 	TMap< const ILayoutCache*, TSharedPtr<FCacheElementPools> > CachedElementLists;
 	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
 
-	/** Configured fkeys to control navigation */
-	TSharedRef<FNavigationConfig> NavigationConfig;
+	/** This factory function creates a navigation config for each slate user. */
+	TFunction<TSharedRef<FNavigationConfig>()> NavigationConfigFactory;
 
-	/**  */
+	/** The simulated gestures Slate Application will be in charge of. */
 	TBitArray<FDefaultBitArrayAllocator> SimulateGestures;
 
 	/** Delegate for pre slate tick */
@@ -2141,15 +2137,20 @@ private:
 
 #if WITH_EDITOR
 	/**
-	* Delegate that is invoked before the input key get process by slate widgets bubble system.
-	* User Function cannot mark the input as handled.
-	*/
+	 * Delegate that is invoked before the input key get process by slate widgets bubble system.
+	 * User Function cannot mark the input as handled.
+	 */
 	FOnApplicationPreInputKeyDownListener OnApplicationPreInputKeyDownListenerEvent;
 
 	/**
-	* Delegate that is invoked before the mouse input button get process by slate widgets bubble system.
-	* User Function cannot mark the input as handled.
-	*/
+	 * Delegate that is invoked before the mouse input button get process by slate widgets bubble system.
+	 * User Function cannot mark the input as handled.
+	 */
 	FOnApplicationMousePreInputButtonDownListener OnApplicationMousePreInputButtonDownListenerEvent;
+
+	/**
+	 * Called when an editor window dpi scale is changed
+	 */
+	FOnWindowDPIScaleChanged OnWindowDPIScaleChangedEvent;
 #endif // WITH_EDITOR
 };

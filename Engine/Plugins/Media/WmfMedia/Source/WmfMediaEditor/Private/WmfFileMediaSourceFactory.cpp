@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfFileMediaSourceFactory.h"
-#include "Misc/Paths.h"
+
+#include "Containers/UnrealString.h"
 #include "FileMediaSource.h"
+#include "Misc/Paths.h"
+#include "UObject/UObjectGlobals.h"
 
 
 /* UWmfFileMediaSourceFactory structors

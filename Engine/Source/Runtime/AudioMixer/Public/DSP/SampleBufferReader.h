@@ -54,7 +54,7 @@ namespace Audio
 		float GetPlaybackProgress() const { return PlaybackProgress; }
 
 		// Generates the next block of audio. Returns true if it's no longer playing (reached end of the buffer and not set to wrap)
-		bool Generate(TArray<float>& OutAudioBuffer, const int32 NumFrames, const int32 OutChannels, const bool bWrap = false);
+		bool Generate(float* OutAudioBuffer, const int32 NumFrames, const int32 OutChannels, const bool bWrap = false);
 
 		// Whether or not the buffer reader has a buffer
 		bool HasBuffer() const { return BufferPtr != nullptr; }

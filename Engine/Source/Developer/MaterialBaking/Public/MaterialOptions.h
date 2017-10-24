@@ -22,7 +22,10 @@ struct FPropertyEntry
 {
 	GENERATED_BODY()
 
-	FPropertyEntry() {}
+	FPropertyEntry() : Property(MP_EmissiveColor), 
+		CustomSize(0, 0),
+		bUseConstantValue(false),
+		ConstantValue(0.0f) {}
 
 	FPropertyEntry(EMaterialProperty InProperty)
 		: Property(InProperty),

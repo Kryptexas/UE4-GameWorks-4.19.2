@@ -4,6 +4,7 @@
 #include "HAL/UnrealMemory.h"
 #include "Logging/LogMacros.h"
 #include "CoreGlobals.h"
+#include "HAL/LowLevelMemTracker.h"
 
 
 void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, FFreePageBlock* First, FFreePageBlock* Last, uint32& FreedPageBlocksNum, uint32& CachedTotal)
@@ -54,10 +55,13 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 				return Result;
 			}
 
-			if (void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
+		{
+			LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
+			if(void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
 			{
 				return Ptr;
 			}
+		}
 
 			// Are we holding on to much mem? Release it all.
 			for (FFreePageBlock* Block = First; Block != Last; ++Block)
@@ -71,6 +75,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 		}
 	}
 
+	LLM_PLATFORM_SCOPE(ELLMTag::LargeBinnedAllocation);
 	return FPlatformMemory::BinnedAllocFromOS(Size);
 }
 

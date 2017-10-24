@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -38,18 +38,18 @@ CefPrintJobCallbackCppToC::CefPrintJobCallbackCppToC() {
   GetStruct()->cont = print_job_callback_cont;
 }
 
-template<> CefRefPtr<CefPrintJobCallback> CefCppToC<CefPrintJobCallbackCppToC,
+template<> CefRefPtr<CefPrintJobCallback> CefCppToCRefCounted<CefPrintJobCallbackCppToC,
     CefPrintJobCallback, cef_print_job_callback_t>::UnwrapDerived(
     CefWrapperType type, cef_print_job_callback_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefPrintJobCallbackCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefPrintJobCallbackCppToC,
     CefPrintJobCallback, cef_print_job_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefPrintJobCallbackCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefPrintJobCallbackCppToC,
     CefPrintJobCallback, cef_print_job_callback_t>::kWrapperType =
     WT_PRINT_JOB_CALLBACK;

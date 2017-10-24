@@ -45,7 +45,9 @@
 
 void FMeshMergeHelpers::ExtractSections(const UStaticMeshComponent* Component, int32 LODIndex, TArray<FSectionInfo>& OutSections)
 {
-	static UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(UMaterial::GetDefaultMaterial(MD_Surface));
+	static UMaterialInterface* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+
+	TArray<FName> MaterialSlotNames = Component->GetMaterialSlotNames();
 
 	const UStaticMesh* StaticMesh = Component->GetStaticMesh();
 	for (const FStaticMeshSection& MeshSection : StaticMesh->RenderData->LODResources[LODIndex].Sections)
@@ -60,7 +62,7 @@ void FMeshMergeHelpers::ExtractSections(const UStaticMeshComponent* Component, i
 		FSectionInfo SectionInfo;
 		SectionInfo.Material = StoredMaterial;
 		SectionInfo.MaterialIndex = MeshSection.MaterialIndex;
-
+		SectionInfo.MaterialSlotName = MaterialSlotNames.IsValidIndex(MeshSection.MaterialIndex) ? MaterialSlotNames[MeshSection.MaterialIndex] : NAME_None;
 		SectionInfo.StartIndex = MeshSection.FirstIndex / 3;
 		SectionInfo.EndIndex = SectionInfo.StartIndex + MeshSection.NumTriangles;
 
@@ -80,10 +82,12 @@ void FMeshMergeHelpers::ExtractSections(const UStaticMeshComponent* Component, i
 
 void FMeshMergeHelpers::ExtractSections(const USkeletalMeshComponent* Component, int32 LODIndex, TArray<FSectionInfo>& OutSections)
 {
-	static UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(UMaterial::GetDefaultMaterial(MD_Surface));
+	static UMaterialInterface* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	FSkeletalMeshResource* Resource = Component->GetSkeletalMeshResource();
 
 	checkf(Resource->LODModels.IsValidIndex(LODIndex), TEXT("Invalid LOD Index"));
+
+	TArray<FName> MaterialSlotNames = Component->GetMaterialSlotNames();
 
 	const FStaticLODModel& Model = Resource->LODModels[LODIndex];
 	for (const FSkelMeshSection& MeshSection : Model.Sections)
@@ -95,6 +99,7 @@ void FMeshMergeHelpers::ExtractSections(const USkeletalMeshComponent* Component,
 
 		FSectionInfo SectionInfo;
 		SectionInfo.Material = StoredMaterial;
+		SectionInfo.MaterialSlotName = MaterialSlotNames.IsValidIndex(MeshSection.MaterialIndex) ? MaterialSlotNames[MeshSection.MaterialIndex] : NAME_None;
 
 		if (MeshSection.bCastShadow && Component->CastShadow)
 		{
@@ -117,7 +122,7 @@ void FMeshMergeHelpers::ExtractSections(const USkeletalMeshComponent* Component,
 
 void FMeshMergeHelpers::ExtractSections(const UStaticMesh* StaticMesh, int32 LODIndex, TArray<FSectionInfo>& OutSections)
 {
-	static UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(UMaterial::GetDefaultMaterial(MD_Surface));
+	static UMaterialInterface* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 
 	for (const FStaticMeshSection& MeshSection : StaticMesh->RenderData->LODResources[LODIndex].Sections)
 	{
@@ -131,6 +136,7 @@ void FMeshMergeHelpers::ExtractSections(const UStaticMesh* StaticMesh, int32 LOD
 		FSectionInfo SectionInfo;
 		SectionInfo.Material = StoredMaterial;
 		SectionInfo.MaterialIndex = MeshSection.MaterialIndex;
+		SectionInfo.MaterialSlotName = StaticMesh->StaticMaterials.IsValidIndex(MeshSection.MaterialIndex) ? StaticMesh->StaticMaterials[MeshSection.MaterialIndex].MaterialSlotName : NAME_None;
 
 		if (MeshSection.bEnableCollision)
 		{
@@ -170,12 +176,6 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 
 	// Transform raw mesh to world space
 	FTransform ComponentToWorldTransform = StaticMeshComponent->GetComponentTransform();
-	// Take into account build scale settings only for meshes imported from raw data
-	// meshes reconstructed from render data already have build scale applied
-	if (bImportedMesh)
-	{
-		ComponentToWorldTransform.SetScale3D(ComponentToWorldTransform.GetScale3D()*BuildSettings.BuildScale3D);
-	}
 
 	// Handle spline mesh deformation
 	if (bIsSplineMeshComponent)
@@ -199,12 +199,9 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 		return;
 	}
 
-	// If mirrored should recalculate normals
-	const bool bIsMirrored = ComponentToWorldTransform.GetDeterminant() < 0.f;
-
 	// Figure out if we should recompute normals and tangents. By default generated LODs should not recompute normals	
-	const bool bRecomputeNormals = RawMesh.WedgeTangentZ.Num() == 0 || bIsMirrored;
-	const bool bRecomputeTangents = RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0 || bIsMirrored;
+	const bool bRecomputeNormals = RawMesh.WedgeTangentZ.Num() == 0;
+	const bool bRecomputeTangents = RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0;
 
 	if (bRecomputeNormals || bRecomputeTangents)
 	{
@@ -685,43 +682,33 @@ void FMeshMergeHelpers::TransformRawMeshVertexData(const FTransform& InTransform
 
 	for (FVector& TangentX : OutRawMesh.WedgeTangentX)
 	{
-		TangentX = InTransform.TransformVectorNoScale(TangentX);
+		TangentX = InTransform.TransformVector(TangentX).GetSafeNormal();
 	}
 
 	for (FVector& TangentY : OutRawMesh.WedgeTangentY)
 	{
-		TangentY = InTransform.TransformVectorNoScale(TangentY);
+		TangentY = InTransform.TransformVector(TangentY).GetSafeNormal();
 	}
 
 	for (FVector& TangentZ : OutRawMesh.WedgeTangentZ)
 	{
-		TangentZ = InTransform.TransformVectorNoScale(TangentZ);
+		TangentZ = InTransform.TransformVector(TangentZ).GetSafeNormal();
 	}
 
 	const bool bIsMirrored = InTransform.GetDeterminant() < 0.f;
 	if (bIsMirrored)
 	{
-		// Flip faces
-		for (int32 FaceIdx = 0; FaceIdx < OutRawMesh.WedgeIndices.Num() / 3; FaceIdx++)
+		Algo::Reverse(OutRawMesh.WedgeIndices);
+		Algo::Reverse(OutRawMesh.WedgeTangentX);
+		Algo::Reverse(OutRawMesh.WedgeTangentY);
+		Algo::Reverse(OutRawMesh.WedgeTangentZ);
+		for (uint32 UVIndex = 0; UVIndex < MAX_MESH_TEXTURE_COORDS; ++UVIndex)
 		{
-			int32 I0 = FaceIdx * 3 + 0;
-			int32 I2 = FaceIdx * 3 + 2;
-			Swap(OutRawMesh.WedgeIndices[I0], OutRawMesh.WedgeIndices[I2]);
-
-			// seems like vertex colors and UVs are not indexed, so swap values instead
-			if (OutRawMesh.WedgeColors.Num())
-			{
-				Swap(OutRawMesh.WedgeColors[I0], OutRawMesh.WedgeColors[I2]);
-			}
-
-			for (int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; ++i)
-			{
-				if (OutRawMesh.WedgeTexCoords[i].Num())
-				{
-					Swap(OutRawMesh.WedgeTexCoords[i][I0], OutRawMesh.WedgeTexCoords[i][I2]);
-				}
-			}
+			Algo::Reverse(OutRawMesh.WedgeTexCoords[UVIndex]);
 		}
+		Algo::Reverse(OutRawMesh.FaceMaterialIndices);
+		Algo::Reverse(OutRawMesh.FaceSmoothingMasks);
+		Algo::Reverse(OutRawMesh.WedgeColors);
 	}
 }
 
@@ -745,14 +732,7 @@ void FMeshMergeHelpers::RetrieveCullingLandscapeAndVolumes(UWorld* InWorld, cons
 					{
 						// Retrieve highest landscape LOD level possible
 						MaxLandscapeExportLOD = FMath::Max(MaxLandscapeExportLOD, FMath::CeilLogTwo(LandscapeProxy->SubsectionSizeQuads + 1) - 1);
-						// Check whether or not the cluster actually overlaps with the landscape
-						FVector Origin, Extent;
-						LandscapeProxy->GetActorBounds(false, Origin, Extent);
-						const FBox LandscapeBounds(Origin - Extent, Origin + Extent);
-						if (LandscapeBounds.IntersectXY(EstimatedMeshProxyBounds.GetBox()))
-						{
-							LandscapeActors.Add(LandscapeProxy);
-						}
+						LandscapeActors.Add(LandscapeProxy);
 					}
 					// Check for culling volumes
 					AMeshMergeCullingVolume* Volume = Cast<AMeshMergeCullingVolume>(Actor);
@@ -952,39 +932,36 @@ bool FMeshMergeHelpers::PropagatePaintedColorsToRawMesh(const UStaticMeshCompone
 		StaticMeshComponent->LODData[LODIndex].OverrideVertexColors != nullptr)
 	{
 		FColorVertexBuffer& ColorVertexBuffer = *StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
-		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
-		FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
-		FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
+		FStaticMeshLODResources& RenderModel = StaticMesh->RenderData->LODResources[LODIndex];
 
 		if (ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
-		{
-			int32 NumWedges = RawMesh.WedgeIndices.Num();
-			const bool bUseWedgeMap = RenderData.WedgeMap.Num() > 0 && RenderData.WedgeMap.Num() == NumWedges && !StaticMeshComponent->IsA<USplineMeshComponent>();
-			// If we have a wedge map
-			if (bUseWedgeMap)
+		{	
+			const int32 NumWedges = RawMesh.WedgeIndices.Num();
+			const int32 NumRenderWedges = RenderModel.IndexBuffer.GetNumIndices();
+			const bool bUseRenderWedges = NumWedges == NumRenderWedges;
+					
+			if (bUseRenderWedges)
 			{
-				if (RenderData.WedgeMap.Num() == NumWedges)
+				const int32 NumExistingColors = RawMesh.WedgeColors.Num();
+				if (NumExistingColors < NumRenderWedges)
 				{
-					int32 NumExistingColors = RawMesh.WedgeColors.Num();
-					if (NumExistingColors < NumWedges)
-					{
-						RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
-					}
-
-					for (int32 i = 0; i < NumWedges; ++i)
-					{
-						FColor WedgeColor = FColor::White;
-						int32 Index = RenderData.WedgeMap[i];
-						if (Index != INDEX_NONE)
-						{
-							WedgeColor = ColorVertexBuffer.VertexColor(Index);
-						}
-
-						RawMesh.WedgeColors[i] = WedgeColor;
-					}
-
-					return true;
+					RawMesh.WedgeColors.AddUninitialized(NumRenderWedges - NumExistingColors);
 				}
+
+				const FIndexArrayView ArrayView = RenderModel.IndexBuffer.GetArrayView();
+				for (int32 WedgeIndex = 0; WedgeIndex < NumRenderWedges; WedgeIndex++)
+				{
+					const int32 Index = ArrayView[WedgeIndex];
+					FColor WedgeColor = FColor::White;
+					if (Index != INDEX_NONE)
+					{
+						WedgeColor = ColorVertexBuffer.VertexColor(Index);
+					}
+
+					RawMesh.WedgeColors[WedgeIndex] = WedgeColor;
+				}
+
+				return true;				
 			}
 			// No wedge map (this can happen when we poly reduce the LOD for example)
 			// Use index buffer directly
@@ -994,16 +971,16 @@ bool FMeshMergeHelpers::PropagatePaintedColorsToRawMesh(const UStaticMeshCompone
 
 				if (RawMesh.VertexPositions.Num() == ColorVertexBuffer.GetNumVertices())
 				{
-					for (int32 i = 0; i < NumWedges; ++i)
+					for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
 					{
 						FColor WedgeColor = FColor::White;
-						uint32 VertIndex = RawMesh.WedgeIndices[i];
+						uint32 VertIndex = RawMesh.WedgeIndices[WedgeIndex];
 
 						if (VertIndex < ColorVertexBuffer.GetNumVertices())
 						{
 							WedgeColor = ColorVertexBuffer.VertexColor(VertIndex);
 						}
-						RawMesh.WedgeColors[i] = WedgeColor;
+						RawMesh.WedgeColors[WedgeIndex] = WedgeColor;
 					}
 
 					return true;

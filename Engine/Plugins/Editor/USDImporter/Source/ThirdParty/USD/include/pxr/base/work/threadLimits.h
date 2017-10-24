@@ -24,10 +24,15 @@
 #ifndef WORK_THREAD_LIMITS_H
 #define WORK_THREAD_LIMITS_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/work/api.h"
 
-///
-///\file work/threadLimits.h
+PXR_NAMESPACE_OPEN_SCOPE
+
+/// \file work/threadLimits.h
+
+/// Returns the value of the PXR_WORK_THREAD_LIMIT env setting.
+WORK_API unsigned WorkGetThreadLimit();
 
 /// Return the current concurrency limit, always >= 1.
 ///
@@ -45,10 +50,6 @@ WORK_API unsigned WorkGetConcurrencyLimit();
 /// Return the number of physical execution cores available to the program.
 /// This is either the number of physical cores on the machine or the number of
 /// cores specified by the process's affinity mask, whichever is smaller.
-///
-/// Set the concurrency limit to \p n, if \p n is a non-zero value.
-///
-/// If \p n is zero, then do not change the current concurrency limit.
 ///
 WORK_API unsigned WorkGetPhysicalConcurrencyLimit();
 
@@ -90,5 +91,7 @@ WORK_API void WorkSetConcurrencyLimitArgument(int n);
 /// \endcode
 ///
 WORK_API void WorkSetMaximumConcurrencyLimit();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

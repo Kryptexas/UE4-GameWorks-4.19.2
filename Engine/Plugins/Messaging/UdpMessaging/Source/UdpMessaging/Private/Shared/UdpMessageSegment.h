@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
 #include "Misc/Guid.h"
+#include "Serialization/Archive.h"
+
 
 /**
  * Enumerates message segment types.

@@ -33,9 +33,6 @@ namespace BlueprintNativeCodeGenManifestImpl
 	static const FString SourceSubDir         = TEXT("Source");
 	static const FString EditorModulePostfix  = TEXT("Editor");
 	static const int32   RootManifestId       = -1;
-	// if you change this placeholder value, then you should reflect those changes in UAT (in 
-	// AddBlueprintPluginPathArgument() - where it folds this string into the requested pathname)
-	static const FString PlatformPlaceholderPattern = TEXT("<PLAT>");
 
 	/**
 	 * Populates the provided manifest object with data from the specified file.
@@ -300,12 +297,6 @@ FConvertedAssetRecord::FConvertedAssetRecord(const FAssetData& AssetInfo, const 
 	GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateSourceFileSavePath(TargetPaths, AssetInfo, NativizationOptions, FBlueprintNativeCodeGenPaths::HFile);
 }
 
-//------------------------------------------------------------------------------
-FStringAssetReference FConvertedAssetRecord::ToAssetRef() const
-{
-	return FStringAssetReference(TargetObjPath);
-}
-
 /*******************************************************************************
  * FUnconvertedDependencyRecord
  ******************************************************************************/
@@ -323,11 +314,27 @@ FUnconvertedDependencyRecord::FUnconvertedDependencyRecord(const FString& InGene
  //------------------------------------------------------------------------------
 FBlueprintNativeCodeGenPaths FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(const FName PlatformName)
 {
-	// NOTE: in UProjectPackagingSettings::PostEditChangeProperty() there are a hardcoded file path/name that are set to match these; 
-	//       if you alter these defaults then you need to update that and likely AddBlueprintPluginPathArgument() in UAT as well
-	FString DefaultPluginName = TEXT("NativizedAssets");
-	FString DefaultPluginDir = FPaths::Combine(*FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("Plugins")), *DefaultPluginName);
-	return FBlueprintNativeCodeGenPaths(DefaultPluginName, DefaultPluginDir, PlatformName);
+	static const FString DefaultPluginName = TEXT("NativizedAssets");
+
+	FString DefaultPluginPath = FPaths::Combine(*FPaths::ProjectIntermediateDir(), TEXT("Plugins"), *DefaultPluginName);
+	if (!PlatformName.IsNone())
+	{
+		for (PlatformInfo::FPlatformEnumerator PlatformIt = PlatformInfo::EnumeratePlatformInfoArray(); PlatformIt; ++PlatformIt)
+		{
+			if (PlatformIt->TargetPlatformName == PlatformName)
+			{
+				static const FName UBTTargetId_Win32 = FName(TEXT("Win32"));
+				static const FName UBTTargetId_Win64 = FName(TEXT("Win64"));
+				static const FName UBTTargetId_Windows = FName(TEXT("Windows"));
+
+				const FName UBTTargetId = (PlatformIt->UBTTargetId == UBTTargetId_Win32 || PlatformIt->UBTTargetId == UBTTargetId_Win64) ? UBTTargetId_Windows : PlatformIt->UBTTargetId;
+				DefaultPluginPath = FPaths::Combine(*DefaultPluginPath, *Lex::ToString(UBTTargetId), *Lex::ToString(PlatformIt->PlatformType));
+				break;
+			}
+		}
+	}
+
+	return FBlueprintNativeCodeGenPaths(DefaultPluginName, DefaultPluginPath, PlatformName);
 }
 
 //------------------------------------------------------------------------------
@@ -353,15 +360,6 @@ FBlueprintNativeCodeGenPaths::FBlueprintNativeCodeGenPaths(const FString& Plugin
 	{
 		PluginsDir = FPaths::GetPath(PluginsDir);
 	}
-	// if you change the replacement of this placeholder value, then you should reflect those changes in UAT (in 
-	// AddBlueprintPluginPathArgument() - where it folds this string into the requested pathname)
-	if (!PlatformName.IsNone() && PluginsDir.ReplaceInline(*BlueprintNativeCodeGenManifestImpl::PlatformPlaceholderPattern, *PlatformName.ToString()) == 0)
-	{
-		// DON'T alter the path that was likely passed down through the command line
-		//
-		// // if there was no platform placeholder in the string, append one to the end
-		// PluginsDir = FPaths::Combine(*PluginsDir, *(PluginNameIn + TEXT("_") + PlatformName.ToString()));
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -369,7 +367,7 @@ FString FBlueprintNativeCodeGenPaths::ManifestFilename(const int32 ChunkId) cons
 {
 	using namespace BlueprintNativeCodeGenManifestImpl;
 
-	FString Filename = FApp::GetGameName() + (TEXT("_") + PlatformName.ToString());
+	FString Filename = FApp::GetProjectName() + (TEXT("_") + PlatformName.ToString());
 	if (ChunkId != RootManifestId)
 	{
 		Filename += FString::Printf(TEXT("-%02d"), ChunkId);
@@ -386,7 +384,7 @@ FString FBlueprintNativeCodeGenPaths::ManifestFilePath(const int32 ChunkId) cons
 //------------------------------------------------------------------------------
 FString FBlueprintNativeCodeGenPaths::PluginRootDir() const
 {
-	return FPaths::Combine(*PluginsDir, *PluginName);
+	return PluginsDir;
 }
 
 //------------------------------------------------------------------------------
@@ -590,7 +588,7 @@ void FBlueprintNativeCodeGenManifest::InitDestPaths(const FString& PluginPath)
 
 		if (FPaths::IsRelative(OutputDir))
 		{
-			FPaths::MakePathRelativeTo(OutputDir, *FPaths::GameDir());
+			FPaths::MakePathRelativeTo(OutputDir, *FPaths::ProjectDir());
 		}
 	}
 	else
@@ -611,7 +609,7 @@ FString FBlueprintNativeCodeGenManifest::GetTargetDir() const
 	FString TargetPath = OutputDir;
 	if (FPaths::IsRelative(TargetPath))
 	{
-		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir(), TargetPath);
+		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir(), TargetPath);
 		TargetPath = FPaths::ConvertRelativePathToFull(TargetPath);
 	}
 	return TargetPath;

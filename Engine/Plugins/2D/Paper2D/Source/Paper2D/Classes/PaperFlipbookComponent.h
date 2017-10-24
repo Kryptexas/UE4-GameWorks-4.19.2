@@ -77,12 +77,7 @@ public:
 	/** Gets the flipbook used by this instance. */
 	UFUNCTION(BlueprintPure, Category="Sprite")
 	virtual UPaperFlipbook* GetFlipbook();
-
-	/** DEPRECATED! Use GetMaterial() instead.  Gets the material used by this instance */
-	DEPRECATED(4.5, "GetSpriteMaterial has been replaced by GetMaterial")
-	UFUNCTION(BlueprintCallable, Category="Sprite", meta=(DeprecatedFunction, DeprecationMessage="Use GetMaterial instead"))
-	UMaterialInterface* GetSpriteMaterial() const;
-
+	
 	/** Set color of the sprite */
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void SetSpriteColor(FLinearColor NewColor);
@@ -206,7 +201,3 @@ public:
 	virtual UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
 };
-
-// Allow the old name to continue to work for one release
-DEPRECATED(4.3, "UPaperAnimatedRenderComponent has been renamed to UPaperFlipbookComponent")
-typedef UPaperFlipbookComponent UPaperAnimatedRenderComponent;

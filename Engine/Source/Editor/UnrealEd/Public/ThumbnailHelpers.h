@@ -98,24 +98,6 @@ private:
 	class ASkeletalMeshActor* PreviewActor;
 };
 
-class UNREALED_API FDestructibleMeshThumbnailScene : public FThumbnailPreviewScene
-{
-public:
-	/** Constructor */
-	FDestructibleMeshThumbnailScene();
-
-	/** Sets the skeletal mesh to use in the next GetView() */
-	void SetDestructibleMesh(class UDestructibleMesh* InMesh);
-
-protected:
-	// FThumbnailPreviewScene implementation
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
-
-private:
-	/** The skeletal mesh actor used to display all skeletal mesh thumbnails */
-	class ADestructibleActor* PreviewActor;
-};
-
 class UNREALED_API FStaticMeshThumbnailScene : public FThumbnailPreviewScene
 {
 public:
@@ -213,6 +195,24 @@ private:
 
 	/** Animation Blueprint we are generating the thumbnail for */
 	class UAnimBlueprint* PreviewBlueprint;
+};
+
+class UNREALED_API FPhysicsAssetThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FPhysicsAssetThumbnailScene();
+
+	/** Sets the skeletal mesh to use in the next GetView() */
+	void SetPhysicsAsset(class UPhysicsAsset* InPhysicsAsset);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+
+private:
+	/** The skeletal mesh actor used to display all physics asset thumbnails */
+	class ASkeletalMeshActor* PreviewActor;
 };
 
 class UActorComponent;

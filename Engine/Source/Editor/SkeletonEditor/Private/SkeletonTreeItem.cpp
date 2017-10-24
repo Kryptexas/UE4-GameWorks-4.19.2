@@ -7,5 +7,6 @@ TSharedRef<ITableRow> FSkeletonTreeItem::MakeTreeRowWidget(const TSharedRef<STab
 {
 	return SNew(SSkeletonTreeRow, InOwnerTable)
 		.FilterText(InFilterText)
-		.Item(SharedThis(this));
+		.Item(SharedThis(this))
+		.OnDraggingItem(this, &FSkeletonTreeItem::OnDragDetected);
 }

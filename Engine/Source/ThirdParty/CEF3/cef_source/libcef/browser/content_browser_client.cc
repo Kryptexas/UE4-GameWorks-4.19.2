@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "libcef/browser/browser_context.h"
 #include "libcef/browser/browser_info.h"
 #include "libcef/browser/browser_info_manager.h"
 #include "libcef/browser/browser_host_impl.h"
@@ -14,7 +15,7 @@
 #include "libcef/browser/browser_message_filter.h"
 #include "libcef/browser/browser_platform_delegate.h"
 #include "libcef/browser/context.h"
-#include "libcef/browser/devtools_delegate.h"
+#include "libcef/browser/devtools_manager_delegate.h"
 #include "libcef/browser/extensions/extension_system.h"
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 #include "libcef/browser/net/chrome_scheme_handler.h"
@@ -27,6 +28,7 @@
 #include "libcef/browser/speech_recognition_manager_delegate.h"
 #include "libcef/browser/ssl_info_impl.h"
 #include "libcef/browser/thread_util.h"
+#include "libcef/browser/x509_certificate_impl.h"
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/command_line_impl.h"
@@ -38,7 +40,10 @@
 #include "base/base_switches.h"
 #include "base/command_line.h"
 #include "base/files/file_path.h"
+#include "base/json/json_reader.h"
 #include "base/path_service.h"
+#include "cef/grit/cef_resources.h"
+#include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/spellchecker/spellcheck_message_filter.h"
 #include "chrome/common/chrome_switches.h"
 #include "components/navigation_interception/intercept_navigation_throttle.h"
@@ -46,9 +51,9 @@
 #include "content/browser/frame_host/navigation_handle_impl.h"
 #include "content/browser/frame_host/render_frame_host_impl.h"
 #include "content/browser/plugin_service_impl.h"
-#include "content/public/browser/access_token_store.h"
+#include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_ppapi_host.h"
-#include "content/public/browser/browser_url_handler.h"
+#include "content/public/browser/browser_thread.h"
 #include "content/public/browser/child_process_security_policy.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/navigation_handle.h"
@@ -60,11 +65,13 @@
 #include "content/public/browser/render_widget_host.h"
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/resource_dispatcher_host.h"
+#include "content/public/browser/storage_partition.h"
 #include "content/public/common/content_switches.h"
+#include "content/public/common/service_names.mojom.h"
 #include "content/public/common/storage_quota_params.h"
 #include "content/public/common/web_preferences.h"
+#include "extensions/browser/extensions_browser_client.h"
 #include "extensions/browser/extension_message_filter.h"
-#include "extensions/browser/extension_protocols.h"
 #include "extensions/browser/extension_registry.h"
 #include "extensions/browser/guest_view/extensions_guest_view_message_filter.h"
 #include "extensions/browser/io_thread_extension_message_filter.h"
@@ -72,16 +79,23 @@
 #include "extensions/common/switches.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "ppapi/host/ppapi_host.h"
+#include "storage/browser/quota/quota_settings.h"
 #include "third_party/WebKit/public/web/WebWindowFeatures.h"
+#include "ui/base/resource/resource_bundle.h"
 #include "ui/base/ui_base_switches.h"
 #include "url/gurl.h"
 
+#if defined(OS_LINUX)
+#include "libcef/common/widevine_loader.h"
+#endif
+
 #if defined(OS_MACOSX)
-#include "chrome/browser/spellchecker/spellcheck_message_filter_platform.h"
+#include "components/spellcheck/browser/spellcheck_message_filter_platform.h"
 #endif
 
 #if defined(OS_POSIX) && !defined(OS_MACOSX)
 #include "base/debug/leak_annotations.h"
+#include "chrome/common/chrome_paths.h"
 #include "components/crash/content/app/breakpad_linux.h"
 #include "components/crash/content/browser/crash_handler_host_linux.h"
 #include "content/public/common/content_descriptors.h"
@@ -92,31 +106,6 @@
 #endif
 
 namespace {
-
-// In-memory store for access tokens used by geolocation.
-class CefAccessTokenStore : public content::AccessTokenStore {
- public:
-  // |system_context| is used by NetworkLocationProvider to communicate with a
-  // remote geolocation service.
-  explicit CefAccessTokenStore(net::URLRequestContextGetter* system_context)
-      : system_context_(system_context) {}
-
-  void LoadAccessTokens(
-      const LoadAccessTokensCallbackType& callback) override {
-    callback.Run(access_token_set_, system_context_);
-  }
-
-  void SaveAccessToken(
-      const GURL& server_url, const base::string16& access_token) override {
-    access_token_set_[server_url] = access_token;
-  }
-
- private:
-  net::URLRequestContextGetter* system_context_;
-  AccessTokenSet access_token_set_;
-
-  DISALLOW_COPY_AND_ASSIGN(CefAccessTokenStore);
-};
 
 class CefQuotaCallbackImpl : public CefRequestCallback {
  public:
@@ -175,7 +164,7 @@ class CefQuotaCallbackImpl : public CefRequestCallback {
 
 class CefAllowCertificateErrorCallbackImpl : public CefRequestCallback {
  public:
-  typedef base::Callback<void(bool)>  // NOLINT(readability/function)
+  typedef base::Callback<void(content::CertificateRequestResultType)>
       CallbackType;
 
   explicit CefAllowCertificateErrorCallbackImpl(const CallbackType& callback)
@@ -219,13 +208,66 @@ class CefAllowCertificateErrorCallbackImpl : public CefRequestCallback {
  private:
   static void RunNow(const CallbackType& callback, bool allow) {
     CEF_REQUIRE_UIT();
-    callback.Run(allow);
+    callback.Run(allow ? content::CERTIFICATE_REQUEST_RESULT_TYPE_CONTINUE :
+                         content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL);
   }
 
   CallbackType callback_;
 
   IMPLEMENT_REFCOUNTING(CefAllowCertificateErrorCallbackImpl);
   DISALLOW_COPY_AND_ASSIGN(CefAllowCertificateErrorCallbackImpl);
+};
+
+class CefSelectClientCertificateCallbackImpl :
+    public CefSelectClientCertificateCallback {
+ public:
+  explicit CefSelectClientCertificateCallbackImpl(
+      std::unique_ptr<content::ClientCertificateDelegate> delegate)
+      : delegate_(std::move(delegate)) {
+  }
+
+  ~CefSelectClientCertificateCallbackImpl() {
+    // If Select has not been called, call it with NULL to continue without any
+    // client certificate.
+    if (delegate_)
+      DoSelect(NULL);
+  }
+
+  void Select(CefRefPtr<CefX509Certificate> cert) override {
+    if (delegate_)
+      DoSelect(cert);
+  }
+
+ private:
+  void DoSelect(CefRefPtr<CefX509Certificate> cert) {
+    if (CEF_CURRENTLY_ON_UIT()) {
+      RunNow(std::move(delegate_), cert);
+    } else {
+      CEF_POST_TASK(CEF_UIT,
+          base::Bind(&CefSelectClientCertificateCallbackImpl::RunNow,
+                     base::Passed(std::move(delegate_)), cert));
+    }
+  }
+
+  static void RunNow(
+      std::unique_ptr<content::ClientCertificateDelegate> delegate,
+      CefRefPtr<CefX509Certificate> cert) {
+    CEF_REQUIRE_UIT();
+
+    scoped_refptr<net::X509Certificate> x509cert = NULL;
+    if (cert) {
+      CefX509CertificateImpl* certImpl =
+          static_cast<CefX509CertificateImpl*>(cert.get());
+      x509cert = certImpl->GetInternalCertObject();
+    }
+
+    delegate->ContinueWithCertificate(x509cert.get());
+  }
+
+  std::unique_ptr<content::ClientCertificateDelegate> delegate_;
+
+  IMPLEMENT_REFCOUNTING(CefSelectClientCertificateCallbackImpl);
+  DISALLOW_COPY_AND_ASSIGN(CefSelectClientCertificateCallbackImpl);
 };
 
 class CefQuotaPermissionContext : public content::QuotaPermissionContext {
@@ -248,8 +290,8 @@ class CefQuotaPermissionContext : public content::QuotaPermissionContext {
     bool handled = false;
 
     CefRefPtr<CefBrowserHostImpl> browser =
-        CefBrowserHostImpl::GetBrowserForView(render_process_id,
-                                              params.render_view_id);
+        CefBrowserHostImpl::GetBrowserForFrame(render_process_id,
+                                               params.render_frame_id);
     if (browser.get()) {
       CefRefPtr<CefClient> client = browser->GetClient();
       if (client.get()) {
@@ -282,14 +324,15 @@ class CefQuotaPermissionContext : public content::QuotaPermissionContext {
 #if defined(OS_POSIX) && !defined(OS_MACOSX)
 breakpad::CrashHandlerHostLinux* CreateCrashHandlerHost(
     const std::string& process_type) {
-  base::FilePath dumps_path =
-      base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
-          switches::kCrashDumpsDir);
+  base::FilePath dumps_path;
+  PathService::Get(chrome::DIR_CRASH_DUMPS, &dumps_path);
   {
     ANNOTATE_SCOPED_MEMORY_LEAK;
+    // Uploads will only occur if a non-empty crash URL is specified in
+    // CefMainDelegate::InitCrashReporter.
     breakpad::CrashHandlerHostLinux* crash_handler =
         new breakpad::CrashHandlerHostLinux(
-            process_type, dumps_path, false);
+            process_type, dumps_path, true /* upload */);
     crash_handler->StartUploaderThread();
     return crash_handler;
   }
@@ -311,13 +354,6 @@ int GetCrashSignalFD(const base::CommandLine& command_line) {
       command_line.GetSwitchValueASCII(switches::kProcessType);
 
   if (process_type == switches::kRendererProcess) {
-    static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
-    if (!crash_handler)
-      crash_handler = CreateCrashHandlerHost(process_type);
-    return crash_handler->GetDeathSignalSocket();
-  }
-
-  if (process_type == switches::kPluginProcess) {
     static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
     if (!crash_handler)
       crash_handler = CreateCrashHandlerHost(process_type);
@@ -433,9 +469,10 @@ void CefContentBrowserClient::RenderProcessWillLaunch(
   const base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
   const int id = host->GetID();
+  Profile* profile = Profile::FromBrowserContext(host->GetBrowserContext());
 
-  host->GetChannel()->AddFilter(new CefBrowserMessageFilter(host));
-  host->AddFilter(new printing::PrintingMessageFilter(id));
+  host->GetChannel()->AddFilter(new CefBrowserMessageFilter(id));
+  host->AddFilter(new printing::CefPrintingMessageFilter(id, profile));
 
   if (!command_line->HasSwitch(switches::kDisableSpellChecking)) {
     host->AddFilter(new SpellCheckMessageFilter(id));
@@ -444,18 +481,16 @@ void CefContentBrowserClient::RenderProcessWillLaunch(
 #endif
   }
 
-  content::BrowserContext* browser_context = host->GetBrowserContext();
-
   host->AddFilter(new CefPluginInfoMessageFilter(id,
-      static_cast<CefBrowserContext*>(browser_context)));
+      static_cast<CefBrowserContext*>(profile)));
 
   if (extensions::ExtensionsEnabled()) {
     host->AddFilter(
-        new extensions::ExtensionMessageFilter(id, browser_context));
+        new extensions::ExtensionMessageFilter(id, profile));
     host->AddFilter(
-        new extensions::IOThreadExtensionMessageFilter(id, browser_context));
+        new extensions::IOThreadExtensionMessageFilter(id, profile));
     host->AddFilter(
-        new extensions::ExtensionsGuestViewMessageFilter(id, browser_context));
+        new extensions::ExtensionsGuestViewMessageFilter(id, profile));
   }
 
   // If the renderer process crashes then the host may already have
@@ -465,7 +500,7 @@ void CefContentBrowserClient::RenderProcessWillLaunch(
   host->AddObserver(CefBrowserInfoManager::GetInstance());
 
   host->Send(new CefProcessMsg_SetIsIncognitoProcess(
-      browser_context->IsOffTheRecord()));
+      profile->IsOffTheRecord()));
 }
 
 bool CefContentBrowserClient::ShouldUseProcessPerSite(
@@ -495,46 +530,6 @@ bool CefContentBrowserClient::ShouldUseProcessPerSite(
   return true;
 }
 
-net::URLRequestContextGetter* CefContentBrowserClient::CreateRequestContext(
-    content::BrowserContext* content_browser_context,
-    content::ProtocolHandlerMap* protocol_handlers,
-    content::URLRequestInterceptorScopedVector request_interceptors) {
-  scoped_refptr<CefBrowserContext> context =
-      static_cast<CefBrowserContext*>(content_browser_context);
-
-  if (extensions::ExtensionsEnabled()) {
-    // Handle only chrome-extension:// requests. CEF does not support
-    // chrome-extension-resource:// requests (it does not store shared extension
-    // data in its installation directory).
-    extensions::InfoMap* extension_info_map =
-        context->extension_system()->info_map();
-    (*protocol_handlers)[extensions::kExtensionScheme] =
-        linked_ptr<net::URLRequestJobFactory::ProtocolHandler>(
-            extensions::CreateExtensionProtocolHandler(
-                context->IsOffTheRecord(), extension_info_map).release());
-  }
-
-  return context->CreateRequestContext(
-      protocol_handlers,
-      std::move(request_interceptors));
-}
-
-net::URLRequestContextGetter*
-CefContentBrowserClient::CreateRequestContextForStoragePartition(
-    content::BrowserContext* content_browser_context,
-    const base::FilePath& partition_path,
-    bool in_memory,
-    content::ProtocolHandlerMap* protocol_handlers,
-    content::URLRequestInterceptorScopedVector request_interceptors) {
-  scoped_refptr<CefBrowserContext> context =
-      static_cast<CefBrowserContext*>(content_browser_context);
-  return context->CreateRequestContextForStoragePartition(
-      partition_path,
-      in_memory,
-      protocol_handlers,
-      std::move(request_interceptors));
-}
-
 bool CefContentBrowserClient::IsHandledURL(const GURL& url) {
   if (!url.is_valid())
     return false;
@@ -547,14 +542,78 @@ bool CefContentBrowserClient::IsHandledURL(const GURL& url) {
   return CefContentClient::Get()->HasCustomScheme(scheme);
 }
 
-bool CefContentBrowserClient::IsNPAPIEnabled() {
-#if defined(OS_WIN) || defined(OS_MACOSX)
-  const base::CommandLine* command_line =
-      base::CommandLine::ForCurrentProcess();
-  return command_line->HasSwitch(switches::kEnableNPAPI);
-#else
-  return false;
-#endif
+void CefContentBrowserClient::SiteInstanceGotProcess(
+    content::SiteInstance* site_instance) {
+  if (!extensions::ExtensionsEnabled())
+    return;
+
+  // If this isn't an extension renderer there's nothing to do.
+  const extensions::Extension* extension = GetExtension(site_instance);
+  if (!extension)
+    return;
+
+  CefBrowserContext* browser_context =
+      static_cast<CefBrowserContext*>(site_instance->GetBrowserContext());
+
+  extensions::ProcessMap::Get(browser_context)
+      ->Insert(extension->id(),
+               site_instance->GetProcess()->GetID(),
+               site_instance->GetId());
+
+  CEF_POST_TASK(CEF_IOT,
+      base::Bind(&extensions::InfoMap::RegisterExtensionProcess,
+                 browser_context->extension_system()->info_map(),
+                 extension->id(),
+                 site_instance->GetProcess()->GetID(),
+                 site_instance->GetId()));
+}
+
+void CefContentBrowserClient::SiteInstanceDeleting(
+    content::SiteInstance* site_instance) {
+  if (!extensions::ExtensionsEnabled())
+    return;
+
+  // May be NULL during shutdown.
+  if (!extensions::ExtensionsBrowserClient::Get())
+    return;
+
+  // If this isn't an extension renderer there's nothing to do.
+  const extensions::Extension* extension = GetExtension(site_instance);
+  if (!extension)
+    return;
+
+  CefBrowserContext* browser_context =
+      static_cast<CefBrowserContext*>(site_instance->GetBrowserContext());
+
+  extensions::ProcessMap::Get(browser_context)
+      ->Remove(extension->id(),
+               site_instance->GetProcess()->GetID(),
+               site_instance->GetId());
+
+  CEF_POST_TASK(CEF_IOT,
+      base::Bind(&extensions::InfoMap::UnregisterExtensionProcess,
+                 browser_context->extension_system()->info_map(),
+                 extension->id(),
+                 site_instance->GetProcess()->GetID(),
+                 site_instance->GetId()));
+}
+
+std::unique_ptr<base::Value>
+CefContentBrowserClient::GetServiceManifestOverlay(base::StringPiece name) {
+  int id = -1;
+  if (name == content::mojom::kBrowserServiceName)
+    id = IDR_CEF_BROWSER_MANIFEST_OVERLAY;
+  else if (name == content::mojom::kRendererServiceName)
+    id = IDR_CEF_RENDERER_MANIFEST_OVERLAY;
+  else if (name == content::mojom::kUtilityServiceName)
+    id = IDR_CEF_UTILITY_MANIFEST_OVERLAY;
+  if (id == -1)
+    return nullptr;
+
+  base::StringPiece manifest_contents =
+      ui::ResourceBundle::GetSharedInstance().GetRawDataResourceForScale(
+          id, ui::ScaleFactor::SCALE_FACTOR_NONE);
+  return base::JSONReader::Read(manifest_contents);
 }
 
 void CefContentBrowserClient::AppendExtraCommandLineSwitches(
@@ -566,11 +625,10 @@ void CefContentBrowserClient::AppendExtraCommandLineSwitches(
     // Propagate the following switches to all command lines (along with any
     // associated values) if present in the browser command line.
     static const char* const kSwitchNames[] = {
-#if !defined(OS_WIN)
-      switches::kCrashDumpsDir,
-#endif
       switches::kDisablePackLoading,
-      switches::kEnableCrashReporter,
+#if defined(OS_MACOSX)
+      switches::kFrameworkDirPath,
+#endif
       switches::kLang,
       switches::kLocalesDirPath,
       switches::kLogFile,
@@ -600,8 +658,6 @@ void CefContentBrowserClient::AppendExtraCommandLineSwitches(
       switches::kPpapiFlashPath,
       switches::kPpapiFlashVersion,
       switches::kUncaughtExceptionStackSize,
-      switches::kWidevineCdmPath,
-      switches::kWidevineCdmVersion,
     };
     command_line->CopySwitchesFrom(*browser_cmd, kSwitchNames,
                                    arraysize(kSwitchNames));
@@ -623,16 +679,24 @@ void CefContentBrowserClient::AppendExtraCommandLineSwitches(
 
 #if defined(OS_LINUX)
   if (process_type == switches::kZygoteProcess) {
-    // Propagate the following switches to the zygone command line (along with
+    // Propagate the following switches to the zygote command line (along with
     // any associated values) if present in the browser command line.
     static const char* const kSwitchNames[] = {
       switches::kPpapiFlashPath,
       switches::kPpapiFlashVersion,
-      switches::kWidevineCdmPath,
-      switches::kWidevineCdmVersion,
     };
     command_line->CopySwitchesFrom(*browser_cmd, kSwitchNames,
                                    arraysize(kSwitchNames));
+
+#if defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
+    if (!browser_cmd->HasSwitch(switches::kNoSandbox)) {
+      // Pass the Widevine CDM path to the Zygote process. See comments in
+      // CefWidevineLoader::AddPepperPlugins.
+      const base::FilePath& cdm_path = CefWidevineLoader::GetInstance()->path();
+      if (!cdm_path.empty())
+        command_line->AppendSwitchPath(switches::kWidevineCdmPath, cdm_path);
+    }
+#endif
 
     if (browser_cmd->HasSwitch(switches::kBrowserSubprocessPath)) {
       // Force use of the sub-process executable path for the zygote process.
@@ -662,6 +726,17 @@ content::QuotaPermissionContext*
   return new CefQuotaPermissionContext();
 }
 
+void CefContentBrowserClient::GetQuotaSettings(
+    content::BrowserContext* context,
+    content::StoragePartition* partition,
+    const storage::OptionalQuotaSettingsCallback& callback) {
+  content::BrowserThread::PostTaskAndReplyWithResult(
+      content::BrowserThread::FILE, FROM_HERE,
+      base::Bind(&storage::CalculateNominalDynamicSettings,
+                 partition->GetPath(), context->IsOffTheRecord()),
+      callback);
+}
+
 content::MediaObserver* CefContentBrowserClient::GetMediaObserver() {
   return CefMediaCaptureDevicesDispatcher::GetInstance();
 }
@@ -685,15 +760,15 @@ void CefContentBrowserClient::AllowCertificateError(
     bool overridable,
     bool strict_enforcement,
     bool expired_previous_decision,
-    const base::Callback<void(bool)>& callback,
-    content::CertificateRequestResultType* result) {
+    const base::Callback<
+        void(content::CertificateRequestResultType)>& callback) {
   CEF_REQUIRE_UIT();
 
   if (resource_type != content::ResourceType::RESOURCE_TYPE_MAIN_FRAME) {
     // A sub-resource has a certificate error. The user doesn't really
     // have a context for making the right decision, so block the request
     // hard.
-    *result = content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL;
+    callback.Run(content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL);
     return;
   }
 
@@ -716,51 +791,76 @@ void CefContentBrowserClient::AllowCertificateError(
   bool proceed = handler->OnCertificateError(
       browser.get(), static_cast<cef_errorcode_t>(cert_error),
       request_url.spec(), cef_ssl_info, callbackImpl.get());
-  if (!proceed)
+  if (!proceed) {
     callbackImpl->Disconnect();
-
-  *result = proceed ? content::CERTIFICATE_REQUEST_RESULT_TYPE_CONTINUE :
-                      content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL;
+    callback.Run(content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL);
+  }
 }
 
 void CefContentBrowserClient::SelectClientCertificate(
     content::WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
-    scoped_ptr<content::ClientCertificateDelegate> delegate) {
-  if (!cert_request_info->client_certs.empty()) {
-    // Use the first certificate.
-    delegate->ContinueWithCertificate(cert_request_info->client_certs[0].get());
+    std::unique_ptr<content::ClientCertificateDelegate> delegate) {
+  CEF_REQUIRE_UIT();
+
+  CefRefPtr<CefRequestHandler> handler;
+  CefRefPtr<CefBrowserHostImpl> browser =
+      CefBrowserHostImpl::GetBrowserForContents(web_contents);
+  if (browser.get()) {
+    CefRefPtr<CefClient> client = browser->GetClient();
+    if (client.get())
+      handler = client->GetRequestHandler();
+  }
+
+  if (!handler.get()) {
+    delegate->ContinueWithCertificate(NULL);
+    return;
+  }
+
+  CefRequestHandler::X509CertificateList certs;
+  for (std::vector<scoped_refptr<net::X509Certificate> >::iterator iter =
+           cert_request_info->client_certs.begin();
+         iter != cert_request_info->client_certs.end(); iter++) {
+    certs.push_back(new CefX509CertificateImpl(*iter));
+  }
+
+  CefRefPtr<CefSelectClientCertificateCallbackImpl> callbackImpl(
+      new CefSelectClientCertificateCallbackImpl(std::move(delegate)));
+
+  bool proceed = handler->OnSelectClientCertificate(
+      browser.get(), cert_request_info->is_proxy,
+      cert_request_info->host_and_port.host(),
+      cert_request_info->host_and_port.port(),
+      certs, callbackImpl.get());
+
+  if (!proceed && !certs.empty()) {
+    callbackImpl->Select(certs[0]);
   }
 }
 
-content::AccessTokenStore* CefContentBrowserClient::CreateAccessTokenStore() {
-  return new CefAccessTokenStore(
-      browser_main_parts_->browser_context()->request_context().get());
-}
-
 bool CefContentBrowserClient::CanCreateWindow(
+    int opener_render_process_id,
+    int opener_render_frame_id,
     const GURL& opener_url,
     const GURL& opener_top_level_frame_url,
     const GURL& source_origin,
-    WindowContainerType container_type,
+    content::mojom::WindowContainerType container_type,
     const GURL& target_url,
     const content::Referrer& referrer,
+    const std::string& frame_name,
     WindowOpenDisposition disposition,
-    const blink::WebWindowFeatures& features,
+    const blink::mojom::WindowFeatures& features,
     bool user_gesture,
     bool opener_suppressed,
     content::ResourceContext* context,
-    int render_process_id,
-    int opener_render_view_id,
-    int opener_render_frame_id,
     bool* no_javascript_access) {
   CEF_REQUIRE_IOT();
   *no_javascript_access = false;
 
   return CefBrowserInfoManager::GetInstance()->CanCreateWindow(
-      target_url, referrer, disposition, features, user_gesture,
-      opener_suppressed, render_process_id, opener_render_view_id,
-      opener_render_frame_id, no_javascript_access);
+      target_url, referrer, frame_name, disposition, features, user_gesture,
+      opener_suppressed, opener_render_process_id, opener_render_frame_id,
+      no_javascript_access);
 }
 
 void CefContentBrowserClient::ResourceDispatcherHostCreated() {
@@ -773,6 +873,8 @@ void CefContentBrowserClient::ResourceDispatcherHostCreated() {
 void CefContentBrowserClient::OverrideWebkitPrefs(
     content::RenderViewHost* rvh,
     content::WebPreferences* prefs) {
+  // Using RVH instead of RFH here because rvh->GetMainFrame() may be nullptr
+  // when this method is called.
   renderer_prefs::PopulateWebPreferences(rvh, *prefs);
 
   if (rvh->GetWidget()->GetView()) {
@@ -783,9 +885,7 @@ void CefContentBrowserClient::OverrideWebkitPrefs(
 
 void CefContentBrowserClient::BrowserURLHandlerCreated(
     content::BrowserURLHandler* handler) {
-  // Used to redirect about: URLs to chrome: URLs.
-  handler->AddHandlerPair(&scheme::WillHandleBrowserAboutURL,
-                          content::BrowserURLHandler::null_handler());
+  scheme::BrowserURLHandlerCreated(handler);
 }
 
 std::string CefContentBrowserClient::GetDefaultDownloadName() {
@@ -795,7 +895,7 @@ std::string CefContentBrowserClient::GetDefaultDownloadName() {
 void CefContentBrowserClient::DidCreatePpapiPlugin(
     content::BrowserPpapiHost* browser_host) {
   browser_host->GetPpapiHost()->AddHostFactoryFilter(
-      scoped_ptr<ppapi::host::HostFactory>(
+      std::unique_ptr<ppapi::host::HostFactory>(
           new CefBrowserPepperHostFactory(browser_host)));
 }
 
@@ -804,12 +904,12 @@ content::DevToolsManagerDelegate*
   return new CefDevToolsManagerDelegate();
 }
 
-ScopedVector<content::NavigationThrottle>
+std::vector<std::unique_ptr<content::NavigationThrottle>>
 CefContentBrowserClient::CreateThrottlesForNavigation(
     content::NavigationHandle* navigation_handle) {
   CEF_REQUIRE_UIT();
 
-  ScopedVector<content::NavigationThrottle> throttles;
+  std::vector<std::unique_ptr<content::NavigationThrottle>> throttles;
 
   const bool is_main_frame = navigation_handle->IsInMainFrame();
 
@@ -839,13 +939,13 @@ CefContentBrowserClient::CreateThrottlesForNavigation(
       frame_id = CefFrameHostImpl::kInvalidFrameId;
   }
 
-  content::NavigationThrottle* throttle =
-      new navigation_interception::InterceptNavigationThrottle(
+  std::unique_ptr<content::NavigationThrottle> throttle =
+      base::MakeUnique<navigation_interception::InterceptNavigationThrottle>(
           navigation_handle,
           base::Bind(&NavigationOnUIThread, is_main_frame, frame_id,
                      parent_frame_id),
           true);
-  throttles.push_back(throttle);
+  throttles.push_back(std::move(throttle));
 
   return throttles;
 }
@@ -882,12 +982,7 @@ const wchar_t* CefContentBrowserClient::GetResourceDllName() {
 
 bool CefContentBrowserClient::PreSpawnRenderer(
     sandbox::TargetPolicy* policy) {
-  // Flash requires this permission to play video files.
-  sandbox::ResultCode result = policy->AddRule(
-      sandbox::TargetPolicy::SUBSYS_HANDLES,
-      sandbox::TargetPolicy::HANDLES_DUP_ANY,
-      L"File");
-  return result == sandbox::SBOX_ALL_OK;
+  return true;
 }
 #endif  // defined(OS_WIN)
 
@@ -901,11 +996,18 @@ void CefContentBrowserClient::RegisterCustomScheme(const std::string& scheme) {
     policy->RegisterWebSafeScheme(scheme);
 }
 
-scoped_refptr<CefBrowserContextImpl>
-CefContentBrowserClient::browser_context() const {
+CefBrowserContextImpl* CefContentBrowserClient::browser_context() const {
   return browser_main_parts_->browser_context();
 }
 
 CefDevToolsDelegate* CefContentBrowserClient::devtools_delegate() const {
   return browser_main_parts_->devtools_delegate();
+}
+
+const extensions::Extension* CefContentBrowserClient::GetExtension(
+    content::SiteInstance* site_instance) {
+  extensions::ExtensionRegistry* registry =
+      extensions::ExtensionRegistry::Get(site_instance->GetBrowserContext());
+  return registry->enabled_extensions().GetExtensionOrAppByURL(
+      site_instance->GetSiteURL());
 }

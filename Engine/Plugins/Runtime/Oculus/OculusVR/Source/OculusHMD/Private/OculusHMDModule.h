@@ -4,13 +4,14 @@
 #include "OculusHMDPrivate.h"
 #include "IHeadMountedDisplay.h"
 #include "OculusFunctionLibrary.h"
+#include "OculusHMD_VulkanExtensions.h"
 
 
 //-------------------------------------------------------------------------------------------------
 // FOculusHMDModule
 //-------------------------------------------------------------------------------------------------
 
-class FOculusHMDModule : public IOculusHMDModule 
+class FOculusHMDModule : public IOculusHMDModule
 {
 public:
 	FOculusHMDModule();
@@ -29,10 +30,11 @@ public:
 	virtual void GetModuleAliases(TArray<FString>& AliasesOut) const override;
 	virtual bool PreInit() override;
 	virtual bool IsHMDConnected() override;
-	virtual int GetGraphicsAdapter() override;
+	virtual uint64 GetGraphicsAdapterLuid() override;
 	virtual FString GetAudioInputDevice() override;
 	virtual FString GetAudioOutputDevice() override;
-	virtual TSharedPtr< IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
+	virtual TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > CreateTrackingSystem() override;
+	virtual TSharedPtr< IHeadMountedDisplayVulkanExtensions, ESPMode::ThreadSafe > GetVulkanExtensions() override;
 
 	// IOculusHMDModule
 	virtual void GetPose(FRotator& DeviceRotation, FVector& DevicePosition, FVector& NeckPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false, const FVector PositionScale = FVector::ZeroVector) override
@@ -93,11 +95,14 @@ public:
 	virtual bool PoseToOrientationAndPosition(const FQuat& InOrientation, const FVector& InPosition, FQuat& OutOrientation, FVector& OutPosition) const override;
 
 protected:
-	void SetGraphicsAdapter(const void* luid);
+	void SetGraphicsAdapterLuid(uint64 InLuid);
 
 	bool bPreInit;
 	bool bPreInitCalled;
 	void *OVRPluginHandle;
+	uint64 GraphicsAdapterLuid;
 	TWeakPtr< IHeadMountedDisplay, ESPMode::ThreadSafe > HeadMountedDisplay;
+	TSharedPtr< IHeadMountedDisplayVulkanExtensions, ESPMode::ThreadSafe > VulkanExtensions;
+
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
 };

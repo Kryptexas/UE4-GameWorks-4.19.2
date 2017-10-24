@@ -31,15 +31,19 @@
 /// \file gf/matrix3d.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
+#include "pxr/base/gf/api.h"
+#include "pxr/base/gf/declare.h"
 #include "pxr/base/gf/matrixData.h"
 #include "pxr/base/gf/vec3d.h"
 #include "pxr/base/gf/traits.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <iosfwd>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <>
 struct GfIsGfMatrix<class GfMatrix3d> { static const bool value = true; };
@@ -465,5 +469,7 @@ private:
 /// Output a GfMatrix3d
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfMatrix3d const &);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_MATRIX3D_H

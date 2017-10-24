@@ -21,24 +21,27 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef _USDUTILS_STITCH_CLIPS_H_
-#define _USDUTILS_STITCH_CLIPS_H_
+#ifndef USDUTILS_STITCH_CLIPS_H
+#define USDUTILS_STITCH_CLIPS_H
 
 /// \file usdUtils/stitchClips.h
 ///
 /// Collection of utilities for sequencing multiple layers each holding
 /// sequential time-varying data into
-/// \ref Usd_ClipsOverview "USD Value Clips".
+/// \ref Usd_Page_ValueClips "USD Value Clips".
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUtils/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/path.h"
-SDF_DECLARE_HANDLES(SdfLayer);
-
 #include <limits>
 
+PXR_NAMESPACE_OPEN_SCOPE
+
+SDF_DECLARE_HANDLES(SdfLayer);
+
 /// A function that creates layers that use
-/// \ref Usd_ClipsOverview "USD Value Clips"
+/// \ref Usd_Page_ValueClips "USD Value Clips"
 /// to effectively merge the time samples in the given \p clipLayers under \p
 /// clipPath without copying the samples into a separate layer.
 ///
@@ -96,7 +99,8 @@ SDF_DECLARE_HANDLES(SdfLayer);
 /// Note: an invalid clip path(because the prim doesn't exist in
 /// the aggregate topologyLayer) will result in a TF_CODING_ERROR.
 /// 
-USDUTILS_API bool 
+USDUTILS_API
+bool 
 UsdUtilsStitchClips(const SdfLayerHandle& resultLayer, 
                     const std::vector<std::string>& clipLayerFiles,
                     const SdfPath& clipPath, 
@@ -115,8 +119,64 @@ UsdUtilsStitchClips(const SdfLayerHandle& resultLayer,
 ///
 /// \p clipLayerFiles         The files containing the time varying data.
 /// 
-USDUTILS_API bool 
+USDUTILS_API
+bool 
 UsdUtilsStitchClipsTopology(const SdfLayerHandle& topologyLayer, 
                             const std::vector<std::string>& clipLayerFiles);
 
-#endif // _USDUTILS_STITCH_CLIPS_H_
+/// A function which authors clip template metadata on a particular prim in a 
+/// result layer, as well as adding the topologyLayer to the list of subLayers
+/// on the \p resultLayer. It will clear the \p resultLayer and create 
+/// a prim at \p clipPath. Specifically, this will author clipPrimPath,
+/// clipTemplateAssetPath, clipTemplateStride, clipTemplateStartTime and 
+/// clipTemplateEndTime.
+///
+/// \p resultLayer            The layer in which we will author the metadata.
+///
+/// \p topologyLayer          The layer containing the aggregate topology of 
+///                           the clipLayers which the metadata refers to.
+///
+/// \p clipPath               The path at which to author the metadata in 
+///                           \p resultLayer
+///
+/// \p templatePath           The template string to be authored at the 
+///                           clipTemplateAssetPath metadata key.
+///
+/// \p startTime              The start time to be authored at the 
+///                           clipTemplateStartTime metadata key.
+///
+/// \p endTime                The end time to be authored at the 
+///                           clipTemplateEndTime metadata key.
+///
+/// \p stride                 The stride to be authored at the 
+///                           clipTemplateStride metadata key.
+///
+/// For further information on these metadatum, see \ref Usd_Page_AdvancedFeatures
+///
+USDUTILS_API
+bool
+UsdUtilsStitchClipsTemplate(const SdfLayerHandle& resultLayer,
+                            const SdfLayerHandle& topologyLayer,
+                            const SdfPath& clipPath,
+                            const std::string& templatePath,
+                            const double startTime,
+                            const double endTime,
+                            const double stride);
+
+/// Generates a topology file name based on an input file name
+/// 
+/// For example, if given 'foo.usd', it generates 'foo.topology.usd'
+/// 
+/// Note: this will not strip preceding paths off of a file name
+/// so /bar/baz/foo.usd will produce /bar/baz/foo.topology.usd
+///
+/// \p rootLayerName      The filepath used as a basis for generating
+///                       our topology layer name.
+USDUTILS_API
+std::string
+UsdUtilsGenerateClipTopologyName(const std::string& rootLayerName);
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_STITCH_CLIPS_H */

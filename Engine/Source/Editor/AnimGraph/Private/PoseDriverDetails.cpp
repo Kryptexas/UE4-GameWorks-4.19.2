@@ -667,7 +667,7 @@ void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	SourceBonesPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPoseDriverDetails::OnSourceBonesChanged));
 
 	// Cache set of selected things
-	SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 
 	// Create list of driven names
 	UpdateDrivenNameOptions();
@@ -883,15 +883,13 @@ void FPoseDriverDetails::UpdateDrivenNameOptions()
 				const FSmartNameMapping* Mapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 				if (Mapping)
 				{
-					TArray<SmartName::UID_Type> UidList;
-					Mapping->FillUidArray(UidList);
+					TArray<FName> NameArray;
+					Mapping->FillNameArray(NameArray);
+					NameArray.Sort();
 
-					for (SmartName::UID_Type Uid : UidList)
+					for (FName CurveName : NameArray)
 					{
-						FSmartName SmartName;
-						Mapping->FindSmartNameByUID(Uid, SmartName);
-
-						DrivenNameOptions.Add(MakeShareable(new FName(SmartName.DisplayName)));
+						DrivenNameOptions.Add(MakeShareable(new FName(CurveName)));
 					}
 				}
 			}

@@ -176,7 +176,7 @@ public:
 	uint8* GetContainedSubblock(uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead)
 	{
 		if (InOffset >= Offset && InOffset + InBytesToRead <= Offset + BytesToRead &&
-			this->PollCompletion())
+			this->PollCompletion() && Memory)
 		{
 			check(Memory);
 			if (!UserSuppliedMemory)

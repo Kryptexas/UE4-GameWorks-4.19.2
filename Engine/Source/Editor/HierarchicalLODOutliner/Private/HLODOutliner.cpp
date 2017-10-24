@@ -292,7 +292,7 @@ namespace HLODOutliner
 			/*InNotifyHook=*/ NotifyHook,
 			/*InSearchInitialKeyFocus=*/ false,
 			/*InViewIdentifier=*/ NAME_None);
-		DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+		DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 		DetailsViewArgs.bShowOptions = false;
 
 		SettingsView = EditModule.CreateDetailView(DetailsViewArgs);
@@ -872,7 +872,7 @@ namespace HLODOutliner
 				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
 				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					AActor* Actor = Cast<AActor>(ActorItem->StaticMeshActor.Get());
+					AActor* Actor = ActorItem->StaticMeshActor.Get();
 					
 					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))
 					{
@@ -912,7 +912,7 @@ namespace HLODOutliner
 				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
 				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					AActor* Actor = Cast<AActor>(ActorItem->LODActor.Get());
+					AActor* Actor = ActorItem->LODActor.Get();
 					checkf(Actor != nullptr, TEXT("Invalid actor in tree view"));
 					
 					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))
@@ -1633,6 +1633,8 @@ namespace HLODOutliner
 		// Request treeview UI item to refresh
 		TreeView->RequestTreeRefresh();
 		
+		DestroySelectionActors();
+
 		// Just finished refreshing
 		bNeedsRefresh = false;
 	}

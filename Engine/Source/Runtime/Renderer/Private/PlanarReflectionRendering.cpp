@@ -193,6 +193,8 @@ static void UpdatePlanarReflectionContents_RenderThread(
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderPlanarReflection);
 
+	FMemMark MemStackMark(FMemStack::Get());
+
 	FBox PlanarReflectionBounds = SceneProxy->WorldBounds;
 
 	bool bIsInAnyFrustum = false;
@@ -243,8 +245,6 @@ static void UpdatePlanarReflectionContents_RenderThread(
 
 		if (bIsVisibleInAnyView)
 		{
-			FMemMark MemStackMark(FMemStack::Get());
-
 			// update any resources that needed a deferred update
 			FDeferredUpdateResource::UpdateResources(RHICmdList);
 
@@ -308,9 +308,9 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				}
 				RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
 			}
-			FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 		}
 	}
+	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
 
 extern void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Type ProjectionType, float FOV, float OrthoWidth, FMatrix& ProjectionMatrix);

@@ -16,16 +16,18 @@
 #include <sys/resource.h>
 #include <dlfcn.h>
 #include "AndroidWindow.h"
-#include <android/sensor.h>
 #include "AndroidApplication.h"
+#include "PlatformApplicationMisc.h"
 #include "IHeadMountedDisplayModule.h"
 #include "ISessionServicesModule.h"
 #include "ISessionService.h"
 #include "Engine/Engine.h"
 #include "HAL/PlatformFile.h"
 #include "HAL/PlatformAffinity.h"
+#include "HAL/PlatformInput.h"
 #include "Modules/ModuleManager.h"
 #include "IMessagingModule.h"
+#include "AndroidStats.h"
 
 // Function pointer for retrieving joystick events
 // Function has been part of the OS since Honeycomb, but only appeared in the
@@ -93,6 +95,8 @@ extern "C"
 
 extern void AndroidThunkCpp_InitHMDs();
 extern void AndroidThunkCpp_ShowConsoleWindow();
+extern bool AndroidThunkCpp_VirtualInputIgnoreClick(int, int);
+extern bool AndroidThunkCpp_IsVirtuaKeyboardShown();
 
 // Base path for file accesses
 extern FString GFilePathBase;
@@ -113,30 +117,41 @@ static const float EventRefreshRate = 1.0f / 20.0f;
 //Android event callback functions
 static int32_t HandleInputCB(struct android_app* app, AInputEvent* event); //Touch and key input events
 static void OnAppCommandCB(struct android_app* app, int32_t cmd); //Lifetime events
-static int HandleSensorEvents(int fd, int events, void* data); // Sensor events
+
 
 bool GHasInterruptionRequest = false;
 bool GIsInterrupted = false;
 
-// Android sensor data management
-static ASensorManager * SensorManager = NULL;
-// Accelerometer (includes gravity), i.e. FMotionEvent::GetAcceleration.
-static const ASensor * SensorAccelerometer = NULL;
-// Gyroscope, i.e. FMotionEvent::GetRotationRate.
-static const ASensor * SensorGyroscope = NULL;
-// Magnetometer
-static const ASensor* SensorMagnetometer = NULL;
-static ASensorEventQueue * SensorQueue = NULL;
-// android.hardware.SensorManager.SENSOR_DELAY_GAME
-static const int32_t SensorDelayGame = 1;
-// Time decay sampling rate.
-static const float SampleDecayRate = 0.85f;
+// Set 'SustainedPerformanceMode' via cvar sink.
+static TAutoConsoleVariable<int32> CVarEnableSustainedPerformanceMode(
+	TEXT("Android.EnableSustainedPerformanceMode"),
+	0,
+	TEXT("Enable sustained performance mode, if supported. (API >= 24 req. not supported by all devices.)\n")
+	TEXT("  0: Disabled (default)\n")
+	TEXT("  1: Enabled"),
+	ECVF_Default);
+
+extern void AndroidThunkCpp_SetSustainedPerformanceMode(bool);
+static void SetSustainedPerformanceMode()
+{
+	static bool bSustainedPerformanceMode = false;
+	bool bIncomingSustainedPerformanceMode = CVarEnableSustainedPerformanceMode.GetValueOnAnyThread() != 0;
+	if(bSustainedPerformanceMode != bIncomingSustainedPerformanceMode)
+	{
+		bSustainedPerformanceMode = bIncomingSustainedPerformanceMode;
+		UE_LOG(LogAndroid, Log, TEXT("Setting sustained performance mode: %d"), (int32)bSustainedPerformanceMode);
+		AndroidThunkCpp_SetSustainedPerformanceMode(bSustainedPerformanceMode);
+	}
+}
+FAutoConsoleVariableSink CVarEnableSustainedPerformanceModeSink(FConsoleCommandDelegate::CreateStatic(&SetSustainedPerformanceMode));
+
 // Event for coordinating pausing of the main and event handling threads to prevent background spinning
 static FEvent* EventHandlerEvent = NULL;
 
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
 volatile bool GEventHandlerInitialized = false;
+
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
 {
 	GResumeMainInit = true;
@@ -178,7 +193,7 @@ static void InitCommandLine()
 	FCommandLine::Set(TEXT(""));
 
 	// read in the command line text file from the sdcard if it exists
-	FString CommandLineFilePath = GFilePathBase + FString("/UE4Game/") + (!FApp::IsGameNameEmpty() ? FApp::GetGameName() : FPlatformProcess::ExecutableName()) + FString("/UE4CommandLine.txt");
+	FString CommandLineFilePath = GFilePathBase + FString("/UE4Game/") + (!FApp::IsProjectNameEmpty() ? FApp::GetProjectName() : FPlatformProcess::ExecutableName()) + FString("/UE4CommandLine.txt");
 	FILE* CommandLineFile = fopen(TCHAR_TO_UTF8(*CommandLineFilePath), "r");
 	if(CommandLineFile == NULL)
 	{
@@ -259,7 +274,7 @@ int32 AndroidMain(struct android_app* state)
 	// setup key filtering
 	static const uint32 MAX_KEY_MAPPINGS(256);
 	uint32 KeyCodes[MAX_KEY_MAPPINGS];
-	uint32 NumKeyCodes = FPlatformMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
+	uint32 NumKeyCodes = FPlatformInput::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
 
 	for (int i = 0; i < NumKeyCodes; ++i)
 	{
@@ -329,6 +344,8 @@ int32 AndroidMain(struct android_app* state)
 	// tick until done
 	while (!GIsRequestingExit)
 	{
+		FAndroidStats::UpdateAndroidStats();
+
 		FAppEventManager::GetInstance()->Tick();
 		if(!FAppEventManager::GetInstance()->IsGamePaused())
 		{
@@ -384,26 +401,6 @@ static void* AndroidEventThreadWorker( void* param )
 	state->onInputEvent = HandleInputCB;
 
 	FPlatformMisc::LowLevelOutputDebugString(L"Passed callback initialization");
-
-	// Acquire sensors
-	SensorManager = ASensorManager_getInstance();
-	if (NULL != SensorManager)
-	{
-		// Register for the various sensor events we want. Some
-		// may return NULL indicating that the sensor data is not
-		// available in the device. For those empty data will eventually
-		// get fed into the motion events.
-		SensorAccelerometer = ASensorManager_getDefaultSensor(
-			SensorManager, ASENSOR_TYPE_ACCELEROMETER);
-		SensorGyroscope = ASensorManager_getDefaultSensor(
-			SensorManager, ASENSOR_TYPE_GYROSCOPE);
-		SensorMagnetometer = ASensorManager_getDefaultSensor(
-			SensorManager, ASENSOR_TYPE_MAGNETIC_FIELD);
-		// Create the queue for events to arrive.
-		SensorQueue = ASensorManager_createEventQueue(
-			SensorManager, state->looper, LOOPER_ID_USER, HandleSensorEvents, NULL);
-	}
-
 	FPlatformMisc::LowLevelOutputDebugString(L"Passed sensor initialization");
 
 	//continue to process events until the engine is shutting down
@@ -549,7 +546,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				return 1;
 			}
 
-			ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+			ANativeWindow* Window = (ANativeWindow*)FAndroidWindow::GetHardwareWindow();
 			if (!Window)
 			{
 				return 0;
@@ -570,6 +567,16 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
+			if (AndroidThunkCpp_IsVirtuaKeyboardShown() && (type == TouchBegan || type == TouchMoved))
+			{
+				int pointerId = AMotionEvent_getPointerId(event, actionPointer);
+				int32 x = AMotionEvent_getX(event, actionPointer);
+				int32 y = AMotionEvent_getY(event, actionPointer);
+
+				//ignore key down events when the native input was clicked or when the keyboard animation is playing
+				if (AndroidThunkCpp_VirtualInputIgnoreClick(x, y))
+					return 0;
+			}
 			if(isActionTargeted)
 			{
 				if(actionPointer < 0 || pointerCount < (int)actionPointer)
@@ -746,15 +753,6 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		// if the app lost focus, avoid unnecessary processing (like monitoring the accelerometer)
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_LOST_FOCUS"));
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_LOST_FOCUS, NULL);
-		if (NULL != SensorQueue)
-		{
-			if (NULL != SensorAccelerometer)
-				ASensorEventQueue_disableSensor(SensorQueue, SensorAccelerometer);
-			if (NULL != SensorGyroscope)
-				ASensorEventQueue_disableSensor(SensorQueue, SensorGyroscope);
-			if (NULL != SensorMagnetometer)
-				ASensorEventQueue_disableSensor(SensorQueue, SensorMagnetometer);
-		}
 		break;
 	case APP_CMD_GAINED_FOCUS:
 		/**
@@ -764,24 +762,6 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		// bring back a certain functionality, like monitoring the accelerometer
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_GAINED_FOCUS"));
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_GAINED_FOCUS, NULL);
-		if (NULL != SensorQueue)
-		{
-			if (NULL != SensorAccelerometer)
-			{
-				ASensorEventQueue_enableSensor(SensorQueue, SensorAccelerometer);
-				ASensorEventQueue_setEventRate(SensorQueue, SensorAccelerometer, SensorDelayGame);
-			}
-			if (NULL != SensorGyroscope)
-			{
-				ASensorEventQueue_enableSensor(SensorQueue, SensorGyroscope);
-				ASensorEventQueue_setEventRate(SensorQueue, SensorGyroscope, SensorDelayGame);
-			}
-			if (NULL != SensorMagnetometer)
-			{
-				ASensorEventQueue_enableSensor(SensorQueue, SensorMagnetometer);
-				ASensorEventQueue_setEventRate(SensorQueue, SensorMagnetometer, SensorDelayGame);
-			}
-		}
 		break;
 	case APP_CMD_INPUT_CHANGED:
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_INPUT_CHANGED"));
@@ -878,198 +858,16 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		break;
 	}
 
-	if ( EventHandlerEvent )
+	if (EventHandlerEvent)
+	{
 		EventHandlerEvent->Trigger();
+	}
 
 	if (bNeedToSync)
+	{
 		FAppEventManager::GetInstance()->WaitForEmptyQueue();
+	}
 	//FPlatformMisc::LowLevelOutputDebugStringf(L"#### END OF OnAppCommandCB cmd: %u, tid = %d", cmd, gettid());
-}
-
-static void GetRotationMatrix(FVector gravityVec, FVector magneticVec, float outRotationMatrix[])
-{
-	// the the cross product of magnetic vector and gravity to derive a basis
-	// vector pointing East.
-	FVector eastVec = FVector::CrossProduct(magneticVec, gravityVec);
-
-	// Normalize & check the new basis vector
-	const float normEast = eastVec.Size();
-	if (normEast < 0.1f)
-	{
-		// device is close to free fall (or in space?), or close to
-		// magnetic north pole. Typical values are  > 100.
-		return;
-	}
-	float invEastSize = 1.0f / normEast;
-	eastVec.X *= invEastSize;
-	eastVec.Y *= invEastSize;
-	eastVec.Z *= invEastSize;
-
-	// Now normalize the acceleration (assumed = gravity) vector
-	float invGravSize = 1.0f / gravityVec.Size();
-	gravityVec.X *= invGravSize;
-	gravityVec.Y *= invGravSize;
-	gravityVec.Z *= invGravSize;
-
-	// A second cross product of the newly computed East and our measured gravity
-	// vector gives a north vector in the horizontal plane.
-	FVector northVec = FVector::CrossProduct(gravityVec, eastVec);
-
-	outRotationMatrix[0] = eastVec.X;			outRotationMatrix[1] = eastVec.Y;			outRotationMatrix[2] = eastVec.Z;
-	outRotationMatrix[3] = northVec.X;			outRotationMatrix[4] = northVec.Y;			outRotationMatrix[5] = northVec.Z;
-	outRotationMatrix[6] = gravityVec.X;		outRotationMatrix[7] = gravityVec.Y;		outRotationMatrix[8] = gravityVec.Z;
-}
-
-static int HandleSensorEvents(int fd, int events, void* data)
-{
-	// It's not possible to discern sequencing across sensors in
-	// Android. So we average out all the sensor events on one cycle
-	// and post a single motion sensor data point. We also need
-	// to synthesize additional information.
-	FVector current_accelerometer(0, 0, 0);
-	FVector current_gyroscope(0, 0, 0);
-	FVector current_magnetometer(0, 0, 0);
-	int32 current_accelerometer_sample_count = 0;
-	int32 current_gyroscope_sample_count = 0;
-	int32 current_magnetometer_sample_count = 0;
-	static FVector last_accelerometer(0, 0, 0);
-	static FVector last_magnetometer(0, 0, 0);
-
-	if (NULL != SensorAccelerometer || NULL != SensorGyroscope)
-	{
-		ASensorEvent sensor_event;
-		while (ASensorEventQueue_getEvents(SensorQueue, &sensor_event, 1) > 0)
-		{
-			if (ASENSOR_TYPE_ACCELEROMETER == sensor_event.type)
-			{
-				current_accelerometer.X += sensor_event.acceleration.x;
-				current_accelerometer.Y += sensor_event.acceleration.y;
-				current_accelerometer.Z += sensor_event.acceleration.z;
-				current_accelerometer_sample_count += 1;
-			}
-			else if (ASENSOR_TYPE_GYROSCOPE == sensor_event.type)
-			{
-				current_gyroscope.X += sensor_event.vector.pitch;
-				current_gyroscope.Y += sensor_event.vector.azimuth;
-				current_gyroscope.Z += sensor_event.vector.roll;
-				current_gyroscope_sample_count += 1;
-			}
-			else if (ASENSOR_TYPE_MAGNETIC_FIELD == sensor_event.type)
-			{
-				current_magnetometer.X += sensor_event.magnetic.x;
-				current_magnetometer.Y += sensor_event.magnetic.y;
-				current_magnetometer.Z += sensor_event.magnetic.z;
-				current_magnetometer_sample_count += 1;
-			}
-		}
-	}
-
-	if (current_accelerometer_sample_count > 0)
-	{
-		// Do simple average of the samples we just got.
-		current_accelerometer /= float(current_accelerometer_sample_count);
-		last_accelerometer = current_accelerometer;
-	}
-	else
-	{
-		current_accelerometer = last_accelerometer;
-	}
-
-	if (current_gyroscope_sample_count > 0)
-	{
-		// Do simple average of the samples we just got.
-		current_gyroscope /= float(current_gyroscope_sample_count);
-	}
-
-	if (current_magnetometer_sample_count > 0)
-	{
-		// Do simple average of the samples we just got.
-		current_magnetometer /= float(current_magnetometer_sample_count);
-		last_magnetometer = current_magnetometer;
-	}
-	else
-	{
-		current_magnetometer = last_magnetometer;
-	}
-
-	// If we have motion samples we generate the single event.
-	if (current_accelerometer_sample_count > 0 ||
-		current_gyroscope_sample_count > 0 ||
-		current_magnetometer_sample_count > 0)
-	{
-		// The data we compose the motion event from.
-		FVector current_tilt(0, 0, 0);
-		FVector current_rotation_rate(0, 0, 0);
-		FVector current_gravity(0, 0, 0);
-		FVector current_acceleration(0, 0, 0);
-
-		// Buffered, historical, motion data.
-		static FVector last_tilt(0, 0, 0);
-		static FVector last_gravity(0, 0, 0);
-
-		// We use a low-pass filter to synthesize the gravity
-		// vector.
-		static bool first_acceleration_sample = true;
-		if (!first_acceleration_sample)
-		{
-			current_gravity
-				= last_gravity*SampleDecayRate
-				+ current_accelerometer*(1.0f - SampleDecayRate);
-		}
-		first_acceleration_sample = false;
-
-		// get the rotation matrix value, the convert those to Euler angle rotation values
-		float outRotationMatrix[9];
-		GetRotationMatrix(current_accelerometer, current_magnetometer, outRotationMatrix);
-
-		float current_yaw = FMath::Atan2(outRotationMatrix[1], outRotationMatrix[4]);
-		float current_roll = FMath::Asin(-1 * outRotationMatrix[7]);
-		float current_pitch = FMath::Atan2(-1 * outRotationMatrix[6], outRotationMatrix[8]);
-
-		//to match up with ipad values for Y, we need to adjust by pi
-		current_yaw += PI;
-		if (current_yaw >= PI)
-		{
-			current_yaw = (current_yaw - PI) + -PI;
-		}
-
-		current_tilt.X = current_pitch;
-		current_tilt.Y = current_yaw;
-		current_tilt.Z = current_roll;
-
-		// And take out the gravity from the accel to get
-		// the linear acceleration.
-		current_acceleration = current_accelerometer - current_gravity;
-
-		if (current_gyroscope_sample_count > 0)
-		{
-			// The rotation rate is the what the gyroscope gives us.
-			current_rotation_rate = current_gyroscope;
-		}
-		else if (NULL == SensorGyroscope)
-		{
-			// If we don't have a gyroscope at all we need to calc a rotation
-			// rate from our calculated tilt and a delta.
-			current_rotation_rate = current_tilt - last_tilt;
-		}
-
-		// Finally record the motion event with all the data.
-		FAndroidInputInterface::QueueMotionData(current_tilt,
-			current_rotation_rate, current_gravity, current_acceleration);
-
-		// Update history values.
-		last_tilt = current_tilt;
-		last_gravity = current_gravity;
-
-		// UE_LOG(LogTemp, Log, TEXT("MOTION: tilt = %s, rotation-rate = %s, gravity = %s, acceleration = %s"),
-		//	*current_tilt.ToCompactString(),
-		//	*current_rotation_rate.ToCompactString(),
-		//	*current_gravity.ToCompactString(),
-		//	*current_acceleration.ToCompactString());
-	}
-
-	// Indicate we want to keep getting events.
-	return 1;
 }
 
 //Native-defined functions

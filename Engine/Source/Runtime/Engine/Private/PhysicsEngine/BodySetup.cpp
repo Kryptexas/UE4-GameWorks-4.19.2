@@ -394,6 +394,13 @@ void UBodySetup::CreatePhysicsMeshes()
 	// Find or create cooked physics data
 	static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
 	FByteBulkData* FormatData = GetCookedData(PhysicsFormatName);
+
+	// On dedicated servers we may be cooking generic data and sharing it
+	if (FormatData == nullptr && IsRunningDedicatedServer())
+	{
+		FormatData = GetCookedData(FGenericPlatformProperties::GetPhysicsFormat());
+	}
+
 	if (FormatData)
 	{
 		if (FormatData->IsLocked())
@@ -662,8 +669,8 @@ void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs,
 void FBodySetupShapeIterator::GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset)
 {
 	// Get contact offset params
-	InOutContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
-	InOutMaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
+	InOutContactOffsetFactor = CVarContactOffsetFactor.GetValueOnAnyThread();
+	InOutMaxContactOffset = CVarMaxContactOffset.GetValueOnAnyThread();
 
 	InOutContactOffsetFactor = InOutContactOffsetFactor < 0.f ? UPhysicsSettings::Get()->ContactOffsetMultiplier : InOutContactOffsetFactor;
 	InOutMaxContactOffset = InOutMaxContactOffset < 0.f ? UPhysicsSettings::Get()->MaxContactOffset : InOutMaxContactOffset;
@@ -817,7 +824,6 @@ template <> FString FBodySetupShapeIterator::GetDebugName<FKSphylElem>() const
 {
 	return TEXT("Capsule");
 }
-
 
 ////////////////////////////// Convex elements ////////////////////////////
 template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKConvexElem& ConvexElem, PxConvexMeshGeometry& OutGeometry, PxTransform& OutTM) const
@@ -1615,17 +1621,17 @@ float FKAggregateGeom::GetVolume(const FVector& Scale) const
 	return Volume;
 }
 
-int32 FKAggregateGeom::GetElementCount(int32 Type) const
+int32 FKAggregateGeom::GetElementCount(EAggCollisionShape::Type Type) const
 {
 	switch (Type)
 	{
-	case KPT_Box:
+	case EAggCollisionShape::Box:
 		return BoxElems.Num();
-	case KPT_Convex:
+	case EAggCollisionShape::Convex:
 		return ConvexElems.Num();
-	case KPT_Sphyl:
+	case EAggCollisionShape::Sphyl:
 		return SphylElems.Num();
-	case KPT_Sphere:
+	case EAggCollisionShape::Sphere:
 		return SphereElems.Num();
 	default:
 		return 0;

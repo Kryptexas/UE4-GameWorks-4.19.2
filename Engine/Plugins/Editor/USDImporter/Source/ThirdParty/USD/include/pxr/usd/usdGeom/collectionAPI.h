@@ -24,6 +24,7 @@
 #ifndef USDGEOM_COLLECTION_API_H
 #define USDGEOM_COLLECTION_API_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/usd/prim.h"
@@ -34,6 +35,9 @@
 #include "pxr/base/tf/token.h"
 
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 // -------------------------------------------------------------------------- //
 // COLLECTION API                                                             //
@@ -144,7 +148,8 @@ public:
 
 private:
     // Returns true if the collection includes at least one target object.
-    USDGEOM_API virtual bool _IsCompatible(const UsdPrim &prim) const;
+    USDGEOM_API
+    virtual bool _IsCompatible(const UsdPrim &prim) const;
 
 public:
 
@@ -179,18 +184,11 @@ public:
     /// forwarding is performed by the method. i.e., if the collection targets 
     /// a relationship, the target relationship is returned (and not the 
     /// ultimate targets of the target relationship).
-    /// 
-    /// By default, any relationship targets that point to a child prim or
-    /// a property of a child prim beneath an instanceable prim will be
-    /// forwarded to the corresponding object in the instance's master.
-    /// This can be disabled by setting \p forwardToObjectsInMasters
-    /// to false.
     ///
     /// \sa UsdRelationship::GetTargets
     /// 
     USDGEOM_API
-    bool GetTargets(SdfPathVector *targets, 
-                    bool forwardToObjectsInMasters=true) const;
+    bool GetTargets(SdfPathVector *targets) const;
 
     /// Sets the targetFaceCounts property of the collection at the given 
     /// \p time. Returns true if the value was authored successfully, false 
@@ -444,5 +442,8 @@ private:
     // The name of the collection.
     TfToken _name;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

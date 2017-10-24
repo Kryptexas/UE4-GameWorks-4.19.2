@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,18 +14,18 @@
 #define CEF_LIBCEF_DLL_CTOCPP_READ_HANDLER_CTOCPP_H_
 #pragma once
 
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 
 #include "include/cef_stream.h"
 #include "include/capi/cef_stream_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed DLL-side only.
 class CefReadHandlerCToCpp
-    : public CefCToCpp<CefReadHandlerCToCpp, CefReadHandler,
+    : public CefCToCppRefCounted<CefReadHandlerCToCpp, CefReadHandler,
         cef_read_handler_t> {
  public:
   CefReadHandlerCToCpp();
@@ -38,5 +38,4 @@ class CefReadHandlerCToCpp
   bool MayBlock() override;
 };
 
-#endif  // BUILDING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_READ_HANDLER_CTOCPP_H_

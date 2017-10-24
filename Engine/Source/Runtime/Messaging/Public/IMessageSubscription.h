@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Math/Range.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
 
 class IMessageReceiver;
 enum class EMessageScope : uint8;

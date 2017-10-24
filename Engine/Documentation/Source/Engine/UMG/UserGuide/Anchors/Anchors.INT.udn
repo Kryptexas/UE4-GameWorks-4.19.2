@@ -1,12 +1,17 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Anchors
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Using Anchors to keep UI Widgets in fixed locations based on different aspect ratios. 
+Description: Using Anchors to keep UI Widgets in fixed locations based on different aspect ratios. 
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/DPIScaling
 Related: Engine/Blueprints
-version: 4.9
-tags:UMG UI Designer
+Order:1
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/AnchorsTopic.png
 
 
 [TOC(start:2 end:2)]

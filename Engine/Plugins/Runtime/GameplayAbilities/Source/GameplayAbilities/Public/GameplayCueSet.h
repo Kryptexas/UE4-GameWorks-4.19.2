@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "GameplayEffectTypes.h"
@@ -25,7 +25,7 @@ struct FGameplayCueNotifyData
 	FGameplayTag GameplayCueTag;
 
 	UPROPERTY(EditAnywhere, Category=GameplayCue, meta=(AllowedClasses="GameplayCueNotify"))
-	FStringAssetReference GameplayCueNotifyObj;
+	FSoftObjectPath GameplayCueNotifyObj;
 
 	UPROPERTY(transient)
 	UClass* LoadedGameplayCueClass;
@@ -36,9 +36,9 @@ struct FGameplayCueNotifyData
 struct FGameplayCueReferencePair
 {
 	FGameplayTag GameplayCueTag;
-	FStringAssetReference StringRef;
+	FSoftObjectPath StringRef;
 
-	FGameplayCueReferencePair(const FGameplayTag& InGameplayCueTag, const FStringAssetReference& InStringRef)
+	FGameplayCueReferencePair(const FGameplayTag& InGameplayCueTag, const FSoftObjectPath& InStringRef)
 		: GameplayCueTag(InGameplayCueTag)
 		, StringRef(InStringRef)
 	{}
@@ -62,7 +62,7 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	virtual void RemoveCuesByTags(const FGameplayTagContainer& TagsToRemove);
 
 	/** Removes all cues from the set matching the supplied string refs */
-	virtual void RemoveCuesByStringRefs(const TArray<FStringAssetReference>& CuesToRemove);
+	virtual void RemoveCuesByStringRefs(const TArray<FSoftObjectPath>& CuesToRemove);
 
 	/** Nulls reference to the loaded class. Note this doesn't remove the entire cue from the internal data structure, just the hard ref to the loaded class */
 	virtual void RemoveLoadedClass(UClass* Class);
@@ -70,14 +70,15 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	/** Returns filenames of everything we know about (loaded or not) */
 	virtual void GetFilenames(TArray<FString>& Filenames) const;
 
-	virtual void GetStringAssetReferences(TArray<FStringAssetReference>& List) const;
+	/** Extracts all soft object paths pointing to Cues */
+	virtual void GetSoftObjectPaths(TArray<FSoftObjectPath>& List) const;
 
 #if WITH_EDITOR
 
 	void CopyCueDataToSetForEditorPreview(FGameplayTag Tag, UGameplayCueSet* DestinationSet);
 
 	/** Updates an existing cue */
-	virtual void UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath);
+	virtual void UpdateCueByStringRefs(const FSoftObjectPath& CueToRemove, FString NewPath);
 
 #endif
 

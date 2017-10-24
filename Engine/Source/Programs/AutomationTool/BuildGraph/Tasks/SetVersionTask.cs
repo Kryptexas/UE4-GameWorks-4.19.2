@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool.Tasks
@@ -52,6 +53,12 @@ namespace AutomationTool.Tasks
 		public bool Promoted = true;
 
 		/// <summary>
+		/// If set, don't update Version.h; just update data files (eg. Build.version, Metadata.cs). The editor can read the build changelist at runtime from build.version.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool SkipHeader;
+
+		/// <summary>
 		/// If set, don't actually write to the files - just return the version files that would be updated. Useful for local builds.
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -90,12 +97,10 @@ namespace AutomationTool.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Update the version files
-			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.CompatibleChange, Parameters.Branch, Parameters.Build, Parameters.Licensee, Parameters.Promoted, !Parameters.SkipWrite);
-			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
+			List<FileReference> VersionFiles = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.CompatibleChange, Parameters.Branch, Parameters.Build, Parameters.Licensee, Parameters.Promoted, !Parameters.SkipWrite, Parameters.SkipHeader);
 
 			// Apply the optional tag to them
 			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
@@ -105,7 +110,6 @@ namespace AutomationTool.Tasks
 
 			// Add them to the list of build products
 			BuildProducts.UnionWith(VersionFiles);
-			return true;
 		}
 
 		/// <summary>

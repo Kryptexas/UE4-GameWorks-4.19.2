@@ -12,16 +12,11 @@
 #include "base/command_line.h"
 #include "base/compiler_specific.h"
 
-#include "config.h"
-MSVC_PUSH_WARNING_LEVEL(0);
-#include "core/frame/Frame.h"
-#include "core/frame/LocalFrame.h"
-#include "core/workers/WorkerGlobalScope.h"
-#include "bindings/core/v8/ScriptController.h"
-#include "bindings/core/v8/V8Binding.h"
-MSVC_POP_WARNING();
-#undef FROM_HERE
-#undef LOG
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(push)
+#pragma warning(default:4996)
+#endif
 
 #include "libcef/renderer/v8_impl.h"
 
@@ -40,7 +35,6 @@ MSVC_POP_WARNING();
 #include "third_party/WebKit/public/web/WebKit.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "third_party/WebKit/public/web/WebLocalFrame.h"
-#include "third_party/WebKit/public/web/WebScriptController.h"
 #include "url/gurl.h"
 
 namespace {
@@ -296,7 +290,8 @@ public:
   base::ThreadLocalPointer<CefV8IsolateManager> current_tls_;
 };
 
-base::LazyInstance<CefV8StateManager> g_v8_state = LAZY_INSTANCE_INITIALIZER;
+base::LazyInstance<CefV8StateManager>::Leaky g_v8_state =
+    LAZY_INSTANCE_INITIALIZER;
 
 CefV8IsolateManager* GetIsolateManager() {
   return g_v8_state.Pointer()->GetIsolateManager();
@@ -343,6 +338,14 @@ class V8TrackObject : public CefTrackNode {
     return accessor_;
   }
 
+  inline void SetInterceptor(CefRefPtr<CefV8Interceptor> interceptor) {
+    interceptor_ = interceptor;
+  }
+
+  inline CefRefPtr<CefV8Interceptor> GetInterceptor() {
+    return interceptor_;
+  }
+
   inline void SetHandler(CefRefPtr<CefV8Handler> handler) {
     handler_ = handler;
   }
@@ -351,11 +354,11 @@ class V8TrackObject : public CefTrackNode {
     return handler_;
   }
 
-  inline void SetUserData(CefRefPtr<CefBase> user_data) {
+  inline void SetUserData(CefRefPtr<CefBaseRefCounted> user_data) {
     user_data_ = user_data;
   }
 
-  inline CefRefPtr<CefBase> GetUserData() {
+  inline CefRefPtr<CefBaseRefCounted> GetUserData() {
     return user_data_;
   }
 
@@ -379,8 +382,9 @@ class V8TrackObject : public CefTrackNode {
  private:
   v8::Isolate* isolate_;
   CefRefPtr<CefV8Accessor> accessor_;
+  CefRefPtr<CefV8Interceptor> interceptor_;
   CefRefPtr<CefV8Handler> handler_;
-  CefRefPtr<CefBase> user_data_;
+  CefRefPtr<CefBaseRefCounted> user_data_;
   int external_memory_;
 };
 
@@ -394,9 +398,82 @@ class V8TrackString : public CefTrackNode {
 };
 
 
+// Object wrapped in a v8::External and passed as the Data argument to
+// v8::FunctionTemplate::New.
+class V8FunctionData {
+ public:
+  static v8::Local<v8::External> Create(v8::Isolate* isolate,
+                                        const CefString& function_name,
+                                        CefV8Handler* handler) {
+    // |data| will be deleted if/when the returned v8::External is GC'd.
+    V8FunctionData* data = new V8FunctionData(isolate, function_name, handler);
+    return data->CreateExternal();
+  }
+
+  static V8FunctionData* Unwrap(v8::Local<v8::Value> data) {
+    DCHECK(data->IsExternal());
+    return static_cast<V8FunctionData*>(v8::External::Cast(*data)->Value());
+  }
+
+  CefString function_name() const {
+    return function_name_;
+  }
+
+  CefV8Handler* handler() const {
+    return handler_;
+  }
+
+ private:
+  V8FunctionData(v8::Isolate* isolate,
+                 const CefString& function_name,
+                 CefV8Handler* handler)
+      : isolate_(isolate),
+        function_name_(function_name),
+        handler_(handler) {
+    DCHECK(isolate_);
+    DCHECK(handler_);
+  }
+
+  ~V8FunctionData() {
+    isolate_->AdjustAmountOfExternalAllocatedMemory(
+        -static_cast<int>(sizeof(V8FunctionData)));
+  }
+
+  v8::Local<v8::External> CreateExternal() {
+    v8::Local<v8::External> external = v8::External::New(isolate_, this);
+
+    isolate_->AdjustAmountOfExternalAllocatedMemory(
+        static_cast<int>(sizeof(V8FunctionData)));
+
+    handle_.Reset(isolate_, external);
+    handle_.SetWeak(this, FirstWeakCallback, v8::WeakCallbackType::kParameter);
+
+    return external;
+  }
+
+  static void FirstWeakCallback(
+      const v8::WeakCallbackInfo<V8FunctionData>& data) {
+    V8FunctionData* wrapper = data.GetParameter();
+    wrapper->handle_.Reset();
+    data.SetSecondPassCallback(SecondWeakCallback);
+  }
+
+  static void SecondWeakCallback(
+      const v8::WeakCallbackInfo<V8FunctionData>& data) {
+    V8FunctionData* wrapper = data.GetParameter();
+    delete wrapper;
+  }
+
+  v8::Isolate* isolate_;
+  CefString function_name_;
+  CefV8Handler* handler_;
+  v8::Persistent<v8::External> handle_;
+};
+
+
 // Convert a CefString to a V8::String.
 v8::Local<v8::String> GetV8String(v8::Isolate* isolate,
-                                   const CefString& str) {
+                                  const CefString& str) {
 #if defined(CEF_STRING_TYPE_UTF16)
   // Already a UTF16 string.
   return v8::String::NewFromTwoByte(
@@ -479,22 +556,19 @@ void FunctionCallbackImpl(const v8::FunctionCallbackInfo<v8::Value>& info) {
   v8::Isolate* isolate = info.GetIsolate();
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-  CefV8Handler* handler =
-      static_cast<CefV8Handler*>(v8::External::Cast(*info.Data())->Value());
+  V8FunctionData* data = V8FunctionData::Unwrap(info.Data());
 
   CefV8ValueList params;
   for (int i = 0; i < info.Length(); i++)
     params.push_back(new CefV8ValueImpl(isolate, context, info[i]));
 
-  CefString func_name;
-  GetCefString(v8::Handle<v8::String>::Cast(info.Callee()->GetName()),
-               func_name);
   CefRefPtr<CefV8Value> object =
       new CefV8ValueImpl(isolate, context, info.This());
   CefRefPtr<CefV8Value> retval;
   CefString exception;
 
-  if (handler->Execute(func_name, object, params, retval, exception)) {
+  if (data->handler()->Execute(data->function_name(), object, params, retval,
+                               exception)) {
     if (!exception.empty()) {
       info.GetReturnValue().Set(
           isolate->ThrowException(
@@ -581,33 +655,76 @@ void AccessorNameSetterCallbackImpl(
   }
 }
 
-v8::MaybeLocal<v8::Value> CallV8Function(v8::Local<v8::Context> context,
-                                         v8::Local<v8::Function> function,
-                                         v8::Local<v8::Object> receiver,
-                                         int argc,
-                                         v8::Local<v8::Value> args[],
-                                         v8::Isolate* isolate) {
-  v8::MaybeLocal<v8::Value> func_rv;
-
-  // Execute the function call using the ScriptController so that inspector
-  // instrumentation works.
-  if (CEF_CURRENTLY_ON_RT()) {
-    RefPtr<blink::LocalFrame> frame =
-        toLocalFrame(blink::toFrameIfNotDetached(context));
-    DCHECK(frame);
-    if (frame &&
-        frame->script().canExecuteScripts(blink::AboutToExecuteScript)) {
-      func_rv = frame->script().callFunction(function, receiver, argc, args);
-    }
-  } else {
-    func_rv = blink::ScriptController::callFunction(
-        blink::toExecutionContext(context),
-        function, receiver, argc, args, isolate);
-  }
-
-  return func_rv;
+// Two helper functions for V8 Interceptor callbacks.
+CefString PropertyToIndex(v8::Local<v8::String> str) {
+  CefString name;
+  GetCefString(str, name);
+  return name;
 }
 
+int PropertyToIndex(uint32_t index) {
+  return static_cast<int>(index);
+}
+
+// V8 Interceptor callbacks.
+// T == v8::Local<v8::String> for named property handlers and
+// T == uint32_t for indexed property handlers
+template<typename T>
+void InterceptorGetterCallbackImpl(
+    T property,
+    const v8::PropertyCallbackInfo<v8::Value>& info) {
+  v8::Isolate* isolate = info.GetIsolate();
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+  v8::Handle<v8::Object> obj = info.This();
+  CefRefPtr<CefV8Interceptor> interceptorPtr;
+
+  V8TrackObject* tracker = V8TrackObject::Unwrap(context, obj);
+  if (tracker)
+    interceptorPtr = tracker->GetInterceptor();
+  if (!interceptorPtr.get())
+    return;
+
+  CefRefPtr<CefV8Value> object = new CefV8ValueImpl(isolate, context, obj);
+  CefRefPtr<CefV8Value> retval;
+  CefString exception;
+  interceptorPtr->Get(PropertyToIndex(property), object, retval, exception);
+  if (!exception.empty()) {
+    info.GetReturnValue().Set(isolate->ThrowException(
+        v8::Exception::Error(GetV8String(isolate, exception))));
+  } else {
+    CefV8ValueImpl* retval_impl = static_cast<CefV8ValueImpl*>(retval.get());
+    if (retval_impl && retval_impl->IsValid()) {
+      info.GetReturnValue().Set(retval_impl->GetV8Value(true));
+    }
+  }
+}
+
+template<typename T>
+void InterceptorSetterCallbackImpl(
+    T property,
+    v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info) {
+  v8::Isolate* isolate = info.GetIsolate();
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Handle<v8::Object> obj = info.This();
+  CefRefPtr<CefV8Interceptor> interceptorPtr;
+
+  V8TrackObject* tracker = V8TrackObject::Unwrap(context, obj);
+  if (tracker)
+    interceptorPtr = tracker->GetInterceptor();
+
+  if (!interceptorPtr.get())
+    return;
+  CefRefPtr<CefV8Value> object = new CefV8ValueImpl(isolate, context, obj);
+  CefRefPtr<CefV8Value> cefValue = new CefV8ValueImpl(isolate, context, value);
+  CefString exception;
+  interceptorPtr->Set(PropertyToIndex(property), object, cefValue, exception);
+  if (!exception.empty()) {
+    isolate->ThrowException(
+        v8::Exception::Error(GetV8String(isolate, exception)));
+  }
+}
 
 // V8 extension registration.
 
@@ -625,9 +742,15 @@ class ExtensionWrapper : public v8::Extension {
     if (!handler_)
       return v8::Local<v8::FunctionTemplate>();
 
+    CefString func_name;
+    GetCefString(name, func_name);
+
+    v8::Local<v8::External> function_data =
+        V8FunctionData::Create(isolate, func_name, handler_);
+
     return v8::FunctionTemplate::New(isolate,
                                      FunctionCallbackImpl,
-                                     v8::External::New(isolate, handler_));
+                                     function_data);
   }
 
  private:
@@ -701,10 +824,8 @@ void MessageListenerCallbackImpl(v8::Handle<v8::Message> message,
   CefRefPtr<CefV8Exception> exception = new CefV8ExceptionImpl(
       static_cast<CefV8ContextImpl*>(context.get())->GetV8Context(), message);
 
-  if (CEF_CURRENTLY_ON_RT()) {
-    handler->OnUncaughtException(context->GetBrowser(), context->GetFrame(),
-        context, exception, stackTrace);
-  }
+  handler->OnUncaughtException(context->GetBrowser(), context->GetFrame(),
+      context, exception, stackTrace);
 }
 
 }  // namespace
@@ -863,11 +984,8 @@ bool CefV8Context::InContext() {
 
 CefV8ContextImpl::CefV8ContextImpl(v8::Isolate* isolate,
                                    v8::Local<v8::Context> context)
-  : handle_(new Handle(isolate, context, context))
-#ifndef NDEBUG
-    , enter_count_(0)
-#endif
-{  // NOLINT(whitespace/braces)
+  : handle_(new Handle(isolate, context, context)),
+    enter_count_(0) {
 }
 
 CefV8ContextImpl::~CefV8ContextImpl() {
@@ -886,13 +1004,9 @@ CefRefPtr<CefBrowser> CefV8ContextImpl::GetBrowser() {
   CefRefPtr<CefBrowser> browser;
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(browser);
 
-  // Return NULL for WebWorkers.
-  if (!CEF_CURRENTLY_ON_RT())
-    return browser;
-
   blink::WebFrame* webframe = GetWebFrame();
   if (webframe)
-    browser = CefBrowserImpl::GetBrowserForMainFrame(webframe->top());
+    browser = CefBrowserImpl::GetBrowserForMainFrame(webframe->Top());
 
   return browser;
 }
@@ -901,14 +1015,10 @@ CefRefPtr<CefFrame> CefV8ContextImpl::GetFrame() {
   CefRefPtr<CefFrame> frame;
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(frame);
 
-  // Return NULL for WebWorkers.
-  if (!CEF_CURRENTLY_ON_RT())
-    return frame;
-
   blink::WebFrame* webframe = GetWebFrame();
   if (webframe) {
     CefRefPtr<CefBrowserImpl> browser =
-        CefBrowserImpl::GetBrowserForMainFrame(webframe->top());
+        CefBrowserImpl::GetBrowserForMainFrame(webframe->Top());
     frame = browser->GetFrame(webkit_glue::GetIdentifier(webframe));
   }
 
@@ -917,6 +1027,9 @@ CefRefPtr<CefFrame> CefV8ContextImpl::GetFrame() {
 
 CefRefPtr<CefV8Value> CefV8ContextImpl::GetGlobal() {
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(NULL);
+
+  if (webkit_glue::IsScriptForbidden())
+    return nullptr;
 
   v8::Isolate* isolate = handle_->isolate();
   v8::HandleScope handle_scope(isolate);
@@ -928,29 +1041,45 @@ CefRefPtr<CefV8Value> CefV8ContextImpl::GetGlobal() {
 bool CefV8ContextImpl::Enter() {
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(false);
 
+  if (webkit_glue::IsScriptForbidden())
+    return false;
+
   v8::Isolate* isolate = handle_->isolate();
   v8::HandleScope handle_scope(isolate);
 
-  blink::V8PerIsolateData::from(isolate)->incrementRecursionLevel();
-  handle_->GetNewV8Handle()->Enter();
-#ifndef NDEBUG
+  if (!microtasks_scope_) {
+    // Increment the MicrotasksScope recursion level.
+    microtasks_scope_.reset(
+        new v8::MicrotasksScope(isolate, v8::MicrotasksScope::kRunMicrotasks));
+  }
+
   ++enter_count_;
-#endif
+  handle_->GetNewV8Handle()->Enter();
+
   return true;
 }
 
 bool CefV8ContextImpl::Exit() {
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(false);
 
-  v8::Isolate* isolate = handle_->isolate();
+  if (webkit_glue::IsScriptForbidden())
+    return false;
+
+  if (enter_count_ <= 0) {
+    LOG(ERROR) << "Call to CefV8Context::Exit() without matching call to "
+                  "CefV8Context::Enter()";
+    return false;
+  }
+
   v8::HandleScope handle_scope(handle_->isolate());
 
-  DLOG_ASSERT(enter_count_ > 0);
   handle_->GetNewV8Handle()->Exit();
-  blink::V8PerIsolateData::from(isolate)->decrementRecursionLevel();
-#ifndef NDEBUG
-  --enter_count_;
-#endif
+
+  if (--enter_count_ == 0) {
+    // Decrement the MicrotasksScope recursion level.
+    microtasks_scope_.reset(nullptr);
+  }
+
   return true;
 }
 
@@ -966,9 +1095,17 @@ bool CefV8ContextImpl::IsSame(CefRefPtr<CefV8Context> that) {
 }
 
 bool CefV8ContextImpl::Eval(const CefString& code,
+                            const CefString& script_url,
+                            int start_line,
                             CefRefPtr<CefV8Value>& retval,
                             CefRefPtr<CefV8Exception>& exception) {
+  retval = NULL;
+  exception = NULL;
+
   CEF_V8_REQUIRE_VALID_HANDLE_RETURN(false);
+
+  if (webkit_glue::IsScriptForbidden())
+    return false;
 
   if (code.empty()) {
     NOTREACHED() << "invalid input parameter";
@@ -979,32 +1116,28 @@ bool CefV8ContextImpl::Eval(const CefString& code,
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = GetV8Context();
   v8::Context::Scope context_scope(context);
-  v8::Local<v8::Object> obj = context->Global();
 
-  // Retrieve the eval function.
-  v8::Local<v8::Value> val = obj->Get(v8::String::NewFromUtf8(isolate, "eval"));
-  if (val.IsEmpty() || !val->IsFunction())
-    return false;
-
-  v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(val);
-  v8::Local<v8::Value> code_val = GetV8String(isolate, code);
+  const blink::WebString& source = blink::WebString::FromUTF16(code);
+  const blink::WebString& source_url = blink::WebString::FromUTF16(script_url);
 
   v8::TryCatch try_catch(isolate);
   try_catch.SetVerbose(true);
 
-  retval = NULL;
-  exception = NULL;
-
   v8::MaybeLocal<v8::Value> func_rv =
-      CallV8Function(context, func, obj, 1, &code_val, handle_->isolate());
+      webkit_glue::ExecuteV8ScriptAndReturnValue(source, source_url, start_line,
+          context, isolate, try_catch,
+          blink::AccessControlStatus::kNotSharableCrossOrigin);
 
   if (try_catch.HasCaught()) {
     exception = new CefV8ExceptionImpl(context, try_catch.Message());
     return false;
   } else if (!func_rv.IsEmpty()) {
     retval = new CefV8ValueImpl(isolate, context, func_rv.ToLocalChecked());
+    return true;
   }
-  return true;
+
+  NOTREACHED();
+  return false;
 }
 
 v8::Local<v8::Context> CefV8ContextImpl::GetV8Context() {
@@ -1013,9 +1146,14 @@ v8::Local<v8::Context> CefV8ContextImpl::GetV8Context() {
 
 blink::WebFrame* CefV8ContextImpl::GetWebFrame() {
   CEF_REQUIRE_RT();
+
+  if (webkit_glue::IsScriptForbidden())
+    return nullptr;
+
   v8::HandleScope handle_scope(handle_->isolate());
-  v8::Context::Scope context_scope(GetV8Context());
-  return blink::WebLocalFrame::frameForCurrentContext();
+  v8::Local<v8::Context> context = GetV8Context();
+  v8::Context::Scope context_scope(context);
+  return blink::WebLocalFrame::FrameForContext(context);
 }
 
 
@@ -1045,17 +1183,18 @@ CefV8ValueImpl::Handle::~Handle() {
       } else {
         GetIsolateManager()->DeleteGlobalTrackObject(tracker_);
       }
-
-      isolate_->AdjustAmountOfExternalAllocatedMemory(
-          -static_cast<int>(sizeof(Handle)));
     } else {
       delete tracker_;
     }
   }
 
-  // Always call Reset() on a persistent handle to avoid the
-  // CHECK(state() != NEAR_DEATH) in V8's PostGarbageCollectionProcessing.
-  handle_.Reset();
+  if (is_set_weak_) {
+    isolate_->AdjustAmountOfExternalAllocatedMemory(
+        -static_cast<int>(sizeof(Handle)));
+  } else {
+    // SetWeak was not called so reset now.
+    handle_.Reset();
+  }
 }
 
 CefV8ValueImpl::Handle::handleType
@@ -1089,13 +1228,13 @@ void CefV8ValueImpl::Handle::SetWeakIfNecessary() {
       if (context_state_.get()) {
         // |tracker_| will be deleted when:
         // A. The associated context is released, or
-        // B. Destructor is called for the weak handle.
+        // B. SecondWeakCallback is called for the weak handle.
         DCHECK(context_state_->IsValid());
         context_state_->AddTrackObject(tracker_);
       } else {
         // |tracker_| will be deleted when:
         // A. The process shuts down, or
-        // B. Destructor is called for the weak handle.
+        // B. SecondWeakCallback is called for the weak handle.
         GetIsolateManager()->AddGlobalTrackObject(tracker_);
       }
     }
@@ -1103,16 +1242,25 @@ void CefV8ValueImpl::Handle::SetWeakIfNecessary() {
     isolate_->AdjustAmountOfExternalAllocatedMemory(
         static_cast<int>(sizeof(Handle)));
 
-    // The added reference will be released in Destructor.
+    // The added reference will be released in SecondWeakCallback.
     AddRef();
-    handle_.SetWeak(this, Destructor, v8::WeakCallbackType::kParameter);
+    handle_.SetWeak(this, FirstWeakCallback, v8::WeakCallbackType::kParameter);
   }
 }
 
 // static
-void CefV8ValueImpl::Handle::Destructor(
+void CefV8ValueImpl::Handle::FirstWeakCallback(
     const v8::WeakCallbackInfo<Handle>& data) {
-  data.GetParameter()->Release();
+  Handle* wrapper = data.GetParameter();
+  wrapper->handle_.Reset();
+  data.SetSecondPassCallback(SecondWeakCallback);
+}
+
+// static
+void CefV8ValueImpl::Handle::SecondWeakCallback(
+    const v8::WeakCallbackInfo<Handle>& data) {
+  Handle* wrapper = data.GetParameter();
+  wrapper->Release();
 }
 
 
@@ -1193,7 +1341,8 @@ CefRefPtr<CefV8Value> CefV8Value::CreateString(const CefString& value) {
 
 // static
 CefRefPtr<CefV8Value> CefV8Value::CreateObject(
-    CefRefPtr<CefV8Accessor> accessor) {
+    CefRefPtr<CefV8Accessor> accessor,
+    CefRefPtr<CefV8Interceptor> interceptor) {
   CEF_V8_REQUIRE_ISOLATE_RETURN(NULL);
 
   v8::Isolate* isolate = GetIsolateManager()->isolate();
@@ -1205,13 +1354,28 @@ CefRefPtr<CefV8Value> CefV8Value::CreateObject(
     return NULL;
   }
 
-  // Create the new V8 object.
-  v8::Local<v8::Object> obj = v8::Object::New(isolate);
+  // Create the new V8 object. If an interceptor is passed, create object from
+  // template and set property handlers.
+  v8::Local<v8::Object> obj;
+  if (interceptor.get()) {
+    v8::Local<v8::ObjectTemplate> tmpl = v8::ObjectTemplate::New(isolate);
+    tmpl->SetNamedPropertyHandler(
+      InterceptorGetterCallbackImpl<v8::Local<v8::String>>,
+      InterceptorSetterCallbackImpl<v8::Local<v8::String>>);
+
+    tmpl->SetIndexedPropertyHandler(InterceptorGetterCallbackImpl<uint32_t>,
+                                    InterceptorSetterCallbackImpl<uint32_t>);
+    obj = tmpl->NewInstance();
+  } else {
+    obj = v8::Object::New(isolate);
+  }
 
   // Create a tracker object that will cause the user data and/or accessor
-  // reference to be released when the V8 object is destroyed.
+  // and/or interceptor reference to be released when the V8 object is
+  // destroyed.
   V8TrackObject* tracker = new V8TrackObject(isolate);
   tracker->SetAccessor(accessor);
+  tracker->SetInterceptor(interceptor);
 
   // Attach the tracker object.
   tracker->AttachTo(context, obj);
@@ -1269,13 +1433,14 @@ CefRefPtr<CefV8Value> CefV8Value::CreateFunction(
     return NULL;
   }
 
+  v8::Local<v8::External> function_data =
+      V8FunctionData::Create(isolate, name, handler.get());
+
   // Create a new V8 function template.
-  v8::Local<v8::FunctionTemplate> tmpl = v8::FunctionTemplate::New(isolate);
-
-  v8::Local<v8::Value> data = v8::External::New(isolate, handler.get());
-
-  // Set the function handler callback.
-  tmpl->SetCallHandler(FunctionCallbackImpl, data);
+  v8::Local<v8::FunctionTemplate> tmpl =
+      v8::FunctionTemplate::New(isolate,
+                                FunctionCallbackImpl,
+                                function_data);
 
   // Retrieve the function object and set the name.
   v8::Local<v8::Function> func = tmpl->GetFunction();
@@ -1930,7 +2095,7 @@ bool CefV8ValueImpl::GetKeys(std::vector<CefString>& keys) {
   return true;
 }
 
-bool CefV8ValueImpl::SetUserData(CefRefPtr<CefBase> user_data) {
+bool CefV8ValueImpl::SetUserData(CefRefPtr<CefBaseRefCounted> user_data) {
   CEF_V8_REQUIRE_OBJECT_RETURN(false);
 
   v8::Isolate* isolate = handle_->isolate();
@@ -1954,7 +2119,7 @@ bool CefV8ValueImpl::SetUserData(CefRefPtr<CefBase> user_data) {
   return false;
 }
 
-CefRefPtr<CefBase> CefV8ValueImpl::GetUserData() {
+CefRefPtr<CefBaseRefCounted> CefV8ValueImpl::GetUserData() {
   CEF_V8_REQUIRE_OBJECT_RETURN(NULL);
 
   v8::Isolate* isolate = handle_->isolate();
@@ -2158,8 +2323,8 @@ CefRefPtr<CefV8Value> CefV8ValueImpl::ExecuteFunctionWithContext(
     try_catch.SetVerbose(true);
 
     v8::MaybeLocal<v8::Value> func_rv =
-        CallV8Function(context_local, func, recv, argc, argv,
-                       handle_->isolate());
+        webkit_glue::CallV8Function(context_local, func, recv, argc, argv,
+                                    handle_->isolate());
 
     if (!HasCaught(context_local, try_catch) && !func_rv.IsEmpty()) {
       retval = new CefV8ValueImpl(isolate, context_local,
@@ -2250,13 +2415,9 @@ CefV8StackFrameImpl::CefV8StackFrameImpl(
       is_constructor_(false) {
   if (handle.IsEmpty())
     return;
-  GetCefString(v8::Local<v8::String>::Cast(handle->GetScriptName()),
-      script_name_);
-  GetCefString(
-      v8::Local<v8::String>::Cast(handle->GetScriptNameOrSourceURL()),
-      script_name_or_source_url_);
-  GetCefString(v8::Local<v8::String>::Cast(handle->GetFunctionName()),
-      function_name_);
+  GetCefString(handle->GetScriptName(), script_name_);
+  GetCefString(handle->GetScriptNameOrSourceURL(), script_name_or_source_url_);
+  GetCefString(handle->GetFunctionName(), function_name_);
   line_number_ = handle->GetLineNumber();
   column_ = handle->GetColumn();
   is_eval_ = handle->IsEval();
@@ -2297,3 +2458,9 @@ bool CefV8StackFrameImpl::IsEval() {
 bool CefV8StackFrameImpl::IsConstructor() {
   return is_constructor_;
 }
+
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(pop)
+#endif

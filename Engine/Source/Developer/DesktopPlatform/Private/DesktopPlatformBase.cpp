@@ -602,13 +602,7 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 
 bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
-#if PLATFORM_MAC
-	FString Arguments = TEXT(" -xcodeprojectfile");
-#elif PLATFORM_LINUX
-	FString Arguments = TEXT(" -makefile -kdevelopfile -qmakefile -cmakefile -codelitefile ");
-#else
 	FString Arguments = TEXT(" -projectfiles");
-#endif
 
 	// Build the arguments to pass to UBT. If it's a non-foreign project, just build full project files.
 	if ( !ProjectFileName.IsEmpty() && GetCachedProjectDictionary(RootDir).IsForeignProject(ProjectFileName) )
@@ -657,7 +651,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 bool FDesktopPlatformBase::InvalidateMakefiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
 	// Composes the target, platform, and config (eg, "QAGame Win64 Development")
-	FString Arguments = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), FPlatformMisc::GetUBTPlatform(), FModuleManager::GetUBTConfiguration());
+	FString Arguments = FString::Printf(TEXT("%s %s %s"), FApp::GetProjectName(), FPlatformMisc::GetUBTPlatform(), FModuleManager::GetUBTConfiguration());
 
 	// -editorrecompile tells UBT to work out the editor target name from the game target name we provided (eg, converting "QAGame" to "QAGameEditor")
 	Arguments += TEXT(" -editorrecompile");
@@ -816,7 +810,7 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 	// When using game specific uproject files, the solution is named after the game and in the uproject folder
 	if(FPaths::IsProjectFilePathSet())
 	{
-		FString SolutionPath = FPaths::GameDir() / FPaths::GetBaseFilename(FPaths::GetProjectFilePath()) + Suffix;
+		FString SolutionPath = FPaths::ProjectDir() / FPaths::GetBaseFilename(FPaths::GetProjectFilePath()) + Suffix;
 		if(FPaths::FileExists(SolutionPath))
 		{
 			OutSolutionPath = SolutionPath;

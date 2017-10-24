@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Models/MessagingDebuggerEndpointFilter.h"
+
+class FMessagingDebuggerEndpointFilter;
+
 
 /**
  * Implements the endpoints list filter bar widget.
@@ -21,7 +24,7 @@ public:
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model.

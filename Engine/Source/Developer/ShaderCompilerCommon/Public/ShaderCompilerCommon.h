@@ -6,14 +6,17 @@
 #include "UniformBuffer.h"
 #include "ShaderCore.h"
 
+struct FShaderCompilerInput;
+struct FShaderCompilerEnvironment;
 
 /**
  * This function looks for resources specified in ResourceTableMap in the 
  * parameter map, adds them to the resource table, and removes them from the
  * parameter map. If a resource is used from a currently unmapped uniform 
  * buffer we allocate a slot for it from UsedUniformBufferSlots.
+ * Returns false if there's any internal error.
  */
-extern SHADERCOMPILERCOMMON_API void BuildResourceTableMapping(
+extern SHADERCOMPILERCOMMON_API bool BuildResourceTableMapping(
 		const TMap<FString,FResourceTableEntry>& ResourceTableMap,
 		const TMap<FString,uint32>& ResourceTableLayoutHashes,
 		TBitArray<>& UsedUniformBufferSlots,
@@ -30,7 +33,8 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableMapping(
 extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 	const TArray<uint32>& InResourceMap,
 	int32 MaxBoundResourceTable,
-	TArray<uint32>& OutTokenStream
+	TArray<uint32>& OutTokenStream,
+	bool bGenerateEmptyTokenStreamIfNoResources = false
 	);
 
 // Finds the number of used uniform buffers in a resource map
@@ -67,13 +71,15 @@ extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCod
 
 extern SHADERCOMPILERCOMMON_API bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InUsedInputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
 
+extern SHADERCOMPILERCOMMON_API bool ConvertFromFP32ToFP16(FString& InOutSourceCode, TArray<FString>& OutErrors);
+
 /**
 * Fall back to using the View uniform buffer directly for platforms that don't support instanced stereo.
 * @param ShaderSource - Preprocessed shader source
 */
 extern SHADERCOMPILERCOMMON_API void StripInstancedStereo(FString& ShaderSource);
 
-extern SHADERCOMPILERCOMMON_API FString CreateShaderCompilerWorkerDirectCommandLine(const struct FShaderCompilerInput& Input);
+extern SHADERCOMPILERCOMMON_API FString CreateShaderCompilerWorkerDirectCommandLine(const FShaderCompilerInput& Input);
 
 
 // Cross compiler support/common functionality
@@ -88,7 +94,10 @@ namespace CrossCompiler
 		uint32 CCFlags,
 		const FString& ExtraArguments = TEXT(""));
 
-	extern SHADERCOMPILERCOMMON_API void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine);
+	extern SHADERCOMPILERCOMMON_API FString CreateResourceTableFromEnvironment(const FShaderCompilerEnvironment& Environment);
+	extern SHADERCOMPILERCOMMON_API void CreateEnvironmentFromResourceTable(const FString& String, FShaderCompilerEnvironment& OutEnvironment);
+
+	extern SHADERCOMPILERCOMMON_API void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine, bool bUseAbsolutePaths = false);
 
 	struct SHADERCOMPILERCOMMON_API FHlslccHeader
 	{
@@ -202,6 +211,48 @@ namespace CrossCompiler
 		return OutStr.Len() > 0;
 	}
 
+	inline bool ParseIdentifier(const TCHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while ((*Str >= 'A' && *Str <= 'Z')
+			|| (*Str >= 'a' && *Str <= 'z')
+			|| (*Str >= '0' && *Str <= '9')
+			|| *Str == '_')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
+	inline bool ParseString(const ANSICHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while (*Str != ' ' && *Str != '\n')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
+	inline bool ParseString(const TCHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while (*Str != ' ' && *Str != '\n')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
 	FORCEINLINE bool Match(const ANSICHAR*& Str, ANSICHAR Char)
 	{
 		if (*Str == Char)
@@ -213,8 +264,56 @@ namespace CrossCompiler
 		return false;
 	}
 
+	FORCEINLINE bool Match(const TCHAR*& Str, ANSICHAR Char)
+	{
+		if (*Str == Char)
+		{
+			++Str;
+			return true;
+		}
+
+		return false;
+	}
+
+	FORCEINLINE bool Match(const ANSICHAR*& Str, const ANSICHAR* Sub)
+	{
+		int32 SubLen = FCStringAnsi::Strlen(Sub);
+		if (FCStringAnsi::Strncmp(Str, Sub, SubLen) == 0)
+		{
+			Str += SubLen;
+			return true;
+		}
+
+		return false;
+	}
+
+	FORCEINLINE bool Match(const TCHAR*& Str, const TCHAR* Sub)
+	{
+		int32 SubLen = FCString::Strlen(Sub);
+		if (FCString::Strncmp(Str, Sub, SubLen) == 0)
+		{
+			Str += SubLen;
+			return true;
+		}
+
+		return false;
+	}
+
 	template <typename T>
 	inline bool ParseIntegerNumber(const ANSICHAR*& Str, T& OutNum)
+	{
+		auto* OriginalStr = Str;
+		OutNum = 0;
+		while (*Str >= '0' && *Str <= '9')
+		{
+			OutNum = OutNum * 10 + *Str++ - '0';
+		}
+
+		return Str != OriginalStr;
+	}
+
+	template <typename T>
+	inline bool ParseIntegerNumber(const TCHAR*& Str, T& OutNum)
 	{
 		auto* OriginalStr = Str;
 		OutNum = 0;
@@ -238,4 +337,18 @@ namespace CrossCompiler
 
 		return false;
 	}
+
+	inline bool ParseSignedNumber(const TCHAR*& Str, int32& OutNum)
+	{
+		int32 Sign = Match(Str, '-') ? -1 : 1;
+		uint32 Num = 0;
+		if (ParseIntegerNumber(Str, Num))
+		{
+			OutNum = Sign * (int32)Num;
+			return true;
+		}
+
+		return false;
+	}
+
 }

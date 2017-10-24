@@ -1,59 +1,64 @@
-﻿INTSourceChangelist:2622065
+﻿INTSourceChangelist:3485038
 Availability:Public
-Title:弱い参照
+Title:弱いポインタ
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
-Description:弱い参照を格納してオブジェクトの破壊を防止しないスマート ポインタ
+Description:弱い参照を格納してオブジェクトの破棄を防止しないスマート ポインタ
+Type:reference
 Version:4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 
-**弱いポインタ** はオブジェクトに弱い参照を格納します。シェアード ポインタとは異なり、弱いポインタはオブジェクトの破壊を防止しません。弱いポインタは、ポインタのオブジェクトが破壊されるとオブジェクト破壊の原因がなんであれ自動的に空になります。そのため揮発性オブジェクトに対してポインタを安全にキャッシュできます。これはつまり、弱いポインタはユーザーが要求しないと空になる可能性があり、弱いポインタは参照周期の中断に使用できることを意味します。
+**弱いポインタ** はオブジェクトに対する弱い参照を格納します。シェアード ポインタとは異なり、弱いポインタはオブジェクトの破棄を防止しません。弱いポインタは、ポインタのオブジェクトが破棄されるとオブジェクト破棄の原因がなんであれ自動的に空になります。そのため volatile オブジェクトに対してポインタを安全にキャッシュできます。これはつまり、弱いポインタは予期しないときに空になることがあり、弱いポインタは参照サイクルの中断に使用できることを意味します。
 
-弱いポインタのオブジェクトは、共有参照がなくなると破壊されます。
+弱いポインタのオブジェクトは共有参照がなくなると破棄されます。
 
-弱いポインタは、目的の実行を支援します。クラスに弱いポインタが存在する場合、それはオブジェクトにポインタをキャッシュするのみで寿命をコントロールするわけではないことはご存知と思います。
+弱いポインタは目的の実行を支援します。クラスに弱いポインタが存在する場合、それはオブジェクトにポインタをキャッシュするのみで寿命をコントロールするわけではありません。
 
 ## 宣言と初期化
 
 弱いポインタは常にシェアード ポインタや参照、または別の弱いポインタから作成されます。
 
-	// Allocate a new tree node (新規の Tree ノードを割り当てる)
+	// Allocate a new tree node. (新規の Tree ノードをアロケートする)
 	TSharedRef<FTreeNode> NodeOwner( new FTreeNode() );
 
-	// Create a weak pointer to the new tree node (新規の Tree ノードに弱いポインタを作成する)
+	// Create a weak pointer to the new tree node. (新規の Tree ノードに弱いポインタを作成する) 
 	TWeakPtr<FTreenode> NodeObserver( NodeOwner );
 
-弱いポインタは、オブジェクトの破壊を防止しないことを覚えておいてください。NodeObserver がまだスコープ内の時に NodeOwner がリセットされると、オブジェクトは削除されます：
+弱いポインタはオブジェクトの破棄を防止しないことを覚えておいてください。NodeObserver がまだスコープ内の時に NodeOwner がリセットされると、オブジェクトは削除されます。
 
-	// Destroy the node (ノードを破壊する)
+	// Destroy the node (ノードを破棄する)
 	NodeOwner.Reset();
 
 弱いポインタはシェアード ポインタと同様に、安全にコピーすることができます。
 
 	TWeakPtr<FTreeNode>  NodeObserverB = NodeObserver;
 
-使用後は弱いポインタをリセット (または再割り当て) することができます。
+使用後は弱いポインタをリセット (または再代入) することができます。
 
 	NodeObserver = null;
 
 ## 逆参照とアクセス
 
-弱いポインタのオブジェクトへのアクセスは、まず **Lock()** メソッドを呼んで弱いポインタをシェアード ポインタへ昇格させます。
+弱いポインタのオブジェクトへのアクセスは、まず **Pin()** メソッドを呼び出してで弱いポインタをシェアード ポインタへ昇格させます。
 
-	// Get access to the node through the weak pointer (弱いポインタを経由してノードへアクセスする)
-	TSharedPtr<TFreeNode> LockedObserver( NodeObserver.Lock() );
+	// Get access to the node through the weak pointer. (弱いポインタを経由してノードへアクセスする)
+	TSharedPtr<TFreeNode> LockedObserver( NodeObserver.Pin() );
 
+	// Check that the shared reference was successfully created from the weak reference. (弱い参照から共有参照の作成に成功したことを確認します。) 
 	If( LockedObserver.IsValid() )
 	{
-		//Object still exists, so it can be accessed (オブジェクトはまだ存在しアクセスが可能です)
+		// Object still exists, so it can be accessed. (オブジェクトはまだ存在しアクセスが可能です) 
 		LockedObserver->ListChildren();
 	}
 
-Lock() は高速です。Lock と呼ばれる所以は、弱いポインタが一時的にアクセスされている間オブジェクトの破壊を防ぐからです。
+Pin() は高速です。Pin と呼ばれるのは、弱いポインタが一時的にアクセスされている間オブジェクトの破棄を防ぐからです。
 
-弱いポインタはオブジェクトが削除されると自動的にこれを理解します。このようなケースは IsValid() メソッドを使用して安全に処理できます。
+弱いポインタはオブジェクトが削除されると自動的に認識します。このようなケースは IsValid() メソッドを使用して安全に処理できます。
 
-	//Make sure the weak pointer's object still exists before accessing it (アクセスする前に弱いポインタのオブジェクトがまだ存在することを確認します。)
+	// Make sure the weak pointer's object still exists before accessing it. (アクセスする前に弱いポインタのオブジェクトがまだ存在することを確認します。)
 	if( NodeObserver.IsValid() )
 	{
 		...
@@ -65,16 +70,16 @@ Lock() は高速です。Lock と呼ばれる所以は、弱いポインタが�
 
 	class FTreeNode
 	{
-		/** Child nodes, owned by this node */
+		/** このノードによって所有される子ノード */
 		TArray< TSharedPtr<FTreeNode> > Children;
 
-		/** Weak pointer back to this node's parent */
+		/** 弱いポインタはこのノードの親へ戻ります */
 		TWeakPtr<FTreeNode> Parent;
 	}
 
-FTreeNode は _所有する_ 子ノードに対してシェアード ポインタを持ちます。つまり子ノードは FTreeNode によって破壊されます。親ノードに対して参照をキャッシュする弱いポインタも使用します。弱いポインタはオブジェクトの破壊を決して防止することはありません。シェアード / 弱いポインタをこのように使うと権限のチェーンがより明確になります。
+FTreeNode は _所有する_ 子ノードに対してシェアード ポインタを持ちます。つまり子ノードは FTreeNode によって破壊されます。親ノードに対して参照をキャッシュする弱いポインタも使用します。弱いポインタはオブジェクトの破棄を決して防止することはありません。シェアード ポインタ / 弱いポインタをこのように使うと権限のチェーンがより明確になります。
 
-弱いポインタは、オブジェクトが削除されると「単にこれを理解」します。このように、ツリーのいかなるノードに対しても安全にポインタをキャッシュすることができます。
+弱いポインタは、オブジェクトが削除されるとこれを認識します。このように、ツリーのどのノードに対しても安全にポインタをキャッシュすることができます。
 
 ## 変換
 

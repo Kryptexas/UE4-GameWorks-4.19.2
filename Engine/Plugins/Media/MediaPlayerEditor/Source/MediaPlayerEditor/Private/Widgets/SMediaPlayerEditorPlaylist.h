@@ -13,6 +13,7 @@ class UMediaPlayer;
 struct FMediaSourceTableEntry;
 enum class EMediaEvent;
 
+
 /**
  * Implements the play list of the MediaPlayer asset editor.
  */
@@ -56,11 +57,8 @@ private:
 	/** Callback for media player events. */
 	void HandleMediaPlayerMediaEvent(EMediaEvent Event);
 
-	/** Callback for double-clicking an entry in the media source list. */
-	void HandleMediaSourceListDoubleClick(TSharedPtr<FMediaSourceTableEntry> InItem);
-
-	/** Callback for generating a row widget for the media source list view. */
-	TSharedRef<ITableRow> HandleMediaSourceListGenerateRow(TSharedPtr<FMediaSourceTableEntry> Entry, const TSharedRef<STableViewBase>& OwnerTable);
+	/** Callback for clicking the Save button. */
+	FReply HandleSavePlaylistButtonClicked();
 
 private:
 

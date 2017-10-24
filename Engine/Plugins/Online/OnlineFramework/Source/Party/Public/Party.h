@@ -256,7 +256,7 @@ public:
 	 *
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void KickFromPersistentParty(const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnLeaveUPartyComplete());
+	virtual void KickFromPersistentParty(const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnLeaveUPartyComplete());
 
 	/**
 	 * Try to process any pending invites received while in the rest of the game
@@ -332,7 +332,7 @@ public:
 	bool HasPendingPartyJoin() const;
 
 	/**
-	 * Get the session name (if available) for the primary player, typically GameSessionName
+	 * Get the session name (if available) for the primary player, typically NAME_GameSession
 	 *
 	 * @return Session name
 	 */

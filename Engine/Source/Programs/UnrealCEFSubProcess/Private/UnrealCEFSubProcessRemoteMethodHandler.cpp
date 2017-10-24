@@ -19,7 +19,7 @@ bool FUnrealCEFSubProcessRemoteObject::ExecuteMethod(const CefString& MethodName
 	CefRefPtr<CefV8Value> PromiseObjects;
 
 	// Run JS code that creates and unwraps a Promise object
-	if (!Context->Eval(
+	const bool bEvalSuccess = Context->Eval(
 		"(function() " \
 		"{ "
 		"	var Accept, Reject, PromiseObject;" \
@@ -29,7 +29,15 @@ bool FUnrealCEFSubProcessRemoteObject::ExecuteMethod(const CefString& MethodName
 		"		Reject = InReject;" \
 		"	});" \
 		"	return [PromiseObject, Accept, Reject];" \
-		"})()" , PromiseObjects, Exception))
+		"})()",
+#if !PLATFORM_LINUX
+		CefString(),
+		0,
+#endif
+		PromiseObjects,
+		Exception);
+
+	if (!bEvalSuccess)
 	{
 		InException = Exception->GetMessage();
 		return false;

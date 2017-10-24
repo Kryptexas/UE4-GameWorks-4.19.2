@@ -13,7 +13,7 @@
 #include "UObject/Class.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/MetaData.h"
 #include "UObject/UnrealType.h"
 #include "Serialization/ObjectWriter.h"
@@ -632,7 +632,7 @@ public:
 	 */
 	static FString GetTempDir()
 	{
-		return FPaths::GameSavedDir() + TEXT("Automation/");
+		return FPaths::ProjectSavedDir() + TEXT("Automation/");
 	}
 
 	/**
@@ -913,7 +913,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 	struct FReplaceInnerData
 	{
 		TWeakObjectPtr<UClass> Class;
-		FStringAssetReference BlueprintAsset;
+		FSoftObjectPath BlueprintAsset;
 	};
 	TArray<FReplaceInnerData> ReplaceInnerData;
 	for (auto BPToUnloadWP : BlueprintDependencies)
@@ -924,7 +924,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		{
 			FReplaceInnerData Data;
 			Data.Class = OldClass;
-			Data.BlueprintAsset = FStringAssetReference(BPToUnload);
+			Data.BlueprintAsset = FSoftObjectPath(BPToUnload);
 			ReplaceInnerData.Add(Data);
 		}
 	}
@@ -1015,7 +1015,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 				DiffDescription = FString::Printf(TEXT("%s (%s)"), *DiffDescription, *DiffIt->DisplayString.ToString());
 			}
 
-			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? Cast<const UEdGraphNode>(DiffIt->Pin1->GetOuter()) : NULL;
+			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? DiffIt->Pin1->GetOuter() : nullptr;
 			const UEdGraphNode* Node = DiffIt->Node1 ? DiffIt->Node1 : NodeFromPin;
 			const UEdGraph* Graph = Node ? Node->GetGraph() : NULL;
 			const FString GraphName = Graph ? Graph->GetName() : FString(TEXT("Unknown Graph"));

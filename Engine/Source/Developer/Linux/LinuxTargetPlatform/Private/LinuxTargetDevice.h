@@ -1,18 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LocalLinuxTargetDevice.h: Declares the LocalLinuxTargetDevice class.
-=============================================================================*/
-
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/TargetDeviceId.h"
-#include "Interfaces/ITargetDevice.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
 #include "ITargetPlatform.h"
+#include "Interfaces/ITargetDevice.h"
+#include "Interfaces/TargetDeviceId.h"
 
 #if PLATFORM_LINUX
 	#include <signal.h>
@@ -22,6 +18,7 @@
 class FLinuxTargetDevice;
 class IFileManager;
 struct FProcHandle;
+
 
 /**
  * Type definition for shared pointers to instances of FLinuxTargetDevice.

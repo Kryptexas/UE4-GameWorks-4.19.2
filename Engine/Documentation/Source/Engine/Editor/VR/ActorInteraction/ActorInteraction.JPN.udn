@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3360829
 Title:VR モードでのアクタの作業
 Description:VR モードでの作業時にアクタを配置、トランスフォーム、修正する方法
 Crumbs:
@@ -8,42 +8,12 @@ type:how-to
 order:4
 tags:VR
 tags:Level Editing
-version:4.11
+version:4.15
 skilllevel: intermediate
+topic-image:actorinteraction.png
+prereq:Engine/Editor/VR/ActivateVRMode
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/ActorInteraction:title%](Engine/Editor/VR/ActorInteraction/actorinteraction.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/ActorInteraction:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/ActorInteraction]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/ActorInteraction:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/ActorInteraction:title%](Engine/Editor/VR/ActorInteraction/actorinteraction.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/ActorInteraction:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/ActorInteraction]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/ActorInteraction:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 [EXCERPT:main]
 

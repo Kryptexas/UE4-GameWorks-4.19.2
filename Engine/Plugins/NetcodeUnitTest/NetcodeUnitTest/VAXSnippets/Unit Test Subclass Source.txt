@@ -7,8 +7,6 @@ Source:
 
 #include "UnitTests/$FILE_BASE$.h"
 
-#include "$UnitTestProject$PCH.h"
-
 #include "UnitTestEnvironment.h"
 
 /**

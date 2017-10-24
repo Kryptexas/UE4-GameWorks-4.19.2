@@ -50,6 +50,21 @@ void FAnimNode_LookAt::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
+float FAnimNode_LookAt::AlphaToBlendType(float InAlpha, EInterpolationBlend::Type BlendType)
+{
+	switch (BlendType)
+	{
+	case EInterpolationBlend::Sinusoidal: return FMath::Clamp<float>((FMath::Sin(InAlpha * PI - HALF_PI) + 1.f) / 2.f, 0.f, 1.f);
+	case EInterpolationBlend::Cubic: return FMath::Clamp<float>(FMath::CubicInterp<float>(0.f, 0.f, 1.f, 0.f, InAlpha), 0.f, 1.f);
+	case EInterpolationBlend::EaseInOutExponent2: return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, 2), 0.f, 1.f);
+	case EInterpolationBlend::EaseInOutExponent3: return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, 3), 0.f, 1.f);
+	case EInterpolationBlend::EaseInOutExponent4: return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, 4), 0.f, 1.f);
+	case EInterpolationBlend::EaseInOutExponent5: return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, 5), 0.f, 1.f);
+	}
+
+	return InAlpha;
+}
+
 void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
@@ -59,8 +74,8 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 	FTransform ComponentBoneTransform = Output.Pose.GetComponentSpaceTransform(ModifyBoneIndex);
 
 	// get target location
-	FTransform TargetTransform;
-	FVector TargetLocationInComponentSpace = LookAtTarget.GetTargetLocation(LookAtLocation, BoneContainer, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform(), TargetTransform);
+	FTransform TargetTransform = LookAtTarget.GetTargetTransform(LookAtLocation, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform());
+	FVector TargetLocationInComponentSpace = TargetTransform.GetLocation();
 	
 	FVector OldCurrentTargetLocation = CurrentTargetLocation;
 	FVector NewCurrentTargetLocation = TargetLocationInComponentSpace;
@@ -87,7 +102,7 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 
 		if (CurrentAlpha < 1.f)
 		{
-			float BlendAlpha = AlphaToBlendType(CurrentAlpha, GetInterpolationType());
+			float BlendAlpha = AlphaToBlendType(CurrentAlpha, InterpolationType);
 
 			CurrentLookAtLocation = FMath::Lerp(PreviousTargetLocation, CurrentTargetLocation, BlendAlpha);
 		}
@@ -99,7 +114,7 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 
 #if !UE_BUILD_SHIPPING
 	CachedOriginalTransform = ComponentBoneTransform;
-	CachedTargetTransform = TargetTransform;
+	CachedTargetCoordinate = LookAtTarget.GetTargetTransform(FVector::ZeroVector, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform());
 	CachedPreviousTargetLocation = PreviousTargetLocation;
 	CachedCurrentLookAtLocation = CurrentLookAtLocation;
 #endif
@@ -177,7 +192,7 @@ void FAnimNode_LookAt::ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkele
 		FTransform LocalToWorld = MeshComp->GetComponentTransform();
 		FTransform ComponentTransform = CachedOriginalTransform * LocalToWorld;
 		FTransform LookAtTransform = CachedLookAtTransform * LocalToWorld;
-		FTransform TargetTrasnform = CachedTargetTransform * LocalToWorld;
+		FTransform TargetTrasnform = CachedTargetCoordinate * LocalToWorld;
 		FVector BoneLocation = LookAtTransform.GetLocation();
 
 		// we're using interpolation, so print previous location

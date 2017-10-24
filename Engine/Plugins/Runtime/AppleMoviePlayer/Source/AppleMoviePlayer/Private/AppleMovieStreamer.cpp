@@ -280,7 +280,7 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
         bVideoTracksLoaded = false;
 
         NSURL* nsURL = nil;
-		FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + MovieQueue[0] + TEXT(".") + FString(MOVIE_FILE_EXTENSION);
+		FString MoviePath = FPaths::ProjectContentDir() + TEXT("Movies/") + MovieQueue[0] + TEXT(".") + FString(MOVIE_FILE_EXTENSION);
 		if (FPaths::FileExists(MoviePath))
 		{
 			nsURL = [NSURL fileURLWithPath:ConvertToNativePath(MoviePath, false).GetNSString()];

@@ -28,10 +28,24 @@ FOnlineError::FOnlineError(const FString& ErrorCodeIn)
 	SetFromErrorCode(ErrorCodeIn);
 }
 
+FOnlineError::FOnlineError(FString&& ErrorCodeIn)
+	: bSucceeded(false)
+	, HttpResult(0)
+	, NumericErrorCode(0)
+{
+	SetFromErrorCode(MoveTemp(ErrorCodeIn));
+}
+
 void FOnlineError::SetFromErrorCode(const FString& ErrorCodeIn)
 {
 	ErrorCode = ErrorCodeIn;
 	ErrorRaw = ErrorCodeIn;
+}
+
+void FOnlineError::SetFromErrorCode(FString&& ErrorCodeIn)
+{
+	ErrorCode = MoveTemp(ErrorCodeIn);
+	ErrorRaw = ErrorCode;
 }
 
 FOnlineError::FOnlineError(const FText& ErrorMessageIn)

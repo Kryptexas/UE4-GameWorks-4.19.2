@@ -272,7 +272,7 @@ copy /Y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)\x64\Release\$(ProjectNa
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;UNREALUSDWRAPPER_EXPORTS;TF_NO_GNU_EXT;BUILD_OPTLEVEL_OPT;BUILD_COMPONENT_SRC_PREFIX="";NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Public;..\..\ThirdParty\USD\OpenEXR;..\..\ThirdParty\USD\Python\include;..\..\ThirdParty\USD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <CompileAs>CompileAsCpp</CompileAs>
       <DisableSpecificWarnings>4946;4244;4305;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ExceptionHandling>Sync</ExceptionHandling>

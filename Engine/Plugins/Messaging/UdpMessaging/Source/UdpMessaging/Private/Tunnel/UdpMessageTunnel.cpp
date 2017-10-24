@@ -1,12 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Tunnel/UdpMessageTunnel.h"
+#include "UdpMessagingPrivate.h"
+
 #include "Misc/ScopeLock.h"
 #include "Common/TcpSocketBuilder.h"
 #include "Common/TcpListener.h"
 #include "Common/UdpSocketBuilder.h"
+#include "Serialization/ArrayReader.h"
+
 #include "Shared/UdpMessageSegment.h"
-#include "UdpMessagingPrivate.h"
+#include "Tunnel/UdpMessageTunnelConnection.h"
+
 
 #if PLATFORM_DESKTOP
 
@@ -212,8 +217,8 @@ void FUdpMessageTunnel::RemoveExpiredNodes(TMap<FGuid, FNodeInfo>& Nodes)
 
 void FUdpMessageTunnel::TcpToUdp()
 {
-	TArray<FUdpMessageTunnelConnectionPtr>::TIterator It(Connections);
-	FArrayReaderPtr Payload;
+	TArray<TSharedPtr<FUdpMessageTunnelConnection>>::TIterator It(Connections);
+	TSharedPtr<FArrayReader, ESPMode::ThreadSafe> Payload;
 
 	while (It && UnicastSocket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan::Zero()))
 	{
@@ -275,7 +280,7 @@ void FUdpMessageTunnel::UdpToTcp(FSocket* Socket)
 
 	while (Socket->HasPendingData(DatagramSize))
 	{
-		FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
+		TSharedRef<FArrayReader, ESPMode::ThreadSafe> Datagram = MakeShareable(new FArrayReader(true));
 		Datagram->SetNumUninitialized(FMath::Min(DatagramSize, 65507u));
 
 		int32 BytesRead = 0;
@@ -345,7 +350,7 @@ void FUdpMessageTunnel::UpdateConnections()
 	// add pending connections
 	if (!PendingConnections.IsEmpty())
 	{
-		FUdpMessageTunnelConnectionPtr PendingConnection;
+		TSharedPtr<FUdpMessageTunnelConnection> PendingConnection;
 
 		while (PendingConnections.Dequeue(PendingConnection))
 		{

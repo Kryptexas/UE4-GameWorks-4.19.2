@@ -4,10 +4,11 @@
 #include "Misc/Parse.h"
 #include "UObject/PropertyPortFlags.h"
 
+
 /* FGuid interface
  *****************************************************************************/
 
-bool FGuid::ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
+bool FGuid::ExportTextItem(FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope) const
 {
 	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
 	{
@@ -20,7 +21,7 @@ bool FGuid::ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObjec
 }
 
 
-bool FGuid::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
+bool FGuid::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText)
 {
 	if (FPlatformString::Strlen(Buffer) < 32)
 	{
@@ -38,7 +39,7 @@ bool FGuid::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject
 }
 
 
-FString FGuid::ToString( EGuidFormats Format ) const
+FString FGuid::ToString(EGuidFormats Format) const
 {
 	switch (Format)
 	{
@@ -55,7 +56,7 @@ FString FGuid::ToString( EGuidFormats Format ) const
 		return FString::Printf(TEXT("{0x%08X,0x%04X,0x%04X,{0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X}}"), A, B >> 16, B & 0xFFFF, C >> 24, (C >> 16) & 0xFF, (C >> 8) & 0xFF, C & 0XFF, D >> 24, (D >> 16) & 0XFF, (D >> 8) & 0XFF, D & 0XFF);
 
 	case EGuidFormats::UniqueObjectGuid:
-		return FString::Printf(TEXT("%08X-%08X-%08X-%08X"), A, B, C, D );
+		return FString::Printf(TEXT("%08X-%08X-%08X-%08X"), A, B, C, D);
 
 	default:
 		return FString::Printf(TEXT("%08X%08X%08X%08X"), A, B, C, D);
@@ -75,7 +76,7 @@ FGuid FGuid::NewGuid()
 }
 
 
-bool FGuid::Parse( const FString& GuidString, FGuid& OutGuid )
+bool FGuid::Parse(const FString& GuidString, FGuid& OutGuid)
 {
 	if (GuidString.Len() == 32)
 	{
@@ -111,7 +112,7 @@ bool FGuid::Parse( const FString& GuidString, FGuid& OutGuid )
 }
 
 
-bool FGuid::ParseExact( const FString& GuidString, EGuidFormats Format, FGuid& OutGuid )
+bool FGuid::ParseExact(const FString& GuidString, EGuidFormats Format, FGuid& OutGuid)
 {
 	FString NormalizedGuidString;
 

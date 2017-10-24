@@ -119,6 +119,13 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 	return self;
 }
 
+-(void)dealloc
+{
+	[Request release];
+	[AvailableProducts release];
+	[super dealloc];
+}
+
 -(void)paymentQueue:(SKPaymentQueue *)queue updatedTransactions : (NSArray *)transactions
 {
 	// Parse the generic transaction update into appropriate execution paths
@@ -172,7 +179,7 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 		{
 			StoreInterface->CachedPurchaseRestoreObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
-		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::Restored);
+		StoreInterface->ProcessRestorePurchases(EInAppPurchaseState::Restored);
 		
 		return true;
 	}];
@@ -207,7 +214,7 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 			StoreInterface->CachedPurchaseRestoreObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
  
-		StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(CompletionState);
+		StoreInterface->ProcessRestorePurchases(CompletionState);
 	 
 		return true;
 	 }];
@@ -398,6 +405,11 @@ FStoreKitTransactionData::FStoreKitTransactionData(const SKPaymentTransaction* T
 	self = [super init];
 	self.PendingTransactions = [NSMutableSet setWithCapacity:5];
 	return self;
+}
+-(void)dealloc
+{
+	[_PendingTransactions release];
+	[super dealloc];
 }
 
 -(void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue

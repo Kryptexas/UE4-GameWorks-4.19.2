@@ -111,8 +111,6 @@ namespace OpenGLConsoleVariables
 		ECVF_ReadOnly|ECVF_RenderThreadSafe);
 };
 
-TGlobalResource<FOpenGLVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
-
 #if PLATFORM_64BITS
 #define INDEX_TO_VOID(Index) (void*)((uint64)(Index))
 #else
@@ -278,9 +276,18 @@ static FORCEINLINE GLint ModifyFilterByMips(GLint Filter, bool bHasMips)
 // Vertex state.
 void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
+	ensure(PendingState.BoundShaderState->StreamStrides[StreamIndex] == Stride);
 	FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 	PendingState.Streams[StreamIndex].VertexBuffer = VertexBuffer;
-	PendingState.Streams[StreamIndex].Stride = Stride;
+	PendingState.Streams[StreamIndex].Stride = PendingState.BoundShaderState ? PendingState.BoundShaderState->StreamStrides[StreamIndex] : 0;
+	PendingState.Streams[StreamIndex].Offset = Offset;
+}
+
+void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
+{
+	FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
+	PendingState.Streams[StreamIndex].VertexBuffer = VertexBuffer;
+	PendingState.Streams[StreamIndex].Stride = PendingState.BoundShaderState ? PendingState.BoundShaderState->StreamStrides[StreamIndex] : 0;
 	PendingState.Streams[StreamIndex].Offset = Offset;
 }
 
@@ -296,7 +303,9 @@ void FOpenGLDynamicRHI::RHISetRasterizerState(FRasterizerStateRHIParamRef NewSta
 	FOpenGLRasterizerState* NewState = ResourceCast(NewStateRHI);
 	PendingState.RasterizerState = NewState->Data;
 	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FShaderCache::SetRasterizerState(FShaderCache::GetDefaultCacheState(), NewStateRHI);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FOpenGLDynamicRHI::UpdateRasterizerStateInOpenGLContext( FOpenGLContextState& ContextState )
@@ -397,11 +406,6 @@ void FOpenGLDynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32
 	FShaderCache::SetViewport(FShaderCache::GetDefaultCacheState(), MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
-void FOpenGLDynamicRHI::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("OpenGL RHI does not support set stereo viewport!"));
-}
-
 void FOpenGLDynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
 {
 	PendingState.bScissorEnabled = bEnable;
@@ -451,7 +455,9 @@ void FOpenGLDynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Bou
 	// The history keeps them alive, and the bound shader state cache allows them to be reused if needed.
 	BoundShaderStateHistory.Add(BoundShaderState);
 	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FShaderCache::SetBoundShaderState(FShaderCache::GetDefaultCacheState(), BoundShaderStateRHI);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FOpenGLDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI)
@@ -550,10 +556,21 @@ void FOpenGLDynamicRHI::CachedSetupTextureStage(FOpenGLContextState& ContextStat
 		}
 		TextureState.LimitMip = LimitMip;
 		
-		if(FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
+#if PLATFORM_ANDROID
+		if (FOpenGL::SupportsTextureMaxLevel())
+		{
+			// Always set if last target was external texture, or new target is not external and number of mips doesn't match
+			if ((!bSameTarget && TextureState.Target == GL_TEXTURE_EXTERNAL_OES) || ((Target != GL_TEXTURE_EXTERNAL_OES) && !bSameNumMips))
+			{
+				FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
+			}
+		}
+#else
+		if (FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
 		{
 			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
 		}
+#endif
 		TextureState.NumMips = NumMips;
 		
 		TextureMipLimits.Add(Resource, TPair<GLenum, GLenum>(BaseMip, MaxMip));
@@ -1314,7 +1331,9 @@ void FOpenGLDynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef Ne
 	PendingState.DepthStencilState = NewState->Data;
 	PendingState.StencilRef = StencilRef;
 	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FShaderCache::SetDepthStencilState(FShaderCache::GetDefaultCacheState(), NewStateRHI);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FOpenGLDynamicRHI::RHISetStencilRef(uint32 StencilRef)
@@ -1670,7 +1689,9 @@ void FOpenGLDynamicRHI::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI,cons
 	FOpenGLBlendState* NewState = ResourceCast(NewStateRHI);
 	FMemory::Memcpy(&PendingState.BlendState,&(NewState->Data),sizeof(FOpenGLBlendStateData));
 	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FShaderCache::SetBlendState(FShaderCache::GetDefaultCacheState(), NewStateRHI);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FOpenGLDynamicRHI::RHISetRenderTargets(
@@ -2668,7 +2689,7 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 		REPORT_GL_DRAW_ARRAYS_INSTANCED_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements, NumInstances );
 	}
 
-	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), 0);
+	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PrimitiveType, 0);
 }
 
 void FOpenGLDynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
@@ -2715,7 +2736,7 @@ void FOpenGLDynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBuf
 		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 		
-		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), 0);
+		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PrimitiveType, 0);
 	}
 	else
 	{
@@ -2777,7 +2798,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBuff
 		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 		
-		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), IndexBuffer->GetStride());
+		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PrimitiveType, IndexBuffer->GetStride());
 	}
 	else
 	{
@@ -2850,7 +2871,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
 
-	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), IndexBuffer->GetStride());
+	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PrimitiveType, IndexBuffer->GetStride());
 }
 
 void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIndexBufferRHIParamRef IndexBufferRHI,FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
@@ -2903,7 +2924,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIn
 		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
 		
-		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), IndexBuffer->GetStride());
+		FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PrimitiveType, IndexBuffer->GetStride());
 	}
 	else
 	{
@@ -3024,7 +3045,7 @@ void FOpenGLDynamicRHI::RHIEndDrawPrimitiveUP()
 
 	REPORT_GL_DRAW_ARRAYS_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements );
 
-	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), 0);
+	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PendingState.PrimitiveType, 0);
 }
 
 /**
@@ -3174,7 +3195,7 @@ void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 
 	REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP( DrawMode, PendingState.MinVertexIndex, PendingState.MinVertexIndex + PendingState.NumVertices, NumElements, IndexType, 0 );
 
-	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PendingState.IndexDataStride);
+	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), PendingState.PrimitiveType, PendingState.IndexDataStride);
 }
 
 
@@ -3310,29 +3331,19 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 	FIntRect PrevScissor = PendingState.Scissor;
 	bool bPrevScissorEnabled = PendingState.bScissorEnabled;
 
-	bool bClearAroundExcludeRect = false;
-
 	bool bScissorChanged = false;
 	GPUProfilingData.RegisterGPUWork(0);
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
 	BindPendingFramebuffer(ContextState);
 
-	if( !bClearAroundExcludeRect )
+	if (bPrevScissorEnabled || PendingState.Viewport.Min.X != 0 || PendingState.Viewport.Min.Y != 0 || PendingState.Viewport.Max.X != PendingState.RenderTargetWidth || PendingState.Viewport.Max.Y != PendingState.RenderTargetHeight)
 	{
-		if (bPrevScissorEnabled)
-		{
-			RHISetScissorRect(true,PrevScissor.Min.X, PrevScissor.Min.Y, PrevScissor.Max.X, PrevScissor.Max.Y);
-			bScissorChanged = true;
-		}
-		else if (PendingState.Viewport.Min.X != 0 || PendingState.Viewport.Min.Y != 0 || PendingState.Viewport.Max.X != PendingState.RenderTargetWidth || PendingState.Viewport.Max.Y != PendingState.RenderTargetHeight)
-		{
-			RHISetScissorRect(true,PendingState.Viewport.Min.X, PendingState.Viewport.Min.Y, PendingState.Viewport.Max.X, PendingState.Viewport.Max.Y);
-			bScissorChanged = true;
-		}
-
-		// Always update in case there are uncommitted changes to disable scissor
-		UpdateScissorRectInOpenGLContext(ContextState);
+		RHISetScissorRect(false, 0, 0, 0, 0);
+		bScissorChanged = true;
 	}
+
+	// Always update in case there are uncommitted changes to disable scissor
+	UpdateScissorRectInOpenGLContext(ContextState);
 
 	int8 ClearType = CT_None;
 
@@ -3548,5 +3559,15 @@ IRHICommandContextContainer* FOpenGLDynamicRHI::RHIGetCommandContextContainer(in
 {
 	return nullptr;
 }
+
+void FOpenGLDynamicRHI::RHIInvalidateCachedState()
+{
+	RenderingContextState = FOpenGLContextState();
+	SharedContextState = FOpenGLContextState();
+
+	RenderingContextState.InitializeResources(FOpenGL::GetMaxCombinedTextureImageUnits(), OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
+	SharedContextState.InitializeResources(FOpenGL::GetMaxCombinedTextureImageUnits(), OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
+}
+
 
 

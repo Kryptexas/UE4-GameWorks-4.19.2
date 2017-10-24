@@ -26,11 +26,14 @@
 
 /// \file tf/errorMark.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/diagnosticMgr.h"
 #include "pxr/base/tf/errorTransport.h"
 #include "pxr/base/tf/api.h"
 
 #include <boost/noncopyable.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfErrorMark
 /// \ingroup group_tf_TfError
@@ -60,7 +63,7 @@
 ///      }
 /// \endcode
 ///
-class TF_API TfErrorMark : boost::noncopyable
+class TfErrorMark : boost::noncopyable
 {
   public:
 
@@ -70,14 +73,14 @@ class TF_API TfErrorMark : boost::noncopyable
     ///
     /// The default constructor automatically calls \c SetMark() at the point
     /// of declaration.
-    TfErrorMark();
+    TF_API TfErrorMark();
 
     /// Destroy this ErrorMark.
     ///
     /// If this is the last ErrorMark on this thread of execution and there
     /// are pending errors, this will report them via the diagnostic delegate
     /// (if one is instanlled) otherwise by printing to stderr.
-    ~TfErrorMark();
+    TF_API ~TfErrorMark();
 
     /// Record future errors.
     ///
@@ -95,7 +98,7 @@ class TF_API TfErrorMark : boost::noncopyable
     /// diagnostics are not being issued.
     inline bool IsClean() const {
         TfDiagnosticMgr &mgr = TfDiagnosticMgr::GetInstance();
-        return _mark >= mgr._nextSerial or _IsCleanImpl(mgr);
+        return _mark >= mgr._nextSerial || _IsCleanImpl(mgr);
     }
 
     /// Remove all errors in this mark from the error system.  Return true if
@@ -168,7 +171,7 @@ class TF_API TfErrorMark : boost::noncopyable
 
     // Helper to check if the _mark identifies any errors present on the
     // thread-local error list.
-    bool _IsCleanImpl(TfDiagnosticMgr &mgr) const;
+    TF_API bool _IsCleanImpl(TfDiagnosticMgr &mgr) const;
 
     void _ReportErrors(TfDiagnosticMgr &mgr) const;
 
@@ -203,5 +206,7 @@ class TF_API TfErrorMark : boost::noncopyable
 /// \ingroup group_tf_TfError
 TF_API
 void TfReportActiveErrorMarks();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_ERROR_MARK

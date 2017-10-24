@@ -7,7 +7,7 @@
 #include "Input/Reply.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Interfaces/IAutomationControllerManager.h"
+#include "IAutomationControllerManager.h"
 
 class SButton;
 class SComboButton;

@@ -13,6 +13,9 @@ class ISlate3DRenderer : public TSharedFromThis<ISlate3DRenderer, ESPMode::Threa
 public:
 	virtual ~ISlate3DRenderer() {}
 
+	/** set if this renderer should render in gamma space by default. */
+	virtual void SetUseGammaCorrection(bool bUseGammaCorrection) = 0;
+
 	/** @return The free buffer for drawing */
 	virtual FSlateDrawBuffer& GetDrawBuffer() = 0;
 

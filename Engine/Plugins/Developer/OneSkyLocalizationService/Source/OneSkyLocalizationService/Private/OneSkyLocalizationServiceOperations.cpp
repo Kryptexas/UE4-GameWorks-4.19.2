@@ -807,7 +807,7 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 						if (TranslationExportOp.IsValid())
 						{
 							// Path is relative to game directory
-							FString Filename = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TranslationExportOp->GetInRelativeOutputFilePathAndName());
+							FString Filename = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TranslationExportOp->GetInRelativeOutputFilePathAndName());
 
 							if (Filename.IsEmpty())
 							{
@@ -950,7 +950,7 @@ bool FOneSkyUploadFileWorker::Execute(class FOneSkyLocalizationServiceCommand& I
 		InTargetGuid = UploadFileOp->GetInTargetGuid();
 		InLocale = UploadFileOp->GetInLocale();
 		// Path is relative to game directory
-		InFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / UploadFileOp->GetInRelativeInputFilePathAndName());
+		InFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / UploadFileOp->GetInRelativeInputFilePathAndName());
 		bInIsKeepingAllStrings = UploadFileOp->GetPreserveAllText();
 		InFileFormat = GetFileFormat(FPaths::GetExtension(InFilePathAndName, true));
 	}
@@ -984,7 +984,7 @@ bool FOneSkyUploadFileWorker::Execute(class FOneSkyLocalizationServiceCommand& I
 	HttpRequest->SetVerb(TEXT("POST"));
 
 	FString FileContents;
-	if (FFileHelper::LoadFileToString(FileContents, *InFilePathAndName, FFileHelper::EEncodingOptions::ForceUnicode))
+	if (FFileHelper::LoadFileToString(FileContents, *InFilePathAndName))
 	{
 		// Format the file the way OneSky wants it (in a form, with the file contents being a field called "file")
 		FString PrefixBoundry = "\r\n--" + Boundary + "\r\n";
@@ -1136,7 +1136,7 @@ bool FOneSkyShowImportTaskWorker::Execute(class FOneSkyLocalizationServiceComman
 	int32 InProjectId = -1;
 	int32 InImportId = -1;
 	int32 InExecutionDelayInSeconds = -1;
-	FDateTime InCreationTimeStamp = FDateTime::FDateTime(1970, 1, 1);
+	FDateTime InCreationTimeStamp = FDateTime(1970, 1, 1);
 
 	if (ShowImportTaskOp.IsValid())
 	{

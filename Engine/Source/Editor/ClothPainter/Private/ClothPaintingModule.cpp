@@ -16,10 +16,16 @@
 #include "ClothPaintSettingsCustomization.h"
 #include "Settings/EditorExperimentalSettings.h"
 #include "ClothPaintToolCommands.h"
+#include "ISkeletalMeshEditorModule.h"
+#include "MultiBoxBuilder.h"
+#include "ClothPainterCommands.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "ClothPaintingModule"
 
 IMPLEMENT_MODULE(FClothPaintingModule, ClothPainter);
+
+DECLARE_DELEGATE_OneParam(FOnToggleClothPaintMode, bool);
 
 struct FClothPaintTabSummoner : public FWorkflowTabFactory
 {
@@ -30,7 +36,7 @@ public:
 	FClothPaintTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 		: FWorkflowTabFactory(TabName, InHostingApp)
 	{
-		TabLabel = LOCTEXT("ClothPaintTabLabel", "ClothPaint");
+		TabLabel = LOCTEXT("ClothPaintTabLabel", "Clothing");
 		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.SkeletalMesh");
 	}
 
@@ -48,21 +54,28 @@ public:
 	{
 		return MakeShareable(new FClothPaintTabSummoner(InAssetEditor));
 	}
+
+protected:
+
 };
 const FName FClothPaintTabSummoner::TabName = TEXT("ClothPainting");
 
 void FClothPaintingModule::StartupModule()
 {	
-	ExperimentalSettings = GetMutableDefault<UEditorExperimentalSettings>();
-	ExperimentalSettingsEventHandle = ExperimentalSettings->OnSettingChanged().AddRaw(this, &FClothPaintingModule::OnExperimentalSettingsChanged);
-
-	if(ExperimentalSettings->bClothingTools)
-	{
-		SetupMode();
-	}
+	SetupMode();
 
 	// Register any commands for the cloth painter
 	ClothPaintToolCommands::RegisterClothPaintToolCommands();
+	FClothPainterCommands::Register();
+
+	if(!SkelMeshEditorExtenderHandle.IsValid())
+	{
+		ISkeletalMeshEditorModule& SkelMeshEditorModule = FModuleManager::Get().LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
+		TArray<ISkeletalMeshEditorModule::FSkeletalMeshEditorToolbarExtender>& Extenders = SkelMeshEditorModule.GetAllSkeletalMeshEditorToolbarExtenders();
+		
+		Extenders.Add(ISkeletalMeshEditorModule::FSkeletalMeshEditorToolbarExtender::CreateRaw(this, &FClothPaintingModule::ExtendSkelMeshEditorToolbar));
+		SkelMeshEditorExtenderHandle = Extenders.Last().GetHandle();
+	}
 }
 
 void FClothPaintingModule::SetupMode()
@@ -86,39 +99,101 @@ TSharedRef<FApplicationMode> FClothPaintingModule::ExtendApplicationMode(const F
 	return InMode;
 }
 
-void FClothPaintingModule::OnExperimentalSettingsChanged(FName PropertyName)
+TSharedRef<FExtender> FClothPaintingModule::ExtendSkelMeshEditorToolbar(const TSharedRef<FUICommandList> InCommandList, TSharedRef<ISkeletalMeshEditor> InSkeletalMeshEditor)
 {
-	if(UEditorExperimentalSettings* ActualSettings = ExperimentalSettings.Get())
+	// Add toolbar extender
+	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+
+	TWeakPtr<ISkeletalMeshEditor> Ptr(InSkeletalMeshEditor);
+
+	InCommandList->MapAction(FClothPainterCommands::Get().TogglePaintMode,
+		FExecuteAction::CreateRaw(this, &FClothPaintingModule::OnToggleMode, Ptr),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateRaw(this, &FClothPaintingModule::GetIsPaintToolsButtonChecked, Ptr)
+	);
+
+	ToolbarExtender->AddToolBarExtension("Asset", EExtensionHook::After, InCommandList, FToolBarExtensionDelegate::CreateLambda(
+		[this, Ptr](FToolBarBuilder& Builder)
 	{
-		if(PropertyName == GET_MEMBER_NAME_CHECKED(UEditorExperimentalSettings, bClothingTools))
+		Builder.AddToolBarButton(
+			FClothPainterCommands::Get().TogglePaintMode, 
+			NAME_None, 
+			TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FClothPaintingModule::GetPaintToolsButtonText, Ptr)), 
+			TAttribute<FText>(), 
+			FSlateIcon(FEditorStyle::GetStyleSetName(), 
+			"LevelEditor.MeshPaintMode.TexturePaint"));
+	}));
+
+	return ToolbarExtender.ToSharedRef();
+}
+
+FText FClothPaintingModule::GetPaintToolsButtonText(TWeakPtr<ISkeletalMeshEditor> InSkeletalMeshEditor) const
+{
+	TSharedPtr<SClothPaintTab> ClothTab = GetActiveClothTab(InSkeletalMeshEditor, false);
+
+	if(ClothTab.IsValid())
+	{
+		if(ClothTab->IsPaintModeActive())
 		{
-			if(ActualSettings->bClothingTools)
-			{
-				SetupMode();
-			}
-			else
-			{
-				ShutdownMode();
-			}
+			return LOCTEXT("ToggleButton_Deactivate", "Deactivate Cloth Paint");
 		}
 	}
+
+	return LOCTEXT("ToggleButton_Activate", "Activate Cloth Paint");
+}
+
+bool FClothPaintingModule::GetIsPaintToolsButtonChecked(TWeakPtr<ISkeletalMeshEditor> InSkeletalMeshEditor) const
+{
+	TSharedPtr<SClothPaintTab> ClothTab = GetActiveClothTab(InSkeletalMeshEditor, false);
+
+	if(ClothTab.IsValid())
+	{
+		return ClothTab->IsPaintModeActive();
+	}
+
+	return false;
+}
+
+void FClothPaintingModule::OnToggleMode(TWeakPtr<ISkeletalMeshEditor> InSkeletalMeshEditor)
+{
+	TSharedPtr<SClothPaintTab> ClothTab = GetActiveClothTab(InSkeletalMeshEditor);
+
+	if(ClothTab.IsValid())
+	{
+		ClothTab->TogglePaintMode();
+	}
+}
+
+TSharedPtr<SClothPaintTab> FClothPaintingModule::GetActiveClothTab(TWeakPtr<ISkeletalMeshEditor> InSkeletalMeshEditor, bool bInvoke /*= true*/) const
+{
+	TSharedPtr<FTabManager> TabManager = InSkeletalMeshEditor.Pin()->GetTabManager();
+
+	if(bInvoke)
+	{
+		TabManager->InvokeTab(FTabId(FClothPaintTabSummoner::TabName));
+	}
+
+	TSharedPtr<SDockTab> Tab = TabManager->FindExistingLiveTab(FTabId(FClothPaintTabSummoner::TabName));
+
+	if(Tab.IsValid())
+	{
+		TSharedPtr<SWidget> TabContent = Tab->GetContent();
+		TSharedPtr<SClothPaintTab> ClothingTab = StaticCastSharedPtr<SClothPaintTab>(TabContent);
+		return ClothingTab;
+	}
+
+	return nullptr;
 }
 
 void FClothPaintingModule::ShutdownModule()
 {
-	if(UEditorExperimentalSettings* ActualSettings = ExperimentalSettings.Get())
-	{
-		if(ExperimentalSettings->bClothingTools)
-		{
-			ShutdownMode();
-		}
+	ShutdownMode();
 
-		ExperimentalSettings->OnSettingChanged().Remove(ExperimentalSettingsEventHandle);
-	}
-	else
-	{
-		ShutdownMode();
-	}
+	// Remove skel mesh editor extenders
+	ISkeletalMeshEditorModule& SkelMeshEditorModule = FModuleManager::GetModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
+	TArray<ISkeletalMeshEditorModule::FSkeletalMeshEditorToolbarExtender>& Extenders = SkelMeshEditorModule.GetAllSkeletalMeshEditorToolbarExtenders();
+	
+	Extenders.RemoveAll([=](const ISkeletalMeshEditorModule::FSkeletalMeshEditorToolbarExtender& InDelegate) {return InDelegate.GetHandle() == SkelMeshEditorExtenderHandle; });
 }
 
 void FClothPaintingModule::ShutdownMode()

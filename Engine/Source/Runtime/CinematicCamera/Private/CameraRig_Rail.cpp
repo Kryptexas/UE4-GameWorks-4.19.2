@@ -164,12 +164,12 @@ void ACameraRig_Rail::UpdateRailComponents()
 #endif
 }
 
-#if WITH_EDITOR
 USceneComponent* ACameraRig_Rail::GetDefaultAttachComponent() const
 {
 	return RailCameraMount;
 }
 
+#if WITH_EDITOR
 void ACameraRig_Rail::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

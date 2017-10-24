@@ -27,14 +27,14 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Malloc(SIZE_T Count, uint32 Ali
 		Ptr = FMEMORY_INLINE_GMalloc->Malloc(Count, Alignment);
 	}
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Malloc, Ptr, Count));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count));
 	return Ptr;
 }
 
 FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Realloc(void* Original, SIZE_T Count, uint32 Alignment)
 {
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Malloc, Original, 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, 0));
 
 	void* Ptr;
 	if (!FMEMORY_INLINE_GMalloc)
@@ -49,7 +49,8 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Realloc(void* Original, SIZE_T 
 	}
 
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Malloc, Ptr, Count));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count));
+
 	return Ptr;
 }
 
@@ -62,7 +63,7 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void FMemory::Free(void* Original)
 	}
 
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Malloc, Original, 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, 0));
 
 	if (!FMEMORY_INLINE_GMalloc)
 	{

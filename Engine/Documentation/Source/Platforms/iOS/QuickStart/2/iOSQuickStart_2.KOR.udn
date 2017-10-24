@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3565221
 Title:2. 프로젝트 생성
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:언리얼 엔진 게임 프로젝트를 생성합니다.
@@ -72,7 +72,7 @@ iOS 디바이스에 실행 또는 설치하게 되겠지요.
 [REGION:warning]
 여기서 설명된 PC 전용 작업방식은 블루프린트 전용 프로젝트가 필수입니다. 프로젝트에서 코드를 사용하려는 경우,
 코드 컴파일을 위해서는 Mac 도 필요할 것입니다. PC 에서 iOS 용 코드 기반 프로젝트 
-개발을 위해서는 [](Platforms/iOS/GettingStarted) 페이지에 소개된 작업방식을 참고하시기 바랍니다.
+개발을 위해서는 [](Platforms/iOS/Windows) 페이지에 소개된 작업방식을 참고하시기 바랍니다.
 [/REGION]
 [/EXCERPT:windows]
 [EXCERPT:macos]

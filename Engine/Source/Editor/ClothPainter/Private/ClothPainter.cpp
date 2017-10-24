@@ -67,7 +67,7 @@ bool FClothPainter::PaintInternal(const FVector& InCameraOrigin, const FVector& 
 {
 	bool bApplied = false;
 
-	if(SkeletalMeshComponent->SelectedClothingGuidForPainting.IsValid())
+	if(SkeletalMeshComponent->SelectedClothingGuidForPainting.IsValid() && !bShouldSimulate)
 	{
 		USkeletalMesh* SkelMesh = SkeletalMeshComponent->SkeletalMesh;
 
@@ -225,17 +225,17 @@ void FClothPainter::FinishPainting()
 	{		
 		EndTransaction();
 		Adapter->PostEdit();
-	}
 
-	if(SkeletalMeshComponent)
-	{
-		FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
-
-		if(USkeletalMesh* SkelMesh = SkeletalMeshComponent->SkeletalMesh)
+		if(SkeletalMeshComponent)
 		{
-			for(UClothingAssetBase* AssetBase : SkelMesh->MeshClothingAssets)
+			FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
+
+			if(USkeletalMesh* SkelMesh = SkeletalMeshComponent->SkeletalMesh)
 			{
-				AssetBase->InvalidateCachedData();
+				for(UClothingAssetBase* AssetBase : SkelMesh->MeshClothingAssets)
+				{
+					AssetBase->InvalidateCachedData();
+				}
 			}
 		}
 	}
@@ -279,7 +279,7 @@ UPaintBrushSettings* FClothPainter::GetBrushSettings()
 
 UMeshPaintSettings* FClothPainter::GetPainterSettings()
 {
-	return Cast<UMeshPaintSettings>(PaintSettings);
+	return PaintSettings;
 }
 
 TSharedPtr<class SWidget> FClothPainter::GetWidget()
@@ -312,7 +312,7 @@ void FClothPainter::Refresh()
 
 void FClothPainter::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	if(SelectedTool.IsValid() && SelectedTool->ShouldRenderInteractors())
+	if(SelectedTool.IsValid() && SelectedTool->ShouldRenderInteractors() && !bShouldSimulate)
 	{
 		RenderInteractors(View, Viewport, PDI, true, SDPG_Foreground);
 	}
@@ -378,9 +378,9 @@ FMeshPaintParameters FClothPainter::CreatePaintParameters(const FHitResult& HitR
 		Params.BrushDepthFalloffRange = BrushSettings->BrushFalloffAmount * BrushDepth;
 		Params.InnerBrushDepth = BrushDepth - Params.BrushDepthFalloffRange;
 		Params.BrushStrength = BrushStrength;
-		Params.BrushToWorldMatrix = FMatrix(BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition);
-		Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();		
 		Params.BrushNormal = HitResult.Normal;
+		Params.BrushToWorldMatrix = FMatrix(BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition);
+		Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();
 	}
 
 	return Params;

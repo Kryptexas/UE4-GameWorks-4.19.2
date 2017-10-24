@@ -3,56 +3,77 @@
 #ifndef OVR_PLATFORM_H
 #define OVR_PLATFORM_H
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
 
 #include "OVR_Types.h"
 #include "OVR_MessageType.h"
-#include "OVR_Message.h"
-#include "OVR_DataStore.h"
-#include "OVR_Error.h"
-#include "OVR_NetworkingPeer.h"
-#include "OVR_UserProof.h"
 #include "OVR_Platform_Defs.h"
+#include "OVR_Voip_LowLevel.h"
 #include "OVR_PlatformVersion.h"
-#include "OVR_PidArray.h"
-#include "OVR_InstalledApplicationArray.h"
-#include "OVR_Product.h"
-#include "OVR_ProductArray.h"
-#include "OVR_Purchase.h"
-#include "OVR_PurchaseArray.h"
-#include "OVR_Room.h"
-#include "OVR_RoomJoinPolicy.h"
-#include "OVR_RoomArray.h"
-#include "OVR_User.h"
+
 #include "OVR_AchievementDefinition.h"
 #include "OVR_AchievementDefinitionArray.h"
 #include "OVR_AchievementProgress.h"
 #include "OVR_AchievementProgressArray.h"
 #include "OVR_AchievementUpdate.h"
+#include "OVR_ApplicationVersion.h"
 #include "OVR_CloudStorageConflictMetadata.h"
 #include "OVR_CloudStorageData.h"
+#include "OVR_CloudStorageMetadata.h"
 #include "OVR_CloudStorageMetadataArray.h"
+#include "OVR_CloudStorageUpdateResponse.h"
+#include "OVR_DataStore.h"
+#include "OVR_Error.h"
+#include "OVR_HttpTransferUpdate.h"
+#include "OVR_InstalledApplication.h"
+#include "OVR_InstalledApplicationArray.h"
+#include "OVR_LaunchDetails.h"
 #include "OVR_LeaderboardEntry.h"
 #include "OVR_LeaderboardEntryArray.h"
 #include "OVR_LeaderboardUpdateStatus.h"
-#include "OVR_LeaderboardStartAt.h"
-#include "OVR_LeaderboardFilterType.h"
-#include "OVR_KeyValuePairType.h"
+#include "OVR_LivestreamingApplicationStatus.h"
+#include "OVR_LivestreamingStartResult.h"
+#include "OVR_LivestreamingStatus.h"
+#include "OVR_LivestreamingVideoStats.h"
 #include "OVR_MatchmakingAdminSnapshot.h"
+#include "OVR_MatchmakingAdminSnapshotCandidate.h"
+#include "OVR_MatchmakingAdminSnapshotCandidateArray.h"
 #include "OVR_MatchmakingBrowseResult.h"
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingEnqueueResultAndRoom.h"
-#include "OVR_PermissionGrantStatus.h"
-#include "OVR_Voip_LowLevel.h"
-#include "OVR_PlatformInitializeResult.h"
-#include "OVR_LivestreamingAudience.h"
-#include "OVR_LivestreamingMicrophoneStatus.h"
-#include "OVR_LivestreamingStartStatus.h"
-#include "OVR_LivestreamingApplicationStatus.h"
-#include "OVR_LivestreamingStartResult.h"
-#include "OVR_LivestreamingVideoStats.h"
+#include "OVR_MatchmakingEnqueuedUser.h"
+#include "OVR_MatchmakingEnqueuedUserArray.h"
+#include "OVR_MatchmakingRoom.h"
+#include "OVR_MatchmakingRoomArray.h"
+#include "OVR_MatchmakingStats.h"
+#include "OVR_Message.h"
+#include "OVR_Microphone.h"
+#include "OVR_NetworkingPeer.h"
+#include "OVR_OrgScopedID.h"
+#include "OVR_Packet.h"
+#include "OVR_Party.h"
+#include "OVR_PartyID.h"
+#include "OVR_Pid.h"
+#include "OVR_PidArray.h"
+#include "OVR_PingResult.h"
+#include "OVR_PlatformInitialize.h"
+#include "OVR_Product.h"
+#include "OVR_ProductArray.h"
+#include "OVR_Purchase.h"
+#include "OVR_PurchaseArray.h"
+#include "OVR_Room.h"
+#include "OVR_RoomArray.h"
+#include "OVR_RoomInviteNotification.h"
+#include "OVR_RoomInviteNotificationArray.h"
+#include "OVR_SystemPermission.h"
+#include "OVR_SystemVoipState.h"
+#include "OVR_User.h"
+#include "OVR_UserAndRoom.h"
+#include "OVR_UserAndRoomArray.h"
+#include "OVR_UserArray.h"
+#include "OVR_UserProof.h"
+#include "OVR_VoipDecoder.h"
+#include "OVR_VoipEncoder.h"
 
 #include "OVR_Requests_Achievements.h"
 #include "OVR_Requests_Application.h"
@@ -114,7 +135,6 @@ typedef struct {
   const char *uriPrefixOverride;
 } ovrOculusInitParams;
 
-
 #ifdef __ANDROID__ //Needed for compatibility. 1.13 introduced this method
 
 /// Initializes the SDK in Standalone mode and doesn't try to connect to a locally running Oculus
@@ -136,6 +156,25 @@ OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculus(
 /// \param params non-nullptr to a struct with the required Oculus Authentication data.
 OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculus(
   const ovrOculusInitParams *params);
+
+/// (BETA) For use on platforms where the Oculus service isn't running.  
+/// You'll need to know how to get an access token for the user to use this.
+/// While the platform is in an initializing state, it's not fully functional.
+/// [Requests]: will queue up and run once platform is initialized.
+///    For example: ovr_User_GetLoggedInUser() can be called immediately after
+///    asynchronous init and once platform is initialized, this request will run
+/// [Synchronous Methods]: will return the default value;
+///    For example: ovr_GetLoggedInUserID() will return 0 until platform is
+///    fully initialized
+///
+/// Not all functionality will work when when the SDK is initialized this
+/// way.  In particular: In-App Purchases, Cloud Storage, Parties, Events, Live Streaming
+/// will not work.
+/// Listen for the message ovrMessage_PlatformInitializeWithAccessToken to detect when
+/// the platform has finished initializing.
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_PlatformInitializeWithAccessToken(
+  ovrID appId,
+  const char *serviceAccessToken);
 
 /// Performs the initialization of the platform for use on Windows. Requires your app
 /// ID (not access token). This call may fail for a variety of reasons, and will return
@@ -169,6 +208,39 @@ OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculusEx(
 /// version information as defined in this header package. This is used to ensure that the
 /// version in your headers matches the version of the static library.
 #define ovr_Platform_InitializeStandaloneOculus(params, outResult) ovr_Platform_InitializeStandaloneOculusEx(params, outResult, PLATFORM_PRODUCT_VERSION, PLATFORM_MAJOR_VERSION)
+
+/// (BETA) For use on platforms where the Oculus service isn't running.  
+/// You'll need to know how to get an access token for the user to use this.
+/// While the platform is in an initializing state, it's not fully functional.
+/// [Requests]: will queue up and run once platform is initialized.
+///    For example: ovr_User_GetLoggedInUser() can be called immediately after
+///    asynchronous init and once platform is initialized, this request will run
+/// [Synchronous Methods]: will return the default value;
+///    For example: ovr_GetLoggedInUserID() will return 0 until platform is
+///    fully initialized
+///
+/// outResult will contain the result of attempting to load the DLL.
+/// If that fails, the returning ovrRequest will be 0.
+///
+/// NOTE: Just because the DLL is loaded successfully does NOT mean that the
+/// initialization was successful.
+/// Listen for the message ovrMessage_PlatformInitializeWithAccessToken to detect when
+/// the platform has finished initializing.
+///
+/// Not all functionality will work when when the SDK is initialized this
+/// way.  In particular: In-App Purchases, Cloud Storage, Parties, Events, Live Streaming
+/// will not work.
+
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_PlatformInitializeWithAccessTokenEx(
+  ovrID appId,
+  const char *serviceAccessToken,
+  ovrPlatformInitializeResult *outResult,
+  int productVersion,
+  int majorVersion);
+
+#define ovr_PlatformInitializeWithAccessToken(appId, serviceAccessToken, outResult) \
+  ovr_PlatformInitializeWithAccessTokenEx(appId, serviceAccessToken, outResult, \
+  PLATFORM_PRODUCT_VERSION, PLATFORM_MAJOR_VERSION)
 
 /// Performs the initialization of the platform for use on Windows. Requires your app
 /// ID (not access token). This call may fail for a variety of reasons, and will return

@@ -42,7 +42,7 @@ class UTextureRenderTarget : public UTexture
 
 	//~ Begin UTexture Interface
 	ENGINE_API virtual class FTextureResource* CreateResource() override;
-	ENGINE_API virtual EMaterialValueType GetMaterialType() override;
+	ENGINE_API virtual EMaterialValueType GetMaterialType() const override;
 	//~ End UTexture Interface
 };
 

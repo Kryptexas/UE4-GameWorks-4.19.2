@@ -28,6 +28,9 @@ namespace Audio
 		// Sets the delay line length. Will clamp to within range of the max initialized delay line length (won't resize).
 		void SetDelayMsec(const float InDelayMsec);
 
+		// Same as SetDelayMsec, except in samples.
+		void SetDelaySamples(const float InDelaySamples);
+
 		// Sets the delay line length but using the internal easing function for smooth delay line interpolation.
 		void SetEasedDelayMsec(const float InDelayMsec, const bool bIsInit = false);
 
@@ -74,9 +77,6 @@ namespace Audio
 
 		// Eased delay in msec
 		FExponentialEase EaseDelayMsec;
-
-		// Current delay in msec
-		float DelayMsec;
 
 		// Output attenuation value.
 		float OutputAttenuation;

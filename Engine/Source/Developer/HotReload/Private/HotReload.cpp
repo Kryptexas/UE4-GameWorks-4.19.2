@@ -721,8 +721,10 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Reload the module if it was loaded before we recompiled
 		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
+			TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
 			Ar.Logf( TEXT( "Reloading module %s after successful compile." ), *InModuleName.ToString() );
 			bWasSuccessful = ModuleManager.LoadModuleWithCallback( InModuleName, Ar );
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
 	}
 
@@ -791,40 +793,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWai
 	return Result;
 }
 
-#if WITH_HOT_RELOAD
-/**
- * Gets duplicated CDO from the cache, renames it and returns.
- */
-UObject* GetCachedCDODuplicate(UObject* CDO, FName Name)
-{
-	UObject* DupCDO = nullptr;
-
-	UObject** DupCDOPtr = GetDuplicatedCDOMap().Find(CDO);
-	if (DupCDOPtr != nullptr)
-	{
-		DupCDO = *DupCDOPtr;
-		DupCDO->Rename(*Name.ToString(), GetTransientPackage(),
-			REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_SkipGeneratedClasses);
-	}
-
-	return DupCDO;
-}
-#endif // WITH_HOT_RELOAD
-
 ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FString, FString>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr)
 {
 #if WITH_HOT_RELOAD
-
-#if WITH_ENGINE
-	// Register with the BlueprintCompileReinstancer to handle duplicate requests
-	FBlueprintCompileReinstancer::FCDODuplicatesProvider& CDODuplicatesProvider = FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate();
-	CDODuplicatesProvider.BindStatic(&GetCachedCDODuplicate);
-	ON_SCOPE_EXIT
-	{
-		CDODuplicatesProvider.Unbind();
-		GetDuplicatedCDOMap().Empty();
-	};
-#endif
 
 	FModuleManager& ModuleManager = FModuleManager::Get();
 
@@ -943,6 +914,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 		HotReloadFunctionRemap.Empty();
 
 		ReplaceReferencesToReconstructedCDOs();
+
+		// Force GC to collect reinstanced objects
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 
 		Result = ECompilationResult::Succeeded;
 	}
@@ -1104,6 +1078,33 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unknown;
+
+	// Get game packages
+	const FModuleManager& ModuleManager = FModuleManager::Get();
+	TArray<FString> GameModuleNames = UE4HotReload_Private::GetGameModuleNames(ModuleManager);
+	UE4HotReload_Private::FPackagesAndDependentNames PackagesAndDependentNames = UE4HotReload_Private::SplitByPackagesAndDependentNames(GameModuleNames);
+
+	// Get a set of source packages combined with game packages
+	TSet<UPackage*> PackagesIncludingGame(InPackages);
+	int32 NumInPackages = PackagesIncludingGame.Num();
+	PackagesIncludingGame.Append(PackagesAndDependentNames.Packages);
+
+	// Check if there was any overlap
+	bool bInPackagesIncludeGame = PackagesIncludingGame.Num() < NumInPackages + PackagesAndDependentNames.Packages.Num();
+
+	// If any of those modules were game modules, we'll compile those too
+	TArray<UPackage*> Packages;
+	TArray<FName>     Dependencies;
+	if (bInPackagesIncludeGame)
+	{
+		Packages     = PackagesIncludingGame.Array();
+		Dependencies = MoveTemp(PackagesAndDependentNames.DependentNames);
+	}
+	else
+	{
+		Packages = InPackages;
+	}
+
 	double Duration = 0.0;
 
 	int32 NumPackages         = InPackages.Num();
@@ -1111,9 +1112,9 @@ ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPa
 
 	{
 		FScopedDurationTimer RebindTimer(Duration);
-		Result = RebindPackagesInternal(MoveTemp(InPackages), MoveTemp(DependentModules), bWaitForCompletion, Ar);
+		Result = RebindPackagesInternal(MoveTemp(Packages), MoveTemp(Dependencies), bWaitForCompletion, Ar);
 	}
-	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, NumPackages, NumDependentModules);
+	RecordAnalyticsEvent(TEXT("Rebind"), Result, Duration, Packages.Num(), Dependencies.Num());
 
 	return Result;
 }
@@ -1381,12 +1382,12 @@ void FHotReloadModule::RefreshHotReloadWatcher()
 	if (DirectoryWatcher)
 	{
 		// Watch the game directory
-		AddHotReloadDirectory(DirectoryWatcher, FPaths::GameDir());
+		AddHotReloadDirectory(DirectoryWatcher, FPaths::ProjectDir());
 
 		// Also watch all the game plugin directories
 		for(const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
 		{
-			if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin->GetDescriptor().Modules.Num() > 0)
+			if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project && Plugin->GetDescriptor().Modules.Num() > 0)
 			{
 				AddHotReloadDirectory(DirectoryWatcher, Plugin->GetBaseDir());
 			}
@@ -1567,7 +1568,7 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
 	const bool bFailIfGeneratedCodeChanges = false;
 	const bool bForceCodeProject = false;
-	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetGameName(), ModulesToRecompile, MoveTemp(InRecompileModulesCallback), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
+	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetProjectName(), ModulesToRecompile, MoveTemp(InRecompileModulesCallback), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
 	if (bWasSuccessful)
 	{
 		// Go ahead and check for completion right away.  This is really just so that we can handle the case
@@ -1621,7 +1622,7 @@ bool FHotReloadModule::RecompileModuleDLLs(const TArray< FModuleToRecompile >& M
 	bool bCompileSucceeded = false;
 #if WITH_HOT_RELOAD
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	if (StartCompilingModuleDLLs(FApp::GetGameName(), ModuleNames, nullptr, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
+	if (StartCompilingModuleDLLs(FApp::GetProjectName(), ModuleNames, nullptr, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
 	{
 		const bool bWaitForCompletion = true;	// Always wait
 		bool bCompileStillInProgress = false;
@@ -2094,12 +2095,12 @@ bool FHotReloadModule::IsAnyGameModuleLoaded()
 
 bool FHotReloadModule::ContainsOnlyGameModules(const TArray<FModuleToRecompile>& ModulesToCompile) const
 {
-	const FString AbsoluteGameDir(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+	const FString AbsoluteProjectDir(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
 	bool bOnlyGameModules = true;
 	for (auto& ModuleToCompile : ModulesToCompile)
 	{
 		const FString FullModulePath(FPaths::ConvertRelativePathToFull(ModuleToCompile.NewModuleFilename));
-		if (!FullModulePath.StartsWith(AbsoluteGameDir))
+		if (!FullModulePath.StartsWith(AbsoluteProjectDir))
 		{
 			bOnlyGameModules = false;
 			break;
@@ -2128,7 +2129,7 @@ void FHotReloadModule::PluginMountedCallback(IPlugin& Plugin)
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 	if (DirectoryWatcher)
 	{
-		if (Plugin.GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin.GetDescriptor().Modules.Num() > 0)
+		if (Plugin.GetLoadedFrom() == EPluginLoadedFrom::Project && Plugin.GetDescriptor().Modules.Num() > 0)
 		{
 			AddHotReloadDirectory(DirectoryWatcher, Plugin.GetBaseDir());
 		}

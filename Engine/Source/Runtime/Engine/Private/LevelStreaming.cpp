@@ -229,7 +229,7 @@ void ULevelStreaming::PostLoad()
 		const FString DeprecatedPackageNameString = PackageName_DEPRECATED.ToString();
 		if ( FPackageName::IsShortPackageName(PackageName_DEPRECATED) == false )
 		{
-			// Convert the FName reference to a TAssetPtr, then broadcast that we loaded a reference
+			// Convert the FName reference to a TSoftObjectPtr, then broadcast that we loaded a reference
 			// so this reference is gathered by the cooker without having to resave the package.
 			SetWorldAssetByPackageName(PackageName_DEPRECATED);
 			WorldAsset.GetUniqueID().PostLoadPath();
@@ -495,6 +495,13 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 #endif
 			if (World->PersistentLevel != LoadedLevel)
 			{
+#if WITH_EDITOR
+				if (PIEInstanceID != INDEX_NONE)
+				{
+					World->PersistentLevel->FixupForPIE(PIEInstanceID);
+				}
+#endif
+
 				SetLoadedLevel(World->PersistentLevel);
 				// Broadcast level loaded event to blueprints
 				OnLevelLoaded.Broadcast();
@@ -573,7 +580,16 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 					}
 					else
 					{
-						check(PendingUnloadLevel == NULL);
+						check(PendingUnloadLevel == nullptr);
+					
+#if WITH_EDITOR
+						int32 PIEInstanceID = GetOutermost()->PIEInstanceID;
+						if (PIEInstanceID != INDEX_NONE)
+						{
+							World->PersistentLevel->FixupForPIE(PIEInstanceID);
+						}
+#endif
+
 						SetLoadedLevel(Level);
 						// Broadcast level loaded event to blueprints
 						OnLevelLoaded.Broadcast();
@@ -815,7 +831,7 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 	}
 }
 
-void ULevelStreaming::SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset)
+void ULevelStreaming::SetWorldAsset(const TSoftObjectPtr<UWorld>& NewWorldAsset)
 {
 	WorldAsset = NewWorldAsset;
 	bHasCachedWorldAssetPackageFName = false;
@@ -841,7 +857,7 @@ void ULevelStreaming::SetWorldAssetByPackageName(FName InPackageName)
 {
 	const FString TargetWorldPackageName = InPackageName.ToString();
 	const FString TargetWorldObjectName = FPackageName::GetLongPackageAssetName(TargetWorldPackageName);
-	TAssetPtr<UWorld> NewWorld;
+	TSoftObjectPtr<UWorld> NewWorld;
 	NewWorld = TargetWorldPackageName + TEXT(".") + TargetWorldObjectName;
 	SetWorldAsset(NewWorld);
 }
@@ -859,8 +875,9 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 				UWorld::BuildPIEPackagePrefix(PIEInstanceID));
 			PackageNameToLoad = FName(*NonPrefixedName);
 		}
-		const FString PlayWorldSteamingLevelName = UWorld::ConvertToPIEPackageName(GetWorldAssetPackageName(), PIEInstanceID);
-		SetWorldAssetByPackageName(FName(*PlayWorldSteamingLevelName));
+		FName PlayWorldStreamingPackageName = FName(*UWorld::ConvertToPIEPackageName(GetWorldAssetPackageName(), PIEInstanceID));
+		FSoftObjectPath::AddPIEPackageName(PlayWorldStreamingPackageName);
+		SetWorldAssetByPackageName(PlayWorldStreamingPackageName);
 	}
 	
 	// Rename LOD levels if any
@@ -871,8 +888,9 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 		{
 			// Store LOD level original package name
 			LODPackageNamesToLoad.Add(LODPackageName); 
-			// Apply PIE prefix to package name
-			LODPackageName = FName(*UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID)); 
+			// Apply PIE prefix to package name			
+			LODPackageName = FName(*UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID));
+			FSoftObjectPath::AddPIEPackageName(LODPackageName);
 		}
 	}
 }

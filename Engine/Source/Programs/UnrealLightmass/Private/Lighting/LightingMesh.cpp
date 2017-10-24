@@ -72,6 +72,24 @@ FLinearColor FStaticLightingMesh::SampleBRDF(
 	return BRDF;
 }
 
+bool FStaticLightingMesh::DoesMeshBelongToLOD0() const
+{
+	const uint32 GeoMeshLODIndex = GetLODIndices() & 0xFFFF;
+	const uint32 GeoHLODTreeIndex = (GetLODIndices() & 0xFFFF0000) >> 16;
+	const uint32 GeoHLODRange = GetHLODRange();
+	const uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
+	const uint32 GeoHLODRangeEnd = (GeoHLODRange & 0xFFFF0000) >> 16;
+
+	bool bMeshBelongsToLOD0 = GeoMeshLODIndex == 0;
+
+	if (GeoHLODTreeIndex > 0)
+	{
+		bMeshBelongsToLOD0 = GeoHLODRangeStart == GeoHLODRangeEnd;
+	}
+
+	return bMeshBelongsToLOD0;
+}
+
 void FStaticLightingMesh::SetDebugMaterial(bool bInUseDebugMaterial, FLinearColor InDiffuse)
 {
 	bUseDebugMaterial = bInUseDebugMaterial;

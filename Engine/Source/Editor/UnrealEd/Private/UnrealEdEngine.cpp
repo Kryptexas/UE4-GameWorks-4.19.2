@@ -88,7 +88,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	
 	// Register to the PostGarbageCollect delegate, as we want to use this to trigger the RefreshAllBroweser delegate from 
 	// here rather then from Core
-	FCoreUObjectDelegates::PostGarbageCollect.AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
+	FCoreUObjectDelegates::GetPostGarbageCollect().AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
 
 	// register to color picker changed event and trigger RedrawAllViewports when that happens */
 	FCoreDelegates::ColorPickerChanged.AddUObject(this, &UUnrealEdEngine::OnColorPickerChanged);
@@ -181,9 +181,6 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 			CookServer = NewObject<UCookOnTheFlyServer>();
 			CookServer->Initialize(ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags);
 		}
-
-		extern void UProjectPackagingSettings_StartBlueprintNativizationProjectSettings();
-		UProjectPackagingSettings_StartBlueprintNativizationProjectSettings();
 	}
 
 	bPivotMovedIndependently = false;
@@ -351,9 +348,6 @@ void UUnrealEdEngine::PreExit()
 	// Notify edit modes we're mode at exit
 	FEditorModeRegistry::Get().Shutdown();
 
-	extern void UProjectPackagingSettings_ShutdownBlueprintNativizationProjectSettings();
-	UProjectPackagingSettings_ShutdownBlueprintNativizationProjectSettings();
-
 	Super::PreExit();
 }
 
@@ -388,7 +382,7 @@ void UUnrealEdEngine::FinishDestroy()
 	}
 
 	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
-	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPostGarbageCollect().RemoveAll(this);
 	FCoreDelegates::ColorPickerChanged.RemoveAll(this);
 	Super::FinishDestroy();
 }

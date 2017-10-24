@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3051445
-Availability:Docs
-Title:最新の iOS PC/Mac 向けワークフロー
+﻿INTSourceChangelist:3599948
+Availability:Public
+Title:Advanced iOS PC/Mac Workflow
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS プラットフォーム開発の環境設定
 prereq:Platforms/iOS/QuickStart
@@ -9,6 +9,7 @@ SkillLevel:Intermediate
 parent:Platforms/iOS
 order:0
 type:overview
+related:Platforms/iOS/Windows
 
 [TOC(start:2 end:2)]
 
@@ -24,7 +25,7 @@ type:overview
 [/REGION]
 [/PUBLISH]
 
-##デバイス / SDK
+## デバイス / SDK
 UE4 は iPhone4 / iPad2 とその後継機種、および iOS 6.0 以上のバージョンで動作します。
 
 お持ちのデバイスのエンジン機能との互換性の確認については、 [](Platforms\iOS\DeviceCompatibility) をご覧ください。
@@ -69,16 +70,16 @@ Windows のシステム要件の詳細については、[推奨される仕様](
 [EXCERPT:MacOSConfig]
 
 Mac のシステム要件の詳細については、[推奨される仕様](GettingStarted/RecommendedSpecifications) を参照してください。iOS 7.1 へデプロイするには、 Xcode 5.1 をインストールする必要があります。ご注意ください。
-XCode は App Store で [無料でダウンロードできます](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
+Xcode は App Store で [無料でダウンロードできます](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
 
 [/EXCERPT:MacOSConfig]
 -->
 
 
 
-## Apple iOS Developer 用の入門
+## Apple iOS Developer 向け入門ガイド
 
-[Apple IOS Developer Program](https://developer.apple.com/programs/ios/) に登録する必要があります。
+[Apple iOS Developer Program](https://developer.apple.com/programs/ios/) への登録が必要です。
 * 個人 - 自分一人で作業する場合、もしくは小規模なチームの中で自分だけが IOS アカウントへの管理者アクセス権が必要な場合
 * 法人 - 法人で小規模なチームの場合 / こちらにすると、チームに人を追加し、異なる種類のアクセス権を与えることができます。
 
@@ -142,7 +143,7 @@ iPhone Packager にはタブが 2 つあります。
 * Apple 社の Developer ウェブサイトからダウンロードした開発証明書と鍵のペアをインポートします。
 
 [REGION:warning]
-Edit Info.plist ウィンドウを開くオプションがありますが、これは古いオプションであり不要になりました。最終的に、iPhone Packager の機能がアンリアル エディタに統合されます。 
+Edit Info.plist ウィンドウを開くオプションは、いまや不要となった古いオプションです。最終的に、iPhone Packager の機能がアンリアル エディタに統合されます。 
 [/REGION]
 
 [Already a registered iOS developer (iOS developer として登録済み)] タブには、アンリアル製品または他の方法を用いて過去に iOS アプリケーションを開発したことがあり、開発証明書とプロビジョニング プロファイルを取得済みのデベロッパ向けのツールがあります。 
@@ -159,26 +160,26 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
 [EXCERPT:MacOSSetup]
 
 
-ここでウェブサイトに掲載されている説明通りに、使用している Mac に証明書をインストールしなくてはいけません。アプリケーションにサインをするスタジオ内の全ての Mac に、同一証明書をインストールしなくてはいけません。方法は 2 種類あります。
+ここでウェブサイトに掲載されている説明通りに、使用している Mac に証明書をインストールしなくてはいけません。アプリケーションにサインをするスタジオ内の全ての Mac に、同一証明書をインストールしなくてはいけません。方法は 2 通りあります。
 
 
-* Keychain Access アプリケーションの使用
-    * ログイン キーチェーンの選択
+* Keychain Access アプリケーションを使用する場合：
+    * ログイン キーチェーンを選択
     * [Category (カテゴリ)] セクションで [My Certificates] を選択
     * 新規の証明書を選択 ("iPhone Developer" で開始します)
     * これを右クリックして [Export (エクスポート)] を選択
-    * プロンプトに従います (安全に保存した場合、空のパスワードで問題ありません)
-    * 「.p12」を他のユーザーにも割り当てます
-    * その後、証明書をログインキーチェーンへインストールするために、これをダブルクリック、または「.p12」を [Keychain Access] へドラッグします。
-* Xcode を使用
-    * [Organizer] へ移動します。
-    * 左下の [Developer Profile] へ移動します。
-    * [Export Developer Profile] を選択します。
-    * プロンプトに従います (パスワード入力も含みます。チーム内で共有できるパスワードを使用します)
-    * プロファイル ファイルを他のユーザーにも割り当てます。
-    * これにより他のユーザーは、Xcode の Organizer へ「Developer Profile」をインポートすることができます
+    * プロンプトに従う (確実に保存する場合は空のパスワードで大丈夫です)。
+    * .p12 ファイルを他のユーザーに分配
+    * ダブルクリックで開く、または .p12 をキーチェーン アクセスにドラッグして、ログイン キーチェーンに証明書をインストールします。
+* Xcode を使用する場合：
+    * [Organizer] へ移動
+    * 左下の [Developer Profile] へ移動
+    * [Export Developer Profile] を選択
+    * プロンプトに従う (パスワード入力も含みます。チーム内で共有できるパスワードを使用)
+    * プロファイル ファイルを他のユーザーにも割りてる
+    * これにより他のユーザーは、Xcode の Organizer へ「Developer Profile」のインポートが可能
+	次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 
-次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 * `[GameDir]/Build/IOS/[GameName].mobileprovision`
 * `Engine/Build/IOS/UE4Game.mobileprovision`
 
@@ -186,9 +187,9 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
 [/EXCERPT:MacOSSetup]
 -->
 
-最後に重要なのは、誰もがそれぞれのログイン キーチェーンに同じ "iPhone Developer:" certificate がなくてはいけないことです。
+最後は、全ての人がログイン キーチェーンで同じ "iPhone Developer:" 認証書を持っていることが重要です。
 
-全てのゲームにおいて、「mobileprovision」ファイルにワイルドカードを用いて共有することができます (Appleで説明している通り、ワイルドカードなしのプロファイルがゲームに必要となるまで)。デバイスを追加した際は必ずファイルの更新を行ってください。
+ワイルドカード モバイルプロビジョン ファイルをすべてのゲームで共有することができます (Apple の説明にあるようにゲームがワイルドカード以外のプロファイルを必要とするまで)。デバイスを追加したら必ずファイルを更新してください。
 
 
 ## iOS デバイスにデプロイする
@@ -201,7 +202,7 @@ iOS デバイス上で現在のレベルのテストをすぐに開始するた�
 
 ## コード プロジェクト用の Windows ベースのワークフロー
 
-主な開発とプログラミングを Windows で行う場合は、このセクションに目を通してください。
+開発およびコーディングに主に Windows を使用する場合は、このセクションをご覧ください。
 
 ### Mac のシステム設定
 
@@ -213,44 +214,44 @@ iOS デバイス上で現在のレベルのテストをすぐに開始するた�
     * ホームディレクトリにこれらのディレクトリを作成後、これらに対しリンクを作成します：
         * ln -s ~/UE4 /UE4
 * UnrealRemoteTool (URT) をインストールおよび実行します。
-    * 使用している Mac へプログラムを取得しますA か B のいずれかを行います。
+    * 使用している Mac へプログラムを取得しますA または B のいずれかの方法を使用します。
         * A)
-            * 使用している PC (//depot/UE4/Engine/Build/iOS/UnrealRemoteTool) から Mac へ UnrealRemoteTool をコピーします 
+            * 使用している PC (//depot/UE4/Engine/Build/iOS/UnrealRemoteTool) から Mac へ UnrealRemoteTool をコピーします。
             * chmod a+x UnrealRemoteTool
         * B)
             * p4v から UnrealRemoteTool を直接 Mac へ同期します。
-    * Terminal から UnrealRemoteTool を実行します (まだデバッガでは見つけることができない、ごく稀なクラッシュが URT にあるためループで実行します)。
-        * for (( ;; )) ; do ./UnrealRemoteTool; done
-    * Mountain Lion は、Terminal が作業ディレクトリとコマンドヒストリ-を記憶することに留意してください。そのため再起動しても上矢印キーでコマンドを呼び戻すことができます。
+    * Terminal から UnrealRemoteTool を実行します (稀にURT で、デバッガで探知されないクラッシュがありましたのでループで実行します)。
+        * (( ;; )) には、./UnrealRemoteTool; done を入れます。
+    * Mountain Lion では Terminal が作業ディレクトリとコマンドヒストリを記憶することに留意してください。そのため再起動しても上矢印キーでコマンドを呼び戻すことができます。
 
-### Windowsでのコンパイル作業
+### Windows でのコンパイル作業
 Windows または Mac システムのセットアップに上記手順が完了すると、コンパイルの実行に UnrealBuildTool を使用するためコンパイルは単純な作業になります。
-* 「//depot/UE4/GenerateProjectFiles_AllPlatforms.bat」を実行します
-* 作成された「UE4.sln」を開きます。
+* //depot/UE4/GenerateProjectFiles_AllPlatforms.bat を実行します
+* 作成された UE4.sln を開きます。
 * ゲーム ソリューション フォルダを開きます。
 * Development Editor コンフィギュレーション、そして Win64 プラットフォームを選択します。
-* 選択するゲーム (例えばQAGame) を **右クリック** して [Build (ビルド)] を選択します。
-* 次に、Development コンフィギュレーション、そして IOS プラットフォームを選択します。
+* 選択するゲーム (例えば QAGame) を 右クリック して [Build (ビルド)] を選択します。
+* 次に、Development コンフィギュレーション、そして iOS プラットフォームを選択します。
 * ここで再びゲームをビルドします。
     * UnrealRemoteTool を実行している Mac と接続してファイルをコピー、その後 Mac 上にリモートコンパイルコマンドを実行します。
 	* 最後にサイニングも実行するため、正しく機能していることを確認してください。もしくは、Mac にインストールされたプロビジョンファイルと証明書を再度確認してください。
 * クッカを開始します。
-    * 「UE4/Engine/Binaries/Win64」ディレクトリ (「cmd.exe」内) で以下を実行します (ユーザーのゲームとQAGameを差し替えます)： 
+    * 「UE4/Engine/Binaries/Win64」ディレクトリ (md.exe 内) で以下を実行します (ユーザーのゲームと QAGame を差し替えます)： 
 	    * ue4editor-cmd QAGame -run=cook -targetplatform=ios -cookonthefly
-	* クックされたファイルを読み出すために、ネットワーク上で IOS デバイスが通信をするクックサーバーが開始します。
+	* クックされたファイルを読み出すために、ネットワーク上で iOS デバイスが通信をするクックサーバーが開始します。
 
 Mac のドライブ上にある「/UE4/Builds」ディレクトリに、ユーザーの PC のコンピューター名と同じディレクトリがあります。ユーザーの PC ディレクトリ構造と一致するようにミラーリングされたディレクトリ構造が内部に存在します。コンパイル処理が終了すると、実行ファイルがゲームの「Binary」ディレクトリに入ります (ゲームが存在しない UE4 プロジェクトをコンパイルした場合は「Engine/Binaries」)。
 
-### Xcode を使用した実行/デバッグ作業
+### Xcode による実行 / デバッグ
 
 次に、デバイス上で実行するために Mac へ移動します。
 
-* 「/UE4/Builds/.../UE4/Engine/Binaries/IOS」から「UE4_FromPC.xcodeproj」を開きます。
+* /UE4/Builds/.../UE4/Engine/Binaries/IOS から UE4_FromPC.xcodeproj を開きます。
 * ゲームのターゲットを選択します (例えば QAGame_RunIOS)。
 * 起動設定を編集します。
-    * 「Option-Command-R」を押します
+    * Option-Command-R を押します
 	* 引数の下に必要なコマンドライン引数と、
-	    * 「-filehostip=xx.xx.xx.xx」を追加します
+	    * -filehostip=xx.xx.xx.xx を追加します
 		* 「xx.xx.xx.xx」は、クッカを実行しているユーザーの PC の IP アドレスです。
 * [Run (実行)] を押すとゲームがデバイスにインストールされて、ゲームが PC と接続される箇所で実行が開始します (クッカ出力に接続メッセージが表示されます)。
 
@@ -261,17 +262,17 @@ Mac で IOS をコンパイルできます。これはかなり新しいワー�
 
 ### コンパイルおよび実行
 
-* 「//depot/UE4/GenerateProjectFiles_AllPlatforms.command」を実行します
-* Xcode で「UE4/UE4.xcodeproj」を開きます
-* 「QAGame - Mac」と選択します。 
-* スキーム (Option-Command-R) で、[Development (開発)] を選択して最後に終了をクリックします。「Command-B」で Mac の実行ファイルをビルドします。
-* Terminal から IOS クッカを実行します。
-    * 「Terminal.app」を起動して「UE4/Engine/Binaries/Mac」へディレクトリを変更します。その後以下を実行します (ユーザーのゲームと QAGame を差し替えます)：
-	    * open UE4Editor.app --args QAGame -run=cook -targetplatform=ios -cookonthefly
-* 「<GameName> - IOS (Run)」ターゲットを選択して、実行するデバイスを選択します。
+* //depot/UE4/GenerateProjectFiles_AllPlatforms.command を実行します
+* Xcode で UE4/UE4.xcodeproj を開きます
+* QAGame - Mac を選択します。 
+* スキーム (Option-Command-R) で、[Development (開発)] を選択して最後に終了をクリックします。Command-B で Mac の実行ファイルをビルドします。
+* Terminal から iOS クッカを実行します。
+    * UE4/Engine/Binaries/Mac ディレクトリに対して Terminal.app と cd を起動します (ユーザーのゲームと QAGame を差し替えます)： 
+	    * UE4Editor.app --args QAGame -run=cook -targetplatform=ios -cookonthefly を開きます。
+* **[GameName] - IOS (Run)** ターゲットを選択し、その上で実行するデバイスを選択します。
 * スキーム (Option-Command-R) で、[Development in Info] を選択して、その後 [Arguments] へ移動します。
     * ユーザーのゲームに必要なコマンドラインオプションと、
-	    * 「-filehostip=xx.xx.xx.xx」を追加します
+	    * -filehostip=xx.xx.xx.xx を追加します
 		* 「xx.xx.xx.xx」は、クッカを実行しているユーザーの Mac の IP アドレスです。
 
 

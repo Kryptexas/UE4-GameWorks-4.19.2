@@ -112,8 +112,8 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 	{
 		FScopeLock ScopeLock(&RenderThreadLock);
 		XSettings = Settings->Clone();
-		Frame->FrameNumber = ++OculusHMD->FrameNumber;
 		XFrame = Frame->Clone();
+		XFrame->FrameNumber = OculusHMD->NextFrameNumber++;
 
 		if(!bIsBlack)
 		{
@@ -135,6 +135,8 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 		}
 	}
 
+//	UE_LOG(LogHMD, Log, TEXT("Splash ovrp_WaitToBeginFrame %u"), XFrame->FrameNumber);
+	ovrp_WaitToBeginFrame(XFrame->FrameNumber);
 	ovrp_Update3(ovrpStep_Render, XFrame->FrameNumber, 0.0);
 
 	{
@@ -148,7 +150,7 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 
 			if (LayerIdA < LayerIdB)
 			{
-				XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent);
+				XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent, RHICmdList);
 			}
 			else if (LayerIdA > LayerIdB)
 			{
@@ -156,13 +158,13 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 			}
 			else
 			{
-				XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent, Layers_RenderThread[LayerIndex_RenderThread++].Get());
+				XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent, RHICmdList, Layers_RenderThread[LayerIndex_RenderThread++].Get());
 			}
 		}
 
 		while(LayerIndex < XLayers.Num())
 		{
-			XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent);
+			XLayers[LayerIndex++]->Initialize_RenderThread(CustomPresent, RHICmdList);
 		}
 	}
 
@@ -182,7 +184,8 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 
 	ExecuteOnRHIThread_DoNotWait([this, XSettings, XFrame, XLayers]()
 	{
-		ovrp_BeginFrame2(XFrame->FrameNumber);
+//		UE_LOG(LogHMD, Log, TEXT("Splash ovrp_BeginFrame4 %u"), XFrame->FrameNumber);
+		ovrp_BeginFrame4(XFrame->FrameNumber, CustomPresent->GetOvrpCommandQueue());
 
 		Layers_RHIThread = XLayers;
 		Layers_RHIThread.Sort(FLayerPtr_ComparePriority());
@@ -194,11 +197,12 @@ void FSplash::RenderFrame_RenderThread(FRHICommandListImmediate& RHICmdList, dou
 			LayerSubmitPtr[LayerIndex] = Layers_RHIThread[LayerIndex]->UpdateLayer_RHIThread(XSettings.Get(), XFrame.Get());
 		}
 
-		ovrp_EndFrame2(XFrame->FrameNumber, LayerSubmitPtr.GetData(), LayerSubmitPtr.Num());
+//		UE_LOG(LogHMD, Log, TEXT("Splash ovrp_EndFrame4 %u"), XFrame->FrameNumber);
+		ovrp_EndFrame4(XFrame->FrameNumber, LayerSubmitPtr.GetData(), LayerSubmitPtr.Num(), CustomPresent->GetOvrpCommandQueue());
 
 		for (int32 LayerIndex = 0; LayerIndex < Layers_RHIThread.Num(); LayerIndex++)
 		{
-			Layers_RHIThread[LayerIndex]->IncrementSwapChainIndex_RHIThread();
+			Layers_RHIThread[LayerIndex]->IncrementSwapChainIndex_RHIThread(CustomPresent);
 		}
 	});
 
@@ -361,13 +365,15 @@ void FSplash::Hide(uint32 InShowFlags)
 {
 	CheckInGameThread();
 
-	uint32 OldShowFlags = ShowFlags;
-	ShowFlags &= ~InShowFlags;
+	uint32 NewShowFlags = ShowFlags;
+	NewShowFlags &= ~InShowFlags;
 
-	if (!ShowFlags && OldShowFlags)
+	if (!NewShowFlags && ShowFlags)
 	{
 		OnHide();
 	}
+
+	ShowFlags = NewShowFlags;
 }
 
 

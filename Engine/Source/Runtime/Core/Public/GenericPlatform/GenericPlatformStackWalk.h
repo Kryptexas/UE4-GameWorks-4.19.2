@@ -42,17 +42,17 @@ struct FProgramCounterSymbolInfo final
 	enum
 	{
 		/** Length of the string used to store the symbol's names, including the trailing character. */
-		MAX_NAME_LENGHT = 1024,
+		MAX_NAME_LENGTH = 1024,
 	};
 
 	/** Module name. */
-	ANSICHAR	ModuleName[MAX_NAME_LENGHT];
+	ANSICHAR	ModuleName[MAX_NAME_LENGTH];
 
 	/** Function name. */
-	ANSICHAR	FunctionName[MAX_NAME_LENGHT];
+	ANSICHAR	FunctionName[MAX_NAME_LENGTH];
 
 	/** Filename. */
-	ANSICHAR	Filename[MAX_NAME_LENGHT];
+	ANSICHAR	Filename[MAX_NAME_LENGTH];
 
 	/** Line number in file. */
 	int32		LineNumber;

@@ -24,6 +24,7 @@
 #ifndef PLUG_PLUGIN_H
 #define PLUG_PLUGIN_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/plug/api.h"
 
 #include "pxr/base/js/types.h"
@@ -36,6 +37,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_WEAK_AND_REF_PTRS(PlugPlugin);
 
@@ -54,35 +57,35 @@ class TfType;
 ///
 class PlugPlugin : public TfRefBase, public TfWeakBase {
 public:
-	PLUG_API virtual ~PlugPlugin();
+    PLUG_API virtual ~PlugPlugin();
 
     /// Loads the plugin.
     /// This is a noop if the plugin is already loaded.
-	PLUG_API bool Load();
+    PLUG_API bool Load();
 
     /// Returns \c true if the plugin is currently loaded.  Resource
     /// plugins always report as loaded.
-	PLUG_API bool IsLoaded() const;
+    PLUG_API bool IsLoaded() const;
 
     /// Returns \c true if the plugin is a python module.
-	PLUG_API bool IsPythonModule() const;
+    PLUG_API bool IsPythonModule() const;
 
     /// Returns \c true if the plugin is resource-only.
-	PLUG_API bool IsResource() const;
+    PLUG_API bool IsResource() const;
 
     /// Returns the dictionary containing meta-data for the plugin.
-	PLUG_API JsObject GetMetadata();
+    PLUG_API JsObject GetMetadata();
 
     /// Returns the metdata sub-dictionary for a particular type.
-	PLUG_API JsObject GetMetadataForType(const TfType &type);
+    PLUG_API JsObject GetMetadataForType(const TfType &type);
 
     /// Returns the dictionary containing the dependencies for the plugin.
-	PLUG_API JsObject GetDependencies();
+    PLUG_API JsObject GetDependencies();
 
     /// Returns true if \p type is declared by this plugin. 
     /// If \p includeSubclasses is specified, also returns true if any 
     /// subclasses of \p type have been declared.
-	PLUG_API bool DeclaresType(const TfType& type, bool includeSubclasses = false) const;
+    PLUG_API bool DeclaresType(const TfType& type, bool includeSubclasses = false) const;
 
     /// Returns the plugin's name.
     std::string const &GetName() const {
@@ -101,7 +104,7 @@ public:
 
     /// Build a plugin resource path by returing a given absolute path or
     /// combining the plugin's resource path with a given relative path.
-	PLUG_API std::string MakeResourcePath(const std::string& path) const;
+    PLUG_API std::string MakeResourcePath(const std::string& path) const;
 
     /// Find a plugin resource by absolute or relative path optionally
     /// verifying that file exists.  If verification fails an empty path
@@ -191,5 +194,7 @@ PLUG_API
 std::string
 PlugFindPluginResource(const PlugPluginPtr& plugin,
                        const std::string& path, bool verify = true);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PLUG_PLUGIN_H

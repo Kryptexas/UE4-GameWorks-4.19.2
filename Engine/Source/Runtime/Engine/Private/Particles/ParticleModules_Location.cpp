@@ -1970,7 +1970,18 @@ int32 UParticleModuleLocationBoneSocket::GetMaxSourceIndex(FModuleLocationBoneSo
 		break;
 		case EBoneSocketSourceIndexMode::Direct:
 		{
-			return SourceType == BONESOCKETSOURCE_Sockets ? SourceComponent->SkeletalMesh->NumSockets() : SourceComponent->GetNumBones();
+			if (SourceType == BONESOCKETSOURCE_Sockets)
+			{
+				if (ensure(SourceComponent->SkeletalMesh))
+				{
+					return SourceComponent->SkeletalMesh->NumSockets();
+				}
+				return 0;
+			}
+			else
+			{
+				return SourceComponent->GetNumBones();
+			}
 		}
 		break;
 	}

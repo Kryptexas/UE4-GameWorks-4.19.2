@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -64,18 +64,18 @@ CefDownloadItemCallbackCppToC::CefDownloadItemCallbackCppToC() {
   GetStruct()->resume = download_item_callback_resume;
 }
 
-template<> CefRefPtr<CefDownloadItemCallback> CefCppToC<CefDownloadItemCallbackCppToC,
+template<> CefRefPtr<CefDownloadItemCallback> CefCppToCRefCounted<CefDownloadItemCallbackCppToC,
     CefDownloadItemCallback, cef_download_item_callback_t>::UnwrapDerived(
     CefWrapperType type, cef_download_item_callback_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefDownloadItemCallbackCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefDownloadItemCallbackCppToC,
     CefDownloadItemCallback, cef_download_item_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefDownloadItemCallbackCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefDownloadItemCallbackCppToC,
     CefDownloadItemCallback, cef_download_item_callback_t>::kWrapperType =
     WT_DOWNLOAD_ITEM_CALLBACK;

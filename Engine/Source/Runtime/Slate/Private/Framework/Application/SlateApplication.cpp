@@ -25,6 +25,7 @@
 #include "Input/HittestGrid.h"
 #include "Stats/SlateStats.h"
 #include "HardwareCursor.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Framework/Application/IWidgetReflector.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -34,6 +35,7 @@
 #include "ToolboxModule.h"
 #include "Framework/Docking/TabCommands.h"
 #include "Math/UnitConversion.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define SLATE_HAS_WIDGET_REFLECTOR !UE_BUILD_SHIPPING || PLATFORM_DESKTOP
 
@@ -872,7 +874,7 @@ void FSlateApplication::SetPlatformApplication(const TSharedRef<class GenericApp
 
 void FSlateApplication::Create()
 {
-	Create(MakeShareable(FPlatformMisc::CreateApplication()));
+	Create(MakeShareable(FPlatformApplicationMisc::CreateApplication()));
 }
 
 TSharedRef<FSlateApplication> FSlateApplication::Create(const TSharedRef<class GenericApplication>& InPlatformApplication)
@@ -981,7 +983,7 @@ FSlateApplication::FSlateApplication()
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
-	, NavigationConfig(MakeShareable(new FNavigationConfig()))
+	, NavigationConfigFactory([] { return MakeShared<FNavigationConfig>(); })
 	, SimulateGestures(false, (int32)EGestureEvent::Count)
 	, ProcessingInput(0)
 {
@@ -1029,7 +1031,7 @@ FSlateApplication::~FSlateApplication()
 void FSlateApplication::SetupPhysicalSensitivities()
 {
 	const float DragTriggerDistanceInInches = FUnitConversion::Convert(1.0f, EUnit::Millimeters, EUnit::Inches);
-	FPlatformMisc::ConvertInchesToPixels(DragTriggerDistanceInInches, DragTriggerDistance);
+	FPlatformApplicationMisc::ConvertInchesToPixels(DragTriggerDistanceInInches, DragTriggerDistance);
 
 	// TODO Rather than allow people to request the DragTriggerDistance directly, we should
 	// probably store a drag trigger distance for touch and mouse, and force users to pass
@@ -1569,6 +1571,8 @@ void FSlateApplication::FinishedInputThisFrame()
 
 void FSlateApplication::Tick(ESlateTickType TickType)
 {
+	LLM_SCOPE(ELLMTag::UI);
+
 	SCOPE_TIME_GUARD(TEXT("FSlateApplication::Tick"));
 
 	// It is not valid to tick Slate on any other thread but the game thread unless we are only updating time
@@ -1983,10 +1987,22 @@ bool FSlateApplication::CanDisplayWindows() const
 	return Renderer.IsValid() && Renderer->AreShadersInitialized();
 }
 
-
 EUINavigation FSlateApplication::GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const
 {
-	return NavigationConfig->GetNavigationDirectionFromKey(InKeyEvent);
+	if (const FSlateUser* User = GetUser(InKeyEvent.GetUserIndex()))
+	{
+		return User->NavigationConfig->GetNavigationDirectionFromKey(InKeyEvent);
+	}
+	return EUINavigation::Invalid;
+}
+
+EUINavigation FSlateApplication::GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent)
+{
+	if (const FSlateUser* User = GetUser(InAnalogEvent.GetUserIndex()))
+	{
+		return User->NavigationConfig->GetNavigationDirectionFromAnalog(InAnalogEvent);
+	}
+	return EUINavigation::Invalid;
 }
 
 void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const TSharedPtr<const SWidget> InParentWidget, bool bSlowTaskWindow )
@@ -1996,10 +2012,10 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		// Bail out.  The incoming window will never be added, and no native window will be created.
 		return;
 	}
-
-
-
-	// Push the active modal window onto the stack.  
+#if WITH_EDITOR
+    FCoreDelegates::PreSlateModal.Broadcast();
+#endif
+    // Push the active modal window onto the stack.
 	ActiveModalWindows.AddUnique( InSlateWindow );
 
 	// Close the open tooltip when a new window is open.  Tooltips from non-modal windows can be dangerous and cause rentrancy into code that shouldnt execute in a modal state.
@@ -3421,8 +3437,11 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 			// Make sure the desired size is valid
 			NewToolTipWindow->SlatePrepass(FSlateApplication::Get().GetApplicationScale()*NewToolTipWindow->GetNativeWindow()->GetDPIScaleFactor());
 
+			// already handled
+			const bool bAutoAdjustForDPIScale = false;
+
 			FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels() );
+			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 
 			// MoveWindowTo will adjust the window's position, if needed
 			NewToolTipWindow->MoveWindowTo( DesiredToolTipLocation );
@@ -3621,8 +3640,11 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	TSharedPtr< SWindow > ToolTipWindowPtr = ToolTipWindow.Pin();
 	if ( ToolTipWindowPtr.IsValid() )
 	{
+		// already handled
+		const bool bAutoAdjustForDPIScale = false;
+
 		FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSizeDesktopPixels());
+		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 	}
 
 	// Repel tool-tip from a force field, if necessary
@@ -3707,9 +3729,12 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 		FVector2D WindowLocation = DesiredToolTipLocation + SlideProgress * SlideDistance;
 		if( WindowLocation != PinnedToolTipWindow->GetPositionInScreen() )
 		{
+			// already handled
+			const bool bAutoAdjustForDPIScale = false;
+
 			// Avoid the edges of the desktop
 			FSlateRect Anchor(WindowLocation.X, WindowLocation.Y, WindowLocation.X, WindowLocation.Y);
-			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels());
+			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels(), bAutoAdjustForDPIScale );
 
 			// Update the tool tip window positioning
 			// SetCachedScreenPosition is a hack (issue tracked as TTP #347070) which is needed because code in TickWindowAndChildren()/DrawPrepass()
@@ -4018,9 +4043,18 @@ bool FSlateApplication::GetAllowTooltips() const
 	return bAllowToolTips != 0;
 }
 
-FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
+FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, bool bAutoAdjustForDPIScale, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
 {
 	FVector2D CalculatedPopUpWindowPosition( 0, 0 );
+
+	float DPIScale = 1.0f; 
+
+	if (bAutoAdjustForDPIScale)
+	{
+		DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(InAnchor.Left, InAnchor.Top);
+	}
+
+	FVector2D AdjustedSize = InSize * DPIScale;
 
 	FPlatformRect AnchorRect;
 	AnchorRect.Left = InAnchor.Left;
@@ -4035,9 +4069,9 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 		PopUpOrientation =  EPopUpOrientation::Vertical;
 	}
 
-	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
+	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, AdjustedSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
 	{
-		return CalculatedPopUpWindowPosition;
+		return CalculatedPopUpWindowPosition/DPIScale;
 	}
 	else
 	{
@@ -4065,7 +4099,7 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 				Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
 		}
 
-		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+InSize), Orientation, WorkAreaRect);
+		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+AdjustedSize), Orientation, WorkAreaRect) / DPIScale;
 	}
 }
 
@@ -4111,6 +4145,16 @@ void FSlateApplication::ShowVirtualKeyboard( bool bShow, int32 UserIndex, TShare
 	}
 
 	SlateTextField->ShowVirtualKeyboard(bShow, UserIndex, TextEntryWidget);
+}
+
+bool FSlateApplication::AllowMoveCursor()
+{
+	if (SlateTextField == nullptr)
+	{
+		SlateTextField = new FPlatformTextField();
+	}
+
+	return SlateTextField->AllowMoveCursor();
 }
 
 FSlateRect FSlateApplication::GetPreferredWorkArea() const
@@ -4357,6 +4401,24 @@ TSharedRef<FSlateVirtualUser> FSlateApplication::FindOrCreateVirtualUser(int32 V
 	return VirtualUser.ToSharedRef();
 }
 
+FSlateUser* FSlateApplication::GetOrCreateUser(int32 UserIndex)
+{
+	if (UserIndex < 0)
+	{
+		return nullptr;
+	}
+
+	if (FSlateUser* User = GetUser(UserIndex))
+	{
+		return User;
+	}
+
+	TSharedRef<FSlateUser> NewUser = MakeShared<FSlateUser>(UserIndex, false);
+	RegisterUser(NewUser);
+
+	return &NewUser.Get();
+}
+
 void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 {
 	if ( NewUser->UserIndex == -1 )
@@ -4384,6 +4446,8 @@ void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 		// Replace the user that's at this index with the new user.
 		Users[NewUser->GetUserIndex()] = NewUser;
 	}
+
+	NewUser->NavigationConfig = NavigationConfigFactory();
 }
 
 void FSlateApplication::UnregisterUser(int32 UserIndex)
@@ -4609,7 +4673,6 @@ TSharedRef<IToolTip> FSlateApplication::MakeToolTip( const FText& ToolTipText )
 	return SNew(SToolTip)
 		.Text(ToolTipText);
 }
-
 
 /* FGenericApplicationMessageHandler interface
  *****************************************************************************/
@@ -4852,7 +4915,7 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 	{
 		Reply = FReply::Handled();
 	}
-	
+
 	if (!Reply.IsEventHandled())
 	{
 		if (FSlateUser* User = GetOrCreateUser(InAnalogInputEvent.GetUserIndex()))
@@ -4865,9 +4928,9 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 			// Switch worlds for widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld(EventPath);
 
-			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [] (const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
+			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
 			{
-				return ( SomeWidgetGettingEvent.Widget->IsEnabled() )
+				return (SomeWidgetGettingEvent.Widget->IsEnabled())
 					? SomeWidgetGettingEvent.Widget->OnAnalogValueChanged(SomeWidgetGettingEvent.Geometry, Event)
 					: FReply::Unhandled();
 			});
@@ -5073,6 +5136,10 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
 	TScopeCounter<int32> BeginInput(ProcessingInput);
+	
+	// Ensure the cursor location(s) get set to an initial value
+	PointerIndexPositionMap.Add(FUserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()), PointerEvent.GetScreenSpacePosition());
+	PointerIndexLastPositionMap.Add(FUserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()), PointerEvent.GetScreenSpacePosition());
 
 #if PLATFORM_MAC
 	NSWindow* ActiveWindow = [ NSApp keyWindow ];
@@ -5147,7 +5214,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 				if ( !bIsContextMenu && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.IsDetectingDrag(PointerEvent) && ActiveWindow == [NSApp keyWindow] )
 				{
 					MouseCaptorHelper Captor = MouseCaptor;
-					FPlatformMisc::ActivateApplication();
+					FPlatformApplicationMisc::ActivateApplication();
 					if ( TopLevelWindow.IsValid() )
 					{
 						TopLevelWindow->BringToFront(true);
@@ -5169,13 +5236,10 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 	FReply Reply = FReply::Unhandled();
 
-#if PLATFORM_MAC
-	NSWindow* ActiveNativeWindow = [NSApp keyWindow];
-	TSharedPtr<SWindow> TopLevelWindow;
-#endif
-
 	// Update the drag detector, this release may stop a drag detection.
 	DragDetector.OnPointerRelease(PointerEvent);
+
+	const bool bIsDragDropping = IsDragDropping();
 
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
@@ -5215,9 +5279,6 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 				MouseCaptor.InvalidateCaptureForPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex());
 			}
 
-#if PLATFORM_MAC
-			TopLevelWindow = MouseCaptorPath.TopLevelWindow;
-#endif
 			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
 		}
 	}
@@ -5229,7 +5290,6 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 		FScopedSwitchWorldHack SwitchWorld( LocalWidgetsUnderCursor );
 		
 		// Cache the drag drop content and reset the pointer in case OnMouseButtonUpMessage re-enters as a result of OnDrop
-		const bool bIsDragDropping = IsDragDropping();
 		TSharedPtr< FDragDropOperation > LocalDragDropContent = DragDropContent;
 		DragDropContent.Reset();
 
@@ -5272,25 +5332,25 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 			WidgetsUnderCursorLastEvent.Remove( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
 		}
-#if PLATFORM_MAC
-		else if (ActiveNativeWindow == nullptr) // activate only if the app is in the background
-		{
-			TopLevelWindow = LocalWidgetsUnderCursor.TopLevelWindow;
-		}
-#endif
 	}
 
 #if PLATFORM_MAC
-	// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
-	TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
-	if ( PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && TopLevelWindow.IsValid() && ActiveWindow != TopLevelWindow
-		&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized] )
+	// Make sure the application and its front window are activated if user wasn't drag & dropping between windows
+	if (PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bIsDragDropping)
 	{
-		FPlatformMisc::ActivateApplication();
-
-		if ( !TopLevelWindow->IsVirtualWindow() )
+		TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
+		if (ActiveWindow.IsValid() && !ActiveWindow->GetNativeWindow()->IsForegroundWindow() && !ActiveWindow->GetNativeWindow()->IsMinimized())
 		{
-			TopLevelWindow->BringToFront(true);
+			FPlatformApplicationMisc::ActivateApplication();
+
+			if (!ActiveWindow->IsVirtualWindow())
+			{
+				ActiveWindow->BringToFront(true);
+			}
+		}
+		else if ([NSApp keyWindow] == nullptr)
+		{
+			FPlatformApplicationMisc::ActivateApplication();
 		}
 	}
 #endif
@@ -6304,6 +6364,19 @@ void FSlateApplication::FinishedReshapingWindow( const TSharedRef< FGenericWindo
 	}
 }
 
+void FSlateApplication::HandleDPIScaleChanged(const TSharedRef<FGenericWindow>& PlatformWindow)
+{
+#if WITH_EDITOR
+	TSharedPtr< SWindow > SlateWindow = FSlateWindowHelper::FindWindowByPlatformWindow(SlateWindows, PlatformWindow);
+
+	if (SlateWindow.IsValid())
+	{
+		OnWindowDPIScaleChangedEvent.Broadcast(SlateWindow.ToSharedRef());
+	}
+#endif
+}
+
+
 void FSlateApplication::OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y )
 {
 	TSharedPtr< SWindow > Window = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, PlatformWindow );
@@ -6519,10 +6592,12 @@ void FSlateApplication::ProcessApplicationActivationEvent(bool InAppActivated)
 	OnApplicationActivationStateChanged().Broadcast(InAppActivated);
 }
 
-
-void FSlateApplication::SetNavigationConfig(TSharedRef<FNavigationConfig> Config)
+void FSlateApplication::SetNavigationConfigFactory(TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory)
 {
-	NavigationConfig = Config;
+	NavigationConfigFactory = InNavigationConfigFactory;
+	ForEachUser([&](FSlateUser* User) {
+		User->NavigationConfig = NavigationConfigFactory();
+	}, true);
 }
 
 bool FSlateApplication::OnConvertibleLaptopModeChanged()
@@ -6825,7 +6900,7 @@ void FSlateApplication::OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDi
 
 TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplication(const TSharedRef<FSlateRenderer>& PlatformRenderer)
 {
-	return InitializeAsStandaloneApplication(PlatformRenderer, MakeShareable(FPlatformMisc::CreateApplication()));
+	return InitializeAsStandaloneApplication(PlatformRenderer, MakeShareable(FPlatformApplicationMisc::CreateApplication()));
 }
 
 

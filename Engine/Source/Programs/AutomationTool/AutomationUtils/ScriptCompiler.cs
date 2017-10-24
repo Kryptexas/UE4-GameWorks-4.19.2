@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -61,16 +62,6 @@ namespace AutomationTool
 			{
 				DoCompile = true;
 			}
-
-			// Change to Engine\Source (if exists) to properly discover all UBT classes
-			var OldCWD = Environment.CurrentDirectory;
-			var UnrealBuildToolCWD = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
-			if (Directory.Exists(UnrealBuildToolCWD))
-			{
-				Environment.CurrentDirectory = UnrealBuildToolCWD;
-			}
-			// Register all the classes inside UBT
-			Environment.CurrentDirectory = OldCWD;
 
 			// Compile only if not disallowed.
 			if (DoCompile && !String.IsNullOrEmpty(CommandUtils.CmdEnv.MsBuildExe))
@@ -129,7 +120,7 @@ namespace AutomationTool
 			List<DirectoryReference> AllGameFolders;
 			if(ScriptsForProjectFileName == null)
 			{
-				AllGameFolders = UProjectInfo.FilterGameProjects(true, null).Select(x => x.Folder).ToList();
+				AllGameFolders = UProjectInfo.AllProjectFiles.Select(x => x.Directory).ToList();
 			}
 			else
 			{

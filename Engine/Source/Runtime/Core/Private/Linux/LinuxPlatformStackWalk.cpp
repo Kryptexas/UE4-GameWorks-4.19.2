@@ -888,6 +888,19 @@ void FLinuxPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter,
 
 bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context )
 {
+	//
+	// Callstack lines should be written in this standard format
+	//
+	//	0xaddress module!func [file]
+	// 
+	// E.g. 0x045C8D01 OrionClient.self!UEngine::PerformError() [D:\Epic\Orion\Engine\Source\Runtime\Engine\Private\UnrealEngine.cpp:6481]
+	//
+	// Module may be omitted, everything else should be present, or substituted with a string that conforms to the expected type
+	//
+	// E.g 0x00000000 UnknownFunction []
+	//
+	// 
+
 	if (HumanReadableString && HumanReadableStringSize > 0)
 	{
 		ANSICHAR TempArray[MAX_SPRINTF];
@@ -895,11 +908,11 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 		{
 			if (PLATFORM_64BITS)
 			{
-				FCStringAnsi::Sprintf(TempArray, "[Callstack] 0x%016llx ", ProgramCounter);
+				FCStringAnsi::Sprintf(TempArray, "0x%016llx ", ProgramCounter);
 			}
 			else
 			{
-				FCStringAnsi::Sprintf(TempArray, "[Callstack] 0x%08x ", (uint32) ProgramCounter);
+				FCStringAnsi::Sprintf(TempArray, "0x%08x ", (uint32) ProgramCounter);
 			}
 			LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
 
@@ -909,11 +922,11 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 		{
 			if (PLATFORM_64BITS)
 			{
-				FCStringAnsi::Sprintf(TempArray, "[Callstack]  %02d  0x%016llx  ", CurrentCallDepth, ProgramCounter);
+				FCStringAnsi::Sprintf(TempArray, "0x%016llx ", ProgramCounter);
 			}
 			else
 			{
-				FCStringAnsi::Sprintf(TempArray, "[Callstack]  %02d  0x%08x  ", CurrentCallDepth, (uint32) ProgramCounter);
+				FCStringAnsi::Sprintf(TempArray, "0x%08x ", (uint32) ProgramCounter);
 			}
 			LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
 
@@ -934,9 +947,9 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 
 				if (bAddDetailedInfo)
 				{
-					// append FunctionName() [Source.cpp, line X] to HumanReadableString
+					// append FunctionName() [Source.cpp:X] to HumanReadableString
 					LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, FunctionName);
-					FCStringAnsi::Sprintf(TempArray, " [%s, line %d]", SourceFilename, LineNumber);
+					FCStringAnsi::Sprintf(TempArray, " [%s:%d]", SourceFilename, LineNumber);
 					LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
 
 					// append Module!FunctioName [Source.cpp:X] to MinidumpCallstackInfo
@@ -950,10 +963,8 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 				{
 					// get the function name for backtrace, may be incorrect
 					FunctionName = LinuxStackWalkHelpers::GetFunctionName(Context, CurrentCallDepth);
-					if (FunctionName)
-					{
-						LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, FunctionName);
-					}
+				
+					LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, FunctionName != nullptr ? FunctionName : "UnknownFunction");	
 
 					FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, "Unknown!", ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);
 					LinuxStackWalkHelpers::AppendFunctionNameIfAny(*LinuxContext, FunctionName, ProgramCounter);

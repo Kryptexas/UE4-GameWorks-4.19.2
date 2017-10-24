@@ -24,9 +24,6 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 	virtual void UpdateNavigationBounds() override;
 	virtual UObject* GetNavigationParent() const override;
 	//~ End INavRelevantInterface Interface
-
-	DEPRECATED(4.8, "This function is deprecated. Use CalcAndCacheBounds instead")
-	virtual void CalcBounds();
 	
 	virtual void CalcAndCacheBounds() const;
 

@@ -1,7 +1,7 @@
 {
     "FileVersion": 3,
-    "Version": 9,
-    "VersionName": "1.5 (GVR NDK v1.60.1)",
+    "Version": 11,
+    "VersionName": "1.7 (GVR NDK v1.80.0)",
     "FriendlyName": "Google VR Motion Controller",
     "Description": "Support for the Google VR motion controller",
     "Category": "Input Devices",
@@ -20,14 +20,13 @@
             "Name": "GoogleVRController",
             "Type": "Runtime",
             "LoadingPhase": "PostConfigInit",
-            "WhitelistPlatforms": [ "Android", "Win32", "Win64", "IOS" ]
+            "WhitelistPlatforms": [ "Android", "Mac", "Win32", "Win64", "IOS" ]
         }
     ],
-	"Plugins": [
-		{
-			"Name": "GoogleVRHMD",
-			"Enabled": true
-		}
-	]
-
+    "Plugins": [
+        {
+            "Name": "GoogleVRHMD",
+            "Enabled": true
+        }
+    ]
 }

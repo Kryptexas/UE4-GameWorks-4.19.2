@@ -8,19 +8,19 @@ public class MCPP : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/inc");
+		PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/inc");
 
-		string LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/lib/";
+		string LibPath = Target.UEThirdPartySourceDirectory + "MCPP/mcpp-2.7.2/lib/";
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            LibPath += ("Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+            LibPath += ("Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			PublicLibraryPaths.Add(LibPath);
 			PublicAdditionalLibraries.Add("mcpp_64.lib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
         {
-            LibPath += ("Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+            LibPath += ("Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			PublicLibraryPaths.Add(LibPath);
 			PublicAdditionalLibraries.Add("mcpp.lib");
 		}

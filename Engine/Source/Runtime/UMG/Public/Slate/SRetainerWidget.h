@@ -31,7 +31,7 @@ DECLARE_MULTICAST_DELEGATE( FOnRetainedModeChanged );
  * frequency of the main game render.  It also has the side benefit of allow materials
  * to be applied to the render target after drawing the widgets to apply a simple post process.
  */
-class UMG_API SRetainerWidget : public SCompoundWidget, public FGCObject, public ICustomHitTestPath
+class UMG_API SRetainerWidget : public SCompoundWidget, public FGCObject, public ILayoutCache
 {
 public:
 	SLATE_BEGIN_ARGS(SRetainerWidget)
@@ -39,8 +39,12 @@ public:
 		_Visibility = EVisibility::Visible;
 		_Phase = 0;
 		_PhaseCount = 1;
+		_RenderOnPhase = true;
+		_RenderOnInvalidation = false;
 	}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_ARGUMENT(bool, RenderOnPhase)
+		SLATE_ARGUMENT(bool, RenderOnInvalidation)
 		SLATE_ARGUMENT(int32, Phase)
 		SLATE_ARGUMENT(int32, PhaseCount)
 		SLATE_ARGUMENT(FName, StatId)
@@ -49,7 +53,11 @@ public:
 	SRetainerWidget();
 	~SRetainerWidget();
 
+	/** Constructor */
 	void Construct(const FArguments& Args);
+
+	/** Requests that the retainer redraw the hosted content next time it's painted. */
+	void RequestRender();
 
 	void SetRetainedRendering(bool bRetainRendering);
 
@@ -61,6 +69,11 @@ public:
 
 	void SetTextureParameter(FName TextureParameter);
 
+	// ILayoutCache overrides
+	virtual void InvalidateWidget(SWidget* InvalidateWidget) override;
+	virtual FCachedWidgetNode* CreateCacheNode() const override;
+	// End ILayoutCache
+
 	// FGCObject
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// FGCObject
@@ -70,13 +83,7 @@ public:
 	virtual bool ComputeVolatility() const override;
 	// SWidget
 
-	virtual void PaintRetainedContent(float DeltaTime);
-
-	// ICustomHitTestPath
-	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override;
-	virtual void ArrangeChildren(FArrangedChildren& ArrangedChildren) const override;
-	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const override;
-	// ICustomHitTestPath
+	virtual bool PaintRetainedContent(const FPaintArgs& Args);
 
 	FORCEINLINE const FGeometry& GetCachedAllottedGeometry() const
 	{
@@ -95,6 +102,7 @@ protected:
 	bool ShouldBeRenderingOffscreen() const;
 	bool IsAnythingVisibleToRender() const;
 	void OnRetainerModeChanged();
+
 private:
 #if !UE_BUILD_SHIPPING
 	static void OnRetainerModeCVarChanged( IConsoleVariable* CVar );
@@ -108,22 +116,26 @@ private:
 
 	mutable FSlateBrush SurfaceBrush;
 
-	void InitWidgetRenderer();
+	void UpdateWidgetRenderer();
 	mutable TSharedPtr<class FWidgetRenderer> WidgetRenderer;
 	mutable class UTextureRenderTarget2D* RenderTarget;
 	mutable TSharedPtr<SWidget> MyWidget;
 
-	bool bRenderingOffscreenDesire;
-	bool bRenderingOffscreen;
-
+	bool bEnableRetainedRenderingDesire;
+	bool bEnableRetainedRendering;
+	
 	int32 Phase;
 	int32 PhaseCount;
+
+	bool RenderOnPhase;
+	bool RenderOnInvalidation;
+
+	bool bRenderRequested;
 
 	double LastDrawTime;
 	int64 LastTickedFrame;
 
 	TSharedPtr<SVirtualWindow> Window;
-	TSharedPtr<FHittestGrid> HitTestGrid;
 	TWeakObjectPtr<UWorld> OuterWorld;
 
 	STAT(TStatId MyStatId;)
@@ -131,4 +143,8 @@ private:
 	FSlateBrush DynaicBrush;
 	UMaterialInstanceDynamic* DynamicEffect;
 	FName DynamicEffectTextureParameter;
+
+	mutable FCachedWidgetNode* RootCacheNode;
+	mutable TArray< FCachedWidgetNode* > NodePool;
+	mutable int32 LastUsedCachedNodeIndex;
 };

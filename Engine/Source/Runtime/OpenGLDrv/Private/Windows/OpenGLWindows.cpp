@@ -128,7 +128,7 @@ static void PlatformInitPixelFormatForDevice(HDC DeviceContext, bool bTryIsDummy
 	PixelFormatDesc.iLayerType	= PFD_MAIN_PLANE;
 
 	static bool bRequestedQuadBufferStereo = FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo"));
-	if (bRequestedQuadBufferStereo && !bTryIsDummyContext)
+	if (bRequestedQuadBufferStereo)
 	{
 		PixelFormatDesc.dwFlags = PixelFormatDesc.dwFlags | PFD_STEREO;
 	}

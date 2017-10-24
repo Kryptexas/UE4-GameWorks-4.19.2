@@ -44,6 +44,7 @@ public:
 	/** Move around one bound to free the last bound indices. This allows to keep the number of dynamic bounds low. */
 	bool MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex);
 	void TrimBounds();
+	void OffsetBounds(const FVector& Offset);
 
 	FORCEINLINE int32 NumBounds() const { return Bounds4Components.Num(); }
 	FORCEINLINE bool HasComponent(int32 BoundIndex) const { return Bounds4Components[BoundIndex] != nullptr; }

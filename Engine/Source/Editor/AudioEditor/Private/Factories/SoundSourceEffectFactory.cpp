@@ -8,6 +8,7 @@
 #include "SoundFactoryUtility.h"
 #include "Kismet2/SClassPickerDialog.h"
 #include "Modules/ModuleManager.h"
+#include "Classes/Sound/AudioSettings.h"
 
 #define LOCTEXT_NAMESPACE "AudioEditorFactories"
 
@@ -59,6 +60,11 @@ UObject* USoundSourceEffectFactory::FactoryCreateNew(UClass* InClass, UObject* I
 	return NewSoundEffectSourcePreset;
 }
 
+bool USoundSourceEffectFactory::CanCreateNew() const
+{
+	return GetDefault<UAudioSettings>()->IsAudioMixerEnabled();
+}
+
 USoundSourceEffectChainFactory::USoundSourceEffectChainFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -71,6 +77,11 @@ USoundSourceEffectChainFactory::USoundSourceEffectChainFactory(const FObjectInit
 UObject* USoundSourceEffectChainFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	return NewObject<USoundEffectSourcePresetChain>(InParent, InName, Flags);
+}
+
+bool USoundSourceEffectChainFactory::CanCreateNew() const
+{
+	return GetDefault<UAudioSettings>()->IsAudioMixerEnabled();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -979,6 +979,13 @@ extern ENGINE_API class FCommonViewportClient* GStatProcessingViewportClient;
 class FCommonViewportClient : public FViewportClient
 {
 public:
+	FCommonViewportClient()
+#if WITH_EDITOR
+		: EditorScreenPercentage(100)
+		, bShouldUpdateScreenPercentage(true)
+#endif
+	{}
+
 	virtual ~FCommonViewportClient()
 	{
 		//make to clean up the global "stat" client when we delete the active one.
@@ -988,7 +995,29 @@ public:
 		}
 	}
 
+#if WITH_EDITOR
+	/** Tells this viewport to update editor screen percentage when safe */
+	ENGINE_API void RequestUpdateEditorScreenPercentage();
+	/** @return the current screen percentage to be used for scene rendering in this client */
+	ENGINE_API TOptional<float> GetEditorScreenPercentage();
+#endif
+
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
+
+protected:
+	/** @return the DPI scale of the window that the viewport client is in */
+	virtual float GetViewportClientWindowDPIScale() const { return 1.0; }
+
+private:
+
+#if WITH_EDITOR
+	/** Screen percentage to apply to the scene view in editor only (to adjust for DPI scale). 
+	 * Note: This is still used in game viewports for PIE
+	 */
+	TOptional<float> EditorScreenPercentage;
+	bool bShouldUpdateScreenPercentage;
+#endif
+
 };
 
 
@@ -1039,7 +1068,7 @@ public:
 		FTexture2DRHIRef ShaderResourceTextureRHI;
 
 		FRHIResourceCreateInfo CreateInfo;
-		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_A2B10G10R10, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
 	}
 
 	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource

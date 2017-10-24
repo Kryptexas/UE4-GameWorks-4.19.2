@@ -25,14 +25,18 @@ bool FPostProcessPassThroughPS::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-void FPostProcessPassThroughPS::SetParameters(const FRenderingCompositePassContext& Context)
+template <typename TRHICmdList>
+void FPostProcessPassThroughPS::SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-	FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-	PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+	PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 }
+
+template void FPostProcessPassThroughPS::SetParameters<FRHICommandListImmediate>(FRHICommandListImmediate& RHICmdList, const FRenderingCompositePassContext& Context);
+
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessPassThroughPS,TEXT("/Engine/Private/PostProcessPassThrough.usf"),TEXT("MainPS"),SF_Pixel);
 
@@ -115,7 +119,7 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
+	PixelShader->SetParameters(Context.RHICmdList, Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -184,7 +188,7 @@ void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, con
 		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context);
+		PixelShader->SetParameters(Context.RHICmdList, Context);
 
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 

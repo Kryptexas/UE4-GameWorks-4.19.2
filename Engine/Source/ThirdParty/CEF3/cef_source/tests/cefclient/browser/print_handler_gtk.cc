@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cefclient/browser/print_handler_gtk.h"
+#include "tests/cefclient/browser/print_handler_gtk.h"
 
 #include <vector>
 
@@ -492,7 +492,7 @@ void ClientPrintHandlerGtk::OnDialogResponse(GtkDialog *dialog,
           if (gtk_range) {
             for (int i = 0; i < num_ranges; ++i) {
               ranges_vector.push_back(
-                  CefPageRange(gtk_range[i].start, gtk_range[i].end));
+                  CefRange(gtk_range[i].start, gtk_range[i].end));
             }
             g_free(gtk_range);
           }

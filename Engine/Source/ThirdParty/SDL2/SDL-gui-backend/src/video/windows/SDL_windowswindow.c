@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -91,7 +91,7 @@ WIN_SetWindowPositionInternal(_THIS, SDL_Window * window, UINT flags)
     int w, h;
 
     /* Figure out what the window area will be */
-    if (SDL_ShouldAllowTopmost() && (window->flags & (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) == (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) {
+    if (SDL_ShouldAllowTopmost() && ((window->flags & (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) == (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS) || (window->flags & SDL_WINDOW_ALWAYS_ON_TOP))) {
         top = HWND_TOPMOST;
     } else {
         top = HWND_NOTOPMOST;
@@ -114,7 +114,7 @@ WIN_SetWindowPositionInternal(_THIS, SDL_Window * window, UINT flags)
 }
 
 static int
-SetupWindowData(_THIS, SDL_Window * window, HWND hwnd, SDL_bool created)
+SetupWindowData(_THIS, SDL_Window * window, HWND hwnd, HWND parent, SDL_bool created)
 {
     SDL_VideoData *videodata = (SDL_VideoData *) _this->driverdata;
     SDL_WindowData *data;
@@ -126,7 +126,9 @@ SetupWindowData(_THIS, SDL_Window * window, HWND hwnd, SDL_bool created)
     }
     data->window = window;
     data->hwnd = hwnd;
+    data->parent = parent;
     data->hdc = GetDC(hwnd);
+    data->hinstance = (HINSTANCE) GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
     data->created = created;
     data->mouse_button_flags = 0;
     data->videodata = videodata;
@@ -262,14 +264,20 @@ SetupWindowData(_THIS, SDL_Window * window, HWND hwnd, SDL_bool created)
     return 0;
 }
 
+
+
 int
 WIN_CreateWindow(_THIS, SDL_Window * window)
 {
-    HWND hwnd;
+    HWND hwnd, parent = NULL;
     RECT rect;
     DWORD style = STYLE_BASIC;
     int x, y;
     int w, h;
+
+    if (window->flags & SDL_WINDOW_SKIP_TASKBAR) {
+        parent = CreateWindow(SDL_Appname, TEXT(""), STYLE_BASIC, 0, 0, 32, 32, NULL, NULL, SDL_Instance, NULL);
+    }
 
     style |= GetWindowStyle(window);
 
@@ -285,7 +293,7 @@ WIN_CreateWindow(_THIS, SDL_Window * window)
     h = (rect.bottom - rect.top);
 
     hwnd =
-        CreateWindow(SDL_Appname, TEXT(""), style, x, y, w, h, NULL, NULL,
+        CreateWindow(SDL_Appname, TEXT(""), style, x, y, w, h, parent, NULL,
                      SDL_Instance, NULL);
     if (!hwnd) {
         return WIN_SetError("Couldn't create window");
@@ -293,43 +301,44 @@ WIN_CreateWindow(_THIS, SDL_Window * window)
 
     WIN_PumpEvents(_this);
 
-    if (SetupWindowData(_this, window, hwnd, SDL_TRUE) < 0) {
+    if (SetupWindowData(_this, window, hwnd, parent, SDL_TRUE) < 0) {
         DestroyWindow(hwnd);
+        if (parent) {
+            DestroyWindow(parent);
+        }
         return -1;
     }
 
-#if SDL_VIDEO_OPENGL_WGL
-    /* We need to initialize the extensions before deciding how to create ES profiles */
-    if (window->flags & SDL_WINDOW_OPENGL) {
-        WIN_GL_InitExtensions(_this);
+    if (!(window->flags & SDL_WINDOW_OPENGL)) {
+        return 0;
     }
-#endif
 
+    /* The rest of this macro mess is for OpenGL or OpenGL ES windows */
 #if SDL_VIDEO_OPENGL_ES2
-    if ((window->flags & SDL_WINDOW_OPENGL) &&
-        _this->gl_config.profile_mask == SDL_GL_CONTEXT_PROFILE_ES
-#if SDL_VIDEO_OPENGL_WGL           
-        && (!_this->gl_data || !_this->gl_data->HAS_WGL_EXT_create_context_es2_profile)
-#endif  
-        ) {
-#if SDL_VIDEO_OPENGL_EGL  
+    if (_this->gl_config.profile_mask == SDL_GL_CONTEXT_PROFILE_ES
+#if SDL_VIDEO_OPENGL_WGL
+        && (!_this->gl_data || WIN_GL_UseEGL(_this))
+#endif /* SDL_VIDEO_OPENGL_WGL */
+    ) {
+#if SDL_VIDEO_OPENGL_EGL
         if (WIN_GLES_SetupWindow(_this, window) < 0) {
             WIN_DestroyWindow(_this, window);
             return -1;
         }
+        return 0;
 #else
-        return SDL_SetError("Could not create GLES window surface (no EGL support available)");
-#endif /* SDL_VIDEO_OPENGL_EGL */
-    } else 
+        return SDL_SetError("Could not create GLES window surface (EGL support not configured)");
+#endif /* SDL_VIDEO_OPENGL_EGL */ 
+    }
 #endif /* SDL_VIDEO_OPENGL_ES2 */
 
 #if SDL_VIDEO_OPENGL_WGL
-    if (window->flags & SDL_WINDOW_OPENGL) {
-        if (WIN_GL_SetupWindow(_this, window) < 0) {
-            WIN_DestroyWindow(_this, window);
-            return -1;
-        }
+    if (WIN_GL_SetupWindow(_this, window) < 0) {
+        WIN_DestroyWindow(_this, window);
+        return -1;
     }
+#else
+    return SDL_SetError("Could not create GL window (WGL support not configured)");
 #endif
 
     return 0;
@@ -357,7 +366,7 @@ WIN_CreateWindowFrom(_THIS, SDL_Window * window, const void *data)
         SDL_stack_free(title);
     }
 
-    if (SetupWindowData(_this, window, hwnd, SDL_FALSE) < 0) {
+    if (SetupWindowData(_this, window, hwnd, GetParent(hwnd), SDL_FALSE) < 0) {
         return -1;
     }
 
@@ -408,7 +417,7 @@ WIN_SetWindowIcon(_THIS, SDL_Window * window, SDL_Surface * icon)
     SDL_RWops *dst;
 
     /* Create temporary bitmap buffer */
-    icon_len = 40 + icon->h * icon->w * 4;
+    icon_len = 40 + icon->h * icon->w * sizeof(Uint32);
     icon_bmp = SDL_stack_alloc(BYTE, icon_len);
     dst = SDL_RWFromMem(icon_bmp, icon_len);
     if (!dst) {
@@ -423,7 +432,7 @@ WIN_SetWindowIcon(_THIS, SDL_Window * window, SDL_Surface * icon)
     SDL_WriteLE16(dst, 1);
     SDL_WriteLE16(dst, 32);
     SDL_WriteLE32(dst, BI_RGB);
-    SDL_WriteLE32(dst, icon->h * icon->w * 4);
+    SDL_WriteLE32(dst, icon->h * icon->w * sizeof(Uint32));
     SDL_WriteLE32(dst, 0);
     SDL_WriteLE32(dst, 0);
     SDL_WriteLE32(dst, 0);
@@ -434,7 +443,7 @@ WIN_SetWindowIcon(_THIS, SDL_Window * window, SDL_Surface * icon)
     y = icon->h;
     while (y--) {
         Uint8 *src = (Uint8 *) icon->pixels + y * icon->pitch;
-        SDL_RWwrite(dst, src, icon->pitch, 1);
+        SDL_RWwrite(dst, src, icon->w * sizeof(Uint32), 1);
     }
 
     hicon = CreateIconFromResource(icon_bmp, icon_len, TRUE, 0x00030000);
@@ -478,7 +487,8 @@ WIN_HideWindow(_THIS, SDL_Window * window)
 void
 WIN_RaiseWindow(_THIS, SDL_Window * window)
 {
-    WIN_SetWindowPositionInternal(_this, window, SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOSIZE);
+    HWND hwnd = ((SDL_WindowData *) window->driverdata)->hwnd;
+    SetForegroundWindow(hwnd);
 }
 
 void
@@ -520,6 +530,22 @@ WIN_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)
 }
 
 void
+WIN_SetWindowResizable(_THIS, SDL_Window * window, SDL_bool resizable)
+{
+    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    HWND hwnd = data->hwnd;
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+
+    if (resizable) {
+        style |= STYLE_RESIZABLE;
+    } else {
+        style &= ~STYLE_RESIZABLE;
+    }
+
+    SetWindowLong(hwnd, GWL_STYLE, style);
+}
+
+void
 WIN_RestoreWindow(_THIS, SDL_Window * window)
 {
     SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
@@ -542,7 +568,7 @@ WIN_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display, 
     int x, y;
     int w, h;
 
-    if (SDL_ShouldAllowTopmost() && (window->flags & (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) == (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) {
+    if (SDL_ShouldAllowTopmost() && ((window->flags & (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS)) == (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_INPUT_FOCUS) || window->flags & SDL_WINDOW_ALWAYS_ON_TOP)) {
         top = HWND_TOPMOST;
     } else {
         top = HWND_NOTOPMOST;
@@ -658,6 +684,9 @@ WIN_DestroyWindow(_THIS, SDL_Window * window)
         RemoveProp(data->hwnd, TEXT("SDL_WindowData"));
         if (data->created) {
             DestroyWindow(data->hwnd);
+            if (data->parent) {
+                DestroyWindow(data->parent);
+            }
         } else {
             /* Restore any original event handler... */
             if (data->wndproc != NULL) {
@@ -680,12 +709,22 @@ WIN_GetWindowWMInfo(_THIS, SDL_Window * window, SDL_SysWMinfo * info)
 {
     const SDL_WindowData *data = (const SDL_WindowData *) window->driverdata;
     if (info->version.major <= SDL_MAJOR_VERSION) {
+        int versionnum = SDL_VERSIONNUM(info->version.major, info->version.minor, info->version.patch);
+
         info->subsystem = SDL_SYSWM_WINDOWS;
         info->info.win.window = data->hwnd;
-        info->info.win.hdc = data->hdc;
+
+        if (versionnum >= SDL_VERSIONNUM(2, 0, 4)) {
+            info->info.win.hdc = data->hdc;
+        }
+
+        if (versionnum >= SDL_VERSIONNUM(2, 0, 5)) {
+            info->info.win.hinstance = data->hinstance;
+        }
+
         return SDL_TRUE;
     } else {
-        SDL_SetError("Application not compiled with SDL %d.%d\n",
+        SDL_SetError("Application not compiled with SDL %d.%d",
                      SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
         return SDL_FALSE;
     }
@@ -763,20 +802,27 @@ SDL_HelperWindowDestroy(void)
 
 void WIN_OnWindowEnter(_THIS, SDL_Window * window)
 {
-#ifdef WM_MOUSELEAVE
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
-    TRACKMOUSEEVENT trackMouseEvent;
 
     if (!data || !data->hwnd) {
         /* The window wasn't fully initialized */
         return;
     }
 
-    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-    trackMouseEvent.dwFlags = TME_LEAVE;
-    trackMouseEvent.hwndTrack = data->hwnd;
+    if (window->flags & SDL_WINDOW_ALWAYS_ON_TOP) {
+        WIN_SetWindowPositionInternal(_this, window, SWP_NOCOPYBITS | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
 
-    TrackMouseEvent(&trackMouseEvent);
+#ifdef WM_MOUSELEAVE
+    {
+        TRACKMOUSEEVENT trackMouseEvent;
+
+        trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+        trackMouseEvent.dwFlags = TME_LEAVE;
+        trackMouseEvent.hwndTrack = data->hwnd;
+
+        TrackMouseEvent(&trackMouseEvent);
+    }
 #endif /* WM_MOUSELEAVE */
 }
 

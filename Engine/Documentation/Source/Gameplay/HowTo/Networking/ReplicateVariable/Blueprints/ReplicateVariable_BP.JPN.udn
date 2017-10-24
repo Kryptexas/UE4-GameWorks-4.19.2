@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2701352
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントで変数をレプリケートする
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
@@ -7,6 +7,7 @@ Related:Engine/Blueprints
 Related:Resources/ContentExamples/Networking
 Version:4.9
 SkillLevel:Advanced
+type:how-to
 
 
 [TOC (start:2 end:2)]
@@ -93,7 +94,7 @@ SkillLevel:Advanced
 	![](NoOfPlayers.png)
 	[/REGION]
 
-1.	**[再生]** ボタンをクリックして、エディタで再生します。 
+1.	**[Play (プレイ)]** ボタンをクリックして、エディタで再生します。 
 
 	![](HT_11.png)
 

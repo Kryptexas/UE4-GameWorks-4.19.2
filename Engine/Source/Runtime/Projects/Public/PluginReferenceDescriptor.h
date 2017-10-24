@@ -39,14 +39,20 @@ struct PROJECTS_API FPluginReferenceDescriptor
 	/** If enabled, list of targets for which the plugin should be disabled. */
 	TArray<FString> BlacklistTargets;
 
+	/** The list of supported target platforms for this plugin. This field is copied from the plugin descriptor, and supplements the user's whitelisted and blacklisted platforms. */
+	TArray<FString> SupportedTargetPlatforms;
+
 	/** Constructor */
-	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false, const FString& InMarketplaceURL = TEXT(""));
+	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false);
 
 	/** Determines whether the plugin is enabled for the given platform */
 	bool IsEnabledForPlatform(const FString& Platform) const;
 
 	/** Determines whether the plugin is enabled for the given target */
 	bool IsEnabledForTarget(const FString& Target) const;
+
+	/** Determines if the referenced plugin is supported for the given platform */
+	bool IsSupportedTargetPlatform(const FString& Platform) const;
 
 	/** Reads the descriptor from the given JSON object */
 	bool Read(const FJsonObject& Object, FText& OutFailReason);
@@ -60,4 +66,3 @@ struct PROJECTS_API FPluginReferenceDescriptor
 	/** Writes an array of modules to JSON */
 	static void WriteArray(TJsonWriter<>& Writer, const TCHAR* Name, const TArray<FPluginReferenceDescriptor>& Modules);
 };
-

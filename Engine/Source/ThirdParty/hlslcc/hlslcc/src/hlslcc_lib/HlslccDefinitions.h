@@ -51,6 +51,8 @@ enum EHlslCompileFlag
 	HLSLCC_UseFullPrecisionInPS = 0x2000,
 	// Tried to keep global variables' original order from source (default is to sort them in reverse declaration order) 
 	HLSCC_KeepGlobalVariableOrder = 0x4000,
+	// Do not replace names for samplers and textures (like ps0, ci2)
+	HLSLCC_KeepSamplerAndImageNames = 0x8000,
 };
 
 /**

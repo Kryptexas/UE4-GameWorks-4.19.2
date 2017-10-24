@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -18,9 +18,8 @@
 // VIRTUAL METHODS - Body may be edited by hand.
 
 bool CefJSDialogHandlerCToCpp::OnJSDialog(CefRefPtr<CefBrowser> browser,
-    const CefString& origin_url, const CefString& accept_lang,
-    JSDialogType dialog_type, const CefString& message_text,
-    const CefString& default_prompt_text,
+    const CefString& origin_url, JSDialogType dialog_type,
+    const CefString& message_text, const CefString& default_prompt_text,
     CefRefPtr<CefJSDialogCallback> callback, bool& suppress_message) {
   cef_jsdialog_handler_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, on_jsdialog))
@@ -36,8 +35,7 @@ bool CefJSDialogHandlerCToCpp::OnJSDialog(CefRefPtr<CefBrowser> browser,
   DCHECK(callback.get());
   if (!callback.get())
     return false;
-  // Unverified params: origin_url, accept_lang, message_text,
-  // default_prompt_text
+  // Unverified params: origin_url, message_text, default_prompt_text
 
   // Translate param: suppress_message; type: bool_byref
   int suppress_messageInt = suppress_message;
@@ -46,7 +44,6 @@ bool CefJSDialogHandlerCToCpp::OnJSDialog(CefRefPtr<CefBrowser> browser,
   int _retval = _struct->on_jsdialog(_struct,
       CefBrowserCppToC::Wrap(browser),
       origin_url.GetStruct(),
-      accept_lang.GetStruct(),
       dialog_type,
       message_text.GetStruct(),
       default_prompt_text.GetStruct(),
@@ -131,18 +128,18 @@ void CefJSDialogHandlerCToCpp::OnDialogClosed(CefRefPtr<CefBrowser> browser) {
 CefJSDialogHandlerCToCpp::CefJSDialogHandlerCToCpp() {
 }
 
-template<> cef_jsdialog_handler_t* CefCToCpp<CefJSDialogHandlerCToCpp,
+template<> cef_jsdialog_handler_t* CefCToCppRefCounted<CefJSDialogHandlerCToCpp,
     CefJSDialogHandler, cef_jsdialog_handler_t>::UnwrapDerived(
     CefWrapperType type, CefJSDialogHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefJSDialogHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefJSDialogHandlerCToCpp,
     CefJSDialogHandler, cef_jsdialog_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefJSDialogHandlerCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefJSDialogHandlerCToCpp,
     CefJSDialogHandler, cef_jsdialog_handler_t>::kWrapperType =
     WT_JSDIALOG_HANDLER;

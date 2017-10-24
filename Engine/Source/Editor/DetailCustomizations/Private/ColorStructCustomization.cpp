@@ -52,14 +52,16 @@ void FColorStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>&
 	TSharedPtr<SWidget> ColorWidget;
 	float ContentWidth = 250.0f;
 
+	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
+
 	if (InStructPropertyHandle->HasMetaData("InlineColorPicker"))
 	{
-		ColorWidget = CreateInlineColorPicker();
+		ColorWidget = CreateInlineColorPicker(StructWeakHandlePtr);
 		ContentWidth = 384.0f;
 	}
 	else
 	{
-		ColorWidget = CreateColorWidget();
+		ColorWidget = CreateColorWidget(StructWeakHandlePtr);
 	}
 
 	Row.NameContent()
@@ -74,7 +76,7 @@ void FColorStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>&
 }
 
 
-TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
+TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget(TWeakPtr<IPropertyHandle> StructWeakHandlePtr)
 {
 	FSlateFontInfo NormalText = IDetailLayoutBuilder::GetDetailFont();
 
@@ -93,6 +95,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 				.IgnoreAlpha(bIgnoreAlpha)
 				.OnMouseButtonDown(this, &FColorStructCustomization::OnMouseButtonDownColorBlock)
 				.Size(FVector2D(35.0f, 12.0f))
+				.IsEnabled(this, &FColorStructCustomization::IsValueEnabled, StructWeakHandlePtr)
 			]
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
@@ -188,7 +191,7 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color.ReinterpretAsLinear());
+			SavedPreColorPickerColors.Add(FLinearColor(Color));
 		}
 	}
 
@@ -222,7 +225,7 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 }
 
 
-TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
+TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker(TWeakPtr<IPropertyHandle> StructWeakHandlePtr)
 {
 	int32 NumObjects = StructPropertyHandle->GetNumOuterObjects();
 
@@ -242,7 +245,7 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color.ReinterpretAsLinear());
+			SavedPreColorPickerColors.Add(FLinearColor(Color));
 		}
 	}
 
@@ -261,7 +264,8 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
 		.OnInteractivePickBegin(FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveBegin))
 		.OnInteractivePickEnd(FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveEnd))
 		.sRGBOverride(sRGBOverride)
-		.TargetColorAttribute(InitialColor);
+		.TargetColorAttribute(InitialColor)
+		.IsEnabled(this, &FColorStructCustomization::IsValueEnabled, StructWeakHandlePtr);
 }
 
 
@@ -274,8 +278,7 @@ void FColorStructCustomization::OnSetColorFromColorPicker(FLinearColor NewColor)
 	}
 	else
 	{
-		// Handled by the color picker
-		const bool bSRGB = false;
+		const bool bSRGB = true;
 		FColor NewFColor = NewColor.ToFColor(bSRGB);
 		ColorString = NewFColor.ToString();
 	}
@@ -297,7 +300,7 @@ void FColorStructCustomization::OnColorPickerCancelled(FLinearColor OriginalColo
 		}
 		else
 		{
-			const bool bSRGB = false;
+			const bool bSRGB = true;
 			FColor Color = SavedPreColorPickerColors[ColorIndex].ToFColor(bSRGB);
 			PerObjectColors.Add(Color.ToString());
 		}

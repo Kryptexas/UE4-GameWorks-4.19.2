@@ -194,7 +194,7 @@ public:
 	 *
 	 * @param OutDisplayMetrics Will contain the display metrics.
 	 */
-	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
+	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const;
 
 	/**
 	 * Get the highest level of window transparency support currently enabled by this application
@@ -211,18 +211,10 @@ public:
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
 	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const = 0;
+	virtual EUINavigation GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent) = 0;
 
-	/**
-	* Gets the Widget that currently captures the mouse.
-	*
-	* @return The captor widget, or nullptr if no widget captured the mouse.
-	*/
-	DEPRECATED(4.5, "This API is no longer supported.  You can check if a specific widget has capture using the SWidget::HasMouseCapture() API")
-	inline TSharedPtr< SWidget > GetMouseCaptor() const
-	{
-		return GetMouseCaptorImpl();
-	}
-
+	/** @return	Returns true if there are any pop-up menus summoned */
+	virtual bool AnyMenusVisible() const = 0;
 protected:
 	/**
 	 * Implementation of GetMouseCaptor which can be overridden without warnings.
@@ -532,6 +524,9 @@ public:
 protected:
 	/** multicast delegate to broadcast when a global invalidate is requested */
 	FOnGlobalInvalidate OnGlobalInvalidateEvent;
+
+	/** Critical section for active timer registration as it can be called from the movie thread and the game thread */
+	FCriticalSection ActiveTimerCS;
 
 	// Gets set when Slate goes to sleep and cleared when active.
 	bool bIsSlateAsleep;

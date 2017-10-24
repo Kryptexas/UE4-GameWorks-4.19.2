@@ -27,10 +27,15 @@
 /// \file tf/fileUtils.h
 /// \ingroup group_tf_File
 /// Definitions of basic file utilities in tf.
+
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
+
 #include <string>
 #include <vector>
 #include <boost/function.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// Returns true if the path exists.
 ///
@@ -206,7 +211,8 @@ std::vector<std::string> TfListDir(std::string const& path,
 ///
 /// It is safe to pass NULL for any of \p dirnames, \p filenames, and
 /// \p symlinknames. In that case those elements are not reported
-TF_API bool
+TF_API
+bool
 TfReadDir(std::string const &dirPath,
           std::vector<std::string> *dirnames,
           std::vector<std::string> *filenames,
@@ -220,6 +226,9 @@ TfReadDir(std::string const &dirPath,
 /// is identical to the default touch behavior. If \p create is true, an empty
 /// file gets created, otherwise the touch call fails if the file does not
 /// already exist. 
-TF_API bool TfTouchFile(std::string const &fileName, bool create=true);
+TF_API
+bool TfTouchFile(std::string const &fileName, bool create=true);
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_FILEUTILS_H

@@ -80,7 +80,7 @@ private:
 	void Initialize();
 	void OnEpicSurveyWindowClosed(const TSharedRef<SWindow>& InWindow);
 
-	void OnEnumerateFilesComplete(bool bSuccess);
+	void OnEnumerateFilesComplete(bool bSuccess, const FString& ErrorString);
 	void OnReadFileComplete(bool bSuccess, const FString& Filename);
 	void LoadSurveyIndexFile();
 

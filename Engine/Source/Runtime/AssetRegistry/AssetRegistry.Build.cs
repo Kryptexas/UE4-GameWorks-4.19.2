@@ -10,11 +10,12 @@ public class AssetRegistry : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Projects",
 			}
 			);
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			PrivateIncludePathModuleNames.AddRange(new string[] { "DirectoryWatcher" });
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "DirectoryWatcher" });

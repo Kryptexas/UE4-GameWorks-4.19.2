@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "InputCoreTypes.h"
 #include "Framework/Commands/InputChord.h"
 #include "Framework/Commands/Commands.h"
+#include "Templates/SharedPointer.h"
+
 
 #define LOCTEXT_NAMESPACE "FMessagingDebuggerCommands"
+
 
 class FMessagingDebuggerCommands
 	: public TCommands<FMessagingDebuggerCommands>
@@ -21,7 +24,7 @@ public:
 
 public:
 
-	// TCommands interface
+	//~ TCommands interface
 
 	virtual void RegisterCommands() override
 	{

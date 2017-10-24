@@ -48,9 +48,9 @@ void FSslCertificateManager::BuildRootCertificateArray()
 
 	if (CertificateBundlePath.IsEmpty())
 	{
-		if (FPaths::FileExists(*(FPaths::GameContentDir() + TEXT("Certificates/cacert.pem"))))
+		if (FPaths::FileExists(*(FPaths::ProjectContentDir() + TEXT("Certificates/cacert.pem"))))
 		{
-			CertificateBundlePath = FPaths::GameContentDir() + TEXT("Certificates/cacert.pem");
+			CertificateBundlePath = FPaths::ProjectContentDir() + TEXT("Certificates/cacert.pem");
 		}
 		else if (FPaths::FileExists(*(FPaths::EngineContentDir() + TEXT("Certificates/ThirdParty/cacert.pem"))))
 		{

@@ -22,7 +22,7 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
-void FEdGraphSchemaAction::UpdateCategory(FText NewCategory)
+void FEdGraphSchemaAction::CosmeticUpdateCategory(FText NewCategory)
 {
 	Category = MoveTemp(NewCategory);
 
@@ -241,7 +241,7 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 
 	for (FString& Category : CategoryChain)
 	{
-		Category.Trim();
+		Category.TrimStartInline();
 	}
 #endif
 }

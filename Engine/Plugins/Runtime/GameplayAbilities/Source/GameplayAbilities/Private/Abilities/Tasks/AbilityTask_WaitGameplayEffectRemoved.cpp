@@ -21,21 +21,23 @@ UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::
 
 void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 {
+	FGameplayEffectRemovalInfo EmptyGameplayEffectRemovalInfo;
+
 	if (Handle.IsValid() == false)
 	{
 		if (ShouldBroadcastAbilityTaskDelegates())
 		{
-			InvalidHandle.Broadcast();
+			InvalidHandle.Broadcast(EmptyGameplayEffectRemovalInfo);
 		}
 		EndTask();
-		return;;
+		return;
 	}
 
 	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
 
 	if (EffectOwningAbilitySystemComponent)
 	{
-		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+		FOnActiveGameplayEffectRemoved_Info* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemoved_InfoDelegate(Handle);
 		if (DelPtr)
 		{
 			OnGameplayEffectRemovedDelegateHandle = DelPtr->AddUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
@@ -46,7 +48,7 @@ void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 	if (!Registered)
 	{
 		// GameplayEffect was already removed, treat this as a warning? Could be cases of immunity or chained gameplay rules that would instant remove something
-		OnGameplayEffectRemoved();
+		OnGameplayEffectRemoved(EmptyGameplayEffectRemovalInfo);
 	}
 }
 
@@ -55,7 +57,7 @@ void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
 	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
 	if (EffectOwningAbilitySystemComponent)
 	{
-		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+		FOnActiveGameplayEffectRemoved_Info* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemoved_InfoDelegate(Handle);
 		if (DelPtr)
 		{
 			DelPtr->Remove(OnGameplayEffectRemovedDelegateHandle);
@@ -65,11 +67,13 @@ void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
 	Super::OnDestroy(AbilityIsEnding);
 }
 
-void UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved()
+void UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved(const FGameplayEffectRemovalInfo& InGameplayEffectRemovalInfo)
 {
 	if (ShouldBroadcastAbilityTaskDelegates())
 	{
-		OnRemoved.Broadcast();
+		OnRemoved.Broadcast(InGameplayEffectRemovalInfo);
 	}
 	EndTask();
 }
+
+

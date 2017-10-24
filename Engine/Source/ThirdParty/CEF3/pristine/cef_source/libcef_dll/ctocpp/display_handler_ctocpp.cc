@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -189,17 +189,18 @@ bool CefDisplayHandlerCToCpp::OnConsoleMessage(CefRefPtr<CefBrowser> browser,
 CefDisplayHandlerCToCpp::CefDisplayHandlerCToCpp() {
 }
 
-template<> cef_display_handler_t* CefCToCpp<CefDisplayHandlerCToCpp,
+template<> cef_display_handler_t* CefCToCppRefCounted<CefDisplayHandlerCToCpp,
     CefDisplayHandler, cef_display_handler_t>::UnwrapDerived(
     CefWrapperType type, CefDisplayHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefDisplayHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDisplayHandlerCToCpp,
     CefDisplayHandler, cef_display_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDisplayHandlerCToCpp, CefDisplayHandler,
-    cef_display_handler_t>::kWrapperType = WT_DISPLAY_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefDisplayHandlerCToCpp,
+    CefDisplayHandler, cef_display_handler_t>::kWrapperType =
+    WT_DISPLAY_HANDLER;

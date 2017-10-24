@@ -88,7 +88,7 @@ void FGameplayCueTagDetails::CustomizeChildren( TSharedRef<IPropertyHandle> Stru
 			.Padding(2.0f, 2.0f)
 			.AutoWidth()
 			[
-				SAssignNew(ListView, SListView < TSharedRef<FStringAssetReference> >)
+				SAssignNew(ListView, SListView < TSharedRef<FSoftObjectPath> >)
 				.ItemHeight(48)
 				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&NotifyList)
@@ -109,7 +109,7 @@ void FGameplayCueTagDetails::CustomizeChildren( TSharedRef<IPropertyHandle> Stru
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-TSharedRef<ITableRow> FGameplayCueTagDetails::GenerateListRow(TSharedRef<FStringAssetReference> NotifyName, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> FGameplayCueTagDetails::GenerateListRow(TSharedRef<FSoftObjectPath> NotifyName, const TSharedRef<STableViewBase>& OwnerTable)
 {	
 	FString ShortName = NotifyName->ToString();
 	int32 idx;
@@ -120,7 +120,7 @@ TSharedRef<ITableRow> FGameplayCueTagDetails::GenerateListRow(TSharedRef<FString
 	}
 
 	return
-	SNew(STableRow< TSharedRef<FStringAssetReference> >, OwnerTable)
+	SNew(STableRow< TSharedRef<FSoftObjectPath> >, OwnerTable)
 	[
 		SNew(SBox)
 		.HAlign(HAlign_Left)
@@ -133,7 +133,7 @@ TSharedRef<ITableRow> FGameplayCueTagDetails::GenerateListRow(TSharedRef<FString
 	];
 }
 
-void FGameplayCueTagDetails::NavigateToHandler(TSharedRef<FStringAssetReference> AssetRef)
+void FGameplayCueTagDetails::NavigateToHandler(TSharedRef<FSoftObjectPath> AssetRef)
 {
 	SGameplayCueEditor::OpenEditorForNotify(AssetRef->ToString());
 }
@@ -178,7 +178,7 @@ bool FGameplayCueTagDetails::UpdateNotifyList()
 					if (CueSet->GameplayCueData.IsValidIndex(idx))
 					{
 						FGameplayCueNotifyData& Data = CueSet->GameplayCueData[*idxPtr];
-						TSharedRef<FStringAssetReference> Item(MakeShareable(new FStringAssetReference(Data.GameplayCueNotifyObj)));
+						TSharedRef<FSoftObjectPath> Item(MakeShareable(new FSoftObjectPath(Data.GameplayCueNotifyObj)));
 						NotifyList.Add(Item);
 					}
 				}

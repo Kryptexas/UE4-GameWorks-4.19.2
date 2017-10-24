@@ -41,6 +41,7 @@ public:
 		, _ShouldDeferPaintingAfterWindowContent(true)
 		, _UseApplicationMenuStack(true)
 		, _IsCollapsedByParent(false)
+		, _ApplyWidgetStyleToMenu(true)
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -63,6 +64,9 @@ public:
 		
 		/** True if this menu anchor should be collapsed when its parent receives focus, false (default) otherwise */
 		SLATE_ARGUMENT(bool, IsCollapsedByParent)
+
+		/** True to apply the InWidgetStyle of the menu anchor when painting the popup, false to always paint the popup with full opacity and no tint. */
+		SLATE_ARGUMENT(bool, ApplyWidgetStyleToMenu)
 
 	SLATE_END_ARGS()
 
@@ -131,9 +135,22 @@ protected:
 	/** Handler/callback called by menus created by this anchor, when they are dismissed */
 	void OnMenuClosed(TSharedRef<IMenu> InMenu);
 
+	/** Computes the placement geometry for menus displayed in a separately created window */
+	FGeometry ComputeNewWindowMenuPlacement(const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode) const;
+
 	static TArray<TWeakPtr<IMenu>> OpenApplicationMenus;
 
 protected:
+	struct SLATE_API FPopupPlacement
+	{
+		FPopupPlacement(const FGeometry& PlacementGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode);
+		
+		FVector2D LocalPopupSize;
+		FVector2D LocalPopupOffset;
+		FSlateRect AnchorLocalSpace;
+		EOrientation Orientation;
+	};
+
 	/**
 	 * A pointer to the window presenting this popup.
 	 * Can be the window created to hold a menu or the window containing this anchor if the menu is drawn as a child of the this anchor.
@@ -185,6 +202,9 @@ protected:
 
 	/** Should the menu by created by the application stack code making it behave like and have the lifetime of a normal menu? */
 	bool bUseApplicationMenuStack;
+
+	/** Should we paint the popup using the received InWidgetStyle? */
+	bool bApplyWidgetStyleToMenu;
 
 	/**
 	 * @todo Slate : Unify geometry so that this is not necessary.

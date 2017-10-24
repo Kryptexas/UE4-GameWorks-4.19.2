@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "GameFramework/Actor.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneBindingOwnerInterface.h"
 #include "MovieSceneBindingOverrides.h"
@@ -38,7 +38,7 @@ public:
 	bool bUseBurnIn;
 
 	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn, MetaClass="LevelSequenceBurnIn"))
-	FStringClassReference BurnInClass;
+	FSoftClassPath BurnInClass;
 
 	UPROPERTY(Instanced, EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn))
 	ULevelSequenceBurnInInitSettings* Settings;
@@ -77,7 +77,7 @@ public:
 	ULevelSequencePlayer* SequencePlayer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="LevelSequence"))
-	FStringAssetReference LevelSequence;
+	FSoftObjectPath LevelSequence;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category="General")
 	TArray<AActor*> AdditionalEventReceivers;

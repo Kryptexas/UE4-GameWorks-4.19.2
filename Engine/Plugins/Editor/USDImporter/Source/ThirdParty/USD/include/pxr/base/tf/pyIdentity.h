@@ -24,6 +24,8 @@
 #ifndef TF_PYIDENTITY_H
 #define TF_PYIDENTITY_H
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/pyLock.h"
 #include "pxr/base/tf/pyUtils.h"
@@ -49,17 +51,19 @@ namespace boost { namespace python {
 
 // TfWeakPtrFacade
 template <template <class> class X, class Y>
-struct pointee< TfWeakPtrFacade<X, Y> > {
+struct pointee< PXR_NS::TfWeakPtrFacade<X, Y> > {
     typedef Y type;
 };
 
 // TfRefPtr
 template <typename T>
-struct pointee< TfRefPtr<T> > {
+struct pointee< PXR_NS::TfRefPtr<T> > {
     typedef T type;
 };
 
 }}
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 struct Tf_PyIdentityHelper
 {
@@ -182,7 +186,7 @@ struct Tf_PyOwnershipHelper<Ptr,
     static void Remove(Ptr ptr, PyObject *obj) {
         TfPyLock pyLock;
 
-        if (not ptr) {
+        if (!ptr) {
             // CODE_COVERAGE_OFF Can only happen if there's a bug.
             TF_CODING_ERROR("Removing ownership from null/expired ptr!");
             return;
@@ -195,7 +199,7 @@ struct Tf_PyOwnershipHelper<Ptr,
             // reference.  This also guarantees us that the object owns
             // a reference to its python object, so we don't need to
             // explicitly acquire a reference here.
-            TF_AXIOM(not ptr->IsUnique());
+            TF_AXIOM(!ptr->IsUnique());
             // Remove this object from the cache of refbase to uniqueId
             // that we use for python-owned things.
             Tf_PyOwnershipPtrMap::Erase(get_pointer(ptr));
@@ -260,5 +264,7 @@ void Tf_PyAddPythonOwnership(Ptr const &t, const void *uniqueId, PyObject *obj)
 {
     Tf_PyOwnershipHelper<Ptr>::Add(t, uniqueId, obj);
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYIDENTITY_H

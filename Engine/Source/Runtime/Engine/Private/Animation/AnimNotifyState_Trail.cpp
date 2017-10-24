@@ -92,7 +92,7 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 
 	if(PSTemplate == nullptr)
 	{
-		UE_LOG(LogParticles, Warning, TEXT("Trail Notify: Null PSTemplate for trail notify in anim: %s"), *GetNameSafe(Animation)); 
+		UE_LOG(LogParticles, Warning, TEXT("Trail Notify: Null PSTemplate for trail notify in anim: %s"), *GetPathNameSafe(Animation));
 		return;
 	}
 

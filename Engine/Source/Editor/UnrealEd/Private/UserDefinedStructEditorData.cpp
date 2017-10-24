@@ -189,8 +189,7 @@ void UUserDefinedStructEditorData::AddReferencedObjects(UObject* InThis, FRefere
 	uint8* StructData = This->DefaultStructInstance.GetStructMemory();
 	if (StructData)
 	{
-		FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(This, Collector);
-		ScriptStruct->SerializeBin(ObjectReferenceCollector, StructData);
+		ScriptStruct->SerializeBin(Collector.GetVerySlowReferenceCollectorArchive(), StructData);
 	}
 
 	Super::AddReferencedObjects(This, Collector);

@@ -73,6 +73,9 @@ public:
 	virtual void PostPasteNode() override;
 	virtual bool IsDeprecated() const;
 	virtual FString GetDeprecationMessage() const;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual bool CanJumpToDefinition() const override;
+	virtual void JumpToDefinition() const override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin K2Node Interface
@@ -137,6 +140,11 @@ public:
 	/** Get the UProperty for this variable node */
 	UProperty* GetPropertyForVariable() const;
 	UProperty* GetPropertyForVariableFromSkeleton() const;
+
+private:
+	UProperty* GetPropertyForVariable_Internal(UClass* OwningClass) const;
+
+public:
 
 	/** Accessor for the value output pin of the node */
 	UEdGraphPin* GetValuePin() const;

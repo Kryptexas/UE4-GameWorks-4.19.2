@@ -17,6 +17,7 @@
 #include "WidgetCarouselStyle.h"
 #include "HAL/PlatformProcess.h"
 #include "Widgets/Layout/SSpacer.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "WidgetCarousel"
 
@@ -72,7 +73,7 @@ public:
 
 		void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 		{
-			if (FPlatformProcess::IsThisApplicationForeground())
+			if (FPlatformApplicationMisc::IsThisApplicationForeground())
 			{
 				if (OnBeginPeek.IsBound() == true)
 				{
@@ -84,7 +85,7 @@ public:
 
 		void OnMouseLeave(const FPointerEvent& MouseEvent)
 		{
-			if (FPlatformProcess::IsThisApplicationForeground())
+			if (FPlatformApplicationMisc::IsThisApplicationForeground())
 			{
 				if (OnEndPeek.IsBound() == true)
 				{
@@ -236,7 +237,7 @@ private:
 
 		if (IsHovered())
 		{
-			if (ImageTransparency != 1.f && FPlatformProcess::IsThisApplicationForeground())
+			if (ImageTransparency != 1.f && FPlatformApplicationMisc::IsThisApplicationForeground())
 			{
 				ImageTransparency = FMath::Min<float>(ImageTransparency + DesiredBlendSpeed, 1.f);
 			}
@@ -247,7 +248,7 @@ private:
 		}
 		else
 		{
-			if (ImageTransparency != 0.f && FPlatformProcess::IsThisApplicationForeground())
+			if (ImageTransparency != 0.f && FPlatformApplicationMisc::IsThisApplicationForeground())
 			{
 				ImageTransparency = FMath::Max<float>(ImageTransparency - DesiredBlendSpeed, 0.f);
 			}

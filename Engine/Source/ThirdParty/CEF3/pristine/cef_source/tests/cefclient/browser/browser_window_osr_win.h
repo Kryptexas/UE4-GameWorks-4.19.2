@@ -6,8 +6,8 @@
 #define CEF_TESTS_CEFCLIENT_BROWSER_BROWSER_WINDOW_OSR_WIN_H_
 #pragma once
 
-#include "cefclient/browser/browser_window.h"
-#include "cefclient/browser/osr_window_win.h"
+#include "tests/cefclient/browser/browser_window.h"
+#include "tests/cefclient/browser/osr_window_win.h"
 
 namespace client {
 
@@ -48,8 +48,6 @@ class BrowserWindowOsrWin : public BrowserWindow,
 
   // OsrWindowWin::Delegate methods.
   void OnOsrNativeWindowCreated(HWND hwnd) OVERRIDE;
-
-  const bool transparent_;
 
   // The below members are only accessed on the main thread.
   scoped_refptr<OsrWindowWin> osr_window_;

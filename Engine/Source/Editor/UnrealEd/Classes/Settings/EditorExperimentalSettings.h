@@ -59,10 +59,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Break on Exceptions"))
 	bool bBreakOnExceptions;
 
-	/** Enable experimental blueprint performance analysis tools. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
-	bool bBlueprintPerformanceAnalysisTools;
-
 	/** Enables "Find and Replace All" tool in the MyBlueprint window for variables */
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Find and Replace All References Tool"))
 	bool bEnableFindAndReplaceReferences;
@@ -116,10 +112,6 @@ public:
 	/** Enable experimental bulk facial animation importer (found in Developer Tools menu, requires editor restart) */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bFacialAnimationImporter;
-
-	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
-	bool bClothingTools;
 
 	/** Allow animation blueprints to be recompiled while a PIE session is running */
 	UPROPERTY(EditAnywhere, config, Category = Tools)

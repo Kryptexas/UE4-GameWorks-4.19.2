@@ -521,6 +521,7 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override				{ return BLEND_Opaque; }
 	virtual enum EMaterialShadingModel GetShadingModel() const override	{ return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const override				{ return 0.5f; }
+	virtual bool GetCastDynamicShadowAsMasked() const override					{ return false; }
 	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FLightmassMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 
 	/**
@@ -917,8 +918,11 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
 	OutMaterialData.BlendMode = (Lightmass::EBlendMode)((int32)BlendMode);
 	// Set the two-sided flag
 	OutMaterialData.bTwoSided = (uint32)InMaterial.IsTwoSided();
-	OutMaterialData.bCastShadowAsMasked = BaseMaterial->GetCastShadowAsMasked() && IsTranslucentBlendMode((EBlendMode)BlendMode);
 	OutMaterialData.OpacityMaskClipValue = InMaterial.GetOpacityMaskClipValue();
+	// Cast shadow as masked feature need to access transmission texture. Only allow
+	// if transmission/opacity data exists
+	OutMaterialData.bCastShadowAsMasked = MaterialExportEntry.OpacityMaterialProxy
+		&& InMaterial.GetCastShadowAsMasked();
 
 	const bool bIsLandscapeMaterial = InMaterial.IsA<ULandscapeMaterialInstanceConstant>();
 

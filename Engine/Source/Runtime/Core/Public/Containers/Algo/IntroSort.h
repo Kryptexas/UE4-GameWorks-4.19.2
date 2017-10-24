@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Algo/Impl/BinaryHeap.h"
+#include "Math/UnrealMathUtility.h"
 #include "Templates/IdentityFunctor.h"
 #include "Templates/Invoke.h"
 #include "Templates/Less.h"

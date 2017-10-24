@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -397,16 +397,17 @@ CefDragDataCppToC::CefDragDataCppToC() {
   GetStruct()->add_file = drag_data_add_file;
 }
 
-template<> CefRefPtr<CefDragData> CefCppToC<CefDragDataCppToC, CefDragData,
-    cef_drag_data_t>::UnwrapDerived(CefWrapperType type, cef_drag_data_t* s) {
+template<> CefRefPtr<CefDragData> CefCppToCRefCounted<CefDragDataCppToC,
+    CefDragData, cef_drag_data_t>::UnwrapDerived(CefWrapperType type,
+    cef_drag_data_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefDragDataCppToC, CefDragData,
-    cef_drag_data_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefDragDataCppToC,
+    CefDragData, cef_drag_data_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefDragDataCppToC, CefDragData,
+template<> CefWrapperType CefCppToCRefCounted<CefDragDataCppToC, CefDragData,
     cef_drag_data_t>::kWrapperType = WT_DRAG_DATA;

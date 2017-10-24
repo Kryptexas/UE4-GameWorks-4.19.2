@@ -83,7 +83,7 @@ void Main(
 	float InvWidth = 1.0f / max(1.0f, Range );
 	Distortion *= saturate((Z - ZCompare) * InvWidth + Bias);
 
-#if (ES2_PROFILE || ES3_1_PROFILE) 
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	// mobile path direclty outputs distorted colors
 	DistortScreenUV = ScreenUV + Distortion;
 	OutColor = CalcFullSceneColor(DistortScreenUV);

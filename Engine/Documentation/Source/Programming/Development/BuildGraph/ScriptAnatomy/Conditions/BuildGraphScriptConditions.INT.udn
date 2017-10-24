@@ -53,18 +53,18 @@ A list of operators is specified below:
 
 | **Operator**            | **Description**                                                             | **Precedence**  |
 | ----------------------- | --------------------------------------------------------------------------- | --------------- |
-| **(x)**                 | Subexpression                                                               | 1               |
-| **!x**                  | Not operator                                                                | 1               |
-| **Exists(x)**           | True if the x file exists.                                                  | 1               |
-| **HasTrailingSlash(x)** | True if x ends with a slash or backslash.                                   | 1               |
-| **x == y**              | Tests two atoms for equality (case insensitive).                            | 2               |
-| **x != y**              | Tests two atoms for inequality (case insensitive).                          | 2               |
-| **x < y**               | Compares whether the integer x is less than the integer y.                  | 2               |
-| **x <= y**              | Compares whether the integer x is less than or equal to the integer y.      | 2               |
-| **x > y**               | Compares whether the integer x is greater than the integer y.               | 2               |
-| **x >= y**              | Compares whether the integer x is greater than or equal to the integer y.   | 2               |
-| **x and y**             | True if both arguments are `true`.                                          | 3               |
-| **x or y**              | True if either argument is `true`.                                          | 4               |
+| `(x)`                 | Subexpression                                                               | 1               |
+| `!x`                  | Not operator                                                                | 1               |
+| `Exists(x)`           | True if the x file exists.                                                  | 1               |
+| `HasTrailingSlash(x)` | True if x ends with a slash or backslash.                                   | 1               |
+| `x == y`              | Tests two atoms for equality (case insensitive).                            | 2               |
+| `x != y`              | Tests two atoms for inequality (case insensitive).                          | 2               |
+| `x < y`               | Compares whether the integer x is less than the integer y.                  | 2               |
+| `x <= y`              | Compares whether the integer x is less than or equal to the integer y.      | 2               |
+| `x > y`               | Compares whether the integer x is greater than the integer y.               | 2               |
+| `x >= y`              | Compares whether the integer x is greater than or equal to the integer y.   | 2               |
+| `x and y`             | True if both arguments are `true`.                                          | 3               |
+| `x or y`              | True if either argument is `true`.                                          | 4               |
 
 [REGION:note]
 The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML.

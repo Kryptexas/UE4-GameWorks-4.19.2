@@ -14,13 +14,16 @@ namespace Audio
 	struct FProceduralAudioTaskData
 	{
 		// The procedural sound wave ptr to use to generate audio with
-		USoundWaveProcedural* ProceduralSoundWave;
+		USoundWave* ProceduralSoundWave;
 
 		// The audio buffer to fill from the results of the generation
-		uint8* AudioData;
+		float* AudioData;
 
 		// The size of the audio buffer
-		int32 MaxAudioDataSamples;
+		int32 NumSamples;
+
+		// The number of channels of the procedural buffer
+		int32 NumChannels;
 	};
 
 	// Data needed for a decode audio task
@@ -29,8 +32,8 @@ namespace Audio
 		// The mixer buffer buffer object which holds state to use for the decode operation
 		FMixerBuffer* MixerBuffer;
 
-		// A pointer to a buffer of audio which will be written to
-		uint8* AudioData;
+		// A pointer to a buffer of audio which will be decoded to
+		float* AudioData;
 
 		// The number of frames to decode
 		int32 NumFramesToDecode;
@@ -55,16 +58,17 @@ namespace Audio
 	// Results from procedural audio task
 	struct FProceduralAudioTaskResults
 	{
-		int32 NumBytesWritten;
+		int32 NumSamplesWritten;
 
 		FProceduralAudioTaskResults()
-			: NumBytesWritten(0)
+			: NumSamplesWritten(0)
 		{}
 	};
 
 	// Results from decode audio task
 	struct FDecodeAudioTaskResults
 	{
+		// Whether or not the audio buffer looped
 		bool bLooped;
 
 		FDecodeAudioTaskResults()

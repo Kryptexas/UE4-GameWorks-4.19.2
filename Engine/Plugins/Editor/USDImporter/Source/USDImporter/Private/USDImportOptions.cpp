@@ -11,6 +11,16 @@ UUSDImportOptions::UUSDImportOptions(const FObjectInitializer& ObjectInitializer
 
 }
 
+void UUSDImportOptions::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		SaveConfig();
+	}
+}
+
 UUSDSceneImportOptions::UUSDSceneImportOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -24,10 +34,7 @@ UUSDSceneImportOptions::UUSDSceneImportOptions(const FObjectInitializer& ObjectI
 
 void UUSDSceneImportOptions::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
-	{
-		SaveConfig();
-	}
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 bool UUSDSceneImportOptions::CanEditChange(const UProperty* InProperty) const

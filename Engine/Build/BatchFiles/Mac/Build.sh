@@ -22,12 +22,19 @@ case $ACTION in
 		
 		case $CLANG_STATIC_ANALYZER_MODE in
 				"deep")
-					AdditionalFlags+="-skipActionHistory"
+					AdditionalFlags+="-SkipActionHistory"
 					;;
 				"shallow")
-					AdditionalFlags+="-skipActionHistory"
+					AdditionalFlags+="-SkipActionHistory"
 					;;
 				esac
+
+		case $ENABLE_THREAD_SANITIZER in
+			"YES"|"1")
+				# Disable TSAN atomic->non-atomic race reporting as we aren't C++11 memory-model conformant so UHT will fail
+				export TSAN_OPTIONS="suppress_equal_stacks=true suppress_equal_addresses=true report_atomic_races=false"
+			;;
+			esac
 
 		case $2 in 
 			"iphoneos"|"IOS")

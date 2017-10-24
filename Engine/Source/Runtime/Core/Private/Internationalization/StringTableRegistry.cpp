@@ -29,7 +29,7 @@ FStringTableRegistry::FStringTableRegistry()
 		{
 			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::EngineContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), EngineDirectoryWatcherHandle);
 
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::GameContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), GameDirectoryWatcherHandle);
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::ProjectContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), GameDirectoryWatcherHandle);
 		}
 	}
 #endif // WITH_EDITOR
@@ -52,7 +52,7 @@ FStringTableRegistry::~FStringTableRegistry()
 				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::EngineContentDir(), EngineDirectoryWatcherHandle);
 				EngineDirectoryWatcherHandle.Reset();
 
-				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::GameContentDir(), GameDirectoryWatcherHandle);
+				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::ProjectContentDir(), GameDirectoryWatcherHandle);
 				GameDirectoryWatcherHandle.Reset();
 			}
 		}
@@ -218,7 +218,7 @@ void FStringTableRegistry::Internal_LocTableFromFile(const FName InTableId, cons
 void FStringTableRegistry::Internal_SetLocTableEntry(const FName InTableId, const FString& InKey, const FString& InSourceString)
 {
 	FStringTablePtr StringTable = FindMutableStringTable(InTableId);
-	checkf(StringTable.IsValid(), TEXT("Attempting to add a string table entry to the unknown string table '%s'"), InTableId);
+	checkf(StringTable.IsValid(), TEXT("Attempting to add a string table entry to the unknown string table '%s'"), *InTableId.ToString());
 
 	StringTable->SetSourceString(InKey, InSourceString);
 }
@@ -226,7 +226,7 @@ void FStringTableRegistry::Internal_SetLocTableEntry(const FName InTableId, cons
 void FStringTableRegistry::Internal_SetLocTableEntryMetaData(const FName InTableId, const FString& InKey, const FName InMetaDataId, const FString& InMetaData)
 {
 	FStringTablePtr StringTable = FindMutableStringTable(InTableId);
-	checkf(StringTable.IsValid(), TEXT("Attempting to add string table entry meta-data to the unknown string table '%s'"), InTableId);
+	checkf(StringTable.IsValid(), TEXT("Attempting to add string table entry meta-data to the unknown string table '%s'"), *InTableId.ToString());
 
 	StringTable->SetMetaData(InKey, InMetaDataId, InMetaData);
 }

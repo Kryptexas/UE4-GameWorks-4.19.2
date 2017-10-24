@@ -49,12 +49,6 @@
 #if !defined(PLATFORM_HTML5)
 	#define PLATFORM_HTML5 0
 #endif
-#if !defined(PLATFORM_HTML5_BROWSER)
-	#define PLATFORM_HTML5_BROWSER 0
-#endif
-#if !defined(PLATFORM_HTML5_WIN32)
-	#define PLATFORM_HTML5_WIN32 0
-#endif
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
 #endif
@@ -127,9 +121,22 @@
 //------------------------------------------------------------------
 // Setup macros for static code analysis
 //------------------------------------------------------------------
+#ifndef PLATFORM_COMPILER_CLANG
+	#if defined(__clang__)
+		#define PLATFORM_COMPILER_CLANG			1
+	#else
+		#define PLATFORM_COMPILER_CLANG			0
+	#endif // defined(__clang__)
+#endif
 
 #if PLATFORM_WINDOWS
-	#include "Windows/WindowsPlatformCodeAnalysis.h"
+    #include "Windows/WindowsPlatformCodeAnalysis.h"
+#elif PLATFORM_COMPILER_CLANG
+    #include "Clang/ClangPlatformCodeAnalysis.h"
+#endif
+
+#ifndef USING_ADDRESS_SANITISER
+	#define USING_ADDRESS_SANITISER 0
 #endif
 
 //------------------------------------------------------------------
@@ -182,12 +189,17 @@
 	#define PLATFORM_ENABLE_VECTORINTRINSICS	0
 #endif
 #ifndef PLATFORM_HAS_CPUID
-	#if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
+	#if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined (__amd64__)
 		#define PLATFORM_HAS_CPUID				1
 	#else
 		#define PLATFORM_HAS_CPUID				0
 	#endif
-#endif	
+#endif
+#ifndef PLATFORM_ENABLE_POPCNT_INTRINSIC
+	// PC is disabled by default, but linux and mac are enabled
+	// if your min spec is an AMD cpu mid-2007 or Intel 2008, you should enable this
+	#define PLATFORM_ENABLE_POPCNT_INTRINSIC 0
+#endif
 #ifndef PLATFORM_ENABLE_VECTORINTRINSICS_NEON
 	#define PLATFORM_ENABLE_VECTORINTRINSICS_NEON	0
 #endif
@@ -196,13 +208,6 @@
 #endif
 #ifndef PLATFORM_USE_SYSTEM_VSWPRINTF
 	#define PLATFORM_USE_SYSTEM_VSWPRINTF		1
-#endif
-#ifndef PLATFORM_COMPILER_CLANG
-	#if defined(__clang__)
-		#define PLATFORM_COMPILER_CLANG			1
-	#else
-		#define PLATFORM_COMPILER_CLANG			0
-	#endif // defined(__clang__)
 #endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
@@ -395,6 +400,10 @@
 	#define PLATFORM_LIMIT_MOBILE_BONE_MATRICES					0
 #endif
 
+#ifndef PLATFORM_WEAKLY_CONSISTENT_MEMORY
+	#define PLATFORM_WEAKLY_CONSISTENT_MEMORY PLATFORM_CPU_ARM_FAMILY
+#endif
+
 // deprecated, do not use
 #define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult	#
 #define PLATFORM_SUPPORTS_RHI_THREAD #
@@ -411,13 +420,13 @@
 #define PLATFORM_32BITS					(!PLATFORM_64BITS)
 
 // not supported by the platform system yet or maybe ever
-#define PLATFORM_VTABLE_AT_END_OF_CLASS 0 
+#define PLATFORM_VTABLE_AT_END_OF_CLASS 0
 
 #ifndef VARARGS
 	#define VARARGS									/* Functions with variable arguments */
 #endif
 #ifndef CDECL
-	#define CDECL	    							/* Standard C function */
+	#define CDECL									/* Standard C function */
 #endif
 #ifndef STDCALL
 	#define STDCALL									/* Standard calling convention */
@@ -461,7 +470,7 @@
 #endif
 
 #ifndef ASSUME										/* Hints compiler that expression is true; generally restricted to comparisons against constants */
-	#define ASSUME(...) 
+	#define ASSUME(...)
 #endif
 
 /** Branch prediction hints */
@@ -500,7 +509,7 @@
 	#define FORCEINLINE_DEBUGGABLE_ACTUAL inline
 #endif
 
-#ifndef DECLARE_UINT64						
+#ifndef DECLARE_UINT64
 	#define DECLARE_UINT64(x) x##ULL	/* Define a 64 bit immediate int **/
 #endif
 
@@ -510,7 +519,7 @@
 #endif
 
 // Method modifiers
-#ifndef ABSTRACT						
+#ifndef ABSTRACT
 	#define ABSTRACT
 #endif
 #ifndef CONSTEXPR
@@ -518,7 +527,7 @@
 #endif
 
 // String constants
-#ifndef LINE_TERMINATOR						
+#ifndef LINE_TERMINATOR
 	#define LINE_TERMINATOR TEXT("\n")
 #endif
 #ifndef LINE_TERMINATOR_ANSI
@@ -526,13 +535,13 @@
 #endif
 
 // Alignment.
-#ifndef GCC_PACK						
+#ifndef GCC_PACK
 	#define GCC_PACK(n)
 #endif
-#ifndef GCC_ALIGN						
+#ifndef GCC_ALIGN
 	#define GCC_ALIGN(n)
 #endif
-#ifndef MS_ALIGN						
+#ifndef MS_ALIGN
 	#define MS_ALIGN(n)
 #endif
 
@@ -544,8 +553,8 @@
 
 // Inlining
 #ifndef PRAGMA_DISABLE_INLINING
-	#define PRAGMA_DISABLE_INLINING	
-	#define PRAGMA_ENABLE_INLINING	
+	#define PRAGMA_DISABLE_INLINING
+	#define PRAGMA_ENABLE_INLINING
 #endif
 
 // Cache control
@@ -561,7 +570,7 @@
 // Compile-time warnings and errors. Use these as "#pragma COMPILER_WARNING("XYZ")". GCC does not expand macro parameters to _Pragma, so we can't wrap the #pragma part.
 #ifdef _MSC_VER
 	#define MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) #x
-	#define MSC_FORMAT_DIAGNOSTIC_HELPER(x) MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) 
+	#define MSC_FORMAT_DIAGNOSTIC_HELPER(x) MSC_FORMAT_DIAGNOSTIC_HELPER_2(x)
 	#define COMPILE_WARNING(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): warning: " x))
 	#define COMPILE_ERROR(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): error: " x))
 #else
@@ -570,7 +579,7 @@
 	#define COMPILE_ERROR(x) GCC_DIAGNOSTIC_HELPER(GCC error x)
 #endif
 
-// These have to be forced inline on some OSes so the dynamic loader will not 
+// These have to be forced inline on some OSes so the dynamic loader will not
 // resolve to our allocators for the system libraries.
 #ifndef OPERATOR_NEW_INLINE
 	#define OPERATOR_NEW_INLINE FORCEINLINE
@@ -659,7 +668,7 @@ template<typename,typename> struct TAreTypesEqual;
 // Replace 'BITFIELD' with 'uint32'
 // Replace 'UBOOL' with 'bool'
 // Replace 'FALSE' with 'false' and 'TRUE' with true.
-// Make sure any platform API uses its own bool types. 
+// Make sure any platform API uses its own bool types.
 // For example WinAPI uses BOOL, FALSE and TRUE otherwise sometimes it doesn't work properly
 // or it doesn't compile.
 // Replace 'ExtractUBOOLFromBitfield' with 'ExtractBoolFromBitfield'

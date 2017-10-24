@@ -46,6 +46,7 @@
 #include "PostProcess/PostProcessSubsurface.h"
 #include "PostProcess/PostProcessMorpheus.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "BufferVisualizationData.h"
 #include "CompositionLighting/PostProcessLpvIndirect.h"
 #include "PostProcess/PostProcessStreamingAccuracyLegend.h"
@@ -1321,7 +1322,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		bool bDoScreenPercentage;
 		{
 			//
-			bool bHMDWantsUpscale = bStereoRenderingAndHMD && GEngine->HMDDevice->NeedsUpscalePostProcessPass();
+			bool bHMDWantsUpscale = bStereoRenderingAndHMD && GEngine->XRSystem->GetHMDDevice()->NeedsUpscalePostProcessPass();
 			// Do not use upscale if SeparateRenderTarget is in use! (stereo rendering wants to control this)
 			bool bAllowScreenPercentage = bHMDWantsUpscale || !View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget);
 			// is Upscale from a lower resolution needed and allowed
@@ -1354,8 +1355,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			bAllowTonemapper = false;
 		}
 
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-		const bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+		const bool bHDROutputEnabled = GRHISupportsHDROutput && IsHDREnabled();
 
 		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
 		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread() || bHDROutputEnabled);
@@ -1823,13 +1823,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			}
 		}
 		
-		bool bResultsUpsampled = false;
 		if(View.Family->EngineShowFlags.StationaryLightOverlap)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->StationaryLightOverlapColors, FVisualizeComplexityApplyPS::CS_RAMP, 1.f, false));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 		const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
@@ -1839,7 +1837,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->QuadComplexityColors, FVisualizeComplexityApplyPS::CS_STAIR, ComplexityScale, true));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 		if(DebugViewShaderMode == DVSM_ShaderComplexity || DebugViewShaderMode == DVSM_ShaderComplexityContainedQuadOverhead || DebugViewShaderMode == DVSM_ShaderComplexityBleedingQuadOverhead)
@@ -1847,7 +1844,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, FVisualizeComplexityApplyPS::CS_RAMP, 1.f, true));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 		if (DebugViewShaderMode == DVSM_PrimitiveDistanceAccuracy || DebugViewShaderMode == DVSM_MeshUVDensityAccuracy || DebugViewShaderMode == DVSM_MaterialTextureScaleAccuracy ||DebugViewShaderMode == DVSM_RequiredTextureResolution)
@@ -1855,7 +1851,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessStreamingAccuracyLegend(GEngine->StreamingAccuracyColors));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 		if(View.Family->EngineShowFlags.VisualizeLightCulling) 
@@ -1864,7 +1859,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->LightComplexityColors, FVisualizeComplexityApplyPS::CS_LINEAR,  ComplexityScale, false));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 		if(View.Family->EngineShowFlags.VisualizeLPV && !View.Family->EngineShowFlags.VisualizeHDR)
@@ -1872,7 +1866,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeLPV());
 			Node->SetInput(ePId_Input0, Context.FinalOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			bResultsUpsampled = true;
 		}
 
 #if WITH_EDITOR
@@ -1947,12 +1940,12 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		if (bStereoRenderingAndHMD)
 		{
 			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
 			if((DeviceType == EHMDDeviceType::DT_OculusRift) || (DeviceType == EHMDDeviceType::DT_GoogleVR))
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->HMDDevice->IsStereoEnabled())
+			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->StereoRenderingDevice->IsStereoEnabled())
 			{
 				
 #if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
@@ -1990,7 +1983,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 		AddHighResScreenshotMask(Context, SeparateTranslucency);
 
-		if(bDoScreenPercentage && !bResultsUpsampled)
+		if(bDoScreenPercentage)
 		{
 			// Check if we can save the Upscale pass and do it in the Tonemapper to save performance
 			if(Tonemapper && !PaniniConfig.IsEnabled() && !Tonemapper->bDoGammaOnly)
@@ -2526,6 +2519,27 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			AddHighResScreenshotMask(Context, EmptySeparateTranslucency);
 		}
 		
+	
+#if WITH_EDITOR
+		// Show the selection outline if it is in the editor and we aren't in wireframe 
+		// If the engine is in demo mode and game view is on we also do not show the selection outline
+		if ( GIsEditor
+			&& View.Family->EngineShowFlags.SelectionOutline
+			&& !(View.Family->EngineShowFlags.Wireframe)
+			)
+		{
+			// Editor selection outline
+			AddSelectionOutline(Context);
+		}
+
+		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		{
+			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
+			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
+		}
+#endif
+
 		// Apply ScreenPercentage
 		if (View.UnscaledViewRect != View.ViewRect)
 		{
@@ -2548,25 +2562,6 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			*DoScreenPercentageInTonemapperPtr = false;
 		}
 
-#if WITH_EDITOR
-		// Show the selection outline if it is in the editor and we aren't in wireframe 
-		// If the engine is in demo mode and game view is on we also do not show the selection outline
-		if ( GIsEditor
-			&& View.Family->EngineShowFlags.SelectionOutline
-			&& !(View.Family->EngineShowFlags.Wireframe)
-			)
-		{
-			// Editor selection outline
-			AddSelectionOutline(Context);
-		}
-
-		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View) )
-		{
-			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
-			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
-		}
-#endif
 
 		const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
 		if(DebugViewShaderMode == DVSM_QuadComplexity)
@@ -2589,7 +2584,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		if (bStereoRenderingAndHMD)
 		{
 			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
 			if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh)
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());

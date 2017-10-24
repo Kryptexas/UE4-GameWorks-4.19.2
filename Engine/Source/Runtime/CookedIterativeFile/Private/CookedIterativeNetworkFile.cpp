@@ -306,7 +306,6 @@ FCookedIterativeNetworkFile::~FCookedIterativeNetworkFile()
 {
 }
 
-
 /**
  * Module for the streaming file
  */

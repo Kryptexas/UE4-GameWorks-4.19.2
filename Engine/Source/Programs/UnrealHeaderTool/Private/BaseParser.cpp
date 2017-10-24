@@ -1130,8 +1130,8 @@ void FBaseParser::InsertMetaDataPair(TMap<FName, FString>& MetaData, const FStri
 	FString Value = InValue;
 
 	// trim extra white space and quotes
-	Key = Key.Trim().TrimTrailing();
-	Value = Value.Trim().TrimTrailing();
+	Key.TrimStartAndEndInline();
+	Value.TrimStartAndEndInline();
 	Value = Value.TrimQuotes();
 
 	// make sure the key is valid

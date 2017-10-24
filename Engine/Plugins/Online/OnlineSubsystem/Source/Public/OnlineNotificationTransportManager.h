@@ -30,6 +30,8 @@ public:
 	{
 	}
 
+	virtual ~FOnlineNotificationTransportManager();
+	
 	/** Send a notification using a specific transport */
 	bool SendNotification(FNotificationTransportId TransportType, const FOnlineNotification& Notification);
 
@@ -49,6 +51,17 @@ public:
 
 	/** Resets all transports */
 	void ResetNotificationTransports();
+
+	/** Base function for letting the notifications flow */
+	virtual FOnlineTransportTapHandle OpenTap(const FUniqueNetId& User, const FOnlineTransportTap& Tap)
+	{
+		return FOnlineTransportTapHandle();
+	}
+
+	/** Base function for stanching the notifications */
+	virtual void CloseTap(FOnlineTransportTapHandle TapHandle)
+	{
+	}
 };
 
 typedef TSharedPtr<FOnlineNotificationTransportManager, ESPMode::ThreadSafe> FOnlineNotificationTransportManagerPtr;

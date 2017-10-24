@@ -141,6 +141,36 @@ class UExporter : public UObject
 	virtual FString GetUniqueFilename( const TCHAR* Filename, int32 FileIndex ) { check( FileIndex == 0 ); return( FString( Filename ) ); }
 
 	/**
+	* Return true if the exporter is in batch mode.
+	*/
+	ENGINE_API virtual bool GetBatchMode() const;
+
+	/**
+	* Set the exporter batch mode.
+	*/
+	ENGINE_API virtual void SetBatchMode(bool InBatchExportMode);
+
+	/**
+	* Return true if the exporter batch was cancel.
+	*/
+	ENGINE_API virtual bool GetCancelBatch() const;
+
+	/**
+	* Set the exporter batch cancel state.
+	*/
+	ENGINE_API virtual void SetCancelBatch(bool InCancelBatch);
+
+	/**
+	* Return true if the exporter must show the export options.
+	*/
+	ENGINE_API virtual bool GetShowExportOption() const;
+
+	/**
+	* Set if the exporter should show or hide the export options.
+	*/
+	ENGINE_API virtual void SetShowExportOption(bool InShowExportOption);
+
+	/**
 	 * Find an exporter for the object and filetype.
 	 *
 	 * @param	Object - the object to export
@@ -256,4 +286,13 @@ protected:
 
 	/** The set of registered exporters. */
 	static TSet< TWeakObjectPtr<UExporter> > RegisteredExporters;
+
+	/** The exporter is in batch mode. When the exporter is in batch mode we can offer a export all button in the options */
+	bool BatchExportMode;
+
+	/** The exporter will show the export options if this field is true */
+	bool ShowExportOption;
+
+	/** If set to true and BatchExportMode is also true, all other export from this bulk export should be cancel */
+	bool CancelBatch;
 };

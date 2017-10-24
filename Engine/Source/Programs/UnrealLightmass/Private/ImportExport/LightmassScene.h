@@ -146,6 +146,8 @@ public:
 	 */
 	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const;
 
+	virtual FSphere GetBoundingSphere() const;
+
 	/**
 	 * Computes the intensity of the direct lighting from this light on a specific point.
 	 */
@@ -348,6 +350,11 @@ public:
 	 */
 	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const;
 
+	virtual FSphere GetBoundingSphere() const
+	{
+		return FSphere(Position, Radius);
+	}
+
 	/**
 	 * Computes the intensity of the direct lighting from this light on a specific point.
 	 */
@@ -385,6 +392,8 @@ protected:
 
 	float CosIndirectPhotonEmitConeAngle;
 
+	virtual FVector GetLightTangent() const;
+
 	/** Generates a sample on the light's surface. */
 	virtual void SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const;
 };
@@ -407,7 +416,9 @@ public:
 		return this;
 	}
 
-	virtual void			Import( class FLightmassImporter& Importer );
+	virtual void Import( class FLightmassImporter& Importer );
+
+	void Initialize(float InIndirectPhotonEmitConeAngle);
 
 	/**
 	 * Tests whether the light affects the given bounding volume.
@@ -415,6 +426,8 @@ public:
 	 * @return True if the light affects the bounding volume
 	 */
 	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const;
+
+	virtual FSphere GetBoundingSphere() const;
 
 	/**
 	 * Computes the intensity of the direct lighting from this light on a specific point.
@@ -424,8 +437,15 @@ public:
 	/** Returns the number of direct photons to gather required by this light. */
 	virtual int32 GetNumDirectPhotons(float DirectPhotonDensity) const;
 
+	virtual FVector GetLightTangent() const override;
+
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const;
+
+protected:
+	float SinOuterConeAngle;
+	float CosOuterConeAngle;
+	float CosInnerConeAngle;
 };
 
 
@@ -477,11 +497,26 @@ public:
 	virtual FVector4 GetDirectLightingDirection(const FVector4& Point, const FVector4& PointNormal) const 
 	{ checkf(0, TEXT("GetDirectLightingDirection is not supported for skylights")); return FVector4(); }
 
+	FLinearColor GetPathLighting(const FVector4& IncomingDirection, float PathSolidAngle, bool bCalculateForIndirectLighting) const;
+
+	float GetPathVariance(const FVector4& IncomingDirection, float PathSolidAngle) const;
+
 protected:
 
 	/** Generates a sample on the light's surface. */
 	virtual void SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const
 	{ checkf(0, TEXT("SampleLightSurface is not supported for skylights")); }
+
+	float GetMipIndexForSolidAngle(float SolidAngle) const;
+	FLinearColor SampleRadianceCubemap(float MipIndex, int32 CubeFaceIndex, FVector2D FaceUV) const;
+	float SampleVarianceCubemap(float MipIndex, int32 CubeFaceIndex, FVector2D FaceUV) const;
+
+	void ComputePrefilteredVariance();
+
+	int32 CubemapSize;
+	int32 NumMips;
+	TArray<TArray<FLinearColor>> PrefilteredRadiance;
+	TArray<TArray<float>> PrefilteredVariance;
 };
 
 class FMeshLightPrimitiveCorner
@@ -696,6 +731,7 @@ public:
 	TArray<FLandscapeStaticLightingTextureMapping>		LandscapeMappings;
 
 	TArray<FGuid> VisibilityBucketGuids;
+	TArray<FGuid> VolumetricLightmapTaskGuids;
 
 	RTCDevice EmbreeDevice;
 	bool bVerifyEmbree;
@@ -707,6 +743,8 @@ public:
 
 	/** Returns true if the specified position is inside any of the importance volumes. */
 	bool IsPointInImportanceVolume(const FVector4& Position, float Tolerance) const;
+
+	bool IsBoxInImportanceVolume(const FBox& QueryBox) const;
 
 	/** Returns true if the specified position is inside any of the visibility volumes. */
 	bool IsPointInVisibilityVolume(const FVector4& Position) const;

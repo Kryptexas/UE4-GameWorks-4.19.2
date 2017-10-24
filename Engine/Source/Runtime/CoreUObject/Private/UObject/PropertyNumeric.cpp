@@ -7,7 +7,7 @@
 #include "Templates/Casts.h"
 #include "UObject/UnrealType.h"
 
-uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag)
+int64 UNumericProperty::ReadEnumAsInt64(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag)
 {
 	//@warning: mirrors loading code in UByteProperty::SerializeItem() and UEnumProperty::SerializeItem()
 	FName EnumName;

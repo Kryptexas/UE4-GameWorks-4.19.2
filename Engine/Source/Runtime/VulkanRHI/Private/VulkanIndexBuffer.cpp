@@ -9,6 +9,10 @@
 #include "VulkanContext.h"
 #include "Containers/ResourceArray.h"
 
+#if VULKAN_RETAIN_BUFFERS
+static TMap<void*, FVulkanResourceMultiBuffer*> GRetainedBuffers;
+#endif
+
 static TMap<FVulkanResourceMultiBuffer*, VulkanRHI::FPendingBufferLock> GPendingLockIBs;
 static FCriticalSection GPendingLockIBsMutex;
 
@@ -73,27 +77,35 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 		const bool bShaderResource = (InUEUsage & BUF_ShaderResource) != 0;
 		const bool bIsUniformBuffer = (InBufferUsageFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) != 0;
 		const bool bUAV = (InUEUsage & BUF_UnorderedAccess) != 0;
+		const bool bIndirect = (InUEUsage & BUF_DrawIndirect) == BUF_DrawIndirect;
 
 		BufferUsageFlags |= bVolatile ? 0 : VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		BufferUsageFlags |= (bShaderResource && !bIsUniformBuffer) ? VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT : 0;
 		BufferUsageFlags |= bUAV ? VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT : 0;
+		BufferUsageFlags |= bIndirect ? VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT : 0;
 
 		if (!bVolatile)
 		{
 			check(bStatic || bDynamic || bUAV);
 			VkDevice VulkanDevice = InDevice->GetInstanceHandle();
 
+			VkMemoryPropertyFlags BufferMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			const bool bUnifiedMem = InDevice->HasUnifiedMemory();
+			if (bUnifiedMem && bDynamic)
+			{
+				BufferMemFlags |= (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			}
+
 			NumBuffers = bDynamic ? NUM_RENDER_BUFFERS : 1;
 
 			Buffers.AddDefaulted(NumBuffers);
 			for (uint32 Index = 0; Index < NumBuffers; ++Index)
 			{
-				Buffers[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize, BufferUsageFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, __FILE__, __LINE__);
+				Buffers[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize, BufferUsageFlags, BufferMemFlags, __FILE__, __LINE__);
 			}
 
 			if (CreateInfo.ResourceArray)
 			{
-				ensure(bStatic);
 				uint32 CopyDataSize = FMath::Min(InSize, CreateInfo.ResourceArray->GetResourceDataSize());
 				void* Data = Lock(true, RLM_WriteOnly, CopyDataSize, 0);
 				FMemory::Memcpy(Data, CreateInfo.ResourceArray->GetResourceData(), CopyDataSize);
@@ -103,6 +115,10 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 			}
 
 			UpdateVulkanBufferStats(InSize * NumBuffers, InBufferUsageFlags, true);
+
+#if VULKAN_RETAIN_BUFFERS
+			GRetainedBuffers.FindOrAdd((void*)Buffers[0]->GetHandle()) = this;
+#endif
 		}
 	}
 }
@@ -147,11 +163,6 @@ void* FVulkanResourceMultiBuffer::Lock(bool bFromRenderingThread, EResourceLockM
 	{
 		check(bStatic || bDynamic || bUAV);
 
-		VulkanRHI::FPendingBufferLock PendingLock;
-		PendingLock.Offset = Offset;
-		PendingLock.Size = Size;
-		PendingLock.LockMode = LockMode;
-
 		if (LockMode == RLM_ReadOnly)
 		{
 			ensure(0);
@@ -161,17 +172,29 @@ void* FVulkanResourceMultiBuffer::Lock(bool bFromRenderingThread, EResourceLockM
 			check(LockMode == RLM_WriteOnly);
 			DynamicBufferIndex = (DynamicBufferIndex + 1) % NumBuffers;
 
-			VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+			const bool bUnifiedMem = Device->HasUnifiedMemory();
+			if (bUnifiedMem && bDynamic)
+			{
+				Data = (uint8*)Buffers[DynamicBufferIndex]->GetMappedPointer() + Offset;
+			}
+			else
+			{
+				VulkanRHI::FPendingBufferLock PendingLock;
+				PendingLock.Offset = Offset;
+				PendingLock.Size = Size;
+				PendingLock.LockMode = LockMode;
 
-			PendingLock.StagingBuffer = StagingBuffer;
+				VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+				PendingLock.StagingBuffer = StagingBuffer;
+				Data = StagingBuffer->GetMappedPointer();
 
-			Data = StagingBuffer->GetMappedPointer();
-		}
+				{
+					FScopeLock ScopeLock(&GPendingLockIBsMutex);
+					check(!GPendingLockIBs.Contains(this));
+					GPendingLockIBs.Add(this, PendingLock);
+				}
+			}
 
-		{
-			FScopeLock ScopeLock(&GPendingLockIBsMutex);
-			check(!GPendingLockIBs.Contains(this));
-			GPendingLockIBs.Add(this, PendingLock);
 		}
 	}
 
@@ -240,6 +263,13 @@ void FVulkanResourceMultiBuffer::Unlock(bool bFromRenderingThread)
 	else
 	{
 		check(bStatic || bDynamic);
+
+		const bool bUnifiedMem = Device->HasUnifiedMemory();
+		if (bUnifiedMem && bDynamic)
+		{
+			// Nothing to do here...
+			return;
+		}
 
 		VulkanRHI::FPendingBufferLock PendingLock;
 		bool bFound = false;

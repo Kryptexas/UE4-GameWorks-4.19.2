@@ -12,7 +12,7 @@
 #include "OVR_Types.h"
 #include "OVR_User.h"
 #include "OVR_UserArray.h"
-#include <stddef.h>
+#include <stdbool.h>
 
 typedef struct ovrRoom *ovrRoomHandle;
 

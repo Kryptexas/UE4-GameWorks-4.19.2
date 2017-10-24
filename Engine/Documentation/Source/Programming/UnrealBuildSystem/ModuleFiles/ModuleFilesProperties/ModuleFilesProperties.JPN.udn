@@ -1,8 +1,9 @@
-﻿Availability:NoPublish
+﻿INTSourceChangelist:3487496
+Availability:NoPublish
 Title:ビルド コンフィギュレーション プロパティのページ
 Crumbs:
 Description:プロシージャルに生成されるマークダウンの説明です。
-Version:4.16
+Version:4.17
 
 ### 読み取り / 書き込み用プロパティ
 $ Type (ModuleType):モジュール タイプです。
@@ -14,6 +15,8 @@ $ OptimizeCode (CodeOptimization):モジュールのコードをいつ最適化�
 $ PrivatePCHHeaderFile (String):このモジュールに対する明示的なプライベート PCH です。このモジュールは共有 PCH を使用しないことを暗示します。
 
 $ SharedPCHHeaderFile (String):このモジュールで提供される共有 PCH のヘッダ ファイル名です。Public C++ ヘッダ ファイルへの有効な相対パスでなければなりません。他の C++ モジュールに多数インクルードされているヘッダ ファイルに対してのみ設定します。
+
+$ ShortName (String):このモジュールの中間ファイル用の中間ディレクトリとファイルの別の名前を指定します。パスの長さ制限がある場合に便利です。
 
 $ PCHUsage (PCHUsageMode):このモジュールにプリコンパイル済みヘッダを使用します。
 
@@ -27,7 +30,7 @@ $ bEnableExceptions (Boolean):例外処理を有効にします。
 
 $ bEnableShadowVariableWarnings (Boolean):シャドウ変数への警告を有効にします。
 
-$ bEnableUndefinedIdentifierWarnings (Boolean):#if 表現式で未定義の識別子を使用した場合に出す警告を有効にします。
+$ bEnableUndefinedIdentifierWarnings (Boolean):#if 表現式で定義されていない識別子を使用した場合に出す警告を有効にします。
 
 $ bFasterWithoutUnity (Boolean):True でユニティ ビルドが有効にされている場合、このモジュールはユニティなしでビルドします。
 
@@ -43,9 +46,11 @@ $ bOutputPubliclyDistributable (Boolean):モジュール上のコード / 依存
 
 $ WhitelistRestrictedFolders (List&lt;String&gt;):このバイナリのコンパイル時に制限のあるフォルダ名を伝播せずに参照できるフォルダのリストです。
 
-$ bEnforceIWYU (Boolean):PCHUsage を ExplicitOrSharedPCH に設定すると、"include what you use" ルールが強制され、モノリシック (Engine.h、UnrealEd.h など) の使用に対して警告が出され、ソースファイルとマッチするヘッダ first.
+$ bEnforceIWYU (Boolean):PCHUsage を ExplicitOrSharedPCH に設定すると、「include what you use」ルールを使用します。モノリシック (Engine.h、UnrealEd.h など) を使用すると警告が出て、ソースファイルに一致するヘッダが最初に含まれているかどうかをチェックします。
 
-$ PublicIncludePathModuleNames (List&lt;String&gt;): がインクルードされているかをチェックします。モジュールのパブリック ヘッダが、インポートやリンクではなく、アクセスする必要があるヘッダ ファイルをもつモジュール名リスト (パスは必要ありません) です。
+$ bAddDefaultIncludePaths (Boolean):モジュールのデフォルトの include パスをすべて追加するかどうかです ( Source/Public の Source/Classes フォルダ、サブフォルダなど)。
+
+$ PublicIncludePathModuleNames (List&lt;String&gt;):モジュールのパブリック ヘッダが、インポートやリンクではなく、アクセスする必要があるヘッダ ファイルをもつモジュール名リスト (パスは必要ありません) です。
 
 $ PublicDependencyModuleNames (List&lt;String&gt;):パブリック依存モジュール名のリスト (パスは必要ありません) (自動的にプライベート / パブリック インクルードを行います) です。パブリック ソース ファイルが必要とするモジュールです。
 
@@ -57,7 +62,7 @@ $ CircularlyReferencedDependentModules (List&lt;String&gt;):レガシーなの�
 
 $ PublicSystemIncludePaths (List&lt;String&gt;):システム / ライブラリ インクルード パスのリストです。通常は、外部 (サード パーティ) モジュールに使用されます。ヘッダの依存性を解決する時にチェックされない安定したパブリック ヘッダ ファイルです。
 
-$ PublicIncludePaths (List&lt;String&gt;):(『Public』 フォルダからすべてのファイルを検索できるので、この設定は現在必要ありません) 他のモジュールに公開されているインクルード ファイルへのすべてのパスのリストです。
+$ PublicIncludePaths (List&lt;String&gt;):(「Public」フォルダからすべてのファイルを検索できるので、この設定は現在必要ありません) 他のモジュールに公開されているインクルード ファイルへのすべてのパスのリストです。
 
 $ PrivateIncludePaths (List&lt;String&gt;):他のモジュールへ公開されていない、このモジュール内部のインクルード ファイルへのすべてのパスのリストです (最低 1 つは 'Private' パスをインクルードしていること。相対パスを避けたい場合は 1 つ以上)。
 
@@ -88,5 +93,7 @@ $ RuntimeDependencies (RuntimeDependencyList):ランタイム時にこのモジ�
 $ AdditionalPropertiesForReceipt (List&lt;ReceiptProperty&gt;):Build receipt に追加される追加プロパティ リストです。
 
 $ PrecompileForTargets (PrecompileTargetsType):このモジュールをプリコンパイルするターゲットです。
+
+$ ExternalDependencies (List&lt;String&gt;):修正されると maikefile を無効にする外部ファイルです。相対パスは .build.cs ファイルに対して相対的に解決されます。
 
 

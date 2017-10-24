@@ -93,7 +93,13 @@ void UPendingNetGame::SendInitialJoin()
 
 			UE_LOG(LogNet, Log, TEXT( "UPendingNetGame::SendInitialJoin: Sending hello. %s" ), *ServerConn->Describe());
 
-			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
+			FString EncryptionToken;
+			if (CVarNetAllowEncryption.GetValueOnGameThread() != 0)
+			{
+				EncryptionToken = URL.GetOption(TEXT("EncryptionToken="), TEXT(""));
+			}
+
+			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion, EncryptionToken);
 
 			ServerConn->FlushNet();
 		}
@@ -305,9 +311,63 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			NetDriver->ServerConnection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path);
 			break;
 		}
+		case NMT_EncryptionAck:
+		{
+			if (FNetDelegates::OnReceivedNetworkEncryptionAck.IsBound())
+			{
+				TWeakObjectPtr<UNetConnection> WeakConnection = Connection;
+				FNetDelegates::OnReceivedNetworkEncryptionAck.Execute(FOnEncryptionKeyResponse::CreateUObject(this, &UPendingNetGame::FinalizeEncryptedConnection, WeakConnection));
+			}
+			else
+			{
+				// This error will be resolved in TickWorldTravel()
+				ConnectionError = TEXT("No encryption ack handler");
+
+				// Force close the session
+				UE_LOG(LogNet, Warning, TEXT("%s: No delegate available to handle encryption ack, disconnecting."), *Connection->GetName());
+				Connection->Close();
+			}
+			break;
+		}
 		default:
 			UE_LOG(LogNet, Log, TEXT(" --- Unknown/unexpected message for pending level"));
 			break;
+	}
+}
+
+void UPendingNetGame::FinalizeEncryptedConnection(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection)
+{
+	UNetConnection* Connection = WeakConnection.Get();
+	if (Connection)
+	{
+		if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+		{
+			if (Response.Response == EEncryptionResponse::Success)
+			{
+				Connection->EnableEncryptionWithKey(Response.EncryptionKey);
+			}
+			else
+			{
+				// This error will be resolved in TickWorldTravel()
+				FString ResponseStr(Lex::ToString(Response.Response));
+				UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::FinalizeEncryptedConnection: encryption failure [%s] %s"), *ResponseStr, *Response.ErrorMsg);
+				ConnectionError = TEXT("Encryption ack failure");
+				Connection->Close();
+			}
+		}
+		else
+		{
+			// This error will be resolved in TickWorldTravel()
+			UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::FinalizeEncryptedConnection: connection in invalid state. %s"), *Connection->Describe());
+			ConnectionError = TEXT("Connection encryption state failure");
+			Connection->Close();
+		}
+	}
+	else
+	{
+		// This error will be resolved in TickWorldTravel()
+		UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::FinalizeEncryptedConnection: Connection is null."));
+		ConnectionError = TEXT("Connection missing during encryption ack");
 	}
 }
 

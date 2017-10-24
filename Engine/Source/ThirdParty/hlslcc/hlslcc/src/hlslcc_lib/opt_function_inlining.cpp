@@ -137,7 +137,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 		ir_rvalue *param = (ir_rvalue *)param_iter.get();
 
 		/* Generate a new variable for the parameter. */
-		if (sig_param->type->base_type == GLSL_TYPE_SAMPLER)
+		if (sig_param->type->base_type == GLSL_TYPE_SAMPLER || sig_param->type->base_type == GLSL_TYPE_IMAGE)
 		{
 			/* For samplers, we want the inlined sampler references
 			* referencing the passed in sampler variable, since that
@@ -203,7 +203,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 		ir_instruction *const param = (ir_instruction *)param_iter.get();
 		ir_variable *sig_param = (ir_variable *)sig_param_iter.get();
 
-		if (sig_param->type->base_type == GLSL_TYPE_SAMPLER)
+		if (sig_param->type->base_type == GLSL_TYPE_SAMPLER || sig_param->type->base_type == GLSL_TYPE_IMAGE)
 		{
 			ir_dereference *deref = param->as_dereference();
 
@@ -323,6 +323,7 @@ public:
 	virtual ir_visitor_status visit_leave(ir_dereference_array *);
 	virtual ir_visitor_status visit_leave(ir_dereference_record *);
 	virtual ir_visitor_status visit_leave(ir_texture *);
+	virtual ir_visitor_status visit_leave(ir_dereference_image *);
 
 	void replace_deref(ir_dereference **deref);
 	void replace_rvalue(ir_rvalue **rvalue);
@@ -395,6 +396,13 @@ ir_visitor_status ir_sampler_replacement_visitor::visit_leave(ir_call *ir)
 			param->replace_with(new_param);
 		}
 	}
+	return visit_continue;
+}
+
+
+ir_visitor_status ir_sampler_replacement_visitor::visit_leave(ir_dereference_image * ir)
+{
+	replace_rvalue(&ir->image);
 	return visit_continue;
 }
 

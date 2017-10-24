@@ -7,6 +7,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

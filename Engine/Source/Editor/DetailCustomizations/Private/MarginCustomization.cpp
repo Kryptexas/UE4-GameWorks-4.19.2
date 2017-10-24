@@ -20,7 +20,7 @@ void FMarginStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHand
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
-	const FString UVSpaceString( StructPropertyHandle->GetProperty()->GetMetaData( TEXT( "UVSpace" ) ) );
+	const FString& UVSpaceString( StructPropertyHandle->GetProperty()->GetMetaData( TEXT( "UVSpace" ) ) );
 	bIsMarginUsingUVSpace = UVSpaceString.Len() > 0 && UVSpaceString == TEXT( "true" );
 
 	uint32 NumChildren;
@@ -137,7 +137,7 @@ void FMarginStructCustomization::OnMarginTextCommitted( const FText& InText, ETe
 					InString.Empty();
 				}
 
-				LeftString = LeftString.Trim().TrimTrailing();
+				LeftString.TrimStartAndEndInline();
 
 				if( LeftString.IsNumeric() )
 				{

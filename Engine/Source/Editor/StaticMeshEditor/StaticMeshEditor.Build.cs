@@ -22,6 +22,7 @@ public class StaticMeshEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Engine",
                 "InputCore",
 				"Slate",

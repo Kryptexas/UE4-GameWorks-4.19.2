@@ -28,8 +28,10 @@ void SetSimpleDeferredLightParameters(
 	DeferredLightUniformsValue.LightColor = SimpleLight.Color;
 	DeferredLightUniformsValue.LightFalloffExponent = SimpleLight.Exponent;
 	DeferredLightUniformsValue.NormalizedLightDirection = FVector(1, 0, 0);
+	DeferredLightUniformsValue.NormalizedLightTangent = FVector(1, 0, 0);
 	DeferredLightUniformsValue.SpotAngles = FVector2D(-2, 1);
 	DeferredLightUniformsValue.SourceRadius = 0.0f;
+	DeferredLightUniformsValue.SoftSourceRadius = 0.0f;
 	DeferredLightUniformsValue.SourceLength = 0.0f;
 	DeferredLightUniformsValue.MinRoughness = 0.08f;
 	DeferredLightUniformsValue.ContactShadowLength = 0.0f;

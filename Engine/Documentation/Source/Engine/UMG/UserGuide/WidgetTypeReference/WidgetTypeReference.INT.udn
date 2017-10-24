@@ -1,9 +1,14 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Widget Type Reference
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Reference for the types of Widgets available in Unreal Motion Graphics (UMG).
-version: 4.15
-tags:UMG UI Designer
+Description: Reference for the types of Widgets available in Unreal Motion Graphics (UMG).
+Type: Reference
+Version: 4.17
+Parent:Engine/UMG/UserGuide
+Order:3
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/WidgetTypeRefTopic.png
 
 [TOC(start:2 end:2)]
 

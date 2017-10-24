@@ -11,6 +11,7 @@
 
 // Other UE4 includes
 #include "IOSAppDelegate.h"
+#include "Misc/ConfigCacheIni.h"
 #include "IOS/IOSAsyncTask.h"
 #include "Misc/ConfigCacheIni.h"
 

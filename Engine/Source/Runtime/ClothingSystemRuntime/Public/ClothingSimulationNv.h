@@ -32,6 +32,18 @@ public:
 	TArray<FMatrix> RefToLocals;
 };
 
+// Scratch data for simulation to avoid allocations while processing, per actor data
+struct FClothingActorScratchData
+{
+	void Reset();
+
+	TArray<physx::PxVec4> SphereData;
+	TArray<uint32> CapsuleSphereIndices;
+	TArray<physx::PxVec4> PlaneData;
+	TArray<uint32> ConvexMasks;
+	TArray<FVector> ParticleVelocities;
+};
+
 class FClothingActorNv final : public FClothingActorBase
 {
 public:
@@ -116,6 +128,9 @@ private:
 
 	// Time step of the last tick, used for velocity calculations
 	float PreviousTimestep;
+
+	// Scratch arrays for processing during simulate, grow-only to avoid repeated allocations.
+	FClothingActorScratchData Scratch;
 
 	// Simuation given access to our data
 	friend class FClothingSimulationNv;

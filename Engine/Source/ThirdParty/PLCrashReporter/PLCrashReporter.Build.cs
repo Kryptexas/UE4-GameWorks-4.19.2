@@ -7,12 +7,12 @@ public class PLCrashReporter : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string PLCrashReporterPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "PLCrashReporter/plcrashreporter-master-5ae3b0a/";
+		string PLCrashReporterPath = Target.UEThirdPartySourceDirectory + "PLCrashReporter/plcrashreporter-master-5ae3b0a/";
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			PublicSystemIncludePaths.Add(PLCrashReporterPath + "Source");
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add(PLCrashReporterPath + "Mac/Debug/libCrashReporter-MacOSX-Static.a");
 			}
@@ -24,7 +24,7 @@ public class PLCrashReporter : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.IOS)
         {
             PublicSystemIncludePaths.Add(PLCrashReporterPath + "Source");
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add(PLCrashReporterPath + "IOS/Debug/libCrashReporter-iphoneos.a");
             }

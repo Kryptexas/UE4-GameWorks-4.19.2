@@ -26,6 +26,7 @@
 
 /// \file sdf/changeList.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/types.h"
@@ -33,6 +34,8 @@
 #include <set>
 #include <map>
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfChangeList;
 typedef std::map<SdfLayerHandle, SdfChangeList> SdfLayerChangeListMap;
@@ -54,6 +57,7 @@ public:
 
     void DidReplaceLayerContent();
     void DidReloadLayerContent();
+    void DidChangeLayerResolvedPath();
     void DidChangeLayerIdentifier(const std::string &oldIdentifier);
     void DidChangeSublayerPaths(const std::string &subLayerPath,
                                 SubLayerChangeType changeType);
@@ -124,6 +128,7 @@ public:
             
             // SdfLayer
             bool didChangeIdentifier:1;
+            bool didChangeResolvedPath:1;
             bool didReplaceContent:1;
             bool didReloadContent:1;
 
@@ -174,13 +179,12 @@ public:
     Entry& GetEntry( const SdfPath & );
 
 private:
-    friend class TfSingleton<SdfChangeList>;
     EntryList _entries;
 };
 
 // Stream-output operator
 SDF_API std::ostream& operator<<(std::ostream&, const SdfChangeList &);
 
-SDF_API_TEMPLATE_CLASS(TfSingleton<SdfChangeList>);
+PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif
+#endif // SDF_CHANGELIST_H

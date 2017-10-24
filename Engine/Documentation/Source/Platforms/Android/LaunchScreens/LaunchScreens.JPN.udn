@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3482332
 Title:Android 起動画面の設定
 Description:Android プロジェクト用のオプション カスタム仕様の Android 起動画面を設定する 
 Crumbs:
@@ -28,15 +28,93 @@ _起動画像オプション_
 
 1. プロジェクトの **[File (ファイル)]** メニューから **[Edit (編集)]** そして **[Project Settings (プロジェクト設定)]** を選びます。 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](AndroidSplash1.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](AndroidSplash1_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **[Project Settings (プロジェクト設定)]** の左側にある **[Platforms]** から **[Android]** を選んで Android app 用のプロジェクト設定を表示します。 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](AndroidSplash2.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](AndroidSplash2_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **[Launch Images (起動画像)]** セクションまで下へスクロールして、**[Show launch image (起動画像を表示)]** のチェックボックスが有効であることを確認してください。 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](AndroidSplash3.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](AndroidSplash3_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. 各画像の横にある **...** アイコンをクリックして、コンピュータから画像を選択できるブラウザを開きます。 
 
@@ -44,8 +122,33 @@ _起動画像オプション_
 
 1. 使用したい画像を選択すると、それらがプロジェクトに追加され、起動スプラッシュ スクリーン中に含まれます。 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](AndroidSplash5.png)
+	[/PARAM]
+	[/OBJECT]
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](AndroidSplash5_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 [REGION:note]
 ポートレート画像およびランドスケープ画像のサンプル (PNG ファイル) の場所は Engine/Build/Android/Java/res/drawable folder です。 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429250
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:エディタの主要なユーザー インターフェース
 Crumbs:%ROOT%, Engine
@@ -34,7 +34,33 @@ topic-icon:%ROOT%/editor_icon.png
 エディタには様々な種類があり、その全てがはじめから表示されているわけではありません。ある種類のアセットの編集を開始すると、それに対応した種類のエディタが開きます。コンテンツブラウザから何かをダブルクリックしてみましょう。それの種類に対応したエディタが開くかと思います。各エディタには特定のオペーレーションを行うツールが備わっています。
 
 [REGION:raw]
-![](OpenParticleSystem.png)(w:930)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Mac.png)
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 

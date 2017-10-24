@@ -208,6 +208,11 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 	// Build a list of decals that need to be rendered for this view in SortedDecals
 	for (const FDeferredDecalProxy* DecalProxy : Scene.Decals)
 	{
+		if (!DecalProxy->DecalMaterial || !DecalProxy->DecalMaterial->IsValidLowLevelFast())
+		{
+			continue;
+		}
+
 		bool bIsShown = true;
 
 		if (!DecalProxy->IsShown(&View))
@@ -339,7 +344,7 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, FGraphicsPipelineSt
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader->GetPixelShader();
 		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-		RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 		PixelShader->SetParameters(RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy, DecalData.FadeAlpha);
 	}
 
@@ -364,6 +369,9 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, FGraphicsPipelineSt
 	}
 
 	VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer, FrustumComponentToClip);
+
+	// Set stream source after updating cached strides
+	RHICmdList.SetStreamSource(0, GetUnitCubeVertexBuffer(), 0);
 }
 
 void FDecalRendering::SetVertexShaderOnly(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FViewInfo& View, const FMatrix& FrustumComponentToClip)
@@ -374,6 +382,6 @@ void FDecalRendering::SetVertexShaderOnly(FRHICommandList& RHICmdList, FGraphics
 	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader->GetVertexShader();
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 	VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer, FrustumComponentToClip);
 }

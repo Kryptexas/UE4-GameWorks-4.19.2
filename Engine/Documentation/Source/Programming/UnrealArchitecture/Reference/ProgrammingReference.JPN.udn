@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2823302
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:アンリアルのアーキテクチャ
 Crumbs:%ROOT%, Programming
-Description:ゲームプレイ クラスの作成および実装に関する参照ページ
+Description:ゲームプレイ クラスの作成および実装に関するリファレンス ページ
 Version:4.9
+Parent:Programming
 
 C++ コードでゲームプレイ要素をプログラミングする場合、各モジュールにはたくさんの C++ クラスが含まれることがあります。 
 
@@ -16,7 +17,7 @@ C++ コードでゲームプレイ要素をプログラミングする場合、�
 [インターフェース](Programming\UnrealArchitecture\Reference\Interfaces) は追加のゲームプレイ ビヘイビアを異なるクラスで実装できるようにします。 
 
 アンリアル エンジンでプログラミングする場合、標準の C++ クラス、関数、変数をもつことが可能です。これらは、標準の C++ 記法で定義することができます。ただし、アンリアル エンジンに新規のクラス、関数、変数を認識させるように UCLASS() 、
- UFUNCTION() 、 UPROPERTY() マクロを使用することができます。例えば、 UPROPERTY() マクロで始まる宣言のある変数はエンジンによって行われるガーベッジ コレクションの対象となることができ、 
+ UFUNCTION() 、 UPROPERTY() マクロを使用することができます。例えば、 UPROPERTY() マクロで始まる宣言のある変数はエンジンによるガーベジ コレクションの対象となることができ、 
 アンリアル エディタ内での表示と編集が可能です。`UINTERFACE()` マクロと `USTRUCT()` マクロ、および各マクロのキーワードを使って 
 [クラス](Programming\UnrealArchitecture\Reference\Classes\Specifiers) 、 [関数](Programming\UnrealArchitecture\Reference\Functions\Specifiers) 、 [プロパティ](Programming\UnrealArchitecture\Reference\Properties\Specifiers) 、
  [インターフェース](Programming\UnrealArchitecture\Reference\Interfaces\Specifiers) 、 [構造体](Programming\UnrealArchitecture\Reference\Structs\Specifiers) のアンリアル エンジンとアンリアル エディタ内でのビヘイビアを指定することができます。

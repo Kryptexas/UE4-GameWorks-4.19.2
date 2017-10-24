@@ -854,7 +854,7 @@ namespace UnrealGameSync
 			string Code;
 			if(!Records[0].TryGetValue("code", out Code) || Code != "stat")
 			{
-				Log.WriteLine("Unexpected response from p4 {0}: {1}", CommandLine, String.Join(", ", Records[0].Select(x => String.Format("{ \"{0}\", \"{1}\" }", x.Key, x.Value))));
+				Log.WriteLine("Unexpected response from p4 {0}: {1}", CommandLine, String.Join(", ", Records[0].Select(x => String.Format("( \"{0}\", \"{1}\" )", x.Key, x.Value))));
 				Record = null;
 				return false;
 			}

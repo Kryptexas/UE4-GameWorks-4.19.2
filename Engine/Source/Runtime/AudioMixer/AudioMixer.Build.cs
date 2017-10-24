@@ -8,10 +8,10 @@ namespace UnrealBuildTool.Rules
 		{
 			OptimizeCode = CodeOptimization.Always;
 
-            PrivateIncludePathModuleNames.Add("TargetPlatform");
+			PrivateIncludePathModuleNames.Add("TargetPlatform");
 
 			PrivateIncludePaths.AddRange(
-				new string[] 
+				new string[]
 				{
 					"Runtime/AudioMixer/Private",
 				}
@@ -27,9 +27,9 @@ namespace UnrealBuildTool.Rules
 			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[] 
+				new string[]
 				{
-					"CoreUObject", 
+					"CoreUObject",
 				}
 			);
 
@@ -44,14 +44,15 @@ namespace UnrealBuildTool.Rules
 					);
 			}
 
-			if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target,
-					"UEOgg",
-					"Vorbis",
-					"VorbisFile"
-					);
-			}
+			// TODO test this for HTML5 !
+			//if (Target.Platform == UnrealTargetPlatform.HTML5)
+			//{
+			//	AddEngineThirdPartyPrivateStaticDependencies(Target,
+			//		"UEOgg",
+			//		"Vorbis",
+			//		"VorbisFile"
+			//		);
+			//}
 
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -82,12 +83,12 @@ namespace UnrealBuildTool.Rules
 					);
 			}
 
-            if (Target.Platform == UnrealTargetPlatform.XboxOne)
-            {
-                AddEngineThirdPartyPrivateStaticDependencies(Target,
-                    "libOpus"
-                    );
-            }
-        }
+			if (Target.Platform == UnrealTargetPlatform.XboxOne)
+			{
+				AddEngineThirdPartyPrivateStaticDependencies(Target,
+					"libOpus"
+					);
+			}
+		}
 	}
 }

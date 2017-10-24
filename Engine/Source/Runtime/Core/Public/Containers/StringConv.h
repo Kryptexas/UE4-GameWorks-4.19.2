@@ -515,7 +515,7 @@ public:
 	 * Move constructor
 	 */
 	TStringConversion(TStringConversion&& Other)
-		: Converter(MoveTemp((Converter&&)Other))
+		: Converter(MoveTemp((Converter&)Other))
 	{
 		AllocatorType::MoveToEmpty(Other);
 	}

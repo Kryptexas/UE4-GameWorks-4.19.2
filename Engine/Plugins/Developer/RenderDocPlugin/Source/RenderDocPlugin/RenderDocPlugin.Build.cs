@@ -23,7 +23,7 @@ namespace UnrealBuildTool.Rules
 				, "RHI"				// RHI module: required for accessing the UE4 flag GUsingNullRHI.
 			});
 
-			if (UEBuildConfiguration.bBuildEditor == true)
+			if (Target.bBuildEditor == true)
 			{
 				DynamicallyLoadedModuleNames.AddRange(new string[] { "LevelEditor" });
 				PublicDependencyModuleNames.AddRange(new string[]

@@ -77,7 +77,7 @@ public:
 
 protected:
 	static bool bGroupingActive;
-	static FStringClassReference ClassToUse;
+	static FSoftClassPath ClassToUse;
 };
 
 

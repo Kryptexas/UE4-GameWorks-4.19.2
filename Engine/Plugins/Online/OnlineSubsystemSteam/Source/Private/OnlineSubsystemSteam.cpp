@@ -344,7 +344,7 @@ bool FOnlineSubsystemSteam::Init()
 		SessionInterface = MakeShareable(new FOnlineSessionSteam(this));
 		SessionInterface->CheckPendingSessionInvite();
 
-		IdentityInterface = MakeShareable(new FOnlineIdentitySteam());
+		IdentityInterface = MakeShareable(new FOnlineIdentitySteam(this));
 
 		if (!bIsServer)
 		{

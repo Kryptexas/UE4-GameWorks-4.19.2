@@ -1,18 +1,23 @@
-﻿INTSourceChangelist:3358386
-Availability:Public
-Title: 블렌드 스페이스 사용하기
+﻿INTSourceChangelist:3477699
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
-Description:Describes Blend Spaces are used within Animation Blueprints resulting in an output pose. 
+Title: 블렌드 스페이스 사용하기
+Description:애니메이션 블루프린트에서 블렌드 스페이스를 사용하여 출력 포즈를 만드는 방법 설명서입니다.
+Type: Overview
+SkillLevel: Beginner
+Version: 4.16		
+Parent: Engine/Animation/Blendspaces
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:userguidetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
-type:overview
-topic-image:userguidetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
+
+[TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
 Blend Space (블렌드 스페이스)는 [애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 의 AnimGraph (애님 그래프)에 노드를 배치하는 방식으로 사용됩니다. 이 노드는 값 데이터를 받아 애니메이션 블렌딩 및 최종 애니메이션 포즈를 구동합니다.
@@ -21,9 +26,6 @@ Blend Space (블렌드 스페이스)는 [애니메이션 블루프린트](Engine
 [REGION:note]
 보행이동 블렌딩용 블렌드 스페이스 구성 안내는 [](Engine\Animation\AnimHowTo\BlendSpace) 문서를 참고하세요.
 [/REGION]
-
-
-[TOC(start:2)]
 
 ## 블렌드 스페이스 노드 추가하기
 
@@ -80,3 +82,4 @@ Blend Space (블렌드 스페이스)는 [애니메이션 블루프린트](Engine
 아니면 좀 더 복잡한 애니메이션 체인이 필요할 때 애니메이션 포즈를 입력으로 받는 다른 입력 핀으로 연결할 수도 있습니다.
 
 ![출력 포즈 - 블렌드](bs_output_blend.png)
+

@@ -222,20 +222,11 @@ FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const F
 	
 }
 
-FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Other )
-	: LanguageCode( Other.LanguageCode )
-	, LanguagePluralForms( Other.LanguagePluralForms )
-	, Culture( FInternationalization::Get().GetCulture( Other.LanguageCode ) )
-{
-
-}
-
 void FPortableObjectCulture::SetLanguageCode( const FString& LangCode )
 {
 	LanguageCode = LangCode;
 	Culture = FInternationalization::Get().GetCulture( LangCode );
 }
-
 
 FString FPortableObjectCulture::Language() const
 {
@@ -380,8 +371,8 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 		if( PotentialHeaderEntry.FindChar( TCHAR(':'), SplitIndex ) )
 		{
 			// Looks like a header entry so we add it
-			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).Trim().TrimTrailing();
-			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).Trim().TrimTrailing();
+			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).TrimStartAndEnd();
+			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).TrimStartAndEnd();
 
 			HeaderEntries.Emplace( Key, MoveTemp(Value) );
 		}
@@ -460,9 +451,9 @@ FString FPortableObjectFormatDOM::ToString()
 	Result += Header.ToString();
 	Result += NewLineDelimiter;
 
-	for( auto Entry : Entries )
+	for( const auto& EntryPair : Entries )
 	{
-		Result += Entry->ToString();
+		Result += EntryPair.Value->ToString();
 		Result += NewLineDelimiter;
 	}
 
@@ -570,7 +561,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				bSuccess = false;
 				break;
 			}
-			for( uint32 NextLineIdx = LineIdx + 1; NextLineIdx < NumFileLines && LinesToProcess[NextLineIdx].Trim().TrimTrailing().StartsWith(TEXT("\"")); ++NextLineIdx)
+			for( uint32 NextLineIdx = LineIdx + 1; NextLineIdx < NumFileLines && LinesToProcess[NextLineIdx].TrimStartAndEnd().StartsWith(TEXT("\"")); ++NextLineIdx)
 			{
 				FString Tmp;
 				if (FindDelimitedString(Line, TEXT("\""), TEXT("\""), Tmp))
@@ -583,7 +574,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgCtxt += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -610,7 +602,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgId += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -637,7 +630,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgIdPlural += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -674,7 +668,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgStr += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -708,7 +703,8 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			uint32 NextLineIdx = LineIdx + 1;
 			while( NextLineIdx < NumFileLines )
 			{
-				const FString& NextLine = LinesToProcess[NextLineIdx].TrimTrailing().Trim();
+				LinesToProcess[NextLineIdx].TrimStartAndEndInline();
+				const FString& NextLine = LinesToProcess[NextLineIdx];
 				if( NextLine.StartsWith("\"") && NextLine.EndsWith("\"") )
 				{
 					RawMsgStr += NextLine.Mid( 1, NextLine.Len()-2 );
@@ -807,7 +803,7 @@ bool FPortableObjectFormatDOM::AddEntry( const TSharedRef< FPortableObjectEntry>
 	}
 	else
 	{
-		Entries.Add( LocEntry );
+		Entries.Add( *LocEntry, LocEntry );
 	}
 
 	return true;
@@ -816,35 +812,24 @@ bool FPortableObjectFormatDOM::AddEntry( const TSharedRef< FPortableObjectEntry>
 
 TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const TSharedRef<const FPortableObjectEntry> LocEntry ) const
 {
-	for( auto Entry : Entries )
-	{
-		if( *Entry == *LocEntry )
-		{
-			return Entry;
-		}
-	}
-	return NULL;
+	return Entries.FindRef(*LocEntry);
 }
 
 TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const FString& MsgId, const FString& MsgIdPlural, const FString& MsgCtxt ) const
 {
-	TSharedRef<FPortableObjectEntry> TempEntry = MakeShareable( new FPortableObjectEntry );
-	TempEntry->MsgId = MsgId;
-	TempEntry->MsgIdPlural = MsgIdPlural;
-	TempEntry->MsgCtxt = MsgCtxt;
-	return FindEntry( TempEntry );
+	return Entries.FindRef(FPortableObjectEntryKey(MsgId, MsgIdPlural, MsgCtxt));
 }
 
 void FPortableObjectFormatDOM::SortEntries()
 {
 	// Sort keys.
-	for (const TSharedPtr<FPortableObjectEntry>& Entry : Entries)
+	for( const auto& EntryPair : Entries )
 	{
-		Entry->ReferenceComments.Sort();
+		EntryPair.Value->ReferenceComments.Sort();
 	}
 
 	// Sort by namespace, then keys, then source text.
-	const auto& SortingPredicate = [](const TSharedPtr<FPortableObjectEntry>& A, const TSharedPtr<FPortableObjectEntry>& B) -> bool
+	auto SortingPredicate = [](const TSharedPtr<FPortableObjectEntry>& A, const TSharedPtr<FPortableObjectEntry>& B) -> bool
 	{
 		// Compare namespace
 		if (A->MsgCtxt < B->MsgCtxt)
@@ -897,7 +882,7 @@ void FPortableObjectFormatDOM::SortEntries()
 
 		return A.Get() < B.Get();
 	};
-	Entries.Sort(SortingPredicate);
+	Entries.ValueSort(SortingPredicate);
 }
 
 void FPortableObjectEntry::AddExtractedComment( const FString& InComment )

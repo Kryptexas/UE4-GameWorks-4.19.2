@@ -71,7 +71,7 @@ namespace Audio
 
 		//~ Begin IAudioMixerDeviceChangedLister
 		virtual void RegisterDeviceChangedListener() override;
-		virtual void UnRegisterDeviceChangedListener() override;
+		virtual void UnregisterDeviceChangedListener() override;
 		virtual void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
 		virtual void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
 		virtual void OnDeviceAdded(const FString& DeviceId) override;

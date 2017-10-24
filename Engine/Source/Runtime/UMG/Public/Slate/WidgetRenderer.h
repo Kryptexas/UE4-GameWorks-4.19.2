@@ -31,8 +31,14 @@ public:
 
 	bool GetIsPrepassNeeded() const { return bPrepassNeeded; }
 	void SetIsPrepassNeeded(bool bInPrepassNeeded) { bPrepassNeeded = bInPrepassNeeded; }
+
+	bool GetClearHitTestGrid() const { return bClearHitTestGrid; }
+	void SetClearHitTestGrid(bool bInClearHitTestGrid) { bClearHitTestGrid = bInClearHitTestGrid; }
+
 	void SetShouldClearTarget(bool bShouldClear) { bClearTarget = bShouldClear; }
+
 	bool GetUseGammaCorrection() const { return bUseGammaSpace; }
+	void SetUseGammaCorrection(bool bInUseGammaSpace);
 
 	ISlate3DRenderer* GetSlateRenderer();
 
@@ -62,25 +68,23 @@ public:
 		FSlateRect WindowClipRect,
 		float DeltaTime);
 
-	TArray< TSharedPtr<FSlateWindowElementList::FDeferredPaint> > DeferredPaints;
-
-private:
-	void PrepassWindowAndChildren(TSharedRef<SWindow> Window, float Scale);
-
-	void DrawWindowAndChildren(
+	void DrawWindow(
+		const FPaintArgs& PaintArgs,
 		UTextureRenderTarget2D* RenderTarget,
-		FSlateDrawBuffer& DrawBuffer,
-		TSharedRef<FHittestGrid> HitTestGrid,
 		TSharedRef<SWindow> Window,
 		FGeometry WindowGeometry,
 		FSlateRect WindowClipRect,
 		float DeltaTime);
+
+	TArray< TSharedPtr<FSlateWindowElementList::FDeferredPaint> > DeferredPaints;
 
 private:
 	/** The slate 3D renderer used to render the user slate widget */
 	TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
 	/** Prepass Needed when drawing the widget? */
 	bool bPrepassNeeded;
+	/** Clearing hit test grid needed? */
+	bool bClearHitTestGrid;
 	/** Is gamma space needed? */
 	bool bUseGammaSpace;
 	/** Should we clear the render target before rendering. */

@@ -13,21 +13,21 @@ public class SpeedTree : ModuleRules
 								(Target.Platform == UnrealTargetPlatform.Mac) || (Target.Platform == UnrealTargetPlatform.Linux));
 
 		if (bPlatformAllowed &&
-			UEBuildConfiguration.bCompileSpeedTree)
+			Target.bCompileSpeedTree)
 		{
 			Definitions.Add("WITH_SPEEDTREE=1");
 			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
-			string SpeedTreePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
+			string SpeedTreePath = Target.UEThirdPartySourceDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+				if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 				{
 					PublicLibraryPaths.Add(SpeedTreePath + "Lib/Windows/VC14.x64");
 
-					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 					{
 						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC14_MTDLL64_Static_d.lib");
 					}
@@ -39,11 +39,11 @@ public class SpeedTree : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+				if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 				{
 					PublicLibraryPaths.Add(SpeedTreePath + "Lib/Windows/VC14");
 
-					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 					{
                         PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC14_MTDLL_Static_d.lib");
 					}
@@ -56,7 +56,7 @@ public class SpeedTree : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				PublicLibraryPaths.Add(SpeedTreePath + "Lib/MacOSX");
-				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				{
 					PublicAdditionalLibraries.Add(SpeedTreePath + "Lib/MacOSX/Debug/libSpeedTreeCore.a");
 				}

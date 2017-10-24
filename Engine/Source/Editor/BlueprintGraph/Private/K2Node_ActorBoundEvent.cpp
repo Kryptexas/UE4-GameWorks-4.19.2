@@ -27,7 +27,7 @@ public:
 	{
 		// Check to make sure that the object the event is bound to is valid
 		const UK2Node_ActorBoundEvent* BoundEventNode = Cast<UK2Node_ActorBoundEvent>(Node);
-		if( BoundEventNode && BoundEventNode->EventOwner )
+		if (BoundEventNode && BoundEventNode->EventOwner)
 		{
 			FKCHandler_EventEntry::Compile(Context, Node);
 		}
@@ -50,8 +50,26 @@ FNodeHandlingFunctor* UK2Node_ActorBoundEvent::CreateNodeHandler(FKismetCompiler
 
 void UK2Node_ActorBoundEvent::ReconstructNode()
 {
-	// Ensure that we try to update the delegate we're bound to if its moved
-	GetTargetDelegate();
+	// We need to fixup our event reference as it may have changed or been redirected
+	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+
+	// If we couldn't find the target delegate, then try to find it in the property remap table
+	if (!TargetDelegateProp)
+	{
+		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
+		if (NewProperty)
+		{
+			// Found a remapped property, update the node
+			TargetDelegateProp = NewProperty;
+			DelegatePropertyName = NewProperty->GetFName();
+			CachedNodeTitle.MarkDirty();
+		}
+	}
+
+	if (TargetDelegateProp && TargetDelegateProp->SignatureFunction)
+	{
+		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+	}
 
 	CachedNodeTitle.MarkDirty();
 
@@ -60,27 +78,27 @@ void UK2Node_ActorBoundEvent::ReconstructNode()
 
 void UK2Node_ActorBoundEvent::DestroyNode()
 {
-	if( EventOwner )
+	if (EventOwner)
 	{
 		// If we have an event owner, remove the delegate referencing this event, if any
 		const ULevel* TargetLevel = Cast<ULevel>(EventOwner->GetOuter());
-		if( TargetLevel )
+		if (TargetLevel)
 		{
 			ALevelScriptActor* LSA = TargetLevel->GetLevelScriptActor();
-			if( LSA )
+			if (LSA)
 			{
 				// Create a delegate of the correct signature to remove
 				FScriptDelegate Delegate;
 				Delegate.BindUFunction(LSA, CustomFunctionName);
-				
+
 				// Attempt to remove it from the target's MC delegate
 				if (FMulticastScriptDelegate* TargetDelegate = GetTargetDelegate())
 				{
 					TargetDelegate->Remove(Delegate);
-				}				
+				}
 			}
 		}
-		
+
 	}
 
 	Super::DestroyNode();
@@ -133,8 +151,8 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 
 FText UK2Node_ActorBoundEvent::GetTooltipText() const
 {
-	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegatePropertyConst();
-	if(TargetDelegateProp)
+	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+	if (TargetDelegateProp)
 	{
 		return TargetDelegateProp->GetToolTipText();
 	}
@@ -165,63 +183,80 @@ AActor* UK2Node_ActorBoundEvent::GetReferencedLevelActor() const
 	return EventOwner;
 }
 
+void UK2Node_ActorBoundEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	// make sure that the actor still exists:
+	AActor* TargetActor = GetReferencedLevelActor();
+	if(!TargetActor)
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingActor_ActorBoundEvent", "@@ is referencing an Actor that no longer exists. Attached logic will never execute.").ToString(), 
+			this
+		);
+	}
+	else if(DelegateOwnerClass == nullptr)
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingClass_ActorBoundEvent", "@@ is trying to find an Event Dispatcher named @@ in a class that no longer exists. Attached logic will never execute.").ToString(), 
+			this,
+			*DelegatePropertyName.ToString()
+		);
+	}
+	else if( GetTargetDelegatePropertyFromSkel() == nullptr )
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingDelegate_ActorBoundEvent", "@@ is referencing an Event Dispatcher named @@ that no longer exists in class @@. Attached logic will never execute.").ToString(),
+			this,
+			*DelegatePropertyName.ToString(),
+			DelegateOwnerClass
+		);
+	}
+}
+
 void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwner, const UMulticastDelegateProperty* InDelegateProperty)
 {
-	if( InEventOwner && InDelegateProperty )
+	if (InEventOwner && InDelegateProperty)
 	{
 		EventOwner = InEventOwner;
 		DelegatePropertyName = InDelegateProperty->GetFName();
 		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
 		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, false);
-		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
+		CustomFunctionName = FName(*FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()));
 		bOverrideFunction = false;
 		bInternalEvent = true;
 		CachedNodeTitle.MarkDirty();
 	}
 }
 
-UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyConst() const
+UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
+	return FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
 }
 
-UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
+UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyFromSkel() const
 {
-	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
-
-	// If we couldn't find the target delegate, then try to find it in the property remap table
-	if (!TargetDelegateProp)
-	{
-		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
-		if (NewProperty)
-		{
-			// Found a remapped property, update the node
-			TargetDelegateProp = NewProperty;
-			DelegatePropertyName = NewProperty->GetFName();
-			CachedNodeTitle.MarkDirty();
-		}
-	}
-
-	return TargetDelegateProp;
+	return FindField<UMulticastDelegateProperty>(FBlueprintEditorUtils::GetMostUpToDateClass(DelegateOwnerClass), DelegatePropertyName);
 }
 
-FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate()
+FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate() const 
 {
 	if( EventOwner )
 	{
 		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		if( TargetDelegateProp )
+		if (TargetDelegateProp && ensure(EventOwner->IsA(DelegateOwnerClass)))
 		{
 			return TargetDelegateProp->GetPropertyValuePtr_InContainer(EventOwner);
 		}
 	}
-	
+
 	return NULL;
 }
 
 bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 {
-	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( DelegateOwnerClass, DelegatePropertyName ));
+	const UMulticastDelegateProperty* TargetDelegateProp = FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
 	return (TargetDelegateProp && TargetDelegateProp->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly));
 }
 
@@ -230,14 +265,11 @@ void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	// Fix up legacy nodes that may not yet have a delegate pin
-	if(Ar.IsLoading())
+	if (Ar.IsLoading())
 	{
-		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
+		if (Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
-			DelegateOwnerClass = EventSignatureClass_DEPRECATED;
-			UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-			check(TargetDelegateProp);
-			EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+			DelegateOwnerClass = EventSignatureClass_DEPRECATED;	
 		}
 	}
 }

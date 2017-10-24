@@ -3,8 +3,8 @@
 #include "OculusNetConnection.h"
 #include "OnlineSubsystemOculusPrivate.h"
 
-
 #include "IPAddressOculus.h"
+
 #include "Net/DataChannel.h"
 
 void UOculusNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
@@ -104,7 +104,13 @@ void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 		}
 	}
 
-	if (CountBytes > 0)
+	bool bBlockSend = false;
+
+#if !UE_BUILD_SHIPPING
+	LowLevelSendDel.ExecuteIfBound((void*)DataToSend, CountBytes, bBlockSend);
+#endif
+
+	if (!bBlockSend && CountBytes > 0)
 	{
 		ovr_Net_SendPacket(PeerID, static_cast<size_t>(CountBytes), DataToSend, (InternalAck) ? ovrSend_Reliable : ovrSend_Unreliable);
 	}

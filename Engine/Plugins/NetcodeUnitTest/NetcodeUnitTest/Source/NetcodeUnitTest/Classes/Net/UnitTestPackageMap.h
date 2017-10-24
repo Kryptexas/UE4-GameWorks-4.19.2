@@ -8,7 +8,11 @@
 #include "NetcodeUnitTest.h"
 #include "UnitTestPackageMap.generated.h"
 
+
+// Forward declarations
 class UNetConnection;
+class UMinimalClient;
+
 
 /**
  * Package map override, for blocking the creation of actor channels for specific actors (by detecting the actor class being created)
@@ -34,6 +38,9 @@ class UUnitTestPackageMap : public UPackageMapClient
 	virtual bool SerializeNewActor(FArchive& Ar, class UActorChannel* Channel, class AActor*& Actor) override;
 
 public:
+	/** Cached reference to the minimal client that owns this package map */
+	UMinimalClient* MinClient;
+
 	/** Whether or not we are currently within execution of SerializeNewActor */
 	bool bWithinSerializeNewActor;
 

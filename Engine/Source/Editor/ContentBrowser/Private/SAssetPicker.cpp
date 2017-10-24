@@ -109,7 +109,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			.AutoWidth()
 			[
 				SNew( SComboButton )
-				.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+				.ComboButtonStyle( FEditorStyle::Get(), "GenericFilters.ComboButtonStyle" )
 				.ForegroundColor(FLinearColor::White)
 				.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
 				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
@@ -119,7 +119,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 				.ButtonContent()
 				[
 					SNew( STextBlock )
-					.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
+					.TextStyle( FEditorStyle::Get(), "GenericFilters.TextStyle" )
 					.Text( LOCTEXT( "Filters", "Filters" ) )
 				]
 			];

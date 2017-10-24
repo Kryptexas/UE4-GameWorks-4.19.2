@@ -80,7 +80,7 @@ private:
 	TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> Attachment;
 	FDateTime Expiration;
 	void* Message;
-	IMessageContextPtr OriginalContext;
+	TSharedPtr<IMessageContext, ESPMode::ThreadSafe> OriginalContext;
 	TArray<FMessageAddress> Recipients;
 	EMessageScope Scope;
 	FMessageAddress Sender;

@@ -19,9 +19,24 @@
 
 FKismetVariableDragDropAction::FKismetVariableDragDropAction()
 	: VariableName(NAME_None)
-	, bControlDrag(false)
-	, bAltDrag(false)
 {
+}
+
+UBlueprint* FKismetVariableDragDropAction::GetSourceBlueprint() const
+{
+	check(VariableSource.IsValid());
+
+	UClass* VariableSourceClass = nullptr;
+	if (VariableSource.Get()->IsA(UClass::StaticClass()))
+	{
+		VariableSourceClass = CastChecked<UClass>(VariableSource.Get());
+	}
+	else
+	{
+		check(VariableSource.Get()->GetOuter());
+		VariableSourceClass = CastChecked<UClass>(VariableSource.Get()->GetOuter());
+	}
+	return UBlueprint::GetBlueprintFromClass(VariableSourceClass);
 }
 
 void FKismetVariableDragDropAction::GetLinksThatWillBreak(	UEdGraphNode* Node, UProperty* NewVariableProperty, 
@@ -59,10 +74,6 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	FString VariableString = VariableName.ToString();
 
 	// Icon/text to draw on tooltip
-	FSlateColor IconColor = FLinearColor::White;
-	const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-	FSlateBrush const* SecondaryIcon = nullptr;
-	FSlateColor SecondaryColor = FLinearColor::Transparent;
 	FText Message = LOCTEXT("InvalidDropTarget", "Invalid drop target!");
 
 	UEdGraphPin* PinUnderCursor = GetHoveredPin();
@@ -77,7 +88,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		{
 			bBadSchema = true;
 		}
-		else if(!CanVariableBeDropped(VariableProperty, *TheHoveredGraph))
+		else if (!CanVariableBeDropped(VariableProperty, *TheHoveredGraph))
 		{
 			bBadGraph = true;
 		}
@@ -97,24 +108,21 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 	if (bBadSchema)
 	{
-		StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		Message = LOCTEXT("CannotCreateInThisSchema", "Cannot access variables in this type of graph");
+		SetFeedbackMessageError(LOCTEXT("CannotCreateInThisSchema", "Cannot access variables in this type of graph"));
 	}
-	else if(bBadGraph)
+	else if (bBadGraph)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
 		Args.Add(TEXT("Scope"), FText::FromString(TheHoveredGraph->GetName()));
 
-		StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-
-		if(IsFromBlueprint(FBlueprintEditorUtils::FindBlueprintForGraph(TheHoveredGraph)) && VariableProperty->GetOuter()->IsA(UFunction::StaticClass()))
+		if (IsFromBlueprint(FBlueprintEditorUtils::FindBlueprintForGraph(TheHoveredGraph)) && VariableProperty->GetOuter()->IsA(UFunction::StaticClass()))
 		{
-			Message = FText::Format( LOCTEXT("IncorrectGraphForLocalVariable_Error", "Cannot place local variable '{VariableName}' in external scope '{Scope}'"), Args);
+			SetFeedbackMessageError(FText::Format( LOCTEXT("IncorrectGraphForLocalVariable_Error", "Cannot place local variable '{VariableName}' in external scope '{Scope}'"), Args));
 		}
 		else
 		{
-			Message = FText::Format( LOCTEXT("IncorrectGraphForVariable_Error", "Cannot place variable '{VariableName}' in external scope '{Scope}'"), Args);
+			SetFeedbackMessageError(FText::Format( LOCTEXT("IncorrectGraphForVariable_Error", "Cannot place variable '{VariableName}' in external scope '{Scope}'"), Args));
 		}
 	}
 	else if (PinUnderCursor)
@@ -123,12 +131,11 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
 
-		if(CanVariableBeDropped(VariableProperty, *PinUnderCursor->GetOwningNode()->GetGraph()))
+		if (CanVariableBeDropped(VariableProperty, *PinUnderCursor->GetOwningNode()->GetGraph()))
 		{
 			if (PinUnderCursor->bOrphanedPin)
 			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format(LOCTEXT("OrphanedPin_Error", "Cannot make connection to orphaned pin {PinUnderCursor}"), Args);
+				SetFeedbackMessageError(FText::Format(LOCTEXT("OrphanedPin_Error", "Cannot make connection to orphaned pin {PinUnderCursor}"), Args));
 			}
 			else
 			{
@@ -148,28 +155,15 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 				if (bTypeMatch && bCanWriteIfNeeded)
 				{
-					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-
-					if (bIsRead)
-					{
-						Message = FText::Format(LOCTEXT("MakeThisEqualThat_PinEqualVariableName", "Make {PinUnderCursor} = {VariableName}"), Args);
-					}
-					else
-					{
-						Message = FText::Format(LOCTEXT("MakeThisEqualThat_VariableNameEqualPin", "Make {VariableName} = {PinUnderCursor}"), Args);
-					}
+					SetFeedbackMessageOK(bIsRead ?
+						FText::Format(LOCTEXT("MakeThisEqualThat_PinEqualVariableName", "Make {PinUnderCursor} = {VariableName}"), Args) :
+						FText::Format(LOCTEXT("MakeThisEqualThat_VariableNameEqualPin", "Make {VariableName} = {PinUnderCursor}"), Args));
 				}
 				else
 				{
-					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-					if (!bCanWriteIfNeeded)
-					{
-						Message = FText::Format(LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
-					}
-					else
-					{
-						Message = FText::Format(LOCTEXT("NotCompatible_Error", "The type of '{VariableName}' is not compatible with {PinUnderCursor}"), Args);
-					}
+					SetFeedbackMessageError(bCanWriteIfNeeded ?
+						FText::Format(LOCTEXT("NotCompatible_Error", "The type of '{VariableName}' is not compatible with {PinUnderCursor}"), Args) :
+						FText::Format(LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args));
 				}
 			}
 		}
@@ -177,8 +171,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		{
 			Args.Add(TEXT("Scope"), FText::FromString(PinUnderCursor->GetOwningNode()->GetGraph()->GetName()));
 
-			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FText::Format( LOCTEXT("IncorrectGraphForPin_Error", "Cannot place local variable '{VariableName}' in external scope '{Scope}'"), Args);
+			SetFeedbackMessageError(FText::Format( LOCTEXT("IncorrectGraphForPin_Error", "Cannot place local variable '{VariableName}' in external scope '{Scope}'"), Args));
 		}
 	}
 	else if (VarNodeUnderCursor)
@@ -186,7 +179,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
 
-		if(CanVariableBeDropped(VariableProperty, *VarNodeUnderCursor->GetGraph()))
+		if (CanVariableBeDropped(VariableProperty, *VarNodeUnderCursor->GetGraph()))
 		{
 			const bool bIsRead = VarNodeUnderCursor->IsA(UK2Node_VariableGet::StaticClass());
 			const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(VarNodeUnderCursor);
@@ -196,119 +189,20 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			if (bCanWriteIfNeeded)
 			{
 				Args.Add(TEXT("ReadOrWrite"), bIsRead ? LOCTEXT("Read", "read") : LOCTEXT("Write", "write"));
-				if(WillBreakLinks(VarNodeUnderCursor, VariableProperty))
-				{
-					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn"));
-					Message = FText::Format( LOCTEXT("ChangeNodeToWarnBreakLinks", "Change node to {ReadOrWrite} '{VariableName}', WARNING this will break links!"), Args);
-				}
-				else
-				{
-					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-					Message = FText::Format( LOCTEXT("ChangeNodeTo", "Change node to {ReadOrWrite} '{VariableName}'"), Args);
-				}
+				SetFeedbackMessageOK(WillBreakLinks(VarNodeUnderCursor, VariableProperty) ?
+					FText::Format(LOCTEXT("ChangeNodeToWarnBreakLinks", "Change node to {ReadOrWrite} '{VariableName}', WARNING this will break links!"), Args) :
+					FText::Format(LOCTEXT("ChangeNodeTo", "Change node to {ReadOrWrite} '{VariableName}'"), Args));
 			}
 			else
 			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
+				SetFeedbackMessageError(FText::Format( LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args));
 			}
 		}
 		else
 		{
 			Args.Add(TEXT("Scope"), FText::FromString(VarNodeUnderCursor->GetGraph()->GetName()));
 
-			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FText::Format( LOCTEXT("IncorrectGraphForNodeReplace_Error", "Cannot replace node with local variable '{VariableName}' in external scope '{Scope}'"), Args);
-		}
-	}
-	else if (!HoveredCategoryName.IsEmpty())
-	{
-		// Find Blueprint that made this class and get category of variable
-		FText Category;
-		UBlueprint* Blueprint;
-		
-		// Find the Blueprint for this property
-		if(Cast<UFunction>(VariableSource.Get()))
-		{
-			Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource->GetOuter()));
-		}
-		else
-		{
-			Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()));
-		}
-
-		if (Blueprint)
-		{
-			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName(), GetLocalVariableScope() );
-		}
-
-		// See if class is native
-		UClass* OuterClass = Cast<UClass>(VariableProperty->GetOuter());
-		if(OuterClass || Cast<UFunction>(VariableProperty->GetOuter()))
-		{
-			const bool bIsNativeVar = (OuterClass && OuterClass->ClassGeneratedBy == NULL);
-
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
-			Args.Add(TEXT("HoveredCategoryName"), HoveredCategoryName);
-
-			if (bIsNativeVar)
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("ChangingCatagoryNotThisVar", "Cannot change category for variable '{VariableName}'"), Args );
-			}
-			else if (Category.EqualTo(HoveredCategoryName))
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("ChangingCatagoryAlreadyIn", "Variable '{VariableName}' is already in category '{HoveredCategoryName}'"), Args );
-			}
-			else
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				Message = FText::Format( LOCTEXT("ChangingCatagoryOk", "Move variable '{VariableName}' to category '{HoveredCategoryName}'"), Args );
-			}
-		}
-	}
-	else if (HoveredAction.IsValid())
-	{
-		if(HoveredAction.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
-		{
-			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)HoveredAction.Pin().Get();
-			FName TargetVarName = VarAction->GetVariableName();
-
-			// Needs to have a valid index to move it (this excludes variables added through other means, like timelines/components
-			int32 MoveVarIndex = INDEX_NONE;
-			int32 TargetVarIndex = INDEX_NONE;
-			if (UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get())))
-			{
-				MoveVarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VariableName);
-				TargetVarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, TargetVarName);
-			}
-
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
-			Args.Add(TEXT("TargetVarName"), FText::FromName(TargetVarName));
-
-			if(MoveVarIndex == INDEX_NONE)
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("MoveVarDiffClass", "Cannot reorder variable '{VariableName}'."), Args );
-			}
-			else if(TargetVarIndex == INDEX_NONE)
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("MoveVarOther", "Cannot reorder variable '{VariableName}' before '{TargetVarName}'."), Args );
-			}
-			else if(VariableName == TargetVarName)
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FText::Format( LOCTEXT("MoveVarYourself", "Cannot reorder variable '{VariableName}' before itself."), Args );
-			}
-			else
-			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				Message = FText::Format( LOCTEXT("MoveVarOK", "Reorder variable '{VariableName}' before '{TargetVarName}'"), Args );
-			}
+			SetFeedbackMessageError(FText::Format( LOCTEXT("IncorrectGraphForNodeReplace_Error", "Cannot replace node with local variable '{VariableName}' in external scope '{Scope}'"), Args));
 		}
 	}
 	else if (bAltDrag && !bCanMakeSetter)
@@ -316,17 +210,17 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
 
-		StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		Message = FText::Format(LOCTEXT("CannotPlaceSetter", "Variable '{VariableName}' is readonly, you cannot set this variable."), Args);
+		SetFeedbackMessageError(FText::Format(LOCTEXT("CannotPlaceSetter", "Variable '{VariableName}' is readonly, you cannot set this variable."), Args));
 	}
-	// Draw variable icon
 	else
 	{
-		StatusSymbol = FBlueprintEditor::GetVarIconAndColor(VariableSource.Get(), VariableName, IconColor, SecondaryIcon, SecondaryColor);
-		Message = FText::FromString(VariableString);
+		FMyBlueprintItemDragDropAction::HoverTargetChanged();
 	}
+}
 
-	SetSimpleFeedbackMessage(StatusSymbol, IconColor, Message, SecondaryIcon, SecondaryColor);
+void FKismetVariableDragDropAction::GetDefaultStatusSymbol(const FSlateBrush*& PrimaryBrushOut, FSlateColor& IconColorOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut) const
+{
+	PrimaryBrushOut = FBlueprintEditor::GetVarIconAndColor(VariableSource.Get(), VariableName, IconColorOut, SecondaryBrushOut, SecondaryColorOut);
 }
 
 FReply FKismetVariableDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
@@ -514,7 +408,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 				MenuBuilder.BeginSection("BPVariableDroppedOn", VariableNameText );
 
 				MenuBuilder.AddMenuEntry(
-					LOCTEXT("CreateGetVariable", "Get"),
+					FText::Format( LOCTEXT("CreateGetVariable", "Get {0}"), VariableNameText ),
 					FText::Format( LOCTEXT("CreateVariableGetterToolTip", "Create Getter for variable '{0}'\n(Ctrl-drag to automatically create a getter)"), VariableNameText ),
 					FSlateIcon(),
 					FUIAction(
@@ -522,7 +416,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 					);
 
 				MenuBuilder.AddMenuEntry(
-					LOCTEXT("CreateSetVariable", "Set"),
+					FText::Format( LOCTEXT("CreateSetVariable", "Set {0}"), VariableNameText ),
 					FText::Format( LOCTEXT("CreateVariableSetterToolTip", "Create Setter for variable '{0}'\n(Alt-drag to automatically create a setter)"), VariableNameText ),
 					FSlateIcon(),
 					FUIAction(
@@ -542,70 +436,6 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 
 				MenuBuilder.EndSection();
 			}
-		}
-	}
-
-	return FReply::Handled();
-}
-
-
-
-FReply FKismetVariableDragDropAction::DroppedOnAction(TSharedRef<FEdGraphSchemaAction> Action)
-{
-	if(Action->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)&Action.Get();
-
-		// Only let you drag and drop if variables are from same BP class, and not onto itself
-		UBlueprint* BP = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()));
-		FName TargetVarName = VarAction->GetVariableName();
-		if( (BP != NULL) && 
-			(VariableName != TargetVarName) && 
-			(VariableSource == VarAction->GetVariableClass()) )
-		{
-			bool bMoved = FBlueprintEditorUtils::MoveVariableBeforeVariable(BP, VariableName, TargetVarName, true);
-			// If we moved successfully
-			if(bMoved)
-			{
-				// Change category of var to match the one we dragged on to as well
-				FText MovedVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
-				FText TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName, GetLocalVariableScope());
-				if(!MovedVarCategory.EqualTo(TargetVarCategory))
-				{
-					FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), TargetVarCategory, true);
-				}
-
-				// Update Blueprint after changes so they reflect in My Blueprint tab.
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
-			}
-		}
-
-		return FReply::Handled();
-	}
-	return FReply::Unhandled();
-}
-
-FReply FKismetVariableDragDropAction::DroppedOnCategory(FText Category)
-{
-	UE_LOG(LogTemp, Log, TEXT("Dropped %s on Category %s"), *VariableName.ToString(), *Category.ToString());
-
-	UBlueprint* BP = NULL;
-	if(VariableSource.Get()->IsA(UFunction::StaticClass()))
-	{
-		BP = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()->GetOuter()));
-	}
-	else
-	{
-		BP = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()));
-	}
-
-	if(BP != NULL)
-	{
-		// Check this is actually a different category
-		FText CurrentCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
-		if(!Category.EqualTo(CurrentCategory))
-		{
-			FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), Category, false);
 		}
 	}
 

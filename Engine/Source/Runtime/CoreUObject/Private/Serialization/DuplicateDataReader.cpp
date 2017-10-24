@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Serialization/ArchiveUObject.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "Serialization/DuplicatedObject.h"
@@ -74,7 +74,7 @@ FArchive& FDuplicateDataReader::operator<<( UObject*& Object )
 	return *this;
 }
 
-FArchive& FDuplicateDataReader::operator<<( FLazyObjectPtr& LazyObjectPtr)
+FArchive& FDuplicateDataReader::operator<<(FLazyObjectPtr& LazyObjectPtr)
 {
 	FArchive& Ar = *this;
 	FUniqueObjectGuid ID;
@@ -89,18 +89,16 @@ FArchive& FDuplicateDataReader::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return Ar;
 }
 
-FArchive& FDuplicateDataReader::operator<<( FStringAssetReference& StringAssetReference)
+FArchive& FDuplicateDataReader::operator<<(FSoftObjectPath& SoftObjectPath)
 {
-	FArchiveUObject::operator<<(StringAssetReference);
+	FArchiveUObject::operator<<(SoftObjectPath);
 			
-	// Remap asset reference if necessary
+	// Remap soft reference if necessary
+	UObject* SourceObject = SoftObjectPath.ResolveObject();
+	FDuplicatedObject ObjectInfo = SourceObject ? DuplicatedObjectAnnotation.GetAnnotation(SourceObject) : FDuplicatedObject();
+	if (!ObjectInfo.IsDefault())
 	{
-		UObject* SourceObject = StringAssetReference.ResolveObject();
-		FDuplicatedObject ObjectInfo = SourceObject ? DuplicatedObjectAnnotation.GetAnnotation(SourceObject) : FDuplicatedObject();
-		if (!ObjectInfo.IsDefault())
-		{
-			StringAssetReference = FStringAssetReference::GetOrCreateIDForObject(ObjectInfo.DuplicatedObject);
-		}
+		SoftObjectPath = FSoftObjectPath::GetOrCreateIDForObject(ObjectInfo.DuplicatedObject);
 	}
 	
 	return *this;

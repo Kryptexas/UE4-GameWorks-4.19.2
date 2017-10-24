@@ -28,9 +28,6 @@ class FHistoricTextNumericData;
 
 template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
-#define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
-
-
 //DECLARE_CYCLE_STAT_EXTERN( TEXT("Format Text"), STAT_TextFormat, STATGROUP_Text, );
 
 namespace ETextFlag
@@ -481,12 +478,6 @@ public:
 	template < typename... TArguments >
 	static FText FormatOrdered( FTextFormat Fmt, TArguments&&... Args );
 
-	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
-	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
-
-	static void SetSuppressWarnings(bool bSuppress){ bSuppressWarnings = bSuppress; }
-	static bool GetSuppressWarnings(){ return bSuppressWarnings; }
-
 	bool IsTransient() const;
 	bool IsCultureInvariant() const;
 	bool IsFromStringTable() const;
@@ -547,9 +538,6 @@ private:
 
 	/** Flags with various information on what sort of FText this is */
 	uint32 Flags;
-
-	static bool bEnableErrorCheckingResults;
-	static bool bSuppressWarnings;
 
 public:
 	friend class FTextCache;

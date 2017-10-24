@@ -15,6 +15,9 @@
 #include "include/cef_task.h"
 #pragma pop_macro("OVERRIDE")
 
+#if PLATFORM_LINUX
+typedef CefBase CefBaseRefCounted;
+#endif
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
@@ -25,7 +28,7 @@ class FCEFBrowserClosureTask
 	: public CefTask
 {
 public:
-	FCEFBrowserClosureTask(CefRefPtr<CefBase> InHandle, TFunction<void ()> InClosure)
+	FCEFBrowserClosureTask(CefRefPtr<CefBaseRefCounted> InHandle, TFunction<void ()> InClosure)
 		: Handle(InHandle)
 		, Closure(InClosure)
 	{ }
@@ -36,7 +39,7 @@ public:
 	}
 
 private:
-	CefRefPtr<CefBase> Handle; // Used so the handler will not go out of scope before the closure is executed.
+	CefRefPtr<CefBaseRefCounted> Handle; // Used so the handler will not go out of scope before the closure is executed.
 	TFunction<void ()> Closure;
 	IMPLEMENT_REFCOUNTING(FCEFBrowserClosureTask);
 };

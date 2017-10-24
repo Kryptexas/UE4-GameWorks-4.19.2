@@ -14,7 +14,7 @@
 #ifdef ONLINESUBSYSTEMUTILS_API
 
 /** @return an initialized audio component specifically for use with VoIP */
-ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate);
+ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels);
 
 /** @return the world associated with a named online subsystem instance */
 ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);

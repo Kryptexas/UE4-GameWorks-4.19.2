@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SSessionFrontend.h"
+
+#include "ITargetDeviceProxyManager.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/SBoxPanel.h"
 #include "Textures/SlateIcon.h"
@@ -8,9 +10,9 @@
 #include "Framework/Docking/WorkspaceItem.h"
 #include "Framework/Docking/TabManager.h"
 #include "EditorStyleSet.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/IAutomationControllerModule.h"
-#include "Interfaces/IAutomationWindowModule.h"
+#include "ITargetDeviceServicesModule.h"
+#include "IAutomationControllerModule.h"
+#include "IAutomationWindowModule.h"
 #include "Interfaces/IScreenShotToolsModule.h"
 #include "Interfaces/IScreenShotComparisonModule.h"
 #include "ISessionServicesModule.h"
@@ -124,6 +126,9 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 				TabManager->RestoreFrom(Layout, ConstructUnderWindow).ToSharedRef()
 			]
 	];
+
+	// Tell tab-manager about the multi-box for platforms with a global menu bar
+	TabManager->SetMenuMultiBox(MenuBarBuilder.GetMultiBox());
 }
 
 

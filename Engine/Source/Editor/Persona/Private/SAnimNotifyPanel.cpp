@@ -34,6 +34,10 @@
 #include "Animation/BlendSpaceBase.h"
 #include "TabSpawners.h"
 #include "SInlineEditableTextBlock.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "Modules/ModuleManager.h"
+#include "IEditableSkeleton.h"
+#include "ISkeletonEditorModule.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -80,7 +84,7 @@ bool ReadNotifyPasteHeader(FString& OutPropertyString, const TCHAR*& OutBuffer, 
 	OutBuffer = NULL;
 	OutOriginalTime = -1.f;
 
-	FPlatformMisc::ClipboardPaste(OutPropertyString);
+	FPlatformApplicationMisc::ClipboardPaste(OutPropertyString);
 
 	if (!OutPropertyString.IsEmpty())
 	{
@@ -732,6 +736,10 @@ public:
 
 	// Get the default Notify Name for a given blueprint notify asset
 	FString MakeBlueprintNotifyName(FAssetData& NotifyAssetData);
+
+	// Need to make sure tool tips are cleared during node clear up so slate system won't
+	// call into invalid notify.
+	void ClearNodeTooltips();
 
 protected:
 
@@ -2668,7 +2676,7 @@ TSubclassOf<UObject> SAnimNotifyTrack::GetBlueprintClassFromPath(FString Bluepri
 	if (!BlueprintPath.IsEmpty())
 	{
 		UBlueprint* BlueprintLibPtr = LoadObject<UBlueprint>(NULL, *BlueprintPath, NULL, 0, NULL);
-		BlueprintClass = Cast<UClass>(BlueprintLibPtr->GeneratedClass);
+		BlueprintClass = BlueprintLibPtr->GeneratedClass;
 	}
 	return BlueprintClass;
 }
@@ -3206,7 +3214,11 @@ void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Typ
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddNewNotifyEvent", "Add New Anim Notify") );
 		FName NewName = FName( *NewNotifyName.ToString() );
-		SeqSkeleton->AddNewAnimationNotify(NewName);
+
+		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(SeqSkeleton);
+
+		EditableSkeleton->AddNotify(NewName);
 
 		FBlueprintActionDatabase::Get().RefreshAssetActions(SeqSkeleton);
 
@@ -3700,6 +3712,16 @@ FString SAnimNotifyTrack::MakeBlueprintNotifyName(FAssetData& NotifyAssetData)
 	DefaultNotifyName = DefaultNotifyName.Replace(TEXT("AnimNotifyState_"), TEXT(""), ESearchCase::CaseSensitive);
 
 	return DefaultNotifyName;
+}
+
+void SAnimNotifyTrack::ClearNodeTooltips()
+{
+	FText EmptyTooltip;
+
+	for (TSharedPtr<SAnimNotifyNode> Node : NotifyNodes)
+	{
+		Node->SetToolTipText(EmptyTooltip);
+	}
 }
 
 void SAnimNotifyTrack::GetNotifyMenuData(TArray<FAssetData>& NotifyAssetData, TArray<BlueprintNotifyMenuInfo>& OutNotifyMenuData)
@@ -4212,6 +4234,13 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 		SAssignNew( NotifySlots, SVerticalBox )
 		);
 
+	// Clear node tool tips to stop slate referencing them and possibly
+	// causing a crash if the notify has gone away
+	for (TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
+	{
+		Track->ClearNodeTooltips();
+	}
+
 	NotifyAnimTracks.Empty();
 	NotifyEditorTracks.Empty();
 
@@ -4470,7 +4499,7 @@ void SAnimNotifyPanel::CopySelectedNodesToClipboard() const
 
 			NodeObject->ExportForCopy(Sequence, StrValue);
 		}
-		FPlatformMisc::ClipboardCopy(*StrValue);
+		FPlatformApplicationMisc::ClipboardCopy(*StrValue);
 	}
 }
 
@@ -4876,6 +4905,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 			if(InOutAllowedClassNames->Contains(TagValue))
 			{
 				FString GenClass = AssetData.GetTagValueRef<FString>(BPGenClassName);
+				const uint32 ClassFlags = AssetData.GetTagValueRef<uint32>("ClassFlags");
+				if (ClassFlags & CLASS_Abstract)
+				{
+					continue;
+				}
 
 				if(!OutNotifyData.Contains(AssetData))
 				{

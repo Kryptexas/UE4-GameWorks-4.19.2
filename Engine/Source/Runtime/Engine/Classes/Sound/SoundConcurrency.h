@@ -108,10 +108,6 @@ public:
 	/** Constructor for the max concurrency active sound entry. */
 	FConcurrencyGroup();
 	FConcurrencyGroup(struct FActiveSound* ActiveSound);
-	FConcurrencyGroup(const FConcurrencyGroup& Other);
-	FConcurrencyGroup(const FConcurrencyGroup&& Other);
-	FConcurrencyGroup& operator=(const FConcurrencyGroup& Other);
-	FConcurrencyGroup& operator=(const FConcurrencyGroup&& Other);
 
 	/** Retrieves the active sounds array. */
 	TArray<FActiveSound*>& GetActiveSounds();
@@ -210,6 +206,6 @@ private: // Data
 	FPerSoundToActiveSoundsMap SoundObjectToActiveSounds;
 
 	/** A map of concurrency active sound ID to concurrency active sounds */
-	TMap<FConcurrencyGroupID, FConcurrencyGroup> ConcurrencyGroups;
+	FConcurrencyGroups ConcurrencyGroups;
 
 };

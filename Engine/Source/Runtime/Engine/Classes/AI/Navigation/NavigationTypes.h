@@ -11,7 +11,7 @@
 #include "Templates/SubclassOf.h"
 #include "UObject/WeakObjectPtr.h"
 #include "Misc/CoreStats.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationTypes.generated.h"
 
@@ -540,7 +540,7 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 	TSubclassOf<ANavigationData> NavigationDataClass;
 
 	UPROPERTY(config)
-	FStringClassReference NavigationDataClassName;
+	FSoftClassPath NavigationDataClassName;
 
 	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight);
 };

@@ -29,9 +29,14 @@
 		},
 		{
 			"Name" : "AndroidMediaFactory",
+			"Type" : "Editor",
+			"LoadingPhase" : "PostEngineInit"
+		},
+		{
+			"Name" : "AndroidMediaFactory",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
-			"WhitelistPlatforms" : [ "Android", "Mac", "Linux", "Win32", "Win64" ]
+			"WhitelistPlatforms" : [ "Android" ]
 		}
 	]
 }

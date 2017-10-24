@@ -93,9 +93,24 @@ void FAbcImporter::UpdateAssetImportData(UAbcAssetImportData* AssetImportData)
 
 void FAbcImporter::RetrieveAssetImportData(UAbcAssetImportData* AssetImportData)
 {
+	bool bAnySetForImport = false;
+
 	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
 	{
-		MeshObject->bShouldImport = AssetImportData->TrackNames.Contains(MeshObject->Name);
+		if (AssetImportData->TrackNames.Contains(MeshObject->Name))
+		{
+			MeshObject->bShouldImport = true;
+			bAnySetForImport = true;
+		}		
+	}
+
+	// If none were set to import, set all of them to import (probably different scene/setup)
+	if (!bAnySetForImport)
+	{
+		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+		{
+			MeshObject->bShouldImport = true;
+		}
 	}
 }
 
@@ -106,12 +121,9 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 	Factory.setPolicy(Alembic::Abc::ErrorHandler::kThrowPolicy);
 	Factory.setOgawaNumStreams(12);
 	
-	// Convert FString to const char*
-	const char* CharFilePath = TCHAR_TO_ANSI(*FPaths::ConvertRelativePathToFull(InFilePath));
-
 	// Extract Archive and compression type from file
 	Alembic::AbcCoreFactory::IFactory::CoreType CompressionType;
-	Alembic::Abc::IArchive Archive = Factory.getArchive(CharFilePath, CompressionType);
+	Alembic::Abc::IArchive Archive = Factory.getArchive(TCHAR_TO_ANSI(*FPaths::ConvertRelativePathToFull(InFilePath)), CompressionType);
 	if (!Archive.valid())
 	{
 		return AbcImportError_InvalidArchive;

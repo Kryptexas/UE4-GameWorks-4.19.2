@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformAffinity.h"
+#include "Apple/ApplePlatformAffinity.h"
 
-class CORE_API FIOSPlatformAffinity : public FGenericPlatformAffinity
+class CORE_API FIOSPlatformAffinity : public FApplePlatformAffinity
 {
 public:
 	static const uint64 GetMainGameMask();

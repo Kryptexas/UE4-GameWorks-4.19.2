@@ -27,7 +27,7 @@ enum EMontagePreviewType
 
 /** Proxy override for this UAnimInstance-derived class */
 USTRUCT()
-struct FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
+struct ANIMGRAPH_API FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
 {
 	GENERATED_BODY()
 
@@ -195,8 +195,11 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	//~ Begin UAnimInstance Interface
 	virtual void NativeInitializeAnimation() override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+protected:
+	virtual void Montage_Advance(float DeltaTime) override;
 	//~ End UAnimInstance Interface
 
+public:
 	/** Set SkeletalControl Alpha**/
 	void SetSkeletalControlAlpha(float SkeletalControlAlpha);
 

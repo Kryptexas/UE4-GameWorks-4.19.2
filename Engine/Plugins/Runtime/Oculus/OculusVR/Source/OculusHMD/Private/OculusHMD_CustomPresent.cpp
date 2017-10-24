@@ -22,10 +22,17 @@ namespace OculusHMD
 // FCustomPresent
 //-------------------------------------------------------------------------------------------------
 
-FCustomPresent::FCustomPresent(FOculusHMD* InOculusHMD)
+FCustomPresent::FCustomPresent(class FOculusHMD* InOculusHMD, ovrpRenderAPIType InRenderAPI, EPixelFormat InDefaultPixelFormat, bool bInSupportsSRGB)
 	: FRHICustomPresent(nullptr)
 	, OculusHMD(InOculusHMD)
+	, RenderAPI(InRenderAPI)
+	, DefaultPixelFormat(InDefaultPixelFormat)
+	, bSupportsSRGB(bInSupportsSRGB)
 {
+	CheckInGameThread();
+
+	DefaultOvrpTextureFormat = GetOvrpTextureFormat(GetDefaultPixelFormat());
+
 	// grab a pointer to the renderer module for displaying our mirror window
 	static const FName RendererModuleName("Renderer");
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
@@ -58,6 +65,7 @@ void FCustomPresent::Shutdown()
 	});
 }
 
+
 void FCustomPresent::UpdateViewport(FRHIViewport* InViewportRHI)
 {
 	CheckInGameThread();
@@ -66,48 +74,102 @@ void FCustomPresent::UpdateViewport(FRHIViewport* InViewportRHI)
 	ViewportRHI->SetCustomPresent(this);
 }
 
+
 void FCustomPresent::OnBackBufferResize()
 {
-	// if we are in the middle of rendering: prevent from calling EndFrame
-	ExecuteOnRenderThread_DoNotWait([this]()
-	{
-		ExecuteOnRHIThread_DoNotWait([this]()
-		{
-			if (OculusHMD)
-			{
-				FGameFrame* Frame_RHIThread = OculusHMD->GetFrame_RHIThread();
-
-				if (Frame_RHIThread)
-				{
-					Frame_RHIThread->ShowFlags.Rendering = 0;
-				}
-			}
-		});
-	});
 }
+
+
+bool FCustomPresent::NeedsNativePresent()
+{
+	CheckInRenderThread();
+
+	bool bNeedsNativePresent = true;
+
+	if (OculusHMD)
+	{
+		FGameFrame* Frame_RenderThread = OculusHMD->GetFrame_RenderThread();
+
+		if (Frame_RenderThread)
+		{
+			bNeedsNativePresent = Frame_RenderThread->Flags.bSpectatorScreenActive;
+		}
+	}
+
+	return bNeedsNativePresent;
+}
+
 
 bool FCustomPresent::Present(int32& SyncInterval)
 {
 	CheckInRHIThread();
 
-	bool bHostPresent;
+	bool bNeedsNativePresent = true;
 
-	if (OculusHMD && OculusHMD->GetFrame_RHIThread())
+	if (OculusHMD)
 	{
-#if PLATFORM_ANDROID
-		bHostPresent = false;
-#else
-		bHostPresent = OculusHMD->IsSpectatorScreenActive();
-#endif
+		FGameFrame* Frame_RHIThread = OculusHMD->GetFrame_RHIThread();
+
+		if (Frame_RHIThread)
+		{
+			bNeedsNativePresent = Frame_RHIThread->Flags.bSpectatorScreenActive;
+			FinishRendering_RHIThread();
+		}
+	}
+
+	if (bNeedsNativePresent)
+	{
 		SyncInterval = 0; // VSync off
-		FinishRendering_RHIThread();
-	}
-	else
-	{
-		bHostPresent = true; // use regular Present; this frame is not ready yet
 	}
 
-	return bHostPresent;
+	return bNeedsNativePresent;
+}
+
+
+void FCustomPresent::UpdateMirrorTexture_RenderThread()
+{
+	SCOPE_CYCLE_COUNTER(STAT_BeginRendering);
+
+	CheckInRenderThread();
+
+	const ESpectatorScreenMode MirrorWindowMode = OculusHMD->GetSpectatorScreenMode_RenderThread();
+	const FVector2D MirrorWindowSize = OculusHMD->GetFrame_RenderThread()->WindowSize;
+
+	if (ovrp_GetInitialized())
+	{
+		// Need to destroy mirror texture?
+		if (MirrorTextureRHI.IsValid() && (MirrorWindowMode != ESpectatorScreenMode::Distorted ||
+			MirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY())))
+		{
+			ExecuteOnRHIThread([]()
+			{
+				ovrp_DestroyMirrorTexture2();
+			});
+
+			MirrorTextureRHI = nullptr;
+		}
+
+		// Need to create mirror texture?
+		if (!MirrorTextureRHI.IsValid() &&
+			MirrorWindowMode == ESpectatorScreenMode::Distorted &&
+			MirrorWindowSize.X != 0 && MirrorWindowSize.Y != 0)
+		{
+			int Width = (int)MirrorWindowSize.X;
+			int Height = (int)MirrorWindowSize.Y;
+			ovrpTextureHandle TextureHandle;
+
+			ExecuteOnRHIThread([&]()
+			{
+				ovrp_SetupMirrorTexture2(GetOvrpDevice(), Height, Width, GetDefaultOvrpTextureFormat(), &TextureHandle);
+			});
+
+			UE_LOG(LogHMD, Log, TEXT("Allocated a new mirror texture (size %d x %d)"), Width, Height);
+
+			uint32 TexCreateFlags = TexCreate_ShaderResource | TexCreate_RenderTargetable;
+
+			MirrorTextureRHI = CreateTexture_RenderThread(Width, Height, GetDefaultPixelFormat(), FClearValueBinding::None, 1, 1, 1, RRT_Texture2D, TextureHandle, TexCreateFlags)->GetTexture2D();
+		}
+	}
 }
 
 
@@ -139,10 +201,10 @@ EPixelFormat FCustomPresent::GetPixelFormat(EPixelFormat Format) const
 {
 	switch (Format)
 	{
-	case PF_B8G8R8A8:
+//	case PF_B8G8R8A8:
 	case PF_FloatRGBA:
 	case PF_FloatR11G11B10:
-	case PF_R8G8B8A8:
+//	case PF_R8G8B8A8:
 		return Format;
 	}
 
@@ -154,42 +216,77 @@ EPixelFormat FCustomPresent::GetPixelFormat(ovrpTextureFormat Format) const
 {
 	switch(Format)
 	{
-		case ovrpTextureFormat_R8G8B8A8_sRGB:
-		case ovrpTextureFormat_R8G8B8A8:
-			return PF_R8G8B8A8;
+//		case ovrpTextureFormat_R8G8B8A8_sRGB:
+//		case ovrpTextureFormat_R8G8B8A8:
+//			return PF_R8G8B8A8;
 		case ovrpTextureFormat_R16G16B16A16_FP:
 			return PF_FloatRGBA;
 		case ovrpTextureFormat_R11G11B10_FP:
 			return PF_FloatR11G11B10;
-		case ovrpTextureFormat_B8G8R8A8_sRGB:
-		case ovrpTextureFormat_B8G8R8A8:
-			return PF_B8G8R8A8;
+//		case ovrpTextureFormat_B8G8R8A8_sRGB:
+//		case ovrpTextureFormat_B8G8R8A8:
+//			return PF_B8G8R8A8;
 	}
 
 	return GetDefaultPixelFormat();
 }
 
 
-ovrpTextureFormat FCustomPresent::GetOvrpTextureFormat(EPixelFormat Format, bool bSRGB) const
+ovrpTextureFormat FCustomPresent::GetOvrpTextureFormat(EPixelFormat Format) const
 {
-	switch (Format)
+	switch (GetPixelFormat(Format))
 	{
 	case PF_B8G8R8A8:
-		return bSRGB ? ovrpTextureFormat_B8G8R8A8_sRGB : ovrpTextureFormat_B8G8R8A8;
+		return bSupportsSRGB ? ovrpTextureFormat_B8G8R8A8_sRGB : ovrpTextureFormat_B8G8R8A8;
 	case PF_FloatRGBA:
 		return ovrpTextureFormat_R16G16B16A16_FP;
 	case PF_FloatR11G11B10:
 		return ovrpTextureFormat_R11G11B10_FP;
 	case PF_R8G8B8A8:
-		return bSRGB ? ovrpTextureFormat_R8G8B8A8_sRGB : ovrpTextureFormat_R8G8B8A8;
+		return bSupportsSRGB ? ovrpTextureFormat_R8G8B8A8_sRGB : ovrpTextureFormat_R8G8B8A8;
 	}
 
-	return GetOvrpTextureFormat(GetDefaultPixelFormat(), bSRGB);
+	return ovrpTextureFormat_None;
+}
+
+
+bool FCustomPresent::IsSRGB(ovrpTextureFormat InFormat)
+{
+	switch (InFormat)
+	{
+	case ovrpTextureFormat_B8G8R8A8_sRGB:
+	case ovrpTextureFormat_R8G8B8A8_sRGB:
+		return true;
+	}
+
+	return false;
+}
+
+
+
+FTextureSetProxyPtr FCustomPresent::CreateTextureSetProxy_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, const TArray<ovrpTextureHandle>& InTextures, uint32 InTexCreateFlags)
+{
+	CheckInRenderThread();
+
+	FTextureRHIRef RHITexture;
+	{
+		RHITexture = CreateTexture_RenderThread(InSizeX, InSizeY, InFormat, InBinding, InNumMips, InNumSamples, InNumSamplesTileMem, InResourceType, InTextures[0], InTexCreateFlags);
+	}
+
+	TArray<FTextureRHIRef> RHITextureSwapChain;
+	{
+		for (int32 TextureIndex = 0; TextureIndex < InTextures.Num(); ++TextureIndex)
+		{
+			RHITextureSwapChain.Add(CreateTexture_RenderThread(InSizeX, InSizeY, InFormat, InBinding, InNumMips, InNumSamples, InNumSamplesTileMem, InResourceType, InTextures[TextureIndex], InTexCreateFlags));
+		}
+	}
+
+	return MakeShareable(new FTextureSetProxy(RHITexture, RHITextureSwapChain));
 }
 
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture,
-	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, bool bNoAlphaWrite) const
+	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, bool bNoAlphaWrite, bool bInvertY) const
 {
 	CheckInRenderThread();
 
@@ -235,8 +332,11 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	float VSize = SrcRect.Height() / (float) SrcSize.Y;
 
 #if PLATFORM_ANDROID // on android, top-left isn't 0/0 but 1/0.
-	V = 1.0f - V;
-	VSize = -VSize;
+	if (bInvertY)
+	{
+		V = 1.0f - V;
+		VSize = -VSize;
+	}
 #endif
 
 	FRHITexture* SrcTextureRHI = SrcTexture;
@@ -289,7 +389,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 		}
 
 		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-		
+
 		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
@@ -319,15 +419,15 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 			}
 
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-			
+
 			TShaderMapRef<FOculusCubemapPS> PixelShader(ShaderMap);
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			FSamplerStateRHIParamRef SamplerState = DstRect.Size() == SrcRect.Size() ? TStaticSamplerState<SF_Point>::GetRHI() : TStaticSamplerState<SF_Bilinear>::GetRHI();
 			PixelShader->SetParameters(RHICmdList, SamplerState, SrcTextureRHI, FaceIndex);
-			
+
 			RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0.0f, DstRect.Max.X, DstRect.Max.Y, 1.0f);
-			
+
 			RendererModule->DrawRectangle(
 				RHICmdList,
 				0, 0, ViewportWidth, ViewportHeight,

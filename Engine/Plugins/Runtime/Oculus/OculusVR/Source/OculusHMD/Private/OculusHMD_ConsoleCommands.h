@@ -33,11 +33,8 @@ private:
 
 #if !UE_BUILD_SHIPPING
 	// Debug console commands
-	FAutoConsoleCommand UpdateOnGameThreadCommand;
-	FAutoConsoleCommand PositionOffsetCommand;
 	FAutoConsoleCommand EnforceHeadTrackingCommand;
 	FAutoConsoleCommand StatsCommand;
-	FAutoConsoleCommand GridCommand;
 	FAutoConsoleCommand CubemapCommand;
 	FAutoConsoleCommand ShowSettingsCommand;
 	FAutoConsoleCommand ResetSettingsCommand;

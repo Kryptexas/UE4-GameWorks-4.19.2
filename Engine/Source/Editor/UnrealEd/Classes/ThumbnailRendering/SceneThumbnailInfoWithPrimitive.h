@@ -8,7 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 
@@ -26,7 +26,7 @@ class USceneThumbnailInfoWithPrimitive : public USceneThumbnailInfo
 
 	/** The custom mesh used when the primitive type is TPT_None */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)
-	FStringAssetReference PreviewMesh;
+	FSoftObjectPath PreviewMesh;
 
 	UPROPERTY()
 	bool bUserModifiedShape;

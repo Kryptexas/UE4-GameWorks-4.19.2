@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperSpriteSheetAssetTypeActions.h"
-#include "Misc/StringAssetReference.h"
 #include "Misc/PackageName.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Misc/FeedbackContext.h"
@@ -99,13 +98,8 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 
 				for (int SpriteIndex = 0; SpriteIndex < SpriteSheet->Sprites.Num(); ++SpriteIndex)
 				{
-					auto SpriteAssetPtr = SpriteSheet->Sprites[SpriteIndex];
-					FStringAssetReference SpriteStringRef = SpriteAssetPtr.ToStringReference();
-					UPaperSprite* Sprite = nullptr;
-					if (!SpriteStringRef.ToString().IsEmpty())
-					{
-						Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
-					}
+					TSoftObjectPtr<class UPaperSprite> SpriteSoftPtr = SpriteSheet->Sprites[SpriteIndex];
+					UPaperSprite* Sprite = SpriteSoftPtr.LoadSynchronous();
 					if (Sprite != nullptr)
 					{
 						const FString SpriteName = useSpriteNames ? SpriteSheet->SpriteNames[SpriteIndex] : Sprite->GetName();

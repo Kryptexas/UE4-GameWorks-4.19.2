@@ -18,6 +18,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Performance/EnginePerformanceTargets.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChartCreation, Log, All);
 
@@ -70,14 +71,14 @@ void FDumpFPSChartToEndpoint::FillOutMemberStats()
 {
 	// Get OS info
 	FPlatformMisc::GetOSVersions(/*out*/ OSMajor, /*out*/ OSMinor);
-	OSMajor.Trim().TrimTrailing();
-	OSMinor.Trim().TrimTrailing();
+	OSMajor.TrimStartAndEndInline();
+	OSMinor.TrimStartAndEndInline();
 
 	// Get CPU/GPU info
-	CPUVendor = FPlatformMisc::GetCPUVendor().Trim().TrimTrailing();
-	CPUBrand = FPlatformMisc::GetCPUBrand().Trim().TrimTrailing();
-	DesktopGPUBrand = FPlatformMisc::GetPrimaryGPUBrand().Trim().TrimTrailing();
-	ActualGPUBrand = GRHIAdapterName.Trim().TrimTrailing();
+	CPUVendor = FPlatformMisc::GetCPUVendor().TrimStartAndEnd();
+	CPUBrand = FPlatformMisc::GetCPUBrand().TrimStartAndEnd();
+	DesktopGPUBrand = FPlatformMisc::GetPrimaryGPUBrand().TrimStartAndEnd();
+	ActualGPUBrand = GRHIAdapterName.TrimStartAndEnd();
 
 	// Get settings info
 	UGameUserSettings* UserSettingsObj = GEngine->GetGameUserSettings();
@@ -760,8 +761,10 @@ void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapN
 			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUVendorID"), GRHIVendorId));
 			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDeviceID"), GRHIDeviceId));
 			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPURevisionID"), GRHIDeviceRevision));
-			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerI"), GRHIAdapterInternalDriverVersion.Trim().TrimTrailing()));
-			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerU"), GRHIAdapterUserDriverVersion.Trim().TrimTrailing()));
+			GRHIAdapterInternalDriverVersion.TrimStartAndEndInline();
+			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerI"), GRHIAdapterInternalDriverVersion));
+			GRHIAdapterUserDriverVersion.TrimStartAndEndInline();
+			InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerU"), GRHIAdapterUserDriverVersion));
 
 			// Benchmark results
 			InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPUBM"), UserSettingsObj->GetLastCPUBenchmarkResult()));
@@ -1150,7 +1153,7 @@ void FPerformanceTrackingSystem::StartCharting()
 	GFPSChartInterestingFramerates.GetValueOnGameThread().ParseIntoArray(InterestingFramerateStrings, TEXT(","));
 	for (FString FramerateString : InterestingFramerateStrings)
 	{
-		FramerateString.Trim().TrimTrailing();
+		FramerateString.TrimStartAndEndInline();
 		GTargetFrameRatesForSummary.Add(FCString::Atoi(*FramerateString));
 	}
 
@@ -1171,6 +1174,8 @@ void FPerformanceTrackingSystem::StopCharting()
 
 void UEngine::TickPerformanceMonitoring(float DeltaSeconds)
 {
+	LLM_SCOPE(ELLMTag::Stats);
+
 	if (ActivePerformanceDataConsumers.Num() > 0)
 	{
 		const IPerformanceDataConsumer::FFrameData FrameData = GPerformanceTrackingSystem.AnalyzeFrame(DeltaSeconds);

@@ -63,7 +63,7 @@ bool FSurveyTitleLocalStorage::EnumerateFiles(const FPagedQuery& Page)
 {
 	if (!IFileManager::Get().DirectoryExists(*RootDirectory))
 	{
-		TriggerOnEnumerateFilesCompleteDelegates(false);
+		TriggerOnEnumerateFilesCompleteDelegates(false, TEXT("Directory does not exist"));
 		return false;
 	}
 
@@ -85,7 +85,7 @@ bool FSurveyTitleLocalStorage::EnumerateFiles(const FPagedQuery& Page)
 		FileHeaders.Add( NewHeader );
 	}
 
-	TriggerOnEnumerateFilesCompleteDelegates(true);
+	TriggerOnEnumerateFilesCompleteDelegates(true, FString());
 
 	return true;
 }

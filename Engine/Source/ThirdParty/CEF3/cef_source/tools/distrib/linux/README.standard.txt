@@ -1,13 +1,7 @@
 CONTENTS
 --------
 
-cefclient   Contains the cefclient sample application configured to build
-            using the files in this distribution. This application demonstrates
-            a wide range of CEF functionalities.
-
-cefsimple   Contains the cefsimple sample application configured to build
-            using the files in this distribution. This application demonstrates
-            the minimal functionality required to create a browser window.
+cmake       Contains CMake configuration files shared by all targets.
 
 Debug       Contains libcef.so and other components required to run the debug
             version of CEF-based applications. By default these files should be
@@ -27,6 +21,23 @@ Release     Contains libcef.so and other components required to run the release
 Resources   Contains resources required by libcef.so. By default these files
             should be placed in the same directory as libcef.so and will be
             copied there as part of the build process.
+
+tests/      Directory of tests that demonstrate CEF usage.
+
+  cefclient Contains the cefclient sample application configured to build
+            using the files in this distribution. This application demonstrates
+            a wide range of CEF functionalities.
+
+  cefsimple Contains the cefsimple sample application configured to build
+            using the files in this distribution. This application demonstrates
+            the minimal functionality required to create a browser window.
+
+  ceftests  Contains unit tests that exercise the CEF APIs.
+
+  gtest     Contains the Google C++ Testing Framework used by the ceftests
+            target.
+
+  shared    Contains source code shared by the cefclient and ceftests targets.
 
 
 USAGE

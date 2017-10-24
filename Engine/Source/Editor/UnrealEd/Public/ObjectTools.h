@@ -599,4 +599,7 @@ namespace ThumbnailTools
 	UNREALED_API bool ConditionallyLoadThumbnailsForObjects( const TArray< FName >& InObjectFullNames, FThumbnailMap& InOutThumbnails );
 	/** Standard thumbnail height setting used by generation */
 	const int32 DefaultThumbnailSize=256;
+
+	/** If the given asset has a custom thumbnail cached or on the disk. */
+	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData);
 }

@@ -25,6 +25,25 @@ enum EVisibilityAggressiveness
 	VIS_Max,
 };
 
+UENUM()
+enum EVolumeLightingMethod
+{
+	/** 
+	 * Lighting samples are computed in an adaptive grid which covers the entire Lightmass Importance Volume.  Higher density grids are used near geometry.
+	 * The Volumetric Lightmap is interpolated efficiently on the GPU per-pixel, allowing accurate indirect lighting for dynamic objects and volumetric fog.
+	 * Positions outside of the Importance Volume reuse the border texels of the Volumetric Lightmap (clamp addressing).
+	 * On mobile, interpolation is done on the CPU at the center of each object's bounds.
+	 */
+	VLM_VolumetricLightmap,
+
+	/** 
+	 * Volume lighting samples are placed on top of static surfaces at medium density, and everywhere else in the Lightmass Importance Volume at low density.  Positions outside of the Importance Volume will have no indirect lighting.
+	 * This method requires CPU interpolation so the Indirect Lighting Cache is used to interpolate results for each dynamic object, adding Rendering Thread overhead.  
+	 * Volumetric Fog cannot be affected by precomputed lighting with this method.
+	 */
+	VLM_SparseVolumeLightingSamples,
+};
+
 USTRUCT()
 struct FLightmassWorldInfoSettings
 {
@@ -41,13 +60,20 @@ struct FLightmassWorldInfoSettings
 	float StaticLightingLevelScale;
 
 	/** 
-	 * Number of times light is allowed to bounce off of surfaces, starting from the light source. 
+	 * Number of light bounces to simulate for point / spot / directional lights, starting from the light source. 
 	 * 0 is direct lighting only, 1 is one bounce, etc. 
 	 * Bounce 1 takes the most time to calculate and contributes the most to visual quality, followed by bounce 2.
-	 * Successive bounces don't really affect build times, but have a much lower visual impact.
+	 * Successive bounces don't really affect build times, but have a much lower visual impact, unless the material diffuse colors are close to 1.
 	 */
-	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "4.0"))
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "10.0"))
 	int32 NumIndirectLightingBounces;
+
+	/** 
+	 * Number of skylight and emissive bounces to simulate.  
+	 * Lightmass uses a non-distributable radiosity method for skylight bounces whose cost is proportional to the number of bounces.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "1.0", UIMax = "10.0"))
+	int32 NumSkyLightingBounces;
 
 	/** 
 	 * Warning: Setting this higher than 1 will greatly increase build times!
@@ -68,7 +94,7 @@ struct FLightmassWorldInfoSettings
 
 	/** 
 	 * Represents a constant color light surrounding the upper hemisphere of the level, like a sky.
-	 * This light source currently does not get bounced as indirect lighting.
+	 * This light source currently does not get bounced as indirect lighting and causes reflection capture brightness to be incorrect.  Prefer using a Static Skylight instead.
 	 */
 	UPROPERTY(EditAnywhere, Category=LightmassGeneral)
 	FColor EnvironmentColor;
@@ -84,6 +110,31 @@ struct FLightmassWorldInfoSettings
 	/** Scales the diffuse contribution of all materials in the scene. */
 	UPROPERTY(EditAnywhere, Category=LightmassGeneral, meta=(UIMin = "0.1", UIMax = "6.0"))
 	float DiffuseBoost;
+
+	/** Technique to use for providing precomputed lighting at all positions inside the Lightmass Importance Volume */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting)
+	TEnumAsByte<enum EVolumeLightingMethod> VolumeLightingMethod;
+
+	/** 
+	 * Size of an Volumetric Lightmap voxel at the highest density (used around geometry), in world space units. 
+	 * This setting has a large impact on build times and memory, use with caution.  
+	 * Halving the DetailCellSize can increase memory by up to a factor of 8x.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting, meta=(UIMin = "50", UIMax = "1000"))
+	float VolumetricLightmapDetailCellSize;
+
+	/** 
+	 * Maximum amount of memory to spend on Volumetric Lightmap Brick data.  High density bricks will be discarded until this limit is met, with bricks furthest from geometry discarded first.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting, meta=(UIMin = "1", UIMax = "500"))
+	float VolumetricLightmapMaximumBrickMemoryMb;
+
+	/** 
+	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
+	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times, but less accurate transitions between lighting areas.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting, AdvancedDisplay, meta=(UIMin = "0.1", UIMax = "100.0"))
+	float VolumeLightSamplePlacementScale;
 
 	/** If true, AmbientOcclusion will be enabled. */
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
@@ -127,13 +178,6 @@ struct FLightmassWorldInfoSettings
 	uint32 bVisualizeAmbientOcclusion:1;
 
 	/** 
-	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
-	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times, but less accurate transitions between lighting areas.
-	 */
-	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay, meta=(UIMin = "0.1", UIMax = "100.0"))
-	float VolumeLightSamplePlacementScale;
-
-	/** 
 	 * Whether to compress lightmap textures.  Disabling lightmap texture compression will reduce artifacts but increase memory and disk size by 4x.
 	 * Use caution when disabling this.
 	 */
@@ -143,12 +187,17 @@ struct FLightmassWorldInfoSettings
 	FLightmassWorldInfoSettings()
 		: StaticLightingLevelScale(1)
 		, NumIndirectLightingBounces(3)
+		, NumSkyLightingBounces(1)
 		, IndirectLightingQuality(1)
 		, IndirectLightingSmoothness(1)
 		, EnvironmentColor(ForceInit)
 		, EnvironmentIntensity(1.0f)
 		, EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
+		, VolumeLightingMethod(VLM_VolumetricLightmap)
+		, VolumetricLightmapDetailCellSize(200)
+		, VolumetricLightmapMaximumBrickMemoryMb(30)
+		, VolumeLightSamplePlacementScale(1)
 		, bUseAmbientOcclusion(false)
 		, bGenerateAmbientOcclusionMaterialMask(false)
 		, DirectIlluminationOcclusionFraction(0.5f)
@@ -158,7 +207,6 @@ struct FLightmassWorldInfoSettings
 		, MaxOcclusionDistance(200.0f)
 		, bVisualizeMaterialDiffuse(false)
 		, bVisualizeAmbientOcclusion(false)
-		, VolumeLightSamplePlacementScale(1)
 		, bCompressLightmaps(true)
 	{
 	}

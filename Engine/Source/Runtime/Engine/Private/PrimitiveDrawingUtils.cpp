@@ -1344,6 +1344,8 @@ bool IsRichView(const FSceneViewFamily& ViewFamily)
 {
 	// Flags which make the view rich when absent.
 	if( !ViewFamily.EngineShowFlags.LOD ||
+		// Force FDrawBasePassDynamicMeshAction to be used since it has access to the view and can implement the show flags
+		!ViewFamily.EngineShowFlags.VolumetricLightmap ||
 		!ViewFamily.EngineShowFlags.IndirectLightingCache ||
 		!ViewFamily.EngineShowFlags.Lighting ||
 		!ViewFamily.EngineShowFlags.Materials)

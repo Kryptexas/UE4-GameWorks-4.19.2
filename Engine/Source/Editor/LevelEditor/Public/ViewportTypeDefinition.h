@@ -23,7 +23,7 @@ struct FViewportTypeDefinition
 
 	FViewportTypeDefinition(const FFactoryFunctionType& InFactoryFunction, const TSharedPtr<FUICommandInfo>& InActivationCommand)
 		: ActivationCommand(InActivationCommand)
-		, FactoryFunction(MoveTemp(InFactoryFunction))
+		, FactoryFunction(InFactoryFunction)
 	{}
 
 	/** A UI command for toggling activation this viewport */

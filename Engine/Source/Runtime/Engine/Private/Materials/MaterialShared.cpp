@@ -28,7 +28,6 @@
 #include "EngineModule.h"
 #include "Engine/Texture.h"
 #include "SceneView.h"
-
 #include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
 #include "DecalRenderingCommon.h"
@@ -736,7 +735,7 @@ void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 				}
 				else
 				{
-					LoadedShaderMap->DiscardSerializedShaders();
+					GameThreadShaderMap = LoadedShaderMap;
 				}
 			}
 		}
@@ -795,6 +794,16 @@ void FMaterial::ReleaseShaderMap()
 		{
 			Material->SetRenderingThreadShaderMap(nullptr);
 		});
+	}
+}
+
+void FMaterial::DiscardShaderMap()
+{
+	check(RenderingThreadShaderMap == nullptr);
+	if (GameThreadShaderMap)
+	{
+		GameThreadShaderMap->DiscardSerializedShaders();
+		GameThreadShaderMap = nullptr;
 	}
 }
 
@@ -888,11 +897,6 @@ bool FMaterialResource::IsUsedWithAPEXCloth() const
 	return Material->bUsedWithClothing;
 }
 
-bool FMaterialResource::IsUsedWithUI() const
-{
-	return IsUIMaterial();
-}
-
 EMaterialTessellationMode FMaterialResource::GetTessellationMode() const 
 { 
 	return (EMaterialTessellationMode)Material->D3D11TessellationMode; 
@@ -975,6 +979,11 @@ ETranslucencyLightingMode FMaterialResource::GetTranslucencyLightingMode() const
 float FMaterialResource::GetOpacityMaskClipValue() const 
 {
 	return MaterialInstance ? MaterialInstance->GetOpacityMaskClipValue() : Material->GetOpacityMaskClipValue();
+}
+
+bool FMaterialResource::GetCastDynamicShadowAsMasked() const
+{
+	return MaterialInstance ? MaterialInstance->GetCastDynamicShadowAsMasked() : Material->GetCastDynamicShadowAsMasked();
 }
 
 EBlendMode FMaterialResource::GetBlendMode() const 
@@ -1176,6 +1185,21 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, 
 			//also show a dynamically lit shader
 			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
 			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader"));
+
+			static auto* CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+			const bool bAllowStaticLighting = CVarAllowStaticLighting->GetValueOnAnyThread() != 0;
+
+			if (bAllowStaticLighting)
+			{
+				if (IsUsedWithStaticLighting())
+				{
+					static FName TBasePassPSTLightMapPolicyName = TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ");
+					ShaderTypeNamesAndDescriptions.Add(TBasePassPSTLightMapPolicyName, TEXT("Base pass shader with Surface Lightmap"));
+				}
+
+				static FName TBasePassPSFPrecomputedVolumetricLightmapLightingPolicyName = TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicy");
+				ShaderTypeNamesAndDescriptions.Add(TBasePassPSFPrecomputedVolumetricLightmapLightingPolicyName, TEXT("Base pass shader with Volumetric Lightmap"));
+			}
 		}
 
 		static FName TBasePassVSFNoLightMapPolicyName = TEXT("TBasePassVSFNoLightMapPolicy");
@@ -1462,6 +1486,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS"), UseNormalCurvatureToRoughness() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR"), AllowNegativeEmissiveColor());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_OUTPUT_OPACITY_AS_ALPHA"), GetBlendableOutputAlpha());
+	OutEnvironment.SetDefine(TEXT("TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY"), GetCastDynamicShadowAsMasked());
 
 	if (IsUsingFullPrecision())
 	{
@@ -2923,7 +2948,7 @@ FMaterialCustomOutputAttributeDefintion::FMaterialCustomOutputAttributeDefintion
 		const FGuid& InAttributeID, const FString& InDisplayName, const FString& InFunctionName, EMaterialProperty InProperty,
 		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency, MaterialAttributeBlendFunction InBlendFunction /*= nullptr*/)
 	: FMaterialAttributeDefintion(InAttributeID, InDisplayName, InProperty, InValueType, InDefaultValue, InShaderFrequency, INDEX_NONE, false, InBlendFunction)
-	, FunctionName(InDisplayName)
+	, FunctionName(InFunctionName)
 {
 }
 

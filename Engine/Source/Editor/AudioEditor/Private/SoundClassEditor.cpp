@@ -91,7 +91,7 @@ void FSoundClassEditor::InitSoundClassEditor( const EToolkitMode::Type Mode, con
 		USoundClassGraph* SoundClassGraph = CastChecked<USoundClassGraph>(FBlueprintEditorUtils::CreateNewGraph(SoundClass, NAME_None, USoundClassGraph::StaticClass(), USoundClassGraphSchema::StaticClass()));
 		SoundClassGraph->SetRootSoundClass(SoundClass);
 
-		SoundClass->SoundClassGraph = Cast<UEdGraph>(SoundClassGraph);
+		SoundClass->SoundClassGraph = SoundClassGraph;
 	}
 
 	CastChecked<USoundClassGraph>(SoundClass->SoundClassGraph)->RebuildGraph();
@@ -251,7 +251,7 @@ TSharedRef<SGraphEditor> FSoundClassEditor::CreateGraphEditorWidget()
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(true)
 		.Appearance(AppearanceInfo)
-		.GraphToEdit(CastChecked<UEdGraph>(SoundClass->SoundClassGraph))
+		.GraphToEdit(SoundClass->SoundClassGraph)
 		.GraphEvents(InEvents)
 		.ShowGraphStateOverlay(false);
 }

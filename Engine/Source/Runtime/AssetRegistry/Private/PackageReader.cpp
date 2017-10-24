@@ -152,7 +152,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		if (bLegacyPackage || bNoMapAsset)
 		{
 			FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-			AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*AssetName)), FName(TEXT("World")), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+			AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*AssetName), FName(TEXT("World")), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 		}
 	}
 
@@ -185,7 +185,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		if (ObjectPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive))
 		{
 			// This should never happen, it means that package A has an export with an outer of package B
-			UE_LOG(LogAssetRegistry, Warning, TEXT("Package %s has invalid export %s, resave source package!"), *PackageName, *ObjectPath);
+			UE_ASSET_LOG(LogAssetRegistry, Warning, *PackageName, TEXT("Package has invalid export %s, resave source package!"), *ObjectPath);
 			continue;
 		}
 
@@ -207,7 +207,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		}
 
 		// Create a new FAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*AssetName)), MoveTemp(FName(*ObjectClassName)), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*AssetName), FName(*ObjectClassName), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -258,7 +258,7 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FAssetData*>& AssetD
 		}
 
 		// Create a new FAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*ObjectPathWithoutPackageName)), MoveTemp(FName(*AssetClassName)), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*ObjectPathWithoutPackageName), FName(*AssetClassName), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -329,7 +329,7 @@ bool FPackageReader::ReadDependencyData(FPackageDependencyData& OutDependencyDat
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);
-	SerializeStringAssetReferencesMap(OutDependencyData.StringAssetReferencesMap);
+	SerializeSoftPackageReferenceList(OutDependencyData.SoftPackageReferenceList);
 	SerializeSearchableNamesMap(OutDependencyData);
 
 	return true;
@@ -378,44 +378,38 @@ void FPackageReader::SerializeExportMap(TArray<FObjectExport>& OutExportMap)
 	}
 }
 
-void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap)
+void FPackageReader::SerializeSoftPackageReferenceList(TArray<FName>& OutSoftPackageReferenceList)
 {
-	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.StringAssetReferencesOffset > 0 && PackageFileSummary.StringAssetReferencesCount > 0)
+	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.SoftPackageReferencesOffset > 0 && PackageFileSummary.SoftPackageReferencesCount > 0)
 	{
-		Seek(PackageFileSummary.StringAssetReferencesOffset);
+		Seek(PackageFileSummary.SoftPackageReferencesOffset);
 
-		if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
+		if (UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
 		{
-			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.SoftPackageReferencesCount; ++ReferenceIdx)
 			{
-				FString Buf;
-				*this << Buf;
+				FString PackageName;
+				*this << PackageName;
 
-				if (GetIniFilenameFromObjectsReference(Buf) != nullptr)
+				if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
 				{
-					OutStringAssetReferencesMap.AddUnique(MoveTemp(Buf));
-				}
-				else
-				{
-					FString NormalizedPath = FPackageName::GetNormalizedObjectPath(MoveTemp(Buf));
-					if (!NormalizedPath.IsEmpty())
+					PackageName = FPackageName::GetNormalizedObjectPath(PackageName);
+					if (!PackageName.IsEmpty())
 					{
-						OutStringAssetReferencesMap.AddUnique(
-							FPackageName::ObjectPathToPackageName(
-								NormalizedPath
-							)
-						);
+						PackageName = FPackageName::ObjectPathToPackageName(PackageName);
 					}
 				}
+
+				OutSoftPackageReferenceList.Add(FName(*PackageName));
 			}
 		}
 		else
 		{
-			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.SoftPackageReferencesCount; ++ReferenceIdx)
 			{
-				FString Buf;
-				*this << Buf;
-				OutStringAssetReferencesMap.Add(MoveTemp(Buf));
+				FName PackageName;
+				*this << PackageName;
+				OutSoftPackageReferenceList.Add(PackageName);
 			}
 		}
 	}

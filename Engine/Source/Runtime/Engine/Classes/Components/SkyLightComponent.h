@@ -193,8 +193,8 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);
 	static void UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TArray<USkyLightComponent*>& ComponentArray, bool bBlendSources);
 
-	/** Computes an irradiance environment map using only emissive contribution from the sky light. */
-	void CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const;
+	/** Computes a radiance map using only emissive contribution from the sky light. */
+	void CaptureEmissiveRadianceEnvironmentCubeMap(FSHVectorRGB3& OutIrradianceMap, TArray<FFloat16Color>& OutRadianceMap) const;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetIntensity(float NewIntensity);

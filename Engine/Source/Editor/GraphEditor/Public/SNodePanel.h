@@ -507,18 +507,6 @@ public:
 		{
 		}
 
-		/** @return The profiler heat intensity */
-		virtual FLinearColor GetProfilerHeatmapIntensity() const
-		{
-			return FLinearColor(1.f, 1.f, 1.f, 0.f);
-		}
-
-		/** @return The brush to use for drawing the profiler heatmap with the heat intensity */
-		virtual const FSlateBrush* GetProfilerHeatmapBrush() const
-		{
-			return FEditorStyle::GetBrush(TEXT("BlueprintProfiler.RegularNode.HeatDisplay"));
-		}
-
 		/** Populate the widgets array with any overlay widgets to render */
 		virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const
 		{
@@ -955,6 +943,9 @@ protected:
 	/** The current transaction for undo/redo */
 	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;
 
+	/** Cached geometry for use within the active timer */
+	FGeometry CachedGeometry;
+
 private:
 	/** Active timer that handles deferred zooming until the target zoom is reached */
 	EActiveTimerReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
@@ -962,9 +953,6 @@ private:
 private:
 	/** The handle to the active timer */
 	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
-
-	/** Cached geometry for use within the active timer */
-	FGeometry CachedGeometry;
 
 	/** Zoom target rectangle */
 	FVector2D ZoomTargetTopLeft;

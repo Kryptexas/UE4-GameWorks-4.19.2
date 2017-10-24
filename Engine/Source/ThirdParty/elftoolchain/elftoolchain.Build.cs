@@ -8,11 +8,11 @@ public class elftoolchain : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "elftoolchain/include/" + Target.Architecture);
+		PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "elftoolchain/include/" + Target.Architecture);
 
         if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-			string LibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "elftoolchain/lib/Linux/" + Target.Architecture;
+			string LibDir = Target.UEThirdPartySourceDirectory + "elftoolchain/lib/Linux/" + Target.Architecture;
 			PublicAdditionalLibraries.Add(LibDir + "/libelf.a");
 			PublicAdditionalLibraries.Add(LibDir + "/libdwarf.a");
         }

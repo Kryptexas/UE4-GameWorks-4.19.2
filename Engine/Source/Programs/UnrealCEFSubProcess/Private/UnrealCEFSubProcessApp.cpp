@@ -48,4 +48,48 @@ void FUnrealCEFSubProcessApp::OnRenderThreadCreated( CefRefPtr<CefListValue> Ext
 	}
 }
 
+#if !PLATFORM_LINUX
+void FUnrealCEFSubProcessApp::OnFocusedNodeChanged(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefDOMNode> Node)
+{
+	CefRefPtr<CefProcessMessage> Message = CefProcessMessage::Create("UE::IME::FocusChanged");
+	CefRefPtr<CefListValue> MessageArguments = Message->GetArgumentList();
+
+	if (Node.get() == nullptr)
+	{
+		MessageArguments->SetString(0, "NONE");
+	}
+	else
+	{
+		static const TMap<uint32, CefString> DomNodeTypeStrings = []()
+		{
+			TMap<uint32, CefString> Result;
+#define ADD_NODETYPE_STRING(NodeTypeCode) Result.Add(NodeTypeCode, #NodeTypeCode)
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_UNSUPPORTED);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_ELEMENT);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_ATTRIBUTE);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_TEXT);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_CDATA_SECTION);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_PROCESSING_INSTRUCTIONS);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_COMMENT);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_DOCUMENT);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_DOCUMENT_TYPE);
+			ADD_NODETYPE_STRING(DOM_NODE_TYPE_DOCUMENT_FRAGMENT);
+#undef ADD_NODETYPE_STRING
+			return Result;
+		}();
+
+		MessageArguments->SetString(0, DomNodeTypeStrings[Node->GetType()]);
+		MessageArguments->SetString(1, Node->GetName());
+		MessageArguments->SetBool(2, Node->IsEditable());
+		MessageArguments->SetString(3, Node->GetValue());
+		MessageArguments->SetInt(4, Node->GetElementBounds().x);
+		MessageArguments->SetInt(5, Node->GetElementBounds().y);
+		MessageArguments->SetInt(6, Node->GetElementBounds().width);
+		MessageArguments->SetInt(7, Node->GetElementBounds().height);
+	}
+
+	Browser->SendProcessMessage(PID_BROWSER, Message);
+}
+#endif
+
 #endif

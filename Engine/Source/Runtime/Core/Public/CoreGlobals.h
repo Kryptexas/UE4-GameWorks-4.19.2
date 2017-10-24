@@ -178,7 +178,7 @@ extern CORE_API bool GEdSelectionLock;
 extern CORE_API bool GIsClient;
 extern CORE_API bool GIsServer;
 extern CORE_API bool GIsCriticalError;
-extern CORE_API bool GIsRunning;
+extern CORE_API TSAN_ATOMIC(bool) GIsRunning;
 extern CORE_API bool GIsDuplicatingClassForReinstancing;
 
 /**
@@ -241,7 +241,7 @@ extern CORE_API FString GGameUserSettingsIni;
 extern CORE_API float GNearClippingPlane;
 
 extern CORE_API bool GExitPurge;
-extern CORE_API TCHAR GInternalGameName[64];
+extern CORE_API TCHAR GInternalProjectName[64];
 extern CORE_API const TCHAR* GForeignEngineDir;
 
 /** Exec handler for game debugging tool, allowing commands like "editactor" */
@@ -258,6 +258,12 @@ extern CORE_API void (*ResumeAsyncLoading)();
 
 /** Returns true if async loading is using the async loading thread */
 extern CORE_API bool(*IsAsyncLoadingMultithreaded)();
+
+/** Suspends texture updates caused by completed async IOs. */
+extern CORE_API void (*SuspendTextureStreamingRenderTasks)();
+
+/** Resume texture updates caused by completed async IOs. */
+extern CORE_API void (*ResumeTextureStreamingRenderTasks)();
 
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
@@ -295,7 +301,7 @@ extern CORE_API bool GPakCache_AcceptPrecacheRequests;
 extern CORE_API bool GIsRetrievingVTablePtr;
 
 /** Steadily increasing frame counter. */
-extern CORE_API uint64 GFrameCounter;
+extern CORE_API TSAN_ATOMIC(uint64) GFrameCounter;
 
 /** GFrameCounter the last time GC was run. */
 extern CORE_API uint64 GLastGCFrame;

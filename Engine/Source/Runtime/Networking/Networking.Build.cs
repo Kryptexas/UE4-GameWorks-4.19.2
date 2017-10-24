@@ -13,8 +13,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"Sockets"
-				}
-				);
+				});
 		}
 	}
 }

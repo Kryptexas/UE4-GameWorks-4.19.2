@@ -182,20 +182,20 @@ class CefV8ContextImpl : public CefV8Context {
   bool Exit() override;
   bool IsSame(CefRefPtr<CefV8Context> that) override;
   bool Eval(const CefString& code,
+            const CefString& script_url,
+            int start_line,
             CefRefPtr<CefV8Value>& retval,
             CefRefPtr<CefV8Exception>& exception) override;
 
   v8::Local<v8::Context> GetV8Context();
   blink::WebFrame* GetWebFrame();
 
- protected:
+ private:
   typedef CefV8Handle<v8::Context> Handle;
   scoped_refptr<Handle> handle_;
 
-#ifndef NDEBUG
-  // Used in debug builds to catch missing Exits in destructor.
   int enter_count_;
-#endif
+  std::unique_ptr<v8::MicrotasksScope> microtasks_scope_;
 
   IMPLEMENT_REFCOUNTING(CefV8ContextImpl);
   DISALLOW_COPY_AND_ASSIGN(CefV8ContextImpl);
@@ -264,8 +264,8 @@ class CefV8ValueImpl : public CefV8Value {
   bool SetValue(const CefString& key, AccessControl settings,
                 PropertyAttribute attribute) override;
   bool GetKeys(std::vector<CefString>& keys) override;
-  bool SetUserData(CefRefPtr<CefBase> user_data) override;
-  CefRefPtr<CefBase> GetUserData() override;
+  bool SetUserData(CefRefPtr<CefBaseRefCounted> user_data) override;
+  CefRefPtr<CefBaseRefCounted> GetUserData() override;
   int GetExternallyAllocatedMemory() override;
   int AdjustExternallyAllocatedMemory(int change_in_bytes) override;
   int GetArrayLength() override;
@@ -279,7 +279,7 @@ class CefV8ValueImpl : public CefV8Value {
       CefRefPtr<CefV8Value> object,
       const CefV8ValueList& arguments) override;
 
- protected:
+ private:
   // Test for and record any exception.
   bool HasCaught(v8::Local<v8::Context> context, v8::TryCatch& try_catch);
 
@@ -299,12 +299,13 @@ class CefV8ValueImpl : public CefV8Value {
 
     void SetWeakIfNecessary();
 
-   protected:
+   private:
     ~Handle() override;
 
    private:
-    // Callback for weak persistent reference destruction.
-    static void Destructor(const v8::WeakCallbackInfo<Handle>& data);
+    // Callbacks for weak persistent reference destruction.
+    static void FirstWeakCallback(const v8::WeakCallbackInfo<Handle>& data);
+    static void SecondWeakCallback(const v8::WeakCallbackInfo<Handle>& data);
 
     persistentType handle_;
 
@@ -365,7 +366,7 @@ class CefV8StackTraceImpl : public CefV8StackTrace {
   int GetFrameCount() override;
   CefRefPtr<CefV8StackFrame> GetFrame(int index) override;
 
- protected:
+ private:
   std::vector<CefRefPtr<CefV8StackFrame> > frames_;
 
   IMPLEMENT_REFCOUNTING(CefV8StackTraceImpl);
@@ -387,7 +388,7 @@ class CefV8StackFrameImpl : public CefV8StackFrame {
   bool IsEval() override;
   bool IsConstructor() override;
 
- protected:
+ private:
   CefString script_name_;
   CefString script_name_or_source_url_;
   CefString function_name_;

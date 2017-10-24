@@ -18,7 +18,7 @@ static void AddMcppDefines(FString& OutOptions, const TMap<FString,FString>& Def
 {
 	for (TMap<FString,FString>::TConstIterator It(Definitions); It; ++It)
 	{
-		OutOptions += FString::Printf(TEXT(" -D%s=%s"), *(It.Key()), *(It.Value()));
+		OutOptions += FString::Printf(TEXT(" \"-D%s=%s\""), *(It.Key()), *(It.Value()));
 	}
 }
 
@@ -120,12 +120,14 @@ bool PreprocessShader(
 	const FShaderCompilerDefinitions& AdditionalDefines
 	)
 {
-	check(CheckVirtualShaderFilePath(ShaderInput.VirtualSourceFilePath));
-
 	// Skip the cache system and directly load the file path (used for debugging)
 	if (ShaderInput.bSkipPreprocessedCache)
 	{
 		return FFileHelper::LoadFileToString(OutPreprocessedShader, *ShaderInput.VirtualSourceFilePath);
+	}
+	else
+	{
+		check(CheckVirtualShaderFilePath(ShaderInput.VirtualSourceFilePath));
 	}
 
 	FString McppOptions;
@@ -142,6 +144,7 @@ bool PreprocessShader(
 
 	AddMcppDefines(McppOptions, ShaderInput.Environment.GetDefinitions());
 	AddMcppDefines(McppOptions, AdditionalDefines.GetDefinitionMap());
+	McppOptions += TEXT(" -V199901L");
 
 	int32 Result = mcpp_run(
 		TCHAR_TO_ANSI(*McppOptions),
@@ -154,7 +157,7 @@ bool PreprocessShader(
 	McppOutput = McppOutAnsi;
 	McppErrors = McppErrAnsi;
 
-	if (ParseMcppErrors(ShaderOutput.Errors, McppErrors))
+	if (ParseMcppErrors(ShaderOutput.Errors, ShaderOutput.PragmaDirectives, McppErrors))
 	{
 		// exchange strings
 		FMemory::Memswap( &OutPreprocessedShader, &McppOutput, sizeof(FString) );

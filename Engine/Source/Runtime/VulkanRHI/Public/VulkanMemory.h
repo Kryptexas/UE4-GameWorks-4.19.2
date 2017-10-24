@@ -6,7 +6,12 @@
 
 #pragma once 
 
-#define VULKAN_TRACK_MEMORY_USAGE	1
+// Enable to store file & line of every mem & resource allocation
+#define VULKAN_MEMORY_TRACK_FILE_LINE	(UE_BUILD_DEBUG)
+
+// Enable to save the callstack for every mem and resource allocation
+#define VULKAN_MEMORY_TRACK_CALLSTACK	0
+
 
 class FVulkanQueue;
 class FVulkanCmdBuffer;
@@ -17,10 +22,15 @@ namespace VulkanRHI
 
 	enum
 	{
+#if PLATFORM_ANDROID
+		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 3,
+		GPU_ONLY_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+		STAGING_HEAP_PAGE_SIZE = 16 * 1024 * 1024,
+#else
 		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 20,
-
 		GPU_ONLY_HEAP_PAGE_SIZE = 256 * 1024 * 1024,
 		STAGING_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+#endif
 	};
 
 	// Custom ref counting
@@ -101,7 +111,7 @@ namespace VulkanRHI
 			, bIsCoherent(0)
 			, bIsCached(0)
 			, bFreedBySystem(false)
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 			, File(nullptr)
 			, Line(0)
 			, UID(0)
@@ -163,10 +173,13 @@ namespace VulkanRHI
 		uint32 bFreedBySystem : 1;
 		uint32 : 0;
 
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 		const char* File;
 		uint32 Line;
 		uint32 UID;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+		FString Callstack;
 #endif
 		// Only owner can delete!
 		~FDeviceMemoryAllocation();
@@ -359,9 +372,12 @@ namespace VulkanRHI
 
 		FDeviceMemoryAllocation* DeviceMemoryAllocation;
 
-#if VULKAN_TRACK_MEMORY_USAGE
+#if VULKAN_MEMORY_TRACK_FILE_LINE
 		const char* File;
 		uint32 Line;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+		FString Callstack;
 #endif
 
 		friend class FOldResourceHeapPage;
@@ -454,6 +470,16 @@ namespace VulkanRHI
 		uint32 AlignedOffset;
 		uint32 AllocationSize;
 		uint32 AllocationOffset;
+#if VULKAN_MEMORY_TRACK_FILE_LINE
+		const char* File;
+		uint32 Line;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK
+		FString Callstack;
+#endif
+#if VULKAN_MEMORY_TRACK_CALLSTACK || VULKAN_MEMORY_TRACK_FILE_LINE
+		friend class FSubresourceAllocator;
+#endif
 	};
 
 	// Suballocation of a VkBuffer
@@ -886,13 +912,18 @@ namespace VulkanRHI
 	{
 	public:
 		FStagingManager() :
-			Device(nullptr),
-			Queue(nullptr)
+			PeakUsedMemory(0),
+			UsedMemory(0),
+			Device(nullptr)
 		{
 		}
 		~FStagingManager();
 
-		void Init(FVulkanDevice* InDevice, FVulkanQueue* InQueue);
+		void Init(FVulkanDevice* InDevice)
+		{
+			Device = InDevice;
+		}
+
 		void Deinit();
 
 		FStagingBuffer* AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bool bCPURead = false);
@@ -900,26 +931,45 @@ namespace VulkanRHI
 		// Sets pointer to nullptr
 		void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
 
-		void ProcessPendingFree(bool bImmediately = false);
+		void ProcessPendingFree(bool bImmediately, bool bFreeToOS);
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		void DumpMemory();
 #endif
 
 	protected:
-		struct FPendingItem
+		struct FPendingItemsPerCmdBuffer
 		{
 			FVulkanCmdBuffer* CmdBuffer;
-			uint64 FenceCounter;
-			FStagingBuffer* Resource;
+			struct FPendingItems
+			{
+				uint64 FenceCounter;
+				TArray<FStagingBuffer*> Resources;
+			};
+
+
+			inline FPendingItems* FindOrAddItemsForFence(uint64 Fence);
+
+			TArray<FPendingItems> PendingItems;
 		};
 
 		TArray<FStagingBuffer*> UsedStagingBuffers;
-		TArray<FPendingItem> PendingFreeStagingBuffers;
-		TArray<FPendingItem> FreeStagingBuffers;
+		TArray<FPendingItemsPerCmdBuffer> PendingFreeStagingBuffers;
+		struct FFreeEntry
+		{
+			FStagingBuffer* Buffer;
+			uint32 FrameNumber;
+		};
+		TArray<FFreeEntry> FreeStagingBuffers;
+
+		uint64 PeakUsedMemory;
+		uint64 UsedMemory;
+
+		FPendingItemsPerCmdBuffer* FindOrAdd(FVulkanCmdBuffer* CmdBuffer);
+
+		void ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS);
 
 		FVulkanDevice* Device;
-		FVulkanQueue* Queue;
 	};
 
 	class FFence
@@ -1164,6 +1214,167 @@ namespace VulkanRHI
 
 	inline void* FBufferSuballocation::GetMappedPointer()
 	{
-		return Owner->GetMappedPointer();
+		return (uint8*)Owner->GetMappedPointer() + AlignedOffset;
+	}
+
+	enum class EImageLayoutBarrier
+	{
+		Undefined,
+		TransferDest,
+		ColorAttachment,
+		DepthStencilAttachment,
+		TransferSource,
+		Present,
+		PixelShaderRead,
+		PixelDepthStencilRead,
+		ComputeGeneralRW,
+	};
+
+	inline EImageLayoutBarrier GetImageLayoutFromVulkanLayout(VkImageLayout Layout)
+	{
+		switch (Layout)
+		{
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			return EImageLayoutBarrier::Undefined;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			return EImageLayoutBarrier::TransferDest;
+
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			return EImageLayoutBarrier::ColorAttachment;
+
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			return EImageLayoutBarrier::DepthStencilAttachment;
+
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			return EImageLayoutBarrier::TransferSource;
+
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			return EImageLayoutBarrier::Present;
+
+		//case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		//	return EImageLayoutBarrier::PixelShaderRead;
+
+		//case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		//	return EImageLayoutBarrier::PixelDepthStencilRead;
+
+		//case VK_IMAGE_LAYOUT_GENERAL:
+		//	return EImageLayoutBarrier::ComputeGeneral;
+
+		default:
+			checkf(0, TEXT("Unknown VkImageLayout %d"), (int32)Layout);
+			break;
+		}
+
+		return EImageLayoutBarrier::Undefined;
+	}
+
+	inline VkPipelineStageFlags GetImageBarrierFlags(EImageLayoutBarrier Target, VkAccessFlags& AccessFlags, VkImageLayout& Layout)
+	{
+		VkPipelineStageFlags StageFlags = (VkPipelineStageFlags)0;
+		switch (Target)
+		{
+		case EImageLayoutBarrier::Undefined:
+			AccessFlags = 0;
+			StageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			Layout = VK_IMAGE_LAYOUT_UNDEFINED;
+			break;
+
+		case EImageLayoutBarrier::TransferDest:
+			AccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			Layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::ColorAttachment:
+			AccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::DepthStencilAttachment:
+			AccessFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::TransferSource:
+			AccessFlags = VK_ACCESS_TRANSFER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			Layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::Present:
+			AccessFlags = 0;
+			StageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			break;
+
+		case EImageLayoutBarrier::PixelShaderRead:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::PixelDepthStencilRead:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT;
+			StageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			break;
+
+		case EImageLayoutBarrier::ComputeGeneralRW:
+			AccessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			StageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			Layout = VK_IMAGE_LAYOUT_GENERAL;
+			break;
+
+		default:
+			checkf(0, TEXT("Unknown ImageLayoutBarrier %d"), (int32)Target);
+			break;
+		}
+
+		return StageFlags;
+	}
+
+	inline VkImageLayout GetImageLayout(EImageLayoutBarrier Target)
+	{
+		VkAccessFlags Flags;
+		VkImageLayout Layout;
+		GetImageBarrierFlags(Target, Flags, Layout);
+		return Layout;
+	}
+
+	inline void SetImageBarrierInfo(EImageLayoutBarrier Source, EImageLayoutBarrier Dest, VkImageMemoryBarrier& InOutBarrier, VkPipelineStageFlags& InOutSourceStage, VkPipelineStageFlags& InOutDestStage)
+	{
+		InOutSourceStage |= GetImageBarrierFlags(Source, InOutBarrier.srcAccessMask, InOutBarrier.oldLayout);
+		InOutDestStage |= GetImageBarrierFlags(Dest, InOutBarrier.dstAccessMask, InOutBarrier.newLayout);
+	}
+
+	void ImagePipelineBarrier(VkCommandBuffer CmdBuffer, VkImage Image, EImageLayoutBarrier SourceTransition, EImageLayoutBarrier DestTransition, const VkImageSubresourceRange& SubresourceRange);
+
+	inline VkImageSubresourceRange SetupImageSubresourceRange(VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT, uint32 StartMip = 0)
+	{
+		VkImageSubresourceRange Range;
+		FMemory::Memzero(Range);
+		Range.aspectMask = Aspect;
+		Range.baseMipLevel = StartMip;
+		Range.levelCount = 1;
+		Range.baseArrayLayer = 0;
+		Range.layerCount = 1;
+		return Range;
+	}
+
+	inline VkImageMemoryBarrier SetupImageMemoryBarrier(VkImage Image, VkImageAspectFlags Aspect, uint32 NumMips = 1)
+	{
+		VkImageMemoryBarrier Barrier;
+		FMemory::Memzero(Barrier);
+		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		Barrier.image = Image;
+		Barrier.subresourceRange.aspectMask = Aspect;
+		Barrier.subresourceRange.levelCount = NumMips;
+		Barrier.subresourceRange.layerCount = 1;
+		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		return Barrier;
 	}
 }

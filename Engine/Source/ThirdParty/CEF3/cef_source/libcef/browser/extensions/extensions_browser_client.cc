@@ -8,13 +8,17 @@
 #include <utility>
 
 #include "libcef/browser/browser_context_impl.h"
+#include "libcef/browser/extensions/chrome_api_registration.h"
 #include "libcef/browser/extensions/component_extension_resource_manager.h"
 #include "libcef/browser/extensions/extension_system_factory.h"
 #include "libcef/browser/extensions/extension_web_contents_observer.h"
 #include "libcef/browser/extensions/extensions_api_client.h"
-#include "libcef/browser/extensions/url_request_util.h"
 
-#include "cef/libcef/browser/extensions/api/generated_api_registration.h"
+//#include "cef/libcef/browser/extensions/api/generated_api_registration.h"
+#include "chrome/browser/browser_process.h"
+#include "chrome/browser/extensions/chrome_url_request_util.h"
+#include "chrome/browser/extensions/event_router_forwarder.h"
+#include "chrome/browser/profiles/incognito_helpers.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_frame_host.h"
@@ -27,6 +31,7 @@
 #include "extensions/browser/extension_host_delegate.h"
 #include "extensions/browser/mojo/service_registration.h"
 #include "extensions/browser/url_request_util.h"
+#include "extensions/common/constants.h"
 
 using content::BrowserContext;
 using content::BrowserThread;
@@ -35,8 +40,7 @@ namespace extensions {
 
 CefExtensionsBrowserClient::CefExtensionsBrowserClient()
     : api_client_(new CefExtensionsAPIClient),
-      resource_manager_(new CefComponentExtensionResourceManager),
-      event_router_forwarder_(new EventRouterForwarder) {
+      resource_manager_(new CefComponentExtensionResourceManager) {
 }
 
 CefExtensionsBrowserClient::~CefExtensionsBrowserClient() {
@@ -58,7 +62,10 @@ bool CefExtensionsBrowserClient::IsValidContext(BrowserContext* context) {
 
 bool CefExtensionsBrowserClient::IsSameContext(BrowserContext* first,
                                                BrowserContext* second) {
-  return first == second;
+  // Returns true if |first| and |second| share the same underlying
+  // CefBrowserContextImpl.
+  return CefBrowserContextImpl::GetForContext(first) ==
+         CefBrowserContextImpl::GetForContext(second);
 }
 
 bool CefExtensionsBrowserClient::HasOffTheRecordContext(
@@ -74,7 +81,7 @@ BrowserContext* CefExtensionsBrowserClient::GetOffTheRecordContext(
 
 BrowserContext* CefExtensionsBrowserClient::GetOriginalContext(
     BrowserContext* context) {
-  return context;
+  return chrome::GetBrowserContextRedirectedInIncognito(context);
 }
 
 bool CefExtensionsBrowserClient::IsGuestSession(
@@ -101,7 +108,7 @@ CefExtensionsBrowserClient::MaybeCreateResourceBundleRequestJob(
     const base::FilePath& directory_path,
     const std::string& content_security_policy,
     bool send_cors_header) {
-  return url_request_util::MaybeCreateURLRequestResourceBundleJob(
+  return chrome_url_request_util::MaybeCreateURLRequestResourceBundleJob(
       request,
       network_delegate,
       directory_path,
@@ -114,6 +121,13 @@ bool CefExtensionsBrowserClient::AllowCrossRendererResourceLoad(
     bool is_incognito,
     const Extension* extension,
     InfoMap* extension_info_map) {
+  // TODO(cef): This bypasses additional checks added to
+  // AllowCrossRendererResourceLoad() in https://crrev.com/5cf9d45c. Figure out
+  // why permission is not being granted based on "web_accessible_resources"
+  // specified in the PDF extension manifest.json file.
+  if (extension && extension->id() == extension_misc::kPdfExtensionId)
+    return true;
+
   bool allowed = false;
   if (url_request_util::AllowCrossRendererResourceLoad(
           request, is_incognito, extension, extension_info_map, &allowed)) {
@@ -139,11 +153,11 @@ CefExtensionsBrowserClient::GetProcessManagerDelegate() const {
   return NULL;
 }
 
-scoped_ptr<ExtensionHostDelegate>
+std::unique_ptr<ExtensionHostDelegate>
 CefExtensionsBrowserClient::CreateExtensionHostDelegate() {
   // TODO(extensions): Implement to support Apps.
   NOTREACHED();
-  return scoped_ptr<ExtensionHostDelegate>();
+  return std::unique_ptr<ExtensionHostDelegate>();
 }
 
 bool CefExtensionsBrowserClient::DidVersionUpdate(BrowserContext* context) {
@@ -162,12 +176,6 @@ bool CefExtensionsBrowserClient::IsLoggedInAsPublicAccount()  {
   return false;
 }
 
-ApiActivityMonitor* CefExtensionsBrowserClient::GetApiActivityMonitor(
-    BrowserContext* context) {
-  // CEF doesn't monitor API function calls or events.
-  return NULL;
-}
-
 ExtensionSystemProvider*
 CefExtensionsBrowserClient::GetExtensionSystemFactory() {
   return CefExtensionSystemFactory::GetInstance();
@@ -179,7 +187,12 @@ void CefExtensionsBrowserClient::RegisterExtensionFunctions(
   api::GeneratedFunctionRegistry::RegisterAll(registry);
 
   // CEF-only APIs.
-  api::ChromeGeneratedFunctionRegistry::RegisterAll(registry);
+  // TODO(cef): Enable if/when CEF exposes its own Mojo APIs. See
+  // libcef/common/extensions/api/README.txt for details.
+  //api::cef::CefGeneratedFunctionRegistry::RegisterAll(registry);
+
+  // Chrome APIs whitelisted by CEF.
+  api::cef::ChromeFunctionRegistry::RegisterAll(registry);
 }
 
 void CefExtensionsBrowserClient::RegisterMojoServices(
@@ -188,12 +201,12 @@ void CefExtensionsBrowserClient::RegisterMojoServices(
   RegisterServicesForFrame(render_frame_host, extension);
 }
 
-scoped_ptr<RuntimeAPIDelegate>
+std::unique_ptr<RuntimeAPIDelegate>
 CefExtensionsBrowserClient::CreateRuntimeAPIDelegate(
     content::BrowserContext* context) const {
   // TODO(extensions): Implement to support Apps.
   NOTREACHED();
-  return scoped_ptr<RuntimeAPIDelegate>();
+  return nullptr;
 }
 
 const ComponentExtensionResourceManager*
@@ -204,9 +217,10 @@ CefExtensionsBrowserClient::GetComponentExtensionResourceManager() {
 void CefExtensionsBrowserClient::BroadcastEventToRenderers(
     events::HistogramValue histogram_value,
     const std::string& event_name,
-    scoped_ptr<base::ListValue> args) {
-  event_router_forwarder_->BroadcastEventToRenderers(
-      histogram_value, event_name, std::move(args), GURL());
+    std::unique_ptr<base::ListValue> args) {
+  g_browser_process->extension_event_router_forwarder()->
+      BroadcastEventToRenderers(histogram_value, event_name, std::move(args),
+                                GURL());
 }
 
 net::NetLog* CefExtensionsBrowserClient::GetNetLog() {
@@ -232,6 +246,11 @@ ExtensionWebContentsObserver*
 CefExtensionsBrowserClient::GetExtensionWebContentsObserver(
     content::WebContents* web_contents) {
   return CefExtensionWebContentsObserver::FromWebContents(web_contents);
+}
+
+KioskDelegate* CefExtensionsBrowserClient::GetKioskDelegate() {
+  NOTREACHED();
+  return NULL;
 }
 
 void CefExtensionsBrowserClient::SetAPIClientForTest(

@@ -8,8 +8,6 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "PhysicsEngine/AggregateGeometry2D.h"
-#include "PhysicsEngine/BodySetup2D.h"
 
 #include "PaperCustomVersion.h"
 #include "PaperGeomTools.h"
@@ -574,13 +572,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, AtlasGroup))
 	{
-		auto SpriteAssetPtr = PreviousAtlasGroup;
-		FStringAssetReference AtlasGroupStringRef = SpriteAssetPtr.ToStringReference();
-		UPaperSpriteAtlas* PreviousAtlasGroupPtr = nullptr;
-		if (!AtlasGroupStringRef.ToString().IsEmpty())
-		{
-			PreviousAtlasGroupPtr = Cast<UPaperSpriteAtlas>(StaticLoadObject(UPaperSpriteAtlas::StaticClass(), nullptr, *AtlasGroupStringRef.ToString(), nullptr, LOAD_None, nullptr));
-		}
+		UPaperSpriteAtlas* PreviousAtlasGroupPtr = PreviousAtlasGroup.LoadSynchronous();
 		
 		if (PreviousAtlasGroupPtr != AtlasGroup)
 		{
@@ -786,9 +778,6 @@ void UPaperSprite::RebuildCollisionData()
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		BodySetup = NewObject<UBodySetup>(this);
-		break;
-	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup = NewObject<UBodySetup2D>(this);
 		break;
 	case ESpriteCollisionMode::None:
 		BodySetup = nullptr;
@@ -1791,6 +1780,12 @@ void UPaperSprite::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+
+	if (SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
+	{
+		UE_LOG(LogPaper2D, Warning, TEXT("PaperSprite '%s' was using 2D physics which has been removed, it has been switched to 3D physics."), *GetPathName());
+		SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	}
 }
 
 void UPaperSprite::PostLoad()
@@ -2112,19 +2107,6 @@ void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const
 						Box.Rotation = FRotator(Shape.Rotation, 0.0f, 0.0f);
 					}
 					break;
-				case ESpriteCollisionMode::Use2DPhysics:
-					{
-						UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(MyBodySetup);
-
-						// Create a new box primitive
-						FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
-						Box.Width = FMath::Abs(BoxSize2D.X);
-						Box.Height = FMath::Abs(BoxSize2D.Y);
-						Box.Center.X = CenterInScaledSpace.X;
-						Box.Center.Y = CenterInScaledSpace.Y;
-						Box.Angle = Shape.Rotation;
-					}
-					break;
 				default:
 					check(false);
 					break;
@@ -2175,23 +2157,6 @@ void FSpriteGeometryCollisionBuilderBase::AddPolygonCollisionShapesToBodySetup(c
 			}
 		}
 		break;
-	case ESpriteCollisionMode::Use2DPhysics:
-		{
-			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(MyBodySetup);
-
-			int32 RunningIndex = 0;
-			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
-			{
-				FConvexElement2D& ConvexTri = *new (BodySetup2D->AggGeom2D.ConvexElements) FConvexElement2D();
-				ConvexTri.VertexData.Empty(3);
-				for (int32 Index = 0; Index < 3; ++Index)
-				{
-					const FVector2D& Pos2D = CollisionData[RunningIndex++];
-					new (ConvexTri.VertexData) FVector2D(Pos2D);
-				}
-			}
-		}
-		break;
 	default:
 		check(false);
 		break;
@@ -2227,16 +2192,6 @@ void FSpriteGeometryCollisionBuilderBase::AddCircleCollisionShapesToBodySetup(co
 						// Create a new box primitive
 						FKSphereElem& Sphere = *new (MyBodySetup->AggGeom.SphereElems) FKSphereElem(AverageRadius);
 						Sphere.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y) + (PaperAxisZ * ZOffsetAmount);
-					}
-					break;
-				case ESpriteCollisionMode::Use2DPhysics:
-					{
-						// Create a new box primitive
-						UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(MyBodySetup);
-						FCircleElement2D& Circle = *new (BodySetup2D->AggGeom2D.CircleElements) FCircleElement2D();
-						Circle.Radius = AverageRadius;
-						Circle.Center.X = CenterInScaledSpace.X;
-						Circle.Center.Y = CenterInScaledSpace.Y;
 					}
 					break;
 				default:

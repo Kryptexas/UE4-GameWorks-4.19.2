@@ -26,6 +26,25 @@ void FInputBindingEditorPanel::Initialize(class IDetailLayoutBuilder& InDetailBu
 	UpdateUI();
 }
 
+void FInputBindingEditorPanel::Tick(float DeltaSeconds)
+{
+	if(bUpdateRequested)
+	{
+		UpdateContextMasterList();
+
+		if (DetailBuilder)
+		{
+			DetailBuilder->ForceRefreshDetails();
+			// Force refreshing is going to invalidate the detail builder anyway
+			DetailBuilder = nullptr;
+			FBindingContext::CommandsChanged.RemoveAll(this);
+		}
+
+		bUpdateRequested = false;
+	}
+
+	
+}
 
 void FInputBindingEditorPanel::UpdateContextMasterList()
 {
@@ -58,15 +77,7 @@ void FInputBindingEditorPanel::UpdateContextMasterList()
 
 void FInputBindingEditorPanel::OnCommandsChanged(const FBindingContext& ContextThatChanged)
 {
-	UpdateContextMasterList();
-
-	if(DetailBuilder)
-	{
-		DetailBuilder->ForceRefreshDetails();
-		// Force refreshing is going to invalidate the detail builder anyway
-		DetailBuilder = nullptr;
-		FBindingContext::CommandsChanged.RemoveAll(this);
-	}
+	bUpdateRequested = true;
 }
 
 void FInputBindingEditorPanel::UpdateUI()
@@ -111,7 +122,19 @@ void FInputBindingEditorPanel::UpdateUI()
 			.MinDesiredWidth(200)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SChordEditBox, CommandInfo)
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(1.0f, 0.0f, 9.0f, 0.0f)
+				[
+					SNew(SChordEditBox, CommandInfo, EMultipleKeyBindingIndex::Primary)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SChordEditBox, CommandInfo, EMultipleKeyBindingIndex::Secondary)
+				]
 			];
 		}
 	}

@@ -326,9 +326,7 @@ void FMenuBuilder::ApplySectionBeginning()
 	}
 }
 
-
-
-void FMenuBarBuilder::AddPullDownMenu( const FText& InMenuLabel, const FText& InToolTip, const FNewMenuDelegate& InPullDownMenu, FName InExtensionHook, FName InTutorialHighlightName )
+void FMenuBarBuilder::AddPullDownMenu(const FText& InMenuLabel, const FText& InToolTip, const FNewMenuDelegate& InPullDownMenu, FName InExtensionHook, FName InTutorialHighlightName)
 {
 	ApplySectionBeginning();
 
@@ -338,10 +336,10 @@ void FMenuBarBuilder::AddPullDownMenu( const FText& InMenuLabel, const FText& In
 	const bool bOpenSubMenuOnClick = false;
 	// Pulldown menus always close all menus not just themselves
 	const bool bShouldCloseSelfOnly = false;
-	TSharedRef< FMenuEntryBlock > NewMenuEntryBlock( new FMenuEntryBlock( InExtensionHook, InMenuLabel, InToolTip, InPullDownMenu, ExtenderStack.Top(), bIsSubMenu, bOpenSubMenuOnClick, CommandListStack.Last(), bShouldCloseSelfOnly) );
+	TSharedRef< FMenuEntryBlock > NewMenuEntryBlock(new FMenuEntryBlock(InExtensionHook, InMenuLabel, InToolTip, InPullDownMenu, ExtenderStack.Top(), bIsSubMenu, bOpenSubMenuOnClick, CommandListStack.Last(), bShouldCloseSelfOnly));
 	NewMenuEntryBlock->SetTutorialHighlightName(GenerateTutorialIdentfierName(TutorialHighlightName, InTutorialHighlightName, nullptr, MultiBox->GetBlocks().Num()));
 
-	MultiBox->AddMultiBlock( NewMenuEntryBlock );
+	MultiBox->AddMultiBlock(NewMenuEntryBlock);
 
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }

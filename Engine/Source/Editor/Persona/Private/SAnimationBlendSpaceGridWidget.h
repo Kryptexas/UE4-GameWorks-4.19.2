@@ -20,7 +20,7 @@ class FSlateWindowElementList;
 class UAnimSequence;
 class UBlendSpaceBase;
 
-DECLARE_DELEGATE_TwoParams(FOnSampleMoved, const int32, const FVector&);
+DECLARE_DELEGATE_ThreeParams(FOnSampleMoved, const int32, const FVector&, bool);
 DECLARE_DELEGATE_OneParam(FOnSampleRemoved, const int32 );
 DECLARE_DELEGATE_TwoParams(FOnSampleAdded, UAnimSequence*, const FVector&);
 DECLARE_DELEGATE_TwoParams(FOnSampleAnimationChanged, UAnimSequence*, const FVector&);
@@ -55,6 +55,8 @@ protected:
 		PreDrag,
 		/** The user is dragging the selected sample. */
 		DragSample,
+		/** The user is dragging the preview pin */
+		DragPreview,
 		/** The user is setting the preview value */
 		Preview,
 		/** The user is dropping a new sample onto the grid */
@@ -176,7 +178,11 @@ protected:
 	TOptional<float> GetInputBoxMaxValue(const int32 ParameterIndex) const;
 	float GetInputBoxDelta(const int32 ParameterIndex) const;
 	void OnInputBoxValueCommited(const float NewValue, ETextCommit::Type CommitType, const int32 ParameterIndex);
-	void OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex);
+	void OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex, bool bIsInteractive);
+
+	/** Returns whether or not the sample tool tips should be visible */
+	EVisibility GetSampleToolTipVisibility() const;
+	EVisibility GetPreviewToolTipVisibility() const;
 
 	/** Updates the cached blend parameter data */
 	void UpdateCachedBlendParameterData();
@@ -285,4 +291,6 @@ private:
 
 	bool bStretchToFit;
 	FMargin GridRatioMargin;
+
+	bool bPreviewToolTipHidden;
 };

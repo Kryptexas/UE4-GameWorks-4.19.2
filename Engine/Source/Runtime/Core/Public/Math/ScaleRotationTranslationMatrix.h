@@ -22,14 +22,44 @@ public:
 	FScaleRotationTranslationMatrix(const FVector& Scale, const FRotator& Rot, const FVector& Origin);
 };
 
+namespace
+{
+	void GetSinCos(float& S, float& C, float Degrees)
+	{
+		if (Degrees == 0.f)
+		{
+			S = 0.f;
+			C = 1.f;
+		}
+		else if (Degrees == 90.f)
+		{
+			S = 1.f;
+			C = 0.f;
+		}
+		else if (Degrees == 180.f)
+		{
+			S = 0.f;
+			C = -1.f;
+		}
+		else if (Degrees == 270.f)
+		{
+			S = -1.f;
+			C = 0.f;
+		}
+		else
+		{
+			FMath::SinCos(&S, &C, FMath::DegreesToRadians(Degrees));
+		}
+	}
+}
 
 FORCEINLINE FScaleRotationTranslationMatrix::FScaleRotationTranslationMatrix(const FVector& Scale, const FRotator& Rot, const FVector& Origin)
 {
 	float SP, SY, SR;
 	float CP, CY, CR;
-	FMath::SinCos(&SP, &CP, FMath::DegreesToRadians(Rot.Pitch));
-	FMath::SinCos(&SY, &CY, FMath::DegreesToRadians(Rot.Yaw));
-	FMath::SinCos(&SR, &CR, FMath::DegreesToRadians(Rot.Roll));
+	GetSinCos(SP, CP, Rot.Pitch);
+	GetSinCos(SY, CY, Rot.Yaw);
+	GetSinCos(SR, CR, Rot.Roll);
 
 	M[0][0]	= (CP * CY) * Scale.X;
 	M[0][1]	= (CP * SY) * Scale.X;

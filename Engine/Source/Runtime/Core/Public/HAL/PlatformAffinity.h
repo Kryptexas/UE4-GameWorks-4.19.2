@@ -10,6 +10,8 @@
 #include "PS4/PS4Affinity.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSPlatformAffinity.h"
+#elif PLATFORM_MAC
+#include "Mac/MacPlatformAffinity.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidAffinity.h"
 #elif PLATFORM_SWITCH

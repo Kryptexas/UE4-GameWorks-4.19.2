@@ -18,15 +18,15 @@ public:
 
 // 	// Should be a TMap...
 // 	TArray<FString> FileToTextureList;
-// 	TAssetPtr<class UTexture2D> ImportedTextureList;
-// 	TAssetPtr<class UPaperSprite> ImportedSpriteList;
+// 	TSoftObjectPtr<class UTexture2D> ImportedTextureList;
+// 	TSoftObjectPtr<class UPaperSprite> ImportedSpriteList;
 
 // 	// The names of sprites during import
 // 	UPROPERTY(VisibleAnywhere, Category=Data)
 // 	TArray<FString> SpriteNames;
 // 
 // 	UPROPERTY(VisibleAnywhere, Category = Data)
-// 	TArray< TAssetPtr<class UPaperSprite> > Sprites;
+// 	TArray< TSoftObjectPtr<class UPaperSprite> > Sprites;
 // 
 // 	// The name of the texture during import
 // 	UPROPERTY(VisibleAnywhere, Category = Data)

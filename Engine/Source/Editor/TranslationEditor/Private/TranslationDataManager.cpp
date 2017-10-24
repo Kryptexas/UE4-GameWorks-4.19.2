@@ -490,8 +490,8 @@ void FTranslationDataManager::GetHistoryForTranslationUnits()
 				}
 				else
 				{
-					ProjectName = FApp::GetGameName();
-					SavedDir = FPaths::GameSavedDir();
+					ProjectName = FApp::GetProjectName();
+					SavedDir = FPaths::ProjectSavedDir();
 				}
 
 				FString TempFileName = SavedDir / "CachedTranslationHistory" / "UE4-Manifest-" + ProjectName + "-" + FPaths::GetBaseFilename(InManifestFilePath) + "-Rev-" + FString::FromInt(Revision->GetRevisionNumber());
@@ -782,9 +782,9 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 						if (PreviousTranslation != TranslationUnit->Translation)
 						{
 							FString PreviousTranslationTrimmed = PreviousTranslation;
-							PreviousTranslationTrimmed.Trim().TrimTrailing();
+							PreviousTranslationTrimmed.TrimStartAndEndInline();
 							FString CurrentTranslationTrimmed = TranslationUnit->Translation;
-							CurrentTranslationTrimmed.Trim().TrimTrailing();
+							CurrentTranslationTrimmed.TrimStartAndEndInline();
 							// Ignore changes to only whitespace at beginning and/or end of string on import
 							if (PreviousTranslationTrimmed == CurrentTranslationTrimmed)
 							{
@@ -957,7 +957,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 
 				if (bSaveChangesToTranslationService)
 				{
-					FString UploadFilePath = FPaths::GameSavedDir() / "Temp" / CultureName / ManifestAndArchiveName + ".po";
+					FString UploadFilePath = FPaths::ProjectSavedDir() / "Temp" / CultureName / ManifestAndArchiveName + ".po";
 					FFileHelper::SaveStringToFile(PortableObjectDom.ToString(), *UploadFilePath);
 
 					FGuid LocalizationTargetGuid = LocalizationTarget->Settings.Guid;
@@ -966,7 +966,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 					TSharedRef<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadTargetFileOp = ILocalizationServiceOperation::Create<FUploadLocalizationTargetFile>();
 					UploadTargetFileOp->SetInTargetGuid(LocalizationTargetGuid);
 					UploadTargetFileOp->SetInLocale(CultureName);
-					FPaths::MakePathRelativeTo(UploadFilePath, *FPaths::GameDir());
+					FPaths::MakePathRelativeTo(UploadFilePath, *FPaths::ProjectDir());
 					UploadTargetFileOp->SetInRelativeInputFilePathAndName(UploadFilePath);
 					UploadTargetFileOp->SetPreserveAllText(true);
 

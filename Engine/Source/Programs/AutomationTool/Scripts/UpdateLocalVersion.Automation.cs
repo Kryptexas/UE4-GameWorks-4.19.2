@@ -22,6 +22,7 @@ public class UpdateLocalVersion : BuildCommand
 		int? ChangelistOverride = ParseParamNullableInt("cl");
 		int? CompatibleChangelistOverride = ParseParamNullableInt("compatiblecl");
 		string Build = ParseParamValue("Build", null);
-		UE4Build.UpdateVersionFiles(ChangelistNumberOverride: ChangelistOverride, CompatibleChangelistNumberOverride: CompatibleChangelistOverride, Build: Build);
+		bool bSkipHeader = ParseParam("SkipHeader");
+		UE4Build.UpdateVersionFiles(ChangelistNumberOverride: ChangelistOverride, CompatibleChangelistNumberOverride: CompatibleChangelistOverride, Build: Build, bSkipHeader: bSkipHeader);
 	}
 }

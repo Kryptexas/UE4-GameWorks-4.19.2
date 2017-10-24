@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3474032
+﻿INTSourceChangelist:3482475
 Availability:Public
 Crumbs:
 Title:블룸
@@ -111,7 +111,7 @@ Topic-image:bloom_Topic.png
 | **Convolution Kernel** || 컨볼루션 커널 - 커널을 정의하는 텍스처를 선택합니다. |
 | [REGION:tablesection] 고급 프로퍼티 [/REGION] |||
 | **Convolution Scale**  || 컨볼루션 스케일 - 컨볼루션 커널 이미지의 상대적 크기를 뷰포트 유닛 단위로 나타낸 것으로, 기본값은 1 입니다. 블룸 크기를 줄이는 데 주로 사용됩니다. |
-| **Convolution Center** || 컨볼루션 중심 - UV 좌표로 기본값은 (�, �) 입니다. Convolution Kernel 이미지는 보다 밝은 소소에 대해 완벽히 중심 위치인 것이 이상적이지만, 일반적으로 약간의 트윅이 필요합니다. 여기서 오프셋은 블룸 이미지에 풀 오프셋을 주게 됩니다. |
+| **Convolution Center** || 컨볼루션 중심 - UV 좌표로 기본값은 (1/2, 1/2) 입니다. Convolution Kernel 이미지는 보다 밝은 소소에 대해 완벽히 중심 위치인 것이 이상적이지만, 일반적으로 약간의 트윅이 필요합니다. 여기서 오프셋은 블룸 이미지에 풀 오프셋을 주게 됩니다. |
 | **Convolution Boost** || 컨볼루션 부스트 - 컨볼루션 블룸 필터 적용 전 선택 픽셀 밝기를 증폭시킵니다. 최소, 최대값과 배수로 이루어집니다. 최소값 이상의 밝기 델타에 배수만큼 증폭시킵니다. 기본적으로 이 부스트는 꺼져있으며, 조심해서 사용해야 합니다. |
 | **Convolution Buffer** || 컨볼루션 버퍼 - 화면 크기의 일정 비율로 정하는 암묵적 버퍼 구역으로, 블룸이 이미지를 감싸지(wrap around) 않도록 하기 위함입니다. 이 값을 올리면 퍼포먼스에 안좋은 영향을 줍니다. |
 [/REGION]

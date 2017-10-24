@@ -46,7 +46,7 @@ private:
 public:
 	virtual void InitializeEnvironmentSettings() override;
 
-	virtual bool NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel);
+	virtual void NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel, bool& bBlockActor);
 
 	virtual void NotifyNetActor(UActorChannel* ActorChannel, AActor* Actor);
 

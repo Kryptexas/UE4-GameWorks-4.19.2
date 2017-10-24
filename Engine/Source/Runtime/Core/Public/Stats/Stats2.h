@@ -1488,14 +1488,14 @@ public:
 	}
 
 	/** Enables the raw stats mode. */
-	static FORCEINLINE_STATS void EnableRawStats()
+	static FORCEINLINE_STATS void EnableRawStats() TSAN_SAFE
 	{
 		bIsRawStatsActive = true;
 		FPlatformMisc::MemoryBarrier();
 	}
 
 	/** Disables the raw stats mode. */
-	static FORCEINLINE_STATS void DisableRawStats()
+	static FORCEINLINE_STATS void DisableRawStats() TSAN_SAFE
 	{
 		bIsRawStatsActive = false;
 		FPlatformMisc::MemoryBarrier();
@@ -2084,6 +2084,7 @@ DECLARE_STATS_GROUP(TEXT("Profiler"), STATGROUP_Profiler, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Quick"), STATGROUP_Quick, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("RHI"),STATGROUP_RHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Render Thread"),STATGROUP_RenderThreadProcessing, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Render Target Pool"), STATGROUP_RenderTargetPool, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Scene Memory"),STATGROUP_SceneMemory, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Scene Rendering"),STATGROUP_SceneRendering, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Scene Update"),STATGROUP_SceneUpdate, STATCAT_Advanced);

@@ -58,7 +58,7 @@ void FFileEventLogger::SaveToFile()
 	FString LogFilePath;
 	{
 		const TCHAR LogFileName[] = TEXT("EventLog");
-		LogFilePath = FPaths::CreateTempFilename(*FPaths::GameLogDir(), LogFileName, TEXT(".log"));
+		LogFilePath = FPaths::CreateTempFilename(*FPaths::ProjectLogDir(), LogFileName, TEXT(".log"));
 	}
 
 	FOutputDeviceFile EventLogFile(*LogFilePath);

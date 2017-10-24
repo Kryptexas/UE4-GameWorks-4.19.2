@@ -37,6 +37,7 @@
 #include "ir_optimization.h"
 #include "loop_analysis.h"
 #include "IRDump.h"
+#include "LanguageSpec.h"
 
 /* TODO: Move this in to _mesa_glsl_parse_state. */
 static unsigned int g_anon_struct_count = 0;
@@ -51,6 +52,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(void *mem_ctx, _mesa_glsl_parser_
 	bSeparateShaderObjects(false),
 	language_version(glsl_version),
 	target(InTarget),
+	maxunrollcount(32),
 	maxvertexcount(0),
 	geometryinput(0),
 	outputstream_type(0),
@@ -1062,6 +1064,10 @@ bool do_optimization_pass(exec_list *ir, _mesa_glsl_parse_state * state, bool bP
 
 	progress = do_constant_folding(ir) || progress;
 	progress = do_algebraic(state, ir) || progress;
+	if (state && state->LanguageSpec && state->LanguageSpec->SupportsFusedMultiplyAdd())
+	{
+		progress = lower_instructions(ir, ADD_MUL_TO_FMA) || progress;
+	}
 	progress = do_lower_jumps(ir) || progress;
 	progress = do_vec_index_to_swizzle(ir) || progress;
 	progress = do_swizzle_swizzle(ir) || progress;
@@ -1069,13 +1075,17 @@ bool do_optimization_pass(exec_list *ir, _mesa_glsl_parse_state * state, bool bP
 	progress = optimize_split_arrays(ir, /*linked=*/ true) || progress;
 	progress = optimize_redundant_jumps(ir) || progress;
 
-	loop_state *ls = analyze_loop_variables(ir);
-	if (ls->loop_found)
+	int const max_unroll_loop = state->maxunrollcount;
+	if (max_unroll_loop > 0)
 	{
-		progress = set_loop_controls(ir, ls) || progress;
-		progress = unroll_loops(ir, ls, 32, state) || progress;
+		loop_state *ls = analyze_loop_variables(ir);
+		if (ls->loop_found)
+		{
+			progress = set_loop_controls(ir, ls) || progress;
+			progress = unroll_loops(ir, ls, max_unroll_loop, state) || progress;
+		}
+		delete ls;
 	}
-	delete ls;
 
 	return progress;
 }

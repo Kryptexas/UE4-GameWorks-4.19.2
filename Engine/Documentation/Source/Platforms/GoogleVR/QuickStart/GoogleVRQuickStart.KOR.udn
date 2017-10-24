@@ -1,19 +1,24 @@
-﻿INTSourceChangelist:3432707
+﻿INTSourceChangelist:3602897
+Availability: Public
+Crumbs: %ROOT%
 Title:구글 VR 퀵 스타트
-Crumbs:%ROOT%, Platforms, Platforms/GoogleVR
 Description:구글 VR 구성 및 사용 방법 안내입니다.
-Availability:Public
-Version: 4.12
+Type: quick start
 SkillLevel: Intermediate
-parent:Platforms/GoogleVR
-type:quick start
-type:landing
-tags:VR
+Version: 4.17
+Parent: Platforms/GoogleVR
+Order: 2
 tags:Google VR
+Checkpoint: 1
 topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
+
+![](Google_Cardboard_Headset.png)
 
 Google VR (구글 VR) 퀵 스타트는 구글 VR 을 사용하는 UE4 프로젝트 구성 방법을 안내해 드립니다.
 
+[region:note]
+Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것들이 총망라된 매우 자세한 문서를 제공하고 있습니다. [공식 Google Daydream Unreal](https://developers.google.com/vr/unreal/) 도움말 사이트에서 문서를 찾아보실 수 있습니다.
+[/region]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -30,17 +35,6 @@ Google VR (구글 VR) 퀵 스타트는 구글 VR 을 사용하는 UE4 프로젝�
 	* [](Platforms/GoogleVR/QuickStart/3 "%Platforms/GoogleVR/QuickStart/3:description%")
 	[/PARAM]
 [/OBJECT]
-
-[region:note]
-Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것들이 총망라된 매우 자세한 문서를 제공하고 있습니다. [공식 Google Daydream Unreal](https://developers.google.com/vr/unreal/) 도움말 사이트에서 문서를 찾아보실 수 있습니다.
-[/region]
-
-
-
-
-
-
-
 
 
 

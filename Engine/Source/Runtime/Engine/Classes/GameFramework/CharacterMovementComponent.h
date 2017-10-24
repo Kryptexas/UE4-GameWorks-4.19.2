@@ -1137,9 +1137,6 @@ public:
 	*/
 	virtual void PerformAirControlForPathFollowing(FVector Direction, float ZDiff);
 
-	DEPRECATED(4.5, "PerformAirControl has been deprecated, use PerformAirControlForPathFollowing instead.")
-	virtual void PerformAirControl(FVector Direction, float ZDiff);
-
 	/** Transition from walking to falling */
 	virtual void StartFalling(int32 Iterations, float remainingTime, float timeTick, const FVector& Delta, const FVector& subLoc);
 
@@ -1426,21 +1423,6 @@ protected:
 	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 	/**
-	 * (DEPRECATED) Checks if air control will cause the player collision shape to hit something given the current location.
-	 *
-	 * @param DeltaTime			Time step for the current update.
-	 * @param AdditionalTime	Time to look ahead further, applying acceleration and gravity.
-	 * @param FallVelocity		Velocity to test with.
-	 * @param FallAcceleration	Acceleration used during movement.
-	 * @param Gravity			Gravity to apply to any additional time.
-	 * @param OutHitResult		Result of impact, valid if this function returns true.
-	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
-	 * @see GetAirControl()
-	 */
-	DEPRECATED(4.9, "FindAirControlImpact is no longer used by engine code.")
-	virtual bool FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult);
-
-	/**
 	 * Limits the air control to use during falling movement, given an impact while falling.
 	 * This function is used internally by PhysFalling().
 	 *
@@ -1725,12 +1707,6 @@ protected:
 	 * @return			New deflected vector of movement.
 	 */
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
-
-	/**
-	 * (DEPRECATED) Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
-	 */
-	DEPRECATED(4.6, "AdjustUpperHemisphereImpact() is deprecated, for custom behavior override ComputeSlideVector() instead.")
-	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
 
 	/** 
 	 * Limit the slide vector when falling if the resulting slide might boost the character faster upwards.

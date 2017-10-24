@@ -283,8 +283,6 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		// the specified string
 		if(bFuzzy)
 		{
-			FString FuzzyActorNameStr = ActorNameStr.ToLower();
-
 			for (ULevel* Level : InWorld->GetLevels())
 			{
 				if (Level)
@@ -293,7 +291,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 					{
 						if (Actor)
 						{
-							if (Actor->GetActorLabel().ToLower().StartsWith(FuzzyActorNameStr))
+							if (Actor->GetActorLabel().StartsWith(ActorNameStr))
 							{
 								return Actor;
 							}
@@ -383,7 +381,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		TCHAR Filter[128];
 		if(FParse::Token(Str, Filter, ARRAY_COUNT(Filter), 0))
 		{
-			FString const FilterStr = FString(Filter).ToLower();
+			FString const FilterStr = Filter;
 			if (FilterStr == TEXT("all"))
 			{
 				FilterType = EFilterType::All;
@@ -407,7 +405,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			TCHAR Specifier[128];
 			if(FParse::Token(Str, Specifier, ARRAY_COUNT(Specifier), 0))
 			{
-				FString const SpecifierStr = FString(Specifier).Trim();
+				FString const SpecifierStr = FString(Specifier).TrimStart();
 				if(FilterType == EFilterType::Actor)
 				{
 					AActor* FoundActor = FindActorByLabel(SpecifierStr, InWorld, true);

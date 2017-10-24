@@ -7,6 +7,8 @@
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "Misc/App.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Widgets/SOverlay.h"
 #include "Layout/WidgetPath.h"
 #include "SlateOptMacros.h"
@@ -24,6 +26,7 @@
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Interfaces/IPluginManager.h"
+#include "Interfaces/IProjectManager.h"
 #include "ProjectDescriptor.h"
 #include "GameProjectGenerationLog.h"
 #include "GameProjectGenerationModule.h"
@@ -1165,12 +1168,13 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 	TemplateRootFolders.Add( FPaths::RootDir() + TEXT("Templates") );
 
 	// allow plugins to define templates
-	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
-	for (const auto& PluginStatus : PluginStatuses)
+	TArray<TSharedRef<IPlugin>> Plugins = IPluginManager::Get().GetEnabledPlugins();
+	for (const TSharedRef<IPlugin>& Plugin : Plugins)
 	{
-		if (PluginStatus.bIsEnabled && !PluginStatus.PluginDirectory.IsEmpty())
+		FString PluginDirectory = Plugin->GetBaseDir();
+		if (!PluginDirectory.IsEmpty())
 		{
-			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginStatus.PluginDirectory, TEXT("Templates"));
+			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginDirectory, TEXT("Templates"));
 
 			if (IFileManager::Get().DirectoryExists(*PluginTemplatesDirectory))
 			{
@@ -1212,7 +1216,7 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 					if( TemplateDefs->bAllowProjectCreation == false )
 						continue;
 					// Found a template. Add it to the template items list.
-					const FString ProjectFilename = Root / FoundProjectFiles[0];
+					FString ProjectFilename = Root / FoundProjectFiles[0];
 					FText TemplateName = TemplateDefs->GetDisplayNameText();
 					FText TemplateDescription = TemplateDefs->GetLocalizedDescription();
 					FString ClassTypes = TemplateDefs->ClassTypes;
@@ -1446,6 +1450,19 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
 	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
 	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
+
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+	if (CurrentProject != nullptr)
+	{
+		ProjectInfo.bIsEnterpriseProject = CurrentProject->bIsEnterpriseProject;
+	}
+	else
+	{
+		// Set the default value for the enterprise flag from the command line for now.
+		// This should be temporary until we implement a more generic approach.
+		ProjectInfo.bIsEnterpriseProject = FParse::Param(FCommandLine::Get(), TEXT("enterprise"));
+	}
+
 	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog))
 	{
 		SOutputLogDialog::Open(LOCTEXT("CreateProject", "Create Project"), FailReason, FailLog, FText::GetEmpty());
@@ -1550,7 +1567,7 @@ bool SNewProjectWizard::OpenCodeIDE( const FString& ProjectFile )
 
 void SNewProjectWizard::CloseWindowIfAppropriate( bool ForceClose )
 {
-	if ( ForceClose || FApp::HasGameName() )
+	if ( ForceClose || FApp::HasProjectName() )
 	{
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow( AsShared(), WidgetPath);

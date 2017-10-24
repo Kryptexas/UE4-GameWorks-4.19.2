@@ -55,22 +55,42 @@ void FSlateD3D11RenderingPolicy::InitResources()
 	SamplerDesc.MinLOD = 0;
 
 	HRESULT Hr = GD3DDevice->CreateSamplerState( &SamplerDesc, PointSamplerState_Wrap.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3D11RenderingPolicy::InitResources() - ID3D11Device::CreateSamplerState"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 	Hr = GD3DDevice->CreateSamplerState( &SamplerDesc, BilinearSamplerState_Wrap.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3D11RenderingPolicy::InitResources() - ID3D11Device::CreateSamplerState(BilinearSamplerState_Wrap)"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 
 	Hr = GD3DDevice->CreateSamplerState( &SamplerDesc, BilinearSamplerState_Clamp.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3D11RenderingPolicy::InitResources() - ID3D11Device::CreateSamplerState(BilinearSamplerState_Clamp)"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 	Hr = GD3DDevice->CreateSamplerState( &SamplerDesc, PointSamplerState_Clamp.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3D11RenderingPolicy::InitResources() - ID3D11Device::CreateSamplerState(PointSamplerState_Clamp)"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	WhiteTexture = TextureManager->CreateColorTexture( TEXT("DefaultWhite"), FColor::White )->Resource;
 
@@ -135,7 +155,13 @@ void FSlateD3D11RenderingPolicy::InitResources()
 	DSDesc.StencilReadMask = 0xFF;
 	DSDesc.StencilWriteMask = 0xFF;
 
-	GD3DDevice->CreateDepthStencilState(&DSDesc, DSStateOff.GetInitReference());
+	Hr = GD3DDevice->CreateDepthStencilState(&DSDesc, DSStateOff.GetInitReference());
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3D11RenderingPolicy::InitResources() - ID3D11Device::CreateDepthStencilState"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 }
 
 /** Releases RHI resources used by the element batcher */

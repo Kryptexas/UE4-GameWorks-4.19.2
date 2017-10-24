@@ -7,6 +7,8 @@ void FAnimSequencerInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 {
 	FAnimInstanceProxy::Initialize(InAnimInstance);
 	ConstructNodes();
+
+	UpdateCounter.Reset();
 }
 
 bool FAnimSequencerInstanceProxy::Evaluate(FPoseContext& Output)
@@ -18,6 +20,8 @@ bool FAnimSequencerInstanceProxy::Evaluate(FPoseContext& Output)
 
 void FAnimSequencerInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 {
+	UpdateCounter.Increment();
+
 	SequencerRootNode.Update_AnyThread(FAnimationUpdateContext(this, DeltaSeconds));
 }
 
@@ -62,7 +66,7 @@ FAnimSequencerInstanceProxy::~FAnimSequencerInstanceProxy()
 
 void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId)
 {
-	if (InAnimSequence != nullptr && !InAnimSequence->IsA(UAnimMontage::StaticClass()))
+	if (InAnimSequence != nullptr)
 	{
 		FSequencerPlayerAnimSequence* PlayerState = FindPlayer<FSequencerPlayerAnimSequence>(SequenceId);
 		if (PlayerState == nullptr)
@@ -134,13 +138,10 @@ void FAnimSequencerInstanceProxy::UpdateAnimTrack(UAnimSequenceBase* InAnimSeque
 	EnsureAnimTrack(InAnimSequence, SequenceId);
 
 	FSequencerPlayerAnimSequence* PlayerState = FindPlayer<FSequencerPlayerAnimSequence>(SequenceId);
-	if (PlayerState)
-	{
-		PlayerState->PlayerNode.ExplicitTime = InPosition;
-		// if moving to 0.f, we mark this to teleport. Otherwise, do not use explicit time
-		FAnimNode_MultiWayBlend& BlendNode = (PlayerState->bAdditive) ? AdditiveBlendNode : FullBodyBlendNode;
-		BlendNode.DesiredAlphas[PlayerState->PoseIndex] = Weight;
-	}
+	PlayerState->PlayerNode.ExplicitTime = InPosition;
+	// if moving to 0.f, we mark this to teleport. Otherwise, do not use explicit time
+	FAnimNode_MultiWayBlend& BlendNode = (PlayerState->bAdditive) ? AdditiveBlendNode : FullBodyBlendNode;
+	BlendNode.DesiredAlphas[PlayerState->PoseIndex] = Weight;
 }
 
 void FAnimSequencerInstanceProxy::EnsureAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId)

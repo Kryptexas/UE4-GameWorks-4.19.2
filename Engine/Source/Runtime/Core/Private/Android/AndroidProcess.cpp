@@ -12,7 +12,7 @@
 #include <sys/syscall.h>
 #include <pthread.h>
 
-#include "Android/AndroidApplication.h"
+#include "Android/AndroidJavaEnv.h"
 
 int64 FAndroidAffinity::GameThreadMask = FPlatformAffinity::GetNoAffinityMask();
 int64 FAndroidAffinity::RenderingThreadMask = FPlatformAffinity::GetNoAffinityMask();
@@ -70,7 +70,7 @@ CORE_API FAndroidLaunchURLDelegate OnAndroidLaunchURL;
 void FAndroidPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error)
 {
 	check(URL);
-	const FString URLWithParams = FString::Printf(TEXT("%s %s"), URL, Parms ? Parms : TEXT("")).TrimTrailing();
+	const FString URLWithParams = FString::Printf(TEXT("%s %s"), URL, Parms ? Parms : TEXT("")).TrimEnd();
 
 	OnAndroidLaunchURL.ExecuteIfBound(URLWithParams);
 
@@ -82,10 +82,10 @@ void FAndroidPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FS
 
 FString FAndroidPlatformProcess::GetGameBundleId()
 {
-	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 	if (nullptr != JEnv)
 	{
-		jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+		jclass Class = AndroidJavaEnv::FindJavaClass("com/epicgames/ue4/GameActivity");
 		if (nullptr != Class)
 		{
 			jmethodID getAppPackageNameMethodId = JEnv->GetStaticMethodID(Class, "getAppPackageName", "()Ljava/lang/String;");

@@ -838,6 +838,28 @@ struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTyp
 	};
 };
 
+
+/**
+ * FGameplayEffectRemovalInfo
+ *	Data struct for containing information pertinent to GameplayEffects as they are removed.
+ */
+USTRUCT(BlueprintType)
+struct FGameplayEffectRemovalInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** True when the gameplay effect's duration has not expired, meaning the gameplay effect is being forcefully removed.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Removal")
+	bool bPrematureRemoval;
+
+	/** Number of Stacks this gameplay effect had before it was removed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Removal")
+	int32 StackCount;
+
+	/** Actor this gameplay effect was targeting. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Removal")
+	FGameplayEffectContextHandle EffectContext;
+};
 // -----------------------------------------------------------
 
 
@@ -962,6 +984,7 @@ DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayMo
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnActiveGameplayEffectRemoved_Info, const FGameplayEffectRemovalInfo&);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
 

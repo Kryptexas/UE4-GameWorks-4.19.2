@@ -79,6 +79,10 @@ class ENGINESETTINGS_API UGeneralProjectSettings
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bStartInVR;
 	
+	/** Should the game start in AR */
+	UPROPERTY(config, EditAnywhere, Category = Settings)
+	bool bStartInAR;
+	
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bAllowWindowResize;
 

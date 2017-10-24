@@ -1,6 +1,6 @@
 Availability:Public
-TItle:Ansel Blueprint Node Reference
-Description:Reference of the configuration variables available for the Nvidia Ansel Photography Plugin
+TItle:NVIDIA Ansel Blueprint Node Reference
+Description:Reference of the configuration variables available for the NVIDIA Ansel Photography Plugin
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1

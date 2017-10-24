@@ -1,18 +1,20 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Launch/SProjectLauncherLaunchPage.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherLaunchPage.h"
+
+#include "EditorStyleSet.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SlateOptMacros.h"
 #include "Textures/SlateIcon.h"
-#include "Framework/Commands/UIAction.h"
-#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SComboButton.h"
-#include "EditorStyleSet.h"
-#include "Widgets/Launch/SProjectLauncherLaunchRoleEditor.h"
+#include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Text/STextBlock.h"
+
+#include "Widgets/Launch/SProjectLauncherLaunchRoleEditor.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherLaunchPage"
@@ -21,7 +23,7 @@
 /* SProjectLauncherLaunchPage structors
  *****************************************************************************/
 
-SProjectLauncherLaunchPage::~SProjectLauncherLaunchPage( )
+SProjectLauncherLaunchPage::~SProjectLauncherLaunchPage()
 {
 	if (Model.IsValid())
 	{
@@ -34,7 +36,7 @@ SProjectLauncherLaunchPage::~SProjectLauncherLaunchPage( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherLaunchPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherLaunchPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -158,7 +160,7 @@ void SProjectLauncherLaunchPage::Construct( const FArguments& InArgs, const FPro
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
-void SProjectLauncherLaunchPage::Refresh( )
+void SProjectLauncherLaunchPage::Refresh()
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -190,7 +192,7 @@ void SProjectLauncherLaunchPage::Refresh( )
 /* SProjectLauncherLaunchPage callbacks
  *****************************************************************************/
 
-EVisibility SProjectLauncherLaunchPage::HandleCannotLaunchTextBlockVisibility( ) const
+EVisibility SProjectLauncherLaunchPage::HandleCannotLaunchTextBlockVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -206,7 +208,7 @@ EVisibility SProjectLauncherLaunchPage::HandleCannotLaunchTextBlockVisibility( )
 }
 
 
-EVisibility SProjectLauncherLaunchPage::HandleLaunchModeBoxVisibility( ) const
+EVisibility SProjectLauncherLaunchPage::HandleLaunchModeBoxVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -222,7 +224,7 @@ EVisibility SProjectLauncherLaunchPage::HandleLaunchModeBoxVisibility( ) const
 }
 
 
-FText SProjectLauncherLaunchPage::HandleLaunchModeComboButtonContentText( ) const
+FText SProjectLauncherLaunchPage::HandleLaunchModeComboButtonContentText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -252,7 +254,7 @@ FText SProjectLauncherLaunchPage::HandleLaunchModeComboButtonContentText( ) cons
 }
 
 
-void SProjectLauncherLaunchPage::HandleLaunchModeMenuEntryClicked( ELauncherProfileLaunchModes::Type LaunchMode )
+void SProjectLauncherLaunchPage::HandleLaunchModeMenuEntryClicked(ELauncherProfileLaunchModes::Type LaunchMode)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -263,7 +265,7 @@ void SProjectLauncherLaunchPage::HandleLaunchModeMenuEntryClicked( ELauncherProf
 }
 
 
-EVisibility SProjectLauncherLaunchPage::HandleLaunchSettingsVisibility( ) const
+EVisibility SProjectLauncherLaunchPage::HandleLaunchSettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -282,7 +284,7 @@ EVisibility SProjectLauncherLaunchPage::HandleLaunchSettingsVisibility( ) const
 }
 
 
-void SProjectLauncherLaunchPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherLaunchPage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 	if (PreviousProfile.IsValid())
 	{
@@ -295,13 +297,14 @@ void SProjectLauncherLaunchPage::HandleProfileManagerProfileSelected( const ILau
 	Refresh();
 }
 
+
 void SProjectLauncherLaunchPage::HandleProfileProjectChanged()
 {
 	Refresh();
 }
 
 
-EVisibility SProjectLauncherLaunchPage::HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const
+EVisibility SProjectLauncherLaunchPage::HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 

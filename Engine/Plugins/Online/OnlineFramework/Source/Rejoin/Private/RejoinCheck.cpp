@@ -43,6 +43,19 @@ ERejoinStatus URejoinCheck::GetStatus() const
 }
 #endif
 
+bool URejoinCheck::HasCompletedCheck() const
+{
+	ERejoinStatus CurrentStatus = GetStatus();
+	return (CurrentStatus != ERejoinStatus::NeedsRecheck && CurrentStatus != ERejoinStatus::UpdatingStatus);
+}
+
+bool URejoinCheck::IsRejoinAvailable() const
+{
+	ERejoinStatus CurrentStatus = GetStatus();
+	return (CurrentStatus != ERejoinStatus::NoMatchToRejoin &&
+		CurrentStatus != ERejoinStatus::NoMatchToRejoin_MatchEnded);
+}
+
 void URejoinCheck::CheckRejoinStatus(const FOnRejoinCheckComplete& InCompletionDelegate)
 {
 #if !UE_BUILD_SHIPPING
@@ -289,21 +302,38 @@ void URejoinCheck::OnFinalRejoinCheckComplete(ERejoinStatus Result)
 
 void URejoinCheck::TravelToSession()
 {
+	bool bResult = false;
+
 	// TODO: What should we do if this fails? Will need to destroy session, etc.
 	UGameInstance* GameInstance = GetGameInstance<UGameInstance>();
 	check(GameInstance);
 
-	bool bResult = GameInstance->ClientTravelToSession(0, GameSessionName);
-	if (bResult)
+	ULocalPlayer* LP = GEngine->GetFirstGamePlayer(GetWorld());
+	if (ensure(LP))
 	{
-		// Record the result of the attempt to rejoin
-		Analytics_RecordRejoinAttempt(SearchResult, ERejoinAttemptResult::RejoinSuccess);
+		bResult = GameInstance->ClientTravelToSession(LP->GetControllerId(), NAME_GameSession);
+		if (bResult)
+		{
+			UE_LOG(LogOnline, Log, TEXT("URejoinCheck::TravelToSession: Performing ClientTravelToSession"));
 
-		// Reset the rejoin status while in game (any failure or future quit with recheck)
-		Reset();
-		OnRejoinLastSessionComplete().ExecuteIfBound(ERejoinAttemptResult::RejoinSuccess);
+			// Record the result of the attempt to rejoin
+			Analytics_RecordRejoinAttempt(SearchResult, ERejoinAttemptResult::RejoinSuccess);
+
+			// Reset the rejoin status while in game (any failure or future quit with recheck)
+			Reset();
+			OnRejoinLastSessionComplete().ExecuteIfBound(ERejoinAttemptResult::RejoinSuccess);
+		}
+		else
+		{
+			UE_LOG(LogOnline, Log, TEXT("URejoinCheck::TravelToSession: Failed to travel to session"));
+		}
 	}
 	else
+	{
+		UE_LOG(LogOnline, Log, TEXT("URejoinCheck::TravelToSession: Failed to find local player"));
+	}
+	
+	if (!bResult)
 	{
 		OnRejoinFailure(ERejoinAttemptResult::RejoinTravelFailure);
 	}

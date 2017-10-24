@@ -301,33 +301,27 @@ void FVirtualTextureSpace::ApplyUpdates( FRHICommandList& RHICmdList )
 			default:
 				check(0);
 			}
+			checkSlow( VertexShader && PixelShader );
 			
-			if (VertexShader && PixelShader)
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+
+			SetGraphicsPipelineState( RHICmdList, GraphicsPSOInit );
+
 			{
-				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
-				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
-				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+				const FVertexShaderRHIParamRef ShaderRHI = VertexShader->GetVertexShader();
 
-				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-				{
-					const FVertexShaderRHIParamRef ShaderRHI = VertexShader->GetVertexShader();
-
-					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->PageTableSize, PageTableSize);
-					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->FirstUpdate, FirstUpdate);
-					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->NumUpdates, NumUpdates);
-					SetSRVParameter(RHICmdList, ShaderRHI, VertexShader->UpdateBuffer, UpdateBufferSRV);
-				}
-			}
-			else
-			{
-				check(0);
+				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->PageTableSize,	PageTableSize );
+				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->FirstUpdate,	FirstUpdate );
+				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->NumUpdates,	NumUpdates );
+				SetSRVParameter( RHICmdList, ShaderRHI, VertexShader->UpdateBuffer,	UpdateBufferSRV );
 			}
 
 			// needs to be the same on shader side (faster on NVIDIA and AMD)
 			uint32 QuadsPerInstance = 8;
 
-			RHICmdList.SetStreamSource( 0, NULL, 0, 0 );
+			RHICmdList.SetStreamSource( 0, NULL, 0 );
 			RHICmdList.DrawIndexedPrimitive( GQuadIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp( NumUpdates, QuadsPerInstance ) );
 
 			ExpandedUpdates[ Mip ].Reset();

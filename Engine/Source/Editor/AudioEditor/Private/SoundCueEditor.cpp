@@ -29,6 +29,7 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "SSoundCuePalette.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueEditor"
 
@@ -768,7 +769,7 @@ void FSoundCueEditor::CopySelectedNodes()
 	}
 
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 
 	// Make sure SoundCue remains the owner of the copied nodes
 	for (FGraphPanelSelectionSet::TConstIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
@@ -812,7 +813,7 @@ void FSoundCueEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	// Import the nodes
 	TSet<UEdGraphNode*> PastedNodes;
@@ -869,7 +870,7 @@ void FSoundCueEditor::PasteNodesHere(const FVector2D& Location)
 bool FSoundCueEditor::CanPasteNodes() const
 {
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return FEdGraphUtilities::CanImportNodesFromText(SoundCue->SoundCueGraph, ClipboardContent);
 }

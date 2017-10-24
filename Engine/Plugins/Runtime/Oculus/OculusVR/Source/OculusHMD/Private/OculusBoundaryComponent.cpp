@@ -60,13 +60,13 @@ static ovrpBoundaryType ToOvrpBoundaryType(EBoundaryType Source)
 
 static FVector PointToWorldSpace(ovrpVector3f ovrPoint)
 {
-	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->HMDDevice.Get());
+	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->XRSystem->GetHMDDevice());
 	return OculusHMD->ScaleAndMovePointWithPlayer(ovrPoint);
 }
 
 static FVector DimensionsToWorldSpace(ovrpVector3f Dimensions)
 {
-	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->HMDDevice.Get());
+	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->XRSystem->GetHMDDevice());
 	FVector WorldLength = OculusHMD->ConvertVector_M2U(Dimensions);
 	WorldLength.X = -WorldLength.X;
 	return WorldLength;
@@ -84,7 +84,7 @@ static FVector NormalToWorldSpace(ovrpVector3f Normal)
 
 static float DistanceToWorldSpace(float ovrDistance)
 {
-	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->HMDDevice.Get());
+	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->XRSystem->GetHMDDevice());
 	return OculusHMD->ConvertFloat_M2U(ovrDistance);
 }
 
@@ -228,7 +228,7 @@ void UOculusBoundaryComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->HMDDevice.Get());
+	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->XRSystem->GetHMDDevice());
 	if (OculusHMD && OculusHMD->IsHMDActive())
 	{
 		OuterBoundsInteractionList.Empty(); // Reset list of FBoundaryTestResults

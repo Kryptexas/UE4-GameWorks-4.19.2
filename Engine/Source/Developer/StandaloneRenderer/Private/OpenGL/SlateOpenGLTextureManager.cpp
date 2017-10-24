@@ -7,11 +7,12 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "StandaloneRendererPlatformHeaders.h"
 #include "OpenGL/SlateOpenGLTextures.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 
-
-#include "Interfaces/IImageWrapperModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSlateOpenGL, Log, All);
+
 
 FSlateOpenGLTextureManager::FDynamicTextureResource::FDynamicTextureResource( FSlateOpenGLTexture* InOpenGLTexture )
 	: Proxy( new FSlateShaderResourceProxy )
@@ -124,7 +125,7 @@ bool FSlateOpenGLTextureManager::LoadTexture( const FSlateBrush& InBrush, uint32
 	{
 		// We assume all resources are png for now.
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 		if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( Buffer.GetData(), Buffer.Num() ) )
 		{
 			// Determine the block size.  This is bytes per pixel
@@ -142,17 +143,17 @@ bool FSlateOpenGLTextureManager::LoadTexture( const FSlateBrush& InBrush, uint32
 			}
 			else
 			{
-				UE_LOG(LogSlateOpenGL, Log, TEXT("Couldn't convert to raw data"));
+				UE_LOG(LogSlateOpenGL, Log, TEXT("Couldn't convert to raw data. [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 			}
 		}
 		else
 		{
-			UE_LOG(LogSlateOpenGL, Log, TEXT("Only pngs are supported in Slate"));
+			UE_LOG(LogSlateOpenGL, Log, TEXT("Only pngs are supported in Slate. [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 		}
 	}
 	else
 	{
-		UE_LOG(LogSlateOpenGL, Log,  TEXT("Could not find file for Slate texture: %s"), *TextureName.ToString() );
+		UE_LOG(LogSlateOpenGL, Log,  TEXT("Could not find file for Slate texture: [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 	}
 
 	

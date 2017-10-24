@@ -64,3 +64,41 @@ public:
 };
 
 typedef TSharedPtr<IOnlineNotificationTransport, ESPMode::ThreadSafe> IOnlineNotificationTransportPtr;
+
+class IOnlineSubsystem;
+class FWildcardString;
+struct FOnlineNotification;
+
+class FOnlineTransportTapHandle
+{
+	friend class FOnlinePostmasterMcpTransporter;
+public:
+	FOnlineTransportTapHandle() {}
+
+	explicit operator bool() const
+	{
+		return Handle != -1;
+	}
+
+	friend bool operator==(FOnlineTransportTapHandle Lhs, FOnlineTransportTapHandle Rhs)
+	{
+		return Lhs.Handle == Rhs.Handle;
+	}
+
+	friend bool operator!=(FOnlineTransportTapHandle Lhs, FOnlineTransportTapHandle Rhs)
+	{
+		return Lhs.Handle != Rhs.Handle;
+	}
+
+private:
+	int Handle = -1;
+};
+
+DECLARE_DELEGATE_OneParam(FOnTapStateChanged, bool /* bSubscribed */);
+
+/** A pattern used to open a tap and associated event handlers */
+struct FOnlineTransportTap
+{
+	FString AddressPattern;
+	FOnTapStateChanged StateChangeHandler;
+};

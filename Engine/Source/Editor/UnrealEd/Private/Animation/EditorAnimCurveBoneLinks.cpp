@@ -10,6 +10,7 @@
 
 UEditorAnimCurveBoneLinks::UEditorAnimCurveBoneLinks(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, MaxLOD (0xFF)
 {
 }
 
@@ -21,13 +22,14 @@ void UEditorAnimCurveBoneLinks::Initialize(const TWeakPtr<class IEditableSkeleto
 	SetFlags(RF_Transactional);
 }
 
-void UEditorAnimCurveBoneLinks::Refresh(const FSmartName& InCurveName, const TArray<FBoneReference>& CurrentLinks)
+void UEditorAnimCurveBoneLinks::Refresh(const FSmartName& InCurveName, const TArray<FBoneReference>& CurrentLinks, uint8 InMaxLOD)
 {
 	if (EditableSkeleton.IsValid())
 	{
 		// double check the name
 		CurveName = InCurveName;
 		ConnectedBones = CurrentLinks;
+		MaxLOD = InMaxLOD;
 	}
 }
 

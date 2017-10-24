@@ -12,7 +12,6 @@
 #include "SourceControlOperations.h"
 #include "ISourceControlProvider.h"
 #include "ISourceControlModule.h"
-#include "Factories/ReimportDestructibleMeshFactory.h"
 #include "Factories/ReimportFbxSkeletalMeshFactory.h"
 #include "Factories/ReimportFbxStaticMeshFactory.h"
 #include "Factories/ReimportFbxSceneFactory.h"
@@ -97,6 +96,7 @@ FEditorDelegates::FOnPIEEvent							FEditorDelegates::ResumePIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::SingleStepPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::OnPreSwitchBeginPIEAndSIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::OnSwitchBeginPIEAndSIE;
+FEditorDelegates::FOnStandaloneLocalPlayEvent			FEditorDelegates::BeginStandaloneLocalPlay;
 FSimpleMulticastDelegate								FEditorDelegates::PropertySelectionChange;
 FSimpleMulticastDelegate								FEditorDelegates::PostLandscapeLayerUpdated;
 FEditorDelegates::FOnPreSaveWorld						FEditorDelegates::PreSaveWorld;
@@ -594,10 +594,6 @@ FReimportManager::FReimportManager()
 
 	// Create reimport handler for FBX scene
 	UReimportFbxSceneFactory::StaticClass();
-
-	// Create reimport handler for APEX destructible meshes
-	UReimportDestructibleMeshFactory::StaticClass();
-
 }
 
 FReimportManager::~FReimportManager()

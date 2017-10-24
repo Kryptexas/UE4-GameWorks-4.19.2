@@ -6,17 +6,19 @@ public class Sockets : ModuleRules
 {
 	public Sockets(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateIncludePathModuleNames.AddRange(new string[] { "DerivedDataCache" });
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"DerivedDataCache"
+			});
 
 		PrivateIncludePaths.Add("Runtime/Sockets/Private");
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "SandboxFile" });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"SandboxFile"
+			});
 
 		Definitions.Add("SOCKETS_PACKAGE=1");
-
-        if ( Target.Platform ==  UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
-        {
-            PrivateDependencyModuleNames.Add("HTML5Win32");
-        } 
 	}
 }

@@ -56,17 +56,18 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, float InRadius)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, float InRadius)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI());
 
 		{
 			FVector4 ColorScale(InRadius, 0, 0, 0);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, NoiseParams, ColorScale);
+			SetShaderValue(RHICmdList, ShaderRHI, NoiseParams, ColorScale);
 		}
 	}
 
@@ -98,7 +99,7 @@ FRCPassPostProcessNoiseBlur::FRCPassPostProcessNoiseBlur(float InRadius, EPixelF
 
 
 template <uint32 Method>
-void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InRadius)
+static void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InRadius)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -116,7 +117,7 @@ void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InR
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetParameters(Context, InRadius);
+	PixelShader->SetParameters(Context.RHICmdList, Context, InRadius);
 	VertexShader->SetParameters(Context);
 }
 

@@ -40,7 +40,10 @@ public:
 	 * @param Format The format to get the version for.
 	 * @return Version number.
 	 */
-	virtual uint16 GetVersion( FName Format ) const = 0;
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const = 0;
 
 	/**
 	 * Gets an optional derived data key string, so that the compressor can

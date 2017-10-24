@@ -41,8 +41,9 @@ namespace IPC {
 template <>
 struct ParamTraits<scoped_refptr<net::UploadData> > {
   typedef scoped_refptr<net::UploadData> param_type;
-  static void Write(Message* m, const param_type& p);
-  static bool Read(const Message* m, base::PickleIterator* iter, param_type* r);
+  static void Write(base::Pickle* m, const param_type& p);
+  static bool Read(const base::Pickle* m, base::PickleIterator* iter,
+                   param_type* r);
   static void Log(const param_type& p, std::string* l);
 };
 
@@ -230,10 +231,11 @@ IPC_STRUCT_END()
 // In contrast to ViewHostMsg_GetPluginInfo in content/, this IPC call knows
 // about specific reasons why a plugin can't be used, for example because it's
 // disabled. Based on ChromeViewHostMsg_GetPluginInfo.
-IPC_SYNC_MESSAGE_CONTROL4_1(CefViewHostMsg_GetPluginInfo,
+IPC_SYNC_MESSAGE_CONTROL5_1(CefViewHostMsg_GetPluginInfo,
                             int /* render_frame_id */,
                             GURL /* url */,
-                            GURL /* top origin url */,
+                            bool /* is_main_frame */,
+                            url::Origin /* top_origin_url */,
                             std::string /* mime_type */,
                             CefViewHostMsg_GetPluginInfo_Output /* output */)
 

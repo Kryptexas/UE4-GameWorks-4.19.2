@@ -131,6 +131,16 @@ public:
 	}
 
 	/**
+	 * Set the name of the spawnable object.
+	 *
+	 * @InName The desired spawnable name.
+	 */
+	void SetName(const FString& InName)
+	{
+		Name = InName;
+	}
+
+	/**
 	 * Report the specified GUID as being an inner possessable dependency for this spawnable
 	 *
 	 * @param PossessableGuid The guid pertaining to the inner possessable

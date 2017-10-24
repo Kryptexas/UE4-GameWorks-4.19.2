@@ -8,6 +8,7 @@ using System.Text;
 using AutomationTool;
 using UnrealBuildTool;
 using Ionic.Zip;
+using Tools.DotNETCommon;
 
 [Help("ZipUtils is used to zip/unzip (i.e:RunUAT.bat ZipUtils -archive=D:/Content.zip -add=D:/UE/Pojects/SampleGame/Content/) or (i.e:RunUAT.bat ZipUtils -archive=D:/Content.zip -extract=D:/UE/Pojects/SampleGame/Content/)")]
 [Help("archive=<PathToArchive>", "Path to folder that should be add to the archive.")]

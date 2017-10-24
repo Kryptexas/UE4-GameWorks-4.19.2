@@ -9,7 +9,10 @@
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
 	"EnabledByDefault" : true,
-
+	"SupportedTargetPlatforms": [
+		"IOS",
+		"TVOS",
+	],
     "Modules": [
         {
             "Name": "OnlineSubsystemIOS",
@@ -34,4 +37,5 @@
 			"Enabled": true
 		}
 	]
+
 }

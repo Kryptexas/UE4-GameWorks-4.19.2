@@ -126,7 +126,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	FString AttributeName;
 
 	// In editor, this will filter out properties with meta tag "HideInDetailsView" or equal to FilterMetaStr. In non editor, it returns all properties.
-	static void GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr=FString());
+	static void GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr=FString(), bool UseEditorOnlyData=true);
 
 private:
 	friend class FAttributePropertyDetails;
@@ -255,10 +255,10 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 
 public:
 
-	UPROPERTY(EditDefaultsOnly, Category=ScalableFloat)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=ScalableFloat)
 	float	Value;
 
-	UPROPERTY(EditDefaultsOnly, Category=ScalableFloat)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=ScalableFloat)
 	FCurveTableRowHandle	Curve;
 
 	float GetValueAtLevel(float Level, const FString* ContextString = nullptr) const;

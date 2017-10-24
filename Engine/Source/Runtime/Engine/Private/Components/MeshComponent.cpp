@@ -233,10 +233,9 @@ void UMeshComponent::SetScalarParameterValueOnMaterials(const FName ParameterNam
 	}
 
 	// Look up material index array according to ParameterName
-	TArray<int32>* MaterialIndicesPtr = ScalarParameterMaterialIndices.Find(ParameterName);
-	if (MaterialIndicesPtr != nullptr)
+	if (FMaterialParameterCache* ParameterCache = MaterialParameterCache.Find(ParameterName))
 	{
-		const TArray<int32>& MaterialIndices = *MaterialIndicesPtr;
+		const TArray<int32>& MaterialIndices = ParameterCache->ScalarParameterMaterialIndices;
 		// Loop over all the material indices and update set the parameter value on the corresponding materials		
 		for ( int32 MaterialIndex : MaterialIndices)
 		{
@@ -266,10 +265,9 @@ void UMeshComponent::SetVectorParameterValueOnMaterials(const FName ParameterNam
 	}
 
 	// Look up material index array according to ParameterName
-	TArray<int32>* MaterialIndicesPtr = VectorParameterMaterialIndices.Find(ParameterName);
-	if (MaterialIndicesPtr != nullptr)
+	if (FMaterialParameterCache* ParameterCache = MaterialParameterCache.Find(ParameterName))
 	{
-		const TArray<int32>& MaterialIndices = *MaterialIndicesPtr;
+		const TArray<int32>& MaterialIndices = ParameterCache->VectorParameterMaterialIndices;
 		// Loop over all the material indices and update set the parameter value on the corresponding materials		
 		for ( int32 MaterialIndex : MaterialIndices )
 		{
@@ -296,8 +294,7 @@ void UMeshComponent::MarkCachedMaterialParameterNameIndicesDirty()
 void UMeshComponent::CacheMaterialParameterNameIndices()
 {
 	// Clean up possible previous data
-	ScalarParameterMaterialIndices.Reset();
-	VectorParameterMaterialIndices.Reset();
+	MaterialParameterCache.Reset();
 
 	// not sure if this is the best way to do this
 	const UWorld* World = GetWorld();
@@ -321,17 +318,16 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 			Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
 			for (FName& ParameterName : OutParameterNames)
 			{
-				// Add or retrieve TMap entry for this scalar parameter name
-				TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
+				// Add or retrieve entry for this parameter name
+				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterName);
 				// Add the corresponding material index
-				MaterialIndices.Add(MaterialIndex);
+				ParameterCache.ScalarParameterMaterialIndices.Add(MaterialIndex);
 				
 				// GetScalarParameterDefault() expects to use a FMaterialResource, which means the world has to be rendering
 				if (bHasMaterialResource)
 				{
-					// set default value to it
-					float& DefaultValue = ScalarParameterDefaultValues.FindOrAdd(ParameterName);
-					DefaultValue = Material->GetScalarParameterDefault(ParameterName, FeatureLevel);
+					// store the default value
+					ParameterCache.ScalarParameterDefaultValue = Material->GetScalarParameterDefault(ParameterName, FeatureLevel);
 				}
 			}
 
@@ -343,10 +339,10 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 			Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
 			for (FName& ParameterName : OutParameterNames)
 			{
-				// Add or retrieve TMap entry for this vector parameter name
-				TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
+				// Add or retrieve entry for this parameter name
+				FMaterialParameterCache& ParameterCache = MaterialParameterCache.FindOrAdd(ParameterName);
 				// Add the corresponding material index
-				MaterialIndices.Add(MaterialIndex);
+				ParameterCache.VectorParameterMaterialIndices.Add(MaterialIndex);
 			}
 		}
 		++MaterialIndex;

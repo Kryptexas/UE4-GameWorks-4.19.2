@@ -31,9 +31,9 @@ FUICommandInfoDecl::FUICommandInfoDecl( const TSharedRef<FBindingContext>& InCon
 	Info->Description = InDesc;
 }
 
-FUICommandInfoDecl& FUICommandInfoDecl::DefaultChord( const FInputChord& InDefaultChord )
+FUICommandInfoDecl& FUICommandInfoDecl::DefaultChord( const FInputChord& InDefaultChord, const EMultipleKeyBindingIndex InChordIndex)
 {
-	Info->DefaultChord = InDefaultChord;
+	Info->DefaultChords[static_cast<uint8>(InChordIndex)] = InDefaultChord;
 	return *this;
 }
 FUICommandInfoDecl& FUICommandInfoDecl::UserInterfaceType( EUserInterfaceActionType::Type InType )
@@ -70,11 +70,12 @@ FUICommandInfoDecl::operator TSharedRef<FUICommandInfo>() const
 
 const FText FUICommandInfo::GetInputText() const
 {	
-	return ActiveChord->GetInputText();
+	// Just get the text from the first valid chord, there isn't enough room for all of them
+	return GetFirstValidChord()->GetInputText();
 }
 
 
-void FUICommandInfo::MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord )
+void FUICommandInfo::MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord, const FInputChord& InAlternateDefaultChord)
 {
 	ensureMsgf( !InCommandLabel.IsEmpty(), TEXT("Command labels cannot be empty") );
 
@@ -84,7 +85,8 @@ void FUICommandInfo::MakeCommandInfo( const TSharedRef<class FBindingContext>& I
 	OutCommand->Description = InCommandDesc;
 	OutCommand->Icon = InIcon;
 	OutCommand->UserInterfaceType = InUserInterfaceType;
-	OutCommand->DefaultChord = InDefaultChord;
+	OutCommand->DefaultChords[static_cast<uint8>(EMultipleKeyBindingIndex::Primary)] = InDefaultChord;
+	OutCommand->DefaultChords[static_cast<uint8>(EMultipleKeyBindingIndex::Secondary)] = InAlternateDefaultChord;
 	FInputBindingManager::Get().CreateInputCommand( InContext, OutCommand.ToSharedRef() );
 }
 
@@ -93,20 +95,23 @@ void FUICommandInfo::UnregisterCommandInfo(const TSharedRef<class FBindingContex
 	FInputBindingManager::Get().RemoveInputCommand(InContext, InCommand);
 }
 
-void FUICommandInfo::SetActiveChord( const FInputChord& NewChord )
+void FUICommandInfo::SetActiveChord( const FInputChord& NewChord, const EMultipleKeyBindingIndex InChordIndex)
 {
-	ActiveChord->Set( NewChord );
+	ActiveChords[static_cast<uint8>(InChordIndex)]->Set(NewChord);
+	
 
 	// Set the user defined chord for this command so it can be saved to disk later
-	FInputBindingManager::Get().NotifyActiveChordChanged( *this );
+	FInputBindingManager::Get().NotifyActiveChordChanged( *this, InChordIndex);
 }
 
-void FUICommandInfo::RemoveActiveChord()
+void FUICommandInfo::RemoveActiveChord(const EMultipleKeyBindingIndex InChordIndex)
 {
 	// Chord already exists
 	// Reset the other chord that has the same binding
-	ActiveChord = MakeShareable( new FInputChord() );
-	FInputBindingManager::Get().NotifyActiveChordChanged( *this );
+
+	ActiveChords[static_cast<uint8>(InChordIndex)] = MakeShareable(new FInputChord());
+
+	FInputBindingManager::Get().NotifyActiveChordChanged( *this, InChordIndex);
 }
 
 TSharedRef<SToolTip> FUICommandInfo::MakeTooltip( const TAttribute<FText>& InText, const TAttribute< EVisibility >& InToolTipVisibility ) const

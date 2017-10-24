@@ -100,7 +100,7 @@ When **Override Attenuation** is checked, the ability to set additional Attenuat
 | **Spatialize** | Enable the source to be positioned in 3D.  |
 | **Distance Algorithm** | The type of volume versus distance algorithm to use for the attenuation model. |
 | **Attenuation Shape** | The shape of the attenuation volume. |
-| **Radius** | The overall size of the volume. <BR> By default, the volume shape is set to **Sphere**. This option will change based on the Attenuation Shape selected. |
+| **Radius** | The overall size of the volume. By default, the volume shape is set to **Sphere**. This option will change based on the Attenuation Shape selected. |
 | **Falloff Distance** | The distance over which falloff occurs. |
 | **Non-Spatialized Radius** | At what distance to start treating the sound source as spatialized. |
 | **Attenuate with LPF** | Enables attenuation via Low Pass Filter. |

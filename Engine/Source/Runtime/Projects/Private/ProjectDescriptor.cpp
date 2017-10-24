@@ -123,31 +123,30 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 	const TArray< TSharedPtr<FJsonValue> >* AdditionalPluginDirectoriesValue;
 	if (Object.TryGetArrayField(TEXT("AdditionalPluginDirectories"), AdditionalPluginDirectoriesValue))
 	{
+#if WITH_EDITOR
+		for (int32 Idx = 0; Idx < AdditionalPluginDirectoriesValue->Num(); Idx++)
+		{
+			FString AdditionalDir;
+			if ((*AdditionalPluginDirectoriesValue)[Idx]->TryGetString(AdditionalDir))
+			{
+				if (IsRootedPath(AdditionalDir))
+				{
+					AddPluginDirectory(AdditionalDir);
+				}
+				else
+				{
+					// This is path relative to the project, so convert to absolute
+					AddPluginDirectory(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / AdditionalDir)));
+				}
+			}
+		}
+#endif
 		// If this is a packaged build and there are additional directories, they need to be remapped to the packaged location
 		if (FPlatformProperties::RequiresCookedData() && AdditionalPluginDirectoriesValue->Num() > 0)
 		{
 			AdditionalPluginDirectories.Empty();
-			FString RemappedDir = FPaths::GameDir() + TEXT("../RemappedPlugins/");
+			FString RemappedDir = FPaths::ProjectDir() + TEXT("../RemappedPlugins/");
 			AddPluginDirectory(RemappedDir);
-		}
-		else
-		{
-			for (int32 Idx = 0; Idx < AdditionalPluginDirectoriesValue->Num(); Idx++)
-			{
-				FString AdditionalDir;
-				if ((*AdditionalPluginDirectoriesValue)[Idx]->TryGetString(AdditionalDir))
-				{
-					if (IsRootedPath(AdditionalDir))
-					{
-						AddPluginDirectory(AdditionalDir);
-					}
-					else
-					{
-						// This is path relative to the project, so convert to absolute
-						AddPluginDirectory(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / AdditionalDir)));
-					}
-				}
-			}
 		}
 	}
 
@@ -277,7 +276,7 @@ const FString FProjectDescriptor::MakePathRelativeToProject(const FString& Dir, 
 
 void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
 {
-	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir())));
+	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::ProjectPluginsDir())));
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
 
 	// Detect calls where the path is not absolute

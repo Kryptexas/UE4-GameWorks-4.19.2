@@ -68,6 +68,15 @@ struct FStreamingTexturePrimitiveInfo
 		PackedRelativeBox(0)
 	{
 	}
+
+	FStreamingTexturePrimitiveInfo(UTexture2D* InTexture, const FBoxSphereBounds& InBounds, float InTexelFactor, uint32 InPackedRelativeBox = 0) :
+		Texture(InTexture), 
+		Bounds(InBounds), 
+		TexelFactor(InTexelFactor),
+		PackedRelativeBox(InPackedRelativeBox)
+	{
+	}
+
 };
 
 /** 

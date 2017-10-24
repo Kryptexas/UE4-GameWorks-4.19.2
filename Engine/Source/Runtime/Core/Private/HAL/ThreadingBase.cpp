@@ -220,7 +220,7 @@ void FEvent::AdvanceStats()
 {
 #if	STATS
 	EventId = FPlatformAtomics::InterlockedAdd( (int32*)&EventUniqueId, 1 );
-	EventStartCycles = 0;
+	FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, 0);
 #endif // STATS
 }
 
@@ -232,7 +232,7 @@ void FEvent::WaitForStats()
 	{
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | 0;
 		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventWaitWithId, PacketEventIdAndCycles );
-		EventStartCycles = FPlatformTime::Cycles();
+		FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, FPlatformTime::Cycles());
 	}
 #endif // STATS
 }
@@ -321,18 +321,6 @@ FRunnableThread::~FRunnableThread()
 }
 
 FRunnableThread* FRunnableThread::Create(
-	class FRunnable* InRunnable,
-	const TCHAR* ThreadName,
-	bool bAutoDeleteSelf,
-	bool bAutoDeleteRunnable,
-	uint32 InStackSize,
-	EThreadPriority InThreadPri,
-	uint64 InThreadAffinityMask)
-{
-	return Create(InRunnable, ThreadName, InStackSize, InThreadPri, InThreadAffinityMask);
-}
-
-FRunnableThread* FRunnableThread::Create(
 	class FRunnable* InRunnable, 
 	const TCHAR* ThreadName,
 	uint32 InStackSize,
@@ -381,7 +369,7 @@ FRunnableThread* FRunnableThread::Create(
 void FRunnableThread::SetTls()
 {
 	// Make sure it's called from the owning thread.
-	//check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
+	check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
 	check( FPlatformTLS::IsValidTlsSlot(RunnableTlsSlot) );
 	FPlatformTLS::SetTlsValue( RunnableTlsSlot, this );
 }

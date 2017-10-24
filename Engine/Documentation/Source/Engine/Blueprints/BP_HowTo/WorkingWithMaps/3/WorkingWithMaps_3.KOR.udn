@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413824
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:3 - 맵에 키 및 값 추가
 Description:블루프린트 맵에 키-값 짝을 추가하고, 최종적으로 맵의 키와 할당된 값을 표시합니다.
 Crumbs:%ROOT%

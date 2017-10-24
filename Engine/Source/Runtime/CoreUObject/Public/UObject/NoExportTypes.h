@@ -15,11 +15,12 @@
 
 // Include the real definitions of the noexport classes below to allow the generated cpp file to compile.
 
+#include "PixelFormat.h"
+
 #include "Misc/Guid.h"
 #include "Misc/DateTime.h"
 #include "Misc/Timespan.h"
-#include "Misc/StringAssetReference.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 
 #include "Math/InterpCurvePoint.h"
 #include "Math/UnitConversion.h"
@@ -42,6 +43,8 @@
 #include "Math/RandomStream.h"
 #include "Math/RangeBound.h"
 #include "Math/Interval.h"
+
+#include "GenericPlatform/ICursor.h"
 
 #endif
 
@@ -85,6 +88,9 @@ namespace ELogTimes
 
 		/** Display log timestamps in seconds elapsed since GStartTime. */
 		SinceGStartTime UMETA(DisplayName = "Time since application start"),
+
+		/** Display log timestamps in local time. */
+		Local UMETA(DisplayName = "Local time"),
 	};
 }
 
@@ -111,7 +117,6 @@ enum EInterpCurveMode
 	CIM_CurveUser UMETA(DisplayName="Curve User"),
 	CIM_CurveBreak UMETA(DisplayName="Curve Break"),
 	CIM_CurveAutoClamped UMETA(DisplayName="Curve Auto Clamped"),
-	CIM_MAX,
 };
 
 // @warning:	When you update this, you must add an entry to GPixelFormats(see RenderUtils.cpp)
@@ -123,6 +128,7 @@ enum EPixelFormat
 {
 	PF_Unknown,
 	PF_A32B32G32R32F,
+	/** UNORM (0..1), corresponds to FColor.  Unpacks as rgba in the shader. */
 	PF_B8G8R8A8,
 	/** UNORM red (0..1) */
 	PF_G8,
@@ -131,9 +137,9 @@ enum EPixelFormat
 	PF_DXT3,
 	PF_DXT5,
 	PF_UYVY,
-	/** A RGB FP format with platform-specific implementation, for use with render targets. */
+	/** Same as PF_FloatR11G11B10 */
 	PF_FloatRGB,
-	/** A RGBA FP format with platform-specific implementation, for use with render targets. */
+	/** RGBA 16 bit signed FP format.  Use FFloat16Color on the CPU. */
 	PF_FloatRGBA,
 	/** A depth+stencil format with platform-specific implementation, for use with render targets. */
 	PF_DepthStencil,
@@ -153,7 +159,7 @@ enum EPixelFormat
 	/** SNORM red, green (-1..1). Not supported on all RHI e.g. Metal */
 	PF_V8U8,
 	PF_A1,
-	/** A low precision floating point format. */
+	/** A low precision floating point format, unsigned.  Use FFloat3Packed on the CPU. */
 	PF_FloatR11G11B10,
 	PF_A8,
 	PF_R32_UINT,
@@ -199,6 +205,10 @@ enum EPixelFormat
 	PF_BC7,
 	PF_R8_UINT,
 	PF_L8,
+	PF_XGXR8,
+	PF_R8G8B8A8_UINT,
+	/** SNORM (-1..1), corresponds to FFixedRGBASigned8. */
+	PF_R8G8B8A8_SNORM, 
 	PF_MAX,
 };
 
@@ -288,7 +298,13 @@ enum class EUnit : uint8
 	/** Arbitrary multiplier */	
 	Multiplier,
 
-	/** Symbolic entry, not specifiable on meta data. */	
+
+	/** Percentage */
+	
+	Percentage,
+
+	/** Symbolic entry, not specifiable on meta data. */
+	
 	Unspecified
 };
 
@@ -937,19 +953,22 @@ struct FTimespan
 };
 
 
-// A string asset reference
-
-USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
-struct FStringAssetReference
+/** An object path, this is saved as a name/string pair */
+USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetSystemLibrary.MakeSoftObjectPath", HasNativeBreak="Engine.KismetSystemLibrary.BreakSoftObjectPath"))
+struct FSoftObjectPath
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)
-	FString AssetLongPathname;
+	/** Asset path, patch to a top level object in a package */
+	UPROPERTY()
+	FName AssetPathName;
+
+	/** Optional FString for subobject within an asset */
+	UPROPERTY()
+	FString SubPathString;
 };
 
-// A string class reference
-
+/** Subclass of FSoftObjectPath that is only valid to use with UClass* */
 USTRUCT(noexport)
-struct FStringClassReference : public FStringAssetReference
+struct FSoftClassPath : public FSoftObjectPath
 {
 };
 

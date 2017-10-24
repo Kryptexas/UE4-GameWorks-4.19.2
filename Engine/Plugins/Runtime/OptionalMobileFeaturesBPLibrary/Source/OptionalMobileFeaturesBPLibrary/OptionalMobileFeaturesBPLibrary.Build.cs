@@ -20,6 +20,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"OptionalMobileFeaturesBPLibrary",
+					"ApplicationCore",
 					// ... add private dependencies that you statically link with here ...
 				}
 				);

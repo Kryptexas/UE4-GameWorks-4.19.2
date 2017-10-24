@@ -31,10 +31,10 @@ namespace CrossCompiler
 		typedef void TCallback(void* CallbackData, CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes);
 
 		// Returns true if successfully parsed
-		bool Parse(const FString& Input, const FString& Filename, FCompilerMessages& OutCompilerMessages, TCallback* Callback = nullptr, void* CallbackData = nullptr);
+		bool Parse(const FString& Input, const FString& Filename, FCompilerMessages& OutCompilerMessages, TCallback* Callback, void* CallbackData = nullptr);
 
 		// Returns true if successfully parsed
-		bool Parse(const FString& Input, const FString& Filename, FCompilerMessages& OutCompilerMessages, TArray<TCallback*> Callbacks, TArray<void*> CallbacksData);
+		bool Parse(const FString& Input, const FString& Filename, FCompilerMessages& OutCompilerMessages, TFunction< void(CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)> Function);
 
 		// Sample callback to write out all nodes into a string; pass a valid pointer FString* as OutFStringPointer
 		void WriteNodesToString(void* OutFStringPointer, CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes);

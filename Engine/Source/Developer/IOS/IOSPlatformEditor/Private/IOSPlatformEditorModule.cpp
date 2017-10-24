@@ -61,21 +61,11 @@ class FIOSPlatformEditorModule
 			);
 
 			{
-				static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
-				const UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_OPENGL_ES2_IOS);
-				SettingsModule->RegisterSettings("Project", "Platforms", "iOSES2Quality",
-					LOCTEXT("IOSES2QualitySettingsName", "iOS Material Quality - ES2"),
-					LOCTEXT("IOSES2QualitySettingsDescription", "Settings for iOS ES2 material quality"),
-					IOSMaterialQualitySettings
-					);
-			}
-
-			{
 				static FName NAME_SF_METAL(TEXT("SF_METAL"));
 				const UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_SF_METAL);
 				SettingsModule->RegisterSettings("Project", "Platforms", "iOSMetalQuality",
-					LOCTEXT("IOSMetalQualitySettingsName", "iOS Material Quality - Metal"),
-					LOCTEXT("IOSMetalQualitySettingsDescription", "Settings for iOS Metal material quality"),
+					LOCTEXT("IOSMetalQualitySettingsName", "iOS Material Quality"),
+					LOCTEXT("IOSMetalQualitySettingsDescription", "Settings for iOS material quality"),
 					IOSMaterialQualitySettings
 				);
 			}
@@ -89,7 +79,6 @@ class FIOSPlatformEditorModule
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "iOS");
-			SettingsModule->UnregisterSettings("Project", "Platforms", "iOSES2Quality");
 			SettingsModule->UnregisterSettings("Project", "Platforms", "iOSMetalQuality");
 		}
 	}

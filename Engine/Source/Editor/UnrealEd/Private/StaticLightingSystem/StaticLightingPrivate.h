@@ -83,6 +83,7 @@ struct FLightmassStatistics
 		FinishingTime					= 0.0;
 		TotalTime						= 0.0;
 		ExportVisibilityDataTime = 0.0;
+		ExportVolumetricLightmapDataTime = 0.0f;
 		ExportLightsTime = 0.0;
 		ExportModelsTime = 0.0;
 		ExportStaticMeshesTime = 0.0;
@@ -121,6 +122,7 @@ struct FLightmassStatistics
 		FinishingTime					+= Other.FinishingTime;
 		TotalTime						+= Other.TotalTime;
 		ExportVisibilityDataTime += Other.ExportVisibilityDataTime;
+		ExportVolumetricLightmapDataTime += Other.ExportVolumetricLightmapDataTime;
 		ExportLightsTime += Other.ExportLightsTime;
 		ExportModelsTime += Other.ExportModelsTime;
 		ExportStaticMeshesTime += Other.ExportStaticMeshesTime;
@@ -172,6 +174,7 @@ struct FLightmassStatistics
 	double	TotalTime;
 	/** Time spent in various export stages */
 	double ExportVisibilityDataTime;
+	double ExportVolumetricLightmapDataTime;
 	double ExportLightsTime;
 	double ExportModelsTime;
 	double ExportStaticMeshesTime;

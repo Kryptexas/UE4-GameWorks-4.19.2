@@ -73,7 +73,7 @@ namespace BlueprintEditorPromotionUtils
 	*/
 	static FString GetFullPath()
 	{
-		return FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("BlueprintEditorPromotionTest"));
+		return FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir() + TEXT("BlueprintEditorPromotionTest"));
 	}
 
 	/**
@@ -795,7 +795,7 @@ namespace BlueprintEditorPromotionTestHelper
 			//Remove the directory
 			bool bEnsureExists = false;
 			bool bDeleteEntireTree = true;
-			FString PackageDirectory = FPaths::GameContentDir() / TEXT("BuildPromotionTest");
+			FString PackageDirectory = FPaths::ProjectContentDir() / TEXT("BuildPromotionTest");
 			IFileManager::Get().DeleteDirectory(*PackageDirectory, bEnsureExists, bDeleteEntireTree);
 			Test->AddInfo(*FString::Printf(TEXT("Deleting Folder: %s"), *PackageDirectory));
 

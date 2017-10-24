@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Package/SProjectLauncherPackagePage.h"
-#include "Widgets/SBoxPanel.h"
-#include "Textures/SlateIcon.h"
+#include "SProjectLauncherPackagePage.h"
+
 #include "Framework/Commands/UIAction.h"
-#include "Widgets/Text/STextBlock.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SComboButton.h"
+#include "Widgets/Text/STextBlock.h"
+
 #include "Widgets/Package/SProjectLauncherPackagingSettings.h"
 
 
@@ -16,7 +18,7 @@
 /* SProjectLauncherPackagePage structors
  *****************************************************************************/
 
-SProjectLauncherPackagePage::~SProjectLauncherPackagePage( )
+SProjectLauncherPackagePage::~SProjectLauncherPackagePage()
 {
 	if (Model.IsValid())
 	{
@@ -28,7 +30,7 @@ SProjectLauncherPackagePage::~SProjectLauncherPackagePage( )
 /* SProjectLauncherPackagePage interface
  *****************************************************************************/
 
-void SProjectLauncherPackagePage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherPackagePage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -97,7 +99,7 @@ void SProjectLauncherPackagePage::Construct( const FArguments& InArgs, const FPr
 /* SProjectLauncherLaunchPage callbacks
  *****************************************************************************/
 
-FText SProjectLauncherPackagePage::HandlePackagingModeComboButtonContentText( ) const
+FText SProjectLauncherPackagePage::HandlePackagingModeComboButtonContentText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -127,7 +129,7 @@ FText SProjectLauncherPackagePage::HandlePackagingModeComboButtonContentText( ) 
 }
 
 
-void SProjectLauncherPackagePage::HandlePackagingModeMenuEntryClicked( ELauncherProfilePackagingModes::Type PackagingMode )
+void SProjectLauncherPackagePage::HandlePackagingModeMenuEntryClicked(ELauncherProfilePackagingModes::Type PackagingMode)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -141,8 +143,7 @@ void SProjectLauncherPackagePage::HandlePackagingModeMenuEntryClicked( ELauncher
 }
 
 
-
-EVisibility SProjectLauncherPackagePage::HandlePackagingSettingsAreaVisibility( ) const
+EVisibility SProjectLauncherPackagePage::HandlePackagingSettingsAreaVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -160,7 +161,7 @@ EVisibility SProjectLauncherPackagePage::HandlePackagingSettingsAreaVisibility( 
 }
 
 
-void SProjectLauncherPackagePage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherPackagePage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 
 }

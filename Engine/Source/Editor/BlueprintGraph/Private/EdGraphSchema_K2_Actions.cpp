@@ -38,6 +38,148 @@ namespace
 }
 
 /////////////////////////////////////////////////////
+// FEdGraphSchemaAction_BlueprintVariableBase
+
+void FEdGraphSchemaAction_BlueprintVariableBase::MovePersistentItemToCategory(const FText& NewCategoryName)
+{
+	FBlueprintEditorUtils::SetBlueprintVariableCategory(GetSourceBlueprint(), VarName, GetVariableScope(), NewCategoryName);
+}
+
+int32 FEdGraphSchemaAction_BlueprintVariableBase::GetReorderIndexInContainer() const
+{
+	if (UBlueprint* SourceBlueprint = GetSourceBlueprint())
+	{
+		return FBlueprintEditorUtils::FindNewVariableIndex(SourceBlueprint, VarName);
+	}
+
+	return INDEX_NONE;
+}
+
+bool FEdGraphSchemaAction_BlueprintVariableBase::ReorderToBeforeAction(TSharedRef<FEdGraphSchemaAction> OtherAction)
+{
+	if ((OtherAction->GetTypeId() == StaticGetTypeId()) && (OtherAction->GetPersistentItemDefiningObject() == GetPersistentItemDefiningObject()))
+	{
+		FEdGraphSchemaAction_BlueprintVariableBase* VarAction = (FEdGraphSchemaAction_BlueprintVariableBase*)&OtherAction.Get();
+
+		// Only let you drag and drop if variables are from same BP class, and not onto itself
+		UBlueprint* BP = GetSourceBlueprint();
+		FName TargetVarName = VarAction->GetVariableName();
+		if ((BP != nullptr) && (VarName != TargetVarName) && (VariableSource == VarAction->GetVariableClass()))
+		{
+			if (FBlueprintEditorUtils::MoveVariableBeforeVariable(BP, VarName, TargetVarName, true))
+			{
+				// Change category of var to match the one we dragged on to as well
+				FText TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName, GetVariableScope());
+				MovePersistentItemToCategory(TargetVarCategory);
+
+				// Update Blueprint after changes so they reflect in My Blueprint tab.
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+FEdGraphSchemaActionDefiningObject FEdGraphSchemaAction_BlueprintVariableBase::GetPersistentItemDefiningObject() const
+{
+	UObject* DefiningObject = GetSourceBlueprint();
+	if (UProperty* Prop = GetProperty())
+	{
+		DefiningObject = Prop->GetOwnerStruct();
+	}
+	return FEdGraphSchemaActionDefiningObject(DefiningObject);
+}
+
+UBlueprint* FEdGraphSchemaAction_BlueprintVariableBase::GetSourceBlueprint() const
+{
+	UClass* ClassToCheck = GetVariableClass();
+	if (ClassToCheck == nullptr)
+	{
+		if (UFunction* Function = Cast<UFunction>(GetVariableScope()))
+		{
+			ClassToCheck = Function->GetOuterUClass();
+		}
+	}
+	return UBlueprint::GetBlueprintFromClass(ClassToCheck);
+}
+
+/////////////////////////////////////////////////////
+// FEdGraphSchemaAction_K2Graph
+
+void FEdGraphSchemaAction_K2Graph::MovePersistentItemToCategory(const FText& NewCategoryName)
+{
+	if ((GraphType == EEdGraphSchemaAction_K2Graph::Function) || (GraphType == EEdGraphSchemaAction_K2Graph::Macro))
+	{
+		FBlueprintEditorUtils::SetBlueprintFunctionOrMacroCategory(EdGraph, NewCategoryName);
+	}
+}
+
+int32 FEdGraphSchemaAction_K2Graph::GetReorderIndexInContainer() const
+{
+	return FBlueprintEditorUtils::FindIndexOfGraphInParent(EdGraph);
+}
+
+bool FEdGraphSchemaAction_K2Graph::ReorderToBeforeAction(TSharedRef<FEdGraphSchemaAction> OtherAction)
+{
+	if ((OtherAction->GetTypeId() == GetTypeId()) && (OtherAction->GetPersistentItemDefiningObject() == GetPersistentItemDefiningObject()))
+	{
+		const int32 OldIndex = GetReorderIndexInContainer();
+		const int32 NewIndexToGoBefore = OtherAction->GetReorderIndexInContainer();
+
+		if ((OldIndex != INDEX_NONE) && (OldIndex != NewIndexToGoBefore))
+		{
+			if (FBlueprintEditorUtils::MoveGraphBeforeOtherGraph(EdGraph, NewIndexToGoBefore, true))
+			{
+				// Change category to match the one we dragged on to as well
+				MovePersistentItemToCategory(OtherAction->GetCategory());
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+FEdGraphSchemaActionDefiningObject FEdGraphSchemaAction_K2Graph::GetPersistentItemDefiningObject() const
+{
+	UObject* DefiningObject = GetSourceBlueprint();
+	if (UFunction* Func = GetFunction())
+	{
+		DefiningObject = Func->GetOwnerStruct();
+	}
+	return FEdGraphSchemaActionDefiningObject(DefiningObject, (void*)GraphType);
+}
+
+UBlueprint* FEdGraphSchemaAction_K2Graph::GetSourceBlueprint() const
+{
+	return FBlueprintEditorUtils::FindBlueprintForGraph(EdGraph);
+}
+
+UFunction* FEdGraphSchemaAction_K2Graph::GetFunction() const
+{
+	if (GraphType == EEdGraphSchemaAction_K2Graph::Function)
+	{
+		if (UBlueprint* SourceBlueprint = GetSourceBlueprint())
+		{
+			if (FuncName != NAME_None)
+			{
+				return FindField<UFunction>(SourceBlueprint->SkeletonGeneratedClass, FuncName);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+/////////////////////////////////////////////////////
+// FEdGraphSchemaAction_K2Delegate
+
+/////////////////////////////////////////////////////
 // FEdGraphSchemaAction_K2ViewNode
 
 UEdGraphNode* FEdGraphSchemaAction_K2NewNode::CreateNode(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, class UK2Node* NodeTemplate, bool bSelectNewNode/* = true*/)
@@ -87,10 +229,10 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::CreateNode(class UEdGraph* ParentG
 
 UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 	// If there is a template, we actually use it
-	if (NodeTemplate != NULL)
+	if (NodeTemplate != nullptr)
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "K2_AddNode", "Add Node") );
 		ParentGraph->Modify();
@@ -131,7 +273,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* Pare
 
 UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode/* = true*/) 
 {
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 	if (FromPins.Num() > 0)
 	{
@@ -145,7 +287,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* Pare
 	}
 	else
 	{
-		ResultNode = PerformAction(ParentGraph, NULL, Location, bSelectNewNode);
+		ResultNode = PerformAction(ParentGraph, nullptr, Location, bSelectNewNode);
 	}
 
 	return ResultNode;
@@ -171,13 +313,13 @@ UEdGraphNode* FEdGraphSchemaAction_K2ViewNode::PerformAction(class UEdGraph* Par
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(NodePtr);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UEdGraphNode* FEdGraphSchemaAction_K2ViewNode::PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode/* = true*/) 
 {
-	PerformAction(ParentGraph, NULL, Location, bSelectNewNode);
-	return NULL;
+	PerformAction(ParentGraph, nullptr, Location, bSelectNewNode);
+	return nullptr;
 }
 
 /////////////////////////////////////////////////////
@@ -185,7 +327,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2ViewNode::PerformAction(class UEdGraph* Par
 
 UEdGraphNode* FEdGraphSchemaAction_K2AssignDelegate::AssignDelegate(class UK2Node* NodeTemplate, class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode)
 {
-	UK2Node_AddDelegate* BindNode = NULL;
+	UK2Node_AddDelegate* BindNode = nullptr;
 	if (UK2Node_AddDelegate* AddDelegateTemplate = Cast<UK2Node_AddDelegate>(NodeTemplate))
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "K2_AddNode", "Add Node") );
@@ -196,7 +338,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AssignDelegate::AssignDelegate(class UK2Nod
 		}
 
 		BindNode = Cast<UK2Node_AddDelegate>(CreateNode(ParentGraph, FromPin, Location, NodeTemplate, bSelectNewNode));
-		UMulticastDelegateProperty* DelegateProperty = BindNode ? Cast<UMulticastDelegateProperty>(BindNode->GetProperty()) : NULL;
+		UMulticastDelegateProperty* DelegateProperty = BindNode ? Cast<UMulticastDelegateProperty>(BindNode->GetProperty()) : nullptr;
 		if(DelegateProperty)
 		{
 			const FString FunctionName = FString::Printf(TEXT("%s_Event"), *DelegateProperty->GetName());
@@ -228,15 +370,15 @@ UEdGraphNode* FEdGraphSchemaAction_K2AssignDelegate::PerformAction(class UEdGrap
 
 UEdGraphNode* FEdGraphSchemaAction_EventFromFunction::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	UK2Node_CustomEvent* EventNode = NULL;
+	UK2Node_CustomEvent* EventNode = nullptr;
 	if (SignatureFunction)
 	{
 		if (FromPin)
 		{
 			// Make sure, that function is latest, so the names of parameters are proper.
 			UK2Node_BaseMCDelegate* MCDelegateNode = Cast<UK2Node_BaseMCDelegate>(FromPin->GetOwningNode());
-			UEdGraphPin* InputDelegatePin = MCDelegateNode ? MCDelegateNode->GetDelegatePin() : NULL;
-			UFunction* OriginalFunction = MCDelegateNode ? MCDelegateNode->GetDelegateSignature() : NULL;
+			UEdGraphPin* InputDelegatePin = MCDelegateNode ? MCDelegateNode->GetDelegatePin() : nullptr;
+			UFunction* OriginalFunction = MCDelegateNode ? MCDelegateNode->GetDelegateSignature() : nullptr;
 			if (OriginalFunction && 
 				(OriginalFunction != SignatureFunction) && 
 				(FromPin == InputDelegatePin) &&
@@ -264,7 +406,7 @@ UEdGraphNode* FEdGraphSchemaAction_EventFromFunction::PerformAction(class UEdGra
 
 UEdGraphNode* FEdGraphSchemaAction_EventFromFunction::PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 	if (FromPins.Num() > 0)
 	{
@@ -278,7 +420,7 @@ UEdGraphNode* FEdGraphSchemaAction_EventFromFunction::PerformAction(class UEdGra
 	}
 	else
 	{
-		ResultNode = PerformAction(ParentGraph, NULL, Location, bSelectNewNode);
+		ResultNode = PerformAction(ParentGraph, nullptr, Location, bSelectNewNode);
 	}
 
 	return ResultNode;
@@ -297,18 +439,18 @@ void FEdGraphSchemaAction_EventFromFunction::AddReferencedObjects(FReferenceColl
 
 UEdGraphNode* FEdGraphSchemaAction_K2AddComponent::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	if (ComponentClass == NULL)
+	if (ComponentClass == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 	UEdGraphNode* NewNode = FEdGraphSchemaAction_K2NewNode::PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
-	if ((NewNode != NULL) && (Blueprint != NULL))
+	if ((NewNode != nullptr) && (Blueprint != nullptr))
 	{
 		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
 
-		ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
+		ensure(nullptr != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 		// Then create a new template object, and add to array in
 		UActorComponent* NewTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, ComponentClass, NAME_None, RF_ArchetypeObject | RF_Public);
 		Blueprint->ComponentTemplates.Add(NewTemplate);
@@ -328,7 +470,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComponent::PerformAction(class UEdGraph*
 		}
 
 		// Set the asset
-		if(ComponentAsset != NULL)
+		if(ComponentAsset != nullptr)
 		{
 			FComponentAssetBrokerage::AssignAssetToComponent(NewTemplate, ComponentAsset);
 		}
@@ -350,45 +492,19 @@ void FEdGraphSchemaAction_K2AddComponent::AddReferencedObjects( FReferenceCollec
 }
 
 /////////////////////////////////////////////////////
-// FEdGraphSchemaAction_K2AddTimeline
-
-UEdGraphNode* FEdGraphSchemaAction_K2AddTimeline::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
-{
-	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "K2_AddTimeline", "Add Timeline") );
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
-	UEdGraphNode* NewNode = FEdGraphSchemaAction_K2NewNode::PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
-
-	// Set the name to be a unique timeline name, so the generated node will have a default name that is already validated
-	UK2Node_Timeline* TimelineNode = CastChecked<UK2Node_Timeline>(NewNode);
-	TimelineNode->TimelineName = FBlueprintEditorUtils::FindUniqueTimelineName(Blueprint);
-
-	if(Blueprint != NULL)
-	{
-		if (FBlueprintEditorUtils::AddNewTimeline(Blueprint, TimelineNode->TimelineName) != NULL)
-		{
-			// Clear off any existing error message now the timeline has been added
-			TimelineNode->ErrorMsg.Empty();
-			TimelineNode->bHasCompilerMessage = false;
-		}
-	}
-
-	return NewNode;
-}
-
-/////////////////////////////////////////////////////
 // FEdGraphSchemaAction_K2AddEvent
 
 UEdGraphNode* FEdGraphSchemaAction_K2AddEvent::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	UEdGraphNode* NewNode = NULL;
+	UEdGraphNode* NewNode = nullptr;
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "K2_Event", "Add Event") );	
 
 	UBlueprint const* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 
-	UK2Node_Event const* ExistingEvent = NULL;
+	UK2Node_Event const* ExistingEvent = nullptr;
 	if (EventHasAlreadyBeenPlaced(Blueprint, &ExistingEvent))
 	{
-		check(ExistingEvent != NULL);
+		check(ExistingEvent != nullptr);
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ExistingEvent);
 	}
 	else
@@ -399,22 +515,22 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddEvent::PerformAction(class UEdGraph* Par
 	return NewNode;
 }
 
-bool FEdGraphSchemaAction_K2AddEvent::EventHasAlreadyBeenPlaced(UBlueprint const* Blueprint, UK2Node_Event const** FoundEventOut /*= NULL*/) const
+bool FEdGraphSchemaAction_K2AddEvent::EventHasAlreadyBeenPlaced(UBlueprint const* Blueprint, UK2Node_Event const** FoundEventOut /*= nullptr*/) const
 {
-	UK2Node_Event* ExistingEvent = NULL;
+	UK2Node_Event* ExistingEvent = nullptr;
 
-	if (Blueprint != NULL)
+	if (Blueprint != nullptr)
 	{
 		UK2Node_Event const* EventTemplate = Cast<UK2Node_Event const>(NodeTemplate);
 		ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, EventTemplate->EventReference.GetMemberParentClass(EventTemplate->GetBlueprintClassFromNode()), EventTemplate->EventReference.GetMemberName());
 	}
 
-	if (FoundEventOut != NULL)
+	if (FoundEventOut != nullptr)
 	{
 		*FoundEventOut = ExistingEvent;
 	}
 
-	return (ExistingEvent != NULL);
+	return (ExistingEvent != nullptr);
 }
 
 /////////////////////////////////////////////////////
@@ -464,7 +580,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGrap
 	{
 		AActor* LevelActor = LevelActors[ActorIndex];
 
-		if(LevelActor != NULL)
+		if(LevelActor != nullptr)
 		{
 			UK2Node_Literal* LiteralNode =  NewObject<UK2Node_Literal>(ParentGraph);
 			ParentGraph->AddNode(LiteralNode, false, bSelectNewNode);
@@ -483,7 +599,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGrap
 			// Connect the literal out to the self of the call
 			UEdGraphPin* LiteralOutput = LiteralNode->GetValuePin();
 			UEdGraphPin* CallSelfInput = CallNode->FindPin(K2Schema->PN_Self);
-			if(LiteralOutput != NULL && CallSelfInput != NULL)
+			if(LiteralOutput != nullptr && CallSelfInput != nullptr)
 			{
 				LiteralOutput->MakeLinkTo(CallSelfInput);
 			}
@@ -513,7 +629,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComment::PerformAction(class UEdGraph* P
 	FVector2D SpawnLocation = Location;
 
 	FSlateRect Bounds;
-	if ((Blueprint != NULL) && FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, 50.0f))
+	if ((Blueprint != nullptr) && FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, 50.0f))
 	{
 		CommentTemplate->SetBounds(Bounds);
 		SpawnLocation.X = CommentTemplate->NodePosX;
@@ -538,7 +654,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComment::PerformAction(class UEdGraph* P
 UEdGraphNode* FEdGraphSchemaAction_K2TargetNode::PerformAction( class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/ ) 
 {
 	FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(NodeTemplate);
-	return NULL;
+	return nullptr;
 }
 
 /////////////////////////////////////////////////////
@@ -547,6 +663,6 @@ UEdGraphNode* FEdGraphSchemaAction_K2TargetNode::PerformAction( class UEdGraph* 
 UEdGraphNode* FEdGraphSchemaAction_K2PasteHere::PerformAction( class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/ ) 
 {
 	FKismetEditorUtilities::PasteNodesHere(ParentGraph, Location);
-	return NULL;
+	return nullptr;
 }
 

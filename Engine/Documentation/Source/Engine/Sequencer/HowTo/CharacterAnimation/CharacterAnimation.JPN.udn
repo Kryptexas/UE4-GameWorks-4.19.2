@@ -1,22 +1,25 @@
-﻿INTSourceChangelist:3439587
+﻿INTSourceChangelist:3602938
 Availability:Public
 Title:アニメーションとアニメーションのブレンド
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:シーケンサーで Skeletal Mesh アクタにアニメーションを適用する方法とアニメーションのブレンドについて説明します。 
-Version:4.15
+Type: how-to
 SkillLevel:Intermediate
-parent:Engine/Sequencer/HowTo
-order:1
-checkpoint: editorqs
+Version:4.15
+Parent:Engine/Sequencer/HowTo
+Order:1
+Tags:Sequencer
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
-tags:Sequencer
+
 
 シネマティック シーケンスを作る場合、シーン内でキャラクターを動かしたり、何らかのアニメーションを実行させたいことがあるでしょう。
-**シーケンサー** では、Skeletal Mesh アクタをレベル シーケンスに追加してから、アニメーションのサブトラックを追加し、アクタに行わせたいアニメーションを指定することでこれを行うことができます。
+**シーケンサー** では、Skeletal Mesh アクタをレベル シーケンスに追加してから、アニメーションのサブトラックを追加し、アクタに行わせたいアニメーションを指定することでこれが行われます。
 上記のプロセスを繰り返し、アクタに行わせたい様々なアニメーションを追加することでシネマティック シーケンスでキャラクターが生き生きとしたものになります。
 
 このガイドでは、キャラクターが歩行を開始し、歩行からジャンプのアニメーションにブレンドする小さなシーンを作ります。 
+
+![](AnimationBlending.png)(w:720 h:480)
 
 ## ステップ
 
@@ -51,14 +54,20 @@ tags:Sequencer
 	これでアニメーションを再生すると、2 つのアニメーション間にポップがあるのがわかります。 
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	oHjDpYPAdCo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
 	[/PARAMLITERAL]
 	[/OBJECT]
 
@@ -88,14 +97,20 @@ tags:Sequencer
 シーケンスは複数のアニメーションを持つスケルタルメッシュを含むようになります。アニメーション間でポッピングせずに滑らかにブレンドします。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
 [PARAMLITERAL:videoid]
 kVotxriT1Y4
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
 [/PARAMLITERAL]
 [/OBJECT]
 

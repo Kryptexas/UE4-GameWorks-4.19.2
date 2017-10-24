@@ -6,9 +6,15 @@
 #include "BSDSockets/SocketsBSD.h"
 #include "IPAddress.h"
 #include <ifaddrs.h>
-
-
+#include "SocketsBSDIPv6IOS.h"
+#include "IPAddressBSDIPv6IOS.h"
 FSocketSubsystemIOS* FSocketSubsystemIOS::SocketSingleton = NULL;
+
+class FSocketBSDIPv6* FSocketSubsystemIOS::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
+{
+	UE_LOG(LogIOS, Log, TEXT(" FSocketSubsystemIOS::InternalBSDSocketFactory"));
+	return new FSocketBSDIPv6IOS(Socket, SocketType, SocketDescription, this);
+}
 
 FName CreateSocketSubsystem( FSocketSubsystemModule& SocketSubsystemModule )
 {
@@ -138,4 +144,12 @@ TSharedRef<FInternetAddr> FSocketSubsystemIOS::GetLocalHostAddr(FOutputDevice& O
 	// return the newly created address
 	bCanBindAll = true;
 	return HostAddr;
+}
+
+TSharedRef<FInternetAddr> FSocketSubsystemIOS::CreateInternetAddr(uint32 Address, uint32 Port)
+{
+	TSharedRef<FInternetAddr> Result = MakeShareable(new FInternetAddrBSDIPv6IOS);
+	Result->SetIp(Address);
+	Result->SetPort(Port);
+	return Result;
 }

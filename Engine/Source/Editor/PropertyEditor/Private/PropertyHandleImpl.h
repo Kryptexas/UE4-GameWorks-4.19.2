@@ -162,6 +162,16 @@ public:
 	void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged );
 
 	/**
+	* Sets a delegate to call when the property value is about to change
+	*/
+	void SetOnPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange);
+
+	/**
+	* Sets a delegate to call when the propery value of a child is about to change
+	*/
+	void SetOnChildPropertyValuePreChange(const FSimpleDelegate& InOnChildPropertyValuePreChange);
+
+	/**
 	 * Sets a delegate to call when children of the property node must be rebuilt
 	 */
 	void SetOnRebuildChildren( const FSimpleDelegate& InOnRebuildChildren );
@@ -332,6 +342,11 @@ public:
 	void SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode, TSharedPtr<FPropertyNode> SecondChildNode );
 
 	/**
+	* Moves the element at OriginalIndex to NewIndex
+	*/
+	void MoveElementTo(int32 OriginalIndex, int32 NewIndex);
+
+	/**
 	 * @return true if the property node is valid
 	 */
 	bool HasValidPropertyNode() const;
@@ -435,6 +450,8 @@ public:
 	virtual bool IsEditConst() const override;
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) override;
 	virtual void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) override;
+	virtual void SetOnPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange) override;
+	virtual void SetOnChildPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange) override;
 	virtual int32 GetIndexInArray() const override;
 	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue, EPropertyPortFlags PortFlags = PPF_PropertyWindow ) const override;
 	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue, EPropertyPortFlags PortFlags = PPF_PropertyWindow) const override;
@@ -651,6 +668,8 @@ public:
 	virtual void SetOnNumElementsChanged( FSimpleDelegate& InOnNumElementsChanged ) override;
 	virtual TSharedPtr<IPropertyHandleArray> AsArray() override;
 	virtual TSharedRef<IPropertyHandle> GetElement( int32 Index ) const override;
+	virtual FPropertyAccess::Result MoveElementTo(int32 OriginalIndex, int32 NewIndex) override;
+
 private:
 	/**
 	 * @return Whether or not the array can be modified

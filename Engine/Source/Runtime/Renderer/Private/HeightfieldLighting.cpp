@@ -480,7 +480,7 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-					RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+					RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, 0);
 
 					TShaderMapRef<FHeightfieldSubsectionQuadVS> VertexShader(View.ShaderMap);
 					TShaderMapRef<FInitializeHeightfieldsPS> PixelShader(View.ShaderMap);
@@ -842,7 +842,7 @@ void FHeightfieldLightingViewInfo::ComputeShadowMapShadowing(const FViewInfo& Vi
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 			// Combine with other shadow types with min (ray traced)
 			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RED, BO_Min, BF_One, BF_One>::GetRHI();
-			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, 0);
 
 			TShaderMapRef<FHeightfieldComponentQuadVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<FShadowHeightfieldsPS> PixelShader(View.ShaderMap);
@@ -1008,7 +1008,7 @@ void FHeightfieldLightingViewInfo::ComputeRayTracedShadowing(
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 			// Combine with other shadow types with min (CSM)
 			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RED, BO_Min, BF_One, BF_One>::GetRHI();
-			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, 0);
 
 			TShaderMapRef<FHeightfieldComponentQuadVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<FRayTracedShadowHeightfieldsPS> PixelShader(View.ShaderMap);
@@ -1181,7 +1181,7 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
-			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+			RHICmdList.SetStreamSource(0, GQuadVertexBuffer.VertexBufferRHI, 0);
 
 			TShaderMapRef<FHeightfieldComponentQuadVS> VertexShader(View.ShaderMap);
 
@@ -1202,8 +1202,7 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
 					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-					FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-					RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					VertexShader->SetParameters(RHICmdList, View, HeightfieldDescriptions.Num());
 					PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, HeightfieldDescriptions.Num(), Atlas, SkyLightIndirectScale);

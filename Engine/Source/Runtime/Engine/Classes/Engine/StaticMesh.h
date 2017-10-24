@@ -432,6 +432,17 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	FMeshSectionInfoMap SectionInfoMap;
 
+	/**
+	 * We need the OriginalSectionInfoMap to be able to build mesh in a non destructive way. Reduce has to play with SectionInfoMap in case some sections disappear.
+	 * This member will be update in the following situation
+	 * 1. After a static mesh import/reimport
+	 * 2. Postload, if the OriginalSectionInfoMap is empty, we will fill it with the current SectionInfoMap
+	 *
+	 * We do not update it when the user shuffle section in the staticmesh editor because the OriginalSectionInfoMap must always be in sync with the saved rawMesh bulk data.
+	 */
+	UPROPERTY()
+	FMeshSectionInfoMap OriginalSectionInfoMap;
+
 	/** The LOD group to which this mesh belongs. */
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=LodSettings)
 	FName LODGroup;
@@ -829,6 +840,9 @@ public:
 	 *	@param	VertexColorData		A map of vertex position data and color.
 	 */
 	ENGINE_API void SetVertexColorData(const TMap<FVector, FColor>& VertexColorData);
+
+	/** Removes all vertex colors from this mesh and rebuilds it (Editor only */
+	ENGINE_API void RemoveVertexColors();
 
 	void EnforceLightmapRestrictions();
 

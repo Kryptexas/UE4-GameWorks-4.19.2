@@ -1,32 +1,34 @@
-﻿INTSourceChangelist:3429233
-Availability:Public
-Title:アニメーション エディタ
+﻿INTSourceChangelist:3484673
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title:アニメーション エディタ
 Description:UE4 のアニメーション エディタの主な機能 
-version:4.14
-type:landing
-topic-image:animEditor_topic.png
-Related:Engine\Animation\Persona\Modes\Skeleton
-Related:Engine\Animation\Persona\Modes\Mesh
-Related:Engine\Animation\Persona\Modes\Graph
-Related:Engine/Content/FBX/Animations
+Type:Landing
+version:4.16
+Parent:Engine/Animation/Persona/Modes
+Order:1
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 tags:Tools
+topic-image:animEditor_topic.png
+
+[REGION:banner]
+![](AnimationBanner.png)
+[/REGION]
+
 
 [EXCERPT:Overview]
 **アニメーション エディタ** では、スケルタルメッシュで利用できる様々なAnimation アセットに簡単にアクセスできます。 
 アニメーション エディタでは、アニメーション シーケンス、ブレンドスペース、アニメーション モンタージュなどの Animation アセットの再生をプレビューする、Animation アセットを編集する、マテリアル パラメータやモーフターゲットのカーブを追加、編集する、およびアニメーション通知 (アニメーションの指定されたポイントで起こるイベント) を定義することができます。 
 [/EXCERPT:Overview]
 
-**コンテンツ ブラウザ** (またはエディタのツールバー) で Animation アセットを開くとアニメーション エディタが開きます。 
+アニメーション エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
 
 [REGION:fullwidth]
 ![](AnimationModeWindow.png)
 [/REGION]
 
-アニメーション エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
 
 ## 1.ツールバー
 
@@ -42,10 +44,12 @@ Asset Details の隣には、[](Engine/Animation/Persona/SkeletonTree) があり
 
 [ビューポート](Engine/Animation/Persona/Viewport) ウィンドウでは、選択したスケルタルメッシュで Animation アセットの再生をプレビューし、アセットに関する情報が表示されます。ライティング モードの変更、スケルトンのボーンの表示、非表示、アニメーションの再生速度の調整、ターンテーブル上でスケルタルメッシュを自動的に回転させてあらゆるアングルから見ることもできます。 
 
-## 4.詳細
+## 4.詳細 / プレビュー シーンの設定
 
 メイン エディタと似ている [Details (詳細)](Engine/UI/LevelEditor/Details) パネルは、主に **[Asset Editor (アセット エディタ)]** で作業中に追加されたオプションをを変更するために使用します。 
 例えば、アニメーション シーケンスに通知を追加し、それをクリックすると詳細パネルにその通知に関連するオプションが表示されます。アニメーション モンタージュに新セクションを追加し、その内容を詳細パネルから変更することができます。 
+
+このセクションには、[Preview Settings](Engine\Animation\Persona\PreviewSettings) のタブもあります。このタブでは、プレビューとして使う **アニメーション モード** や **アニメーション** を定義、プレビューに使う **スケルタルメッシュ** の切替え、適用するビューポートのライティング、ポスト プロセスの設定を切り替えることが可能であり、様々なライティングを適用した設定をプレビューすることができます。 
 
 ## 5.アセット エディタ
 

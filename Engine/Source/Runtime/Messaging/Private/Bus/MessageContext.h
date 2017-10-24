@@ -74,7 +74,7 @@ public:
 	 * @param InForwarderThread The name of the thread from which the message was forwarded.
 	 */
 	FMessageContext(
-		const IMessageContextRef& InContext,
+		const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& InContext,
 		const FMessageAddress& InForwarder,
 		const TArray<FMessageAddress>& NewRecipients,
 		EMessageScope NewScope,
@@ -102,7 +102,7 @@ public:
 	virtual const FDateTime& GetExpiration() const override;
 	virtual const void* GetMessage() const override;
 	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const override;
-	virtual IMessageContextPtr GetOriginalContext() const override;
+	virtual TSharedPtr<IMessageContext, ESPMode::ThreadSafe> GetOriginalContext() const override;
 	virtual const TArray<FMessageAddress>& GetRecipients() const override;
 	virtual EMessageScope GetScope() const override;
 	virtual const FMessageAddress& GetSender() const override;
@@ -125,7 +125,7 @@ private:
 	void* Message;
 
 	/** Holds the original message context. */
-	IMessageContextPtr OriginalContext;
+	TSharedPtr<IMessageContext, ESPMode::ThreadSafe> OriginalContext;
 
 	/** Holds the message recipients. */
 	TArray<FMessageAddress> Recipients;

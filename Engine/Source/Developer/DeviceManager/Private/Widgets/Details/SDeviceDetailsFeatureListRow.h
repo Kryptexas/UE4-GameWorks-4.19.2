@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "Widgets/SNullWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Styling/SlateColor.h"
@@ -22,7 +22,7 @@
  * Implements a row widget for the device feature list.
  */
 class SDeviceDetailsFeatureListRow
-	: public SMultiColumnTableRow<FDeviceDetailsFeaturePtr>
+	: public SMultiColumnTableRow<TSharedPtr<FDeviceDetailsFeature>>
 {
 public:
 
@@ -38,22 +38,22 @@ public:
 	 * @param InArgs The construction arguments.
 	 * @param InOwnerTableView The table view that owns this row.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FDeviceDetailsFeatureRef& InFeature )
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const TSharedRef<FDeviceDetailsFeature>& InFeature)
 	{
 //		check(InArgs._Style.IsValid());
 
 		Feature = InFeature;
 //		Style = InArgs._Style;
 
-		SMultiColumnTableRow<FDeviceDetailsFeaturePtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+		SMultiColumnTableRow<TSharedPtr<FDeviceDetailsFeature>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
 public:
 
-	// SMultiColumnTableRow interface
+	//~ SMultiColumnTableRow interface
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
 		if (ColumnName == "Available")
 		{
@@ -84,8 +84,8 @@ public:
 
 private:
 
-	// Callback for getting the text color.
-	FSlateColor HandleTextColorAndOpacity( ) const
+	/** Callback for getting the text color. */
+	FSlateColor HandleTextColorAndOpacity() const
 	{
 		if (Feature->Available)
 		{
@@ -97,10 +97,10 @@ private:
 
 private:
 
-	// Holds a pointer to the device feature to be shown in this row.
-	FDeviceDetailsFeaturePtr Feature;
+	/** Pointer to the device feature to be shown in this row. */
+	TSharedPtr<FDeviceDetailsFeature> Feature;
 
-	// Holds the widget's visual style.
+	/** The widget's visual style. */
 //	TSharedPtr<ISlateStyle> Style;
 };
 

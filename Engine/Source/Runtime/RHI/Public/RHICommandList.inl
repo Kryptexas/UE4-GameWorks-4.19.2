@@ -59,6 +59,12 @@ FORCEINLINE_DEBUGGABLE FScopedRHIThreadStaller::~FScopedRHIThreadStaller()
 	}
 }
 
+FORCEINLINE_DEBUGGABLE void FRHIRenderPassCommandList::ApplyCachedRenderTargets(FGraphicsPipelineStateInitializer& GraphicsPSOInit)
+{
+	return GetParent().ApplyCachedRenderTargets(GraphicsPSOInit);
+}
+
+
 FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateFlushType::Type FlushType)
 {
 	check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);

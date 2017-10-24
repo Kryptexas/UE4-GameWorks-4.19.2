@@ -131,7 +131,9 @@ bool FCoreAudioDevice::InitializeHardware()
 	Desc.componentFlags = 0;
 	Desc.componentFlagsMask = 0;
 	Desc.componentType = kAudioUnitType_Mixer;
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Desc.componentSubType = kAudioUnitSubType_3DMixer;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	Desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	
 	Status = AUGraphAddNode( AudioUnitGraph, &Desc, &Mixer3DNode );

@@ -12,8 +12,11 @@
 #include "libcef/browser/extensions/pdf_web_contents_helper_client.h"
 #include "libcef/browser/printing/print_view_manager.h"
 
+#include "base/memory/ptr_util.h"
+#include "chrome/browser/sessions/session_tab_helper.h"
 #include "chrome/browser/ui/prefs/prefs_tab_helper.h"
 #include "components/pdf/browser/pdf_web_contents_helper.h"
+#include "components/zoom/zoom_controller.h"
 #include "extensions/browser/guest_view/extensions_guest_view_manager_delegate.h"
 
 namespace extensions {
@@ -28,7 +31,7 @@ AppViewGuestDelegate* CefExtensionsAPIClient::CreateAppViewGuestDelegate()
   return NULL;
 }
 
-scoped_ptr<guest_view::GuestViewManagerDelegate>
+std::unique_ptr<guest_view::GuestViewManagerDelegate>
 CefExtensionsAPIClient::CreateGuestViewManagerDelegate(
     content::BrowserContext* context) const {
   // The GuestViewManager instance associated with the returned Delegate, which
@@ -39,26 +42,33 @@ CefExtensionsAPIClient::CreateGuestViewManagerDelegate(
   // to provide the *Impl object instead of |context| which may be a *Proxy
   // object. If we don't do this then the Delegate may attempt to access a
   // *Proxy object that has already been deleted.
-  return make_scoped_ptr(
+  return base::WrapUnique(
       new extensions::ExtensionsGuestViewManagerDelegate(
-          CefBrowserContextImpl::GetForContext(context).get()));
+          CefBrowserContextImpl::GetForContext(context)));
 }
 
-scoped_ptr<MimeHandlerViewGuestDelegate>
+std::unique_ptr<MimeHandlerViewGuestDelegate>
 CefExtensionsAPIClient::CreateMimeHandlerViewGuestDelegate(
     MimeHandlerViewGuest* guest) const {
-  return make_scoped_ptr(new CefMimeHandlerViewGuestDelegate(guest));
+  return base::WrapUnique(new CefMimeHandlerViewGuestDelegate(guest));
 }
 
 void CefExtensionsAPIClient::AttachWebContentsHelpers(
     content::WebContents* web_contents) const {
   PrefsTabHelper::CreateForWebContents(web_contents);
-  printing::PrintViewManager::CreateForWebContents(web_contents);
+  printing::CefPrintViewManager::CreateForWebContents(web_contents);
+
+  CefExtensionWebContentsObserver::CreateForWebContents(web_contents);
+
+  // Used by the PDF extension.
   pdf::PDFWebContentsHelper::CreateForWebContentsWithClient(
       web_contents,
-      scoped_ptr<pdf::PDFWebContentsHelperClient>(
+      std::unique_ptr<pdf::PDFWebContentsHelperClient>(
           new CefPDFWebContentsHelperClient()));
-  CefExtensionWebContentsObserver::CreateForWebContents(web_contents);
+
+  // Used by the tabs extension API.
+  SessionTabHelper::CreateForWebContents(web_contents);
+  zoom::ZoomController::CreateForWebContents(web_contents);
 }
 
 }  // namespace extensions

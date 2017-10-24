@@ -31,9 +31,9 @@ FText UAnimGraphNode_RigidBody::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 void UAnimGraphNode_RigidBody::ValidateAnimNodeDuringCompilation(USkeleton* ForSkeleton, FCompilerResultsLog& MessageLog)
 {
-	if(Node.bEnableWorldGeometry && Node.bComponentSpaceSimulation)
+	if(Node.bEnableWorldGeometry && Node.SimulationSpace != ESimulationSpace::WorldSpace)
 	{
-		MessageLog.Error(*LOCTEXT("UAnimGraphNode_CompileError", "@@ - uses world collision with component space simulation. This is not supported").ToString());
+		MessageLog.Error(*LOCTEXT("UAnimGraphNode_CompileError", "@@ - uses world collision without world space simulation. This is not supported").ToString());
 	}
 	
 	Super::ValidateAnimNodeDuringCompilation(ForSkeleton, MessageLog);

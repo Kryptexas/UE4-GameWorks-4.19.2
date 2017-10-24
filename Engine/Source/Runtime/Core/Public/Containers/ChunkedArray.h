@@ -47,9 +47,11 @@ namespace UE4ChunkedArray_Private
 }
 
 /** An array that uses multiple allocations to avoid allocation failure due to fragmentation. */
-template<typename ElementType, uint32 TargetBytesPerChunk = 16384 >
+template<typename InElementType, uint32 TargetBytesPerChunk = 16384 >
 class TChunkedArray
 {
+	using ElementType = InElementType;
+
 public:
 
 	/** Initialization constructor. */

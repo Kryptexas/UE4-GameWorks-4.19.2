@@ -493,7 +493,7 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 	// Preload the packages with an async call, faster in cooked builds
 	if (bPreloadObjects)
 	{
-		TArray<FStringAssetReference> AssetsToStream;
+		TArray<FSoftObjectPath> AssetsToStream;
 
 		for (int32 AssetIdx = 0; AssetIdx < AssetDataList.Num(); AssetIdx++)
 		{

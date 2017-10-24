@@ -17,7 +17,7 @@ namespace UnrealBuildTool
 		public void TryRegisterBuildPlatforms(SDKOutputLevel OutputLevel, bool bValidatingPlatforms)
 		{
 			// We need all platforms to be registered when we run -validateplatform command to check SDK status of each
-			if (bValidatingPlatforms || InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
+			if (bValidatingPlatforms || InstalledPlatformInfo.IsValidPlatform(TargetPlatform))
 			{
 				RegisterBuildPlatforms(OutputLevel);
 			}

@@ -193,7 +193,6 @@ private:
 	TArray<KeyValueType>* KeyValues;
 };
 
-
 namespace Impl
 {
 	template<typename TSrc, typename TDest>

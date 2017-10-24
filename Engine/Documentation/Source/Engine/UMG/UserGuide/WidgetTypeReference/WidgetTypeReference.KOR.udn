@@ -1,10 +1,15 @@
-﻿INTSourceChangelist:3372539
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 위젯 유형 참고서
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:언리얼 모션 그래픽, UMG 에서 사용할 수 있는 위젯에 대한 참고서입니다.
-version: 4.15
-tags:UMG UI Designer
+Type: Reference
+Version: 4.17
+Parent:Engine/UMG/UserGuide
+Order:3
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/WidgetTypeRefTopic.png
 
 [TOC(start:2 end:2)]
 

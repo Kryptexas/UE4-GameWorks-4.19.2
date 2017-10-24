@@ -43,9 +43,6 @@ extern void RestoreExistingMeshSettings(struct ExistingStaticMeshData* ExistingM
 extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh, int32 LodLevel, bool bResetMaterialSlots);
 extern void UpdateSomeLodsImportMeshData(UStaticMesh* NewMesh, TArray<int32> *ReimportLodList);
 
-struct ExistingSkelMeshData;
-extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
-extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex, bool bResetMaterialSlots, bool bIsReimportPreview);
 
 namespace FbxMeshUtils
 {
@@ -483,6 +480,13 @@ namespace FbxMeshUtils
 					if(ImportOptions->bImportMorph)
 					{
 						FFbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, SelectedSkelMesh, SelectedSkelMesh->GetOutermost(), SelectedLOD, OutData);
+						//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
+						if (SelectedSkelMesh->MorphTargets.Num() > 0)
+						{
+							SelectedSkelMesh->ReleaseResources();
+							//Rebuild the resources with a post edit change since we have added some morph targets
+							SelectedSkelMesh->PostEditChange();
+						}
 					}
 
 					if (bMeshImportSuccess)

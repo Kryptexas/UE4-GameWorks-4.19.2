@@ -95,6 +95,8 @@ public:
 		// 		if (ir->mode == if_branch)
 		// 			return visit_continue;
 
+		check(base_ir->next && base_ir->prev);
+
 		if (parse_state->error)
 			return visit_stop;
 
@@ -246,6 +248,7 @@ public:
 				{
 					new_deref = replace_assigned_val_with_temp(actual_param->as_dereference());
 					new_assign = new(parent)ir_assignment(actual_param, new_deref);
+					check(actual_param->next && actual_param->prev);
 					actual_param->replace_with(new_deref);
 					curr_assignments->Add(new_assign);
 				}

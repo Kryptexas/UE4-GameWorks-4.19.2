@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "PhysicsPublic.h"
+#include "PhysicsEngine/ShapeElem.h"
 
 class UStaticMesh;
 class UStaticMeshComponent;
@@ -27,10 +27,10 @@ public:
 	 */
 	struct FPrimData
 	{
-		EKCollisionPrimitiveType		PrimType;
+		EAggCollisionShape::Type		PrimType;
 		int32							PrimIndex;
 
-		FPrimData(EKCollisionPrimitiveType InPrimType, int32 InPrimIndex) :
+		FPrimData(EAggCollisionShape::Type InPrimType, int32 InPrimIndex) :
 			PrimType(InPrimType),
 			PrimIndex(InPrimIndex) {}
 

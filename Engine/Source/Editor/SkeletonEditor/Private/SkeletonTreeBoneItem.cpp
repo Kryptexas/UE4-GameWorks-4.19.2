@@ -18,16 +18,26 @@
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SkeletalMeshTypes.h"
+#include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeBoneItem"
 
-TSharedRef<ITableRow> FSkeletonTreeBoneItem::MakeTreeRowWidget(const TSharedRef<STableViewBase>& OwnerTable, const TAttribute<FText>& FilterText )
+FSkeletonTreeBoneItem::FSkeletonTreeBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree)
+	: FSkeletonTreeItem(InSkeletonTree)
+	, BoneName(InBoneName)
+	, bWeightedBone(false)
+	, bRequiredBone(false)
 {
-	return
-		SNew( SSkeletonTreeRow, OwnerTable )
-		.Item( SharedThis(this) )
-		.FilterText( FilterText )
-		.OnDraggingItem( this, &FSkeletonTreeBoneItem::OnDragDetected );
+	static const FString BoneProxyPrefix(TEXT("BONEPROXY_"));
+
+	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage(), *(BoneProxyPrefix + FString::Printf(TEXT("%p"), &InSkeletonTree.Get()) + InBoneName.ToString()));
+	BoneProxy->SetFlags(RF_Transactional);
+	BoneProxy->BoneName = InBoneName;
+	TSharedPtr<IPersonaPreviewScene> PreviewScene = InSkeletonTree->GetPreviewScene();
+	if (PreviewScene.IsValid())
+	{
+		BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
+	}
 }
 
 EVisibility FSkeletonTreeBoneItem::GetLODIconVisibility() const
@@ -236,6 +246,11 @@ void FSkeletonTreeBoneItem::CacheLODChange(UDebugSkelMeshComponent* PreviewCompo
 	}
 }
 
+void FSkeletonTreeBoneItem::EnableBoneProxyTick(bool bEnable)
+{
+	BoneProxy->bIsTickable = bEnable;
+}
+
 FSlateColor FSkeletonTreeBoneItem::GetBoneTextColor() const
 {
 	if (FilterResult == ESkeletonTreeFilterResult::ShownDescendant)
@@ -430,6 +445,11 @@ bool FSkeletonTreeBoneItem::IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshCo
 	int32 Index = LODModel.RequiredBones.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
+}
+
+void FSkeletonTreeBoneItem::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(BoneProxy);
 }
 
 #undef LOCTEXT_NAMESPACE

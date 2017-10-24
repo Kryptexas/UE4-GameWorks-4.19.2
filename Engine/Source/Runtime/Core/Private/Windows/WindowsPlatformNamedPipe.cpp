@@ -392,6 +392,7 @@ bool FWindowsPlatformNamedPipe::WriteBytes(int32 NumBytes, const void* Data)
 			switch (LastError)
 			{
 				case ERROR_BROKEN_PIPE:
+				case ERROR_NO_DATA:
 					State = State_ErrorPipeClosedUnexpectedly;
 					break;
 
@@ -469,6 +470,7 @@ bool FWindowsPlatformNamedPipe::ReadBytes(int32 NumBytes, void* OutData)
 			switch (LastError)
 			{
 				case ERROR_BROKEN_PIPE:
+				case ERROR_PIPE_NOT_CONNECTED:
 					State = State_ErrorPipeClosedUnexpectedly;
 					break;
 

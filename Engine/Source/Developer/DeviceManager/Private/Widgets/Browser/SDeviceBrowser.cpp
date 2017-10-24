@@ -1,15 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Browser/SDeviceBrowser.h"
-#include "SlateOptMacros.h"
+#include "SDeviceBrowser.h"
+
 #include "EditorStyleSet.h"
+#include "Framework/Commands/UICommandList.h"
+#include "ITargetDeviceServiceManager.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STableViewBase.h"
+
 #include "Widgets/Browser/SDeviceBrowserContextMenu.h"
-#include "Widgets/Views/SListView.h"
 #include "Widgets/Browser/SDeviceBrowserDeviceAdder.h"
+#include "Widgets/Browser/SDeviceBrowserDeviceListRow.h"
 #include "Widgets/Browser/SDeviceBrowserFilterBar.h"
 #include "Widgets/Browser/SDeviceBrowserTooltip.h"
-#include "Widgets/Browser/SDeviceBrowserDeviceListRow.h"
-#include "Widgets/Layout/SExpandableArea.h"
+#include "Models/DeviceBrowserFilter.h"
+#include "Models/DeviceManagerModel.h"
 
 
 #define LOCTEXT_NAMESPACE "SDeviceBrowser"
@@ -19,7 +26,7 @@
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList )
+void SDeviceBrowser::Construct(const FArguments& InArgs, const TSharedRef<FDeviceManagerModel>& InModel, const TSharedRef<ITargetDeviceServiceManager>& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList)
 {
 	DeviceServiceManager = InDeviceServiceManager;
 	Filter = MakeShareable(new FDeviceBrowserFilter());
@@ -27,24 +34,50 @@ void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerMo
 	NeedsServiceListRefresh = true;
 	UICommandList = InUICommandList;
 
+	auto DeviceServiceListViewContextMenuOpening = [this]() -> TSharedPtr<SWidget> {
+		TArray<TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>> SelectedDeviceServices = DeviceServiceListView->GetSelectedItems();
+
+		if (SelectedDeviceServices.Num() > 0)
+		{
+			return SNew(SDeviceBrowserContextMenu, UICommandList);
+		}
+
+		return nullptr;
+	};
+
+	auto DeviceServiceListViewHighlightText = [this]() -> FText {
+		return Filter->GetDeviceSearchText();
+	};
+
+	auto DeviceServiceListViewGenerateRow = [=](TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> DeviceService, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow> {
+		return SNew(SDeviceBrowserDeviceListRow, OwnerTable)
+			.DeviceService(DeviceService)
+			.HighlightText_Lambda(DeviceServiceListViewHighlightText)
+			.ToolTip(SNew(SDeviceBrowserTooltip, DeviceService.ToSharedRef()));
+	};
+
+	auto DeviceServiceListViewSelectionChanged = [this](TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> Selection, ESelectInfo::Type SelectInfo) {
+		Model->SelectDeviceService(Selection);
+	};
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
 			.AutoHeight()
-				[
-					/*
-					SNew(SExpandableArea)
-						.AreaTitle(LOCTEXT("FilterBarAreaTitle", "Device Filter").ToString())
-						.InitiallyCollapsed(true)
-						.Padding(FMargin(8.0f, 8.0f, 8.0f, 4.0f))
-						.BodyContent()
-						[*/
-							// filter bar
-							SNew(SDeviceBrowserFilterBar, Filter.ToSharedRef())
-						//]
-				]
+			[
+				/*
+				SNew(SExpandableArea)
+					.AreaTitle(LOCTEXT("FilterBarAreaTitle", "Device Filter").ToString())
+					.InitiallyCollapsed(true)
+					.Padding(FMargin(8.0f, 8.0f, 8.0f, 4.0f))
+					.BodyContent()
+					[*/
+						// filter bar
+						SNew(SDeviceBrowserFilterBar, Filter.ToSharedRef())
+					//]
+			]
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
@@ -58,16 +91,16 @@ void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerMo
 						SAssignNew(DeviceServiceListView, SListView<ITargetDeviceServicePtr>)
 							.ItemHeight(20.0f)
 							.ListItemsSource(&DeviceServiceList)
-							.OnContextMenuOpening(this, &SDeviceBrowser::HandleDeviceServiceListViewContextMenuOpening)
-							.OnGenerateRow(this, &SDeviceBrowser::HandleDeviceServiceListViewGenerateRow)
-							.OnSelectionChanged(this, &SDeviceBrowser::HandleDeviceServiceListViewSelectionChanged)
+							.OnContextMenuOpening_Lambda(DeviceServiceListViewContextMenuOpening)
+							.OnGenerateRow_Lambda(DeviceServiceListViewGenerateRow)
+							.OnSelectionChanged_Lambda(DeviceServiceListViewSelectionChanged)
 							.SelectionMode(ESelectionMode::Single)
 							.HeaderRow
 							(
 								SNew(SHeaderRow)
 
 								+ SHeaderRow::Column("Icon")
-									.DefaultLabel( FText::FromString(TEXT(" ")) )
+									.DefaultLabel(FText::FromString(TEXT(" ")))
 									.FixedWidth(32.0f)
 
 								+ SHeaderRow::Column("Name")
@@ -108,14 +141,15 @@ void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerMo
 			]
 	];
 
-	DeviceServiceManager->OnServiceAdded().AddSP(this, &SDeviceBrowser::HandleDeviceServiceManagerServiceAdded);
-	DeviceServiceManager->OnServiceRemoved().AddSP(this, &SDeviceBrowser::HandleDeviceServiceManagerServiceRemoved);
-
-	Filter->OnFilterChanged().AddSP(this, &SDeviceBrowser::HandleFilterChanged);
+	DeviceServiceManager->OnServiceAdded().AddLambda([this](const TSharedRef<ITargetDeviceService, ESPMode::ThreadSafe>& AddedService) { NeedsServiceListRefresh = true; });
+	DeviceServiceManager->OnServiceRemoved().AddLambda([this](const TSharedRef<ITargetDeviceService, ESPMode::ThreadSafe>& RemovedService) { NeedsServiceListRefresh = true; });
+	
+	Filter->OnFilterChanged().AddLambda([this]() { ReloadDeviceServiceList(false); });
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SDeviceBrowser::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+
+void SDeviceBrowser::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	//@TODO Passive - Only happens in response to the addition or removal of a device to the device service manager
 	if (NeedsServiceListRefresh)
@@ -129,7 +163,7 @@ void SDeviceBrowser::Tick( const FGeometry& AllottedGeometry, const double InCur
 /* SDeviceBrowser callbacks
  *****************************************************************************/
 
-void SDeviceBrowser::ReloadDeviceServiceList( bool FullyReload )
+void SDeviceBrowser::ReloadDeviceServiceList(bool FullyReload)
 {
 	// reload target device service list
 	if (FullyReload)
@@ -145,7 +179,7 @@ void SDeviceBrowser::ReloadDeviceServiceList( bool FullyReload )
 
 	for (int32 DeviceServiceIndex = 0; DeviceServiceIndex < AvailableDeviceServices.Num(); ++DeviceServiceIndex)
 	{
-		const ITargetDeviceServicePtr& DeviceService = AvailableDeviceServices[DeviceServiceIndex];
+		const TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>& DeviceService = AvailableDeviceServices[DeviceServiceIndex];
 
 		if (Filter->FilterDeviceService(DeviceService.ToSharedRef()))
 		{
@@ -155,62 +189,6 @@ void SDeviceBrowser::ReloadDeviceServiceList( bool FullyReload )
 
 	// refresh list view
 	DeviceServiceListView->RequestListRefresh();
-}
-
-
-/* SDeviceBrowser callbacks
- *****************************************************************************/
-
-
-TSharedPtr<SWidget> SDeviceBrowser::HandleDeviceServiceListViewContextMenuOpening( )
-{
-	TArray<ITargetDeviceServicePtr> SelectedDeviceServices = DeviceServiceListView->GetSelectedItems();
-
-	if (SelectedDeviceServices.Num() > 0)
-	{
-		return SNew(SDeviceBrowserContextMenu, UICommandList);
-	}
-	
-	return NULL;
-}
-
-
-TSharedRef<ITableRow> SDeviceBrowser::HandleDeviceServiceListViewGenerateRow( ITargetDeviceServicePtr DeviceService, const TSharedRef<STableViewBase>& OwnerTable )
-{
-	return SNew(SDeviceBrowserDeviceListRow, OwnerTable)
-		.DeviceService(DeviceService)
-		.HighlightText(this, &SDeviceBrowser::HandleDeviceServiceListViewHighlightText)
-		.ToolTip(SNew(SDeviceBrowserTooltip, DeviceService.ToSharedRef()));
-}
-
-
-void SDeviceBrowser::HandleDeviceServiceListViewSelectionChanged( ITargetDeviceServicePtr Selection, ESelectInfo::Type SelectInfo )
-{
-	Model->SelectDeviceService(Selection);
-}
-
-
-FText SDeviceBrowser::HandleDeviceServiceListViewHighlightText( ) const
-{
-	return Filter->GetDeviceSearchText();
-}
-
-
-void SDeviceBrowser::HandleDeviceServiceManagerServiceAdded( const ITargetDeviceServiceRef& AddedService )
-{
-	NeedsServiceListRefresh = true;
-}
-
-
-void SDeviceBrowser::HandleDeviceServiceManagerServiceRemoved( const ITargetDeviceServiceRef& RemovedService )
-{
-	NeedsServiceListRefresh = true;
-}
-
-
-void SDeviceBrowser::HandleFilterChanged( )
-{
-	ReloadDeviceServiceList(false);
 }
 
 

@@ -8,7 +8,7 @@
 /** 
  * Set to 1 to allow selecting lightmap texels by holding down T and left clicking in the editor,
  * And having debug information about that texel tracked during subsequent lighting rebuilds.
- * Be sure to set the define with the same name in Unreal!
+ * Have to enable 'r.TexelDebugging' in the editor as well.
  */
 #define ALLOW_LIGHTMAP_SAMPLE_DEBUGGING	0
 

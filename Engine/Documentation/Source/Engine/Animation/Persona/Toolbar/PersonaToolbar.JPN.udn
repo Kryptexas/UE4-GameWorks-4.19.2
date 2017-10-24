@@ -1,27 +1,27 @@
-﻿INTSourceChangelist:3484556
+﻿INTSourceChangelist:3514316
 Availability:Public
-Title:アニメーション ツールバー
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:各アニメーション ツール エディタで使われる様々なツールバーの概要。 
-Related:Engine/Animation/Persona/Modes/Skeleton
-Related:Engine/Animation/Persona/Modes/Mesh
-Related:Engine/Animation/Persona/Modes/Animation
-Related:Engine/Animation/Persona/Modes/Graph
-version:4.16
-type:reference
-topic-image:Engine/Animation/animation_topic.png
-tags:animation
-
-
-[EXCERPT:Overview]
-どのアニメーション ツールで作業しているかに関係なく各エディタの上部に **ツールバー** があります。ただし、ツールバー上のオプションは、どのエディタで作業しているかに応じて変わります。
-ツールバーの主要エリアとして、作業中のエディタのオプションを含む **アセット ツールバー** と様々なアニメーション ツール エディタ間を迅速に切り替えることができる **エディタ ツールバー** の 2 つがあります。 
-[/EXCERPT:Overview]
-
+Title:アニメーション ツールバー
+Description:Temporary Description
+Type:Reference
+Version:4.16
+Parent:Engine/Animation/Persona
+Order:1
+Tags:animation
+topic-image:SkeletonToolbar.png
+Related:Engine/Animation/Persona
+Related:Engine/Content/Types/SkeletalMeshes
+Related:Engine/Animation/AnimBlueprints
 
 [TOC(start:2)]
 
- 
+[EXCERPT:Overview]
+各 [アニメーション ツール](Engine/Animation/Persona/Modes) 内には、エディタ ウィンドウ上部に **ツールバー** があります。 
+ツールバー上のオプションは、どのエディタで作業しているかに応じて変わります。 
+ツールバーには 2 つのメイン エリアがあります。作業中のエディタのオプションを含む **アセット ツールバー** と様々なアニメーション ツール間を迅速に切り替えることができる **エディタ ツールバー** の 2 つがあります。 
+[/EXCERPT:Overview]
+
+
 ## アセット ツールバー
 
 ツールバーの左側にオプションが並んでいます。これは、作業しているエディタの種類に応じて変わります。以下のセクションをご覧ください。 
@@ -66,10 +66,10 @@ tags:animation
 | ------- | ------------ |
 | ![](saveIcon.png) | 現在の Animation アセットに加えた変更を保存します。  |
 | ![](findincbIcon.png) | **コンテンツ ブラウザ** を開き、現在の Animation アセットに自動的に移動します。 |
-| ![](createassetIcon.png) | 新規 Animation アセットを作成します (アニメーション、アニメーション アセット、ブレンドスペース、Aim Offset)。アニメーション作成時に **Reference Pose**、 **Current Pose**、または現在のアニメーションの **Animation Data** または **Preview Mesh** に基づきます。プレビュー メッシュを使用する場合、作成したアニメーションには、物理シミュレーションの Anim Dynamics など、スケルタルメッシュに割り当てられたポストプロセスのグラフから生成された追加のアニメーション データが含まれます。   |
+| ![](createassetIcon.png) | 新規アニメーション アセットを作成します。アニメーション作成時に **Reference Pose**、 **Current Pose**、または現在のアニメーションの **Animation Data** または **Preview Mesh** に基づきます。プレビュー メッシュを使用する場合、作成したアニメーションには、物理シミュレーションの Anim Dynamics や、プレビュー メッシュのリターゲット情報など、スケルタルメッシュに割り当てられたポストプロセスのグラフから生成された追加のアニメーション データが含まれます。   |
 | ![](ReimportAnimation.png) | 現在のアニメーションを再インポートします。 |
 | ![](compressionIcon.png) | 様々な [圧縮](Engine/Animation/Sequences) 設定をアニメーション (アニメーション シーケンスに対して利用可能) に適用することができます。 |
-| ![](ExportAsset.png) | 現在のアニメーション ソース データまたは現在のプレビュー メッシュで再生している現在のアニメーションをエクスポートします (リターゲット、ポストプロセス グラフ、プレビュー メッシュに適用されるその他の設定を含む)。   |
+| ![](ExportAsset.png) | 現在のアニメーション ソース データまたは現在のプレビュー メッシュで再生している現在のアニメーションをエクスポートします (リターゲット、ポストプロセス グラフ、プレビュー メッシュに適用されるその他の設定を含む)。 |
 | ![](keyIcon.png) | 選択したボーンの現在のボーン トランスフォームを [加算レイヤー トラック](Engine/Animation/AnimHowTo/LayerEditing) に追加することができます。  |
 | ![](applyIcon.png) | [加算レイヤー トラック](Engine/Animation/AnimHowTo/LayerEditing) を Runtime Animation Data に適用します。 |
 | ![](PreviewMesh.png) | 現在のアセットに対して新しいプレビュー スケルタルメッシュを設定します (アニメーション毎またはスケルトン毎に保存)。 |

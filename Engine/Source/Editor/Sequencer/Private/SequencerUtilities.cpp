@@ -82,7 +82,7 @@ TSharedRef<SWidget> FSequencerUtilities::MakeAddButton(FText HoverText, FOnGetCo
 	return ComboButton;
 }
 
-void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilder, int32 RowIndex, UMovieSceneTrack* Track, TSharedPtr<ISequencer> InSequencer)
+void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilder, int32 RowIndex, UMovieSceneTrack* Track, TWeakPtr<ISequencer> InSequencer)
 {
 	if (!Track)
 	{
@@ -91,8 +91,14 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 	
 	auto CreateNewSection = [Track, InSequencer, RowIndex](EMovieSceneBlendType BlendType)
 	{
-		const float StartAtTime = InSequencer->GetLocalTime();
-		TRange<float> VisibleRange = InSequencer->GetViewRange();
+		TSharedPtr<ISequencer> Sequencer = InSequencer.Pin();
+		if (!Sequencer.IsValid())
+		{
+			return;
+		}
+
+		const float StartAtTime = Sequencer->GetLocalTime();
+		TRange<float> VisibleRange = Sequencer->GetViewRange();
 
 		FScopedTransaction Transaction(LOCTEXT("AddSectionTransactionText", "Add Section"));
 		if (UMovieSceneSection* NewSection = Track->CreateNewSection())
@@ -115,7 +121,7 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 			Track->AddSection(*NewSection);
 			Track->UpdateEasing();
 
-			InSequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
 		}
 		else
 		{

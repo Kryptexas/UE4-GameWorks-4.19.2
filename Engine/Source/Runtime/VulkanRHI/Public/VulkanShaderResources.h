@@ -143,6 +143,8 @@ struct FVulkanCodeHeader
 	FString ShaderName;
 	FSHAHash SourceHash;
 
+	uint64 UniformBuffersWithDescriptorMask;
+
 	// Number of uniform buffers (not including PackedGlobalUBs)
 	uint32 NEWNumNonGlobalUBs;
 
@@ -206,6 +208,7 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanCodeHeader& Header)
 		}
 	}
 	Ar << Header.ShaderName;
+	Ar << Header.UniformBuffersWithDescriptorMask;
 	Ar << Header.SourceHash;
 	return Ar;
 }

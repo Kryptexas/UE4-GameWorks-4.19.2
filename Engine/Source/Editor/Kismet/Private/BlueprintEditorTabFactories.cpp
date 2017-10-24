@@ -11,7 +11,6 @@
 #include "BlueprintEditorTabs.h"
 #include "STimelineEditor.h"
 #include "Debugging/SKismetDebuggingView.h"
-#include "Profiler/SBlueprintProfilerView.h"
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "SSCSEditorViewport.h"
@@ -21,7 +20,7 @@
 #include "SMyBlueprint.h"
 #include "SReplaceNodeReferences.h"
 #include "Widgets/Input/SHyperlink.h"
-
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -134,24 +133,6 @@ TSharedRef<SWidget> FDebugInfoSummoner::CreateTabBody(const FWorkflowTabSpawnInf
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 	return BlueprintEditorPtr->GetDebuggingView();
-}
-
-FBlueprintProfilerSummoner::FBlueprintProfilerSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::BlueprintProfilerID, InHostingApp)
-{
-	TabLabel = LOCTEXT("BlueprintProfilerViewTitle", "BlueprintProfiler");
-	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "PerfTools.TabIcon");
-
-	EnableTabPadding();
-	bIsSingleton = true;
-
-	ViewMenuDescription = LOCTEXT("BlueprintProfilerView", "Profiler");
-	ViewMenuTooltip = LOCTEXT("BlueprintProfilerView_ToolTip", "Shows the current profiler data");
-}
-
-TSharedRef<SWidget> FBlueprintProfilerSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
-{
-	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
-	return BlueprintEditorPtr->GetBlueprintProfilerView();
 }
 
 FDefaultsEditorSummoner::FDefaultsEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
@@ -396,7 +377,15 @@ FFindResultsSummoner::FFindResultsSummoner(TSharedPtr<class FAssetEditorToolkit>
 	bIsSingleton = true;
 
 	ViewMenuDescription = LOCTEXT("FindResultsView", "Find Results");
-	ViewMenuTooltip = LOCTEXT("FindResultsView_ToolTip", "Show find results for searching in this blueprint or all blueprints");
+
+	if (GetDefault<UBlueprintEditorSettings>()->bHostFindInBlueprintsInGlobalTab)
+	{
+		ViewMenuTooltip = LOCTEXT("FindResultsView_ToolTip", "Show find results for searching in this blueprint");
+	}
+	else
+	{
+		ViewMenuTooltip = LOCTEXT("FindResultsViewAllBlueprints_ToolTip", "Show find results for searching in this blueprint or all blueprints");
+	}
 }
 
 TSharedRef<SWidget> FFindResultsSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const

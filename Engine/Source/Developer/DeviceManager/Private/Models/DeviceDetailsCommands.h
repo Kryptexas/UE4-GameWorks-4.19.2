@@ -2,12 +2,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Framework/Commands/InputChord.h"
+#include "CoreTypes.h"
 #include "EditorStyleSet.h"
 #include "Framework/Commands/Commands.h"
+#include "Framework/Commands/InputChord.h"
+#include "Internationalization/Text.h"
+#include "Templates/SharedPointer.h"
+
 
 #define LOCTEXT_NAMESPACE "DeviceDetailsCommands"
+
 
 /**
  * The device details commands
@@ -17,9 +21,7 @@ class FDeviceDetailsCommands
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FDeviceDetailsCommands()
 		: TCommands<FDeviceDetailsCommands>(
 			"DeviceDetails",
@@ -30,9 +32,9 @@ public:
 
 public:
 
-	// TCommands interface
+	//~ TCommands interface
 
-	virtual void RegisterCommands( ) override
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(Claim, "Claim", "Claim the device", EUserInterfaceActionType::Button, FInputChord());
 		UI_COMMAND(Release, "Release", "Release the device", EUserInterfaceActionType::Button, FInputChord());

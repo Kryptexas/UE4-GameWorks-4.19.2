@@ -343,6 +343,13 @@ void FPhysicsConstraintComponentDetails::AddAngularLimits(IDetailLayoutBuilder& 
 	uint8 AngularLimitEnum[LCM_MAX] = { ACM_Free, LCM_Limited, LCM_Locked };
 	TSharedPtr<IPropertyHandle> AngularLimitProperties[] = { AngularSwing1MotionProperty, AngularSwing2MotionProperty, AngularTwistMotionProperty };
 
+	const FName AxisStyleNames[3] =
+	{
+		"PhysicsAssetEditor.RadioButtons.Red",
+		"PhysicsAssetEditor.RadioButtons.Red",
+		"PhysicsAssetEditor.RadioButtons.Green"
+	};
+
 	for (int32 PropertyIdx = 0; PropertyIdx < 3; ++PropertyIdx)
 	{
 		TSharedPtr<IPropertyHandle> CurProperty = AngularLimitProperties[PropertyIdx];
@@ -365,7 +372,7 @@ void FPhysicsConstraintComponentDetails::AddAngularLimits(IDetailLayoutBuilder& 
 				.HAlign(HAlign_Left)
 				[
 					SNew(SCheckBox)
-					.Style(FEditorStyle::Get(), "RadioButton")
+					.Style(FEditorStyle::Get(), AxisStyleNames[PropertyIdx])
 					.IsChecked(this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[0])
 					.OnCheckStateChanged(this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[0])
 					.ToolTipText(AngularLimitOptionTooltips[0])
@@ -381,7 +388,7 @@ void FPhysicsConstraintComponentDetails::AddAngularLimits(IDetailLayoutBuilder& 
 					.Padding(5, 0, 0, 0)
 					[
 						SNew(SCheckBox)
-						.Style(FEditorStyle::Get(), "RadioButton")
+						.Style(FEditorStyle::Get(), AxisStyleNames[PropertyIdx])
 						.IsChecked(this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[1])
 						.OnCheckStateChanged(this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[1])
 						.ToolTipText(AngularLimitOptionTooltips[1])
@@ -397,7 +404,7 @@ void FPhysicsConstraintComponentDetails::AddAngularLimits(IDetailLayoutBuilder& 
 					.Padding(5, 0, 0, 0)
 					[
 						SNew(SCheckBox)
-						.Style(FEditorStyle::Get(), "RadioButton")
+						.Style(FEditorStyle::Get(), AxisStyleNames[PropertyIdx])
 						.IsChecked(this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[2])
 						.OnCheckStateChanged(this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[2])
 						.ToolTipText(AngularLimitOptionTooltips[2])

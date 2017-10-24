@@ -538,34 +538,6 @@ static TArray<FFieldCompiledInInfo*>& GetDeferredClassRegistration()
 }
 
 #if WITH_HOT_RELOAD
-TMap<UObject*, UObject*>& GetDuplicatedCDOMap()
-{
-	/**
-	 * GC referencer object, so duplicated CDOs aren't destroyed if still
-	 * referenced by the map.
-	 */
-	class FDuplicatedCDOMap : public FGCObject
-	{
-	public:
-		/**
-		 * Add referenced objects to reference collector.
-		 */
-		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
-		{
-			for (auto& KVP : Map)
-			{
-				Collector.AddReferencedObject(KVP.Value);
-			}
-		}
-
-		/** Duplicated CDOs map. */
-		TMap<UObject*, UObject*> Map;
-	};
-
-	static FDuplicatedCDOMap Cache;
-	return Cache.Map;
-}
-
 /** Map of deferred class registration info (including size and reflection info) */
 static TMap<FName, FFieldCompiledInInfo*>& GetDeferRegisterClassMap()
 {
@@ -659,16 +631,46 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 	if (!bDynamic)
 	{
 #if WITH_HOT_RELOAD
+		UClass* ClassToHotReload = nullptr;
+		bool    bFound           = false;
+
 		// Either add all classes if not hot-reloading, or those which have changed
 		TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
-		if (!GIsHotReload || DeferMap.FindChecked(Name)->bHasChanged)
+		if (GIsHotReload)
+		{
+			FFieldCompiledInInfo* FoundInfo = DeferMap.FindChecked(Name);
+			if (FoundInfo->bHasChanged)
+			{
+				bFound = true;
+				ClassToHotReload = FoundInfo->OldClass;
+			}
+		}
+		if (!GIsHotReload || bFound)
 #endif
 		{
 			FString NoPrefix(RemoveClassPrefix(Name));
 			NotifyRegistrationEvent(PackageName, *NoPrefix, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
 			NotifyRegistrationEvent(PackageName, *(FString(DEFAULT_OBJECT_PREFIX) + NoPrefix), ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
-			checkSlow(!GetDeferredCompiledInRegistration().Contains(InRegister));
-			GetDeferredCompiledInRegistration().Add(InRegister);
+
+			TArray<UClass *(*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();
+			checkSlow(!DeferredCompiledInRegistration.Contains(InRegister));
+
+#if WITH_HOT_RELOAD
+			// Mark existing class as no longer constructed and collapse the Children list so that it gets rebuilt upon registration
+			if (ClassToHotReload)
+			{
+				ClassToHotReload->ClassFlags &= ~CLASS_Constructed;
+				for (UField* Child = ClassToHotReload->Children; Child; )
+				{
+					UField* NextChild = Child->Next;
+					Child->Next = nullptr;
+					Child = NextChild;
+				}
+				ClassToHotReload->Children = nullptr;
+			}
+#endif
+
+			DeferredCompiledInRegistration.Add(InRegister);
 		}
 	}
 	else
@@ -747,41 +749,6 @@ void UClassReplaceHotReloadClasses()
 	HotReloadClasses.Empty();
 }
 
-/**
- * Creates a cache of cpp-only-changed UClasses' CDOs, which are going to be
- * used later during BP reinstancing.
- */
-static void UClassGenerateCDODuplicatesForHotReload()
-{
-	if (!GIsHotReload)
-	{
-		return;
-	}
-
-	const TArray<FFieldCompiledInInfo*>& HotReloadClasses = GetHotReloadClasses();
-	TMap<UObject*, UObject*> DuplicatedCDOMap = GetDuplicatedCDOMap();
-	UPackage* TransientPackage = GetTransientPackage();
-
-	for (UClass* Class : TObjectRange<UClass>())
-	{
-		UObject* CDO = Class->GetDefaultObject();
-
-		for (const FFieldCompiledInInfo* HotReloadedClass : HotReloadClasses)
-		{
-			if (!HotReloadedClass->bHasChanged && Class->IsChildOf(HotReloadedClass->OldClass))
-			{
-				GIsDuplicatingClassForReinstancing = true;
-
-				FName UniqueName = MakeUniqueObjectName(TransientPackage, Class, TEXT("HOTRELOAD_CDO_DUPLICATE"));
-				UObject* DupCDO = StaticDuplicateObject(CDO, TransientPackage, UniqueName);
-
-				GIsDuplicatingClassForReinstancing = false;
-
-				DuplicatedCDOMap.Add(CDO, DupCDO);
-			}
-		}
-	}
-}
 #endif
 
 /**
@@ -789,6 +756,8 @@ static void UClassGenerateCDODuplicatesForHotReload()
  */
 static void UObjectLoadAllCompiledInDefaultProperties()
 {
+	static FName LongEnginePackageName(TEXT("/Script/Engine"));
+
 	TArray<UClass *(*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();
 
 	const bool bHaveRegistrants = DeferredCompiledInRegistration.Num() != 0;
@@ -796,6 +765,7 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 	{
 		TArray<UClass*> NewClasses;
 		TArray<UClass*> NewClassesInCoreUObject;
+		TArray<UClass*> NewClassesInEngine;
 		TArray<UClass* (*)()> PendingRegistrants = MoveTemp(DeferredCompiledInRegistration);
 		for (UClass* (*Registrant)() : PendingRegistrants)
 		{
@@ -803,6 +773,10 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 			if (Class->GetOutermost()->GetFName() == GLongCoreUObjectPackageName)
 			{
 				NewClassesInCoreUObject.Add(Class);
+			}
+			else if (Class->GetOutermost()->GetFName() == LongEnginePackageName)
+			{
+				NewClassesInEngine.Add(Class);
 			}
 			else
 			{
@@ -813,10 +787,15 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 		{
 			Class->GetDefaultObject();
 		}
+		for (UClass* Class : NewClassesInEngine) // we do these second because we want to bring the engine up before the game
+		{
+			Class->GetDefaultObject();
+		}
 		for (UClass* Class : NewClasses)
 		{
 			Class->GetDefaultObject();
 		}
+
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
 		if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 		{
@@ -844,15 +823,15 @@ static void UObjectLoadAllCompiledInStructs()
 
 	// Load Enums first
 	TArray<FPendingEnumRegistrant> PendingEnumRegistrants = MoveTemp(GetDeferredCompiledInEnumRegistration());
-		
 	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
-		{
-			// Make sure the package exists in case it does not contain any UObjects
-			CreatePackage(nullptr, EnumRegistrant.PackageName);
-		}
+	{
+		// Make sure the package exists in case it does not contain any UObjects
+		CreatePackage(nullptr, EnumRegistrant.PackageName);
+	}
+
 	TArray<FPendingStructRegistrant> PendingStructRegistrants = MoveTemp(GetDeferredCompiledInStructRegistration());
 	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
-		{
+	{
 		// Make sure the package exists in case it does not contain any UObjects or UEnums
 		CreatePackage(nullptr, StructRegistrant.PackageName);
 	}
@@ -860,13 +839,13 @@ static void UObjectLoadAllCompiledInStructs()
 	// Load Structs
 
 	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
-		{
+	{
 		EnumRegistrant.RegisterFn();
-		}
+	}
 
 	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
-		{
-			StructRegistrant.RegisterFn();
+	{
+		StructRegistrant.RegisterFn();
 	}
 }
 
@@ -874,11 +853,6 @@ void ProcessNewlyLoadedUObjects()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessNewlyLoadedUObjects"), STAT_ProcessNewlyLoadedUObjects, STATGROUP_ObjectVerbose);
 
-
-
-#if WITH_HOT_RELOAD
-	UClassGenerateCDODuplicatesForHotReload();
-#endif
 	UClassRegisterAllCompiledInClasses();
 
 	const TArray<UClass* (*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();

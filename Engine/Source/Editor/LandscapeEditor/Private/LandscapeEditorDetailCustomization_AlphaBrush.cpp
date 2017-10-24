@@ -158,12 +158,8 @@ void FTextureMaskThumbnailViewportClient::Draw(FViewport* Viewport, FCanvas* Can
 	Canvas->Clear( FLinearColor::Black);
 
 	// Fully stream in the texture before drawing it.
-	UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
-	if (Texture2D)
-	{
-		Texture2D->SetForceMipLevelsToBeResident(30.0f);
-		Texture2D->WaitForStreaming();
-	}
+	Texture->SetForceMipLevelsToBeResident(30.0f);
+	Texture->WaitForStreaming();
 
 	//Draw the selected texture, uses ColourChannelBlend mode parameter to filter colour channels and apply grayscale
 	FCanvasTileItem TileItem( FVector2D( 0.0f, 0.0f ), Texture->Resource, Viewport->GetSizeXY(), FLinearColor::White );

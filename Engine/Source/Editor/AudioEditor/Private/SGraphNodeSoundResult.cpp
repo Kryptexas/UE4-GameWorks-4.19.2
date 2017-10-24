@@ -7,7 +7,7 @@
 
 void SGraphNodeSoundResult::Construct(const FArguments& InArgs, USoundCueGraphNode_Base* InNode)
 {
-	this->GraphNode = Cast<UEdGraphNode>(InNode);
+	this->GraphNode = InNode;
 
 	this->SetCursor(EMouseCursor::CardinalCross);
 

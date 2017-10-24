@@ -23,6 +23,7 @@
 #include "RHICommandList.h"
 #include "EngineStats.h"
 #include "Async/ParallelFor.h"
+#include "HAL/LowLevelMemTracker.h"
 
 // Expensive
 #define PER_MESH_DRAW_STATS 0
@@ -468,6 +469,8 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		LLM_SCOPE(ELLMTag::StaticMesh);
+
 		FScopeCycleCounter ScopeOuter(RHICmdList.ExecuteStat);
 		if (this->PerDrawingPolicyCounts)
 		{
@@ -513,16 +516,6 @@ public:
 		this->RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
-
- 
-static FORCEINLINE int32 CountBits(uint64 Bits)
-{
-	// https://en.wikipedia.org/wiki/Hamming_weight
-	Bits -= (Bits >> 1) & 0x5555555555555555ull;
-	Bits = (Bits & 0x3333333333333333ull) + ((Bits >> 2) & 0x3333333333333333ull);
-	Bits = (Bits + (Bits >> 4)) & 0x0f0f0f0f0f0f0f0full;
-	return (Bits * 0x0101010101010101) >> 56;
-}
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
@@ -611,12 +604,12 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 								}
 								else if (!bIsInstancedStereo)
 								{
-									Count += CountBits((*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
+									Count += FPlatformMath::CountBits((*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
 								}
 								else
 								{
-									const int32 LeftCount = CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
-									const int32 RightCount = CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
+									const int32 LeftCount = FPlatformMath::CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
+									const int32 RightCount = FPlatformMath::CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
 									Count += (LeftCount > RightCount) ? LeftCount : RightCount;
 								}
 							}

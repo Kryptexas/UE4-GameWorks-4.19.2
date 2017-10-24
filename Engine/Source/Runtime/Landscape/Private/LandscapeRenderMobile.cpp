@@ -310,7 +310,7 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> FLandscapeComponentDerivedData::GetRenderData()
 {
-	check(!IsInRenderingThread());
+	check(IsInGameThread());
 
 	if (FPlatformProperties::RequiresCookedData() && CachedRenderData.IsValid())
 	{

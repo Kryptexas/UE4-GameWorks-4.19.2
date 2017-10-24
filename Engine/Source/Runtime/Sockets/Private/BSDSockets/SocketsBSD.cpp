@@ -41,8 +41,8 @@ bool FSocketBSD::Connect(const FInternetAddr& Addr)
 	check(SocketSubsystem);
 	ESocketErrors Error = SocketSubsystem->TranslateErrorCode(Return);
 
-	// "would block" is not an error
-	return ((Error == SE_NO_ERROR) || (Error == SE_EWOULDBLOCK));
+	// EWOULDBLOCK is not an error, and EINPROGRESS is fine on initial connection as it may still be creating for nonblocking sockets
+	return ((Error == SE_NO_ERROR) || (Error == SE_EWOULDBLOCK) || (Error == SE_EINPROGRESS));
 }
 
 
@@ -52,7 +52,7 @@ bool FSocketBSD::Listen(int32 MaxBacklog)
 }
 
 
-bool FSocketBSD::HasPendingConnection(bool& bHasPendingConnection)
+bool FSocketBSD::WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime)
 {
 	bool bHasSucceeded = false;
 	bHasPendingConnection = false;
@@ -61,7 +61,7 @@ bool FSocketBSD::HasPendingConnection(bool& bHasPendingConnection)
 	if (HasState(ESocketBSDParam::HasError) == ESocketBSDReturn::No)
 	{
 		// get the read state
-		ESocketBSDReturn State = HasState(ESocketBSDParam::CanRead);
+		ESocketBSDReturn State = HasState(ESocketBSDParam::CanRead, WaitTime);
 		
 		// turn the result into the outputs
 		bHasSucceeded = State != ESocketBSDReturn::EncounteredError;
@@ -438,7 +438,7 @@ ESocketBSDReturn FSocketBSD::HasState(ESocketBSDParam State, FTimespan WaitTime)
 	// convert WaitTime to a timeval
 	timeval Time;
 	Time.tv_sec = (int32)WaitTime.GetTotalSeconds();
-	Time.tv_usec = WaitTime.GetMilliseconds() * 1000 + WaitTime.GetMicroseconds();
+	Time.tv_usec = WaitTime.GetFractionMicro();
 
 	fd_set SocketSet;
 

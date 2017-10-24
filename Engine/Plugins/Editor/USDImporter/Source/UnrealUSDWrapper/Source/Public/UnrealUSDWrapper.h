@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #ifdef UNREALUSDWRAPPER_EXPORTS
 	#if _WINDOWS
@@ -17,6 +18,7 @@
 
 void InitWrapper();
 
+class IUsdPrim;
 
 enum EUsdInterpolationMethod
 {
@@ -53,17 +55,6 @@ enum EUsdUpAxis
 };
 
 
-namespace UnrealIdentifiers
-{
-	/**
-	 * Identifies the LOD variant set on a primitive which means this primitive has child prims that LOD meshes
-	 * named LOD0, LOD1, LOD2, etc
-	 */
-	static const std::string LOD = "LOD";
-
-	static const std::string AssetPath = "unrealAssetPath";
-
-}
 
 struct FUsdVector2Data
 {
@@ -89,6 +80,22 @@ struct FUsdVectorData
 	float Y;
 	float Z;
 };
+
+struct FUsdVector4Data
+{
+	FUsdVector4Data(float InX = 0, float InY = 0, float InZ = 0, float InW = 0)
+		: X(InX)
+		, Y(InY)
+		, Z(InZ)
+		, W(InW)
+	{}
+
+	float X;
+	float Y;
+	float Z;
+	float W;
+};
+
 
 struct FUsdUVData
 {
@@ -182,21 +189,78 @@ struct FUsdGeomData
 	int NumUVs;
 };
 
+class UnrealUSDWrapper
+{
+public:
+	UNREALUSDWRAPPER_API static void Initialize(const std::vector<std::string>& PluginDirectories);
+	UNREALUSDWRAPPER_API static class IUsdStage* ImportUSDFile(const char* Path, const char* Filename);
+	UNREALUSDWRAPPER_API static void CleanUp();
+	UNREALUSDWRAPPER_API static double GetDefaultTimeCode();
+	UNREALUSDWRAPPER_API static const char* GetErrors();
+private:
+	static class FUsdStage* CurrentStage;
+	static std::string Errors;
+	static bool bInitialized;
+};
+
+class FAttribInternalData;
+
+class FUsdAttribute
+{
+public:
+	FUsdAttribute(std::shared_ptr<FAttribInternalData> InternalData);
+	~FUsdAttribute();
+
+	UNREALUSDWRAPPER_API const char* GetAttributeName() const;
+
+	/** Returns the type name for an attribute or null if the attribute doesn't exist */
+	UNREALUSDWRAPPER_API const char* GetTypeName() const;
+	
+	UNREALUSDWRAPPER_API bool AsInt(int64_t& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsUnsignedInt(uint64_t& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsDouble(double& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsString(const char*& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsBool(bool& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsVector2(FUsdVector2Data& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsVector3(FUsdVectorData& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsVector4(FUsdVector4Data& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+	UNREALUSDWRAPPER_API bool AsColor(FUsdVector4Data& OutVal, int ArrayIndex = -1, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const;
+
+	UNREALUSDWRAPPER_API bool IsUnsigned() const;
+
+	// Get the number of elements in the array if it is an array.  Otherwise -1
+	UNREALUSDWRAPPER_API int GetArraySize() const;
+
+	UNREALUSDWRAPPER_API const char* GetUnrealPropertyPath() const;
+private:
+	std::shared_ptr<FAttribInternalData> InternalData;
+	
+};
+
+
+
 class IUsdPrim
 {
 public:
 	virtual ~IUsdPrim() {}
 	virtual const char* GetPrimName() const = 0;
 	virtual const char* GetPrimPath() const = 0;
+	virtual const char* GetUnrealPropertyPath() const = 0;
+	virtual const char* GetKind() const = 0;
+	virtual bool IsKindChildOf(const std::string& InKind) const = 0;
 	virtual bool IsGroup() const = 0;
+	virtual bool IsModel() const = 0;
+	virtual bool IsUnrealProperty() const = 0;
 	virtual bool HasTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToWorldTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToWorldTransform(double Time) const = 0;
-	virtual FUsdMatrixData GetLocalToParentTransform() const = 0;
-	virtual FUsdMatrixData GetLocalToParentTransform(double Time) const = 0;
+	virtual FUsdMatrixData GetLocalToWorldTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+	virtual FUsdMatrixData GetLocalToParentTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+	virtual FUsdMatrixData GetLocalToAncestorTransform(IUsdPrim* Ancestor, double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
+
 	virtual int GetNumChildren() const = 0;
 	virtual IUsdPrim* GetChild(int ChildIndex) = 0;
 	virtual const char* GetUnrealAssetPath() const = 0;
+	virtual const char* GetUnrealActorClass() const = 0;
+
 	virtual bool HasGeometryData() const = 0;
 	/** Returns geometry data at the default USD time */
 	virtual const FUsdGeomData* GetGeometryData() = 0;
@@ -206,7 +270,11 @@ public:
 	virtual int GetNumLODs() const = 0;
 	virtual IUsdPrim* GetLODChild(int LODIndex) = 0;
 
-	// @todo generic attribute, metadata and variant support
+	virtual const std::vector<FUsdAttribute>& GetAttributes() const = 0;
+
+	/** Get attributes which map to unreal properties (i.e have unrealPropertyPath metadata)*/
+	virtual const std::vector<FUsdAttribute>& GetUnrealPropertyAttributes() const = 0;
+
 };
 
 class IUsdStage
@@ -220,19 +288,6 @@ public:
 	virtual double GetEndTimeCode() const = 0;
 	virtual double GetFramesPerSecond() const = 0;
 	virtual double GetTimeCodesPerSecond() const = 0;
-
-};
-
-class UNREALUSDWRAPPER_API UnrealUSDWrapper
-{
-public:
-	static void Initialize(const char* PathToModule);
-	static IUsdStage* ImportUSDFile(const char* Path, const char* Filename);
-	static void CleanUp();
-	static double GetDefaultTimeCode();
-private:
-	static class FUsdStage* CurrentStage;
-	static bool bInitialized;
 };
 
 

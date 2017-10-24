@@ -23,7 +23,18 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-// Note: These values are directly referenced in code, please update all paths if changing
+// Note: Enables or disables HDR support for a project. Typically this would be set on a per-project/per-platform basis in defaultengine.ini
+static TAutoConsoleVariable<int32> CVarAllowHDR(
+	TEXT("r.AllowHDR"),
+	0,
+	TEXT("Creates an HDR compatible swap-chain and enables HDR display output.")
+	TEXT("0: Disabled (default)\n")
+	TEXT("1: Allow HDR, if supported by the platform and display \n"),
+	ECVF_ReadOnly
+);
+
+// Note: These values are directly referenced in code. They are set in code at runtime and therefore cannot be set via ini files
+// Please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("r.HDR.Display.ColorGamut"),
 	0,
@@ -118,7 +129,7 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[15] = { 
+static uint32 TonemapperConfBitmaskPC[10] = {
 
 	TonemapperBloom +
 	TonemapperGrainJitter +
@@ -907,12 +918,10 @@ public:
 		OutputDevice.Bind(ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(ParameterMap, TEXT("OutputGamut"));
 		EncodeHDROutput.Bind(ParameterMap, TEXT("EncodeHDROutput"));
-		
-		EyeAdaptation.Bind(ParameterMap, TEXT("EyeAdaptation"));
 	}
 	
 	template <typename TRHICmdList, typename TRHIShader>
-	void Set(TRHICmdList& RHICmdList, const TRHIShader ShaderRHI, const FRenderingCompositePassContext& Context, const TShaderUniformBufferParameter<FBloomDirtMaskParameters>& BloomDirtMaskParam, bool bDoEyeAdaptation = false)
+	void Set(TRHICmdList& RHICmdList, const TRHIShader ShaderRHI, const FRenderingCompositePassContext& Context, const TShaderUniformBufferParameter<FBloomDirtMaskParameters>& BloomDirtMaskParam)
 	{
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
@@ -1073,26 +1082,6 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
-		
-		if(bDoEyeAdaptation)
-		{
-			// Fix for eye adaptation vertex texture read failing in Metal macOS 10.11 - If Mac should be Metal but also check lauguage version (Clone of Vertex Shader version implementation).
-			if (Context.View.HasValidEyeAdaptation())
-			{
-				IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation(Context.RHICmdList);
-				FTextureRHIParamRef EyeAdaptationRTRef = EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
-				if (EyeAdaptationRTRef)
-				{
-					Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &EyeAdaptationRTRef, 1);
-				}
-				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
-			}
-			else
-			{
-				// some views don't have a state, thumbnail rendering?
-				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
-			}
-		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FPostProcessTonemapShaderParameters& P)
@@ -1103,7 +1092,6 @@ public:
 		Ar << P.ColorMatrixR_ColorCurveCd1 << P.ColorMatrixG_ColorCurveCd3Cm3 << P.ColorMatrixB_ColorCurveCm2 << P.ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << P.ColorCurve_Ch1_Ch2 << P.ColorShadow_Luma << P.ColorShadow_Tint1 << P.ColorShadow_Tint2;
 		Ar << P.OverlayColor;
 		Ar << P.OutputDevice << P.OutputGamut << P.EncodeHDROutput;
-		Ar << P.EyeAdaptation;
 
 		return Ar;
 	}
@@ -1134,31 +1122,19 @@ public:
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
 	FShaderParameter EncodeHDROutput;
-	
-	//Fix for eye adaptation vertex texture read failing in Metal macOS 10.11
-	FShaderResourceParameter EyeAdaptation;
-};
-
-namespace PostProcessTonemapUtil
-{
-	// Function exists out side of the FPostProcessTonemapPS class - otherwise calling it would require template parameters
-	static inline bool PlatformRequiresEyeAdaptationPSSampling(EShaderPlatform ShaderPlatform)
-	{
-		return IsMetalPlatform(ShaderPlatform) && RHIGetShaderLanguageVersion(ShaderPlatform) < 2;
-	}
 };
 
 /**
  * Encapsulates the post processing tonemapper pixel shader.
  */
-template<uint32 ConfigIndex, bool bDoEyeAdaptation>
+template<uint32 ConfigIndex>
 class FPostProcessTonemapPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTonemapPS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2) && (!bDoEyeAdaptation || PostProcessTonemapUtil::PlatformRequiresEyeAdaptationPSSampling(Platform)));
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1179,8 +1155,6 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 UseVolumeTextureLUT(Platform));
-		
-		OutEnvironment.SetDefine(TEXT("EYEADAPTATION_EXPOSURE_FIX"), bDoEyeAdaptation ? 1 : 0);
 	}
 
 	/** Default constructor. */
@@ -1223,10 +1197,10 @@ public:
 				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI(),
 			};
 
-			PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, Filters);
+			PostprocessParameter.SetPS(Context.RHICmdList, ShaderRHI, Context, 0, eFC_0000, Filters);
 		}
 
-		PostProcessTonemapShaderParameters.Set(Context.RHICmdList, ShaderRHI, Context, GetUniformBufferParameter<FBloomDirtMaskParameters>(), bDoEyeAdaptation);
+		PostProcessTonemapShaderParameters.Set(Context.RHICmdList, ShaderRHI, Context, GetUniformBufferParameter<FBloomDirtMaskParameters>());
 	}
 	
 	static const TCHAR* GetSourceFilename()
@@ -1241,13 +1215,11 @@ public:
 };
 
 #define VARIATION1(A)																	\
-	typedef FPostProcessTonemapPS<A,true> FPostProcessTonemapPS_EyeAdaptation##A;		\
-	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS_EyeAdaptation##A, SF_Pixel);			\
-	typedef FPostProcessTonemapPS<A,false> FPostProcessTonemapPS_NoEyeAdaptation##A;	\
-	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS_NoEyeAdaptation##A, SF_Pixel);
+	typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A; 							\
+	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
-	VARIATION1(9)  VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13) VARIATION1(14)
+	VARIATION1(9)
 
 #undef VARIATION1
 
@@ -1331,7 +1303,7 @@ public:
 	template <typename TRHICmdList>
 	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& DestSize, FUnorderedAccessViewRHIParamRef DestUAV, FTextureRHIParamRef EyeAdaptationTex)
 	{
- 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 
@@ -1443,7 +1415,7 @@ public:
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapCS_NoEyeAdaption##A, SF_Compute);
 
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5)  VARIATION1(6)  VARIATION1(7)
-	VARIATION1(8)  VARIATION1(9)  VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13) VARIATION1(14)
+	VARIATION1(8)  VARIATION1(9)
 #undef VARIATION1
 
 FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation, bool bInHDROutput, bool bInIsComputePass)
@@ -1463,7 +1435,7 @@ FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bo
 namespace PostProcessTonemapUtil
 {
 	// Template implementation supports unique static BoundShaderState for each permutation of Vertex/Pixel Shaders 
-	template <uint32 ConfigIndex, bool bVSDoEyeAdaptation, bool bPSDoEyeAdaptation>
+	template <uint32 ConfigIndex, bool bVSDoEyeAdaptation>
 	static inline void SetShaderTempl(const FRenderingCompositePassContext& Context)
 	{
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -1473,7 +1445,7 @@ namespace PostProcessTonemapUtil
 		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 		typedef TPostProcessTonemapVS<bVSDoEyeAdaptation>				VertexShaderType;
-		typedef FPostProcessTonemapPS<ConfigIndex, bPSDoEyeAdaptation>	PixelShaderType;
+		typedef FPostProcessTonemapPS<ConfigIndex>                      PixelShaderType;
 
 		TShaderMapRef<PixelShaderType>  PixelShader(Context.GetShaderMap());
 		TShaderMapRef<VertexShaderType> VertexShader(Context.GetShaderMap());
@@ -1494,18 +1466,11 @@ namespace PostProcessTonemapUtil
 	{
 		if (bDoEyeAdaptation)
 		{
-			if (PlatformRequiresEyeAdaptationPSSampling(Context.GetShaderPlatform()))
-			{
-				SetShaderTempl<ConfigIndex, true, true>(Context);
-			}
-			else
-			{
-				SetShaderTempl<ConfigIndex, true, false>(Context);
-			}
+            SetShaderTempl<ConfigIndex, true>(Context);
 		}
 		else
 		{
-			SetShaderTempl<ConfigIndex, false, false>(Context);
+			SetShaderTempl<ConfigIndex, false>(Context);
 		}
 	}
 
@@ -1578,7 +1543,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 			// Async path
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
- 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncTonemap);
+				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncTonemap);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
 					
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
@@ -1621,7 +1586,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		else
 		{
 			// Set the view family's render target/viewport.
-			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
 
 			if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 			{
@@ -1652,11 +1617,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		case 7: SetShaderTempl<7>(Context, bDoEyeAdaptation); break;
 		case 8: SetShaderTempl<8>(Context, bDoEyeAdaptation); break;
 		case 9: SetShaderTempl<9>(Context, bDoEyeAdaptation); break;
-		case 10: SetShaderTempl<10>(Context, bDoEyeAdaptation); break;
-		case 11: SetShaderTempl<11>(Context, bDoEyeAdaptation); break;
-		case 12: SetShaderTempl<12>(Context, bDoEyeAdaptation); break;
-		case 13: SetShaderTempl<13>(Context, bDoEyeAdaptation); break;
-		case 14: SetShaderTempl<14>(Context, bDoEyeAdaptation); break;
 		default:
 			check(0);
 		}
@@ -1723,11 +1683,6 @@ void FRCPassPostProcessTonemap::DispatchCS(TRHICmdList& RHICmdList, FRenderingCo
 	DISPATCH_CASE(7);
 	DISPATCH_CASE(8);
 	DISPATCH_CASE(9);
-	DISPATCH_CASE(10);
-	DISPATCH_CASE(11);
-	DISPATCH_CASE(12);
-	DISPATCH_CASE(13);
-	DISPATCH_CASE(14);
 	default: check(0);
 	}
 
@@ -1748,7 +1703,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	Ret.Format = bHDROutput ? GRHIHDRDisplayOutputFormat : Ret.Format;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
-	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+	Ret.Flags |= GFastVRamConfig.Tonemap;
 
 	// Mobile needs to override the extent
 	if (bDoScreenPercentageInTonemapper && View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
@@ -1829,6 +1784,7 @@ public:
 	FShaderParameter OverlayColor;
 	FShaderParameter FringeIntensity;
 	FShaderParameter SRGBAwareTargetParam;
+	FShaderParameter DefaultEyeExposure;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapPS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1854,8 +1810,9 @@ public:
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
 		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 
-		
 		SRGBAwareTargetParam.Bind(Initializer.ParameterMap, TEXT("SRGBAwareTarget"));
+
+		DefaultEyeExposure.Bind(Initializer.ParameterMap, TEXT("DefaultEyeExposure"));
 	}
 	
 	// FShader interface.
@@ -1867,44 +1824,46 @@ public:
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
 			<< OverlayColor
 			<< FringeIntensity
-			<< SRGBAwareTargetParam;
+			<< SRGBAwareTargetParam
+			<< DefaultEyeExposure;
 
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context, bool bSRGBAwareTarget)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, bool bSRGBAwareTarget)
 	{
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
 		if (TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) && IsMobileHDRMosaic())
 		{
-			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+			PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		}
 		else
 		{
-			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+			PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		}
 			
-		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
+		SetShaderValue(RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
+		SetShaderValue(RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
 
 		{
 			FLinearColor Col = Settings.SceneColorTint;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale0, ColorScale);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorScale0, ColorScale);
 		}
 		
 		{
 			FLinearColor Col = FLinearColor::White * Settings.BloomIntensity;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale1, ColorScale);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorScale1, ColorScale);
 		}
 
 		{
@@ -1913,7 +1872,7 @@ public:
 			// we assume the this pass runs in 1:1 pixel
 			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 
 		{
@@ -1921,35 +1880,38 @@ public:
 
 			FVector2D Value(Settings.VignetteIntensity, Sharpen);
 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, TonemapperParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, TonemapperParams, Value);
 		}
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
+		SetShaderValue(RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
 		{
 			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Z = 1.0; // Unused on mobile.
-			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
+			SetShaderValue(RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
 		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskMobile[ConfigIndex], &Context.View.FinalPostProcessSettings, true);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
+			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
+			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, SRGBAwareTargetParam, bSRGBAwareTarget ? 1.0f : 0.0f );
+		SetShaderValue(RHICmdList, ShaderRHI, SRGBAwareTargetParam, bSRGBAwareTarget ? 1.0f : 0.0f );
+
+		float DefaultEyeExposureValue = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
+		SetShaderValue(RHICmdList, ShaderRHI, DefaultEyeExposure, DefaultEyeExposureValue);
 	}
 	
 	static const TCHAR* GetSourceFilename()
@@ -2062,7 +2024,7 @@ namespace PostProcessTonemap_ES2Util
 		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetVS(Context);
-		PixelShader->SetPS(Context, bSRGBAwareTarget);
+		PixelShader->SetPS(Context.RHICmdList, Context, bSRGBAwareTarget);
 	}
 }
 

@@ -15,15 +15,14 @@
 #include "include/cef_browser.h"
 #include "include/cef_client.h"
 #include "include/cef_frame.h"
+#include "include/views/cef_browser_view.h"
 #include "libcef/browser/browser_info.h"
-#include "libcef/browser/browser_platform_delegate.h"
 #include "libcef/browser/file_dialog_manager.h"
 #include "libcef/browser/frame_host_impl.h"
 #include "libcef/browser/javascript_dialog_manager.h"
 #include "libcef/browser/menu_manager.h"
 #include "libcef/common/response_manager.h"
 
-#include "base/memory/scoped_ptr.h"
 #include "base/observer_list.h"
 #include "base/strings/string16.h"
 #include "base/synchronization/lock.h"
@@ -33,14 +32,26 @@
 #include "content/public/browser/web_contents_delegate.h"
 #include "content/public/browser/web_contents_observer.h"
 
+namespace content {
+struct DragEventSourceInfo;
+class RenderWidgetHostImpl;
+}
+
 namespace net {
 class URLRequest;
 }
+
+#if defined(USE_AURA)
+namespace views {
+class Widget;
+}
+#endif  // defined(USE_AURA)
 
 struct Cef_DraggableRegion_Params;
 struct Cef_Request_Params;
 struct Cef_Response_Params;
 class CefBrowserInfo;
+class CefBrowserPlatformDelegate;
 class CefDevToolsFrontend;
 struct CefNavigateParams;
 class SiteInstance;
@@ -67,7 +78,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
                            public content::NotificationObserver {
  public:
   // Used for handling the response to command messages.
-  class CommandResponseHandler : public virtual CefBase {
+  class CommandResponseHandler : public virtual CefBaseRefCounted {
    public:
      virtual void OnResponse(const std::string& response) =0;
   };
@@ -86,15 +97,37 @@ class CefBrowserHostImpl : public CefBrowserHost,
 
   ~CefBrowserHostImpl() override;
 
+  struct CreateParams {
+    // Platform-specific window creation info. Will be nullptr when creating a
+    // views-hosted browser.
+    std::unique_ptr<CefWindowInfo> window_info;
+
+#if defined(USE_AURA)
+    // The BrowserView that will own a views-hosted browser. Will be nullptr for
+    // popup browsers (the BrowserView will be created later in that case).
+    CefRefPtr<CefBrowserView> browser_view;
+#endif
+
+    // Client implementation. May be nullptr.
+    CefRefPtr<CefClient> client;
+
+    // Initial URL to load. May be empty.
+    CefString url;
+
+    // Browser settings.
+    CefBrowserSettings settings;
+
+    // Other browser that opened this DevTools browser. Will be nullptr for non-
+    // DevTools browsers.
+    CefRefPtr<CefBrowserHostImpl> devtools_opener;
+
+    // Request context to use when creating the browser. If nullptr the global
+    // request context will be used.
+    CefRefPtr<CefRequestContext> request_context;
+  };
+
   // Create a new CefBrowserHostImpl instance.
-  static CefRefPtr<CefBrowserHostImpl> Create(
-      const CefWindowInfo& windowInfo,
-      CefRefPtr<CefClient> client,
-      const CefString& url,
-      const CefBrowserSettings& settings,
-      CefRefPtr<CefBrowserHostImpl> opener,
-      bool is_popup,
-      CefRefPtr<CefRequestContext> request_context);
+  static CefRefPtr<CefBrowserHostImpl> Create(CreateParams& create_params);
 
   // Returns the browser associated with the specified RenderViewHost.
   static CefRefPtr<CefBrowserHostImpl> GetBrowserForHost(
@@ -118,10 +151,11 @@ class CefBrowserHostImpl : public CefBrowserHost,
   // CefBrowserHost methods.
   CefRefPtr<CefBrowser> GetBrowser() override;
   void CloseBrowser(bool force_close) override;
+  bool TryCloseBrowser() override;
   void SetFocus(bool focus) override;
-  void SetWindowVisibility(bool visible) override;
   CefWindowHandle GetWindowHandle() override;
   CefWindowHandle GetOpenerWindowHandle() override;
+  bool HasView() override;
   CefRefPtr<CefClient> GetClient() override;
   CefRefPtr<CefRequestContext> GetRequestContext() override;
   double GetZoomLevel() override;
@@ -134,6 +168,11 @@ class CefBrowserHostImpl : public CefBrowserHost,
       int selected_accept_filter,
       CefRefPtr<CefRunFileDialogCallback> callback) override;
   void StartDownload(const CefString& url) override;
+  void DownloadImage(const CefString& image_url,
+                     bool is_favicon,
+                     uint32 max_image_size,
+                     bool bypass_cache,
+                     CefRefPtr<CefDownloadImageCallback> callback) override;
   void Print() override;
   void PrintToPDF(const CefString& path,
                   const CefPdfPrintSettings& settings,
@@ -146,6 +185,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
                     const CefBrowserSettings& settings,
                     const CefPoint& inspect_element_at) override;
   void CloseDevTools() override;
+  bool HasDevTools() override;
   void GetNavigationEntries(
       CefRefPtr<CefNavigationEntryVisitor> visitor,
       bool current_only) override;
@@ -171,9 +211,14 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void NotifyMoveOrResizeStarted() override;
   int GetWindowlessFrameRate() override;
   void SetWindowlessFrameRate(int frame_rate) override;
-  CefTextInputContext GetNSTextInputContext() override;
-  void HandleKeyEventBeforeTextInputClient(CefEventHandle keyEvent) override;
-  void HandleKeyEventAfterTextInputClient(CefEventHandle keyEvent) override;
+  void ImeSetComposition(const CefString& text,
+                         const std::vector<CefCompositionUnderline>& underlines,
+                         const CefRange& replacement_range,
+                         const CefRange& selection_range) override;
+  void ImeCommitText(const CefString& text, const CefRange& replacement_range,
+                     int relative_cursor_pos) override;
+  void ImeFinishComposingText(bool keep_selection) override;
+  void ImeCancelComposition() override;
   void DragTargetDragEnter(CefRefPtr<CefDragData> drag_data,
                            const CefMouseEvent& event,
                            DragOperationsMask allowed_ops) override;
@@ -183,6 +228,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void DragTargetDrop(const CefMouseEvent& event) override;
   void DragSourceSystemDragEnded() override;
   void DragSourceEndedAt(int x, int y, DragOperationsMask op) override;
+  CefRefPtr<CefNavigationEntry> GetVisibleNavigationEntry() override;
 
   // CefBrowser methods.
   CefRefPtr<CefBrowserHost> GetHost() override;
@@ -212,6 +258,9 @@ class CefBrowserHostImpl : public CefBrowserHost,
   // Returns true if windowless rendering is enabled.
   bool IsWindowless() const;
 
+  // Returns true if this browser is views-hosted.
+  bool IsViewsHosted() const;
+
   // Called when the OS window hosting the browser is destroyed.
   void WindowDestroyed();
 
@@ -226,6 +275,10 @@ class CefBrowserHostImpl : public CefBrowserHost,
   // Returns the Widget owner for the browser window. Only used with windowed
   // rendering.
   views::Widget* GetWindowWidget() const;
+
+  // Returns the BrowserView associated with this browser. Only used with views-
+  // based browsers.
+  CefRefPtr<CefBrowserView> GetBrowserView() const;
 #endif
 
   // Returns the frame associated with the specified URLRequest.
@@ -271,11 +324,22 @@ class CefBrowserHostImpl : public CefBrowserHost,
   // Set the frame that currently has focus.
   void SetFocusedFrame(int64 frame_id);
 
-  // Convert from view coordinates to screen coordinates.
+  // Convert from view coordinates to screen coordinates. Potential display
+  // scaling will be applied to the result.
   gfx::Point GetScreenPoint(const gfx::Point& view) const;
+
+  void StartDragging(
+      const content::DropData& drop_data,
+      blink::WebDragOperationsMask allowed_ops,
+      const gfx::ImageSkia& image,
+      const gfx::Vector2d& image_offset,
+      const content::DragEventSourceInfo& event_info,
+      content::RenderWidgetHostImpl* source_rwh);
+  void UpdateDragCursor(blink::WebDragOperation operation);
 
   // Thread safe accessors.
   const CefBrowserSettings& settings() const { return settings_; }
+  SkColor GetBackgroundColor() const;
   CefRefPtr<CefClient> client() const { return client_; }
   scoped_refptr<CefBrowserInfo> browser_info() const { return browser_info_; }
   int browser_id() const;
@@ -316,11 +380,11 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void CloseContents(content::WebContents* source) override;
   void UpdateTargetURL(content::WebContents* source,
                        const GURL& url) override;
-  bool AddMessageToConsole(content::WebContents* source,
-                           int32_t level,
-                           const base::string16& message,
-                           int32_t line_no,
-                           const base::string16& source_id) override;
+  bool DidAddMessageToConsole(content::WebContents* source,
+                              int32_t level,
+                              const base::string16& message,
+                              int32_t line_no,
+                              const base::string16& source_id) override;
   void BeforeUnloadFired(content::WebContents* source,
                          bool proceed,
                          bool* proceed_to_fire_unload) override;
@@ -328,10 +392,9 @@ class CefBrowserHostImpl : public CefBrowserHost,
                  bool reverse) override;
   bool HandleContextMenu(
       const content::ContextMenuParams& params) override;
-  bool PreHandleKeyboardEvent(
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
       content::WebContents* source,
-      const content::NativeWebKeyboardEvent& event,
-      bool* is_keyboard_shortcut) override;
+      const content::NativeWebKeyboardEvent& event) override;
   void HandleKeyboardEvent(
       content::WebContents* source,
       const content::NativeWebKeyboardEvent& event) override;
@@ -339,19 +402,15 @@ class CefBrowserHostImpl : public CefBrowserHost,
       content::WebContents* source,
       const content::DropData& data,
       blink::WebDragOperationsMask operations_allowed) override;
-  bool ShouldCreateWebContents(
+  void GetCustomWebContentsView(
       content::WebContents* web_contents,
-      int route_id,
-      int main_frame_route_id,
-      int32_t main_frame_widget_route_id,
-      WindowContainerType window_container_type,
-      const std::string& frame_name,
       const GURL& target_url,
-      const std::string& partition_id,
-      content::SessionStorageNamespace* session_storage_namespace,
+      int opener_render_process_id,
+      int opener_render_frame_id,
       content::WebContentsView** view,
       content::RenderViewHostDelegateView** delegate_view) override;
   void WebContentsCreated(content::WebContents* source_contents,
+                          int opener_render_process_id,
                           int opener_render_frame_id,
                           const std::string& frame_name,
                           const GURL& target_url,
@@ -361,7 +420,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
   content::JavaScriptDialogManager* GetJavaScriptDialogManager(
       content::WebContents* source) override;
   void RunFileChooser(
-      content::WebContents* web_contents,
+      content::RenderFrameHost* render_frame_host,
       const content::FileChooserParams& params) override;
   bool EmbedsFullscreenWidget() const override;
   void EnterFullscreenModeForTab(content::WebContents* web_contents,
@@ -391,38 +450,21 @@ class CefBrowserHostImpl : public CefBrowserHost,
   // content::WebContentsObserver methods.
   using content::WebContentsObserver::BeforeUnloadFired;
   using content::WebContentsObserver::WasHidden;
-  void RenderFrameCreated(
-      content::RenderFrameHost* render_frame_host) override;
-  void RenderFrameDeleted(
-      content::RenderFrameHost* render_frame_host) override;
-  void RenderViewCreated(
-      content::RenderViewHost* render_view_host) override;
-  void RenderViewDeleted(
-      content::RenderViewHost* render_view_host) override;
+  void RenderFrameCreated(content::RenderFrameHost* render_frame_host) override;
+  void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
+  void RenderViewCreated(content::RenderViewHost* render_view_host) override;
+  void RenderViewDeleted(content::RenderViewHost* render_view_host) override;
   void RenderViewReady() override;
   void RenderProcessGone(base::TerminationStatus status) override;
-  void DidCommitProvisionalLoadForFrame(
-      content::RenderFrameHost* render_frame_host,
-      const GURL& url,
-      ui::PageTransition transition_type) override;
-  void DidFailProvisionalLoad(
-      content::RenderFrameHost* render_frame_host,
-      const GURL& validated_url,
-      int error_code,
-      const base::string16& error_description,
-      bool was_ignored_by_handler) override;
+  void DidFinishNavigation(
+      content::NavigationHandle* navigation_handle) override;
   void DocumentAvailableInMainFrame() override;
   void DidFailLoad(content::RenderFrameHost* render_frame_host,
                    const GURL& validated_url,
                    int error_code,
                    const base::string16& error_description,
                    bool was_ignored_by_handler) override;
-  void FrameDeleted(
-      content::RenderFrameHost* render_frame_host) override;
-  void DidNavigateAnyFrame(
-      content::RenderFrameHost* render_frame_host,
-      const content::LoadCommittedDetails& details,
-      const content::FrameNavigateParams& params) override;
+  void FrameDeleted(content::RenderFrameHost* render_frame_host) override;
   void TitleWasSet(content::NavigationEntry* entry, bool explicit_set) override;
   void PluginCrashed(const base::FilePath& plugin_path,
                      base::ProcessId plugin_pid) override;
@@ -449,8 +491,9 @@ class CefBrowserHostImpl : public CefBrowserHost,
       content::WebContents* web_contents,
       scoped_refptr<CefBrowserInfo> browser_info,
       CefRefPtr<CefBrowserHostImpl> opener,
+      bool is_devtools_popup,
       CefRefPtr<CefRequestContext> request_context,
-      scoped_ptr<CefBrowserPlatformDelegate> platform_delegate);
+      std::unique_ptr<CefBrowserPlatformDelegate> platform_delegate);
 
   // content::WebContentsObserver::OnMessageReceived() message handlers.
   void OnFrameIdentified(int64 frame_id,
@@ -478,7 +521,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
                      scoped_refptr<CefBrowserInfo> browser_info,
                      CefRefPtr<CefBrowserHostImpl> opener,
                      CefRefPtr<CefRequestContext> request_context,
-                     scoped_ptr<CefBrowserPlatformDelegate> platform_delegate);
+                     std::unique_ptr<CefBrowserPlatformDelegate> platform_delegate);
 
   // Give the platform delegate an opportunity to create the host window.
   bool CreateHostWindow();
@@ -496,12 +539,10 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void OnAddressChange(CefRefPtr<CefFrame> frame,
                        const GURL& url);
   void OnLoadStart(CefRefPtr<CefFrame> frame,
-                   const GURL& url,
                    ui::PageTransition transition_type);
   void OnLoadError(CefRefPtr<CefFrame> frame,
                    const GURL& url,
-                   int error_code,
-                   const base::string16& error_description);
+                   int error_code);
   void OnLoadEnd(CefRefPtr<CefFrame> frame,
                  const GURL& url,
                  int http_status_code);
@@ -515,12 +556,14 @@ class CefBrowserHostImpl : public CefBrowserHost,
 
   CefBrowserSettings settings_;
   CefRefPtr<CefClient> client_;
-  scoped_ptr<content::WebContents> web_contents_;
+  std::unique_ptr<content::WebContents> web_contents_;
   scoped_refptr<CefBrowserInfo> browser_info_;
   CefWindowHandle opener_;
   CefRefPtr<CefRequestContext> request_context_;
-  scoped_ptr<CefBrowserPlatformDelegate> platform_delegate_;
+  std::unique_ptr<CefBrowserPlatformDelegate> platform_delegate_;
   const bool is_windowless_;
+  const bool is_views_hosted_;
+  CefWindowHandle host_window_handle_;
 
   // Volatile state information. All access must be protected by the state lock.
   base::Lock state_lock_;
@@ -570,23 +613,23 @@ class CefBrowserHostImpl : public CefBrowserHost,
   bool mouse_cursor_change_disabled_;
 
   // Used for managing notification subscriptions.
-  scoped_ptr<content::NotificationRegistrar> registrar_;
+  std::unique_ptr<content::NotificationRegistrar> registrar_;
 
   // Manages response registrations.
-  scoped_ptr<CefResponseManager> response_manager_;
+  std::unique_ptr<CefResponseManager> response_manager_;
 
   // Used for creating and managing file dialogs.
-  scoped_ptr<CefFileDialogManager> file_dialog_manager_;
+  std::unique_ptr<CefFileDialogManager> file_dialog_manager_;
 
   // Used for creating and managing JavaScript dialogs.
-  scoped_ptr<CefJavaScriptDialogManager> javascript_dialog_manager_;
+  std::unique_ptr<CefJavaScriptDialogManager> javascript_dialog_manager_;
 
   // Used for creating and managing context menus.
-  scoped_ptr<CefMenuManager> menu_manager_;
+  std::unique_ptr<CefMenuManager> menu_manager_;
 
   // Track the lifespan of the frontend WebContents associated with this
   // browser.
-  scoped_ptr<DevToolsWebContentsObserver> devtools_observer_;
+  std::unique_ptr<DevToolsWebContentsObserver> devtools_observer_;
   // CefDevToolsFrontend will delete itself when the frontend WebContents is
   // destroyed.
   CefDevToolsFrontend* devtools_frontend_;

@@ -109,7 +109,9 @@ enum TProgressionState
 	PROGSTATE_ImportingResults,
 	PROGSTATE_Finished,
 	PROGSTATE_RemoteDisconnected,
-	PROGSTATE_InstigatorDisconnected
+	PROGSTATE_InstigatorDisconnected,
+	PROGSTATE_Preparing4,
+	PROGSTATE_Num
 };
 
 /**

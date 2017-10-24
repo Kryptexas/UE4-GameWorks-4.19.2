@@ -5,8 +5,8 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_DataStore.h"
+#include "OVR_Types.h"
 #include "OVR_User.h"
-#include <stddef.h>
 
 typedef struct ovrMatchmakingEnqueuedUser *ovrMatchmakingEnqueuedUserHandle;
 

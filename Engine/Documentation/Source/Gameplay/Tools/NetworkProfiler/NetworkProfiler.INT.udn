@@ -17,11 +17,11 @@ You can pass the "networkprofiler=true" command-line argument to record as soon 
 
 * netprofile disable: stop recording if currently recording
 
-The data file will be saved to <project directory>/Saved/Profiling/<project name>-<timestamp>.nprof. If you see a file named NetworkProfiling.tmp in the same folder, this is just the temporary file the engine uses while collecting data. When the current profiling session is stopped, this file will be renamed according to the scheme above and is then ready to be opened in the standalone tool.
+The data file will be saved to `<project directory>/Saved/Profiling/<project name>-<timestamp>.nprof`. If you see a file named NetworkProfiling.tmp in the same folder, this is just the temporary file the engine uses while collecting data. When the current profiling session is stopped, this file will be renamed according to the scheme above and is then ready to be opened in the standalone tool.
 
 ## Viewing a profile session in the Network Profiler application
 
-The network profiler is a standalone application located at <UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe.
+The network profiler is a standalone application located at `<UE install directory>/Engine/Binaries/DotNET/NetworkProfiler.exe`.
 
 At the top of the window, click the "Open File" button to select a .nprof file and view the data contained within.
 

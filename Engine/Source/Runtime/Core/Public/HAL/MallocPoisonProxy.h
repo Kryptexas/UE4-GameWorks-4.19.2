@@ -9,7 +9,7 @@
 
 /** Governs when malloc that poisons the allocations is enabled. */
 #if !defined(UE_USE_MALLOC_FILL_BYTES)
-	#define UE_USE_MALLOC_FILL_BYTES ((UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT) && !WITH_EDITORONLY_DATA && !PLATFORM_USES_FIXED_GMalloc_CLASS)
+	#define UE_USE_MALLOC_FILL_BYTES ((UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT) && !WITH_EDITORONLY_DATA && !PLATFORM_USES_FIXED_GMalloc_CLASS && !USING_ADDRESS_SANITISER)
 #endif // !defined(UE_USE_MALLOC_FILL_BYTES)
 
 /** Value that a freed memory block will be filled with when UE_USE_MALLOC_FILL_BYTES is defined. */

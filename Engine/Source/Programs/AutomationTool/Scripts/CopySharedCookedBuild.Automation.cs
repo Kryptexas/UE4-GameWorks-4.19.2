@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using AutomationTool;
 using UnrealBuildTool;
-
+using Tools.DotNETCommon;
 
 class CopySharedCookedBuild : BuildCommand
 {

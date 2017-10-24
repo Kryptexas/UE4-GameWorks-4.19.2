@@ -24,6 +24,7 @@
 #ifndef USD_PROPERTY_H
 #define USD_PROPERTY_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/usd/usd/common.h"
 #include "pxr/usd/usd/object.h"
@@ -32,6 +33,9 @@
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/propertySpec.h"
 #include "pxr/base/vt/value.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 class UsdProperty;
 
@@ -52,7 +56,7 @@ class UsdProperty : public UsdObject {
 public:
     /// Construct an invalid property.
     UsdProperty()
-        : UsdObject(UsdTypeProperty, Usd_PrimDataHandle(), TfToken())
+        : UsdObject(UsdTypeProperty, Usd_PrimDataHandle(), SdfPath(), TfToken())
     {
     }
 
@@ -92,18 +96,21 @@ public:
     /// often used to group related properties together.  The namespace prefixes
     /// the property name but many consumers will care only about un-namespaced
     /// name, i.e. its BaseName.  For more information, see \ref Usd_Ordering
-	USD_API TfToken GetBaseName() const;
+    USD_API
+    TfToken GetBaseName() const;
 
     /// Return this property's complete namespace prefix.  Return the empty
     /// token if this property has no namespaces.
     ///
     /// This is the complement of GetBaseName(), although it does \em not
     /// contain a trailing namespace delimiter
-	USD_API TfToken GetNamespace() const;
+    USD_API
+    TfToken GetNamespace() const;
 
     /// Return this property's name elements including namespaces and its base
     /// name as the final element.
-	USD_API std::vector<std::string> SplitName() const;
+    USD_API
+    std::vector<std::string> SplitName() const;
 
     /// @}
     /// \name Core Metadata
@@ -112,7 +119,8 @@ public:
     /// Return this property's display group (metadata).  This returns the
     /// empty token if no display group has been set.
     /// \sa SetDisplayGroup()
-	USD_API std::string GetDisplayGroup() const;
+    USD_API
+    std::string GetDisplayGroup() const;
 
     /// Sets this property's display group (metadata).  Returns true on success.
     ///
@@ -121,19 +129,23 @@ public:
     /// of groups by recognizing the property namespace separator in 
     /// displayGroup as denoting group-nesting.
     /// \sa SetNestedDisplayGroups()
-	USD_API bool SetDisplayGroup(const std::string& displayGroup) const;
+    USD_API
+    bool SetDisplayGroup(const std::string& displayGroup) const;
 
     /// Clears this property's display group (metadata) in
     /// the current EditTarget (only).  Returns true on success.
-	USD_API bool ClearDisplayGroup() const;
+    USD_API
+    bool ClearDisplayGroup() const;
 
     /// Returns true if displayGroup was explicitly authored and GetMetadata()
     /// will return a meaningful value for displayGroup. 
-	USD_API bool HasAuthoredDisplayGroup() const;
+    USD_API
+    bool HasAuthoredDisplayGroup() const;
 
     /// Return this property's displayGroup as a sequence of groups to be
     /// nested, or an empty vector if displayGroup is empty or not authored.
-	USD_API std::vector<std::string> GetNestedDisplayGroups() const;
+    USD_API
+    std::vector<std::string> GetNestedDisplayGroups() const;
 
     /// Sets this property's display group (metadata) to the nested sequence.  
     /// Returns true on success.
@@ -142,28 +154,33 @@ public:
     /// GetDisplayGroup(), with the namespace separator embedded in the result.
     /// If \p nestedGroups is empty, we author an empty string for displayGroup.
     /// \sa SetDisplayGroup()
-	USD_API bool SetNestedDisplayGroups(
+    USD_API
+    bool SetNestedDisplayGroups(
         const std::vector<std::string>& nestedGroups) const;
 
     /// Return this property's display name (metadata).  This returns the
     /// empty string if no display name has been set.
     /// \sa SetDisplayName()
-	USD_API std::string GetDisplayName() const;
+    USD_API
+    std::string GetDisplayName() const;
 
     /// Sets this property's display name (metadata).  Returns true on success.
     ///
     /// DisplayName is meant to be a descriptive label, not necessarily an
     /// alternate identifier; therefore there is no restriction on which
     /// characters can appear in it.
-	USD_API bool SetDisplayName(const std::string& name) const;
+    USD_API
+    bool SetDisplayName(const std::string& name) const;
 
     /// Clears this property's display name (metadata) in the current EditTarget
     /// (only).  Returns true on success.
-	USD_API bool ClearDisplayName() const;
+    USD_API
+    bool ClearDisplayName() const;
 
     /// Returns true if displayName was explicitly authored and GetMetadata()
     /// will return a meaningful value for displayName. 
-	USD_API bool HasAuthoredDisplayName() const;
+    USD_API
+    bool HasAuthoredDisplayName() const;
 
     /// Return true if this is a custom property (i.e., not part of a
     /// prim schema).
@@ -172,7 +189,8 @@ public:
     /// 'userProperties', which is to say as a categorization for ad hoc
     /// client data not formalized into any schema, and therefore not 
     /// carrying an expectation of specific processing by consuming applications.
-	USD_API bool IsCustom() const;
+    USD_API
+    bool IsCustom() const;
 
     /// Set the value for custom at the current EditTarget, return true on
     /// success, false if the value can not be written.
@@ -180,7 +198,8 @@ public:
     /// \b Note that this value should not be changed as it is typically either
     /// automatically authored or provided by a property defintion. This method
     /// is provided primarily for fixing invalid scene description.
-	USD_API bool SetCustom(bool isCustom) const;
+    USD_API
+    bool SetCustom(bool isCustom) const;
 
     /// @}
     /// \name Existence and Validity
@@ -196,18 +215,21 @@ public:
     /// possesses a value, only that has been declared, is of a certain type and
     /// variability, and that it is safe to use to query and author values and
     /// metadata.
-	USD_API bool IsDefined() const;
+    USD_API
+    bool IsDefined() const;
 
     /// Return true if there are any authored opinions for this property
     /// in any layer that contributes to this stage, false otherwise.
-	USD_API bool IsAuthored() const;
+    USD_API
+    bool IsAuthored() const;
 
     /// Return true if there is an SdfPropertySpec authored for this
     /// property at the given \a editTarget, otherwise return false.  Note
     /// that this method does not do partial composition.  It does not consider
     /// whether authored scene description exists at \a editTarget or weaker,
     /// only <b>exactly at</b> the given \a editTarget.
-	USD_API bool IsAuthoredAt(const class UsdEditTarget &editTarget) const;
+    USD_API
+    bool IsAuthoredAt(const class UsdEditTarget &editTarget) const;
 
     /// @}
 
@@ -220,9 +242,13 @@ private:
 
     UsdProperty(UsdObjType objType,
                 const Usd_PrimDataHandle &prim,
+                const SdfPath &proxyPrimPath,
                 const TfToken &propName)
-        : UsdObject(objType, prim, propName) {}
+        : UsdObject(objType, prim, proxyPrimPath, propName) {}
 
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_PROPERTY_H

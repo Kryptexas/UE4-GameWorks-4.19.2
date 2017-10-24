@@ -10,7 +10,6 @@
 
 struct CORE_API FAndroidOutputDevices : public FGenericPlatformOutputDevices
 {
-	static FOutputDeviceError*	GetError();
 };
 
 typedef FAndroidOutputDevices FPlatformOutputDevices;

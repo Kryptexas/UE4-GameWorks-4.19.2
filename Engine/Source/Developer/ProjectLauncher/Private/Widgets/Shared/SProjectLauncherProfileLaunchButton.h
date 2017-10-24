@@ -16,9 +16,11 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SToolTip.h"
-#include "Widgets/SProjectLauncherValidation.h"
+#include "Widgets/Shared/SProjectLauncherValidation.h"
+
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherProfileLaunchButton"
+
 
 /**
  * Implements a build configuration selector widget.
@@ -164,10 +166,10 @@ private:
 
 private:
 
-	// Attribute for the launch profile this widget launches. 
+	/** Attribute for the launch profile this widget launches. */
 	TAttribute<ILauncherProfilePtr> LaunchProfileAttr;
 
-	// Holds a pointer to our custom tooltip.
+	/** Holds a pointer to our custom tooltip. */
 	TSharedPtr<SToolTip> ErrorToolTipWidget;
 
 };

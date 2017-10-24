@@ -33,6 +33,15 @@
 	return self;
 }
 
+-(void)dealloc
+{
+	[CloudContainer release];
+	[SharedDatabase release];
+	[UserDatabase release];
+	[iCloudToken release];
+	[super dealloc];
+}
+
 -(bool)readFile:(NSString*)fileName sharedDB:(bool)shared completionHandler:(void(^)(CKRecord* record, NSError* error))handler
 {
 #ifdef __IPHONE_8_0
@@ -58,7 +67,7 @@
 		CKDatabase* DB = shared ? SharedDatabase : UserDatabase;
 		if (DB != nil)
 		{
-			CKRecordID* recordId = [[CKRecordID alloc] initWithRecordName:fileName];
+			CKRecordID* recordId = [[[CKRecordID alloc] initWithRecordName:fileName] autorelease];
 			CKRecord* record = [[CKRecord alloc] initWithRecordType:@"file" recordID: recordId];
 			record[@"contents"] = fileContents;
 			[DB saveRecord : record completionHandler : handler];
@@ -94,7 +103,7 @@
 		CKDatabase* DB = shared ? SharedDatabase : UserDatabase;
 		if (DB != nil)
 		{
-			CKQuery* query = [[CKQuery alloc] initWithRecordType:@"file" predicate:[NSPredicate predicateWithFormat : @"TRUEPREDICATE"]];
+			CKQuery* query = [[[CKQuery alloc] initWithRecordType:@"file" predicate:[NSPredicate predicateWithFormat : @"TRUEPREDICATE"]] autorelease];
 			CKQueryOperation* queryOp = [[CKQueryOperation alloc] initWithQuery:query];
 			queryOp.desiredKeys = @[@"record.recordID.recordName"];
 			queryOp.recordFetchedBlock = fetch;

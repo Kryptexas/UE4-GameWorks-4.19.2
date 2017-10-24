@@ -396,7 +396,7 @@ FText SBlueprintActionMenu::GetSearchContextDesc() const
 			const FString TypeStringRaw = UEdGraphSchema_K2::TypeToText(OnePin->PinType).ToString();
 
 			//@TODO: Add a parameter to TypeToText indicating the kind of formating requested
-			const FString TypeString = (TypeStringRaw.Replace(TEXT("'"), TEXT(" "))).TrimTrailing();
+			const FString TypeString = (TypeStringRaw.Replace(TEXT("'"), TEXT(" "))).TrimEnd();
 
 			if (OnePin->Direction == EGPD_Input)
 			{

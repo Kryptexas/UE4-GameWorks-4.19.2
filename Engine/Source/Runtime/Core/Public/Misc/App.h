@@ -79,14 +79,17 @@ public:
 	static FString GetEpicProductIdentifier();
 
 	/**
-	 * Gets the name of the currently running game.
+	 * Gets the name of the current project.
 	 *
-	 * @return The game name.
+	 * @return The project name.
 	 */
-	FORCEINLINE static const TCHAR* GetGameName()
+	FORCEINLINE static const TCHAR* GetProjectName()
 	{
-		return GInternalGameName;
+		return GInternalProjectName;
 	}
+
+	DEPRECATED(4.18, "GetGameName() has been superseded by GetProjectName().")
+	FORCEINLINE static const TCHAR* GetGameName() { return GetProjectName(); }
 
 	/**
 	 * Gets the name of the application, i.e. "UE4" or "Rocket".
@@ -114,14 +117,17 @@ public:
 	}
 
 	/**
-	 * Reports if the game name has been set
+	 * Reports if the project name has been set
 	 *
-	 * @return true if the game name has been set
+	 * @return true if the project name has been set
 	 */
-	FORCEINLINE static bool HasGameName()
+	FORCEINLINE static bool HasProjectName()
 	{
-		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
+		return (IsProjectNameEmpty() == false) && (FCString::Stricmp(GInternalProjectName, TEXT("None")) != 0);
 	}
+
+	DEPRECATED(4.18, "HasGameName() has been superseded by HasProjectName().")
+	FORCEINLINE static bool HasGameName() { return HasProjectName(); }
 
 	/**
 	 * Checks whether this application is a game.
@@ -142,27 +148,33 @@ public:
 	}
 
 	/**
-	 * Reports if the game name is empty
+	 * Reports if the project name is empty
 	 *
-	 * @return true if the game name is empty
+	 * @return true if the project name is empty
 	 */
-	FORCEINLINE static bool IsGameNameEmpty()
+	FORCEINLINE static bool IsProjectNameEmpty()
 	{
-		return (GInternalGameName[0] == 0);
+		return (GInternalProjectName[0] == 0);
 	}
 
+	DEPRECATED(4.18, "IsGameNameEmpty() has been superseded by IsProjectNameEmpty().")
+	FORCEINLINE static bool IsGameNameEmpty() { return IsProjectNameEmpty(); }
+
 	/**
-	* Sets the name of the currently running game.
+	* Sets the name of the current project.
 	*
-	* @param InGameName Name of the curently running game.
+	* @param InProjectName Name of the current project.
 	*/
-	FORCEINLINE static void SetGameName(const TCHAR* InGameName)
+	FORCEINLINE static void SetProjectName(const TCHAR* InProjectName)
 	{
 		// At the moment Strcpy is not safe as we don't check the buffer size on all platforms, so we use strncpy here.
-		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
-		// And make sure the GameName string is null terminated.
-		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
+		FCString::Strncpy(GInternalProjectName, InProjectName, ARRAY_COUNT(GInternalProjectName));
+		// And make sure the ProjectName string is null terminated.
+		GInternalProjectName[ARRAY_COUNT(GInternalProjectName) - 1] = 0;
 	}
+
+	DEPRECATED(4.18, "SetGameName() has been superseded by SetProjectName().")
+	FORCEINLINE static void SetGameName(const TCHAR* InGameName) { SetProjectName(InGameName); }
 
 public:
 

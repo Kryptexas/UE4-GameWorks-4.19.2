@@ -21,6 +21,10 @@ class UAnimGraphNode_Fabrik : public UAnimGraphNode_SkeletalControlBase
 	FAnimNode_Fabrik Node;
 
 public:
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface

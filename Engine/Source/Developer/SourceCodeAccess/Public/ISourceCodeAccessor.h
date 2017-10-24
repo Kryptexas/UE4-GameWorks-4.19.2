@@ -45,10 +45,23 @@ public:
 	virtual FText GetDescriptionText() const = 0;
 
 	/**
-	 * Open the code solution for editing
+	 * Open the current code solution for editing
 	 * @return true if successful
 	 */
 	virtual bool OpenSolution() = 0;
+
+	/**
+	* Open the code solution at a specific path for editing
+	* @param InSolutionPath	Path to project directory
+	* @return true if successful
+	*/
+	virtual bool OpenSolutionAtPath(const FString& InSolutionPath) = 0;
+
+	/**
+	 * Determine if the source code solution for the given accessor already exists
+	 * @return true if solution files exist
+	 */
+	virtual bool DoesSolutionExist() const = 0;
 
 	/** 
 	 * Opens a file in the correct running instance of this code accessor at a line and optionally to a column. 

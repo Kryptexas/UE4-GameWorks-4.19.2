@@ -17,6 +17,7 @@ public class SessionFrontend : ModuleRules
         PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"DesktopPlatform",
+				"ApplicationCore",
                 "InputCore",
 				"Json",
                 "SessionServices",

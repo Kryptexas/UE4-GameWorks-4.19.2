@@ -12,6 +12,7 @@
 #include "Widgets/Input/SSearchBox.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/AnimInstance.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 
@@ -518,7 +519,7 @@ void SMorphTargetViewer::OnCopyMorphTargetNames()
 
 	if(!CopyText.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyText);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyText);
 	}
 }
 

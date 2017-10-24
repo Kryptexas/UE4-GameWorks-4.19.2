@@ -16,7 +16,9 @@
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/TextureCube.h"
+#include "StereoRendering.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Engine/RendererSettings.h"
 #include "LightPropagationVolumeSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -127,9 +129,9 @@ static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
 	ECVF_Cheat);
 
 static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
-	TEXT("r.ScreenPercentage.Editor"),
+	TEXT("r.ScreenPercentage.VREditor"),
 	0,
-	TEXT("To allow to have an effect of ScreenPercentage in the editor.\n")
+	TEXT("To allow to have an effect of ScreenPercentage in the VR Editor.\n")
 	TEXT("0: off (default)\n")
 	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
 	ECVF_Default);
@@ -231,7 +233,8 @@ static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
 	TEXT(" 0: off (no anti-aliasing)\n")
 	TEXT(" 1: FXAA (faster than TemporalAA but much more shimmering for non static cases)\n")
 	TEXT(" 2: TemporalAA (default)\n")
-	TEXT(" 3: MSAA (Forward shading only)"));
+	TEXT(" 3: MSAA (Forward shading only)"),
+    ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarMotionBlurScale(
 	TEXT("r.MotionBlur.Scale"),
@@ -592,6 +595,10 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, UnconstrainedViewRect(InitOptions.GetViewRect())
 	, MaxShadowCascades(10)
 	, ViewMatrices(InitOptions)
+	, ViewLocation(EForceInit::ForceInitToZero)
+	, ViewRotation(EForceInit::ForceInitToZero)
+	, BaseHmdOrientation(EForceInit::ForceInit)
+	, BaseHmdLocation(EForceInit::ForceInitToZero)
 	, WorldToMetersScale(InitOptions.WorldToMetersScale)
 	, ShadowViewMatrices(InitOptions)
 	, ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
@@ -729,14 +736,14 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// Query instanced stereo and multi-view state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
+	bIsInstancedStereoEnabled = RHISupportsInstancedStereo(ShaderPlatform) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
 
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
-	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
+	bIsMultiViewEnabled = RHISupportsMultiView(ShaderPlatform) && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 
 #if PLATFORM_ANDROID
 	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
-	bIsMobileMultiViewEnabled = StereoPass != eSSP_MONOSCOPIC_EYE && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+	bIsMobileMultiViewEnabled = RHISupportsMobileMultiView(ShaderPlatform) && StereoPass != eSSP_MONOSCOPIC_EYE && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
 
 	// TODO: Test platform support for direct
 	static const auto MobileMultiViewDirectCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
@@ -917,13 +924,15 @@ void FViewMatrices::UpdateViewMatrix(const FVector& ViewLocation, const FRotator
 void FSceneView::UpdateViewMatrix()
 {
 	FVector StereoViewLocation = ViewLocation;
+	FRotator StereoViewRotation = ViewRotation;
 	if (GEngine->StereoRenderingDevice.IsValid() && StereoPass != eSSP_FULL)
 	{
-		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewRotation, WorldToMetersScale, StereoViewLocation);
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, StereoViewRotation, WorldToMetersScale, StereoViewLocation);
 		ViewLocation = StereoViewLocation;
+		ViewRotation = StereoViewRotation;
 	}
 
-	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
+	ViewMatrices.UpdateViewMatrix(StereoViewLocation, StereoViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
 	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->IsMonoscopicFarFieldEnabled())
@@ -1805,22 +1814,32 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-
-		float Value = ScreenPercentageCVar->GetValueOnGameThread();
-
-		if(Value >= 0.0)
+#if WITH_EDITOR
+		if (ViewInitOptions.bDisableGameScreenPercentage)
 		{
-			FinalPostProcessSettings.ScreenPercentage *= Value / 100.0f;
+			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
+		else
+#endif
+		{
+			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageCVar->GetValueOnGameThread() / 100.0f;
+		}
+
+#if WITH_EDITOR
+		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && StereoPass == EStereoscopicPass::eSSP_FULL)
+		{
+			FinalPostProcessSettings.ScreenPercentage *= ViewInitOptions.EditorViewScreenPercentage.GetValue() / 100.0f;
+		}
+#endif
 	}
 
 	{
 		const bool bStereoEnabled = StereoPass != eSSP_FULL;
-		const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && bStereoEnabled;
+		const bool bScaledToRenderTarget = GEngine->XRSystem.IsValid() && bStereoEnabled && GEngine->XRSystem->GetHMDDevice();
 		if (bScaledToRenderTarget)
 		{
-			GEngine->HMDDevice->UpdatePostProcessSettings(&FinalPostProcessSettings);
+			GEngine->XRSystem->GetHMDDevice()->UpdatePostProcessSettings(&FinalPostProcessSettings);
 		}
 	}
 
@@ -1987,23 +2006,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 		check(Family->RenderTarget);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)
-		{
-			// Don't apply editor screen percentage scaling while in a PIE viewport
-			const bool bInGame = !GEngine || GEngine->GameViewport != nullptr;
-
-			// Don't apply editor screen percentage scaling while rendering a stereo view in the editor, as HMDs often
-			// require device-specific upscaling to look correct
-			const bool bStereo = ViewInitOptions.StereoPass != eSSP_FULL;
-
-			if(!bInGame && !bStereo)
-			{
-				Fraction = 1.0f;
-			}
-		}
-#endif
-
 		// Upscale if needed
 		if (Fraction != 1.0f)
 		{
@@ -2063,7 +2065,7 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 				}
 
 				// Lookup this material from the list that was parsed out of the global ini file
-				Left = Left.Trim();
+				Left.TrimStartInline();
 				UMaterial* Material = BufferVisualizationData.GetMaterial(*Left);
 
 				if (Material == NULL && Left.Len() > 0)
@@ -2485,11 +2487,11 @@ bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
 	
 	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
 		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || (IsMobileHDR() && !bMobileMSAA)) // on <= ES3_1 separate translucency requires HDR on and MSAA off
-		&& EngineShowFlags.PostProcessing // Used for reflection captures.
-		&& !UseDebugViewPS()
-		&& EngineShowFlags.SeparateTranslucency
-		&& !bPostProcessAlphaChannel;
-		// If not, translucency after DOF will be rendered in standard translucency.
+	&& EngineShowFlags.PostProcessing // Used for reflection captures.
+	&& !UseDebugViewPS()
+	&& EngineShowFlags.SeparateTranslucency
+	&& !bPostProcessAlphaChannel;
+	// If not, translucency after DOF will be rendered in standard translucency.
 }
 
 

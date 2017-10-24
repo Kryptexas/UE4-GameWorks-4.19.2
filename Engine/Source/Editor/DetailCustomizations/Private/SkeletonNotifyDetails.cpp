@@ -30,7 +30,7 @@ void FSkeletonNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 
 	TSharedPtr<IPropertyHandle> InPropertyHandle = DetailBuilder.GetProperty("AnimationNames");
 
-	TArray< TWeakObjectPtr<UObject> > SelectedObjects =  DetailBuilder.GetDetailsView().GetSelectedObjects();
+	TArray< TWeakObjectPtr<UObject> > SelectedObjects =  DetailBuilder.GetSelectedObjects();
 
 	UEditorSkeletonNotifyObj* EdObj = NULL;
 	for(int i = 0; i < SelectedObjects.Num(); ++i)

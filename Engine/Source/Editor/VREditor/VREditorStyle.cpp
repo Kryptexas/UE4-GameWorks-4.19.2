@@ -224,14 +224,12 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	Style->Set("VREditorStyle.PlayFromStart", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Seq_Start", Icon512x512));
 	Style->Set("VREditorStyle.ToggleLooping", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Seq_Loop", Icon512x512));
 
-
-
-
-
-
 	Style->Set("VREditorStyle.Home", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Home_v1", Icon512x512));
 	Style->Set("VREditorStyle.OneLevel", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Home_v2", Icon512x512));
 	Style->Set("VREditorStyle.TwoLevel", new IMAGE_BRUSH("Icons/VREditor/T_Radial_Home_v3", Icon512x512));
+
+	Style->Set("VREditorStyle.SystemMenu", new IMAGE_BRUSH("Icons/VREditor/T_Radial_VR_Icon", Icon512x512));
+	Style->Set("VREditorStyle.ExitVRMode", new IMAGE_BRUSH("Icons/VREditor/T_Radial_VR_Icon", Icon512x512));
 
 	return Style;
 }

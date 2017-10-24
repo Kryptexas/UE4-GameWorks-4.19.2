@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/ILauncherProfileManager.h"
+#include "ILauncherProfileManager.h"
 #include "Misc/Paths.h"
 
 /**

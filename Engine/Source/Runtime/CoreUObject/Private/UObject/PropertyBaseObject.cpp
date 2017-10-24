@@ -166,7 +166,7 @@ FString UObjectPropertyBase::GetExportPath(const UObject* Object, const UObject*
 	FString PathName = Object->GetPathName(StopOuter);
 	int32 ResultIdx = 0;
 	// Object names that contain invalid characters and paths that contain spaces must be put into quotes to be handled correctly
-	if ( (PortFlags & PPF_Delimited) && (!Object->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS) || PathName.FindChar(' ', ResultIdx)) )
+	if (PortFlags & PPF_Delimited)
 	{
 		PathName = FString::Printf(TEXT("\"%s\""), *PathName.ReplaceQuotesWithEscapedQuotes());
 	}
@@ -198,7 +198,7 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
 		}
 		else if (Parent && !Parent->HasAnyFlags(RF_ClassDefaultObject) && Temp->IsDefaultSubobject())
 		{
-			if ((PortFlags & PPF_Delimited) && (!Temp->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS)))
+			if (PortFlags & PPF_Delimited)
 			{
 				ValueStr += FString::Printf(TEXT("\"%s\""), *Temp->GetName().ReplaceQuotesWithEscapedQuotes());
 			}
@@ -382,7 +382,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 		if (Result == nullptr && (PortFlags & PPF_SerializedAsImportText))
 		{
 			// Check string asset redirectors
-			FStringAssetReference Path = FString(Text);
+			FSoftObjectPath Path = FString(Text);
 			if (Path.PreSavePath())
 			{
 				Result = StaticFindObjectSafe(ObjectClass, nullptr, *Path.ToString());

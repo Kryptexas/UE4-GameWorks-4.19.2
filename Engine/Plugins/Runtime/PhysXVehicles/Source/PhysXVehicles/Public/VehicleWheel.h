@@ -14,6 +14,7 @@
 #include "VehicleWheel.generated.h"
 
 class UPhysicalMaterial;
+class FPhysXVehicleManager;
 
 namespace physx
 {
@@ -243,8 +244,10 @@ protected:
 	 * Get the wheel's location in physics land
 	 */
 	FVector GetPhysicsLocation();
-
 #endif // WITH_PHYSX
+
+private:
+	FPhysXVehicleManager* GetVehicleManager() const;
 
 public:
 

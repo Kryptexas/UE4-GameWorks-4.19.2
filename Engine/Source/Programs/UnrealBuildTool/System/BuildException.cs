@@ -14,10 +14,29 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="MessageFormat">Format for the message string</param>
-		/// <param name="MessageObjects">Format arguments</param>
-		public BuildException(string MessageFormat, params Object[] MessageObjects) :
-			base("ERROR: " + string.Format(MessageFormat, MessageObjects))
+		/// <param name="Message">The error message to display.</param>
+		public BuildException(string Message)
+			: base(Message)
+		{
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InnerException">An inner exception to wrap</param>
+		/// <param name="Message">The error message to display.</param>
+		public BuildException(Exception InnerException, string Message)
+			: base(Message)
+		{
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Format">Formatting string for the error message</param>
+		/// <param name="Arguments">Arguments for the formatting string</param>
+		public BuildException(string Format, params object[] Arguments) 
+			: base(String.Format(Format, Arguments))
 		{
 		}
 
@@ -25,10 +44,10 @@ namespace UnrealBuildTool
 		/// Constructor which wraps another exception
 		/// </summary>
 		/// <param name="InnerException">The inner exception being wrapped</param>
-		/// <param name="MessageFormat">Format for the message string</param>
-		/// <param name="MessageObjects">Format arguments</param>
-		public BuildException(Exception InnerException, string MessageFormat, params Object[] MessageObjects) :
-			base("ERROR: " + string.Format(MessageFormat, MessageObjects), InnerException)
+		/// <param name="Format">Format for the message string</param>
+		/// <param name="Arguments">Format arguments</param>
+		public BuildException(Exception InnerException, string Format, params object[] Arguments) 
+			: base(String.Format(Format, Arguments), InnerException)
 		{
 		}
 
@@ -38,25 +57,7 @@ namespace UnrealBuildTool
 		/// <returns>Message for the exception</returns>
 		public override string ToString()
 		{
-			if (Message != null && Message.Length > 0)
-			{
-				return Message;
-			}
-			else
-			{
-				return base.ToString();
-			}
+			return Message;
 		}
-	};
-
-	class MissingModuleException : BuildException
-	{
-		public MissingModuleException(string InModuleName) :
-			base("Couldn't find module rules file for module '{0}'.", InModuleName)
-		{
-			ModuleName = InModuleName;
-		}
-
-		public string ModuleName;
-	};
+	}
 }

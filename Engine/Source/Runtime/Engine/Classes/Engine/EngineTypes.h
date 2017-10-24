@@ -218,7 +218,7 @@ enum EOcclusionCombineMode
 	/** 
 	 * Multiply together occlusion values from Distance Field Ambient Occlusion and Screen Space Ambient Occlusion.  
 	 * This gives a good sense of depth everywhere, but can cause over-occlusion. 
-	 * SSAO should be tweaked to be less strong compard to Minimum.
+	 * SSAO should be tweaked to be less strong compared to Minimum.
 	 */
 	OCM_Multiply,
 	OCM_MAX,
@@ -370,13 +370,13 @@ struct FLightingChannels
 
 	/** Default channel for all primitives and lights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel0;
+	uint8 bChannel0:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel1;
+	uint8 bChannel1:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
-	bool bChannel2;
+	uint8 bChannel2:1;
 };
 
 inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
@@ -476,6 +476,7 @@ enum EMaterialSamplerType
 	SAMPLERTYPE_DistanceFieldFont UMETA(DisplayName="Distance Field Font"),
 	SAMPLERTYPE_LinearColor UMETA(DisplayName = "Linear Color"),
 	SAMPLERTYPE_LinearGrayscale UMETA(DisplayName = "Linear Grayscale"),
+	SAMPLERTYPE_External UMETA(DisplayName = "External"),
 	SAMPLERTYPE_MAX,
 };
 
@@ -1610,7 +1611,7 @@ struct FLightmassPrimitiveSettings
 	float EmissiveLightExplicitInfluenceRadius;
 
 	/** Scales the emissive contribution of all materials applied to this object.	*/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Lightmass)
 	float EmissiveBoost;
 
 	/** Scales the diffuse contribution of all materials applied to this object.	*/
@@ -1872,7 +1873,7 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	float Time;
 	 
-	/** The distance from the TraceStart to the ImpactPoint in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
+	/** The distance from the TraceStart to the Location in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
 	UPROPERTY()
 	float Distance; 
 	
@@ -3538,6 +3539,21 @@ struct FDirectoryPath
 	FString Path;
 };
 
+
+/**
+ * Reference to an editor collection of assets. This allows an editor-only picker UI
+ */
+USTRUCT(BlueprintType)
+struct FCollectionReference
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * Name of the collection
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CollectionReference)
+	FName CollectionName;
+};
 
 /**
 * This is used for redirecting old name to new name

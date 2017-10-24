@@ -12,11 +12,6 @@
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
 #include "Components/ChildActorComponent.h"
-#include "Components/DestructibleComponent.h"
-
-
-
-#include "Engine/DestructibleMesh.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
@@ -50,43 +45,6 @@ public:
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(InComponent))
 		{
 			return StaticMeshComp->GetStaticMesh();
-		}
-		return NULL;
-	}
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FDestructableMeshComponentBroker
-
-class FDestructableMeshComponentBroker : public IComponentAssetBroker
-{
-public:
-	UClass* GetSupportedAssetClass() override
-	{
-		return UDestructibleMesh::StaticClass();
-	}
-
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
-	{
-		if (UDestructibleComponent* DestMeshComp = Cast<UDestructibleComponent>(InComponent))
-		{
-			UDestructibleMesh* DMesh = Cast<UDestructibleMesh>(InAsset);
-
-			if (DMesh)
-			{
-				DestMeshComp->SetDestructibleMesh(DMesh);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
-	{
-		if (UDestructibleComponent* DestMeshComp = Cast<UDestructibleComponent>(InComponent))
-		{
-			return DestMeshComp->GetDestructibleMesh();
 		}
 		return NULL;
 	}
@@ -369,7 +327,6 @@ void FComponentAssetBrokerage::InitializeMap()
 
 		RegisterBroker(MakeShareable(new FStaticMeshComponentBroker), UStaticMeshComponent::StaticClass(), true, true);
 		RegisterBroker(MakeShareable(new FSkeletalMeshComponentBroker), USkeletalMeshComponent::StaticClass(), true, true);
-		RegisterBroker(MakeShareable(new FDestructableMeshComponentBroker), UDestructibleComponent::StaticClass(), false, true);
 		RegisterBroker(MakeShareable(new FParticleSystemComponentBroker), UParticleSystemComponent::StaticClass(), true, true);
 		RegisterBroker(MakeShareable(new FAudioComponentBroker), UAudioComponent::StaticClass(), true, true);
 		RegisterBroker(MakeShareable(new FChildActorComponentBroker), UChildActorComponent::StaticClass(), true, false);

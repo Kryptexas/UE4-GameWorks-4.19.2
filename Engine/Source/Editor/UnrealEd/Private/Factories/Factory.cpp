@@ -29,7 +29,6 @@ FMD5Hash UFactory::FileHash;
 
 // This needs to be greater than 0 to allow factories to have both higher and lower priority than the default
 const int32 UFactory::DefaultImportPriority = 100;
-bool UFactory::bAllowOneTimeWarningMessages = true;
 
 
 UFactory::UFactory(const FObjectInitializer& ObjectInitializer)

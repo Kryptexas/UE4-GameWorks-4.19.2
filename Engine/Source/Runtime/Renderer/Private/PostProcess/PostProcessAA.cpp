@@ -71,15 +71,16 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		const FSceneView& View = Context.View;
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
 		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -91,48 +92,48 @@ public:
 
 		FVector2D InvExtent = FVector2D(1.0f / InputDesc->Extent.X, 1.0f / InputDesc->Extent.Y);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityRcpFrame, InvExtent);
+		SetShaderValue(RHICmdList, ShaderRHI, fxaaQualityRcpFrame, InvExtent);
 
 		{
 			float N = 0.5f;
 			FVector4 Value(-N * InvExtent.X, -N * InvExtent.Y, N * InvExtent.X, N * InvExtent.Y);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt, Value);
 		}
 
 		{
 			float N = 2.0f;
 			FVector4 Value(-N * InvExtent.X, -N * InvExtent.Y, N * InvExtent.X, N * InvExtent.Y);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt2, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaConsoleRcpFrameOpt2, Value);
 		}
 
 		{
 			float Value = 0.75f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualitySubpix, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaQualitySubpix, Value);
 		}
 
 		{
 			float Value = 0.166f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityEdgeThreshold, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaQualityEdgeThreshold, Value);
 		}
 
 		{
 			float Value = 0.0833f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaQualityEdgeThresholdMin, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaQualityEdgeThresholdMin, Value);
 		}
 
 		{
 			float Value = 8.0f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeSharpness, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaConsoleEdgeSharpness, Value);
 		}
 
 		{
 			float Value = 0.125f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeThreshold, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaConsoleEdgeThreshold, Value);
 		}
 
 		{
 			float Value = 0.05f;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, fxaaConsoleEdgeThresholdMin, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, fxaaConsoleEdgeThresholdMin, Value);
 		}
 	}
 	
@@ -213,11 +214,12 @@ IMPLEMENT_SHADER_TYPE(,FFXAAVS,TEXT("/Engine/Private/FXAAShader.usf"),TEXT("Fxaa
 
 
 // @param Quality 1..6
-template <uint32 Quality>
-static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
+template <uint32 Quality, typename TRHICmdList>
+static void SetShaderTemplAA(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
+	static_assert(Quality >= 1 && Quality <= 6, "Quality should be 1..6!");
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
@@ -230,9 +232,9 @@ static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
 	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 	
-	PixelShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 	VertexShader->SetParameters(Context);
 }
 
@@ -264,12 +266,12 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 
 	switch(Quality)
 	{
-		case 1:  SetShaderTemplAA<1>(Context); break;
-		case 2:  SetShaderTemplAA<2>(Context); break;
-		case 3:  SetShaderTemplAA<3>(Context); break;
-		case 4:  SetShaderTemplAA<4>(Context); break;
-		case 5:  SetShaderTemplAA<5>(Context); break;
-		default: SetShaderTemplAA<6>(Context); break;
+		case 1:  SetShaderTemplAA<1>(Context.RHICmdList, Context); break;
+		case 2:  SetShaderTemplAA<2>(Context.RHICmdList, Context); break;
+		case 3:  SetShaderTemplAA<3>(Context.RHICmdList, Context); break;
+		case 4:  SetShaderTemplAA<4>(Context.RHICmdList, Context); break;
+		case 5:  SetShaderTemplAA<5>(Context.RHICmdList, Context); break;
+		default: SetShaderTemplAA<6>(Context.RHICmdList, Context); break;
 	}
 	
 	TShaderMapRef<FFXAAVS> VertexShader(Context.GetShaderMap());

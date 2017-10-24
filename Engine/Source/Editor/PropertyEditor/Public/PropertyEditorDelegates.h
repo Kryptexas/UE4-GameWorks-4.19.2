@@ -67,3 +67,43 @@ DECLARE_DELEGATE_RetVal(bool, FIsPropertyEditingEnabled );
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFinishedChangingProperties, const FPropertyChangedEvent&);
 
+/**
+ * Callback executed to query the custom layout of details
+ */
+struct FDetailLayoutCallback
+{
+	/** Delegate to call to query custom layout of details */
+	FOnGetDetailCustomizationInstance DetailLayoutDelegate;
+	/** The order of this class in the map of callbacks to send (callbacks sent in the order they are received) */
+	int32 Order;
+};
+
+struct FPropertyTypeLayoutCallback
+{
+	FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate;
+
+	TSharedPtr<class IPropertyTypeIdentifier> PropertyTypeIdentifier;
+
+	bool IsValid() { return PropertyTypeLayoutDelegate.IsBound(); }
+
+	TSharedRef<class IPropertyTypeCustomization> GetCustomizationInstance() const;
+};
+
+
+struct FPropertyTypeLayoutCallbackList
+{
+	/** The base callback is a registered callback with a null identifier */
+	FPropertyTypeLayoutCallback BaseCallback;
+
+	/** List of registered callbacks with a non null identifier */
+	TArray< FPropertyTypeLayoutCallback > IdentifierList;
+
+	void Add(const FPropertyTypeLayoutCallback& NewCallback);
+
+	void Remove(const TSharedPtr<IPropertyTypeIdentifier>& InIdentifier);
+
+	const FPropertyTypeLayoutCallback& Find(const class IPropertyHandle& PropertyHandle) const;
+};
+
+/** This is a multimap as there many be more than one customization per property type */
+typedef TMap< FName, FPropertyTypeLayoutCallbackList > FCustomPropertyTypeLayoutMap;

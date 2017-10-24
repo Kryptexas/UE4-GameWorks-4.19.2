@@ -22,9 +22,9 @@ void UGranularSynth::Init(const int32 SampleRate)
 	SoundWaveLoader.Init(GetAudioDevice());
 }
 
-void UGranularSynth::OnGenerateAudio(TArray<float>& OutAudio)
+void UGranularSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 {
-	const int32 NumFrames = OutAudio.Num() / NumChannels;
+	const int32 NumFrames = NumSamples / NumChannels;
 	GranularSynth.Generate(OutAudio, NumFrames);
 }
 

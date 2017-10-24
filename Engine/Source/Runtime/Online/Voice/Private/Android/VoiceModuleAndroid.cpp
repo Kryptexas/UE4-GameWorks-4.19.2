@@ -239,9 +239,8 @@ public:
 	
 	
 	// IVoiceCapture
-	virtual bool Init(int32 InSampleRate, int32 InNumChannels) override
+	virtual bool Init(const FString& DeviceName, int32 InSampleRate, int32 InNumChannels) override
 	{		
-
 #if ANDROIDVOICE_SUPPORTED_PLATFORMS
 		UE_LOG(LogVoiceCapture, Warning, TEXT("VoiceModuleAndroid Init"));
 		check(VoiceCaptureState == EVoiceCaptureState::UnInitialized);
@@ -258,14 +257,15 @@ public:
 			return false;
 		}
 		
-		if((inBufSamples = BUFFERFRAMES*InNumChannels) != 0){
+		if ((inBufSamples = BUFFERFRAMES*InNumChannels) != 0)
+		{
 			if((inputBuffer = (short *) calloc(inBufSamples, sizeof(short))) == NULL)
 			{
 				return false;
 			}
 		}
 				
-		if((inrb = create_circular_buffer(inBufSamples*sizeof(short)*4)) == NULL) 
+		if ((inrb = create_circular_buffer(inBufSamples*sizeof(short)*4)) == NULL) 
 		{
 			return false;
 		}
@@ -309,13 +309,13 @@ public:
 		
 		result = (*SL_RecorderObject)->Realize(SL_RecorderObject,
 											   SL_BOOLEAN_FALSE);
-        
+		
 		result = (*SL_RecorderObject)->GetInterface(SL_RecorderObject,
 													SL_IID_RECORD, &(SL_RecorderRecord));
 		
 		result = (*SL_RecorderObject)->GetInterface(SL_RecorderObject,
 													SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &(SL_RecorderBufferQueue));
-        
+		
 		if(result != SL_RESULT_SUCCESS) 
 		{
 			UE_LOG( LogVoiceCapture, Warning,TEXT("FAILED OPENSL BUFFER QUEUE GetInterface 0x%x "), result); 
@@ -384,11 +384,18 @@ public:
 
 		return true;
 	}
+
 	virtual void Stop() override
 	{
 		UE_LOG(LogVoiceCapture, Warning, TEXT("Stop"));
 		VoiceCaptureState = EVoiceCaptureState::NotCapturing;
 		return;
+	}
+
+	virtual bool ChangeDevice(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
+	{
+		/** NYI */
+		return false;
 	}
 	
 	virtual bool IsCapturing() override
@@ -455,6 +462,19 @@ public:
 		}
 		return State;
 	}
+
+	virtual int32 GetBufferSize() const
+	{
+		/** NYI */
+		/** possibly inBufSamples*sizeof(short)*4 */
+		return 0;
+	}
+
+	virtual void DumpState() const
+	{
+		/** NYI */
+		UE_LOG(LogVoiceCapture, Display, TEXT("NYI"));
+	}
 	
 private:
 
@@ -484,11 +504,11 @@ void ShutdownVoiceCapture()
 {
 }
 
-IVoiceCapture* CreateVoiceCaptureObject()
+IVoiceCapture* CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
 #if ANDROIDVOICE_SUPPORTED_PLATFORMS
 	IVoiceCapture* Capture = new FVoiceCaptureOpenSLES;
-	if (!Capture || !Capture->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!Capture || !Capture->Init(DeviceName, SampleRate, NumChannels))
 	{
 		delete Capture;
 		Capture = nullptr;
@@ -499,12 +519,11 @@ IVoiceCapture* CreateVoiceCaptureObject()
 #endif 
 }
 
-IVoiceEncoder* CreateVoiceEncoderObject()
+IVoiceEncoder* CreateVoiceEncoderObject(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint)
 {
-
 #if ANDROIDVOICE_SUPPORTED_PLATFORMS
 	FVoiceEncoderOpus* NewEncoder = new FVoiceEncoderOpus;
-	if (!NewEncoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewEncoder->Init(SampleRate, NumChannels, EncodeHint))
 	{
 		delete NewEncoder;
 		NewEncoder = nullptr;
@@ -516,11 +535,11 @@ IVoiceEncoder* CreateVoiceEncoderObject()
 #endif
 }
 
-IVoiceDecoder* CreateVoiceDecoderObject()
+IVoiceDecoder* CreateVoiceDecoderObject(int32 SampleRate, int32 NumChannels)
 {
 #if ANDROIDVOICE_SUPPORTED_PLATFORMS
 	FVoiceDecoderOpus* NewDecoder = new FVoiceDecoderOpus;
-	if (!NewDecoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewDecoder->Init(SampleRate, NumChannels))
 	{
 		delete NewDecoder;
 		NewDecoder = nullptr;

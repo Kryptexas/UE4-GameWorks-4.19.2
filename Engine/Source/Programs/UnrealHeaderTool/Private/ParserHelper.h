@@ -189,7 +189,7 @@ public:
 	{
 	}
 
-	explicit FPropertyBase(UClass* InClass, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
+	explicit FPropertyBase(UClass* InClass, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsSoft = false)
 	: Type                (CPT_ObjectReference)
 	, ArrayType           (EArrayType::None)
 	, PropertyFlags       (0)
@@ -213,9 +213,9 @@ public:
 		{
 			Type = CPT_LazyObjectReference;
 		}
-		else if (bIsAsset)
+		else if (bIsSoft)
 		{
-			Type = CPT_AssetObjectReference;
+			Type = CPT_SoftObjectReference;
 		}
 		else if (bIsWeak)
 		{
@@ -384,16 +384,16 @@ public:
 			*this = FPropertyBase(CPT_LazyObjectReference);
 			PropertyClass = Cast<ULazyObjectProperty>(Property)->PropertyClass;
 		}
-		else if( ClassOfProperty==UAssetClassProperty::StaticClass() )
+		else if( ClassOfProperty==USoftClassProperty::StaticClass() )
 		{
-			*this = FPropertyBase(CPT_AssetObjectReference);
-			PropertyClass = Cast<UAssetClassProperty>(Property)->PropertyClass;
-			MetaClass = Cast<UAssetClassProperty>(Property)->MetaClass;
+			*this = FPropertyBase(CPT_SoftObjectReference);
+			PropertyClass = Cast<USoftClassProperty>(Property)->PropertyClass;
+			MetaClass = Cast<USoftClassProperty>(Property)->MetaClass;
 		}
-		else if( ClassOfProperty==UAssetObjectProperty::StaticClass() )
+		else if( ClassOfProperty==USoftObjectProperty::StaticClass() )
 		{
-			*this = FPropertyBase(CPT_AssetObjectReference);
-			PropertyClass = Cast<UAssetObjectProperty>(Property)->PropertyClass;
+			*this = FPropertyBase(CPT_SoftObjectReference);
+			PropertyClass = Cast<USoftObjectProperty>(Property)->PropertyClass;
 		}
 		else if( ClassOfProperty==UNameProperty::StaticClass() )
 		{
@@ -448,7 +448,7 @@ public:
 	 */
 	bool IsObject() const
 	{
-		return Type == CPT_ObjectReference || Type == CPT_Interface || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference;
+		return Type == CPT_ObjectReference || Type == CPT_Interface || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_SoftObjectReference;
 	}
 
 	bool IsContainer() const
@@ -518,7 +518,7 @@ public:
 				return false;
 			}
 		}
-		else if ((Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference) && Other.Type != CPT_Interface && (PropertyFlags & CPF_ReturnParm))
+		else if ((Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_SoftObjectReference) && Other.Type != CPT_Interface && (PropertyFlags & CPF_ReturnParm))
 		{
 			bReverseClassChainCheck = false;
 		}
@@ -830,6 +830,14 @@ public:
 
 	// Setters.
 	
+	void SetIdentifier( const TCHAR* InString)
+	{
+		InitToken(CPT_None);
+		TokenType = TOKEN_Identifier;
+		FCString::Strncpy(Identifier, InString, NAME_SIZE);
+		TokenName = FName(Identifier, FNAME_Find);
+	}
+
 	void SetConstInt64( int64 InInt64 )
 	{
 		(FPropertyBase&)*this = FPropertyBase(CPT_Int64);
@@ -866,7 +874,7 @@ public:
 		*(FName *)NameBytes = InName;
 		TokenType		= TOKEN_Const;
 	}
-	void SetConstString( TCHAR* InString, int32 MaxLength=MAX_STRING_CONST_SIZE )
+	void SetConstString( const TCHAR* InString, int32 MaxLength=MAX_STRING_CONST_SIZE )
 	{
 		check(MaxLength>0);
 		(FPropertyBase&)*this = FPropertyBase(CPT_String);
@@ -1198,7 +1206,7 @@ public:
 	 *
 	 * @return	a pointer to token data created associated with the property
 	 */
-	FTokenData* Set(UProperty* InKey, const FTokenData& InValue, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	FTokenData* Set(UProperty* InKey, const FTokenData& InValue, FUnrealSourceFile* UnrealSourceFile);
 
 	/**
 	 * (debug) Dumps the values of this FPropertyData to the log file
@@ -1238,10 +1246,10 @@ public:
 	 * 
 	 * @param	PropertyToken	token that should be added to the list
 	 */
-	void AddStructProperty(const FTokenData& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddStructProperty(const FTokenData& PropertyToken, FUnrealSourceFile* UnrealSourceFile)
 	{
 		check(PropertyToken.Token.TokenProperty);
-		StructPropertyData.Set(PropertyToken.Token.TokenProperty, PropertyToken, UHTMakefile, UnrealSourceFile);
+		StructPropertyData.Set(PropertyToken.Token.TokenProperty, PropertyToken, UnrealSourceFile);
 	}
 
 	FPropertyData& GetStructPropertyData()
@@ -1291,10 +1299,10 @@ class FFunctionData
 	 * 
 	 * @param	PropertyToken	token that should be added to the list
 	 */
-	void AddParameter(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddParameter(const FToken& PropertyToken, FUnrealSourceFile* UnrealSourceFile)
 	{
 		check(PropertyToken.TokenProperty);
-		ParameterData.Set(PropertyToken.TokenProperty, PropertyToken, UHTMakefile, UnrealSourceFile);
+		ParameterData.Set(PropertyToken.TokenProperty, PropertyToken, UnrealSourceFile);
 	}
 
 	/**
@@ -1351,7 +1359,7 @@ public:
 	 * 
 	 * @param	PropertyToken	the property to add
 	 */
-	void AddProperty(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddProperty(const FToken& PropertyToken, FUnrealSourceFile* UnrealSourceFile)
 	{
 		const UProperty* Prop = PropertyToken.TokenProperty;
 		check(Prop);
@@ -1363,7 +1371,7 @@ public:
 		}
 		else
 		{
-			AddParameter(PropertyToken, UHTMakefile, UnrealSourceFile);
+			AddParameter(PropertyToken, UnrealSourceFile);
 		}
 	}
 
@@ -1560,7 +1568,7 @@ public:
 	 * 
 	 * @param	PropertyToken	the property to add
 	 */
-	void AddProperty(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddProperty(const FToken& PropertyToken, FUnrealSourceFile* UnrealSourceFile)
 	{
 		UProperty* Prop = PropertyToken.TokenProperty;
 		check(Prop);
@@ -1570,7 +1578,7 @@ public:
 		if ( OuterClass != NULL )
 		{
 			// global property
-			GlobalPropertyData.Set(Prop, PropertyToken, UHTMakefile, UnrealSourceFile);
+			GlobalPropertyData.Set(Prop, PropertyToken, UnrealSourceFile);
 		}
 		else
 		{
@@ -1579,7 +1587,7 @@ public:
 			if ( OuterFunction != NULL )
 			{
 				// function parameter, return, or local property
-				FFunctionData::FindForFunction(OuterFunction)->AddProperty(PropertyToken, UHTMakefile, UnrealSourceFile);
+				FFunctionData::FindForFunction(OuterFunction)->AddProperty(PropertyToken, UnrealSourceFile);
 			}
 		}
 
@@ -1662,19 +1670,17 @@ public:
 	 * Add a string to the list of inheritance parents for this class.
 	 *
 	 * @param Inparent The C++ class name to add to the multiple inheritance list
-	 * @param UHTMakefile Makefile to save parsing data to.
 	 * @param UnrealSourceFile Currently parsed source file.
 	 */
-	void AddInheritanceParent(const FString& InParent, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	void AddInheritanceParent(const FString& InParent, FUnrealSourceFile* UnrealSourceFile);
 
 	/**
 	 * Add a string to the list of inheritance parents for this class.
 	 *
 	 * @param Inparent	The C++ class name to add to the multiple inheritance list
-	 * @param UHTMakefile Makefile to save parsing data to.
 	 * @param UnrealSourceFile Currently parsed source file.
 	 */
-	void AddInheritanceParent(UClass* ImplementedInterfaceClass, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	void AddInheritanceParent(UClass* ImplementedInterfaceClass, FUnrealSourceFile* UnrealSourceFile);
 
 	/**
 	 * Return the list of inheritance parents
@@ -1734,7 +1740,7 @@ public:
 	 *
 	 * @return	a pointer to the newly added metadata for the class specified
 	 */
-	FClassMetaData* AddClassData(UStruct* Struct, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	FClassMetaData* AddClassData(UStruct* Struct, FUnrealSourceFile* UnrealSourceFile);
 
 	/**
 	 * Find the metadata associated with the class specified
@@ -1837,21 +1843,16 @@ struct FNameLookupCPP
 	 */
 	const TCHAR* GetNameCPP( UStruct* Struct, bool bForceInterface = false );
 
-	void SetUHTMakefile(FUHTMakefile* InUHTMakefile)
-		{
-		UHTMakefile = InUHTMakefile;
-		}
 	void SetCurrentSourceFile(FUnrealSourceFile* InUnrealSourceFile)
-		{
+	{
 		UnrealSourceFile = InUnrealSourceFile;
 	}
+
 private:
 	/** Map of UStruct pointers to C++ names */
 	TMap<UStruct*,TCHAR*> StructNameMap;
 	TArray<TCHAR*> InterfaceAllocations;
 
-	friend class FUHTMakefile;
-	FUHTMakefile* UHTMakefile;
 	FUnrealSourceFile* UnrealSourceFile;
 };
 

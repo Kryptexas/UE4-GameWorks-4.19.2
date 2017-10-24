@@ -89,7 +89,6 @@ void SPropertyEditorEditInline::Construct( const FArguments& InArgs, const TShar
 				.Image( this, &SPropertyEditorEditInline::GetDisplayValueIcon )
 			]
 			+SHorizontalBox::Slot()
-			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
 				SNew( STextBlock )

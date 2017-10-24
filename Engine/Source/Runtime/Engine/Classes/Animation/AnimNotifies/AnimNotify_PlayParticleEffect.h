@@ -45,6 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify")
 	FRotator RotationOffset;
 
+	// Scale to spawn the particle system at
+	UPROPERTY(EditAnywhere, Category="AnimNotify")
+	FVector Scale;
+
 private:
 	// Cached version of the Rotation Offset already in Quat form
 	FQuat RotationOffsetQuat;

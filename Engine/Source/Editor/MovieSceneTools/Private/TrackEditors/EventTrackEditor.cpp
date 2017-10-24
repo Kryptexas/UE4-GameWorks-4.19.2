@@ -78,23 +78,21 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 	class FEventTrackCustomization : public IDetailCustomization
 	{
 	public:
-		FEventTrackCustomization(TSharedRef<IDetailsView> InDetailsView, TSharedPtr<ISequencer> InSequencer)
+		FEventTrackCustomization(TWeakPtr<IDetailsView> InDetailsView, TSharedPtr<ISequencer> InSequencer)
 			: WeakDetailsView(InDetailsView)
 		{
 			FOnGetPropertyTypeCustomizationInstance Factory = FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]{ return MakeShared<FMovieSceneObjectBindingIDCustomization>(InSequencer->GetFocusedTemplateID(), InSequencer); });
 
 			// Register an object binding ID customization that can use the current sequencer interface
-			FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyEditor.RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory, nullptr, InDetailsView);
+			WeakDetailsView.Pin()->RegisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory);
 		}
 
 		~FEventTrackCustomization()
 		{
-			FPropertyEditorModule* PropertyEditor = FModuleManager::Get().GetModulePtr<FPropertyEditorModule>("PropertyEditor");
 			auto PinnedDetailsView = WeakDetailsView.Pin();
-			if (PropertyEditor && PinnedDetailsView.IsValid())
+			if (PinnedDetailsView.IsValid())
 			{
-				PropertyEditor->UnregisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", nullptr, PinnedDetailsView);
+				PinnedDetailsView->UnregisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID");
 			}
 		}
 
@@ -116,12 +114,14 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 
 		// Create a details view for the track
 		FDetailsViewArgs DetailsViewArgs(false,false,false,FDetailsViewArgs::HideNameArea,true);
-		DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+		DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 		DetailsViewArgs.bShowOptions = false;
 		
 		TSharedRef<IDetailsView> DetailsView = PropertyEditor.CreateDetailView(DetailsViewArgs);
+		
 		// Register the custom type layout for the class
-		FOnGetDetailCustomizationInstance CreateInstance = FOnGetDetailCustomizationInstance::CreateLambda([=]{ return MakeShared<FEventTrackCustomization>(DetailsView, GetSequencer()); });
+		TWeakPtr<IDetailsView> WeakDetailsView = DetailsView;
+		FOnGetDetailCustomizationInstance CreateInstance = FOnGetDetailCustomizationInstance::CreateLambda([=]{ return MakeShared<FEventTrackCustomization>(WeakDetailsView, GetSequencer()); });
 		DetailsView->RegisterInstancedCustomPropertyLayout(UMovieSceneEventTrack::StaticClass(), CreateInstance);
 
 		// Assign the object
@@ -144,6 +144,15 @@ TSharedRef<ISequencerSection> FEventTrackEditor::MakeSectionInterface(UMovieScen
 bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
 	return (Type == UMovieSceneEventTrack::StaticClass());
+}
+
+bool  FEventTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	static UClass* LevelSequenceClass = FindObject<UClass>(ANY_PACKAGE, TEXT("LevelSequence"), true);
+	static UClass* WidgetAnimationClass = FindObject<UClass>(ANY_PACKAGE, TEXT("WidgetAnimation"), true);
+	return InSequence != nullptr &&
+		((LevelSequenceClass != nullptr && InSequence->GetClass()->IsChildOf(LevelSequenceClass)) ||
+		(WidgetAnimationClass != nullptr && InSequence->GetClass()->IsChildOf(WidgetAnimationClass)));
 }
 
 const FSlateBrush* FEventTrackEditor::GetIconBrush() const

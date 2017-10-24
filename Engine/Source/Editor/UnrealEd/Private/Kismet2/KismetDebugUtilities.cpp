@@ -781,15 +781,7 @@ void FKismetDebugUtilities::SetBreakpointInternal(UBreakpoint* Breakpoint, bool 
 	{
 		if (uint8* InstallSite = InstallSites[i])
 		{
-			if (*InstallSite == EX_InstrumentationEvent)
-			{
-				InstallSite++;
-				*InstallSite = bShouldBeEnabled ? EScriptInstrumentation::NodeDebugSite : EScriptInstrumentation::NodeEntry;
-			}
-			else
-			{
-				*InstallSite = bShouldBeEnabled ? EX_Breakpoint : EX_Tracepoint;
-			}
+			*InstallSite = bShouldBeEnabled ? EX_Breakpoint : EX_Tracepoint;
 		}
 	}
 }

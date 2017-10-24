@@ -1,9 +1,15 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: DPI Scaling
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:How to access and adjust DPI Scaling Rules. 
-version: 4.9
-tags:UMG UI Designer
+Description: How to access and adjust DPI Scaling Rules.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:4
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/ScalingTopic.png
+
 
 [REGION:banner]
 ![](DPIscaling.png)(convert:false)

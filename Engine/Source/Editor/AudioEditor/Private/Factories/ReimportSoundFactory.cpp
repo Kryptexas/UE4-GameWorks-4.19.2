@@ -88,6 +88,7 @@ EReimportResult::Type UReimportSoundFactory::Reimport(UObject* Obj)
 
 		SoundWave->AssetImportData->Update(Filename);
 		SoundWave->MarkPackageDirty();
+		SoundWave->bNeedsThumbnailGeneration = true;
 	}
 	else if (OutCanceled)
 	{

@@ -119,7 +119,9 @@ namespace AgentInterface
 		ImportingResults,
 		Finished,
 		RemoteDisconnected,
-		InstigatorDisconnected
+		InstigatorDisconnected,
+        Preparing4,
+        Num
 	}
 
 	/**

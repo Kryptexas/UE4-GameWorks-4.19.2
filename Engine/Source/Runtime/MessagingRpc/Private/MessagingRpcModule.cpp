@@ -1,12 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
-#include "IMessageRpcClient.h"
-#include "MessageRpcClient.h"
-#include "IMessageRpcServer.h"
-#include "MessageRpcServer.h"
 #include "IMessagingRpcModule.h"
+#include "Modules/ModuleManager.h"
+#include "MessageRpcClient.h"
+#include "MessageRpcServer.h"
 
 
 /**
@@ -17,7 +14,7 @@ class FMessagingRpcModule
 {
 public:
 
-	// IMessagingRpcModule interface
+	//~ IMessagingRpcModule interface
 
 	virtual TSharedRef<IMessageRpcClient> CreateRpcClient() override
 	{
@@ -31,21 +28,15 @@ public:
 
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 
-	virtual void StartupModule() override
-	{
-	}
-
-	virtual void ShutdownModule() override
-	{
-	}
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
 
 	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}
-
 };
 
 

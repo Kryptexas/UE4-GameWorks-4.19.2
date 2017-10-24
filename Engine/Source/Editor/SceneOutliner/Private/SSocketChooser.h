@@ -68,7 +68,7 @@ public:
 	protected:
 		FSocketInfo(FComponentSocketDescription InDescription)
 			: Description(InDescription)
-			, FilterContext(MoveTemp(InDescription.Name.ToString()))
+			, FilterContext(InDescription.Name.ToString())
 		{}
 	};
 

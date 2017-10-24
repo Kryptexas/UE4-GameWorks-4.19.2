@@ -157,9 +157,7 @@ bool FCoreRedirectObjectName::HasValidCharacters() const
 
 bool FCoreRedirectObjectName::ExpandNames(const FString& InString, FName& OutName, FName& OutOuter, FName &OutPackage)
 {
-	FString FullString = InString;
-	FullString.Trim();
-	FullString.TrimTrailing();
+	FString FullString = InString.TrimStartAndEnd();
 
 	// Parse (/path.)?(outerchain.)?(name) where path and outerchain are optional
 	// We also need to support (/path.)?(singleouter:)?(name) because the second delimiter in a chain is : for historical reasons

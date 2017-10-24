@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IMessageContext.h"
+#include "Templates/SharedPointer.h"
+
+class IMessageContext;
+
 
 /**
  * Interface for message tracer breakpoints.

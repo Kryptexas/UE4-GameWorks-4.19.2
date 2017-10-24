@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/KismetArrayLibrary.h"
 #include "GameFramework/Actor.h"
@@ -16,6 +16,7 @@ const FName SetOutOfBoundsWarning = FName("SetOutOfBoundsWarning");
 const FName InsertOutOfBoundsWarning = FName("InsertOutOfBoundsWarning");
 const FName RemoveOutOfBoundsWarning = FName("RemoveOutOfBoundsWarning");
 const FName ResizeArrayNegativeWarning = FName("ResizeArrayNegativeWarning");
+const FName SwapElementsInArrayWarning = FName("SwapElementsInArrayWarning");
 
 UKismetArrayLibrary::UKismetArrayLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -48,6 +49,12 @@ UKismetArrayLibrary::UKismetArrayLibrary(const FObjectInitializer& ObjectInitial
 		FBlueprintWarningDeclaration (
 			ResizeArrayNegativeWarning,
 			LOCTEXT("ResizeArrayNegativeWarning", "Array resized to negative size")
+		)
+	);
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration(
+			SwapElementsInArrayWarning,
+			LOCTEXT("SwapElementsInArrayWarning", "Array swap access out of bounds")
 		)
 	);
 }
@@ -181,7 +188,7 @@ void UKismetArrayLibrary::GenericArray_Shuffle(void* TargetArray, const UArrayPr
 		int32 LastIndex = ArrayHelper.Num() - 1;
 		for (int32 i = 0; i <= LastIndex; ++i)
 		{
-			int32 Index = FMath::RandRange(0, LastIndex);
+			int32 Index = FMath::RandRange(i, LastIndex);
 			if (i != Index)
 			{
 				ArrayHelper.SwapValues(i, Index);
@@ -286,6 +293,40 @@ void UKismetArrayLibrary::GenericArray_Set(void* TargetArray, const UArrayProper
 		else
 		{
 			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to set an invalid index on array %s [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning, SetOutOfBoundsWarning);
+		}
+	}
+}
+
+void UKismetArrayLibrary::GenericArray_Swap(const void* TargetArray, const UArrayProperty* ArrayProp, int32 First, int32 Second)
+{
+	if (TargetArray)
+	{
+		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
+
+		if (ArrayHelper.IsValidIndex(First) && ArrayHelper.IsValidIndex(Second))
+		{
+			// If First and Second indices are the same - nothing to do
+			if (First != Second)
+			{
+				ArrayHelper.SwapValues(First, Second);
+			}
+		}
+		else if (ArrayHelper.Num() == 0)
+		{
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to swap elements in empty array %s!"),
+				*ArrayProp->GetName()),
+				ELogVerbosity::Warning,
+				SwapElementsInArrayWarning);
+		}
+		else
+		{
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to swap elements [%d] and [%d] in array %s. Available index range: [0 %d)!"),
+				First,
+				Second,
+				*ArrayProp->GetName(),
+				ArrayHelper.Num() - 1),
+				ELogVerbosity::Warning,
+				SwapElementsInArrayWarning);
 		}
 	}
 }
@@ -418,6 +459,12 @@ void UKismetArrayLibrary::Array_Get(const TArray<int32>& TargetArray, int32 Inde
 }
 
 void UKismetArrayLibrary::Array_Set(const TArray<int32>& TargetArray, int32 Index, const int32& NewItem, bool bSizeToFit)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.  Call the Generic* equivalent instead
+	check(0);
+}
+
+void UKismetArrayLibrary::Array_Swap(const TArray<int32>& TargetArray, int32 First, int32 Second)
 {
 	// We should never hit these!  They're stubs to avoid NoExport on the class.  Call the Generic* equivalent instead
 	check(0);

@@ -211,6 +211,12 @@ namespace UnrealBuildTool
 			catch { }
 			return Modules.ToArray();
 		}
+
+		/// <summary>
+		/// Determines the default project file formats for this platform
+		/// </summary>
+		/// <returns>Sequence of project file formats</returns>
+		internal abstract void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats);
 	}
 
 	class WindowsBuildHostPlatform : BuildHostPlatform
@@ -305,6 +311,10 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+		internal override void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats)
+		{
+			Formats.Add(ProjectFileFormat.VisualStudio);
+		}
 	}
 
 	class MacBuildHostPlatform : BuildHostPlatform
@@ -355,9 +365,7 @@ namespace UnrealBuildTool
 							var ExistingProc = Process.GetProcessById(Pid);
 							if (ExistingProc != null && Pid != Process.GetCurrentProcess().Id && ExistingProc.HasExited == false)
 							{
-								var ProcInfo = new ProcessInfo(ExistingProc);
-								ProcInfo.Name = Path.GetFileName(Filename);
-								ProcInfo.Filename = Filename;
+								var ProcInfo = new ProcessInfo(ExistingProc.Id, Path.GetFileName(Filename), Filename);
 								Result.Add(ProcInfo);
 							}
 						}
@@ -422,6 +430,11 @@ namespace UnrealBuildTool
 				}
 			}
 		}
+
+		internal override void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats)
+		{
+			Formats.Add(ProjectFileFormat.XCode);
+		}
 	}
 
 	class LinuxBuildHostPlatform : BuildHostPlatform
@@ -459,6 +472,15 @@ namespace UnrealBuildTool
 		{
 			// @TODO: Implement for Linux
 			return new List<string>().ToArray();
+		}
+
+		internal override void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats)
+		{
+			Formats.Add(ProjectFileFormat.Make);
+			Formats.Add(ProjectFileFormat.KDevelop);
+			Formats.Add(ProjectFileFormat.QMake);
+			Formats.Add(ProjectFileFormat.CMake);
+			Formats.Add(ProjectFileFormat.CodeLite);
 		}
 	}
 }

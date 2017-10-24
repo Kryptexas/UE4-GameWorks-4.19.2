@@ -16,6 +16,7 @@
 #include "Misc/CoreMisc.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
+#include "Misc/EnumClassFlags.h"
 
 #if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
@@ -61,6 +62,17 @@ enum class EModuleChangeReason
 	/** The paths controlling which plug-ins are loaded have been changed and the given module has been found, but not yet loaded. */
 	PluginDirectoryChanged
 };
+
+
+enum class ECheckModuleCompatibilityFlags
+{
+	None = 0x00,
+
+	// Display the loading of an up-to-date module
+	DisplayUpToDateModules = 0x01
+};
+
+ENUM_CLASS_FLAGS(ECheckModuleCompatibilityFlags)
 
 
 /**
@@ -558,7 +570,7 @@ private:
 	}
 
 	/** Compares file versions between the current executing engine version and the specified dll */
-	static bool CheckModuleCompatibility(const TCHAR *Filename);
+	static bool CheckModuleCompatibility(const TCHAR *Filename, ECheckModuleCompatibilityFlags Flags = ECheckModuleCompatibilityFlags::None );
 
 	/** Gets the prefix and suffix for a module file */
 	static void GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix);
@@ -769,7 +781,7 @@ class FDefaultGameModuleImpl
 	#if IS_MONOLITHIC
 		#define IMPLEMENT_APPLICATION( ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GInternalGameName[64] = TEXT( GameName ); \
+			TCHAR GInternalProjectName[64] = TEXT( GameName ); \
 			IMPLEMENT_DEBUGGAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, ModuleName) \
@@ -784,7 +796,7 @@ class FDefaultGameModuleImpl
 			{ \
 				FAutoSet##ModuleName() \
 				{ \
-					FCString::Strncpy(GInternalGameName, TEXT( GameName ), ARRAY_COUNT(GInternalGameName)); \
+					FCString::Strncpy(GInternalProjectName, TEXT( GameName ), ARRAY_COUNT(GInternalProjectName)); \
 				} \
 			} AutoSet##ModuleName; \
 			PER_MODULE_BOILERPLATE \
@@ -802,7 +814,7 @@ class FDefaultGameModuleImpl
 
 		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GInternalGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
+			TCHAR GInternalProjectName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
 			IMPLEMENT_DEBUGGAME() \
@@ -819,7 +831,7 @@ class FDefaultGameModuleImpl
 
 		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GInternalGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
+			TCHAR GInternalProjectName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			IMPLEMENT_DEBUGGAME() \
 			PER_MODULE_BOILERPLATE \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \

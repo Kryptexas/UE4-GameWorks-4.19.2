@@ -21,15 +21,10 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef BOOST_PP_IS_ITERATING
-
 #ifndef TF_PYNOTICEWRAPPER_H
 #define TF_PYNOTICEWRAPPER_H
 
-#ifndef TF_MAX_ARITY
-#  define TF_MAX_ARITY 7
-#endif // TF_MAX_ARITY
-
+#include "pxr/pxr.h"
 #include "pxr/base/tf/notice.h"
 #include "pxr/base/tf/stringUtils.h"
 #include "pxr/base/tf/staticData.h"
@@ -41,16 +36,16 @@
 #include <boost/mpl/and.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/or.hpp>
-#include <boost/preprocessor.hpp>
 #include <boost/python/bases.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/extract.hpp>
 #include <boost/python/handle.hpp>
-#include <boost/static_assert.hpp>
-#include <boost/type_traits/is_base_of.hpp>
 
+#include <type_traits>
 #include <map>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 struct Tf_PyNoticeObjectGenerator {
     typedef Tf_PyNoticeObjectGenerator This;
@@ -59,10 +54,10 @@ struct Tf_PyNoticeObjectGenerator {
     // Register the generator for notice type T.
     template <typename T>
     static void Register() {
-        // XXX blevin: this stuff should be keyed directly off TfType now
+        // XXX this stuff should be keyed directly off TfType now
         (*_generators)[typeid(T).name()] = This::_Generate<T>;
     }
-
+    
     // Produce a boost::python::object for the correct derived type of \a n.
     TF_API static boost::python::object Invoke(TfNotice const &n);
 
@@ -85,7 +80,7 @@ struct TfPyNoticeWrapperBase : public TfType::PyPolymorphicBase {
     virtual boost::python::handle<> GetNoticePythonObject() const = 0;
 };
 
-template <class Notice> 
+template <class Notice>
 struct Tf_PyNoticeObjectFinder : public Tf_PyObjectFinderBase {
     virtual ~Tf_PyNoticeObjectFinder() {}
     virtual boost::python::object Find(void const *objPtr) const {
@@ -100,20 +95,19 @@ struct Tf_PyNoticeObjectFinder : public Tf_PyObjectFinderBase {
 template <typename NoticeType, typename BaseType>
 struct TfPyNoticeWrapper : public NoticeType, public TfPyNoticeWrapperBase {
 private:
-    BOOST_STATIC_ASSERT((boost::mpl::or_
-        <boost::is_base_of<TfNotice, NoticeType>,
-        boost::is_same<TfNotice, NoticeType> >::value));
+    static_assert(std::is_base_of<TfNotice, NoticeType>::value
+                  || std::is_same<TfNotice, NoticeType>::value,
+                  "Notice type must be derived from or equal to TfNotice.");
 
-    BOOST_STATIC_ASSERT((boost::mpl::or_
-        <boost::is_base_of<TfNotice, BaseType>,
-        boost::is_same<TfNotice, BaseType> >::value));
+    static_assert(std::is_base_of<TfNotice, BaseType>::value
+                  || std::is_same<TfNotice, BaseType>::value,
+                  "BaseType type must be derived from or equal to TfNotice.");
 
-    // Base must be a base of Notice, unless Base and Notice are both TfNotice
-    // (the root case).
-    BOOST_STATIC_ASSERT((boost::mpl::or_
-        <boost::is_base_of<BaseType, NoticeType>,
-        boost::mpl::and_<boost::is_same<NoticeType, TfNotice>
-        , boost::is_same<BaseType, TfNotice> > >::value));
+    static_assert(std::is_base_of<BaseType, NoticeType>::value
+                  || (std::is_same<NoticeType, TfNotice>::value
+                      && std::is_same<BaseType, TfNotice>::value),
+                  "BaseType type must be a base of notice, unless both "
+                  "BaseType and Notice type are equal to TfNotice.");
 
 public:
 
@@ -132,13 +126,13 @@ public:
         if (wrappedName.empty()) {
             // Assume they want the last bit of a qualified name.
             wrappedName = TfType::Find<NoticeType>().GetTypeName();
-            if (not TfStringGetSuffix(wrappedName, ':').empty())
+            if (!TfStringGetSuffix(wrappedName, ':').empty())
                 wrappedName = TfStringGetSuffix(wrappedName, ':'); 
         }
         Tf_PyNoticeObjectGenerator::Register<NoticeType>();
         Tf_RegisterPythonObjectFinderInternal
-        (typeid(TfPyNoticeWrapper),
-            new Tf_PyNoticeObjectFinder<TfPyNoticeWrapper>);
+            (typeid(TfPyNoticeWrapper),
+             new Tf_PyNoticeObjectFinder<TfPyNoticeWrapper>);
         return ClassType(wrappedName.c_str(), boost::python::no_init)
             .def(TfTypePythonClass());
     }
@@ -149,15 +143,13 @@ public:
         return boost::python::handle<>(boost::python::borrowed(_self));
     }
 
-    // Arbitrary arg constructors.
-    TfPyNoticeWrapper(PyObject *self) : NoticeType(), _self(self) {}
-#define BOOST_PP_ITERATION_LIMITS (1, TF_MAX_ARITY)
-#define BOOST_PP_FILENAME_1 "pxr/base/tf/pyNoticeWrapper.h"
-#include BOOST_PP_ITERATE()
-    /* comment needed for scons dependency scanner
-    #include "pxr/base/tf/pyNoticeWrapper.h"
-    */
-
+    // Arbitrary argument constructor (with a leading PyObject *) which
+    // forwards to the base Notice class's constructor.
+    template <typename... Args>
+    TfPyNoticeWrapper(PyObject *self, Args... args)
+        : NoticeType(args...)
+        , _self(self) {}
+    
 private:
     PyObject *_self;
 
@@ -170,20 +162,6 @@ TF_REGISTRY_FUNCTION(TfType) \
                     TfType::Bases<Base> >(); \
 }
 
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #endif // TF_PYNOTICEWRAPPER_H
-
-#else // BOOST_PP_IS_ITERATING
-
-#define N BOOST_PP_ITERATION()
-
-// Arbitrary argument constructors (with a leading PyObject *) which forward to
-// the base Notice class's constructor.
-
-template <BOOST_PP_ENUM_PARAMS(N, typename A)>
-TfPyNoticeWrapper(PyObject *self
-    BOOST_PP_ENUM_TRAILING_BINARY_PARAMS(N, A, a)) :
-    NoticeType(BOOST_PP_ENUM_PARAMS(N, a)), _self(self) {}
-
-#undef N
-
-#endif // BOOST_PP_IS_ITERATING

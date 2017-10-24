@@ -88,6 +88,7 @@ public:
 	virtual void InvokeTab(const FTabId& TabId) override;
 	virtual TSharedPtr<FTabManager> GetAssociatedTabManager() override;
 	virtual double GetLastActivationTime() override;
+	virtual void RemoveEditingAsset(UObject* Asset) override;
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file
@@ -215,6 +216,9 @@ protected:
 
 	/** Called when "Save As" is clicked for this asset */
 	virtual void SaveAssetAs_Execute();
+
+	/** Called to test if "Find in Content Browser" should be enabled for this asset */
+	virtual bool CanFindInContentBrowser() const {return true;}
 
 	/** Called when "Find in Content Browser" is clicked for this asset */
 	virtual void FindInContentBrowser_Execute();

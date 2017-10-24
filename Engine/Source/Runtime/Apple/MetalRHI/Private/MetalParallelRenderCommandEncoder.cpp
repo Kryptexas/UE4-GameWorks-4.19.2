@@ -85,7 +85,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
 - (id <MTLRenderCommandEncoder>)renderCommandEncoder
 #endif
 {
-    return [[[FMetalDebugRenderCommandEncoder alloc] initWithEncoder:[Inner renderCommandEncoder] andCommandBuffer:Buffer] autorelease];
+	return [[[FMetalDebugRenderCommandEncoder alloc] initWithEncoder:[Inner renderCommandEncoder] fromDescriptor:RenderPassDescriptor andCommandBuffer:Buffer] autorelease];
 }
 
 - (void)setColorStoreAction:(MTLStoreAction)storeAction atIndex:(NSUInteger)colorAttachmentIndex
@@ -103,23 +103,31 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
     [Inner setStencilStoreAction:storeAction];
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
-// Null implementations of these functions to support iOS 11 beta.  To be filled out later
+#if (METAL_NEW_NONNULL_DECL)
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {
-	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	}
 }
 
 - (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	[Inner setDepthStoreActionOptions:storeActionOptions];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setDepthStoreActionOptions:storeActionOptions];
+	}
 }
 
 - (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	[Inner setStencilStoreActionOptions:storeActionOptions];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setStencilStoreActionOptions:storeActionOptions];
+	}
 }
-#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+#endif //(METAL_NEW_NONNULL_DECL)
 
 @end
 

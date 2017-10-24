@@ -12,6 +12,7 @@
 #include "MetalCommandList.h"
 #include "MetalRenderPass.h"
 #include "MetalHeap.h"
+#include "MetalCaptureManager.h"
 #if PLATFORM_IOS
 #include "IOSView.h"
 #endif
@@ -49,7 +50,7 @@ public:
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
 	 */
-	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bReset = true);
+	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bRestart = false);
 	
 	/**
 	 * Allocate from a dynamic ring buffer - by default align to the allowed alignment for offset field when setting buffers
@@ -173,6 +174,7 @@ public:
 	void ReleaseResource(id<MTLResource> Object);
 	void ReleaseTexture(FMetalSurface* Surface, id<MTLTexture> Texture);
 	void ReleaseFence(id<MTLFence> Fence);
+	void ReleaseHeap(id<MTLHeap> Heap);
 	
 	void BeginFrame();
 	void FlushFreeList();
@@ -186,7 +188,7 @@ public:
 	void EndScene();
 	
 	void BeginDrawingViewport(FMetalViewport* Viewport);
-	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
+	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent, bool bLockToVsync);
 	
 	/** Take a parallel FMetalContext from the free-list or allocate a new one if required */
 	FMetalRHICommandContext* AcquireContext(int32 NewIndex, int32 NewNum);
@@ -213,14 +215,19 @@ private:
 	/** Dynamic memory heap */
 	FMetalHeap Heap;
 	
+	/** GPU Frame Capture Manager */
+	FMetalCaptureManager CaptureManager;
+	
 	/** Free lists for releasing objects only once it is safe to do so */
 	TSet<id> ObjectFreeList;
 	TSet<id<MTLResource>> ResourceFreeList;
+	TSet<id<MTLHeap>> HeapFreeList;
 	struct FMetalDelayedFreeList
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> ObjectFreeList;
 		TSet<id<MTLResource>> ResourceFreeList;
+		TSet<id<MTLHeap>> HeapFreeList;
 #if METAL_DEBUG_OPTIONS
 		int32 DeferCount;
 #endif
@@ -255,4 +262,7 @@ private:
 	
 	/** Count of concurrent contexts encoding commands. */
 	int32 ActiveContexts;
+	
+	/** Whether we presented this frame - only used to track when to introduce debug markers */
+	bool bPresented;
 };

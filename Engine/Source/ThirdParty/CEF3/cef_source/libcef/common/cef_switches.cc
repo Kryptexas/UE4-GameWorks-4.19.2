@@ -50,9 +50,6 @@ const char kDisableJavascriptAccessClipboard[] =
 // Disable DOM paste via JavaScript execCommand("paste").
 const char kDisableJavascriptDomPaste[]   = "disable-javascript-dom-paste";
 
-// Enable caret browsing.
-const char kEnableCaretBrowsing[]         = "enable-caret-browsing";
-
 // Allow universal access from file URLs.
 const char kAllowUniversalAccessFromFileUrls[] =
     "allow-universal-access-from-files";
@@ -85,9 +82,6 @@ const char kEnableSpeechInput[]           = "enable-speech-input";
 // Enable the speech input profanity filter.
 const char kEnableProfanityFilter[]       = "enable-profanity-filter";
 
-// The directory breakpad should store minidumps in.
-const char kCrashDumpsDir[]               = "crash-dumps-dir";
-
 // Disable spell checking.
 const char kDisableSpellChecking[]        = "disable-spell-checking";
 
@@ -106,18 +100,8 @@ const char kDisableScrollBounce[]         = "disable-scroll-bounce";
 // Disable the PDF extension.
 const char kDisablePdfExtension[]         = "disable-pdf-extension";
 
-// Enable NPAPI plugins. Note that this functionality will be removed in an
-// upcoming version of Chromium.
-const char kEnableNPAPI[]                 = "enable-npapi";
-
-// Enable Widevine CDM.
-const char kEnableWidevineCdm[]           = "enable-widevine-cdm";
-
 // Path to Widevine CDM binaries.
 const char kWidevineCdmPath[]             = "widevine-cdm-path";
-
-// Widevine CDM version.
-const char kWidevineCdmVersion[]          = "widevine-cdm-version";
 
 // Default plugin policy action.
 const char kPluginPolicy[]                = "plugin-policy";
@@ -131,5 +115,13 @@ const char kPluginPolicy_Block[]          = "block";
 
 // Expose preferences used only by unit tests.
 const char kEnablePreferenceTesting[]     = "enable-preference-testing";
+
+// Enable date-based expiration of built in network security information.
+const char kEnableNetSecurityExpiration[] = "enable-net-security-expiration";
+
+#if defined(OS_MACOSX)
+// Path to the framework directory.
+const char kFrameworkDirPath[]            = "framework-dir-path";
+#endif
 
 }  // namespace switches

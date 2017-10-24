@@ -420,21 +420,21 @@ bool SScrollBox::InternalScrollDescendantIntoView(const FGeometry& MyGeometry, c
 		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
+			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
 			const float MyPosition = InScrollPadding;
 			ScrollOffset = WidgetPosition - MyPosition;
 		}
 		else if ( InDestination == EDescendantScrollDestination::Center )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalPositionAtCoordinates(FVector2D(0.5f, 0.5f)));
+			const float WidgetPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()) + (WidgetGeometry->Geometry.GetLocalSize() / 2));
 			const float MyPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() * FVector2D(0.5f, 0.5f));
 			ScrollOffset = WidgetPosition - MyPosition;
 		}
 		else
 		{
-			const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
-			const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position + WidgetGeometry->Geometry.GetLocalSize());
+			const float WidgetStartPosition = GetScrollComponentFromVector(MyGeometry.AbsoluteToLocal(WidgetGeometry->Geometry.GetAbsolutePosition()));
+			const float WidgetEndPosition = WidgetStartPosition + GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalSize());
 			const float ViewStartPosition = InScrollPadding;
 			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() - InScrollPadding);
 
@@ -502,6 +502,11 @@ void SScrollBox::SetScrollBarAlwaysVisible(bool InAlwaysVisible)
 void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 {
 	ScrollBar->SetThickness(InThickness);
+}
+
+void SScrollBox::SetScrollBarRightClickDragAllowed(bool bIsAllowed)
+{
+	bAllowsRightClickDragScrolling = bIsAllowed;
 }
 
 EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
@@ -641,11 +646,11 @@ FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	}
 	else
 	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ScrollBar->IsNeeded() )
+		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ScrollBar->IsNeeded()  && bAllowsRightClickDragScrolling)
 		{
 			AmountScrolledWhileRightMouseDown = 0;
 
-		Invalidate(EInvalidateWidget::Layout);
+			Invalidate(EInvalidateWidget::Layout);
 
 			return FReply::Handled();
 		}
@@ -656,7 +661,7 @@ FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && bAllowsRightClickDragScrolling)
 	{
 		if ( !bIsScrollingActiveTimerRegistered && IsRightClickScrolling() )
 		{
@@ -739,7 +744,7 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 	}
 	else
 	{
-		if ( MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) )
+		if ( MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton)  && bAllowsRightClickDragScrolling)
 		{
 			// If scrolling with the right mouse button, we need to remember how much we scrolled.
 			// If we did not scroll at all, we will bring up the context menu when the mouse is released.

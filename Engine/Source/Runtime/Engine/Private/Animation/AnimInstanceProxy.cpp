@@ -128,7 +128,23 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	AnimInstanceName = *InAnimInstance->GetFullName();
 #endif
 
+	UpdateCounter.Reset();
 	ReinitializeSlotNodes();
+
+	if (const USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetOwningComponent())
+	{
+		ComponentTransform = SkelMeshComp->GetComponentTransform();
+		ComponentRelativeTransform = SkeletalMeshComponent->GetRelativeTransform();
+
+		const AActor* OwningActor = SkeletalMeshComponent->GetOwner();
+		ActorTransform = OwningActor ? OwningActor->GetActorTransform() : FTransform::Identity;
+	}
+	else
+	{
+		ComponentTransform = FTransform::Identity;
+		ComponentRelativeTransform = FTransform::Identity;
+		ActorTransform = FTransform::Identity;
+	}
 }
 
 void FAnimInstanceProxy::InitializeRootNode()
@@ -303,7 +319,7 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 		UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
 		FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
 		DebugData.RecordNodeVisitArray(UpdatedNodesThisFrame);
-		DebugData.AnimNodePoseWatch = MoveTemp(PoseWatchEntriesForThisFrame);
+		DebugData.AnimNodePoseWatch = PoseWatchEntriesForThisFrame;
 	}
 #endif
 
@@ -821,7 +837,7 @@ FAnimNode_Base* FAnimInstanceProxy::GetNodeFromIndexUntyped(int32 NodeIdx, UScri
 
 void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset)
 {
-	RequiredBones.InitializeTo(Component->RequiredBones, Component->GetDisableAnimCurves(), *Asset);
+	RequiredBones.InitializeTo(Component->RequiredBones, FCurveEvaluationOption(Component->GetAllowedAnimCurveEvaluate(), &Component->GetDisallowedAnimCurvesEvaluation(), Component->PredictedLODLevel), *Asset);
 
 	// If there is a ref pose override, we want to replace ref pose in RequiredBones
 	const FSkelMeshRefPoseOverride* RefPoseOverride = Component->GetRefPoseOverride();
@@ -865,9 +881,9 @@ void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, 
 	bBoneCachesInvalidated = true;
 }
 
-void FAnimInstanceProxy::RecalcRequiredCurves(bool bDisableAnimCurves)
+void FAnimInstanceProxy::RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption)
 {
-	RequiredBones.CacheRequiredAnimCurveUids(bDisableAnimCurves);
+	RequiredBones.CacheRequiredAnimCurveUids(CurveEvalOption);
 }
 
 void FAnimInstanceProxy::UpdateAnimation()
@@ -960,11 +976,23 @@ void FAnimInstanceProxy::SlotEvaluatePose(const FName& SlotNodeName, const FComp
 #if DEBUG_MONTAGEINSTANCE_WEIGHT
 	float TotalWeight = 0.f;
 #endif // DEBUG_MONTAGEINSTANCE_WEIGHT
+
 	for (const FMontageEvaluationState& EvalState : MontageEvaluationData)
 	{
-		if (EvalState.Montage->IsValidSlot(SlotNodeName))
+		// If MontageEvaluationData is not valid anymore, pass-through AnimSlot.
+		// This can happen if InitAnim pushes a RefreshBoneTransforms when not rendered,
+		// with EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered set.
+		if (!EvalState.Montage.IsValid())
 		{
-			FAnimTrack const* const AnimTrack = EvalState.Montage->GetAnimationData(SlotNodeName);
+			BlendedPose = SourcePose;
+			BlendedCurve = SourceCurve;
+			return;
+		}
+
+		const UAnimMontage* const Montage = EvalState.Montage.Get();
+		if (Montage->IsValidSlot(SlotNodeName))
+		{
+			FAnimTrack const* const AnimTrack = Montage->GetAnimationData(SlotNodeName);
 
 			// Find out additive type for pose.
 			EAdditiveAnimationType const AdditiveAnimType = AnimTrack->IsAdditive() 
@@ -978,13 +1006,13 @@ void FAnimInstanceProxy::SlotEvaluatePose(const FName& SlotNodeName, const FComp
 			NewPose.Curve.InitFrom(RequiredBones);
 
 			// Extract pose from Track
-			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
+			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
 			AnimTrack->GetAnimationPose(NewPose.Pose, NewPose.Curve, ExtractionContext);
 
 			// add montage curves 
 			FBlendedCurve MontageCurve;
 			MontageCurve.InitFrom(RequiredBones);
-			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
+			Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
 			NewPose.Curve.Combine(MontageCurve);
 
 #if DEBUG_MONTAGEINSTANCE_WEIGHT
@@ -1100,22 +1128,25 @@ void FAnimInstanceProxy::GetSlotWeight(const FName& SlotNodeName, float& out_Slo
 	// first get all the montage instance weight this slot node has
 	for (const FMontageEvaluationState& EvalState : MontageEvaluationData)
 	{
-		if (EvalState.Montage->IsValidSlot(SlotNodeName))
+		if (EvalState.Montage.IsValid())
 		{
-			NewSlotNodeWeight += EvalState.MontageWeight;
-
-			if( !EvalState.Montage->IsValidAdditiveSlot(SlotNodeName) )
+			const UAnimMontage* const Montage = EvalState.Montage.Get();
+			if (Montage->IsValidSlot(SlotNodeName))
 			{
-				NonAdditiveTotalWeight += EvalState.MontageWeight;
-			}
+				NewSlotNodeWeight += EvalState.MontageWeight;
+				if (!Montage->IsValidAdditiveSlot(SlotNodeName))
+				{
+					NonAdditiveTotalWeight += EvalState.MontageWeight;
+				}
 
 #if DEBUGMONTAGEWEIGHT			
-			TotalDesiredWeight += EvalState->DesiredWeight;
+				TotalDesiredWeight += EvalState->DesiredWeight;
 #endif
 #if !NO_LOGGING
 			UE_LOG(LogAnimation, Verbose, TEXT("GetSlotWeight : Owner: %s, AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*GetActorName(), *EvalState.Montage->GetName(), EvalState.DesiredWeight, EvalState.MontageWeight);
 #endif
+			}
 		}
 	}
 

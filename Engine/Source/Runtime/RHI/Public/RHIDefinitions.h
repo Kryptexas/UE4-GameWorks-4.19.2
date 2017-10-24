@@ -8,7 +8,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Engine/Public/PixelFormat.h"
+#include "PixelFormat.h"
 #include "HAL/IConsoleManager.h"
 
 enum EShaderFrequency
@@ -61,9 +61,8 @@ enum EShaderPlatform
 	SP_SWITCH				= 25,
 	SP_SWITCH_FORWARD		= 26,
 	SP_METAL_MRT_MAC	= 27,
-	SP_XBOXONE_D3D11    = 28,
 
-	SP_NumPlatforms		= 29,
+	SP_NumPlatforms		= 28,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -492,11 +491,20 @@ static_assert(PT_Num <= (1 << PT_NumBits), "PT_NumBits is too small");
 enum EBufferUsageFlags
 {
 	BUF_None			  = 0x0000,
-
+	
 	// Mutually exclusive write-frequency flags
-	BUF_Static            = 0x0001, // The buffer will be written to once.
-	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
-	BUF_Volatile          = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
+
+	/** The buffer will be written to once. */
+	BUF_Static            = 0x0001, 
+
+	/** 
+	 * The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
+	 * Warning: On PS4, BUF_Dynamic do not support multiple updates per frame!  Later updates will overwrite earlier ones, causing a race condition with the GPU.
+	 */
+	BUF_Dynamic           = 0x0002, 
+
+	/** The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame. */
+	BUF_Volatile          = 0x0004, 
 
 	// Mutually exclusive bind flags.
 	BUF_UnorderedAccess   = 0x0008, // Allows an unordered access view to be created for the buffer.
@@ -532,6 +540,9 @@ enum EBufferUsageFlags
 
 	/** Buffer should be allocated from transient memory. */
 	BUF_Transient		  = 0x2000,
+
+	/** Buffer that should be accessed one byte at a time. */
+	BUF_UINT8             = 0x4000,
 
 	// Helper bit-masks
 	BUF_AnyDynamic = (BUF_Dynamic | BUF_Volatile),
@@ -629,6 +640,8 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClear = 1 << 25,
 	// Texture is a depth stencil resolve target
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
+	// Flag used to indicted this texture is a streamable 2D texture, and should be counted towards the texture streaming pool budget.
+	TexCreate_Streamable = 1 << 27,
 	// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
 	TexCreate_NoFastClearFinalize = 1 << 28,
 	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
@@ -726,7 +739,7 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
 		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
 		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
-		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
+		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2 || Platform == SP_METAL_MRT_MAC;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -757,7 +770,7 @@ inline bool IsMetalPlatform(const EShaderPlatform Platform)
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PS4 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
+	return Platform == SP_PS4 || Platform == SP_XBOXONE_D3D12;
 }
 
 inline bool IsSwitchPlatform(const EShaderPlatform Platform)
@@ -795,7 +808,6 @@ inline bool IsD3DPlatform(const EShaderPlatform Platform, bool bIncludeXboxOne)
 	case SP_PCD3D_ES2:
 		return true;
 	case SP_XBOXONE_D3D12:
-	case SP_XBOXONE_D3D11:
 		return bIncludeXboxOne;
 	default:
 		break;
@@ -817,17 +829,16 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM5:
 	case SP_PS4:
 	case SP_XBOXONE_D3D12:
-	case SP_XBOXONE_D3D11:
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
+	case SP_METAL_MRT:
+	case SP_METAL_MRT_MAC:
 	case SP_VULKAN_SM5:
 	case SP_SWITCH:
 		return ERHIFeatureLevel::SM5;
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
-	case SP_METAL_MRT:
-	case SP_METAL_MRT_MAC:
 	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
@@ -875,15 +886,9 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
-	// Metal, Vulkan and Android ES2/3.1 need to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return !IsMetalPlatform(Platform) && !IsVulkanPlatform(Platform) && !IsAndroidOpenGLESPlatform(Platform);
-}
-
-inline bool RHISupportsMSAA(EShaderPlatform Platform)
-{
-	return Platform != SP_PS4
-		//@todo-rco: Fix when iOS OpenGL supports MSAA
-		&& Platform != SP_OPENGL_ES2_IOS;
+	// Metal mobile devices, Vulkan and Android ES2/3.1 need to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
+	const bool bMobileMetalDevice = (Platform == SP_METAL || Platform == SP_METAL_MRT);
+	return !bMobileMetalDevice && !IsVulkanPlatform(Platform) && !IsAndroidOpenGLESPlatform(Platform);
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
@@ -899,17 +904,23 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHISupportsShaderCompression(const EShaderPlatform Platform)
 {
-	return ( Platform != SP_XBOXONE_D3D12) && ( Platform != SP_XBOXONE_D3D11 ); // Handled automatically with hardware decompress
+	return true;
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES3_1_ANDROID;
+	// @todo MetalMRT Technically we should include (Platform == SP_METAL_MRT) but this would disable depth-pre-pass which is currently required.
+	return Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES3_1_ANDROID;
 }
 
 inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)
 {
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsPCPlatform(Platform) && IsMetalPlatform(Platform);
+}
+
+inline bool RHISupportsMobileMultiView(const EShaderPlatform Platform)
+{
+	return (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
 }
 
 // Return what the expected number of samplers will be supported by a feature level

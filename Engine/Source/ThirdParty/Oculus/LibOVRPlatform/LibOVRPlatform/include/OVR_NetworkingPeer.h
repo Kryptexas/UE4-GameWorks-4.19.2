@@ -4,9 +4,8 @@
 #define OVR_NETWORKINGPEER_H
 
 #include "OVR_Platform_Defs.h"
-#include "OVR_Functions_Networking.h"
+#include "OVR_PeerConnectionState.h"
 #include "OVR_Types.h"
-#include <stddef.h>
 
 typedef struct ovrNetworkingPeer *ovrNetworkingPeerHandle;
 

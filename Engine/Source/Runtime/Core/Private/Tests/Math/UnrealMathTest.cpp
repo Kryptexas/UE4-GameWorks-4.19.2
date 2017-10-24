@@ -1114,9 +1114,17 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	V2 = TestVectorTransformVector(V0, &M1);
 	LogTest( TEXT("VectorTransformVector"), TestVectorsEqual( V1, V2 ) );
 
-
 	// NaN / Inf tests
-	const float NaN = sqrtf(-1.0f);
+	// Using a union as we need to do a bitwise cast of 0xFFFFFFFF into a float.
+	typedef union
+	{
+		unsigned int IntNaN;
+		float FloatNaN;
+	} IntFloatUnion;
+	IntFloatUnion NaNU;
+	NaNU.IntNaN = 0xFFFFFFFF;
+	const float NaN = NaNU.FloatNaN;
+
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(NaN, NaN, NaN, NaN)));
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(NaN, 0.f, 0.f, 0.f)));
 	LogTest(TEXT("VectorContainsNaNOrInfinite true"), VectorContainsNaNOrInfinite(MakeVectorRegister(0.f, 0.f, 0.f, NaN)));

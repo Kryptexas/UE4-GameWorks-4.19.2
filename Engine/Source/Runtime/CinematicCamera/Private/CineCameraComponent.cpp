@@ -165,6 +165,66 @@ float UCineCameraComponent::GetVerticalFieldOfView() const
 		: 0.f;
 }
 
+FString UCineCameraComponent::GetFilmbackPresetName() const
+{
+	TArray<FNamedFilmbackPreset> const& Presets = UCineCameraComponent::GetFilmbackPresets();
+	int32 const NumPresets = Presets.Num();
+	for (int32 PresetIdx = 0; PresetIdx < NumPresets; ++PresetIdx)
+	{
+		FNamedFilmbackPreset const& P = Presets[PresetIdx];
+		if (P.FilmbackSettings == FilmbackSettings)
+		{
+			return P.Name;
+		}
+	}
+
+	return FString();
+}
+
+void UCineCameraComponent::SetFilmbackPresetByName(const FString& InPresetName)
+{
+	TArray<FNamedFilmbackPreset> const& Presets = UCineCameraComponent::GetFilmbackPresets();
+	int32 const NumPresets = Presets.Num();
+	for (int32 PresetIdx = 0; PresetIdx < NumPresets; ++PresetIdx)
+	{
+		FNamedFilmbackPreset const& P = Presets[PresetIdx];
+		if (P.Name == InPresetName)
+		{
+			FilmbackSettings = P.FilmbackSettings;
+		}
+	}
+}
+
+FString UCineCameraComponent::GetLensPresetName() const
+{
+	TArray<FNamedLensPreset> const& Presets = UCineCameraComponent::GetLensPresets();
+	int32 const NumPresets = Presets.Num();
+	for (int32 PresetIdx = 0; PresetIdx < NumPresets; ++PresetIdx)
+	{
+		FNamedLensPreset const& P = Presets[PresetIdx];
+		if (P.LensSettings == LensSettings)
+		{
+			return P.Name;
+		}
+	}
+
+	return FString();
+}
+
+void UCineCameraComponent::SetLensPresetByName(const FString& InPresetName)
+{
+	TArray<FNamedLensPreset> const& Presets = UCineCameraComponent::GetLensPresets();
+	int32 const NumPresets = Presets.Num();
+	for (int32 PresetIdx = 0; PresetIdx < NumPresets; ++PresetIdx)
+	{
+		FNamedLensPreset const& P = Presets[PresetIdx];
+		if (P.Name == InPresetName)
+		{
+			LensSettings = P.LensSettings;
+		}
+	}
+}
+
 float UCineCameraComponent::GetWorldToMetersScale() const
 {
 	UWorld const* const World = GetWorld();

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -429,6 +429,21 @@ cef_string_userfree_t CEF_CALLBACK domnode_get_element_inner_text(
   return _retval.DetachToUserFree();
 }
 
+cef_rect_t CEF_CALLBACK domnode_get_element_bounds(
+    struct _cef_domnode_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return CefRect();
+
+  // Execute
+  cef_rect_t _retval = CefDOMNodeCppToC::Get(self)->GetElementBounds();
+
+  // Return type: simple
+  return _retval;
+}
+
 }  // namespace
 
 
@@ -461,18 +476,20 @@ CefDOMNodeCppToC::CefDOMNodeCppToC() {
   GetStruct()->get_element_attributes = domnode_get_element_attributes;
   GetStruct()->set_element_attribute = domnode_set_element_attribute;
   GetStruct()->get_element_inner_text = domnode_get_element_inner_text;
+  GetStruct()->get_element_bounds = domnode_get_element_bounds;
 }
 
-template<> CefRefPtr<CefDOMNode> CefCppToC<CefDOMNodeCppToC, CefDOMNode,
-    cef_domnode_t>::UnwrapDerived(CefWrapperType type, cef_domnode_t* s) {
+template<> CefRefPtr<CefDOMNode> CefCppToCRefCounted<CefDOMNodeCppToC,
+    CefDOMNode, cef_domnode_t>::UnwrapDerived(CefWrapperType type,
+    cef_domnode_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefDOMNodeCppToC, CefDOMNode,
-    cef_domnode_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefDOMNodeCppToC,
+    CefDOMNode, cef_domnode_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefDOMNodeCppToC, CefDOMNode,
+template<> CefWrapperType CefCppToCRefCounted<CefDOMNodeCppToC, CefDOMNode,
     cef_domnode_t>::kWrapperType = WT_DOMNODE;

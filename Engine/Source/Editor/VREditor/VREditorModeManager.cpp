@@ -8,10 +8,12 @@
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/PlayerInput.h"
 #include "Editor.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "EngineGlobals.h"
 #include "LevelEditor.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
 #include "VRModeSettings.h"
@@ -25,8 +27,7 @@
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
 	bEnableVRRequest( false ),
-	HMDWornState( EHMDWornState::Unknown ),
-	TimeSinceHMDChecked( 0.0f )
+	HMDWornState( EHMDWornState::Unknown )
 {
 }
 
@@ -37,25 +38,22 @@ FVREditorModeManager::~FVREditorModeManager()
 
 void FVREditorModeManager::Tick( const float DeltaTime )
 {
-	//@todo vreditor: Make the timer a configurable variable and/or change the polling system to an event-based one.
-	TimeSinceHMDChecked += DeltaTime;
-
 	// You can only auto-enter VR if the setting is enabled. Other criteria are that the VR Editor is enabled in experimental settings, that you are not in PIE, and that the editor is foreground.
-	bool bCanAutoEnterVR = GetDefault<UVRModeSettings>()->bEnableAutoVREditMode && 
-		(GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor())) && 
-		FPlatformProcess::IsThisApplicationForeground();
-	if( GEngine != nullptr && GEngine->HMDDevice.IsValid() )
+	IHeadMountedDisplay * const HMD = GEngine != nullptr && GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetHMDDevice() : nullptr;
+	if (GetDefault<UVRModeSettings>()->bEnableAutoVREditMode
+		&& HMD
+		&& (GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor()))
+		&& FPlatformApplicationMisc::IsThisApplicationForeground())
 	{
-		// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
-		if( ( TimeSinceHMDChecked >= 1.0f ) && bCanAutoEnterVR && ( HMDWornState != GEngine->HMDDevice->GetHMDWornState() ) )
+		const EHMDWornState::Type LatestHMDWornState = HMD->GetHMDWornState();
+		if (HMDWornState != LatestHMDWornState)
 		{
-			TimeSinceHMDChecked = 0.0f;
-			HMDWornState = GEngine->HMDDevice->GetHMDWornState();
-			if( HMDWornState == EHMDWornState::Worn )
+			HMDWornState = LatestHMDWornState;
+			if (HMDWornState == EHMDWornState::Worn && CurrentVREditorMode == nullptr)
 			{
 				EnableVREditor( true, false );
 			}
-			else if( HMDWornState == EHMDWornState::NotWorn )
+			else if (HMDWornState == EHMDWornState::NotWorn && CurrentVREditorMode != nullptr)
 			{
 				if (GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor)
 				{
@@ -67,17 +65,15 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 		}
 	}
 
-	if( IsVREditorActive() )
+	if(CurrentVREditorMode != nullptr && CurrentVREditorMode->WantsToExitMode())
 	{
-		if( CurrentVREditorMode->WantsToExitMode() )
-		{
-			// For a standard exit, also take the HMD out of stereo mode
-			const bool bShouldDisableStereo = true;
-			CloseVREditor( bShouldDisableStereo );
-		}
+		// For a standard exit, also take the HMD out of stereo mode
+		const bool bShouldDisableStereo = true;
+		CloseVREditor( bShouldDisableStereo );
 	}
+
 	// Only check for input if we started this play session from the VR Editor
-	else if( GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor && CurrentVREditorMode != nullptr)
+	if( GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor && CurrentVREditorMode != nullptr)
 	{
 		// Shutdown PIE if we came from the VR Editor and we are not already requesting to start the VR Editor and when any of the players is holding down the required input
 		const float ShutDownInputKeyTime = 1.0f;
@@ -152,7 +148,7 @@ bool FVREditorModeManager::IsVREditorActive() const
 
 bool FVREditorModeManager::IsVREditorAvailable() const
 {
-	const bool bHasHMDDevice = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled();
+	const bool bHasHMDDevice = GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDEnabled();
 	return bHasHMDDevice && !GEditor->bIsSimulatingInEditor;
 }
 

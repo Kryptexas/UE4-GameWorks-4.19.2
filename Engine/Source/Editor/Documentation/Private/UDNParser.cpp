@@ -468,7 +468,7 @@ bool FUDNParser::ParseLineIntoSymbols(int32 LineNumber, const FString& Line, TAr
 		{
 			auto& Symbol = TokenLibrary[i];
 			FString TrimmedLine = Line;
-			TrimmedLine.Trim();
+			TrimmedLine.TrimStartInline();
 			if (TrimmedLine.StartsWith(Symbol.ParseText))
 			{
 				ChoppedLine = TrimmedLine.RightChop(Symbol.ParseText.Len());
@@ -565,7 +565,7 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 	FMessageLog UDNParserLog(UDNParseErrorLog);
 
 	FString TrimmedLine = Line;
-	TrimmedLine.Trim();
+	TrimmedLine.TrimStartInline();
 
 	FUDNLine OutputLine;
 
@@ -657,7 +657,7 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 						}
 						if (LineConfig.bAcceptTrailingSymbolDumpAsContent)
 						{
-							OutputLine.AdditionalContent.Add(ConvertSymbolsIntoAString(SymbolList, SymbolIdx).Trim());
+							OutputLine.AdditionalContent.Add(ConvertSymbolsIntoAString(SymbolList, SymbolIdx).TrimStart());
 						}
 					}
 					else

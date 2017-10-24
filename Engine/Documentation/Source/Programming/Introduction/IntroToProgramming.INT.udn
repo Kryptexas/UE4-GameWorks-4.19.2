@@ -243,7 +243,7 @@ This function is called like any other C++ function. Under the covers, the Unrea
 	UFUNCTION(BlueprintNativeEvent, Category="Damage")
 	void CalledFromCpp();
 
-This version still generates the thunking method to call into the Blueprint VM. So how do you provide the default implementation? The tools also generate a new function declaration that looks like <function name>_Implementation(). You must provide this version of the function or your project will fail to link. Here is the implementation code for the declaration above.
+This version still generates the thunking method to call into the Blueprint VM. So how do you provide the default implementation? The tools also generate a new function declaration that looks like `<function name>_Implementation()`. You must provide this version of the function or your project will fail to link. Here is the implementation code for the declaration above.
 
 	void AMyActor::CalledFromCpp_Implementation()
 	{
@@ -533,7 +533,7 @@ Since different platforms have different sizes for basic types such as **short**
 
 Floating point numbers are also supported with the standard **float **(32-bit)** **and **double** (64-bit) types.
 
-Unreal Engine has a template, **TNumericLimits<t>**, for finding the minimum and maximum ranges value types can hold. For more information follow this [link](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Math/TNumericLimits/index.html).
+Unreal Engine has a template, `TNumericLimits<t>`, for finding the minimum and maximum ranges value types can hold. For more information follow this [link](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Math/TNumericLimits/index.html).
 
 ### Strings
 
@@ -593,7 +593,7 @@ The **FChar** type provides a set of static utility functions for working with i
 	TCHAR Lower = FChar::ToLower(Upper); // 'a'
 
 [REGION:note]
-The FChar type is defined as **TChar<TCHAR>** (as it is listed in the API).
+The FChar type is defined as `TChar<TCHAR>` (as it is listed in the API).
 [/REGION]
 
 [Full Topic: TChar API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Misc/TChar/index.html)

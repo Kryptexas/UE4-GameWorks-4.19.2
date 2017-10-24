@@ -7,12 +7,12 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/App.h"
-#include "Interfaces/IAutomationReport.h"
+#include "IAutomationReport.h"
 #include "AutomationWorkerMessages.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "AssetEditorMessages.h"
 #include "ImageComparer.h"
 #include "AutomationControllerManager.h"
@@ -67,7 +67,7 @@ void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionI
 	int32 ChangelistNumber = 10000;
 	FString ProcessName = TEXT("instance_name");
 
-	MessageEndpoint->Publish(new FAutomationWorkerFindWorkers(ChangelistNumber, FApp::GetGameName(), ProcessName, SessionId), EMessageScope::Network);
+	MessageEndpoint->Publish(new FAutomationWorkerFindWorkers(ChangelistNumber, FApp::GetProjectName(), ProcessName, SessionId), EMessageScope::Network);
 
 	// Reset the check test timers
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
@@ -92,8 +92,6 @@ void FAutomationControllerManager::RequestTests()
 		if ( DevicesInCluster > 0 )
 		{
 			FMessageAddress MessageAddress = DeviceClusterManager.GetDeviceMessageAddress(ClusterIndex, 0);
-
-			ResetIntermediateTestData();
 
 			//issue tests on appropriate platforms
 			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, RequestedTestFlags), MessageAddress);
@@ -218,19 +216,24 @@ void FAutomationControllerManager::ProcessComparisonQueue()
 
 			// Get the current test.
 			TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
-			check(Report.IsValid());
+			if (Report.IsValid())
+			{
+				// Record the artifacts for the test.
+				FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
+				FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
+				FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
 
-			// Record the artifacts for the test.
-			FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
-			FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
-			FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
+				TMap<FString, FString> LocalFiles;
+				LocalFiles.Add(TEXT("approved"), ApprovedFolder / Result.ApprovedFile);
+				LocalFiles.Add(TEXT("unapproved"), UnapprovedFolder / Result.IncomingFile);
+				LocalFiles.Add(TEXT("difference"), ComparisonFolder / Result.ComparisonFile);
 
-			TMap<FString, FString> LocalFiles;
-			LocalFiles.Add(TEXT("approved"), ApprovedFolder / Result.ApprovedFile);
-			LocalFiles.Add(TEXT("unapproved"), UnapprovedFolder / Result.IncomingFile);
-			LocalFiles.Add(TEXT("difference"), ComparisonFolder / Result.ComparisonFile);
-
-			Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, LocalFiles));
+				Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, LocalFiles));
+			}
+			else
+			{
+				UE_LOG(AutomationControllerLog, Error, TEXT("Cannot generate screenshot report for screenshot %s as report is missing"), *Result.IncomingFile);
+			}
 		}
 	}
 }
@@ -334,7 +337,7 @@ bool FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedT
 		}
 	}
 	
-	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Json is invalid - report not generated."));
+	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Json is invalid - report not generated."));
 	return false;
 }
 
@@ -352,7 +355,7 @@ bool FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedT
 		}
 	}
 	
-	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Html is invalid - report not generated."));
+	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Html is invalid - report not generated."));
 	return false;
 }
 
@@ -496,7 +499,6 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerFindWorkersResponse>(this, &FAutomationControllerManager::HandleFindWorkersResponseMessage)
 		.Handling<FAutomationWorkerPong>(this, &FAutomationControllerManager::HandlePongMessage)
 		.Handling<FAutomationWorkerRequestNextNetworkCommand>(this, &FAutomationControllerManager::HandleRequestNextNetworkCommandMessage)
-		.Handling<FAutomationWorkerRequestTestsReply>(this, &FAutomationControllerManager::HandleRequestTestsReplyMessage)
 		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
@@ -513,7 +515,6 @@ void FAutomationControllerManager::Startup()
 	bDeveloperDirectoryIncluded = false;
 	RequestedTestFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
 
-	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
 
 	//Default to machine name
@@ -536,7 +537,7 @@ void FAutomationControllerManager::RemoveCallbacks()
 	TestsCompleteDelegate.Clear();
 }
 
-void FAutomationControllerManager::SetTestNames(const FMessageAddress& AutomationWorkerAddress)
+void FAutomationControllerManager::SetTestNames(const FMessageAddress& AutomationWorkerAddress, TArray<FAutomationTestInfo>& TestInfo)
 {
 	int32 DeviceClusterIndex = INDEX_NONE;
 	int32 DeviceIndex = INDEX_NONE;
@@ -561,9 +562,6 @@ void FAutomationControllerManager::SetTestNames(const FMessageAddress& Automatio
 			// Ensure our test exists. If not, add it
 			ReportManager.EnsureReportExists(TestInfo[TestIndex], DeviceClusterIndex, NumTestPasses);
 		}
-
-		// Clear any intermediate data we had associated with the tests whilst building the full list of tests
-		ResetIntermediateTestData();
 	}
 	else
 	{
@@ -789,10 +787,16 @@ void FAutomationControllerManager::UpdateTests()
 				FAutomationTestResults TestResults;
 				TestResults.State = EAutomationState::Fail;
 				TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
+				TestResults.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("Timeout waiting for device %s"), *TestResults.GameInstance)));
 
 				// Set the results
 				Report->SetResults(ClusterIndex, CurrentTestPass, TestResults);
 				bTestResultsAvailable = true;
+
+				const FAutomationTestResults& FinalResults = Report->GetResults(ClusterIndex, CurrentTestPass);
+
+				// Gather all of the data relevant to this test for our json reporting.
+				CollectTestResults(Report, FinalResults);
 
 				// Disable the device in the cluster so it is not used again
 				DeviceClusterManager.DisableDevice(ClusterIndex, DeviceIndex);
@@ -803,6 +807,9 @@ void FAutomationControllerManager::UpdateTests()
 				// If there are no more devices, set the module state to disabled
 				if ( DeviceClusterManager.HasActiveDevice() == false )
 				{
+					// Process results first to write out the report
+					ProcessResults();
+
 					GLog->Logf(ELogVerbosity::Display, TEXT("Module disabled"));
 					SetControllerStatus(EAutomationControllerModuleState::Disabled);
 					ClusterDistributionMask = 0;
@@ -857,7 +864,7 @@ bool FAutomationControllerManager::IsTestRunnable(IAutomationReportPtr InReport)
 /* FAutomationControllerModule callbacks
  *****************************************************************************/
 
-void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutomationWorkerFindWorkersResponse& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutomationWorkerFindWorkersResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if ( Message.SessionId == ActiveSessionId )
 	{
@@ -869,14 +876,14 @@ void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutom
 	SetControllerStatus(EAutomationControllerModuleState::Ready);
 }
 
-void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPong& Message, const IMessageContextRef& Context )
+void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	AddPingResult(Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWorkerScreenImage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
-	FString ScreenshotIncomingFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
+	FString ScreenshotIncomingFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Incoming/");
 
 	bool bTree = true;
 	FString FileName = ScreenshotIncomingFolder / Message.ScreenShotName;
@@ -901,9 +908,9 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	ComparisonQueue.Enqueue(Comparison);
 }
 
-void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
-	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Test"));
+	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Test"));
 	const FString DataFile = Message.DataType / Message.DataPlatform / Message.DataTestName / Message.DataName + TEXT(".json");
 	const FString DataFullPath = TestDataRoot / DataFile;
 
@@ -928,7 +935,7 @@ void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorker
 
 	if ( bIsNew )
 	{
-		FString IncomingTestData = FPaths::GameSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
+		FString IncomingTestData = FPaths::ProjectSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
 		if ( FFileHelper::SaveStringToFile(Message.JsonData, *IncomingTestData) )
 		{
 			//TODO Anything extra to do here?
@@ -946,7 +953,7 @@ void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorker
 	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
-void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	//TODO Read/Performance data.
 
@@ -957,7 +964,7 @@ void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomatio
 	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// Harvest iteration of running the tests this result came from (stops stale results from being committed to subsequent runs)
 	if ( Message.ExecutionCount == ExecutionCount )
@@ -995,18 +1002,20 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const 
 	}
 }
 
-void FAutomationControllerManager::HandleRequestTestsReplyMessage(const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
-	FAutomationTestInfo NewTest = Message.GetTestInfo();
-	TestInfo.Add(NewTest);
+	TArray<FAutomationTestInfo> TestInfo;
+	TestInfo.Reset(Message.Tests.Num());
+	for (const FAutomationWorkerSingleTestReply& SingleTestReply : Message.Tests)
+	{
+		FAutomationTestInfo NewTest = SingleTestReply.GetTestInfo();
+		TestInfo.Add(NewTest);
+	}
+
+	SetTestNames(Context->GetSender(), TestInfo);
 }
 
-void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context)
-{
-	SetTestNames(Context->GetSender());
-}
-
-void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationWorkerRunTestsReply& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// If we should commit these results
 	if ( Message.ExecutionCount == ExecutionCount )
@@ -1095,7 +1104,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 	RemoveTestRunning(Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const IMessageContextRef& Context )
+void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FMessageAddress DeviceMessageAddress = Context->GetSender();
 	DeviceClusterManager.Remove(DeviceMessageAddress);
@@ -1186,4 +1195,10 @@ void FAutomationControllerManager::WriteLineToCheckpointFile(FString StringToWri
 		CheckpointFile->Serialize(TCHAR_TO_ANSI(*LineToWrite), LineToWrite.Len());
 		CheckpointFile->Flush();
 	}
+}
+
+void FAutomationControllerManager::ResetAutomationTestTimeout(const TCHAR* Reason)
+{
+	GLog->Logf(ELogVerbosity::Display, TEXT("Resetting automation test timeout: %s"), Reason);
+	LastTimeUpdateTicked = FPlatformTime::Seconds();
 }

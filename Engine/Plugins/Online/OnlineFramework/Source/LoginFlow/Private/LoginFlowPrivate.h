@@ -5,9 +5,8 @@
  /* Dependencies
  *****************************************************************************/
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "ModuleManager.h"
-#include "SlateBasics.h"
 #include "SlateStyle.h"
 #include "OnlineSubsystem.h"
 

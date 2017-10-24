@@ -30,8 +30,12 @@ uint32 FNetworkVersion::GameCompatibleNetworkProtocolVersion		= 0;
 
 uint32 FNetworkVersion::GetNetworkCompatibleChangelist()
 {
-	//return FEngineVersion::Current().GetChangelist();
+	// If we have a version set explicitly, use that. Otherwise fall back to the regular engine version changelist, since it might be set at runtime (via Build.version).
+#if ENGINE_NET_VERSION
 	return ENGINE_NET_VERSION;
+#else
+	return FEngineVersion::CompatibleWith().GetChangelist();
+#endif
 }
 
 uint32 FNetworkVersion::GetReplayCompatibleChangelist()
@@ -78,7 +82,7 @@ uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=tr
 	}
 
 	FString VersionString = FString::Printf(TEXT("%s %s, NetCL: %d, EngineNetVer: %d, GameNetVer: %d"),
-		FApp::GetGameName(),
+		FApp::GetProjectName(),
 		*ProjectVersion,
 		GetNetworkCompatibleChangelist(),
 		FNetworkVersion::GetEngineNetworkProtocolVersion(),
@@ -107,5 +111,5 @@ FNetworkReplayVersion FNetworkVersion::GetReplayVersion()
 {
 	const uint32 ReplayVersion = ( GameCompatibleNetworkProtocolVersion << 16 ) | EngineCompatibleNetworkProtocolVersion;
 
-	return FNetworkReplayVersion( FApp::GetGameName(), ReplayVersion, GetReplayCompatibleChangelist() );
+	return FNetworkReplayVersion( FApp::GetProjectName(), ReplayVersion, GetReplayCompatibleChangelist() );
 }

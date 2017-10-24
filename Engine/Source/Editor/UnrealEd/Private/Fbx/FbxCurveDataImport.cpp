@@ -4,6 +4,59 @@
 #include "FbxImporter.h"
 
 namespace UnFbx {
+
+	FbxNode* GetNodeFromName(const FString& NodeName, FbxNode* NodeToQuery)
+	{
+		if ( !FCString::Strcmp(*NodeName, UTF8_TO_TCHAR(NodeToQuery->GetName())))
+		{
+			return NodeToQuery;
+		}
+
+		int32 NodeCount = NodeToQuery->GetChildCount();
+		for (int32 NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex)
+		{
+			FbxNode* ReturnNode = GetNodeFromName(NodeName, NodeToQuery->GetChild(NodeIndex));
+			if (ReturnNode)
+			{
+				return ReturnNode;
+			}
+		}
+
+		return nullptr;
+	}
+
+	FbxNode* GetNodeFromUniqueID(uint64 UniqueID, FbxNode* NodeToQuery)
+	{
+		if ( UniqueID == NodeToQuery->GetUniqueID())
+		{
+			return NodeToQuery;
+		}
+
+		int32 NodeCount = NodeToQuery->GetChildCount();
+		for (int32 NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex)
+		{
+			FbxNode* ReturnNode = GetNodeFromUniqueID(UniqueID, NodeToQuery->GetChild(NodeIndex));
+			if (ReturnNode)
+			{
+				return ReturnNode;
+			}
+		}
+
+		return nullptr;
+	}
+	
+	void FFbxCurvesAPI::GetAllNodeNameArray(TArray<FString> &AllNodeNames) const
+	{
+		AllNodeNames.Empty(TransformData.Num());
+		for (auto Transform : TransformData)
+		{
+			FbxNode* Node = GetNodeFromUniqueID(Transform.Key, Scene->GetRootNode());
+			if (Node)
+			{
+				AllNodeNames.Add(Node->GetName());
+			}
+		}
+	}
 	void FFbxCurvesAPI::GetAnimatedNodeNameArray(TArray<FString> &AnimatedNodeNames) const
 	{
 		AnimatedNodeNames.Empty(CurvesData.Num());
@@ -250,9 +303,44 @@ namespace UnFbx {
 		return Mode;
 	}
 
+	void ConvertRotationToUnreal(float& Roll, float& Pitch, float& Yaw, bool bIsCamera, bool bIsLight)
+	{
+		FRotator AnimRotator(Pitch, Yaw, Roll);
+
+		FTransform AnimRotatorTransform;
+		FTransform UnrealRootRotatorTransform;
+
+		AnimRotatorTransform.SetRotation(AnimRotator.Quaternion());
+
+		FRotator UnrealRootRotator;
+		if (bIsCamera)
+		{
+			UnrealRootRotator = FFbxDataConverter::GetCameraRotation();
+		}
+		else if (bIsLight)
+		{
+			UnrealRootRotator = FFbxDataConverter::GetLightRotation();
+		}
+		else
+		{
+			UnrealRootRotator = FRotator(0.f);
+		}
+
+		UnrealRootRotatorTransform.SetRotation(UnrealRootRotator.Quaternion());
+
+		FTransform ResultTransform = UnrealRootRotatorTransform * AnimRotatorTransform;
+		FRotator ResultRotator = ResultTransform.Rotator();	
+
+		Roll = ResultRotator.Roll;
+		Pitch = ResultRotator.Pitch;
+		Yaw = ResultRotator.Yaw;
+	}
+
+
 	void FFbxCurvesAPI::GetConvertedTransformCurveData(const FString& NodeName, FInterpCurveFloat& TranslationX, FInterpCurveFloat& TranslationY, FInterpCurveFloat& TranslationZ,
 													   FInterpCurveFloat& EulerRotationX, FInterpCurveFloat& EulerRotationY, FInterpCurveFloat& EulerRotationZ, 
-													   FInterpCurveFloat& ScaleX, FInterpCurveFloat& ScaleY, FInterpCurveFloat& ScaleZ) const 
+													   FInterpCurveFloat& ScaleX, FInterpCurveFloat& ScaleY, FInterpCurveFloat& ScaleZ, 
+													   FTransform& DefaultTransform) const 
 	{
 		for (auto AnimNodeKvp : CurvesData)
 		{
@@ -297,34 +385,13 @@ namespace UnFbx {
 						FInterpCurvePoint<float>& CurveKeyY = EulerRotationY.Points[PointIndex];
 						FInterpCurvePoint<float>& CurveKeyZ = EulerRotationZ.Points[PointIndex];
 
-						FRotator AnimRotator(CurveKeyY.OutVal, CurveKeyZ.OutVal, CurveKeyX.OutVal);
-
-						FTransform AnimRotatorTransform;
-						FTransform UnrealRootRotatorTransform;
-
-						AnimRotatorTransform.SetRotation(AnimRotator.Quaternion());
-
-						FRotator UnrealRootRotator;
-						if (bIsCamera)
-						{
-							UnrealRootRotator = FFbxDataConverter::GetCameraRotation();
-						}
-						else if (bIsLight)
-						{
-							UnrealRootRotator = FFbxDataConverter::GetLightRotation();
-						}
-						else
-						{
-							UnrealRootRotator = FRotator(0.f);
-						}
-
-						UnrealRootRotatorTransform.SetRotation(UnrealRootRotator.Quaternion());
-
-						FTransform ResultTransform = UnrealRootRotatorTransform * AnimRotatorTransform;
-						FRotator ResultRotator = ResultTransform.Rotator();
-						CurveKeyX.OutVal = ResultRotator.Roll;
-						CurveKeyY.OutVal = ResultRotator.Pitch;
-						CurveKeyZ.OutVal = ResultRotator.Yaw;
+						float Pitch = CurveKeyY.OutVal;
+						float Yaw = CurveKeyZ.OutVal;
+						float Roll = CurveKeyX.OutVal;
+						ConvertRotationToUnreal(Roll, Pitch, Yaw, bIsCamera, bIsLight);
+						CurveKeyX.OutVal = Roll;
+						CurveKeyY.OutVal = Pitch;
+						CurveKeyZ.OutVal = Yaw;
 					}
 
 					if (bIsCamera)
@@ -369,6 +436,12 @@ namespace UnFbx {
 					}
 				}
 			}
+		}
+
+		FbxNode* Node = GetNodeFromName(NodeName, Scene->GetRootNode());
+		if (Node)
+		{	
+			DefaultTransform = TransformData[Node->GetUniqueID()];
 		}
 	}
 	
@@ -603,6 +676,26 @@ namespace UnFbx {
 		{
 			CurvesAPI.CurvesData.Add(AnimNodeHandle.UniqueId, AnimNodeHandle);
 		}
+
+		// Store default transform values in TransformData
+		bool bIsCamera = AnimNodeHandle.AttributeType == FbxNodeAttribute::eCamera;
+		bool bIsLight = AnimNodeHandle.AttributeType == FbxNodeAttribute::eLight;
+		FTransform Transform;
+		FbxVector4 LclTranslation = NodeToQuery->LclTranslation.EvaluateValue(0.f);
+		FbxVector4 LclRotation = NodeToQuery->LclRotation.EvaluateValue(0.f);
+		FbxVector4 LclScaling = NodeToQuery->LclScaling.EvaluateValue(0.f);
+		float EulerRotationX = LclRotation[0];
+		float EulerRotationY = -LclRotation[1];
+		float EulerRotationZ = -LclRotation[2];
+		float Pitch = EulerRotationY;
+		float Yaw = EulerRotationZ;
+		float Roll = EulerRotationX;
+		ConvertRotationToUnreal(Roll, Pitch, Yaw, bIsCamera, bIsLight);
+		Transform.SetLocation(FVector(LclTranslation[0], -LclTranslation[1], LclTranslation[2]));
+		Transform.SetRotation(FRotator(Pitch, Yaw, Roll).Quaternion());
+		Transform.SetScale3D(FVector(LclScaling[0], LclScaling[1], LclScaling[2]));
+
+		CurvesAPI.TransformData.Add(AnimNodeHandle.UniqueId, Transform);
 	}
 
 	void FFbxImporter::SetupTransformForNode(FbxNode *Node)

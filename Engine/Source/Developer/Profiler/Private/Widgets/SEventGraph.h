@@ -92,8 +92,8 @@ protected:
 	(
 		const EEventPropertyIndex InIndex,
 		const FName InSearchID,
-		const FText InShortName,
-		const FText InDescription,
+		FText InShortName,
+		FText InDescription,
 		const bool bInCanBeHidden,
 		const bool bInIsVisible,
 		const bool bInCanBeSorted,
@@ -1065,9 +1065,8 @@ protected:
 			// aggressive filtering?
 			if (bAggressiveFiltering && TextBasedFilterStringTokens.Num() > 0)
 			{
-				FEventGraphData *NewData = new FEventGraphData(GetEventGraph().Get());
-				RebuildForFilter(NewData->GetRoot()->GetChildren());
-				delete NewData;
+				// Rebuild the event graph in-place
+				RebuildForFilter(GetEventGraph()->GetRoot()->GetChildren());
 			}
 			else
 			{

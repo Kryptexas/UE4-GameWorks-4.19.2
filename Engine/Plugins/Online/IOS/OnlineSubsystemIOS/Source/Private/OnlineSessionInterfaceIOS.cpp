@@ -9,13 +9,14 @@
 @implementation FGameCenterSessionDelegateGK
 @synthesize Session;
 
-- (void)initSessionWithName:(NSString*) sessionName
+- (instancetype)initSessionWithName:(NSString*) sessionName
 {
 	UE_LOG(LogOnline, Display, TEXT("- (void)initSessionWithName:(NSString*) sessionName"));
     self.Session = [[GKSession alloc] initWithSessionID:sessionName displayName:nil sessionMode:GKSessionModePeer];
     self.Session.delegate = self;
     self.Session.disconnectTimeout = 5.0f;
     self.Session.available = YES;
+	return self;
 }
 
 - (void)shutdownSession
@@ -112,12 +113,21 @@
 @synthesize Session;
 @synthesize PeerID;
 
-- (void)initSessionWithName:(NSString*) sessionName
+- (instancetype)initSessionWithName:(NSString*) sessionName
 {
     UE_LOG(LogOnline, Display, TEXT("- (void)initSessionWithName:(NSString*) sessionName"));
-    self.PeerID = [[MCPeerID alloc] initWithDisplayName:@""];
-    self.Session = [[MCSession alloc] initWithPeer:self.PeerID];
-    self.Session.delegate = self;
+	self = [super init];
+    self.PeerID = [[[MCPeerID alloc] initWithDisplayName:@""] autorelease];
+    self.Session = [[[MCSession alloc] initWithPeer:self.PeerID] autorelease];
+	self.Session.delegate = self;
+	return self;
+}
+
+-(void)dealloc
+{
+	[Session release];
+	[PeerID release];
+	[super dealloc];
 }
 
 - (void)shutdownSession
@@ -185,24 +195,35 @@
 @synthesize SessionMC;
 #endif
 
-- (void)initSessionWithName:(NSString*) sessionName
+- (instancetype)initSessionWithName:(NSString*) sessionName
 {
     UE_LOG(LogOnline, Display, TEXT("- (void)initSessionWithName:(NSString*) sessionName"));
-    // Create the session object
+	self = [super init];
+	// Create the session object
 #ifdef __IPHONE_7_0
     if ([MCSession class])
     {
-        self.SessionMC = [FGameCenterSessionDelegateMC alloc];
-        [self.SessionMC initSessionWithName:sessionName];
+        self.SessionMC = [[[FGameCenterSessionDelegateMC alloc] initSessionWithName:sessionName] autorelease];
     }
     else
 #endif
     {
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
-        self.SessionGK = [FGameCenterSessionDelegateGK alloc];
-        [self.SessionGK initSessionWithName:sessionName];
+        self.SessionGK = [[[FGameCenterSessionDelegateGK alloc] initSessionWithName:sessionName] autorelease];
 #endif
     }
+	return self;
+}
+
+-(void)dealloc
+{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+	[SessionGK release];
+#endif
+#ifdef __IPHONE_7_0
+	[SessionMC release];
+#endif
+	[super dealloc];
 }
 
 - (void)shutdownSession

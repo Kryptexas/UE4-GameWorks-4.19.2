@@ -119,14 +119,14 @@ public:
 	int32		DependsOffset;
 
 	/**
-	* Number of references contained in this package
+	* Number of soft package references contained in this package
 	*/
-	int32		StringAssetReferencesCount;
+	int32		SoftPackageReferencesCount;
 
 	/**
-	* Location into the file on disk for the string asset references map data
+	* Location into the file on disk for the soft package reference list
 	*/
-	int32		StringAssetReferencesOffset;
+	int32		SoftPackageReferencesOffset;
 
 	/**
 	* Location into the file on disk for the SearchableNamesMap data
@@ -167,11 +167,6 @@ public:
 	* Value that is used to determine if the package was saved by Epic (or licensee) or by a modder, etc
 	*/
 	uint32	PackageSource;
-
-	/**
-	* Array of compressed chunks in case this package was stored compressed.
-	*/
-	TArray<FCompressedChunk> CompressedChunks;
 
 	/**
 	* If true, this file will not be saved with version numbers or was saved without version numbers. In this case they are assumed to be the current version.

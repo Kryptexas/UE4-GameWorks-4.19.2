@@ -26,19 +26,19 @@ public class UnrealWatchdogTarget : TargetRules
 		)
 	{
 		// Lean and mean
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-		BuildConfiguration.bUseMallocProfiler = false;
+		bCompileLeanAndMeanUE = true;
+		bUseMallocProfiler = false;
 
-        UEBuildConfiguration.bUseLoggingInShipping = true;
+        bUseLoggingInShipping = true;
 
         // No editor needed
-        UEBuildConfiguration.bBuildEditor = false;
-		UEBuildConfiguration.bBuildWithEditorOnlyData = false;
+        bBuildEditor = false;
+		bBuildWithEditorOnlyData = false;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-		UEBuildConfiguration.bBuildDeveloperTools = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
+		bBuildDeveloperTools = false;
 
 		// Console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

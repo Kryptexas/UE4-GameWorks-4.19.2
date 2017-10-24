@@ -304,10 +304,7 @@ namespace EditorAnimUtils
 
 	void FAnimationRetargetContext::AddRemappedAsset(UAnimationAsset* OriginalAsset, UAnimationAsset* NewAsset)
 	{
-		if(OriginalAsset->IsA(UAnimationAsset::StaticClass()) && NewAsset->IsA(UAnimationAsset::StaticClass()))
-		{
-			RemappedAnimAssets.Add(Cast<UAnimationAsset>(OriginalAsset), Cast<UAnimationAsset>(NewAsset));
-		}
+		RemappedAnimAssets.Add(OriginalAsset, NewAsset);
 	}
 
 	void OpenAssetFromNotify(UObject* AssetToOpen)

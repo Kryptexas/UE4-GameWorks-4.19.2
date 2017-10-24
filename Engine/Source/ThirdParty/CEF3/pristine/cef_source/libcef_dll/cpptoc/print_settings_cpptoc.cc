@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -194,7 +194,7 @@ int CEF_CALLBACK print_settings_get_dpi(struct _cef_print_settings_t* self) {
 
 void CEF_CALLBACK print_settings_set_page_ranges(
     struct _cef_print_settings_t* self, size_t rangesCount,
-    cef_page_range_t const* ranges) {
+    cef_range_t const* ranges) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -206,10 +206,10 @@ void CEF_CALLBACK print_settings_set_page_ranges(
     return;
 
   // Translate param: ranges; type: simple_vec_byref_const
-  std::vector<CefPageRange > rangesList;
+  std::vector<CefRange > rangesList;
   if (rangesCount > 0) {
     for (size_t i = 0; i < rangesCount; ++i) {
-      CefPageRange rangesVal = ranges[i];
+      CefRange rangesVal = ranges[i];
       rangesList.push_back(rangesVal);
     }
   }
@@ -236,7 +236,7 @@ size_t CEF_CALLBACK print_settings_get_page_ranges_count(
 
 void CEF_CALLBACK print_settings_get_page_ranges(
     struct _cef_print_settings_t* self, size_t* rangesCount,
-    cef_page_range_t* ranges) {
+    cef_range_t* ranges) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -248,7 +248,7 @@ void CEF_CALLBACK print_settings_get_page_ranges(
     return;
 
   // Translate param: ranges; type: simple_vec_byref
-  std::vector<CefPageRange > rangesList;
+  std::vector<CefRange > rangesList;
   if (rangesCount && *rangesCount > 0 && ranges) {
     for (size_t i = 0; i < *rangesCount; ++i) {
       rangesList.push_back(ranges[i]);
@@ -443,17 +443,17 @@ CefPrintSettingsCppToC::CefPrintSettingsCppToC() {
   GetStruct()->get_duplex_mode = print_settings_get_duplex_mode;
 }
 
-template<> CefRefPtr<CefPrintSettings> CefCppToC<CefPrintSettingsCppToC,
+template<> CefRefPtr<CefPrintSettings> CefCppToCRefCounted<CefPrintSettingsCppToC,
     CefPrintSettings, cef_print_settings_t>::UnwrapDerived(CefWrapperType type,
     cef_print_settings_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefPrintSettingsCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefPrintSettingsCppToC,
     CefPrintSettings, cef_print_settings_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefPrintSettingsCppToC, CefPrintSettings,
-    cef_print_settings_t>::kWrapperType = WT_PRINT_SETTINGS;
+template<> CefWrapperType CefCppToCRefCounted<CefPrintSettingsCppToC,
+    CefPrintSettings, cef_print_settings_t>::kWrapperType = WT_PRINT_SETTINGS;

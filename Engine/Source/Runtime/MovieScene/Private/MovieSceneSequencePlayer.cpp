@@ -4,7 +4,7 @@
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
 #include "Engine/Engine.h"
-
+#include "Misc/RuntimeErrors.h"
 
 bool FMovieSceneSequencePlaybackSettings::SerializeFromMismatchedTag( const FPropertyTag& Tag, FArchive& Ar )
 {
@@ -98,23 +98,37 @@ void UMovieSceneSequencePlayer::PlayInternal()
 		}
 
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
-		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+		const bool bHasValidMovieScene = (MovieSceneSequence && MovieSceneSequence->GetMovieScene());
+		TOptional<float> FixedFrameInterval = bHasValidMovieScene ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-		if (FixedFrameInterval.IsSet() && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
+		if (FixedFrameInterval.IsSet() && bHasValidMovieScene && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
 		{
 			OldMaxTickRate = GEngine->GetMaxFPS();
 			GEngine->SetMaxFPS(1.f / FixedFrameInterval.GetValue());
 		}
 
-		// Ensure we're at the current sequence position
-		PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
-
-		// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
-		UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
-
-		if (OnPlay.IsBound())
+		if (!PlayPosition.GetPreviousPosition().IsSet() || PlayPosition.GetPreviousPosition().GetValue() != GetSequencePosition())
 		{
-			OnPlay.Broadcast();
+			// Ensure we're at the current sequence position
+			PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+
+			// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
+			UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
+		}
+
+		if (bReversePlayback)
+		{
+			if (OnPlayReverse.IsBound())
+			{
+				OnPlayReverse.Broadcast();
+			}
+		}
+		else
+		{
+			if (OnPlay.IsBound())
+			{
+				OnPlay.Broadcast();
+			}
 		}
 	}
 }
@@ -150,7 +164,7 @@ void UMovieSceneSequencePlayer::Pause()
 			return;
 		}
 
-		Status = EMovieScenePlayerStatus::Stopped;
+		Status = EMovieScenePlayerStatus::Paused;
 
 		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly
 		{
@@ -159,10 +173,13 @@ void UMovieSceneSequencePlayer::Pause()
 			UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 			TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-			FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+			if (!PlayPosition.GetPreviousPosition().IsSet() || PlayPosition.GetPreviousPosition().GetValue() != GetSequencePosition())
+			{
+				FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
 
-			const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
-			RootTemplateInstance.Evaluate(Context, *this);
+				const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
+				RootTemplateInstance.Evaluate(Context, *this);
+			}
 
 			bIsEvaluating = false;
 		}
@@ -181,9 +198,12 @@ void UMovieSceneSequencePlayer::Scrub()
 	// @todo Sequencer playback: Should we recreate the instance every time?
 	// We must not recreate the instance since it holds stateful information (such as which objects it has spawned). Recreating the instance would break any 
 	// @todo: Is this still the case now that eval state is stored (correctly) in the player?
-	if (!RootTemplateInstance.IsValid())
+	if (ensureAsRuntimeWarning(Sequence != nullptr))
 	{
-		RootTemplateInstance.Initialize(*Sequence, *this);
+		if (!RootTemplateInstance.IsValid())
+		{
+			RootTemplateInstance.Initialize(*Sequence, *this);
+		}
 	}
 
 	Status = EMovieScenePlayerStatus::Scrubbing;
@@ -191,7 +211,7 @@ void UMovieSceneSequencePlayer::Scrub()
 
 void UMovieSceneSequencePlayer::Stop()
 {
-	if (IsPlaying())
+	if (IsPlaying() || IsPaused())
 	{
 		if (bIsEvaluating)
 		{
@@ -249,6 +269,11 @@ void UMovieSceneSequencePlayer::JumpToPosition(float NewPlaybackPosition)
 bool UMovieSceneSequencePlayer::IsPlaying() const
 {
 	return Status == EMovieScenePlayerStatus::Playing;
+}
+
+bool UMovieSceneSequencePlayer::IsPaused() const
+{
+	return Status == EMovieScenePlayerStatus::Paused;
 }
 
 float UMovieSceneSequencePlayer::GetLength() const
@@ -327,7 +352,7 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 	float Length = GetLength();
 
 	UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
-	TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+	TOptional<float> FixedFrameInterval = (MovieSceneSequence && MovieSceneSequence->GetMovieScene()) ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
 	if (bPendingFirstUpdate)
 	{
@@ -431,4 +456,16 @@ TArray<UObject*> UMovieSceneSequencePlayer::GetBoundObjects(FMovieSceneObjectBin
 		}
 	}
 	return Objects;
+}
+
+void UMovieSceneSequencePlayer::BeginDestroy()
+{
+	Stop();
+
+	if (GEngine && OldMaxTickRate.IsSet())
+	{
+		GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
+	}
+
+	Super::BeginDestroy();
 }

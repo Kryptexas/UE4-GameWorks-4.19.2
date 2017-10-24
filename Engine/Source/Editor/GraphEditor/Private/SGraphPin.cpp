@@ -181,11 +181,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			.Image(this, &SGraphPin::GetPinStatusIcon)
 		];
 
-	TSharedRef<SWidget> LabelWidget = SNew(STextBlock)
-		.Text(this, &SGraphPin::GetPinLabel)
-		.TextStyle(FEditorStyle::Get(), InArgs._PinLabelStyle)
-		.Visibility(this, &SGraphPin::GetPinLabelVisibility)
-		.ColorAndOpacity(this, &SGraphPin::GetPinTextColor);
+	TSharedRef<SWidget> LabelWidget = GetLabelWidget(InArgs._PinLabelStyle);
 
 	// Create the widget used for the pin body (status indicator, label, and value)
 	TSharedRef<SWrapBox> LabelAndValue =
@@ -304,6 +300,15 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 TSharedRef<SWidget>	SGraphPin::GetDefaultValueWidget()
 {
 	return SNullWidget::NullWidget;
+}
+
+TSharedRef<SWidget> SGraphPin::GetLabelWidget(const FName& InLabelStyle)
+{
+	return SNew(STextBlock)
+		.Text(this, &SGraphPin::GetPinLabel)
+		.TextStyle(FEditorStyle::Get(), InLabelStyle)
+		.Visibility(this, &SGraphPin::GetPinLabelVisibility)
+		.ColorAndOpacity(this, &SGraphPin::GetPinTextColor);
 }
 
 void SGraphPin::SetIsEditable(TAttribute<bool> InIsEditable)

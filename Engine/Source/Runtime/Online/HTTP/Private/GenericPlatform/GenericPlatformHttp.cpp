@@ -261,6 +261,6 @@ FString FGenericPlatformHttp::GetMimeType(const FString& FilePath)
 
 FString FGenericPlatformHttp::GetDefaultUserAgent()
 {
-	static FString CachedUserAgent = FString::Printf(TEXT("game=%s, engine=UE4, version=%s, platform=%s, osver=%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString(), *FString(FPlatformProperties::IniPlatformName()), *FPlatformMisc::GetOSVersion());
+	static FString CachedUserAgent = FString::Printf(TEXT("game=%s, engine=UE4, version=%s, platform=%s, osver=%s"), FApp::GetProjectName(), *FEngineVersion::Current().ToString(), *FString(FPlatformProperties::IniPlatformName()), *FPlatformMisc::GetOSVersion());
 	return CachedUserAgent;
 }

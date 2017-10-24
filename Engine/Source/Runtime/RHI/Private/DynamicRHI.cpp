@@ -175,6 +175,8 @@ void RHIInit(bool bHasEditorToken)
 		}
 		else
 		{
+			LLM_SCOPE(ELLMTag::RHIMisc);
+
 			GDynamicRHI = PlatformCreateDynamicRHI();
 			if (GDynamicRHI)
 			{
@@ -199,9 +201,10 @@ void RHIInit(bool bHasEditorToken)
 #endif
 }
 
-void RHIPostInit()
+void RHIPostInit(const TArray<uint32>& InPixelFormatByteWidth)
 {
 	check(GDynamicRHI);
+	GDynamicRHI->InitPixelFormatInfo(InPixelFormatByteWidth);
 	GDynamicRHI->PostInit();
 }
 
@@ -264,7 +267,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 		UE_LOG(LogRHI, Display, TEXT("Toggling draw events: %i"), bShouldEnableDrawEvents ? 1 : 0);
 		GEmitDrawEvents = bShouldEnableDrawEvents;
 	}
-	if (bShouldEnableMaterialDrawEvents != bMaterialDrawEvents)
+	if (bShouldEnableMaterialDrawEvents != bMaterialDrawEvents && ShowMaterialDrawEventVar)
 	{
 		UE_LOG(LogRHI, Display, TEXT("Toggling showmaterialdrawevents: %i"), bShouldEnableDrawEvents ? 1 : 0);
 		ShowMaterialDrawEventVar->Set(bShouldEnableDrawEvents ? 1 : 0);		

@@ -623,6 +623,15 @@ public:
 	UPROPERTY(AssetRegistrySearchable)
 	int32	NumReplicatedProperties;
 
+	/** Flag used to indicate if this class has a nativized parent in a cooked build. */
+	UPROPERTY()
+	uint8 bHasNativizedParent:1;
+
+private:
+	/** Flag to make sure the custom property list has been initialized */
+	uint8 bCustomPropertyListForPostConstructionInitialized:1;
+
+public:
 	/** Array of objects containing information for dynamically binding delegates to functions in this blueprint */
 	UPROPERTY()
 	TArray<class UDynamicBlueprintBinding*> DynamicBindingObjects;
@@ -649,14 +658,12 @@ public:
 	UPROPERTY()
 	UFunction* UberGraphFunction;
 
+#if WITH_EDITORONLY_DATA
 	// This is a list of event graph call function nodes that are simple (no argument) thunks into the event graph (typically used for animation delegates, etc...)
 	// It is a deprecated list only used for backwards compatibility prior to VER_UE4_SERIALIZE_BLUEPRINT_EVENTGRAPH_FASTCALLS_IN_UFUNCTION.
 	UPROPERTY()
 	TArray<FEventGraphFastCallPair> FastCallPairs_DEPRECATED;
-
-	// If this Generated Class has instrumentation
-	UPROPERTY()
-	bool bHasInstrumentation;
+#endif
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)
@@ -671,10 +678,6 @@ public:
 	// Note: This is not currently utilized by the editor; it is a runtime optimization for cooked builds only. It assumes that the component class structure does not change.
 	UPROPERTY()
 	TMap<FName, struct FBlueprintCookedComponentInstancingData> CookedComponentInstancingData;
-
-	/** Flag used to indicate if this class has a nativized parent in a cooked build. */
-	UPROPERTY()
-	bool bHasNativizedParent;
 
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
@@ -727,10 +730,6 @@ public:
 	virtual void Bind() override;
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
-	virtual bool HasInstrumentation() const override 
-	{
-		return bHasInstrumentation; 
-	}
 
 	virtual void InitPropertiesFromCustomList(uint8* DataPtr, const uint8* DefaultDataPtr) override;
 
@@ -828,6 +827,4 @@ private:
 	TIndirectArray<FCustomPropertyListNode> CustomPropertyListForPostConstruction;
 	/** In some cases UObject::ConditionalPostLoad() code calls PostLoadDefaultObject() on a class that's still being serialized. */
 	FCriticalSection SerializeAndPostLoadCritical;
-	/** Flag to make sure the custom property list has been initialized */
-	bool bCustomPropertyListForPostConstructionInitialized;
 };

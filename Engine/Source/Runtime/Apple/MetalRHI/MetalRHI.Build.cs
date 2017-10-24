@@ -9,6 +9,7 @@ public class MetalRHI : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Engine",
 				"RHI",
 				"RenderCore",

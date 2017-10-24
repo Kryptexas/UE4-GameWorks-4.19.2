@@ -101,7 +101,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 			UpdateOwner();
 		}
 
-		uint8 CmdType = 0;
+		ENUTControlCommand CmdType;
 		FString Command;
 		FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command);
 
@@ -124,7 +124,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 
 			if (bSendResult)
 			{
-				uint8 ReturnCmdType = (bCmdSuccess ? ENUTControlCommand::CommandResult_Success :
+				ENUTControlCommand ReturnCmdType = (bCmdSuccess ? ENUTControlCommand::CommandResult_Success :
 										ENUTControlCommand::CommandResult_Failed);
 
 				FNetControlMessage<NMT_NUTControl>::Send(Connection, ReturnCmdType, CmdResult);
@@ -148,7 +148,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 		// Ping request
 		else if (CmdType == ENUTControlCommand::Ping)
 		{
-			uint8 TempCmdType = ENUTControlCommand::Pong;
+			ENUTControlCommand TempCmdType = ENUTControlCommand::Pong;
 			FString Dud;
 
 			FNetControlMessage<NMT_NUTControl>::Send(Connection, TempCmdType, Dud);
@@ -298,7 +298,7 @@ void ANUTActor::NotifyPostLoadMap(UWorld* LoadedWorld)
 {
 	if (VerifyEventWatcher())
 	{
-		uint8 CmdType = ENUTControlCommand::NotifyEvent;
+		ENUTControlCommand CmdType = ENUTControlCommand::NotifyEvent;
 		FString Command = TEXT("NotifySeamlessTravelEnd");
 
 		FNetControlMessage<NMT_NUTControl>::Send(EventWatcher, CmdType, Command);
@@ -523,7 +523,8 @@ void ANUTActor::UnitSeamlessTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = true;
 
-		if (Dest.TrimTrailing().IsEmpty())
+		Dest.TrimEndInline();
+		if (Dest.IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		}
@@ -547,7 +548,8 @@ void ANUTActor::UnitTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = false;
 
-		if (Dest.TrimTrailing().IsEmpty())
+		Dest.TrimEndInline();
+		if (Dest.IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		} 

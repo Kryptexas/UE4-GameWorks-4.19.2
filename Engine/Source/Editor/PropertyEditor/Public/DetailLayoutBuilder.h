@@ -7,6 +7,7 @@
 #include "EditorStyleSet.h"
 #include "AssetThumbnail.h"
 #include "PropertyHandle.h"
+#include "IDetailPropertyRow.h"
 
 class IDetailCategoryBuilder;
 
@@ -53,12 +54,18 @@ public:
 	/**
 	 * @return the parent detail view for this layout builder
 	 */
-	virtual const class IDetailsView& GetDetailsView() const = 0;
+	virtual const class IDetailsView* GetDetailsView() const = 0;
 
 	/**
 	 * @return The base class of the objects being customized in this detail layout
 	 */
 	virtual UClass* GetBaseClass() const = 0;
+	
+	/**
+	 * Get the root objects observed by this layout.  
+	 * This is not guaranteed to be the same as the objects customized by this builder.  See GetObjectsBeingCustomized for that.
+	 */
+	virtual const TArray< TWeakObjectPtr<UObject> >& GetSelectedObjects() const = 0;
 
 	/**
 	 * Gets the current object(s) being customized by this builder
@@ -77,7 +84,7 @@ public:
 	/**
 	 *	@return the utilities various widgets need access to certain features of PropertyDetails
 	 */
-	virtual const TSharedRef< class IPropertyUtilities >& GetPropertyUtilities() const = 0; 
+	virtual const TSharedRef< class IPropertyUtilities > GetPropertyUtilities() const = 0; 
 
 
 	/**
@@ -88,6 +95,21 @@ public:
 	 * @param CategoryType				Category type to define sort order.  Category display order is sorted by this type (optional)
 	 */
 	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName = FText::GetEmpty(), ECategoryPriority::Type CategoryType = ECategoryPriority::Default ) = 0;
+
+	/** 
+	 * Adds the property to its given category automatically. Useful in detail customizations which want to preserve categories.
+	 * @param InPropertyHandle			The handle to the property that you want to add to its own category.
+	 * @return the property row with which the property was added.
+	 */
+	virtual IDetailPropertyRow& AddPropertyToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle) = 0;
+
+	/**
+	* Adds a custom row to the property's category automatically. Useful in detail customizations which want to preserve categories.
+	* @param InPropertyHandle			The handle to the property that you want to add to its own category.
+	* @param InCustomSearchString		A string which is used to filter this custom row when a user types into the details panel search box.
+	* @return the detail widget that can be further customized. 
+	*/
+	virtual FDetailWidgetRow& AddCustomRowToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle, const FText& InCustomSearchString, bool bForAdvanced = false) = 0;
 
 	/**
 	 * Hides an entire category
@@ -169,4 +191,9 @@ public:
 	 * @return true if the property should be visible in the details panel or false if the specific details panel is not showing this property
 	 */
 	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const = 0;
+
+	/**
+	 * @return True if an object in the builder is a class default object
+	 */
+	virtual bool HasClassDefaultObject() const = 0;
 };

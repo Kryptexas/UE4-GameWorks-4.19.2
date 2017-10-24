@@ -138,7 +138,7 @@ void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 
 		OutPin->PinToolTip = LOCTEXT("SetFieldsInStruct_OutPinTooltip", "Reference to the input struct").ToString();
 		{
-			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
+			FStructOnScope StructOnScope(StructType);
 			FSetFieldsInStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);

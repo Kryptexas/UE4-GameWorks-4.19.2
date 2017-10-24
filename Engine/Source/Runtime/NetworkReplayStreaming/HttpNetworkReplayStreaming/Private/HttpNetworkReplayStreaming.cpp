@@ -8,6 +8,7 @@
 #include "HttpModule.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "ProfilingDebugging/ScopedTimers.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHttpReplay, Log, All );
 
@@ -1742,6 +1743,8 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 
 void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 RequestedStreamChunkIndex, bool bStreamWasLive )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::DownloadingStream, HttpRequest );
 
 	check( StreamArchive.IsLoading() );
@@ -2248,6 +2251,8 @@ void FHttpNetworkReplayStreamer::ProcessRequestInternal( TSharedPtr< class IHttp
 
 void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	// Attempt to process the next http request
 	if ( ProcessNextHttpRequest() )
 	{

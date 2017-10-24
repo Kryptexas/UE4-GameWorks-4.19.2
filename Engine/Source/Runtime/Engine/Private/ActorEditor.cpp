@@ -377,7 +377,7 @@ void AActor::PreEditUndo()
 	Super::PreEditUndo();
 }
 
-void AActor::PostEditUndo()
+bool AActor::InternalPostEditUndo()
 {
 	// Check if this Actor needs to be re-instanced
 	UClass* OldClass = GetClass();
@@ -390,7 +390,7 @@ void AActor::PostEditUndo()
 		};
 
 		// Early exit, letting anything more occur would be invalid due to the REINST_ class
-		return;
+		return false;
 	}
 
 	// Notify LevelBounds actor that level bounding box might be changed
@@ -418,53 +418,26 @@ void AActor::PostEditUndo()
 		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 
-	Super::PostEditUndo();
+	// This is a normal undo, so call super
+	return true;
+}
+
+void AActor::PostEditUndo()
+{
+	if (InternalPostEditUndo())
+	{
+		Super::PostEditUndo();
+	}
 }
 
 void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
 {
 	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
 
-	// Check if this Actor needs to be re-instanced
-	UClass* OldClass = GetClass();
-	if (OldClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+	if (InternalPostEditUndo())
 	{
-		UClass* NewClass = OldClass->GetAuthoritativeClass();
-		if (!ensure(NewClass != OldClass))
-		{
-			UE_LOG(LogActor, Warning, TEXT("WARNING: %s is out of date and is the same as its AuthoritativeClass during PostEditUndo!"), *OldClass->GetName());
-		};
-
-		// Early exit, letting anything more occur would be invalid due to the REINST_ class
-		return;
+		Super::PostEditUndo(TransactionAnnotation);
 	}
-
-	// Notify LevelBounds actor that level bounding box might be changed
-	if (!IsTemplate())
-	{
-		if (ULevel* Level = GetLevel())
-		{
-			Level->MarkLevelBoundsDirty();
-		}
-	}
-
-	// Restore OwnedComponents array
-	if (!IsPendingKill())
-	{
-		ResetOwnedComponents();
-
-		// BP created components are not serialized, so this should be cleared and will be filled in as the construction scripts are run
-		BlueprintCreatedComponents.Reset();
-
-		// notify navigation system
-		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
-	}
-	else
-	{
-		UNavigationSystem::ClearNavOctreeAll(this);
-	}
-
-	Super::PostEditUndo(TransactionAnnotation);
 }
 
 // @todo: Remove this hack once we have decided on the scaling method to use.
@@ -687,8 +660,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 {
 	// Clean up the incoming string a bit
 	FString NewActorLabel = NewActorLabelDirty;
-	NewActorLabel.Trim();
-	NewActorLabel.TrimTrailing();
+	NewActorLabel.TrimStartAndEndInline();
 
 
 	// First, update the actor label
@@ -887,7 +859,7 @@ void AActor::SetLODParent(UPrimitiveComponent* InLODParent, float InParentDrawDi
 	TArray<UPrimitiveComponent*> ComponentsToBeReplaced;
 	GetComponents(ComponentsToBeReplaced);
 
-	for(auto& Component : ComponentsToBeReplaced)
+	for(UPrimitiveComponent* Component : ComponentsToBeReplaced)
 	{
 		// parent primitive will be null if no LOD parent is selected
 		Component->SetLODParentPrimitive(InLODParent);

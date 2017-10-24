@@ -2,8 +2,14 @@
 
 #include "AssetTypeActions/AssetTypeActions_Enum.h"
 #include "BlueprintEditorModule.h"
+#include "AssetData.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
+
+FText FAssetTypeActions_Enum::GetAssetDescription(const FAssetData& AssetData) const
+{
+	return AssetData.GetTagValueRef<FText>(GET_MEMBER_NAME_CHECKED(UUserDefinedEnum, EnumDescription));
+}
 
 void FAssetTypeActions_Enum::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor )
 {

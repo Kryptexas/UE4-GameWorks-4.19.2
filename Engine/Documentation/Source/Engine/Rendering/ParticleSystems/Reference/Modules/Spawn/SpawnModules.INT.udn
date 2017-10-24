@@ -19,7 +19,7 @@ Allows for spawning particles based on the distance the emitter has traveled. Us
 |**Unit Scalar** | A float value giving the scalar to apply to the distance traveled. The value from SpawnPerUnit is divided by this value to give the actual number of particles per unit.|
 |**Spawn Per Unit** | A float distribution giving the amount of particles to spawn per unit. The value is retrieved using the EmitterTime.|
 |**Ignore Spawn Rate When Moving** | If _true_, process the default spawn rate when not moving. When the emitter is moving, skip processing the default spawn rate. If _false_, return the _Process Spawn Rate_ setting.|
-|**Movement Tolerance** | A float value giving the tolerance for moving vs. not moving w.r.t. the _Ignore Spawn Rate When Moving_ flag, i.e. if (DistanceMoved < (UnitScalar * MovementTolerance)), then consider it not moving.|
+|**Movement Tolerance** | A float value giving the tolerance for moving vs. not moving w.r.t. the _Ignore Spawn Rate When Moving_ flag, i.e. if (`DistanceMoved < (UnitScalar * MovementTolerance)`), then consider it not moving.|
 |**Max Frame Distance** | The maximum movement for a single frame. If the particle moves beyond this distance over a single frame, no particles are emitted. If left at 0, this check will not be performed. This is useful for handling teleporting objects.|
 |**Ignore Movement Along X** | If _true_, the X-component of the movement is ignored.|
 |**Ignore Movement Along Y** | If _true_, the Y-component of the movement is ignored.|

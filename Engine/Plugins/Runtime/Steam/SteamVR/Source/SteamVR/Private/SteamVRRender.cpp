@@ -13,11 +13,15 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 #include "DefaultSpectatorScreenController.h"
-
-#include "VulkanRHIPrivate.h"
 #include "ScreenRendering.h"
+
+#if PLATFORM_MAC
+#include <Metal/Metal.h>
+#else
+#include "VulkanRHIPrivate.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#endif
 
 static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
 
@@ -26,7 +30,7 @@ void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePass
 	check(0);
 }
 
-void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const
+void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture, FVector2D WindowSize) const
 {
 	check(IsInRenderingThread());
 	const_cast<FSteamVRHMD*>(this)->UpdateStereoLayers_RenderThread();
@@ -38,7 +42,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	}
 
 	check(SpectatorScreenController);
-	SpectatorScreenController->RenderSpectatorScreen_RenderThread(RHICmdList, BackBuffer, SrcTexture);
+	SpectatorScreenController->RenderSpectatorScreen_RenderThread(RHICmdList, BackBuffer, SrcTexture, WindowSize);
 }
 
 static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass, const FHMDViewMesh MeshAssets[])
@@ -73,6 +77,39 @@ void FSteamVRHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, 
 	DrawOcclusionMesh(RHICmdList, StereoPass, VisibleAreaMeshes);
 }
 
+bool FSteamVRHMD::BridgeBaseImpl::NeedsNativePresent()
+{
+    if (Plugin->VRCompositor == nullptr)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
+void FSteamVRHMD::BridgeBaseImpl::UpdateFrameSettings(FSteamVRHMD::FFrameSettings& NewSettings)
+{
+	FrameSettingsStack.Add(NewSettings);
+	if (FrameSettingsStack.Num() > 3)
+	{
+		FrameSettingsStack.RemoveAt(0);
+	}
+}
+
+FSteamVRHMD::FFrameSettings FSteamVRHMD::BridgeBaseImpl::GetFrameSettings(int32 NumBufferedFrames/*=0*/)
+{
+	check(FrameSettingsStack.Num() > 0);
+	if (NumBufferedFrames < FrameSettingsStack.Num())
+	{
+		return FrameSettingsStack[NumBufferedFrames];
+	}
+	else
+	{
+		// Until we build a buffer of adequate size, stick with the last submitted
+		return FrameSettingsStack[0];
+	}
+}
+
 #if PLATFORM_WINDOWS
 
 FSteamVRHMD::D3D11Bridge::D3D11Bridge(FSteamVRHMD* plugin):
@@ -94,27 +131,29 @@ void FSteamVRHMD::D3D11Bridge::BeginRendering()
 
 void FSteamVRHMD::D3D11Bridge::FinishRendering()
 {
-	vr::VRTextureBounds_t LeftBounds;
-	LeftBounds.uMin = 0.0f;
-	LeftBounds.uMax = 0.5f;
-	LeftBounds.vMin = 0.0f;
-	LeftBounds.vMax = 1.0f;
-
 	vr::Texture_t Texture;
 	Texture.handle = RenderTargetTexture;
 	Texture.eType = vr::TextureType_DirectX;
 	Texture.eColorSpace = vr::ColorSpace_Auto;
-	vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
+
+	vr::VRTextureBounds_t LeftBounds;
+    LeftBounds.uMin = 0.0f;
+	LeftBounds.uMax = 0.5f;
+    LeftBounds.vMin = 0.0f;
+    LeftBounds.vMax = 1.0f;
+	
+    vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
 
 	vr::VRTextureBounds_t RightBounds;
 	RightBounds.uMin = 0.5f;
-	RightBounds.uMax = 1.0f;
-	RightBounds.vMin = 0.0f;
-	RightBounds.vMax = 1.0f;
-
+    RightBounds.uMax = 1.0f;
+    RightBounds.vMin = 0.0f;
+    RightBounds.vMax = 1.0f;
+	
+    
 	Texture.handle = RenderTargetTexture;
 	Error = Plugin->VRCompositor->Submit(vr::Eye_Right, &Texture, &RightBounds);
-	if (Error != vr::VRCompositorError_None)
+    if (Error != vr::VRCompositorError_None)
 	{
 		UE_LOG(LogHMD, Log, TEXT("Warning:  SteamVR Compositor had an error on present (%d)"), (int32)Error);
 	}
@@ -171,6 +210,7 @@ void FSteamVRHMD::D3D11Bridge::PostPresent()
 }
 #endif // PLATFORM_WINDOWS
 
+#if !PLATFORM_MAC
 FSteamVRHMD::VulkanBridge::VulkanBridge(FSteamVRHMD* plugin):
 	BridgeBaseImpl(plugin),
 	RenderTargetTexture(0)
@@ -355,5 +395,118 @@ void FSteamVRHMD::OpenGLBridge::PostPresent()
 		Plugin->VRCompositor->PostPresentHandoff();
 	}
 }
+
+#elif PLATFORM_MAC
+
+FSteamVRHMD::MetalBridge::MetalBridge(FSteamVRHMD* plugin):
+	BridgeBaseImpl(plugin)
+{}
+
+void FSteamVRHMD::MetalBridge::BeginRendering()
+{
+	check(IsInRenderingThread());
+
+	static bool Inited = false;
+	if (!Inited)
+	{
+		Inited = true;
+	}
+}
+
+void FSteamVRHMD::MetalBridge::FinishRendering()
+{
+	if(IsOnLastPresentedFrame())
+	{
+		return;
+	}
+	
+	LastPresentedFrameNumber = GetFrameNumber();
+	
+	check(TextureSet.IsValid());
+
+	vr::VRTextureBounds_t LeftBounds;
+	LeftBounds.uMin = 0.0f;
+	LeftBounds.uMax = 0.5f;
+	LeftBounds.vMin = 0.0f;
+	LeftBounds.vMax = 1.0f;
+	
+	id<MTLTexture> TextureHandle = (id<MTLTexture>)TextureSet->GetNativeResource();
+	
+	vr::Texture_t Texture;
+	Texture.handle = (void*)TextureHandle.iosurface;
+	Texture.eType = vr::TextureType_IOSurface;
+	Texture.eColorSpace = vr::ColorSpace_Auto;
+	vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
+
+	vr::VRTextureBounds_t RightBounds;
+	RightBounds.uMin = 0.5f;
+	RightBounds.uMax = 1.0f;
+	RightBounds.vMin = 0.0f;
+	RightBounds.vMax = 1.0f;
+	
+	Error = Plugin->VRCompositor->Submit(vr::Eye_Right, &Texture, &RightBounds);
+	if (Error != vr::VRCompositorError_None)
+	{
+		UE_LOG(LogHMD, Log, TEXT("Warning:  SteamVR Compositor had an error on present (%d)"), (int32)Error);
+	}
+
+	static_cast<FRHITextureSet2D*>(TextureSet.GetReference())->Advance();
+}
+
+void FSteamVRHMD::MetalBridge::Reset()
+{
+}
+
+void FSteamVRHMD::MetalBridge::UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI)
+{
+	check(IsInGameThread());
+	check(InViewportRHI);
+	InViewportRHI->SetCustomPresent(this);
+}
+
+void FSteamVRHMD::MetalBridge::OnBackBufferResize()
+{
+}
+
+bool FSteamVRHMD::MetalBridge::Present(int& SyncInterval)
+{
+	// Editor appears to be in rt, game appears to be in rhi?
+	//check(IsInRenderingThread());
+	//check(IsInRHIThread());
+
+	if (Plugin->VRCompositor == nullptr)
+	{
+		return false;
+	}
+
+	FinishRendering();
+
+	return true;
+}
+
+void FSteamVRHMD::MetalBridge::PostPresent()
+{
+	if (CUsePostPresentHandoff.GetValueOnRenderThread() == 1)
+	{
+		Plugin->VRCompositor->PostPresentHandoff();
+	}
+}
+
+IOSurfaceRef FSteamVRHMD::MetalBridge::GetSurface(const uint32 SizeX, const uint32 SizeY)
+{
+	// @todo: Get our man in MacVR to switch to a modern & secure method of IOSurface sharing...
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	const NSDictionary* SurfaceDefinition = @{
+											(id)kIOSurfaceWidth: @(SizeX),
+											(id)kIOSurfaceHeight: @(SizeY),
+											(id)kIOSurfaceBytesPerElement: @(4), // sizeof(PF_B8G8R8A8)..
+											(id)kIOSurfaceIsGlobal: @YES
+											};
+	
+	return IOSurfaceCreate((CFDictionaryRef)SurfaceDefinition);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+#endif // PLATFORM_MAC
 
 #endif // STEAMVR_SUPPORTED_PLATFORMS

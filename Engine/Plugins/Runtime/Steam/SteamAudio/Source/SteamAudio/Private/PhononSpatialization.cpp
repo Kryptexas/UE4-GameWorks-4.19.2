@@ -42,11 +42,11 @@ namespace SteamAudio
 		}
 	}
 
-	void FPhononSpatialization::Initialize(const uint32 SampleRate, const uint32 NumSources, const uint32 OutputBufferLength)
+	void FPhononSpatialization::Initialize(const FAudioPluginInitializationParams InitializationParams)
 	{
 		RenderingSettings.convolutionType = IPL_CONVOLUTIONTYPE_PHONON;
-		RenderingSettings.frameSize = OutputBufferLength;
-		RenderingSettings.samplingRate = SampleRate;
+		RenderingSettings.frameSize = InitializationParams.BufferLength;
+		RenderingSettings.samplingRate = InitializationParams.SampleRate;
 
 		IPLHrtfParams HrtfParams;
 		HrtfParams.hrtfData = nullptr;
@@ -58,17 +58,17 @@ namespace SteamAudio
 
 		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, HrtfParams, &BinauralRenderer);
 
-		BinauralSources.AddDefaulted(NumSources);
-		for (auto& BinauralSource : BinauralSources)
+		BinauralSources.AddDefaulted(InitializationParams.NumSources);
+		for (FBinauralSource& BinauralSource : BinauralSources)
 		{
 			BinauralSource.InBuffer.format = InputAudioFormat;
-			BinauralSource.InBuffer.numSamples = OutputBufferLength;
+			BinauralSource.InBuffer.numSamples = InitializationParams.BufferLength;
 			BinauralSource.InBuffer.interleavedBuffer = nullptr;
 			BinauralSource.InBuffer.deinterleavedBuffer = nullptr;
 
-			BinauralSource.OutArray.SetNumZeroed(OutputBufferLength * 2);
+			BinauralSource.OutArray.SetNumZeroed(InitializationParams.BufferLength * 2);
 			BinauralSource.OutBuffer.format = BinauralOutputAudioFormat;
-			BinauralSource.OutBuffer.numSamples = OutputBufferLength;
+			BinauralSource.OutBuffer.numSamples = InitializationParams.BufferLength;
 			BinauralSource.OutBuffer.interleavedBuffer = nullptr;
 			BinauralSource.OutBuffer.deinterleavedBuffer = nullptr;
 		}
@@ -77,8 +77,8 @@ namespace SteamAudio
 	void FPhononSpatialization::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId,
 		USpatializationPluginSourceSettingsBase* InSettings)
 	{
-		auto SpatializationSettings = static_cast<UPhononSpatializationSourceSettings*>(InSettings);
-		auto& BinauralSource = BinauralSources[SourceId];
+		UPhononSpatializationSourceSettings* SpatializationSettings = static_cast<UPhononSpatializationSourceSettings*>(InSettings);
+		FBinauralSource& BinauralSource = BinauralSources[SourceId];
 
 		UE_LOG(LogSteamAudio, Log, TEXT("Creating spatialization effect."));
 
@@ -107,7 +107,7 @@ namespace SteamAudio
 
 	void FPhononSpatialization::OnReleaseSource(const uint32 SourceId)
 	{
-		auto& BinauralSource = BinauralSources[SourceId];
+		FBinauralSource& BinauralSource = BinauralSources[SourceId];
 
 		UE_LOG(LogSteamAudio, Log, TEXT("Destroying spatialization effect."));
 
@@ -124,7 +124,7 @@ namespace SteamAudio
 
 	void FPhononSpatialization::ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData)
 	{
-		auto& BinauralSource = BinauralSources[InputData.SourceId];
+		FBinauralSource& BinauralSource = BinauralSources[InputData.SourceId];
 		BinauralSource.InBuffer.interleavedBuffer = InputData.AudioBuffer->GetData();
 		BinauralSource.OutBuffer.interleavedBuffer = OutputData.AudioBuffer.GetData();
 
@@ -140,12 +140,10 @@ namespace SteamAudio
 		switch (BinauralSource.SpatializationMethod)
 		{
 		case EIplSpatializationMethod::HRTF:
-			iplApplyBinauralEffect(BinauralSource.BinauralEffect, BinauralSource.InBuffer, RelativeDirection,
-				static_cast<IPLHrtfInterpolation>(BinauralSource.HrtfInterpolationMethod), BinauralSource.OutBuffer);
+			iplApplyBinauralEffect(BinauralSource.BinauralEffect, BinauralSource.InBuffer, RelativeDirection, static_cast<IPLHrtfInterpolation>(BinauralSource.HrtfInterpolationMethod), BinauralSource.OutBuffer);
 			break;
 		case EIplSpatializationMethod::PANNING:
-			iplApplyPanningEffect(BinauralSource.PanningEffect, BinauralSource.InBuffer, RelativeDirection,
-				BinauralSource.OutBuffer);
+			iplApplyPanningEffect(BinauralSource.PanningEffect, BinauralSource.InBuffer, RelativeDirection, BinauralSource.OutBuffer);
 			break;
 		}
 	}

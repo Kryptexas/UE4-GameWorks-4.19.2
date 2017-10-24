@@ -15,6 +15,7 @@ public class WebBrowser : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"RHI",
 				"InputCore",
 				"Slate",
@@ -44,7 +45,7 @@ public class WebBrowser : ModuleRules
 				if (Target.Platform == UnrealTargetPlatform.Mac)
 				{
 					// Add contents of UnrealCefSubProcess.app directory as runtime dependencies
-					foreach (string FilePath in Directory.EnumerateFiles(BuildConfiguration.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
+					foreach (string FilePath in Directory.EnumerateFiles(Target.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
 					{
 						RuntimeDependencies.Add(new RuntimeDependency(FilePath));
 					}
@@ -61,7 +62,7 @@ public class WebBrowser : ModuleRules
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.PS4 &&
-			UEBuildConfiguration.bCompileAgainstEngine)
+			Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 		}

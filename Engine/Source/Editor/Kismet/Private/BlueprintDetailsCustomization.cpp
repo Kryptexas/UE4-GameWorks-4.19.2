@@ -2002,7 +2002,7 @@ bool FBlueprintVarActionDetails::IsConfigCheckBoxEnabled() const
 		if (UProperty* VariableProperty = CachedVariableProperty.Get())
 		{
 			// meant to match up with UHT's FPropertyBase::IsObject(), which it uses to block object properties from being marked with CPF_Config
-			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || VariableProperty->IsA<UAssetObjectProperty>() ||
+			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<USoftClassProperty>() || VariableProperty->IsA<USoftObjectProperty>() ||
 				(!VariableProperty->IsA<UObjectPropertyBase>() && !VariableProperty->IsA<UInterfaceProperty>());
 		}
 	}
@@ -3056,7 +3056,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	DetailsLayoutPtr = &DetailLayout;
-	ObjectsBeingEdited = DetailsLayoutPtr->GetDetailsView().GetSelectedObjects();
+	ObjectsBeingEdited = DetailsLayoutPtr->GetSelectedObjects();
 
 	SetEntryAndResultNodes();
 
@@ -3842,7 +3842,7 @@ void FBlueprintDelegateActionDetails::OnCategorySelectionChanged( TSharedPtr<FTe
 void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	DetailsLayoutPtr = &DetailLayout;
-	ObjectsBeingEdited = DetailsLayoutPtr->GetDetailsView().GetSelectedObjects();
+	ObjectsBeingEdited = DetailsLayoutPtr->GetSelectedObjects();
 
 	SetEntryNode();
 
@@ -4241,7 +4241,7 @@ UFunction* FBlueprintGraphActionDetails::FindFunction() const
 
 FKismetUserDeclaredFunctionMetadata* FBlueprintGraphActionDetails::GetMetadataBlock() const
 {
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
 	if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 	{
 		return &(TypedEntryNode->MetaData);
@@ -4302,29 +4302,11 @@ void FBlueprintGraphActionDetails::OnCategoryTextCommitted(const FText& NewText,
 {
 	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
 	{
-		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
-		{
-			// Remove excess whitespace and prevent categories with just spaces
-			FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
+		// Remove excess whitespace and prevent categories with just spaces
+		FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
 
-			if(CategoryName.IsEmpty())
-			{
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-				Metadata->Category = K2Schema->VR_DefaultCategory;
-			}
-			else
-			{
-				Metadata->Category = CategoryName;
-			}
-
-			if (UFunction* Function = FindFunction())
-			{
-				Function->Modify();
-				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *CategoryName.ToString());
-			}
-			MyBlueprint.Pin()->Refresh();
-			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
-		}
+		FBlueprintEditorUtils::SetBlueprintFunctionOrMacroCategory(GetGraph(), CategoryName);
+		MyBlueprint.Pin()->Refresh();
 	}
 }
 
@@ -4334,14 +4316,8 @@ void FBlueprintGraphActionDetails::OnCategorySelectionChanged( TSharedPtr<FText>
 	{
 		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 		{
-			Metadata->Category = *ProposedSelection.Get();
-			if (UFunction* Function = FindFunction())
-			{
-				Function->Modify();
-				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *ProposedSelection.Get()->ToString());
-			}
+			FBlueprintEditorUtils::SetBlueprintFunctionOrMacroCategory(GetGraph(), *ProposedSelection.Get());
 			MyBlueprint.Pin()->Refresh();
-			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
 
 			CategoryListView.Pin()->ClearSelection();
 			CategoryComboButton.Pin()->SetIsOpen(false);
@@ -5220,7 +5196,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
-			FString Category = Property->GetMetaData(TEXT("Category"));
+			const FString& Category = Property->GetMetaData(TEXT("Category"));
 
 			if (Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions"))
 			{
@@ -5766,7 +5742,7 @@ void FBlueprintComponentDetails::PopulateVariableCategories()
 	check(BlueprintObj);
 	check(BlueprintObj->SkeletonGeneratedClass);
 
-	TArray<FName> VisibleVariables;
+	TSet<FName> VisibleVariables;
 	for (TFieldIterator<UProperty> PropertyIt(BlueprintObj->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 	{
 		UProperty* Property = *PropertyIt;
@@ -5781,9 +5757,9 @@ void FBlueprintComponentDetails::PopulateVariableCategories()
 
 	VariableCategorySource.Empty();
 	VariableCategorySource.Add(MakeShareable(new FText(LOCTEXT("Default", "Default"))));
-	for (int32 i = 0; i < VisibleVariables.Num(); ++i)
+	for (const FName& VariableName : VisibleVariables)
 	{
-		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(BlueprintObj, VisibleVariables[i], nullptr);
+		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(BlueprintObj, VariableName, nullptr);
 		if (!Category.IsEmpty() && !Category.EqualTo(FText::FromString(BlueprintObj->GetName())))
 		{
 			bool bNewCategory = true;
@@ -5881,7 +5857,7 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	const TArray<TWeakObjectPtr<UObject>> SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetSelectedObjects();
 	if( SelectedObjects.Num() == 1 )
 	{
 		if (SelectedObjects[0].IsValid() && SelectedObjects[0]->IsA<UEdGraphNode>())

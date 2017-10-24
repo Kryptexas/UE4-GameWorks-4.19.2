@@ -9,7 +9,7 @@
 
 #include "include/cef_urlrequest.h"
 #include "libcef/browser/browser_host_impl.h"
-#include "libcef/browser/net/response_filter_wrapper.h"
+#include "libcef/browser/net/source_stream.h"
 #include "libcef/browser/net/url_request_user_data.h"
 #include "libcef/browser/thread_util.h"
 #include "libcef/common/request_impl.h"
@@ -18,17 +18,15 @@
 #include "base/command_line.h"
 #include "base/metrics/field_trial.h"
 #include "base/strings/string_util.h"
+#include "chrome/browser/net/safe_search_util.h"
+#include "components/prefs/pref_member.h"
+#include "components/prefs/pref_service.h"
 #include "content/public/common/content_switches.h"
 #include "net/base/net_errors.h"
-#include "net/filter/filter.h"
 #include "net/http/http_util.h"
 #include "net/url_request/url_request.h"
 
 namespace {
-
-// Buffer size allocated when filtering data.
-// Should match the value in net/filter/filter.cc.
-const int kFilterBufSize = 32 * 1024;
 
 class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
  public:
@@ -38,10 +36,12 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
       CefRefPtr<CefRequestImpl> cef_request,
       GURL* new_url,
       net::URLRequest* url_request,
+      bool force_google_safesearch,
       const CallbackType& callback)
       : cef_request_(cef_request),
         new_url_(new_url),
         url_request_(url_request),
+        force_google_safesearch_(force_google_safesearch),
         callback_(callback) {
     DCHECK(new_url);
     DCHECK(url_request_);
@@ -54,11 +54,13 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
     if (!callback_.is_null()) {
       // The callback is still pending. Cancel it now.
       if (CEF_CURRENTLY_ON_IOT()) {
-        RunNow(cef_request_, new_url_, url_request_, callback_, false);
+        RunNow(cef_request_, new_url_, url_request_, callback_,
+               force_google_safesearch_, false);
       } else {
         CEF_POST_TASK(CEF_IOT,
             base::Bind(&CefBeforeResourceLoadCallbackImpl::RunNow,
-                       cef_request_, new_url_, url_request_, callback_, false));
+                       cef_request_, new_url_, url_request_, callback_,
+                       force_google_safesearch_, false));
       }
     }
   }
@@ -77,7 +79,8 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
   void ContinueNow(bool allow) {
     CEF_REQUIRE_IOT();
     if (!callback_.is_null()) {
-      RunNow(cef_request_, new_url_, url_request_, callback_, allow);
+      RunNow(cef_request_, new_url_, url_request_, callback_,
+             force_google_safesearch_, allow);
       Disconnect();
     }
   }
@@ -115,6 +118,7 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
                      GURL* new_url,
                      net::URLRequest* request,
                      const CallbackType& callback,
+                     bool force_google_safesearch,
                      bool allow) {
     CEF_REQUIRE_IOT();
 
@@ -139,8 +143,12 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
     request->RemoveUserData(UserDataKey());
 
     // Only execute the callback if the request has not been canceled.
-    if (request->status().status() != net::URLRequestStatus::CANCELED)
+    if (request->status().status() != net::URLRequestStatus::CANCELED) {
+      if (force_google_safesearch && allow && new_url->is_empty())
+        safe_search_util::ForceGoogleSafeSearch(request, new_url);
+
       callback.Run(allow ? net::OK : net::ERR_ABORTED);
+    }
   }
 
   static inline void* UserDataKey() {
@@ -151,6 +159,7 @@ class CefBeforeResourceLoadCallbackImpl : public CefRequestCallback {
   const GURL old_url_;
   GURL* new_url_;
   net::URLRequest* url_request_;
+  bool force_google_safesearch_;
   CallbackType callback_;
 
   // The user data key.
@@ -224,7 +233,8 @@ class CefAuthCallbackImpl : public CefAuthCallback {
 
 }  // namespace
 
-CefNetworkDelegate::CefNetworkDelegate() {
+CefNetworkDelegate::CefNetworkDelegate()
+  : force_google_safesearch_(nullptr) {
 }
 
 CefNetworkDelegate::~CefNetworkDelegate() {
@@ -242,19 +252,48 @@ bool CefNetworkDelegate::AreExperimentalCookieFeaturesEnabled() {
   return enabled;
 }
 
-// static
-bool CefNetworkDelegate::AreStrictSecureCookiesEnabled() {
-  const std::string enforce_strict_secure_group =
-      base::FieldTrialList::FindFullName("StrictSecureCookies");
-  return AreExperimentalCookieFeaturesEnabled() ||
-         base::StartsWith(enforce_strict_secure_group, "Enabled",
-                          base::CompareCase::INSENSITIVE_ASCII);
+std::unique_ptr<net::SourceStream> CefNetworkDelegate::CreateSourceStream(
+    net::URLRequest* request,
+    std::unique_ptr<net::SourceStream> upstream) {
+  CefRefPtr<CefResponseFilter> cef_filter;
+
+  CefRefPtr<CefBrowserHostImpl> browser =
+      CefBrowserHostImpl::GetBrowserForRequest(request);
+  if (browser.get()) {
+    CefRefPtr<CefClient> client = browser->GetClient();
+    if (client.get()) {
+      CefRefPtr<CefRequestHandler> handler = client->GetRequestHandler();
+      if (handler.get()) {
+        CefRefPtr<CefFrame> frame = browser->GetFrameForRequest(request);
+
+        CefRefPtr<CefRequestImpl> cefRequest = new CefRequestImpl();
+        cefRequest->Set(request);
+        cefRequest->SetReadOnly(true);
+
+        CefRefPtr<CefResponseImpl> cefResponse = new CefResponseImpl();
+        cefResponse->Set(request);
+        cefResponse->SetReadOnly(true);
+
+        cef_filter = handler->GetResourceResponseFilter(browser.get(), frame,
+                                                        cefRequest.get(),
+                                                        cefResponse.get());
+      }
+    }
+  }
+
+  if (cef_filter && cef_filter->InitFilter())
+    return base::MakeUnique<CefSourceStream>(cef_filter, std::move(upstream));
+
+  return upstream;
 }
 
 int CefNetworkDelegate::OnBeforeURLRequest(
     net::URLRequest* request,
     const net::CompletionCallback& callback,
     GURL* new_url) {
+  const bool force_google_safesearch =
+      (force_google_safesearch_ && force_google_safesearch_->GetValue());
+
   CefRefPtr<CefBrowserHostImpl> browser =
       CefBrowserHostImpl::GetBrowserForRequest(request);
   if (browser.get()) {
@@ -279,6 +318,7 @@ int CefNetworkDelegate::OnBeforeURLRequest(
 
         CefRefPtr<CefBeforeResourceLoadCallbackImpl> callbackImpl(
             new CefBeforeResourceLoadCallbackImpl(requestPtr, new_url, request,
+                                                  force_google_safesearch,
                                                   callback));
 
         // Give the client an opportunity to evaluate the request.
@@ -297,6 +337,9 @@ int CefNetworkDelegate::OnBeforeURLRequest(
       }
     }
   }
+
+  if (force_google_safesearch && new_url->is_empty())
+    safe_search_util::ForceGoogleSafeSearch(request, new_url);
 
   // Continue the request immediately.
   return net::OK;
@@ -415,60 +458,4 @@ bool CefNetworkDelegate::OnCanAccessFile(const net::URLRequest& request,
 
 bool CefNetworkDelegate::OnAreExperimentalCookieFeaturesEnabled() const {
   return AreExperimentalCookieFeaturesEnabled();
-}
-
-bool CefNetworkDelegate::OnAreStrictSecureCookiesEnabled() const {
-  return AreStrictSecureCookiesEnabled();
-}
-
-net::Filter* CefNetworkDelegate::SetupFilter(net::URLRequest* request,
-                                             net::Filter* filter_list) {
-  CefRefPtr<CefResponseFilter> cef_filter;
-
-  CefRefPtr<CefBrowserHostImpl> browser =
-      CefBrowserHostImpl::GetBrowserForRequest(request);
-  if (browser.get()) {
-    CefRefPtr<CefClient> client = browser->GetClient();
-    if (client.get()) {
-      CefRefPtr<CefRequestHandler> handler = client->GetRequestHandler();
-      if (handler.get()) {
-        CefRefPtr<CefFrame> frame = browser->GetFrameForRequest(request);
-
-        CefRefPtr<CefRequestImpl> cefRequest = new CefRequestImpl();
-        cefRequest->Set(request);
-        cefRequest->SetReadOnly(true);
-
-        CefRefPtr<CefResponseImpl> cefResponse = new CefResponseImpl();
-        cefResponse->Set(request);
-        cefResponse->SetReadOnly(true);
-
-        cef_filter = handler->GetResourceResponseFilter(browser.get(), frame,
-                                                        cefRequest.get(),
-                                                        cefResponse.get());
-      }
-    }
-  }
-
-  if (cef_filter.get() && cef_filter->InitFilter()) {
-    scoped_ptr<CefResponseFilterWrapper> wrapper(
-        new CefResponseFilterWrapper(cef_filter, filter_list != nullptr));
-    wrapper->InitBuffer(kFilterBufSize);
-
-    if (filter_list) {
-      // Install the wrapper at the end of the filter list.
-      net::Filter* last_filter = filter_list;
-      do {
-        if (!last_filter->next_filter_.get()) {
-          last_filter->next_filter_ = std::move(wrapper);
-          break;
-        }
-        last_filter = last_filter->next_filter_.get();
-      } while (last_filter);
-    } else {
-      // Only the wrapper exists.
-      filter_list = wrapper.release();
-    }
-  }
-
-  return filter_list;
 }

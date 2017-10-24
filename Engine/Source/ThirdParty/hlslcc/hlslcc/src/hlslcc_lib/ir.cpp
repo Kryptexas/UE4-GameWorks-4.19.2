@@ -328,6 +328,7 @@ ir_expression::ir_expression(int op, ir_rvalue* op0)
 	case ir_unop_dFdx:
 	case ir_unop_dFdy:
 	case ir_unop_bitreverse:
+	case ir_unop_saturate:
 		this->type = op0->type;
 		break;
 
@@ -606,6 +607,8 @@ static const char *const operator_strs[ir_opcode_count] =
 	"bitCount",
 	"findMSB",
 	"findLSB",
+	
+	"saturate",
 
 	"noise",
 
@@ -650,6 +653,7 @@ static const char *const operator_strs[ir_opcode_count] =
 	"lerp",
 	"smoothstep",
 	"clamp",
+	"fma",
 
 	"vector",
 };

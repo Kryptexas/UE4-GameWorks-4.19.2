@@ -12,6 +12,9 @@
 #include "Widgets/Text/STextBlock.h"
 #include "RHI.h"
 
+#include "IPropertyTypeCustomization.h"
+#include "IPropertyUtilities.h"
+
 TSharedRef<IPropertyTypeCustomization> FPropertyEntryCustomization::MakeInstance()
 {
 	return MakeShareable(new FPropertyEntryCustomization);
@@ -20,6 +23,7 @@ TSharedRef<IPropertyTypeCustomization> FPropertyEntryCustomization::MakeInstance
 FPropertyEntryCustomization::FPropertyEntryCustomization()
 {
 	PropertyRestriction = MakeShareable(new FPropertyRestriction(FText::FromString("Property already set on for a different entry")));
+	CurrentOptions = nullptr;
 }
 
 void FPropertyEntryCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
@@ -30,10 +34,26 @@ void FPropertyEntryCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Pr
 		MaterialPropertyHandle->CreatePropertyValueWidget()
 	];
 
+	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = CustomizationUtils.GetPropertyUtilities()->GetSelectedObjects();
+	// Try and find material options instance in currently edited objects
+	CurrentOptions = Cast<UMaterialOptions>((SelectedObjects.FindByPredicate([](TWeakObjectPtr<UObject> Object) { return Cast<UMaterialOptions>(Object.Get()); }))->Get());
+	
 	const int32 Index = PropertyHandle->GetIndexInArray();
-	// Add restriction to ensure the user cannot set up two entries with the same EMaterialProperty value
+
+	// Add restriction to ensure the user cannot set up two entries with the same EMaterialProperty value	
 	MaterialPropertyHandle->AddRestriction(PropertyRestriction.ToSharedRef());
-	MaterialPropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([this, Index]() { UpdateRestrictions(Index); }));
+
+	// Set Parent handle on property change to update restrictions across all the entry properties
+	TSharedPtr<IPropertyHandle> ParentHandle = PropertyHandle->GetParentHandle();
+	if (ParentHandle.IsValid())
+	{
+		TSharedPtr<IPropertyHandle> TopParentHandle = ParentHandle->GetParentHandle();
+		if (TopParentHandle.IsValid())
+		{
+			TopParentHandle->SetOnChildPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPropertyEntryCustomization::UpdateRestrictions, Index));
+		}
+	}
+
 	UpdateRestrictions(Index);
 }
 
@@ -50,17 +70,18 @@ void FPropertyEntryCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 
 void FPropertyEntryCustomization::UpdateRestrictions(const int32 EntryIndex)
 {
-	UMaterialOptions* Options = GetMutableDefault<UMaterialOptions>();
 	PropertyRestriction->RemoveAll();
-
-	const UEnum* PropertyEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMaterialProperty"));
-	// Add all previously set material properties to be disabled
-	for (int32 Index = 0; Index < Options->Properties.Num(); ++Index)
+	if (CurrentOptions)
 	{
-		if (Index != EntryIndex)
+		const UEnum* PropertyEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMaterialProperty"));
+		// Add all previously set material properties to be disabled
+		for (int32 Index = 0; Index < CurrentOptions->Properties.Num(); ++Index)
 		{
-			const FPropertyEntry& Entry = Options->Properties[Index];
-			PropertyRestriction->AddDisabledValue(PropertyEnum->GetNameStringByValue(Entry.Property));
+			if (Index != EntryIndex)
+			{
+				const FPropertyEntry& Entry = CurrentOptions->Properties[Index];
+				PropertyRestriction->AddDisabledValue(PropertyEnum->GetNameStringByValue(Entry.Property));
+			}
 		}
 	}
 }
@@ -103,6 +124,31 @@ void FMaterialOptionsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 	if (TextureSizePropertyHandle->IsValidHandle())
 	{
 		AddTextureSizeClamping(TextureSizePropertyHandle);
+	}
+
+	TSharedRef<IPropertyHandle> PropertiesHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UMaterialOptions, Properties));
+	if (PropertiesHandle->IsValidHandle())
+	{
+		// Setup delegate for when the number of Material Property items changes
+		FSimpleDelegate RefreshDelegate = FSimpleDelegate::CreateLambda([this, &DetailBuilder, CurrentOptions]()
+		{
+			TArray<EMaterialProperty> Properties;
+			// Ensure that we set duplicate entries to MP_MAX
+			for (FPropertyEntry& Entry : CurrentOptions->Properties)
+			{
+				if (Properties.Contains(Entry.Property))
+				{
+					Entry.Property = MP_MAX;
+				}
+				else if (Entry.Property != MP_MAX)
+				{
+					Properties.Add(Entry.Property);
+				}
+			}
+			
+			DetailBuilder.ForceRefreshDetails();
+		});
+		PropertiesHandle->SetOnPropertyValueChanged(RefreshDelegate);
 	}
 
 	// Only allow changes to LOD indices if we have a valid options instance and if there is actually more than one index

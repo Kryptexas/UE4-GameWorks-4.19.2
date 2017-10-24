@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3492049
 Availability:Public
 Title:ブループリントのネイティブ化
 Crumbs:
@@ -281,3 +281,25 @@ Blueprint アセットを含むプロジェクトを作っていない場合、�
 このフラグは、コマンド ラインからプロジェクトをビルド / クックできる上級ユーザー向けです (サーバー側のビルド エンジニアなど)。**[Project Settings]** メニューでネイティブ化を有効にしている間にこのフラグを有効にすると、 
 コマンドラインからネイティブ化フラグを使用せずにビルド / クックを実行した時に通常は警告が出されます。コマンドラインからネイティブ化スイッチを使用する方法については、 
 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) を参照してください。
+
+## 追加のリソース
+
+Blueprint Nativization に関する追加情報は、以下の Feature Hifhlight ビデオで紹介されています。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Ut_CRt7o8PA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

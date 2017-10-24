@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Schema;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool
@@ -30,6 +31,11 @@ namespace AutomationTool
 		public FieldInfo FieldInfo;
 
 		/// <summary>
+		/// The type for values assigned to this field
+		/// </summary>
+		public Type ValueType;
+
+		/// <summary>
 		/// Validation type for this field
 		/// </summary>
 		public TaskParameterValidationType ValidationType;
@@ -46,8 +52,15 @@ namespace AutomationTool
 		{
 			Name = InName;
 			FieldInfo = InFieldInfo;
+			ValueType = FieldInfo.FieldType;
 			ValidationType = InValidationType;
 			bOptional = bInOptional;
+
+			if (ValueType.IsGenericType && ValueType.GetGenericTypeDefinition() == typeof(Nullable<>))
+			{
+				ValueType = ValueType.GetGenericArguments()[0];
+				bOptional = true;
+			}
 		}
 	}
 
@@ -239,7 +252,7 @@ namespace AutomationTool
 			
 			// Create all the custom user types, and add them to the qualified name lookup
 			List<XmlSchemaType> UserTypes = new List<XmlSchemaType>();
-			foreach(Type Type in NameToTask.Values.SelectMany(x => x.NameToParameter.Values).Select(x => x.FieldInfo.FieldType))
+			foreach(Type Type in NameToTask.Values.SelectMany(x => x.NameToParameter.Values).Select(x => x.ValueType))
 			{
 				if(!TypeToSchemaTypeName.ContainsKey(Type))
 				{
@@ -261,7 +274,7 @@ namespace AutomationTool
 					XmlQualifiedName SchemaTypeName = GetQualifiedTypeName(Parameter.ValidationType);
 					if(SchemaTypeName == null)
 					{
-						SchemaTypeName = TypeToSchemaTypeName[Parameter.FieldInfo.FieldType];
+						SchemaTypeName = TypeToSchemaTypeName[Parameter.ValueType];
 					}
 					TaskType.Attributes.Add(CreateSchemaAttribute(Parameter.Name, SchemaTypeName, Parameter.bOptional? XmlSchemaUse.Optional : XmlSchemaUse.Required));
 				}
@@ -625,6 +638,7 @@ namespace AutomationTool
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Submitters", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Warnings", ScriptSchemaStandardType.Boolean, XmlSchemaUse.Optional));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+			AggregateType.Attributes.Add(CreateSchemaAttribute("Absolute", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return AggregateType;
 		}
 

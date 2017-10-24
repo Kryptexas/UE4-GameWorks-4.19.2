@@ -3,7 +3,8 @@
 #include "UnitTests/PacketLimitTest_Oodle.h"
 
 
-
+// @todo #JohnB: Restore in a game-level package, eventually
+#if 0
 /**
  * UPacketLimitTest_Oodle
  */
@@ -23,3 +24,4 @@ UPacketLimitTest_Oodle::UPacketLimitTest_Oodle(const FObjectInitializer& ObjectI
 
 	bUseOodle = true;
 }
+#endif

@@ -1171,7 +1171,7 @@ void STreeMap::StartRenamingNode( const FGeometry& MyGeometry, const FTreeMapNod
 	FSlateApplication::Get().PushMenu( AsShared(), FWidgetPath(), RenamerWidget, MyGeometry.LocalToAbsolute( RelativePosition ), FPopupTransitionEffect::None, bFocusImmediately );
 
 	// Focus the text box right after we spawn it so that the user can start typing
-	FSlateApplication::Get().SetKeyboardFocus( EditableText, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( EditableText, EFocusCause::SetDirectly );
 }
 
 
@@ -1298,13 +1298,6 @@ void STreeMap::ApplyVisualizationToNodesRecursively( const FTreeMapNodeDataRef& 
 
 		ApplyVisualizationToNodesRecursively( ChildNode.ToSharedRef(), ChildColor, TreeDepth + 1 );
 	}
-
-}
-
-void STreeMap::ShowOptionsMenuAt(const FVector2D& ScreenSpacePosition)
-{
-	// deprecated
-	ShowOptionsMenuAtInternal(ScreenSpacePosition, FWidgetPath());
 }
 
 void STreeMap::ShowOptionsMenuAt(const FPointerEvent& InMouseEvent)

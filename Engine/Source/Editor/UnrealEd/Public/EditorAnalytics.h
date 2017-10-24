@@ -65,6 +65,8 @@ namespace EAnalyticsErrorCodes
 		DeviceOSNewerThanSDK = 151,
 		TestFailure = 152,
 		SymbolizedSONotFound = 153,
+		LicenseNotAccepted = 154,
+		AndroidOBBError = 155,
 	};
 };
 

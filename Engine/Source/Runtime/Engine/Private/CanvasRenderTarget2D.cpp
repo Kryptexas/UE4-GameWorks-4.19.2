@@ -63,7 +63,12 @@ void UCanvasRenderTarget2D::RepaintCanvas()
 		Canvas->AddToRoot();
 	}
 
-	Canvas->Init(GetSurfaceWidth(), GetSurfaceHeight(), nullptr);
+	// Create the FCanvas which does the actual rendering.
+	const UWorld* WorldPtr = World.Get();
+	const ERHIFeatureLevel::Type FeatureLevel = WorldPtr != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
+	FCanvas RenderCanvas(GameThread_GetRenderTargetResource(), nullptr, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, FeatureLevel);
+
+	Canvas->Init(GetSurfaceWidth(), GetSurfaceHeight(), nullptr, &RenderCanvas);
 	Canvas->Update();
 
 	// Update the resource immediately to remove it from the deferred resource update list. This prevents the texture
@@ -79,15 +84,10 @@ void UCanvasRenderTarget2D::RepaintCanvas()
 			(FTextureRenderTarget2DResource*)GameThread_GetRenderTargetResource(),
 			{
 				SetRenderTarget(RHICmdList, TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef(), true);
-	RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
+				RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
 			}
 	);
 
-	// Create the FCanvas which does the actual rendering.
-	const UWorld* WorldPtr = World.Get();
-	const ERHIFeatureLevel::Type FeatureLevel = WorldPtr != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
-	FCanvas RenderCanvas(GameThread_GetRenderTargetResource(), nullptr, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, FeatureLevel);
-	Canvas->Canvas = &RenderCanvas;
 
 	if (!IsPendingKill() && OnCanvasRenderTargetUpdate.IsBound())
 	{

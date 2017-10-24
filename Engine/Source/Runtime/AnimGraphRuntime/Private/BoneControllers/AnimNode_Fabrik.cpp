@@ -26,14 +26,32 @@ FVector FAnimNode_Fabrik::GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, c
 	return MeshBases.GetComponentSpaceTransform(BoneIndex).GetLocation();
 }
 
+FTransform FAnimNode_Fabrik::GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FTransform& InOffset) 
+{
+	FTransform OutTransform;
+	if (Space == BCS_BoneSpace)
+	{
+		OutTransform = InTarget.GetTargetTransform(InOffset, MeshBases, InComponentTransform);
+	}
+	else
+	{
+		// parent bone space still goes through this way
+		// if your target is socket, it will try find parents of joint that socket belongs to
+		OutTransform = InOffset;
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(InComponentTransform, MeshBases, OutTransform, InTarget.GetCompactPoseBoneIndex(), Space);
+	}
+
+	return OutTransform;
+}
+
 void FAnimNode_Fabrik::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 	// Update EffectorLocation if it is based off a bone position
 	FTransform CSEffectorTransform = EffectorTransform;
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, CSEffectorTransform, EffectorTransformBone.GetCompactPoseIndex(BoneContainer), EffectorTransformSpace);
-	
+	CSEffectorTransform = GetTargetTransform(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, EffectorTarget, EffectorTransformSpace, EffectorTransform);
+
 	FVector const CSEffectorLocation = CSEffectorTransform.GetLocation();
 
 #if WITH_EDITOR
@@ -267,7 +285,7 @@ void FAnimNode_Fabrik::InitializeBoneReferences(const FBoneContainer& RequiredBo
 {
 	TipBone.Initialize(RequiredBones);
 	RootBone.Initialize(RequiredBones);
-	EffectorTransformBone.Initialize(RequiredBones);
+	EffectorTarget.InitializeBoneReferences(RequiredBones);
 }
 
 void FAnimNode_Fabrik::GatherDebugData(FNodeDebugData& DebugData)
@@ -276,4 +294,10 @@ void FAnimNode_Fabrik::GatherDebugData(FNodeDebugData& DebugData)
 
 	DebugData.AddDebugItem(DebugLine);
 	ComponentPose.GatherDebugData(DebugData);
+}
+
+void FAnimNode_Fabrik::Initialize_AnyThread(const FAnimationInitializeContext& Context)
+{
+	Super::Initialize_AnyThread(Context);
+	EffectorTarget.Initialize(Context.AnimInstanceProxy);
 }

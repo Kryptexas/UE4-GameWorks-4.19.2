@@ -312,10 +312,6 @@ public:
 	UFUNCTION(exec)
 	void SetMouseSensitivity(const float Sensitivity);
 
-	/** Exec function to return the mouse sensitivity to its default value */
-	DEPRECATED(4.8, "SetMouseSensitivityToDefault is deprecated, use SetAxisProperties instead")
-	void SetMouseSensitivityToDefault();
-
 	/** Exec function to add a debug exec command */
 	UFUNCTION(exec)
 	void SetBind(FName BindName, const FString& Command);
@@ -332,10 +328,6 @@ public:
 	/** Exec function to invert an axis key */
 	UFUNCTION(exec)
 	void InvertAxisKey(const FKey AxisKey);
-
-	/** Backwards compatibility exec function for people used to it instead of using InvertAxisKey */
-	DEPRECATED(4.8, "InvertMouse is deprecated, use InvertAxisKey(EKeys::MouseY); instead")
-	void InvertMouse();
 
 	/** Exec function to invert an axis mapping */
 	UFUNCTION(exec)
@@ -523,6 +515,9 @@ public:
 	/** Returns the list of keys mapped to the specified Action Name */
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
 
+	/** Returns the list of keys mapped to the specified Axis Name */
+	const TArray<FInputAxisKeyMapping>& GetKeysForAxis(const FName AxisName);
+
 	static const TArray<FInputActionKeyMapping>& GetEngineDefinedActionMappings() { return EngineDefinedActionMappings; }
 	static const TArray<FInputAxisKeyMapping>& GetEngineDefinedAxisMappings() { return EngineDefinedAxisMappings; }
 
@@ -607,6 +602,9 @@ private:
 
 	/** Static empty array to be able to return from GetKeysFromAction when there are no keys mapped to the requested action name */
 	static const TArray<FInputActionKeyMapping> NoKeyMappings;
+
+	/** Static empty array to be able to return from GetKeysFromAxis when there are no axis mapped to the requested axis name */
+	static const TArray<FInputAxisKeyMapping> NoAxisMappings;
 
 	/** Action Mappings defined by engine systems that cannot be remapped by users */
 	static TArray<FInputActionKeyMapping> EngineDefinedActionMappings;

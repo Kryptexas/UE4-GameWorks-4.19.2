@@ -2,13 +2,22 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Guid.h"
-#include "UObject/Class.h"
-#include "UObject/WeakObjectPtr.h"
+#include "CoreTypes.h"
 #include "Async/TaskGraphInterfaces.h"
+#include "Containers/Array.h"
+#include "Containers/Map.h"
+#include "Misc/Crc.h"
+#include "Misc/Guid.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/Class.h"
+#include "UObject/NameTypes.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/WeakObjectPtrTemplates.h"
 
 class IMessageAttachment;
+
+struct FDateTime;
+
 
 /**
  * Structure for message endpoint addresses.
@@ -189,13 +198,13 @@ typedef TRangeBound<EMessageScope> FMessageScopeRangeBound;
  * message, such as its origin or when it expires. They may also be interested in optional out-of-band
  * binary data that is attached to the message.
  *
- * The sender's address (@see GetSender) is often needed to send a reply message to a message sender, i.e.
- * in response to a published message. The message attachment (@see GetAttchment) is an optional bundle
+ * The sender's address (IMessageContext.GetSender) is often needed to send a reply message to a message sender, i.e.
+ * in response to a published message. The message attachment (IMessageContext.GetAttachment) is an optional bundle
  * of binary bulk data that is transferred independently from the message itself and allows for transferring
  * larger amounts of data that would otherwise clog up the messaging system.
  *
  * In case a message was forwarded by another endpoint, the context of the original sender can be accessed
- * using the @see GetOriginalContext method.
+ * using the IMessageContext.GetOriginalContext method.
  *
  * @see IMessageAttachment
  */
@@ -342,7 +351,9 @@ public:
 
 
 /** Type definition for shared pointers to instances of IMessageContext. */
+DEPRECATED(4.16, "IMessageContextPtr is deprecated. Please use 'TSharedPtr<IMessageContext, ESPMode::ThreadSafe>' instead!")
 typedef TSharedPtr<IMessageContext, ESPMode::ThreadSafe> IMessageContextPtr;
 
 /** Type definition for shared references to instances of IMessageContext. */
+DEPRECATED(4.16, "IMessageContextRef is deprecated. Please use 'TSharedRef<IMessageContext, ESPMode::ThreadSafe>' instead!")
 typedef TSharedRef<IMessageContext, ESPMode::ThreadSafe> IMessageContextRef;

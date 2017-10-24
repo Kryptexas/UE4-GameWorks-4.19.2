@@ -11,7 +11,6 @@
 #include "libcef/browser/file_dialog_runner.h"
 
 #include "base/compiler_specific.h"
-#include "base/memory/scoped_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "content/public/browser/web_contents_observer.h"
 
@@ -30,7 +29,7 @@ class CefFileDialogManager : public content::WebContentsObserver {
   // |runner| may be NULL if the platform doesn't implement dialogs.
   CefFileDialogManager(
       CefBrowserHostImpl* browser,
-      scoped_ptr<CefFileDialogRunner> runner);
+      std::unique_ptr<CefFileDialogRunner> runner);
   ~CefFileDialogManager() override;
 
   // Delete the runner to free any platform constructs.
@@ -49,8 +48,8 @@ class CefFileDialogManager : public content::WebContentsObserver {
   // Called from CefBrowserHostImpl::RunFileChooser.
   // See WebContentsDelegate::RunFileChooser documentation.
   void RunFileChooser(
-    content::WebContents* web_contents,
-    const content::FileChooserParams& params);
+      content::RenderFrameHost* render_frame_host,
+      const content::FileChooserParams& params);
 
   // Run the file chooser dialog specified by |params|. Only a single dialog may
   // be pending at any given time. |callback| will be executed asynchronously
@@ -60,7 +59,13 @@ class CefFileDialogManager : public content::WebContentsObserver {
       const CefFileDialogRunner::RunFileChooserCallback& callback);
 
  private:
-  // Used with RunFileChooser to clear the |file_chooser_pending_| flag.
+  void RunFileChooserInternal(
+      content::RenderFrameHost* render_frame_host,
+      const CefFileDialogRunner::FileChooserParams& params,
+      const CefFileDialogRunner::RunFileChooserCallback& callback);
+
+  // Used with the RunFileChooser variant where the caller specifies a callback
+  // (no associated RenderFrameHost).
   void OnRunFileChooserCallback(
       const CefFileDialogRunner::RunFileChooserCallback& callback,
       int selected_accept_filter,
@@ -73,22 +78,33 @@ class CefFileDialogManager : public content::WebContentsObserver {
       int selected_accept_filter,
       const std::vector<base::FilePath>& file_paths);
 
-  // Used with WebContentsDelegate::RunFileChooser to notify the WebContents.
+  // Used with WebContentsDelegate::RunFileChooser to notify the
+  // RenderFrameHost.
   void OnRunFileChooserDelegateCallback(
       content::FileChooserParams::Mode mode,
       int selected_accept_filter,
       const std::vector<base::FilePath>& file_paths);
 
+  // Clean up state associated with the last run.
+  void Cleanup();
+
+  // WebContentsObserver methods:
+  void RenderFrameDeleted(
+      content::RenderFrameHost* render_frame_host) override;
+
   // CefBrowserHostImpl pointer is guaranteed to outlive this object.
   CefBrowserHostImpl* browser_;
 
-  scoped_ptr<CefFileDialogRunner> runner_;
+  std::unique_ptr<CefFileDialogRunner> runner_;
 
   // True if a file chooser is currently pending.
   bool file_chooser_pending_;
 
+  // RenderFrameHost associated with the pending file chooser. May be nullptr.
+  content::RenderFrameHost* render_frame_host_;
+
   // Used for asynchronously listing directory contents.
-  scoped_ptr<net::DirectoryLister> lister_;
+  std::unique_ptr<net::DirectoryLister> lister_;
 
   // Must be the last member.
   base::WeakPtrFactory<CefFileDialogManager> weak_ptr_factory_;

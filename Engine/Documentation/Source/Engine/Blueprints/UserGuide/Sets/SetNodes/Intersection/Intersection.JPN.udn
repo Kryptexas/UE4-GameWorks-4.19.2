@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Intersection
 Description:2 つの Set の共通部分を取り、それを Resultant Set に割り当てる
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+order:6
 Version:4.15
 Tags:Blueprints
 Type:reference

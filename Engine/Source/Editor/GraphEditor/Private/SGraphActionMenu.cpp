@@ -219,11 +219,6 @@ public:
 
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
-		if (IsReadOnly.Get())
-		{
-			return;
-		}
-
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
@@ -1061,7 +1056,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 			ReadOnlyArgument.IsReadOnly(this, &SGraphActionMenu::CanRenameNode, WeakItem);
 		}
 
-		TSharedRef<SGraphActionCategoryWidget> CategoryWidget = 
+		TSharedRef<SGraphActionCategoryWidget> CategoryWidget =
 			SNew(SGraphActionCategoryWidget, InItem)
 			.HighlightText(this, &SGraphActionMenu::GetFilterText)
 			.OnTextCommitted(this, &SGraphActionMenu::OnNameTextCommitted, TWeakPtr< FGraphActionNode >(InItem))

@@ -26,6 +26,7 @@
 
 /// \file usdHydra/texture.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdHydra/api.h"
 #include "pxr/usd/usdShade/shader.h"
 #include "pxr/usd/usd/prim.h"
@@ -40,6 +41,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -83,7 +86,8 @@ public:
     /// Return a vector of names of all pre-declared attributes for this schema
     /// class and all its ancestor classes.  Does not include attributes that
     /// may be authored by custom/extended methods of the schemas involved.
-    USDHYDRA_API static const TfTokenVector &
+    USDHYDRA_API
+    static const TfTokenVector &
     GetSchemaAttributeNames(bool includeInherited=true);
 
     /// Return a UsdHydraTexture holding the prim adhering to this
@@ -95,13 +99,15 @@ public:
     /// UsdHydraTexture(stage->GetPrimAtPath(path));
     /// \endcode
     ///
-    USDHYDRA_API static UsdHydraTexture
+    USDHYDRA_API
+    static UsdHydraTexture
     Get(const UsdStagePtr &stage, const SdfPath &path);
 
 
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDHYDRA_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -179,10 +185,14 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

@@ -193,12 +193,12 @@ void ACameraRig_Crane::PostEditUndo()
 
 	UpdateCraneComponents();
 }
+#endif // WITH_EDITOR
 
 USceneComponent* ACameraRig_Crane::GetDefaultAttachComponent() const
 {
 	return CraneCameraMount;
 }
-#endif // WITH_EDITOR
 
 bool ACameraRig_Crane::ShouldTickIfViewportsOnly() const
 {

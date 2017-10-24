@@ -816,6 +816,7 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		[
 			SAssignNew(RenameTextBox, SEditableTextBox) .Font(SmallLayoutFont)
 				.OnTextChanged(this, &SColorThemesViewer::ChangeThemeName)
+				.OnTextCommitted(this, &SColorThemesViewer::CommitThemeName)
 		]
 		+SHorizontalBox::Slot().AutoWidth() .Padding(3)
 		[
@@ -1013,14 +1014,27 @@ TSharedPtr<FColorTheme> SColorThemesViewer::GetDefaultColorTheme(bool bCreateNew
 
 FReply SColorThemesViewer::AcceptThemeName()
 {
+	UpdateThemeNameFromTextBox();
+	return FReply::Handled();
+}
+
+void SColorThemesViewer::CommitThemeName(const FText& InText, ETextCommit::Type InCommitType)
+{
+	if (InCommitType == ETextCommit::OnEnter)
+	{
+		UpdateThemeNameFromTextBox();
+	}
+}
+
+void SColorThemesViewer :: UpdateThemeNameFromTextBox()
+{
 	// Update the theme name if it differs, ensuring it is still unique
 	const FString Name = RenameTextBox->GetText().ToString();
-	if ( GetCurrentColorTheme()->Name != Name )
+	if (GetCurrentColorTheme()->Name != Name)
 	{
-		GetCurrentColorTheme()->Name = MakeUniqueThemeName( Name );
+		GetCurrentColorTheme()->Name = MakeUniqueThemeName(Name);
 		RefreshThemes();
 	}
-	return FReply::Handled();
 }
 
 bool SColorThemesViewer::CanAcceptThemeName() const

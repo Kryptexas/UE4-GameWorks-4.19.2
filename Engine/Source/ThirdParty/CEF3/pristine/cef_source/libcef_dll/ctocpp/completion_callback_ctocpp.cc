@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -32,18 +32,18 @@ void CefCompletionCallbackCToCpp::OnComplete() {
 CefCompletionCallbackCToCpp::CefCompletionCallbackCToCpp() {
 }
 
-template<> cef_completion_callback_t* CefCToCpp<CefCompletionCallbackCToCpp,
+template<> cef_completion_callback_t* CefCToCppRefCounted<CefCompletionCallbackCToCpp,
     CefCompletionCallback, cef_completion_callback_t>::UnwrapDerived(
     CefWrapperType type, CefCompletionCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefCompletionCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefCompletionCallbackCToCpp,
     CefCompletionCallback, cef_completion_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefCompletionCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefCompletionCallbackCToCpp,
     CefCompletionCallback, cef_completion_callback_t>::kWrapperType =
     WT_COMPLETION_CALLBACK;

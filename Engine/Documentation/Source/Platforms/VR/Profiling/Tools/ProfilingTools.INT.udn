@@ -20,8 +20,12 @@ For GPU profiling, there are more options.  First of all, and most specifically,
 
 Additionally, you could go further drilling into more systemic problems using both GPUView and Nsight. 
 
+
 ## Oculus PerfHud
 
+[Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]
+<!--
+[EXCERPT:OculusPerfHud]
 Oculus PerfHud is a tool that can be displayed in game, whether in editor or in packaged builds, that will help verify the actual CPU and GPU timings, excluding any throttling done by the application.  There's a great overview of the screens 
 and what the values mean in Oculus' [documentation](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/).
 
@@ -41,7 +45,8 @@ where N is:
 |	3	| Shows render timing info for application |
 |	4	| Shows render timing info for OVR compositor |
 |	5	| Shows SDK & HMD version Info |
-
+[/EXCERPT:OculusPerfHud]
+-->
 ## SteamVR Frame Timing Tool
 
 The SteamVR Frame Timing will allow you see how your VR project is performing in both the UE4 Editor or in a packaged build. This tool will help verify the actual CPU and GPU timings, excluding any throttling done by the application. There's a great overview of how to open the tool as well as what all of the values relate to on the 

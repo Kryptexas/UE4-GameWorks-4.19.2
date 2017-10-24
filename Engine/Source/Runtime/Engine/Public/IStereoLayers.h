@@ -168,6 +168,20 @@ public:
 		UpdateSplashScreen();
 	}
 
+	virtual FLayerDesc GetDebugCanvasLayerDesc(FTextureRHIRef Texture)
+	{
+		// Default debug layer desc
+		IStereoLayers::FLayerDesc StereoLayerDesc;
+		StereoLayerDesc.Transform = FTransform(FVector(100.f, 0, 0));
+		StereoLayerDesc.QuadSize = FVector2D(200.f, 200.f);
+		StereoLayerDesc.PositionType = IStereoLayers::ELayerType::FaceLocked;
+		StereoLayerDesc.ShapeType = IStereoLayers::ELayerShape::QuadLayer;
+		StereoLayerDesc.Texture = Texture;
+		StereoLayerDesc.Flags = IStereoLayers::ELayerFlags::LAYER_FLAG_TEX_CONTINUOUS_UPDATE;
+		StereoLayerDesc.Flags |= IStereoLayers::ELayerFlags::LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO;
+		return StereoLayerDesc;
+	}
+
 protected:
 	bool				bSplashIsShown = false;
 	bool				bSplashShowMovie = false;

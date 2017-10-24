@@ -13,24 +13,20 @@ public class DeviceProfileServices : ModuleRules
 			new string[] {
 				"Core",
 				"Engine",
-			}
-		);
+			});
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				
 				"CoreUObject",
 				"TargetPlatform",
 				"DesktopPlatform",
 				"UnrealEd",
-			}
-		);
+			});
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"TargetDeviceServices",
-			}
-		);
+			});
 	}
 }
 

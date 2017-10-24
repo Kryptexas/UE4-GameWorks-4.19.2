@@ -546,7 +546,7 @@ FVector2D FLevelViewportLayout::GetMaximizedViewportSizeOnCanvas() const
 					const FMargin& WindowContentMargin = OwnerWindow->GetWindowBorderSize();
 					ClippedArea.Set( WindowContentMargin.GetTotalSpaceAlong<Orient_Horizontal>(), WindowContentMargin.GetTotalSpaceAlong<Orient_Vertical>() );
 				}
-				TargetSize = OwnerWindow->GetSizeInScreen() - ClippedArea;
+				TargetSize = (OwnerWindow->GetSizeInScreen() - ClippedArea)/OwnerWindow->GetNativeWindow()->GetDPIScaleFactor();
 			}
 		}
 		else

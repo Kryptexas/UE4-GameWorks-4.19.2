@@ -14,6 +14,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/App.h"
+#include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
@@ -88,6 +89,7 @@
 #include "ShaderCompiler.h"
 #include "UniquePtr.h"
 #include "Engine/MapBuildDataRegistry.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -142,7 +144,7 @@ namespace ObjectTools
 		bool bIsSupported = false;
 
 		// Check object prerequisites
-		if ( Obj->IsAsset() )
+		if (ensure(Obj) && Obj->IsAsset() )
 		{
 			UPackage* ObjectPackage = Obj->GetOutermost();
 			if( ObjectPackage != NULL )
@@ -1121,7 +1123,7 @@ namespace ObjectTools
 			Ref += SelectedObjects[Index]->GetPathName();
 		}
 
-		FPlatformMisc::ClipboardCopy( *Ref );
+		FPlatformApplicationMisc::ClipboardCopy( *Ref );
 	}
 
 	/**
@@ -2771,7 +2773,7 @@ namespace ObjectTools
 				}
 				// Don't allow a move/rename to occur into a package that has a filename invalid for saving. This is a rare case
 				// that should not happen often, but could occur using packages created before the editor checked against file name length
-				else if ( ExistingOutermostPackage && ExistingOutermostPackageFilename.Len() > 0 && !FEditorFileUtils::IsFilenameValidForSaving( ExistingOutermostPackageFilename, Reason ) )
+				else if ( ExistingOutermostPackage && ExistingOutermostPackageFilename.Len() > 0 && !FFileHelper::IsFilenameValidForSaving( ExistingOutermostPackageFilename, Reason ) )
 				{
 					bMoveFailed = true;
 				}
@@ -2839,7 +2841,7 @@ namespace ObjectTools
 								FString Path;
 
 								// Newly renamed objects must have the single asset package extension
-								Path = FPaths::Combine(*FPaths::GameDir(), TEXT("Content"), TEXT("Sounds"), *LanguageExt, *(FPackageName::GetLongPackageAssetName(NewPackageName) + FPackageName::GetAssetPackageExtension()));
+								Path = FPaths::Combine(*FPaths::ProjectDir(), TEXT("Content"), TEXT("Sounds"), *LanguageExt, *(FPackageName::GetLongPackageAssetName(NewPackageName) + FPackageName::GetAssetPackageExtension()));
 
 								// Move the package into the correct file location by saving it
 								GUnrealEd->Exec( NULL, *FString::Printf(TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\""), *NewPackageName, *Path) );
@@ -3720,7 +3722,7 @@ namespace ThumbnailTools
 				InObject, ImageWidth, ImageHeight, TextureFlushMode, NULL,
 				&NewThumbnail );		// Out
 
-			UPackage* MyOutermostPackage = CastChecked< UPackage >( InObject->GetOutermost() );
+			UPackage* MyOutermostPackage = InObject->GetOutermost();
 			return CacheThumbnail( InObject->GetFullName(), &NewThumbnail, MyOutermostPackage );
 		}
 
@@ -3882,7 +3884,7 @@ namespace ThumbnailTools
 	/** Returns the thumbnail for the specified object or NULL if one doesn't exist yet */
 	FObjectThumbnail* GetThumbnailForObject( UObject* InObject )
 	{
-		UPackage* ObjectPackage = CastChecked< UPackage >( InObject->GetOutermost() );
+		UPackage* ObjectPackage = InObject->GetOutermost();
 		return FindCachedThumbnailInPackage( ObjectPackage, FName( *InObject->GetFullName() ) );
 	}
 
@@ -4146,9 +4148,29 @@ namespace ThumbnailTools
 		return true;
 	}
 
+	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData)
+	{
+		const FObjectThumbnail* CachedThumbnail = FindCachedThumbnail(InAssetData.GetFullName());
+		if (CachedThumbnail != NULL && !CachedThumbnail->IsEmpty())
+		{
+			return true;
+		}
 
+		// If we don't yet have a thumbnail map, check the disk
+		FName ObjectFullName = FName(*InAssetData.GetFullName());
+		TArray<FName> ObjectFullNames;
+		FThumbnailMap LoadedThumbnails;
+		ObjectFullNames.Add(ObjectFullName);
+		if (ConditionallyLoadThumbnailsForObjects(ObjectFullNames, LoadedThumbnails))
+		{
+			const FObjectThumbnail* Thumbnail = LoadedThumbnails.Find(ObjectFullName);
 
-
-
+			if (Thumbnail != NULL && !Thumbnail->IsEmpty())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }
 

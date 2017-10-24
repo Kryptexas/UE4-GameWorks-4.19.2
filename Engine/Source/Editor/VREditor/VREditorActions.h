@@ -215,6 +215,9 @@ public:
 	/** Deselects everything currently selected */
 	static void DeselectAll();
 
+	/** Exit the VR mode */
+	static void ExitVRMode(UVREditorMode* InVRMode);
+
 public:
 	
 	static FText GizmoCoordinateSystemText;
@@ -223,6 +226,4 @@ public:
 
 	static FText SelectingCandidateActorsText;
 
-}
-;
-
+};

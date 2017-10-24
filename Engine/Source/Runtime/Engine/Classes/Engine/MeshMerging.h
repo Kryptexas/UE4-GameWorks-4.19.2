@@ -208,8 +208,12 @@ struct FMeshProxySettings
 	float HardAngleThreshold;
 
 	/** Lightmap resolution */
-	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (EditCondition = "!bComputeLightMapResolution"))
 	int32 LightMapResolution;
+
+	/** If ticked will compute the lightmap resolution by summing the dimensions for each mesh included for merging */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bComputeLightMapResolution;
 
 	/** Whether Simplygon should recalculate normals, otherwise the normals channel will be sampled from the original mesh */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
@@ -296,8 +300,12 @@ struct FMeshMergingSettings
 	bool bGenerateLightMapUV;
 
 	/** Target lightmap resolution */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = MeshSettings, meta=(ClampMax = 4096))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = MeshSettings, meta=(ClampMax = 4096, editcondition = "!bComputedLightMapResolution"))
 	int32 TargetLightMapResolution;
+
+	/** Whether or not the lightmap resolution should be computed by summing the lightmap resolutions for the input Mesh Components */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = MeshSettings)
+	bool bComputedLightMapResolution;
 
 	/** Whether we should import vertex colors into merged mesh */
 	UPROPERTY()

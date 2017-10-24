@@ -127,7 +127,7 @@ public:
 		}
 		else if (ValueType* Val = PropAndFunction.GetPropertyAddress<ValueType>())
 		{
-			*Val = MoveTemp(PropertyValue);
+			*Val = MoveTempIfPossible(PropertyValue);
 		}
 
 		if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())

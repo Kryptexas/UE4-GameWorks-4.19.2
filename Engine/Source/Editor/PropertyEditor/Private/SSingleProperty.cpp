@@ -79,6 +79,17 @@ public:
 		return false;
 	}
 
+	const TArray<TWeakObjectPtr<UObject>>& GetSelectedObjects() const override
+	{
+		static TArray<TWeakObjectPtr<UObject>> Empty;
+		return Empty;
+	}
+
+	virtual bool HasClassDefaultObject() const override
+	{
+		return false;
+	}
+
 private:
 	TWeakPtr< SSingleProperty > View;
 };

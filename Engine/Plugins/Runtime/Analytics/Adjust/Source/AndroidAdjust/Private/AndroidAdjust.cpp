@@ -243,7 +243,7 @@ bool FAnalyticsProviderAdjust::StartSession(const TArray<FAnalyticsEventAttribut
 
 	for (auto Attr : Attributes)
 	{
-		AndroidThunkCpp_Adjust_AddSessionPartnerParameter(Attr.AttrName, Attr.AttrValue);
+		AndroidThunkCpp_Adjust_AddSessionPartnerParameter(Attr.AttrName, Attr.ToString());
 	}
 	RecordEvent(TEXT("SessionAttributes"), Attributes);
 
@@ -348,7 +348,7 @@ void FAnalyticsProviderAdjust::RecordEvent(const FString& EventName, const TArra
 			// add event attributes
 			for (auto Attr : Attributes)
 			{
-				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.AttrValue);
+				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.ToString());
 			}
 		}
 		AndroidThunkCpp_Adjust_SendEvent(EventToken);
@@ -452,7 +452,7 @@ void FAnalyticsProviderAdjust::RecordError(const FString& Error, const TArray<FA
 			// add event attributes
 			for (auto Attr : EventAttrs)
 			{
-				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.AttrValue);
+				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.ToString());
 			}
 		}
 
@@ -485,7 +485,7 @@ void FAnalyticsProviderAdjust::RecordProgress(const FString& ProgressType, const
 			// add event attributes
 			for (auto Attr : EventAttrs)
 			{
-				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.AttrValue);
+				AndroidThunkCpp_Adjust_Event_AddCallbackParameter(Attr.AttrName, Attr.ToString());
 			}
 		}
 

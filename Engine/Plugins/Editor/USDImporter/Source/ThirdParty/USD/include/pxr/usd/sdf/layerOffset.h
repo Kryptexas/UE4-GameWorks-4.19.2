@@ -26,14 +26,15 @@
 
 /// \file sdf/layerOffset.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
+
 #include <boost/operators.hpp>
 #include <iosfwd>
 #include <vector>
 
-#include "pxr/base/arch/attributes.h"
-#include "pxr/usd/sdf/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
-///
 /// \class SdfLayerOffset 
 ///
 /// Represents a time offset and scale between layers.
@@ -153,4 +154,6 @@ SDF_API
 std::ostream & operator<<( std::ostream &out,
                            const SdfLayerOffset &layerOffset );
 
-#endif /* SDF_LAYER_OFFSET */
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_LAYER_OFFSET

@@ -446,6 +446,10 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 		if (FileWriter)
 		{
 			FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
+			{
+				FString Line = CrossCompiler::CreateResourceTableFromEnvironment(Input.Environment);
+				FileWriter->Serialize(TCHAR_TO_ANSI(*Line), Line.Len());
+			}
 			FileWriter->Close();
 			delete FileWriter;
 		}
@@ -583,7 +587,10 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			{
 				for (uint32 Index = 0; Index < ShaderDesc.OutputParameters; ++Index)
 				{
-					D3D11_SIGNATURE_PARAMETER_DESC ParamDesc;
+					// VC++ horrible hack: Runtime ESP checks get confused and fail for some reason calling Reflector->GetOutputParameterDesc() (because it comes from another DLL?)
+					// so "guard it" using the middle of an array; it's been confirmed NO corruption is really happening.
+					D3D11_SIGNATURE_PARAMETER_DESC ParamDescs[3];
+					D3D11_SIGNATURE_PARAMETER_DESC& ParamDesc = ParamDescs[1];
 					Reflector->GetOutputParameterDesc(Index, &ParamDesc);
 					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED && ParamDesc.Mask != 0)
 					{
@@ -604,7 +611,10 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				bool bFoundUnused = false;
 				for (uint32 Index = 0; Index < ShaderDesc.InputParameters; ++Index)
 				{
-					D3D11_SIGNATURE_PARAMETER_DESC ParamDesc;
+					// VC++ horrible hack: Runtime ESP checks get confused and fail for some reason calling Reflector->GetInputParameterDesc() (because it comes from another DLL?)
+					// so "guard it" using the middle of an array; it's been confirmed NO corruption is really happening.
+					D3D11_SIGNATURE_PARAMETER_DESC ParamDescs[3];
+					D3D11_SIGNATURE_PARAMETER_DESC& ParamDesc = ParamDescs[1];
 					Reflector->GetInputParameterDesc(Index, &ParamDesc);
 					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED)
 					{
@@ -973,12 +983,17 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 	if (Input.bSkipPreprocessedCache)
 	{
-		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.VirtualSourceFilePath);
+		if (!FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.VirtualSourceFilePath))
+		{
+			return;
+		}
+
+		// Remove const as we are on debug-only mode
+		CrossCompiler::CreateEnvironmentFromResourceTable(PreprocessedShaderSource, (FShaderCompilerEnvironment&)Input.Environment);
 	}
 	else
 	{
-		// Preprocess the shader.
-		if (PreprocessShader(PreprocessedShaderSource, Output, Input, AdditionalDefines) != true)
+		if (!PreprocessShader(PreprocessedShaderSource, Output, Input, AdditionalDefines))
 		{
 			// The preprocessing stage will add any relevant errors.
 			return;

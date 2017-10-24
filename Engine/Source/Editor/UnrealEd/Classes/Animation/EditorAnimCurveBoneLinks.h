@@ -35,8 +35,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = Bones)
 	TArray<FBoneReference> ConnectedBones;
 
+	/** Max (Lowest) LOD to evaluate to curve. 
+	 *  Since LOD goes from 0 to high number, we call it Max. 
+	 *  For example, if you have 3 LODs (0, 1, 2), and if you want this to work until LOD 1, type 1.  
+	 *  Then the curve will be evaluated until LOD1, but not for LOD 2
+	 *  Default value is 255 */
+	UPROPERTY(EditAnywhere, Category = LOD)
+	uint8 MaxLOD;
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	// refresh current Connected Bones data 
-	UNREALED_API void Refresh(const FSmartName& InCurveName, const TArray<FBoneReference>& CurrentLinks);
+	UNREALED_API void Refresh(const FSmartName& InCurveName, const TArray<FBoneReference>& CurrentLinks, uint8 InMaxLOD);
 };

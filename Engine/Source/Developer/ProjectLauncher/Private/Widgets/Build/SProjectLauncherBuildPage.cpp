@@ -1,17 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Build/SProjectLauncherBuildPage.h"
-#include "Widgets/SBoxPanel.h"
-#include "Styling/SlateTypes.h"
+#include "SProjectLauncherBuildPage.h"
+
+#include "EditorStyleSet.h"
 #include "Styling/CoreStyle.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "EditorStyleSet.h"
-#include "Widgets/Shared/SProjectLauncherBuildConfigurationSelector.h"
-#include "Widgets/Shared/SProjectLauncherFormLabel.h"
+
 #include "Widgets/Cook/SProjectLauncherCookedPlatforms.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Shared/SProjectLauncherBuildConfigurationSelector.h"
+#include "Widgets/Shared/SProjectLauncherFormLabel.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherBuildPage"
@@ -20,7 +22,7 @@
 /* SProjectLauncherCookPage structors
  *****************************************************************************/
 
-SProjectLauncherBuildPage::~SProjectLauncherBuildPage( )
+SProjectLauncherBuildPage::~SProjectLauncherBuildPage()
 {
 	if (Model.IsValid())
 	{
@@ -32,7 +34,7 @@ SProjectLauncherBuildPage::~SProjectLauncherBuildPage( )
 /* SProjectLauncherCookPage interface
  *****************************************************************************/
 
-void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherBuildPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -59,8 +61,8 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
 					[
 						// build mode check box
 						SNew(SCheckBox)
-						.IsChecked(this, &SProjectLauncherBuildPage::HandleBuildIsChecked)
-						.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleBuildCheckedStateChanged)
+							.IsChecked(this, &SProjectLauncherBuildPage::HandleBuildIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleBuildCheckedStateChanged)
 					]
 			]
 
@@ -69,30 +71,30 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
 			.Padding(0, 3, 0, 3)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.Visibility(this, &SProjectLauncherBuildPage::ShowBuildConfiguration)
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Visibility(this, &SProjectLauncherBuildPage::ShowBuildConfiguration)
 					[
-						SNew(SProjectLauncherFormLabel)
-						.ErrorToolTipText(NSLOCTEXT("SProjectLauncherBuildValidation", "NoBuildConfigurationSelectedError", "A Build Configuration must be selected."))
-						.ErrorVisibility(this, &SProjectLauncherBuildPage::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoBuildConfigurationSelected)
-						.LabelText(LOCTEXT("ConfigurationComboBoxLabel", "Build Configuration:"))
-					]
+						SNew(SHorizontalBox)
 
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						// build configuration selector
-						SNew(SProjectLauncherBuildConfigurationSelector)
-						.Font(FCoreStyle::Get().GetFontStyle(TEXT("NormalFont")))
-						.OnConfigurationSelected(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSelected)
-						.Text(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText)
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SProjectLauncherFormLabel)
+									.ErrorToolTipText(NSLOCTEXT("SProjectLauncherBuildValidation", "NoBuildConfigurationSelectedError", "A Build Configuration must be selected."))
+									.ErrorVisibility(this, &SProjectLauncherBuildPage::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoBuildConfigurationSelected)
+									.LabelText(LOCTEXT("ConfigurationComboBoxLabel", "Build Configuration:"))
+							]
+
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								// build configuration selector
+								SNew(SProjectLauncherBuildConfigurationSelector)
+									.Font(FCoreStyle::Get().GetFontStyle(TEXT("NormalFont")))
+									.OnConfigurationSelected(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSelected)
+									.Text(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText)
+							]
 					]
-				]
 			]
 
         + SVerticalBox::Slot()
@@ -100,37 +102,37 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
             .Padding(0.0f, 8.0f, 0.0f, 0.0f)
             [
                 SNew(SExpandableArea)
-                .AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings"))
-                .InitiallyCollapsed(true)
-                .Padding(8.0)
-                .BodyContent()
-                [
-                    SNew(SVerticalBox)
-
-/*                    + SVerticalBox::Slot()
-                    .AutoHeight()
-                    [
-                        SNew(SButton)
-                        .Text(LOCTEXT("GenDSYMText", "Generate DSYM"))
-                        .IsEnabled( this, &SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled )
-                        .OnClicked( this, &SProjectLauncherBuildPage::HandleGenDSYMClicked )
-                    ]*/
-					+ SVerticalBox::Slot()
-					.AutoHeight()
+					.AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings"))
+					.InitiallyCollapsed(true)
+					.Padding(8.0)
+					.BodyContent()
 					[
-						// build mode check box
-						SNew(SCheckBox)
-						.IsChecked(this, &SProjectLauncherBuildPage::HandleUATIsChecked)
-						.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleUATCheckedStateChanged)
-						.Padding(FMargin(4.0f, 0.0f))
-						.ToolTipText(LOCTEXT("UATCheckBoxTooltip", "If checked, UAT will be built as part of the build."))
-						.Content()
+						SNew(SVerticalBox)
+
+	/*                    + SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("UATCheckBoxText", "Build UAT"))
+							SNew(SButton)
+							.Text(LOCTEXT("GenDSYMText", "Generate DSYM"))
+							.IsEnabled(this, &SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled)
+							.OnClicked(this, &SProjectLauncherBuildPage::HandleGenDSYMClicked)
+						]*/
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							// build mode check box
+							SNew(SCheckBox)
+								.IsChecked(this, &SProjectLauncherBuildPage::HandleUATIsChecked)
+								.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleUATCheckedStateChanged)
+								.Padding(FMargin(4.0f, 0.0f))
+								.ToolTipText(LOCTEXT("UATCheckBoxTooltip", "If checked, UAT will be built as part of the build."))
+								.Content()
+								[
+									SNew(STextBlock)
+										.Text(LOCTEXT("UATCheckBoxText", "Build UAT"))
+								]
 						]
-					]
-               ]
+				   ]
             ]
 
 		+ SVerticalBox::Slot()
@@ -148,7 +150,7 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
 /* SProjectLauncherBuildPage implementation
  *****************************************************************************/
 
-bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectName, const FString& Configuration )
+bool SProjectLauncherBuildPage::GenerateDSYMForProject(const FString& ProjectName, const FString& Configuration)
 {
     // UAT executable
     FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
@@ -173,6 +175,7 @@ bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectNa
 		FPlatformProcess::CloseProc(ProcessHandle);
 		return true;
 	}
+
 	return false;
 }
 
@@ -180,7 +183,7 @@ bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectNa
 /* SProjectLauncherBuildPage callbacks
  *****************************************************************************/
 
-void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ECheckBoxState CheckState )
+void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged(ECheckBoxState CheckState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -207,13 +210,13 @@ ECheckBoxState SProjectLauncherBuildPage::HandleBuildIsChecked() const
 }
 
 
-void SProjectLauncherBuildPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherBuildPage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 	// reload settings
 }
 
 
-EVisibility SProjectLauncherBuildPage::HandleBuildPlatformVisibility( ) const
+EVisibility SProjectLauncherBuildPage::HandleBuildPlatformVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -240,7 +243,7 @@ FReply SProjectLauncherBuildPage::HandleGenDSYMClicked()
             FString ProjectName = SelectedProfile->GetProjectName();
             EBuildConfigurations::Type ProjectConfig = SelectedProfile->GetBuildConfiguration();
 
-            GenerateDSYMForProject( ProjectName, EBuildConfigurations::ToString(ProjectConfig) );
+            GenerateDSYMForProject(ProjectName, EBuildConfigurations::ToString(ProjectConfig));
         }
     }
 
@@ -318,7 +321,7 @@ EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELaun
 	return EVisibility::Hidden;
 }
 
-void SProjectLauncherBuildPage::HandleUATCheckedStateChanged( ECheckBoxState CheckState )
+void SProjectLauncherBuildPage::HandleUATCheckedStateChanged(ECheckBoxState CheckState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -343,7 +346,6 @@ ECheckBoxState SProjectLauncherBuildPage::HandleUATIsChecked() const
 
 	return ECheckBoxState::Unchecked;
 }
-
 
 
 #undef LOCTEXT_NAMESPACE

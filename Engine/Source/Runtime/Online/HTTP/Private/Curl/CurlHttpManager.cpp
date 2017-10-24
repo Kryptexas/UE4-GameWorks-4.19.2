@@ -436,7 +436,7 @@ void FCurlHttpManager::InitCurl()
 			if (Ar)
 			{
 				// check for override ca-bundle.pem embedded in game content
-				FString OverridePEMFilename = FPaths::GameContentDir() + TEXT("CurlCertificates/ca-bundle.pem");
+				FString OverridePEMFilename = FPaths::ProjectContentDir() + TEXT("CurlCertificates/ca-bundle.pem");
 				if (FFileHelper::LoadFileToString(Contents, *OverridePEMFilename))
 				{
 					const TCHAR* StrPtr = *Contents;
@@ -463,7 +463,7 @@ void FCurlHttpManager::InitCurl()
 					}
 
 					// add optional additional certificates
-					FString OptionalPEMFilename = FPaths::GameContentDir() + TEXT("CurlCertificates/ca-additions.pem");
+					FString OptionalPEMFilename = FPaths::ProjectContentDir() + TEXT("CurlCertificates/ca-additions.pem");
 					if (FFileHelper::LoadFileToString(Contents, *OptionalPEMFilename))
 					{
 						const TCHAR* StrPtr = *Contents;

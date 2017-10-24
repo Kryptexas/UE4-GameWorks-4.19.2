@@ -2,6 +2,14 @@
 
 #include "Widgets/History/SMessagingHistoryTableRow.h"
 
+#include "IMessageTracer.h"
+#include "SlateOptMacros.h"
+#include "Styling/ISlateStyle.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STableViewBase.h"
+
 
 #define LOCTEXT_NAMESPACE "SMessagingHistoryTableRow"
 

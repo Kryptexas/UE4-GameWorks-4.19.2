@@ -7,7 +7,7 @@
 #include "Layout/Margin.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Styling/CoreStyle.h"
-#include "Interfaces/ILauncherProfile.h"
+#include "ILauncherProfile.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"

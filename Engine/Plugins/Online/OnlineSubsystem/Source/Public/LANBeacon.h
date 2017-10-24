@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
+#include "Misc/ConfigCacheIni.h"
 
 /**
  * This value indicates which packet version the server is sending. Clients with
@@ -169,6 +170,14 @@ public:
 		LanNonce(0),
 		LanQueryTimeLeft(0.0f)
 	{
+		if (!GConfig->GetInt(TEXT("LANSession"), TEXT("LanAnnouncePort"), LanAnnouncePort, GEngineIni))
+		{
+			LanAnnouncePort = LAN_ANNOUNCE_PORT;
+		}
+		if (!GConfig->GetInt(TEXT("LANSession"), TEXT("LanGameUniqueId"), LanGameUniqueId, GEngineIni))
+		{
+			LanGameUniqueId = LAN_UNIQUE_ID;
+		}
 	}
 
 	virtual ~FLANSession()

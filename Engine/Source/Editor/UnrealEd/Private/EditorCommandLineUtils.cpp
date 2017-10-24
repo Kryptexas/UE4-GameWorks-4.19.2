@@ -666,7 +666,7 @@ static void EditorCommandLineUtilsImpl::RunAssetMerge(FMergeAsset const& Base, F
 
 	// have to mount the save directory so that the BP-editor can save
 	// the merged asset packages
-	FPackageName::RegisterMountPoint(TEXT("/Temp/"), FPaths::GameSavedDir());
+	FPackageName::RegisterMountPoint(TEXT("/Temp/"), FPaths::ProjectSavedDir());
 	
 	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	UClass* AssetClass = Local.GetClass();
@@ -771,7 +771,7 @@ void FEditorCommandLineUtils::ProcessEditorCommands(const TCHAR* EditorCmdLine)
 
 		if (bIsMainFramInitialized)
 		{
-			RunAssetDiffCommand(MainFrameModule.GetParentWindow(), /*bIsNewProjectWindow =*/FApp::IsGameNameEmpty(), DiffArgs);
+			RunAssetDiffCommand(MainFrameModule.GetParentWindow(), /*bIsNewProjectWindow =*/FApp::IsProjectNameEmpty(), DiffArgs);
 		}
 		else
 		{

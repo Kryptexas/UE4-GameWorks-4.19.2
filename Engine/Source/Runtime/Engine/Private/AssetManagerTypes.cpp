@@ -15,7 +15,7 @@ bool FPrimaryAssetTypeInfo::FillRuntimeData()
 		return false;
 	}
 
-	for (const FStringAssetReference& AssetRef : SpecificAssets)
+	for (const FSoftObjectPath& AssetRef : SpecificAssets)
 	{
 		if (!AssetRef.IsNull())
 		{

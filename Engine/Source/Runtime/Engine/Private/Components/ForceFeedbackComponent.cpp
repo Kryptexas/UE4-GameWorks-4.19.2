@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/ForceFeedbackComponent.h"
 #include "Components/BillboardComponent.h"
@@ -355,7 +355,7 @@ bool UForceFeedbackComponent::Advance(const float DeltaTime)
 
 	const float Duration = ForceFeedbackEffect->GetDuration();
 
-	PlayTime += DeltaTime;
+	PlayTime += (bIgnoreTimeDilation ? FApp::GetDeltaTime() : DeltaTime);
 
 	if (PlayTime > Duration && (!bLooping || Duration == 0.f) )
 	{

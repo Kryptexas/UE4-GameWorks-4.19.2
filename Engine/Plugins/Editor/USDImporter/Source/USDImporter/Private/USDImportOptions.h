@@ -56,8 +56,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Mesh)
 	bool bApplyWorldTransformToGeometry;
 
-	UPROPERTY(EditAnywhere, config, Category=Materials)
+	UPROPERTY(EditAnywhere, config, Category="Mesh|Materials")
 	EMaterialSearchLocation MaterialSearchLocation;
+
+public:
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 };
 
 UCLASS(config = EditorPerProjectUserSettings)
@@ -77,6 +80,10 @@ public:
 	/** Defines what should happen with existing actors */
 	UPROPERTY(config, EditAnywhere, Category=General)
 	EExistingActorPolicy ExistingActorPolicy;
+
+	/** Whether or not to import custom properties and set their unreal equivalent on spawned actors */
+	UPROPERTY(config, EditAnywhere, Category = General)
+	bool bImportProperties;
 
 	/** Whether or not to import mesh geometry or to just spawn actors using existing meshes */
 	UPROPERTY(config, EditAnywhere, Category=Mesh)

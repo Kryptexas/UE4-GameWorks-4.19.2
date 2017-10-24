@@ -75,6 +75,8 @@ public:
 
 		// Clears entry between 0 and 4
 		FORCEINLINE void Clear(int32 Index);
+
+		FORCEINLINE void OffsetBounds(int32 Index, const FVector& Offset);
 	};
 
 	struct FElement

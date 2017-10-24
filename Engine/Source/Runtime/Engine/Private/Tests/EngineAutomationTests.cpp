@@ -55,7 +55,7 @@ namespace
 		FEditorFileUtils::FindAllPackageFiles(FileList);
 #else
 		// Look directly on disk. Very slow!
-		FPackageName::FindPackagesInDirectory(FileList, *FPaths::GameContentDir());
+		FPackageName::FindPackagesInDirectory(FileList, *FPaths::ProjectContentDir());
 #endif
 
 		// Iterate over all files, adding the ones with the map extension..
@@ -76,6 +76,8 @@ namespace
 	}
 }
 
+#if PLATFORM_DESKTOP
+
 /**
  * SetRes Verification - Verify changing resolution works
  */
@@ -89,6 +91,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSetResTest, "System.Windows.Set Resolution", E
  */
 bool FSetResTest::RunTest(const FString& Parameters)
 {
+
 	//Gets the default map that the game uses.
 	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
 	const FString& MapName = GameMapsSettings->GetGameDefaultMap();
@@ -106,9 +109,10 @@ bool FSetResTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("setres 640x480")));
 	ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
 	ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(RestoreResolutionString));
-
 	return true;
 }
+
+#endif
 
 /**
  * Stats verification - Toggle various "stats" commands

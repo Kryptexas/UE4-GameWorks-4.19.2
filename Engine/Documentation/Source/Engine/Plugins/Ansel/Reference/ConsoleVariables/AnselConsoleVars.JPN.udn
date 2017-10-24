@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3200348
+﻿INTSourceChangelist:3579346
 Availability:Public
-TItle:Ansel コンソール変数のリファレンス
-Description:Nvidia Ansel Photography プラグインで利用できるコンフィギュレーション変数のリファレンス
+TItle:NVIDIA Ansel コンソール変数のリファレンス
+Description:NVIDIA Ansel Photography プラグインで利用できるコンフィギュレーション変数のリファレンス
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:3
@@ -11,7 +11,7 @@ tags:Ansel
 version:4.14
 topic-image:Console_Topic.png
 
-以下のコンソール変数を使って Nvidia Ansel Photography プラグインのビヘイビアを設定可能であり、コンソールから手動で設定、.ini ファイルを使う、またはブループリントを使って動的に設定できます。コンソール変数のほとんどはランタイムではなく開発中に設定します。ただし、`r.Photography.Allow` は動的に設定すると便利です。
+以下のコンソール変数を使って NVIDIA Ansel Photography プラグインのビヘイビアを設定可能であり、コンソールから手動で設定、.ini ファイルを使う、またはブループリントを使って動的に設定できます。コンソール変数のほとんどはランタイムではなく開発中に設定します。ただし、`r.Photography.Allow` は動的に設定すると便利です。
 
 | 変数 | デフォルト | 説明 |
 | --- | --- | --- |

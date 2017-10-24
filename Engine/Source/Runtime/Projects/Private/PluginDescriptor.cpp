@@ -8,38 +8,49 @@
 
 #define LOCTEXT_NAMESPACE "PluginDescriptor"
 
+/**
+ * Version numbers for plugin descriptors. These version numbers are not generally needed; serialization from JSON attempts to be tolerant of missing/added fields.
+ */ 
+enum class EPluginDescriptorVersion : uint8
+{
+	Invalid = 0,
+	Initial = 1,
+	NameHash = 2,
+	ProjectPluginUnification = 3,
+	// !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
+	// -----<new versions can be added before this line>-------------------------------------------------
+	// - this needs to be the last line (see note below)
+	LatestPlusOne,
+	Latest = LatestPlusOne - 1
+};
+
 
 FPluginDescriptor::FPluginDescriptor()
-	: FileVersion(EPluginDescriptorVersion::Latest)
-	, Version(0)
-	, bEnabledByDefault(false)
+	: Version(0)
+	, EnabledByDefault(EPluginEnabledByDefault::Unspecified)
 	, bCanContainContent(false)
 	, bIsBetaVersion(false)
-	, bIsMod(false)
 	, bInstalled(false)
-	, bRequiresBuildPlatform(true)
+	, bRequiresBuildPlatform(false)
 	, bIsHidden(false)
 { 
 }
 
 
-bool FPluginDescriptor::Load(const FString& FileName, bool bPluginTypeEnabledByDefault, FText& OutFailReason)
+bool FPluginDescriptor::Load(const FString& FileName, FText& OutFailReason)
 {
 	// Read the file to a string
 	FString FileContents;
-
 	if (!FFileHelper::LoadFileToString(FileContents, *FileName))
 	{
 		OutFailReason = FText::Format(LOCTEXT("FailedToLoadDescriptorFile", "Failed to open descriptor file '{0}'"), FText::FromString(FileName));
 		return false;
 	}
-
-	// Parse it as a plug-in descriptor
-	return Read(FileContents, bPluginTypeEnabledByDefault, OutFailReason);
+	return Read(FileContents, OutFailReason);
 }
 
 
-bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefault, FText& OutFailReason)
+bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 {
 	// Deserialize a JSON object from the string
 	TSharedPtr< FJsonObject > ObjectPtr;
@@ -49,11 +60,16 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 		OutFailReason = FText::Format(LOCTEXT("FailedToReadDescriptorFile", "Failed to read file. {0}"), FText::FromString(Reader->GetErrorMessage()));
 		return false;
 	}
-	FJsonObject& Object = *ObjectPtr.Get();
 
+	// Parse it as a plug-in descriptor
+	return Read(*ObjectPtr.Get(), OutFailReason);
+}
+
+
+bool FPluginDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
+{
 	// Read the file version
 	int32 FileVersionInt32;
-
 	if(!Object.TryGetNumberField(TEXT("FileVersion"), FileVersionInt32))
 	{
 		if(!Object.TryGetNumberField(TEXT("PluginFileVersion"), FileVersionInt32))
@@ -64,7 +80,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	}
 
 	// Check that it's within range
-	EPluginDescriptorVersion::Type PluginFileVersion = (EPluginDescriptorVersion::Type)FileVersionInt32;
+	EPluginDescriptorVersion PluginFileVersion = (EPluginDescriptorVersion)FileVersionInt32;
 	if ((PluginFileVersion <= EPluginDescriptorVersion::Invalid) || (PluginFileVersion > EPluginDescriptorVersion::Latest))
 	{
 		FText ReadVersionText = FText::FromString(FString::Printf(TEXT("%d"), (int32)PluginFileVersion));
@@ -98,6 +114,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
 	Object.TryGetStringField(TEXT("SupportURL"), SupportURL);
 	Object.TryGetStringField(TEXT("EngineVersion"), EngineVersion);
+	Object.TryGetStringArrayField(TEXT("SupportedTargetPlatforms"), SupportedTargetPlatforms);
 
 	if (!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
 	{
@@ -109,20 +126,16 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 		return false;
 	}
 
-	if(!Object.TryGetBoolField(TEXT("EnabledByDefault"), bEnabledByDefault))
+	bool bEnabledByDefault;
+	if(Object.TryGetBoolField(TEXT("EnabledByDefault"), bEnabledByDefault))
 	{
-		bEnabledByDefault = bPluginTypeEnabledByDefault;
+		EnabledByDefault = bEnabledByDefault? EPluginEnabledByDefault::Enabled : EPluginEnabledByDefault::Disabled;
 	}
 
 	Object.TryGetBoolField(TEXT("CanContainContent"), bCanContainContent);
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
-	Object.TryGetBoolField(TEXT("IsMod"), bIsMod);
 	Object.TryGetBoolField(TEXT("Installed"), bInstalled);
-
-	if(!Object.TryGetBoolField(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform))
-	{
-		bRequiresBuildPlatform = true;
-	}
+	Object.TryGetBoolField(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
 	Object.TryGetBoolField(TEXT("Hidden"), bIsHidden);
 
 	PreBuildSteps.Read(Object, TEXT("PreBuildSteps"));
@@ -136,11 +149,11 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	return true;
 }
 
-bool FPluginDescriptor::Save(const FString& FileName, bool bPluginTypeEnabledByDefault, FText& OutFailReason) const
+bool FPluginDescriptor::Save(const FString& FileName, FText& OutFailReason) const
 {
-	// Write the contents of the descriptor to a string. Make sure the writer is destroyed so that the contents are flushed to the string.
+	// Write the descriptor to text
 	FString Text;
-	Write(Text, bPluginTypeEnabledByDefault);
+	Write(Text);
 
 	// Save it to a file
 	if ( !FFileHelper::SaveStringToFile(Text, *FileName) )
@@ -151,15 +164,19 @@ bool FPluginDescriptor::Save(const FString& FileName, bool bPluginTypeEnabledByD
 	return true;
 }
 
-void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) const
+void FPluginDescriptor::Write(FString& Text) const
 {
-	Text.Empty();
-
+	// Write the contents of the descriptor to a string. Make sure the writer is destroyed so that the contents are flushed to the string.
 	TSharedRef< TJsonWriter<> > WriterRef = TJsonWriterFactory<>::Create(&Text);
 	TJsonWriter<>& Writer = WriterRef.Get();
-
 	Writer.WriteObjectStart();
+	Write(Writer);
+	Writer.WriteObjectEnd();
+	Writer.Close();
+}
 
+void FPluginDescriptor::Write(TJsonWriter<>& Writer) const
+{
 	Writer.WriteValue(TEXT("FileVersion"), EProjectDescriptorVersion::Latest);
 	Writer.WriteValue(TEXT("Version"), Version);
 	Writer.WriteValue(TEXT("VersionName"), VersionName);
@@ -175,23 +192,24 @@ void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) c
 	{
 		Writer.WriteValue(TEXT("EngineVersion"), EngineVersion);
 	}
-	if(bEnabledByDefault != bPluginTypeEnabledByDefault)
+	if(EnabledByDefault != EPluginEnabledByDefault::Unspecified)
 	{
-		Writer.WriteValue(TEXT("EnabledByDefault"), bEnabledByDefault);
+		Writer.WriteValue(TEXT("EnabledByDefault"), (EnabledByDefault == EPluginEnabledByDefault::Enabled));
 	}
 	Writer.WriteValue(TEXT("CanContainContent"), bCanContainContent);
 	Writer.WriteValue(TEXT("IsBetaVersion"), bIsBetaVersion);
-	if (bIsMod)
-	{
-		Writer.WriteValue(TEXT("IsMod"), bIsMod);
-	}
 	Writer.WriteValue(TEXT("Installed"), bInstalled);
+
+	if(SupportedTargetPlatforms.Num() > 0)
+	{
+		Writer.WriteValue(TEXT("SupportedTargetPlatforms"), SupportedTargetPlatforms);
+	}
 
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
 
 	FLocalizationTargetDescriptor::WriteArray(Writer, TEXT("LocalizationTargets"), LocalizationTargets);
 
-	if(!bRequiresBuildPlatform)
+	if(bRequiresBuildPlatform)
 	{
 		Writer.WriteValue(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
 	}
@@ -212,9 +230,11 @@ void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) c
 	}
 
 	FPluginReferenceDescriptor::WriteArray(Writer, TEXT("Plugins"), Plugins);
+}
 
-	Writer.WriteObjectEnd();
-	Writer.Close();
+bool FPluginDescriptor::SupportsTargetPlatform(const FString& Platform) const
+{
+	return SupportedTargetPlatforms.Num() == 0 || SupportedTargetPlatforms.Contains(Platform);
 }
 
 #undef LOCTEXT_NAMESPACE

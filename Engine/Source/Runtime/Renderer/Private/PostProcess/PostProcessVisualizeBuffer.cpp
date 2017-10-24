@@ -55,13 +55,14 @@ public:
 		}
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 	}
 
 	void SetSourceTexture(FRHICommandList& RHICmdList, FTextureRHIRef Texture)
@@ -131,7 +132,7 @@ FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(const FRenderingCompo
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(Context.RHICmdList, Context);
 
 	return *VertexShader;
 }
@@ -192,7 +193,7 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(Context.RHICmdList, Context);
 
 	// Track the name and position of each tile we draw so we can write text labels over them
 	struct LabelRecord

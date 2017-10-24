@@ -169,7 +169,7 @@ private:
 			FAndroidDeviceInfo NewDeviceInfo;
 
 			NewDeviceInfo.SerialNumber = DeviceString.Left(TabIndex);
-			const FString DeviceState = DeviceString.Mid(TabIndex + 1).Trim();
+			const FString DeviceState = DeviceString.Mid(TabIndex + 1).TrimStart();
 
 			NewDeviceInfo.bAuthorizedDevice = DeviceState != TEXT("unauthorized");
 
@@ -198,7 +198,7 @@ private:
 					continue;
 				}
 				NewDeviceInfo.HumanAndroidVersion = NewDeviceInfo.HumanAndroidVersion.Replace(TEXT("\r"), TEXT("")).Replace(TEXT("\n"), TEXT(""));
-				NewDeviceInfo.HumanAndroidVersion.Trim().TrimTrailing();
+				NewDeviceInfo.HumanAndroidVersion.TrimStartAndEndInline();
 
 				// grab the Android SDK version
 				const FString SDKVersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.build.version.sdk"), *NewDeviceInfo.SerialNumber);

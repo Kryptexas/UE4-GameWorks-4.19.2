@@ -87,11 +87,6 @@ UObject* UNavRelevantComponent::GetNavigationParent() const
 	return CachedNavParent;
 }
 
-void UNavRelevantComponent::CalcBounds()
-{
-	CalcAndCacheBounds();
-}
-
 void UNavRelevantComponent::CalcAndCacheBounds() const
 {
 	const AActor* OwnerActor = GetOwner();

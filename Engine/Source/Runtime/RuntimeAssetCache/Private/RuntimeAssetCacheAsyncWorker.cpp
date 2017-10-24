@@ -62,9 +62,11 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	}
 	else
 	{
-		while (Metadata->IsBuilding())
+		if (Metadata->IsBuilding())
 		{
-			FPlatformProcess::SleepNoStats(0.0f);
+			// Another worker is building this asset.
+			Data = nullptr;
+			return;
 		}
 
 		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data, DataSize);

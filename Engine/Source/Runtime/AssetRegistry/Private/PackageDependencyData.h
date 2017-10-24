@@ -32,7 +32,7 @@ public:
 	{
 		Ar << PackageName;
 		Ar << ImportMap;
-		Ar << StringAssetReferencesMap;
+		Ar << SoftPackageReferenceList;
 		Ar << SearchableNamesMap;
 		
 		PackageData.SerializeForCache(Ar);

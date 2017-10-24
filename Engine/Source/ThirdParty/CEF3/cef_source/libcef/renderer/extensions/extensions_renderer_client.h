@@ -5,10 +5,10 @@
 #ifndef CEF_LIBCEF_RENDERER_EXTENSIONS_EXTENSIONS_RENDERER_CLIENT_H_
 #define CEF_LIBCEF_RENDERER_EXTENSIONS_EXTENSIONS_RENDERER_CLIENT_H_
 
+#include <memory>
 #include <string>
 
 #include "base/macros.h"
-#include "base/memory/scoped_ptr.h"
 #include "extensions/renderer/extensions_renderer_client.h"
 #include "ui/base/page_transition_types.h"
 
@@ -18,6 +18,7 @@ namespace blink {
 class WebFrame;
 class WebLocalFrame;
 struct WebPluginParams;
+class WebURL;
 }
 
 namespace content {
@@ -48,10 +49,13 @@ class CefExtensionsRendererClient : public ExtensionsRendererClient {
   void RenderViewCreated(content::RenderView* render_view);
   bool OverrideCreatePlugin(content::RenderFrame* render_frame,
                             const blink::WebPluginParams& params);
-  bool WillSendRequest(blink::WebFrame* frame,
+  bool WillSendRequest(blink::WebLocalFrame* frame,
                        ui::PageTransition transition_type,
-                       const GURL& url,
+                       const blink::WebURL& url,
                        GURL* new_url);
+  void RunScriptsAtDocumentStart(content::RenderFrame* render_frame);
+  void RunScriptsAtDocumentEnd(content::RenderFrame* render_frame);
+  void RunScriptsAtDocumentIdle(content::RenderFrame* render_frame);
 
   static bool ShouldFork(blink::WebLocalFrame* frame,
                          const GURL& url,
@@ -64,11 +68,11 @@ class CefExtensionsRendererClient : public ExtensionsRendererClient {
       const GURL& original_url);
 
  private:
-  scoped_ptr<extensions::DispatcherDelegate> extension_dispatcher_delegate_;
-  scoped_ptr<extensions::Dispatcher> extension_dispatcher_;
-  scoped_ptr<extensions::ExtensionsGuestViewContainerDispatcher>
+  std::unique_ptr<extensions::DispatcherDelegate> extension_dispatcher_delegate_;
+  std::unique_ptr<extensions::Dispatcher> extension_dispatcher_;
+  std::unique_ptr<extensions::ExtensionsGuestViewContainerDispatcher>
       guest_view_container_dispatcher_;
-  scoped_ptr<extensions::ResourceRequestPolicy> resource_request_policy_;
+  std::unique_ptr<extensions::ResourceRequestPolicy> resource_request_policy_;
 
   DISALLOW_COPY_AND_ASSIGN(CefExtensionsRendererClient);
 };

@@ -21,7 +21,7 @@ FSandboxPlatformFile::FSandboxPlatformFile(bool bInEntireEngineWillUseThisSandbo
 
 static FString GetCookedSandboxDir()
 {
-	return FPaths::Combine(*(FPaths::GameSavedDir()), TEXT("Cooked"), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()));
+	return FPaths::Combine(*(FPaths::ProjectSavedDir()), TEXT("Cooked"), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()));
 }
 
 bool FSandboxPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
@@ -98,7 +98,7 @@ bool FSandboxPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 		}
 		else if (CommandLineDirectory.StartsWith(TEXT("..")))
 		{
-			// for relative-specified directories, just use it directly, and don't put into FPaths::GameSavedDir()
+			// for relative-specified directories, just use it directly, and don't put into FPaths::ProjectSavedDir()
 			SandboxDirectory = CommandLineDirectory;
 		}
 		else if( FPaths::IsDrive( CommandLineDirectory.Mid( 0, CommandLineDirectory.Find(TEXT("/"), ESearchCase::CaseSensitive) ) ) == false ) 
@@ -143,7 +143,7 @@ const FString& FSandboxPlatformFile::GetGameSandboxDirectoryName()
 {
 	if (GameSandboxDirectoryName.IsEmpty())
 	{
-		GameSandboxDirectoryName = FString::Printf(TEXT("%s/"), FApp::GetGameName());
+		GameSandboxDirectoryName = FString::Printf(TEXT("%s/"), FApp::GetProjectName());
 	}
 	return GameSandboxDirectoryName;
 }
@@ -171,14 +171,14 @@ FString FSandboxPlatformFile::ConvertToSandboxPath( const TCHAR* Filename ) cons
 		else
 #endif
 		{
-			FullGameDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+			FullGameDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 		}
 		if(FullSandboxPath.StartsWith(FullGameDir))
 		{
 #if IS_PROGRAM
 			SandboxPath = FPaths::Combine(*SandboxDirectory, *FPaths::GetBaseFilename(FPaths::GetProjectFilePath()), *FullSandboxPath + FullGameDir.Len());
 #else
-			SandboxPath = FPaths::Combine(*SandboxDirectory, FApp::GetGameName(), *FullSandboxPath + FullGameDir.Len());
+			SandboxPath = FPaths::Combine(*SandboxDirectory, FApp::GetProjectName(), *FullSandboxPath + FullGameDir.Len());
 #endif
 		}
 		else if (FullSandboxPath.StartsWith(*AbsoluteRootDirectory))
@@ -218,14 +218,14 @@ FString FSandboxPlatformFile::ConvertFromSandboxPath(const TCHAR* Filename) cons
 
 	FString FullSandboxPath = FPaths::ConvertRelativePathToFull(Filename);
 
-	FString SandboxGameDirectory = FPaths::Combine(*SandboxDirectory, FApp::GetGameName());
+	FString SandboxGameDirectory = FPaths::Combine(*SandboxDirectory, FApp::GetProjectName());
 	FString SandboxRootDirectory = SandboxDirectory;
 
 	FString OriginalPath;
 
 	if (FullSandboxPath.StartsWith(SandboxGameDirectory))
 	{
-		OriginalPath = FullSandboxPath.Replace(*SandboxGameDirectory, *FPaths::GameDir());
+		OriginalPath = FullSandboxPath.Replace(*SandboxGameDirectory, *FPaths::ProjectDir());
 	}
 	else if (FullSandboxPath.StartsWith(SandboxRootDirectory))
 	{

@@ -1,14 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MessageRpcServer.h"
-#include "Containers/ArrayBuilder.h"
-#include "Helpers/MessageEndpoint.h"
+
 #include "Async/IAsyncProgress.h"
+#include "Containers/ArrayBuilder.h"
 #include "Containers/Ticker.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "IMessageRpcHandler.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+
 #include "RpcMessage.h"
 #include "MessageRpcDefines.h"
 #include "MessageRpcMessages.h"
+
 
 /* FMessageRpcServer structors
  *****************************************************************************/

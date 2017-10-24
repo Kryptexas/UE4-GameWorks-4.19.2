@@ -16,6 +16,7 @@ public class AddContentDialog : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"InputCore",

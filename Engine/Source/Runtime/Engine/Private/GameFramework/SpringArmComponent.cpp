@@ -10,7 +10,6 @@
 //////////////////////////////////////////////////////////////////////////
 // USpringArmComponent
 
-static void SetDeprecatedControllerViewRotation(USpringArmComponent& Component, bool bValue);
 const FName USpringArmComponent::SocketName(TEXT("SpringEndpoint"));
 
 USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitializer)
@@ -39,12 +38,9 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 	CameraRotationLagSpeed = 10.f;
 	CameraLagMaxTimeStep = 1.f / 60.f;
 	CameraLagMaxDistance = 0.f;
-	
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
-void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
+FRotator USpringArmComponent::GetTargetRotation() const
 {
 	FRotator DesiredRot = GetComponentRotation();
 
@@ -61,9 +57,9 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	}
 
 	// If inheriting rotation, check options for which components to inherit
-	if(!bAbsoluteRotation)
+	if (!bAbsoluteRotation)
 	{
-		if(!bInheritPitch)
+		if (!bInheritPitch)
 		{
 			DesiredRot.Pitch = RelativeRotation.Pitch;
 		}
@@ -78,6 +74,13 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 			DesiredRot.Roll = RelativeRotation.Roll;
 		}
 	}
+
+	return DesiredRot;
+}
+
+void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
+{
+	FRotator DesiredRot = GetTargetRotation();
 
 	const float InverseCameraLagMaxTimeStep = (1.f / CameraLagMaxTimeStep);
 
@@ -215,17 +218,11 @@ void USpringArmComponent::OnRegister()
 
 	// Set initial location (without lag).
 	UpdateDesiredArmLocation(false, false, false, 0.f);
-
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void USpringArmComponent::PostLoad()
 {
 	Super::PostLoad();
-
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -270,12 +267,4 @@ bool USpringArmComponent::HasAnySockets() const
 void USpringArmComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
 	new (OutSockets) FComponentSocketDescription(SocketName, EComponentSocketType::Socket);
-}
-
-
-void SetDeprecatedControllerViewRotation(USpringArmComponent& Component, bool bValue)
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	Component.bUseControllerViewRotation = bValue;
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }

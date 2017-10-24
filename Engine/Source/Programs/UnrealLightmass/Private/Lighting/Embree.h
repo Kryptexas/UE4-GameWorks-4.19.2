@@ -12,6 +12,7 @@ namespace Lightmass
 	class FStaticLightingMesh;
 
 	void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay);
+	void EmbreeFilterFunc4(const void* valid, void* UserPtr, RTCRay4& InRay);
 
 	// Accumulates transmission color, and store the distance.
 	// This is required since Embree test collision in any order, 
@@ -51,13 +52,96 @@ namespace Lightmass
 		bool bFlipSidedness;
 
 		// Additional Outputs.
+		// Warning: EmbreeFilterFunc must only modify these!  Nothing else is copied back to FEmbreeRay4.
 		int32 ElementIndex; // Material Index
-		int32 RelativeVertexIndex; // Which index is closer.
 		FVector2D TextureCoordinates; // Material Coordinates
 		FVector2D LightmapCoordinates;
 		FEmbreeTransmissionAccumulator TransmissionAcc;
 	};
 
+	
+	struct FEmbreeRay4 : public RTCRay4
+	{
+		FEmbreeRay4(
+			const FStaticLightingMesh* InShadowMesh, 
+			const FStaticLightingMesh* InMappingMesh, 
+			uint32 InTraceFlags,
+			bool InFindClosestIntersection, 
+			bool InCalculateTransmission, 
+			bool InDirectShadowingRay
+			);
+
+		inline FEmbreeRay BuildSingleRay(int32 RayIndex)
+		{
+			FEmbreeRay Ray(ShadowMesh, MappingMesh, TraceFlags, bFindClosestIntersection, bCalculateTransmission, bDirectShadowingRay);
+
+			int32 debug = sizeof(FEmbreeRay);
+			int32 debug2 = sizeof(FEmbreeRay4);
+
+			//static_assert(sizeof(FEmbreeRay) == );
+			//static_assert(sizeof(FEmbreeRay4) == );
+
+			// Outputs
+			Ray.ElementIndex = ElementIndex[RayIndex];
+			Ray.TextureCoordinates = TextureCoordinates[RayIndex];
+			Ray.LightmapCoordinates = LightmapCoordinates[RayIndex];
+			Ray.TransmissionAcc = TransmissionAcc[RayIndex];
+
+
+			// RTCRay members
+			Ray.org[0] = orgx[RayIndex];
+			Ray.dir[0] = dirx[RayIndex];
+			Ray.Ng[0] = Ngx[RayIndex];
+
+			Ray.org[1] = orgy[RayIndex];
+			Ray.dir[1] = diry[RayIndex];
+			Ray.Ng[1] = Ngy[RayIndex];
+
+			Ray.org[2] = orgz[RayIndex];
+			Ray.dir[2] = dirz[RayIndex];
+			Ray.Ng[2] = Ngz[RayIndex];
+
+			Ray.tnear = tnear[RayIndex];
+			Ray.tfar = tfar[RayIndex];
+			Ray.time = time[RayIndex];
+			Ray.mask = mask[RayIndex];
+			Ray.u = u[RayIndex];
+			Ray.v = v[RayIndex];
+			Ray.geomID = geomID[RayIndex];
+			Ray.primID = primID[RayIndex];
+			Ray.instID = instID[RayIndex];
+			 
+			return Ray;
+		}
+
+		inline void SetFromSingleRay(FEmbreeRay SingleRay, int32 RayIndex)
+		{
+			// Copy outputs only
+			ElementIndex[RayIndex] = SingleRay.ElementIndex;
+			TextureCoordinates[RayIndex] = SingleRay.TextureCoordinates;
+			LightmapCoordinates[RayIndex] = SingleRay.LightmapCoordinates;
+			TransmissionAcc[RayIndex] = SingleRay.TransmissionAcc;
+
+			geomID[RayIndex] = SingleRay.geomID;
+		}
+
+		// Inputs required by filter functions
+		const FStaticLightingMesh* ShadowMesh; // Controls self shadow behavior, such as only self shadow and no self shadow.
+		const FStaticLightingMesh* MappingMesh; // Controls LOD behavior to control which mesh are allowed to cast shadows
+		uint32 TraceFlags;
+		bool bFindClosestIntersection;
+		bool bCalculateTransmission;
+		bool bDirectShadowingRay;
+		bool bStaticAndOpaqueOnly;
+		bool bTwoSidedCollision;
+		bool bFlipSidedness;
+		
+		// Additional Outputs.
+		int32 ElementIndex[4]; // Material Index
+		FVector2D TextureCoordinates[4]; // Material Coordinates
+		FVector2D LightmapCoordinates[4];
+		FEmbreeTransmissionAccumulator TransmissionAcc[4];
+	};
 
 	struct FEmbreeTriangleDesc
 	{
@@ -121,6 +205,14 @@ namespace Lightmass
 			bool bDirectShadowingRay,
 			class FCoherentRayCache& CoherentRayCache,
 			FLightRayIntersection& Intersection) const override;
+
+		virtual void IntersectLightRays4(
+			const FLightRay* LightRays,
+			bool bFindClosestIntersection,
+			bool bCalculateTransmission,
+			bool bDirectShadowingRay,
+			FCoherentRayCache& CoherentRayCache,
+			FLightRayIntersection* ClosestIntersections) const override;
 
 	private:
 

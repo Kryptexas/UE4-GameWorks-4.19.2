@@ -24,8 +24,11 @@
 #ifndef USD_CONVERSIONS_H
 #define USD_CONVERSIONS_H
 
-#include "pxr/base/tf/pyObjWrapper.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
+#include "pxr/base/tf/pyObjWrapper.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class VtValue;
 class TfToken;
@@ -60,5 +63,8 @@ VtValue UsdPythonToSdfType(TfPyObjWrapper pyVal,
 USD_API
 bool UsdPythonToMetadataValue(const TfToken &key, const TfToken &keyPath, 
                               TfPyObjWrapper pyVal, VtValue *result);
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_CONVERSIONS_H

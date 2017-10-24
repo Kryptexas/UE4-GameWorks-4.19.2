@@ -180,7 +180,7 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 		TArray<TSharedRef<const FUniqueNetId>> LocalPlayers;
 		LocalPlayers.Add(UserId.ToSharedRef());
 
-		SessionInt->StartMatchmaking(LocalPlayers, GameSessionName, *HostSettings, SearchSettingsRef);
+		SessionInt->StartMatchmaking(LocalPlayers, NAME_GameSession, *HostSettings, SearchSettingsRef);
 	}
 	// Setup sessions
 	else if (bIsHost)
@@ -189,7 +189,7 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 		HostSettings->AddWorldSettings(InWorld);
 
 		OnCreateSessionCompleteDelegateHandle = SessionInt->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
-		SessionInt->CreateSession(0, GameSessionName, *HostSettings);
+		SessionInt->CreateSession(0, NAME_GameSession, *HostSettings);
 	}
 	else
 	{
@@ -235,7 +235,7 @@ void FTestSessionInterface::OnSessionUserInviteAccepted(bool bWasSuccessful, int
 
 	if (bWasSuccessful)
 	{
-		JoinSession(ControllerId, GameSessionName, SearchResult);
+		JoinSession(ControllerId, NAME_GameSession, SearchResult);
 	}
 }
 
@@ -364,7 +364,7 @@ void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool
 		// Can't just use SearchResult.IsValid() here - it's possible the SessionInfo pointer is valid, but not the data until we actually join the session
 		if (SearchResult.Num() > 0 && SearchResult[0].Session.OwningUserId.IsValid() && SearchResult[0].Session.SessionInfo.IsValid())
 		{
-			JoinSession(LocalUserNum, GameSessionName, SearchResult[0]);
+			JoinSession(LocalUserNum, NAME_GameSession, SearchResult[0]);
 		}
 		else
 		{
@@ -452,7 +452,7 @@ bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 	{
 		// Get optional session name "GAME" otherwise
 		FString Token;
-		FName SessionName = FParse::Value(Cmd, TEXT("Name="), Token) ? FName(*Token) : GameSessionName;
+		FName SessionName = FParse::Value(Cmd, TEXT("Name="), Token) ? FName(*Token) : NAME_GameSession;
 		if (Token.Len() > 0)
 		{
 			Cmd += FCString::Strlen(TEXT("Name=")) + Token.Len();

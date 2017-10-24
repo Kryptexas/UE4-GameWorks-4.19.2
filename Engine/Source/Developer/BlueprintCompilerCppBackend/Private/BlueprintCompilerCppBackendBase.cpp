@@ -1002,6 +1002,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 
 		FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, EmitterContext);
 
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("bool operator== (const %s& __Other) const"), *CppStructName));
 		EmitterContext.Header.AddLine(TEXT("{"));
 		EmitterContext.Header.IncreaseIndent();
@@ -1018,6 +1021,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 		EmitterContext.Header.DecreaseIndent();
 		EmitterContext.Header.AddLine(TEXT("};"));
 	}
+
+	FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, nullptr, NativizationOptions);
+	FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 
 	OutCPPCode = MoveTemp(EmitterContext.Body.Result);
 	OutHeaderCode = MoveTemp(EmitterContext.Header.Result);

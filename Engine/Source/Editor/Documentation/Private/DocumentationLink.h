@@ -191,8 +191,7 @@ private:
 	static void SplitLink( const FString& Link, /*OUT*/ FString& Path, /*OUT*/ FString& QueryString, /*OUT*/ FString& Anchor )
 	{
 		FString CleanedLink = Link;
-		CleanedLink.Trim();
-		CleanedLink.TrimTrailing();
+		CleanedLink.TrimStartAndEndInline();
 
 		if ( CleanedLink == TEXT("%ROOT%") )
 		{

@@ -41,8 +41,16 @@ public:
 	UPROPERTY(EditAnywhere, Category=Comment)
 	FLinearColor CommentColor;
 
+	/** Size of the text in the comment box */
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(ClampMin=1, ClampMax=1000))
+	int32 FontSize;
+
+	/** Whether to show a zoom-invariant comment bubble when zoomed out (making the comment readable at any distance). */
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="Show Bubble When Zoomed"))
+	uint32 bCommentBubbleVisible_InDetailsPanel:1;
+
 	/** Whether to use Comment Color to color the background of the comment bubble shown when zoomed out. */
-	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="Color Bubble"))
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="Color Bubble", EditCondition=bCommentBubbleVisible_InDetailsPanel))
 	uint32 bColorCommentBubble:1;
 
 	/** Whether the comment should move any fully enclosed nodes around when it is moved */
@@ -57,6 +65,7 @@ public:
 
 	//~ Begin UObject Interface
 	UNREALED_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
@@ -70,7 +79,6 @@ public:
 	UNREALED_API virtual void PostPlacedNewNode() override;
 	UNREALED_API virtual void OnRenameNode(const FString& NewName) override;
 	UNREALED_API virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
-	virtual bool ShouldDrawNodeAsComment() const override { return true; }
 	UNREALED_API virtual FString GetDocumentationLink() const override;
 	UNREALED_API virtual FString GetDocumentationExcerptName() const override;
 	UNREALED_API virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;

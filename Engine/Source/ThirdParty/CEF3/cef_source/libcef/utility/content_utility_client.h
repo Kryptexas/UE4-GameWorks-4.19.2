@@ -17,12 +17,10 @@ class CefContentUtilityClient : public content::ContentUtilityClient {
   ~CefContentUtilityClient() override;
 
   bool OnMessageReceived(const IPC::Message& message) override;
-  void RegisterMojoServices(content::ServiceRegistry* registry) override;
+  void ExposeInterfacesToBrowser(
+      service_manager::InterfaceRegistry* registry) override;
 
  private:
-  // IPC message handlers.
-  void OnStartupPing();
-
   typedef ScopedVector<UtilityMessageHandler> Handlers;
   Handlers handlers_;
 

@@ -211,6 +211,20 @@ public:
 	virtual void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged ) = 0;
 
 	/**
+	* Sets a delegate to call when the value of the property is about to be changed
+	*
+	* @param InOnPropertyValuePreChange	The delegate to call
+	*/
+	virtual void SetOnPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange) = 0;
+
+	/**
+	* Sets a delegate to call when the value of the property of a child is about to be changed
+	*
+	* @param InOnChildPropertyValuePreChange	The delegate to call
+	*/
+	virtual void SetOnChildPropertyValuePreChange(const FSimpleDelegate& InOnChildPropertyValuePreChange) = 0;
+
+	/**
 	 * Gets the typed value of a property.  
 	 * If the property does not support the value type FPropertyAccess::Fail is returned
 	 *
@@ -645,6 +659,13 @@ public:
 	 * @return a handle to the element at the specified index                                                              
 	 */
 	virtual TSharedRef<IPropertyHandle> GetElement( int32 Index ) const = 0;
+
+	/**
+	* Moves an element from OriginalIndex to NewIndex
+	* @return Whether or not this was successful
+	*/
+	virtual FPropertyAccess::Result MoveElementTo(int32 OriginalIndex, int32 NewIndex) = 0;
+
 
 	/**
 	 * Sets a delegate to call when the number of elements changes                                                  

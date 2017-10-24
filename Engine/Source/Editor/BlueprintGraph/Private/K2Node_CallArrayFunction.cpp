@@ -201,7 +201,7 @@ void UK2Node_CallArrayFunction::GetArrayPins(TArray< FArrayPropertyPinCombo >& O
 	UFunction* TargetFunction = GetTargetFunction();
 	if (ensure(TargetFunction))
 	{
-		FString ArrayPointerMetaData = TargetFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
+		const FString& ArrayPointerMetaData = TargetFunction->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
 		TArray<FString> ArrayPinComboNames;
 		ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
@@ -257,7 +257,7 @@ void UK2Node_CallArrayFunction::GetArrayTypeDependentPins(TArray<UEdGraphPin*>& 
 	UFunction* TargetFunction = GetTargetFunction();
 	if (ensure(TargetFunction))
 	{
-		const FString DependentPinMetaData = TargetFunction->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+		const FString& DependentPinMetaData = TargetFunction->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
 		TArray<FString> TypeDependentPinNames;
 		DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
 

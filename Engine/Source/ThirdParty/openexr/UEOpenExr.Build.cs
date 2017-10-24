@@ -9,18 +9,18 @@ public class UEOpenExr : ModuleRules
         Type = ModuleType.External;
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
         {
-            bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT);
-            string LibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "openexr/Deploy/lib/";
+            bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT);
+            string LibDir = Target.UEThirdPartySourceDirectory + "openexr/Deploy/lib/";
             string Platform;
             switch (Target.Platform)
             {
                 case UnrealTargetPlatform.Win64:
                     Platform = "x64";
-                    LibDir += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+                    LibDir += "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
                     break;
                 case UnrealTargetPlatform.Win32:
                     Platform = "Win32";
-                    LibDir += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+                    LibDir += "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
                     break;
                 case UnrealTargetPlatform.Mac:
                     Platform = "Mac";
@@ -77,7 +77,7 @@ public class UEOpenExr : ModuleRules
 
             PublicSystemIncludePaths.AddRange(
                 new string[] {
-                    UEBuildConfiguration.UEThirdPartySourceDirectory + "openexr/Deploy/include",
+                    Target.UEThirdPartySourceDirectory + "openexr/Deploy/include",
 			    }
             );
         }

@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3471591
 Availability: Public
-title:피벗 페인터
+title:피벗 페인터 머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Pivot Painter 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
 Version: 4.9
+Parent:Engine/Rendering/Materials/Functions/Reference
+Related:Engine/Content/Tools/PivotPainter
+Topic-Image:PivotPainterMF_Topic.png
 tags:Materials
+tags:Pivot Painter
 
 [TOC (start:2 end:3)]
 
@@ -32,9 +36,11 @@ Pivot Painter (피벗 페인터)는 메시의 버텍스 안에 로테이션 정�
 
 Pivot Painter 카테고리 아래의 모든 함수는 다음과 같습니다.
 
+이 함수는 Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 정보를 처리하고 관리합니다. 
+
 ### PivotPainter_HierarchyData
 
-Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 정보를 처리하고 관리합니다. 오브젝트 계층구조 작업을 할 수 있도록 특수 디자인된 함수입니다.
+오브젝트 계층구조 작업을 할 수 있도록 특수 디자인된 함수입니다.
 
 | 항목 | 설명 |
 | ---- | ---- |
@@ -60,7 +66,7 @@ Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 �
 
 ### PivotPainter_PerObjectData
 
-Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 정보를 처리하고 관리합니다. 오브젝트 단위로 작업할 수 있도록 특수 디자인된 함수입니다.
+오브젝트 단위로 작업할 수 있도록 특수 디자인된 함수입니다.
 
 | 항목 | 설명 |
 | ---- | ---- |
@@ -76,7 +82,7 @@ Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 �
 
 ### PivotPainter_PerObjectFoliageData
 
-Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 정보를 처리하고 관리합니다. 각각의 폴리지 오브젝트에 작동하도록 디자인된 함수입니다.
+각각의 폴리지 오브젝트에 작동하도록 디자인된 함수입니다.
 
 
 | 항목 | 설명 |
@@ -102,7 +108,7 @@ Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 �
 
 ### PivotPainter_TreeData
 
-Pivot Painter MAXScript 가 모델의 UV 에 저장한 월드 위치와 각도 정보를 처리하고 관리합니다. *tree* 로 시작하는 출력은 Pivot Painter MAXScript 가 저장하는 것이기에 모델의 UV 정보를 처리합니다. *Leaf* 로 시작하는 출력은 스크립트의 오브젝트별 피벗 페인팅 부분이 저장하는 것이기에 UV 정보를 처리합니다. 
+*tree* 로 시작하는 출력은 Pivot Painter MAXScript 가 저장하는 것이기에 모델의 UV 정보를 처리합니다. *Leaf* 로 시작하는 출력은 스크립트의 오브젝트별 피벗 페인팅 부분이 저장하는 것이기에 UV 정보를 처리합니다. 
 
 | 항목 | 설명 |
 | ---- | ---- |

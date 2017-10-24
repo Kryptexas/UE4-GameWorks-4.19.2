@@ -74,14 +74,15 @@ public:
 
     static TObjectReflection badReflection() { return TObjectReflection(); }
 
-protected:
-    int getBinding() const {
+//#Epic - Expose missing functionality
+	int getBinding() const {
         if (type == nullptr || type->getQualifier().layoutBinding == TQualifier::layoutBindingEnd)
             return -1;
         return type->getQualifier().layoutBinding;
     }
+protected:
 
-    TObjectReflection() : offset(-1), glDefineType(-1), size(-1), index(-1), type(nullptr) { }
+	TObjectReflection() : offset(-1), glDefineType(-1), size(-1), index(-1), type(nullptr) { }
 
     const TType* type;
 };

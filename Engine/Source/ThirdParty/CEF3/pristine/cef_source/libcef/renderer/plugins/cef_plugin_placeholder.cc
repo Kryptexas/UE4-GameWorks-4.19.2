@@ -15,16 +15,20 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
 #include "chrome/grit/generated_resources.h"
+#include "chrome/grit/renderer_resources.h"
 #include "chrome/renderer/custom_menu_commands.h"
-#include "components/content_settings/content/common/content_settings_messages.h"
+#include "components/strings/grit/components_strings.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/common/context_menu_params.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/render_thread.h"
 #include "gin/object_template_builder.h"
+#include "third_party/WebKit/public/platform/URLConversion.h"
+#include "third_party/WebKit/public/platform/WebInputEvent.h"
+#include "third_party/WebKit/public/platform/WebMouseEvent.h"
 #include "third_party/WebKit/public/web/WebDocument.h"
-#include "third_party/WebKit/public/web/WebInputEvent.h"
 #include "third_party/WebKit/public/web/WebLocalFrame.h"
+#include "third_party/WebKit/public/web/WebPluginContainer.h"
 #include "third_party/WebKit/public/web/WebScriptSource.h"
 #include "third_party/WebKit/public/web/WebView.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -56,8 +60,8 @@ CefPluginPlaceholder::CefPluginPlaceholder(
                                          html_data),
       status_(CefViewHostMsg_GetPluginInfo_Status::kAllowed),
       title_(title),
-      has_host_(false),
-      context_menu_request_id_(0) {
+      context_menu_request_id_(0),
+      did_send_blocked_content_notification_(false) {
   RenderThread::Get()->AddObserver(this);
 }
 
@@ -84,7 +88,7 @@ CefPluginPlaceholder* CefPluginPlaceholder::CreateLoadableMissingPlugin(
 
   // Will destroy itself when its WebViewPlugin is going away.
   return new CefPluginPlaceholder(render_frame, frame, params, html_data,
-                                  params.mimeType);
+                                  params.mime_type.Utf16());
 }
 
 // static
@@ -103,8 +107,8 @@ CefPluginPlaceholder* CefPluginPlaceholder::CreateBlockedPlugin(
   values.SetString("name", name);
   values.SetString("hide", l10n_util::GetStringUTF8(IDS_PLUGIN_HIDE));
   values.SetString("pluginType",
-                   frame->view()->mainFrame()->isWebLocalFrame() &&
-                   frame->view()->mainFrame()->document().isPluginDocument()
+                   frame->View()->MainFrame()->IsWebLocalFrame() &&
+                   frame->View()->MainFrame()->GetDocument().IsPluginDocument()
                        ? "document"
                        : "embedded");
 
@@ -114,7 +118,7 @@ CefPluginPlaceholder* CefPluginPlaceholder::CreateBlockedPlugin(
 
     if (!power_saver_info.custom_poster_size.IsEmpty()) {
       float zoom_factor =
-          blink::WebView::zoomLevelToZoomFactor(frame->view()->zoomLevel());
+          blink::WebView::ZoomLevelToZoomFactor(frame->View()->ZoomLevel());
       int width =
           roundf(power_saver_info.custom_poster_size.width() / zoom_factor);
       int height =
@@ -162,28 +166,25 @@ bool CefPluginPlaceholder::OnMessageReceived(const IPC::Message& message) {
   return false;
 }
 
-void CefPluginPlaceholder::OpenAboutPluginsCallback() {
-  // CEF does not use IDR_DISABLED_PLUGIN_HTML which would originate this
-  // callback for the chrome://plugins link.
+void CefPluginPlaceholder::ShowPermissionBubbleCallback() {
+  // CEF does not use IDR_PREFER_HTML_PLUGIN_HTML which would originate this
+  // callback.
   NOTREACHED();
 }
 
 void CefPluginPlaceholder::PluginListChanged() {
   if (!GetFrame() || !plugin())
     return;
-  blink::WebDocument document = GetFrame()->top()->document();
-  if (document.isNull())
+  blink::WebDocument document = GetFrame()->Top()->GetDocument();
+  if (document.IsNull())
     return;
 
   CefViewHostMsg_GetPluginInfo_Output output;
-  std::string mime_type(GetPluginParams().mimeType.utf8());
-  blink::WebString top_origin = GetFrame()->top()->securityOrigin().toString();
-  render_frame()->Send(
-      new CefViewHostMsg_GetPluginInfo(routing_id(),
-                                          GURL(GetPluginParams().url),
-                                          GURL(top_origin),
-                                          mime_type,
-                                          &output));
+  std::string mime_type(GetPluginParams().mime_type.Utf8());
+  render_frame()->Send(new CefViewHostMsg_GetPluginInfo(
+      routing_id(), GURL(GetPluginParams().url),
+      GetFrame()->Parent() == nullptr,
+      GetFrame()->Top()->GetSecurityOrigin(), mime_type, &output));
   if (output.status == status_)
     return;
   blink::WebPlugin* new_plugin = CefContentRendererClient::CreatePlugin(
@@ -252,25 +253,30 @@ void CefPluginPlaceholder::ShowContextMenu(
   content::MenuItem hide_item;
   hide_item.action = chrome::MENU_COMMAND_PLUGIN_HIDE;
   bool is_main_frame_plugin_document =
-      GetFrame()->view()->mainFrame()->isWebLocalFrame() &&
-      GetFrame()->view()->mainFrame()->document().isPluginDocument();
+      GetFrame()->View()->MainFrame()->IsWebLocalFrame() &&
+      GetFrame()->View()->MainFrame()->GetDocument().IsPluginDocument();
   hide_item.enabled = !is_main_frame_plugin_document;
   hide_item.label = l10n_util::GetStringUTF16(IDS_CONTENT_CONTEXT_PLUGIN_HIDE);
   params.custom_items.push_back(hide_item);
 
-  params.x = event.windowX;
-  params.y = event.windowY;
+  blink::WebPoint point(event.PositionInWidget().x, event.PositionInWidget().y);
+  if (plugin() && plugin()->Container())
+    point = plugin()->Container()->LocalToRootFramePoint(point);
+
+  params.x = point.x;
+  params.y = point.y;
 
   context_menu_request_id_ = render_frame()->ShowContextMenu(this, params);
   g_last_active_menu = this;
 }
 
 blink::WebPlugin* CefPluginPlaceholder::CreatePlugin() {
-  scoped_ptr<content::PluginInstanceThrottler> throttler;
+  std::unique_ptr<content::PluginInstanceThrottler> throttler;
   // If the plugin has already been marked essential in its placeholder form,
   // we shouldn't create a new throttler and start the process all over again.
   if (power_saver_enabled()) {
-    throttler = content::PluginInstanceThrottler::Create();
+    throttler = content::PluginInstanceThrottler::Create(
+        content::RenderFrame::DONT_RECORD_DECISION);
     // PluginPreroller manages its own lifetime.
     new CefPluginPreroller(
         render_frame(), GetFrame(), GetPluginParams(),
@@ -280,6 +286,12 @@ blink::WebPlugin* CefPluginPlaceholder::CreatePlugin() {
   }
   return render_frame()->CreatePlugin(GetFrame(), GetPluginInfo(),
                                       GetPluginParams(), std::move(throttler));
+}
+
+void CefPluginPlaceholder::OnBlockedTinyContent() {
+  if (did_send_blocked_content_notification_)
+    return;
+  did_send_blocked_content_notification_ = true;
 }
 
 gin::ObjectTemplateBuilder CefPluginPlaceholder::GetObjectTemplateBuilder(
@@ -293,8 +305,8 @@ gin::ObjectTemplateBuilder CefPluginPlaceholder::GetObjectTemplateBuilder(
           .SetMethod<void (CefPluginPlaceholder::*)()>(
               "didFinishLoading",
               &CefPluginPlaceholder::DidFinishLoadingCallback)
-          .SetMethod("openAboutPlugins",
-                     &CefPluginPlaceholder::OpenAboutPluginsCallback);
+          .SetMethod("showPermissionBubble",
+                     &CefPluginPlaceholder::ShowPermissionBubbleCallback);
 
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kEnablePluginPlaceholderTesting)) {

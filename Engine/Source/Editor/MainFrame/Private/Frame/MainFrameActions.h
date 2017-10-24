@@ -254,8 +254,9 @@ protected:
 	 * @param Text The main message text.
 	 * @param Detail The detailed description.
 	 * @param TutorialLink A link to an associated tutorial.
+	 * @param DocumentationLink A link to documentation.
 	 */
-	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink );
 
 private:
 

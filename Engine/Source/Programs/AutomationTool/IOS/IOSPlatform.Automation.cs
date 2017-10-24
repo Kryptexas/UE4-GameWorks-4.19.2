@@ -9,9 +9,10 @@ using UnrealBuildTool;
 using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Ionic.Zlib;
-using System.Security.Principal; 
+using System.Security.Principal;
 using System.Threading;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 //using Manzana;
 
 static class IOSEnvVarNames
@@ -609,7 +610,7 @@ public class IOSPlatform : Platform
 			{
 				// Get the path to UBT
 				string InstalledUBT = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/UnrealBuildTool.exe");
-				Arguments = "-XcodeProjectFile " + Arguments;
+				Arguments = "-XcodeProjectFiles " + Arguments;
 				RunUBT(CmdEnv, InstalledUBT, Arguments);
 			}
 			else
@@ -826,10 +827,10 @@ public class IOSPlatform : Platform
 
 			// copy any additional framework assets that will be needed at runtime
 			{
-				DirectoryReference SourcePath = DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : DirectoryReference.Combine(SC.LocalRoot, "Engine")), "Intermediate", "IOS", "FrameworkAssets");
-				if ( Directory.Exists( SourcePath.FullName ) )
+				DirectoryReference SourcePath = DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Intermediate", "IOS", "FrameworkAssets");
+				if ( DirectoryReference.Exists( SourcePath ) )
 				{
-					SC.StageFiles( StagedFileType.NonUFS, SourcePath, "*.*", true, null, new StagedDirectoryReference(""), true, false );
+					SC.StageFiles(StagedFileType.SystemNonUFS, SourcePath, StageFilesSearch.AllDirectories, StagedDirectoryReference.Root);
 				}
 			}
 
@@ -838,7 +839,7 @@ public class IOSPlatform : Platform
 			if (GetCodeSignDesirability(Params))
 			{
 				DirectoryReference SourcePath = DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : DirectoryReference.Combine(SC.LocalRoot, "Engine")), "Intermediate", PlatformName);
-				string TargetPListFile = Path.Combine(SourcePath.FullName, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + "-Info.plist");
+				FileReference TargetPListFile = FileReference.Combine(SourcePath, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + "-Info.plist");
 //				if (!File.Exists(TargetPListFile))
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
@@ -871,7 +872,7 @@ public class IOSPlatform : Platform
                             out bSkipIcons);
 
                     // copy the plist to the stage dir
-                    SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, new StagedDirectoryReference(""), false, false, "Info.plist");
+                    SC.StageFile(StagedFileType.SystemNonUFS, TargetPListFile, new StagedFileReference("Info.plist"));
 
                     // copy the icons/launch screens from the engine
                     {
@@ -896,17 +897,41 @@ public class IOSPlatform : Platform
                     }
                     if (bIncludeSymbols)
                     {
-                        DirectoryReference DebugSymbolPath = DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : DirectoryReference.Combine(SC.LocalRoot, "Engine")), "Binaries", "IOS");
-                        string SymbolFileName = SC.StageExecutables[0] + ".udebugsymbols";
-						SC.StageFiles(StagedFileType.NonUFS, DebugSymbolPath, SymbolFileName, false, null, new StagedDirectoryReference(""), true, true, (Params.ShortProjectName + ".udebugsymbols").ToLowerInvariant());
+                        FileReference SymbolFileName = FileReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Binaries", "IOS", SC.StageExecutables[0] + ".udebugsymbols");
+						if(FileReference.Exists(SymbolFileName))
+						{
+							SC.StageFile(StagedFileType.NonUFS, SymbolFileName, new StagedFileReference((Params.ShortProjectName + ".udebugsymbols").ToLowerInvariant()));
+						}
                     }
                 }
 			}
 		}
         {
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Content", "Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, StagedDirectoryReference.Combine(SC.RelativeProjectRootForStage, "Engine", "Content", "Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, StagedDirectoryReference.Combine(SC.RelativeProjectRootForStage, "Content", "Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
+			StageMovieFiles(DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), SC);
+			StageMovieFiles(DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), SC);
         }
+		{
+			// Stage any *.metallib files as NonUFS.
+			// Get the final output directory for cooked data
+			DirectoryReference CookOutputDir;
+			if(!String.IsNullOrEmpty(Params.CookOutputDir))
+			{
+				CookOutputDir = DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
+			}
+			else if(Params.CookInEditor)
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform);
+			}
+			else
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
+			}
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
+			foreach(FileReference CookedFile in CookedFiles)
+			{
+				SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+			}
+		}
     }
 
 	private void StageImageAndIconFiles(DirectoryReference DataPath, bool bSupportsPortrait, bool bSupportsLandscape, DeploymentContext SC, bool bSkipIcons)
@@ -936,13 +961,13 @@ public class IOSPlatform : Platform
 				FileReference ImageFile = FileReference.Combine(DataPath, ImageFileName);
 				if(FileReference.Exists(ImageFile))
 				{
-					SC.StageFile(StagedFileType.NonUFS, ImageFile, new StagedFileReference(ImageFileName), false);
+					SC.StageFile(StagedFileType.SystemNonUFS, ImageFile, new StagedFileReference(ImageFileName));
 				}
 			}
 
             if (!bSkipIcons)
             {
-                SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null,StagedDirectoryReference.Root,true,false);
+                SC.StageFiles(StagedFileType.SystemNonUFS, DataPath, "Icon*.png", StageFilesSearch.TopDirectoryOnly, StagedDirectoryReference.Root);
             }
 		}
 	}
@@ -1261,10 +1286,10 @@ public class IOSPlatform : Platform
 		return "IOS";
 	}
 
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		// we shouldn't modify the case on files like Info.plist or the icons
-		return bUFSFile;
+		return true;
 	}
 
 	public override string LocalPathToTargetPath(string LocalPath, string LocalRoot)
@@ -1359,7 +1384,7 @@ public class IOSPlatform : Platform
 		}
 		else
 		{
-			IProcessResult Result = new ProcessResult("DummyApp", null, false, null);
+			IProcessResult Result = new ProcessResult("DummyApp", null, false);
 			Result.ExitCode = 0;
 			return Result;
 		}
@@ -1536,7 +1561,7 @@ public class IOSPlatform : Platform
 
 	public override void PostStagingFileCopy(ProjectParams Params, DeploymentContext SC)
 	{
-		if (Params.CreateChunkInstall)
+/*		if (Params.CreateChunkInstall)
 		{
 			// get the bundle identifier
 			string BundleIdentifier = "";
@@ -1608,7 +1633,7 @@ public class IOSPlatform : Platform
 
 			// generate the OnDemandResources.plist
 			GenerateOnDemandResourcesPlist (ChunkData, SC.StageDirectory.FullName);
-		}
+		}*/
 	}
 
 	public override bool StageMovies

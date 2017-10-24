@@ -590,14 +590,13 @@ static void GetListOfUniqueBrushes( TArray<ABrush*>* InBrushes, UModel *Model )
 		FBspSurf* Surf = &Model->Surfs[i];
 		if( Surf->PolyFlags & PF_Selected )
 		{
-			ABrush* ParentBrush = Cast<ABrush>(Surf->Actor);
-			if ( ParentBrush )
+			if ( Surf->Actor )
 			{
 				// See if we've already got this brush ...
 				int32 brush;
 				for( brush = 0 ; brush < InBrushes->Num() ; brush++ )
 				{
-					if( ParentBrush == (*InBrushes)[brush] )
+					if( Surf->Actor == (*InBrushes)[brush] )
 					{
 						break;
 					}
@@ -606,7 +605,7 @@ static void GetListOfUniqueBrushes( TArray<ABrush*>* InBrushes, UModel *Model )
 				// ... if not, add it to the list.
 				if( brush == InBrushes->Num() )
 				{
-					(*InBrushes)[ InBrushes->AddUninitialized() ] = ParentBrush;
+					(*InBrushes)[ InBrushes->AddUninitialized() ] = Surf->Actor;
 				}
 			}
 		}
@@ -876,14 +875,13 @@ void UEditorEngine::polySelectMatchingBrush(UModel *InModel)
 	for( int32 i = 0 ; i < InModel->Surfs.Num() ; i++ )
 	{
 		FBspSurf* Surf = &InModel->Surfs[i];
-		ABrush* SurfBrushActor = Cast<ABrush>(Surf->Actor);
-		if ( SurfBrushActor )
+		if ( Surf->Actor )
 		{
 			// Select all the polys on each brush in the unique list.
 			for( int32 brush = 0 ; brush < Brushes.Num() ; brush++ )
 			{
 				ABrush* CurBrush = Brushes[brush];
-				if( SurfBrushActor == CurBrush )
+				if( Surf->Actor == CurBrush )
 				{
 					for( int32 poly = 0 ; poly < CurBrush->Brush->Polys->Element.Num() ; poly++ )
 					{

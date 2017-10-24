@@ -108,18 +108,17 @@ void FKismetDragDropAction::HoverTargetChanged()
 	if (ActionWillShowExistingNode())
 	{
 		FSlateBrush const* ShowsExistingIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.ShowNode"));
-		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), ActionNode->GetMenuDescription());
+		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), SourceAction->GetMenuDescription());
 		SetSimpleFeedbackMessage(ShowsExistingIcon, FLinearColor::White, DragingText);
 	}
 	// it should be obvious that we can't drop on anything but a graph, so no need to point that out
-	else if ((TheHoveredGraph == nullptr) || !CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(ActionNode, TheHoveredGraph, CannotDropReason))
+	else if ((TheHoveredGraph == nullptr) || !CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(SourceAction, TheHoveredGraph, CannotDropReason))
 	{
-		FGraphSchemaActionDragDropAction::HoverTargetChanged();
+		FMyBlueprintItemDragDropAction::HoverTargetChanged();
 	}
 	else 
 	{
-		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason);
+		SetFeedbackMessageError(CannotDropReason);
 	}
 }
 
@@ -129,9 +128,9 @@ FReply FKismetDragDropAction::DroppedOnPanel( const TSharedRef< SWidget >& Panel
 	FReply Reply = FReply::Unhandled();
 
 	FText CannotDropReason = FText::GetEmpty();
-	if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(ActionNode, GetHoveredGraph(), CannotDropReason))
+	if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(SourceAction, GetHoveredGraph(), CannotDropReason))
 	{
-		Reply = FGraphSchemaActionDragDropAction::DroppedOnPanel(Panel, ScreenPosition, GraphPosition, Graph);
+		Reply = FMyBlueprintItemDragDropAction::DroppedOnPanel(Panel, ScreenPosition, GraphPosition, Graph);
 	}
 
 	if (Reply.IsEventHandled())
@@ -148,21 +147,21 @@ bool FKismetDragDropAction::ActionWillShowExistingNode() const
 	bool bWillFocusOnExistingNode = false;
 
 	UEdGraph* TheHoveredGraph = GetHoveredGraph();
-	if (ActionNode.IsValid() && (TheHoveredGraph != nullptr))
+	if (SourceAction.IsValid() && (TheHoveredGraph != nullptr))
 	{
-		bWillFocusOnExistingNode = (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId()) ||
-			(ActionNode->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId());
+		bWillFocusOnExistingNode = (SourceAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId()) ||
+			(SourceAction->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId());
 
 		if (!bWillFocusOnExistingNode)
 		{
-			if (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId())
+			if (SourceAction->GetTypeId() == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId())
 			{
-				FEdGraphSchemaAction_K2AddEvent* AddEventAction = (FEdGraphSchemaAction_K2AddEvent*)ActionNode.Get();
+				FEdGraphSchemaAction_K2AddEvent* AddEventAction = (FEdGraphSchemaAction_K2AddEvent*)SourceAction.Get();
 				bWillFocusOnExistingNode = AddEventAction->EventHasAlreadyBeenPlaced(FBlueprintEditorUtils::FindBlueprintForGraph(TheHoveredGraph));
 			}
-			else if (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
+			else if (SourceAction->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
 			{
-				FEdGraphSchemaAction_K2Event* FuncAction = (FEdGraphSchemaAction_K2Event*)ActionNode.Get();
+				FEdGraphSchemaAction_K2Event* FuncAction = (FEdGraphSchemaAction_K2Event*)SourceAction.Get();
 				UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(FuncAction->NodeTemplate);
 				// Drag and dropping custom event's will place a Call Function and will not focus the existing event
 				if (CustomEvent == nullptr)
@@ -195,7 +194,7 @@ TSharedRef<FKismetFunctionDragDropAction> FKismetFunctionDragDropAction::New(
 	Operation->CallOnMember     = InCallOnMember;
 	Operation->AnalyticCallback = AnalyticCallback;
 	Operation->CanBeDroppedDelegate = CanBeDroppedDelegate;
-	Operation->ActionNode = InActionNode;
+	Operation->SourceAction = InActionNode;
 
 	if (!CanBeDroppedDelegate.IsBound())
 	{
@@ -214,12 +213,6 @@ FKismetFunctionDragDropAction::FKismetFunctionDragDropAction()
 }
 
 //------------------------------------------------------------------------------
-void FKismetFunctionDragDropAction::HoverTargetChanged()
-{
-	FKismetDragDropAction::HoverTargetChanged();
-}
-
-//------------------------------------------------------------------------------
 FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph)
 {
 	return DroppedOnPin(ScreenPosition, GraphPosition);
@@ -231,7 +224,7 @@ FReply FKismetFunctionDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVe
 	FReply Reply = FReply::Unhandled();
 
 	UEdGraph* Graph = GetHoveredGraph();
-	check(Graph);
+	check(Graph); 
 
 	// The ActionNode set during construction points to the Graph, this is suitable for displaying the mouse decorator but needs to be more complete based on the current graph
 	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = GetDropAction(*Graph);
@@ -308,12 +301,14 @@ UBlueprintFunctionNodeSpawner* FKismetFunctionDragDropAction::GetDropAction(UEdG
 
 //------------------------------------------------------------------------------
 TSharedRef<FKismetMacroDragDropAction> FKismetMacroDragDropAction::New(
+	TSharedPtr<FEdGraphSchemaAction> InActionNode,
 	FName                 InMacroName, 
 	UBlueprint*           InBlueprint, 
 	UEdGraph*             InMacro, 
 	FNodeCreationAnalytic AnalyticCallback)
 {
 	TSharedRef<FKismetMacroDragDropAction> Operation = MakeShareable(new FKismetMacroDragDropAction);
+	Operation->SourceAction = InActionNode;
 	Operation->MacroName = InMacroName;
 	Operation->Macro = InMacro;
 	Operation->Blueprint = InBlueprint;
@@ -330,28 +325,10 @@ TSharedRef<FKismetMacroDragDropAction> FKismetMacroDragDropAction::New(
 
 //------------------------------------------------------------------------------
 FKismetMacroDragDropAction::FKismetMacroDragDropAction()
-	: Macro(NULL)
+	: Macro(nullptr)
+	, Blueprint(nullptr)
 {
 
-}
-
-//------------------------------------------------------------------------------
-void FKismetMacroDragDropAction::HoverTargetChanged() 
-{
-	UEdGraph* TheHoveredGraph = GetHoveredGraph();
-
-	FText CannotDropReason = FText::GetEmpty();
-	// it should be obvious that we can't drop on anything but a graph, so no need to point that out
-	if ((TheHoveredGraph == NULL) || !CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(ActionNode, TheHoveredGraph, CannotDropReason))
-	{
-		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, FText::FromName(MacroName));
-	}
-	else 
-	{
-		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason);
-	}
 }
 
 //------------------------------------------------------------------------------

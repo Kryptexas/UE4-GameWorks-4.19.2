@@ -49,6 +49,7 @@ public:
 	}
 };
 
+
 /** An initializer type for keys that's passed to the pair set when adding a new key. */
 template <typename KeyInitType>
 class TKeyInitializer
@@ -59,8 +60,7 @@ public:
 	/** Initialization constructor. */
 	FORCEINLINE explicit TKeyInitializer(KeyInitType InKey)
 		: Key(InKey)
-	{
-	}
+	{ }
 
 	template <typename KeyType, typename ValueType>
 	operator TPair<KeyType, ValueType>() const
@@ -138,15 +138,13 @@ protected:
 	template<typename OtherSetAllocator>
 	TMapBase(TMapBase<KeyType, ValueType, OtherSetAllocator, KeyFuncs>&& Other)
 		: Pairs(MoveTemp(Other.Pairs))
-	{
-	}
+	{ }
 
 	/** Constructor for copying elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
 	TMapBase(const TMapBase<KeyType, ValueType, OtherSetAllocator, KeyFuncs>& Other)
 		: Pairs(Other.Pairs)
-	{
-	}
+	{ }
 
 	/** Assignment operator for moving elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
@@ -210,8 +208,12 @@ public:
 	}
 
 	/**
-	 * Removes all elements from the map, potentially leaving space allocated for an expected number of elements about to be added.
-	 * @param ExpectedNumElements - The number of elements about to be added to the set.
+	 * Removes all elements from the map.
+	 *
+	 * This method potentially leaves space allocated for an expected
+	 * number of elements about to be added.
+	 *
+	 * @param ExpectedNumElements The number of elements about to be added to the set.
 	 */
 	FORCEINLINE void Empty(int32 ExpectedNumElements = 0)
 	{
@@ -255,8 +257,9 @@ public:
 	}
 
 	/**
-	 * Returns the unique keys contained within this map
-	 * @param	OutKeys	- Upon return, contains the set of unique keys in this map.
+	 * Get the unique keys contained within this map.
+	 *
+	 * @param OutKeys Upon return, contains the set of unique keys in this map.
 	 * @return The number of unique keys in the map.
 	 */
 	template<typename Allocator> int32 GetKeys(TArray<KeyType, Allocator>& OutKeys) const
@@ -274,48 +277,54 @@ public:
 	}
 
 	/** 
-	 * Helper function to return the amount of memory allocated by this container 
-	 * @return number of bytes allocated by this container
+	 * Helper function to return the amount of memory allocated by this container .
+	 *
+	 * @return Number of bytes allocated by this container.
+	 * @see CountBytes
 	 */
 	FORCEINLINE uint32 GetAllocatedSize() const
 	{
 		return Pairs.GetAllocatedSize();
 	}
 
-	/** Tracks the container's memory use through an archive. */
+	/**
+	 * Track the container's memory use through an archive.
+	 *
+	 * @param Ar The archive to use.
+	 * @see GetAllocatedSize
+	 */
 	FORCEINLINE void CountBytes(FArchive& Ar)
 	{
 		Pairs.CountBytes(Ar);
 	}
 
 	/**
-	 * Sets the value associated with a key.
+	 * Set the value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @param InValue - The value to associate with the key.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @param InKey The key to associate the value with.
+	 * @param InValue The value to associate with the key.
+	 * @return A reference to the value as stored in the map. The reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& Add(const KeyType&  InKey, const ValueType&  InValue) { return Emplace(         InKey ,          InValue ); }
-	FORCEINLINE ValueType& Add(const KeyType&  InKey,       ValueType&& InValue) { return Emplace(         InKey , MoveTemp(InValue)); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey, const ValueType&  InValue) { return Emplace(MoveTemp(InKey),          InValue ); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey,       ValueType&& InValue) { return Emplace(MoveTemp(InKey), MoveTemp(InValue)); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey, const ValueType&  InValue) { return Emplace(                   InKey ,                    InValue ); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey,       ValueType&& InValue) { return Emplace(                   InKey , MoveTempIfPossible(InValue)); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey, const ValueType&  InValue) { return Emplace(MoveTempIfPossible(InKey),                    InValue ); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey,       ValueType&& InValue) { return Emplace(MoveTempIfPossible(InKey), MoveTempIfPossible(InValue)); }
 
 	/**
-	 * Sets a default value associated with a key.
+	 * Set a default value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @param InKey The key to associate the value with.
+	 * @return A reference to the value as stored in the map. The reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& Add(const KeyType&  InKey) { return Emplace(         InKey ); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey) { return Emplace(MoveTemp(InKey)); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey) { return Emplace(                   InKey ); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey) { return Emplace(MoveTempIfPossible(InKey)); }
 
 	/**
 	 * Sets the value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @param InValue - The value to associate with the key.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
-	 */
+	 * @param InKey The key to associate the value with.
+	 * @param InValue The value to associate with the key.
+	 * @return A reference to the value as stored in the map. The reference is only valid until the next change to any key in the map.	 */
 	template <typename InitKeyType, typename InitValueType>
 	ValueType& Emplace(InitKeyType&& InKey, InitValueType&& InValue)
 	{
@@ -325,10 +334,10 @@ public:
 	}
 
 	/**
-	 * Sets a default value associated with a key.
+	 * Set a default value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @param InKey The key to associate the value with.
+	 * @return A reference to the value as stored in the map. The reference is only valid until the next change to any key in the map.
 	 */
 	template <typename InitKeyType>
 	ValueType& Emplace(InitKeyType&& InKey)
@@ -339,8 +348,9 @@ public:
 	}
 
 	/**
-	 * Removes all value associations for a key.
-	 * @param InKey - The key to remove associated values for.
+	 * Remove all value associations for a key.
+	 *
+	 * @param InKey The key to remove associated values for.
 	 * @return The number of values that were associated with the key.
 	 */
 	FORCEINLINE int32 Remove(KeyConstPointerType InKey)
@@ -350,10 +360,14 @@ public:
 	}
 
 	/**
-	 * Returns the key associated with the specified value.  The time taken is O(N) in the number of pairs.
-	 * @param	Value - The value to search for
-	 * @return	A pointer to the key associated with the specified value, or nullptr if the value isn't contained in this map.  The pointer
-	 *			is only valid until the next change to any key in the map.
+	 * Find the key associated with the specified value.
+	 *
+	 * The time taken is O(N) in the number of pairs.
+	 *
+	 * @param Value The value to search for
+	 * @return A pointer to the key associated with the specified value,
+	 *     or nullptr if the value isn't contained in this map. The pointer
+	 *     is only valid until the next change to any key in the map.
 	 */
 	const KeyType* FindKey(ValueInitType Value) const
 	{
@@ -368,9 +382,10 @@ public:
 	}
 
 	/**
-	 * Returns the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	A pointer to the value associated with the specified key, or nullptr if the key isn't contained in this map.  The pointer
+	 * Find the value associated with a specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return A pointer to the value associated with the specified key, or nullptr if the key isn't contained in this map.  The pointer
 	 *			is only valid until the next change to any key in the map.
 	 */
 	FORCEINLINE ValueType* Find(KeyConstPointerType Key)
@@ -388,11 +403,13 @@ public:
 	}
 
 private:
+
 	/**
-	 * Returns the value associated with a specified key, or if none exists, 
+	 * Find the value associated with a specified key, or if none exists, 
 	 * adds a value using the default constructor.
-	 * @param	Key - The key to search for.
-	 * @return	A reference to the value associated with the specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return A reference to the value associated with the specified key.
 	 */
 	template <typename ArgType>
 	FORCEINLINE ValueType& FindOrAddImpl(ArgType&& Arg)
@@ -404,20 +421,23 @@ private:
 	}
 
 public:
-	/**
-	 * Returns the value associated with a specified key, or if none exists, 
-	 * adds a value using the default constructor.
-	 * @param	Key - The key to search for.
-	 * @return	A reference to the value associated with the specified key.
-	 */
-	FORCEINLINE ValueType& FindOrAdd(const KeyType&  Key) { return FindOrAddImpl(         Key ); }
-	FORCEINLINE ValueType& FindOrAdd(      KeyType&& Key) { return FindOrAddImpl(MoveTemp(Key)); }
 
 	/**
-	 * Returns the value associated with a specified key, or if none exists, 
+	 * Find the value associated with a specified key, or if none exists, 
+	 * adds a value using the default constructor.
+	 *
+	 * @param Key The key to search for.
+	 * @return A reference to the value associated with the specified key.
+	 */
+	FORCEINLINE ValueType& FindOrAdd(const KeyType&  Key) { return FindOrAddImpl(                   Key ); }
+	FORCEINLINE ValueType& FindOrAdd(      KeyType&& Key) { return FindOrAddImpl(MoveTempIfPossible(Key)); }
+
+	/**
+	 * Find the value associated with a specified key, or if none exists, 
 	 * adds a value using the key as the constructor parameter.
-	 * @param	Key - The key to search for.
-	 * @return	A reference to the value associated with the specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return A reference to the value associated with the specified key.
 	 */
 	//@todo UE4 merge - this prevents FConfigCacheIni from compiling
 	/*ValueType& FindOrAddKey(KeyInitType Key)
@@ -434,9 +454,10 @@ public:
 	}*/
 
 	/**
-	 * Returns a reference to the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	The value associated with the specified key, or triggers an assertion if the key does not exist.
+	 * Find a reference to the value associated with a specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return The value associated with the specified key, or triggers an assertion if the key does not exist.
 	 */
 	FORCEINLINE const ValueType& FindChecked(KeyConstPointerType Key) const
 	{
@@ -446,9 +467,10 @@ public:
 	}
 
 	/**
-	 * Returns a reference to the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	The value associated with the specified key, or triggers an assertion if the key does not exist.
+	 * Find a reference to the value associated with a specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return The value associated with the specified key, or triggers an assertion if the key does not exist.
 	 */
 	FORCEINLINE ValueType& FindChecked(KeyConstPointerType Key)
 	{
@@ -458,9 +480,10 @@ public:
 	}
 
 	/**
-	 * Returns the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	The value associated with the specified key, or the default value for the ValueType if the key isn't contained in this map.
+	 * Find the value associated with a specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return The value associated with the specified key, or the default value for the ValueType if the key isn't contained in this map.
 	 */
 	FORCEINLINE ValueType FindRef(KeyConstPointerType Key) const
 	{
@@ -473,8 +496,9 @@ public:
 	}
 
 	/**
-	 * Checks if map contains the specified key.
-	 * @param Key - The key to check for.
+	 * Check if map contains the specified key.
+	 *
+	 * @param Key The key to check for.
 	 * @return true if the map contains the key.
 	 */
 	FORCEINLINE bool Contains(KeyConstPointerType Key) const
@@ -483,7 +507,9 @@ public:
 	}
 
 	/**
-	 * Generates an array from the keys in this map.
+	 * Generate an array from the keys in this map.
+	 *
+	 * @param OutArray Will contain the collection of keys.
 	 */
 	template<typename Allocator> void GenerateKeyArray(TArray<KeyType, Allocator>& OutArray) const
 	{
@@ -495,7 +521,9 @@ public:
 	}
 
 	/**
-	 * Generates an array from the values in this map.
+	 * Generate an array from the values in this map.
+	 *
+	 * @param OutArray Will contain the collection of values.
 	 */
 	template<typename Allocator> void GenerateValueArray(TArray<ValueType, Allocator>& OutArray) const
 	{
@@ -514,7 +542,8 @@ public:
 
 	/**
 	 * Describes the map's contents through an output device.
-	 * @param Ar - The output device to describe the map's contents through.
+	 *
+	 * @param Ar The output device to describe the map's contents through.
 	 */
 	void Dump(FOutputDevice& Ar)
 	{
@@ -525,24 +554,27 @@ protected:
 	typedef TSet<ElementType, KeyFuncs, SetAllocator> ElementSetType;
 
 	/** The base of TMapBase iterators. */
-	template<bool bConst>
+	template<bool bConst, bool bRangedFor = false>
 	class TBaseIterator
 	{
 	public:
-		typedef typename TChooseClass<bConst,typename ElementSetType::TConstIterator,typename ElementSetType::TIterator>::Result PairItType;
+		typedef typename TChooseClass<
+			bConst,
+			typename TChooseClass<bRangedFor, typename ElementSetType::TRangedForConstIterator, typename ElementSetType::TConstIterator>::Result,
+			typename TChooseClass<bRangedFor, typename ElementSetType::TRangedForIterator,      typename ElementSetType::TIterator     >::Result
+		>::Result PairItType;
 	private:
 		typedef typename TChooseClass<bConst,const TMapBase,TMapBase>::Result MapType;
 		typedef typename TChooseClass<bConst,const KeyType,KeyType>::Result ItKeyType;
 		typedef typename TChooseClass<bConst,const ValueType,ValueType>::Result ItValueType;
 		typedef typename TChooseClass<bConst,const typename ElementSetType::ElementType, typename ElementSetType::ElementType>::Result PairType;
 
-	protected:
+	public:
 		FORCEINLINE TBaseIterator(const PairItType& InElementIt)
 			: PairIt(InElementIt)
 		{
 		}
 
-	public:
 		FORCEINLINE TBaseIterator& operator++()
 		{
 			++PairIt;
@@ -625,19 +657,10 @@ public:
 
 		/** Initialization constructor. */
 		FORCEINLINE TIterator(TMapBase& InMap, bool bInRequiresRehashOnRemoval = false)
-			: TBaseIterator<false>    (begin(InMap.Pairs))
+			: TBaseIterator<false>    (InMap.Pairs.CreateIterator())
 			, Map                     (InMap)
 			, bElementsHaveBeenRemoved(false)
 			, bRequiresRehashOnRemoval(bInRequiresRehashOnRemoval)
-		{
-		}
-
-		/** Initialization constructor. */
-		FORCEINLINE TIterator(TMapBase& InMap, const typename TBaseIterator<false>::PairItType& InPairIt)
-			: TBaseIterator<false>    (InPairIt)
-			, Map                     (InMap)
-			, bElementsHaveBeenRemoved(false)
-			, bRequiresRehashOnRemoval(false)
 		{
 		}
 
@@ -668,15 +691,13 @@ public:
 	{
 	public:
 		FORCEINLINE TConstIterator(const TMapBase& InMap)
-			: TBaseIterator<true>(begin(InMap.Pairs))
-		{
-		}
-
-		FORCEINLINE TConstIterator(const typename TBaseIterator<true>::PairItType& InPairIt)
-			: TBaseIterator<true>(InPairIt)
+			: TBaseIterator<true>(InMap.Pairs.CreateConstIterator())
 		{
 		}
 	};
+
+	using TRangedForIterator      = TBaseIterator<false, true>;
+	using TRangedForConstIterator = TBaseIterator<true, true>;
 
 	/** Iterates over values associated with a specified key in a const map. */
 	class TConstKeyIterator : public TBaseKeyIterator<true>
@@ -731,11 +752,12 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TIterator      begin(      TMapBase& MapBase) { return TIterator     (MapBase, begin(MapBase.Pairs)); }
-	FORCEINLINE friend TConstIterator begin(const TMapBase& MapBase) { return TConstIterator(         begin(MapBase.Pairs)); }
-	FORCEINLINE friend TIterator      end  (      TMapBase& MapBase) { return TIterator     (MapBase, end  (MapBase.Pairs)); }
-	FORCEINLINE friend TConstIterator end  (const TMapBase& MapBase) { return TConstIterator(         end  (MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForIterator      begin(      TMapBase& MapBase) { return TRangedForIterator     (begin(MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForConstIterator begin(const TMapBase& MapBase) { return TRangedForConstIterator(begin(MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForIterator      end  (      TMapBase& MapBase) { return TRangedForIterator     (end  (MapBase.Pairs)); }
+	FORCEINLINE friend TRangedForConstIterator end  (const TMapBase& MapBase) { return TRangedForConstIterator(end  (MapBase.Pairs)); }
 };
+
 
 /** The base type of sortable maps. */
 template <typename KeyType, typename ValueType, typename SetAllocator, typename KeyFuncs>
@@ -919,9 +941,11 @@ public:
 	}
 
 	/**
-	 * Removes the pair with the specified key and copies the value that was removed to the ref parameter
-	 * @param Key - the key to search for
-	 * @param OutRemovedValue - if found, the value that was removed (not modified if the key was not found)
+	 * Remove the pair with the specified key and copies the value
+	 * that was removed to the ref parameter
+	 *
+	 * @param Key The key to search for
+	 * @param OutRemovedValue If found, the value that was removed (not modified if the key was not found)
 	 * @return whether or not the key was found
 	 */
 	FORCEINLINE bool RemoveAndCopyValue(KeyInitType Key,ValueType& OutRemovedValue)
@@ -930,29 +954,33 @@ public:
 		if(!PairId.IsValidId())
 			return false;
 
-		OutRemovedValue = MoveTemp(Super::Pairs[PairId].Value);
+		OutRemovedValue = MoveTempIfPossible(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return true;
 	}
 	
 	/**
-	 * Finds a pair with the specified key, removes it from the map, and returns the value part of the pair.
+	 * Find a pair with the specified key, removes it from the map, and returns the value part of the pair.
+	 *
 	 * If no pair was found, an exception is thrown.
-	 * @param Key - the key to search for
+	 *
+	 * @param Key the key to search for
 	 * @return whether or not the key was found
 	 */
 	FORCEINLINE ValueType FindAndRemoveChecked(KeyConstPointerType Key)
 	{
 		const FSetElementId PairId = Super::Pairs.FindId(Key);
 		check(PairId.IsValidId());
-		ValueType Result = MoveTemp(Super::Pairs[PairId].Value);
+		ValueType Result = MoveTempIfPossible(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return Result;
 	}
 
 	/**
-	 * Move all items from another map into our map (if any keys are in both, the value from the other map wins) and empty the other map.
-	 * @param OtherMap - The other map of items to move the elements from.
+	 * Move all items from another map into our map (if any keys are in both,
+	 * the value from the other map wins) and empty the other map.
+	 *
+	 * @param OtherMap The other map of items to move the elements from.
 	 */
 	template<typename OtherSetAllocator>
 	void Append(TMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>&& OtherMap)
@@ -960,15 +988,17 @@ public:
 		this->Reserve(this->Num() + OtherMap.Num());
 		for (auto& Pair : OtherMap)
 		{
-			this->Add(MoveTemp(Pair.Key), MoveTemp(Pair.Value));
+			this->Add(MoveTempIfPossible(Pair.Key), MoveTempIfPossible(Pair.Value));
 		}
 
 		OtherMap.Reset();
 	}
 
 	/**
-	 * Add all items from another map to our map (if any keys are in both, the value from the other map wins)
-	 * @param OtherMap - The other map of items to add.
+	 * Add all items from another map to our map (if any keys are in both,
+	 * the value from the other map wins).
+	 *
+	 * @param OtherMap The other map of items to add.
 	 */
 	template<typename OtherSetAllocator>
 	void Append(const TMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>& OtherMap)
@@ -983,6 +1013,7 @@ public:
 	FORCEINLINE       ValueType& operator[](KeyConstPointerType Key)       { return this->FindChecked(Key); }
 	FORCEINLINE const ValueType& operator[](KeyConstPointerType Key) const { return this->FindChecked(Key); }
 };
+
 
 /** A TMapBase specialization that allows multiple values to be associated with each key. */
 template<typename KeyType,typename ValueType,typename SetAllocator /* = FDefaultSetAllocator */,typename KeyFuncs /*= TDefaultMapHashableKeyFuncs<KeyType,ValueType,true>*/>
@@ -1048,9 +1079,10 @@ public:
 
 	/**
 	 * Finds all values associated with the specified key.
-	 * @param Key - The key to find associated values for.
-	 * @param OutValues - Upon return, contains the values associated with the key.
-	 * @param bMaintainOrder - true if the Values array should be in the same order as the map's pairs.
+	 *
+	 * @param Key The key to find associated values for.
+	 * @param OutValues Upon return, contains the values associated with the key.
+	 * @param bMaintainOrder true if the Values array should be in the same order as the map's pairs.
 	 */
 	template<typename Allocator> void MultiFind(KeyInitType Key,TArray<ValueType, Allocator>& OutValues,bool bMaintainOrder = false) const
 	{
@@ -1067,10 +1099,11 @@ public:
 
 	/**
 	 * Finds all values associated with the specified key.
-	 * @param Key - The key to find associated values for.
-	 * @param OutValues - Upon return, contains pointers to the values associated with the key.
+	 *
+	 * @param Key The key to find associated values for.
+	 * @param OutValues Upon return, contains pointers to the values associated with the key.
 	 *					Pointers are only valid until the next change to any key in the map.
-	 * @param bMaintainOrder - true if the Values array should be in the same order as the map's pairs.
+	 * @param bMaintainOrder true if the Values array should be in the same order as the map's pairs.
 	 */
 	template<typename Allocator> void MultiFindPointer(KeyInitType Key,TArray<const ValueType*, Allocator>& OutValues,bool bMaintainOrder = false) const
 	{
@@ -1098,24 +1131,28 @@ public:
 	}
 
 	/**
-	 * Adds a key-value association to the map.  The association doesn't replace any of the key's existing associations.
+	 * Add a key-value association to the map.  The association doesn't replace any of the key's existing associations.
 	 * However, if both the key and value match an existing association in the map, no new association is made and the existing association's
 	 * value is returned.
-	 * @param InKey - The key to associate.
-	 * @param InValue - The value to associate.
+	 *
+	 * @param InKey The key to associate.
+	 * @param InValue The value to associate.
 	 * @return A reference to the value as stored in the map; the reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey, const ValueType&  InValue) { return EmplaceUnique(         InKey ,          InValue ); }
-	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey,       ValueType&& InValue) { return EmplaceUnique(         InKey , MoveTemp(InValue)); }
-	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey, const ValueType&  InValue) { return EmplaceUnique(MoveTemp(InKey),          InValue ); }
-	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey,       ValueType&& InValue) { return EmplaceUnique(MoveTemp(InKey), MoveTemp(InValue)); }
+	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey, const ValueType&  InValue) { return EmplaceUnique(                   InKey ,                    InValue ); }
+	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey,       ValueType&& InValue) { return EmplaceUnique(                   InKey , MoveTempIfPossible(InValue)); }
+	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey, const ValueType&  InValue) { return EmplaceUnique(MoveTempIfPossible(InKey),                    InValue ); }
+	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey,       ValueType&& InValue) { return EmplaceUnique(MoveTempIfPossible(InKey), MoveTempIfPossible(InValue)); }
 
 	/**
-	 * Adds a key-value association to the map.  The association doesn't replace any of the key's existing associations.
-	 * However, if both the key and value match an existing association in the map, no new association is made and the existing association's
-	 * value is returned.
-	 * @param InKey - The key to associate.
-	 * @param InValue - The value to associate.
+	 * Add a key-value association to the map.
+	 *
+	 * The association doesn't replace any of the key's existing associations.
+	 * However, if both key and value match an existing association in the map,
+	 * no new association is made and the existing association's value is returned.
+	 *
+	 * @param InKey The key to associate.
+	 * @param InValue The value to associate.
 	 * @return A reference to the value as stored in the map; the reference is only valid until the next change to any key in the map.
 	 */
 	template <typename InitKeyType, typename InitValueType>
@@ -1131,8 +1168,9 @@ public:
 	}
 
 	/**
-	 * Removes all value associations for a key.
-	 * @param InKey - The key to remove associated values for.
+	 * Remove all value associations for a key.
+	 *
+	 * @param InKey The key to remove associated values for.
 	 * @return The number of values that were associated with the key.
 	 */
 	FORCEINLINE int32 Remove(KeyConstPointerType InKey)
@@ -1141,9 +1179,10 @@ public:
 	}
 
 	/**
-	 * Removes associations between the specified key and value from the map.
-	 * @param InKey - The key part of the pair to remove.
-	 * @param InValue - The value part of the pair to remove.
+	 * Remove associations between the specified key and value from the map.
+	 *
+	 * @param InKey The key part of the pair to remove.
+	 * @param InValue The value part of the pair to remove.
 	 * @return The number of associations removed.
 	 */
 	int32 Remove(KeyInitType InKey,ValueInitType InValue)
@@ -1163,9 +1202,10 @@ public:
 	}
 
 	/**
-	 * Removes the first association between the specified key and value from the map.
-	 * @param InKey - The key part of the pair to remove.
-	 * @param InValue - The value part of the pair to remove.
+	 * Remove the first association between the specified key and value from the map.
+	 *
+	 * @param InKey The key part of the pair to remove.
+	 * @param InValue The value part of the pair to remove.
 	 * @return The number of associations removed.
 	 */
 	int32 RemoveSingle(KeyInitType InKey,ValueInitType InValue)
@@ -1188,9 +1228,10 @@ public:
 	}
 
 	/**
-	 * Finds an association between a specified key and value. (const)
-	 * @param Key - The key to find.
-	 * @param Value - The value to find.
+	 * Find an association between a specified key and value. (const)
+	 *
+	 * @param Key The key to find.
+	 * @param Value The value to find.
 	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise nullptr is returned.
 	 *			The pointer is only valid as long as the map isn't changed.
 	 */
@@ -1200,9 +1241,10 @@ public:
 	}
 
 	/**
-	 * Finds an association between a specified key and value.
-	 * @param Key - The key to find.
-	 * @param Value - The value to find.
+	 * Find an association between a specified key and value.
+	 *
+	 * @param Key The key to find.
+	 * @param Value The value to find.
 	 * @return If the map contains a matching association, a pointer to the value in the map is returned.  Otherwise nullptr is returned.
 	 *			The pointer is only valid as long as the map isn't changed.
 	 */
@@ -1240,6 +1282,7 @@ public:
 	}
 };
 
+
 struct FScriptMapLayout
 {
 	int32 KeyOffset;
@@ -1247,6 +1290,7 @@ struct FScriptMapLayout
 
 	FScriptSetLayout SetLayout;
 };
+
 
 // Untyped map type for accessing TMap data, like FScriptArray for TArray.
 // Must have the same memory representation as a TMap.
@@ -1309,7 +1353,7 @@ public:
 	 * Adds an uninitialized object to the map.
 	 * The map will need rehashing at some point after this call to make it valid.
 	 *
-	 * @return  The index of the added element.
+	 * @return The index of the added element.
 	 */
 	int32 AddUninitialized(const FScriptMapLayout& Layout)
 	{
@@ -1322,16 +1366,16 @@ public:
 	}
 	
 	/** Finds the associated key, value from hash of Key, rather than linearly searching */
-	uint8* FindPair(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
+	int32 FindPairIndex(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
 	{
 		if (Pairs.Num())
 		{
-			// !unsafe! 'Pairs' is mostly treated as a set of TPair<Key, Value>, so anything in 
-			// FScriptSet could assume that Key is actually a TPair<Key, Value>, we can hide this 
+			// !unsafe! 'Pairs' is mostly treated as a set of TPair<Key, Value>, so anything in
+			// FScriptSet could assume that Key is actually a TPair<Key, Value>, we can hide this
 			// complexity from our caller, at least (so their GetKeyHash/EqualityFn is unaware):
-			return Pairs.Find(
-				Key, 
-				MapLayout.SetLayout, 
+			return Pairs.FindIndex(
+				Key,
+				MapLayout.SetLayout,
 				GetKeyHash, // We 'know' that the implementation of Find doesn't call GetKeyHash on anything except Key
 				[KeyEqualityFn, MapLayout](const void* InKey, const void* InPair )
 				{
@@ -1340,47 +1384,51 @@ public:
 			);
 		}
 
-		return nullptr;
+		return INDEX_NONE;
 	}
 
 	/** Finds the associated value from hash of Key, rather than linearly searching */
 	uint8* FindValue(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
 	{
-		if(uint8* Result = FindPair(Key, MapLayout, GetKeyHash, KeyEqualityFn))
+		int32 FoundIndex = FindPairIndex(Key, MapLayout, GetKeyHash, KeyEqualityFn);
+		if (FoundIndex != INDEX_NONE)
 		{
-			return Result + MapLayout.ValueOffset;
+			uint8* Result = (uint8*)GetData(FoundIndex, MapLayout) + MapLayout.ValueOffset;
+			return Result;
 		}
 
 		return nullptr;
 	}
 
 	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
-	bool Add(	const void* Key, 
-				const void* Value, 
-				const FScriptMapLayout& Layout, 
-				TFunctionRef<uint32(const void*)> GetKeyHash, 
-				TFunctionRef<bool(const void*, const void*)> KeyEqualityFn, 
-				TFunctionRef<void(void*)> KeyConstructAndAssignFn, 
-				TFunctionRef<void(void*)> ValueConstructAndAssignFn, 
-				TFunctionRef<void(void*)> ValueAssignFn)
+	void Add(
+		const void* Key,
+		const void* Value,
+		const FScriptMapLayout& Layout,
+		TFunctionRef<uint32(const void*)> GetKeyHash,
+		TFunctionRef<bool(const void*, const void*)> KeyEqualityFn,
+		TFunctionRef<void(void*)> KeyConstructAndAssignFn,
+		TFunctionRef<void(void*)> ValueConstructAndAssignFn,
+		TFunctionRef<void(void*)> ValueAssignFn,
+		TFunctionRef<void(void*)> DestructKeyFn,
+		TFunctionRef<void(void*)> DestructValueFn)
 	{
-		if (uint8* CurrentValue = Pairs.Add(
-				Key, 
-				Layout.SetLayout, 
-				GetKeyHash, 
-				KeyEqualityFn, 
-				[KeyConstructAndAssignFn, ValueConstructAndAssignFn, Layout](void* NewPair)
-				{
-					KeyConstructAndAssignFn((uint8*)NewPair + Layout.KeyOffset);
-					ValueConstructAndAssignFn((uint8*)NewPair + Layout.ValueOffset);
-				} )
-			)
-		{
-			ValueAssignFn(CurrentValue + Layout.ValueOffset);
-			return false;
-		}
-
-		return true;
+		Pairs.Add(
+			Key,
+			Layout.SetLayout,
+			GetKeyHash,
+			KeyEqualityFn,
+			[KeyConstructAndAssignFn, ValueConstructAndAssignFn, Layout](void* NewPair)
+			{
+				KeyConstructAndAssignFn((uint8*)NewPair + Layout.KeyOffset);
+				ValueConstructAndAssignFn((uint8*)NewPair + Layout.ValueOffset);
+			},
+			[DestructKeyFn, DestructValueFn, Layout](void* NewPair)
+			{
+				DestructValueFn((uint8*)NewPair + Layout.ValueOffset);
+				DestructKeyFn((uint8*)NewPair + Layout.KeyOffset);
+			}
+		);
 	}
 
 private:
@@ -1410,6 +1458,7 @@ public:
 	void operator=(const FScriptMap&) { check(false); }
 };
 
+
 template <>
 struct TIsZeroConstructType<FScriptMap>
 {
@@ -1422,6 +1471,7 @@ struct TContainerTraits<TMap<KeyType, ValueType, SetAllocator, KeyFuncs>> : publ
 {
 	enum { MoveWillEmptyContainer = TContainerTraits<typename TMap<KeyType, ValueType, SetAllocator, KeyFuncs>::ElementSetType>::MoveWillEmptyContainer };
 };
+
 
 template <typename KeyType, typename ValueType, typename SetAllocator,typename KeyFuncs>
 struct TContainerTraits<TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>> : public TContainerTraitsBase<TMultiMap<KeyType, ValueType, SetAllocator, KeyFuncs>>

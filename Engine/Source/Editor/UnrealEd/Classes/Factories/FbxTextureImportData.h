@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Factories/FbxAssetImportData.h"
 #include "MaterialImportHelpers.h"
 #include "FbxTextureImportData.generated.h"
@@ -27,7 +27,7 @@ class UNREALED_API UFbxTextureImportData : public UFbxAssetImportData
 
 	/** Base material to instance from when importing materials. */
 	UPROPERTY(EditAnywhere, config, Category = Material, meta = (ImportType = "Mesh", AllowedClasses = "MaterialInterface"))
-	FStringAssetReference BaseMaterialName;
+	FSoftObjectPath BaseMaterialName;
 
 	UPROPERTY(config, meta = (ImportType = "Mesh"))
 	FString BaseColorName;

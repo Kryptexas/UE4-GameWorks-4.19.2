@@ -9,7 +9,8 @@
 #include "Misc/Guid.h"
 #include "Misc/ConfigCacheIni.h"
 #include "ImageCore.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/ITextureFormat.h"
 #include "Interfaces/ITextureFormatModule.h"
@@ -145,10 +146,10 @@ static EPixelFormat GetQualityFormat(int32 OverrideSizeValue=-1)
 	return Format;
 }
 
-static uint16 GetQualityVersion()
+static uint16 GetQualityVersion(int32 OverrideSizeValue = -1)
 {
 	// top 3 bits for size compression value, and next 3 for speed
-	return (GetDefaultCompressionBySizeValue() << 13) | (GetDefaultCompressionBySpeedValue() << 10);
+	return ((OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionBySizeValue()) << 13) | (GetDefaultCompressionBySpeedValue() << 10);
 }
 
 static bool CompressSliceToASTC(
@@ -173,7 +174,7 @@ static bool CompressSliceToASTC(
 	}
 	
 	// Compress and retrieve the PNG data to write out to disk
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 	ImageWrapper->SetRaw(SourceData, SizeX * SizeY * 4, SizeX, SizeY, ERGBFormat::RGBA, 8);
 	const TArray<uint8>& FileData = ImageWrapper->GetCompressed();
 	int32 FileDataSize = FileData.Num();
@@ -183,8 +184,8 @@ static bool CompressSliceToASTC(
 	FString InputFilePath = FString::Printf(TEXT("Cache/%08x-%08x-%08x-%08x-RGBToASTCIn.png"), Guid.A, Guid.B, Guid.C, Guid.D);
 	FString OutputFilePath = FString::Printf(TEXT("Cache/%08x-%08x-%08x-%08x-RGBToASTCOut.astc"), Guid.A, Guid.B, Guid.C, Guid.D);
 
-	InputFilePath  = FPaths::GameIntermediateDir() + InputFilePath;
-	OutputFilePath = FPaths::GameIntermediateDir() + OutputFilePath;
+	InputFilePath  = FPaths::ProjectIntermediateDir() + InputFilePath;
+	OutputFilePath = FPaths::ProjectIntermediateDir() + OutputFilePath;
 
 	FArchive* PNGFile = NULL;
 	while (!PNGFile)
@@ -322,9 +323,12 @@ public:
 	}
 
 	// Version for all ASTC textures, whether it's handled by the ARM encoder or the ISPC encoder.
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const override
 	{
-		return GetQualityVersion() + BASE_ASTC_FORMAT_VERSION;
+		return GetQualityVersion((BuildSettings ? BuildSettings->CompressionQuality : -1) + BASE_ASTC_FORMAT_VERSION);
 	}
 
 //	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
@@ -378,12 +382,12 @@ public:
 		if (bIsRGBColor)
 		{
 			CompressedPixelFormat = GetQualityFormat();
-			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 0"), *GetQualityString(), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
+			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 0"), *GetQualityString(BuildSettings.CompressionQuality), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
 		}
 		else if (bIsRGBAColor)
 		{
 			CompressedPixelFormat = GetQualityFormat();
-			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 1"), *GetQualityString(), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
+			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 1"), *GetQualityString(BuildSettings.CompressionQuality), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
 		}
 		else if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalAG)
 		{

@@ -45,7 +45,6 @@ class BatteryReceiver extends BroadcastReceiver
 			int scale = intent.getIntExtra("scale", -1);
 			// temperature is in tenths of a degree centigrade
 			int temperature = intent.getIntExtra("temperature", 0);
-			GameActivity.Log.debug( "Battery: status = " + status + ", rawlevel = " + rawlevel + ", scale = " + scale );
 			// always tell native code what the battery level is
 			int level = 0;
 			if ( rawlevel >= 0 && scale > 0) 
@@ -56,6 +55,8 @@ class BatteryReceiver extends BroadcastReceiver
 				 level != batteryLevel ||
 				 temperature != batteryTemperature) 
 			{
+				GameActivity.Log.debug( "Battery: status = " + status + ", rawlevel = " + rawlevel + ", scale = " + scale );
+
 				batteryStatus = status;
 				batteryLevel = level;
 				batteryTemperature = temperature;
@@ -84,10 +85,10 @@ class BatteryReceiver extends BroadcastReceiver
 		receiver.processIntent( activity.getIntent() );
 	}
 
-	public static void stopReceiver( Context context )
+	public static void stopReceiver( Activity activity )
 	{
 		GameActivity.Log.debug("Unregistering battery receiver");
-		context.unregisterReceiver( receiver );
+		activity.unregisterReceiver( receiver );
 	}
 
 	@Override

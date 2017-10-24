@@ -2,16 +2,16 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/common/scheme_test_common.h"
+#include "tests/cefclient/common/scheme_test_common.h"
 
 #include "include/cef_scheme.h"
 
 namespace client {
 namespace scheme_test {
 
-void RegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar,
+void RegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar,
                            std::vector<CefString>& cookiable_schemes) {
-  registrar->AddCustomScheme("client", true, false, false);
+  registrar->AddCustomScheme("client", true, false, false, false, true, false);
 }
 
 }  // namespace scheme_test

@@ -75,14 +75,14 @@ void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attr
 
 const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass)
 {
-	AActor *OwningActor = GetOwner();
-	const UAttributeSet *MyAttributes  = NULL;
+	AActor* OwningActor = GetOwner();
+	const UAttributeSet* MyAttributes = nullptr;
 	if (OwningActor && AttributeClass)
 	{
 		MyAttributes = GetAttributeSubobject(AttributeClass);
 		if (!MyAttributes)
 		{
-			UAttributeSet *Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
+			UAttributeSet* Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
 			SpawnedAttributes.AddUnique(Attributes);
 			MyAttributes = Attributes;
 		}
@@ -93,7 +93,7 @@ const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSub
 
 const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
-	const UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
+	const UAttributeSet* Set = GetAttributeSubobject(AttributeClass);
 	check(Set);
 	return Set;
 }
@@ -400,6 +400,17 @@ FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemoved
 	if (ActiveEffect)
 	{
 		return &ActiveEffect->OnRemovedDelegate;
+	}
+
+	return nullptr;
+}
+
+FOnActiveGameplayEffectRemoved_Info* UAbilitySystemComponent::OnGameplayEffectRemoved_InfoDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnRemoved_InfoDelegate;
 	}
 
 	return nullptr;
@@ -1420,6 +1431,17 @@ void UAbilitySystemComponent::OnPredictiveGameplayCueCatchup(FGameplayTag Tag)
 	}
 }
 
+void UAbilitySystemComponent::ReinvokeActiveGameplayCues()
+{
+	for (const FActiveGameplayEffect& Effect : &ActiveGameplayEffects)
+	{
+		if (Effect.bIsInhibited == false)
+		{
+			InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------------------
 
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
@@ -1528,6 +1550,50 @@ void UAbilitySystemComponent::OnRep_ServerDebugString()
 	{
 		ABILITY_LOG(Display, TEXT("%s"), *Str);
 	}
+}
+
+float UAbilitySystemComponent::GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags)
+{
+	float AttributeValue = 0.f;
+
+	if (SourceTags.RequireTags.Num() == 0 && SourceTags.IgnoreTags.Num() == 0)
+	{
+		// No qualifiers so we can just read this attribute normally
+		AttributeValue = GetNumericAttribute(Attribute);
+	}
+	else
+	{
+		// Need to capture qualified attributes
+		FGameplayEffectAttributeCaptureDefinition CaptureDef(Attribute.GetUProperty(), EGameplayEffectAttributeCaptureSource::Source, false);
+		FGameplayEffectAttributeCaptureSpec CaptureSpec(CaptureDef);
+
+		CaptureAttributeForGameplayEffect(CaptureSpec);
+
+		// Source Tags
+		static FGameplayTagContainer QuerySourceTags;
+		QuerySourceTags.Reset();
+
+		GetOwnedGameplayTags(QuerySourceTags);
+		QuerySourceTags.AppendTags(SourceTags.RequireTags);
+
+		// Target Tags
+		static FGameplayTagContainer QueryTargetTags;
+		QueryTargetTags.Reset();
+
+		QueryTargetTags.AppendTags(TargetTags);
+
+		FAggregatorEvaluateParameters Params;
+		Params.SourceTags = &QuerySourceTags;
+		Params.TargetTags = &QueryTargetTags;
+		Params.IncludePredictiveMods = true;
+
+		if (CaptureSpec.AttemptCalculateAttributeMagnitude(Params, AttributeValue) == false)
+		{
+			UE_LOG(LogAbilitySystemComponent, Warning, TEXT("Failed to calculate Attribute %s. On: %s"), *Attribute.GetName(), *GetFullName());
+		}
+	}
+
+	return AttributeValue;
 }
 
 bool UAbilitySystemComponent::ServerPrintDebug_RequestWithStrings_Validate(const TArray<FString>& Strings)
@@ -1970,7 +2036,7 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 				FAggregator& Aggregator = *AggregatorRef.Get();
 
 				TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*> ModMap;
-				Aggregator.DebugGetAllAggregatorMods(ModMap);
+				Aggregator.GetAllAggregatorMods(ModMap);
 
 				if (ModMap.Num() == 0)
 				{

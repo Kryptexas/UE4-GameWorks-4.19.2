@@ -170,7 +170,7 @@ static void ParseCodeLink(const FString &InternalLink)
 	if (Path.Contains(ProjectSpecifier) == true)
 	{
 		// replace project specifier with path to project
-		Path.ReplaceInline(*ProjectSpecifier, FApp::GetGameName());
+		Path.ReplaceInline(*ProjectSpecifier, FApp::GetProjectName());
 	}
 
 	if (Path.Contains(ProjectPathSpecifier) == true)
@@ -291,7 +291,7 @@ static FText OnGetCodeTooltipText(const FSlateHyperlinkRun::FMetadata& Metadata)
 	if(Url != nullptr)
 	{
 		const bool bUseShortIDEName = true;
-		return FText::Format(LOCTEXT("CodeLinkPattern", "Open code in {0}: {1}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE(), FText::FromString(*Url));
+		return FText::Format(LOCTEXT("CodeLinkPattern", "Open code in {0}: {1}"), FSourceCodeNavigation::GetSelectedSourceCodeIDE(), FText::FromString(*Url));
 	}
 
 	return LOCTEXT("InvalidCodeLink", "Invalid Code Link");

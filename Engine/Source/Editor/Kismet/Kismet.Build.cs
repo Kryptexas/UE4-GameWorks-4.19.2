@@ -27,6 +27,7 @@ public class Kismet : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
@@ -52,10 +53,10 @@ public class Kismet : ModuleRules
 				"DesktopPlatform",
 				"HotReload",
                 "BlueprintNativeCodeGen",
-                "BlueprintProfiler",
                 "UMGEditor",
-                "UMG" // for SBlueprintDiff
-			}
+                "UMG", // for SBlueprintDiff
+                "WorkspaceMenuStructure"
+            }
 			);
 
         DynamicallyLoadedModuleNames.AddRange(

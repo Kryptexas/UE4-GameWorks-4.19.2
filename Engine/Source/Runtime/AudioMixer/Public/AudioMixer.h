@@ -10,6 +10,8 @@
 #include "HAL/Runnable.h"
 #include "Stats/Stats.h"
 #include "Classes/Sound/AudioSettings.h"
+#include "Misc/SingleThreadRunnable.h"
+#include "DSP/ParamInterpolator.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))
@@ -79,10 +81,12 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("HRTF"), STAT_AudioMixerHRTF, STATGROUP_AudioMixe
 #define AUDIO_MIXER_MAX_PITCH						4.0f
 #define AUDIO_MIXER_MAX_OUTPUT_CHANNELS				8			// Max number of speakers/channels supported (7.1)
 
+#define AUDIO_MIXER_DEFAULT_DEVICE_INDEX			INDEX_NONE
+
 namespace Audio
 {
 
-	/** Structure to hold platform device information **/
+   	/** Structure to hold platform device information **/
 	struct FAudioPlatformDeviceInfo
 	{
 		/** The name of the audio device */
@@ -129,14 +133,10 @@ namespace Audio
 	{
 	public:
 		/** Callback to generate a new audio stream buffer. */
-		virtual bool OnProcessAudioStream(TArray<float>& OutputBuffer) = 0;
+		virtual bool OnProcessAudioStream(AlignedFloatBuffer& OutputBuffer) = 0;
 
-		/** Function to implement when an audio hardware device is added to the system. */
-		virtual void OnAudioDeviceAdded(const FString& DeviceId) {}
-
-		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
-
-		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
+		/** Called when audio render thread stream is shutting down. Last function called. Allows cleanup on render thread. */
+		virtual void OnAudioStreamShutdown() = 0;
 
 		bool IsMainAudioMixer() const { return bIsMainAudioMixer; }
 
@@ -269,11 +269,19 @@ namespace Audio
 		void MixNextBuffer();
 
 		/** Returns the float buffer. */
-		TArray<float>& GetBuffer() { return Buffer; }
+		AlignedFloatBuffer& GetBuffer() { return Buffer; }
 
-		/** Submits the buffer to the audio mixer. */
-		const uint8* GetBufferData();
 
+		/** Gets the buffer data ptrs. */
+		const uint8* GetBufferData() const;
+		uint8* GetBufferData();
+
+		/** Gets the number of frames of the buffer. */
+		int32 GetNumFrames() const;
+
+		/** Returns the format of the buffer. */
+		EAudioMixerStreamDataFormat::Type GetFormat() const { return DataFormat; }
+		
 		/** Returns if ready. */
 		bool IsReady() const { return bIsReady; }
 
@@ -283,12 +291,11 @@ namespace Audio
 		/** Resets the internal buffers to the new sample count. Used when device is changed. */
 		void Reset(const int32 InNewNumSamples);
 
+
 	private:
 		IAudioMixer* AudioMixer;
-		// TODO: Audio SIMD
-		//typedef TArray<float, TAlignedHeapAllocator<16>> AlignedFloatBuffer;
-		TArray<float> Buffer;
-		TArray<uint8> FormattedBuffer;
+		AlignedFloatBuffer Buffer;
+		AlignedByteBuffer FormattedBuffer;
  		EAudioMixerStreamDataFormat::Type DataFormat;
  		FThreadSafeBool bIsReady;
  	};
@@ -298,7 +305,7 @@ namespace Audio
 	{
 	public:
 		virtual void RegisterDeviceChangedListener() {}
-		virtual void UnRegisterDeviceChangedListener() {}
+		virtual void UnregisterDeviceChangedListener() {}
 		virtual void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
 		virtual void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) {}
 		virtual void OnDeviceAdded(const FString& DeviceId) {}
@@ -310,6 +317,7 @@ namespace Audio
 
 	/** Abstract interface for mixer platform. */
 	class AUDIOMIXER_API IAudioMixerPlatformInterface : public FRunnable,
+														public FSingleThreadRunnable,
 														public IAudioMixerDeviceChangedLister
 	{
 
@@ -346,7 +354,7 @@ namespace Audio
 		virtual FAudioPlatformSettings GetPlatformSettings() const = 0;
 
 		/** Returns the default device index. */
-		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const = 0;
+		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const { OutDefaultDeviceIndex = 0; return true; }
 
 		/** Opens up a new audio stream with the given parameters. */
 		virtual bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) = 0;
@@ -404,6 +412,16 @@ namespace Audio
 		uint32 Run() override;
 		//~ End FRunnable
 
+		/**
+		*  FSingleThreadRunnable accessor for ticking this FRunnable when multi-threading is disabled.
+		*  @return FSingleThreadRunnable Interface for this FRunnable object.
+		*/
+		virtual class FSingleThreadRunnable* GetSingleThreadInterface() override { return this; }
+
+		//~ Begin FSingleThreadRunnable Interface
+		virtual void Tick() override;
+		//~ End FSingleThreadRunnable Interface
+
 		/** Constructor. */
 		IAudioMixerPlatformInterface();
 
@@ -416,8 +434,14 @@ namespace Audio
 		/** Start a fadeout. Prevents pops during shutdown. */
 		void FadeOut();
 
+		/** Sets the mater volume of the audio device. This attenuates all audio, used for muting, etc. */
+		void SetMasterVolume(const float InVolume);
+
 		/** Returns the last error generated. */
 		FString GetLastError() const { return LastError; }
+
+		/** This is called after InitializeHardware() is called. */
+		void PostInitializeHardware();
 
 	protected:
 		
@@ -441,7 +465,10 @@ namespace Audio
 		void StopGeneratingAudio();
 
 		/** Performs buffer fades for shutdown/startup of audio mixer. */
-		void PerformFades();
+		void ApplyMasterAttenuation();
+
+		template<typename BufferType>
+		void ApplyAttenuationInternal(BufferType* BufferDataPtr, const int32 NumFrames);
 
 	protected:
 
@@ -479,6 +506,12 @@ namespace Audio
 		/** The number of mixer buffers to queue on the output source voice. */
 		int32 NumOutputBuffers;
 
+		/** The fade value. Used for fading in/out master audio. */
+		float FadeVolume;
+
+		/** Source param used to fade in and out audio device. */
+		FParam FadeParam;
+
 		/** String containing the last generated error. */
 		FString LastError;
 
@@ -488,11 +521,9 @@ namespace Audio
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;
 
-		FThreadSafeBool bFadingIn;
-		FThreadSafeBool bFadingOut;
+		FThreadSafeBool bPerformingFade;
 		FThreadSafeBool bFadedOut;
-		float FadeEnvelopeValue;
-
+		FThreadSafeBool bIsDeviceInitialized;
 	};
 
 

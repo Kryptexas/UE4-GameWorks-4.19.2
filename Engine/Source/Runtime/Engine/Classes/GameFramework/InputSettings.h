@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "InputCoreTypes.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "GameFramework/PlayerInput.h"
 
 #include "InputSettings.generated.h"
@@ -86,7 +86,7 @@ class ENGINE_API UInputSettings
 
 	/** The default on-screen touch input interface for the game (can be null to disable the onscreen interface) */
 	UPROPERTY(config, EditAnywhere, Category="Mobile", meta=(AllowedClasses="TouchInterface"))
-	FStringAssetReference DefaultTouchInterface;
+	FSoftObjectPath DefaultTouchInterface;
 
 	/** The key which opens the console. */
 	UPROPERTY(config)
@@ -105,7 +105,7 @@ class ENGINE_API UInputSettings
 	virtual void PostInitProperties() override;
 	// End of UObject interface
 
-	/** Returns the game local machine settings (resolution, windowing mode, scalability settings, etc...) */
+	/** Returns the game local input settings (action mappings, axis mappings, etc...) */
 	UFUNCTION(BlueprintPure, Category = Settings)
 	static UInputSettings* GetInputSettings();
 

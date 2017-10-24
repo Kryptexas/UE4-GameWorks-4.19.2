@@ -36,7 +36,7 @@ void UJoinSessionCallbackProxy::Activate()
 		if (Sessions.IsValid())
 		{
 			DelegateHandle = Sessions->AddOnJoinSessionCompleteDelegate_Handle(Delegate);
-			Sessions->JoinSession(*Helper.UserID, GameSessionName, OnlineSearchResult);
+			Sessions->JoinSession(*Helper.UserID, NAME_GameSession, OnlineSearchResult);
 
 			// OnCompleted will get called, nothing more to do now
 			return;
@@ -67,7 +67,7 @@ void UJoinSessionCallbackProxy::OnCompleted(FName SessionName, EOnJoinSessionCom
 			{
 				// Client travel to the server
 				FString ConnectString;
-				if (Sessions->GetResolvedConnectString(GameSessionName, ConnectString) && PlayerControllerWeakPtr.IsValid())
+				if (Sessions->GetResolvedConnectString(NAME_GameSession, ConnectString) && PlayerControllerWeakPtr.IsValid())
 				{
 					UE_LOG(LogOnline, Log, TEXT("Join session: traveling to %s"), *ConnectString);
 					PlayerControllerWeakPtr->ClientTravel(ConnectString, TRAVEL_Absolute);

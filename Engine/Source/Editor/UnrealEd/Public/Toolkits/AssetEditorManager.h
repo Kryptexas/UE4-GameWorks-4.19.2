@@ -29,6 +29,7 @@ public:
 	virtual void InvokeTab(const struct FTabId& TabId) = 0;
 	virtual TSharedPtr<class FTabManager> GetAssociatedTabManager() = 0;
 	virtual double GetLastActivationTime() = 0;
+	virtual void RemoveEditingAsset(UObject* Asset) = 0;
 };
 
 
@@ -78,6 +79,9 @@ public:
 
 	/** Close any editor which is not this one */
 	void CloseOtherEditors(UObject* Asset, IAssetEditorInstance* OnlyEditor);
+
+	/** Remove given asset from all open editors */
+	void RemoveAssetFromAllEditors(UObject* Asset);
 
 	/** Get all assets currently being tracked with open editors */
 	TArray<UObject*> GetAllEditedAssets();

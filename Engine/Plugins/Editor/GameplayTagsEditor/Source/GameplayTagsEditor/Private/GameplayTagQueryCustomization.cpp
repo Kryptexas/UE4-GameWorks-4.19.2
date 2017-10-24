@@ -225,11 +225,11 @@ void FGameplayTagQueryCustomization::BuildEditableQueryList()
 		TArray<UObject*> OuterObjects;
 		StructPropertyHandle->GetOuterObjects(OuterObjects);
 		
-
 		for (int32 Idx = 0; Idx < RawStructData.Num(); ++Idx)
 		{
 			// Null outer objects may mean that we are inside a UDataTable. This is ok though. We can still dirty the data table via FNotify Hook. (see ::CloseWidgetWindow). However undo will not work.
 			UObject* Obj = OuterObjects.IsValidIndex(Idx) ? OuterObjects[Idx] : nullptr;
+
 			EditableQueries.Add(SGameplayTagQueryWidget::FEditableGameplayTagQueryDatum(Obj, (FGameplayTagQuery*)RawStructData[Idx]));
 		}
 	}	

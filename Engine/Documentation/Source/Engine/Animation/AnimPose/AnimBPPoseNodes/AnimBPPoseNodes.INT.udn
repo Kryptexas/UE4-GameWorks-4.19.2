@@ -16,6 +16,8 @@ Tags:Animation
 Tags:Animation Blueprint
 Tags:Animation Blending
 
+<!-- Page refactored and split off into two pages, no longer needed
+
 [TOC (start:2 end:2)]
 
 [Pose Assets](Engine\Animation\AnimPose) can be driven at runtime with **Animation Blueprints** as the **AnimGraph** supports a few different Pose Nodes. 
@@ -154,7 +156,7 @@ For additional information see the Unreal Engine Live Stream on Animation Topics
 [/OBJECT]
  
 
-
+ -->
 
 
 

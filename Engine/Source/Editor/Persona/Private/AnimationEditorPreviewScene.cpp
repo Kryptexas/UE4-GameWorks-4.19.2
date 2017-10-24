@@ -32,6 +32,8 @@
 
 FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionValues& CVS, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaToolkit>& InPersonaToolkit)
 	: IPersonaPreviewScene(CVS)
+	, Actor(nullptr)
+	, SkeletalMeshComponent(nullptr)
 	, EditableSkeletonPtr(InEditableSkeleton)
 	, PersonaToolkit(InPersonaToolkit)
 	, DefaultMode(EPreviewSceneDefaultAnimationMode::ReferencePose)
@@ -49,21 +51,11 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	
 	FloorBounds = FloorMeshComponent->CalcBounds(FloorMeshComponent->GetRelativeTransform());
 
-	Actor = GetWorld()->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity);
-	Actor->AddToRoot();
-
-	// Create the preview component
-	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(Actor);
-	AddComponent(SkeletalMeshComponent, FTransform::Identity);
-
-	// set root component, so we can attach to it. 
-	Actor->SetRootComponent(SkeletalMeshComponent);
-
 	InEditableSkeleton->LoadAdditionalPreviewSkeletalMeshes();
 
 	// create the preview scene description
 	PreviewSceneDescription = NewObject<UPersonaPreviewSceneDescription>(GetTransientPackage());
-	PreviewSceneDescription->AddToRoot();
+	PreviewSceneDescription->SetFlags(RF_Transactional);
 
 	PreviewSceneDescription->AnimationMode = EPreviewAnimationMode::Default;
 	PreviewSceneDescription->Animation = InPersonaToolkit->GetAnimationAsset();
@@ -80,10 +72,9 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 		PreviewSceneDescription->AdditionalMeshes = PreviewSceneDescription->DefaultAdditionalMeshes;
 	}
 
-	// Force validation of preview attached assets (catch case of never doing it if we dont have a valid preview mesh)
-	ValidatePreviewAttachedAssets(nullptr);
-
-	RefreshAdditionalMeshes();
+	// Disable killing actors outside of the world
+	AWorldSettings* WorldSettings = GetWorld()->GetWorldSettings(true);
+	WorldSettings->bEnableWorldBoundsChecks = false;
 }
 
 FAnimationEditorPreviewScene::~FAnimationEditorPreviewScene()
@@ -92,9 +83,6 @@ FAnimationEditorPreviewScene::~FAnimationEditorPreviewScene()
 	{
 		GEditor->UnregisterForUndo(this);
 	}
-
-	SkeletalMeshComponent->RemoveFromRoot();
-	PreviewSceneDescription->RemoveFromRoot();
 }
 
 void FAnimationEditorPreviewScene::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
@@ -148,7 +136,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 	USkeletalMeshComponent* DebuggedSkeletalMeshComponent = nullptr;
 	if(SkeletalMeshComponent->GetAnimInstance())
 	{
-		UAnimBlueprint* SourceBlueprint = Cast<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
+		UAnimBlueprint* SourceBlueprint = PersonaToolkit.Pin()->GetAnimBlueprint();
 		if(SourceBlueprint)
 		{
 			UAnimInstance* DebuggedAnimInstance = Cast<UAnimInstance>(SourceBlueprint->GetObjectBeingDebugged());
@@ -223,7 +211,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 	// with the AnimBlueprint
 	if (DebuggedSkeletalMeshComponent)
 	{
-		UAnimBlueprint* SourceBlueprint = CastChecked<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
+		UAnimBlueprint* SourceBlueprint = PersonaToolkit.Pin()->GetAnimBlueprint();
 		SourceBlueprint->SetObjectBeingDebugged(DebuggedSkeletalMeshComponent->GetAnimInstance());
 	}
 
@@ -940,6 +928,12 @@ void FAnimationEditorPreviewScene::TogglePlayback()
 	}
 }
 
+void FAnimationEditorPreviewScene::SetActor(AActor* InActor)
+{
+	check(Actor == nullptr || !Actor->IsRooted());
+	Actor = InActor;
+}
+
 AActor* FAnimationEditorPreviewScene::GetActor() const
 {
 	return Actor;
@@ -995,16 +989,38 @@ void FAnimationEditorPreviewScene::RemoveComponent(class UActorComponent* Compon
 
 void FAnimationEditorPreviewScene::PostUndo(bool bSuccess)
 {
-	// refresh skeletal mesh
-	if (SkeletalMeshComponent)
+	// refresh skeletal mesh & animation
+	if (PreviewSceneDescription)
 	{
-		SetPreviewMesh(SkeletalMeshComponent->SkeletalMesh);
+		SetPreviewMesh(PreviewSceneDescription->PreviewMesh.Get());
+		switch (PreviewSceneDescription->AnimationMode)
+		{
+		case EPreviewAnimationMode::Default:
+			ShowDefaultMode();
+			break;
+		case EPreviewAnimationMode::ReferencePose:
+			ShowReferencePose(true);
+			break;
+		case EPreviewAnimationMode::UseSpecificAnimation:
+			SetPreviewAnimationAsset(Cast<UAnimationAsset>(PreviewSceneDescription->Animation.LoadSynchronous()));
+			break;
+		}
 	}
 }
 
 void FAnimationEditorPreviewScene::PostRedo(bool bSuccess)
 {
 	PostUndo(bSuccess);
+}
+
+void FAnimationEditorPreviewScene::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	IPersonaPreviewScene::AddReferencedObjects(Collector);
+
+	Collector.AddReferencedObject(PreviewSceneDescription);
+	Collector.AddReferencedObject(Actor);
+	Collector.AddReferencedObject(SkeletalMeshComponent);
+	Collector.AddReferencedObjects(AdditionalMeshes);
 }
 
 #undef LOCTEXT_NAMESPACE

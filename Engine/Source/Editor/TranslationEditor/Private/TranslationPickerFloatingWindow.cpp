@@ -142,7 +142,7 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 	}
 
 	// kind of a hack, but we need to maintain keyboard focus otherwise we wont get our keypress to 'pick'
-	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::SetDirectly);
 	if (ParentWindow.IsValid())
 	{
 		FVector2D WindowSize = ParentWindow.Pin()->GetSizeInScreen();

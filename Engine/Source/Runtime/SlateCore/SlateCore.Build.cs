@@ -7,13 +7,13 @@ public class SlateCore : ModuleRules
 	public SlateCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[] { 
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"InputCore",
+				"ApplicationCore",
 				"Json",
-			}
-		);
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -32,14 +32,13 @@ public class SlateCore : ModuleRules
 				"Runtime/SlateCore/Private/Textures",
 				"Runtime/SlateCore/Private/Types",
 				"Runtime/SlateCore/Private/Widgets",
-			}
-		);
+			});
 
-        Definitions.Add("SLATE_DEFERRED_DESIRED_SIZE=0");
+		Definitions.Add("SLATE_DEFERRED_DESIRED_SIZE=0");
 
-        if (Target.Type != TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
-			if (UEBuildConfiguration.bCompileFreeType)
+			if (Target.bCompileFreeType)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 				Definitions.Add("WITH_FREETYPE=1");
@@ -49,7 +48,7 @@ public class SlateCore : ModuleRules
 				Definitions.Add("WITH_FREETYPE=0");
 			}
 
-			if (UEBuildConfiguration.bCompileICU)
+			if (Target.bCompileICU)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "ICU");
 			}

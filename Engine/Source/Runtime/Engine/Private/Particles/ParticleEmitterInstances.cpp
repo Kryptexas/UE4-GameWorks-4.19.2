@@ -941,10 +941,9 @@ void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLe
 void FParticleEmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	// Handle the TypeData module
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
-	if (TypeData)
+	if (InCurrentLODLevel->TypeDataModule)
 	{
-		TypeData->Update(this, TypeDataOffset, DeltaTime);
+		InCurrentLODLevel->TypeDataModule->Update(this, TypeDataOffset, DeltaTime);
 	}
 }
 
@@ -2560,7 +2559,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		FDynamicSpriteEmitterReplayDataBase* NewReplayData =
 			static_cast< FDynamicSpriteEmitterReplayDataBase* >( &OutData );
 
-		NewReplayData->RequiredModule = LODLevel->RequiredModule;
+		NewReplayData->RequiredModule = LODLevel->RequiredModule->CreateRendererResource();
 		NewReplayData->MaterialInterface = NULL;	// Must be set by derived implementation
 		NewReplayData->InvDeltaSeconds = (LastDeltaTime > KINDA_SMALL_NUMBER) ? (1.0f / LastDeltaTime) : 0.0f;
 
@@ -3719,6 +3718,11 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, MinFacingCameraBlendDistance(0.f)
 	, MaxFacingCameraBlendDistance(0.f)
 {
+}
+
+FDynamicSpriteEmitterReplayDataBase::~FDynamicSpriteEmitterReplayDataBase()
+{
+	delete RequiredModule;
 }
 
 /** FDynamicSpriteEmitterReplayDataBase Serialization */

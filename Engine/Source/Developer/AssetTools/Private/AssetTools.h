@@ -71,6 +71,7 @@ public:
 	virtual UObject* DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
 	virtual UObject* DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
 	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const override;
+	virtual void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const override;
 	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) override;
 	virtual TArray<UObject*> ImportAssetsWithDialog(const FString& DestinationPath) override;
 	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser = true, TArray<TPair<FString, FString>>* FilesAndDestinations = nullptr) const override;
@@ -97,6 +98,12 @@ public:
 	/** Syncs the primary content browser to the specified assets, whether or not it is locked. Most syncs that come from AssetTools -feel- like they came from the content browser, so this is okay. */
 	void SyncBrowserToAssets(const TArray<UObject*>& AssetsToSync);
 	void SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync);
+
+	/** The manager to handle renaming assets */
+	TSharedPtr<FAssetRenameManager> AssetRenameManager;
+
+	/** The manager to handle fixing up redirectors */
+	TSharedPtr<FAssetFixUpRedirectors> AssetFixUpRedirectors;
 private:
 	/** Checks to see if a package is marked for delete then ask the user if he would like to check in the deleted file before he can continue. Returns true when it is safe to proceed. */
 	bool CheckForDeletedPackage(const UPackage* Package) const;
@@ -126,12 +133,6 @@ private:
 	void ExportAssetsInternal(const TArray<UObject*>& ObjectsToExport, bool bPromptIndividualFilenames, const FString& ExportPath) const;
 
 private:
-	/** The manager to handle renaming assets */
-	TSharedPtr<FAssetRenameManager> AssetRenameManager;
-
-	/** The manager to handle fixing up redirectors */
-	TSharedPtr<FAssetFixUpRedirectors> AssetFixUpRedirectors;
-
 	/** The list of all registered AssetTypeActions */
 	TArray<TSharedRef<IAssetTypeActions>> AssetTypeActionsList;
 

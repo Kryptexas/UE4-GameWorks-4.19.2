@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/Queue.h"
 #include "XmppConnection.h"
-
+#include "Containers/Queue.h"
 #include "Containers/Ticker.h"
 
 class FXmppConnectionStrophe;

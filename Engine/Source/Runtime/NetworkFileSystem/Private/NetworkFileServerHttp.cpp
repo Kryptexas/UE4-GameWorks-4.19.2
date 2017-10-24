@@ -325,7 +325,7 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				// client has asked for a file. ( only html/js files are served.)
 
 				// what type is being served.
-				FString FilePath = FPaths::GameDir() / TEXT("Binaries/HTML5") + FString((ANSICHAR*)In);
+				FString FilePath = FPaths::ProjectDir() / TEXT("Binaries/HTML5") + FString((ANSICHAR*)In);
 				TCHAR Mime[512];
 
 

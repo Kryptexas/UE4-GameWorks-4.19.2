@@ -33,8 +33,16 @@ int16 GetNumUniformBuffersUsed(const FShaderCompilerResourceTable& InSRT)
 }
 
 
-void BuildResourceTableTokenStream(const TArray<uint32>& InResourceMap, int32 MaxBoundResourceTable, TArray<uint32>& OutTokenStream)
+void BuildResourceTableTokenStream(const TArray<uint32>& InResourceMap, int32 MaxBoundResourceTable, TArray<uint32>& OutTokenStream, bool bGenerateEmptyTokenStreamIfNoResources)
 {
+	if (bGenerateEmptyTokenStreamIfNoResources)
+	{
+		if (InResourceMap.Num() == 0)
+		{
+			return;
+		}
+	}
+
 	// First we sort the resource map.
 	TArray<uint32> SortedResourceMap = InResourceMap;
 	SortedResourceMap.Sort();
@@ -63,7 +71,7 @@ void BuildResourceTableTokenStream(const TArray<uint32>& InResourceMap, int32 Ma
 }
 
 
-void BuildResourceTableMapping(
+bool BuildResourceTableMapping(
 	const TMap<FString,FResourceTableEntry>& ResourceTableMap,
 	const TMap<FString,uint32>& ResourceTableLayoutHashes,
 	TBitArray<>& UsedUniformBufferSlots,
@@ -79,30 +87,44 @@ void BuildResourceTableMapping(
 	TArray<uint32> ResourceTableSamplerStates;
 	TArray<uint32> ResourceTableUAVs;
 
+	// Go through ALL the members of ALL the UB resources
 	for( auto MapIt = ResourceTableMap.CreateConstIterator(); MapIt; ++MapIt )
 	{
 		const FString& Name	= MapIt->Key;
 		const FResourceTableEntry& Entry = MapIt->Value;
 
 		uint16 BufferIndex, BaseIndex, Size;
+
+		// If the shaders uses this member (eg View_PerlinNoise3DTexture)...
 		if (ParameterMap.FindParameterAllocation( *Name, BufferIndex, BaseIndex, Size ) )
 		{
 			ParameterMap.RemoveParameterAllocation(*Name);
 
-			uint16 UniformBufferIndex = INDEX_NONE, UBBaseIndex, UBSize;
-			if (ParameterMap.FindParameterAllocation(*Entry.UniformBufferName, UniformBufferIndex, UBBaseIndex, UBSize) == false)
+			uint16 UniformBufferIndex = INDEX_NONE;
+			uint16 UBBaseIndex, UBSize;
+
+			// Add the UB itself as a parameter if not there
+			if (!ParameterMap.FindParameterAllocation(*Entry.UniformBufferName, UniformBufferIndex, UBBaseIndex, UBSize))
 			{
 				UniformBufferIndex = UsedUniformBufferSlots.FindAndSetFirstZeroBit();
 				ParameterMap.AddParameterAllocation(*Entry.UniformBufferName,UniformBufferIndex,0,0);
 			}
 
+			// Mark used UB index
+			if (UniformBufferIndex >= sizeof(OutSRT.ResourceTableBits) * 8)
+			{
+				return false;
+			}
 			OutSRT.ResourceTableBits |= (1 << UniformBufferIndex);
-			MaxBoundResourceTable = FMath::Max<int32>(MaxBoundResourceTable, (int32)UniformBufferIndex);
 
+			// How many resource tables max we'll use, and fill it with zeroes
+			MaxBoundResourceTable = FMath::Max<int32>(MaxBoundResourceTable, (int32)UniformBufferIndex);
 			while (OutSRT.ResourceTableLayoutHashes.Num() <= MaxBoundResourceTable)
 			{
 				OutSRT.ResourceTableLayoutHashes.Add(0);
 			}
+
+			// Save the current UB's layout hash
 			OutSRT.ResourceTableLayoutHashes[UniformBufferIndex] = ResourceTableLayoutHashes.FindChecked(Entry.UniformBufferName);
 
 			auto ResourceMap = FRHIResourceTableEntry::Create(UniformBufferIndex, Entry.ResourceIndex, BaseIndex);
@@ -121,12 +143,13 @@ void BuildResourceTableMapping(
 				OutSRT.UnorderedAccessViewMap.Add(ResourceMap);
 				break;
 			default:
-				check(0);
+				return false;
 			}
 		}
 	}
 
 	OutSRT.MaxBoundResourceTable = MaxBoundResourceTable;
+	return true;
 }
 
 // Specialized version of FString::ReplaceInline that checks that the search word is not inside a #line directive
@@ -320,13 +343,128 @@ FString CreateShaderCompilerWorkerDirectCommandLine(const FShaderCompilerInput& 
 		Text += TEXT(" -cflags=");
 		Text += FString::Printf(TEXT("%llu"), CFlags);
 	}
-	
+	// When we're running in directcompile mode, we don't to spam the crash reporter
+	Text += TEXT(" -nocrashreports");
 	return Text;
 }
 
 
 namespace CrossCompiler
 {
+	FString CreateResourceTableFromEnvironment(const FShaderCompilerEnvironment& Environment)
+	{
+		FString Line = TEXT("\n#if 0 /*BEGIN_RESOURCE_TABLES*/\n");
+		for (auto Pair : Environment.ResourceTableLayoutHashes)
+		{
+			Line += FString::Printf(TEXT("%s, %d\n"), *Pair.Key, Pair.Value);
+		}
+		Line += TEXT("NULL, 0\n");
+		for (auto Pair : Environment.ResourceTableMap)
+		{
+			const FResourceTableEntry& Entry = Pair.Value;
+			Line += FString::Printf(TEXT("%s, %s, %d, %d\n"), *Pair.Key, *Entry.UniformBufferName, Entry.Type, Entry.ResourceIndex);
+		}
+		Line += TEXT("NULL, NULL, 0, 0\n");
+
+		Line += TEXT("#endif /*END_RESOURCE_TABLES*/\n");
+		return Line;
+	}
+
+	void CreateEnvironmentFromResourceTable(const FString& String, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FString Prolog = TEXT("#if 0 /*BEGIN_RESOURCE_TABLES*/");
+		int32 FoundBegin = String.Find(Prolog, ESearchCase::CaseSensitive);
+		if (FoundBegin == INDEX_NONE)
+		{
+			return;
+		}
+		int32 FoundEnd = String.Find(TEXT("#endif /*END_RESOURCE_TABLES*/"), ESearchCase::CaseSensitive, ESearchDir::FromStart, FoundBegin);
+		if (FoundEnd == INDEX_NONE)
+		{
+			return;
+		}
+
+		// +1 for EOL
+		const TCHAR* Ptr = &String[FoundBegin + 1 + Prolog.Len()];
+		const TCHAR* PtrEnd = &String[FoundEnd];
+		while (Ptr < PtrEnd)
+		{
+			FString UB;
+			if (!CrossCompiler::ParseIdentifier(Ptr, UB))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, TEXT(", ")))
+			{
+				return;
+			}
+			int32 Hash;
+			if (!CrossCompiler::ParseSignedNumber(Ptr, Hash))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, '\n'))
+			{
+				return;
+			}
+
+			if (UB == TEXT("NULL") && Hash == 0)
+			{
+				break;
+			}
+			OutEnvironment.ResourceTableLayoutHashes.FindOrAdd(UB) = (uint32)Hash;
+		}
+
+		while (Ptr < PtrEnd)
+		{
+			FString Name;
+			if (!CrossCompiler::ParseIdentifier(Ptr, Name))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, TEXT(", ")))
+			{
+				return;
+			}
+			FString UB;
+			if (!CrossCompiler::ParseIdentifier(Ptr, UB))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, TEXT(", ")))
+			{
+				return;
+			}
+			int32 Type;
+			if (!CrossCompiler::ParseSignedNumber(Ptr, Type))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, TEXT(", ")))
+			{
+				return;
+			}
+			int32 ResourceIndex;
+			if (!CrossCompiler::ParseSignedNumber(Ptr, ResourceIndex))
+			{
+				return;
+			}
+			if (!CrossCompiler::Match(Ptr, '\n'))
+			{
+				return;
+			}
+
+			if (Name == TEXT("NULL") && UB == TEXT("NULL") && Type == 0 && ResourceIndex == 0)
+			{
+				break;
+			}
+			FResourceTableEntry& Entry = OutEnvironment.ResourceTableMap.FindOrAdd(Name);
+			Entry.UniformBufferName = UB;
+			Entry.Type = Type;
+			Entry.ResourceIndex = ResourceIndex;
+		}
+	}
+
 	FString CreateBatchFileContents(const FString& ShaderFile, const FString& OutputFile, uint32 Frequency, const FString& EntryPoint, const FString& VersionSwitch, uint32 CCFlags, const FString& ExtraArguments)
 	{
 		const TCHAR* FrequencySwitch = TEXT("");
@@ -388,14 +526,21 @@ namespace CrossCompiler
 	 * @param OutErrors - Array into which compiler errors may be added.
 	 * @param InLine - A line from the compile log.
 	 */
-	void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine)
+	void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine, bool bUseAbsolutePaths)
 	{
 		const TCHAR* p = *InLine;
 		FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
 
 		// Copy the filename.
-		while (*p && *p != TEXT('(')) { Error->ErrorVirtualFilePath += (*p++); }
-		Error->ErrorVirtualFilePath = ParseVirtualShaderFilename(Error->ErrorVirtualFilePath);
+		while (*p && *p != TEXT('('))
+		{
+			Error->ErrorVirtualFilePath += (*p++);
+		}
+
+		if (!bUseAbsolutePaths)
+		{
+			Error->ErrorVirtualFilePath = ParseVirtualShaderFilename(Error->ErrorVirtualFilePath);
+		}
 		p++;
 
 		// Parse the line number.
@@ -407,7 +552,10 @@ namespace CrossCompiler
 		Error->ErrorLineString = *FString::Printf(TEXT("%d"), LineNumber);
 
 		// Skip to the warning message.
-		while (*p && (*p == TEXT(')') || *p == TEXT(':') || *p == TEXT(' ') || *p == TEXT('\t'))) { p++; }
+		while (*p && (*p == TEXT(')') || *p == TEXT(':') || *p == TEXT(' ') || *p == TEXT('\t')))
+		{
+			p++;
+		}
 		Error->StrippedErrorMessage = p;
 	}
 

@@ -93,11 +93,11 @@ void SAndroidLicenseDialog::Construct(const FArguments& InArgs)
 				FMemory::Free(ConvertedBuffer);
 
 				FSHA1::HashBuffer(LicenseStart, LicenseLength, LicenseHash.Hash);
-				FMemory::Free(Buffer);
 
 				bLicenseValid = true;
 			}
 		}
+		FMemory::Free(Buffer);
 	}
 
 	ChildSlot
@@ -217,7 +217,7 @@ bool SAndroidLicenseDialog::HasLicense()
 	FString LicenseString = LicenseHash.ToString().ToLower();
 	for (FString &line : lines)
 	{
-		if (line.TrimTrailing().Trim().Equals(LicenseString))
+		if (line.TrimStartAndEnd().Equals(LicenseString))
 		{
 			return true;
 		}
@@ -225,6 +225,11 @@ bool SAndroidLicenseDialog::HasLicense()
 
 	// doesn't match
 	return false;
+}
+
+void SAndroidLicenseDialog::SetLicenseAcceptedCallback(const FSimpleDelegate& InOnLicenseAccepted)
+{
+	OnLicenseAccepted = InOnLicenseAccepted;
 }
 
 FReply SAndroidLicenseDialog::OnAgree()
@@ -244,11 +249,13 @@ FReply SAndroidLicenseDialog::OnAgree()
 		IFileHandle* FileHandle = PlatformFile.OpenWrite(*LicenseFilename);
 		if (FileHandle)
 		{
-			FString HashText = FString("\015\012") + LicenseHash.ToString().ToLower();
+			FString HashText = TEXT("\015\012") + LicenseHash.ToString().ToLower();
 			FileHandle->Write((const uint8*)TCHAR_TO_ANSI(*HashText), HashText.Len());
 			delete FileHandle;
 		}
 	}
+
+	OnLicenseAccepted.ExecuteIfBound();
 
 	TSharedRef<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
 	FSlateApplication::Get().RequestDestroyWindow(ParentWindow);

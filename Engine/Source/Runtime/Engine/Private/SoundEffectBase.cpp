@@ -34,6 +34,8 @@ void FSoundEffectBase::SetPreset(USoundEffectPreset* Inpreset)
 
 void FSoundEffectBase::Update()
 {
+	PumpPendingMessages();
+
 	if (bChanged && Preset)
 	{
 		OnPresetChanged();
@@ -57,4 +59,16 @@ bool FSoundEffectBase::IsParentPreset(USoundEffectPreset* InPreset) const
 	return ParentPreset == InPreset;
 }
 
-
+void FSoundEffectBase::EffectCommand(TFunction<void()> Command)
+{
+	CommandQueue.Enqueue(MoveTemp(Command));
+}
+void FSoundEffectBase::PumpPendingMessages()
+{
+	// Pumps the commadn queue
+	TFunction<void()> Command;
+	while (CommandQueue.Dequeue(Command))
+	{
+		Command();
+	}
+}

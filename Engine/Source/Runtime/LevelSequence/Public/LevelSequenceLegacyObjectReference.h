@@ -75,10 +75,10 @@ public:
 	bool Serialize(FArchive& Ar);
 
 	typedef TMap<FGuid, FLevelSequenceLegacyObjectReference> MapType;
-	FORCEINLINE friend MapType::TIterator      begin(      FLevelSequenceObjectReferenceMap& Impl) { return begin(Impl.Map); }
-	FORCEINLINE friend MapType::TConstIterator begin(const FLevelSequenceObjectReferenceMap& Impl) { return begin(Impl.Map); }
-	FORCEINLINE friend MapType::TIterator      end  (      FLevelSequenceObjectReferenceMap& Impl) { return end(Impl.Map); }
-	FORCEINLINE friend MapType::TConstIterator end  (const FLevelSequenceObjectReferenceMap& Impl) { return end(Impl.Map); }
+	FORCEINLINE friend MapType::TRangedForIterator      begin(      FLevelSequenceObjectReferenceMap& Impl) { return begin(Impl.Map); }
+	FORCEINLINE friend MapType::TRangedForConstIterator begin(const FLevelSequenceObjectReferenceMap& Impl) { return begin(Impl.Map); }
+	FORCEINLINE friend MapType::TRangedForIterator      end  (      FLevelSequenceObjectReferenceMap& Impl) { return end(Impl.Map); }
+	FORCEINLINE friend MapType::TRangedForConstIterator end  (const FLevelSequenceObjectReferenceMap& Impl) { return end(Impl.Map); }
 
 	TMap<FGuid, FLevelSequenceLegacyObjectReference> Map;
 };

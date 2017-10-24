@@ -37,6 +37,7 @@
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/NetworkObjectList.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
 
@@ -95,12 +96,14 @@ void AActor::InitializeDefaults()
 #if WITH_EDITORONLY_DATA
 	bEditable = true;
 	bListedInSceneOutliner = true;
+	bIsEditorPreviewActor = false;
 	bHiddenEdLayer = false;
 	bHiddenEdTemporary = false;
 	bHiddenEdLevel = false;
 	bActorLabelEditable = true;
 	SpriteScale = 1.0f;
 	bEnableAutoLODGeneration = true;	
+	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 #endif // WITH_EDITORONLY_DATA
 	NetCullDistanceSquared = 225000000.0f;
 	NetDriverName = NAME_GameNetDriver;
@@ -108,7 +111,6 @@ void AActor::InitializeDefaults()
 	// will be updated in PostInitProperties
 	bActorEnableCollision = true;
 	bActorSeamlessTraveled = false;
-	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 	bBlockInput = false;
 	bCanBeDamaged = true;
 	bFindCameraComponentWhenViewTarget = true;
@@ -336,6 +338,7 @@ FVector AActor::GetVelocity() const
 
 void AActor::ClearCrossLevelReferences()
 {
+	// TODO: Change GetOutermost to GetLevel?
 	if(RootComponent && GetRootComponent()->GetAttachParent() && (GetOutermost() != GetRootComponent()->GetAttachParent()->GetOutermost()))
 	{
 		GetRootComponent()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
@@ -420,11 +423,6 @@ bool AActor::K2_TeleportTo( FVector DestLocation, FRotator DestRotation )
 	return TeleportTo(DestLocation, DestRotation, false, false);
 }
 
-void AActor::SetTickPrerequisite(AActor* PrerequisiteActor)
-{
-	AddTickPrerequisiteActor(PrerequisiteActor);
-}
-
 void AActor::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
 {
 	if (PrimaryActorTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
@@ -491,7 +489,7 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 
 void AActor::BeginDestroy()
 {
-	ULevel* OwnerLevel = Cast<ULevel>(GetOuter());
+	ULevel* OwnerLevel = GetLevel();
 	UnregisterAllComponents();
 	if (OwnerLevel && !OwnerLevel->HasAnyInternalFlags(EInternalObjectFlags::Unreachable))
 	{
@@ -541,7 +539,7 @@ void AActor::Serialize(FArchive& Ar)
 	// we'll let that drop
 	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		TArray<UActorComponent*> DuplicatingComponents;
+		TInlineComponentArray<UActorComponent*> DuplicatingComponents;
 		if (Ar.IsSaving())
 		{
 			DuplicatingComponents.Reserve(OwnedComponents.Num());
@@ -571,11 +569,6 @@ void AActor::PostLoad()
 		Owner->Children.Add(this);
 	}
 
-	if (GetLinkerUE4Version() < VER_UE4_CONSUME_INPUT_PER_BIND)
-	{
-		bBlockInput = (InputConsumeOption_DEPRECATED == ICO_ConsumeAll);
-	}
-
 	if (GetLinkerUE4Version() < VER_UE4_PRIVATE_REMOTE_ROLE)
 	{
 		bReplicates = (RemoteRole != ROLE_None);
@@ -585,6 +578,12 @@ void AActor::PostLoad()
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		bExchangedRoles = false;
+	}
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerUE4Version() < VER_UE4_CONSUME_INPUT_PER_BIND)
+	{
+		bBlockInput = (InputConsumeOption_DEPRECATED == ICO_ConsumeAll);
 	}
 
 	if (AActor* ParentActor = ParentComponentActor_DEPRECATED.Get())
@@ -602,7 +601,6 @@ void AActor::PostLoad()
 
 	if ( GIsEditor )
 	{
-#if WITH_EDITORONLY_DATA
 		// Propagate the hidden at editor startup flag to the transient hidden flag
 		bHiddenEdTemporary = bHiddenEd;
 
@@ -611,8 +609,8 @@ void AActor::PostLoad()
 		{
 			UE_LOG(LogActor, Log,  TEXT("Loaded Actor (%s) with IsPendingKill() == true"), *GetName() );
 		}
-#endif // WITH_EDITORONLY_DATA
 	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
@@ -678,6 +676,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
+	LLM_SCOPE(ELLMTag::EngineMisc);
+
 	#if WITH_EDITOR
 	static const FName CallInEditorMeta(TEXT("CallInEditor"));
 	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData(CallInEditorMeta);
@@ -1728,7 +1728,20 @@ bool AActor::ActorHasTag(FName Tag) const
 
 bool AActor::IsInLevel(const ULevel *TestLevel) const
 {
-	return (GetOuter() == TestLevel);
+	return (GetLevel() == TestLevel);
+}
+
+ULevel* AActor::GetLevel() const
+{
+	for (UObject* Outer = GetOuter(); Outer != nullptr; Outer = Outer->GetOuter())
+	{
+		if (ULevel* Level = Cast<ULevel>(Outer))
+		{
+			return Level;
+		}
+	}
+
+	return nullptr;
 }
 
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
@@ -2019,11 +2032,6 @@ FVector AActor::GetPlacementExtent() const
 	return Extent;
 }
 
-class UClass* AActor::GetActorClass() const
-{
-	return GetClass();
-}
-
 void AActor::Destroyed()
 {
 	RouteEndPlay(EEndPlayReason::Destroyed);
@@ -2244,6 +2252,18 @@ FString AActor::GetHumanReadableName() const
 
 void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+	// Draw box around Actor being debugged.
+#if ENABLE_DRAW_DEBUG
+	{
+		FVector BoundsOrigin, BoundsExtent;
+		GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+		// Expand extent a little bit
+		BoundsExtent *= 1.1f;
+		DrawDebugBox(GetWorld(), BoundsOrigin, BoundsExtent, FColor::Green, false, -1.f, 0, 2.f);
+	}
+#endif
+
 	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
 
@@ -2507,7 +2527,10 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
-	Modify();
+	// Note: we do not mark dirty here because this can be called as part of component duplication when reinstancing components during blueprint compilation
+	// if a component is removed during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway.
+	const bool bMarkDirty = false;
+	Modify(bMarkDirty);
 
 	if (OwnedComponents.Remove(Component) > 0)
 	{
@@ -2989,6 +3012,13 @@ void AActor::PostActorConstruction()
 						bRunBeginPlay = (ParentActor->HasActorBegunPlay() || ParentActor->IsActorBeginningPlay());
 					}
 				}
+
+#if WITH_EDITOR
+				if (bRunBeginPlay && bIsEditorPreviewActor)
+				{
+					bRunBeginPlay = false;
+				}
+#endif
 
 				if (bRunBeginPlay)
 				{
@@ -3605,11 +3635,6 @@ void AActor::K2_DestroyComponent(UActorComponent* Component)
 	{
 		Component->DestroyComponent();
 	}
-}
-
-UPrimitiveComponent* AActor::GetRootPrimitiveComponent() const
-{ 
-	return Cast<class UPrimitiveComponent>(RootComponent); 
 }
 
 bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)

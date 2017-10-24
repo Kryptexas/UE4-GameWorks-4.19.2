@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3345705
+﻿INTSourceChangelist:3603366
 Availability:Public
 Title:모바일 플랫폼에서의 포스트 프로세스 이펙트
 Crumbs:
 Description:모바일 게임에서 포스트 프로세스 이펙트 사용하기 입니다.
 Platform:Mobile
-Version: 4.14
+Version: 4.16
 parent:Platforms/Mobile
 order:5
 type:overview
@@ -58,7 +58,7 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 [/REGION]
 
 ### .ini 파일을 통한 톤매퍼 켜기
-프로젝트 전반에 걸쳐 톤매퍼를 켜거나 끄려면, 프로젝트의 **DefaultEngine.ini** 내 **Rendering Settings** (렌더링 세팅)에 **r.tonemapperfilm=1** 을 추가해 주면 됩니다.
+프로젝트 전반적으로 톤매퍼를 켜고 끄려면 프로젝트 **DefaultEngine.ini** 파일의 **Rendering Settings** 섹션에 **r.tonemapperfilm=1** 을 추가해야 합니다.
 
 [REGION:lightbox]
 [![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
@@ -76,8 +76,8 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 클릭하면 이미지 원본을 확인합니다.
 [/REGION]
 
-### 모바일 디바이스에서 톤매퍼 필름 켜기
-모바일 디바이스에서 톤매퍼를 켜거나 끄는 방법은, 화면을 **네 손가락** 동시 탭하여 **콘솔 창** 을 띄우고 **r.tonemapperfilm 1** 을 입력하면 톤매퍼가 켜지고, **r.tonemapperfilm 0** 을 입력하면 톤매퍼가 꺼집니다.
+### 모바일 디바이스에서 필름 톤매퍼 설정
+모바일 디바이스에서 톤 매퍼를 켜고 끄기 위해서는, 화면을 동시에 **네 손가락** 터치하여 **콘솔 창** 을 띄운 다음 **r.tonemapperfilm 1** 을 입력하면 톤매퍼가 켜지고, **r.tonemapperfilm 0** 을 입력하면 톤매퍼가 꺼집니다.
 
 [REGION:lightbox]
 [![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
@@ -88,7 +88,7 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 [/REGION]
 
 ## 모바일에서 지원되는 포스트 프로세스 이펙트 및 세팅
-여기서는 모바일 디바이스에서 어떤 포스트 프로세스 이펙트와 세팅이 지원되는지, 그리고 톤매퍼를 켜야 하는지 살펴보도록 하겠습니다.
+여기서는 모바일 디바이스에서 어떤 포스트 프로세스 이펙트와 세팅이 지원되는지, 그리고 톤매퍼 활성화가 필요한지 살펴보도록 하겠습니다.
 
 [REGION:lightbox]
 [![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
@@ -98,126 +98,211 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 클릭하면 이미지 원본을 확인합니다.
 [/REGION]
 
-### 화이트 밸런스
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Temp|예|1|
-|Tint|예|1|
-
 ### 컬러 그레이딩
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Saturation|예|1|
-|Contrast|예|1|
-|Gamma|예|1|
-|Gain|예|1|
-|Offset|예|1|
 
-### 필름
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Tint|예|0|
-|Tint Shadow|예|0|
-|Tint Shadow Blend|예|0|
-|Tint Shadow Amount|예|0|
-|Saturation|예|0|
-|Channel Mixer Red|예|0|
-|Channel Mixer Green|예|0|
-|Channel Mixer Blue|예|0|
-|Contrast|예|0|
-|Crush Shadows|예|0|
-|Crush Highlights|예|0|
-|Dynamic Range|예|0|
-|Slope|예|1|
-|Toe|예|1|
-|Shoulder|예|1|
-|Black Clip|예|1|
-|White Clip|예|1|
+**Color Grading** 섹션에서는 이미지 색 보정을 가능하게 해주는 지원 프로퍼티를 찾을 수 있습니다.
 
-### 씬 컬러
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Scene Color Tint|예|1|
-|Fringe Intensity|예|0 & 1|
-|Vignette Intensity|예|0 & 1|
-|Grain Jitter |예|0 & 1|
-|Grain Intensity |예|0 & 1|
-|Color Grading Intensity |예|1|
-|Color Grading |예|1|
-
-### 블룸
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Intensity|예|0 & 1|
-|Threshold|예|0 & 1|
-|Size Scale |예|0 & 1|
-|#1 Size|아니오|불가|
-|#2 Size|아니오|불가|
-|#3 Size|아니오|불가|
-|#4 Size|아니오|불가|
-|#5 Size|아니오|불가|
-|#1 Tint|아니오|불가|
-|#2 Tint|아니오|불가|
-|#3 Tint|아니오|불가|
-|#4 Tint|아니오|불가|
-|#5 Tint|아니오|불가|
-|#6 Tint|아니오|불가|
-|Dirt Mask Intensity|예|1|
-|Dirt Mask Tint |예|1|
-|Dirt Mask |예|1|
-
-### 자동 노출
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Auto Exposure Histogram|예|0 & 1|
-|Auto Exposure Basic|예|0 & 1|
-|Low Percent|아니오|불가|
-|High Percent|아니오|불가|
-|Min Brightness|아니오|불가|
-|Max Brightness|아니오|불가|
-|Speed Up|아니오|불가|
-|Speed Down|아니오|불가|
-|Exposure Bias|예|0 & 1|
-|Histogram Log Min|아니오|불가|
-|Histogram Log Max|아니오|불가|
-
-### 뎁스 오브 필드
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|BokehDOF|예|0 |
-|GaussianDOF|예|0 |
-|CircleDOF|아니오|불가 |
-|High Quality Gaussian DoF on Mobile|예|1|
-|Aperture F - Stop|아니오|불가|
-|Focal Distance |예|0|
-|Depth Blur km for 50%|아니오|불가|
-|Depth Blur Radius|아니오|불가|
-|Focal Region|아니오|불가|
-|Near Transition Region|예|0|
-|Far Transition Region|예|0|
-|Scale|예|0|
-|Max Bokeh Size|아니오|불가|
-|Near Blur Size|아니오|불가|
-|Far Blur Size|아니오|불가|
-|Shape|아니오|불가|
-|Occlusion|아니오|불가|
-|Color Threshold|아니오|불가|
-|Sky Distance|아니오|불가|
-|Vignette Size|아니오|불가|
+|포스트 프로세스 프로퍼티| 지원여부 |R.tonemapperfilm 값| 
+|---------------------|-----------|----------------------|
+| [REGION:tablesection] White Balance 화이트 밸런스 [/REGION] |||
+|**Temp**|예|1|
+|**Tint**|예|1|
+| [REGION:tablesection] Global 글로벌[/REGION] |||
+|**Saturation**|예|1|
+|**Contrast**|예|1|
+|**Gamma**|예|1|
+|**Gain**|예|1|
+|**Offset**|예|1|
+|**Scene Color Tint**|예|1|
+|**Color Grading LUT Intensity**|예|1|
+|**Color Grading LUT**|예|1|
+| [REGION:tablesection] Shadows 섀도우 [/REGION] |||
+|**Saturation**|예|1|
+|**Contrast**|예|1|
+|**Gamma**|예|1|
+|**Gain**|예|1|
+|**Offset**|예|1|
+|**Shadows Max**|예|1|
+| [REGION:tablesection] Midtones 미드톤 [/REGION] |||
+|**Saturation**|예|1|
+|**Contrast**|예|1|
+|**Gamma**|예|1|
+|**Gain**|예|1|
+|**Offset**|예|1|
+| [REGION:tablesection] Highlights 하이라이트 [/REGION] |||
+|**Saturation**|예|1|
+|**Contrast**|예|1|
+|**Gamma**|예|1|
+|**Gain**|예|1|
+|**Offset**|예|1|
+|**Highlights Min**|예|1|
 
 
-### 기타
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
+### 톤매퍼
+
+**Tonemapper** 섹션에서는 이미지 색 범위를 조정할 수 있도록 해주는 지원 프로퍼티를 찾을 수 있습니다.
+
+
+|포스트 프로세스 프로퍼티| 지원여부|R.tonemapperfilm 값| 
 |--------------------|-----------|--------------|
-|Screen Percentage|아니오|불가 |
-|AA Methods|예|0 & 1|
-[region:note]
-AA 메소드는 "None" (가장 빠름) 및 "TemporalAA" 를 지원하며, 여기에는 모션이 약간 떨리긴 하지만 2xSGSSAA 정도의 특수한 모바일 템포럴 AA 가 제공됩니다.
-[/region]
+|**Slope**|예|1|
+|**Toe**|예|1|
+|**Shoulder**|예|1|
+|**Black Clip**|예|1|
+|**White Clip**|예|1|
+
+### 모바일 톤매퍼
+
+**Mobile Tonemapper** 섹션에서는 이미지 색 범위를 조정할 수 있도록 해주는 모바일 전용 지원 프로퍼티를 찾을 수 있습니다.
+
+|포스트 프로세스 프로퍼티| 지원여부|R.tonemapperfilm 값| 
+|--------------------|-----------|--------------|
+|**Tint**|예|0|
+|**Saturation**|예|0|
+|**Contrast**|예|0|
+|**Tint Shadow**|예|0|
+|**Tint Shadow Blend**|예|0|
+|**Tint Shadow Amount**|예|0|
+|**Channel Mixer Red**|예|0|
+|**Channel Mixer Green**|예|0|
+|**Channel Mixer Blue**|예|0|
+|**Crush Shadows**|예|0|
+|**Crush Highlights**|예|0|
+|**Dynamic Range**|예|0|
+
+
+### 렌즈
+
+**Lens** 섹션에서는 이미지에 블룸이나 뎁스 오브 필드같은 여러 시각 효과를 줄 수 있도록 해주는 지원 프로퍼티를 찾을 수 있습니다.
+
+|포스트 프로세스 프로퍼티| 지원여부|R.tonemapperfilm 값| 
+|--------------------|-----------|--------------|
+| [REGION:tablesection] Image Effects 이미지 이펙트 [/REGION] |||
+|**Chromatic Aberation**|예|0 & 1|
+|**Vignette Intensity**|예|0 & 1|
+|**Grain Jitter**|예|0 & 1|
+|**Color Grading Intensity**|예|1|
+|[REGION:tablesection] Bloom 블룸 [/REGION] |||
+|**Method: Standard**|예|0 & 1|
+|**Method: Convolution**|아니오|n/a|
+|**Intensity**|예|0 & 1|
+|**Threshold**|예|0 & 1|
+|**Size Scale**|예|0 & 1|
+|**#123456 Size**|아니오|n/a|
+|**#123456 Tint**|아니오|n/a|
+|**Convolution Scale**|아니오|n/a|
+|**Convolution Center**|아니오|n/a|
+|**Convolution Boost**|아니오|n/a|
+|**Convolution Buffer**|아니오|n/a|
+|[REGION:tablesection] Dirt Mask 더트 마스크 [/REGION] |||
+|**Dirt Mask Texture**|예|1|
+|**Dirt Mask Intensity**|예|1|
+|**Dirt Mask Tint**|예|1|
+|[REGION:tablesection] Auto Exposure 자동 노출 [/REGION] |||
+|**Auto Exposure Histogram**|아니오|n/a|
+|**Auto Exposure Basic**|아니오|n/a|
+|**Low Percent**|아니오|n/a|
+|**High Percent**|아니오|n/a|
+|**Min Brightness**|아니오|n/a|
+|**Max Brightness**|아니오|n/a|
+|**Speed Up**|아니오|n/a|
+|**Speed Down**|아니오|n/a|
+|**Exposure Bias**|예|0 & 1|
+|**Histogram Log Min**|아니오|n/a|
+|**Histogram Log Max**|아니오|n/a|
+|**Low Percent**|아니오|n/a|
+|**High Percent**|아니오|n/a|
+|**Histogram Log Min**|아니오|n/a|
+|**Histogram Log Max**|아니오|n/a|
+|[REGION:tablesection] Lens Flares 렌즈 플레어 [/REGION] |||
+|**Intensity**|아니오|n/a|
+|**Tint**|아니오|n/a|
+|**Bokeh Size**|아니오|n/a|
+|**Threshold**|아니오|n/a|
+|**Bokeh Shape**|아니오|n/a|
+|**Tints #012345678**|아니오|n/a|
+|[REGION:tablesection] Depth of Field 뎁스 오브 필드 [/REGION] |||
+|**BokehDOF**|예|0 |
+|**GaussianDOF**|예|0 |
+|**CircleDOF**|아니오|n/a |
+|**High Quality Gaussian DoF on Mobile**|예|1|
+|**Aperture F - Stop**|아니오|n/a|
+|**Focal Distance**|예|0|
+|**Depth Blur km for 50%**|아니오|n/a|
+|**Depth Blur Radius**|아니오|n/a|
+|**Focal Region**|아니오|n/a|
+|**Near Transition Region**|예|0|
+|**Far Transition Region**|예|0|
+|**Scale**|예|0|
+|**Max Bokeh Size**|아니오|n/a|
+|**Near Blur Size**|아니오|n/a|
+|**Far Blur Size**|아니오|n/a|
+|**Shape**|아니오|n/a|
+|**Occlusion**|아니오|n/a|
+|**Color Threshold**|아니오|n/a|
+|**Size Threshold**|아니오|n/a|
+|**Sky Distance**|아니오|n/a|
+|**Vignette Size**|아니오|n/a|
+
+### 렌더링 피처
+
+**Rendering Features** 섹션에서는 커스텀 뎁스나 커스텀 스텐실같은 특정 포스트 프로세스 머티리얼에 대한 이미지에 시각적인 조정을 가할 수 있도록 해주는 지원 프로퍼티를 찾을 수 있습니다.
+
+|포스트 프로세스 프로퍼티| 지원여부|R.tonemapperfilm 값| 
+|--------------------|-----------|--------------|
+| [REGION:tablesection] Post Process Materials 포스트 프로세스 머티리얼 [/REGION] |||
+|**Array**|예|1|
+| [REGION:tablesection] Ambient Cubemap 앰비언트 큐브맵 [/REGION] |||
+|**Tint**|아니오|n/a|
+|**Intensity**|아니오|n/a|
+|**Cubemap Texture**|아니오|n/a|
+| [REGION:tablesection] Ambient Occlusion 앰비언트 오클루전 [/REGION] |||
+|**Intensity**|아니오|n/a|
+|**Radius**|아니오|n/a|
+|**Static Fraction**|아니오|n/a|
+|**Radius in Worldspace**|아니오|n/a|
+|**Fade Out Distance**|아니오|n/a|
+|**Fade Out Radius**|아니오|n/a|
+|**Power**|아니오|n/a|
+|**Bias**|아니오|n/a|
+|**Quality**|아니오|n/a|
+|**Mip Blend**|아니오|n/a|
+|**Mip Scale**|아니오|n/a|
+|**Mip Threshold**|아니오|n/a|
+| [REGION:tablesection] Global Illumination 글로벌 일루미네이션 [/REGION] |||
+|**Indirect Lighting Color**|예|0 & 1|
+|**Indirect Lighting Intensity**|예|0 & 1|
+| [REGION:tablesection] Motion Blur 모션 블러 [/REGION] |||
+|**Amount**|아니오|n/a|
+|**Max**|아니오|n/a|
+|**Per Object Size**|아니오|n/a|
+| [REGION:tablesection] Light Propagation Volume 라이트 프로퍼게이션 볼륨 [/REGION] |||
+|**Intensity**|아니오|n/a|
+|**Size**|아니오|n/a|
+|**Secondary Occlusion Intensity**|아니오|n/a|
+|**Occlusion Intensity**|아니오|n/a|
+|**Diffuse Occlusion Exponent**|아니오|n/a|
+|**Specular Occlusion Exponent**|아니오|n/a|
+|**Light Injection Bias**|아니오|n/a|
+|**Secondary Bounce Intensity**|아니오|n/a|
+|**Geometry Volume Bias**|아니오|n/a|
+|**Emissive Injection Intensity**|아니오|n/a|
+|**Occlusion Radius**|아니오|n/a|
+|**Diffuse Occlusion Intensity**|아니오|n/a|
+|**Specular Occlusion Intensity**|아니오|n/a|
+|**Fade Range**|아니오|n/a|
+|**Directional Occlusion Fade Range**|아니오|n/a|
+| [REGION:tablesection] Screen Space Reflections 스크린 스페이스 리플렉션 [/REGION] |||
+|**Intensity**|아니오|n/a|
+|**Quality**|아니오|n/a|
+|**Max Roughness**|아니오|n/a|
+| [REGION:tablesection] Misc [/REGION] |||
+|**Screen Percentage**|아니오|n/a|
+
 
 ## 커스텀 포스트 프로세스 머티리얼
 
-언리얼 엔진에는 모바일 어플리케이션의 모양과 느낌을 마음껏 조정할 수 있는 포스트 프로세스 이펙트가 다양하게 내장되어 있습니다. 하지만 (VCR 고정 화면 등) 독특한 이펙트 제작을 위해 별도의 
+언리얼 엔진에는 모바일 어플리케이션의 모양과 느낌을 마음껏 조정할 수 있는 포스트 프로세스 이펙트가 다양하게 내장되어 있습니다. 하지만 (VCR 고정 화면 등) 독특한 이펙트 구현을 위해 별도의 
 포스트 프로세스 머티리얼을 만들고 싶을 때가 있습니다.
 
 [REGION:asyncgif]
@@ -225,8 +310,8 @@ AA 메소드는 "None" (가장 빠름) 및 "TemporalAA" 를 지원하며, 여기
 [/REGION]
 
 모바일 어플리케이션에 이펙트를 추가하기 위해서는 커스텀 포스트 프로세스 머티리얼 개발이 필요합니다. 모바일 어플리케이션용 커스텀 포스트 프로세스 머티리얼을 제작할 때 
-반드시 코려해야 할 것들이 있습니다. 구체적으로 모바일 어플리케이션용 커스텀 포스트 프로세스 머티리얼은 다음 **블렌더블 위치** 를 가지고 PostProcessInput0 (씬 컬러) 에서만 펫치할 수 있다는 점 
-유념해야 합니다:
+반드시 코려해야 할 것들이 있습니다. 구체적으로 모바일 어플리케이션용 커스텀 포스트 프로세스 머티리얼은 **PostProcessInput0 (씬 컬러)**, **씬 뎁스**, 
+**커스텀 뎁스**, **커스텀 스텐실** 에서만 가져올(fetch) 수 있으며, **블렌더블 위치** 는 다음과 같습니다:
 
 * **톤매핑 전**
 * **톤매핑 후**
@@ -234,38 +319,45 @@ AA 메소드는 "None" (가장 빠름) 및 "TemporalAA" 를 지원하며, 여기
 **블렌더블 위치** 관련 상세 정보는, [](Engine/Rendering/PostProcessEffects/PostProcessMaterials) 문서를 참고하세요.
 현재 HDr 렌더링에 '모자익' 모드가 필요한 구형 안드로이드 디바이스에서는 커스텀 포스트 프로세스 머티리얼을 만들 수 없습니다. 마지막으로, 픽셀 뎁스 정보는 아직 지원되지 않습니다.
 
-### 커스텀 뎁스
-
-이제 모바일 렌더링 패스에서도 **Custom Depth** (커스텀 뎁스) 포스트 프로세스 옵션을 사용할 수 있습니다. 커스텀 포스트 프로세스 머티리얼은 이제 **Scene Depth**, **Custom Depth** 는 물론 **Scene Color** 에서도 샘플링 가능합니다. 
-
-![](Custom_Scene_Depth.png)
-
 이 기능의 정상 작동을 위해서는 포스트 프로세싱이 필요하므로, **Mobile HDR** 옵션을 켜야 합니다. **프로젝트 세팅** > **엔진** > **렌더링** > **모바일** 에서 **Mobile HDR** 옵션이 체크되어 있는지 확인하세요.
 
-[region: lightbox]
-[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
-[/region]
+[REGION:lightbox]
+[![](MobileHDR_Enabled.png)(w:500)](MobileHDR_Enabled.png)
+[/REGION]
 
-[region:caption]
+[REGION:caption]
 클릭하면 원본 이미지를 확인합니다.
-[/region]
+[/REGION]
 
-[region:warning]
-참고로 현재 이 기능은 **Mobile MSAA** 기능이 켜진 상태에서는 정상 작동하지 않으므로, 디바이스에서 이 기능을 확인하려면 **Mobile MSAA** 옵션을 꺼야 합니다.
-[/region]
+
+이제 모바일 렌더링 패스로 **커스텀 뎁스** 포스트 프로세스 옵션을 사용합니다. 커스텀 포스트 프로세스 머티리얼은 이제 **씬 뎁스**, **커스텀 뎁스**, **씬 컬러**, **커스텀 스텐실** 에서 샘플링할 수 있습니다.
+
+[REGION:imagetable]
+| [INCLUDE:#customdepth] | [INCLUDE:#customstencil] |
+|---|---|
+| 커스텀 뎁스 | 커스텀 스텐실 |
+[/REGION]
+
+<!---
+[EXCERPT:customdepth]
+[REGION:raw]
+![](Custom_Scene_Depth.png)(w:575)
+[/REGION]
+[/EXCERPT:customdepth]
+
+[EXCERPT:customstencil]
+[REGION:raw]
+![](Custom_Stencil.png)(w:575)
+[/REGION]
+[/EXCERPT:customstencil]
+--->
+
 
 ## 일반적인 포스트 프로세스 퍼포먼스 팁
 
-* 최적의 퍼포먼스와 퀄리티를 위해서는, 블룸과 템포럴 AA 만 사용하도록 해야합니다.
+* 최적의 퍼포먼스와 퀄리티를 위해서는, 블룸과 템포럴 AA 만 사용하는 것이 가장 좋습니다.
 
 [REGION:note]
 더 나은 퍼포먼스를 위해 "r.RenderTargetSwitchWorkaround" 콘솔 변수로 제어되는 특수한 우회법을 구현했습니다. **BaseDeviceProfiles.ini** 에 보면 여러 디바이스에 대해 켜져있는 것을 볼 수 있습니다.
-참고로 디바이스에서의 블룸 이펙트 외형에 일정한 퍼포먼스 특징과 함께 약간의 변화가 있을 것을 볼 수 있습니다. 콘솔 변수로 보다 자세한 도움말을 얻을 수 있습니다:
-
-	r.RenderTargetSwitchWorkaround
-
-	일부 모바일 플랫폼에서는 렌더 타겟 전환시의 퍼포먼스 하락을 피하기 위해 우회법이 필요할 것입니다.
-	일부 하드웨어에서만 켜는 방법인데, 블룸 퀄리티에도 약간 영향을 끼칩니다. 일반 코드 패스보다 느리게 실행되지만,
-	렌더 타겟 전환을 여러번 피할 수 있어서 더욱 빠릅니다 (기본값: 0_
-	모든 32 비트 iOS 디바이스에서 이것을 (1) 켜고자 했습니다 (DeviceProfiles 를 통해 구현).
+참고로 디바이스에서의 블룸 이펙트 외형에 일정한 퍼포먼스 특징과 함께 약간의 변화가 있을 것을 볼 수 있습니다.
 [/REGION]

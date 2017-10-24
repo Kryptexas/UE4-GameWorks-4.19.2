@@ -4,9 +4,8 @@
 #include "HAL/FileManager.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "Frame/RootWindowLocation.h"
-
 #include "Widgets/Docking/SDockTab.h"
-
+#include "HAL/PlatformApplicationMisc.h"
 
 void FMainFrameHandler::ShutDownEditor()
 {
@@ -41,7 +40,10 @@ void FMainFrameHandler::ShutDownEditor()
 			WindowRect.Bottom -= WindowBorder.Top + WindowBorder.Bottom;
 		}
 
-		FRootWindowLocation RootWindowLocation(FVector2D(WindowRect.Left, WindowRect.Top), WindowRect.GetSize(), RootWindow->IsWindowMaximized());
+		// Save without any DPI Scale so we can save the position and scale in a DPI independent way
+		const float DPIScale = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(WindowRect.Left, WindowRect.Top);
+
+		FRootWindowLocation RootWindowLocation(FVector2D(WindowRect.Left, WindowRect.Top)/ DPIScale, WindowRect.GetSize() / DPIScale, RootWindow->IsWindowMaximized());
 		RootWindowLocation.SaveToIni();
 	}
 
@@ -84,15 +86,15 @@ void FMainFrameHandler::ShutDownEditor()
 	}
 
 	// Take a screenshot of this project for the project browser
-	if (FApp::HasGameName())
+	if (FApp::HasProjectName())
 	{
-		const FString ExistingBaseFilename = FString(FApp::GetGameName()) + TEXT(".png");
-		const FString ExistingScreenshotFilename = FPaths::Combine(*FPaths::GameDir(), *ExistingBaseFilename);
+		const FString ExistingBaseFilename = FString(FApp::GetProjectName()) + TEXT(".png");
+		const FString ExistingScreenshotFilename = FPaths::Combine(*FPaths::ProjectDir(), *ExistingBaseFilename);
 
 		// If there is already a screenshot, no need to take an auto screenshot
 		if (!FPaths::FileExists(ExistingScreenshotFilename))
 		{
-			const FString ScreenShotFilename = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("AutoScreenshot.png"));
+			const FString ScreenShotFilename = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("AutoScreenshot.png"));
 			FViewport* Viewport = GEditor->GetActiveViewport();
 			if (Viewport)
 			{

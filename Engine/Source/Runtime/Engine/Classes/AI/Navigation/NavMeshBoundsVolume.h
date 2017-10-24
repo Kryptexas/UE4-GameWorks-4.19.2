@@ -28,6 +28,7 @@ class ANavMeshBoundsVolume : public AVolume
 #if WITH_EDITOR
 	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 	//~ End UObject Interface
 #endif // WITH_EDITOR
 };

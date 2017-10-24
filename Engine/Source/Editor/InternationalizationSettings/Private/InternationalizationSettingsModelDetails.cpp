@@ -246,9 +246,9 @@ namespace
 		}
 	};
 
-	class SNativeGameLanguageComboButton : public SCompoundWidget
+	class SPreviewGameLanguageComboButton : public SCompoundWidget
 	{
-		SLATE_BEGIN_ARGS(SNativeGameLanguageComboButton){}
+		SLATE_BEGIN_ARGS(SPreviewGameLanguageComboButton){}
 		SLATE_END_ARGS()
 
 	public:
@@ -259,53 +259,53 @@ namespace
 
 			ChildSlot
 				[
-					SAssignNew(NativeGameCultureComboButton, SComboButton)
+					SAssignNew(PreviewGameCultureComboButton, SComboButton)
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.Text(this, &SNativeGameLanguageComboButton::GetContentText)
+						.Text(this, &SPreviewGameLanguageComboButton::GetContentText)
 					]
 				];
-			NativeGameCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SNativeGameLanguageComboButton::GetMenuContent));
+			PreviewGameCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SPreviewGameLanguageComboButton::GetMenuContent));
 		}
 
 	private:
 		TWeakObjectPtr<UInternationalizationSettingsModel> SettingsModel;
 		TSharedPtr<FLocalizedCulturesFlyweight> LocalizedCulturesFlyweight;
-		TSharedPtr<SComboButton> NativeGameCultureComboButton;
+		TSharedPtr<SComboButton> PreviewGameCultureComboButton;
 
 	private:
 		FText GetContentText() const
 		{
 			bool IsConfigured = false;
-			FString NativeGameLanguage;
+			FString PreviewGameLanguage;
 			if (SettingsModel.IsValid())
 			{
-				IsConfigured = SettingsModel->GetNativeGameLanguage(NativeGameLanguage);
+				IsConfigured = SettingsModel->GetPreviewGameLanguage(PreviewGameLanguage);
 			}
 			FCulturePtr Culture;
-			if (!NativeGameLanguage.IsEmpty())
+			if (!PreviewGameLanguage.IsEmpty())
 			{
 				FInternationalization& I18N = FInternationalization::Get();
-				Culture = I18N.GetCulture(NativeGameLanguage);
+				Culture = I18N.GetCulture(PreviewGameLanguage);
 			}
 			return Culture.IsValid() ? FText::FromString(Culture->GetDisplayName()) : LOCTEXT("None", "None");
 		}
 
 		TSharedRef<SWidget> GetMenuContent()
 		{
-			FCulturePtr NativeGameCulture;
+			FCulturePtr PreviewGameCulture;
 			{
 				bool IsConfigured = false;
-				FString NativeGameLanguage;
+				FString PreviewGameLanguage;
 				if (SettingsModel.IsValid())
 				{
-					IsConfigured = SettingsModel->GetNativeGameLanguage(NativeGameLanguage);
+					IsConfigured = SettingsModel->GetPreviewGameLanguage(PreviewGameLanguage);
 				}
-				if (!NativeGameLanguage.IsEmpty())
+				if (!PreviewGameLanguage.IsEmpty())
 				{
 					FInternationalization& I18N = FInternationalization::Get();
-					NativeGameCulture = I18N.GetCulture(NativeGameLanguage);
+					PreviewGameCulture = I18N.GetCulture(PreviewGameLanguage);
 				}
 			}
 
@@ -313,12 +313,12 @@ namespace
 			{
 				if (SettingsModel.IsValid())
 				{
-					SettingsModel->SetNativeGameLanguage(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					SettingsModel->SetPreviewGameLanguage(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
 					FTextLocalizationManager::Get().RefreshResources();
 				}
-				if (NativeGameCultureComboButton.IsValid())
+				if (PreviewGameCultureComboButton.IsValid())
 				{
-					NativeGameCultureComboButton->SetIsOpen(false);
+					PreviewGameCultureComboButton->SetIsOpen(false);
 				}
 			};
 			const auto& CulturePickerIsPickableLambda = [=](FCulturePtr Culture) -> bool
@@ -338,7 +338,7 @@ namespace
 				.WidthOverride(300.0f)
 				[
 					SNew(SCulturePicker)
-					.InitialSelection(NativeGameCulture)
+					.InitialSelection(PreviewGameCulture)
 					.OnSelectionChanged_Lambda(CulturePickerSelectLambda)
 					.IsCulturePickable_Lambda(CulturePickerIsPickableLambda)
 					.CanSelectNone(true)
@@ -393,20 +393,20 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails(IDetailLayoutBu
 			SNew(SEditorLocaleComboButton, SettingsModel, LocalizedCulturesFlyweight)
 		];
 
-	// Native Game Language Setting
-	const FText NativeGameLanguageSettingDisplayName = LOCTEXT("NativeGameLanguageSettingDisplayName", "Native Game Language");
-	const FText NativeGameLanguageSettingToolTip = LOCTEXT("NativeGameLanguageSettingToolTip", "The language that game content is authored in and localized from.\nWARNING: If this is not set to the culture the game is initially made in, modifying and saving assets may mix localized data in as native data!");
-	DetailCategoryBuilder.AddCustomRow(NativeGameLanguageSettingDisplayName)
+	// Preview Game Language Setting
+	const FText PreviewGameLanguageSettingDisplayName = LOCTEXT("PreviewGameLanguageSettingDisplayName", "Preview Game Language");
+	const FText PreviewGameLanguageSettingToolTip = LOCTEXT("PreviewGameLanguageSettingToolTip", "The language to preview game localization in");
+	DetailCategoryBuilder.AddCustomRow(PreviewGameLanguageSettingDisplayName)
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(NativeGameLanguageSettingDisplayName)
-			.ToolTipText(NativeGameLanguageSettingToolTip)
+			.Text(PreviewGameLanguageSettingDisplayName)
+			.ToolTipText(PreviewGameLanguageSettingToolTip)
 			.Font(DetailLayout.GetDetailFont())
 		]
 		.ValueContent()
 		[
-			SNew(SNativeGameLanguageComboButton, SettingsModel, LocalizedCulturesFlyweight)
+			SNew(SPreviewGameLanguageComboButton, SettingsModel, LocalizedCulturesFlyweight)
 		];
 
 	// Localized Field Names

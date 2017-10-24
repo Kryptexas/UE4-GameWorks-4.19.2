@@ -18,9 +18,7 @@
 #include "Logging/LogMacros.h"
 #include "Misc/Parse.h"
 #include "Misc/CommandLine.h"
-#include "GenericPlatform/GenericApplication.h"
 #include "Misc/App.h"
-#include "Linux/LinuxApplication.h"
 #include "Linux/LinuxPlatformCrashContext.h"
 
 #if PLATFORM_HAS_CPUID
@@ -40,6 +38,8 @@
 
 // define for glibc 2.12.2 and lower (which is shipped with CentOS 6.x and which we target by default)
 #define __secure_getenv getenv
+
+extern bool GInitializedSDL;
 
 namespace PlatformMiscLimits
 {
@@ -72,20 +72,6 @@ namespace
 	}
 }
 
-bool FLinuxPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
-{
-	if (Action == FGenericPlatformMisc::EScreenSaverAction::Disable)
-	{
-		SDL_DisableScreenSaver();
-	}
-	else
-	{
-		SDL_EnableScreenSaver();
-	}
-
-	return true;
-}
-
 void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 {
 	// only expand if path starts with ~, e.g. ~/ should be expanded, /~ should not
@@ -93,12 +79,6 @@ void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 	{
 		InPath = InPath.Replace(TEXT("~"), FPlatformProcess::UserHomeDir(), ESearchCase::CaseSensitive);
 	}
-}
-
-namespace
-{
-	bool GInitializedSDL = false;
-	uint32 GWindowStyleSDL = SDL_WINDOW_OPENGL;
 }
 
 size_t CORE_API GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
@@ -159,12 +139,6 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
 
-	// skip for servers and programs, unless they request later
-	if (!IS_PROGRAM && !bIsNullRHI)
-	{
-		PlatformInitMultimedia();
-	}
-
 	if (FPlatformMisc::HasBeenStartedRemotely() || FPlatformMisc::IsDebuggerPresent())
 	{
 		// print output immediately
@@ -172,85 +146,9 @@ void FLinuxPlatformMisc::PlatformInit()
 	}
 }
 
-uint32 FLinuxPlatformMisc::WindowStyle()
-{
-	return GWindowStyleSDL;
-}
-
-bool FLinuxPlatformMisc::PlatformInitMultimedia()
-{
-	if (!GInitializedSDL)
-	{
-		UE_LOG(LogInit, Log, TEXT("Initializing SDL."));
-
-		if (FParse::Param(FCommandLine::Get(), TEXT("vulkan")))
-		{
-			GWindowStyleSDL = SDL_WINDOW_VULKAN;
-			UE_LOG(LogInit, Log, TEXT("Using SDL_WINDOW_VULKAN"));
-		}
-		else
-		{
-			GWindowStyleSDL = SDL_WINDOW_OPENGL;
-			UE_LOG(LogInit, Log, TEXT("Using SDL_WINDOW_OPENGL"));
-		}
-
-		SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
-		// we don't use SDL for audio
-		if (SDL_Init((SDL_INIT_EVERYTHING ^ SDL_INIT_AUDIO) | SDL_INIT_NOPARACHUTE) != 0)
-		{
-			const char * SDLError = SDL_GetError();
-
-			// do not fail at this point, allow caller handle failure
-			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), UTF8_TO_TCHAR(SDLError));
-			return false;
-		}
-
-		// print out version information
-		SDL_version CompileTimeSDLVersion;
-		SDL_version RunTimeSDLVersion;
-		SDL_VERSION(&CompileTimeSDLVersion);
-		SDL_GetVersion(&RunTimeSDLVersion);
-		int SdlRevisionNum = SDL_GetRevisionNumber();
-		FString SdlRevision = UTF8_TO_TCHAR(SDL_GetRevision());
-		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d revision: %d (%s) (compiled against %d.%d.%d)"),
-			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch,
-			SdlRevisionNum, *SdlRevision,
-			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch
-			);
-
-		// Used to make SDL push SDL_TEXTINPUT events.
-		SDL_StartTextInput();
-
-		GInitializedSDL = true;
-
-		// needs to come after GInitializedSDL, otherwise it will recurse here
-		if (!UE_BUILD_SHIPPING)
-		{
-			// dump information about screens for debug
-			FDisplayMetrics DisplayMetrics;
-			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-			DisplayMetrics.PrintToLog();
-		}
-	}
-
-	return true;
-}
-
 void FLinuxPlatformMisc::PlatformTearDown()
 {
-	if (GInitializedSDL)
-	{
-		UE_LOG(LogInit, Log, TEXT("Tearing down SDL."));
-		SDL_Quit();
-		GInitializedSDL = false;
-	}
-
 	FPlatformProcess::CeaseBeingFirstInstance();
-}
-
-GenericApplication* FLinuxPlatformMisc::CreateApplication()
-{
-	return FLinuxApplication::CreateLinuxApplication();
 }
 
 void FLinuxPlatformMisc::GetEnvironmentVariable(const TCHAR* InVariableName, TCHAR* Result, int32 ResultLength)
@@ -282,122 +180,10 @@ void FLinuxPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TC
 	}
 }
 
-void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
-{
-	if (GInitializedSDL && bFromMainLoop)
-	{
-		if( LinuxApplication )
-		{
-			LinuxApplication->SaveWindowLocationsForEventLoop();
-
-			SDL_Event event;
-
-			while (SDL_PollEvent(&event))
-			{
-				LinuxApplication->AddPendingEvent( event );
-			}
-
-			LinuxApplication->ClearWindowLocationsAfterEventLoop();
-		}
-		else
-		{
-			// No application to send events to. Just flush out the
-			// queue.
-			SDL_Event event;
-			while (SDL_PollEvent(&event))
-			{
-				// noop
-			}
-		}
-	}
-}
-
-uint32 FLinuxPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-{
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
-}
-
 void FLinuxPlatformMisc::LowLevelOutputDebugString(const TCHAR *Message)
 {
 	static_assert(PLATFORM_USE_LS_SPEC_FOR_WIDECHAR, "Check printf format");
 	fprintf(stderr, "%ls", Message);	// there's no good way to implement that really
-}
-
-uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
-
-	uint32 NumMappings = 0;
-
-	if (KeyCodes && KeyNames && (MaxMappings > 0))
-	{
-		ADDKEYMAP(SDLK_BACKSPACE, TEXT("BackSpace"));
-		ADDKEYMAP(SDLK_TAB, TEXT("Tab"));
-		ADDKEYMAP(SDLK_RETURN, TEXT("Enter"));
-		ADDKEYMAP(SDLK_RETURN2, TEXT("Enter"));
-		ADDKEYMAP(SDLK_KP_ENTER, TEXT("Enter"));
-		ADDKEYMAP(SDLK_PAUSE, TEXT("Pause"));
-
-		ADDKEYMAP(SDLK_ESCAPE, TEXT("Escape"));
-		ADDKEYMAP(SDLK_SPACE, TEXT("SpaceBar"));
-		ADDKEYMAP(SDLK_PAGEUP, TEXT("PageUp"));
-		ADDKEYMAP(SDLK_PAGEDOWN, TEXT("PageDown"));
-		ADDKEYMAP(SDLK_END, TEXT("End"));
-		ADDKEYMAP(SDLK_HOME, TEXT("Home"));
-
-		ADDKEYMAP(SDLK_LEFT, TEXT("Left"));
-		ADDKEYMAP(SDLK_UP, TEXT("Up"));
-		ADDKEYMAP(SDLK_RIGHT, TEXT("Right"));
-		ADDKEYMAP(SDLK_DOWN, TEXT("Down"));
-
-		ADDKEYMAP(SDLK_INSERT, TEXT("Insert"));
-		ADDKEYMAP(SDLK_DELETE, TEXT("Delete"));
-
-		ADDKEYMAP(SDLK_F1, TEXT("F1"));
-		ADDKEYMAP(SDLK_F2, TEXT("F2"));
-		ADDKEYMAP(SDLK_F3, TEXT("F3"));
-		ADDKEYMAP(SDLK_F4, TEXT("F4"));
-		ADDKEYMAP(SDLK_F5, TEXT("F5"));
-		ADDKEYMAP(SDLK_F6, TEXT("F6"));
-		ADDKEYMAP(SDLK_F7, TEXT("F7"));
-		ADDKEYMAP(SDLK_F8, TEXT("F8"));
-		ADDKEYMAP(SDLK_F9, TEXT("F9"));
-		ADDKEYMAP(SDLK_F10, TEXT("F10"));
-		ADDKEYMAP(SDLK_F11, TEXT("F11"));
-		ADDKEYMAP(SDLK_F12, TEXT("F12"));
-
-		ADDKEYMAP(SDLK_LCTRL, TEXT("LeftControl"));
-		ADDKEYMAP(SDLK_LSHIFT, TEXT("LeftShift"));
-		ADDKEYMAP(SDLK_LALT, TEXT("LeftAlt"));
-		ADDKEYMAP(SDLK_LGUI, TEXT("LeftCommand"));
-		ADDKEYMAP(SDLK_RCTRL, TEXT("RightControl"));
-		ADDKEYMAP(SDLK_RSHIFT, TEXT("RightShift"));
-		ADDKEYMAP(SDLK_RALT, TEXT("RightAlt"));
-		ADDKEYMAP(SDLK_RGUI, TEXT("RightCommand"));
-
-		ADDKEYMAP(SDLK_KP_0, TEXT("NumPadZero"));
-		ADDKEYMAP(SDLK_KP_1, TEXT("NumPadOne"));
-		ADDKEYMAP(SDLK_KP_2, TEXT("NumPadTwo"));
-		ADDKEYMAP(SDLK_KP_3, TEXT("NumPadThree"));
-		ADDKEYMAP(SDLK_KP_4, TEXT("NumPadFour"));
-		ADDKEYMAP(SDLK_KP_5, TEXT("NumPadFive"));
-		ADDKEYMAP(SDLK_KP_6, TEXT("NumPadSix"));
-		ADDKEYMAP(SDLK_KP_7, TEXT("NumPadSeven"));
-		ADDKEYMAP(SDLK_KP_8, TEXT("NumPadEight"));
-		ADDKEYMAP(SDLK_KP_9, TEXT("NumPadNine"));
-		ADDKEYMAP(SDLK_KP_MULTIPLY, TEXT("Multiply"));
-		ADDKEYMAP(SDLK_KP_PLUS, TEXT("Add"));
-		ADDKEYMAP(SDLK_KP_MINUS, TEXT("Subtract"));
-		ADDKEYMAP(SDLK_KP_DECIMAL, TEXT("Decimal"));
-		ADDKEYMAP(SDLK_KP_DIVIDE, TEXT("Divide"));
-
-		ADDKEYMAP(SDLK_CAPSLOCK, TEXT("CapsLock"));
-		ADDKEYMAP(SDLK_NUMLOCKCLEAR, TEXT("NumLock"));
-		ADDKEYMAP(SDLK_SCROLLLOCK, TEXT("ScrollLock"));
-	}
-
-	check(NumMappings < MaxMappings);
-	return NumMappings;
 }
 
 uint8 GOverriddenReturnCode = 0;
@@ -466,187 +252,18 @@ const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 	return OutBuffer;
 }
 
-void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
-{
-	if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
-	{
-		UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-	}
-}
-
-void FLinuxPlatformMisc::ClipboardPaste(class FString& Result)
-{
-	char* ClipContent;
-	ClipContent = SDL_GetClipboardText();
-
-	if (!ClipContent)
-	{
-		UE_LOG(LogInit, Fatal, TEXT("Error pasting clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		// unreachable
-		Result = TEXT("");
-	}
-	else
-	{
-		Result = FString(UTF8_TO_TCHAR(ClipContent));
-	}
-	SDL_free(ClipContent);
-}
+CORE_API TFunction<EAppReturnType::Type(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)> MessageBoxExtCallback;
 
 EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
-	int NumberOfButtons = 0;
-
-	// if multimedia cannot be initialized for messagebox, just fall back to default implementation
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if(MessageBoxExtCallback)
+	{
+		return MessageBoxExtCallback(MsgType, Text, Caption);
+	}
+	else
 	{
 		return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 	}
-
-#if DO_CHECK
-	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
-	check(InitializedSubsystems & SDL_INIT_VIDEO);
-#endif // DO_CHECK
-
-	SDL_MessageBoxButtonData *Buttons = nullptr;
-
-	switch (MsgType)
-	{
-		case EAppMsgType::Ok:
-			NumberOfButtons = 1;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			break;
-
-		case EAppMsgType::YesNo:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			break;
-
-		case EAppMsgType::OkCancel:
-			NumberOfButtons = 2;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Ok";
-			Buttons[0].buttonid = EAppReturnType::Ok;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Cancel";
-			Buttons[1].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoCancel:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::CancelRetryContinue:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Continue";
-			Buttons[0].buttonid = EAppReturnType::Continue;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "Retry";
-			Buttons[1].buttonid = EAppReturnType::Retry;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Cancel";
-			Buttons[2].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoYesAllNoAll:
-			NumberOfButtons = 4;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			break;
-
-		case EAppMsgType::YesNoYesAllNoAllCancel:
-			NumberOfButtons = 5;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			Buttons[3].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[3].text = "No to all";
-			Buttons[3].buttonid = EAppReturnType::NoAll;
-			Buttons[4].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[4].text = "Cancel";
-			Buttons[4].buttonid = EAppReturnType::Cancel;
-			break;
-
-		case EAppMsgType::YesNoYesAll:
-			NumberOfButtons = 3;
-			Buttons = new SDL_MessageBoxButtonData[NumberOfButtons];
-			Buttons[0].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[0].text = "Yes";
-			Buttons[0].buttonid = EAppReturnType::Yes;
-			Buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[1].text = "No";
-			Buttons[1].buttonid = EAppReturnType::No;
-			Buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-			Buttons[2].text = "Yes to all";
-			Buttons[2].buttonid = EAppReturnType::YesAll;
-			break;
-	}
-
-	FTCHARToUTF8 CaptionUTF8(Caption);
-	FTCHARToUTF8 TextUTF8(Text);
-	SDL_MessageBoxData MessageBoxData = 
-	{
-		SDL_MESSAGEBOX_INFORMATION,
-		NULL, // No parent window
-		CaptionUTF8.Get(),
-		TextUTF8.Get(),
-		NumberOfButtons,
-		Buttons,
-		NULL // Default color scheme
-	};
-
-	int ButtonPressed = -1;
-
-	FSlowHeartBeatScope SuspendHeartBeat;
-	if (SDL_ShowMessageBox(&MessageBoxData, &ButtonPressed) == -1) 
-	{
-		UE_LOG(LogInit, Fatal, TEXT("Error Presenting MessageBox: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		// unreachable
-		return EAppReturnType::Cancel;
-	}
-
-	delete[] Buttons;
-
-	return ButtonPressed == -1 ? EAppReturnType::Cancel : static_cast<EAppReturnType::Type>(ButtonPressed);
 }
 
 int32 FLinuxPlatformMisc::NumberOfCores()
@@ -779,29 +396,6 @@ int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
 	return NumCoreIds;
 }
 
-void FLinuxPlatformMisc::LoadPreInitModules()
-{
-#if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-#endif // WITH_EDITOR
-}
-
-void FLinuxPlatformMisc::LoadStartupModules()
-{
-#if !IS_PROGRAM && !UE_SERVER
-	FModuleManager::Get().LoadModule(TEXT("ALAudio"));	// added in Launch.Build.cs for non-server targets
-	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
-#endif // !IS_PROGRAM && !UE_SERVER
-
-#if defined(WITH_STEAMCONTROLLER) && WITH_STEAMCONTROLLER
-	FModuleManager::Get().LoadModule(TEXT("SteamController"));
-#endif // WITH_STEAMCONTROLLER
-
-#if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-#endif	//WITH_EDITOR
-}
-
 const TCHAR* FLinuxPlatformMisc::GetNullRHIShaderFormat()
 {
 	return TEXT("GLSL_150");
@@ -907,12 +501,43 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 	return FString(Result);
 }
 
+bool FLinuxPlatformMisc::HasNonoptionalCPUFeatures()
+{
+	static bool bHasNonOptionalFeature = false;
+	static bool bHaveResult = false;
+
+	if (!bHaveResult)
+	{
+#if PLATFORM_HAS_CPUID
+		int Info[4];
+		__cpuid(1, Info[0], Info[1], Info[2], Info[3]);
+		bHasNonOptionalFeature = (Info[2] & (1 << 23)) != 0;
+#endif // PLATFORM_HAS_CPUID
+
+		bHaveResult = true;
+	}
+
+	return bHasNonOptionalFeature;
+}
+
+bool FLinuxPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
+{
+	return PLATFORM_ENABLE_POPCNT_INTRINSIC;
+}
+
+
 #if !UE_BUILD_SHIPPING
 bool FLinuxPlatformMisc::IsDebuggerPresent()
 {
+	extern CORE_API bool GIgnoreDebugger;
+	if (GIgnoreDebugger)
+	{
+		return false;
+	}
+
 	// If a process is tracing this one then TracerPid in /proc/self/status will
 	// be the id of the tracing process. Use SignalHandler safe functions 
-
+	
 	int StatusFile = open("/proc/self/status", O_RDONLY);
 	if (StatusFile == -1) 
 	{
@@ -944,24 +569,6 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 	close(StatusFile);
 	return bDebugging;
 }
-#endif // !UE_BUILD_SHIPPING
-
-#if !UE_BUILD_SHIPPING
-void FLinuxPlatformMisc::UngrabAllInput()
-{
-	if (GInitializedSDL)
-	{
-		SDL_Window * GrabbedWindow = SDL_GetGrabbedWindow();
-		if (GrabbedWindow)
-		{
-			SDL_SetWindowGrab(GrabbedWindow, SDL_FALSE);
-			SDL_SetKeyboardGrab(GrabbedWindow, SDL_FALSE);
-		}
-
-		SDL_CaptureMouse(SDL_FALSE);
-	}
-}
-
 #endif // !UE_BUILD_SHIPPING
 
 bool FLinuxPlatformMisc::HasBeenStartedRemotely()
@@ -1123,3 +730,23 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 
 	return bIsOnBattery;
 }
+
+#if !UE_BUILD_SHIPPING
+CORE_API TFunction<void()> UngrabAllInputCallback;
+
+void FLinuxPlatformMisc::DebugBreak()
+{
+	if( IsDebuggerPresent() )
+	{
+		if(UngrabAllInputCallback)
+		{
+			UngrabAllInputCallback();
+		}
+#if PLATFORM_CPU_X86_FAMILY
+		__asm__ volatile("int $0x03");
+#else
+		raise(SIGTRAP);
+#endif
+	}
+}
+#endif // !UE_BUILD_SHIPPING

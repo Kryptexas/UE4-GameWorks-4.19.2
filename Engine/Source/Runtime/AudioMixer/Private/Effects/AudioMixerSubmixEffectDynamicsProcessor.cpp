@@ -69,8 +69,8 @@ void FSubmixEffectDynamicsProcessor::OnPresetChanged()
 
 void FSubmixEffectDynamicsProcessor::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
-	const TArray<float>& InBuffer = *InData.AudioBuffer;
-	TArray<float>& OutBuffer = *OutData.AudioBuffer;
+	const Audio::AlignedFloatBuffer& InBuffer = *InData.AudioBuffer;
+	Audio::AlignedFloatBuffer& OutBuffer = *OutData.AudioBuffer;
 
 	// Use a full multichannel frame as a scratch processing buffer
 	AudioInputFrame.Reset();

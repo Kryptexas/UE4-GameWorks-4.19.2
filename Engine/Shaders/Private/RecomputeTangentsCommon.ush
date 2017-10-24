@@ -22,7 +22,7 @@ uint NumTriangles;
 // vertex input ----------------------------
 
 //
-Buffer<float> SkinStreamInputBuffer;
+Buffer<uint> SkinStreamInputBuffer;
 // in bytes
 uint InputStreamStride;
 // in floats

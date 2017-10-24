@@ -57,13 +57,25 @@ FOnlineSessionOculus::~FOnlineSessionOculus()
 	// Make sure the player leaves all the sessions they were in before destroying this
 	for (auto It = Sessions.CreateConstIterator(); It; ++It)
 	{
-		auto Session = It.Value();
-		auto RoomId = GetOvrIDFromSession(*Session);
-		if (RoomId != 0)
+		TSharedPtr<FNamedOnlineSession> Session = It.Value();
+		if (Session.IsValid())
 		{
-			ovr_Room_Leave(RoomId);
+			ovrID RoomId = GetOvrIDFromSession(*Session);
+			if (RoomId != 0)
+			{
+				ovr_Room_Leave(RoomId);
+			}
+
+			if (!Session.IsUnique())
+			{
+				UE_LOG_ONLINE(Warning, TEXT("Session pointer (room %d) not unique during cleanup!"), RoomId);
+			}
+			Session->SessionState = EOnlineSessionState::Destroying;
 		}
-		Session->SessionState = EOnlineSessionState::Destroying;
+		else
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Invalid session during shutdown!"));
+		}
 	}
 	Sessions.Empty();
 };
@@ -971,8 +983,8 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
 			return;
 		}
-    
-    // UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
+	
+	// UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
 		// because the builds are not compatible
 		int32 BuildUniqueId = GetBuildUniqueId();
 

@@ -3,13 +3,13 @@
   <Name>Oculus OVRPlugin</Name>
   <Location>/Engine/Source/ThirdParty/Oculus/OVRPlugin/</Location>
   <Date>2016-06-10T17:56:26.8862995-04:00</Date>
-  <Function>Interface with Oculus HMDs</Function>
-  <Justification>We use OVRPlugin to interface with Oculus HMDs</Justification>
-  <Eula>http://www.oculus.com/licenses/LICENSE-3.3</Eula>
+  <Function>Allow development of apps for Oculus HMDs</Function>
+  <Justification />
+  <Eula>https://developer3.oculus.com/licenses/sdk-3.4.1/</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OCULUS_LibOVR_LICENSE.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OCULUS_OVRPlugin_LICENSE.txt</LicenseFolder>
 </TpsData>

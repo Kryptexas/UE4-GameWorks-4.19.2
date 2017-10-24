@@ -165,7 +165,7 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FStructu
 
 		const uint32 BufferUsage = StructuredBuffer->GetUsage();
 		const bool bByteAccessBuffer = (BufferUsage & BUF_ByteAddressBuffer) != 0;
-
+		const bool bUINT8Access = (BufferUsage & BUF_UINT8) != 0;
 		// Create a Shader Resource View
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -178,6 +178,13 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FStructu
 			SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 			SRVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			Stride = 4;
+		}
+		else if (bUINT8Access)
+		{
+			SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			SRVDesc.Format = DXGI_FORMAT_R8_UINT;
+			Stride = 1;
+			SRVDesc.Buffer.StructureByteStride = Stride;
 		}
 		else
 		{
@@ -245,9 +252,52 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FVertexB
 
 FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef BufferRHI)
 {
-	UE_LOG(LogRHI, Fatal, TEXT("D3D12 RHI doesn't support RHICreateShaderResourceView with FIndexBufferRHIParamRef yet!"));
+	FD3D12IndexBuffer* IndexBuffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
+	return GetAdapter().CreateLinkedViews<FD3D12IndexBuffer, FD3D12ShaderResourceView>(IndexBuffer,
+		[](FD3D12IndexBuffer* IndexBuffer)
+	{
+		check(IndexBuffer);
 
-	return FShaderResourceViewRHIRef();
+		FD3D12ResourceLocation& Location = IndexBuffer->ResourceLocation;
+
+		const uint32 Width = IndexBuffer->GetSize();
+
+		FD3D12Resource* pResource = Location.GetResource();
+
+		uint32 CreationStride = IndexBuffer->GetStride();
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		if (IndexBuffer->GetUsage() & BUF_ByteAddressBuffer)
+		{
+			check(CreationStride == 4u);
+			SRVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+			SRVDesc.Buffer.NumElements = Width / 4;
+			SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+		}
+		else
+		{
+			check(CreationStride == 2u || CreationStride == 4u);
+			SRVDesc.Format = CreationStride == 2u ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+			SRVDesc.Buffer.NumElements = Width / CreationStride;
+		}
+		SRVDesc.Buffer.StructureByteStride = 0;
+
+		if (pResource)
+		{
+			// Create a Shader Resource View
+			SRVDesc.Buffer.FirstElement = Location.GetOffsetFromBaseOfResource() / CreationStride;
+		}
+		else
+		{
+			// Null underlying D3D12 resource should only be the case for dynamic resources
+			check(IndexBuffer->GetUsage() & BUF_AnyDynamic);
+		}
+
+		FD3D12ShaderResourceView* ShaderResourceView = new FD3D12ShaderResourceView(IndexBuffer->GetParentDevice(), &SRVDesc, &Location, CreationStride);
+		return ShaderResourceView;
+	});
 }
 
 FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)

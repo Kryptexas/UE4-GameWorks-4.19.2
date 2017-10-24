@@ -149,10 +149,11 @@ void FEditToolDragOperation::EndTransaction()
 	Sequencer.NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 }
 
-FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, bool bInDraggingByEnd )
+FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, bool bInDraggingByEnd, bool bInIsSlipping )
 	: FEditToolDragOperation( InSequencer )
 	, Sections( MoveTemp(InSections) )
 	, bDraggingByEnd(bInDraggingByEnd)
+	, bIsSlipping(bInIsSlipping)
 	, MouseDownTime(0.f)
 {
 }
@@ -265,6 +266,10 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 						float DilationFactor = NewSize / Section->GetTimeSize();
 						SequencerSection->DilateSection(DilationFactor, Section->GetStartTime(), DraggedKeyHandles);
 					}
+					else if (bIsSlipping)
+					{
+						SequencerSection->SlipSection( NewTime );
+					}
 					else
 					{
 						SequencerSection->ResizeSection( SSRM_TrailingEdge, NewTime );
@@ -281,6 +286,10 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 						float NewSize = Section->GetEndTime() - NewTime;
 						float DilationFactor = NewSize / Section->GetTimeSize();
 						SequencerSection->DilateSection(DilationFactor, Section->GetEndTime(), DraggedKeyHandles);
+					}
+					else if (bIsSlipping)
+					{
+						SequencerSection->SlipSection( NewTime );
 					}
 					else
 					{

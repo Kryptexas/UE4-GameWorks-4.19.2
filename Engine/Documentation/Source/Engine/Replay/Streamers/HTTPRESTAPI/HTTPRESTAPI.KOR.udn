@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260683
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title: HTTP 스트리머 REST API
 Crumbs: %ROOT%, Engine, Engine/Replay, Engine/Replay/Streamers
@@ -48,7 +48,7 @@ HTTP 스트리머의 REST API 는 게임 서버에서 리플레이 서버로 리
 
 #### 반응
 
-`FNetworkReplayStartUploadingResponse` 유형 반응을 기대하는데, 여기에는 "sessionId" 스트링이 정의된 JSON 데이터가 포함되어 있습니다. 이 값은 HTTP 스트리머와 앞으로 있을 통신에 **Session Name** 으로 사용됩니다. <Session Name Override> 옵션이 제공된 경우, 반환되는 "sessionId" 와 그에 따른 최종 <Session Name> 은 같은 값이 될 것입니다. 이런 식으로 게임에서 세션 이름을 요청하는 것입니다.
+`FNetworkReplayStartUploadingResponse` 유형 반응을 기대하는데, 여기에는 "sessionId" 스트링이 정의된 JSON 데이터가 포함되어 있습니다. 이 값은 HTTP 스트리머와 앞으로 있을 통신에 **Session Name** 으로 사용됩니다. `<Session Name Override>` 옵션이 제공된 경우, 반환되는 "sessionId" 와 그에 따른 최종 `<Session Name>` 은 같은 값이 될 것입니다. 이런 식으로 게임에서 세션 이름을 요청하는 것입니다.
 
 | 이름 | 유형 | 내용 |
 | --- | --- | --- |
@@ -445,7 +445,7 @@ JSON 포맷 스트링 형태의 내용으로 된 반응을 기대합니다.
 | replays | Array | 이 표의 다른 모든 칸을 이루는 요소가 들어있습니다. |
 | AppName | String | 리플레이가 업로드되었을 때 전송된 **Replay Version AppString** 입니다. 요청과 함께 전송한 파라미터에 일치해야 합니다. |
 | SessionName | String | 리플레이의 이름 (GUID) 입니다. |
-| FriendlyName | String | 리플레이가 업로드되었을 때 제공된 <Platform Friendly Name> 입니다. |
+| FriendlyName | String | 리플레이가 업로드되었을 때 제공된 `<Platform Friendly Name>` 입니다. |
 | Timestamp | DateTime | 리플레이에 연관된 시간과 날짜 (이 게임이 플레이 시점) 입니다. |
 | SizeInBytes | Integer | 리플레이의 바이트 단위 총 크기입니다. |
 | DemoTimeInMs | Integer | 리플레이의 MS 단위 실행 길이입니다. |
@@ -489,7 +489,7 @@ JSON 포맷 스트링 형태의 내용으로 된 반응을 기대합니다.
 | replays | Array | 이 표의 다른 모든 칸을 이루는 요소가 들어있습니다. |
 | AppName | String | 리플레이가 업로드되었을 때 전송된 **Replay Version AppString** 입니다. |
 | SessionName | String | 리플레이의 이름 (GUID) 입니다. |
-| FriendlyName | String | 리플레이가 업로드되었을 때 제공된 <Platform Friendly Name> 입니다. |
+| FriendlyName | String | 리플레이가 업로드되었을 때 제공된 `<Platform Friendly Name>` 입니다. |
 | Timestamp | DateTime | 리플레이에 연관된 시간과 날짜 (이 게임이 플레이 시점) 입니다. |
 | SizeInBytes | Integer | 리플레이의 바이트 단위 총 크기입니다. |
 | DemoTimeInMs | Integer | 리플레이의 MS 단위 실행 길이입니다. |

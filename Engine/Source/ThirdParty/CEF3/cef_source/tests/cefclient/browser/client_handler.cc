@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/client_handler.h"
+#include "tests/cefclient/browser/client_handler.h"
 
 #include <stdio.h>
 #include <algorithm>
@@ -14,12 +14,14 @@
 #include "include/cef_browser.h"
 #include "include/cef_frame.h"
 #include "include/cef_parser.h"
+#include "include/cef_ssl_status.h"
+#include "include/cef_x509_certificate.h"
 #include "include/wrapper/cef_closure_task.h"
-#include "cefclient/browser/main_context.h"
-#include "cefclient/browser/resource_util.h"
-#include "cefclient/browser/root_window_manager.h"
-#include "cefclient/browser/test_runner.h"
-#include "cefclient/common/client_switches.h"
+#include "tests/cefclient/browser/main_context.h"
+#include "tests/cefclient/browser/root_window_manager.h"
+#include "tests/cefclient/browser/test_runner.h"
+#include "tests/shared/browser/resource_util.h"
+#include "tests/shared/common/client_switches.h"
 
 namespace client {
 
@@ -36,6 +38,7 @@ enum client_menu_ids {
   CLIENT_ID_SHOW_DEVTOOLS   = MENU_ID_USER_FIRST,
   CLIENT_ID_CLOSE_DEVTOOLS,
   CLIENT_ID_INSPECT_ELEMENT,
+  CLIENT_ID_SHOW_SSL_INFO,
   CLIENT_ID_TESTMENU_SUBMENU,
   CLIENT_ID_TESTMENU_CHECKITEM,
   CLIENT_ID_TESTMENU_RADIOITEM1,
@@ -82,8 +85,10 @@ std::string GetBinaryString(CefRefPtr<CefBinaryValue> value) {
   return CefBase64Encode(src.data(), src.size());
 }
 
+#define FLAG(flag) if (status & flag) result += std::string(#flag) + "<br/>"
+#define VALUE(val,def) if (val == def) return std::string(#def)
+
 std::string GetCertStatusString(cef_cert_status_t status) {
-  #define FLAG(flag) if (status & flag) result += std::string(#flag) + "<br/>"
   std::string result;
 
   FLAG(CERT_STATUS_COMMON_NAME_INVALID);
@@ -103,6 +108,29 @@ std::string GetCertStatusString(cef_cert_status_t status) {
   FLAG(CERT_STATUS_REV_CHECKING_ENABLED);
   FLAG(CERT_STATUS_SHA1_SIGNATURE_PRESENT);
   FLAG(CERT_STATUS_CT_COMPLIANCE_FAILED);
+
+  if (result.empty())
+    return "&nbsp;";
+  return result;
+}
+
+std::string GetSSLVersionString(cef_ssl_version_t version) {
+  VALUE(version, SSL_CONNECTION_VERSION_UNKNOWN);
+  VALUE(version, SSL_CONNECTION_VERSION_SSL2);
+  VALUE(version, SSL_CONNECTION_VERSION_SSL3);
+  VALUE(version, SSL_CONNECTION_VERSION_TLS1);
+  VALUE(version, SSL_CONNECTION_VERSION_TLS1_1);
+  VALUE(version, SSL_CONNECTION_VERSION_TLS1_2);
+  VALUE(version, SSL_CONNECTION_VERSION_QUIC);
+  return std::string();
+}
+
+std::string GetContentStatusString(cef_ssl_content_status_t status) {
+  std::string result;
+
+  VALUE(status, SSL_CONTENT_NORMAL_CONTENT);
+  FLAG(SSL_CONTENT_DISPLAYED_INSECURE_CONTENT);
+  FLAG(SSL_CONTENT_RAN_INSECURE_CONTENT);
 
   if (result.empty())
     return "&nbsp;";
@@ -129,13 +157,90 @@ void LoadErrorPage(CefRefPtr<CefFrame> frame,
   frame->LoadURL(test_runner::GetDataURI(ss.str(), "text/html"));
 }
 
+// Return HTML string with information about a certificate.
+std::string GetCertificateInformation(CefRefPtr<CefX509Certificate> cert,
+    cef_cert_status_t certstatus) {
+  CefRefPtr<CefX509CertPrincipal> subject = cert->GetSubject();
+  CefRefPtr<CefX509CertPrincipal> issuer = cert->GetIssuer();
+
+  // Build a table showing certificate information. Various types of invalid
+  // certificates can be tested using https://badssl.com/.
+  std::stringstream ss;
+  ss << "<h3>X.509 Certificate Information:</h3>"
+        "<table border=1><tr><th>Field</th><th>Value</th></tr>";
+
+  if (certstatus != CERT_STATUS_NONE) {
+    ss << "<tr><td>Status</td><td>" <<
+              GetCertStatusString(certstatus) << "</td></tr>";
+  }
+
+  ss << "<tr><td>Subject</td><td>" <<
+            (subject.get() ? subject->GetDisplayName().ToString() : "&nbsp;") <<
+            "</td></tr>"
+        "<tr><td>Issuer</td><td>" <<
+            (issuer.get() ? issuer->GetDisplayName().ToString() : "&nbsp;") <<
+            "</td></tr>"
+        "<tr><td>Serial #*</td><td>" <<
+            GetBinaryString(cert->GetSerialNumber()) << "</td></tr>" <<
+        "<tr><td>Valid Start</td><td>" <<
+            GetTimeString(cert->GetValidStart()) << "</td></tr>"
+        "<tr><td>Valid Expiry</td><td>" <<
+            GetTimeString(cert->GetValidExpiry()) << "</td></tr>";
+
+  CefX509Certificate::IssuerChainBinaryList der_chain_list;
+  CefX509Certificate::IssuerChainBinaryList pem_chain_list;
+  cert->GetDEREncodedIssuerChain(der_chain_list);
+  cert->GetPEMEncodedIssuerChain(pem_chain_list);
+  DCHECK_EQ(der_chain_list.size(), pem_chain_list.size());
+
+  der_chain_list.insert(der_chain_list.begin(), cert->GetDEREncoded());
+  pem_chain_list.insert(pem_chain_list.begin(), cert->GetPEMEncoded());
+
+  for (size_t i = 0U; i < der_chain_list.size(); ++i) {
+    ss << "<tr><td>DER Encoded*</td>"
+          "<td style=\"max-width:800px;overflow:scroll;\">" <<
+              GetBinaryString(der_chain_list[i]) << "</td></tr>"
+          "<tr><td>PEM Encoded*</td>"
+          "<td style=\"max-width:800px;overflow:scroll;\">" <<
+              GetBinaryString(pem_chain_list[i]) << "</td></tr>";
+  }
+
+  ss << "</table> * Displayed value is base64 encoded.";
+  return ss.str();
+}
+
 }  // namespace
+
+
+class ClientDownloadImageCallback : public CefDownloadImageCallback {
+ public:
+  explicit ClientDownloadImageCallback(
+      CefRefPtr<ClientHandler> client_handler)
+      : client_handler_(client_handler) {
+  }
+
+  void OnDownloadImageFinished(
+      const CefString& image_url,
+      int http_status_code,
+      CefRefPtr<CefImage> image) OVERRIDE {
+    if (image)
+      client_handler_->NotifyFavicon(image);
+  }
+
+ private:
+  CefRefPtr<ClientHandler> client_handler_;
+
+  IMPLEMENT_REFCOUNTING(ClientDownloadImageCallback);
+  DISALLOW_COPY_AND_ASSIGN(ClientDownloadImageCallback);
+};
+
 
 ClientHandler::ClientHandler(Delegate* delegate,
                              bool is_osr,
                              const std::string& startup_url)
   : is_osr_(is_osr),
     startup_url_(startup_url),
+    download_favicon_images_(false),
     delegate_(delegate),
     browser_count_(0),
     console_log_file_(MainContext::Get()->GetConsoleLogPath()),
@@ -212,9 +317,17 @@ void ClientHandler::OnBeforeContextMenu(
     model->AddSeparator();
     model->AddItem(CLIENT_ID_INSPECT_ELEMENT, "Inspect Element");
 
+    if (HasSSLInformation(browser)) {
+      model->AddSeparator();
+      model->AddItem(CLIENT_ID_SHOW_SSL_INFO, "Show SSL information");
+    }
+
     // Test context menu features.
     BuildTestMenu(model);
   }
+
+  if (delegate_)
+    delegate_->OnBeforeContextMenu(model);
 }
 
 bool ClientHandler::OnContextMenuCommand(
@@ -234,6 +347,9 @@ bool ClientHandler::OnContextMenuCommand(
       return true;
     case CLIENT_ID_INSPECT_ELEMENT:
       ShowDevTools(browser, CefPoint(params->GetXCoord(), params->GetYCoord()));
+      return true;
+    case CLIENT_ID_SHOW_SSL_INFO:
+      ShowSSLInformation(browser);
       return true;
     default:  // Allow default handling, if any.
       return ExecuteTestMenu(command_id);
@@ -255,6 +371,17 @@ void ClientHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
   CEF_REQUIRE_UI_THREAD();
 
   NotifyTitle(title);
+}
+
+void ClientHandler::OnFaviconURLChange(
+    CefRefPtr<CefBrowser> browser,
+    const std::vector<CefString>& icon_urls) {
+  CEF_REQUIRE_UI_THREAD();
+
+  if (!icon_urls.empty() && download_favicon_images_) {
+    browser->GetHost()->DownloadImage(icon_urls[0], true, 16, false,
+                                      new ClientDownloadImageCallback(this));
+  }
 }
 
 void ClientHandler::OnFullscreenModeChange(CefRefPtr<CefBrowser> browser,
@@ -320,9 +447,12 @@ bool ClientHandler::OnDragEnter(CefRefPtr<CefBrowser> browser,
                                 CefDragHandler::DragOperationsMask mask) {
   CEF_REQUIRE_UI_THREAD();
 
-  // Forbid dragging of link URLs.
-  if (mask & DRAG_OPERATION_LINK)
+  // Forbid dragging of URLs and files.
+  if ((mask & DRAG_OPERATION_LINK) && !dragData->IsFragment()) {
+    test_runner::Alert(
+        browser, "cefclient blocks dragging of URLs and files");
     return true;
+  }
 
   return false;
 }
@@ -333,6 +463,12 @@ void ClientHandler::OnDraggableRegionsChanged(
   CEF_REQUIRE_UI_THREAD();
 
   NotifyDraggableRegions(regions);
+}
+
+void ClientHandler::OnTakeFocus(CefRefPtr<CefBrowser> browser, bool next) {
+  CEF_REQUIRE_UI_THREAD();
+
+  NotifyTakeFocus(next);
 }
 
 bool ClientHandler::OnRequestGeolocationPermission(
@@ -563,53 +699,50 @@ bool ClientHandler::OnCertificateError(
     CefRefPtr<CefRequestCallback> callback) {
   CEF_REQUIRE_UI_THREAD();
 
-  CefRefPtr<CefSSLCertPrincipal> subject = ssl_info->GetSubject();
-  CefRefPtr<CefSSLCertPrincipal> issuer = ssl_info->GetIssuer();
-
-  // Build a table showing certificate information. Various types of invalid
-  // certificates can be tested using https://badssl.com/.
-  std::stringstream ss;
-  ss << "X.509 Certificate Information:"
-        "<table border=1><tr><th>Field</th><th>Value</th></tr>" <<
-        "<tr><td>Subject</td><td>" <<
-            (subject.get() ? subject->GetDisplayName().ToString() : "&nbsp;") <<
-            "</td></tr>"
-        "<tr><td>Issuer</td><td>" <<
-            (issuer.get() ? issuer->GetDisplayName().ToString() : "&nbsp;") <<
-            "</td></tr>"
-        "<tr><td>Serial #*</td><td>" <<
-            GetBinaryString(ssl_info->GetSerialNumber()) << "</td></tr>"
-        "<tr><td>Status</td><td>" <<
-            GetCertStatusString(ssl_info->GetCertStatus()) << "</td></tr>"
-        "<tr><td>Valid Start</td><td>" <<
-            GetTimeString(ssl_info->GetValidStart()) << "</td></tr>"
-        "<tr><td>Valid Expiry</td><td>" <<
-            GetTimeString(ssl_info->GetValidExpiry()) << "</td></tr>";
-
-  CefSSLInfo::IssuerChainBinaryList der_chain_list;
-  CefSSLInfo::IssuerChainBinaryList pem_chain_list;
-  ssl_info->GetDEREncodedIssuerChain(der_chain_list);
-  ssl_info->GetPEMEncodedIssuerChain(pem_chain_list);
-  DCHECK_EQ(der_chain_list.size(), pem_chain_list.size());
-
-  der_chain_list.insert(der_chain_list.begin(), ssl_info->GetDEREncoded());
-  pem_chain_list.insert(pem_chain_list.begin(), ssl_info->GetPEMEncoded());
-
-  for (size_t i = 0U; i < der_chain_list.size(); ++i) {
-    ss << "<tr><td>DER Encoded*</td>"
-          "<td style=\"max-width:800px;overflow:scroll;\">" <<
-              GetBinaryString(der_chain_list[i]) << "</td></tr>"
-          "<tr><td>PEM Encoded*</td>"
-          "<td style=\"max-width:800px;overflow:scroll;\">" <<
-              GetBinaryString(pem_chain_list[i]) << "</td></tr>";
+  CefRefPtr<CefX509Certificate> cert = ssl_info->GetX509Certificate();
+  if (cert.get()) {
+    // Load the error page.
+    LoadErrorPage(browser->GetMainFrame(), request_url, cert_error,
+                  GetCertificateInformation(cert, ssl_info->GetCertStatus()));
   }
 
-  ss << "</table> * Displayed value is base64 encoded.";
-
-  // Load the error page.
-  LoadErrorPage(browser->GetMainFrame(), request_url, cert_error, ss.str());
-
   return false;  // Cancel the request.
+}
+
+bool ClientHandler::OnSelectClientCertificate(
+    CefRefPtr<CefBrowser> browser,
+    bool isProxy,
+    const CefString& host,
+    int port,
+    const X509CertificateList& certificates,
+    CefRefPtr<CefSelectClientCertificateCallback> callback) {
+  CEF_REQUIRE_UI_THREAD();
+
+  CefRefPtr<CefCommandLine> command_line =
+      CefCommandLine::GetGlobalCommandLine();
+  if (!command_line->HasSwitch(switches::kSslClientCertificate)) {
+    return false;
+  }
+
+  const std::string& cert_name =
+      command_line->GetSwitchValue(switches::kSslClientCertificate);
+
+  if (cert_name.empty()) {
+    callback->Select(NULL);
+    return true;
+  }
+
+  std::vector<CefRefPtr<CefX509Certificate> >::const_iterator it =
+      certificates.begin();
+  for (; it != certificates.end(); ++it) {
+    CefString subject((*it)->GetSubject()->GetDisplayName());
+    if (subject == cert_name) {
+      callback->Select(*it);
+      return true;
+    }
+  }
+
+  return true;
 }
 
 void ClientHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
@@ -651,14 +784,33 @@ int ClientHandler::GetBrowserCount() const {
 
 void ClientHandler::ShowDevTools(CefRefPtr<CefBrowser> browser,
                                  const CefPoint& inspect_element_at) {
+  if (!CefCurrentlyOn(TID_UI)) {
+    // Execute this method on the UI thread.
+    CefPostTask(TID_UI, base::Bind(&ClientHandler::ShowDevTools, this, browser,
+                                   inspect_element_at));
+    return;
+  }
+
   CefWindowInfo windowInfo;
   CefRefPtr<CefClient> client;
   CefBrowserSettings settings;
 
-  if (CreatePopupWindow(browser, true, CefPopupFeatures(), windowInfo, client,
-                        settings)) {
-    browser->GetHost()->ShowDevTools(windowInfo, client, settings,
-                                     inspect_element_at);
+  CefRefPtr<CefBrowserHost> host = browser->GetHost();
+
+  // Test if the DevTools browser already exists.
+  bool has_devtools = host->HasDevTools();
+  if (!has_devtools) {
+    // Create a new RootWindow for the DevTools browser that will be created
+    // by ShowDevTools().
+    has_devtools = CreatePopupWindow(browser, true, CefPopupFeatures(),
+                                     windowInfo, client, settings);
+  }
+
+  if (has_devtools) {
+    // Create the DevTools browser if it doesn't already exist.
+    // Otherwise, focus the existing DevTools browser and inspect the element
+    // at |inspect_element_at| if non-empty.
+    host->ShowDevTools(windowInfo, client, settings, inspect_element_at);
   }
 }
 
@@ -666,6 +818,56 @@ void ClientHandler::CloseDevTools(CefRefPtr<CefBrowser> browser) {
   browser->GetHost()->CloseDevTools();
 }
 
+bool ClientHandler::HasSSLInformation(CefRefPtr<CefBrowser> browser) {
+  CefRefPtr<CefNavigationEntry> nav =
+      browser->GetHost()->GetVisibleNavigationEntry();
+
+  return (nav && nav->GetSSLStatus() &&
+          nav->GetSSLStatus()->IsSecureConnection());
+}
+
+void ClientHandler::ShowSSLInformation(CefRefPtr<CefBrowser> browser) {
+  std::stringstream ss;
+  CefRefPtr<CefNavigationEntry> nav =
+      browser->GetHost()->GetVisibleNavigationEntry();
+  if (!nav)
+    return;
+
+  CefRefPtr<CefSSLStatus> ssl = nav->GetSSLStatus();
+  if (!ssl)
+    return;
+
+  ss << "<html><head><title>SSL Information</title></head>"
+        "<body bgcolor=\"white\">"
+        "<h3>SSL Connection</h3>" <<
+        "<table border=1><tr><th>Field</th><th>Value</th></tr>";
+
+  CefURLParts urlparts;
+  if (CefParseURL(nav->GetURL(), urlparts)) {
+    CefString port(&urlparts.port);
+    ss << "<tr><td>Server</td><td>" << CefString(&urlparts.host).ToString();
+    if (!port.empty())
+      ss << ":" << port.ToString();
+    ss << "</td></tr>";
+  }
+
+  ss << "<tr><td>SSL Version</td><td>" <<
+            GetSSLVersionString(ssl->GetSSLVersion()) << "</td></tr>";
+  ss << "<tr><td>Content Status</td><td>" <<
+            GetContentStatusString(ssl->GetContentStatus()) << "</td></tr>";
+
+  ss << "</table>";
+
+  CefRefPtr<CefX509Certificate> cert = ssl->GetX509Certificate();
+  if (cert.get())
+    ss << GetCertificateInformation(cert, ssl->GetCertStatus());
+
+  ss << "</body></html>";
+
+  MainContext::Get()->GetRootWindowManager()->CreateRootWindow(
+      false, is_osr(), CefRect(),
+      test_runner::GetDataURI(ss.str(), "text/html"));
+}
 
 bool ClientHandler::CreatePopupWindow(
     CefRefPtr<CefBrowser> browser,
@@ -745,6 +947,18 @@ void ClientHandler::NotifyTitle(const CefString& title) {
     delegate_->OnSetTitle(title);
 }
 
+void ClientHandler::NotifyFavicon(CefRefPtr<CefImage> image) {
+  if (!CURRENTLY_ON_MAIN_THREAD()) {
+    // Execute this method on the main thread.
+    MAIN_POST_CLOSURE(
+        base::Bind(&ClientHandler::NotifyFavicon, this, image));
+    return;
+  }
+
+  if (delegate_)
+    delegate_->OnSetFavicon(image);
+}
+
 void ClientHandler::NotifyFullscreen(bool fullscreen) {
   if (!CURRENTLY_ON_MAIN_THREAD()) {
     // Execute this method on the main thread.
@@ -783,6 +997,18 @@ void ClientHandler::NotifyDraggableRegions(
 
   if (delegate_)
     delegate_->OnSetDraggableRegions(regions);
+}
+
+void ClientHandler::NotifyTakeFocus(bool next) {
+  if (!CURRENTLY_ON_MAIN_THREAD()) {
+    // Execute this method on the main thread.
+    MAIN_POST_CLOSURE(
+        base::Bind(&ClientHandler::NotifyTakeFocus, this, next));
+    return;
+  }
+
+  if (delegate_)
+    delegate_->OnTakeFocus(next);
 }
 
 void ClientHandler::BuildTestMenu(CefRefPtr<CefMenuModel> model) {

@@ -13,6 +13,7 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/Paths.h"
 #include "AssetRegistryState.h"
+#include "HAL/PlatformFilemanager.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -61,7 +62,7 @@ struct FPrimaryAssetData
 	FName AssetDataPath;
 
 	/** Path to this asset on disk */
-	FAssetPtr AssetPtr;
+	FSoftObjectPtr AssetPtr;
 
 	/** Current state of this asset */
 	FPrimaryAssetLoadState CurrentState;
@@ -102,9 +103,12 @@ UAssetManager::UAssetManager()
 	bIsGlobalAsyncScanEnvironment = false;
 	bShouldGuessTypeAndName = false;
 	bShouldUseSynchronousLoad = false;
+	bIsLoadingFromPakFiles = false;
+	bShouldAcquireMissingChunksOnLoad = false;
 	bIsBulkScanning = false;
 	bIsManagementDatabaseCurrent = false;
 	bUpdateManagementDatabaseAfterScan = false;
+	bIncludeOnlyOnDiskAssets = true;
 	NumberOfSpawnedNotifications = 0;
 }
 
@@ -133,11 +137,20 @@ void UAssetManager::PostInitProperties()
 		FEditorDelegates::EndPIE.AddUObject(this, &UAssetManager::EndPIE);
 
 		// In editor builds guess the type/name if allowed
-		bShouldGuessTypeAndName = GetSettings().bShouldGuessTypeAndNameInEditor;
+		bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
+		bOnlyCookProductionAssets = Settings.bOnlyCookProductionAssets;
+
+		// In editor builds, always allow asset registry searches for in-memory asset data, as that data can change when propagating AssetBundle tags post load.
+		bIncludeOnlyOnDiskAssets = false;
 #else 
 		// Never guess type in cooked builds
 		bShouldGuessTypeAndName = false;
+
+		// Only cooked builds supoprt pak files and chunk download
+		bIsLoadingFromPakFiles = FPlatformFileManager::Get().FindPlatformFile(TEXT("PakFile")) != nullptr;
+		bShouldAcquireMissingChunksOnLoad = Settings.bShouldAcquireMissingChunksOnLoad;
 #endif
+		
 		bShouldUseSynchronousLoad = IsRunningCommandlet();
 
 		LoadRedirectorMaps();
@@ -436,14 +449,16 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 
 		FPrimaryAssetData* OldData = TypeData.AssetMap.Find(PrimaryAssetId.PrimaryAssetName);
 
-		FStringAssetReference NewStringReference = GetAssetPathForData(NewAssetData);
+		FSoftObjectPath NewAssetPath = GetAssetPathForData(NewAssetData);
 
-		if (OldData && OldData->AssetPtr.ToStringReference() != NewStringReference)
+		ensure(NewAssetPath.IsAsset());
+
+		if (OldData && OldData->AssetPtr.ToSoftObjectPath() != NewAssetPath)
 		{
-			UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetID %s, this must be resolved before saving. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *NewStringReference.ToString());
+			UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetID %s, this must be resolved before saving. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToString(), *NewAssetPath.ToString());
 			if (!bAllowDuplicates)
 			{
-				ensureMsgf(!OldData, TEXT("Found Duplicate PrimaryAssetID %s! Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *NewStringReference.ToString());
+				ensureMsgf(!OldData, TEXT("Found Duplicate PrimaryAssetID %s! Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToString(), *NewAssetPath.ToString());
 			}
 
 #if WITH_EDITOR
@@ -453,7 +468,7 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 				if (NumberOfSpawnedNotifications++ < MaxNotificationsPerFrame)
 				{
 					FNotificationInfo Info(FText::Format(LOCTEXT("DuplicateAssetId", "Duplicate Asset ID {0} used by {1} and {2}, you must delete or rename one!"),
-						FText::FromString(PrimaryAssetId.ToString()), FText::FromString(OldData->AssetPtr.ToStringReference().GetLongPackageName()), FText::FromString(NewStringReference.GetLongPackageName())));
+						FText::FromString(PrimaryAssetId.ToString()), FText::FromString(OldData->AssetPtr.ToSoftObjectPath().GetLongPackageName()), FText::FromString(NewAssetPath.GetLongPackageName())));
 					Info.ExpireDuration = 30.0f;
 
 					TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
@@ -470,7 +485,7 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 
 		// Update data and path, don't touch state or references
 		NameData.AssetDataPath = NewAssetData.ObjectPath; // This will not have _C
-		NameData.AssetPtr = FAssetPtr(NewStringReference); // This will have _C
+		NameData.AssetPtr = FSoftObjectPtr(NewAssetPath); // This will have _C
 
 		// If the types don't match, update the registry
 		FPrimaryAssetId SavedId = NewAssetData.GetPrimaryAssetId();
@@ -483,7 +498,7 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 		if (bIsBulkScanning)
 		{
 			// Do a partial update, add to the path->asset map
-			AssetPathMap.Add(FName(*NewStringReference.ToString()), PrimaryAssetId);
+			AssetPathMap.Add(NewAssetPath.GetAssetPathName(), PrimaryAssetId);
 		}
 
 		if (OldData)
@@ -492,7 +507,7 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 		}
 		
 		// Mark these as editor only if our type is editor only
-		FStringAssetReferenceSerializationScope SerializationScope(NAME_None, NAME_None, TypeData.Info.bIsEditorOnly ? EStringAssetReferenceCollectType::EditorOnlyCollect : EStringAssetReferenceCollectType::AlwaysCollect);
+		FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, TypeData.Info.bIsEditorOnly ? ESoftObjectPathCollectType::EditorOnlyCollect : ESoftObjectPathCollectType::AlwaysCollect);
 
 		FAssetBundleData BundleData;
 		if (BundleData.SetFromAssetData(NewAssetData))
@@ -515,9 +530,14 @@ int32 UAssetManager::ScanPathForPrimaryAssets(FPrimaryAssetType PrimaryAssetType
 	return ScanPathsForPrimaryAssets(PrimaryAssetType, TArray<FString>{Path}, BaseClass, bHasBlueprintClasses, bIsEditorOnly, bForceSynchronousScan);
 }
 
-bool UAssetManager::AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const FStringAssetReference& AssetPath, const FAssetBundleData& BundleData)
+bool UAssetManager::AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const FSoftObjectPath& AssetPath, const FAssetBundleData& BundleData)
 {
 	if (!ensure(PrimaryAssetId.IsValid()))
+	{
+		return false;
+	}
+
+	if (!ensure(AssetPath.IsNull() || AssetPath.IsAsset()))
 	{
 		return false;
 	}
@@ -548,17 +568,17 @@ bool UAssetManager::AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const
 	FPrimaryAssetData* OldData = TypeData.AssetMap.Find(PrimaryAssetId.PrimaryAssetName);
 	FPrimaryAssetData& NameData = TypeData.AssetMap.FindOrAdd(PrimaryAssetId.PrimaryAssetName);
 
-	if (OldData && OldData->AssetPtr.ToStringReference() != AssetPath)
+	if (OldData && OldData->AssetPtr.ToSoftObjectPath() != AssetPath)
 	{
-		UE_LOG(LogAssetManager, Warning, TEXT("AddDynamicAsset on %s called with conflicting path. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *AssetPath.ToString());
+		UE_LOG(LogAssetManager, Warning, TEXT("AddDynamicAsset on %s called with conflicting path. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToString(), *AssetPath.ToString());
 	}
 
-	NameData.AssetPtr = FAssetPtr(AssetPath);
+	NameData.AssetPtr = FSoftObjectPtr(AssetPath);
 
 	if (bIsBulkScanning && AssetPath.IsValid())
 	{
 		// Do a partial update, add to the path->asset map
-		AssetPathMap.Add(FName(*AssetPath.ToString()), PrimaryAssetId);
+		AssetPathMap.Add(AssetPath.GetAssetPathName(), PrimaryAssetId);
 	}
 
 	if (OldData)
@@ -580,13 +600,13 @@ bool UAssetManager::AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const
 
 void UAssetManager::RecursivelyExpandBundleData(FAssetBundleData& BundleData)
 {
-	TArray<FStringAssetReference> ReferencesToExpand;
+	TArray<FSoftObjectPath> ReferencesToExpand;
 	TSet<FName> FoundBundleNames;
 
 	for (const FAssetBundleEntry& Entry : BundleData.Bundles)
 	{
 		FoundBundleNames.Add(Entry.BundleName);
-		for (const FStringAssetReference& Reference : Entry.BundleAssets)
+		for (const FSoftObjectPath& Reference : Entry.BundleAssets)
 		{
 			ReferencesToExpand.AddUnique(Reference);
 		}
@@ -607,7 +627,7 @@ void UAssetManager::RecursivelyExpandBundleData(FAssetBundleData& BundleData)
 				{
 					BundleData.AddBundleAssets(FoundEntry.BundleName, FoundEntry.BundleAssets);
 
-					for (const FStringAssetReference& FoundReference : FoundEntry.BundleAssets)
+					for (const FSoftObjectPath& FoundReference : FoundEntry.BundleAssets)
 					{
 						// Keep recursing
 						ReferencesToExpand.AddUnique(FoundReference);
@@ -755,18 +775,18 @@ bool UAssetManager::GetPrimaryAssetObjectList(FPrimaryAssetType PrimaryAssetType
 	return bAdded;
 }
 
-FStringAssetReference UAssetManager::GetPrimaryAssetPath(const FPrimaryAssetId& PrimaryAssetId) const
+FSoftObjectPath UAssetManager::GetPrimaryAssetPath(const FPrimaryAssetId& PrimaryAssetId) const
 {
 	const FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
 
 	if (NameData)
 	{
-		return NameData->AssetPtr.ToStringReference();
+		return NameData->AssetPtr.ToSoftObjectPath();
 	}
-	return FStringAssetReference();
+	return FSoftObjectPath();
 }
 
-bool UAssetManager::GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, TArray<FStringAssetReference>& AssetPathList) const
+bool UAssetManager::GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, TArray<FSoftObjectPath>& AssetPathList) const
 {
 	const TSharedRef<FPrimaryAssetTypeData>* FoundType = AssetTypeMap.Find(PrimaryAssetType);
 
@@ -778,7 +798,7 @@ bool UAssetManager::GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, 
 		{
 			if (!Pair.Value.AssetPtr.IsNull())
 			{
-				AssetPathList.AddUnique(Pair.Value.AssetPtr.ToStringReference());
+				AssetPathList.AddUnique(Pair.Value.AssetPtr.ToSoftObjectPath());
 			}
 		}
 	}
@@ -797,17 +817,9 @@ FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForData(const FAssetData& AssetD
 	return GetPrimaryAssetIdForPath(GetAssetPathForData(AssetData));
 }
 
-FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForPath(const FStringAssetReference& ObjectPath) const
+FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForPath(const FSoftObjectPath& ObjectPath) const
 {
-	FName PossibleAssetPath = FName(*ObjectPath.ToString(), FNAME_Find);
-
-	if (PossibleAssetPath == NAME_None)
-	{
-		// Never registered, can't be in map
-		return FPrimaryAssetId();
-	}
-
-	return GetPrimaryAssetIdForPath(PossibleAssetPath);
+	return GetPrimaryAssetIdForPath(ObjectPath.GetAssetPathName());
 }
 
 FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForPath(FName ObjectPath) const
@@ -931,7 +943,7 @@ void UAssetManager::GetPrimaryAssetTypeInfoList(TArray<FPrimaryAssetTypeInfo>& A
 
 TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToChange, const TArray<FName>& AddBundles, const TArray<FName>& RemoveBundles, bool bRemoveAllBundles, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
 {
-	TArray<TSharedPtr<FStreamableHandle> > NewHandles;
+	TArray<TSharedPtr<FStreamableHandle> > NewHandles, ExistingHandles;
 	TArray<FPrimaryAssetId> NewAssets;
 	TSharedPtr<FStreamableHandle> ReturnHandle;
 
@@ -970,6 +982,8 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 			{
 				if (NameData->PendingState.BundleNames == NewBundleState)
 				{
+					// This will wait on any existing handles to finish
+					ExistingHandles.Add(NameData->PendingState.Handle);
 					continue;
 				}
 				// Clear pending state
@@ -981,10 +995,10 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 				continue;
 			}
 
-			TSet<FStringAssetReference> PathsToLoad;
+			TSet<FSoftObjectPath> PathsToLoad;
 
 			// Gather asset refs
-			const FStringAssetReference& AssetPath = NameData->AssetPtr.ToStringReference();
+			const FSoftObjectPath& AssetPath = NameData->AssetPtr.ToSoftObjectPath();
 
 			if (!AssetPath.IsNull())
 			{
@@ -1026,15 +1040,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 				DebugName += TEXT(")");
 			}
 
-			// Create the per asset handle
-			if (bShouldUseSynchronousLoad)
-			{
-				NewHandle = StreamableManager.RequestSyncLoad(PathsToLoad.Array(), false, DebugName);
-			}
-			else
-			{
-				NewHandle = StreamableManager.RequestAsyncLoad(PathsToLoad.Array(), FStreamableDelegate(), Priority, false, DebugName);
-			}
+			NewHandle = LoadAssetList(PathsToLoad.Array(), FStreamableDelegate(), Priority, DebugName);
 
 			if (!ensureMsgf(NewHandle.IsValid(), TEXT("Requested load of Primary Asset with no referenced assets!")))
 			{
@@ -1061,9 +1067,11 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 		}
 	}
 
-	if (NewHandles.Num() > 1)
+	if (NewHandles.Num() > 1 || ExistingHandles.Num() > 0)
 	{
-		// If multiple handles, need to make wrapper handle
+		// If multiple handles or we have an old handle, need to make wrapper handle
+		NewHandles.Append(ExistingHandles);
+
 		ReturnHandle = StreamableManager.CreateCombinedHandle(NewHandles, FString::Printf(TEXT("%s CreateCombinedHandle"), *GetName()));
 
 		// Call delegate or bind to meta handle
@@ -1119,7 +1127,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForMatchingPrimary
 
 TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
 {
-	TSet<FStringAssetReference> PathsToLoad;
+	TSet<FSoftObjectPath> PathsToLoad;
 	FString DebugName;
 	TSharedPtr<FStreamableHandle> ReturnHandle;
 
@@ -1130,7 +1138,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<F
 		if (NameData)
 		{
 			// Gather asset refs
-			const FStringAssetReference& AssetPath = NameData->AssetPtr.ToStringReference();
+			const FSoftObjectPath& AssetPath = NameData->AssetPtr.ToSoftObjectPath();
 
 			if (!AssetPath.IsNull())
 			{
@@ -1172,15 +1180,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<F
 		}
 	}
 
-	if (bShouldUseSynchronousLoad)
-	{
-		ReturnHandle = StreamableManager.RequestSyncLoad(PathsToLoad.Array(), false, DebugName);
-		FStreamableHandle::ExecuteDelegate(DelegateToCall);
-	}
-	else
-	{
-		ReturnHandle = StreamableManager.RequestAsyncLoad(PathsToLoad.Array(), DelegateToCall, Priority, false, DebugName);
-	}
+	ReturnHandle = LoadAssetList(PathsToLoad.Array(), DelegateToCall, Priority, DebugName);
 
 	if (!ensureMsgf(ReturnHandle.IsValid(), TEXT("Requested preload of Primary Asset with no referenced assets!")))
 	{
@@ -1371,9 +1371,39 @@ int32 UAssetManager::UnloadPrimaryAssetsWithType(FPrimaryAssetType PrimaryAssetT
 	return UnloadPrimaryAssets(Assets);
 }
 
-TSharedPtr<FStreamableHandle> UAssetManager::LoadAssetList(const TArray<FStringAssetReference>& AssetList)
+TSharedPtr<FStreamableHandle> UAssetManager::LoadAssetList(const TArray<FSoftObjectPath>& AssetList, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, const FString& DebugName)
 {
-	return GetStreamableManager().RequestAsyncLoad(AssetList, FStreamableDelegate(), FStreamableManager::DefaultAsyncLoadPriority, false);
+	TSharedPtr<FStreamableHandle> NewHandle;
+	TArray<int32> MissingChunks, ErrorChunks;
+
+	if (bShouldAcquireMissingChunksOnLoad)
+	{
+		FindMissingChunkList(AssetList, MissingChunks, ErrorChunks);
+
+		if (ErrorChunks.Num() > 0)
+		{
+			// At least one chunk doesn't exist, fail
+			UE_LOG(LogAssetManager, Error, TEXT("Failure loading %s, Required chunk %d does not exist!"), *DebugName, ErrorChunks[0]);
+			return nullptr;
+		}
+	}
+
+	// SynchronousLoad doesn't make sense if chunks are missing
+	if (bShouldUseSynchronousLoad && MissingChunks.Num() > 0)
+	{
+		NewHandle = StreamableManager.RequestSyncLoad(AssetList, false, DebugName);
+	}
+	else
+	{
+		NewHandle = StreamableManager.RequestAsyncLoad(AssetList, DelegateToCall, Priority, false, MissingChunks.Num() > 0, DebugName);
+
+		if (MissingChunks.Num() > 0 && NewHandle.IsValid())
+		{
+			AcquireChunkList(MissingChunks, FAssetManagerAcquireResourceDelegate(), EChunkPriority::Immediate, NewHandle);
+		}
+	}
+
+	return NewHandle;
 }
 
 FAssetBundleEntry UAssetManager::GetAssetBundleEntry(const FPrimaryAssetId& BundleScope, FName BundleName) const
@@ -1409,6 +1439,242 @@ bool UAssetManager::GetAssetBundleEntries(const FPrimaryAssetId& BundleScope, TA
 		}
 	}
 	return bFoundAny;
+}
+
+bool UAssetManager::FindMissingChunkList(const TArray<FSoftObjectPath>& AssetList, TArray<int32>& OutMissingChunkList, TArray<int32>& OutErrorChunkList) const
+{
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	if (!ChunkInstall || !bIsLoadingFromPakFiles)
+	{
+		return false;
+	}
+
+	for (const FSoftObjectPath& Asset : AssetList)
+	{
+		FAssetData FoundData;
+		GetAssetDataForPath(Asset, FoundData);
+		
+		TSet<int32> FoundChunks, MissingChunks, ErrorChunks;
+
+		for (int32 ChunkId : FoundData.ChunkIDs)
+		{
+			EChunkLocation::Type ChunkLocation = ChunkInstall->GetChunkLocation(ChunkId);
+
+			switch (ChunkLocation)
+			{			
+			case EChunkLocation::DoesNotExist:
+				ErrorChunks.Add(ChunkId);
+				break;
+			case EChunkLocation::NotAvailable:
+				MissingChunks.Add(ChunkId);
+				break;
+			case EChunkLocation::LocalSlow:
+			case EChunkLocation::LocalFast:
+				FoundChunks.Add(ChunkId);
+				break;
+			}
+		}
+
+		// Assets may be redundantly in multiple chunks, if we have any of the chunks then we have the asset
+		if (FoundChunks.Num() == 0)
+		{
+			if (MissingChunks.Num() > 0)
+			{
+				int32 MissingChunkToAdd = -1;
+
+				for (int32 MissingChunkId : MissingChunks)
+				{
+					if (OutMissingChunkList.Contains(MissingChunkId))
+					{
+						// This chunk is already scheduled, don't add a new one
+						MissingChunkToAdd = -1;
+						break;
+					}
+					else if (MissingChunkToAdd == -1)
+					{
+						// Add the first mentioned missing chunk
+						MissingChunkToAdd = MissingChunkId;
+					}
+				}
+
+				if (MissingChunkToAdd != -1)
+				{
+					OutMissingChunkList.Add(MissingChunkToAdd);
+				}
+			}
+			else if (ErrorChunks.Num() > 0)
+			{
+				// Only have error chunks, report the errors
+				for (int32 ErrorChunkId : ErrorChunks)
+				{
+					OutErrorChunkList.Add(ErrorChunkId);
+				}
+			}
+		}
+	}
+
+	return OutMissingChunkList.Num() > 0 || OutErrorChunkList.Num() > 0;
+}
+
+void UAssetManager::AcquireChunkList(const TArray<int32>& ChunkList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority, TSharedPtr<FStreamableHandle> StalledHandle)
+{
+	FPendingChunkInstall* PendingChunkInstall = new(PendingChunkInstalls) FPendingChunkInstall;
+	PendingChunkInstall->ManualCallback = CompleteDelegate;
+	PendingChunkInstall->RequestedChunks = ChunkList;
+	PendingChunkInstall->PendingChunks = ChunkList;
+	PendingChunkInstall->StalledStreamableHandle = StalledHandle;
+
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	if (!ChunkInstallDelegateHandle.IsValid())
+	{
+		ChunkInstallDelegateHandle = ChunkInstall->AddChunkInstallDelegate(FPlatformChunkInstallDelegate::CreateUObject(this, &ThisClass::OnChunkDownloaded));
+	}
+
+	for (int32 MissingChunk : PendingChunkInstall->PendingChunks)
+	{
+		ChunkInstall->PrioritizeChunk(MissingChunk, Priority);
+	}
+}
+
+void UAssetManager::AcquireResourcesForAssetList(const TArray<FSoftObjectPath>& AssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority)
+{
+	TArray<int32> MissingChunks, ErrorChunks;
+
+	FindMissingChunkList(AssetList, MissingChunks, ErrorChunks);
+
+	if (ErrorChunks.Num() > 0)
+	{
+		// At least one chunk doesn't exist, fail
+		FStreamableDelegate TempDelegate = FStreamableDelegate::CreateLambda([CompleteDelegate]() {CompleteDelegate.ExecuteIfBound(false); });
+		FStreamableHandle::ExecuteDelegate(TempDelegate);
+
+		return;
+	}
+
+	if (MissingChunks.Num() == 0)
+	{
+		// All here, schedule the callback
+		FStreamableDelegate TempDelegate = FStreamableDelegate::CreateLambda([CompleteDelegate]() {CompleteDelegate.ExecuteIfBound(true); });
+		FStreamableHandle::ExecuteDelegate(TempDelegate);
+
+		return;
+	}
+	
+	AcquireChunkList(MissingChunks, CompleteDelegate, Priority, nullptr);
+}
+
+void UAssetManager::AcquireResourcesForPrimaryAssetList(const TArray<FPrimaryAssetId>& PrimaryAssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority)
+{
+	TSet<FSoftObjectPath> PathsToLoad;
+	TSharedPtr<FStreamableHandle> ReturnHandle;
+
+	for (const FPrimaryAssetId& PrimaryAssetId : PrimaryAssetList)
+	{
+		FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
+
+		if (NameData)
+		{
+			// Gather asset refs
+			const FSoftObjectPath& AssetPath = NameData->AssetPtr.ToSoftObjectPath();
+
+			if (!AssetPath.IsNull())
+			{
+				// Dynamic types can have no base asset path
+				PathsToLoad.Add(AssetPath);
+			}
+
+			TArray<FAssetBundleEntry> BundleEntries;
+			GetAssetBundleEntries(PrimaryAssetId, BundleEntries);
+			for (const FAssetBundleEntry& Entry : BundleEntries)
+			{
+				if (Entry.IsValid())
+				{
+					PathsToLoad.Append(Entry.BundleAssets);
+				}
+			}
+		}
+	}
+
+	AcquireResourcesForAssetList(PathsToLoad.Array(), CompleteDelegate, Priority);
+}
+
+bool UAssetManager::GetResourceAcquireProgress(int32& OutAcquiredCount, int32& OutRequestedCount) const
+{
+	OutAcquiredCount = OutRequestedCount = 0;
+	// Iterate pending callbacks, in order they were added
+	for (const FPendingChunkInstall& PendingChunkInstall : PendingChunkInstalls)
+	{
+		OutRequestedCount += PendingChunkInstall.RequestedChunks.Num();
+		OutAcquiredCount += (PendingChunkInstall.RequestedChunks.Num() - PendingChunkInstall.PendingChunks.Num());
+	}
+
+	return PendingChunkInstalls.Num() > 0;
+}
+
+void UAssetManager::OnChunkDownloaded(uint32 ChunkId, bool bSuccess)
+{
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	// Iterate pending callbacks, in order they were added
+	for (int32 i = 0; i < PendingChunkInstalls.Num(); i++)
+	{
+		// Make a copy so if we resize the array it's safe
+		FPendingChunkInstall PendingChunkInstall = PendingChunkInstalls[i];
+		if (PendingChunkInstall.PendingChunks.Contains(ChunkId))
+		{
+			bool bFailed = !bSuccess;
+			TArray<int32> NewPendingList;
+			
+			// Check all chunks if they are done or failed
+			for (int32 PendingChunkId : PendingChunkInstall.PendingChunks)
+			{
+				EChunkLocation::Type ChunkLocation = ChunkInstall->GetChunkLocation(PendingChunkId);
+
+				switch (ChunkLocation)
+				{
+				case EChunkLocation::DoesNotExist:
+					bFailed = true;
+					break;
+				case EChunkLocation::NotAvailable:
+					NewPendingList.Add(PendingChunkId);
+					break;
+				}
+			}
+
+			if (bFailed)
+			{
+				// Resize array first
+				PendingChunkInstalls.RemoveAt(i);
+				i--;
+
+				if (PendingChunkInstall.StalledStreamableHandle.IsValid())
+				{
+					PendingChunkInstall.StalledStreamableHandle->CancelHandle();
+				}
+
+				PendingChunkInstall.ManualCallback.ExecuteIfBound(false);
+			}
+			else if (NewPendingList.Num() == 0)
+			{
+				// Resize array first
+				PendingChunkInstalls.RemoveAt(i);
+				i--;
+
+				if (PendingChunkInstall.StalledStreamableHandle.IsValid())
+				{
+					PendingChunkInstall.StalledStreamableHandle->StartStalledHandle();
+				}
+
+				PendingChunkInstall.ManualCallback.ExecuteIfBound(true);
+			}
+			else
+			{
+				PendingChunkInstalls[i].PendingChunks = NewPendingList;
+			}
+		}
+	}
 }
 
 FPrimaryAssetData* UAssetManager::GetNameData(const FPrimaryAssetId& PrimaryAssetId, bool bCheckRedirector)
@@ -1467,12 +1733,12 @@ void UAssetManager::RebuildObjectReferenceList()
 		{
 			FPrimaryAssetData& NameData = NamePair.Value;
 			
-			const FStringAssetReference& AssetRef = NameData.AssetPtr.ToStringReference();
+			const FSoftObjectPath& AssetRef = NameData.AssetPtr.ToSoftObjectPath();
 
 			// Dynamic types can have null asset refs
 			if (!AssetRef.IsNull())
 			{
-				AssetPathMap.Add(FName(*AssetRef.ToString()), FPrimaryAssetId(TypePair.Key, NamePair.Key));
+				AssetPathMap.Add(AssetRef.GetAssetPathName(), FPrimaryAssetId(TypePair.Key, NamePair.Key));
 			}
 		}
 	}
@@ -1560,25 +1826,25 @@ FName UAssetManager::GetRedirectedAssetPath(FName OldPath) const
 	return NAME_None;
 }
 
-FStringAssetReference UAssetManager::GetRedirectedAssetPath(const FStringAssetReference& ObjectPath) const
+FSoftObjectPath UAssetManager::GetRedirectedAssetPath(const FSoftObjectPath& ObjectPath) const
 {
-	FName PossibleAssetPath = FName(*ObjectPath.ToString(), FNAME_Find);
+	FName PossibleAssetPath = ObjectPath.GetAssetPathName();
 
 	if (PossibleAssetPath == NAME_None)
 	{
-		return FStringAssetReference();
+		return FSoftObjectPath();
 	}
 
 	FName RedirectedName = GetRedirectedAssetPath(PossibleAssetPath);
 
 	if (RedirectedName == NAME_None)
 	{
-		return FStringAssetReference();
+		return FSoftObjectPath();
 	}
-	return FStringAssetReference(RedirectedName.ToString());
+	return FSoftObjectPath(RedirectedName, ObjectPath.GetSubPathString());
 }
 
-void UAssetManager::ExtractStringAssetReferences(const UStruct* Struct, const void* StructValue, TArray<FStringAssetReference>& FoundAssetReferences, const TArray<FName>& PropertiesToSkip) const
+void UAssetManager::ExtractSoftObjectPaths(const UStruct* Struct, const void* StructValue, TArray<FSoftObjectPath>& FoundAssetReferences, const TArray<FName>& PropertiesToSkip) const
 {
 	if (!ensure(Struct && StructValue))
 	{
@@ -1596,29 +1862,29 @@ void UAssetManager::ExtractStringAssetReferences(const UStruct* Struct, const vo
 			continue;
 		}
 
-		FStringAssetReference FoundRef;
-		if (const UAssetClassProperty* AssetClassProp = Cast<UAssetClassProperty>(Property))
+		FSoftObjectPath FoundRef;
+		if (const USoftClassProperty* AssetClassProp = Cast<USoftClassProperty>(Property))
 		{
-			const TAssetSubclassOf<UObject>* AssetClassPtr = reinterpret_cast<const TAssetSubclassOf<UObject>*>(PropertyValue);
+			const TSoftClassPtr<UObject>* AssetClassPtr = reinterpret_cast<const TSoftClassPtr<UObject>*>(PropertyValue);
 			if (AssetClassPtr)
 			{
-				FoundRef = AssetClassPtr->ToStringReference();
+				FoundRef = AssetClassPtr->ToSoftObjectPath();
 			}
 		}
-		else if (const UAssetObjectProperty* AssetProp = Cast<UAssetObjectProperty>(Property))
+		else if (const USoftObjectProperty* AssetProp = Cast<USoftObjectProperty>(Property))
 		{
-			const TAssetPtr<UObject>* AssetPtr = reinterpret_cast<const TAssetPtr<UObject>*>(PropertyValue);
+			const TSoftObjectPtr<UObject>* AssetPtr = reinterpret_cast<const TSoftObjectPtr<UObject>*>(PropertyValue);
 			if (AssetPtr)
 			{
-				FoundRef = AssetPtr->ToStringReference();
+				FoundRef = AssetPtr->ToSoftObjectPath();
 			}
 		}
 		else if (const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 		{
-			// String Class Reference is binary identical with StringAssetReference
-			if (StructProperty->Struct == TBaseStructure<FStringAssetReference>::Get() || StructProperty->Struct == TBaseStructure<FStringClassReference>::Get())
+			// SoftClassPath is binary identical with SoftObjectPath
+			if (StructProperty->Struct == TBaseStructure<FSoftObjectPath>::Get() || StructProperty->Struct == TBaseStructure<FSoftClassPath>::Get())
 			{
-				const FStringAssetReference* AssetRefPtr = reinterpret_cast<const FStringAssetReference*>(PropertyValue);
+				const FSoftObjectPath* AssetRefPtr = reinterpret_cast<const FSoftObjectPath*>(PropertyValue);
 				if (AssetRefPtr)
 				{
 					FoundRef = *AssetRefPtr;
@@ -1635,7 +1901,7 @@ void UAssetManager::ExtractStringAssetReferences(const UStruct* Struct, const vo
 	}
 }
 
-bool UAssetManager::GetAssetDataForPath(const FStringAssetReference& ObjectPath, FAssetData& AssetData) const
+bool UAssetManager::GetAssetDataForPath(const FSoftObjectPath& ObjectPath, FAssetData& AssetData) const
 {
 	if (ObjectPath.IsNull())
 	{
@@ -1647,7 +1913,7 @@ bool UAssetManager::GetAssetDataForPath(const FStringAssetReference& ObjectPath,
 	FString AssetPath = ObjectPath.ToString();
 
 	// First check local redirector
-	FStringAssetReference RedirectedPath = GetRedirectedAssetPath(ObjectPath);
+	FSoftObjectPath RedirectedPath = GetRedirectedAssetPath(ObjectPath);
 
 	if (RedirectedPath.IsValid())
 	{
@@ -1680,9 +1946,9 @@ bool UAssetManager::GetAssetDataForPath(const FStringAssetReference& ObjectPath,
 	return AssetData.IsValid();
 }
 
-FStringAssetReference UAssetManager::GetAssetPathForData(const FAssetData& AssetData) const
+FSoftObjectPath UAssetManager::GetAssetPathForData(const FAssetData& AssetData) const
 {
-	FString AssetPath = AssetData.ObjectPath.ToString();
+	FString AssetPath = AssetData.IsValid() ? AssetData.ObjectPath.ToString() : FString();
 
 	// All blueprint types end with blueprint as the class, there is no better test unfortunately
 	if (AssetData.AssetClass.ToString().EndsWith(TEXT("Blueprint")))
@@ -1690,7 +1956,7 @@ FStringAssetReference UAssetManager::GetAssetPathForData(const FAssetData& Asset
 		AssetPath += TEXT("_C");
 	}
 
-	return FStringAssetReference(AssetPath);
+	return FSoftObjectPath(AssetPath);
 }
 
 void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, const FString& AssetPath, OUT FAssetData& OutAssetData) const
@@ -1703,7 +1969,7 @@ void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, c
 	if (bIsClass)
 	{
 		// We need to strip the class suffix because the asset registry has it listed by blueprint name
-		const bool bIncludeOnlyOnDiskAssets = !GIsEditor;
+		
 		OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath.LeftChop(2)), bIncludeOnlyOnDiskAssets);
 
 		if (OutAssetData.IsValid())
@@ -1712,7 +1978,7 @@ void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, c
 		}
 	}
 
-	OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath));
+	OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath), bIncludeOnlyOnDiskAssets);
 }
 
 bool UAssetManager::WriteCustomReport(FString FileName, TArray<FString>& FileLines) const
@@ -1724,7 +1990,7 @@ bool UAssetManager::WriteCustomReport(FString FileName, TArray<FString>& FileLin
 	if (FileLines.Num())
 	{
 		// Create the file name		
-		FString FileLocation = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() + TEXT("Reports/"));
+		FString FileLocation = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() + TEXT("Reports/"));
 		FString FullPath = FString::Printf(TEXT("%s%s"), *FileLocation, *FileName);
 
 		// save file
@@ -2269,7 +2535,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 			// Get the list of directly referenced assets, the registry wants it as FNames
 			TArray<FName> AssetPackagesReferenced;
 
-			const FStringAssetReference& AssetRef = NameData.AssetPtr.ToStringReference();
+			const FSoftObjectPath& AssetRef = NameData.AssetPtr.ToSoftObjectPath();
 
 			if (AssetRef.IsValid())
 			{
@@ -2285,7 +2551,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 			{
 				for (const TPair<FName, FAssetBundleEntry>& BundlePair : *BundleMap)
 				{
-					for (const FStringAssetReference& BundleAssetRef : BundlePair.Value.BundleAssets)
+					for (const FSoftObjectPath& BundleAssetRef : BundlePair.Value.BundleAssets)
 					{
 						FString PackageName = BundleAssetRef.GetLongPackageName();
 
@@ -2346,7 +2612,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 		{
 			const FPrimaryAssetData& NameData = NamePair.Value;
 			FPrimaryAssetId PrimaryAssetId(TypePair.Key, NamePair.Key);
-			const FStringAssetReference& AssetRef = NameData.AssetPtr.ToStringReference();
+			const FSoftObjectPath& AssetRef = NameData.AssetPtr.ToSoftObjectPath();
 
 			if (AssetRef.IsValid())
 			{
@@ -2384,7 +2650,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 void UAssetManager::ApplyPrimaryAssetLabels()
 {
 	// Load all of them off disk. Turn off string asset reference tracking to avoid them getting cooked
-	FStringAssetReferenceSerializationScope SerializationScope(NAME_None, NAME_None, EStringAssetReferenceCollectType::NeverCollect);
+	FSoftObjectPathSerializationScope SerializationScope(NAME_None, NAME_None, ESoftObjectPathCollectType::NeverCollect);
 
 	TSharedPtr<FStreamableHandle> Handle = LoadPrimaryAssetsWithType(PrimaryAssetLabelType);
 
@@ -2465,8 +2731,6 @@ EPrimaryAssetCookRule UAssetManager::GetPackageCookRule(FName PackageName) const
 
 bool UAssetManager::VerifyCanCookPackage(FName PackageName, bool bLogError) const
 {
-	const UAssetManagerSettings& Settings = GetSettings();
-
 	EPrimaryAssetCookRule CookRule = UAssetManager::Get().GetPackageCookRule(PackageName);
 	if (CookRule == EPrimaryAssetCookRule::NeverCook)
 	{
@@ -2477,7 +2741,7 @@ bool UAssetManager::VerifyCanCookPackage(FName PackageName, bool bLogError) cons
 		
 		return false;
 	}
-	else if (CookRule == EPrimaryAssetCookRule::DevelopmentCook && Settings.bOnlyCookProductionAssets)
+	else if (CookRule == EPrimaryAssetCookRule::DevelopmentCook && bOnlyCookProductionAssets)
 	{
 		if (bLogError)
 		{
@@ -2610,12 +2874,18 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 
 void UAssetManager::ReinitializeFromConfig()
 {
+	// We specifically do not reset AssetRuleOverrides as those can be set by something other than inis
 	AssetPathMap.Reset();
-	AssetRuleOverrides.Reset();
 	ManagementParentMap.Reset();
 	CachedAssetBundles.Reset();
 	AlreadyScannedDirectories.Reset();
 	AssetTypeMap.Reset();
+
+	// This code is editor only, so reinitialize globals
+	const UAssetManagerSettings& Settings = GetSettings();
+	bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
+	bShouldAcquireMissingChunksOnLoad = Settings.bShouldAcquireMissingChunksOnLoad;
+	bOnlyCookProductionAssets = Settings.bOnlyCookProductionAssets;
 
 	LoadRedirectorMaps();
 	ScanPrimaryAssetTypesFromConfig();
@@ -2645,7 +2915,7 @@ void UAssetManager::OnInMemoryAssetCreated(UObject *Object)
 
 			GetAssetDataForPathInternal(AssetRegistry, Object->GetPathName(), NewAssetData);
 
-			if (ensure(NewAssetData.IsValid()))
+			if (NewAssetData.IsValid())
 			{
 				// Make sure it's in a valid path
 				bool bFoundPath = false;
@@ -2738,7 +3008,7 @@ void UAssetManager::RefreshAssetData(UObject* ChangedObject)
 
 	// Only update things it knows about
 	IAssetRegistry& AssetRegistry = GetAssetRegistry();
-	FStringAssetReference ChangedObjectPath(ChangedObject);
+	FSoftObjectPath ChangedObjectPath(ChangedObject);
 	FPrimaryAssetId PrimaryAssetId = ChangedObject->GetPrimaryAssetId();
 	FPrimaryAssetId OldPrimaryAssetId = GetPrimaryAssetIdForPath(ChangedObjectPath);
 	
@@ -2790,29 +3060,29 @@ void UAssetManager::InitializeAssetBundlesFromMetadata(const UStruct* Struct, co
 		const UProperty* Property = It.Key();
 		const void* PropertyValue = It.Value();
 
-		FStringAssetReference FoundRef;
-		if (const UAssetClassProperty* AssetClassProp = Cast<UAssetClassProperty>(Property))
+		FSoftObjectPath FoundRef;
+		if (const USoftClassProperty* AssetClassProp = Cast<USoftClassProperty>(Property))
 		{
-			const TAssetSubclassOf<UObject>* AssetClassPtr = reinterpret_cast<const TAssetSubclassOf<UObject>*>(PropertyValue);
+			const TSoftClassPtr<UObject>* AssetClassPtr = reinterpret_cast<const TSoftClassPtr<UObject>*>(PropertyValue);
 			if (AssetClassPtr)
 			{
-				FoundRef = AssetClassPtr->ToStringReference();
+				FoundRef = AssetClassPtr->ToSoftObjectPath();
 			}
 		}
-		else if (const UAssetObjectProperty* AssetProp = Cast<UAssetObjectProperty>(Property))
+		else if (const USoftObjectProperty* AssetProp = Cast<USoftObjectProperty>(Property))
 		{
-			const TAssetPtr<UObject>* AssetPtr = reinterpret_cast<const TAssetPtr<UObject>*>(PropertyValue);
+			const TSoftObjectPtr<UObject>* AssetPtr = reinterpret_cast<const TSoftObjectPtr<UObject>*>(PropertyValue);
 			if (AssetPtr)
 			{
-				FoundRef = AssetPtr->ToStringReference();
+				FoundRef = AssetPtr->ToSoftObjectPath();
 			}
 		}
 		else if (const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 		{
-			// String Class Reference is binary identical with StringAssetReference
-			if (StructProperty->Struct == TBaseStructure<FStringAssetReference>::Get() || StructProperty->Struct == TBaseStructure<FStringClassReference>::Get())
+			// SoftClassPath is binary identical with SoftObjectPath
+			if (StructProperty->Struct == TBaseStructure<FSoftObjectPath>::Get() || StructProperty->Struct == TBaseStructure<FSoftClassPath>::Get())
 			{
-				const FStringAssetReference* AssetRefPtr = reinterpret_cast<const FStringAssetReference*>(PropertyValue);
+				const FSoftObjectPath* AssetRefPtr = reinterpret_cast<const FSoftObjectPath*>(PropertyValue);
 				if (AssetRefPtr)
 				{
 					FoundRef = *AssetRefPtr;
@@ -2836,7 +3106,7 @@ void UAssetManager::InitializeAssetBundlesFromMetadata(const UStruct* Struct, co
 				{
 					TSet<FName> LocalBundleSet;
 					TArray<FString> BundleList;
-					FString BundleString = PropertyToSearch->GetMetaData(AssetBundlesName);
+					const FString& BundleString = PropertyToSearch->GetMetaData(AssetBundlesName);
 					BundleString.ParseIntoArrayWS(BundleList, TEXT(","));
 
 					for (const FString& BundleNameString : BundleList)

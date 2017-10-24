@@ -39,7 +39,7 @@ public:
 	 * @param InArgs The construction arguments.
 	 * @param InProfileManager The profile manager to use.
 	 */
-	void Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+	void Construct( const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel )
 	{
 		HighlightString = InArgs._HighlightString;
 		MapName = InArgs._MapName;
@@ -115,7 +115,7 @@ private:
 	TSharedPtr<FString> MapName;
 
 	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 };
 
 

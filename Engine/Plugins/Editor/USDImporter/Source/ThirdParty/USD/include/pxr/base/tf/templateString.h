@@ -26,6 +26,10 @@
 
 /// \file tf/templateString.h
 
+#include "pxr/pxr.h"
+
+#include "pxr/base/tf/api.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -35,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include "pxr/base/tf/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfTemplateString
 /// \ingroup group_tf_String
@@ -140,4 +144,6 @@ private:
     boost::shared_ptr<_Data> _data;
 };
 
-#endif /* TF_TEMPLATE_STRING_H */
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_TEMPLATE_STRING_H 

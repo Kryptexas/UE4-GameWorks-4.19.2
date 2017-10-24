@@ -11,6 +11,7 @@
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
 #include "Kismet2/Kismet2NameValidators.h"
+#include "Kismet2/KismetEditorUtilities.h"
 /////////////////////////////////////////////////////
 // FAnimStateNodeNameValidator
 
@@ -72,6 +73,19 @@ void UAnimStateNodeBase::PostPasteNode()
 UObject* UAnimStateNodeBase::GetJumpTargetForDoubleClick() const
 {
 	return GetBoundGraph();
+}
+
+bool UAnimStateNodeBase::CanJumpToDefinition() const
+{
+	return GetJumpTargetForDoubleClick() != nullptr;
+}
+
+void UAnimStateNodeBase::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+	}
 }
 
 bool UAnimStateNodeBase::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const

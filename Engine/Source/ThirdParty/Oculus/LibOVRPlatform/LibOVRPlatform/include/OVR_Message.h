@@ -21,7 +21,6 @@
 #include "OVR_LivestreamingApplicationStatus.h"
 #include "OVR_LivestreamingStartResult.h"
 #include "OVR_LivestreamingStatus.h"
-#include "OVR_LivestreamingStatus.h"
 #include "OVR_LivestreamingVideoStats.h"
 #include "OVR_MatchmakingAdminSnapshot.h"
 #include "OVR_MatchmakingBrowseResult.h"
@@ -47,11 +46,10 @@
 #include "OVR_SystemVoipState.h"
 #include "OVR_Types.h"
 #include "OVR_User.h"
-#include "OVR_UserAndRoom.h"
 #include "OVR_UserAndRoomArray.h"
 #include "OVR_UserArray.h"
 #include "OVR_UserProof.h"
-#include <stddef.h>
+#include <stdbool.h>
 
 typedef struct ovrMessage *ovrMessageHandle;
 

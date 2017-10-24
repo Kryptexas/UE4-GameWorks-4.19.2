@@ -64,6 +64,12 @@ namespace EMeshComponentUpdateFlag
 		AlwaysTickPoseAndRefreshBones,
 		/** Always Tick, but Refresh BoneTransforms only when rendered. */
 		AlwaysTickPose,
+		/**
+			When rendered Tick Pose and Refresh Bone Transforms,
+			otherwise, just update montages and skip everything else.
+			(AnimBP graph will not be updated).
+		*/
+		OnlyTickMontagesWhenNotRendered,
 		/** Tick only when rendered, and it will only RefreshBoneTransforms when rendered. */
 		OnlyTickPoseWhenRendered,
 	};
@@ -424,7 +430,7 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="bCastCapsuleIndirectShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
 	float CapsuleIndirectShadowMinVisibility;
 
-	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
+	/** Whether or not to CPU skin this component, requires render data refresh after changing */
 	UPROPERTY(transient)
 	uint32 bCPUSkinning : 1;
 

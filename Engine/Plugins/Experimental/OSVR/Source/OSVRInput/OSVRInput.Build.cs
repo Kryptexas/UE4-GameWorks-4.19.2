@@ -19,6 +19,7 @@ public class OSVRInput : ModuleRules
                 "OSVR",
                 "Core",
 				"CoreUObject",      // Provides Actors and Structs
+				"ApplicationCore",
 				"Engine",           // Used by Actor
 				"Slate",            // Used by InputDevice to fire bespoke FKey events
 				"InputCore",        // Provides LOCTEXT and other Input features
@@ -32,7 +33,7 @@ public class OSVRInput : ModuleRules
 				// ... add private dependencies that you statically link with here ...
 			}
             );
-        if(UEBuildConfiguration.bBuildEditor == true)
+        if(Target.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.Add("UnrealEd");
         }
@@ -43,7 +44,7 @@ public class OSVRInput : ModuleRules
             PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });
 
             // Required for some private headers needed for the rendering support.
-            var EngineDir = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
+            var EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
             PrivateIncludePaths.AddRange(
                 new string[] {
                             Path.Combine(EngineDir, @"Source\Runtime\Windows\D3D11RHI\Private"),

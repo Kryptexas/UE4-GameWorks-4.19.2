@@ -114,34 +114,19 @@ struct SLATECORE_API FSlateBrush
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	FVector2D ImageSize;
 
-	/** How to draw the image */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
-	TEnumAsByte<enum ESlateBrushDrawType::Type > DrawAs;
-
 	/** The margin to use in Box and Border modes */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( UVSpace="true" ))
 	FMargin Margin;
 
+#if WITH_EDITORONLY_DATA
 	/** Tinting applied to the image. */
 	UPROPERTY()
 	FLinearColor Tint_DEPRECATED;
+#endif
 
 	/** Tinting applied to the image. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayName="Tint", sRGB="true" ))
 	FSlateColor TintColor;
-
-	/** How to tile the image in Image mode */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
-	TEnumAsByte<enum ESlateBrushTileType::Type> Tiling;
-
-	/** How to mirror the image in Image mode.  This is normally only used for dynamic image brushes where the source texture
-	    comes from a hardware device such as a web camera. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
-	TEnumAsByte<enum ESlateBrushMirrorType::Type> Mirroring;
-
-	/** The type of image */
-	UPROPERTY()
-	TEnumAsByte<enum ESlateBrushImageType::Type> ImageType;
 
 public:
 
@@ -150,18 +135,20 @@ public:
 	 */
 	FSlateBrush()
 		: ImageSize(SlateBrushDefs::DefaultImageSize, SlateBrushDefs::DefaultImageSize)
-		, DrawAs(ESlateBrushDrawType::Image)
 		, Margin(0.0f)
+#if WITH_EDITORONLY_DATA
 		, Tint_DEPRECATED(FLinearColor::White)
+#endif
 		, TintColor(FLinearColor::White)
+		, ResourceObject(nullptr)
+		, ResourceName(NAME_None)
+		, UVRegion(ForceInit)
+		, DrawAs(ESlateBrushDrawType::Image)
 		, Tiling(ESlateBrushTileType::NoTile)
 		, Mirroring(ESlateBrushMirrorType::NoMirror)
 		, ImageType(ESlateBrushImageType::NoImage)
-		, ResourceObject(nullptr)
-		, ResourceName(NAME_None)
 		, bIsDynamicallyLoaded(false)
 		, bHasUObject_DEPRECATED(false)
-		, UVRegion(ForceInit)
 	{ }
 
 	virtual ~FSlateBrush(){}
@@ -308,14 +295,6 @@ protected:
 	UPROPERTY()
 	FName ResourceName;
 
-	/** Whether or not the brush path is a path to a UObject */
-	UPROPERTY()
-	bool bIsDynamicallyLoaded;
-
-	/** Whether or not the brush has a UTexture resource */
-	UPROPERTY()
-	bool bHasUObject_DEPRECATED;
-
 	/** 
 	 *  Optional UV region for an image
 	 *  When valid - overrides UV region specified in resource proxy
@@ -323,7 +302,33 @@ protected:
 	UPROPERTY()
 	FBox2D UVRegion;
 
+public:
+	/** How to draw the image */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
+	TEnumAsByte<enum ESlateBrushDrawType::Type > DrawAs;
+
+	/** How to tile the image in Image mode */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
+	TEnumAsByte<enum ESlateBrushTileType::Type> Tiling;
+
+	/** How to mirror the image in Image mode.  This is normally only used for dynamic image brushes where the source texture
+	    comes from a hardware device such as a web camera. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
+	TEnumAsByte<enum ESlateBrushMirrorType::Type> Mirroring;
+
+	/** The type of image */
+	UPROPERTY()
+	TEnumAsByte<enum ESlateBrushImageType::Type> ImageType;
+
 protected:
+
+	/** Whether or not the brush path is a path to a UObject */
+	UPROPERTY()
+	uint8 bIsDynamicallyLoaded:1;
+
+	/** Whether or not the brush has a UTexture resource */
+	UPROPERTY()
+	uint8 bHasUObject_DEPRECATED:1;
 
 	/** 
 	 * This constructor is protected; use one of the deriving classes instead.

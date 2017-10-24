@@ -703,6 +703,9 @@ private:
 	/** Resets the column filtering state to make them all visible */
 	void ResetColumns();
 
+	/** Export columns to CSV */
+	void ExportColumns();
+
 	/** Toggle the column at ColumnIndex */
 	void ToggleColumn(const FString ColumnName);
 	/** Sets the column visibility by removing/inserting the column*/

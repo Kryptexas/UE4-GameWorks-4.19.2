@@ -3,7 +3,7 @@
 #pragma  once
 
 #include "CoreMinimal.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Engine/Blueprint.h"
 
 class UBlueprintGeneratedClass;
@@ -29,7 +29,7 @@ public:
 	TSet<UField*> DeclareInHeader;
 	TSet<UField*> IncludeInBody;
 
-	TSet<TAssetPtr<UPackage>> RequiredModuleNames;
+	TSet<TSoftObjectPtr<UPackage>> RequiredModuleNames;
 
 	FCompilerNativizationOptions NativizationOptions;
 

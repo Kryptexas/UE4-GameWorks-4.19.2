@@ -1,19 +1,20 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenShotManager.h"
-#include "HAL/FileManager.h"
+
+#include "AutomationWorkerMessages.h"
 #include "Async/Async.h"
+#include "HAL/FileManager.h"
+#include "MessageEndpointBuilder.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FilterCollection.h"
-#include "AutomationWorkerMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "Modules/ModuleManager.h"
-
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
+
 
 class FScreenshotComparisons
 {
@@ -30,12 +31,12 @@ FScreenShotManager::FScreenShotManager()
 {
 	FModuleManager::Get().LoadModuleChecked(FName("ImageWrapper"));
 
-	ScreenshotUnapprovedFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
-	ScreenshotDeltaFolder = FPaths::GameSavedDir() / TEXT("Automation/Delta/");
-	ScreenshotResultsFolder = FPaths::GameSavedDir() / TEXT("Automation/");
-	ScreenshotApprovedFolder = FPaths::GameDir() / TEXT("Test/Screenshots/");
+	ScreenshotUnapprovedFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Incoming/");
+	ScreenshotDeltaFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Delta/");
+	ScreenshotResultsFolder = FPaths::ProjectSavedDir() / TEXT("Automation/");
+	ScreenshotApprovedFolder = FPaths::ProjectDir() / TEXT("Test/Screenshots/");
 
-	ComparisonResultsFolder = FPaths::GameSavedDir() / TEXT("Automation/Comparisons");
+	ComparisonResultsFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Comparisons");
 
 	// Clear the incoming directory when we initialize, we don't care about previous runs.
 	//IFileManager::Get().DeleteDirectory(*ScreenshotUnapprovedFolder, false, true);
@@ -288,7 +289,7 @@ bool FScreenShotManager::OpenComparisonReports(FString ImportPath, TArray<FCompa
 
 FString FScreenShotManager::GetDefaultExportDirectory() const
 {
-	return FPaths::GameSavedDir() / TEXT("Exported");
+	return FPaths::ProjectSavedDir() / TEXT("Exported");
 }
 
 void FScreenShotManager::CopyDirectory(const FString& DestDir, const FString& SrcDir)

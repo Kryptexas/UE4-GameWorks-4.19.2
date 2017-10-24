@@ -32,9 +32,9 @@ bool FSocketX::Listen( int32 MaxBacklog )
 	return Pimpl->Listen(MaxBacklog);
 }
 
-bool FSocketX::HasPendingConnection( bool& bHasPendingConnection )
+bool FSocketX::WaitForPendingConnection( bool& bHasPendingConnection, const FTimespan& WaitTime)
 {
-	return Pimpl->HasPendingConnection(bHasPendingConnection); 
+	return Pimpl->WaitForPendingConnection(bHasPendingConnection, WaitTime); 
 }
 
 bool FSocketX::HasPendingData( uint32& PendingDataSize )
@@ -78,14 +78,14 @@ bool FSocketX::Wait( ESocketWaitConditions::Type Condition, FTimespan WaitTime )
 {
 	if ((Condition == ESocketWaitConditions::WaitForRead) )
 	{
-		return Pimpl->WaitForRead( WaitTime.GetMilliseconds() );
+		return Pimpl->WaitForRead((int)WaitTime.GetTotalMilliseconds());
 	}
 	if ( Condition == ESocketWaitConditions::WaitForWrite)
 	{
-		return Pimpl->WaitForWrite( WaitTime.GetMilliseconds() );
+		return Pimpl->WaitForWrite((int)WaitTime.GetTotalMilliseconds());
 	}
 		
-	return Pimpl->WaitForReadWrite( WaitTime.GetMilliseconds() );
+	return Pimpl->WaitForReadWrite((int)WaitTime.GetTotalMilliseconds());
 }
 
 ESocketConnectionState FSocketX::GetConnectionState()

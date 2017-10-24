@@ -105,7 +105,9 @@ macro(CheckALSA)
   if(ALSA)
     CHECK_INCLUDE_FILE(alsa/asoundlib.h HAVE_ASOUNDLIB_H)
     if(HAVE_ASOUNDLIB_H)
-      CHECK_LIBRARY_EXISTS(asound snd_pcm_open "" HAVE_LIBASOUND)
+      CHECK_LIBRARY_EXISTS(asound snd_pcm_recover "" HAVE_LIBASOUND)
+    endif()
+    if(HAVE_LIBASOUND)
       set(HAVE_ALSA TRUE)
       file(GLOB ALSA_SOURCES ${SDL2_SOURCE_DIR}/src/audio/alsa/*.c)
       set(SOURCE_FILES ${SOURCE_FILES} ${ALSA_SOURCES})
@@ -150,6 +152,36 @@ macro(CheckPulseAudio)
         endif()
       else()
         list(APPEND EXTRA_LDFLAGS ${PKG_PULSEAUDIO_LDFLAGS})
+      endif()
+      set(HAVE_SDL_AUDIO TRUE)
+    endif()
+  endif()
+endmacro()
+
+# Requires:
+# - PkgCheckModules
+# Optional:
+# - JACK_SHARED opt
+# - HAVE_DLOPEN opt
+macro(CheckJACK)
+  if(JACK)
+    pkg_check_modules(PKG_JACK jack)
+    if(PKG_JACK_FOUND)
+      set(HAVE_JACK TRUE)
+      file(GLOB JACK_SOURCES ${SDL2_SOURCE_DIR}/src/audio/jack/*.c)
+      set(SOURCE_FILES ${SOURCE_FILES} ${JACK_SOURCES})
+      set(SDL_AUDIO_DRIVER_JACK 1)
+      list(APPEND EXTRA_CFLAGS ${PKG_JACK_CFLAGS})
+      if(JACK_SHARED)
+        if(NOT HAVE_DLOPEN)
+          message_warn("You must have SDL_LoadObject() support for dynamic JACK audio loading")
+        else()
+          FindLibraryAndSONAME("jack")
+          set(SDL_AUDIO_DRIVER_JACK_DYNAMIC "\"${JACK_LIB_SONAME}\"")
+          set(HAVE_JACK_SHARED TRUE)
+        endif()
+      else()
+        list(APPEND EXTRA_LDFLAGS ${PKG_JACK_LDFLAGS})
       endif()
       set(HAVE_SDL_AUDIO TRUE)
     endif()
@@ -309,6 +341,29 @@ macro(CheckFusionSound)
         list(APPEND EXTRA_LDFLAGS ${PKG_FUSIONSOUND_LDFLAGS})
       endif()
       set(HAVE_SDL_AUDIO TRUE)
+    endif()
+  endif()
+endmacro()
+
+# Requires:
+# - LIBSAMPLERATE
+# Optional:
+# - LIBSAMPLERATE_SHARED opt
+# - HAVE_DLOPEN opt
+macro(CheckLibSampleRate)
+  if(LIBSAMPLERATE)
+    check_include_file(samplerate.h HAVE_LIBSAMPLERATE_H)
+    if(HAVE_LIBSAMPLERATE_H)
+      if(LIBSAMPLERATE_SHARED)
+        if(NOT HAVE_DLOPEN)
+          message_warn("You must have SDL_LoadObject() support for dynamic libsamplerate loading")
+        else()
+          FindLibraryAndSONAME("samplerate")
+          set(SDL_LIBSAMPLERATE_DYNAMIC "\"${SAMPLERATE_LIB_SONAME}\"")
+        endif()
+      else()
+        list(APPEND EXTRA_LDFLAGS -lsamplerate)
+      endif()
     endif()
   endif()
 endmacro()
@@ -550,6 +605,27 @@ macro(CheckMir)
     endif()
 endmacro()
 
+macro(WaylandProtocolGen _SCANNER _XML _PROTL)
+    set(_WAYLAND_PROT_C_CODE "${CMAKE_CURRENT_BINARY_DIR}/wayland-generated-protocols/${_PROTL}-protocol.c")
+    set(_WAYLAND_PROT_H_CODE "${CMAKE_CURRENT_BINARY_DIR}/wayland-generated-protocols/${_PROTL}-client-protocol.h")
+
+    add_custom_command(
+        OUTPUT "${_WAYLAND_PROT_H_CODE}"
+        DEPENDS "${_XML}"
+        COMMAND "${_SCANNER}"
+        ARGS client-header "${_XML}" "${_WAYLAND_PROT_H_CODE}"
+    )
+
+    add_custom_command(
+        OUTPUT "${_WAYLAND_PROT_C_CODE}"
+        DEPENDS "${_WAYLAND_PROT_H_CODE}"
+        COMMAND "${_SCANNER}"
+        ARGS code "${_XML}" "${_WAYLAND_PROT_C_CODE}"
+    )
+
+    set(SOURCE_FILES ${SOURCE_FILES} "${CMAKE_CURRENT_BINARY_DIR}/wayland-generated-protocols/${_PROTL}-protocol.c")
+endmacro()
+
 # Requires:
 # - EGL
 # - PkgCheckModules
@@ -558,7 +634,51 @@ endmacro()
 # - HAVE_DLOPEN opt
 macro(CheckWayland)
   if(VIDEO_WAYLAND)
-    pkg_check_modules(WAYLAND wayland-client wayland-cursor wayland-egl egl xkbcommon)
+    pkg_check_modules(WAYLAND wayland-client wayland-scanner wayland-protocols wayland-egl wayland-cursor egl xkbcommon)
+
+    # We have to generate some protocol interface code for some various Wayland features.
+    if(WAYLAND_FOUND)
+      execute_process(
+        COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-client
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RESULT_VARIABLE WAYLAND_CORE_PROTOCOL_DIR_RC
+        OUTPUT_VARIABLE WAYLAND_CORE_PROTOCOL_DIR
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(NOT WAYLAND_CORE_PROTOCOL_DIR_RC EQUAL 0)
+        set(WAYLAND_FOUND FALSE)
+      endif()
+    endif()
+
+    if(WAYLAND_FOUND)
+      execute_process(
+        COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RESULT_VARIABLE WAYLAND_PROTOCOLS_DIR_RC
+        OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(NOT WAYLAND_PROTOCOLS_DIR_RC EQUAL 0)
+        set(WAYLAND_FOUND FALSE)
+      endif()
+    endif()
+
+    if(WAYLAND_FOUND)
+      execute_process(
+        COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=wayland_scanner wayland-scanner
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RESULT_VARIABLE WAYLAND_SCANNER_RC
+        OUTPUT_VARIABLE WAYLAND_SCANNER
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(NOT WAYLAND_SCANNER_RC EQUAL 0)
+        set(WAYLAND_FOUND FALSE)
+      endif()
+    endif()
+
     if(WAYLAND_FOUND)
       link_directories(
           ${WAYLAND_LIBRARY_DIRS}
@@ -571,6 +691,17 @@ macro(CheckWayland)
 
       file(GLOB WAYLAND_SOURCES ${SDL2_SOURCE_DIR}/src/video/wayland/*.c)
       set(SOURCE_FILES ${SOURCE_FILES} ${WAYLAND_SOURCES})
+
+      # We have to generate some protocol interface code for some unstable Wayland features.
+      file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/wayland-generated-protocols")
+      include_directories("${CMAKE_CURRENT_BINARY_DIR}/wayland-generated-protocols")
+
+      WaylandProtocolGen("${WAYLAND_SCANNER}" "${WAYLAND_CORE_PROTOCOL_DIR}/wayland.xml" "wayland")
+
+      foreach(_PROTL relative-pointer-unstable-v1 pointer-constraints-unstable-v1)
+        string(REGEX REPLACE "\\-unstable\\-.*$" "" PROTSUBDIR ${_PROTL})
+        WaylandProtocolGen("${WAYLAND_SCANNER}" "${WAYLAND_PROTOCOLS_DIR}/unstable/${PROTSUBDIR}/${_PROTL}.xml" "${_PROTL}")
+      endforeach()
 
       if(VIDEO_WAYLAND_QT_TOUCH)
           set(SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH 1)
@@ -832,7 +963,7 @@ macro(CheckPTHREAD)
             #include <pthread.h>
             int main(int argc, char **argv) {
               pthread_mutexattr_t attr;
-              pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+              pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
               return 0;
             }" HAVE_RECURSIVE_MUTEXES_NP)
         if(HAVE_RECURSIVE_MUTEXES_NP)
@@ -861,7 +992,6 @@ macro(CheckPTHREAD)
           int main(int argc, char** argv) { return 0; }" HAVE_PTHREAD_NP_H)
       check_function_exists(pthread_setname_np HAVE_PTHREAD_SETNAME_NP)
       check_function_exists(pthread_set_name_np HAVE_PTHREAD_SET_NAME_NP)
-      set(CMAKE_REQUIRED_FLAGS "${ORIG_CMAKE_REQUIRED_FLAGS}")
 
       set(SOURCE_FILES ${SOURCE_FILES}
           ${SDL2_SOURCE_DIR}/src/thread/pthread/SDL_systhread.c
@@ -878,6 +1008,7 @@ macro(CheckPTHREAD)
       endif()
       set(HAVE_SDL_THREADS TRUE)
     endif()
+    set(CMAKE_REQUIRED_FLAGS "${ORIG_CMAKE_REQUIRED_FLAGS}")
   endif()
 endmacro()
 
@@ -1050,3 +1181,46 @@ macro(CheckRPI)
     endif(SDL_VIDEO AND HAVE_VIDEO_RPI)
   endif(VIDEO_RPI)
 endmacro(CheckRPI)
+
+# Requires:
+# - EGL
+# - PkgCheckModules
+# Optional:
+# - KMSDRM_SHARED opt
+# - HAVE_DLOPEN opt
+macro(CheckKMSDRM)
+  if(VIDEO_KMSDRM)
+    pkg_check_modules(KMSDRM libdrm gbm egl)
+    if(KMSDRM_FOUND)
+      link_directories(
+        ${KMSDRM_LIBRARY_DIRS}
+      )
+      include_directories(
+        ${KMSDRM_INCLUDE_DIRS}
+      )
+      set(HAVE_VIDEO_KMSDRM TRUE)
+      set(HAVE_SDL_VIDEO TRUE)
+
+      file(GLOB KMSDRM_SOURCES ${SDL2_SOURCE_DIR}/src/video/kmsdrm/*.c)
+      set(SOURCE_FILES ${SOURCE_FILES} ${KMSDRM_SOURCES})
+
+      list(APPEND EXTRA_CFLAGS ${KMSDRM_CLFLAGS})
+
+      set(SDL_VIDEO_DRIVER_KMSDRM 1)
+
+      if(KMSDRM_SHARED)
+        if(NOT HAVE_DLOPEN)
+          message_warn("You must have SDL_LoadObject() support for dynamic KMS/DRM loading")
+        else()
+          FindLibraryAndSONAME(drm)
+          FindLibraryAndSONAME(gbm)
+          set(SDL_VIDEO_DRIVER_KMSDRM_DYNAMIC "\"${DRM_LIB_SONAME}\"")
+          set(SDL_VIDEO_DRIVER_KMSDRM_DYNAMIC_GBM "\"${GBM_LIB_SONAME}\"")
+          set(HAVE_KMSDRM_SHARED TRUE)
+        endif()
+      else()
+        set(EXTRA_LIBS ${KMSDRM_LIBRARIES} ${EXTRA_LIBS})
+      endif()
+    endif()
+  endif()
+endmacro()

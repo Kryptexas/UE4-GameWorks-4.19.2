@@ -264,7 +264,7 @@ These views take a template argument of a shared pointer to some sort of data. T
 
 ### List Views
 
-List views are widgets which store a list of child widgets. They are made as **SListView<...>**.
+List views are widgets which store a list of child widgets. They are made as `SListView<...>`.
 
 	SNew( SListView< TSharedPtr<FTestData> > )
 	.ItemHeight(24)
@@ -293,7 +293,7 @@ List views are widgets which store a list of child widgets. They are made as **S
 
 ### Tree Views
 
-Tree views, made as **STreeView<...>**, are similar to list views, except that they support parenting widgets to other widgets in the list. To determine which widgets are parented to which, the **OnGetChildren** delegate is used to pass back the children of the passed in item.
+Tree views, made as `STreeView<...>`, are similar to list views, except that they support parenting widgets to other widgets in the list. To determine which widgets are parented to which, the **OnGetChildren** delegate is used to pass back the children of the passed in item.
 
 	SNew( STreeView< TSharedPtr<FTestData> > )
 	.ItemHeight(24)
@@ -314,7 +314,7 @@ Tree views, made as **STreeView<...>**, are similar to list views, except that t
 
 ### Tile Views
 
-Tile views, made as **STileView<...>**, are similar to list views, except the child widgets are laid out in a grid rather than a list. Because of this, they do not support columns or column headers.
+Tile views, made as `STileView<...>`, are similar to list views, except the child widgets are laid out in a grid rather than a list. Because of this, they do not support columns or column headers.
 
 	SNew( STileView< TSharedPtr<FTestData> > )
 	.ItemWidth(128)

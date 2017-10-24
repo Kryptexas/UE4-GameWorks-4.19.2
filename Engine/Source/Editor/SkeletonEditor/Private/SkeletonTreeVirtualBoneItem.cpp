@@ -8,15 +8,25 @@
 #include "Widgets/Images/SImage.h"
 #include "SInlineEditableTextBlock.h"
 #include "UnrealString.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeVirtualBoneItem"
 
-TSharedRef<ITableRow> FSkeletonTreeVirtualBoneItem::MakeTreeRowWidget(const TSharedRef<STableViewBase>& InOwnerTable, const TAttribute<FText>& InFilterText)
+FSkeletonTreeVirtualBoneItem::FSkeletonTreeVirtualBoneItem(const FName& InBoneName, const TSharedRef<class ISkeletonTree>& InSkeletonTree)
+	: FSkeletonTreeItem(InSkeletonTree)
+	, BoneName(InBoneName)
 {
-	return
-		SNew(SSkeletonTreeRow, InOwnerTable)
-		.Item(SharedThis(this))
-		.FilterText(InFilterText);
+	static const FString BoneProxyPrefix(TEXT("VIRTUALBONEPROXY_"));
+
+	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage(), *(BoneProxyPrefix + FString::Printf(TEXT("%p"), &InSkeletonTree.Get()) + InBoneName.ToString()));
+	BoneProxy->SetFlags(RF_Transactional);
+	BoneProxy->BoneName = InBoneName;
+	TSharedPtr<IPersonaPreviewScene> PreviewScene = InSkeletonTree->GetPreviewScene();
+	if (PreviewScene.IsValid())
+	{
+		BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
+	}
 }
 
 EVisibility FSkeletonTreeVirtualBoneItem::GetLODIconVisibility() const
@@ -171,4 +181,15 @@ EVisibility FSkeletonTreeVirtualBoneItem::GetVirtualBonePrefixVisibility() const
 {
 	return InlineWidget->IsInEditMode() ? EVisibility::Visible : EVisibility::Collapsed;
 }
+
+void FSkeletonTreeVirtualBoneItem::EnableBoneProxyTick(bool bEnable)
+{
+	BoneProxy->bIsTickable = bEnable;
+}
+
+void FSkeletonTreeVirtualBoneItem::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(BoneProxy);
+}
+
 #undef LOCTEXT_NAMESPACE

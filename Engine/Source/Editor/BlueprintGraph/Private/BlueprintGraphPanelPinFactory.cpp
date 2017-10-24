@@ -27,7 +27,7 @@ TSharedPtr<class SGraphPin> FBlueprintGraphPanelPinFactory::CreatePin(class UEdG
 				const UFunction* FunctionToCall = CallFunctionNode->GetTargetFunction();
 				if (FunctionToCall)
 				{
-					FString DataTablePinName = FunctionToCall->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
+					const FString& DataTablePinName = FunctionToCall->GetMetaData(FBlueprintMetadata::MD_DataTablePin);
 					DataTablePin = CallFunctionNode->FindPin(DataTablePinName);
 				}
 			}

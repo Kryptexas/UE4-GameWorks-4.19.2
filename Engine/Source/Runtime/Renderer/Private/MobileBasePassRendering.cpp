@@ -14,7 +14,7 @@
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarMobileDisableVertexFog(
 	TEXT("r.Mobile.DisableVertexFog"),
-	0,
+	1,
 	TEXT("Set to 1 to disable vertex fogging in all mobile shaders."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
@@ -94,21 +94,12 @@ FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const
 			FLightSceneProxy* LightProxy = LPI->GetLight()->Proxy;
 			if (LightProxy->GetLightType() == LightType_Point && LightProxy->IsMovable() && (LightProxy->GetLightingChannelMask() & InSceneProxy->GetLightingChannelMask()) != 0)
 			{
-				FVector NormalizedLightDirection;
-				FVector2D SpotAngles;
-				float SourceRadius;
-				float SourceLength;
-				float MinRoughness;
+				FLightParameters LightParameters;
 
-				// Get the light parameters
-				LightProxy->GetParameters(
-					LightPositionAndInvRadius[NumDynamicPointLights],
-					LightColorAndFalloffExponent[NumDynamicPointLights],
-					NormalizedLightDirection,
-					SpotAngles,
-					SourceRadius,
-					SourceLength,
-					MinRoughness);
+				LightProxy->GetParameters(LightParameters);
+
+				LightPositionAndInvRadius[NumDynamicPointLights] = LightParameters.LightPositionAndInvRadius;
+				LightColorAndFalloffExponent[NumDynamicPointLights] = LightParameters.LightColorAndFalloffExponent;
 
 				if (LightProxy->IsInverseSquared())
 				{

@@ -2129,9 +2129,7 @@ void UParticleModuleSubUV::Spawn(FParticleEmitterInstance* Owner, int32 Offset, 
 		return;
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bSpawn = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bSpawn == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		SPAWN_INIT;
 		{
@@ -2169,9 +2167,7 @@ void UParticleModuleSubUV::Update(FParticleEmitterInstance* Owner, int32 Offset,
 		}
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bUpdate = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bUpdate == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		BEGIN_UPDATE_LOOP;
 			if (Particle.RelativeTime > 1.0f)
@@ -2336,9 +2332,7 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 		return UParticleModuleSubUV::Spawn(Owner, Offset, SpawnTime, ParticleBase);
 	}
 
-	UParticleModuleTypeDataBase* TypeDataBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-	bool bSpawn = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
-	if (bSpawn == true)
+	if (!LODLevel->TypeDataModule || LODLevel->TypeDataModule->SupportsSubUV())
 	{
 		USubUVAnimation* RESTRICT SubUVAnimation = Owner->SpriteTemplate->SubUVAnimation;
 
@@ -3136,7 +3130,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 	}
 
 	// Construct the new component and attach as needed				
-	UPointLightComponent* PointLightComponent = NewObject<UPointLightComponent>(HQLightContainer, NAME_None, RF_NoFlags);
+	UPointLightComponent* PointLightComponent = NewObject<UPointLightComponent>(HQLightContainer, NAME_None, RF_Transient);
 	if (PointLightComponent)
 	{
 		LightId = (uint64)PointLightComponent;
@@ -3156,7 +3150,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		PointLightComponent->bUseInverseSquaredFalloff = bUseInverseSquaredFalloff;
 		PointLightComponent->bAffectTranslucentLighting = bAffectsTranslucency;
 		PointLightComponent->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
-		PointLightComponent->SetCastShadows(bShadowCastingLights);
+		PointLightComponent->SetCastShadows(bShadowCastingLights);		
 
 		PointLightComponent->RegisterComponent();
 		Owner->HighQualityLights.Add(PointLightComponent);

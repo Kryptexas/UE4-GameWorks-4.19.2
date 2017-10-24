@@ -38,7 +38,7 @@ class SYNTHESIS_API USynthSamplePlayer : public USynthComponent
 	virtual void Init(const int32 SampleRate) override;
 
 	// Called to generate more audio
-	virtual void OnGenerateAudio(TArray<float>& OutAudio) override;
+	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) override;
 
 	//~ Begin ActorComponent Interface.
 	virtual void OnRegister() override;

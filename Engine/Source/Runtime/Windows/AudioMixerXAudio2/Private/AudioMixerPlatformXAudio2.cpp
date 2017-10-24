@@ -315,13 +315,18 @@ namespace Audio
 			return false;
 		}
 
-		checkf(Params.OutputDeviceIndex != INDEX_NONE, TEXT("OpenAudioStream params must specify a output device index."));
 		check(XAudio2System);
 		check(OutputAudioStreamMasteringVoice == nullptr);
 
 		WAVEFORMATEX Format = { 0 };
 
 		OpenStreamParams = Params;
+
+		// On windows, default device index is 0
+		if (Params.OutputDeviceIndex == AUDIO_MIXER_DEFAULT_DEVICE_INDEX)
+		{
+			OpenStreamParams.OutputDeviceIndex = 0;
+		}
 
 		AudioStreamInfo.Reset();
 
@@ -387,12 +392,9 @@ namespace Audio
 			return false;
 		}
 
-		if (bIsDeviceOpen)
+		if (bIsDeviceOpen && !StopAudioStream())
 		{
-			if (!StopAudioStream())
-			{
-				return false;
-			}
+			return false;
 		}
 
 		check(XAudio2System);

@@ -22,13 +22,15 @@
             "LoadingPhase": "PostConfigInit"
         }
     ],
-    "LocalizationTargets": [
+	"LocalizationTargets":
+	[
 		{
 			"Name": "OnlineSubsystemUtils",
 			"LoadingPolicy": "Always"
 		}
 	],
-	"Plugins": [
+	"Plugins":
+	[
 		{
 			"Name": "OnlineSubsystem",
 			"Enabled": true

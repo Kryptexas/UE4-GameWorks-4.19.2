@@ -2,6 +2,7 @@
 
 #include "EdGraphToken.h"
 #include "Kismet2/CompilerResultsLog.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 TSharedRef<IMessageToken> FEdGraphToken::Create(const UObject* InObject, const FCompilerResultsLog* Log, UEdGraphNode*& OutSourceNode)
 {
@@ -21,6 +22,11 @@ TSharedRef<IMessageToken> FEdGraphToken::Create(const UEdGraphPin* InPin, const 
 		OutSourceNode = const_cast<UEdGraphNode*>(Cast<UEdGraphNode>(SourceNode));
 	}
 	return MakeShareable(new FEdGraphToken(SourceNode, Log->FindSourcePin(InPin)));
+}
+
+TSharedRef<IMessageToken> FEdGraphToken::Create(const TCHAR* String, const FCompilerResultsLog* Log, UEdGraphNode*& OutSourceNode)
+{
+	return FTextToken::Create(FText::FromString(FString(String)));
 }
 
 const UEdGraphPin* FEdGraphToken::GetPin() const
@@ -50,6 +56,15 @@ FEdGraphToken::FEdGraphToken(const UObject* InObject, const UEdGraphPin* InPin)
 		if (const UEdGraphNode* Node = Cast<UEdGraphNode>(InObject))
 		{
 			CachedText = Node->GetNodeTitle(ENodeTitleType::ListView);
+		}
+		else if(const UClass* Class = Cast<UClass>(InObject))
+		{
+			// Remove the trailing C if that is the users preference:
+			CachedText = FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class);
+		}
+		else if(const UField* Field = Cast<UField>(InObject))
+		{
+			CachedText = Field->GetDisplayNameText();
 		}
 		else
 		{

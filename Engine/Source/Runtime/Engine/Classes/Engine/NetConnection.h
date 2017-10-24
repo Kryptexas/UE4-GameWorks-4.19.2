@@ -17,6 +17,7 @@
 #include "Engine/Player.h"
 #include "Engine/Channel.h"
 #include "ProfilingDebugging/Histogram.h"
+#include "ArrayView.h"
 
 #include "NetConnection.generated.h"
 
@@ -119,6 +120,29 @@ namespace EClientLoginState
 	}
 };
 
+
+// Delegates
+#if !UE_BUILD_SHIPPING
+/**
+ * Delegate for hooking the net connections 'ReceivedRawPacket'
+ * 
+ * @param Data				The data received
+ * @param Count				The number of bytes received
+ * @param bBlockReceive		Whether or not to block further processing of the packet (defaults to false)
+*/
+DECLARE_DELEGATE_ThreeParams(FOnReceivedRawPacket, void* /*Data*/, int32 /*Count*/, bool& /*bBlockReceive*/);
+
+/**
+ * Delegate for hooking the net connections 'LowLevelSend' (at the socket level, after PacketHandler parsing)
+ *
+ * @param Data			The data being sent
+ * @param Count			The number of bytes being sent
+ * @param bBlockSend	Whether or not to block the send (defaults to false)
+*/
+DECLARE_DELEGATE_ThreeParams(FOnLowLevelSend, void* /*Data*/, int32 /*Count*/, bool& /*bBlockSend*/);
+#endif
+
+
 #if DO_ENABLE_NET_TEST
 /**
  * An artificially lagged packet
@@ -159,6 +183,10 @@ class UNetConnection : public UPlayer
 	/** Owning net driver */
 	UPROPERTY()
 	class UNetDriver* Driver;	
+
+	/** The class name for the PackageMap to be loaded */
+	UPROPERTY()
+	TSubclassOf<UPackageMap> PackageMapClass;
 
 	UPROPERTY()
 	/** Package map between local and remote. (negotiates net serialization) */
@@ -384,6 +412,16 @@ public:
 	 */
 	bool bResendAllDataSinceOpen;
 
+
+#if !UE_BUILD_SHIPPING
+	/** Delegate for hooking ReceivedRawPacket */
+	FOnReceivedRawPacket	ReceivedRawPacketDel;
+
+	/** Delegate for hooking LowLevelSend */
+	FOnLowLevelSend			LowLevelSendDel;
+#endif
+
+
 	/**
 	 * Called to determine if a voice packet should be replicated to this
 	 * connection or any of its child connections
@@ -571,6 +609,15 @@ public:
 	 */
 	ENGINE_API virtual void InitSequence(int32 IncomingSequence, int32 OutgoingSequence);
 
+	/**
+	 * Sets the encryption key and enables encryption.
+	 */
+	ENGINE_API void EnableEncryptionWithKey(TArrayView<const uint8> Key);
+
+	/**
+	 * Sets the encryption key, enables encryption, and sends the encryption ack to the client.
+	 */
+	ENGINE_API void EnableEncryptionWithKeyServer(TArrayView<const uint8> Key);
 
 	/** 
 	* Gets a unique ID for the connection, this ID depends on the underlying connection

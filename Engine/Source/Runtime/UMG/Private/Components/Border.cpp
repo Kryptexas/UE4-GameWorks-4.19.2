@@ -68,7 +68,7 @@ void UBorder::SynchronizeProperties()
 	MyBorder->SetBorderImage(ImageBinding);
 	
 	MyBorder->SetDesiredSizeScale(DesiredSizeScale);
-	MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled);
+	MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled != 0);
 	
 	MyBorder->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
 	MyBorder->SetOnMouseButtonUp(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonUp));
@@ -285,11 +285,13 @@ void UBorder::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITORONLY_DATA
 	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS && Brush_DEPRECATED != nullptr )
 	{
 		Background = Brush_DEPRECATED->Brush;
 		Brush_DEPRECATED = nullptr;
 	}
+#endif
 
 	if ( GetChildrenCount() > 0 )
 	{

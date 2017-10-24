@@ -10,6 +10,7 @@
 #include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
 #include "FbxImporter.h"
+#include "UObject/GCObject.h"
 
 class ABrush;
 class ACameraActor;
@@ -36,6 +37,7 @@ class USkeletalMeshComponent;
 class USplineMeshComponent;
 class UStaticMeshComponent;
 class FColorVertexBuffer;
+class UFbxExportOption;
 struct FAnimControlTrackKey;
 struct FExpressionInput;
 struct FRichCurve;
@@ -46,7 +48,7 @@ namespace UnFbx
 /**
  * Main FBX Exporter class.
  */
-class UNREALED_API FFbxExporter  : public MatineeExporter
+class UNREALED_API FFbxExporter  : public MatineeExporter, public FGCObject
 {
 public:
 	/**
@@ -56,6 +58,26 @@ public:
 	static void DeleteInstance();
 	~FFbxExporter();
 	
+	//~ FGCObject
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		if (ExportOptions != nullptr)
+		{
+			Collector.AddReferencedObject(ExportOptions);
+		}
+	}
+
+
+	/**
+	* Load the export option from the last save state and show the dialog if bShowOptionDialog is true.
+	* FullPath is the export file path we display it in the dialog
+	* If user cancel the dialog, the OutOperationCanceled will be true
+	* bOutExportAll will be true if the user want to use the same option for all other asset he want to export
+	*
+	* The function is saving the dialog state in a user ini file and reload it from there. It is not changing the CDO.
+	*/
+	void FillExportOptions(bool BatchMode, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutExportAll);
+
 	/**
 	 * Creates and readies an empty document for export.
 	 */
@@ -221,6 +243,7 @@ private:
 	/** Whether or not to export vertices unwelded */
 	static bool bStaticMeshExportUnWeldedVerts;
 
+	UFbxExportOption *ExportOptions;
 
 	/** Adapter interface which allows ExportAnimTrack to act on both sequencer and matinee data. */
 	class IAnimTrackAdapter

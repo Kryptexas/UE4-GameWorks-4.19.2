@@ -27,6 +27,7 @@ static float DebugSmoothedMouseY = 0.f;
 static float DebugSmoothedMouseSensitivity = 8.f;
 
 const TArray<FInputActionKeyMapping> UPlayerInput::NoKeyMappings;
+const TArray<FInputAxisKeyMapping> UPlayerInput::NoAxisMappings;
 TArray<FInputActionKeyMapping> UPlayerInput::EngineDefinedActionMappings;
 TArray<FInputAxisKeyMapping> UPlayerInput::EngineDefinedAxisMappings;
 
@@ -452,20 +453,6 @@ void UPlayerInput::SetMouseSensitivity(const float Sensitivity)
 	}
 }
 
-void UPlayerInput::SetMouseSensitivityToDefault()
-{
-	// find default sensitivity restore to that
-	for (const FInputAxisConfigEntry& AxisConfigEntry : GetDefault<UInputSettings>()->AxisConfig)
-	{
-		const FKey AxisKey = AxisConfigEntry.AxisKeyName;
-		if (AxisKey == EKeys::MouseX)
-		{
-			SetMouseSensitivity(AxisConfigEntry.AxisProperties.Sensitivity);
-			break;
-		}
-	}
-}
-
 bool UPlayerInput::GetInvertAxis(const FName AxisName)
 {
 	ConditionalBuildKeyMappings();
@@ -544,11 +531,6 @@ void UPlayerInput::InvertAxisKey(const FKey AxisKey)
 		AxisKeyProperties.bInvert = !AxisKeyProperties.bInvert;
 		SetAxisProperties(AxisKey, AxisKeyProperties);
 	}
-}
-
-void UPlayerInput::InvertMouse()
-{
-	InvertAxisKey(EKeys::MouseY);
 }
 
 struct FAxisDelegate
@@ -1766,6 +1748,19 @@ const TArray<FInputActionKeyMapping>& UPlayerInput::GetKeysForAction(const FName
 	}
 
 	return UPlayerInput::NoKeyMappings;
+}
+
+const TArray<FInputAxisKeyMapping>& UPlayerInput::GetKeysForAxis(const FName AxisName)
+{
+	ConditionalBuildKeyMappings();
+
+	const FAxisKeyDetails* KeyDetails = AxisKeyMap.Find(AxisName);
+	if (KeyDetails)
+	{
+		return KeyDetails->KeyMappings;
+	}
+
+	return UPlayerInput::NoAxisMappings;
 }
 
 #if !UE_BUILD_SHIPPING

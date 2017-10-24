@@ -232,6 +232,12 @@ public:
 	UPROPERTY(config)
 	bool						bRebaseOriginIn3DSpace;
 
+#if WITH_EDITORONLY_DATA
+	// Whether all tiles locations are locked
+	UPROPERTY()
+	bool						bLockTilesLocation;
+#endif
+
 	// Maximum distance to current view point where we should initiate origin rebasing
 	UPROPERTY(config)
 	float						RebaseOriginDistance;

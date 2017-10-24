@@ -287,6 +287,10 @@ FSceneView* FUMGViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	ViewInitOptions.BackgroundColor = GetBackgroundColor();
 
+#if WITH_EDITOR
+	ViewInitOptions.EditorViewScreenPercentage = GetEditorScreenPercentage();
+#endif
+
 	//ViewInitOptions.EditorViewBitflag = 0, // send the bit for this view - each actor will check it's visibility bits against this
 
 	// for ortho views to steal perspective view origin

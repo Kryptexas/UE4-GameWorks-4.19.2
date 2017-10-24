@@ -16,6 +16,7 @@ public class OnlineSubsystemFacebook : ModuleRules
 			new string[] { 
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"HTTP",
 				"ImageCore",
 				"Json",
@@ -59,7 +60,7 @@ public class OnlineSubsystemFacebook : ModuleRules
 				}
 				);
 
-				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemFacebook_UPL.xml")));
 			}
 			else
@@ -73,6 +74,14 @@ public class OnlineSubsystemFacebook : ModuleRules
 		{
 			Definitions.Add("WITH_FACEBOOK=1");
 			PrivateIncludePaths.Add("Private/Windows");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			PrivateIncludePaths.Add("Private/XboxOne");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.PS4)
+		{
+			PrivateIncludePaths.Add("Private/PS4");
 		}
 		else
 		{

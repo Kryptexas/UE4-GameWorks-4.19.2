@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/client_handler_osr.h"
+#include "tests/cefclient/browser/client_handler_osr.h"
 
 #include "include/base/cef_bind.h"
 #include "include/wrapper/cef_closure_task.h"
@@ -133,6 +133,17 @@ void ClientHandlerOsr::UpdateDragCursor(CefRefPtr<CefBrowser> browser,
   if (!osr_delegate_)
     return;
   osr_delegate_->UpdateDragCursor(browser, operation);
+}
+
+void ClientHandlerOsr::OnImeCompositionRangeChanged(
+    CefRefPtr<CefBrowser> browser,
+    const CefRange& selection_range,
+    const CefRenderHandler::RectList& character_bounds) {
+  CEF_REQUIRE_UI_THREAD();
+  if (!osr_delegate_)
+    return;
+  osr_delegate_->OnImeCompositionRangeChanged(browser, selection_range,
+                                              character_bounds);
 }
 
 }  // namespace client

@@ -13,17 +13,17 @@ void ShutdownVoiceCapture()
 {
 }
 
-IVoiceCapture* CreateVoiceCaptureObject()
+IVoiceCapture* CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
-	return NULL; 
+	return nullptr; 
 }
 
-IVoiceEncoder* CreateVoiceEncoderObject()
+IVoiceEncoder* CreateVoiceEncoderObject(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint)
 {
-	return NULL; 
+	return nullptr; 
 }
 
-IVoiceDecoder* CreateVoiceDecoderObject()
+IVoiceDecoder* CreateVoiceDecoderObject(int32 SampleRate, int32 NumChannels)
 {
-	return NULL; 
+	return nullptr; 
 }

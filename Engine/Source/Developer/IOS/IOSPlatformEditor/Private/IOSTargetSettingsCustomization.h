@@ -10,6 +10,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
 #include "ShaderFormatsPropertyDetails.h"
+#include "TargetPlatformAudioCustomization.h"
 
 class FMonitoredProcess;
 class IDetailLayoutBuilder;
@@ -97,6 +98,7 @@ private:
 	TSharedPtr<IPropertyHandle> SignCertificateProperty;
 	TSharedPtr<IPropertyHandle> ShaderVersionPropertyHandle;
 	TSharedPtr<IPropertyHandle> MinOSPropertyHandle;
+	TSharedPtr<IPropertyHandle> MRTPropertyHandle;
 	TSharedPtr<IPropertyHandle> GLES2PropertyHandle;
 	TSharedPtr<IPropertyHandle> DevArmV7PropertyHandle;
 	TSharedPtr<IPropertyHandle> DevArmV7sPropertyHandle;
@@ -205,6 +207,8 @@ private:
 	void UpdateShaderStandardWarning();
 	
 	void UpdateOSVersionWarning();
+	
+	void UpdateMetalMRTWarning();
 
 	void UpdateGLVersionWarning();
 
@@ -225,4 +229,6 @@ private:
 
 	/** Reference to the os version property warning text box. */
 	TSharedPtr< SErrorText > GLVersionWarningTextBox;
+	/** Structure used to manage audio plugin platform settings */
+	FAudioPluginWidgetManager AudioPluginWidgetManager;
 };

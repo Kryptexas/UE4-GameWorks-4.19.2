@@ -17,12 +17,20 @@
 #include "libcef/browser/thread_util.h"
 
 #include "base/files/file_util.h"
+#include "base/memory/ref_counted_memory.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/win/registry.h"
 #include "content/public/browser/native_web_keyboard_event.h"
+#include "third_party/WebKit/public/platform/WebMouseEvent.h"
+#include "third_party/WebKit/public/platform/WebMouseWheelEvent.h"
 #include "ui/aura/window.h"
 #include "ui/base/win/shell.h"
-#include "ui/gfx/screen.h"
+#include "ui/display/display.h"
+#include "ui/display/screen.h"
+#include "ui/events/keycodes/dom/dom_key.h"
+#include "ui/events/keycodes/dom/keycode_converter.h"
+#include "ui/events/keycodes/keyboard_code_conversion_win.h"
+#include "ui/events/keycodes/platform_key_map_win.h"
 #include "ui/gfx/win/hwnd_util.h"
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_win.h"
 #include "ui/views/widget/widget.h"
@@ -107,8 +115,9 @@ WORD KeyStatesToWord() {
 }  // namespace
 
 CefBrowserPlatformDelegateNativeWin::CefBrowserPlatformDelegateNativeWin(
-    const CefWindowInfo& window_info)
-    : CefBrowserPlatformDelegateNative(window_info),
+    const CefWindowInfo& window_info,
+    SkColor background_color)
+    : CefBrowserPlatformDelegateNative(window_info, background_color),
       host_window_created_(false),
       window_widget_(nullptr) {
 }
@@ -155,24 +164,15 @@ bool CefBrowserPlatformDelegateNativeWin::CreateHostWindow() {
 
   DCHECK(!window_widget_);
 
-  SkColor background_color = SK_ColorWHITE;
-  const CefSettings& settings = CefContext::Get()->settings();
-  if (CefColorGetA(settings.background_color) > 0) {
-    background_color = SkColorSetRGB(
-        CefColorGetR(settings.background_color),
-        CefColorGetG(settings.background_color),
-        CefColorGetB(settings.background_color));
-  }
-
   // Adjust for potential display scaling.
   gfx::Point point = gfx::Point(cr.right, cr.bottom);
-  float scale = gfx::Screen::GetNativeScreen()->
+  float scale = display::Screen::GetScreen()->
       GetDisplayNearestPoint(point).device_scale_factor();
   point = gfx::ToFlooredPoint(
       gfx::ScalePoint(gfx::PointF(point), 1.0f / scale));
 
   CefWindowDelegateView* delegate_view =
-      new CefWindowDelegateView(background_color);
+      new CefWindowDelegateView(GetBackgroundColor());
   delegate_view->Init(window_info_.window,
                       browser_->web_contents(),
                       gfx::Rect(0, 0, point.x(), point.y()));
@@ -296,8 +296,8 @@ gfx::Point CefBrowserPlatformDelegateNativeWin::GetScreenPoint(
                                               bounds_in_screen.y() + view.y());
 
   // Adjust for potential display scaling.
-  float scale = gfx::Screen::GetScreenFor(window)->
-      GetDisplayNearestWindow(window).device_scale_factor();
+  float scale = display::Screen::GetScreen()->
+      GetDisplayNearestPoint(screen_point).device_scale_factor();
   return gfx::ToFlooredPoint(
       gfx::ScalePoint(gfx::PointF(screen_point), scale));
 }
@@ -323,27 +323,27 @@ void CefBrowserPlatformDelegateNativeWin::HandleKeyboardEvent(
     if (!msg.hwnd)
       return;
 
-    switch (event.type) {
-      case blink::WebInputEvent::RawKeyDown:
-        msg.message = event.isSystemKey ? WM_SYSKEYDOWN : WM_KEYDOWN;
+    switch (event.GetType()) {
+      case blink::WebInputEvent::kRawKeyDown:
+        msg.message = event.is_system_key ? WM_SYSKEYDOWN : WM_KEYDOWN;
         break;
-      case blink::WebInputEvent::KeyUp:
-        msg.message = event.isSystemKey ? WM_SYSKEYUP : WM_KEYUP;
+      case blink::WebInputEvent::kKeyUp:
+        msg.message = event.is_system_key ? WM_SYSKEYUP : WM_KEYUP;
         break;
-      case blink::WebInputEvent::Char:
-        msg.message = event.isSystemKey ? WM_SYSCHAR: WM_CHAR;
+      case blink::WebInputEvent::kChar:
+        msg.message = event.is_system_key ? WM_SYSCHAR: WM_CHAR;
         break;
       default:
         NOTREACHED();
         return;
     }
 
-    msg.wParam = event.windowsKeyCode;
+    msg.wParam = event.windows_key_code;
 
-    UINT scan_code = ::MapVirtualKeyW(event.windowsKeyCode, MAPVK_VK_TO_VSC);
+    UINT scan_code = ::MapVirtualKeyW(event.windows_key_code, MAPVK_VK_TO_VSC);
     msg.lParam = (scan_code << 16) |  // key scan code
                                   1;  // key repeat count
-    if (event.modifiers & content::NativeWebKeyboardEvent::AltKey)
+    if (event.GetModifiers() & content::NativeWebKeyboardEvent::kAltKey)
       msg.lParam |= (1 << 29);
 
     DefWindowProc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
@@ -360,35 +360,47 @@ void CefBrowserPlatformDelegateNativeWin::HandleExternalProtocol(
 void CefBrowserPlatformDelegateNativeWin::TranslateKeyEvent(
     content::NativeWebKeyboardEvent& result,
     const CefKeyEvent& key_event) const {
-  result.timeStampSeconds = GetMessageTime() / 1000.0;
-
-  result.windowsKeyCode = key_event.windows_key_code;
-  result.nativeKeyCode = key_event.native_key_code;
-  result.isSystemKey = key_event.is_system_key ? 1 : 0;
+  result.windows_key_code = key_event.windows_key_code;
+  result.native_key_code = key_event.native_key_code;
+  result.is_system_key = key_event.is_system_key ? 1 : 0;
   switch (key_event.type) {
   case KEYEVENT_RAWKEYDOWN:
   case KEYEVENT_KEYDOWN:
-    result.type = blink::WebInputEvent::RawKeyDown;
+    result.SetType(blink::WebInputEvent::kRawKeyDown);
     break;
   case KEYEVENT_KEYUP:
-    result.type = blink::WebInputEvent::KeyUp;
+    result.SetType(blink::WebInputEvent::kKeyUp);
     break;
   case KEYEVENT_CHAR:
-    result.type = blink::WebInputEvent::Char;
+    result.SetType(blink::WebInputEvent::kChar);
     break;
   default:
     NOTREACHED();
   }
 
-  if (result.type == blink::WebInputEvent::Char ||
-      result.type == blink::WebInputEvent::RawKeyDown) {
-    result.text[0] = result.windowsKeyCode;
-    result.unmodifiedText[0] = result.windowsKeyCode;
+  // Populate DOM values that will be passed to JavaScript handlers via
+  // KeyboardEvent.
+  result.dom_code =
+      static_cast<int>(ui::KeycodeConverter::NativeKeycodeToDomCode(
+            key_event.native_key_code));
+  if (result.GetType() == blink::WebInputEvent::kChar) {
+    result.dom_key = ui::DomKey::FromCharacter(key_event.windows_key_code);
+  } else {
+    // TODO(cef): CefKeyEvent does not currently pass extended key status (see
+    // WM_KEYDOWN docs) which would be necessary to pass EF_IS_EXTENDED_KEY as
+    // the |flags| parameter to DomKeyFromKeyboardCode().
+    result.dom_key = ui::PlatformKeyMap::DomKeyFromKeyboardCode(
+        ui::KeyboardCodeForWindowsKeyCode(key_event.windows_key_code), 0);
   }
-  if (result.type != blink::WebInputEvent::Char)
-    result.setKeyIdentifierFromWindowsKeyCode();
 
-  result.modifiers |= TranslateModifiers(key_event.modifiers);
+  if (result.GetType() == blink::WebInputEvent::kChar ||
+      result.GetType() == blink::WebInputEvent::kRawKeyDown) {
+    result.text[0] = result.windows_key_code;
+    result.unmodified_text[0] = result.windows_key_code;
+  }
+
+  result.SetModifiers(
+      result.GetModifiers() | TranslateModifiers(key_event.modifiers));
 }
 
 void CefBrowserPlatformDelegateNativeWin::TranslateClickEvent(
@@ -400,25 +412,25 @@ void CefBrowserPlatformDelegateNativeWin::TranslateClickEvent(
 
   switch (type) {
   case MBT_LEFT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonLeft;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kLeft;
     break;
   case MBT_MIDDLE:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonMiddle;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kMiddle;
     break;
   case MBT_RIGHT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonRight;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kRight;
     break;
   default:
     NOTREACHED();
   }
 
-  result.clickCount = clickCount;
+  result.click_count = clickCount;
 }
 
 void CefBrowserPlatformDelegateNativeWin::TranslateMoveEvent(
@@ -428,21 +440,21 @@ void CefBrowserPlatformDelegateNativeWin::TranslateMoveEvent(
   TranslateMouseEvent(result, mouse_event);
 
   if (!mouseLeave) {
-    result.type = blink::WebInputEvent::MouseMove;
+    result.SetType(blink::WebInputEvent::kMouseMove);
     if (mouse_event.modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonLeft;
+      result.button = blink::WebMouseEvent::Button::kLeft;
     else if (mouse_event.modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonMiddle;
+      result.button = blink::WebMouseEvent::Button::kMiddle;
     else if (mouse_event.modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonRight;
+      result.button = blink::WebMouseEvent::Button::kRight;
     else
-      result.button = blink::WebMouseEvent::ButtonNone;
+      result.button = blink::WebMouseEvent::Button::kNoButton;
   } else {
-    result.type = blink::WebInputEvent::MouseLeave;
-    result.button = blink::WebMouseEvent::ButtonNone;
+    result.SetType(blink::WebInputEvent::kMouseLeave);
+    result.button = blink::WebMouseEvent::Button::kNoButton;
   }
 
-  result.clickCount = 0;
+  result.click_count = 0;
 }
 
 void CefBrowserPlatformDelegateNativeWin::TranslateWheelEvent(
@@ -451,8 +463,8 @@ void CefBrowserPlatformDelegateNativeWin::TranslateWheelEvent(
     int deltaX, int deltaY) const {
   TranslateMouseEvent(result, mouse_event);
 
-  result.type = blink::WebInputEvent::MouseWheel;
-  result.button = blink::WebMouseEvent::ButtonNone;
+  result.SetType(blink::WebInputEvent::kMouseWheel);
+  result.button = blink::WebMouseEvent::Button::kNoButton;
 
   float wheelDelta;
   bool horizontalScroll = false;
@@ -474,19 +486,19 @@ void CefBrowserPlatformDelegateNativeWin::TranslateWheelEvent(
     ULONG scrollLines = defaultScrollLinesPerWheelDelta;
     SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
     if (scrollLines == WHEEL_PAGESCROLL)
-      result.scrollByPage = true;
-    if (!result.scrollByPage)
+      result.scroll_by_page = true;
+    if (!result.scroll_by_page)
       scrollDelta *= static_cast<FLOAT>(scrollLines) * scrollbarPixelsPerLine;
   }
 
   // Set scroll amount based on above calculations.  WebKit expects positive
   // deltaY to mean "scroll up" and positive deltaX to mean "scroll left".
   if (horizontalScroll) {
-    result.deltaX = scrollDelta;
-    result.wheelTicksX = wheelDelta;
+    result.delta_x = scrollDelta;
+    result.wheel_ticks_x = wheelDelta;
   } else {
-    result.deltaY = scrollDelta;
-    result.wheelTicksY = wheelDelta;
+    result.delta_y = scrollDelta;
+    result.wheel_ticks_y = wheelDelta;
   }
 }
 
@@ -497,39 +509,37 @@ CefEventHandle CefBrowserPlatformDelegateNativeWin::GetEventHandle(
   return const_cast<CefEventHandle>(&event.os_event->native_event());
 }
 
-scoped_ptr<CefFileDialogRunner>
+std::unique_ptr<CefFileDialogRunner>
     CefBrowserPlatformDelegateNativeWin::CreateFileDialogRunner() {
-  return make_scoped_ptr(new CefFileDialogRunnerWin);
+  return base::WrapUnique(new CefFileDialogRunnerWin);
 }
 
-scoped_ptr<CefJavaScriptDialogRunner>
+std::unique_ptr<CefJavaScriptDialogRunner>
     CefBrowserPlatformDelegateNativeWin::CreateJavaScriptDialogRunner() {
-  return make_scoped_ptr(new CefJavaScriptDialogRunnerWin);
+  return base::WrapUnique(new CefJavaScriptDialogRunnerWin);
 }
 
-scoped_ptr<CefMenuRunner>
+std::unique_ptr<CefMenuRunner>
     CefBrowserPlatformDelegateNativeWin::CreateMenuRunner() {
-  return make_scoped_ptr(new CefMenuRunnerWin);
+  return base::WrapUnique(new CefMenuRunnerWin);
 }
 
 void CefBrowserPlatformDelegateNativeWin::TranslateMouseEvent(
     blink::WebMouseEvent& result,
     const CefMouseEvent& mouse_event) const {
   // position
-  result.x = mouse_event.x;
-  result.y = mouse_event.y;
-  result.windowX = result.x;
-  result.windowY = result.y;
+  result.SetPositionInWidget(mouse_event.x, mouse_event.y);
 
-  const gfx::Point& screen_pt = GetScreenPoint(gfx::Point(result.x, result.y));
-  result.globalX = screen_pt.x();
-  result.globalY = screen_pt.y();
+  const gfx::Point& screen_pt =
+      GetScreenPoint(gfx::Point(mouse_event.x, mouse_event.y));
+  result.SetPositionInScreen(screen_pt.x(), screen_pt.y());
 
   // modifiers
-  result.modifiers |= TranslateModifiers(mouse_event.modifiers);
+  result.SetModifiers(
+      result.GetModifiers() | TranslateModifiers(mouse_event.modifiers));
 
   // timestamp
-  result.timeStampSeconds = GetMessageTime() / 1000.0;
+  result.SetTimeStampSeconds(GetMessageTime() / 1000.0);
 }
 
 // static
@@ -576,16 +586,7 @@ LRESULT CALLBACK CefBrowserPlatformDelegateNativeWin::WndProc(
 
   switch (message) {
   case WM_CLOSE:
-    // Protect against multiple requests to close while the close is pending.
-    if (browser &&
-        browser->destruction_state() <=
-            CefBrowserHostImpl::DESTRUCTION_STATE_PENDING) {
-      if (browser->destruction_state() ==
-              CefBrowserHostImpl::DESTRUCTION_STATE_NONE) {
-        // Request that the browser close.
-        browser->CloseBrowser(false);
-      }
-
+    if (browser && !browser->TryCloseBrowser()) {
       // Cancel the close.
       return 0;
     }

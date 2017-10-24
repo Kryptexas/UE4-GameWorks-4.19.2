@@ -6,7 +6,6 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SViewport.h"
 #include "Animation/DebugSkelMeshComponent.h"
-#include "Settings/DestructableMeshEditorSettings.h"
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimMontage.h"
 #include "DetailWidgetRow.h"
@@ -19,6 +18,7 @@
 #include "AnimPreviewInstance.h"
 #include "Slate/SceneViewport.h"
 #define LOCTEXT_NAMESPACE "AnimMontageSegmentDetails"
+#include "Settings/SkeletalMeshEditorSettings.h"
 
 /////////////////////////////////////////////////////////////////////////
 FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
@@ -46,7 +46,7 @@ FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& 
 
 void FAnimationSegmentViewportClient::UpdateLighting()
 {
-	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
+	const USkeletalMeshEditorSettings* Options = GetDefault<USkeletalMeshEditorSettings>();
 
 	PreviewScene->SetLightDirection(Options->AnimPreviewLightingDirection);
 	PreviewScene->SetLightColor(Options->AnimPreviewDirectionalColor);

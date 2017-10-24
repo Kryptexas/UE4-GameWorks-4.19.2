@@ -155,7 +155,7 @@ public:
 	LANDSCAPE_API bool GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const;
 	FVector GetLandscapeCenterPos(float& LengthZ, int32 MinX = MAX_int32, int32 MinY = MAX_int32, int32 MaxX = MIN_int32, int32 MaxY = MIN_int32);
 	LANDSCAPE_API bool IsValidPosition(int32 X, int32 Y);
-	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo);
+	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, const FName& LayerName);
 	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo);
 
 	LANDSCAPE_API void UpdateDebugColorMaterial();

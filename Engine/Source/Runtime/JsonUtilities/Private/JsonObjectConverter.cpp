@@ -727,3 +727,45 @@ bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedP
 	return true;
 }
 
+FFormatNamedArguments FJsonObjectConverter::ParseTextArgumentsFromJson(const TSharedPtr<const FJsonObject>& JsonObject)
+{
+	FFormatNamedArguments NamedArgs;
+	if (JsonObject.IsValid())
+	{
+		for (const auto& It : JsonObject->Values)
+		{
+			if (!It.Value.IsValid())
+				continue;
+
+			switch (It.Value->Type)
+			{
+			case EJson::Number:
+				// number
+				NamedArgs.Emplace(It.Key, It.Value->AsNumber());
+				break;
+			case EJson::String:
+				// culture invariant string
+				NamedArgs.Emplace(It.Key, FText::FromString(It.Value->AsString()));
+				break;
+			case EJson::Object:
+			{
+				// localized string
+				FText TextOut;
+				if (FJsonObjectConverter::GetTextFromObject(It.Value->AsObject().ToSharedRef(), TextOut))
+				{
+					NamedArgs.Emplace(It.Key, TextOut);
+				}
+				else
+				{
+					UE_LOG(LogJson, Error, TEXT("Unable to apply Json parameter %s (could not parse object)"), *It.Key);
+				}
+			}
+			break;
+			default:
+				UE_LOG(LogJson, Error, TEXT("Unable to apply Json parameter %s (bad type)"), *It.Key);
+				break;
+			}
+		}
+	}
+	return NamedArgs;
+}

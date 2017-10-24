@@ -22,6 +22,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
 
 #define PAKHASH_USE_CRC	1
+#define PAK_SIGNATURE_CHECK_FAILS_ARE_FATAL 0
 
 #if PAKHASH_USE_CRC
 typedef uint32 TPakChunkHash;
@@ -1607,6 +1608,73 @@ public:
 		return IPlatformFile::IterateDirectoryStatRecursively(Directory, PakVisitor);
 	}
 
+	virtual void FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension) override
+	{		
+		if (LowerLevel->DirectoryExists(Directory))
+		{
+			LowerLevel->FindFiles(FoundFiles, Directory, FileExtension);
+		}
+
+		bool bRecursive = false;
+		FindFilesInternal(FoundFiles, Directory, FileExtension, bRecursive);
+	}
+	
+	virtual void FindFilesRecursively(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension) override
+	{
+		if (LowerLevel->DirectoryExists(Directory))
+		{
+			LowerLevel->FindFiles(FoundFiles, Directory, FileExtension);
+		}
+		
+		bool bRecursive = true;
+		FindFilesInternal(FoundFiles, Directory, FileExtension, bRecursive);
+	}
+
+	void FindFilesInternal(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension, bool bRecursive)
+	{
+		TArray<FPakListEntry> Paks;
+		GetMountedPaks(Paks);
+		if (Paks.Num())
+		{
+			TSet<FString> FilesVisited;
+			FilesVisited.Append(FoundFiles);
+			
+			FString StandardDirectory = Directory;
+			FString FileExtensionStr = FileExtension;
+			FPaths::MakeStandardFilename(StandardDirectory);
+			bool bIncludeFiles = true;
+			bool bIncludeFolders = false;
+
+			TArray<FString> FilesInPak;
+			FilesInPak.Reserve(64);
+			for (int32 PakIndex = 0; PakIndex < Paks.Num(); PakIndex++)
+			{
+				FPakFile& PakFile = *Paks[PakIndex].PakFile;
+				PakFile.FindFilesAtPath(FilesInPak, *StandardDirectory, bIncludeFiles, bIncludeFolders, bRecursive);
+			}
+			
+			for (const FString& Filename : FilesInPak)
+			{
+				// filter out files by FileExtension
+				if (FileExtensionStr.Len())
+				{
+					if (!Filename.EndsWith(FileExtensionStr))
+					{
+						continue;
+					}
+				}
+								
+				// make sure we don't add duplicates to FoundFiles
+				bool bVisited = false;
+				FilesVisited.Add(Filename, &bVisited);
+				if (!bVisited)
+				{
+					FoundFiles.Add(Filename);
+				}
+			}
+		}
+	}
+	
 	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		// Can't delete directories existing in pak files. See DeleteDirectory(..) for more info.
@@ -1678,6 +1746,7 @@ public:
 	void HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	void HandleMountCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	void HandleUnmountCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+	void HandlePakCorruptCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 	// END Console commands
 };

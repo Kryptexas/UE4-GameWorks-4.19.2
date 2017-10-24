@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "ILauncherProfileManager.h"
+#include "ILauncherServicesModule.h"
 #include "IMobileLauncherProfileWizard.h"
-#include "Interfaces/ILauncherServicesModule.h"
 #include "AndroidProfileWizard.h"
 #include "IOSProfileWizard.h"
 
@@ -31,7 +32,7 @@ void FMobileLauncherProfileWizardModule::StartupModule()
 	ILauncherServicesModule* LauncherServicesModule = FModuleManager::GetModulePtr<ILauncherServicesModule>("LauncherServices");
 	if (LauncherServicesModule)
 	{
-		ILauncherProfileManagerRef LauncherProfileManager = LauncherServicesModule->GetProfileManager();
+		TSharedRef<ILauncherProfileManager> LauncherProfileManager = LauncherServicesModule->GetProfileManager();
 		OnProfileManagerInitialized(LauncherProfileManager.Get());
 	}
 }
@@ -43,7 +44,7 @@ void FMobileLauncherProfileWizardModule::ShutdownModule()
 	ILauncherServicesModule* LauncherServicesModule = FModuleManager::GetModulePtr<ILauncherServicesModule>("LauncherServices");
 	if (LauncherServicesModule)
 	{
-		ILauncherProfileManagerRef LauncherProfileManager = LauncherServicesModule->GetProfileManager();
+		TSharedRef<ILauncherProfileManager> LauncherProfileManager = LauncherServicesModule->GetProfileManager();
 		LauncherProfileManager->UnregisterProfileWizard(AndroidWizardPtr);
 		LauncherProfileManager->UnregisterProfileWizard(IOSWizardPtr);
 	}

@@ -6,34 +6,32 @@ namespace UnrealBuildTool.Rules
 	{
 		public MediaAssets(ReadOnlyTargetRules Target) : base(Target)
 		{
-            PublicDependencyModuleNames.AddRange(
-                new string[] {
+			PublicDependencyModuleNames.AddRange(
+				new string[] {
+					"AudioMixer",
 					"Core",
 					"CoreUObject",
 					"Engine",
-                    "Media",
+					"Media",
 					"MediaUtils",
-				}
-            );
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-                    "RenderCore",
-                    "RHI",
+					"RenderCore",
+					"RHI",
 					"ShaderCore",
 					"UtilityShaders",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/MediaAssets/Private",
 					"Runtime/MediaAssets/Private/Assets",
 					"Runtime/MediaAssets/Private/Misc",
-				}
-			);
+				});
 
-			if (UEBuildConfiguration.bBuildEditor)
+			if (Target.bBuildEditor)
 			{
 				PrivateIncludePathModuleNames.Add("TargetPlatform");
 			}

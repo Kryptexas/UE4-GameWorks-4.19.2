@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "FunctionalTest.h"
+#include "ScreenshotFunctionalTestBase.h"
 #include "AutomationScreenshotOptions.h"
 #include "Blueprint/UserWidget.h"
 
 #include "FunctionalUIScreenshotTest.generated.h"
+
+class UTextureRenderTarget2D;
 
 UENUM()
 enum class EWidgetTestAppearLocation
@@ -21,24 +23,19 @@ enum class EWidgetTestAppearLocation
  * 
  */
 UCLASS(Blueprintable, MinimalAPI)
-class AFunctionalUIScreenshotTest : public AFunctionalTest
+class AFunctionalUIScreenshotTest : public AScreenshotFunctionalTestBase
 {
 	GENERATED_BODY()
 
 public:
 	AFunctionalUIScreenshotTest(const FObjectInitializer& ObjectInitializer);
 
-#if WITH_EDITOR
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
 protected:
 	virtual void PrepareTest() override;
-	virtual bool IsReady_Implementation() override;
-	virtual void StartTest() override;
 
-	void OnScreenshotTakenAndCompared();
+	virtual void OnScreenshotTakenAndCompared() override;
+
+	virtual void RequestScreenshot() override;
 	
 protected:
 
@@ -50,10 +47,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	EWidgetTestAppearLocation WidgetLocation;
-	
-	UPROPERTY()
-	class UCameraComponent* ScreenshotCamera;
 
-	UPROPERTY(EditAnywhere, Category="Screenshot", SimpleDisplay)
-	FAutomationScreenshotOptions ScreenshotOptions;
+	UPROPERTY(Transient, DuplicateTransient)
+	UTextureRenderTarget2D* ScreenshotRT;
 };

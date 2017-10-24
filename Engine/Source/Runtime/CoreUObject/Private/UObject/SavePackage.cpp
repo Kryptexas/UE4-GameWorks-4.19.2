@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
@@ -28,7 +28,7 @@
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
@@ -620,21 +620,24 @@ public:
 	/**
 	 * Names are cached before we replace objects for imports. So the names of replacements must be ealier.
 	 */
-	void AddReplacementsNames(UObject* Obj, const ITargetPlatform* TargetPlatform)
+	void AddReplacementsNames(UObject* Obj, const ITargetPlatform* TargetPlatform, const bool bIsCooking)
 	{
-		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+		if (bIsCooking && TargetPlatform)
 		{
-			const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
-			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+			if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 			{
-				MarkNameAsReferenced(ReplObjClass->GetFName());
-			}
+				const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
+				if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+				{
+					MarkNameAsReferenced(ReplObjClass->GetFName());
+				}
 
-			FName ReplacedName;
-			Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName, NativizationOptions); //TODO: should we care about replaced outer ?
-			if (ReplacedName != NAME_None)
-			{
-				MarkNameAsReferenced(ReplacedName);
+				FName ReplacedName;
+				Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName, NativizationOptions); //TODO: should we care about replaced outer ?
+				if (ReplacedName != NAME_None)
+				{
+					MarkNameAsReferenced(ReplacedName);
+				}
 			}
 		}
 	}
@@ -686,7 +689,7 @@ public:
  * or 
  * - It's an editor only object
 */
-bool IsEditorOnlyObject(const UObject* InObject)
+bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("IsEditorOnlyObject"), STAT_IsEditorOnlyObject, STATGROUP_LoadTime);
 
@@ -721,14 +724,46 @@ bool IsEditorOnlyObject(const UObject* InObject)
 		return true;
 	}
 
-	// Recursion is checked with ConditionallyExcludeObjectForTarget
+	if (bCheckRecursive && !InObject->IsNative())
+	{
+		UObject* Outer = InObject->GetOuter();
+		if (Outer && Outer != Package)
+		{
+			if (IsEditorOnlyObject(Outer, true))
+			{
+				return true;
+			}
+		}
+		const UStruct* InStruct = Cast<UStruct>(InObject);
+		if (InStruct)
+		{
+			const UStruct* SuperStruct = InStruct->GetSuperStruct();
+			if (SuperStruct && IsEditorOnlyObject(SuperStruct, true))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if (IsEditorOnlyObject(InObject->GetClass(), true))
+			{
+				return true;
+			}
+
+			UObject* Archetype = InObject->GetArchetype();
+			if (Archetype && IsEditorOnlyObject(Archetype, true))
+			{
+				return true;
+			}
+		}
+	}
 	return false;
 }
 
 /**
  * Marks object as not for client, not for server, or editor only. Recurses up outer/class chain as necessary
  */
-static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark ExcludedObjectMarks, const ITargetPlatform* TargetPlatform)
+static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark ExcludedObjectMarks, const ITargetPlatform* TargetPlatform, const bool bIsCooking)
 {
 #if WITH_EDITOR
 	if (!Obj || (ExcludedObjectMarks != OBJECTMARK_NOMARKS && Obj->HasAnyMarks(ExcludedObjectMarks)))
@@ -746,18 +781,21 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	UObject* ObjOuter = Obj->GetOuter();
 	UClass* ObjClass = Obj->GetClass();
 	
-	// Check for nativization replacement
-	if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+	if (bIsCooking && TargetPlatform)
 	{
-		const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
-		FName UnusedName;
-		if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+		// Check for nativization replacement
+		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 		{
-			ObjClass = ReplacedClass;
-		}
-		if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, NativizationOptions))
-		{
-			ObjOuter = ReplacedOuter;
+			const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
+			FName UnusedName;
+			if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+			{
+				ObjClass = ReplacedClass;
+			}
+			if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, NativizationOptions))
+			{
+				ObjOuter = ReplacedOuter;
+			}
 		}
 	}
 
@@ -773,14 +811,14 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 
 	// Recurse into parents, then compute inherited marks
 	
-	ConditionallyExcludeObjectForTarget(ObjClass, ExcludedObjectMarks, TargetPlatform);
+	ConditionallyExcludeObjectForTarget(ObjClass, ExcludedObjectMarks, TargetPlatform, bIsCooking);
 	InheritMark(ObjClass, OBJECTMARK_EditorOnly);
 	InheritMark(ObjClass, OBJECTMARK_NotForClient);
 	InheritMark(ObjClass, OBJECTMARK_NotForServer);
 
 	if (ObjOuter)
 	{
-		ConditionallyExcludeObjectForTarget(ObjOuter, ExcludedObjectMarks, TargetPlatform);
+		ConditionallyExcludeObjectForTarget(ObjOuter, ExcludedObjectMarks, TargetPlatform, bIsCooking);
 		InheritMark(ObjOuter, OBJECTMARK_EditorOnly);
 		InheritMark(ObjOuter, OBJECTMARK_NotForClient);
 		InheritMark(ObjOuter, OBJECTMARK_NotForServer);
@@ -791,7 +829,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	if (ThisStruct && ThisStruct->GetSuperStruct())
 	{
 		UObject* SuperStruct = ThisStruct->GetSuperStruct();
-		ConditionallyExcludeObjectForTarget(SuperStruct, ExcludedObjectMarks, TargetPlatform);
+		ConditionallyExcludeObjectForTarget(SuperStruct, ExcludedObjectMarks, TargetPlatform, bIsCooking);
 		InheritMark(SuperStruct, OBJECTMARK_EditorOnly);
 		InheritMark(SuperStruct, OBJECTMARK_NotForClient);
 		InheritMark(SuperStruct, OBJECTMARK_NotForServer);
@@ -802,7 +840,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 
 	if (Archetype)
 	{
-		ConditionallyExcludeObjectForTarget(Archetype, ExcludedObjectMarks, TargetPlatform);
+		ConditionallyExcludeObjectForTarget(Archetype, ExcludedObjectMarks, TargetPlatform, bIsCooking);
 		InheritMark(Archetype, OBJECTMARK_EditorOnly);
 		InheritMark(Archetype, OBJECTMARK_NotForClient);
 		InheritMark(Archetype, OBJECTMARK_NotForServer);
@@ -828,7 +866,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	}
 	else
 	{
-		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && ((InheritedMarks & OBJECTMARK_EditorOnly) || IsEditorOnlyObject(Obj)))
+		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && ((InheritedMarks & OBJECTMARK_EditorOnly) || IsEditorOnlyObject(Obj, false)))
 		{
 			Obj->Mark(OBJECTMARK_EditorOnly);
 		}
@@ -949,7 +987,7 @@ FArchive& FArchiveSaveTagExports::operator<<(UObject*& Obj)
 
 	// Check outer chain for any exlcuded object marks
 	const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform(CookingTarget(), IsCooking());
-	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget());
+	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget(), IsCooking());
 
 	if (Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks((EObjectMark)(OBJECTMARK_TagExp | ExcludedObjectMarks)))
 	{
@@ -1109,7 +1147,7 @@ public:
 	virtual FArchive& operator<<(UObject*& Obj) override;
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
-	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(FSoftObjectPath& Value) override;
 	virtual FArchive& operator<<(FName& Name) override;
 	
 	virtual void MarkSearchableName(const UObject* TypeObject, const FName& ValueName) const override;
@@ -1147,7 +1185,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 	CheckObjectPriorToSave(*this, Obj, nullptr);
 
 	const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform( CookingTarget(), IsCooking() );
-	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget());
+	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget(), IsCooking());
 	
 	// Skip PendingKill objects and objects that don't pass the platform mark filter
 	if (Obj && (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !Obj->HasAnyMarks(ExcludedObjectMarks)))
@@ -1218,18 +1256,21 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 						}
 					}
 #if WITH_EDITOR
-					SavePackageState->AddReplacementsNames(Obj, CookingTarget());
+					SavePackageState->AddReplacementsNames(Obj, CookingTarget(), IsCooking());
 #endif //WITH_EDITOR
 				}
 
 				// Recurse into parent
 				UObject* Parent = Obj->GetOuter();
 #if WITH_EDITOR
-				if(const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+				if (IsCooking() && CookingTarget())
 				{
-					FName UnusedName;
-					UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, Coordinator->GetNativizationOptionsForPlatform(CookingTarget()));
-					Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
+					if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+					{
+						FName UnusedName;
+						UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, Coordinator->GetNativizationOptionsForPlatform(CookingTarget()));
+						Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
+					}
 				}
 #endif //WITH_EDITOR
 				if( Parent )
@@ -1249,26 +1290,17 @@ FArchive& FArchiveSaveTagImports::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return *this << ID;
 }
 
-FArchive& FArchiveSaveTagImports::operator<<(FStringAssetReference& Value)
+FArchive& FArchiveSaveTagImports::operator<<(FSoftObjectPath& Value)
 {
 	if (Value.IsValid())
 	{
-		Value.PreSavePath();
-		FString Path = Value.ToString();
+		Value.SerializePath(*this);
 
-		if (GetIniFilenameFromObjectsReference(Path) != nullptr)
-		{
-			Linker->StringAssetReferencesMap.AddUnique(Path);
-		}
-		else
-		{
-			FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
-			if (!NormalizedPath.IsEmpty())
-			{
-				Linker->StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
-				Value.SetPath(MoveTemp(NormalizedPath));
-			}
-		}
+		FString Path = Value.ToString();
+		FName PackageName = FName(*FPackageName::ObjectPathToPackageName(Path));
+
+		SavePackageState->MarkNameAsReferenced(PackageName);
+		Linker->SoftPackageReferenceList.AddUnique(PackageName);	
 	}
 	return *this;
 }
@@ -1878,7 +1910,7 @@ class FExportReferenceSorter : public FArchiveUObject
 		{
 			FAddFlushInitalizedStaticCoreClasses() 
 			{
-				FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushInitalizedStaticCoreClasses);
+				FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddStatic(FlushInitalizedStaticCoreClasses);
 			}
 			/** Wrapper function to handle default parameter when used as function pointer */
 			static void FlushInitalizedStaticCoreClasses()
@@ -1928,8 +1960,8 @@ class FExportReferenceSorter : public FArchiveUObject
 				UWeakObjectProperty::StaticClass(),
 				UObjectPropertyBase::StaticClass(),
 				ULazyObjectProperty::StaticClass(),
-				UAssetObjectProperty::StaticClass(),
-				UAssetClassProperty::StaticClass(),
+				USoftObjectProperty::StaticClass(),
+				USoftClassProperty::StaticClass(),
 				UMapProperty::StaticClass(),
 				USetProperty::StaticClass(),
 				UEnumProperty::StaticClass()
@@ -2036,8 +2068,8 @@ class FExportReferenceSorter : public FArchiveUObject
 			UWeakObjectProperty::StaticClass(),
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
-			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass(),
+			USoftObjectProperty::StaticClass(),
+			USoftClassProperty::StaticClass(),
 			UMapProperty::StaticClass(),
 			USetProperty::StaticClass(),
 			UEnumProperty::StaticClass()
@@ -3434,8 +3466,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		const FString BaseFilename = FPaths::GetBaseFilename(Filename);
 		// Make temp file. CreateTempFilename guarantees unique, non-existing filename.
 		// The temp file will be saved in the game save folder to not have to deal with potentially too long paths.
+		// Since the temp filename may include a 32 character GUID as well, limit the user prefix to 32 characters.
 		FString TempFilename;
-		TempFilename = FPaths::CreateTempFilename(*FPaths::GameSavedDir(), *BaseFilename);
+		TempFilename = FPaths::CreateTempFilename(*FPaths::ProjectSavedDir(), *BaseFilename.Left(32));
 
 		// Init.
 		FString CleanFilename = FPaths::GetCleanFilename(Filename);
@@ -3572,7 +3605,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					FString TestArchiveFilename = Filename;
 					// TestArchiveFilename.ReplaceInline(TEXT("Cooked"), TEXT("CookedDiff"));
 					DiffCookedPackagesPath.ReplaceInline(TEXT("\\"), TEXT("/"));
-					FString CookedPath = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() + TEXT("Cooked/"));
+					FString CookedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() + TEXT("Cooked/"));
 					CookedPath.ReplaceInline(TEXT("\\"), TEXT("/"));
 					TestArchiveFilename.ReplaceInline(*CookedPath, *DiffCookedPackagesPath);
 					
@@ -3652,29 +3685,32 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					}
 
 #if WITH_EDITOR
-					if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+					if (bIsCooking && TargetPlatform)
 					{
-						EReplacementResult ReplacmentResult = Coordinator->IsTargetedForReplacement(InOuter, Coordinator->GetNativizationOptionsForPlatform(TargetPlatform));
-						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
+						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 						{
-							if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
+							EReplacementResult ReplacmentResult = Coordinator->IsTargetedForReplacement(InOuter, Coordinator->GetNativizationOptionsForPlatform(TargetPlatform));
+							if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
 							{
-								// the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
-								GEDLCookChecker.AddExport(InOuter); 
-
-								for (UObject* ObjExport : TagExpObjects)
+								if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
 								{
-									// Register exports, these will exist at runtime because they are compiled in
-									GEDLCookChecker.AddExport(ObjExport);
-								}
-							}
+									// the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
+									GEDLCookChecker.AddExport(InOuter);
 
-							UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
-							return ESavePackageResult::ReplaceCompletely;
-						}
-						else if (ReplacmentResult == EReplacementResult::GenerateStub)
-						{
-							bRequestStub = true;
+									for (UObject* ObjExport : TagExpObjects)
+									{
+										// Register exports, these will exist at runtime because they are compiled in
+										GEDLCookChecker.AddExport(ObjExport);
+									}
+								}
+
+								UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
+								return ESavePackageResult::ReplaceCompletely;
+							}
+							else if (ReplacmentResult == EReplacementResult::GenerateStub)
+							{
+								bRequestStub = true;
+							}
 						}
 					}
 #endif
@@ -3830,7 +3866,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 						SavePackageState->MarkNameAsReferenced(Obj->GetFName());
 #if WITH_EDITOR
-						SavePackageState->AddReplacementsNames(Obj, TargetPlatform);
+						SavePackageState->AddReplacementsNames(Obj, TargetPlatform, bIsCooking);
 #endif //WITH_EDITOR
 						if( Obj->GetOuter() )
 						{
@@ -4176,16 +4212,19 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						UClass* ObjClass = Obj->GetClass();
 #if WITH_EDITOR
 						FName ReplacedName = NAME_None;
-						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+						if (bIsCooking && TargetPlatform)
 						{
-							const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
-							if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+							if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 							{
-								ObjClass = ReplacedClass;
-							}
-							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName, NativizationOptions))
-							{
-								ReplacedImportOuters.Add(Obj, ReplacedOuter);
+								const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
+								if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
+								{
+									ObjClass = ReplacedClass;
+								}
+								if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName, NativizationOptions))
+								{
+									ReplacedImportOuters.Add(Obj, ReplacedOuter);
+								}
 							}
 						}
 #endif //WITH_EDITOR
@@ -4543,16 +4582,16 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				// Only save string asset and searchable name map if saving for editor
 				if (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly))
 				{
-					// Save string asset reference map
-					Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
-					Linker->Summary.StringAssetReferencesCount = Linker->StringAssetReferencesMap.Num();
+					// Save soft package references
+					Linker->Summary.SoftPackageReferencesOffset = Linker->Tell();
+					Linker->Summary.SoftPackageReferencesCount = Linker->SoftPackageReferenceList.Num();
 					{
 #if WITH_EDITOR
 						FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
 #endif
-						for (FString& StringAssetReference : Linker->StringAssetReferencesMap)
+						for (FName& SoftPackageName : Linker->SoftPackageReferenceList)
 						{
-							*Linker << StringAssetReference;
+							*Linker << SoftPackageName;
 						}
 					}
 
@@ -4562,8 +4601,8 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 				else
 				{
-					Linker->Summary.StringAssetReferencesCount = 0;
-					Linker->Summary.StringAssetReferencesOffset = 0;
+					Linker->Summary.SoftPackageReferencesCount = 0;
+					Linker->Summary.SoftPackageReferencesOffset = 0;
 					Linker->Summary.SearchableNamesOffset = 0;
 				}
 
@@ -4613,9 +4652,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());
 								checkf(!Export.SuperIndex.IsNull(),
 									TEXT("Export Struct (%s) of type (%s) inheriting from (%s) of type (%s) has not mapped super struct."),
-									*(Struct->GetName()),
+									*GetPathNameSafe(Struct),
 									*(Struct->GetClass()->GetName()),
-									*(Struct->GetSuperStruct()->GetName()),
+									*GetPathNameSafe(Struct->GetSuperStruct()),
 									*(Struct->GetSuperStruct()->GetClass()->GetName())
 								);
 							}
@@ -4690,7 +4729,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' is in the linker table, but is pending kill. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);
 							}
-							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest));
+							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest, false));
 							if (bMandatory && !bNotFiltered)
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' was filtered, but is mandatory. This indicates a problem with editor only stripping. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);
@@ -5320,13 +5359,13 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						{
 							if (Export.Object)
 							{
-								Export.Object->SetFlags(RF_WasLoaded);
+								Export.Object->SetFlags(RF_WasLoaded|RF_LoadCompleted);
 							}
 						}
 						if (Linker->LinkerRoot)
 						{
 							// And finally set the flag on the package itself.
-							Linker->LinkerRoot->SetFlags(RF_WasLoaded);
+							Linker->LinkerRoot->SetFlags(RF_WasLoaded|RF_LoadCompleted);
 						}
 
 						// Clear dirty flag if desired

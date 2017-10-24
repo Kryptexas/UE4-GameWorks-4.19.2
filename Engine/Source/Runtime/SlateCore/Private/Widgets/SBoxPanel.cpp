@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SBoxPanel.h"
 #include "Layout/LayoutUtils.h"
@@ -280,8 +280,8 @@ void SBoxPanel::ClearChildren()
  * @param InOrientation   The orientation of the Box Panel
  */
 SBoxPanel::SBoxPanel( EOrientation InOrientation )
-: Orientation(InOrientation)
-, Children()
+: Children()
+, Orientation(InOrientation)
 {
 
 }

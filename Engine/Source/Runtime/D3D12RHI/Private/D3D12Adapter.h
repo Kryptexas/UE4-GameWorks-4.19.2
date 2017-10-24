@@ -180,8 +180,15 @@ public:
 	inline const EMultiGPUMode GetMultiGPUMode() const { return MultiGPUMode; }
 	inline void SetAFRMode() { MultiGPUMode = MGPU_AFR; }
 
-
+	inline void CreateDXGIFactory()
+	{
+#if PLATFORM_WINDOWS
+		VERIFYD3D12RESULT(::CreateDXGIFactory(IID_PPV_ARGS(DxgiFactory.GetInitReference())));
+		VERIFYD3D12RESULT(DxgiFactory->QueryInterface(IID_PPV_ARGS(DxgiFactory2.GetInitReference())));
+#endif
+	}
 	inline IDXGIFactory* GetDXGIFactory() const { return DxgiFactory; }
+	inline IDXGIFactory2* GetDXGIFactory2() const { return DxgiFactory2; }
 
 	inline FD3D12DynamicHeapAllocator& GetUploadHeapAllocator() { return *UploadHeapAllocator; }
 
@@ -195,6 +202,12 @@ public:
 
 	// Resource Creation
 	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc,
+		const D3D12_HEAP_PROPERTIES& HeapProps,
+		const D3D12_RESOURCE_STATES& InitialUsage,
+		const D3D12_CLEAR_VALUE* ClearValue,
+		FD3D12Resource** ppOutResource);
+
+	HRESULT CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& Desc,
 		const D3D12_HEAP_PROPERTIES& HeapProps,
 		const D3D12_RESOURCE_STATES& InitialUsage,
 		const D3D12_CLEAR_VALUE* ClearValue,
@@ -300,6 +313,8 @@ public:
 		});
 	}
 
+	void BlockUntilIdle();
+
 protected:
 
 	virtual void CreateRootDevice(bool bWithDebug);
@@ -353,6 +368,7 @@ protected:
 	/** The viewport which is currently being drawn. */
 	TRefCountPtr<FD3D12Viewport> DrawingViewport;
 	TRefCountPtr<IDXGIFactory> DxgiFactory;
+	TRefCountPtr<IDXGIFactory2> DxgiFactory2;
 
 	/** A Fence whos value increases every frame*/
 	FD3D12ManualFence FrameFence;

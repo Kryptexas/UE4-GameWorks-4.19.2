@@ -31,15 +31,19 @@
 /// \file gf/matrix3f.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
+#include "pxr/base/gf/api.h"
+#include "pxr/base/gf/declare.h"
 #include "pxr/base/gf/matrixData.h"
 #include "pxr/base/gf/vec3f.h"
 #include "pxr/base/gf/traits.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <iosfwd>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <>
 struct GfIsGfMatrix<class GfMatrix3f> { static const bool value = true; };
@@ -256,7 +260,6 @@ public:
 
     /// Tests for element-wise matrix inequality. All elements must match
     /// exactly for matrices to be considered equal.
-    GF_API
     bool operator !=(const GfMatrix3d& m) const {
         return !(*this == m);
     }
@@ -409,5 +412,7 @@ private:
 /// Output a GfMatrix3f
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfMatrix3f const &);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_MATRIX3F_H

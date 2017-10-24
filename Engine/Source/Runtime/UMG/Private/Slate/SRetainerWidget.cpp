@@ -7,6 +7,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/World.h"
+#include "Layout/WidgetCaching.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("Retainer Widget Tick"), STAT_SlateRetainerWidgetTick, STATGROUP_Slate);
@@ -54,15 +55,31 @@ SRetainerWidget::~SRetainerWidget()
 	}
 }
 
-void SRetainerWidget::InitWidgetRenderer()
+void SRetainerWidget::UpdateWidgetRenderer()
 {
-	// Use slate's gamma correction for dynamic materials on mobile, as HW sRGB writes are not supported.
-	bool bUseGammaCorrection = (DynamicEffect != nullptr) ? GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1 : true;
+	// We can't write out linear.  If we write out linear, then we end up with premultiplied alpha
+	// in linear space, which blending with gamma space later is difficult...impossible? to get right
+	// since the rest of slate does blending in gamma space.
+	const bool bWriteContentInGammaSpace = true;
 
-	if (!WidgetRenderer.IsValid() || WidgetRenderer->GetUseGammaCorrection() != bUseGammaCorrection)
+	if (!WidgetRenderer.IsValid())
 	{
-		WidgetRenderer = MakeShareable(new FWidgetRenderer(bUseGammaCorrection));
-		WidgetRenderer->SetIsPrepassNeeded(false);
+		WidgetRenderer = MakeShareable(new FWidgetRenderer(bWriteContentInGammaSpace));
+	}
+
+	WidgetRenderer->SetUseGammaCorrection(bWriteContentInGammaSpace);
+	WidgetRenderer->SetIsPrepassNeeded(false);
+	WidgetRenderer->SetClearHitTestGrid(false);
+
+	// Update the render target to match the current gamma rendering preferences.
+	if (RenderTarget && RenderTarget->SRGB != !bWriteContentInGammaSpace)
+	{
+		// Note, we do the opposite here of whatever write is, if we we're writing out gamma,
+		// then sRGB writes were not supported, so it won't be an sRGB texture.
+		RenderTarget->TargetGamma = !bWriteContentInGammaSpace ? 0.0f : 1.0;
+		RenderTarget->SRGB = !bWriteContentInGammaSpace;
+
+		RenderTarget->UpdateResource();
 	}
 }
 
@@ -71,29 +88,33 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	STAT(MyStatId = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Slate>(InArgs._StatId);)
 
 	RenderTarget = NewObject<UTextureRenderTarget2D>();
-	
-	// Use HW sRGB correction for RT, ensuring it is linearised on read by material shaders
-	// since SRetainerWidget::OnPaint renders the RT with gamma correction.
-	RenderTarget->SRGB = false;
-	RenderTarget->TargetGamma = 1.0f;
 	RenderTarget->ClearColor = FLinearColor::Transparent;
 
 	SurfaceBrush.SetResourceObject(RenderTarget);
 
 	Window = SNew(SVirtualWindow);
 	Window->SetShouldResolveDeferred(false);
-	HitTestGrid = MakeShareable(new FHittestGrid());
-	InitWidgetRenderer();
+	
+	UpdateWidgetRenderer();
 
 	MyWidget = InArgs._Content.Widget;
+
+	RenderOnPhase = InArgs._RenderOnPhase;
+	RenderOnInvalidation = InArgs._RenderOnInvalidation;
+
 	Phase = InArgs._Phase;
 	PhaseCount = InArgs._PhaseCount;
 
 	LastDrawTime = FApp::GetCurrentTime();
 	LastTickedFrame = 0;
 
-	bRenderingOffscreenDesire = true;
-	bRenderingOffscreen = false;
+	bEnableRetainedRenderingDesire = true;
+	bEnableRetainedRendering = false;
+
+	bRenderRequested = true;
+
+	RootCacheNode = nullptr;
+	LastUsedCachedNodeIndex = 0;
 
 	Window->SetContent(MyWidget.ToSharedRef());
 
@@ -120,12 +141,12 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 
 bool SRetainerWidget::ShouldBeRenderingOffscreen() const
 {
-	return bRenderingOffscreenDesire && IsRetainedRenderingEnabled();
+	return bEnableRetainedRenderingDesire && IsRetainedRenderingEnabled();
 }
 
 bool SRetainerWidget::IsAnythingVisibleToRender() const
 {
-	return GetVisibility().IsVisible() && MyWidget.IsValid() && MyWidget->GetVisibility().IsVisible();
+	return MyWidget.IsValid() && MyWidget->GetVisibility().IsVisible();
 }
 
 void SRetainerWidget::OnRetainerModeChanged()
@@ -145,16 +166,16 @@ void SRetainerWidget::OnRetainerModeCVarChanged( IConsoleVariable* CVar )
 
 void SRetainerWidget::SetRetainedRendering(bool bRetainRendering)
 {
-	bRenderingOffscreenDesire = bRetainRendering;
+	bEnableRetainedRenderingDesire = bRetainRendering;
 }
 
 void SRetainerWidget::RefreshRenderingMode()
 {
 	const bool bShouldBeRenderingOffscreen = ShouldBeRenderingOffscreen();
 
-	if ( bRenderingOffscreen != bShouldBeRenderingOffscreen )
+	if ( bEnableRetainedRendering != bShouldBeRenderingOffscreen )
 	{
-		bRenderingOffscreen = bShouldBeRenderingOffscreen;
+		bEnableRetainedRendering = bShouldBeRenderingOffscreen;
 
 		Window->SetContent(MyWidget.ToSharedRef());
 	}
@@ -188,7 +209,8 @@ void SRetainerWidget::SetEffectMaterial(UMaterialInterface* EffectMaterial)
 		DynamicEffect = nullptr;
 		SurfaceBrush.SetResourceObject(RenderTarget);
 	}
-	InitWidgetRenderer();
+
+	UpdateWidgetRenderer();
 }
 
 void SRetainerWidget::SetTextureParameter(FName TextureParameter)
@@ -209,7 +231,7 @@ void SRetainerWidget::AddReferencedObjects(FReferenceCollector& Collector)
 
 FChildren* SRetainerWidget::GetChildren()
 {
-	if ( bRenderingOffscreen )
+	if ( bEnableRetainedRendering )
 	{
 		return &EmptyChildSlot;
 	}
@@ -224,93 +246,133 @@ bool SRetainerWidget::ComputeVolatility() const
 	return true;
 }
 
-void SRetainerWidget::PaintRetainedContent(float DeltaTime)
+FCachedWidgetNode* SRetainerWidget::CreateCacheNode() const
 {
-	STAT(FScopeCycleCounter TickCycleCounter(MyStatId);)
-
-	// we should not be added to tick if we're not rendering
-	checkSlow(FApp::CanEverRender());
-
-	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
-	if ( bRenderingOffscreen && bShouldRenderAnything )
+	// If the node pool is empty, allocate a few
+	if (LastUsedCachedNodeIndex >= NodePool.Num())
 	{
-
-		// In order to get material parameter collections to function properly, we need the current world's Scene
-		// properly propagated through to any widgets that depend on that functionality. The SceneViewport and RetainerWidget the 
-		// only location where this information exists in Slate, so we push the current scene onto the current
-		// Slate application so that we can leverage it in later calls.
-		UWorld* TickWorld = OuterWorld.Get();
-		if (TickWorld && TickWorld->Scene && IsInGameThread())
+		for (int32 i = 0; i < 10; i++)
 		{
-			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(TickWorld->Scene);
-		}
-		else if (IsInGameThread())
-		{
-			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
-		}
-
-		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
-		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )
-		{
-			LastTickedFrame = GFrameCounter;
-			const double TimeSinceLastDraw = FApp::GetCurrentTime() - LastDrawTime;
-
-			//const FSlateRenderTransform& RenderTransform = CachedAllottedGeometry.GetAccumulatedRenderTransform();
-
-			FPaintGeometry PaintGeometry = CachedAllottedGeometry.ToPaintGeometry();
-			FVector2D RenderSize = PaintGeometry.GetLocalSize() * PaintGeometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
-
-			const uint32 RenderTargetWidth  = FMath::RoundToInt(RenderSize.X);
-			const uint32 RenderTargetHeight = FMath::RoundToInt(RenderSize.Y);
-
-			const FVector2D ViewOffset = PaintGeometry.DrawPosition.RoundToVector();
-
-			// Keep the visibilities the same, the proxy window should maintain the same visible/non-visible hit-testing of the retainer.
-			Window->SetVisibility(GetVisibility());
-
-			// Need to prepass.
-			Window->SlatePrepass(CachedAllottedGeometry.Scale);
-
-			if ( RenderTargetWidth != 0 && RenderTargetHeight != 0 )
-			{
-				if ( MyWidget->GetVisibility().IsVisible() )
-				{
-					bool bDynamicMaterialInUse = (DynamicEffect != nullptr);
-					if ( RenderTarget->GetSurfaceWidth() != RenderTargetWidth ||
-						 RenderTarget->GetSurfaceHeight() != RenderTargetHeight ||
-						 RenderTarget->SRGB != bDynamicMaterialInUse
-						)
-					{
-						const bool bForceLinearGamma = false;
-						RenderTarget->TargetGamma = bDynamicMaterialInUse ? 2.2f : 1.0f;
-						RenderTarget->SRGB = bDynamicMaterialInUse;
-						RenderTarget->InitCustomFormat(RenderTargetWidth, RenderTargetHeight, PF_B8G8R8A8, bForceLinearGamma);
-						RenderTarget->UpdateResource();
-					}
-
-					const float Scale = CachedAllottedGeometry.Scale;
-
-					const FVector2D DrawSize = FVector2D(RenderTargetWidth, RenderTargetHeight);
-					const FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize * ( 1 / Scale ), FSlateLayoutTransform(Scale, PaintGeometry.DrawPosition));
-
-					// Update the surface brush to match the latest size.
-					SurfaceBrush.ImageSize = DrawSize;
-
-					WidgetRenderer->ViewOffset = -ViewOffset;
-
-					WidgetRenderer->DrawWindow(
-						RenderTarget,
-						HitTestGrid.ToSharedRef(),
-						Window.ToSharedRef(),
-						WindowGeometry,
-						WindowGeometry.GetLayoutBoundingRect(),
-						TimeSinceLastDraw);
-				}
-			}
-
-			LastDrawTime = FApp::GetCurrentTime();
+			NodePool.Add(new FCachedWidgetNode());
 		}
 	}
+
+	// Return one of the preallocated nodes and increment the next node index.
+	FCachedWidgetNode* NewNode = NodePool[LastUsedCachedNodeIndex];
+	++LastUsedCachedNodeIndex;
+
+	return NewNode;
+}
+
+void SRetainerWidget::InvalidateWidget(SWidget* InvalidateWidget)
+{
+	if (RenderOnInvalidation)
+	{
+		bRenderRequested = true;
+	}
+}
+
+void SRetainerWidget::RequestRender()
+{
+	bRenderRequested = true;
+}
+
+bool SRetainerWidget::PaintRetainedContent(const FPaintArgs& Args)
+{
+	// In order to get material parameter collections to function properly, we need the current world's Scene
+	// properly propagated through to any widgets that depend on that functionality. The SceneViewport and RetainerWidget the 
+	// only location where this information exists in Slate, so we push the current scene onto the current
+	// Slate application so that we can leverage it in later calls.
+	UWorld* TickWorld = OuterWorld.Get();
+	if (TickWorld && TickWorld->Scene && IsInGameThread())
+	{
+		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(TickWorld->Scene);
+	}
+	else if (IsInGameThread())
+	{
+		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
+	}
+
+	if (RenderOnPhase)
+	{
+		if (LastTickedFrame != GFrameCounter && (GFrameCounter % PhaseCount) == Phase)
+		{
+			bRenderRequested = true;
+		}
+	}
+
+	SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
+	if ( bRenderRequested )
+	{
+		LastTickedFrame = GFrameCounter;
+		const double TimeSinceLastDraw = FApp::GetCurrentTime() - LastDrawTime;
+
+		FPaintGeometry PaintGeometry = CachedAllottedGeometry.ToPaintGeometry();
+		FVector2D RenderSize = PaintGeometry.GetLocalSize() * PaintGeometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
+
+		const uint32 RenderTargetWidth  = FMath::RoundToInt(RenderSize.X);
+		const uint32 RenderTargetHeight = FMath::RoundToInt(RenderSize.Y);
+
+		const FVector2D ViewOffset = PaintGeometry.DrawPosition.RoundToVector();
+
+		// Keep the visibilities the same, the proxy window should maintain the same visible/non-visible hit-testing of the retainer.
+		Window->SetVisibility(GetVisibility());
+
+		// Need to prepass.
+		Window->SlatePrepass(CachedAllottedGeometry.Scale);
+
+		// Reset the cached node pool index so that we effectively reset the pool.
+		LastUsedCachedNodeIndex = 0;
+		RootCacheNode = nullptr;
+
+		if ( RenderTargetWidth != 0 && RenderTargetHeight != 0 )
+		{
+			if ( MyWidget->GetVisibility().IsVisible() )
+			{
+				if ( RenderTarget->GetSurfaceWidth() != RenderTargetWidth ||
+					 RenderTarget->GetSurfaceHeight() != RenderTargetHeight )
+				{
+					const bool bForceLinearGamma = false;
+					RenderTarget->InitCustomFormat(RenderTargetWidth, RenderTargetHeight, PF_B8G8R8A8, bForceLinearGamma);
+				}
+
+				const float Scale = CachedAllottedGeometry.Scale;
+
+				const FVector2D DrawSize = FVector2D(RenderTargetWidth, RenderTargetHeight);
+				const FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize * ( 1 / Scale ), FSlateLayoutTransform(Scale, PaintGeometry.DrawPosition));
+
+				// Update the surface brush to match the latest size.
+				SurfaceBrush.ImageSize = DrawSize;
+
+				WidgetRenderer->ViewOffset = -ViewOffset;
+
+				SRetainerWidget* MutableThis = const_cast<SRetainerWidget*>(this);
+				TSharedRef<SRetainerWidget> SharedMutableThis = SharedThis(MutableThis);
+				
+				//FPaintArgs PaintArgs(Window.ToSharedRef().Get(), Args.GetGrid(), Args.GetWindowToDesktopTransform(), FApp::GetCurrentTime(), Args.GetDeltaTime());
+				FPaintArgs PaintArgs(*this, Args.GetGrid(), Args.GetWindowToDesktopTransform(), FApp::GetCurrentTime(), Args.GetDeltaTime());
+
+				RootCacheNode = CreateCacheNode();
+				RootCacheNode->Initialize(Args, SharedMutableThis, WindowGeometry);
+
+				WidgetRenderer->DrawWindow(
+					PaintArgs.EnableCaching(SharedMutableThis, RootCacheNode, true, true),
+					RenderTarget,
+					Window.ToSharedRef(),
+					WindowGeometry,
+					WindowGeometry.GetLayoutBoundingRect(),
+					TimeSinceLastDraw);
+
+				bRenderRequested = false;
+
+				LastDrawTime = FApp::GetCurrentTime();
+
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
@@ -321,22 +383,21 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 	MutableThis->RefreshRenderingMode();
 
-	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
-	if ( bRenderingOffscreen && bShouldRenderAnything )
+	if ( bEnableRetainedRendering && IsAnythingVisibleToRender() )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetPaint );
 		CachedAllottedGeometry = AllottedGeometry;
 		CachedWindowToDesktopTransform = Args.GetWindowToDesktopTransform();
 
-		{
-			MutableThis->PaintRetainedContent(FApp::GetDeltaTime());
-		}
+		TSharedRef<SRetainerWidget> SharedMutableThis = SharedThis(MutableThis);
+
+		const bool bNewFramePainted = MutableThis->PaintRetainedContent(Args);
 
 		if ( RenderTarget->GetSurfaceWidth() >= 1 && RenderTarget->GetSurfaceHeight() >= 1 )
 		{
 			const FLinearColor ComputedColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * ColorAndOpacity.Get() * SurfaceBrush.GetTint(InWidgetStyle));
-			// Retainer widget uses premultiplied alpha, so premultiply the color by the alpha to respect opacity.
-			const FLinearColor PremultipliedColorAndOpacity(ComputedColorAndOpacity*ComputedColorAndOpacity.A);
+			// Retainer widget uses pre-multiplied alpha, so pre-multiply the color by the alpha to respect opacity.
+			const FLinearColor PremultipliedColorAndOpacity(ComputedColorAndOpacity * ComputedColorAndOpacity.A);
 
 			const bool bDynamicMaterialInUse = (DynamicEffect != nullptr);
 			if (bDynamicMaterialInUse)
@@ -349,34 +410,34 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(),
 				&SurfaceBrush,
-				bDynamicMaterialInUse ? ESlateDrawEffect::PreMultipliedAlpha : ESlateDrawEffect::PreMultipliedAlpha | ESlateDrawEffect::NoGamma,
+				// We always write out the content in gamma space, so when we render the final version we need to
+				// render without gamma correction enabled.
+				ESlateDrawEffect::PreMultipliedAlpha | ESlateDrawEffect::NoGamma,
 				FLinearColor(PremultipliedColorAndOpacity.R, PremultipliedColorAndOpacity.G, PremultipliedColorAndOpacity.B, PremultipliedColorAndOpacity.A)
-				);
+			);
 			
-			TSharedRef<SRetainerWidget> SharedMutableThis = SharedThis(MutableThis);
-			Args.InsertCustomHitTestPath(SharedMutableThis, Args.GetLastHitTestIndex());
+			if (RootCacheNode)
+			{
+				RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex(), LayerId, FVector2D(0, 0));
+			}
 
 			// Any deferred painted elements of the retainer should be drawn directly by the main renderer, not rendered into the render target,
 			// as most of those sorts of things will break the rendering rect, things like tooltips, and popup menus.
-			for ( auto& DeferredPaint :WidgetRenderer->DeferredPaints )
+			for ( auto& DeferredPaint : WidgetRenderer->DeferredPaints )
 			{
 				OutDrawElements.QueueDeferredPainting(DeferredPaint->Copy(Args));
 			}
 		}
-		
+
 		return LayerId;
 	}
-	else if( bShouldRenderAnything )
-	{
-		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	}
 
-	return LayerId;
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 FVector2D SRetainerWidget::ComputeDesiredSize(float LayoutScaleMuliplier) const
 {
-	if ( bRenderingOffscreen )
+	if ( bEnableRetainedRendering )
 	{
 		return MyWidget->GetDesiredSize();
 	}
@@ -384,35 +445,4 @@ FVector2D SRetainerWidget::ComputeDesiredSize(float LayoutScaleMuliplier) const
 	{
 		return SCompoundWidget::ComputeDesiredSize(LayoutScaleMuliplier);
 	}
-}
-
-TArray<FWidgetAndPointer> SRetainerWidget::GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const
-{
-	const FVector2D LocalPosition = DesktopSpaceCoordinate - CachedWindowToDesktopTransform;
-	const FVector2D LastLocalPosition = DesktopSpaceCoordinate - CachedWindowToDesktopTransform;
-
-	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable(new FVirtualPointerPosition(LocalPosition, LastLocalPosition));
-
-	// TODO Where should this come from?
-	const float CursorRadius = 0;
-
-	TArray<FWidgetAndPointer> ArrangedWidgets = 
-		HitTestGrid->GetBubblePath(LocalPosition, CursorRadius, bIgnoreEnabledStatus);
-
-	for ( FWidgetAndPointer& ArrangedWidget : ArrangedWidgets )
-	{
-		ArrangedWidget.PointerPosition = VirtualMouseCoordinate;
-	}
-
-	return ArrangedWidgets;
-}
-
-void SRetainerWidget::ArrangeChildren(FArrangedChildren& ArrangedChildren) const
-{
-	ArrangedChildren.AddWidget(FArrangedWidget(MyWidget.ToSharedRef(), CachedAllottedGeometry));
-}
-
-TSharedPtr<struct FVirtualPointerPosition> SRetainerWidget::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& InGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
-{
-	return MakeShareable(new FVirtualPointerPosition(ScreenSpaceMouseCoordinate, LastScreenSpaceMouseCoordinate));
 }

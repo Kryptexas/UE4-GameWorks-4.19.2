@@ -23,4 +23,4 @@ if [ -f ../../../Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj ]; then
 fi
 
 # pass all parameters to UBT
-mono ../../../Binaries/DotNET/UnrealBuildTool.exe -XcodeProjectFile "$@"
+mono ../../../Binaries/DotNET/UnrealBuildTool.exe -projectfiles "$@"

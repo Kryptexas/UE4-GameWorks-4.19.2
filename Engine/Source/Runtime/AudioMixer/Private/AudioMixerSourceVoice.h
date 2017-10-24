@@ -20,8 +20,11 @@ namespace Audio
 	class FMixerSourceVoice
 	{
 	public:
-		FMixerSourceVoice(FMixerDevice* InMixerDevice, FMixerSourceManager* InSourceManager);
+		FMixerSourceVoice();
 		~FMixerSourceVoice();
+
+		// Resets the source voice state
+		void Reset(FMixerDevice* InMixerDevice);
 
 		// Initializes the mixer source voice
 		bool Init(const FMixerSourceVoiceInitParams& InFormat);
@@ -41,8 +44,14 @@ namespace Audio
 		// Sets the source voice volume value.
 		void SetVolume(const float InVolume);
 
+		// Sets the source voice distance attenuation.
+		void SetDistanceAttenuation(const float InDistanceAttenuation);
+		
 		// Sets the source voice's LPF filter frequency.
 		void SetLPFFrequency(const float InFrequency);
+
+		// Sets the source voice's HPF filter frequency.
+		void SetHPFFrequency(const float InFrequency);
 
 		// Sets the source voice's channel map (2d or 3d).
 		void SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
@@ -81,13 +90,13 @@ namespace Audio
 		int64 GetNumFramesPlayed() const;
 
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(TArray<float>& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
 
 		// Sets the submix send levels
 		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel);
 
-		// Returns the submix that owns this source voice.
-		TMap<uint32, FMixerSourceSubmixSend>& GetSubmixSends() { return SubmixSends; }
+		// Called when the source is a bus and needs to mix other sources together to generate output
+		void OnMixBus(FMixerSourceBufferPtr OutMixerSourceBuffer);
 
 	private:
 
@@ -100,12 +109,16 @@ namespace Audio
 		FThreadSafeCounter NumBuffersQueued;
 		float Pitch;
 		float Volume;
+		float DistanceAttenuation;
 		float Distance;
 		float LPFFrequency;
+		float HPFFrequency;
 		int32 SourceId;
 		uint16 bIsPlaying : 1;
 		uint16 bIsPaused : 1;
 		uint16 bIsActive : 1;
+		uint16 bOutputToBusOnly : 1;
+		uint16 bIsBus : 1;
 	};
 
 }

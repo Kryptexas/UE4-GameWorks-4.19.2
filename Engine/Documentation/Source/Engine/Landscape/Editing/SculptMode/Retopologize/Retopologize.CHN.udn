@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:3482403
+Availability:Public
 Crumbs: %ROOT%
-Title: Retopologize
-Description: This is an overview of the Retopologize painting tool.
+Title:拓扑
+Description:拓扑绘制工具总览。
 Type: reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
@@ -12,15 +12,14 @@ Topic-image:Retopo_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Retopologize** tool automatically adjusts Landscape vertices with an X/Y offset map to improve vertex density in areas that need it, like steep cliffs. This allows for reduced texture stretching in 
-these types of areas by spreading the vertices into these areas that are less dense.
+**拓扑（Retopologize）** 工具通过 X/Y 偏移贴图自动调整地形顶点，改善所需区域中的顶点密度（如陡峭悬崖）。它将顶点分散到这些密度较低的区域中，从而减少这类区域中的纹理拉伸。
 
 [REGION:note]
-An X/Y offset map will make the Landscape slower to render and paint on with other tools, so only use the Retopologize tool if needed.
+使用 X/Y 偏移贴图后，用其他工具渲染或绘制地形的速度将变慢，因此只推荐使用拓扑工具。
 [/REGION]
 
 
-## Using the Retopologize Tool
+## 使用拓扑工具
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -40,24 +39,21 @@ An X/Y offset map will make the Landscape slower to render and paint on with oth
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, we have a steep incline that was created by flattening an area, however, it left these vertical areas with fewer Landscape vertices spread across the surface which caused the textures to 
-appear stretched and some jagged artifacts around the edges of the flattened area. By using the Retopologize tool the surrounding vertices have been pulled and redistributed without significantly altering the 
-work that was done to make the flattened area. This reduces the stretching and jagged edges that appear. 
+在此例中，我们通过扁平区域形成了陡峭斜坡，然而这会使地形顶点数量较少的垂直区域沿表面分布，从而导致纹理出现拉伸，扁平区域的边缘周围也会出现一些锯齿穿帮。使用拓扑工具可对可拉伸并重新分布周边顶点，无需对扁平区域的工作进行大量修改。这能减少出现的拉伸和锯齿边。 
 
-Use the following controls to paint an X/Y offset map to retopologize your Landscape heightmap:
+使用以下功能键绘制 X/Y 偏移贴图，拓扑地形高度图：
 
-| **Controls** | **Operation** |
+| **功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Heightens or increases the heightmap or selected layer's weight. |
+| **鼠标左键** | 增加高度图或所选图层的权重。|
 
 [REGION:imagetable]
 | [INCLUDE:#lit] | [INCLUDE:#wireframe] | 
 | ---- | ---- |
-| Retopologize Lit View | Retopologize Wireframe View |
+| 拓扑光照展示 | 拓扑线框展示 |
 [/REGION]
 
-In these comparison examples, you can see how the texture stretching has been reduced in these sharp inclines for the lit view and with the wireframe view you can see how the vertices have been redistributed 
-to be more evenly spaced in these steep inclines.  
+在范例对比中，您可在光照展示中法线尖锐坡度的纹理拉伸已减弱；在线框展示中则能看到顶点已重新分布，更均匀地分布在这些陡峭的坡度上。  
 
 <!----
 
@@ -85,8 +81,8 @@ to be more evenly spaced in these steep inclines.
 
 --->
 
-### Tool Settings
+### 工具设置
 
 ![Retopologize Tool](Landscape_Retopologize.png)
 
-There are no tool settings specific to Retopologize that can be adjusted. Simply select the tool from the selection and paint the areas in your Landscape that need to have their vertex density redistributed.
+没有可进行调整的拓扑特有工具设置。选择工具，在需要重新分布顶点密度的地形中绘制区域即可。

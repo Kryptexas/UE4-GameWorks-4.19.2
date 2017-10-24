@@ -58,6 +58,7 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 					.Visibility(this, &FSoundWaveDetails::GetMakeInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
@@ -71,6 +72,7 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 					.Visibility(this, &FSoundWaveDetails::GetUseInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
@@ -124,7 +126,7 @@ FReply FSoundWaveDetails::HandleMakeInternalCurves(USoundWave* SoundWave)
 		FScopedTransaction Transaction(LOCTEXT("MakeInternalCurve", "Copy Curve to Internal"));
 		SoundWave->Modify();
 
-		SoundWave->Curves = DuplicateObject<UCurveTable>(CastChecked<UCurveTable>(SoundWave->Curves), SoundWave, InternalCurveTableName);
+		SoundWave->Curves = DuplicateObject<UCurveTable>(SoundWave->Curves, SoundWave, InternalCurveTableName);
 		SoundWave->Curves->ClearFlags(RF_Public);
 		SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
 		SoundWave->InternalCurves = SoundWave->Curves;

@@ -1102,10 +1102,14 @@ inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 	// NaN is represented with all exponent bits set, plus at least one fraction/significand bit set.
 	// This means finite values will not have all exponent bits set, so check against those bits.
 	
+	// We cannot rely on the initialisation order of global variables between different namespaces so this is a local copy of
+    // the vector we need.
+	static const VectorRegister FloatInfinity = MakeVectorRegister((uint32)0x7F800000, (uint32)0x7F800000, (uint32)0x7F800000, (uint32)0x7F800000);
+
 	// Mask off Exponent
-	VectorRegister ExpTest = VectorBitwiseAnd(Vec, GlobalVectorConstants::FloatInfinity);
+	VectorRegister ExpTest = VectorBitwiseAnd(Vec, FloatInfinity);
 	// Compare to full exponent. If any are full exponent (not finite), the signs copied to the mask are non-zero, otherwise it's zero and finite.
-	bool IsFinite = VectorMaskBits(VectorCompareEQ(ExpTest, GlobalVectorConstants::FloatInfinity)) == 0;
+	bool IsFinite = VectorMaskBits(VectorCompareEQ(ExpTest, FloatInfinity)) == 0;
 	return !IsFinite;
 }
 

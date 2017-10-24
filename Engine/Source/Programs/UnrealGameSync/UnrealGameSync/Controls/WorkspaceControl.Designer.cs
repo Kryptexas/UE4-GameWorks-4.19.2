@@ -71,7 +71,7 @@
 			this.BuildListContextMenu_TimeZoneSeparator = new System.Windows.Forms.ToolStripSeparator();
 			this.BuildListContextMenu_ShowServerTimes = new System.Windows.Forms.ToolStripMenuItem();
 			this.BuildListContextMenu_ShowLocalTimes = new System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+			this.BuildListContextMenu_CustomTool_End = new System.Windows.Forms.ToolStripSeparator();
 			this.BuildListContextMenu_MoreInfo = new System.Windows.Forms.ToolStripMenuItem();
 			this.NotifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
 			this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
@@ -109,6 +109,7 @@
 			this.toolStripSeparator9 = new System.Windows.Forms.ToolStripSeparator();
 			this.RecentMenu_Separator = new System.Windows.Forms.ToolStripSeparator();
 			this.RecentMenu_ClearList = new System.Windows.Forms.ToolStripMenuItem();
+			this.BuildListContextMenu_CustomTool_Start = new System.Windows.Forms.ToolStripSeparator();
 			this.OptionsContextMenu.SuspendLayout();
 			this.BuildListContextMenu.SuspendLayout();
 			this.flowLayoutPanel1.SuspendLayout();
@@ -408,10 +409,11 @@
             this.BuildListContextMenu_TimeZoneSeparator,
             this.BuildListContextMenu_ShowServerTimes,
             this.BuildListContextMenu_ShowLocalTimes,
-            this.toolStripSeparator2,
+            this.BuildListContextMenu_CustomTool_Start,
+            this.BuildListContextMenu_CustomTool_End,
             this.BuildListContextMenu_MoreInfo});
 			this.BuildListContextMenu.Name = "BuildListContextMenu";
-			this.BuildListContextMenu.Size = new System.Drawing.Size(200, 490);
+			this.BuildListContextMenu.Size = new System.Drawing.Size(200, 518);
 			// 
 			// BuildListContextMenu_LaunchEditor
 			// 
@@ -568,10 +570,10 @@
 			this.BuildListContextMenu_ShowLocalTimes.Text = "Show local times";
 			this.BuildListContextMenu_ShowLocalTimes.Click += new System.EventHandler(this.BuildListContextMenu_ShowLocalTimes_Click);
 			// 
-			// toolStripSeparator2
+			// BuildListContextMenu_CustomTool_End
 			// 
-			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			this.toolStripSeparator2.Size = new System.Drawing.Size(196, 6);
+			this.BuildListContextMenu_CustomTool_End.Name = "BuildListContextMenu_CustomTool_End";
+			this.BuildListContextMenu_CustomTool_End.Size = new System.Drawing.Size(196, 6);
 			// 
 			// BuildListContextMenu_MoreInfo
 			// 
@@ -913,6 +915,11 @@
 			this.RecentMenu_ClearList.Text = "Clear List";
 			this.RecentMenu_ClearList.Click += new System.EventHandler(this.RecentMenu_ClearList_Click);
 			// 
+			// BuildListContextMenu_CustomTool_Start
+			// 
+			this.BuildListContextMenu_CustomTool_Start.Name = "BuildListContextMenu_CustomTool_Start";
+			this.BuildListContextMenu_CustomTool_Start.Size = new System.Drawing.Size(196, 6);
+			// 
 			// WorkspaceControl
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -967,7 +974,7 @@
 		private LogSplitContainer Splitter;
 		private System.Windows.Forms.ToolStripMenuItem BuildListContextMenu_MoreInfo;
 		private System.Windows.Forms.ToolStripMenuItem BuildListContextMenu_AddStar;
-		private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+		private System.Windows.Forms.ToolStripSeparator BuildListContextMenu_CustomTool_End;
 		private System.Windows.Forms.ToolStripMenuItem BuildListContextMenu_MarkGood;
 		private System.Windows.Forms.ToolStripMenuItem BuildListContextMenu_MarkBad;
 		private System.Windows.Forms.ToolStripMenuItem BuildListContextMenu_StartInvestigating;
@@ -1041,5 +1048,6 @@
 		private System.Windows.Forms.ToolStripMenuItem RecentMenu_ClearList;
 		private System.Windows.Forms.ToolStripMenuItem RecentMenu_Browse;
 		private System.Windows.Forms.ToolStripSeparator toolStripSeparator9;
+		private System.Windows.Forms.ToolStripSeparator BuildListContextMenu_CustomTool_Start;
 	}
 }

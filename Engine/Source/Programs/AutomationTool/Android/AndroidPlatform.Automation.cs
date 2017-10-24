@@ -10,9 +10,13 @@ using System.Threading;
 using AutomationTool;
 using UnrealBuildTool;
 using Ionic.Zip;
+using Tools.DotNETCommon;
 
 public class AndroidPlatform : Platform
 {
+	// Maximum allowed OBB size (2 GiB)
+	private const Int64 MaxOBBSizeAllowed = 2147483648;
+
 	private const int DeployMaxParallelCommands = 6;
 
     private const string TargetAndroidLocation = "obb/";
@@ -239,8 +243,17 @@ public class AndroidPlatform : Platform
 			catch (Exception)
 			{
 				Log("Failed to build OBB: " + LocalObbName);
-				throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
+				throw new AutomationException(ExitCode.Error_AndroidOBBError, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
 			}
+		}
+
+		// make sure the OBB is <= 2GiB
+		FileInfo OBBFileInfo = new FileInfo(LocalObbName);
+		Int64 ObbFileLength = OBBFileInfo.Length;
+		if (ObbFileLength > MaxOBBSizeAllowed)
+		{
+			Log("OBB exceeds 2 GiB limit: " + ObbFileLength + " bytes");
+			throw new AutomationException(ExitCode.Error_AndroidOBBError, "Stage Failed. OBB {0} exceeds 2 GiB limit)", LocalObbName);
 		}
 
 		// collect plugin extra data paths from target receipts
@@ -358,7 +371,7 @@ public class AndroidPlatform : Platform
 		PrintRunTime();
 	}
 
-    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
+	private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
     {
         string[] BatchLines = null;
         string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
@@ -407,7 +420,7 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-						bDontMoveOBB ? "" : "%ADB% %DEVICE% shell 'mv %STORAGE%/Download/obb/" + PackageName + " %STORAGE%/Android/obb/" + PackageName + "'",
+						bDontMoveOBB ? "" : "\t\t$ADB $DEVICE shell mv $STORAGE/Download/obb/" + PackageName + " $STORAGE/Android/obb/" + PackageName,
 						"\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
@@ -425,7 +438,7 @@ public class AndroidPlatform : Platform
         }
         else
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Download/" : "") + DeviceObbName;
+			string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Download/" : "") + DeviceObbName;
 
 			Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
@@ -1421,21 +1434,6 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		var AppGPUArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
-
-		// get the device extensions
-		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
-		string Extensions = ExtensionsResult.Output.Trim();
-
-		// look for AEP support (on device and in project)
-		if (Extensions.Contains("GL_ANDROID_extension_pack_es31a") && Extensions.Contains("GL_EXT_color_buffer_half_float"))
-		{
-			if (AppGPUArchitectures.Contains("-esdeferred"))
-			{
-				return "-esdeferred";
-			}
-		}
-
 		return "-es2";
 	}
 
@@ -1516,7 +1514,7 @@ public class AndroidPlatform : Platform
 					FinishedRunning = true;
 				}
 
-				Thread.Sleep(10);
+				Thread.Sleep(1000);
 
 				if(!FinishedRunning)
 				{
@@ -1557,10 +1555,13 @@ public class AndroidPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-        // Add any Android shader cache files
-        DirectoryReference ProjectShaderDir = DirectoryReference.Combine(Params.RawProjectPath.Directory, "Build/ShaderCaches/Android");
-        SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, "*.*", true, null, null, true);
-    }
+		// Add any Android shader cache files
+		DirectoryReference ProjectShaderDir = DirectoryReference.Combine(Params.RawProjectPath.Directory, "Build", "ShaderCaches", "Android");
+		if(DirectoryReference.Exists(ProjectShaderDir))
+		{
+			SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, StageFilesSearch.AllDirectories);
+		}
+	}
 
     /// <summary>
     /// Gets cook platform name for this platform.
@@ -1571,7 +1572,7 @@ public class AndroidPlatform : Platform
 		return "Android";
 	}
 
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		return false;
 	}

@@ -72,22 +72,29 @@ void LogPrimRecursive(IUsdPrim* Prim, const std::string& Concat)
 
 int main()
 {
-//	UnrealUSDWrapper::Initialize("");
+	UnrealUSDWrapper::Initialize("");
 
-/*
-	IUsdStage* Stage = UnrealUSDWrapper::ImportUSDFile("", '");
+	IUsdStage* Stage = UnrealUSDWrapper::ImportUSDFile("", "");
 	if (Stage)
 	{
 		IUsdPrim* RootPrim = Stage->GetRootPrim();
 
-		//LogPrimRecursive(RootPrim, "");
+		IUsdPrim* TestPrim = RootPrim->GetChild(0);
+
+		const char* Errors = UnrealUSDWrapper::GetErrors();
+		if (Errors != nullptr)
+		{
+			Log("%s", Errors);
+		}
+
+	/*	LogPrimRecursive(RootPrim, "");
 
 		volatile EUsdUpAxis UpAxis = Stage->GetUpAxis();
 		std::vector<IUsdPrim*> UsdMeshes;
-		FindUsdMeshes(RootPrim, UsdMeshes);
+		FindUsdMeshes(RootPrim, UsdMeshes);*/
 		volatile int i = 0;
 		++i;
-	}*/
+	}
 
 	UnrealUSDWrapper::CleanUp();
     return 0;

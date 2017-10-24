@@ -2037,7 +2037,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 
 		// Copy the temporary brush back over onto the builder brush (keeping object flags)
 		BuilderBrush->Modify();
-		FBSPOps::csgCopyBrush( BuilderBrush, ClippedBrush, BuilderBrush->GetFlags(), RF_NoFlags, 0, true );
+		FBSPOps::csgCopyBrush( BuilderBrush, ClippedBrush, BuilderBrush->PolyFlags, BuilderBrush->GetFlags(), 0, true );
 		GEditor->Layers->DisassociateActorFromLayers( ClippedBrush );
 		World->EditorDestroyActor( ClippedBrush, false );
 		// Note that we're purposefully returning non-NULL here to report that the clip was successful,

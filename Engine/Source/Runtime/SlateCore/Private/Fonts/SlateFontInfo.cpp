@@ -18,9 +18,10 @@ FSlateFontInfo::FSlateFontInfo( )
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(0)
-	, FontName_DEPRECATED()
-	, Hinting_DEPRECATED(EFontHinting::Default)
 	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
+	, Hinting_DEPRECATED(EFontHinting::Default)
+#endif
 {
 }
 
@@ -32,9 +33,10 @@ FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont
 	, CompositeFont(InCompositeFont)
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
-	, FontName_DEPRECATED()
-	, Hinting_DEPRECATED(EFontHinting::Default)
 	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
+	, Hinting_DEPRECATED(EFontHinting::Default)
+#endif
 {
 	if (!InCompositeFont.IsValid())
 	{
@@ -50,9 +52,10 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 	, CompositeFont()
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
-	, FontName_DEPRECATED()
-	, Hinting_DEPRECATED(EFontHinting::Default)
 	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
+	, Hinting_DEPRECATED(EFontHinting::Default)
+#endif
 {
 	if (InFontObject)
 	{
@@ -76,14 +79,16 @@ FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontH
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
+	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
 	, FontName_DEPRECATED(*InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
+#endif
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
 
-	UpgradeLegacyFontInfo();
+	UpgradeLegacyFontInfo(FName(*InFontName), InHinting);
 }
 
 
@@ -93,14 +98,16 @@ FSlateFontInfo::FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHin
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
+	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
+#endif
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
 
-	UpgradeLegacyFontInfo();
+	UpgradeLegacyFontInfo(InFontName, InHinting);
 }
 
 
@@ -110,14 +117,16 @@ FSlateFontInfo::FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFont
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
+	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
+#endif
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
 
-	UpgradeLegacyFontInfo();
+	UpgradeLegacyFontInfo(FName(InFontName), InHinting);
 }
 
 
@@ -127,14 +136,16 @@ FSlateFontInfo::FSlateFontInfo( const WIDECHAR* InFontName, uint16 InSize, EFont
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
+	, FontFallback(EFontFallback::FF_Max)
+#if WITH_EDITORONLY_DATA
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
+#endif
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
 
-	UpgradeLegacyFontInfo();
+	UpgradeLegacyFontInfo(FName(InFontName), InHinting);
 }
 
 
@@ -162,21 +173,23 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 }
 
 
+#if WITH_EDITORONLY_DATA
 void FSlateFontInfo::PostSerialize(const FArchive& Ar)
 {
 	if (Ar.UE4Ver() < VER_UE4_SLATE_COMPOSITE_FONTS && !FontObject)
 	{
-		UpgradeLegacyFontInfo();
+		UpgradeLegacyFontInfo(FontName_DEPRECATED, Hinting_DEPRECATED);
 	}
 }
+#endif
 
 
-void FSlateFontInfo::UpgradeLegacyFontInfo()
+void FSlateFontInfo::UpgradeLegacyFontInfo(FName LegacyFontName, EFontHinting LegacyHinting)
 {
 	static const FName SpecialName_DefaultSystemFont("DefaultSystemFont");
 
 	// Special case for using the default system font
-	CompositeFont = (FontName_DEPRECATED == SpecialName_DefaultSystemFont)
+	CompositeFont = (LegacyFontName == SpecialName_DefaultSystemFont)
 		? FLegacySlateFontInfoCache::Get().GetSystemFont()
-		: FLegacySlateFontInfoCache::Get().GetCompositeFont(FontName_DEPRECATED, Hinting_DEPRECATED);
+		: FLegacySlateFontInfoCache::Get().GetCompositeFont(LegacyFontName, LegacyHinting);
 }

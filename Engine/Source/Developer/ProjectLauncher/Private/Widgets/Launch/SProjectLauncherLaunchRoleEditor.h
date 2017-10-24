@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ILauncherProfileLaunchRole.h"
 #include "SlateFwd.h"
 #include "Layout/Visibility.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Styling/SlateColor.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Interfaces/ILauncherProfileLaunchRole.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Input/SComboBox.h"
 

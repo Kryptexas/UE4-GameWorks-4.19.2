@@ -170,33 +170,6 @@ namespace ELandscapeToolTargetTypeMask
 	}
 }
 
-namespace ELandscapeToolNoiseMode
-{
-	enum Type
-	{
-		Invalid = -1,
-		Both = 0,
-		Add = 1,
-		Sub = 2,
-	};
-
-	inline float Conversion(Type Mode, float NoiseAmount, float OriginalValue)
-	{
-		switch (Mode)
-		{
-		case Add: // always +
-			OriginalValue += NoiseAmount;
-			break;
-		case Sub: // always -
-			OriginalValue -= NoiseAmount;
-			break;
-		case Both:
-			break;
-		}
-		return OriginalValue;
-	}
-}
-
 struct FLandscapeToolTarget
 {
 	TWeakObjectPtr<ULandscapeInfo> LandscapeInfo;

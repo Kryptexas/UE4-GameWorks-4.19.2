@@ -11,7 +11,7 @@ inline FString GetLocalUserNickName(UWorld* World, const FUniqueNetId& LocalUser
 	check(World);
 	UGameInstance* GameInstance = World->GetGameInstance();
 	check(GameInstance);
-	ULocalPlayer* LP = Cast<ULocalPlayer>(GameInstance->FindLocalPlayerFromUniqueNetId(LocalUserId));
+	ULocalPlayer* LP = GameInstance->FindLocalPlayerFromUniqueNetId(LocalUserId);
 	if (LP)
 	{
 		return LP->GetNickname();

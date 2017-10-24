@@ -34,10 +34,10 @@ public:
 	 * 
 	 * @param InValue value of the float.
 	 */
-	FFloat32( float InValue=0.0f );
+	FFloat32(float InValue = 0.0f);
 };
 
 
-FORCEINLINE FFloat32::FFloat32( float InValue)
+FORCEINLINE FFloat32::FFloat32(float InValue)
 	: FloatValue(InValue)
 { }

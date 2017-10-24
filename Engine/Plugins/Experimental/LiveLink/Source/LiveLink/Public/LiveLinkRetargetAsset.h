@@ -12,26 +12,15 @@ struct FLiveLinkSubjectFrame;
 struct FCompactPose;
 struct FBlendedCurve;
 
-// Base class for live link retargeting contexts. Derive from this and return a new instance of your new derived class
-// from CreateRetargetContext
-struct FLiveLinkRetargetContext
-{
-
-};
-
 // Base class for retargeting live link data. 
 UCLASS(Abstract)
 class LIVELINK_API ULiveLinkRetargetAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Return a context that will be passed into BuildPoseForSubject. Allows uses of ULiveLinkRetargetAsset
-	// to have unique runtime data. 
-	virtual TSharedPtr<FLiveLinkRetargetContext> CreateRetargetContext() const { return nullptr; }
-
 	// Builds curve data into OutCurve from the supplied live link frame
 	void BuildCurveData(const FLiveLinkSubjectFrame& InFrame, const FCompactPose& InPose, FBlendedCurve& OutCurve) const;
 
 	// Build OutPose and OutCurve from the supplied InFrame.
-	virtual void BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, TSharedPtr<FLiveLinkRetargetContext> InOutContext, FCompactPose& OutPose, FBlendedCurve& OutCurve) const PURE_VIRTUAL(ULiveLinkRetargetAsset::BuildPoseForSubject, );
+	virtual void BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, FCompactPose& OutPose, FBlendedCurve& OutCurve) PURE_VIRTUAL(ULiveLinkRetargetAsset::BuildPoseForSubject, );
 };

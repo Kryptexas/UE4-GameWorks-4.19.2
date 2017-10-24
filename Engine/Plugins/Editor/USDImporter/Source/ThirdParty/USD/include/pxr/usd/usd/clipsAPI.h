@@ -26,6 +26,7 @@
 
 /// \file usd/clipsAPI.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/usd/usd/schemaBase.h"
 #include "pxr/usd/usd/prim.h"
@@ -39,6 +40,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -78,11 +81,11 @@ class SdfAssetPath;
 /// will be derived internally.
 /// 
 /// Important facts about clips:            
-/// li Within the layerstack in which clips are established, the           
+/// \li Within the layerstack in which clips are established, the           
 /// opinions within the clips will be em weaker than any direct opinions           
 /// in the layerstack, but em stronger than varying opinions coming across             
 /// references and variants.            
-/// li We will never look for metadata or default opinions in clips            
+/// \li We will never look for metadata or default opinions in clips            
 /// when performing value resolution on the owning stage, since these           
 /// quantities must be time-invariant.          
 /// 
@@ -90,6 +93,8 @@ class SdfAssetPath;
 /// on a prim, and then author clips at the same site: the asset reference          
 /// will provide the topology and unvarying data for the model, while           
 /// the clips will provide the time-sampled animation.
+/// 
+/// For further information, see \ref Usd_Page_ValueClips
 /// 
 ///
 class UsdClipsAPI : public UsdSchemaBase
@@ -146,6 +151,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USD_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -159,8 +165,10 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
     //
@@ -324,5 +332,7 @@ public:
     bool ClearNonTemplateClipMetadata();
 
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

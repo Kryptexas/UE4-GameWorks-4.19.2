@@ -5,18 +5,6 @@
 =============================================================================*/
 
 #include "AndroidOutputDevices.h"
-#include "AndroidPlatformOutputDevicesPrivate.h"
-#include "OutputDeviceHelper.h"
-#include "CoreGlobals.h"
-#include "UnrealString.h"
-#include "HAL/OutputDevices.h"
-#include "Misc/OutputDeviceRedirector.h"
-
-class FOutputDeviceError* FAndroidOutputDevices::GetError()
-{
-	static FOutputDeviceAndroidError Singleton;
-	return &Singleton;
-}
 
 /*class FOutputDevice* FAndroidOutputDevices::GetLog()
 {
@@ -29,51 +17,3 @@ class FOutputDeviceError* FAndroidOutputDevices::GetError()
 	return NULL;
 #endif
 }*/
-
-FOutputDeviceAndroidDebug::FOutputDeviceAndroidDebug()
-{}
-
-void FOutputDeviceAndroidDebug::Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category )
-{
-	FPlatformMisc::LowLevelOutputDebugString(*FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Msg, GPrintLogTimes));
-}
-
-//////////////////////////////////
-// FOutputDeviceAndroidError
-//////////////////////////////////
-
-FOutputDeviceAndroidError::FOutputDeviceAndroidError()
-{}
-
-void FOutputDeviceAndroidError::Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category )
-{
-	FPlatformMisc::LowLevelOutputDebugString(*FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Msg, GPrintLogTimes));
-	if (GIsGuarded)
-	{
-		FPlatformMisc::DebugBreak();
-	}
-	else
-	{
-		HandleError();
-		FPlatformMisc::RequestExit(true);
-	}
-}
-
-void FOutputDeviceAndroidError::HandleError()
-{
-	static int32 CallCount = 0;
-	int32 NewCallCount = FPlatformAtomics::InterlockedIncrement(&CallCount);
-
-	if (NewCallCount != 1)
-	{
-		UE_LOG(LogAndroid, Error, TEXT("HandleError re-entered."));
-		return;
-	}
-	
-	GIsGuarded = 0;
-	GIsRunning = 0;
-	GIsCriticalError = 1;
-	GLogConsole = NULL;
-
-	GLog->Flush();
-}

@@ -33,7 +33,7 @@ public class SourceControl : ModuleRules
 			);
 		}
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {
@@ -51,7 +51,7 @@ public class SourceControl : ModuleRules
 			CircularlyReferencedDependentModules.Add("UnrealEd");
         }
 
-		if (UEBuildConfiguration.bBuildDeveloperTools)
+		if (Target.bBuildDeveloperTools)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

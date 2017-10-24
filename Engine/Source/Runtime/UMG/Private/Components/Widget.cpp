@@ -22,6 +22,7 @@
 #include "UMGStyle.h"
 #include "Types/ReflectionMetadata.h"
 #include "PropertyLocalizationDataGathering.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -151,7 +152,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITOR
 	DesignerFlags = EWidgetDesignFlags::None;
 #endif
-	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
+	Visibility = ESlateVisibility::Visible;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 	Cursor = EMouseCursor::Default;
 
@@ -659,6 +660,8 @@ void UWidget::OnWidgetRebuilt()
 
 TSharedRef<SWidget> UWidget::TakeWidget()
 {
+	LLM_SCOPE(ELLMTag::UI);
+
 	return TakeWidget_Private( []( UUserWidget* Widget, TSharedRef<SWidget> Content ) -> TSharedPtr<SObjectWidget> {
 		       return SNew( SObjectWidget, Widget )[ Content ];
 		   } );
@@ -1000,7 +1003,7 @@ void UWidget::SynchronizeProperties()
 			SafeWidget->SetCursor(Cursor);// PROPERTY_BINDING(EMouseCursor::Type, Cursor));
 		}
 
-		SafeWidget->SetEnabled(PROPERTY_BINDING( bool, bIsEnabled ));
+		SafeWidget->SetEnabled(BITFIELD_PROPERTY_BINDING( bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
@@ -1084,16 +1087,6 @@ UWorld* UWidget::GetWorld() const
 	}
 
 	return nullptr;
-}
-
-void UWidget::PostLoad()
-{
-	Super::PostLoad();
-
-	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
-	{
-		Visibility = Visiblity_DEPRECATED;
-	}
 }
 
 EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility Input)

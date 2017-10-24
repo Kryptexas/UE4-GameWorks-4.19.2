@@ -623,9 +623,7 @@ FTreeMapNodeDataPtr ITreeMap::ParseOPMLToTreeMapData( const FString& OPMLFilePat
 											}
 
 											// Clean up any leftover whitespace in the node name, after stripping out hash tags
-											// @todo treemap perf: This is pretty inefficient (always makes copies even when nothing to do!)
-											ChildNodeData->Name.TrimTrailing();
-											ChildNodeData->Name.Trim();
+											ChildNodeData->Name.TrimStartAndEndInline();
 										}
 									}
 									else

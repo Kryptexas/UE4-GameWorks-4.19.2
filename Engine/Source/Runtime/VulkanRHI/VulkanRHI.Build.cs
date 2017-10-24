@@ -14,7 +14,7 @@ public class VulkanRHI : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
-            {
+			{
 				"Core", 
 				"CoreUObject", 
 				"Engine", 
@@ -22,8 +22,8 @@ public class VulkanRHI : ModuleRules
 				"RenderCore", 
 				"ShaderCore",
 				"UtilityShaders",
-                "HeadMountedDisplay",
-            }
+				"HeadMountedDisplay",
+			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
@@ -108,7 +108,7 @@ public class VulkanRHI : ModuleRules
 				{
 					// Fall back to the Windows Vulkan SDK (the headers are the same)
 					bHaveVulkan = true;
-					PrivateIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
+					PrivateIncludePaths.Add(Target.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
 				}
 			}
 			else if (!String.IsNullOrEmpty(VulkanSDKPath))
@@ -136,7 +136,7 @@ public class VulkanRHI : ModuleRules
 					PrivateIncludePathModuleNames.AddRange(
 						new string[]
 						{
-                            "TaskGraph",
+							"TaskGraph",
 						}
 					);
 				}

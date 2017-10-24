@@ -9,7 +9,7 @@ public class libstrophe : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string StrophePackagePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libstrophe";
+		string StrophePackagePath = Target.UEThirdPartySourceDirectory + "libstrophe";
 
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
@@ -28,7 +28,7 @@ public class libstrophe : ModuleRules
 				ToolchainName += VersionName.ToString();
 			}
 
-			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
+			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 			string LibraryPath = Path.Combine(StrophePackagePath, "libstrophe-0.9.1", "XboxOne", ToolchainName, ConfigPath);
 
 			PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, "strophe.lib"));

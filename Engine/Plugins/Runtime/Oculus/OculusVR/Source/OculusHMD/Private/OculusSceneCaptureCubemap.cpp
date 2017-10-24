@@ -2,6 +2,7 @@
 
 #include "OculusSceneCaptureCubemap.h"
 #include "OculusHMDPrivate.h"
+#include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
@@ -12,7 +13,6 @@
 #include "TextureResource.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
-
 
 //-------------------------------------------------------------------------------------------------
 // UOculusSceneCaptureCubemap
@@ -94,7 +94,7 @@ void UOculusSceneCaptureCubemap::StartCapture(UWorld* World, uint32 InCaptureBox
 	AStaticMeshActor* InGameActor;
 	InGameActor = World->SpawnActor<AStaticMeshActor>(SpawnInfo);
 
-	OutputDir = FPaths::GameSavedDir() + TEXT("/Cubemaps");
+	OutputDir = FPaths::ProjectSavedDir() + TEXT("/Cubemaps");
 	IFileManager::Get().MakeDirectory(*OutputDir);
 }
 
@@ -113,7 +113,7 @@ void UOculusSceneCaptureCubemap::Tick(float DeltaTime)
 
 	//Read Whole Capture Buffer
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	TArray<FColor> OneFaceSurface, WholeCubemapData;
 	OneFaceSurface.AddUninitialized(CaptureBoxSideRes * CaptureBoxSideRes);

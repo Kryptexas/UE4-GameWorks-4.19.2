@@ -7,18 +7,18 @@ public class MikkTSpace : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string MikkTSpacePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "MikkTSpace/";
+		string MikkTSpacePath = Target.UEThirdPartySourceDirectory + "MikkTSpace/";
 
 		PublicIncludePaths.Add(MikkTSpacePath + "inc/");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			PublicLibraryPaths.Add(MikkTSpacePath + "lib/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()); 
+			PublicLibraryPaths.Add(MikkTSpacePath + "lib/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName()); 
 			PublicAdditionalLibraries.Add("MikkTSpace.lib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			PublicLibraryPaths.Add(MikkTSpacePath + "lib/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()); 
+			PublicLibraryPaths.Add(MikkTSpacePath + "lib/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName()); 
 			PublicAdditionalLibraries.Add("MikkTSpace.lib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)

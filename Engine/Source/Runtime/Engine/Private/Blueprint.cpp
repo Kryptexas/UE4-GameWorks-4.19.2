@@ -376,6 +376,7 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 #if WITH_EDITOR
 	, bRunConstructionScriptOnDrag(true)
+	, bRunConstructionScriptInSequencer(false)
 	, bGenerateConstClass(false)
 #endif
 #if WITH_EDITORONLY_DATA
@@ -626,14 +627,8 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 		// tag ourself as bIsRegeneratingOnLoad so that any reentrance via ForceLoad calls doesn't recurse:
 		bIsRegeneratingOnLoad = true;
 		
-		UPackage* Package = Cast<UPackage>(GetOutermost());
+		UPackage* Package = GetOutermost();
 		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
-
-		if( Package )
-		{
-			// Tell the linker to try to find exports in memory first, so that it gets the new, regenerated versions
-			Package->FindExportsInMemoryFirst(true);
-		}
 
 		UClass* GeneratedClassResolved = GeneratedClass;
 
@@ -914,9 +909,9 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
-	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
+	if (GeneratedClass)
 	{
-		if (UObject* CDO = GenClass->GetDefaultObject())
+		if (UObject* CDO = GeneratedClass->GetDefaultObject())
 		{
 			CDO->GetAssetRegistryTags(OutTags);
 		}
@@ -1017,9 +1012,9 @@ FPrimaryAssetId UBlueprint::GetPrimaryAssetId() const
 {
 	// Forward to our Class, which will forward to CDO if needed
 	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
-	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
+	if (GeneratedClass)
 	{
-		return GenClass->GetPrimaryAssetId();
+		return GeneratedClass->GetPrimaryAssetId();
 	}
 
 	return FPrimaryAssetId();

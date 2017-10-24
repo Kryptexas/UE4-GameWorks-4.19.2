@@ -31,16 +31,21 @@
 /// \file gf/vec3i.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/diagnostic.h"
+#include "pxr/base/gf/api.h"
 #include "pxr/base/gf/limits.h"
 #include "pxr/base/gf/traits.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <cstddef>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+class GfVec3i;
 
 template <>
 struct GfIsGfVec<class GfVec3i> { static const bool value = true; };
@@ -146,8 +151,8 @@ public:
 
     /// Equality comparison.
     bool operator==(GfVec3i const &other) const {
-        return _data[0] == other[0] and
-               _data[1] == other[1] and
+        return _data[0] == other[0] &&
+               _data[1] == other[1] &&
                _data[2] == other[2];
     }
     bool operator!=(GfVec3i const &other) const {
@@ -281,4 +286,6 @@ GfDot(GfVec3i const &v1, GfVec3i const &v2) {
 }
 
  
+PXR_NAMESPACE_CLOSE_SCOPE
+
 #endif // GF_VEC3I_H

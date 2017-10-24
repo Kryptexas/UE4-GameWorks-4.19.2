@@ -42,6 +42,7 @@ public class RuntimeTests : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+                "ScreenShotComparisonTools",
 
 				// ... add private dependencies that you statically link with here ...	
 			}

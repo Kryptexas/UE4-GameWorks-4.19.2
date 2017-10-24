@@ -5,7 +5,7 @@
 #include "Misc/CommandLine.h"
 #include "Containers/Ticker.h"
 #include "EngineServiceMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpointBuilder.h"
 #include "SessionServiceMessages.h"
 #include "SessionInfo.h"
 
@@ -246,7 +246,7 @@ void FSessionManager::SendPing()
 /* FSessionManager callbacks
  *****************************************************************************/
 
-void FSessionManager::HandleEnginePongMessage(const FEngineServicePong& Message, const IMessageContextRef& Context)
+void FSessionManager::HandleEnginePongMessage(const FEngineServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!Message.SessionId.IsValid())
 	{
@@ -273,7 +273,7 @@ void FSessionManager::HandleLogReceived(const TSharedRef<ISessionInfo>& Session,
 }
 
 
-void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Message, const IMessageContextRef& Context)
+void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!Message.SessionId.IsValid())
 	{

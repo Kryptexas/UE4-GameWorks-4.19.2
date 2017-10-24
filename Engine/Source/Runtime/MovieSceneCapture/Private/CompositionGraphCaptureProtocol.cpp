@@ -13,10 +13,11 @@
 #include "BufferVisualizationData.h"
 #include "MovieSceneCaptureSettings.h"
 
-struct FSceneViewExtension : ISceneViewExtension
+struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 {
-	FSceneViewExtension(const TArray<FString>& InRenderPasses, bool bInCaptureFramesInHDR, int32 InHDRCompressionQuality, int32 InCaptureGamut, UMaterialInterface* InPostProcessingMaterial)
-		: RenderPasses(InRenderPasses)
+	FFrameCaptureViewExtension( const FAutoRegister& AutoRegister, const TArray<FString>& InRenderPasses, bool bInCaptureFramesInHDR, int32 InHDRCompressionQuality, int32 InCaptureGamut, UMaterialInterface* InPostProcessingMaterial)
+		: FSceneViewExtensionBase(AutoRegister)
+		, RenderPasses(InRenderPasses)
 		, bNeedsCapture(true)
 		, bCaptureFramesInHDR(bInCaptureFramesInHDR)
 		, HDRCompressionQuality(InHDRCompressionQuality)
@@ -34,7 +35,7 @@ struct FSceneViewExtension : ISceneViewExtension
 		Disable();
 	}
 
-	virtual ~FSceneViewExtension()
+	virtual ~FFrameCaptureViewExtension()
 	{
 		Disable();
 	}
@@ -124,6 +125,8 @@ struct FSceneViewExtension : ISceneViewExtension
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) {}
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
+
+	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override { return IsEnabled(); }
 
 private:
 	const TArray<FString>& RenderPasses;
@@ -232,7 +235,7 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 		}
 	}
 
-	ViewExtension = MakeShareable(new FSceneViewExtension(RenderPasses, bCaptureFramesInHDR, HDRCompressionQuality, CaptureGamut, PostProcessingMaterial));
+	ViewExtension = FSceneViewExtensions::NewExtension<FFrameCaptureViewExtension>(RenderPasses, bCaptureFramesInHDR, HDRCompressionQuality, CaptureGamut, PostProcessingMaterial);
 
 	return true;
 }
@@ -240,14 +243,11 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 void FCompositionGraphCaptureProtocol::Finalize()
 {
 	ViewExtension->Disable(true);
-	GEngine->ViewExtensions.Remove(ViewExtension);
 }
 
 void FCompositionGraphCaptureProtocol::CaptureFrame(const FFrameMetrics& FrameMetrics, const ICaptureProtocolHost& Host)
 {
 	ViewExtension->Enable(Host.GenerateFilename(FrameMetrics, TEXT("")));
-
-	GEngine->ViewExtensions.AddUnique(ViewExtension);
 }
 
 bool FCompositionGraphCaptureProtocol::HasFinishedProcessing() const
@@ -260,6 +260,5 @@ void FCompositionGraphCaptureProtocol::Tick()
 	if (!ViewExtension->IsEnabled())
 	{
 		ViewExtension->Disable();
-		GEngine->ViewExtensions.Remove(ViewExtension);
 	}
 }

@@ -44,7 +44,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 			{
 				// Scoped lock
 				UE_LOG(LogCrashDebugHelper, Log, TEXT("Locking for InitSymbols()"));
-				FSystemWideCriticalSection PDBCacheLock(CrashInfo.PDBCacheLockName, FTimespan(0, 0, 10, 0, 0));
+				FSystemWideCriticalSection PDBCacheLock(CrashInfo.PDBCacheLockName, FTimespan::FromMinutes(10.0));
 				if (PDBCacheLock.IsValid())
 				{
 					bInitSymbols = InitSymbols(WindowsStackWalkExt, bSyncSymbols);
@@ -84,7 +84,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 					{
 						// Scoped lock
 						UE_LOG(LogCrashDebugHelper, Log, TEXT("Locking for SyncAndReadSourceFile()"));
-						const FTimespan GlobalLockWaitTimeout(0, 0, 0, 30, 0);
+						const FTimespan GlobalLockWaitTimeout = FTimespan::FromSeconds(30.0);
 						FSystemWideCriticalSection SyncSourceLock(SourceSyncLockName, GlobalLockWaitTimeout);
 						if (SyncSourceLock.IsValid())
 						{

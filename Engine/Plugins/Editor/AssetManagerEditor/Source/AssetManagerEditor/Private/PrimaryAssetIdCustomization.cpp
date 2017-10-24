@@ -32,7 +32,7 @@ void FPrimaryAssetIdCustomization::CustomizeHeader(TSharedRef<class IPropertyHan
 
 	StructPropertyHandle = InStructPropertyHandle;
 
-	FString TypeFilterString = StructPropertyHandle->GetMetaData("AllowedTypes");
+	const FString& TypeFilterString = StructPropertyHandle->GetMetaData("AllowedTypes");
 	if( !TypeFilterString.IsEmpty() )
 	{
 		TArray<FString> CustomTypeFilterNames;
@@ -85,7 +85,7 @@ FString FPrimaryAssetIdCustomization::OnGetObjectPath() const
 
 	UAssetManager& Manager = UAssetManager::Get();
 
-	FStringAssetReference FoundPath = Manager.GetPrimaryAssetPath(FPrimaryAssetId(StringReference));
+	FSoftObjectPath FoundPath = Manager.GetPrimaryAssetPath(FPrimaryAssetId(StringReference));
 
 	return FoundPath.ToString();
 }

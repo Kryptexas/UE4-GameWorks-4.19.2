@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "LevelSequence.h"
 #include "LevelSequenceEditorSettings.generated.h"
 
@@ -32,15 +32,15 @@ struct FLevelSequenceTrackSettings
 
 	/** The Actor class to create movie scene tracks for. */
 	UPROPERTY(config, noclear, EditAnywhere, Category=TrackSettings, meta=(MetaClass="Actor"))
-	FStringClassReference MatchingActorClass;
+	FSoftClassPath MatchingActorClass;
 
 	/** List of movie scene track classes to be added automatically. */
 	UPROPERTY(config, noclear, EditAnywhere, Category=TrackSettings, meta=(MetaClass="MovieSceneTrack"))
-	TArray<FStringClassReference> DefaultTracks;
+	TArray<FSoftClassPath> DefaultTracks;
 
 	/** List of movie scene track classes not to be added automatically. */
 	UPROPERTY(config, noclear, EditAnywhere, Category=TrackSettings, meta=(MetaClass="MovieSceneTrack"))
-	TArray<FStringClassReference> ExcludeDefaultTracks;
+	TArray<FSoftClassPath> ExcludeDefaultTracks;
 
 	/** List of property names for which movie scene tracks will be created automatically. */
 	UPROPERTY(config, EditAnywhere, Category=TrackSettings)

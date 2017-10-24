@@ -12,11 +12,12 @@ class FVulkanDevice;
 class FVulkanCommandBufferManager;
 class FVulkanPendingGfxState;
 class FVulkanPendingComputeState;
+class FVulkanQueue;
 
 class FVulkanCommandListContext : public IRHICommandContext
 {
 public:
-	FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate);
+	FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, FVulkanQueue* InQueue, bool bInIsImmediate);
 	virtual ~FVulkanCommandListContext();
 
 	inline bool IsImmediate() const
@@ -25,9 +26,9 @@ public:
 	}
 
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
+	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
-	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override;
 	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) final override;
 	virtual void RHISetGraphicsPipelineState(FGraphicsPipelineStateRHIParamRef GraphicsState) final override;
@@ -169,14 +170,42 @@ public:
 		return UniformBufferUploader;
 	}
 
+	inline FVulkanQueue* GetQueue()
+	{
+		return Queue;
+	}
+
 	void WriteBeginTimestamp(FVulkanCmdBuffer* CmdBuffer);
 	void WriteEndTimestamp(FVulkanCmdBuffer* CmdBuffer);
 
 	void ReadAndCalculateGPUFrameTime();
+	
+	inline FVulkanGPUProfiler& GetGPUProfiler() { return GpuProfiler; }
+	inline FVulkanDevice* GetDevice() const { return Device; }
+	void EndRenderQueryInternal(FVulkanCmdBuffer* CmdBuffer, FVulkanRenderQuery* Query);
+
+	inline VkImageLayout FindLayout(VkImage Image)
+	{
+		VkImageLayout* Found = TransitionState.CurrentLayout.Find(Image);
+		check(Found);
+		return *Found;
+	}
+
+	inline VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout NewLayout)
+	{
+		VkImageLayout* Found = TransitionState.CurrentLayout.Find(Image);
+		if (Found)
+		{
+			return *Found;
+		}
+		TransitionState.CurrentLayout.Add(Image, NewLayout);
+		return NewLayout;
+	}
 
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
+	FVulkanQueue* Queue;
 	const bool bIsImmediate;
 	bool bSubmitAtNextSafePoint;
 	bool bAutomaticFlushAfterComputeShader;
@@ -216,12 +245,13 @@ protected:
 		void Destroy(FVulkanDevice& InDevice);
 
 		FVulkanFramebuffer* GetOrCreateFramebuffer(FVulkanDevice& InDevice, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass);
-		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout, uint32 RTLayoutHash)
+		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout)
 		{
+			uint32 RenderPassHash = RTLayout.GetRenderPassHash();
 			FVulkanRenderPass** FoundRenderPass = nullptr;
 			{
 				FScopeLock Lock(&RenderPassesCS);
-				FoundRenderPass = RenderPasses.Find(RTLayoutHash);
+				FoundRenderPass = RenderPasses.Find(RenderPassHash);
 			}
 			if (FoundRenderPass)
 			{
@@ -231,17 +261,26 @@ protected:
 			FVulkanRenderPass* RenderPass = new FVulkanRenderPass(InDevice, RTLayout);
 			{
 				FScopeLock Lock(&RenderPassesCS); 
-				RenderPasses.Add(RTLayoutHash, RenderPass);
+				RenderPasses.Add(RenderPassHash, RenderPass);
 			}
 			return RenderPass;
 		}
 
 		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer);
 		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
+		void ProcessMipChainTransitions(FVulkanCmdBuffer* CmdBuffer, FVulkanFramebuffer* FrameBuffer, uint32 DestMip);
 
 		FVulkanRenderPass* CurrentRenderPass;
 		FVulkanRenderPass* PreviousRenderPass;
 		FVulkanFramebuffer* CurrentFramebuffer;
+
+		struct FRenderingMipChainInfo
+		{
+			bool bInsideRenderingMipChain = false;
+			FVulkanTextureBase* Texture = nullptr;
+			uint32 LastRenderedMip = 0;
+			uint32 CurrentMip = 0;
+		} RenderingMipChainInfo;
 
 		struct FFlushMipsInfo
 		{
@@ -278,6 +317,8 @@ protected:
 			CurrentLayout.Add(Image, LayoutIfNotFound);
 			return LayoutIfNotFound;
 		}
+
+		void TransitionResource(FVulkanCmdBuffer* CmdBuffer, FVulkanSurface& Surface, VulkanRHI::EImageLayoutBarrier DestLayout);
 	};
 	FTransitionState TransitionState;
 
@@ -320,6 +361,14 @@ protected:
 	FOcclusionQueryData CurrentOcclusionQueryData;
 	void AdvanceQuery(FVulkanRenderQuery* Query);
 
+	// List of UAVs which need setting for pixel shaders. D3D treats UAVs like rendertargets so the RHI doesn't make SetUAV calls at the right time
+	struct FPendingPixelUAV
+	{
+		FVulkanUnorderedAccessView* UAV;
+		uint32 BindIndex;
+	};
+	TArray<FPendingPixelUAV> PendingPixelUAVs;
+
 	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
@@ -361,7 +410,31 @@ private:
 	// Number of times EndFrame() has been called on this context
 	uint64 FrameCounter;
 
+	FVulkanGPUProfiler GpuProfiler;
+	FVulkanGPUTiming* FrameTiming;
 
-	//TEMP
-	friend class FVulkanPendingGfxState;
+	friend struct FVulkanCommandContextContainer;
+};
+
+
+struct FVulkanCommandContextContainer : public IRHICommandContextContainer, public VulkanRHI::FDeviceChild
+{
+	FVulkanCommandListContext* CmdContext;
+
+	FVulkanCommandContextContainer(FVulkanDevice* InDevice)
+		: VulkanRHI::FDeviceChild(InDevice)
+		, CmdContext(nullptr)
+	{
+	}
+
+	virtual IRHICommandContext* GetContext() override final;
+	virtual void FinishContext() override final;
+	virtual void SubmitAndFreeContextContainer(int32 Index, int32 Num) override final;
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void* RawMemory);
+
+private:
+	friend class FVulkanDevice;
 };

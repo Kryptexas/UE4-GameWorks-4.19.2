@@ -3,11 +3,7 @@
 #include "OculusHMD_TextureSetProxy.h"
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-//#include "OculusHMDLayers.h"
-//#include "MediaTexture.h"
-//#include "ScreenRendering.h"
-//#include "ScenePrivate.h"
-//#include "PostProcess/SceneFilterRendering.h"
+#include "OculusHMD_CustomPresent.h"
 
 
 namespace OculusHMD
@@ -17,9 +13,25 @@ namespace OculusHMD
 // FTextureSetProxy
 //-------------------------------------------------------------------------------------------------
 
-FTextureSetProxy::FTextureSetProxy(FTextureRHIParamRef InTexture, uint32 InSwapChainLength) :
-	RHITexture(InTexture), SwapChainLength(InSwapChainLength), SwapChainIndex_RHIThread(0)
+FTextureSetProxy::FTextureSetProxy(FTextureRHIParamRef InRHITexture, const TArray<FTextureRHIRef>& InRHITextureSwapChain) :
+	RHITexture(InRHITexture), RHITextureSwapChain(InRHITextureSwapChain), SwapChainIndex_RHIThread(0)
 {
+}
+
+
+FTextureSetProxy::~FTextureSetProxy()
+{
+	if (InRenderThread())
+	{
+		ExecuteOnRHIThread([this]()
+		{
+			ReleaseResources_RHIThread();
+		});
+	}
+	else
+	{
+		ReleaseResources_RHIThread();
+	}
 }
 
 
@@ -36,13 +48,21 @@ void FTextureSetProxy::GenerateMips_RenderThread(FRHICommandListImmediate& RHICm
 }
 
 
-void FTextureSetProxy::IncrementSwapChainIndex_RHIThread()
+void FTextureSetProxy::IncrementSwapChainIndex_RHIThread(FCustomPresent* CustomPresent)
 {
 	CheckInRHIThread();
 
-	SwapChainIndex_RHIThread = (SwapChainIndex_RHIThread + 1) % SwapChainLength;
+	SwapChainIndex_RHIThread = (SwapChainIndex_RHIThread + 1) % GetSwapChainLength();
+	CustomPresent->AliasTextureResources_RHIThread(RHITexture, RHITextureSwapChain[SwapChainIndex_RHIThread]);
+}
 
-	AliasResources_RHIThread();
+
+void FTextureSetProxy::ReleaseResources_RHIThread()
+{
+	CheckInRHIThread();
+
+	RHITexture = nullptr;
+	RHITextureSwapChain.Empty();
 }
 
 

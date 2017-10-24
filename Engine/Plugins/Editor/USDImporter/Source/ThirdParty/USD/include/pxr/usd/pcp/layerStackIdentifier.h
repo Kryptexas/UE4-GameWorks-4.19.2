@@ -26,11 +26,16 @@
 
 /// \file pcp/layerStackIdentifier.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/ar/resolverContext.h"
+
 #include <boost/operators.hpp>
+
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 SDF_DECLARE_HANDLES(SdfLayer);
 
@@ -111,22 +116,28 @@ hash_value(const PcpLayerStackIdentifier& x)
     return x.GetHash();
 }
 
-PCP_API std::ostream& operator<<(std::ostream&, const PcpLayerStackIdentifier&);
+PCP_API
+std::ostream& operator<<(std::ostream&, const PcpLayerStackIdentifier&);
 
 /// Manipulator to cause the next PcpLayerStackIdentifier written to the
 /// ostream to write the base name of its layers, rather than the full
 /// identifier.
-PCP_API std::ostream& PcpIdentifierFormatBaseName(std::ostream&);
+PCP_API
+std::ostream& PcpIdentifierFormatBaseName(std::ostream&);
 
 /// Manipulator to cause the next PcpLayerStackIdentifier written to the
 /// ostream to write the real path of its layers, rather than the
 /// identifier.
-PCP_API std::ostream& PcpIdentifierFormatRealPath(std::ostream&);
+PCP_API
+std::ostream& PcpIdentifierFormatRealPath(std::ostream&);
 
 /// Manipulator to cause the next PcpLayerStackIdentifier written to the
 /// ostream to write the identifier of its layers.  This is the default
 /// state;  this manipulator is only to nullify one of the above
 /// manipulators.
-PCP_API std::ostream& PcpIdentifierFormatIdentifier(std::ostream&);
+PCP_API
+std::ostream& PcpIdentifierFormatIdentifier(std::ostream&);
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_LAYER_STACK_IDENTIFIER_H

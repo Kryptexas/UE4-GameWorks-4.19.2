@@ -4,6 +4,7 @@
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTLS.h"
 #include "Templates/AlignmentTemplates.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /** Describes a pool. */
 struct FPoolDesc
@@ -195,9 +196,16 @@ FGenericPlatformMallocCrash::FGenericPlatformMallocCrash( FMalloc* MainMalloc ) 
 	SmallMemoryPoolOffset( 0 ),
 	PreviousMalloc( MainMalloc )
 {
+	LLM_SCOPE(ELLMTag::GenericPlatformMallocCrash);
+	LLM_PLATFORM_SCOPE(ELLMTag::GenericPlatformMallocCrashPlatform);
+
 	const uint32 LargeMemoryPoolSize = Align(LARGE_MEMORYPOOL_SIZE,SafePageSize());
 	LargeMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( LargeMemoryPoolSize );
 	SmallMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( (SIZE_T)GetSmallPoolTotalSize() );
+
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, LargeMemoryPool, LargeMemoryPoolSize));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, SmallMemoryPool, GetSmallPoolTotalSize()));
+
 	if( !SmallMemoryPool || !LargeMemoryPool )
 	{
 		FPlatformMisc::LowLevelOutputDebugString( TEXT( "Memory pools allocations failed, exiting...\n" ) );

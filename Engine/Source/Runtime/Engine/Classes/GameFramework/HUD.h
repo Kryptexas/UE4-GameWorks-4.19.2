@@ -404,7 +404,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category=HUD)
 	void AddHitBox(FVector2D Position, FVector2D Size, FName InName, bool bConsumesInput, int32 Priority = 0);
 
-protected:
 	/** Returns the PlayerController for this HUD's player.	 */
 	UFUNCTION(BlueprintCallable, Category=HUD)
 	APlayerController* GetOwningPlayerController() const;
@@ -413,7 +412,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category=HUD)
 	APawn* GetOwningPawn() const;
 
-public:
 	/**
 	 * Draws a colored line between two points
 	 * @param Start - start of line

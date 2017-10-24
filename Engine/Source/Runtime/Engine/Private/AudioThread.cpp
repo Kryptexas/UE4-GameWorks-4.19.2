@@ -11,6 +11,7 @@
 #include "Misc/CoreStats.h"
 #include "UObject/UObjectGlobals.h"
 #include "Audio.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //
 // Globals
@@ -84,14 +85,14 @@ FAudioThread::FAudioThread()
 {
 	TaskGraphBoundSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FAudioThread::OnPreGarbageCollect);
-	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FAudioThread::OnPostGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FAudioThread::OnPreGarbageCollect);
+	FCoreUObjectDelegates::GetPostGarbageCollect().AddRaw(this, &FAudioThread::OnPostGarbageCollect);
 }
 
 FAudioThread::~FAudioThread()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
-	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
+	FCoreUObjectDelegates::GetPostGarbageCollect().RemoveAll(this);
 
 	FPlatformProcess::ReturnSynchEventToPool(TaskGraphBoundSyncEvent);
 	TaskGraphBoundSyncEvent = nullptr;
@@ -153,6 +154,8 @@ void FAudioThread::Exit()
 
 uint32 FAudioThread::Run()
 {
+	LLM_SCOPE(ELLMTag::Audio);
+
 	FPlatformProcess::SetupAudioThread();
 	AudioThreadMain( TaskGraphBoundSyncEvent );
 	return 0;

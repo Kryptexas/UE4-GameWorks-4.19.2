@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -34,6 +34,7 @@
 #include "SDL_waylandopengles.h"
 #include "SDL_waylandmouse.h"
 #include "SDL_waylandtouch.h"
+#include "SDL_waylandclipboard.h"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -169,9 +170,16 @@ Wayland_CreateDevice(int devindex)
     device->CreateWindow = Wayland_CreateWindow;
     device->ShowWindow = Wayland_ShowWindow;
     device->SetWindowFullscreen = Wayland_SetWindowFullscreen;
+    device->MaximizeWindow = Wayland_MaximizeWindow;
+    device->RestoreWindow = Wayland_RestoreWindow;
     device->SetWindowSize = Wayland_SetWindowSize;
+    device->SetWindowTitle = Wayland_SetWindowTitle;
     device->DestroyWindow = Wayland_DestroyWindow;
     device->SetWindowHitTest = Wayland_SetWindowHitTest;
+
+    device->SetClipboardText = Wayland_SetClipboardText;
+    device->GetClipboardText = Wayland_GetClipboardText;
+    device->HasClipboardText = Wayland_HasClipboardText;
 
     device->free = Wayland_DeleteDevice;
 
@@ -213,6 +221,7 @@ display_handle_mode(void *data,
     SDL_DisplayMode mode;
 
     SDL_zero(mode);
+    mode.format = SDL_PIXELFORMAT_RGB888;
     mode.w = width;
     mode.h = height;
     mode.refresh_rate = refresh / 1000; // mHz to Hz
@@ -263,6 +272,7 @@ Wayland_add_display(SDL_VideoData *d, uint32_t id)
     output = wl_registry_bind(d->registry, id, &wl_output_interface, 2);
     if (!output) {
         SDL_SetError("Failed to retrieve output.");
+        SDL_free(display);
         return;
     }
 
@@ -309,6 +319,8 @@ display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
         Wayland_display_add_relative_pointer_manager(d, id);
     } else if (strcmp(interface, "zwp_pointer_constraints_v1") == 0) {
         Wayland_display_add_pointer_constraints(d, id);
+    } else if (strcmp(interface, "wl_data_device_manager") == 0) {
+        d->data_device_manager = wl_registry_bind(d->registry, id, &wl_data_device_manager_interface, 3);
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
     } else if (strcmp(interface, "qt_touch_extension") == 0) {
         Wayland_touch_create(d, id);
@@ -337,6 +349,11 @@ Wayland_VideoInit(_THIS)
 
     _this->driverdata = data;
 
+    data->xkb_context = WAYLAND_xkb_context_new(0);
+    if (!data->xkb_context) {
+        return SDL_SetError("Failed to create XKB context");
+    }
+
     data->display = WAYLAND_wl_display_connect(NULL);
     if (data->display == NULL) {
         return SDL_SetError("Failed to connect to a Wayland display");
@@ -354,11 +371,6 @@ Wayland_VideoInit(_THIS)
 
     // Second roundtrip to receive all output events.
     WAYLAND_wl_display_roundtrip(data->display);
-
-    data->xkb_context = WAYLAND_xkb_context_new(0);
-    if (!data->xkb_context) {
-        return SDL_SetError("Failed to create XKB context");
-    }
 
     Wayland_InitMouse();
 
@@ -436,7 +448,7 @@ Wayland_VideoQuit(_THIS)
     }
 
     SDL_free(data->classname);
-    free(data);
+    SDL_free(data);
     _this->driverdata = NULL;
 }
 

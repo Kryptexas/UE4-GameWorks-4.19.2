@@ -31,7 +31,6 @@ public:
 
 	virtual TSharedPtr<IPortalService> GetService(const FString& ServiceName, const FString& ProductId) override
 	{
-		TSharedPtr<void> Result;
 		TArray<FConfigEntry>& Entries = Configuration.FindOrAdd(ServiceName);
 
 		for (FConfigEntry& Entry : Entries)

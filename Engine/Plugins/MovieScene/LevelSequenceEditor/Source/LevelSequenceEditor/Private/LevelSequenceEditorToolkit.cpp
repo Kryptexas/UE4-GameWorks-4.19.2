@@ -385,7 +385,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		}
 
 		// add tracks by type
-		for (const FStringClassReference& DefaultTrack : TrackSettings.DefaultTracks)
+		for (const FSoftClassPath& DefaultTrack : TrackSettings.DefaultTracks)
 		{
 			UClass* TrackClass = DefaultTrack.ResolveClass();
 
@@ -399,7 +399,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 					continue;
 				}
 				
-				for (const FStringClassReference& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
+				for (const FSoftClassPath& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
 				{
 					if (ExcludeDefaultTrack == DefaultTrack)
 					{
@@ -613,7 +613,7 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimi
 
 		FocusedMovieScene->Modify();
 
-		UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>( ObjectHandle ) );
+		UMovieSceneComponentMaterialTrack* MaterialTrack = FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>( ObjectHandle );
 		MaterialTrack->Modify();
 		MaterialTrack->SetMaterialIndex( MaterialIndex );
 
@@ -916,6 +916,12 @@ bool FLevelSequenceEditorToolkit::OnRequestClose()
 
 	OnClosedEvent.Broadcast();
 	return true;
+}
+
+bool FLevelSequenceEditorToolkit::CanFindInContentBrowser() const
+{
+	// False so that sequencer doesn't take over Find In Content Browser functionality and always find the level sequence asset
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

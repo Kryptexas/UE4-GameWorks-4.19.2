@@ -27,7 +27,7 @@ FD3D12Device::FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter) :
 #endif
 	SamplerAllocator(Node, FD3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128),
 	SamplerID(0),
-	OcclusionQueryHeap(this, D3D12_QUERY_HEAP_TYPE_OCCLUSION, 32768),
+	OcclusionQueryHeap(this, D3D12_QUERY_HEAP_TYPE_OCCLUSION, 65536),
 	DefaultBufferAllocator(this, Node), //Note: Cross node buffers are possible 
 	PendingCommandListsTotalWorkCommands(0),
 	CommandListManager(nullptr),
@@ -119,6 +119,19 @@ bool FD3D12Device::IsGPUIdle()
 void FD3D12Device::SetupAfterDeviceCreation()
 {
 	ID3D12Device* Direct3DDevice = GetParentAdapter()->GetD3DDevice();
+
+#if PLATFORM_WINDOWS
+	IUnknown* RenderDoc;
+	IID RenderDocID;
+	if (SUCCEEDED(IIDFromString(L"{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}", &RenderDocID)))
+	{
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(RenderDocID, (void**)(&RenderDoc))))
+		{
+			// Running under RenderDoc, so enable capturing mode
+			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+		}
+	}
+#endif
 
 	// Init offline descriptor allocators
 	RTVAllocator.Init(Direct3DDevice);
@@ -277,4 +290,14 @@ void FD3D12Device::GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVi
 
 	VERIFYD3D12RESULT(Adapter3->QueryVideoMemoryInfo(GetNodeIndex(), DXGI_MEMORY_SEGMENT_GROUP_LOCAL, LocalVideoMemoryInfo));
 #endif
+}
+
+void FD3D12Device::BlockUntilIdle()
+{
+	GetDefaultCommandContext().FlushCommands();
+	GetDefaultAsyncComputeContext().FlushCommands();
+
+	GetCommandListManager().WaitForCommandQueueFlush();
+	GetCopyCommandListManager().WaitForCommandQueueFlush();
+	GetAsyncCommandListManager().WaitForCommandQueueFlush();
 }

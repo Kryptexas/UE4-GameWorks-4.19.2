@@ -42,7 +42,10 @@ SClothPaintTab::~SClothPaintTab()
 {
 	if(ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get()))
 	{
-		SkeletalMeshEditor->GetAssetEditorModeManager()->ActivateDefaultMode();
+		if(FAssetEditorModeManager* ModeManager = SkeletalMeshEditor->GetAssetEditorModeManager())
+		{
+			ModeManager->ActivateDefaultMode();
+		}
 	}
 }
 
@@ -60,12 +63,20 @@ void SClothPaintTab::Construct(const FArguments& InArgs)
 		/*InNotifyHook=*/ nullptr,
 		/*InSearchInitialKeyFocus=*/ false,
 		/*InViewIdentifier=*/ NAME_None);
-	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 	DetailsViewArgs.bShowOptions = false;
 	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
 
 	DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
-	DetailsView->OnFinishedChangingProperties().AddSP(this, &SClothPaintTab::OnFinishedChangingClothConfigProperties);
+	
+	// Add delegate for editing enabled, which allows us to show a greyed out version with the CDO
+	// selected when we haven't got an asset selected to avoid the UI popping.
+	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SClothPaintTab::IsAssetDetailsPanelEnabled));
+
+	// Add the CDO by default
+	TArray<UObject*> Objects;
+	Objects.Add(UClothingAsset::StaticClass()->GetDefaultObject());
+	DetailsView->SetObjects(Objects, true);
 
 	HostingApp = InArgs._InHostingApp;
 
@@ -103,53 +114,23 @@ void SClothPaintTab::Construct(const FArguments& InArgs)
 		[
 			DetailsView->AsShared()
 		];
-
-		ContentBox->AddSlot()
-		.Padding(10.0f)
-		.AutoHeight()
-		[
-			SNew(SCheckBox)
-			.Type(ESlateCheckBoxType::ToggleButton)
-			.IsChecked_Lambda([=]() { return bPaintModeEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;  })
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState) { bPaintModeEnabled = (NewState == ECheckBoxState::Checked); UpdatePaintTools(); })
-			.Style(&FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
-			[
-				SNew(SBox)
-				.MinDesiredHeight(25.0f)
-				.MinDesiredWidth(100.0f)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
-				[
-					SNew(SVerticalBox)							
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(SHorizontalBox)						
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Center)
-						[
-							SNew(SImage)
-							.Image(TexturePaintIcon.GetIcon())
-						]
-						
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Enable Paint Tools"))
-					]
-				]
-			]
-		];
 	}
 }
 
 void SClothPaintTab::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
+void SClothPaintTab::TogglePaintMode()
+{
+	bPaintModeEnabled = !bPaintModeEnabled;
+	UpdatePaintTools();
+}
+
+bool SClothPaintTab::IsPaintModeActive() const
+{
+	return bPaintModeEnabled;
 }
 
 void SClothPaintTab::UpdatePaintTools()
@@ -223,25 +204,20 @@ void SClothPaintTab::OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAs
 	}
 }
 
-void SClothPaintTab::OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent)
+bool SClothPaintTab::IsAssetDetailsPanelEnabled()
 {
-	if(InEvent.ChangeType != EPropertyChangeType::Interactive)
+	// Only enable editing if we have a valid details panel that is not observing the CDO
+	if(DetailsView.IsValid())
 	{
-		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
-			InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
+		const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailsView->GetSelectedObjects();
+
+		if(SelectedObjects.Num() > 0)
 		{
-			if(UClothingAsset* CurrAsset = SelectorWidget->GetSelectedAsset().Get())
-			{
-				CurrAsset->BuildSelfCollisionData();
-			}
+			return SelectedObjects[0].Get() != UClothingAsset::StaticClass()->GetDefaultObject();
 		}
 	}
 
-	if(UDebugSkelMeshComponent* PreviewComponent = GetPersonaToolkit()->GetPreviewMeshComponent())
-	{
-		// Reregister our preview component to apply the change
-		FComponentReregisterContext Context(PreviewComponent);
-	}
+	return false;
 }
 
 TSharedRef<IPersonaToolkit> SClothPaintTab::GetPersonaToolkit() const

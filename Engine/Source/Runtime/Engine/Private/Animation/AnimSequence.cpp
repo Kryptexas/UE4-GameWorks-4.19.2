@@ -172,12 +172,16 @@ void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 	}
 #endif
 
-	const float CompressionRatio = CompressedRawDataSize > 0 ? (float)GetApproxCompressedSize() / (float)CompressedRawDataSize : -1.f;
 
-	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), CompressionRatio), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), (float)GetApproxCompressedSize() / (float)GetUncompressedRawSize()), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag(TEXT("Compressed Size (KB)"), FString::Printf(TEXT("%.02f"), (float)GetApproxCompressedSize() / 1024.0f), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+int32 UAnimSequence::GetUncompressedRawSize() const
+{
+	return ((sizeof(FVector) + sizeof(FQuat) + sizeof(FVector)) * RawAnimationData.Num() * NumFrames);
 }
 
 int32 UAnimSequence::GetApproxRawSize() const
@@ -224,6 +228,8 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, int32 By
 
 void UAnimSequence::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Animation);
+
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
 	FRawCurveTracks RawCurveCache;
@@ -537,22 +543,16 @@ void UAnimSequence::PostLoad()
 		}
 	}
 
-	USkeleton* CurrentSkeleton = GetSkeleton();
-
-	if (CurrentSkeleton)
+	if (USkeleton* CurrentSkeleton = GetSkeleton())
 	{
-		VerifyCurveNames<FFloatCurve>(CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+		VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+
+#if WITH_EDITOR
+		VerifyCurveNames<FTransformCurve>(*CurrentSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+#endif
 	}
 
 #if WITH_EDITOR
-	if (CurrentSkeleton)
-	{
-		// Get the name mapping object for curves
-		for(FTransformCurve& Curve : RawCurveData.TransformCurves)
-		{
-			CurrentSkeleton->VerifySmartName(USkeleton::AnimTrackCurveMappingName, Curve.Name);
-		}
-	}
 
 	// Compressed curve flags are not authoritative (they come from the DDC). Keep them up to date with
 	// actual anim flags 
@@ -2063,7 +2063,8 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, bool bAllowAl
 void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FAnimCompressContext> CompressContext)
 {
 #if WITH_EDITOR
-	if (GetSkeleton() == nullptr)
+	USkeleton* CurrentSkeleton = GetSkeleton();
+	if (CurrentSkeleton == nullptr)
 	{
 		bUseRawDataOnly = true;
 		return;
@@ -2092,7 +2093,7 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 	const bool bDoCompressionInPlace = FUObjectThreadContext::Get().IsRoutingPostLoad;
 
 	// Need to make sure this is up to date.
-	VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
+	VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
 
 	if (bAsyncCompression)
 	{
@@ -2103,15 +2104,24 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 		FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
 		// For debugging DDC/Compression issues		
 		const bool bSkipDDC = false;
-		if (bSkipDDC)
+		if (bSkipDDC || (CompressCommandletVersion == INDEX_NONE))
 		{
 			AnimCompressor->Build(OutData);
+
+			delete AnimCompressor;
+			AnimCompressor = nullptr;
 		}
 		else
 		{
 			if (AnimCompressor->CanBuild())
 			{
 				GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			}
+			else
+			{
+				// If we dont perform compression we need to clean this up
+				delete AnimCompressor;
+				AnimCompressor = nullptr;
 			}
 		}
 
@@ -2222,15 +2232,18 @@ void UAnimSequence::SerializeCompressedData(FArchive& Ar, bool bDDCData)
 
 		if (Ar.IsLoading())
 		{
-			VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
-			bUseRawDataOnly = !IsCompressedDataValid();
-			ensureMsgf(!bUseRawDataOnly, TEXT("Anim Compression failed for Sequence '%s' Guid:%s CompressedDebugData:\n\tOriginal Anim:%s\n\tAdditiveSetting:%i\n\tCompression Scheme:%s\n\tRawDataGuid:%s"),
-				*GetFullName(),
-				*RawDataGuid.ToString(),
-				*DebugData.FullName,
-				DebugData.AdditiveSetting,
-				*DebugData.CompressionSchemeName,
-				*DebugData.RawDataGuid.ToString());
+			if(USkeleton* CurrentSkeleton = GetSkeleton())
+			{
+				VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, CompressedCurveData.FloatCurves);
+				bUseRawDataOnly = !IsCompressedDataValid();
+				ensureMsgf(!bUseRawDataOnly, TEXT("Anim Compression failed for Sequence '%s' Guid:%s CompressedDebugData:\n\tOriginal Anim:%s\n\tAdditiveSetting:%i\n\tCompression Scheme:%s\n\tRawDataGuid:%s"),
+					*GetFullName(),
+					*RawDataGuid.ToString(),
+					*DebugData.FullName,
+					DebugData.AdditiveSetting,
+					*DebugData.CompressionSchemeName,
+					*DebugData.RawDataGuid.ToString());
+			}
 		}
 	}
 #endif
@@ -2358,7 +2371,7 @@ public:
 			RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 		}
 
-		RequiredBones.InitializeTo(RequiredBoneIndexArray, false, *MySkeleton);
+		RequiredBones.InitializeTo(RequiredBoneIndexArray, FCurveEvaluationOption(true), *MySkeleton);
 	}
 
 };
@@ -2452,18 +2465,17 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		return; // Nothing to do
 	}
 
+	USkeleton* MySkeleton = GetSkeleton();
+	check(MySkeleton);
+
 	if (RefPoseSeq && RefPoseSeq->HasAnyFlags(EObjectFlags::RF_NeedPostLoad))
 	{
-		RefPoseSeq->VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RefPoseSeq->RawCurveData.FloatCurves);
+		RefPoseSeq->VerifyCurveNames<FFloatCurve>(*MySkeleton, USkeleton::AnimCurveMappingName, RefPoseSeq->RawCurveData.FloatCurves);
 	}
 
 	FMemMark Mark(FMemStack::Get());
 
 	FByFramePoseEvalContext EvalContext(this);
-
-	USkeleton* MySkeleton = GetSkeleton();
-	check(MySkeleton);
-
 
 	//New raw data
 	FRawCurveTracks NewCurveTracks;
@@ -2618,12 +2630,37 @@ void UAnimSequence::RecycleAnimSequence()
 	RawDataGuid.Invalidate();
 	AnimationTrackNames.Empty();
 	TrackToSkeletonMapTable.Empty();
+	CompressedTrackToSkeletonMapTable.Empty();
 	CompressedTrackOffsets.Empty(0);
 	CompressedByteStream.Empty(0);
 	CompressedScaleOffsets.Empty(0);
 	SourceRawAnimationData.Empty(0);
+	RawCurveData.Empty();
+	CompressedCurveData.Empty();
+	AuthoredSyncMarkers.Empty();
+	UniqueMarkerNames.Empty();
+	Notifies.Empty();
+	AnimNotifyTracks.Empty();
+	CompressionScheme = nullptr;
+	TranslationCompressionFormat = RotationCompressionFormat = ScaleCompressionFormat = ACF_None;
 #endif // WITH_EDITORONLY_DATA
 }
+
+#if WITH_EDITOR
+void UAnimSequence::CleanAnimSequenceForImport()
+{
+	// Clear RawAnimData
+	RawAnimationData.Empty();
+	RawDataGuid.Invalidate();
+	AnimationTrackNames.Empty();
+	TrackToSkeletonMapTable.Empty();
+	CompressedTrackOffsets.Empty(0);
+	CompressedByteStream.Empty(0);
+	CompressedScaleOffsets.Empty(0);
+	SourceRawAnimationData.Empty(0);
+}
+#endif // WITH_EDITOR
+
 bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, bool bSkipCopyingNotifies)
 {
 #if WITH_EDITORONLY_DATA
@@ -4192,7 +4229,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 		if(!NameMapping)
 		{
 			// if no name mapping is found but curve exists, we should verify curve namex
-			VerifyCurveNames<FTransformCurve>(CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+			VerifyCurveNames<FTransformCurve>(*CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 			NameMapping = CurSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 		}
 		
@@ -5288,6 +5325,11 @@ void UAnimSequence::EnableRootMotionSettingFromMontage(bool bInEnableRootMotion,
 #if WITH_EDITOR
 void UAnimSequence::OnRawDataChanged()
 {
+	CompressedTrackOffsets.Empty();
+	CompressedScaleOffsets.Empty();
+	CompressedByteStream.Empty();
+	bUseRawDataOnly = true;
+
 	RequestSyncAnimRecompression(false);
 	//MDW - Once we have async anim ddc requests we should do this too
 	//RequestDependentAnimRecompression();

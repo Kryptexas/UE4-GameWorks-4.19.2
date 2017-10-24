@@ -35,7 +35,7 @@ class UTexture2DDynamic : public UTexture
 public:
 	//~ Begin UTexture Interface.
 	ENGINE_API virtual FTextureResource* CreateResource() override;
-	virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
+	virtual EMaterialValueType GetMaterialType() const override { return MCT_Texture2D; }
 	ENGINE_API virtual float GetSurfaceWidth() const override;
 	ENGINE_API virtual float GetSurfaceHeight() const override;
 	//~ End UTexture Interface.

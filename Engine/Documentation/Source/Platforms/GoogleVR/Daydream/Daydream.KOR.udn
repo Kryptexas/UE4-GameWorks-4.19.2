@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:3477690
-Availability:Public
-Title:구글 VR 과 데이드림 디바이스
-Crumbs:%ROOT%, Platforms/GoogleVR
-Description:데이드림 디바이스 전용 구글 VR 기능입니다.
-Navigation:platform
-Skilllevel: Intermediate
+﻿INTSourceChangelist:3521235
+Availability: Public
+Crumbs: %ROOT%
+Title: 구글 VR 과 데이드림 디바이스
+Description: 데이드림 디바이스 전용 구글 VR 기능입니다.
+Type: Overview
+SkillLevel: Intermediate
 Version: 4.16
-parent:Platforms/GoogleVR
-type:overview
-tags:VR
+Parent: Platforms/GoogleVR
+Order: 2
 tags:Google VR
 tags:Daydream
 topic-image:Platforms\GoogleVR\GoogleVR_Topic_Image.png
@@ -49,44 +48,44 @@ Scanline Racing (스캔라인 레이싱)은 VR 프로젝트의 지연시간을 �
 
 1. **프로젝트 세팅** 을 열고 **플랫폼** > **안드로이드** 로 갑니다. **APKPackaging** 섹션 아래 다음과 같이 설정합니다:
 
-	* Minimum SDK Version: **24**
-	* Target SDK Version: **24**
+    * Minimum SDK Version: **24**
+    * Target SDK Version: **24**
 
-	[REGION:lightbox]
-	[![](GDaydream_Arm64_Support_00.png)(w:502)](GDaydream_Arm64_Support_00.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Arm64_Support_00.png)(w:502)](GDaydream_Arm64_Support_00.png)
+    [/REGION]
 
-	[REGION:caption]
-	클릭하면 이미지 원본을 확인합니다.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
 1. **Build** 섹션 아래 다음을 변경합니다:
-	* Support armv7(aka armeabi-v7a): **Disabled** 
-	* Support arm64 (aka arm64-v8a): **Enabled**
+    * Support armv7(aka armeabi-v7a): **Disabled** 
+    * Support arm64 (aka arm64-v8a): **Enabled**
 
-	[REGION:lightbox]
-	[![](GDaydream_Build_Support.png)(w:502)](GDaydream_Build_Support.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Build_Support.png)(w:502)](GDaydream_Build_Support.png)
+    [/REGION]
 
-	[REGION:caption]
-	클릭하면 이미지 원본을 확인합니다.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
     [region:note]
     이 옵션을 활성화시키면 첫 쿠킹시 arm64 라이브러리가 컴파일되므로 시간이 크게 증가합니다.
     [/region]
 
 1. 그리고 **Advanced APKPackaging** 섹션 아래 다음 옵션을 켜줍니다.
-	* Configure GoogleVR Deployment Mode: **Daydream**
-	* Configure GoogleVR for sustained-performance mode (scanline racing): **Enabled**
+    * Configure GoogleVR Deployment Mode: **Daydream**
+    * Configure GoogleVR for sustained-performance mode (scanline racing): **Enabled**
 
-	[REGION:lightbox]
-	[![](GDaydream_Scanline_Racing_Support_00.png)(w:502)](GDaydream_Scanline_Racing_Support_00.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Scanline_Racing_Support_00.png)(w:502)](GDaydream_Scanline_Racing_Support_00.png)
+    [/REGION]
 
-	[REGION:caption]
-	클릭하면 이미지 원본을 확인합니다.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
 
 다음 번 UE4 프로젝트를 쿠킹하고 데이드림 디바이스에 설치하면 지연시간이 낮은 렌더링이 가능해질 것입니다.
@@ -100,13 +99,13 @@ UE4 에서의 Google Daydream 모션 콘트롤러 사용법 관련 심화 내용
 
 1. 먼저, 프로젝트의 플러그인 메뉴를 열고 Input 섹션에서 **Google VR Motion Controller** 플러그인을 켭니다.
 
-	[REGION:lightbox]
-	[![](GDaydream_Plugins.png)(w:692)](GDaydream_Plugins.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](GDaydream_Plugins.png)(w:692)](GDaydream_Plugins.png)
+    [/REGION]
 
-	[REGION:caption]
-	클릭하면 이미지 원본을 확인합니다.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
     [region:note]
     참고로 플러그인을 사용하려면 UE4 에디터를 재시작해야 합니다. 그렇게 하지 않으면 Google VR 모션 콘트롤러를 사용할 수 없을 것입니다.
@@ -122,29 +121,19 @@ UE4 에서의 Google Daydream 모션 콘트롤러 사용법 관련 심화 내용
 
 1. 프로젝트를 실행시키면 모션 콘트롤러가 다음 그림과 같아 보일 것입니다.
 
-	[REGION:lightbox]
-	[![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
+    [/REGION]
 
-	[region:note]
-	UE4 4.14 바이너리 빌드를 사용중인 경우, 위 콘텐츠가 없어 표준 Motion Controller 컴포넌트를 대신 사용해야 할 것입니다. 이 기능 전부 UE4 4.15 이후 버전에 포함되어 있습니다. 지금 이 기능이 필요한 경우, [UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr) 을 다운로드하여 컴파일해야 할 것입니다.
-	[/region]
+    [region:note]
+    UE4 4.14 바이너리 빌드를 사용중인 경우, 위 콘텐츠가 없어 표준 Motion Controller 컴포넌트를 대신 사용해야 할 것입니다. 이 기능 전부 UE4 4.15 이후 버전에 포함되어 있습니다. 지금 이 기능이 필요한 경우, [UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr) 을 다운로드하여 컴파일해야 할 것입니다.
+    [/region]
 
 폰에 Google VR Motion Controller 컴포넌트가 생겼으니, 이제 모션 콘트롤러의 작동 방식을 편집할 수 있습니다. 블루프린트 에디터에서 **Google VR** 을 검색하여 찾은 노드를 사용하면 됩니다.
 
 ## 교육 자료
 
 아래 교육 자료는 모션 콘트롤러 구성 및 활용을 통한 VR 에서의 상호작용 생성에 관련된 것입니다.
-
-[PARAMLITERAL:width]
-320
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-170
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-px
-[/PARAMLITERAL]
 
 
 [OBJECT:VideoSeriesLink]
@@ -154,12 +143,12 @@ px
     [PARAMLITERAL:videoid]
     6ALnsdQnkVQ
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	1:05:05
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    1:05:05
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -169,20 +158,21 @@ px
     https://i.ytimg.com/vi/6ALnsdQnkVQ/maxresdefault.jpg
     [/PARAMLITERAL]
 [/OBJECT]
+
 [OBJECT:VideoSeriesLink]
     [PARAMLITERAL:title]
-    01 - 모션 컨트롤러로 VR 에서 인터랙션 생성 블루프린트
+    01 - 모션 컨트롤러로 VR 인터랙션을 생성하는 블루프린트
     [/PARAMLITERAL]
     [PARAMLITERAL:videoid]
     eRNtgFo6iU0
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	59:50
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    59:50
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
     block
@@ -191,19 +181,20 @@ px
     https://i.ytimg.com/vi/eRNtgFo6iU0/maxresdefault.jpg
     [/PARAMLITERAL]
 [/OBJECT]
+
 [OBJECT:VideoSeriesLink]
     [PARAMLITERAL:title]
-    02 - 모션 컨트롤러로 VR 에서 인터랙션 생성 블루프린트
+    02 - 모션 컨트롤러로 VR 인터랙션을 생성하는 블루프린트
     [/PARAMLITERAL]
     [PARAMLITERAL:videoid]
     utOahIZgKgc
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	57:44
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    57:44
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -215,17 +206,17 @@ px
 [/OBJECT]
 [OBJECT:VideoSeriesLink]
     [PARAMLITERAL:title]
-    01 - Blueprint Creating Interactions in VR with Motion Controllers
+    01 - 모션 컨트롤러로 VR 인터랙션을 생성하는 블루프린트
     [/PARAMLITERAL]
     [PARAMLITERAL:videoid]
     fcmRGkpWefY
     [/PARAMLITERAL]
-	[PARAMLITERAL:playlist]
-	PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
-	[/PARAMLITERAL]
-	[PARAMLITERAL:duration]
-	48:20
-	[/PARAMLITERAL]
+    [PARAMLITERAL:playlist]
+    PLZlv_N0_O1gY7G589Z3I5-Dz7AdFSIWaG
+    [/PARAMLITERAL]
+    [PARAMLITERAL:duration]
+    48:20
+    [/PARAMLITERAL]
     [PARAMLITERAL:active]
     [/PARAMLITERAL]
     [PARAMLITERAL:linktype]
@@ -236,5 +227,7 @@ px
     [/PARAMLITERAL]
 [/OBJECT]
 
+[region:blank]
 
+[/region]
 

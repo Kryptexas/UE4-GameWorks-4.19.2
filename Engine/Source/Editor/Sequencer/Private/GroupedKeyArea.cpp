@@ -6,10 +6,151 @@
 #include "DisplayNodes/SequencerSectionKeyAreaNode.h"
 #include "DisplayNodes/SequencerTrackNode.h"
 
-FIndexKey::FIndexKey(FString InNodePath, UMovieSceneSection* InSection)
+FSequencerKeyCollectionSignature FSequencerKeyCollectionSignature::FromNodes(const TArray<FSequencerDisplayNode*>& InNodes, float InDuplicateThresholdTime)
+{
+	FSequencerKeyCollectionSignature Result;
+	Result.DuplicateThresholdTime = InDuplicateThresholdTime;
+
+	for (const FSequencerDisplayNode* Node : InNodes)
+	{
+		const FSequencerSectionKeyAreaNode* KeyAreaNode = nullptr;
+
+		check(Node);
+		if (Node->GetType() == ESequencerNode::KeyArea)
+		{
+			KeyAreaNode = static_cast<const FSequencerSectionKeyAreaNode*>(Node);
+		}
+		else if (Node->GetType() == ESequencerNode::Track)
+		{
+			KeyAreaNode = static_cast<const FSequencerTrackNode*>(Node)->GetTopLevelKeyNode().Get();
+		}
+
+		if (KeyAreaNode)
+		{
+			for (const TSharedRef<IKeyArea>& KeyArea : KeyAreaNode->GetAllKeyAreas())
+			{
+				const UMovieSceneSection* Section = KeyArea->GetOwningSection();
+				Result.KeyAreaToSignature.Add(KeyArea, Section ? Section->GetSignature() : FGuid());
+			}
+		}
+	}
+
+	return Result;
+}
+
+FSequencerKeyCollectionSignature FSequencerKeyCollectionSignature::FromNodesRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float InDuplicateThresholdTime)
+{
+	FSequencerKeyCollectionSignature Result;
+	Result.DuplicateThresholdTime = InDuplicateThresholdTime;
+
+	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
+	AllKeyAreaNodes.Reserve(36);
+	for (FSequencerDisplayNode* Node : InNodes)
+	{
+		if (Node->GetType() == ESequencerNode::KeyArea)
+		{
+			AllKeyAreaNodes.Add(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node->AsShared()));
+		}
+
+		Node->GetChildKeyAreaNodesRecursively(AllKeyAreaNodes);
+	}
+
+	for (const TSharedRef<FSequencerSectionKeyAreaNode>& Node : AllKeyAreaNodes)
+	{
+		for (const TSharedRef<IKeyArea>& KeyArea : Node->GetAllKeyAreas())
+		{
+			const UMovieSceneSection* Section = KeyArea->GetOwningSection();
+			Result.KeyAreaToSignature.Add(KeyArea, Section ? Section->GetSignature() : FGuid());
+		}
+	}
+
+	return Result;
+}
+
+FSequencerKeyCollectionSignature FSequencerKeyCollectionSignature::FromNodeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float InDuplicateThresholdTime)
+{
+	FSequencerKeyCollectionSignature Result;
+	Result.DuplicateThresholdTime = InDuplicateThresholdTime;
+
+	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
+	AllKeyAreaNodes.Reserve(36);
+	InNode.GetChildKeyAreaNodesRecursively(AllKeyAreaNodes);
+
+	for (const auto& Node : AllKeyAreaNodes)
+	{
+		TSharedPtr<IKeyArea> KeyArea = Node->GetKeyArea(InSection);
+		if (KeyArea.IsValid())
+		{
+			Result.KeyAreaToSignature.Add(KeyArea.ToSharedRef(), InSection ? InSection->GetSignature() : FGuid());
+		}
+	}
+
+	return Result;
+}
+
+bool FSequencerKeyCollectionSignature::HasUncachableContent() const
+{
+	for (auto& Pair : KeyAreaToSignature)
+	{
+		if (!Pair.Value.IsValid())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool operator!=(const FSequencerKeyCollectionSignature& A, const FSequencerKeyCollectionSignature& B)
+{
+	if (A.HasUncachableContent() || B.HasUncachableContent())
+	{
+		return true;
+	}
+
+	if (A.KeyAreaToSignature.Num() != B.KeyAreaToSignature.Num() || A.DuplicateThresholdTime != B.DuplicateThresholdTime)
+	{
+		return true;
+	}
+
+	for (auto& Pair : A.KeyAreaToSignature)
+	{
+		const FGuid* BSig = B.KeyAreaToSignature.Find(Pair.Key);
+		if (!BSig || *BSig != Pair.Value)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool operator==(const FSequencerKeyCollectionSignature& A, const FSequencerKeyCollectionSignature& B)
+{
+	if (A.HasUncachableContent() || B.HasUncachableContent())
+	{
+		return false;
+	}
+
+	if (A.KeyAreaToSignature.Num() != B.KeyAreaToSignature.Num() || A.DuplicateThresholdTime != B.DuplicateThresholdTime)
+	{
+		return false;
+	}
+
+	for (auto& Pair : A.KeyAreaToSignature)
+	{
+		const FGuid* BSig = B.KeyAreaToSignature.Find(Pair.Key);
+		if (!BSig || *BSig != Pair.Value)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+FIndexKey::FIndexKey(FName InNodePath, UMovieSceneSection* InSection)
 	: NodePath(MoveTemp(InNodePath))
 	, Section(InSection)
-	, CachedHash(HashCombine(GetTypeHash(NodePath), GetTypeHash(InSection)))
 {}
 
 namespace 
@@ -27,101 +168,75 @@ namespace
 }
 
 FGroupedKeyCollection::FGroupedKeyCollection()
-	: IndexKey(FString(), nullptr)
+	: IndexKey(FName(), nullptr)
 {
 	GroupingThreshold = SMALL_NUMBER;
 }
 
-void FGroupedKeyCollection::InitializeExplicit(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold)
+bool FGroupedKeyCollection::InitializeExplicit(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold)
 {
+	FSequencerKeyCollectionSignature UpToDateSignature = FSequencerKeyCollectionSignature::FromNodes(InNodes, DuplicateThreshold);
+	if (CacheSignature == UpToDateSignature)
+	{
+		return false;
+	}
+
+	Swap(UpToDateSignature, CacheSignature);
+
 	KeyAreas.Reset();
 	Groups.Reset();
 
-	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
-	AllKeyAreaNodes.Reserve(36);
-	for (const FSequencerDisplayNode* Node : InNodes)
+	for (auto& Pair : CacheSignature.GetKeyAreas())
 	{
-		const FSequencerSectionKeyAreaNode* KeyAreaNode = nullptr;
-
-		if (Node->GetType() == ESequencerNode::KeyArea)
-		{
-			KeyAreaNode = static_cast<const FSequencerSectionKeyAreaNode*>(Node);
-		}
-		else if (Node->GetType() == ESequencerNode::Track)
-		{
-			KeyAreaNode = static_cast<const FSequencerTrackNode*>(Node)->GetTopLevelKeyNode().Get();
-			if (!KeyAreaNode)
-			{
-				continue;
-			}
-		}
-		else
-		{
-			continue;
-		}
-
-		const TArray<TSharedRef<IKeyArea>>& AllKeyAreas = KeyAreaNode->GetAllKeyAreas();
-		KeyAreas.Reserve(KeyAreas.Num() + AllKeyAreas.Num());
-
-		for (const TSharedRef<IKeyArea>& KeyArea : AllKeyAreas)
-		{
-			AddKeyArea(KeyArea);
-		}
+		AddKeyArea(Pair.Key);
 	}
 
 	RemoveDuplicateKeys(DuplicateThreshold);
+	return true;
 }
 
-void FGroupedKeyCollection::InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold)
+bool FGroupedKeyCollection::InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold)
 {
+	FSequencerKeyCollectionSignature UpToDateSignature = FSequencerKeyCollectionSignature::FromNodesRecursive(InNodes, DuplicateThreshold);
+	if (CacheSignature == UpToDateSignature)
+	{
+		return false;
+	}
+
+	Swap(UpToDateSignature, CacheSignature);
+
 	KeyAreas.Reset();
 	Groups.Reset();
 
-	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
-	AllKeyAreaNodes.Reserve(36);
-	for (FSequencerDisplayNode* Node : InNodes)
+	for (auto& Pair : CacheSignature.GetKeyAreas())
 	{
-		if (Node->GetType() == ESequencerNode::KeyArea)
-		{
-			AllKeyAreaNodes.Add(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node->AsShared()));
-		}
-
-		Node->GetChildKeyAreaNodesRecursively(AllKeyAreaNodes);
-	}
-
-	for (const auto& Node : AllKeyAreaNodes)
-	{
-		const TArray<TSharedRef<IKeyArea>>& AllKeyAreas = Node->GetAllKeyAreas();
-		KeyAreas.Reserve(KeyAreas.Num() + AllKeyAreas.Num());
-
-		for (const TSharedRef<IKeyArea>& KeyArea : AllKeyAreas)
-		{
-			AddKeyArea(KeyArea);
-		}
+		AddKeyArea(Pair.Key);
 	}
 
 	RemoveDuplicateKeys(DuplicateThreshold);
+	return true;
 }
 
-void FGroupedKeyCollection::InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold)
+bool FGroupedKeyCollection::InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold)
 {
+	FSequencerKeyCollectionSignature UpToDateSignature = FSequencerKeyCollectionSignature::FromNodeRecursive(InNode, InSection, DuplicateThreshold);
+	if (CacheSignature == UpToDateSignature)
+	{
+		return false;
+	}
+
+	Swap(UpToDateSignature, CacheSignature);
+
 	KeyAreas.Reset();
 	Groups.Reset();
 
-	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
-	AllKeyAreaNodes.Reserve(36);
-	InNode.GetChildKeyAreaNodesRecursively(AllKeyAreaNodes);
-
-	for (const auto& Node : AllKeyAreaNodes)
+	for (auto& Pair : CacheSignature.GetKeyAreas())
 	{
-		TSharedPtr<IKeyArea> KeyArea = Node->GetKeyArea(InSection);
-		if (KeyArea.IsValid())
-		{
-			AddKeyArea(KeyArea.ToSharedRef());
-		}
+		AddKeyArea(Pair.Key);
 	}
 
 	RemoveDuplicateKeys(DuplicateThreshold);
+	return true;
 }
 
 void FGroupedKeyCollection::AddKeyArea(const TSharedRef<IKeyArea>& InKeyArea)
@@ -142,34 +257,41 @@ void FGroupedKeyCollection::RemoveDuplicateKeys(float DuplicateThreshold)
 {
 	GroupingThreshold = DuplicateThreshold;
 
-	Groups.Sort([](const FKeyGrouping& A, const FKeyGrouping& B){
+	TArray<FKeyGrouping> OldGroups;
+	Swap(OldGroups, Groups);
+
+	Groups.Reserve(OldGroups.Num());
+
+	OldGroups.Sort([](const FKeyGrouping& A, const FKeyGrouping& B){
 		return A.RepresentativeTime < B.RepresentativeTime;
 	});
 
 	// Remove duplicates
-	for (int32 Index = 0; Index < Groups.Num(); ++Index)
+	for (int32 ReadIndex = 0; ReadIndex < OldGroups.Num(); ++ReadIndex)
 	{
-		const float CurrentTime = Groups[Index].RepresentativeTime;
+		const float CurrentTime = OldGroups[ReadIndex].RepresentativeTime;
 
 		int32 NumToMerge = 0;
-		for (int32 DuplIndex = Index + 1; DuplIndex < Groups.Num(); ++DuplIndex)
+		for (int32 DuplIndex = ReadIndex + 1; DuplIndex < OldGroups.Num(); ++DuplIndex)
 		{
-			if (!FMath::IsNearlyEqual(CurrentTime, Groups[DuplIndex].RepresentativeTime, DuplicateThreshold))
+			if (!FMath::IsNearlyEqual(CurrentTime, OldGroups[DuplIndex].RepresentativeTime, DuplicateThreshold))
 			{
 				break;
 			}
 			++NumToMerge;
 		}
 
+		Groups.Add(MoveTemp(OldGroups[ReadIndex]));
+
 		if (NumToMerge)
 		{
-			const int32 Start = Index + 1, End = Start + NumToMerge;
+			const int32 Start = ReadIndex + 1, End = Start + NumToMerge;
 			for (int32 MergeIndex = Start; MergeIndex < End; ++MergeIndex)
 			{
-				Groups[Index].Keys.Append(MoveTemp(Groups[MergeIndex].Keys));
+				Groups.Last().Keys.Append(MoveTemp(OldGroups[MergeIndex].Keys));
 			}
 
-			Groups.RemoveAt(Start, NumToMerge, false);
+			ReadIndex += NumToMerge;
 		}
 	}
 }
@@ -319,15 +441,22 @@ const FSlateBrush* FGroupedKeyCollection::GetBrush(FKeyHandle InHandle) const
 }
 
 FGroupedKeyArea::FGroupedKeyArea(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection)
-	: Section(InSection)
+	: DisplayNode(InNode.AsShared())
+	, Section(InSection)
 {
 	check(Section);
+	IndexKey = FIndexKey(*InNode.GetPathName(), Section);
 
-	// Calling this virtual function is safe here, as it's just called through standard name-lookup, not runtime dispatch
-	FGroupedKeyCollection::InitializeRecursive(InNode, Section);
+	Update();
+}
 
-	IndexKey = FIndexKey(InNode.GetPathName(), Section);
-	UpdateIndex();
+void FGroupedKeyArea::Update()
+{
+	TSharedPtr<FSequencerDisplayNode> PinnedNode = DisplayNode.Pin();
+	if (PinnedNode.IsValid() && InitializeRecursive(*PinnedNode, Section))
+	{
+		UpdateIndex();
+	}
 }
 
 TArray<FKeyHandle> FGroupedKeyArea::GetUnsortedKeyHandles() const

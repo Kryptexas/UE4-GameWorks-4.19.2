@@ -6,6 +6,7 @@
 #include "UObject/StructOnScope.h"
 #include "UObject/UnrealType.h"
 #include "UObject/LinkerLoad.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "Misc/SecureHash.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
@@ -75,12 +76,16 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	if (Ar.IsLoading())
 	{
-		// Backwards compat code. TODO 4.18: Put version check around this
-		for (TFieldIterator<UProperty> PropIt(this); PropIt; ++PropIt)
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::UserDefinedStructsBlueprintVisible)
 		{
-			PropIt->PropertyFlags |= CPF_BlueprintVisible;
+			for (TFieldIterator<UProperty> PropIt(this); PropIt; ++PropIt)
+			{
+				PropIt->PropertyFlags |= CPF_BlueprintVisible;
+			}
 		}
 
 		if (EUserDefinedStructureStatus::UDSS_UpToDate == Status)

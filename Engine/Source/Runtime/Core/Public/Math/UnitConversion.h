@@ -52,8 +52,8 @@ enum class EUnit : uint8
 	/** Pixel density units */
 	PixelsPerInch,
 
-	/** Arbitrary multiplier */
-	Multiplier,
+	/** Arbitrary multipliers */
+	Percentage,	Multiplier,
 
 	/** Symbolic entry, not specifiable on meta data */
 	Unspecified
@@ -62,7 +62,7 @@ enum class EUnit : uint8
 /** Enumeration that specifies particular classes of unit */
 enum class EUnitType
 {
-	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time, PixelDensity, Arbitrary,
+	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time, PixelDensity, Multipliers, Arbitrary,
 
 	// Symbolic entry - do not use directly
 	NumberOf,

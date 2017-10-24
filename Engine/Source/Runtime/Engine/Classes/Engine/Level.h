@@ -443,6 +443,9 @@ public:
 	*/
 	class FPrecomputedLightVolume*				PrecomputedLightVolume;
 
+	/** The volumetric lightmap data for this level. */
+	class FPrecomputedVolumetricLightmap*			PrecomputedVolumetricLightmap;
+
 	/** Contains precomputed visibility data for this level. */
 	FPrecomputedVisibilityHandler				PrecomputedVisibilityHandler;
 
@@ -465,7 +468,10 @@ public:
 	UPROPERTY()
 	FGuid LevelBuildDataId;
 
-	/** Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. */
+	/** 
+	 * Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. 
+	 * ReleaseRenderingResources must be called before changing what is referenced, to update the rendering thread state.
+	 */
 	UPROPERTY()
 	UMapBuildDataRegistry* MapBuildData;
 
@@ -731,14 +737,6 @@ public:
 	ENGINE_API static void BuildStreamingData(UWorld* World, ULevel* TargetLevel=NULL, UTexture2D* TargetTexture=NULL);
 
 	/**
-	* Deprecated. Returns the default brush for this level.
-	*
-	* @return		The default brush for this level.
-	*/
-	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
-	ENGINE_API ABrush* GetBrush() const;
-
-	/**
 	 * Returns the default brush for this level.
 	 *
 	 * @return		The default brush for this level.
@@ -814,6 +812,11 @@ public:
 	 *  Called when the level script blueprint has been successfully changed and compiled.  Handles creating an instance of the blueprint class in LevelScriptActor
 	 */
 	ENGINE_API void OnLevelScriptBlueprintChanged(class ULevelScriptBlueprint* InBlueprint);
+
+	/** 
+	 * Call on a level that was loaded from disk instead of PIE-duplicating, to fixup actor references
+	 */
+	ENGINE_API void FixupForPIE(int32 PIEInstanceID);
 #endif
 
 	/** @todo document */

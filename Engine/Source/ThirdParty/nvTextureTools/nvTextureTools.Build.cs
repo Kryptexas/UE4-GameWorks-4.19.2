@@ -8,7 +8,7 @@ public class nvTextureTools : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string nvttPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "nvTextureTools/nvTextureTools-2.0.8/";
+		string nvttPath = Target.UEThirdPartySourceDirectory + "nvTextureTools/nvTextureTools-2.0.8/";
 
 		string nvttLibPath = nvttPath + "lib";
 
@@ -16,7 +16,7 @@ public class nvTextureTools : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			nvttLibPath += ("/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+			nvttLibPath += ("/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			PublicLibraryPaths.Add(nvttLibPath);
 
 			PublicAdditionalLibraries.Add("nvtt_64.lib");
@@ -27,7 +27,7 @@ public class nvTextureTools : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			nvttLibPath += ("/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+			nvttLibPath += ("/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			PublicLibraryPaths.Add(nvttLibPath);
 
 			PublicAdditionalLibraries.Add("nvtt.lib");

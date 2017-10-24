@@ -1,13 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Deploy/SProjectLauncherSimpleDeviceListView.h"
+#include "SProjectLauncherSimpleDeviceListView.h"
+
+#include "Framework/Docking/TabManager.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceProxyManager.h"
 #include "SlateOptMacros.h"
+#include "Widgets/Input/SHyperlink.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SScrollBorder.h"
-#include "Framework/Docking/TabManager.h"
-#include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "Models/ProjectLauncherModel.h"
 #include "Widgets/Deploy/SProjectLauncherSimpleDeviceListRow.h"
-#include "Widgets/Input/SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherSimpleDeviceListView"
@@ -16,11 +22,11 @@
 /* SProjectLauncherDeployTargets structors
  *****************************************************************************/
 
-SProjectLauncherSimpleDeviceListView::~SProjectLauncherSimpleDeviceListView( )
+SProjectLauncherSimpleDeviceListView::~SProjectLauncherSimpleDeviceListView()
 {
 	if (Model.IsValid())
 	{
-		const ITargetDeviceProxyManagerRef& DeviceProxyManager = Model->GetDeviceProxyManager();
+		const TSharedRef<ITargetDeviceProxyManager>& DeviceProxyManager = Model->GetDeviceProxyManager();
 		DeviceProxyManager->OnProxyAdded().RemoveAll(this);
 		DeviceProxyManager->OnProxyRemoved().RemoveAll(this);
 	}
@@ -31,14 +37,14 @@ SProjectLauncherSimpleDeviceListView::~SProjectLauncherSimpleDeviceListView( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherSimpleDeviceListView::Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel)
+void SProjectLauncherSimpleDeviceListView::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	OnProfileRun = InArgs._OnProfileRun;
 	IsAdvanced = InArgs._IsAdvanced;
 	
 	Model = InModel;
 
-	SAssignNew(DeviceProxyListView, SListView<ITargetDeviceProxyPtr>)
+	SAssignNew(DeviceProxyListView, SListView<TSharedPtr<ITargetDeviceProxy>>)
 		.SelectionMode(ESelectionMode::None)
 		.ListItemsSource(&DeviceProxyList)
 		.OnGenerateRow(this, &SProjectLauncherSimpleDeviceListView::HandleDeviceProxyListViewGenerateRow)
@@ -87,11 +93,10 @@ void SProjectLauncherSimpleDeviceListView::Construct(const FArguments& InArgs, c
 		]
 	];
 
-	const ITargetDeviceProxyManagerRef& DeviceProxyManager = Model->GetDeviceProxyManager();
+	const TSharedRef<ITargetDeviceProxyManager>& DeviceProxyManager = Model->GetDeviceProxyManager();
 
 	DeviceProxyManager->OnProxyAdded().AddSP(this, &SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyAdded);
 	DeviceProxyManager->OnProxyRemoved().AddSP(this, &SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyRemoved);
-
 	DeviceProxyManager->GetProxies(NAME_None, false, DeviceProxyList);
 
 }
@@ -111,28 +116,30 @@ void SProjectLauncherSimpleDeviceListView::RefreshDeviceProxyList()
 /* SProjectLauncherDeployTargets callbacks
  *****************************************************************************/
 
-bool SProjectLauncherSimpleDeviceListView::HandleDeviceListRowIsEnabled( ITargetDeviceProxyPtr DeviceProxy ) const
+bool SProjectLauncherSimpleDeviceListView::HandleDeviceListRowIsEnabled(TSharedPtr<ITargetDeviceProxy> DeviceProxy) const
 {
 	return true;
 }
+
 
 void SProjectLauncherSimpleDeviceListView::HandleDeviceManagerHyperlinkNavigate() const
 {
 	FGlobalTabmanager::Get()->InvokeTab(FTabId("DeviceManager"));
 }
 
-FText SProjectLauncherSimpleDeviceListView::HandleDeviceListRowToolTipText( ITargetDeviceProxyPtr DeviceProxy ) const
+
+FText SProjectLauncherSimpleDeviceListView::HandleDeviceListRowToolTipText(TSharedPtr<ITargetDeviceProxy> DeviceProxy) const
 {
 	FTextBuilder Builder;
 	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipName", "Name: {0}"), FText::FromString(DeviceProxy->GetName()));
-	//Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant())));
-	//Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetTargetDeviceId(SimpleProfile->GetDeviceVariant())));
+//	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant())));
+//	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetTargetDeviceId(SimpleProfile->GetDeviceVariant())));
 
 	return Builder.ToText();
 }
 
 
-TSharedRef<ITableRow> SProjectLauncherSimpleDeviceListView::HandleDeviceProxyListViewGenerateRow(ITargetDeviceProxyPtr InItem, const TSharedRef<STableViewBase>& OwnerTable) const
+TSharedRef<ITableRow> SProjectLauncherSimpleDeviceListView::HandleDeviceProxyListViewGenerateRow(TSharedPtr<ITargetDeviceProxy> InItem, const TSharedRef<STableViewBase>& OwnerTable) const
 {
 	return SNew(SProjectLauncherSimpleDeviceListRow, Model.ToSharedRef(), OwnerTable)
 		.OnProfileRun(OnProfileRun)
@@ -142,14 +149,17 @@ TSharedRef<ITableRow> SProjectLauncherSimpleDeviceListView::HandleDeviceProxyLis
 		.ToolTipText(this, &SProjectLauncherSimpleDeviceListView::HandleDeviceListRowToolTipText, InItem);
 }
 
-void SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyAdded(const ITargetDeviceProxyRef& AddedProxy)
+
+void SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyAdded(const TSharedRef<ITargetDeviceProxy>& AddedProxy)
 {
 	RefreshDeviceProxyList();
 }
 
-void SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyRemoved(const ITargetDeviceProxyRef& AddedProxy)
+
+void SProjectLauncherSimpleDeviceListView::HandleDeviceProxyManagerProxyRemoved(const TSharedRef<ITargetDeviceProxy>& AddedProxy)
 {
 	RefreshDeviceProxyList();
 }
+
 
 #undef LOCTEXT_NAMESPACE

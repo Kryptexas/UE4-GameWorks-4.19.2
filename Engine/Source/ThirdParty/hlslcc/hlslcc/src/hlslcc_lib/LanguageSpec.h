@@ -11,6 +11,9 @@ struct ILanguageSpec
 	virtual bool SupportsDeterminantIntrinsic() const = 0;
 	virtual bool SupportsTransposeIntrinsic() const = 0;
 	virtual bool SupportsIntegerModulo() const = 0;
+	
+	// Whether the backend can generate a fused-multiply-add instruction
+	virtual bool SupportsFusedMultiplyAdd() const { return false; }
 
 	// half3x3 <-> float3x3
 	virtual bool SupportsMatrixConversions() const = 0;
@@ -31,8 +34,17 @@ struct ILanguageSpec
 	// Some platforms require input variable structs to be split, others require that they aren't
 	virtual bool SplitInputVariableStructs() const { return true; }
 	
-	// Whether the backend can generate correct native matrix intrinsics (given HLSL row-major matrices)
-	virtual bool SupportsMatrixIntrinsics() const { return false; }
+	// Whether the backend can generate a saturate instruction
+	virtual bool SupportsSaturateIntrinsic() const { return false; }
+	
+	// Whether the backend can generate a sincos instruction
+    virtual bool SupportsSinCosIntrinsic() const { return false; }
+    
+    // Whether the backend can generate correct native matrix intrinsics (given HLSL row-major matrices)
+    virtual bool SupportsMatrixIntrinsics() const { return false; }
+    
+    // Whether the backend allows reads from non-scalar UAVs
+    virtual bool AllowsImageLoadsForNonScalar() const { return true; }
 };
 
 enum
@@ -67,6 +79,8 @@ enum
 	IR_INTRINSIC_RETURNS_BOOL_TRUE = 0x1000,
 	// The intrinsic returns void.
 	IR_INTRINSIC_RETURNS_VOID = 0x2000,
+	// The intrinsic takes an int or uint and promotes the arg to float, and returns float (eg sqrt(2))
+	IR_INTRINSIC_PROMOTE_ARG_FLOAT_RETURN_FLOAT = 0x4000,
 };
 
 extern void make_intrinsic_genType(

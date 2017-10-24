@@ -72,7 +72,4 @@ private:
 
 	/** True when we detect that the user is wearing the HMD */
 	EHMDWornState::Type HMDWornState;
-
-	/** Timer for checking if the user is wearing the HMD */
-	float TimeSinceHMDChecked;
 };

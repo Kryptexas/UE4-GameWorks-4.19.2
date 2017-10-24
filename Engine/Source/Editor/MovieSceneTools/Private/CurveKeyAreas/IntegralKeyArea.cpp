@@ -95,12 +95,13 @@ float FIntegralCurveKeyAreaBase::GetKeyTime(FKeyHandle KeyHandle) const
 FRichCurve* FIntegralCurveKeyAreaBase::GetRichCurve()
 {
 	return nullptr;
-};
+}
 
 
 TArray<FKeyHandle> FIntegralCurveKeyAreaBase::GetUnsortedKeyHandles() const
 {
 	TArray<FKeyHandle> OutKeyHandles;
+	OutKeyHandles.Reserve(Curve.GetNumKeys());
 
 	for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
 	{

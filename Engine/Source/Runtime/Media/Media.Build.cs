@@ -10,14 +10,12 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
-				}
-			); 
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/Media/Private",
-				}
-			);
+				});
 		}
 	}
 }

@@ -75,7 +75,13 @@ void VelocityFlattenMain(
 	const float AspectRatio = MotionBlurParameters.x;
 	Velocity.y *= -AspectRatio;
 
-	float2 VelocityPolar = CartesianToPolar( Velocity );
+	float2 VelocityPolar = CartesianToPolar(Velocity);
+	
+	// If the velocity vector was zero length, VelocityPolar will contain NaNs.
+	if (any(isnan(VelocityPolar)))
+	{
+		VelocityPolar = float2(0.0f, 0.0f);
+	}
 	
 	bool bInsideViewport = all( PixelPos.xy < ViewportRect.zw );
 	

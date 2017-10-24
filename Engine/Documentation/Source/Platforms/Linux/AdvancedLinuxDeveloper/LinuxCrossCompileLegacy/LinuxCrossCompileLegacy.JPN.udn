@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3469804
+﻿INTSourceChangelist:3616274
 Availability:Public
 Title:Linux (レガシー) のクロス コンパイル
 Crumbs:%ROOT%
@@ -35,13 +35,17 @@ Mac ユーザーは現在 [native compilation](https://wiki.unrealengine.com/Bui
 以下の表を使って適切なツールチェーンをダウンロードしてください。 
 
 | ツールチェーン                                                                                                                           | UE4 バージョン    | 
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
-| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | <= 4.8         | 
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 4.8 以下| 
 | **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 and 4.10   | 
 | **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
 | **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 and 4.15  |
 | **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
+[REGION:note]
+Windows Batch Files (\*.bat) の設定および設定解除は **-v9** に含まれていません。これらのファイルは UE4 向けに AutoSDKs を設定する場合のみ必要とされるからです。 
+`Setup.bat` および `Unsetup.bat` は AutoSDKs システムの一部だったため、ツールチェーンの以前のバージョンには含まれていませんでした (現在ドキュメントはありません)。
+[/REGION]  
 
 Linux ARM (https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) 並びに (original Raspberry Pi and up) のコンパイルが可能なライブラリとツールチェーンも提供しています。 
 ただし、[Unreal Build Tool](Programming/UnrealBuildSystem) (UBT) で (マイナーな) コード変更が必要になります。

@@ -12,7 +12,7 @@ struct FVector2D;
 class IPlatformChunkInstall;
 
 /** Helper struct used to get the string version of the Windows version. */
-struct FWindowsOSVersionHelper
+struct CORE_API FWindowsOSVersionHelper
 {
 	enum ErrorCodes
 	{
@@ -37,7 +37,6 @@ struct CORE_API FWindowsPlatformMisc
 	static void SetHighDPIMode();
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static class GenericApplication* CreateApplication();
 	static void SetGracefulTerminationHandler();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
@@ -84,26 +83,17 @@ struct CORE_API FWindowsPlatformMisc
 		return false;
 	}
 
-	static void PumpMessages(bool bFromMainLoop);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static void SetUTF8Output();
 	static void LocalPrint(const TCHAR *Message);
 	static void RequestExit(bool Force);
-	static void RequestMinimize();
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
 	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static void PreventScreenSaver();
 	static bool CommandLineCommands();
 	static bool Is64bitOperatingSystem();
 	static bool IsValidAbsolutePathFormat(const FString& Path);
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
-	static void LoadPreInitModules();
-	static void LoadStartupModules();
 
 	static FString GetDefaultLanguage();
 	static FString GetDefaultLocale();
@@ -139,20 +129,6 @@ struct CORE_API FWindowsPlatformMisc
 	 */
 	static Windows::HWND GetTopLevelWindowHandle(uint32 ProcessId);
 
-	/**
-	 * Searches for a window that matches the window name or the title starts with a particular text. When
-	 * found, it returns the title text for that window
-	 *
-	 * @param TitleStartsWith searches for a window that has partial information about the title
-	 * @param OutTitle the string the data is copied into
-	 *
-	 * @return whether the window was found and the text copied or not
-	 */
-	static bool GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle);
-
-	//////// Platform specific
-	static int32	GetAppIcon();
-
 	/** 
 	 * Determines if we are running on the Windows version or newer
 	 *
@@ -162,16 +138,6 @@ struct CORE_API FWindowsPlatformMisc
 	 * @return	Returns true if the current Windows version if equal or newer than MajorVersion
 	 */
 	static bool VerifyWindowsVersion(uint32 MajorVersion, uint32 MinorVersion);
-
-	/**
-	 * Sample the displayed pixel color from anywhere on the screen using the OS
-	 *
-	 * @param	InScreenPos		The screen coordinates to sample for current pixel color
-	 * @param	InGamma			Optional gamma correction to apply to the screen color
-	 *
-	 * @return					The color of the pixel displayed at the chosen location
-	 */
-	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
 
 #if !UE_BUILD_SHIPPING
 	static void PromptForRemoteDebugging(bool bIsEnsure);
@@ -223,6 +189,11 @@ struct CORE_API FWindowsPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
+
+	/** @return whether this cpu supports certain required instructions or not */
+	static bool HasNonoptionalCPUFeatures();
+	/** @return whether to check for specific CPU compatibility or not */
+	static bool NeedsNonoptionalCPUFeaturesCheck();
 
 	/** 
 	 * Provides a simpler interface for fetching and cleanup of registry value queries
@@ -283,8 +254,6 @@ struct CORE_API FWindowsPlatformMisc
 	static EConvertibleLaptopMode GetConvertibleLaptopMode();
 
 	static IPlatformChunkInstall* GetPlatformChunkInstall();
-
-	static float GetDPIScaleFactorAtPoint(float X, float Y);
 };
 
 

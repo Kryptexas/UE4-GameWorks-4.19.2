@@ -21,6 +21,11 @@
 #include "content/public/browser/native_web_keyboard_event.h"
 #include "content/public/browser/render_view_host.h"
 #include "content/public/common/renderer_preferences.h"
+#include "ui/events/keycodes/dom/dom_key.h"
+#include "ui/events/keycodes/dom/keycode_converter.h"
+#include "ui/events/keycodes/keyboard_code_conversion_x.h"
+#include "ui/events/keycodes/keyboard_code_conversion_xkb.h"
+#include "ui/events/keycodes/keysym_to_unicode.h"
 #include "ui/gfx/font_render_params.h"
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_x11.h"
 #include "ui/views/widget/widget.h"
@@ -38,8 +43,9 @@ long GetSystemUptime() {
 }  // namespace
 
 CefBrowserPlatformDelegateNativeLinux::CefBrowserPlatformDelegateNativeLinux(
-    const CefWindowInfo& window_info)
-    : CefBrowserPlatformDelegateNative(window_info),
+    const CefWindowInfo& window_info,
+    SkColor background_color)
+    : CefBrowserPlatformDelegateNative(window_info, background_color),
       host_window_created_(false),
       window_widget_(nullptr),
       window_x11_(nullptr) {
@@ -77,17 +83,8 @@ bool CefBrowserPlatformDelegateNativeLinux::CreateHostWindow() {
   // Add a reference that will be released in BrowserDestroyed().
   browser_->AddRef();
 
-  SkColor background_color = SK_ColorWHITE;
-  const CefSettings& settings = CefContext::Get()->settings();
-  if (CefColorGetA(settings.background_color) > 0) {
-    background_color = SkColorSetRGB(
-        CefColorGetR(settings.background_color),
-        CefColorGetG(settings.background_color),
-        CefColorGetB(settings.background_color));
-  }
-
   CefWindowDelegateView* delegate_view =
-      new CefWindowDelegateView(background_color);
+      new CefWindowDelegateView(GetBackgroundColor());
   delegate_view->Init(window_info_.window,
                       browser_->web_contents(),
                       gfx::Rect(gfx::Point(), rect.size()));
@@ -232,7 +229,8 @@ void CefBrowserPlatformDelegateNativeLinux::ViewText(const std::string& text) {
   std::string openCommand("xdg-open ");
   openCommand += newName;
 
-  system(openCommand.c_str());
+  int result = system(openCommand.c_str());
+  ALLOW_UNUSED_LOCAL(result);
 }
 
 void CefBrowserPlatformDelegateNativeLinux::HandleKeyboardEvent(
@@ -247,32 +245,40 @@ void CefBrowserPlatformDelegateNativeLinux::HandleExternalProtocol(
 void CefBrowserPlatformDelegateNativeLinux::TranslateKeyEvent(
     content::NativeWebKeyboardEvent& result,
     const CefKeyEvent& key_event) const {
-  result.timeStampSeconds = GetSystemUptime();
-
-  result.windowsKeyCode = key_event.windows_key_code;
-  result.nativeKeyCode = key_event.native_key_code;
-  result.isSystemKey = key_event.is_system_key ? 1 : 0;
+  result.windows_key_code = key_event.windows_key_code;
+  result.native_key_code = key_event.native_key_code;
+  result.is_system_key = key_event.is_system_key ? 1 : 0;
   switch (key_event.type) {
   case KEYEVENT_RAWKEYDOWN:
   case KEYEVENT_KEYDOWN:
-    result.type = blink::WebInputEvent::RawKeyDown;
+    result.SetType(blink::WebInputEvent::kRawKeyDown);
     break;
   case KEYEVENT_KEYUP:
-    result.type = blink::WebInputEvent::KeyUp;
+    result.SetType(blink::WebInputEvent::kKeyUp);
     break;
   case KEYEVENT_CHAR:
-    result.type = blink::WebInputEvent::Char;
+    result.SetType(blink::WebInputEvent::kChar);
     break;
   default:
     NOTREACHED();
   }
 
+  // Populate DOM values that will be passed to JavaScript handlers via
+  // KeyboardEvent.
+  result.dom_code =
+      static_cast<int>(ui::KeycodeConverter::NativeKeycodeToDomCode(
+            key_event.native_key_code));
+  int keysym = ui::XKeysymForWindowsKeyCode(
+      static_cast<ui::KeyboardCode>(key_event.windows_key_code),
+      !!(key_event.modifiers & EVENTFLAG_SHIFT_DOWN));
+  base::char16 ch = ui::GetUnicodeCharacterFromXKeySym(keysym);
+  result.dom_key = static_cast<int>(ui::XKeySymToDomKey(keysym, ch));
+
   result.text[0] = key_event.character;
-  result.unmodifiedText[0] = key_event.unmodified_character;
+  result.unmodified_text[0] = key_event.unmodified_character;
 
-  result.setKeyIdentifierFromWindowsKeyCode();
-
-  result.modifiers |= TranslateModifiers(key_event.modifiers);
+  result.SetModifiers(
+      result.GetModifiers() | TranslateModifiers(key_event.modifiers));
 }
 
 void CefBrowserPlatformDelegateNativeLinux::TranslateClickEvent(
@@ -284,25 +290,25 @@ void CefBrowserPlatformDelegateNativeLinux::TranslateClickEvent(
 
   switch (type) {
   case MBT_LEFT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonLeft;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kLeft;
     break;
   case MBT_MIDDLE:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonMiddle;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kMiddle;
     break;
   case MBT_RIGHT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonRight;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kRight;
     break;
   default:
     NOTREACHED();
   }
 
-  result.clickCount = clickCount;
+  result.click_count = clickCount;
 }
 
 void CefBrowserPlatformDelegateNativeLinux::TranslateMoveEvent(
@@ -312,21 +318,21 @@ void CefBrowserPlatformDelegateNativeLinux::TranslateMoveEvent(
   TranslateMouseEvent(result, mouse_event);
 
   if (!mouseLeave) {
-    result.type = blink::WebInputEvent::MouseMove;
+    result.SetType(blink::WebInputEvent::kMouseMove);
     if (mouse_event.modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonLeft;
+      result.button = blink::WebMouseEvent::Button::kLeft;
     else if (mouse_event.modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonMiddle;
+      result.button = blink::WebMouseEvent::Button::kMiddle;
     else if (mouse_event.modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonRight;
+      result.button = blink::WebMouseEvent::Button::kRight;
     else
-      result.button = blink::WebMouseEvent::ButtonNone;
+      result.button = blink::WebMouseEvent::Button::kNoButton;
   } else {
-    result.type = blink::WebInputEvent::MouseLeave;
-    result.button = blink::WebMouseEvent::ButtonNone;
+    result.SetType(blink::WebInputEvent::kMouseLeave);
+    result.button = blink::WebMouseEvent::Button::kNoButton;
   }
 
-  result.clickCount = 0;
+  result.click_count = 0;
 }
 
 void CefBrowserPlatformDelegateNativeLinux::TranslateWheelEvent(
@@ -336,28 +342,28 @@ void CefBrowserPlatformDelegateNativeLinux::TranslateWheelEvent(
   result = blink::WebMouseWheelEvent();
   TranslateMouseEvent(result, mouse_event);
 
-  result.type = blink::WebInputEvent::MouseWheel;
+  result.SetType(blink::WebInputEvent::kMouseWheel);
 
   static const double scrollbarPixelsPerGtkTick = 40.0;
-  result.deltaX = deltaX;
-  result.deltaY = deltaY;
-  result.wheelTicksX = result.deltaX / scrollbarPixelsPerGtkTick;
-  result.wheelTicksY = result.deltaY / scrollbarPixelsPerGtkTick;
-  result.hasPreciseScrollingDeltas = true;
+  result.delta_x = deltaX;
+  result.delta_y = deltaY;
+  result.wheel_ticks_x = deltaX / scrollbarPixelsPerGtkTick;
+  result.wheel_ticks_y = deltaY / scrollbarPixelsPerGtkTick;
+  result.has_precise_scrolling_deltas = true;
 
   // Unless the phase and momentumPhase are passed in as parameters to this
   // function, there is no way to know them
-  result.phase = blink::WebMouseWheelEvent::PhaseNone;
-  result.momentumPhase = blink::WebMouseWheelEvent::PhaseNone;
+  result.phase = blink::WebMouseWheelEvent::kPhaseNone;
+  result.momentum_phase = blink::WebMouseWheelEvent::kPhaseNone;
 
   if (mouse_event.modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonLeft;
+    result.button = blink::WebMouseEvent::Button::kLeft;
   else if (mouse_event.modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonMiddle;
+    result.button = blink::WebMouseEvent::Button::kMiddle;
   else if (mouse_event.modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonRight;
+    result.button = blink::WebMouseEvent::Button::kRight;
   else
-    result.button = blink::WebMouseEvent::ButtonNone;
+    result.button = blink::WebMouseEvent::Button::kNoButton;
 }
 
 CefEventHandle CefBrowserPlatformDelegateNativeLinux::GetEventHandle(
@@ -367,28 +373,26 @@ CefEventHandle CefBrowserPlatformDelegateNativeLinux::GetEventHandle(
   return const_cast<CefEventHandle>(event.os_event->native_event());
 }
 
-scoped_ptr<CefMenuRunner>
+std::unique_ptr<CefMenuRunner>
     CefBrowserPlatformDelegateNativeLinux::CreateMenuRunner() {
-  return make_scoped_ptr(new CefMenuRunnerLinux);
+  return base::WrapUnique(new CefMenuRunnerLinux);
 }
 
 void CefBrowserPlatformDelegateNativeLinux::TranslateMouseEvent(
     blink::WebMouseEvent& result,
     const CefMouseEvent& mouse_event) const {
   // position
-  result.x = mouse_event.x;
-  result.y = mouse_event.y;
-  result.windowX = result.x;
-  result.windowY = result.y;
+  result.SetPositionInWidget(mouse_event.x, mouse_event.y);
 
-  const gfx::Point& screen_pt = GetScreenPoint(gfx::Point(result.x, result.y));
-  result.globalX = screen_pt.x();
-  result.globalY = screen_pt.y();
+  const gfx::Point& screen_pt =
+      GetScreenPoint(gfx::Point(mouse_event.x, mouse_event.y));
+  result.SetPositionInScreen(screen_pt.x(), screen_pt.y());
 
   // modifiers
-  result.modifiers |= TranslateModifiers(mouse_event.modifiers);
+  result.SetModifiers(
+      result.GetModifiers() | TranslateModifiers(mouse_event.modifiers));
 
   // timestamp
-  result.timeStampSeconds = GetSystemUptime();
+  result.SetTimeStampSeconds(GetSystemUptime());
 }
 

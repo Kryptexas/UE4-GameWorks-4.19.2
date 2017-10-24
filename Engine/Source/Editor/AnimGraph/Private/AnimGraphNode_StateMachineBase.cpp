@@ -10,6 +10,7 @@
 #include "AnimationStateMachineGraph.h"
 #include "AnimationStateMachineSchema.h"
 #include "AnimGraphNode_StateMachine.h"
+#include "Kismet2/KismetEditorUtilities.h"
 
 /////////////////////////////////////////////////////
 // FAnimStateMachineNodeNameValidator
@@ -124,6 +125,14 @@ UObject* UAnimGraphNode_StateMachineBase::GetJumpTargetForDoubleClick() const
 	return EditorStateMachineGraph;
 }
 
+void UAnimGraphNode_StateMachineBase::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+	}
+}
+
 void UAnimGraphNode_StateMachineBase::DestroyNode()
 {
 	UEdGraph* GraphToRemove = EditorStateMachineGraph;
@@ -144,7 +153,7 @@ void UAnimGraphNode_StateMachineBase::PostPasteNode()
 	Super::PostPasteNode();
 
 	// Add the new graph as a child of our parent graph
-	UEdGraph* ParentGraph = CastChecked<UEdGraph>(GetGraph());
+	UEdGraph* ParentGraph = GetGraph();
 
 	if(ParentGraph->SubGraphs.Find(EditorStateMachineGraph) == INDEX_NONE)
 	{

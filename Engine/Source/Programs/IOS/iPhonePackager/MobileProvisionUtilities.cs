@@ -54,7 +54,7 @@ namespace iPhonePackager
 				Directory.CreateDirectory(Config.ProvisionDirectory);
 			}
 
-			if (Config.bProvision)
+            if (Config.bProvision)
 			{
 				if (File.Exists(Config.ProvisionDirectory + "/" + Config.Provision))
 				{
@@ -128,8 +128,12 @@ namespace iPhonePackager
 
 			// check the cache for a provision matching the app id (com.company.Game)
 			// First checking for a contains match and then for a wildcard match
-			for (int Phase = 0; Phase < 3; ++Phase)
+			for (int Phase = -1; Phase < 3; ++Phase)
 			{
+                if (Phase == -1 && string.IsNullOrEmpty(Config.ProvisionUUID))
+                {
+                    continue;
+                }
 				foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
 				{
 					string DebugName = Path.GetFileName(Pair.Key);
@@ -149,7 +153,12 @@ namespace iPhonePackager
 
                     // Validate the name
                     bool bPassesNameCheck = false;
-					if (Phase == 0)
+                    if (Phase == -1)
+                    {
+                        bPassesNameCheck = TestProvision.UUID == Config.ProvisionUUID;
+                        bNameMatch = bPassesNameCheck;
+                    }
+                    else if (Phase == 0)
 					{
 						bPassesNameCheck = TestProvision.ApplicationIdentifier.Substring(TestProvision.ApplicationIdentifierPrefix.Length+1) == CFBundleIdentifier;
 						bNameMatch = bPassesNameCheck;

@@ -34,6 +34,7 @@
 #include "JsonObjectConverter.h"
 #include "Engine/SkeletalMesh.h"
 #include "IMeshReductionManagerModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -1396,7 +1397,7 @@ void FMeshSectionSettingsLayout::OnCopySectionList(int32 CurrentLODIndex)
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -1418,7 +1419,7 @@ bool FMeshSectionSettingsLayout::OnCanCopySectionList(int32 CurrentLODIndex) con
 void FMeshSectionSettingsLayout::OnPasteSectionList(int32 CurrentLODIndex)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -1497,7 +1498,7 @@ void FMeshSectionSettingsLayout::OnCopySectionItem(int32 CurrentLODIndex, int32 
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -1519,7 +1520,7 @@ bool FMeshSectionSettingsLayout::OnCanCopySectionItem(int32 CurrentLODIndex, int
 void FMeshSectionSettingsLayout::OnPasteSectionItem(int32 CurrentLODIndex, int32 SectionIndex)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -1891,8 +1892,7 @@ void FMeshSectionSettingsLayout::SetCurrentLOD(int32 NewLodIndex)
 	{
 		return;
 	}
-	(*LodCategoriesPtr)[RealCurrentDisplayLOD]->SetCategoryVisibility(false);
-	(*LodCategoriesPtr)[RealNewLOD]->SetCategoryVisibility(true);
+
 	StaticMeshEditor.GetStaticMeshComponent()->SetForcedLodModel(NewLodIndex);
 
 	//Reset the preview section since we do not edit the same LOD
@@ -1902,6 +1902,11 @@ void FMeshSectionSettingsLayout::SetCurrentLOD(int32 NewLodIndex)
 
 void FMeshSectionSettingsLayout::UpdateLODCategoryVisibility()
 {
+	if (CustomLODEditModePtr != nullptr && *CustomLODEditModePtr == true)
+	{
+		//Do not change the Category visibility if we are in custom mode
+		return;
+	}
 	bool bAutoLod = false;
 	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
 	{
@@ -1920,6 +1925,9 @@ void FMeshSectionSettingsLayout::UpdateLODCategoryVisibility()
 			}
 			(*LodCategoriesPtr)[LodCategoryIndex]->SetCategoryVisibility(CurrentDisplayLOD == LodCategoryIndex);
 		}
+		//Reset the preview section since we do not edit the same LOD
+		StaticMeshEditor.GetStaticMeshComponent()->SetSectionPreview(INDEX_NONE);
+		StaticMeshEditor.GetStaticMeshComponent()->SelectedEditorSection = INDEX_NONE;
 	}
 }
 
@@ -1946,6 +1954,7 @@ FText FMeshSectionSettingsLayout::GetCurrentLodTooltip() const
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionList(int32 LodIndex)
 {
 	return SNew(SComboButton)
+		.Visibility(this, &FMeshSectionSettingsLayout::LodComboBoxVisibilityForSectionList, LodIndex)
 		.OnGetMenuContent(this, &FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList, LodIndex)
 		.VAlign(VAlign_Center)
 		.ContentPadding(2)
@@ -1953,9 +1962,19 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionL
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
-		.Text(this, &FMeshSectionSettingsLayout::GetCurrentLodName)
-		.ToolTipText(this, &FMeshSectionSettingsLayout::GetCurrentLodTooltip)
+			.Text(this, &FMeshSectionSettingsLayout::GetCurrentLodName)
+			.ToolTipText(this, &FMeshSectionSettingsLayout::GetCurrentLodTooltip)
 		];
+}
+
+EVisibility FMeshSectionSettingsLayout::LodComboBoxVisibilityForSectionList(int32 LodIndex) const
+{
+	//No combo box when in Custom mode
+	if (CustomLODEditModePtr != nullptr && *CustomLODEditModePtr == true)
+	{
+		return EVisibility::Hidden;
+	}
+	return EVisibility::All;
 }
 
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList(int32 LodIndex)
@@ -2093,7 +2112,7 @@ void FMeshMaterialsLayout::OnCopyMaterialList()
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -2105,7 +2124,7 @@ bool FMeshMaterialsLayout::OnCanCopyMaterialList() const
 void FMeshMaterialsLayout::OnPasteMaterialList()
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonValue> RootJsonValue;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -2155,7 +2174,7 @@ void FMeshMaterialsLayout::OnCopyMaterialItem(int32 CurrentSlot)
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -2167,7 +2186,7 @@ bool FMeshMaterialsLayout::OnCanCopyMaterialItem(int32 CurrentSlot) const
 void FMeshMaterialsLayout::OnPasteMaterialItem(int32 CurrentSlot)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -2955,9 +2974,52 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			CurrentLodIndex = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
 		}
 		LodCategories.Empty(StaticMeshLODCount);
+
+		FString LODControllerCategoryName = FString(TEXT("LODCustomMode"));
+		FText LODControllerString = LOCTEXT("LODCustomModeCategoryName", "LOD Picker");
+
+		IDetailCategoryBuilder& LODCustomModeCategory = DetailBuilder.EditCategory( *LODControllerCategoryName, LODControllerString, ECategoryPriority::Important );
+
+
+		LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeFirstRowName", "LODCustomMode")))
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FLevelOfDetailSettingsLayout::GetLODCustomModeNameContent, (int32)INDEX_NONE)
+			.ToolTipText(LOCTEXT("LODCustomModeFirstRowTooltip", "Custom Mode allow editing multiple LOD in same time."))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FLevelOfDetailSettingsLayout::IsLODCustomModeCheck, (int32)INDEX_NONE)
+			.OnCheckStateChanged(this, &FLevelOfDetailSettingsLayout::SetLODCustomModeCheck, (int32)INDEX_NONE)
+			.ToolTipText(LOCTEXT("LODCustomModeFirstRowTooltip", "Custom Mode allow editing multiple LOD in same time."))
+		];
+		//Set the custom mode to false
+		CustomLODEditMode = false;
 		// Create information panel for each LOD level.
 		for(int32 LODIndex = 0; LODIndex < StaticMeshLODCount; ++LODIndex)
 		{
+			//Show the viewport LOD at start
+			bool IsViewportLOD = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex;
+			DetailDisplayLODs[LODIndex] = true; //enable all LOD in custom mode
+			LODCustomModeCategory.AddCustomRow((LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(this, &FLevelOfDetailSettingsLayout::GetLODCustomModeNameContent, LODIndex)
+				.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsLODCustomModeEnable, LODIndex)
+			]
+			.ValueContent()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &FLevelOfDetailSettingsLayout::IsLODCustomModeCheck, LODIndex)
+				.OnCheckStateChanged(this, &FLevelOfDetailSettingsLayout::SetLODCustomModeCheck, LODIndex)
+				.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsLODCustomModeEnable, LODIndex)
+			];
+
 			if (IsAutoMeshReductionAvailable())
 			{
 				ReductionSettingsWidgets[LODIndex] = MakeShareable( new FMeshReductionSettingsLayout( AsShared() ) );
@@ -2999,7 +3061,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FText LODLevelString = FText::FromString(FString(TEXT("LOD Sections (LOD")) + FString::FromInt(LODIndex) + TEXT(")") );
+			FText LODLevelString = FText::FromString(FString(TEXT("LOD ")) + FString::FromInt(LODIndex) );
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 			LodCategories.Add(&LODCategory);
@@ -3039,7 +3101,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			);
 			
 			
-			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex, LodCategories) );
+			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex, LodCategories, &CustomLODEditMode) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
 			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize")))
@@ -3089,12 +3151,12 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 					]
 				];
 			}
-
-			LODCategory.SetCategoryVisibility((CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex);
-
+			LODCategory.SetCategoryVisibility(IsViewportLOD);
 		}
-	}
 
+		//Show the LOD custom category 
+		LODCustomModeCategory.SetCategoryVisibility(StaticMeshLODCount > 1);
+	}
 }
 
 
@@ -3436,6 +3498,91 @@ void FLevelOfDetailSettingsLayout::OnMinLODCommitted(int32 InValue, ETextCommit:
 FText FLevelOfDetailSettingsLayout::GetMinLODTooltip() const
 {
 	return LOCTEXT("MinLODTooltip", "The minimum LOD to use for rendering.  This can be overridden in components.");
+}
+
+FText FLevelOfDetailSettingsLayout::GetLODCustomModeNameContent(int32 LODIndex) const
+{
+	int32 CurrentLodIndex = 0;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		CurrentLodIndex = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+	}
+	int32 RealCurrentLODIndex = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1);
+	if (LODIndex == INDEX_NONE)
+	{
+		return LOCTEXT("GetLODCustomModeNameContent", "Custom");
+	}
+	return FText::Format(LOCTEXT("GetLODModeNameContent", "LOD{0}"), LODIndex);
+}
+
+ECheckBoxState FLevelOfDetailSettingsLayout::IsLODCustomModeCheck(int32 LODIndex) const
+{
+	int32 CurrentLodIndex = 0;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		CurrentLodIndex = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+	}
+	if (LODIndex == INDEX_NONE)
+	{
+		return CustomLODEditMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return DetailDisplayLODs[LODIndex] ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FLevelOfDetailSettingsLayout::SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex)
+{
+	int32 CurrentLodIndex = 0;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		CurrentLodIndex = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+	}
+	if (LODIndex == INDEX_NONE)
+	{
+		if (NewState == ECheckBoxState::Unchecked)
+		{
+			CustomLODEditMode = false;
+			SectionSettingsWidgets[0]->SetCurrentLOD(CurrentLodIndex);
+			for (int32 DetailLODIndex = 0; DetailLODIndex < MAX_STATIC_MESH_LODS; ++DetailLODIndex)
+			{
+				if (!LodCategories.IsValidIndex(DetailLODIndex))
+				{
+					break;
+				}
+				LodCategories[DetailLODIndex]->SetCategoryVisibility(DetailLODIndex == (CurrentLodIndex == 0 ? 0 : CurrentLodIndex-1));
+			}
+		}
+		else
+		{
+			CustomLODEditMode = true;
+			SectionSettingsWidgets[0]->SetCurrentLOD(0);
+		}
+	}
+	else if(CustomLODEditMode)
+	{
+		DetailDisplayLODs[LODIndex] = NewState == ECheckBoxState::Checked;
+	}
+
+	if (CustomLODEditMode)
+	{
+		for (int32 DetailLODIndex = 0; DetailLODIndex < MAX_STATIC_MESH_LODS; ++DetailLODIndex)
+		{
+			if (!LodCategories.IsValidIndex(DetailLODIndex))
+			{
+				break;
+			}
+			LodCategories[DetailLODIndex]->SetCategoryVisibility(DetailDisplayLODs[DetailLODIndex]);
+		}
+	}
+}
+
+bool FLevelOfDetailSettingsLayout::IsLODCustomModeEnable(int32 LODIndex) const
+{
+	if (LODIndex == INDEX_NONE)
+	{
+		// Custom checkbox is always enable
+		return true;
+	}
+	return CustomLODEditMode;
 }
 
 #undef LOCTEXT_NAMESPACE

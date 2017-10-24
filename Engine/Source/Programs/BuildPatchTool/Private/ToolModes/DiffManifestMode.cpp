@@ -105,7 +105,7 @@ private:
 		TagCommandLine.ParseIntoArray(TagArray, TEXT(","), false);
 		for (FString& Tag : TagArray)
 		{
-			Tag = Tag.Trim().TrimTrailing();
+			Tag.TrimStartAndEndInline();
 		}
 		if (TagArray.Num() == 0)
 		{

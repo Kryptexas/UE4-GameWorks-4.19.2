@@ -5,12 +5,13 @@
 #include "CoreMinimal.h"
 #include "IMessageContext.h"
 #include "IMessageBus.h"
-#include "Helpers/MessageEndpoint.h"
 #include "ISessionService.h"
+#include "MessageEndpoint.h"
 
 struct FSessionServiceLogSubscribe;
 struct FSessionServiceLogUnsubscribe;
 struct FSessionServicePing;
+
 
 /**
  * Implements an application session service.

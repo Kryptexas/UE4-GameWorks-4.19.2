@@ -76,6 +76,13 @@ struct FVisualizerEvent
 	{
 		ColorIndex = GetTypeHash( InEventName );
 	}
+
+	static TSharedPtr< FVisualizerEvent > LoadVisualizerEvent(FArchive *Ar);
+	static void SaveVisualizerEventRecursively(FArchive *Ar, TSharedPtr< FVisualizerEvent > VisualizerEvent);
+
+private:
+	static TSharedPtr< FVisualizerEvent > LoadVisualizerEventRecursively(FArchive *Ar, TSharedPtr< FVisualizerEvent > InParentEvent);
+
 };
 
 /** Array of graph events.*/

@@ -1,8 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidMisc.h"
-#include "AndroidInputInterface.h"
-#include "AndroidApplication.h"
+#include "AndroidJavaEnv.h"
 #include "HAL/PlatformStackWalk.h"
 #include "Misc/FileHelper.h"
 #include "Misc/App.h"
@@ -16,6 +15,7 @@
 #include <android/keycodes.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <sys/statfs.h>
 
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
@@ -27,10 +27,9 @@
 
 #include <android_native_app_glue.h>
 #include "Function.h"
+#include "AndroidStats.h"
+#include "CoreDelegates.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
-
-void* FAndroidMisc::NativeWindow = NULL;
 #if STATS
 int32 FAndroidMisc::TraceMarkerFileDescriptor = -1;
 #endif
@@ -47,11 +46,6 @@ int32 FAndroidMisc::AndroidBuildVersion = 0;
 // Whether or not the system handles the volume buttons (event will still be generated either way)
 bool FAndroidMisc::VolumeButtonsHandledBySystem = true;
 
-GenericApplication* FAndroidMisc::CreateApplication()
-{
-	return FAndroidApplication::CreateAndroidApplication();
-}
-
 extern void AndroidThunkCpp_ForceQuit();
 
 void FAndroidMisc::RequestExit( bool Force )
@@ -66,14 +60,6 @@ void FAndroidMisc::RequestExit( bool Force )
 		GIsRequestingExit = 1;
 	}
 }
-
-extern void AndroidThunkCpp_Minimize();
-
-void FAndroidMisc::RequestMinimize()
-{
-	AndroidThunkCpp_Minimize();
-}
-
 
 void FAndroidMisc::LowLevelOutputDebugString(const TCHAR *Message)
 {
@@ -119,15 +105,13 @@ void FAndroidMisc::LocalPrint(const TCHAR *Message)
 #endif
 }
 
-void FAndroidMisc::LoadPreInitModules()
-{
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
-	FModuleManager::Get().LoadModule(TEXT("AndroidAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerAndroid"));
-}
-
 // Test for device vulkan support.
 static void EstablishVulkanDeviceSupport();
+
+namespace FAndroidAppEntry
+{
+	extern void PlatformInit();
+}
 
 void FAndroidMisc::PlatformPreInit()
 {
@@ -179,55 +163,96 @@ extern "C"
 	}
 }
 
+
+// Manage Java side OS event receivers.
+static struct
+{
+	const char*		ClazzName;
+	JNINativeMethod	Jnim;
+	jclass			Clazz;
+	jmethodID		StartReceiver;
+	jmethodID		StopReceiver;
+} JavaEventReceivers[] =
+{
+	{ "com/epicgames/ue4/VolumeReceiver",{ "volumeChanged", "(I)V",  (void *)Java_com_epicgames_ue4_VolumeReceiver_volumeChanged } },
+	{ "com/epicgames/ue4/BatteryReceiver",{ "dispatchEvent", "(III)V",(void *)Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent } },
+	{ "com/epicgames/ue4/HeadsetReceiver",{ "stateChanged",  "(I)V",  (void *)Java_com_epicgames_ue4_HeadsetReceiver_stateChanged } },
+};
+
+void InitializeJavaEventReceivers()
+{
+	// Register natives to receive Volume, Battery, Headphones events
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		auto CheckJNIExceptions = [&JEnv]()
+		{
+			if (JEnv->ExceptionCheck())
+			{
+				JEnv->ExceptionDescribe();
+				JEnv->ExceptionClear();
+			}
+		};
+		auto GetStaticMethod = [&JEnv, &CheckJNIExceptions](const char* MethodName, jclass Clazz, const char* ClazzName)
+		{
+			jmethodID Method = JEnv->GetStaticMethodID(Clazz, MethodName, "(Landroid/app/Activity;)V");
+			if (Method == 0)
+			{
+				UE_LOG(LogAndroid, Error, TEXT("Can't find method %s of class %s"), ANSI_TO_TCHAR(MethodName), ANSI_TO_TCHAR(ClazzName));
+			}
+			CheckJNIExceptions();
+			return Method;
+		};
+
+		for (auto& JavaEventReceiver : JavaEventReceivers)
+		{
+			JavaEventReceiver.Clazz = AndroidJavaEnv::FindJavaClass(JavaEventReceiver.ClazzName);
+			if (JavaEventReceiver.Clazz == nullptr)
+			{
+				UE_LOG(LogAndroid, Error, TEXT("Can't find class for %s"), ANSI_TO_TCHAR(JavaEventReceiver.ClazzName));
+				continue;
+			}
+			if (JNI_OK != JEnv->RegisterNatives(JavaEventReceiver.Clazz, &JavaEventReceiver.Jnim, 1))
+			{
+				UE_LOG(LogAndroid, Error, TEXT("RegisterNatives failed for %s on %s"), ANSI_TO_TCHAR(JavaEventReceiver.ClazzName), ANSI_TO_TCHAR(JavaEventReceiver.Jnim.name));
+				CheckJNIExceptions();
+			}
+			JavaEventReceiver.StartReceiver = GetStaticMethod("startReceiver", JavaEventReceiver.Clazz, JavaEventReceiver.ClazzName);
+			JavaEventReceiver.StopReceiver = GetStaticMethod("stopReceiver", JavaEventReceiver.Clazz, JavaEventReceiver.ClazzName);
+		}
+	}
+	else
+	{
+		UE_LOG(LogAndroid, Warning, TEXT("Failed to initialize java event receivers. JNIEnv is not valid."));
+	}
+}
+
+void EnableJavaEventReceivers(bool bEnableReceivers)
+{
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		extern struct android_app* GNativeAndroidApp;
+		for (auto& JavaEventReceiver : JavaEventReceivers)
+		{
+			jmethodID methodId = bEnableReceivers ? JavaEventReceiver.StartReceiver : JavaEventReceiver.StopReceiver;
+			if (methodId != 0)
+			{
+				JEnv->CallStaticVoidMethod(JavaEventReceiver.Clazz, methodId, GNativeAndroidApp->activity->clazz);
+			}
+		}
+	}
+}
+
+static FDelegateHandle AndroidOnBackgroundBinding;
+static FDelegateHandle AndroidOnForegroundBinding;
+
 void FAndroidMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
 	// Display Timer resolution.
 	// Get swap file info
 	// Display memory info
-
-	// Register natives to receive Volume, Battery, Headphones events
-	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
-	if (nullptr != JEnv)
-	{
-		struct
-		{
-			const char*		ClazzName;
-			JNINativeMethod	Jnim;
-			jclass			Clazz;
-		} gMethods[] =
-		{
-			{ "com/epicgames/ue4/VolumeReceiver",  { "volumeChanged", "(I)V",  (void *)Java_com_epicgames_ue4_VolumeReceiver_volumeChanged } },
-			{ "com/epicgames/ue4/BatteryReceiver", { "dispatchEvent", "(III)V",(void *)Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent } },
-			{ "com/epicgames/ue4/HeadsetReceiver", { "stateChanged",  "(I)V",  (void *)Java_com_epicgames_ue4_HeadsetReceiver_stateChanged } },
-		};
-		const int count = sizeof(gMethods) / sizeof(gMethods[0]);
-
-		for (int i = 0; i < count; i++)
-		{
-			gMethods[i].Clazz = FAndroidApplication::FindJavaClass(gMethods[i].ClazzName);
-			if (gMethods[i].Clazz == nullptr)
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Can't find class for %s"), gMethods[i].ClazzName);
-				continue;
-			}
-			if (JNI_OK != JEnv->RegisterNatives(gMethods[i].Clazz, &gMethods[i].Jnim, 1))
-			{
-				UE_LOG(LogEngine, Warning, TEXT("RegisterNatives failed for %s on %s"), gMethods[i].ClazzName, gMethods[i].Jnim.name);
-			}
-			extern struct android_app* GNativeAndroidApp;
-			jmethodID methodId = JEnv->GetStaticMethodID(gMethods[i].Clazz, "startReceiver", "(Landroid/app/Activity;)V");
-			if (methodId != 0)
-			{
-				JEnv->CallStaticVoidMethod(gMethods[i].Clazz, methodId, GNativeAndroidApp->activity->clazz);
-			}
-			else
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Can't find method startReceiver of class %s"), gMethods[i].ClazzName);
-			}
-		}
-	}
-
 	// Setup user specified thread affinity if any
 	extern void AndroidSetupDefaultThreadAffinity();
 	AndroidSetupDefaultThreadAffinity();
@@ -237,16 +262,16 @@ void FAndroidMisc::PlatformInit()
 	TraceMarkerFileDescriptor = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
 	if (TraceMarkerFileDescriptor == -1)
 	{
-		UE_LOG(LogEngine, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
+		UE_LOG(LogAndroid, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
 	}
 #endif
+
+	InitializeJavaEventReceivers();
+	AndroidOnBackgroundBinding = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddStatic(EnableJavaEventReceivers, false);
+	AndroidOnForegroundBinding = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddStatic(EnableJavaEventReceivers, true);
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
-
-void FAndroidMisc::PlatformPostInit()
-{
-}
 
 void FAndroidMisc::PlatformTearDown()
 {
@@ -257,6 +282,18 @@ void FAndroidMisc::PlatformTearDown()
 		close(TraceMarkerFileDescriptor);
 	}
 #endif
+
+	auto RemoveBinding = [](FCoreDelegates::FApplicationLifetimeDelegate& ApplicationLifetimeDelegate, FDelegateHandle& DelegateBinding)
+	{
+		if (DelegateBinding.IsValid())
+		{
+			ApplicationLifetimeDelegate.Remove(DelegateBinding);
+			DelegateBinding.Reset();
+		}
+	};
+
+	RemoveBinding(FCoreDelegates::ApplicationWillEnterBackgroundDelegate, AndroidOnBackgroundBinding);
+	RemoveBinding(FCoreDelegates::ApplicationHasEnteredForegroundDelegate, AndroidOnForegroundBinding);
 }
 
 void FAndroidMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
@@ -273,17 +310,6 @@ void FAndroidMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Resu
 	// @todo Android : get environment variable.
 }
 
-void FAndroidMisc::SetHardwareWindow(void* InWindow)
-{
-	NativeWindow = InWindow; //using raw native window handle for now. Could be changed to use AndroidWindow later if needed
-}
-
-
-void* FAndroidMisc::GetHardwareWindow()
-{
-	return NativeWindow;
-}
-
 const TCHAR* FAndroidMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	check(OutBuffer && BufferCount);
@@ -296,17 +322,6 @@ const TCHAR* FAndroidMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferC
 	strerror_r(Error, ErrorBuffer, 1024);
 	FCString::Strcpy(OutBuffer, BufferCount, UTF8_TO_TCHAR((const ANSICHAR*)ErrorBuffer));
 	return OutBuffer;
-}
-
-void FAndroidMisc::ClipboardCopy(const TCHAR* Str)
-{
-	//@todo Android
-}
-
-void FAndroidMisc::ClipboardPaste(class FString& Result)
-{
-	Result = TEXT("");
-	//@todo Android
 }
 
 EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -398,25 +413,6 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 }
 
-extern void AndroidThunkCpp_KeepScreenOn(bool Enable);
-
-bool FAndroidMisc::ControlScreensaver(EScreenSaverAction Action)
-{
-	switch (Action)
-	{
-		case EScreenSaverAction::Disable:
-			// Prevent display sleep.
-			AndroidThunkCpp_KeepScreenOn(true);
-			break;
-
-		case EScreenSaverAction::Enable:
-			// Stop preventing display sleep now that we are done.
-			AndroidThunkCpp_KeepScreenOn(false);
-			break;
-	}
-	return true;
-}
-
 bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
 	if (FCString::Stricmp(FeatureName, TEXT("Vulkan")) == 0)
@@ -425,112 +421,6 @@ bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	}
 
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
-}
-
-struct FScreenDensity
-{
-	FString Model;
-	bool IsRegex;
-	int32 Density;
-	
-	FScreenDensity()
-		: Model()
-		, IsRegex(false)
-		, Density(0)
-	{
-	}
-
-	bool InitFromString(const FString& InSourceString)
-	{
-		Model = TEXT("");
-		Density = 0;
-		IsRegex = false;
-
-		// The initialization is only successful if the Model and Density values can all be parsed from the string
-		const bool bSuccessful = FParse::Value(*InSourceString, TEXT("Model="), Model) && FParse::Value(*InSourceString, TEXT("Density="), Density);
-
-		// Regex= is optional, it lets us know if this model requires regular expression matching, which is much more expensive.
-		FParse::Bool(*InSourceString, TEXT("IsRegex="), IsRegex);
-
-		return bSuccessful;
-	}
-
-	bool IsMatch(const FString& InDeviceModel) const
-	{
-		if ( IsRegex )
-		{
-			const FRegexPattern RegexPattern(Model);
-			FRegexMatcher RegexMatcher(RegexPattern, InDeviceModel);
-
-			return RegexMatcher.FindNext();
-		}
-		else
-		{
-			return Model == InDeviceModel;
-		}
-	}
-};
-
-float FAndroidMisc::GetWindowUpscaleFactor()
-{
-	// Determine the difference between the native resolution of the device, and the size of our window,
-	// and return that scalar.
-
-	int32_t SurfaceWidth, SurfaceHeight;
-	FAndroidWindow::CalculateSurfaceSize(FPlatformMisc::GetHardwareWindow(), SurfaceWidth, SurfaceHeight);
-
-	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
-
-	const float CalculatedScaleFactor = FVector2D(ScreenRect.Right - ScreenRect.Left, ScreenRect.Bottom - ScreenRect.Top).Size() / FVector2D(SurfaceWidth, SurfaceHeight).Size();
-
-	return CalculatedScaleFactor;
-}
-
-extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
-
-EScreenPhysicalAccuracy FAndroidMisc::ComputePhysicalScreenDensity(int32& OutScreenDensity)
-{
-	FString MyDeviceModel = GetDeviceModel();
-
-	TArray<FString> DeviceStrings;
-	GConfig->GetArray(TEXT("DeviceScreenDensity"), TEXT("Devices"), DeviceStrings, GEngineIni);
-
-	TArray<FScreenDensity> Devices;
-	for ( const FString& DeviceString : DeviceStrings )
-	{
-		FScreenDensity DensityEntry;
-		if ( DensityEntry.InitFromString(DeviceString) )
-		{
-			Devices.Add(DensityEntry);
-		}
-	}
-
-	for ( const FScreenDensity& Device : Devices )
-	{
-		if ( Device.IsMatch(MyDeviceModel) )
-		{
-			OutScreenDensity = Device.Density * GetWindowUpscaleFactor();
-			return EScreenPhysicalAccuracy::Truth;
-		}
-	}
-
-	FString DPIStrings = AndroidThunkCpp_GetMetaDataString(TEXT("ue4.displaymetrics.dpi"));
-	TArray<FString> DPIValues;
-	DPIStrings.ParseIntoArray(DPIValues, TEXT(","));
-
-	float xdpi, ydpi;
-	LexicalConversion::FromString(xdpi, *DPIValues[0]);
-	LexicalConversion::FromString(ydpi, *DPIValues[1]);
-
-	OutScreenDensity = ( xdpi + ydpi ) / 2.0f;
-
-	if ( OutScreenDensity <= 0 || OutScreenDensity > 2000 )
-	{
-		return EScreenPhysicalAccuracy::Unknown;
-	}
-
-	OutScreenDensity *= GetWindowUpscaleFactor();
-	return EScreenPhysicalAccuracy::Approximation;
 }
 
 bool FAndroidMisc::AllowRenderThread()
@@ -587,7 +477,7 @@ FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
 	int32		Index = 0;
 	ANSICHAR	Buffer[500];
 
-	CurrentCPUState.CoreCount = FAndroidMisc::NumberOfCores();
+	CurrentCPUState.CoreCount = FMath::Min( FAndroidMisc::NumberOfCores(), FAndroidMisc::FCPUState::MaxSupportedCores);
 	FILE* FileHandle = fopen("/proc/stat", "r");
 	if (FileHandle){
 		CurrentCPUState.ActivatedCoreCount = 0;
@@ -598,18 +488,23 @@ FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
 		
 		while (fgets(Buffer, 100, FileHandle)) {
 #if PLATFORM_64BITS
-			sscanf(Buffer, "%4s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
+			sscanf(Buffer, "%5s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
 				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
 				&SoftIRQTime);
 #else
-			sscanf(Buffer, "%4s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
+			sscanf(Buffer, "%5s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
 				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
 				&SoftIRQTime);
 #endif
 
 			if (0 == strncmp(CurrentCPUState.Name, "cpu", 3)) {
 				Index = CurrentCPUState.Name[3] - '0';
-				if (Index >= 0 && Index < CurrentCPUState.CoreCount) {
+				if (Index >= 0 && Index < CurrentCPUState.CoreCount)
+				{
+					if(CurrentCPUState.Name[5] != '\0')
+					{
+						Index = atol(&CurrentCPUState.Name[3]);
+					}
 					CurrentCPUState.CurrentUsage[Index].IdleTime = IdleTime;
 					CurrentCPUState.CurrentUsage[Index].NiceTime = NiceTime;
 					CurrentCPUState.CurrentUsage[Index].SystemTime = SystemTime;
@@ -733,7 +628,7 @@ void DefaultCrashHandler(const FAndroidCrashContext& Context)
 
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, Context.Context);
-		UE_LOG(LogEngine, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
+		UE_LOG(LogAndroid, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
 
 		if (GLog)
 		{
@@ -849,6 +744,21 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 	return true;
 }
 
+
+bool FAndroidMisc::SupportsTouchInput()
+{
+	// Amazon Fire TV doesn't require virtual joysticks
+	if (FAndroidMisc::GetDeviceMake() == FString("Amazon"))
+	{
+		if (FAndroidMisc::GetDeviceModel().StartsWith(TEXT("AFT")))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 extern void AndroidThunkCpp_RegisterForRemoteNotifications();
 extern void AndroidThunkCpp_UnregisterForRemoteNotifications();
 
@@ -911,7 +821,7 @@ void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMak
 	DeviceModel = InDeviceModel;
 	OSLanguage = InOSLanguage;
 
-	UE_LOG(LogEngine, Display, TEXT("Android Version Make Model Language: %s %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel, *OSLanguage);
+	UE_LOG(LogAndroid, Display, TEXT("Android Version Make Model Language: %s %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel, *OSLanguage);
 }
 
 const FString FAndroidMisc::GetAndroidVersion()
@@ -939,266 +849,6 @@ FString FAndroidMisc::GetDefaultLocale()
 	return OSLanguage;
 }
 
-uint32 FAndroidMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; if(KeyNames) { KeyNames[NumMappings]=KeyName; } ++NumMappings; };
-
-	uint32 NumMappings = 0;
-
-	if ( KeyCodes && (MaxMappings > 0) )
-	{
-		ADDKEYMAP( AKEYCODE_0, TEXT("Zero") );
-		ADDKEYMAP( AKEYCODE_1, TEXT("One") );
-		ADDKEYMAP( AKEYCODE_2, TEXT("Two") );
-		ADDKEYMAP( AKEYCODE_3, TEXT("Three") );
-		ADDKEYMAP( AKEYCODE_4, TEXT("Four") );
-		ADDKEYMAP( AKEYCODE_5, TEXT("Five") );
-		ADDKEYMAP( AKEYCODE_6, TEXT("Six") );
-		ADDKEYMAP( AKEYCODE_7, TEXT("Seven") );
-		ADDKEYMAP( AKEYCODE_8, TEXT("Eight") );
-		ADDKEYMAP( AKEYCODE_9, TEXT("Nine") );
-
-		ADDKEYMAP( AKEYCODE_A, TEXT("A") );
-		ADDKEYMAP( AKEYCODE_B, TEXT("B") );
-		ADDKEYMAP( AKEYCODE_C, TEXT("C") );
-		ADDKEYMAP( AKEYCODE_D, TEXT("D") );
-		ADDKEYMAP( AKEYCODE_E, TEXT("E") );
-		ADDKEYMAP( AKEYCODE_F, TEXT("F") );
-		ADDKEYMAP( AKEYCODE_G, TEXT("G") );
-		ADDKEYMAP( AKEYCODE_H, TEXT("H") );
-		ADDKEYMAP( AKEYCODE_I, TEXT("I") );
-		ADDKEYMAP( AKEYCODE_J, TEXT("J") );
-		ADDKEYMAP( AKEYCODE_K, TEXT("K") );
-		ADDKEYMAP( AKEYCODE_L, TEXT("L") );
-		ADDKEYMAP( AKEYCODE_M, TEXT("M") );
-		ADDKEYMAP( AKEYCODE_N, TEXT("N") );
-		ADDKEYMAP( AKEYCODE_O, TEXT("O") );
-		ADDKEYMAP( AKEYCODE_P, TEXT("P") );
-		ADDKEYMAP( AKEYCODE_Q, TEXT("Q") );
-		ADDKEYMAP( AKEYCODE_R, TEXT("R") );
-		ADDKEYMAP( AKEYCODE_S, TEXT("S") );
-		ADDKEYMAP( AKEYCODE_T, TEXT("T") );
-		ADDKEYMAP( AKEYCODE_U, TEXT("U") );
-		ADDKEYMAP( AKEYCODE_V, TEXT("V") );
-		ADDKEYMAP( AKEYCODE_W, TEXT("W") );
-		ADDKEYMAP( AKEYCODE_X, TEXT("X") );
-		ADDKEYMAP( AKEYCODE_Y, TEXT("Y") );
-		ADDKEYMAP( AKEYCODE_Z, TEXT("Z") );
-
-		ADDKEYMAP( AKEYCODE_SEMICOLON, TEXT("Semicolon") );
-		ADDKEYMAP( AKEYCODE_EQUALS, TEXT("Equals") );
-		ADDKEYMAP( AKEYCODE_COMMA, TEXT("Comma") );
-		//ADDKEYMAP( '-', TEXT("Underscore") );
-		ADDKEYMAP( AKEYCODE_PERIOD, TEXT("Period") );
-		ADDKEYMAP( AKEYCODE_SLASH, TEXT("Slash") );
-		ADDKEYMAP( AKEYCODE_GRAVE, TEXT("Tilde") );
-		ADDKEYMAP( AKEYCODE_LEFT_BRACKET, TEXT("LeftBracket") );
-		ADDKEYMAP( AKEYCODE_BACKSLASH, TEXT("Backslash") );
-		ADDKEYMAP( AKEYCODE_RIGHT_BRACKET, TEXT("RightBracket") );
-		ADDKEYMAP( AKEYCODE_APOSTROPHE, TEXT("Quote") );
-		ADDKEYMAP( AKEYCODE_SPACE, TEXT("SpaceBar") );
-
-		//ADDKEYMAP( VK_LBUTTON, TEXT("LeftMouseButton") );
-		//ADDKEYMAP( VK_RBUTTON, TEXT("RightMouseButton") );
-		//ADDKEYMAP( VK_MBUTTON, TEXT("MiddleMouseButton") );
-
-		//ADDKEYMAP( AKEYCODE_BUTTON_THUMBL, TEXT("ThumbMouseButton") );
-		//ADDKEYMAP( AKEYCODE_BUTTON_THUMBR, TEXT("ThumbMouseButton2") );
-
-		ADDKEYMAP( AKEYCODE_DEL, TEXT("BackSpace") );
-		ADDKEYMAP( AKEYCODE_TAB, TEXT("Tab") );
-		ADDKEYMAP( AKEYCODE_ENTER, TEXT("Enter") );
-		ADDKEYMAP( AKEYCODE_BREAK, TEXT("Pause") );
-
-		//ADDKEYMAP( VK_CAPITAL, TEXT("CapsLock") );
-		ADDKEYMAP( AKEYCODE_BACK, TEXT("Escape") );
-		ADDKEYMAP( AKEYCODE_SPACE, TEXT("SpaceBar") );
-		ADDKEYMAP( AKEYCODE_PAGE_UP, TEXT("PageUp") );
-		ADDKEYMAP( AKEYCODE_PAGE_DOWN, TEXT("PageDown") );
-		//ADDKEYMAP( VK_END, TEXT("End") );
-		//ADDKEYMAP( VK_HOME, TEXT("Home") );
-
-		//ADDKEYMAP( AKEYCODE_DPAD_LEFT, TEXT("Left") );
-		//ADDKEYMAP( AKEYCODE_DPAD_UP, TEXT("Up") );
-		//ADDKEYMAP( AKEYCODE_DPAD_RIGHT, TEXT("Right") );
-		//ADDKEYMAP( AKEYCODE_DPAD_DOWN, TEXT("Down") );
-
-		//ADDKEYMAP( VK_INSERT, TEXT("Insert") );
-		ADDKEYMAP( AKEYCODE_FORWARD_DEL, TEXT("Delete") );
-
-		ADDKEYMAP( AKEYCODE_STAR, TEXT("Multiply") );
-		ADDKEYMAP( AKEYCODE_PLUS, TEXT("Add") );
-		ADDKEYMAP( AKEYCODE_MINUS, TEXT("Subtract") );
-		ADDKEYMAP( AKEYCODE_COMMA, TEXT("Decimal") );
-		//ADDKEYMAP( AKEYCODE_SLASH, TEXT("Divide") );
-
-		ADDKEYMAP( AKEYCODE_F1, TEXT("F1") );
-		ADDKEYMAP( AKEYCODE_F2, TEXT("F2") );
-		ADDKEYMAP( AKEYCODE_F3, TEXT("F3") );
-		ADDKEYMAP( AKEYCODE_F4, TEXT("F4") );
-		ADDKEYMAP( AKEYCODE_F5, TEXT("F5") );
-		ADDKEYMAP( AKEYCODE_F6, TEXT("F6") );
-		ADDKEYMAP( AKEYCODE_F7, TEXT("F7") );
-		ADDKEYMAP( AKEYCODE_F8, TEXT("F8") );
-		ADDKEYMAP( AKEYCODE_F9, TEXT("F9") );
-		ADDKEYMAP( AKEYCODE_F10, TEXT("F10") );
-		ADDKEYMAP( AKEYCODE_F11, TEXT("F11") );
-		ADDKEYMAP( AKEYCODE_F12, TEXT("F12") );
-
-		//ADDKEYMAP( AKEYCODE_NUM, TEXT("NumLock") );
-
-		//ADDKEYMAP( VK_SCROLL, TEXT("ScrollLock") );
-
-		ADDKEYMAP( AKEYCODE_SHIFT_LEFT, TEXT("LeftShift") );
-		ADDKEYMAP( AKEYCODE_SHIFT_RIGHT, TEXT("RightShift") );
-		ADDKEYMAP( AKEYCODE_CTRL_LEFT, TEXT("LeftControl") );
-		ADDKEYMAP( AKEYCODE_CTRL_RIGHT, TEXT("RightControl") );
-		ADDKEYMAP( AKEYCODE_ALT_LEFT, TEXT("LeftAlt") );
-		ADDKEYMAP( AKEYCODE_ALT_RIGHT, TEXT("RightAlt") );
-		ADDKEYMAP( AKEYCODE_META_LEFT, TEXT("LeftCommand") );
-		ADDKEYMAP( AKEYCODE_META_RIGHT, TEXT("RightCommand") );
-	}
-
-	check(NumMappings < MaxMappings);
-	return NumMappings;
-#undef ADDKEYMAP
-
-}
-
-uint32 FAndroidMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; if(KeyNames) { KeyNames[NumMappings]=KeyName; } ++NumMappings; };
-
-	uint32 NumMappings = 0;
-
-	if ( KeyCodes && (MaxMappings > 0) )
-	{
-		ADDKEYMAP( AKEYCODE_0, TEXT("Zero") );
-		ADDKEYMAP( AKEYCODE_1, TEXT("One") );
-		ADDKEYMAP( AKEYCODE_2, TEXT("Two") );
-		ADDKEYMAP( AKEYCODE_3, TEXT("Three") );
-		ADDKEYMAP( AKEYCODE_4, TEXT("Four") );
-		ADDKEYMAP( AKEYCODE_5, TEXT("Five") );
-		ADDKEYMAP( AKEYCODE_6, TEXT("Six") );
-		ADDKEYMAP( AKEYCODE_7, TEXT("Seven") );
-		ADDKEYMAP( AKEYCODE_8, TEXT("Eight") );
-		ADDKEYMAP( AKEYCODE_9, TEXT("Nine") );
-
-		ADDKEYMAP( AKEYCODE_A, TEXT("A") );
-		ADDKEYMAP( AKEYCODE_B, TEXT("B") );
-		ADDKEYMAP( AKEYCODE_C, TEXT("C") );
-		ADDKEYMAP( AKEYCODE_D, TEXT("D") );
-		ADDKEYMAP( AKEYCODE_E, TEXT("E") );
-		ADDKEYMAP( AKEYCODE_F, TEXT("F") );
-		ADDKEYMAP( AKEYCODE_G, TEXT("G") );
-		ADDKEYMAP( AKEYCODE_H, TEXT("H") );
-		ADDKEYMAP( AKEYCODE_I, TEXT("I") );
-		ADDKEYMAP( AKEYCODE_J, TEXT("J") );
-		ADDKEYMAP( AKEYCODE_K, TEXT("K") );
-		ADDKEYMAP( AKEYCODE_L, TEXT("L") );
-		ADDKEYMAP( AKEYCODE_M, TEXT("M") );
-		ADDKEYMAP( AKEYCODE_N, TEXT("N") );
-		ADDKEYMAP( AKEYCODE_O, TEXT("O") );
-		ADDKEYMAP( AKEYCODE_P, TEXT("P") );
-		ADDKEYMAP( AKEYCODE_Q, TEXT("Q") );
-		ADDKEYMAP( AKEYCODE_R, TEXT("R") );
-		ADDKEYMAP( AKEYCODE_S, TEXT("S") );
-		ADDKEYMAP( AKEYCODE_T, TEXT("T") );
-		ADDKEYMAP( AKEYCODE_U, TEXT("U") );
-		ADDKEYMAP( AKEYCODE_V, TEXT("V") );
-		ADDKEYMAP( AKEYCODE_W, TEXT("W") );
-		ADDKEYMAP( AKEYCODE_X, TEXT("X") );
-		ADDKEYMAP( AKEYCODE_Y, TEXT("Y") );
-		ADDKEYMAP( AKEYCODE_Z, TEXT("Z") );
-
-		ADDKEYMAP( AKEYCODE_SEMICOLON, TEXT("Semicolon") );
-		ADDKEYMAP( AKEYCODE_EQUALS, TEXT("Equals") );
-		ADDKEYMAP( AKEYCODE_COMMA, TEXT("Comma") );
-		//ADDKEYMAP( '-', TEXT("Underscore") );
-		ADDKEYMAP( AKEYCODE_PERIOD, TEXT("Period") );
-		ADDKEYMAP( AKEYCODE_SLASH, TEXT("Slash") );
-		ADDKEYMAP( AKEYCODE_GRAVE, TEXT("Tilde") );
-		ADDKEYMAP( AKEYCODE_LEFT_BRACKET, TEXT("LeftBracket") );
-		ADDKEYMAP( AKEYCODE_BACKSLASH, TEXT("Backslash") );
-		ADDKEYMAP( AKEYCODE_RIGHT_BRACKET, TEXT("RightBracket") );
-		ADDKEYMAP( AKEYCODE_APOSTROPHE, TEXT("Quote") );
-		ADDKEYMAP( AKEYCODE_SPACE, TEXT("SpaceBar") );
-
-		//ADDKEYMAP( VK_LBUTTON, TEXT("LeftMouseButton") );
-		//ADDKEYMAP( VK_RBUTTON, TEXT("RightMouseButton") );
-		//ADDKEYMAP( VK_MBUTTON, TEXT("MiddleMouseButton") );
-
-		ADDKEYMAP( AKEYCODE_BUTTON_THUMBL, TEXT("ThumbMouseButton") );
-		ADDKEYMAP( AKEYCODE_BUTTON_THUMBR, TEXT("ThumbMouseButton2") );
-
-		ADDKEYMAP( AKEYCODE_DEL, TEXT("BackSpace") );
-		ADDKEYMAP( AKEYCODE_TAB, TEXT("Tab") );
-		ADDKEYMAP( AKEYCODE_ENTER, TEXT("Enter") );
-		//ADDKEYMAP( VK_PAUSE, TEXT("Pause") );
-
-		//ADDKEYMAP( VK_CAPITAL, TEXT("CapsLock") );
-		ADDKEYMAP( AKEYCODE_BACK, TEXT("Escape") );
-		ADDKEYMAP( AKEYCODE_SPACE, TEXT("SpaceBar") );
-		ADDKEYMAP( AKEYCODE_PAGE_UP, TEXT("PageUp") );
-		ADDKEYMAP( AKEYCODE_PAGE_DOWN, TEXT("PageDown") );
-		//ADDKEYMAP( VK_END, TEXT("End") );
-		//ADDKEYMAP( VK_HOME, TEXT("Home") );
-
-		ADDKEYMAP( AKEYCODE_DPAD_LEFT, TEXT("Left") );
-		ADDKEYMAP( AKEYCODE_DPAD_UP, TEXT("Up") );
-		ADDKEYMAP( AKEYCODE_DPAD_RIGHT, TEXT("Right") );
-		ADDKEYMAP( AKEYCODE_DPAD_DOWN, TEXT("Down") );
-
-		//ADDKEYMAP( VK_INSERT, TEXT("Insert") );
-		//ADDKEYMAP( AKEYCODE_DEL, TEXT("Delete") );
-
-		ADDKEYMAP( AKEYCODE_AT, TEXT("At"));
-		ADDKEYMAP( AKEYCODE_POUND, TEXT("Pound"));
-
-		ADDKEYMAP( AKEYCODE_STAR, TEXT("Multiply") );
-		ADDKEYMAP( AKEYCODE_PLUS, TEXT("Add") );
-		ADDKEYMAP( AKEYCODE_MINUS, TEXT("Subtract") );
-		ADDKEYMAP( AKEYCODE_COMMA, TEXT("Decimal") );
-		//ADDKEYMAP( AKEYCODE_SLASH, TEXT("Divide") );
-
-		//ADDKEYMAP( VK_F1, TEXT("F1") );
-		//ADDKEYMAP( VK_F2, TEXT("F2") );
-		//ADDKEYMAP( VK_F3, TEXT("F3") );
-		//ADDKEYMAP( VK_F4, TEXT("F4") );
-		//ADDKEYMAP( VK_F5, TEXT("F5") );
-		//ADDKEYMAP( VK_F6, TEXT("F6") );
-		//ADDKEYMAP( VK_F7, TEXT("F7") );
-		//ADDKEYMAP( VK_F8, TEXT("F8") );
-		//ADDKEYMAP( VK_F9, TEXT("F9") );
-		//ADDKEYMAP( VK_F10, TEXT("F10") );
-		//ADDKEYMAP( VK_F11, TEXT("F11") );
-		//ADDKEYMAP( VK_F12, TEXT("F12") );
-
-		ADDKEYMAP( AKEYCODE_NUM, TEXT("NumLock") );
-
-		//ADDKEYMAP( VK_SCROLL, TEXT("ScrollLock") );
-
-		ADDKEYMAP( AKEYCODE_SHIFT_LEFT, TEXT("LeftShift") );
-		ADDKEYMAP( AKEYCODE_SHIFT_LEFT, TEXT("RightShift") );
-		//ADDKEYMAP( VK_LCONTROL, TEXT("LeftControl") );
-		//ADDKEYMAP( VK_RCONTROL, TEXT("RightControl") );
-		ADDKEYMAP( AKEYCODE_ALT_LEFT, TEXT("LeftAlt") );
-		ADDKEYMAP( AKEYCODE_ALT_RIGHT, TEXT("RightAlt") );
-		//ADDKEYMAP( VK_LWIN, TEXT("LeftCommand") );
-		//ADDKEYMAP( VK_RWIN, TEXT("RightCommand") );
-
-		ADDKEYMAP(AKEYCODE_BACK, TEXT("Android_Back"));
-		ADDKEYMAP(AKEYCODE_VOLUME_UP, TEXT("Android_Volume_Up"));
-		ADDKEYMAP(AKEYCODE_VOLUME_DOWN, TEXT("Android_Volume_Down"));
-		ADDKEYMAP(AKEYCODE_MENU, TEXT("Android_Menu"));
-
-	}
-
-	check(NumMappings < MaxMappings);
-	return NumMappings;
-#undef ADDKEYMAP
-}
-
 bool FAndroidMisc::GetVolumeButtonsHandledBySystem()
 {
 	return VolumeButtonsHandledBySystem;
@@ -1209,21 +859,6 @@ void FAndroidMisc::SetVolumeButtonsHandledBySystem(bool enabled)
 	VolumeButtonsHandledBySystem = enabled;
 }
 
-void FAndroidMisc::ResetGamepadAssignments()
-{
-	FAndroidInputInterface::ResetGamepadAssignments();
-}
-
-void FAndroidMisc::ResetGamepadAssignmentToController(int32 ControllerId)
-{
-	FAndroidInputInterface::ResetGamepadAssignmentToController(ControllerId);
-}
-
-bool FAndroidMisc::IsControllerAssignedToGamepad(int32 ControllerId)
-{
-	return FAndroidInputInterface::IsControllerAssignedToGamepad(ControllerId);
-}
-
 int32 FAndroidMisc::GetAndroidBuildVersion()
 {
 	if (AndroidBuildVersion > 0)
@@ -1232,10 +867,10 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 	}
 	if (AndroidBuildVersion <= 0)
 	{
-		JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+		JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 		if (nullptr != JEnv)
 		{
-			jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+			jclass Class = AndroidJavaEnv::FindJavaClass("com/epicgames/ue4/GameActivity");
 			if (nullptr != Class)
 			{
 				jfieldID Field = JEnv->GetStaticFieldID(Class, "ANDROID_BUILD_VERSION", "I");
@@ -1260,6 +895,12 @@ bool FAndroidMisc::ShouldDisablePluginAtRuntime(const FString& PluginName)
 	}
 #endif
 	return false;
+}
+
+extern void AndroidThunkCpp_SetThreadName(const char * name);
+void FAndroidMisc::SetThreadName(const char* name)
+{
+	AndroidThunkCpp_SetThreadName(name);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1619,7 +1260,7 @@ static void EstablishVulkanDeviceSupport()
 	// make sure the Vulkan RHI is compiled in
 	if (FModuleManager::Get().ModuleExists(TEXT("VulkanRHI")))
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with Vulkan support"));
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("Testing for Vulkan availability:"));
 
 		// does commandline override (using GL or ES2 for legacy commandlines)
 		bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
@@ -1652,38 +1293,66 @@ static void EstablishVulkanDeviceSupport()
 
 				if (VulkanSupport == EDeviceVulkanSupportStatus::Supported)
 				{
-					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver available, will use VulkanRHI"));
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI is available, Vulkan capable device detected."));
 				}
 				else
 				{
-					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver NOT available, falling back to OpenGL ES"));
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan driver NOT available."));
 				}
 			}
 			else
 			{
-				FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected, falling back to OpenGL ES"));
+				FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected."));
 			}
 		}
 		else
 		{
-			FPlatformMisc::LowLevelOutputDebugString(TEXT("Forced OpenGL ES"));
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI disabled due to command line forcing OpenGL ES."));
 		}
 	}
 	else
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with OpenGL ES support only"));
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI not present."));
 	}
 }
 
 bool FAndroidMisc::ShouldUseVulkan()
 {
 	check(VulkanSupport != EDeviceVulkanSupportStatus::Uninitialized);
-	static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+	static int CachedVulkanSupport = -1;
 
-	bool bSupportsVulkan = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+	if (CachedVulkanSupport == -1)
+	{
+		static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+		bool bSupportsVulkan = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+		const bool bShouldUseVulkan = bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+		CachedVulkanSupport = bShouldUseVulkan ? 1 : 0;
 
-	return bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+		if (bShouldUseVulkan)
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI will be used!"));
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("VulkanRHI will NOT be used:"));
+			if(!bSupportsVulkan)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan support is disabled in config."));
+			}
+			if (CVarDisableVulkan->GetValueOnAnyThread() != 0)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan is disabled via console variable."));
+			}
+			if (VulkanSupport != EDeviceVulkanSupportStatus::Supported)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT(" ** Vulkan is not support by the device."));
+			}
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("OpenGL ES will be used."));
+		}
+	}
+
+	return CachedVulkanSupport == 1;
 }
 
 FString FAndroidMisc::GetVulkanVersion()
@@ -1705,10 +1374,10 @@ bool FAndroidMisc::IsDebuggerPresent()
 {
 	bool Result = false;
 #if 0
-	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
 	if (nullptr != JEnv)
 	{
-		jclass Class = FAndroidApplication::FindJavaClass("android/os/Debug");
+		jclass Class = AndroidJavaEnv::FindJavaClass("android/os/Debug");
 		if (nullptr != Class)
 		{
 			// This segfaults for some reason. So this is all disabled for now.
@@ -1892,4 +1561,60 @@ void FAndroidMisc::GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSub
 FString FAndroidMisc::GetOSVersion()
 {
 	return GetAndroidVersion();
+}
+
+bool FAndroidMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	extern FString GExternalFilePath;
+	struct statfs FSStat = { 0 };
+	FTCHARToUTF8 Converter(*GExternalFilePath);
+	int Err = statfs((ANSICHAR*)Converter.Get(), &FSStat);
+	
+	if (Err == 0)
+	{
+		TotalNumberOfBytes = FSStat.f_blocks * FSStat.f_bsize;
+		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
+	}
+	else
+	{
+		int ErrNo = errno;
+		UE_LOG(LogAndroid, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *GExternalFilePath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
+	}
+	
+	return (Err == 0);
+}
+
+uint32 FAndroidMisc::GetCoreFrequency(int32 CoreIndex, ECoreFrequencyProperty CoreFrequencyProperty)
+{
+	uint32 ReturnFrequency = 0;
+	char QueryFile[256];
+	const char* FreqProperty = nullptr;
+	static const char* CurrentFrequencyString = "scaling_cur_freq";
+	static const char* MaxFrequencyString = "cpuinfo_max_freq";
+	static const char* MinFrequencyString = "cpuinfo_min_freq";
+	switch (CoreFrequencyProperty)
+	{
+		case ECoreFrequencyProperty::MaxFrequency:
+			FreqProperty = MaxFrequencyString;
+			break;
+		case ECoreFrequencyProperty::MinFrequency:
+			FreqProperty = MinFrequencyString;
+			break;
+		default:
+		case ECoreFrequencyProperty::CurrentFrequency:
+			FreqProperty = CurrentFrequencyString;
+			break;
+	}
+	sprintf(QueryFile, "/sys/devices/system/cpu/cpu%d/cpufreq/%s", CoreIndex, FreqProperty);
+
+	if (FILE* CoreFreqStateFile = fopen(QueryFile, "r"))
+	{
+		char curr_corefreq[32] = { 0 };
+		if( fgets(curr_corefreq, ARRAY_COUNT(curr_corefreq), CoreFreqStateFile) != nullptr)
+		{
+			ReturnFrequency = atol(curr_corefreq);
+		}
+		fclose(CoreFreqStateFile);
+	}
+	return ReturnFrequency;
 }

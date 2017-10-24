@@ -7,14 +7,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using RPCUtility;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Runtime.Remoting;
 using System.Threading;
 using System.Net.Sockets;
 using Ionic.Zip;
+using DotNETUtilities;
 
 namespace UnrealBuildTool
 {
@@ -66,7 +65,7 @@ namespace UnrealBuildTool
 			MacName = InMacName;
 
 			// when not using RPCUtil, we do NOT want to ping the host
-			if (!RemoteToolChain.bUseRPCUtil || CommandHelper.PingRemoteHost(MacName))
+			if (!RemoteToolChain.bUseRPCUtil || RPCCommandHelper.PingRemoteHost(MacName))
 			{
 				try
 				{
@@ -165,7 +164,7 @@ namespace UnrealBuildTool
 				{
 					try
 					{
-						ThreadSocket = RPCUtility.CommandHelper.ConnectToUnrealRemoteTool(MacName);
+						ThreadSocket = RPCCommandHelper.ConnectToUnrealRemoteTool(MacName);
 					}
 					catch (Exception Ex)
 					{
@@ -215,7 +214,7 @@ namespace UnrealBuildTool
 		{
 			if (RemoteToolChain.bUseRPCUtil)
 			{
-				return RPCUtility.CommandHelper.GetFileInfo(GetSocket(), RemotePath, DateTime.UtcNow, out ModificationTime, out Length);
+				return RPCCommandHelper.GetFileInfo(GetSocket(), RemotePath, DateTime.UtcNow, out ModificationTime, out Length);
 			}
 			else
 			{
@@ -243,7 +242,7 @@ namespace UnrealBuildTool
 		{
 			if (RemoteToolChain.bUseRPCUtil)
 			{
-				RPCUtility.CommandHelper.MakeDirectory(GetSocket(), Directory);
+				RPCCommandHelper.MakeDirectory(GetSocket(), Directory);
 			}
 			else
 			{
@@ -266,11 +265,11 @@ namespace UnrealBuildTool
 			{
 				if (bIsUpload)
 				{
-					RPCUtility.CommandHelper.RPCUpload(GetSocket(), Source, Dest);
+					RPCCommandHelper.RPCUpload(GetSocket(), Source, Dest);
 				}
 				else
 				{
-					RPCUtility.CommandHelper.RPCDownload(GetSocket(), Source, Dest);
+					RPCCommandHelper.RPCDownload(GetSocket(), Source, Dest);
 				}
 			}
 			else
@@ -369,7 +368,7 @@ namespace UnrealBuildTool
 		public static void BatchUpload(string[] Commands)
 		{
 			// batch upload
-			RPCUtility.CommandHelper.RPCBatchUpload(GetSocket(), Commands);
+			RPCCommandHelper.RPCBatchUpload(GetSocket(), Commands);
 		}
 
 		public static void BatchFileInfo(FileItem[] Files)
@@ -386,7 +385,7 @@ namespace UnrealBuildTool
 				DateTime Now = DateTime.Now;
 
 				// execute the command!
-				Int64[] FileSizeAndDates = RPCUtility.CommandHelper.RPCBatchFileInfo(GetSocket(), FileList.ToString());
+				Int64[] FileSizeAndDates = RPCCommandHelper.RPCBatchFileInfo(GetSocket(), FileList.ToString());
 
 				Console.WriteLine("BatchFileInfo version 1 took {0}", (DateTime.Now - Now).ToString());
 
@@ -394,7 +393,7 @@ namespace UnrealBuildTool
 				for (int Index = 0; Index < Files.Length; Index++)
 				{
 					Files[Index].Length = FileSizeAndDates[Index * 2 + 0];
-					Files[Index].LastWriteTime = new DateTimeOffset(RPCUtility.CommandHelper.FromRemoteTime(FileSizeAndDates[Index * 2 + 1]));
+					Files[Index].LastWriteTime = new DateTimeOffset(RPCCommandHelper.FromRemoteTime(FileSizeAndDates[Index * 2 + 1]));
 					Files[Index].bExists = FileSizeAndDates[Index * 2 + 0] >= 0;
 				}
 			}
@@ -442,7 +441,7 @@ namespace UnrealBuildTool
 		{
 			if (RemoteToolChain.bUseRPCUtil)
 			{
-				return RPCUtility.CommandHelper.GetCommandSlots(GetSocket());
+				return RPCCommandHelper.GetCommandSlots(GetSocket());
 			}
 			else
 			{
@@ -474,7 +473,7 @@ namespace UnrealBuildTool
 
 					try
 					{
-						Hashtable Results = RPCUtility.CommandHelper.RPCCommand(GetSocket(), WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
+						Hashtable Results = RPCCommandHelper.RPCCommand(GetSocket(), WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
 						return Results;
 					}
 					catch (Exception Ex)

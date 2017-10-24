@@ -53,29 +53,6 @@ struct FLocalKismetCallbacks
 
 		return LOCTEXT("UnknownGraphName", "UNKNOWN");
 	}
-
-	static void RecompileGraphEditor_OnClicked()
-	{
-		FAssetEditorManager::Get().CloseAllAssetEditors();
-		GEngine->DeferredCommands.Add( TEXT( "Module Recompile GraphEditor" ) );
-	}
-
-	static void RecompileKismetCompiler_OnClicked()
-	{
-		GEngine->DeferredCommands.Add( TEXT( "Module Recompile KismetCompiler" ) );
-	}
-
-	static void RecompileBlueprintEditor_OnClicked()
-	{
-		FAssetEditorManager::Get().CloseAllAssetEditors();
-		GEngine->DeferredCommands.Add( TEXT( "Module Recompile Kismet" ) );
-	}
-
-	static void RecompilePersona_OnClicked()
-	{
-		FAssetEditorManager::Get().CloseAllAssetEditors();
-		GEngine->DeferredCommands.Add( TEXT( "Module Recompile Persona" ) );
-	}
 };
 
 /////////////////////////////////////////////////////
@@ -85,17 +62,6 @@ struct FDebugInfoSummoner : public FWorkflowTabFactory
 {
 public:
 	FDebugInfoSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
-};
-
-/////////////////////////////////////////////////////
-// FBlueprintProfilerSummoner
-
-struct FBlueprintProfilerSummoner : public FWorkflowTabFactory
-{
-public:
-	FBlueprintProfilerSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 };

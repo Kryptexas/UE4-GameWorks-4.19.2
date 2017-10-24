@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SBlueprintContextTargetMenu.h"
 #include "Engine/Blueprint.h"
@@ -567,7 +567,7 @@ void SBlueprintContextTargetMenu::Construct(const FArguments& InArgs, const FBlu
 				{
 					if (!ProfileRef.IsTargetEnabled(ContextTarget))
 					{
-						return LOCTEXT("DisabledTargetTooltip", "This target is invalid or redundent for this context.");
+						return LOCTEXT("DisabledTargetTooltip", "This target is invalid or redundant for this context.");
 					}
 					else if (TargetEnum != nullptr)
 					{

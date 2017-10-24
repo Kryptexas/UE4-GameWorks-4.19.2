@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -127,17 +127,18 @@ CefProcessMessageCppToC::CefProcessMessageCppToC() {
   GetStruct()->get_argument_list = process_message_get_argument_list;
 }
 
-template<> CefRefPtr<CefProcessMessage> CefCppToC<CefProcessMessageCppToC,
+template<> CefRefPtr<CefProcessMessage> CefCppToCRefCounted<CefProcessMessageCppToC,
     CefProcessMessage, cef_process_message_t>::UnwrapDerived(
     CefWrapperType type, cef_process_message_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefProcessMessageCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefProcessMessageCppToC,
     CefProcessMessage, cef_process_message_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefProcessMessageCppToC, CefProcessMessage,
-    cef_process_message_t>::kWrapperType = WT_PROCESS_MESSAGE;
+template<> CefWrapperType CefCppToCRefCounted<CefProcessMessageCppToC,
+    CefProcessMessage, cef_process_message_t>::kWrapperType =
+    WT_PROCESS_MESSAGE;

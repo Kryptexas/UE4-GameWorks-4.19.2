@@ -14,8 +14,7 @@ float2 Circle(float Start, float Points, float Point)
 	return float2(sin(Rad), cos(Rad));
 }
 
-// x:BloomThreshold, yz:unused, w:ExposureScale (useful if eyeadaptation is locked)
-float4 BloomThreshold;
+float BloomThreshold;
 
 half FocusDistFar()
 {
@@ -201,7 +200,7 @@ void BloomPS_ES2(
 
 	// Trim bloom and sunshafts black level.
 	half TotalLuminance = Luminance(OutColor.rgb);
-	half BloomLuminance = TotalLuminance - BloomThreshold.x;
+	half BloomLuminance = TotalLuminance - BloomThreshold;
 	half Amount = saturate(BloomLuminance * 0.5f);
 	OutColor.rgb *= Amount;
 
@@ -322,7 +321,7 @@ void BloomSmallPS_ES2(
 
 	// Trim bloom black level.
 	half TotalLuminance = Luminance(OutColor.rgb);
-	half BloomLuminance = TotalLuminance - BloomThreshold.x;
+	half BloomLuminance = TotalLuminance - BloomThreshold;
 	half Amount = saturate(BloomLuminance * 0.5f);
 	OutColor.rgb *= Amount;
 	OutColor.a = 0;

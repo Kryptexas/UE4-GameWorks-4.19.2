@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace BuildGraph.Tasks
@@ -79,8 +80,7 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Figure out the project that this target belongs to
 			FileReference ProjectFile = null;
@@ -89,8 +89,7 @@ namespace BuildGraph.Tasks
 				ProjectFile = new FileReference(Parameters.Project);
 				if(!FileReference.Exists(ProjectFile))
 				{
-					CommandUtils.LogError("Missing project file - {0}", ProjectFile.FullName);
-					return false;
+					throw new AutomationException("Missing project file - {0}", ProjectFile.FullName);
 				}
 			}
 
@@ -109,18 +108,22 @@ namespace BuildGraph.Tasks
 				DirectoryReference PlatformCookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Platform);
 				if(!DirectoryReference.Exists(PlatformCookedDirectory))
 				{
-					CommandUtils.LogError("Cook output directory not found ({0})", PlatformCookedDirectory.FullName);
-					return false;
+					throw new AutomationException("Cook output directory not found ({0})", PlatformCookedDirectory.FullName);
 				}
 				List<FileReference> PlatformCookedFiles = DirectoryReference.EnumerateFiles(PlatformCookedDirectory, "*", System.IO.SearchOption.AllDirectories).ToList();
 				if(PlatformCookedFiles.Count == 0)
 				{
-					CommandUtils.LogError("Cooking did not produce any files in {0}", PlatformCookedDirectory.FullName);
-					return false;
+					throw new AutomationException("Cooking did not produce any files in {0}", PlatformCookedDirectory.FullName);
 				}
 				CookedFiles.AddRange(PlatformCookedFiles);
-			}
 
+				DirectoryReference PackagingFilesDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "TmpPackaging", Platform);
+				if (DirectoryReference.Exists(PackagingFilesDirectory))
+				{
+					List<FileReference> PackagingFiles = DirectoryReference.EnumerateFiles(PackagingFilesDirectory, "*", System.IO.SearchOption.AllDirectories).ToList();
+					CookedFiles.AddRange(PackagingFiles);
+				}
+			}
 			// Apply the optional tag to the build products
 			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{
@@ -129,7 +132,6 @@ namespace BuildGraph.Tasks
 
 			// Add them to the set of build products
 			BuildProducts.UnionWith(CookedFiles);
-			return true;
 		}
 
 		/// <summary>

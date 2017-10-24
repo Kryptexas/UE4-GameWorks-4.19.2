@@ -27,6 +27,7 @@ public class ContentBrowser : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
                 "InputCore",
 				"Engine",
 				"Slate",
@@ -38,7 +39,8 @@ public class ContentBrowser : ModuleRules
 				"UnrealEd",
 				"EditorWidgets",
 				"Projects",
-				"AddContentDialog"
+				"AddContentDialog",
+				"DesktopPlatform",
 			}
 		);
 

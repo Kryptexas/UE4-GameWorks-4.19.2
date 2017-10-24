@@ -10,6 +10,7 @@
 #include "IPropertyUtilities.h"
 #include "ScopedTransaction.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 void FMathStructProxyCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
@@ -270,7 +271,7 @@ void FMatrixStructCustomization::OnCopy(FTransformField::Type Type, TWeakPtr<IPr
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -284,7 +285,7 @@ void FMatrixStructCustomization::OnPaste(FTransformField::Type Type, TWeakPtr<IP
 	}
 
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	switch (Type)
 	{

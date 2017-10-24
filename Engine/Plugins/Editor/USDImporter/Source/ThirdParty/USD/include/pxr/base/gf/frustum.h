@@ -27,6 +27,7 @@
 /// \file gf/frustum.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/bbox3d.h"
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/gf/plane.h"
@@ -42,6 +43,8 @@
 
 #include <iosfwd>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfFrustum
 /// \ingroup group_gf_BasicGeometry
@@ -101,11 +104,11 @@ class GfFrustum {
     /// \li The near/far interval is (1, 10).
     /// \li The view distance is 5.0.
     /// \li The projection type is \c GfFrustum::Perspective.
-	GF_API GfFrustum();
+    GF_API GfFrustum();
 
     /// This constructor creates an instance with the given viewing
     /// parameters.
-	GF_API GfFrustum(const GfVec3d &position, const GfRotation &rotation,
+    GF_API GfFrustum(const GfVec3d &position, const GfRotation &rotation,
               const GfRange2d &window, const GfRange1d &nearFar,
               GfFrustum::ProjectionType projectionType,
               double viewDistance = 5.0);
@@ -113,7 +116,7 @@ class GfFrustum {
     /// This constructor creates an instance from a camera matrix (always of a
     /// y-Up camera, also see SetPositionAndRotationFromMatrix) and the given
     /// viewing parameters.
-	GF_API GfFrustum(const GfMatrix4d &camToWorldXf,
+    GF_API GfFrustum(const GfMatrix4d &camToWorldXf,
               const GfRange2d &window, const GfRange1d &nearFar,
               GfFrustum::ProjectionType projectionType,
               double viewDistance = 5.0);
@@ -147,7 +150,7 @@ class GfFrustum {
     }
 
     /// Destructor.
-	GF_API ~GfFrustum();
+    GF_API ~GfFrustum();
 
     /// \name Value setting and access
     /// The methods in this group set and access the values that are used to
@@ -184,7 +187,7 @@ class GfFrustum {
     /// always represent a right-handed and orthonormal coordinate sytem
     /// (scale, shear, and projection are removed from the given \p
     /// camToWorldXf).
-	GF_API void SetPositionAndRotationFromMatrix(const GfMatrix4d &camToWorldXf);
+    GF_API void SetPositionAndRotationFromMatrix(const GfMatrix4d &camToWorldXf);
 
     /// Sets the window rectangle in the reference plane that defines the
     /// left, right, top, and bottom planes of the frustum.
@@ -262,7 +265,7 @@ class GfFrustum {
     ///     far    = farDistance
     /// \endcode
     ///
-	GF_API void         SetPerspective(double fieldOfViewHeight,
+    GF_API void         SetPerspective(double fieldOfViewHeight,
                                        double aspectRatio,
                                        double nearDistance, double farDistance);
 
@@ -293,7 +296,7 @@ class GfFrustum {
     /// \li near   = nearDistance
     /// \li far    = farDistance
     ///
-	GF_API void         SetPerspective(double fieldOfView,
+    GF_API void         SetPerspective(double fieldOfView,
                                        bool   isFovVertical,
                                        double aspectRatio,
                                        double nearDistance, double farDistance);
@@ -301,7 +304,7 @@ class GfFrustum {
     /// Returns the current frustum in the format used by \c SetPerspective().
     /// If the current frustum is not a perspective projection, this returns
     /// \c false and leaves the parameters untouched.
-	GF_API bool         GetPerspective(double *fieldOfViewHeight,
+    GF_API bool         GetPerspective(double *fieldOfViewHeight,
                                        double *aspectRatio,
                                        double *nearDistance,
                                        double *farDistance) const;
@@ -309,7 +312,7 @@ class GfFrustum {
     /// Returns the current frustum in the format used by \c SetPerspective().
     /// If the current frustum is not a perspective projection, this returns
     /// \c false and leaves the parameters untouched.
-	GF_API bool         GetPerspective(bool   isFovVertical,
+    GF_API bool         GetPerspective(bool   isFovVertical,
                                        double *fieldOfView,
                                        double *aspectRatio,
                                        double *nearDistance,
@@ -326,7 +329,7 @@ class GfFrustum {
     /// \note The default value for \c isFovVertical is false so calling \c
     /// GetFOV without an argument will return the horizontal field of view
     /// which is compatible with menv2x's old GfFrustum::GetFOV routine.
-	GF_API double       GetFOV(bool isFovVertical = false);
+    GF_API double       GetFOV(bool isFovVertical = false);
 
     /// Sets up the frustum in a manner similar to \c glOrtho().
     ///
@@ -340,17 +343,17 @@ class GfFrustum {
     /// Returns the current frustum in the format used by \c
     /// SetOrthographic(). If the current frustum is not an orthographic
     /// projection, this returns \c false and leaves the parameters untouched.
-	GF_API bool         GetOrthographic(double *left, double *right,
+    GF_API bool         GetOrthographic(double *left, double *right,
                                         double *bottom, double *top,
                                         double *nearPlane, double *farPlane)
-										const;
+                                        const;
 
     /// Modifies the frustum to tightly enclose a sphere with the given center
     /// and radius, using the current view direction. The planes of the
     /// frustum are adjusted as necessary. The given amount of slack is added
     /// to the sphere's radius is used around the sphere to avoid boundary
     /// problems.
-	GF_API void         FitToSphere(const GfVec3d &center, 
+    GF_API void         FitToSphere(const GfVec3d &center, 
                                     double radius,
                                     double slack = 0.0);
 
@@ -367,15 +370,15 @@ class GfFrustum {
     /// does not preserve scales very well. Do \em not use this function to
     /// transform a frustum that is to be used for precise operations such as
     /// intersection testing.
-	GF_API GfFrustum&   Transform(const GfMatrix4d &matrix);
+    GF_API GfFrustum&   Transform(const GfMatrix4d &matrix);
 
     /// Returns the normalized world-space view direction vector, which is
     /// computed by rotating the -z axis by the frustum's rotation.
-	GF_API GfVec3d      ComputeViewDirection() const;
+    GF_API GfVec3d      ComputeViewDirection() const;
 
     /// Returns the normalized world-space up vector, which is computed by
     /// rotating the y axis by the frustum's rotation.
-	GF_API GfVec3d      ComputeUpVector() const;
+    GF_API GfVec3d      ComputeUpVector() const;
 
     /// Computes the view frame defined by this frustum. The frame consists of
     /// the view direction, up vector and side vector, as shown in this
@@ -390,32 +393,32 @@ class GfFrustum {
     ///            +- - - - > side
     /// \endcode
     ///
-	GF_API void         ComputeViewFrame(GfVec3d *side, 
+    GF_API void         ComputeViewFrame(GfVec3d *side, 
                                          GfVec3d *up, 
                                          GfVec3d *view) const;
 
     /// Computes and returns the world-space look-at point from the eye point
     /// (position), view direction (rotation), and view distance.
-	GF_API GfVec3d      ComputeLookAtPoint() const;
+    GF_API GfVec3d      ComputeLookAtPoint() const;
 
     /// Returns a matrix that represents the viewing transformation for this
     /// frustum.  That is, it returns the matrix that converts points from
     /// world space to eye (frustum) space.
-	GF_API GfMatrix4d   ComputeViewMatrix() const;
+    GF_API GfMatrix4d   ComputeViewMatrix() const;
 
     /// Returns a matrix that represents the inverse viewing transformation
     /// for this frustum.  That is, it returns the matrix that converts points
     /// from eye (frustum) space to world space.
-	GF_API GfMatrix4d   ComputeViewInverse() const;
+    GF_API GfMatrix4d   ComputeViewInverse() const;
 
     /// Returns a GL-style projection matrix corresponding to the frustum's
     /// projection.
-	GF_API GfMatrix4d   ComputeProjectionMatrix() const;
+    GF_API GfMatrix4d   ComputeProjectionMatrix() const;
 
     /// Returns the aspect ratio of the frustum, defined as the width of the
     /// window divided by the height. If the height is zero or negative, this
     /// returns 0.
-	GF_API double       ComputeAspectRatio() const;
+    GF_API double       ComputeAspectRatio() const;
 
     /// Returns the world-space corners of the frustum as a vector of 8
     /// points, ordered as:
@@ -455,7 +458,7 @@ class GfFrustum {
     ///
     /// This method is useful for computing a volume to use for interactive
     /// picking.
-	GF_API GfFrustum    ComputeNarrowedFrustum(const GfVec2d &point,
+    GF_API GfFrustum    ComputeNarrowedFrustum(const GfVec2d &point,
                                                const GfVec2d &halfSize) const;
 
     /// Returns a frustum that is a narrowed-down version of this frustum,
@@ -471,7 +474,7 @@ class GfFrustum {
     ///
     /// This method is useful for computing a volume to use for interactive
     /// picking.
-	GF_API GfFrustum    ComputeNarrowedFrustum(const GfVec3d &worldPoint,
+    GF_API GfFrustum    ComputeNarrowedFrustum(const GfVec3d &worldPoint,
                                                const GfVec2d &halfSize) const;
 
     /// Builds and returns a \c GfRay that starts at the viewpoint and extends
@@ -481,7 +484,7 @@ class GfFrustum {
     /// Contrasted with ComputePickRay(), this method returns a ray whose
     /// origin is the eyepoint, while that method returns a ray whose origin
     /// is on the near plane.
-	GF_API GfRay        ComputeRay(const GfVec2d &windowPos) const;
+    GF_API GfRay        ComputeRay(const GfVec2d &windowPos) const;
 
     /// Builds and returns a \c GfRay that connects the viewpoint to the given
     /// 3d point in worldspace.
@@ -489,7 +492,7 @@ class GfFrustum {
     /// Contrasted with ComputePickRay(), this method returns a ray whose
     /// origin is the eyepoint, while that method returns a ray whose origin
     /// is on the near plane.
-	GF_API GfRay        ComputeRay(const GfVec3d &worldSpacePos) const;
+    GF_API GfRay        ComputeRay(const GfVec3d &worldSpacePos) const;
 
     /// Builds and returns a \c GfRay that can be used for picking at the
     /// given normalized (-1 to +1 in both dimensions) window position.
@@ -497,11 +500,11 @@ class GfFrustum {
     /// Contrasted with ComputeRay(), that method returns a ray whose origin
     /// is the eyepoint, while this method returns a ray whose origin is on
     /// the near plane.
-	GF_API GfRay        ComputePickRay(const GfVec2d &windowPos) const;
+    GF_API GfRay        ComputePickRay(const GfVec2d &windowPos) const;
 
     /// Builds and returns a \c GfRay that can be used for picking that
     /// connects the viewpoint to the given 3d point in worldspace.
-	GF_API GfRay       ComputePickRay(const GfVec3d &worldSpacePos) const;
+    GF_API GfRay       ComputePickRay(const GfVec3d &worldSpacePos) const;
 
     ///@}
 
@@ -515,20 +518,20 @@ class GfFrustum {
     /// Returns true if the given axis-aligned bbox is inside or intersecting
     /// the frustum. Otherwise, it returns false. Useful when doing picking or
     /// frustum culling.
-	GF_API bool        Intersects(const GfBBox3d &bbox) const;
+    GF_API bool         Intersects(const GfBBox3d &bbox) const;
 
     /// Returns true if the given point is inside or intersecting the frustum.
     /// Otherwise, it returns false. 
-	GF_API bool        Intersects(const GfVec3d &point) const;
+    GF_API bool         Intersects(const GfVec3d &point) const;
 
     /// Returns \c true if the line segment formed by the given points is
     /// inside or intersecting the frustum.  Otherwise, it returns false.
-	GF_API bool        Intersects(const GfVec3d &p0,
-                                  const GfVec3d &p1) const;
+    GF_API bool         Intersects(const GfVec3d &p0,
+                                   const GfVec3d &p1) const;
 
     /// Returns \c true if the triangle formed by the given points is inside
     /// or intersecting the frustum.  Otherwise, it returns false.
-	GF_API bool         Intersects(const GfVec3d &p0,
+    GF_API bool         Intersects(const GfVec3d &p0,
                                    const GfVec3d &p1,
                                    const GfVec3d &p2) const;
 
@@ -543,22 +546,22 @@ class GfFrustum {
     /// Because it errs on the side of false positives, it is suitable for
     /// early-out tests such as draw or intersection culling.
     ///
-	GF_API static bool  IntersectsViewVolume(const GfBBox3d &bbox,
+    GF_API static bool  IntersectsViewVolume(const GfBBox3d &bbox,
                                              const GfMatrix4d &vpMat);
 
     ///@}
 
   private:
     // Dirty the result of _CalculateFrustumPlanes.
-	  GF_API void _DirtyFrustumPlanes();
+      GF_API void _DirtyFrustumPlanes();
 
     // Calculates cached frustum planes used for intersection tests.
-	  GF_API void       _CalculateFrustumPlanes() const;
+      GF_API void       _CalculateFrustumPlanes() const;
 
     // Builds and returns a \c GfRay that can be used for picking. Given an
     // eye position and direction in camera space, offsets the ray to emanate
     // from the near plane, then transforms into worldspace
-	  GF_API GfRay      _ComputePickRayOffsetToNearPlane(
+      GF_API GfRay      _ComputePickRayOffsetToNearPlane(
                                     const GfVec3d &camSpaceFrom, 
                                     const GfVec3d &camSpaceDir) const;
 
@@ -614,4 +617,6 @@ class GfFrustum {
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream& out, const GfFrustum& f);
 
-#endif /* GF_FRUSTUM_H */
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // GF_FRUSTUM_H 

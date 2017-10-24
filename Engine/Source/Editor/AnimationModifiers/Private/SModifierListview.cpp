@@ -47,7 +47,7 @@ void SModifierListView::OnSelectionChanged(ModifierListviewItem SelectedItem, ES
 	// Find object to select if an item was selected (otherwise we are de-selecting to nullptr)
 	if (SelectedItem.IsValid())
 	{
-		SelectedObject = CastChecked<UObject>(SelectedItem->Instance.Get());
+		SelectedObject = SelectedItem->Instance.Get();
 	}
 
 	// Set the details view to the currently selected modifier blueprint instance

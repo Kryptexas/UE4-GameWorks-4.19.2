@@ -29,7 +29,8 @@
 #include "Interfaces/TargetDeviceId.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceServicesModule.h"
 #include "ISettingsModule.h"
 #include "Interfaces/IMainFrameModule.h"
 
@@ -42,6 +43,7 @@
 #include "PlatformInfo.h"
 
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Editor.h"
 
 //@TODO: Remove this dependency
@@ -192,8 +194,9 @@ protected:
 	 * @param Text The main message text.
 	 * @param Detail The detailed description.
 	 * @param TutorialLink A link to an associated tutorial.
+	 * @param DocumentationLink A link to documentation.
 	 */
-	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink);
 
 	/**
 	 * Checks whether the specified platform has a default device that can be launched on.
@@ -886,7 +889,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 			if (VanillaPlatform.PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::Installed)
 			{
 				// for each platform...
-				TArray<ITargetDeviceProxyPtr> DeviceProxies;
+				TArray<TSharedPtr<ITargetDeviceProxy>> DeviceProxies;
 				TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(VanillaPlatform.PlatformInfo->VanillaPlatformName, false, DeviceProxies);
 					
 				// if this platform had no devices, but we want to show an extra option if not installed right
@@ -903,7 +906,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 					// for each proxy...
 					for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
 					{
-						ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+						TSharedPtr<ITargetDeviceProxy> DeviceProxy = *DeviceProxyIt;
 
 						// ... create an action...
 						FUIAction LaunchDeviceAction(
@@ -1624,7 +1627,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
 			}
 		}
 
-		const bool bHMDIsReady = (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected());
+		const bool bHMDIsReady = (GEngine && GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected());
 		// Spawn a new window to play in.
 		GUnrealEd->RequestPlaySession(bAtPlayerStart, NULL, bSimulateInEditor, StartLoc, StartRot, -1, false, bHMDIsReady);
 	}
@@ -1633,7 +1636,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
 
 bool FInternalPlayWorldCommandCallbacks::PlayInVR_CanExecute()
 {
-	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && !GEditor->IsLightingBuildCurrentlyRunning() && GEngine && GEngine->HMDDevice.IsValid();
+	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && !GEditor->IsLightingBuildCurrentlyRunning() && GEngine && GEngine->XRSystem.IsValid();
 }
 
 void SetLastExecutedPIEPreviewDevice(FString PIEPreviewDevice)
@@ -1867,8 +1870,10 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	if (Platform)
 	{
 		FString NotInstalledTutorialLink;
-		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
+		FString DocumentationLink;
+		FText CustomizedLogMessage;
+		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
+		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink, DocumentationLink, CustomizedLogMessage);
 		
 		// report to analytics
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
@@ -1880,8 +1885,21 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
-				FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
-				NotInstalledTutorialLink
+				CustomizedLogMessage.IsEmpty() ? FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()) : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
+			);
+
+			UnrecoverableError = true;
+		}
+
+		if ((Result & ETargetPlatformReadyStatus::LicenseNotAccepted) != 0)
+		{
+			AddMessageLog(
+				LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device.") : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1891,8 +1909,9 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
-				LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
-				NotInstalledTutorialLink
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.") : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1902,8 +1921,9 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
-				LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
-				NotInstalledTutorialLink
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.") : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1913,9 +1933,10 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 			AddMessageLog(
 				LOCTEXT("ManifestNotFound", "Manifest not found."),
-				LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
-				NotInstalledTutorialLink
-				);
+				CustomizedLogMessage.IsEmpty() ? LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found.") : CustomizedLogMessage,
+				NotInstalledTutorialLink,
+				DocumentationLink
+			);
 
 			UnrecoverableError = true;
 		}
@@ -2220,13 +2241,13 @@ bool FInternalPlayWorldCommandCallbacks::CanPossessEjectPlayer()
 }
 
 
-void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink)
 {
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
 	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
 
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);
@@ -2252,7 +2273,7 @@ bool FInternalPlayWorldCommandCallbacks::CanLaunchOnDevice(const FString& Device
 		TSharedPtr<ITargetDeviceProxyManager> DeviceProxyManager = DeviceProxyManagerPtr.Pin();
 		if (DeviceProxyManager.IsValid())
 		{
-			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxy(DeviceName);
+			TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxy(DeviceName);
 			return (DeviceProxy.IsValid() && DeviceProxy->IsConnected());
 		}
 	}

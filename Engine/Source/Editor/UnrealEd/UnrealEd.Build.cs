@@ -12,18 +12,18 @@ public class UnrealEd : ModuleRules
 		SharedPCHHeaderFile = "Public/UnrealEdSharedPCH.h";
 
 		PrivateIncludePaths.AddRange(
-			new string[] 
+			new string[]
 			{
 				"Editor/UnrealEd/Private",
 				"Editor/UnrealEd/Private/Settings",
-				"Editor/PackagesDialog/Public",				
+				"Editor/PackagesDialog/Public",
 				"Developer/DerivedDataCache/Public",
 				"Developer/TargetPlatform/Public",
 			}
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
-			new string[] 
+			new string[]
 			{
 				"BehaviorTreeEditor",
 				"ClassViewer",
@@ -39,9 +39,8 @@ public class UnrealEd : ModuleRules
 				"MaterialEditor",
 				"MergeActors",
 				"MeshUtilities",
-				"Messaging",
+				"MessagingCommon",
 				"MovieSceneCapture",
-				"NiagaraEditor",
 				"PlacementMode",
 				"Settings",
 				"SettingsEditor",
@@ -52,7 +51,6 @@ public class UnrealEd : ModuleRules
 				"IntroTutorials",
 				"OutputLog",
 				"Landscape",
-				"Niagara",
 				"SizeMap",
 				"LocalizationService",
 				"HierarchicalLODUtilities",
@@ -63,16 +61,18 @@ public class UnrealEd : ModuleRules
 				"ViewportInteraction",
 				"VREditor",
 				"Persona",
-				"ClothingSystemEditorInterface",
-            }
+                "PhysicsAssetEditor",
+                "ClothingSystemEditorInterface",
+			}
 		);
 
 		PublicDependencyModuleNames.AddRange(
-			new string[] 
+			new string[]
 			{
 				"BspMode",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"DirectoryWatcher",
 				"Documentation",
 				"Engine",
@@ -94,12 +94,12 @@ public class UnrealEd : ModuleRules
 				"Localization",
 				"AudioEditor",
 				"NetworkFileSystem",
-                "UMG",
+				"UMG",
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[] 
+			new string[]
 			{
 				"AssetRegistry",
 				"LevelSequence",
@@ -120,9 +120,9 @@ public class UnrealEd : ModuleRules
 				"PropertyEditor",
 				"Projects",
 				"RawMesh",
-				"RenderCore", 
-				"RHI", 
-				"ShaderCore", 
+				"RenderCore",
+				"RHI",
+				"ShaderCore",
 				"Sockets",
 				"SourceControlWindows",
 				"StatsViewer",
@@ -163,7 +163,7 @@ public class UnrealEd : ModuleRules
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
-			new string[] 
+			new string[]
 			{
 				"FontEditor",
 				"StaticMeshEditor",
@@ -177,7 +177,6 @@ public class UnrealEd : ModuleRules
 				"ContentBrowser",
 				"CurveTableEditor",
 				"DataTableEditor",
-				"DestructibleMeshEditor",
 				"EditorSettingsViewer",
 				"LandscapeEditor",
 				"KismetCompiler",
@@ -187,7 +186,7 @@ public class UnrealEd : ModuleRules
 				"LevelEditor",
 				"PackagesDialog",
 				"Persona",
-				"PhAT",
+                "PhysicsAssetEditor",
 				"ProjectLauncher",
 				"DeviceManager",
 				"SettingsEditor",
@@ -202,7 +201,6 @@ public class UnrealEd : ModuleRules
 				"IntroTutorials",
 				"WorkspaceMenuStructure",
 				"PlacementMode",
-				"NiagaraEditor",
 				"MeshUtilities",
 				"MergeActors",
 				"ProjectSettingsViewer",
@@ -216,7 +214,6 @@ public class UnrealEd : ModuleRules
 				"SourceCodeAccess",
 				"ReferenceViewer",
 				"HotReload",
-				"IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
 				"PortalProxies",
@@ -226,8 +223,13 @@ public class UnrealEd : ModuleRules
 				"OverlayEditor",
 				"AnimationModifiers",
 				"ClothPainter",
-            }
+			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			DynamicallyLoadedModuleNames.Add("IOSPlatformEditor");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
@@ -235,7 +237,7 @@ public class UnrealEd : ModuleRules
 		}
 
 		CircularlyReferencedDependentModules.AddRange(
-			new string[] 
+			new string[]
 			{
 				"GraphEditor",
 				"Kismet",
@@ -243,7 +245,7 @@ public class UnrealEd : ModuleRules
 				"ViewportInteraction",
 				"VREditor"
 			}
-		); 
+		);
 
 
 		// Add include directory for Lightmass
@@ -253,9 +255,9 @@ public class UnrealEd : ModuleRules
 			new string[] {
 				"CollectionManager",
 				"BlueprintGraph",
-				"AddContentDialog",                
+				"AddContentDialog",
 				"MeshUtilities",
-                "AssetTools",
+				"AssetTools",
 				"KismetCompiler",
 			}
 			);
@@ -265,25 +267,22 @@ public class UnrealEd : ModuleRules
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
 			PublicDependencyModuleNames.Add("AudioMixerXAudio2");
-			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
-			AddEngineThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
 				"DX11Audio"
 				);
-
-			
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			PublicDependencyModuleNames.Add("ALAudio");
+            PublicDependencyModuleNames.Add("AudioMixerSDL");
 		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
-			"HACD",
 			"VHACD",
 			"FBX",
 			"FreeType2"
@@ -291,7 +290,7 @@ public class UnrealEd : ModuleRules
 
 		SetupModulePhysXAPEXSupport(Target);
 
-		if (UEBuildConfiguration.bCompileRecast)
+		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
 			Definitions.Add( "WITH_RECAST=1" );

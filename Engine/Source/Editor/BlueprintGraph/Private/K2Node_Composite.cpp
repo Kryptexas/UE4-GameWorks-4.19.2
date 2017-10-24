@@ -317,7 +317,7 @@ void UK2Node_Composite::OnRenameNode(const FString& NewName)
 
 TSharedPtr<class INameValidatorInterface> UK2Node_Composite::MakeNameValidator() const
 {
-	return MakeShareable(new FKismetNameValidator(GetBlueprint(), BoundGraph->GetFName()));
+	return MakeShareable(new FKismetNameValidator(GetBlueprint(), BoundGraph ? BoundGraph->GetFName() : NAME_None));
 }
 
 #undef LOCTEXT_NAMESPACE

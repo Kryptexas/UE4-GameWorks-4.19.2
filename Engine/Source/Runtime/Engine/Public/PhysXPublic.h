@@ -417,4 +417,20 @@ ENGINE_API FORCEINLINE_DEBUGGABLE FVector4 P2U4BaryCoord(const PxVec3& PVec)
 	return FVector4(PVec.x, PVec.y, 1.f - PVec.x - PVec.y, PVec.z);
 }
 
+
+/** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
+ENGINE_API void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
+ENGINE_API void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange);
+
+namespace nvidia
+{
+	namespace apex
+	{
+		class  PhysX3Interface;
+	}
+}
+
+/** The default interface is nullptr. This can be set by other modules to get custom behavior */
+extern ENGINE_API nvidia::apex::PhysX3Interface* GPhysX3Interface;
+
 #endif

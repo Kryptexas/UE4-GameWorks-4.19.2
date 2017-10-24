@@ -3633,9 +3633,9 @@ namespace Ionic.Zip
         private Int64 _OffsetOfCentralDirectory64;
         private Nullable<bool> _OutputUsesZip64;
         internal bool _inExtractAll;
-        private System.Text.Encoding _alternateEncoding = System.Text.Encoding.GetEncoding("IBM437"); // UTF-8
+        private System.Text.Encoding _alternateEncoding = SharedUtilities.ibm437; // UTF-8
         private ZipOption _alternateEncodingUsage = ZipOption.Never;
-        private static System.Text.Encoding _defaultEncoding = System.Text.Encoding.GetEncoding("IBM437");
+        private static System.Text.Encoding _defaultEncoding = SharedUtilities.ibm437;
 
         private int _BufferSize = BufferSizeDefault;
 

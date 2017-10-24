@@ -227,7 +227,3 @@ public:
 	void GetRenderingStats(int32& OutNumTriangles, int32& OutNumBatches) const;
 #endif
 };
-
-// Allow the old name to continue to work for one release
-DEPRECATED(4.7, "UPaperTileMapRenderComponent has been renamed to UPaperTileMapComponent")
-typedef UPaperTileMapComponent UPaperTileMapRenderComponent;

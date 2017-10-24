@@ -167,23 +167,53 @@ EAsyncPackageState::Type FStreamableHandle::WaitUntilComplete(float Timeout)
 		return EAsyncPackageState::Complete;
 	}
 
+	// We need to recursively start any stalled handles
+	TArray<TSharedRef<FStreamableHandle>> HandlesToStart;
+
+	HandlesToStart.Add(AsShared());
+
+	for (int32 i = 0; i < HandlesToStart.Num(); i++)
+	{
+		TSharedRef<FStreamableHandle> Handle = HandlesToStart[i];
+
+		if (Handle->IsStalled())
+		{
+			// If we were stalled, start us now to avoid deadlocks
+			UE_LOG(LogStreamableManager, Warning, TEXT("FStreamableHandle::WaitUntilComplete called on stalled handle %s, forcing load even though resources may not have been acquired yet"), *Handle->GetDebugName());
+			Handle->StartStalledHandle();
+		}
+
+		for (TSharedPtr<FStreamableHandle> ChildHandle : Handle->ChildHandles)
+		{
+			if (ChildHandle.IsValid())
+			{
+				HandlesToStart.Add(ChildHandle.ToSharedRef());
+			}
+		}
+	}
+
 	EAsyncPackageState::Type State = ProcessAsyncLoadingUntilComplete([this]() { return HasLoadCompleted(); }, Timeout);
 	
+	if (State == EAsyncPackageState::Complete)
+	{
+		ensureMsgf(HasLoadCompleted() || WasCanceled(), TEXT("WaitUntilComplete failed for streamable handle %s, async loading is done but handle is not complete"), *GetDebugName());
+	}
+
 	return State;
 }
 
-void FStreamableHandle::GetRequestedAssets(TArray<FStringAssetReference>& AssetList) const
+void FStreamableHandle::GetRequestedAssets(TArray<FSoftObjectPath>& AssetList) const
 {
 	AssetList = RequestedAssets;
 
 	// Check child handles
 	for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 	{
-		TArray<FStringAssetReference> ChildAssetList;
+		TArray<FSoftObjectPath> ChildAssetList;
 
 		ChildHandle->GetRequestedAssets(ChildAssetList);
 
-		for (const FStringAssetReference& ChildRef : ChildAssetList)
+		for (const FSoftObjectPath& ChildRef : ChildAssetList)
 		{
 			AssetList.AddUnique(ChildRef);
 		}
@@ -208,7 +238,7 @@ void FStreamableHandle::GetLoadedAssets(TArray<UObject *>& LoadedAssets) const
 {
 	if (HasLoadCompleted())
 	{
-		for (const FStringAssetReference& Ref : RequestedAssets)
+		for (const FSoftObjectPath& Ref : RequestedAssets)
 		{
 			// Try manager, should be faster and will handle redirects better
 			if (IsActive())
@@ -224,7 +254,7 @@ void FStreamableHandle::GetLoadedAssets(TArray<UObject *>& LoadedAssets) const
 		// Check child handles
 		for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 		{
-			for (const FStringAssetReference& Ref : ChildHandle->RequestedAssets)
+			for (const FSoftObjectPath& Ref : ChildHandle->RequestedAssets)
 			{
 				// Try manager, should be faster and will handle redirects better
 				if (IsActive())
@@ -285,6 +315,8 @@ FStreamableManager* FStreamableHandle::GetOwningManager() const
 
 void FStreamableHandle::CancelHandle()
 {
+	check(IsInGameThread());
+
 	if (bReleased || bCanceled || !OwningManager)
 	{
 		// Too late to cancel it
@@ -305,7 +337,7 @@ void FStreamableHandle::CancelHandle()
 	UnbindDelegates();
 
 	// Remove from referenced list
-	for (const FStringAssetReference& AssetRef : RequestedAssets)
+	for (const FSoftObjectPath& AssetRef : RequestedAssets)
 	{
 		OwningManager->RemoveReferencedAsset(AssetRef, SharedThis);
 	}
@@ -323,20 +355,26 @@ void FStreamableHandle::CancelHandle()
 
 	OwningManager = nullptr;
 
-	// Update any meta handles that are still active
-	for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
+	if (ParentHandles.Num() > 0)
 	{
-		TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
-
-		if (Handle.IsValid())
+		// Update any meta handles that are still active. Copy the array first as elements may be removed from original while iterating
+		TArray<TWeakPtr<FStreamableHandle>> ParentHandlesCopy = ParentHandles;
+		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandlesCopy)
 		{
-			Handle->UpdateCombinedHandle();
+			TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
+
+			if (Handle.IsValid())
+			{
+				Handle->UpdateCombinedHandle();
+			}
 		}
 	}
 }
 
 void FStreamableHandle::ReleaseHandle()
 {
+	check(IsInGameThread());
+
 	if (bReleased || bCanceled)
 	{
 		// Too late to release it
@@ -352,7 +390,7 @@ void FStreamableHandle::ReleaseHandle()
 		TSharedRef<FStreamableHandle> SharedThis = AsShared();
 
 		// Remove from referenced list
-		for (const FStringAssetReference& AssetRef : RequestedAssets)
+		for (const FSoftObjectPath& AssetRef : RequestedAssets)
 		{
 			OwningManager->RemoveReferencedAsset(AssetRef, SharedThis);
 		}
@@ -377,8 +415,24 @@ void FStreamableHandle::ReleaseHandle()
 	}
 }
 
+void FStreamableHandle::StartStalledHandle()
+{
+	if (!bStalled || !IsActive())
+	{
+		// Cannot start
+		return;
+	}
+
+	check(OwningManager);
+
+	bStalled = false;
+	OwningManager->StartHandleRequests(AsShared());
+}
+
 FStreamableHandle::~FStreamableHandle()
 {
+	check(IsInGameThread());
+
 	if (IsActive())
 	{
 		bReleased = true;
@@ -398,14 +452,18 @@ void FStreamableHandle::CompleteLoad()
 		ExecuteDelegate(CompleteDelegate, AsShared());
 		UnbindDelegates();
 
-		// Update any meta handles that are still active
-		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
+		if (ParentHandles.Num() > 0)
 		{
-			TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
-
-			if (Handle.IsValid())
+			// Update any meta handles that are still active. Copy the array first as elements may be removed from original while iterating
+			TArray<TWeakPtr<FStreamableHandle>> ParentHandlesCopy = ParentHandles;
+			for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandlesCopy)
 			{
-				Handle->UpdateCombinedHandle();
+				TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
+
+				if (Handle.IsValid())
+				{
+					Handle->UpdateCombinedHandle();
+				}
 			}
 		}
 	}
@@ -441,10 +499,20 @@ void FStreamableHandle::UpdateCombinedHandle()
 	// If all our sub handles were canceled, cancel us. Otherwise complete us if at least one was completed and there are none in progress
 	if (bAllCanceled)
 	{
+		if (OwningManager)
+		{
+			OwningManager->PendingCombinedHandles.Remove(AsShared());
+		}
+
 		CancelHandle();
 	}
 	else if (bAllCompleted)
 	{
+		if (OwningManager)
+		{
+			OwningManager->PendingCombinedHandles.Remove(AsShared());
+		}
+
 		CompleteLoad();
 
 		if (bReleaseWhenLoaded)
@@ -477,8 +545,10 @@ void FStreamableHandle::UnbindDelegates()
 	CompleteDelegate.Unbind();
 }
 
-void FStreamableHandle::AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, FStringAssetReference TargetName)
+void FStreamableHandle::AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, FSoftObjectPath TargetName)
 {
+	check(IsInGameThread());
+
 	// Needed so we can bind with a shared pointer for safety
 	if (OwningManager)
 	{
@@ -508,7 +578,7 @@ void FStreamableHandle::ExecuteDelegate(const FStreamableDelegate& Delegate, TSh
 	}
 }
 
-/** Internal object, one of these per StringAssetReference managed by this system */
+/** Internal object, one of these per object paths managed by this system */
 struct FStreamable
 {
 	/** Hard Pointer to object */
@@ -579,13 +649,13 @@ struct FStreamable
 
 FStreamableManager::FStreamableManager()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
 	bForceSynchronousLoads = false;
 }
 
 FStreamableManager::~FStreamableManager()
 {
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().RemoveAll(this);
 
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
 	{
@@ -596,7 +666,7 @@ FStreamableManager::~FStreamableManager()
 
 void FStreamableManager::OnPreGarbageCollect()
 {
-	TSet<FStringAssetReference> RedirectsToRemove;
+	TSet<FSoftObjectPath> RedirectsToRemove;
 
 	// Remove any streamables with no active handles, as GC may have freed them
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
@@ -656,7 +726,7 @@ void FStreamableManager::AddReferencedObjects(FReferenceCollector& Collector)
 	}
 }
 
-FStreamable* FStreamableManager::FindStreamable(const FStringAssetReference& Target) const
+FStreamable* FStreamableManager::FindStreamable(const FSoftObjectPath& Target) const
 {
 	FStreamable* Existing = StreamableItems.FindRef(Target);
 
@@ -668,18 +738,12 @@ FStreamable* FStreamableManager::FindStreamable(const FStringAssetReference& Tar
 	return Existing;
 }
 
-FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InTargetName, TAsyncLoadPriority Priority, TSharedRef<FStreamableHandle> Handle)
+FStreamable* FStreamableManager::StreamInternal(const FSoftObjectPath& InTargetName, TAsyncLoadPriority Priority, TSharedRef<FStreamableHandle> Handle)
 {
 	check(IsInGameThread());
 	UE_LOG(LogStreamableManager, Verbose, TEXT("Asynchronous load %s"), *InTargetName.ToString());
 
-	if (FPackageName::IsShortPackageName(InTargetName.ToString()))
-	{
-		UE_LOG(LogStreamableManager, Error, TEXT("     Can't load invalid package name %s"), *InTargetName.ToString());
-		return nullptr;
-	}
-
-	FStringAssetReference TargetName = ResolveRedirects(InTargetName);
+	FSoftObjectPath TargetName = ResolveRedirects(InTargetName);
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 	if (Existing)
 	{
@@ -732,7 +796,7 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 			if (Existing->Target)
 			{
 				UE_LOG(LogStreamableManager, Verbose, TEXT("     Static loaded %s"), *Existing->Target->GetFullName());
-				FStringAssetReference PossiblyNewName(Existing->Target->GetPathName());
+				FSoftObjectPath PossiblyNewName(Existing->Target->GetPathName());
 				if (PossiblyNewName != TargetName)
 				{
 					UE_LOG(LogStreamableManager, Verbose, TEXT("     Which redirected to %s"), *PossiblyNewName.ToString());
@@ -768,17 +832,17 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 	return Existing;
 }
 
-void FStreamableManager::SimpleAsyncLoad(const FStringAssetReference& Target, TAsyncLoadPriority Priority)
+void FStreamableManager::SimpleAsyncLoad(const FSoftObjectPath& Target, TAsyncLoadPriority Priority)
 {
 	RequestAsyncLoad(Target, FStreamableDelegate(), Priority, true);
 }
 
-UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& Target)
+UObject* FStreamableManager::SynchronousLoad(FSoftObjectPath const& Target)
 {
 	return LoadSynchronous(Target, true);
 }
 
-TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<FSoftObjectPath>& TargetsToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, bool bManageActiveHandle, bool bStartStalled, const FString& DebugName)
 {
 	// Schedule a new callback, this will get called when all related async loads are completed
 	TSharedRef<FStreamableHandle> NewRequest = MakeShareable(new FStreamableHandle());
@@ -786,9 +850,26 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 	NewRequest->OwningManager = this;
 	NewRequest->RequestedAssets = TargetsToStream;
 	NewRequest->DebugName = DebugName;
+	NewRequest->Priority = Priority;
 
 	// Remove null requests
-	NewRequest->RequestedAssets.Remove(FStringAssetReference());
+
+	for (int32 i = NewRequest->RequestedAssets.Num() - 1; i >= 0 ; i--)
+	{
+		FSoftObjectPath& TargetName = NewRequest->RequestedAssets[i];
+		if (TargetName.IsNull())
+		{
+			// Remove null entries
+			NewRequest->RequestedAssets.RemoveAt(i);
+			continue;
+		}
+		else if (FPackageName::IsShortPackageName(TargetName.ToString()))
+		{
+			UE_LOG(LogStreamableManager, Error, TEXT("RequestAsyncLoad called with invalid package name %s"), *TargetName.ToString());
+			NewRequest->CancelHandle();
+			return nullptr;
+		}
+	}
 
 	if (NewRequest->RequestedAssets.Num() == 0)
 	{
@@ -801,7 +882,7 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 	{
 		FString RequestedSet;
 
-		for (const FStringAssetReference& Asset : TargetsToStream)
+		for (const FSoftObjectPath& Asset : TargetsToStream)
 		{
 			if (!RequestedSet.IsEmpty())
 			{
@@ -815,14 +896,14 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 	}
 
 	// Remove any duplicates
-	TSet<FStringAssetReference> TargetSet(NewRequest->RequestedAssets);
+	TSet<FSoftObjectPath> TargetSet(NewRequest->RequestedAssets);
 
 	if (TargetSet.Num() != NewRequest->RequestedAssets.Num())
 	{
 #if UE_BUILD_DEBUG
 		FString RequestedSet;
 
-		for (const FStringAssetReference& Asset : NewRequest->RequestedAssets)
+		for (const FSoftObjectPath& Asset : NewRequest->RequestedAssets)
 		{
 			if (!RequestedSet.IsEmpty())
 			{
@@ -837,62 +918,40 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 		NewRequest->RequestedAssets = TargetSet.Array();
 	}
 
-	TArray<FStreamable *> ExistingStreamables;
-	ExistingStreamables.Reserve(NewRequest->RequestedAssets.Num());
-
-	for (int32 i = 0; i < NewRequest->RequestedAssets.Num(); i++)
-	{
-		FStreamable* Existing = StreamInternal(NewRequest->RequestedAssets[i], Priority, NewRequest);
-
-		if (!Existing)
-		{
-			// Requested an invalid asset path
-			NewRequest->CancelHandle();
-			return nullptr;
-		}
-
-		ExistingStreamables.Add(Existing);
-		Existing->AddLoadingRequest(NewRequest);
-	}
-
-	// Go through and complete loading anything that's already in memory, this may call the callback right away
-	for (int32 i = 0; i < NewRequest->RequestedAssets.Num(); i++)
-	{
-		FStreamable* Existing = ExistingStreamables[i];
-
-		if (Existing && (Existing->Target || Existing->bLoadFailed))
-		{
-			Existing->bAsyncLoadRequestOutstanding = false;
-
-			CheckCompletedRequests(NewRequest->RequestedAssets[i], Existing);
-		}
-	}
-
 	if (bManageActiveHandle)
 	{
 		// This keeps a reference around until explicitly released
 		ManagedActiveHandles.Add(NewRequest);
 	}
 
+	if (bStartStalled)
+	{
+		NewRequest->bStalled = true;
+	}
+	else
+	{
+		StartHandleRequests(NewRequest);
+	}
+
 	return NewRequest;
 }
 
-TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const FSoftObjectPath& TargetToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, bool bManageActiveHandle, bool bStartStalled, const FString& DebugName)
 {
-	return RequestAsyncLoad(TArray<FStringAssetReference>{TargetToStream}, DelegateToCall, Priority, bManageActiveHandle, DebugName);
+	return RequestAsyncLoad(TArray<FSoftObjectPath>{TargetToStream}, DelegateToCall, Priority, bManageActiveHandle, bStartStalled, DebugName);
 }
 
-TSharedPtr<FStreamableHandle>  FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle>  FStreamableManager::RequestAsyncLoad(const TArray<FSoftObjectPath>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority, bool bManageActiveHandle, bool bStartStalled, const FString& DebugName)
 {
-	return RequestAsyncLoad(TargetsToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority, bManageActiveHandle, DebugName);
+	return RequestAsyncLoad(TargetsToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority, bManageActiveHandle, bStartStalled, DebugName);
 }
 
-TSharedPtr<FStreamableHandle>  FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle>  FStreamableManager::RequestAsyncLoad(const FSoftObjectPath& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority, bool bManageActiveHandle, bool bStartStalled, const FString& DebugName)
 {
-	return RequestAsyncLoad(TargetToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority, bManageActiveHandle, DebugName);
+	return RequestAsyncLoad(TargetToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority, bManageActiveHandle, bStartStalled, DebugName);
 }
 
-TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const TArray<FStringAssetReference>& TargetsToStream, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const TArray<FSoftObjectPath>& TargetsToStream, bool bManageActiveHandle, const FString& DebugName)
 {
 	// If in async loading thread or from callback always do sync as recursive tick is unsafe
 	// If in EDL always do sync as EDL internally avoids flushing
@@ -900,7 +959,7 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const TArray<F
 	bForceSynchronousLoads = IsInAsyncLoadingThread() || IsEventDrivenLoaderEnabled() || !IsAsyncLoading();
 
 	// Do an async load and wait to complete. In some cases this will do a sync load due to safety issues
-	TSharedPtr<FStreamableHandle> Request = RequestAsyncLoad(TargetsToStream, FStreamableDelegate(), AsyncLoadHighPriority, bManageActiveHandle, DebugName);
+	TSharedPtr<FStreamableHandle> Request = RequestAsyncLoad(TargetsToStream, FStreamableDelegate(), AsyncLoadHighPriority, bManageActiveHandle, false, DebugName);
 
 	bForceSynchronousLoads = false;
 
@@ -915,12 +974,40 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const TArray<F
 	return Request;
 }
 
-TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const FStringAssetReference& TargetToStream, bool bManageActiveHandle, const FString& DebugName)
+TSharedPtr<FStreamableHandle> FStreamableManager::RequestSyncLoad(const FSoftObjectPath& TargetToStream, bool bManageActiveHandle, const FString& DebugName)
 {
-	return RequestSyncLoad(TArray<FStringAssetReference>{TargetToStream}, bManageActiveHandle, DebugName);
+	return RequestSyncLoad(TArray<FSoftObjectPath>{TargetToStream}, bManageActiveHandle, DebugName);
 }
 
-UObject* FStreamableManager::LoadSynchronous(const FStringAssetReference& Target, bool bManageActiveHandle, TSharedPtr<FStreamableHandle>* RequestHandlePointer)
+void FStreamableManager::StartHandleRequests(TSharedRef<FStreamableHandle> Handle)
+{
+	TArray<FStreamable *> ExistingStreamables;
+	ExistingStreamables.Reserve(Handle->RequestedAssets.Num());
+
+	for (int32 i = 0; i < Handle->RequestedAssets.Num(); i++)
+	{
+		FStreamable* Existing = StreamInternal(Handle->RequestedAssets[i], Handle->Priority, Handle);
+		check(Existing);
+
+		ExistingStreamables.Add(Existing);
+		Existing->AddLoadingRequest(Handle);
+	}
+
+	// Go through and complete loading anything that's already in memory, this may call the callback right away
+	for (int32 i = 0; i < Handle->RequestedAssets.Num(); i++)
+	{
+		FStreamable* Existing = ExistingStreamables[i];
+
+		if (Existing && (Existing->Target || Existing->bLoadFailed))
+		{
+			Existing->bAsyncLoadRequestOutstanding = false;
+
+			CheckCompletedRequests(Handle->RequestedAssets[i], Existing);
+		}
+	}
+}
+
+UObject* FStreamableManager::LoadSynchronous(const FSoftObjectPath& Target, bool bManageActiveHandle, TSharedPtr<FStreamableHandle>* RequestHandlePointer)
 {
 	TSharedPtr<FStreamableHandle> Request = RequestSyncLoad(Target, bManageActiveHandle, FString::Printf(TEXT("LoadSynchronous of %s"), *Target.ToString()));
 
@@ -944,12 +1031,18 @@ UObject* FStreamableManager::LoadSynchronous(const FStringAssetReference& Target
 	return nullptr;
 }
 
-void FStreamableManager::FindInMemory( FStringAssetReference& InOutTargetName, struct FStreamable* Existing )
+void FStreamableManager::FindInMemory( FSoftObjectPath& InOutTargetName, struct FStreamable* Existing )
 {
 	check(Existing);
 	check(!Existing->bAsyncLoadRequestOutstanding);
 	UE_LOG(LogStreamableManager, Verbose, TEXT("     Searching in memory for %s"), *InOutTargetName.ToString());
 	Existing->Target = StaticFindObject(UObject::StaticClass(), nullptr, *InOutTargetName.ToString());
+
+	if (Existing->Target && Existing->Target->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+	{
+		// This can get called from PostLoad on async loaded objects, if it is we do not want to return partially loaded objects and instead want to register for their full load
+		Existing->Target = nullptr;
+	}
 
 	UObjectRedirector* Redir = Cast<UObjectRedirector>(Existing->Target);
 	
@@ -973,7 +1066,7 @@ void FStreamableManager::FindInMemory( FStringAssetReference& InOutTargetName, s
 	}
 	if (Existing->Target)
 	{
-		FStringAssetReference PossiblyNewName(Existing->Target->GetPathName());
+		FSoftObjectPath PossiblyNewName(Existing->Target->GetPathName());
 		if (InOutTargetName != PossiblyNewName)
 		{
 			UE_LOG(LogStreamableManager, Verbose, TEXT("     Name changed to %s"), *PossiblyNewName.ToString());
@@ -988,8 +1081,10 @@ void FStreamableManager::FindInMemory( FStringAssetReference& InOutTargetName, s
 	}
 }
 
-void FStreamableManager::AsyncLoadCallback(FStringAssetReference TargetName)
+void FStreamableManager::AsyncLoadCallback(FSoftObjectPath TargetName)
 {
+	check(IsInGameThread());
+
 	FStreamable* Existing = FindStreamable(TargetName);
 
 	UE_LOG(LogStreamableManager, Verbose, TEXT("Stream Complete callback %s"), *TargetName.ToString());
@@ -1026,7 +1121,7 @@ void FStreamableManager::AsyncLoadCallback(FStringAssetReference TargetName)
 	}
 }
 
-void FStreamableManager::CheckCompletedRequests(const FStringAssetReference& Target, struct FStreamable* Existing)
+void FStreamableManager::CheckCompletedRequests(const FSoftObjectPath& Target, struct FStreamable* Existing)
 {
 	static int32 RecursiveCount = 0;
 
@@ -1071,7 +1166,7 @@ void FStreamableManager::CheckCompletedRequests(const FStringAssetReference& Tar
 	RecursiveCount--;
 }
 
-void FStreamableManager::RemoveReferencedAsset(const FStringAssetReference& Target, TSharedRef<FStreamableHandle> Handle)
+void FStreamableManager::RemoveReferencedAsset(const FSoftObjectPath& Target, TSharedRef<FStreamableHandle> Handle)
 {
 	if (Target.IsNull())
 	{
@@ -1101,7 +1196,7 @@ void FStreamableManager::RemoveReferencedAsset(const FStringAssetReference& Targ
 	}
 }
 
-bool FStreamableManager::IsAsyncLoadComplete(const FStringAssetReference& Target) const
+bool FStreamableManager::IsAsyncLoadComplete(const FSoftObjectPath& Target) const
 {
 	// Failed loads count as success
 	check(IsInGameThread());
@@ -1109,7 +1204,7 @@ bool FStreamableManager::IsAsyncLoadComplete(const FStringAssetReference& Target
 	return !Existing || !Existing->bAsyncLoadRequestOutstanding;
 }
 
-UObject* FStreamableManager::GetStreamed(const FStringAssetReference& Target) const
+UObject* FStreamableManager::GetStreamed(const FSoftObjectPath& Target) const
 {
 	check(IsInGameThread());
 	FStreamable* Existing = FindStreamable(Target);
@@ -1120,7 +1215,7 @@ UObject* FStreamableManager::GetStreamed(const FStringAssetReference& Target) co
 	return nullptr;
 }
 
-void FStreamableManager::Unload(const FStringAssetReference& Target)
+void FStreamableManager::Unload(const FSoftObjectPath& Target)
 {
 	check(IsInGameThread());
 
@@ -1164,13 +1259,16 @@ TSharedPtr<FStreamableHandle> FStreamableManager::CreateCombinedHandle(const TAr
 		NewRequest->ChildHandles.Add(ChildHandle);
 	}
 
+	// Add to pending list so these handles don't free when not referenced
+	PendingCombinedHandles.Add(NewRequest);
+
 	// This may already be complete
 	NewRequest->UpdateCombinedHandle();
 
 	return NewRequest;
 }
 
-bool FStreamableManager::GetActiveHandles(const FStringAssetReference& Target, TArray<TSharedRef<FStreamableHandle>>& HandleList, bool bOnlyManagedHandles) const
+bool FStreamableManager::GetActiveHandles(const FSoftObjectPath& Target, TArray<TSharedRef<FStreamableHandle>>& HandleList, bool bOnlyManagedHandles) const
 {
 	check(IsInGameThread());
 	FStreamable* Existing = FindStreamable(Target);
@@ -1197,7 +1295,7 @@ bool FStreamableManager::GetActiveHandles(const FStringAssetReference& Target, T
 	return false;
 }
 
-FStringAssetReference FStreamableManager::ResolveRedirects(const FStringAssetReference& Target) const
+FSoftObjectPath FStreamableManager::ResolveRedirects(const FSoftObjectPath& Target) const
 {
 	FRedirectedPath const* Redir = StreamableRedirects.Find(Target);
 	if (Redir)

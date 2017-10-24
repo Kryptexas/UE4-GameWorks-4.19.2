@@ -37,11 +37,9 @@ namespace Audio
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
 		virtual FString GetDefaultDeviceName() override;
 		virtual FAudioPlatformSettings GetPlatformSettings() const override;
+		virtual void SuspendContext() override;
+		virtual void ResumeContext() override;
 		//~ End IAudioMixerPlatformInterface
-
-		// These are not being used yet but they should be in the near future
-		void ResumeContext();
-		void SuspendContext();
 		
 	private:
 		const TCHAR* GetErrorString(SLresult Result);

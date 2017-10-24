@@ -35,6 +35,7 @@
 #include "Editor.h"
 #include "MaterialEditorModule.h"
 #include "MaterialEditingLibrary.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
@@ -109,6 +110,7 @@
 #include "CanvasTypes.h"
 #include "Engine/Selection.h"
 #include "Materials/Material.h"
+#include "AdvancedPreviewSceneModule.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -127,6 +129,7 @@ const FName FMaterialEditor::HLSLCodeTabId( TEXT( "MaterialEditor_HLSLCode" ) );
 const FName FMaterialEditor::PaletteTabId( TEXT( "MaterialEditor_Palette" ) );
 const FName FMaterialEditor::StatsTabId( TEXT( "MaterialEditor_Stats" ) );
 const FName FMaterialEditor::FindTabId( TEXT( "MaterialEditor_Find" ) );
+const FName FMaterialEditor::PreviewSettingsTabId( TEXT ("MaterialEditor_PreviewSettings" ) );
 
 ///////////////////////////
 // FMatExpressionPreview //
@@ -256,6 +259,12 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& I
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MaterialEditor.Tabs.HLSLCode"));
 
+	InTabManager->RegisterTabSpawner(PreviewSettingsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_PreviewSettings))
+		.SetDisplayName( LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings") )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
+
 	OnRegisterTabSpawners().Broadcast(InTabManager);
 }
 
@@ -271,6 +280,7 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	InTabManager->UnregisterTabSpawner( StatsTabId );
 	InTabManager->UnregisterTabSpawner( FindTabId );
 	InTabManager->UnregisterTabSpawner( HLSLCodeTabId );
+	InTabManager->UnregisterTabSpawner( PreviewSettingsTabId );
 
 	OnUnregisterTabSpawners().Broadcast(InTabManager);
 }
@@ -398,7 +408,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	BindCommands();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v5")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v6")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -425,6 +435,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 				(
 					FTabManager::NewStack()
 					->AddTab( PropertiesTabId, ETabState::OpenedTab )
+					->AddTab( PreviewSettingsTabId, ETabState::ClosedTab)
 				)
 			)
 			->Split
@@ -1220,9 +1231,6 @@ void FMaterialEditor::LoadEditorSettings()
 		{
 			PreviewViewport->OnToggleRealtime();
 		}
-
-		// Load the preview scene
-		PreviewViewport->PreviewScene.LoadSettings(TEXT("MaterialEditor"));
 	}
 
 	if (EditorOptions->bShowMobileStats)
@@ -1243,7 +1251,6 @@ void FMaterialEditor::SaveEditorSettings()
 {
 	// Save the preview scene
 	check( PreviewViewport.IsValid() );
-	PreviewViewport->PreviewScene.SaveSettings(TEXT("MaterialEditor"));
 
 	if ( EditorOptions )
 	{
@@ -1268,7 +1275,7 @@ FText FMaterialEditor::GetCodeViewText() const
 
 FReply FMaterialEditor::CopyCodeViewTextToClipboard()
 {
-	FPlatformMisc::ClipboardCopy(*HLSLCode);
+	FPlatformApplicationMisc::ClipboardCopy(*HLSLCode);
 	return FReply::Handled();
 }
 
@@ -1879,11 +1886,11 @@ void FMaterialEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.SelectDownstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes));
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownstreamNodes));
 
 	ToolkitCommands->MapAction(
 		Commands.SelectUpstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes));
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpstreamNodes));
 
 	ToolkitCommands->MapAction(
 		Commands.RemoveFromFavorites,
@@ -2338,7 +2345,7 @@ void FMaterialEditor::OnToggleRealtimePreview()
 	}
 }
 
-void FMaterialEditor::OnSelectDownsteamNodes()
+void FMaterialEditor::OnSelectDownstreamNodes()
 {
 	TArray<UMaterialGraphNode*> NodesToCheck;
 	TArray<UMaterialGraphNode*> CheckedNodes;
@@ -2391,7 +2398,7 @@ void FMaterialEditor::OnSelectDownsteamNodes()
 	}
 }
 
-void FMaterialEditor::OnSelectUpsteamNodes()
+void FMaterialEditor::OnSelectUpstreamNodes()
 {
 	TArray<UMaterialGraphNode*> NodesToCheck;
 	TArray<UMaterialGraphNode*> CheckedNodes;
@@ -2920,6 +2927,30 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 	return SpawnedTab;
 }
 
+TSharedRef<SDockTab> FMaterialEditor::SpawnTab_PreviewSettings(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == PreviewSettingsTabId);
+
+	TSharedRef<SWidget> InWidget = SNullWidget::NullWidget;
+	if (PreviewViewport.IsValid())
+	{
+		FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+		InWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(PreviewViewport->GetPreviewScene());
+	}
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Details"))
+		.Label(LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings"))
+		[
+			SNew(SBox)
+			[
+				InWidget
+			]
+		];
+
+	return SpawnedTab;
+}
+
 void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpression)
 {
 	UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(NewPreviewExpression);
@@ -3283,7 +3314,7 @@ void FMaterialEditor::CopySelectedNodes()
 	}
 
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 
 	// Make sure Material remains the owner of the copied nodes
 	for (FGraphPanelSelectionSet::TConstIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
@@ -3331,7 +3362,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	// Import the nodes
 	TSet<UEdGraphNode*> PastedNodes;
@@ -3448,7 +3479,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 bool FMaterialEditor::CanPasteNodes() const
 {
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return FEdGraphUtilities::CanImportNodesFromText(Material->MaterialGraph, ClipboardContent);
 }
@@ -3893,11 +3924,11 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().SelectDownstreamNodes,
-			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes)
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownstreamNodes)
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().SelectUpstreamNodes,
-			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes)
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpstreamNodes)
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().RemoveFromFavorites,
@@ -3945,7 +3976,7 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 	InEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &FMaterialEditor::OnNodeDoubleClicked);
 	InEvents.OnTextCommitted = FOnNodeTextCommitted::CreateSP(this, &FMaterialEditor::OnNodeTitleCommitted);
 	InEvents.OnVerifyTextCommit = FOnNodeVerifyTextCommit::CreateSP(this, &FMaterialEditor::OnVerifyNodeTextCommit);
-	InEvents.OnSpawnNodeByShortcut = SGraphEditor::FOnSpawnNodeByShortcut::CreateSP(this, &FMaterialEditor::OnSpawnGraphNodeByShortcut, CastChecked<UEdGraph>(Material->MaterialGraph));
+	InEvents.OnSpawnNodeByShortcut = SGraphEditor::FOnSpawnNodeByShortcut::CreateSP(this, &FMaterialEditor::OnSpawnGraphNodeByShortcut, static_cast<UEdGraph*>(Material->MaterialGraph));
 
 	// Create the title bar widget
 	TSharedPtr<SWidget> TitleBarWidget = SNew(SMaterialEditorTitleBar)

@@ -20,7 +20,7 @@ namespace SubversionSourceControlConstants
 
 FSVNScopedTempFile::FSVNScopedTempFile(const FText& InText)
 {
-	Filename = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("SVN-Temp"), TEXT(".txt"));
+	Filename = FPaths::CreateTempFilename(*FPaths::ProjectLogDir(), TEXT("SVN-Temp"), TEXT(".txt"));
 	if (!FFileHelper::SaveStringToFile(InText.ToString(), *Filename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 	{
 		UE_LOG(LogSourceControl, Error, TEXT("Failed to write to temp file: %s"), *Filename);
@@ -29,7 +29,7 @@ FSVNScopedTempFile::FSVNScopedTempFile(const FText& InText)
 
 FSVNScopedTempFile::FSVNScopedTempFile(const FString& InText)
 {
-	Filename = FPaths::CreateTempFilename( *FPaths::GameLogDir(), TEXT("SVN-Temp"), TEXT( ".txt" ) );
+	Filename = FPaths::CreateTempFilename( *FPaths::ProjectLogDir(), TEXT("SVN-Temp"), TEXT( ".txt" ) );
 	if (!FFileHelper::SaveStringToFile(InText, *Filename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 	{
 		UE_LOG(LogSourceControl, Error, TEXT("Failed to write to temp file: %s"), *Filename);

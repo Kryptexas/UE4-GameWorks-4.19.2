@@ -9,37 +9,36 @@ THIRD_PARTY_INCLUDES_START
 	#include "ir.h"
 THIRD_PARTY_INCLUDES_END
 #include "PackUniformBuffers.h"
-#include "CustomStdAllocator.h"
 
-inline FCustomStdString FixVecPrefix(FCustomStdString Type)
+inline std::string FixVecPrefix(std::string Type)
 {
 	if (!strncmp("vec", Type.c_str(), 3))
 	{
-		FCustomStdString Num = Type.substr(3);
+		std::string Num = Type.substr(3);
 		Type = "float";
 		Type += Num;
 	}
 	else if (!strncmp("bvec", Type.c_str(), 4))
 	{
-		FCustomStdString Num = Type.substr(4);
+		std::string Num = Type.substr(4);
 		Type = "bool";
 		Type += Num;
 	}
 	else if (!strncmp("ivec", Type.c_str(), 4))
 	{
-		FCustomStdString Num = Type.substr(4);
+		std::string Num = Type.substr(4);
 		Type = "int";
 		Type += Num;
 	}
 	else if (!strncmp("uvec", Type.c_str(), 4))
 	{
-		FCustomStdString Num = Type.substr(4);
+		std::string Num = Type.substr(4);
 		Type = "uint";
 		Type += Num;
 	}
 	else if (!strncmp("mat", Type.c_str(), 3))
 	{
-		FCustomStdString Num = Type.substr(3);
+		std::string Num = Type.substr(3);
 		Type = "float";
 		Type += Num;
 		Type += "x";
@@ -66,9 +65,25 @@ struct FBuffers
     TArray<class ir_instruction*> Textures;
 
 	// Information about textures & samplers; we need to have unique samplerstate indices, as one they can be used independent of each other
-	TArray<FCustomStdString> UniqueSamplerStates;
+	TArray<std::string> UniqueSamplerStates;
 
-	int32 GetUniqueSamplerStateIndex(const FCustomStdString& Name, bool bAddIfNotFound, bool& bOutAdded)
+	void AddBuffer(ir_variable* Var)
+	{
+		check(Var);
+		check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in || Var->mode == ir_var_shared);
+		
+		Buffers.Add(Var);
+	}
+	
+	void AddTexture(ir_variable* Var)
+	{
+		check(Var);
+		check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in || Var->mode == ir_var_shared);
+		
+		Textures.Add(Var);
+	}
+	
+	int32 GetUniqueSamplerStateIndex(const std::string& Name, bool bAddIfNotFound, bool& bOutAdded)
 	{
 		int32 Found = INDEX_NONE;
 		bOutAdded = false;
@@ -108,7 +123,7 @@ struct FBuffers
 		return -1;
 	}
 
-	int GetIndex(const FCustomStdString& Name)
+	int GetIndex(const std::string& Name)
 	{
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
@@ -225,7 +240,12 @@ struct FBuffers
                     _mesa_glsl_warning(state, "Image texture '%s' at index '%d' cannot be bound as part of the render-target array.",
                                        ITextures.front()->name, i);
                 }
-                
+				if (AllTextures.Num() <= i)
+				{
+					int32 Count = i + 1 - AllTextures.Num();
+					AllTextures.AddZeroed(Count);
+					//AllTextures(Index + 1, nullptr);
+				}
                 AllTextures[i] = ITextures.front();
                 ITextures.erase(ITextures.begin());
                 
@@ -243,7 +263,7 @@ struct FBuffers
         }
 
 		Buffers = AllBuffers;
-        Textures = AllTextures;
+		Textures = AllTextures;
 	}
 };
 

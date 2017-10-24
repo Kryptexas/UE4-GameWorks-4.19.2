@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -33,18 +33,18 @@ void CefSetCookieCallbackCToCpp::OnComplete(bool success) {
 CefSetCookieCallbackCToCpp::CefSetCookieCallbackCToCpp() {
 }
 
-template<> cef_set_cookie_callback_t* CefCToCpp<CefSetCookieCallbackCToCpp,
+template<> cef_set_cookie_callback_t* CefCToCppRefCounted<CefSetCookieCallbackCToCpp,
     CefSetCookieCallback, cef_set_cookie_callback_t>::UnwrapDerived(
     CefWrapperType type, CefSetCookieCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefSetCookieCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefSetCookieCallbackCToCpp,
     CefSetCookieCallback, cef_set_cookie_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefSetCookieCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefSetCookieCallbackCToCpp,
     CefSetCookieCallback, cef_set_cookie_callback_t>::kWrapperType =
     WT_SET_COOKIE_CALLBACK;

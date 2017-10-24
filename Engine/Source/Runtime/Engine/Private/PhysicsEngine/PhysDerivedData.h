@@ -35,6 +35,7 @@ private:
 	FGuid DataGuid;
 	FString MeshId;
 	bool bIsRuntime;
+	bool bVerifyDDC;
 
 public:
 	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup, bool InIsRuntime);
@@ -49,7 +50,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("48A34D3CEFD54C709592943289228CCF");	
+		return TEXT("3B0AB674B19F4A698B28F7025C031EA2");	
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override
@@ -72,7 +73,7 @@ public:
 			(int32)bGenerateMirroredMesh,
 			(int32)bGenerateUVInfo,
 			(int32)RuntimeCookFlags,
-			(int32)BodyComplexity,
+			BodyComplexity,
 			PhysXVersion,
 			Cooker ? Cooker->GetVersion( Format ) : 0xffff
 			);
@@ -83,6 +84,13 @@ public:
 	{
 		return false;
 	}
+
+	virtual bool IsDeterministic() const override
+	{
+		return true;
+	}
+
+	virtual FString GetDebugContextString() const override;
 
 	virtual bool Build( TArray<uint8>& OutData ) override;
 

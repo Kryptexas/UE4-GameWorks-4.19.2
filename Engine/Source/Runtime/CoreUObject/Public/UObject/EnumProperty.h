@@ -48,6 +48,16 @@ public:
 	// End of UProperty interface
 
 	/**
+	 * Set the UEnum of this property.
+	 * @note May only be called once to lazily initialize the property when using the default constructor.
+	 */
+	FORCEINLINE void SetEnum(UEnum* InEnum)
+	{
+		checkf(!Enum, TEXT("UEnumProperty enum may only be set once"));
+		Enum = InEnum;
+	}
+
+	/**
 	 * Returns a pointer to the UEnum of this property.
 	 */
 	FORCEINLINE UEnum* GetEnum() const

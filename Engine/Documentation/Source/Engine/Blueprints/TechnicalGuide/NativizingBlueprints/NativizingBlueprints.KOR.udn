@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3492049
 Availability:Public
 Title:블루프린트 네이티브화
 Crumbs:
@@ -281,3 +281,25 @@ Unreal Automation Tool (UAT) 는 다음과 같은 지원 블루프린트 애셋�
 이 플래그는 (서버측 빌드 엔지니어처럼) 명령줄에서 프로젝트를 빌드/쿠킹하는 고급 사용자용 옵션입니다. 기본적으로 이 플래그를 켜고 **프로젝트 세팅** 메뉴에서 
 네이티브화도 켠 상태라면, 명령줄에서 네이티브화 플래그를 사용하지 않은 경우 빌드/쿠킹 시간에 경고가 뜰 것입니다. 명령줄에서 네이티브화 스위치를 사용하는 방법에 대해서는 
 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) 문서를 참고하세요.
+
+## 부가 자료
+
+블루프린트 네이티브화 관련 부가 정보는 다음 피처 하이라이트 비디오에서 찾아보실 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Ut_CRt7o8PA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

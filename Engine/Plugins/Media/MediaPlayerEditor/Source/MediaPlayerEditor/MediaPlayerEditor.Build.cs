@@ -12,35 +12,35 @@ public class MediaPlayerEditor : ModuleRules
 				"MainFrame",
 				"Media",
 				"WorkspaceMenuStructure",
-			}
-		);
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"MediaPlayerEditor/Private",
 				"MediaPlayerEditor/Private/AssetTools",
-                "MediaPlayerEditor/Private/Customizations",
+				"MediaPlayerEditor/Private/Customizations",
 				"MediaPlayerEditor/Private/Factories",
 				"MediaPlayerEditor/Private/Models",
 				"MediaPlayerEditor/Private/Shared",
-                "MediaPlayerEditor/Private/Toolkits",
-                "MediaPlayerEditor/Private/Widgets",
-			}
-		);
+				"MediaPlayerEditor/Private/Toolkits",
+				"MediaPlayerEditor/Private/Widgets",
+			});
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"AudioMixer",
 				"ContentBrowser",
 				"Core",
 				"CoreUObject",
-                "DesktopPlatform",
-                "DesktopWidgets",
+				"ApplicationCore",
+				"DesktopPlatform",
+				"DesktopWidgets",
 				"EditorStyle",
-                "EditorWidgets",
+				"EditorWidgets",
 				"Engine",
 				"InputCore",
 				"MediaAssets",
-                "MediaUtils",
+				"MediaUtils",
 				"PropertyEditor",
 				"RenderCore",
 				"RHI",
@@ -49,8 +49,7 @@ public class MediaPlayerEditor : ModuleRules
 				"SlateCore",
 				"TextureEditor",
 				"UnrealEd",
-			}
-		);
+			});
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -58,7 +57,6 @@ public class MediaPlayerEditor : ModuleRules
 				"Media",
 				"UnrealEd",
 				"WorkspaceMenuStructure",
-			}
-		);
+			});
 	}
 }

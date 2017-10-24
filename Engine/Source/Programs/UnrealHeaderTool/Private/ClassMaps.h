@@ -15,7 +15,6 @@ class UPackage;
 class UEnum;
 class FClassDeclarationMetaData;
 class FArchive;
-class FUHTMakefile;
 struct FManifestModule;
 class FUnrealSourceFile;
 class FUnrealTypeDefinitionInfo;
@@ -31,6 +30,8 @@ extern TMap<UField*, uint32> GGeneratedCodeCRCs;
 extern TMap<UEnum*, EUnderlyingEnumType> GEnumUnderlyingTypes;
 extern TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 extern TSet<UProperty*> GUnsizedProperties;
+extern TSet<UField*> GEditorOnlyDataTypes;
+extern TMap<UStruct*, TTuple<TSharedRef<FUnrealSourceFile>, int32>> GStructToSourceLine;
 
 /** Types access specifiers. */
 enum EAccessSpecifier
@@ -58,15 +59,3 @@ inline FArchive& operator<<(FArchive& Ar, EAccessSpecifier& ObjectType)
 
 	return Ar;
 }
-
-/**
- * Add type definition info to global map.
- *
- * @param UHTMakefile Makefile to which data is saved.
- * @param SourceFile SourceFile in which type was defined.
- * @param Field Defined type.
- * @param Line Line on which the type was defined.
- *
- * @returns Type definition info.
- */
-TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUHTMakefile& UHTMakefile, FUnrealSourceFile* SourceFile, UField* Field, int32 Line);

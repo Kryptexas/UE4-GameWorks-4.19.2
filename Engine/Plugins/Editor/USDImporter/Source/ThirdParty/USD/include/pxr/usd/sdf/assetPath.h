@@ -26,14 +26,15 @@
 
 /// \file sdf/assetPath.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
+
 #include <boost/functional/hash.hpp>
 #include <boost/operators.hpp>
-#include <ciso646>
 #include <iosfwd>
 #include <string>
 
-#include "pxr/base/arch/defines.h"
-#include "pxr/usd/sdf/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class SdfAssetPath
 ///
@@ -48,13 +49,13 @@ public:
     ///
 
     /// Construct an empty asset path.
-	SDF_API SdfAssetPath();
+    SDF_API SdfAssetPath();
 
     /// Construct asset path with no associated resolved path.
-	SDF_API explicit SdfAssetPath(const std::string &path);
+    SDF_API explicit SdfAssetPath(const std::string &path);
 
     /// Construct an asset path with an associated resolved path.
-	SDF_API SdfAssetPath(const std::string &path, const std::string &resolvedPath);
+    SDF_API SdfAssetPath(const std::string &path, const std::string &resolvedPath);
 
     /// @}
 
@@ -63,12 +64,12 @@ public:
 
     /// Equality, including the resolved path.
     bool operator==(const SdfAssetPath &rhs) const {
-        return _assetPath == rhs._assetPath and
+        return _assetPath == rhs._assetPath &&
                _resolvedPath == rhs._resolvedPath;
     }
 
     /// Ordering first by asset path, then by resolved path.
-	SDF_API bool operator<(const SdfAssetPath &rhs) const;
+    SDF_API bool operator<(const SdfAssetPath &rhs) const;
 
     /// Hash function
     size_t GetHash() const {
@@ -124,4 +125,6 @@ SDF_API std::ostream& operator<<(std::ostream& out, const SdfAssetPath& ap);
 
 /// @}
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_ASSETPATH_H

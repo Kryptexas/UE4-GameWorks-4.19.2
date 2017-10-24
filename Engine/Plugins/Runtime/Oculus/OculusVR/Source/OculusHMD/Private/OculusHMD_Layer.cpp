@@ -7,6 +7,7 @@
 //#include "ScreenRendering.h"
 //#include "ScenePrivate.h"
 //#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/SceneRenderTargets.h"
 
 
 namespace OculusHMD
@@ -46,7 +47,9 @@ FLayer::FLayer(uint32 InId, const IStereoLayers::FLayerDesc& InDesc) :
 	Id(InId),
 	Desc(InDesc),
 	OvrpLayerId(0),
-	bUpdateTexture(false)
+	bUpdateTexture(false),
+	bInvertY(true),
+	bHasDepth(false)
 {
 	FMemory::Memzero(OvrpLayerDesc);
 	FMemory::Memzero(OvrpLayerSubmit);
@@ -59,8 +62,12 @@ FLayer::FLayer(const FLayer& Layer) :
 	OvrpLayerId(Layer.OvrpLayerId),
 	OvrpLayer(Layer.OvrpLayer),
 	TextureSetProxy(Layer.TextureSetProxy),
+	DepthTextureSetProxy(Layer.DepthTextureSetProxy),
 	RightTextureSetProxy(Layer.RightTextureSetProxy),
-	bUpdateTexture(Layer.bUpdateTexture)
+	RightDepthTextureSetProxy(Layer.RightDepthTextureSetProxy),
+	bUpdateTexture(Layer.bUpdateTexture),
+	bInvertY(Layer.bInvertY),
+	bHasDepth(Layer.bHasDepth)
 {
 	FMemory::Memcpy(&OvrpLayerDesc, &Layer.OvrpLayerDesc, sizeof(OvrpLayerDesc));
 	FMemory::Memcpy(&OvrpLayerSubmit, &Layer.OvrpLayerSubmit, sizeof(OvrpLayerSubmit));
@@ -91,6 +98,8 @@ void FLayer::SetEyeLayerDesc(const ovrpLayerDesc_EyeFov& InEyeLayerDesc, const o
 	{
 		OvrpLayerSubmit.ViewportRect[eye] = InViewportRect[eye];
 	}
+
+	bHasDepth = InEyeLayerDesc.DepthFormat != ovrpTextureFormat_None;
 }
 
 
@@ -114,20 +123,34 @@ bool FLayer::IsCompatibleLayerDesc(const ovrpLayerDescUnion& OvrpLayerDescA, con
 		return false;
 	}
 
+	if (OvrpLayerDescA.Shape == ovrpShape_EyeFov)
+	{
+		if (OvrpLayerDescA.EyeFov.DepthFormat != OvrpLayerDescB.EyeFov.DepthFormat)
+		{
+			return false;
+		}
+	}
+
 	return true;
 }
 
 
-void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer* InLayer)
+void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandListImmediate& RHICmdList, const FLayer* InLayer)
 {
 	CheckInRenderThread();
 
 	if (Id == 0)
 	{
-		// OvrpLayerDesc and OvrpViewportRects already initialized, as this is the eyeFOV layer.
+		// OvrpLayerDesc and OvrpViewportRects already initialized, as this is the eyeFOV layer. The only necessary modification is to take into account MSAA level, that can only be accurately determined on the RT.
 	}
 	else if (Desc.Texture.IsValid())
 	{
+		if (Desc.UVRect.Min.Y == 1.0f)
+		{
+			bInvertY = false;
+			Desc.UVRect.Min.Y = 0.0f;
+		}
+
 		FRHITexture2D* Texture2D = Desc.Texture->GetTexture2D();
 		FRHITextureCube* TextureCube = Desc.Texture->GetTextureCube();
 
@@ -174,7 +197,6 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer
 		uint32 NumMips = 0;
 #endif
 		uint32 NumSamples = 1;
-		bool bSRGB = true;
 		int LayerFlags = 0;
 
 		if(!(Desc.Flags & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE))
@@ -187,7 +209,7 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer
 			ovrpSizei { (int) SizeX, (int) SizeY },
 			NumMips,
 			NumSamples,
-			CustomPresent->GetOvrpTextureFormat(Format, bSRGB),
+			CustomPresent->GetOvrpTextureFormat(Format),
 			LayerFlags,
 			&OvrpLayerDesc);
 
@@ -212,14 +234,18 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer
 		OvrpLayerId = InLayer->OvrpLayerId;
 		OvrpLayer = InLayer->OvrpLayer;
 		TextureSetProxy = InLayer->TextureSetProxy;
+		DepthTextureSetProxy = InLayer->DepthTextureSetProxy;
 		RightTextureSetProxy = InLayer->RightTextureSetProxy;
+		RightDepthTextureSetProxy = InLayer->RightDepthTextureSetProxy;
 		bUpdateTexture = InLayer->bUpdateTexture;
 	}
 	else
 	{
 		bool bLayerCreated = false;
-		TArray<ovrpTextureHandle> Textures;
-		TArray<ovrpTextureHandle> RightTextures;
+		TArray<ovrpTextureHandle> ColorTextures;
+		TArray<ovrpTextureHandle> DepthTextures;
+		TArray<ovrpTextureHandle> RightColorTextures;
+		TArray<ovrpTextureHandle> RightDepthTextures;
 
 		ExecuteOnRHIThread([&]()
 		{
@@ -230,22 +256,24 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer
 			{
 				// Left
 				{
-					Textures.SetNum(TextureCount);
+					ColorTextures.SetNum(TextureCount);
+					DepthTextures.SetNum(TextureCount);
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture(OvrpLayerId, TextureIndex, ovrpEye_Left, &Textures[TextureIndex]);
+						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Left, &ColorTextures[TextureIndex], &DepthTextures[TextureIndex]);
 					}
 				}
 
 				// Right
 				if(OvrpLayerDesc.Layout == ovrpLayout_Stereo)
 				{
-					RightTextures.SetNum(TextureCount);
+					RightColorTextures.SetNum(TextureCount);
+					RightDepthTextures.SetNum(TextureCount);
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightTextures[TextureIndex]);
+						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightColorTextures[TextureIndex], &RightDepthTextures[TextureIndex]);
 					}
 				}
 
@@ -259,24 +287,56 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, const FLayer
 
 			uint32 SizeX = OvrpLayerDesc.TextureSize.w;
 			uint32 SizeY = OvrpLayerDesc.TextureSize.h;
-			EPixelFormat Format = CustomPresent->GetPixelFormat(OvrpLayerDesc.Format);
+			EPixelFormat ColorFormat = CustomPresent->GetPixelFormat(OvrpLayerDesc.Format);
+			EPixelFormat DepthFormat = PF_DepthStencil;
 			uint32 NumMips = OvrpLayerDesc.MipLevels;
 			uint32 NumSamples = OvrpLayerDesc.SampleCount;
 			uint32 NumSamplesTileMem = 1;
 			if (OvrpLayerDesc.Shape == ovrpShape_EyeFov)
 			{
-				int MSAALevel;
-				ovrp_GetSystemRecommendedMSAALevel2(&MSAALevel);
-				NumSamplesTileMem = MSAALevel;
+				ovrp_GetSystemRecommendedMSAALevel2((int*) &NumSamplesTileMem);
 			}
-			uint32 ArraySize = OvrpLayerDesc.Layout == ovrpLayout_Array ? 2 : 1;
-			bool bIsCubemap = OvrpLayerDesc.Shape == ovrpShape_Cubemap;
 
-			TextureSetProxy = CustomPresent->CreateTextureSet_RenderThread(SizeX, SizeY, Format, NumMips, NumSamples, NumSamplesTileMem, ArraySize, bIsCubemap, Textures);
-
-			if(OvrpLayerDesc.Layout == ovrpLayout_Stereo)
+			ERHIResourceType ResourceType;			
+			if (OvrpLayerDesc.Shape == ovrpShape_Cubemap || OvrpLayerDesc.Shape == ovrpShape_OffcenterCubemap)
 			{
-				RightTextureSetProxy = CustomPresent->CreateTextureSet_RenderThread(SizeX, SizeY, Format, NumMips, NumSamples, NumSamplesTileMem, ArraySize, bIsCubemap, RightTextures);
+				ResourceType = RRT_TextureCube;
+			}
+			else if (OvrpLayerDesc.Layout == ovrpLayout_Array)
+			{
+				ResourceType = RRT_Texture2DArray;
+			}
+			else
+			{
+				ResourceType = RRT_Texture2D;
+			}
+
+			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+			uint32 ColorTexCreateFlags = TexCreate_ShaderResource | TexCreate_RenderTargetable;
+			uint32 DepthTexCreateFlags = TexCreate_ShaderResource | TexCreate_DepthStencilTargetable;
+#if PLATFORM_ANDROID
+			FClearValueBinding ColorTextureBinding = FClearValueBinding();
+#else
+			FClearValueBinding ColorTextureBinding = FClearValueBinding::Black;
+#endif
+			FClearValueBinding DepthTextureBinding = SceneContext.GetDefaultDepthClear();
+
+			TextureSetProxy = CustomPresent->CreateTextureSetProxy_RenderThread(SizeX, SizeY, ColorFormat, ColorTextureBinding, NumMips, NumSamples, NumSamplesTileMem, ResourceType, ColorTextures, ColorTexCreateFlags);
+
+			if (bHasDepth)
+			{
+				DepthTextureSetProxy = CustomPresent->CreateTextureSetProxy_RenderThread(SizeX, SizeY, DepthFormat, DepthTextureBinding, 1, NumSamples, NumSamplesTileMem, ResourceType, DepthTextures, DepthTexCreateFlags);
+			}
+
+			if (OvrpLayerDesc.Layout == ovrpLayout_Stereo)
+			{
+				RightTextureSetProxy = CustomPresent->CreateTextureSetProxy_RenderThread(SizeX, SizeY, ColorFormat, ColorTextureBinding, NumMips, NumSamples, NumSamplesTileMem, ResourceType, RightColorTextures, ColorTexCreateFlags);
+
+				if (bHasDepth)
+				{
+					RightDepthTextureSetProxy = CustomPresent->CreateTextureSetProxy_RenderThread(SizeX, SizeY, DepthFormat, DepthTextureBinding, 1, NumSamples, NumSamplesTileMem, ResourceType, RightDepthTextures, DepthTexCreateFlags);
+				}
 			}
 		}
 
@@ -310,7 +370,7 @@ void FLayer::UpdateTexture_RenderThread(FCustomPresent* CustomPresent, FRHIComma
 				const ovrpRecti& OvrpViewportRect = OvrpLayerSubmit.ViewportRect[ovrpEye_Left];
 				FIntRect DstRect(OvrpViewportRect.Pos.x, OvrpViewportRect.Pos.y, OvrpViewportRect.Pos.x + OvrpViewportRect.Size.w, OvrpViewportRect.Pos.y + OvrpViewportRect.Size.h);
 
-				CustomPresent->CopyTexture_RenderThread(RHICmdList, DstTexture, SrcTexture, DstRect, FIntRect(), bAlphaPremultiply, bNoAlphaWrite);
+				CustomPresent->CopyTexture_RenderThread(RHICmdList, DstTexture, SrcTexture, DstRect, FIntRect(), bAlphaPremultiply, bNoAlphaWrite, bInvertY);
 			}
 
 			// Right
@@ -322,7 +382,7 @@ void FLayer::UpdateTexture_RenderThread(FCustomPresent* CustomPresent, FRHIComma
 				const ovrpRecti& OvrpViewportRect = OvrpLayerSubmit.ViewportRect[ovrpEye_Right];
 				FIntRect DstRect(OvrpViewportRect.Pos.x, OvrpViewportRect.Pos.y, OvrpViewportRect.Pos.x + OvrpViewportRect.Size.w, OvrpViewportRect.Pos.y + OvrpViewportRect.Size.h);
 
-				CustomPresent->CopyTexture_RenderThread(RHICmdList, DstTexture, SrcTexture, DstRect, FIntRect(), bAlphaPremultiply, bNoAlphaWrite);
+				CustomPresent->CopyTexture_RenderThread(RHICmdList, DstTexture, SrcTexture, DstRect, FIntRect(), bAlphaPremultiply, bNoAlphaWrite, bInvertY);
 			}
 
 			bUpdateTexture = false;
@@ -344,13 +404,14 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 	OvrpLayerSubmit.LayerId = OvrpLayerId;
 	OvrpLayerSubmit.TextureStage = TextureSetProxy.IsValid() ? TextureSetProxy->GetSwapChainIndex_RHIThread() : 0;
 
+
 	if (Id != 0)
 	{
 		int SizeX = OvrpLayerDesc.TextureSize.w;
 		int SizeY = OvrpLayerDesc.TextureSize.h;
 
 		float AspectRatio = SizeX ? (float)SizeY / (float)SizeX : 3.0f / 4.0f;
-		FVector LocationScaleInv = Frame->WorldToMetersScale * Frame->PositionScale;
+		FVector LocationScaleInv(Frame->WorldToMetersScale);
 		FVector LocationScale = LocationScaleInv.Reciprocal();
 		ovrpVector3f Scale = ToOvrpVector3f(Desc.Transform.GetScale3D() * LocationScale);
 
@@ -412,18 +473,28 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 }
 
 
-void FLayer::IncrementSwapChainIndex_RHIThread()
+void FLayer::IncrementSwapChainIndex_RHIThread(FCustomPresent* CustomPresent)
 {
 	CheckInRHIThread();
 
 	if (TextureSetProxy.IsValid())
 	{
-		TextureSetProxy->IncrementSwapChainIndex_RHIThread();
+		TextureSetProxy->IncrementSwapChainIndex_RHIThread(CustomPresent);
+	}
+
+	if (DepthTextureSetProxy.IsValid())
+	{
+		DepthTextureSetProxy->IncrementSwapChainIndex_RHIThread(CustomPresent);
 	}
 
 	if (RightTextureSetProxy.IsValid())
 	{
-		RightTextureSetProxy->IncrementSwapChainIndex_RHIThread();
+		RightTextureSetProxy->IncrementSwapChainIndex_RHIThread(CustomPresent);
+	}
+
+	if (RightDepthTextureSetProxy.IsValid())
+	{
+		RightDepthTextureSetProxy->IncrementSwapChainIndex_RHIThread(CustomPresent);
 	}
 }
 
@@ -435,7 +506,9 @@ void FLayer::ReleaseResources_RHIThread()
 	OvrpLayerId = 0;
 	OvrpLayer.Reset();
 	TextureSetProxy.Reset();
+	DepthTextureSetProxy.Reset();
 	RightTextureSetProxy.Reset();
+	RightDepthTextureSetProxy.Reset();
 	bUpdateTexture = false;
 }
 
@@ -516,20 +589,20 @@ static void DrawPokeAHoleCylinderMesh(FRHICommandList& RHICmdList, FVector Base,
 	DrawIndexedPrimitiveUP(RHICmdList, PT_TriangleList, 0, 2 * (Sides + 1), 2 * Sides, Indices, sizeof(Indices[0]), Vertices, sizeof(Vertices[0]));
 }
 
-void FLayer::DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& InMatrix, float scale, bool invertCoords)
+void FLayer::DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& matrix, float scale, bool invertCoords)
 {
-	FMatrix matrix = InMatrix;
-
 	int SizeX = OvrpLayerDesc.TextureSize.w;
 	int SizeY = OvrpLayerDesc.TextureSize.h;
 	float AspectRatio = SizeX ? (float)SizeY / (float)SizeX : 3.0f / 4.0f;
+
+	FMatrix MultipliedMatrix = matrix;
 
 	if (invertCoords)
 	{
 		FMatrix multiplierMatrix;
 		multiplierMatrix.SetIdentity();
 		multiplierMatrix.M[1][1] = -1;
-		matrix *= multiplierMatrix;
+		MultipliedMatrix *= multiplierMatrix;
 	}
 
 	if (OvrpLayerDesc.Shape == ovrpShape_Quad)
@@ -538,7 +611,7 @@ void FLayer::DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& InMat
 
 		FVector2D quadsize = FVector2D(Desc.QuadSize.X, QuadSizeY);
 
-		DrawPokeAHoleQuadMesh(RHICmdList, matrix, 0, -quadsize.X*scale / 2, -quadsize.Y*scale / 2, 0, quadsize.X*scale, quadsize.Y*scale, invertCoords);
+		DrawPokeAHoleQuadMesh(RHICmdList, MultipliedMatrix, 0, -quadsize.X*scale / 2, -quadsize.Y*scale / 2, 0, quadsize.X*scale, quadsize.Y*scale, invertCoords);
 	}
 	else if (OvrpLayerDesc.Shape == ovrpShape_Cylinder)
 	{
@@ -551,7 +624,7 @@ void FLayer::DrawPokeAHoleMesh(FRHICommandList& RHICmdList, const FMatrix& InMat
 		float CylinderRadius = Desc.CylinderRadius;
 		float ArcAngle = Desc.CylinderOverlayArc / Desc.CylinderRadius;
 
-		DrawPokeAHoleCylinderMesh(RHICmdList, Base, XAxis, YAxis, matrix, ArcAngle*scale, CylinderHeight*scale, CylinderRadius, invertCoords);
+		DrawPokeAHoleCylinderMesh(RHICmdList, Base, XAxis, YAxis, MultipliedMatrix, ArcAngle*scale, CylinderHeight*scale, CylinderRadius, invertCoords);
 	}
 	else if (OvrpLayerDesc.Shape == ovrpShape_Cubemap)
 	{

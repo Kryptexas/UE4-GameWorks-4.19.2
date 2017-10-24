@@ -48,21 +48,10 @@ void UAnimSequenceBase::PostLoad()
 
 	if(USkeleton* MySkeleton = GetSkeleton())
 	{
-		// Fix up the existing curves to work with smartnames
-		if(GetLinkerUE4Version() < VER_UE4_SKELETON_ADD_SMARTNAMES)
-		{
-			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
-			{
-				MySkeleton->VerifySmartName(USkeleton::AnimCurveMappingName, Curve.Name);
-			}
-		}
-		else
-		{
-			VerifyCurveNames<FFloatCurve>(MySkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
-		}
+		VerifyCurveNames<FFloatCurve>(*MySkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
 
 #if WITH_EDITOR
-		VerifyCurveNames<FTransformCurve>(MySkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+		VerifyCurveNames<FTransformCurve>(*MySkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 #endif
 
 		// this should continue to add if skeleton hasn't been saved either 
@@ -561,13 +550,13 @@ void UAnimSequenceBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 	// The blank list is necessary when we attempt to delete a curve so
 	// an old asset can be detected from its asset data so we load as few
 	// as possible.
-	FString CurveIdList;
+	FString CurveNameList;
 
 	for(const FFloatCurve& Curve : RawCurveData.FloatCurves)
 	{
-		CurveIdList += FString::Printf(TEXT("%u%s"), Curve.Name.UID, *USkeleton::CurveTagDelimiter);
+		CurveNameList += FString::Printf(TEXT("%s%s"), *Curve.Name.DisplayName.ToString(), *USkeleton::CurveTagDelimiter);
 	}
-	OutTags.Add(FAssetRegistryTag(USkeleton::CurveTag, CurveIdList, FAssetRegistryTag::TT_Hidden));
+	OutTags.Add(FAssetRegistryTag(USkeleton::CurveNameTag, CurveNameList, FAssetRegistryTag::TT_Hidden));
 }
 
 uint8* UAnimSequenceBase::FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty)

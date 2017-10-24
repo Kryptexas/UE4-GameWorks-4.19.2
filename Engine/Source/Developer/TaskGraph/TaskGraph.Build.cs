@@ -12,10 +12,20 @@ public class TaskGraph : ModuleRules
 				"CoreUObject",
 				"Slate",
 				"SlateCore",
-                "EditorStyle",
+				"EditorStyle",
 				"Engine",
-                "InputCore"
+				"InputCore"
 			}
 		);
+
+		if (Target.Type == TargetType.Editor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"WorkspaceMenuStructure",
+					"DesktopPlatform"
+				}
+			);
+		}
 	}
 }

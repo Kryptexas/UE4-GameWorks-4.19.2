@@ -2,16 +2,25 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Guid.h"
-#include "IMessageContext.h"
+#include "CoreTypes.h"
 #include "IMessageTransport.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 #include "IMessageAttachment.h"
-#include "Common/UdpSocketReceiver.h"
-#include "Transport/UdpReassembledMessage.h"
+#include "Templates/SharedPointer.h"
 
+class FArrayReader;
+class FUdpReassembledMessage;
+class FRunnableThread;
+class FSocket;
 class FUdpMessageProcessor;
+class FUdpSocketReceiver;
+class IMessageAttachment;
+class IMessageContext;
+class IMessageTransportHandler;
+class ISocketSubsystem;
+
+struct FGuid;
+
 
 /**
  * Implements a message transport technology using an UDP network connection.
@@ -41,49 +50,24 @@ public:
 
 	//~ IMessageTransport interface
 
-	virtual FName GetDebugName() const override
-	{
-		return "UdpMessageTransport";
-	}
-
-	virtual FOnMessageReceived& OnMessageReceived() override
-	{
-		return MessageReceivedDelegate;
-	}
-
-	virtual FOnNodeDiscovered& OnNodeDiscovered() override
-	{
-		return NodeDiscoveredDelegate;
-	}
-
-	virtual FOnNodeLost& OnNodeLost() override
-	{
-		return NodeLostDelegate;
-	}
-
-	virtual bool StartTransport() override;
+	virtual FName GetDebugName() const override;
+	virtual bool StartTransport(IMessageTransportHandler& Handler) override;
 	virtual void StopTransport() override;
 	virtual bool TransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FGuid>& Recipients) override;
 
 private:
 
 	/** Handles received transport messages. */
-	void HandleProcessorMessageReassembled(const FReassembledUdpMessage& ReassembledMessage, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FGuid& NodeId);
+	void HandleProcessorMessageReassembled(const FUdpReassembledMessage& ReassembledMessage, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FGuid& NodeId);
 
 	/** Handles discovered transport endpoints. */
-	void HandleProcessorNodeDiscovered(const FGuid& DiscoveredNodeId)
-	{
-		NodeDiscoveredDelegate.ExecuteIfBound(DiscoveredNodeId);
-	}
+	void HandleProcessorNodeDiscovered(const FGuid& DiscoveredNodeId);
 
 	/** Handles lost transport endpoints. */
-	void HandleProcessorNodeLost(const FGuid& LostNodeId)
-	{
-		NodeLostDelegate.ExecuteIfBound(LostNodeId);
-	}
+	void HandleProcessorNodeLost(const FGuid& LostNodeId);
 
 	/** Handles received socket data. */
-	void HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
+	void HandleSocketDataReceived(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& Sender);
 
 private:
 
@@ -108,6 +92,9 @@ private:
 	/** Holds a pointer to the socket sub-system. */
 	ISocketSubsystem* SocketSubsystem;
 
+	/** Message transport handler. */
+	IMessageTransportHandler* TransportHandler;
+
 	/** Holds the local endpoint to receive messages on. */
 	FIPv4Endpoint UnicastEndpoint;
 
@@ -118,15 +105,4 @@ private:
 	/** Holds the unicast socket. */
 	FSocket* UnicastSocket;
 #endif
-
-private:
-
-	/** Holds a delegate to be invoked when a message was received on the transport channel. */
-	FOnMessageReceived MessageReceivedDelegate;
-
-	/** Holds a delegate to be invoked when a network node was discovered. */
-	FOnNodeDiscovered NodeDiscoveredDelegate;
-
-	/** Holds a delegate to be invoked when a network node was lost. */
-	FOnNodeLost NodeLostDelegate;
 };

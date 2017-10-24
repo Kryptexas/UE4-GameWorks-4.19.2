@@ -1,10 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/TcpMessageTransport.h"
+
 #include "HAL/RunnableThread.h"
 #include "Common/TcpSocketBuilder.h"
 #include "Common/TcpListener.h"
+#include "IMessageTransportHandler.h"
 #include "TcpMessagingPrivate.h"
+
 #include "Transport/TcpDeserializedMessage.h"
 #include "Transport/TcpSerializedMessage.h"
 #include "Transport/TcpMessageTransportConnection.h"
@@ -21,6 +24,7 @@ FTcpMessageTransport::FTcpMessageTransport(const FIPv4Endpoint& InListenEndpoint
 	, bStopping(false)
 	, SocketSubsystem(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM))
 	, Listener(nullptr)
+	, TransportHandler(nullptr)
 {
 	Thread = FRunnableThread::Create(this, TEXT("FTcpMessageTransport"), 128 * 1024, TPri_Normal);
 }
@@ -41,8 +45,10 @@ FTcpMessageTransport::~FTcpMessageTransport()
 /* IMessageTransport interface
  *****************************************************************************/
 
-bool FTcpMessageTransport::StartTransport()
+bool FTcpMessageTransport::StartTransport(IMessageTransportHandler& Handler)
 {
+	TransportHandler = &Handler;
+
 	if (ListenEndpoint != FIPv4Endpoint::Any)
 	{
 		Listener = new FTcpListener(ListenEndpoint);
@@ -61,16 +67,19 @@ bool FTcpMessageTransport::StartTransport()
 void FTcpMessageTransport::AddOutgoingConnection(const FIPv4Endpoint& Endpoint)
 {
 	FSocket* Socket = FTcpSocketBuilder(TEXT("FTcpMessageTransport.RemoteConnection"));
-	if (Socket)
+	
+	if (Socket == nullptr)
 	{
-		if (!Socket->Connect(*Endpoint.ToInternetAddr()))
-		{
-			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-		}
-		else
-		{
-			PendingConnections.Enqueue(MakeShareable(new FTcpMessageTransportConnection(Socket, Endpoint, ConnectionRetryDelay)));
-		}
+		return;
+	}
+
+	if (!Socket->Connect(*Endpoint.ToInternetAddr()))
+	{
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+	}
+	else
+	{
+		PendingConnections.Enqueue(MakeShareable(new FTcpMessageTransportConnection(Socket, Endpoint, ConnectionRetryDelay)));
 	}
 }
 
@@ -93,13 +102,16 @@ void FTcpMessageTransport::StopTransport()
 	{
 		Connection->Close();
 	}
+
 	Connections.Empty();
 	PendingConnections.Empty();
 	ConnectionEndpointsToRemove.Empty();
+
+	TransportHandler = nullptr;
 }
 
 
-bool FTcpMessageTransport::TransportMessage(const IMessageContextRef& Context, const TArray<FGuid>& Recipients)
+bool FTcpMessageTransport::TransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FGuid>& Recipients)
 {
 	if (Context->GetRecipients().Num() > TCP_MESSAGING_MAX_RECIPIENTS)
 	{
@@ -167,10 +179,17 @@ bool FTcpMessageTransport::TransportMessage(const IMessageContextRef& Context, c
 /* FRunnable interface
 *****************************************************************************/
 
+void FTcpMessageTransport::Exit()
+{
+	// do nothing
+}
+
+
 bool FTcpMessageTransport::Init()
 {
 	return true;
 }
+
 
 uint32 FTcpMessageTransport::Run()
 {
@@ -195,6 +214,7 @@ uint32 FTcpMessageTransport::Run()
 				for (int32 Index = 0; Index < Connections.Num(); Index++)
 				{
 					auto& Connection = Connections[Index];
+
 					if (Connection->GetRemoteEndpoint() == Endpoint)
 					{
 						Connection->Close();
@@ -215,10 +235,12 @@ uint32 FTcpMessageTransport::Run()
 			case FTcpMessageTransportConnection::STATE_Connected:
 				ActiveConnections++;
 				break;
+
 			case FTcpMessageTransportConnection::STATE_Disconnected:
 				Connections.RemoveAtSwap(Index);
 				Index--;
 				break;
+
 			default:
 				break;
 			}
@@ -230,10 +252,11 @@ uint32 FTcpMessageTransport::Run()
 			{
 				TSharedPtr<FTcpDeserializedMessage, ESPMode::ThreadSafe> Message;
 				FGuid SenderNodeId;
+
 				while (Connection->Receive(Message, SenderNodeId))
 				{
 					UE_LOG(LogTcpMessaging, Verbose, TEXT("Received message '%s'"), *Message->GetMessageType().ToString());
-					MessageReceivedDelegate.ExecuteIfBound(Message.ToSharedRef(), SenderNodeId);
+					TransportHandler->ReceiveTransportMessage(Message.ToSharedRef(), SenderNodeId);
 				}
 			}
 		}
@@ -244,46 +267,42 @@ uint32 FTcpMessageTransport::Run()
 	return 0;
 }
 
+
 void FTcpMessageTransport::Stop()
 {
 	bStopping = true;
 }
 
-void FTcpMessageTransport::Exit()
-{
-	// do nothing
-}
 
-
-
-/* FTcpMessageTransport event handlers
+/* FTcpMessageTransport callbacks
 *****************************************************************************/
 
 bool FTcpMessageTransport::HandleListenerConnectionAccepted(FSocket* ClientSocket, const FIPv4Endpoint& ClientEndpoint)
 {
 	PendingConnections.Enqueue(MakeShareable(new FTcpMessageTransportConnection(ClientSocket, ClientEndpoint, 0)));
+	
 	return true;
 }
 
+
 void FTcpMessageTransport::HandleConnectionStateChanged(TSharedPtr<FTcpMessageTransportConnection> Connection)
 {
-	FIPv4Endpoint RemoteEndpoint = Connection->GetRemoteEndpoint();
-	FGuid NodeId = Connection->GetRemoteNodeId();
-	FTcpMessageTransportConnection::EConnectionState State = Connection->GetConnectionState();
+	const FGuid NodeId = Connection->GetRemoteNodeId();
+	const FIPv4Endpoint RemoteEndpoint = Connection->GetRemoteEndpoint();
+	const FTcpMessageTransportConnection::EConnectionState State = Connection->GetConnectionState();
 
 	if (State == FTcpMessageTransportConnection::STATE_Connected)
 	{
 		NodeConnectionMapUpdates.Enqueue(FNodeConnectionMapUpdate(true, NodeId, TWeakPtr<FTcpMessageTransportConnection>(Connection)));
-		NodeDiscoveredDelegate.ExecuteIfBound(NodeId);
+		TransportHandler->DiscoverTransportNode(NodeId);
+
 		UE_LOG(LogTcpMessaging, Verbose, TEXT("Discovered node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
 	}
-	else
+	else if (NodeId.IsValid())
 	{
-		if (NodeId.IsValid())
-		{
-			UE_LOG(LogTcpMessaging, Verbose, TEXT("Lost node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
-			NodeConnectionMapUpdates.Enqueue(FNodeConnectionMapUpdate(false, NodeId, TWeakPtr<FTcpMessageTransportConnection>(Connection)));
-			NodeLostDelegate.ExecuteIfBound(NodeId);
-		}
+		UE_LOG(LogTcpMessaging, Verbose, TEXT("Lost node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
+
+		NodeConnectionMapUpdates.Enqueue(FNodeConnectionMapUpdate(false, NodeId, TWeakPtr<FTcpMessageTransportConnection>(Connection)));
+		TransportHandler->ForgetTransportNode(NodeId);
 	}
 }

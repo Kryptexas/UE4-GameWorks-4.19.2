@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "ScopedTransaction.h"
 #include "ActorEditorUtils.h"
+#include "Editor/EditorEngine.h"
 
 const float SObjectNameEditableTextBox::HighlightRectLeftOffset = 0.0f;
 const float SObjectNameEditableTextBox::HighlightRectRightOffset = 0.0f;
@@ -258,7 +259,7 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 
 					if (Actor->IsActorLabelEditable())
 					{
-						Actor->SetActorLabel(TrimmedText.ToString());
+						FActorLabelUtilities::RenameExistingActor(Actor, TrimmedText.ToString());
 						LastCommittedTime = FSlateApplication::Get().GetCurrentTime();
 						RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
 					}
@@ -278,7 +279,7 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 						AActor* Actor = (AActor*)Objects[i].Get();
 						if (Actor->IsActorLabelEditable())
 						{
-							Actor->SetActorLabel(TrimmedText.ToString());
+							FActorLabelUtilities::RenameExistingActor(Actor, TrimmedText.ToString());
 							LastCommittedTime = FSlateApplication::Get().GetCurrentTime();
 							RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
 						}

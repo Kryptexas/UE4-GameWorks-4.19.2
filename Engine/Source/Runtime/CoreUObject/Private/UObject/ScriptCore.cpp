@@ -20,7 +20,7 @@
 #include "UObject/CoreNative.h"
 #include "UObject/Class.h"
 #include "Templates/Casts.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/Stack.h"
@@ -1081,14 +1081,11 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		// if ArgStr is empty but we have more params to read parse the function to see if these have defaults, if so set them
 		bool bFoundDefault = false;
 		bool bFailedImport = true;
+#if WITH_EDITOR
 		if (!FCString::Strcmp(*ArgStr, TEXT("")))
 		{
 			const FName DefaultPropertyKey(*(FString(TEXT("CPP_Default_")) + PropertyParam->GetName()));
-#if WITH_EDITOR
-			const FString PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
-#else
-			const FString PropertyDefaultValue = TEXT("");
-#endif
+			const FString& PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
 			if (!PropertyDefaultValue.IsEmpty()) 
 			{
 				bFoundDefault = true;
@@ -1097,6 +1094,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 				bFailedImport = (Result == nullptr);
 			}
 		}
+#endif
 
 		if (!bFoundDefault)
 		{
@@ -1105,7 +1103,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			// we need to use the whole remaining string as an argument, regardless of quotes, spaces etc.
 			if (PropertyParam == LastParameter && PropertyParam->IsA<UStrProperty>() && FCString::Strcmp(Str, TEXT("")) != 0)
 			{
-				ArgStr = FString(RemainingStr).Trim();
+				ArgStr = FString(RemainingStr).TrimStart();
 			}
 
 			const TCHAR* Result = It->ImportText(*ArgStr, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );
@@ -1210,24 +1208,6 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if STATS
 	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
-#endif
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	bool bInstrumentScriptEvent = false;
-	if (GetClass()->HasInstrumentation())
-	{
-		// Don't instrument native events that have not been implemented/overridden in script (BP). These events will not have had any profiler data generated for them at compile time.
-		if (!Function->HasAnyFunctionFlags(FUNC_Native) || Function->GetOuter()->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			if (Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent))
-			{
-				// Don't handle latent actions here, let the latent action manager handle them.
-				FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function);
-				FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
-				bInstrumentScriptEvent = true;
-			}
-		}
-	}
 #endif
 
 #if DO_BLUEPRINT_GUARD
@@ -1350,11 +1330,6 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bInstrumentScriptEvent)
-	{
-		FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Stop, this, Function);
-		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
-	}
 #if WITH_EDITORONLY_DATA
 	FBlueprintCoreDelegates::OnScriptExecutionEnd.Broadcast();
 #endif
@@ -2539,13 +2514,13 @@ void UObject::execObjectConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 
-void UObject::execAssetConst(FFrame& Stack, RESULT_DECL)
+void UObject::execSoftObjectConst(FFrame& Stack, RESULT_DECL)
 {
 	FString LongPath;
 	Stack.Step(Stack.Object, &LongPath);
-	*(FAssetPtr*)RESULT_PARAM = FStringAssetReference(LongPath);
+	*(FSoftObjectPtr*)RESULT_PARAM = FSoftObjectPath(LongPath);
 }
-IMPLEMENT_VM_FUNCTION(EX_AssetConst, execAssetConst);
+IMPLEMENT_VM_FUNCTION( EX_SoftObjectConst, execSoftObjectConst);
 
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {
@@ -2680,23 +2655,31 @@ IMPLEMENT_VM_FUNCTION( EX_SetArray, execSetArray );
 void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
 {
 	// Get the set address
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.MostRecentProperty = NULL;
-	Stack.Step( Stack.Object, NULL ); // Set to set
-	int32 Num = Stack.ReadInt<int32>();
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentProperty = nullptr;
+	Stack.Step( Stack.Object, nullptr ); // Set to set
+	const int32 Num = Stack.ReadInt<int32>();
 
 	USetProperty* SetProperty = CastChecked<USetProperty>(Stack.MostRecentProperty);
  	FScriptSetHelper SetHelper(SetProperty, Stack.MostRecentPropertyAddress);
  	SetHelper.EmptyElements(Num);
  
- 	// Read in the parameters one at a time
- 	while(*Stack.Code != EX_EndSet)
- 	{
-		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
- 		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
- 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
- 	}
-	SetHelper.Rehash();
+	if (Num > 0)
+	{
+		FDefaultConstructedPropertyElement TempElement(SetProperty->ElementProp);
+
+		// Read in the parameters one at a time
+		while (*Stack.Code != EX_EndSet)
+		{
+			// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
+			Stack.Step(Stack.Object, TempElement.GetObjAddress());
+			SetHelper.AddElement(TempElement.GetObjAddress());
+		}
+	}
+	else
+	{
+		check(*Stack.Code == EX_EndSet);
+	}
  
  	P_FINISH;
 }
@@ -2705,24 +2688,32 @@ IMPLEMENT_VM_FUNCTION( EX_SetSet, execSetSet );
 void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
 {
 	// Get the map address
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.MostRecentProperty = NULL;
-	Stack.Step( Stack.Object, NULL ); // Map to set
-	int32 Num = Stack.ReadInt<int32>();
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentProperty = nullptr;
+	Stack.Step( Stack.Object, nullptr ); // Map to set
+	const int32 Num = Stack.ReadInt<int32>();
 	
 	UMapProperty* MapProperty = CastChecked<UMapProperty>(Stack.MostRecentProperty);
  	FScriptMapHelper MapHelper(MapProperty, Stack.MostRecentPropertyAddress);
  	MapHelper.EmptyValues(Num);
  
- 	// Read in the parameters one at a time
- 	while(*Stack.Code != EX_EndMap)
- 	{
-		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over 
-		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
- 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
- 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
- 	}
-	MapHelper.Rehash();
+	if (Num > 0)
+	{
+		FDefaultConstructedPropertyElement TempKey(MapProperty->KeyProp);
+		FDefaultConstructedPropertyElement TempValue(MapProperty->ValueProp);
+
+		// Read in the parameters one at a time
+		while (*Stack.Code != EX_EndMap)
+		{
+			Stack.Step(Stack.Object, TempKey.GetObjAddress());
+			Stack.Step(Stack.Object, TempValue.GetObjAddress());
+			MapHelper.AddPair(TempKey.GetObjAddress(), TempValue.GetObjAddress());
+		}
+	}
+	else
+	{
+		check(*Stack.Code == EX_EndMap);
+	}
  
  	P_FINISH;
 }

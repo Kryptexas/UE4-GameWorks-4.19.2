@@ -59,19 +59,21 @@ typedef enum {
   TANGO_COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
   TANGO_COORDINATE_FRAME_DEVICE,          ///< Device coordinate frame
   TANGO_COORDINATE_FRAME_IMU,             ///< Inertial Measurement Unit
-  TANGO_COORDINATE_FRAME_DISPLAY,         ///< Display
+  TANGO_COORDINATE_FRAME_DISPLAY,         ///< Display (same as Device)
   TANGO_COORDINATE_FRAME_CAMERA_COLOR,    ///< Color camera
   TANGO_COORDINATE_FRAME_CAMERA_DEPTH,    ///< Depth camera
   TANGO_COORDINATE_FRAME_CAMERA_FISHEYE,  ///< Fisheye camera
   TANGO_COORDINATE_FRAME_UUID,            ///< Tango unique id
   TANGO_COORDINATE_FRAME_INVALID,
-  TANGO_MAX_COORDINATE_FRAME_TYPE         ///< Maximum allowed
+  TANGO_MAX_COORDINATE_FRAME_TYPE  ///< Maximum allowed
 } TangoCoordinateFrameType;
 
 /// @brief Tango Error types.
 /// Errors less than 0 should be dealt with by the program.
 /// Success is denoted by <code>TANGO_SUCCESS = 0</code>.
 typedef enum {
+  /// The calling app is missing Android permissions for ACCESS_FINE_LOCATION.
+  TANGO_NO_LOCATION_PERMISSION = -8,
   /// The user has not given permissions to read and write datasets.
   TANGO_NO_DATASET_PERMISSION = -7,
   /// The user has not given permission to export or import ADF files.
@@ -102,19 +104,50 @@ typedef enum {
   TANGO_POSE_INITIALIZING = 0,  ///< Motion estimation is being initialized
   TANGO_POSE_VALID,             ///< The pose of this estimate is valid
   TANGO_POSE_INVALID,           ///< The pose of this estimate is not valid
-  TANGO_POSE_UNKNOWN            ///< Could not estimate pose at this time
+  TANGO_POSE_UNKNOWN,           ///< Could not estimate pose at this time
+  TANGO_POSE_3DOF               ///< 3DOF tracking pose is being returned.
+  /// The 3DOF status is experimental, and will only occur if no 6DOF pose is
+  /// available and various internal experimental configuration parameters have
+  /// been set.
 } TangoPoseStatusType;
 
 /// Tango Event types.
+// Known TangoEvents are documented below in non-doxygen style. One of the tech
+// writers is welcome to edit and expose later, if desired.
 typedef enum {
-  TANGO_EVENT_UNKNOWN = 0,       ///< Unclassified Event Type
-  TANGO_EVENT_GENERAL,           ///< General uncategorized callbacks
-  TANGO_EVENT_FISHEYE_CAMERA,    ///< Fisheye Camera Event
-  TANGO_EVENT_COLOR_CAMERA,      ///< Color Camera Event
-  TANGO_EVENT_IMU,               ///< IMU Event
+  TANGO_EVENT_UNKNOWN = 0,  ///< Unclassified Event Type
+  TANGO_EVENT_GENERAL,      ///< General uncategorized callbacks
+  // "TangoServiceException" : "Service faulted will restart."
+  // "EXPERIMENTAL_PleaseDisconnect" : ""  (Experimental)
+  // "EXPERIMENTAL_PoseHistoryChanged" : "<earliest changed pose timestamp>"
+  // "CloudLocalizeSuccess" : ""  (Internal Debug)
+  // "CloudLocalizeFailure" : ""  (Internal Debug)
+  // "TileRequested" : "<s2Token>"  (Internal Debug)
+  // "TileUnavailable" : "<s2Token>"  (Internal Debug)
+  // "TileLoaded" : "<s2Token>"  (Internal Debug)
+  // "TileUnloaded" : "<s2Token>"  (Internal Debug)
+  // "TileDownloadFailed" : "<s2Token>"  (Internal Debug)
+  TANGO_EVENT_FISHEYE_CAMERA,  ///< Fisheye Camera Event
+  // "FisheyeOverExposed" : ""
+  // "FisheyeUnderExposed" : ""
+  TANGO_EVENT_COLOR_CAMERA,  ///< Color Camera Event
+  // "ColorOverExposed" : ""
+  // "ColorUnderExposed" : ""
+  TANGO_EVENT_IMU,  ///< IMU Event
+  // <none>
   TANGO_EVENT_FEATURE_TRACKING,  ///< Feature Tracking Event
-  TANGO_EVENT_AREA_LEARNING,     ///< Area Learning Event
-  TANGO_EVENT_CLOUD_ADF,         ///< Event related to cloud ADFs.
+  // "TooFewFeaturesTracked" : ""
+  TANGO_EVENT_AREA_LEARNING,  ///< Area Learning Event
+  // "AreaDescriptionSaveProgress" : "<fraction complete>"
+  TANGO_EVENT_CLOUD_ADF,      ///< Event related to cloud ADFs.
+                              // "STATUS_READY" : "0"  (Experimental)
+                              // "STATUS_NOT_AVAILABLE" : "0"  (Experimental)
+                              // "STATUS_FAILURE" : "0"  (Experimental)
+  TANGO_EVENT_SENSOR_FAILURE  ///< Generally un-recoverable system sensor
+                              ///  failure
+  // "imu" : "startup_failure" if IMU data never started or "callback_failure"
+  //         if data started flowing then stopped.
+  // "features" : "startup_failure" or "callback_failure" of features data.
 } TangoEventType;
 
 /// Tango Camera Calibration types. See TangoCameraIntrinsics for a detailed
@@ -182,6 +215,20 @@ typedef enum {
   /// Stop recording.  Has no effect if recording is not currently started.
   TANGO_RUNTIME_RECORDING_STOP = 2
 } TangoRuntimeRecordingControl_Experimental;
+
+/// Experimental API only, subject to change.
+/// Runtime control of plane detection.
+typedef enum {
+  /// Specifies that the plane detection should not change in this call to
+  /// runtime config.
+  TANGO_RUNTIME_PLANE_DETECTION_NO_CHANGE = 0,
+  /// Start plane detection.  Has no effect if plane detection has already
+  /// been started.
+  TANGO_RUNTIME_PLANE_DETECTION_START = 1,
+  /// Stop plane detection.  Has no effect if plane detection is not currently
+  /// started.
+  TANGO_RUNTIME_PLANE_DETECTION_STOP = 2
+} TangoRuntimePlaneDetectionControl_Experimental;
 
 /**@} */
 
@@ -383,6 +430,9 @@ typedef struct TangoImage {
 /// specific to the camera capture. It is meant to replicate
 /// some of the information provided by the Android
 /// CameraMetadata class.
+#define TANGO_NUM_COLOR_CORRECTION_GAIN_VALUES (4)
+#define TANGO_NUM_COLOR_CORRECTION_TRANSFORM_VALUES (9)
+#define TANGO_NUM_SENSOR_NEUTRAL_COLOR_POINT_VALUES (3)
 typedef struct TangoCameraMetadata {
   /// Camera timestamp in nanoseconds
   int64_t timestamp_ns;
@@ -390,6 +440,21 @@ typedef struct TangoCameraMetadata {
   int64_t frame_number;
   /// Camera exposure time in nanoseconds
   int64_t exposure_duration_ns;
+  /// Camera sensitivity ISO
+  int32_t sensitivity_iso;
+  /// Camera lense aperature
+  float lens_aperture;
+  // Will be one of the values in
+  // acamera_metadata_enum_acamera_color_correction_mode.
+  int32_t color_correction_mode;
+  // Gains applying to Bayer raw color channels for white-balance.
+  float color_correction_gains[TANGO_NUM_COLOR_CORRECTION_GAIN_VALUES];
+  // A color transform matrix to use to transform from sensor RGB
+  // color space to output linear sRGB color space.
+  float color_correction_transform[TANGO_NUM_COLOR_CORRECTION_TRANSFORM_VALUES];
+  // The estimated camera neutral color in the native sensor colorspace
+  // at the time of capture.
+  float sensor_neutral_color_point[TANGO_NUM_SENSOR_NEUTRAL_COLOR_POINT_VALUES];
 } TangoCameraMetadata;
 
 /// @deprecated Use @c TangoPointCloud instead.
@@ -558,6 +623,43 @@ typedef struct TangoEvent {
   const char* event_value;
 } TangoEvent;
 
+/// @brief The TangoPlaneData struct contains a plane definition.
+///
+/// The coordinate system of the plane frame is defined as:
+/// The Z axis is vertical with the positive direction pointing up.
+/// The X axis and Y axis are horizontal in the plane.
+typedef struct TangoPlaneData {
+  /// Unique id.
+  int id;
+  /// Pose of plane frame relative to Start of Service frame.
+  TangoPoseData pose;
+  /// 2D points of boundary polygon in counter-clockwise order. The point
+  /// coordinates are relative to the plane frame. They are 2D (x, y) because z
+  /// is always 0.
+  double* boundary_polygon;
+  /// Number of boundary points. The size of boundary_polygon is
+  /// boundary_point_num * 2 because each point has two values: x and y.
+  int boundary_point_num;
+  /// X coordinate of center point of the tightest enclosing bounding box,
+  /// relative to the plane frame.
+  double center_x;
+  /// Y coordinate of center point of the tightest enclosing bounding box,
+  /// relative to the plane frame.
+  double center_y;
+  /// Width (minor axis) of bounding box.
+  double width;
+  /// Height (major axis) of bounding box.
+  double height;
+  /// Angle (radians) from plane frame's X to width.
+  double yaw;
+  /// Timestamp of last update.
+  double timestamp;
+  /// Id of plane subsuming the current plane. -1 if the plane is not subsumed.
+  int subsumed_by;
+  /// "false" when the tracking is not reliable.
+  bool is_valid;
+} TangoPlaneData;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -681,7 +783,9 @@ TangoConfig TangoService_getConfig(TangoConfigType config_type);
 ///     be found or accessed by the service, or if the provided combination of
 ///     config flags is not valid. Returns @c TANGO_NO_DATASET_PERMISSION if the
 ///     config_enable_dataset_recording flag was enabled, but the user has not
-///     given permissions to read and write datasets.
+///     given permissions to read and write datasets. Returns
+///     @c TANGO_NO_LOCATION_PERMISSION if the calling app does not have the
+///     ACCESS_FINE_LOCATION Android permission and cloud ADFs are being used.
 TangoErrorType TangoService_connect(void* context, TangoConfig config);
 
 /// Sets configuration parameters at runtime. Only configuration parameters
@@ -1297,11 +1401,9 @@ TangoErrorType TangoAreaDescriptionMetadata_listKeys(
 /// <tr><td>boolean config_enable_drift_correction</td><td>
 ///         Enables drift-corrected mode. When drift-corrected mode is enabled,
 ///         the drift-corrected pose is available through the frame pair with
-///         base frame AREA_DESCRIPTION and target frame DEVICE.
-///         The base frame START_OF_SERVICE, target frame DEVICE frame pair
-///         remains the same as only enabling config_enable_motion_tracking
-///         flag. learning_mode and loading load_area_description cannot be
-///         used if drift correction is enabled</td></tr>
+///         base frame START_OF_SERVICE and target frame DEVICE. The config
+///         flags for learning_mode and load_area_description_UUID cannot be
+///         used if drift correction is enabled.</td></tr>
 /// </table>
 ///
 /// The supported configuration parameters that can be queried are:

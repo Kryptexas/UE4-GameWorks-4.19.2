@@ -22,9 +22,6 @@ public:
 	FORCEINLINE explicit FProcHandle( HandleType Other )
 		: TProcHandle( Other )
 	{}
-
-	DEPRECATED(4.8, "FProcHandle::Close() is redundant - handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc().")
-	FORCEINLINE bool Close();
 };
 
 
@@ -163,7 +160,6 @@ public:
 	static bool IsApplicationRunning( uint32 ProcessId );
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	static FString GetApplicationName( uint32 ProcessId );	
-	static bool IsThisApplicationForeground();
 	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
 	static bool ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode);
 	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
@@ -242,18 +238,15 @@ private:
 	 * @param ImportNames Array to receive the list of imported PE file names
 	 */
 	static bool ReadLibraryImports(const TCHAR* FileName, TArray<FString>& ImportNames);
+
+	/**
+	 * Log diagnostic messages showing missing imports for module.
+	 *
+	 * @param FileName Path to the library to load
+	 * @param SearchPaths Search directories to scan for imports
+	 */
+	static void LogImportDiagnostics(const FString& FileName, const TArray<FString>& SearchPaths);
 };
 
 
 typedef FWindowsPlatformProcess FPlatformProcess;
-
-inline bool FProcHandle::Close()
-{
-	if (IsValid())
-	{
-		FPlatformProcess::CloseProc(*this);
-		return true;
-	}
-	return false;
-}
-

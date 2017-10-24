@@ -27,16 +27,16 @@ public class SymbolDebuggerTarget : TargetRules
 	{
 		OutCPPEnvironmentConfiguration.Definitions.Add("WITH_DATABASE_SUPPORT=1");
 
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 
 		// SymbolDebugger doesn't ever compile with the engine linked in
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = true;
 
-		UEBuildConfiguration.bIncludeADO = true;
+		bIncludeADO = true;
 
 		// SymbolDebugger.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.

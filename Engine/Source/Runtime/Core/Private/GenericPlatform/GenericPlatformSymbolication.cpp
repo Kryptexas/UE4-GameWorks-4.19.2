@@ -77,10 +77,10 @@ bool FGenericPlatformSymbolication::SymbolInfoForStrippedSymbol(FGenericPlatform
 		{
 			if((Symbol.Start <= (ProgramCounter - ModuleOffset)) && ((Symbol.Start + Symbol.Length) >= (ProgramCounter - ModuleOffset)))
 			{
-				FCStringAnsi::Strncpy(Info.ModuleName, TCHAR_TO_ANSI(*Database.Name), FProgramCounterSymbolInfo::MAX_NAME_LENGHT);
+				FCStringAnsi::Strncpy(Info.ModuleName, TCHAR_TO_ANSI(*Database.Name), FProgramCounterSymbolInfo::MAX_NAME_LENGTH);
 				
 				FString SymbolName = Database.StringTable[Symbol.NameIdx];
-				FCStringAnsi::Strncpy(Info.FunctionName, TCHAR_TO_ANSI(*SymbolName), FProgramCounterSymbolInfo::MAX_NAME_LENGHT);
+				FCStringAnsi::Strncpy(Info.FunctionName, TCHAR_TO_ANSI(*SymbolName), FProgramCounterSymbolInfo::MAX_NAME_LENGTH);
 				
 				Info.ProgramCounter = ProgramCounter;
 				Info.OffsetInModule = Symbol.Start;
@@ -92,7 +92,7 @@ bool FGenericPlatformSymbolication::SymbolInfoForStrippedSymbol(FGenericPlatform
 					if((SymbolInfo.Start <= (ProgramCounter - ModuleOffset)) && ((SymbolInfo.Start + SymbolInfo.Length) >= (ProgramCounter - ModuleOffset)))
 					{
 						FString Path = Database.StringTable[SymbolInfo.PathIdx];
-						FCStringAnsi::Strncpy(Info.Filename, TCHAR_TO_ANSI(*Path), FProgramCounterSymbolInfo::MAX_NAME_LENGHT);
+						FCStringAnsi::Strncpy(Info.Filename, TCHAR_TO_ANSI(*Path), FProgramCounterSymbolInfo::MAX_NAME_LENGTH);
 						Info.LineNumber = SymbolInfo.Line;
 						break;
 					}

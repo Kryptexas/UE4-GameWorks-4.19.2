@@ -14,6 +14,7 @@ public class UnrealFileServer : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "Core",
+				"ApplicationCore",
                 "DirectoryWatcher",
                 "NetworkFileSystem",
                 "SandboxFile",

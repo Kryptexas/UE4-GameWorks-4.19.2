@@ -885,7 +885,7 @@ void FLocalizationTargetDetailCustomization::GatherText()
 		}
 
 		// Execute gather.
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		LocalizationCommandletTasks::GatherTextForTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 
 		UpdateTargetFromReports();
@@ -903,7 +903,7 @@ void FLocalizationTargetDetailCustomization::ImportTextAllCultures()
 	if (LocalizationTarget.IsValid() && DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
@@ -940,7 +940,7 @@ void FLocalizationTargetDetailCustomization::ExportTextAllCultures()
 	if (LocalizationTarget.IsValid() && DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
@@ -975,7 +975,7 @@ void FLocalizationTargetDetailCustomization::ImportDialogueScriptAllCultures()
 	if (LocalizationTarget.IsValid() && DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
@@ -1012,7 +1012,7 @@ void FLocalizationTargetDetailCustomization::ExportDialogueScriptAllCultures()
 	if (LocalizationTarget.IsValid() && DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
@@ -1057,7 +1057,7 @@ void FLocalizationTargetDetailCustomization::ImportDialogueAllCultures()
 		}
 
 		// Execute import dialogue.
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		LocalizationCommandletTasks::ImportDialogueForTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 	}
 }
@@ -1071,7 +1071,7 @@ void FLocalizationTargetDetailCustomization::CountWords()
 {
 	if (LocalizationTarget.IsValid())
 	{
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		LocalizationCommandletTasks::GenerateWordCountReportForTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 
 		UpdateTargetFromReports();
@@ -1088,7 +1088,7 @@ void FLocalizationTargetDetailCustomization::CompileTextAllCultures()
 	if (LocalizationTarget.IsValid())
 	{
 		// Execute compile.
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		LocalizationCommandletTasks::CompileTextForTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 	}
 }

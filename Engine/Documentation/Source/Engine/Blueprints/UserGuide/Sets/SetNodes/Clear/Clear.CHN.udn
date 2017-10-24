@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Clear
-Description:Clears all items from a Set.
-Crumbs:
+Description:清除 Set 中的所有项目。
+Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
-Version: 4.15
+Order:3
+Version:4.15
 Tags:Blueprints
 Type:reference
 
@@ -13,21 +13,21 @@ Type:reference
 
 ![](Set_ClearNode.png)
 
-The **Clear** node removes all of the items from a given Set, removing all of the Set's contents. Subsequently, the Set's length will be reset to zero.
+**Clear** 节点从一个给定 Set 移除所有项目，移除 Set 的所有内容。其后，Set 的长度将被重设为零。
 
-##Inputs
+## 输入
 
-| Pin Location             | Name        | Description                                |
+| 引脚位置             | 名称        | 描述                                |
 | ------------------------ | ----------- | ------------------------------------------ |
-| ![](Set_ClearNode_1.png) |  (In) Exec  | Input execution pin.                       |
-| ![](Set_ClearNode_2.png) |  Target Set | The Set that you want to clear items from. |
+| ![](Set_ClearNode_1.png) |  (In) Exec  | 输入执行引脚。                       |
+| ![](Set_ClearNode_2.png) |  Target Set | 需要清理项目的 Set。 |
 
-##Outputs
+## 输出
 
-| Pin Location             | Name        | Description           |
+| 引脚位置             | 名称        | 描述           |
 | ------------------------ | ----------- | --------------------- |
-| ![](Set_ClearNode_3.png) |  (Out) Exec | Output execution pin. |
+| ![](Set_ClearNode_3.png) |  (Out) Exec | 输出执行引脚。 |
 
-##Example Usage
+## 使用范例
 
 ![](Set_ClearUsage.png)

@@ -100,12 +100,15 @@ struct GAMEPLAYABILITIES_API FAggregatorModChannel
 	void AddModsFrom(const FAggregatorModChannel& Other);
 
 	/**
-	 * Populate a mapping of channel to corresponding mods for debugging purposes
+	 * Populate a mapping of channel to corresponding mods
 	 * 
 	 * @param Channel	Enum channel associated with this channel
 	 * @param OutMods	Mapping of channel enum to mods
 	 */
-	void DebugGetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+	void GetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+
+	DEPRECATED(4.17, "Use GetAllAggregatorMods")
+	void DebugGetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const { return GetAllAggregatorMods(Channel, OutMods); }
 	
 	/**
 	 * Called when the mod channel's gameplay effect dependencies have potentially been swapped out for new ones, like when GE arrays are cloned.
@@ -208,7 +211,10 @@ struct GAMEPLAYABILITIES_API FAggregatorModChannelContainer
 	 * 
 	 * @param OutMods	Mapping of channel enum to mods
 	 */
-	void DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+	void GetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+
+	DEPRECATED(4.17, "Use GetAllAggregatorMods")
+	void DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const { return GetAllAggregatorMods(OutMods); }
 
 	/**
 	 * Called when the container's gameplay effect dependencies have potentially been swapped out for new ones, like when GE arrays are cloned.
@@ -280,11 +286,14 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	void RemoveDependent(FActiveGameplayEffectHandle Handle);
 
 	/**
-	 * Populate a mapping of channel to corresponding mods for debugging purposes
+	 * Populate a mapping of channel to corresponding mods
 	 * 
 	 * @param OutMods	Mapping of channel enum to mods
 	 */
-	void DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+	void GetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const;
+
+	DEPRECATED(4.17, "Use GetAllAggregatorMods")
+	void DebugGetAllAggregatorMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutMods) const { return GetAllAggregatorMods(OutMods); }
 	
 	/**
 	 * Called when the aggregator's gameplay effect dependencies have potentially been swapped out for new ones, like when GE arrays are cloned.

@@ -34,7 +34,7 @@ cooked data for the platform specified and saved it to the location below:
 | `-targetplatform=<Plat1>+<Plat2>` | Specifies the platform(s) to be cooked.  The list of available platforms are WindowsNoEditor, WindowsServer, LinuxServer, PS4, XboxOne, IOS, and Android. |
 | `-iterate` | Specifies the cooker only cook items that are out of date.  Without this option, the sandbox directory is deleted and everything is recooked. |
 | `-Map=<Map1>+<Map2>+...` | Specifies the map(s) to build. |
-| `-cookonthefly` | Specifies that the cooker be started in server mode.  This will launch a server which waits for a game to connect and then serves the cooked data as needed. When this option is used, the game requires -filehostip=<Server IP> specified on its command line so it can connect with the server. |
+| `-cookonthefly` | Specifies that the cooker be started in server mode.  This will launch a server which waits for a game to connect and then serves the cooked data as needed. When this option is used, the game requires `-filehostip=<Server IP>` specified on its command line so it can connect with the server. |
 | `-MapIniSection=<ini file section>` | Specifies a section from the ini files which contains map names.  The cooker will cook all maps specified in the section specified. |
 | `-UnVersioned` | Saves all of the cooked packages without versions.  These are then assumed to be the current version on load. |
 | `-CookAll` | Cooks everything. |

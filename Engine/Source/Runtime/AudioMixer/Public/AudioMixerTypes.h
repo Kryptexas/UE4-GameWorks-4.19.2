@@ -12,10 +12,10 @@ namespace Audio {
 			AudioOut, 	// PS4
 			CoreAudio, 	// Mac
 			AudioUnit, 	// iOS
-			OpenAL, 	// Linux, Html5
+			SDL2,		// Used on Linux, Html5
 			OpenSLES, 	// Android
 			Switch, 	// Switch
-			Null,		// Unknown/not Supported
+			Null		// Unknown/not Supported
 		};
 	}
 
@@ -25,10 +25,7 @@ namespace Audio {
 		{
 			Unknown,
 			Float,
-			Double,
 			Int16,
-			Int24,
-			Int32,
 			Unsupported
 		};
 	}

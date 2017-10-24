@@ -27,7 +27,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=General)
 	bool bDrawThumbnails;
 
-	/** Whether to draw thumbnails or not */
+	/** Whether to draw a single thumbnail for this section or as many as can fit */
 	UPROPERTY(EditAnywhere, config, Category=General, meta=(EditCondition=bDrawThumbnails))
 	bool bDrawSingleThumbnails;
 
@@ -47,4 +47,21 @@ public:
 
 private:
 	FOnForceRedraw OnForceRedrawEvent;
+};
+
+UCLASS(config=EditorSettings)
+class MOVIESCENETOOLS_API UMovieSceneUserImportFBXSettings : public UObject
+{
+public:
+	UMovieSceneUserImportFBXSettings(const FObjectInitializer& Initializer);
+	
+	GENERATED_BODY()
+
+	/** Whether to force the front axis to be align with X instead of -Y. */
+	UPROPERTY(EditAnywhere, config, Category=Import, meta= (ToolTip = "Convert the scene from FBX coordinate system to UE4 coordinate system with front X axis instead of -Y"))
+	bool bForceFrontXAxis;
+
+	/** Whether to create cameras if they don't already exist in the level. */
+	UPROPERTY(EditAnywhere, config, Category=Import)
+	bool bCreateCameras;
 };

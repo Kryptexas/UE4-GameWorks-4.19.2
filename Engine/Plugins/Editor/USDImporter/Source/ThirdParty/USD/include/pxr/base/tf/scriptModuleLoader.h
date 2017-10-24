@@ -24,6 +24,8 @@
 #ifndef TF_SCRIPT_MODULE_LOADER_H
 #define TF_SCRIPT_MODULE_LOADER_H
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/hash.h"
 #include "pxr/base/tf/singleton.h"
@@ -37,6 +39,8 @@
 #include "pxr/base/tf/hashset.h"
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfScriptModuleLoader
 ///
@@ -135,5 +139,7 @@ class TfScriptModuleLoader : public TfWeakBase {
 };
 
 TF_API_TEMPLATE_CLASS(TfSingleton<TfScriptModuleLoader>);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_SCRIPT_MODULE_LOADER_H

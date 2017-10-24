@@ -15,6 +15,18 @@ namespace ImmediatePhysics
 struct FBodyInstance;
 struct FConstraintInstance;
 
+/** Determines in what space the simulation should run */
+UENUM()
+enum class ESimulationSpace
+{
+	/** Simulate in component space. Moving the entire skeletal mesh will have no affect on velocities */
+	ComponentSpace,
+	/** Simulate in world space. Moving the skeletal mesh will generate velocity changes */
+	WorldSpace,
+	/** Simulate in root bone space. Moving the entire skeletal mesh and individually modifying the root bone will have no affect on velocities */
+	RootBoneSpace
+};
+
 /**
  *	Controller that simulates physics based on the physics asset of the skeletal mesh component
  */
@@ -47,6 +59,10 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (editcondition = "bOverrideWorldGravity"))
 	FVector OverrideWorldGravity;
 
+	/** Applies a uniform external force in world space. This allows for easily faking inertia of movement while still simulating in component space for example */
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (PinShownByDefault))
+	FVector ExternalForce;
+
 	/** The channel we use to find static geometry to collide with */
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (editcondition = "bEnableWorldGeometry"))
 	TEnumAsByte<ECollisionChannel> OverlapChannel;
@@ -54,10 +70,10 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category = Settings, meta=(InlineEditConditionToggle))
 	bool bEnableWorldGeometry;
 
-	/** When true, simulation is done in component space. This means velocity is only inherited by animated bodies */
+	/** What space to simulate the bodies in. This affects how velocities are generated */
 	UPROPERTY(EditAnywhere, Category = Settings)
-	bool bComponentSpaceSimulation;
-
+	ESimulationSpace SimulationSpace;
+	
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (InlineEditConditionToggle))
 	bool bOverrideWorldGravity;
 
@@ -69,14 +85,20 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin="1.0", ClampMax="2.0"))
 	float CachedBoundsScale;
 
+	void PostSerialize(const FArchive& Ar);
+
 private:
+
+	UPROPERTY()
+	bool bComponentSpaceSimulation_DEPRECATED;	//use SimulationSpace
+
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
 	void InitPhysics(const UAnimInstance* InAnimInstance);
 	void UpdateWorldGeometry(const UWorld& World, const USkeletalMeshComponent& SKC);
-	void UpdateWorldForces(const FTransform& ComponentToWorld);
+	void UpdateWorldForces(const FTransform& ComponentToWorld, const FTransform& RootBoneTM);
 private:
 
 	/** This should only be used for removing the delegate during termination. Do NOT use this for any per frame work */
@@ -90,9 +112,10 @@ private:
 		int32 BodyIndex;
 	};
 	
+	FBoneReference RootBoneRef;
+
 	TArray<FOutputBoneData> OutputBoneData;
 	TArray<ImmediatePhysics::FActorHandle*> Bodies;
-	TArray<FName> BodyNames;
 	TArray<bool> IsSimulated;
 	TArray<FBoneIndexType> BodyBoneIndices;
 	bool bResetSimulated;
@@ -102,7 +125,7 @@ private:
 
 	TSet<UPrimitiveComponent*> ComponentsInSim;
 
-	FVector Gravity;
+	FVector WorldSpaceGravity;
 	float DeltaSeconds;
 	float TotalMass;
 
@@ -116,4 +139,13 @@ private:
 	// Typically, World should never be accessed off the Game Thread.
 	// However, since we're just doing overlaps this should be OK.
 	const UWorld* UnsafeWorld;
+};
+
+template<>
+struct TStructOpsTypeTraits<FAnimNode_RigidBody> : public TStructOpsTypeTraitsBase2<FAnimNode_RigidBody>
+{
+	enum
+	{
+		WithPostSerialize = true
+	};
 };

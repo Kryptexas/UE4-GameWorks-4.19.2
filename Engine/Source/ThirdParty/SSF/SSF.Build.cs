@@ -9,16 +9,16 @@ public class SSF : ModuleRules
 
 		bOutputPubliclyDistributable = true;
 
-        string SSFDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SSF/";
+        string SSFDirectory = Target.UEThirdPartySourceDirectory + "NotForLicensees/SSF/";
         string SSFLibPath = SSFDirectory;
         PublicIncludePaths.Add(SSFDirectory + "Public");
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            SSFLibPath = SSFLibPath + "lib/win64/vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+            SSFLibPath = SSFLibPath + "lib/win64/vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
             PublicLibraryPaths.Add(SSFLibPath);
 
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add("SSFd.lib");
             }
@@ -30,7 +30,7 @@ public class SSF : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibPath = SSFDirectory + "lib/Mac/";
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add(LibPath + "libssf_debug.a");
             }

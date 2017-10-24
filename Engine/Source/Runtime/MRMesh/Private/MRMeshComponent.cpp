@@ -16,6 +16,7 @@
 #include "PhysicsPublic.h"
 #include "IPhysXCooking.h"
 #include "PhysXCookHelper.h"
+#include "Misc/RuntimeErrors.h"
 
 /**
  * A vertex buffer with some dummy data to send down for MRMesh vertex components that we aren't feeding at the moment.
@@ -384,10 +385,13 @@ UMRMeshComponent::UMRMeshComponent(const FObjectInitializer& ObjectInitializer)
 
 void UMRMeshComponent::ConnectReconstructor(UMeshReconstructorBase* Reconstructor)
 {
-	if (ensure(MeshReconstructor == nullptr))
+	if (ensureAsRuntimeWarning(Reconstructor != nullptr))
 	{
-		MeshReconstructor = Reconstructor;
-		MeshReconstructor->ConnectMRMesh(this);
+		if (ensure(MeshReconstructor == nullptr))
+		{
+			MeshReconstructor = Reconstructor;
+			MeshReconstructor->ConnectMRMesh(this);
+		}
 	}
 }
 

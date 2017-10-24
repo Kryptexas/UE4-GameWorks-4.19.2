@@ -5,6 +5,7 @@
 #include "OnlineSubsystemGooglePrivate.h"
 #include "OnlineSubsystemGoogleTypes.h"
 #include "OnlineSubsystemGoogle.h"
+#include "OnlineError.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Misc/ConfigCacheIni.h"
@@ -51,7 +52,7 @@ bool FJsonWebTokenGoogle::Parse(const FString& InJWTStr)
 							static const FString Issuer2 = TEXT("accounts.google.com");
 							if ((Payload.ISS == Issuer1) || (Payload.ISS == Issuer2))
 							{
-								// Verify that the value of aud in the ID token is equal to your app’s client ID.
+								// Verify that the value of aud in the ID token is equal to your app's client ID.
 								FOnlineSubsystemGoogle* GoogleSubsystem = static_cast<FOnlineSubsystemGoogle*>(IOnlineSubsystem::Get(GOOGLE_SUBSYSTEM));
 								if (Payload.Aud == GoogleSubsystem->GetAppId() ||
 									Payload.Aud == GoogleSubsystem->GetServerClientId())
@@ -492,7 +493,7 @@ void FOnlineIdentityGoogleCommon::GetUserPrivilege(const FUniqueNetId& UserId, E
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }	
 
-FPlatformUserId FOnlineIdentityGoogleCommon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityGoogleCommon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{
@@ -511,3 +512,12 @@ FString FOnlineIdentityGoogleCommon::GetAuthType() const
 	return TEXT("Google");
 }
 
+void FOnlineIdentityGoogleCommon::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGoogleCommon::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	GoogleSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
+}

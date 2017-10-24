@@ -63,6 +63,9 @@ public:
 	/** Get the skeletal mesh component we are using for preview, if any. */
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const = 0;
 
+	/** Set the skeletal mesh component we are going to preview. */
+	virtual void SetPreviewMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent) = 0;
+
 	/** Set the additional meshes used by this preview scene (sets the additional meshes on the skeleton) */
 	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) = 0;
 
@@ -191,6 +194,9 @@ public:
 
 	/** Get the main actor */
 	virtual AActor* GetActor() const = 0;
+
+	/** Set the main actor */
+	virtual void SetActor(AActor* InActor) = 0;
 
 	/** Get whether or not to ignore mesh hit proxies */
 	virtual bool AllowMeshHitProxies() const = 0;

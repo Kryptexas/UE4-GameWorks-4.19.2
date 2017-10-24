@@ -272,7 +272,7 @@ class GitPullRequest : BuildCommand
 			P4.CreateClient(NewClient);
 		}
 
-		var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.P4Port);
+		var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.ServerAndPort);
 
 		P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
 
@@ -593,10 +593,10 @@ class TestP4_ClientOps : BuildCommand
 
 		//Sync(CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "UE4Games.uprojectdirs"));
 		string Output;
-		P4.P4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "..."));
+		P4.P4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.Branch, "..."));
 
 		var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-		string SlashRoot = CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "/");
+		string SlashRoot = CombinePaths(PathSeparator.Slash, P4Env.Branch, "/");
 		string LocalRoot = CombinePaths(CmdEnv.LocalRoot, @"\");
 		foreach (string Line in Lines)
 		{
@@ -605,7 +605,7 @@ class TestP4_ClientOps : BuildCommand
 				string depot = Line.Substring(0, Line.IndexOf("#"));
 				if (!depot.Contains(SlashRoot))
 				{
-					throw new AutomationException("{0} does not contain {1} and it is supposed to.", depot, P4Env.BuildRootP4);
+					throw new AutomationException("{0} does not contain {1} and it is supposed to.", depot, P4Env.Branch);
 				}
 				string local = CombinePaths(depot.Replace(SlashRoot, LocalRoot));
 				Log("{0}", depot);
@@ -614,7 +614,7 @@ class TestP4_ClientOps : BuildCommand
 		}
 
 		// should be used as a sanity check! make sure there are no files!
-		P4.LogP4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "...", "NoRedist", "..."));
+		P4.LogP4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.Branch, "...", "NoRedist", "..."));
 
 		// caution this doesn't actually use the client _view_ from the template at all!
 		// if you want that sync -f -k /...

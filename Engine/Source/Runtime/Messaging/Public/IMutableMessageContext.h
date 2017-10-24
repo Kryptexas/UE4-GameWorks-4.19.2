@@ -2,12 +2,19 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "IMessageContext.h"
+#include "Templates/SharedPointer.h"
+
+class FName;
+class FString;
+class IMessageAttachment;
+class UScriptStruct;
 
 enum class EMessageScope : uint8;
+
+struct FDateTime;
 struct FMessageAddress;
-class IMessageAttachment;
+
 
 /**
  * Interface for mutable message contexts.

@@ -55,27 +55,57 @@ public:
 		return (CachedSocketMeshBoneIndex != INDEX_NONE);
 	}
 
-	bool IsValidToEvaluate(const FBoneContainer& RequiredBones) const
+	bool IsValidToEvaluate() const
 	{
 		return (CachedSocketCompactBoneIndex != INDEX_NONE);
 	}
 
-	FTransform GetAnimatedSocketTransform(struct FCSPose<FCompactPose>& InPose) const;
+	FCompactPoseBoneIndex GetCachedSocketCompactBoneIndex() const
+	{
+		return CachedSocketCompactBoneIndex;
+	}
+
+	template<typename poseType>
+	FTransform GetAnimatedSocketTransform(struct FCSPose<poseType>& InPose) const
+	{
+		// current LOD has valid index (FCompactPoseBoneIndex is valid if current LOD supports)
+		if (CachedSocketCompactBoneIndex != INDEX_NONE)
+		{
+			FTransform BoneTransform = InPose.GetComponentSpaceTransform(CachedSocketCompactBoneIndex);
+			return CachedSocketLocalTransform * BoneTransform;
+		}
+
+		return FTransform::Identity;
+	}
 };
 
 USTRUCT()
-struct FTargetReference
+struct FBoneSocketTarget
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category = FTargetReference)
+	UPROPERTY(EditAnywhere, Category = FBoneSocketTarget)
 	bool bUseSocket;
 
-	UPROPERTY(EditAnywhere, Category = FTargetReference, meta=(EditCondition = "!bUseSocket"))
+	UPROPERTY(EditAnywhere, Category = FBoneSocketTarget, meta=(EditCondition = "!bUseSocket"))
 	FBoneReference BoneReference;
 
-	UPROPERTY(EditAnywhere, Category = FTargetReference, meta = (EditCondition = "bUseSocket"))
+	UPROPERTY(EditAnywhere, Category = FBoneSocketTarget, meta = (EditCondition = "bUseSocket"))
 	FSocketReference SocketReference;
+
+	FBoneSocketTarget(FName InName = NAME_None, bool bInUseSocket = false)
+	{
+		bUseSocket = bInUseSocket;
+
+		if (bUseSocket)
+		{
+			SocketReference.SocketName = InName;
+		}
+		else
+		{
+			BoneReference.BoneName = InName;
+		}
+	}
 
 	void InitializeBoneReferences(const FBoneContainer& RequiredBones)
 	{
@@ -135,15 +165,119 @@ struct FTargetReference
 	{
 		if (bUseSocket)
 		{
-			return SocketReference.IsValidToEvaluate(RequiredBones);
+			return SocketReference.IsValidToEvaluate();
 		}
 
 		return BoneReference.IsValidToEvaluate(RequiredBones);
 	}
 
-	/** Get Target Location from current incoming pose */
-	FVector GetTargetLocation(FVector TargetOffset, const FBoneContainer& BoneContainer,
-		FCSPose<FCompactPose>& InPose, const FTransform& InComponentToWorld, FTransform& OutTargetTransform);
+	// this will return the compact pose bone index that matters
+	// if you're using sockeet, it will return socket's related joint's compact pose index
+	FCompactPoseBoneIndex GetCompactPoseBoneIndex() const 
+	{
+		if (bUseSocket)
+		{
+			return SocketReference.GetCachedSocketCompactBoneIndex();
+		}
+
+		return BoneReference.CachedCompactPoseIndex;
+	}
+
+	/** Get Target Transform from current incoming pose */
+	template<typename poseType>
+	FTransform GetTargetTransform(const FVector& TargetOffset, FCSPose<poseType>& InPose, const FTransform& InComponentToWorld) const
+	{
+		FTransform OutTargetTransform;
+
+		auto SetComponentSpaceOffset = [](const FVector& InTargetOffset, const FTransform& LocalInComponentToWorld, FTransform& LocalOutTargetTransform)
+		{
+			LocalOutTargetTransform.SetIdentity();
+			FVector CSTargetOffset = LocalInComponentToWorld.InverseTransformPosition(InTargetOffset);
+			LocalOutTargetTransform.SetLocation(CSTargetOffset);
+		};
+
+		if (bUseSocket)
+		{
+			// this has to be done outside
+			if (SocketReference.IsValidToEvaluate())
+			{
+				FTransform SocketTransformInCS = SocketReference.GetAnimatedSocketTransform(InPose);
+
+				FVector CSTargetOffset = SocketTransformInCS.TransformPosition(TargetOffset);
+				OutTargetTransform = SocketTransformInCS;
+				OutTargetTransform.SetLocation(CSTargetOffset);
+			}
+			else
+			{
+				// if none is found, we consider this offset is world offset
+				SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+			}
+		}
+		// if valid data is available
+		else if (BoneReference.HasValidSetup())
+		{
+			if (BoneReference.IsValidToEvaluate())
+			{
+				OutTargetTransform = InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
+				FVector CSTargetOffset = OutTargetTransform.TransformPosition(TargetOffset);
+				OutTargetTransform.SetLocation(CSTargetOffset);
+			}
+			else
+			{
+				// if none is found, we consider this offset is world offset
+				SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+			}
+		}
+		else
+		{
+			// if none is found, we consider this offset is world offset
+			SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+		}
+
+		return OutTargetTransform;
+	}
+
+	template<typename poseType>
+	FTransform GetTargetTransform(const FTransform& TargetOffset, FCSPose<poseType>& InPose, const FTransform& InComponentToWorld) const
+	{
+		FTransform OutTargetTransform;
+
+		auto SetComponentSpaceOffset = [](const FTransform& InTargetOffset, const FTransform& LocalInComponentToWorld, FTransform& LocalOutTargetTransform)
+		{
+			LocalOutTargetTransform = InTargetOffset.GetRelativeTransform(LocalInComponentToWorld);
+		};
+
+		if (bUseSocket)
+		{
+			// this has to be done outside
+			if (SocketReference.IsValidToEvaluate())
+			{
+				OutTargetTransform = TargetOffset * SocketReference.GetAnimatedSocketTransform(InPose);
+			}
+			else
+			{
+				SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+			}
+		}
+		// if valid data is available
+		else if (BoneReference.HasValidSetup())
+		{
+			if (BoneReference.IsValidToEvaluate())
+			{
+				OutTargetTransform = TargetOffset * InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
+			}
+			else
+			{
+				SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+			}
+		}
+		else
+		{
+			SetComponentSpaceOffset(TargetOffset, InComponentToWorld, OutTargetTransform);
+		}
+
+		return OutTargetTransform;
+	}
 };
 
 USTRUCT(BlueprintInternalUseOnly)
@@ -195,7 +329,7 @@ public:
 	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) final;
 	virtual void EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output) final;
 	// End of FAnimNode_Base interface
-	
+
 protected:
 	// Interface for derived skeletal controls to implement
 	// use this function to update for skeletal control base

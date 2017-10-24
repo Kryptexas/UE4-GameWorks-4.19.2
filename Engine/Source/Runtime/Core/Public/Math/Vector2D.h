@@ -391,9 +391,6 @@ public:
 	 */
 	FVector2D GetSafeNormal(float Tolerance=SMALL_NUMBER) const;
 
-	DEPRECATED(4.7, "Deprecated due to unclear name, use GetSafeNormal instead.")
-	FVector2D SafeNormal(float Tolerance = SMALL_NUMBER) const;
-
 	/**
 	 * Normalize this vector in-place if it is large enough, set it to (0,0) otherwise.
 	 *
@@ -821,12 +818,6 @@ FORCEINLINE FVector2D FVector2D::GetSafeNormal(float Tolerance) const
 		return FVector2D(X*Scale, Y*Scale);
 	}
 	return FVector2D(0.f, 0.f);
-}
-
-
-FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
-{
-	return GetSafeNormal(Tolerance);
 }
 
 

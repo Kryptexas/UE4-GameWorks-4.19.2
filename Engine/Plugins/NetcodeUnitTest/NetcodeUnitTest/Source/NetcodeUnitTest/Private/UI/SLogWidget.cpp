@@ -14,6 +14,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "UI/LogWidgetCommands.h"
 #include "NUTUtil.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "UI/SMultiSelectTableRow.h"
 
@@ -1116,7 +1117,7 @@ void SLogWidget::OnCopy()
 				}
 			}
 
-			FPlatformMisc::ClipboardCopy(*CopiedLines);
+			FPlatformApplicationMisc::ClipboardCopy(*CopiedLines);
 		}
 	}
 }

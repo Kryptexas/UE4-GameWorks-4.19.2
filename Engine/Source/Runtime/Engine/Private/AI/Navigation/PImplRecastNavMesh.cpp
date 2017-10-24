@@ -1321,49 +1321,6 @@ FNavLocation FPImplRecastNavMesh::GetRandomPoint(const FNavigationQueryFilter& F
 	return OutLocation;
 }
 
-bool FPImplRecastNavMesh::GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter, const UObject* Owner) const
-{
-	if (DetourNavMesh == NULL || Radius <= 0.f)
-	{
-		return false;
-	}
-
-	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
-
-	// inits to "pass all"
-	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
-	ensure(QueryFilter);
-	if (QueryFilter)
-	{
-		// find starting poly
-		// convert start/end pos to Recast coords
-		const FVector NavExtent = NavMeshOwner->GetModifiedQueryExtent(FVector(Radius, Radius, Radius));
-		const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
-		float RecastOrigin[3];
-		Unr2RecastVector(Origin, RecastOrigin);
-		NavNodeRef OriginPolyID = INVALID_NAVNODEREF;
-		NavQuery.findNearestPoly(RecastOrigin, Extent, QueryFilter, &OriginPolyID, NULL);
-
-		dtPolyRef Poly;
-		float RandPt[3];
-		dtStatus Status = NavQuery.findRandomPointAroundCircle(OriginPolyID, RecastOrigin, Radius
-			, QueryFilter, FMath::FRand, &Poly, RandPt);
-
-		if (dtStatusSucceed(Status))
-		{
-			OutLocation = FNavLocation(Recast2UnrVector(RandPt), Poly);
-			return true;
-		}
-		else
-		{
-			OutLocation = FNavLocation(Origin, OriginPolyID);
-		}
-	}
-
-	return false;
-}
-
 bool FPImplRecastNavMesh::GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLocation& OutLocation) const
 {
 	if (DetourNavMesh == NULL || ClusterRef == 0)

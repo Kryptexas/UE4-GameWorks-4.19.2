@@ -31,6 +31,7 @@
 #include "EditorStyleSet.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "Settings/EditorExperimentalSettings.h"
+#include "CookerSettings.h"
 #include "UnrealEdMisc.h"
 #include "FileHelpers.h"
 #include "Dialogs/Dialogs.h"
@@ -76,7 +77,7 @@ FMainFrameCommands::FMainFrameCommands()
 void FMainFrameCommands::RegisterCommands()
 {
 	// Some commands cannot be processed in a commandlet or if the editor is started without a project
-	if ( !IsRunningCommandlet() && FApp::HasGameName() )
+	if ( !IsRunningCommandlet() && FApp::HasProjectName() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
 		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
@@ -332,7 +333,7 @@ const TCHAR* GetUATCompilationFlags()
 {
 	// We never want to compile editor targets when invoking UAT in this context.
 	// If we are installed or don't have a compiler, we must assume we have a precompiled UAT.
-	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled() || FPlatformMisc::IsDebuggerPresent())
+	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled())
 		? TEXT("-nocompile -nocompileeditor")
 		: TEXT("-nocompileeditor");
 }
@@ -392,13 +393,19 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 
 	OptionalParams += GetCookingOptionalParams();
 
+	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
+	if (CookerSettings->bIterativeCookingForFileCookContent)
+	{
+		OptionalParams += TEXT(" -iterate");
+	}
+
 	if (FApp::IsRunningDebug())
 	{
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
 
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -skipstage -ue4exe=%s %s"),
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -skipstage -ue4exe=%s %s -utf8output"),
 		GetUATCompilationFlags(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
@@ -423,7 +430,7 @@ void FMainFrameActionCallbacks::PackageBuildConfiguration( EProjectPackagingBuil
 bool FMainFrameActionCallbacks::CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration )
 {
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
-	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping)
+	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping && BuildConfiguration != PPBC_ShippingClient)
 	{
 		return false;
 	}
@@ -438,8 +445,6 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
 	GUnrealEd->CancelPlayingViaLauncher();
-	/*TArray<FString> Packages;
-	GUnrealEd->SaveWorldForPlay(Packages);*/
 	SaveAll();
 	
 	// does the project have any code?
@@ -475,8 +480,10 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		if (Platform)
 		{
 			FString NotInstalledTutorialLink;
-			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
+			FString DocumentationLink;
+			FText CustomizedLogMessage;
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
+			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink, DocumentationLink, CustomizedLogMessage);
 
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
@@ -489,9 +496,22 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
-					FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
-					NotInstalledTutorialLink
+					CustomizedLogMessage.IsEmpty() ? FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()) : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
+				UnrecoverableError = true;
+			}
+
+			if ((Result & ETargetPlatformReadyStatus::LicenseNotAccepted) != 0)
+			{
+				AddMessageLog(
+					LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device.") : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
+
 				UnrecoverableError = true;
 			}
 
@@ -499,8 +519,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
-					LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
-					NotInstalledTutorialLink
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.") : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
 				UnrecoverableError = true;
 			}
@@ -509,8 +530,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
-					LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
-					NotInstalledTutorialLink
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.") : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
 				UnrecoverableError = true;
 			}
@@ -519,19 +541,21 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			{
 				AddMessageLog(
 					LOCTEXT("ManifestNotFound", "Manifest not found."),
-					LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
-					NotInstalledTutorialLink
-					);
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found.") : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
 				UnrecoverableError = true;
 			}
 
-			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0 && (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()) || PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled))
+			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0 && (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
 			{
 				AddMessageLog(
 					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
-					LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field."),
-					NotInstalledTutorialLink
-					);
+					CustomizedLogMessage.IsEmpty() ? LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field.") : CustomizedLogMessage,
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
 				UnrecoverableError = true;
 			}
 
@@ -561,7 +585,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	// let the user pick a target directory
 	if (PackagingSettings->StagingDirectory.Path.IsEmpty())
 	{
-		PackagingSettings->StagingDirectory.Path = FPaths::GameDir();
+		PackagingSettings->StagingDirectory.Path = FPaths::ProjectDir();
 	}
 
 	FString OutFolderName;
@@ -629,11 +653,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -nodebuginfo");
 	}
 
-	if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
-	{
-		OptionalParams += TEXT(" -nativizeAssets");
-	}
-
 	if (PackagingSettings->bGenerateChunks)
 	{
 		OptionalParams += TEXT(" -manifests");
@@ -663,8 +682,25 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += *PlatformInfo->TargetPlatformName.ToString();
 	}
 
-	// only build if the project has code that might need to be built
-	if (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()) || PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
+	// Only build if the user elects to do so
+	bool bBuild = false;
+	if(PackagingSettings->Build == EProjectPackagingBuild::Always)
+	{
+		bBuild = true;
+	}
+	else if(PackagingSettings->Build == EProjectPackagingBuild::Never)
+	{
+		bBuild = false;
+	}
+	else if(PackagingSettings->Build == EProjectPackagingBuild::IfProjectHasCode)
+	{
+		bBuild = bProjectHasCode || !FApp::GetEngineIsPromotedBuild();
+	}
+	else if(PackagingSettings->Build == EProjectPackagingBuild::IfEditorWasBuiltLocally)
+	{
+		bBuild = !FApp::GetEngineIsPromotedBuild();
+	}
+	if(bBuild)
 	{
 		OptionalParams += TEXT(" -build");
 	}
@@ -693,8 +729,13 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetNameStringByValue(PackagingSettings->BuildConfiguration);
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
+	if (Configuration.Right(6) == TEXT("Client"))
+	{
+		OptionalParams += TEXT(" -client");
+		Configuration = Configuration.LeftChop(6);
+	}
 
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString CommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun %s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
 		*ProjectPath,
 		GetUATCompilationFlags(),
@@ -751,7 +792,7 @@ void FMainFrameActionCallbacks::OpenIDE()
 			if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 			{
 				const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
-				const FText Message = FText::Format( LOCTEXT( "OpenIDEFailed_MissingFile", "Could not open {0} for project {1}" ), FSourceCodeNavigation::GetSuggestedSourceCodeIDE(), FText::FromString( FullPath ) );
+				const FText Message = FText::Format( LOCTEXT( "OpenIDEFailed_MissingFile", "Could not open {0} for project {1}" ), FSourceCodeNavigation::GetSelectedSourceCodeIDE(), FText::FromString( FullPath ) );
 				FMessageDialog::Open( EAppMsgType::Ok, Message );
 			}
 			else
@@ -782,8 +823,8 @@ void FMainFrameActionCallbacks::ZipUpProject()
 		bOpened = DesktopPlatform->SaveFileDialog(
 			NULL,
 			NSLOCTEXT("UnrealEd", "ZipUpProject", "Zip file location").ToString(),
-			FPaths::GameDir(),
-			FApp::GetGameName(),
+			FPaths::ProjectDir(),
+			FApp::GetProjectName(),
 			TEXT("Zip file|*.zip"),
 			EFileDialogFlags::None,
 			SaveFilenames);
@@ -795,7 +836,7 @@ void FMainFrameActionCallbacks::ZipUpProject()
 		{
 			// Ensure path is full rather than relative (for macs)
 			FString FinalFileName = FPaths::ConvertRelativePathToFull(FileName);
-			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GameDir()) : FPaths::RootDir() / FApp::GetGameName();
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) : FPaths::RootDir() / FApp::GetProjectName();
 
 			FString CommandLine = FString::Printf(TEXT("ZipProjectUp %s -project=\"%s\" -install=\"%s\""), GetUATCompilationFlags(), *ProjectPath, *FinalFileName);
 
@@ -895,7 +936,7 @@ void FMainFrameActionCallbacks::SaveLayout()
 
 void FMainFrameActionCallbacks::ToggleFullscreen_Execute()
 {
-	if ( GIsEditor && FApp::HasGameName() )
+	if ( GIsEditor && FApp::HasProjectName() )
 	{
 		static TWeakPtr<SDockTab> LevelEditorTabPtr = FGlobalTabmanager::Get()->InvokeTab(FTabId("LevelEditor"));
 		const TSharedPtr<SWindow> LevelEditorWindow = FSlateApplication::Get().FindWidgetWindow( LevelEditorTabPtr.Pin().ToSharedRef() );
@@ -927,7 +968,7 @@ bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 
 bool FMainFrameActionCallbacks::CanSwitchToProject( int32 InProjectIndex )
 {
-	if (FApp::HasGameName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetGameName()))
+	if (FApp::HasProjectName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetProjectName()))
 	{
 		return false;
 	}
@@ -1111,13 +1152,13 @@ void FMainFrameActionCallbacks::OpenWidgetReflector_Execute()
 /* FMainFrameActionCallbacks implementation
  *****************************************************************************/
 
-void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink )
 {
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
 	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
 
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);

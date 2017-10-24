@@ -88,7 +88,7 @@ namespace FXConsoleVariables
 		TEXT("FX.AllowAsyncTick"),
 		bAllowAsyncTick,
 		TEXT("allow parallel ticking of particle systems."),
-		ECVF_Cheat
+		ECVF_Default
 		);
 	FAutoConsoleVariableRef CVarParticleSlackGPU(
 		TEXT("FX.ParticleSlackGPU"),

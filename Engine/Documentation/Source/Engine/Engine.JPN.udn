@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:エンジンの機能
 Crumbs: %ROOT%
-Description:アンリアル エンジンのツールとシステムを見てみましょう。
+Description:アンリアル エンジンのツールとシステムに関する情報です。
 Navigation:topic
 parent:%ROOT%
 order:3
@@ -10,7 +10,10 @@ topic-image:Engine/Rendering/rendering_topic.png
 topic-icon:%ROOT%/docs_icon.png
 type:landing
 
+## アンリアル エンジンの基礎
 
-## おすすめトピック
+[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"Engine/Basics")]
 
-[DIR(end:"1" output:"topiccompact" parent:"Engine")]
+## システムと機能
+
+[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"!Engine/Basics")]

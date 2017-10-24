@@ -258,6 +258,8 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 		void* parent = ralloc_parent(call->callee);
 		ECallScalarizeMode mode = get_scalarize_mode(call->callee);
 
+		check(call->next && call->prev);
+
 		ir_function_signature* scalar_sig = FindScalarSig(call->callee, true);
 		
 		if (scalar_sig)
@@ -359,6 +361,8 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 			return visit_stop;
 		}
 
+		check(assign->next && assign->prev);
+
 		void* perm_mem_ctx = ralloc_parent(assign);
 
 		const glsl_type* type = assign->lhs->type;
@@ -415,7 +419,6 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 				comp_assign->rhs->accept(this);
 				if (curr_rval)
 				{
-					comp_assign->rhs->replace_with(curr_rval);
 					comp_assign->rhs = curr_rval;
 				}
 			}
@@ -561,11 +564,6 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 			if (curr_rval)
 			{
-				if (op + 1 < num_operands)
-					expr->operands[op]->insert_before(curr_rval);
-				else
-					expr->operands[op]->replace_with(curr_rval);
-
 				expr->operands[op] = curr_rval;
 			}
 		}

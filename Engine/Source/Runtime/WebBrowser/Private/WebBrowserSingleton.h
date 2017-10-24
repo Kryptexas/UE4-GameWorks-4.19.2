@@ -6,12 +6,6 @@
 #include "Containers/Ticker.h"
 #include "IWebBrowserSingleton.h"
 
-class FCEFBrowserApp;
-class FCEFWebBrowserWindow;
-class IWebBrowserCookieManager;
-class IWebBrowserWindow;
-struct FWebBrowserWindowInfo;
-
 #if WITH_CEF3
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -29,13 +23,16 @@ THIRD_PARTY_INCLUDES_END
 	#include "HideWindowsPlatformAtomics.h"
 	#include "HideWindowsPlatformTypes.h"
 #endif
-
+#include "CEF/CEFSchemeHandler.h"
 class CefListValue;
-#endif
-
-
 class FCEFBrowserApp;
 class FCEFWebBrowserWindow;
+#endif
+
+class IWebBrowserCookieManager;
+class IWebBrowserWindow;
+struct FWebBrowserWindowInfo;
+struct FWebBrowserInitSettings;
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
@@ -48,8 +45,8 @@ class FWebBrowserSingleton
 {
 public:
 
-	/** Default constructor. */
-	FWebBrowserSingleton();
+	/** Constructor. */
+	FWebBrowserSingleton(const FWebBrowserInitSettings& WebBrowserInitSettings);
 
 	/** Virtual destructor. */
 	virtual ~FWebBrowserSingleton();
@@ -98,6 +95,10 @@ public:
 
 	virtual bool UnregisterContext(const FString& ContextId) override;
 
+	virtual bool RegisterSchemeHandlerFactory(FString Scheme, FString Domain, IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory) override;
+
+	virtual bool UnregisterSchemeHandlerFactory(IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory) override;
+
 	virtual bool IsDevToolsShortcutEnabled() override
 	{
 		return bDevToolsShortcutEnabled;
@@ -130,8 +131,11 @@ private:
 	CefRefPtr<FCEFBrowserApp>			CEFBrowserApp;
 	/** List of currently existing browser windows */
 	TArray<TWeakPtr<FCEFWebBrowserWindow>>	WindowInterfaces;
+	/** Critical section for thread safe modification of WindowInterfaces array. */
+	FCriticalSection WindowInterfacesCS;
 
 	TMap<FString, CefRefPtr<CefRequestContext>> RequestContexts;
+	FCefSchemeHandlerFactories SchemeHandlerFactories;
 #endif
 
 	TSharedRef<IWebBrowserWindowFactory> WebBrowserWindowFactory;

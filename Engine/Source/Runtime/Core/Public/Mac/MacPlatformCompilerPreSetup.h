@@ -16,21 +16,21 @@
 	 *
 	 * Sample usage (note the slightly different syntax for classes and structures):
 	 *
-	 *		DEPRECATED(4.6, "Message")
+	 *		DEPRECATED(4.xx, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		struct DEPRECATED(4.xx, "Message") MODULE_API MyStruct
 	 *		{
 	 *			// StructImplementation
 	 *		};
-	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		class DEPRECATED(4.xx, "Message") MODULE_API MyClass
 	 *		{
 	 *			// ClassImplementation
 	 *		};
 	 *
 	 *		Unfortunately, VC++ will complain about using member functions and fields from deprecated
 	 *		class/structs even for class/struct implementation e.g.:
-	 *		class DEPRECATED(4.8, "") DeprecatedClass
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}
@@ -53,7 +53,7 @@
 	 *			float MyFloat;
 	 *		};
 	 *
-	 *		class DEPRECATED(4.8, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}
@@ -154,6 +154,10 @@
 #pragma clang diagnostic ignored "-Wnullability-completeness-on-arrays"
 #pragma clang diagnostic ignored "-Wnull-dereference"
 #pragma clang diagnostic ignored "-Wnonportable-include-path" // Ideally this one would be set in MacToolChain, but we don't have a way to check the compiler version in there yet
+#endif
+
+#if (__clang_major__ > 8)
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
 #endif
 
 // We can use pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.

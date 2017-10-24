@@ -2,8 +2,8 @@
 
 #include "PortalRpcResponder.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
 #include "IPortalRpcResponder.h"
 #include "HAL/PlatformProcess.h"
 #include "IPortalRpcServer.h"

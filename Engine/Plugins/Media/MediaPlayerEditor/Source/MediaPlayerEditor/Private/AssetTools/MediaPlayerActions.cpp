@@ -7,10 +7,8 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "EditorStyleSet.h"
-#include "MediaSoundWave.h"
 #include "MediaTexture.h"
 #include "Toolkits/MediaPlayerEditorToolkit.h"
-#include "Factories/MediaSoundWaveFactoryNew.h"
 #include "Factories/MediaTextureFactoryNew.h"
 
 
@@ -31,34 +29,6 @@ FMediaPlayerActions::FMediaPlayerActions(const TSharedRef<ISlateStyle>& InStyle)
 bool FMediaPlayerActions::CanFilter()
 {
 	return true;
-}
-
-
-void FMediaPlayerActions::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)
-{
-	FAssetTypeActions_Base::GetActions(InObjects, MenuBuilder);
-
-	auto MediaPlayers = GetTypedWeakObjectPtrs<UMediaPlayer>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MediaPlayer_CreateMediaSoundWave", "Create Media Sound Wave"),
-		LOCTEXT("MediaPlayer_CreateMediaSoundWaveTooltip", "Creates a new MediaSoundWave and assigns it to this MediaPlayer asset."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.MediaSoundWave"),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FMediaPlayerActions::ExecuteCreateMediaSoundWave, MediaPlayers),
-			FCanExecuteAction()
-		)
-	);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MediaPlayer_CreateMediaTexture", "Create Media Texture"),
-		LOCTEXT("MediaPlayer_CreateMediaTextureTooltip", "Creates a new MediaTexture and assigns it to this MediaPlayer asset."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.MediaTexture"),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FMediaPlayerActions::ExecuteCreateMediaTexture, MediaPlayers),
-			FCanExecuteAction()
-		)
-	);
 }
 
 
@@ -86,12 +56,6 @@ FColor FMediaPlayerActions::GetTypeColor() const
 }
 
 
-bool FMediaPlayerActions::HasActions(const TArray<UObject*>& InObjects) const
-{
-	return true;
-}
-
-
 void FMediaPlayerActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid()
@@ -107,95 +71,6 @@ void FMediaPlayerActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSh
 			TSharedRef<FMediaPlayerEditorToolkit> EditorToolkit = MakeShareable(new FMediaPlayerEditorToolkit(Style));
 			EditorToolkit->Initialize(MediaPlayer, Mode, EditWithinLevelEditor);
 		}
-	}
-}
-
-
-/* FAssetTypeActions_MediaPlayer callbacks
- *****************************************************************************/
-
-void FMediaPlayerActions::ExecuteCreateMediaSoundWave(TArray<TWeakObjectPtr<UMediaPlayer>> Objects)
-{
-	const FString DefaultSuffix = TEXT("_Sound");
-
-	IContentBrowserSingleton& ContentBrowserSingleton = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser").Get();
-	TArray<UObject*> ObjectsToSync;
-
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto MediaPlayer = (*ObjIt).Get();
-
-		if (MediaPlayer == nullptr)
-		{
-			continue;
-		}
-
-		// generate unique name
-		FString Name;
-		FString PackageName;
-
-		CreateUniqueAssetName(MediaPlayer->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
-
-		// create asset
-		auto Factory = NewObject<UMediaSoundWaveFactoryNew>();
-
-		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMediaSoundWave::StaticClass(), Factory);
-
-		if (NewAsset != nullptr)
-		{
-			MediaPlayer->SetSoundWave(Cast<UMediaSoundWave>(NewAsset));
-			MediaPlayer->MarkPackageDirty();
-			ObjectsToSync.Add(NewAsset);
-		}
-	}
-
-	if (ObjectsToSync.Num() > 0)
-	{
-		ContentBrowserSingleton.SyncBrowserToAssets(ObjectsToSync);
-	}
-}
-
-
-void FMediaPlayerActions::ExecuteCreateMediaTexture(TArray<TWeakObjectPtr<UMediaPlayer>> Objects)
-{
-	const FString DefaultSuffix = TEXT("_Video");
-
-	IContentBrowserSingleton& ContentBrowserSingleton = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser").Get();
-	TArray<UObject*> ObjectsToSync;
-
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto MediaPlayer = (*ObjIt).Get();
-
-		if (MediaPlayer == nullptr)
-		{
-			continue;
-		}
-
-		// generate unique name
-		FString Name;
-		FString PackageName;
-
-		CreateUniqueAssetName(MediaPlayer->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
-
-		// create asset
-		auto Factory = NewObject<UMediaTextureFactoryNew>();
-
-		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMediaTexture::StaticClass(), Factory);
-
-		if (NewAsset != nullptr)
-		{
-			MediaPlayer->SetVideoTexture(Cast<UMediaTexture>(NewAsset));
-			MediaPlayer->MarkPackageDirty();
-			ObjectsToSync.Add(NewAsset);
-		}
-	}
-
-	if (ObjectsToSync.Num() > 0)
-	{
-		ContentBrowserSingleton.SyncBrowserToAssets(ObjectsToSync);
 	}
 }
 

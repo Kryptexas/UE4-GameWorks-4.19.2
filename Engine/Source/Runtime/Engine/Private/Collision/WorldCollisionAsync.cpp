@@ -335,7 +335,7 @@ namespace
 		}
 
 		FTraceHandle Result(State.CurrentFrame, TraceIndex);
-		FBufferIndexPair(TraceIndex).DatumLookupChecked(TraceData) = MoveTemp(Val);
+		FBufferIndexPair(TraceIndex).DatumLookupChecked(TraceData) = Val;
 
 		ExecuteAsyncTraceIfAvailable<DatumType>(State, false);
 

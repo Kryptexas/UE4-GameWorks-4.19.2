@@ -529,6 +529,22 @@ void SWebBrowserView::UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapte
 	}
 }
 
+void SWebBrowserView::BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->BindInputMethodSystem(TextInputMethodSystem);
+	}
+}
+
+void SWebBrowserView::UnbindInputMethodSystem()
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->UnbindInputMethodSystem();
+	}
+}
+
 void SWebBrowserView::HandleShowPopup(const FIntRect& PopupSize)
 {
 	check(!PopupMenuPtr.IsValid())

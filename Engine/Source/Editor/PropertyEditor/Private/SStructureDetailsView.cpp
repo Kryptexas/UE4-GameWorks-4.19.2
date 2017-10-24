@@ -184,7 +184,6 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	SaveExpandedItems(RootNode.ToSharedRef() );
 	RootNode->AsStructureNode()->SetStructure(nullptr);
 	RootNodesPendingKill.Add(RootNode);
-	ExternalRootPropertyNodes.Empty();
 
 	RootNodes.Empty(1);
 
@@ -225,16 +224,6 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 void SStructureDetailsView::ForceRefresh()
 {
 	SetStructureData(StructData);
-}
-
-void SStructureDetailsView::AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode)
-{
-	ExternalRootPropertyNodes.Add( ExternalRootNode );
-}
-
-bool SStructureDetailsView::IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) const
-{
-	return ExternalRootPropertyNodes.Contains(ExternalRootNode);
 }
 
 void SStructureDetailsView::ClearSearch()
@@ -293,16 +282,6 @@ EVisibility SStructureDetailsView::GetPropertyEditingVisibility() const
 {
 	const FStructurePropertyNode* RootNode = GetRootNode().IsValid() ? GetRootNode()->AsStructureNode() : nullptr;
 	return StructData.IsValid() && StructData->IsValid() && RootNode && RootNode->HasValidStructData() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-void SStructureDetailsView::RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
-{
-	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
-}
-
-void SStructureDetailsView::UnregisterInstancedCustomPropertyLayout(UStruct* Class)
-{
-	UnregisterInstancedCustomPropertyLayoutInternal(Class);
 }
 
 #undef LOCTEXT_NAMESPACE

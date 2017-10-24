@@ -124,6 +124,10 @@ struct SLATECORE_API FSlateFontInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(ClampMin=1, ClampMax=1000))
 	int32 Size;
 
+	/** The font fallback level. Runtime only, don't set on shared FSlateFontInfo, as it may change the font elsewhere (make a copy). */
+	EFontFallback FontFallback;
+
+#if WITH_EDITORONLY_DATA
 private:
 
 	/** The name of the font */
@@ -133,11 +137,7 @@ private:
 	/** The hinting algorithm to use with the font */
 	UPROPERTY()
 	EFontHinting Hinting_DEPRECATED;
-
-public:
-
-	/** The font fallback level. Runtime only, don't set on shared FSlateFontInfo, as it may change the font elsewhere (make a copy). */
-	EFontFallback FontFallback;
+#endif
 
 public:
 
@@ -259,19 +259,22 @@ public:
 		return Hash;
 	}
 
+#if WITH_EDITORONLY_DATA
 	/**
 	 * Used to upgrade legacy font into so that it uses composite fonts
 	 */
 	void PostSerialize(const FArchive& Ar);
+#endif
 
 private:
 
 	/**
 	 * Used to upgrade legacy font into so that it uses composite fonts
 	 */
-	void UpgradeLegacyFontInfo();
+	void UpgradeLegacyFontInfo(FName LegacyFontName, EFontHinting LegacyHinting);
 };
 
+#if WITH_EDITORONLY_DATA
 template<>
 struct TStructOpsTypeTraits<FSlateFontInfo>
 	: public TStructOpsTypeTraitsBase2<FSlateFontInfo>
@@ -281,3 +284,4 @@ struct TStructOpsTypeTraits<FSlateFontInfo>
 		WithPostSerialize = true,
 	};
 };
+#endif

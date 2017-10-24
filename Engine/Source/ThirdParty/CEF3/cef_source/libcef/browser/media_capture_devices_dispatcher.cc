@@ -4,9 +4,9 @@
 
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 
-#include "base/prefs/pref_registry_simple.h"
-#include "base/prefs/pref_service.h"
 #include "chrome/common/pref_names.h"
+#include "components/prefs/pref_registry_simple.h"
+#include "components/prefs/pref_service.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/media_capture_devices.h"
 
@@ -113,6 +113,14 @@ void CefMediaCaptureDevicesDispatcher::OnMediaRequestStateChanged(
 void CefMediaCaptureDevicesDispatcher::OnCreatingAudioStream(
     int render_process_id,
     int render_view_id) {
+}
+
+void CefMediaCaptureDevicesDispatcher::OnSetCapturingLinkSecured(
+    int render_process_id,
+    int render_frame_id,
+    int page_request_id,
+    content::MediaStreamType stream_type,
+    bool is_secure) {
 }
 
 const MediaStreamDevices&

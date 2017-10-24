@@ -53,9 +53,6 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 //@todo-rco: Remove STL!
 #include <sstream>
 #include <vector>
-//#define OPTIMIZE_ANON_STRUCTURES_OUT
-// We can't optimize them out presently, because apparently Windows Radeon
-// OpenGL driver chokes on valid GLSL code then.
 
 #if !PLATFORM_WINDOWS
 #define _strdup strdup
@@ -220,6 +217,10 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	/*@{*/
 	{ "dFdx(", ")", "", "" }, // ir_unop_dFdx,
 	{ "dFdy(", ")", "", "" }, // ir_unop_dFdy,
+	{ "dfdx_fine(", ")", "", "" }, // ir_unop_dFdxFine,
+	{ "dfdy_fine(", ")", "", "" }, // ir_unop_dFdyFine,
+	{ "dfdx_coarse(", ")", "", "" }, // ir_unop_dFdxCoarse,
+	{ "dfdy_coarse(", ")", "", "" }, // ir_unop_dFdyCoarse,
 	/*@}*/
 
 	{ "isnan(", ")", "", "" }, // ir_unop_isnan,
@@ -234,6 +235,13 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	{ "bitCount(", ")", "", "" }, // ir_unop_bitcount,
 	{ "findMSB(", ")", "", "" }, // ir_unop_msb,
 	{ "findLSB(", ")", "", "" }, // ir_unop_lsb,
+
+	/**
+	* \name Saturate.
+	*/
+	/*@{*/
+	{ "ERROR_NO_SATURATE_FUNCS(", ")", "", "" }, // ir_unop_saturate,
+	/*@}*/
 
 	{ "ERROR_NO_NOISE_FUNCS(", ")", "", "" }, // ir_unop_noise,
 
@@ -303,6 +311,7 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	{ "mix(", ",", ",", ")" }, // ir_ternop_lerp,
 	{ "smoothstep(", ",", ",", ")" }, // ir_ternop_smoothstep,
 	{ "clamp(", ",", ",", ")" }, // ir_ternop_clamp,
+	{ "ERROR_NO_FMA_FUNCS(", ",", ",", ")" }, // ir_ternop_fma,
 
 	{ "ERROR_QUADOP_VECTOR(", ",", ")" }, // ir_quadop_vector,
 };
@@ -347,6 +356,116 @@ static const char* OutputTopologyStrings[5] = {
 };
 
 static_assert((sizeof(GLSLExpressionTable) / sizeof(GLSLExpressionTable[0])) == ir_opcode_count, "GLSLExpressionTableSizeMismatch");
+
+// Holds information required for knowing if samplerstates should be shared
+struct FSamplerMappingGatherData
+{
+	struct FEntry
+	{
+		bool bUsingLoad = false;
+		TStringSet SamplerStates;
+	};
+	std::map<std::string, FEntry> Entries;
+	TStringToSetMap SamplerToTextureMap;
+};
+
+struct FSamplerMapping
+{
+	// Final Data
+	TStringSet StandaloneSamplerStates;
+	TStringSet StandaloneTextures;
+	TStringSet CombinedSamplers;
+	bool bConsolidated = false;
+
+	void Consolidate(FSamplerMappingGatherData& GatherData)
+	{
+		check(!bConsolidated);
+
+		// First find all samplers using T.Load()
+		for (auto EntryPair : GatherData.Entries)
+		{
+			if (EntryPair.second.bUsingLoad)
+			{
+				CombinedSamplers.insert(EntryPair.first);
+			}
+		}
+
+		// Now count how many shared sampler states exist
+		std::map<std::string, uint32> TexturesUsedPerSampler;
+		TStringSet CombinedSamplerStates;
+		for (auto Pair : GatherData.SamplerToTextureMap)
+		{
+			uint32 NumTextures = 0;
+			for (auto& Texture : Pair.second)
+			{
+				if (CombinedSamplers.find(Texture) == CombinedSamplers.end())
+				{
+					++NumTextures;
+				}
+			}
+
+			if (NumTextures == 0 || NumTextures == 1)
+			{
+				CombinedSamplerStates.insert(Pair.first);
+			}
+
+			TexturesUsedPerSampler[Pair.first] = NumTextures;
+		}
+
+		// Now add combined samplers (ones with one samplerstate)
+		for (auto Pair : TexturesUsedPerSampler)
+		{
+			if (Pair.second == 1)
+			{
+				// Combined
+				auto Found = GatherData.SamplerToTextureMap.find(Pair.first);
+				if (Found != GatherData.SamplerToTextureMap.end())
+				{
+					for (auto& Texture : Found->second)
+					{
+						CombinedSamplers.insert(Texture);
+					}
+				}
+			}
+		}
+
+		// Add all Textures and SamplerStates NOT in CombinedSamplers/CombinedSamplerStates as standalone
+		for (auto Pair : GatherData.SamplerToTextureMap)
+		{
+			uint32 NumStandaloneTexturesAdded = 0;
+			bool bIsSharedSamplerState = CombinedSamplerStates.find(Pair.first) == CombinedSamplerStates.end();
+			for (auto Texture : Pair.second)
+			{
+				if (bIsSharedSamplerState)
+				{
+					if (CombinedSamplers.find(Texture) == CombinedSamplers.end())
+					{
+						StandaloneTextures.insert(Texture);
+						++NumStandaloneTexturesAdded;
+					}
+				}
+				else
+				{
+					ensure(CombinedSamplers.find(Texture) != CombinedSamplers.end());
+				}
+			}
+
+			if (bIsSharedSamplerState)
+			{
+				ensure(NumStandaloneTexturesAdded > 1);
+				StandaloneSamplerStates.insert(Pair.first);
+			}
+		}
+
+		bConsolidated = true;
+	}
+
+	bool UseCombinedImageSamplerForTexture(const char* TextureName)
+	{
+		check(bConsolidated);
+		return CombinedSamplers.find(TextureName) != CombinedSamplers.end();
+	}
+};
 
 struct SDMARange
 {
@@ -475,32 +594,6 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	}
 }
 
-// Returns true if the passed 'intrinsic' is used
-static bool UsesUEIntrinsic(exec_list* Instructions, const char * UEIntrinsic)
-{
-	struct SFindUEIntrinsic : public ir_hierarchical_visitor
-	{
-		bool bFound;
-		const char * UEIntrinsic;
-		SFindUEIntrinsic(const char * InUEIntrinsic) : bFound(false), UEIntrinsic(InUEIntrinsic) {}
-
-		virtual ir_visitor_status visit_enter(ir_call* IR) override
-		{
-			if (IR->use_builtin && !FCStringAnsi::Strcmp(IR->callee_name(), UEIntrinsic))
-			{
-				bFound = true;
-				return visit_stop;
-			}
-
-			return visit_continue;
-		}
-	};
-
-	SFindUEIntrinsic Visitor(UEIntrinsic);
-	Visitor.run(Instructions);
-	return Visitor.bFound;
-}
-
 static inline EDescriptorSetStage GetDescriptorSetForStage(_mesa_glsl_parser_targets Target)
 {
 	switch (Target)
@@ -574,8 +667,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 	bool bEmitPrecision;
 	bool bIsES31;
 	EHlslCompileTarget Target;
-	_mesa_glsl_parser_targets ShaderTarget;
-	FVulkanLanguageSpec* LanguageSpec;
+	_mesa_glsl_parse_state* ParseState;
 	bool bGenerateLayoutLocations;
 	bool bDefaultPrecisionIsHalf;
 
@@ -610,7 +702,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 	// Found dFdx or dFdy
 	bool bUsesDXDY;
 
-	std::vector<FCustomStdString> SamplerStateNames;
+	std::vector<std::string> SamplerStateNames;
 
 	/**
 	* Return true if the type is a multi-dimensional array. Also, track the
@@ -743,7 +835,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		}
 		else
 		{
-			std::string Name = FixHlslName(t, LanguageSpec->AllowsSharingSamplers());
+			std::string Name = FixHlslName(t, ParseState->LanguageSpec->AllowsSharingSamplers());
 			ralloc_asprintf_append(buffer, "%s", Name.c_str());
 		}
 	}
@@ -899,7 +991,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		const char * const interp_str[] = { "", "smooth ", "flat ", "noperspective " };
 		const char * const layout_str[] = { "", "layout(origin_upper_left) ", "layout(pixel_center_integer) ", "layout(origin_upper_left,pixel_center_integer) " };
 
-		const char * const * mode_str = bIsES ? ((ShaderTarget == vertex_shader) ? ESVSmode_str : ESFSmode_str) : GLSLmode_str;
+		const char * const * mode_str = bIsES ? ((ParseState->target == vertex_shader) ? ESVSmode_str : ESFSmode_str) : GLSLmode_str;
 
 		// Check for an initialized const variable
 		// If var is read-only and initialized, set it up as an initialized const
@@ -1046,8 +1138,8 @@ class FGenerateVulkanVisitor : public ir_visitor
 				{
 					ralloc_asprintf_append(
 						buffer,
-						"layout(set=%d,binding=%d) buffer ",
-						GetDescriptorSetForStage(ShaderTarget),
+						"layout(set=%d,binding=BINDING_%d) buffer ",
+						GetDescriptorSetForStage(ParseState->target),
 						BindingTable.RegisterBinding(var->name, "u", EVulkanBindingType::StorageBuffer)
 					);
 				}
@@ -1074,8 +1166,8 @@ class FGenerateVulkanVisitor : public ir_visitor
 					//should check here on base type
 					ralloc_asprintf_append(
 						buffer,
-						"layout(set=%d,%s%s,binding=%d) ",
-						GetDescriptorSetForStage(ShaderTarget),
+						"layout(set=%d,%s%s,binding=BINDING_%d) ",
+						GetDescriptorSetForStage(ParseState->target),
 						comp_str,
 						type_str[var->type->inner_type->base_type],
 						BindingTable.RegisterBinding(var->name, "u", var->type->sampler_buffer ? EVulkanBindingType::StorageTexelBuffer : EVulkanBindingType::StorageImage)
@@ -1096,15 +1188,15 @@ class FGenerateVulkanVisitor : public ir_visitor
 				if (var->type->is_sampler())
 				{
 					layout = ralloc_asprintf(nullptr,
-						"layout(set=%d, binding=%d) ",
-						GetDescriptorSetForStage(ShaderTarget),
+						"layout(set=%d, binding=BINDING_%d) ",
+						GetDescriptorSetForStage(ParseState->target),
 						BindingTable.RegisterBinding(var->name, "s", var->type->sampler_buffer ? EVulkanBindingType::UniformTexelBuffer : EVulkanBindingType::CombinedImageSampler));
 				}
 				else if (bGenerateLayoutLocations && var->explicit_location)
 				{
 					check(layout_bits == 0);
 					layout = ralloc_asprintf(nullptr, "layout(location=%d) ", var->location);
-					if (ShaderTarget == fragment_shader && var->type->is_integer() && var->mode == ir_var_in)
+					if (ParseState->target == fragment_shader && var->type->is_integer() && var->mode == ir_var_in)
 					{
 						// Flat
 						Interpolation = 2;
@@ -1132,18 +1224,34 @@ class FGenerateVulkanVisitor : public ir_visitor
 					ralloc_free(layout);
 				}
 
-				print_type_pre(var->type);
+				if (var->type->is_sampler() && ParseState->LanguageSpec->AllowsSharingSamplers())
+				{
+					if (SamplerMapping.UseCombinedImageSamplerForTexture(var->name))
+					{
+						std::string Name = FixHlslName(var->type, false);
+						ralloc_asprintf_append(buffer, "%s", Name.c_str());
+					}
+					else
+					{
+						print_type_pre(var->type);
+					}
+				}
+				else
+				{
+					print_type_pre(var->type);
+				}
 			}
 
 			if (var->type->is_image() && (!strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17)))
 			{
 				AddTypeToUsedStructs(var->type->inner_type);
-				ralloc_asprintf_append(buffer, " %s_VAR { %s %s[]; }", unique_name(var), var->type->inner_type->name, unique_name(var));
+				// DO NOT change _BUFFER (or update when reading the spir-v reflection)
+				ralloc_asprintf_append(buffer, " %s_BUFFER { %s %s[]; }", unique_name(var), var->type->inner_type->name, unique_name(var));
 			}
 			else
 			{
 				ralloc_asprintf_append(buffer, " %s", unique_name(var));
-				const bool bUnsizedArray = var->mode == ir_var_in && ((ShaderTarget == tessellation_evaluation_shader) || (ShaderTarget == tessellation_control_shader));
+				const bool bUnsizedArray = var->mode == ir_var_in && ((ParseState->target == tessellation_evaluation_shader) || (ParseState->target == tessellation_control_shader));
 				print_type_post(var->type, bUnsizedArray);
 			}
 		}
@@ -1370,11 +1478,12 @@ class FGenerateVulkanVisitor : public ir_visitor
 			EXT_str[(int)bEmitEXT]
 			);
 
-		if (LanguageSpec->AllowsSharingSamplers() && !tex->sampler->type->sampler_buffer && tex->op != ir_txf)
+		if (ParseState->LanguageSpec->AllowsSharingSamplers() && !tex->sampler->type->sampler_buffer && 
+			!SamplerMapping.UseCombinedImageSamplerForTexture(tex->sampler->variable_referenced()->name))
 		{
 			uint32 SSIndex = AddUniqueSamplerState(tex->SamplerStateName);
 			char PackedName[256];
-			FCStringAnsi::Sprintf(PackedName, "%sz%u", glsl_variable_tag_from_parser_target(ShaderTarget), SSIndex);
+			FCStringAnsi::Sprintf(PackedName, "%sz%u", glsl_variable_tag_from_parser_target(ParseState->target), SSIndex);
 			BindingTable.RegisterBinding(PackedName, "z", EVulkanBindingType::Sampler);
 
 			auto GetSamplerSuffix = [](int32 Dim)
@@ -1385,8 +1494,8 @@ class FGenerateVulkanVisitor : public ir_visitor
 				case GLSL_SAMPLER_DIM_2D: return "2D";
 				case GLSL_SAMPLER_DIM_3D: return "3D";
 				case GLSL_SAMPLER_DIM_CUBE: return "Cube";
-				//case GLSL_SAMPLER_DIM_RECT: return "Rect";
-				//case GLSL_SAMPLER_DIM_BUF: return "Buf";
+					//case GLSL_SAMPLER_DIM_RECT: return "Rect";
+					//case GLSL_SAMPLER_DIM_BUF: return "Buf";
 				default: return "INVALID";
 				}
 			};
@@ -1631,11 +1740,22 @@ class FGenerateVulkanVisitor : public ir_visitor
 		{
 			if (bIsStructured)
 			{
-				check(src == nullptr);
-				deref->image->accept(this);
-				ralloc_asprintf_append(buffer, "[");
-				deref->image_index->accept(this);
-				ralloc_asprintf_append(buffer, "]");
+				if (src == NULL)
+				{			
+					deref->image->accept(this);
+					ralloc_asprintf_append(buffer, "[");
+					deref->image_index->accept(this);
+					ralloc_asprintf_append(buffer, "]");					
+				}
+				else
+				{
+					deref->image->accept(this);
+					ralloc_asprintf_append(buffer, "[");
+					deref->image_index->accept(this);
+					ralloc_asprintf_append(buffer, "]");
+					ralloc_asprintf_append(buffer, " = ");
+					src->accept(this);
+				}
 			}
 			else
 			{
@@ -1654,8 +1774,32 @@ class FGenerateVulkanVisitor : public ir_visitor
 					ralloc_asprintf_append(buffer, ", ");
 					deref->image_index->accept(this);
 					ralloc_asprintf_append(buffer, ", ");
-					src->accept(this);
-					ralloc_asprintf_append(buffer, ".%s)", expand[src_elements - 1]);
+					if (src->as_constant() && src_elements == 1)
+					{
+						// Add cast if missing and avoid swizzle
+						if (deref->image->type->inner_type)
+						{
+							switch (deref->image->type->inner_type->base_type)
+							{
+							case GLSL_TYPE_INT:
+								ralloc_asprintf_append(buffer, "ivec4(");
+								break;
+							case GLSL_TYPE_UINT:
+								ralloc_asprintf_append(buffer, "uvec4(");
+								break;
+							default:
+								break;
+							}
+						}
+
+						src->accept(this);
+						ralloc_asprintf_append(buffer, "))");
+					}
+					else
+					{
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ".%s)", expand[src_elements - 1]);
+					}
 				}
 			}
 		}
@@ -2293,32 +2437,6 @@ class FGenerateVulkanVisitor : public ir_visitor
 			hash_table_dtor(ht);
 		}
 
-#ifdef OPTIMIZE_ANON_STRUCTURES_OUT
-		// If a uniform block consists of a single, anonymous structure, don't declare this structure
-		// separately. We'll remove it entirely during uniform block code generation, and name the
-		// uniform block instead.
-		for (unsigned i = 0; i < state->num_uniform_blocks; i++)
-		{
-			const glsl_uniform_block* block = state->uniform_blocks[i];
-			if (hash_table_find(used_uniform_blocks, block->name))
-			{
-				if (block->num_vars == 1)
-				{
-					ir_variable* var = block->vars[0];
-					const glsl_type* type = var->type;
-
-					if (type->base_type == GLSL_TYPE_STRUCT &&
-						type->name &&
-						!FCStringAnsi::Strcmp(var->name, block->name) &&
-						!strncmp(type->name, "anon_struct_", 12))
-					{
-						hash_table_remove(used_structures, type);
-					}
-				}
-			}
-		}
-#endif // OPTIMIZE_ANON_STRUCTURES_OUT
-
 		for (unsigned i = 0; i < state->num_user_structures; i++)
 		{
 			const glsl_type *const s = state->user_structures[i];
@@ -2367,10 +2485,12 @@ class FGenerateVulkanVisitor : public ir_visitor
 				check(block->num_vars > 0);
 				const char* var_name = block->vars[0]->name;
 
+/*
 				block_name = ralloc_asprintf(mem_ctx, "%sb%u",
 					glsl_variable_tag_from_parser_target(state->target),
 					num_used_blocks
 					);
+*/
 
 				auto Type = EVulkanBindingType::UniformBuffer;
 				if (bCanHaveUBs && block->num_vars == 1 && strlen(var_name) == 4 && var_name[0] == glsl_variable_tag_from_parser_target(state->target)[0] && var_name[1] == 'u' && var_name[2] == '_')
@@ -2399,38 +2519,12 @@ class FGenerateVulkanVisitor : public ir_visitor
 				int32 Binding = BindingTable.RegisterBinding(block_name, var_name, Type);
 				ralloc_asprintf_append(
 					buffer,
-					"layout(set=%d, binding=%d, std140) uniform %s\n{\n",
-					GetDescriptorSetForStage(ShaderTarget),
+					"layout(set=%d, binding=BINDING_%d, std140) uniform %s\n{\n",
+					GetDescriptorSetForStage(ParseState->target),
 					Binding,
 					block_name);
 
 				bool optimized_structure_out = false;
-
-#ifdef OPTIMIZE_ANON_STRUCTURES_OUT
-				if (block->num_vars == 1)
-				{
-					ir_variable* var = block->vars[0];
-					const glsl_type* type = var->type;
-
-					if (type->base_type == GLSL_TYPE_STRUCT &&
-						type->name &&
-						!FCStringAnsi::Strcmp(var->name, block->name) &&
-						!strncmp(type->name, "anon_struct_", 12))
-					{
-						for (unsigned j = 0; j < type->length; j++)
-						{
-							ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision) ? "highp" : "");
-							print_type_pre(type->fields.structure[j].type);
-							ralloc_asprintf_append(buffer, " %s", type->fields.structure[j].name);
-							print_type_post(type->fields.structure[j].type);
-							ralloc_asprintf_append(buffer, ";\n");
-						}
-						ralloc_asprintf_append(buffer, "} %s;\n\n", block->name);
-						optimized_structure_out = true;
-					}
-				}
-#endif
-
 				if (!optimized_structure_out)
 				{
 					for (unsigned var_index = 0; var_index < block->num_vars; ++var_index)
@@ -2439,7 +2533,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 
 						//EHart - name-mangle variables to prevent colliding names
 						//#todo-rco: Check if this is still is needed when creating PSOs
-						ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
+						//ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
 
 						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision) ? "highp " : "");
 						print_type_pre(var->type);
@@ -2462,7 +2556,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Samplers.begin(); Iter != Samplers.end(); ++Iter)
 		{
 			glsl_packed_uniform& Sampler = *Iter;
-			FCustomStdString SamplerStates("");
+			std::string SamplerStates("");
 			TStringToSetMap::iterator IterFound = TextureToSamplerMap.find(Sampler.Name);
 			if (IterFound != TextureToSamplerMap.end())
 			{
@@ -2982,7 +3076,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 #endif		
 	}
 
-	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesFramebufferFetchES2, bool bUsesDepthbufferFetchES2, bool bUsesES31Extensions)
+	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesES31Extensions)
 	{
 		if (bUsesES2TextureLODExtension)
 		{
@@ -3002,21 +3096,6 @@ class FGenerateVulkanVisitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "#extension GL_OES_standard_derivatives : enable\n");
 		}
 
-		if (bUsesFramebufferFetchES2)
-		{
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_framebuffer_fetch : enable\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "#extension GL_ARM_shader_framebuffer_fetch : enable\n");
-			ralloc_asprintf_append(buffer, "#endif\n");
-		}
-
-		if (bUsesDepthbufferFetchES2)
-		{
-			ralloc_asprintf_append(buffer, "#extension GL_ARM_shader_framebuffer_fetch_depth_stencil : enable\n");
-		}
-
 		if (bUsesES31Extensions)
 		{
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_gpu_shader5 : enable\n");
@@ -3024,12 +3103,11 @@ class FGenerateVulkanVisitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_texture_cube_map_array : enable\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_io_blocks : enable\n");
 
-			if (ShaderTarget == geometry_shader)
+			if (ParseState->target == geometry_shader)
 			{
 				ralloc_asprintf_append(buffer, "#extension GL_EXT_geometry_shader : enable\n");
 			}
-
-			if (ShaderTarget == tessellation_control_shader || ShaderTarget == tessellation_evaluation_shader)
+			else if (ParseState->target == tessellation_control_shader || ParseState->target == tessellation_evaluation_shader)
 			{
 				ralloc_asprintf_append(buffer, "#extension GL_EXT_tessellation_shader : enable\n");
 			}
@@ -3038,12 +3116,12 @@ class FGenerateVulkanVisitor : public ir_visitor
 	}
 
 public:
+	FSamplerMapping SamplerMapping;
 
 	/** Constructor. */
 	FGenerateVulkanVisitor(EHlslCompileTarget InTarget,
 							FVulkanBindingTable& InBindingTable,
-							_mesa_glsl_parser_targets InShaderTarget,
-							FVulkanLanguageSpec* InLanguageSpec,
+							_mesa_glsl_parse_state* InState,
 							bool bInGenerateLayoutLocations,
 							bool bInDefaultPrecisionIsHalf)
 		: early_depth_stencil(false)
@@ -3051,8 +3129,7 @@ public:
 		, wg_size_y(0)
 		, wg_size_z(0)
 		, Target(InTarget)
-		, ShaderTarget(InShaderTarget)
-		, LanguageSpec(InLanguageSpec)
+		, ParseState(InState)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
 		, bDefaultPrecisionIsHalf(bInDefaultPrecisionIsHalf)
 		, BindingTable(InBindingTable)
@@ -3084,7 +3161,7 @@ public:
 		hash_table_dtor(used_uniform_blocks);
 	}
 
-	int32 AddUniqueSamplerState(const FCustomStdString& Name)
+	int32 AddUniqueSamplerState(const std::string& Name)
 	{
 		for (uint32 Index = 0; Index < SamplerStateNames.size(); ++Index)
 		{
@@ -3109,7 +3186,7 @@ public:
 		char* code_buffer = ralloc_asprintf(mem_ctx, "");
 		buffer = &code_buffer;
 
-		if (bEmitPrecision && !(ShaderTarget == vertex_shader))
+		if (bEmitPrecision && !(ParseState->target == vertex_shader))
 		{
 			// TODO: Improve this...
 
@@ -3123,33 +3200,6 @@ public:
 			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
-		// FramebufferFetchES2 'intrinsic'
-		bool bUsesFramebufferFetchES2 = false;//UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
-		/*
-		if (bUsesFramebufferFetchES2)
-		{
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "	vec4 FramebufferFetchES2() { return gl_LastFragData[0]; }\n");
-			ralloc_asprintf_append(buffer, "#else\n");
-			ralloc_asprintf_append(buffer, "	#ifdef GL_ARM_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_LastFragColorARM; }\n");
-			ralloc_asprintf_append(buffer, "	#else\n");
-			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return vec4(65000.0, 65000.0, 65000.0, 65000.0); }\n");
-			ralloc_asprintf_append(buffer, "	#endif\n");
-			ralloc_asprintf_append(buffer, "#endif\n\n");
-		}
-		*/
-		bool bUsesDepthbufferFetchES2 = false;//UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
-		/*
-		if (bUsesDepthbufferFetchES2)
-		{
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
-			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0f/(gl_LastFragDepthARM*C1-C2); return clamp(w, 0.0f, 65000.0f); }\n");
-			ralloc_asprintf_append(buffer, "#else\n");
-			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
-			ralloc_asprintf_append(buffer, "#endif\n\n");
-		}
-		*/
 		foreach_iter(exec_list_iterator, iter, *ir)
 		{
 			ir_instruction *inst = (ir_instruction *)iter.get();
@@ -3186,7 +3236,7 @@ public:
 
 		char* Extensions = ralloc_asprintf(mem_ctx, "");
 		buffer = &Extensions;
-		print_extensions(state, bUsesFramebufferFetchES2, bUsesDepthbufferFetchES2, state->language_version == 310);
+		print_extensions(state, state->language_version == 310);
 		if (state->bSeparateShaderObjects && !state->bGenerateES)
 		{
 			switch (state->target)
@@ -3247,7 +3297,7 @@ public:
 		}
 
 		// Here since the code_buffer must have been populated beforehand
-		if (LanguageSpec->AllowsSharingSamplers())
+		if (ParseState->LanguageSpec->AllowsSharingSamplers())
 		{
 			auto FindPrecision = [&](int32 Index)
 			{
@@ -3278,23 +3328,27 @@ public:
 				return "";
 			};
 
-			const auto& Bindings = BindingTable.GetBindings();
-			for (int32 Index = 0; Index < Bindings.Num(); ++Index)
+			for (int32 Index = 0; Index < BindingTable.Bindings.Num(); ++Index)
 			{
-				if (Bindings[Index].Type == EVulkanBindingType::Sampler)
+				if (BindingTable.Bindings[Index].Type == EVulkanBindingType::Sampler)
 				{
-					int32 Binding = atoi(Bindings[Index].Name + 2);
+					int32 Binding = atoi(BindingTable.Bindings[Index].Name + 2);
 					const char* Precision = FindPrecision(Binding);
 
-					ralloc_asprintf_append(buffer, "layout(set=%d, binding=%d) uniform %s sampler %sz%d;\n",
-						GetDescriptorSetForStage(ShaderTarget), Index,
+					ralloc_asprintf_append(buffer, "layout(set=%d, binding=BINDING_%d) uniform %s sampler %sz%d;\n",
+						GetDescriptorSetForStage(ParseState->target),
+						Index,
 						Precision,
-						glsl_variable_tag_from_parser_target(ShaderTarget), Binding);
+						glsl_variable_tag_from_parser_target(ParseState->target), Binding);
 				}
 			}
 		}
 
 		buffer = 0;
+
+		BindingTable.SortBindings();
+		char* BindingMapping = ralloc_asprintf(mem_ctx, "");
+		BindingTable.PrintBindingTableDefines(&BindingMapping);
 
 		static const char* vulkan_required_extensions =
 		"#extension GL_ARB_separate_shader_objects : enable\n"
@@ -3306,6 +3360,7 @@ public:
 			"%s"								// signature
 			"#version %u %s\n"					// state->language_version, state->language_version == 310 ? "es" : ""
 			"%s"								// vulkan_required_extension
+			"%s"								// Bindings
 			"%s"								// Extensions
 			"%s"								// geometry_layouts
 			"%s"								// layout
@@ -3317,6 +3372,7 @@ public:
 			(Target == HCT_FeatureLevelSM4 || Target == HCT_FeatureLevelSM5) ? 430 : state->language_version,
 			state->language_version == 310 ? "es" : "",
 			state->language_version == 310 ? "" : vulkan_required_extensions,
+			BindingMapping,
 			Extensions,
 			geometry_layouts,
 			layout,
@@ -3425,6 +3481,46 @@ void FGenerateVulkanVisitor::AddTypeToUsedStructs(const glsl_type* type)
 	}
 }
 
+struct FGenerateSamplerToTextureMapVisitor : public ir_hierarchical_visitor
+{
+	_mesa_glsl_parse_state* State;
+	FSamplerMappingGatherData GatherData;
+
+	FGenerateSamplerToTextureMapVisitor(_mesa_glsl_parse_state* InState)
+		: State(InState)
+	{
+	}
+
+	virtual ir_visitor_status visit_enter(ir_texture* IR)
+	{
+		ir_variable* Sampler = IR->sampler->variable_referenced();
+		if (Sampler)
+		{
+			if (IR->SamplerStateName && IR->SamplerStateName[0])
+			{
+				GatherData.Entries[Sampler->name].SamplerStates.insert(IR->SamplerStateName);
+				GatherData.SamplerToTextureMap[IR->SamplerStateName].insert(Sampler->name);
+			}
+			else
+			{
+				if (IR->op == ir_txf)
+				{
+					GatherData.Entries[Sampler->name].bUsingLoad = true;
+				}
+				else
+				{
+#if UE_BUILD_DEBUG
+					// Internal error!!!
+					ensure(0);
+#endif
+					GatherData.Entries[Sampler->name].SamplerStates.insert("");
+				}
+			}
+		}
+		return ir_hierarchical_visitor::visit_enter(IR);
+	}
+};
+
 char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* state, EHlslShaderFrequency Frequency)
 {
 	FixRedundantCasts(ir);
@@ -3441,8 +3537,17 @@ char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* st
 	const bool bGenerateLayoutLocations = state->bGenerateLayoutLocations;
 	const bool bCanHaveUBs = true;//(HlslCompileFlags & HLSLCC_FlattenUniformBuffers) != HLSLCC_FlattenUniformBuffers;
 
+	//IRDump(ir);
+
 	// Setup root visitor
-	FGenerateVulkanVisitor visitor(Target, BindingTable, state->target, (FVulkanLanguageSpec*)state->LanguageSpec, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
+	FGenerateVulkanVisitor visitor(Target, BindingTable, state, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
+
+	// Generate information for sharing samplers
+	{
+		FGenerateSamplerToTextureMapVisitor GenerateSamplerToTextureMapVisitor(state);
+		GenerateSamplerToTextureMapVisitor.run(ir);
+		visitor.SamplerMapping.Consolidate(GenerateSamplerToTextureMapVisitor.GatherData);
+	}
 
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs, bCanHaveUBs);
 
@@ -3648,6 +3753,7 @@ static FSystemValue PixelSystemValueTable[] =
 	{ "SV_Target0", glsl_type::half4_type, "gl_FragColor", ir_var_out, false, false, false, true },
 	{ "SV_Coverage", glsl_type::int_type, "gl_SampleMaskIn[0]", ir_var_in, false, false, false, false },
 	{ "SV_Coverage", glsl_type::int_type, "gl_SampleMask[0]", ir_var_out, false, false, false, false },
+	{ "SV_SampleIndex", glsl_type::uint_type, "gl_SampleID", ir_var_in, false, false, false, false},
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false }
 };
 
@@ -5532,8 +5638,8 @@ FVulkanBindingTable::FBinding::FBinding()
 	FMemory::Memzero(Name);
 }
 
-FVulkanBindingTable::FBinding::FBinding(const char* InName, int32 InIndex, EVulkanBindingType::EType InType, int8 InSubType) :
-	Index(InIndex),
+FVulkanBindingTable::FBinding::FBinding(const char* InName, int32 InVirtualIndex, EVulkanBindingType::EType InType, int8 InSubType) :
+	VirtualIndex(InVirtualIndex),
 	Type(InType),
 	SubType(InSubType)
 {
@@ -5580,17 +5686,27 @@ int32 FVulkanBindingTable::RegisterBinding(const char* InName, const char* Block
 	return BindingIdx;
 }
 
-int32 FVulkanBindingTable::FindBinding(const char* InName) const
+void FVulkanBindingTable::SortBindings()
+{
+	check(!bSorted);
+	Bindings.Sort([](const FBinding& A, const FBinding& B)
+		{
+			if (A.Type == B.Type)
+			{
+				return A.VirtualIndex < B.VirtualIndex;
+			}
+
+			return A.Type < B.Type;
+		});
+	bSorted = true;
+}
+
+void FVulkanBindingTable::PrintBindingTableDefines(char** Buffer)
 {
 	for (int32 Index = 0; Index < Bindings.Num(); ++Index)
 	{
-		if (FCStringAnsi::Strcmp(Bindings[Index].Name, InName) == 0)
-		{
-			return Index;
-		}
+		ralloc_asprintf_append(Buffer, "#define BINDING_%d\t%d\n", Bindings[Index].VirtualIndex, Index);
 	}
-
-	return -1;
 }
 
 struct FFixIntrinsicsVisitor : public ir_rvalue_visitor

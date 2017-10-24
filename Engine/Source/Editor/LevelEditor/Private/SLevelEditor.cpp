@@ -702,10 +702,13 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	}
 	else if (TabIdentifier == TEXT("LevelEditorHierarchicalLODOutliner"))
 	{
+		FText Label = NSLOCTEXT("LevelEditor", "HLODOutlinerTabTitle", "Hierarchical LOD Outliner");
+
 		FHierarchicalLODOutlinerModule& HLODModule = FModuleManager::LoadModuleChecked<FHierarchicalLODOutlinerModule>("HierarchicalLODOutliner");
 		return SNew(SDockTab)
 			.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.HLOD"))
-			.Label(NSLOCTEXT("LevelEditor", "HLODTabTitle", "Hierarchical LOD Outliner"))
+			.Label(Label)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(Label, nullptr, "Shared/Editor/HLOD", "main"))
 			[
 				SNew(SBorder)
 				.Padding(0)

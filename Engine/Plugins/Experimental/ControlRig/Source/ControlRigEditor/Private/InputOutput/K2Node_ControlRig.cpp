@@ -147,7 +147,7 @@ UClass* UK2Node_ControlRig::GetControlRigClass() const
 	const UClass* FoundClass = GetControlRigClassImpl();
 	if (FoundClass)
 	{
-		ControlRigClass = FStringClassReference(FoundClass);
+		ControlRigClass = FSoftClassPath(FoundClass);
 	}
 
 	if (ControlRigClass.IsValid())

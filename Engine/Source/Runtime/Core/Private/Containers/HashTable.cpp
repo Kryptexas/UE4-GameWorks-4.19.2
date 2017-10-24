@@ -35,3 +35,21 @@ CORE_API void FHashTable::Resize( uint32 NewIndexSize )
 	IndexSize = NewIndexSize;
 	NextIndex = NewNextIndex;
 }
+
+CORE_API float FHashTable::AverageSearch() const
+{
+	uint32 SumAvgSearch = 0;
+	uint32 NumElements = 0;
+	for( uint32 Key = 0; Key < HashSize; Key++ )
+	{
+		uint32 NumInBucket = 0;
+		for( uint32 i = First( Key ); IsValid( i ); i = Next( i ) )
+		{
+			NumInBucket++;
+		}
+
+		SumAvgSearch += NumInBucket * ( NumInBucket + 1 );
+		NumElements  += NumInBucket;
+	}
+	return ( 0.5f * SumAvgSearch ) / NumElements;
+}

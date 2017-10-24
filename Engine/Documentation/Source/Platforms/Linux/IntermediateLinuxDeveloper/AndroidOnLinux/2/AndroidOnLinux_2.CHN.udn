@@ -1,109 +1,109 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2 - Setting up your Android Device
-Crumbs:
-Description:Learn how to enable an Android's development environment.
-Version: 4.14
+﻿INTSourceChangelist:3457813
+Availability:Public
+Title:2 - 设置 Android 设备
+Crumbs:%ROOT%
+Description: 学习如何启用 Android 的开发环境。
+Version:4.14
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
-order: 2
+order:2
 tags:Linux
 SkillLevel:Intermediate
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [nav]
 
-Now that you've installed the Android SDK on your Linux computer, you're almost ready to start developing mobile games 
-for your Android device. However, before you can run Unreal Engine games on your Android device, you need to enable your 
-Android's development environment.
+在 Linux 电脑上安装 Android SDK 后，开发移动游戏的准备工作便已差不多完成。然而开始在 Android 设备上运行虚幻游戏之前，需要启用 Android 的开发环境。
 
 [REGION:note]
-Make sure you have access to a USB cable prior to commencing the following steps.
+执行以下步骤前先准备一条 USB 线。
 [/REGION]
 
-## Enabling Android's Developer Options
+## 启用 Android 的开发者选项
 [EXCERPT:AndroidLinux_2]
-1.	Connect the Android device to your Linux computer with a USB cable.
+1.	用 USB 线将 Android 设备和 Linux 电脑连接。
 
-1.	Open the **Settings** application on your Android device.
+1.	在 Android 设备上打开 **Settings** 应用程序。
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step17.png)(w:180)](LinuxAndroid_Step17.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Tap **Developer Options** to open the Developer Options menu.
+1.	点击 **Developer Options** 打开开发者选项菜单。
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step18.png)(w:180)](LinuxAndroid_Step18.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]	
 
 	[REGION:note]
-	If you don't see this item, you'll need to enable **Developer Options** on your device. For instructions on how to enable Developer Options on Android devices, 
-	visit [Android's User Guide](https://developer.android.com/studio/run/device.html).
+	如未看到此项，则需要在设备上启用 **开发者选项**。启用 **开发者选项** 的方法：打开 **Settings** 应用，拉至底部并选择 **About phone**。 
+	选择 **About phone** 后，拉至底部，点击 7 次 **Build number**。
+	可访问 [Android 用户指南](https://developer.android.com/studio/debug/dev-options.html)，了解在 Android 设备上启用开发者选项的更多说明。
 	[/REGION]
 
-## Enabling USB Debugging
+## 启用 USB 调试
 
-1.	From the **Developer Options** menu, enable **USB debugging**.
+1.	在 **Developer Options** 菜单中启用 **USB debugging**。
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step19.png)(w:180)](LinuxAndroid_Step19.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	A window should appear, confirming your selection to enable USB debugging. After reading the prompt, go ahead and tap the **OK** button.
+1.	将出现确认启用 USB 调试的窗口。阅读弹出提示后，即可点击 **OK** 按钮。
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step20.png)(w:180)](LinuxAndroid_Step20.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-	USB debugging is now enabled.  
+	现在即可启用 USB 调试。  
 	![](LinuxAndroid_Step20Note.png)
 
-1.	Now, disconnect the Android device from its USB cable, plugging it back in after a few seconds. If you're connecting a device running Android 4.2.2 or higher, the following dialog will appear, asking whether you should accept an RSA key that allows debugging through your Linux computer. Go ahead and select the check box next to **Always allow from this computer** before tapping the **OK** button. 
+1.	断开 Android 设备和 USB 线的连接，然后在数秒后重新连接。如您连接设备的 Android 系统版本为 4.2.2 或更新版本，则会出现以下对话，询问您是否接受 RSA 密钥通过您的 Linux 电脑进行调试。勾选 **Always allow from this computer** 旁的勾选框，然后点击 **OK** 按钮。 
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step21.png)(w:180)](LinuxAndroid_Step21.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 [/EXCERPT:AndroidLinux_2]
 
-## End Result
+## 最终结果
 
-At this point, you're ready to verify that your device can be debugged on your Linux computer. To verify that your device was setup properly, open the terminal and enter `adb devices`.
+此时即可验证设备是否能在 Linux 电脑上进行调试。如需验证设备已正确设置，打开终端并输入 `adb devices`。
 
 ![](LinuxAndroid_Step22.png)(w:900)
 
-You should see a list of devices that are attached to your Linux computer, which means that you have an Android device that's ready to run an Unreal Engine game.
+将出现连接到 Linux 电脑的设备列表，这代表您的 Android 可以运行虚幻引擎游戏。
 
 [REGION:note]
-	If you didn't see your device after you entered `adb devices` into the terminal, you may need to set up adb on your Linux computer. Refer to 
-	the [Android Debug Bridge User Guide](https://developer.android.com/studio/command-line/adb.html) to learn more about adb and how to set up the program on your computer. 
-	If you're certain that adb was already installed and configured on your computer, try the following troubleshooting techniques:
+	如果在终端输入 `adb devices` 后未看到您的设备，则可能需要在 Linux 电脑上设置 adb。请查 
+	阅 [Android 调试桥用户指南](https://developer.android.com/studio/command-line/adb.html) 了解 adb 和如何在电脑上设置程序的更多内容。 
+	如您确定已在电脑上安装并配置 adb，则可尝试进行以下方法追踪问题：
 
-	* You may need to disconnect and reconnect the Android device from your computer. 
-	* If you didn't select the check box next to **Always allow from this computer**, you may need to do so. 
-	* If the device is listed as being unauthorized, you may be to get the Android device to authorize your Linux computer for USB debugging. 
-	* In some cases, a correctly configured device might not be recognized if it's connected as a Media Device using the Media Transfer Protocol (MTP). 
-	* Also, a correctly configured device might not be recognized if it's connected as a Camera Device using the Picture Transfer Protocol (PTP).
+	* 可能需要重新在电脑上插拔 Android 设备。 
+	* 如尚未选择 **Always allow from this computer** 旁的勾选框，则需要进行勾选。 
+	* 如设备被列为未授权，则可能需要 Android 设备授权 Linux 电脑进行 USB 调试。 
+	* 在某些情况下，如果使用媒体传输协议（MTP）作为媒体设备进行连接，设备即使配置正确也可能无法被识别。 
+	* 此外，如果使用图片传输协议（PTP）作为照相机设备进行连接，设备即使配置正确也可能无法被识别。
 [/REGION]
 
 [nav]

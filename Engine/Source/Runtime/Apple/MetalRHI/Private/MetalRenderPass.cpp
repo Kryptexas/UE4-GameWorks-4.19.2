@@ -12,11 +12,11 @@
 
 #pragma mark - Private Console Variables -
 
-static int32 GMetalCommandBufferCommitThreshold = 100;
+static int32 GMetalCommandBufferCommitThreshold = 0;
 static FAutoConsoleVariableRef CVarMetalCommandBufferCommitThreshold(
 	TEXT("rhi.Metal.CommandBufferCommitThreshold"),
 	GMetalCommandBufferCommitThreshold,
-	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 100, set to <= 0 to disable)"));
+	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 0, set to <= 0 to disable)"));
 
 static int32 GMetalTessellationRunTessellationStage = 1;
 static FAutoConsoleVariableRef CVarMetalTessellationRunTessellationStage(
@@ -461,7 +461,7 @@ void FMetalRenderPass::DrawPatches(uint32 PrimitiveType,id<MTLBuffer> IndexBuffe
 		FMetalDeviceContext& deviceContext = (FMetalDeviceContext&)GetMetalDeviceContext();
 		id<MTLDevice> device = deviceContext.GetDevice();
 		
-		FMetalBoundShaderState* boundShaderState = State.GetBoundShaderState();
+		FMetalGraphicsPipelineState* boundShaderState = State.GetGraphicsPSO();
 		FMetalShaderPipeline* Pipeline = State.GetPipelineState();
 		
 		// TODO could allocate this as 1 buffer and use the sizes to make the offsets we need...
@@ -845,7 +845,7 @@ id<MTLCommandBuffer> FMetalRenderPass::GetCurrentCommandBuffer(void) const
 	return CurrentEncoder.GetCommandBuffer();
 }
 	
-TSharedRef<FRingBuffer, ESPMode::ThreadSafe> FMetalRenderPass::GetRingBuffer(void) const
+FRingBuffer& FMetalRenderPass::GetRingBuffer(void)
 {
 	return CurrentEncoder.GetRingBuffer();
 }
@@ -1037,7 +1037,7 @@ void FMetalRenderPass::CommitRenderResourceTables(void)
 	
 	State.CommitResourceTable(SF_Vertex, MTLFunctionTypeVertex, CurrentEncoder);
 	
-	FMetalBoundShaderState const* BoundShaderState = State.GetBoundShaderState();
+	FMetalGraphicsPipelineState const* BoundShaderState = State.GetGraphicsPSO();
 	
 	if (BoundShaderState->VertexShader->SideTableBinding >= 0)
 	{
@@ -1066,7 +1066,7 @@ void FMetalRenderPass::CommitTessellationResourceTables(void)
 	
 	State.CommitResourceTable(SF_Domain, MTLFunctionTypeVertex, CurrentEncoder);
 	
-	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = State.GetBoundShaderState();
+	TRefCountPtr<FMetalGraphicsPipelineState> CurrentBoundShaderState = State.GetGraphicsPSO();
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
 		State.CommitResourceTable(SF_Pixel, MTLFunctionTypeFragment, CurrentEncoder);
@@ -1143,7 +1143,7 @@ void FMetalRenderPass::ConditionalSubmit()
 		
 		if (bWithinRenderPass)
 		{
-			const bool bIsMSAAActive = State.GetHasValidRenderTarget() && State.GetRenderPipelineDesc().SampleCount != 1;
+			const bool bIsMSAAActive = State.GetHasValidRenderTarget() && State.GetSampleCount() != 1;
 			bCanChangeRT = !bIsMSAAActive;
 			
 			for (int32 RenderTargetIndex = 0; bCanChangeRT && RenderTargetIndex < CurrentRenderTargets.NumColorRenderTargets; RenderTargetIndex++)

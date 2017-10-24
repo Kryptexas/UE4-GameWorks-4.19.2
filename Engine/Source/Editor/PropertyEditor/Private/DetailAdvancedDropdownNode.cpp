@@ -122,8 +122,6 @@ public:
 				SplitterArea = SNew(SSpacer);
 			}
 
-			SplitterArea = SNew(SSpacer);
-
 			ContentWidget =
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryBottom") )
@@ -138,7 +136,7 @@ public:
 			ContentWidget.ToSharedRef()
 		];
 
-		STableRow< TSharedPtr< IDetailTreeNode > >::ConstructInternal(
+		STableRow< TSharedPtr< FDetailTreeNode > >::ConstructInternal(
 			STableRow::FArguments()
 				.Style(FEditorStyle::Get(), "DetailsView.TreeView.TableRow")
 				.ShowSelection(false),
@@ -181,7 +179,7 @@ private:
 };
 
 
-TSharedRef< ITableRow > FAdvancedDropdownNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef< ITableRow > FAdvancedDropdownNode::GenerateWidgetForTableView( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem)
 {
 	return 
 		SNew( SAdvancedDropdownRow, OwnerTable, bIsTopNode, bDisplayShowAdvancedMessage, bShowSplitter )
@@ -190,6 +188,12 @@ TSharedRef< ITableRow > FAdvancedDropdownNode::GenerateNodeWidget( const TShared
 		.IsExpanded( IsExpanded )
 		.ShouldShowAdvancedButton( bShouldShowAdvancedButton )
 		.ColumnSizeData( ColumnSizeData );
+}
+
+bool FAdvancedDropdownNode::GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const
+{
+	// Not supported
+	return false;
 }
 
 FReply FAdvancedDropdownNode::OnAdvancedDropDownClicked()

@@ -5,7 +5,7 @@
   <Date>2016-06-15T18:46:47.2669263-04:00</Date>
   <Function>An optimized CRC implementation</Function>
   <Justification />
-  <Eula>http://slicing-by-8.sourceforge.net/</Eula>
+  <Eula>See zip - https://sourceforge.net/projects/slicing-by-8/</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if PLATFORM_HTML5_BROWSER
-
 #include "SaveGameSystem.h"
 
 class FHTML5SaveGameSystem : public ISaveGameSystem
@@ -47,4 +45,3 @@ private:
 	 */
 	const char* GetSaveGamePath(const TCHAR* Name, const int32 UserIndex);
 };
-#endif

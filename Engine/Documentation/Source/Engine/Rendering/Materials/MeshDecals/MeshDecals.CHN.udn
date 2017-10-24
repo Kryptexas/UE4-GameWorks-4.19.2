@@ -1,35 +1,37 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Using Mesh Decals
-Description: This how to will cover setting up and using Mesh Decals.
+﻿INTSourceChangelist:3455346
+Availability:Public
+Title:模型贴花总览
+Description:虚幻引擎 4 中模型贴花功能的总览。 
 Crumbs:
-parent: Engine/Rendering/Materials/HowTo
-type: reference
-tags:Materials
+parent:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/howto/MeshDecals
+order:14
+type:overview
 version:4.15
-skilllevel:intermediate
+Topic-image:MeshDecalTopic.png
+tags:Materials
+tags:Decals
 
-[TOC (start:2 end:4)]
+[TOC (start:2 end:2)]
 
+虚幻引擎 4 现支持 **模型贴花（Mesh Decals）**，使用户能在单独的表面几何体上使用延迟贴花属性，在静态和骨架网格体上形成更多细节。因为延迟贴花依赖于投射，因此多数平面表面未与其被投射的表面对齐时，将出现剪切和扭曲现象。模型贴花则可提供不跟随简单投射的贴花，而能够结合包裹边缘的几何体使用，结合样条使用，最终提升角色的外观效果。 
 
-Unreal Engine 4 now has support for Mesh Decals which enables you to use the properties of Deferred Decals on separate surface geometry 
-for added detail to your Static and Skeletal Meshes. Because Deferred Decals rely on projection, you are limited to mostly planar surface 
-details that shear and distort when not aligned with the surface it’s projecting onto. Mesh Decals afford you decals that do not follow 
-a simple projection and instead can be used with geometry that wraps around edges, used with spline meshes, and enhance the look of your characters. 
+<!---
+<div align= "center">
+![](MeshDecalVsMasked.png)(w:700)
+</div>
+--->
 
+## 模型贴花与遮罩材质比较
 
-## Mesh Decal VS Masked Material
+模型贴花是半透明混合模式和延迟贴花的混搭，它们并不渲染到深度中，但会在不透明几何体被渲染后对 GBuffer 或 DBuffer 进行更新。与使用遮罩材质不同的是，EarlyZ 通道不存在开销，不会获得阴影或适当的遮蔽，但可通过权衡获得材质中的柔和过渡。 
 
-Mesh Decals are a mix of translucent blend mode and deferred decals in that they do not render to depth but do update the GBuffer or 
-DBuffer after the opaque geometry has been rendered. In contrast to using a masked material, there is no cost for EarlyZ pass, you don't get shadows or 
-proper occlusion, but with the trade-off, you get the soft transitions in the material. 
+需要注意的是，模型贴花和延迟贴花 Actor 之间存在数点不同： 
 
-Mesh Decals provide several differences to Deferred Decal Actors that you should be aware of: 
-
-* There are fewer draw calls since large Deferred Decals often do front and back facing draw calls.
-* It's quite faster since there are fewer pixels covered and flat back facing decals cover 0 pixels. 
-* You have the ability to do more complex projections since you can use a custom UV. 
-* You have the ability to have properly normal mapped decals wrapping around surfaces or stretching along splines.
+* 较大的延迟贴花通常执行朝前和朝后的绘制调用，因此绘制调用数更少。
+* 被覆盖的像素更少，扁平朝后的贴花覆盖的像素为 0，因此处理速度更快。 
+* 可使用自定义 UV，因此能进行更为复杂的投射。 
+* 可使覆盖法线贴图的贴花围绕表面进行包裹（或沿样条进行拉伸）。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -40,25 +42,20 @@ Mesh Decals provide several differences to Deferred Decal Actors that you should
 	[/PARAM]
 [/OBJECT]
 
+## 创建内容
 
-## Authoring Content
+创建内容进行使用，因为模型贴花几何体与模型创建相一致。因为几何体不依赖于投射（如延迟贴花 Actor），所以几何体只需要停留在需要影响的表面前方。由此可以得出，贴花几何体应该“拥抱”下方的表面，但却无需十分紧密地进行匹配，因为已经应用了一个较小的深度偏差，足以容纳这个小偏差。此外，在贴花之外伸出一些几何体有助于形成贴花的柔和过渡，这样的效果无法通过遮罩材质实现。 
 
-Authoring content for use as Mesh Decal geometry is in-line with any model creation. Since this geometry will not rely on projection like a Deferred Decal Actor, the geometry
-needs only to stay in front of the surface you want to affect. With this in mind, the decal geometry should "hug" the underlying surface, but it does not have to match it
-very closely because there is already a small depth bias that is hard-coded to account for this small offset. Also, using a bit of geometry that feathers out from the decal can be good
-to create the soft transitions for the decal that you cannot attain with a masked material.
 
 <div align= "left">
 [REGION:imagetable]
 | ![](MeshDecalAuthoring.png)(h:450) | ![](MeshDecalAuthoringComposite.png)(h:450) |
 | --- | --- |
-| Base Mesh and Decal Geometry (Isolated) | Composited Mesh |
+| 基础模型和贴花几何体（单独） | 合成模型 |
 [/REGION]
 </div>
 
-Another thing to keep in mind when developing your content is that Mesh Decals can be a challenge with Levels of Detail (LOD) or long view distances when there is limited depth buffer
-precision because geometry will intersect or not match up as intended. However, you can either change the mesh to account for this in most cases or you can use World Position Offset in 
-your material to adjust the offset without having to return to your modeling application. 
+创建内容时需要注意的另外一点是模型贴花结合 LOD 使用时会较为困难，在深度缓冲精度有限时远距离观察同样效果不佳，因为几何体将如预期相交（或不能匹配）。然而可以修改模型来解决这个问题（多数情况下），或者使用材质中的 **世界位置偏差（World Position Offset）** 来调整偏差，而无需返回建模应用程序进行处理。 
 
 ![](Offset.png)(w:500)
 
@@ -71,89 +68,21 @@ your material to adjust the offset without having to return to your modeling app
 	[/PARAM]
 [/OBJECT]
 
-In this example, the decal geometry is close enough to the base mesh that the depth cannot account the offset. Using a small negative offset value pushes the geometry out just enough that it 
-doesn't intersect with the underlying geometry.
+在此例中，贴花几何体与基础模型十分接近，深度无法容纳偏差。使用较小的负偏差值将几何体拉出一些，避免其与下方的几何体相交。
 
-## Limitations
+## 注解
 
-* There is no artist specified sort order.
-* Tangent Space support is not yet implemented.
-* Shader Overdraw/Overdraw functionality is missing.
-* There is no easily adjustable DepthBias. Currently, you have to use an offset in the mesh from the surface it's above, or control with World Position Offset in the Material.
-* Sort by depth to avoid artifacts when there are many layers overlapping.
-* Material Editor Preview is not visible.
-* Material Editor does not currently show the correct instructions count since it assumes base pass usage.
-* DBuffer and non-DBuffer use the same container.
-* Parallel Rendering isn't yet hooked up. There are some CPU savings if this feature is used extensively. 
+* DBuffer 和非 DBuffer 使用相同的容器。
+* 有许多层重叠时按深度排序可避免穿帮。
+* 并行渲染尚未衔接。如大量使用此功能，将节约一些 CPU 开销。 
 
-## Using Mesh Decal Materials
+## 限制
 
-In the following steps, we will enable Dbuffer Decals for our project so that we can take advantage of lighting features for our decal material and we'll create a basic 
-Deferred Decal Material that can be applied to our Static Mesh.  
+* 材质编辑器预览不可见。
+* 美术师无法进行指定排序。
+* 尚未加入切线空间支持。
+* 着色器过度绘制/过度绘制功能缺失。
+* 材质编辑器对基础通道使用进行假设，因此它当前无法显示正确的指令数。
+* 不能对 DepthBias 便利地进行调节。当前版本中用户需要从模型之上的表面使用模型中的偏差，或通过材质中的世界位置偏差进行控制。
 
-### Required Files
-
-In order to follow along with this How-To, you will need to download, extract, and then import to UE4 the following FBX and Texture files. If you are unfamiliar with how to do this please
-check out [How to Import Static Meshes Guide](Engine/Content/ImportingContent/ImportingMeshes) and [How to Import Texture Guide](Engine/Content/ImportingContent/ImportingTextures) for more 
-information about how to go about doing this. 
-
-**[Required Textures Download](MeshDecalAssets.zip)** (Right - Click Save as)
-
-
-### Enabling DBuffer Decals for your Project
-
-1. In the **Edit** menu, click on **Project Settings** to view the Unreal Editor options. 
-
-	![](ProjectSettingsMenu.png)(w:250)
-1. Under the **Engine** heading, select the **Rendering** section and locate the **Lighting** category that contains various Lighting options.
-
-	[REGION:lightbox]
-	[![](ProjectSettings.png)(w:700)](ProjectSettings.png)
-	[/REGION]
-1. Now, you can toggle the **DBuffer Decals** option to use lighting features with your Deferred Decals.
-	
-	![](EnableDBufferDecal.png)(w:350)
-1. Before you'll be able to use this feature, you'll first need to **Restart the Editor**.
-
-	
-### Creating a Basic Deferred Decal
-
-1. In the **Content Browser**, select the **Add New** button and choose the option for **Material** to create a new Material. Make sure you give your Material a name that will be easy to locate later.
-For the purpose of this how-to, I have named mine "M_MeshDecal."
-	
-	![](AddNewMaterial.png)(w:300)
-
-1. Now, select your **Material** and double-click it to open it. Once the Material Editor opens, start by setting the following attributes in the **Details** panel so that it can be used as a Deferred Decal.
-
-	* **Material Domain:** Deferred Decal
-	* **Blend Mode:** Translucent
-	* **Decal Blend Mode:** DBuffer Translucent Color, Normal, Roughness 
-
-1. Next, you'll need to setup your material using the textures in the **Required Files** section of this page. There are three textures in the .zip file that we will need for this step; a diffuse, mask, and normal texture.
-Once you've imported these textures, select them from the **Content Browser** and drag them into the Material Editor Graph. 
-
-	![](MaterialGraph1.png)(w:400)
-
-	Now, plug in the outputs of the Texture Sample nodes into their corresponding inputs on the Main Material node. For the Mask texture,"T_MeshDecalDamage_M", be sure to use the **Blue Channel** output when
-	plugging into the Opacity Mask input. This will make sure the blue values in the texture are used as the maskfor what should be visible. 
-		
-	![](MaterialGraph2.png)(w:400)
-1. Right-click in the Material Graph and type in "Constant" or hold down the "1" key and click in the graph to add a **Constant** value node. Plug this into your **Roughness** input and give it a default value of **0.7**. 
-
-	![](MaterialGraph3.png)(w:400)
-1. Before finishing up, we'll need a way to control the offset of the decal geometry from the base mesh to prevent or lessen any artifacts that can occur due to depth precision. Add the following nodes to your Material Graph
-and plug the output of the **Multiply** node into the **World Position Offset** input of the Main Material node. 
-
-	![](MaterialGraph4.png)(w:400)
-
-	Once you've done this, you're Material Graph should look similar to this: 
-
-	[REGION:lightbox]
-	[![](FinalMaterialGraph.png)(w:400)](FinalMaterialGraph.png)
-	[/REGION]
-1. With your Deferred Decal Material complete, place the Static Mesh "SM_MeshDecal", which is included in the Required Files .zip, into your level and apply the Material **M_MeshDecal** to Element 0
-of the Static Mesh's Material slots. For the Base Mesh's Material you can assign any material or even just a basic color to Element 1 for the purposes of this demonstration. You should now have something
-that looks similar to our example below. 
-
-	![](MeshDecal.png)(w:400)
 

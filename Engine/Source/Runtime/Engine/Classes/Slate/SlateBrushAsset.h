@@ -22,7 +22,9 @@ public:
 	UPROPERTY(Category=Brush, EditAnywhere, meta=(ShowOnlyInnerProperties))
 	FSlateBrush Brush;
 
+#if WITH_EDITORONLY_DATA
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	//~ End UObject Interface
+#endif
 };

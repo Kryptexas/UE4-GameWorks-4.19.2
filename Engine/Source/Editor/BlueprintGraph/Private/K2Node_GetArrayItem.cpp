@@ -93,8 +93,8 @@ namespace K2Node_GetArrayItem_Impl
 	{
 		return !(PinType.PinCategory == UEdGraphSchema_K2::PC_Object ||
 			PinType.PinCategory == UEdGraphSchema_K2::PC_Class ||
-			PinType.PinCategory == UEdGraphSchema_K2::PC_Asset ||
-			PinType.PinCategory == UEdGraphSchema_K2::PC_AssetClass ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass ||
 			PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
 	}
 

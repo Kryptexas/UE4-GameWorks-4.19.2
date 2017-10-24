@@ -4,44 +4,57 @@
 
 #include "libcef/browser/printing/print_view_manager_base.h"
 
+#include <memory>
 #include <utility>
-
-#include "libcef/browser/content_browser_client.h"
 
 #include "base/auto_reset.h"
 #include "base/bind.h"
+#include "base/feature_list.h"
 #include "base/location.h"
-#include "base/memory/scoped_ptr.h"
-#include "base/prefs/pref_service.h"
+#include "base/memory/ptr_util.h"
+#include "base/run_loop.h"
 #include "base/single_thread_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/thread_task_runner_handle.h"
+#include "base/threading/thread_task_runner_handle.h"
 #include "base/timer/timer.h"
+#include "build/build_config.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/chrome_notification_types.h"
 #include "chrome/browser/printing/print_job.h"
 #include "chrome/browser/printing/print_job_manager.h"
 #include "chrome/browser/printing/printer_query.h"
+#include "chrome/browser/profiles/profile.h"
+#include "chrome/common/chrome_features.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/grit/generated_resources.h"
+#include "components/prefs/pref_service.h"
 #include "components/printing/common/print_messages.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/notification_details.h"
 #include "content/public/browser/notification_service.h"
 #include "content/public/browser/notification_source.h"
+#include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_view_host.h"
 #include "content/public/browser/web_contents.h"
+#include "printing/features/features.h"
 #include "printing/pdf_metafile_skia.h"
 #include "printing/printed_document.h"
 #include "ui/base/l10n/l10n_util.h"
+
+#if defined(OS_WIN)
+#include "base/command_line.h"
+#include "chrome/common/chrome_switches.h"
+#endif
 
 using base::TimeDelta;
 using content::BrowserThread;
 
 namespace printing {
 
-PrintViewManagerBase::PrintViewManagerBase(content::WebContents* web_contents)
+CefPrintViewManagerBase::CefPrintViewManagerBase(
+    content::WebContents* web_contents)
     : PrintManager(web_contents),
+      printing_rfh_(nullptr),
       printing_succeeded_(false),
       inside_inner_message_loop_(false),
 #if !defined(OS_MACOSX)
@@ -49,68 +62,54 @@ PrintViewManagerBase::PrintViewManagerBase(content::WebContents* web_contents)
 #endif
       queue_(g_browser_process->print_job_manager()->queue()) {
   DCHECK(queue_.get());
-  PrefService* pref_service =
-      static_cast<CefBrowserContext*>(web_contents->GetBrowserContext())->
-          GetPrefs();
+  Profile* profile =
+      Profile::FromBrowserContext(web_contents->GetBrowserContext());
   printing_enabled_.Init(
-      prefs::kPrintingEnabled,
-      pref_service,
-      base::Bind(&PrintViewManagerBase::UpdateScriptedPrintingBlocked,
+      prefs::kPrintingEnabled, profile->GetPrefs(),
+      base::Bind(&CefPrintViewManagerBase::UpdatePrintingEnabled,
                  base::Unretained(this)));
 }
 
-PrintViewManagerBase::~PrintViewManagerBase() {
+CefPrintViewManagerBase::~CefPrintViewManagerBase() {
   ReleasePrinterQuery();
   DisconnectFromCurrentPrintJob();
 }
 
-#if defined(ENABLE_BASIC_PRINTING)
-bool PrintViewManagerBase::PrintNow() {
-  return PrintNowInternal(new PrintMsg_PrintPages(routing_id()));
+#if BUILDFLAG(ENABLE_BASIC_PRINTING)
+bool CefPrintViewManagerBase::PrintNow(content::RenderFrameHost* rfh) {
+  DisconnectFromCurrentPrintJob();
+
+  SetPrintingRFH(rfh);
+  int32_t id = rfh->GetRoutingID();
+  return PrintNowInternal(rfh, base::MakeUnique<PrintMsg_PrintPages>(id));
 }
 #endif
 
-void PrintViewManagerBase::UpdateScriptedPrintingBlocked() {
-  Send(new PrintMsg_SetScriptedPrintingBlocked(
-       routing_id(),
-       !printing_enabled_.GetValue()));
+void CefPrintViewManagerBase::UpdatePrintingEnabled() {
+  web_contents()->ForEachFrame(
+      base::Bind(&CefPrintViewManagerBase::SendPrintingEnabled,
+                 base::Unretained(this), printing_enabled_.GetValue()));
 }
 
-void PrintViewManagerBase::NavigationStopped() {
+void CefPrintViewManagerBase::NavigationStopped() {
   // Cancel the current job, wait for the worker to finish.
   TerminatePrintJob(true);
 }
 
-void PrintViewManagerBase::RenderProcessGone(base::TerminationStatus status) {
-  PrintManager::RenderProcessGone(status);
-  ReleasePrinterQuery();
-
-  if (!print_job_.get())
-    return;
-
-  scoped_refptr<PrintedDocument> document(print_job_->document());
-  if (document.get()) {
-    // If IsComplete() returns false, the document isn't completely rendered.
-    // Since our renderer is gone, there's nothing to do, cancel it. Otherwise,
-    // the print job may finish without problem.
-    TerminatePrintJob(!document->IsComplete());
-  }
-}
-
-base::string16 PrintViewManagerBase::RenderSourceName() {
+base::string16 CefPrintViewManagerBase::RenderSourceName() {
   base::string16 name(web_contents()->GetTitle());
   if (name.empty())
     name = l10n_util::GetStringUTF16(IDS_DEFAULT_PRINT_DOCUMENT_TITLE);
   return name;
 }
 
-void PrintViewManagerBase::OnDidGetPrintedPagesCount(int cookie,
+void CefPrintViewManagerBase::OnDidGetPrintedPagesCount(int cookie,
                                                      int number_pages) {
   PrintManager::OnDidGetPrintedPagesCount(cookie, number_pages);
   OpportunisticallyCreatePrintJob(cookie);
 }
 
-void PrintViewManagerBase::OnDidPrintPage(
+void CefPrintViewManagerBase::OnDidPrintPage(
   const PrintHostMsg_DidPrintPage_Params& params) {
   if (!OpportunisticallyCreatePrintJob(params.document_cookie))
     return;
@@ -130,14 +129,15 @@ void PrintViewManagerBase::OnDidPrintPage(
 #endif
 
   // Only used when |metafile_must_be_valid| is true.
-  scoped_ptr<base::SharedMemory> shared_buf;
+  std::unique_ptr<base::SharedMemory> shared_buf;
   if (metafile_must_be_valid) {
     if (!base::SharedMemory::IsHandleValid(params.metafile_data_handle)) {
       NOTREACHED() << "invalid memory handle";
       web_contents()->Stop();
       return;
     }
-    shared_buf.reset(new base::SharedMemory(params.metafile_data_handle, true));
+    shared_buf =
+        base::MakeUnique<base::SharedMemory>(params.metafile_data_handle, true);
     if (!shared_buf->Map(params.data_size)) {
       NOTREACHED() << "couldn't map";
       web_contents()->Stop();
@@ -152,7 +152,8 @@ void PrintViewManagerBase::OnDidPrintPage(
     }
   }
 
-  scoped_ptr<PdfMetafileSkia> metafile(new PdfMetafileSkia);
+  std::unique_ptr<PdfMetafileSkia> metafile(
+      new PdfMetafileSkia(PDF_SKIA_DOCUMENT_TYPE));
   if (metafile_must_be_valid) {
     if (!metafile->InitFromData(shared_buf->memory(), params.data_size)) {
       NOTREACHED() << "Invalid metafile header";
@@ -162,19 +163,41 @@ void PrintViewManagerBase::OnDidPrintPage(
   }
 
 #if defined(OS_WIN)
+  print_job_->AppendPrintedPage(params.page_number);
   if (metafile_must_be_valid) {
     scoped_refptr<base::RefCountedBytes> bytes = new base::RefCountedBytes(
         reinterpret_cast<const unsigned char*>(shared_buf->memory()),
         params.data_size);
 
     document->DebugDumpData(bytes.get(), FILE_PATH_LITERAL(".pdf"));
-    print_job_->StartPdfToEmfConversion(
-        bytes, params.page_size, params.content_area);
+
+    const auto& settings = document->settings();
+    if ((settings.printer_is_ps2() || settings.printer_is_ps3()) &&
+        base::FeatureList::IsEnabled(features::kPostScriptPrinting)) {
+      print_job_->StartPdfToPostScriptConversion(bytes, params.content_area,
+                                                 params.physical_offsets,
+                                                 settings.printer_is_ps2());
+    } else {
+      // TODO(thestig): Figure out why rendering text with GDI results in random
+      // missing characters for some users. https://crbug.com/658606
+      // Update : The missing letters seem to have been caused by the same
+      // problem as https://crbug.com/659604 which was resolved. GDI printing
+      // seems to work with the fix for this bug applied.
+      bool print_text_with_gdi = settings.print_text_with_gdi() &&
+                                 !settings.printer_is_xps() &&
+                                 base::FeatureList::IsEnabled(
+                                     features::kGdiTextPrinting);
+      print_job_->StartPdfToEmfConversion(
+          bytes, params.page_size, params.content_area, print_text_with_gdi);
+    }
   }
 #else
   // Update the rendered document. It will send notifications to the listener.
   document->SetPage(params.page_number,
                     std::move(metafile),
+#if defined(OS_WIN)
+                    0.0f /* dummy shrink_factor */,
+#endif
                     params.page_size,
                     params.content_area);
 
@@ -182,7 +205,7 @@ void PrintViewManagerBase::OnDidPrintPage(
 #endif
 }
 
-void PrintViewManagerBase::OnPrintingFailed(int cookie) {
+void CefPrintViewManagerBase::OnPrintingFailed(int cookie) {
   PrintManager::OnPrintingFailed(cookie);
 
   ReleasePrinterQuery();
@@ -193,41 +216,58 @@ void PrintViewManagerBase::OnPrintingFailed(int cookie) {
       content::NotificationService::NoDetails());
 }
 
-void PrintViewManagerBase::OnShowInvalidPrinterSettingsError() {
+void CefPrintViewManagerBase::OnShowInvalidPrinterSettingsError() {
 }
 
-void PrintViewManagerBase::DidStartLoading() {
-  UpdateScriptedPrintingBlocked();
+void CefPrintViewManagerBase::DidStartLoading() {
+  UpdatePrintingEnabled();
 }
 
-bool PrintViewManagerBase::OnMessageReceived(const IPC::Message& message) {
-  bool handled = true;
-  IPC_BEGIN_MESSAGE_MAP(PrintViewManagerBase, message)
-    IPC_MESSAGE_HANDLER(PrintHostMsg_DidPrintPage, OnDidPrintPage)
-    IPC_MESSAGE_HANDLER(PrintHostMsg_ShowInvalidPrinterSettingsError,
-                        OnShowInvalidPrinterSettingsError);
-    IPC_MESSAGE_UNHANDLED(handled = false)
-  IPC_END_MESSAGE_MAP()
-  return handled || PrintManager::OnMessageReceived(message);
-}
+void CefPrintViewManagerBase::RenderFrameDeleted(
+    content::RenderFrameHost* render_frame_host) {
+  // Terminates or cancels the print job if one was pending.
+  if (render_frame_host != printing_rfh_)
+    return;
 
-void PrintViewManagerBase::Observe(
-    int type,
-    const content::NotificationSource& source,
-    const content::NotificationDetails& details) {
-  switch (type) {
-    case chrome::NOTIFICATION_PRINT_JOB_EVENT: {
-      OnNotifyPrintJobEvent(*content::Details<JobEventDetails>(details).ptr());
-      break;
-    }
-    default: {
-      NOTREACHED();
-      break;
-    }
+  printing_rfh_ = nullptr;
+
+  PrintManager::PrintingRenderFrameDeleted();
+  ReleasePrinterQuery();
+
+  if (!print_job_.get())
+    return;
+
+  scoped_refptr<PrintedDocument> document(print_job_->document());
+  if (document.get()) {
+    // If IsComplete() returns false, the document isn't completely rendered.
+    // Since our renderer is gone, there's nothing to do, cancel it. Otherwise,
+    // the print job may finish without problem.
+    TerminatePrintJob(!document->IsComplete());
   }
 }
 
-void PrintViewManagerBase::OnNotifyPrintJobEvent(
+bool CefPrintViewManagerBase::OnMessageReceived(
+    const IPC::Message& message,
+    content::RenderFrameHost* render_frame_host) {
+  bool handled = true;
+  IPC_BEGIN_MESSAGE_MAP(CefPrintViewManagerBase, message)
+    IPC_MESSAGE_HANDLER(PrintHostMsg_DidPrintPage, OnDidPrintPage)
+    IPC_MESSAGE_HANDLER(PrintHostMsg_ShowInvalidPrinterSettingsError,
+                        OnShowInvalidPrinterSettingsError)
+    IPC_MESSAGE_UNHANDLED(handled = false)
+  IPC_END_MESSAGE_MAP()
+  return handled || PrintManager::OnMessageReceived(message, render_frame_host);
+}
+
+void CefPrintViewManagerBase::Observe(
+    int type,
+    const content::NotificationSource& source,
+    const content::NotificationDetails& details) {
+  DCHECK_EQ(chrome::NOTIFICATION_PRINT_JOB_EVENT, type);
+  OnNotifyPrintJobEvent(*content::Details<JobEventDetails>(details).ptr());
+}
+
+void CefPrintViewManagerBase::OnNotifyPrintJobEvent(
     const JobEventDetails& event_details) {
   switch (event_details.type()) {
     case JobEventDetails::FAILED: {
@@ -276,7 +316,7 @@ void PrintViewManagerBase::OnNotifyPrintJobEvent(
   }
 }
 
-bool PrintViewManagerBase::RenderAllMissingPagesNow() {
+bool CefPrintViewManagerBase::RenderAllMissingPagesNow() {
   if (!print_job_.get() || !print_job_->is_job_pending())
     return false;
 
@@ -312,7 +352,7 @@ bool PrintViewManagerBase::RenderAllMissingPagesNow() {
   return true;
 }
 
-void PrintViewManagerBase::ShouldQuitFromInnerMessageLoop() {
+void CefPrintViewManagerBase::ShouldQuitFromInnerMessageLoop() {
   // Look at the reason.
   DCHECK(print_job_->document());
   if (print_job_->document() &&
@@ -325,10 +365,10 @@ void PrintViewManagerBase::ShouldQuitFromInnerMessageLoop() {
   }
 }
 
-bool PrintViewManagerBase::CreateNewPrintJob(PrintJobWorkerOwner* job) {
+bool CefPrintViewManagerBase::CreateNewPrintJob(PrintJobWorkerOwner* job) {
   DCHECK(!inside_inner_message_loop_);
 
-  // Disconnect the current print_job_.
+  // Disconnect the current |print_job_|.
   DisconnectFromCurrentPrintJob();
 
   // We can't print if there is no renderer.
@@ -352,7 +392,7 @@ bool PrintViewManagerBase::CreateNewPrintJob(PrintJobWorkerOwner* job) {
   return true;
 }
 
-void PrintViewManagerBase::DisconnectFromCurrentPrintJob() {
+void CefPrintViewManagerBase::DisconnectFromCurrentPrintJob() {
   // Make sure all the necessary rendered page are done. Don't bother with the
   // return value.
   bool result = RenderAllMissingPagesNow();
@@ -373,13 +413,7 @@ void PrintViewManagerBase::DisconnectFromCurrentPrintJob() {
 #endif
 }
 
-void PrintViewManagerBase::PrintingDone(bool success) {
-  if (!print_job_.get())
-    return;
-  Send(new PrintMsg_PrintingDone(routing_id(), success));
-}
-
-void PrintViewManagerBase::TerminatePrintJob(bool cancel) {
+void CefPrintViewManagerBase::TerminatePrintJob(bool cancel) {
   if (!print_job_.get())
     return;
 
@@ -399,20 +433,27 @@ void PrintViewManagerBase::TerminatePrintJob(bool cancel) {
   ReleasePrintJob();
 }
 
-void PrintViewManagerBase::ReleasePrintJob() {
+void CefPrintViewManagerBase::ReleasePrintJob() {
+  content::RenderFrameHost* rfh = printing_rfh_;
+  printing_rfh_ = nullptr;
+
   if (!print_job_.get())
     return;
 
-  PrintingDone(printing_succeeded_);
+  if (rfh) {
+    auto msg = base::MakeUnique<PrintMsg_PrintingDone>(rfh->GetRoutingID(),
+                                                       printing_succeeded_);
+    rfh->Send(msg.release());
+  }
 
   registrar_.Remove(this, chrome::NOTIFICATION_PRINT_JOB_EVENT,
                     content::Source<PrintJob>(print_job_.get()));
   print_job_->DisconnectSource();
   // Don't close the worker thread.
-  print_job_ = NULL;
+  print_job_ = nullptr;
 }
 
-bool PrintViewManagerBase::RunInnerMessageLoop() {
+bool CefPrintViewManagerBase::RunInnerMessageLoop() {
   // This value may actually be too low:
   //
   // - If we're looping because of printer settings initialization, the premise
@@ -436,7 +477,7 @@ bool PrintViewManagerBase::RunInnerMessageLoop() {
   {
     base::MessageLoop::ScopedNestableTaskAllower allow(
         base::MessageLoop::current());
-    base::MessageLoop::current()->Run();
+    base::RunLoop().Run();
   }
 
   bool success = true;
@@ -449,7 +490,7 @@ bool PrintViewManagerBase::RunInnerMessageLoop() {
   return success;
 }
 
-bool PrintViewManagerBase::OpportunisticallyCreatePrintJob(int cookie) {
+bool CefPrintViewManagerBase::OpportunisticallyCreatePrintJob(int cookie) {
   if (print_job_.get())
     return true;
 
@@ -478,36 +519,45 @@ bool PrintViewManagerBase::OpportunisticallyCreatePrintJob(int cookie) {
   return true;
 }
 
-bool PrintViewManagerBase::PrintNowInternal(IPC::Message* message) {
+bool CefPrintViewManagerBase::PrintNowInternal(
+    content::RenderFrameHost* rfh,
+    std::unique_ptr<IPC::Message> message) {
   // Don't print / print preview interstitials or crashed tabs.
-  if (web_contents()->ShowingInterstitialPage() ||
-      web_contents()->IsCrashed()) {
-    delete message;
+  if (web_contents()->ShowingInterstitialPage() || web_contents()->IsCrashed())
     return false;
-  }
-  return Send(message);
+  return rfh->Send(message.release());
 }
 
-void PrintViewManagerBase::ReleasePrinterQuery() {
+void CefPrintViewManagerBase::SetPrintingRFH(content::RenderFrameHost* rfh) {
+  DCHECK(!printing_rfh_);
+  printing_rfh_ = rfh;
+}
+
+void CefPrintViewManagerBase::ReleasePrinterQuery() {
   if (!cookie_)
     return;
 
   int cookie = cookie_;
   cookie_ = 0;
 
-  printing::PrintJobManager* print_job_manager =
-      g_browser_process->print_job_manager();
+  PrintJobManager* print_job_manager = g_browser_process->print_job_manager();
   // May be NULL in tests.
   if (!print_job_manager)
     return;
 
-  scoped_refptr<printing::PrinterQuery> printer_query;
+  scoped_refptr<PrinterQuery> printer_query;
   printer_query = queue_->PopPrinterQuery(cookie);
   if (!printer_query.get())
     return;
   BrowserThread::PostTask(
       BrowserThread::IO, FROM_HERE,
-      base::Bind(&PrinterQuery::StopWorker, printer_query.get()));
+      base::Bind(&PrinterQuery::StopWorker, printer_query));
+}
+
+void CefPrintViewManagerBase::SendPrintingEnabled(
+    bool enabled,
+    content::RenderFrameHost* rfh) {
+  rfh->Send(new PrintMsg_SetPrintingEnabled(rfh->GetRoutingID(), enabled));
 }
 
 }  // namespace printing

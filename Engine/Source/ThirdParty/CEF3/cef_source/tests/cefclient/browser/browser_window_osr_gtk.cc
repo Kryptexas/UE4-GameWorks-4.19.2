@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/browser_window_osr_gtk.h"
+#include "tests/cefclient/browser/browser_window_osr_gtk.h"
 
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
@@ -19,8 +19,8 @@
 
 #include "include/base/cef_logging.h"
 #include "include/wrapper/cef_closure_task.h"
-#include "cefclient/browser/geometry_util.h"
-#include "cefclient/browser/main_message_loop.h"
+#include "tests/shared/browser/geometry_util.h"
+#include "tests/shared/browser/main_message_loop.h"
 
 namespace client {
 
@@ -942,7 +942,7 @@ void BrowserWindowOsrGtk::CreateBrowser(
   DCHECK(xwindow);
 
   CefWindowInfo window_info;
-  window_info.SetAsWindowless(xwindow, renderer_.IsTransparent());
+  window_info.SetAsWindowless(xwindow);
 
   // Create the browser asynchronously.
   CefBrowserHost::CreateBrowser(window_info, client_handler_,
@@ -955,7 +955,7 @@ void BrowserWindowOsrGtk::GetPopupConfig(CefWindowHandle temp_handle,
                                          CefRefPtr<CefClient>& client,
                                          CefBrowserSettings& settings) {
   // Note: This method may be called on any thread.
-  windowInfo.SetAsWindowless(temp_handle, renderer_.IsTransparent());
+  windowInfo.SetAsWindowless(temp_handle);
   client = client_handler_;
 }
 
@@ -1204,6 +1204,13 @@ void BrowserWindowOsrGtk::UpdateDragCursor(
   CEF_REQUIRE_UI_THREAD();
 }
 
+void BrowserWindowOsrGtk::OnImeCompositionRangeChanged(
+    CefRefPtr<CefBrowser> browser,
+    const CefRange& selection_range,
+    const CefRenderHandler::RectList& character_bounds) {
+  CEF_REQUIRE_UI_THREAD();
+}
+
 void BrowserWindowOsrGtk::Create(ClientWindowHandle parent_handle) {
   REQUIRE_MAIN_THREAD();
   DCHECK(!glarea_);
@@ -1375,11 +1382,10 @@ gint BrowserWindowOsrGtk::KeyEvent(GtkWidget* widget,
   if (event->type == GDK_KEY_PRESS) {
     key_event.type = KEYEVENT_RAWKEYDOWN;
     host->SendKeyEvent(key_event);
-  } else {
-    // Need to send both KEYUP and CHAR events.
-    key_event.type = KEYEVENT_KEYUP;
-    host->SendKeyEvent(key_event);
     key_event.type = KEYEVENT_CHAR;
+    host->SendKeyEvent(key_event);
+  } else {
+    key_event.type = KEYEVENT_KEYUP;
     host->SendKeyEvent(key_event);
   }
 

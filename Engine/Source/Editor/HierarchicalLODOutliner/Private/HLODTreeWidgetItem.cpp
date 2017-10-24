@@ -8,6 +8,7 @@
 #include "HierarchicalLODType.h"
 #include "DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "LODActorItem.h"
+#include "IHierarchicalLODUtilities.h"
 
 #define LOCTEXT_NAMESPACE "HLODTreeWidgetItem"
 
@@ -74,14 +75,77 @@ namespace HLODOutliner
 	{
 		FDragDropPayload DraggedObjects;
 		// Validate now to make sure we don't doing anything we shouldn't
-		if (!DraggedObjects.ParseDrag(*DragDropEvent.GetOperation()))
+		EClusterGenerationError ErrorValue = DraggedObjects.ParseDrag(*DragDropEvent.GetOperation());
+
+		if (ErrorValue != EClusterGenerationError::ValidActor)
 		{
 			// Invalid selection
-			ValidationInfo = FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("InvalidSelection", "Selection contains already clustered Actor(s)"));
-			return FReply::Unhandled();
+			FString ErrorString("Selection contains:");
+			if ((ErrorValue & EClusterGenerationError::AlreadyClustered) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("ActorsAlreadyClustered", "\n- Already clustered Actor(s)").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::InvalidActor) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("InvalidActorsSelected", "\n- Invalid Actor(s)").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::ActorHiddenInGame) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("ActorsHiddenInGame", "\n- Actor(s) which are hidden In Game").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::ExcludedActor) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("ActorsExcludedFromHLOD", "\n- Actor(s) which are set to be excluded from HLOD generation").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::LODActor) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("LODActorsSelected", "\n- LOD Actor(s)").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::ActorTooSmall) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("InvisibleBoundActors", "\n- Actor(s) with invisible Bounds").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::ComponentHiddenInGame) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("ComponentsHiddenInGame", "\n- Actor(s) with Components set to be hidden In Game").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::MoveableComponent) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("MoveableActors", "\n- Actor(s) with Moveable Components").ToString();
+			}
+			
+			if ((ErrorValue & EClusterGenerationError::ExcludedComponent) != EClusterGenerationError::None)
+			{
+				ErrorString += LOCTEXT("ComponentsExcluded", "\n- Actor(s) with Components set to be excluded from HLOD generation").ToString();
+			}
+
+			if ((ErrorValue & EClusterGenerationError::ValidActor) != EClusterGenerationError::None)
+			{
+				// Warning(s)
+				ValidationInfo = DropTarget.ValidateDrop(DraggedObjects);
+				FTextBuilder TextBuilder;
+				TextBuilder.AppendLineFormat(FTextFormat::FromString("{0} - (Warning) {1}"), ValidationInfo.ValidationText, FText::FromString(ErrorString));
+				ValidationInfo.ValidationText = TextBuilder.ToText();
+			}
+			else
+			{
+				// Error
+				ValidationInfo = FDragValidationInfo(EHierarchicalLODActionType::InvalidAction, FHLODOutlinerDragDropOp::ToolTip_Incompatible, FText::FromString(TEXT("(Error) ") + ErrorString));
+				return FReply::Unhandled();
+			}
+		}
+		else
+		{
+			ValidationInfo = DropTarget.ValidateDrop(DraggedObjects);
 		}
 
-		ValidationInfo = DropTarget.ValidateDrop(DraggedObjects);
 
 		if (!ValidationInfo.IsValid())
 		{

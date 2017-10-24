@@ -199,7 +199,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRe
 	return Viewport->GetBackBuffer();
 }
 
-void FOpenGLDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+void FOpenGLDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 {
 }
 

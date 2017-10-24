@@ -50,7 +50,7 @@ public:
 	float*			GetAttributes()				{ return (float*)&Normal; }
 	const float*	GetAttributes() const		{ return (const float*)&Normal; }
 
-	void			Correct()
+	void		Correct()
 	{
 		Normal.Normalize();
 		Tangents[0] -= ( Tangents[0] * Normal ) * Normal;
@@ -59,6 +59,30 @@ public:
 		Tangents[1] -= ( Tangents[1] * Tangents[0] ) * Tangents[0];
 		Tangents[1].Normalize();
 		Color = Color.GetClamped();
+	}
+
+	bool		Equals(	const VertType& a ) const
+	{
+		if( MaterialIndex != a.MaterialIndex ||
+			!PointsEqual(  Position,	a.Position ) ||
+			!NormalsEqual( Tangents[0],	a.Tangents[0] ) ||
+			!NormalsEqual( Tangents[1],	a.Tangents[1] ) ||
+			!NormalsEqual( Normal,		a.Normal ) ||
+			!Color.Equals( a.Color ) )
+		{
+			return false;
+		}
+
+		// UVs
+		for( int32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++ )
+		{
+			if( !UVsEqual( TexCoords[ UVIndex ], a.TexCoords[ UVIndex ] ) )
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	bool		operator==(	const VertType& a ) const
@@ -247,27 +271,7 @@ public:
 					{
 						TVertSimp< NumTexCoords >& FoundVert = Verts[ *Location ];
 
-						if( NewVert.MaterialIndex != FoundVert.MaterialIndex ||
-							!PointsEqual(  NewVert.Position,	FoundVert.Position ) ||
-							!NormalsEqual( NewVert.Tangents[0],	FoundVert.Tangents[0] ) ||
-							!NormalsEqual( NewVert.Tangents[1],	FoundVert.Tangents[1] ) ||
-							!NormalsEqual( NewVert.Normal,		FoundVert.Normal ) ||
-							NewVert.Color != FoundVert.Color )
-						{
-							continue;
-						}
-
-						// UVs
-						bool bMatch = true;
-						for( int32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++ )
-						{
-							if( !UVsEqual( NewVert.TexCoords[ UVIndex ], FoundVert.TexCoords[ UVIndex ] ) )
-							{
-								bMatch = false;
-							}
-						}
-
-						if( bMatch )
+						if( NewVert.Equals( FoundVert ) )
 						{
 							Index = *Location;
 							break;
@@ -353,6 +357,45 @@ public:
 
 		MeshSimp->OutputMesh( Verts.GetData(), Indexes.GetData() );
 		delete MeshSimp;
+
+		//Reorder the face to use the material in the correct order
+		TArray<int32> ReduceMeshUsedMaterialIndex;
+		bool bDoRemap = false;
+		for (uint32 TriIndex = 0; TriIndex < NumTris; TriIndex++)
+		{
+			int32 ReduceMaterialIndex = Verts[Indexes[3 * TriIndex]].MaterialIndex;
+			int32 FinalMaterialIndex = ReduceMeshUsedMaterialIndex.AddUnique(ReduceMaterialIndex);
+			bDoRemap |= ReduceMaterialIndex != FinalMaterialIndex;
+		}
+		if (bDoRemap)
+		{
+			int32 MaximumIndex = 0;
+			int32 MaxMaterialIndex = FMath::Max(ReduceMeshUsedMaterialIndex, &MaximumIndex);
+			TArray<TArray<int32>> MaterialSectionIndexes;
+			//We need to add up to the maximum material index
+			MaterialSectionIndexes.AddDefaulted(MaxMaterialIndex+1);
+			//Reorder the Indexes according to the remap array
+			//First, sort them by section in the material index order
+			for (uint32 IndexesIndex = 0; IndexesIndex < NumIndexes; IndexesIndex++)
+			{
+				int32 ReduceMaterialIndex = Verts[Indexes[IndexesIndex]].MaterialIndex;
+				MaterialSectionIndexes[ReduceMaterialIndex].Add(Indexes[IndexesIndex]);
+			}
+			//Update the Indexes array by placing all triangles in section index order
+			//This will make sure that the reduce LOD mesh will have the same material order
+			//as the reference LOD, even if some sections disappear because all triangles was remove.
+			int32 IndexOffset = 0;
+			for (const TArray<int32>& RemapSectionIndexes : MaterialSectionIndexes)
+			{
+				for (int32 IndexOfIndex = 0; IndexOfIndex < RemapSectionIndexes.Num(); ++IndexOfIndex)
+				{
+					int32 SortedIndex = IndexOfIndex + IndexOffset;
+					Indexes[SortedIndex] = RemapSectionIndexes[IndexOfIndex];
+				}
+				IndexOffset += RemapSectionIndexes.Num();
+			}
+		}
+
 
 		OutMaxDeviation = FMath::Sqrt( MaxErrorSqr ) / 8.0f;
 

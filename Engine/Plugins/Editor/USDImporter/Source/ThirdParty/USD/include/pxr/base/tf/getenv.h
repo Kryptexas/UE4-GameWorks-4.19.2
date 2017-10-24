@@ -28,11 +28,15 @@
 /// \ingroup group_tf_SystemsExt
 /// Functions for accessing environment variables.
 
+#include "pxr/pxr.h"
+#include "pxr/base/tf/api.h"
+
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \addtogroup group_tf_SystemsExt
 ///@{
-#include	"pxr/base/tf/api.h"
 
 /// Return an environment variable as a string.
 ///
@@ -60,7 +64,8 @@ int TfGetenvInt(const std::string& envName, int defaultValue);
 /// returned. A value of \c true is returned if the environment variable is
 /// any of "true", "yes", "on" or "1"; the match is not case sensitive. All
 /// other values yield a return value of \c false.
-TF_API bool TfGetenvBool(const std::string&, bool defaultValue);
+TF_API
+bool TfGetenvBool(const std::string&, bool defaultValue);
 
 /// Return an environment variable as a double.
 ///
@@ -74,5 +79,7 @@ TF_API
 double TfGetenvDouble(const std::string& envName, double defaultValue);
 
 ///@}
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

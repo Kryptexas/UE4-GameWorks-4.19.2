@@ -1,7 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Layout/Clipping.h"
-
+#include "AssertionMacros.h"
+#include "LogVerbosity.h"
+#include "SlateGlobals.h"
 
 FSlateClippingZone::FSlateClippingZone(const FShortRect& AxisAlignedRect)
 	: bIsAxisAligned(true)
@@ -293,7 +295,16 @@ const TArray< FSlateClippingState >& FSlateClippingManager::GetClippingStates() 
 
 void FSlateClippingManager::PopClip()
 {
-	ClippingStack.Pop();
+#ifdef WITH_EDITOR
+	if (ClippingStack.Num() == 0)
+	{
+		UE_LOG(LogSlate, Log, TEXT("Attempting to pop clipping stack of size 0 due to a breakpoint."));
+	}
+	else
+#endif
+	{
+		ClippingStack.Pop();
+	}
 }
 
 int32 FSlateClippingManager::MergeClippingStates(const TArray< FSlateClippingState >& States)

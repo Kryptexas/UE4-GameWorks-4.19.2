@@ -195,6 +195,7 @@ FComputePipelineState* GetAndOrCreateComputePipelineState(FRHICommandList& RHICm
 FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState)
 {
 	ensure(ComputePipelineState->RHIPipeline);
+	FRWScopeLock ScopeLock(GComputeLock, SLT_Write);
 	ComputePipelineState->CompletionEvent = nullptr;
 	return ComputePipelineState->RHIPipeline;
 }
@@ -303,6 +304,7 @@ FGraphicsPipelineState* GetAndOrCreateGraphicsPipelineState(FRHICommandList& RHI
 FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState)
 {
 	ensure(GraphicsPipelineState->RHIPipeline);
+	FRWScopeLock ScopeLock(GGraphicsLock, SLT_Write);
 	GraphicsPipelineState->CompletionEvent = nullptr;
 	return GraphicsPipelineState->RHIPipeline;
 }

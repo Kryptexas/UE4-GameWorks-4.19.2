@@ -109,7 +109,7 @@ class CefSpeechRecognitionManagerDelegate::WebContentsWatcher
 
   // Lazy-initialized and used on the UI thread to handle web contents
   // notifications (tab closing).
-  scoped_ptr<content::NotificationRegistrar> registrar_;
+  std::unique_ptr<content::NotificationRegistrar> registrar_;
 
   // Keeps track of which WebContent(s) have been registered, in order to avoid
   // double registrations on |registrar_|
@@ -196,12 +196,6 @@ void CefSpeechRecognitionManagerDelegate::OnAudioLevelsChange(
 }
 
 void CefSpeechRecognitionManagerDelegate::OnRecognitionEnd(int session_id) {
-}
-
-void CefSpeechRecognitionManagerDelegate::GetDiagnosticInformation(
-    bool* can_report_metrics,
-    std::string* hardware_info) {
-  DCHECK(BrowserThread::CurrentlyOn(BrowserThread::IO));
 }
 
 void CefSpeechRecognitionManagerDelegate::CheckRecognitionIsAllowed(

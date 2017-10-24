@@ -68,7 +68,7 @@ VarArgs helper macros.
 Ugly VarArgs type checking (debug builds only).
 -----------------------------------------------------------------------------*/
 
-#define VARARG_EXTRA(A) A,
+#define VARARG_EXTRA(...) __VA_ARGS__,
 #define VARARG_NONE
 #define VARARG_PURE =0
 

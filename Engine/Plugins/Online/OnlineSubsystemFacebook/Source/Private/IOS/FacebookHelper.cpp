@@ -47,10 +47,12 @@
 	const FString Token([FBSDKAccessToken currentAccessToken].tokenString);
 	UE_LOG(LogOnline, Warning, TEXT("Facebook Token Change UserId: %s Token: %s"), *UserId, *Token);
 
+#if !UE_BUILD_SHIPPING
 	for(NSString *key in [[note userInfo] allKeys])
 	{
 		NSLog(@"Key: %@ Value: %@", key, [[note userInfo] objectForKey:key]);
 	}
+#endif
 
 	// header mentions FBSDKAccessTokenChangeOldKey FBSDKAccessTokenChangeNewKey
 	NSNumber* DidChange = [[note userInfo] objectForKey:@"FBSDKAccessTokenDidChangeUserID"];
@@ -72,10 +74,12 @@
 	const FString Token([FBSDKAccessToken currentAccessToken].tokenString);
 	UE_LOG(LogOnline, Warning, TEXT("Facebook UserId Change UserId: %s Token: %s"), *UserId, *Token);
 
+#if !UE_BUILD_SHIPPING
 	for(NSString *key in [[note userInfo] allKeys])
 	{
 		NSLog(@"Key: %@ Value: %@", key, [[note userInfo] objectForKey:key]);
 	}
+#endif
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
@@ -92,10 +96,12 @@
 	const FString Token([FBSDKAccessToken currentAccessToken].tokenString);
 	UE_LOG(LogOnline, Warning, TEXT("Facebook Profile Change UserId: %s Token: %s"), *UserId, *Token);
 
+#if !UE_BUILD_SHIPPING
 	for(NSString *key in [[note userInfo] allKeys])
 	{
 		NSLog(@"Key: %@ Value: %@", key, [[note userInfo] objectForKey:key]);
 	}
+#endif
 
 	// header mentions FBSDKProfileChangeOldKey FBSDKProfileChangeNewKey
 	FBSDKProfile* NewProfile = [[note userInfo] objectForKey:@"FBSDKProfileNew"];

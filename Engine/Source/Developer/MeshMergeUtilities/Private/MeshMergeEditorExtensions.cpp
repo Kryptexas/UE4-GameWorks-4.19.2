@@ -118,7 +118,7 @@ void FMeshMergeEditorExtensions::RemoveSkeletalMeshEditorToolbarExtender()
 TSharedRef<FExtender> FMeshMergeEditorExtensions::GetSkeletalMeshEditorToolbarExtender(const TSharedRef<FUICommandList> CommandList, TSharedRef<ISkeletalMeshEditor> InSkeletalMeshEditor)
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	// Add button on skeletal mesh editor toolbar
 	Extender->AddToolBarExtension(

@@ -22,11 +22,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Game Thread Update Time"),STAT_GameThreadUpdateT
 
 // Streaming Details
 
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Growing Reallocations"),STAT_GrowingReallocations,STATGROUP_StreamingDetails, );
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Shrinking Reallocations"),STAT_ShrinkingReallocations,STATGROUP_StreamingDetails, );
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Full Reallocations"),STAT_FullReallocations,STATGROUP_StreamingDetails, );
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Failed Reallocations"),STAT_FailedReallocations,STATGROUP_StreamingDetails, );
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Panic Defragmentations"),STAT_PanicDefragmentations,STATGROUP_StreamingDetails, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("AddToWorld Time"),STAT_AddToWorldTime,STATGROUP_StreamingDetails, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("RemoveFromWorld Time"),STAT_RemoveFromWorldTime,STATGROUP_StreamingDetails, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("UpdateLevelStreaming Time"),STAT_UpdateLevelStreamingTime,STATGROUP_StreamingDetails, );
@@ -70,30 +65,23 @@ struct FTextureStreamingSettings
 	FORCEINLINE bool operator ==(const FTextureStreamingSettings& Rhs) const { return FMemory::Memcmp(this, &Rhs, sizeof(FTextureStreamingSettings)) == 0; }
 	FORCEINLINE bool operator !=(const FTextureStreamingSettings& Rhs) const { return FMemory::Memcmp(this, &Rhs, sizeof(FTextureStreamingSettings)) != 0; }
 
-	FORCEINLINE float GlobalMipBias() const { return !bUsePerTextureBias ? MipBias : 0; }
-	FORCEINLINE int32 GlobalMipBiasAsInt() const { return !bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
-	FORCEINLINE float GlobalMipBiasAsScale() const { return (!bUsePerTextureBias && bScaleTexturesByGlobalMipBias) ? FMath::Exp2(-MipBias) : 1.f; }
-
-	FORCEINLINE int32 MaxExpectedPerTextureMipBias() const { return bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
-
 	float MaxEffectiveScreenSize;
 	int32 MaxTempMemoryAllowed;
 	int32 DropMips;
 	int32 HLODStrategy;
 	float HiddenPrimitiveScale;
+	int32 GlobalMipBias;
 	int32 PoolSize;
 	bool bLimitPoolSizeToVRAM;
 	bool bUseNewMetrics;
 	bool bFullyLoadUsedTextures;
 	bool bUseAllMips;
-	bool bScaleTexturesByGlobalMipBias;
 	bool bUsePerTextureBias;
 	bool bUseMaterialData;
 	int32 MinMipForSplitRequest;
 
 protected:
 
-	float MipBias;
 };
 
 typedef TArray<int32, TMemStackAllocator<> > FStreamingRequests;
@@ -120,42 +108,6 @@ struct FStreamingTexture;
 struct FStreamingContext;
 struct FStreamingHandlerTextureBase;
 struct FTexturePriority;
-
-/**
- *	Helper struct that represents a texture and the parameters used for sorting and streaming out high-res mip-levels.
- **/
-struct FTextureSortElement
-{
-	/**
-	 *	Constructor.
-	 *
-	 *	@param InTexture					- The texture to represent
-	 *	@param InSize						- Size of the whole texture and all current mip-levels, in bytes
-	 *	@param bInIsCharacterTexture		- 1 if this is a character texture, otherwise 0
-	 *	@param InTextureDataAddress			- Starting address of the texture data
-	 *	@param InNumRequiredResidentMips	- Minimum number of mip-levels required to stay in memory
-	 */
-	FTextureSortElement( UTexture2D* InTexture, int32 InSize, int32 bInIsCharacterTexture, uint32 InTextureDataAddress, int32 InNumRequiredResidentMips )
-	:	Texture( InTexture )
-	,	Size( InSize )
-	,	bIsCharacterTexture( bInIsCharacterTexture )
-	,	TextureDataAddress( InTextureDataAddress )
-	,	NumRequiredResidentMips( InNumRequiredResidentMips )
-	{
-	}
-	/** The texture that this element represents */
-	UTexture2D*	Texture;
-	/** Size of the whole texture and all current mip-levels, in bytes. */
-	int32			Size;
-	/** 1 if this is a character texture, otherwise 0 */
-	int32			bIsCharacterTexture;
-	/** Starting address of the texture data. */
-	uint32		TextureDataAddress;			
-	/** Minimum number of mip-levels required to stay in memory. */
-	int32			NumRequiredResidentMips;
-};
-
-
 
 struct FTextureStreamingStats
 {

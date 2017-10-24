@@ -27,9 +27,13 @@
 /// \file tf/timeStamp.h
 /// \ingroup group_tf_Multithreading
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/arch/inttypes.h"
 #include "pxr/base/tf/api.h"
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfTimeStamp
 /// \ingroup group_tf_Multithreading
@@ -45,7 +49,7 @@ public:
     inline TfTimeStamp() {}
 
     /// Initializes timestamp to given value.
-    inline TfTimeStamp(const uint64_t &value) {
+    inline explicit TfTimeStamp(const uint64_t &value) {
         _value = value;
     }
 
@@ -57,6 +61,11 @@ public:
     /// Assignment operator
     inline const TfTimeStamp & operator=(const TfTimeStamp &timeStamp) {
         _value = timeStamp._value;
+        return *this;
+    }
+
+    inline const TfTimeStamp & operator=(uint64_t value) {
+        _value = value;
         return *this;
     }
 
@@ -128,5 +137,7 @@ private:
 TF_API std::ostream& operator<<(std::ostream& out, const TfTimeStamp& t);
 
 /// @}
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_TIME_STAMP_H

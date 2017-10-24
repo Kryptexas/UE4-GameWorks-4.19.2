@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,18 +14,18 @@
 #define CEF_LIBCEF_DLL_CTOCPP_FIND_HANDLER_CTOCPP_H_
 #pragma once
 
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 
 #include "include/cef_find_handler.h"
 #include "include/capi/cef_find_handler_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed DLL-side only.
 class CefFindHandlerCToCpp
-    : public CefCToCpp<CefFindHandlerCToCpp, CefFindHandler,
+    : public CefCToCppRefCounted<CefFindHandlerCToCpp, CefFindHandler,
         cef_find_handler_t> {
  public:
   CefFindHandlerCToCpp();
@@ -36,5 +36,4 @@ class CefFindHandlerCToCpp
       bool finalUpdate) override;
 };
 
-#endif  // BUILDING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_FIND_HANDLER_CTOCPP_H_

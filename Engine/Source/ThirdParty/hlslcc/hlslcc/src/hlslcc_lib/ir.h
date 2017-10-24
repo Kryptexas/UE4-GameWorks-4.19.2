@@ -1067,6 +1067,10 @@ enum ir_expression_operation
 	/*@{*/
 	ir_unop_dFdx,
 	ir_unop_dFdy,
+	ir_unop_dFdxFine,
+	ir_unop_dFdyFine,
+	ir_unop_dFdxCoarse,
+	ir_unop_dFdyCoarse,
 	/*@}*/
 
 	ir_unop_isnan,
@@ -1087,6 +1091,8 @@ enum ir_expression_operation
 	ir_unop_bitcount,
 	ir_unop_msb,
 	ir_unop_lsb,
+	
+	ir_unop_saturate,
 
 	ir_unop_noise,
 
@@ -1175,11 +1181,12 @@ enum ir_expression_operation
 	ir_ternop_lerp,
 	ir_ternop_smoothstep,
 	ir_ternop_clamp,
+	ir_ternop_fma,
 
 	/**
 	* A sentinel marking the last of the ternary operations.
 	*/
-	ir_last_ternop = ir_ternop_clamp,
+	ir_last_ternop = ir_ternop_fma,
 
 	ir_quadop_vector,
 

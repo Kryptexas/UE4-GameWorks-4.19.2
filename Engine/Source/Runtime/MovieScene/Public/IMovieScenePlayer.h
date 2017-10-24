@@ -110,6 +110,12 @@ public:
 	 */
 	virtual FMovieSceneSpawnRegister& GetSpawnRegister() { return NullRegister; }
 
+	/*
+	 * Called wehn an object is spawned by sequencer
+	 * 
+	 */
+	virtual void OnObjectSpawned(UObject* InObject, const FMovieSceneEvaluationOperand& Operand) {}
+
 	/**
 	 * Called whenever an object binding has been resolved to give the player a chance to interact with the objects before they are animated
 	 * 

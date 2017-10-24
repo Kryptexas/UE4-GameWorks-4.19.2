@@ -13,6 +13,7 @@
 #include "DSP/SinOsc.h"
 #include "UObject/UObjectIterator.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#include "Misc/App.h"
 
 #if WITH_EDITOR
 #include "AudioEditorModule.h"
@@ -121,7 +122,7 @@ namespace Audio
 
 			OpenStreamParams.NumBuffers = PlatformSettings.NumBuffers;
 			OpenStreamParams.NumFrames = PlatformSettings.CallbackBufferFrameSize;
-			OpenStreamParams.OutputDeviceIndex = 0; // Default device
+			OpenStreamParams.OutputDeviceIndex = AUDIO_MIXER_DEFAULT_DEVICE_INDEX; // TODO: Support overriding which audio device user wants to open, not necessarily default.
 			OpenStreamParams.SampleRate = SampleRate;
 			OpenStreamParams.AudioMixer = this;
 
@@ -172,25 +173,32 @@ namespace Audio
 				AudioClock = 0.0;
 				AudioClockDelta = (double)OpenStreamParams.NumFrames / OpenStreamParams.SampleRate;
 
+				FAudioPluginInitializationParams PluginInitializationParams;
+				PluginInitializationParams.NumSources = MaxChannels;
+				PluginInitializationParams.SampleRate = SampleRate;
+				PluginInitializationParams.BufferLength = OpenStreamParams.NumFrames;
+				PluginInitializationParams.AudioDevicePtr = this;
 
 				// Initialize any plugins if they exist
 				if (SpatializationPluginInterface.IsValid())
 				{
-					SpatializationPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					SpatializationPluginInterface->Initialize(PluginInitializationParams);
 				}
 
 				if (OcclusionInterface.IsValid())
 				{
-					OcclusionInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					OcclusionInterface->Initialize(PluginInitializationParams);
 				}
 
 				if (ReverbPluginInterface.IsValid())
 				{
-					ReverbPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
+					ReverbPluginInterface->Initialize(PluginInitializationParams);
 				}
 
 				// Need to set these up before we start the audio stream.
 				InitSoundSubmixes();
+
+				AudioMixerPlatform->PostInitializeHardware();
 
 				// Start streaming audio
 				return AudioMixerPlatform->StartAudioStream();
@@ -221,7 +229,7 @@ namespace Audio
 		{
 			SourceManager.Update();
 
-			AudioMixerPlatform->UnRegisterDeviceChangedListener();
+			AudioMixerPlatform->UnregisterDeviceChangedListener();
 			AudioMixerPlatform->StopAudioStream();
 			AudioMixerPlatform->CloseAudioStream();
 			AudioMixerPlatform->TeardownHardware();
@@ -327,12 +335,12 @@ namespace Audio
 		bDebugOutputEnabled = true;
 	}
 
-	bool FMixerDevice::OnProcessAudioStream(TArray<float>& Output)
+	bool FMixerDevice::OnProcessAudioStream(AlignedFloatBuffer& Output)
 	{
-	
-// Turn on to only hear PIE audio
-#if 0
-		if (IsMainAudioDevice())
+#if WITH_EDITOR
+		// Turn on to only hear PIE audio
+		bool bBypassMainAudioDevice = FParse::Param(FCommandLine::Get(), TEXT("AudioPIEOnly"));
+		if (bBypassMainAudioDevice && IsMainAudioDevice())
 		{
 			return true;
 		}
@@ -365,6 +373,17 @@ namespace Audio
 		AudioClock += AudioClockDelta;
 
 		return true;
+	}
+
+	void FMixerDevice::OnAudioStreamShutdown()
+	{
+		// Make sure the source manager pumps any final commands on shutdown. These allow for cleaning up sources, interfacing with plugins, etc.
+		// Because we double buffer our command queues, we call this function twice to ensure all commands are successfully pumped.
+		SourceManager.PumpCommandQueue();
+		SourceManager.PumpCommandQueue();
+
+		// Make sure we force any pending release data to happen on shutdown
+		SourceManager.UpdatePendingReleaseData(true);
 	}
 
 	void FMixerDevice::InitSoundSubmixes()
@@ -430,23 +449,26 @@ namespace Audio
 				MasterReverbPluginSubmix->SetParentSubmix(MasterSubmixInstance);
 				MasterSubmixInstance->AddChildSubmix(MasterReverbPluginSubmix);
 			}
+			else
+			{
+				// Setup the master reverb only if we don't have a reverb plugin
 
-			// Setup the master reverb
-			USoundSubmix* MasterReverbSubix = FMixerDevice::MasterSubmixes[EMasterSubmixType::Reverb];
-			USubmixEffectReverbPreset* ReverbPreset = NewObject<USubmixEffectReverbPreset>(MasterReverbSubix, TEXT("Master Reverb Effect Preset"));
+				USoundSubmix* MasterReverbSubix = FMixerDevice::MasterSubmixes[EMasterSubmixType::Reverb];
+				USubmixEffectReverbPreset* ReverbPreset = NewObject<USubmixEffectReverbPreset>(MasterReverbSubix, TEXT("Master Reverb Effect Preset"));
 
-			FSoundEffectSubmix* ReverbEffectSubmix = static_cast<FSoundEffectSubmix*>(ReverbPreset->CreateNewEffect());
+				FSoundEffectSubmix* ReverbEffectSubmix = static_cast<FSoundEffectSubmix*>(ReverbPreset->CreateNewEffect());
 
-			ReverbEffectSubmix->Init(InitData);
-			ReverbEffectSubmix->SetPreset(ReverbPreset);
-			ReverbEffectSubmix->SetEnabled(true);
+				ReverbEffectSubmix->Init(InitData);
+				ReverbEffectSubmix->SetPreset(ReverbPreset);
+				ReverbEffectSubmix->SetEnabled(true);
 
-			const uint32 ReverbPresetId = ReverbPreset->GetUniqueID();
+				const uint32 ReverbPresetId = ReverbPreset->GetUniqueID();
 
-			FMixerSubmixPtr MasterReverbSubmix = MasterSubmixInstances[EMasterSubmixType::Reverb];
-			MasterReverbSubmix->AddSoundEffectSubmix(ReverbPresetId, MakeShareable(ReverbEffectSubmix));
-			MasterReverbSubmix->SetParentSubmix(MasterSubmixInstance);
-			MasterSubmixInstance->AddChildSubmix(MasterReverbSubmix);
+				FMixerSubmixPtr MasterReverbSubmix = MasterSubmixInstances[EMasterSubmixType::Reverb];
+				MasterReverbSubmix->AddSoundEffectSubmix(ReverbPresetId, MakeShareable(ReverbEffectSubmix));
+				MasterReverbSubmix->SetParentSubmix(MasterSubmixInstance);
+				MasterSubmixInstance->AddChildSubmix(MasterReverbSubmix);
+			}
 
 			// Setup the master EQ
 			USoundSubmix* MasterEQSoundSubmix = FMixerDevice::MasterSubmixes[EMasterSubmixType::EQ];
@@ -469,7 +491,8 @@ namespace Audio
 
 		// Reset existing submixes if they exist
 		Submixes.Reset();
-		// Make sure all submixs are registered but not initialized
+
+		// Make sure all submixes are registered but not initialized
 		for (TObjectIterator<USoundSubmix> It; It; ++It)
 		{
 			RegisterSoundSubmix(*It, false);
@@ -497,15 +520,19 @@ namespace Audio
 			// Now add all the child submixes to this submix instance
 			for (USoundSubmix* ChildSubmix : SoundSubmix->ChildSubmixes)
 			{
-				FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
-				SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				// ChildSubmix lists can contain null entries.
+				if (ChildSubmix)
+				{
+					FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
+					SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				}
 			}
 
 			// Perform any other initialization on the submix instance
 			SubmixInstance->Init(SoundSubmix);
 		}
 	}
-
+	
  	FAudioPlatformSettings FMixerDevice::GetPlatformSettings() const
  	{
 		FAudioPlatformSettings Settings = AudioMixerPlatform->GetPlatformSettings();
@@ -717,12 +744,21 @@ namespace Audio
 		return *MixerSubmix;		
 	}
 
-	FMixerSourceVoice* FMixerDevice::GetMixerSourceVoice(const FWaveInstance* InWaveInstance, ISourceBufferQueueListener* InBufferQueueListener, bool bUseHRTFSpatialization)
+	FMixerSourceVoice* FMixerDevice::GetMixerSourceVoice()
 	{
-		// Create a new mixer source voice using our source manager
-		FMixerSourceVoice* NewMixerSourceVoice = new FMixerSourceVoice(this, &SourceManager);
+		FMixerSourceVoice* Voice = nullptr;
+		if (!SourceVoices.Dequeue(Voice))
+		{
+			Voice = new FMixerSourceVoice();
+		}
 
-		return NewMixerSourceVoice;
+		Voice->Reset(this);
+		return Voice;
+	}
+
+	void FMixerDevice::ReleaseMixerSourceVoice(FMixerSourceVoice* InSourceVoice)
+	{
+		SourceVoices.Enqueue(InSourceVoice);
 	}
 
 	int32 FMixerDevice::GetNumSources() const
@@ -915,7 +951,7 @@ namespace Audio
 		return bIsMain;
 	}
 
-	void FMixerDevice::WhiteNoiseTest(TArray<float>& Output)
+	void FMixerDevice::WhiteNoiseTest(AlignedFloatBuffer& Output)
 	{
 		const int32 NumFrames = OpenStreamParams.NumFrames;
 		const int32 NumChannels = PlatformInfo.NumChannels;
@@ -932,7 +968,7 @@ namespace Audio
 		}
 	}
 
-	void FMixerDevice::SineOscTest(TArray<float>& Output)
+	void FMixerDevice::SineOscTest(AlignedFloatBuffer& Output)
 	{
 		const int32 NumFrames = OpenStreamParams.NumFrames;
 		const int32 NumChannels = PlatformInfo.NumChannels;

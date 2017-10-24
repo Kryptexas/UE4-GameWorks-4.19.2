@@ -35,9 +35,10 @@ namespace SteamVRDevice_Impl
 static FSteamVRHMD* SteamVRDevice_Impl::GetSteamHMD()
 {
 #if STEAMVR_SUPPORTED_PLATFORMS
-	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
+	static FName SystemName(TEXT("SteamVR"));
+	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == SystemName))
 	{
-		return static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+		return static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
 	}
 #endif
 	return nullptr;

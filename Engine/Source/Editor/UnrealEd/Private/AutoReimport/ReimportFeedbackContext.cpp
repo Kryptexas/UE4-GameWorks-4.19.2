@@ -569,6 +569,8 @@ void FReimportFeedbackContext::FinalizeSlowTask()
 		SlowTaskText->SetVisibility(EVisibility::Collapsed);
 		SlowTaskText = nullptr;
 	}
+
+	FFeedbackContext::FinalizeSlowTask();
 }
 
 #undef LOCTEXT_NAMESPACE

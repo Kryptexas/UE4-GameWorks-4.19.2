@@ -101,6 +101,8 @@ public:
 	static inline bool IsUpper(CharType Char);
 	static inline bool IsLower(CharType Char);
 	static inline bool IsAlpha(CharType Char);
+	static inline bool IsGraph(CharType Char);
+	static inline bool IsPrint(CharType Char);
 	static inline bool IsPunct(CharType Char);
 
 	static inline bool IsAlnum(CharType Char);
@@ -138,6 +140,8 @@ template <> inline TChar<WIDECHAR>::CharType TChar<WIDECHAR>::ToLower(CharType C
 template <> inline bool TChar<WIDECHAR>::IsUpper(CharType Char)							{ return ::iswupper(Char) != 0; }
 template <> inline bool TChar<WIDECHAR>::IsLower(CharType Char)							{ return ::iswlower(Char) != 0; }
 template <> inline bool TChar<WIDECHAR>::IsAlpha(CharType Char)							{ return ::iswalpha(Char) != 0; }
+template <> inline bool TChar<WIDECHAR>::IsGraph(CharType Char)							{ return ::iswgraph(Char) != 0; }
+template <> inline bool TChar<WIDECHAR>::IsPrint(CharType Char)							{ return ::iswprint(Char) != 0; }
 template <> inline bool TChar<WIDECHAR>::IsPunct(CharType Char)							{ return ::iswpunct(Char) != 0; }
 template <> inline bool TChar<WIDECHAR>::IsAlnum(CharType Char)							{ return ::iswalnum(Char) != 0; }
 template <> inline bool TChar<WIDECHAR>::IsDigit(CharType Char)							{ return ::iswdigit(Char) != 0; }
@@ -152,6 +156,8 @@ template <> inline TChar<ANSICHAR>::CharType TChar<ANSICHAR>::ToLower(CharType C
 template <> inline bool TChar<ANSICHAR>::IsUpper(CharType Char)							{ return ::isupper((unsigned char)Char) != 0; }
 template <> inline bool TChar<ANSICHAR>::IsLower(CharType Char)							{ return ::islower((unsigned char)Char) != 0; }
 template <> inline bool TChar<ANSICHAR>::IsAlpha(CharType Char)							{ return ::isalpha((unsigned char)Char) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsGraph(CharType Char)							{ return ::isgraph((unsigned char)Char) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsPrint(CharType Char)							{ return ::isprint((unsigned char)Char) != 0; }
 template <> inline bool TChar<ANSICHAR>::IsPunct(CharType Char)							{ return ::ispunct((unsigned char)Char) != 0; }
 template <> inline bool TChar<ANSICHAR>::IsAlnum(CharType Char)							{ return ::isalnum((unsigned char)Char) != 0; }
 template <> inline bool TChar<ANSICHAR>::IsDigit(CharType Char)							{ return ::isdigit((unsigned char)Char) != 0; }

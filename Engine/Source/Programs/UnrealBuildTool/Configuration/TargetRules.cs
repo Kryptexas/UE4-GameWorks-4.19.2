@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -463,6 +464,11 @@ namespace UnrealBuildTool
 		public bool bForceEnableExceptions = false;
 
 		/// <summary>
+		/// Enable exceptions for all modules.
+		/// </summary>
+		public bool bForceEnableObjCExceptions = false;
+
+		/// <summary>
 		/// Enable RTTI for all modules.
 		/// </summary>
 		public bool bForceEnableRTTI = false;
@@ -482,6 +488,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport")]
 		public bool bCompileWithPluginSupport = false;
+
+		/// <summary>
+		/// Whether to allow plugins which support all target platforms.
+		/// </summary>
+		public bool bIncludePluginsForTargetPlatforms = false;
 
         /// <summary>
         /// Whether to include PerfCounters support.
@@ -535,6 +546,19 @@ namespace UnrealBuildTool
 		/// If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor.
 		/// </summary>
 		public bool bEventDrivenLoader;
+
+		/// <summary>
+		/// Whether the XGE controller worker and modules should be included in the engine build.
+		/// These are required for distributed shader compilation using the XGE interception interface.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bUseXGEController = true;
+
+		/// <summary>
+		/// Enables "include what you use" by default for modules in this target. Changes the default PCH mode for any module in this project to PCHUsageModule.UseExplicitOrSharedPCHs.
+		/// </summary>
+		[CommandLine("-IWYU")]
+		public bool bIWYU = false;
 
 		/// <summary>
 		/// Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
@@ -930,6 +954,20 @@ namespace UnrealBuildTool
 		public TargetBuildEnvironment BuildEnvironment = TargetBuildEnvironment.Default;
 
 		/// <summary>
+		/// Specifies a list of steps which should be executed before this target is built, in the context of the host platform's shell.
+		/// The following variables will be expanded before execution: 
+		/// $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+		/// </summary>
+		public List<string> PreBuildSteps = new List<string>();
+
+		/// <summary>
+		/// Specifies a list of steps which should be executed after this target is built, in the context of the host platform's shell.
+		/// The following variables will be expanded before execution: 
+		/// $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+		/// </summary>
+		public List<string> PostBuildSteps = new List<string>();
+
+		/// <summary>
 		/// Android-specific target settings.
 		/// </summary>
 		public AndroidTargetRules AndroidPlatform = new AndroidTargetRules();
@@ -1016,7 +1054,7 @@ namespace UnrealBuildTool
 
 			// If we've got a changelist set, set that we're making a formal build
 			BuildVersion Version;
-			if (BuildVersion.TryRead(out Version))
+			if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				bFormalBuild = (Version.Changelist != 0 && Version.IsPromotedBuild != 0);
 			}
@@ -1092,6 +1130,9 @@ namespace UnrealBuildTool
 				//enable PerfCounters
 				bWithPerfCounters = true;
 
+				// Include all plugins
+				bIncludePluginsForTargetPlatforms = true;
+
 				// Tag it as a 'Editor' build
 				GlobalDefinitions.Add("UE_EDITOR=1");
 			}
@@ -1162,6 +1203,14 @@ namespace UnrealBuildTool
 				return LinkType;
 			}
 #pragma warning restore 0612
+		}
+
+		/// <summary>
+		/// Gets the host platform being built on
+		/// </summary>
+		public UnrealTargetPlatform HostPlatform
+		{
+			get { return BuildHostPlatform.Current.Platform; }
 		}
 
 		/// <summary>
@@ -1263,21 +1312,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Setup the binaries associated with this target.
-		/// </summary>
-		/// <param name="Target">The target information - such as platform and configuration</param>
-		/// <param name="OutBuildBinaryConfigurations">Output list of binaries to generated</param>
-		/// <param name="OutExtraModuleNames">Output list of extra modules that this target could utilize</param>
-		[ObsoleteOverride("SetupBinaries() is deprecated in the 4.16 release. From the constructor in your .target.cs file, use ExtraModuleNames.Add(\"Foo\") to add modules to your target, or set LaunchModuleName = \"Foo\" to override the name of the launch module for program targets.")]
-		public virtual void SetupBinaries(
-			TargetInfo Target,
-			ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-			ref List<string> OutExtraModuleNames
-			)
-		{
-		}
-
-		/// <summary>
 		/// Setup the global environment for building this target
 		/// IMPORTANT: Game targets will *not* have this function called if they use the shared build environment.
 		/// See ShouldUseSharedBuildEnvironment().
@@ -1329,6 +1363,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("BuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
 		public TargetRules BuildConfiguration
 		{
 			get { return this; }
@@ -1337,6 +1372,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("UEBuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
 		public TargetRules UEBuildConfiguration
 		{
 			get { return this; }
@@ -1590,6 +1626,11 @@ namespace UnrealBuildTool
 			get { return Inner.bForceEnableExceptions; }
 		}
 
+		public bool bForceEnableObjCExceptions
+		{
+			get { return Inner.bForceEnableObjCExceptions; }
+		}
+
 		public bool bForceEnableRTTI
 		{
 			get { return Inner.bForceEnableRTTI; }
@@ -1608,6 +1649,11 @@ namespace UnrealBuildTool
 		public bool bCompileWithPluginSupport
 		{
 			get { return Inner.bCompileWithPluginSupport; }
+		}
+
+		public bool bIncludePluginsForTargetPlatforms
+		{
+			get { return Inner.bIncludePluginsForTargetPlatforms; }
 		}
 
         public bool bWithPerfCounters
@@ -1655,9 +1701,19 @@ namespace UnrealBuildTool
 			get { return Inner.bForceCompilePerformanceAutomationTests; }
 		}
 
+		public bool bUseXGEController
+		{
+			get { return Inner.bUseXGEController; }
+		}
+
 		public bool bEventDrivenLoader
 		{
 			get { return Inner.bEventDrivenLoader; }
+		}
+
+		public bool bIWYU
+		{
+			get { return Inner.bIWYU; }
 		}
 
 		public bool bEnforceIWYU
@@ -1946,6 +2002,16 @@ namespace UnrealBuildTool
 			get { return Inner.BuildEnvironment; }
 		}
 
+		public IReadOnlyList<string> PreBuildSteps
+		{
+			get { return Inner.PreBuildSteps; }
+		}
+
+		public IReadOnlyList<string> PostBuildSteps
+		{
+			get { return Inner.PostBuildSteps; }
+		}
+
 		public ReadOnlyAndroidTargetRules AndroidPlatform
 		{
 			get;
@@ -2013,17 +2079,6 @@ namespace UnrealBuildTool
 		public string UEThirdPartyBinariesDirectory
 		{
 			get { return "../Binaries/ThirdParty/"; }
-		}
-
-		/// <summary>
-		/// Wrapper around TargetRules.SetupBinaries
-		/// </summary>
-		/// <param name="Target">The target information - such as platform and configuration</param>
-		/// <param name="OutBuildBinaryConfigurations">Output list of binaries to generated</param>
-		/// <param name="OutExtraModuleNames">Output list of extra modules that this target could utilize</param>
-		public void SetupBinaries(TargetInfo Target, ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations, ref List<string> OutExtraModuleNames)
-		{
-			Inner.SetupBinaries(Target, ref OutBuildBinaryConfigurations, ref OutExtraModuleNames);
 		}
 
 		/// <summary>

@@ -1,11 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WebImage.h"
-#include "ImageDownloadPrivate.h"
-#include "Interfaces/IImageWrapperModule.h"
+
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "HttpModule.h"
 #include "Modules/ModuleManager.h"
 #include "Styling/CoreStyle.h"
+
+#include "ImageDownloadPrivate.h"
+
 
 FWebImage::FWebImage()
 : StandInBrush(FCoreStyle::Get().GetDefaultBrush())
@@ -110,7 +114,7 @@ bool FWebImage::ProcessHttpResponse(const FString& RequestUrl, FHttpResponsePtr 
 
 	// Look at the signature of the downloaded image to detect image type. (and ignore the content type header except for error reporting)
 	const TArray<uint8>& Content = HttpResponse->GetContent();
-	EImageFormat::Type ImageFormat = ImageWrapperModule.DetectImageFormat(Content.GetData(), Content.Num());
+	EImageFormat ImageFormat = ImageWrapperModule.DetectImageFormat(Content.GetData(), Content.Num());
 
 	if (ImageFormat == EImageFormat::Invalid)
 	{
@@ -119,7 +123,7 @@ bool FWebImage::ProcessHttpResponse(const FString& RequestUrl, FHttpResponsePtr 
 		return false;
 	}
 
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
 	if (!ImageWrapper.IsValid())
 	{
 		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to make image wrapper for image format %d"), (int32)ImageFormat);

@@ -7,6 +7,9 @@
 #include "AutomationDriverLogging.h"
 #include "Widgets/SWidget.h"
 #include "Framework/Application/SlateApplication.h"
+#include "AutomationDriverTypeDefs.h"
+#include "IDriverElement.h"
+#include "IApplicationElement.h"
 
 class FSlateWidgetLocatorByPath
 	: public IElementLocator
@@ -134,10 +137,6 @@ public:
 			return;
 		}
 
-		// Get a list of all the current slate windows
-		TArray<TSharedRef<SWindow>> Windows;
-		FSlateApplication::Get().GetAllVisibleWindowsOrdered(/*OUT*/Windows);
-
 		struct FStackState
 		{
 			FWidgetPath Path;
@@ -145,28 +144,56 @@ public:
 		};
 		TArray<FStackState> Stack;
 
-		for (const TSharedRef<SWindow>& Window : Windows)
+		if (Root.IsValid())
 		{
-			FStackState NewState;
-			NewState.Path.TopLevelWindow = Window;
-			NewState.Path.Widgets.AddWidget(FArrangedWidget(Window, Window->GetWindowGeometryInScreen()));
-			NewState.MatcherIndex = 0;
+			TArray<TSharedRef<IApplicationElement>> OutRootElements;
+			Root->Locate(OutRootElements);
 
-			if (Matchers[NewState.MatcherIndex]->IsMatch(Window))
+			for (const TSharedRef<IApplicationElement>& RootElement : OutRootElements)
 			{
-				if (Matchers.IsValidIndex(NewState.MatcherIndex + 1))
+				void* RawElementPtr = RootElement->GetRawElement();
+				if (RawElementPtr == nullptr)
 				{
-					NewState.MatcherIndex++;
-					Stack.Push(NewState);
+					continue;
+				}
+
+				FWidgetPath* RootWidgetPath = static_cast<FWidgetPath*>(RawElementPtr);
+
+				FStackState NewState;
+				NewState.Path = *RootWidgetPath;
+				NewState.MatcherIndex = 0;
+				Stack.Push(NewState);
+			}
+		}
+		else
+		{
+			// Get a list of all the current slate windows
+			TArray<TSharedRef<SWindow>> Windows;
+			FSlateApplication::Get().GetAllVisibleWindowsOrdered(/*OUT*/Windows);
+
+			for (const TSharedRef<SWindow>& Window : Windows)
+			{
+				FStackState NewState;
+				NewState.Path.TopLevelWindow = Window;
+				NewState.Path.Widgets.AddWidget(FArrangedWidget(Window, Window->GetWindowGeometryInScreen()));
+				NewState.MatcherIndex = 0;
+
+				if (Matchers[NewState.MatcherIndex]->IsMatch(Window))
+				{
+					if (Matchers.IsValidIndex(NewState.MatcherIndex + 1))
+					{
+						NewState.MatcherIndex++;
+						Stack.Push(NewState);
+					}
+					else
+					{
+						OutElements.Add(FSlateWidgetElementFactory::Create(NewState.Path));
+					}
 				}
 				else
 				{
-					OutElements.Add(FSlateWidgetElementFactory::Create(NewState.Path));
+					Stack.Push(NewState);
 				}
-			}
-			else
-			{
-				Stack.Push(NewState);
 			}
 		}
 
@@ -219,12 +246,13 @@ public:
 		}
 	}
 
-
 private:
 
 	FSlateWidgetLocatorByPath(
+		const FDriverElementPtr& InRoot,
 		const FString& InPath)
 		: VisibilityFilter(EVisibility::Visible)
+		, Root(InRoot)
 		, Path(InPath)
 	{
 		FString TempPath = Path;
@@ -282,6 +310,7 @@ private:
 private:
 
 	const EVisibility VisibilityFilter;
+	const FDriverElementPtr Root;
 	const FString Path;
 
 	TArray<TSharedRef<FMatcher>> Matchers;
@@ -289,9 +318,15 @@ private:
 	friend FSlateWidgetLocatorByPathFactory;
 };
 
-
 TSharedRef<IElementLocator, ESPMode::ThreadSafe> FSlateWidgetLocatorByPathFactory::Create(
 	const FString& Path)
 {
-	return MakeShareable(new FSlateWidgetLocatorByPath(Path));
+	return FSlateWidgetLocatorByPathFactory::Create(nullptr, Path);
+}
+
+TSharedRef<IElementLocator, ESPMode::ThreadSafe> FSlateWidgetLocatorByPathFactory::Create(
+	const FDriverElementPtr& Root,
+	const FString& Path)
+{
+	return MakeShareable(new FSlateWidgetLocatorByPath(Root, Path));
 }

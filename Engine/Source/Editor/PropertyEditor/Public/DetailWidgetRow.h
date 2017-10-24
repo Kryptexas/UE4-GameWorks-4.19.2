@@ -254,7 +254,7 @@ public:
 	/** Action for pasting data on this row */
 	FUIAction PasteMenuAction;
 	/* Tag to identify this row */
-	FName	RowTagName;
+	FName RowTagName;
 	/* Flag to track if property has been modified from default */
 	TAttribute<bool> DiffersFromDefaultAttr;
 	/* All property handle that this custom widget represent */

@@ -237,6 +237,11 @@ private:
 	/**  */	
 	void ReimportTiledLandscape_Executed(FName TargetLayer);
 
+	/** Tiles location locking */	
+	void OnToggleLockTilesLocation();
+public:
+	bool IsLockTilesLocationEnabled();
+
 public:
 	/** Whether Editor has support for generating static mesh proxies */	
 	bool HasMeshProxySupport() const;

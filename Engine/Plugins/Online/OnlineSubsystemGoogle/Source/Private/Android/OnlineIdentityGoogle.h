@@ -75,8 +75,6 @@ public:
 class FOnlineIdentityGoogle :
 	public FOnlineIdentityGoogleCommon
 {
-	/** Whether we have a registration in flight or not */
-	bool bHasLoginOutstanding;
 
 public:
 	// IOnlineIdentity

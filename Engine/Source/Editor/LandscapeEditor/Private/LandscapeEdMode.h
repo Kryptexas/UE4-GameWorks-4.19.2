@@ -456,8 +456,8 @@ public:
 	/** Update shown layer list */	
 	void UpdateShownLayerList();
 	bool ShouldShowLayer(TSharedRef<FLandscapeTargetListInfo> Target) const;
-	void UpdateLayerUsageInformation();
-
+	void UpdateLayerUsageInformation(TWeakObjectPtr<ULandscapeLayerInfoObject>* LayerInfoObjectThatChanged = nullptr);
+	void OnLandscapeMaterialChangedDelegate();
 	void RefreshDetailPanel();
 
 	DECLARE_EVENT(FEdModeLandscape, FTargetsListUpdated);

@@ -123,8 +123,11 @@ struct exec_node {
 
    void remove()
    {
+      check(next);
 	  next->prev = prev;
-      prev->next = next;
+      check(prev);
+	  prev->next = next;
+	  
       next = nullptr;
       prev = nullptr;
    }
@@ -148,8 +151,9 @@ struct exec_node {
       after->next = this->next;
       after->prev = this;
 
+      check(this->next);
 	  this->next->prev = after;
-      this->next = after;
+	  this->next = after;
    }
    /**
     * Insert a node in the list before the current node
@@ -159,6 +163,7 @@ struct exec_node {
       before->next = this;
       before->prev = this->prev;
 
+      check(this->prev);
 	  this->prev->next = before;
 	  this->prev = before;
    }
@@ -176,7 +181,9 @@ struct exec_node {
       replacement->prev = this->prev;
       replacement->next = this->next;
 
+      check(this->prev);
 	  this->prev->next = replacement;
+      check(this->next);
 	  this->next->prev = replacement;
    }
 
@@ -342,7 +349,10 @@ struct exec_list {
        * The first two methods tend to generate better code on modern systems
        * because they save a pointer dereference.
        */
-      return head == (exec_node *) &tail;
+      // Cast to volatile is needed to prevent clang 3.8+ from optimizing is_empty() away in MoveGlobalInstructionsToMain().
+      // Consider a list that was created (make_empty()) and only push_tail()-ed to. Without this clang considers is_empty() to be true
+      // because it never sees head being updated (it is updated indirectly through n->prev->next = n; assignment in push_tail()).
+      return *((volatile exec_node **)&head) == (exec_node *) &tail;
    }
 
    const exec_node *get_head() const

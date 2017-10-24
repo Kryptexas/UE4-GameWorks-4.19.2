@@ -146,7 +146,7 @@ bool APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& De
 			if (SessionInt.IsValid())
 			{
 				FString ConnectInfo;
-				if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
+				if (SessionInt->GetResolvedConnectString(DesiredHost, NAME_BeaconPort, ConnectInfo))
 				{
 					FString SessionId = DesiredHost.Session.SessionInfo->GetSessionId().ToString();
 					return RequestReservation(ConnectInfo, SessionId, RequestingPartyLeader, PartyMembers);

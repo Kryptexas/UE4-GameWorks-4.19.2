@@ -6,7 +6,7 @@
 #include "Preferences/CurveEdOptions.h"
 #include "Preferences/MaterialEditorOptions.h"
 #include "Preferences/PersonaOptions.h"
-#include "Preferences/PhATSimOptions.h"
+#include "Preferences/PhysicsAssetEditorOptions.h"
 
 // @todo find a better place for all of this, preferably in the appropriate modules
 // though this would require the classes to be relocated as well
@@ -20,16 +20,35 @@ UCascadeOptions::UCascadeOptions(const FObjectInitializer& ObjectInitializer)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////// UPhATSimOptions ////////////////////////////////////////////////////////////////
+////////////////// UPhysicsAssetEditorOptions /////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-UPhATSimOptions::UPhATSimOptions(const FObjectInitializer& ObjectInitializer)
+UPhysicsAssetEditorOptions::UPhysicsAssetEditorOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PhysicsBlend = 1.0f;
 	bUpdateJointsFromAnimation = false;
-	//bImmediatePhysics = false;
 	MaxFPS = -1;
-	TimeDilation = 1.f;
+
+	// These should duplicate defaults from UPhysicsHandleComponent
+	HandleLinearDamping = 200.0f;
+	HandleLinearStiffness = 750.0f;
+	HandleAngularDamping = 500.0f;
+	HandleAngularStiffness = 1500.0f;
+	InterpolationSpeed = 50.f;
+
+	bShowConstraintsAsPoints = false;
+	ConstraintDrawSize = 1.0f;
+
+	// view options
+	MeshViewMode = EPhysicsAssetEditorRenderMode::Solid;
+	CollisionViewMode = EPhysicsAssetEditorRenderMode::Solid;
+	ConstraintViewMode = EPhysicsAssetEditorConstraintViewMode::AllLimits;
+	SimulationMeshViewMode = EPhysicsAssetEditorRenderMode::Solid;
+	SimulationCollisionViewMode = EPhysicsAssetEditorRenderMode::Solid;
+	SimulationConstraintViewMode = EPhysicsAssetEditorConstraintViewMode::None;
+
+	CollisionOpacity = 0.3f;
+	bSolidRenderingForSelectedOnly = false;
 }
 
 UMaterialEditorOptions::UMaterialEditorOptions(const FObjectInitializer& ObjectInitializer)
@@ -60,12 +79,6 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	NumFolderFiltersInAssetBrowser = 2;
 
 	bUseAudioAttenuation = true;
-}
-
-void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
-{
-	ViewportBackgroundColor = InViewportBackgroundColor;
-	SaveConfig();
 }
 
 void UPersonaOptions::SetShowGrid( bool bInShowGrid )

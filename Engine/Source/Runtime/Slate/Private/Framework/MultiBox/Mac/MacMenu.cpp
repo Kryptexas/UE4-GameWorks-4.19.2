@@ -5,6 +5,7 @@
 #include "CocoaThread.h"
 #include "MacApplication.h"
 #include "Misc/ScopeLock.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 struct FMacMenuItemState
 {
@@ -74,7 +75,7 @@ static FCriticalSection GCachedMenuStateCS;
 
 - (void)menuWillOpen:(NSMenu*)Menu
 {
-	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 	
 	GameThreadCall(^{
 		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::WindowActivate );
@@ -97,9 +98,9 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 	MainThreadCall(^{
 		FScopeLock Lock(&GCachedMenuStateCS);
 
-		if (!FPlatformMisc::UpdateCachedMacMenuState)
+		if (!FPlatformApplicationMisc::UpdateCachedMacMenuState)
 		{
-			FPlatformMisc::UpdateCachedMacMenuState = UpdateCachedState;
+			FPlatformApplicationMisc::UpdateCachedMacMenuState = UpdateCachedState;
 		}
 
 		int32 NumItems = [[NSApp mainMenu] numberOfItems];
@@ -154,7 +155,7 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 			delete SafeMultiBoxPtr;
 		}
 
-		FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+		FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 	}, NSDefaultRunLoopMode, false);
 }
 
@@ -165,7 +166,6 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
 		const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString([Menu title])) == 0);
-
 		int32 ItemIndexOffset = 0;
 		if (bIsWindowMenu)
 		{
@@ -234,15 +234,19 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 					[MenuItem setImage:nil];
 				}
 
-				if (MenuItemState.IsEnabled)
-				{
-					[MenuItem setTarget:MenuItem];
-                    if(!MenuItemState.IsSubMenu)
+                [MenuItem setTarget:MenuItem];
+                if(!MenuItemState.IsSubMenu)
+                {
+                   if(MenuItemState.IsEnabled)
                     {
                         [MenuItem setAction:@selector(performAction)];
                     }
-				}
-
+                    else
+                    {
+                        [MenuItem setAction:nil];
+                    }
+                }
+				
 				if (!MenuItemState.IsSubMenu)
 				{
 					[MenuItem setState:MenuItemState.State];
@@ -281,15 +285,20 @@ void FSlateMacMenu::UpdateCachedState()
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
 	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
-	const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
-	for (auto Window : AllWindows)
 	{
-		if (Window->IsRegularWindow() && Window->IsVisible())
+		MacApplication->GetWindowsArrayMutex().Lock();
+		const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
+		for (auto Window : AllWindows)
 		{
-			bShouldUpdate = true;
-			break;
+			if (Window->IsRegularWindow() && Window->IsVisible())
+			{
+				bShouldUpdate = true;
+				break;
+			}
 		}
-	}
+		MacApplication->GetWindowsArrayMutex().Unlock();
+    }
+	
 
 	if (bShouldUpdate)
 	{
@@ -363,19 +372,22 @@ void FSlateMacMenu::UpdateCachedState()
 void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEntryBlock >& Block)
 {
     TSharedPtr< const class FMenuEntryBlock>* MenuBlock = new TSharedPtr< const class FMenuEntryBlock>(Block);
-	GameThreadCall(^{
-		TSharedPtr< const FUICommandList > ActionList = (*MenuBlock)->GetActionList();
-		if (ActionList.IsValid() && (*MenuBlock)->GetAction().IsValid())
-		{
-			ActionList->ExecuteAction((*MenuBlock)->GetAction().ToSharedRef());
-		}
-		else
-		{
-			// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
-			(*MenuBlock)->GetDirectActions().Execute();
-		}
-        delete MenuBlock;
-	}, @[ NSDefaultRunLoopMode ], false);
+	if (!FPlatformApplicationMisc::bMacApplicationModalMode)
+	{
+		GameThreadCall(^{
+			TSharedPtr< const FUICommandList > ActionList = (*MenuBlock)->GetActionList();
+			if (ActionList.IsValid() && (*MenuBlock)->GetAction().IsValid())
+			{
+				ActionList->ExecuteAction((*MenuBlock)->GetAction().ToSharedRef());
+			}
+			else
+			{
+				// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
+				(*MenuBlock)->GetDirectActions().Execute();
+			}
+			delete MenuBlock;
+		}, @[ NSDefaultRunLoopMode ], false);
+	}
 }
 
 static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content)
@@ -454,28 +466,31 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 {
 	if (Block->GetAction().IsValid())
 	{
-		const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord();
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		{
+			const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord(static_cast<EMultipleKeyBindingIndex>(i));
 
-		*OutModifiers = 0;
-		if (Chord->NeedsControl())
-		{
-			*OutModifiers |= NSControlKeyMask;
-		}
-		if (Chord->NeedsShift())
-		{
-			*OutModifiers |= NSShiftKeyMask;
-		}
-		if (Chord->NeedsAlt())
-		{
-			*OutModifiers |= NSAlternateKeyMask;
-		}
-		if (Chord->NeedsCommand())
-		{
-			*OutModifiers |= NSCommandKeyMask;
-		}
+			*OutModifiers = 0;
+			if (Chord->NeedsControl())
+			{
+				*OutModifiers |= NSControlKeyMask;
+			}
+			if (Chord->NeedsShift())
+			{
+				*OutModifiers |= NSShiftKeyMask;
+			}
+			if (Chord->NeedsAlt())
+			{
+				*OutModifiers |= NSAlternateKeyMask;
+			}
+			if (Chord->NeedsCommand())
+			{
+				*OutModifiers |= NSCommandKeyMask;
+			}
 
-		FString KeyString = Chord->GetKeyText().ToString().ToLower();
-		return KeyString.GetNSString();
+			FString KeyString = Chord->GetKeyText().ToString().ToLower();
+			return KeyString.GetNSString();
+		}
 	}
 	return @"";
 }
@@ -496,6 +511,11 @@ bool FSlateMacMenu::IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlo
 		// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
 		bEnabled = DirectActions.CanExecute();
 	}
+    
+    if(FPlatformApplicationMisc::bMacApplicationModalMode)
+    {
+        bEnabled = false;
+    }
 
 	return bEnabled;
 }

@@ -27,12 +27,12 @@ namespace Agent
 			CurrentOwner = null;
 		}
 
-		public static Int32 CompareTasksByCost( AgentTask A, AgentTask B )
+        public static Int32 CompareTasksByCostDescending(AgentTask A, AgentTask B)
 		{
 			if( ( A.Specification != null ) &&
 				( B.Specification != null ) )
 			{
-				return A.Specification.Cost.CompareTo( B.Specification.Cost );
+				return -A.Specification.Cost.CompareTo( B.Specification.Cost );
 			}
 			return 0;
 		}
@@ -1049,15 +1049,55 @@ namespace Agent
 				// Sort the incoming task list by cost
 				lock( PendingTasks )
 				{
-					List<AgentTask> ListOfTasks = new List<AgentTask>( PendingTasks.ToArray() );
-					ListOfTasks.Sort( AgentTask.CompareTasksByCost );
+					List<AgentTask> ListOfTasksDescending = new List<AgentTask>( PendingTasks.ToArray() );
+                    ListOfTasksDescending.Sort(AgentTask.CompareTasksByCostDescending);
 
-					// Queue the sorted list back up
-					PendingTasks.Clear();
-					foreach( AgentTask NextTask in ListOfTasks )
-					{
-						PendingTasks.Push( NextTask );
-					}
+                    List<AgentTask> StripedListOfTasks = ListOfTasksDescending;
+
+                    // Lightmass processing of a single task is multithreaded (see ProcessCacheIndirectLightingTask), so ideally we would hand out the most expensive tasks in a round robin ordering
+                    bool bDistributeMostExpensiveTasksRoundRobin = true;
+                    int TasksPerAgent = Math.Max(AgentApplication.DeveloperOptions.LocalJobsDefaultProcessorCount, AgentApplication.DeveloperOptions.RemoteJobsDefaultProcessorCount);
+                    int NumStripes = (ListOfTasksDescending.Count + TasksPerAgent - 1) / TasksPerAgent;
+
+                    if (bDistributeMostExpensiveTasksRoundRobin && TasksPerAgent < ListOfTasksDescending.Count)
+                    {
+                        StripedListOfTasks = new List<AgentTask>(ListOfTasksDescending.Count);
+                        int SourceIndex = 0;
+
+                        List<bool> SourceTaskCopiedArray = new List<bool>(ListOfTasksDescending.Count);
+
+                        for (int TaskIndex = 0; TaskIndex < ListOfTasksDescending.Count; TaskIndex++)
+                        {
+                            SourceTaskCopiedArray.Add(false);
+                        }
+
+                        for (int TaskIndex = 0; TaskIndex < ListOfTasksDescending.Count; TaskIndex++)
+                        {
+                            SourceTaskCopiedArray[SourceIndex] = true;
+                            StripedListOfTasks.Add(ListOfTasksDescending[SourceIndex]);
+
+                            SourceIndex += NumStripes;
+
+                            if (SourceIndex >= ListOfTasksDescending.Count)
+                            {
+                                int NumWraparounds = (TaskIndex + 1) * NumStripes / ListOfTasksDescending.Count;
+                                SourceIndex = NumWraparounds;
+                            }
+                        }
+
+                        for (int TaskIndex = 0; TaskIndex < ListOfTasksDescending.Count; TaskIndex++)
+                        {
+                            Debug.Assert(SourceTaskCopiedArray[TaskIndex]);
+                        }
+                    }
+
+                    // Queue the sorted list back up
+                    PendingTasks.Clear();
+                    for (int TaskIndex = StripedListOfTasks.Count - 1; TaskIndex >= 0; TaskIndex--)
+                    {
+                        // Reverse the order as PendingTasks is a stack, the most expensive tasks should be on the top
+                        PendingTasks.Push(StripedListOfTasks[TaskIndex]);
+                    }
 				}
 	
 				// We're pessimists

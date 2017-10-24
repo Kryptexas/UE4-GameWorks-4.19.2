@@ -12,7 +12,6 @@
 #include "Misc/Guid.h"
 #include "Misc/OutputDeviceNull.h"
 #include "HAL/IConsoleManager.h"
-#include "GenericPlatform/GenericWindow.h"
 #include "Containers/LazyPrintf.h"
 
 #if !UE_BUILD_SHIPPING 
@@ -225,65 +224,82 @@ bool FParse::Value(
 	bool			bShouldStopOnSeparator
 )
 {
-	const TCHAR* Found = FCString::Strifind(Stream,Match);
+	bool bSuccess = false;
+	int32 MatchLen = FCString::Strlen(Match);
 
-	if (!Found)
+	for (const TCHAR* Found = FCString::Strifind(Stream, Match); Found != nullptr; Found = FCString::Strifind(Found + MatchLen, Match))
 	{
-		return false;
-	}
+		const TCHAR* Start = Found + MatchLen;
 
-	const TCHAR* Start = Found + FCString::Strlen(Match);
+		// Check for quoted arguments' string with spaces
+		// -Option="Value1 Value2"
+		//         ^~~~Start
+		bool bArgumentsQuoted = *Start == '"';
 
-	// Check for quoted arguments' string with spaces
-	// -Option="Value1 Value2"
-	//         ^~~~Start
-	bool bArgumentsQuoted = *Start == '"';
+		// Number of characters we can look back from found looking for first parenthesis.
+		uint32 AllowedBacktraceCharactersCount = Found - Stream;
 
-	// Number of characters we can look back from found looking for first parenthesis.
-	uint32 AllowedBacktraceCharactersCount = Found - Stream;
+		// Check for fully quoted string with spaces
+		bool bFullyQuoted = 
+			// "-Option=Value1 Value2"
+			//   ^~~~Found
+			AllowedBacktraceCharactersCount > 1 && *(Found - 1) == '-' && *(Found - 2) == '"';
 
-	// Check for fully quoted string with spaces
-	bool bFullyQuoted = 
-		// "Option=Value1 Value2"
-		//  ^~~~Found
-		(AllowedBacktraceCharactersCount > 0 && (*(Found - 1) == '"'))
-		// "-Option=Value1 Value2"
-		//   ^~~~Found
-		|| (AllowedBacktraceCharactersCount > 1 && ((*(Found - 1) == '-') && (*(Found - 2) == '"')));
+		// If we are parsing within a parameter value, this is an invalid match - skip past and try again
+		bool bWithinParamValue = bFullyQuoted &&
+			// -Param="-Option=Value1 Value2"
+			//   ^~~~Found
+			AllowedBacktraceCharactersCount > 2 && *(Found - 3) == '=';
 
-	if (bArgumentsQuoted || bFullyQuoted)
-	{
-		// Skip quote character if only params were quoted.
-		int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
-		FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
-
-		Value[MaxLen-1]=0;
-		TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
-		if (Temp != nullptr)
+		if (bWithinParamValue)
 		{
-			*Temp = 0;
+			continue;
 		}
-	}
-	else
-	{
-		// Skip initial whitespace
-		Start += FCString::Strspn(Start, TEXT(" \r\n\t"));
 
-		// Non-quoted string without spaces.
-		FCString::Strncpy( Value, Start, MaxLen );
-		Value[MaxLen-1]=0;
-		TCHAR* Temp;
-		Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
-		if (bShouldStopOnSeparator)
+
+		bFullyQuoted = bFullyQuoted ||
+			// "Option=Value1 Value2"
+			//  ^~~~Found
+			(AllowedBacktraceCharactersCount > 0 && *(Found - 1) == '"');
+
+		if (bArgumentsQuoted || bFullyQuoted)
 		{
-			Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
-			Temp = FCString::Strstr( Value, TEXT(")")  ); if( Temp ) *Temp=0;
+			// Skip quote character if only params were quoted.
+			int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
+			FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
+
+			Value[MaxLen-1]=0;
+			TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
+			if (Temp != nullptr)
+			{
+				*Temp = 0;
+			}
 		}
+		else
+		{
+			// Skip initial whitespace
+			Start += FCString::Strspn(Start, TEXT(" \r\n\t"));
+
+			// Non-quoted string without spaces.
+			FCString::Strncpy( Value, Start, MaxLen );
+			Value[MaxLen-1]=0;
+			TCHAR* Temp;
+			Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
+			if (bShouldStopOnSeparator)
+			{
+				Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
+				Temp = FCString::Strstr( Value, TEXT(")")  ); if( Temp ) *Temp=0;
+			}
+		}
+
+		bSuccess = true;
+		break;
 	}
-	return true;
+
+	return bSuccess;
 }
 
 //
@@ -1087,80 +1103,6 @@ uint32 FParse::HexNumber (const TCHAR* HexString)
 	}
 
 	return Ret;
-}
-
-bool FParse::Resolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, int32& OutWindowMode)
-{
-	if(*InResolution)
-	{
-		FString CmdString(InResolution);
-		CmdString = CmdString.Trim().TrimTrailing().ToLower();
-
-		//Retrieve the X dimensional value
-		const uint32 X = FMath::Max(FCString::Atof(*CmdString), 0.0f);
-
-		// Determine whether the user has entered a resolution and extract the Y dimension.
-		FString YString;
-
-		// Find separator between values (Example of expected format: 1280x768)
-		const TCHAR* YValue = NULL;
-		if(FCString::Strchr(*CmdString,'x'))
-		{
-			YValue = const_cast<TCHAR*> (FCString::Strchr(*CmdString,'x')+1);
-			YString = YValue;
-			// Remove any whitespace from the end of the string
-			YString = YString.Trim().TrimTrailing();
-		}
-
-		// If the Y dimensional value exists then setup to use the specified resolution.
-		uint32 Y = 0;
-		if ( YValue && YString.Len() > 0 )
-		{
-			// See if there is a fullscreen flag on the end
-			FString FullScreenChar = YString.Mid(YString.Len() - 1);
-			FString WindowFullScreenChars = YString.Mid(YString.Len() - 2);
-			int32 WindowMode = OutWindowMode;
-			if (!FullScreenChar.IsNumeric())
-			{
-				int StringTripLen = 0;
-
-				if (WindowFullScreenChars == TEXT("wf"))
-				{
-					WindowMode = EWindowMode::WindowedFullscreen;
-					StringTripLen = 2;
-				}
-				else if (FullScreenChar == TEXT("f"))
-				{
-					WindowMode = EWindowMode::Fullscreen;
-					StringTripLen = 1;
-				}
-				else if (FullScreenChar == TEXT("w"))
-				{
-					WindowMode = EWindowMode::Windowed;
-					StringTripLen = 1;
-				}
-
-				YString = YString.Left(YString.Len() - StringTripLen).Trim().TrimTrailing();
-			}
-
-			if (YString.IsNumeric())
-			{
-				Y = FMath::Max(FCString::Atof(YValue), 0.0f);
-				OutX = X;
-				OutY = Y;
-				OutWindowMode = WindowMode;
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FParse::Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY )
-{
-	int32 WindowModeDummy;
-	return Resolution(InResolution, OutX, OutY, WindowModeDummy);
 }
 
 bool FParse::SchemeNameFromURI(const TCHAR* URI, FString& OutSchemeName)

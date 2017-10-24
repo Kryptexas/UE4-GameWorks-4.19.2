@@ -57,26 +57,47 @@ DEFINE_STAT(STAT_AudioGatherWaveInstances);
 DEFINE_STAT(STAT_AudioFindNearestLocation);
 
 
-bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType)
-{
-	TArray<IAudioPlugin *> AudioPlugin = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
-	if (AudioPlugin.Num() > 0)
-	{
-		if (PluginType == EAudioPlugin::SPATIALIZATION)
-		{
-			return AudioPlugin[0]->ImplementsSpatialization();
-		}
-		else if (PluginType == EAudioPlugin::REVERB)
-		{
-			return AudioPlugin[0]->ImplementsReverb();
-		}
-		else if (PluginType == EAudioPlugin::OCCLUSION)
-		{
-			return AudioPlugin[0]->ImplementsOcclusion();
-		}
-	}
 
-	return false;
+bool IsAudioPluginEnabled(EAudioPlugin PluginType)
+{
+	switch (PluginType)
+	{
+	case EAudioPlugin::SPATIALIZATION:
+		return AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	case EAudioPlugin::REVERB:
+		return AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	case EAudioPlugin::OCCLUSION:
+		return AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform) != nullptr;
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
+bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType)
+{
+	if (PluginType == EAudioPlugin::SPATIALIZATION)
+	{
+		IAudioSpatializationFactory* Factory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomSpatializationSetting();
+	}
+	else if (PluginType == EAudioPlugin::REVERB)
+	{
+		IAudioReverbFactory* Factory = AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomReverbSetting();
+	}
+	else if (PluginType == EAudioPlugin::OCCLUSION)
+	{
+		IAudioOcclusionFactory* Factory = AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform);
+		return Factory && Factory->HasCustomOcclusionSetting();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 
@@ -309,10 +330,13 @@ void FSoundSource::SetFilterFrequency()
 			LPFFrequency = WaveInstance->AmbientZoneFilterFrequency;
 		}
 
-		if (WaveInstance->AttenuationFilterFrequency < LPFFrequency)
+		if (WaveInstance->AttenuationLowpassFilterFrequency < LPFFrequency)
 		{
-			LPFFrequency = WaveInstance->AttenuationFilterFrequency;
+			LPFFrequency = WaveInstance->AttenuationLowpassFilterFrequency;
 		}
+
+		// This is only used in audio mixer, and only one thing is setting HPF
+		HPFFrequency = WaveInstance->AttenuationHighpassFilterFrequency;
 	}
 }
 
@@ -515,6 +539,15 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	}
 	Params.EmitterWorldPosition = WaveInstance->Location;
 
+	if (WaveInstance->ActiveSound != nullptr)
+	{
+		Params.EmitterWorldRotation = WaveInstance->ActiveSound->Transform.GetRotation();
+	}
+	else
+	{
+		Params.EmitterWorldRotation = FQuat::Identity;
+	}
+
 	// We are currently always computing spatialization for XAudio2 relative to the listener!
 	Params.ListenerOrientation = FVector::UpVector;
 	Params.ListenerPosition = FVector::ZeroVector;
@@ -669,8 +702,10 @@ uint32 FWaveInstance::TypeHashCounter = 0;
 FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	: WaveData(nullptr)
 	, SoundClass(nullptr)
+	, SoundSubmix(nullptr)
 	, ActiveSound(InActiveSound)
 	, Volume(0.0f)
+	, DistanceAttenuation(1.0f)
 	, VolumeMultiplier(1.0f)
 	, VolumeApp(1.0f)
 	, Priority(1.0f)
@@ -681,6 +716,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, LFEBleed(0.0f)
 	, LoopingMode(LOOP_Never)
 	, StartTime(-1.f)
+	, bOutputToBusOnly(false)
 	, bApplyRadioFilter(false)
 	, bIsStarted(false)
 	, bIsFinished(false)
@@ -694,13 +730,14 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, bReverb(true)
 	, bCenterChannelOnly(false)
 	, bReportedSpatializationWarning(false)
-	, SpatializationAlgorithm(SPATIALIZATION_Default)
+	, SpatializationMethod(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 	, OcclusionPluginSettings(nullptr)
 	, OutputTarget(EAudioOutputTarget::Speaker)
 	, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
 	, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
 	, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
-	, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AttenuationLowpassFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AttenuationHighpassFilterFrequency(MIN_FILTER_FREQUENCY)
 	, Pitch(0.0f)
 	, Location(FVector::ZeroVector)
 	, OmniRadius(0.0f)
@@ -708,10 +745,8 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, AttenuationDistance(0.0f)
 	, ListenerToSoundDistance(0.0f)
 	, AbsoluteAzimuth(0.0f)
-	, ReverbWetLevelMin(0.0f)
-	, ReverbWetLevelMax(0.0f)
-	, ReverbDistanceMin(0.0f)
-	, ReverbDistanceMax(0.0f)
+	, ReverbSendLevelRange(0.0f, 0.0f)
+	, ReverbSendLevelDistanceRange(0.0f, 0.0f)
 	, UserIndex(0)
 {
 	TypeHash = ++TypeHashCounter;
@@ -780,12 +815,23 @@ void FWaveInstance::AddReferencedObjects( FReferenceCollector& Collector )
 float FWaveInstance::GetActualVolume() const
 {
 	// Include all volumes 
-	return GetVolume() * VolumeApp;
+	return GetVolume() * VolumeApp * DistanceAttenuation;
+}
+
+float FWaveInstance::GetDistanceAttenuation() const
+{
+	// Only includes volume attenuation due do distance
+	return DistanceAttenuation;
+}
+
+float FWaveInstance::GetVolumeWithDistanceAttenuation() const
+{
+	return GetVolume() * DistanceAttenuation;
 }
 
 float FWaveInstance::GetVolume() const
 {
-	// Include all volumes 
+	// Only includes non-attenuation and non-app volumes
 	return Volume * VolumeMultiplier;
 }
 
@@ -797,7 +843,7 @@ bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
 	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
-	float ActualVolume = GetVolume();
+	float ActualVolume = GetVolumeWithDistanceAttenuation();
 	if (ActualVolume > 0.0f)
 	{
 		return ActualVolume * Priority;

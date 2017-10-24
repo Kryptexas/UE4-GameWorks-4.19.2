@@ -175,64 +175,73 @@ void UWebSocketNetDriver::LowLevelSend(FString Address, void* Data, int32 CountB
 
 void UWebSocketNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject* SubObject)
 {
-	bool bIsServer = IsServer();
+#if !UE_BUILD_SHIPPING
+	bool bBlockSendRPC = false;
 
-	UNetConnection* Connection = NULL;
-	if (bIsServer)
+	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);
+
+	if (!bBlockSendRPC)
+#endif
 	{
-		if ((Function->FunctionFlags & FUNC_NetMulticast))
+		bool bIsServer = IsServer();
+
+		UNetConnection* Connection = NULL;
+		if (bIsServer)
 		{
-			// Multicast functions go to every client
-			TArray<UNetConnection*> UniqueRealConnections;
-			for (int32 i = 0; i<ClientConnections.Num(); ++i)
+			if ((Function->FunctionFlags & FUNC_NetMulticast))
 			{
-				Connection = ClientConnections[i];
-				if (Connection)
+				// Multicast functions go to every client
+				TArray<UNetConnection*> UniqueRealConnections;
+				for (int32 i = 0; i<ClientConnections.Num(); ++i)
 				{
-					// Do relevancy check if unreliable.
-					// Reliables will always go out. This is odd behavior. On one hand we wish to garuntee "reliables always get there". On the other
-					// hand, replicating a reliable to something on the other side of the map that is non relevant seems weird.
-					//
-					// Multicast reliables should probably never be used in gameplay code for actors that have relevancy checks. If they are, the
-					// rpc will go through and the channel will be closed soon after due to relevancy failing.
-
-					bool IsRelevant = true;
-					if ((Function->FunctionFlags & FUNC_NetReliable) == 0)
+					Connection = ClientConnections[i];
+					if (Connection)
 					{
-						if (Connection->ViewTarget)
-						{
-							FNetViewer Viewer(Connection, 0.f);
-							IsRelevant = Actor->IsNetRelevantFor(Viewer.InViewer, Viewer.ViewTarget, Viewer.ViewLocation);
-						}
-						else
-						{
-							// No viewer for this connection(?), just let it go through.
-							UE_LOG(LogHTML5Networking, Log, TEXT("Multicast function %s called on actor %s when a connection has no Viewer"), *Function->GetName(), *Actor->GetName());
-						}
-					}
+						// Do relevancy check if unreliable.
+						// Reliables will always go out. This is odd behavior. On one hand we wish to garuntee "reliables always get there". On the other
+						// hand, replicating a reliable to something on the other side of the map that is non relevant seems weird.
+						//
+						// Multicast reliables should probably never be used in gameplay code for actors that have relevancy checks. If they are, the
+						// rpc will go through and the channel will be closed soon after due to relevancy failing.
 
-					if (IsRelevant)
-					{
-						if (Connection->GetUChildConnection() != NULL)
+						bool IsRelevant = true;
+						if ((Function->FunctionFlags & FUNC_NetReliable) == 0)
 						{
-							Connection = ((UChildConnection*)Connection)->Parent;
+							if (Connection->ViewTarget)
+							{
+								FNetViewer Viewer(Connection, 0.f);
+								IsRelevant = Actor->IsNetRelevantFor(Viewer.InViewer, Viewer.ViewTarget, Viewer.ViewLocation);
+							}
+							else
+							{
+								// No viewer for this connection(?), just let it go through.
+								UE_LOG(LogHTML5Networking, Log, TEXT("Multicast function %s called on actor %s when a connection has no Viewer"), *Function->GetName(), *Actor->GetName());
+							}
 						}
 
-						InternalProcessRemoteFunction(Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer);
+						if (IsRelevant)
+						{
+							if (Connection->GetUChildConnection() != NULL)
+							{
+								Connection = ((UChildConnection*)Connection)->Parent;
+							}
+
+							InternalProcessRemoteFunction(Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer);
+						}
 					}
 				}
+
+				// Return here so we don't call InternalProcessRemoteFunction again at the bottom of this function
+				return;
 			}
-
-			// Return here so we don't call InternalProcessRemoteFunction again at the bottom of this function
-			return;
 		}
-	}
 
-	// Send function data to remote.
-	Connection = Actor->GetNetConnection();
-	if (Connection)
-	{
-		InternalProcessRemoteFunction(Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer);
+		// Send function data to remote.
+		Connection = Actor->GetNetConnection();
+		if (Connection)
+		{
+			InternalProcessRemoteFunction(Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer);
+		}
 	}
 }
 

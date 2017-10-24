@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -663,18 +663,18 @@ CefDictionaryValueCppToC::CefDictionaryValueCppToC() {
   GetStruct()->set_list = dictionary_value_set_list;
 }
 
-template<> CefRefPtr<CefDictionaryValue> CefCppToC<CefDictionaryValueCppToC,
+template<> CefRefPtr<CefDictionaryValue> CefCppToCRefCounted<CefDictionaryValueCppToC,
     CefDictionaryValue, cef_dictionary_value_t>::UnwrapDerived(
     CefWrapperType type, cef_dictionary_value_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefDictionaryValueCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefDictionaryValueCppToC,
     CefDictionaryValue, cef_dictionary_value_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefDictionaryValueCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefDictionaryValueCppToC,
     CefDictionaryValue, cef_dictionary_value_t>::kWrapperType =
     WT_DICTIONARY_VALUE;

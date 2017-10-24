@@ -1318,8 +1318,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 			SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
 			if (LODLevel->TypeDataModule)
 			{
-				UParticleModuleTypeDataBase* pkBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-				pkBase->Spawn(this, TypeDataOffset, SpawnTime, Particle);
+				LODLevel->TypeDataModule->Spawn(this, TypeDataOffset, SpawnTime, Particle);
 			}
 
 			for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)

@@ -15,7 +15,7 @@ struct FPaperSpriteAtlasSlot
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	TAssetPtr<class UPaperSprite> SpriteRef;
+	TSoftObjectPtr<class UPaperSprite> SpriteRef;
 
 	UPROPERTY()
 	int32 AtlasIndex;

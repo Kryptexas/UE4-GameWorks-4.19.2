@@ -36,17 +36,26 @@
 /// \ingroup group_tf_ObjectCreation
 /// Manage a single instance of an object.
 
-#include "pxr/base/arch/defines.h"
-#include "pxr/base/arch/pragmas.h"
+#include "pxr/pxr.h"
 #include "pxr/base/tf/singleton.h"
 #include "pxr/base/tf/mallocTag.h"
 #include "pxr/base/arch/demangle.h"
-#include <mutex>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+template <class T> std::mutex* TfSingleton<T>::_mutex = 0;
+template <class T> T* TfSingleton<T>::_instance = 0;
 
 template <typename T>
 T&
 TfSingleton<T>::_CreateInstance()
 {
+    // Why is TfSingleton<T>::_mutex a pointer requiring allocation and
+    // construction and not simply an object?  Because the default 
+    // std::mutex c'tor on MSVC 2015 isn't constexpr .  That means the
+    // mutex is dynamically initialized.  That can be too late for
+    // singletons, which are often accessed via ARCH_CONSTRUCTOR()
+    // functions.
     static std::once_flag once;
     std::call_once(once, [](){
         TfSingleton<T>::_mutex = new std::mutex;
@@ -57,11 +66,13 @@ TfSingleton<T>::_CreateInstance()
 
     std::lock_guard<std::mutex> lock(*TfSingleton<T>::_mutex);
     if (!TfSingleton<T>::_instance) {
-        // T's constructor could cause this to be created and set
-        // already, so guard against that.
+        ARCH_PRAGMA_PUSH
         ARCH_PRAGMA_MAY_NOT_BE_ALIGNED
         T *inst = new T;
-        ARCH_PRAGMA_RESTORE
+        ARCH_PRAGMA_POP
+
+        // T's constructor could cause this to be created and set
+        // already, so guard against that.
         if (!TfSingleton<T>::_instance) {
             TfSingleton<T>::_instance = inst;
         }
@@ -87,9 +98,7 @@ TfSingleton<T>::_DestroyInstance()
 ///
 /// \hideinitializer
 #define TF_INSTANTIATE_SINGLETON(T)                               \
-    template <> std::mutex* TfSingleton<T>::_mutex = 0;           \
-    template <> T* TfSingleton<T>::_instance = 0;                 \
-                                                                  \
-    template T& TfSingleton< T >::_CreateInstance();              \
-    template void TfSingleton< T >::_DestroyInstance()
+    template class PXR_NS_GLOBAL::TfSingleton<T>
 
+
+PXR_NAMESPACE_CLOSE_SCOPE

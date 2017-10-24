@@ -25,12 +25,12 @@ public class BuildPatchToolTarget : TargetRules
 		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration)
 	{
-		UEBuildConfiguration.bBuildEditor = false;
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-		UEBuildConfiguration.bUseLoggingInShipping = true;
-		UEBuildConfiguration.bUseChecksInShipping = true;
+		bBuildEditor = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
+		bCompileLeanAndMeanUE = true;
+		bUseLoggingInShipping = true;
+		bUseChecksInShipping = true;
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 	}

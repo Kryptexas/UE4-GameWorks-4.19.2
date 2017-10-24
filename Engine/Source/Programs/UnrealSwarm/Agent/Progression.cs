@@ -39,7 +39,7 @@ namespace Agent
 		public static void CreateBarColours( SwarmAgentWindow Owner )
 		{
 			BarColours = new Dictionary<string, BarColour>();
-			for( int Index = 0; Index <= ( int )EProgressionState.InstigatorDisconnected; Index++ )
+			for( int Index = 0; Index < ( int )EProgressionState.Num; Index++ )
 			{
 				BarColours.Add( Enum.GetName( typeof( EProgressionState ), Index ), new BarColour( AgentApplication.Options.VisualizerColors[Index] ) );
 			}
@@ -80,6 +80,7 @@ namespace Agent
 			BarNames.Add( EProgressionState.Finished.ToString(),				"Finishing" );
 			BarNames.Add( EProgressionState.RemoteDisconnected.ToString(),		"Remote disconnected" );
 			BarNames.Add( EProgressionState.InstigatorDisconnected.ToString(),	"Instigator disconnected" );
+            BarNames.Add( EProgressionState.Preparing4.ToString(),              "Skylight Radiosity");
 		}
 
 		public class ProgressionEvent
@@ -177,7 +178,7 @@ namespace Agent
 			{
 				Color FillColor = SystemColors.ControlLightLight;
 				ProgressionSample Sample = ProgressionSamples[ProgressionSamples.Count - 1];
-				if( Sample.State >= EProgressionState.RemoteDisconnected )
+                if (Sample.State == EProgressionState.RemoteDisconnected || Sample.State == EProgressionState.InstigatorDisconnected)
 				{
 					FillColor = SystemColors.ControlLight;
 				}
@@ -247,7 +248,7 @@ namespace Agent
                                 {
                                     BarThreadRight = (int)(ZoomLevel * (ThreadSample.EndTime - Start).TotalSeconds);
                                 }
-                                else if (LastSample.State >= EProgressionState.RemoteDisconnected)
+                                else if (LastSample.State == EProgressionState.RemoteDisconnected || LastSample.State == EProgressionState.InstigatorDisconnected)
                                 {
                                     BarThreadRight = (int)(ZoomLevel * (LastSample.StartTime - Start).TotalSeconds);
                                 }
@@ -386,7 +387,7 @@ namespace Agent
 				ProgressionSample LastSample = Samples[Samples.Count - 1];
 
 				// If this machine has disconnected, ignore any further messages
-				if( LastSample.State >= EProgressionState.RemoteDisconnected )
+                if (LastSample.State == EProgressionState.RemoteDisconnected || LastSample.State == EProgressionState.InstigatorDisconnected)
 				{
 					return ( true );
 				}
@@ -462,7 +463,7 @@ namespace Agent
 						List<ProgressionSample> ProgressionSamples = ProgressionMachine.ProgressionSamples;
 						LastSample = ProgressionSamples[ProgressionSamples.Count - 1];
 
-						if( LastSample.State < EProgressionState.RemoteDisconnected )
+                        if (LastSample.State != EProgressionState.RemoteDisconnected && LastSample.State != EProgressionState.InstigatorDisconnected)
 						{
 							ProgressionSamples.Add( new ProgressionSample( EProgressionState.RemoteDisconnected, Event.Time ) );
 						}
@@ -485,7 +486,7 @@ namespace Agent
 				{
 					List<ProgressionSample> Samples = MachineProgression.ProgressionSamples;
 					ProgressionSample Sample = Samples[Samples.Count - 1];
-					if( Sample.State < EProgressionState.RemoteDisconnected )
+                    if (Sample.State != EProgressionState.RemoteDisconnected && Sample.State != EProgressionState.InstigatorDisconnected)
 					{
 						Sample.AddTimestamp( DateTime.UtcNow );
 						Invalidate = true;

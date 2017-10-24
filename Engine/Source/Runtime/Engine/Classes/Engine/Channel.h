@@ -23,7 +23,10 @@ enum EChannelType
 	CHTYPE_None			= 0,  // Invalid type.
 	CHTYPE_Control		= 1,  // Connection control.
 	CHTYPE_Actor  		= 2,  // Actor-update channel.
+
+	// @todo: Remove and reassign number to CHTYPE_Voice (breaks net compatibility)
 	CHTYPE_File         = 3,  // Binary file transfer.
+
 	CHTYPE_Voice		= 4,  // VoIP data channel
 	CHTYPE_MAX          = 8,  // Maximum.
 };
@@ -64,12 +67,6 @@ class ENGINE_API UChannel
 	class FInBunch*		InRec;				// Incoming data with queued dependencies.
 	class FOutBunch*	OutRec;				// Outgoing reliable unacked data.
 	class FInBunch*		InPartialBunch;		// Partial bunch we are receiving (incoming partial bunches are appended to this)
-
-	/** UChannel statics. */
-	static UClass* ChannelClasses[CHTYPE_MAX];
-	
-	/** @return true if the specified channel type exists. */
-	static bool IsKnownChannelType( int32 Type );
 
 public:
 

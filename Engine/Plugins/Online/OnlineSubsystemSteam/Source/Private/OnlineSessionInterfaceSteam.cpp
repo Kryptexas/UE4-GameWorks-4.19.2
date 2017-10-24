@@ -1215,12 +1215,12 @@ bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& C
 	if (Session != NULL)
 	{
 		TSharedPtr<FOnlineSessionInfoSteam> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoSteam>(Session->SessionInfo);
-		if (PortType == BeaconPort)
+		if (PortType == NAME_BeaconPort)
 		{
 			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(Session->SessionSettings);
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 		}
-		else if (PortType == GamePort)
+		else if (PortType == NAME_GamePort)
 		{
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
 		}
@@ -1247,12 +1247,12 @@ bool FOnlineSessionSteam::GetResolvedConnectString(const FOnlineSessionSearchRes
 	{
 		TSharedPtr<FOnlineSessionInfoSteam> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoSteam>(SearchResult.Session.SessionInfo);
 
-		if (PortType == BeaconPort)
+		if (PortType == NAME_BeaconPort)
 		{
 			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(SearchResult.Session.SessionSettings);
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 		}
-		else if (PortType == GamePort)
+		else if (PortType == NAME_GamePort)
 		{
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
 		}

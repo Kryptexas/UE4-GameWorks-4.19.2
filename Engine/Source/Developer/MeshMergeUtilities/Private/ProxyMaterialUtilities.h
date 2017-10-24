@@ -180,6 +180,10 @@ namespace ProxyMaterialUtilities
 
 			// Merge properties into one texture using the separate colour channels
 			const EFlattenMaterialProperties Properties[3] = { EFlattenMaterialProperties::Metallic , EFlattenMaterialProperties::Roughness, EFlattenMaterialProperties::Specular};
+
+			//Property that is not part of the pack (because of a different size), will see is reserve pack space fill with Black Color.
+			const bool PropertyShouldBePack[3] = { bPackMetallic , bPackRoughness , bPackSpecular };
+
 			// Red mask (all properties are rendered into the red channel)
 			FColor NonAlphaRed = FColor::Red;
 			NonAlphaRed.A = 0;
@@ -188,7 +192,7 @@ namespace ProxyMaterialUtilities
 			for (int32 PropertyIndex = 0; PropertyIndex < 3; ++PropertyIndex)
 			{
 				const EFlattenMaterialProperties Property = Properties[PropertyIndex];
-				const bool HasProperty = FlattenMaterial.DoesPropertyContainData(Property) && !FlattenMaterial.IsPropertyConstant(Property);
+				const bool HasProperty = PropertyShouldBePack[PropertyIndex] && FlattenMaterial.DoesPropertyContainData(Property) && !FlattenMaterial.IsPropertyConstant(Property);
 
 				if (HasProperty)
 				{

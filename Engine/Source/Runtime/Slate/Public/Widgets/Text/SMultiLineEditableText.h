@@ -47,6 +47,7 @@ public:
 	SLATE_BEGIN_ARGS( SMultiLineEditableText )
 		: _Text()
 		, _HintText()
+		, _SearchText()
 		, _Marshaller()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
@@ -80,6 +81,9 @@ public:
 
 		/** Hint text that appears when there is no text in the text box */
 		SLATE_ATTRIBUTE(FText, HintText)
+
+		/** Text to search for (a new search is triggered whenever this text changes) */
+		SLATE_ATTRIBUTE(FText, SearchText)
 
 		/** The marshaller used to get/set the raw text to/from the text layout. */
 		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
@@ -209,6 +213,12 @@ public:
 	/** Get the text that appears when there is no text in the text box */
 	FText GetHintText() const;
 
+	/** Set the text that is currently being searched for (if any) */
+	void SetSearchText(const TAttribute<FText>& InSearchText);
+
+	/** Get the text that is currently being searched for (if any) */
+	FText GetSearchText() const;
+
 	/** See attribute TextStyle */
 	void SetTextStyle(const FTextBlockStyle* InTextStyle);
 
@@ -275,6 +285,12 @@ public:
 
 	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
 	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
+
+	/** Begin a new text search (this is called automatically when the bound search text changes) */
+	void BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase = ESearchCase::IgnoreCase, const bool InReverse = false);
+
+	/** Advance the current search to the next match (does nothing if not currently searching) */
+	void AdvanceSearch(const bool InReverse = false);
 
 	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
 	TSharedPtr<const IRun> GetRunUnderCursor() const;

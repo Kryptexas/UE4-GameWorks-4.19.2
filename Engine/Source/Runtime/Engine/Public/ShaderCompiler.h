@@ -215,7 +215,15 @@ private:
 	virtual int32 CompilingLoop() override;
 };
 
-class FShaderCompileXGEThreadRunnable : public FShaderCompileThreadRunnableBase
+namespace FShaderCompileUtilities
+{
+	bool DoWriteTasks(const TArray<FShaderCommonCompileJob*>& QueuedJobs, FArchive& TransferFile);
+	void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs, FArchive& OutputFile);
+}
+
+#if PLATFORM_WINDOWS // XGE shader compilation is only supported on Windows.
+
+class FShaderCompileXGEThreadRunnable_XmlInterface : public FShaderCompileThreadRunnableBase
 {
 private:
 	/** The handle referring to the XGE console process, if a build is in progress. */
@@ -295,14 +303,33 @@ private:
 
 public:
 	/** Initialization constructor. */
-	FShaderCompileXGEThreadRunnable(class FShaderCompilingManager* InManager);
-	virtual ~FShaderCompileXGEThreadRunnable();
+	FShaderCompileXGEThreadRunnable_XmlInterface(class FShaderCompilingManager* InManager);
+	virtual ~FShaderCompileXGEThreadRunnable_XmlInterface();
 
 	/** Main work loop. */
 	virtual int32 CompilingLoop() override;
 
 	static bool IsSupported();
 };
+
+class FShaderCompileXGEThreadRunnable_InterceptionInterface : public FShaderCompileThreadRunnableBase
+{
+	uint32 NumDispatchedJobs;
+
+	TSparseArray<class FXGEShaderCompilerTask*> DispatchedTasks;
+
+public:
+	/** Initialization constructor. */
+	FShaderCompileXGEThreadRunnable_InterceptionInterface(class FShaderCompilingManager* InManager);
+	virtual ~FShaderCompileXGEThreadRunnable_InterceptionInterface();
+
+	/** Main work loop. */
+	virtual int32 CompilingLoop() override;
+
+	static bool IsSupported();
+};
+
+#endif // PLATFORM_WINDOWS
 
 /** Results for a single compiled shader map. */
 struct FShaderMapCompileResults
@@ -344,7 +371,12 @@ class FShaderCompilingManager
 {
 	friend class FShaderCompileThreadRunnableBase;
 	friend class FShaderCompileThreadRunnable;
-	friend class FShaderCompileXGEThreadRunnable;
+
+#if PLATFORM_WINDOWS
+	friend class FShaderCompileXGEThreadRunnable_XmlInterface;
+	friend class FShaderCompileXGEThreadRunnable_InterceptionInterface;
+#endif // PLATFORM_WINDOWS
+
 private:
 
 	//////////////////////////////////////////////////////
@@ -356,6 +388,7 @@ private:
 	TArray<FShaderCommonCompileJob*> CompileQueue;
 	/** Map from shader map Id to the compile results for that map, used to gather compiled results. */
 	TMap<int32, FShaderMapCompileResults> ShaderMapJobs;
+
 	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
 	int32 NumOutstandingJobs;
 
@@ -425,6 +458,9 @@ private:
 
 	/** Finalizes the given shader map results and optionally assigns the affected shader maps to materials, while attempting to stay within an execution time budget. */
 	void ProcessCompiledShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget);
+
+	/** Finalizes the given Niagara shader map results and assigns the affected shader maps to Niagara scripts, while attempting to stay within an execution time budget. */
+	void ProcessCompiledNiagaraShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget);
 
 	/** Propagate the completed compile to primitives that might be using the materials compiled. */
 	void PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate);

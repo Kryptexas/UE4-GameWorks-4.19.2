@@ -2,14 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "SlateFwd.h"
-#include "Layout/Visibility.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Input/Reply.h"
-#include "Widgets/SWidget.h"
-#include "Widgets/SCompoundWidget.h"
+#include "CoreTypes.h"
 #include "Framework/Docking/WorkspaceItem.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "SlateFwd.h"
+#include "Templates/SharedPointer.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+
 #include "Models/ProjectLauncherModel.h"
 
 class FMenuBuilder;
@@ -18,8 +19,11 @@ class SProjectLauncherProgress;
 class SProjectLauncherSettings;
 class SProjectLauncherSimpleDeviceListView;
 class SWindow;
+
 struct FSlateBrush;
+
 enum class ECheckBoxState : uint8;
+
 
 /**
  * Implements a Slate widget for the launcher user interface.
@@ -29,7 +33,7 @@ class SProjectLauncher
 {
 public:
 
-	SLATE_BEGIN_ARGS(SProjectLauncher){ }
+	SLATE_BEGIN_ARGS(SProjectLauncher) { }
 
 		/** Exposes a delegate to be invoked when the launcher has closed. */
 		SLATE_EVENT(FSimpleDelegate, OnClosed)
@@ -38,15 +42,11 @@ public:
 
 public:
 
-	/**
-	* Constructor.
-	*/
+	/** Constructor. */
 	SProjectLauncher();
 
-	/**
-	 * Destructor.
-	 */
-	~SProjectLauncher( );
+	/** Destructor. */
+	~SProjectLauncher();
 
 public:
 
@@ -58,9 +58,7 @@ public:
 	 * @param ConstructUnderWindow The window in which this widget is being constructed.
 	 * @param InModel The view model to use.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const FProjectLauncherModelRef& InModel );
-
-	void ShowWidget(int32 Index);
+	void Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const TSharedRef<FProjectLauncherModel>& InModel);
 
 protected:
 
@@ -70,85 +68,80 @@ protected:
 	 * @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
 	 * @param RootMenuGroup The root menu group.
 	 */
-	static void FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup );
-
-	/**
-	 * Launches the selected profile.
-	 */
-	void LaunchSelectedProfile( );
+	static void FillWindowMenu(FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup);
 
 private:
 
-	// Callback for toggling the advanced mode.
+	/** Callback for toggling the advanced mode. */
 	void OnAdvancedChanged(const ECheckBoxState NewCheckedState);
 
-	// Callback to determine if we are in advanced mode.
+	/** Callback to determine if we are in advanced mode. */
 	ECheckBoxState OnIsAdvanced() const;
 
-	// Get advanced toggle button brush.
+	/** Get advanced toggle button brush. */
 	const FSlateBrush* GetAdvancedToggleBrush() const;
 
-	// Callback for whether advanced options should be shown.
+	/** Callback for whether advanced options should be shown. */
 	bool GetIsAdvanced() const;
 
-	// Callback for editing a profile
+	/** Callback for editing a profile. */
 	void OnProfileEdit(const ILauncherProfileRef& Profile);
 
-	// Callback for running a profile
+	/** Callback for running a profile. */
 	void OnProfileRun(const ILauncherProfileRef& Profile);
 
-	// Callback for deleting a profile
+	/** Callback for deleting a profile. */
 	void OnProfileDelete(const ILauncherProfileRef& Profile);
 
-	// Callback for clicking the Add New Launch Profile
+	/** Callback for clicking the Add New Launch Profile. */
 	FReply OnAddCustomLaunchProfileClicked();
 
-	// Profile wizard menu visibility (hidden if there are no registered wizards)
+	/** Profile wizard menu visibility (hidden if there are no registered wizards). */
 	EVisibility GetProfileWizardsMenuVisibility() const;
 
-	// Callback for filling profile wizard menu
+	/** Callback for filling profile wizard menu. */
 	TSharedRef<SWidget> MakeProfileWizardsMenu();
 
-	// Execute specified profile wizard
+	/** Execute specified profile wizard. */
 	void ExecProfileWizard(ILauncherProfileWizardPtr InWizard);
 
-	// Callback for when the settings panel is closed
+	/** Callback for when the settings panel is closed. */
 	FReply OnProfileSettingsClose();
 
-	// Callback for when the progress panel is closed
+	/** Callback for when the progress panel is closed. */
 	FReply OnProgressClose();
 
-	// Callback for when the progress panel requests the profile to be re run
+	/** Callback for when the progress panel requests the profile to be re run. */
 	FReply OnRerunClicked();
 
 private:
 
-	// Holds the current launcher worker, if any.
+	/** The current launcher worker, if any. */
 	ILauncherWorkerPtr LauncherWorker;
 
-	// Holds the Launcher profile the launcherWorker is running.
+	/** The Launcher profile the launcherWorker is running. */
 	ILauncherProfilePtr LauncherProfile;
 
-	// Holds a pointer to the view model.
-	FProjectLauncherModelPtr Model;
+	/** Holds a pointer to the view model. */
+	TSharedPtr<FProjectLauncherModel> Model;
 
-	// Holds the profile settings panel.
+	/** The profile settings panel. */
 	TSharedPtr<SProjectLauncherSettings> ProfileSettingsPanel;
 
-	// Holds the progress panel.
+	/** The progress panel. */
 	TSharedPtr<SProjectLauncherProgress> ProgressPanel;
 
-	// Holds the widget switcher.
+	/** The widget switcher. */
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
 
-	// Contains the launch list widgets.
-	//TSharedPtr<SBorder> LaunchList;
+	/** Contains the launch list widgets. */
+//	TSharedPtr<SBorder> LaunchList;
 
 	TSharedPtr<SProjectLauncherSimpleDeviceListView> LaunchList;
 
-	// Contains the profile list widgets.
+	/** Contains the profile list widgets. */
 	TSharedPtr<SBorder> ProfileList;
 
-	// Whether we are showing advanced options.
+	/** Whether we are showing advanced options. */
 	bool bAdvanced;
 };

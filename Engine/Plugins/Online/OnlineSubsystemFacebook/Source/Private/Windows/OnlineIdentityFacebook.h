@@ -95,6 +95,9 @@ class FOnlineIdentityFacebook :
 	/** Whether we have a registration in flight or not */
 	bool bHasLoginOutstanding;
 
+	/** Domains used for login, for cookie management */
+	TArray<FString> LoginDomains;
+
 public:
 	// IOnlineIdentity
 	

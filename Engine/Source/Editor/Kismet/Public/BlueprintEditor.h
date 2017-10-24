@@ -31,7 +31,6 @@ class IMessageLogListing;
 class INameValidatorInterface;
 class ISCSEditorCustomization;
 class SBlueprintPalette;
-class SBlueprintProfilerView;
 class SFindInBlueprints;
 class SKismetDebuggingView;
 class SKismetInspector;
@@ -40,6 +39,7 @@ class SReplaceNodeReferences;
 class SSCSEditor;
 class SSCSEditorViewport;
 class UEdGraph;
+class UEdGraphNode;
 class UUserDefinedEnum;
 class UUserDefinedStruct;
 struct Rect;
@@ -223,7 +223,6 @@ public:
 	TSharedRef<class SKismetInspector> GetInspector() const { return Inspector.ToSharedRef(); }
 	TSharedRef<class SKismetInspector> GetDefaultEditor() const { return DefaultEditor.ToSharedRef(); }
 	TSharedRef<class SKismetDebuggingView> GetDebuggingView() const { return DebuggingView.ToSharedRef(); }
-	TSharedRef<class SBlueprintProfilerView> GetBlueprintProfilerView() const { return BlueprintProfiler.ToSharedRef(); }
 	TSharedRef<class SBlueprintPalette> GetPalette() const { return Palette.ToSharedRef(); }
 	TSharedRef<class SWidget> GetCompilerResults() const { return CompilerResults.ToSharedRef(); }
 	TSharedRef<class SFindInBlueprints> GetFindResults() const { return FindResults.ToSharedRef(); }
@@ -282,6 +281,9 @@ public:
 	/** Get the currently selected set of nodes */
 	TSet<UObject*> GetSelectedNodes() const;
 
+	/** Returns the currently selected node if there is a single node selected (if there are multiple nodes selected or none selected, it will return nullptr) */
+	UEdGraphNode* GetSingleSelectedNode() const;
+
 	/** Save the current set of edited objects in the LastEditedObjects array so it will be opened next time we open K2 */
 	void SaveEditedObjectState();
 
@@ -320,18 +322,6 @@ public:
 
 	/** Handles opening the header file of native parent class */
 	void OnEditParentClassNativeCodeClicked();
-
-	/** Called to open native function definition of the current node selection in an IDE */
-	void GotoNativeFunctionDefinition();
-
-	/** Called to check if the current selection is a native function */
-	bool IsSelectionNativeFunction();
-
-	/** Called to open native variable declaration of the current node selection in an IDE */
-	void GotoNativeVariableDefinition();
-
-	/** Called to check if the current selection is a native variable */
-	bool IsSelectionNativeVariable();
 
 	/** Returns: "(<NativeParentClass>.h)" */
 	FText GetTextForNativeParentClassHeaderLink() const;
@@ -533,15 +523,6 @@ public:
 
 	/** Can generate native code for current blueprint */
 	bool CanGenerateNativeCode() const;
-
-	/** Returns if the blueprint profiler is enabled in editor settings. */
-	bool IsProfilerAvailable() const;
-
-	/** Returns if the blueprint profiler is currently active. */
-	bool IsProfilerActive() const;
-
-	/** Toggle blueprint profiler state */
-	void ToggleProfiler();
 
 	/**
 	 * Check to see if we can customize the SCS editor for the passed-in scene component
@@ -849,7 +830,7 @@ protected:
 	void OnListObjectsReferencedByBlueprint();
 	void OnRepairCorruptedBlueprint();
 
-	void OnNodeDoubleClicked(class UEdGraphNode* Node);
+	void OnNodeDoubleClicked(UEdGraphNode* Node);
 
 	virtual void OnEditTabClosed(TSharedRef<SDockTab> Tab);
 
@@ -1010,13 +991,10 @@ private:
 	/** Returns whether the currently focused graph is editable or not */
 	bool IsFocusedGraphEditable() const;
 
-	/** Called to check if native code browsing is available */
-	bool IsNativeCodeBrowsingAvailable() const;
-
-	/** Called when the user wants to jump to a node's graph definition */
+	/** Called when the user wants to jump to a node's definition */
 	void OnGoToDefinition();
 
-	/** Checks to see if it is possible to jump to the selected node's graph definition. */
+	/** Checks to see if it is possible to jump to the selected node's definition. */
 	bool CanGoToDefinition() const;
 
 	/** Open documentation for the selected node class */
@@ -1080,9 +1058,6 @@ protected:
 
 	/** Debugging window (watches, breakpoints, etc...) */
 	TSharedPtr<class SKismetDebuggingView> DebuggingView;
-
-	/** Performance Analsys View */
-	TSharedPtr<class SBlueprintProfilerView> BlueprintProfiler;
 
 	/** Palette of all classes with funcs/vars */
 	TSharedPtr<class SBlueprintPalette> Palette;
@@ -1148,13 +1123,13 @@ public:
 	TSharedPtr<SGraphEditor> OpenGraphAndBringToFront(UEdGraph* Graph);
 
 	//@TODO: To be moved/merged
-	TSharedPtr<SDockTab> OpenDocument(UObject* DocumentID, FDocumentTracker::EOpenDocumentCause Cause);
+	TSharedPtr<SDockTab> OpenDocument(const UObject* DocumentID, FDocumentTracker::EOpenDocumentCause Cause);
 
 	/** Finds the tab associated with the specified asset, and closes if it is open */
-	void CloseDocumentTab(UObject* DocumentID);
+	void CloseDocumentTab(const UObject* DocumentID);
 
 	// Finds any open tabs containing the specified document and adds them to the specified array; returns true if at least one is found
-	bool FindOpenTabsContainingDocument(UObject* DocumentID, /*inout*/ TArray< TSharedPtr<SDockTab> >& Results);
+	bool FindOpenTabsContainingDocument(const UObject* DocumentID, /*inout*/ TArray< TSharedPtr<SDockTab> >& Results);
 
 
 public:
@@ -1218,9 +1193,6 @@ private:
 
 	/** Handle to the registered OnActiveTabChanged delegate */
 	FDelegateHandle OnActiveTabChangedDelegateHandle;
-
-	/** Blueprint generated class instrumentation state */
-	bool bBlueprintHasInstrumentation;
 
 	// Allow derived editors to add command mappings 
 	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList) {}

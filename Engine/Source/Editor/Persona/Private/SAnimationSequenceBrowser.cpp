@@ -21,7 +21,6 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SViewport.h"
 #include "EditorReimportHandler.h"
-#include "Settings/DestructableMeshEditorSettings.h"
 #include "FileHelpers.h"
 
 #include "IContentBrowserSingleton.h"
@@ -40,6 +39,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "SlateApplication.h"
 #include "Preferences/PersonaOptions.h"
+#include "Settings/SkeletalMeshEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -1149,7 +1149,7 @@ void SAnimationSequenceBrowser::CreateAssetTooltipResources()
 	PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
 
-	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
+	const USkeletalMeshEditorSettings* Options = GetDefault<USkeletalMeshEditorSettings>();
 
 	PreviewScene.SetLightDirection(Options->AnimPreviewLightingDirection);
 	PreviewScene.SetLightColor(Options->AnimPreviewDirectionalColor);

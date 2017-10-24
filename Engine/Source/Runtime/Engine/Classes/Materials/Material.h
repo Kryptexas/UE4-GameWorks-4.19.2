@@ -375,6 +375,13 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	float OpacityMaskClipValue;
 
+	/**
+	* If true, translucent materials will cast dynamic shadows according to their opacity.
+	* OpacityMaskClipValue is used as the threshold value.
+	*/
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	uint32 bCastDynamicShadowAsMasked:1;
+
 	/** Adds to world position in the vertex shader. */
 	UPROPERTY()
 	FVectorMaterialInput WorldPositionOffset;
@@ -634,7 +641,7 @@ public:
 	 * Indicates that the material and its instances can be use with distortion
 	 * This will result in the shaders required to support distortion being compiled which will increase shader compile time and memory usage.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
+	UPROPERTY()
 	uint32 bUsesDistortion:1;
 
 	/** 
@@ -895,6 +902,7 @@ public:
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
 	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual bool GetCastDynamicShadowAsMasked() const override;
 	ENGINE_API virtual EBlendMode GetBlendMode() const override;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
@@ -902,6 +910,7 @@ public:
 	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
+	ENGINE_API virtual bool IsPostProcessMaterial() const { return MaterialDomain == MD_PostProcess; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
@@ -1493,7 +1502,7 @@ private:
 	template<typename ExpressionType>
 	ExpressionType* FindExpressionByGUIDRecursive(const FGuid &InGUID, const TArray<UMaterialExpression*>& InMaterialExpression)
 	{
-		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ++ExpressionIndex)
+		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ExpressionIndex++)
 		{
 			UMaterialExpression* ExpressionPtr = InMaterialExpression[ExpressionIndex];
 			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(ExpressionPtr);

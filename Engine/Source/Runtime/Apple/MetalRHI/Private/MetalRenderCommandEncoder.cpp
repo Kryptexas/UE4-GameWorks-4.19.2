@@ -8,26 +8,93 @@
 
 #include "MetalRenderCommandEncoder.h"
 #include "MetalCommandBuffer.h"
+#include "MetalCommandQueue.h"
 #include "MetalFence.h"
-#include "MetalRenderPipelineDesc.h"
+#include "MetalPipeline.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation FMetalDebugRenderCommandEncoder
+#if METAL_DEBUG_OPTIONS
+static NSString* GMetalDebugVertexShader = @"#include <metal_stdlib>\n"
+@"using namespace metal;\n"
+@"struct VertexInput\n"
+@"{\n"
+@"};\n"
+@"vertex void WriteCommandIndexVS(VertexInput StageIn [[stage_in]], constant uint* Input [[ buffer(0) ]], device uint* Output  [[ buffer(1) ]])\n"
+@"{\n"
+@"	Output[0] = Input[0];\n"
+@"}\n";
 
-APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
+static id <MTLRenderPipelineState> GetDebugVertexShaderState(id<MTLDevice> Device, MTLRenderPassDescriptor* PassDesc)
+{
+	static id<MTLFunction> Func = nil;
+	static FCriticalSection Mutex;
+	static NSMutableDictionary* Dict = [NSMutableDictionary new];
+	if(!Func)
+	{
+		id<MTLLibrary> Lib = [Device newLibraryWithSource:GMetalDebugVertexShader options:nil error:nullptr];
+		check(Lib);
+		Func = [Lib newFunctionWithName:@"WriteCommandIndexVS"];
+		check(Func);
+		[Lib release];
+	}
+	
+	FScopeLock Lock(&Mutex);
+	id<MTLRenderPipelineState> State = [Dict objectForKey:PassDesc];
+	if (!State)
+	{
+		MTLRenderPipelineDescriptor* Desc = [MTLRenderPipelineDescriptor new];
+		
+		Desc.vertexFunction = Func;
+		
+		if (PassDesc.depthAttachment)
+		{
+			Desc.depthAttachmentPixelFormat = PassDesc.depthAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.stencilAttachment)
+		{
+			Desc.stencilAttachmentPixelFormat = PassDesc.stencilAttachment.texture.pixelFormat;
+		}
+		if (PassDesc.colorAttachments)
+		{
+			MTLRenderPassColorAttachmentDescriptor* CD = [PassDesc.colorAttachments objectAtIndexedSubscript:0];
+			MTLRenderPipelineColorAttachmentDescriptor* CD0 = [[MTLRenderPipelineColorAttachmentDescriptor new] autorelease];
+			CD0.pixelFormat = CD.texture.pixelFormat;
+			[Desc.colorAttachments setObject:CD0 atIndexedSubscript:0];
+		}
+		Desc.rasterizationEnabled = false;
+		
+		State = [[Device newRenderPipelineStateWithDescriptor:Desc error:nil] autorelease];
+		check(State);
+		
+		[Dict setObject:State forKey:PassDesc];
+		
+		[Desc release];
+	}
+	check(State);
+	return State;
+}
+#endif
+
+@implementation FMetalDebugRenderCommandEncoder
 
 @synthesize Inner;
 @synthesize Buffer;
 @synthesize Pipeline;
 
--(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
+
+-(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder fromDescriptor:(MTLRenderPassDescriptor*)Desc andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer
 {
 	id Self = [super init];
 	if (Self)
 	{
         Inner = [Encoder retain];
 		Buffer = [SourceBuffer retain];
+		RenderPassDesc = [Desc retain];
+#if METAL_DEBUG_OPTIONS
+		DebugState = Buffer->DebugLevel >= EMetalDebugLevelValidation ? [GetDebugVertexShaderState(Buffer.device, Desc) retain] : nil;
+#endif
         Pipeline = nil;
 	}
 	return Self;
@@ -37,6 +104,10 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 {
 	[Inner release];
 	[Buffer release];
+	[RenderPassDesc release];
+#if METAL_DEBUG_OPTIONS
+	[DebugState release];
+#endif
 	[Pipeline release];
 	[super dealloc];
 }
@@ -74,9 +145,64 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner pushDebugGroup:string];
 }
 
+#if METAL_DEBUG_OPTIONS
+- (void)insertDebugDraw
+{
+	switch (Buffer->DebugLevel)
+	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
+		case EMetalDebugLevelValidation:
+		{
+			uint32 const Index = Buffer->DebugCommands.Num();
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			[Inner setVertexBytes:&Index length:sizeof(Index) atIndex:0];
+			[Inner setVertexBuffer:Buffer->DebugInfoBuffer offset:0 atIndex:1];
+			[Inner setRenderPipelineState:DebugState];
+			[Inner drawPrimitives:MTLPrimitiveTypePoint vertexStart:0 vertexCount:1];
+#if PLATFORM_MAC
+			[Inner textureBarrier];
+#endif
+			if (Pipeline && Pipeline.RenderPipelineState)
+			{
+				[Inner setRenderPipelineState:Pipeline.RenderPipelineState];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[0])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[0] offset:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[0])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[0] length:ShaderBuffers[EMetalShaderVertex].Offsets[0] atIndex:0];
+			}
+			
+			if (ShaderBuffers[EMetalShaderVertex].Buffers[1])
+			{
+				[Inner setVertexBuffer:ShaderBuffers[EMetalShaderVertex].Buffers[1] offset:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+			else if (ShaderBuffers[EMetalShaderVertex].Bytes[1])
+			{
+				[Inner setVertexBytes:ShaderBuffers[EMetalShaderVertex].Bytes[1] length:ShaderBuffers[EMetalShaderVertex].Offsets[1] atIndex:1];
+			}
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+#endif
+
 - (void)popDebugGroup
 {
-    [Buffer popDebugGroup];
+	[Buffer popDebugGroup];
+#if METAL_DEBUG_OPTIONS
+	[self insertDebugDraw];
+#endif
     [Inner popDebugGroup];
 }
 
@@ -85,10 +211,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer setPipeline:pipelineState.label];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackState:pipelineState];
@@ -107,12 +237,17 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderVertex].Buffers[index] = nil;
 			ShaderBuffers[EMetalShaderVertex].Bytes[index] = bytes;
 			ShaderBuffers[EMetalShaderVertex].Offsets[index] = length;
 		}
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			ResourceMask[EMetalShaderVertex].BufferMask = bytes ? (ResourceMask[EMetalShaderVertex].BufferMask | (1 << index)) : (ResourceMask[EMetalShaderVertex].BufferMask & ~(1 << index));
@@ -132,12 +267,16 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderVertex].Buffers[index] = buffer;
 			ShaderBuffers[EMetalShaderVertex].Bytes[index] = nil;
 			ShaderBuffers[EMetalShaderVertex].Offsets[index] = offset;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:buffer];
@@ -160,10 +299,15 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderVertex].Offsets[index] = offset;
 		}
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			check(ResourceMask[EMetalShaderVertex].BufferMask & 1 << index);
@@ -177,19 +321,23 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 	[Inner setVertexBufferOffset:offset atIndex:index];
 }
 
-- (void)setVertexBuffers:(const id <MTLBuffer> __nullable [])buffers offsets:(const NSUInteger [])offsets withRange:(NSRange)range
+- (void)setVertexBuffers:(const id <MTLBuffer> __nullable [__nonnull])buffers offsets:(const NSUInteger [__nonnull])offsets withRange:(NSRange)range
 {
 #if METAL_DEBUG_OPTIONS
 	for (uint32 i = 0; i < range.length; i++)
 	{
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderBuffers[EMetalShaderVertex].Buffers[i + range.location] = buffers[i];
 				ShaderBuffers[EMetalShaderVertex].Bytes[i + range.location] = nil;
 				ShaderBuffers[EMetalShaderVertex].Offsets[i + range.location] = offsets[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackResource:buffers[i]];
@@ -213,10 +361,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderTextures[EMetalShaderVertex].Textures[index] = texture;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:texture];
@@ -237,7 +389,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
 #else
-- (void)setVertexTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+- (void)setVertexTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -245,10 +397,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderTextures[EMetalShaderVertex].Textures[i + range.location] = textures[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackResource:textures[i]];
@@ -272,10 +428,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderSamplers[EMetalShaderVertex].Samplers[index] = sampler;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackState:sampler];
@@ -296,7 +456,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
 #else
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -304,10 +464,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderSamplers[EMetalShaderVertex].Samplers[i + range.location] = samplers[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackState:samplers[i]];
@@ -332,10 +496,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderSamplers[EMetalShaderVertex].Samplers[index] = sampler;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackState:sampler];
@@ -356,7 +524,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
 #else
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -364,10 +532,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderSamplers[EMetalShaderVertex].Samplers[i + range.location] = samplers[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackState:samplers[i]];
@@ -402,10 +574,13 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setCullMode:cullMode];
 }
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || (PLATFORM_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000)
 - (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
 {
-    [Inner setDepthClipMode:depthClipMode];
+	if (GMetalSupportsDepthClipMode)
+	{
+    	[Inner setDepthClipMode:depthClipMode];
+    }
 }
 #endif
 
@@ -429,12 +604,17 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderFragment].Buffers[index] = nil;
 			ShaderBuffers[EMetalShaderFragment].Bytes[index] = bytes;
 			ShaderBuffers[EMetalShaderFragment].Offsets[index] = length;
 		}
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			ResourceMask[EMetalShaderFragment].BufferMask = bytes ? (ResourceMask[EMetalShaderFragment].BufferMask | (1 << (index))) : (ResourceMask[EMetalShaderFragment].BufferMask & ~(1 << (index)));
@@ -453,12 +633,16 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderFragment].Buffers[index] = buffer;
 			ShaderBuffers[EMetalShaderFragment].Bytes[index] = nil;
 			ShaderBuffers[EMetalShaderFragment].Offsets[index] = offset;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:buffer];
@@ -481,10 +665,15 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderBuffers[EMetalShaderFragment].Offsets[index] = offset;
 		}
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			check(ResourceMask[EMetalShaderFragment].BufferMask & (1 << (index)));
@@ -498,19 +687,23 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setFragmentBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index];
 }
 
-- (void)setFragmentBuffers:(const id <MTLBuffer> __nullable [])buffers offsets:(const NSUInteger [])offset withRange:(NSRange)range
+- (void)setFragmentBuffers:(const id <MTLBuffer> __nullable [__nonnull])buffers offsets:(const NSUInteger [__nonnull])offset withRange:(NSRange)range
 {
 #if METAL_DEBUG_OPTIONS
     for (uint32 i = 0; i < range.length; i++)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderBuffers[EMetalShaderFragment].Buffers[i + range.location] = buffers[i];
 				ShaderBuffers[EMetalShaderFragment].Bytes[i + range.location] = nil;
 				ShaderBuffers[EMetalShaderFragment].Offsets[i + range.location] = offset[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackResource:buffers[i]];
@@ -534,10 +727,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderTextures[EMetalShaderFragment].Textures[index] = texture;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:texture];
@@ -558,7 +755,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
 #else
-- (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+- (void)setFragmentTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -566,10 +763,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderTextures[EMetalShaderFragment].Textures[i + range.location] = textures[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackResource:textures[i]];
@@ -594,10 +795,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderSamplers[EMetalShaderFragment].Samplers[index] = sampler;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackState:sampler];
@@ -618,7 +823,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
 #else
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -626,10 +831,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderSamplers[EMetalShaderFragment].Samplers[i + range.location] = samplers[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackState:samplers[i]];
@@ -654,10 +863,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			ShaderSamplers[EMetalShaderFragment].Samplers[index] = sampler;
 		}
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackState:sampler];
@@ -678,7 +891,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
 #else
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -686,10 +899,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     {
 		switch (Buffer->DebugLevel)
 		{
+			case EMetalDebugLevelConditionalSubmit:
+			case EMetalDebugLevelWaitForComplete:
+			case EMetalDebugLevelLogOperations:
 			case EMetalDebugLevelValidation:
 			{
 				ShaderSamplers[EMetalShaderFragment].Samplers[i + range.location] = samplers[i];
 			}
+			case EMetalDebugLevelResetOnBind:
 			case EMetalDebugLevelTrackResources:
 			{
 				[Buffer trackState:samplers[i]];
@@ -759,10 +976,15 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			[self validate];
@@ -781,10 +1003,15 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			[self validate];
@@ -803,10 +1030,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:indexBuffer];
@@ -829,10 +1060,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:indexBuffer];
@@ -855,10 +1090,15 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			[self validate];
@@ -877,10 +1117,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:indexBuffer];
@@ -903,10 +1147,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:indirectBuffer];
@@ -929,10 +1177,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:indexBuffer];
@@ -963,10 +1215,13 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 - (void)updateFence:(id <MTLFence>)fence afterStages:(MTLRenderStages)stages
 {
 #if METAL_DEBUG_OPTIONS
-	if (fence && Buffer->DebugLevel >= EMetalDebugLevelValidation)
-	{
-		[self addUpdateFence:fence];
-		[Inner updateFence:((FMetalDebugFence*)fence).Inner afterStages:(MTLRenderStages)stages];
+    if (fence && Buffer->DebugLevel >= EMetalDebugLevelValidation)
+    {
+        [self addUpdateFence:fence];
+        if (((FMetalDebugFence*)fence).Inner)
+        {
+            [Inner updateFence:((FMetalDebugFence*)fence).Inner afterStages:(MTLRenderStages)stages];
+        }
 	}
 	else
 #endif
@@ -981,7 +1236,10 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 	if (fence && Buffer->DebugLevel >= EMetalDebugLevelValidation)
 	{
 		[self addWaitFence:fence];
-		[Inner waitForFence:((FMetalDebugFence*)fence).Inner beforeStages:(MTLRenderStages)stages];
+        if (((FMetalDebugFence*)fence).Inner)
+        {
+            [Inner waitForFence:((FMetalDebugFence*)fence).Inner beforeStages:(MTLRenderStages)stages];
+        }
 	}
 	else
 #endif
@@ -1012,10 +1270,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:patchIndexBuffer];
@@ -1039,10 +1301,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:patchIndexBuffer];
@@ -1067,10 +1333,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:patchIndexBuffer];
@@ -1095,10 +1365,14 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch(Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
 		case EMetalDebugLevelLogOperations:
 		{
 			[Buffer draw:[NSString stringWithFormat:@"%s", __PRETTY_FUNCTION__]];
 		}
+		case EMetalDebugLevelValidation:
+		case EMetalDebugLevelResetOnBind:
 		case EMetalDebugLevelTrackResources:
 		{
 			[Buffer trackResource:patchIndexBuffer];
@@ -1120,6 +1394,58 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 #endif
 
+#if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
+- (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
+{
+	if (GMetalSupportsIndirectArgumentBuffers)
+	{
+		[Inner useResource:resource usage:usage];
+	}
+}
+
+- (void)useResources:(const id <MTLResource> [])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
+{
+	if (GMetalSupportsIndirectArgumentBuffers)
+	{
+		[Inner useResources:resources count:count usage:usage];
+	}
+}
+
+- (void)useHeap:(id <MTLHeap>)heap
+{
+	if (GMetalSupportsIndirectArgumentBuffers)
+	{
+		[Inner useHeap:heap];
+	}
+}
+
+- (void)useHeaps:(const id <MTLHeap> [])heaps count:(NSUInteger)count
+{
+	if (GMetalSupportsIndirectArgumentBuffers)
+	{
+		[Inner useHeaps:heaps count:count];
+	}
+}
+#endif // #if METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS
+
+- (void)setViewports:(const MTLViewport [])viewports count:(NSUInteger)count
+{
+	if(FMetalCommandQueue::SupportsFeature(EMetalFeaturesMultipleViewports))
+	{
+		id<IMetalRenderCommandEncoder> Enc = (id<IMetalRenderCommandEncoder>)Inner;
+		[Enc setViewports:viewports count:count];
+	}
+}
+
+- (void)setScissorRects:(const MTLScissorRect [])scissorRects count:(NSUInteger)count
+{
+	if(FMetalCommandQueue::SupportsFeature(EMetalFeaturesMultipleViewports))
+	{
+		id<IMetalRenderCommandEncoder> Enc = (id<IMetalRenderCommandEncoder>)Inner;
+		[Enc setScissorRects:scissorRects count:count];
+	}
+}
+
 -(NSString*) description
 {
 	return [Inner description];
@@ -1136,6 +1462,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_DEBUG_OPTIONS
 	switch (Buffer->DebugLevel)
 	{
+		case EMetalDebugLevelConditionalSubmit:
+		case EMetalDebugLevelWaitForComplete:
+		case EMetalDebugLevelLogOperations:
 		case EMetalDebugLevelValidation:
 		{
 			check(Pipeline);
@@ -1213,6 +1542,8 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 			}
 			break;
 		}
+		case EMetalDebugLevelResetOnBind:
+		case EMetalDebugLevelTrackResources:
 		case EMetalDebugLevelFastValidation:
 		{
 			check(Pipeline);
@@ -1289,148 +1620,130 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 	return self;
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
-// Null implementations of these functions to support iOS 11 beta.  To be filled out later
-- (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
-{
-	[Inner setDepthClipMode:depthClipMode];
-}
-
+#if (METAL_NEW_NONNULL_DECL)
 - (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
 {
-	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	}
 }
 
 - (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	[Inner setDepthStoreActionOptions:storeActionOptions];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setDepthStoreActionOptions:storeActionOptions];
+	}
 }
 
 - (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
 {
-	[Inner setStencilStoreActionOptions:storeActionOptions];
+	if (GMetalSupportsStoreActionOptions)
+	{
+		[Inner setStencilStoreActionOptions:storeActionOptions];
+	}
 }
-
-- (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
-{
-	[Inner useResource:resource usage:usage];
-}
-
-- (void)useResources:(const id <MTLResource> __nonnull[__nonnull])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
-{
-	[Inner useResources:resources count:count usage:usage];
-}
-
-- (void)useHeap:(id <MTLHeap>)heap
-{
-	[Inner useHeap:heap];
-}
-
-- (void)useHeaps:(const id <MTLHeap> __nonnull[__nonnull])heaps count:(NSUInteger)count
-{
-	[Inner useHeaps:heaps count:count];
-}
-#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+#endif //(METAL_NEW_NONNULL_DECL)
 
 #if METAL_SUPPORTS_TILE_SHADERS
-- (void)setTileBytes:(const void *)bytes length : (NSUInteger)length atIndex : (NSUInteger)index
+- (void)setTileBytes:(const void *)bytes length:(NSUInteger)length atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileBytes : bytes length : length atIndex : index];
+		[Inner setTileBytes:bytes length:length atIndex:index];
 	}
 }
 
--(void)setTileBuffer:(nullable id <MTLBuffer>)buffer offset : (NSUInteger)offset atIndex : (NSUInteger)index
+- (void)setTileBuffer:(nullable id <MTLBuffer>)buffer offset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileBuffer : buffer offset : offset atIndex : index];
+		[Inner setTileBuffer:buffer offset:offset atIndex:index];
 	}
 }
 
--(void)setTileBufferOffset:(NSUInteger)offset atIndex : (NSUInteger)index
+- (void)setTileBufferOffset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileBufferOffset : offset atIndex : index];
+		[Inner setTileBufferOffset:offset atIndex:index];
 	}
 }
 
--(void)setTileBuffers:(const id <MTLBuffer> __nullable[__nonnull])buffers offsets : (const NSUInteger[__nonnull])offset withRange : (NSRange)range
+- (void)setTileBuffers:(const id <MTLBuffer> __nullable [__nonnull])buffers offsets:(const NSUInteger [__nonnull])offset withRange:(NSRange)range
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileBuffers : buffers offsets : offset withRange : range];
+		[Inner setTileBuffers:buffers offsets:offset withRange:range];
 	}
 }
 
--(void)setTileTexture:(nullable id <MTLTexture>)texture atIndex : (NSUInteger)index
+- (void)setTileTexture:(nullable id <MTLTexture>)texture atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileTexture : texture atIndex : index];
+		[Inner setTileTexture:texture atIndex:index];
 	}
 }
 
--(void)setTileTextures:(const id <MTLTexture> __nullable[__nonnull])textures withRange : (NSRange)range
+- (void)setTileTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileTextures : textures withRange : range];
+		[Inner setTileTextures:textures withRange:range];
 	}
 }
 
--(void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler atIndex : (NSUInteger)index
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileSamplerState : sampler atIndex : index];
+		[Inner setTileSamplerState:sampler atIndex:index];
 	}
 }
 
--(void)setTileSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers withRange : (NSRange)range
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileSamplerStates : samplers withRange : range];
+		[Inner setTileSamplerStates:samplers withRange:range];
 	}
 }
 
--(void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler lodMinClamp : (float)lodMinClamp lodMaxClamp : (float)lodMaxClamp atIndex : (NSUInteger)index
+- (void)setTileSamplerState:(nullable id <MTLSamplerState>)sampler lodMinClamp:(float)lodMinClamp lodMaxClamp:(float)lodMaxClamp atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileSamplerState : sampler lodMinClamp : lodMinClamp lodMaxClamp : lodMaxClamp atIndex : index];
+		[Inner setTileSamplerState:sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
 	}
 }
 
--(void)setTileSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers lodMinClamps : (const float[__nonnull])lodMinClamps lodMaxClamps : (const float[__nonnull])lodMaxClamps withRange : (NSRange)range
+- (void)setTileSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setTileSamplerStates : samplers lodMinClamps : lodMinClamps lodMaxClamps : lodMaxClamps withRange : range];
+		[Inner setTileSamplerStates:samplers lodMinClamps:lodMinClamps lodMaxClamps:lodMaxClamps withRange:range];
 	}
 }
 
--(void)dispatchThreadsPerTile:(MTLSize)threadsPerTile
+- (void)dispatchThreadsPerTile:(MTLSize)threadsPerTile
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner dispatchThreadsPerTile : threadsPerTile];
+		[Inner dispatchThreadsPerTile:threadsPerTile];
 	}
 }
 
--(void)setThreadgroupMemoryLength:(NSUInteger)length offset : (NSUInteger)offset atIndex : (NSUInteger)index
+- (void)setThreadgroupMemoryLength:(NSUInteger)length offset:(NSUInteger)offset atIndex:(NSUInteger)index
 {
-	if (@available(iOS 11.0, tvOS 11.0, *))
+	if (GMetalSupportsTileShaders)
 	{
-	[Inner setThreadgroupMemoryLength : length offset : offset atIndex : index];
+		[Inner setThreadgroupMemoryLength:length offset:offset atIndex:index];
 	}
 }
 
 #endif
-
 @end
 
 #if !METAL_SUPPORTS_HEAPS

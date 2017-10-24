@@ -14,7 +14,7 @@
 template <typename T>
 inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
 {
-	return (T)(((PTRINT)Ptr + Alignment - 1) & ~(Alignment-1));
+	return (T)(((int64)Ptr + Alignment - 1) & ~(Alignment-1));
 }
 
 /**
@@ -27,7 +27,7 @@ inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
 template <typename T>
 inline CONSTEXPR T AlignDown( const T Ptr, int32 Alignment )
 {
-	return (T)(((PTRINT)Ptr) & ~(Alignment-1));
+	return (T)(((int64)Ptr) & ~(Alignment-1));
 }
 
 /**
@@ -51,6 +51,6 @@ static FORCEINLINE bool IsAligned(const volatile void* Ptr, const uint32 Alignme
  */
 template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 {
-	return (T) ( ( ((UPTRINT)Ptr + Alignment - 1) / Alignment ) * Alignment );
+	return (T) ( ( ((uint64)Ptr + Alignment - 1) / Alignment ) * Alignment );
 }
 

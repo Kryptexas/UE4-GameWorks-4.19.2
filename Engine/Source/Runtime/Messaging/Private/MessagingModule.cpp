@@ -62,7 +62,7 @@ public:
 
 	//~ IMessagingModule interface
 
-	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge(const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const IMessageTransportRef& Transport) override
+	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge(const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& Transport) override
 	{
 		return MakeShareable(new FMessageBridge(Address, Bus, Transport));
 	}

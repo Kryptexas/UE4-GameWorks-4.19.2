@@ -2,13 +2,14 @@
 
 using UnrealBuildTool;
 using System.IO;
+using System.Collections.Generic;
 
 public class CEF3 : ModuleRules
 {
 	public CEF3(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the library */
-		string CEFVersion = "3.2623.1395.g3034273";
+		string CEFVersion = "3.3071.1611.g4a19305";
 		string CEFPlatform = "";
 
 		Type = ModuleType.External;
@@ -27,17 +28,18 @@ public class CEF3 : ModuleRules
 		}
 		else if(Target.Platform == UnrealTargetPlatform.Linux)
 		{
+			CEFVersion = "3.2623.1395.g3034273";
 			CEFPlatform = "linux64";
 		}
 
-		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
+		if (CEFPlatform.Length > 0 && Target.bCompileCEF3)
 		{
-			string PlatformPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "CEF3", "cef_binary_" + CEFVersion + "_" + CEFPlatform);
+			string PlatformPath = Path.Combine(Target.UEThirdPartySourceDirectory, "CEF3", "cef_binary_" + CEFVersion + "_" + CEFPlatform);
 
 			PublicSystemIncludePaths.Add(PlatformPath);
 
 			string LibraryPath = Path.Combine(PlatformPath, "Release");
-            string RuntimePath = Path.Combine(UEBuildConfiguration.UEThirdPartyBinariesDirectory , "CEF3", Target.Platform.ToString());
+            string RuntimePath = Path.Combine(Target.UEThirdPartyBinariesDirectory , "CEF3", Target.Platform.ToString());
 
 			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 			{
@@ -45,10 +47,10 @@ public class CEF3 : ModuleRules
                 PublicAdditionalLibraries.Add("libcef.lib");
 
                 // There are different versions of the C++ wrapper lib depending on the version of VS we're using
-                string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+                string VSVersionFolderName = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
                 string WrapperLibraryPath = Path.Combine(PlatformPath, VSVersionFolderName, "libcef_dll");
 
-                if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     WrapperLibraryPath += "/Debug";
                 }
@@ -60,13 +62,14 @@ public class CEF3 : ModuleRules
                 PublicLibraryPaths.Add(WrapperLibraryPath);
                 PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
 
-                string[] Dlls = {
-                    "d3dcompiler_43.dll",
-                    "d3dcompiler_47.dll",
-                    "libcef.dll",
-                    "libEGL.dll",
-                    "libGLESv2.dll",
-                };
+				List<string> Dlls = new List<string>();
+
+				Dlls.Add("chrome_elf.dll");
+				Dlls.Add("d3dcompiler_43.dll");
+				Dlls.Add("d3dcompiler_47.dll");
+				Dlls.Add("libcef.dll");
+				Dlls.Add("libEGL.dll");
+				Dlls.Add("libGLESv2.dll");
 
 				PublicDelayLoadDLLs.AddRange(Dlls);
 
@@ -82,16 +85,10 @@ public class CEF3 : ModuleRules
                 RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/natives_blob.bin"));
                 RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/snapshot_blob.bin"));
 
-				// For Win32 builds, we need a helper executable when running under WOW (32 bit apps under 64 bit windows)
-				if (Target.Platform == UnrealTargetPlatform.Win32)
-				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/Win32/wow_helper.exe"));
-				}
-
-                // And the entire Resources folder. Enunerate the entire directory instead of mentioning each file manually here.
+                // And the entire Resources folder. Enumerate the entire directory instead of mentioning each file manually here.
                 foreach (string FileName in Directory.EnumerateFiles(Path.Combine(RuntimePath, "Resources"), "*", SearchOption.AllDirectories))
                 {
-                    string DependencyName = FileName.Substring(UEBuildConfiguration.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
+                    string DependencyName = FileName.Substring(Target.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
                     RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/" + DependencyName));
                 }
             }
@@ -99,7 +96,7 @@ public class CEF3 : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				string WrapperPath = LibraryPath + "/libcef_dll_wrapper.a";
-                string FrameworkPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "CEF3/Mac/Chromium Embedded Framework.framework";
+                string FrameworkPath = Target.UEThirdPartyBinariesDirectory + "CEF3/Mac/Chromium Embedded Framework.framework";
 
 				PublicAdditionalLibraries.Add(WrapperPath);
                 PublicFrameworks.Add(FrameworkPath);
@@ -126,7 +123,7 @@ public class CEF3 : ModuleRules
 				PublicAdditionalLibraries.Add(RuntimeLibCEFPath);
 
 				string Configuration;
-				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				{
 					Configuration = "build_debug";
 				}
@@ -146,7 +143,7 @@ public class CEF3 : ModuleRules
 				// And the entire Resources folder. Enunerate the entire directory instead of mentioning each file manually here.
 				foreach (string FileName in Directory.EnumerateFiles(Path.Combine(RuntimePath, "Resources"), "*", SearchOption.AllDirectories))
 				{
-					string DependencyName = FileName.Substring(UEBuildConfiguration.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
+					string DependencyName = FileName.Substring(Target.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
 					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/" + DependencyName));
 				}
 			}

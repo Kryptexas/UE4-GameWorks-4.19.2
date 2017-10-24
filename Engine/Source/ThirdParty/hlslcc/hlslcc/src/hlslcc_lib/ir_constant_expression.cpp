@@ -520,50 +520,50 @@ ir_constant* ir_expression::constant_expression_value()
 		break;
 
 	case ir_unop_rsq:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = 1.0F / sqrtf(op[0]->value.f[c]);
+			data.f[c] = 1.0F / sqrtf(op[0]->type->is_integer() ? op[0]->value.u[c] : op[0]->value.f[c]);
 		}
 		break;
 
 	case ir_unop_sqrt:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = sqrtf(op[0]->value.f[c]);
+			data.f[c] = sqrtf(op[0]->type->is_integer() ? op[0]->value.u[c] : op[0]->value.f[c]);
 		}
 		break;
 
 	case ir_unop_exp:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = expf(op[0]->value.f[c]);
+			data.f[c] = expf(op[0]->type->is_integer() ? op[0]->value.i[c] : op[0]->value.f[c]);
 		}
 		break;
 
 	case ir_unop_exp2:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = exp2f(op[0]->value.f[c]);
+			data.f[c] = exp2f(op[0]->type->is_integer() ? op[0]->value.i[c] : op[0]->value.f[c]);
 		}
 		break;
 
 	case ir_unop_log:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = logf(op[0]->value.f[c]);
+			data.f[c] = logf(op[0]->type->is_integer() ? op[0]->value.u[c] : op[0]->value.f[c]);
 		}
 		break;
 
 	case ir_unop_log2:
-		check(op[0]->type->is_float());
+		check(op[0]->type->is_float() || op[0]->type->is_integer());
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.f[c] = log2f(op[0]->value.f[c]);
+			data.f[c] = log2f(op[0]->type->is_integer() ? op[0]->value.u[c] : op[0]->value.f[c]);
 		}
 		break;
 
@@ -589,6 +589,14 @@ ir_constant* ir_expression::constant_expression_value()
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
 			data.f[c] = 0.0;
+		}
+		break;
+		
+	case ir_unop_saturate:
+		check(op[0]->type->is_float());
+		for (unsigned c = 0; c < op[0]->type->components(); c++)
+		{
+			data.f[c] = CLAMP(op[0]->value.f[c], 0.0f, 1.0f);
 		}
 		break;
 
@@ -1397,6 +1405,36 @@ ir_constant* ir_expression::constant_expression_value()
 				break;
 			default:
 				check(0);
+			}
+		}
+	}
+		break;
+		
+	case ir_ternop_fma:
+	{
+		check(op[2]);
+		check(op[1]);
+		if ((op[0]->type == op[1]->type) && (op[0]->type == op[2]->type))
+		{
+			for (unsigned c = 0, c0 = 0, c1 = 0, c2 = 0;
+				 c < components;
+				 c0 += c0_inc, c1 += c1_inc, c2 += c2_inc, c++)
+			{
+				switch (op[0]->type->base_type)
+				{
+					case GLSL_TYPE_UINT:
+					data.u[c] = (op[0]->value.u[c0] * op[1]->value.u[c1]) + op[2]->value.u[c2];
+					break;
+					case GLSL_TYPE_INT:
+					data.i[c] = (op[0]->value.i[c0] * op[1]->value.i[c1]) + op[2]->value.i[c2];
+					break;
+					case GLSL_TYPE_HALF:
+					case GLSL_TYPE_FLOAT:
+					data.f[c] = (op[0]->value.f[c0] * op[1]->value.f[c1]) + op[2]->value.f[c2];
+					break;
+					default:
+					check(0);
+				}
 			}
 		}
 	}

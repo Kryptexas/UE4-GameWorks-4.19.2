@@ -60,10 +60,12 @@ namespace Audio
 		AUNode      OutputNode;
 		AudioUnit	OutputUnit;
         uint8*      SubmittedBufferPtr;
-        int32 		SubmittedBytes = 0;
+        int32 SubmittedBytes = 0;
 
         int32       RemainingBytesInCurrentSubmittedBuffer;
         int32       BytesPerSubmittedBuffer;
+        
+        double GraphSampleRate;
         
 		bool PerformCallback(AudioBufferList* OutputBufferData);
 		void HandleError(const TCHAR* InLogOutput, bool bTeardown = true);

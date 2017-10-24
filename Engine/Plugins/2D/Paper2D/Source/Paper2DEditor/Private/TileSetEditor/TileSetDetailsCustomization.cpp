@@ -38,7 +38,7 @@ void FTileSetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 {
 	MyDetailLayout = &DetailLayout;
 	
-	for (const TWeakObjectPtr<UObject> SelectedObject : DetailLayout.GetDetailsView().GetSelectedObjects())
+	for (const TWeakObjectPtr<UObject> SelectedObject : DetailLayout.GetSelectedObjects())
 	{
 		if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(SelectedObject.Get()))
 		{

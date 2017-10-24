@@ -121,21 +121,22 @@ void FScopedExternalProfilerBase::StopScopedTimer()
 	if (Profiler != nullptr)
 	{
 		// Make sure a timer was already started
-		check(Profiler->TimerCount > 0);
-
-		// Decrement timer count
-		Profiler->TimerCount--;
-
-		// Restore the previous state of VTune
-		if (bWasPaused != Profiler->bIsPaused)
+		if (Profiler->TimerCount > 0)
 		{
-			if( bWasPaused )
+			// Decrement timer count
+			Profiler->TimerCount--;
+
+			// Restore the previous state of VTune
+			if (bWasPaused != Profiler->bIsPaused)
 			{
-				Profiler->PauseProfiler();
-			}
-			else
-			{
-				Profiler->ResumeProfiler();
+				if (bWasPaused)
+				{
+					Profiler->PauseProfiler();
+				}
+				else
+				{
+					Profiler->ResumeProfiler();
+				}
 			}
 		}
 	}

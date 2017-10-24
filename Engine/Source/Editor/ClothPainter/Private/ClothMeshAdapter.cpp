@@ -119,15 +119,7 @@ void FClothMeshPaintAdapter::PreEdit()
 
 void FClothMeshPaintAdapter::PostEdit()
 {
-	FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
-
-	if (USkeletalMesh* SkelMesh = SkeletalMeshComponent->SkeletalMesh)
-	{
-		for (UClothingAssetBase* AssetBase : SkelMesh->MeshClothingAssets)
-		{
-			AssetBase->InvalidateCachedData();
-		}
-	}
+	
 }
 
 void FClothMeshPaintAdapter::GetVertexColor(int32 VertexIndex, FColor& OutColor, bool bInstance /*= true*/) const
@@ -316,7 +308,7 @@ bool FClothMeshPaintAdapter::InitializeVertexData()
 			if(DebugComponent->SkinnedSelectedClothingPositions.Num() > 0)
 			{
 				UClothingAsset* ConcreteAsset = CastChecked<UClothingAsset>(SelectedAsset);
-				const FClothLODData& LODData = ConcreteAsset->LodData[0];
+				const FClothLODData& LODData = ConcreteAsset->LodData[PaintingClothLODIndex];
 				const FClothPhysicalMeshData& MeshData = LODData.PhysicalMeshData;
 
 				MeshVertices.Append(DebugComponent->SkinnedSelectedClothingPositions);

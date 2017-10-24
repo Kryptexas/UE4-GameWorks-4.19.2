@@ -42,7 +42,7 @@ public:
 public:
 
 	/** Destructor. */
-	~SProjectLauncherCookByTheBookSettings( );
+	~SProjectLauncherCookByTheBookSettings();
 
 public:
 
@@ -52,84 +52,84 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel, bool InShowSimple = false );
+	void Construct(	const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, bool InShowSimple = false);
 
 protected:
 
 	/** Refreshes the list of available maps. */
-	void RefreshMapList( );
+	void RefreshMapList();
 
 	/** Refreshes the list of available cultures. */
-	void RefreshCultureList( );
+	void RefreshCultureList();
 
 private:
 
 	/** Handles clicking the 'Select All Cultures' button. */
-	void HandleAllCulturesHyperlinkNavigate( bool AllPlatforms );
+	void HandleAllCulturesHyperlinkNavigate(bool AllPlatforms);
 
 	/** Handles determining the visibility of the 'Select All Cultures' button. */
-	EVisibility HandleAllCulturesHyperlinkVisibility( ) const;
+	EVisibility HandleAllCulturesHyperlinkVisibility() const;
 
 	/** Handles clicking the 'Select All Maps' button. */
-	void HandleAllMapsHyperlinkNavigate( bool AllPlatforms );
+	void HandleAllMapsHyperlinkNavigate(bool AllPlatforms);
 
 	/** Handles selecting a build configuration for the cooker. */
-	void HandleCookConfigurationSelectorConfigurationSelected( EBuildConfigurations::Type );
+	void HandleCookConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type);
 
 	/** Handles getting the content text of the cooker build configuration selector. */
-	FText HandleCookConfigurationSelectorText( ) const;
+	FText HandleCookConfigurationSelectorText() const;
 
 	/** Handles check state changes of the 'Incremental' check box. */
-	void HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleIncrementalCheckBoxCheckStateChanged(ECheckBoxState NewState);
 
 	/** Handles determining the checked state of the 'Incremental' check box. */
-	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleIncrementalCheckBoxIsChecked() const;
 	
 	void HandleSharedCookedBuildCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	ECheckBoxState HandleSharedCookedBuildCheckBoxIsChecked() const;
 
 
-	void HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState );
-	void HandleEncryptIniFilesCheckBoxCheckStateChanged(ECheckBoxState NewState );
+	void HandleCompressedCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	void HandleEncryptIniFilesCheckBoxCheckStateChanged(ECheckBoxState NewState);
 
-	ECheckBoxState HandleCompressedCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleCompressedCheckBoxIsChecked() const;
 	ECheckBoxState HandleEncryptIniFilesCheckBoxIsChecked() const;
 	
 	
 	
 	
 	/** Handles generating a row widget in the map list view. */
-	TSharedRef<ITableRow> HandleMapListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleMapListViewGenerateRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Handles generating a row widget in the culture list view. */
-	TSharedRef<ITableRow> HandleCultureListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleCultureListViewGenerateRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Handles determining the visibility of the 'Select All Maps' button. */
-	EVisibility HandleMapSelectionHyperlinkVisibility( ) const;
+	EVisibility HandleMapSelectionHyperlinkVisibility() const;
 
 	/** Handles getting the visibility of the map selection warning message. */
-	EVisibility HandleNoMapSelectedBoxVisibility( ) const;
+	EVisibility HandleNoMapSelectedBoxVisibility() const;
 
 	/** Handles getting the text in the 'No maps' text block. */
-	FText HandleNoMapsTextBlockText( ) const;
+	FText HandleNoMapsTextBlockText() const;
 
 	/** Handles changing the selected profile in the profile manager. */
-	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
+	void HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile);
 
 	/** Handles checking the specified 'Show maps' check box. */
-	void HandleShowCheckBoxCheckStateChanged( ECheckBoxState NewState, EShowMapsChoices::Type Choice );
+	void HandleShowCheckBoxCheckStateChanged(ECheckBoxState NewState, EShowMapsChoices::Type Choice);
 
 	/** Handles determining the checked state of the specified 'Show maps' check box. */
-	ECheckBoxState HandleShowCheckBoxIsChecked( EShowMapsChoices::Type Choice ) const;
+	ECheckBoxState HandleShowCheckBoxIsChecked(EShowMapsChoices::Type Choice) const;
 
 	/** Handles checking the specified 'Unversioned' check box. */
-	void HandleUnversionedCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleUnversionedCheckBoxCheckStateChanged(ECheckBoxState NewState);
 
 	/** Handles determining the checked state of the specified 'Unversioned' check box. */
-	ECheckBoxState HandleUnversionedCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleUnversionedCheckBoxIsChecked() const;
 
 	/** Handles determining the visibility of a validation error icon. */
-	EVisibility HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const;
+	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
 
 	/** Callback for getting the cookers additional options. */
 	FText HandleCookOptionsTextBlockText() const;
@@ -145,10 +145,10 @@ private:
 	void HandleProfileProjectChanged();
 
 	// Callback for check state changes of the 'UnrealPak' check box.
-	void HandleUnrealPakCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleUnrealPakCheckBoxCheckStateChanged(ECheckBoxState NewState);
 
 	// Callback for determining the checked state of the 'UnrealPak' check box.
-	ECheckBoxState HandleUnrealPakCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleUnrealPakCheckBoxIsChecked() const;
 
 	void HandleGenerateChunksCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	ECheckBoxState HandleGenerateChunksCheckBoxIsChecked() const;
@@ -162,9 +162,9 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// creating release version related functions
 	// Callback for check state changes of the 'GeneratePatch' check box.
-	void HandleCreateReleaseVersionCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleCreateReleaseVersionCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	// Callback for determining the checked state of the 'GeneratePatch' check box.
-	ECheckBoxState HandleCreateReleaseVersionCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleCreateReleaseVersionCheckBoxIsChecked() const;
 
 	void HandleCreateReleaseVersionNameCommitted(const FText& NewText, ETextCommit::Type CommitType);
 	FText HandleCreateReleaseVersionNameTextBlockText() const;
@@ -175,9 +175,9 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// patch generation related functions
 	// Callback for check state changes of the 'GeneratePatch' check box.
-	void HandleGeneratePatchCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleGeneratePatchCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	// Callback for determining the checked state of the 'GeneratePatch' check box.
-	ECheckBoxState HandleGeneratePatchCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleGeneratePatchCheckBoxIsChecked() const;
 
 	// Callback for check state changes of the 'AddPatchLevel' check box.
 	void HandleAddPatchLevelCheckBoxCheckStateChanged( ECheckBoxState NewState );
@@ -196,7 +196,7 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	// dlc check box related functions 
-	void HandleBuildDLCCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleBuildDLCCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	ECheckBoxState HandleBuildDLCCheckBoxIsChecked() const;
 	void HandleDLCNameCommitted(const FText& NewText, ETextCommit::Type CommitType);
 	FText HandleDLCNameTextBlockText() const;
@@ -241,7 +241,7 @@ private:
 	TSharedPtr<SListView<TSharedPtr<FString> > > MapListView;
 
 	/** Holds a pointer to the data model. */
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 
 	/** Holds the current 'Show maps' check box choice. */
 	EShowMapsChoices::Type ShowMapsChoice;

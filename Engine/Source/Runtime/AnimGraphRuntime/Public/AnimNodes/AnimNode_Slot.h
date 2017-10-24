@@ -24,6 +24,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Slot : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(CustomizeProperty))
 	FName SlotName;
 
+	//Whether we should continue to update the source pose regardless of whether it would be used.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings)
+	bool bAlwaysUpdateSourcePose;
+
 protected:
 	FSlotNodeWeightInfo WeightData;
 	FGraphTraversalCounter SlotNodeInitializationCounter;

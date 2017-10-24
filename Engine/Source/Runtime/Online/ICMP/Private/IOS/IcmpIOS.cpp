@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Icmp.h"
+#include "IcmpModule.h"
+#include "IcmpPrivate.h"
 #include <netinet/in.h>
 
 uint16 NtoHS(uint16 val)

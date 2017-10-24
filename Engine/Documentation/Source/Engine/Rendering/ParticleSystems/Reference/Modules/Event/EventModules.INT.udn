@@ -18,7 +18,7 @@ The **Event Generator** module will generate an event (or multiple events) based
 | ---- | ---- |
 |[REGION:tablesection]Events[/REGION]||
 |**Type** | The type of event. The possible types include:[INCLUDE:#EventGenType]|
-|**Frequency** | How often to trigger the event. <=1 means every time. Use this to trigger an event on every other collision, say.|
+|**Frequency** | How often to trigger the event. `<=1` means every time. Use this to trigger an event on every other collision, say.|
 |**First Time Only** | Boolean to trigger the event only on the first time it would fire.|
 |**Last Time Only** | Boolean to trigger the event only on the last occurrence of when it would fire.|
 |**Use Reflected Impact Vector** | Boolean to decide whether you orient the result of the collision event in the direction of the impact vector instead of the hit normal.|

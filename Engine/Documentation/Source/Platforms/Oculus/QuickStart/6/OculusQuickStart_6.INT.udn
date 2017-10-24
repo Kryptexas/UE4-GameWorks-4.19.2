@@ -1,9 +1,13 @@
-Title:6. Additional Resources
-Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Read more about Oculus development with Unreal Engine.
-Availability:Public
-Version: 4.9
-SkillLevel: Intermediate
+Availability: Public
+Crumbs: %ROOT%
+Title: 6. Additional Resources
+Description: Read more about Oculus development with Unreal Engine.
+Type: quick start
+SkillLevel: Beginner
+Version: 4.17
+Parent: Platforms/Oculus
+Order: 6
+Checkpoint: RIFTQS
 
 Here are some additional resources that provide useful information for developing VR projects inside of Unreal Engine 4.
 
@@ -52,11 +56,11 @@ Here are some additional resources that provide useful information for developin
 	[/PARAM]
 	[PARAM:links]
 		[REGION:imagetable]
-		| ![](store_CouchKnights_screenshot_3.png)(w:420) | ![](VehicleTemplate.png)(w:420) |
+		| ![](store_CouchKnights_screenshot_3.png)(w:420) | ![](store_Showdown_screenshot_5.png)(w:420) |
 		| ------------ | ---------------- |
-		| CouchKnights | Vehicle Template[REGION:caption]Press **Tab** to switch to being inside the car.[/REGION] |
-		| ![](store_RealisticRendering_screenshot_3.png)(w:420) | ![](store_MobileTemple_screenshot_4.png)(w:420) |
-		| Architecture[REGION:caption] Disable the Matinee fly-through to walk around.[/REGION] | Simple Temple Environment |
+		| CouchKnights | Showdown |
+		| ![](store_VREditor_screenshot_5.png)(w:420) | ![](store_RoboRecall_screenshot_5.png)(w:420) |
+		| VR Editor |Robo Recall |
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

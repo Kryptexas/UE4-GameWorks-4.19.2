@@ -1,10 +1,17 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:ウィジェットの作成
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:Widget ブループリントを作成し、ゲーム内で表示する方法 
-version:4.9
-tags:UMG UI Designer
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:2
+Tags:UMG UI Designer
+Tags:Getting Started
+Topic-image:Engine/UMG/UserGuide/CreateWidgetTopic.png
+
 
 **Widget ブループリント** を作成し、レイアウト後に、ゲーム内で表示させるには、別の **ブループリント** (例、**Level ブループリント** や Character ブループリント) 内で、**Create Widget** ノードと **Add to Viewport** ノードを使用してそれを呼び出す必要があります  
 

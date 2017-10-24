@@ -1802,8 +1802,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
-			TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject( ObjIndex );
-			UObject* Object = ObjectWeakPtr.Get();
+			UObject* Object = ObjectNode->GetUObject( ObjIndex );
 
 			// special case for UObject class - it has no defaults
 			if( Object && Object != UObject::StaticClass() && Object != UObject::StaticClass()->GetDefaultObject() )
@@ -2036,6 +2035,24 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 			RequestRebuildChildren();
 		}
 	}
+}
+
+bool FPropertyNode::IsReorderable()
+{
+	UProperty* NodeProperty = GetProperty();
+	if (NodeProperty == nullptr)
+	{
+		return false;
+	}
+	// It is reorderable if the parent is an array and metadata doesn't prohibit it
+	const UArrayProperty* OuterArrayProp = Cast<UArrayProperty>(NodeProperty->GetOuter());
+
+	static const FName Name_DisableReordering("EditFixedOrder");
+	static const FName NAME_ArraySizeEnum("ArraySizeEnum");
+	return OuterArrayProp != nullptr 
+		&& !OuterArrayProp->HasMetaData(Name_DisableReordering)
+		&& !IsEditConst()
+		&& !OuterArrayProp->HasMetaData(NAME_ArraySizeEnum);
 }
 
 /**
@@ -2301,6 +2318,9 @@ void FPropertyNode::NotifyPreChange( UProperty* PropertyAboutToChange, FNotifyHo
 			}
 		}
 	}
+
+	// Broadcast the change to any listeners
+	BroadcastPropertyPreChangeDelegates();
 }
 
 void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEvent, class FNotifyHook* InNotifyHook )
@@ -2421,7 +2441,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	if( OriginalActiveProperty )
 	{
 		//if i have metadata forcing other property windows to rebuild
-		FString MetaData = OriginalActiveProperty->GetMetaData(TEXT("ForceRebuildProperty"));
+		const FString& MetaData = OriginalActiveProperty->GetMetaData(TEXT("ForceRebuildProperty"));
 
 		if( MetaData.Len() > 0 )
 		{
@@ -2458,6 +2478,24 @@ void FPropertyNode::BroadcastPropertyChangedDelegates()
 		if( LocalParentNode->OnChildPropertyValueChanged().IsBound() )
 		{
 			LocalParentNode->OnChildPropertyValueChanged().Broadcast();
+		}
+
+		LocalParentNode = LocalParentNode->GetParentNode();
+	}
+
+}
+
+void FPropertyNode::BroadcastPropertyPreChangeDelegates()
+{
+	PropertyValuePreChangeEvent.Broadcast();
+
+	// Walk through the parents and broadcast
+	FPropertyNode* LocalParentNode = GetParentNode();
+	while (LocalParentNode)
+	{
+		if (LocalParentNode->OnChildPropertyValuePreChange().IsBound())
+		{
+			LocalParentNode->OnChildPropertyValuePreChange().Broadcast();
 		}
 
 		LocalParentNode = LocalParentNode->GetParentNode();
@@ -2630,7 +2668,7 @@ void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawP
 	}
 }
 
-void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index )
+void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult)
 {
 	UProperty* NodeProperty = GetProperty();
 	UArrayProperty* ArrayProperty = NULL;
@@ -2718,6 +2756,12 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 				ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, nullptr, PPF_None);
 
 				bool bIsDefaultContainerContent = OriginalContent == OriginalContainerContent;
+
+				// Return instance changes result to caller
+				if (PropagationResult != nullptr)
+				{
+					PropagationResult->Add(ActualObjToChange, bIsDefaultContainerContent);
+				}
 
 				if (ArrayProperty)
 				{

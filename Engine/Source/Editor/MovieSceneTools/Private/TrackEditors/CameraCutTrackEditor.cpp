@@ -19,6 +19,7 @@
 #include "SceneOutlinerPublicTypes.h"
 #include "SceneOutlinerModule.h"
 #include "TrackEditorThumbnail/TrackEditorThumbnailPool.h"
+#include "DragAndDrop/ActorDragDropGraphEdOp.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
 
@@ -195,6 +196,77 @@ void FCameraCutTrackEditor::Tick(float DeltaTime)
 const FSlateBrush* FCameraCutTrackEditor::GetIconBrush() const
 {
 	return FEditorStyle::GetBrush("Sequencer.Tracks.CameraCut");
+}
+
+
+bool FCameraCutTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneCameraCutTrack::StaticClass()))
+	{
+		return false;
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	{
+		return false;
+	}
+	
+	TSharedPtr<FActorDragDropGraphEdOp> DragDropOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>( Operation );
+
+	for (auto& ActorPtr : DragDropOp->Actors)
+	{
+		if (ActorPtr.IsValid())
+		{
+			AActor* Actor = ActorPtr.Get();
+				
+			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(Actor);
+			if (CameraComponent)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+FReply FCameraCutTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneCameraCutTrack::StaticClass()))
+	{
+		return FReply::Unhandled();
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	{
+		return FReply::Unhandled();
+	}
+	
+	TSharedPtr<FActorDragDropGraphEdOp> DragDropOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>( Operation );
+
+	for (auto& ActorPtr : DragDropOp->Actors)
+	{
+		if (ActorPtr.IsValid())
+		{
+			AActor* Actor = ActorPtr.Get();
+				
+			FGuid ObjectGuid = FindOrCreateHandleToObject(Actor).Handle;
+	
+			if (ObjectGuid.IsValid())
+			{
+				AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FCameraCutTrackEditor::AddKeyInternal, ObjectGuid));
+	
+				return FReply::Handled();
+			}
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 

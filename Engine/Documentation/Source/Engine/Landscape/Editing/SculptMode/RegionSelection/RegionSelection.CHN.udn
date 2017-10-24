@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:3482403
+Availability:Public
 Crumbs: %ROOT%
-Title: Region Selection
-Description: This is an overview of the Region Selection tool.
+Title:区域选择
+Description:区域选择工具总览。
 Type: reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
@@ -13,10 +13,9 @@ Topic-image:RegionSelection_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Region Selection** tool selects regions of the Landscape using the current brush settings and the tool strength to be used to fit a Landscape [gizmo](Engine\Landscape\Editing\Gizmos) to a 
-specific area or to act as a mask for copying data to, or pasting data from, a gizmo.
+**区域选择（Region Selection）** 工具使用当前的笔刷设置和工具强度选择区域，用于将地形 [小工具](Engine\Landscape\Editing\Gizmos) 匹配到特定区域，或用作复制数据到小工具（或从小工具复制数据）的遮罩。
 
-## Using the Region Selection Tool
+## 使用区域选择工具
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -36,15 +35,14 @@ specific area or to act as a mask for copying data to, or pasting data from, a g
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, the Region Selection tool has been used to paint an area of the Landscape using the default positive method, then switching to the negative mask method that enables you to paint areas that 
-don't want to include, and finally showing the Use Region As Mask section that captures the entirety of a Landscape component that is painted rather than just areas within it.
+在此例中将利用默认正数法使用区域选择工具绘制地形区域；然后再切换至负数法，对不需要包括的区域进行位置；最终显示 Use Region As Mask 部分，采集被绘制的整个地形组件，而非只采集其中的区域。
 
-Use the following controls to paint areas that can be used for selection by doing the following:
+使用以下控制键绘制可用于选择的区域：
 
-| **Controls** | **Operation** |
+| **功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Adds to the selected region. |
-| **Shift + Left Mouse Button** | Removes from the selected region. |
+| **鼠标左键** | 添加到所选区域。|
+| **Shift + 鼠标左键** | 从所选区域移除。|
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -55,9 +53,9 @@ Use the following controls to paint areas that can be used for selection by doin
 	[/PARAM]
 [/OBJECT]
 
-In this example, an area has been painted for selection that can then be used for masking layers or with the Copy/Paste tool.
+在此例中，一个区域已被绘制进行选择，然后可用于遮罩层或与复制/粘贴工具共用。
 
-## Tool Settings
+## 工具设置
 
 [REGION:imagetable]
 | ![](Landscape_RegionSelect.png)(h:75) | ![](RegionSelectionToolProperties.png)(h:135) |
@@ -65,12 +63,12 @@ In this example, an area has been painted for selection that can then be used fo
 |||
 [/REGION]
 
-| **Property** | **Description** |
+| **属性** | **描述** |
 | ------------ | --------------- |
-| **Clear Region Selection** | Clears the current selected region(s). |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Region as Mask** | When checked, the region selection acts as a mask with the active area being comprised of the selected region.  |
+| **Clear Region Selection** | 清楚当前选中的区域。|
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Use Region as Mask** | 勾选后，区域选择将成为活动区域（由所选区域构成）的遮罩。|
 |    ![](regionselection.png)(w:640) ||
-| **Negative Mask** | When checked, and when **Use Region as Mask** is also checked, the region selection acts as a mask, but the active area is comprised of the unselected region.   |
+| **Negative Mask** | 此项与 **Use Region as Mask** 同时勾选后，区域选择将成为一个遮罩，但活动区域由未选中的区域构成。|
 |    ![region_mask_negative.jpg](regionselectionnegative.png)(w:640) ||
 

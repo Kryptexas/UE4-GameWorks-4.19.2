@@ -772,6 +772,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 	bool bVisualizeAmbientOcclusion,
 	bool bVisualizeGlobalIllumination)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, RenderDistanceFieldLighting);
+
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -812,7 +814,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+				Desc.Flags |= GFastVRamConfig.DistanceFieldNormal;
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
 			}
 

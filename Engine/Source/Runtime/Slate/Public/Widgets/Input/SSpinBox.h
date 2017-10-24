@@ -131,6 +131,8 @@ public:
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 		/** Minimum width that a spin box should be */
 		SLATE_ATTRIBUTE( float, MinDesiredWidth )
+		/** How should the value be justified in the spinbox. */
+		SLATE_ATTRIBUTE( ETextJustify::Type, Justification )
 		/** Provide custom type conversion functionality to this spin box */
 		SLATE_ARGUMENT( TSharedPtr< INumericTypeInterface<NumericType> >, TypeInterface )
 
@@ -225,6 +227,7 @@ public:
 				.Font(InArgs._Font)
 				.Text( this, &SSpinBox<NumericType>::GetValueAsText )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
+				.Justification(InArgs._Justification)
 			]
 
 			+ SHorizontalBox::Slot()
@@ -245,7 +248,9 @@ public:
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 				.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
-			]			
+				.Justification(InArgs._Justification)
+				.VirtualKeyboardTrigger(EVirtualKeyboardTrigger::OnAllFocusEvents)
+			]
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -342,6 +347,7 @@ public:
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && PointerDraggingSliderIndex == INDEX_NONE )
 		{
 			DistanceDragged = 0;
+			InternalValue = ValueAttribute.Get();
 			PreDragValue = InternalValue;
 			PointerDraggingSliderIndex = MouseEvent.GetPointerIndex();
 			CachedMousePosition = MouseEvent.GetScreenSpacePosition().IntPoint();
@@ -610,6 +616,7 @@ public:
 		if ( Key == EKeys::Escape && HasMouseCapture())
 		{
 			bDragging = false;
+			PointerDraggingSliderIndex = INDEX_NONE;
 
 			InternalValue = PreDragValue;
 			NotifyValueCommitted();
@@ -864,6 +871,7 @@ protected:
 		if ( !this->HasMouseCapture() )
 		{
 			bDragging = false;
+			PointerDraggingSliderIndex = INDEX_NONE;
 		}
 	}
 	

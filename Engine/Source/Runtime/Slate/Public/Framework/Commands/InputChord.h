@@ -182,12 +182,6 @@ struct SLATE_API FInputChord
 		return (bAlt || bCtrl || bCmd || bShift);
 	}
 
-	DEPRECATED(4.8, "Use IsValidChord instead of IsValidGesture")
-	bool IsValidGesture() const
-	{
-		return IsValidChord();
-	}
-
 	/**
 	 * Determines if this chord is valid.  A chord is valid if it has a non modifier key that must be pressed
 	 * and zero or more modifier keys that must be pressed

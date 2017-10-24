@@ -50,8 +50,8 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
-	virtual class USceneComponent* GetDefaultAttachComponent() const override;
 #endif
+	virtual class USceneComponent* GetDefaultAttachComponent() const override;
 	
 private:
 #if WITH_EDITORONLY_DATA

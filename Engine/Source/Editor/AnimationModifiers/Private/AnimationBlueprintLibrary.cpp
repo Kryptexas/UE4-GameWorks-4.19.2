@@ -924,26 +924,13 @@ void UAnimationBlueprintLibrary::RemoveCurve(UAnimSequence* AnimationSequence, F
 	}
 }
 
-void UAnimationBlueprintLibrary::RemoveAllCurveData(UAnimSequence* AnimationSequence, bool bRemoveNamesFromSkeleton /*= false*/)
+void UAnimationBlueprintLibrary::RemoveAllCurveData(UAnimSequence* AnimationSequence)
 {
 	if (AnimationSequence)
 	{
 		AnimationSequence->RawCurveData.DeleteAllCurveData(ERawCurveTrackTypes::RCT_Float);
 		AnimationSequence->RawCurveData.DeleteAllCurveData(ERawCurveTrackTypes::RCT_Vector);
 		AnimationSequence->RawCurveData.DeleteAllCurveData(ERawCurveTrackTypes::RCT_Transform);
-
-		if (bRemoveNamesFromSkeleton)
-		{
-			const FSmartNameMapping* CurveMapping = AnimationSequence->GetSkeleton()->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
-			TArray<USkeleton::AnimCurveUID> CurveUids;
-			CurveMapping->FillUidArray(CurveUids);
-			AnimationSequence->GetSkeleton()->RemoveSmartnamesAndModify(USkeleton::AnimCurveMappingName, CurveUids);
-
-			const FSmartNameMapping* TrackCurveMapping = AnimationSequence->GetSkeleton()->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
-			CurveUids.Empty();
-			TrackCurveMapping->FillUidArray(CurveUids);
-			AnimationSequence->GetSkeleton()->RemoveSmartnamesAndModify(USkeleton::AnimTrackCurveMappingName, CurveUids);
-		}
 
 		AnimationSequence->bNeedsRebake = true;
 	}
@@ -1532,7 +1519,7 @@ void UAnimationBlueprintLibrary::GetBonePosesForTime(const UAnimSequence* Animat
 
 			if (RequiredBones.Num())
 			{
-				FBoneContainer BoneContainer(RequiredBones, false, *AnimationSequence->GetSkeleton());
+				FBoneContainer BoneContainer(RequiredBones, FCurveEvaluationOption(true), *AnimationSequence->GetSkeleton());
 				BoneContainer.SetUseSourceData(true);
 				BoneContainer.SetDisableRetargeting(true);
 				FCompactPose Pose;

@@ -479,10 +479,10 @@ public:
 		return nullptr;
 	}
 
-	virtual uint16 ShaderFormatVersion(FName Name) override
+	virtual uint32 ShaderFormatVersion(FName Name) override
 	{
-		static TMap<FName, uint16> AlreadyFound;
-		uint16* Result = AlreadyFound.Find(Name);
+		static TMap<FName, uint32> AlreadyFound;
+		uint32* Result = AlreadyFound.Find(Name);
 
 		if (!Result)
 		{
@@ -799,8 +799,8 @@ RETRY_SETUPANDVALIDATE:
 				else
 				{
 					// convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
-					EnvVarNames.Add(Left.Trim().TrimTrailing());
-					EnvVarValues.Add(Right.Trim().TrimTrailing());
+					EnvVarNames.Add(Left.TrimStartAndEnd());
+					EnvVarValues.Add(Right.TrimStartAndEnd());
 				}
 			}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -7,10 +7,10 @@ using System.Diagnostics;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Management;
 using System.Reflection;
 using System.Threading;
 using System.ServiceProcess;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -331,28 +331,10 @@ namespace UnrealBuildTool
 			if (Actions.Count > 0)
 			{
 				// Use WMI to figure out physical cores, excluding hyper threading.
-				int NumCores = 0;
-				if (!Utils.IsRunningOnMono)
-				{
-					try
-					{
-						using (ManagementObjectSearcher Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
-						{
-							ManagementObjectCollection MosCollection = Mos.Get();
-							foreach (ManagementBaseObject Item in MosCollection)
-							{
-								NumCores += int.Parse(Item["NumberOfCores"].ToString());
-							}
-						}
-					}
-					catch (Exception Ex)
-					{
-						Log.TraceWarning("Unable to get the number of Cores: {0}", Ex.ToString());
-						Log.TraceWarning("Falling back to processor count.");
-					}
-				}
-				// On some systems this requires a hot fix to work so we fall back to using the (logical) processor count.
-				if (NumCores == 0)
+				int NumCores = Utils.GetPhysicalProcessorCount();
+				
+				// If we failed to detect the number of cores, default to the logical processor count
+				if (NumCores == -1)
 				{
 					NumCores = System.Environment.ProcessorCount;
 				}

@@ -7,62 +7,49 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <string>
 
-#include "base/compiler_specific.h"
 #include "base/macros.h"
 #include "build/build_config.h"
+#include "components/keyed_service/core/keyed_service_shutdown_notifier.h"
+#include "components/prefs/pref_member.h"
 #include "content/public/browser/browser_message_filter.h"
-
-#if defined(OS_WIN)
-#include "base/memory/shared_memory.h"
-#endif
+#include "printing/features/features.h"
 
 struct PrintHostMsg_ScriptedPrint_Params;
+class Profile;
 
 namespace base {
 class DictionaryValue;
-class FilePath;
-}
-
-namespace content {
-class WebContents;
 }
 
 namespace printing {
 
-class PrintJobManager;
 class PrintQueriesQueue;
 class PrinterQuery;
 
 // This class filters out incoming printing related IPC messages for the
 // renderer process on the IPC thread.
-class PrintingMessageFilter : public content::BrowserMessageFilter {
+class CefPrintingMessageFilter : public content::BrowserMessageFilter {
  public:
-  explicit PrintingMessageFilter(int render_process_id);
+  CefPrintingMessageFilter(int render_process_id, Profile* profile);
+
+  static void EnsureShutdownNotifierFactoryBuilt();
 
   // content::BrowserMessageFilter methods.
   void OverrideThreadForMessage(const IPC::Message& message,
                                 content::BrowserThread::ID* thread) override;
+  void OnDestruct() const override;
   bool OnMessageReceived(const IPC::Message& message) override;
 
  private:
-  ~PrintingMessageFilter() override;
+  friend class base::DeleteHelper<CefPrintingMessageFilter>;
+  friend class content::BrowserThread;
 
-#if defined(OS_WIN)
-  // Used to pass resulting EMF from renderer to browser in printing.
-  void OnDuplicateSection(base::SharedMemoryHandle renderer_handle,
-                          base::SharedMemoryHandle* browser_handle);
-#endif
+  ~CefPrintingMessageFilter() override;
 
-  // GetPrintSettingsForRenderView must be called via PostTask and
-  // base::Bind.  Collapse the settings-specific params into a
-  // struct to avoid running into issues with too many params
-  // to base::Bind.
-  struct GetPrintSettingsForRenderViewParams;
-
-  // Checks if printing is enabled.
-  void OnIsPrintingEnabled(bool* is_enabled);
+  void ShutdownOnUIThread();
 
   // Get the default print setting.
   void OnGetDefaultPrintSettings(IPC::Message* reply_msg);
@@ -86,15 +73,21 @@ class PrintingMessageFilter : public content::BrowserMessageFilter {
   void OnUpdatePrintSettingsReply(scoped_refptr<PrinterQuery> printer_query,
                                   IPC::Message* reply_msg);
 
+  // Check to see if print preview has been cancelled.
   void OnCheckForCancel(int32_t preview_ui_id,
                         int preview_request_id,
                         bool* cancel);
+
+  BooleanPrefMember is_printing_enabled_;
 
   const int render_process_id_;
 
   scoped_refptr<PrintQueriesQueue> queue_;
 
-  DISALLOW_COPY_AND_ASSIGN(PrintingMessageFilter);
+  std::unique_ptr<KeyedServiceShutdownNotifier::Subscription>
+      shutdown_notifier_;
+
+  DISALLOW_COPY_AND_ASSIGN(CefPrintingMessageFilter);
 };
 
 }  // namespace printing

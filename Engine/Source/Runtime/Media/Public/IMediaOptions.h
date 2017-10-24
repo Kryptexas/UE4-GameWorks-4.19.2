@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Internationalization/Text.h"
+
 
 /**
  * Interface for media options.

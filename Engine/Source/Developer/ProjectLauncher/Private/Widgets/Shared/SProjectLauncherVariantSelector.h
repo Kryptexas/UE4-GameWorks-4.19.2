@@ -6,7 +6,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Layout/Margin.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Interfaces/ITargetDeviceProxy.h"
+#include "ITargetDeviceProxy.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboButton.h"
@@ -46,7 +46,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(const FArguments& InArgs, ITargetDeviceProxyPtr DeviceProxy)
+	void Construct(const FArguments& InArgs, TSharedPtr<ITargetDeviceProxy> DeviceProxy)
 	{
 		OnVariantSelected = InArgs._OnVariantSelected;
 

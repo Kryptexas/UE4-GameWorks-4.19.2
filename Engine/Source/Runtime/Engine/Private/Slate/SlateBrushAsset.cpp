@@ -8,6 +8,7 @@ USlateBrushAsset::USlateBrushAsset( const FObjectInitializer& ObjectInitializer 
 	
 }
 
+#if WITH_EDITORONLY_DATA
 void USlateBrushAsset::PostLoad()
 {
 	Super::PostLoad();
@@ -17,3 +18,4 @@ void USlateBrushAsset::PostLoad()
 		Brush.TintColor = FSlateColor( Brush.Tint_DEPRECATED );
 	}
 }
+#endif

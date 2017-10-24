@@ -25,9 +25,9 @@
 #define USDGEOM_GENERATED_POINTINSTANCER_H
 
 /// \file usdGeom/pointInstancer.h
-//
-#include "pxr/usd/usdGeom/api.h"
 
+#include "pxr/pxr.h"
+#include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/usdGeom/boundable.h"
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usd/stage.h"
@@ -41,6 +41,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -201,13 +203,13 @@ class SdfAssetPath;
 /// 
 /// There \em is a pattern one can deploy for organizing the prototypes
 /// such that they will automatically be skipped by basic UsdPrim::GetChildren()
-/// or UsdTreeIterator traversals.  Usd prims each have a 
+/// or UsdPrimRange traversals.  Usd prims each have a 
 /// \ref Usd_PrimSpecifiers "specifier" of "def", "over", or "class".  The
 /// default traversals skip over prims that are "pure overs" or classes.  So
 /// to protect prototypes from all generic traversals and processing, place
 /// them under a prim that is just an "over".  For example,
 /// \code
-/// 01 def PxPointInstancer "Crowd_Mid"
+/// 01 def PointInstancer "Crowd_Mid"
 /// 02 {
 /// 03     rel prototypes = [ </Crowd_Mid/Prototypes/MaleThin_Business>, </Crowd_Mid/Prototypes/MaleTine_Casual> ]
 /// 04     
@@ -332,6 +334,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDGEOM_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -595,8 +598,10 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
     
@@ -717,7 +722,7 @@ public:
     /// and must match the length of \em protoIndices at \p time . 
     /// If NULL, we will call GetIdsAttr().Get(time)
     ///
-    /// \note If all "live" isntances at timeCode \p time pass the mask,
+    /// \note If all "live" instances at UsdTimeCode \p time pass the mask,
     /// we will return an <b>empty</b> mask so that clients can trivially
     /// recognize the common "no masking" case.
     ///
@@ -748,7 +753,125 @@ public:
     /// @}
     // --------------------------------------------------------------------- //
  
+    /// \enum ProtoXformInclusion
+    /// 
+    /// Encodes whether to include each prototype's root prim's transformation
+    /// as the most-local component of computed instance transforms.
+    enum ProtoXformInclusion {
+        IncludeProtoXform, //!< Include the transform on the proto's root
+        ExcludeProtoXform  //!< Exclude the transform on the proto's root
+    };
 
+    
+    /// \enum MaskApplication
+    /// 
+    /// Encodes whether to evaluate and apply the PointInstancer's
+    /// mask to computed results.
+    /// \sa ComputeMaskAtTime()
+    enum MaskApplication {
+        ApplyMask,    //!< Compute and apply the PointInstancer mask
+        IgnoreMask    //!< Ignore the PointInstancer mask
+    };
+
+    
+    /// Compute the per-instance, "PointInstancer relative" transforms given
+    /// the positions, scales, orientations, velocities and angularVelocities
+    /// at \p time, as described in \ref UsdGeomPointInstancer_transform .
+    ///
+    /// This will return \c false and leave \p xforms untouched if:
+    /// - \p xforms is NULL
+    /// - there is no authored \em protoIndices attribute
+    /// - the size of any of the per-instance attributes does not match the
+    ///   size of \em protoIndices
+    /// - \p doProtoXforms is \c IncludeProtoXform but an index value in
+    ///   \em protoIndices is outside the range [0, prototypes.size())
+    /// - \p applyMask is \c ApplyMask and a mask is set but the size of the
+    ///   mask does not match the size of \em protoIndices.
+    ///
+    /// If there is no error, we will return \c true and \p xforms will contain
+    /// the computed transformations.
+    /// 
+    /// \param xforms - the out parameter for the transformations.  Its size
+    ///                 will depend on the authored data and \p applyMask
+    /// \param time - UsdTimeCode at which we want to evaluate the transforms
+    /// \param baseTime - required for correct interpolation between samples
+    ///                   when \em velocities or \em angularVelocities are
+    ///                   present. If there are samples for \em positions and
+    ///                   \em velocities at t1 and t2, normal value resolution
+    ///                   would attempt to interpolate between the two samples,
+    ///                   and if they could not be interpolated because they
+    ///                   differ in size (common in cases where velocity is
+    ///                   authored), will choose the sample at t1.  When
+    ///                   sampling for the purposes of motion-blur, for example,
+    ///                   it is common, when rendering the frame at t2, to 
+    ///                   sample at [ t2-shutter/2, t2+shutter/2 ] for a
+    ///                   shutter interval of \em shutter.  The first sample
+    ///                   falls between t1 and t2, but we must sample at t2
+    ///                   and apply velocity-based interpolation based on those
+    ///                   samples to get a correct result.  In such scenarios,
+    ///                   one should provide a \p baseTime of t2 when querying
+    ///                   \em both samples. If your application does not care
+    ///                   about off-sample interpolation, it can supply the
+    ///                   same value for \p baseTime that it does for \p time.
+    ///                   When \p baseTime is less than or equal to \p time,
+    ///                   we will choose the lower bracketing timeSample.
+    /// \param doProtoXforms - specifies whether to include the root 
+    ///                   transformation of each instance's prototype in the
+    ///                   instance's transform.  Default is to include it, but
+    ///                   some clients may want to apply the proto transform as
+    ///                   part of the prototype itself, so they can specify
+    ///                   \c ExcludeProtoXform instead.
+    /// \param applyMask - specifies whether to apply ApplyMaskToArray() to the
+    ///                    computed result.  The default is \c ApplyMask.
+    USDGEOM_API
+    bool
+    ComputeInstanceTransformsAtTime(
+                        VtArray<GfMatrix4d>* xforms,
+                        const UsdTimeCode time,
+                        const UsdTimeCode baseTime,
+                        const ProtoXformInclusion doProtoXforms = IncludeProtoXform,
+                        const MaskApplication applyMask = ApplyMask) const;
+
+    /// Compute the extent of the point instancer based on the per-instance,
+    /// "PointInstancer relative" transforms at \p time, as described in
+    /// \ref UsdGeomPointInstancer_transform .
+    ///
+    /// If there is no error, we return \c true and \p extent will be the
+    /// tightest bounds we can compute efficiently.  If an error occurs,
+    /// \c false will be returned and \p extent will be left untouched.
+    ///
+    /// For now, this uses a UsdGeomBBoxCache with the "default", "proxy", and
+    /// "render" purposes.
+    ///
+    /// \param extent - the out parameter for the extent.  On success, it will
+    ///                 contain two elements representing the min and max.
+    /// \param time - UsdTimeCode at which we want to evaluate the extent
+    /// \param baseTime - required for correct interpolation between samples
+    ///                   when \em velocities or \em angularVelocities are
+    ///                   present. If there are samples for \em positions and
+    ///                   \em velocities at t1 and t2, normal value resolution
+    ///                   would attempt to interpolate between the two samples,
+    ///                   and if they could not be interpolated because they
+    ///                   differ in size (common in cases where velocity is
+    ///                   authored), will choose the sample at t1.  When
+    ///                   sampling for the purposes of motion-blur, for example,
+    ///                   it is common, when rendering the frame at t2, to 
+    ///                   sample at [ t2-shutter/2, t2+shutter/2 ] for a
+    ///                   shutter interval of \em shutter.  The first sample
+    ///                   falls between t1 and t2, but we must sample at t2
+    ///                   and apply velocity-based interpolation based on those
+    ///                   samples to get a correct result.  In such scenarios,
+    ///                   one should provide a \p baseTime of t2 when querying
+    ///                   \em both samples. If your application does not care
+    ///                   about off-sample interpolation, it can supply the
+    ///                   same value for \p baseTime that it does for \p time.
+    ///                   When \p baseTime is less than or equal to \p time,
+    ///                   we will choose the lower bracketing timeSample.
+    USDGEOM_API
+    bool ComputeExtentAtTime(
+                        VtVec3fArray* extent,
+                        const UsdTimeCode time,
+                        const UsdTimeCode baseTime) const;
 };
 
 template <class T>
@@ -757,38 +880,40 @@ UsdGeomPointInstancer::ApplyMaskToArray(std::vector<bool> const &mask,
                                         VtArray<T> *dataArray,
                                         const int elementSize)
 {
-    if (not dataArray){
+    if (!dataArray) {
         TF_CODING_ERROR("NULL dataArray.");
         return false;
     }
-    size_t size = mask.size();
-    if (size == 0 or dataArray->size() == elementSize){
+    size_t maskSize = mask.size();
+    if (maskSize == 0 || dataArray->size() == elementSize){
         return true;
     }
-    else if ((size * elementSize) != dataArray->size()){
-        TF_WARNING("Input mask's size (%d) is not compatible with the "
-                   "input dataArray (%d) and elementSize (%d).",
-                   size, dataArray->size(), elementSize);
+    else if ((maskSize * elementSize) != dataArray->size()){
+        TF_WARN("Input mask's size (%zu) is not compatible with the "
+                "input dataArray (%zu) and elementSize (%d).",
+                maskSize, dataArray->size(), elementSize);
         return false;
     }
-    
-    T *beginData = dataArray->GetData();
-    T *currData = beginData;
+
+    T* beginData = dataArray->data();
+    T* currData = beginData;
     size_t numPreserved = 0;
-    for (size_t i=0; i<size; ++i){
+    for (size_t i = 0; i < maskSize; ++i) {
         // XXX Could add a fast-path for elementSize == 1 ?
-        if (mask[i]){
-            for (size_t j=0; j<elementSize; ++j){
-                *currData = beginData[i] + j;
+        if (mask[i]) {
+            for (size_t j = 0; j < elementSize; ++j) {
+                *currData = beginData[i + j];
                 ++currData;
             }
             numPreserved += elementSize;
         }
     }
-    if (numPreserved < dataArray->size()){
+    if (numPreserved < dataArray->size()) {
         dataArray->resize(numPreserved);
     }
     return true;
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

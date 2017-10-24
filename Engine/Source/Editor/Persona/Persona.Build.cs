@@ -37,6 +37,7 @@ public class Persona : ModuleRules
                 "AppFramework",
                 "Core", 
                 "CoreUObject", 
+				"ApplicationCore",
                 "Slate", 
                 "SlateCore",
                 "EditorStyle",

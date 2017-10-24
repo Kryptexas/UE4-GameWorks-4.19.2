@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3200404
+﻿INTSourceChangelist:3579346
 Availability:Public
-TItle:Ansel ブループリント ノード リファレンス
-Description:Nvidia Ansel Photography プラグインで利用できるコンフィギュレーション変数のリファレンス
+TItle:NVIDIA Ansel ブループリント ノード リファレンス
+Description:NVIDIA Ansel Photography プラグインで利用できるコンフィギュレーション変数のリファレンス
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1

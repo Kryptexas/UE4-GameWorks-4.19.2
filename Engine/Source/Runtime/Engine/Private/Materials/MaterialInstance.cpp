@@ -26,6 +26,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Components.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -1245,6 +1246,11 @@ float UMaterialInstanceDynamic::GetOpacityMaskClipValue() const
 	return Parent ? Parent->GetOpacityMaskClipValue() : 0.0f;
 }
 
+bool UMaterialInstanceDynamic::GetCastDynamicShadowAsMasked() const
+{
+	return Parent ? Parent->GetCastDynamicShadowAsMasked() : false;
+}
+
 EBlendMode UMaterialInstanceDynamic::GetBlendMode() const
 {
 	return Parent ? Parent->GetBlendMode() : BLEND_Opaque;
@@ -1570,6 +1576,15 @@ void UMaterialInstance::UpdateOverridableBaseProperties()
 		OpacityMaskClipValue = Parent->GetOpacityMaskClipValue();
 	}
 
+	if ( BasePropertyOverrides.bOverride_CastDynamicShadowAsMasked )
+	{
+		bCastDynamicShadowAsMasked = BasePropertyOverrides.bCastDynamicShadowAsMasked;
+	}
+	else
+	{
+		bCastDynamicShadowAsMasked = Parent->GetCastDynamicShadowAsMasked();
+	}
+
 	if (BasePropertyOverrides.bOverride_BlendMode)
 	{
 		BlendMode = BasePropertyOverrides.BlendMode;
@@ -1741,9 +1756,8 @@ void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform,
 
 		if (!bSuccess)
 		{
-			UE_LOG(LogMaterial, Warning,
-				TEXT("Failed to compile Material Instance %s with Base %s for platform %s, Default Material will be used in game."), 
-				*GetPathName(), 
+			UE_ASSET_LOG(LogMaterial, Warning, this,
+				TEXT("Failed to compile Material Instance with Base %s for platform %s, Default Material will be used in game."), 
 				BaseMaterial ? *BaseMaterial->GetName() : TEXT("Null"), 
 				*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString()
 				);
@@ -1751,7 +1765,7 @@ void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform,
 			const TArray<FString>& CompileErrors = CurrentResource->GetCompileErrors();
 			for (int32 ErrorIndex = 0; ErrorIndex < CompileErrors.Num(); ErrorIndex++)
 			{
-				UE_LOG(LogMaterial, Warning, TEXT("	%s"), *CompileErrors[ErrorIndex]);
+				UE_LOG(LogMaterial, Log, TEXT("	%s"), *CompileErrors[ErrorIndex]);
 			}
 		}
 	}
@@ -1936,6 +1950,7 @@ void UMaterialInstance::ClearAllCachedCookedPlatformData()
 
 void UMaterialInstance::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	SCOPED_LOADTIMER(MaterialInstanceSerializeTime);
 	Super::Serialize(Ar);
 
@@ -2021,8 +2036,19 @@ void UMaterialInstance::PostLoad()
 	SCOPED_LOADTIMER(MaterialInstancePostLoad);
 	Super::PostLoad();
 
-	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
+	if (FApp::CanEverRender())
+	{
+		// Resources can be processed / registered now that we're back on the main thread
+		ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
+	}
+	else
+	{
+		// Discard all loaded material resources
+		for (FMaterialResource& Resource : LoadedMaterialResources)
+		{
+			Resource.DiscardShaderMap();
+		}
+	}
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 
@@ -2341,12 +2367,14 @@ void UMaterialInstance::SetTextureParameterValueInternal(FName ParameterName, UT
 	// Don't enqueue an update if it isn't needed
 	if (ParameterValue->ParameterValue != Value)
 	{
-		checkf(!Value || Value->IsA(UTexture::StaticClass()), TEXT("Expecting a UTexture! Value='%s' class='%s'"), *Value->GetName(), *Value->GetClass()->GetName());
-
-		ParameterValue->ParameterValue = Value;
-		// Update the material instance data in the rendering thread.
-		GameThread_UpdateMIParameter(this, *ParameterValue);
-		CacheMaterialInstanceUniformExpressions(this);
+		// set as an ensure, because it is somehow possible to accidentally pass non-textures into here via blueprints...
+		if (Value && ensureMsgf(Value->IsA(UTexture::StaticClass()), TEXT("Expecting a UTexture! Value='%s' class='%s'"), *Value->GetName(), *Value->GetClass()->GetName()))
+		{
+			ParameterValue->ParameterValue = Value;
+			// Update the material instance data in the rendering thread.
+			GameThread_UpdateMIParameter(this, *ParameterValue);
+			CacheMaterialInstanceUniformExpressions(this);
+		}		
 	}
 }
 
@@ -2487,7 +2515,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	UpdateStaticPermutation();
 
-	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::Unspecified || PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayClear || PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayRemove || PropertyChangedEvent.ChangeType == EPropertyChangeType::Unspecified || PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 	{
 		RecacheMaterialInstanceUniformExpressions(this);
 	}
@@ -2734,6 +2762,15 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		bHasOverrides = true;
 	}
 
+	bool bUsedCastDynamicShadowAsMasked = GetCastDynamicShadowAsMasked();
+	if ( bUsedCastDynamicShadowAsMasked != Mat->GetCastDynamicShadowAsMasked() )
+	{
+		const FString HashString = TEXT("bOverride_CastDynamicShadowAsMasked");
+		Hash.UpdateWithString(*HashString, HashString.Len());
+		Hash.Update((const uint8*)&bUsedCastDynamicShadowAsMasked, sizeof(bUsedCastDynamicShadowAsMasked));
+		bHasOverrides = true;
+	}
+
 	EBlendMode UsedBlendMode = GetBlendMode();
 	if (UsedBlendMode != Mat->GetBlendMode())
 	{
@@ -2741,20 +2778,20 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedBlendMode, sizeof(UsedBlendMode));
 		bHasOverrides = true;
- 	}
+	}
 	
 	EMaterialShadingModel UsedShadingModel = GetShadingModel();
- 	if (UsedShadingModel != Mat->GetShadingModel())
- 	{
+	if (UsedShadingModel != Mat->GetShadingModel())
+	{
 		const FString HashString = TEXT("bOverride_ShadingModel");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((const uint8*)&UsedShadingModel, sizeof(UsedShadingModel));
 		bHasOverrides = true;
 	}
 
- 	bool bUsedIsTwoSided = IsTwoSided();
- 	if (bUsedIsTwoSided != Mat->IsTwoSided())
- 	{
+	bool bUsedIsTwoSided = IsTwoSided();
+	if (bUsedIsTwoSided != Mat->IsTwoSided())
+	{
 		const FString HashString = TEXT("bOverride_TwoSided");
 		Hash.UpdateWithString(*HashString, HashString.Len());
 		Hash.Update((uint8*)&bUsedIsTwoSided, sizeof(bUsedIsTwoSided));
@@ -2769,8 +2806,8 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		bHasOverrides = true;
 	}
 
- 	if (bHasOverrides)
- 	{
+	if (bHasOverrides)
+	{
 		Hash.Final();
 		Hash.GetHash(&OutHash.Hash[0]);
 	}
@@ -2786,8 +2823,9 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 		(GetBlendMode() != Parent->GetBlendMode()) ||
 		(GetShadingModel() != Parent->GetShadingModel()) ||
 		(IsTwoSided() != Parent->IsTwoSided()) ||
-		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()))
-		)
+		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()) ||
+		(GetCastDynamicShadowAsMasked() != Parent->GetCastDynamicShadowAsMasked())
+		))
 	{
 		return true;
 	}
@@ -2797,27 +2835,27 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 
 float UMaterialInstance::GetOpacityMaskClipValue() const
 {
-	return OpacityMaskClipValue;
+	return (!Parent || BasePropertyOverrides.bOverride_OpacityMaskClipValue) ? OpacityMaskClipValue : Parent->GetOpacityMaskClipValue();
 }
 
 EBlendMode UMaterialInstance::GetBlendMode() const
 {
-	return BlendMode;
+	return (!Parent || BasePropertyOverrides.bOverride_BlendMode) ? (EBlendMode)BlendMode : (EBlendMode)Parent->GetBlendMode();
 }
 
 EMaterialShadingModel UMaterialInstance::GetShadingModel() const
 {
-	return ShadingModel;
+	return (!Parent || BasePropertyOverrides.bOverride_ShadingModel) ? (EMaterialShadingModel)ShadingModel : (EMaterialShadingModel)Parent->GetShadingModel();
 }
 
 bool UMaterialInstance::IsTwoSided() const
 {
-	return TwoSided;
+	return (!Parent || BasePropertyOverrides.bOverride_TwoSided) ? TwoSided : Parent->IsTwoSided();
 }
 
 bool UMaterialInstance::IsDitheredLODTransition() const
 {
-	return DitheredLODTransition;
+	return (!Parent || BasePropertyOverrides.bOverride_DitheredLODTransition) ? DitheredLODTransition : Parent->IsDitheredLODTransition();
 }
 
 bool UMaterialInstance::IsMasked() const

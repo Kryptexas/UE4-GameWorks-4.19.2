@@ -17,13 +17,13 @@ public class llvm : ModuleRules
 
 		var LLVMVersion = @"3.5.0";
 		// VS2015 uses a newer version of the libs
-		if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+		if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 		{
 			LLVMVersion = @"3.6.2";
 		}
-		var VSVersion = @"vs" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+		var VSVersion = @"vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 		var TargetArch = @"x86";
-		var RootDirectory = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, @"llvm", LLVMVersion);
+		var RootDirectory = Path.Combine(Target.UEThirdPartySourceDirectory, @"llvm", LLVMVersion);
 		PublicIncludePaths.AddRange(
 			new string[] {
 				Path.Combine(RootDirectory, "include"),
@@ -67,7 +67,7 @@ public class llvm : ModuleRules
 			});
 
 		// The 3.6.2 version we use for VS2015 has moved some functionality around.
-		if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+		if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 		{
 			PublicAdditionalLibraries.AddRange(
 				new string[] {

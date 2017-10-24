@@ -19,7 +19,7 @@ public:
     GENERATED_BODY()
 	// Variables.
 	/** The queue of transaction records */
-	TArray<FTransaction> UndoBuffer;
+	TArray<TSharedRef<FTransaction>> UndoBuffer;
 
 	/** Number of transactions that have been undone, and are eligible to be redone */
 	int32 UndoCount;
@@ -74,24 +74,42 @@ protected:
 			Result = ActiveCount;
 			if (ActiveCount++ == 0)
 			{
-				// Cancel redo buffer.
-				if (UndoCount)
-				{
-					UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
-				}
+				// Cache the redo buffer in case the transaction is canceled so we can restore the state
+				int32 TransactionsToRemove = UndoBuffer.Num();
+				PreviousUndoCount = UndoCount;
 				UndoCount = 0;
 
-				// Purge previous transactions if too much data occupied.
-				while (GetUndoSize() > MaxMemory)
+				// Determine if any additional entries need to be removed due to memory, avoid n^2 by unrolling GetUndoSize()
+				SIZE_T AccumulatedBufferDataSize = 0;
+				for (int32 i = 0; i < UndoBuffer.Num() - PreviousUndoCount; i++)
 				{
-					UndoBuffer.RemoveAt(0);
+					AccumulatedBufferDataSize += UndoBuffer[i]->DataSize();
+					if (AccumulatedBufferDataSize <= MaxMemory)
+					{
+						--TransactionsToRemove;
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				if (TransactionsToRemove > 0)
+				{
+					RemovedTransactions.Reserve(TransactionsToRemove);
+					for (int32 i = UndoBuffer.Num() - TransactionsToRemove; i < UndoBuffer.Num(); ++i)
+					{
+						RemovedTransactions.Add(UndoBuffer[i]);
+					}
+					UndoBuffer.RemoveAt(UndoBuffer.Num() - TransactionsToRemove, TransactionsToRemove, false);
 				}
 
 				// Begin a new transaction.
-				GUndo = new(UndoBuffer) TTransaction(SessionContext, Description, 1);
+				UndoBuffer.Emplace(MakeShareable(new TTransaction(SessionContext, Description, 1)));
+				GUndo = &UndoBuffer.Last().Get();
 			}
 			const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
-			ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
+			ActiveRecordCounts.Add(UndoBuffer.Last()->GetRecordCount() - PriorRecordsCount);
 			CheckState();
 		}
 		return Result;
@@ -191,4 +209,11 @@ private:
 
 	// Reference to the current transaction, nullptr when not transacting:
 	FTransaction* CurrentTransaction;
+
+	// Cached previous undo count while a transaction is being built in case we cancel it and want to restore the previous undo buffer
+	int32 PreviousUndoCount;
+
+	// The list of transactions that were removed when a transaction was begun in case it is canceled and we want to restore the original state
+	TArray<TSharedRef<FTransaction>> RemovedTransactions;
+
 };

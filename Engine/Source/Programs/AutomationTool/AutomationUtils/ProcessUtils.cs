@@ -53,9 +53,9 @@ namespace AutomationTool
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
 		/// <returns>New Process objects</returns>
-		public static IProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
+		public static IProcessResult CreateProcess(string AppName, bool bAllowSpew, Dictionary<string, string> Env = null, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
 		{
-			var NewProcess = HostPlatform.Current.CreateProcess(LogName);
+			var NewProcess = HostPlatform.Current.CreateProcess(AppName);
 			if (Env != null)
 			{
 				foreach (var EnvPair in Env)
@@ -70,7 +70,7 @@ namespace AutomationTool
 					}
 				}
 			}
-			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity, InSpewFilterCallback: SpewFilterCallback);
+			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, SpewVerbosity: SpewVerbosity, InSpewFilterCallback: SpewFilterCallback);
 			AddProcess(Result);
 			return Result;
 		}
@@ -227,7 +227,6 @@ namespace AutomationTool
 	{
 		public delegate string SpewFilterCallbackType(string Message);
 
-		private string Source = "";
 		private int ProcessExitCode = -1;
 		private StringBuilder ProcessOutput = new StringBuilder();
 		private bool AllowSpew = true;
@@ -239,12 +238,11 @@ namespace AutomationTool
 		private AutoResetEvent ErrorWaitHandle = new AutoResetEvent(false);
 		private object ProcSyncObject;
 
-		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, SpewFilterCallbackType InSpewFilterCallback = null)
+		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, SpewFilterCallbackType InSpewFilterCallback = null)
 		{
 			AppName = InAppName;
 			ProcSyncObject = new object();
 			Proc = InProc;
-			Source = LogName;
 			AllowSpew = bAllowSpew;
 			this.SpewVerbosity = SpewVerbosity;
 			SpewFilterCallback = InSpewFilterCallback;
@@ -279,7 +277,7 @@ namespace AutomationTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
 		private void LogOutput(UnrealBuildTool.LogEventType Verbosity, string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, Source, Verbosity, Message);
+            UnrealBuildTool.Log.WriteLine(1, Verbosity, Message);
 		}
        
 		/// <summary>
@@ -698,7 +696,7 @@ namespace AutomationTool
 			{
 				foreach (var Item in ExeToTimeInMs)
 				{
-					LogVerbose("Run: Total {0}s to run " + Item.Key, Item.Value / 1000);
+					LogVerbose("Total {0}s to run " + Item.Key, Item.Value / 1000);
 				}
 				ExeToTimeInMs.Clear();
 			}
@@ -741,9 +739,6 @@ namespace AutomationTool
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 
-			// Get the log name before allowing the platform to modify the app/command-line. We want mono apps to be written to a log named after the application and appear with the application prefix rather than "mono:".
-			string LogName = Identifier ?? Path.GetFileNameWithoutExtension(App);
-
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
 			if (App == "ectool" || App == "zip" || App == "xcodebuild")
 			{
@@ -770,7 +765,7 @@ namespace AutomationTool
 				}
 				if(!bExistsInPath)
 				{
-					throw new AutomationException("BUILD FAILED: Couldn't find the executable to Run: {0}", App);
+					throw new AutomationException("BUILD FAILED: Couldn't find the executable to run: {0}", App);
 				}
 			}
 			var StartTime = DateTime.UtcNow;
@@ -778,71 +773,86 @@ namespace AutomationTool
 			UnrealBuildTool.LogEventType SpewVerbosity = Options.HasFlag(ERunOptions.SpewIsVerbose) ? UnrealBuildTool.LogEventType.Verbose : UnrealBuildTool.LogEventType.Console;
             if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
             {
-                LogWithVerbosity(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
+                LogWithVerbosity(SpewVerbosity,"Running: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			IProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), LogName, Env, SpewVerbosity:SpewVerbosity, SpewFilterCallback: SpewFilterCallback);
-			Process Proc = Result.ProcessObject;
 
-			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;			
-			Proc.StartInfo.FileName = App;
-			Proc.StartInfo.Arguments = String.IsNullOrEmpty(CommandLine) ? "" : CommandLine;
-			Proc.StartInfo.UseShellExecute = false;
-			if (bRedirectStdOut)
-			{
-				Proc.StartInfo.RedirectStandardOutput = true;
-				Proc.StartInfo.RedirectStandardError = true;
-				Proc.OutputDataReceived += Result.StdOut;
-				Proc.ErrorDataReceived += Result.StdErr;
-			}
-			Proc.StartInfo.RedirectStandardInput = Input != null;
-			Proc.StartInfo.CreateNoWindow = true;
-			if ((Options & ERunOptions.UTF8Output) == ERunOptions.UTF8Output)
-			{
-				Proc.StartInfo.StandardOutputEncoding = new System.Text.UTF8Encoding(false, false);
-			}
-			Proc.Start();
+			string PrevIndent = UnrealBuildTool.Log.Indent;
+			UnrealBuildTool.Log.Indent += "  ";
 
-			if (bRedirectStdOut)
+			IProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), Env, SpewVerbosity: SpewVerbosity, SpewFilterCallback: SpewFilterCallback);
+			try
 			{
-				Proc.BeginOutputReadLine();
-				Proc.BeginErrorReadLine();
-			}
+				Process Proc = Result.ProcessObject;
 
-			if (String.IsNullOrEmpty(Input) == false)
+				bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;
+				Proc.StartInfo.FileName = App;
+				Proc.StartInfo.Arguments = String.IsNullOrEmpty(CommandLine) ? "" : CommandLine;
+				Proc.StartInfo.UseShellExecute = false;
+				if (bRedirectStdOut)
+				{
+					Proc.StartInfo.RedirectStandardOutput = true;
+					Proc.StartInfo.RedirectStandardError = true;
+					Proc.OutputDataReceived += Result.StdOut;
+					Proc.ErrorDataReceived += Result.StdErr;
+				}
+				Proc.StartInfo.RedirectStandardInput = Input != null;
+				Proc.StartInfo.CreateNoWindow = true;
+				if ((Options & ERunOptions.UTF8Output) == ERunOptions.UTF8Output)
+				{
+					Proc.StartInfo.StandardOutputEncoding = new System.Text.UTF8Encoding(false, false);
+				}
+				Proc.Start();
+
+				if (bRedirectStdOut)
+				{
+					Proc.BeginOutputReadLine();
+					Proc.BeginErrorReadLine();
+				}
+
+				if (String.IsNullOrEmpty(Input) == false)
+				{
+					Proc.StandardInput.WriteLine(Input);
+					Proc.StandardInput.Close();
+				}
+
+				if (!Options.HasFlag(ERunOptions.NoWaitForExit))
+				{
+					Result.WaitForExit();
+				}
+				else
+				{
+					Result.ExitCode = -1;
+				}
+			}
+			finally
 			{
-				Proc.StandardInput.WriteLine(Input);
-				Proc.StandardInput.Close();
+				UnrealBuildTool.Log.Indent = PrevIndent;
 			}
 
 			if (!Options.HasFlag(ERunOptions.NoWaitForExit))
 			{
-				Result.WaitForExit();
 				var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
 				//AddRunTime(App, (int)(BuildDuration));
-				Result.ExitCode = Proc.ExitCode;
+				Result.ExitCode = Result.ProcessObject.ExitCode;
 				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand) || Options.HasFlag(ERunOptions.LoggingOfRunDuration))
-                {
-                    LogWithVerbosity(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
-                }
+				{
+					LogWithVerbosity(SpewVerbosity, "Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
+				}
 				Result.OnProcessExited();
-                Result.DisposeProcess();
-			}
-			else
-			{
-				Result.ExitCode = -1;
+				Result.DisposeProcess();
 			}
 
 			return Result;
 		}
 
-        /// <summary>
-        /// Gets a logfile name for a RunAndLog call
-        /// </summary>
-        /// <param name="Env">Environment to use.</param>
-        /// <param name="App">Executable to run</param>
-        /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
-        /// <returns>The log file name.</returns>
-        public static string GetRunAndLogOnlyName(CommandEnvironment Env, string App, string LogName = null)
+		/// <summary>
+		/// Gets a logfile name for a RunAndLog call
+		/// </summary>
+		/// <param name="Env">Environment to use.</param>
+		/// <param name="App">Executable to run</param>
+		/// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
+		/// <returns>The log file name.</returns>
+		public static string GetRunAndLogOnlyName(CommandEnvironment Env, string App, string LogName = null)
         {
             if (LogName == null)
             {
@@ -1015,8 +1025,9 @@ namespace AutomationTool
 			Log("Running {0} {1}", App, CommandLine);
 			var OSEnv = new Dictionary<string, string>();
 
-			OSEnv.Add(AutomationTool.EnvVarNames.LogFolder, LogSubdir);
-			OSEnv.Add("uebp_UATMutexNoWait", "1");
+			OSEnv.Add(EnvVarNames.LogFolder, LogSubdir);
+			OSEnv.Add(EnvVarNames.DisableStartupMutex, "1");
+			OSEnv.Add(EnvVarNames.IsChildInstance, "1");
 			if (!IsBuildMachine)
 			{
 				OSEnv.Add(AutomationTool.EnvVarNames.LocalRoot, ""); // if we don't clear this out, it will think it is a build machine; it will rederive everything

@@ -314,13 +314,13 @@ public:
 					.VAlign(VAlign_Center)
 					[
 						SAssignNew(Hyperlink, SHyperlink)
-						.Visibility(EVisibility::Collapsed)
 						.Text(LOCTEXT("OpenFolder", "Open Capture Folder..."))
 						.OnNavigate_Lambda(OnBrowseToFolder)
 					]
 
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
+					.Padding(FMargin(5.0f,0,0,0))
 					.VAlign(VAlign_Center)
 					[
 						SAssignNew(Button, SButton)
@@ -373,7 +373,6 @@ public:
 		State = InState;
 		if (State != SNotificationItem::CS_Pending)
 		{
-			Hyperlink->SetVisibility(EVisibility::Visible);
 			Throbber->SetVisibility(EVisibility::Collapsed);
 			Button->SetVisibility(EVisibility::Collapsed);
 		}
@@ -557,7 +556,9 @@ private:
 						}
 					}
 					
-					Window->Resize(PreviewWindowSize);
+					// Resize and move the window into the desktop a bit
+					FVector2D PreviewWindowPosition(50, 50);
+					Window->ReshapeWindow(PreviewWindowPosition, PreviewWindowSize);
 
 					if (CaptureObject->Settings.GameModeOverride != nullptr)
 					{
@@ -712,32 +713,18 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 	FText OnStartCapture(UMovieSceneCapture* CaptureObject)
 	{
 		FString MapNameToLoad;
-		if( CaptureObject->Settings.bCreateTemporaryCopiesOfLevels )
+
+		// Prompt the user to save their changes so that they'll be in the movie, since we're not saving temporary copies of the level.
+		bool bPromptUserToSave = true;
+		bool bSaveMapPackages = true;
+		bool bSaveContentPackages = true;
+		if( !FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages ) )
 		{
-			TArray<FString> SavedMapNames;
-			GEditor->SaveWorldForPlay(SavedMapNames);
-
-			if (SavedMapNames.Num() == 0)
-			{
-				return LOCTEXT("CouldNotSaveMap", "Could not save map for movie capture.");
-			}
-
-			MapNameToLoad = SavedMapNames[ 0 ];
+			return LOCTEXT( "UserCancelled", "Capturing was cancelled from the save dialog." );
 		}
-		else
-		{
-			// Prompt the user to save their changes so that they'll be in the movie, since we're not saving temporary copies of the level.
-			bool bPromptUserToSave = true;
-			bool bSaveMapPackages = true;
-			bool bSaveContentPackages = true;
-			if( !FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages ) )
-			{
-				return LOCTEXT( "UserCancelled", "Capturing was cancelled from the save dialog." );
-			}
 
-			const FString WorldPackageName = GWorld->GetOutermost()->GetName();
-			MapNameToLoad = WorldPackageName;
-		}
+		const FString WorldPackageName = GWorld->GetOutermost()->GetName();
+		MapNameToLoad = WorldPackageName;
 
 		// Allow the game mode to be overridden
 		if( CaptureObject->Settings.GameModeOverride != nullptr )
@@ -795,7 +782,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 	FText CaptureInNewProcess(UMovieSceneCapture* CaptureObject, const FString& MapNameToLoad)
 	{
 		// Save out the capture manifest to json
-		FString Filename = FPaths::GameSavedDir() / TEXT("MovieSceneCapture/Manifest.json");
+		FString Filename = FPaths::ProjectSavedDir() / TEXT("MovieSceneCapture/Manifest.json");
 
 		TSharedRef<FJsonObject> Object = MakeShareable(new FJsonObject);
 		if (FJsonObjectConverter::UStructToJsonObject(CaptureObject->GetClass(), CaptureObject, Object, 0, 0))
@@ -821,15 +808,6 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 		}
 
 		FString EditorCommandLine = FString::Printf(TEXT("%s -MovieSceneCaptureManifest=\"%s\" -game -NoLoadingScreen -ForceRes -Windowed"), *MapNameToLoad, *Filename);
-
-		if( CaptureObject->Settings.bCreateTemporaryCopiesOfLevels )
-		{
-			// the PIEVIACONSOLE parameter tells UGameEngine to add the auto-save dir to the paths array and repopulate the package file cache
-			// this is needed in order to support streaming levels as the streaming level packages will be loaded only when needed (thus
-			// their package names need to be findable by the package file caching system)
-			// (we add to EditorCommandLine because the URL is ignored by WindowsTools)
-			EditorCommandLine.Append( TEXT( " -PIEVIACONSOLE" ) );
-		}
 
 		// Spit out any additional, user-supplied command line args
 		if (!CaptureObject->AdditionalCommandLineArguments.IsEmpty())
@@ -864,7 +842,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 		}
 		else
 		{
-			Params = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
+			Params = FString::Printf(TEXT("%s %s %s"), FApp::GetProjectName(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
 		}
 
 		FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());

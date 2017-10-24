@@ -105,7 +105,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	}
 	
 	//Compile the material instance if we have one.
-	UMaterialInterface* MaterialInterface = MaterialInstance ? Cast<UMaterialInterface>(MaterialInstance) : Cast<UMaterialInterface>(Material);
+	UMaterialInterface* MaterialInterface = MaterialInstance ? static_cast<UMaterialInterface*>(MaterialInstance) : Material;
 
 	int32 Ret = INDEX_NONE;
 
@@ -409,28 +409,30 @@ void UMaterialInterface::InitDefaultMaterials()
 
 		
 #if WITH_EDITOR
-		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), NULL, LOAD_None, NULL );
+		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >(nullptr, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), nullptr, LOAD_None, nullptr);
 		checkf( GPowerToRoughnessMaterialFunction, TEXT("Cannot load PowerToRoughness") );
 		GPowerToRoughnessMaterialFunction->AddToRoot();
 
-		GConvertFromDiffSpecMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec.ConvertFromDiffSpec"), NULL, LOAD_None, NULL );
+		GConvertFromDiffSpecMaterialFunction = LoadObject< UMaterialFunction >(nullptr, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec.ConvertFromDiffSpec"), nullptr, LOAD_None, nullptr);
 		checkf( GConvertFromDiffSpecMaterialFunction, TEXT("Cannot load ConvertFromDiffSpec") );
 		GConvertFromDiffSpecMaterialFunction->AddToRoot();
 #endif
 
 		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
 		{
-			if (GDefaultMaterials[Domain] == NULL)
+			if (GDefaultMaterials[Domain] == nullptr)
 			{
-				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
-				if (GDefaultMaterials[Domain] == NULL
+				FString ResolvedPath = ResolveIniObjectsReference(GDefaultMaterialNames[Domain]);
+
+				GDefaultMaterials[Domain] = FindObject<UMaterial>(nullptr, *ResolvedPath);
+				if (GDefaultMaterials[Domain] == nullptr
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 					&& (RecursionLevel == 1 || !GEventDrivenLoaderEnabled)
 #endif
 					)
 				{
-					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
-					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
+					GDefaultMaterials[Domain] = LoadObject<UMaterial>(nullptr, *ResolvedPath, nullptr, LOAD_DisableDependencyPreloading, nullptr);
+					checkf(GDefaultMaterials[Domain] != nullptr, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
 				if (GDefaultMaterials[Domain])
 				{
@@ -459,6 +461,8 @@ void UMaterialInterface::PostCDOContruct()
 
 void UMaterialInterface::PostLoadDefaultMaterials()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	// Here we prevent this function from being called recursively. Mostly this
 	// is an optimization and guarantees that default materials are post loaded
 	// in the order material domains are defined. Surface -> deferred decal -> etc.
@@ -538,6 +542,7 @@ static TAutoConsoleVariable<int32> CVarDiscardUnusedQualityLevels(
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, TArray<FMaterialResource>& OutLoadedResources)
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	SCOPED_LOADTIMER(SerializeInlineShaderMaps);
 
 	if (Ar.IsSaving())
@@ -587,6 +592,7 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMateri
 
 void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
+	LLM_SCOPE(ELLMTag::Materials);
 	check(IsInGameThread());
 
 	UMaterial* OwnerMaterial = Cast<UMaterial>(Owner);
@@ -606,6 +612,12 @@ void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMateri
 		int32 DesiredQL = (int32)GetCachedScalabilityCVars().MaterialQualityLevel;
 		check(DesiredQL < EMaterialQualityLevel::Num);
 		const int32 DesiredScore = QualityScores[DesiredQL];
+
+		FMaterialShaderMap* BestShaderMap[ERHIFeatureLevel::Num];
+		for (int32 FeatureIdx = 0; FeatureIdx < ERHIFeatureLevel::Num; ++FeatureIdx)
+		{
+			BestShaderMap[FeatureIdx] = nullptr;
+		}
 
 		for (int32 ResourceIndex = 0; ResourceIndex < LoadedResources.Num(); ResourceIndex++)
 		{
@@ -635,17 +647,25 @@ void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMateri
 				const int32 PotentialScore = FMath::Abs(QualityScores[LoadedQualityLevel] - DesiredScore);
 				if (PotentialScore < CurrentScore)
 				{
-					// replace existing shadermap with loadedshadermap.
-					for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+					BestShaderMap[LoadedFeatureLevel] = LoadedShaderMap;
+				}
+			}
+		}
+
+		for (int32 FeatureIdx = 0; FeatureIdx < ERHIFeatureLevel::Num; ++FeatureIdx)
+		{
+			if (BestShaderMap[FeatureIdx])
+			{
+				// replace existing shadermap with loadedshadermap.
+				for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+				{
+					if (!OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx])
 					{
-						if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
-						{
-							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
-								OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
-						}
-						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->ReleaseShaderMap();
-						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
+						OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx] =
+							OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 					}
+					OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx]->ReleaseShaderMap();
+					OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx]->SetInlineShaderMap(BestShaderMap[FeatureIdx]);
 				}
 			}
 		}
@@ -730,6 +750,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	Opacity.Constant = 1.0f;
 	OpacityMask.Constant = 1.0f;
 	OpacityMaskClipValue = 0.3333f;
+	bCastDynamicShadowAsMasked = false;
 	bUsedWithStaticLighting = false;
 	D3D11TessellationMode = MTM_NoTessellation;
 	bEnableCrackFreeDisplacement = false;
@@ -772,6 +793,8 @@ void UMaterial::PreSave(const class ITargetPlatform* TargetPlatform)
 
 void UMaterial::PostInitProperties()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	Super::PostInitProperties();
 	if(!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -791,6 +814,8 @@ void UMaterial::PostInitProperties()
 
 FMaterialResource* UMaterial::AllocateResource()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	return new FMaterialResource();
 }
 
@@ -1441,41 +1466,41 @@ void UMaterial::FixupMaterialUsageAfterLoad()
 
 void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionVectorParameter>(OutParameterNames, OutParameterIds);
 }
 void UMaterial::GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionScalarParameter>(OutParameterNames, OutParameterIds);
 }
 void UMaterial::GetAllTextureParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionTextureSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionFontSampleParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionStaticBoolParameter>(OutParameterNames, OutParameterIds);
 }
 
 void UMaterial::GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
+	OutParameterNames.Reset();
+	OutParameterIds.Reset();
 	GetAllParameterNames<UMaterialExpressionStaticComponentMaskParameter>(OutParameterNames, OutParameterIds);
 }
 
@@ -2293,20 +2318,19 @@ void UMaterial::CacheShadersForResources(EShaderPlatform ShaderPlatform, const T
 		{
 			if (IsDefaultMaterial())
 			{
-				UE_LOG(LogMaterial, Fatal, TEXT("Failed to compile Default Material %s for platform %s!"), 
-					*GetPathName(), 
+				UE_ASSET_LOG(LogMaterial, Fatal, this,
+					TEXT("Failed to compile Default Material for platform %s!"),
 					*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			}
 
-			UE_LOG(LogMaterial, Warning, TEXT("Failed to compile Material %s for platform %s, Default Material will be used in game."), 
-				*GetPathName(), 
+			UE_ASSET_LOG(LogMaterial, Warning, this, TEXT("Failed to compile Material for platform %s, Default Material will be used in game."), 
 				*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 
 			const TArray<FString>& CompileErrors = CurrentResource->GetCompileErrors();
 			for (int32 ErrorIndex = 0; ErrorIndex < CompileErrors.Num(); ErrorIndex++)
 			{
 				// Always log material errors in an unsuppressed category
-				UE_LOG(LogMaterial, Warning, TEXT("	%s"), *CompileErrors[ErrorIndex]);
+				UE_LOG(LogMaterial, Log, TEXT("	%s"), *CompileErrors[ErrorIndex]);
 			}
 		}
 	}
@@ -2484,6 +2508,8 @@ const FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type I
 
 void UMaterial::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	SCOPED_LOADTIMER(MaterialSerializeTime);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
@@ -2708,12 +2734,25 @@ TMap<FGuid, UMaterialInterface*> LightingGuidFixupMap;
 
 void UMaterial::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Materials);
+
 	SCOPED_LOADTIMER(MaterialPostLoad);
 
 	Super::PostLoad();
 
-	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
+	if (FApp::CanEverRender())
+	{
+		// Resources can be processed / registered now that we're back on the main thread
+		ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
+	}
+	else
+	{
+		// Discard all loaded material resources
+		for (FMaterialResource& Resource : LoadedMaterialResources)
+		{
+			Resource.DiscardShaderMap();
+		}		
+	}
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 
@@ -3037,7 +3076,14 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
 			)
 		{
-			return BlendMode == BLEND_Masked || IsTranslucencyWritingCustomDepth();
+			return BlendMode == BLEND_Masked ||
+			bCastDynamicShadowAsMasked ||
+			IsTranslucencyWritingCustomDepth();
+		}
+
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bCastDynamicShadowAsMasked) )
+		{
+			return BlendMode == BLEND_Translucent;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
@@ -3148,6 +3194,11 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, SubsurfaceProfile))
 		{
 			return MaterialDomain == MD_Surface && ShadingModel == MSM_SubsurfaceProfile && (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked);
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassMaterialInterfaceSettings, bCastShadowAsMasked))
+		{
+			return BlendMode != BLEND_Opaque && BlendMode != BLEND_Modulate;
 		}
 	}
 
@@ -4425,6 +4476,11 @@ float UMaterial::GetOpacityMaskClipValue() const
 	return OpacityMaskClipValue;
 }
 
+bool UMaterial::GetCastDynamicShadowAsMasked() const
+{
+	return bCastDynamicShadowAsMasked;
+}
+
 EBlendMode UMaterial::GetBlendMode() const
 {
 	if (EBlendMode(BlendMode) == BLEND_Masked)
@@ -4483,7 +4539,7 @@ bool UMaterial::IsTranslucencyWritingCustomDepth() const
 
 bool UMaterial::IsMasked() const
 {
-	return GetBlendMode() == BLEND_Masked;
+	return GetBlendMode() == BLEND_Masked || (GetBlendMode() == BLEND_Translucent && GetCastDynamicShadowAsMasked());
 }
 
 USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const

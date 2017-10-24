@@ -57,6 +57,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 		InnerBuffer = Buffer;
 		DebugGroup = [NSMutableArray new];
 		ActiveEncoder = nil;
+		DebugInfoBuffer = nil;
+		if (DebugLevel >= EMetalDebugLevelValidation)
+		{
+			DebugInfoBuffer = [Buffer.device newBufferWithLength:BufferOffsetAlignment options:0];
+		}
 	}
 	return Self;
 }
@@ -72,6 +77,8 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 	
 	[InnerBuffer release];
 	[DebugGroup release];
+	[DebugInfoBuffer release];
+	DebugInfoBuffer = nil;
 	
 	[super dealloc];
 }
@@ -173,7 +180,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 - (id <MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:(MTLRenderPassDescriptor *)renderPassDescriptor
 {
     [self beginRenderCommandEncoder:DebugGroup.lastObject ? DebugGroup.lastObject : @"Render" withDescriptor:renderPassDescriptor];
-    return [[[FMetalDebugRenderCommandEncoder alloc] initWithEncoder:[InnerBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor] andCommandBuffer:self] autorelease];
+	return [[[FMetalDebugRenderCommandEncoder alloc] initWithEncoder:[InnerBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor] fromDescriptor:renderPassDescriptor andCommandBuffer:self] autorelease];
 }
 
 - (id <MTLComputeCommandEncoder>)computeCommandEncoder
@@ -202,9 +209,23 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
 	NSString* Label = self.label ? self.label : @"Unknown";
 	[String appendFormat:@"Command Buffer %p %@:", self, Label];
 
+	uint32 Index = 0;
+	if (DebugInfoBuffer)
+	{
+		Index = *((uint32*)DebugInfoBuffer.contents);
+	}
+	
+	uint32 Count = 1;
 	for (FMetalDebugCommand* Command : DebugCommands)
 	{
-		[String appendFormat:@"\n\t%@: %@", GMetalDebugCommandTypeNames[Command->Type], Command->Label];
+		if (Index == Count++)
+		{
+			[String appendFormat:@"\n\t--> %@: %@", GMetalDebugCommandTypeNames[Command->Type], Command->Label];
+		}
+		else
+		{
+			[String appendFormat:@"\n\t%@: %@", GMetalDebugCommandTypeNames[Command->Type], Command->Label];
+		}
 	}
 	
 	[String appendFormat:@"\nResources:"];
@@ -409,6 +430,70 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
             DebugCommands.Add(Command);
         }
     }
+}
+
+-(CFTimeInterval) kernelStartTime
+{
+#if METAL_NEW_NONNULL_DECL
+	if (GMetalCommandBufferHasStartEndTimeAPI)
+#endif
+	{
+		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).kernelStartTime;
+	}
+#if METAL_NEW_NONNULL_DECL
+	else
+	{
+		return 0;
+	}
+#endif
+}
+
+-(CFTimeInterval) kernelEndTime
+{
+#if METAL_NEW_NONNULL_DECL
+	if (GMetalCommandBufferHasStartEndTimeAPI)
+#endif
+	{
+		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).kernelEndTime;
+	}
+#if METAL_NEW_NONNULL_DECL
+	else
+	{
+		return 0;
+	}
+#endif
+}
+
+-(CFTimeInterval) GPUStartTime
+{
+#if METAL_NEW_NONNULL_DECL
+	if (GMetalCommandBufferHasStartEndTimeAPI)
+#endif
+	{
+		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).GPUStartTime;
+	}
+#if METAL_NEW_NONNULL_DECL
+	else
+	{
+		return 0;
+	}
+#endif
+}
+
+-(CFTimeInterval) GPUEndTime
+{
+#if METAL_NEW_NONNULL_DECL
+	if (GMetalCommandBufferHasStartEndTimeAPI)
+#endif
+	{
+		return ((id<IMetalCommandBufferExtensions>)InnerBuffer).GPUEndTime;
+	}
+#if METAL_NEW_NONNULL_DECL
+	else
+	{
+		return 0;
+	}
+#endif
 }
 
 @end

@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Misc/CommandLine.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileSystemModule.h"
 #include "NetworkFileSystemLog.h"
 #include "NetworkFileServer.h"
 #include "NetworkFileServerHttp.h"

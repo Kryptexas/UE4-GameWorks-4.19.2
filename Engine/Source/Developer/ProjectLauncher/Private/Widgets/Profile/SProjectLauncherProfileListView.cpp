@@ -1,13 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Profile/SProjectLauncherProfileListView.h"
-#include "Misc/MessageDialog.h"
-#include "SlateOptMacros.h"
+#include "SProjectLauncherProfileListView.h"
+
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Misc/MessageDialog.h"
+#include "SlateOptMacros.h"
 #include "Widgets/Layout/SScrollBorder.h"
+
 #include "Models/ProjectLauncherCommands.h"
-#include "Widgets/Views/SListView.h"
+#include "Models/ProjectLauncherModel.h"
 #include "Widgets/Profile/SProjectLauncherProfileListRow.h"
 
 
@@ -20,7 +22,6 @@
 SProjectLauncherProfileListView::SProjectLauncherProfileListView()
 	: CommandList(MakeShareable(new FUICommandList))
 {
-
 }
 
 SProjectLauncherProfileListView::~SProjectLauncherProfileListView()
@@ -38,7 +39,7 @@ SProjectLauncherProfileListView::~SProjectLauncherProfileListView()
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherProfileListView::Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel)
+void SProjectLauncherProfileListView::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	CreateCommands();
 
@@ -62,19 +63,20 @@ void SProjectLauncherProfileListView::Construct(const FArguments& InArgs, const 
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		[
-			SNew(SScrollBorder, LaunchProfileListView.ToSharedRef())
+			.FillHeight(1.0f)
 			[
-				LaunchProfileListView.ToSharedRef()
+				SNew(SScrollBorder, LaunchProfileListView.ToSharedRef())
+				[
+					LaunchProfileListView.ToSharedRef()
+				]
 			]
-		]
 	];
 
 	ProfileManager->OnProfileAdded().AddSP(this, &SProjectLauncherProfileListView::HandleProfileManagerProfileAdded);
 	ProfileManager->OnProfileRemoved().AddSP(this, &SProjectLauncherProfileListView::HandleProfileManagerProfileRemoved);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 
 void SProjectLauncherProfileListView::CreateCommands()
 {
@@ -94,10 +96,11 @@ void SProjectLauncherProfileListView::CreateCommands()
 		FCanExecuteAction::CreateRaw(this, &SProjectLauncherProfileListView::HandleDeleteProfileCommandCanExecute));
 }
 
+
 /* SProjectLauncherDeployTargets implementation
  *****************************************************************************/
 
-void SProjectLauncherProfileListView::RefreshLaunchProfileList( )
+void SProjectLauncherProfileListView::RefreshLaunchProfileList()
 {
 	LaunchProfileListView->RequestListRefresh();
 }
@@ -110,6 +113,7 @@ bool SProjectLauncherProfileListView::HandleProfileRowIsEnabled(ILauncherProfile
 {
 	return true;
 }
+
 
 FText SProjectLauncherProfileListView::HandleDeviceListRowToolTipText(ILauncherProfilePtr LaunchProfile) const
 {
@@ -126,15 +130,18 @@ TSharedRef<ITableRow> SProjectLauncherProfileListView::HandleProfileListViewGene
 		.IsEnabled(this, &SProjectLauncherProfileListView::HandleProfileRowIsEnabled, InItem);
 }
 
+
 void SProjectLauncherProfileListView::HandleProfileManagerProfileAdded(const ILauncherProfileRef& AddedProfile)
 {
 	RefreshLaunchProfileList();
 }
 
+
 void SProjectLauncherProfileListView::HandleProfileManagerProfileRemoved(const ILauncherProfileRef& RemovedProfile)
 {
 	RefreshLaunchProfileList();
 }
+
 
 TSharedPtr<SWidget> SProjectLauncherProfileListView::MakeProfileContextMenu()
 {
@@ -147,10 +154,12 @@ TSharedPtr<SWidget> SProjectLauncherProfileListView::MakeProfileContextMenu()
 	return MenuBuilder.MakeWidget();
 }
 
+
 bool SProjectLauncherProfileListView::HandleRenameProfileCommandCanExecute() const
 {
 	return true;
 }
+
 
 void SProjectLauncherProfileListView::HandleRenameProfileCommandExecute()
 {
@@ -169,10 +178,12 @@ void SProjectLauncherProfileListView::HandleRenameProfileCommandExecute()
 	}
 }
 
+
 bool SProjectLauncherProfileListView::HandleDuplicateProfileCommandCanExecute() const
 {
 	return true;
 }
+
 
 void SProjectLauncherProfileListView::HandleDuplicateProfileCommandExecute()
 {
@@ -184,10 +195,12 @@ void SProjectLauncherProfileListView::HandleDuplicateProfileCommandExecute()
 	}
 }
 
+
 bool SProjectLauncherProfileListView::HandleDeleteProfileCommandCanExecute() const
 {
 	return OnProfileDelete.IsBound();
 }
+
 
 void SProjectLauncherProfileListView::HandleDeleteProfileCommandExecute()
 {

@@ -40,5 +40,5 @@ struct FPropertyTag
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag );
 
 	// Property serializer.
-	void SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults );
+	void SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults ) const;
 };

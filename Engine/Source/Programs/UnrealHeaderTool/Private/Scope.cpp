@@ -4,7 +4,6 @@
 #include "UnrealHeaderTool.h"
 #include "UObject/ErrorException.h"
 #include "ParserHelper.h"
-#include "UHTMakefile/UHTMakefile.h"
 
 extern FCompilerMetadataManager GScriptHelper;
 
@@ -85,13 +84,12 @@ TSharedRef<FScope> FScope::GetTypeScope(UStruct* Type)
 	return *ScopeRefPtr;
 }
 
-TSharedRef<FScope> FScope::AddTypeScope(UStruct* Type, FScope* ParentScope, FUnrealSourceFile* UnrealSourceFile, FUHTMakefile& UHTMakefile)
+TSharedRef<FScope> FScope::AddTypeScope(UStruct* Type, FScope* ParentScope)
 {
 	FStructScope* ScopePtr = new FStructScope(Type, ParentScope);
 	TSharedRef<FScope> Scope = MakeShareable(ScopePtr);
 
 	ScopeMap.Add(Type, Scope);
-	UHTMakefile.AddStructScope(UnrealSourceFile, ScopePtr);
 
 	return Scope;
 }

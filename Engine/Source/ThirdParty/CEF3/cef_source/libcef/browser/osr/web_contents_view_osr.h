@@ -8,6 +8,7 @@
 
 #include "content/browser/renderer_host/render_view_host_delegate_view.h"
 #include "content/browser/web_contents/web_contents_view.h"
+#include "third_party/skia/include/core/SkColor.h"
 
 namespace content {
 class BrowserPluginGuest;
@@ -15,23 +16,24 @@ class WebContents;
 class WebContentsViewDelegate;
 }
 
+class CefBrowserHostImpl;
 class CefRenderWidgetHostViewOSR;
 
 // An implementation of WebContentsView for off-screen rendering.
 class CefWebContentsViewOSR : public content::WebContentsView,
                               public content::RenderViewHostDelegateView {
  public:
-  explicit CefWebContentsViewOSR(bool transparent);
+  explicit CefWebContentsViewOSR(SkColor background_color);
   ~CefWebContentsViewOSR() override;
 
-  void set_web_contents(content::WebContents* web_contents);
+  void WebContentsCreated(content::WebContents* web_contents);
   content::WebContents* web_contents() const { return web_contents_; }
-  void set_guest(content::BrowserPluginGuest* guest);
 
   // WebContentsView methods.
   gfx::NativeView GetNativeView() const override;
   gfx::NativeView GetContentNativeView() const override;
   gfx::NativeWindow GetTopLevelNativeWindow() const override;
+  void GetScreenInfo(content::ScreenInfo* screen_info) const override;
   void GetContainerBounds(gfx::Rect* out) const override;
   void SizeContents(const gfx::Size& size) override;
   void Focus() override;
@@ -44,7 +46,7 @@ class CefWebContentsViewOSR : public content::WebContentsView,
                   gfx::NativeView context) override;
   content::RenderWidgetHostViewBase* CreateViewForWidget(
       content::RenderWidgetHost* render_widget_host,
-      bool is_guest_view_hack) override;
+      content::RenderWidgetHost* embedder_render_widget_host) override;
   content::RenderWidgetHostViewBase* CreateViewForPopupWidget(
       content::RenderWidgetHost* render_widget_host) override;
   void SetPageTitle(const base::string16& title) override;
@@ -65,17 +67,17 @@ class CefWebContentsViewOSR : public content::WebContentsView,
       blink::WebDragOperationsMask allowed_ops,
       const gfx::ImageSkia& image,
       const gfx::Vector2d& image_offset,
-      const content::DragEventSourceInfo& event_info) override;
+      const content::DragEventSourceInfo& event_info,
+      content::RenderWidgetHostImpl* source_rwh) override;
   void UpdateDragCursor(blink::WebDragOperation operation) override;
 
  private:
-  const bool transparent_;
+  CefRenderWidgetHostViewOSR* GetView() const;
+  CefBrowserHostImpl* GetBrowser() const;
+
+  const SkColor background_color_;
 
   content::WebContents* web_contents_;
-  CefRenderWidgetHostViewOSR* view_;
-
-  content::BrowserPluginGuest* guest_;
-  gfx::Size size_;
 
   DISALLOW_COPY_AND_ASSIGN(CefWebContentsViewOSR);
 };

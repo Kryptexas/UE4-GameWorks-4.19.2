@@ -26,6 +26,10 @@
 #define MATERIALBLENDING_TRANSLUCENT					0
 #endif
 
+#ifndef TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY
+#define TRANSLUCENT_SHADOW_WITH_MASKED_OPACITY			0
+#endif
+
 #ifndef MATERIALBLENDING_ADDITIVE
 #define MATERIALBLENDING_ADDITIVE						0
 #endif
@@ -109,7 +113,7 @@
 #endif	
 
 #ifndef MULTI_VIEW
-#define MULTI_VIEW									0
+#define MULTI_VIEW										0
 #endif	
 
 #ifndef CLEAR_COAT_BOTTOM_NORMAL
@@ -117,7 +121,7 @@
 #endif
 
 #ifndef TEX_COORD_SCALE_ANALYSIS
-#define TEX_COORD_SCALE_ANALYSIS						0		
+#define TEX_COORD_SCALE_ANALYSIS						0
 #endif
 
 #define ISOLATE

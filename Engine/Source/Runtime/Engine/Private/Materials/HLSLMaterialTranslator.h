@@ -236,6 +236,7 @@ protected:
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
 	uint32 bUsesPixelDepthOffset : 1;
+	uint32 bUsesWorldPositionOffset : 1;
 	uint32 bUsesEmissiveColor : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
@@ -287,6 +288,7 @@ public:
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
 	,	bUsesPixelDepthOffset(false)
+    ,   bUsesWorldPositionOffset(false)
 	,	bUsesEmissiveColor(0)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
@@ -304,6 +306,7 @@ public:
 		SharedPixelProperties[MP_AmbientOcclusion] = true;
 		SharedPixelProperties[MP_Refraction] = true;
 		SharedPixelProperties[MP_PixelDepthOffset] = true;
+		SharedPixelProperties[MP_SubsurfaceColor] = true;
 
 		{
 			for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
@@ -506,7 +509,7 @@ public:
 			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1)
 				|| (Domain == MD_DeferredDecal && Material->GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
 
-			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
+			bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
 			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
 			MaterialCompilationOutput.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
 			MaterialCompilationOutput.bUsesPixelDepthOffset = bUsesPixelDepthOffset;
@@ -936,12 +939,18 @@ public:
 		{
 			OutEnvironment.SetDefine(TEXT("USES_EYE_ADAPTATION"), TEXT("1"));
 		}
-		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog);
-		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor); 
+		
+		// @todo MetalMRT: Remove this hack and implement proper atmospheric-fog solution for Metal MRT...
+		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), (InPlatform != SP_METAL_MRT && InPlatform != SP_METAL_MRT_MAC) ? bUsesAtmosphericFog : 0);
+		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor);
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
-		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
+		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset);
+		if (IsMetalPlatform(InPlatform))
+		{
+			OutEnvironment.SetDefine(TEXT("USES_WORLD_POSITION_OFFSET"), bUsesWorldPositionOffset);
+		}
 		OutEnvironment.SetDefine(TEXT("USES_EMISSIVE_COLOR"), bUsesEmissiveColor);
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
@@ -976,9 +985,10 @@ public:
 
 				const EMaterialProperty Property = (EMaterialProperty)PropertyIndex;
 				check(FMaterialAttributeDefinitionMap::GetShaderFrequency(Property) == SF_Pixel);
-				const FString PropertyName = FMaterialAttributeDefinitionMap::GetDisplayName(Property);
+				// Special case MP_SubsurfaceColor as the actual property is a combination of the color and the profile but we don't want to expose the profile
+				const FString PropertyName = Property == MP_SubsurfaceColor ? "Subsurface" : FMaterialAttributeDefinitionMap::GetDisplayName(Property);
 				check(PropertyName.Len() > 0);				
-				const EMaterialValueType Type = FMaterialAttributeDefinitionMap::GetValueType(Property);
+				const EMaterialValueType Type = Property == MP_SubsurfaceColor ? MCT_Float4 : FMaterialAttributeDefinitionMap::GetValueType(Property);
 
 				// Normal requires its own separate initializer
 				if (Property == MP_Normal)
@@ -1071,7 +1081,6 @@ public:
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldDisplacement));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetMaxDisplacement()));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_TessellationMultiplier));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SubsurfaceColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData0));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData1));
 
@@ -1464,6 +1473,12 @@ protected:
 			return Errorf(TEXT("Operation not supported on a Texture"));
 		}
 
+		// External textures must have an external texture uniform expression
+		if ((Type & MCT_TextureExternal) && !UniformExpression->GetExternalTextureUniformExpression())
+		{
+			return Errorf(TEXT("Operation not supported on an external texture"));
+		}
+
 		if (Type == MCT_StaticBool)
 		{
 			return Errorf(TEXT("Operation not supported on a Static Bool"));
@@ -1544,6 +1559,8 @@ protected:
 		// Any code chunk can have a texture uniform expression (eg FMaterialUniformExpressionFlipBookTextureParameter),
 		// But a texture code chunk must have a texture uniform expression
 		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression || ExternalTextureUniformExpression);
+		// External texture samples must have a corresponding uniform expression
+		check(!(CodeChunk.Type & MCT_TextureExternal) || ExternalTextureUniformExpression);
 
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
@@ -3170,6 +3187,8 @@ protected:
 
 		switch( SamplerType )
 		{
+			case SAMPLERTYPE_External:
+				// fall through since should be treated same as SAMPLERTYPE_Color
 			case SAMPLERTYPE_Color:
 				SampleCode = FString::Printf( TEXT("ProcessMaterialColorTextureLookup(%s)"), *SampleCode );
 				break;
@@ -3673,6 +3692,48 @@ protected:
 		}
 
 		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
+	}
+
+	virtual int32 ExternalTexture(UTexture* InTexture, int32& TextureReferenceIndex) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
+		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->ExternalTexture() without implementing UMaterialExpression::GetReferencedTexture properly"));
+
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(TextureReferenceIndex), MCT_TextureExternal, TEXT(""));
+	}
+
+	virtual int32 ExternalTextureParameter(FName ParameterName, UTexture* DefaultValue, int32& TextureReferenceIndex) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
+		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->ExternalTextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureParameter(ParameterName, TextureReferenceIndex), MCT_TextureExternal, TEXT(""));
+	}
+
+	virtual int32 ExternalTextureCoordinateScaleRotation(int32 TextureReferenceIndex, TOptional<FName> ParameterName) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(TextureReferenceIndex, ParameterName), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateScaleRotation(const FGuid& ExternalTextureGuid) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(ExternalTextureGuid), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateOffset(int32 TextureReferenceIndex, TOptional<FName> ParameterName) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateOffset(TextureReferenceIndex, ParameterName), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateOffset(const FGuid& ExternalTextureGuid) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateOffset(ExternalTextureGuid), MCT_Float4, TEXT(""));
 	}
 
 	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)
@@ -4404,7 +4465,7 @@ protected:
 				{
 					const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
 
-					if(Domain != MD_Surface)
+					if(Domain != MD_Surface && Domain != MD_Volume)
 					{
 						// TODO: for decals we could support it
 						Errorf(TEXT("This transformation is only supported in the 'Surface' material domain."));
@@ -5216,6 +5277,20 @@ protected:
 	}
 
 	/**
+	 * Returns a float2 texture coordinate after 2x2 transform and offset applied
+	 *
+	 * @return	Code index
+	 */
+	virtual int32 RotateScaleOffsetTexCoords(int32 TexCoordCodeIndex, int32 RotationScale, int32 Offset) override
+	{
+		return AddCodeChunk(MCT_Float2,
+			TEXT("RotateScaleOffsetTexCoords(%s, %s, %s.xy)"),
+			*GetParameterCode(TexCoordCodeIndex),
+			*GetParameterCode(RotationScale),
+			*GetParameterCode(Offset));
+	}
+
+	/**
 	* Handles SpeedTree vertex animation (wind, smooth LOD)
 	*
 	* @return	Code index
@@ -5288,9 +5363,9 @@ protected:
 	{
 		const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
 
-		if(Domain != MD_Surface)
+		if(Domain != MD_Surface && Domain != MD_Volume)
 		{
-			Errorf(TEXT("The material expression '%s' is only supported in the 'Surface' material domain."), ExpressionName);
+			Errorf(TEXT("The material expression '%s' is only supported in the 'Surface' or 'Volume' material domain."), ExpressionName);
 			return INDEX_NONE;
 		}
 

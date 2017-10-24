@@ -35,7 +35,7 @@ void UDestroySessionCallbackProxy::Activate()
 		if (Sessions.IsValid())
 		{
 			DelegateHandle = Sessions->AddOnDestroySessionCompleteDelegate_Handle(Delegate);
-			Sessions->DestroySession(GameSessionName);
+			Sessions->DestroySession(NAME_GameSession);
 
 			// OnCompleted will get called, nothing more to do now
 			return;

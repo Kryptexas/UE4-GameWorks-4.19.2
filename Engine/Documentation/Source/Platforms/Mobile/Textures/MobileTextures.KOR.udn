@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3482294
 Availability:Public
 Title:모바일 플랫폼용 텍스처 지침서
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -48,11 +48,63 @@ tags:mobile
 
 1. 메인 툴바에서 **창** > **개발자 툴** > **디바이스 프로파일** 을 클릭하여 **디바이스 프로파일** 매니저를 엽니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Device_Profiles_Manager.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **디바이스 프로파일** 옵션을 클릭하면 다음 메뉴가 나타납니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_DPM.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. 이 메뉴에서 편집하고자 하는 디바이스를 선택한 다음 디바이스 왼쪽에 있는 점 세 개를 클릭하여 그 디바이스 프로파일을 엽니다.
 
@@ -69,6 +121,7 @@ tags:mobile
 	5FgGi68G8ZY
 	[/PARAMLITERAL]
 	[/OBJECT]
+
 
 
 

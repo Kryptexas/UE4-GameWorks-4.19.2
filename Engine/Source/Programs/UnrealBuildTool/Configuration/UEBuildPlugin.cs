@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -59,6 +60,14 @@ namespace UnrealBuildTool
 		public FileReference File
 		{
 			get { return Info.File; }
+		}
+
+		/// <summary>
+		/// Accessor for the type of the plugin
+		/// </summary>
+		public PluginType Type
+		{
+			get { return Info.Type; }
 		}
 
 		/// <summary>

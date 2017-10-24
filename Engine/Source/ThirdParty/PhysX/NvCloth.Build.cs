@@ -20,7 +20,7 @@ public class NvCloth : ModuleRules
 		switch (Config)
 		{
 			case UnrealTargetConfiguration.Debug:
-                if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     return NvClothLibraryMode.Debug;
                 }
@@ -35,11 +35,11 @@ public class NvCloth : ModuleRules
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
 			default:
-                if(BuildConfiguration.bUseShippingPhysXLibraries)
+                if(Target.bUseShippingPhysXLibraries)
                 {
                     return NvClothLibraryMode.Shipping;
                 }
-                else if (BuildConfiguration.bUseCheckedPhysXLibraries)
+                else if (Target.bUseCheckedPhysXLibraries)
                 {
                     return NvClothLibraryMode.Checked;
                 }
@@ -76,12 +76,12 @@ public class NvCloth : ModuleRules
 
 		Definitions.Add("WITH_NVCLOTH=1");
 
-        string NvClothDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/NvCloth/";
+        string NvClothDir = Target.UEThirdPartySourceDirectory + "PhysX/NvCloth/";
 
-		string NvClothLibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/Lib";
+		string NvClothLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib";
 
         string PxSharedVersion = "PxShared";
-        string PxSharedDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/" + PxSharedVersion + "/";
+        string PxSharedDir = Target.UEThirdPartySourceDirectory + "PhysX/" + PxSharedVersion + "/";
         string PxSharedIncludeDir = PxSharedDir + "include/";
 
         PublicSystemIncludePaths.AddRange(
@@ -110,7 +110,7 @@ public class NvCloth : ModuleRules
 		// Libraries and DLLs for windows platform
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			NvClothLibDir += "/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			NvClothLibDir += "/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(NvClothLibDir);
             
             string[] StaticLibrariesX64 = new string[]
@@ -138,7 +138,7 @@ public class NvCloth : ModuleRules
                 PublicDelayLoadDLLs.Add(String.Format(DLL, LibrarySuffix));
             }
 
-			string NvClothBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string NvClothBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string RuntimeDependency in RuntimeDependenciesX64)
 			{
 				string FileName = NvClothBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -153,7 +153,7 @@ public class NvCloth : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-            NvClothLibDir += "/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+            NvClothLibDir += "/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
             PublicLibraryPaths.Add(NvClothLibDir);
 
             string[] StaticLibrariesX64 = new string[]
@@ -181,7 +181,7 @@ public class NvCloth : ModuleRules
                 PublicDelayLoadDLLs.Add(String.Format(DLL, LibrarySuffix));
             }
 
-            string NvClothBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
+            string NvClothBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
             foreach (string RuntimeDependency in RuntimeDependenciesX64)
             {
                 string FileName = NvClothBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -207,7 +207,7 @@ public class NvCloth : ModuleRules
                 "/libNvCloth{0}.dylib",
             };
 
-            string PhysXBinDir = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "PhysX/Mac";
+            string PhysXBinDir = Target.UEThirdPartyBinariesDirectory + "PhysX/Mac";
 
             foreach(string Lib in DynamicLibrariesMac)
             {

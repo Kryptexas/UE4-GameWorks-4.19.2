@@ -12,7 +12,7 @@
 #include "ProfilerServiceManager.h"
 
 
-FFileTransferRunnable::FFileTransferRunnable(FMessageEndpointPtr& InMessageEndpoint)
+FFileTransferRunnable::FFileTransferRunnable(TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe>& InMessageEndpoint)
 	: Runnable(nullptr)
 	, WorkEvent(FPlatformProcess::GetSynchEventFromPool(true))
 	, MessageEndpoint(InMessageEndpoint)

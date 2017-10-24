@@ -53,26 +53,27 @@ public:
 		FrameTime.Bind(Initializer.ParameterMap,TEXT("FrameTime"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		{
 			uint32 FrameNumberValue = Context.View.Family->FrameNumber;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, FrameNumber, FrameNumberValue);
+			SetShaderValue(RHICmdList, ShaderRHI, FrameNumber, FrameNumberValue);
 		}
 
 		{
 			float FrameTimeValue = Context.View.Family->CurrentRealTime;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, FrameTime, FrameTimeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, FrameTime, FrameTimeValue);
 		}
 
-		ColorRemapShaderParameters.Set(Context.RHICmdList, ShaderRHI);
+		ColorRemapShaderParameters.Set(RHICmdList, ShaderRHI);
 	}
 	
 	// FShader interface.
@@ -97,8 +98,8 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = View.UnscaledViewRect;
+	FIntRect DestRect = View.UnscaledViewRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -122,7 +123,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(Context.RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

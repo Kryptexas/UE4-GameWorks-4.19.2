@@ -186,7 +186,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
 		{
-			Ar << Sum.StringAssetReferencesCount << Sum.StringAssetReferencesOffset;
+			Ar << Sum.SoftPackageReferencesCount << Sum.SoftPackageReferencesOffset;
 		}
 
 		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADDED_SEARCHABLE_NAMES)
@@ -252,6 +252,12 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		}
 
 		Ar << Sum.CompressionFlags;
+		if (!FCompression::VerifyCompressionFlagsValid(Sum.CompressionFlags))
+		{
+			UE_LOG(LogLinker, Warning, TEXT("Failed to read package file summary, the file \"%s\" has invalid compression flags (%d)."), *Ar.GetArchiveName(), Sum.CompressionFlags);
+			Sum.FileVersionUE4 = VER_UE4_OLDEST_LOADABLE_PACKAGE - 1;
+			return Ar;
+		}
 
 		TArray<FCompressedChunk> CompressedChunks;
 		Ar << CompressedChunks;

@@ -64,3 +64,13 @@ bool FPropertyDetailsUtilities::DontUpdateValueWhileEditing() const
 {
 	return DetailsView.DontUpdateValueWhileEditing();
 }
+
+const TArray<TWeakObjectPtr<UObject>>& FPropertyDetailsUtilities::GetSelectedObjects() const
+{
+	return DetailsView.GetSelectedObjects();
+}
+
+bool FPropertyDetailsUtilities::HasClassDefaultObject() const
+{
+	return DetailsView.HasClassDefaultObject();
+}

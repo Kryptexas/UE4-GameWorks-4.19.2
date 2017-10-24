@@ -10,10 +10,10 @@
 #include "UObject/WeakObjectPtr.h"
 
 /**
- * TPersistentObjectPtr is a template base class for FLazyObjectPtr and FAssetPtr
+ * TPersistentObjectPtr is a template base class for FLazyObjectPtr and FSoftObjectPtr
  */
 template<class TObjectID>
-class TPersistentObjectPtr
+struct TPersistentObjectPtr
 {
 public:	
 
@@ -239,7 +239,7 @@ public:
 	 */
 	FORCEINLINE bool IsNull() const
 	{
-		return Get() == nullptr && !ObjectID.IsValid();
+		return !ObjectID.IsValid();
 	}
 
 	/** Hash function */

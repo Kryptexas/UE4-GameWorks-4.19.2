@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -61,18 +61,18 @@ CefSchemeHandlerFactoryCppToC::CefSchemeHandlerFactoryCppToC() {
   GetStruct()->create = scheme_handler_factory_create;
 }
 
-template<> CefRefPtr<CefSchemeHandlerFactory> CefCppToC<CefSchemeHandlerFactoryCppToC,
+template<> CefRefPtr<CefSchemeHandlerFactory> CefCppToCRefCounted<CefSchemeHandlerFactoryCppToC,
     CefSchemeHandlerFactory, cef_scheme_handler_factory_t>::UnwrapDerived(
     CefWrapperType type, cef_scheme_handler_factory_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefSchemeHandlerFactoryCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefSchemeHandlerFactoryCppToC,
     CefSchemeHandlerFactory, cef_scheme_handler_factory_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefSchemeHandlerFactoryCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefSchemeHandlerFactoryCppToC,
     CefSchemeHandlerFactory, cef_scheme_handler_factory_t>::kWrapperType =
     WT_SCHEME_HANDLER_FACTORY;

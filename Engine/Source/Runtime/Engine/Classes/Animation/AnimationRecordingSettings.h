@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
 #include "AnimationRecordingSettings.generated.h"
 
 /** Settings describing how to record an animation */
@@ -27,6 +28,8 @@ struct ENGINE_API FAnimationRecordingSettings
 		, bAutoSaveAsset(false)
 		, SampleRate((float)DefaultSampleRate)
 		, Length((float)DefaultMaximumLength)
+		, InterpMode(ERichCurveInterpMode::RCIM_Linear)
+		, TangentMode(ERichCurveTangentMode::RCTM_Auto)
 	{}
 
 	/** Whether to record animation in world space, defaults to true */
@@ -48,4 +51,12 @@ struct ENGINE_API FAnimationRecordingSettings
 	/** Maximum length of the animation recorded (in seconds). If zero the animation will keep on recording until stopped. */
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	float Length;
+
+	/** Interpolation mode for the recorded keys. */
+	UPROPERTY(EditAnywhere, Category = "Settings", DisplayName = "Interpolation Mode")
+	TEnumAsByte<ERichCurveInterpMode> InterpMode;
+
+	/** Tangent mode for the recorded keys. */
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	TEnumAsByte<ERichCurveTangentMode> TangentMode;
 };

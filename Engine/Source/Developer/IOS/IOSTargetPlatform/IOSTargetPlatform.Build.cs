@@ -22,7 +22,7 @@ public class IOSTargetPlatform : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"Messaging",
+                "MessagingCommon",
 				"TargetDeviceServices",
 			}
 		);
@@ -40,7 +40,7 @@ public class IOSTargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 		}

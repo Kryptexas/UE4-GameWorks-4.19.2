@@ -60,6 +60,9 @@ public:
 	/** Return the size taken for sub-allocation. */
 	uint32 GetAllocatedSize() const final override;
 
+	/** Apply specified offset to all cached primitives bounds */
+	void OffsetBounds(const FVector& Offset);
+
 protected:
 
 	void OnRefreshVisibilityDone(int32 InBeginIndex, int32 InEndIndex);

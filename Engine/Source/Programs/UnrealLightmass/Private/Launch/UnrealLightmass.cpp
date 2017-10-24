@@ -12,6 +12,7 @@
 #include "LMDebug.h"
 #include "LMHelpers.h"
 #include "ImportExport.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if USE_LOCAL_SWARM_INTERFACE
 #include "IMessagingModule.h"
@@ -73,8 +74,8 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 	InitCommandLine(argc, argv);
 
 	// Output devices.
-	GError = FPlatformOutputDevices::GetError(); 
-	GWarn = FPlatformOutputDevices::GetWarn();
+	GError = FPlatformApplicationMisc::GetErrorOutputDevice(); 
+	GWarn = FPlatformApplicationMisc::GetFeedbackContext();
 
 #if USE_LOCAL_SWARM_INTERFACE
 	FString CommandLine = FCommandLine::Get();
@@ -468,6 +469,8 @@ int main(int argc, ANSICHAR* argv[])
 	Lightmass::GStatistics.TotalTimeStart = FPlatformTime::Seconds();
 
 	int32 ErrorLevel = 0;
+
+	GUseCrashReportClient = false;
 
 #if PLATFORM_WINDOWS
 	// Set the error mode to avoid popping up dialog boxes on crashes

@@ -75,7 +75,7 @@ struct CORE_API FCommandLine
 	static const TCHAR* RemoveExeName(const TCHAR* CmdLine);
 
 	/**
-	 * Parses a string into tokens, separating switches (beginning with - or /) from
+	 * Parses a string into tokens, separating switches (beginning with -) from
 	 * other parameters
 	 *
 	 * @param	CmdLine		the string to parse

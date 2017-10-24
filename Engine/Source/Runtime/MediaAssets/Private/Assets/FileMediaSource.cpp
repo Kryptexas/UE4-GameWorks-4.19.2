@@ -14,6 +14,22 @@ namespace FileMediaSource
 /* UFileMediaSource interface
  *****************************************************************************/
 
+FString UFileMediaSource::GetFullPath() const
+{
+	if (!FPaths::IsRelative(FilePath))
+	{
+		return FilePath;
+	}
+
+	if (FilePath.StartsWith(TEXT("./")))
+	{
+		return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), FilePath.RightChop(2));
+	}
+
+	return FPaths::ConvertRelativePathToFull(FilePath);
+}
+
+
 void UFileMediaSource::SetFilePath(const FString& Path)
 {
 	if (Path.IsEmpty() || Path.StartsWith(TEXT("./")))
@@ -23,7 +39,7 @@ void UFileMediaSource::SetFilePath(const FString& Path)
 	else
 	{
 		FString FullPath = FPaths::ConvertRelativePathToFull(Path);
-		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 
 		if (FullPath.StartsWith(FullGameContentDir))
 		{
@@ -73,23 +89,4 @@ FString UFileMediaSource::GetUrl() const
 bool UFileMediaSource::Validate() const
 {
 	return FPaths::FileExists(GetFullPath());
-}
-
-
-/* UFileMediaSource implementation
- *****************************************************************************/
-
-FString UFileMediaSource::GetFullPath() const
-{
-	if (!FPaths::IsRelative(FilePath))
-	{
-		return FilePath;
-	}
-
-	if (FilePath.StartsWith(TEXT("./")))
-	{
-		return FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), FilePath.RightChop(2));
-	}
-
-	return FPaths::ConvertRelativePathToFull(FilePath);
 }

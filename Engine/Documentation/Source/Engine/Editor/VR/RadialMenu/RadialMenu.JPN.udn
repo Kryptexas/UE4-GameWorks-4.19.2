@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2911160
+﻿INTSourceChangelist:3360829
 Title:ラジアル メニュー
 Description:ラジアル メニューを使うと、VR モードでよく使われるコピー、ペースト、アンドゥなどの機能へ簡単にアクセスできるようになります。
 Crumbs:
@@ -7,46 +7,17 @@ parent:Engine/Editor/VR
 type: reference
 order:3
 tags:VR
-version:4.11
+version:4.15
 skilllevel: intermediate
+topic-image:radialmenu.png
+prereq:Engine/Editor/VR/ActivateVRMode
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/RadialMenu:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/RadialMenu]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/RadialMenu:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/RadialMenu:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/RadialMenu]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/RadialMenu:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 **ラジアル メニュー** を使うと、アンドゥ、リドゥ、ペーストなどのよく使うアクションへのアクセスが簡単になります。
 
-![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:640)
+![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:450)
 
 ## ラジアル メニューの使用方法
 
@@ -56,13 +27,19 @@ skilllevel: intermediate
 
 ## ラジアル メニューのオプション
 
-| オプション| 説明 |
+以下は、VR エディタでラジアル メニューを開くと使用できるオプションです。 
+
+| オプション | 説明 |
 | ------ | ----------- |
-| Universal Gizmo | ユニバーサル ギズモのオンオフを切り替えます。 |
-| Delete (削除) | 選択したアクタを削除します。 |
-| Duplicate (複製) | 選択したアクタの複製を作成します。 |
-| Copy (コピー) | 選択したアクタをクリップボードにコピーします。 |
-| Paste (ペースト) | クリップボードのコンテンツをワールドに貼り付けます。 |
-| Undo (アンドゥ) | 最後の動作をリバートします。 |
-| Redo (リドゥ) | 最後にアンドゥした動作をやり直します。 |
-| Snap To Ground (グラウンドにスナップ) | 他のジオメトリと衝突するまで、選択したアクタを下方へ動かします。 |
+| **Snap To Ground (グラウンドにスナップ)** | 選択したアクタを、他のジオメトリと衝突するまで下方へ動かします。 |
+| **Undo (アンドゥ)** | 最後の動作をリバートします。 |
+| **Paste (ペースト)** | クリップボードのコンテンツをワールドに貼り付けます。 |
+| **Duplicate (複製)** | 選択したアクタの複製を作成します。 |
+| **Copy (コピー)** | 選択したアクタをクリップボードにコピーします。 |
+| **Redo (リドゥ)** | 最後にアンドゥした動作をやり直します。 |
+| **Delete (削除)** | 選択したアクタを削除します。 |
+| **Cut (カット)** | 選択したアクタをクリップボードにコピーしてシーンから削除ｊします。 |
+
+
+
+

@@ -1,8 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "Generation/CloudEnumeration.h"
 #include "HAL/FileManager.h"
 #include "Misc/ScopeLock.h"
-#include "BuildPatchChunk.h"
 #include "BuildPatchManifest.h"
 #include "Async/Future.h"
 #include "Async/Async.h"

@@ -87,6 +87,24 @@ void FCinematicShotSection::ResizeSection(ESequencerSectionResizeMode ResizeMode
 	FViewportThumbnailSection::ResizeSection(ResizeMode, ResizeTime);
 }
 
+void FCinematicShotSection::BeginSlipSection()
+{
+	BeginResizeSection();
+}
+
+void FCinematicShotSection::SlipSection(float SlipTime)
+{
+	float StartOffset = (SlipTime - InitialStartTimeDuringResize) / SectionObject.Parameters.TimeScale;
+	StartOffset += InitialStartOffsetDuringResize;
+
+	// Ensure start offset is not less than 0
+	StartOffset = FMath::Max(StartOffset, 0.f);
+
+	SectionObject.Parameters.StartOffset = StartOffset;
+
+	FViewportThumbnailSection::SlipSection(SlipTime);
+}
+
 void FCinematicShotSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	// Set cached data

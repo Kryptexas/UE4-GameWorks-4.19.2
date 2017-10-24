@@ -29,12 +29,14 @@
 /// \c TfToken class for efficient string referencing and hashing, plus
 /// conversions to and from stl string containers.
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/diagnosticLite.h"
 #include "pxr/base/tf/hash.h"
 #include "pxr/base/tf/pointerAndBits.h"
 #include "pxr/base/tf/traits.h"
-#include "pxr/base/tf/singleton.h"
+
 #include "pxr/base/tf/hashset.h"
 #include <atomic>
 #include <iosfwd>
@@ -42,6 +44,8 @@
 #include <vector>
 #include <map>
 #include <set>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfToken
 /// \ingroup group_tf_String
@@ -109,32 +113,32 @@ public:
     // This constructor involves a string hash and a lookup in the global
     // table, and so should not be done more often than necessary.  When
     // possible, create a token once and reuse it many times.
-	TF_API explicit TfToken(std::string const& s);
+    TF_API explicit TfToken(std::string const& s);
     /// \overload
     // Create a token for \p s, and make it immortal.  If \p s exists in the
     // token table already and is not immortal, make it immortal.  Immortal
     // tokens are faster to copy than mortal tokens, but they will never expire
     // and release their memory.
-	TF_API TfToken(std::string const& s, _ImmortalTag);
+    TF_API TfToken(std::string const& s, _ImmortalTag);
 
     /// Acquire a token for the given string.
     //
     // This constructor involves a string hash and a lookup in the global
     // table, and so should not be done more often than necessary.  When
     // possible, create a token once and reuse it many times.
-	TF_API explicit TfToken(char const* s);
+    TF_API explicit TfToken(char const* s);
     /// \overload
     // Create a token for \p s, and make it immortal.  If \p s exists in the
     // token table already and is not immortal, make it immortal.  Immortal
     // tokens are faster to copy than mortal tokens, but they will never expire
     // and release their memory.
-	TF_API TfToken(char const* s, _ImmortalTag);
+    TF_API TfToken(char const* s, _ImmortalTag);
 
     /// Find the token for the given string, if one exists.
     //
     // If a token has previous been created for the given string, this
     // will return it.  Otherwise, the empty token will be returned.
-	TF_API static TfToken Find(std::string const& s);
+    TF_API static TfToken Find(std::string const& s);
 
     /// Return a size_t hash for this token.
     //
@@ -210,11 +214,11 @@ public:
 
     /// Equality operator for \c char strings.  Not as fast as direct
     /// token to token equality testing
-	TF_API bool operator==(std::string const& o) const;
+    TF_API bool operator==(std::string const& o) const;
 
     /// Equality operator for \c char strings.  Not as fast as direct
     /// token to token equality testing
-	TF_API bool operator==(const char *) const;
+    TF_API bool operator==(const char *) const;
 
     /// \overload
     friend bool operator==(std::string const& o, TfToken const& t) {
@@ -289,7 +293,7 @@ private:
     void _AddRef() const {
         if (_rep.BitsAs<bool>()) {
             // We believe this rep is refCounted.
-            if (not _rep->IncrementIfCounted()) {
+            if (!_rep->IncrementIfCounted()) {
                 // Our belief is wrong, update our cache of countedness.
                 _rep.SetBits(false);
             }
@@ -367,15 +371,12 @@ private:
 
     friend struct TfTokenFastArbitraryLessThan;
     friend struct Tf_TokenRegistry;
-    friend class TfSingleton<TfToken>;
     
-	TF_API static std::string const& _GetEmptyString();
-	TF_API static char const* _emptyStr;
+    TF_API static std::string const& _GetEmptyString();
+    TF_API static char const* _emptyStr;
 
     mutable TfPointerAndBits<const _Rep> _rep;
 };
-
-TF_API_TEMPLATE_CLASS(TfSingleton<TfToken>);
 
 /// Fast but non-lexicographical (in fact, arbitrary) less-than comparison for
 /// TfTokens.  Should only be used in performance-critical cases.
@@ -399,4 +400,6 @@ inline size_t hash_value(const TfToken& x) { return x.Hash(); }
 /// Convenience types.
 typedef std::vector<TfToken> TfTokenVector;
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_TOKEN_H

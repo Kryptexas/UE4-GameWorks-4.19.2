@@ -5,7 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Sound/SoundNodeAssetReferencer.h"
 #include "SoundNodeModPlayer.generated.h"
 
@@ -26,7 +26,7 @@ class USoundNodeModPlayer : public USoundNodeAssetReferencer
 
 private:
 	UPROPERTY(EditAnywhere, Category=ModPlayer, meta=(DisplayName="Sound Mod"))
-	TAssetPtr<USoundMod> SoundModAssetPtr;
+	TSoftObjectPtr<USoundMod> SoundModAssetPtr;
 
 	UPROPERTY(transient)
 	USoundMod* SoundMod;

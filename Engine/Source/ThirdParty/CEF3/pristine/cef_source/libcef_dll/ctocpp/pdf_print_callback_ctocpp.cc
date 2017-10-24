@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -40,18 +40,18 @@ void CefPdfPrintCallbackCToCpp::OnPdfPrintFinished(const CefString& path,
 CefPdfPrintCallbackCToCpp::CefPdfPrintCallbackCToCpp() {
 }
 
-template<> cef_pdf_print_callback_t* CefCToCpp<CefPdfPrintCallbackCToCpp,
+template<> cef_pdf_print_callback_t* CefCToCppRefCounted<CefPdfPrintCallbackCToCpp,
     CefPdfPrintCallback, cef_pdf_print_callback_t>::UnwrapDerived(
     CefWrapperType type, CefPdfPrintCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefPdfPrintCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefPdfPrintCallbackCToCpp,
     CefPdfPrintCallback, cef_pdf_print_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefPdfPrintCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefPdfPrintCallbackCToCpp,
     CefPdfPrintCallback, cef_pdf_print_callback_t>::kWrapperType =
     WT_PDF_PRINT_CALLBACK;

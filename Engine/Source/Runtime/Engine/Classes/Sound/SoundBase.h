@@ -12,14 +12,18 @@
 #include "Audio.h"
 #include "Sound/SoundConcurrency.h"
 #include "SoundSubmix.h"
+#include "Sound/SoundSourceBusSend.h"
 #include "SoundBase.generated.h"
 
 class USoundEffectSourcePreset;
 class USoundSubmix;
+class USoundSourceBus;
+class USoundEffectSourcePresetChain;
+
 struct FSoundSubmixSendInfo;
+struct FSoundSourceBusSendInfo;
 struct FActiveSound;
 struct FSoundParseParameters;
-
 
 UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundBase : public UObject
@@ -45,9 +49,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency)
 	uint32 bOverrideConcurrency:1;
 
-	/** Whether or not to ignore focus on this sound. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
-	uint32 bIgnoreFocus:1;
+	/** Whether or not to only send this audio's output to a bus. If true, will not be this sound won't be audible except through bus sends. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	uint32 bOutputToBusOnly : 1;
+
+	UPROPERTY()
+	uint32 bIgnoreFocus_DEPRECATED:1;
 
 	/** If Override Concurrency is false, the sound concurrency settings to use for this sound. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "!bOverrideConcurrency"))
@@ -87,16 +94,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
-	/** 
-	 * The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. 
-	 * This can be overridden by sound attenuation settings for 3d sounds. 
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
-	float DefaultMasterReverbSendAmount;
-
 	/** The source effect chain to use for this sound. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	USoundEffectSourcePresetChain* SourceEffectChain;
+
+	/** This sound will send it's audio output to this list of buses if there are bus instances playing.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	TArray<FSoundSourceBusSendInfo> BusSends;
 
 public:	
 	/** Number of times this cue is currently being played. */
@@ -146,6 +150,9 @@ public:
 
 	/** Returns the sound submix sends for this sound. */
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
+
+	/** Returns the sound source sends for this sound. */
+	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
 
 	/** Returns the FSoundConcurrencySettings struct to use. */
 	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply();

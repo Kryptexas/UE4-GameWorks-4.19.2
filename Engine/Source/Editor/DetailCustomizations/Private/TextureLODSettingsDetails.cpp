@@ -82,7 +82,7 @@ void FTextureLODGroupLayout::AddToAvailableMipGenSettings(TextureMipGenSettings 
 void FTextureLODGroupLayout::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
 	UEnum* TextureGroupEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.TextureGroup"));
-	const FString LODGroupName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), LodGroup->Group);
+	const FString& LODGroupName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), LodGroup->Group);
 
 	NodeRow.NameContent()
 		[
@@ -367,7 +367,7 @@ FText FTextureLODGroupLayout::GetMipFilterComboBoxContent() const
 TSharedRef<SWidget> FTextureLODGroupLayout::MakeMipGenSettingsComboWidget(TSharedPtr<TextureMipGenSettings> InItem)
 {
 	UEnum* TextureGroupEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.TextureMipGenSettings"));
-	const FString MipGenSettingsName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), *InItem.Get());
+	const FString& MipGenSettingsName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), *InItem.Get());
 
 	return SNew(STextBlock).Text(FText::FromString(MipGenSettingsName)).Font(IDetailLayoutBuilder::GetDetailFont());
 }
@@ -390,7 +390,7 @@ FText FTextureLODGroupLayout::GetMipGenSettingsComboBoxToolTip() const
 FText FTextureLODGroupLayout::GetMipGenSettingsComboBoxContent() const
 {
 	UEnum* TextureGroupEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.TextureMipGenSettings"));
-	const FString MipGenSettingsName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), LodGroup->MipGenSettings);
+	const FString& MipGenSettingsName = TextureGroupEnum->GetMetaData(TEXT("DisplayName"), LodGroup->MipGenSettings);
 	
 	return FText::FromString(MipGenSettingsName);
 }

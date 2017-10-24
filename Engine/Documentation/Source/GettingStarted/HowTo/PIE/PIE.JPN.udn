@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2796819
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:再生とシミュレーション
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -15,20 +15,50 @@ version:4.9
 [TOC(start:2 end:2)]
 
 [REGION:note]
-この操作ガイドでは、**Starter Content (スターター コンテンツ)** を有効にした状態で **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。これまでにテンプレートを使用してプロジェクトを作成したご経験がない場合や、スターター コンテンツを有効にする方法がわからない場合は、[](Engine/Basics/Projects/Browser) のページをご覧ください。このページには、プロジェクトを作成する / 開く、テンプレート、プロジェクト設定についての情報が掲載されています。 
+この操作ガイドでは、新規プロジェクトを作成しました。これは、**Starter Content** を有効にした状態で (スターターコンテンツを含める)、**Blueprint Third Person** テンプレートを使用して作成しました。これまでにテンプレートを使用してプロジェクトを作成したご経験がない場合や、スターター コンテンツを有効にする方法がわからない場合は、[](Engine/Basics/Projects/Browser) のページをご覧ください。このページには、プロジェクトを作成する / 開く、テンプレート、プロジェクト設定についての情報が掲載されています。 
 [/REGION]
 
 ## Play In Editor （エディタでプレイする(PIE)）
 
 このセクションでは、 **Play In Editor (エディタでプレイする(PIE))** を使用してゲームを再生する方法について説明します。 
 
-1.	**Blueprint Third Person** テンプレートを開いた状態で、 **メイン ツールバー** から **[Play (再生)] ** ボタンをクリックします。 
+1.	**Blueprint Third Person** テンプレート プロジェクトを開いた状態で、 **メイン ツールバー** から **[Play (再生)] ** ボタンをクリックします。 
 
 	![](PIE1.png)
 
 	**[Play]** ボタンをクリックするとゲームが開始し、レベル エディタ ビューポートにキャラクターが表示されます。 
 
-	![](PIE2b.png)(w:800)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	レベル エディタ ビューポートの左上隅にテキストも表示されます。 
 
@@ -51,7 +81,7 @@ version:4.9
 	上の画面の黄色で囲まれたボックスの左から右の順に、**[Pause]** (ゲームを一時停止)、**[Stop]** (再生セッションを終了)、 **[Eject]** (プレイ可能なキャラクタの制御を解除し、マウス カーソルの制御に切り替えます) の各オプションを利用できます。 
 
 	[REGION:note]
-	**[Eject]** オプションは、 **選択したビューポート** オプションを使用している場合に限り利用できます。詳細は [Play (再生モード)](#再生モード) をご覧ください。 
+	**[Eject]** オプションは、 **選択したビューポート** のオプションを使用している場合に限り利用できます。詳細は [Play (再生モード)](#再生モード) をご覧ください。 
 	[/REGION]
 
 1.	ゲームを一時停止するには、**Shift+F1** を押して **[Pause (一時停止)]** を押します。 
@@ -76,7 +106,7 @@ version:4.9
 
 	![](PIE_8.png)
 
-	レベルにあるテキストがデフォルト値から変更されます。これはゲームプレイ中にレベル内のアクタに対して様々な値に変更してテストするのに便利です。これにより、イタレーションとプレイテストの時間を迅速にすることができます。 
+	レベルにあるテキストがデフォルト値から変更されます。これはゲームプレイ中にレベル内のアクタに対して様々な値に変更してテストするのに便利です。イタレーションとプレイテストの時間を迅速にすることができます。 
 
 1.	**[F8]** を押して、プレイヤー キャラクターから **[Eject (制御解除)]** します。 
 
@@ -89,13 +119,15 @@ version:4.9
 	[REGION:tip]
 	コンテキスト メニューを使用する代わりにアクタを選択し、 **K** キーを押して [Keep Simulation Changes (シミュレーション変更を維持)] を行うことができます。
 	[/REGION]
+
 1.	**Esc** を押して再生セッションを終了すると変更が保存されているのがわかります。 
+
 
 ### 再生モード
 
 再生セッション開始時に使用できる様々な **再生モード** があります。 
 
-1.	 **メイン ツールバー** で **[Play (再生)]** ボタンの隣にある下向き矢印をクリックします。 
+1.	 **メイン ツールバー** で **[Play (プレイ)]** ボタンの隣にある下向き矢印をクリックします。 
 
 	![](PIE_9.png)
 
@@ -108,7 +140,7 @@ version:4.9
 [Selected Viewport] はデフォルト設定であり、現在選択している [ビューポート](Engine/UI/LevelEditor/Viewports/Basics) 内のエディタの中でゲームを起動します。[New Editor Window] もエディタ内でゲームを起動しますが、新しいスタンドアロン ウィンドウを作成し、レベル エディタ ビューポートはそのままの状態になります。[Mobile Preview] と [Standalone Game] はエディタの外側でスタンドアロン バージョンでゲームを起動します (Mobile Preview ではできる限りデバイスを模倣するために使用するツールを追加で提供します)。 
 
 [REGION:note]
-このメニューの他のオプションについては、このページの下にある **Related Topics** セクションをご覧ください。 
+このメニューの他のオプションについては、このページの下にある **関連トピック** セクションをご覧ください。 
 [/REGION]
 
 

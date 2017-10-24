@@ -7,6 +7,7 @@
 
 #include "VertexFactoryCommon.ush"
 #include "ParticleVertexFactoryCommon.ush"
+#include "NiagaraVFParticleAccess.usf"
 
 // These are only enabled for SM5 due to limited interpolators elsewhere
 #define USE_PARTICLE_LIGHTING_OFFSET (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !MATERIAL_SHADINGMODEL_UNLIT)
@@ -35,9 +36,9 @@ struct FVertexFactoryInput
 	float3 CustomFacingVector		: ATTRIBUTE7;
 
 /** Optional instance ID for vertex layered rendering */
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+//#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	uint InstanceId	: SV_InstanceID;
-#endif
+//#endif
 };
 
 struct FVertexFactoryInterpolantsVSToPS
@@ -439,13 +440,79 @@ void ComputeBillboardUVs(FVertexFactoryInput Input, out float2 UVForPosition, ou
 	}
 }
 
+
+
+/*********************************************************************************
+ *							Particle specific
+ *********************************************************************************/
+
+float3 GetNiagaraParticlePosition(uint InstanceID)
+{
+	return GetVec3(NiagaraSpriteVF.PositionDataOffset, InstanceID);
+}
+float3 GetNiagaraParticleVelocity(uint InstanceID)
+{
+	return GetVec3(NiagaraSpriteVF.VelocityDataOffset, InstanceID);
+}
+float2 GetNiagaraParticleSize(uint InstanceID)
+{
+	return GetVec2(NiagaraSpriteVF.SizeDataOffset, InstanceID);
+}
+float GetNiagaraParticleRotation(uint InstanceID)
+{
+	return GetFloat(NiagaraSpriteVF.RotationDataOffset, InstanceID);
+}
+float4 GetNiagaraParticleColor(uint InstanceID)
+{
+	return GetVec4(NiagaraSpriteVF.ColorDataOffset, InstanceID);
+}
+
+float GetNiagaraParticleSubimage(uint InstanceID)
+{
+	float Val = 0.0f;
+    if(NiagaraSpriteVF.SubimageDataOffset != -1)
+	{
+		Val = GetFloat(NiagaraSpriteVF.SubimageDataOffset, InstanceID);
+	}
+	return Val;
+}
+
+float3 GetNiagaraParticleFacingVector(uint InstanceID)
+{
+	float3 Val = float3(0.0f, 0.0f, 0.0f);
+    if(NiagaraSpriteVF.FacingOffset != -1)
+	{
+		Val = GetVec3(NiagaraSpriteVF.FacingOffset, InstanceID);
+	}
+	return Val;
+}
+
+float3 GetNiagaraParticleAlignmentVector(uint InstanceID)
+{
+	float3 Val = float3(0.0f, 0.0f, 0.0f);
+    if(NiagaraSpriteVF.AlignmentOffset != -1)
+	{
+		Val = GetVec3(NiagaraSpriteVF.AlignmentOffset, InstanceID);
+	}
+	return Val;
+}
+
+
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
 	FVertexFactoryIntermediates Intermediates = (FVertexFactoryIntermediates)0;
 
+	Input.Position = float4(GetNiagaraParticlePosition(Input.InstanceId), 1);
+	Input.OldPosition = float4(Input.Position.xyz - GetNiagaraParticleVelocity(Input.InstanceId), 1);
+	float2 ParticleSize = GetNiagaraParticleSize(Input.InstanceId);
+	Input.SizeRotSubImage = float4(ParticleSize.x, ParticleSize.y, GetNiagaraParticleRotation(Input.InstanceId), GetNiagaraParticleSubimage(Input.InstanceId));
+	Input.Color	= GetNiagaraParticleColor(Input.InstanceId);
+	Input.CustomFacingVector = GetNiagaraParticleFacingVector(Input.InstanceId);
+	Input.CustomAlignmentVector = GetNiagaraParticleAlignmentVector(Input.InstanceId);
+
 	// World position.
 	float4 ParticleWorldPosition = mul(float4(Input.Position.xyz,1), Primitive.LocalToWorld);
-	float4 ParticleOldWorldPosition = mul(float4(Input.OldPosition.xyz,1), Primitive.LocalToWorld);
+	float4 ParticleOldWorldPosition = mul(float4(Input.OldPosition.xyz,1), Primitive.LocalToWorld); 
 	Intermediates.ParticleWorldPosition = ParticleWorldPosition.xyz;
 
 	// Tangents.

@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -78,7 +79,7 @@ namespace UnrealBuildTool
 
 				// Define macros for the UE4 version, starting with 4.17
 				BuildVersion Version;
-				if (BuildVersion.TryRead(out Version))
+				if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 				{
 					for(int MinorVersion = 17; MinorVersion <= Version.MinorVersion; MinorVersion++)
 					{
@@ -236,12 +237,13 @@ namespace UnrealBuildTool
 		/// Creates an instance of a module rules descriptor object for the specified module name
 		/// </summary>
 		/// <param name="ModuleName">Name of the module</param>
+		/// <param name="ReferenceChain">Chain of references leading to this module</param>
 		/// <param name="Target">Information about the target associated with this module</param>
 		/// <returns>Compiled module rule info</returns>
-		public ModuleRules CreateModuleRules(string ModuleName, ReadOnlyTargetRules Target)
+		public ModuleRules CreateModuleRules(string ModuleName, ReadOnlyTargetRules Target, string ReferenceChain)
 		{
 			FileReference ModuleFileName;
-			return CreateModuleRules(ModuleName, Target, out ModuleFileName);
+			return CreateModuleRules(ModuleName, Target, ReferenceChain, out ModuleFileName);
 		}
 
 		/// <summary>
@@ -249,9 +251,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ModuleName">Name of the module</param>
 		/// <param name="Target">Information about the target associated with this module</param>
+		/// <param name="ReferenceChain">Chain of references leading to this module</param>
 		/// <param name="ModuleFileName">The original source file name for the Module.cs file for this module</param>
 		/// <returns>Compiled module rule info</returns>
-		public ModuleRules CreateModuleRules(string ModuleName, ReadOnlyTargetRules Target, out FileReference ModuleFileName)
+		public ModuleRules CreateModuleRules(string ModuleName, ReadOnlyTargetRules Target, string ReferenceChain, out FileReference ModuleFileName)
 		{
 			// Currently, we expect the user's rules object type name to be the same as the module name
 			string ModuleTypeName = ModuleName;
@@ -261,11 +264,11 @@ namespace UnrealBuildTool
 			{
 				if (Parent == null)
 				{
-					throw new MissingModuleException(ModuleName);
+					throw new BuildException("Could not find definition for module '{0}' (referenced via {1})", ModuleName, ReferenceChain);
 				}
 				else
 				{
-					return Parent.CreateModuleRules(ModuleName, Target, out ModuleFileName);
+					return Parent.CreateModuleRules(ModuleName, Target, ReferenceChain, out ModuleFileName);
 				}
 			}
 
@@ -310,7 +313,8 @@ namespace UnrealBuildTool
 			}
 			catch (Exception Ex)
 			{
-				throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, CompiledAssembly.FullName, Ex.ToString());
+				Exception MessageEx = (Ex is TargetInvocationException && Ex.InnerException != null)? Ex.InnerException : Ex;
+				throw new BuildException(Ex, "Unable to instantiate module '{0}': {1}\n(referenced via {2})", ModuleName, MessageEx.ToString(), ReferenceChain);
 			}
 
 			return RulesObject;

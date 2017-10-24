@@ -9,7 +9,9 @@
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
 	"EnabledByDefault" : true,
-
+	"SupportedTargetPlatforms": [
+		"Android"
+	],
     "Modules": [
         {
             "Name": "OnlineSubsystemGooglePlay",

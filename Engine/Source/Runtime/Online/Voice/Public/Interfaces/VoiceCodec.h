@@ -7,8 +7,27 @@
 #include "VoicePackage.h"
 
 /** Stats for voice codec */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceEncode"), STAT_Voice_Encoding, STATGROUP_Net, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceDecode"), STAT_Voice_Decoding, STATGROUP_Net, );
+DECLARE_STATS_GROUP(TEXT("Voice"), STATGROUP_Voice, STATCAT_Advanced);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceEncode"), STAT_Voice_Encoding, STATGROUP_Voice, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceDecode"), STAT_Voice_Decoding, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Enc_SampleRate"), STAT_Encode_SampleRate, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Enc_NumChannels"), STAT_Encode_NumChannels, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Enc_Bitrate"), STAT_Encode_Bitrate, STATGROUP_Voice, );
+DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Enc_CompRatio"), STAT_Encode_CompressionRatio, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Enc_OutSize"), STAT_Encode_OutSize, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_SampleRate"), STAT_Decode_SampleRate, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_NumChannels"), STAT_Decode_NumChannels, STATGROUP_Voice, );
+DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_CompRatio"), STAT_Decode_CompressionRatio, STATGROUP_Voice, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_OutSize"), STAT_Decode_OutSize, STATGROUP_Voice, );
+
+/** Encoding hints for compression */
+enum class EAudioEncodeHint : uint8
+{
+	/** Best for most VoIP applications where listening quality and intelligibility matter most */
+	VoiceEncode_Voice,
+	/** Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input */
+	VoiceEncode_Audio
+};
 
 /**
  * Interface for encoding raw voice for transmission over the wire
@@ -29,10 +48,11 @@ public:
 	 *
 	 * @param SampleRate requested sample rate of the encoding
 	 * @param NumChannel number of channels in the raw audio stream
+	 * @param EncodeHint type of audio that will be encoded
 	 * 
 	 * @return true if initialization was successful, false otherwise
 	 */
-	virtual bool Init(int32 SampleRate, int32 NumChannels) = 0;
+	virtual bool Init(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint) = 0;
 
 	/**
 	 * Encode a raw audio stream (expects 16bit PCM audio)
@@ -47,9 +67,46 @@ public:
 	virtual int32 Encode(const uint8* RawPCMData, uint32 RawDataSize, uint8* OutCompressedData, uint32& OutCompressedDataSize) = 0;
 
 	/**
+	 * Adjust the encoding bitrate
+	 *
+	 * @param InBitRate new bitrate value (bits/sec)
+	 *
+	 * @return true if successfully changed, false otherwise
+	 */
+	virtual bool SetBitrate(int32 InBitRate) = 0;
+
+	/**
+	 * Set the encoding to variable bitrate
+	 *
+	 * @param bEnableVBR true to use variable bit rate, false to turn it off
+	 *
+	 * @return true if successfully changed, false otherwise
+	 */
+	virtual bool SetVBR(bool bEnableVBR) = 0;
+
+	/**
+	 * Adjust the encoding complexity (platform specific)
+	 *
+	 * @param InComplexity new complexity
+	 *
+	 * @return true if successfully changed, false otherwise
+	 */
+	virtual bool SetComplexity(int32 InComplexity) = 0;
+
+	/**
+	 * Reset the encoder back to its initial state
+	 */
+	virtual void Reset() = 0;
+	
+	/**
 	 * Cleanup the encoder
 	 */
 	virtual void Destroy() = 0;
+
+	/**
+	 * Output the state of the encoder
+	 */
+	virtual void DumpState() const = 0;
 };
 
 /**
@@ -87,7 +144,17 @@ public:
 	virtual void Decode(const uint8* CompressedData, uint32 CompressedDataSize, uint8* OutRawPCMData, uint32& OutRawDataSize) = 0;
 
 	/**
+	 * Reset the decoder back to its initial state
+	 */
+	virtual void Reset() = 0;
+
+	/**
 	 * Cleanup the decoder
 	 */
 	virtual void Destroy() = 0;
+
+	/**
+	 * Output the state of the decoder
+	 */
+	virtual void DumpState() const = 0;
 };

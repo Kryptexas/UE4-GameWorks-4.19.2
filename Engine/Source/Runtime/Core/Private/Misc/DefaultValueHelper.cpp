@@ -4,6 +4,7 @@
 #include "Math/Color.h"
 #include "Math/Vector2D.h"
 #include "Math/Vector.h"
+#include "Math/Vector4.h"
 #include "Math/Rotator.h"
 
 
@@ -573,6 +574,25 @@ bool FDefaultValueHelper::ParseVector2D(const FString& Source, FVector2D& OutVal
 		FCString::Atof(Start),
 		FCString::Atof(FirstComma + 1) );
 	return true;
+}
+
+
+bool FDefaultValueHelper::ParseVector4(const FString& Source, FVector4& OutVal)
+{
+	float X, Y, Z, W;
+	TArray<FString> SourceParts;
+
+	if (Source.ParseIntoArray(SourceParts, TEXT(",")) == 4 &&
+		ParseFloat(SourceParts[0], X) &&
+		ParseFloat(SourceParts[1], Y) && 
+		ParseFloat(SourceParts[2], Z) &&
+		ParseFloat(SourceParts[3], W))
+	{
+		OutVal = FVector4(X, Y, Z, W);
+		return true;
+	}
+
+	return false;
 }
 
 

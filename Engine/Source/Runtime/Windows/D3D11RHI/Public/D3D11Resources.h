@@ -25,10 +25,13 @@ public:
 	/** Elements of the vertex declaration. */
 	FD3D11VertexElements VertexElements;
 
+	uint16 StreamStrides[MaxVertexElementCount];
+
 	/** Initialization constructor. */
-	explicit FD3D11VertexDeclaration(const FD3D11VertexElements& InElements)
+	explicit FD3D11VertexDeclaration(const FD3D11VertexElements& InElements, const uint16* InStrides)
 		: VertexElements(InElements)
 	{
+		FMemory::Memcpy(StreamStrides, InStrides, sizeof(StreamStrides));
 	}
 };
 
@@ -109,7 +112,7 @@ class FD3D11BoundShaderState : public FRHIBoundShaderState
 public:
 
 	FCachedBoundShaderStateLink CacheLink;
-
+	uint16 StreamStrides[MaxVertexElementCount];
 	TRefCountPtr<ID3D11InputLayout> InputLayout;
 	TRefCountPtr<ID3D11VertexShader> VertexShader;
 	TRefCountPtr<ID3D11PixelShader> PixelShader;
@@ -293,6 +296,24 @@ public:
 	{
 		return ( NumDepthStencilViews > 0 );
 	}	
+
+	void AliasResources(FD3D11TextureBase* Texture)
+	{
+		check(MemorySize == Texture->MemorySize);
+		check(bCreatedRTVsPerSlice == Texture->bCreatedRTVsPerSlice);
+		check(RTVArraySize == Texture->RTVArraySize);
+		check(NumDepthStencilViews == Texture->NumDepthStencilViews);
+
+		Resource = Texture->Resource;
+		BaseShaderResource = Texture->BaseShaderResource;
+		ShaderResourceView = Texture->ShaderResourceView;
+		RenderTargetViews = Texture->RenderTargetViews;
+
+		for (uint32 Index = 0; Index < NumDepthStencilViews; Index++)
+		{
+			DepthStencilViews[Index] = Texture->DepthStencilViews[Index];
+		}
+	}
 
 protected:
 

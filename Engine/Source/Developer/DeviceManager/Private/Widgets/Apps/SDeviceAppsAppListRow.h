@@ -2,24 +2,27 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Widgets/SNullWidget.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
+#include "CoreTypes.h"
 #include "Layout/Margin.h"
-#include "Widgets/Views/STableViewBase.h"
+#include "Templates/SharedPointer.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/SWidget.h"
 #include "Widgets/Layout/SBox.h"
-#include "Widgets/Views/STableRow.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STableViewBase.h"
+
 
 #define LOCTEXT_NAMESPACE "SDeviceAppsAppListRow"
+
 
 /**
  * Implements a row widget for the application list view.
  */
 class SDeviceAppsAppListRow
-	: public SMultiColumnTableRow<TSharedPtr<FString> >
+	: public SMultiColumnTableRow<TSharedPtr<FString>>
 {
 public:
 
@@ -33,7 +36,7 @@ public:
 	 *
 	 * @param InArgs The construction arguments.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		SMultiColumnTableRow<TSharedPtr<FString> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
@@ -46,7 +49,7 @@ public:
 	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
 		if (ColumnName == TEXT("Date"))
 		{

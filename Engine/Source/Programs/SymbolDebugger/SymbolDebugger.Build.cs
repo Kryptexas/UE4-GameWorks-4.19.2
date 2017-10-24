@@ -11,6 +11,7 @@ public class SymbolDebugger : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+				"ApplicationCore",
 				"Slate",
 				"SlateCore",
 				"EditorStyle",

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Title:Modify Curve
 Description:Describes the Modify Curve node which can be used to modify animation curves with arbitrary logic inside Animation Graphs. 
@@ -17,13 +17,11 @@ Related: Engine/Animation/AnimBlueprints/AnimGraph
 Related: Engine/Animation/StateMachines
 topic-image:ModifyCurveNode.png
 
-<!--WB: Do need a TOC for this?-->
-
-The **Modify Curve** control can be used to expose [Animation Curve](Engine/Animation/Sequences/Curves) data which can be modified using arbitrary logic to enable more dynamically-driven animations. 
+The **Modify Curve** control can be used to expose [Animation Curve](Engine/Animation/Sequences/Curves) data which can be modified using arbitrary logic to enable dynamically-driven animations. 
 
 ![](ModifyCurveNode.png)
 
-Below, the Modify Curve node is used to drive a curve we create called **Eye Glow Intensity** where the bear's eyes pulsate and glow over time.
+Below, the Modify Curve node is used to drive a curve we created called **Eye Glow Intensity** where the bear's eyes pulsate and glow over time.
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -43,7 +41,7 @@ Below, the Modify Curve node is used to drive a curve we create called **Eye Glo
 	[/PARAMLITERAL]
 [/OBJECT]
 
-To add this node to the [](Engine/Animation/AnimBlueprints/AnimGraph) of your [](Engine/Animation/AnimBlueprints): 
+**To add this node to the [](Engine/Animation/AnimBlueprints/AnimGraph) of your [](Engine/Animation/AnimBlueprints):**
 
 1. Right-click in the **AnimGraph** and search for and add the **Modify Curve** node
 
@@ -51,12 +49,11 @@ To add this node to the [](Engine/Animation/AnimBlueprints/AnimGraph) of your []
 
 	![](AddCurvePin.png)
 
-With the exposed float pin, you can define any logic you wish to drive the value (the logic below uses the Sin of Time multiplied by a coeffiect value to drive the Eye Glow Intensity).
+With the exposed float pin, you can define any logic you wish to drive the value (the logic below uses the **Sin** of **Time** multiplied by a coeffiect value to drive the **Eye Glow Intensity** property).
 
 ![](CurveLogic.png)
 
-
-To remove pins from the Modify Curve node: 
+**To remove pins from the Modify Curve node:**
 
 * Right-click on the node again and select **Remove Curve Pin** or right-click on the pin itself and select **Remove This Curve Pin**.
 

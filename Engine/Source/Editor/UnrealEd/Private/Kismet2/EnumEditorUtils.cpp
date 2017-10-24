@@ -581,7 +581,7 @@ void FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(UUserDefinedEnum* Enum)
 		bool bDidUpgradeDisplayNames = false;
 		for (int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
 		{
-			const FString MetaDataEntryDisplayName = Enum->GetMetaData(FEnumEditorUtilsHelper::DisplayName(), Index);
+			const FString& MetaDataEntryDisplayName = Enum->GetMetaData(FEnumEditorUtilsHelper::DisplayName(), Index);
 			if (!MetaDataEntryDisplayName.IsEmpty())
 			{
 				bDidUpgradeDisplayNames = true;

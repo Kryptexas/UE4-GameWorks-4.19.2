@@ -7,16 +7,16 @@ public class VHACD : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string VHACDDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "VHACD/";
+		string VHACDDirectory = Target.UEThirdPartySourceDirectory + "VHACD/";
 		string VHACDLibPath = VHACDDirectory;
 		PublicIncludePaths.Add(VHACDDirectory + "public");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			VHACDLibPath = VHACDLibPath + "lib/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			VHACDLibPath = VHACDLibPath + "lib/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(VHACDLibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add("VHACDd.lib");
 			}
@@ -28,7 +28,7 @@ public class VHACD : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string LibPath = VHACDDirectory + "Lib/Mac/";
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add(LibPath + "libVHACD_LIBd.a");
 			}

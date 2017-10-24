@@ -118,9 +118,9 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 				SNew(SObjectPropertyEntryBox)
 					.AllowedClass(UMediaSource::StaticClass())
 					.AllowClear(true)
-					.OnShouldFilterAsset(this, &FPlatformMediaSourceCustomization::HandleShouldFilterAsset)
-					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, Platform->IniPlatformName)
-					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, Platform->IniPlatformName)
+					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxObjectPath, Platform->IniPlatformName)
+					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxChanged, Platform->IniPlatformName)
+					.OnShouldFilterAsset(this, &FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxShouldFilterAsset)
 			];
 	}
 
@@ -151,14 +151,7 @@ void FPlatformMediaSourceCustomization::SetPlatformMediaSourcesValue(FString Pla
 /* FPlatformMediaSourceCustomization callbacks
  *****************************************************************************/
 
-bool FPlatformMediaSourceCustomization::HandleShouldFilterAsset(const FAssetData& AssetData)
-{
-	// Don't allow nesting platform media sources.
-	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
-	return AssetClass->IsChildOf(UPlatformMediaSource::StaticClass());
-}
-
-void FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged(const FAssetData& AssetData, FString PlatformName)
+void FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxChanged(const FAssetData& AssetData, FString PlatformName)
 {
 	TArray<UObject*> OuterObjects;
 	{
@@ -178,7 +171,7 @@ void FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged
 }
 
 
-FString FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath(FString PlatformName) const
+FString FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxObjectPath(FString PlatformName) const
 {
 	TArray<UObject*> OuterObjects;
 	{
@@ -206,6 +199,14 @@ FString FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectP
 	}
 
 	return MediaSource->GetPathName();
+}
+
+
+bool FPlatformMediaSourceCustomization::HandleMediaSourceEntryBoxShouldFilterAsset(const FAssetData& AssetData)
+{
+	// Don't allow nesting platform media sources.
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	return AssetClass->IsChildOf(UPlatformMediaSource::StaticClass());
 }
 
 

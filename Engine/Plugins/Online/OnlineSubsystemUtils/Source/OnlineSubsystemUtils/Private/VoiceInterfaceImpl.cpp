@@ -762,12 +762,12 @@ void FOnlineVoiceImpl::ProcessLocalVoicePackets()
 						}
 						else
 						{
-							UE_LOG(LogVoiceEncode, Warning, TEXT("Voice data error in ReadLocalVoiceData"));
+							UE_LOG(LogVoiceEngine, Warning, TEXT("Voice data error in ReadLocalVoiceData"));
 						}
 					}
 					else
 					{
-						UE_LOG(LogVoiceEncode, Warning, TEXT("Dropping voice data due to network layer not processing fast enough"));
+						UE_LOG(LogVoiceEngine, Warning, TEXT("Dropping voice data due to network layer not processing fast enough"));
 						// Buffer overflow, so drop previous data
 						VoiceData.LocalPackets[Index].Length = 0;
 					}
@@ -800,7 +800,7 @@ void FOnlineVoiceImpl::ProcessRemoteVoicePackets()
 				uint32 Result = VoiceEngine->SubmitRemoteVoiceData(*VoicePacket->Sender, VoicePacket->Buffer.GetData(), &VoiceBufferSize);
 				if (Result != S_OK)
 				{
-					UE_LOG(LogVoiceDecode, Warning,
+					UE_LOG(LogVoiceEngine, Warning,
 						TEXT("SubmitRemoteVoiceData(%s) failed with 0x%08X"),
 						*VoicePacket->Sender->ToDebugString(),
 						Result);

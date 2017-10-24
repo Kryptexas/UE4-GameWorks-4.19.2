@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -37,8 +37,6 @@
 #include "SDL_events.h"
 #include "SDL_timer.h"
 #include "SDL_mutex.h"
-#include "SDL_events.h"
-#include "SDL_hints.h"
 #include "SDL_joystick.h"
 #include "../SDL_sysjoystick.h"
 #include "../../thread/SDL_systhread.h"
@@ -307,7 +305,7 @@ SDL_SYS_JoystickInit(void)
 
 /* return the number of joysticks that are connected right now */
 int
-SDL_SYS_NumJoysticks()
+SDL_SYS_NumJoysticks(void)
 {
     int nJoysticks = 0;
     JoyStick_DeviceData *device = SYS_Joystick;
@@ -321,7 +319,7 @@ SDL_SYS_NumJoysticks()
 
 /* detect any new joysticks being inserted into the system */
 void
-SDL_SYS_JoystickDetect()
+SDL_SYS_JoystickDetect(void)
 {
     JoyStick_DeviceData *pCurList = NULL;
 
@@ -509,6 +507,9 @@ SDL_SYS_JoystickQuit(void)
 
     SDL_DINPUT_JoystickQuit();
     SDL_XINPUT_JoystickQuit();
+
+    s_bDeviceAdded = SDL_FALSE;
+    s_bDeviceRemoved = SDL_FALSE;
 }
 
 /* return the stable device guid for this device index */

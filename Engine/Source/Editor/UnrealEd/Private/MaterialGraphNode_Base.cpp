@@ -210,7 +210,7 @@ void UMaterialGraphNode_Base::ReconstructNode()
 
 	// Move the existing pins to a saved array
 	TArray<UEdGraphPin*> OldPins(Pins);
-	Pins.Empty();
+	Pins.Reset();
 
 	// Recreate the new pins
 	AllocateDefaultPins();
@@ -225,7 +225,7 @@ void UMaterialGraphNode_Base::ReconstructNode()
 	{
 		if (PinIndex < NewInputPins.Num())
 		{
-			NewInputPins[PinIndex]->CopyPersistentDataFromOldPin(*OldInputPins[PinIndex]);
+			NewInputPins[PinIndex]->MovePersistentDataFromOldPin(*OldInputPins[PinIndex]);
 		}
 	}
 
@@ -233,23 +233,16 @@ void UMaterialGraphNode_Base::ReconstructNode()
 	{
 		if (PinIndex < NewOutputPins.Num())
 		{
-			NewOutputPins[PinIndex]->CopyPersistentDataFromOldPin(*OldOutputPins[PinIndex]);
+			NewOutputPins[PinIndex]->MovePersistentDataFromOldPin(*OldOutputPins[PinIndex]);
 		}
 	}
 
-	OldInputPins.Empty();
-	OldOutputPins.Empty();
-
 	// Throw away the original pins
-	for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)
+	for (UEdGraphPin* OldPin : OldPins)
 	{
-		UEdGraphPin* OldPin = OldPins[OldPinIndex];
 		OldPin->Modify();
-		OldPin->BreakAllPinLinks();
-
 		UEdGraphNode::DestroyPin(OldPin);
 	}
-	OldPins.Empty();
 
 	GetGraph()->NotifyGraphChanged();
 }

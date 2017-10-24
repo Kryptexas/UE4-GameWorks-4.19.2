@@ -1,12 +1,12 @@
-Availability:Docs
+Availability:Public
 Title:Blueprint Sets
 Description:Creating and editing Set containers, an advanced container type, in Blueprints, including an overview of this container's properties.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/Scripting
 Order:1
 Version: 4.15
-Tags:Blueprint Set
-Tags:Blueprints
+tags:Blueprint Set
+tags:Blueprints
 topic-image:sets_topicImage.png
 Skilllevel:Advanced
 Related:Programming/UnrealArchitecture/TSet

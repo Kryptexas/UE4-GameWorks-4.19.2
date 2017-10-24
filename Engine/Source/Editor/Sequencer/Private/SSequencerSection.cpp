@@ -403,8 +403,8 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 		FSlateRenderTransform RenderTransform;
 
-		const FVector2D Pos = RangeGeometry.AbsolutePosition;
-		const FVector2D Size = RangeGeometry.Size;
+		const FVector2D Pos = RangeGeometry.GetAbsolutePosition();
+		const FVector2D Size = RangeGeometry.GetLocalSize();
 
 		FLinearColor EaseSelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
 
@@ -446,12 +446,12 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 				// Add verts top->bottom
 				FVector2D UV(U, 0.f);
-				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, Pos + UV*Size, AtlasOffset + UV*AtlasUVSize, FillColor));
+				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, (Pos + UV*Size*RangeGeometry.Scale), AtlasOffset + UV*AtlasUVSize, FillColor));
 
 				UV.Y = 1.f - Point.Location.Y;
 				BorderPoints.Add(UV*Size);
 				BorderPointColors.Add(Point.Color);
-				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, Pos + UV*Size, AtlasOffset + FVector2D(UV.X, 0.5f)*AtlasUVSize, FillColor));
+				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, (Pos + UV*Size*RangeGeometry.Scale), AtlasOffset + FVector2D(UV.X, 0.5f)*AtlasUVSize, FillColor));
 
 				if (Verts.Num() >= 4)
 				{
@@ -1178,9 +1178,18 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 			continue;
 		}
 
-		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
+		// Gather keys for a region larger thean the view range to ensure we draw keys that are only just offscreen.
+		TRange<float> PaddedViewRange;
+		{
+			const float KeyWidthAsTime = TimeToPixelConverter.PixelToTime(SequencerSectionConstants::KeySize.X) - TimeToPixelConverter.PixelToTime(0);
+			const TRange<float> ViewRange = GetSequencer().GetViewRange();
 
-		if (!KeyHandles.Num())
+			PaddedViewRange = TRange<float>(ViewRange.GetLowerBoundValue() - KeyWidthAsTime, ViewRange.GetUpperBoundValue() + KeyWidthAsTime);
+		}
+
+		const FSequencerCachedKeys& CachedKeys = CachedKeyAreaPositions.FindChecked(KeyArea);
+		TArrayView<const FSequencerCachedKey> KeysInRange = CachedKeys.GetKeysInRange(PaddedViewRange);
+		if (!KeysInRange.Num())
 		{
 			continue;
 		}
@@ -1190,9 +1199,21 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 		TOptional<FSlateClippingState> PreviousClipState = InPainter.DrawElements.GetClippingState();
 		InPainter.DrawElements.PopClip();
 
-		for (const FKeyHandle& KeyHandle : KeyHandles)
+		static float PixelOverlapThreshold = 3.f;
+
+		for (int32 KeyIndex = 0; KeyIndex < KeysInRange.Num(); ++KeyIndex)
 		{
-			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
+			FKeyHandle KeyHandle = KeysInRange[KeyIndex].Handle;
+			const float KeyTime = KeysInRange[KeyIndex].Time;
+			const float KeyPosition = TimeToPixelConverter.TimeToPixel(KeyTime);
+
+			// Count the number of overlapping keys
+			int32 NumOverlaps = 0;
+			while (KeyIndex + 1 < KeysInRange.Num() && FMath::IsNearlyEqual(TimeToPixelConverter.TimeToPixel(KeysInRange[KeyIndex+1].Time), KeyPosition, PixelOverlapThreshold))
+			{
+				++KeyIndex;
+				++NumOverlaps;
+			}
 
 			// omit keys which would not be visible
 			if( !SectionObject.IsTimeWithinSection(KeyTime))
@@ -1302,6 +1323,12 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 				FillColor = KeyColor;
 			}
 
+			// Color keys with overlaps with a red border
+			if (NumOverlaps > 0)
+			{
+				BorderColor = FLinearColor(0.83f, 0.12f, 0.12f, 1.0f); // Red
+			}
+
 			// allow group to tint the color
 			if (LayoutElement.GetType() == FSectionLayoutElement::Group)
 			{
@@ -1310,8 +1337,6 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 			}
 
 			// draw border
-			float KeyPosition = TimeToPixelConverter.TimeToPixel(KeyTime);
-
 			static FVector2D ThrobAmount(12.f, 12.f);
 			const FVector2D KeySize = bSelected ? SequencerSectionConstants::KeySize + ThrobAmount * ThrobScaleValue : SequencerSectionConstants::KeySize;
 
@@ -1602,6 +1627,16 @@ void SSequencerSection::Tick( const FGeometry& AllottedGeometry, const double In
 	{
 		Layout = FSectionLayout(*ParentSectionArea, SectionIndex);
 
+		// Update cached key area key positions
+		for (const FSectionLayoutElement& LayoutElement : Layout->GetElements())
+		{
+			TSharedPtr<IKeyArea> KeyArea = LayoutElement.GetKeyArea();
+			if (KeyArea.IsValid())
+			{
+				CachedKeyAreaPositions.FindOrAdd(KeyArea).Update(KeyArea.ToSharedRef());
+			}
+		}
+
 		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 		if (Section && !Section->IsInfinite())
 		{
@@ -1670,7 +1705,7 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 FGeometry SSequencerSection::MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const
 {
 	return AllottedGeometry.MakeChild(
-		AllottedGeometry.GetDrawSize() - FVector2D( HandleOffsetPx*2, 0.0f ),
+		AllottedGeometry.GetLocalSize() - FVector2D( HandleOffsetPx*2, 0.0f ),
 		FSlateLayoutTransform(FVector2D(HandleOffsetPx, 0 ))
 	);
 }

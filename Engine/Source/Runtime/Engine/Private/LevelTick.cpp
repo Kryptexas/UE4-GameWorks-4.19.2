@@ -36,8 +36,10 @@
 #include "PhysicsPublic.h"
 #include "Tickable.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "TimerManager.h"
 #include "Camera/CameraPhotography.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
@@ -163,7 +165,7 @@ FDetailedTickStats::FDetailedTickStats( int32 InNumObjectsToReport, float InTime
 FDetailedTickStats::~FDetailedTickStats()
 {
 	// remove callback as we are dead
-	FCoreUObjectDelegates::PreGarbageCollect.Remove(OnPreGarbageCollectDelegateHandle);
+	FCoreUObjectDelegates::GetPreGarbageCollectDelegate().Remove(OnPreGarbageCollectDelegateHandle);
 }
 
 /**
@@ -223,7 +225,7 @@ void FDetailedTickStats::EndObject( UObject* Object, float DeltaTime, bool bForS
 		{
 			GCCallBackRegistered = true;
 			// register callback so that we can avoid finding the wrong stats for new objects reusing memory that used to be associated with a different object
-			OnPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
+			OnPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::GetPreGarbageCollectDelegate().AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 		}
 
 		FTickStats NewTickStats;
@@ -312,7 +314,7 @@ void FDetailedTickStats::DumpStats()
 		Totals.Count		= 0;
 
 		// Dump tick stats sorted by total time.
-		UE_LOG(LogLevel, Log, TEXT("Per object stats, frame # %i"), GFrameCounter);
+		UE_LOG(LogLevel, Log, TEXT("Per object stats, frame # %llu"), (uint64)GFrameCounter);
 		for( int32 i=0; i<SortedTickStats.Num(); i++ )
 		{
 			const FTickStats& TickStats = SortedTickStats[i];
@@ -773,11 +775,6 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesEditor(
 	0,
 	TEXT("Used to control async renderthread updates in the editor."));
 
-static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
-	TEXT("gc.CollectGarbageEveryFrame"),
-	0,
-	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
-
 namespace EComponentMarkedForEndOfFrameUpdateState
 {
 	enum Type
@@ -879,6 +876,42 @@ bool UWorld::HasEndOfFrameUpdates()
 	return ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() > 0 || ComponentsThatNeedEndOfFrameUpdate.Num() > 0;
 }
 
+TDrawEvent<FRHICommandList>* BeginSendEndOfFrameUpdatesDrawEvent()
+{
+	TDrawEvent<FRHICommandList>* DrawEvent = NULL;
+
+#if WANTS_DRAW_MESH_EVENTS
+	DrawEvent = new TDrawEvent<FRHICommandList>();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		BeginDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,DrawEvent,DrawEvent,
+	{
+		BEGIN_DRAW_EVENTF(
+			RHICmdList, 
+			SendAllEndOfFrameUpdates, 
+			(*DrawEvent),
+			TEXT("SendAllEndOfFrameUpdates"));
+	});
+
+#endif
+
+	return DrawEvent;
+}
+
+void EndSendEndOfFrameUpdatesDrawEvent(TDrawEvent<FRHICommandList>* DrawEvent)
+{
+#if WANTS_DRAW_MESH_EVENTS
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		EndDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,DrawEvent,DrawEvent,
+	{
+		STOP_DRAW_EVENT((*DrawEvent));
+		delete DrawEvent;
+	});
+#endif
+}
+
 /**
 	* Send all render updates to the rendering thread.
 	*/
@@ -889,6 +922,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 	{
 		return;
 	}
+
+	// Issue a GPU event to wrap GPU work done during SendAllEndOfFrameUpdates, like skin cache updates
+	TDrawEvent<FRHICommandList>* DrawEvent = BeginSendEndOfFrameUpdatesDrawEvent();
+
 	// update all dirty components. 
 	TGuardValue<bool> GuardIsFlushedGlobal( bPostTickComponentUpdate, true ); 
 
@@ -952,6 +989,8 @@ void UWorld::SendAllEndOfFrameUpdates()
 		ParallelFor(LocalComponentsThatNeedEndOfFrameUpdate.Num(), ParallelWork);
 	}
 	LocalComponentsThatNeedEndOfFrameUpdate.Reset();
+
+	EndSendEndOfFrameUpdatesDrawEvent(DrawEvent);
 }
 
 
@@ -1100,13 +1139,6 @@ public:
 extern bool GCollisionAnalyzerIsRecording;
 #endif // ENABLE_COLLISION_ANALYZER
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
-	TEXT("gc.StressTestGC"),
-	0,
-	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
-#endif
-
 DECLARE_CYCLE_STAT(TEXT("TG_PrePhysics"), STAT_TG_PrePhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_StartPhysics"), STAT_TG_StartPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("Start TG_DuringPhysics"), STAT_TG_DuringPhysics, STATGROUP_TickGroups);
@@ -1114,14 +1146,6 @@ DECLARE_CYCLE_STAT(TEXT("TG_EndPhysics"), STAT_TG_EndPhysics, STATGROUP_TickGrou
 DECLARE_CYCLE_STAT(TEXT("TG_PostPhysics"), STAT_TG_PostPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_PostUpdateWork"), STAT_TG_PostUpdateWork, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_LastDemotable"), STAT_TG_LastDemotable, STATGROUP_TickGroups);
-
-static float GTimeBetweenPurgingPendingKillObjects = 60.0f;
-static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
-	TEXT("gc.TimeBetweenPurgingPendingKillObjects"),
-	GTimeBetweenPurgingPendingKillObjects,
-	TEXT("Time in seconds (game time) we should wait between purging object references to objects that are pending kill."),
-	ECVF_Default
-	);
 
 #include "GameFramework/SpawnActorTimer.h"
 
@@ -1236,9 +1260,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	SCOPE_CYCLE_COUNTER(STAT_WorldTickTime);
 
 	// @todo vreditor: In the VREditor, this isn't actually wrapping the whole frame.  That would have to happen in EditorEngine.cpp's Tick.  However, it didn't seem to affect anything when I tried that.
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
+		GEngine->XRSystem->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 
 #if ENABLE_SPAWNACTORTIMER
@@ -1265,6 +1289,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NetWorldTickTime);
 		SCOPE_TIME_GUARD(TEXT("UWorld::Tick - NetTick"));
+		LLM_SCOPE(ELLMTag::Networking);
 		// Update the net code and fetch all incoming packets.
 		BroadcastTickDispatch(DeltaSeconds);
 
@@ -1352,12 +1377,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		ResetAsyncTrace();
 	}
 
-	for (FLevelCollection& LC : LevelCollections)
+	for (int32 i = 0; i < LevelCollections.Num(); ++i)
 	{
 		// Build a list of levels from the collection that are also in the world's Levels array.
 		// Collections may contain levels that aren't loaded in the world at the moment.
 		TArray<ULevel*> LevelsToTick;
-		for (ULevel* CollectionLevel : LC.GetLevels())
+		for (ULevel* CollectionLevel : LevelCollections[i].GetLevels())
 		{
 			if (Levels.Contains(CollectionLevel))
 			{
@@ -1366,7 +1391,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 
 		// Set up context on the world for this level collection
-		FScopedLevelCollectionContextSwitch LevelContext(&LC, this);
+		FScopedLevelCollectionContextSwitch LevelContext(i, this);
 
 		// If caller wants time update only, or we are paused, skip the rest.
 		if (bDoingActorTicks)
@@ -1413,7 +1438,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 		
 		// We only want to run the following once, so only run it for the source level collection.
-		if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
+		if (LevelCollections[i].GetType() == ELevelCollectionType::DynamicSourceLevels)
 		{
 			// Process any remaining latent actions
 			if( !bIsPaused )
@@ -1502,6 +1527,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 
+		FWorldDelegates::OnWorldPostActorTick.Broadcast(this, TickType, DeltaSeconds);
+
 		if ( PhysicsScene != NULL )
 		{
 			GPhysCommandHandler->Flush();
@@ -1556,55 +1583,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	bInTick = false;
 	Mark.Pop();
 
-	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (CVarStressTestGCWhileStreaming.GetValueOnGameThread() && IsAsyncLoading())
-	{
-		TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
-	}
-	else 
-#endif
-	if (FullPurgeTriggered)
-	{
-		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true))
-		{
-			CleanupActors();
-			FullPurgeTriggered = false;
-			TimeSinceLastPendingKillPurge = 0.0f;
-		}
-	}
-	else if( HasBegunPlay() )
-	{
-		TimeSinceLastPendingKillPurge += DeltaSeconds;
-
-		const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
-
-		
-
-		// See if we should delay garbage collect for this frame
-		if (bShouldDelayGarbageCollect)
-		{
-			bShouldDelayGarbageCollect = false;
-		}
-		// Perform incremental purge update if it's pending or in progress.
-		else if( !IsIncrementalPurgePending() 
-		// Purge reference to pending kill objects every now and so often.
-		&&	(TimeSinceLastPendingKillPurge > TimeBetweenPurgingPendingKillObjects) && TimeBetweenPurgingPendingKillObjects > 0 )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GCMarkTime);
-			PerformGarbageCollectionAndCleanupActors();
-		}
-		else
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GCSweepTime);
-			IncrementalPurgeGarbage( true );
-		}
-	}
-
-	if (CVarCollectGarbageEveryFrame.GetValueOnGameThread() > 0)
-	{
-		ForceGarbageCollection(true);
-	}
+	GEngine->ConditionalCollectGarbage();
 
 	// players only request from last frame
 	if (bPlayersOnlyPending)
@@ -1660,9 +1639,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	// Dump the viewpoints with which we were rendered last frame. They will be updated when the world is next rendered.
 	ViewLocationsRenderedLastFrame.Reset();
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
+		GEngine->XRSystem->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -1685,23 +1664,22 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
  */
 void UWorld::DelayGarbageCollection()
 {
-	bShouldDelayGarbageCollect = true;
+	GEngine->DelayGarbageCollection();
 }
 
-void UWorld::SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass)
+void UWorld::ForceGarbageCollection( bool bFullPurge)
 {
-	const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+	GEngine->ForceGarbageCollection(bFullPurge);
+}
 
-	// This can make it go negative if the desired interval is longer than the typical interval, but it's only ever compared against TimeBetweenPurgingPendingKillObjects
-	TimeSinceLastPendingKillPurge = TimeBetweenPurgingPendingKillObjects - MinTimeUntilNextPass;
+void UWorld::SetTimeUntilNextGarbageCollection(const float MinTimeUntilNextPass)
+{
+	GEngine->SetTimeUntilNextGarbageCollection(MinTimeUntilNextPass);
 }
 
 float UWorld::GetTimeBetweenGarbageCollectionPasses() const
 {
-	const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
-	const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
-
-	return bShouldUseLowFrequencyGC ? (GTimeBetweenPurgingPendingKillObjects * 10) : GTimeBetweenPurgingPendingKillObjects;
+	return GEngine->GetTimeBetweenGarbageCollectionPasses();
 }
 
 /**
@@ -1709,50 +1687,42 @@ float UWorld::GetTimeBetweenGarbageCollectionPasses() const
  */
 void UWorld::PerformGarbageCollectionAndCleanupActors()
 {
-	// We don't collect garbage while there are outstanding async load requests as we would need
-	// to block on loading the remaining data.
-	if( !IsAsyncLoading() )
-	{
-		// Perform housekeeping.
-		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, false))
-		{
-			CleanupActors();
-
-			// Reset counter.
-			TimeSinceLastPendingKillPurge = 0.0f;
-		}
-	}
+	GEngine->PerformGarbageCollectionAndCleanupActors();
 }
-
 
 void UWorld::CleanupActors()
 {
 	// Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting; in theory static 
 	// actors shouldn't be deleted during gameplay.
-	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
+	for (ULevel* Level : Levels)
 	{
-		ULevel* Level = Levels[LevelIndex];
 		// Don't compact actors array for levels that are currently in the process of being made visible as the
 		// code that spreads this work across several frames relies on the actor count not changing as it keeps
 		// an index into the array.
 		if( CurrentLevelPendingVisibility != Level )
 		{
 			// Actor 0 (world info) and 1 (default brush) are special and should never be removed from the actor array even if NULL
-			int32 FirstDynamicIndex = 2;
+			const int32 FirstDynamicIndex = 2;
+			int32 NumActorsToRemove = 0;
 			// Remove NULL entries from array, we're iterating backwards to avoid unnecessary memcpys during removal.
 			for( int32 ActorIndex=Level->Actors.Num()-1; ActorIndex>=FirstDynamicIndex; ActorIndex-- )
 			{
-				if( Level->Actors[ActorIndex] == NULL )
+				// To avoid shuffling things down repeatedly when not necessary count nulls and then remove in bunches
+				if (Level->Actors[ActorIndex] == nullptr)
 				{
-					Level->Actors.RemoveAt( ActorIndex );
+					++NumActorsToRemove;
 				}
+				else if (NumActorsToRemove > 0)
+				{
+					Level->Actors.RemoveAt(ActorIndex+1, NumActorsToRemove, false);
+					NumActorsToRemove = 0;
+				}
+			}
+			if (NumActorsToRemove > 0)
+			{
+				// If our FirstDynamicIndex (and any immediately following it) were null it won't get caught in the loop, so do a cleanup pass here
+				Level->Actors.RemoveAt(FirstDynamicIndex, NumActorsToRemove, false);
 			}
 		}
 	}
-}
-
-void UWorld::ForceGarbageCollection( bool bForcePurge/*=false*/ )
-{
-	TimeSinceLastPendingKillPurge = 1.0f + GetTimeBetweenGarbageCollectionPasses();
-	FullPurgeTriggered = FullPurgeTriggered || bForcePurge;
 }

@@ -26,10 +26,13 @@
 
 /// \file sdf/relationshipSpec.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareSpec.h"
 #include "pxr/usd/sdf/propertySpec.h"
 #include "pxr/usd/sdf/types.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <class TypePolicy> class Sdf_ListEditor;
 template <class T> class Sdf_MarkerUtils;
@@ -258,5 +261,7 @@ private:
     // Allow access to retrieve relationship spec for this API object.
     friend class Sdf_PyRelationshipAccess;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_RELATIONSHIPSPEC_H

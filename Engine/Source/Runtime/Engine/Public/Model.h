@@ -599,7 +599,7 @@ public:
 	FGuid MapBuildDataId;
 
 	/** A pointer to the index buffer holding this element's indices. */
-	FIndexBuffer* IndexBuffer;
+	FRawIndexBuffer16or32* IndexBuffer;
 
 	/** The first index in the component index buffer used by this element. */
 	uint32 FirstIndex;

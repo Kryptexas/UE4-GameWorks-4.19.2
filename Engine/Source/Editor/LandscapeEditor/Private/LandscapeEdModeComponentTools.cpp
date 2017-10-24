@@ -1646,10 +1646,10 @@ public:
 
 								switch (EdMode->UISettings->PasteMode)
 								{
-								case ELandscapeToolNoiseMode::Add:
+								case ELandscapeToolPasteMode::Raise:
 									PaintAmount = OriginalValue < DestValue ? PaintAmount : 0.0f;
 									break;
-								case ELandscapeToolNoiseMode::Sub:
+								case ELandscapeToolPasteMode::Lower:
 									PaintAmount = OriginalValue > DestValue ? PaintAmount : 0.0f;
 									break;
 								default:

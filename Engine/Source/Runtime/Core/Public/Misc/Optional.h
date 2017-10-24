@@ -23,7 +23,7 @@ public:
 	}
 	TOptional(OptionalType&& InValue)
 	{
-		new(&Value) OptionalType(MoveTemp(InValue));
+		new(&Value) OptionalType(MoveTempIfPossible(InValue));
 		bIsSet = true;
 	}
 
@@ -53,7 +53,7 @@ public:
 	{
 		if (InValue.bIsSet)
 		{
-			new(&Value) OptionalType(MoveTemp(*(OptionalType*)&InValue.Value));
+			new(&Value) OptionalType(MoveTempIfPossible(*(OptionalType*)&InValue.Value));
 			bIsSet = true;
 		}
 	}
@@ -78,7 +78,7 @@ public:
 			Reset();
 			if (InValue.bIsSet)
 			{
-				new(&Value) OptionalType(MoveTemp(*(OptionalType*)&InValue.Value));
+				new(&Value) OptionalType(MoveTempIfPossible(*(OptionalType*)&InValue.Value));
 				bIsSet = true;
 			}
 		}
@@ -100,7 +100,7 @@ public:
 		if (&InValue != (OptionalType*)&Value)
 		{
 			Reset();
-			new(&Value) OptionalType(MoveTemp(InValue));
+			new(&Value) OptionalType(MoveTempIfPossible(InValue));
 			bIsSet = true;
 		}
 		return *this;

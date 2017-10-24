@@ -28,6 +28,7 @@
 #include "LevelEditorGenericDetails.h"
 #include "ScopedTransaction.h"
 #include "SourceCodeNavigation.h"
+#include "SDockTab.h"
 
 class SActorDetailsUneditableComponentWarning : public SCompoundWidget
 {
@@ -100,7 +101,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 	DetailsViewArgs.ViewIdentifier = TabIdentifier;
 	DetailsViewArgs.bCustomNameAreaLocation = true;
 	DetailsViewArgs.bCustomFilterAreaLocation = true;
-	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Hide;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
 	DetailsViewArgs.HostCommandList = InCommandList;
 	DetailsViewArgs.HostTabManager = InTabManager;
 	DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
@@ -242,6 +243,15 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 		}
 
 		ComponentsBox->SetVisibility(bShowingComponents ? EVisibility::Visible : EVisibility::Collapsed);
+
+		if(DetailsView->GetHostTabManager().IsValid())
+		{
+			TSharedPtr<SDockTab> Tab = DetailsView->GetHostTabManager()->FindExistingLiveTab(DetailsView->GetIdentifier());
+			if (Tab.IsValid() && !Tab->IsForeground() )
+			{
+				DetailsView->GetHostTabManager()->DrawAttention(Tab.ToSharedRef());
+			}
+		}
 	}
 }
 

@@ -29,7 +29,9 @@ FAnimNode_RigidBody::FAnimNode_RigidBody():
 	OverridePhysicsAsset = nullptr;
 	bOverrideWorldGravity = false;
 	CachedBoundsScale = 1.2f;
-	bComponentSpaceSimulation = true;
+	SimulationSpace = ESimulationSpace::ComponentSpace;
+	ExternalForce = FVector::ZeroVector;
+	bComponentSpaceSimulation_DEPRECATED = true;
 	OverrideWorldGravity = FVector::ZeroVector;
 	TotalMass = 0.f;
 	CachedBounds.W = 0;
@@ -54,6 +56,29 @@ void FAnimNode_RigidBody::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
+FVector WorldVectorToSpaceNoScale(ESimulationSpace Space, const FVector& WorldDir, const FTransform& ComponentToWorld, const FTransform& RootBoneTM)
+{
+	switch(Space)
+	{
+		case ESimulationSpace::ComponentSpace: return ComponentToWorld.InverseTransformVectorNoScale(WorldDir);
+		case ESimulationSpace::WorldSpace: return WorldDir;
+		case ESimulationSpace::RootBoneSpace: return RootBoneTM.InverseTransformVectorNoScale(ComponentToWorld.InverseTransformVectorNoScale(WorldDir));
+		default: return FVector::ZeroVector;
+	}
+}
+
+FVector WorldPositionToSpace(ESimulationSpace Space, const FVector& WorldPoint, const FTransform& ComponentToWorld, const FTransform& RootBoneTM)
+{
+	switch (Space)
+	{
+		case ESimulationSpace::ComponentSpace: return ComponentToWorld.InverseTransformPosition(WorldPoint);
+		case ESimulationSpace::WorldSpace: return WorldPoint;
+		case ESimulationSpace::RootBoneSpace: return RootBoneTM.InverseTransformPosition(ComponentToWorld.InverseTransformPosition(WorldPoint));
+		default: return FVector::ZeroVector;
+	}
+}
+
+
 DECLARE_CYCLE_STAT(TEXT("FAnimNode_Ragdoll::EvaluateSkeletalControl_AnyThread"), STAT_ImmediateEvaluateSkeletalControl, STATGROUP_ImmediatePhysics);
 
 void FAnimNode_RigidBody::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
@@ -61,12 +86,14 @@ void FAnimNode_RigidBody::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 	SCOPE_CYCLE_COUNTER(STAT_ImmediateEvaluateSkeletalControl);
 	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "FAnimNode_Ragdoll::EvaluateSkeletalControl_AnyThread");
 
-	if(PhysicsSimulation)
+	if(PhysicsSimulation && DeltaSeconds > 0)
 	{
-		const FTransform CompWorldSpaceTM = Output.AnimInstanceProxy->GetComponentTransform();
-
-		//Update physics with transforms
 		const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
+
+		const FTransform CompWorldSpaceTM = Output.AnimInstanceProxy->GetComponentTransform();
+		const FTransform RootBoneTM = Output.Pose.GetComponentSpaceTransform(RootBoneRef.GetCompactPoseIndex(BoneContainer));
+		//Update physics with transforms
+		
 		for (const FOutputBoneData& OutputData : OutputBoneData)
 		{
 			int32 BodyIndex = OutputData.BodyIndex;
@@ -74,18 +101,35 @@ void FAnimNode_RigidBody::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 			{
 				FCompactPoseBoneIndex SimBoneIndex = OutputData.BoneReference.GetCompactPoseIndex(BoneContainer);
 				const FTransform& ComponentSpaceTM = Output.Pose.GetComponentSpaceTransform(SimBoneIndex);
-				const FTransform WorldSpaceTM = bComponentSpaceSimulation ? ComponentSpaceTM : ComponentSpaceTM * CompWorldSpaceTM;
+				
+				FTransform BodyTM;
+				switch(SimulationSpace)
+				{
+					case ESimulationSpace::ComponentSpace : BodyTM = ComponentSpaceTM; break;
+					case ESimulationSpace::WorldSpace : BodyTM = ComponentSpaceTM * CompWorldSpaceTM; break;
+					case ESimulationSpace::RootBoneSpace: BodyTM = ComponentSpaceTM.GetRelativeTransform(RootBoneTM); break;
+					default: ensureMsgf(false, TEXT("Unsupported Simulation Space")); BodyTM = ComponentSpaceTM;
+				}
 
-				Bodies[BodyIndex]->SetWorldTransform(WorldSpaceTM);
+				if(bResetSimulated)
+				{
+					Bodies[BodyIndex]->SetWorldTransform(BodyTM);
+				}
+				else
+				{
+					Bodies[BodyIndex]->SetKinematicTarget(BodyTM);
+				}
+				
 			}
 		}
 
 		bResetSimulated = false;
 
-		UpdateWorldForces(CompWorldSpaceTM);
+		UpdateWorldForces(CompWorldSpaceTM, RootBoneTM);
 
 		//simulate
-		PhysicsSimulation->Simulate(DeltaSeconds, Gravity);
+		const FVector SimSpaceGravity = WorldVectorToSpaceNoScale(SimulationSpace, WorldSpaceGravity, CompWorldSpaceTM, RootBoneTM);
+		PhysicsSimulation->Simulate(DeltaSeconds, SimSpaceGravity);
 
 		
 		//write back to animation system
@@ -97,15 +141,15 @@ void FAnimNode_RigidBody::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 				/*if(true || IsSimulated[BodyIndex])*/	//todo: only output kinematic bones that have simulated ancestors
 				{
 					FCompactPoseBoneIndex SimBoneIndex = OutputData.BoneReference.GetCompactPoseIndex(BoneContainer);
+					const FTransform BodyTM = Bodies[BodyIndex]->GetWorldTransform();
 					FTransform ComponentSpaceTM;
-					if(bComponentSpaceSimulation)
+
+					switch(SimulationSpace)
 					{
-						ComponentSpaceTM = Bodies[BodyIndex]->GetWorldTransform();
-					}
-					else
-					{
-						FTransform WorldSpaceTM = Bodies[BodyIndex]->GetWorldTransform();
-						ComponentSpaceTM = WorldSpaceTM.GetRelativeTransform(CompWorldSpaceTM);	//back to component space
+						case ESimulationSpace::ComponentSpace: ComponentSpaceTM = BodyTM; break;
+						case ESimulationSpace::WorldSpace: ComponentSpaceTM = BodyTM.GetRelativeTransform(CompWorldSpaceTM); break;
+						case ESimulationSpace::RootBoneSpace: ComponentSpaceTM = BodyTM * RootBoneTM; break;
+						default: ensureMsgf(false, TEXT("Unsupported Simulation Space")); ComponentSpaceTM = BodyTM;
 					}
 					
 					OutBoneTransforms.Add(FBoneTransform(SimBoneIndex, ComponentSpaceTM));
@@ -178,12 +222,13 @@ void FAnimNode_RigidBody::InitPhysics(const UAnimInstance* InAnimInstance)
 		Bodies.Empty(NumBodies);
 		BodyBoneIndices.Empty(NumBodies);
 		ComponentsInSim.Reset();
+		IsSimulated.Reset();
 		TotalMass = 0.f;
 		
 
 		TArray<FBodyInstance*> HighLevelBodyInstances;
 		TArray<FConstraintInstance*> HighLevelConstraintInstances;
-		SkeletalMeshComp->InstantiatePhysicsAsset(*UsePhysicsAsset, bComponentSpaceSimulation ? FVector(1.f) : SkeletalMeshComp->GetComponentToWorld().GetScale3D(), HighLevelBodyInstances, HighLevelConstraintInstances);
+		SkeletalMeshComp->InstantiatePhysicsAsset(*UsePhysicsAsset, SimulationSpace == ESimulationSpace::WorldSpace ? SkeletalMeshComp->GetComponentToWorld().GetScale3D() : FVector(1.f), HighLevelBodyInstances, HighLevelConstraintInstances);
 
 		TMap<FName, FActorHandle*> NamesToHandles;
 		TArray<FActorHandle*> IgnoreCollisionActors;
@@ -366,7 +411,7 @@ void FAnimNode_RigidBody::UpdateWorldGeometry(const UWorld& World, const USkelet
 
 DECLARE_CYCLE_STAT(TEXT("FAnimNode_Ragdoll::UpdateWorldForces"), STAT_ImmediateUpdateWorldForces, STATGROUP_ImmediatePhysics);
 
-void FAnimNode_RigidBody::UpdateWorldForces(const FTransform& ComponentToWorld)
+void FAnimNode_RigidBody::UpdateWorldForces(const FTransform& ComponentToWorld, const FTransform& RootBoneTM)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ImmediateUpdateWorldForces);
 
@@ -374,6 +419,7 @@ void FAnimNode_RigidBody::UpdateWorldForces(const FTransform& ComponentToWorld)
 	{
 		for (const USkeletalMeshComponent::FPendingRadialForces& PendingRadialForce : PendingRadialForces)
 		{
+			const FVector RadialForceOrigin = WorldPositionToSpace(SimulationSpace, PendingRadialForce.Origin, ComponentToWorld, RootBoneTM);
 			for(FActorHandle* Body : Bodies)
 			{
 				const float InvMass = Body->GetInverseMass();
@@ -389,8 +435,21 @@ void FAnimNode_RigidBody::UpdateWorldForces(const FTransform& ComponentToWorld)
 					{
 						ForceType = PendingRadialForce.bIgnoreMass ? FSimulation::EForceType::AddAcceleration : FSimulation::EForceType::AddForce;
 					}
+					
+					Body->AddRadialForce(RadialForceOrigin, StrengthPerBody, PendingRadialForce.Radius, PendingRadialForce.Falloff, ForceType);
+				}
+			}
+		}
 
-					Body->AddRadialForce(bComponentSpaceSimulation ? ComponentToWorld.InverseTransformPosition(PendingRadialForce.Origin) : PendingRadialForce.Origin, StrengthPerBody, PendingRadialForce.Radius, PendingRadialForce.Falloff, ForceType);
+		if(!ExternalForce.IsNearlyZero())
+		{
+			const FVector ExternalForceInSimSpace = WorldVectorToSpaceNoScale(SimulationSpace, ExternalForce, ComponentToWorld, RootBoneTM);
+			for (FActorHandle* Body : Bodies)
+			{
+				const float InvMass = Body->GetInverseMass();
+				if (InvMass > 0.f)
+				{
+					Body->AddForce(ExternalForceInSimSpace);
 				}
 			}
 		}
@@ -403,19 +462,19 @@ void FAnimNode_RigidBody::PreUpdate(const UAnimInstance* InAnimInstance)
 	USkeletalMeshComponent* SKC = InAnimInstance->GetSkelMeshComponent();
 
 #if WITH_EDITOR
-	if (bEnableWorldGeometry && bComponentSpaceSimulation)
+	if (bEnableWorldGeometry && SimulationSpace != ESimulationSpace::WorldSpace)
 	{
-		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("WorldCollisionComponentSpace", "Trying to use world collision with component space simulation on ''{0}''. This is not supported, please use world space simulation"),
+		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("WorldCollisionComponentSpace", "Trying to use world collision without world space simulation for ''{0}''. This is not supported, please change SimulationSpace to WorldSpace"),
 			FText::FromString(GetPathNameSafe(SKC))));
 	}
 #endif
 
 	DeltaSeconds = World->GetDeltaSeconds();
-	Gravity = bOverrideWorldGravity ? OverrideWorldGravity : FVector(0.f, 0.f, World->GetGravityZ());
+	WorldSpaceGravity = bOverrideWorldGravity ? OverrideWorldGravity : FVector(0.f, 0.f, World->GetGravityZ());
 
 	if(SKC)
 	{
-		if (PhysicsSimulation && bEnableWorldGeometry && !bComponentSpaceSimulation)
+		if (PhysicsSimulation && bEnableWorldGeometry && SimulationSpace == ESimulationSpace::WorldSpace)
 		{
 			UpdateWorldGeometry(*World, *SKC);
 		}
@@ -472,6 +531,10 @@ void FAnimNode_RigidBody::InitializeBoneReferences(const FBoneContainer& Require
 
 	int32 NumSimulatedBodies = 0;
 
+	//we always cache root bone
+	RootBoneRef.BoneName = RefSkeleton.GetBoneName(0);
+	RootBoneRef.Initialize(RequiredBones);
+
 	for(int32 RequiredBoneIndexIndex = 0; RequiredBoneIndexIndex < NumRequiredBoneIndices; ++RequiredBoneIndexIndex)
 	{
 		const FBoneIndexType RequiredBoneIndex = RequiredBoneIndices[RequiredBoneIndexIndex];
@@ -523,6 +586,16 @@ void FAnimNode_RigidBody::InitializeBoneReferences(const FBoneContainer& Require
 void FAnimNode_RigidBody::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
 	InitPhysics(InAnimInstance);
+}
+
+void FAnimNode_RigidBody::PostSerialize(const FArchive& Ar)
+{
+	if(bComponentSpaceSimulation_DEPRECATED == false)
+	{
+		//If this is not the default value it means we have old content where we were simulating in world space
+		SimulationSpace = ESimulationSpace::WorldSpace;
+		bComponentSpaceSimulation_DEPRECATED = true;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

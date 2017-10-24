@@ -135,6 +135,13 @@ public:
 
 	// Called after the editor dismisses a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PostModal;
+    
+    // Called before the editor displays a Slate (non-platform) modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
+    static FSimpleMulticastDelegate PreSlateModal;
+    
+    // Called after the editor dismisses a Slate (non-platform) modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
+    static FSimpleMulticastDelegate PostSlateModal;
+    
 #endif	//WITH_EDITOR
 	
 	// Called when an error occurred.
@@ -267,12 +274,6 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
 	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
 
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FLoadStringAssetReferenceInCook, const FString&);
-	static FLoadStringAssetReferenceInCook LoadStringAssetReferenceInCook;
-
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FStringAssetReferenceLoaded, const FName&);
-	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
-
 	/** Sent when the platform needs the user to fix headset tracking on startup (PS4 Morpheus only) */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate);
 	static FVRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate VRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate;
@@ -304,6 +305,10 @@ public:
 	/** Sent when the VR HMD detects that it has been taken off by the player. */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRemovedFromHead);
 	static FVRHeadsetRemovedFromHead VRHeadsetRemovedFromHead;
+
+	/** Sent when a 3DOF VR controller is recentered */
+	DECLARE_MULTICAST_DELEGATE(FVRControllerRecentered);
+	static FVRControllerRecentered VRControllerRecentered;
 
 	/** Sent when application code changes the user activity hint string for analytics, crash reports, etc */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);

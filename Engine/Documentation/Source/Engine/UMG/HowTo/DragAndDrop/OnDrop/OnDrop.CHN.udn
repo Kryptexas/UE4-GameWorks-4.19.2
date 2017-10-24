@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:4. On Drop
+﻿INTSourceChangelist:3478014
+Availability:Public
+Title:4.On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:We finish by creating the script for OnDrop functionality before we test. 
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Version: 4.12
-SkillLevel: Intermediate
+Description:在这步中我们将配置玩家放下拖拽控件后发生的情况。
+SkillLevel:Intermediate
+Version:4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:4
+checkpoint: editorqs
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
+tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -19,86 +26,66 @@ SkillLevel: Intermediate
 		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
+		[Next Step](Engine\UMG\HowTo\DragAndDrop\FinishingUp "%Engine\UMG\HowTo\DragAndDrop\FinishingUp:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-To finish up, we script what happens when we "drop" the widget in our HUD as well as test everything out. 
+此处我们将设置主 **HUD** 控件蓝图并覆盖执行 **OnDrop** 函数时发生的情况。 
 
-## Steps
+## 步骤
 
-1.	Open the **HUD** Widget Blueprint, then in the **Details** panel for the **Canvas Panel**, set its **Visibility** to **Visible**. 
+1.	打开 **HUD** 控件蓝图，然后在 **Canvas Panel** 的 **Details** 面板中将其 **Visibility** 设为 **Visible**。 
 
 	![](DragDrop13.png)
 
-	We are doing our drag detection inside the Health Bar widget, however when we release the Left Mouse Button we want to drop it in our HUD Widget Blueprint.
-	In order for our HUD to receive hit detection, we need to set its **Visibility** setting to **Visible**. 
+	我们在体力条控件中执行拖拽检测，然而松开鼠标左键时我们需要将它放置在 HUD 控件蓝图中。
+	为使 HUD 获得命中检测，我们需要将 **Visibility** 设为 **Visible**。 
 
-1.	From the **Palette** window, add the **Health Bar** widget to the graph in your desired location. 
+1.	从 **Palette** 窗口添加 **Health Bar** 控件到所需位置的图表。 
 
 	![](DragDrop14.png)
 
-1.	Go to the **Graph** Mode, then add an **OnDrop** function override from the **My Blueprint** panel. 
+1.	前往 **Graph** 模式，在 **My Blueprint** 面板中添加一个 **OnDrop** 函数覆写。 
 
 	![](DragDrop15.png)
 
-1.	Inside **OnDrop** drag off **Operation** and **Cast to WidgetDrag**, then **Get Widget Reference** and **Get Drag Offset**. 
+1.	在 **OnDrop** 连出 **Operation** 和 **Cast to WidgetDrag**，然后再连出 **Get Widget Reference** 和 **Get Drag Offset**。 
 
 	![](DragDrop16.png)
 
-	We cast here to check which type of operation is being performed as part of the **OnDrop** function, is it **Widget Drag**? 
-	If so, we get the **WidgetReference** (which we passed through as the widget being dragged) as well as the **DragOffset** (or position in which we started the drag from). 
+	我们在此进行计算，检查哪种类型的操作作为 **OnDrop** 函数的部分执行，是 **Widget Drag** 吗？ 
+	如是，我们将获得 **WidgetReference**（通过被拖拽的控件进行传递）和 **DragOffset**（或开始拖动的位置）。 
 
-1.	Off **My Geometry** and **Pointer Event**, use the **Absolute to Local** and **GetScreenSpacePosition** nodes and connect as shown.
+1.	从 **My Geometry** 和 **Pointer Event** 连出引线，使用 **Absolute to Local** 和 **GetScreenSpacePosition** 节点，按下图中的方式进行连接。
 
 	![](DragDrop17.png)
 
-	This will tell us the position in 2D space where we released the Left Mouse Button to drop the widget. 
-	We will use this minus the **DragOffset** to determine where we should place the widget when it is dropped. 
+	这将告知我们在 2D 空间中松开鼠标左键放置控件的位置。 
+	我们将用该位置减去 **DragOffset**，决定放置控件时应将其置于何处。 
 
-1.	Subtract the **DragOffset** from the **Return Value** of **Absolute to Local**. 
+1.	从 **Absolute to Local** 的 **Return Value** 减去 **DragOffset**。 
+	
+	![](UpdateDragDrop1.png)
 
-1.	For the **Widget Reference**, use the **Add to Viewport** and **Set Position in Viewport** and connect as shown. 
+1.	从 **Widget Reference** 连出引线，添加 **Remove from Parent**，而后是 **Add to Viewport** 和 **Set Position in Viewport** 节点。 
+
+1.	如下图所示连接节点，取消勾选 **Remove DPIScale**，勾选 **Return Node** 上的 **Return Value**。 
 
 	[REGION:lightbox]
-	[![](DragDrop18.png)](DragDrop18.png)
+	[![](UpdateDragDrop2.png)](UpdateDragDrop2.png)
 	[/REGION]
 
-	[REGION:caption]
-	Click for full view. 
-	[/REGION]
+	_点击查看全图。_
+	
+	取消勾选 **Remove DPIScale** 并勾选 **Return Value** 勾选框，因为不需要移除 [](Engine/UMG/UserGuide/DPIScaling)，已对此函数进行处理（返回为 true）。 
+	我们首先通过此脚本移除现有的体力条控件，然后将其重新添加到相对于 Drag Offset 的新位置中的画面。 
 
-	Make sure to uncheck **Remove DPIScale** and check the **Return Value** checkboxes as we do not need to remove the [](Engine/UMG/UserGuide/DPIScaling) and we have handled this function so we return as true. 
-	With this script we add the widget being dragged to the viewport again and set its position based on where we clicked and started dragging. The last thing we need to do is create and display our HUD Widget Blueprint. 
-
-1.	Inside the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
-
-1.	Create the **HUD** Widget Blueprint, **Add to Viewport** and **Get Player Controller** to **Show Mouse Cursor**. 
-
-	![](DragDrop19.png)
-
-1.	**Compile**, **Save** then click the **Play** button to play in the Editor. 
-
-
-## End Result
-
-When you play in the Editor, you can **Left-click** and drag the health bar on screen then drop it in a new location. 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-qUDIkWcQChI
-[/PARAMLITERAL]
-[/OBJECT]
-
-This is just an example of the elements you will need to start the Drag and Drop process. 
-Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 
+我们已设置 HUD 处理拖拽控件的放置，它还将显示体力条。 
+在此教程的最后一部分中，我们将设置被拖拽控件模拟体力条的外形，并对角色蓝图发出指令将 HUD 添加到视口。 
 
 %Steps%
+
+

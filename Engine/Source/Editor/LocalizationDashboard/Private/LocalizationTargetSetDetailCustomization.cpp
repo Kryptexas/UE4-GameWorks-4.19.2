@@ -319,7 +319,7 @@ void FLocalizationTargetSetDetailCustomization::GatherTextAllTargets()
 	}
 
 	// Execute gather.
-	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 	LocalizationCommandletTasks::GatherTextForTargets(ParentWindow.ToSharedRef(), TargetObjectsToProcess);
 
 	for (ULocalizationTarget* const LocalizationTarget : TargetObjectsToProcess)
@@ -348,14 +348,14 @@ void FLocalizationTargetSetDetailCustomization::ImportTextAllTargets()
 	if (DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -400,13 +400,13 @@ void FLocalizationTargetSetDetailCustomization::ExportTextAllTargets()
 	if (DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -446,14 +446,14 @@ void FLocalizationTargetSetDetailCustomization::ImportDialogueScriptAllTargets()
 	if (DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -498,13 +498,13 @@ void FLocalizationTargetSetDetailCustomization::ExportDialogueScriptAllTargets()
 	if (DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -556,7 +556,7 @@ void FLocalizationTargetSetDetailCustomization::ImportDialogueAllTargets()
 	}
 
 	// Execute import dialogue.
-	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 	LocalizationCommandletTasks::ImportDialogueForTargets(ParentWindow.ToSharedRef(), TargetObjectsToProcess);
 }
 
@@ -586,7 +586,7 @@ void FLocalizationTargetSetDetailCustomization::CountWordsForAllTargets()
 	}
 
 	// Execute compile.
-	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 	LocalizationCommandletTasks::GenerateWordCountReportsForTargets(ParentWindow.ToSharedRef(), TargetObjectsToProcess);
 }
 
@@ -616,7 +616,7 @@ void FLocalizationTargetSetDetailCustomization::CompileTextAllTargets()
 	}
 
 	// Execute compile.
-	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
+	const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView()->AsShared());
 	LocalizationCommandletTasks::CompileTextForTargets(ParentWindow.ToSharedRef(), TargetObjectsToProcess);
 }
 

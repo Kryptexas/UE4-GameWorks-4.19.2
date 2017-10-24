@@ -45,7 +45,7 @@ void UGameplayCueSet::AddCues(const TArray<FGameplayCueReferencePair>& CuesToAdd
 		for (const FGameplayCueReferencePair& CueRefPair : CuesToAdd)
 		{
 			const FGameplayTag& GameplayCueTag = CueRefPair.GameplayCueTag;
-			const FStringAssetReference& StringRef = CueRefPair.StringRef;
+			const FSoftObjectPath& StringRef = CueRefPair.StringRef;
 
 			// Check for duplicates: we may want to remove this eventually (allow multiple GC notifies to handle same event)
 			bool bDupe = false;
@@ -82,9 +82,9 @@ void UGameplayCueSet::RemoveCuesByTags(const FGameplayTagContainer& TagsToRemove
 {
 }
 
-void UGameplayCueSet::RemoveCuesByStringRefs(const TArray<FStringAssetReference>& CuesToRemove)
+void UGameplayCueSet::RemoveCuesByStringRefs(const TArray<FSoftObjectPath>& CuesToRemove)
 {
-	for (const FStringAssetReference& StringRefToRemove : CuesToRemove)
+	for (const FSoftObjectPath& StringRefToRemove : CuesToRemove)
 	{
 		for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
 		{
@@ -118,7 +118,7 @@ void UGameplayCueSet::GetFilenames(TArray<FString>& Filenames) const
 	}
 }
 
-void UGameplayCueSet::GetStringAssetReferences(TArray<FStringAssetReference>& List) const
+void UGameplayCueSet::GetSoftObjectPaths(TArray<FSoftObjectPath>& List) const
 {
 	List.Reserve(GameplayCueData.Num());
 	for (const FGameplayCueNotifyData& Data : GameplayCueData)
@@ -128,7 +128,7 @@ void UGameplayCueSet::GetStringAssetReferences(TArray<FStringAssetReference>& Li
 }
 
 #if WITH_EDITOR
-void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
+void UGameplayCueSet::UpdateCueByStringRefs(const FSoftObjectPath& CueToRemove, FString NewPath)
 {
 	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
 	{

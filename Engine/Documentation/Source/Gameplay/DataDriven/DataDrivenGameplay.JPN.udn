@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3401080
+﻿INTSourceChangelist:3606403
 Availability:Public
 Title:データ駆動型のゲームプレイエレメント
 Crumbs:%ROOT%
@@ -69,7 +69,7 @@ Excel ドキュメントでデータを UE4 にインポートする新しい方
 
 		/** Achivement (アチーブメント、成績) に使うアイコン*/
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
-		TAssetPtr<UTexture> Asset;
+		TSoftObjectPtr<UTexture> AchievementIcon;
 	};
 
 
@@ -150,5 +150,5 @@ FCurveTableRowHandle の場合は、FRichCurve ポインタが返されます。
 注意してください。テーブルが再インポートで更新された場合、 
 データ変更がすぐに反映されて無効なポインタへのアクセスがないようにするためです。
 
-上記の DataTable の例で参照したアセットは、遅延読み込みされたアセットです (TAssetPtr により処理されます)。 
+上記の DataTable の例で参照したアセットは、遅延読み込みされたアセットです (TSoftObjectPtr により処理されます)。 
 アセット フィールド タイプが UTexture に設定されていると、DataTable のロード時にすべてのアセットがロードされます。

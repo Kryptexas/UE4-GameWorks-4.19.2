@@ -155,7 +155,7 @@ protected:
 
 	// The previous spritesheet group this belonged to
 	// To make sure we remove ourselves from it if changed or nulled out
-	TAssetPtr<class UPaperSpriteAtlas> PreviousAtlasGroup;
+	TSoftObjectPtr<class UPaperSpriteAtlas> PreviousAtlasGroup;
 
 #endif
 

@@ -10,7 +10,7 @@
 
 namespace FbxAnimUtils
 {
-	void ExportAnimFbx( const FString& ExportFilename, UAnimSequence* AnimSequence, USkeletalMesh* Mesh, bool bSaveSkeletalMesh )
+	void ExportAnimFbx( const FString& ExportFilename, UAnimSequence* AnimSequence, USkeletalMesh* Mesh, bool bSaveSkeletalMesh, bool BatchMode, bool &OutExportAll, bool &OutCancelExport )
 	{
 		if( !ExportFilename.IsEmpty() && AnimSequence && Mesh )
 		{
@@ -18,13 +18,17 @@ namespace FbxAnimUtils
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::FBX_ANIM, FPaths::GetPath(FileName)); // Save path as default for next time.
 
 			UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
+			//Show the fbx export dialog options
+			Exporter->FillExportOptions(BatchMode, (!BatchMode || !OutExportAll), ExportFilename, OutCancelExport, OutExportAll);
+			if (!OutCancelExport)
+			{
+				Exporter->CreateDocument();
 
-			Exporter->CreateDocument();
+				Exporter->ExportAnimSequence(AnimSequence, Mesh, bSaveSkeletalMesh);
 
-			Exporter->ExportAnimSequence(AnimSequence, Mesh, bSaveSkeletalMesh);
-
-			// Save to disk
-			Exporter->WriteToFile( *ExportFilename );
+				// Save to disk
+				Exporter->WriteToFile(*ExportFilename);
+			}
 		}
 	}
 

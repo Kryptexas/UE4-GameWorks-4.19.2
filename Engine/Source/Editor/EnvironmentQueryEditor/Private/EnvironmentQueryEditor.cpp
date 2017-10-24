@@ -389,7 +389,7 @@ void FEnvironmentQueryEditor::OnSaveStats()
 	bool bSaved = false;
 	if (DesktopPlatform)
 	{
-		const FString DefaultBrowsePath = FPaths::GameLogDir();
+		const FString DefaultBrowsePath = FPaths::ProjectLogDir();
 		bSaved = DesktopPlatform->SaveFileDialog(
 			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT("StatsSaveTitle", "Save EQS stats").ToString(),
@@ -414,7 +414,7 @@ void FEnvironmentQueryEditor::OnLoadStats()
 	bool bOpened = false;
 	if (DesktopPlatform)
 	{
-		const FString DefaultBrowsePath = FPaths::GameLogDir();
+		const FString DefaultBrowsePath = FPaths::ProjectLogDir();
 		bOpened = DesktopPlatform->OpenFileDialog(
 			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT("StatsLoadTitle", "Load EQS stats").ToString(),

@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Cook/SProjectLauncherSimpleCookPage.h"
+#include "SProjectLauncherSimpleCookPage.h"
+
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Cook/SProjectLauncherCookByTheBookSettings.h"
 
@@ -11,7 +12,7 @@
 /* SProjectLauncherSimpleCookPage structors
  *****************************************************************************/
 
-SProjectLauncherSimpleCookPage::~SProjectLauncherSimpleCookPage( )
+SProjectLauncherSimpleCookPage::~SProjectLauncherSimpleCookPage()
 {
 	if (Model.IsValid())
 	{
@@ -23,7 +24,7 @@ SProjectLauncherSimpleCookPage::~SProjectLauncherSimpleCookPage( )
 /* SProjectLauncherSimpleCookPage interface
  *****************************************************************************/
 
-void SProjectLauncherSimpleCookPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherSimpleCookPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -46,7 +47,7 @@ void SProjectLauncherSimpleCookPage::Construct( const FArguments& InArgs, const 
 /* SProjectLauncherSimpleCookPage callbacks
  *****************************************************************************/
 
-EVisibility SProjectLauncherSimpleCookPage::HandleCookByTheBookSettingsVisibility( ) const
+EVisibility SProjectLauncherSimpleCookPage::HandleCookByTheBookSettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -62,7 +63,7 @@ EVisibility SProjectLauncherSimpleCookPage::HandleCookByTheBookSettingsVisibilit
 }
 
 
-FText SProjectLauncherSimpleCookPage::HandleCookModeComboButtonContentText( ) const
+FText SProjectLauncherSimpleCookPage::HandleCookModeComboButtonContentText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -92,7 +93,7 @@ FText SProjectLauncherSimpleCookPage::HandleCookModeComboButtonContentText( ) co
 }
 
 
-void SProjectLauncherSimpleCookPage::HandleCookModeMenuEntryClicked( ELauncherProfileCookModes::Type CookMode )
+void SProjectLauncherSimpleCookPage::HandleCookModeMenuEntryClicked(ELauncherProfileCookModes::Type CookMode)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -103,7 +104,7 @@ void SProjectLauncherSimpleCookPage::HandleCookModeMenuEntryClicked( ELauncherPr
 }
 
 
-EVisibility SProjectLauncherSimpleCookPage::HandleCookOnTheFlySettingsVisibility( ) const
+EVisibility SProjectLauncherSimpleCookPage::HandleCookOnTheFlySettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -119,7 +120,7 @@ EVisibility SProjectLauncherSimpleCookPage::HandleCookOnTheFlySettingsVisibility
 }
 
 
-void SProjectLauncherSimpleCookPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherSimpleCookPage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 	// reload settings
 }

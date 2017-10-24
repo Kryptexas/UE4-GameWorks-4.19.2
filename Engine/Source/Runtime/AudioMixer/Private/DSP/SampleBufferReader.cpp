@@ -187,12 +187,13 @@ namespace Audio
 		return (float)PCMSampleValue / 32767.0f;
 	}
 
-	bool FSampleBufferReader::Generate(TArray<float>& OutAudioBuffer, const int32 NumFrames, const int32 OutChannels, const bool bWrap)
+	bool FSampleBufferReader::Generate(float* OutAudioBuffer, const int32 NumFrames, const int32 OutChannels, const bool bWrap)
 	{
 		// Don't have a buffer yet, so fill in zeros, say we're not done
 		if (!HasBuffer() || bIsFinished)
 		{
-			for (int32 i = 0; i < OutAudioBuffer.Num(); ++i)
+			int32 NumSamples = NumFrames * OutChannels;
+			for (int32 i = 0; i < NumSamples; ++i)
 			{
 				OutAudioBuffer[i] = 0.0f;
 			}

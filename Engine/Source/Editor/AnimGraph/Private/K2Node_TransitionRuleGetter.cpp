@@ -106,7 +106,7 @@ FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType)
 	}
 	else if (AssociatedStateNode != NULL)
 	{
-		if (UAnimStateNode* State = Cast<UAnimStateNode>(AssociatedStateNode))
+		if (UAnimStateNode* State = AssociatedStateNode)
 		{
 			const FString OwnerName = State->GetOuter()->GetName();
 

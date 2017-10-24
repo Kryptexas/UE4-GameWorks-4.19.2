@@ -353,6 +353,42 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 /** Used for cleaning up predicted data on network clients */
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameplayEventMulticastDelegate, const FGameplayEventData*);
 
+/** Ability Ended Data */
+USTRUCT()
+struct FAbilityEndedData
+{
+	GENERATED_USTRUCT_BODY()
+	FAbilityEndedData()
+		: AbilityThatEnded(nullptr)
+		, bReplicateEndAbility(false)
+		, bWasCancelled(false)
+	{
+	}
+
+	FAbilityEndedData(UGameplayAbility* InAbility, FGameplayAbilitySpecHandle InHandle, bool bInReplicateEndAbility, bool bInWasCancelled)
+		: AbilityThatEnded(InAbility)
+		, AbilitySpecHandle(InHandle)
+		, bReplicateEndAbility(bInReplicateEndAbility)
+		, bWasCancelled(bInWasCancelled)
+	{
+	}
+
+	UPROPERTY()
+	UGameplayAbility* AbilityThatEnded;
+
+	UPROPERTY()
+	FGameplayAbilitySpecHandle AbilitySpecHandle;
+
+	UPROPERTY()
+	bool bReplicateEndAbility;
+
+	UPROPERTY()
+	bool bWasCancelled;
+};
+
+/** Notification delegate definition for when the gameplay ability ends */
+DECLARE_MULTICAST_DELEGATE_OneParam(FGameplayAbilityEndedDelegate, const FAbilityEndedData&);
+
 /** 
  *	Structure that tells AbilitySystemComponent what to bind to an InputComponent (see BindAbilityActivationToInputComponent) 
  *	

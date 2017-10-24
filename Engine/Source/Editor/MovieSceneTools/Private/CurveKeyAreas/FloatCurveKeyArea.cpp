@@ -179,6 +179,7 @@ FRichCurve* FFloatCurveKeyArea::GetRichCurve()
 TArray<FKeyHandle> FFloatCurveKeyArea::GetUnsortedKeyHandles() const
 {
 	TArray<FKeyHandle> OutKeyHandles;
+	OutKeyHandles.Reserve(Curve->GetNumKeys());
 
 	for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 	{

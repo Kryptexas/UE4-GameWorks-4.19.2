@@ -163,7 +163,7 @@ enum EMaterialProperty
 	//^^^ New material properties go above here ^^^^
 	MP_MaterialAttributes UMETA(Hidden),
 	MP_CustomOutput UMETA(Hidden),
-	MP_MAX UMETA(Hidden),
+	MP_MAX UMETA(DisplayName = "None"),
 };
 
 /** Blend modes supported for simple element rendering */
@@ -183,6 +183,7 @@ enum ESimpleElementBlendMode
 	SE_BLEND_AlphaBlend,
 	// Like SE_BLEND_Translucent, but reads from an alpha-only texture
 	SE_BLEND_TranslucentAlphaOnly,
+	SE_BLEND_TranslucentAlphaOnlyWriteAlpha,
 
 	SE_BLEND_RGBA_MASK_START,
 	SE_BLEND_RGBA_MASK_END = SE_BLEND_RGBA_MASK_START + 31, //Using 5bit bit-field for red, green, blue, alpha and desaturation

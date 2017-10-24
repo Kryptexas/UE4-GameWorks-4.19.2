@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "IMessageTracer.h"
+#include "Templates/SharedPointer.h"
+
 
 /**
  * Implements a filter for the message history list.

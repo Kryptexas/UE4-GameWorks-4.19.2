@@ -21,7 +21,6 @@ PRAGMA_POP
 #include "ir.h"
 
 #include "VectorVM.h"
-#include "INiagaraCompiler.h"
 
 /** Removes any assignments that don't actually map to a VM op but just move some data around. We look for refs and grab the source data direct. */
 class ir_propagate_non_expressions_visitor final : public ir_rvalue_visitor
@@ -113,7 +112,6 @@ public:
 					check(assign->rhs->as_swizzle() || assign->rhs->as_dereference_variable() || assign->rhs->as_constant());
 					check(assign->rhs->type->is_scalar());//All assignments must be scalar at this point!
 					ir_rvalue* new_rval = assign->rhs->clone(ralloc_parent(assign), nullptr);
-					(*rvalue)->replace_with(new_rval);
 					(*rvalue) = new_rval;
 					progress = true;
 				}
@@ -141,6 +139,7 @@ public:
 
 	virtual ir_visitor_status visit_leave(ir_assignment *assign)
 	{
+		check(assign->next && assign->prev);
 		ir_variable* lhs = assign->lhs->variable_referenced();
 		var_info& varinfo = var_info_map.FindOrAdd(lhs);
 		
@@ -352,6 +351,8 @@ public:
 			{
 				mv = &MatrixVectorMap.Add(var);
 				void* p = ralloc_parent(var);
+
+				check(var->next && var->prev);
 
 				const glsl_type* vtype = var->type->column_type();
 				const char *name = ralloc_asprintf(p, "%s_%s", var->name,"col0");				

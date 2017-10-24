@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaByteStream.h"
-#include "Misc/ScopeLock.h"
-#include "WmfMediaReadState.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "WmfMediaReadState.h"
+#include "Misc/ScopeLock.h"
+
 #include "AllowWindowsPlatformTypes.h"
+
 
 /* FWmfByteStream structors
  *****************************************************************************/
@@ -16,6 +18,12 @@ FWmfMediaByteStream::FWmfMediaByteStream(const TSharedRef<FArchive, ESPMode::Thr
 	, Archive(InArchive)
 	, RefCount(0)
 { }
+
+
+FWmfMediaByteStream::~FWmfMediaByteStream()
+{
+	check(RefCount == 0);
+}
 
 
 /* IMFAsyncCallback interface

@@ -1,10 +1,17 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿INTSourceChangelist:3612551
+Availability: Public
+Crumbs: %ROOT%
 Title: 이벤트
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 의 이벤트 사용 안내서입니다.
-version: 4.9
-tags:UMG UI Designer
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:5
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/EventsTopic.png
+
+
 
 **UMG** 에서 **이벤트** 를 호출하는 메소드는 둘 정도 있는데, 다음과 같습니다.
 

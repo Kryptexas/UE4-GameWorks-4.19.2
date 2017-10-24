@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleComponent.cpp: Particle component implementation.
@@ -81,6 +81,7 @@
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "GameFramework/GameState.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -118,6 +119,17 @@ FAutoConsoleVariableRef CVarParticleLODBias(
 	TEXT("LOD bias for particle systems, default is 0"),
 	ECVF_Scalability
 	);
+
+static TAutoConsoleVariable<float> CVarQLSpawnRateReferenceLevel(
+	TEXT("fx.QualityLevelSpawnRateScaleReferenceLevel"),
+	2,
+	TEXT("Controls the reference level for quality level based spawn rate scaling. This is the FX quality level\n")
+	TEXT("at which spawn rate is not scaled down; Spawn rate scaling will happen by each emitter's\n")
+	TEXT("QualityLevelSpawnRateScale value for each reduction in level below the reference level.\n")
+	TEXT("\n")
+	TEXT("Default = 2. Value should range from 0 to the maximum FX quality level."),
+	ECVF_Scalability);
+
 
 /** Whether to allow particle systems to perform work. */
 bool GIsAllowingParticles = true;
@@ -1738,14 +1750,11 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
-	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(true);
-	float Q = 1;
-	float Level = (1 - EffectsQuality);
-	for (int i = 0; i < Level + 1; i++)
-	{
-		Q = Q*QualityLevelSpawnRateScale;
-	}
-	return Q;
+	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(IsInGameThread());
+	int32 ReferenceLevel = CVarQLSpawnRateReferenceLevel.GetValueOnAnyThread(true);
+	float Level = (ReferenceLevel - EffectsQuality);
+	float Q = FMath::Pow(QualityLevelSpawnRateScale, Level);
+	return FMath::Min(1.0f, Q);
 }
 
 bool UParticleEmitter::HasAnyEnabledLODs()const
@@ -1831,11 +1840,7 @@ FParticleEmitterInstance* UParticleSpriteEmitter::CreateInstance(UParticleSystem
 	if (LODLevel->TypeDataModule)
 	{
 		//@todo. This will NOT work for trails/beams!
-		UParticleModuleTypeDataBase* TypeData = CastChecked<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
-		if (TypeData)
-		{
-			Instance = TypeData->CreateInstance(this, InComponent);
-		}
+		Instance = LODLevel->TypeDataModule->CreateInstance(this, InComponent);
 	}
 	else
 	{
@@ -3415,11 +3420,13 @@ void UParticleSystemComponent::Serialize( FArchive& Ar )
 	}
 
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+#if WITH_EDITORONLY_DATA
 
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::ExplicitAttachmentRules)
 	{
 		USceneComponent::ConvertAttachLocation(AutoAttachLocationType_DEPRECATED, AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule);
 	}
+#endif
 }
 
 void UParticleSystemComponent::BeginDestroy()
@@ -4381,6 +4388,8 @@ bool UParticleSystemComponent::IsReadyForOwnerToAutoDestroy() const
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 	if (Template == nullptr || Template->Emitters.Num() == 0)
@@ -4960,6 +4969,8 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 
 void UParticleSystemComponent::InitParticles()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
 
 	if (IsTemplate() == true)
@@ -7095,6 +7106,8 @@ UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectIni
 
 void UParticleSystemReplay::Serialize( FArchive& Ar )
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	Super::Serialize( Ar );
 
 	// Serialize clip ID number
@@ -7258,6 +7271,8 @@ void AEmitterCameraLensEffectBase::NotifyRetriggered()
 
 void AEmitterCameraLensEffectBase::PostInitializeComponents()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	GetParticleSystemComponent()->SetDepthPriorityGroup(SDPG_Foreground);
 	Super::PostInitializeComponents();
 	ActivateLensEffect();
@@ -7265,6 +7280,8 @@ void AEmitterCameraLensEffectBase::PostInitializeComponents()
 
 void AEmitterCameraLensEffectBase::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Particles);
+
 	Super::PostLoad();
 
 	// using TNumericLimits<float>::Max() as a sentinel value to indicate this deprecated data has been 

@@ -80,10 +80,10 @@ There are 3 websites we will be creating for this service to work
 * **Right-click** on Sites -> Add Web Site
     * Site Name: AutoReportService
     * Application Pool: AutoReportService
-    * Physical Path: <Web Root>/AutoReportService
+    * Physical Path: `<Web Root>/AutoReportService`
 * In the File System, create a Folder for your Log file outside of the web root
     * e.g. C:\AutoReportLog\
-* Share <Web Root>/AutoReportService to the local network to allow for simple deployment
+* Share `<Web Root>/AutoReportService` to the local network to allow for simple deployment
     * From IIS, you can simply **Right-click** on the Website name -> Explore
     * **Right-click** on the Folder and click Properties
         * Set the Permissions as you see fit, allowing at least the person deploying the site access
@@ -121,7 +121,7 @@ Open The CrashReport solution in VS 2008 located at /UnrealEngine3/Development/T
 ### http://CrashReport.yourdomain.com
 
 * Edit Web.config
-    * Find the line under <connectionStrings> starting with `<add name="CrashReportConnectionString"`
+    * Find the line under `<connectionStrings>` starting with `<add name="CrashReportConnectionString"`
     * Edit Data Source, User ID and Password to your Connection Settings
 * Edit Settings.settings ( or Properties->settings)
     * Note the url you made for `http://AutoReportFiles.yourdomain.com` and enter that url here.

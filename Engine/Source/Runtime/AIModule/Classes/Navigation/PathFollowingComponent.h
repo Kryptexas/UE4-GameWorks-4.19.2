@@ -696,6 +696,9 @@ protected:
 	/** used to keep track of which subsystem requested this AI resource be locked */
 	FAIResourceLock ResourceLock;
 
+	/** timer handle for OnWaitingPathTimeout function */
+	FTimerHandle WaitingForPathTimer;
+
 private:
 
 	/** used for debugging purposes to be able to identify which logged information
@@ -707,9 +710,6 @@ private:
 	 *	Since it makes conceptual sense for GetCurrentNavLocation() to be const but we may 
 	 *	need to update the cached value, CurrentNavLocation is mutable. */
 	mutable FNavLocation CurrentNavLocation;
-
-	/** timer handle for OnWaitingPathTimeout function */
-	FTimerHandle WaitingForPathTimer;
 
 	/** DEPRECATED, use bReachTestIncludesAgentRadius instead */
 	uint32 bStopOnOverlap : 1;

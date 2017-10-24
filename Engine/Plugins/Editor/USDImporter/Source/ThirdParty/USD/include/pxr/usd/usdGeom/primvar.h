@@ -24,12 +24,16 @@
 #ifndef USDGEOM_PRIMVAR_H
 #define USDGEOM_PRIMVAR_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/usd/attribute.h"
 #include "pxr/usd/usdGeom/tokens.h"
 
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \class UsdGeomPrimvar
 ///
@@ -45,7 +49,7 @@
 /// This includes the attribute's \ref GetInterpolation() "interpolation"
 /// across the primitive (which RenderMan refers to as its 
 /// \ref Usd_InterpolationVals "class specifier"
-/// and Alembic as its <A HREF="http://code.google.com/p/alembic/source/browse/lib/Alembic/AbcGeom/GeometryScope.h#46"> "geometry scope"</A>);
+/// and Alembic as its <A HREF="https://github.com/alembic/alembic/blob/master/lib/Alembic/AbcGeom/GeometryScope.h#L47"> "geometry scope"</A>);
 /// it also includes the attribute's \ref GetElementSize() "elementSize",
 /// which states how many values in the value array must be aggregated for
 /// each element on the primitive.  An attribute's \ref
@@ -58,13 +62,13 @@
 /// \li Primvars define a value that can vary across the primitive on which
 ///     they are defined, via prescribed interpolation rules
 /// \li Taken collectively on a prim, its Primvars describe the "per-primitive
-///     overrides" to the shader(s) to which the prim is bound.  Different
+///     overrides" to the material to which the prim is bound.  Different
 ///     renderers may communicate the variables to the shaders using different
 ///     mechanisms over which Usd has no control; Primvars simply provide the
 ///     classification that any renderer should use to locate potential
 ///     overrides.  Do please note that primvars override parameters on
 ///     UsdShadeShader objects, \em not 
-///     \ref UsdShadeLook_Interfaces "Interface Attributes" on UsdShadeLook
+///     \ref UsdShadeNodeGraph_Interfaces "Interface Attributes" on UsdShadeMaterial
 ///     prims.
 ///
 /// \section Usd_Creating_and_Accessing_Primvars Creating and Accessing Primvars
@@ -284,12 +288,21 @@ class UsdGeomPrimvar
     /// unauthored.  If this Primvar's type is \em not an array type,
     /// (e.g. "Vec3f[]"), then elementSize is irrelevant.
     ///
-    /// ElementSize dictates how many consecutive items in the value array
-    /// should be taken as an atomic element to be interpolated over a gprim.
-    /// For example, if one is encoding spherical harmonic coefficients in
-    /// a Primvar, the typeName would be "float[]", and the elementSize
-    /// would be 9.  Changing the elementSize without changing the interpolation
-    /// will always necessitate a change to the size of the value array.
+    /// ElementSize does \em not generally encode the length of an array-type
+    /// primvar, and rarely needs to be authored.  ElementSize can be thought
+    /// of as a way to create an "aggregate interpolatable type", by
+    /// dictating how many consecutive elements in the value array should be
+    /// taken as an atomic element to be interpolated over a gprim. 
+    ///
+    /// For example, spherical harmonics are often represented as a
+    /// collection of nine floating-point coefficients, and the coefficients
+    /// need to be sampled across a gprim's surface: a perfect case for
+    /// primvars.  However, USD has no <tt>float9</tt> datatype.  But we can
+    /// communicate the aggregation of nine floats successfully to renderers
+    /// by declaring a simple float-array valued primvar, and setting its
+    /// \em elementSize to 9.  To author a \em uniform spherical harmonic
+    /// primvar on a Mesh of 42 faces, the primvar's array value would contain
+    /// 9*42 = 378 float elements.
     USDGEOM_API
     int GetElementSize() const;
     
@@ -333,7 +346,8 @@ class UsdGeomPrimvar
     // ---------------------------------------------------------------
     /// \name UsdAttribute API
     // ---------------------------------------------------------------
-    
+    /// @{
+
     /// Allow UsdGeomPrimvar to auto-convert to UsdAttribute, so you can
     /// pass a UsdGeomPrimvar to any function that accepts a UsdAttribute or
     /// const-ref thereto.
@@ -386,6 +400,38 @@ class UsdGeomPrimvar
     bool Set(const T& value, UsdTimeCode time = UsdTimeCode::Default()) const {
         return _attr.Set(value, time);
     }
+
+    /// Populates a vector with authored sample times for this primvar.
+    /// Returns false on error.
+    /// 
+    /// This considers any timeSamples authored on the associated "indices"
+    /// attribute if the primvar is indexed.
+    /// 
+    /// \sa UsdAttribute::GetTimeSamples
+    USDGEOM_API
+    bool GetTimeSamples(std::vector<double>* times) const;
+
+    /// Populates a vector with authored sample times in \p interval. 
+    /// 
+    /// This considers any timeSamples authored on the associated "indices"
+    /// attribute if the primvar is indexed.
+    /// 
+    /// \sa UsdAttribute::GetTimeSamplesInInterval
+    USDGEOM_API
+    bool GetTimeSamplesInInterval(const GfInterval& interval,
+                                  std::vector<double>* times) const;
+
+    /// Return true if it is possible, but not certain, that this primvar's
+    /// value changes over time, false otherwise. 
+    /// 
+    /// This considers time-varyingness of the associated "indices" attribute 
+    /// if the primvar is indexed.
+    /// 
+    /// \sa UsdAttribute::ValueMightBeTimeVarying
+    USDGEOM_API
+    bool ValueMightBeTimeVarying() const;
+
+    /// @}
 
     // ---------------------------------------------------------------
     /// @{
@@ -619,16 +665,16 @@ bool
 UsdGeomPrimvar::ComputeFlattened(VtArray<ScalarType> *value, UsdTimeCode time) const
 {
     VtArray<ScalarType> authored;
-    if (not Get(&authored, time))
+    if (!Get(&authored, time))
         return false;
 
-    if (not IsIndexed()) {
+    if (!IsIndexed()) {
         *value = authored;
         return true;
     }
 
     VtIntArray indices;
-    if (not GetIndices(&indices, time)) {
+    if (!GetIndices(&indices, time)) {
         TF_WARN("No indices authored for indexed primvar <%s>.", 
                 _attr.GetPath().GetText());
         return false;
@@ -652,7 +698,7 @@ UsdGeomPrimvar::_ComputeFlattenedHelper(const VtArray<ScalarType> &authored,
     bool success = true;
     for(size_t i=0; i < indices.size(); i++) {
         int index = indices[i];
-        if (index >= 0 and index < authored.size()) {
+        if (index >= 0 && index < authored.size()) {
             (*value)[i] = authored[index];
         } else {
             TF_WARN("Index %d is out of range [0,%ld)", index, 
@@ -662,5 +708,8 @@ UsdGeomPrimvar::_ComputeFlattenedHelper(const VtArray<ScalarType> &authored,
     }
     return success;
 }
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_PRIMVAR_H

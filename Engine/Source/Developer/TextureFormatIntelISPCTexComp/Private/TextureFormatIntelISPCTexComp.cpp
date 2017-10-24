@@ -19,7 +19,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatIntelISPCTexComp, Log, All);
 
 // increment this if you change anything that will affect compression in this file, including FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE
-#define BASE_ISPC_DX11_FORMAT_VERSION 2
+#define BASE_ISPC_DX11_FORMAT_VERSION 3
 
 // For debugging intermediate image results by saving them out as files.
 #define DEBUG_SAVE_INTERMEDIATE_IMAGES 0
@@ -540,7 +540,10 @@ public:
 	}
 
 	// Return the version for the DX11 formats BC6H and BC7 (not ASTC)
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const override
 	{
 		return BASE_ISPC_DX11_FORMAT_VERSION;
 	}
@@ -708,7 +711,7 @@ public:
 			bool bIsNormalMap = (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalAG ||
 				BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalRG);
 
-			CompressedPixelFormat = GetQualityFormat( BlockWidth, BlockHeight, bIsNormalMap ? FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE : -1 );
+			CompressedPixelFormat = GetQualityFormat( BlockWidth, BlockHeight, bIsNormalMap ? FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE : BuildSettings.CompressionQuality );
 
 			FASTCEncoderSettings EncoderSettings;
 			if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalAG)

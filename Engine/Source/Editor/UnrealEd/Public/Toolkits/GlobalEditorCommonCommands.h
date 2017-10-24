@@ -26,9 +26,6 @@ protected:
 	static void OnSummonedAssetPicker();
 	static void OnSummonedConsoleCommandBox();
 
-	DEPRECATED(4.9, "OpenPopup() returning a window is deprecated. Use OpenPopupMenu() that returns an IMenu.")
-	static TSharedPtr<SWindow> OpenPopup(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize);
-
 	static TSharedPtr<IMenu> OpenPopupMenu(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize);
 public:
 	TSharedPtr<FUICommandInfo> FindInContentBrowser;

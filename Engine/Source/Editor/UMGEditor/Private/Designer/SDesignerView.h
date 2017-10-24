@@ -52,6 +52,8 @@ public:
 	void Construct(const FArguments& InArgs, TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor);
 	virtual ~SDesignerView();
 
+	EActiveTimerReturnType EnsureTick(double InCurrentTime, float InDeltaTime);
+
 	TSharedRef<SWidget> CreateOverlayUI();
 
 	// SWidget interface

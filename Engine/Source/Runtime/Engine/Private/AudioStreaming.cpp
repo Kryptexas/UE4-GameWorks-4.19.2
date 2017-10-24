@@ -15,6 +15,7 @@ AudioStreaming.cpp: Implementation of audio streaming classes.
 #include "AsyncFileHandle.h"
 #include "Misc/ScopeLock.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/LowLevelMemTracker.h"
 
 static int32 SpoofFailedStreamChunkLoad = 0;
 FAutoConsoleVariableRef CVarSpoofFailedStreamChunkLoad(
@@ -519,6 +520,8 @@ void FAudioStreamingManager::ProcessPendingAsyncFileResults()
 
 void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProcessEverything /*= false*/)
 {
+	LLM_SCOPE(ELLMTag::Audio);
+
 	FScopeLock Lock(&CriticalSection);
 
 	for (auto& WavePair : StreamingSoundWaves)
@@ -640,6 +643,10 @@ void FAudioStreamingManager::AddLevel(class ULevel* Level)
 }
 
 void FAudioStreamingManager::RemoveLevel(class ULevel* Level)
+{
+}
+
+void FAudioStreamingManager::NotifyLevelOffset(class ULevel* Level, const FVector& Offset)
 {
 }
 

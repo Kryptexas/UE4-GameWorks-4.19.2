@@ -280,3 +280,25 @@ If you navigate back to the **Project Settings > Project - Packaging** menu, you
 This flag is intended for Advanced users who build/cook their projects from the command line (such as a server-side build engineers). Basically, if you enable this flag while also enabling nativization in 
 the **Project Settings** menu, a warning will be emitted if you don't use the nativization flag from the command line at build/cook time. To learn how to use the nativization switch from the command line, please 
 read the [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) documentation.
+
+##Additional Resource
+
+Additional information covering Blueprint Nativization can be found in the following Feature Highlight video.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Ut_CRt7o8PA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

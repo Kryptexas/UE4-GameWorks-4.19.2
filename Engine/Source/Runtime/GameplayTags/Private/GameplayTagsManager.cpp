@@ -48,7 +48,7 @@ void UGameplayTagsManager::LoadGameplayTagTables()
 
 	UGameplayTagsSettings* MutableDefault = GetMutableDefault<UGameplayTagsSettings>();
 
-	for (FStringAssetReference DataTablePath : MutableDefault->GameplayTagTableList)
+	for (FSoftObjectPath DataTablePath : MutableDefault->GameplayTagTableList)
 	{
 		UDataTable* TagTable = LoadObject<UDataTable>(nullptr, *DataTablePath.ToString(), nullptr, LOAD_None, nullptr);
 
@@ -151,7 +151,7 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 		
 			// Read all tags from the ini
 			TArray<FString> FilesInDirectory;
-			IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::GameConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
+			IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::ProjectConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
 			FilesInDirectory.Sort();
 			for (FString& FileName : FilesInDirectory)
 			{
@@ -188,6 +188,14 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				}
 			}
 		}
+
+#if WITH_EDITOR
+		// Add any transient editor-only tags
+		for (FName TransientTag : TransientEditorTags)
+		{
+			AddTagTableRow(FGameplayTagTableRow(TransientTag), FGameplayTagSource::GetTransientEditorName());
+		}
+#endif
 
 		// Grab the commonly replicated tags
 		CommonlyReplicatedTags.Empty();
@@ -1181,6 +1189,27 @@ FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 
 	return FGameplayTag();
 }
+void UGameplayTagsManager::CallOrRegister_OnDoneAddingNativeTagsDelegate(FSimpleMulticastDelegate::FDelegate Delegate)
+{
+	if (bDoneAddingNativeTags)
+	{
+		Delegate.Execute();
+	}
+	else
+	{
+		bool bAlreadyBound = Delegate.GetUObject() != nullptr ? OnDoneAddingNativeTagsDelegate().IsBoundToObject(Delegate.GetUObject()) : false;
+		if (!bAlreadyBound)
+		{
+			OnDoneAddingNativeTagsDelegate().Add(Delegate);
+		}
+	}
+}
+
+FSimpleMulticastDelegate& UGameplayTagsManager::OnDoneAddingNativeTagsDelegate()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
 
 FSimpleMulticastDelegate& UGameplayTagsManager::OnLastChanceToAddNativeTags()
 {
@@ -1201,6 +1230,7 @@ void UGameplayTagsManager::DoneAddingNativeTags()
 		{
 			ConstructNetIndex();
 		}
+		OnDoneAddingNativeTagsDelegate().Broadcast();
 	}
 }
 

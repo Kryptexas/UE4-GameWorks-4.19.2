@@ -211,7 +211,7 @@ void FAnalyticsProviderFlurry::RecordEvent(const FString& EventName, const TArra
 			for	(auto Attr : Attributes)
 			{
 				NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-				NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+				NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 				[AttributesDict setValue:AttrValue forKey:AttrName];
 			}
 			[Flurry logEvent:ConvertedEventName withParameters:AttributesDict];
@@ -296,7 +296,7 @@ void FAnalyticsProviderFlurry::RecordItemPurchase(const FString& ItemId, int Ite
 	for	(auto Attr : EventAttrs)
 	{
 		NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-		NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 		[AttributesDict setValue:AttrValue forKey:AttrName];
 	}
 	// Send the event
@@ -320,7 +320,7 @@ void FAnalyticsProviderFlurry::RecordCurrencyPurchase(const FString& GameCurrenc
 	for	(auto Attr : EventAttrs)
 	{
 		NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-		NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 		[AttributesDict setValue:AttrValue forKey:AttrName];
 	}
 	// Send the event
@@ -344,7 +344,7 @@ void FAnalyticsProviderFlurry::RecordCurrencyGiven(const FString& GameCurrencyTy
 	for	(auto Attr : EventAttrs)
 	{
 		NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-		NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 		[AttributesDict setValue:AttrValue forKey:AttrName];
 	}
 	// Send the event
@@ -367,7 +367,7 @@ void FAnalyticsProviderFlurry::RecordError(const FString& Error, const TArray<FA
 	for	(auto Attr : EventAttrs)
 	{
 		NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-		NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 		[AttributesDict setValue:AttrValue forKey:AttrName];
 	}
 	// Send the event
@@ -391,7 +391,7 @@ void FAnalyticsProviderFlurry::RecordProgress(const FString& ProgressType, const
 	for	(auto Attr : EventAttrs)
 	{
 		NSString* AttrName = [NSString stringWithFString : Attr.AttrName];
-		NSString* AttrValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* AttrValue = [NSString stringWithFString : Attr.ToString()];
 		[AttributesDict setValue:AttrValue forKey:AttrName];
 	}
 	// Send the event

@@ -10,8 +10,8 @@ public class GoogleInstantPreview : ModuleRules
 	{
         Type = ModuleType.External;
 
-		string GoogleInstantPreviewTargetDir = Path.Combine(UEBuildConfiguration.UEThirdPartyBinariesDirectory, "GoogleInstantPreview");
-		string GoogleInstantPreviewSourceDir = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "GoogleInstantPreview");
+		string GoogleInstantPreviewTargetDir = Path.Combine(Target.UEThirdPartyBinariesDirectory, "GoogleInstantPreview");
+		string GoogleInstantPreviewSourceDir = Path.Combine(Target.UEThirdPartySourceDirectory, "GoogleInstantPreview");
 
 		PublicIncludePaths.Add(GoogleInstantPreviewSourceDir);
 

@@ -9,7 +9,7 @@ public class GoogleVR : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
+		string GoogleVRSDKDir = Target.UEThirdPartySourceDirectory + "GoogleVR/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					GoogleVRSDKDir + "include",

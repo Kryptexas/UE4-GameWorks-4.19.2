@@ -57,6 +57,14 @@ public:
 	
 		}
 
+		if (Material->IsPostProcessMaterial())
+		{
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("PostProcess")))
+			{
+				return true;
+			}
+		}
+
 		{
 			bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
 
@@ -116,6 +124,10 @@ public:
 				bShaderTypeMatches = true;
 			}
 			else if (FCString::Stristr(ShaderType->GetName(), TEXT("CachedPointIndirectLightingPolicy")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("PrecomputedVolumetricLightmapLightingPolicy")))
 			{
 				bShaderTypeMatches = true;
 			}
@@ -374,7 +386,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 		// Scalar Parameters.
 		ParentMaterial->GetAllScalarParameterNames(ParameterNames, Guids);
@@ -414,7 +426,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 
 		// Texture Parameters.
@@ -454,7 +466,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 
 		// Font Parameters.
@@ -497,7 +509,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 
 		// Get all static parameters from the source instance.  This will handle inheriting parent values.
@@ -523,7 +535,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 
 		// Copy Static Component Mask Parameters
@@ -549,7 +561,7 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			{
 				ParameterValue.SortPriority = 0;
 			}
-			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
+			AssignParameterToGroup(ParentMaterial, &ParameterValue);
 		}
 
 		IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
@@ -563,8 +575,8 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 		{
 			FORCEINLINE bool operator()(const UDEditorParameterValue& A, const UDEditorParameterValue& B) const
 			{
-				FString AName = A.ParameterName.ToString().ToLower();
-				FString BName = B.ParameterName.ToString().ToLower();
+				FString AName = A.ParameterName.ToString();
+				FString BName = B.ParameterName.ToString();
 				return A.SortPriority != B.SortPriority ? A.SortPriority < B.SortPriority : AName < BName;
 			}
 		};
@@ -576,8 +588,8 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 	{
 		FORCEINLINE bool operator()(const FEditorParameterGroup& A, const FEditorParameterGroup& B) const
 		{
-			FString AName = A.GroupName.ToString().ToLower();
-			FString BName = B.GroupName.ToString().ToLower();
+			FString AName = A.GroupName.ToString();
+			FString BName = B.GroupName.ToString();
 			if (AName == TEXT("none"))
 			{
 				return false;

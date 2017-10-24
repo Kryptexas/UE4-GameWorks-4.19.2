@@ -620,12 +620,12 @@ private:
 			if (!PooledRenderTarget[BufferNumber].IsValid())
 			{
 				// Create the texture needed for EyeAdaptation
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F /*PF_R32_FLOAT*/, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 				if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 				{
 					Desc.TargetableFlags |= TexCreate_UAV;
 				}
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"), true, ERenderTargetTransience::NonTransient);
 			}
 
 			return PooledRenderTarget[BufferNumber];
@@ -745,6 +745,7 @@ public:
 	FShaderResourceViewRHIRef IndirectShadowMeshDistanceFieldCasterIndicesSRV;
 	FVertexBufferRHIRef IndirectShadowLightDirectionVertexBuffer;
 	FShaderResourceViewRHIRef IndirectShadowLightDirectionSRV;
+	FRWBuffer IndirectShadowVolumetricLightmapDerivedLightDirection;
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
 
 	/** Timestamp queries around separate translucency, used for auto-downsampling. */
@@ -978,7 +979,7 @@ public:
 
 			Desc.DebugName = TEXT("CombineLUTs");
 			
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName, true, ERenderTargetTransience::NonTransient);
 		}
 
 		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
@@ -1320,6 +1321,36 @@ public:
 
 
 	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize);
+};
+
+class FVolumetricLightmapInterpolation
+{
+public:
+	FVector4 IndirectLightingSHCoefficients0[3];
+	FVector4 IndirectLightingSHCoefficients1[3];
+	FVector4 IndirectLightingSHCoefficients2;
+	FVector4 IndirectLightingSHSingleCoefficient;
+	FVector4 PointSkyBentNormal;
+	float DirectionalLightShadowing;
+	uint32 LastUsedSceneFrameNumber;
+};
+
+class FVolumetricLightmapSceneData
+{
+public:
+
+	bool HasData() const { return LevelVolumetricLightmaps.Num() > 0; }
+	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath);
+	void RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume);
+	const FPrecomputedVolumetricLightmap* GetLevelVolumetricLightmap() const 
+	{ 
+		return LevelVolumetricLightmaps.Num() > 0 ? LevelVolumetricLightmaps.Last() : NULL; 
+	}
+
+	TMap<FVector, FVolumetricLightmapInterpolation> CPUInterpolationCache;
+
+private:
+	TArray<const FPrecomputedVolumetricLightmap*> LevelVolumetricLightmaps;
 };
 
 class FPrimitiveAndInstance
@@ -1880,6 +1911,7 @@ public:
 	/** Base pass draw list - self shadowed translucency*/
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> > BasePassSelfShadowedTranslucencyDrawList[EBasePass_MAX];
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> > BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> > BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[EBasePass_MAX];
 
 	/** hit proxy draw list (includes both opaque and translucent objects) */
 	TStaticMeshDrawList<FHitProxyDrawingPolicy> HitProxyDrawList;
@@ -2000,6 +2032,8 @@ public:
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
 
+	FVolumetricLightmapSceneData VolumetricLightmapSceneData;
+
 	/** Distance field object scene data. */
 	FDistanceFieldSceneData DistanceFieldSceneData;
 	
@@ -2117,9 +2151,12 @@ public:
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) override;
 	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
-	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap, TArray<FFloat16Color>* OutRadianceMap) override; 
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
+	virtual bool HasPrecomputedVolumetricLightmap_RenderThread() const override;
+	virtual void AddPrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) override;
+	virtual void RemovePrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override;
 	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
@@ -2269,15 +2306,15 @@ public:
 			return SkyLight && !SkyLight->bHasStaticLighting;
 		}
 		else
-		{
-			const bool bRenderSkylight = SkyLight
-				&& !SkyLight->bHasStaticLighting
-				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
 				// bWantsStaticShadowing means 'stationary skylight'
-				&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
 
-			return bRenderSkylight;
-		}
+		return bRenderSkylight;
+	}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

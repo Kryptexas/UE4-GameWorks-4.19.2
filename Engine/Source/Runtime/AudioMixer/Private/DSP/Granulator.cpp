@@ -350,7 +350,7 @@ namespace Audio
 		if (Parent->Mode == EGranularSynthMode::Granulation)
 		{
 			// Generate stereo output into the scratch buffer independent of if the loaded sample is stereo or not
-			SampleBufferReader.Generate(FrameScratch, 1, 2, true);
+			SampleBufferReader.Generate(FrameScratch.GetData(), 1, 2, true);
 			const float EnvelopeValue = GetEnvelopeValue();
 
 			for (int32 Channel = 0; Channel < 2; ++Channel)
@@ -777,11 +777,8 @@ namespace Audio
 		return SampleBuffer.SampleDuration;
 	}
 
-	void FGranularSynth::Generate(TArray<float>& OutAudiobuffer, const int32 NumFrames)
+	void FGranularSynth::Generate(float* OutAudiobuffer, const int32 NumFrames)
 	{
-		OutAudiobuffer.Reset();
-		OutAudiobuffer.AddZeroed(2 * NumFrames);
-
 		if (SampleBuffer.GetData() == nullptr)
 		{
 			return;

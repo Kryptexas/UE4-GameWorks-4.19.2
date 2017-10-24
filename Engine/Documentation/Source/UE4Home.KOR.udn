@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429222
+﻿INTSourceChangelist:3505571
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
@@ -12,9 +12,9 @@ type:landing
 
 [REGION:frontpage]
 	[OBJECT:SearchBox]
-		[PARAM:path]
-		[RELATIVE:Search]
-		[/PARAM]
+		[PARAMLITERAL:path]
+		https://www.unrealengine.com/bing-search
+		[/PARAMLITERAL]
 		[PARAMLITERAL:placeholder]
 		도움이 필요하신가요? 여기서 검색해 보세요.
 		[/PARAMLITERAL]

@@ -17,12 +17,6 @@
 
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWaveProcedural*, int32 );
 
-DEPRECATED(4.9, "FOnSoundWaveStreamingUnderflow has been renamed FOnSoundWaveProceduralUnderflow")
-typedef FOnSoundWaveProceduralUnderflow FOnSoundWaveStreamingUnderflow;
-
-DEPRECATED(4.9, "USoundWaveStreaming has been renamed USoundWaveProcedural.")
-typedef class USoundWaveProcedural USoundWaveStreaming;
-
 UCLASS()
 class ENGINE_API USoundWaveProcedural : public USoundWave
 {
@@ -57,6 +51,7 @@ public:
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual bool IsReadyForFinishDestroy() override;
 	//~ End UObject Interface. 
 
 	//~ Begin USoundWave Interface.
@@ -82,4 +77,10 @@ public:
 
 	/** Called when GeneratePCMData is called but not enough data is available. Allows more data to be added, and will try again */
 	FOnSoundWaveProceduralUnderflow OnSoundWaveProceduralUnderflow;
+
+	/** Size in bytes of a single sample of audio in the procedural audio buffer. */
+	int32 SampleByteSize;
+
+	/** Whether or not this object is ready to be destroyed. Allows procedural sound wave generation to occur in async tasks without garbage collection deleting it from underneath. */
+	bool bIsReadyForDestroy;
 };

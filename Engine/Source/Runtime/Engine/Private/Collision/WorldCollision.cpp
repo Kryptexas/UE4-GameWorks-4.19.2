@@ -12,13 +12,6 @@
 #include "Engine/CollisionProfile.h"
 #include "Framework/Docking/TabManager.h"
 #include "Collision.h"
-
-#if WITH_BOX2D
-	#include "../PhysicsEngine2D/Box2DIntegration.h"
-	#include "PhysicsEngine/BodySetup2D.h"
-	#include "PhysicsEngine/AggregateGeometry2D.h"
-#endif
-
 #include "Collision/PhysXCollision.h"
 
 DEFINE_LOG_CATEGORY(LogCollision);
@@ -502,14 +495,6 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 		}
 	});
 #endif //WITH_PHYSX
-
-	//@TODO: BOX2D: Implement UWorld::ComponentSweepMulti
-#if WITH_BOX2D
-// 	if (b2Body* BodyInstance = PrimComp->BodyInstance.BodyInstancePtr)
-// 	{
-// 		
-// 	}
-#endif
 
 	return bHaveBlockingHit;
 }

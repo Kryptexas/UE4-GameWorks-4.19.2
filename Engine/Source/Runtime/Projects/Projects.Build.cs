@@ -20,6 +20,15 @@ namespace UnrealBuildTool.Rules
 					"Runtime/Projects/Private",
 				}
 			);
+
+			if (Target.bIncludePluginsForTargetPlatforms)
+			{
+				Definitions.Add("LOAD_PLUGINS_FOR_TARGET_PLATFORMS=1");
+			}
+			else
+			{
+				Definitions.Add("LOAD_PLUGINS_FOR_TARGET_PLATFORMS=0");
+			}
 		}
 	}
 }

@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef _USDUTILS_STITCH_H_
-#define _USDUTILS_STITCH_H_
+#ifndef USDUTILS_STITCH_H
+#define USDUTILS_STITCH_H
 
 /// \file usdUtils/stitch.h
 ///
@@ -31,9 +31,13 @@
 /// layer will be the first parameter to the function and will always have
 /// precedence in conflicts during the merge.
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUtils/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/spec.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 SDF_DECLARE_HANDLES(SdfLayer);
 
 /// The function will recurse down the root prims of each layer,
@@ -108,4 +112,7 @@ void UsdUtilsStitchInfo(const SdfSpecHandle& strongObj,
                         const SdfSpecHandle& weakObj,
                         bool ignoreTimeSamples = false);
 
-#endif // _USDUTILS_STITCH_H_
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_STITCH_H */

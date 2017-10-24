@@ -28,12 +28,15 @@
 // determine how the view maps between keys (the child's name or path) and
 // values (the child's SpecHandle).
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/types.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/proxyPolicies.h"
 #include "pxr/usd/sdf/schema.h"
-#include "pxr/usd/sdf/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 SDF_DECLARE_HANDLES(SdfAttributeSpec);
 SDF_DECLARE_HANDLES(SdfMapperSpec);
@@ -184,14 +187,14 @@ public:
 
     static SdfPath GetChildPath(const SdfPath &parentPath, const FieldType &key) {
         std::string variantSet = parentPath.GetVariantSelection().first;
-        return parentPath.GetPrimPath().AppendVariantSelection(
+        return parentPath.GetParentPath().AppendVariantSelection(
             TfToken(variantSet), key);
     }
 
     static SdfPath GetParentPath(const SdfPath &childPath) {
         // Construct a path with the same variant set but an empty variant
         std::string variantSet = childPath.GetVariantSelection().first;
-        return childPath.GetPrimPath().AppendVariantSelection(variantSet, "");
+        return childPath.GetParentPath().AppendVariantSelection(variantSet, "");
     }
 
     static TfToken GetChildrenToken(const SdfPath& parentPath) {
@@ -287,4 +290,6 @@ public:
     }
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_CHILDREN_POLICIES_H

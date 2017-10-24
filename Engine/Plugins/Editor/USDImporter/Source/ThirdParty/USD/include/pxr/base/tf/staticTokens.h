@@ -75,9 +75,11 @@
 /// file, in which case they can be made file static.  In the case of the
 /// PRIVATE, you only need to use the DEFINE macro.
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/preprocessorUtils.h"
 #include "pxr/base/tf/staticData.h"
 #include "pxr/base/tf/token.h"
+
 #include <vector>
 
 #include <boost/preprocessor/cat.hpp>
@@ -94,20 +96,26 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 
-/// Macro to define public tokens. This declares a list of tokens that can be
-/// used globally.  Use in conjunction with TF_DEFINE_PUBLIC_TOKENS.
-/// \hideinitializer
+PXR_NAMESPACE_OPEN_SCOPE
+
+// TF_DECLARE_PUBLIC_TOKENS use these macros to handle two or three arguments.
+// The three argument version takes an export/import macro (e.g. TF_API)
+// while the two argument version does not export the tokens.
+
 #define _TF_DECLARE_PUBLIC_TOKENS3(key, eiapi, seq)                         \
     _TF_DECLARE_TOKENS3(key, seq, eiapi)                                    \
     extern eiapi TfStaticData<_TF_TOKENS_STRUCT_NAME(key)> key
-
-#define TF_DECLARE_PUBLIC_TOKENS2(key, seq)									\
-    _TF_DECLARE_TOKENS2(key, seq)		                                    \
+#define _TF_DECLARE_PUBLIC_TOKENS2(key, seq)                                \
+    _TF_DECLARE_TOKENS2(key, seq)                                           \
     extern TfStaticData<_TF_TOKENS_STRUCT_NAME(key)> key
-
 #define _TF_DECLARE_PUBLIC_TOKENS(N) _TF_DECLARE_PUBLIC_TOKENS##N
 #define _TF_DECLARE_PUBLIC_TOKENS_EVAL(N) _TF_DECLARE_PUBLIC_TOKENS(N)
-#define TF_DECLARE_PUBLIC_TOKENS(...) _TF_NUM_ARGS_EXPAND( _TF_DECLARE_PUBLIC_TOKENS_EVAL(_TF_NUM_ARGS_EXPAND( TF_NUM_ARGS(__VA_ARGS__) ))(__VA_ARGS__) )
+#define _TF_DECLARE_PUBLIC_TOKENS_EXPAND(x) x
+
+/// Macro to define public tokens. This declares a list of tokens that can be
+/// used globally.  Use in conjunction with TF_DEFINE_PUBLIC_TOKENS.
+/// \hideinitializer
+#define TF_DECLARE_PUBLIC_TOKENS(...) _TF_DECLARE_PUBLIC_TOKENS_EXPAND( _TF_DECLARE_PUBLIC_TOKENS_EVAL(_TF_DECLARE_PUBLIC_TOKENS_EXPAND( TF_NUM_ARGS(__VA_ARGS__) ))(__VA_ARGS__) )
 
 /// Macro to define public tokens.  Use in conjunction with
 /// TF_DECLARE_PUBLIC_TOKENS.
@@ -190,9 +198,9 @@
         _TF_TOKENS_DECLARE_MEMBERS(seq)                                     \
     };
 
-#define _TF_DECLARE_TOKENS2(key, seq)										\
+#define _TF_DECLARE_TOKENS2(key, seq)                                       \
     struct _TF_TOKENS_STRUCT_NAME(key) {                                    \
-        _TF_TOKENS_STRUCT_NAME(key)();										\
+        _TF_TOKENS_STRUCT_NAME(key)();                                      \
         _TF_TOKENS_DECLARE_MEMBERS(seq)                                     \
     };
 
@@ -282,4 +290,6 @@
             _TF_TOKENS_EXPAND_ARRAY_ELEMENTS(seq))                          \
     }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_STATIC_TOKENS_H

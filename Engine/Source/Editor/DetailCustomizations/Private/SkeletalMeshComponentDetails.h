@@ -26,13 +26,14 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 private:
-	void UpdateAnimationCategory( IDetailLayoutBuilder& DetailBuilder );
+	void UpdateAnimationCategory(IDetailLayoutBuilder& DetailBuilder);
+	void UpdatePhysicsCategory(IDetailLayoutBuilder& DetailBuilder);
 
 	/** Function that returns whether the specified animation mode should be visible */
 	EVisibility VisibilityForAnimationMode(EAnimationMode::Type AnimationMode) const;
 
 	/** Helper wrapper functions for VisibilityForAnimationMode */
-	EVisibility VisibilityForBlueprintMode() const {return VisibilityForAnimationMode(EAnimationMode::AnimationBlueprint);}
+	EVisibility VisibilityForBlueprintMode() const { return VisibilityForAnimationMode(EAnimationMode::AnimationBlueprint); }
 	EVisibility VisibilityForSingleAnimMode() const { return VisibilityForAnimationMode(EAnimationMode::AnimationSingleNode); }
 	bool AnimPickerIsEnabled() const;
 
@@ -43,9 +44,16 @@ private:
 	USkeletalMeshComponent::FOnSkeletalMeshPropertyChanged OnSkeletalMeshPropertyChanged;
 	
 	/** Register/Unregister the mesh changed delegate to TargetComponent */
+	void PerformInitialRegistrationOfSkeletalMeshes(IDetailLayoutBuilder& DetailBuilder);
 	void RegisterSkeletalMeshPropertyChanged(TWeakObjectPtr<USkeletalMeshComponent> Mesh);
 	void UnregisterSkeletalMeshPropertyChanged(TWeakObjectPtr<USkeletalMeshComponent> Mesh);
 	void UnregisterAllMeshPropertyChangedCallers();
+
+	/**
+	* Iterates over registered meshes and returns a pointer to the common skeleton used by all of them.
+	* If the meshes use more than one different skeleton, NULL is returned.
+	*/
+	USkeleton* GetValidSkeletonFromRegisteredMeshes() const;
 
 	/** Bound to the delegate used to detect changes in skeletal mesh properties */
 	void SkeletalMeshPropertyChanged();
@@ -65,6 +73,15 @@ private:
 	/** Callback from the details panel to use the currently selected asset in the content browser */
 	void UseSelectedAnimBlueprint();
 
+	/** Called when a skeletal mesh property changes. */
+	void UpdateSkeletonNameAndPickerVisibility();
+
+	/** Returns the desired visibility state for the async scene warning. */
+	EVisibility VisibilityForAsyncSceneWarning() const;
+
+	/** Returns whether the user should be a allowed to modify the async scene property on the given mesh. */
+	bool ShouldAllowAsyncSceneSettingToBeChanged() const;
+
 	/** Cached layout builder for use after customization */
 	IDetailLayoutBuilder* CurrentDetailBuilder;
 
@@ -79,6 +96,9 @@ private:
 
 	/** Caches the AnimationBlueprintGeneratedClass Handle so we can look up its value after customization has finished */
 	TSharedPtr<IPropertyHandle> AnimationBlueprintHandle;
+
+	/** Caches the AsyncScene handle so we can look up its value after customization has finished. */
+	TSharedPtr<IPropertyHandle> AsyncSceneHandle;
 
 	/** Full name of the currently selected skeleton to use for filtering animation assets */
 	FString SelectedSkeletonName;

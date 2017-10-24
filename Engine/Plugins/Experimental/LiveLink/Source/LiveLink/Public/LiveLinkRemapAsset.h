@@ -7,12 +7,31 @@
 #include "LiveLinkRemapAsset.generated.h"
 
 // Remap asset for data coming from Live Link. Allows simple application of bone transforms into current pose based on name remapping only
-UCLASS()
+UCLASS(Blueprintable)
 class ULiveLinkRemapAsset : public ULiveLinkRetargetAsset
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin ULiveLinkRetargetAsset interface
-	virtual void BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, TSharedPtr<FLiveLinkRetargetContext> InOutContext, FCompactPose& OutPose, FBlendedCurve& OutCurve) const override;
-	// End ULiveLinkRetargetAsset interface
+	//~ Begin UObject Interface
+	virtual void BeginDestroy() override;
+	//~ End UObject Interface
+
+	//~ Begin ULiveLinkRetargetAsset interface
+	virtual void BuildPoseForSubject(const FLiveLinkSubjectFrame& InFrame, FCompactPose& OutPose, FBlendedCurve& OutCurve) override;
+	//~ End ULiveLinkRetargetAsset interface
+
+	/** Blueprint Implementable function for getting a remapped bone name from the original */
+	UFUNCTION(BlueprintNativeEvent, Category = "Live Link Remap")
+	FName GetRemappedBoneName(FName BoneName) const;
+
+private:
+
+	void OnBlueprintClassCompiled(UBlueprint* TargetBlueprint);
+
+	// Name mapping between source bone name and transformed bone name
+	// (returned from GetRemappedBoneName)
+	TMap<FName, FName> NameMap;
+
+	/** Blueprint.OnCompiled delegate handle */
+	FDelegateHandle OnBlueprintCompiledDelegate;
 };

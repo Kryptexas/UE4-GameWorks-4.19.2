@@ -13,6 +13,7 @@ public class DetailCustomizations : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"DesktopWidgets",
 				"Engine",
 				"Landscape",
@@ -51,6 +52,7 @@ public class DetailCustomizations : ModuleRules
                 "SkeletonEditor",
                 "LevelSequence",
                 "AdvancedPreviewScene",
+                "AudioSettingsEditor",
             }
 		);
 

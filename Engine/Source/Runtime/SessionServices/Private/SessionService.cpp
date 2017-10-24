@@ -1,9 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionService.h"
+#include "MessageEndpointBuilder.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/App.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "SessionServiceMessages.h"
 
 

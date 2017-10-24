@@ -397,7 +397,7 @@ void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene, UMapBuildDataRe
 
 	if (Registry)
 	{
-		NewData = Registry->GetLevelBuildData(LevelBuildDataId);
+		NewData = Registry->GetLevelPrecomputedLightVolumeBuildData(LevelBuildDataId);
 	}
 
 	if (NewData && NewData->bInitialized && Scene)

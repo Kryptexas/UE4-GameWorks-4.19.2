@@ -16,7 +16,7 @@ FWidgetTemplateBlueprintClass::FWidgetTemplateBlueprintClass(const FAssetData& I
 {
 	if (InUserWidgetClass)
 	{
-		WidgetClass = CastChecked<UClass>(InUserWidgetClass);
+		WidgetClass = *InUserWidgetClass;
 		Name = WidgetClass->GetDisplayNameText();
 	}
 	else
@@ -59,7 +59,7 @@ UWidget* FWidgetTemplateBlueprintClass::Create(UWidgetTree* Tree)
 	{
 		FString AssetPath = WidgetAssetData.ObjectPath.ToString();
 		UWidgetBlueprint* LoadedWidget = LoadObject<UWidgetBlueprint>(nullptr, *AssetPath);
-		WidgetClass = CastChecked<UClass>(LoadedWidget->GeneratedClass);
+		WidgetClass = *LoadedWidget->GeneratedClass;
 	}
 
 	return FWidgetTemplateClass::CreateNamed(Tree, FName(*FBlueprintEditorUtils::GetClassNameWithoutSuffix(WidgetClass.Get())));

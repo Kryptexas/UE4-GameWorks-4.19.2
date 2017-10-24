@@ -6,162 +6,249 @@
 
 
 /**
-* Smart COM object pointer.
-*/
+ * Smart COM object pointer.
+ */
 template<typename T>
 class TComPtr
 {
 public:
+
 	typedef T PointerType;
 
 public:
-	TComPtr() :	RawPointer(nullptr)
-	{
-	}
 
-	TComPtr(PointerType* const Source) : RawPointer(Source)
+	/** Default constructor (initialized to null). */
+	TComPtr()
+		:	RawPointer(NULL)
+	{ }
+
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param Object The object to point to.
+	 */
+	TComPtr(PointerType* const Object)
+		: RawPointer(Object)
 	{
-		if(RawPointer)
+		if (RawPointer)
 		{
 			RawPointer->AddRef();
 		}
 	}
 
-	TComPtr(const TComPtr<PointerType>& Source) : RawPointer(Source.RawPointer)
+	/**
+	 * Copy constructor.
+	 *
+	 * @param Other The instance to copy.
+	 */
+	TComPtr(const TComPtr<PointerType>& Other)
+		: RawPointer(Other.RawPointer)
 	{
-		if(RawPointer)
+		if (RawPointer)
 		{
 			RawPointer->AddRef();
 		}
 	}
 
-	TComPtr(TComPtr<PointerType>&& Source) : RawPointer(Source.RawPointer)
+	/**
+	 * Move constructor.
+	 *
+	 * @param Other The instance to move.
+	 */
+	TComPtr(TComPtr<PointerType>&& Other)
+		: RawPointer(Other.RawPointer)
 	{	
-		Source.RawPointer = nullptr;
+		Other.RawPointer = NULL;
 	}	
 
-	TComPtr<PointerType>& operator=(PointerType* const Source) 
+	/**
+	 * Assignment operator.
+	 *
+	 * @param Object The object to point to.
+	 */
+	TComPtr<PointerType>& operator=(PointerType* const Object) 
 	{
-		if(RawPointer != Source)
+		if (RawPointer != Object)
 		{
-			if (Source)
+			if (Object)
 			{
-				Source->AddRef();
+				Object->AddRef();
 			}
+
 			if (RawPointer)
 			{
 				RawPointer->Release();
 			}
-			RawPointer = Source;
+
+			RawPointer = Object;
 		}
+
 		return *this;
 	}
 
-	TComPtr<PointerType>& operator=(const TComPtr<PointerType>& Source) 
+	/**
+	 * Copy assignment operator.
+	 *
+	 * @param Other The instance to copy.
+	 */
+	TComPtr<PointerType>& operator=(const TComPtr<PointerType>& Other) 
 	{
-		if(RawPointer != Source.RawPointer)
+		if (RawPointer != Other.RawPointer)
 		{
-			if (Source.RawPointer)
+			if (Other.RawPointer)
 			{
-				Source->AddRef();
+				Other->AddRef();
 			}
+
 			if (RawPointer)
 			{
 				RawPointer->Release();
 			}
-			RawPointer = Source.RawPointer;
+
+			RawPointer = Other.RawPointer;
 		}
+
 		return *this;
 	}
 
-	TComPtr<PointerType>& operator=(TComPtr<PointerType>&& Source) 
+	/**
+	 * Move assignment operator.
+	 *
+	 * @param Other The instance to move.
+	 */
+	TComPtr<PointerType>& operator=(TComPtr<PointerType>&& Other) 
 	{			
-		if(RawPointer != Source.RawPointer)
+		if (RawPointer != Other.RawPointer)
 		{
-			if(RawPointer)
+			if (RawPointer)
 			{
 				RawPointer->Release();
 			}
-			RawPointer = Source.RawPointer;
-			Source.RawPointer = nullptr;
+
+			RawPointer = Other.RawPointer;
+			Other.RawPointer = NULL;
 		}
+
 		return *this;
 	}
 
+	/** Destructor. */
 	~TComPtr() 
 	{
-		if(RawPointer)
+		if (RawPointer)
 		{
 			RawPointer->Release();
 		}
 	}
 
-	PointerType** operator&()
+public:
+
+	FORCEINLINE PointerType** operator&()
 	{
 		return &(RawPointer);
 	}
 
-	PointerType* operator->() const 
+	FORCEINLINE PointerType* operator->() const 
 	{
-		check(RawPointer != nullptr);
+		check(RawPointer != NULL);
 		return RawPointer;
 	}
 
-	PointerType* Get() const
+	FORCEINLINE bool operator==(PointerType* const Object) const
 	{
-		return RawPointer;
-	}
-	
-	bool operator==(PointerType* const InRawPointer) const
-	{
-		return RawPointer == InRawPointer;
+		return RawPointer == Object;
 	}
 
-	bool operator!=(PointerType* const InRawPointer) const
+	FORCEINLINE bool operator!=(PointerType* const Object) const
 	{
-		return RawPointer != InRawPointer;
+		return RawPointer != Object;
 	}
 
-	operator PointerType*() const
+	FORCEINLINE operator PointerType*() const
 	{
 		return RawPointer;
 	}
 
-	void Reset()
-	{
-		if(RawPointer)
-		{
-			RawPointer->Release();
-			RawPointer = nullptr;
-		}
-	}
+public:
 
-	// Set the pointer without adding a reference.
-	void Attach(PointerType* InRawPointer)
+	/**
+	 * Set the pointer without adding a reference.
+	 *
+	 * @param InRawPointer The object to point to.
+	 * @see Detach
+	 */
+	void Attach(PointerType* Object)
 	{
-		if(RawPointer)
+		if (RawPointer)
 		{
 			RawPointer->Release();
 		}
-		RawPointer = InRawPointer;
+
+		RawPointer = Object;
 	}
 
-	// Reset the pointer without releasing a reference.
+	/**
+	 * Reset the pointer without releasing a reference.
+	 *
+	 * @see Attach
+	 */
 	void Detach()
 	{
-		RawPointer = nullptr;
+		RawPointer = NULL;
 	}
 
-	HRESULT FromQueryInterface(REFIID riid, IUnknown* Unknown)
+	/**
+	 * Initialize this pointer from a COM interface to be queried.
+	 *
+	 * @param Riid The ID of the interface to be queried.
+	 * @param Unknown The object to query the interface from.
+	 * @return The result code of the query.
+	 */
+	HRESULT FromQueryInterface(REFIID Riid, IUnknown* Unknown)
 	{
-		if(RawPointer)
+		if (RawPointer)
 		{
 			RawPointer->Release();
-			RawPointer = nullptr;
+			RawPointer = NULL;
 		}
-		return Unknown->QueryInterface(riid, reinterpret_cast<void**>(&(RawPointer)));
+
+		return Unknown->QueryInterface(Riid, reinterpret_cast<void**>(&(RawPointer)));
+	}
+
+	/**
+	 * Get raw pointer to the object pointed to.
+	 *
+	 * @return Pointer to the object, or NULL if not valid.
+	 * @see IsValid
+	 */
+	FORCEINLINE PointerType* Get() const
+	{
+		return RawPointer;
+	}
+
+	/**
+	 * Whether this pointer is pointing to an actual object.
+	 *
+	 * @return true if the pointer is valid, false otherwise.
+	 * @see Get
+	 */
+	FORCEINLINE const bool IsValid() const
+	{
+		return (RawPointer != NULL);
+	}
+
+	/** Reset this pointer to null. */
+	void Reset()
+	{
+		if (RawPointer)
+		{
+			RawPointer->Release();
+			RawPointer = NULL;
+		}
 	}
 
 private:
+
+	/** Pointer to the actual object, if any. */
 	PointerType* RawPointer;
 };

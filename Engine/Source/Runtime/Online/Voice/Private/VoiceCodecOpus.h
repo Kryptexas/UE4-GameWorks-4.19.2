@@ -23,9 +23,14 @@ public:
 	~FVoiceEncoderOpus();
 
 	// IVoiceEncoder
-	virtual bool Init(int32 SampleRate, int32 NumChannels) override;
+	virtual bool Init(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint) override;
 	virtual int32 Encode(const uint8* RawPCMData, uint32 RawDataSize, uint8* OutCompressedData, uint32& OutCompressedDataSize) override;
+	virtual bool SetBitrate(int32 InBitRate) override;
+	virtual bool SetVBR(bool bEnableVBR) override;
+	virtual bool SetComplexity(int32 InComplexity) override;
+	virtual void Reset() override;
 	virtual void Destroy() override;
+	virtual void DumpState() const override;
 
 private:
 
@@ -64,7 +69,9 @@ public:
 	//IVoiceDecoder
 	virtual bool Init(int32 SampleRate, int32 NumChannels) override;
 	virtual void Decode(const uint8* CompressedData, uint32 CompressedDataSize, uint8* OutRawPCMData, uint32& OutRawDataSize) override;
+	virtual void Reset() override;
 	virtual void Destroy() override;
+	virtual void DumpState() const override;
 
 private:
 

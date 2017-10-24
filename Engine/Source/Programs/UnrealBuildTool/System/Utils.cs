@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -11,8 +11,7 @@ using System.Xml.Serialization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Linq;
-using System.Management;
-using System.Web.Script.Serialization;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -24,7 +23,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether we are currently running on Mono platform.  We cache this statically because it is a bit slow to check.
 		/// </summary>
+#if NET_CORE
+		public static readonly bool IsRunningOnMono = true;
+#else
 		public static readonly bool IsRunningOnMono = Type.GetType("Mono.Runtime") != null;
+#endif
 
 		/// <summary>
 		/// Searches for a flag in a set of command-line arguments.
@@ -421,6 +424,87 @@ namespace UnrealBuildTool
 			return CleanPath != null ? CleanPath.ToString() : FilePath;
 		}
 
+		/// <summary>
+		/// Correctly collapses any ../ or ./ entries in a path.
+		/// </summary>
+		/// <param name="InPath">The path to be collapsed</param>
+		/// <returns>true if the path could be collapsed, false otherwise.</returns>
+		static string CollapseRelativeDirectories(string InPath)
+		{
+			string LocalString = InPath;
+			bool bHadBackSlashes = false;
+			// look to see what kind of slashes we had
+			if (LocalString.IndexOf("\\") != -1)
+			{
+				LocalString = LocalString.Replace("\\", "/");
+				bHadBackSlashes = true;
+			}
+
+			string ParentDir = "/..";
+			int ParentDirLength = ParentDir.Length;
+
+			for (; ; )
+			{
+				// An empty path is finished
+				if (string.IsNullOrEmpty(LocalString))
+				{
+					break;
+				}
+
+				// Consider empty paths or paths which start with .. or /.. as invalid
+				if (LocalString.StartsWith("..") || LocalString.StartsWith(ParentDir))
+				{
+					return InPath;
+				}
+
+				// If there are no "/.."s left then we're done
+				int Index = LocalString.IndexOf(ParentDir);
+				if (Index == -1)
+				{
+					break;
+				}
+
+				int PreviousSeparatorIndex = Index;
+				for (; ; )
+				{
+					// Find the previous slash
+					PreviousSeparatorIndex = Math.Max(0, LocalString.LastIndexOf("/", PreviousSeparatorIndex - 1));
+
+					// Stop if we've hit the start of the string
+					if (PreviousSeparatorIndex == 0)
+					{
+						break;
+					}
+
+					// Stop if we've found a directory that isn't "/./"
+					if ((Index - PreviousSeparatorIndex) > 1 && (LocalString[PreviousSeparatorIndex + 1] != '.' || LocalString[PreviousSeparatorIndex + 2] != '/'))
+					{
+						break;
+					}
+				}
+
+				// If we're attempting to remove the drive letter, that's illegal
+				int Colon = LocalString.IndexOf(":", PreviousSeparatorIndex);
+				if (Colon >= 0 && Colon < Index)
+				{
+					return InPath;
+				}
+
+				LocalString = LocalString.Substring(0, PreviousSeparatorIndex) + LocalString.Substring(Index + ParentDirLength);
+			}
+
+			LocalString = LocalString.Replace("./", "");
+
+			// restore back slashes now
+			if (bHadBackSlashes)
+			{
+				LocalString = LocalString.Replace("/", "\\");
+			}
+
+			// and pass back out
+			return LocalString;
+		}
+
 
 		/// <summary>
 		/// Given a file path and a directory, returns a file path that is relative to the specified directory
@@ -481,10 +565,11 @@ namespace UnrealBuildTool
 			{
 				// Check if result is correct
 				string TestPath = Path.GetFullPath(Path.Combine(AbsoluteRelativeDirectory, RelativePath));
-				if (TestPath != AbsolutePath)
+				string AbsoluteTestPath = CollapseRelativeDirectories(AbsolutePath);
+				if (TestPath != AbsoluteTestPath)
 				{
 					TestPath += "/";
-					if (TestPath != AbsolutePath)
+					if (TestPath != AbsoluteTestPath)
 					{
 						// Fix the path. @todo Mac: replace this hack with something better
 						RelativePath = "../" + RelativePath;
@@ -743,38 +828,97 @@ namespace UnrealBuildTool
 			}
 		}
 
+		enum LOGICAL_PROCESSOR_RELATIONSHIP
+		{
+			RelationProcessorCore,
+			RelationNumaNode,
+			RelationCache,
+			RelationProcessorPackage,
+			RelationGroup,
+			RelationAll = 0xffff
+		}
+
+		[DllImport("kernel32.dll", SetLastError=true)]
+		extern static bool GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType, IntPtr Buffer, ref uint ReturnedLength);
+
 		/// <summary>
 		/// Gets the number of physical cores, excluding hyper threading.
 		/// </summary>
 		/// <returns>The number of physical cores, or -1 if it could not be obtained</returns>
 		public static int GetPhysicalProcessorCount()
 		{
-			// Can't use WMI queries on Mono; just fail.
+			// This function uses Windows P/Invoke calls; if we're on Mono, just fail.
 			if (Utils.IsRunningOnMono)
 			{
 				return -1;
 			}
 
-			// On some systems this requires a hot fix to work so catch any exceptions
-			try
+			const int ERROR_INSUFFICIENT_BUFFER = 122;
+
+			// Determine the required buffer size to store the processor information
+			uint ReturnLength = 0;
+			if(!GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore, IntPtr.Zero, ref ReturnLength) && Marshal.GetLastWin32Error() == ERROR_INSUFFICIENT_BUFFER)
 			{
-				int NumCores = 0;
-				using (ManagementObjectSearcher Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
+				// Allocate a buffer for it
+				IntPtr Ptr = Marshal.AllocHGlobal((int)ReturnLength);
+				try
 				{
-					ManagementObjectCollection MosCollection = Mos.Get();
-					foreach (ManagementBaseObject Item in MosCollection)
+					if (GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore, Ptr, ref ReturnLength))
 					{
-						NumCores += int.Parse(Item["NumberOfCores"].ToString());
+						// As per-MSDN, this will return one structure per physical processor. Each SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX structure is of a variable size, so just skip 
+						// through the list and count the number of entries.
+						int Count = 0;
+						for(int Pos = 0; Pos < ReturnLength; )
+						{
+							LOGICAL_PROCESSOR_RELATIONSHIP Type = (LOGICAL_PROCESSOR_RELATIONSHIP)Marshal.ReadInt16(Ptr, Pos);
+							if(Type == LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore)
+							{
+								Count++;
+							}
+							Pos += Marshal.ReadInt32(Ptr, Pos + 4);
+						}
+						return Count;
 					}
 				}
-				return NumCores;
+				finally
+				{
+					Marshal.FreeHGlobal(Ptr);		
+				}
 			}
-			catch (Exception Ex)
+
+			return -1;
+		}
+
+		/// <summary>
+		/// Executes a list of custom build step scripts
+		/// </summary>
+		/// <param name="ScriptFiles">List of script files to execute</param>
+		/// <returns>True if the steps succeeded, false otherwise</returns>
+		public static bool ExecuteCustomBuildSteps(FileReference[] ScriptFiles)
+		{
+			UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
+			foreach(FileReference ScriptFile in ScriptFiles)
 			{
-				Log.TraceWarning("Unable to get the number of Cores: {0}", Ex.ToString());
-				Log.TraceWarning("Falling back to processor count.");
-				return -1;
+				ProcessStartInfo StartInfo = new ProcessStartInfo();
+				if(HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					StartInfo.FileName = "cmd.exe";
+					StartInfo.Arguments = String.Format("/C \"{0}\"", ScriptFile.FullName);
+				}
+				else
+				{
+					StartInfo.FileName = "/bin/sh";
+					StartInfo.Arguments = String.Format("\"{0}\"", ScriptFile.FullName);
+				}
+
+				int ReturnCode = Utils.RunLocalProcessAndLogOutput(StartInfo);
+				if(ReturnCode != 0)
+				{
+					Log.TraceError("Custom build step terminated with exit code {0}", ReturnCode);
+					return false;
+				}
 			}
+			return true;
 		}
 	}
 }

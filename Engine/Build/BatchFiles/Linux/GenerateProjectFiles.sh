@@ -25,5 +25,5 @@ xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj \
   /p:Configuration="Development"
 
 # pass all parameters to UBT
-mono Binaries/DotNET/UnrealBuildTool.exe -makefile -kdevelopfile -qmakefile -cmakefile -codelitefile "$@"
+mono Binaries/DotNET/UnrealBuildTool.exe -projectfiles "$@"
 set +x

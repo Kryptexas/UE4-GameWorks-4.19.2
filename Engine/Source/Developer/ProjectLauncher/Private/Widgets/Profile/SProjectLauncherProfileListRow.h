@@ -10,7 +10,7 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Views/STableRow.h"
-#include "Widgets/SProjectLauncherDelegates.h"
+#include "Widgets/Shared/ProjectLauncherDelegates.h"
 #include "EditorStyleSet.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Images/SImage.h"
@@ -55,7 +55,7 @@ public:
 	 * @param InArgs - The construction arguments.
 	 * @param InModel - The launcher model this list uses.
 	 */
-	void Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel, const TSharedRef<STableViewBase>& InOwnerTableView)
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		STableRow<ILauncherProfilePtr>::ConstructInternal(
 			STableRow::FArguments()
@@ -184,7 +184,7 @@ private:
 private:
 
 	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 
 	// Holds a reference to the launch profile that is displayed in this row.
 	ILauncherProfilePtr LaunchProfile;

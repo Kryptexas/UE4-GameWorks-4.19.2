@@ -9,7 +9,7 @@
 namespace VulkanRHI
 {
 #if VULKAN_ENABLE_DUMP_LAYER
-	void PrintfBeginResult(const FString& String);
+	VULKANRHI_API void PrintfBeginResult(const FString& String);
 	void DevicePrintfBeginResult(VkDevice Device, const FString& String);
 	void PrintfBegin(const FString& String);
 	void DevicePrintfBegin(VkDevice Device, const FString& String);
@@ -18,7 +18,7 @@ namespace VulkanRHI
 	void PrintResult(VkResult Result);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, void* Handle);
 	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles);
-	void PrintResultAndPointer(VkResult Result, void* Handle);
+	VULKANRHI_API void PrintResultAndPointer(VkResult Result, void* Handle);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, uint64 Handle);
 	void PrintResultAndPointer(VkResult Result, uint64 Handle);
 	void DumpPhysicalDeviceProperties(VkPhysicalDeviceMemoryProperties* Properties);
@@ -207,6 +207,18 @@ namespace VulkanRHI
 		PrintfBegin(FString::Printf(TEXT("vkGetPhysicalDeviceProperties(PhysicalDevice=%p, Properties=%p)[...]"), PhysicalDevice, Properties));
 
 		VULKANAPINAMESPACE::vkGetPhysicalDeviceProperties(PhysicalDevice, Properties);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice PhysicalDevice, VkPhysicalDeviceProperties2KHR* Properties)
+	{
+		PrintfBegin(FString::Printf(TEXT("vkGetPhysicalDeviceProperties2KHR(PhysicalDevice=%p, Properties=%p)[...]"), PhysicalDevice, Properties));
+
+		extern PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR;
+		
+		if (GVkGetPhysicalDeviceProperties2KHR != nullptr)
+		{
+			GVkGetPhysicalDeviceProperties2KHR(PhysicalDevice, Properties);
+		}
 	}
 
 	static FORCEINLINE_DEBUGGABLE void  vkGetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice PhysicalDevice, uint32* QueueFamilyPropertyCount, VkQueueFamilyProperties* QueueFamilyProperties)
@@ -1059,33 +1071,34 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkCmdDrawIndexed(CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance);
 	}
 
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset,
-		uint32                                    drawCount,
-		uint32                                    stride);
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset, uint32 DrawCount, uint32 Stride)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDrawIndirect(Buffer=%p, Offset=%d, DrawCount=%d, Stride=%d)"), (void*)Buffer, Offset, DrawCount, Stride));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndexedIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset,
-		uint32                                    drawCount,
-		uint32                                    stride);
-#endif
+		VULKANAPINAMESPACE::vkCmdDrawIndirect(CommandBuffer, Buffer, Offset, DrawCount, Stride);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndexedIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset, uint32 DrawCount, uint32 Stride)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDrawIndexedIndirect(Buffer=%p, Offset=%d, DrawCount=%d, Stride=%d)"), (void*)Buffer, Offset, DrawCount, Stride));
+
+		VULKANAPINAMESPACE::vkCmdDrawIndexedIndirect(CommandBuffer, Buffer, Offset, DrawCount, Stride);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(VkCommandBuffer CommandBuffer, uint32 X, uint32 Y, uint32 Z)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatch(X=%d, Y=%d Z=%d)"), X, Y, Z));
 
 		VULKANAPINAMESPACE::vkCmdDispatch(CommandBuffer, X, Y, Z);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset);
-#endif
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatchIndirect(Buffer=%p, Offset=%d)"), (void*)Buffer, Offset));
+
+		VULKANAPINAMESPACE::vkCmdDispatchIndirect(CommandBuffer, Buffer, Offset);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyBuffer(VkCommandBuffer CommandBuffer, VkBuffer SrcBuffer, VkBuffer DstBuffer, uint32 RegionCount, const VkBufferCopy* Regions)
 	{
 		DumpCmdCopyBuffer(CommandBuffer, SrcBuffer, DstBuffer, RegionCount, Regions);

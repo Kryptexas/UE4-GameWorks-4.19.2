@@ -18,7 +18,7 @@ public class TextureFormatPVR : ModuleRules
 			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/ImgTec/PVRTexToolCLI"));
 		}
 
-		//if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+		//if (Target.bCompileLeanAndMeanUE == false)
 		//{
 		//	PrivateDependencyModuleNames.Add("nvTextureTools");
 		//}

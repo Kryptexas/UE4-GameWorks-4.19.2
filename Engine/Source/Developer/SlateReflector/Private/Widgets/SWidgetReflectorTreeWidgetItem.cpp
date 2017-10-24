@@ -4,6 +4,9 @@
 #include "SlateOptMacros.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "EditorStyleSet.h"
+#include "SCheckBox.h"
 
 
 /* SMultiColumnTableRow overrides
@@ -61,6 +64,19 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			[
 				SNew(STextBlock)
 				.Text(this, &SReflectorTreeWidgetItem::GetVisibilityAsString)
+					.Justification(ETextJustify::Center)
+			];
+	}
+	else if (ColumnName == "Focusable")
+	{
+		return SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(2.0f, 0.0f))
+			[
+				SNew(SCheckBox)
+				.Style(&FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>("Toolbar.Check"))
+				.IsChecked(this, &SReflectorTreeWidgetItem::GetFocusableAsCheckBoxState)
 			];
 	}
 	else if ( ColumnName == NAME_Clipping )
@@ -104,7 +120,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 				SNew(SHyperlink)
 				.ToolTipText(NSLOCTEXT("SWidgetReflector", "ClickToCopy", "Click to copy address."))
 				.Text(Address)
-				.OnNavigate_Lambda([Address](){ FPlatformMisc::ClipboardCopy(*Address.ToString()); })
+				.OnNavigate_Lambda([Address](){ FPlatformApplicationMisc::ClipboardCopy(*Address.ToString()); })
 			];
 	}
 	else

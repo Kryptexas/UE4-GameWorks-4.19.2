@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:3355812
+﻿INTSourceChangelist:3587824
 Availability:Docs
 Title:VR スプラッシュ スクリーン
-Crumbs:%ROOT%, Platforms, Platforms/VR
+Crumbs:%ROOT%
 Description:VR スプラッシュ スクリーンとムービーの設定と操作方法
-Navigation:platform
 Version:4.14
 parent:Platforms/VR
 Type:overview
 Skilllevel:Intermediate
+Tags:VR
+Order:2
+
 
 [TOC(start:2)]
 
@@ -15,12 +17,13 @@ Unreal Engine 4 (UE4) は、Oculus、Gear VR、SteamVR、PSVR Head Mounted Displ
 
 ## VR Splash Screen 対応のプラットフォーム 
 
-VR スプラッシュ スクリーンは以下の VR プラットフォームでのみ使用できます。 
+VR スプラッシュ スクリーンは以下の VR プラットフォームで使用できます。 
 
-* **Oculus VR**
-* **Gear VR**
-* **Steam VR**
-* **PSVR**
+* [Oculus VR](https://www.oculus.com/)
+* [Steam VR](http://store.steampowered.com/steamvr)
+* [PSVR](https://www.playstation.com/en-us/explore/playstation-vr/)
+* [Gear VR](http://www.samsung.com/global/galaxy/gear-vr/)
+* [Google Daydream](https://vr.google.com/daydream/)
 
 ## VR スプラッシュ スクリーン プロジェクトの設定
 
@@ -42,14 +45,14 @@ VR スプラッシュ スクリーンを設定および使用する前に、ま�
 
     ![](VRLS_Intro_04.png)
 
-Pawn と Game Mode を設定したので、ポーンのイベントグラフで VR Splash screen を設定する方法について説明します。
+Pawn と Game Mode を設定したので、ポーンのイベントグラフで VR Splash screen を設定する方法について説明します。 
 
 ## VR Splash Screen の設定
 
-次のセクションでこ、ポーンのイベントグラフで VR Splash Screen を設定する方法を説明します。
+次のセクションでこ、ポーンのイベントグラフで VR Splash Screen を設定する方法を説明します。 
 
 [region:note]
-VR スプラッシュスクリーンの最も簡単な設定方法は以下になります。プロジェクトごとにニーズは異なりますが、VR スプラッシュスクリーンの設定方法の大きな流れはほぼ一緒です。
+この例では、UE4 で Auto Loading Splash Screens を使用するための最もシンプルなアプローチを紹介しています。実際やってみると、レベルがストリーム インを完了させる分の時間を確実に考慮するために、レベル トランジションの間に手作業で Splash Screens の表示 / 非表示を行う必要があるとわかると思います。
 [/region]
 1. VR_Pawn をから **Event Graph** を開きます。Event Graph 内を右クリックして、以下の Blueprint ノードを検索および追加します。
 

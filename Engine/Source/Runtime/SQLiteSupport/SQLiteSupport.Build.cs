@@ -45,7 +45,7 @@ namespace UnrealBuildTool.Rules
 					break;
 			}
 
-			string LibraryPath = "" + UEBuildConfiguration.UEThirdPartySourceDirectory + "sqlite/lib/" + PlatformName + ConfigurationName;
+			string LibraryPath = "" + Target.UEThirdPartySourceDirectory + "sqlite/lib/" + PlatformName + ConfigurationName;
 
 			string LibraryFilename;
 			if(Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.XboxOne)
@@ -56,13 +56,13 @@ namespace UnrealBuildTool.Rules
 			{
 				LibraryFilename = Path.Combine(LibraryPath, "sqlite.a");
 			}
-
-			if (!File.Exists(LibraryFilename))
+		
+			if (!File.Exists(LibraryFilename) && !Target.bPrecompile)
 			{
 				throw new BuildException("Please refer to the Engine/Source/ThirdParty/sqlite/README.txt file prior to enabling this module.");
 			}
 
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "sqlite/sqlite/");
+			PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "sqlite/sqlite/");
 
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
@@ -74,6 +74,8 @@ namespace UnrealBuildTool.Rules
 			// Lib file
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryFilename);
+
+			PrecompileForTargets = PrecompileTargetsType.None;
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -152,17 +152,17 @@ CefURLRequestCppToC::CefURLRequestCppToC() {
   GetStruct()->cancel = urlrequest_cancel;
 }
 
-template<> CefRefPtr<CefURLRequest> CefCppToC<CefURLRequestCppToC,
+template<> CefRefPtr<CefURLRequest> CefCppToCRefCounted<CefURLRequestCppToC,
     CefURLRequest, cef_urlrequest_t>::UnwrapDerived(CefWrapperType type,
     cef_urlrequest_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefURLRequestCppToC, CefURLRequest,
-    cef_urlrequest_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefURLRequestCppToC,
+    CefURLRequest, cef_urlrequest_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefURLRequestCppToC, CefURLRequest,
-    cef_urlrequest_t>::kWrapperType = WT_URLREQUEST;
+template<> CefWrapperType CefCppToCRefCounted<CefURLRequestCppToC,
+    CefURLRequest, cef_urlrequest_t>::kWrapperType = WT_URLREQUEST;

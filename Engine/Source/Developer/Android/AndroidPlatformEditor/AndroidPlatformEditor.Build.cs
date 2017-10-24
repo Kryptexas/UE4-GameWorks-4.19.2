@@ -28,7 +28,8 @@ public class AndroidPlatformEditor : ModuleRules
                 "RenderCore",
                 "MaterialShaderQualitySettings",
 				"MainFrame",
-			}
+                "AudioSettingsEditor"
+            }
 		);
 
 		PrivateIncludePathModuleNames.AddRange(

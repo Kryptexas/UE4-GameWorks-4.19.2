@@ -5,5 +5,5 @@
 
 FString AutoSaveUtils::GetAutoSaveDir()
 {
-	return FPaths::GameSavedDir() / TEXT("Autosaves");
+	return FPaths::ProjectSavedDir() / TEXT("Autosaves");
 }

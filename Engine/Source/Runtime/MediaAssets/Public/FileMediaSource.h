@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/ScriptMacros.h"
 #include "BaseMediaSource.h"
@@ -36,12 +37,20 @@ public:
 	 * Get the path to the media file to be played.
 	 *
 	 * @return The file path.
-	 * @see SetFilePath
+	 * @see GetFullPath, SetFilePath
 	 */
 	const FString& GetFilePath() const
 	{
 		return FilePath;
 	}
+
+	/**
+	 * Get the full path to the file.
+	 *
+	 * @return The full file path.
+	 * @return GetFilePath
+	 */
+	FString GetFullPath() const;
 
 	/**
 	 * Set the path to the media file that this source represents.
@@ -73,9 +82,4 @@ public:
 
 	/** Name of the PrecacheFile media option. */
 	static FName PrecacheFileOption;
-
-protected:
-
-	/** Get the full path to the file. */
-	FString GetFullPath() const;
 };

@@ -218,6 +218,8 @@ public:
 	const FGraphTraversalCounter& GetUpdateCounter() const  { return UpdateCounter; }
 	const FGraphTraversalCounter& GetEvaluationCounter() const { return EvaluationCounter; }
 	const FGraphTraversalCounter& GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
+	
+	void ResetUpdateCounter() { UpdateCounter.Reset(); }
 
 	/** Access root motion params */
 	FRootMotionMovementParams& GetExtractedRootMotion() { return ExtractedRootMotion; }
@@ -538,7 +540,7 @@ protected:
 	/** 
 	 * Recalculate required curve list for animation - if you call RecalcRequiredBones, this should already happen
 	 */
-	void RecalcRequiredCurves(bool bDisableAnimCurves);
+	void RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption);
 
 	/** Update the material parameters of the supplied component from this instance */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);

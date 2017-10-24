@@ -70,7 +70,7 @@ class UTextureRenderTargetCube : public UTextureRenderTarget
 	// and warns us. In this case, it is intentional, so we disable the warning:
 	virtual float GetSurfaceHeight()const  override { return SizeX; }	 //-V524
 	virtual FTextureResource* CreateResource() override;
-	virtual EMaterialValueType GetMaterialType() override;
+	virtual EMaterialValueType GetMaterialType() const override;
 	//~ End UTexture Interface.
 
 	EPixelFormat GetFormat() const

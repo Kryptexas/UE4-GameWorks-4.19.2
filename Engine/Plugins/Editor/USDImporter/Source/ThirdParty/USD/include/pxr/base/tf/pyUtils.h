@@ -27,6 +27,8 @@
 /// \file tf/pyUtils.h
 /// Miscellaneous Utilities for dealing with script.
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/refPtr.h"
 #include "pxr/base/tf/weakPtr.h"
 #include "pxr/base/tf/diagnosticLite.h"
@@ -42,6 +44,8 @@
 #include <boost/python/extract.hpp>
 #include <boost/python/object.hpp>
 #include <boost/python/type_id.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// A macro which expands to the proper __repr__ prefix for a library.  This is
 /// the "canonical" name of the module that the system uses to identify it
@@ -182,6 +186,12 @@ TfPyGetClassObject() {
     return TfPyGetClassObject(typeid(T));
 }
 
+TF_API
+void
+Tf_PyWrapOnceImpl(boost::python::type_info const &,
+                  boost::function<void()> const&,
+                  bool *);
+
 /// Invokes \p wrapFunc to wrap type \c T if \c T is not already wrapped.
 ///
 /// Executing \p wrapFunc *must* register \c T with boost python.  Otherwise,
@@ -194,7 +204,7 @@ void
 TfPyWrapOnce(boost::function<void()> const &wrapFunc)
 {
     // Don't try to wrap if python isn't initialized.
-    if (not TfPyIsInitialized()) {
+    if (!TfPyIsInitialized()) {
         return;
     }
 
@@ -202,11 +212,6 @@ TfPyWrapOnce(boost::function<void()> const &wrapFunc)
     if (isTypeWrapped) {
         return;
     }
-
-    TF_API void Tf_PyWrapOnceImpl(
-        boost::python::type_info const &,
-        boost::function<void()> const&,
-        bool *);
 
     Tf_PyWrapOnceImpl(boost::python::type_id<T>(), wrapFunc, &isTypeWrapped);
 }
@@ -332,12 +337,12 @@ bool TfPyEvaluateAndExtract(const std::string & expr, T * t)
     // boost::python::object, since it will increment and decrement ref counts 
     // outside of the call to TfPyEvaluate.
     boost::python::object obj;
-    if (not Tf_PyEvaluateWithErrorCheck(expr, &obj))
+    if (!Tf_PyEvaluateWithErrorCheck(expr, &obj))
         return false;
 
     boost::python::extract<T> extractor(obj);
 
-    if (not extractor.check())
+    if (!extractor.check())
         return false;
 
     *t = extractor();
@@ -350,5 +355,7 @@ bool TfPyEvaluateAndExtract(const std::string & expr, T * t)
 /// function only when the error indicator is set.
 TF_API
 void TfPyPrintError();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYUTILS_H

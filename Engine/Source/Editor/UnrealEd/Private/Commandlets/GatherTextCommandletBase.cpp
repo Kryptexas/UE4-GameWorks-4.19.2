@@ -66,9 +66,9 @@ bool UGatherTextCommandletBase::GetPathFromConfig( const TCHAR* Section, const T
 	{
 		if (FPaths::IsRelative(OutValue))
 		{
-			if (!FPaths::GameDir().IsEmpty())
+			if (!FPaths::ProjectDir().IsEmpty())
 			{
-				OutValue = FPaths::Combine( *( FPaths::GameDir() ), *OutValue );
+				OutValue = FPaths::Combine( *( FPaths::ProjectDir() ), *OutValue );
 			}
 			else
 			{
@@ -98,7 +98,7 @@ int32 UGatherTextCommandletBase::GetPathArrayFromConfig( const TCHAR* Section, c
 	{
 		if (FPaths::IsRelative(OutArr[i]))
 		{
-			const FString ProjectBasePath = FPaths::GameDir().IsEmpty() ? FPaths::EngineDir() : FPaths::GameDir();
+			const FString ProjectBasePath = FPaths::ProjectDir().IsEmpty() ? FPaths::EngineDir() : FPaths::ProjectDir();
 			OutArr[i] = FPaths::Combine( *ProjectBasePath, *OutArr[i] );
 			OutArr[i] = FPaths::ConvertRelativePathToFull(OutArr[i]);
 		}

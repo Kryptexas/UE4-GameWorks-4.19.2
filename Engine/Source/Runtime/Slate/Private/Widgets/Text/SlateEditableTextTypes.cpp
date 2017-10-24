@@ -227,4 +227,40 @@ TSharedRef<FTextSelectionHighlighter> FTextSelectionHighlighter::Create()
 	return MakeShareable(new FTextSelectionHighlighter());
 }
 
+FTextSearchHighlighter::FTextSearchHighlighter()
+{
+}
+
+int32 FTextSearchHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
+
+	// If we've not been set to an explicit color, calculate a suitable one from the linked color
+	FLinearColor SelectionBackgroundColorAndOpacity = DefaultStyle.HighlightColor * InWidgetStyle.GetColorAndOpacityTint();
+	SelectionBackgroundColorAndOpacity.A *= 0.2f;
+
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
+
+	if (Width > 0.0f)
+	{
+		// Draw the actual highlight rectangle
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			++LayerId,
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(Width, FMath::Max(Line.Size.Y, Line.TextSize.Y))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
+			&DefaultStyle.HighlightShape,
+			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
+			SelectionBackgroundColorAndOpacity
+			);
+	}
+
+	return LayerId;
+}
+
+TSharedRef<FTextSearchHighlighter> FTextSearchHighlighter::Create()
+{
+	return MakeShareable(new FTextSearchHighlighter());
+}
+
 } // namespace SlateEditableTextTypes

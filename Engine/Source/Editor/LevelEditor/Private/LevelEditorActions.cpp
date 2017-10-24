@@ -159,7 +159,7 @@ void FLevelEditorActionCallbacks::BrowseDocumentation()
 
 void FLevelEditorActionCallbacks::BrowseAPIReference()
 {
-	IDocumentation::Get()->OpenAPIHome();
+	IDocumentation::Get()->OpenAPIHome(FDocumentationSourceInfo(TEXT("help_menu")));
 }
 
 void FLevelEditorActionCallbacks::BrowseCVars()
@@ -359,8 +359,10 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 
 bool FLevelEditorActionCallbacks::ToggleFavorite_CanExecute()
 {
+	const FMainMRUFavoritesList& MRUFavorites = *FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame").GetMRUFavoritesList();
+	const int32 NumFavorites = MRUFavorites.GetNumFavorites();
 	// Disable the favorites button if the map isn't associated to a file yet (new map, never before saved, etc.)
-	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld());
+	return LevelEditorActionsHelpers::IsPersistentWorld(GetWorld()) && NumFavorites <= FLevelEditorCommands::Get().OpenFavoriteFileCommands.Num();
 }
 
 
@@ -479,7 +481,7 @@ void FLevelEditorActionCallbacks::AttachToActor(AActor* ParentActorPtr)
 	// Instead, we currently only display the sockets on the root component
 	if (ParentActorPtr != NULL)
 	{
-		if (USceneComponent* RootComponent = Cast<USceneComponent>(ParentActorPtr->GetRootComponent()))
+		if (USceneComponent* RootComponent = ParentActorPtr->GetRootComponent())
 		{
 			if (RootComponent->HasAnySockets())
 			{
@@ -1064,15 +1066,7 @@ void FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked()
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 {
 	const auto& SelectedActorInfo = AssetSelectionUtils::GetSelectedActorInfo();
-	if( SelectedActorInfo.SelectionClass != nullptr )
-	{
-		FString ClassHeaderPath;
-		if( FSourceCodeNavigation::FindClassHeaderPath( SelectedActorInfo.SelectionClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
-		{
-			FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
-			FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-		}
-	}
+	FSourceCodeNavigation::NavigateToClass(SelectedActorInfo.SelectionClass);
 }
 
 void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
@@ -1488,7 +1482,11 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 	}
 	else
 	{
-		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCopy;
@@ -1524,7 +1522,11 @@ bool FLevelEditorActionCallbacks::Delete_CanExecute()
 	}
 	else
 	{
-		bCanDelete = GUnrealEd->CanDeleteSelectedActors(GetWorld(), true, false);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanDelete = GUnrealEd->CanDeleteSelectedActors(World, true, false);
+		}
 	}
 
 	return bCanDelete;
@@ -1598,7 +1600,11 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 	else
 	{
 		// For actors, if we can copy, we can cut
-		bCanCut = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCut = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCut;
@@ -1634,7 +1640,11 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 	}
 	else
 	{
-		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCopy;
@@ -1668,7 +1678,11 @@ bool FLevelEditorActionCallbacks::Paste_CanExecute()
 	}
 	else
 	{
-		bCanPaste = GUnrealEd->CanPasteSelectedActorsFromClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanPaste = GUnrealEd->CanPasteSelectedActorsFromClipboard(World);
+		}
 	}
 
 	return bCanPaste;
@@ -2946,6 +2960,20 @@ void FLevelEditorCommands::RegisterCommands()
 			.DefaultChord( FInputChord() );
 		OpenRecentFileCommands.Add( OpenRecentFile );
 	}
+	for (int32 CurFavoriteIndex = 0; CurFavoriteIndex < FLevelEditorCommands::MaxRecentFiles; ++CurFavoriteIndex)
+	{
+		// NOTE: The actual label and tool-tip will be overridden at runtime when the command is bound to a menu item, however
+		// we still need to set one here so that the key bindings UI can function properly
+		TSharedRef< FUICommandInfo > OpenFavoriteFile =
+			FUICommandInfoDecl(
+				this->AsShared(),
+				FName(*FString::Printf(TEXT("OpenFavoriteFile%i"), CurFavoriteIndex)),
+				FText::Format(NSLOCTEXT("LevelEditorCommands", "OpenFavoriteFile", "Open Favorite File {0}"), FText::AsNumber(CurFavoriteIndex)),
+				NSLOCTEXT("LevelEditorCommands", "OpenFavoriteFileToolTip", "Opens a favorite file"))
+			.UserInterfaceType(EUserInterfaceActionType::Button)
+			.DefaultChord(FInputChord());
+		OpenFavoriteFileCommands.Add(OpenFavoriteFile);
+	}
 
 	UI_COMMAND( ImportScene, "Import Into Level...", "Imports a scene from a FBX or T3D format into the current level", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ExportAll, "Export All...", "Exports the entire level to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
@@ -3195,12 +3223,11 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND(PreviewPlatformOverride_DefaultES2, "Default Mobile / HTML5 Preview", "Use default mobile settings (no quality overrides).", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(PreviewPlatformOverride_AndroidGLES2, "Android Preview", "Mobile preview using Android's quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
-	UI_COMMAND(PreviewPlatformOverride_IOSGLES2, "iOS ES2 Preview", "Mobile preview using iOS's OpenGL ES2 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
 
 	UI_COMMAND(PreviewPlatformOverride_DefaultES31, "Default High-End Mobile", "Use default mobile settings (no quality overrides).", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(PreviewPlatformOverride_AndroidGLES31, "Android GLES3.1 Preview", "Mobile preview using Android ES3.1 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(PreviewPlatformOverride_AndroidVulkanES31, "Android Vulkan Preview", "Mobile preview using Android Vulkan quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
-	UI_COMMAND(PreviewPlatformOverride_IOSMetalES31, "iOS Metal Preview", "Mobile preview using iOS Metal quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_IOSMetalES31, "iOS Preview", "Mobile preview using iOS material quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
 
 
 	UI_COMMAND( ConnectToSourceControl, "Connect to Source Control...", "Opens a dialog to connect to source control.", EUserInterfaceActionType::Button, FInputChord());
@@ -3211,7 +3238,7 @@ void FLevelEditorCommands::RegisterCommands()
 	static const FText FeatureLevelLabels[ERHIFeatureLevel::Num] = 
 	{
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES2", "Mobile / HTML5"),
-		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES31", "High-End Mobile / Metal"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES31", "High-End Mobile"),
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM4", "Shader Model 4"),
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM5", "Shader Model 5"),
 	};
@@ -3219,7 +3246,7 @@ void FLevelEditorCommands::RegisterCommands()
 	static const FText FeatureLevelToolTips[ERHIFeatureLevel::Num] = 
 	{
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES2", "OpenGLES 2"),
-		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES3", "OpenGLES 3.1, Metal"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES3", "OpenGLES 3.1, Metal, Vulkan"),
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM4", "DirectX 10, OpenGL 3.3+"),
 		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM5", "DirectX 11, OpenGL 4.3+, PS4, XB1"),
 	};

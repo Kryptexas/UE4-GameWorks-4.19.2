@@ -15,6 +15,7 @@ public class UnrealHeaderTool : ModuleRules
 				"CoreUObject",
 				"Json",
 				"Projects",
+				"ApplicationCore"
 			}
 		);
 	

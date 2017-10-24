@@ -16,7 +16,6 @@
 #include "BaseMediaSource.h"
 #include "FileMediaSource.h"
 #include "MediaPlayer.h"
-#include "MediaSoundWave.h"
 #include "MediaTexture.h"
 #include "PlatformMediaSource.h"
 
@@ -25,11 +24,9 @@
 #include "AssetTools/FileMediaSourceActions.h"
 #include "AssetTools/MediaPlayerActions.h"
 #include "AssetTools/MediaPlaylistActions.h"
-#include "AssetTools/MediaSoundWaveActions.h"
 
 #include "Customizations/BaseMediaSourceCustomization.h"
 #include "Customizations/FileMediaSourceCustomization.h"
-#include "Customizations/MediaSoundWaveCustomization.h"
 #include "Customizations/MediaTextureCustomization.h"
 #include "Customizations/PlatformMediaSourceCustomization.h"
 
@@ -105,7 +102,6 @@ protected:
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFileMediaSourceActions(Style.ToSharedRef())));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FMediaPlayerActions(Style.ToSharedRef())));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FMediaPlaylistActions(Style.ToSharedRef())));
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FMediaSoundWaveActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FMediaSourceActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FMediaTextureActions));
 	}
@@ -145,14 +141,12 @@ protected:
 	{
 		BaseMediaSourceName = UBaseMediaSource::StaticClass()->GetFName();
 		FileMediaSourceName = UFileMediaSource::StaticClass()->GetFName();
-		MediaSoundWaveName = UMediaSoundWave::StaticClass()->GetFName();
 		MediaTextureName = UMediaTexture::StaticClass()->GetFName();
 		PlatformMediaSourceName = UPlatformMediaSource::StaticClass()->GetFName();
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		{
 			PropertyModule.RegisterCustomClassLayout(FileMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FFileMediaSourceCustomization::MakeInstance));
-			PropertyModule.RegisterCustomClassLayout(MediaSoundWaveName, FOnGetDetailCustomizationInstance::CreateStatic(&FMediaSoundWaveCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(MediaTextureName, FOnGetDetailCustomizationInstance::CreateStatic(&FMediaTextureCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(PlatformMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FPlatformMediaSourceCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(BaseMediaSourceName, FOnGetDetailCustomizationInstance::CreateStatic(&FBaseMediaSourceCustomization::MakeInstance));
@@ -166,7 +160,6 @@ protected:
 		{
 			PropertyModule.UnregisterCustomClassLayout(BaseMediaSourceName);
 			PropertyModule.UnregisterCustomClassLayout(FileMediaSourceName);
-			PropertyModule.UnregisterCustomClassLayout(MediaSoundWaveName);
 			PropertyModule.UnregisterCustomClassLayout(MediaTextureName);
 			PropertyModule.UnregisterCustomClassLayout(PlatformMediaSourceName);
 		}
@@ -276,7 +269,6 @@ private:
 	/** Class names. */
 	FName BaseMediaSourceName;
 	FName FileMediaSourceName;
-	FName MediaSoundWaveName;
 	FName MediaTextureName;
 	FName PlatformMediaSourceName;
 };

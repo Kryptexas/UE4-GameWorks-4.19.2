@@ -1,28 +1,28 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Factories/MediaPlayerFactoryNew.h"
-#include "Modules/ModuleManager.h"
-#include "Misc/PackageName.h"
-#include "IAssetTools.h"
+#include "MediaPlayerFactoryNew.h"
+
 #include "AssetToolsModule.h"
-#include "Layout/Visibility.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
+#include "IAssetTools.h"
 #include "Input/Reply.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SCompoundWidget.h"
+#include "Misc/PackageName.h"
+#include "Modules/ModuleManager.h"
+#include "Layout/Visibility.h"
+#include "MediaPlayer.h"
+#include "MediaTexture.h"
 #include "Styling/SlateTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SCompoundWidget.h"
 #include "Widgets/SWindow.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "EditorStyleSet.h"
-#include "Editor.h"
-#include "MediaPlayer.h"
-#include "MediaSoundWave.h"
-#include "MediaTexture.h"
-#include "Factories/MediaSoundWaveFactoryNew.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Text/STextBlock.h"
+
 #include "Factories/MediaTextureFactoryNew.h"
 
 
@@ -69,21 +69,6 @@ public:
 										[
 											SNew(STextBlock)
 												.Text(LOCTEXT("CreateAdditionalAssetsLabel", "Additional assets to create and link to the Media Player:"))
-										]
-
-									+ SVerticalBox::Slot()
-										.Padding(0.0f, 8.0f, 0.0f, 0.0f)
-										[
-											SNew(SCheckBox)
-												.IsChecked(Options->CreateSoundWave ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-												.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
-													Options->CreateSoundWave = (CheckBoxState == ECheckBoxState::Checked);
-												})
-												.Content()
-												[
-													SNew(STextBlock)
-														.Text(LOCTEXT("CreateSoundWaveLabel", "Audio output SoundWave asset"))
-												]
 										]
 
 									+ SVerticalBox::Slot()
@@ -172,7 +157,6 @@ UMediaPlayerFactoryNew::UMediaPlayerFactoryNew( const FObjectInitializer& Object
 
 bool UMediaPlayerFactoryNew::ConfigureProperties()
 {
-	Options.CreateSoundWave = false;
 	Options.CreateVideoTexture = false;
 	Options.OkClicked = false;
 
@@ -193,7 +177,7 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew(UClass* InClass, UObject* InPa
 {
 	auto NewMediaPlayer = NewObject<UMediaPlayer>(InParent, InClass, InName, Flags);
 
-	if ((NewMediaPlayer != nullptr) && (Options.CreateSoundWave || Options.CreateVideoTexture))
+	if ((NewMediaPlayer != nullptr) && Options.CreateVideoTexture)
 	{
 		IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		const FString ParentName = InParent->GetOutermost()->GetName();
@@ -201,30 +185,14 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew(UClass* InClass, UObject* InPa
 		FString OutAssetName;
 		FString OutPackageName;
 
-		if (Options.CreateSoundWave)
+		AssetTools.CreateUniqueAssetName(ParentName, TEXT("_Video"), OutPackageName, OutAssetName);
+		const FString PackagePath = FPackageName::GetLongPackagePath(OutPackageName);
+		auto Factory = NewObject<UMediaTextureFactoryNew>();
+		auto VideoTexture = Cast<UMediaTexture>(AssetTools.CreateAsset(OutAssetName, PackagePath, UMediaTexture::StaticClass(), Factory));
+
+		if (VideoTexture != nullptr)
 		{
-			AssetTools.CreateUniqueAssetName(ParentName, TEXT("_Sound"), OutPackageName, OutAssetName);
-			const FString PackagePath = FPackageName::GetLongPackagePath(OutPackageName);
-			auto Factory = NewObject<UMediaSoundWaveFactoryNew>();
-			auto SoundWave = Cast<UMediaSoundWave>(AssetTools.CreateAsset(OutAssetName, PackagePath, UMediaSoundWave::StaticClass(), Factory));
-
-			if (SoundWave != nullptr)
-			{
-				NewMediaPlayer->SetSoundWave(SoundWave);
-			}
-		}
-
-		if (Options.CreateVideoTexture)
-		{
-			AssetTools.CreateUniqueAssetName(ParentName, TEXT("_Video"), OutPackageName, OutAssetName);
-			const FString PackagePath = FPackageName::GetLongPackagePath(OutPackageName);
-			auto Factory = NewObject<UMediaTextureFactoryNew>();
-			auto VideoTexture = Cast<UMediaTexture>(AssetTools.CreateAsset(OutAssetName, PackagePath, UMediaTexture::StaticClass(), Factory));
-
-			if (VideoTexture != nullptr)
-			{
-				NewMediaPlayer->SetVideoTexture(VideoTexture);
-			}
+			VideoTexture->MediaPlayer = NewMediaPlayer;
 		}
 	}
 

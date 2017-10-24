@@ -40,6 +40,10 @@ public:
 	{
 	}
 
+	//~ Begin IModuleInterface interface
+	virtual void ShutdownModule();
+	//~ End IModuleInterface interface
+
 	//~ Begin IBlueprintNativeCodeGenModule interface
 	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const FName PlatformName) override;
 	virtual void SaveManifest() override;
@@ -47,12 +51,12 @@ public:
 	virtual void FinalizeManifest() override;
 	virtual void GenerateStubs() override;
 	virtual void GenerateFullyConvertedClasses() override;
-	void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) override;
-	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() override;
+	void MarkUnconvertedBlueprintAsNecessary(TSoftObjectPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) override;
+	virtual const TMultiMap<FName, TSoftClassPtr<UObject>>& GetFunctionsBoundToADelegate() override;
 
-	FFileHelper::EEncodingOptions::Type ForcedEncoding() const
+	FFileHelper::EEncodingOptions ForcedEncoding() const
 	{
-		return FFileHelper::EEncodingOptions::ForceUTF8;
+		return FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM;
 	}
 	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const override;
 	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) override;
@@ -79,11 +83,13 @@ private:
 	struct FStatePerPlatform
 	{
 		// A stub-wrapper must be generated only if the BP is really accessed/required by some other generated code.
-		TSet<TAssetPtr<UBlueprint>> StubsRequiredByGeneratedCode;
+		TSet<TSoftObjectPtr<UBlueprint>> StubsRequiredByGeneratedCode;
 
-		TSet<TAssetPtr<UBlueprint>> ToGenerate;
+		TSet<TSoftObjectPtr<UStruct>> UDSAssetsToGenerate;
+		TSet<TSoftObjectPtr<UBlueprint>> BPAssetsToGenerate;
+
 		// Cached values from IsTargetedForReplacement
-		mutable TMap<FStringAssetReference, EReplacementResult> CachedIsTargetedForReplacement;
+		mutable TMap<FSoftObjectPath, EReplacementResult> CachedIsTargetedForReplacement;
 	};
 
 	TMap< FName, FStatePerPlatform > StatesPerPlatform;
@@ -93,15 +99,15 @@ private:
 	// Children of these classes won't be nativized
 	TArray<FString> ExcludedAssetTypes;
 	// Eg: +ExcludedBlueprintTypes=/Script/Engine.AnimBlueprint
-	TArray<TAssetSubclassOf<UBlueprint>> ExcludedBlueprintTypes;
+	TArray<TSoftClassPtr<UBlueprint>> ExcludedBlueprintTypes;
 	// Individually excluded assets
-	TSet<FStringAssetReference> ExcludedAssets;
+	TSet<FSoftObjectPath> ExcludedAssets;
 	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
 	TArray<FString> ExcludedFolderPaths;
 
 	TArray<FName> TargetPlatformNames;
 
-	TMultiMap<FName, TAssetSubclassOf<UObject>> FunctionsBoundToADelegate; // is a function could be bound to a delegate, then it must have UFUNCTION macro. So we cannot optimize it.
+	TMultiMap<FName, TSoftClassPtr<UObject>> FunctionsBoundToADelegate; // is a function could be bound to a delegate, then it must have UFUNCTION macro. So we cannot optimize it.
 };
 
 const FCompilerNativizationOptions& FBlueprintNativeCodeGenModule::GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const
@@ -128,8 +134,8 @@ void FBlueprintNativeCodeGenModule::ReadConfig()
 		GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedBlueprintTypes"), ExcludedBlueprintTypesPath, GEditorIni);
 		for (FString& Path : ExcludedBlueprintTypesPath)
 		{
-			TAssetSubclassOf<UBlueprint> ClassPtr;
-			ClassPtr = FStringAssetReference(Path);
+			TSoftClassPtr<UBlueprint> ClassPtr;
+			ClassPtr = FSoftObjectPath(Path);
 			ClassPtr.LoadSynchronous();
 			ExcludedBlueprintTypes.Add(ClassPtr);
 		}
@@ -139,13 +145,13 @@ void FBlueprintNativeCodeGenModule::ReadConfig()
 	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedAssets"), ExcludedAssetPaths, GEditorIni);
 	for (FString& Path : ExcludedAssetPaths)
 	{
-		ExcludedAssets.Add(FStringAssetReference(Path));
+		ExcludedAssets.Add(FSoftObjectPath(Path));
 	}
 
 	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedFolderPaths"), ExcludedFolderPaths, GEditorIni);
 }
 
-void FBlueprintNativeCodeGenModule::MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions)
+void FBlueprintNativeCodeGenModule::MarkUnconvertedBlueprintAsNecessary(TSoftObjectPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions)
 {
 	FStatePerPlatform* StateForCurrentPlatform = StatesPerPlatform.Find(NativizationOptions.PlatformName);
 	if (ensure(StateForCurrentPlatform))
@@ -169,7 +175,7 @@ void FBlueprintNativeCodeGenModule::FillTargetedForReplacementQuery()
 	};
 	ConversionQueryDelegate.BindStatic(ShouldConvert);
 
-	auto LocalMarkUnconvertedBlueprintAsNecessary = [](TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions)
+	auto LocalMarkUnconvertedBlueprintAsNecessary = [](TSoftObjectPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions)
 	{
 		IBlueprintNativeCodeGenModule::Get().MarkUnconvertedBlueprintAsNecessary(BPPtr, NativizationOptions);
 	};
@@ -233,7 +239,7 @@ void FBlueprintNativeCodeGenModule::CollectBoundFunctions(UBlueprint* BP)
 	}
 }
 
-const TMultiMap<FName, TAssetSubclassOf<UObject>>& FBlueprintNativeCodeGenModule::GetFunctionsBoundToADelegate()
+const TMultiMap<FName, TSoftClassPtr<UObject>>& FBlueprintNativeCodeGenModule::GetFunctionsBoundToADelegate()
 {
 	return FunctionsBoundToADelegate;
 }
@@ -266,11 +272,7 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 	// Each platform will need a manifest, because each platform could cook different assets:
 	for (const FPlatformNativizationDetails& Platform : InitData.CodegenTargets)
 	{
-		FString TargetPath = InitData.DestPluginPath; 
-		if (TargetPath.IsEmpty())
-		{
-			TargetPath = FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(Platform.PlatformName);
-		}
+		const FString TargetPath = FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(Platform.PlatformName);
 		const FBlueprintNativeCodeGenManifest& Manifest = *Manifests.Add(Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(TargetPath, Platform.CompilerNativizationOptions, InitData.ManifestIdentifier)));
 
 		TargetPlatformNames.Add(Platform.PlatformName);
@@ -338,7 +340,17 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 		}
 		FStatePerPlatform* State = StatesPerPlatform.Find(Platform.PlatformName);
 		check(State);
-		for (TAssetPtr<UBlueprint>& BPPtr : State->ToGenerate)
+
+		for (TSoftObjectPtr<UStruct>& UDSPtr : State->UDSAssetsToGenerate)
+		{
+			UStruct* UDS = UDSPtr.LoadSynchronous();
+			if (ensure(UDS))
+			{
+				GenerateSingleAsset(UDS, Platform.PlatformName);
+			}
+		}
+
+		for (TSoftObjectPtr<UBlueprint>& BPPtr : State->BPAssetsToGenerate)
 		{
 			UBlueprint* BP = BPPtr.LoadSynchronous();
 			if (ensure(BP))
@@ -347,6 +359,18 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 			}
 		}
 	}
+}
+
+void FBlueprintNativeCodeGenModule::ShutdownModule()
+{
+	// Clear the current coordinator reference.
+	IBlueprintNativeCodeGenCore::Register(nullptr);
+
+	// Reset compiler module delegate function bindings.
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	BackEndModule.GetIsFunctionUsedInADelegateCallback().Unbind();
+	BackEndModule.OnIsTargetedForConversionQuery().Unbind();
+	BackEndModule.OnIncludingUnconvertedBP().Unbind();
 }
 
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
@@ -361,7 +385,17 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 	{
 		FStatePerPlatform* State = StatesPerPlatform.Find(PlatformName);
 		check(State);
-		for (TAssetPtr<UBlueprint>& BPPtr : State->ToGenerate)
+
+		for (TSoftObjectPtr<UStruct>& UDSPtr : State->UDSAssetsToGenerate)
+		{
+			UStruct* UDS = UDSPtr.LoadSynchronous();
+			if (ensure(UDS))
+			{
+				GenerateSingleAsset(UDS, PlatformName, NativizationSummary);
+			}
+		}
+
+		for (TSoftObjectPtr<UBlueprint>& BPPtr : State->BPAssetsToGenerate)
 		{
 			UBlueprint* BP = BPPtr.LoadSynchronous();
 			if (ensure(BP))
@@ -511,12 +545,12 @@ void FBlueprintNativeCodeGenModule::GenerateStubs()
 		{
 			continue;
 		}
-		TSet<TAssetPtr<UBlueprint>> AlreadyGenerated;
+		TSet<TSoftObjectPtr<UBlueprint>> AlreadyGenerated;
 		while (AlreadyGenerated.Num() < StateForCurrentPlatform->StubsRequiredByGeneratedCode.Num())
 		{
 			const int32 OldGeneratedNum = AlreadyGenerated.Num();
-			TSet<TAssetPtr<UBlueprint>> LocalCopyStubsRequiredByGeneratedCode = StateForCurrentPlatform->StubsRequiredByGeneratedCode;
-			for (TAssetPtr<UBlueprint>& BPPtr : LocalCopyStubsRequiredByGeneratedCode)
+			TSet<TSoftObjectPtr<UBlueprint>> LocalCopyStubsRequiredByGeneratedCode = StateForCurrentPlatform->StubsRequiredByGeneratedCode;
+			for (TSoftObjectPtr<UBlueprint>& BPPtr : LocalCopyStubsRequiredByGeneratedCode)
 			{
 				bool bAlreadyGenerated = false;
 				AlreadyGenerated.Add(BPPtr, &bAlreadyGenerated);
@@ -571,7 +605,7 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResul
 	if (CookResult == ESavePackageResult::GenerateStub)
 	{
 		// No stub is generated for structs and enums.
-		ensure(!BP || !State->ToGenerate.Contains(BP));
+		ensure(!BP || !State->BPAssetsToGenerate.Contains(BP));
 	}
 	else
 	{
@@ -580,13 +614,16 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResul
 		{
 			if (ensure(BP))
 			{
-				State->ToGenerate.Add(BP);
+				State->BPAssetsToGenerate.Add(BP);
 			}
+		}
+		else if (Struct)
+		{
+			State->UDSAssetsToGenerate.Add(Struct);
 		}
 		else
 		{
-			UField* ForConversion = Struct ? (UField*)Struct : (UField*)Enum;
-			GenerateSingleAsset(ForConversion, PlatformName);
+			GenerateSingleAsset((UField*)Enum, PlatformName);
 		}
 	}
 }
@@ -620,10 +657,10 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 		{
 			if (NativizationSummary.IsValid())
 			{
-				TSet<TAssetPtr<UPackage>>* RequiredModules = NativizationSummary->ModulesRequiredByPlatform.Find(Manifest.GetCompilerNativizationOptions().PlatformName);
+				TSet<TSoftObjectPtr<UPackage>>* RequiredModules = NativizationSummary->ModulesRequiredByPlatform.Find(Manifest.GetCompilerNativizationOptions().PlatformName);
 				if (RequiredModules)
 				{
-					for (TAssetPtr<UPackage> ItPackage : *RequiredModules)
+					for (TSoftObjectPtr<UPackage> ItPackage : *RequiredModules)
 					{
 						if (UPackage* Pkg = ItPackage.Get())
 						{
@@ -642,22 +679,34 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 UClass* FBlueprintNativeCodeGenModule::FindReplacedClassForObject(const UObject* Object, const FCompilerNativizationOptions& NativizationOptions) const
 {
 	// we're only looking to replace class types:
-	if (Object && Object->IsA<UField>() 
-		&& (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(Object, NativizationOptions)))
+	if (Object && Object->IsA<UField>())
 	{
-		for (const UClass* Class = Object->GetClass(); Class; Class = Class->GetSuperClass())
+		if (IsTargetedForReplacement(Object, NativizationOptions) == EReplacementResult::ReplaceCompletely)
 		{
-			if (Class == UUserDefinedEnum::StaticClass())
+			for (const UClass* Class = Object->GetClass(); Class; Class = Class->GetSuperClass())
 			{
-				return UEnum::StaticClass();
+				if (Class == UUserDefinedEnum::StaticClass())
+				{
+					return UEnum::StaticClass();
+				}
+				if (Class == UUserDefinedStruct::StaticClass())
+				{
+					return UScriptStruct::StaticClass();
+				}
+				if (Class == UBlueprintGeneratedClass::StaticClass())
+				{
+					return UDynamicClass::StaticClass();
+				}
 			}
-			if (Class == UUserDefinedStruct::StaticClass())
+		}
+		else if (const UByteProperty* ByteProperty = Cast<UByteProperty>(Object))
+		{
+			// User-Defined Enum values are compiled as Byte properties, but get converted to Enum class properties during nativization. Thus,
+			// we have to account for that here and switch the property class to be an Enum property, since that's what will be generated by UHT.
+			// If we don't do this, then a dependent asset's import table will contain the incorrect property class for this value, if referenced.
+			if (ByteProperty->Enum && IsTargetedForReplacement(ByteProperty->Enum, NativizationOptions) == EReplacementResult::ReplaceCompletely)
 			{
-				return UScriptStruct::StaticClass();
-			}
-			if (Class == UBlueprintGeneratedClass::StaticClass())
-			{
-				return UDynamicClass::StaticClass();
+				return UEnumProperty::StaticClass();
 			}
 		}
 	}
@@ -773,7 +822,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 	const FStatePerPlatform* StateForCurrentPlatform = StatesPerPlatform.Find(NativizationOptions.PlatformName);
 	check(StateForCurrentPlatform);
-	const FStringAssetReference ObjectKey(Object);
+	const FSoftObjectPath ObjectKey(Object);
 	{
 		const EReplacementResult* const CachedValue = StateForCurrentPlatform->CachedIsTargetedForReplacement.Find(ObjectKey); //THe referenced returned by FindOrAdd could be invalid later, when filled.
 		if (CachedValue)
@@ -934,7 +983,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 			}
 
 			// ExcludedBlueprintTypes
-			for (TAssetSubclassOf<UBlueprint> ExcludedBlueprintTypeAsset : ExcludedBlueprintTypes)
+			for (TSoftClassPtr<UBlueprint> ExcludedBlueprintTypeAsset : ExcludedBlueprintTypes)
 			{
 				UClass* ExcludedBPClass = ExcludedBlueprintTypeAsset.Get();
 				if (!ExcludedBPClass)
@@ -1036,7 +1085,7 @@ void FBlueprintNativeCodeGenModule::FillPlatformNativizationDetails(const ITarge
 			GConfig->GetArray(ConfigSection, KeyForExcludedAssets, ExcludedAssetPaths, GEditorIni);
 			for (FString& Path : ExcludedAssetPaths)
 			{
-				Details.CompilerNativizationOptions.ExcludedAssets.Add(FStringAssetReference(Path));
+				Details.CompilerNativizationOptions.ExcludedAssets.Add(FSoftObjectPath(Path));
 			}
 		}
 	};

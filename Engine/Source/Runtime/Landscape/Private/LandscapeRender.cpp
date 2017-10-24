@@ -453,7 +453,6 @@ FLandscapeDebugOptions GLandscapeDebugOptions;
 LANDSCAPE_API bool GLandscapeEditModeActive = false;
 LANDSCAPE_API ELandscapeViewMode::Type GLandscapeViewMode = ELandscapeViewMode::Normal;
 LANDSCAPE_API int32 GLandscapeEditRenderMode = ELandscapeEditRenderMode::None;
-LANDSCAPE_API int32 GLandscapePreviewMeshRenderMode = 0;
 UMaterialInterface* GLayerDebugColorMaterial = nullptr;
 UMaterialInterface* GSelectionColorMaterial = nullptr;
 UMaterialInterface* GSelectionRegionMaterial = nullptr;
@@ -2621,32 +2620,31 @@ public:
 	{
 		if (VertexFactoryType)
 		{
-			if (bIsLayerThumbnail)
+			// Always check against FLocalVertexFactory in editor builds as it is required to render thumbnails
+			// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
+			static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
+			if (VertexFactoryType->GetFName() == LocalVertexFactory)
 			{
-				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
-				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
-				if (VertexFactoryType->GetFName() == LocalVertexFactory)
+				if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
 				{
-					if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
+					return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+				}
+				else
+				{
+					if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
 					{
-						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+						UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
+						return false;
 					}
 					else
 					{
-						if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
-						{
-							UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
-							return false;
-						}
-						else
-						{
-							UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
-							return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
-						}
+						UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
+						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 				}
 			}
-			else
+
+			if (!bIsLayerThumbnail)
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
@@ -2699,16 +2697,36 @@ public:
 			FName(TEXT("FConvertToUniformMeshGS")),
 			FName(TEXT("FVelocityVS")),
 			FName(TEXT("FVelocityPS")),
+
+			// No lightmap on thumbnails
 			FName(TEXT("TLightMapDensityVSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityPSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityVSFDummyLightMapPolicy")),
 			FName(TEXT("TLightMapDensityPSFDummyLightMapPolicy")),
+			FName(TEXT("TLightMapDensityPSTLightMapPolicyHQ")),
+			FName(TEXT("TLightMapDensityVSTLightMapPolicyHQ")),
+			FName(TEXT("TLightMapDensityPSTLightMapPolicyLQ")),
+			FName(TEXT("TLightMapDensityVSTLightMapPolicyLQ")),
+			FName(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQSkylight")),
+			FName(TEXT("TBasePassVSTDistanceFieldShadowsAndLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyHQSkylight")),
+			FName(TEXT("TBasePassVSTLightMapPolicyHQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyLQ")),
+			FName(TEXT("TBasePassPSTLightMapPolicyLQSkylight")),
+			FName(TEXT("TBasePassVSTLightMapPolicyLQ")),
+
+			FName(TEXT("TMobileBasePassPSFMobileMovableDirectionalLightCSMWithLightmapPolicyINT32_MAXHDRLinear64Skylight")),
 
 			FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
 			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
 			FName(TEXT("TBasePassVSFCachedVolumeIndirectLightingPolicy")),
 			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicy")),
 			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicySkylight")),
+			FName(TEXT("TBasePassVSFPrecomputedVolumetricLightmapLightingPolicy")),
+			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicy")),
+			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicySkylight")),
 
 			FName(TEXT("TBasePassVSFNoLightMapPolicyAtmosphericFog")),
 			FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicyAtmosphericFog")),
@@ -2740,6 +2758,20 @@ public:
 			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard>")),
 			FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_PerspectiveCorrect>")),
 			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_PerspectiveCorrect>")),
+
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly")),
+
+			FName(TEXT("TBasePassVSTDistanceFieldShadowsAndLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyLQAtmosphericFog")),
+			FName(TEXT("TBasePassVSFPrecomputedVolumetricLightmapLightingPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicySkylight")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicy")),
 		};
 		return ExcludedShaderTypes;
 	}
@@ -2783,15 +2815,17 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		TexelFactor = 0.75f * LocalStreamingDistanceMultiplier * ComponentSizeQuads * FMath::Abs(Proxy->GetRootComponent()->RelativeScale3D.X);
 	}
 
+	ERHIFeatureLevel::Type FeatureLevel = LevelContext.GetFeatureLevel();
+
 	// TODO - LOD Materials - Currently all LOD materials are instances of [0] so have the same textures
-    UMaterialInterface* MaterialInterface = GetWorld()->FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
+    UMaterialInterface* MaterialInterface = FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
 
 	// Normal usage...
 	// Enumerate the textures used by the material.
 	if (MaterialInterface)
 	{
 		TArray<UTexture*> Textures;
-		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
+		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 		// Add each texture to the output with the appropriate parameters.
 		// TODO: Take into account which UVIndex is being used.
 		for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
@@ -2857,8 +2891,6 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		}
 
 		// Lightmap
-		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-
 		const FMeshMapBuildData* MapBuildData = GetMeshMapBuildData();
 
 		FLightMap2D* Lightmap = MapBuildData && MapBuildData->LightMap ? MapBuildData->LightMap->GetLightMap2D() : nullptr;
@@ -2868,12 +2900,10 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			const FVector2D& Scale = Lightmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				float LightmapFactorX = TexelFactor / Scale.X;
-				float LightmapFactorY = TexelFactor / Scale.Y;
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures)FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds = BoundingSphere;
-				StreamingTexture.TexelFactor = FMath::Max(LightmapFactorX, LightmapFactorY);
-				StreamingTexture.Texture = Lightmap->GetTexture(LightmapIndex);
+				const float LightmapTexelFactor = TexelFactor / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetTexture(LightmapIndex), Bounds, LightmapTexelFactor);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetAOMaterialMaskTexture(), Bounds, LightmapTexelFactor);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetSkyOcclusionTexture(), Bounds, LightmapTexelFactor);
 			}
 		}
 
@@ -2884,12 +2914,8 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				float ShadowmapFactorX = TexelFactor / Scale.X;
-				float ShadowmapFactorY = TexelFactor / Scale.Y;
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures)FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds = BoundingSphere;
-				StreamingTexture.TexelFactor = FMath::Max(ShadowmapFactorX, ShadowmapFactorY);
-				StreamingTexture.Texture = Shadowmap->GetTexture();
+				const float ShadowmapTexelFactor = TexelFactor / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Shadowmap->GetTexture(), Bounds, ShadowmapTexelFactor);
 			}
 		}
 	}

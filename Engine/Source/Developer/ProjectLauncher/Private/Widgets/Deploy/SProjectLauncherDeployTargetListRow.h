@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ILauncherDeviceGroup.h"
+#include "ITargetDeviceProxy.h"
 #include "Misc/Attribute.h"
 #include "Widgets/SNullWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SWidget.h"
 #include "Layout/Margin.h"
-#include "Interfaces/ILauncherDeviceGroup.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Styling/SlateTypes.h"
 #include "Styling/StyleDefaults.h"
@@ -29,7 +30,7 @@
  * Implements a row widget for the launcher's device proxy list.
  */
 class SProjectLauncherDeployTargetListRow
-	: public SMultiColumnTableRow<ITargetDeviceProxyPtr>
+	: public SMultiColumnTableRow<TSharedPtr<ITargetDeviceProxy>>
 {
 public:
 
@@ -43,7 +44,7 @@ public:
 		/**
 		 * The device proxy shown in this row.
 		 */
-		SLATE_ARGUMENT(ITargetDeviceProxyPtr, DeviceProxy)
+		SLATE_ARGUMENT(TSharedPtr<ITargetDeviceProxy>, DeviceProxy)
 
 		/**
 		 * The row's highlight text.
@@ -84,7 +85,7 @@ public:
 		}
 
 
-		SMultiColumnTableRow<ITargetDeviceProxyPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+		SMultiColumnTableRow<TSharedPtr<ITargetDeviceProxy>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
 public:
@@ -326,7 +327,7 @@ private:
 	TAttribute<ILauncherDeviceGroupPtr> DeviceGroup;
 
 	// Holds a reference to the device proxy that is displayed in this row.
-	ITargetDeviceProxyPtr DeviceProxy;
+	TSharedPtr<ITargetDeviceProxy> DeviceProxy;
 
 	TSharedPtr<SCheckBox> DeviceCheckbox;
 

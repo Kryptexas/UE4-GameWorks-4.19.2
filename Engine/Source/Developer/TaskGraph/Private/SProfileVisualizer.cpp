@@ -14,8 +14,22 @@
 #include "TaskGraphStyle.h"
 #include "SBarVisualizer.h"
 #include "SEventsTree.h"
+#include "STaskGraph.h"
+#include "SButton.h"
+#include "STextBlock.h"
+#include "App.h"
+#include "EngineVersion.h"
+#include "FileManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+
+#if PLATFORM_DESKTOP && WITH_EDITOR
+#include "DesktopPlatformModule.h"
+#endif
+
+#include "GenericCommands.h"
 	
-void SProfileVisualizer::Construct( const FArguments& InArgs )
+void SProfileVisualizer::Construct(const FArguments& InArgs)
 {
 	ProfileData = InArgs._ProfileData;
 	ProfilerType = InArgs._ProfilerType;
@@ -26,6 +40,37 @@ void SProfileVisualizer::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f)
+			[
+				SNew(SButton)
+				.OnClicked(this, &SProfileVisualizer::OnLoadClicked)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("TaskGraph", "Load", "Load"))
+					.ToolTipText(NSLOCTEXT("TaskGraph", "Load_GPUTooltip", "Load GPU profiling data"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f)
+			[
+				SNew(SButton)
+				.OnClicked(this, &SProfileVisualizer::OnSaveClicked)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("TaskGraph", "Save", "Save"))
+					.ToolTipText(NSLOCTEXT("TaskGraph", "Save_GPUTooltip", "Save the GPU profiling data"))
+				]
+			]
+		]
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
@@ -165,3 +210,111 @@ void SProfileVisualizer::ShowGraphBarInEventsWindow( int32 WindowIndex )
 	EventsTree->HandleBarGraphExpansionChanged( SelectedBarGraph );
 }
 
+FReply SProfileVisualizer::OnSaveClicked()
+{
+#if PLATFORM_DESKTOP && WITH_EDITOR
+	// Message to display on completion
+	FText Message;
+
+	FString ProfileFilename = FPaths::ProjectLogDir();
+	ProfileFilename /= TEXT("profileViz");
+	ProfileFilename /= FString::Printf(
+		TEXT("%s-%i-%s.profViz"),
+		FApp::GetProjectName(),
+		FEngineVersion::Current().GetChangelist(),
+		*FDateTime::Now().ToString());
+
+	FArchive* ProfileFile = IFileManager::Get().CreateFileWriter(*ProfileFilename);
+
+	if (ProfileFile)
+	{
+		FVisualizerEvent::SaveVisualizerEventRecursively(ProfileFile, ProfileData);
+
+		// Close and delete archive.
+		ProfileFile->Close();
+		delete ProfileFile;
+		ProfileFile = NULL;
+
+		Message = NSLOCTEXT("TaskGraph", "ExportMessage", "Wrote profile data to file");
+	}
+	else
+	{
+		Message = NSLOCTEXT("TaskGraph", "ExportMessage", "Could not write profile data to file");
+	}
+
+	struct Local
+	{
+		static void NavigateToExportedFile(FString InGPUFilename, bool bInSuccessful)
+		{
+			InGPUFilename = FPaths::ConvertRelativePathToFull(InGPUFilename);
+			if (bInSuccessful)
+			{
+				FPlatformProcess::LaunchFileInDefaultExternalApplication(*InGPUFilename);
+			}
+			else
+			{
+				FPlatformProcess::ExploreFolder(*FPaths::GetPath(InGPUFilename));
+			}
+		}
+	};
+
+	FNotificationInfo Info(Message);
+	Info.Hyperlink = FSimpleDelegate::CreateStatic(&Local::NavigateToExportedFile, ProfileFilename, false);
+	Info.HyperlinkText = FText::FromString(ProfileFilename);
+	Info.bUseLargeFont = false;
+	Info.bFireAndForget = true;
+	Info.ExpireDuration = 8.0f;
+	FSlateNotificationManager::Get().AddNotification(Info);
+#endif //#if PLATFORM_DESKTOP && WITH_EDITOR
+
+	return FReply::Handled();
+
+}
+
+FReply SProfileVisualizer::OnLoadClicked()
+{
+#if PLATFORM_DESKTOP && WITH_EDITOR
+	// Prompt the user for the Filename
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (DesktopPlatform != nullptr)
+	{
+		TArray<FString> OpenFilenames;
+		bool bOpened = DesktopPlatform->OpenFileDialog(
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
+			NSLOCTEXT("UnrealEd", "Load", "Load Profile data").ToString(),
+			TEXT(""),
+			TEXT(""),
+			TEXT("Profile data (*.profViz) | *.profViz"),
+			EFileDialogFlags::None,
+			OpenFilenames);
+
+		if (bOpened)
+		{
+			FArchive* ProfileFile = IFileManager::Get().CreateFileReader(*OpenFilenames[0]);
+
+			if (ProfileFile)
+			{
+				TSharedPtr< FVisualizerEvent > InVisualizerData;
+				InVisualizerData = FVisualizerEvent::LoadVisualizerEvent(ProfileFile);
+								
+				static FName TaskGraphModule(TEXT("TaskGraph"));
+				if (FModuleManager::Get().IsModuleLoaded(TaskGraphModule))
+				{
+					IProfileVisualizerModule& ProfileVisualizer = FModuleManager::GetModuleChecked<IProfileVisualizerModule>(TaskGraphModule);
+
+					FText LoadedFileName = FText::AsCultureInvariant(ProfileFile->GetArchiveName());
+					ProfileVisualizer.DisplayProfileVisualizer(InVisualizerData, TEXT("Profile Data"), LoadedFileName);
+				}
+
+				// Close and delete archive.
+				ProfileFile->Close();
+				delete ProfileFile;
+				ProfileFile = NULL;
+			}
+		}
+	}
+#endif//#if PLATFORM_DESKTOP && WITH_EDITOR
+
+	return FReply::Handled();
+
+}

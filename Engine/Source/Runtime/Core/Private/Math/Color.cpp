@@ -145,6 +145,16 @@ FColor FLinearColor::Quantize() const
 		);
 }
 
+FColor FLinearColor::QuantizeRound() const
+{
+	return FColor(
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(R*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(G*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(B*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(A*255.f),0,255)
+		);
+}
+
 /**
  * Returns a desaturated color, with 0 meaning no desaturation and 1 == full desaturation
  *
@@ -155,12 +165,6 @@ FLinearColor FLinearColor::Desaturate( float Desaturation ) const
 {
 	float Lum = ComputeLuminance();
 	return FMath::Lerp( *this, FLinearColor( Lum, Lum, Lum, 0 ), Desaturation );
-}
-
-/** Computes the perceptually weighted luminance value of a color. */
-float FLinearColor::ComputeLuminance() const
-{
-	return R * 0.3f + G * 0.59f + B * 0.11f;
 }
 
 FColor FColor::FromHex( const FString& HexString )

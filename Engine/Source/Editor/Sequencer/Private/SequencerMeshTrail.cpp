@@ -30,12 +30,29 @@ ASequencerMeshTrail::ASequencerMeshTrail()
 
 void ASequencerMeshTrail::Cleanup()
 {
-	// Destroy all the key actors this trail created
-	for (FKeyActorData KeyMesh : KeyMeshActors)
+	UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld());
+	if (ExtensionCollection != nullptr)
 	{
-		KeyMesh.KeyActor->Destroy();
+		UViewportWorldInteraction* WorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->FindExtension(UViewportWorldInteraction::StaticClass()));
+		if (WorldInteraction != nullptr)
+		{
+			// Destroy all the key actors this trail created
+			for (FKeyActorData KeyMesh : KeyMeshActors)
+			{
+				WorldInteraction->DestroyTransientActor(KeyMesh.KeyActor);
+			}
+			WorldInteraction->DestroyTransientActor(this);
+		}
 	}
-	this->Destroy();
+	else
+	{
+		// Destroy all the key actors this trail created
+		for (FKeyActorData KeyMesh : KeyMeshActors)
+		{
+			KeyMesh.KeyActor->Destroy();
+		}
+		this->Destroy();
+	}
 }
 
 void ASequencerMeshTrail::AddKeyMeshActor(float KeyTime, const FTransform KeyTransform, class UMovieScene3DTransformSection* TrackSection)

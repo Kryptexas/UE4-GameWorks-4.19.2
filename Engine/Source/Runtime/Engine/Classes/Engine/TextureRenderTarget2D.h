@@ -156,7 +156,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	virtual float GetSurfaceWidth() const override { return SizeX; }
 	virtual float GetSurfaceHeight() const override { return SizeY; }
 	ENGINE_API virtual FTextureResource* CreateResource() override;
-	ENGINE_API virtual EMaterialValueType GetMaterialType() override;
+	ENGINE_API virtual EMaterialValueType GetMaterialType() const override;
 	//~ End UTexture Interface.
 
 	//~ Begin UObject Interface

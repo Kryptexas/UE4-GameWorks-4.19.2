@@ -14,6 +14,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperTerrainSplineComponent.h"
 #include "PaperTerrainMaterial.h"
+#include "Paper2DPrivate.h"
 
 #define PAPER_USE_MATERIAL_SLOPES 1
 #define PAPER_TERRAIN_DRAW_DEBUG 0
@@ -127,6 +128,12 @@ void UPaperTerrainComponent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+
+	if (SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
+	{
+		UE_LOG(LogPaper2D, Warning, TEXT("PaperTerrainComponent '%s' was using 2D physics which has been removed, it has been switched to 3D physics."), *GetPathName());
+		SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	}
 }
 
 void UPaperTerrainComponent::PostLoad()

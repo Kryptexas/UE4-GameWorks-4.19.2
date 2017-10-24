@@ -15,10 +15,9 @@
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Serialization/ArchiveTraceRoute.h"
 #include "Misc/PackageName.h"
-#include "Misc/StringClassReference.h"
 #include "InputCoreTypes.h"
 #include "Layout/Margin.h"
 #include "Layout/SlateRect.h"
@@ -79,8 +78,8 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/ILauncherServicesModule.h"
+#include "ITargetDeviceServicesModule.h"
+#include "ILauncherServicesModule.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
 #include "PhysicsPublic.h"
@@ -93,6 +92,7 @@
 #include "Slate/SGameLayerManager.h"
 
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "Engine/LevelStreaming.h"
 #include "Components/ModelComponent.h"
 #include "GameDelegates.h"
@@ -157,6 +157,9 @@ void UEditorEngine::EndPlayMap()
 
 	FEditorDelegates::PrePIEEnded.Broadcast( bIsSimulatingInEditor );
 
+	// Clean up Soft Object Path remaps
+	FSoftObjectPath::ClearPIEPackageNames();
+
 	FlushAsyncLoading();
 
 	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
@@ -186,9 +189,9 @@ void UEditorEngine::EndPlayMap()
 		}
 	}
 
-	if (GEngine->HMDDevice.IsValid() && !bIsSimulatingInEditor)
+	if (GEngine->XRSystem.IsValid() && !bIsSimulatingInEditor)
 	{
-		GEngine->HMDDevice->OnEndPlay(*GEngine->GetWorldContextFromWorld(PlayWorld));
+		GEngine->XRSystem->OnEndPlay(*GEngine->GetWorldContextFromWorld(PlayWorld));
 	}
 
 	// Matinee must be closed before PIE can stop - matinee during PIE will be editing a PIE-world actor
@@ -246,14 +249,17 @@ void UEditorEngine::EndPlayMap()
 	GetSelectedComponents()->DeselectAll();
 
 	// For every actor that was selected previously, make sure it's editor equivalent is selected
+	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	for ( int32 ActorIndex = 0; ActorIndex < SelectedActors.Num(); ++ActorIndex )
 	{
 		AActor* Actor = Cast<AActor>( SelectedActors[ ActorIndex ] );
 		if (Actor)
 		{
-			SelectActor( Actor, true, false );
+			// We need to notify or else the manipulation transform widget won't appear, but only notify once at the end because OnEditorSelectionChanged is expensive for large groups. 
+			SelectActor( Actor, false, false );
 		}
-	}
+	}	
+	GEditor->GetSelectedActors()->EndBatchSelectOperation(true);
 
 	// let the editor know
 	FEditorDelegates::EndPIE.Broadcast(bIsSimulatingInEditor);
@@ -535,7 +541,7 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// no longer queued
-	bIsPlayWorldQueued = false;
+	CancelRequestPlaySession();
 	bIsSimulateInEditorQueued = false;
 	bRequestEndPlayMapQueued = false;
 	bUseVRPreviewForPlayWorld = false;
@@ -859,19 +865,17 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 	// Unless we have been asked to play in a specific viewport window, this index will be -1
 	PlayInEditorViewportIndex = -1;
 
-	// @todo gmp: temp hack for Rocket demo
 	bPlayOnLocalPcSession = false;
 	bPlayUsingLauncher = false;
 }
 
-
-// @todo gmp: temp hack for Rocket demo
-void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice)
+void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice, FString AdditionalLaunchParameters)
 {
 	bPlayOnLocalPcSession = true;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = MobilePreview;
 	bPlayUsingVulkanPreview = VulkanPreview;
+	RequestedAdditionalStandaloneLaunchOptions = AdditionalLaunchParameters;
 	PlayUsingMobilePreviewTargetDevice = MobilePreviewTargetDevice;
 
 	if (StartLocation != NULL)
@@ -910,7 +914,34 @@ void UEditorEngine::CancelRequestPlaySession()
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = false;
 	bPlayUsingVulkanPreview = false;
+	RequestedAdditionalStandaloneLaunchOptions = FString();
 	PlayUsingMobilePreviewTargetDevice.Reset();
+}
+
+bool UEditorEngine::SaveMapsForPlaySession()
+{
+	// Prompt the user to save the level if it has not been saved before. 
+	// An unmodified but unsaved blank template level does not appear in the dirty packages check below.
+	if (FEditorFileUtils::GetFilename(GWorld).Len() == 0)
+	{
+		if (!FEditorFileUtils::SaveCurrentLevel())
+		{
+			CancelRequestPlaySession();
+			return false;
+		}
+	}
+
+	// Also save dirty packages, this is required because we're going to be launching a session outside of our normal process
+	bool bPromptUserToSave = true;
+	bool bSaveMapPackages = true;
+	bool bSaveContentPackages = true;
+	if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
+	{
+		CancelRequestPlaySession();
+		return false;
+	}
+
+	return true;
 }
 
 void UEditorEngine::PlaySessionPaused()
@@ -1153,12 +1184,11 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
 
-	// World composition does not copy levels to a separate folder to reduce startup time, and instead uses same files as Editor
-	// This causes issues with network replication as server object names will collide with Editor loaded world
-	const bool bWorldCompositionActive = GetEditorWorldContext().World()->WorldComposition != nullptr;
-	if (bWorldCompositionActive && !(CanRunUnderOneProcess || PlayNetMode == PIE_Standalone))
+	const bool bRequestSave = bPlayOnLocalPcSession || bPlayUsingLauncher || (!CanRunUnderOneProcess && PlayNetMode != PIE_Standalone);
+	if (bRequestSave && !SaveMapsForPlaySession())
 	{
-		FText ErrorMsg = LOCTEXT("WorldCompPIESingleProcessError", "World Composition does not support multiplayer Play in Editor using separate processes. Please set 'Use Single Process' in the 'Level Editor - Play' settings under Editor Preferences.");
+		// Maps did not save, print a warning
+		FText ErrorMsg = LOCTEXT("PIEWorldSaveFail", "PIE failed because map save was canceled");
 		UE_LOG(LogPlayLevel, Warning, TEXT("%s"), *ErrorMsg.ToString());
 		FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
 		FMessageLog(NAME_CategoryPIE).Open();
@@ -1189,17 +1219,34 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		// If we're playing in the editor
 		if (!bPlayOnLocalPcSession)
 		{
-				PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
+			PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
 
-				// Editor counts as a client
-				NumClients++;
+			// Editor counts as a client
+			NumClients++;
+		}
+
+		// Build the connection String
+		FString ConnectionAddr(TEXT("127.0.0.1"));
+
+		// Ignore the user's settings if the autoconnect option is inaccessible due to settings conflicts.
+		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); 
+			return (PlayInSettings->GetAutoConnectToServerVisibility() == EVisibility::Visible) ? 
+				(PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer) : true; }();
+
+		if (WillAutoConnectToServer)
+		{
+			uint16 ServerPort = 0;
+			if (PlayInSettings->GetServerPort(ServerPort))
+			{
+				ConnectionAddr += FString::Printf(TEXT(":%hu"), ServerPort);
 			}
+		}
 
 		// Spawn number of clients
 		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 		for (int32 i = NumClients; i < PlayNumberOfClients; ++i)
 		{
-			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, i, false);
+			PlayStandaloneLocalPc(*ConnectionAddr, &WinPosition, i, false);
 		}
 	}
 	else
@@ -1218,137 +1265,11 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
+
+	// note that we no longer have a queued request
+	CancelRequestPlaySession();
 }
 
-/* Temporarily renames streaming levels for pie saving */
-class FScopedRenameStreamingLevels
-{
-public:
-	FScopedRenameStreamingLevels( UWorld* InWorld, const FString& AutosavePackagePrefix, const FString& MapnamePrefix )
-		: World(InWorld)
-	{
-		if(InWorld->StreamingLevels.Num() > 0)
-		{
-			for(int32 LevelIndex=0; LevelIndex < InWorld->StreamingLevels.Num(); ++LevelIndex)
-			{
-				ULevelStreaming* StreamingLevel = InWorld->StreamingLevels[LevelIndex];
-				if ( StreamingLevel )
-				{
-					const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
-					const FName WorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
-					PreviousStreamingPackageNames.Add( WorldAssetPackageFName );
-					FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( WorldAssetPackageName ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( WorldAssetPackageName ));
-					StreamingLevelPackageName.ReplaceInline(TEXT("//"), TEXT("/"));
-					StreamingLevel->SetWorldAssetByPackageName(FName(*StreamingLevelPackageName));
-				}
-			}
-		}
-
-		World->StreamingLevelsPrefix = MapnamePrefix;
-	}
-
-	~FScopedRenameStreamingLevels()
-	{
-		check(World.IsValid());
-		check( PreviousStreamingPackageNames.Num() == World->StreamingLevels.Num() );
-		if(World->StreamingLevels.Num() > 0)
-		{
-			for(int32 LevelIndex=0; LevelIndex < World->StreamingLevels.Num(); ++LevelIndex)
-			{
-				ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
-				if ( StreamingLevel )
-				{
-					StreamingLevel->SetWorldAssetByPackageName(PreviousStreamingPackageNames[LevelIndex]);
-				}
-			}
-		}
-
-		World->StreamingLevelsPrefix.Empty();
-	}
-private:
-	TWeakObjectPtr<UWorld> World;
-	TArray<FName> PreviousStreamingPackageNames;
-};
-
-
-void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
-{
-	UWorld* World = GWorld;
-
-	// check if PersistentLevel has any external references
-	if( PackageUsingExternalObjects(World->PersistentLevel) && EAppReturnType::Yes != FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Warning_UsingExternalPackage", "This map is using externally referenced packages which won't be found when in a game and all references will be broken. Perform a map check for more details.\n\nWould you like to continue?")) )
-	{
-		return;
-	}
-
-	const FString PlayOnConsolePackageName = FPackageName::FilenameToLongPackageName(FPaths::Combine(*FPaths::GameSavedDir(), *PlayOnConsoleSaveDir)) + TEXT("/");
-
-	// make a per-platform name for the map
-	const FString ConsoleName = FString(TEXT("PC"));
-	const FString Prefix = FString(PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX) + ConsoleName;
-
-	// Temporarily rename streaming levels for pie saving
-	FScopedRenameStreamingLevels ScopedRenameStreamingLevels( World, PlayOnConsolePackageName, Prefix );
-	
-	// spawn a play-from-here player start or a temporary player start
-	AActor* PlayerStart = NULL;
-	bool bCreatedPlayerStart = false;
-
-	// Gross hack to avoid marking the level dirty while this temporary spawn is done while saving we flag the editor as loading package
-	bool bTempIsEditorLoadingPackage = GIsEditorLoadingPackage;
-	GIsEditorLoadingPackage = true;
-
-	{
-		// Do the spawning in a transaction so that we can undo it below
-		FScopedTransaction SpawnPlayFromHereStartTransaction(LOCTEXT("SpawnPlayFromHereStart","Spawn Play From Here Start"));
-
-		SpawnPlayFromHereStart( World, PlayerStart, PlayWorldLocation, PlayWorldRotation );
-
-		if (PlayerStart != NULL)
-		{
-			bCreatedPlayerStart = true;
-		}
-		else
-		{
-			PlayerStart = CheckForPlayerStart();
-	
-			if( PlayerStart == NULL )
-			{
-				FActorSpawnParameters SpawnInfo;
-				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				PlayerStart = World->SpawnActor<AActor>( APlayerStart::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo );
-
-				bCreatedPlayerStart = true;
-			}
-		}
-	}
-	
-	// save out all open map packages
-	TArray<FString> SavedWorldFileNames;
-	bool bSavedWorld = SavePlayWorldPackages(World, *Prefix, /*out*/ SavedWorldFileNames);
-
-	// Undo the (potentially) spawning transaction and don't display a notification banner about it
-	bool bTempSquelched = GEditor->bSquelchTransactionNotification;
-	GEditor->bSquelchTransactionNotification = true;
-	GEditor->UndoTransaction(false);
-	GEditor->bSquelchTransactionNotification = bTempSquelched;
-
-	GIsEditorLoadingPackage = bTempIsEditorLoadingPackage;
-	
-	if (bSavedWorld)
-	{
-		// Convert the filenames into map names
-		SavedMapNames.Reserve(SavedMapNames.Num() + SavedWorldFileNames.Num());
-		for (int32 Index = 0; Index < SavedWorldFileNames.Num(); ++Index)
-		{
-			const FString MapName = FPackageName::FilenameToLongPackageName(SavedWorldFileNames[Index]);
-			SavedMapNames.Add(MapName);
-		}
-	}
-
-}
-
-// @todo gmp: temp hack for Rocket demo
 void UEditorEngine::EndPlayOnLocalPc( )
 {
 	for (int32 i=0; i < PlayOnLocalPCSessions.Num(); ++i)
@@ -1366,7 +1287,6 @@ void UEditorEngine::EndPlayOnLocalPc( )
 	PlayOnLocalPCSessions.Empty();
 }
 
-// @todo gmp: temp hack for Rocket demo
 void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* WindowPos, int32 PIENum, bool bIsServer)
 {
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
@@ -1386,16 +1306,10 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	if (MapNameOverride.IsEmpty())
 	{
 		FWorldContext & EditorContext = GetEditorWorldContext();
-		if (EditorContext.World()->WorldComposition)
-		{
-			// Open world composition from original folder
-			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			SavedMapNames.Add(MapName);
-		}
-		else
-		{
-			SaveWorldForPlay(SavedMapNames);
-		}
+
+		// Open original map
+		FString MapName = EditorContext.World()->GetOutermost()->GetName();
+		SavedMapNames.Add(MapName);
 	}
 	else
 	{
@@ -1414,13 +1328,20 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 	else
 	{
-		GameNameOrProjectFile = FApp::GetGameName();
+		GameNameOrProjectFile = FApp::GetProjectName();
 	}
 
 	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
 	if (FApp::IsRunningDebug())
 	{
 		AdditionalParameters += TEXT(" -debug");
+	}
+
+	const FString PreviewGameLanguage = FTextLocalizationManager::Get().GetConfiguredGameLocalizationPreviewLanguage();
+	if (!PreviewGameLanguage.IsEmpty())
+	{
+		AdditionalParameters += TEXT(" -culture=");
+		AdditionalParameters += PreviewGameLanguage;
 	}
 
 	// apply additional settings
@@ -1449,7 +1370,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
-	if (!bPlayUsingMobilePreview && !bPlayUsingVulkanPreview && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	if (!bPlayUsingMobilePreview && !bPlayUsingVulkanPreview && GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected())
 	{
 		AdditionalParameters += TEXT(" -nohmd");
 		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
@@ -1466,11 +1387,25 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		AdditionalParameters += PlayInSettings->AdditionalLaunchParameters;
 	}
 
+	uint16 ServerPort = 0;
+	if (bIsServer && PlayInSettings->GetServerPort(ServerPort))
+	{
+		AdditionalParameters += FString::Printf(TEXT(" -port=%hu"), ServerPort);
+	}
+
 	// Decide if fullscreen or windowed based on what is specified in the params
 	if (!AdditionalParameters.Contains(TEXT("-fullscreen")) && !AdditionalParameters.Contains(TEXT("-windowed")))
 	{
 		// Nothing specified fallback to window otherwise keep what is specified
 		AdditionalParameters += TEXT(" -windowed");		
+	}
+
+	if (RequestedAdditionalStandaloneLaunchOptions.Len() > 0)
+	{
+		AdditionalParameters += TEXT(" ");
+		AdditionalParameters += RequestedAdditionalStandaloneLaunchOptions;
+		//clear it now it's been used
+		RequestedAdditionalStandaloneLaunchOptions = FString();
 	}
 
 	FIntPoint WinSize(0, 0);
@@ -1521,12 +1456,15 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 	FPlayOnPCInfo *NewSession = new (PlayOnLocalPCSessions) FPlayOnPCInfo();
 
-	NewSession->ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, NULL, 0, NULL, NULL);
+	uint32 ProcessID = 0;
+	NewSession->ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, &ProcessID, 0, NULL, NULL);
 
 	if (!NewSession->ProcessHandle.IsValid())
 	{
 		UE_LOG(LogPlayLevel, Error, TEXT("Failed to run a copy of the game on this PC."));
 	}
+
+	FEditorDelegates::BeginStandaloneLocalPlay.Broadcast(ProcessID);
 }
 
 static void HandleOutputReceived(const FString& InMessage)
@@ -1607,14 +1545,13 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	}
 	else if (InStage.Contains(TEXT("Build Task")))
 	{
-		EPlayOnBuildMode bBuildType = GetDefault<ULevelEditorPlaySettings>()->BuildGameBeforeLaunch;
 		FString PlatformName = PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")));
 		if (PlatformName.Contains(TEXT("NoEditor")))
 		{
 			PlatformName = PlatformName.Left(PlatformName.Find(TEXT("NoEditor")));
 		}
 		Arguments.Add(TEXT("PlatformName"), FText::FromString(PlatformName));
-		if (FApp::IsEngineInstalled() || !bPlayUsingLauncherHasCode || !bPlayUsingLauncherHasCompiler || bBuildType == EPlayOnBuildMode::PlayOnBuild_Never)
+		if (!bPlayUsingLauncherBuild)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskValidateNotification", "Validating Executable for {PlatformName}..."), Arguments);
 		}
@@ -1637,7 +1574,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	}
 	else if (InStage.Contains(TEXT("Run Task")))
 	{
-		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetGameName()));
+		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetProjectName()));
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
 		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
@@ -1906,15 +1843,6 @@ void UEditorEngine::PlayUsingLauncher()
 {
 	if (!PlayUsingLauncherDeviceId.IsEmpty())
 	{
-		// Launch on Device does not currently support Blueprint nativization, so we temporarily disable it around the launch.
-		extern void UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(bool bEnable);
-		UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(false);
-		ON_SCOPE_EXIT
-		{
-			// Restore Blueprint nativization in case of an early exit. Otherwise, this will be handled on completion of the launch.
-			UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(true);
-		};
-
 		ILauncherServicesModule& LauncherServicesModule = FModuleManager::LoadModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
 		ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
 
@@ -1949,16 +1877,27 @@ void UEditorEngine::PlayUsingLauncher()
 		// does the project have any code?
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bPlayUsingLauncherHasCode = GameProjectModule.Get().ProjectRequiresBuild(FName(*PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
-		bPlayUsingLauncherHasCompiler = FSourceCodeNavigation::IsCompilerAvailable();
 
 		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Launch On Device"));
-		EPlayOnBuildMode bBuildType = PlayInSettings->BuildGameBeforeLaunch;
-		if ((bBuildType == EPlayOnBuildMode::PlayOnBuild_Always) || (bBuildType == PlayOnBuild_Default && (bPlayUsingLauncherHasCode) && bPlayUsingLauncherHasCompiler))
+		if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Always)
 		{
-			LauncherProfile->SetBuildGame(true);
+			bPlayUsingLauncherBuild = true;
 		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Never)
+		{
+			bPlayUsingLauncherBuild = false;
+		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Default)
+		{
+			bPlayUsingLauncherBuild = bPlayUsingLauncherHasCode || !FApp::GetEngineIsPromotedBuild();
+		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_IfEditorBuiltLocally)
+		{
+			bPlayUsingLauncherBuild = !FApp::GetEngineIsPromotedBuild();
+		}
+		LauncherProfile->SetBuildGame(bPlayUsingLauncherBuild);
 
 		// set the build/launch configuration 
 		switch (PlayInSettings->LaunchConfiguration)
@@ -2041,50 +1980,10 @@ void UEditorEngine::PlayUsingLauncher()
 
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
-		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor) )
-		{
-			// Prompt the user to save the level if it has not been saved before. 
-			// An unmodified but unsaved blank template level does not appear in the dirty packages check below.
-			if (FEditorFileUtils::GetFilename(GWorld).Len() == 0)
-			{
-				if (!FEditorFileUtils::SaveCurrentLevel())
-				{
-					CancelRequestPlaySession();
-					return;
-				}
-			}
 
-			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
-			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
-			// if this returns false, it means we should stop what we're doing and return to the editor
-			bool bPromptUserToSave = true;
-			bool bSaveMapPackages = true;
-			bool bSaveContentPackages = true;
-			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
-			{
-				CancelRequestPlaySession();
-				return;
-			}
-
-
-			// Open world composition from original folder
-			// Or if using by book in editor don't need to resave the package just cook it by the book 
-			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			MapNames.Add(MapName);
-
-
-			
-		}
-		else
-		{
-			SaveWorldForPlay(MapNames);
-
-			if (MapNames.Num() == 0)
-			{
-				CancelRequestPlaySession();
-				return;
-			}
-		}
+		// Load maps in place as we saved them above
+		FString EditorMapName = EditorContext.World()->GetOutermost()->GetName();
+		MapNames.Add(EditorMapName);
 	
 		FString InitialMapName;
 		if (MapNames.Num() > 0)
@@ -2098,7 +1997,6 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			LauncherProfile->AddCookedMap(MapName);
 		}
-
 
 		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
 		{
@@ -2220,30 +2118,6 @@ void UEditorEngine::RequestEndPlayMap()
 		}
 	}
 }
-
-bool UEditorEngine::SavePlayWorldPackages(UWorld* InWorld, const TCHAR* Prefix, TArray<FString>& OutSavedFilenames)
-{
-	{
-		// if this returns false, it means we should stop what we're doing and return to the editor
-		bool bPromptUserToSave = true;
-		bool bSaveMapPackages = false;
-		bool bSaveContentPackages = true;
-		if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
-		{
-			return false;
-		}
-	}
-
-	// Update cull distance volumes before saving.
-	InWorld->UpdateCullDistanceVolumes();
-
-	// Clean up any old worlds.
-	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-
-	// Save temporary copies of all levels to be used for playing in editor or using standalone PC/console
-	return FEditorFileUtils::SaveWorlds(InWorld, FPaths::Combine(*FPaths::GameSavedDir(), *PlayOnConsoleSaveDir), Prefix, OutSavedFilenames);
-}
-
 
 FString UEditorEngine::BuildPlayWorldURL(const TCHAR* MapName, bool bSpectatorMode, FString AdditionalURLOptions)
 {
@@ -2440,9 +2314,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		OutputLogErrorsToMessageLogProxyPtr = MakeShareable(new FOutputLogErrorsToMessageLogProxy());
 	}
 
-	if (GEngine->HMDDevice.IsValid() && !bInSimulateInEditor)
+	if (GEngine->XRSystem.IsValid() && !bInSimulateInEditor)
 	{
-		GEngine->HMDDevice->OnBeginPlay(*GEngine->GetWorldContextFromWorld(InWorld));
+		GEngine->XRSystem->OnBeginPlay(*GEngine->GetWorldContextFromWorld(InWorld));
 	}
 
 	// remember old GWorld
@@ -2675,11 +2549,7 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 		}
 
 		UGameInstance* const ClientGameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
-		if (ClientGameInstance)
-		{
-			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
-		}
-		else
+		if (!ClientGameInstance)
 		{
 			// Failed, abort
 			return;
@@ -2713,31 +2583,6 @@ bool UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	if (GameInstance)
 	{
 		GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
-
-		if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
-		{
-			// If any clients finished before us, update their PIERemapPrefix
-			for (FWorldContext &WorldContext : WorldList)
-			{
-				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
-				{
-					WorldContext.PIERemapPrefix = PieWorldContext.PIEPrefix;
-				}
-			}
-		}
-		else
-		{
-			// Grab a valid PIERemapPrefix
-			for (FWorldContext &WorldContext : WorldList)
-			{
-				// This relies on the server being the first in the WorldList. Might be risky.
-				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
-				{
-					PieWorldContext.PIERemapPrefix = WorldContext.PIEPrefix;
-					break;
-				}
-			}
-		}
 
 		return true;
 	}
@@ -3000,30 +2845,10 @@ void UEditorEngine::RequestLateJoin()
 	}
 	else
 	{
-
-		//FRED_TODO: do stuff here similar to what happens above
-		// Only launch as clients if they should connect
-
-		// 	// this is kind of sketchy but should work
-		// 	int32 SettingsIndex = PIEInstance;
-
-		//	if (WillAutoConnectToServer)
-		{
-			
-		}
-		// 	else
-		// 	{
-		// 		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
-		// 	}
-
 		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 
 		UGameInstance* const ClientGameInstance = CreatePIEGameInstance(PIEInstance, false, false, bStartLateJoinersInSpectatorMode, false, PIEStartTime);
-		if (ClientGameInstance)
-		{
-			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
-		}
-		else
+		if (!ClientGameInstance)
 		{
 			// Failed, abort
 			return;
@@ -3055,7 +2880,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	}
 
 	// create a new GameInstance
-	FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
+	FSoftClassPath GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
 	UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
 
 	// If the GameInstance class from the settings cannot be found, fall back to the base class
@@ -3106,7 +2931,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("GameName"), FText::FromString( FString( WindowTitleOverride.IsEmpty() ? FApp::GetGameName() : WindowTitleOverride.ToString() ) ) );
+	Args.Add( TEXT("GameName"), FText::FromString( FString( WindowTitleOverride.IsEmpty() ? FApp::GetProjectName() : WindowTitleOverride.ToString() ) ) );
 	Args.Add( TEXT("PlatformBits"), FText::FromString( PlatformBitsString ) );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ) );
 
@@ -3171,9 +2996,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	UGameViewportClient* ViewportClient = NULL;
 	ULocalPlayer *NewLocalPlayer = NULL;
 	
-	if (GEngine->HMDDevice.IsValid() && !bInSimulateInEditor )
+	if (GEngine->XRSystem.IsValid() && !bInSimulateInEditor )
 	{
-		GEngine->HMDDevice->OnBeginPlay(*PieWorldContext);
+		GEngine->XRSystem->OnBeginPlay(*PieWorldContext);
 	}
 
 	if (!PieWorldContext->RunAsDedicated)
@@ -3292,7 +3117,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 #if PLATFORM_MAC
 					FSlateApplication::Get().AddWindow(PieWindow.ToSharedRef());
 #else
-				TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
+				TSharedRef<SWindow, ESPMode::Fast> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
 				if (PlayInSettings->PIEAlwaysOnTop)
 				{
 						FSlateApplication::Get().AddWindowAsNativeChild(PieWindow.ToSharedRef(), MainWindow, true);
@@ -3338,7 +3163,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
-				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid() && GetDefault<ULevelEditorPlaySettings>()->ShouldMinimizeEditorOnVRPIE;
+				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->XRSystem.IsValid() && GetDefault<ULevelEditorPlaySettings>()->ShouldMinimizeEditorOnVRPIE;
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
 					struct FLocal
@@ -3391,7 +3216,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Create a new viewport that the viewport widget will use to render the game
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport = MakeShareable( new FSceneViewport( ViewportClient, PieViewportWidget ) );
 
-				const bool bShouldGameGetMouseControl = GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl || (bUseVRPreview && GEngine->HMDDevice.IsValid());
+				const bool bShouldGameGetMouseControl = GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl || (bUseVRPreview && GEngine->XRSystem.IsValid());
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->SetPlayInEditorGetsMouseControl(bShouldGameGetMouseControl);
 				PieViewportWidget->SetViewportInterface( SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef() );
 				
@@ -3413,7 +3238,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				if (bUseVRPreview)
 				{
-					GEngine->HMDDevice->EnableStereo(true);
+					GEngine->StereoRenderingDevice->EnableStereo(true);
 
 					// minimize the root window to provide max performance for the preview.
 					TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
@@ -3443,8 +3268,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
-	// Start the game instance
+	// Start the game instance, make sure to set the PIE instance global as this is basically a tick
+	GPlayInEditorID = InPIEInstance;
 	const FGameInstancePIEResult StartResult = GameInstance->StartPlayInEditorGameInstance(NewLocalPlayer, GameInstanceParams);
+	GPlayInEditorID = -1;
+
 	if (!StartResult.IsSuccess())
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, StartResult.FailureReason);
@@ -3745,57 +3573,6 @@ bool UEditorEngine::PackageUsingExternalObjects( ULevel* LevelToCheck, bool bAdd
 	return bFoundExternal;
 }
 
-UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext& WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
-{
-	double StartTime = FPlatformTime::Seconds();
-	UWorld * LoadedWorld = NULL;
-
-	// We haven't saved it off yet
-	TArray<FString> SavedMapNames;
-	SaveWorldForPlay(SavedMapNames);
-
-	if (SavedMapNames.Num() == 0)
-	{
-		UE_LOG(LogPlayLevel, Warning, TEXT("PIE: Unable to save editor world to temp file"));
-		return LoadedWorld;
-	}
-
-	// Before loading the map, we need to set these flags to true so that postload will work properly
-	GIsPlayInEditorWorld = true;
-
-	const FName SavedMapFName = FName(*SavedMapNames[0]);
-	UWorld::WorldTypePreLoadMap.FindOrAdd(SavedMapFName) = EWorldType::PIE;
-
-	// Load the package we saved
-	UPackage* EditorLevelPackage = LoadPackage(NULL, *SavedMapNames[0], LOAD_PackageForPIE);
-
-	// Clean up the world type list now that PostLoad has occurred
-	UWorld::WorldTypePreLoadMap.Remove(SavedMapFName);
-
-	if( EditorLevelPackage )
-	{
-		// Find world object and use its PersistentLevel pointer.
-		LoadedWorld = UWorld::FindWorldInPackage(EditorLevelPackage);
-
-		if (LoadedWorld)
-		{
-			PostCreatePIEWorld(LoadedWorld);
-			UE_LOG(LogPlayLevel, Log, TEXT("PIE: Created PIE world by saving and reloading to %s (%fs)"), *LoadedWorld->GetPathName(), float(FPlatformTime::Seconds() - StartTime));
-		}
-		else
-		{
-			UE_LOG(LogPlayLevel, Warning, TEXT("PIE: Unable to find World in loaded package: %s"), *EditorLevelPackage->GetPathName());
-		}
-	}
-
-	// After loading the map, reset these so that things continue as normal
-	GIsPlayInEditorWorld = false;
-
-	PlayWorldMapName = SavedMapNames[0];
-
-	return LoadedWorld;
-}
-
 UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
 {
 	double StartTime = FPlatformTime::Seconds();
@@ -3819,11 +3596,12 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	// Create a package for the PIE world
 	UE_LOG( LogPlayLevel, Log, TEXT("Creating play world package: %s"),  *PlayWorldMapName );	
 
-	UPackage* PlayWorldPackage = CastChecked<UPackage>(CreatePackage(NULL,*PlayWorldMapName));
+	UPackage* PlayWorldPackage = CreatePackage(nullptr,*PlayWorldMapName);
 	PlayWorldPackage->SetPackageFlags(PKG_PlayInEditor);
 	PlayWorldPackage->PIEInstanceID = WorldContext.PIEInstance;
 	PlayWorldPackage->FileName = InPackage->FileName;
 	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
+	PlayWorldPackage->MarkAsFullyLoaded();
 
 	// check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
 	// Currently GPlayInEditorID is not correctly reset after map loading, so it's not safe to assert here
@@ -3836,18 +3614,15 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		FLazyObjectPtr::ResetPIEFixups();
 
 		// Prepare string asset references for fixup
-		TArray<FString> PackageNamesBeingDuplicatedForPIE;
-		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
+		FSoftObjectPath::AddPIEPackageName(FName(*PlayWorldMapName));
 		for (ULevelStreaming* StreamingLevel : InWorld->StreamingLevels)
 		{
 			if ( StreamingLevel )
 			{
 				FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
-				PackageNamesBeingDuplicatedForPIE.Add(MoveTemp(StreamingLevelPIEName));
+				FSoftObjectPath::AddPIEPackageName(FName(*StreamingLevelPIEName));
 			}
 		}
-
-		FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 		// NULL GWorld before various PostLoad functions are called, this makes it easier to debug invalid GWorld accesses
 		GWorld = NULL;
@@ -3861,8 +3636,6 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			NULL,					// DestClass
 			EDuplicateMode::PIE
 			) );
-
-		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
 		// Store prefix we used to rename this world and streaming levels package names
 		NewPIEWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
@@ -4006,7 +3779,17 @@ void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
 		}
 	}
 }
-
+void UEditorEngine::ResetPIEAudioSetting(UWorld *CurrentPieWorld)
+{
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	if (!PlayInSettings->EnableGameSound)
+	{
+		if (FAudioDevice* AudioDevice = CurrentPieWorld->GetAudioDevice())
+		{
+			AudioDevice->SetTransientMasterVolume(0.0f);
+		}
+	}
+}
 UGameViewportClient * UEditorEngine::GetNextPIEViewport(UGameViewportClient * CurrentViewport)
 {
 	// Get the current world's idx

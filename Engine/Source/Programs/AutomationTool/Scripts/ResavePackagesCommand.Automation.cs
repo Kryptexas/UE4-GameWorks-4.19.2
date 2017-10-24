@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Mail;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Helper command used for resaving a projects packages.
@@ -132,7 +133,7 @@ namespace AutomationScripts.Automation
                 CommandletParams += " -AutoCheckOutPackages";
                 if (P4Enabled)
                 {
-                    CommandletParams += String.Format(" -SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Changelist={4} -P4Passwd={5}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, WorkingCL.ToString(), P4.GetAuthenticationToken());
+                    CommandletParams += String.Format(" -SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Changelist={4} -P4Passwd={5}", "Perforce", P4Env.ServerAndPort, P4Env.User, P4Env.Client, WorkingCL.ToString(), P4.GetAuthenticationToken());
                 }
 				ResavePackagesCommandlet(Params.RawProjectPath, Params.UE4Exe, Params.MapsToRebuildLightMaps.ToArray(), CommandletParams);
 			}
@@ -269,7 +270,7 @@ namespace AutomationScripts.Automation
             string Branch = "Unknown";
             if ( P4Enabled )
             {
-                Branch = P4Env.BuildRootP4;
+                Branch = P4Env.Branch;
             }
 
 			foreach (String NextStakeHolder in StakeholdersEmailAddresses)

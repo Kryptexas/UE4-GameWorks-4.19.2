@@ -2,13 +2,13 @@
 
 #include "LaunchFromProfileCommand.h"
 #include "DesktopPlatformModule.h"
-#include "Interfaces/ILauncherProfile.h"
-#include "Interfaces/ILauncherProfileManager.h"
-#include "Interfaces/ILauncherTask.h"
-#include "Interfaces/ILauncherWorker.h"
-#include "Interfaces/ILauncher.h"
-#include "Interfaces/ILauncherServicesModule.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
+#include "ILauncherProfile.h"
+#include "ILauncherProfileManager.h"
+#include "ILauncherTask.h"
+#include "ILauncherWorker.h"
+#include "ILauncher.h"
+#include "ILauncherServicesModule.h"
+#include "ITargetDeviceServicesModule.h"
 #include "UserInterfaceCommand.h"
 #include "Misc/CommandLine.h"
 #include "Misc/OutputDeviceRedirector.h"
@@ -33,7 +33,7 @@ void FLaunchFromProfileCommand::Run(const FString& Params)
 
 	// Loading the Device Proxy Manager to get the needed Device Manager.
 	ITargetDeviceServicesModule& DeviceServiceModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices"));
-	ITargetDeviceProxyManagerRef DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
+	TSharedRef<ITargetDeviceProxyManager> DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
 
 	UE_LOG(LogUFECommands, Display, TEXT("Begin the process of launching a project using the provided profile."));
 	ILauncherRef LauncherRef = LauncherServicesModule.CreateLauncher();

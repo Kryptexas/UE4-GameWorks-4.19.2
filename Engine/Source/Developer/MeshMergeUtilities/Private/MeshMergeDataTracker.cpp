@@ -4,7 +4,7 @@
 #include "MeshMergeHelpers.h"
 
 FMeshMergeDataTracker::FMeshMergeDataTracker()
-	: AvailableLightMapUVChannel(INDEX_NONE)
+	: AvailableLightMapUVChannel(INDEX_NONE), SummedLightMapPixels(0)
 {
 	FMemory::Memzero(bWithVertexColors);
 	FMemory::Memzero(bOcuppiedUVChannels);
@@ -65,6 +65,22 @@ void FMeshMergeDataTracker::AddBakedMaterialSection(const FSectionInfo& SectionI
 	UniqueSections.AddUnique(SectionInfo);
 }
 
+void FMeshMergeDataTracker::AddMaterialSlotName(UMaterialInterface *MaterialInterface, FName MaterialSlotName)
+{
+	FName *FindMaterialSlotName = MaterialInterfaceToMaterialSlotName.Find(MaterialInterface);
+	//If there is a material use by more then one slot, only the first slot name occurrence will be use. (selection order)
+	if (FindMaterialSlotName == nullptr)
+	{
+		MaterialInterfaceToMaterialSlotName.Add(MaterialInterface, MaterialSlotName);
+	}
+}
+
+FName FMeshMergeDataTracker::GetMaterialSlotName(UMaterialInterface *MaterialInterface) const
+{
+	const FName *MaterialSlotName = MaterialInterfaceToMaterialSlotName.Find(MaterialInterface);
+	return MaterialSlotName == nullptr ? NAME_None : *MaterialSlotName;
+}
+
 void FMeshMergeDataTracker::AddLODIndex(int32 LODIndex)
 {
 	LODIndices.AddUnique(LODIndex);
@@ -78,6 +94,16 @@ int32 FMeshMergeDataTracker::GetNumLODsForMergedMesh() const
 TConstLODIndexIterator FMeshMergeDataTracker::GetLODIndexIterator() const
 {
 	return LODIndices.CreateConstIterator();
+}
+
+void FMeshMergeDataTracker::AddLightMapPixels(int32 Dimension)
+{
+	SummedLightMapPixels += FMath::Max(Dimension, 0);
+}
+
+int32 FMeshMergeDataTracker::GetLightMapDimension() const
+{
+	return FMath::CeilToInt(FMath::Sqrt(SummedLightMapPixels));
 }
 
 bool FMeshMergeDataTracker::DoesLODContainVertexColors(int32 LODIndex) const

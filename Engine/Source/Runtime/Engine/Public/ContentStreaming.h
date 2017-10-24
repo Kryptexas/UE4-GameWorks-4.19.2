@@ -206,6 +206,11 @@ struct IStreamingManager
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) = 0;
 
+	/**
+	 * Notifies manager that level primitives were shifted
+	 */
+	virtual void NotifyLevelOffset( class ULevel* Level, const FVector& Offset ) = 0;
+
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor )
 	{
@@ -267,6 +272,11 @@ struct IStreamingManager
 	virtual int32 GetNumWantingResourcesID() const
 	{
 		return NumWantingResourcesCounter;
+	}
+
+	/** Propagates a change to the active lighting scenario. */
+	virtual void PropagateLightingScenarioChange() 
+	{
 	}
 
 protected:
@@ -568,6 +578,9 @@ struct FStreamingManagerCollection : public IStreamingManager
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
+	
+	/* Notifies manager that level primitives were shifted. */
+	virtual void NotifyLevelOffset( class ULevel* Level, const FVector& Offset ) override;
 
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor ) override;
@@ -592,6 +605,9 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * Replaces previous info.
 	 */
 	virtual void NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive ) override;
+
+	/** Propagates a change to the active lighting scenario. */
+	void PropagateLightingScenarioChange() override;
 
 protected:
 

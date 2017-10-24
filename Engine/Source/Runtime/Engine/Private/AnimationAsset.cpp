@@ -184,6 +184,8 @@ UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
 
 void UAnimationAsset::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Animation);
+
 	Super::PostLoad();
 
 	// Load skeleton, to make sure anything accessing from PostLoad
@@ -217,6 +219,8 @@ void UAnimationAsset::ResetSkeleton(USkeleton* NewSkeleton)
 
 void UAnimationAsset::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Animation);
+
 	Super::Serialize(Ar);
 
 	if (Ar.UE4Ver() >= VER_UE4_SKELETON_GUID_SERIALIZATION)
@@ -367,22 +371,12 @@ void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAn
 
 USkeletalMesh* UAnimationAsset::GetPreviewMesh()
 {
-	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
-	if(!PreviewMesh)
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.LoadSynchronous();
+	// if somehow skeleton changes, just nullify it. 
+	if (PreviewMesh && PreviewMesh->Skeleton != Skeleton)
 	{
-		// if preview mesh isn't loaded, see if we have set
-		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
-		// load it since now is the time to load
-		if(!PreviewMeshStringRef.ToString().IsEmpty())
-		{
-			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
-			// if somehow skeleton changes, just nullify it. 
-			if (PreviewMesh && PreviewMesh->Skeleton != Skeleton)
-			{
-				PreviewMesh = NULL;
-				SetPreviewMesh(NULL);
-			}
-		}
+		PreviewMesh = nullptr;
+		SetPreviewMesh(nullptr);
 	}
 
 	return PreviewMesh;

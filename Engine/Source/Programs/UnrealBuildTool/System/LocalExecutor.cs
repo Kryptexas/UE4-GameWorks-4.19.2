@@ -234,7 +234,11 @@ namespace UnrealBuildTool
 					}
 					catch (Exception ex)
 					{
-						throw new BuildException(ex, "Failed to start local process for action: {0} {1}\r\n{2}", Action.CommandPath, Action.CommandArguments, ex.ToString());
+						Log.TraceError("Failed to start local process for action: {0} {1}", Action.CommandPath, Action.CommandArguments);
+						ExceptionUtils.PrintExceptionInfo(ex, null);
+						ExitCode = 1;
+						bComplete = true;
+						return;
 					}
 
 					// wait for process to start
@@ -379,6 +383,7 @@ namespace UnrealBuildTool
 				MaxActionsToExecuteInParallel = NumCores;
 			}
 
+#if !NET_CORE
 			if (Utils.IsRunningOnMono)
 			{
 				long PhysicalRAMAvailableMB = (new PerformanceCounter("Mono Memory", "Total Physical Memory").RawValue) / (1024 * 1024);
@@ -388,6 +393,7 @@ namespace UnrealBuildTool
 
 				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);
 			}
+#endif
 
 			MaxActionsToExecuteInParallel = Math.Max(1, Math.Min(MaxActionsToExecuteInParallel, MaxProcessorCount));
 

@@ -13,6 +13,17 @@ public class ShaderCompileWorkerTarget : TargetRules
 		LinkType = TargetLinkType.Modular;
 
 		LaunchModuleName = "ShaderCompileWorker";
+
+        if (bUseXGEController && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
+        {
+            // The interception interface in XGE requires that the parent and child processes have different filenames on disk.
+            // To avoid building an entire separate worker just for this, we duplicate the ShaderCompileWorker in a post build step.
+            const string SrcPath  = "$(EngineDir)\\Binaries\\$(TargetPlatform)\\ShaderCompileWorker.exe";
+            const string DestPath = "$(EngineDir)\\Binaries\\$(TargetPlatform)\\XGEControlWorker.exe";
+
+            PostBuildSteps.Add(string.Format("echo Copying {0} to {1}", SrcPath, DestPath));
+            PostBuildSteps.Add(string.Format("copy /Y /B \"{0}\" /B \"{1}\"", SrcPath, DestPath));
+        }
 	}
 
 	//
@@ -28,22 +39,27 @@ public class ShaderCompileWorkerTarget : TargetRules
 		// Turn off various third party features we don't need
 
 		// Currently we force Lean and Mean mode
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// ShaderCompileWorker isn't localized, so doesn't need ICU
-		UEBuildConfiguration.bCompileICU = false;
+		bCompileICU = false;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
-		UEBuildConfiguration.bCompileCEF3 = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
+		bBuildWithEditorOnlyData = true;
+		bCompileCEF3 = false;
+
+		if (Target.Configuration == UnrealTargetConfiguration.Debug)
+		{
+			bDebugBuildsActuallyUseDebugCRT = true;
+		}
 
 		// Never use malloc profiling in ShaderCompileWorker.
-		BuildConfiguration.bUseMallocProfiler = false;
+		bUseMallocProfiler = false;
 
 		// Force all shader formats to be built and included.
-        UEBuildConfiguration.bForceBuildShaderFormats = true;
+        bForceBuildShaderFormats = true;
 
 		// ShaderCompileWorker is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

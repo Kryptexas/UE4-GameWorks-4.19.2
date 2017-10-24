@@ -1,131 +1,150 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3514489
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Title:Preview Settings
-Description:User guide for the Preview Settings panel inside the Animation Tools. 
-Type: Reference
-version: 4.16
-Parent: Engine/Animation/Persona
-Order: 1
-Tags: Animation
-Tags: Viewport
+Title:プレビュー シーンの設定
+Description:アニメーション ツール内の [Preview Scene Settings] パネルのユーザーガイドです。 
+Type:Reference
+version:4.16
+Parent:Engine/Animation/Persona
+Order:1
+Tags:Animation
+Tags:Viewport
 topic-image:PreviewTopic.png
-Related: Engine/Animation/AnimHowTo/PreviewingAnimations
-Related: Engine/UI/MeshPreviewScene
-Related: Engine/Rendering/PostProcessEffects
-Related: Engine/Rendering/LightingAndShadows
+Related:Engine/Animation/AnimHowTo/PreviewingAnimations
+Related:Engine/UI/MeshPreviewScene
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/LightingAndShadows
 
 [TOC (start:2 end:2)]
 
-The **Preview Settings** enables you to quickly assess what your assets will look like in multiple environments and light scenarios without having to set up these scenes within your level. 
-Several different settings can be defined and applied from Skeletal Meshes to lighting and Post Process effects all within each of the [](Engine/Animation/Persona/Modes) inside the editor. 
+**[Preview Scene Settings (プレビュー シーン設定)]** パネルを使うと、レベル内でシーンをセットアップする必要なく、複数の背景やライティング シナリオでアセットがどのように見えるかを素早く評価することができます。 
+スケルタルメッシュからライティング、ポストプロセス エフェクトまで数種類の設定をすべてエディタ内の各 [](Engine/Animation/Persona/Modes) で定義し適用することができます。 
 
-## Animation
+[Preview Scene Settings] パネルは使用している [アニメーション ツール](Engine/Animation/Persona/Modes) の右上隅にあります。 
 
-This section is used to define the method in which to apply animation to the preview mesh. 
+![](PreviewSceneSettings.png)
+
+[Preview Scene Settings] パネルを閉じた後、ツール バーの **[Window]** オプションから再び有効にすることができます。 
+
+![](EnablePreviewSceneSettings.png)
+
+**[Viewport Options]** ドロップダウン メニューから [Preview Scene Setting] パネルにアクセスすることもできます。 
+
+![](ViewportMenu.png)
+
+## アニメーション
+
+このセクションでは、アニメーションをプレビュー メッシュに適用する方法を定義します。 
 
 ![](Animation.png)
 
-| Option | Description |
+| オプション | 説明 |
 |-------|------|
-| **Animation Mode** | The method by which the preview is animated (**Default**, **Reference Pose** or **Use Specific Animation**). |
-| **Animation** | The preview animation to use. |
+| **Animation Mode** | プレビューがアニメートされる方法です (**Default**、 **Reference Pose**、または **Use Specific Animation**)。 |
+| **Animation** | 使用するプレビュー アニメーションです。 |
 
-## Mesh
+## メッシュ
 
-This section enables you to change the Skeletal Mesh used for previewing. 
+このセクションでは、プレビューに使うスケルタルメッシュを変更します。 
 
 ![](Mesh.png)
 
-| Option | Description |
+| オプション | 説明 |
 |-------|------|
-| **Preview Mesh (Animation)** | The Skeletal Mesh to use for previewing. |
+| **Preview Mesh (Animation)** | プレビューに使うスケルタルメッシュです。 |
 
-## Additional Meshes
+Animation Sequence、 Animation Blueprint、または Skeleton のどのタイプのアセットであっても、保存して別のプレビュー メッシュでオーバーライドすることができます。 
+オーバイライドの順序は、スケルトンからアセットになります。そのため、アセットがオーバーライドを持たなければ、デフォルトでスケルトンのプレビュー メッシュになります。 
 
-This section enables you to include additional Skeletal Meshes (such as weapons, items or other objects) to the preview scene. 
+## メッシュの追加
+
+このセクションでは、Preview Mesh Collection の一部としてプレビュー シーンにスケルタルメッシュを追加することができます。  
 
 ![](PreviewMeshCollection.png)
 
-| Option | Description |
+| オプション | 説明 |
 |-------|------|
-| **Additional Meshes** | The Preview Mesh Collection to use as included meshes for previewing. |
-| **Skeletal Meshes** | The Skeletal Mesh assets that are included in the specified Preview Mesh Collection. |
+| **Additional Meshes** | プレビューに含めるメッシュとして使うプレビュー メッシュ コレクションです。 |
+| **Skeletal Meshes** | 指定したプレビュー メッシュ コレクションに含まれる Skeletal Mesh アセットです。 |
 
+Preview Mesh Collections は、関連するいくつかのスケルタルメッシュ (キャラクターのコンポーネントなど) がある場合に便利です。 
+Preview Mesh Collections は非常に柔軟性があり、未保存のコレクション内の未保存のアセットの使用をサポートします。 
+他のスケルタルメッシュのパーツからスケルタルメッシュを構築できる他のシステムとインターフェースする必要があるようなプロジェクトによって拡張することもできます。 
 
-## Settings
+## 設定
 
-This section contains various settings that define the makeup of the viewport for previewing.
+このセクションには、プレビューのためにビューポートを構成するものを定義する様々な設定があります。
 
 ![](Settings.png)
 
-| Option | Description |
+| オプション | 説明 |
 |-------|------|
-| **Profile Name** | Name to identify the profile. |
-| **Shared Profile** | Whether or not this profile should be stored in the project.ini file. |
-| **Directional Light Intensity** | Manually set the directional light intensity (0.0 - 20.0). |
-| **Direction Light Color** | Manually set the directional light color. |
-| **Sky Light Intensity** | Manually set the sky light intensity (0.0 - 20.0). |
-| **Rotate Sky and Directional Lighting** | Toggle rotating of the sky and directional lighting. Press **K** and drag for manual rotating of Sky and **L** for Directional Lighting. |
-| **Show Environment** | Toggle visibility of the environment sphere. |
-| **Show Floor** | Toggle visibility of the floor mesh. |
-| **Environment Cube Map** | Sets the environment cube map used for sky lighting and reflections. |
-| **Post Processing Enabled** | Whether or not the Post Processing should influence the scene. |
-| **Lighting Rig Rotation** | Current rotation value of the sky in degrees (0 - 360). |
-| **Rotation Speed** | Speed at which the sky rotates when rotating is toggled. |
+| **Profile Name** | プロファイルを特定する名前 |
+| **Shared Profile** | プロファイルを project.ini ファイルに保存するかどうかです。 |
+| **Directional Light Intensity** | 指向性ライトの強度 (0.0 - 20.0) を手動設定します。 |
+| **Direction Light Color** | 指向性ライトの色を手動設定します。 |
+| **Sky Light Intensity** | スカイライトの強度 (0.0 - 20.0) を手動設定します。 |
+| **Rotate Sky and Directional Lighting** | スカイライトと指向性ライトの回転を切り替えます。スカイライトを手動で回転させるには **K** を押してドラッグします。指向性ライトを手動で回転させるには **L** を押してドラッグします。 |
+| **Show Environment** | 背景の球体の可視性を切り替えます。 |
+| **Show Floor** | フロア メッシュの可視性を切り替えます。 |
+| **Environment Cube Map** | スカイライトと反射に使う環境キューブマップを設定します。 |
+| **Post Processing Enabled** | ポスト プロセスがシーンに影響を与えるかどうかを設定します。 |
+| **Lighting Rig Rotation** | 現在のスカイライトの回転値 (0 - 360 度) です。 |
+| **Rotation Speed** | 回転を切り替える場合にスカイライトが回転する速度です。 |
 
-Your settings can be saved as a **Profile** and you can add and switch between Profiles from the Profiles menu at the bottom of the window. 
+自分の設定を **[Profile]** として保存し、ウィンドウ下部にある [プロファイル] メニューからプロファイルを追加し切り替えることができます。 
 
 ![](ProfileOption.png)
 
-## Color Grading
+## カラー グレーディング
 
-This section includes various **Color Grading** options for the viewport. 
+このセクションにはビューポートの様々な **カラー グレーディング** オプションがあります。 
 
 ![](ColorGrading.png)
 
 [REGION:note]
-Please see [](Engine/Rendering/PostProcessEffects/ColorGrading) for more information.
+詳細は、[](Engine/Rendering/PostProcessEffects/ColorGrading) をご覧ください。
 [/REGION]
 
-## Lens
+## レンズ
 
-This section includes the ability to apply various Post Processing effects to the viewport. 
+このセクションには、様々なポストプロセス エフェクトをビューポートに適用する機能があります。 
 
 ![](LensOptions.png)
 
 [REGION:note]
-Please see [](Engine/Rendering/PostProcessEffects) for more information.
+詳細は [](Engine/Rendering/PostProcessEffects) をご覧ください。
 [/REGION]
 
-## Rendering Features
+## レンダリング機能
 
-This section includes the ability to apply various lighting effects to the viewport. 
+このセクションには、様々なライティング エフェクトをビューポートに適用する機能があります。 
 
 ![](RenderingFeatures.png)
 
 [REGION:note]
-Please see [](Engine/Rendering/LightingAndShadows) for more information.
+詳細は [](Engine/Rendering/LightingAndShadows) をご覧ください。
 [/REGION]
 
-## Tonemapper
+## トーンマッパ
 
-In this section, you can define various **Tone Mapping** functions. 
+このセクションでは、様々な **トーン マッピング** 機能を定義することができます。 
 
 ![](ToneMapper.png)
 
 [REGION:note]
-Please see [Tone Mapping](Engine/Rendering/PostProcessEffects/ColorGrading) for more information.
+詳細は、 [トーンマッピング](Engine/Rendering/PostProcessEffects/ColorGrading) をご覧ください。
 [/REGION]
 
-## Mobile Tonemapper
+## モバイル トーンマッパ
 
-This section includes the ability to define **Tone Mapping** functions for mobile platforms. 
+このセクションでは、モバイル プラットフォーム向けに **トーン マッピング** 機能を定義することができます。 
 
 ![](MobileToneMapper.png)
 
 [REGION:note]
-Please see [](Platforms/Mobile/PostProcessEffects) for more information. 
+詳細は [](Platforms/Mobile/PostProcessEffects) をご覧ください。 
 [/REGION]
+
 
 

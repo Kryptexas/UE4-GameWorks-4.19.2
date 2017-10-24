@@ -1,22 +1,24 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
-#include "Interfaces/IImageWrapperModule.h"
-#include "JpegImageWrapper.h"
-#include "PngImageWrapper.h"
-#include "BmpImageWrapper.h"
-#include "ExrImageWrapper.h"
-#include "IcoImageWrapper.h"
-#include "IcnsImageWrapper.h"
 #include "ImageWrapperPrivate.h"
+
+#include "CoreTypes.h"
+#include "Modules/ModuleManager.h"
+
+#include "Formats/BmpImageWrapper.h"
+#include "Formats/ExrImageWrapper.h"
+#include "Formats/IcnsImageWrapper.h"
+#include "Formats/IcoImageWrapper.h"
+#include "Formats/JpegImageWrapper.h"
+#include "Formats/PngImageWrapper.h"
+#include "IImageWrapperModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogImageWrapper);
 
 
-namespace {
-
+namespace
+{
 	static const uint8 IMAGE_MAGIC_PNG[]  = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
 	static const uint8 IMAGE_MAGIC_JPEG[] = {0xFF, 0xD8, 0xFF};
 	static const uint8 IMAGE_MAGIC_BMP[]  = {0x42, 0x4D};
@@ -31,28 +33,31 @@ namespace {
 		{
 			return false;
 		}
+
 		for (int32 I = 0; I < MagicCount; ++I)
 		{
-			if ( Content[I] != Magic[I] )
+			if (Content[I] != Magic[I])
 			{
 				return false;
 			}
 		}
+
 		return true;
 	}
 }
 
+
 /**
- * Image Wrapper module
+ * Image Wrapper module.
  */
 class FImageWrapperModule
 	: public IImageWrapperModule
 {
 public:
 
-	// IImageWrapperModule interface
+	//~ IImageWrapperModule interface
 
-	virtual IImageWrapperPtr CreateImageWrapper( const EImageFormat::Type InFormat ) override
+	virtual TSharedPtr<IImageWrapper> CreateImageWrapper(const EImageFormat InFormat) override
 	{
 		FImageWrapperBase* ImageWrapper = NULL;
 
@@ -64,10 +69,12 @@ public:
 			ImageWrapper = new FPngImageWrapper();
 			break;
 #endif	// WITH_UNREALPNG
+
 #if WITH_UNREALJPEG
 		case EImageFormat::JPEG:
 			ImageWrapper = new FJpegImageWrapper();
 			break;
+
 		case EImageFormat::GrayscaleJPEG:
 			ImageWrapper = new FJpegImageWrapper(1);
 			break;
@@ -80,6 +87,7 @@ public:
 		case EImageFormat::ICO:
 			ImageWrapper = new FIcoImageWrapper();
 			break;
+
 #if WITH_UNREALEXR
 		case EImageFormat::EXR:
 			ImageWrapper = new FExrImageWrapper();
@@ -88,6 +96,7 @@ public:
 		case EImageFormat::ICNS:
 			ImageWrapper = new FIcnsImageWrapper();
 			break;
+
 		default:
 			break;
 		}
@@ -95,9 +104,9 @@ public:
 		return MakeShareable(ImageWrapper);
 	}
 
-	virtual EImageFormat::Type DetectImageFormat( const void* CompressedData, int32 CompressedSize ) override
+	virtual EImageFormat DetectImageFormat(const void* CompressedData, int32 CompressedSize) override
 	{
-		EImageFormat::Type Format = EImageFormat::Invalid;
+		EImageFormat Format = EImageFormat::Invalid;
 		if (StartsWith((uint8*) CompressedData, CompressedSize, IMAGE_MAGIC_PNG))
 		{
 			Format = EImageFormat::PNG;
@@ -128,10 +137,10 @@ public:
 
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 
-	virtual void StartupModule( ) override { }
-	virtual void ShutdownModule( ) override { }
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
 };
 
 

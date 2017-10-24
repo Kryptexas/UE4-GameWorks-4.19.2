@@ -73,7 +73,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 
 	// Last tile set that was selected when editing the tile map
 	UPROPERTY()
-	TAssetPtr<UPaperTileSet> SelectedTileSet;
+	TSoftObjectPtr<UPaperTileSet> SelectedTileSet;
 
 	// The material to use on a tile map instance if not overridden
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)

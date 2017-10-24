@@ -1,7 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineVersion": "4.1.0-0+UE4",
-	"PackageFileUE4Version": 357,
-	"PackageFileLicenseeUE4Version": 0,
-	"EpicSampleNameHash": "0"
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": ""
 }

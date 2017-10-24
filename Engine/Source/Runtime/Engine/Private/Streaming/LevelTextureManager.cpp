@@ -9,7 +9,7 @@
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
 
-void FLevelTextureManager::Remove(FRemovedTextureArray& RemovedTextures)
+void FLevelTextureManager::Remove(FRemovedTextureArray* RemovedTextures)
 { 
 	TArray<const UPrimitiveComponent*> ReferencedComponents;
 	StaticInstances.GetReferencedComponents(ReferencedComponents);
@@ -28,9 +28,12 @@ void FLevelTextureManager::Remove(FRemovedTextureArray& RemovedTextures)
 	}
 
 	// Mark all static textures for removal.
-	for (auto It = StaticInstances.GetTextureIterator(); It; ++It)
+	if (RemovedTextures)
 	{
-		RemovedTextures.Push(*It);
+		for (auto It = StaticInstances.GetTextureIterator(); It; ++It)
+		{
+			RemovedTextures->Push(*It);
+		}
 	}
 
 	BuildStep = EStaticBuildStep::BuildTextureLookUpMap;
@@ -345,6 +348,15 @@ void FLevelTextureManager::IncrementalUpdate(
 		{
 			StaticInstances.Refresh(Percentage);
 		}
+	}
+}
+
+void FLevelTextureManager::NotifyLevelOffset(const FVector& Offset)
+{
+	if (BuildStep == EStaticBuildStep::Done)
+	{
+		// offset static primitives bounds
+		StaticInstances.OffsetBounds(Offset);
 	}
 }
 

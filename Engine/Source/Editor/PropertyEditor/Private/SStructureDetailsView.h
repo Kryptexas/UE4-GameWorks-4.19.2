@@ -53,9 +53,9 @@ public:
 
 	// IStructureDetailsView interface
 
-	virtual IDetailsView& GetDetailsView() override
+	virtual IDetailsView* GetDetailsView() override
 	{
-		return *this;
+		return this;
 	}
 
 	virtual TSharedPtr<SWidget> GetWidget() override
@@ -71,18 +71,8 @@ public:
 	}
 
 public:
-
-	// IDetailsView interface
-
-	virtual bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName) const override
-	{
-		return false;
-	}
-
 	virtual void ForceRefresh() override;
 	virtual void MoveScrollOffset(int32 DeltaOffset) override {}
-	virtual void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) override;
-	virtual bool IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const override;
 	virtual void ClearSearch() override;
 public:
 
@@ -97,8 +87,6 @@ public:
 	}
 
 	virtual void SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate) override {}
-	virtual void RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override;
-	virtual void UnregisterInstancedCustomPropertyLayout(UStruct* Class) override;
 	virtual void SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObject(UObject* InObject, bool bForceRefresh = false) override{}

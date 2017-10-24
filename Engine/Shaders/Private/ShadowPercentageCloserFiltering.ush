@@ -65,6 +65,9 @@ struct FPCSSSamplerSettings
 
 	// Transition scale (TODO: Could probably nuke that guy).
 	float TransitionScale;
+
+	// Size of a SourceRadius-sized sphere in shadow space
+	float ProjectedSourceRadius;
 	
 	// Tan(0.5 * Light Source Angle) in the shadow view space.
 	float TanLightSourceAngle;
@@ -141,7 +144,12 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
 	PCSSMinFilterSize *= 3;
 #endif
 
-	float SearchRadius = max(PCSSMinFilterSize, RandomFilterScale * min(Settings.SceneDepth * Settings.TanLightSourceAngle, Settings.MaxKernelSize));
+#if SPOT_LIGHT_PCSS
+	float SearchRadius = Settings.ProjectedSourceRadius;
+#else
+	float SearchRadius = Settings.SceneDepth * Settings.TanLightSourceAngle;
+#endif
+	SearchRadius = clamp(PCSSMinFilterSize, Settings.MaxKernelSize, SearchRadius);
 
 #if PCSS_ANTI_ALIASING_METHOD == 6 // Experience 6: anysotropy.
 	float2 ShadowPositionDx = ddx(ShadowPosition);
@@ -256,12 +264,17 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
 	float DepthAvg = DepthSum * NormalizeFactor;
 	float DepthVariance = NormalizeFactor * DepthSquaredSum - DepthAvg * DepthAvg;
 	float DepthStandardDeviation = sqrt(DepthVariance);
-	float AverageOccluderDistance = (Settings.SceneDepth - DepthAvg);
-	float Penumbra = min((Settings.SceneDepth - DepthAvg) * Settings.TanLightSourceAngle, Settings.MaxKernelSize);
+	float AverageOccluderDistance = Settings.SceneDepth - DepthAvg;
+#if SPOT_LIGHT_PCSS
+	float Penumbra = Settings.ProjectedSourceRadius * AverageOccluderDistance / DepthAvg;
+#else
+	float Penumbra = Settings.TanLightSourceAngle * AverageOccluderDistance;
+#endif
+	Penumbra = min(Penumbra, Settings.MaxKernelSize);
 
 	float RawFilterRadius = RandomFilterScale * Penumbra;
 	float FilterRadius = max(PCFMinFilterSize, RawFilterRadius);
-	float TanDirectionalLightAngle = FilterRadius / (RandomFilterScale * (Settings.SceneDepth - DepthAvg));
+	float TanDirectionalLightAngle = FilterRadius / (RandomFilterScale * AverageOccluderDistance);
 
 #if PCSS_ANTI_ALIASING_METHOD == 1 // Experiement 4: do elliptical PCF kernel according to the occluder UV gradient.
 	{

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 
 namespace EAutomationEventName
 {
@@ -14,6 +13,7 @@ namespace EAutomationEventName
 		NUM_ENGINE_EVENT_NAMES
 	};
 }
+
 
 namespace EAutomationAnalyticParam
 {
@@ -45,4 +45,3 @@ namespace EAutomationAnalyticParam
 		NUM_ENGINE_PARAMS
 	};
 }
-

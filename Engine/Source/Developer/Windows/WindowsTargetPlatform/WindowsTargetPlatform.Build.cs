@@ -28,7 +28,7 @@ public class WindowsTargetPlatform : ModuleRules
 		);
 
 		// compile with Engine
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 			PrivateIncludePathModuleNames.Add("TextureCompressor");

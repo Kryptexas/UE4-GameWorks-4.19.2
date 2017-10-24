@@ -9,7 +9,27 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Constraint
 
-#define LOCTEXT_NAMESPACE "A3Nodes"
+#define LOCTEXT_NAMESPACE "UAnimGraphNode_Constraint"
+
+/* Utility function that gives transform type string for UI */
+//////////////////////////////////////////////////
+FString GetTransformTypeString(const ETransformConstraintType& TransformType, bool bSimple = false)
+{
+	switch (TransformType)
+	{
+	case ETransformConstraintType::Parent:
+		return (bSimple) ? TEXT("P") : TEXT("Parent");
+	case ETransformConstraintType::Translation:
+		return (bSimple) ? TEXT("T") : TEXT("Translation");
+	case ETransformConstraintType::Rotation:
+		return (bSimple) ? TEXT("R") : TEXT("Rotation");
+	case ETransformConstraintType::Scale:
+		return (bSimple) ? TEXT("S") : TEXT("Scale");
+	}
+
+	return (bSimple) ? TEXT("U") : TEXT("Unknown");
+};
+//////////////////////////////////////////////////////
 
 UAnimGraphNode_Constraint::UAnimGraphNode_Constraint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -50,6 +70,17 @@ FText UAnimGraphNode_Constraint::GetTooltipText() const
 
 FText UAnimGraphNode_Constraint::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	// get simple transform type
+	auto GetSimpleTransformString = [this]() -> FString
+	{
+		FString Ret;
+		for (const FConstraint& Constraint : Node.ConstraintSetup)
+		{
+			Ret += GetTransformTypeString(Constraint.TransformType, true);
+		}
+		return Ret;
+	};
+	
 	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.BoneToModify.BoneName == NAME_None))
 	{
 		return GetControllerDescription();
@@ -59,9 +90,10 @@ FText UAnimGraphNode_Constraint::GetNodeTitle(ENodeTitleType::Type TitleType) co
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
 		Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
+		Args.Add(TEXT("TransformComponents"), FText::FromString(GetSimpleTransformString()));
 
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_Constraint_ListTitle", "{ControllerDescription} - {BoneName}"), Args), this);
+		CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_Constraint_ListTitle", "{ControllerDescription} - {BoneName} ({TransformComponents})"), Args), this);
 	}
 	return CachedNodeTitles[TitleType];
 }
@@ -102,4 +134,29 @@ void UAnimGraphNode_Constraint::PostEditChangeProperty(struct FPropertyChangedEv
 		}
 	}
 }
+
+void UAnimGraphNode_Constraint::PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const
+{
+	Super::PostProcessPinName(Pin, DisplayName);
+
+	if (Pin->Direction == EGPD_Input)
+	{
+		const FString ConstraintWeightPrefix = TEXT("ConstraintWeights_");
+		FString PinName = Pin->PinName;
+		FString IndexString;
+		if (PinName.Split(ConstraintWeightPrefix, nullptr, &IndexString))
+		{
+			// convert index and display better name
+			int32 Index = FCString::Atoi(*IndexString);
+			if (Node.ConstraintSetup.IsValidIndex(Index))
+			{
+				const FConstraint& Constraint = Node.ConstraintSetup[Index];
+				DisplayName = Constraint.TargetBone.BoneName.ToString();
+				DisplayName += TEXT(" : ");
+				DisplayName += GetTransformTypeString(Constraint.TransformType);
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

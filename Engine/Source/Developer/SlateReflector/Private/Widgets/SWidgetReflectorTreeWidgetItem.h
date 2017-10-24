@@ -55,6 +55,7 @@ public:
 		CachedWidgetType = WidgetInfo->GetWidgetType();
 		CachedWidgetVisibility = WidgetInfo->GetWidgetVisibilityText();
 		CachedWidgetClipping = WidgetInfo->GetWidgetClippingText();
+		bCachedWidgetFocusable = WidgetInfo->GetWidgetFocusable();
 		CachedReadableLocation = WidgetInfo->GetWidgetReadableLocation();
 		CachedWidgetFile = WidgetInfo->GetWidgetFile();
 		CachedWidgetLineNumber = WidgetInfo->GetWidgetLineNumber();
@@ -100,10 +101,16 @@ protected:
 	{
 		return CachedWidgetVisibility;
 	}
-
+	
+	
 	FText GetClippingAsString() const
 	{
 		return CachedWidgetClipping;
+	}
+
+	ECheckBoxState GetFocusableAsCheckBoxState() const
+	{
+		return bCachedWidgetFocusable ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** @return The tint of the reflector node */
@@ -122,6 +129,7 @@ private:
 	FText CachedWidgetType;
 	FText CachedWidgetVisibility;
 	FText CachedWidgetClipping;
+	bool bCachedWidgetFocusable;
 	FText CachedReadableLocation;
 	FString CachedWidgetFile;
 	int32 CachedWidgetLineNumber;

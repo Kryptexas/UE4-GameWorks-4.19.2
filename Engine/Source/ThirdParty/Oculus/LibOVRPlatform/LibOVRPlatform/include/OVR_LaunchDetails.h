@@ -5,8 +5,8 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_LaunchType.h"
+#include "OVR_Types.h"
 #include "OVR_UserArray.h"
-#include <stddef.h>
 
 typedef struct ovrLaunchDetails *ovrLaunchDetailsHandle;
 

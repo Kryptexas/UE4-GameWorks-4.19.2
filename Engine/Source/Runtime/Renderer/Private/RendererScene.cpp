@@ -24,6 +24,7 @@
 #include "MaterialShared.h"
 #include "SceneManagement.h"
 #include "PrecomputedLightVolume.h"
+#include "PrecomputedVolumetricLightmap.h"
 #include "Components/LightComponent.h"
 #include "GameFramework/WorldSettings.h"
 #include "Components/DecalComponent.h"
@@ -807,6 +808,12 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
+
+	if (!RHISupportsVolumeTextures(GetFeatureLevel())
+		&& (PrimitiveSceneProxy->IsMovable() || PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
+	{
+		PrimitiveSceneProxy->GetPrimitiveSceneInfo()->MarkPrecomputedLightingBufferDirty();
+	}
 
 	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
@@ -1664,6 +1671,43 @@ void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		});
 }
 
+void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, EShadingPath ShadingPath)
+{
+	LevelVolumetricLightmaps.Add(InVolume);
+}
+
+void FVolumetricLightmapSceneData::RemoveLevelVolume(const FPrecomputedVolumetricLightmap* InVolume)
+{
+	LevelVolumetricLightmaps.Remove(InVolume);
+}
+
+bool FScene::HasPrecomputedVolumetricLightmap_RenderThread() const
+{
+	return VolumetricLightmapSceneData.HasData();
+}
+
+void FScene::AddPrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightmap* Volume)
+{
+	FScene* Scene = this;
+
+	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->VolumetricLightmapSceneData.AddLevelVolume(Volume, Scene->GetShadingPath());
+		});
+}
+
+void FScene::RemovePrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightmap* Volume)
+{
+	FScene* Scene = this; 
+
+	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->VolumetricLightmapSceneData.RemoveLevelVolume(Volume);
+		});
+}
+
 struct FUpdateLightTransformParameters
 {
 	FMatrix LightToWorld;
@@ -1812,7 +1856,21 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		    {
 			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
 			    {
-				    MobileDirectionalLights[LightChannelIdx] = nullptr;
+					MobileDirectionalLights[LightChannelIdx] = nullptr;
+
+					// find another light that could be the new MobileDirectionalLight for this channel
+					for (const FLightSceneInfoCompact& OtherLight : Lights)
+					{
+						if (OtherLight.LightSceneInfo != LightSceneInfo &&
+							OtherLight.LightType == LightType_Directional &&
+							!OtherLight.bStaticLighting &&
+							GetFirstLightingChannelFromMask(OtherLight.LightSceneInfo->Proxy->GetLightingChannelMask()) == LightChannelIdx)
+						{
+							MobileDirectionalLights[LightChannelIdx] = OtherLight.LightSceneInfo;
+							break;
+						}
+					}
+
 					// if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
 					if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 					{
@@ -3034,6 +3092,12 @@ template<>
 TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedCachedPointIndirectLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedVolumetricLightmapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[DrawType];
 }
 
 /**  */

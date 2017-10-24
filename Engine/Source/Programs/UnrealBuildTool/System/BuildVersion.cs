@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -53,6 +55,11 @@ namespace UnrealBuildTool
 		public string BranchName;
 
 		/// <summary>
+		/// The current build id. This will be generated automatically whenever engine binaries change if not set in the default Engine/Build/Build.version.
+		/// </summary>
+		public string BuildId;
+
+		/// <summary>
 		/// Returns the value which can be used as the compatible changelist. Requires that the regular changelist is also set, and defaults to the 
 		/// regular changelist if a specific compatible changelist is not set.
 		/// </summary>
@@ -64,20 +71,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Try to read a version file from disk
 		/// </summary>
-		/// <param name="Version">The version information</param>
-		/// <returns>True if the version was read sucessfully, false otherwise</returns>
-		public static bool TryRead(out BuildVersion Version)
-		{
-			return TryRead(GetDefaultFileName(), out Version);
-		}
-
-		/// <summary>
-		/// Try to read a version file from disk
-		/// </summary>
 		/// <param name="FileName">Path to the version file</param>
 		/// <param name="Version">The version information</param>
-		/// <returns>True if the version was read sucessfully, false otherwise</returns>
-		public static bool TryRead(string FileName, out BuildVersion Version)
+		/// <returns>True if the version was read successfully, false otherwise</returns>
+		public static bool TryRead(FileReference FileName, out BuildVersion Version)
 		{
 			JsonObject Object;
 			if (!JsonObject.TryRead(FileName, out Object))
@@ -92,9 +89,33 @@ namespace UnrealBuildTool
 		/// Get the default path to the build.version file on disk
 		/// </summary>
 		/// <returns>Path to the Build.version file</returns>
-		public static string GetDefaultFileName()
+		public static FileReference GetDefaultFileName()
 		{
-			return FileReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "Build.version").FullName;
+			return FileReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "Build.version");
+		}
+
+		/// <summary>
+		/// Get the default path for a target's version file.
+		/// </summary>
+		/// <returns>Path to the target's version file</returns>
+		public static FileReference GetFileNameForTarget(DirectoryReference OutputDirectory, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture)
+		{
+			// Get the architecture suffix. Platforms have the option of overriding whether to include this string in filenames.
+			string ArchitectureSuffix = "";
+			if(UEBuildPlatform.GetBuildPlatform(Platform).RequiresArchitectureSuffix())
+			{
+				ArchitectureSuffix = Architecture;
+			}
+		
+			// Build the output filename
+			if (String.IsNullOrEmpty(ArchitectureSuffix) && Configuration == UnrealTargetConfiguration.Development)
+			{
+				return FileReference.Combine(OutputDirectory, "Binaries", Platform.ToString(), String.Format("{0}.version", TargetName));
+			}
+			else
+			{
+				return FileReference.Combine(OutputDirectory, "Binaries", Platform.ToString(), String.Format("{0}-{1}-{2}{3}.version", TargetName, Platform.ToString(), Configuration.ToString(), ArchitectureSuffix));
+			}
 		}
 
 		/// <summary>
@@ -117,6 +138,7 @@ namespace UnrealBuildTool
 			Object.TryGetIntegerField("IsLicenseeVersion", out NewVersion.IsLicenseeVersion);
 			Object.TryGetIntegerField("IsPromotedBuild", out NewVersion.IsPromotedBuild);
 			Object.TryGetStringField("BranchName", out NewVersion.BranchName);
+			Object.TryGetStringField("BuildId", out NewVersion.BuildId);
 
 			Version = NewVersion;
 			return true;
@@ -126,14 +148,25 @@ namespace UnrealBuildTool
 		/// Exports this object as Json
 		/// </summary>
 		/// <param name="FileName">The filename to write to</param>
-		/// <returns>True if the build version could be read, false otherwise</returns>
-		public void Write(string FileName)
+		public void Write(FileReference FileName)
 		{
-			using (JsonWriter Writer = new JsonWriter(FileName))
+			using (StreamWriter Writer = new StreamWriter(FileName.FullName))
 			{
-				Writer.WriteObjectStart();
-				WriteProperties(Writer);
-				Writer.WriteObjectEnd();
+				Write(Writer);
+			}
+		}
+
+		/// <summary>
+		/// Exports this object as Json
+		/// </summary>
+		/// <param name="Writer">Writer for output text</param>
+		public void Write(TextWriter Writer)
+		{
+			using (JsonWriter OtherWriter = new JsonWriter(Writer))
+			{
+				OtherWriter.WriteObjectStart();
+				WriteProperties(OtherWriter);
+				OtherWriter.WriteObjectEnd();
 			}
 		}
 
@@ -152,6 +185,7 @@ namespace UnrealBuildTool
 			Writer.WriteValue("IsLicenseeVersion", IsLicenseeVersion);
 			Writer.WriteValue("IsPromotedBuild", IsPromotedBuild);
 			Writer.WriteValue("BranchName", BranchName);
+			Writer.WriteValue("BuildId", BuildId);
 		}
 	}
 }

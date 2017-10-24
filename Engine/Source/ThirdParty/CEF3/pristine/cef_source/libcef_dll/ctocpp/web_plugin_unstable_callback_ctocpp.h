@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,20 +14,20 @@
 #define CEF_LIBCEF_DLL_CTOCPP_WEB_PLUGIN_UNSTABLE_CALLBACK_CTOCPP_H_
 #pragma once
 
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 
 #include "include/cef_web_plugin.h"
 #include "include/capi/cef_web_plugin_capi.h"
 #include "include/cef_browser.h"
 #include "include/capi/cef_browser_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed DLL-side only.
 class CefWebPluginUnstableCallbackCToCpp
-    : public CefCToCpp<CefWebPluginUnstableCallbackCToCpp,
+    : public CefCToCppRefCounted<CefWebPluginUnstableCallbackCToCpp,
         CefWebPluginUnstableCallback, cef_web_plugin_unstable_callback_t> {
  public:
   CefWebPluginUnstableCallbackCToCpp();
@@ -36,5 +36,4 @@ class CefWebPluginUnstableCallbackCToCpp
   void IsUnstable(const CefString& path, bool unstable) override;
 };
 
-#endif  // BUILDING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_WEB_PLUGIN_UNSTABLE_CALLBACK_CTOCPP_H_

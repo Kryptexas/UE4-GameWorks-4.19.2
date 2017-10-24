@@ -4,7 +4,6 @@
 #define OVR_ERROR_H
 
 #include "OVR_Platform_Defs.h"
-#include <stddef.h>
 
 typedef struct ovrError *ovrErrorHandle;
 

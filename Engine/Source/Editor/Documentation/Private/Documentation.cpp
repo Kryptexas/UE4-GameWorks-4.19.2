@@ -43,25 +43,20 @@ bool FDocumentation::OpenHome(const FCultureRef& Culture, FDocumentationSourceIn
 	return Open(TEXT("%ROOT%"), Culture, Source);
 }
 
-bool FDocumentation::OpenAPIHome() const
+bool FDocumentation::OpenAPIHome(FDocumentationSourceInfo Source) const
 {
-	FString APIPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/CHM/API.chm"));
-	if( IFileManager::Get().FileSize( *APIPath ) != INDEX_NONE )
+	FString Url;
+	FUnrealEdMisc::Get().GetURL(TEXT("APIDocsURL"), Url, true);
+
+	if (!Url.IsEmpty())
 	{
-		FString AbsoluteAPIPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*APIPath);
-		FPlatformProcess::LaunchFileInDefaultExternalApplication(*AbsoluteAPIPath);
+		Url.ReplaceInline(TEXT("/INT/"), *FString::Printf(TEXT("/%s/"), *(FInternationalization::Get().GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName())));
+
+		FPlatformProcess::LaunchURL(*Url, nullptr, nullptr);
+
 		return true;
 	}
-	else
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("Documentation", "CannotFindAPIReference", "Cannot open API reference; help file not found."));
-		return false;
-	}
-}
-
-bool FDocumentation::CanOpenAPIHome() const
-{
-	return FPaths::FileExists(FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/CHM/API.chm")));
+	return false;
 }
 
 bool FDocumentation::Open(const FString& Link, FDocumentationSourceInfo Source) const

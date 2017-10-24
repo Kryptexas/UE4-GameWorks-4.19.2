@@ -220,10 +220,10 @@ public:
 
 private:
 	/** If true, means that this tick function is in the master array of tick functions */
-	uint8 bRegistered:1;
+	bool bRegistered;
 
 	/** Cache whether this function was rescheduled as an interval function during StartParallel */
-	uint8 bWasInterval:1;
+	bool bWasInterval;
 
 	enum class ETickState : uint8
 	{

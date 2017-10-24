@@ -44,7 +44,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 		Desc->pRootSignature = nullptr;
 		SIZE_T* RSBlobLength = nullptr;
 		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&RSBlobLength, sizeof(*RSBlobLength));
-		if (RSBlobLength > 0)
+		if (RSBlobLength && *RSBlobLength > 0)
 		{
 			FD3D12QuantizedBoundShaderState* QBSS = nullptr;
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&QBSS, sizeof(*QBSS));

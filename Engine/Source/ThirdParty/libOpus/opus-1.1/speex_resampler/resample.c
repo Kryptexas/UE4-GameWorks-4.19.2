@@ -63,7 +63,7 @@
 # define SPX_RESAMPLE_EXPORT
 #endif
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__linux__)
 #ifndef OUTSIDE_SPEEX
 #define OUTSIDE_SPEEX
 #endif
@@ -80,7 +80,7 @@ static void speex_free (void *ptr) {free(ptr);}
 #include "arch.h"
 #else /* OUTSIDE_SPEEX */
                
-#include "../include/speex/speex_resampler.h"
+#include "../include/speex_resampler.h"
 #include "arch.h"
 #include "os_support.h"
 #endif /* OUTSIDE_SPEEX */

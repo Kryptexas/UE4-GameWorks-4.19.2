@@ -38,6 +38,7 @@
 #include "Widgets/Images/SThrobber.h"
 #include "Commandlets/CommandletHelpers.h"
 #include "SourceControlHelpers.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationCommandletExecutor"
 
@@ -648,7 +649,7 @@ namespace
 
 	void SLocalizationCommandletExecutor::CopyLogToClipboard()
 	{
-		FPlatformMisc::ClipboardCopy(*(GetLogString().ToString()));
+		FPlatformApplicationMisc::ClipboardCopy(*(GetLogString().ToString()));
 	}
 
 	FReply SLocalizationCommandletExecutor::OnSaveLogClicked()
@@ -658,7 +659,7 @@ namespace
 		const FString TextFileExtensionWildcard = FString::Printf(TEXT("*.%s"), *TextFileExtension);
 		const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *TextFileDescription, *TextFileExtensionWildcard, *TextFileExtensionWildcard);
 		const FString DefaultFilename = FString::Printf(TEXT("%s.%s"), TEXT("Log"), *TextFileExtension);
-		const FString DefaultPath = FPaths::GameSavedDir();
+		const FString DefaultPath = FPaths::ProjectSavedDir();
 
 		TArray<FString> SaveFilenames;
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();

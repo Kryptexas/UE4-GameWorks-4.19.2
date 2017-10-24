@@ -2,6 +2,13 @@
 
 #include "Widgets/Breakpoints/SMessagingBreakpointsTableRow.h"
 
+#include "IMessageTracerBreakpoint.h"
+#include "SlateOptMacros.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Text/STextBlock.h"
+
 
 #define LOCTEXT_NAMESPACE "SMessagingBreakpointsTableRow"
 

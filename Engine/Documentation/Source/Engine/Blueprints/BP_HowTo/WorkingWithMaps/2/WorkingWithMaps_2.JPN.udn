@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413824
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:2 - Blueprint Map の作成および表示
 Description:コンテンツをインゲームで表示するための Blueprint Map の設定方法
 Crumbs:%ROOT%
@@ -222,8 +222,8 @@ Order:2
 	[REGION:lightbox]
 		[![](Step2_25.png)(w:600)](Step2_25.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -232,8 +232,8 @@ Order:2
 	[REGION:lightbox]
 		[![](Step2_26.png)(w:600)](Step2_26.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 

@@ -107,6 +107,8 @@ struct FSkeletalMeshCustomVersion
 		NewClothingSystemAdded = 8,
 		// Cached inv mass data for clothing assets
 		CachedClothInverseMasses = 9,
+		// Compact cloth vertex buffer, without dummy entries
+		CompactClothVertexBuffer = 10,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
@@ -308,7 +310,7 @@ void FSkeletalMeshVertexBuffer::InitRHI()
 		
 		// BUF_ShaderResource is needed for support of the SkinCache (we could make is dependent on GEnableGPUSkinCacheShaders or are there other users?)
 		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-		SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
+		SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_UINT);
 	}
 }
 
@@ -370,7 +372,7 @@ FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexBuffer& VertexBuffer)
 		{
 			if (VertexBuffer.VertexData != NULL)
 			{
-					VertexBuffer.VertexData->Serialize(Ar);
+				VertexBuffer.VertexData->Serialize(Ar);
 
 				// update cached buffer info
 				VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
@@ -575,7 +577,8 @@ void FSkeletalMeshVertexClothBuffer::InitRHI()
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector4), PF_R32G32B32A32_UINT);
 	}
 }
 
@@ -604,6 +607,11 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexClothBuffer& VertexBuffer
 			VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.VertexData->GetDataPointer() : nullptr;
 			VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
 		}
+
+		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::CompactClothVertexBuffer)
+		{
+			Ar << VertexBuffer.ClothIndexMapping;
+		}
 	}
 
 	return Ar;
@@ -618,7 +626,7 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexClothBuffer& VertexBuffer
  * Initializes the buffer with the given vertices.
  * @param InVertices - The vertices to initialize the buffer with.
  */
-void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InMappingData)
+void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InMappingData, const TArray<uint64>& InClothIndexMapping)
 {
 	// Allocate new data
 	AllocateData();
@@ -639,6 +647,7 @@ void FSkeletalMeshVertexClothBuffer::Init(const TArray<FMeshToMeshVertData>& InM
 		const int32 DestVertexIndex = Index;
 		MappingData(DestVertexIndex) = SourceMapping;
 	}
+	ClothIndexMapping = InClothIndexMapping;
 }
 
 /** 
@@ -756,6 +765,23 @@ bool FSoftSkinVertex::GetRigidWeightBone(uint8& OutBoneIndex) const
 	}
 
 	return bIsRigid;
+}
+
+uint8 FSoftSkinVertex::GetMaximumWeight() const
+{
+	uint8 MaxInfluenceWeight = 0;
+
+	for ( int32 Index = 0; Index < MAX_TOTAL_INFLUENCES; Index++ )
+	{
+		const uint8 Weight = InfluenceWeights[Index];
+
+		if ( Weight > MaxInfluenceWeight )
+		{
+			MaxInfluenceWeight = Weight;
+		}
+	}
+
+	return MaxInfluenceWeight;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1712,28 +1738,15 @@ void FStaticLODModel::GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) 
 	}
 }
 
-void FStaticLODModel::GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData) const
+void FStaticLODModel::GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData, TArray<uint64>& OutClothIndexMapping) const
 {
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); SectionIndex++)
 	{
 		const FSkelMeshSection& Section = Sections[SectionIndex];
-
-		if(Section.ClothMappingData.Num() == 0 )
+		if (Section.ClothMappingData.Num())
 		{
-			int32 PrevNum = MappingData.Num();
-
-			MappingData.AddZeroed(Section.SoftVertices.Num());
-			for(int32 i=PrevNum; i<MappingData.Num(); i++)
-			{
-				MappingData[i].PositionBaryCoordsAndDist[0] = 1.0f;
-				MappingData[i].NormalBaryCoordsAndDist[0] = 1.0f;
-				MappingData[i].TangentBaryCoordsAndDist[0] = 1.0f;
-				// set max number to verify this is not the clothing section
-				MappingData[i].SourceMeshVertIndices[0] = 0xFFFF;
-			}
-		}
-		else
-		{
+			uint64 KeyValue = ((uint64)Section.BaseVertexIndex << (uint32)32) | (uint64)MappingData.Num();
+			OutClothIndexMapping.Add(KeyValue);
 			MappingData += Section.ClothMappingData;
 		}
 	}
@@ -1770,8 +1783,9 @@ void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 	if( HasClothData() )
 	{
 		TArray<FMeshToMeshVertData> MappingData;
-		GetApexClothMappingData(MappingData);
-		ClothVertexBuffer.Init(MappingData);
+		TArray<uint64> ClothIndexMapping;
+		GetApexClothMappingData(MappingData, ClothIndexMapping);
+		ClothVertexBuffer.Init(MappingData, ClothIndexMapping);
 	}
 }
 
@@ -2324,14 +2338,14 @@ void FSkeletalMeshResource::SyncUVChannelData(const TArray<FSkeletalMaterial>& O
 #endif
 
 FSkeletalMeshClothBuildParams::FSkeletalMeshClothBuildParams()
-	: AssetName("Clothing")
+	: TargetAsset(nullptr)
+	, TargetLod(INDEX_NONE)
+	, bRemapParameters(false)
+	, AssetName("Clothing")
 	, LodIndex(0)
 	, SourceSection(0)
 	, bRemoveFromMesh(false)
 	, PhysicsAsset(nullptr)
-	, bTryAutoFix(0)
-	, AutoFixThreshold(0.0f)
-	, SimulatedParticleMaxDistance(1.0f)
 {
 
 }
@@ -2421,6 +2435,20 @@ void USkeletalMesh::ValidateBoundsExtension()
 	NegativeBoundsExtension.Z = FMath::Clamp(NegativeBoundsExtension.Z, -HalfExtent.Z, MAX_flt);
 }
 
+void USkeletalMesh::AddClothingAsset(UClothingAssetBase* InNewAsset)
+{
+	// Check the outer is us
+	if(InNewAsset && InNewAsset->GetOuter() == this)
+	{
+		// Ok this should be a correctly created asset, we can add it
+		MeshClothingAssets.AddUnique(InNewAsset);
+
+#if WITH_EDITOR
+		OnClothingChange.Broadcast();
+#endif
+	}
+}
+
 void USkeletalMesh::RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex)
 {
 	UClothingAssetBase* Asset = GetSectionClothingAsset(InLodIndex, InSectionIndex);
@@ -2429,6 +2457,10 @@ void USkeletalMesh::RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex)
 	{
 		Asset->UnbindFromSkeletalMesh(this, InLodIndex);
 		MeshClothingAssets.Remove(Asset);
+
+#if WITH_EDITOR
+		OnClothingChange.Broadcast();
+#endif
 	}
 }
 
@@ -2527,6 +2559,28 @@ int32 USkeletalMesh::GetClothingAssetIndex(const FGuid& InAssetGuid) const
 	}
 
 	return INDEX_NONE;
+}
+
+bool USkeletalMesh::HasActiveClothingAssets() const
+{
+	if(FSkeletalMeshResource* Resource = GetImportedResource())
+	{
+		for(FStaticLODModel& LodModel : Resource->LODModels)
+		{
+			int32 NumNonClothingSections = LodModel.NumNonClothingSections();
+			for(int32 SectionIdx = 0; SectionIdx < NumNonClothingSections; ++SectionIdx)
+			{
+				FSkelMeshSection& Section = LodModel.Sections[SectionIdx];
+
+				if(Section.ClothingData.AssetGuid.IsValid())
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void USkeletalMesh::GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const
@@ -3352,7 +3406,7 @@ void USkeletalMesh::PostLoad()
 
 #if WITH_EDITORONLY_DATA
 	// Rebuild vertex buffers if needed
-	if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
+	if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CompactClothVertexBuffer)
 	{
 		FSkeletalMeshResource* Resource = GetImportedResource();
 		if (Resource && FPlatformProperties::HasEditorOnlyData())
@@ -3527,7 +3581,7 @@ void USkeletalMesh::PostLoad()
 				// Pull the path across so reimports work as expected
 				NewAsset->ImportedFilePath = OldAssetData.ApexFileName;
 
-				MeshClothingAssets.Add(NewAsset);
+				AddClothingAsset(NewAsset);
 			}
 		}
 
@@ -4030,6 +4084,18 @@ void USkeletalMesh::MoveMaterialFlagsToSections()
 		}
 	}
 }
+
+#if WITH_EDITOR
+FDelegateHandle USkeletalMesh::RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate)
+{
+	return OnClothingChange.Add(InDelegate);
+}
+
+void USkeletalMesh::UnregisterOnClothingChange(const FDelegateHandle& InHandle)
+{
+	OnClothingChange.Remove(InHandle);
+}
+#endif
 
 bool USkeletalMesh::AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const
 {
@@ -5489,27 +5555,18 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 				BatchElement.FirstIndex *= 4;
 			}
 
+			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 		#if WITH_EDITOR
-
 			Mesh.BatchHitProxyId = SectionElementInfo.HitProxy ? SectionElementInfo.HitProxy->Id : FHitProxyId();
 
 			if (bSectionSelected && bCanHighlightSelectedSections)
 			{
-				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
-					SectionElementInfo.Material->GetRenderProxy(true, IsHovered()),
-					GetSelectionColor(GEngine->GetSelectedMaterialColor(), true, IsHovered())
-					);
-
-				Collector.RegisterOneFrameMaterialProxy(SelectionOverrideProxy);
-
-				Mesh.MaterialRenderProxy = SelectionOverrideProxy;
+				Mesh.bUseSelectionOutline = true;
 			}
 			else
 			{
-				Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
+				Mesh.bUseSelectionOutline = !bCanHighlightSelectedSections && bIsSelected;
 			}
-		#else
-			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 		#endif
 
 			BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();

@@ -13,8 +13,8 @@ class FBlueprintActionDatabaseRegistrar;
 class UDynamicBlueprintBinding;
 class UEdGraph;
 
-UCLASS(MinimalAPI)
-class UK2Node_InputAxisEvent : public UK2Node_Event
+UCLASS()
+class BLUEPRINTGRAPH_API UK2Node_InputAxisEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 

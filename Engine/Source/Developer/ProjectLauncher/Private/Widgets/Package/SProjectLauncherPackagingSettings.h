@@ -37,7 +37,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel );
+	void Construct( const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel );
 
 	// Changes the directory path to the correct packaging mode version
 	void UpdateDirectoryPathText();
@@ -70,7 +70,7 @@ private:
 private:
 
 	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 
 	// Holds the repository path text box.
 	TSharedPtr<SEditableTextBox> DirectoryPathTextBox;

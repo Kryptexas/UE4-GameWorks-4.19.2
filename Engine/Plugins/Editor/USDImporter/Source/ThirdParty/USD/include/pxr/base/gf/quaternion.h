@@ -27,12 +27,15 @@
 /// \file gf/quaternion.h
 /// \ingroup group_gf_LinearAlgebra
 
-#include "pxr/base/gf/vec3d.h"
+#include "pxr/pxr.h"
 #include "pxr/base/gf/api.h"
+#include "pxr/base/gf/vec3d.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfQuaternion
 /// \ingroup group_gf_LinearAlgebra
@@ -213,8 +216,8 @@ class GfQuaternion
 
     // TODO Remove this legacy alias/overload.
     friend GF_API GfQuaternion GfSlerp(const GfQuaternion& q0,
-                                const GfQuaternion& q1,
-                                double alpha);
+                                       const GfQuaternion& q1,
+                                       double alpha);
 
   private:
     /// Real part
@@ -235,5 +238,7 @@ GF_API GfQuaternion GfSlerp(const GfQuaternion& q0, const GfQuaternion& q1, doub
 /// Output a GfQuaternion using the format (r + (x, y, z)).
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream& out, const GfQuaternion& q);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_QUATERNION_H

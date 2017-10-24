@@ -14,6 +14,7 @@
 #include "Tools/SequencerEditTool_Movement.h"
 #include "Tools/SequencerEditTool_Selection.h"
 #include "ISequencerTrackEditor.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 
 FTrackAreaSlot::FTrackAreaSlot(const TSharedPtr<SSequencerTrackLane>& InSlotContent)
 {
@@ -184,6 +185,58 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				FLinearColor::Black
 			);
 		}
+
+
+		// Draw drop target
+		if (DroppedNode.IsValid() && TrackSlots.Contains(DroppedNode.Pin()))
+		{
+			TSharedPtr<SSequencerTrackLane> TrackLane = TrackSlots.FindRef(DroppedNode.Pin()).Pin();
+			
+			FGeometry NodeGeometry = TrackLane.Get()->GetCachedGeometry();
+
+			FLinearColor DashColor = bAllowDrop ? FLinearColor::Green: FLinearColor::Red;
+
+			const FSlateBrush* HorizontalBrush = FEditorStyle::GetBrush("WideDash.Horizontal");
+			const FSlateBrush* VerticalBrush = FEditorStyle::GetBrush("WideDash.Vertical");
+
+			int32 DashLayer = LayerId + 1;
+
+			// Top
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				DashLayer,
+				AllottedGeometry.ToPaintGeometry(FVector2D(0, TrackLane.Get()->GetPhysicalPosition()), FVector2D(NodeGeometry.GetLocalSize().X, HorizontalBrush->ImageSize.Y)),
+				HorizontalBrush,
+				ESlateDrawEffect::None,
+				DashColor);
+
+			// Bottom
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				DashLayer,
+				AllottedGeometry.ToPaintGeometry(FVector2D(0, TrackLane.Get()->GetPhysicalPosition() + (TrackLane.Get()->GetCachedGeometry().GetLocalSize().Y - HorizontalBrush->ImageSize.Y)), FVector2D(AllottedGeometry.Size.X, HorizontalBrush->ImageSize.Y)),
+				HorizontalBrush,
+				ESlateDrawEffect::None,
+				DashColor);
+
+			// Left
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				DashLayer,
+				AllottedGeometry.ToPaintGeometry(FVector2D(0, TrackLane.Get()->GetPhysicalPosition()), FVector2D(VerticalBrush->ImageSize.X, TrackLane.Get()->GetCachedGeometry().GetLocalSize().Y)),
+				VerticalBrush,
+				ESlateDrawEffect::None,
+				DashColor);
+
+			// Right
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				DashLayer,
+				AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.GetLocalSize().X - VerticalBrush->ImageSize.X, TrackLane.Get()->GetPhysicalPosition()), FVector2D(VerticalBrush->ImageSize.X, TrackLane.Get()->GetCachedGeometry().GetLocalSize().Y)),
+				VerticalBrush,
+				ESlateDrawEffect::None,
+				DashColor);
+		}
 	}
 
 	return LayerId;
@@ -311,6 +364,9 @@ FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPo
 
 void SSequencerTrackArea::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	DroppedNode.Reset();
+	bAllowDrop = false;
+
 	if ( Sequencer.IsValid() )
 	{
 		if (EditTool.IsValid())
@@ -398,4 +454,74 @@ void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double 
 			++Index;
 		}
 	}
+}
+
+		
+void SSequencerTrackArea::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	SPanel::OnDragEnter(MyGeometry, DragDropEvent);
+}
+	
+void SSequencerTrackArea::OnDragLeave(const FDragDropEvent& DragDropEvent)
+{
+	SPanel::OnDragLeave(DragDropEvent);
+}
+	 
+FReply SSequencerTrackArea::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{	
+	TSharedPtr<SSequencerTreeView> PinnedTreeView = TreeView.Pin();
+
+	DroppedNode = PinnedTreeView->HitTestNode(MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition()).Y);
+	bAllowDrop = false;
+
+	if (DroppedNode.IsValid() && DroppedNode.Pin()->GetType() == ESequencerNode::Track && Sequencer.IsValid())
+	{
+		TSharedPtr<FSequencerDisplayNode> DisplayNode = DroppedNode.Pin();
+
+		UMovieSceneTrack* Track = (StaticCastSharedPtr<FSequencerTrackNode>(DroppedNode.Pin()))->GetTrack();
+
+		// give track editors a chance to accept the drag event
+		auto TrackEditors = Sequencer.Pin()->GetTrackEditors();
+
+		for (const auto& TrackEditor : TrackEditors)
+		{
+			if (TrackEditor->OnAllowDrop(DragDropEvent, Track))
+			{
+				bAllowDrop = true;
+				return FReply::Handled();
+			}
+		}
+	}
+
+	return SPanel::OnDragOver(MyGeometry, DragDropEvent);
+}
+
+	 
+FReply SSequencerTrackArea::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	TSharedPtr<SSequencerTreeView> PinnedTreeView = TreeView.Pin();
+
+	DroppedNode = PinnedTreeView->HitTestNode(MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition()).Y);
+
+	if (DroppedNode.IsValid() && DroppedNode.Pin()->GetType() == ESequencerNode::Track && Sequencer.IsValid())
+	{
+		UMovieSceneTrack* Track = (StaticCastSharedPtr<FSequencerTrackNode>(DroppedNode.Pin()))->GetTrack();
+
+		// give track editors a chance to process the drag event
+		auto TrackEditors = Sequencer.Pin()->GetTrackEditors();
+
+		for (const auto& TrackEditor : TrackEditors)
+		{
+			if (TrackEditor->OnAllowDrop(DragDropEvent, Track))
+			{
+				DroppedNode.Reset();
+
+				return TrackEditor->OnDrop(DragDropEvent, Track);
+			}
+		}
+	}
+
+	DroppedNode.Reset();
+
+	return SPanel::OnDrop(MyGeometry, DragDropEvent);
 }

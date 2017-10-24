@@ -65,6 +65,7 @@ void UAudioSettings::AddDefaultSettings()
 	GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), DefaultSettings.MaxChannels, GEngineIni); // for backwards compatibility
 	QualityLevels.Add(DefaultSettings);
 	bAllowVirtualizedSounds = true;
+	DefaultReverbSendLevel = 0.2f;
 }
 
 #if WITH_EDITOR

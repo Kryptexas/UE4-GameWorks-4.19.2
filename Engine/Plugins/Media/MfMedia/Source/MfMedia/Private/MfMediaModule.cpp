@@ -1,16 +1,27 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MfMediaPrivate.h"
-#include "IMfMediaModule.h"
+
+#include "Modules/ModuleManager.h"
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 	#include "MfMediaPlayer.h"
+	#include "Templates/SharedPointer.h"
+#endif
+
+#include "IMfMediaModule.h"
+
+#if PLATFORM_WINDOWS
+	#pragma comment(lib, "mf")
+	#pragma comment(lib, "mfplat")
+	#pragma comment(lib, "mfreadwrite")
+	#pragma comment(lib, "mfuuid")
+	#pragma comment(lib, "propsys")
+	#pragma comment(lib, "shlwapi")
 #endif
 
 
 DEFINE_LOG_CATEGORY(LogMfMedia);
-
-#define LOCTEXT_NAMESPACE "FMfMediaModule"
 
 
 /**
@@ -30,12 +41,12 @@ public:
 
 	//~ IMfMediaModule interface
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
 #if MFMEDIA_SUPPORTED_PLATFORM
 		if (Initialized)
 		{
-			return MakeShareable(new FMfMediaPlayer());
+			return MakeShared<FMfMediaPlayer, ESPMode::ThreadSafe>(EventSink);
 		}
 #endif
 		return nullptr;
@@ -83,6 +94,3 @@ private:
 
 
 IMPLEMENT_MODULE(FMfMediaModule, MfMedia);
-
-
-#undef LOCTEXT_NAMESPACE

@@ -70,7 +70,7 @@ enum ESequencerTimeSnapInterval
 
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
-class USequencerSettingsContainer
+class SEQUENCER_API USequencerSettingsContainer
 	: public UObject
 {
 public:
@@ -327,6 +327,11 @@ public:
 	/** Gets the multicast delegate which is run whenever evaluate sub sequences in isolation is changed. */
 	FOnEvaluateSubSequencesInIsolationChanged& GetOnEvaluateSubSequencesInIsolationChanged() { return OnEvaluateSubSequencesInIsolationChangedEvent; }
 
+	/** @return Whether to rerun construction scripts on bound actors every frame */
+	bool ShouldRerunConstructionScripts() const;
+	/** Set whether to rerun construction scripts on bound actors every frame */
+	void SetRerunConstructionScripts(bool bInRerunConstructionScripts);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -339,6 +344,8 @@ public:
 	bool ShouldShowPrePostRoll() const;
 	/** Toggle whether to show pre and post roll in sequencer */
 	void SetShouldShowPrePostRoll(bool bInVisualizePreAndPostRoll);
+
+	uint32 GetTrajectoryPathCap() const { return TrajectoryPathCap; }
 
 	/** Gets the multicast delegate which is invoked whenevcer the bLockPlaybackToAudioClock setting is changed. */
 	FOnLockPlaybackToAudioClockChanged& GetOnLockPlaybackToAudioClockChanged() { return OnLockPlaybackToAudioClockChanged; }
@@ -512,6 +519,10 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category=Playback)
 	bool bEvaluateSubSequencesInIsolation;
 
+	/** When enabled, construction scripts will be rerun on bound actors for every frame */
+	UPROPERTY(config, EditAnywhere, Category=Playback)
+	bool bRerunConstructionScripts;
+
 	/** Enable or disable showing of debug visualization. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bShowDebugVisualization;
@@ -519,6 +530,10 @@ protected:
 	/** Enable or disable showing of pre and post roll visualization. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bVisualizePreAndPostRoll;
+
+	/** Specifies the maximum number of keys to draw when rendering trajectories in viewports */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	uint32 TrajectoryPathCap;
 
 	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;

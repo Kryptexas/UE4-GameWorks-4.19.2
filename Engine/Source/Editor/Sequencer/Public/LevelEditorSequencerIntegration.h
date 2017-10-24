@@ -127,6 +127,9 @@ private:
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording ) const;
 
+	/** Called when an actor label has changed */
+	void OnActorLabelChanged(AActor* ChangedActor);
+
 	/** Called when sequencer has been evaluated */
 	void OnSequencerEvaluated();
 

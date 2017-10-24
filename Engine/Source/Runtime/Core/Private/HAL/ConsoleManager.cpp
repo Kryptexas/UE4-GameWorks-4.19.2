@@ -1183,7 +1183,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		}
 		else
 		{
-			FString Param2 = FString(It).Trim().TrimTrailing();
+			FString Param2 = FString(It).TrimStartAndEnd();
 
 			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
 
@@ -1870,12 +1870,6 @@ static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
 	TEXT("3: Force Mobile 32bpp HDR with direct RGBA8 rendering."),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
-	TEXT("r.MobileReduceLoadedMips"),
-	0,
-	TEXT("Reduce loaded texture mipmaps for nonstreaming mobile platforms.\n"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarSetClearSceneMethod(
 	TEXT("r.ClearSceneMethod"),
 	1,
@@ -2388,6 +2382,15 @@ static TAutoConsoleVariable<int32> CVarDisableThreadedRendering(
 	TEXT("	1 = Disable creation of render thread on startup"),
 	ECVF_ReadOnly);
 
+
+static TAutoConsoleVariable<int32> CVarDisableThreadedRenderingFirstLoad(
+	TEXT("r.AndroidDisableThreadedRenderingFirstLoad"),
+	0,
+	TEXT("Sets whether or not to allow threaded rendering for a particular Android device profile on the initial load.\n")
+	TEXT("	0 = Allow threaded rendering on the initial load [default]\n")
+	TEXT("	1 = Disable threaded rendering on the initial load"),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarDisableVulkanSupport(
 	TEXT("r.Android.DisableVulkanSupport"),
 	0,
@@ -2402,6 +2405,17 @@ static TAutoConsoleVariable<int32> CVarDisableOpenGLES31Support(
 	TEXT("Disable support for OpenGLES 3.1 API. (Android Only)\n")
 	TEXT("  0 = OpenGLES 3.1 API will be used (providing device and project supports it) [default]\n")
 	TEXT("  1 = OpenGLES 3.1 will be disabled, OpenGL ES2 fall back will be used."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarAndroidOverrideExternalTextureSupport(
+	TEXT("r.Android.OverrideExternalTextureSupport"),
+	0,
+	TEXT("Override external texture support for OpenGLES API. (Android Only)\n")
+	TEXT("  0 = normal detection used [default]\n")
+	TEXT("  1 = disable external texture support\n")
+	TEXT("  2 = force ImageExternal100 (version #100 with GL_OES_EGL_image_external)\n")
+	TEXT("  3 = force ImageExternal300 (version #300 with GL_OES_EGL_image_external)\n")
+	TEXT("  4 = force ImageExternalESSL300 (version #300 with GL_OES_EGL_image_external_essl3)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> GLSLCvar(

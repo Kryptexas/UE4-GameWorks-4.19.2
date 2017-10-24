@@ -59,7 +59,7 @@ static FString GetStreamBaseFilename(const FString& StreamName)
 
 static FString GetDemoPath()
 {
-	return FPaths::Combine(*FPaths::GameSavedDir(), TEXT( "Demos/" ));
+	return FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT( "Demos/" ));
 }
 
 static FString GetStreamDirectory(const FString& StreamName)

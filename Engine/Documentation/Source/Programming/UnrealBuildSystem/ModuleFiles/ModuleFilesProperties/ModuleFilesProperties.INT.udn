@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.17
+Version: 4.18
 
 ### Read/Write Properties
 $ Type (ModuleType): Type of module
@@ -26,6 +26,8 @@ $ bUseAVX (Boolean): Use AVX instructions
 $ bEnableBufferSecurityChecks (Boolean): Enable buffer security checks.  This should usually be enabled as it prevents severe security risks.
 
 $ bEnableExceptions (Boolean): Enable exception handling
+
+$ bEnableObjCExceptions (Boolean): Enable objective C exception handling
 
 $ bEnableShadowVariableWarnings (Boolean): Enable warnings for shadowed variables
 

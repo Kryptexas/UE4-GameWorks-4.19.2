@@ -34,13 +34,6 @@ DECLARE_CYCLE_STAT(TEXT("Notifications"), STAT_Streaming04_Notifications, STATGR
 
 DEFINE_STAT(STAT_GameThreadUpdateTime);
 
-// StreamingDetails
-DEFINE_STAT(STAT_GrowingReallocations);
-DEFINE_STAT(STAT_ShrinkingReallocations);
-DEFINE_STAT(STAT_FullReallocations);
-DEFINE_STAT(STAT_FailedReallocations);
-DEFINE_STAT(STAT_PanicDefragmentations);
-
 DEFINE_LOG_CATEGORY(LogContentStreaming);
 
 ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics(
@@ -164,13 +157,6 @@ TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus(
 	TEXT("If non-zero, the engine will check whether texture streaming needs rebuild."),
 	ECVF_Scalability);
 
-
-TAutoConsoleVariable<int32> CVarScaleTexturesByGlobalMipBias(
-	TEXT("r.Streaming.ScaleTexturesByGlobalMipBias"),
-	0,
-	TEXT("If non-zero, streaming textures wanted resolution will be scaled down by the global mip bias"),
-	ECVF_Default);
-
 TAutoConsoleVariable<int32> CVarStreamingUseMaterialData(
 	TEXT("r.Streaming.UseMaterialData"),
 	1,
@@ -203,14 +189,13 @@ void FTextureStreamingSettings::Update()
 	MaxTempMemoryAllowed = CVarStreamingMaxTempMemoryAllowed.GetValueOnAnyThread();
 	DropMips = CVarStreamingDropMips.GetValueOnAnyThread();
 	HLODStrategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
-	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
+	GlobalMipBias = !GIsEditor ? FMath::FloorToInt(FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread())) : 0;
 	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
-	bUsePerTextureBias = !GIsEditor && CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
+	bUsePerTextureBias = CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
 	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
 	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
-	bScaleTexturesByGlobalMipBias = CVarScaleTexturesByGlobalMipBias.GetValueOnAnyThread() != 0;
 	MinMipForSplitRequest = CVarStreamingMinMipForSplitRequest.GetValueOnAnyThread();
 
 	bUseMaterialData = bUseNewMetrics && CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
@@ -224,7 +209,7 @@ void FTextureStreamingSettings::Update()
 	if (bUseAllMips)
 	{
 		bUsePerTextureBias = false;
-		MipBias = 0;
+		GlobalMipBias = 0;
 	}
 }
 

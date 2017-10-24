@@ -8,7 +8,7 @@ public class libPhonon : ModuleRules
     {
         Type = ModuleType.External;
 
-        string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPhonon/phonon_api/";
+        string LibraryPath = Target.UEThirdPartySourceDirectory + "libPhonon/phonon_api/";
         string BinaryPath = "$(EngineDir)/Binaries/ThirdParty/Phonon/";
 
         PublicIncludePaths.Add(LibraryPath + "include");

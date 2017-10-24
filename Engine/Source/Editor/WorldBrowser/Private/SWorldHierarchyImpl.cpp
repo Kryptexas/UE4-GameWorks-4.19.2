@@ -761,11 +761,13 @@ void SWorldHierarchyImpl::OnUpdateSelection()
 					if (TreeItemPtr->HasModel(*SelectedItemIt))
 					{
 						ItemsSelectedAfterRefresh.Add(It->Key);
+						break;
 					}
 				}
 			}
 		}
 	}
+
 
 	RefreshView();
 

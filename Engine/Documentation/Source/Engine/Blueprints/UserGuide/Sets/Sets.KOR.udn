@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:3413822
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:블루프린트 Set
 Description:블루프린트의 고급 컨테이너 유형인 Set 컨테이너의 생성 및 편집, 그리고 프로퍼티 개요입니다.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/Scripting
 Order:1
 Version: 4.15
-Tags:Blueprint Set
-Tags:Blueprints
+tags:Blueprint Set
+tags:Blueprints
 topic-image:sets_topicImage.png
 Skilllevel:Advanced
 Related:Programming/UnrealArchitecture/TSet

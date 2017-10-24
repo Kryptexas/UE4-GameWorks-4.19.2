@@ -21,6 +21,7 @@ UAnimStateNode::UAnimStateNode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
+	bAlwaysResetOnEntry = false;
 }
 
 void UAnimStateNode::AllocateDefaultPins()

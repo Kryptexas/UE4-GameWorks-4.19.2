@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -35,10 +36,6 @@ namespace UnrealBuildTool
 			return new FileItem[] { LinkFiles(LinkEnvironment, bBuildImportLibraryOnly, ActionGraph) };
 		}
 
-
-		public virtual void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile, ActionGraph ActionGraph)
-		{
-		}
 
 		/// <summary>
 		/// Get the name of the response file for the current linker environment and output file

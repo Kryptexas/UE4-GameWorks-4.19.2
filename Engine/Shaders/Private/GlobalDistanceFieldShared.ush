@@ -13,7 +13,7 @@ float MaxGlobalDistance;
 #endif
 
 //@todo - get the clipmap branches to compile under gl
-#if SM5_PROFILE || PS4_PROFILE || METAL_SM5_PROFILE || GL4_PROFILE || VULKAN_PROFILE_SM5
+#if SM5_PROFILE || PS4_PROFILE || METAL_SM5_PROFILE || METAL_MRT_PROFILE || GL4_PROFILE || VULKAN_PROFILE_SM5
 
 // Must match C++
 #define MAX_GLOBAL_DF_CLIPMAPS 4

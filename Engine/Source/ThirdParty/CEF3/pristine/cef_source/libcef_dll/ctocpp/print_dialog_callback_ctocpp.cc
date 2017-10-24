@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -51,18 +51,18 @@ void CefPrintDialogCallbackCToCpp::Cancel() {
 CefPrintDialogCallbackCToCpp::CefPrintDialogCallbackCToCpp() {
 }
 
-template<> cef_print_dialog_callback_t* CefCToCpp<CefPrintDialogCallbackCToCpp,
+template<> cef_print_dialog_callback_t* CefCToCppRefCounted<CefPrintDialogCallbackCToCpp,
     CefPrintDialogCallback, cef_print_dialog_callback_t>::UnwrapDerived(
     CefWrapperType type, CefPrintDialogCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefPrintDialogCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefPrintDialogCallbackCToCpp,
     CefPrintDialogCallback, cef_print_dialog_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefPrintDialogCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefPrintDialogCallbackCToCpp,
     CefPrintDialogCallback, cef_print_dialog_callback_t>::kWrapperType =
     WT_PRINT_DIALOG_CALLBACK;

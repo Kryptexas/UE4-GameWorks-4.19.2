@@ -27,12 +27,15 @@
 /// \file gf/ray.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/gf/api.h"
 
 #include <float.h>
 #include <limits>
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class GfLine;
 class GfLineSeg;
@@ -272,5 +275,7 @@ bool GfFindClosestPoints( const GfRay &ray, const GfLineSeg &seg,
 /// Output a GfRay using the format [(x y z) >> (x y z)].
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream&, const GfRay&);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_RAY_H

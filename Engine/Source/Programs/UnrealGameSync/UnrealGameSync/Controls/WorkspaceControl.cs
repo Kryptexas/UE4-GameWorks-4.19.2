@@ -515,6 +515,7 @@ namespace UnrealGameSync
 						MessageBox.Show("There are no compiled editor binaries for this change. To sync it, you must disable syncing of precompiled editor binaries.");
 						return;
 					}
+					Context.Options &= ~WorkspaceUpdateOptions.GenerateProjectFiles;
 				}
 				Context.ArchiveTypeToDepotPath.Add(EditorArchiveType, EditorArchivePath);
 			}
@@ -1545,7 +1546,7 @@ namespace UnrealGameSync
 			StringBuilder CommandLine = new StringBuilder();
 			if(Workspace != null && Workspace.Perforce != null)
 			{
-				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", Workspace.Perforce.ServerAndPort, Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
+				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", Workspace.Perforce.ServerAndPort ?? "perforce:1666", Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
 			}
 			Process.Start("p4v.exe", CommandLine.ToString());
 		}
@@ -1562,9 +1563,16 @@ namespace UnrealGameSync
 				Tuple<string, float> Progress = Workspace.CurrentProgress;
 
 				StatusLine SummaryLine = new StatusLine();
-				SummaryLine.AddText("Updating to changelist ");
-				SummaryLine.AddLink(Workspace.PendingChangeNumber.ToString(), FontStyle.Regular, () => { SelectChange(Workspace.PendingChangeNumber); });
-				SummaryLine.AddText("... | ");
+				if(Workspace.PendingChangeNumber == -1)
+				{
+					SummaryLine.AddText("Working... | ");
+				}
+				else
+				{
+					SummaryLine.AddText("Updating to changelist ");
+					SummaryLine.AddLink(Workspace.PendingChangeNumber.ToString(), FontStyle.Regular, () => { SelectChange(Workspace.PendingChangeNumber); });
+					SummaryLine.AddText("... | ");
+				}
 				SummaryLine.AddLink(Splitter.IsLogVisible()? "Hide Log" : "Show Log", FontStyle.Bold | FontStyle.Underline, () => { ToggleLogVisibility(); });
 				SummaryLine.AddText(" | ");
 				SummaryLine.AddLink("Cancel", FontStyle.Bold | FontStyle.Underline, () => { CancelWorkspaceUpdate(); });
@@ -1923,6 +1931,45 @@ namespace UnrealGameSync
 					BuildListContextMenu_ShowLocalTimes.Checked = Settings.bShowLocalTimes;
 					BuildListContextMenu_ShowServerTimes.Visible = bIsTimeColumn;
 					BuildListContextMenu_ShowServerTimes.Checked = !Settings.bShowLocalTimes;
+
+					int CustomToolStart = BuildListContextMenu.Items.IndexOf(BuildListContextMenu_CustomTool_Start) + 1;
+					int CustomToolEnd = BuildListContextMenu.Items.IndexOf(BuildListContextMenu_CustomTool_End);
+					while(CustomToolEnd > CustomToolStart)
+					{
+						BuildListContextMenu.Items.RemoveAt(CustomToolEnd - 1);
+						CustomToolEnd--;
+					}
+
+					ConfigFile ProjectConfigFile = Workspace.ProjectConfigFile;
+					if(ProjectConfigFile != null)
+					{
+						Dictionary<string, string> Variables = GetWorkspaceVariables();
+						Variables.Add("Change", String.Format("{0}", ContextMenuChange.Number));
+
+						string[] ChangeContextMenuEntries = ProjectConfigFile.GetValues("Options.ContextMenu", new string[0]);
+						foreach(string ChangeContextMenuEntry in ChangeContextMenuEntries)
+						{
+							ConfigObject Object = new ConfigObject(ChangeContextMenuEntry);
+
+							string Label = Object.GetValue("Label");
+							string Execute = Object.GetValue("Execute");
+							string Arguments = Object.GetValue("Arguments");
+
+							if(Label != null && Execute != null)
+							{
+								Label = Utility.ExpandVariables(Label, Variables);
+								Execute = Utility.ExpandVariables(Execute, Variables);
+								Arguments = Utility.ExpandVariables(Arguments ?? "", Variables);
+
+								ToolStripMenuItem Item = new ToolStripMenuItem(Label, null, new EventHandler((o, a) => Process.Start(Execute, Arguments)));
+	
+								BuildListContextMenu.Items.Insert(CustomToolEnd, Item);
+								CustomToolEnd++;
+							}
+						}
+					}
+
+					BuildListContextMenu_CustomTool_End.Visible = (CustomToolEnd > CustomToolStart);
 
 					BuildListContextMenu.Show(BuildList, Args.Location);
 				}
@@ -2571,7 +2618,7 @@ namespace UnrealGameSync
 					{
 						if(Step.bShowAsTool)
 						{
-							ToolStripMenuItem NewMenuItem = new ToolStripMenuItem(Step.Description);
+							ToolStripMenuItem NewMenuItem = new ToolStripMenuItem(Step.Description.Replace("&", "&&"));
 							NewMenuItem.Click += new EventHandler((sender, e) => { RunCustomTool(Step.UniqueId); });
 							CustomToolMenuItems.Add(NewMenuItem);
 							MoreToolsContextMenu.Items.Insert(InsertIdx++, NewMenuItem);
@@ -2605,6 +2652,8 @@ namespace UnrealGameSync
 			BuildConfig EditorBuildConfig = GetEditorBuildConfig();
 
 			Dictionary<string, string> Variables = new Dictionary<string,string>();
+			Variables.Add("Stream", StreamName);
+			Variables.Add("ClientName", ClientName);
 			Variables.Add("BranchDir", BranchDirectoryName);
 			Variables.Add("ProjectDir", Path.GetDirectoryName(SelectedFileName));
 			Variables.Add("ProjectFile", SelectedFileName);

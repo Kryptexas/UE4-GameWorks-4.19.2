@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMobilePatchingUtils, Log, All);
 
 static FString GetStagingDir()
 {
-	return FPaths::GamePersistentDownloadDir() / TEXT("PatchStaging");
+	return FPaths::ProjectPersistentDownloadDir() / TEXT("PatchStaging");
 }
 
 static IBuildPatchServicesModule* GetBuildPatchServices()
@@ -60,10 +60,8 @@ static const FText& GetRequestContentErrorText(ERequestContentError ErrorCode)
 
 float UMobileInstalledContent::GetInstalledContentSize()
 {
-	check(InstalledManifest.IsValid())
-	
-	double BuildSize = (double)InstalledManifest->GetBuildSize();
-	double BuildSizeMB = FUnitConversion::Convert(BuildSize, EUnit::Bytes, EUnit::Megabytes);
+	const double BuildSize = InstalledManifest.IsValid() ? (double)InstalledManifest->GetBuildSize() : 0.0;
+	const double BuildSizeMB = FUnitConversion::Convert(BuildSize, EUnit::Bytes, EUnit::Megabytes);
 	return (float)BuildSizeMB;
 }
 
@@ -93,26 +91,33 @@ bool UMobileInstalledContent::Mount(int32 InPakOrder, const FString& InMountPoin
 	uint32 PakOrder = (uint32)FMath::Max(0, InPakOrder);
 	const TCHAR* MountPount = InMountPoint.GetCharArray().GetData();
 
-	TArray<FString> InstalledFileNames = InstalledManifest->GetBuildFileList();
-	for (const FString& FileName : InstalledFileNames)
+	if (InstalledManifest.IsValid())
 	{
-		if (FPaths::GetExtension(FileName) == TEXT("pak"))
+		TArray<FString> InstalledFileNames = InstalledManifest->GetBuildFileList();
+		for (const FString& FileName : InstalledFileNames)
 		{
-			FString PakFullName = InstallDir / FileName;
-			if (PakFileMgr->Mount(*PakFullName, PakOrder, MountPount))
+			if (FPaths::GetExtension(FileName) == TEXT("pak"))
 			{
-				UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, !MountPount ? TEXT("(null)") : MountPount);
-				bMounted = true;
-			}
-			else
-			{
-				UE_LOG(LogMobilePatchingUtils, Error, TEXT("Failed to mount pak = %s"), *PakFullName);
-				bMounted = false;
-				break;
+				FString PakFullName = InstallDir / FileName;
+				if (PakFileMgr->Mount(*PakFullName, PakOrder, MountPount))
+				{
+					UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, !MountPount ? TEXT("(null)") : MountPount);
+					bMounted = true;
+				}
+				else
+				{
+					UE_LOG(LogMobilePatchingUtils, Error, TEXT("Failed to mount pak = %s"), *PakFullName);
+					bMounted = false;
+					break;
+				}
 			}
 		}
 	}
-	
+	else
+	{
+		UE_LOG(LogMobilePatchingUtils, Log, TEXT("No installed manifest, failed to mount"));
+	}
+
 	return bMounted;
 }
 
@@ -306,7 +311,7 @@ static IBuildManifestPtr GetInstalledManifest(const FString& InstallDirectory)
 {
 	IBuildManifestPtr InstalledManifest;
 	
-	FString FullInstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+	FString FullInstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 	TArray<FString> InstalledManifestNames;
 	IFileManager::Get().FindFiles(InstalledManifestNames, *(FullInstallDir / TEXT("*.manifest")), true, false);
 
@@ -328,7 +333,7 @@ UMobileInstalledContent* UMobilePatchingLibrary::GetInstalledContent(const FStri
 	if (InstalledManifest.IsValid())
 	{
 		InstalledContent = NewObject<UMobileInstalledContent>();
-		InstalledContent->InstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+		InstalledContent->InstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 		InstalledContent->InstalledManifest = InstalledManifest;
 	}
 	
@@ -367,7 +372,7 @@ void UMobilePatchingLibrary::RequestContent(const FString& RemoteManifestURL, co
 	}
 		
 	UMobilePendingContent* MobilePendingContent = NewObject<UMobilePendingContent>();
-	MobilePendingContent->InstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+	MobilePendingContent->InstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 	MobilePendingContent->RemoteManifestURL = RemoteManifestURL;
 	MobilePendingContent->CloudURL = CloudURL;
 	MobilePendingContent->InstalledManifest = GetInstalledManifest(InstallDirectory);

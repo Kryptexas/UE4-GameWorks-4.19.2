@@ -71,6 +71,8 @@ IMPLEMENT_MODULE( FShaderCoreModule, ShaderCore );
 // Shader stats
 //
 
+DEFINE_STAT(STAT_ShaderCompiling_NiagaraShaders);
+DEFINE_STAT(STAT_ShaderCompiling_NumTotalNiagaraShaders);
 
 DEFINE_STAT(STAT_ShaderCompiling_MaterialShaders);
 DEFINE_STAT(STAT_ShaderCompiling_GlobalShaders);
@@ -552,11 +554,16 @@ static void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHA
 					// Check virtual.
 					bIgnoreInclude |= !CheckVirtualShaderFilePath(ExtractedIncludeFilename);
 			
+					// Ignore Niagara generated shader code
+					bIgnoreInclude |= (ExtractedIncludeFilename == TEXT("/Engine/Private/NiagaraEmitterInstance.usf"));
+					bIgnoreInclude |= (ExtractedIncludeFilename == TEXT("/Engine/Private/NiagaraSimulation.usf"));
+
 					// Some headers aren't required to be found (platforms that the user doesn't have access to)
 					// @todo: Is there some way to generalize this"
 					const bool bIsOptionalInclude = (ExtractedIncludeFilename == TEXT("/Engine/Public/PS4/PS4Common.ush") 
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/PostProcessHMDMorpheus.usf")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/RTWriteMaskProcessing.usf")
+						|| ExtractedIncludeFilename == TEXT("/Engine/Private/XboxOne/RTWriteMaskProcessing.usf")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/RGBAToYUV420.ush")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Public/XboxOne/XboxOneCommon.ush")
 						);
@@ -564,7 +571,8 @@ static void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHA
 					if (bIsOptionalInclude)
 					{
 						// Search in the default engine shader folder and in the same folder as the shader (in case its a project or plugin shader)
-						FString EngineShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *ExtractedIncludeFilename);
+						FString StrippedString = ExtractedIncludeFilename.Replace(TEXT("/Engine"), TEXT(""), ESearchCase::CaseSensitive);
+						FString EngineShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *StrippedString);
 						FString LocalShaderFilename = FPaths::Combine(FPaths::GetPath(ExtractedIncludeFilename), *ExtractedIncludeFilename);
 						if (!FPaths::FileExists(EngineShaderFilename) && !FPaths::FileExists(LocalShaderFilename))
 						{
@@ -739,7 +747,7 @@ void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& Sha
 			LoadShaderSourceFileChecked(*ShaderSourceFiles[FileIndex], ShaderFileContents);
 
 			// To allow case sensitive search which is way faster on some platforms (no need to look up locale, etc)
-			ShaderFileContents = ShaderFileContents.ToUpper();
+			ShaderFileContents.ToUpperInline();
 
 			TArray<const TCHAR*>& ReferencedUniformBuffers = ShaderFileToUniformBufferVariables.FindOrAdd(ShaderSourceFiles[FileIndex]);
 

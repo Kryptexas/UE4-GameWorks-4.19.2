@@ -52,9 +52,6 @@ class UNREALED_API UPersonaOptions : public UObject
 	TEnumAsByte<EViewModeIndex> ViewModeIndex;
 
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	FLinearColor ViewportBackgroundColor;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	float ViewFOV;
 
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
@@ -80,6 +77,10 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
 	bool bFlattenSkeletonHierarchyWhenFiltering;
 
+	/** Whether to hide parent items when filtering or to display them grayed out */
+	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
+	bool bHideParentsWhenFiltering;
+
 	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;
 
@@ -91,7 +92,6 @@ class UNREALED_API UPersonaOptions : public UObject
 	uint32 NumFolderFiltersInAssetBrowser;
 
 public:
-	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);
 	void SetShowGrid( bool bInShowGrid );
 	void SetHighlightOrigin( bool bInHighlightOrigin );
 	void SetShowFloor( bool bInShowFloor );

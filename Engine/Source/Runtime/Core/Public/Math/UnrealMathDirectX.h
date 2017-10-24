@@ -153,6 +153,14 @@ FORCEINLINE VectorRegisterInt MakeVectorRegisterInt(int32 X, int32 Y, int32 Z, i
 #define VectorSetFloat3( X, Y, Z )		MakeVectorRegister( X, Y, Z, 0.0f )
 
 /**
+ * Propagates passed in float to all registers
+ *
+ * @param X		float to replicate to all registers
+ * @return		VectorRegister(X, X, X, X)
+ */
+#define VectorSetFloat1( X )			MakeVectorRegister( X, X, X, X )
+
+ /**
  * Creates a vector out of four FLOATs.
  *
  * @param X		1st float component

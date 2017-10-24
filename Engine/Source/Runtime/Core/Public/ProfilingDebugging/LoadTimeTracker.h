@@ -99,6 +99,7 @@ public:
 	double Package_CreateLinker;
 	double Package_CreateExports;
 	double Package_PreLoadObjects;
+	double Package_ExternalReadDependencies;
 	double Package_PostLoadObjects;
 	double Package_Tick;
 	double Package_CreateAsyncPackagesFromQueue;

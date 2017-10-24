@@ -193,7 +193,7 @@ static void ConvertDeprecatedFoliageMeshes(
 	check(IFA->InstanceBaseCache.InstanceBaseLevelMap.Num() <= 1);
 	// populate WorldAsset->BasePtr map
 	IFA->InstanceBaseCache.InstanceBaseLevelMap.Empty();
-	auto& BaseList = IFA->InstanceBaseCache.InstanceBaseLevelMap.Add(TAssetPtr<UWorld>(Cast<UWorld>(IFA->GetLevel()->GetOuter())));
+	auto& BaseList = IFA->InstanceBaseCache.InstanceBaseLevelMap.Add(TSoftObjectPtr<UWorld>(Cast<UWorld>(IFA->GetLevel()->GetOuter())));
 	for (auto& BaseInfoPair : IFA->InstanceBaseCache.InstanceBaseMap)
 	{
 		BaseList.Add(BaseInfoPair.Value.BasePtr);
@@ -754,8 +754,6 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
-ENGINE_API extern bool GbInitializeFromCurrentData;
-
 void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FoliageCreateComponent);
@@ -769,9 +767,8 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	}
 
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
-
-	GbInitializeFromCurrentData = false;
-	FoliageComponent->InitPerInstanceRenderData();
+	FoliageComponent->KeepInstanceBufferCPUAccess = false;
+	FoliageComponent->InitPerInstanceRenderData(false);
 
 	Component = FoliageComponent;
 	Component->SetStaticMesh(InSettings->GetStaticMesh());
@@ -1289,9 +1286,7 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		const bool bWasRegistered = Component->IsRegistered();
 		Component->UnregisterComponent();
 		Component->ClearInstances();
-
-		GbInitializeFromCurrentData = false;
-		Component->InitPerInstanceRenderData();
+		Component->InitPerInstanceRenderData(false);
 
 		Component->bAutoRebuildTreeOnInstanceChanges = false;
 

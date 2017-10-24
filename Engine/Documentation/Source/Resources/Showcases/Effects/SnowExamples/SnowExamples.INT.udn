@@ -51,7 +51,7 @@ Large _unlit_ (i.e. _Emissive_) sprites generate widespread puffs of haze or fog
 The Blizzard Particle System also makes use of a Velocity Grid with low velocity vectors in order to slow down the snowflake sprites as they enter the volume. This slowing effect simulates a sense of drag on the particles, and also aids in collisions, keeping them from feeling quite as rigid. Vector Fields can most easily be visualized in Cascade via the Viewport menu, selecting **View > Vector Fields**.
 
 ![](ShowVectorFields.png)
-<br>_The yellow box represents the Vector Field, while the red lines within it represent the vectors at each location within the volume._
+[REGION:caption]The yellow box represents the Vector Field, while the red lines within it represent the vectors at each location within the volume.[/REGION]
 
 [REGION:tip]
 	If using the _Collision (Scene Depth)_ module, you can boost the **Radius Bias** property to cause particles to appear to "glide around" a surface. This trick was used on the Blizzard Particle System to give the illusion of air influence around a surface.

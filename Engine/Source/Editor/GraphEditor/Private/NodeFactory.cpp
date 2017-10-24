@@ -18,18 +18,15 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
 #include "K2Node_Event.h"
+#include "K2Node_AddPinInterface.h"
 #include "K2Node_CallArrayFunction.h"
 #include "K2Node_CallMaterialParameterCollectionFunction.h"
-#include "K2Node_CommutativeAssociativeBinaryOperator.h"
-#include "K2Node_DoOnceMultiInput.h"
 #include "K2Node_Composite.h"
 #include "K2Node_Copy.h"
 #include "K2Node_CreateDelegate.h"
-#include "K2Node_ExecutionSequence.h"
 #include "K2Node_FormatText.h"
 #include "K2Node_GetArrayItem.h"
 #include "K2Node_Knot.h"
-#include "K2Node_MakeArray.h"
 #include "K2Node_MakeStruct.h"
 #include "K2Node_SpawnActor.h"
 #include "K2Node_SpawnActorFromClass.h"
@@ -87,8 +84,6 @@
 #include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
-#include "EdGraphSchema_Niagara.h"
-
 TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 {
 	check(InNode != NULL);
@@ -146,21 +141,9 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeSwitchStatement, SwitchNode);
 		}
-		else if (UK2Node_ExecutionSequence* SequenceNode = Cast<UK2Node_ExecutionSequence>(InNode))
+		else if (InNode->GetClass()->ImplementsInterface(UK2Node_AddPinInterface::StaticClass()))
 		{
-			return SNew(SGraphNodeK2Sequence, SequenceNode);
-		}
-		else if (UK2Node_MakeArray* MakeArrayNode = Cast<UK2Node_MakeArray>(InNode))
-		{
-			return SNew(SGraphNodeK2Sequence, MakeArrayNode);
-		}
-		else if (UK2Node_CommutativeAssociativeBinaryOperator* OperatorNode = Cast<UK2Node_CommutativeAssociativeBinaryOperator>(InNode))
-		{
-			return SNew(SGraphNodeK2Sequence, OperatorNode);
-		}
-		else if (UK2Node_DoOnceMultiInput* DoOnceMultiInputNode = Cast<UK2Node_DoOnceMultiInput>(InNode))
-		{
-			return SNew(SGraphNodeK2Sequence, DoOnceMultiInputNode);
+			return SNew(SGraphNodeK2Sequence, CastChecked<UK2Node>(InNode));
 		}
 		else if (UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>(InNode))
 		{
@@ -211,7 +194,7 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 	{
 		return SNew(SGraphNodeDocumentation, DocNode);
 	}
-	else if (InNode->ShouldDrawNodeAsComment())
+	else if (UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(InNode))
 	{
 		if (UMaterialGraphNode_Comment* MaterialCommentNode = Cast<UMaterialGraphNode_Comment>(InNode))
 		{
@@ -219,7 +202,7 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		}
 		else
 		{
-			return SNew(SGraphNodeComment, InNode);
+			return SNew(SGraphNodeComment, CommentNode);
 		}
 	}
 	else
@@ -269,7 +252,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Asset)
+		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftObject)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
@@ -277,7 +260,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_AssetClass)
+		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftClass)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}

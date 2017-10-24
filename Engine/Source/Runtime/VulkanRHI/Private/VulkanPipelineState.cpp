@@ -19,7 +19,7 @@ FVulkanComputePipelineState::FVulkanComputePipelineState(FVulkanDevice* InDevice
 	, PackedUniformBuffersDirty(0)
 	, ComputePipeline(InComputePipeline)
 {
-	PackedUniformBuffers.Init(&InComputePipeline->GetShaderCodeHeader(), PackedUniformBuffersMask);
+	PackedUniformBuffers.Init(&InComputePipeline->GetShaderCodeHeader(), PackedUniformBuffersMask, UniformBuffersWithDataMask);
 
 	CreateDescriptorWriteInfos();
 	InComputePipeline->AddRef();
@@ -115,20 +115,20 @@ FVulkanGfxPipelineState::FVulkanGfxPipelineState(FVulkanDevice* InDevice, FVulka
 	FMemory::Memzero(PackedUniformBuffersMask);
 	FMemory::Memzero(PackedUniformBuffersDirty);
 
-	PackedUniformBuffers[SF_Vertex].Init(&BSS->GetVertexShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Vertex]);
+	PackedUniformBuffers[SF_Vertex].Init(&BSS->GetVertexShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Vertex], UniformBuffersWithDataMask[SF_Vertex]);
 
 	if (BSS->GetPixelShader())
 	{
-		PackedUniformBuffers[SF_Pixel].Init(&BSS->GetPixelShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Pixel]);
+		PackedUniformBuffers[SF_Pixel].Init(&BSS->GetPixelShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Pixel], UniformBuffersWithDataMask[SF_Pixel]);
 	}
 	if (BSS->GetGeometryShader())
 	{
-		PackedUniformBuffers[SF_Geometry].Init(&BSS->GetGeometryShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Geometry]);
+		PackedUniformBuffers[SF_Geometry].Init(&BSS->GetGeometryShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Geometry], UniformBuffersWithDataMask[SF_Geometry]);
 	}
 	if (BSS->GetHullShader())
 	{
-		PackedUniformBuffers[SF_Domain].Init(&BSS->GetDomainShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Domain]);
-		PackedUniformBuffers[SF_Hull].Init(&BSS->GetHullShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Hull]);
+		PackedUniformBuffers[SF_Domain].Init(&BSS->GetDomainShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Domain], UniformBuffersWithDataMask[SF_Domain]);
+		PackedUniformBuffers[SF_Hull].Init(&BSS->GetHullShader()->GetCodeHeader(), PackedUniformBuffersMask[SF_Hull], UniformBuffersWithDataMask[SF_Hull]);
 	}
 
 	CreateDescriptorWriteInfos();
@@ -215,7 +215,6 @@ bool FVulkanGfxPipelineState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 	FVulkanUniformBufferUploader* UniformBufferUploader = CmdListContext->GetUniformBufferUploader();
 	uint8* CPURingBufferBase = (uint8*)UniformBufferUploader->GetCPUMappedPointer();
 
-	//#todo-rco: Compute!
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
 	for (uint32 Stage = 0; Stage < SF_Compute; Stage++)
 	{
@@ -283,5 +282,13 @@ void FVulkanCommandListContext::RHISetGraphicsPipelineState(FGraphicsPipelineSta
 		CmdBuffer->bHasPipeline = true;
 		PendingGfxState->MarkNeedsDynamicStates();
 		PendingGfxState->StencilRef = 0;
+	}
+
+	// Yuck - Bind pending pixel shader UAVs from SetRenderTargets
+	{
+		for (int32 Index = 0; Index < PendingPixelUAVs.Num(); ++Index)
+		{
+			PendingGfxState->SetUAV(SF_Pixel, PendingPixelUAVs[Index].BindIndex, PendingPixelUAVs[Index].UAV);
+		}
 	}
 }

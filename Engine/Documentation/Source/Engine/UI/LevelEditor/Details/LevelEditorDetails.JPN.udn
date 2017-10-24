@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:詳細パネル
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -60,7 +60,33 @@ Version:4.12
 
 1. **[編集]** メニューから **[Editor Preferences...]** を選択します。
 
-	![](EditorPrefs.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **[Experimental (実験的機能)]** で、**[Enable Details Panel Favorites (詳細パネルのお気に入りを有効にする)]** オプションにチェックを入れます。 
 

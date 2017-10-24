@@ -8,7 +8,7 @@ public class UElibJPG : ModuleRules
     {
         Type = ModuleType.External;
 
-		string libJPGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libJPG";
+		string libJPGPath = Target.UEThirdPartySourceDirectory + "libJPG";
 		PublicIncludePaths.Add(libJPGPath);
 
         // cpp files being used like header files in implementation

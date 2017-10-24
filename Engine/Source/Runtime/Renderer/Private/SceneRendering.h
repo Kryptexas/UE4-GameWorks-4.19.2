@@ -1590,6 +1590,12 @@ inline FTextureRHIParamRef OrBlack3DIfNull(FTextureRHIParamRef Tex)
 	return OrBlack2DIfNull(Tex ? Tex : GBlackVolumeTexture->TextureRHI.GetReference());
 }
 
+inline FTextureRHIParamRef OrBlack3DUintIfNull(FTextureRHIParamRef Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex : GBlackUintVolumeTexture->TextureRHI.GetReference());
+}
+
 inline void SetBlack2DIfNull(FTextureRHIParamRef& Tex)
 {
 	if (!Tex)
@@ -1609,7 +1615,6 @@ inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 	}
 }
 
-extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets;
 extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers;
 
 FORCEINLINE bool IsTransientResourceBufferAliasingEnabled()
@@ -1617,14 +1622,68 @@ FORCEINLINE bool IsTransientResourceBufferAliasingEnabled()
 	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_Buffers.GetValueOnRenderThread() != 0);
 }
 
-// Helper functions for fast vram to handle dynamic/static allocation
-FORCEINLINE uint32 GetTextureFastVRamFlag_DynamicLayout()
+struct FFastVramConfig
 {
-	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() > 0) ? ( TexCreate_FastVRAM | TexCreate_Transient ) : 0;
-}
+	FFastVramConfig();
+	void Update();
+	void OnCVarUpdated();
+	void OnSceneRenderTargetsAllocated();
 
-FORCEINLINE uint32 GetTextureFastVRamFlag_StaticLayout()
-{
-	return (GSupportsTransientResourceAliasing == false && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() == 0) ? TexCreate_FastVRAM : 0;
-}
+	ETextureCreateFlags GBufferA;
+	ETextureCreateFlags GBufferB;
+	ETextureCreateFlags GBufferC;
+	ETextureCreateFlags GBufferD;
+	ETextureCreateFlags GBufferE;
+	ETextureCreateFlags GBufferVelocity;
+	ETextureCreateFlags HZB;
+	ETextureCreateFlags SceneDepth;
+	ETextureCreateFlags SceneColor;
+	ETextureCreateFlags LPV;
+	ETextureCreateFlags BokehDOF;
+	ETextureCreateFlags CircleDOF;
+	ETextureCreateFlags CombineLUTs;
+	ETextureCreateFlags Downsample;
+	ETextureCreateFlags EyeAdaptation;
+	ETextureCreateFlags Histogram;
+	ETextureCreateFlags HistogramReduce;
+	ETextureCreateFlags VelocityFlat;
+	ETextureCreateFlags VelocityMax;
+	ETextureCreateFlags MotionBlur;
+	ETextureCreateFlags Tonemap;
+	ETextureCreateFlags Upscale;
+	ETextureCreateFlags DistanceFieldNormal;
+	ETextureCreateFlags DistanceFieldAOHistory;
+	ETextureCreateFlags DistanceFieldAOBentNormal;
+	ETextureCreateFlags DistanceFieldAODownsampledBentNormal;
+	ETextureCreateFlags DistanceFieldShadows;
+	ETextureCreateFlags DistanceFieldIrradiance;
+	ETextureCreateFlags DistanceFieldAOConfidence;
+	ETextureCreateFlags Distortion;
+	ETextureCreateFlags ScreenSpaceShadowMask;
+	ETextureCreateFlags VolumetricFog;
+	ETextureCreateFlags SeparateTranslucency;
+	ETextureCreateFlags LightAccumulation;
+	ETextureCreateFlags LightAttenuation;
+	ETextureCreateFlags ScreenSpaceAO;
+	ETextureCreateFlags DBufferA;
+	ETextureCreateFlags DBufferB;
+	ETextureCreateFlags DBufferC;
+	ETextureCreateFlags DBufferMask;
 
+	ETextureCreateFlags CustomDepth;
+	ETextureCreateFlags ShadowPointLight;
+	ETextureCreateFlags ShadowPerObject;
+	ETextureCreateFlags ShadowCSM;
+
+	EBufferUsageFlags DistanceFieldCulledObjectBuffers;
+	EBufferUsageFlags DistanceFieldTileIntersectionResources;
+	EBufferUsageFlags DistanceFieldAOScreenGridResources;
+	EBufferUsageFlags ForwardLightingCullingResources;
+	bool bDirty;
+
+private:
+	bool UpdateTextureFlagFromCVar(TAutoConsoleVariable<int32>& CVar, ETextureCreateFlags& InOutValue);
+	bool UpdateBufferFlagFromCVar(TAutoConsoleVariable<int32>& CVar, EBufferUsageFlags& InOutValue);
+};
+
+extern FFastVramConfig GFastVRamConfig;

@@ -268,7 +268,8 @@ float UAISense_Sight::Update()
 						}
 					}
 				}
-				else
+				// communicate failure only if we've seen give actor before
+				else if (SightQuery->bLastResult)
 				{
 					SIGHT_LOG_SEGMENT(Listener.Listener.Get()->GetOwner(), Listener.CachedLocation, TargetLocation, FColor::Red, TEXT("%s"), *(Target.TargetId.ToString()));
 					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));

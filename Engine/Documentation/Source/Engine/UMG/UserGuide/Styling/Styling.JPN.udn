@@ -1,11 +1,19 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:スタイリング
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:UMG でWidget ブループリントをスタイライズするためのガイド 
+Description:A guide to stylizing Widget Blueprints in UMG. 
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related:Engine\UMG\UserGuide\Slots
 Related:Engine\UMG\UserGuide\WidgetTypeReference
-tags:UMG UI Designer
+Order:9
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/StylingTopic.png
+
+
 
 
 [REGION:fullwidth raw]

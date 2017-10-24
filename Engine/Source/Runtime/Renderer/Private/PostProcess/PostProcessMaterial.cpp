@@ -119,6 +119,7 @@ public:
 		
 		if (MaterialTarget == EPostProcessMaterialTarget::Mobile)
 		{
+			OutEnvironment.SetDefine(TEXT("MOBILE_FORCE_DEPTH_TEXTURE_READS"), 1); // Ensure post process materials will not attempt depth buffer fetch operations.
 			OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
 		}
 	}
@@ -130,12 +131,13 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Material, *Material->GetMaterial(Context.View.GetFeatureLevel()), Context.View, Context.View.ViewUniformBuffer, true, ESceneRenderTargetsMode::SetTextures);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -263,8 +265,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader_Mobile);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader_Mobile);
 
-		FLocalGraphicsPipelineState BaseGraphicsPSO = Context.RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-		Context.RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader_Mobile->SetParameters(Context.RHICmdList, Context);
 		PixelShader_Mobile->SetParameters(Context.RHICmdList, Context, MaterialInterface->GetRenderProxy(false));
@@ -279,8 +280,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader_HighEnd);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader_HighEnd);
 
-		FLocalGraphicsPipelineState BaseGraphicsPSO = Context.RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-		Context.RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader_HighEnd->SetParameters(Context.RHICmdList, Context);
 		PixelShader_HighEnd->SetParameters(Context.RHICmdList, Context, MaterialInterface->GetRenderProxy(false));

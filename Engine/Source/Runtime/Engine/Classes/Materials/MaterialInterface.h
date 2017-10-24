@@ -8,7 +8,7 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/ScriptMacros.h"
 #include "RenderCommandFence.h"
 #include "SceneTypes.h"
@@ -183,7 +183,7 @@ struct FMaterialTextureInfo
 #if WITH_EDITORONLY_DATA
 	/** The reference to the texture, used to keep the TextureName valid even if it gets renamed. */
 	UPROPERTY()
-	FStringAssetReference TextureReference;
+	FSoftObjectPath TextureReference;
 
 	/** 
 	  * The texture index in the material resource the data was built from.
@@ -220,6 +220,8 @@ protected:
 	/** Because of redirector, the texture names need to be resorted at each load in case they changed. */
 	UPROPERTY(transient)
 	bool bTextureStreamingDataSorted;
+	UPROPERTY()
+	int32 TextureStreamingDataVersion;
 #endif
 
 	/** Data used by the texture streaming to know how each texture is sampled by the material. Sorted by names for quick access. */
@@ -231,7 +233,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** The mesh used by the material editor to preview the material.*/
 	UPROPERTY(EditAnywhere, Category=Previewing, meta=(AllowedClasses="StaticMesh,SkeletalMesh", ExactClass="true"))
-	FStringAssetReference PreviewMesh;
+	FSoftObjectPath PreviewMesh;
 
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
@@ -610,6 +612,7 @@ public:
 		Access to overridable properties of the base material.
 	*/
 	ENGINE_API virtual float GetOpacityMaskClipValue() const;
+	ENGINE_API virtual bool GetCastDynamicShadowAsMasked() const;
 	ENGINE_API virtual EBlendMode GetBlendMode() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API virtual bool IsTwoSided() const;
@@ -629,6 +632,7 @@ public:
 	 * @param ForceDuration							- Number of seconds to keep all mip-levels in memory, disregarding the normal priority logic. Negative value turns it off.
 	 * @param CinematicTextureGroups				- Bitfield indicating texture groups that should use extra high-resolution mips
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
 	ENGINE_API virtual void SetForceMipLevelsToBeResident( bool OverrideForceMiplevelsToBeResident, bool bForceMiplevelsToBeResidentValue, float ForceDuration, int32 CinematicTextureGroups = 0 );
 
 	/**

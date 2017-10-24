@@ -16,15 +16,10 @@
  * Globals
  */
 
-UNetConnection* GActiveReceiveUnitConnection = NULL;
+UNetConnection* GActiveReceiveUnitConnection = nullptr;
 bool GIsInitializingActorChan = false;
-bool GSentBunch = false;
 
 ELogType GActiveLogTypeFlags = ELogType::None;
-
-#if !UE_BUILD_SHIPPING
-TMap<void*, InternalProcessEventCallback> ActiveProcessEventCallbacks;
-#endif
 
 
 /**
@@ -122,7 +117,7 @@ public:
 	static void OnWorldCreated(UWorld* UnrealWorld, const UWorld::InitializationValues IVS)
 	{
 		// If NUTActor isn't already in RuntimeServerActors, add it now
-		if (GEngine != NULL)
+		if (GEngine != nullptr)
 		{
 			bool bNUTActorPresent = GEngine->RuntimeServerActors.ContainsByPredicate(
 				[](const FString& CurServerActor)
@@ -147,7 +142,7 @@ public:
 	}
 };
 
-FWorldDelegates::FWorldInitializationEvent::FDelegate FNetcodeUnitTest::OnWorldCreatedDelegate = NULL;
+FWorldDelegates::FWorldInitializationEvent::FDelegate FNetcodeUnitTest::OnWorldCreatedDelegate = nullptr;
 
 #if TARGET_UE4_CL >= CL_DEPRECATEDEL
 FDelegateHandle FNetcodeUnitTest::OnWorldCreatedDelegateHandle;

@@ -4,6 +4,7 @@
 #include "Stats/Stats.h"
 #include "Textures/SlateShaderResource.h"
 #include "Textures/SlateTextureData.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_STAT(STAT_SlateTextureGPUMemory);
 DEFINE_STAT(STAT_SlateTextureDataMemory);
@@ -108,6 +109,8 @@ void FSlateTextureAtlas::MarkTextureDirty()
 
 void FSlateTextureAtlas::InitAtlasData()
 {
+	LLM_SCOPE(ELLMTag::UI);
+
 	check(AtlasEmptySlots == NULL && AtlasData.Num() == 0);
 
 	FAtlasedTextureSlot* RootSlot = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, GetPaddingAmount());

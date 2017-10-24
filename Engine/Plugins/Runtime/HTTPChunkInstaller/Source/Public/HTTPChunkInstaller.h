@@ -12,7 +12,7 @@
 /**
 * HTTP based implementation of chunk based install
 **/
-class HTTPCHUNKINSTALLER_API FHTTPChunkInstall : public IPlatformChunkInstall, public FTickerObjectBase
+class HTTPCHUNKINSTALLER_API FHTTPChunkInstall : public FGenericPlatformChunkInstall, public FTickerObjectBase
 {
 public:
 	FHTTPChunkInstall();

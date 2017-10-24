@@ -52,8 +52,8 @@ void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TShar
 	DefaultSettings = UAssetViewerSettings::Get();
 	AdditionalSettings = InArgs._AdditionalSettings;
 	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;
-	DetailCustomizations = MoveTemp(InArgs._DetailCustomizations);
-	PropertyTypeCustomizations = MoveTemp(InArgs._PropertyTypeCustomizations);
+	DetailCustomizations = InArgs._DetailCustomizations;
+	PropertyTypeCustomizations = InArgs._PropertyTypeCustomizations;
 
 	CreateSettingsView();
 
@@ -248,7 +248,7 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 		/*InNotifyHook=*/ nullptr,
 		/*InSearchInitialKeyFocus=*/ false,
 		/*InViewIdentifier=*/ NAME_None);
-	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 	DetailsViewArgs.bShowOptions = false;
 	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
 
@@ -261,7 +261,7 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 
 	for (const FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo& PropertyTypeCustomizationInfo : PropertyTypeCustomizations)
 	{
-		EditModule.RegisterCustomPropertyTypeLayout(PropertyTypeCustomizationInfo.StructName, PropertyTypeCustomizationInfo.OnGetPropertyTypeCustomizationInstance, nullptr, SettingsView);
+		SettingsView->RegisterInstancedCustomPropertyTypeLayout(PropertyTypeCustomizationInfo.StructName, PropertyTypeCustomizationInfo.OnGetPropertyTypeCustomizationInstance);
 	}
 
 	class FDetailRootObjectCustomization : public IDetailRootObjectCustomization

@@ -76,11 +76,11 @@ void UPrimaryDataAsset::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	int32 OldAssetDataNum = AssetBundleData.Bundles.Num();
+	FAssetBundleData OldData = AssetBundleData;
 	
 	UpdateAssetBundleData();
 
-	if (AssetBundleData.Bundles.Num() != OldAssetDataNum && UAssetManager::IsValid())
+	if (UAssetManager::IsValid() && OldData != AssetBundleData)
 	{
 		// Bundles changed, refresh
 		UAssetManager::Get().RefreshAssetData(this);

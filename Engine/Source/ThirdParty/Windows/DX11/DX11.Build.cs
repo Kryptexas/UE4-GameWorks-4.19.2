@@ -7,7 +7,7 @@ public class DX11 : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
+		string DirectXSDKDir = Target.UEThirdPartySourceDirectory + "Windows/DirectX";
 		PublicSystemIncludePaths.Add(DirectXSDKDir + "/include");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
@@ -30,7 +30,7 @@ public class DX11 : ModuleRules
 				"d3d11.lib",
 				"dxguid.lib",
 				"d3dcompiler.lib",
-				(Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d3dx11d.lib" : "d3dx11.lib",
+				(Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "d3dx11d.lib" : "d3dx11.lib",
 				"dinput8.lib",
 				"X3DAudio.lib",
 				"xapobase.lib",

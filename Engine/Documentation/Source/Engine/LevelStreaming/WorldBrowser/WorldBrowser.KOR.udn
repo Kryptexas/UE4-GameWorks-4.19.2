@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:월드 컴포지션 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/LevelStreaming
@@ -144,7 +144,7 @@ tags:World Composition
 
 월드를 이루는 각 레벨은 최대 4 개의 LOD 스트리밍 레벨을 가질 수 있습니다. LOD 스트리밍 레벨은 메시 LOD 와 비슷한 
 개념입니다. 스트리밍 거리 세팅에 따라서 스트리밍 레벨은 그에 해당하는 LOD 레벨로 대체됩니다. LOD 레벨은 월드 컴포지션이 
-<Package name>_LOD# 패턴을 사용하여 자동으로 발견하며, 여기서 # 은 1 에서 4 까지입니다.
+[Package name]_LOD# 패턴을 사용하여 자동으로 발견하며, 여기서 # 은 1 에서 4 까지입니다.
 LOD 레벨은 수동으로 또는 Simplygon 이 필요한 자동 LOD 맵 생성기로 생성 가능합니다.
 
 [REGION:note]

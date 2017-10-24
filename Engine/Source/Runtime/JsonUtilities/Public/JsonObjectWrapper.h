@@ -18,7 +18,7 @@ struct JSONUTILITIES_API FJsonObjectWrapper
 	GENERATED_USTRUCT_BODY()
 public:
 
-	UPROPERTY(VisibleAnywhere, Category = "JSON")
+	UPROPERTY(EditAnywhere, Category = "JSON")
 	FString JsonString;
 
 	TSharedPtr<FJsonObject> JsonObject;

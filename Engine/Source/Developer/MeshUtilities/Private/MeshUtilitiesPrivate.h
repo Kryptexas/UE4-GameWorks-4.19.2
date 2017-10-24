@@ -64,6 +64,12 @@ private:
 	/** True if we disable triangle order optimization.  For debugging purposes only */
 	bool bDisableTriangleOrderOptimization;
 
+	/** True if depth-only index buffers are enabled */
+	bool bEnableDepthOnlyIndexBuffer;
+	
+	/** True if reversed index buffers are enabled */
+	bool bEnableReversedIndexBuffer;
+
 	// IMeshUtilities interface.
 	virtual const FString& GetVersionString() const override
 	{
@@ -72,10 +78,8 @@ private:
 
 	virtual bool BuildStaticMesh(
 		FStaticMeshRenderData& OutRenderData,
-		TArray<FStaticMeshSourceModel>& SourceModels,
-		const FStaticMeshLODGroup& LODGroup,
-		int32 LightmapUVVersion,
-		int32 ImportVersion = EImportStaticMeshVersion::LastVersion
+		UStaticMesh* StaticMesh,
+		const FStaticMeshLODGroup& LODGroup
 		) override;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -90,7 +94,7 @@ private:
 		int32 ImportVersion
 		) override;
 
-	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion) override;
+	virtual bool GenerateStaticMeshLODs(UStaticMesh* StaticMesh, const FStaticMeshLODGroup& LODGroup) override;
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		FString MeshName,

@@ -187,6 +187,7 @@ public:
 
 	void SetScrollBarThickness(FVector2D InThickness);
 
+	void SetScrollBarRightClickDragAllowed(bool bIsAllowed);
 public:
 
 	// SWidget interface
@@ -359,6 +360,7 @@ private:
 	/** Whether the active timer to update the inertial scroll is registered */
 	bool bIsScrollingActiveTimerRegistered : 1;
 
-	/**  */
+	bool bAllowsRightClickDragScrolling : 1;
+	
 	bool bTouchPanningCapture : 1;
 };

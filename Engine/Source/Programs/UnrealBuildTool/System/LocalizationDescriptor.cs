@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -101,7 +102,7 @@ namespace UnrealBuildTool
 		/// <param name="Targets">Array of targets</param>
 		public static void WriteArray(JsonWriter Writer, string Name, LocalizationTargetDescriptor[] Targets)
 		{
-			if (Targets.Length > 0)
+			if (Targets != null && Targets.Length > 0)
 			{
 				Writer.WriteArrayStart(Name);
 				foreach (LocalizationTargetDescriptor Target in Targets)

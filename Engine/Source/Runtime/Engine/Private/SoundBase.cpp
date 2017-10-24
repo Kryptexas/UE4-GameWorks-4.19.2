@@ -9,11 +9,10 @@ USoundConcurrency* USoundBase::DefaultSoundConcurrencyObject = nullptr;
 
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bIgnoreFocus(false)
+	, bIgnoreFocus_DEPRECATED(false)
 	, Priority(1.0f)
 {
 	MaxConcurrentPlayCount_DEPRECATED = 16;
-	DefaultMasterReverbSendAmount = 0.2f;
 }
 
 void USoundBase::PostInitProperties()
@@ -22,7 +21,7 @@ void USoundBase::PostInitProperties()
 
 	if (USoundBase::DefaultSoundClassObject == nullptr)
 	{
-		const FStringAssetReference DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
+		const FSoftObjectPath DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
 		if (DefaultSoundClassName.IsValid())
 		{
 			USoundBase::DefaultSoundClassObject = LoadObject<USoundClass>(nullptr, *DefaultSoundClassName.ToString());
@@ -32,7 +31,7 @@ void USoundBase::PostInitProperties()
 
 	if (USoundBase::DefaultSoundConcurrencyObject == nullptr)
 	{
-		const FStringAssetReference DefaultSoundConcurrencyName = GetDefault<UAudioSettings>()->DefaultSoundConcurrencyName;
+		const FSoftObjectPath DefaultSoundConcurrencyName = GetDefault<UAudioSettings>()->DefaultSoundConcurrencyName;
 		if (DefaultSoundConcurrencyName.IsValid())
 		{
 			USoundBase::DefaultSoundConcurrencyObject = LoadObject<USoundConcurrency>(nullptr, *DefaultSoundConcurrencyName.ToString());
@@ -99,6 +98,11 @@ USoundSubmix* USoundBase::GetSoundSubmix() const
 void USoundBase::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
 {
 	OutSends = SoundSubmixSends;
+}
+
+void USoundBase::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+{
+	OutSends = BusSends;
 }
 
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()

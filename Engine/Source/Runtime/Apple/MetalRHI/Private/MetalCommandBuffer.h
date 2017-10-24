@@ -60,6 +60,13 @@ struct FMetalDebugCommand
 @property (nonatomic, strong) NSMutableArray<NSString*>* debugGroups;
 @end
 
+@protocol IMetalCommandBufferExtensions
+@property (readonly) CFTimeInterval kernelStartTime;
+@property (readonly) CFTimeInterval kernelEndTime;
+@property (readonly) CFTimeInterval GPUStartTime;
+@property (readonly) CFTimeInterval GPUEndTime;
+@end
+
 /**
  * FMetalDebugCommandBuffer: Wrapper around id<MTLCommandBuffer> that records information about commands.
  * This allows reporting of substantially more information in debug modes which can be especially helpful 
@@ -67,13 +74,14 @@ struct FMetalDebugCommand
  */
 @interface FMetalDebugCommandBuffer : FApplePlatformObject<MTLCommandBuffer>
 {
-	TArray<FMetalDebugCommand*> DebugCommands;
 	NSMutableArray<NSString*>* DebugGroup;
 	NSString* ActiveEncoder;
 	TSet<id<MTLResource>> Resources;
 	TSet<id> States;
 	@public
+	TArray<FMetalDebugCommand*> DebugCommands;
     EMetalDebugLevel DebugLevel;
+	id<MTLBuffer> DebugInfoBuffer;
 };
 
 /** The wrapped native command-buffer for which we collect debug information. */

@@ -22,6 +22,7 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Animation/AnimBlueprint.h"
 #include "SkeletalRender.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "Logging/MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"
@@ -32,6 +33,7 @@
 #include "ClothingSimulationInterface.h"
 #include "Features/IModularFeatures.h"
 #include "Misc/RuntimeErrors.h"
+#include "AnimPhysObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
@@ -219,6 +221,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	ClothingSimulationContext = nullptr;
 
 	bPostEvaluatingAnimation = false;
+	bAllowAnimCurveEvaluation = true;
 }
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
@@ -288,6 +291,13 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	{
 		BodyInstance.bAutoWeld = false;
 	}
+
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+	if (Ar.IsLoading() && Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::RenameDisableAnimCurvesToAllowAnimCurveEvaluation)
+	{
+		bAllowAnimCurveEvaluation = !bDisableAnimCurves_DEPRECATED;
+	}
+
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
@@ -376,16 +386,7 @@ bool USkeletalMeshComponent::CanSimulateClothing() const
 		return false;
 	}
 
-	TArray<UClothingAssetBase*> AssetsInUse;
-	SkeletalMesh->GetClothingAssetsInUse(AssetsInUse);
-	bool bCanRun = AssetsInUse.Num() > 0 && !IsNetMode(NM_DedicatedServer);
-
-	if(bCanRun)
-	{
-		return true;
-	}
-
-	return	false;
+	return SkeletalMesh->HasActiveClothingAssets() && !IsNetMode(NM_DedicatedServer);
 }
 
 void USkeletalMeshComponent::UpdateClothTickRegisteredState()
@@ -597,10 +598,10 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		// this has to be called before Initialize Animation because it will required RequiredBones list when InitializeAnimScript
 		RecalcRequiredBones(0);
 
-		bool bDoRefreshBoneTransform = true;
-		if (InitializeAnimScriptInstance(bForceReinit))
+		const bool bInitializedAnimInstance = InitializeAnimScriptInstance(bForceReinit);
+		// Make sure we have a valid pose.
+		if (bInitializedAnimInstance || (AnimScriptInstance == nullptr))
 		{
-			//Make sure we have a valid pose
 			if (bUseRefPoseOnInitAnim)
 			{
 				BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
@@ -608,20 +609,19 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 				FillComponentSpaceTransforms(SkeletalMesh, BoneSpaceTransforms, GetEditableComponentSpaceTransforms());
 				bNeedToFlipSpaceBaseBuffers = true; // Have updated space bases so need to flip
 				FlipEditableSpaceBases();
-				bDoRefreshBoneTransform = false;
 			}
 			else
 			{
 				TickAnimation(0.f, false);
+				RefreshBoneTransforms();
 			}
 
-			OnAnimInitialized.Broadcast();
+			if (bInitializedAnimInstance)
+			{
+				OnAnimInitialized.Broadcast();
+			}
 		}
 
-		if (bDoRefreshBoneTransform)
-		{
-			RefreshBoneTransforms();
-		}
 		UpdateComponentToWorld();
 	}
 }
@@ -933,6 +933,16 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 		{
 			PostProcessAnimInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
 		}
+
+		/**
+			If we're called directly for autonomous proxies, TickComponent is not guaranteed to get called.
+			So dispatch all queued events here if we're doing MontageOnly ticking.
+		*/
+		if ((MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
+			&& !bRecentlyRendered)
+		{
+			ConditionallyDispatchQueuedAnimEvents();
+		}
 	}
 }
 
@@ -949,9 +959,7 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
-
-#if WITH_EDITOR
-	
+#if WITH_EDITOR	
 	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
 	// animation isn't running so it would just waste CPU time
 	if(GetWorld()->WorldType == EWorldType::Editor)
@@ -981,8 +989,7 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
 	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance) ? !AnimScriptInstance->HasMorphTargetCurves() : true);
 
-	// LOD changing should always trigger an update.
-	return (bLODHasChanged || !bRequiredBonesUpToDate || (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged)));
+	return (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged));
 }
 
 bool USkeletalMeshComponent::ShouldTickPose() const
@@ -1339,20 +1346,22 @@ void USkeletalMeshComponent::RecalcRequiredCurves()
 		return;
 	}
 
+	const FCurveEvaluationOption CurveEvalOption(bAllowAnimCurveEvaluation, &DisallowedAnimCurves, PredictedLODLevel);
+
 	// make sure animation requiredcurve to mark as dirty
 	if (AnimScriptInstance)
 	{
-		AnimScriptInstance->RecalcRequiredCurves(bDisableAnimCurves);
+		AnimScriptInstance->RecalcRequiredCurves(CurveEvalOption);
 	}
 
 	for(UAnimInstance* SubInstance : SubInstances)
 	{
-		SubInstance->RecalcRequiredCurves(bDisableAnimCurves);
+		SubInstance->RecalcRequiredCurves(CurveEvalOption);
 	}
 
 	if(PostProcessAnimInstance)
 	{
-		PostProcessAnimInstance->RecalcRequiredCurves(bDisableAnimCurves);
+		PostProcessAnimInstance->RecalcRequiredCurves(CurveEvalOption);
 	}
 
 	MarkRequiredCurveUpToDate();
@@ -1668,7 +1677,7 @@ void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>&
 {
 	if(PostProcessAnimInstance)
 	{
-		if(InOutPose.IsValid())
+		if (InOutPose.IsValid())
 		{
 			// Push the previous pose to any input nodes required
 			if (FAnimNode_SubInput* InputNode = PostProcessAnimInstance->GetSubInputNode())
@@ -1859,6 +1868,29 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedCurve.Empty();
 	}
 
+	// If we need to eval the graph, and we're not going to update it.
+	// make sure it's been ticked at least once!
+	if (bShouldDoEvaluation)
+	{
+		bool bShouldTickAnimation = false;		
+		if (AnimScriptInstance && !AnimScriptInstance->NeedsUpdate())
+		{
+			bShouldTickAnimation = bShouldTickAnimation || !AnimScriptInstance->GetUpdateCounter().HasEverBeenUpdated();
+			for (const UAnimInstance* SubInstance : SubInstances)
+			{
+				bShouldTickAnimation = bShouldTickAnimation || (SubInstance && !SubInstance->GetUpdateCounter().HasEverBeenUpdated());
+			}
+		}
+
+		bShouldTickAnimation = bShouldTickAnimation || (PostProcessAnimInstance && !PostProcessAnimInstance->NeedsUpdate() && !PostProcessAnimInstance->GetUpdateCounter().HasEverBeenUpdated());
+
+		if (bShouldTickAnimation)
+		{
+			// We bypass TickPose() and call TickAnimation directly, so URO doesn't intercept us.
+			TickAnimation(0.f, false);
+		}
+	}
+
 	if(AnimScriptInstance)
 	{
 		AnimScriptInstance->PreEvaluateAnimation();
@@ -1944,9 +1976,9 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		PostAnimEvaluation(AnimEvaluationContext);
 	}
 
-	if (TickFunction == nullptr)
+	if (TickFunction == nullptr && ShouldBlendPhysicsBones())
 	{
-		//Since we aren't doing this through the tick system, assume we want the buffer flipped now
+		//Since we aren't doing this through the tick system, and we wont have done it in PostAnimEvaluation, assume we want the buffer flipped now
 		FinalizeBoneTransform();
 	}
 }
@@ -2045,7 +2077,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	if(PostProcessAnimInstance)
 	{
-		PostProcessAnimInstance->UpdateCurves(EvaluationContext.Curve);
+		PostProcessAnimInstance->UpdateCurves(AnimCurves);
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;
@@ -2420,7 +2452,8 @@ void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMo
 	}
 
 	// when mode is swapped, make sure to reinitialize
-	// even if it was same mode
+	// even if it was same mode, this was due to users who wants to use BP construction script to do this
+	// if you use it in the construction script, it gets serialized, but it never instantiate. 
 	if(SkeletalMesh != nullptr)
 	{
 		if (InitializeAnimScriptInstance(true))
@@ -3238,11 +3271,82 @@ void USkeletalMeshComponent::ComputeTeleportDistanceThresholdInRadians()
 
 void USkeletalMeshComponent::SetDisableAnimCurves(bool bInDisableAnimCurves)
 {
-	if (bDisableAnimCurves != bInDisableAnimCurves)
+	SetAllowAnimCurveEvaluation(!bInDisableAnimCurves);
+}
+
+void USkeletalMeshComponent::SetAllowAnimCurveEvaluation(bool bInAllow)
+{
+	if (bAllowAnimCurveEvaluation != bInAllow)
 	{
-		bDisableAnimCurves = bInDisableAnimCurves;
+		bAllowAnimCurveEvaluation = bInAllow;
 		// clear cache uid version, so it will update required curves
 		CachedAnimCurveUidVersion = 0;
+	}
+}
+
+void USkeletalMeshComponent::AllowAnimCurveEvaluation(FName NameOfCurve, bool bAllow)
+{
+	// if allow is same as disallowed curve, which means it mismatches
+	if (bAllow == DisallowedAnimCurves.Contains(NameOfCurve))
+	{
+		if (bAllow)
+		{
+			DisallowedAnimCurves.Remove(NameOfCurve);
+			CachedAnimCurveUidVersion = 0;
+		}
+		else
+		{
+			DisallowedAnimCurves.Add(NameOfCurve);
+			CachedAnimCurveUidVersion = 0;
+
+		}
+	}
+}
+
+void USkeletalMeshComponent::ResetAllowedAnimCurveEvaluation()
+{
+	DisallowedAnimCurves.Reset();
+	CachedAnimCurveUidVersion = 0;
+}
+
+void USkeletalMeshComponent::SetAllowedAnimCurvesEvaluation(const TArray<FName>& List, bool bAllow)
+{
+	// Reset already clears the version - CachedAnimCurveUidVersion = 0;
+	ResetAllowedAnimCurveEvaluation();
+	if (bAllow)
+	{
+		struct FFilterDisallowedList
+		{
+			FFilterDisallowedList(const TArray<FName>& InAllowedList) : AllowedList(InAllowedList) {}
+
+			FORCEINLINE bool operator()(const FName& Name) const
+			{
+				return AllowedList.Contains(Name);
+			}
+			const TArray<FName>& AllowedList;
+		};
+
+		if (SkeletalMesh)
+		{
+			USkeleton* Skeleton = SkeletalMesh->Skeleton;
+			if (Skeleton)
+			{
+				const FSmartNameMapping* Mapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+				if (Mapping != nullptr)
+				{
+					TArray<FName> CurveNames;
+					Mapping->FillNameArray(CurveNames);
+
+					DisallowedAnimCurves = CurveNames;
+					DisallowedAnimCurves.RemoveAllSwap(FFilterDisallowedList(List));
+				}
+			}
+
+		}
+	}
+	else
+	{
+		DisallowedAnimCurves = List;
 	}
 }
 

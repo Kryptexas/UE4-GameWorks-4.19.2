@@ -7,14 +7,16 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 
-class UAudioComponent;
 class UMaterial;
 class UMaterialExpressionTextureSample;
 class UMediaPlayer;
-class UMediaSoundWave;
+class UMediaSoundComponent;
 class UMediaTexture;
+
 struct FSlateBrush;
+
 enum class EMediaEvent;
+
 
 /**
  * Handles content output in the viewer tab in the UMediaPlayer asset editor.
@@ -51,35 +53,12 @@ public:
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
-protected:
-
-	/** Update the material to reflect the media player's latest video textures. */
-	void UpdateMaterial();
-
-	/** Update the sound wave to reflect the media player's latest sound output. */
-	void UpdateSoundWave();
-
 private:
 
 	/** Callback for media events from the media player. */
 	void HandleMediaPlayerMediaEvent(EMediaEvent Event);
 
 private:
-
-	/** The audio component used to play the current sound wave. */
-	UAudioComponent* AudioComponent;
-
-	/** The media sound wave currently being played. */
-	TWeakObjectPtr<UMediaSoundWave> CurrentSoundWave;
-
-	/** The media texture currently being shown. */
-	TWeakObjectPtr<UMediaTexture> CurrentTexture;
-
-	/** The media sound wave to use if the player doesn't have one assigned. */
-	UMediaSoundWave* DefaultSoundWave;
-
-	/** The media texture to use if the player doesn't have one assigned. */
-	UMediaTexture* DefaultTexture;
 
 	/** The material that wraps the video texture for display in an SImage. */
 	UMaterial* Material;
@@ -88,10 +67,13 @@ private:
 	TSharedPtr<FSlateBrush> MaterialBrush;
 
 	/** The media player whose video texture is shown in this widget. */
-	UMediaPlayer* MediaPlayer;
+	TWeakObjectPtr<UMediaPlayer> MediaPlayer;
 
-	/** Whether Play-In-Editor is currently active. */
-	bool PieActive;
+	/** The media texture to render the media player's video output. */
+	UMediaTexture* MediaTexture;
+
+	/** The sound component to play the media player's audio output. */
+	UMediaSoundComponent* SoundComponent;
 
 	/** The video texture sampler in the wrapper material. */
 	UMaterialExpressionTextureSample* TextureSampler;

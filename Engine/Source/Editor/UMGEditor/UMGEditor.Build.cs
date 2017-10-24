@@ -32,6 +32,7 @@ public class UMGEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Slate",
 				"Engine",

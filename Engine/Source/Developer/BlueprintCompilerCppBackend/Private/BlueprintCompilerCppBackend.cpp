@@ -352,12 +352,13 @@ void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& 
 	FBPTerminal* MapTerm = Statement.LHS;
 	const FString Map = TermToText(EmitterContext, MapTerm, ENativizedTermUsage::UnspecifiedOrReference);
 
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num()));
+	check((Statement.RHS.Num() % 2) == 0);
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num() / 2));
 
-	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	for (int32 i = 0; i < Statement.RHS.Num(); i+=2)
 	{
 		FBPTerminal* KeyTerminal = Statement.RHS[i];
-		FBPTerminal* ValueTerminal = Statement.RHS[i];
+		FBPTerminal* ValueTerminal = Statement.RHS[i+1];
 		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
 	}
 }
@@ -555,10 +556,10 @@ struct FCastWildCard
 
 	FCastWildCard(const FBlueprintCompiledStatement& InStatement) : ArrayParamIndex(-1), Statement(InStatement)
 	{
-		const FString DependentPinMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+		const FString& DependentPinMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
 		DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
 
-		FString ArrayPointerMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
+		const FString& ArrayPointerMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
 		TArray<FString> ArrayPinComboNames;
 		ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
@@ -730,13 +731,14 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (Statement.bIsInterfaceContext || UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
 	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
 	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
+	const bool bNetRPC = !bAnyInterfaceCall && Statement.FunctionToCall->HasAllFunctionFlags(FUNC_Net) && !Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_NetResponse);
 
 	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();
 	const UClass* SuperClass = CurrentClass ? CurrentClass->GetSuperClass() : nullptr;
 	const UClass* OriginalSuperClass = SuperClass ? EmitterContext.Dependencies.FindOriginalClass(SuperClass) : nullptr;
 	const UFunction* ActualParentFunction = (Statement.bIsParentContext && OriginalSuperClass) ? OriginalSuperClass->FindFunctionByName(Statement.FunctionToCall->GetFName(), EIncludeSuperFlag::IncludeSuper) : nullptr;
 	// if(Statement.bIsParentContext && bNativeEvent) then name is constructed from original function with "_Implementation postfix
-	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName((ActualParentFunction && !bNativeEvent) ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
+	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName((ActualParentFunction && !bNativeEvent && !bNetRPC) ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
 	const bool bIsFunctionValidToCallFromBP = !ActualParentFunction || ActualParentFunction->HasAnyFunctionFlags(FUNC_Native) || (ActualParentFunction->Script.Num() > 0);
 
 	if (!bIsFunctionValidToCallFromBP)
@@ -858,7 +860,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			Result += CustomThunkFunctionPostfix(Statement);
 		}
 
-		if ((Statement.bIsParentContext || Statement.bIsInterfaceContext) && bNativeEvent)
+		if ((Statement.bIsParentContext || Statement.bIsInterfaceContext) && (bNativeEvent || bNetRPC))
 		{
 			ensure(!bCallOnDifferentObject);
 			Result += TEXT("_Implementation");
@@ -997,7 +999,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected);
 			if (!bIsAccessible)
 			{
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, TEXT("&"), 0, TermUsage, EndCustomSetExpression);
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, FString(), ContextStr, TEXT("&"), 0, TermUsage, EndCustomSetExpression);
 			}
 			else
 			{
@@ -1036,7 +1038,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					ensure(ContextStr.IsEmpty());
 					ContextStr = TEXT("this");
 				}
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, FString(), 0, TermUsage, EndCustomSetExpression);
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, FString(), ContextStr, FString(), 0, TermUsage, EndCustomSetExpression);
 			}
 			else
 			{

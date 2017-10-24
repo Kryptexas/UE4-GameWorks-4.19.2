@@ -3,7 +3,7 @@ Title:Virtual Reality Development
 Crumbs:%ROOT%, Platforms
 Description:Information over developing for virtual reality platforms.
 Navigation:platform
-Version: 4.9
+Version: 4.17
 Type:landing
 tags:VR
 tags:Platform
@@ -12,13 +12,13 @@ order:2
 topic-icon:%ROOT%/platform_icon.png
 topic-image:VirtualRealityDevelopment_topic.png
 
-## Virtual Reality Platforms
+## Virtual Reality Desktop Platforms
 
-[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms/VR")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms\VR\DesktopVR")]
 
-## Virtual Reality Topics
+## Virtual Reality Mobile Platforms
 
-[DIR(end:"1" output:"topic" parent:"Platforms/VR" tags:"!platform")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms\VR\MobileVR")]
 
 ## Training Streams
 

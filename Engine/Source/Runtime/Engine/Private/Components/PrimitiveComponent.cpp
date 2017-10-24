@@ -22,9 +22,6 @@
 #include "UnrealEngine.h"
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
-#if WITH_BOX2D
-#include "PhysicsEngine/BodySetup2D.h"
-#endif
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
@@ -180,7 +177,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bAlwaysCreatePhysicsState = false;
 	bVisibleInReflectionCaptures = true;
 	bRenderInMainPass = true;
-	VisibilityId = -1;
+	VisibilityId = INDEX_NONE;
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
 	CanCharacterStepUpOn = ECB_Yes;
 	ComponentId.PrimIDValue = NextComponentId.Increment();
@@ -205,6 +202,10 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	LastCheckedAllCollideableDescendantsTime = 0.f;
 	
 	bApplyImpulseOnDamage = true;
+
+#if WITH_EDITORONLY_DATA
+	bEnableAutoLODGeneration = true;
+#endif // WITH_EDITORONLY_DATA
 }
 
 bool UPrimitiveComponent::UsesOnlyUnlitMaterials() const
@@ -302,7 +303,7 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 			const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
 			if (!IsStreamingTexture(Info.Texture))
 			{
-				OutStreamingTextures.RemoveAt(Index--);
+				OutStreamingTextures.RemoveAtSwap(Index--);
 			}
 			else
 			{
@@ -310,7 +311,7 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 				const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
 				if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
 				{
-					OutStreamingTextures.RemoveAt(Index--);
+					OutStreamingTextures.RemoveAtSwap(Index--);
 				}
 			}
 		}
@@ -483,13 +484,9 @@ void UPrimitiveComponent::OnUnregister()
 	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
 		UWorld* World = GetWorld();
-		if (World)
+		if (World && World->Scene)
 		{
-			if (World->Scene)
-			{
-				World->Scene->ReleasePrimitive(this);
-			}
-			World->ClearActorComponentEndOfFrameUpdate(this);
+			World->Scene->ReleasePrimitive(this);
 		}
 	}
 
@@ -509,23 +506,31 @@ void UPrimitiveComponent::OnUnregister()
 
 FPrimitiveComponentInstanceData::FPrimitiveComponentInstanceData(const UPrimitiveComponent* SourceComponent)
 	: FSceneComponentInstanceData(SourceComponent)
+	, VisibilityId(SourceComponent->VisibilityId)
 	, LODParent(SourceComponent->GetLODParentPrimitive())
 {
+	const_cast<UPrimitiveComponent*>(SourceComponent)->ConditionalUpdateComponentToWorld(); // sadness
+	ComponentTransform = SourceComponent->GetComponentTransform();
 }
 
 void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
 	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 
-	UPrimitiveComponent* NewComponent = CastChecked<UPrimitiveComponent>(Component);
+	UPrimitiveComponent* PrimitiveComponent = CastChecked<UPrimitiveComponent>(Component);
 
 #if WITH_EDITOR
 	// This is needed to restore transient collision profile data.
-	NewComponent->UpdateCollisionProfile();
+	PrimitiveComponent->UpdateCollisionProfile();
 #endif // #if WITH_EDITOR
-	NewComponent->SetLODParentPrimitive(LODParent);
-	
-	if (ContainsSavedProperties() && Component->IsRegistered())
+	PrimitiveComponent->SetLODParentPrimitive(LODParent);
+
+	if (VisibilityId != INDEX_NONE && GetComponentTransform().Equals(PrimitiveComponent->GetComponentTransform(), 1.e-3f))
+	{
+		PrimitiveComponent->VisibilityId = VisibilityId;
+	}
+
+	if (Component->IsRegistered() && ((VisibilityId != INDEX_NONE) || ContainsSavedProperties()))
 	{
 		Component->MarkRenderStateDirty();
 	}
@@ -533,7 +538,7 @@ void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Componen
 
 bool FPrimitiveComponentInstanceData::ContainsData() const
 {
-	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0 || LODParent);
+	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0 || LODParent || (VisibilityId != INDEX_NONE));
 }
 
 void FPrimitiveComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
@@ -852,9 +857,17 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == IndirectLightingCacheQualityName || PropertyName == CastCinematicShadowName)
+		if (PropertyName == CastCinematicShadowName)
 		{
 			return Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == IndirectLightingCacheQualityName)
+		{
+			UWorld* World = GetWorld();
+			AWorldSettings* WorldSettings = World ? World->GetWorldSettings() : NULL;
+			const bool bILCRelevant = WorldSettings ? (WorldSettings->LightmassSettings.VolumeLightingMethod == VLM_SparseVolumeLightingSamples) : true;
+			return bILCRelevant && Mobility == EComponentMobility::Movable;
 		}
 
 		if (PropertyName == CastInsetShadowName)
@@ -3203,9 +3216,14 @@ void UPrimitiveComponent::SetRenderInMono(bool bValue)
 
 void UPrimitiveComponent::SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive)
 {
-	// @todo, what do we do with old parent. We can't just reset undo parent because the parent migh be used by other primitive
-	LODParentPrimitive = InLODParentPrimitive;
-	MarkRenderStateDirty();
+#if WITH_EDITOR
+	if (ShouldGenerateAutoLOD())
+#endif
+	{
+		// @todo, what do we do with old parent. We can't just reset undo parent because the parent migh be used by other primitive
+		LODParentPrimitive = InLODParentPrimitive;
+		MarkRenderStateDirty();
+	}
 }
 
 UPrimitiveComponent* UPrimitiveComponent::GetLODParentPrimitive() const
@@ -3255,7 +3273,7 @@ void UPrimitiveComponent::SetCustomNavigableGeometry(const EHasCustomNavigableGe
 #if WITH_EDITOR
 const bool UPrimitiveComponent::ShouldGenerateAutoLOD() const
 {
-	return (Mobility != EComponentMobility::Movable);
+	return (Mobility != EComponentMobility::Movable) && bEnableAutoLODGeneration;
 }
 #endif 
 

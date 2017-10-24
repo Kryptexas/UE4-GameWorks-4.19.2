@@ -41,12 +41,12 @@ bool FLiveLinkMessageBusSource::IsSourceStillValid()
 	return true;
 }
 
-void FLiveLinkMessageBusSource::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	ConnectionLastActive = FPlatformTime::Seconds();
 }
 
-void FLiveLinkMessageBusSource::HandleClearSubject(const FLiveLinkClearSubject& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleClearSubject(const FLiveLinkClearSubject& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	ConnectionLastActive = FPlatformTime::Seconds();
 	Client->ClearSubject(Message.SubjectName);
@@ -58,7 +58,7 @@ bool FLiveLinkMessageBusSource::RequestSourceShutdown()
 	return true;
 }
 
-void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectDataMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectDataMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	ConnectionLastActive = FPlatformTime::Seconds();
 
@@ -91,7 +91,7 @@ void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectDataMess
 	Client->PushSubjectSkeleton(Message.SubjectName, Message.RefSkeleton);
 }
 
-void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	ConnectionLastActive = FPlatformTime::Seconds();
 

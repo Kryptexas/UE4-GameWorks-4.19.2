@@ -134,6 +134,8 @@ struct TUnaryScalarKernel : public TUnaryKernel<Kernel, FRegisterHandler<float>,
 template<typename Kernel>
 struct TUnaryVectorKernel : public TUnaryKernel<Kernel, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS> {};
 template<typename Kernel>
+struct TUnaryScalarIntKernel : public TUnaryKernel<Kernel, FRegisterHandler<int32>, FConstantHandler<int32>, FRegisterHandler<int32>, 1> {};
+template<typename Kernel>
 struct TUnaryVectorIntKernel : public TUnaryKernel<Kernel, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS> {};
 
 /** Base class of Vector kernels with 2 operands. */
@@ -536,6 +538,7 @@ struct FVectorKernelRandom : public TUnaryVectorKernel<FVectorKernelRandom>
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
 		const float rm = RAND_MAX;
+		//EEK!. Improve this. Implement GPU style seeded rand instead of this.
 		VectorRegister Result = MakeVectorRegister(static_cast<float>(FMath::Rand()) / rm,
 			static_cast<float>(FMath::Rand()) / rm,
 			static_cast<float>(FMath::Rand()) / rm,
@@ -543,7 +546,6 @@ struct FVectorKernelRandom : public TUnaryVectorKernel<FVectorKernelRandom>
 		*Dst = VectorMultiply(Result, Src0);
 	}
 };
-
 
 /* gaussian distribution random number (not working yet) */
 struct FVectorKernelRandomGauss : public TBinaryVectorKernel<FVectorKernelRandomGauss>
@@ -1063,6 +1065,18 @@ struct FVectorIntKernelSign : TUnaryVectorIntKernel<FVectorIntKernelSign>
 	}
 };
 
+//randomi,
+//No good way to do this with SSE atm so just do it scalar.
+struct FScalarIntKernelRandom : public TUnaryScalarIntKernel<FScalarIntKernelRandom>
+{
+	static void VM_FORCEINLINE DoKernel(int32* RESTRICT Dst, int32 Src0)
+	{
+		const float rm = RAND_MAX;
+		//EEK!. Improve this. Implement GPU style seeded rand instead of this.
+		*Dst = FMath::Rand() % (Src0 + 1);
+	}
+};
+
 //cmplti,
 struct FVectorIntKernelCompareLT : TBinaryVectorIntKernel<FVectorIntKernelCompareLT>
 {
@@ -1336,18 +1350,17 @@ void VectorVM::Init()
 void VectorVM::Exec(
 	uint8 const* Code,
 	uint8** InputRegisters,
-	uint8* InputRegisterSizes,
 	int32 NumInputRegisters,
 	uint8** OutputRegisters,
-	uint8* OutputRegisterSizes,
 	int32 NumOutputRegisters,
 	uint8 const* ConstantTable,
 	TArray<FDataSetMeta> &DataSetMetaTable,
 	FVMExternalFunction* ExternalFunctionTable,
+	void** UserPtrTable,
 	int32 NumInstances
 
 #if STATS
-	, TArray<TStatId>& StatScopes
+	, const TArray<TStatId>& StatScopes
 #endif
 	)
 {
@@ -1400,7 +1413,7 @@ void VectorVM::Exec(
 	{
 		// Setup execution context.
 		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), 
-			ExternalFunctionTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx
+			ExternalFunctionTable, UserPtrTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx
 #if STATS
 			, StatScopes
 #endif
@@ -1471,6 +1484,7 @@ void VectorVM::Exec(
 			case EVectorVMOp::absi: FVectorIntKernelAbs::Exec(Context); break;
 			case EVectorVMOp::negi: FVectorIntKernelNegate::Exec(Context); break;
 			case EVectorVMOp::signi: FVectorIntKernelSign::Exec(Context); break;
+			case EVectorVMOp::randomi: FScalarIntKernelRandom::Exec(Context); break;
 			case EVectorVMOp::cmplti: FVectorIntKernelCompareLT::Exec(Context); break;
 			case EVectorVMOp::cmplei: FVectorIntKernelCompareLE::Exec(Context); break;
 			case EVectorVMOp::cmpgti: FVectorIntKernelCompareGT::Exec(Context); break;

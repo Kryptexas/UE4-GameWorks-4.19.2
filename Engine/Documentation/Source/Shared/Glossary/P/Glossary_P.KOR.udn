@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3581141
 Title:P
 Crumbs:Shared/Glossary
 Description:
@@ -170,9 +170,38 @@ project 프로젝트
 
 [EXCERPT:Glossary_project]
 **Project**, 프로젝트란 각각의 게임을 이루는 콘텐츠와 코드 전부가 들어있는 독립적인 유닛으로, 디스크상의 디렉토리 세트와 일치합니다. 예를 들어 아래 그림에서 **콘텐츠 브라우저** 의 계층구조 트리에는 디스크의 Project 폴더 안에서 찾을 수 있는 동일한 디렉토리 구조가 들어있습니다.
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
-[![](ProjectHierarchy.png)(w:440)](ProjectHierarchy.png)
-[/REGION:lightbox]
+[![](ProjectHierarchy_Windows.png)](ProjectHierarchy_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](ProjectHierarchy_Mac.png)](ProjectHierarchy_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 _이미지를 클릭하면 원래 크기로 보입니다._
 

@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool

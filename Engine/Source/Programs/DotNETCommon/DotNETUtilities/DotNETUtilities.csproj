@@ -55,7 +55,25 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="AssemblyUtils.cs" />
+    <Compile Include="BinaryReaderExtensions.cs" />
+    <Compile Include="BinaryWriterExtensions.cs" />
+    <Compile Include="CsProjectInfo.cs" />
+    <Compile Include="DirectoryReference.cs" />
+    <Compile Include="FastJSON\Formatter.cs" />
+    <Compile Include="FastJSON\Getters.cs" />
+    <Compile Include="FastJSON\JSON.cs" />
+    <Compile Include="FastJSON\JsonParser.cs" />
+    <Compile Include="FastJSON\JsonSerializer.cs" />
+    <Compile Include="FastJSON\Reflection.cs" />
+    <Compile Include="FastJSON\SafeDictionary.cs" />
+    <Compile Include="FileReference.cs" />
+    <Compile Include="FileSystemName.cs" />
+    <Compile Include="FileSystemReference.cs" />
+    <Compile Include="JsonObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResXResource\UEResXReader.cs" />
+    <Compile Include="ResXResource\UEResXWriter.cs" />
+    <Compile Include="RPCCommandHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -24,16 +24,17 @@
 #ifndef SDF_PATHNODE_H
 #define SDF_PATHNODE_H
 
-#include "pxr/base/arch/attributes.h"
-
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/mallocTag.h"
-#include "pxr/usd/sdf/api.h"
 
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
 
 #include <tbb/atomic.h>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Sdf_PathNode
 //
@@ -150,8 +151,8 @@ public:
     bool IsAbsolutePath() const { return _isAbsolute; }
     bool ContainsTargetPath() const { return _containsTargetPath; }
     bool IsNamespaced() const {
-        return (_nodeType == PrimPropertyNode or
-                _nodeType == RelationalAttributeNode) and _IsNamespacedImpl();
+        return (_nodeType == PrimPropertyNode ||
+                _nodeType == RelationalAttributeNode) && _IsNamespacedImpl();
     }
 
     bool ContainsPrimVariantSelection() const {
@@ -176,6 +177,7 @@ public:
     inline TfToken GetElement() const;
 
     // Return the stringified path to this node as a TfToken.
+    SDF_API
     const TfToken &GetPathToken() const;
     
     // Lexicographic ordering for Compare().
@@ -203,10 +205,10 @@ protected:
         , _nodeType(nodeType)
         , _isAbsolute(parent->IsAbsolutePath())
         , _containsPrimVariantSelection(
-            nodeType == PrimVariantSelectionNode or
+            nodeType == PrimVariantSelectionNode ||
             parent->_containsPrimVariantSelection)
-        , _containsTargetPath(nodeType == TargetNode or
-                              nodeType == MapperNode or
+        , _containsTargetPath(nodeType == TargetNode ||
+                              nodeType == MapperNode ||
                               parent->_containsTargetPath)
         , _hasToken(false) {}
     
@@ -222,7 +224,7 @@ protected:
         , _nodeType(nodeType)
         , _isAbsolute(true) // <- doesn't matter
         , _containsPrimVariantSelection(nodeType == PrimVariantSelectionNode)
-        , _containsTargetPath(nodeType == TargetNode or nodeType == MapperNode)
+        , _containsTargetPath(nodeType == TargetNode || nodeType == MapperNode)
         , _hasToken(false) {}
 
     ~Sdf_PathNode() {
@@ -263,7 +265,7 @@ protected:
             Sdf_PathNode::VariantSelectionType const &a,
             Sdf_PathNode::VariantSelectionType const &b) const {
             const _Equal& comp = *this;
-            return comp(a.first, b.first) and comp(a.second, b.second);
+            return comp(a.first, b.first) && comp(a.second, b.second);
         }
     };
 
@@ -324,7 +326,7 @@ private:
     ComparisonType _GetComparisonValue() const {
         // Root nodes, there are only two, one absolute and one relative.
         // (absolute < relative...)
-        return not IsAbsolutePath();
+        return !IsAbsolutePath();
     }
 
     friend class Sdf_PathNode;
@@ -743,12 +745,14 @@ Sdf_PathNode::GetElement() const
 /// Diagnostic output.
 SDF_API void Sdf_DumpPathStats();
 
-inline void intrusive_ptr_add_ref(const Sdf_PathNode* p) {
+inline void intrusive_ptr_add_ref(const PXR_NS::Sdf_PathNode* p) {
     ++p->_refCount;
 }
-inline void intrusive_ptr_release(const Sdf_PathNode* p) {
+inline void intrusive_ptr_release(const PXR_NS::Sdf_PathNode* p) {
     if (p->_refCount.fetch_and_decrement() == 1)
         p->_Destroy();
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_PATHNODE_H

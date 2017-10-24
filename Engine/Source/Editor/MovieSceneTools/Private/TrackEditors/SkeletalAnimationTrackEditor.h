@@ -99,6 +99,8 @@ public:
 	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
 	virtual void BeginResizeSection() override;
 	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) override;
+	virtual void BeginSlipSection() override;
+	virtual void SlipSection(float SlipTime) override;
 
 private:
 

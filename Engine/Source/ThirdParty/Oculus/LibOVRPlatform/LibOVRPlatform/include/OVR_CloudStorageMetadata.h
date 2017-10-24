@@ -6,7 +6,6 @@
 #include "OVR_Platform_Defs.h"
 #include "OVR_CloudStorage.h"
 #include "OVR_CloudStorageDataStatus.h"
-#include <stddef.h>
 
 typedef struct ovrCloudStorageMetadata *ovrCloudStorageMetadataHandle;
 

@@ -158,11 +158,7 @@ TSharedPtr<SWidget> FMovieSceneTrackEditor::BuildOutlinerEditWidget(const FGuid&
 		{
 			FMenuBuilder MenuBuilder(true, nullptr);
 
-			TSharedPtr<ISequencer> SequencerPtr = WeakSequencer.Pin();
-			if (SequencerPtr.IsValid())
-			{
-				FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
-			}
+			FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, WeakSequencer);
 
 			return MenuBuilder.MakeWidget();
 		};
@@ -188,6 +184,16 @@ void FMovieSceneTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, U
 bool FMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) 
 { 
 	return false; 
+}
+
+bool FMovieSceneTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	return false;
+}
+
+FReply FMovieSceneTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	return FReply::Unhandled();
 }
 
 void FMovieSceneTrackEditor::OnInitialize() 

@@ -681,9 +681,9 @@ void UMapProperty::AddCppProperty( UProperty* Property )
 {
 	check(Property);
 
-	if (Property->GetOffset_ForInternal() == 0)
+	if (!KeyProp)
 	{
-		// If it's at offset zero, assume it's the key
+		// If the key is unset, assume it's the key
 		check(!KeyProp);
 		ensureAlwaysMsgf(Property->HasAllPropertyFlags(CPF_HasGetValueTypeHash), TEXT("Attempting to create Map Property with unhashable key type: %s - Provide a GetTypeHash function!"), *Property->GetName());
 		KeyProp = Property;
@@ -845,7 +845,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 	{
 		// Serialize wants the property address, while convert wants the container address. InData is the container address
 		bool bDummyAdvance = false;
-		if (CurrentType->GetID() == InTag.Type)
+		if(CurrentType->GetID() == InTag.Type)
 		{
 			uint8* DestAddress = CurrentType->ContainerPtrToValuePtr<uint8>(InData, InTag.ArrayIndex);
 			CurrentType->SerializeItem(InAr, DestAddress, nullptr);

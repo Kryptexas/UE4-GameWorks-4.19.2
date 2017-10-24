@@ -135,9 +135,9 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 		// Generate Crash GUID
 		TCHAR CrashGUID[FGenericCrashContext::CrashGUIDLength];
 		InContext.GetUniqueCrashName(CrashGUID, FGenericCrashContext::CrashGUIDLength);
-		const FString AppName = FString::Printf(TEXT("UE4-%s"), FApp::GetGameName());
+		const FString AppName = FString::Printf(TEXT("UE4-%s"), FApp::GetProjectName());
 
-		FString CrashFolder = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Crashes"), CrashGUID);
+		FString CrashFolder = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Crashes"), CrashGUID);
 		FString CrashFolderAbsolute = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashFolder);
 		if (IFileManager::Get().MakeDirectory(*CrashFolderAbsolute, true))
 		{
@@ -191,7 +191,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 			}
 
 			// If present, include the crash video
-			const FString CrashVideoPath = FPaths::GameLogDir() / TEXT("CrashVideo.avi");
+			const FString CrashVideoPath = FPaths::ProjectLogDir() / TEXT("CrashVideo.avi");
 			if (IFileManager::Get().FileExists(*CrashVideoPath))
 			{
 				FString CrashVideoFilename = FPaths::GetCleanFilename(CrashVideoPath);

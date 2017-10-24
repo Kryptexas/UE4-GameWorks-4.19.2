@@ -17,9 +17,11 @@
 #endif
 
 #if WITH_CEF3
+#include "Misc/ScopeLock.h"
 #include "CEF/CEFBrowserApp.h"
 #include "CEF/CEFBrowserHandler.h"
 #include "CEF/CEFWebBrowserWindow.h"
+#include "CEF/CEFSchemeHandler.h"
 #	if PLATFORM_WINDOWS
 #		include "AllowWindowsPlatformTypes.h"
 #	endif
@@ -130,7 +132,7 @@ FString FWebBrowserSingleton::ApplicationCacheDir() const
 	return FString(Result);
 #else
 	// Other platforms use the application data directory
-	return FPaths::GameSavedDir();
+	return FPaths::ProjectSavedDir();
 #endif
 }
 
@@ -202,7 +204,7 @@ public:
 	}
 };
 
-FWebBrowserSingleton::FWebBrowserSingleton()
+FWebBrowserSingleton::FWebBrowserSingleton(const FWebBrowserInitSettings& WebBrowserInitSettings)
 #if WITH_CEF3
 	: WebBrowserWindowFactory(MakeShareable(new FWebBrowserWindowFactory()))
 #else
@@ -232,7 +234,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	Settings.no_sandbox = true;
 	Settings.command_line_args_disabled = true;
 
-	FString CefLogFile(FPaths::Combine(*FPaths::GameLogDir(), TEXT("cef3.log")));
+	FString CefLogFile(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("cef3.log")));
 	CefLogFile = FPaths::ConvertRelativePathToFull(CefLogFile);
 	CefString(&Settings.log_file) = *CefLogFile;
 	Settings.log_severity = bVerboseLogging ? LOGSEVERITY_VERBOSE : LOGSEVERITY_WARNING;
@@ -248,8 +250,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf(TEXT("%s/%s UnrealEngine/%s"), FApp::GetGameName(), FApp::GetBuildVersion(), *FEngineVersion::Current().ToString());
-	CefString(&Settings.product_version) = *ProductVersion;
+	CefString(&Settings.product_version) = *WebBrowserInitSettings.ProductVersion;
 
 #if CEF3_DEFAULT_CACHE
 	// Enable on disk cache
@@ -302,6 +303,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 #if WITH_CEF3
 void FWebBrowserSingleton::HandleRenderProcessCreated(CefRefPtr<CefListValue> ExtraInfo)
 {
+	FScopeLock Lock(&WindowInterfacesCS);
 	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
 	{
 		TSharedPtr<FCEFWebBrowserWindow> BrowserWindow = WindowInterfaces[Index].Pin();
@@ -329,6 +331,13 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 			// Call CloseBrowser directly on the Host object as FWebBrowserWindow::CloseBrowser is delayed
 			BrowserWindow->InternalCefBrowser->GetHost()->CloseBrowser(true);
 		}
+	}
+
+	// Remove references to the scheme handler factories
+	CefClearSchemeHandlerFactories();
+	for (const TPair<FString, CefRefPtr<CefRequestContext>>& RequestContextPair : RequestContexts)
+	{
+		RequestContextPair.Value->ClearSchemeHandlerFactories();
 	}
 
 	// Just in case, although we deallocate CEFBrowserApp right after this.
@@ -404,14 +413,14 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 		CefBrowserSettings BrowserSettings;
 
 		// Set max framerate to maximum supported.
-		BrowserSettings.background_color = CefColorSetARGB(WindowSettings.BackgroundColor.A, WindowSettings.BackgroundColor.R, WindowSettings.BackgroundColor.G, WindowSettings.BackgroundColor.B);
+		BrowserSettings.background_color = CefColorSetARGB(WindowSettings.bUseTransparency ? 0 : WindowSettings.BackgroundColor.A, WindowSettings.BackgroundColor.R, WindowSettings.BackgroundColor.G, WindowSettings.BackgroundColor.B);
 
 		// Disable plugins
 		BrowserSettings.plugins = STATE_DISABLED;
 
 
 #if PLATFORM_WINDOWS
-		// Create the widget as a child window on whindows when passing in a parent window
+		// Create the widget as a child window on windows when passing in a parent window
 		if (WindowSettings.OSWindowHandle != nullptr)
 		{
 			RECT ClientRect = { 0, 0, 0, 0 };
@@ -421,13 +430,11 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 #endif
 		{
 			// Use off screen rendering so we can integrate with our windows
-			WindowInfo.SetAsWindowless(
-#if PLATFORM_LINUX // may be applicable to other platforms, but I cannot test those at the moment
-						kNullWindowHandle,
+#if PLATFORM_LINUX
+			WindowInfo.SetAsWindowless(kNullWindowHandle, WindowSettings.bUseTransparency);
 #else
-						nullptr,
-#endif // PLATFORM_LINUX
-						WindowSettings.bUseTransparency);
+			WindowInfo.SetAsWindowless(kNullWindowHandle);
+#endif
 			BrowserSettings.windowless_frame_rate = WindowSettings.BrowserFrameRate;
 		}
 
@@ -457,6 +464,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 			{
 				RequestContext = *ExistingRequestContext;
 			}
+			SchemeHandlerFactories.RegisterFactoriesWith(RequestContext);
 		}
 
 		// Create the CEF browser window.
@@ -509,6 +517,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 bool FWebBrowserSingleton::Tick(float DeltaTime)
 {
 #if WITH_CEF3
+	FScopeLock Lock(&WindowInterfacesCS);
 	bool bIsSlateAwake = FSlateApplication::IsInitialized() && !FSlateApplication::Get().IsSlateAsleep();
 	// Remove any windows that have been deleted and check whether it's currently visible
 	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
@@ -617,7 +626,31 @@ bool FWebBrowserSingleton::RegisterContext(const FBrowserContextSettings& Settin
 bool FWebBrowserSingleton::UnregisterContext(const FString& ContextId)
 {
 #if WITH_CEF3
-	return RequestContexts.Remove(ContextId) > 0;
+	CefRefPtr<CefRequestContext> Context;
+	if (RequestContexts.RemoveAndCopyValue(ContextId, Context))
+	{
+		Context->ClearSchemeHandlerFactories();
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool FWebBrowserSingleton::RegisterSchemeHandlerFactory(FString Scheme, FString Domain, IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory)
+{
+#if WITH_CEF3
+	SchemeHandlerFactories.AddSchemeHandlerFactory(MoveTemp(Scheme), MoveTemp(Domain), WebBrowserSchemeHandlerFactory);
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool FWebBrowserSingleton::UnregisterSchemeHandlerFactory(IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory)
+{
+#if WITH_CEF3
+	SchemeHandlerFactories.RemoveSchemeHandlerFactory(WebBrowserSchemeHandlerFactory);
+	return true;
 #else
 	return false;
 #endif

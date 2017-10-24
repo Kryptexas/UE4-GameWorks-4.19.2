@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3446912
+﻿INTSourceChangelist:3513646
 Availability: Public
 Title: 시퀀서 - 안내서
 Crumbs: %ROOT%, Engine, Engine\Sequencer
@@ -34,6 +34,7 @@ tags:Sequencer
 [](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
 [](FANCY:Engine\Sequencer\HowTo\TriggeringSequences "%Engine\Sequencer\HowTo\TriggeringSequences:description%")
 [](FANCY:Engine\Sequencer\HowTo\BurnIns "%Engine\Sequencer\HowTo\BurnIns:description%")
+[](FANCY:Engine\Sequencer\HowTo\WhenFinished "%Engine\Sequencer\HowTo\WhenFinished:description%")
 [/REGION]
 
 

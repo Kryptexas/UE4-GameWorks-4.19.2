@@ -65,7 +65,7 @@ const FTransform FActorViewportTransformable::GetTransform() const
 FBox FActorViewportTransformable::BuildBoundingBox( const FTransform& BoundingBoxToWorld ) const
 {
 	FBox BoundingBox(ForceInit);
-	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
+	AActor* Actor = ActorWeakPtr.Get();
 
 	if( Actor != nullptr )
 	{
@@ -87,7 +87,7 @@ bool FActorViewportTransformable::IsPhysicallySimulated() const
 {
 	bool bIsPhysicallySimulated = false;
 
-	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
+	AActor* Actor = ActorWeakPtr.Get();
 	if( Actor != nullptr )
 	{
 		UPrimitiveComponent* RootPrimitiveComponent = Cast<UPrimitiveComponent>( Actor->GetRootComponent() );
@@ -106,7 +106,7 @@ bool FActorViewportTransformable::IsPhysicallySimulated() const
 
 void FActorViewportTransformable::SetLinearVelocity( const FVector& NewVelocity )
 {
-	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
+	AActor* Actor = ActorWeakPtr.Get();
 	if( Actor != nullptr )
 	{
 		UPrimitiveComponent* RootPrimitiveComponent = Cast<UPrimitiveComponent>( Actor->GetRootComponent() );
@@ -120,7 +120,7 @@ void FActorViewportTransformable::SetLinearVelocity( const FVector& NewVelocity 
 
 FVector FActorViewportTransformable::GetLinearVelocity() const
 {
-	const AActor* Actor = Cast<AActor>(ActorWeakPtr.Get());
+	const AActor* Actor = ActorWeakPtr.Get();
 	if (Actor != nullptr)
 	{
 		return Actor->GetVelocity();
@@ -131,7 +131,7 @@ FVector FActorViewportTransformable::GetLinearVelocity() const
 
 void FActorViewportTransformable::UpdateIgnoredActorList( TArray<AActor*>& IgnoredActors )
 {
-	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
+	AActor* Actor = ActorWeakPtr.Get();
 	if( Actor != nullptr )
 	{
 		IgnoredActors.Add( Actor );

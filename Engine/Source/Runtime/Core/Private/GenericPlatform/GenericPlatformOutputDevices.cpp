@@ -26,15 +26,15 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
+#if !NO_LOGGING
 	// if console is enabled add an output device, unless the commandline says otherwise...
-	if (ALLOW_CONSOLE && !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
+	if (GLogConsole && !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
 	{
 		GLog->AddOutputDevice(GLogConsole);
 	}
 	
 	// If the platform has a separate debug output channel (e.g. OutputDebugString) then add an output device
 	// unless logging is turned off
-#if !NO_LOGGING
 	if (FPlatformMisc::HasSeparateChannelForDebugOutput())
 	{
 		GLog->AddOutputDevice(new FOutputDeviceDebug());
@@ -49,7 +49,7 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 {
 	if (!CachedAbsoluteFilename[0])
 	{
-		FCString::Strcpy(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename), *FPaths::GameLogDir());
+		FCString::Strcpy(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename), *FPaths::ProjectLogDir());
 		FString LogFilename;
 		if (!FParse::Value(FCommandLine::Get(), TEXT("LOG="), LogFilename))
 		{
@@ -68,9 +68,9 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 
 		if (LogFilename.Len() == 0)
 		{
-			if (FCString::Strlen(FApp::GetGameName()) != 0)
+			if (FCString::Strlen(FApp::GetProjectName()) != 0)
 			{
-				LogFilename = FApp::GetGameName();
+				LogFilename = FApp::GetProjectName();
 			}
 			else
 			{
@@ -122,16 +122,3 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 	return Singleton.LogDevice.Get();
 }
 
-
-class FOutputDeviceError* FGenericPlatformOutputDevices::GetError()
-{
-	static FOutputDeviceAnsiError Singleton;
-	return &Singleton;
-}
-
-
-class FFeedbackContext* FGenericPlatformOutputDevices::GetWarn()
-{
-	static FFeedbackContextAnsi Singleton;
-	return &Singleton;
-}

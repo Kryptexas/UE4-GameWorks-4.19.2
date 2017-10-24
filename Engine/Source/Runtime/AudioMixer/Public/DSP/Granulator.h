@@ -257,7 +257,7 @@ namespace Audio
 		float GetSampleDuration() const;
 
 		// Generate the next audio buffer
-		void Generate(TArray<float>& OutAudiobuffer, const int32 NumFrames);
+		void Generate(float* OutAudiobuffer, const int32 NumFrames);
 
 	protected:
 		// Spawns grains

@@ -179,6 +179,13 @@ By default, lightmap mixing will be enabled which means it will affect existing 
 
 ![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\Enable_LM_Mixing.png)
 
+You can fine tune the amount of lightmap mixing that will take place by adjusting the following commands via the UE4 console. 
+ 
+* **r.ReflectionEnvironmentBeginMixingRoughness (default = 0.1)**
+* **r.ReflectionEnvironmentEndMixingRoughness (default = 0.3)**
+* ** r.ReflectionEnvironmentLightmapMixBasedOnRoughness (default = 1)**
+* **r.ReflectionEnvironmentLightmapMixLargestWeight (default = 1000)**
+
 ## High Quality Reflections
 
 While the default reflection quality settings strike a good balance between performance and visual quality, there could be instances where you want to achieve even higher quality reflections. The following sections describe the available methods for achieving high quality reflections.

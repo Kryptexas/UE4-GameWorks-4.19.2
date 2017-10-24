@@ -125,6 +125,18 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 	TEXT("2: No triangle order optimization. (least efficient, debugging purposes only)"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarSupportDepthOnlyIndexBuffers(
+	TEXT("r.SupportDepthOnlyIndexBuffers"),
+	1,
+	TEXT("Enables depth-only index buffers. Saves a little time at the expense of doubling the size of index buffers."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSupportReversedIndexBuffers(
+	TEXT("r.SupportReversedIndexBuffers"),
+	1,
+	TEXT("Enables reversed index buffers. Saves a little time at the expense of doubling the size of index buffers."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 IMPLEMENT_MODULE(FMeshUtilities, MeshUtilities);
 
 /*------------------------------------------------------------------------------
@@ -890,7 +902,7 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 				}
 				else
 				{
-                                        // Store first texture coordinate index not in use
+					// Store first texture coordinate index not in use
 					MaxInUseTextureCoordinate = FMath::Max(MaxInUseTextureCoordinate, TexCoordIndex);
 				}
 			}
@@ -969,6 +981,7 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 					SectionIndex++;
 				}
 			}
+			StaticMesh->OriginalSectionInfoMap.CopyFrom(StaticMesh->SectionInfoMap);
 
 			// Build mesh from source
 			StaticMesh->Build(false);
@@ -2829,11 +2842,14 @@ void FMeshUtilities::CacheOptimizeVertexAndIndexBuffer(
 class FStaticMeshUtilityBuilder
 {
 public:
-	FStaticMeshUtilityBuilder() : Stage(EStage::Uninit), NumValidLODs(0) {}
+	FStaticMeshUtilityBuilder(UStaticMesh* InStaticMesh) : Stage(EStage::Uninit), NumValidLODs(0), StaticMesh(InStaticMesh) {}
 
-	bool GatherSourceMeshesPerLOD(TArray<FStaticMeshSourceModel>& SourceModels, IMeshReduction* MeshReduction, ELightmapUVVersion LightmapUVVersion)
+	bool GatherSourceMeshesPerLOD(IMeshReduction* MeshReduction)
 	{
 		check(Stage == EStage::Uninit);
+		check(StaticMesh != nullptr);
+		TArray<FStaticMeshSourceModel>& SourceModels = StaticMesh->SourceModels;
+		ELightmapUVVersion LightmapUVVersion = (ELightmapUVVersion)StaticMesh->LightmapUVVersion;
 
 		FMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<FMeshUtilities>("MeshUtilities");
 
@@ -2929,18 +2945,33 @@ public:
 			{
 				// If a raw mesh is not explicitly provided, use the raw mesh of the
 				// next highest LOD.
-				RawMesh = LODMeshes[LODIndex - 1];
-				OverlappingCorners = LODOverlappingCorners[LODIndex - 1];
-				LODBuildSettings[LODIndex] = LODBuildSettings[LODIndex - 1];
+				int32 BaseRawMeshIndex = LODIndex - 1;
+				RawMesh = LODMeshes[BaseRawMeshIndex];
+				OverlappingCorners = LODOverlappingCorners[BaseRawMeshIndex];
+				LODBuildSettings[LODIndex] = LODBuildSettings[BaseRawMeshIndex];
 				HasRawMesh[LODIndex] = false;
+				//Make sure the SectionInfoMap is taken from the Base RawMesh
+				int32 SectionNumber = StaticMesh->OriginalSectionInfoMap.GetSectionNumber(BaseRawMeshIndex);
+				for (int32 SectionIndex = 0; SectionIndex < SectionNumber; ++SectionIndex)
+				{
+					FMeshSectionInfo Info = StaticMesh->OriginalSectionInfoMap.Get(BaseRawMeshIndex, SectionIndex);
+					StaticMesh->SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+					StaticMesh->OriginalSectionInfoMap.Set(LODIndex, SectionIndex, Info);
+				}
 			}
 		}
 		check(LODMeshes.Num() == SourceModels.Num());
 		check(LODOverlappingCorners.Num() == SourceModels.Num());
 
 		// Bail if there is no raw mesh data from which to build a renderable mesh.
-		if (LODMeshes.Num() == 0 || LODMeshes[0].WedgeIndices.Num() == 0)
+		if (LODMeshes.Num() == 0)
 		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Raw Mesh data contains no mesh data to build a mesh that can be rendered."));
+			return false;
+		}
+		else if (LODMeshes[0].WedgeIndices.Num() == 0)
+		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Raw Mesh data contains no wedge index data to build a mesh that can be rendered."));
 			return false;
 		}
 
@@ -2948,9 +2979,16 @@ public:
 		return true;
 	}
 
-	bool ReduceLODs(TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, IMeshReduction* MeshReduction, bool& bOutWasReduced)
+	bool ReduceLODs(const FStaticMeshLODGroup& LODGroup, IMeshReduction* MeshReduction, TArray<bool>& OutWasReduced)
 	{
 		check(Stage == EStage::Gathered);
+		check(StaticMesh != nullptr);
+		TArray<FStaticMeshSourceModel>& SourceModels = StaticMesh->SourceModels;
+		if (SourceModels.Num() == 0)
+		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Mesh contains zero source models."));
+			return false;
+		}
 
 		FMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<FMeshUtilities>("MeshUtilities");
 
@@ -2979,12 +3017,54 @@ public:
 					UE_LOG(LogMeshUtilities, Error, TEXT("Mesh reduction produced a corrupt mesh for LOD%d"), LODIndex);
 					return false;
 				}
-				bOutWasReduced = true;
+				OutWasReduced[LODIndex] = true;
 
 				// Recompute adjacency information.
 				DestOverlappingCorners.Reset();
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[NumValidLODs]);
 				MeshUtilities.FindOverlappingCorners(DestOverlappingCorners, DestMesh, ComparisonThreshold);
+
+				//Make sure the static mesh SectionInfoMap is up to date with the new reduce LOD
+				//We have to remap the material index with the ReductionSettings.BaseLODModel sectionInfoMap
+				if (StaticMesh != nullptr)
+				{
+					if (DestMesh.IsValid())
+					{
+						//Set the new SectionInfoMap for this reduced LOD base on the ReductionSettings.BaseLODModel OriginalSectionInfoMap
+						const FMeshSectionInfoMap& BaseLODModelSectionInfoMap = StaticMesh->OriginalSectionInfoMap;
+						TArray<int32> UniqueMaterialIndex;
+						//Find all unique Material in used order
+						int32 NumFaces = DestMesh.FaceMaterialIndices.Num();
+						for (int32 FaceIndex = 0; FaceIndex < NumFaces; ++FaceIndex)
+						{
+							int32 MaterialIndex = DestMesh.FaceMaterialIndices[FaceIndex];
+							UniqueMaterialIndex.AddUnique(MaterialIndex);
+						}
+						//All used material represent a different section
+						for (int32 SectionIndex = 0; SectionIndex < UniqueMaterialIndex.Num(); ++SectionIndex)
+						{
+							//Section material index have to be remap with the ReductionSettings.BaseLODModel SectionInfoMap to create
+							//a valid new section info map for the reduced LOD.
+							if (BaseLODModelSectionInfoMap.IsValidSection(ReductionSettings.BaseLODModel, UniqueMaterialIndex[SectionIndex]))
+							{
+								FMeshSectionInfo SectionInfo = BaseLODModelSectionInfoMap.Get(ReductionSettings.BaseLODModel, UniqueMaterialIndex[SectionIndex]);
+								//Try to recuperate the valid data
+								if (StaticMesh->SectionInfoMap.IsValidSection(LODIndex, SectionIndex))
+								{
+									//If the old LOD section was using the same Material copy the data
+									FMeshSectionInfo OriginalLODSectionInfo = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
+									if (OriginalLODSectionInfo.MaterialIndex == SectionInfo.MaterialIndex)
+									{
+										SectionInfo.bCastShadow = OriginalLODSectionInfo.bCastShadow;
+										SectionInfo.bEnableCollision = OriginalLODSectionInfo.bEnableCollision;
+									}
+								}
+								//Copy the BaseLODModel section info to the reduce LODIndex.
+								StaticMesh->SectionInfoMap.Set(LODIndex, SectionIndex, SectionInfo);
+							}
+						}
+					}
+				}
 			}
 
 			if (LODMeshes[NumValidLODs].WedgeIndices.Num() > 0)
@@ -2995,15 +3075,21 @@ public:
 
 		if (NumValidLODs < 1)
 		{
+			UE_LOG(LogMeshUtilities, Error, TEXT("Mesh reduction produced zero LODs."));
 			return false;
 		}
 		Stage = EStage::Reduce;
 		return true;
 	}
 
-	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& InOutModels, int32 ImportVersion)
+	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData)
 	{
 		check(Stage == EStage::Reduce);
+		check(StaticMesh != nullptr);
+
+		TArray<FStaticMeshSourceModel>& InOutModels = StaticMesh->SourceModels;
+		int32 ImportVersion = StaticMesh->ImportVersion;
+
 		// Generate per-LOD rendering data.
 		OutRenderData.AllocateLODResources(NumValidLODs);
 		for (int32 LODIndex = 0; LODIndex < NumValidLODs; ++LODIndex)
@@ -3106,9 +3192,9 @@ public:
 				}
 			}
 			LODModel.IndexBuffer.SetIndices(CombinedIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
-
+			
 			// Build the reversed index buffer.
-			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer)
+			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer && MeshUtilities.bEnableReversedIndexBuffer)
 			{
 				TArray<uint32> InversedIndices;
 				const int32 IndexCount = CombinedIndices.Num();
@@ -3129,13 +3215,14 @@ public:
 
 			// Build the depth-only index buffer.
 			TArray<uint32> DepthOnlyIndices;
+			if (MeshUtilities.bEnableDepthOnlyIndexBuffer)
 			{
 				BuildDepthOnlyIndexBuffer(
 					DepthOnlyIndices,
 					Vertices,
 					CombinedIndices,
 					LODModel.Sections
-					);
+				);
 
 				if (DepthOnlyIndices.Num() < 50000 * 3)
 				{
@@ -3146,7 +3233,7 @@ public:
 			}
 
 			// Build the inversed depth only index buffer.
-			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer)
+			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer && MeshUtilities.bEnableDepthOnlyIndexBuffer && MeshUtilities.bEnableReversedIndexBuffer)
 			{
 				TArray<uint32> ReversedDepthOnlyIndices;
 				const int32 IndexCount = DepthOnlyIndices.Num();
@@ -3218,9 +3305,12 @@ public:
 		return true;
 	}
 
-	bool ReplaceRawMeshModels(TArray<FStaticMeshSourceModel>& SourceModels)
+	bool ReplaceRawMeshModels()
 	{
 		check(Stage == EStage::Reduce);
+		check(StaticMesh != nullptr);
+
+		TArray<FStaticMeshSourceModel>& SourceModels = StaticMesh->SourceModels;
 
 		check(HasRawMesh[0]);
 		check(SourceModels.Num() >= NumValidLODs);
@@ -3257,44 +3347,54 @@ private:
 	float LODMaxDeviation[MAX_STATIC_MESH_LODS];
 	FMeshBuildSettings LODBuildSettings[MAX_STATIC_MESH_LODS];
 	bool HasRawMesh[MAX_STATIC_MESH_LODS];
+	UStaticMesh* StaticMesh;
 };
 
-bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion, int32 ImportVersion)
+bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, UStaticMesh* StaticMesh, const FStaticMeshLODGroup& LODGroup)
 {
+	TArray<FStaticMeshSourceModel>& SourceModels = StaticMesh->SourceModels;
+	int32 LightmapUVVersion = StaticMesh->LightmapUVVersion;
+	int32 ImportVersion = StaticMesh->ImportVersion;
+
 	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
-	FStaticMeshUtilityBuilder Builder;
-	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, Module.GetStaticMeshReductionInterface(), (ELightmapUVVersion)LightmapUVVersion))
+	FStaticMeshUtilityBuilder Builder(StaticMesh);
+	if (!Builder.GatherSourceMeshesPerLOD(Module.GetStaticMeshReductionInterface()))
 	{
 		return false;
 	}
 
-	bool bWasReduced = false;
-	if (!Builder.ReduceLODs(SourceModels, LODGroup, Module.GetStaticMeshReductionInterface(), bWasReduced))
+	TArray<bool> WasReduced;
+	WasReduced.AddZeroed(SourceModels.Num());
+	if (!Builder.ReduceLODs(LODGroup, Module.GetStaticMeshReductionInterface(), WasReduced))
 	{
 		return false;
 	}
 
-	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels, ImportVersion);
+	return Builder.GenerateRenderingMeshes(*this, OutRenderData);
 }
 
-bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion)
+bool FMeshUtilities::GenerateStaticMeshLODs(UStaticMesh* StaticMesh, const FStaticMeshLODGroup& LODGroup)
 {
-	FStaticMeshUtilityBuilder Builder;
+	TArray<FStaticMeshSourceModel>& Models = StaticMesh->SourceModels;
+	int32 LightmapUVVersion = StaticMesh->LightmapUVVersion;
+
+	FStaticMeshUtilityBuilder Builder(StaticMesh);
 	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
-	if (!Builder.GatherSourceMeshesPerLOD(Models, Module.GetStaticMeshReductionInterface(), (ELightmapUVVersion)LightmapUVVersion))
+	if (!Builder.GatherSourceMeshesPerLOD(Module.GetStaticMeshReductionInterface()))
 	{
 		return false;
 	}
 
-	bool bWasReduced = false;
-	if (!Builder.ReduceLODs(Models, LODGroup, Module.GetStaticMeshReductionInterface(), bWasReduced))
+	TArray<bool> WasReduced;
+	WasReduced.AddZeroed(Models.Num());
+	if (!Builder.ReduceLODs(LODGroup, Module.GetStaticMeshReductionInterface(), WasReduced))
 	{
 		return false;
 	}
 
-	if (bWasReduced)
+	if (WasReduced.Contains(true))
 	{
-		return Builder.ReplaceRawMeshModels(Models);
+		return Builder.ReplaceRawMeshModels();
 	}
 
 	return false;
@@ -5325,16 +5425,21 @@ void FMeshUtilities::StartupModule()
 
 	bUsingNvTriStrip = !bDisableTriangleOrderOptimization && (CVarTriangleOrderOptimization.GetValueOnGameThread() == 0);
 
+	bEnableDepthOnlyIndexBuffer = (CVarSupportDepthOnlyIndexBuffers.GetValueOnGameThread() == 1);
+	bEnableReversedIndexBuffer = (CVarSupportReversedIndexBuffers.GetValueOnGameThread() == 1);
+
 	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
 	IMeshReduction* StaticMeshReduction = Module.GetStaticMeshReductionInterface();
 	
 
 	// Construct and cache the version string for the mesh utilities module.
 	VersionString = FString::Printf(
-		TEXT("%s%s%s"),
+		TEXT("%s%s%s%s%s"),
 		MESH_UTILITIES_VER,
 		StaticMeshReduction ? *StaticMeshReduction->GetVersionString() : TEXT(""),
-		bUsingNvTriStrip ? TEXT("_NvTriStrip") : TEXT("")
+		bUsingNvTriStrip ? TEXT("_NvTriStrip") : TEXT(""),
+		bEnableDepthOnlyIndexBuffer ? TEXT("_DepthOnlyIB") : TEXT("_NoDepthOnlyIB"),
+		bEnableReversedIndexBuffer ? TEXT("_ReversedIB") : TEXT("_NoReversedIB")
 		);
 
 	// hook up level editor extension for skeletal mesh conversion
@@ -5501,7 +5606,7 @@ TSharedRef<FExtender> FMeshUtilities::GetAnimationBlueprintEditorToolbarExtender
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InAnimationBlueprintEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InAnimationBlueprintEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5536,7 +5641,7 @@ TSharedRef<FExtender> FMeshUtilities::GetAnimationEditorToolbarExtender(const TS
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InAnimationEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InAnimationEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5571,7 +5676,7 @@ TSharedRef<FExtender> FMeshUtilities::GetSkeletalMeshEditorToolbarExtender(const
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InSkeletalMeshEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",
@@ -5606,7 +5711,7 @@ TSharedRef<FExtender> FMeshUtilities::GetSkeletonEditorToolbarExtender(const TSh
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
-	UMeshComponent* MeshComponent = Cast<UMeshComponent>(InSkeletonEditor->GetPersonaToolkit()->GetPreviewMeshComponent());
+	UMeshComponent* MeshComponent = InSkeletonEditor->GetPersonaToolkit()->GetPreviewMeshComponent();
 
 	Extender->AddToolBarExtension(
 		"Asset",

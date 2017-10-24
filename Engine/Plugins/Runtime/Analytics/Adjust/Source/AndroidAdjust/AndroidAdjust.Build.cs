@@ -22,6 +22,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Analytics",
+					"ApplicationCore",
 					// ... add private dependencies that you statically link with here ...
 				}
 			);
@@ -35,7 +36,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 			bool bHasAdjustSDK = true; //  Directory.Exists(System.IO.Path.Combine(PluginPath, "ThirdParty", "adjust_library"));
             if (bHasAdjustSDK)
             {

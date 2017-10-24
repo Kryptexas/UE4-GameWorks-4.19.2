@@ -21,7 +21,7 @@ public class PhysXVehicleLib : ModuleRules
         switch (Config)
         {
             case UnrealTargetConfiguration.Debug:
-                if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                if (Target.bDebugBuildsActuallyUseDebugCRT)
                 {
                     return PhysXLibraryMode.Debug;
                 }
@@ -36,11 +36,11 @@ public class PhysXVehicleLib : ModuleRules
             case UnrealTargetConfiguration.DebugGame:
             case UnrealTargetConfiguration.Unknown:
             default:
-                if (BuildConfiguration.bUseShippingPhysXLibraries)
+                if (Target.bUseShippingPhysXLibraries)
                 {
                     return PhysXLibraryMode.Shipping;
                 }
-                else if (BuildConfiguration.bUseCheckedPhysXLibraries)
+                else if (Target.bUseCheckedPhysXLibraries)
                 {
                     return PhysXLibraryMode.Checked;
                 }
@@ -75,18 +75,18 @@ public class PhysXVehicleLib : ModuleRules
         PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
         string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
 
-        string PhysXLibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/Lib/";
+        string PhysXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib/";
 
         // Libraries and DLLs for windows platform
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            PublicLibraryPaths.Add(PhysXLibDir + "Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+            PublicLibraryPaths.Add(PhysXLibDir + "Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 
             PublicAdditionalLibraries.Add(String.Format("PhysX3Vehicle{0}_x64.lib", LibrarySuffix));
         }
-        else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+        else if (Target.Platform == UnrealTargetPlatform.Win32)
         {
-            PublicLibraryPaths.Add(PhysXLibDir + "Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+            PublicLibraryPaths.Add(PhysXLibDir + "Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 
             PublicAdditionalLibraries.Add(String.Format("PhysX3Vehicle{0}_x86.lib", LibrarySuffix));
         }
@@ -127,7 +127,23 @@ public class PhysXVehicleLib : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicAdditionalLibraries.Add(PhysXLibDir + "HTML5/PhysX3Vehicle" + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
+			string OpimizationSuffix = "";
+			if (Target.bCompileForSize)
+			{
+				OpimizationSuffix = "_Oz";
+			}
+			else
+			{
+				if (Target.Configuration == UnrealTargetConfiguration.Development)
+				{
+					OpimizationSuffix = "_O2";
+				}
+				else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					OpimizationSuffix = "_O3";
+				}
+			}
+            PublicAdditionalLibraries.Add(PhysXLibDir + "HTML5/PhysX3Vehicle" + OpimizationSuffix + ".bc");
         }
         else if (Target.Platform == UnrealTargetPlatform.PS4)
         {

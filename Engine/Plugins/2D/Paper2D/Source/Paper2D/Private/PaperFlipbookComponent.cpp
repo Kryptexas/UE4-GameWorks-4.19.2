@@ -408,11 +408,6 @@ UPaperFlipbook* UPaperFlipbookComponent::GetFlipbook()
 	return SourceFlipbook;
 }
 
-UMaterialInterface* UPaperFlipbookComponent::GetSpriteMaterial() const
-{
-	return GetMaterial(0);
-}
-
 void UPaperFlipbookComponent::SetSpriteColor(FLinearColor NewColor)
 {
 	// Can't set color on a static component

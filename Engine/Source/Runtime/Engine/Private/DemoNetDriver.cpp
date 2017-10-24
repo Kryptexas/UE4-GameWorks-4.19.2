@@ -31,6 +31,7 @@
 #include "Net/NetworkProfiler.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -768,20 +769,12 @@ void UDemoNetDriver::TickFlushAsyncEndOfFrame(float DeltaSeconds)
 void UDemoNetDriver::TickFlushInternal( float DeltaSeconds )
 {
 	// Set the context on the world for this driver's level collection.
-	const FLevelCollection* FoundCollection = nullptr;
-	if (GetWorld())
+	const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
 	{
-		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
-		{
-			if (LC.GetDemoNetDriver() == this)
-			{
-				FoundCollection = &LC;
-				break;
-			}
-		}
-	}
+		return Collection.GetDemoNetDriver() == this;
+	}) : INDEX_NONE;
 
-	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollectionIndex, GetWorld());
 
 	Super::TickFlush( DeltaSeconds );
 
@@ -870,21 +863,15 @@ static float GetClampedDeltaSeconds( UWorld* World, const float DeltaSeconds )
 
 void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 {
-	// Set the context on the world for this driver's level collection.
-	const FLevelCollection* FoundCollection = nullptr;
-	if (GetWorld())
-	{
-		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
-		{
-			if (LC.GetDemoNetDriver() == this)
-			{
-				FoundCollection = &LC;
-				break;
-			}
-		}
-	}
+	LLM_SCOPE(ELLMTag::Networking);
 
-	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+	// Set the context on the world for this driver's level collection.
+		const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
+	{
+		return Collection.GetDemoNetDriver() == this;
+	}) : INDEX_NONE;
+
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollectionIndex, GetWorld());
 
 	Super::TickDispatch( DeltaSeconds );
 
@@ -969,14 +956,23 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 
 void UDemoNetDriver::ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject )
 {
-	if ( IsRecording() )
+#if !UE_BUILD_SHIPPING
+	bool bBlockSendRPC = false;
+
+	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);
+
+	if (!bBlockSendRPC)
+#endif
 	{
-		if ((Function->FunctionFlags & FUNC_NetMulticast))
+		if ( IsRecording() )
 		{
-			// Handle role swapping if this is a client-recorded replay.
-			FScopedActorRoleSwap RoleSwap(Actor);
+			if ((Function->FunctionFlags & FUNC_NetMulticast))
+			{
+				// Handle role swapping if this is a client-recorded replay.
+				FScopedActorRoleSwap RoleSwap(Actor);
 			
-			InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
+				InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
+			}
 		}
 	}
 }
@@ -2483,7 +2479,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		}
 	}
 
-	AGameModeBase* DefaultGameMode = Cast<AGameModeBase>(DefaultGameModeClass.GetDefaultObject());
+	AGameModeBase* DefaultGameMode = DefaultGameModeClass.GetDefaultObject();
 	UClass* C = DefaultGameMode != nullptr ? DefaultGameMode->ReplaySpectatorPlayerControllerClass : nullptr;
 
 	if ( C == NULL )

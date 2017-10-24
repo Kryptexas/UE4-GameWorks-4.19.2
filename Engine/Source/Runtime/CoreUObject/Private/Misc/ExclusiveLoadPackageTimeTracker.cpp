@@ -1,6 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
+#include "Misc/OutputDeviceArchiveWrapper.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
 #include "Misc/ScopeLock.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/Class.h"
@@ -101,9 +105,32 @@ void FExclusiveLoadPackageTimeTracker::InternalPopLoadPackage(UPackage* LoadedPa
 	}
 }
 
-void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
+void FExclusiveLoadPackageTimeTracker::InternalDumpReport(const TArray<FString>& Args) const
 {
 	FScopeLock Lock(&TimesCritical);
+
+	const bool bLogOutputToFile = Args.ContainsByPredicate([](const FString& Arg) { return Arg.Compare(TEXT("FILE"), ESearchCase::IgnoreCase) == 0; });
+	const bool bAlphaSort       = Args.ContainsByPredicate([](const FString& Arg) { return Arg.Compare(TEXT("-ALPHASORT"), ESearchCase::IgnoreCase) == 0; });
+
+	FOutputDevice* ReportAr = GLog;
+	FArchive* FileAr = nullptr;
+	FOutputDeviceArchiveWrapper* FileArWrapper = nullptr;
+	FString FilenameFull;
+
+	if (bLogOutputToFile)
+	{
+		const FString PathName = *(FPaths::ProfilingDir() + TEXT("LoadReports/"));
+		IFileManager::Get().MakeDirectory(*PathName);
+
+		const FString Filename = CreateProfileFilename(TEXT(""), TEXT(".loadreport"), true);
+		FilenameFull = PathName + Filename;
+
+		FileAr = IFileManager::Get().CreateDebugFileWriter(*FilenameFull);
+		FileArWrapper = new FOutputDeviceArchiveWrapper(FileAr);
+		ReportAr = FileArWrapper;
+
+		UE_LOG(LogLoad, Log, TEXT("LoadTimes.DumpReport: saving to %s"), *FilenameFull);
+	}
 
 	/** Struct to assemble times for assets loaded by class */
 	struct FTimeCount
@@ -148,31 +175,50 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 
 	const FLoadTime* EndLoadTime = LoadTimes.Find(EndLoadName);
 	const int32 NumNonAssetTimes = EndLoadTime ? 1 : 0;
-	UE_LOG(LogLoad, Log, TEXT("Loaded: %d packages"), LoadTimes.Num() - NumNonAssetTimes);
-	UE_LOG(LogLoad, Log, TEXT("Total time loading packages: %.3f seconds"), TotalLoadTime);
-	UE_LOG(LogLoad, Log, TEXT("Time spent loading assets slower than %.1fms: %.3f seconds"), SlowAssetThreshold * 1000, SlowAssetTime);
-	UE_LOG(LogLoad, Log, TEXT("Slowest asset: %s (%.1fms)"), *LongestLoadName.ToString(), LongestLoadTime * 1000);
-	UE_LOG(LogLoad, Log, TEXT("Time spent in EndLoad: %.3f seconds"), EndLoadTime ? EndLoadTime->ExclusiveTime : 0.f);
-	UE_LOG(LogLoad, Log, TEXT("Time spent in overhead tracking asset load times: %.6f seconds"), TrackerOverhead);
+	ReportAr->Logf(TEXT("Loaded: %d packages"), LoadTimes.Num() - NumNonAssetTimes);
+	ReportAr->Logf(TEXT("Total time loading packages: %.3f seconds"), TotalLoadTime);
+	ReportAr->Logf(TEXT("Time spent loading assets slower than %.1fms: %.3f seconds"), SlowAssetThreshold * 1000, SlowAssetTime);
+	ReportAr->Logf(TEXT("Slowest asset: %s (%.1fms)"), *LongestLoadName.ToString(), LongestLoadTime * 1000);
+	ReportAr->Logf(TEXT("Time spent in EndLoad: %.3f seconds"), EndLoadTime ? EndLoadTime->ExclusiveTime : 0.f);
+	ReportAr->Logf(TEXT("Time spent in overhead tracking asset load times: %.6f seconds"), TrackerOverhead);
 
-	UE_LOG(LogLoad, Log, TEXT("Dumping asset type load times sorted by exclusive time:"));
+	ReportAr->Logf(TEXT("Dumping asset type load times sorted by exclusive time:"));
 	TArray<FTimeCount> SortedAssetTypeLoadTimes;
 	AssetTypeLoadTimes.GenerateValueArray(SortedAssetTypeLoadTimes);
 	SortedAssetTypeLoadTimes.Sort([](const FTimeCount& A, const FTimeCount& B){ return A.ExclusiveTime >= B.ExclusiveTime; });
 	for (const FTimeCount& TimeCount : SortedAssetTypeLoadTimes)
 	{
-		UE_LOG(LogLoad, Log, TEXT("    %.3f: %s (%d packages, %.1fms per package)"), TimeCount.ExclusiveTime, *TimeCount.AssetClass.ToString(), TimeCount.Count, TimeCount.ExclusiveTime / TimeCount.Count * 1000);
+		ReportAr->Logf(TEXT("    %.3f: %s (%d packages, %.1fms per package)"), TimeCount.ExclusiveTime, *TimeCount.AssetClass.ToString(), TimeCount.Count, TimeCount.ExclusiveTime / TimeCount.Count * 1000);
 	}
-
+	
 	// Assets faster than this will be excluded
-	const double LowTimeThreshold = 0.05;
+	double LowTimeThreshold = 0.05;
+
+	const FString* LowTimeArg = Args.FindByPredicate([](const FString& Arg) { return Arg.StartsWith(TEXT("LOWTIME="), ESearchCase::IgnoreCase); });
+	if (LowTimeArg != nullptr)
+	{
+		float LowTimeThresholdParam = 0.0F;
+		if (FParse::Value(**LowTimeArg, TEXT("LOWTIME="), LowTimeThresholdParam))
+		{
+			LowTimeThreshold = (double)LowTimeThresholdParam;
+		}
+		
+	}
 
 	TArray<FLoadTime> SortedLoadTimes;
 	LoadTimes.GenerateValueArray(SortedLoadTimes);
 	
 	{
-		UE_LOG(LogLoad, Log, TEXT("Dumping all loaded assets by exclusive load time:"));
-		SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B){ return A.ExclusiveTime >= B.ExclusiveTime; });
+		ReportAr->Logf(TEXT("Dumping all loaded assets by exclusive load time:"));
+		if (bAlphaSort)
+		{
+			SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B) { return A.TimeName < B.TimeName; });
+		}
+		else
+		{
+			SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B) { return A.ExclusiveTime >= B.ExclusiveTime; });
+		}
+
 		int32 LowThresholdCount = 0;
 		double TotalLowTime = 0;
 		for (int32 LoadTimeIdx = 0; LoadTimeIdx < SortedLoadTimes.Num(); ++LoadTimeIdx)
@@ -182,7 +228,7 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 			{
 				if (LoadTime.ExclusiveTime > LowTimeThreshold)
 				{
-					UE_LOG(LogLoad, Log, TEXT("    %.1fms: %s"), LoadTime.ExclusiveTime * 1000, *LoadTime.TimeName.ToString());
+					ReportAr->Logf(TEXT("    %.1fms: %s"), LoadTime.ExclusiveTime * 1000, *LoadTime.TimeName.ToString());
 				}
 				else
 				{
@@ -194,13 +240,21 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 
 		if (LowThresholdCount > 0)
 		{
-			UE_LOG(LogLoad, Log, TEXT("    ... skipped %d assets that loaded in less than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
+			ReportAr->Logf(TEXT("    ... skipped %d assets that loaded in less than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
 		}
 	}
 
 	{
-		UE_LOG(LogLoad, Log, TEXT("Dumping all loaded assets by inclusive load time:"));
-		SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B){ return A.InclusiveTime >= B.InclusiveTime; });
+		ReportAr->Logf(TEXT("Dumping all loaded assets by inclusive load time:"));
+		if (bAlphaSort)
+		{
+			SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B) { return A.TimeName < B.TimeName; });
+		}
+		else
+		{
+			SortedLoadTimes.Sort([](const FLoadTime& A, const FLoadTime& B) { return A.InclusiveTime >= B.InclusiveTime; });
+		}
+		
 		int32 LowThresholdCount = 0;
 		double TotalLowTime = 0;
 		for (int32 LoadTimeIdx = 0; LoadTimeIdx < SortedLoadTimes.Num(); ++LoadTimeIdx)
@@ -210,7 +264,7 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 			{
 				if (LoadTime.InclusiveTime > LowTimeThreshold)
 				{
-					UE_LOG(LogLoad, Log, TEXT("    %.1fms: %s"), LoadTime.InclusiveTime * 1000, *LoadTime.TimeName.ToString());
+					ReportAr->Logf(TEXT("    %.1fms: %s"), LoadTime.InclusiveTime * 1000, *LoadTime.TimeName.ToString());
 				}
 				else
 				{
@@ -222,8 +276,15 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 
 		if (LowThresholdCount > 0)
 		{
-			UE_LOG(LogLoad, Log, TEXT("    ... skipped %d assets slower than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
+			ReportAr->Logf(TEXT("    ... skipped %d assets slower than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
 		}
+	}
+
+	if (FileArWrapper != nullptr)
+	{
+		FileArWrapper->TearDown();
+		delete FileArWrapper;
+		delete FileAr;
 	}
 }
 
@@ -265,7 +326,7 @@ bool FExclusiveLoadPackageTimeTracker::IsPackageLoadTime(const FLoadTime& Time) 
 
 void FExclusiveLoadPackageTimeTracker::DumpReportCommandHandler(const TArray<FString>& Args)
 {
-	DumpReport();
+	DumpReport(Args);
 }
 
 void FExclusiveLoadPackageTimeTracker::ResetReportCommandHandler(const TArray<FString>& Args)

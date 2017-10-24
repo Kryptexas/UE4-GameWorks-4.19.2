@@ -4,6 +4,8 @@
 #include "HAL/PlatformProcess.h"
 #include "Misc/Paths.h"
 #include "DesktopPlatformModule.h"
+#include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogKDevelopAccessor, Log, All);
 
@@ -24,6 +26,12 @@ void FKDevelopSourceCodeAccessor::Shutdown()
 
 bool FKDevelopSourceCodeAccessor::OpenSolution()
 {
+	FString SolutionPath = GetSolutionPath();
+	return OpenSolutionAtPath(SolutionPath);
+}
+
+bool FKDevelopSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
 	if (IsIDERunning())
 	{
 		// use qdbus to open the project within session?
@@ -31,7 +39,12 @@ bool FKDevelopSourceCodeAccessor::OpenSolution()
 		return false;
 	}
 
-	FString Solution = GetSolutionPath();
+	FString SolutionPath = InSolutionPath;
+	if (!SolutionPath.EndsWith(TEXT(".kdev4")))
+	{
+		SolutionPath += TEXT(".kdev4");
+	}
+
 	FString IDEPath;
 	if (!CanRunKDevelop(IDEPath))
 	{
@@ -39,13 +52,20 @@ bool FKDevelopSourceCodeAccessor::OpenSolution()
 		return false;
 	}
 	
-	FProcHandle Proc = FPlatformProcess::CreateProc(*IDEPath, *Solution, true, false, false, nullptr, 0, nullptr, nullptr);
+	FProcHandle Proc = FPlatformProcess::CreateProc(*IDEPath, *SolutionPath, true, false, false, nullptr, 0, nullptr, nullptr);
 	if (Proc.IsValid())
 	{
 		FPlatformProcess::CloseProc(Proc);
 		return true;
 	}
 	return false;
+}
+
+bool FKDevelopSourceCodeAccessor::DoesSolutionExist() const
+{
+	FString SolutionPath = GetSolutionPath();
+	UE_LOG(LogKDevelopAccessor, Display, TEXT("SolutionPath: %s"), *SolutionPath);
+	return FPaths::FileExists(SolutionPath);
 }
 
 bool FKDevelopSourceCodeAccessor::CanRunKDevelop(FString& OutPath) const
@@ -115,7 +135,7 @@ bool FKDevelopSourceCodeAccessor::CanAccessSourceCode() const
 
 FName FKDevelopSourceCodeAccessor::GetFName() const
 {
-	return FName("KDevelopSourceCodeAccessor");
+	return FName("KDevelop");
 }
 
 FText FKDevelopSourceCodeAccessor::GetNameText() const
@@ -139,10 +159,16 @@ FString FKDevelopSourceCodeAccessor::GetSolutionPath() const
 {
 	if(IsInGameThread())
 	{
-		FString SolutionPath;
-		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+		CachedSolutionPath = FPaths::ProjectDir();
+		
+		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 		{
-			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
+			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.kdev4"));
+		}
+		else
+		{
+			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".kdev4"));
 		}
 	}
 	return CachedSolutionPath;

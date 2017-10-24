@@ -1377,7 +1377,7 @@ public:
 
 		ToolStroke.Reset();
 		EdMode->CurrentBrush->EndStroke();
-		EdMode->UpdateLayerUsageInformation();
+		EdMode->UpdateLayerUsageInformation(&EdMode->CurrentToolTarget.LayerInfo);
 		bExternalModifierPressed = false;
 	}
 

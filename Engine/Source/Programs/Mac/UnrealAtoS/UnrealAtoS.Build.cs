@@ -13,7 +13,8 @@ public class UnrealAtoS : ModuleRules
 			new string[] 
 			{ 
 				"Core",
-				"Projects"
+				"Projects",
+                "ApplicationCore"
 			}
 			);
 	}

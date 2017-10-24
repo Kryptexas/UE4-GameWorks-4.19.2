@@ -105,9 +105,39 @@ The context menu is opened by clicking on ![Context Menu Button](ContextMenuButt
 
 |Class Type|Options|Description|
 |----------|-------|-----------|
-|**Blueprint Class**|**Create Blueprint...**<br>**Edit Blueprint...**<br>**Find In Content Browser**|Creates a new Blueprint parented to the selected Blueprint.<br>Opens the selected Blueprint in the [Blueprint Editor](Engine/Blueprints).<br>Finds the Blueprint Actor in the [Content Browser](Engine/Content/Browser).|
-|**Code Class**|**Create Blueprint...**<br>**Open C++ Header File...**<br>**Create New C++ Class...**|Creates a new Blueprint parented to the selected Blueprint.<br>Opens up the class header file in Visual Studio.<br>Opens the [](Programming\Development\ManagingGameCode\CppClassWizard) to create a new class with the selected class as the Parent class.|
+|**Blueprint Class**|[INCLUDE:#bpclassoptions]|[INCLUDE:#bpclassoptiondesc]|
+|**Code Class**|[INCLUDE:#codeclassoptions]|[INCLUDE:#codeclassoptiondesc]|
 
+<!--
+[EXCERPT:BPClassOptions]
+[REGION:plain_list]
+* **Create Blueprint...**
+* **Edit Blueprint...**
+* **Find In Content Browser**
+[/REGION]
+[/EXCERPT:BPClassOptions]
+[EXCERPT:BPClassOptionDesc]
+[REGION:plain_list]
+* Creates a new Blueprint parented to the selected Blueprint.
+* Opens the selected Blueprint in the [Blueprint Editor](Engine/Blueprints).
+* Finds the Blueprint Actor in the [Content Browser](Engine/Content/Browser).
+[/REGION]
+[/EXCERPT:BPClassOptionDesc]
+[EXCERPT:CodeClassOptions]
+[REGION:plain_list]
+* **Create Blueprint...**
+* **Open C++ Header File...**
+* **Create New C++ Class...**
+[/REGION]
+[/EXCERPT:CodeClassOptions]
+[EXCERPT:CodeClassOptionDesc]
+[REGION:plain_list]
+* Creates a new Blueprint parented to the selected Blueprint.
+* Opens up the class header file in Visual Studio.
+* Opens the [](Programming\Development\ManagingGameCode\CppClassWizard) to create a new class with the selected class as the Parent class.
+[/REGION]
+[/EXCERPT:CodeClassOptionDesc]
+-->
 
 ## Drag & Dropping
 Dropping a Blueprint class Actor into a viewport will add the Actor to the scene. When successfully dragging a Class, the mouse will show what class is in hand. Only one class can be dragged at a time.

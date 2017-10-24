@@ -49,6 +49,8 @@
 /** Whether there is a skill update in progress or not (don't do multiple at once) */
 /** Whether to shrink the session slots when a player leaves the match or not */
 
+#define INVALID_SESSION_SETTING_ID -1
+
 /**
  *	One setting describing an online session
  * contains a key, value and how this setting is advertised to others, if at all
@@ -67,7 +69,7 @@ public:
 	/** Default constructor, used when serializing a network packet */
 	FOnlineSessionSetting()
 		: AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
-		, ID(-1)
+		, ID(INVALID_SESSION_SETTING_ID)
 	{
 	}
 
@@ -76,7 +78,7 @@ public:
 	FOnlineSessionSetting(Type&& InData)
 		: Data(Forward<Type>(InData))
 		, AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
-		, ID(-1)
+		, ID(INVALID_SESSION_SETTING_ID)
 	{
 	}
 
@@ -85,7 +87,7 @@ public:
 	FOnlineSessionSetting(Type&& InData, EOnlineDataAdvertisementType::Type InAdvertisementType)
 		: Data(Forward<Type>(InData))
 		, AdvertisementType(InAdvertisementType)
-		, ID(-1)
+		, ID(INVALID_SESSION_SETTING_ID)
 	{
 	}
 
@@ -114,7 +116,14 @@ public:
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("%s : %s : %d"), *Data.ToString(), EOnlineDataAdvertisementType::ToString(AdvertisementType), ID);
+		if (ID == INVALID_SESSION_SETTING_ID)
+		{
+			return FString::Printf(TEXT("%s : %s"), *Data.ToString(), EOnlineDataAdvertisementType::ToString(AdvertisementType));
+		}
+		else
+		{
+			return FString::Printf(TEXT("%s : %s : %d"), *Data.ToString(), EOnlineDataAdvertisementType::ToString(AdvertisementType), ID);
+		}
 	}
 };
 
@@ -145,7 +154,7 @@ public:
 	FOnlineSessionSearchParam(Type&& InData)
 		: Data(Forward<Type>(InData))
 		, ComparisonOp(EOnlineComparisonOp::Equals)
-		, ID(-1)
+		, ID(INVALID_SESSION_SETTING_ID)
 	{
 	}
 
@@ -154,7 +163,7 @@ public:
 	FOnlineSessionSearchParam(Type&& InData, EOnlineComparisonOp::Type InComparisonOp)
 		: Data(Forward<Type>(InData))
 		, ComparisonOp(InComparisonOp)
-		, ID(-1)
+		, ID(INVALID_SESSION_SETTING_ID)
 	{
 	}
 

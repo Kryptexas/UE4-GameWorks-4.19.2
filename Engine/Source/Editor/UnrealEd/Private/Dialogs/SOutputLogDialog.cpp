@@ -14,6 +14,7 @@
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 void SOutputLogDialog::Open( const FText& InTitle, const FText& InHeader, const FText& InLog, const FText& InFooter )
 {
@@ -182,8 +183,8 @@ FVector2D SOutputLogDialog::ComputeDesiredSize(float LayoutScaleMultiplier) cons
 
 void SOutputLogDialog::CopyMessageToClipboard( )
 {
-	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.ToString(), *Log.ToString(), *Footer.ToString()).Trim();
-	FPlatformMisc::ClipboardCopy( *FullMessage );
+	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.ToString(), *Log.ToString(), *Footer.ToString()).TrimStart();
+	FPlatformApplicationMisc::ClipboardCopy( *FullMessage );
 }
 
 FReply SOutputLogDialog::HandleButtonClicked( int32 InResponse )

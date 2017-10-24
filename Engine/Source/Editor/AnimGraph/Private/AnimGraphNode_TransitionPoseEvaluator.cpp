@@ -82,7 +82,7 @@ void UAnimGraphNode_TransitionPoseEvaluator::CustomizeDetails(IDetailLayoutBuild
 
 EVisibility UAnimGraphNode_TransitionPoseEvaluator::GetCacheFramesVisibility(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjectsList = DetailLayoutBuilder->GetSelectedObjects();
 	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
 	{
 		if(UAnimGraphNode_TransitionPoseEvaluator* TransitionPoseEvaluator = Cast<UAnimGraphNode_TransitionPoseEvaluator>(Object.Get()))

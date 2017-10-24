@@ -45,7 +45,7 @@ public:
 	*/
 	FORCEINLINE void* Allocate()
 	{
-#if USE_NIEVE_TLockFreeFixedSizeAllocator_TLSCacheBase
+#if USE_NIEVE_TLockFreeFixedSizeAllocator_TLSCacheBase || PLATFORM_HTML5
 		return FMemory::Malloc(SIZE);
 #else
 		FThreadLocalCache& TLS = GetTLS();
@@ -94,7 +94,7 @@ public:
 	*/
 	FORCEINLINE void Free(void *Item)
 	{
-#if USE_NIEVE_TLockFreeFixedSizeAllocator_TLSCacheBase
+#if USE_NIEVE_TLockFreeFixedSizeAllocator_TLSCacheBase || PLATFORM_HTML5
 		return FMemory::Free(Item);
 #else
 		NumUsed.Decrement();

@@ -19,7 +19,7 @@ FManifestUpdateHelper::FManifestUpdateHelper(const FString& InFilename)
 	}
 }
 
-bool FManifestUpdateHelper::Finalize(const FString& TargetFilename, bool bShowNotifyOnFailure, FFileHelper::EEncodingOptions::Type EncodingOption)
+bool FManifestUpdateHelper::Finalize(const FString& TargetFilename, bool bShowNotifyOnFailure, FFileHelper::EEncodingOptions EncodingOption)
 {
 	if (bManifestDirty)
 	{

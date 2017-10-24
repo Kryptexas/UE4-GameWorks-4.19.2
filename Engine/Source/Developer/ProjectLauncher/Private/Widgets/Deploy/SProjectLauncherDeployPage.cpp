@@ -1,16 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Deploy/SProjectLauncherDeployPage.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherDeployPage.h"
+
+#include "EditorStyleSet.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SlateOptMacros.h"
 #include "Textures/SlateIcon.h"
-#include "Framework/Commands/UIAction.h"
-#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SComboButton.h"
-#include "EditorStyleSet.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+
 #include "Widgets/Deploy/SProjectLauncherDeployFileServerSettings.h"
 #include "Widgets/Deploy/SProjectLauncherDeployToDeviceSettings.h"
 #include "Widgets/Deploy/SProjectLauncherDeployRepositorySettings.h"
@@ -22,7 +24,7 @@
 /* SProjectLauncherProfilePage structors
  *****************************************************************************/
 
-SProjectLauncherDeployPage::~SProjectLauncherDeployPage( )
+SProjectLauncherDeployPage::~SProjectLauncherDeployPage()
 {
 	if (Model.IsValid())
 	{
@@ -35,7 +37,7 @@ SProjectLauncherDeployPage::~SProjectLauncherDeployPage( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherDeployPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel, bool IsFromRepository )
+void SProjectLauncherDeployPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, bool IsFromRepository)
 {
 	Model = InModel;
 
@@ -157,7 +159,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 /* SProjectLauncherDevicesPage callbacks
  *****************************************************************************/
 
-FText SProjectLauncherDeployPage::HandleDeploymentModeComboButtonContentText( ) const
+FText SProjectLauncherDeployPage::HandleDeploymentModeComboButtonContentText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -192,7 +194,7 @@ FText SProjectLauncherDeployPage::HandleDeploymentModeComboButtonContentText( ) 
 }
 
 
-void SProjectLauncherDeployPage::HandleDeploymentModeMenuEntryClicked( ELauncherProfileDeploymentModes::Type DeploymentMode )
+void SProjectLauncherDeployPage::HandleDeploymentModeMenuEntryClicked(ELauncherProfileDeploymentModes::Type DeploymentMode)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -203,7 +205,7 @@ void SProjectLauncherDeployPage::HandleDeploymentModeMenuEntryClicked( ELauncher
 }
 
 
-EVisibility SProjectLauncherDeployPage::HandleDeployFileServerSettingsVisibility( ) const
+EVisibility SProjectLauncherDeployPage::HandleDeployFileServerSettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -219,7 +221,7 @@ EVisibility SProjectLauncherDeployPage::HandleDeployFileServerSettingsVisibility
 }
 
 
-EVisibility SProjectLauncherDeployPage::HandleDeployToDeviceSettingsVisibility( ) const
+EVisibility SProjectLauncherDeployPage::HandleDeployToDeviceSettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -238,7 +240,7 @@ EVisibility SProjectLauncherDeployPage::HandleDeployToDeviceSettingsVisibility( 
 }
 
 
-EVisibility SProjectLauncherDeployPage::HandleDeployRepositorySettingsVisibility( ) const
+EVisibility SProjectLauncherDeployPage::HandleDeployRepositorySettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -254,13 +256,13 @@ EVisibility SProjectLauncherDeployPage::HandleDeployRepositorySettingsVisibility
 }
 
 
-void SProjectLauncherDeployPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherDeployPage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 
 }
 
 
-EVisibility SProjectLauncherDeployPage::HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const
+EVisibility SProjectLauncherDeployPage::HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 

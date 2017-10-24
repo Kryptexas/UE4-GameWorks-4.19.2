@@ -23,10 +23,14 @@ THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#if PLATFORM_LINUX
+typedef CefBase CefBaseRefCounted;
+#endif
+
 class FUnrealCEFSubProcessRemoteScripting;
 
 class FUnrealCEFSubProcessRemoteObject
-	: public CefBase
+	: public CefBaseRefCounted
 {
 public:
 	FUnrealCEFSubProcessRemoteObject(FUnrealCEFSubProcessRemoteScripting* InRemoteScripting, CefRefPtr<CefBrowser> InBrowser, const FGuid& InObjectId)

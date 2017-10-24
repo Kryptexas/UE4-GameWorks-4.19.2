@@ -1,19 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
 #include "IOSTargetPlatform.h"
 #include "Interfaces/ITargetPlatformModule.h"
+#include "Modules/ModuleManager.h"
 
-/**
- * Holds the target platform singleton.
- */
-static ITargetPlatform* Singleton = NULL;
+
+/** Holds the target platform singleton. */
+static ITargetPlatform* Singleton = nullptr;
 
 
 /**
  * Module for TVOS as a target platform
  */
-class FTVOSTargetPlatformModule : public ITargetPlatformModule
+class FTVOSTargetPlatformModule
+	: public ITargetPlatformModule
 {
 public:
 
@@ -22,17 +22,16 @@ public:
 	 */
 	~FTVOSTargetPlatformModule()
 	{
-		Singleton = NULL;
+		Singleton = nullptr;
 	}
-
 
 public:
 
-	// Begin ITargetPlatformModule interface
+	//~ ITargetPlatformModule interface
 
 	virtual ITargetPlatform* GetTargetPlatform()
 	{
-		if (Singleton == NULL)
+		if (Singleton == nullptr)
 		{
 			Singleton = new FIOSTargetPlatform(true);
 		}
@@ -40,20 +39,13 @@ public:
 		return Singleton;
 	}
 
-	// End ITargetPlatformModule interface
-
-
 public:
 
-	// Begin IModuleInterface interface
-	virtual void StartupModule() override
-	{
-	}
+	//~ IModuleInterface interface
 
-	virtual void ShutdownModule() override
-	{
-	}
-	// End IModuleInterface interface
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
 };
 
-IMPLEMENT_MODULE( FTVOSTargetPlatformModule, TVOSTargetPlatform);
+
+IMPLEMENT_MODULE(FTVOSTargetPlatformModule, TVOSTargetPlatform);

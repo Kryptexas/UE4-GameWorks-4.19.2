@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -81,6 +81,13 @@ jclass Android_JNI_GetActivityClass(void);
 
 /* Generic messages */
 int Android_JNI_SendMessage(int command, int param);
+
+/* Init */
+JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls);
+
+/* MessageBox */
+#include "SDL_messagebox.h"
+int Android_JNI_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

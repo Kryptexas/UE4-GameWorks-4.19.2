@@ -53,7 +53,7 @@ public:
 
 public:
 
-	// SWidget overrides
+	//~ SWidget overrides
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;

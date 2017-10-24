@@ -4,20 +4,22 @@ Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Setting up a UE4 project to work with Google VR.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.16
+Version: 4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:multi-step
 tags:VR
 tags:Google VR
-
+Checkpoint: GoogleVRQS
 [NAV]
+
+In this part of the Google VR Quick Start, we will go over setting up your UE4 project so that it can be used with Google VR.
 
 [region:note]
 Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
 [/region]
 
- In this part of the Google VR Quick Start, we will go over setting up your UE4 project so that it can be used with Google VR.
+## Steps
 
 1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Edit** tab and select the **Plugins** menu item.
 
@@ -84,6 +86,7 @@ Google has a provided a very detailed document that goes over everything you nee
 		[PARAMLITERAL:type]
 		simple
 		[/PARAMLITERAL]
+	[/OBJECT]
 
 1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can package correctly.
 
@@ -144,7 +147,7 @@ Google has a provided a very detailed document that goes over everything you nee
 
     [/region]
 
-1. In the **Android SDK** section under the **SDKConfig** section set the **SDK API Level** to **matchndk**. Then set the **NDK API Level** to **android-24** to ensure that your project will be compiled against the most recent Android SDK.
+1. In the **Android SDK** section under the **SDKConfig** section set the **SDK API Level** to **android-24** and set the **NDK API Level** to ** android-19 ** to ensure that your project will be compiled against the most recent Android SDK.
 
     ![](GVRQS_Android_SDK_Options_00.png)
 
@@ -155,6 +158,7 @@ Google has a provided a very detailed document that goes over everything you nee
         * **JDK 1.8**
     [/region]
 
+## End Results
 
 In the next section of the Google VR Quick Start, we will go over what you have to do to package your UE4 project so that it will run on a Google VR device.
 

@@ -9,40 +9,46 @@ namespace UnrealBuildTool.Rules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"Media",
-				}
-			);
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-                    "AvfMediaFactory",
+					"AvfMediaFactory",
 					"Core",
+					"ApplicationCore",
+					"ShaderCore",
+					"MediaUtils",
 					"RenderCore",
 					"RHI",
-				}
-			);
+					"UtilityShaders",
+				});
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"UtilityShaders",
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Media",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"AvfMedia/Private",
 					"AvfMedia/Private/Player",
+					"AvfMedia/Private/Shared",
 					"AvfMedia/Private/Tracks",
-				}
-			);
+				});
 
 			PublicFrameworks.AddRange(
 				new string[] {
 					"CoreMedia",
+					"CoreVideo",
 					"AVFoundation",
 					"AudioToolbox",
 					"QuartzCore"
-				}
-			);
+				});
 		}
 	}
 }

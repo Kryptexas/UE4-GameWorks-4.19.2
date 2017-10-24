@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,18 @@ class UMG_API UBorder : public UContentWidget
 
 public:
 
+	/** The alignment of the content horizontally. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
+	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
+
+	/** The alignment of the content vertically. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
+	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+
+	/** Whether or not to show the disabled effect when this border is disabled */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	uint8 bShowEffectWhenDisabled:1;
+
 	/** Color and opacity multiplier of content in the border */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content", meta=( sRGB="true" ))
 	FLinearColor ContentColorAndOpacity;
@@ -43,14 +55,6 @@ public:
 	/** The padding area between the slot and the content it contains. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
 	FMargin Padding;
-
-	/** The alignment of the content horizontally. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/** The alignment of the content vertically. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** Brush to drag as the background */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, meta=( DisplayName="Brush" ))
@@ -76,10 +80,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Appearance)
 	FVector2D DesiredSizeScale;
-
-	/** Whether or not to show the disabled effect when this border is disabled */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	bool bShowEffectWhenDisabled;
 
 public:
 
@@ -189,10 +189,12 @@ protected:
 	/** Translates the bound brush data and assigns it to the cached brush used by this widget. */
 	const FSlateBrush* ConvertImage(TAttribute<FSlateBrush> InImageAsset) const;
 
+#if WITH_EDITORONLY_DATA
 protected:
 	/** Image to use for the border */
 	UPROPERTY()
 	USlateBrushAsset* Brush_DEPRECATED;
+#endif
 
 	PROPERTY_BINDING_IMPLEMENTATION(FLinearColor, ContentColorAndOpacity)
 };

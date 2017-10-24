@@ -340,12 +340,6 @@ void UProjectileMovementComponent::SetVelocityInLocalSpace(FVector NewVelocity)
 }
 
 
-// Deprecated
-FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled_UNUSED) const
-{
-	return ComputeVelocity(OldVelocity, DeltaTime);
-}
-
 FVector UProjectileMovementComponent::ComputeVelocity(FVector InitialVelocity, float DeltaTime) const
 {
 	// v = v0 + a*t
@@ -403,11 +397,6 @@ FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& I
 	return HomingAcceleration;
 }
 
-// Deprecated
-float UProjectileMovementComponent::GetEffectiveGravityZ() const
-{
-	return GetGravityZ();
-}
 
 float UProjectileMovementComponent::GetGravityZ() const
 {

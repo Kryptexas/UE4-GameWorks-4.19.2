@@ -58,7 +58,7 @@ namespace Audio
 		void ClearSoundEffectSubmixes();
 
 		// Function which processes audio.
-		void ProcessAudio(TArray<float>& OutAudio);
+		void ProcessAudio(AlignedFloatBuffer& OutAudio);
 
 		// Returns the device sample rate this submix is rendering to
 		int32 GetSampleRate() const;
@@ -77,9 +77,15 @@ namespace Audio
 
 	protected:
 		// Down mix the given buffer to the desired down mix channel count
-		void DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer);
+		void DownmixBuffer(const int32 InputChannelCount, const AlignedFloatBuffer& InBuffer, const int32 DownMixChannelCount, AlignedFloatBuffer& OutDownmixedBuffer);
 
 	protected:
+
+		// Pump command queue
+		void PumpCommandQueue();
+
+		// Add command to the command queue
+		void SubmixCommand(TFunction<void()> Command);
 
 		// This mixer submix's Id
 		uint32 Id;
@@ -114,8 +120,11 @@ namespace Audio
 		// Map of mixer source voices with a given send level for this submix
 		TMap<FMixerSourceVoice*, float> MixerSourceVoices;
 
-		TArray<float> ScratchBuffer;
-		TArray<float> DownmixedBuffer;
+		AlignedFloatBuffer ScratchBuffer;
+		AlignedFloatBuffer DownmixedBuffer;
+
+		// Submic command queue to shuffle commands from audio thread to audio render thread.
+		TQueue<TFunction<void()>> CommandQueue;
 
 		friend class FMixerDevice;
 	};

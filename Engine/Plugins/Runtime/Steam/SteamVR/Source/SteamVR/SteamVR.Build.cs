@@ -34,7 +34,7 @@ namespace UnrealBuildTool.Rules
 				}
 				);
             
-            if (UEBuildConfiguration.bBuildEditor == true)
+            if (Target.bBuildEditor == true)
             {
                 PrivateDependencyModuleNames.Add("UnrealEd");
             }
@@ -49,6 +49,12 @@ namespace UnrealBuildTool.Rules
 
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
                 PrivateDependencyModuleNames.Add("VulkanRHI");
+            }
+            else if (Target.Platform == UnrealTargetPlatform.Mac)
+            {
+				PublicFrameworks.Add("IOSurface");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
+                PrivateDependencyModuleNames.AddRange(new string[] { "MetalRHI" });
             }
             else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 			{

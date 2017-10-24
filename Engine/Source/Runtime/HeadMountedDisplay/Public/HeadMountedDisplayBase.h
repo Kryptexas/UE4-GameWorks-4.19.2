@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IHeadMountedDisplay.h"
+#include "XRTrackingSystemBase.h"
 #include "DefaultSpectatorScreenController.h"
 
 /**
@@ -10,7 +11,7 @@
  * You can extend this class instead of IHeadMountedDisplay directly when implementing support for new HMD devices.
  */
 
-class HEADMOUNTEDDISPLAY_API FHeadMountedDisplayBase : public IHeadMountedDisplay
+class HEADMOUNTEDDISPLAY_API FHeadMountedDisplayBase : public FXRTrackingSystemBase, public IHeadMountedDisplay, public IStereoRendering
 {
 
 public:
@@ -21,15 +22,22 @@ public:
 	 */
 	virtual void RecordAnalytics() override;
 
+	/** 
+	 * Default IXRTrackingSystem implementation
+	 */
+	virtual bool IsHeadTrackingAllowed() const override;
 
 	/** 
 	 * Default stereo layer implementation
 	 */
 	virtual IStereoLayers* GetStereoLayers() override;
-	virtual void GatherViewExtensions(TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>>& OutViewExtensions) override;
 
-	/** Overridden so the late update HMD transform can be passed on to the default stereo layers implementation */
-	virtual void ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform) override;
+	virtual bool GetHMDDistortionEnabled() const override;
+	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+	virtual void BeginRendering_GameThread() override;
+
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override;
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 
 	virtual bool IsSpectatorScreenActive() const override;
 
@@ -37,7 +45,11 @@ public:
 	virtual class ISpectatorScreenController const* GetSpectatorScreenController() const override;
 
 	// Spectator Screen Hooks into specific implementations
-	virtual FIntRect GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const { return FIntRect(0, 0, 1, 1); }
+	// Get the point on the left eye render target which the viewers eye is aimed directly at when looking straight forward. 0,0 is top left.
+	virtual FVector2D GetEyeCenterPoint_RenderThread(EStereoscopicPass Eye) const;
+	// Get the rectangle of the HMD rendertarget for the left eye which seems undistorted enough to be cropped and displayed on the spectator screen.
+	virtual FIntRect GetFullFlatEyeRect_RenderThread(FTexture2DRHIRef EyeTexture) const { return FIntRect(0, 0, 1, 1); }
+	// Helper to copy one render target into another for spectator screen display
 	virtual void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const {}
 
 protected:

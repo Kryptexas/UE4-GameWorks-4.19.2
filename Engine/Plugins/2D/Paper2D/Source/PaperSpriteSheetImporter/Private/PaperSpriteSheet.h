@@ -19,7 +19,7 @@ public:
 	TArray<FString> SpriteNames;
 
 	UPROPERTY(VisibleAnywhere, Category=Data)
-	TArray< TAssetPtr<class UPaperSprite> > Sprites;
+	TArray< TSoftObjectPtr<class UPaperSprite> > Sprites;
 
 	// The name of the default or diffuse texture during import
 	UPROPERTY(VisibleAnywhere, Category=Data)

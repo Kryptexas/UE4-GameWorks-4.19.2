@@ -232,7 +232,7 @@ public:
 
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent*,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override
 	{
-		HHitProxy* ModelHitProxy = new HModel(CastChecked<UModelComponent>(Component), Component->GetModel());
+		HHitProxy* ModelHitProxy = new HModel(Component, Component->GetModel());
 		OutHitProxies.Add(ModelHitProxy);
 		return ModelHitProxy;
 	}

@@ -132,8 +132,8 @@ class FFuncReflection;
  *	readwriteupcast		- UIntProperty									arraycheck	assign
  *	readwriteupcast		- UInt64Property								arraycheck	assign
  *					- ObjectPropertyBase
- *						- AssetObjectProperty
- *							- AssetClassProperty
+ *						- SoftObjectProperty
+ *							- SoftClassProperty
  *						- LazyObjectProperty
  *	readwrite			- ObjectProperty								arraycheck
  *	inherited				- ClassProperty								inherited

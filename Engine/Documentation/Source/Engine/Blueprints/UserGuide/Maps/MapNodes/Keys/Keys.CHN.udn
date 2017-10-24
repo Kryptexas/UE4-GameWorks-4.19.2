@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Keys
-Description:Outputs an Array of all keys present in the Map.
-Crumbs:
+Description:输出 Map 中所有键的阵列。
+Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Maps/MapNodes
 Order:5
-Version: 4.15
+Version:4.15
 Tags:Blueprints
 Type:reference
 
@@ -13,22 +13,22 @@ Type:reference
 
 ![](Map_KeysNode.png)
 
-The **Keys** node outputs an Array of all keys that are present in a given Map.
+**Keys** 节点输出一个给定 Map 中所有键的阵列。
 
-##Inputs
+## 输入
 
-| Pin Location            | Name        | Description                           |
+| 引脚位置            | 名称        | 描述                           |
 | ----------------------- | ----------- | ------------------------------------- |
-| ![](Map_KeysNode_1.png) |  (In) Exec  | Input execution pin.                  |
-| ![](Map_KeysNode_2.png) |  Target Map | The Map to get an Array of keys from. |
+| ![](Map_KeysNode_1.png) |  (In) Exec  | 输入执行引脚                  |
+| ![](Map_KeysNode_2.png) |  Target Map | 获取键阵列的 Map。 |
 
-##Outputs
+## 输出
 
-| Pin Location             | Name        | Description                                                   |
+| 引脚位置             | 名称        | 描述                                                   |
 | ------------------------ | ----------- | ------------------------------------------------------------- |
-| ![](Map_KeysNode_3.png)  |  (Out) Exec | Output execution pin.                                         |
-| ![](Map_KeysNode_4.png)  |  Array      | An output Array, containing all of the keys found in the Map. |
+| ![](Map_KeysNode_3.png)  |  (Out) Exec | 输出执行引脚。                                         |
+| ![](Map_KeysNode_4.png)  |  Array      | 一个输出阵列，包含 Map 中找到的所有键。 |
 
-##Example Usage
+## 使用范例
 
 ![](Map_KeysUsage.png)

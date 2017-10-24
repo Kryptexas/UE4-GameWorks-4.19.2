@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,7 @@ public class UnrealLightmass : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "zlib", "SwarmInterface", "Projects" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "zlib", "SwarmInterface", "Projects", "ApplicationCore" });
 
 		Definitions.Add("UE_LIGHTMASS=1");
 
@@ -62,7 +62,7 @@ public class UnrealLightmass : ModuleRules
         // EMBREE
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/Win64/";
+            string SDKDir = Target.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/Win64/";
 
             PublicIncludePaths.Add(SDKDir + "include");
             PublicLibraryPaths.Add(SDKDir + "lib");
@@ -74,7 +74,7 @@ public class UnrealLightmass : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/MacOSX/";
+            string SDKDir = Target.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/MacOSX/";
 
             PublicIncludePaths.Add(SDKDir + "include");
             PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.dylib");

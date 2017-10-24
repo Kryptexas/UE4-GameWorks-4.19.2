@@ -40,6 +40,7 @@ namespace UnrealBuildTool.Rules
                     "RenderCore",
                     "RHI",
                     "MessageLog",
+					"JsonUtilities",
                 }
 				);
 

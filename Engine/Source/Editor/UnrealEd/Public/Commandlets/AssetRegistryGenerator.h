@@ -236,7 +236,7 @@ private:
 	 */
 	FString GetTempPackagingDirectoryForPlatform(const FString& Platform) const
 	{
-		return FPaths::GameSavedDir() / TEXT("TmpPackaging") / Platform;
+		return FPaths::ProjectSavedDir() / TEXT("TmpPackaging") / Platform;
 	}
 
 	/**

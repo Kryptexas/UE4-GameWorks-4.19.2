@@ -44,7 +44,7 @@ class ENGINE_API UDecalComponent : public USceneComponent
 	float FadeStartDelay;
 
 	/**
-	* Time in seconds for the decal to fade out. Set fade duration and start delay to 0 to make persistent.
+	* Time in seconds for the decal to fade out. Set fade duration and start delay to 0 to make persistent. Only fades in active simulation or game.
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
 	float FadeDuration;

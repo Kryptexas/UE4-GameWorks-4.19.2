@@ -27,14 +27,6 @@
 				"Linux"
 			]
 		}
-	],
-
-	"Plugins":
-	[
-		{
-			"Name": "OnlineSubsystemUtils",
-			"Enabled": true
-		}
 	]
 }
 

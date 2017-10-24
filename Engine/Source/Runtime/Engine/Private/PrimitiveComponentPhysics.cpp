@@ -100,7 +100,7 @@ bool UPrimitiveComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, c
 		/////// BODY UPDATE ///////
 		BI->SetBodyTransform(FTransform(UpdatedQuat, UpdatedPos), ETeleportType::TeleportPhysics);
 		BI->SetLinearVelocity(NewState.LinVel + FixLinVel, false);
-		BI->SetAngularVelocity(NewState.AngVel + FixAngVel, false);
+		BI->SetAngularVelocityInRadians(FMath::DegreesToRadians(NewState.AngVel + FixAngVel), false);
 
 		// state is restored when no velocity corrections are required
 		bRestoredState = (FixLinVel.SizeSquared() < KINDA_SMALL_NUMBER) && (FixAngVel.SizeSquared() < KINDA_SMALL_NUMBER);
@@ -157,7 +157,7 @@ bool UPrimitiveComponent::GetRigidBodyState(FRigidBodyState& OutState, FName Bon
 		OutState.Position = BodyTM.GetTranslation();
 		OutState.Quaternion = BodyTM.GetRotation();
 		OutState.LinVel = BI->GetUnrealWorldVelocity();
-		OutState.AngVel = BI->GetUnrealWorldAngularVelocity();
+		OutState.AngVel = FMath::RadiansToDegrees(BI->GetUnrealWorldAngularVelocityInRadians());
 		OutState.Flags = (BI->IsInstanceAwake() ? ERigidBodyFlags::None : ERigidBodyFlags::Sleeping);
 		return true;
 	}
@@ -236,12 +236,12 @@ void UPrimitiveComponent::AddImpulse(FVector Impulse, FName BoneName, bool bVelC
 	}
 }
 
-void UPrimitiveComponent::AddAngularImpulse(FVector Impulse, FName BoneName, bool bVelChange)
+void UPrimitiveComponent::AddAngularImpulseInRadians(FVector Impulse, FName BoneName, bool bVelChange)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("AddAngularImpulse", "AddAngularImpulse"), BI, BoneName);
-		BI->AddAngularImpulse(Impulse, bVelChange);
+		BI->AddAngularImpulseInRadians(Impulse, bVelChange);
 	}
 }
 
@@ -310,12 +310,12 @@ void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Str
 	}
 }
 
-void UPrimitiveComponent::AddTorque(FVector Torque, FName BoneName, bool bAccelChange)
+void UPrimitiveComponent::AddTorqueInRadians(FVector Torque, FName BoneName, bool bAccelChange)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("AddTorque", "AddTorque"), BI, BoneName);
-		BI->AddTorque(Torque, true, bAccelChange);
+		BI->AddTorqueInRadians(Torque, true, bAccelChange);
 	}
 }
 
@@ -351,30 +351,30 @@ void UPrimitiveComponent::SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddTo
 	SetPhysicsLinearVelocity(NewVel, bAddToCurrent, NAME_None);
 }
 
-void UPrimitiveComponent::SetPhysicsAngularVelocity(FVector NewAngVel, bool bAddToCurrent, FName BoneName)
+void UPrimitiveComponent::SetPhysicsAngularVelocityInRadians(FVector NewAngVel, bool bAddToCurrent, FName BoneName)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("SetPhysicsAngularVelocity", "SetPhysicsAngularVelocity"), nullptr, BoneName);
-		BI->SetAngularVelocity(NewAngVel, bAddToCurrent);
+		BI->SetAngularVelocityInRadians(NewAngVel, bAddToCurrent);
 	}
 }
 
-void UPrimitiveComponent::SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, FName BoneName)
+void UPrimitiveComponent::SetPhysicsMaxAngularVelocityInRadians(float NewMaxAngVel, bool bAddToCurrent, FName BoneName)
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("SetPhysicsMaxAngularVelocity", "SetPhysicsMaxAngularVelocity"), nullptr, BoneName);
-		BI->SetMaxAngularVelocity(NewMaxAngVel, bAddToCurrent);
+		BI->SetMaxAngularVelocityInRadians(NewMaxAngVel, bAddToCurrent);
 	}
 }
 
-FVector UPrimitiveComponent::GetPhysicsAngularVelocity(FName BoneName)
+FVector UPrimitiveComponent::GetPhysicsAngularVelocityInRadians(FName BoneName)
 {
 	FBodyInstance* const BI = GetBodyInstance(BoneName);
 	if(BI != NULL)
 	{
-		return BI->GetUnrealWorldAngularVelocity();
+		return BI->GetUnrealWorldAngularVelocityInRadians();
 	}
 	return FVector(0,0,0);
 }
@@ -399,9 +399,9 @@ void UPrimitiveComponent::SetCenterOfMass(FVector CenterOfMassOffset, FName Bone
 	}
 }
 
-void UPrimitiveComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
+void UPrimitiveComponent::SetAllPhysicsAngularVelocityInRadians(FVector const& NewAngVel, bool bAddToCurrent)
 {
-	SetPhysicsAngularVelocity(NewAngVel, bAddToCurrent, NAME_None); 
+	SetPhysicsAngularVelocityInRadians(NewAngVel, bAddToCurrent, NAME_None); 
 }
 
 

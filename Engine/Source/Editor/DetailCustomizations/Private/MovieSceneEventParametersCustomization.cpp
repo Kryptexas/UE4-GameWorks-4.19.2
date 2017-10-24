@@ -75,7 +75,7 @@ void FMovieSceneEventParametersCustomization::CustomizeChildren(TSharedRef<IProp
 		}
 	}
 
-	TSharedRef<const SWidget> DetailsView = ChildBuilder.GetParentCategory().GetParentLayout().GetDetailsView().AsShared();
+	TSharedRef<const SWidget> DetailsView = ChildBuilder.GetParentCategory().GetParentLayout().GetDetailsView()->AsShared();
 
 	PropertyUtilities->EnqueueDeferredAction(FSimpleDelegate::CreateLambda(
 		[DetailsView]

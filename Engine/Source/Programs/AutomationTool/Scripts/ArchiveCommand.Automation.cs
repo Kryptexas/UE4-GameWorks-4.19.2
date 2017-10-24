@@ -6,6 +6,7 @@ using System.Threading;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 public partial class Project : CommandUtils
 {

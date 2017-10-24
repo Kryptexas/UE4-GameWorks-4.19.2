@@ -634,6 +634,22 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		TMap<int32, int32> * OldMap = Parms.OldState ? &((FNetFastTArrayBaseState*)Parms.OldState)->IDToCLMap : NULL;
 		int32 BaseReplicationKey = Parms.OldState ? ((FNetFastTArrayBaseState*)Parms.OldState)->ArrayReplicationKey : -1;
 
+		// Helper for counting num elements we should consider
+		auto CalcNumItemsForConsideration = [&ArraySerializer, &Items, &Parms]()
+		{
+			int32 Count = 0;
+
+			// Count the number of items in the current array that may be written. On clients, items that were predicted will be skipped.
+			for (const Type& Item : Items)
+			{
+				if (ArraySerializer.template ShouldWriteFastArrayItem<Type, SerializerType>(Item, Parms.bIsWritingOnClient))
+				{
+					Count++;
+				}
+			}
+			return Count;
+		};
+
 		// See if the array changed at all. If the ArrayReplicationKey matches we can skip checking individual items
 		if (Parms.OldState && (ArraySerializer.ArrayReplicationKey == BaseReplicationKey))
 		{
@@ -646,16 +662,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 					ArraySerializer.CachedNumItemsToConsiderForWriting == INDEX_NONE)
 				{
 					ArraySerializer.CachedNumItems = Items.Num();
-					ArraySerializer.CachedNumItemsToConsiderForWriting = 0;
-
-					// Count the number of items in the current array that may be written. On clients, items that were predicted will be skipped.
-					for (const Type& Item : Items)
-					{
-						if (ArraySerializer.template ShouldWriteFastArrayItem<Type, SerializerType>(Item, Parms.bIsWritingOnClient))
-						{
-							ArraySerializer.CachedNumItemsToConsiderForWriting++;
-						}
-					}
+					ArraySerializer.CachedNumItemsToConsiderForWriting = CalcNumItemsForConsideration();
 				}
 
 				ensureMsgf((OldMap->Num() == ArraySerializer.CachedNumItemsToConsiderForWriting), TEXT("OldMap size (%d) does not match item count (%d)"), OldMap->Num(), ArraySerializer.CachedNumItemsToConsiderForWriting);
@@ -664,10 +671,12 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			return false;
 		}
 
+		int32 NumConsideredItems = CalcNumItemsForConsideration();
+
 		TArray<FFastArraySerializer_FastArrayDeltaSerialize_FIdxIDPair, TInlineAllocator<8> >	ChangedElements;
 		TArray<int32, TInlineAllocator<8> >		DeletedElements;
 
-		int32 DeleteCount = (OldMap ? OldMap->Num() : 0) - Items.Num(); // Note: this is incremented when we add new items below.
+		int32 DeleteCount = (OldMap ? OldMap->Num() : 0) - NumConsideredItems; // Note: this is incremented when we add new items below.
 		UE_LOG(LogNetFastTArray, Log, TEXT("NetSerializeItemDeltaFast: %s. DeleteCount: %d"), *Parms.DebugName, DeleteCount);
 
 		// Log out entire state of current/base state

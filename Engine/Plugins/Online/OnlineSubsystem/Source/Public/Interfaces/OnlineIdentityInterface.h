@@ -7,6 +7,8 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
 
+struct FOnlineError;
+
 /**
  * Account credentials needed to sign in to an online service
  */
@@ -122,6 +124,14 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginFlowLogout, const TArray<FString>& /
 typedef FOnLoginFlowLogout::FDelegate FOnLoginFlowLogoutDelegate;
 
 /**
+ * Delegate executed when we get a user privilege result.
+ *
+ * @param UserId The unique id of the user who was queried
+ * @param OnlineError the result of the operation
+ */
+DECLARE_DELEGATE_TwoParams(FOnRevokeAuthTokenCompleteDelegate, const FUniqueNetId&, const FOnlineError&);
+
+/**
  * Interface for registration/authentication of user identities
  */
 class IOnlineIdentity
@@ -226,7 +236,7 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnLogoutComplete, bool);
 
 	/**
-	 * Delegate called when the online subsystem requires an the login flow to logout and cleanup
+	 * Delegate called when the online subsystem requires the login flow to logout and cleanup
 	 * @param LoginDomains login domains to be cleaned up
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnLoginFlowLogout, const TArray<FString>& /*LoginDomains*/);
@@ -345,6 +355,14 @@ public:
 	virtual FString GetAuthToken(int32 LocalUserNum) const = 0;
 
 	/**
+	 * Revoke the user's registered auth token.
+	 *
+	 * @param UserId the unique net of the associated user
+	 * @param Delegate delegate to execute when the async task completes
+	 */
+	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) = 0;
+
+	/**
 	 * Delegate executed when we get a user privilege result.
 	 *
 	 * @param UniqueId The unique id of the user who was queried
@@ -368,7 +386,7 @@ public:
 	 * @param UniqueNetId The unique id to look up
 	 * @return The corresponding id or PLATFORMID_NONE if not found
 	 */
-	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) = 0;
+	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const = 0;
 
 	/**
 	 * Get the auth type associated with accounts for this platform

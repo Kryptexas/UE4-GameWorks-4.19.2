@@ -33,7 +33,7 @@ static void ParseFilesResults(const FP4RecordSet& InRecords, TArray< TSharedRef<
 		Revision->RevisionNumber = FCString::Atoi(*RevisionNumber);
 		Revision->ChangelistNumber = FCString::Atoi(*ChangelistNumber);
 		Revision->Action = Action;
-		Revision->Date = FDateTime(1970, 1, 1, 0, 0, 0, 0) + FTimespan(0, 0, FCString::Atoi(*Date));
+		Revision->Date = FDateTime(1970, 1, 1, 0, 0, 0, 0) + FTimespan::FromSeconds(FCString::Atoi(*Date));
 
 		OutRevisions.Add(Revision);
 	}

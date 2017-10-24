@@ -27,10 +27,13 @@
 /// \file tf/poolAllocator.h
 /// \ingroup group_tf_Memory
 
+#include "pxr/pxr.h"
+#include "pxr/base/tf/api.h"
+
 #include <tbb/spin_mutex.h>
 #include <vector>
 
-#include "pxr/base/tf/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfPoolAllocator
 /// \ingroup group_tf_Memory
@@ -162,5 +165,7 @@ private:
     bool                     _threadSafety;
     bool                     _freeCalled;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

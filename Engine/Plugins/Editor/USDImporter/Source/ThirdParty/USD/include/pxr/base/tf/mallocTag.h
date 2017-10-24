@@ -24,6 +24,7 @@
 #ifndef TF_MALLOCTAG_H
 #define TF_MALLOCTAG_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
 
 #include <boost/noncopyable.hpp>
@@ -34,6 +35,8 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \file tf/mallocTag.h
 /// \ingroup group_tf_MallocTag
@@ -529,21 +532,24 @@ typedef TfMallocTag::Auto2 TfAutoMallocTag2;
 /// \remark Placed in .h files.
 ///
 /// \hideinitializer
+//
+PXR_NAMESPACE_CLOSE_SCOPE                                                 
+
 #define TF_MALLOC_TAG_NEW(name1, name2)                                       \
     /* this is for STL purposes */                                            \
-    inline void* operator new(size_t, void* ptr) {                            \
+    inline void* operator new(::std::size_t, void* ptr) {                     \
         return ptr;                                                           \
     }                                                                         \
                                                                               \
-    inline void* operator new(size_t s) {                                     \
-        TfAutoMallocTag tag1(name1);                                          \
-        TfAutoMallocTag tag2(name2);                                          \
+    inline void* operator new(::std::size_t s) {                              \
+        PXR_NS::TfAutoMallocTag tag1(name1);                                  \
+        PXR_NS::TfAutoMallocTag tag2(name2);                                  \
         return malloc(s);                                                     \
     }                                                                         \
                                                                               \
-    inline void* operator new[](size_t s) {                                   \
-        TfAutoMallocTag tag1(name1);                                          \
-        TfAutoMallocTag tag2(name2);                                          \
+    inline void* operator new[](::std::size_t s) {                            \
+        PXR_NS::TfAutoMallocTag tag1(name1);                                  \
+        PXR_NS::TfAutoMallocTag tag2(name2);                                  \
         return malloc(s);                                                     \
     }                                                                         \
                                                                               \

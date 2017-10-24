@@ -5,11 +5,14 @@
 #include "CoreMinimal.h"
 #include "CPUSolver.h"
 #include "ImportExport.h"
-#include "Cache.h"
+#include "LightingCache.h"
 #include "Containers/ChunkedArray.h"
 #include "Containers/List.h"
 #include "HAL/Runnable.h"
 #include "LightmapData.h"
+#include "Math/PackedVector.h"
+#include "GatheredLightingSample.h"
+#include "LightmassScene.h"
 
 namespace Lightmass
 {
@@ -25,156 +28,6 @@ namespace Lightmass
 #else
 	#define LIGHTINGSTAT(x)
 #endif
-
-/** 
- * The light incident for a point on a surface, in the representation used when gathering lighting. 
- * This representation is additive, and allows for accumulating lighting contributions in-place. 
- */
-template <int32 SHOrder>
-class TGatheredLightSample
-{
-public:	
-
-	/** World space incident lighting. */
-	FSHVectorRGB3 SHVector;
-
-	/** Incident lighting including dot(N, L) where N is the smoothed vertex normal. */
-	FLinearColor IncidentLighting;
-
-	/** Correction factor to force SH as applied to a flat normal map to be 1 to get purely directional data. */
-	float SHCorrection;
-
-	/** Sky bent normal, points toward the most unoccluded direction, and the length is the visibility amount (0 = occluded, 1 = visible). */
-	FVector SkyOcclusion;
-
-	float AOMaterialMask;
-
-	/** Initialization constructor. */
-	TGatheredLightSample()
-	{
-		SHCorrection = 0.0f;
-		IncidentLighting = FLinearColor(0, 0, 0, 0);
-		SkyOcclusion = FVector(0);
-		AOMaterialMask = 0;
-	}
-
-	TGatheredLightSample(EForceInit)
-	{
-		SHCorrection = 0.0f;
-		IncidentLighting = FLinearColor(0, 0, 0, 0);
-		SkyOcclusion = FVector(0);
-		AOMaterialMask = 0;
-	}	
-
-	/**
-	 * Adds a weighted light sample to this light sample.
-	 * @param OtherSample - The sample to add.
-	 * @param Weight - The weight to multiply the other sample by before addition.
-	 */
-	void AddWeighted(const TGatheredLightSample& OtherSample, float Weight);
-
-	void ApplyOcclusion(float Occlusion);
-
-	inline void SetSkyOcclusion(FVector InSkyOcclusion)
-	{
-		SkyOcclusion = InSkyOcclusion;
-	}
-
-	bool AreFloatsValid() const;
-
-	TGatheredLightSample operator*(float Scalar) const
-	{
-		TGatheredLightSample Result;
-		Result.SHVector = SHVector * Scalar;
-		Result.SHCorrection = SHCorrection * Scalar;
-		Result.IncidentLighting = IncidentLighting * Scalar;
-		Result.SkyOcclusion = SkyOcclusion * Scalar;
-		Result.AOMaterialMask = AOMaterialMask * Scalar;
-		return Result;
-	}
-
-	TGatheredLightSample operator+(const TGatheredLightSample& SampleB) const
-	{
-		TGatheredLightSample Result;
-		Result.SHVector = SHVector + SampleB.SHVector;
-		Result.SHCorrection = SHCorrection + SampleB.SHCorrection;
-		Result.IncidentLighting = IncidentLighting + SampleB.IncidentLighting;
-		Result.SkyOcclusion = SkyOcclusion + SampleB.SkyOcclusion;
-		Result.AOMaterialMask = AOMaterialMask + SampleB.AOMaterialMask;
-		return Result;
-	}
-};
-
-class FGatheredLightSampleUtil
-{
-public:
-
-	/**
-	* Constructs a light sample representing an ambient light.
-	* Note: Lighting contributed through this method won't have the same final brightness as PointLightWorldSpace, because of the dot(N, L)
-	* @param Color - The color/intensity of the light at the sample point.
-	*/
-	template <int32 SHOrder>
-	static TGatheredLightSample<SHOrder> AmbientLight(const FLinearColor& Color);
-
-	/**
-	* Constructs a light sample representing a point light.
-	* @param Color - The color/intensity of the light at the sample point.
-	* @param Direction - The direction toward the light at the sample point.
-	*/
-	template <int32 SHOrder>
-	static TGatheredLightSample<SHOrder> PointLightWorldSpace(const FLinearColor& Color, const FVector4& TangentDirection, const FVector4& WorldDirection);
-};
-
-typedef TGatheredLightSample<2> FGatheredLightSample;
-typedef TGatheredLightSample<3> FGatheredLightSample3;
-
-class FGatheredLightMapSample
-{
-public:
-	FGatheredLightSample	HighQuality;
-	FGatheredLightSample	LowQuality;
-	
-	/** True if this sample maps to a valid point on a triangle.  This is only meaningful for texture lightmaps. */
-	bool					bIsMapped;
-
-	FGatheredLightMapSample()
-	: bIsMapped(false)
-	{}
-
-	FGatheredLightMapSample(const FGatheredLightSample& Sample)
-	: HighQuality(Sample)
-	, LowQuality(Sample)
-	, bIsMapped(false)
-	{}
-
-	FGatheredLightMapSample& operator=(const FGatheredLightSample& Sample)
-	{
-		HighQuality = Sample;
-		LowQuality = Sample;
-		return *this;
-	}
-
-	/**
-	 * Adds a weighted light sample to this light sample.
-	 * @param OtherSample - The sample to add.
-	 * @param Weight - The weight to multiply the other sample by before addition.
-	 */
-	void AddWeighted(const FGatheredLightSample& OtherSample, float Weight)
-	{
-		HighQuality.AddWeighted( OtherSample, Weight );
-		LowQuality.AddWeighted( OtherSample, Weight );
-	}
-
-	void ApplyOcclusion(float Occlusion)
-	{
-		HighQuality.ApplyOcclusion(Occlusion);
-		LowQuality.ApplyOcclusion(Occlusion);
-	}
-
-	/** Converts an FGatheredLightMapSample into a FLightSample. */
-	FLightSample ConvertToLightSample(bool bDebugThisSample) const;
-};
 
 /**
  * The raw data which is used to construct a 2D light-map.
@@ -225,88 +78,6 @@ public:
 private:
 	TArray<FGatheredLightMapSample> Data;
 };
-
-/** The lighting information gathered for one final gather sample */
-template <int32 SHOrder>
-class TFinalGatherSample : public TGatheredLightSample<SHOrder>
-{
-public:
-
-	/** Occlusion factor of the sample, 0 is completely unoccluded, 1 is completely occluded. */
-	float Occlusion;
-
-	/** 
-	 * A light sample for sky lighting.  This has to be stored separately to support stationary sky lights only contributing to low quality lightmaps.
-	 */
-	TGatheredLightSample<SHOrder> StationarySkyLighting;
-
-	/** Initialization constructor. */
-	TFinalGatherSample() :
-		TGatheredLightSample<SHOrder>(),
-		Occlusion(0.0f)
-	{}
-
-	TFinalGatherSample(EForceInit) :
-		TGatheredLightSample<SHOrder>(ForceInit),
-		Occlusion(0.0f)
-	{}
-
-	/**
-	 * Adds a weighted light sample to this light sample.
-	 * @param OtherSample - The sample to add.
-	 * @param Weight - The weight to multiply the other sample by before addition.
-	 */
-	void AddWeighted(const TFinalGatherSample& OtherSample, float Weight);
-
-	/**
-	 * Adds a weighted light sample to this light sample.
-	 * @param OtherSample - The sample to add.
-	 * @param Weight - The weight to multiply the other sample by before addition.
-	 */
-	template<int32 OtherOrder>
-	inline void AddWeighted(const TGatheredLightSample<OtherOrder>& OtherSample, float Weight)
-	{
-		TGatheredLightSample<SHOrder>::AddWeighted(OtherSample, Weight);
-	}
-
-	inline void SetOcclusion(float InOcclusion)
-	{
-		Occlusion = InOcclusion;
-	}
-
-	inline void AddIncomingRadiance(const FLinearColor& IncomingRadiance, float Weight, const FVector4& TangentSpaceDirection, const FVector4& WorldSpaceDirection)
-	{
-		AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<SHOrder>(IncomingRadiance, TangentSpaceDirection, WorldSpaceDirection), Weight);
-	}
-
-	inline void AddIncomingStationarySkyLight(const FLinearColor& IncomingSkyLight, float Weight, const FVector4& TangentSpaceDirection, const FVector4& WorldSpaceDirection)
-	{
-		StationarySkyLighting.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<SHOrder>(IncomingSkyLight, TangentSpaceDirection, WorldSpaceDirection), Weight);
-	}
-
-	bool AreFloatsValid() const;
-
-	TFinalGatherSample operator*(float Scalar) const
-	{
-		TFinalGatherSample Result;
-		(TGatheredLightSample<SHOrder>&)Result = (const TGatheredLightSample<SHOrder>&)(*this) * Scalar;
-		Result.Occlusion = Occlusion * Scalar;
-		Result.StationarySkyLighting = StationarySkyLighting * Scalar;
-		return Result;
-	}
-
-	TFinalGatherSample operator+(const TFinalGatherSample& SampleB) const
-	{
-		TFinalGatherSample Result;
-		(TGatheredLightSample<SHOrder>&)Result = (const TGatheredLightSample<SHOrder>&)(*this) + (const TGatheredLightSample<SHOrder>&)SampleB;
-		Result.Occlusion = Occlusion + SampleB.Occlusion;
-		Result.StationarySkyLighting = StationarySkyLighting + SampleB.StationarySkyLighting;
-		return Result;
-	}
-};
-
-typedef TFinalGatherSample<2> FFinalGatherSample;
-typedef TFinalGatherSample<3> FFinalGatherSample3;
 
 struct FFinalGatherInfo
 {
@@ -476,6 +247,57 @@ struct FPhotonMapOctreeSemantics
 	}
 };
 
+struct FPhotonSegmentElement
+{
+	const FPhoton* Photon;
+
+	FVector SegmentCenter;
+	FVector SegmentExtent;
+
+	/** Initialization constructor. */
+	FPhotonSegmentElement(const FPhoton* InPhoton, float InStartOffset, float InSegmentLength) :
+		Photon(InPhoton)
+	{
+		const FVector PhotonDirection = Photon->GetIncidentDirection() * Photon->GetDistance();
+		const FVector SegmentStart = Photon->GetPosition() + PhotonDirection * InStartOffset;
+		const FVector SegmentEnd = SegmentStart + PhotonDirection * InSegmentLength;
+
+		FBox SegmentBounds(ForceInit);
+		SegmentBounds += SegmentStart;
+		SegmentBounds += SegmentEnd;
+
+		SegmentCenter = SegmentBounds.GetCenter();
+		// Inflate the segment extent to cover the photon path better
+		SegmentExtent = SegmentBounds.GetExtent();
+	}
+
+	inline float ComputeSquaredDistanceToPoint(FVector InPoint) const
+	{
+		float Projection = FVector::DotProduct(InPoint - Photon->GetPosition(), Photon->GetIncidentDirection());
+		Projection = FMath::Clamp(Projection, 0.0f, Photon->GetDistance());
+		FVector ProjectedPosition = Photon->GetPosition() + Photon->GetIncidentDirection() * Projection;
+		return (InPoint - ProjectedPosition).SizeSquared();
+	}
+};
+
+/** Octree semantic definitions. */
+struct FPhotonSegmentMapOctreeSemantics
+{
+	//@todo - evaluate different performance/memory tradeoffs with these
+	enum { MaxElementsPerLeaf = 16 };
+	enum { MaxNodeDepth = 12 };
+	enum { LoosenessDenominator = 16 };
+
+	typedef TInlineAllocator<MaxElementsPerLeaf> ElementAllocator;
+
+	static FBoxCenterAndExtent GetBoundingBox(const FPhotonSegmentElement& PhotonSegmentElement)
+	{
+		return FBoxCenterAndExtent(PhotonSegmentElement.SegmentCenter, PhotonSegmentElement.SegmentExtent);
+	}
+};
+
+typedef TOctree<FPhotonSegmentElement,struct FPhotonSegmentMapOctreeSemantics> FPhotonSegmentOctree;
+
 /** A photon which stores a precalculated irradiance estimate. */
 class FIrradiancePhoton : public FIrradiancePhotonData
 {
@@ -595,6 +417,8 @@ public:
 		return PositionAndRadius.W;
 	}
 
+	void SetFromSHVector(const FSHVectorRGB3& SHVector);
+
 	/** Constructs an SH environment from this lighting sample. */
 	void ToSHVector(FSHVectorRGB3& SHVector) const;
 };
@@ -669,6 +493,9 @@ public:
 
 	/** Part of TotalLightingThreadTime that was spent on volume samples. */
 	float TotalVolumeSampleLightingThreadTime;
+
+	/** Part of TotalLightingThreadTime that was spent on volumetric lightmap work. */
+	float TotalVolumetricLightmapLightingThreadTime;
 
 	/** Time taken to generate the FTexelToVertexMap */
 	float TexelRasterizationTime;
@@ -769,6 +596,8 @@ public:
 	/** Time taken to calculate indirect lighting */
 	float IndirectLightingCacheTaskThreadTime;
 
+	float IndirectLightingCacheTaskThreadTimeSeparateTask;
+
 	/** Time taken to gather photons which are used for importance sampling the final gather */
 	float ImportancePhotonGatherTime;
 
@@ -805,11 +634,16 @@ public:
 	/** Time taken for irradiance cache interpolation for the final shading pass */
 	float SecondPassIrradianceCacheInterpolationTime;
 
+	float SecondPassIrradianceCacheInterpolationTimeSeparateTask;
+
 	/** Number of rays traced to determine visibility of irradiance photons while caching them on surfaces */
 	uint64 NumIrradiancePhotonSearchRays;
 
 	/** Time spent caching irradiance photons on surfaces */
 	float IrradiancePhotonCachingThreadTime;
+
+	float RadiositySetupThreadTime;
+	float RadiosityIterationThreadTime;
 
 	/** Time taken traversing the irradiance photon octree */
 	float IrradiancePhotonOctreeTraversalTime;
@@ -829,15 +663,28 @@ public:
 	/** The number of final gather samples done due to intersecting importance photons. */
 	uint64 NumRefiningSamplesDueToImportancePhotons;
 
+	uint64 NumRefiningSamplesOther;
+
 	/** Amount of time spent computing base final gather samples. */
 	float BaseFinalGatherSampleTime;
 
 	/** Amount of time spent computing refining final gather samples. */
 	float RefiningFinalGatherSampleTime;
 
+	int32 NumVolumetricLightmapSamples;
+
+	float VolumetricLightmapVoxelizationTime;
+
+	float VolumetricLightmapGatherImportancePhotonsTime;
+
+	float VolumetricLightmapDirectLightingTime;
+
+	float VolumetricLightmapFinalGatherTime;
+
 	FStaticLightingMappingStats() :
 		TotalTextureMappingLightingThreadTime(0),
 		TotalVolumeSampleLightingThreadTime(0),
+		TotalVolumetricLightmapLightingThreadTime(0),
 		TexelRasterizationTime(0),
 		VertexSampleCreationTime(0),
 		NumMappedTexels(0),
@@ -871,6 +718,7 @@ public:
 		BlockOnIndirectLightingCacheTasksTime(0),
 		BlockOnIndirectLightingInterpolateTasksTime(0),
 		IndirectLightingCacheTaskThreadTime(0),
+		IndirectLightingCacheTaskThreadTimeSeparateTask(0),
 		ImportancePhotonGatherTime(0),
 		TotalFoundImportancePhotons(0),
 		CalculateImportanceSampleTime(0),
@@ -883,15 +731,24 @@ public:
 		NumFoundIrradiancePhotons(0),
 		NumCachedIrradianceSamples(0),
 		SecondPassIrradianceCacheInterpolationTime(0),
+		SecondPassIrradianceCacheInterpolationTimeSeparateTask(0),
 		NumIrradiancePhotonSearchRays(0),
 		IrradiancePhotonCachingThreadTime(0),
+		RadiositySetupThreadTime(0),
+		RadiosityIterationThreadTime(0),
 		IrradiancePhotonOctreeTraversalTime(0),
 		IrradiancePhotonSearchRayTime(0),
 		NumBaseFinalGatherSamples(0),
 		NumRefiningSamplesDueToBrightness(0),
 		NumRefiningSamplesDueToImportancePhotons(0),
+		NumRefiningSamplesOther(0),
 		BaseFinalGatherSampleTime(0),
-		RefiningFinalGatherSampleTime(0)
+		RefiningFinalGatherSampleTime(0),
+		NumVolumetricLightmapSamples(0),
+		VolumetricLightmapVoxelizationTime(0),
+		VolumetricLightmapGatherImportancePhotonsTime(0),
+		VolumetricLightmapDirectLightingTime(0),
+		VolumetricLightmapFinalGatherTime(0)
 	{
 		for (int32 i = 0; i < ARRAY_COUNT(NumRefiningFinalGatherSamples); i++)
 		{
@@ -903,6 +760,7 @@ public:
 	{
 		TotalTextureMappingLightingThreadTime += B.TotalTextureMappingLightingThreadTime;
 		TotalVolumeSampleLightingThreadTime += B.TotalVolumeSampleLightingThreadTime;
+		TotalVolumetricLightmapLightingThreadTime += B.TotalVolumetricLightmapLightingThreadTime;
 		TexelRasterizationTime += B.TexelRasterizationTime;
 		VertexSampleCreationTime += B.VertexSampleCreationTime;
 		NumMappedTexels += B.NumMappedTexels;
@@ -936,6 +794,7 @@ public:
 		BlockOnIndirectLightingCacheTasksTime += B.BlockOnIndirectLightingCacheTasksTime;
 		BlockOnIndirectLightingInterpolateTasksTime += B.BlockOnIndirectLightingInterpolateTasksTime;
 		IndirectLightingCacheTaskThreadTime += B.IndirectLightingCacheTaskThreadTime;
+		IndirectLightingCacheTaskThreadTimeSeparateTask += B.IndirectLightingCacheTaskThreadTimeSeparateTask;
 		ImportancePhotonGatherTime += B.ImportancePhotonGatherTime;
 		TotalFoundImportancePhotons += B.TotalFoundImportancePhotons;
 		CalculateImportanceSampleTime += B.CalculateImportanceSampleTime;
@@ -948,14 +807,18 @@ public:
 		NumFoundIrradiancePhotons += B.NumFoundIrradiancePhotons;
 		NumCachedIrradianceSamples += B.NumCachedIrradianceSamples;
 		SecondPassIrradianceCacheInterpolationTime += B.SecondPassIrradianceCacheInterpolationTime;
+		SecondPassIrradianceCacheInterpolationTimeSeparateTask += B.SecondPassIrradianceCacheInterpolationTimeSeparateTask;
 		NumIrradiancePhotonSearchRays += B.NumIrradiancePhotonSearchRays;
 		IrradiancePhotonCachingThreadTime += B.IrradiancePhotonCachingThreadTime;
+		RadiositySetupThreadTime += B.RadiositySetupThreadTime;
+		RadiosityIterationThreadTime += B.RadiosityIterationThreadTime;
 		IrradiancePhotonOctreeTraversalTime += B.IrradiancePhotonOctreeTraversalTime;
 		IrradiancePhotonSearchRayTime += B.IrradiancePhotonSearchRayTime;
 
 		NumBaseFinalGatherSamples += B.NumBaseFinalGatherSamples;
 		NumRefiningSamplesDueToBrightness += B.NumRefiningSamplesDueToBrightness;
 		NumRefiningSamplesDueToImportancePhotons += B.NumRefiningSamplesDueToImportancePhotons;
+		NumRefiningSamplesOther += B.NumRefiningSamplesOther;
 		BaseFinalGatherSampleTime += B.BaseFinalGatherSampleTime;
 		RefiningFinalGatherSampleTime += B.RefiningFinalGatherSampleTime;
 
@@ -963,6 +826,12 @@ public:
 		{
 			NumRefiningFinalGatherSamples[i] += B.NumRefiningFinalGatherSamples[i];
 		}
+
+		NumVolumetricLightmapSamples += B.NumVolumetricLightmapSamples;
+		VolumetricLightmapVoxelizationTime += B.VolumetricLightmapVoxelizationTime;
+		VolumetricLightmapGatherImportancePhotonsTime += B.VolumetricLightmapGatherImportancePhotonsTime;
+		VolumetricLightmapDirectLightingTime += B.VolumetricLightmapDirectLightingTime;
+		VolumetricLightmapFinalGatherTime += B.VolumetricLightmapFinalGatherTime;
 
 		return *this;
 	}
@@ -1304,7 +1173,28 @@ public:
 
 	const ElementType& GetLeafElement(float U, float V) const
 	{
-		return GetLeafElementRecursive(U, V, &RootNode);
+		const FSimpleQuadTreeNode<ElementType>* CurrentNode = &RootNode;
+
+		while (1)
+		{
+			const int32 ChildX = U > .5f;
+			const int32 ChildY = V > .5f;
+			const int32 ChildIndex = ChildX * 2 + ChildY;
+
+			if (CurrentNode->Children[ChildIndex])
+			{
+				U = U * 2 - ChildX;
+				V = V * 2 - ChildY;
+
+				CurrentNode = CurrentNode->Children[ChildIndex];
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return CurrentNode->Element;
 	}
 
 	FSimpleQuadTreeNode<ElementType> RootNode;
@@ -1319,25 +1209,6 @@ public:
 	}
 
 private:
-
-	const ElementType& GetLeafElementRecursive(float U, float V, const FSimpleQuadTreeNode<ElementType>* Parent) const
-	{
-		const int32 ChildX = U > .5f;
-		const int32 ChildY = V > .5f;
-		const int32 ChildIndex = ChildX * 2 + ChildY;
-
-		if (Parent->Children[ChildIndex])
-		{
-			const float ChildU = U * 2 - ChildX;
-			const float ChildV = V * 2 - ChildY;
-
-			return GetLeafElementRecursive(ChildU, ChildV, Parent->Children[ChildIndex]);
-		}
-		else
-		{
-			return Parent->Element;
-		}
-	}
 
 	void ReturnToFreeListRecursive(FSimpleQuadTreeNode<ElementType>* Node, TArray<FSimpleQuadTreeNode<ElementType>*>& OutNodes) const
 	{
@@ -1397,14 +1268,17 @@ class FRefinementElement
 public:
 	FLightingAndOcclusion Lighting;
 	FVector2D Uniforms;
+	int32 HitPointIndex;
 
 	FRefinementElement() :
-		Uniforms(FVector2D(0, 0))
+		Uniforms(FVector2D(0, 0)),
+		HitPointIndex(-1)
 	{}
 
-	FRefinementElement(FLightingAndOcclusion InLighting, FVector2D InUniforms) :
+	FRefinementElement(FLightingAndOcclusion InLighting, FVector2D InUniforms, int32 InHitPointIndex) :
 		Lighting(InLighting),
-		Uniforms(InUniforms)
+		Uniforms(InUniforms),
+		HitPointIndex(InHitPointIndex)
 	{}
 };
 
@@ -1464,6 +1338,34 @@ struct FPrecomputedVisibilityData
 	TArray<FPrecomputedVisibilityCell> PrecomputedVisibilityCells;
 	TArray<FDebugStaticLightingRay> DebugVisibilityRays;
 };
+
+struct FIrradianceBrickData
+{
+	/** Position in the global indirection texture.  Used for mapping brick positions back to world space. */
+	FIntVector IndirectionTexturePosition;
+
+	/** Depth in the refinement tree, where 0 is the root. */
+	int32 TreeDepth;
+
+	float AverageClosestGeometryDistance;
+
+	TArray<FFloat3Packed> AmbientVector;
+	TArray<FColor> SHCoefficients[6];
+	TArray<FColor> SkyBentNormal;
+	TArray<uint8> DirectionalLightShadowing;
+
+	TArray<FIrradianceVoxelImportProcessingData> VoxelImportProcessingData;
+
+	void SetFromVolumeLightingSample(int32 Index, const FVolumeLightingSample& Sample, bool bInsideGeometry, float MinDistanceToSurface, bool bBorderVoxel);
+};
+
+/** Output data from a single volumetric lightmap task. */
+struct FVolumetricLightmapTaskData
+{
+	FGuid Guid;
+	TArray<FIrradianceBrickData> BrickData;
+};
+
 
 /** A thread which processes static lighting mappings. */
 class FStaticLightingThreadRunnable : public FRunnable
@@ -1651,6 +1553,7 @@ public:
 	volatile int32 OutputComplete;
 	int32 NumPhotonsEmittedFirstBounce;
 	TArray<FPhoton> FirstBouncePhotons;
+	TArray<FPhoton> FirstBounceEscapedPhotons;
 	int32 NumPhotonsEmittedSecondBounce;
 	TArray<FPhoton> SecondBouncePhotons;
 	TArray<FIrradiancePhoton>* IrradiancePhotons;
@@ -1787,7 +1690,10 @@ private:
 enum EStaticLightingTaskType
 {
 	StaticLightingTask_ProcessMappings,
-	StaticLightingTask_CacheIrradiancePhotons
+	StaticLightingTask_CacheIrradiancePhotons,
+	StaticLightingTask_RadiositySetup,
+	StaticLightingTask_RadiosityIterations,
+	StaticLightingTask_FinalizeSurfaceCache
 };
 
 /** A thread which processes static lighting mappings. */
@@ -1944,6 +1850,12 @@ public:
 	TArray<FStaticLightingMesh*> Meshes;
 };
 
+enum EFinalGatherRayBiasMode
+{
+	RBM_ConstantNormalOffset,
+	RBM_ScaledNormalOffset
+};
+
 /** The state of the static lighting system. */
 class FStaticLightingSystem
 {
@@ -2076,6 +1988,8 @@ private:
 		FDirectPhotonEmittingWorkRange WorkRange, 
 		FDirectPhotonEmittingOutput& Output);
 
+	void BuildPhotonSegmentMap(const FPhotonOctree& SourcePhotonMap, FPhotonSegmentOctree& OutPhotonSegementMap, float AddToSegmentMapChance);
+
 	/** Gathers indirect photons based on the indirect photon paths. */
 	void EmitIndirectPhotons(
 		const FBoxSphereBounds& ImportanceBounds,
@@ -2119,7 +2033,7 @@ private:
 		FIrradianceCalculatingWorkRange WorkRange,
 		FCalculateIrradiancePhotonStats& Stats);
 
-	/** Cache irradiance photons on surfaces. */
+    /** Cache irradiance photons on surfaces. */
 	void CacheIrradiancePhotons();
 
 	/** Main loop that all threads access to cache irradiance photons. */
@@ -2127,6 +2041,28 @@ private:
 
 	/** Caches irradiance photons on a single texture mapping. */
 	void CacheIrradiancePhotonsTextureMapping(FStaticLightingTextureMapping* TextureMapping);
+
+	void SetupRadiosity();
+	void RadiositySetupThreadLoop(int32 ThreadIndex, bool bIsMainThread);
+	void RadiositySetupTextureMapping(FStaticLightingTextureMapping* TextureMapping);
+	void RunRadiosityIterations();
+
+	void RadiosityIterationThreadLoop(int32 ThreadIndex, bool bIsMainThread);
+
+	/** Cache irradiance photons on surfaces. */
+	void FinalizeSurfaceCache();
+
+	/** Main loop that all threads access to cache irradiance photons. */
+	void FinalizeSurfaceCacheThreadLoop(int32 ThreadIndex, bool bIsMainThread);
+
+	/** Caches irradiance photons on a single texture mapping. */
+	void FinalizeSurfaceCacheTextureMapping(FStaticLightingTextureMapping* TextureMapping);
+
+	void RasterizeToSurfaceCacheTextureMapping(FStaticLightingTextureMapping* TextureMapping, bool bDebugThisMapping, FTexelToVertexMap& TexelToVertexMap);
+
+	void RadiosityIterationTextureMapping(FStaticLightingTextureMapping* TextureMapping, int32 PassIndex);
+
+	void RadiosityIterationCachedHitpointsTextureMapping(const FTexelToVertexMap& TexelToVertexMap, FStaticLightingTextureMapping* TextureMapping, int32 PassIndex);
 
 	/** Returns true if a photon was found within MaxPhotonSearchDistance. */
 	bool FindAnyNearbyPhoton(
@@ -2154,6 +2090,15 @@ private:
 		TArray<FPhoton>& FoundPhotons,
 		FFindNearbyPhotonStats& SearchStats) const;
 
+	float FindNearbyPhotonsInVolumeIterative(
+		const FPhotonSegmentOctree& PhotonSegmentMap,
+		const FVector4& SearchPosition,
+		int32 NumPhotonsToFind,
+		float StartPhotonSearchDistance,
+		float MaxPhotonSearchDistance,
+		TArray<FPhotonSegmentElement>& FoundPhotonSegments,
+		bool bDebugThisLookup) const;
+
 	/** 
 	 * Searches the given photon map for the nearest NumPhotonsToFind photons to SearchPosition by sorting octree nodes nearest to furthest.
 	 * @return - the furthest found photon's distance squared from SearchPosition.
@@ -2171,7 +2116,7 @@ private:
 
 	/** Finds the nearest irradiance photon, if one exists. */
 	FIrradiancePhoton* FindNearestIrradiancePhoton(
-		const FStaticLightingVertex& Vertex, 
+		const FMinimalStaticLightingVertex& Vertex, 
 		FStaticLightingMappingContext& MappingContext, 
 		TArray<FIrradiancePhoton*>& TempIrradiancePhotons,
 		bool bVisibleOnly, 
@@ -2202,7 +2147,7 @@ private:
 		int32 NumPhotonsEmitted, 
 		float SearchDistance,
 		const FStaticLightingMesh* Mesh,
-		const FStaticLightingVertex& Vertex,
+		const FMinimalStaticLightingVertex& Vertex,
 		int32 ElementIndex,
 		const FVector4& OutgoingDirection,
 		bool bDebugThisDensityEstimation) const;
@@ -2228,6 +2173,7 @@ private:
 	void CalculateApproximateDirectLighting(
 		const FStaticLightingVertex& Vertex,
 		float SampleRadius,
+		const TArray<FVector, TInlineAllocator<1>>& VertexOffsets,
 		float LightSampleFraction,
 		/** Whether to composite all direct lighting into OutStaticDirectLighting, regardless of static or toggleable. */
 		bool bCompositeAllLights,
@@ -2238,18 +2184,23 @@ private:
 		TGatheredLightSample<SHOrder>& OutToggleableDirectLighting,
 		float& OutToggleableDirectionalLightShadowing) const;
 
-	FGatheredLightSample CalculateApproximateSkyLighting(
-		const FFullStaticLightingVertex& Vertex,
-		float SampleRadius,
-		const TArray<FVector4>& UniformHemisphereSamples,
-		FStaticLightingMappingContext& MappingContext) const;
+	void GatherVolumeImportancePhotonDirections(
+		const FVector WorldPosition,
+		FVector FirstHemisphereNormal,
+		FVector SecondHemisphereNormal,
+		TArray<FVector4>& FirstHemisphereImportancePhotonDirections,
+		TArray<FVector4>& SecondHemisphereImportancePhotonDirections,
+		bool bDebugThisSample) const;
 
 	/** Calculates incident radiance for a given world space position. */
 	void CalculateVolumeSampleIncidentRadiance(
 		const TArray<FVector4>& UniformHemisphereSamples,
 		const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 		float MaxUnoccludedLength,
+		const TArray<FVector, TInlineAllocator<1>>& VertexOffsets,
 		FVolumeLightingSample& LightingSample,
+		float& OutBackfacingHitsFraction,
+		float& OutMinDistanceToSurface,
 		FLMRandomStream& RandomStream,
 		FStaticLightingMappingContext& MappingContext,
 		bool bDebugThisSample
@@ -2262,6 +2213,28 @@ private:
 
 	/** Calculates visibility for a given group of cells, called from all threads. */
 	void CalculatePrecomputedVisibility(int32 BucketIndex);
+	
+	void RecursivelyBuildBrickTree(
+		int32 StartCellIndex,
+		int32 NumCells,
+		FIntVector CellCoordinate, 
+		int32 TreeDepth, 
+		bool bCoveringDebugPosition,
+		const FBox& TopLevelCellBounds, 
+		const TArray<FVector>& VoxelTestPositions,
+		TArray<struct FIrradianceBrickBuildData>& OutBrickBuildData);
+
+	void ProcessVolumetricLightmapBrickTask(class FVolumetricLightmapBrickTaskDescription* Task);
+
+	void ProcessVolumetricLightmapTaskIfAvailable();
+
+	void GenerateVoxelTestPositions(TArray<FVector>& VoxelTestPositions) const;
+
+	void CalculateAdaptiveVolumetricLightmap(int32 TaskIndex);
+
+	bool DoesVoxelIntersectSceneGeometry(const FBox& CellBounds) const;
+
+	bool ShouldRefineVoxel(const FBox& AABB, const TArray<FVector>& VoxelTestPositions, bool bDebugThisVoxel) const;
 
 	/** Computes a shadow depth map for a stationary light. */
 	void CalculateStaticShadowDepthMap(FGuid LightGuid);
@@ -2311,59 +2284,59 @@ private:
 		const FLinearColor& InTransmission
 		) const;
 
-	/** Evaluates the PDF that was used to generate samples for the non-importance sampled final gather for the given direction. */
-	float EvaluatePDF(const FFullStaticLightingVertex& Vertex, const FVector4& IncomingDirection) const;
-
 	/** Returns environment lighting for the given direction. */
 	FLinearColor EvaluateEnvironmentLighting(const FVector4& IncomingDirection) const;
 
 	/** Evaluates the incoming sky lighting from the scene. */
-	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
+	void EvaluateSkyLighting(const FVector4& IncomingDirection, float PathSolidAngle, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
+
+	float EvaluateSkyVariance(const FVector4& IncomingDirection, float PathSolidAngle) const;
 
 	/** Returns a light sample that represents the material attribute specified by MaterialSettings.ViewMaterialAttribute at the intersection. */
 	FGatheredLightSample GetVisualizedMaterialAttribute(const FStaticLightingMapping* Mapping, const FLightRayIntersection& Intersection) const;
 
 	/** Calculates exitant radiance at a vertex. */
 	FLinearColor CalculateExitantRadiance(
-		const FStaticLightingMapping* SourceMapping,
 		const FStaticLightingMapping* HitMapping,
 		const FStaticLightingMesh* HitMesh,
-		const FStaticLightingVertex& Vertex,
-		int32 VertexIndex,
+		const FMinimalStaticLightingVertex& Vertex,
 		int32 ElementIndex,
 		const FVector4& OutgoingDirection,
 		int32 BounceNumber,
+		EHemisphereGatherClassification GatherClassification,
 		FStaticLightingMappingContext& MappingContext,
-		FLMRandomStream& RandomStream,
-		bool bIncludeDirectLighting,
 		bool bDebugThisTexel) const;
 
-	/** Final gather using first bounce indirect photons to importance sample the incident radiance function. */
-	FGatheredLightSample IncomingRadianceImportancePhotons(
+	void IntersectLightRays(
 		const FStaticLightingMapping* Mapping,
 		const FFullStaticLightingVertex& Vertex,
 		float SampleRadius,
-		int32 ElementIndex,
-		int32 BounceNumber,
-		const TArray<FVector4>& ImportancePhotonDirections,
+		int32 NumRays,
+		const FVector4* WorldPathDirections,
+		const FVector4* TangentPathDirections,
+		EFinalGatherRayBiasMode RayBiasMode,
 		FStaticLightingMappingContext& MappingContext,
-		FLMRandomStream& RandomStream,
-		bool bDebugThisTexel) const;
+		FLightRay* OutLightRays,
+		FLightRayIntersection* OutLightRayIntersections) const;
 
 	/** Takes a final gather sample in the given tangent space direction. */
 	FLinearColor FinalGatherSample(
 		const FStaticLightingMapping* Mapping,
 		const FFullStaticLightingVertex& Vertex,
-		const FVector4& TriangleTangentPathDirection,
-		float SampleRadius,
+		const FVector4& WorldPathDirection,
+		const FVector4& TangentPathDirection,
+		const FLightRay& PathRay,
+		const FLightRayIntersection& RayIntersection,
+		float PathSolidAngle,
 		int32 BounceNumber,
-		bool bSkyLightingOnly,
+		EHemisphereGatherClassification GatherClassification,
 		bool bGatheringForCachedDirectLighting,
 		bool bDebugThisTexel,
 		FStaticLightingMappingContext& MappingContext,
 		FLMRandomStream& RandomStream,
 		FLightingCacheGatherInfo& GatherInfo,
 		FFinalGatherInfo& FinalGatherInfo,
+		FFinalGatherHitPoint& HitPoint,
 		FVector& OutUnoccludedSkyVector,
 		FLinearColor& OutStationarySkyLighting) const;
 
@@ -2379,6 +2352,8 @@ private:
 		bool bIntersectingSurface,
 		int32 ElementIndex,
 		int32 BounceNumber,
+		EFinalGatherRayBiasMode RayBiasMode,
+		EHemisphereGatherClassification GatherClassification,
 		int32 NumAdaptiveRefinementLevels,
 		float BrightnessThresholdScale,
 		const TArray<FVector4>& UniformHemisphereSamples,
@@ -2388,24 +2363,7 @@ private:
 		FStaticLightingMappingContext& MappingContext,
 		FLMRandomStream& RandomStream,
 		FLightingCacheGatherInfo& GatherInfo,
-		bool bSkyLightingOnly,
 		bool bGatheringForCachedDirectLighting,
-		bool bDebugThisTexel) const;
-
-	/** Final gather using uniform sampling to estimate the incident radiance function. */
-	template<class SampleType>
-	SampleType IncomingRadianceUniform(
-		const FStaticLightingMapping* Mapping,
-		const FFullStaticLightingVertex& Vertex,
-		float SampleRadius,
-		int32 ElementIndex,
-		int32 BounceNumber,
-		const TArray<FVector4>& UniformHemisphereSamples,
-		float MaxUnoccludedLength,
-		const TArray<FVector4>& ImportancePhotonDirections,
-		FStaticLightingMappingContext& MappingContext,
-		FLMRandomStream& RandomStream,
-		FLightingCacheGatherInfo& GatherInfo,
 		bool bDebugThisTexel) const;
 
 	/** Calculates irradiance gradients for a sample position that will be cached. */
@@ -2423,7 +2381,6 @@ private:
 		const FStaticLightingMapping* Mapping,
 		const FFullStaticLightingVertex& Vertex,
 		int32 ElementIndex,
-		int32 VertexIndex,
 		float SampleRadius,
 		bool bIntersectingSurface,
 		FStaticLightingMappingContext& MappingContext,
@@ -2575,6 +2532,7 @@ private:
 		bool& bWaitTimedOut, 
 		bool& bDynamicObjectTask, 
 		int32& PrecomputedVisibilityTaskIndex,
+		int32& VolumetricLightmapTaskIndex,
 		bool& DominantShadowTask,
 		bool& bMeshAreaLightDataTask,
 		bool& bVolumeDataTask);
@@ -2611,6 +2569,7 @@ private:
 	FSceneMaterialSettings& MaterialSettings;
 	FMeshAreaLightSettings& MeshAreaLightSettings;
 	FDynamicObjectSettings& DynamicObjectSettings;
+	FVolumetricLightmapSettings& VolumetricLightmapSettings;
 	FPrecomputedVisibilitySettings& PrecomputedVisibilitySettings;
 	FVolumeDistanceFieldSettings& VolumeDistanceFieldSettings;
 	FAmbientOcclusionSettings& AmbientOcclusionSettings;
@@ -2626,7 +2585,7 @@ private:
 	 * Counts the number of mapping tasks that have begun, and might need help from other threads with tasks that they generate. 
 	 * This is used to keep completed mapping threads running so they can check for tasks. 
 	 */
-	volatile int32 MappingTasksInProgressThatWillNeedHelp;
+	volatile int32 TasksInProgressThatWillNeedHelp;
 
 	/** List of tasks to cache indirect lighting, used by all mapping threads. */
 	// consider changing this from FIFO to Unordered, which may be faster
@@ -2635,6 +2594,8 @@ private:
 	/** List of tasks to interpolate indirect lighting, used by all mapping threads. */
 	// consider changing this from FIFO to Unordered, which may be faster
 	TLockFreePointerListLIFO<FInterpolateIndirectTaskDescription> InterpolateIndirectLightingTasks;
+
+	TLockFreePointerListLIFO<FVolumetricLightmapBrickTaskDescription> VolumetricLightmapBrickTasks;
 
 	TArray<FVolumeSamplesTaskDescription> VolumeSampleTasks;
 
@@ -2683,6 +2644,12 @@ private:
 	 */
 	FPhotonOctree FirstBouncePhotonMap;
 
+	/** Tracks first bounce photons that did not intersect a surface and escaped.  Used when lighting volumes. */
+	FPhotonOctree FirstBounceEscapedPhotonMap;
+
+	/** Stores photon segments, which allows finding photons which travelled near a certain point in space. */
+	FPhotonSegmentOctree FirstBouncePhotonSegmentMap;
+
 	/** Number of photons that were emitted until enough second bounce photons were gathered */
 	int32 NumPhotonsEmittedSecondBounce;
 	/** Photon map for second and up bounce photons. */
@@ -2713,9 +2680,13 @@ private:
 
 	TArray<FVector2D> CachedHemisphereSampleUniforms;
 
-	TArray<FVector4> CachedHemisphereSamplesForApproximateSkyLighting;
+	TArray<FVector4> CachedHemisphereSamplesForRadiosity[3];
+	TArray<FVector2D> CachedHemisphereSamplesForRadiosityUniforms[3];
 
-	TArray<FVector2D> CachedHemisphereSamplesForApproximateSkyLightingUniforms;
+	TArray<FVector4> CachedVolumetricLightmapUniformHemisphereSamples;
+	TArray<FVector2D> CachedVolumetricLightmapUniformHemisphereSampleUniforms;
+	float CachedVolumetricLightmapMaxUnoccludedLength;
+	TArray<FVector, TInlineAllocator<1>> CachedVolumetricLightmapVertexOffsets;
 
 	/** The aggregate mesh used for raytracing. */
 	FStaticLightingAggregateMeshType* AggregateMesh;
@@ -2761,6 +2732,8 @@ private:
 
 	/** List of complete visibility task data. */
 	TCompleteTaskList<FPrecomputedVisibilityData> CompleteVisibilityTaskList;
+
+	TCompleteTaskList<FVolumetricLightmapTaskData> CompleteVolumetricLightmapTaskList;
 
 	// Landscape mapping for Lighting Sample number estimation...
 	TArray< FStaticLightingMapping* > LandscapeMappings;
@@ -2808,9 +2781,17 @@ private:
 	/** Index into IrradiancePhotons(DebugIrradiancePhotonCalculationArrayIndex) of the photon being debugged. */
 	int32 DebugIrradiancePhotonCalculationPhotonIndex;
 
+    TIndirectArray<FMappingProcessingThreadRunnable> IrradiancePhotonCachingThreads;
 
-	/** Threads for caching irradiance photons. */
-	TIndirectArray<FMappingProcessingThreadRunnable> IrradiancePhotonCachingThreads;
+	FThreadSafeCounter NextMappingToProcessRadiositySetup;
+	FThreadSafeCounter NextMappingToProcessRadiosityIterations;
+	TArray<FThreadSafeCounter> NumCompletedRadiosityIterationMappings;
+
+	FThreadSafeCounter NextMappingToFinalizeSurfaceCache;
+
+	TIndirectArray<FMappingProcessingThreadRunnable> RadiositySetupThreads;
+	TIndirectArray<FMappingProcessingThreadRunnable> RadiosityIterationThreads;
+	TIndirectArray<FMappingProcessingThreadRunnable> FinalizeSurfaceCacheThreads;
 
 	/** Lightmass exporter (back to Unreal) */
 	class FLightmassSolverExporter& Exporter;
@@ -2826,6 +2807,7 @@ private:
 	friend class FMappingProcessingThreadRunnable;
 	friend class FVolumeSamplePlacementRasterPolicy;
 	friend class FUniformHemisphereRefinementGrid;
+	friend class FStaticLightingTextureMapping;
 };
 
 /**

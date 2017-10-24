@@ -4,8 +4,6 @@
 
 
 #ifndef DISABLE_DEPRECATION
-#if PLATFORM_HTML5_BROWSER
-
 	#pragma clang diagnostic warning "-Wdeprecated-declarations"
 
 	/**
@@ -18,21 +16,21 @@
 	 *
 	 * Sample usage (note the slightly different syntax for classes and structures):
 	 *
-	 *		DEPRECATED(4.6, "Message")
+	 *		DEPRECATED(4.xx, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		struct DEPRECATED(4.xx, "Message") MODULE_API MyStruct
 	 *		{
 	 *			// StructImplementation
 	 *		};
-	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		class DEPRECATED(4.xx, "Message") MODULE_API MyClass
 	 *		{
 	 *			// ClassImplementation
 	 *		};
 	 *
 	 *		Unfortunately, VC++ will complain about using member functions and fields from deprecated
 	 *		class/structs even for class/struct implementation e.g.:
-	 *		class DEPRECATED(4.8, "") DeprecatedClass
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}
@@ -55,7 +53,7 @@
 	 *			float MyFloat;
 	 *		};
 	 *
-	 *		class DEPRECATED(4.8, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}
@@ -76,7 +74,6 @@
 
 	#define PRAGMA_ENABLE_DEPRECATION_WARNINGS \
 		_Pragma ("clang diagnostic pop")
-#endif 
 #endif // DISABLE_DEPRECATION
 
 #ifndef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS

@@ -1,38 +1,39 @@
-﻿INTSourceChangelist:3051445
-Availability:Docs
+﻿INTSourceChangelist:3565221
+Availability:Public
 Title:Windows で iOS をビルドする
 Crumbs:%ROOT%, Platforms
 Description:Windows マシンから Mac マシンでリモート コンパイルして iOS ビルドを作成する方法 
 Platform:iOS
 Navigation:platform
 Version:4.9
-type:howto
+type:how to
 parent:Platforms/iOS
 tags:Mobile
 tags:iOS
 prereq:Platforms/iOS/QuickStart
+related:Platforms/iOS/GettingStarted
 
 IiOS 用のビルドには Mac が必要です。リモート コンパイルを使えば、Windows マシンを主に使うチーム全体で 1 つの Mac を使って iOS をビルドできるという意味です。 
 
 ## Mac の設定
 
-1. [these steps from Apple](https://support.apple.co\\m/kb/PH18726) を使って Mac 上で Remote Compiling を有効にします。
+1. [Apple のステップ](https://support.apple.co\\m/kb/PH18726) を使って Mac 上で Remote Compiling を有効にします。
 
 1. iOS Developer Certificates をシステム キーチェーンにインストールします。証明書がすでにログイン キーチェーンにインストールされている場合は、それらをシステム キーチェーンにドラッグすると、そこでもインストールされます。
 
 	[REGION:note]
-	IOS Developer Certificates (開発者証明書) の作成方法の詳細は、[](Platforms/iOS/QuickStart/3) をご覧ください。
+	iOS Developer Certificates (開発者証明書) の作成方法の詳細は、[署名証明書の作成](Platforms/iOS/QuickStart/3) をご覧ください。
 	[/REGION]
 
-1. 最後に、すべてのプログラムから利用できるように証明書用にプライベート キーが設定されていることを確認してください。Developer Certificate (開発者証明書) の下にあるキーをダブルクリックすると利用することができます。詳細は、[this Apple Support article](https://support.apple.com/kb/PH18682) を参照してください。
+1. 最後に、すべてのプログラムから利用できるように証明書用にプライベート キーが設定されていることを確認してください。Developer Certificate (開発者証明書) の下にあるキーをダブルクリックすると利用することができます。詳細は、[Apple サポートの記事](https://support.apple.com/kb/PH18682) を参照してください。
 
-##PC の設定
+## PC の設定
 
 1. エディタでプロジェクトを開き、**[Project Settings (プロジェクト設定)]** を開きます。  
 
 	![](Engine/UI/ProjectSettings/menu_project_settings.png)
 
-1. **[Platforms]** の下にある**[iOS]** をクリックします。
+1. **[Platforms]** の **[iOS]** をクリックします。
 
 	![](iOSsettings.png)
 
@@ -50,7 +51,7 @@ IiOS 用のビルドには Mac が必要です。リモート コンパイルを
 
 SSH 設定は、ポップアップ ウィンドウで表示されるプロンプトにほとんど従います。ただし、以下のステップの方が分かりやすいです。
 
-1. ホストが認証されない場合は、「Yes」をプロンプトで選択します。
+1. ホストが認証されない場合は、[Yes] をプロンプトで選択します。
 
 1. **[Remote User Name (リモート ユーザー名)]** 入力フィールドに指定したユーザーに属するパスワードを入力します。
 
@@ -64,13 +65,11 @@ SSH 設定は、ポップアップ ウィンドウで表示されるプロンプ
 
 今後すべてのプロジェクトで使用できるようにこのデータを回覧したい場合は、**[Remote Server Name (リモートサーバー名)]** と **[Remote User Name (リモートユーザー名)** をコンピュータの 1 つ以上の `*Engine.ini` ファイルで指定すると良いでしょう。  
 
-1. プロパティの横にある複数ドットのボタンを選択します。  
+1. プロパティの横にある複数ドットのボタンを選択します。
 
 	![](ConfigFiles.png)
 
-	すると、**Configuration Editor** が開きます。 
-
-1. 使用したい`.ini` ファイルに個別にプロパティを設定します。  
+	1. SSH データのパスに使用したい `.ini` ファイルに個別にプロパティを設定します。  
 
 	![](inifileexample.png)
 

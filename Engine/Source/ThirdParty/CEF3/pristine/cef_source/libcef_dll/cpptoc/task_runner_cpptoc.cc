@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -149,17 +149,17 @@ CefTaskRunnerCppToC::CefTaskRunnerCppToC() {
   GetStruct()->post_delayed_task = task_runner_post_delayed_task;
 }
 
-template<> CefRefPtr<CefTaskRunner> CefCppToC<CefTaskRunnerCppToC,
+template<> CefRefPtr<CefTaskRunner> CefCppToCRefCounted<CefTaskRunnerCppToC,
     CefTaskRunner, cef_task_runner_t>::UnwrapDerived(CefWrapperType type,
     cef_task_runner_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefTaskRunnerCppToC, CefTaskRunner,
-    cef_task_runner_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefTaskRunnerCppToC,
+    CefTaskRunner, cef_task_runner_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefTaskRunnerCppToC, CefTaskRunner,
-    cef_task_runner_t>::kWrapperType = WT_TASK_RUNNER;
+template<> CefWrapperType CefCppToCRefCounted<CefTaskRunnerCppToC,
+    CefTaskRunner, cef_task_runner_t>::kWrapperType = WT_TASK_RUNNER;

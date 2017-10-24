@@ -26,8 +26,6 @@ public:
 	// End IAssetTypeActions
 
 private:
-	/** Handler for when CreateDestructibleMesh is selected */
-	void ExecuteCreateDestructibleMesh(TArray<TWeakObjectPtr<UStaticMesh>> Objects);
 
 	/** Handler for when CopyLODDData is selected */
 	void ExecuteCopyLODSettings(TArray<TWeakObjectPtr<UStaticMesh>> Objects);
@@ -41,8 +39,11 @@ private:
 	/** Whether there is a valid static meshes to copy LOD to*/
 	bool CanPasteLODSettings(TArray<TWeakObjectPtr<UStaticMesh>> Objects) const;
 
-	// Handler for when SaveGeneratedLODsInPackage is selected
+	/** Handler for when SaveGeneratedLODsInPackage is selected */
 	void ExecuteSaveGeneratedLODsInPackage(TArray<TWeakObjectPtr<UStaticMesh>> Objects);
+
+	/** Handler for when RemoveVertexColors is selected */
+	void ExecuteRemoveVertexColors(TArray<TWeakObjectPtr<UStaticMesh>> Objects);
 
 	/** Handler to provide the list of LODs that can be imported or reimported */
 	void GetImportLODMenu(class FMenuBuilder& MenuBuilder,TArray<TWeakObjectPtr<UStaticMesh>> Objects);

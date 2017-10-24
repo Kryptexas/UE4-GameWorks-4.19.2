@@ -19,7 +19,17 @@ URetainerBox::URetainerBox(const FObjectInitializer& ObjectInitializer)
 	Visibility = ESlateVisibility::Visible;
 	Phase = 0;
 	PhaseCount = 1;
+	RenderOnPhase = true;
+	RenderOnInvalidation = false;
 	TextureParameter = DefaultTextureParameterName;
+}
+
+void URetainerBox::RequestRender()
+{
+	if ( MyRetainerWidget.IsValid() )
+	{
+		MyRetainerWidget->RequestRender();
+	}
 }
 
 UMaterialInstanceDynamic* URetainerBox::GetEffectMaterial() const
@@ -61,6 +71,8 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 {
 	MyRetainerWidget =
 		SNew(SRetainerWidget)
+		.RenderOnInvalidation(RenderOnInvalidation)
+		.RenderOnPhase(RenderOnPhase)
 		.Phase(Phase)
 		.PhaseCount(PhaseCount)
 #if STATS

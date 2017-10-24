@@ -32,6 +32,8 @@ public:
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder )
 	{
+		const TArray<FString>& ConfidentalPlatforms = FPlatformMisc::GetConfidentialPlatforms();
+
 		TArray<PlatformInfo::FVanillaPlatformEntry> VanillaPlatforms = PlatformInfo::BuildPlatformHierarchy(PlatformInfo::EPlatformFilter::All);
 		if (!VanillaPlatforms.Num())
 		{
@@ -58,11 +60,10 @@ public:
 			}
 
 			// Make sure we're able to run this platform
-/*			ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(VanillaPlatform.PlatformInfo->TargetPlatformName.ToString());
-			if (!Platform)
+			if (VanillaPlatform.PlatformInfo->bIsConfidential && !ConfidentalPlatforms.Contains(VanillaPlatform.PlatformInfo->IniPlatformName))
 			{
 				continue;
-			}*/
+			}
 
 			if (VanillaPlatform.PlatformFlavors.Num())
 			{
@@ -162,10 +163,10 @@ protected:
 	 */
 	static void MakeBuildConfigurationsMenu(FMenuBuilder& MenuBuilder)
 	{
-		// Only show the debug game option if the game has source code. 
+		// Only show the debug game configurations if the game has source code. 
 		TArray<FString> TargetFileNames;
 		IFileManager::Get().FindFiles(TargetFileNames, *(FPaths::GameSourceDir() / TEXT("*.target.cs")), true, false);
-
+		
 		if (TargetFileNames.Num() > 0)
 		{
 			MenuBuilder.AddMenuEntry(
@@ -176,6 +177,26 @@ protected:
 					FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_DebugGame),
 					FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CanPackageBuildConfiguration, PPBC_DebugGame),
 					FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_DebugGame)
+				),
+				NAME_None,
+				EUserInterfaceActionType::RadioButton
+			);
+		}
+
+		// Add the Client configurations if there is a {ProjectName}Client.Target.cs file.
+		TArray<FString> ClientTargetFileNames;
+		IFileManager::Get().FindFiles(ClientTargetFileNames, *(FPaths::GameSourceDir() / TEXT("*client.target.cs")), true, false);
+
+		if (ClientTargetFileNames.Num() > 0)
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("DebugClientConfiguration", "DebugGame Client"),
+				LOCTEXT("DebugClientConfigurationTooltip", "Package the project for debugging as a client"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_DebugGameClient),
+					FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CanPackageBuildConfiguration, PPBC_DebugGameClient),
+					FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_DebugGameClient)
 				),
 				NAME_None,
 				EUserInterfaceActionType::RadioButton
@@ -195,6 +216,22 @@ protected:
 			EUserInterfaceActionType::RadioButton
 		);
 
+		if (ClientTargetFileNames.Num() > 0)
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("DevelopmentClientConfiguration", "Development Client"),
+				LOCTEXT("DevelopmentClientConfigurationTooltip", "Package the project for development as a client"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_DevelopmentClient),
+					FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CanPackageBuildConfiguration, PPBC_DevelopmentClient),
+					FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_DevelopmentClient)
+				),
+				NAME_None,
+				EUserInterfaceActionType::RadioButton
+			);
+		}
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShippingConfiguration", "Shipping"),
 			LOCTEXT("ShippingConfigurationTooltip", "Package the project for shipping"),
@@ -207,6 +244,23 @@ protected:
 			NAME_None,
 			EUserInterfaceActionType::RadioButton
 		);
+
+		if (ClientTargetFileNames.Num() > 0)
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ShippingClientConfiguration", "Shipping Client"),
+				LOCTEXT("ShippingClientConfigurationTooltip", "Package the project for shipping as a client"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_ShippingClient),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_ShippingClient)
+				),
+				NAME_None,
+				EUserInterfaceActionType::RadioButton
+			);
+		}
+
 	}
 };
 

@@ -22,6 +22,7 @@
 #include "SequencerSectionPainter.h"
 #include "ISequenceRecorder.h"
 #include "SequenceRecorderSettings.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 
 namespace SubTrackEditorConstants
 {
@@ -44,6 +45,8 @@ public:
 		: DisplayName(InDisplayName)
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
+		, InitialStartOffsetDuringResize(0.f)
+		, InitialStartTimeDuringResize(0.f)
 	{
 	}
 
@@ -277,6 +280,25 @@ public:
 		return FReply::Handled();
 	}
 
+	virtual void BeginSlipSection() override
+	{
+		InitialStartOffsetDuringResize = SectionObject.Parameters.StartOffset;
+		InitialStartTimeDuringResize = SectionObject.GetStartTime();
+	}
+
+	virtual void SlipSection(float SlipTime) override
+	{
+		float StartOffset = (SlipTime - InitialStartTimeDuringResize) / SectionObject.Parameters.TimeScale;
+		StartOffset += InitialStartOffsetDuringResize;
+
+		// Ensure start offset is not less than 0
+		StartOffset = FMath::Max(StartOffset, 0.f);
+
+		SectionObject.Parameters.StartOffset = StartOffset;
+
+		ISequencerSection::SlipSection(SlipTime);
+	}
+
 private:
 
 	/** Display name of the section */
@@ -287,6 +309,12 @@ private:
 
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;
+
+	/** Cached start offset value valid only during resize */
+	float InitialStartOffsetDuringResize;
+	
+	/** Cached start time valid only during resize */
+	float InitialStartTimeDuringResize;
 };
 
 
@@ -383,6 +411,66 @@ const FSlateBrush* FSubTrackEditor::GetIconBrush() const
 	return FEditorStyle::GetBrush("Sequencer.Tracks.Sub");
 }
 
+
+bool FSubTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneSubTrack::StaticClass()) || Track->IsA(UMovieSceneCinematicShotTrack::StaticClass()))
+	{
+		return false;
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		return false;
+	}
+	
+	TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
+
+	for (const FAssetData& AssetData : DragDropOp->GetAssets())
+	{
+		if (Cast<UMovieSceneSequence>(AssetData.GetAsset()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+FReply FSubTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	if (!Track->IsA(UMovieSceneSubTrack::StaticClass()) || Track->IsA(UMovieSceneCinematicShotTrack::StaticClass()))
+	{
+		return FReply::Unhandled();
+	}
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (!Operation.IsValid() && !Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		return FReply::Unhandled();
+	}
+	
+	TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
+	
+	bool bAnyDropped = false;
+	for (const FAssetData& AssetData : DragDropOp->GetAssets())
+	{
+		UMovieSceneSequence* Sequence = Cast<UMovieSceneSequence>(AssetData.GetAsset());
+
+		if (Sequence)
+		{
+			AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FSubTrackEditor::HandleSequenceAdded, Sequence));
+
+			bAnyDropped = true;
+		}
+	}
+
+	return bAnyDropped ? FReply::Handled() : FReply::Unhandled();
+}
 
 /* FSubTrackEditor callbacks
  *****************************************************************************/

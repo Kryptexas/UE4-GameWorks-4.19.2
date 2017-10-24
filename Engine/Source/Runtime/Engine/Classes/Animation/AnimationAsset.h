@@ -73,6 +73,11 @@ struct FBlendSampleData
 	UPROPERTY()
 	float PreviousTime;
 
+	// We may merge multiple samples if they use the same animation
+	// Calculate the combined sample play rate here
+	UPROPERTY()
+	float SamplePlayRate;
+
 	FMarkerTickRecord MarkerTickRecord;
 
 	// transient perbone interpolation data
@@ -908,7 +913,7 @@ public:
 private:
 	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+	TSoftObjectPtr<class USkeletalMesh> PreviewSkeletalMesh;
 #endif //WITH_EDITORONLY_DATA
 
 protected:

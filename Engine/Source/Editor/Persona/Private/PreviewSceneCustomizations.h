@@ -38,7 +38,7 @@ private:
 
 	void HandleAnimationModeChanged();
 
-	void HandleAnimationChanged(const FAssetData& InAssetData);
+	void HandleAnimationChanged();
 
 	void HandleMeshChanged(const FAssetData& InAssetData);
 

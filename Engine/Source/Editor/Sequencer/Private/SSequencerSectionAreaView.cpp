@@ -180,7 +180,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 			
 			ArrangedChildren.AddWidget( 
 				WidgetVisibility, 
-				AllottedGeometry.MakeChild( Widget, SectionGeometry.Position, SectionGeometry.GetDrawSize() )
+				AllottedGeometry.MakeChild( Widget, SectionGeometry.Position, SectionGeometry.GetLocalSize() )
 				);
 		}
 	}

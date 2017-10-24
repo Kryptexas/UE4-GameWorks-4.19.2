@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -341,37 +341,37 @@ class ENGINE_API UParticleSystemComponent : public UPrimitiveComponent
 	UPROPERTY(transient, duplicatetransient)
 	TArray<class USkeletalMeshComponent*> SkelMeshComponents;
 
-	uint32 bWasCompleted:1;
+	uint8 bWasCompleted:1;
 
-	uint32 bSuppressSpawning:1;
+	uint8 bSuppressSpawning:1;
 
 private:
 	/** if true, this psys can tick in any thread **/
-	uint32 bIsElligibleForAsyncTick:1;
+	uint8 bIsElligibleForAsyncTick:1;
 	/** if true, bIsElligibleForAsyncTick is set up **/
-	uint32 bIsElligibleForAsyncTickComputed:1;
+	uint8 bIsElligibleForAsyncTickComputed:1;
 public:
 
-	uint32 bWasDeactivated:1;
+	uint8 bWasDeactivated:1;
 
 	/** True if this was active before being unregistered or otherwise reset, if so reactivate it */
-	uint32 bWasActive:1;
+	uint8 bWasActive:1;
 
 	/** If true, someone has requested this component reset. */
-	uint32 bResetTriggered : 1;
+	uint8 bResetTriggered : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
-	uint32 bResetOnDetach:1;
+	uint8 bResetOnDetach:1;
 
 	/** whether to update the particle system on dedicated servers */
 	UPROPERTY()
-	uint32 bUpdateOnDedicatedServer:1;
+	uint8 bUpdateOnDedicatedServer:1;
 
 	/** Indicates that the component has not been ticked since being registered. */
-	uint32 bJustRegistered:1;
+	uint8 bJustRegistered:1;
 
 	/** This flag will be set the first time the PSysComp is activated... used to prevent auto activated PSysComps from calling InitParticles twice on level load */
-	uint32 bHasBeenActivated:1;
+	uint8 bHasBeenActivated:1;
 
 	/**
 	 * If true, this Particle System will be available for recycling after it has completed. Auto-destroyed systems cannot be recycled.
@@ -379,7 +379,7 @@ public:
 	 * This is only an optimization and does not change particle system behavior, aside from not triggering normal component initialization events more than once.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=Particles)
-	uint32 bAllowRecycling:1;
+	uint8 bAllowRecycling:1;
 
 	/**
 	 * True if we should automatically attach to AutoAttachParent when activated, and detach from our parent when completed.
@@ -389,28 +389,70 @@ public:
 	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Attachment)
-	uint32 bAutoManageAttachment:1;
+	uint8 bAutoManageAttachment:1;
 	
-	/** The significance this component requires of it's emitters for them to be enabled. */
-	UPROPERTY()
-	EParticleSignificanceLevel RequiredSignificance;
-
-	/** Time in seconds since we were last considered significant. */
-	float LastSignificantTime;
-
 	/** If this component is having it's significance managed by gameplay code. */
-	uint32 bIsManagingSignificance : 1;
+	uint8 bIsManagingSignificance : 1;
 	/** If this component was previously having it's significance managed by gameplay code. Allows us to refresh render data when this changes. */
-	uint32 bWasManagingSignificance : 1;
-	
+	uint8 bWasManagingSignificance : 1;
+
+	UPROPERTY()
+	uint8 bWarmingUp:1;
+
+	/** indicates that the component's LODMethod overrides the Template's */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LOD)
+	uint8 bOverrideLODMethod:1;
+
+	/**
+	 *	Flag indicating that dynamic updating of render data should NOT occur during Tick.
+	 *	This is used primarily to allow for warming up and simulated effects to a certain state.
+	 */
+	UPROPERTY()
+	uint8 bSkipUpdateDynamicDataDuringTick:1;
+
+	/** This is set when any of our "don't tick me" timeout values have fired */
+	uint8 bForcedInActive:1;
+
+	/** If true, force an LOD update from the renderer. */
+	uint8 bForceLODUpdateFromRenderer:1;
+
+	/** If true, the ViewRelevanceFlags are dirty and should be recached */
+	uint8 bIsViewRelevanceDirty : 1;
+
+	uint8 bAutoDestroy : 1;
+
 private:
+	
+	/** Indicates if the component's transform has been changed and requires updating */
+	uint8 bIsTransformDirty:1;
+
 	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
-	uint32 bDidAutoAttach:1;
+	uint8 bDidAutoAttach : 1;
+
+	/** Is AsyncComponentToWorld etc valid? */
+	uint8 bAsyncDataCopyIsValid:1;
+	uint8 bParallelRenderThreadUpdate:1;
+
+	/** If true, it means the ASync work is done and the finalize is not */
+	uint8 bNeedsFinalize:1;
+	/** If true, it means the Async work is in process and not yet completed */
+	uint8 bAsyncWorkOutstanding:1;
 
 	/** Restore relative transform from auto attachment and optionally detach from parent (regardless of whether it was an auto attachment). */
 	void CancelAutoAttachment(bool bDetachFromParent);
 
 public:
+
+	/** The method of LOD level determination to utilize for this particle system */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LOD)
+	TEnumAsByte<enum ParticleSystemLODMethod> LODMethod;
+
+	/** The significance this component requires of it's emitters for them to be enabled. */
+	UPROPERTY()
+	EParticleSignificanceLevel RequiredSignificance;
+
+	/** Current particle 'replay state'.  This setting controls whether we're currently simulating/rendering particles normally, or whether we should capture or playback particle replay data instead. */
+	TEnumAsByte<enum ParticleReplayState> ReplayState;
 
 	void ResetNextTick()
 	{
@@ -448,15 +490,10 @@ public:
 	UPROPERTY()
 	float WarmupTickRate;
 
-	UPROPERTY()
-	uint32 bWarmingUp:1;
-
 private:
 	int32 LODLevel;
 
 public:
-
-	uint32 bAutoDestroy:1;
 
 	/**
 	 * Number of seconds of emitter not being rendered that need to pass before it
@@ -468,9 +505,6 @@ public:
 private:
 	/** Tracks the time since the last forced UpdateTransform. */
 	float TimeSinceLastForceUpdateTransform;
-
-	/** Indicates if the component's transform has been changed and requires updating */
-	bool bIsTransformDirty;
 
 public:
 	/**
@@ -497,39 +531,23 @@ public:
 	/** Used to accumulate total tick time to determine whether system can be skipped ticking if not visible. */
 	float AccumTickTime;
 
-	/** indicates that the component's LODMethod overrides the Template's */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LOD)
-	uint32 bOverrideLODMethod:1;
+	/** Time in seconds since we were last considered significant. */
+	float LastSignificantTime;
 
-	/** The method of LOD level determination to utilize for this particle system */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LOD)
-	TEnumAsByte<enum ParticleSystemLODMethod> LODMethod;
+	/** LOD updating... */
+	float AccumLODDistanceCheckTime;
 
-	/**
-	 *	Flag indicating that dynamic updating of render data should NOT occur during Tick.
-	 *	This is used primarily to allow for warming up and simulated effects to a certain state.
-	 */
-	UPROPERTY()
-	uint32 bSkipUpdateDynamicDataDuringTick:1;
+private:
+	/** Remember the global detail mode when we last checked the emitters. */
+	uint32 LastCheckedDetailMode;
 
-	/** This is set when any of our "don't tick me" timeout values have fired */
-	uint32 bForcedInActive:1;
-
-	/** If true, force an LOD update from the renderer. */
-	uint32 bForceLODUpdateFromRenderer:1;
-
+public:
 	/** The view relevance flags for each LODLevel. */
 	TArray<FMaterialRelevance> CachedViewRelevanceFlags;
-
-	/** If true, the ViewRelevanceFlags are dirty and should be recached */
-	uint32 bIsViewRelevanceDirty:1;
 
 	/** Array of replay clips for this particle system component.  These are serialized to disk.  You really should never add anything to this in the editor.  It's exposed so that you can delete clips if you need to, but be careful when doing so! */
 	UPROPERTY()
 	TArray<class UParticleSystemReplay*> ReplayClips;
-
-	/** Current particle 'replay state'.  This setting controls whether we're currently simulating/rendering particles normally, or whether we should capture or playback particle replay data instead. */
-	TEnumAsByte<enum ParticleReplayState> ReplayState;
 
 	/** Clip ID number we're either playing back or capturing to, depending on the value of ReplayState. */
 	int32 ReplayClipIDNumber;
@@ -537,8 +555,12 @@ public:
 	/** The current replay frame for playback */
 	int32 ReplayFrameIndex;
 
-	/** LOD updating... */
-	float AccumLODDistanceCheckTime;
+	/** Scales DeltaTime in UParticleSystemComponent::Tick(...) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
+	float CustomTimeDilation;
+
+	/** This is created at start up and then added to each emitter */
+	float EmitterDelay;
 
 	/** The Spawn events that occurred in this PSysComp. */
 	TArray<struct FParticleEventSpawnData> SpawnEvents;
@@ -554,17 +576,6 @@ public:
 
 	/** The Kismet events that occurred for this PSysComp. */
 	TArray<struct FParticleEventKismetData> KismetEvents;
-
-	/** Scales DeltaTime in UParticleSystemComponent::Tick(...) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
-	float CustomTimeDilation;
-
-	/** This is created at start up and then added to each emitter */
-	float EmitterDelay;
-
-	// Called when the particle system is done
-	UPROPERTY(BlueprintAssignable)
-	FOnSystemFinished OnSystemFinished;
 
 public:
 	/**
@@ -582,12 +593,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
 	FName AutoAttachSocketName;
 
+#if WITH_EDITORONLY_DATA
 	/**
 	 * DEPRECATED: Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
 	 * @see bAutoManageAttachment, EAttachLocation::Type
 	 */
 	UPROPERTY()
 	TEnumAsByte<EAttachLocation::Type> AutoAttachLocationType_DEPRECATED;
+#endif
 
 	/**
 	 * Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
@@ -639,9 +652,14 @@ private:
 	FRotator SavedAutoAttachRelativeRotation;
 	FVector SavedAutoAttachRelativeScale3D;
 
+public:
+	class FFXSystemInterface* FXSystem;
+
+	// Called when the particle system is done
+	UPROPERTY(BlueprintAssignable)
+	FOnSystemFinished OnSystemFinished;
+
 private:
-	/** Cached copy of the transform for async work */
-	FTransform AsyncComponentToWorld;
 	/** Cached copy of the instance params */
 	TArray<struct FParticleSysParam> AsyncInstanceParameters;
 	/** Player locations computed before kicking off async task. Safe to access from async task or game thread*/
@@ -652,13 +670,6 @@ private:
 	FBoxSphereBounds AsyncBounds;
 	/** Cached copy of PartSysVelocity */
 	FVector AsyncPartSysVelocity;
-
-	/** Is AsyncComponentToWorld etc valid? */
-	bool bAsyncDataCopyIsValid;
-	bool bParallelRenderThreadUpdate;
-
-	/** Remember the global detail mode when we last checked the emitters. */
-	uint32 LastCheckedDetailMode;
 
 public:
 
@@ -1061,27 +1072,25 @@ public:
 	void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
 
 public:
-	TArray<struct FParticleEmitterInstance*> EmitterInstances;
-
-	class FFXSystemInterface* FXSystem;
-
 	/** Command fence used to shut down properly */
 	class FRenderCommandFence* ReleaseResourcesFence;
+
+	TArray<struct FParticleEmitterInstance*> EmitterInstances;
 
 	/** Static delegate called for all systems on an activation change. */
 	static FOnSystemPreActivationChange OnSystemPreActivationChange;
 
 private:
+	/** Cached copy of the transform for async work */
+	FTransform AsyncComponentToWorld;
+
 	/** Task ref for parallel portion */
 	FGraphEventRef AsyncWork;
+
 	/** Copy of delta time coming into TickComponent */
 	float DeltaTimeTick;
 	/** Info from async tick */
 	int32 TotalActiveParticles;
-	/** If true, it means the ASync work is done and the finalize is not */
-	bool bNeedsFinalize;
-	/** If true, it means the Async work is in process and not yet completed */
-	bool bAsyncWorkOutstanding;
 	/** Number of significant emitters. When this is 0, the system can either be deactivated or stopped ticking. */
 	uint32 NumSignificantEmitters;
 	/** Time in ms since a tick was last performed; used with MinTimeBetweenTicks (on UParticleSystem) to control tick rate */

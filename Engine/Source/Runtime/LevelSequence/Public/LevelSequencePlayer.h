@@ -74,6 +74,9 @@ struct FLevelSequencePlayerSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	FLevelSequenceSnapshotSettings Settings;
+
+	UPROPERTY()
+	FMovieSceneSequenceID ShotID;
 };
 
 /**
@@ -139,14 +142,13 @@ protected:
 
 	//~ UMovieSceneSequencePlayer interface
 	virtual bool CanPlay() const override;
+	virtual void OnStartedPlaying() override;
 	virtual void OnStopped() override;
 
 public:
 
 	/** Populate the specified array with any given event contexts for the specified world */
 	static void GetEventContexts(UWorld& InWorld, TArray<UObject*>& OutContexts);
-
-	virtual void BeginPlay() override;
 
 	/**
 	 * Set an array of additional actors that will receive events triggerd from this sequence player

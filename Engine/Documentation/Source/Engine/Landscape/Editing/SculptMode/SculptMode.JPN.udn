@@ -1,316 +1,78 @@
-﻿INTSourceChangelist:3260884
+﻿INTSourceChangelist:3482403
 Availability:Public
+Crumbs: %ROOT%
 Title:Sculpt モード
-Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:Landscape ツールの Sculpt モードの操作ガイド
-version:4.9
-
-[VAR:Topic]
-[OBJECT:Topiccompact]
-	[PARAM:image]
-		![%Engine/Landscape/Editing/SculptMode:title%](Landscape_Sculpt_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![Landscape Icon](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Editing/SculptMode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Editing/SculptMode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Editing/SculptMode]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+Type:Landing
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Landscape/Editing
+Related:Engine/Landscape/Editing/Brushes
+Related:Engine/Landscape/UI
+Order:
+Tags:Landscape
+topic-image:Landscape_Sculpt_topic.png
 
 [TOC(start:2 end:3)]
 
-ランドスケープのスカルプト処理では、基礎をなす高さマップを整えるツールを 1 つ以上使用します。単純なスカルプト ツールから、複雑なアルゴリズムを使用するツールまで各種ツールがそろっています。これによって、趣のあるエフェクト (浸食など) を高さマップに加えることができます。各ツールには一連のプロパティがあり、これらを利用してツールがランドスケープへ作用する度合いを決定します。
+ランドスケープのスカルプト処理では、基礎をなすハイト マップを整えるツールを 1 つ以上使用します。単純なスカルプト ツールから、複雑なアルゴリズムを使用するツールまで各種ツールがそろっています。
+これによって、趣のあるエフェクト (浸食など) を高さマップに加えることができます。各ツールには一連のプロパティがあり、
+これらを調節して、ツールがランドスケープに及ぼす影響の大きさを決定します。 
 
-[REGION:tip]
-Landscape Paint Mode モードは、VR エディタでも使用できます。VR での Landscape ツールの使用方法については、[](Engine/Editor/VR/Controls) をご覧ください。
+![](SculptTools_Overview.png)(w:900)
+
+## Tool Workflow
+
+[ランドスケープを作成](Engine/Landscape/Creation) すると、Landscape ツールの他の機能へアクセスすることができるようになります。**[Sculpt]** モード ボタンを押せば、Sculpting 機能を使うことができます。
+
+![](SelectSculptMode.png)(w:325)
+
+選択すると、Sculpt ツール オプションからスカルプト ツールの種類、さらにランドスケープ ハイトマップへストロークでエフェクトを適用する [ブラシの種類とフォールオフ タイプ](engine/landscape/editing/brushes) も選択することができます。
+
+[REGION:raw]
+![](SculptToolSelection.png)(w:450)
 [/REGION]
 
+Sculpting ツールを選択すると、以下の制御を使ってランドスケープの地形を生成することができます。
 
-現在選択されているツールによって、ランドスケープ上で実行される操作が決まります。ツールは [ブラシ](Engine\Landscape\Editing\Brushes) のストロークを利用してエフェクトを適用します。
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	I_EzqWISGFI
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 
 | **一般的な操作** | **処理内容** |
 | --- | --- |
-| **マウスの左ボタン** | 選択されているツールのエフェクトを高さマップまたは選択されたレイヤーに適用するストロークを実行します。 |
+| **マウスの左ボタン** | 選択されているツールのエフェクトをハイトマップに追加するストロークを実行します。 |
+| **マウスの左ボタン** | 選択されているツールのエフェクトをハイトマップから取り去るストロークを実行します。 |
 | **Ctrl + Z** | 直前のストロークをアンドゥします。 |
 | **Ctrl + Y** | 直前にアンドゥしたストロークをリドゥします。 |
 
 ランドスケープ ツールの各種モード、ツール、ブラシに対するクイック リファレンス ガイドについては、[](Engine/Landscape/UI) を参照してください。
 
-## スカルプト ツール
 
-スカルプト ツールは様々な方法でランドスケープの形状修正に使用することができます。
+## Sculpting ツール
 
-### Sculpt (スカルプト)
+**Sculpting ツール** は様々な方法でランドスケープの形状修正に使用することができます。利用できる機能については、こちらをご覧ください。
 
-![Sculpt Tool](Landscape_Sculpt.png)
+[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"!region" end:"1")]
 
-**スカルプト** ツールは現在選択されているブラシとフォールオフの形状で、高さマップの高さあるいはレイヤーのウェイトを増減させます。
+(#Regionツール)
 
-| **代替操作** | **処理内容** |
-| --- | --- |
-| **マウスの左ボタン** | 高さマップまたは選択したレイヤーのウェイトを上げる、または増やします。
-| **Shift + マウスの左ボタン** | 高さマップまたは選択したレイヤーのウエイトを下げる、または減らします。 |
+## Region ツール
 
-**オプション**
+**Region ツール** は、ランドスケープ上の特定リージョン (領域) で様々な動作を実行することができます。利用できる機能については、こちらをご覧ください。
 
-| **オプション** | **説明** |
-| --- | --- |
-| **Tool Strength** | 各ブラシのストローク強度を決定します。 |
-
-ブラシの強度によって、上昇 / 下降量が決まります。
-
-
-### Smooth (スムーズ)
-
-![Smooth Tool](Landscape_Smooth.png)
-
-**スムーズ** ツールは、高さマップをスムージングします。強度によって、スムージング量が決まります。
-
-**高さマップのスムージング**
-
-![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)
-
-![Landscape_Smooth_After_HighDetail.jpg](Landscape_Smooth_After_HighDetail.jpg)(w:900 h:325)
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Total Strength** | 各ブラシのストロークで発生するエフェクトの度合いを調節します。 |
-| **Filter Kernel Scale** | スムージング フィルター カーネルに対しスケール乗数を設定します。 |
-| **Detail Smooth** | このオプションがチェックされると、指定した詳細スムージング値を使用して、詳細を維持したままのスムージングを実行します。詳細スムージング値が大きいほど詳細度が減少し、値が小さいほど詳細度が保たれます。 [INCLUDE:#DetailSmooth] |
-
-<!--
-[EXCERPT:DetailSmooth]
-![Landscape_Smooth_After_LowDetail.jpg](Landscape_Smooth_After_LowDetail.jpg)(w:720)
-
-![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:720)
-[/EXCERPT:DetailSmooth]
--->
-
-
-### Flatten (平坦化)
-
-![Flatten Tool](Landscape_FlattenTool.png)
-
-**平坦化** ツールを高さマップ上で使用すると、このツールを最初に起動した時にマウスカーソル下にあったランドスケープのレベルまで、ランドスケープを平坦化します。
-
-![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-
-![Landscape_Flatten.jpg](Landscape_Flatten.jpg)(w:900 h:325)
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Total Strength** | 各ブラシのストロークで発生するエフェクトの度合いを調節します。 |
-| **Flatten Mode** | ツール ブラシで高さマップセクションを高くするか低くするか判断します。 |
-| **Use Slope Flatten** | チェックが入っていると、水平のプレーンに向かって平坦化せずにランドマークの既存のスロープに沿って平坦化します。 |
-| **Pick Value Per Apply** | チェックが入っていると、最初にクリックした点のみを使用するのではなく、常に新しい値を選んで平坦化します。 |
-| **Flatten Target** | 平坦化する方に向かってターゲットとなる高さを設定します。 |
-
-
-### Ramp (傾斜)
-
-![Ramp Tool](Landscape_Ramp.png)
-
-**Ramp** ツールにより、ランドスケープ上で 2 つの位置を選び、側面にフォールオフを指定して、それらの間に平面の傾斜を作成することができます。
-
-**ランドスケープに傾斜を追加するには、次のことを行います：**
-
-1. 2 つの位置を **Ctrl + クリック** して、傾斜の開始および終了ポイントの印をつけます。
-
-	![Ramp Setup](Landscape_RampSetup.png)(w:700)
-
-1. 必要な場合は、傾斜の幅とフォールオフに使いたいオプションを調節します。
-
-	![Ramp Settings](Landscape_RampSettings.png)
-
-1. **[Add Ramp (傾斜を追加)]** をクリックして傾斜を作成します。
-
-	![Add Ramp](Landscape_RampAdd.png)
-
-	![Ramp Added](Landscape_RampAddedSprites.png)(w:700)
-
-![Ramp Tool Before](Landscape_RampBefore4.png)(w:900)
-
-![Ramp Tool After](Landscape_RampAddedNoSprites.png)(w:900)
-
-
-[REGION:tip]
-開始および終了ポイントの設定をしてる途中で傾斜の追加をやめる場合は **[Reset (リセット)]** をクリックしてクリアします。
-[/REGION]
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Ramp Width** | 傾斜で幅を設定します。 |
-| **Side Falloff** | 傾斜の側面にフォールオフを設定し、そこがランドスケープの残りの部分にマージされます。**0** を設定するとフォールオフなし、そして **1** を設定すると全てフォールオフで平面の傾斜はなし、ということになります。 |
-
-
-### Erosion
-
-![Erosion Tool](Landscape_Erosion.png)
-
-**Erosion** ツールは、高さマップの高さを調整するために熱による浸食のシミュレーションを使用します。高度が高いところから低いところまでの土壌の動きをシミュレートします。高度差が大きくなると、浸食が大きくなります。より自然でランダムな外観を作成するために、必要に応じて、浸食に加えてノイズ エフェクトをツールへ適用することができます。
-
-
-![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-
-![Landscape_Thermal_Erosion.jpg](Landscape_Thermal_Erosion.jpg)(w:900 h:325)
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Tool Strength** | 各ブラシのストローク強度を決定します。 |
-| **Threshold** | 浸食エフェクトを適用するために必要となる最低限の高さ差異です。この値が小さいほど、適用される浸食エフェクトが増えます。 |
-| **Surface Thickness** | レイヤーのウェイトの浸食エフェクトに利用するサーフェスの厚みです。 |
-| **Iterations** | 実行されるイタレーションの数です。この値が大きくなるほど、浸食が大きくなります。 |
-| **Noise Mode** | ノイズを適用した高さマップの上げ下げ、あるいはその両方の適用を設定します。 |
-| **Noise Scale** | 使用するノイズ フィルターの大きさです。ノイズ フィルターは、位置とスケールに関係します。したがって、**Noise Scale** を変更しなければ、同じフィルターが同じ位置に何度も適用されます。 | 
-| ![](Erosion_New.jpg)(w:900 h:325) ||
-
-
-
-### Hydro Erosion (水による浸食)
-
-![Hydro Erosion Tool](Landscape_HydroErosion.png)
-
-**Hydro Erosion** ツールは、高さマップの高さを調整するために、例えば水の侵食など、水による浸食のシミュレーションを使用します。ノイズ フィルターで、最初に降る雨を分布させる位置を決定します。その後、最初に降る雨、さらには雨の消滅、水の移動から蒸発までの水のフローを決定するためにシミュレーションを計算します。計算結果は、高さマップを下げるために使用する実際の値となります。
-
-![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-
-![Landscape_Hydraulic_Erosion.jpg](Landscape_Hydraulic_Erosion.jpg)(w:900 h:325)
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Tool Strength** | 各ブラシのストローク強度を決定します。 |
-| **Rain Amount** | サーフェスへ適用するための雨量です。値が高ければ高いほど、より大きな侵食となります。 |
-| **Sediment Cap.** | 水に流される堆積物の量です。値が高ければ高いほど、より大きな侵食となります。 |
-| **Iterations** | 実行されるイタレーションの数です。この値が大きくなるほど、浸食が大きくなります。 |
-| **Initial Rain Distribution** | 雨の適用はノイズフィルターが正の値の領域のみか、または領域全体かを設定します。 |
-| ![](Hydro_Erosion.jpg)(w:900 h:325) ||
-| **Rain Dist Scale** | 最初の雨をサーフェスへ適用するためのノイズフィルタの大きさです。ノイズフィルターは、位置とスケールに関係します。したがって、**Rain Dist. Scale** を変更しなければ、同じフィルターが同じ位置に何度も適用されます。 | 
-| **Detail Smooth** | このオプションがチェックされると、指定した詳細スムージング値を使用して、詳細を維持したまま侵食エフェクトに対してスムージングを実行します。詳細スムージング値が大きくなると、詳細度が減少します。値が小さくなると、詳細度が保たれます。 |
-
-
-
-### Noise
-
-![Noise Tool](Landscape_Noise.png)
-
-**Noise** ツールは、高さマップまたはレイヤーのウェイトをノイズ フィルターへ適用します。強度によって、ノイズ量が決まります。
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Tool Strength** | 各ブラシのストローク強度を決定します。 |
-| **Use Target Value** | チェックが入っていると、適用されているノイズの値をターゲット値に適用します。 |
-| **Noise Mode** | 適用するのは、全てのノイズ エフェクトか、高さマップを上げるノイズ エフェクトのみか、それとも高さマップを下げるノイズ エフェクトのみかを判断します。 |
-| ![](Noise.jpg)(w:900 h:325) ||
-| **Noise Scale** | 使用するパーリン ノイズ フィルターの大きさです。ノイズ フィルターは、位置とスケールに関係します。したがって、**Noise Scale** を変更しなければ、同じフィルターが同じ位置に何度も適用されます。 |
-
-
-### Retopologize (リポトロジー)
-
-![Retopologize Tool](Landscape_Retopologize.png)
-
-**Retopologize** ツールは、ランドスケープの頂点を X/Y オフセット マップで自動調整し、テクスチャの伸縮を減らして、がん壁の頂点密度を改善します。
-
-[REGION:note]
-X/Y オフセット マップは、他のツールでのレンダリングやペイントを遅くするので、Retopologize ツールは必要な場合のみ使用します。
-[/REGION]
-
-
-### Visibility (可視性)
-
-![Visibility Tool](Landscape_Visibility.png)
-
-**Visibility** ツールは、ランドスケープに洞窟に対して穴を作成します。 
-
-| **代替操作** | **処理内容** |
-| --- | --- |
-| **Shift + マウスの左ボタン** | 可視性マスクは、ランドスケープ コンポーネントを再度表示させます。 |
-
-####オパシティ マスクを使って穴を作成する
-
-[EXCERPT:LandscapeHole]
-スカルプト ツールではランドスケープに垂直方向の穴を作成することができますが、洞窟など、穴を水平方向にのばしたい場合もあります。Visibility ツールでランドスケープの表示セクションのペイントを取り除きたい場合オパシティ マスクを使うことも可能です。
-[/EXCERPT:LandscapeHole]
-
-ランドスケープの表示セクションのペイントを取り除くためには、ランドスケープ マテリアルを正しく設定する必要があります。Landscape Hole マテリアルの設定については、[Landscape Hole マテリアル](Engine\Landscape\Materials\#LandscapeHoleマテリアル) をご覧ください。
-
-[REGION:note]
-Landscape Hole マテリアルを割り当てずに Visibility ツールを使用すると、Visibility ツールは選択したセクションに適用されているマテリアル レイヤーを取り除きますが、ランドスケープそのものに穴は作成しません。
-[/REGION]
-
-Landscape Hole マテリアルを設定したら、ペイント ツールを使ってランドスケープに穴を作成することができます。
-
-**ランドスケープに穴を作成するには以下を行います。**
-
-1. Landscape Hole マテリアルがランドスケープに割り当てられていることを確認します。
-
-	![](Engine/Landscape/Materials/Landscape_HoleSettings.png)
-
-1. ランドスケープ ツールの **Sculpt** モードで **Visibility** ツールを選びます。
-
-	![Visibility Tool](Landscape_Visibility.png)
-
-1. 穴を作成したいランドスケープの位置を探します。
-
-	![](Landscape_MountainNoCave.png)(w:640)
-
-1. ブラシ サイズとフォールオフを正しく調節します。
-
-	![](Landscape_MountainCaveMask.png)(w:640)
-
-1. **左クリック** して穴を作成し、**Shift + 左クリック** で作成した穴を消去します。 
-
-	![](Landscape_MountainHole.png)(w:640)
-
-	これで、洞窟を作成するためにランドスケープの穴にスタティック メッシュ アクタをフィットさせることができます。
-
-	[REGION:note]
-	Play In Editor (PIE) を使用して新規の穴のコリジョンをテストするために、Landscape モードから Place モードに切り替える必要のある場合があります。
-	[/REGION]
-
-(#リージョンツール)
-
-## Region (リージョン) ツール
-
-ランドスケープ上の特定リージョン (領域) で各種動作を実行するためにリージョン ツールを使用することができます。
-
-
-### リージョンの選択
-
-![Region Selection Tool](Landscape_RegionSelect.png)
-
-このツールは、現在のブラシ設定とツールの強度を使用して、ランドスケープのリージョンを選択します。それによって、ランドスケープ [ギズモ](Engine\Landscape\Editing\Gizmos) を特定のエリアにフィットさせることができるとともに、ギズモへデータをコピーするマスクや、ギズモからデータをペーストするマスクとして振る舞うことができます。
-
-![region_selection.jpg](region_selection.jpg)(w:640 h:322)
-
-| 操作 | 処理内容 |
-| --- | --- |
-| **マウスの左ボタン** | 選択したリージョンへ追加します。 |
-| **Shift + マウスの左ボタン** | 選択したリージョンから削除します。 |
-
-| **オプション** | **説明** |
-| --- | --- |
-| **Clear Region Selection** | 現在選択中のリージョンを解除します。 |
-| **Tool Strength** | 各ブラシのストローク強度を決定します。 |
-| **Use Region as Mask** | チェックが入っている場合は、選択されたリージョンを構成しているアクティブな領域が選択領域がマスクとして機能します。
-|    ![region_mask.jpg](region_mask.jpg)(w:640 h:322) ||
-| **Negative Mask** | **Use Region as Mask** と共にチェックが入っている場合は、リージョン選択はマスクとしての役割をしますが、アクティブな領域は選択されていないリージョンで構成されています。
-|    ![region_mask_negative.jpg](region_mask_negative.jpg)(w:640 h:322) ||
-
-
-(#RegionCopy)
-### コピー / 貼り付け
-
-![Copy/Paste Tool](Landscape_CopyPaste.png)
-
-このツールを使用すると、[](Engine/Landscape\Editing\Gizmos) を介して、高さデータをランドスケープのある領域から他の領域へコピーできます。ギズモ データのインポート / エクスポートも可能です。
-
-[INCLUDE:Engine/Landscape#landscape002]
+[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"region" end:"1")]

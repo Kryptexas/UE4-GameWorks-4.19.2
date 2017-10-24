@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:Clear
-Description:Clears a Map of all entries.
-Crumbs:
+Description:清除 Map 的所有条目。
+Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Maps/MapNodes
 Order:2
-Version: 4.15
+Version:4.15
 Tags:Blueprints
 Type:reference
 
@@ -13,21 +13,21 @@ Type:reference
 
 ![](Map_ClearNode.png)
 
-The **Clear** node removes all of the key-value pairs from a given Map, removing all of the Map's contents. Subsequently, the Map's length will be reset to zero.
+**Clear** 节点从一个给定 Map 移除所有键值对，移除 Map 的所有内容。其后，Map 的长度将被重设为零。
 
-##Inputs
+## 输入
 
-| Pin Location             | Name        | Description                                  |
+| 引脚位置             | 名称        | 描述                                  |
 | ------------------------ | ----------- | -------------------------------------------- |
-| ![](Map_ClearNode_1.png) |  (In) Exec  | Input execution pin.                         |
-| ![](Map_ClearNode_2.png) |  Target Map | The Map that you want to clear entries from. |
+| ![](Map_ClearNode_1.png) |  (In) Exec  | 输入执行引脚。                         |
+| ![](Map_ClearNode_2.png) |  Target Map | 需要清除条目的 Map。 |
 
-##Outputs
+## 输出
 
-| Pin Location             | Name        | Description           |
+| 引脚位置             | 名称        | 描述           |
 | ------------------------ | ----------- | --------------------- |
-| ![](Map_ClearNode_3.png) |  (Out) Exec | Output execution pin. |
+| ![](Map_ClearNode_3.png) |  (Out) Exec | 输出执行引脚。 |
 
-##Example Usage
+## 使用范例
 
 ![](Map_ClearUsage.png)

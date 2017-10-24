@@ -45,67 +45,6 @@ void FSocketReference::InitialzeCompactBoneIndex(const FBoneContainer& RequiredB
 	}
 }
 
-FTransform FSocketReference::GetAnimatedSocketTransform(FCSPose<FCompactPose>&	InPose) const
-{
-	// current LOD has valid index (FCompactPoseBoneIndex is valid if current LOD supports)
-	if (CachedSocketCompactBoneIndex != INDEX_NONE)
-	{
-		FTransform BoneTransform = InPose.GetComponentSpaceTransform(CachedSocketCompactBoneIndex);
-		return CachedSocketLocalTransform * BoneTransform;
-	}
-
-	return FTransform::Identity;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Target Reference 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-FVector FTargetReference::GetTargetLocation(FVector TargetOffset, const FBoneContainer& BoneContainer, FCSPose<FCompactPose>& InPose, const FTransform& InComponentToWorld, FTransform& OutTargetTransform)
-{
-	FVector TargetLocationInComponentSpace;
-
-	auto SetWorldOffset = [](const FVector& InTargetOffset, const FTransform& LocalInComponentToWorld, FTransform& LocalOutTargetTransform, FVector& OutTargetLocationInComponentSpace)
-	{
-		LocalOutTargetTransform.SetIdentity();
-		OutTargetLocationInComponentSpace = LocalInComponentToWorld.InverseTransformPosition(InTargetOffset);
-		LocalOutTargetTransform.SetLocation(InTargetOffset);
-	};
-
-	if (bUseSocket)
-	{
-		if (SocketReference.IsValidToEvaluate(BoneContainer))
-		{
-			FTransform SocketTransformInCS = SocketReference.GetAnimatedSocketTransform(InPose);
-
-			TargetLocationInComponentSpace = SocketTransformInCS.TransformPosition(TargetOffset);
-			OutTargetTransform = SocketTransformInCS;
-		}
-		else
-		{
-			SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
-		}
-	}
-	// if valid data is available
-	else if (BoneReference.HasValidSetup())
-	{
-		if (BoneReference.IsValidToEvaluate(BoneContainer))
-		{
-			OutTargetTransform = InPose.GetComponentSpaceTransform(BoneReference.GetCompactPoseIndex(BoneContainer));
-			TargetLocationInComponentSpace = OutTargetTransform.TransformPosition(TargetOffset);
-		}
-		else
-		{
-			SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
-		}
-	}
-	else
-	{
-		SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
-	}
-
-	return TargetLocationInComponentSpace;
-}
-
 /////////////////////////////////////////////////////
 // FAnimNode_SkeletalControlBase
 

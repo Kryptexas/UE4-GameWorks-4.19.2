@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:3482403
+Availability:Public
 Crumbs: %ROOT%
-Title: Noise
-Description: This is an overview of the Noise painting tool.
-Type: Reference
+Title:Noise
+Description:Noise 绘制工具总览。
+Type:Reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
 Order:7
@@ -12,10 +12,10 @@ Topic-image:Noise_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Noise** tool applies a noise filter to produce variations in the surface of the Landscape heightmap. 
+**Noise** 工具将应用一个 noise 过滤器，在地形高度图表面生成各种变化效果。 
 
 
-## Using the Noise Tool
+## 使用 Noise 工具
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -35,14 +35,13 @@ The **Noise** tool applies a noise filter to produce variations in the surface o
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, the Noise tool is used to paint on the Landscape, similarly to how Sculpt would be used, and in doing so variations are painted around this area that raise and lower the heightmap based
-on the tool settings. This enable you to paint grande or subtle variations into your Landscape. 
+在此例中，Noise 工具用于在地形上进行绘制，与造型工具的使用方法相似。这样便能基于工具设置升高和降低高度图，在区域上绘制出多样性。用户能够利用这个工具在地形上绘制出明显或微妙的多样性。 
 
-Use the following controls to Sculpt with Noise for your Landscape heightmap:
+可使用以下功能键为地形高度图打造 Noise 效果：
 
-| **Controls** | **Operation** |
+| **功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Heightens or increases the heightmap or selected layer's weight. |
+| **鼠标左键** | 增加高度图或所选图层的权重。|
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -53,9 +52,9 @@ Use the following controls to Sculpt with Noise for your Landscape heightmap:
 	[/PARAM]
 [/OBJECT]
 
-In this example, Noise has been painted onto the smooth Landscape surface giving it variations in different heights based on the strength and property values used. 
+在此例中，Noise 被绘制到平滑的地形表面上，基于使用的强度和属性值形成不同高度上的多样性。 
 
-## Tool Settings
+## 工具设置
 
 [REGION:imagetable]
 | ![Noise Tool](Landscape_Noise.png)(h:75) | ![](NoiseToolProperties.png)(h:185) |
@@ -64,24 +63,24 @@ In this example, Noise has been painted onto the smooth Landscape surface giving
 [/REGION]
 
 
-| **Property** | **Description** |
+| **属性** | **描述** |
 | ------------ | --------------- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
-| **Noise Mode** | Determines whether to apply all noise effects, only the noise effects that result in raising the heightmap, or only the noise effects that result in lowering the heightmap. [INCLUDE:#noise] |
-| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. |
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Use Target Value** | 勾选后，将对应用至目标值的 noise 值进行混合。|
+| **Noise Mode** | 确定是否应用所有 noise 效果、确定 noise 效果只使高度图上升，或只使高度图下降。[INCLUDE:#noise] |
+| **Noise Scale** | 使用的 perlin noise 尺寸。Noise 过滤器与位置和比例有关，如不改变 **Noise Scale**，同一 noise 过滤器将多次应用到相同位置。|
 
 
-The brush strength determines the amount of raising or lowering that can happen when using the Noise tool.
+笔刷强度决定使用 Noise 工具时升高或降低的量。
 
 <!--- Excerpts
 
 [EXCERPT:noise]
-|Selection | Description |
+|选项 | 描述 |
 | --- | --- |
-| **Both** | This will raise and lower values for painted values of Noise to the heightmap when the mouse click is activated. |
-| **Raise** | This will only raise values when painting Noise to the heightmap when the mouse click is activated.  |
-| **Lower** | This will only lower values when painting Noise to the heightmap when the mouse click is activated.  |
+| **Both** | 点击鼠标时此项将升高和降低 Noise 在高度图上的绘制值。|
+| **Raise** | 点击鼠标时此项将升高 Noise 在高度图上的绘制值。|
+| **Lower** | 点击鼠标时此项将降低 Noise 在高度图上的绘制值。|
 [/EXCERPT:noise]
 
 

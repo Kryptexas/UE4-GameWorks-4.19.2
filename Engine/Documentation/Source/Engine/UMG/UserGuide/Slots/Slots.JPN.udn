@@ -1,10 +1,18 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:スロット
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:UMG でのスロット使用の概要
-Version:4.9
-tags:UMG UI Designer
+Description:UMG でのスロット使用の概要  
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:8
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/SlotTopic.png
+
+
+
 
 [TOC(start:2 end:2)]
 

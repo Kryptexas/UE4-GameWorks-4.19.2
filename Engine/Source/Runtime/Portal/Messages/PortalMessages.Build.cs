@@ -11,16 +11,14 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-                    "MessagingRpc",
-                    "PortalServices",
-				}
-			);
+					"MessagingRpc",
+					"PortalServices",
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/Portal/Messages/Private",
-				}
-			);
+				});
 		}
 	}
 }

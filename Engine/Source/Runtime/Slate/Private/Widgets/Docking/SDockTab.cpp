@@ -635,7 +635,7 @@ const FSlateBrush* SDockTab::GetColorOverlayImageBrush() const
 {
 	if (this->TabColorScale.Get().A > 0.0f)
 	{
-		return &GetCurrentStyle().ColorOverlayBrush;
+		return &GetCurrentStyle().ColorOverlayIconBrush;
 	}
 	return FStyleDefaults::GetNoBrush();
 }
@@ -662,7 +662,7 @@ const FSlateBrush* SDockTab::GetFlashOverlayImageBrush() const
 	if (FlashTabCurve.IsPlaying())
 	{
 		// Flashing is really just applying a color overlay, so we can re-use the color overlay brush and apply our flash tint to it
-		return &GetCurrentStyle().ColorOverlayBrush;
+		return &GetCurrentStyle().ColorOverlayTabBrush;
 	}
 	return FStyleDefaults::GetNoBrush();
 }

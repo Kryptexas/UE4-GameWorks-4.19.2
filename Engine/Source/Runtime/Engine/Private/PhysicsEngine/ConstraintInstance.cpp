@@ -12,6 +12,7 @@
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_EDITOR
 #include "UObject/UnrealType.h"
@@ -164,6 +165,7 @@ FConstraintProfileProperties::FConstraintProfileProperties()
 	, LinearBreakThreshold(300.f)
 	, AngularBreakThreshold(500.f)
 	, bDisableCollision(false)
+	, bParentDominates(false)
 	, bEnableProjection(true)
 	, bAngularBreakable(false)
 	, bLinearBreakable(false)
@@ -459,6 +461,8 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 
 bool FConstraintInstance::CreatePxJoint_AssumesLocked(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene)
 {
+	LLM_SCOPE(ELLMTag::PhysX);
+
 	ConstraintData = nullptr;
 
 	FTransform Local1 = GetRefFrame(EConstraintFrame::Frame1);
@@ -535,6 +539,15 @@ void FConstraintProfileProperties::UpdatePhysXConstraintFlags_AssumesLocked(PxD6
 
 		Joint->setProjectionLinearTolerance(ProjectionLinearTolerance);
 		Joint->setProjectionAngularTolerance(FMath::DegreesToRadians(ProjectionAngularTolerance));
+	}
+
+	if(bParentDominates)
+	{
+		Joint->setInvMassScale0(0.0f);
+		Joint->setInvMassScale1(1.0f);
+
+		Joint->setInvInertiaScale0(0.0f);
+		Joint->setInvInertiaScale1(1.0f);
 	}
 
 	Joint->setConstraintFlags(Flags);
@@ -1397,6 +1410,26 @@ void FConstraintInstance::DisableProjection()
 	ProfileInstance.bEnableProjection = false;
 	SCOPED_SCENE_WRITE_LOCK(ConstraintData->getScene());
 	ConstraintData->setConstraintFlag(PxConstraintFlag::ePROJECTION, false);
+}
+
+void FConstraintInstance::EnableParentDominates()
+{
+	ProfileInstance.bParentDominates = true;
+	SCOPED_SCENE_WRITE_LOCK(ConstraintData->getScene());
+	ConstraintData->setInvMassScale0(0.0f);
+	ConstraintData->setInvMassScale1(1.0f);
+	ConstraintData->setInvInertiaScale0(0.0f);
+	ConstraintData->setInvInertiaScale1(1.0f);
+}
+
+void FConstraintInstance::DisableParentDominates()
+{
+	ProfileInstance.bParentDominates = false;
+	SCOPED_SCENE_WRITE_LOCK(ConstraintData->getScene());
+	ConstraintData->setInvMassScale0(1.0f);
+	ConstraintData->setInvMassScale1(1.0f);
+	ConstraintData->setInvInertiaScale0(1.0f);
+	ConstraintData->setInvInertiaScale1(1.0f);
 }
 
 #undef LOCTEXT_NAMESPACE

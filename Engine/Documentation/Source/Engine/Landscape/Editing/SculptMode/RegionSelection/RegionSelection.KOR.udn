@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3482403
 Availability: Public
 Crumbs: %ROOT%
-Title: Region Selection
-Description: This is an overview of the Region Selection tool.
+Title: 리전 선택
+Description: Region Selection, 리전 선택 툴 개요입니다.
 Type: reference
 Version:4.16
 Parent:Engine/Landscape/Editing/SculptMode
@@ -13,10 +13,10 @@ Topic-image:RegionSelection_topic.png
 
 [TOC(start:2 end:2)]
 
-The **Region Selection** tool selects regions of the Landscape using the current brush settings and the tool strength to be used to fit a Landscape [gizmo](Engine\Landscape\Editing\Gizmos) to a 
-specific area or to act as a mask for copying data to, or pasting data from, a gizmo.
+**Region Selection** (리전 선택) 툴은 현재 브러시 세팅과 툴 세기를 사용하여 랜드스케이프 [기즈모](Engine\Landscape\Editing\Gizmos) 가 특정 영역에 맞도록 혹은 기즈모에/서 데이터를 복사/붙여넣기 
+위한 마스크 역할을 하도록 하는 랜드스케이프 리전(구역) 선택 툴입니다.
 
-## Using the Region Selection Tool
+## 리전 선택 툴 사용
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -36,28 +36,28 @@ specific area or to act as a mask for copying data to, or pasting data from, a g
 	[/PARAMLITERAL]
 [/OBJECT]
 
-In this example, the Region Selection tool has been used to paint an area of the Landscape using the default positive method, then switching to the negative mask method that enables you to paint areas that 
-don't want to include, and finally showing the Use Region As Mask section that captures the entirety of a Landscape component that is painted rather than just areas within it.
+이 예제에서, 리전 선택 툴로 기본 포지티브 메소드를 사용하여 랜드스케이프 영역을 칠한 뒤, 네가티브 마스크 메소드로 전환하여 포함시키지 않을 영역을 칠하고서, 
+마지막으로 Use Region As Mask (리전을 마스크로 사용) 섹션을 사용하여 단순히 랜드스케이프 영역이 아닌 칠해진 랜드스케이프 컴포넌트 전체를 캡처하고 있습니다.
 
-Use the following controls to paint areas that can be used for selection by doing the following:
+선택에 사용할 수 있는 영역을 칠하는 조작법은 다음과 같습니다:
 
-| **Controls** | **Operation** |
+| **조작** | **작업** |
 | --- | --- |
-| **Left Mouse Button** | Adds to the selected region. |
-| **Shift + Left Mouse Button** | Removes from the selected region. |
+| **좌클릭** | 선택 리전에 추가합니다. |
+| **Shift + 좌클릭** | 선택 리전에서 제거합니다. |
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Without Selection](Selection1.png)(w:750)
+	![선택 없음](Selection1.png)(w:750)
 	[/PARAM]
 	[PARAM:after]
-	![With Selection](Selection2.png)(w:750)
+	![선택 있음](Selection2.png)(w:750)
 	[/PARAM]
 [/OBJECT]
 
-In this example, an area has been painted for selection that can then be used for masking layers or with the Copy/Paste tool.
+이 예제에서는, 한 영역을 선택 칠한 뒤 레이어 마스킹이나 복사/붙여넣기 툴에서 사용하고 있습니다.
 
-## Tool Settings
+## 툴 세기
 
 [REGION:imagetable]
 | ![](Landscape_RegionSelect.png)(h:75) | ![](RegionSelectionToolProperties.png)(h:135) |
@@ -65,12 +65,12 @@ In this example, an area has been painted for selection that can then be used fo
 |||
 [/REGION]
 
-| **Property** | **Description** |
+| **프로퍼티** | **설명** |
 | ------------ | --------------- |
-| **Clear Region Selection** | Clears the current selected region(s). |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Region as Mask** | When checked, the region selection acts as a mask with the active area being comprised of the selected region.  |
+| **Clear Region Selection** | 리전 선택 비우기 - 현재 선택된 리전을 비웁니다. |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크의 세기를 조절합니다. |
+| **Use Region as Mask** | 리전을 마스크로 사용 - 체크하면, 리전 선택이 마스크 역할을 하며, 활성 영역은 선택된 리전으로 이루어집니다. |
 |    ![](regionselection.png)(w:640) ||
-| **Negative Mask** | When checked, and when **Use Region as Mask** is also checked, the region selection acts as a mask, but the active area is comprised of the unselected region.   |
+| **Negative Mask** | 네가티브 마스크 - 체크하면, **Use Region as Mask** 역시 체크되었을 때, 리전 선택이 마스크 역할을 하지만, 활성 영역은 선택되지 않은 리전으로 이루어집니다. |
 |    ![region_mask_negative.jpg](regionselectionnegative.png)(w:640) ||
 

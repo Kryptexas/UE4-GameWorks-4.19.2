@@ -115,6 +115,10 @@
 #include "Editor.h"
 #endif
 
+#if PLATFORM_HTML5
+#include <emscripten/emscripten.h>
+#endif
+
 
 DEFINE_LOG_CATEGORY(LogMatinee);
 
@@ -3085,8 +3089,12 @@ UInterpTrackInst::UInterpTrackInst(const FObjectInitializer& ObjectInitializer)
 
 AActor* UInterpTrackInst::GetGroupActor() const
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
-	return GrInst->GetGroupActor();
+	if (GetOuter())
+	{
+		UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>(GetOuter());
+		return GrInst->GetGroupActor();
+	}
+	return nullptr;
 }
 
 
@@ -4133,6 +4141,17 @@ FName UInterpTrackMove::GetLookupKeyGroupName(int32 KeyIndex)
 
 void UInterpTrackMove::SetLookupKeyGroupName(int32 KeyIndex, const FName &NewGroupName)
 {
+#if PLATFORM_HTML5
+	if( KeyIndex >= LookupTrack.Points.Num() )
+	{	// trying to hunt this down...
+		// AFAICT, this is only happending on HTML5 -- this might be an enscripten/LLVM corruption issue
+		EM_ASM_({
+			console.log("ERROR: SetLookupKeyGroupName: index[" + $0 + "] num[" + $1 + "]");
+			stackTrace();
+		}, KeyIndex, LookupTrack.Points.Num());
+		return;
+	}
+#endif
 	check( (PosTrack.Points.Num() == EulerTrack.Points.Num()) && (PosTrack.Points.Num() == LookupTrack.Points.Num()) );
 	check( KeyIndex < LookupTrack.Points.Num() );
 
@@ -4767,24 +4786,27 @@ FRotator UInterpTrackMove::GetLookAtRotation(UInterpTrackInst* TrInst)
 	{
 		AActor* Actor = TrInst->GetGroupActor();
 
-		UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( TrInst->GetOuter() );
-		AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
-		UInterpGroupInst* LookAtGroupInst = MatineeActor->FindFirstGroupInstByName(LookAtGroupName.ToString());
-
-		if(Actor && LookAtGroupInst && LookAtGroupInst->GetGroupActor())
+		if (TrInst->GetOuter())
 		{
-			AActor* LookAtActor = LookAtGroupInst->GetGroupActor();
+			UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( TrInst->GetOuter() );
+			AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
+			UInterpGroupInst* LookAtGroupInst = MatineeActor->FindFirstGroupInstByName(LookAtGroupName.ToString());
 
-			// Slight hack here so that if we are trying to look at a Player variable, it looks at their Pawn.
-			APlayerController* PC = Cast<APlayerController>(LookAtActor);
-			if(PC && PC->GetPawn())
+			if(Actor && LookAtGroupInst && LookAtGroupInst->GetGroupActor())
 			{
-				LookAtActor = PC->GetPawn();
-			}
+				AActor* LookAtActor = LookAtGroupInst->GetGroupActor();
 
-			// Find Rotator that points at LookAtActor
-			FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).GetSafeNormal();
-			LookAtRot = LookDir.Rotation();
+				// Slight hack here so that if we are trying to look at a Player variable, it looks at their Pawn.
+				APlayerController* PC = Cast<APlayerController>(LookAtActor);
+				if(PC && PC->GetPawn())
+				{
+					LookAtActor = PC->GetPawn();
+				}
+
+				// Find Rotator that points at LookAtActor
+				FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).GetSafeNormal();
+				LookAtRot = LookDir.Rotation();
+			}
 		}
 	}
 

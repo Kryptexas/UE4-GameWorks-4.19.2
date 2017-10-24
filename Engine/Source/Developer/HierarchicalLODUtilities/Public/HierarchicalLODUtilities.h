@@ -28,7 +28,7 @@ public:
 	virtual float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix) override;
 	virtual UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel) override;
 	virtual bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup) override;
-	virtual bool ShouldGenerateCluster(AActor* Actor) override;
+	virtual EClusterGenerationError ShouldGenerateCluster(AActor* Actor) override;
 	virtual ALODActor* GetParentLODActor(const AActor* InActor) override;
 	virtual void DestroyCluster(ALODActor* InActor) override;
 	virtual void DestroyClusterData(ALODActor* InActor) override;

@@ -87,10 +87,6 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 
 	FVector& EmitterPosition = CurrentParameters.EmitterPosition;
 
-	// We better not have default set at this point because default means "no HRTF processing". We also
-	// better thave the plugin because this XAPO code is inside the plugin
-	check(AudioDevice->AudioPlugin != nullptr);
-
 	XAPO_BUFFER_FLAGS InFlags = pInputProcessParameters[0].BufferFlags;
 	XAPO_BUFFER_FLAGS OutFlags = pOutputProcessParameters[0].BufferFlags;
 

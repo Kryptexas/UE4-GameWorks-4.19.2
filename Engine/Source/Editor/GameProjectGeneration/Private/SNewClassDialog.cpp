@@ -134,7 +134,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	// Otherwise, set out default target module as the first runtime module in the list
 	if(ClassDomain == EClassDomain::Native && !SelectedModuleInfo.IsValid())
 	{
-		const FString ProjectName = FApp::GetGameName();
+		const FString ProjectName = FApp::GetProjectName();
 		for(const auto& AvailableModule : AvailableModules)
 		{
 			if(AvailableModule->ModuleName == ProjectName)
@@ -469,7 +469,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 								.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
 								.OnNavigate(this, &SNewClassDialog::OnEditCodeClicked)
 								.Text(this, &SNewClassDialog::GetSelectedParentClassFilename)
-								.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()))
+								.ToolTipText(FText::Format(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSelectedSourceCodeIDE()))
 								.Visibility(this, &SNewClassDialog::GetSourceHyperlinkVisibility)
 							]
 						]

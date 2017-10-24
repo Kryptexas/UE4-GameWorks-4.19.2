@@ -21,13 +21,16 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef PCP_MAP_H
-#define PCP_MAP_H
+#ifndef PCP_MAPFUNCTION_H
+#define PCP_MAPFUNCTION_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/layerOffset.h"
 #include "pxr/base/tf/flyweight.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class PcpMapFunction
 ///
@@ -83,8 +86,10 @@ public:
     typedef std::vector<PathPair> PathPairVector;
 
     /// Construct a null function.
-	PCP_API PcpMapFunction();
-	PCP_API ~PcpMapFunction();
+    PCP_API
+    PcpMapFunction();
+    PCP_API
+    ~PcpMapFunction();
 
     /// Constructs a map function with the given arguments.
     /// Returns a null map function on error (see IsNull()).
@@ -92,64 +97,80 @@ public:
     /// \param sourceToTargetMap The map from source paths to target paths.
     /// \param offset The time offset to apply from source to target.
     ///
-	PCP_API static PcpMapFunction 
+    PCP_API
+    static PcpMapFunction 
     Create(const PathMap &sourceToTargetMap,
            const SdfLayerOffset &offset);
 
     /// Construct an identity map function.
-	PCP_API static const PcpMapFunction &Identity();
+    PCP_API
+    static const PcpMapFunction &Identity();
 
     /// Returns an identity path mapping.
-	PCP_API static const PathMap &IdentityPathMap();
+    PCP_API
+    static const PathMap &IdentityPathMap();
     
     /// Copy-construct the map.
-	PCP_API PcpMapFunction(const PcpMapFunction &map);
-	PCP_API PcpMapFunction& operator=(const PcpMapFunction &map);
+    PCP_API
+    PcpMapFunction(const PcpMapFunction &map);
+    PCP_API
+    PcpMapFunction& operator=(const PcpMapFunction &map);
 
     /// Swap the contents of this map function with \p map.
-	PCP_API void Swap(PcpMapFunction &map);
+    PCP_API
+    void Swap(PcpMapFunction &map);
 
     /// Equality.
-	PCP_API bool operator==(const PcpMapFunction &map) const;
+    PCP_API
+    bool operator==(const PcpMapFunction &map) const;
 
     /// Inequality.
-	PCP_API bool operator!=(const PcpMapFunction &map) const;
+    PCP_API
+    bool operator!=(const PcpMapFunction &map) const;
 
     /// Return true if this map function is the null function.
     /// For a null function, MapSourceToTarget() always returns an empty path.
-	PCP_API bool IsNull() const;
+    PCP_API
+    bool IsNull() const;
 
     /// Return true if the map function is the identity function.
     /// For identity, MapSourceToTarget() always returns the path unchanged.
-	PCP_API bool IsIdentity() const;
+    PCP_API
+    bool IsIdentity() const;
 
     /// Map a path in the source namespace to the target.
     /// If the path is not in the domain, returns an empty path.
-	PCP_API SdfPath MapSourceToTarget(const SdfPath &path) const;
+    PCP_API
+    SdfPath MapSourceToTarget(const SdfPath &path) const;
 
     /// Map a path in the target namespace to the source.
     /// If the path is not in the co-domain, returns an empty path.
-	PCP_API SdfPath MapTargetToSource(const SdfPath &path) const;
+    PCP_API
+    SdfPath MapTargetToSource(const SdfPath &path) const;
 
     /// Compose this map over the given map function.
     /// The result will represent the application of f followed by
     /// the application of this function.
-	PCP_API PcpMapFunction Compose(const PcpMapFunction &f) const;
+    PCP_API
+    PcpMapFunction Compose(const PcpMapFunction &f) const;
 
     /// Return the inverse of this map function.
     /// This returns a true inverse \p inv: for any path p in this function's
     /// domain that it maps to p', inv(p') -> p.
-	PCP_API PcpMapFunction GetInverse() const;
+    PCP_API
+    PcpMapFunction GetInverse() const;
 
     /// The set of path mappings, from source to target.
-	PCP_API PathMap GetSourceToTargetMap() const;
+    PCP_API
+    PathMap GetSourceToTargetMap() const;
 
     /// The time offset of the mapping.
     const SdfLayerOffset &GetTimeOffset() const { return _GetData()._offset; }
 
     /// Returns a string representation of this mapping for debugging
     /// purposes.
-	PCP_API std::string GetString() const;
+    PCP_API
+    std::string GetString() const;
 
     /// Return a size_t hash for this map function.
     size_t Hash() const {
@@ -207,4 +228,6 @@ size_t hash_value(const PcpMapFunction& x)
     return x.Hash();
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_MAPFUNCTION_H

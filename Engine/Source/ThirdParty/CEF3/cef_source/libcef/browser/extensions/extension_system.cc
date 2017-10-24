@@ -34,8 +34,10 @@
 #include "extensions/browser/notification_types.h"
 #include "extensions/browser/null_app_sorting.h"
 #include "extensions/browser/quota_service.h"
+#include "extensions/browser/renderer_startup_helper.h"
 #include "extensions/browser/runtime_data.h"
 #include "extensions/browser/service_worker_manager.h"
+#include "extensions/browser/value_store/value_store_factory.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/extension_messages.h"
 #include "extensions/common/file_util.h"
@@ -65,9 +67,9 @@ std::string GenerateId(const base::DictionaryValue* manifest,
 base::DictionaryValue* ParseManifest(
     const std::string& manifest_contents) {
   JSONStringValueDeserializer deserializer(manifest_contents);
-  scoped_ptr<base::Value> manifest(deserializer.Deserialize(NULL, NULL));
+  std::unique_ptr<base::Value> manifest(deserializer.Deserialize(NULL, NULL));
 
-  if (!manifest.get() || !manifest->IsType(base::Value::TYPE_DICTIONARY)) {
+  if (!manifest.get() || !manifest->IsType(base::Value::Type::DICTIONARY)) {
     LOG(ERROR) << "Failed to parse extension manifest.";
     return NULL;
   }
@@ -79,7 +81,11 @@ base::DictionaryValue* ParseManifest(
 
 CefExtensionSystem::CefExtensionSystem(BrowserContext* browser_context)
     : browser_context_(browser_context),
+      initialized_(false),
       registry_(ExtensionRegistry::Get(browser_context)),
+      renderer_helper_(
+          extensions::RendererStartupHelperFactory::GetForBrowserContext(
+              browser_context)),
       weak_ptr_factory_(this) {
 }
 
@@ -87,6 +93,8 @@ CefExtensionSystem::~CefExtensionSystem() {
 }
 
 void CefExtensionSystem::Init() {
+  DCHECK(!initialized_);
+
   // There's complexity here related to the ordering of message delivery. For
   // an extension to load correctly both the ExtensionMsg_Loaded and
   // ExtensionMsg_ActivateExtension messages must be sent. These messages are
@@ -108,36 +116,51 @@ void CefExtensionSystem::Init() {
   // Add the built-in PDF extension. PDF loading works as follows:
   // 1. PDF PPAPI plugin is registered to handle kPDFPluginOutOfProcessMimeType
   //    in libcef/common/content_client.cc ComputeBuiltInPlugins.
-  // 2. PDF extension is registered with the below call to AddExtension.
-  // 3. A page requests a plugin to handle "application/pdf" mime type. This
-  //    results in a call to CefContentRendererClient::OverrideCreatePlugin
-  //    in the renderer process which calls CefContentRendererClient::
-  //    CreateBrowserPluginDelegate indirectly to create a
-  //    MimeHandlerViewContainer.
+  // 2. PDF extension is registered and associated with the "application/pdf"
+  //    mime type by the below call to AddExtension.
+  // 3. A page requests a resource with the "application/pdf" mime type. For
+  //    example, by loading a PDF file.
   // 4. CefResourceDispatcherHostDelegate::ShouldInterceptResourceAsStream
-  //    intercepts the PDF load in the browser process, associates the load with
-  //    the PDF extension and makes the PDF file contents available to the
-  //    extension via the Stream API.
-  // 5. A MimeHandlerViewGuest and CefMimeHandlerViewGuestDelegate is created in
+  //    intercepts the PDF resource load in the browser process, generates a
+  //    unique View ID that is associated with the resource request for later
+  //    retrieval via MimeHandlerStreamManager and the
+  //    chrome.mimeHandlerPrivate JS API (extensions/common/api/
+  //    mime_handler_private.idl), and returns the unique View ID via the
+  //    |payload| argument.
+  // 5. The unique View ID arrives in the renderer process via
+  //    ResourceLoader::didReceiveData and triggers creation of a new Document.
+  //    DOMImplementation::createDocument indirectly calls
+  //    RendererBlinkPlatformImpl::getPluginList to retrieve the list of
+  //    supported plugins from the browser process. If a plugin supports the
+  //    "application/pdf" mime type then a PluginDocument is created and
+  //    CefContentRendererClient::OverrideCreatePlugin is called. This then
+  //    indirectly calls CefContentRendererClient::CreateBrowserPluginDelegate
+  //    to create a MimeHandlerViewContainer.
+  // 6. A MimeHandlerViewGuest and CefMimeHandlerViewGuestDelegate is created in
   //    the browser process.
-  // 6. MimeHandlerViewGuest navigates to the PDF extension URL.
-  // 7. PDF extension resources are provided from bundle via
+  // 7. MimeHandlerViewGuest navigates to the PDF extension URL.
+  // 8. Access to PDF extension resources is checked by
+  //    CefExtensionsBrowserClient::AllowCrossRendererResourceLoad.
+  // 9. PDF extension resources are provided from bundle via
   //    CefExtensionsBrowserClient::MaybeCreateResourceBundleRequestJob and
   //    CefComponentExtensionResourceManager.
-  // 8. The PDF extension communicates via the chrome.mimeHandlerPrivate Mojo
-  //    API which is implemented as described in
+  // 10.The PDF extension (chrome/browser/resources/pdf/browser_api.js) calls
+  //    chrome.mimeHandlerPrivate.getStreamInfo to retrieve the PDF resource
+  //    stream. This API is implemented using Mojo as described in
   //    libcef/common/extensions/api/README.txt.
-  // 9. The PDF extension requests a plugin to handle
+  // 11.The PDF extension requests a plugin to handle
   //    kPDFPluginOutOfProcessMimeType which loads the PDF PPAPI plugin.
-  // 10.Routing of print-related commands are handled by ChromePDFPrintClient
+  // 12.Routing of print-related commands are handled by ChromePDFPrintClient
   //    and CefPrintWebViewHelperDelegate in the renderer process.
-  // 11.The PDF extension is granted access to chrome://resources via
+  // 13.The PDF extension is granted access to chrome://resources via
   //    CefExtensionWebContentsObserver::RenderViewCreated in the browser
   //    process.
   if (PdfExtensionEnabled()) {
     AddExtension(pdf_extension_util::GetManifest(),
                  base::FilePath(FILE_PATH_LITERAL("pdf")));
   }
+
+  initialized_ = true;
 }
 
 // Implementation based on ComponentLoader::Add.
@@ -170,6 +193,7 @@ void CefExtensionSystem::Shutdown() {
 }
 
 void CefExtensionSystem::InitForRegularProfile(bool extensions_enabled) {
+  DCHECK(!initialized_);
   service_worker_manager_.reset(new ServiceWorkerManager(browser_context_));
   runtime_data_.reset(new RuntimeData(registry_));
   quota_service_.reset(new QuotaService);
@@ -204,6 +228,10 @@ StateStore* CefExtensionSystem::rules_store() {
   return nullptr;
 }
 
+scoped_refptr<ValueStoreFactory> CefExtensionSystem::store_factory() {
+  return nullptr;
+}
+
 InfoMap* CefExtensionSystem::info_map() {
   if (!info_map_.get())
     info_map_ = new InfoMap;
@@ -230,7 +258,7 @@ void CefExtensionSystem::RegisterExtensionWithRequestContexts(
       FROM_HERE,
       base::Bind(&InfoMap::AddExtension,
                   info_map(),
-                  make_scoped_refptr(extension),
+                  base::RetainedRef(extension),
                   base::Time::Now(),
                   true,     // incognito_enabled
                   false),   // notifications_disabled
@@ -256,9 +284,9 @@ ContentVerifier* CefExtensionSystem::content_verifier() {
   return nullptr;
 }
 
-scoped_ptr<ExtensionSet> CefExtensionSystem::GetDependentExtensions(
+std::unique_ptr<ExtensionSet> CefExtensionSystem::GetDependentExtensions(
     const Extension* extension) {
-  return make_scoped_ptr(new ExtensionSet());
+  return base::MakeUnique<ExtensionSet>();
 }
 
 void CefExtensionSystem::InstallUpdate(const std::string& extension_id,
@@ -367,24 +395,8 @@ void CefExtensionSystem::NotifyExtensionLoaded(const Extension* extension) {
                  weak_ptr_factory_.GetWeakPtr(),
                  make_scoped_refptr(extension)));
 
-  // Tell renderers about the new extension, unless it's a theme (renderers
-  // don't need to know about themes).
-  if (!extension->is_theme()) {
-    for (content::RenderProcessHost::iterator i(
-            content::RenderProcessHost::AllHostsIterator());
-         !i.IsAtEnd(); i.Advance()) {
-      content::RenderProcessHost* host = i.GetCurrentValue();
-      if (host->GetBrowserContext() == browser_context_) {
-        // We don't need to include tab permisisons here, since the extension
-        // was just loaded.
-        std::vector<ExtensionMsg_Loaded_Params> loaded_extensions(
-            1, ExtensionMsg_Loaded_Params(extension,
-                                          false /* no tab permissions */));
-        host->Send(
-            new ExtensionMsg_Loaded(loaded_extensions));
-      }
-    }
-  }
+  // Tell renderers about the loaded extension.
+  renderer_helper_->OnExtensionLoaded(*extension);
 
   // Tell subsystems that use the EXTENSION_LOADED notification about the new
   // extension.
@@ -451,7 +463,6 @@ void CefExtensionSystem::NotifyExtensionUnloaded(
     content::PluginService* plugin_service =
         content::PluginService::GetInstance();
     plugin_service->UnregisterInternalPlugin(path);
-    plugin_service->ForcePluginShutdown(path);
     plugin_service->RefreshPlugins();
   }
 
@@ -462,13 +473,8 @@ void CefExtensionSystem::NotifyExtensionUnloaded(
       content::Source<content::BrowserContext>(browser_context_),
       content::Details<UnloadedExtensionInfo>(&details));
 
-  for (content::RenderProcessHost::iterator i(
-          content::RenderProcessHost::AllHostsIterator());
-       !i.IsAtEnd(); i.Advance()) {
-    content::RenderProcessHost* host = i.GetCurrentValue();
-    if (host->GetBrowserContext() == browser_context_)
-      host->Send(new ExtensionMsg_Unloaded(extension->id()));
-  }
+  // Tell renderers about the unloaded extension.
+  renderer_helper_->OnExtensionUnloaded(*extension);
 
   UnregisterExtensionWithRequestContexts(extension->id(), reason);
 }

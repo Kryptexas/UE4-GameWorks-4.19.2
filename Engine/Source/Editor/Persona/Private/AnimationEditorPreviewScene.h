@@ -31,6 +31,7 @@ public:
 	virtual void InvalidateViews() override;
 	virtual void FocusViews() override;
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const override { return SkeletalMeshComponent; }
+	virtual void SetPreviewMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent) override { SkeletalMeshComponent = InSkeletalMeshComponent; }
 	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
 	virtual void ShowReferencePose(bool bReferencePose) override;
@@ -116,6 +117,7 @@ public:
 	virtual int32 GetSelectedBoneIndex() const override;
 	virtual void TogglePlayback() override;
 	virtual AActor* GetActor() const override;
+	virtual void SetActor(AActor* InActor) override;
 	virtual bool AllowMeshHitProxies() const override;
 	virtual void SetAllowMeshHitProxies(bool bState) override;
 
@@ -145,6 +147,9 @@ public:
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Validate preview attached assets on skeleton and supplied skeletal mesh, notifying user if any are removed */
 	void ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh);

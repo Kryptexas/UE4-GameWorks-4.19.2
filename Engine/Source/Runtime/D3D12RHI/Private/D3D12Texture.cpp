@@ -6,7 +6,7 @@
 
 #include "D3D12RHIPrivate.h"
 
-
+ 
 int64 FD3D12GlobalStats::GDedicatedVideoMemory = 0;
 int64 FD3D12GlobalStats::GDedicatedSystemMemory = 0;
 int64 FD3D12GlobalStats::GSharedSystemMemory = 0;
@@ -18,6 +18,15 @@ static FAutoConsoleVariableRef CVarAdjustTexturePoolSizeBasedOnBudget(
 	GAdjustTexturePoolSizeBasedOnBudget,
 	TEXT("Indicates if the RHI should lower the texture pool size when the application is over the memory budget provided by the OS. This can result in lower quality textures (but hopefully improve performance).")
 	);
+
+
+static TAutoConsoleVariable<int32> CVarUseUpdateTexture3DComputeShader(
+	TEXT("D3D12.UseUpdateTexture3DComputeShader"),
+	PLATFORM_XBOXONE,
+	TEXT("If enabled, use a compute shader for UpdateTexture3D. Avoids alignment restrictions")
+	TEXT(" 0: off (default)\n")
+	TEXT(" 1: on"),
+	ECVF_RenderThreadSafe );
 
 // Forward Decls for template types
 template TD3D12Texture2D<FD3D12BaseTexture2D>::TD3D12Texture2D(class FD3D12Device* InParent, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples,
@@ -240,9 +249,10 @@ void FD3D12TextureStats::D3D12TextureDeleted(FD3D12Texture3D& Texture)
 	{
 		const D3D12_RESOURCE_DESC& Desc = D3D12Texture3D->GetDesc();
 		const int64 TextureSize = Texture.GetMemorySize();
-		check(TextureSize > 0);
-
-		UpdateD3D12TextureStats(Desc, -TextureSize, true, false);
+		if (TextureSize > 0)
+		{
+			UpdateD3D12TextureStats(Desc, -TextureSize, true, false);
+		}
 	}
 }
 
@@ -916,6 +926,11 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 		}
 	}
 
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
+
 	return D3D12TextureOut;
 #else
 	checkf(false, TEXT("XBOX_CODE_MERGE : Removed. The Xbox platform version should be used."));
@@ -1060,6 +1075,10 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 		FD3D12TextureStats::D3D12TextureAllocated(*D3D12TextureOut);
 	}
 
+	if (CreateInfo.BulkData)
+	{
+		CreateInfo.BulkData->Discard();
+	}
 
 	return D3D12TextureOut;
 #else
@@ -1856,82 +1875,164 @@ void FD3D12DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 	Texture->UpdateTexture2D(nullptr, MipIndex, UpdateRegion, SourcePitch, SourceData);
 }
 
+FUpdateTexture3DData FD3D12DynamicRHI::BeginUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion)
+{
+	check(IsInRenderingThread());
+	// This stall could potentially be removed, provided the fast allocator is thread-safe. However we 
+	// currently need to stall in the End method anyway (see below)
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return BeginUpdateTexture3D_Internal(Texture, MipIndex, UpdateRegion);
+}
+
+void FD3D12DynamicRHI::EndUpdateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, FUpdateTexture3DData& UpdateData)
+{
+	check(IsInRenderingThread());
+	// TODO: move this command entirely to the RHI thread so we can remove these stalls
+	// and fix potential ordering issue with non-compute-shader version
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	EndUpdateTexture3D_Internal(UpdateData);
+}
+
 void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint32 MipIndex, const FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 {
+	check(IsInRenderingThread());
+
+	FUpdateTexture3DData UpdateData = BeginUpdateTexture3D_Internal(TextureRHI, MipIndex, UpdateRegion);
+
+	// Copy the data into the UpdateData destination buffer
+	check(nullptr != UpdateData.Data);
+
 	FD3D12Texture3D*  Texture = FD3D12DynamicRHI::ResourceCast(TextureRHI);
-
-	D3D12_BOX DestBox =
-	{
-		UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
-		UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, UpdateRegion.DestZ + UpdateRegion.Depth
-	};
-
-	check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);
-	check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
-
-	const uint32 AlignedSourcePitch = Align(SourceRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	const uint32 bufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*AlignedSourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-
-	FD3D12ResourceLocation UploadHeapResourceLocation(GetRHIDevice());
-	void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &UploadHeapResourceLocation);
-	check(nullptr != pData);
-
-	byte* pRowData = (byte*)pData;
-	byte* pSourceRowData = (byte*)SourceData;
-	byte* pSourceDepthSlice = (byte*)SourceData;
-
 	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
 	check(CopyPitch <= SourceRowPitch);
+	check(UpdateData.RowPitch*UpdateRegion.Depth*UpdateRegion.Height <= UpdateData.DataSizeBytes);
+
 	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
 	{
+		uint8* DestRowData = UpdateData.Data + UpdateData.DepthPitch * i;
+		const uint8* SourceRowData = SourceData + SourceDepthPitch * i;
 		for (uint32 j = 0; j < UpdateRegion.Height; j++)
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
-			pSourceRowData += SourceRowPitch;
-			pRowData += AlignedSourcePitch;
+			FMemory::Memcpy(DestRowData, SourceRowData, CopyPitch);
+			SourceRowData += SourceRowPitch;
+			DestRowData += UpdateData.RowPitch;
 		}
-		pSourceDepthSlice += SourceDepthPitch;
-		pSourceRowData = pSourceDepthSlice;
 	}
-	D3D12_SUBRESOURCE_FOOTPRINT sourceSubresource;
-	sourceSubresource.Depth = UpdateRegion.Depth;
-	sourceSubresource.Height = UpdateRegion.Height;
-	sourceSubresource.Width = UpdateRegion.Width;
-	sourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[Texture->GetFormat()].PlatformFormat;
-	sourceSubresource.RowPitch = AlignedSourcePitch;
-	check(sourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
 
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture3D = { 0 };
-	placedTexture3D.Offset = UploadHeapResourceLocation.GetOffsetFromBaseOfResource();
-	placedTexture3D.Footprint = sourceSubresource;
+	EndUpdateTexture3D_Internal(UpdateData);
+}
 
-	FD3D12Resource* UploadBuffer = UploadHeapResourceLocation.GetResource();
 
-	while(Texture)
+FUpdateTexture3DData FD3D12DynamicRHI::BeginUpdateTexture3D_Internal(FTexture3DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion)
+{
+	check(IsInRenderingThread());
+	FUpdateTexture3DData UpdateData(TextureRHI, MipIndex, UpdateRegion, 0, 0, nullptr, 0, GFrameNumberRenderThread);
+
+	// Initialize the platform data
+	static_assert(sizeof(FD3D12UpdateTexture3DData) < sizeof(UpdateData.PlatformData), "Platform data in FUpdateTexture3DData too small to support D3D12");
+	FD3D12UpdateTexture3DData* UpdateDataD3D12 = new (&UpdateData.PlatformData[0]) FD3D12UpdateTexture3DData;
+	UpdateDataD3D12->bComputeShaderCopy = false;
+	UpdateDataD3D12->UploadHeapResourceLocation = nullptr;
+
+	FD3D12Texture3D* Texture = FD3D12DynamicRHI::ResourceCast(TextureRHI);
+
+	bool bDoComputeShaderCopy = false;
+	if (CVarUseUpdateTexture3DComputeShader.GetValueOnRenderThread() != 0 && Texture->GetResource()->GetHeap())
 	{
-		CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), MipIndex);
-		CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(UploadBuffer->GetResource(), placedTexture3D);
-
-		check(Texture);
-		FD3D12Device* Device = Texture->GetParentDevice();
-
-		FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
-		FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
-
-		Device->GetDefaultCommandContext().numCopies++;
-		hCommandList.FlushResourceBarriers();
-		hCommandList->CopyTextureRegion(
-			&DestCopyLocation,
-			UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
-			&SourceCopyLocation,
-			nullptr);
-
-		hCommandList.UpdateResidency(Texture->GetResource());
-
-		DEBUG_RHI_EXECUTE_COMMAND_LIST(this);
-
-		Texture = (FD3D12Texture3D*)Texture->GetNextObject();
+		// Try a compute shader update. This does a memory allocation internally
+		bDoComputeShaderCopy = BeginUpdateTexture3D_ComputeShader(UpdateData, UpdateDataD3D12);
 	}
+
+	if (!bDoComputeShaderCopy)
+	{
+		const int32 FormatSize = GPixelFormats[TextureRHI->GetFormat()].BlockBytes;
+		const int32 OriginalRowPitch = UpdateRegion.Width * FormatSize;
+		const int32 OriginalDepthPitch = UpdateRegion.Width * UpdateRegion.Height * FormatSize;
+
+		// No compute shader update was possible or supported, so fall back to the old method.
+		D3D12_BOX DestBox =
+		{
+			UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
+			UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, UpdateRegion.DestZ + UpdateRegion.Depth
+		};
+
+		check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);
+		check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
+
+		UpdateData.RowPitch = Align(OriginalRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		UpdateData.DepthPitch = UpdateData.RowPitch * UpdateRegion.Height;
+		const uint32 BufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*UpdateData.RowPitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+		UpdateData.DataSizeBytes = BufferSize;
+
+		UpdateDataD3D12->UploadHeapResourceLocation = new FD3D12ResourceLocation(GetRHIDevice());
+		UpdateData.Data = (uint8*)GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(BufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UpdateDataD3D12->UploadHeapResourceLocation);
+		check(UpdateData.Data != nullptr);
+	}
+	return UpdateData;
+}
+
+void FD3D12DynamicRHI::EndUpdateTexture3D_Internal(FUpdateTexture3DData& UpdateData)
+{
+	check(IsInRenderingThread());
+	check(GFrameNumberRenderThread == UpdateData.FrameNumber);
+
+	FD3D12Texture3D*  Texture = FD3D12DynamicRHI::ResourceCast(UpdateData.Texture);
+
+	FD3D12Device* Device = Texture->GetParentDevice();
+	FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
+#if USE_PIX
+	PIXBeginEvent(hCommandList.GraphicsCommandList(), PIX_COLOR(255, 255, 255), TEXT("EndUpdateTexture3D"));
+#endif
+
+	FD3D12UpdateTexture3DData* UpdateDataD3D12 = reinterpret_cast<FD3D12UpdateTexture3DData*>(&UpdateData.PlatformData[0]);
+	check( UpdateDataD3D12->UploadHeapResourceLocation != nullptr );
+
+	if (UpdateDataD3D12->bComputeShaderCopy)
+	{
+		EndUpdateTexture3D_ComputeShader(UpdateData, UpdateDataD3D12);
+	}
+	else
+	{
+		D3D12_SUBRESOURCE_FOOTPRINT sourceSubresource;
+		sourceSubresource.Depth = UpdateData.UpdateRegion.Depth;
+		sourceSubresource.Height = UpdateData.UpdateRegion.Height;
+		sourceSubresource.Width = UpdateData.UpdateRegion.Width;
+		sourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[Texture->GetFormat()].PlatformFormat;
+		sourceSubresource.RowPitch = UpdateData.RowPitch;
+		check(sourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture3D = { 0 };
+		placedTexture3D.Offset = UpdateDataD3D12->UploadHeapResourceLocation->GetOffsetFromBaseOfResource();
+		placedTexture3D.Footprint = sourceSubresource;
+
+		FD3D12Resource* UploadBuffer = UpdateDataD3D12->UploadHeapResourceLocation->GetResource();
+
+		while (Texture)
+		{
+			CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), UpdateData.MipIndex);
+			CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(UploadBuffer->GetResource(), placedTexture3D);
+
+			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
+
+			Device->GetDefaultCommandContext().numCopies++;
+			hCommandList.FlushResourceBarriers();
+			hCommandList->CopyTextureRegion(
+				&DestCopyLocation,
+				UpdateData.UpdateRegion.DestX, UpdateData.UpdateRegion.DestY, UpdateData.UpdateRegion.DestZ,
+				&SourceCopyLocation,
+				nullptr);
+
+			hCommandList.UpdateResidency(Texture->GetResource());
+
+			DEBUG_RHI_EXECUTE_COMMAND_LIST(this);
+
+			Texture = (FD3D12Texture3D*)Texture->GetNextObject();
+		}
+		delete UpdateDataD3D12->UploadHeapResourceLocation;
+	}
+#if USE_PIX
+	PIXEndEvent(hCommandList.GraphicsCommandList());
+#endif
 }
 
 /*-----------------------------------------------------------------------------
@@ -2038,7 +2139,7 @@ ID3D12CommandQueue* FD3D12DynamicRHI::RHIGetD3DCommandQueue()
 	return GetAdapter().GetDevice()->GetCommandListManager().GetD3DCommandQueue();
 }
 
-FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 Format, uint32 Flags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource)
+FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource)
 {
 	check(Resource);
 	FD3D12Adapter* Adapter = &GetAdapter();
@@ -2048,9 +2149,13 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 
 	uint32 SizeX = TextureDesc.Width;
 	uint32 SizeY = TextureDesc.Height;
-	uint32 SizeZ = TextureDesc.DepthOrArraySize;
+	uint32 SizeZ = 1;
+	uint32 ArraySize = TextureDesc.DepthOrArraySize;
 	uint32 NumMips = TextureDesc.MipLevels;
 	uint32 NumSamples = TextureDesc.SampleDesc.Count;
+
+	check(TextureDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+	check(ArraySize == 1);
 
 	//TODO: Somehow Oculus is creating a Render Target with 4k alignment with ovr_GetTextureSwapChainBufferDX
 	//      This is invalid and causes our size calculation to fail. Oculus SDK bug?
@@ -2064,30 +2169,14 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		// Remove sRGB read flag when not supported
-		Flags &= ~TexCreate_SRGB;
+		TexCreateFlags &= ~TexCreate_SRGB;
 	}
 
-	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+	const bool bSRGB = (TexCreateFlags & TexCreate_SRGB) != 0;
 
 	const DXGI_FORMAT PlatformResourceFormat = TextureDesc.Format;
 	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
 	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
-	const DXGI_FORMAT PlatformDepthStencilFormat = FindDepthStencilDXGIFormat(PlatformResourceFormat);
-
-	// Determine the MSAA settings to use for the texture.
-	D3D12_DSV_DIMENSION DepthStencilViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	D3D12_RTV_DIMENSION RenderTargetViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	D3D12_SRV_DIMENSION ShaderResourceViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-
-	uint32 ActualMSAACount = NumSamples;
-	uint32 ActualMSAAQuality = TextureDesc.SampleDesc.Quality;
-
-	if (ActualMSAACount > 1)
-	{
-		DepthStencilViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
-		RenderTargetViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-		ShaderResourceViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
-	}
 
 	// Set up the texture bind flags.
 	bool bCreateRTV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0;
@@ -2095,117 +2184,301 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 
 	const D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
 
-	FD3D12Texture2D* TextureOut = Adapter->CreateLinkedObject<FD3D12Texture2D>([&](FD3D12Device* Device)
+	FD3D12Device* Device = Adapter->GetDevice();
+	FD3D12Resource* TextureResource = new FD3D12Resource(Device, Device->GetNodeMask(), Resource, State, TextureDesc);
+	TextureResource->AddRef();
+
+	FD3D12Texture2D* Texture2D = new FD3D12Texture2D(Device, SizeX, SizeY, SizeZ, NumMips, NumSamples, Format, false, TexCreateFlags, ClearValueBinding);
+
+	FD3D12ResourceLocation& Location = Texture2D->ResourceLocation;
+	Location.AsStandAlone(TextureResource);
+	Location.SetType(FD3D12ResourceLocation::ResourceLocationType::eAliased);
+	TextureResource->AddRef();
+
+	if (bCreateRTV)
 	{
-		FD3D12Resource* TextureResource = new FD3D12Resource(Device, Device->GetNodeMask(), Resource, State, TextureDesc);
-		TextureResource->AddRef();
+		Texture2D->SetCreatedRTVsPerSlice(false, NumMips);
+		Texture2D->SetNumRenderTargetViews(NumMips);
 
-		FD3D12Texture2D* Texture2D = new FD3D12Texture2D(Device,
-			SizeX,
-			SizeY,
-			SizeZ,
-			NumMips,
-			ActualMSAACount,
-			(EPixelFormat)Format,
-			false, // bCubeTexture,
-			Flags,
-			ClearValueBinding);
-
-		FD3D12ResourceLocation& Location = Texture2D->ResourceLocation;
-		Location.AsStandAlone(TextureResource);
-		TextureResource->AddRef();
-		
-		if (bCreateRTV)
+		// Create a render target view for each array index and mip index
+		for (uint32 ArrayIndex = 0; ArrayIndex < ArraySize; ArrayIndex++)
 		{
-			Texture2D->SetCreatedRTVsPerSlice(false, NumMips);
-
-			// Create a render target view for each mip
 			for (uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 			{
 				D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
 				FMemory::Memzero(&RTVDesc, sizeof(RTVDesc));
 				RTVDesc.Format = PlatformRenderTargetFormat;
-				RTVDesc.ViewDimension = RenderTargetViewDimension;
-				RTVDesc.Texture2D.MipSlice = MipIndex;
-				RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 
-				Texture2D->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), MipIndex);
-			}
-		}
-
-		if (bCreateDSV)
-		{
-			// Create a depth-stencil-view for the texture.
-			D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
-			FMemory::Memzero(&DSVDesc, sizeof(DSVDesc));
-			DSVDesc.Format = FindDepthStencilDXGIFormat(PlatformResourceFormat);
-			DSVDesc.ViewDimension = DepthStencilViewDimension;
-			DSVDesc.Texture2D.MipSlice = 0;
-
-			const bool HasStencil = HasStencilBits(DSVDesc.Format);
-			for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
-			{
-				// Create a read-only access views for the texture.
-				DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D12_DSV_FLAG_READ_ONLY_DEPTH : D3D12_DSV_FLAG_NONE;
-				if (HasStencil)
+				if (NumSamples == 1)
 				{
-					DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D12_DSV_FLAG_READ_ONLY_STENCIL : D3D12_DSV_FLAG_NONE;
+					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+					RTVDesc.Texture2D.MipSlice = MipIndex;
+					RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
+				}
+				else
+				{
+					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
 				}
 
-				Texture2D->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+				Texture2D->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), ArrayIndex * NumMips + MipIndex);
 			}
 		}
+	}
 
-		if (Flags & TexCreate_CPUReadback)
+	if (bCreateDSV)
+	{
+		// Create a depth-stencil-view for the texture.
+		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		FMemory::Memzero(&DSVDesc, sizeof(DSVDesc));
+		DSVDesc.Format = FindDepthStencilDXGIFormat(PlatformResourceFormat);
+
+		if (NumSamples == 1)
 		{
-			const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
-			const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-			D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
-			DestSubresource.Depth = SizeZ;
-			DestSubresource.Height = SizeY;
-			DestSubresource.Width = SizeX;
-			DestSubresource.Format = PlatformResourceFormat;
-			DestSubresource.RowPitch = XBytesAligned;
-
-			check(DestSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);	// Make sure we align correctly.
-
-			D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedTexture2D = { 0 };
-			PlacedTexture2D.Offset = 0;
-			PlacedTexture2D.Footprint = DestSubresource;
-			Texture2D->SetReadBackHeapDesc(PlacedTexture2D);
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			DSVDesc.Texture2D.MipSlice = 0;
+		}
+		else
+		{
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
 		}
 
-		// Create a shader resource view for the texture.
-		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		SRVDesc.Format = PlatformShaderResourceFormat;
-		SRVDesc.ViewDimension = ShaderResourceViewDimension;
+		const bool HasStencil = HasStencilBits(DSVDesc.Format);
+		for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
+		{
+			// Create a read-only access views for the texture.
+			DSVDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+			if (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite)
+			{
+				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+			}
+
+			if ((AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) && HasStencil)
+			{
+				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
+			}
+
+			Texture2D->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+		}
+	}
+
+	if (TexCreateFlags & TexCreate_CPUReadback)
+	{
+		const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
+		const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
+		DestSubresource.Depth = SizeZ;
+		DestSubresource.Height = SizeY;
+		DestSubresource.Width = SizeX;
+		DestSubresource.Format = PlatformResourceFormat;
+		DestSubresource.RowPitch = XBytesAligned;
+
+		check(DestSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);	// Make sure we align correctly.
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedTexture2D = { 0 };
+		PlacedTexture2D.Offset = 0;
+		PlacedTexture2D.Footprint = DestSubresource;
+
+		Texture2D->SetReadBackHeapDesc(PlacedTexture2D);
+	}
+
+	// Create a shader resource view for the texture.
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Format = PlatformShaderResourceFormat;
+
+	if (NumSamples == 1)
+	{
+		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.Texture2D.MipLevels = NumMips;
 		SRVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, SRVDesc.Format);
+	}
+	else
+	{
+		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+	}
 
-		// Create a wrapper for the SRV and set it on the texture
-		FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
-		Texture2D->SetShaderResourceView(SRV);
+	// Create a wrapper for the SRV and set it on the texture
+	FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
+	Texture2D->SetShaderResourceView(SRV);
 
-		return Texture2D;
-	});
+	FD3D12TextureStats::D3D12TextureAllocated(*Texture2D);
 
-	FD3D12TextureStats::D3D12TextureAllocated(*TextureOut);
-
-	return TextureOut;
+	return Texture2D;
 }
 
-void FD3D12DynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+FTextureCubeRHIRef FD3D12DynamicRHI::RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 TexCreateFlags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource)
 {
-	FD3D12Texture2D* DestTexture2D = FD3D12DynamicRHI::ResourceCast(DestTexture2DRHI);
-	FD3D12Texture2D* SrcTexture2D = FD3D12DynamicRHI::ResourceCast(SrcTexture2DRHI);
+	check(Resource);
+	FD3D12Adapter* Adapter = &GetAdapter();
 
-	while (DestTexture2D && SrcTexture2D)
+	D3D12_RESOURCE_DESC TextureDesc = Resource->GetDesc();
+	TextureDesc.Alignment = 0;
+
+	uint32 SizeX = TextureDesc.Width;
+	uint32 SizeY = TextureDesc.Height;
+	uint32 SizeZ = 1;
+	uint32 ArraySize = TextureDesc.DepthOrArraySize;
+	uint32 NumMips = TextureDesc.MipLevels;
+	uint32 NumSamples = TextureDesc.SampleDesc.Count;
+
+	check(TextureDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+	check(ArraySize == 6);
+
+	//TODO: Somehow Oculus is creating a Render Target with 4k alignment with ovr_GetTextureSwapChainBufferDX
+	//      This is invalid and causes our size calculation to fail. Oculus SDK bug?
+	if (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 	{
-		DestTexture2D->AliasResources(SrcTexture2D);
+		TextureDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	}
 
-		DestTexture2D = (FD3D12Texture2D*) DestTexture2D->GetNextObject();
-		SrcTexture2D = (FD3D12Texture2D*) SrcTexture2D->GetNextObject();
+	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateTextureTime);
+
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	{
+		// Remove sRGB read flag when not supported
+		TexCreateFlags &= ~TexCreate_SRGB;
+	}
+
+	const bool bSRGB = (TexCreateFlags & TexCreate_SRGB) != 0;
+
+	const DXGI_FORMAT PlatformResourceFormat = TextureDesc.Format;
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+
+	// Set up the texture bind flags.
+	bool bCreateRTV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0;
+	bool bCreateDSV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+
+	const D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+
+	FD3D12Device* Device = Adapter->GetDevice();
+	FD3D12Resource* TextureResource = new FD3D12Resource(Device, Device->GetNodeMask(), Resource, State, TextureDesc);
+	TextureResource->AddRef();
+
+	FD3D12TextureCube* TextureCube = new FD3D12TextureCube(Device, SizeX, SizeY, SizeZ, NumMips, NumSamples, Format, true, TexCreateFlags, ClearValueBinding);
+
+	FD3D12ResourceLocation& Location = TextureCube->ResourceLocation;
+	Location.AsStandAlone(TextureResource);
+	Location.SetType(FD3D12ResourceLocation::ResourceLocationType::eAliased);
+	TextureResource->AddRef();
+
+	if (bCreateRTV)
+	{
+		TextureCube->SetCreatedRTVsPerSlice(false, NumMips);
+		TextureCube->SetNumRenderTargetViews(NumMips);
+
+		// Create a render target view for each array index and mip index
+		for (uint32 ArrayIndex = 0; ArrayIndex < ArraySize; ArrayIndex++)
+		{
+			for (uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+				FMemory::Memzero(&RTVDesc, sizeof(RTVDesc));
+				RTVDesc.Format = PlatformRenderTargetFormat;
+
+				if (NumSamples == 1)
+				{
+					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+					RTVDesc.Texture2D.MipSlice = MipIndex;
+					RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
+				}
+				else
+				{
+					RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+				}
+
+				TextureCube->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), ArrayIndex * NumMips + MipIndex);
+			}
+		}
+	}
+
+	if (bCreateDSV)
+	{
+		// Create a depth-stencil-view for the texture.
+		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		FMemory::Memzero(&DSVDesc, sizeof(DSVDesc));
+		DSVDesc.Format = FindDepthStencilDXGIFormat(PlatformResourceFormat);
+
+		if (NumSamples == 1)
+		{
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			DSVDesc.Texture2D.MipSlice = 0;
+		}
+		else
+		{
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+		}
+
+		const bool HasStencil = HasStencilBits(DSVDesc.Format);
+		for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
+		{
+			// Create a read-only access views for the texture.
+			DSVDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+			if (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite)
+			{
+				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+			}
+
+			if ((AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) && HasStencil)
+			{
+				DSVDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
+			}
+
+			TextureCube->SetDepthStencilView(FD3D12DepthStencilView::CreateDepthStencilView(Device, &Location, DSVDesc, HasStencil), AccessType);
+		}
+	}
+
+	if (TexCreateFlags & TexCreate_CPUReadback)
+	{
+		const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
+		const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
+		DestSubresource.Depth = SizeZ;
+		DestSubresource.Height = SizeY;
+		DestSubresource.Width = SizeX;
+		DestSubresource.Format = PlatformResourceFormat;
+		DestSubresource.RowPitch = XBytesAligned;
+
+		check(DestSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);	// Make sure we align correctly.
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedTexture2D = { 0 };
+		PlacedTexture2D.Offset = 0;
+		PlacedTexture2D.Footprint = DestSubresource;
+
+		TextureCube->SetReadBackHeapDesc(PlacedTexture2D);
+	}
+
+	// Create a shader resource view for the texture.
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Format = PlatformShaderResourceFormat;
+	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	SRVDesc.TextureCube.MostDetailedMip = 0;
+	SRVDesc.TextureCube.MipLevels = NumMips;
+	SRVDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+
+	// Create a wrapper for the SRV and set it on the texture
+	FD3D12ShaderResourceView* SRV = FD3D12ShaderResourceView::CreateShaderResourceView(Device, &Location, SRVDesc);
+	TextureCube->SetShaderResourceView(SRV);
+
+	FD3D12TextureStats::D3D12TextureAllocated(*TextureCube);
+
+	return TextureCube;
+}
+
+void FD3D12DynamicRHI::RHIAliasTextureResources(FTextureRHIParamRef DestTextureRHI, FTextureRHIParamRef SrcTextureRHI)
+{	
+	FD3D12TextureBase* DestTexture = GetD3D12TextureFromRHITexture(DestTextureRHI);
+	FD3D12TextureBase* SrcTexture = GetD3D12TextureFromRHITexture(SrcTextureRHI);
+
+	while (DestTexture && SrcTexture)
+	{
+		DestTexture->AliasResources(SrcTexture);
+
+		DestTexture = DestTexture->GetNextObject();
+		SrcTexture = SrcTexture->GetNextObject();
 	}
 }

@@ -60,8 +60,10 @@ public:
 	virtual void SetExternalData( const uint8* Src, const int32 NumBits ) override
 	{
 		ExternalDataNumBits = NumBits;
-		ExternalData.AddUninitialized( ( NumBits + 7 ) >> 3 );
-		FMemory::Memcpy( ExternalData.GetData(), Src, ( NumBits + 7 ) >> 3 );
+		const int32 NumBytes = ( NumBits + 7 ) >> 3;
+		ExternalData.Reset( NumBytes );
+		ExternalData.AddUninitialized( NumBytes );
+		FMemory::Memcpy( ExternalData.GetData(), Src, NumBytes );
 	}
 
 	virtual bool IsReplay() const override

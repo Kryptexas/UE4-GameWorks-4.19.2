@@ -5,12 +5,15 @@
 
 #include "base/compiler_specific.h"
 
-#include "config.h"
 MSVC_PUSH_WARNING_LEVEL(0);
-#include "bindings/core/v8/V8RecursionScope.h"
+#include "platform/ScriptForbiddenScope.h"
 MSVC_POP_WARNING();
-#undef FROM_HERE
-#undef LOG
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(push)
+#pragma warning(default:4996)
+#endif
 
 #include "libcef/renderer/render_frame_observer.h"
 
@@ -32,12 +35,11 @@ CefRenderFrameObserver::~CefRenderFrameObserver() {
 
 void CefRenderFrameObserver::DidCreateScriptContext(
     v8::Handle<v8::Context> context,
-    int extension_group,
     int world_id) {
   blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
 
   CefRefPtr<CefBrowserImpl> browserPtr =
-      CefBrowserImpl::GetBrowserForMainFrame(frame->top());
+      CefBrowserImpl::GetBrowserForMainFrame(frame->Top());
   if (!browserPtr.get())
     return;
 
@@ -50,10 +52,11 @@ void CefRenderFrameObserver::DidCreateScriptContext(
 
   CefRefPtr<CefFrameImpl> framePtr = browserPtr->GetWebFrameImpl(frame);
 
-  v8::Isolate* isolate = blink::mainThreadIsolate();
+  v8::Isolate* isolate = blink::MainThreadIsolate();
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope scope(context);
-  blink::V8RecursionScope recursion_scope(isolate);
+  v8::MicrotasksScope microtasks_scope(isolate,
+                                       v8::MicrotasksScope::kRunMicrotasks);
 
   CefRefPtr<CefV8Context> contextPtr(new CefV8ContextImpl(isolate, context));
 
@@ -66,7 +69,7 @@ void CefRenderFrameObserver::WillReleaseScriptContext(
   blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
 
   CefRefPtr<CefBrowserImpl> browserPtr =
-      CefBrowserImpl::GetBrowserForMainFrame(frame->top());
+      CefBrowserImpl::GetBrowserForMainFrame(frame->Top());
   if (browserPtr.get()) {
     CefRefPtr<CefApp> application = CefContentClient::Get()->application();
     if (application.get()) {
@@ -75,10 +78,13 @@ void CefRenderFrameObserver::WillReleaseScriptContext(
       if (handler.get()) {
         CefRefPtr<CefFrameImpl> framePtr = browserPtr->GetWebFrameImpl(frame);
 
-        v8::Isolate* isolate = blink::mainThreadIsolate();
+        v8::Isolate* isolate = blink::MainThreadIsolate();
         v8::HandleScope handle_scope(isolate);
-        v8::Context::Scope scope(context);
-        blink::V8RecursionScope recursion_scope(isolate);
+
+        // The released context should not be used for script execution.
+        // Depending on how the context is released this may or may not already
+        // be set.
+        blink::ScriptForbiddenScope forbidScript;
 
         CefRefPtr<CefV8Context> contextPtr(
             new CefV8ContextImpl(isolate, context));
@@ -91,3 +97,13 @@ void CefRenderFrameObserver::WillReleaseScriptContext(
 
   CefV8ReleaseContext(context);
 }
+
+void CefRenderFrameObserver::OnDestruct() {
+  delete this;
+}
+
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(pop)
+#endif

@@ -5,8 +5,8 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_Types.h"
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct ovrMicrophone *ovrMicrophoneHandle;
 

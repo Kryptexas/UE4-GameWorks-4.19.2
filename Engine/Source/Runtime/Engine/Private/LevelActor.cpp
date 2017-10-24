@@ -39,6 +39,8 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
 
+#include "Misc/TimeGuard.h"
+
 #define LOCTEXT_NAMESPACE "LevelActor"
 
 // CVars
@@ -153,7 +155,7 @@ void LineCheckTracker::DumpLineChecks(int32 Threshold)
 {
 	if( LineCheckStackTracker )
 	{
-		const FString Filename = FString::Printf(TEXT("%sLineCheckLog-%s.csv"), *FPaths::GameLogDir(), *FDateTime::Now().ToString());
+		const FString Filename = FString::Printf(TEXT("%sLineCheckLog-%s.csv"), *FPaths::ProjectLogDir(), *FDateTime::Now().ToString());
 		FOutputDeviceFile OutputFile(*Filename);
 		LineCheckStackTracker->DumpStackTraces( Threshold, OutputFile );
 		OutputFile.TearDown();
@@ -161,7 +163,7 @@ void LineCheckTracker::DumpLineChecks(int32 Threshold)
 
 	if( LineCheckScriptStackTracker )
 	{
-		const FString Filename = FString::Printf(TEXT("%sScriptLineCheckLog-%s.csv"), *FPaths::GameLogDir(), *FDateTime::Now().ToString());
+		const FString Filename = FString::Printf(TEXT("%sScriptLineCheckLog-%s.csv"), *FPaths::ProjectLogDir(), *FDateTime::Now().ToString());
 		FOutputDeviceFile OutputFile(*Filename);
 		LineCheckScriptStackTracker->DumpStackTraces( Threshold, OutputFile );
 		OutputFile.TearDown();
@@ -295,6 +297,9 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, const FActorSpawnParameters& SpawnParameters )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpawnActorTime);
+	SCOPE_TIME_GUARD_NAMED_MS(TEXT("SpawnActor Of Type"), Class->GetFName(), 2);
+	
+
 	check( CurrentLevel ); 	
 	check(GIsEditor || (CurrentLevel == PersistentLevel));
 
@@ -453,6 +458,10 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 
 	// tell the actor what method to use, in case it was overridden
 	Actor->SpawnCollisionHandlingMethod = CollisionHandlingMethod;
+
+#if WITH_EDITOR
+	Actor->bIsEditorPreviewActor = SpawnParameters.bTemporaryEditorActor;
+#endif //WITH_EDITOR
 
 	Actor->PostSpawnInitialize(UserTransform, SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.IsRemoteOwned(), SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
 

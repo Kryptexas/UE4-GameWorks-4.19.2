@@ -23,7 +23,7 @@ public:
 	FMovieSceneObjectBindingIDCustomization()
 	{}
 
-	FMovieSceneObjectBindingIDCustomization(FMovieSceneSequenceID InLocalSequenceID, TSharedPtr<ISequencer> InSequencer)
+	FMovieSceneObjectBindingIDCustomization(FMovieSceneSequenceID InLocalSequenceID, TWeakPtr<ISequencer> InSequencer)
 		: FMovieSceneObjectBindingIDPicker(InLocalSequenceID, InSequencer)
 	{}
 

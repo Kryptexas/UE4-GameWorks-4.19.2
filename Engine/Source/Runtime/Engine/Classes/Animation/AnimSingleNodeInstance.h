@@ -68,6 +68,9 @@ public:
 	/** Set New Asset - calls InitializeAnimation, for now we need MeshComponent **/
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping=true, float InPlayRate=1.f);
+	/** Get the currently used asset */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	virtual UAnimationAsset* GetAnimationAsset() const;
 	/** Set pose value */
  	UFUNCTION(BlueprintCallable, Category = "Animation")
  	void SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero);

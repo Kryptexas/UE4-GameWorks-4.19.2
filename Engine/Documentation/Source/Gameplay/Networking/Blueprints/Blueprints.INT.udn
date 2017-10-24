@@ -55,7 +55,7 @@ In the details panel of variables on your actors, there is a **Replication** dro
 | ------ | ----------- |
 | **None** | This is the default for new variables, and means the value will not be sent over the network to clients. |
 | **Replicated** | When the server replicates this actor, it will send this variable to clients. The value of the variable on the receiving client will update automatically, so that the next time it's accessed, it will reflect what the value was on the server. Of course, when playing over a real-world network, the updates will be delayed by an amount of time dependent on the network's latency. Remember that replicated variables only go in one direction, from the server to the client! To send data from a client to the server, see the "Events" section. |
-| **RepNotify** | The variable will be replicated as in the Replicated option, but in addition, an OnRep_<variable name> function will be created in your blueprint. This function will be called by the engine automatically on the client and the server whenever the value of this variable changes. You're free to implement this function however you'd like, as needed by your game. ![](onrep.png) |
+| **RepNotify** | The variable will be replicated as in the Replicated option, but in addition, an `OnRep_<variable name>` function will be created in your blueprint. This function will be called by the engine automatically on the client and the server whenever the value of this variable changes. You're free to implement this function however you'd like, as needed by your game. ![](onrep.png) |
 
 [region:note]
 Many of the variables in the engine's built-in classes already have replication enabled, so that many features work automatically in a multiplayer context.

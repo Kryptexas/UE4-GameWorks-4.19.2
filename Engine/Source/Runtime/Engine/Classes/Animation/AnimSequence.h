@@ -683,6 +683,11 @@ public:
 	// End Transform related functions 
 
 	// Begin Memory related functions
+
+	/** @return	estimate uncompressed raw size. This is *not* the real raw size. 
+				Here we estimate what it would be with no trivial compression. */
+	int32 GetUncompressedRawSize() const;
+
 	/**
 	 * @return		The approximate size of raw animation data.
 	 */
@@ -747,8 +752,13 @@ public:
 		return CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 	}
 
-	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
+	/** Clears any data in the AnimSequence */
 	void RecycleAnimSequence();
+
+#if WITH_EDITOR
+	/** Clears some data in the AnimSequence, so it can be reused when importing a new animation with same name over it. */
+	void CleanAnimSequenceForImport();
+#endif
 
 	/** 
 	 * Utility function to copy all UAnimSequence properties from Source to Destination.

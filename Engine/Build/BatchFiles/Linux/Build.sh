@@ -13,5 +13,5 @@ if ! xbuild /property:Configuration=Development /property:TargetFrameworkVersion
 fi
 
 echo "Building $1..."
-mono Engine/Binaries/DotNET/UnrealBuildTool.exe $*
+mono Engine/Binaries/DotNET/UnrealBuildTool.exe "$@"
 exit $?

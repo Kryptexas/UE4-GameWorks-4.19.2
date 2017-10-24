@@ -15,11 +15,15 @@
 #include "libcef/browser/thread_util.h"
 
 #include "base/mac/scoped_nsautorelease_pool.h"
+#include "base/memory/ptr_util.h"
 #include "base/threading/thread_restrictions.h"
 #include "content/public/browser/native_web_keyboard_event.h"
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
-#include "third_party/WebKit/public/web/WebInputEvent.h"
+#include "third_party/WebKit/public/platform/WebInputEvent.h"
+#include "third_party/WebKit/public/platform/WebMouseEvent.h"
+#include "third_party/WebKit/public/platform/WebMouseWheelEvent.h"
+#import  "ui/base/cocoa/cocoa_base_utils.h"
 #import  "ui/base/cocoa/underlay_opengl_hosting_window.h"
 #include "ui/events/keycodes/keyboard_codes_posix.h"
 #include "ui/gfx/geometry/rect.h"
@@ -68,18 +72,6 @@
     browser_ = browser;
 
     [window_ setDelegate:self];
-
-    // Register for application hide/unhide notifications.
-    [[NSNotificationCenter defaultCenter]
-         addObserver:self
-            selector:@selector(applicationDidHide:)
-                name:NSApplicationDidHideNotification
-              object:nil];
-    [[NSNotificationCenter defaultCenter]
-         addObserver:self
-            selector:@selector(applicationDidUnhide:)
-                name:NSApplicationDidUnhideNotification
-              object:nil];
   }
   return self;
 }
@@ -90,58 +82,8 @@
   [super dealloc];
 }
 
-// Called when we are activated (when we gain focus).
-- (void)windowDidBecomeKey:(NSNotification*)notification {
-  if (browser_)
-    browser_->SetFocus(true);
-}
-
-// Called when we are deactivated (when we lose focus).
-- (void)windowDidResignKey:(NSNotification*)notification {
-  if (browser_)
-    browser_->SetFocus(false);
-}
-
-// Called when we have been minimized.
-- (void)windowDidMiniaturize:(NSNotification *)notification {
-  if (browser_)
-    browser_->SetWindowVisibility(false);
-}
-
-// Called when we have been unminimized.
-- (void)windowDidDeminiaturize:(NSNotification *)notification {
-  if (browser_)
-    browser_->SetWindowVisibility(true);
-}
-
-// Called when the application has been hidden.
-- (void)applicationDidHide:(NSNotification *)notification {
-  // If the window is miniaturized then nothing has really changed.
-  if (![window_ isMiniaturized]) {
-    if (browser_)
-      browser_->SetWindowVisibility(false);
-  }
-}
-
-// Called when the application has been unhidden.
-- (void)applicationDidUnhide:(NSNotification *)notification {
-  // If the window is miniaturized then nothing has really changed.
-  if (![window_ isMiniaturized]) {
-    if (browser_)
-      browser_->SetWindowVisibility(true);
-  }
-}
-
 - (BOOL)windowShouldClose:(id)window {
-  // Protect against multiple requests to close while the close is pending.
-  if (browser_ && browser_->destruction_state() <=
-      CefBrowserHostImpl::DESTRUCTION_STATE_PENDING) {
-    if (browser_->destruction_state() ==
-        CefBrowserHostImpl::DESTRUCTION_STATE_NONE) {
-      // Request that the browser close.
-      browser_->CloseBrowser(false);
-    }
-
+  if (browser_ && !browser_->TryCloseBrowser()) {
     // Cancel the close.
     return NO;
   }
@@ -199,8 +141,9 @@ NSUInteger NativeModifiers(int cef_modifiers) {
 }  // namespace
 
 CefBrowserPlatformDelegateNativeMac::CefBrowserPlatformDelegateNativeMac(
-    const CefWindowInfo& window_info)
-    : CefBrowserPlatformDelegateNative(window_info),
+    const CefWindowInfo& window_info,
+    SkColor background_color)
+    : CefBrowserPlatformDelegateNative(window_info, background_color),
       host_window_created_(false) {
 }
 
@@ -253,12 +196,12 @@ bool CefBrowserPlatformDelegateNativeMac::CreateHostWindow() {
 
     parentView = [newWnd contentView];
     window_info_.parent_view = parentView;
-  }
 
-  // Make the content view for the window have a layer. This will make all
-  // sub-views have layers. This is necessary to ensure correct layer
-  // ordering of all child views and their layers.
-  [[[parentView window] contentView] setWantsLayer:YES];
+    // Make the content view for the window have a layer. This will make all
+    // sub-views have layers. This is necessary to ensure correct layer
+    // ordering of all child views and their layers.
+    [parentView setWantsLayer:YES];
+  }
 
   host_window_created_ = true;
 
@@ -333,7 +276,8 @@ gfx::Point CefBrowserPlatformDelegateNativeMac::GetScreenPoint(
     NSRect bounds = [nsview bounds];
     NSPoint view_pt = {view.x(), bounds.size.height - view.y()};
     NSPoint window_pt = [nsview convertPoint:view_pt toView:nil];
-    NSPoint screen_pt = [[nsview window] convertBaseToScreen:window_pt];
+    NSPoint screen_pt =
+        ui::ConvertPointFromWindowToScreen([nsview window], window_pt);
     return gfx::Point(screen_pt.x, screen_pt.y);
   }
   return gfx::Point();
@@ -404,9 +348,9 @@ void CefBrowserPlatformDelegateNativeMac::TranslateKeyEvent(
 
   result = content::NativeWebKeyboardEvent(synthetic_event);
   if (key_event.type == KEYEVENT_CHAR)
-    result.type = blink::WebInputEvent::Char;
+    result.SetType(blink::WebInputEvent::kChar);
 
-  result.isSystemKey = key_event.is_system_key;
+  result.is_system_key = key_event.is_system_key;
 }
 
 void CefBrowserPlatformDelegateNativeMac::TranslateClickEvent(
@@ -418,25 +362,25 @@ void CefBrowserPlatformDelegateNativeMac::TranslateClickEvent(
 
   switch (type) {
   case MBT_LEFT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonLeft;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kLeft;
     break;
   case MBT_MIDDLE:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonMiddle;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kMiddle;
     break;
   case MBT_RIGHT:
-    result.type = mouseUp ? blink::WebInputEvent::MouseUp :
-                            blink::WebInputEvent::MouseDown;
-    result.button = blink::WebMouseEvent::ButtonRight;
+    result.SetType(mouseUp ? blink::WebInputEvent::kMouseUp :
+                             blink::WebInputEvent::kMouseDown);
+    result.button = blink::WebMouseEvent::Button::kRight;
     break;
   default:
     NOTREACHED();
   }
 
-  result.clickCount = clickCount;
+  result.click_count = clickCount;
 }
 
 void CefBrowserPlatformDelegateNativeMac::TranslateMoveEvent(
@@ -446,21 +390,21 @@ void CefBrowserPlatformDelegateNativeMac::TranslateMoveEvent(
   TranslateMouseEvent(result, mouse_event);
 
   if (!mouseLeave) {
-    result.type = blink::WebInputEvent::MouseMove;
+    result.SetType(blink::WebInputEvent::kMouseMove);
     if (mouse_event.modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonLeft;
+      result.button = blink::WebMouseEvent::Button::kLeft;
     else if (mouse_event.modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonMiddle;
+      result.button = blink::WebMouseEvent::Button::kMiddle;
     else if (mouse_event.modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-      result.button = blink::WebMouseEvent::ButtonRight;
+      result.button = blink::WebMouseEvent::Button::kRight;
     else
-      result.button = blink::WebMouseEvent::ButtonNone;
+      result.button = blink::WebMouseEvent::Button::kNoButton;
   } else {
-    result.type = blink::WebInputEvent::MouseLeave;
-    result.button = blink::WebMouseEvent::ButtonNone;
+    result.SetType(blink::WebInputEvent::kMouseLeave);
+    result.button = blink::WebMouseEvent::Button::kNoButton;
   }
 
-  result.clickCount = 0;
+  result.click_count = 0;
 }
 
 void CefBrowserPlatformDelegateNativeMac::TranslateWheelEvent(
@@ -470,28 +414,28 @@ void CefBrowserPlatformDelegateNativeMac::TranslateWheelEvent(
   result = blink::WebMouseWheelEvent();
   TranslateMouseEvent(result, mouse_event);
 
-  result.type = blink::WebInputEvent::MouseWheel;
+  result.SetType(blink::WebInputEvent::kMouseWheel);
 
   static const double scrollbarPixelsPerCocoaTick = 40.0;
-  result.deltaX = deltaX;
-  result.deltaY = deltaY;
-  result.wheelTicksX = result.deltaX / scrollbarPixelsPerCocoaTick;
-  result.wheelTicksY = result.deltaY / scrollbarPixelsPerCocoaTick;
-  result.hasPreciseScrollingDeltas = true;
+  result.delta_y = deltaX;
+  result.delta_y = deltaY;
+  result.wheel_ticks_x = deltaX / scrollbarPixelsPerCocoaTick;
+  result.wheel_ticks_y = deltaY / scrollbarPixelsPerCocoaTick;
+  result.has_precise_scrolling_deltas = true;
 
   // Unless the phase and momentumPhase are passed in as parameters to this
   // function, there is no way to know them
-  result.phase = blink::WebMouseWheelEvent::PhaseNone;
-  result.momentumPhase = blink::WebMouseWheelEvent::PhaseNone;
+  result.phase = blink::WebMouseWheelEvent::kPhaseNone;
+  result.momentum_phase = blink::WebMouseWheelEvent::kPhaseNone;
 
   if (mouse_event.modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonLeft;
+    result.button = blink::WebMouseEvent::Button::kLeft;
   else if (mouse_event.modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonMiddle;
+    result.button = blink::WebMouseEvent::Button::kMiddle;
   else if (mouse_event.modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-    result.button = blink::WebMouseEvent::ButtonRight;
+    result.button = blink::WebMouseEvent::Button::kRight;
   else
-    result.button = blink::WebMouseEvent::ButtonNone;
+    result.button = blink::WebMouseEvent::Button::kNoButton;
 }
 
 CefEventHandle CefBrowserPlatformDelegateNativeMac::GetEventHandle(
@@ -499,38 +443,36 @@ CefEventHandle CefBrowserPlatformDelegateNativeMac::GetEventHandle(
   return event.os_event;
 }
 
-scoped_ptr<CefFileDialogRunner>
+std::unique_ptr<CefFileDialogRunner>
     CefBrowserPlatformDelegateNativeMac::CreateFileDialogRunner() {
-  return make_scoped_ptr(new CefFileDialogRunnerMac);
+  return base::WrapUnique(new CefFileDialogRunnerMac);
 }
 
-scoped_ptr<CefJavaScriptDialogRunner>
+std::unique_ptr<CefJavaScriptDialogRunner>
     CefBrowserPlatformDelegateNativeMac::CreateJavaScriptDialogRunner() {
-  return make_scoped_ptr(new CefJavaScriptDialogRunnerMac);
+  return base::WrapUnique(new CefJavaScriptDialogRunnerMac);
 }
 
-scoped_ptr<CefMenuRunner>
+std::unique_ptr<CefMenuRunner>
     CefBrowserPlatformDelegateNativeMac::CreateMenuRunner() {
-  return make_scoped_ptr(new CefMenuRunnerMac);
+  return base::WrapUnique(new CefMenuRunnerMac);
 }
 
 void CefBrowserPlatformDelegateNativeMac::TranslateMouseEvent(
     blink::WebMouseEvent& result,
     const CefMouseEvent& mouse_event) const {
   // position
-  result.x = mouse_event.x;
-  result.y = mouse_event.y;
-  result.windowX = result.x;
-  result.windowY = result.y;
+  result.SetPositionInWidget(mouse_event.x, mouse_event.y);
 
-  const gfx::Point& screen_pt = GetScreenPoint(gfx::Point(result.x, result.y));
-  result.globalX = screen_pt.x();
-  result.globalY = screen_pt.y();
+  const gfx::Point& screen_pt =
+      GetScreenPoint(gfx::Point(mouse_event.x, mouse_event.y));
+  result.SetPositionInScreen(screen_pt.x(), screen_pt.y());
 
   // modifiers
-  result.modifiers |= TranslateModifiers(mouse_event.modifiers);
+  result.SetModifiers(
+    result.GetModifiers() | TranslateModifiers(mouse_event.modifiers));
 
   // timestamp - Mac OSX specific
-  result.timeStampSeconds = currentEventTimestamp();
+  result.SetTimeStampSeconds(currentEventTimestamp());
 }
 

@@ -98,12 +98,14 @@ public:
 	static TSharedRef<FGraphSchemaActionDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode )
 	{
 		TSharedRef<FGraphSchemaActionDragDropAction> Operation = MakeShareable(new FGraphSchemaActionDragDropAction);
-		Operation->ActionNode = InActionNode;
+		Operation->SourceAction = InActionNode;
 		Operation->Construct();
 		return Operation;
 	}
 
 protected:
+	virtual void GetDefaultStatusSymbol(const FSlateBrush*& PrimaryBrushOut, FSlateColor& IconColorOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut) const;
+
 	/** */
-	TSharedPtr<FEdGraphSchemaAction> ActionNode;
+	TSharedPtr<FEdGraphSchemaAction> SourceAction;
 };

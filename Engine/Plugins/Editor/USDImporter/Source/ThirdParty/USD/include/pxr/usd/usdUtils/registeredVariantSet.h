@@ -26,7 +26,12 @@
 
 /// \file usdUtils/registeredVariantSet.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/usdUtils/api.h"
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \class UsdUtilsRegisteredVariantSet
 ///
@@ -87,4 +92,7 @@ public:
     }
 };
 
-#endif // USDUTILS_REGISTEREDVARIANTSET_H
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_REGISTEREDVARIANTSET_H */

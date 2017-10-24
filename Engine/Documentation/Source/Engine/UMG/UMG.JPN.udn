@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3244089
-Availability:Public
+﻿Availability:Public
 Title:UMG UI デザイナ
 Crumbs:%ROOT%, Engine
 Description:UMG を使用して UI エレメントを作成するためのガイド 
@@ -78,8 +77,8 @@ tags:UMG UI Designer
 			* [](Engine/UMG/UserGuide/Fonts)
 			* [](Engine/UMG/UserGuide/Styling)
 			* [](Engine/UMG/UserGuide/Slots)
-		[/PARAM]
 
+	[/PARAM]
 [/OBJECT]
 
 [OBJECT:TopicButtonList]

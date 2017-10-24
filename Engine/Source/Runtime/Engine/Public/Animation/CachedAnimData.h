@@ -49,6 +49,9 @@ struct ENGINE_API FCachedAnimStateData
 	/** Is State relevant? */
 	bool IsRelevant(UAnimInstance& InAnimInstance) const;
 
+	/** Is State active? */
+	bool IsActiveState(class UAnimInstance& InAnimInstance) const;
+
 private:
 	mutable int32 MachineIndex;
 	mutable int32 StateIndex;

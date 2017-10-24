@@ -46,6 +46,7 @@ typedef FEGLGLSync UGLsync;
 #define GLdouble		GLfloat
 #define GL_BGRA			GL_BGRA_EXT
 #define GL_UNSIGNED_INT_8_8_8_8_REV	GL_UNSIGNED_BYTE
+#define GL_UNSIGNED_INT_8_8_8_8	0x8035
 
 #ifndef EGL_KHR_create_context
 #define EGL_KHR_create_context 1
@@ -528,6 +529,19 @@ struct FAndroidESDeferredOpenGL : public FOpenGLESDeferred
 	static FORCEINLINE bool SupportsImageExternal()
 	{
 		return false;
+	}
+
+	enum class EImageExternalType : uint8
+	{
+		None,
+		ImageExternal100,
+		ImageExternal300,
+		ImageExternalESSL300
+	};
+
+	static FORCEINLINE EImageExternalType GetImageExternalType()
+	{
+		return EImageExternalType::None;
 	}
 
 	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler)

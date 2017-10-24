@@ -1289,12 +1289,12 @@ ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
 
 void UWidgetComponent::SetWidget(UUserWidget* InWidget)
 {
-	if( InWidget != nullptr )
+	if (InWidget != nullptr)
 	{
-		SetSlateWidget( nullptr );
+		SetSlateWidget(nullptr);
 	}
 
-	if ( Widget )
+	if (Widget)
 	{
 		RemoveWidgetFromScreen();
 	}
@@ -1304,14 +1304,14 @@ void UWidgetComponent::SetWidget(UUserWidget* InWidget)
 	UpdateWidget();
 }
 
-void UWidgetComponent::SetSlateWidget( const TSharedPtr<SWidget>& InSlateWidget )
+void UWidgetComponent::SetSlateWidget(const TSharedPtr<SWidget>& InSlateWidget)
 {
-	if( Widget != nullptr )
+	if (Widget != nullptr)
 	{
-		SetWidget( nullptr );
+		SetWidget(nullptr);
 	}
 
-	if( SlateWidget.IsValid() )
+	if (SlateWidget.IsValid())
 	{
 		RemoveWidgetFromScreen();
 		SlateWidget.Reset();
@@ -1809,5 +1809,21 @@ void UWidgetComponent::UpdateMaterialInstanceParameters()
 
 void UWidgetComponent::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)
 {
-	WidgetClass = InWidgetClass;
+	if (WidgetClass != InWidgetClass)
+	{
+		WidgetClass = InWidgetClass;
+
+		if(HasBegunPlay())
+		{
+			if (WidgetClass)
+			{
+				UUserWidget* NewWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetClass);
+				SetWidget(NewWidget);
+			}
+			else
+			{
+				SetWidget(nullptr);
+			}
+		}
+	}
 }

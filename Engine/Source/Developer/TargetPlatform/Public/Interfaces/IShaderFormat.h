@@ -30,7 +30,7 @@ public:
 	 * @param Format The format to get the version for.
 	 * @return Version number.
 	 */
-	virtual uint16 GetVersion( FName Format ) const = 0;
+	virtual uint32 GetVersion( FName Format ) const = 0;
 
 	/**
 	 * Gets the list of supported formats.
@@ -57,7 +57,14 @@ public:
 	 */
     virtual bool StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const { return false; }
     
-    /**
+	/**
+	* Whether this shader format supports a format-specific archive for precompiled shader code.
+	*
+	* @returns true if shader archives are supported, false otherwise.
+	*/
+	virtual bool SupportsShaderArchives() const { return false; }
+	
+	/**
      * Create a format specific archive for precompiled shader code.
      *
      * @param Format The format of shaders to cache.
@@ -65,6 +72,12 @@ public:
      * @returns An archive object on success or nullptr on failure.
      */
     virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const { return nullptr; }
+	
+	/**
+	 * Can the shader format compile shaders to the native binary format for the platform.
+	 * @returns True if the native compiler is available and configured, otherwise false.
+	 */
+	virtual bool CanCompileBinaryShaders() const { return true; }
 
 public:
 

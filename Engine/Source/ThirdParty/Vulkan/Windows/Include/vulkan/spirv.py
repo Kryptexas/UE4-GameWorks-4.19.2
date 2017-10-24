@@ -42,7 +42,7 @@
 spv = {
     'MagicNumber' : 0x07230203,
     'Version' : 0x00010100,
-    'Revision' : 6,
+    'Revision' : 7,
     'OpCodeMask' : 0xffff,
     'WordCountShift' : 16,
 
@@ -52,6 +52,7 @@ spv = {
         'GLSL' : 2,
         'OpenCL_C' : 3,
         'OpenCL_CPP' : 4,
+        'HLSL' : 5,
     },
 
     'ExecutionModel' : {
@@ -112,6 +113,7 @@ spv = {
         'Finalizer' : 34,
         'SubgroupSize' : 35,
         'SubgroupsPerWorkgroup' : 36,
+        'PostDepthCoverage' : 4446,
     },
 
     'StorageClass' : {
@@ -127,6 +129,7 @@ spv = {
         'PushConstant' : 9,
         'AtomicCounter' : 10,
         'Image' : 11,
+        'StorageBuffer' : 12,
     },
 
     'Dim' : {
@@ -352,6 +355,7 @@ spv = {
         'InputAttachmentIndex' : 43,
         'Alignment' : 44,
         'MaxByteOffset' : 45,
+        'ExplicitInterpAMD' : 4999,
         'OverrideCoverageNV' : 5248,
         'PassthroughNV' : 5250,
         'ViewportRelativeNV' : 5252,
@@ -410,6 +414,13 @@ spv = {
         'DrawIndex' : 4426,
         'DeviceIndex' : 4438,
         'ViewIndex' : 4440,
+        'BaryCoordNoPerspAMD' : 4992,
+        'BaryCoordNoPerspCentroidAMD' : 4993,
+        'BaryCoordNoPerspSampleAMD' : 4994,
+        'BaryCoordSmoothAMD' : 4995,
+        'BaryCoordSmoothCentroidAMD' : 4996,
+        'BaryCoordSmoothSampleAMD' : 4997,
+        'BaryCoordPullModelAMD' : 4998,
         'ViewportMaskNV' : 5253,
         'SecondaryPositionNV' : 5257,
         'SecondaryViewportMaskNV' : 5258,
@@ -590,12 +601,19 @@ spv = {
         'SubgroupBallotKHR' : 4423,
         'DrawParameters' : 4427,
         'SubgroupVoteKHR' : 4431,
+        'StorageBuffer16BitAccess' : 4433,
         'StorageUniformBufferBlock16' : 4433,
         'StorageUniform16' : 4434,
+        'UniformAndStorageBuffer16BitAccess' : 4434,
         'StoragePushConstant16' : 4435,
         'StorageInputOutput16' : 4436,
         'DeviceGroup' : 4437,
         'MultiView' : 4439,
+        'VariablePointersStorageBuffer' : 4441,
+        'VariablePointers' : 4442,
+        'AtomicStorageOps' : 4445,
+        'SampleMaskPostDepthCoverage' : 4447,
+        'ImageGatherBiasLodAMD' : 5009,
         'SampleMaskOverrideCoverageNV' : 5249,
         'GeometryShaderPassthroughNV' : 5251,
         'ShaderViewportIndexLayerNV' : 5254,
@@ -915,6 +933,14 @@ spv = {
         'OpSubgroupAnyKHR' : 4429,
         'OpSubgroupAllEqualKHR' : 4430,
         'OpSubgroupReadInvocationKHR' : 4432,
+        'OpGroupIAddNonUniformAMD' : 5000,
+        'OpGroupFAddNonUniformAMD' : 5001,
+        'OpGroupFMinNonUniformAMD' : 5002,
+        'OpGroupUMinNonUniformAMD' : 5003,
+        'OpGroupSMinNonUniformAMD' : 5004,
+        'OpGroupFMaxNonUniformAMD' : 5005,
+        'OpGroupUMaxNonUniformAMD' : 5006,
+        'OpGroupSMaxNonUniformAMD' : 5007,
     },
 
 }

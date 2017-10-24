@@ -8,6 +8,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class FMetalShaderPipeline;
 
+@protocol IMetalRenderCommandEncoder <MTLRenderCommandEncoder>
+- (void)setViewports:(const MTLViewport [])viewports count:(NSUInteger)count;
+- (void)setScissorRects:(const MTLScissorRect [])scissorRects count:(NSUInteger)count;
+@end
+
 @interface FMetalDebugRenderCommandEncoder : FMetalDebugCommandEncoder<MTLRenderCommandEncoder>
 {
     @private
@@ -17,7 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
     FMetalDebugBufferBindings ShaderBuffers[EMetalShaderRenderNum];
     FMetalDebugTextureBindings ShaderTextures[EMetalShaderRenderNum];
     FMetalDebugSamplerBindings ShaderSamplers[EMetalShaderRenderNum];
+	id<MTLRenderPipelineState> DebugState;
 #endif
+	MTLRenderPassDescriptor* RenderPassDesc;
 }
 
 /** The wrapped native command-encoder for which we collect debug information. */
@@ -26,7 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) FMetalShaderPipeline* Pipeline;
 
 /** Initialise the wrapper with the provided command-buffer. */
--(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)Buffer;
+-(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder fromDescriptor:(MTLRenderPassDescriptor*)RenderPassDesc andCommandBuffer:(FMetalDebugCommandBuffer*)Buffer;
 
 /** Validates the pipeline/binding state */
 -(bool)validateFunctionBindings:(EMetalShaderFrequency)Frequency;

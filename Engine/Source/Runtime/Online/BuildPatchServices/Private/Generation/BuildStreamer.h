@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "Misc/SecureHash.h"
-#include "Generation/StatsCollector.h"
+#include "Common/StatsCollector.h"
 #include "HAL/FileManager.h"
 
 namespace BuildPatchServices
@@ -85,7 +85,7 @@ namespace BuildPatchServices
 		 * @param   IN  Buffer          Pointer to buffer to receive the data.
 		 * @param   IN  ReqSize         The amount of data to attempt to retrieve.
 		 * @param   IN  WaitForData     Optional: Default true. Whether to wait until there is enough data in the buffer.
-		 * @return the amount of data retrieved
+		 * @return the amount of data retrieved.
 		 */
 		virtual uint32 DequeueData(uint8* Buffer, uint32 ReqSize, bool WaitForData = true) = 0;
 
@@ -99,18 +99,25 @@ namespace BuildPatchServices
 
 		/**
 		 * Gets a list of empty files that the build contains.
-		 * @return array of empty files in the build
+		 * @return array of empty files in the build.
 		 */
 		virtual TArray<FString> GetEmptyFiles() const = 0;
 
 		/**
+		 * Gets a list of all filenames that the build contains.
+		 * Will block until the list of files is enumerated and ignored files have been stripped out.
+		 * @return array of filenames in the build.
+		 */
+		virtual TArray<FString> GetAllFilenames() const = 0;
+
+		/**
 		 * Whether the read thread has finished reading the build image.
-		 * @return true if there is no more data coming into the buffer
+		 * @return true if there is no more data coming into the buffer.
 		 */
 		virtual bool IsEndOfBuild() const = 0;
 
 		/**
-		 * Whether there is any more data available to dequeue from the buffer
+		 * Whether there is any more data available to dequeue from the buffer.
 		 * @return true if there is no more data coming in, and the internal buffer is also empty.
 		 */
 		virtual bool IsEndOfData() const = 0;

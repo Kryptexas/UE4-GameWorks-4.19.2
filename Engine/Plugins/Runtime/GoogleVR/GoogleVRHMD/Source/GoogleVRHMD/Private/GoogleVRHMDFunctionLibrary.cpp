@@ -10,9 +10,9 @@ UGoogleVRHMDFunctionLibrary::UGoogleVRHMDFunctionLibrary(const FObjectInitialize
 
 static FGoogleVRHMD* GetHMD()
 {
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
+	if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetSystemName() == FName("FGoogleVRHMD"))
 	{
-		return static_cast<FGoogleVRHMD*>(GEngine->HMDDevice.Get());
+		return static_cast<FGoogleVRHMD*>(GEngine->XRSystem.Get());
 	}
 
 	return nullptr;
@@ -310,4 +310,64 @@ void UGoogleVRHMDFunctionLibrary::SetDaydreamLoadingSplashScreenViewAngle(float 
 		HMD->GVRSplash->ViewAngleInDegree = NewViewAngle;
 	}
 #endif
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetFloorHeight(float& FloorHeight)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetFloorHeight(&FloorHeight))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyCylinderInnerRadius(float& InnerRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyCylinderInnerRadius(&InnerRadius))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyCylinderOuterRadius(float& OuterRadius)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyCylinderOuterRadius(&OuterRadius))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetSafetyRegion(ESafetyRegionType& RegionType)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetSafetyRegion(&RegionType))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::GetRecenterTransform(FQuat& RecenterOrientation, FVector& RecenterPosition)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if (HMD && HMD->GetRecenterTransform(RecenterOrientation, RecenterPosition))
+	{
+		return true;
+	}
+#endif
+	return false;
 }

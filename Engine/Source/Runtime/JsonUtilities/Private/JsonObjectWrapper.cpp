@@ -68,7 +68,7 @@ bool FJsonObjectWrapper::ExportTextItem(FString& ValueStr, FJsonObjectWrapper co
 
 void FJsonObjectWrapper::PostSerialize(const FArchive& Ar)
 {
-	if (Ar.IsLoading())
+	if (!JsonString.IsEmpty())
 	{
 		// try to parse JsonString
 		TSharedRef<TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(JsonString);

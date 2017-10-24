@@ -6,7 +6,7 @@
 #include "Layout/Visibility.h"
 #include "PropertyPath.h"
 #include "IPropertyUtilities.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "DetailCategoryBuilderImpl.h"
@@ -14,11 +14,15 @@
 /**
  * A single item in a detail tree                                                              
  */
-class FDetailItemNode : public IDetailTreeNode, public TSharedFromThis<FDetailItemNode>
+class FDetailItemNode : public FDetailTreeNode, public TSharedFromThis<FDetailItemNode>
 {
 public:
 	FDetailItemNode( const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup = nullptr);
 	~FDetailItemNode();
+
+	/** IDetailTreeNode interface */
+	virtual EDetailNodeType GetNodeType() const override;
+	virtual TSharedPtr<IPropertyHandle> CreatePropertyHandle() const override;
 
 	/**
 	 * Initializes this node                                                              
@@ -48,8 +52,9 @@ public:
 	bool HasGeneratedChildren() const { return Children.Num() > 0;}
 
 	/** IDetailTreeNode interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.Pin()->GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
+	virtual IDetailsViewPrivate* GetDetailsView() const override{ return ParentCategory.Pin()->GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateWidgetForTableView( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem) override;
+	virtual bool GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const override;
 	virtual void GetChildren( FDetailNodeList& OutChildren )  override;
 	virtual void OnItemExpansionChanged( bool bInIsExpanded, bool bShouldSaveState) override;
 	virtual bool ShouldBeExpanded() const override;

@@ -24,8 +24,10 @@
 #ifndef GF_MATRIX_DATA_H
 #define GF_MATRIX_DATA_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/api.h"
-#include <stddef.h>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfMatrixData
 ///
@@ -35,12 +37,12 @@ class GfMatrixData {
 public:
 
     /// Return a pointer to a \a row of data.
-    T *operator[](size_t row) {
+    T *operator[](int row) {
         return _data + (row * Columns);
     }
 
     /// Return a const pointer to a \a row of data.
-    T const *operator[](size_t row) const {
+    T const *operator[](int row) const {
         return _data + (row * Columns);
     }
 
@@ -58,5 +60,7 @@ private:
 
     T _data[Rows * Columns];
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_MATRIX_DATA_H

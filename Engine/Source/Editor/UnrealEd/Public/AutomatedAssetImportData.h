@@ -60,6 +60,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	UFactory* Factory;
 
+	/** Full path to level to load before importing this group (only matters if importing assets into a level) */
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
+	FString LevelToLoad;
+
 	/** Json data to be read when importing this group */
 	TSharedPtr<FJsonObject> ImportGroupJsonData;
 

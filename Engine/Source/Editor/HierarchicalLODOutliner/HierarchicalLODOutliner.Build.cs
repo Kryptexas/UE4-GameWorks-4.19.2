@@ -38,7 +38,7 @@ public class HierarchicalLODOutliner : ModuleRules
 
 
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

@@ -320,9 +320,7 @@ When running from the executable, you must specify the game you want to run as a
 
 ## Running a Cooked Game
 
-[INCLUDE:Engine/Basics/Projects/Packaging#runcooked]
-
-See [](Engine/Basics/Projects/Packaging) for more information on how to package and run cooked game builds.
+See [](Engine/Basics/Projects/Packaging) for information on how to package and run cooked game builds.
 
 ## Useful In-Game Commands
 

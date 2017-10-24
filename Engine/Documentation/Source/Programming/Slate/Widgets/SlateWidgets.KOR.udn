@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3372845
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:슬레이트 위젯 예제
 Crumbs:%ROOT%, Programming, Programming/Slate, Programming/Slate/Widgets
@@ -294,7 +294,7 @@ SWrapBox 는 줄바꿈 상자, 즉 일정 폭까지 위젯이 가로로 배치�
 
 ### 트리 뷰
 
-STreeView<...> 로 만들어지는 트리 뷰는 리스트 뷰와 비슷하지만, 리스트 내 다른 위젯에 대한 부모 위젯이 지원된다는 점이 다릅니다. 어느 위젯의 부모가 어느 위젯인지 결정하기 위해 OnGetChildren 델리게이트를 사용하여 전달된 아이템의 자손을 도로 전합니다.
+`STreeView<...>` 로 만들어지는 트리 뷰는 리스트 뷰와 비슷하지만, 리스트 내 다른 위젯에 대한 부모 위젯이 지원된다는 점이 다릅니다. 어느 위젯의 부모가 어느 위젯인지 결정하기 위해 OnGetChildren 델리게이트를 사용하여 전달된 아이템의 자손을 도로 전합니다.
 
 	SNew( STreeView< TSharedPtr<FTestData> > )
 	.ItemHeight(24)
@@ -315,7 +315,7 @@ STreeView<...> 로 만들어지는 트리 뷰는 리스트 뷰와 비슷하지�
 
 ### 타일 뷰
 
-STileView<...> 로 만들어지는 타일 뷰는 리스트 뷰와 비슷하지만, 자손 위젯이 리스트가 아닌 그리드로 배치된다는 점이 다릅니다. 이때문에 열이나 열 제목을 지원하지 않습니다.
+`STileView<...>` 로 만들어지는 타일 뷰는 리스트 뷰와 비슷하지만, 자손 위젯이 리스트가 아닌 그리드로 배치된다는 점이 다릅니다. 이때문에 열이나 열 제목을 지원하지 않습니다.
 
 	SNew( STileView< TSharedPtr<FTestData> > )
 	.ItemWidth(128)

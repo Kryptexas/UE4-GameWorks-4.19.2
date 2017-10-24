@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Input/Reply.h"
+#include "CoreTypes.h"
+#include "Internationalization/Text.h"
+#include "MediaCaptureSupport.h"
 #include "Styling/ISlateStyle.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 
@@ -12,8 +15,10 @@ class FMenuBuilder;
 class SEditableTextBox;
 class SSlider;
 class UMediaPlayer;
+
 enum class EMediaEvent;
 enum class EMediaPlayerTrack : uint8;
+
 
 /**
  * Implements the contents of the viewer tab in the UMediaPlayer asset editor.
@@ -41,7 +46,7 @@ public:
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InMediaPlayer The UMediaPlayer asset to show the details for.
-	 * @param InStyleSet The style set to use.
+	 * @param InStyle The style set to use.
 	 */
 	void Construct(const FArguments& InArgs, UMediaPlayer& InMediaPlayer, const TSharedRef<ISlateStyle>& InStyle);
 
@@ -56,6 +61,14 @@ public:
 
 protected:
 
+	/**
+	 * Populate a menu from the given capture device information.
+	 *
+	 * @param DeviceInfos The capture device information.
+	 * @param MenuBuilder The builder for the menu.
+	 */
+	void MakeCaptureDeviceMenu(TArray<FMediaCaptureDeviceInfo>& DeviceInfos, FMenuBuilder& MenuBuilder);
+
 	/** Open the specified media URL. */
 	void OpenUrl(const FText& TextUrl);
 
@@ -64,53 +77,23 @@ protected:
 
 private:
 
-	/** Callback for the active timer. */
-	EActiveTimerReturnType HandleActiveTimer(double InCurrentTime, float InDeltaTime);
+	/** Callback for creating the audio capture devices sub-menu. */
+	void HandleAudioCaptureDevicesMenuNewMenu(FMenuBuilder& MenuBuilder);
+
+	/** Callback for creating the player sub-menu. */
+	void HandleDecoderMenuNewMenu(FMenuBuilder& MenuBuilder);
+
+	/** Callback for getting the text of the FPS text block. */
+	FText HandleFpsTextBlockText() const;
+
+	/** Callback for creating a track format sub-menu. */
+	void HandleFormatMenuNewMenu(FMenuBuilder& MenuBuilder, EMediaPlayerTrack TrackType);
 
 	/** Callback for media player events. */
 	void HandleMediaPlayerMediaEvent(EMediaEvent Event);
 
-	/** Callback for getting the text of the player name overlay. */
-	FText HandleOverlayPlayerNameText() const;
-
-	/** Callback for getting the text of the playback state overlay. */
-	FText HandleOverlayStateText() const;
-
-	/** Callback for getting the maximum value of the playback rate spin box. */
-	TOptional<float> HandlePlaybackRateBoxMaxValue() const;
-
-	/** Callback for getting the minimum value of the playback rate spin box. */
-	TOptional<float> HandlePlaybackRateBoxMinValue() const;
-
-	/** Callback for getting the current value of the playback rate spin box. */
-	TOptional<float> HandlePlaybackRateSpinBoxValue() const;
-
-	/** Callback for committing a new value to the playback rate spin box. */
-	void HandlePlaybackRateBoxValueChanged( float NewValue );
-
-	/** Callback for creating the player sub-menu. */
-	void HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder);
-
-	/** Callback for getting the enabled state of the position slider. */
-	bool HandlePositionSliderIsEnabled() const;
-
-	/** Callback for when the position slider captures the mouse. */
-	void HandlePositionSliderMouseCaptureBegin();
-
-	/** Callback for when the position slider releases the mouse. */
-	void HandlePositionSliderMouseCaptureEnd();
-
-	/** Callback for getting the value of the position slider. */
-	float HandlePositionSliderValue() const;
-
-	/** Callback for changing the value of the 'Position' slider. */
-	void HandlePositionSliderValueChanged( float NewValue );
-
 	/** Callback for creating the Scale sub-menu. */
 	void HandleScaleMenuNewMenu(FMenuBuilder& MenuBuilder);
-
-	/** Callback for handling button up events on the movie texture border. */
-	FReply HandleTextureMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 
 	/** Callback for getting the text of the timer text block. */
 	FText HandleTimerTextBlockText() const;
@@ -118,11 +101,14 @@ private:
 	/** Callback for getting the tool tip of the timer text block. */
 	FText HandleTimerTextBlockToolTipText() const;
 
-	/** Callback for creating the a track sub-menu. */
+	/** Callback for creating a track sub-menu. */
 	void HandleTrackMenuNewMenu(FMenuBuilder& MenuBuilder, EMediaPlayerTrack TrackType);
 
 	/** Callback for handling key down events in the URL text box. */
 	FReply HandleUrlBoxKeyDown(const FGeometry&, const FKeyEvent& KeyEvent);
+
+	/** Callback for creating the video capture devices sub-menu. */
+	void HandleVideoCaptureDevicesMenuNewMenu(FMenuBuilder& MenuBuilder);
 
 private:
 
@@ -132,6 +118,9 @@ private:
 	/** Whether the dragged object is a media file that can be played. */
 	bool DragValid;
 
+	/** The text that was last typed into the URL box. */
+	FText LastUrl;
+
 	/** Pointer to the media player that is being viewed. */
 	UMediaPlayer* MediaPlayer;
 
@@ -140,6 +129,9 @@ private:
 
 	/** Holds the scrubber slider. */
 	TSharedPtr<SSlider> ScrubberSlider;
+
+	/** The value currently being scrubbed to. */
+	float ScrubValue;
 
 	/** The style set to use for this widget. */
 	TSharedPtr<ISlateStyle> Style;

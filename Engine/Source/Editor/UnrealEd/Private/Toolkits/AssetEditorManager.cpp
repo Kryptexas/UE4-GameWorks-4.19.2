@@ -2,13 +2,13 @@
 
 
 #include "Toolkits/AssetEditorManager.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
 #include "Modules/ModuleManager.h"
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "AssetEditorMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpointBuilder.h"
 #include "IAssetTools.h"
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
@@ -165,6 +165,16 @@ void FAssetEditorManager::CloseAllEditorsForAsset(UObject* Asset)
 	for( auto EditorIter : EditorInstances )
 	{
 		EditorIter->CloseWindow();
+	}
+}
+
+void FAssetEditorManager::RemoveAssetFromAllEditors(UObject* Asset)
+{
+	TArray<IAssetEditorInstance*> EditorInstances = FindEditorsForAsset(Asset);
+
+	for (auto EditorIter : EditorInstances)
+	{
+		EditorIter->RemoveEditingAsset(Asset);
 	}
 }
 
@@ -493,7 +503,7 @@ FArchive& operator<<(FArchive& Ar,IAssetEditorInstance*& TypeRef)
 }
 
 
-void FAssetEditorManager::HandleRequestOpenAssetMessage( const FAssetEditorRequestOpenAsset& Message, const IMessageContextRef& Context )
+void FAssetEditorManager::HandleRequestOpenAssetMessage( const FAssetEditorRequestOpenAsset& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	OpenEditorForAsset(Message.AssetName);
 }
@@ -617,7 +627,7 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 		));
 
 	// We will let the notification expire automatically after 10 seconds
-	Info.bFireAndForget = true;
+	Info.bFireAndForget = false;
 	Info.ExpireDuration = 10.0f;
 
 	// We want the auto-save to be subtle

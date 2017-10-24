@@ -18,18 +18,6 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 
-void FMacPlatformMemory::Init()
-{
-	FGenericPlatformMemory::Init();
-
-	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	UE_LOG(LogInit, Log, TEXT("Memory total: Physical=%.1fGB (%dGB approx) Pagefile=%.1fGB Virtual=%.1fGB"), 
-		float(MemoryConstants.TotalPhysical/1024.0/1024.0/1024.0),
-		MemoryConstants.TotalPhysicalGB, 
-		float((MemoryConstants.TotalVirtual-MemoryConstants.TotalPhysical)/1024.0/1024.0/1024.0), 
-		float(MemoryConstants.TotalVirtual/1024.0/1024.0/1024.0) );
-}
-
 // Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
 #define USE_MALLOC_BINNED2 (1)
 
@@ -167,51 +155,4 @@ const FPlatformMemoryConstants& FMacPlatformMemory::GetConstants()
 	}
 
 	return MemoryConstants;	
-}
-
-bool FMacPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)
-{
-	int32 ProtectMode;
-	if (bCanRead && bCanWrite)
-	{
-		ProtectMode = PROT_READ | PROT_WRITE;
-	}
-	else if (bCanRead)
-	{
-		ProtectMode = PROT_READ;
-	}
-	else if (bCanWrite)
-	{
-		ProtectMode = PROT_WRITE;
-	}
-	else
-	{
-		ProtectMode = PROT_NONE;
-	}
-	return mprotect(Ptr, Size, static_cast<int32>(ProtectMode)) == 0;
-}
-
-void* FMacPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
-{
-// Binned2 requires allocations to be BinnedPageSize-aligned. Simple mmap() does not guarantee this for recommended BinnedPageSize (64KB).
-#if USE_MALLOC_BINNED2
-	return FGenericPlatformMemory::BinnedAllocFromOS(Size);
-#else
-	return mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-#endif // USE_MALLOC_BINNED2
-}
-
-void FMacPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
-{
-// Binned2 requires allocations to be BinnedPageSize-aligned. Simple mmap() does not guarantee this for recommended BinnedPageSize (64KB).
-#if USE_MALLOC_BINNED2
-	return FGenericPlatformMemory::BinnedFreeToOS(Ptr, Size);
-#else
-	if (munmap(Ptr, Size) != 0)
-	{
-		const int ErrNo = errno;
-		UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Ptr, Size,
-			   ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
-	}
-#endif // USE_MALLOC_BINNED2
 }

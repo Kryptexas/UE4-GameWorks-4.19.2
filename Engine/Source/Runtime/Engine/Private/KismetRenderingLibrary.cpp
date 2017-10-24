@@ -20,6 +20,14 @@
 #include "ClearQuad.h"
 #include "Engine/Texture2D.h"
 
+#if WITH_EDITOR
+#include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "IContentBrowserSingleton.h"
+#include "PackageTools.h"
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
 
@@ -48,7 +56,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 	}
 }
 
-UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height)
+UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height, ETextureRenderTargetFormat Format)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
@@ -56,6 +64,7 @@ UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* W
 	{
 		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>(WorldContextObject);
 		check(NewRenderTarget2D);
+		NewRenderTarget2D->RenderTargetFormat = Format;
 		NewRenderTarget2D->InitAutoFormat(Width, Height); 
 		NewRenderTarget2D->UpdateResourceImmediate(true);
 
@@ -100,16 +109,16 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 	{
 		UCanvas* Canvas = World->GetCanvasForDrawMaterialToRenderTarget();
 
-		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
-		Canvas->Update();
-
 		FCanvas RenderCanvas(
-			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
-			nullptr, 
+			TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			nullptr,
 			World,
 			World->FeatureLevel);
 
-		Canvas->Canvas = &RenderCanvas;
+		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr, &RenderCanvas);
+		Canvas->Update();
+
+
 
 		TDrawEvent<FRHICommandList>* DrawMaterialToTargetEvent = new TDrawEvent<FRHICommandList>();
 
@@ -171,7 +180,16 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 		if (Ar)
 		{
 			FBufferArchive Buffer;
-			bool bSuccess = FImageUtils::ExportRenderTarget2DAsHDR(TextureRenderTarget, Buffer);
+
+			bool bSuccess = false;
+			if (TextureRenderTarget->RenderTargetFormat == RTF_RGBA16f)
+			{
+				bSuccess = FImageUtils::ExportRenderTarget2DAsHDR(TextureRenderTarget, Buffer);
+			}
+			else
+			{
+				bSuccess = FImageUtils::ExportRenderTarget2DAsPNG(TextureRenderTarget, Buffer);
+			}
 
 			if (bSuccess)
 			{
@@ -210,6 +228,70 @@ void UKismetRenderingLibrary::CreateTexture2DFromRenderTarget(UObject* WorldCont
 	}
 
 }*/
+
+UTexture2D* UKismetRenderingLibrary::RenderTargetCreateStaticTexture2DEditorOnly(UTextureRenderTarget2D* RenderTarget, FString InName, enum TextureCompressionSettings CompressionSettings, enum TextureMipGenSettings MipSettings)
+{
+#if WITH_EDITOR
+	if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_InvalidRenderTarget", "RenderTargetCreateStaticTexture2DEditorOnly: RenderTarget must be non-null."));
+		return nullptr;
+	}
+	else if (!RenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_ReleasedRenderTarget", "RenderTargetCreateStaticTexture2DEditorOnly: RenderTarget has been released."));
+		return nullptr;
+	}
+	else
+	{
+		FString Name;
+		FString PackageName;
+		IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+		//Use asset name only if directories are specified, otherwise full path
+		if (!InName.Contains(TEXT("/")))
+		{
+			FString AssetName = RenderTarget->GetOutermost()->GetName();
+			const FString SanitizedBasePackageName = PackageTools::SanitizePackageName(AssetName);
+			const FString PackagePath = FPackageName::GetLongPackagePath(SanitizedBasePackageName) + TEXT("/");
+			AssetTools.CreateUniqueAssetName(PackagePath, InName, PackageName, Name);
+		}
+		else
+		{
+			InName.RemoveFromStart(TEXT("/"));
+			InName.RemoveFromStart(TEXT("Content/"));
+			InName.StartsWith(TEXT("Game/")) == true ? InName.InsertAt(0, TEXT("/")) : InName.InsertAt(0, TEXT("/Game/"));
+			AssetTools.CreateUniqueAssetName(InName, TEXT(""), PackageName, Name);
+		}
+
+		UObject* NewObj = nullptr;
+
+		// create a static 2d texture
+		NewObj = RenderTarget->ConstructTexture2D(CreatePackage(NULL, *PackageName), Name, RenderTarget->GetMaskedFlags(), CTF_Default | CTF_AllowMips, NULL);
+		UTexture2D* NewTex = Cast<UTexture2D>(NewObj);
+
+		if (NewTex != nullptr)
+		{
+			// package needs saving
+			NewObj->MarkPackageDirty();
+
+			// Notify the asset registry
+			FAssetRegistryModule::AssetCreated(NewObj);
+
+			// Update Compression and Mip settings
+			NewTex->CompressionSettings = CompressionSettings;
+			NewTex->MipGenSettings = MipSettings;
+			NewTex->PostEditChange();
+
+			return NewTex;
+		}
+		FMessageLog("Blueprint").Warning(LOCTEXT("RenderTargetCreateStaticTexture2D_FailedToCreateTexture", "RenderTargetCreateStaticTexture2DEditorOnly: Failed to create a new texture."));
+	}
+#else
+	FMessageLog("Blueprint").Error(LOCTEXT("Texture2D's cannot be created at runtime.", "RenderTargetCreateStaticTexture2DEditorOnly: Can't create Texture2D at run time. "));
+#endif
+	return nullptr;
+}
 
 
 void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture )
@@ -314,16 +396,15 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 		Size = FVector2D(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY);
 
-		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
-		Canvas->Update();
-
-		Canvas->Canvas = new FCanvas(
-			TextureRenderTarget->GameThread_GetRenderTargetResource(), 
-			nullptr, 
+		FCanvas* NewCanvas = new FCanvas(
+			TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			nullptr,
 			World,
-			World->FeatureLevel, 
+			World->FeatureLevel,
 			// Draw immediately so that interleaved SetVectorParameter (etc) function calls work as expected
 			FCanvas::CDM_ImmediateDrawing);
+		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr, NewCanvas);
+		Canvas->Update();
 
 		Context.DrawEvent = new TDrawEvent<FRHICommandList>();
 

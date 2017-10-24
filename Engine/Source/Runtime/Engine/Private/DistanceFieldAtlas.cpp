@@ -15,6 +15,7 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "UniquePtr.h"
 #include "Engine/StaticMesh.h"
+#include "AutomationTest.h"
 
 #if WITH_EDITOR
 #include "DerivedDataCacheInterface.h"
@@ -85,9 +86,17 @@ static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	TEXT("Max size of the global mesh distance field atlas volume texture in Z."),
 	ECVF_ReadOnly);
 
+int32 GDistanceFieldForceAtlasRealloc = 0;
+FAutoConsoleVariableRef CVarDistFieldForceAtlasRealloc(
+	TEXT("r.DistanceFields.ForceAtlasRealloc"),
+	GDistanceFieldForceAtlasRealloc,
+	TEXT("Force a full realloc."),
+	ECVF_RenderThreadSafe
+);
+
 static TAutoConsoleVariable<int32> CVarLandscapeGI(
 	TEXT("r.GenerateLandscapeGIData"),
-	1,
+	0,
 	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
 	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
 	ECVF_Default);
@@ -245,7 +254,7 @@ struct FCompareVolumeAllocation
 
 void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 {
-	if (PendingAllocations.Num() > 0)
+	if (PendingAllocations.Num() > 0 || GDistanceFieldForceAtlasRealloc != 0)
 	{
 		const double StartTime = FPlatformTime::Seconds();
 
@@ -273,7 +282,8 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 		if (!VolumeTextureRHI
 			|| BlockAllocator.GetSizeX() > VolumeTextureRHI->GetSizeX()
 			|| BlockAllocator.GetSizeY() > VolumeTextureRHI->GetSizeY()
-			|| BlockAllocator.GetSizeZ() > VolumeTextureRHI->GetSizeZ())
+			|| BlockAllocator.GetSizeZ() > VolumeTextureRHI->GetSizeZ()
+			|| GDistanceFieldForceAtlasRealloc)
 		{
 			if (CurrentAllocations.Num() > 0)
 			{
@@ -341,9 +351,8 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				const int32 Pitch = BlockAllocator.GetSizeX() * FormatSize;
 				const int32 DepthPitch = BlockAllocator.GetSizeX() * BlockAllocator.GetSizeY() * FormatSize;
 
-				TArray<uint8> CoalescedTextureData;
-				CoalescedTextureData.Empty(BlockAllocator.GetSizeZ() * DepthPitch);
-				CoalescedTextureData.AddZeroed(BlockAllocator.GetSizeZ() * DepthPitch);
+				const FUpdateTextureRegion3D UpdateRegion(FIntVector::ZeroValue, FIntVector::ZeroValue, BlockAllocator.GetSize());
+				FUpdateTexture3DData TextureUpdateData = RHIBeginUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion);
 
 				TArray<uint8> UncompressedData;
 
@@ -372,27 +381,26 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 					}
 
 					const int32 SourcePitch = Size.X * FormatSize;
+					check(SourcePitch <= (int32)TextureUpdateData.RowPitch);
 
-					// Copy each row into the correct position in CoalescedTextureData
+					// Copy each row into the correct position in TextureUpdateData.Data
 					for (int32 ZIndex = 0; ZIndex < Size.Z; ZIndex++)
 					{
-						const int32 DestZIndex = (Texture->AtlasAllocationMin.Z + ZIndex) * DepthPitch + Texture->AtlasAllocationMin.X * FormatSize;
+						const int32 DestZIndex = (Texture->AtlasAllocationMin.Z + ZIndex) * TextureUpdateData.DepthPitch + Texture->AtlasAllocationMin.X * FormatSize;
 						const int32 SourceZIndex = ZIndex * Size.Y * SourcePitch;
 
 						for (int32 YIndex = 0; YIndex < Size.Y; YIndex++)
 						{
-							const int32 DestIndex = DestZIndex + (Texture->AtlasAllocationMin.Y + YIndex) * Pitch;
+							const int32 DestIndex = DestZIndex + (Texture->AtlasAllocationMin.Y + YIndex) * TextureUpdateData.RowPitch;
 							const int32 SourceIndex = SourceZIndex + YIndex * SourcePitch;
-							FMemory::Memcpy((uint8*)&CoalescedTextureData[DestIndex], (const uint8*)&(*SourceDataPtr)[SourceIndex], SourcePitch);
+							check( uint32(DestIndex) + SourcePitch <= TextureUpdateData.DataSizeBytes );
+							FMemory::Memcpy((uint8*)&TextureUpdateData.Data[DestIndex], (const uint8*)&(*SourceDataPtr)[SourceIndex], SourcePitch );
 						}
 					}
 				}
 
 				UncompressedData.Empty();
-
-				const FUpdateTextureRegion3D UpdateRegion(FIntVector::ZeroValue, FIntVector::ZeroValue, BlockAllocator.GetSize());
-
-				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Pitch, DepthPitch, (const uint8*)CoalescedTextureData.GetData());
+				RHIEndUpdateTexture3D(TextureUpdateData);
 			}
 		}
 		else
@@ -435,6 +443,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 		{
 			UE_LOG(LogStaticMesh,Verbose,TEXT("FDistanceFieldVolumeTextureAtlas::UpdateAllocations took %.1fms"), UpdateDurationMs);
 		}
+		GDistanceFieldForceAtlasRealloc = 0;
 	}	
 }
 
@@ -760,7 +769,12 @@ void FDistanceFieldAsyncQueue::BlockUntilBuildComplete(UStaticMesh* StaticMesh, 
 	} 
 	while (bReferenced);
 
-	if (bHadToBlock && bWarnIfBlocked)
+	if (bHadToBlock &&
+		bWarnIfBlocked
+#if WITH_EDITOR
+		&& !FAutomationTestFramework::Get().GetCurrentTest() // HACK - Don't output this warning during automation test
+#endif
+		)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Main thread blocked for %.3fs for async distance field build of %s to complete!  This can happen if the mesh is rebuilt excessively."),
 			(float)(FPlatformTime::Seconds() - StartTime), 

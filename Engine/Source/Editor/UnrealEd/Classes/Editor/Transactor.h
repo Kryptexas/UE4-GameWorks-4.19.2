@@ -11,7 +11,6 @@
 #include "UObject/Object.h"
 #include "Serialization/ArchiveUObject.h"
 #include "Misc/ITransaction.h"
-#include "UObject/AssetPtr.h"
 #include "Transactor.generated.h"
 
 
@@ -405,6 +404,12 @@ public:
 	friend FArchive& operator<<( FArchive& Ar, FTransaction& T )
 	{
 		return Ar << T.Records << T.Title << T.ObjectMap << T.Context << T.PrimaryObject;
+	}
+
+	/** Serializes a reference to a transaction in a given archive. */
+	friend FArchive& operator<<(FArchive& Ar, TSharedRef<FTransaction>& SharedT)
+	{
+		return Ar << SharedT.Get();
 	}
 
 	/** Used by GC to collect referenced objects. */

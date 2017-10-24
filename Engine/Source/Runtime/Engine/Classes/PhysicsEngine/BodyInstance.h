@@ -11,7 +11,7 @@
 #include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
-#define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
+#define UE_WITH_PHYSICS (WITH_PHYSX)
 
 class FPhysScene;
 class UBodySetup;
@@ -165,7 +165,7 @@ private:
 	friend struct FBodyInstance;
 };
 
-enum class BodyInstanceSceneState
+enum class BodyInstanceSceneState : uint8
 {
 	NotAdded,
 	AwaitingAdd,
@@ -197,7 +197,7 @@ struct ENGINE_API FBodyInstance
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
 	 *	Is INDEX_NONE if a single body component
 	 */
-	int16 InstanceBodyIndex;
+	int32 InstanceBodyIndex;
 
 	/** When we are a body within a SkeletalMeshComponent, we cache the index of the bone we represent, to speed up sync'ing physics to anim. */
 	int16 InstanceBoneIndex;
@@ -215,12 +215,32 @@ struct ENGINE_API FBodyInstance
 	// COLLISION SETTINGS
 
 	/** Types of objects that this physics objects will collide with. */
-	// @todo : make this to be transient, so that it doesn't have to save anymore
-	// we have to still load them until resave
 	UPROPERTY() 
 	struct FCollisionResponseContainer ResponseToChannels_DEPRECATED;
 
+public:
+	// Current state of the physx body for tracking deferred addition and removal.
+	BodyInstanceSceneState CurrentSceneState;
+
+	/** The set of values used in considering when put this body to sleep. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	ESleepFamily SleepFamily;
+
+	/** Locks physical movement along specified axis.*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
+	TEnumAsByte<EDOFMode::Type> DOFMode;
+
 private:
+	/**
+	 * Type of collision enabled.
+	 * 
+	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
+	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
+	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
+	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
+	 */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
 
 	/** Collision Profile Name **/
 	UPROPERTY(EditAnywhere, Category=Custom)
@@ -237,11 +257,11 @@ public:
 
 	/** If true Continuous Collision Detection (CCD) will be used for this component */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Collision)
-	uint32 bUseCCD : 1;
+	uint8 bUseCCD : 1;
 
 	/**	Should 'Hit' events fire when this object collides during physics simulation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Collision, meta = (DisplayName = "Simulation Generates Hit Events"))
-	uint32 bNotifyRigidBodyCollision : 1;
+	uint8 bNotifyRigidBodyCollision : 1;
 
 	/////////
 	// SIM SETTINGS
@@ -252,88 +272,88 @@ public:
 	 * For a Static Mesh Component, simulating requires simple collision to be setup on the StaticMesh asset.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
-	uint32 bSimulatePhysics : 1;
+	uint8 bSimulatePhysics : 1;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
-	uint32 bOverrideMass : 1;
+	uint8 bOverrideMass : 1;
 
 	/** If object should have the force of gravity applied */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics)
-	uint32 bEnableGravity : 1;
+	uint8 bEnableGravity : 1;
 
 	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (editcondition = "!bSimulatePhysics"))
-	uint32 bAutoWeld : 1;
+	uint8 bAutoWeld : 1;
 
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
-	uint32 bStartAwake:1;
+	uint8 bStartAwake:1;
 
 	/**	Should 'wake/sleep' events fire when this object is woken up or put to sleep by the physics simulation. */
 	UPROPERTY(EditAnywhere,AdvancedDisplay, BlueprintReadOnly, Category = Physics)
-	uint32 bGenerateWakeEvents : 1;
+	uint8 bGenerateWakeEvents : 1;
 
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
-	uint32 bUpdateMassWhenScaleChanges:1;
+	uint8 bUpdateMassWhenScaleChanges:1;
 
 	/** When a Locked Axis Mode is selected, will lock translation on the specified axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Translation"))
-	uint32 bLockTranslation : 1;
+	uint8 bLockTranslation : 1;
 	
 	/** When a Locked Axis Mode is selected, will lock rotation to the specified axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Rotation"))
-	uint32 bLockRotation : 1;
+	uint8 bLockRotation : 1;
 
 	/** Lock translation along the X-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "X"))
-	uint32 bLockXTranslation : 1;
+	uint8 bLockXTranslation : 1;
 
 	/** Lock translation along the Y-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Y"))
-	uint32 bLockYTranslation : 1;
+	uint8 bLockYTranslation : 1;
 
 	/** Lock translation along the Z-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Z"))
-	uint32 bLockZTranslation : 1;
+	uint8 bLockZTranslation : 1;
 
 	/** Lock rotation about the X-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "X"))
-	uint32 bLockXRotation : 1;
+	uint8 bLockXRotation : 1;
 
 	/** Lock rotation about the Y-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Y"))
-	uint32 bLockYRotation : 1;
+	uint8 bLockYRotation : 1;
 
 	/** Lock rotation about the Z-axis*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Z"))
-	uint32 bLockZRotation : 1;
+	uint8 bLockZRotation : 1;
 
 	/** Override the default max angular velocity */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (editcondition = "bSimulatePhysics", InlineEditConditionToggle))
-	uint32 bOverrideMaxAngularVelocity : 1;
+	uint8 bOverrideMaxAngularVelocity : 1;
 
 	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
-	uint32 bWokenExternally : 1;
+	uint8 bWokenExternally : 1;
 
 	/**
 	* If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
 	* If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
 	*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
-	uint32 bUseAsyncScene : 1;
+	uint8 bUseAsyncScene : 1;
 protected:
 
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(InlineEditConditionToggle))
-	uint32 bOverrideMaxDepenetrationVelocity : 1;
+	uint8 bOverrideMaxDepenetrationVelocity : 1;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
-	uint32 bOverrideWalkableSlopeOnInstance : 1;
+	uint8 bOverrideWalkableSlopeOnInstance : 1;
 
-	uint32 bHasSharedShapes : 1;
+	uint8 bHasSharedShapes : 1;
 
 	/** The maximum velocity used to depenetrate this object*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
@@ -376,6 +396,16 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
 	float MassScale;
 
+	/** Per-instance scaling of inertia (bigger number means  it'll be harder to rotate) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	FVector InertiaTensorScale;
+
+private:
+	/** Enum indicating what type of object this should be considered as when it moves */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<enum ECollisionChannel> ObjectType;
+
+public:
 	/** Use the collision profile found in the given BodySetup's default BodyInstance */
 	void UseExternalCollisionProfile(UBodySetup* InExternalCollisionProfileBodySetup);
 
@@ -390,7 +420,7 @@ public:
 	static EDOFMode::Type ResolveDOFMode(EDOFMode::Type DOFMode);
 
 	/** Constraint used to allow for easy DOF setup per bodyinstance */
-	FConstraintInstance * DOFConstraint;
+	FConstraintInstance* DOFConstraint;
 
 	/** The parent body that we are welded to*/
 	FBodyInstance* WeldParent;
@@ -488,8 +518,6 @@ public:
 
 #if WITH_PHYSX
 	typedef physx::PxAggregate* PhysXAggregateType;
-#elif WITH_BOX2D
-	typedef void* PhysXAggregateType;
 #endif
 
 #if UE_WITH_PHYSICS
@@ -556,29 +584,10 @@ public:
 	/** If scene type is not specified return the first scene used. */
 	int32 GetSceneIndex(int32 SceneType = -1) const;
 
-
-	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
-	 */
-	DEPRECATED(4.8, "Please call InitDynamicProperties_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void InitDynamicProperties()
-	{
-		InitDynamicProperties_AssumesLocked();
-	}
-
 	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
 	 */
 	void InitDynamicProperties_AssumesLocked();
-
-	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
-	 *	@param ShapeData ShapeData to populate
-	 *	@param bForceSimpleAsComplex Whether to force simple colision as complex
-	 */
-	DEPRECATED(4.8, "Please call GetFilterData_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void GetFilterData(FShapeData& ShapeData, bool bForceSimpleAsComplex = false)
-	{
-		GetFilterData_AssumesLocked(ShapeData, bForceSimpleAsComplex);
-	}
 
 	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
 	 *	@param ShapeData ShapeData to populate. ShapeData.CollisionEnabled and ShapeData.FilterData will be filled in.
@@ -587,19 +596,7 @@ public:
 	 */
 	void GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bForceSimpleAsComplex = false);
 
-	/** Set initialisation flags on a provided shape
-	 *	@param UseCollisionEnabled Whether collision is enabled for the shape
-	 *	@param PShape The shape to set the flags on
-	 *	@param SceneType Which scene we are using
-	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
-	 */
-	DEPRECATED(4.8, "Please call SetShapeFlags_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void SetShapeFlags(TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, physx::PxShape* PShape, EPhysicsSceneType SceneType, const bool bUseComplexAsSimple = false)
-	{
-		SetShapeFlags_AssumesLocked(UseCollisionEnabled, PShape, SceneType, bUseComplexAsSimple);
-	}
-
-	/** Set initialisation flags on a provided shape
+	/** Set initialization flags on a provided shape
 	 *	@param UseCollisionEnabled Whether collision is enabled for the shape
 	 *	@param PShape The shape to set the flags on
 	 *	@param SceneType Which scene we are using
@@ -608,35 +605,13 @@ public:
 	 */
 	void SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, physx::PxShape* PShape, EPhysicsSceneType SceneType, const bool bUseComplexAsSimple = false);
 
-	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
-	 *	@param ShapeData ShapeData to populate
-	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
-	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
-	 */
-	DEPRECATED(4.8, "Please call GetShapeFlags_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void GetShapeFlags(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple = false)
-	{
-		GetShapeFlags_AssumesLocked(ShapeData, UseCollisionEnabled, bUseComplexAsSimple);
-	}
-
-	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
+	/** Populate the flag fields of the provided FShapeData with correct initialization flags
 	 *	@param ShapeData ShapeData to populate. ShapeData.FilterData will not be modified.
 	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
 	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
 	 */
 	void GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple = false);
-
-	/**
-	 * Return the PxRigidActor from the given scene (see EPhysicsSceneType), if SceneType is in the range [0, PST_MAX).
-	 * If SceneType < 0, the PST_Sync actor is returned if it is not NULL, otherwise the PST_Async actor is returned.
-	 * Invalid scene types will cause NULL to be returned.
-	 */
-	DEPRECATED(4.8, "Please call GetPxRigidActor_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const
-	{
-		return GetPxRigidActorFromScene_AssumesLocked(SceneType);
-	}
 
 	/**
 	 * Return the PxRigidActor from the given scene (see EPhysicsSceneType), if SceneType is in the range [0, PST_MAX).
@@ -651,46 +626,17 @@ public:
 
 	physx::PxRigidActor* GetPxRigidActorFromScene_AssumesLocked(int32 SceneType) const;
 
-
-	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
-	DEPRECATED(4.8, "Please call GetPxRigidDynamic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidDynamic* GetPxRigidDynamic() const
-	{
-		return GetPxRigidDynamic_AssumesLocked();
-	}
-
 	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes.
 	 *  Note: This function assumes the appropriate scene lock has been obtained.
 	 *  @see ExecuteOnPxRigidDynamicReadOnly, ExecuteOnPxRigidDynamicReadWrite
 	 */
 	physx::PxRigidDynamic* GetPxRigidDynamic_AssumesLocked() const;
 
-	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes. */
-	DEPRECATED(4.8, "Please call GetPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidBody* GetPxRigidBody() const
-	{
-		return GetPxRigidBody_AssumesLocked();
-	}
-
 	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes.
 	 *  Note: This function assumes the appropriate scene lock has been obtained.
 	 *  @see ExecuteOnPxRigidBodyReadOnly, ExecuteOnPxRigidBodyReadWrite
 	 */
 	physx::PxRigidBody* GetPxRigidBody_AssumesLocked() const;
-
-	
-
-	/** 
-	 *	Utility to get all the shapes from a FBodyInstance 
-	 *	Shapes belonging to sync actor are first, then async. Number of shapes belonging to sync actor is returned.
-	 */
-	DEPRECATED(4.8, "Please call GetAllShapes_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	TArray<physx::PxShape*> GetAllShapes(int32& OutNumSyncShapes) const
-	{
-		TArray<physx::PxShape*> Shapes;
-		OutNumSyncShapes = GetAllShapes_AssumesLocked(Shapes);
-		return Shapes;
-	}
 
 	/** 
 	 *	Utility to get all the shapes from a FBodyInstance 
@@ -767,10 +713,6 @@ public:
 	/** Sets a custom slope override struct for this instance. Implicitly sets bOverrideWalkableSlopeOnInstance to true. */
 	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
 
-	/** Returns whether this body wants (and can) use the async scene. */
-	DEPRECATED(4.8, "Please call UseAsyncScene and pass in the PhysScene of the owning component (GetWorld()->GetPhysicsScene()).")
-	bool UseAsyncScene() const;
-
 	bool UseAsyncScene(const FPhysScene* PhysScene) const;
 
 	bool HasSharedShapes() const{ return bHasSharedShapes; }
@@ -814,22 +756,63 @@ public:
 	void AddForce(const FVector& Force, bool bAllowSubstepping = true, bool bAccelChange = false);
 	/** Add a force at a particular position (world space when bIsLocalForce = false, body space otherwise) */
 	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true, bool bIsLocalForce = false);
+
 	/** Add a torque to this body */
-	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
+	DEPRECATED(4.18, "Use AddTorqueInRadians instead.")
+	inline void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false)
+	{
+		AddTorqueInRadians(Torque, bAllowSubstepping, bAccelChange);
+	}
+
+	/** Add a torque to this body */
+	void AddTorqueInRadians(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
+
 	/** Add a rotational impulse to this body */
-	void AddAngularImpulse(const FVector& Impulse, bool bVelChange);
+	DEPRECATED(4.18, "Use AddAngularImpulseInRadians instead.")
+	inline void AddAngularImpulse(const FVector& Impulse, bool bVelChange)
+	{
+		AddAngularImpulseInRadians(Impulse, bVelChange);
+	}
+
+	/** Add a rotational impulse to this body */
+	void AddAngularImpulseInRadians(const FVector& Impulse, bool bVelChange);
+
 	/** Add an impulse to this body */
 	void AddImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body and a particular world position */
 	void AddImpulseAtPosition(const FVector& Impulse, const FVector& Position);
 	/** Set the linear velocity of this body */
 	void SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent);
+
 	/** Set the angular velocity of this body */
-	void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
+	DEPRECATED(4.18, "Use SetAngularVelocityInRadians instead - be sure to convert NewAngVel to radians first.")
+	inline void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent)
+	{
+		SetAngularVelocityInRadians(FMath::DegreesToRadians(NewAngVel), bAddToCurrent);
+	}
+
+	/** Set the angular velocity of this body */
+	void SetAngularVelocityInRadians(const FVector& NewAngVel, bool bAddToCurrent);
+
 	/** Set the maximum angular velocity of this body */
-	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true);
+	DEPRECATED(4.18, "Use SetMaxAngularVelocityInRadians instead - be sure to convert NewMaxAngVel to radians first.")
+	inline void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true)
+	{
+		SetMaxAngularVelocityInRadians(FMath::DegreesToRadians(NewMaxAngVel), bAddToCurrent, bUpdateOverrideMaxAngularVelocity);
+	}
+
+	/** Set the maximum angular velocity of this body */
+	void SetMaxAngularVelocityInRadians(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true);
+
 	/** Get the maximum angular velocity of this body */
-	float GetMaxAngularVelocity() const;
+	DEPRECATED(4.18, "Use GetMaxAngularVelocityInRadians instead - be sure to convert the return value to degrees if required.")
+	inline float GetMaxAngularVelocity() const
+	{
+		return FMath::RadiansToDegrees(GetMaxAngularVelocityInRadians());
+	}
+
+	/** Get the maximum angular velocity of this body */
+	float GetMaxAngularVelocityInRadians() const;
 
 	/** Set the maximum depenetration velocity the physics simulation will introduce */
 	void SetMaxDepenetrationVelocity(float MaxVelocity);
@@ -848,19 +831,16 @@ public:
 	bool IsValidBodyInstance() const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform(bool bWithProjection = true) const;
+	FTransform GetUnrealWorldTransform(bool bWithProjection = true, bool bForceGlobalPose = false) const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform_AssumesLocked(bool bWithProjection = true) const;
+	FTransform GetUnrealWorldTransform_AssumesLocked(bool bWithProjection = true, bool bForceGlobalPose = false) const;
 
 	/**
 	 *	Move the physics body to a new pose.
 	 *	@param	bTeleport	If true, no velocity is inferred on the kinematic body from this movement, but it moves right away.
 	 */
 	void SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport);
-
-	DEPRECATED(4.9, "Please pass the teleport flag using the new ETeleportType enum ")
-	void SetBodyTransform(const FTransform& NewTransform, bool bTeleport);
 
 	/** Get current velocity in world space from physics body. */
 	FVector GetUnrealWorldVelocity() const;
@@ -869,10 +849,24 @@ public:
 	FVector GetUnrealWorldVelocity_AssumesLocked() const;
 
 	/** Get current angular velocity in world space from physics body. */
-	FVector GetUnrealWorldAngularVelocity() const;
+	DEPRECATED(4.18, "Use GetUnrealWorldAngularVelocityInRadians instead - be sure to convert the return value to degrees if required.")
+	inline FVector GetUnrealWorldAngularVelocity() const
+	{
+		return FMath::DegreesToRadians(GetUnrealWorldAngularVelocityInRadians());
+	}
 
 	/** Get current angular velocity in world space from physics body. */
-	FVector GetUnrealWorldAngularVelocity_AssumesLocked() const;
+	FVector GetUnrealWorldAngularVelocityInRadians() const;
+
+	/** Get current angular velocity in world space from physics body. */
+	DEPRECATED(4.18, "Use GetUnrealWorldAngularVelocityInRadians_AssumesLocked instead - be sure to convert the return value to degrees if required.")
+	inline FVector GetUnrealWorldAngularVelocity_AssumesLocked() const
+	{
+		return FMath::DegreesToRadians(GetUnrealWorldAngularVelocityInRadians_AssumesLocked());
+	}
+
+	/** Get current angular velocity in world space from physics body. */
+	FVector GetUnrealWorldAngularVelocityInRadians_AssumesLocked() const;
 
 	/** Get current velocity of a point on this physics body, in world space. Point is specified in world space. */
 	FVector GetUnrealWorldVelocityAtPoint(const FVector& Point) const;
@@ -949,12 +943,6 @@ public:
 	void UpdatePhysicalMaterials();
 
 #if WITH_PHYSX
-	DEPRECATED(4.8, "Please call ApplyMaterialToShape_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	static void ApplyMaterialToShape(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
-	{
-		ApplyMaterialToShape_AssumesLocked(PShape, PSimpleMat, ComplexPhysMats, false);
-	}
-
 	/** 
 	 *  Apply a material directly to the passed in shape. Note this function is very advanced and requires knowledge of shape sharing as well as threading. Note: assumes the appropriate locks have been obtained
 	 *  @param  PShape					The shape we are applying the material to
@@ -963,12 +951,6 @@ public:
 	 *	@param	bSharedShape			If this is true it means you've already detached the shape from all actors that use it (attached shared shapes are not writable).
 	 */
 	static void ApplyMaterialToShape_AssumesLocked(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, const TArray<UPhysicalMaterial*>& ComplexPhysMats, const bool bSharedShape);
-
-	DEPRECATED(4.8, "Please call ApplyMaterialToInstanceShapes_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
-	{
-		ApplyMaterialToInstanceShapes_AssumesLocked(PSimpleMat, ComplexPhysMats);
-	}
 
 	/** Note: This function is not thread safe. Make sure you obtain the appropriate PhysX scene lock before calling it*/
 	void ApplyMaterialToInstanceShapes_AssumesLocked(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
@@ -1006,20 +988,6 @@ public:
 	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& ShapeWorldRotation, const FCollisionShape& Shape, bool bTraceComplex) const;
 
 #if WITH_PHYSX
-	/**
-	 *  Test if the bodyinstance overlaps with the geometry in the Pos/Rot
-	 *
-	 *	@param	PGeom			Geometry it would like to test
-	 *  @param  ShapePose       Transform information in world. Use U2PTransform to convert from FTransform
-	 *  @param  OutMTD			The minimum translation direction needed to push the shape out of this BodyInstance. (Optional)
-	 *  @return true if PrimComp overlaps this component at the specified location/rotation
-	 */
-	DEPRECATED(4.8, "Please call OverlapPhysX_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	bool OverlapPhysX(const physx::PxGeometry& Geom, const physx::PxTransform&  ShapePose, FMTDResult* OutMTD = nullptr) const
-	{
-		return OverlapPhysX_AssumesLocked(Geom, ShapePose, OutMTD);
-	}
-
 	/**
 	 *  Test if the bodyinstance overlaps with the geometry in the Pos/Rot
 	 *
@@ -1192,13 +1160,6 @@ private:
 	friend class FBodyInstanceCustomizationHelper;
 	friend class FFoliageTypeCustomizationHelpers;
 
-#if WITH_BOX2D
-
-public:
-	class b2Body* BodyInstancePtr;
-
-#endif	//WITH_BOX2D
-
 private:
 
 	void UpdateDebugRendering();
@@ -1219,34 +1180,6 @@ private:
 	TSharedPtr<TMap<physx::PxShape*, FWeldInfo>> ShapeToBodiesMap;
 
 #endif
-
-public:
-	// Current state of the physx body for tracking deferred addition and removal.
-	BodyInstanceSceneState CurrentSceneState;
-
-	/** The set of values used in considering when put this body to sleep. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
-	ESleepFamily SleepFamily;
-
-	/** Locks physical movement along specified axis.*/
-	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
-	TEnumAsByte<EDOFMode::Type> DOFMode;
-
-private:
-	/**
-	 * Type of collision enabled.
-	 * 
-	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
-	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
-	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
-	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
-	 */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
-
-	/** Enum indicating what type of object this should be considered as when it moves */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<enum ECollisionChannel> ObjectType;
 
 	void SetShapeFlagsInternal_AssumesShapeLocked(struct FSetShapeParams& Params, bool& bUpdateMassProperties);
 };

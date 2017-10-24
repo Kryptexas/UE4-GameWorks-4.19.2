@@ -120,7 +120,7 @@ Only one reference controller is created per object, no matter how many shared/w
 
 Shared pointers are non-intrusive which means the class itself does not know whether it is owned by a shared pointer (or reference). In general, this is okay, but sometimes you really want to access the current instance as a shared reference. The solution to this is to derive the class from `TSharedFromThis<>`.
 
-By deriving from TSharedFromThis<>, you can use the **AsSharedRef()** method to convert 'this' to a shared reference. This can be very useful with class factories that always return shared references.
+By deriving from `TSharedFromThis<>`, you can use the **AsSharedRef()** method to convert 'this' to a shared reference. This can be very useful with class factories that always return shared references.
 
 	class FAnimation : public TSharedFromThis<FMyClass>
 	{
@@ -181,7 +181,7 @@ The SharedPointerTesting.h file (located in [UE4RootLocation]/Engine/Source/Runt
 * The "thread-safe" versions of smart pointers are a bit slower -- only use them when needed.
 * You can forward declare shared pointers to incomplete types, just how you would expect to!
 * Shared pointers of compatible types will be converted implicitly (e.g. upcasting).
-* You can create a typedef to TSharedRef< MyClass > to make it easier to type.
+* You can create a typedef to `TSharedRef< MyClass >` to make it easier to type.
 * For best performance, minimize calls to TWeakPtr::Pin (or conversions to TSharedRef/TSharedPtr).
 * Your class can return itself as a shared reference if you derive from TSharedFromThis.
 * To downcast a pointer to a derived object class, use the **StaticCastSharedPtr()** function.

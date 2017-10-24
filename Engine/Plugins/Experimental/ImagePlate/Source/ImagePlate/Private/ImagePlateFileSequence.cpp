@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ImagePlateFileSequence.h"
+#include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "ModuleManager.h"
 #include "FileHelper.h"
@@ -537,8 +538,8 @@ namespace ImagePlateFrameCache
 
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>("ImageWrapper");
 
-		EImageFormat::Type ImageType = ImageWrapperModule.DetectImageFormat(SourceFileData.GetData(), SourceFileData.Num());
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageType);
+		EImageFormat ImageType = ImageWrapperModule.DetectImageFormat(SourceFileData.GetData(), SourceFileData.Num());
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageType);
 
 		if (!ImageWrapper.IsValid())
 		{
@@ -577,7 +578,7 @@ namespace ImagePlateFrameCache
 			Thread = FRunnableThread::Create(this, TEXT("FFrameLoadingThread"), 4 * 1024, TPri_AboveNormal);
 		}
 
-		TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> InitialzeLoader(const FString& SequenceFolder, const FString& Wildcard, float Framerate)
+		TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> InitializeLoader(const FString& SequenceFolder, const FString& Wildcard, float Framerate)
 		{
 			FScopeLock Lock(&CacheArrayCriticalSection);
 			TSharedRef<FImagePlateSequenceCache, ESPMode::ThreadSafe> NewImpl = MakeShared<FImagePlateSequenceCache, ESPMode::ThreadSafe>(SequenceFolder, Wildcard, Framerate);
@@ -722,7 +723,7 @@ namespace ImagePlateFrameCache
 FImagePlateAsyncCache FImagePlateAsyncCache::MakeCache(const FString& InSequencePath, const FString& InWildcard, float Framerate)
 {
 	FImagePlateAsyncCache NewCache;
-	NewCache.Impl = ImagePlateFrameCache::GetFrameLoader().InitialzeLoader(InSequencePath, InWildcard, Framerate);
+	NewCache.Impl = ImagePlateFrameCache::GetFrameLoader().InitializeLoader(InSequencePath, InWildcard, Framerate);
 	return NewCache;
 }
 

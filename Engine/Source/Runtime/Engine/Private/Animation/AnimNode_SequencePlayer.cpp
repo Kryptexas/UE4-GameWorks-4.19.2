@@ -56,9 +56,18 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 
 void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
+	Evaluate_AnyThread(Output, false);
+}
+
+void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
+{
 	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
 		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
+	}
+	else if (bExpectsAdditivePose)
+	{
+		Output.ResetToAdditiveIdentity();
 	}
 	else
 	{

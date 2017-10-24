@@ -101,7 +101,10 @@ namespace ELogTimes
 		UTC,
 
 		// Display log timestamps in seconds elapsed since GStartTime
-		SinceGStartTime
+		SinceGStartTime,
+
+		// Display log timestamps in local time
+		Local
 	};
 }
 

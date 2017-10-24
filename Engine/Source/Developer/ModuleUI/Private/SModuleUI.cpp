@@ -186,8 +186,7 @@ void SModuleUI::UpdateModuleListItems()
 
 		FString ModuleNameStr = ModuleName.ToString();
 		FString FilterStr = ModuleNameSearchBox->GetText().ToString();
-		FilterStr.Trim();
-		FilterStr.TrimTrailing();
+		FilterStr.TrimStartAndEndInline();
 		if ( (!FilterStr.IsEmpty() && ModuleNameStr.Contains(FilterStr)) || 
 			  FilterStr.IsEmpty() )
 		{

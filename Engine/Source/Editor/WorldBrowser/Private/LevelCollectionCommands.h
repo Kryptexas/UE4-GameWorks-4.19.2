@@ -124,6 +124,8 @@ public:
 		UI_COMMAND( AddLandscapeLevelXPositive,	"+X",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( AddLandscapeLevelYNegative,	"-Y",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( AddLandscapeLevelYPositive,	"+Y",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputChord() );
+				
+		UI_COMMAND( LockTilesLocation, "Lock tiles location", "When enabled all tiles location will be locked, content inside tiles can still be edited", EUserInterfaceActionType::ToggleButton, FInputChord());
 	}
 
 public:
@@ -305,7 +307,8 @@ public:
 	TSharedPtr< FUICommandInfo > MoveLevelUp;
 	TSharedPtr< FUICommandInfo > MoveLevelDown;
 
-
+	TSharedPtr< FUICommandInfo > LockTilesLocation;
+	
 	// Landscape operations
 	TSharedPtr< FUICommandInfo > ImportTiledLandscape;
 	

@@ -17,7 +17,7 @@ public class GitSourceControl : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			// needed to enable/disable this via experimental settings
 			PrivateDependencyModuleNames.Add("CoreUObject");

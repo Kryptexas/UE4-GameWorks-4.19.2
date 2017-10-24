@@ -14,7 +14,7 @@
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/web_contents.h"
 
-using content::PermissionStatus;
+using blink::mojom::PermissionStatus;
 using content::PermissionType;
 
 namespace {
@@ -24,11 +24,11 @@ PermissionStatus ContentSettingToPermissionStatus(ContentSetting setting) {
   switch (setting) {
     case CONTENT_SETTING_ALLOW:
     case CONTENT_SETTING_SESSION_ONLY:
-      return content::PERMISSION_STATUS_GRANTED;
+      return PermissionStatus::GRANTED;
     case CONTENT_SETTING_BLOCK:
-      return content::PERMISSION_STATUS_DENIED;
+      return PermissionStatus::DENIED;
     case CONTENT_SETTING_ASK:
-      return content::PERMISSION_STATUS_ASK;
+      return PermissionStatus::ASK;
     case CONTENT_SETTING_DETECT_IMPORTANT_CONTENT:
     case CONTENT_SETTING_DEFAULT:
     case CONTENT_SETTING_NUM_SETTINGS:
@@ -36,17 +36,17 @@ PermissionStatus ContentSettingToPermissionStatus(ContentSetting setting) {
   }
 
   NOTREACHED();
-  return content::PERMISSION_STATUS_DENIED;
+  return PermissionStatus::DENIED;
 }
 
 // Helper method to convert PermissionStatus to ContentSetting.
 ContentSetting PermissionStatusToContentSetting(PermissionStatus status) {
   switch (status) {
-    case content::PERMISSION_STATUS_GRANTED:
+    case PermissionStatus::GRANTED:
       return CONTENT_SETTING_ALLOW;
-    case content::PERMISSION_STATUS_DENIED:
+    case PermissionStatus::DENIED:
       return CONTENT_SETTING_BLOCK;
-    case content::PERMISSION_STATUS_ASK:
+    case PermissionStatus::ASK:
       return CONTENT_SETTING_ASK;
   }
 
@@ -112,7 +112,7 @@ class CefPermissionManager::PendingRequest {
       render_frame_id_(render_frame_host->GetRoutingID()),
       callback_(callback),
       permissions_(permissions),
-      results_(permissions.size(), content::PERMISSION_STATUS_DENIED),
+      results_(permissions.size(), PermissionStatus::DENIED),
       remaining_results_(permissions.size()) {
   }
 
@@ -201,9 +201,10 @@ int CefPermissionManager::RequestPermissions(
       content::WebContents::FromRenderFrameHost(render_frame_host);
   GURL embedding_origin = web_contents->GetLastCommittedURL().GetOrigin();
 
-  PendingRequest* pending_request = new PendingRequest(
-      render_frame_host, permissions, callback);
-  int request_id = pending_requests_.Add(pending_request);
+  std::unique_ptr<PendingRequest> pending_request =
+      base::MakeUnique<PendingRequest>(
+          render_frame_host, permissions, callback);
+  int request_id = pending_requests_.Add(std::move(pending_request));
 
   const PermissionRequestID request(render_frame_host, request_id);
 
@@ -218,7 +219,7 @@ int CefPermissionManager::RequestPermissions(
     }
 
     context_.RequestPermission(
-        permission, web_contents, request, requesting_origin, user_gesture,
+        permission, web_contents, request, requesting_origin,
         base::Bind(&ContentSettingToPermissionStatusCallbackWrapper,
             base::Bind(
                 &CefPermissionManager::OnPermissionsRequestResponseStatus,
@@ -286,26 +287,11 @@ PermissionStatus CefPermissionManager::GetPermissionStatus(
     return GetPermissionStatusForConstantPermission(permission);
 
   if (!context_.SupportsPermission(permission))
-    return content::PERMISSION_STATUS_DENIED;
+    return PermissionStatus::DENIED;
 
   return ContentSettingToPermissionStatus(
       context_.GetPermissionStatus(permission, requesting_origin,
                                    embedding_origin));
-}
-
-void CefPermissionManager::RegisterPermissionUsage(
-    PermissionType permission,
-    const GURL& requesting_origin,
-    const GURL& embedding_origin) {
-  // This is required because constant permissions don't have a
-  // ContentSettingsType.
-  if (IsConstantPermission(permission))
-    return;
-
-  profile_->GetHostContentSettingsMap()->UpdateLastUsage(
-      requesting_origin,
-      embedding_origin,
-      permission_util::PermissionTypeToContentSetting(permission));
 }
 
 int CefPermissionManager::SubscribePermissionStatusChange(
@@ -316,7 +302,7 @@ int CefPermissionManager::SubscribePermissionStatusChange(
   if (subscriptions_.IsEmpty())
     profile_->GetHostContentSettingsMap()->AddObserver(this);
 
-  Subscription* subscription = new Subscription();
+  std::unique_ptr<Subscription> subscription = base::MakeUnique<Subscription>();
   subscription->permission = permission;
   subscription->requesting_origin = requesting_origin;
   subscription->embedding_origin = embedding_origin;
@@ -327,7 +313,7 @@ int CefPermissionManager::SubscribePermissionStatusChange(
                           subscription->requesting_origin,
                           subscription->embedding_origin));
 
-  return subscriptions_.Add(subscription);
+  return subscriptions_.Add(std::move(subscription));
 }
 
 void CefPermissionManager::UnsubscribePermissionStatusChange(

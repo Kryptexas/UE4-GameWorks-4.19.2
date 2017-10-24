@@ -35,7 +35,7 @@ protected:
 protected:
 
 	/** Creates the color widget that when clicked spawns the color picker window. */
-	TSharedRef<SWidget> CreateColorWidget();
+	TSharedRef<SWidget> CreateColorWidget(TWeakPtr<IPropertyHandle>);
 
 	/**
 	 * Get the color used by this struct as a linear color value
@@ -59,7 +59,7 @@ protected:
 	void CreateColorPicker(bool bUseAlpha);
 	
 	/** Creates a new color picker for interactively selecting color */
-	TSharedRef<SColorPicker> CreateInlineColorPicker();
+	TSharedRef<SColorPicker> CreateInlineColorPicker(TWeakPtr<IPropertyHandle>);
 
 	/**
 	 * Called when the property is set from the color picker 

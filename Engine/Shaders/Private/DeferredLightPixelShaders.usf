@@ -18,7 +18,9 @@ FDeferredLightData SetupLightDataForStandardDeferred()
 	LightData.LightPositionAndInvRadius = float4(DeferredLightUniforms.LightPosition, DeferredLightUniforms.LightInvRadius);
 	LightData.LightColorAndFalloffExponent = float4(DeferredLightUniforms.LightColor, DeferredLightUniforms.LightFalloffExponent);
 	LightData.LightDirection = DeferredLightUniforms.NormalizedLightDirection;
+	LightData.LightTangent = DeferredLightUniforms.NormalizedLightTangent;
 	LightData.SpotAnglesAndSourceRadius = float4(DeferredLightUniforms.SpotAngles, DeferredLightUniforms.SourceRadius, DeferredLightUniforms.SourceLength);
+    LightData.SoftSourceRadius = DeferredLightUniforms.SoftSourceRadius;
 	LightData.MinRoughness = DeferredLightUniforms.MinRoughness;
 	LightData.ContactShadowLength = DeferredLightUniforms.ContactShadowLength;
 	LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;

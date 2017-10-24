@@ -17,7 +17,7 @@
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
+	AbilitySystemGlobalsClassName = FSoftClassPath(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
 
 	PredictTargetGameplayEffects = true;
 
@@ -316,7 +316,7 @@ void UAbilitySystemGlobals::InitAttributeDefaults()
 	}
 
 	// Handle array of global curve tables for attribute defaults
- 	for (const FStringAssetReference& AttribDefaultTableName : GlobalAttributeSetDefaultsTableNames)
+ 	for (const FSoftObjectPath& AttribDefaultTableName : GlobalAttributeSetDefaultsTableNames)
  	{
 		if (AttribDefaultTableName.IsValid())
 		{

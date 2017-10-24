@@ -15,7 +15,7 @@
 FString ExtractRelativePath( const TCHAR* BaseName, TCHAR const* FullName )
 {
 	FString FullPath = FString( FullName ).ToLower();
-	FullPath = FullPath.Replace( TEXT( "\\" ), TEXT( "/" ) );
+	FullPath.ReplaceInline( TEXT( "\\" ), TEXT( "/" ) );
 	
 	TArray<FString> Components;
 	int32 Count = FullPath.ParseIntoArray( Components, TEXT( "/" ), true );

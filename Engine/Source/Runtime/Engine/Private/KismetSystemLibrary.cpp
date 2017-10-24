@@ -6,6 +6,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/RuntimeErrors.h"
 #include "UObject/GCObject.h"
 #include "EngineGlobals.h"
 #include "Components/ActorComponent.h"
@@ -32,6 +33,7 @@
 #include "UserActivityTracking.h"
 #include "KismetTraceUtils.h"
 #include "Engine/AssetManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -86,7 +88,7 @@ FString UKismetSystemLibrary::GetEngineVersion()
 
 FString UKismetSystemLibrary::GetGameName()
 {
-	return FString(FApp::GetGameName());
+	return FString(FApp::GetProjectName());
 }
 
 FString UKismetSystemLibrary::GetGameBundleId()
@@ -810,74 +812,102 @@ void UKismetSystemLibrary::SetNamePropertyByName(UObject* Object, FName Property
 	}
 }
 
-void UKismetSystemLibrary::SetAssetPropertyByName(UObject* Object, FName PropertyName, const TAssetPtr<UObject>& Value)
+void UKismetSystemLibrary::SetSoftObjectPropertyByName(UObject* Object, FName PropertyName, const TSoftObjectPtr<UObject>& Value)
 {
 	if (Object != NULL)
 	{
-		UAssetObjectProperty* ObjectProp = FindField<UAssetObjectProperty>(Object->GetClass(), PropertyName);
-		const FAssetPtr* AssetPtr = (const FAssetPtr*)(&Value);
-		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
+		USoftObjectProperty* ObjectProp = FindField<USoftObjectProperty>(Object->GetClass(), PropertyName);
+		const FSoftObjectPtr* SoftObjectPtr = (const FSoftObjectPtr*)(&Value);
+		ObjectProp->SetPropertyValue_InContainer(Object, *SoftObjectPtr);
 	}
 }
 
-void UKismetSystemLibrary::SetAssetClassPropertyByName(UObject* Object, FName PropertyName, const TAssetSubclassOf<UObject>& Value)
+void UKismetSystemLibrary::SetSoftClassPropertyByName(UObject* Object, FName PropertyName, const TSoftClassPtr<UObject>& Value)
 {
 	if (Object != NULL)
 	{
-		UAssetClassProperty* ObjectProp = FindField<UAssetClassProperty>(Object->GetClass(), PropertyName);
-		const FAssetPtr* AssetPtr = (const FAssetPtr*)(&Value);
-		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
+		USoftClassProperty* ObjectProp = FindField<USoftClassProperty>(Object->GetClass(), PropertyName);
+		const FSoftObjectPtr* SoftObjectPtr = (const FSoftObjectPtr*)(&Value);
+		ObjectProp->SetPropertyValue_InContainer(Object, *SoftObjectPtr);
 	}
 }
 
-bool UKismetSystemLibrary::IsValidSoftObjectReference(const TAssetPtr<UObject>& SoftObjectReference)
+FSoftObjectPath UKismetSystemLibrary::MakeSoftObjectPath(const FString& PathString)
+{
+	FSoftObjectPath SoftObjectPath(PathString);
+	if (!PathString.IsEmpty() && !SoftObjectPath.IsValid())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PathString"), FText::AsCultureInvariant(PathString));
+		LogRuntimeError(FText::Format(NSLOCTEXT("KismetSystemLibrary", "PathStringInvalid", "Object path {PathString} not valid for MakeSoftObjectPath."), Args));
+	}
+
+	return SoftObjectPath;
+}
+
+void UKismetSystemLibrary::BreakSoftObjectPath(FSoftObjectPath InSoftObjectPath, FString& PathString)
+{
+	PathString = InSoftObjectPath.ToString();
+}
+
+bool UKismetSystemLibrary::IsValidSoftObjectReference(const TSoftObjectPtr<UObject>& SoftObjectReference)
 {
 	return !SoftObjectReference.IsNull();
 }
 
-bool UKismetSystemLibrary::EqualEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B)
+FString UKismetSystemLibrary::Conv_SoftObjectReferenceToString(const TSoftObjectPtr<UObject>& SoftObjectReference)
+{
+	return SoftObjectReference.ToString();
+}
+
+bool UKismetSystemLibrary::EqualEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B)
 {
 	return A == B;
 }
 
-bool UKismetSystemLibrary::NotEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B)
+bool UKismetSystemLibrary::NotEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B)
 {
 	return A != B;
 }
 
-bool UKismetSystemLibrary::IsValidSoftClassReference(const TAssetSubclassOf<UObject>& SoftClassReference)
+bool UKismetSystemLibrary::IsValidSoftClassReference(const TSoftClassPtr<UObject>& SoftClassReference)
 {
 	return !SoftClassReference.IsNull();
 }
 
-bool UKismetSystemLibrary::EqualEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B)
+FString UKismetSystemLibrary::Conv_SoftClassReferenceToString(const TSoftClassPtr<UObject>& SoftClassReference)
+{
+	return SoftClassReference.ToString();
+}
+
+bool UKismetSystemLibrary::EqualEqual_SoftClassReference(const TSoftClassPtr<UObject>& A, const TSoftClassPtr<UObject>& B)
 {
 	return A == B;
 }
 
-bool UKismetSystemLibrary::NotEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B)
+bool UKismetSystemLibrary::NotEqual_SoftClassReference(const TSoftClassPtr<UObject>& A, const TSoftClassPtr<UObject>& B)
 {
 	return A != B;
 }
 
-UObject* UKismetSystemLibrary::Conv_SoftObjectReferenceToObject(const TAssetPtr<UObject>& Asset)
+UObject* UKismetSystemLibrary::Conv_SoftObjectReferenceToObject(const TSoftObjectPtr<UObject>& SoftObject)
 {
-	return ((const FAssetPtr*)&Asset)->Get();
+	return SoftObject.Get();
 }
 
-TSubclassOf<UObject> UKismetSystemLibrary::Conv_SoftClassReferenceToClass(const TAssetSubclassOf<UObject>& AssetClass)
+TSubclassOf<UObject> UKismetSystemLibrary::Conv_SoftClassReferenceToClass(const TSoftClassPtr<UObject>& SoftClass)
 {
-	return Cast<UClass>(((const FAssetPtr*)&AssetClass)->Get());
+	return SoftClass.Get();
 }
 
-TAssetPtr<UObject> UKismetSystemLibrary::Conv_ObjectToSoftObjectReference(UObject *Object)
+TSoftObjectPtr<UObject> UKismetSystemLibrary::Conv_ObjectToSoftObjectReference(UObject *Object)
 {
-	return TAssetPtr<UObject>(Object);
+	return TSoftObjectPtr<UObject>(Object);
 }
 
-TAssetSubclassOf<UObject> UKismetSystemLibrary::Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class)
+TSoftClassPtr<UObject> UKismetSystemLibrary::Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class)
 {
-	return TAssetSubclassOf<UObject>(*Class);
+	return TSoftClassPtr<UObject>(*Class);
 }
 
 void UKismetSystemLibrary::SetTextPropertyByName(UObject* Object, FName PropertyName, const FText& Value)
@@ -2072,6 +2102,7 @@ bool UKismetSystemLibrary::GetConvenientWindowedResolutions(TArray<FIntPoint>& R
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 	}
 
+	extern void GenerateConvenientWindowedResolutions(const struct FDisplayMetrics& InDisplayMetrics, TArray<FIntPoint>& OutResolutions);
 	GenerateConvenientWindowedResolutions(DisplayMetrics, Resolutions);
 
 	return true;
@@ -2122,9 +2153,10 @@ bool UKismetSystemLibrary::CanLaunchURL(const FString& URL)
 
 	return false;
 }
+
 void UKismetSystemLibrary::CollectGarbage()
 {
-	GEngine->DeferredCommands.Add(TEXT("obj gc"));
+	GEngine->ForceGarbageCollection(true);
 }
 
 void UKismetSystemLibrary::ShowAdBanner(int32 AdIdIndex, bool bShowOnBottomOfScreen)
@@ -2245,7 +2277,7 @@ void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName Pro
 
 void UKismetSystemLibrary::ControlScreensaver(bool bAllowScreenSaver)
 {
-	FPlatformMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable);
+	FPlatformApplicationMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformApplicationMisc::EScreenSaverAction::Enable : FPlatformApplicationMisc::EScreenSaverAction::Disable);
 }
 
 void UKismetSystemLibrary::SetVolumeButtonsHandledBySystem(bool bEnabled)
@@ -2260,17 +2292,17 @@ bool UKismetSystemLibrary::GetVolumeButtonsHandledBySystem()
 
 void UKismetSystemLibrary::ResetGamepadAssignments()
 {
-	FPlatformMisc::ResetGamepadAssignments();
+	FPlatformApplicationMisc::ResetGamepadAssignments();
 }
 
 void UKismetSystemLibrary::ResetGamepadAssignmentToController(int32 ControllerId)
 {
-	FPlatformMisc::ResetGamepadAssignmentToController(ControllerId);
+	FPlatformApplicationMisc::ResetGamepadAssignmentToController(ControllerId);
 }
 
 bool UKismetSystemLibrary::IsControllerAssignedToGamepad(int32 ControllerId)
 {
-	return FPlatformMisc::IsControllerAssignedToGamepad(ControllerId);
+	return FPlatformApplicationMisc::IsControllerAssignedToGamepad(ControllerId);
 }
 
 void UKismetSystemLibrary::SetSuppressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
@@ -2312,7 +2344,7 @@ struct FLoadAssetActionBase : public FPendingLatentAction
 	// @TODO: it would be good to have static/global manager? 
 
 public:
-	FStringAssetReference AssetReference;
+	FSoftObjectPath SoftObjectPath;
 	FStreamableManager StreamableManager;
 	TSharedPtr<FStreamableHandle> Handle;
 	FName ExecutionFunction;
@@ -2321,13 +2353,13 @@ public:
 
 	virtual void OnLoaded() PURE_VIRTUAL(FLoadAssetActionBase::OnLoaded, );
 
-	FLoadAssetActionBase(const FStringAssetReference& InAssetReference, const FLatentActionInfo& InLatentInfo)
-		: AssetReference(InAssetReference)
+	FLoadAssetActionBase(const FSoftObjectPath& InSoftObjectPath, const FLatentActionInfo& InLatentInfo)
+		: SoftObjectPath(InSoftObjectPath)
 		, ExecutionFunction(InLatentInfo.ExecutionFunction)
 		, OutputLink(InLatentInfo.Linkage)
 		, CallbackTarget(InLatentInfo.CallbackTarget)
 	{
-		Handle = StreamableManager.RequestAsyncLoad(AssetReference);
+		Handle = StreamableManager.RequestAsyncLoad(SoftObjectPath);
 	}
 
 	virtual ~FLoadAssetActionBase()
@@ -2351,26 +2383,26 @@ public:
 #if WITH_EDITOR
 	virtual FString GetDescription() const override
 	{
-		return FString::Printf(TEXT("Load Asset Action Base: %s"), *AssetReference.ToString());
+		return FString::Printf(TEXT("Load Asset Action Base: %s"), *SoftObjectPath.ToString());
 	}
 #endif
 };
 
-void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, TAssetPtr<UObject> Asset, UKismetSystemLibrary::FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo)
+void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, TSoftObjectPtr<UObject> Asset, UKismetSystemLibrary::FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo)
 {
 	struct FLoadAssetAction : public FLoadAssetActionBase
 	{
 	public:
 		UKismetSystemLibrary::FOnAssetLoaded OnLoadedCallback;
 
-		FLoadAssetAction(const FStringAssetReference& InAssetReference, UKismetSystemLibrary::FOnAssetLoaded InOnLoadedCallback, const FLatentActionInfo& InLatentInfo)
-			: FLoadAssetActionBase(InAssetReference, InLatentInfo)
+		FLoadAssetAction(const FSoftObjectPath& InSoftObjectPath, UKismetSystemLibrary::FOnAssetLoaded InOnLoadedCallback, const FLatentActionInfo& InLatentInfo)
+			: FLoadAssetActionBase(InSoftObjectPath, InLatentInfo)
 			, OnLoadedCallback(InOnLoadedCallback)
 		{}
 
 		virtual void OnLoaded() override
 		{
-			UObject* LoadedObject = AssetReference.ResolveObject();
+			UObject* LoadedObject = SoftObjectPath.ResolveObject();
 			OnLoadedCallback.ExecuteIfBound(LoadedObject);
 		}
 	};
@@ -2380,27 +2412,27 @@ void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, TAssetPtr<UObj
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
 		if (LatentManager.FindExistingAction<FLoadAssetAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
 		{
-			FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToStringReference(), OnLoaded, LatentInfo);
+			FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToSoftObjectPath(), OnLoaded, LatentInfo);
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 		}
 	}
 }
 
-void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, TAssetSubclassOf<UObject> AssetClass, UKismetSystemLibrary::FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo)
+void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, TSoftClassPtr<UObject> AssetClass, UKismetSystemLibrary::FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo)
 {
 	struct FLoadAssetClassAction : public FLoadAssetActionBase
 	{
 	public:
 		UKismetSystemLibrary::FOnAssetClassLoaded OnLoadedCallback;
 
-		FLoadAssetClassAction(const FStringAssetReference& InAssetReference, UKismetSystemLibrary::FOnAssetClassLoaded InOnLoadedCallback, const FLatentActionInfo& InLatentInfo)
-			: FLoadAssetActionBase(InAssetReference, InLatentInfo)
+		FLoadAssetClassAction(const FSoftObjectPath& InSoftObjectPath, UKismetSystemLibrary::FOnAssetClassLoaded InOnLoadedCallback, const FLatentActionInfo& InLatentInfo)
+			: FLoadAssetActionBase(InSoftObjectPath, InLatentInfo)
 			, OnLoadedCallback(InOnLoadedCallback)
 		{}
 
 		virtual void OnLoaded() override
 		{
-			UClass* LoadedObject = Cast<UClass>(AssetReference.ResolveObject());
+			UClass* LoadedObject = Cast<UClass>(SoftObjectPath.ResolveObject());
 			OnLoadedCallback.ExecuteIfBound(LoadedObject);
 		}
 	};
@@ -2410,7 +2442,7 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, TAssetSub
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
 		if (LatentManager.FindExistingAction<FLoadAssetClassAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
 		{
-			FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToStringReference(), OnLoaded, LatentInfo);
+			FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToSoftObjectPath(), OnLoaded, LatentInfo);
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 		}
 	}
@@ -2462,27 +2494,27 @@ TSubclassOf<UObject> UKismetSystemLibrary::GetClassFromPrimaryAssetId(FPrimaryAs
 	return nullptr;
 }
 
-TAssetPtr<UObject> UKismetSystemLibrary::GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+TSoftObjectPtr<UObject> UKismetSystemLibrary::GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
 {
 	if (UAssetManager* Manager = UAssetManager::GetIfValid())
 	{
 		FPrimaryAssetTypeInfo Info;
 		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && !Info.bHasBlueprintClasses)
 		{
-			return TAssetPtr<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
+			return TSoftObjectPtr<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
 		}
 	}
 	return nullptr;
 }
 
-TAssetSubclassOf<UObject> UKismetSystemLibrary::GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+TSoftClassPtr<UObject> UKismetSystemLibrary::GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
 {
 	if (UAssetManager* Manager = UAssetManager::GetIfValid())
 	{
 		FPrimaryAssetTypeInfo Info;
 		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && Info.bHasBlueprintClasses)
 		{
-			return TAssetSubclassOf<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
+			return TSoftClassPtr<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
 		}
 	}
 	return nullptr;
@@ -2512,20 +2544,20 @@ FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromClass(TSubclassOf<UOb
 	return FPrimaryAssetId();
 }
 
-FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftObjectReference(TAssetPtr<UObject> SoftObjectReference)
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftObjectReference(TSoftObjectPtr<UObject> SoftObjectReference)
 {
 	if (UAssetManager* Manager = UAssetManager::GetIfValid())
 	{
-		return Manager->GetPrimaryAssetIdForPath(SoftObjectReference.ToStringReference());
+		return Manager->GetPrimaryAssetIdForPath(SoftObjectReference.ToSoftObjectPath());
 	}
 	return FPrimaryAssetId();
 }
 
-FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftClassReference(TAssetSubclassOf<UObject> SoftClassReference)
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftClassReference(TSoftClassPtr<UObject> SoftClassReference)
 {
 	if (UAssetManager* Manager = UAssetManager::GetIfValid())
 	{
-		return Manager->GetPrimaryAssetIdForPath(SoftClassReference.ToStringReference());
+		return Manager->GetPrimaryAssetIdForPath(SoftClassReference.ToSoftObjectPath());
 	}
 	return FPrimaryAssetId();
 }
@@ -2543,6 +2575,11 @@ bool UKismetSystemLibrary::IsValidPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
 	return PrimaryAssetId.IsValid();
 }
 
+FString UKismetSystemLibrary::Conv_PrimaryAssetIdToString(FPrimaryAssetId PrimaryAssetId)
+{
+	return PrimaryAssetId.ToString();
+}
+
 bool UKismetSystemLibrary::EqualEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B)
 {
 	return A == B;
@@ -2556,6 +2593,11 @@ bool UKismetSystemLibrary::NotEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAs
 bool UKismetSystemLibrary::IsValidPrimaryAssetType(FPrimaryAssetType PrimaryAssetType)
 {
 	return PrimaryAssetType.IsValid();
+}
+
+FString UKismetSystemLibrary::Conv_PrimaryAssetTypeToString(FPrimaryAssetType PrimaryAssetType)
+{
+	return PrimaryAssetType.ToString();
 }
 
 bool UKismetSystemLibrary::EqualEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B)

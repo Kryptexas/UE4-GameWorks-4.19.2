@@ -37,7 +37,7 @@ private:
 	/** OnReadFileComplete delegate handle */
 	FDelegateHandle OnReadFileCompleteDelegateHandle;
 
-	void OnEnumerateFilesComplete(bool bSuccess);
+	void OnEnumerateFilesComplete(bool bSuccess, const FString& ErrorStr);
 
 	void OnReadFileComplete(bool bSuccess, const FString& Filename);
 

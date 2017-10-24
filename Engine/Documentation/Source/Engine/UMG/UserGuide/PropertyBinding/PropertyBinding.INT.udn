@@ -1,9 +1,17 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Property Binding
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:A guide to binding properties inside UMG. 
-Version: 4.9
-tags:UMG UI Designer
+Description: A guide to binding properties inside UMG. 
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:7
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/PropertyBindingTopic.png
+
+
+
 
 [TOC(start:2 end:2)]
 

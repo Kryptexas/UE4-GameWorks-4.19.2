@@ -57,7 +57,7 @@ FLinearColor UAnimGraphNode_SkeletalControlBase::GetNodeTitleColor() const
 
 FString UAnimGraphNode_SkeletalControlBase::GetNodeCategory() const
 {
-	return TEXT("Skeletal Controls");
+	return TEXT("Skeletal Control Nodes");
 }
 
 FText UAnimGraphNode_SkeletalControlBase::GetControllerDescription() const
@@ -305,8 +305,7 @@ void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDe
 					TArray<FString> ResultString;
 
 					//Parse string to split its contents separated by ','
-					DefaultString.Trim();
-					DefaultString.TrimTrailing();
+					DefaultString.TrimStartAndEndInline();
 					DefaultString.ParseIntoArray(ResultString, TEXT(","), true);
 
 					check(ResultString.Num() == 3);

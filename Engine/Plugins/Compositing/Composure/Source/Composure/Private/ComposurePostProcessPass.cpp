@@ -82,7 +82,7 @@ void UComposurePostProcessPass::InitializeComponent()
 	SceneCapture->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
 	// Avoid drawing any primitive by using the empty show only lists.
-	SceneCapture->PrimitiveRenderMode = PRM_UseShowOnlyList;
+	SceneCapture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 
 	// Avoid capturing every frame and on movement.
 	SceneCapture->bCaptureEveryFrame = false;

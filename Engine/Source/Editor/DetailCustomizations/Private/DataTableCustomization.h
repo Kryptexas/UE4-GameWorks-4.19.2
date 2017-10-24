@@ -19,6 +19,8 @@
 
 #define LOCTEXT_NAMESPACE "FDataTableCustomizationLayout"
 
+struct FAssetData;
+
 /**
  * Customizes a DataTable asset to use a dropdown
  */
@@ -31,225 +33,40 @@ public:
 	}
 
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override
-	{
-		this->StructPropertyHandle = InStructPropertyHandle;
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
-		if (StructPropertyHandle->HasMetaData(TEXT("RowType")))
-		{
-			const FString& RowType = StructPropertyHandle->GetMetaData(TEXT("RowType"));
-			RowTypeFilter = FName(*RowType);
-		}
-
-		HeaderRow
-			.NameContent()
-			[
-				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
-			];
-	}
-
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override
-	{
-		/** Get all the existing property handles */
-		DataTablePropertyHandle = InStructPropertyHandle->GetChildHandle( "DataTable" );
-		RowNamePropertyHandle = InStructPropertyHandle->GetChildHandle( "RowName" );
-
-		if( DataTablePropertyHandle->IsValidHandle() && RowNamePropertyHandle->IsValidHandle() )
-		{
-			/** Queue up a refresh of the selected item, not safe to do from here */
-			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FDataTableCustomizationLayout::OnDataTableChanged));
-
-			/** Setup Change callback */
-			FSimpleDelegate OnDataTableChangedDelegate = FSimpleDelegate::CreateSP( this, &FDataTableCustomizationLayout::OnDataTableChanged );
-			DataTablePropertyHandle->SetOnPropertyValueChanged( OnDataTableChangedDelegate );
-
-			/** Construct a asset picker widget with a custom filter */
-			StructBuilder.AddCustomRow(LOCTEXT("DataTable_TableName", "Data Table"))
-			.NameContent()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("DataTable_TableName", "Data Table"))
-					.Font(StructCustomizationUtils.GetRegularFont())
-				]
-			.ValueContent()
-			.MaxDesiredWidth(0.0f) // don't constrain the combo button width
-				[
-					SNew(SObjectPropertyEntryBox)
-						.PropertyHandle(DataTablePropertyHandle)
-						.AllowedClass(UDataTable::StaticClass())
-						.OnShouldFilterAsset(this, &FDataTableCustomizationLayout::ShouldFilterAsset)
-				];
-
-			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddCustomRow( LOCTEXT( "DataTable_RowName", "Row Name" ) )
-			.NameContent()
-				[
-					SNew( STextBlock )
-					.Text( LOCTEXT( "DataTable_RowName", "Row Name" ) )
-					.Font( StructCustomizationUtils.GetRegularFont() )
-				]
-			.ValueContent()
-			.MaxDesiredWidth(0.0f) // don't constrain the combo button width
-				[
-					SAssignNew( RowNameComboButton, SComboButton )
-					.ToolTipText( this, &FDataTableCustomizationLayout::GetRowNameComboBoxContentText )
-					.OnGetMenuContent( this, &FDataTableCustomizationLayout::GetListContent )
-					.ContentPadding( FMargin( 2.0f, 2.0f ) )
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.Text( this, &FDataTableCustomizationLayout::GetRowNameComboBoxContentText )
-					]
-				];
-		}
-	}
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 private:
 
-	bool ShouldFilterAsset(const struct FAssetData& AssetData)
-	{
-		if (!RowTypeFilter.IsNone())
-		{
-			const UDataTable* DataTable = Cast<UDataTable>(AssetData.GetAsset());
-			if (DataTable->RowStruct && DataTable->RowStruct->GetFName() == RowTypeFilter)
-			{
-				return false;
-			}
-			return true;
-		}
-		return false;
-	}
+	bool ShouldFilterAsset(const FAssetData& AssetData);
 
 	/** Init the contents the combobox sources its data off */
-	TSharedPtr<FString> InitWidgetContent()
-	{
-		TSharedPtr<FString> InitialValue = MakeShareable( new FString( LOCTEXT( "DataTable_None", "None" ).ToString() ) );;
-
-		FName RowName;
-		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
-		RowNames.Empty();
-		
-		/** Get the properties we wish to work with */
-		UDataTable* DataTable = NULL;
-		DataTablePropertyHandle->GetValue( ( UObject*& )DataTable );
-
-		if( DataTable != NULL )
-		{
-			/** Extract all the row names from the RowMap */
-			for( TMap<FName, uint8*>::TConstIterator Iterator( DataTable->RowMap ); Iterator; ++Iterator )
-			{
-				/** Create a simple array of the row names */
-				TSharedRef<FString> RowNameItem = MakeShareable( new FString( Iterator.Key().ToString() ) );
-				RowNames.Add( RowNameItem );
-
-				/** Set the initial value to the currently selected item */
-				if( Iterator.Key() == RowName )
-				{
-					InitialValue = RowNameItem;
-				}
-			}
-		}
-
-		/** Reset the initial value to ensure a valid entry is set */
-		if ( RowResult != FPropertyAccess::MultipleValues )
-		{
-			FName NewValue = FName( **InitialValue );
-			RowNamePropertyHandle->SetValue( NewValue );
-		}
-
-		return InitialValue;
-	}
+	TSharedPtr<FString> InitWidgetContent();
 
 	/** Returns the ListView for the ComboButton */
 	TSharedRef<SWidget> GetListContent();
 
 	/** Delegate to refresh the drop down when the datatable changes */
-	void OnDataTableChanged()
-	{
-		CurrentSelectedItem = InitWidgetContent();
-		if( RowNameComboListView.IsValid() )
-		{
-			RowNameComboListView->SetSelection(CurrentSelectedItem);
-			RowNameComboListView->RequestListRefresh();
-		}
-	}
+	void OnDataTableChanged();
 
 	/** Return the representation of the the row names to display */
-	TSharedRef<ITableRow>  HandleRowNameComboBoxGenarateWidget( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable )
-	{
-		return
-			SNew( STableRow<TSharedPtr<FString>>, OwnerTable)
-			[
-				SNew( STextBlock ).Text( FText::FromString(*InItem) )
-			];
-	}
+	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Display the current selection */
-	FText GetRowNameComboBoxContentText( ) const
-	{
-		FString RowNameValue;
-		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowNameValue );
-		if ( RowResult != FPropertyAccess::MultipleValues )
-		{
-			TSharedPtr<FString> SelectedRowName = CurrentSelectedItem;
-			if ( SelectedRowName.IsValid() )
-			{
-				return FText::FromString(*SelectedRowName);
-			}
-			else
-			{
-				return LOCTEXT("DataTable_None", "None");
-			}
-		}
-		return LOCTEXT( "MultipleValues", "Multiple Values" );
-	}
+	FText GetRowNameComboBoxContentText() const;
 
 	/** Update the root data on a change of selection */
-	void OnSelectionChanged( TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo )
-	{
-		if( SelectedItem.IsValid() )
-		{
-			CurrentSelectedItem = SelectedItem; 
-			FName NewValue = FName( **SelectedItem );
-			RowNamePropertyHandle->SetValue( NewValue );
-
-			// Close the combo
-			RowNameComboButton->SetIsOpen( false );
-		}
-	}
+	void OnSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo);
 
 	/** Called by Slate when the filter box changes text. */
-	void OnFilterTextChanged( const FText& InFilterText )
-	{
-		FString CurrentFilterText = InFilterText.ToString();
+	void OnFilterTextChanged(const FText& InFilterText);
 
-		FName RowName;
-		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
-		RowNames.Empty();
-
-		/** Get the properties we wish to work with */
-		UDataTable* DataTable = NULL;
-		DataTablePropertyHandle->GetValue( ( UObject*& )DataTable );
-
-		if( DataTable != NULL )
-		{
-			/** Extract all the row names from the RowMap */
-			for( TMap<FName, uint8*>::TConstIterator Iterator( DataTable->RowMap ); Iterator; ++Iterator )
-			{
-				/** Create a simple array of the row names */
-				FString RowString = Iterator.Key().ToString();
-				if( CurrentFilterText == TEXT("") || RowString.Contains(CurrentFilterText) )
-				{
-					TSharedRef<FString> RowNameItem = MakeShareable( new FString( RowString ) );				
-					RowNames.Add( RowNameItem );
-				}
-			}
-		}
-		RowNameComboListView->RequestListRefresh();
-	}
+	void HandleMenuOpen();
 
 	/** The comboButton objects */
 	TSharedPtr<SComboButton> RowNameComboButton;
+	TSharedPtr<SSearchBox> SearchBox;
 	TSharedPtr<SListView<TSharedPtr<FString> > > RowNameComboListView;
 	TSharedPtr<FString> CurrentSelectedItem;	
 	/** Handle to the struct properties being customized */

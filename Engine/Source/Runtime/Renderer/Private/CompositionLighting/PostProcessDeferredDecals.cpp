@@ -362,6 +362,9 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, GraphicsPSOInit, View, FrustumComponentToClip);
 	Context.RHICmdList.SetStencilRef(0);
 
+	// Set stream source after updating cached strides
+	Context.RHICmdList.SetStreamSource(0, GetUnitCubeVertexBuffer(), 0);
+
 	// Render decal mask
 	Context.RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 
@@ -569,7 +572,7 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 	FPooledRenderTargetDesc MaskDesc(FPooledRenderTargetDesc::Create2DDesc(RTWriteMaskDims,
 		PF_R8_UINT,
 		FClearValueBinding::White,
-		TexCreate_None,
+		TexCreate_None | GFastVRamConfig.DBufferMask,
 		TexCreate_UAV | TexCreate_RenderTargetable,
 		false));
 
@@ -602,11 +605,15 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 	Context.RHICmdList.FlushComputeShaderCache();
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
-
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture);
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture);
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture);
-
+	
+    FTextureRHIParamRef Textures[3] =
+	{
+		SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture,
+		SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture,
+		SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture
+	};
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EMetaData, Textures, 3);
+	
 	// un-set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), NULL);
 }
@@ -655,13 +662,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
 				PF_B8G8R8A8,
 				FClearValueBinding::None,
-				TexCreate_None,
+				TexCreate_None | GFastVRamConfig.DBufferA,
 				TexCreate_ShaderResource | TexCreate_RenderTargetable,
 				false,
 				1,
 				true,
 				true));
-
+			
 			if (!SceneContext.DBufferA)
 			{
 				Desc.ClearValue = FClearValueBinding::Black;
@@ -670,6 +677,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (!SceneContext.DBufferB)
 			{
+				Desc.Flags = TexCreate_None | GFastVRamConfig.DBufferB;
 				Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
 			}
@@ -678,6 +686,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (!SceneContext.DBufferC)
 			{
+				Desc.Flags = TexCreate_None | GFastVRamConfig.DBufferC;
 				Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
 			}
@@ -866,7 +875,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
-				RenderTargetManager.FlushMetaData();
+				FTextureRHIParamRef Textures[3] =
+				{
+					SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture,
+					SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture,
+					SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture
+				};
+				RenderTargetManager.FlushMetaData(Textures, 3);
 
 				if (GSupportsRenderTargetWriteMask && bLastView)
 				{
@@ -1033,14 +1048,11 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 		break;
 	}
 	TargetsToTransitionWritable[CurrentRenderTargetMode] = false;
-
-	// we need to reset the stream source after any call to SetRenderTarget (at least for Metal, which doesn't queue up VB assignments)
-	RHICmdList.SetStreamSource(0, GetUnitCubeVertexBuffer(), sizeof(FVector4), 0);
 }
 
 
 
-void FDecalRenderTargetManager::FlushMetaData()
+void FDecalRenderTargetManager::FlushMetaData(FTextureRHIParamRef* Textures, uint32 NumTextures)
 {
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, nullptr);
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EMetaData, Textures, NumTextures);
 }

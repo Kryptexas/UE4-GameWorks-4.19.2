@@ -21,7 +21,7 @@
 #include "Templates/Greater.h"
 #include "Containers/List.h"
 #include "UObject/LazyObjectPtr.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyTag.h"
 #include "Serialization/SerializedPropertyScope.h"
 
@@ -79,15 +79,15 @@ class COREUOBJECT_API UProperty : public UField
 	uint64		PropertyFlags;
 	uint16		RepIndex;
 
-	FName		RepNotifyFunc;
-
 private:
+	TEnumAsByte<ELifetimeCondition> BlueprintReplicationCondition;
+
 	// In memory variables (generated during Link()).
 	int32		Offset_Internal;
 
-	ELifetimeCondition BlueprintReplicationCondition;
-
 public:
+	FName		RepNotifyFunc;
+
 	/** In memory only: Linked list of properties from most-derived to base **/
 	UProperty*	PropertyLinkNext;
 	/** In memory only: Linked list of object reference properties from most-derived to base **/
@@ -1220,7 +1220,7 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	virtual FString GetNumericPropertyValueToString(void const* Data) const;
 	// End of UNumericProperty interface
 
-	static uint8 ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
+	static int64 ReadEnumAsInt64(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
 
 private:
 	virtual bool CanHoldDoubleValueInternal  (double Value) const PURE_VIRTUAL(UNumericProperty::CanHoldDoubleValueInternal,   return false;);
@@ -1266,16 +1266,16 @@ public:
 	}
 
 protected:
-	template <typename OldIntType>
-	void ConvertFromInt(FArchive& Ar, void* Obj, const FPropertyTag& Tag)
+	template <typename OldNumericType>
+	void ConvertFromArithmeticValue(FArchive& Ar, void* Obj, const FPropertyTag& Tag)
 	{
-		OldIntType OldValue;
+		OldNumericType OldValue;
 		Ar << OldValue;
-		TCppType NewValue = OldValue;
+		TCppType NewValue = (TCppType)OldValue;
 		this->SetPropertyValue_InContainer(Obj, NewValue, Tag.ArrayIndex);
 
 		UE_CLOG(
-			(TIsSigned<OldIntType>::Value && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			((TIsSigned<OldNumericType>::Value || TIsFloatingPoint<OldNumericType>::Value) && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || ((OldNumericType)NewValue != OldValue),
 			LogClass,
 			Warning,
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
@@ -1290,62 +1290,69 @@ protected:
 public:
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override
 	{
+		// Assume we're going to convert it successfully
+		bOutAdvanceProperty = true;
+
 		if (Tag.Type == NAME_Int8Property)
 		{
-			ConvertFromInt<int8>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int8>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_Int16Property)
 		{
-			ConvertFromInt<int16>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int16>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_IntProperty)
 		{
-			ConvertFromInt<int32>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int32>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_Int64Property)
 		{
-			ConvertFromInt<int64>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<int64>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_ByteProperty)
 		{
 			if (Tag.EnumName != NAME_None)
 			{
-				uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+				int64 PreviousValue = this->ReadEnumAsInt64(Ar, DefaultsStruct, Tag);
 				this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
 			}
 			else
 			{
-				ConvertFromInt<int8>(Ar, Data, Tag);
+				ConvertFromArithmeticValue<int8>(Ar, Data, Tag);
 			}
-			return true;
 		}
 		else if (Tag.Type == NAME_EnumProperty)
 		{
-			uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
-			this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
-			return true;
+			int64 PreviousValue = this->ReadEnumAsInt64(Ar, DefaultsStruct, Tag);
+			this->SetPropertyValue_InContainer(Data, (TCppType)PreviousValue, Tag.ArrayIndex);
 		}
 		else if (Tag.Type == NAME_UInt16Property)
 		{
-			ConvertFromInt<uint16>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint16>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_UInt32Property)
 		{
-			ConvertFromInt<uint32>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint32>(Ar, Data, Tag);
 		}
 		else if (Tag.Type == NAME_UInt64Property)
 		{
-			ConvertFromInt<uint64>(Ar, Data, Tag);
-			return true;
+			ConvertFromArithmeticValue<uint64>(Ar, Data, Tag);
+		}
+		else if (Tag.Type == NAME_FloatProperty)
+		{
+			ConvertFromArithmeticValue<float>(Ar, Data, Tag);
+		}
+		else if (Tag.Type == NAME_DoubleProperty)
+		{
+			ConvertFromArithmeticValue<double>(Ar, Data, Tag);
+		}
+		else
+		{
+			// We didn't convert it
+			bOutAdvanceProperty = false;
 		}
 
-		return false;
+		return bOutAdvanceProperty;
 	}
 	// End of UProperty interface
 
@@ -2132,15 +2139,15 @@ public:
 //
 // Describes a reference variable to another object which may be nil, and will become valid or invalid at any point
 //
-class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetPtr>
+class COREUOBJECT_API USoftObjectProperty : public TUObjectPropertyBase<FSoftObjectPtr>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty, TUObjectPropertyBase<FAssetPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(USoftObjectProperty, TUObjectPropertyBase<FSoftObjectPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_USoftObjectProperty)
 
-	UAssetObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
+	USoftObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
-	UAssetObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+	USoftObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
 		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
@@ -2168,7 +2175,7 @@ private:
 	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 public:
 
-	// ScriptVM should store Asset as FAssetPtr not as UObject.
+	// ScriptVM should store Asset as FSoftObjectPtr not as UObject.
 
 	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override;
 	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override;
@@ -2218,6 +2225,7 @@ public:
 	// UProperty interface
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
 	// End of UProperty interface
 
 	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
@@ -2239,25 +2247,25 @@ public:
 };
 
 /*-----------------------------------------------------------------------------
-	UAssetSubclassOfProperty.
+	USoftClassProperty.
 -----------------------------------------------------------------------------*/
 
 //
 // Describes a reference variable to another class which may be nil, and will become valid or invalid at any point
 //
-class COREUOBJECT_API UAssetClassProperty : public UAssetObjectProperty
+class COREUOBJECT_API USoftClassProperty : public USoftObjectProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetClassProperty, UAssetObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetClassProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(USoftClassProperty, USoftObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_USoftClassProperty)
 
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UAssetClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
+	USoftClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
 		: Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, UClass::StaticClass())
 		, MetaClass(InMetaClass)
 	{}
 
-	UAssetClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
+	USoftClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
 		:	Super(ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
 		,	MetaClass( InMetaClass )
 	{}
@@ -3263,14 +3271,14 @@ public:
 	}
 
 	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
-	bool AddPair(const void* KeyPtr, const void* ValuePtr)
+	void AddPair(const void* KeyPtr, const void* ValuePtr)
 	{
 		UProperty* LocalKeyPropForCapture = KeyProp;
 		UProperty* LocalValuePropForCapture = ValueProp;
 		FScriptMapLayout& LocalMapLayoutForCapture = MapLayout;
-		return Map->Add(
-			KeyPtr, 
-			ValuePtr, 
+		Map->Add(
+			KeyPtr,
+			ValuePtr,
 			MapLayout,
 			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
 			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); },
@@ -3303,6 +3311,20 @@ public:
 			[LocalValuePropForCapture, ValuePtr](void* ExistingElementValue)
 			{
 				LocalValuePropForCapture->CopySingleValueToScriptVM(ExistingElementValue, ValuePtr);
+			},
+			[LocalKeyPropForCapture](void* ElementKey)
+			{
+				if (!(LocalKeyPropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalKeyPropForCapture->DestroyValue(ElementKey);
+				}
+			},
+			[LocalValuePropForCapture](void* ElementValue)
+			{
+				if (!(LocalValuePropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalValuePropForCapture->DestroyValue(ElementValue);
+				}
 			}
 		);
 	}
@@ -3761,24 +3783,24 @@ public:
 		return Result;
 	}
 
-	/** Finds element from hash, rather than linearly searching */
-	FORCEINLINE uint8* FindElementFromHash(const void* ElementToFind) const
+	/** Finds element index from hash, rather than linearly searching */
+	FORCEINLINE int32 FindElementIndexFromHash(const void* ElementToFind) const
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		return Set->Find(
-				ElementToFind, 
-				SetLayout, 
-				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
-			);
+		return Set->FindIndex(
+			ElementToFind,
+			SetLayout,
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+		);
 	}
 
 	/** Adds the element to the set, returning true if the element was added, or false if the element was already present */
-	bool AddElement(const void* ElementToAdd)
+	void AddElement(const void* ElementToAdd)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
 		FScriptSetLayout& LocalSetLayoutForCapture = SetLayout;
-		return Set->Add(
+		Set->Add(
 			ElementToAdd,
 			SetLayout,
 			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
@@ -3795,23 +3817,30 @@ public:
 				}
 
 				LocalElementPropForCapture->CopySingleValueToScriptVM(NewElement, ElementToAdd);
+			},
+			[LocalElementPropForCapture](void* Element)
+			{
+				if (!(LocalElementPropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalElementPropForCapture->DestroyValue(Element);
+				}
 			}
-		) == nullptr;
+		);
 	}
 
 	/** Removes the element from the set */
 	bool RemoveElement(const void* ElementToRemove)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		if( uint8_t* Entry = Set->Find(
-				ElementToRemove, 
-				SetLayout, 
-				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); } )
-			)
+		int32 FoundIndex = Set->FindIndex(
+			ElementToRemove,
+			SetLayout,
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+		);
+		if (FoundIndex != INDEX_NONE)
 		{
-			int32 Idx = (Entry - (uint8*)Set->GetData(0, SetLayout)) / SetLayout.Size;
-			RemoveAt(Idx);
+			RemoveAt(FoundIndex);
 			return true;
 		}
 		else
@@ -4273,14 +4302,18 @@ namespace EPropertyChangeType
 	const Type Unspecified = 1 << 0;
 	//Array Add
 	const Type ArrayAdd = 1 << 1;
+	//Array Remove
+	const Type ArrayRemove = 1 << 2;
+	//Array Clear
+	const Type ArrayClear = 1 << 3;
 	//Value Set
-	const Type ValueSet = 1 << 2;
+	const Type ValueSet = 1 << 4;
 	//Duplicate
-	const Type Duplicate = 1 << 3;
+	const Type Duplicate = 1 << 5;
 	//Interactive, e.g. dragging a slider. Will be followed by a ValueSet when finished.
-	const Type Interactive = 1 << 4;
+	const Type Interactive = 1 << 6;
 	//Redirected.  Used when property references are updated due to content hot-reloading, or an asset being replaced during asset deletion (aka, asset consolidation).
-	const Type Redirected = 1 << 5;
+	const Type Redirected = 1 << 7;
 };
 
 /**
@@ -4295,6 +4328,7 @@ struct FPropertyChangedEvent
 		, ChangeType(EPropertyChangeType::Unspecified)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, InstancesChangedResultPerArchetype(nullptr)
 		, TopLevelObjects(nullptr)
 	{
 	}
@@ -4305,6 +4339,7 @@ struct FPropertyChangedEvent
 		, ChangeType(InChangeType)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, InstancesChangedResultPerArchetype(nullptr)
 		, TopLevelObjects(InTopLevelObjects)
 	{
 	}
@@ -4323,6 +4358,14 @@ struct FPropertyChangedEvent
 	}
 
 	/**
+	 * Saves off map of instance changed result per archetype being set.
+	 */
+	void SetInstancesChangedResultPerArchetype(const TArray< TMap<UObject*, bool> >& InInstancesChangedResultPerArchetype)
+	{
+		InstancesChangedResultPerArchetype = &InInstancesChangedResultPerArchetype;
+	}
+
+	/**
 	 * Gets the Array Index of the "current object" based on a particular name
 	 * InName - Name of the property to find the array index for
 	 */
@@ -4338,6 +4381,26 @@ struct FPropertyChangedEvent
 				Retval = *ValuePtr;
 			}
 		}
+		return Retval;
+	}
+
+	/**
+	 * Gets the instance changed status of the "current object" based on the instance provided
+	 * InInstance - The instance we want to know the status.
+	 */
+	bool HasArchetypeInstanceChanged(UObject* InInstance) const
+	{
+		bool Retval = true;
+
+		if (InstancesChangedResultPerArchetype && InstancesChangedResultPerArchetype->IsValidIndex(ObjectIteratorIndex))
+		{
+			const bool* ValuePtr = (*InstancesChangedResultPerArchetype)[ObjectIteratorIndex].Find(InInstance);
+			if (ValuePtr)
+			{
+				Retval = *ValuePtr;
+			}
+		}
+
 		return Retval;
 	}
 
@@ -4381,6 +4444,9 @@ struct FPropertyChangedEvent
 private:
 	//In the property window, multiple objects can be selected at once.  In the case of adding/inserting to an array, each object COULD have different indices for the new entries in the array
 	const TArray< TMap<FString,int32> >* ArrayIndicesPerObject;
+	
+	//In the property window, multiple objects can be selected at once. In this case we want to know if an instance was updated for this operation (used in array/set/map context)
+	const TArray< TMap<UObject*, bool> >* InstancesChangedResultPerArchetype;
 
 	/** List of top level objects being changed */
 	const TArray<const UObject*>* TopLevelObjects;
@@ -4898,102 +4964,7 @@ inline bool UObject::IsBasedOnArchetype(  const UObject* const SomeObject ) cons
 	C++ property macros.
 -----------------------------------------------------------------------------*/
 
-#define CPP_PROPERTY(name)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(ThisClass, name)
-#define CPP_PROPERTY_BASE(name, base)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(base, name)
-
 static_assert(sizeof(bool) == sizeof(uint8), "Bool is not one byte.");
-
-struct COREUOBJECT_API DetermineBitfieldOffsetAndMask
-{
-	int32 Offset;
-	uint32 BitMask;
-	DetermineBitfieldOffsetAndMask()
-		: Offset(0)
-		, BitMask(0)
-	{
-	}
-
-	/**
-	 * Allocates a buffer large enough to hold the entire class which is being processed.
-	 *
-	 * @param SizeOf size of the class to calculate the bitfield properties for.
-	 */
-	void* AllocateBuffer(const SIZE_T SizeOf)
-	{
-		static SIZE_T CurrentSize = 0;
-		static void *Buffer = NULL;
-		if (!Buffer || SizeOf > CurrentSize)
-		{
-			FMemory::Free(Buffer);
-			Buffer = FMemory::Malloc(SizeOf);
-			FMemory::Memzero(Buffer, SizeOf);
-			CurrentSize = SizeOf;
-		}
-	#if DO_GUARD_SLOW
-		// make sure the memory is zero
-		{
-			uint8* ByteBuffer = (uint8*)Buffer;
-			for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
-			{
-				checkSlow(!ByteBuffer[TestOffset]);
-			}
-		}
-	#endif
-		return Buffer;
-	}
-
-	/**
-	 * Determines bitfield offset and mask
-	 * 
-	 * @param SizeOf Size of the class with the bitfield.
-	 */
-	void DoDetermineBitfieldOffsetAndMask(const SIZE_T SizeOf)
-	{
-		uint8* Buffer = (uint8*)AllocateBuffer(SizeOf);
-		Offset = 0;
-		BitMask = 0;
-		SetBit(Buffer, true);
-		// Here we are making the assumption that bitfields are aligned in the struct. Probably true. 
-		// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
-		// Have faith.
-		for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
-		{
-			if (Buffer[TestOffset])
-			{
-				Offset = TestOffset;
-				BitMask = (uint32)Buffer[TestOffset];
-				check(FMath::RoundUpToPowerOfTwo(uint32(BitMask)) == uint32(BitMask)); // better be only one bit on
-				break;
-			}
-		}
-		SetBit(Buffer, false); // return the memory to zero
-		check(BitMask); // or there was not a uint32 aligned chunk of memory that actually got the one.
-	}
-protected:
-	virtual void SetBit(void* Scratch, bool Value) = 0;
-};
-
-/** build a struct that has a method that will return the bitmask for a bitfield **/
-#define CPP_BOOL_PROPERTY_BITMASK_STRUCT(BitFieldName, ClassName) \
-	struct FDetermineBitMask_##ClassName##_##BitFieldName : public DetermineBitfieldOffsetAndMask\
-	{ \
-		FDetermineBitMask_##ClassName##_##BitFieldName() \
-		{ \
-			DoDetermineBitfieldOffsetAndMask(sizeof(ClassName)); \
-		} \
-		virtual void SetBit(void* Scratch, bool Value) \
-		{ \
-			((ClassName*)Scratch)->BitFieldName = Value ? 1 : 0; \
-		} \
-	} DetermineBitMask_##ClassName##_##BitFieldName
-
-/** helper to retrieve the bitmask **/
-#define CPP_BOOL_PROPERTY_BITMASK(BitFieldName, ClassName) \
-	DetermineBitMask_##ClassName##_##BitFieldName.BitMask
-
-/** helper to retrieve the offset **/
-#define CPP_BOOL_PROPERTY_OFFSET(BitFieldName, ClassName) \
-	DetermineBitMask_##ClassName##_##BitFieldName.Offset
 
 /** helper to calculate an array's dimensions **/
 #define CPP_ARRAY_DIM(ArrayName, ClassName) \

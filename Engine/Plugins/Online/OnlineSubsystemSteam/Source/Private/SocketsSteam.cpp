@@ -60,7 +60,7 @@ bool FSocketSteam::Listen(int32 MaxBacklog)
  *
  * @return true if successful, false otherwise
  */
-bool FSocketSteam::HasPendingConnection(bool& bHasPendingConnection) 
+bool FSocketSteam::WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime)
 {
 	/** Not supported - connectionless (UDP) only */
 	return false;

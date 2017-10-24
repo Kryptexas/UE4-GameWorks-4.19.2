@@ -64,6 +64,11 @@ public:
 		return FSkeletonTreeManager::Get().CreateSkeletonTree(InSkeleton, InSkeletonTreeArgs);
 	}
 
+	virtual TSharedRef<ISkeletonTree> CreateSkeletonTree(const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs) override
+	{
+		return FSkeletonTreeManager::Get().CreateSkeletonTree(InEditableSkeleton, InSkeletonTreeArgs);
+	}
+
 	virtual TSharedRef<class FWorkflowTabFactory> CreateSkeletonTreeTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree) override
 	{
 		return MakeShareable(new FSkeletonTreeSummoner(InHostingApp, InSkeletonTree));

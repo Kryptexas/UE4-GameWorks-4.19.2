@@ -16,6 +16,7 @@
 #include "Widgets/Colors/SColorPicker.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "EditorStyleSettings.h"
+#include "DetailLayoutBuilderImpl.h"
 
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
@@ -161,21 +162,25 @@ void SDetailsView::Construct(const FArguments& InArgs)
 				.OnTextChanged(this, &SDetailsView::OnFilterTextChanged)
 				.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
 			]
-		]
-		+SHorizontalBox::Slot()
-		.Padding( 4.0f, 0.0f, 0.0f, 0.0f )
-		.AutoWidth()
-		[
-			// Create the search box
-			SNew( SButton )
-			.OnClicked( this, &SDetailsView::OnOpenRawPropertyEditorClicked )
-			.IsEnabled( this, &SDetailsView::IsPropertyEditingEnabled )
-			.ToolTipText( LOCTEXT("RawPropertyEditorButtonLabel", "Open Selection in Property Matrix") )
-			[
-				SNew( SImage )
-				.Image( FEditorStyle::GetBrush("DetailsView.EditRawProperties") )
-			]
 		];
+
+	if (DetailsViewArgs.bShowPropertyMatrixButton)
+	{
+		FilterRow->AddSlot()
+			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			.AutoWidth()
+			[
+				// Create the property matrix button
+				SNew(SButton)
+				.OnClicked(this, &SDetailsView::OnOpenRawPropertyEditorClicked)
+				.IsEnabled(this, &SDetailsView::CanOpenRawPropertyEditor)
+				.ToolTipText(LOCTEXT("RawPropertyEditorButtonLabel", "Open Selection in Property Matrix"))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("DetailsView.EditRawProperties"))
+				]
+			];
+	}
 
 	if (DetailsViewArgs.bShowOptions)
 	{
@@ -280,6 +285,11 @@ TSharedRef<SDetailTree> SDetailsView::ConstructTreeView( TSharedRef<SScrollBar>&
 		.SelectionMode(ESelectionMode::None)
 		.HandleDirectionalNavigation(false)
 		.ExternalScrollbar(ScrollBar);
+}
+
+bool SDetailsView::CanOpenRawPropertyEditor() const
+{
+	return SelectedObjects.Num() > 0 && IsPropertyEditingEnabled();
 }
 
 FReply SDetailsView::OnOpenRawPropertyEditorClicked()
@@ -732,21 +742,24 @@ void SDetailsView::PreSetObject(int32 InNewNumObjects)
 		RootObjectNode->ClearObjectPackageOverrides();
 	}
 
-	for( auto ExternalRootNode : ExternalRootPropertyNodes )
+	for(const FDetailLayoutData& Layout : DetailLayouts)
 	{
-		if( ExternalRootNode.IsValid() )
+		FRootPropertyNodeList& ExternalRootPropertyNodes = Layout.DetailLayout->GetExternalRootPropertyNodes();
+		for (auto ExternalRootNode : ExternalRootPropertyNodes)
 		{
-			SaveExpandedItems( ExternalRootNode.ToSharedRef() );
-
-			FComplexPropertyNode* ComplexNode = ExternalRootNode->AsComplexNode();
-			if(ComplexNode)
+			if (ExternalRootNode.IsValid())
 			{
-				ComplexNode->Disconnect();
+				SaveExpandedItems(ExternalRootNode.ToSharedRef());
+
+				FComplexPropertyNode* ComplexNode = ExternalRootNode->AsComplexNode();
+				if (ComplexNode)
+				{
+					ComplexNode->Disconnect();
+				}
 			}
 		}
 	}
 
-	ExternalRootPropertyNodes.Empty();
 	RootPropertyNodes.Empty(InNewNumObjects);
 
 	if(DetailsViewArgs.bAllowMultipleTopLevelObjects)
@@ -809,13 +822,13 @@ void SDetailsView::PostSetObject()
 
 	switch ( DetailsViewArgs.DefaultsOnlyVisibility )
 	{
-	case FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Hide:
+	case EEditDefaultsOnlyNodeVisibility::Hide:
 		InitParams.bCreateDisableEditOnInstanceNodes = false;
 		break;
-	case FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Show:
+	case EEditDefaultsOnlyNodeVisibility::Show:
 		InitParams.bCreateDisableEditOnInstanceNodes = true;
 		break;
-	case FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic:
+	case EEditDefaultsOnlyNodeVisibility::Automatic:
 		InitParams.bCreateDisableEditOnInstanceNodes = HasClassDefaultObject();
 		break;
 	default:
@@ -833,46 +846,12 @@ void SDetailsView::PostSetObject()
 	}
 
 	UpdatePropertyMaps();
-
-	for( auto ExternalRootNode : ExternalRootPropertyNodes )
-	{
-		if( ExternalRootNode.IsValid() )
-		{
-			RestoreExpandedItems( ExternalRootNode.ToSharedRef() );
-		}
-	}
-
 	UpdateFilteredDetails();
 }
 
 void SDetailsView::SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate)
 {
 	OnObjectArrayChanged = OnObjectArrayChangedDelegate;
-}
-
-void SDetailsView::RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
-{
-	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
-}
-
-void SDetailsView::UnregisterInstancedCustomPropertyLayout( UStruct* Class )
-{
-	UnregisterInstancedCustomPropertyLayoutInternal(Class);
-}
-
-void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FComplexPropertyNode> ExternalRootNode)
-{
-	ExternalRootPropertyNodes.Add(ExternalRootNode);
-}
-
-bool SDetailsView::IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const
-{
-	return ExternalRootPropertyNodes.Contains(RootNode);
-}
-
-bool SDetailsView::IsCategoryHiddenByClass( const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName ) const
-{
-	return InRootNode->AsObjectNode() && InRootNode->AsObjectNode()->GetHiddenCategories().Contains( CategoryName );
 }
 
 bool SDetailsView::IsConnected() const

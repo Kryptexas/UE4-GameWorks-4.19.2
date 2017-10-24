@@ -42,15 +42,15 @@ namespace UnrealBuildTool.Rules
 				});
 
             bool bHasFlurrySDK =
-                (System.IO.Directory.Exists(System.IO.Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "Flurry")) &&
-                  System.IO.Directory.Exists(System.IO.Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "Flurry", "IOS"))) ||
-                (System.IO.Directory.Exists(System.IO.Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "NotForLicensees")) &&
-                  System.IO.Directory.Exists(System.IO.Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "NotForLicensees", "Flurry")) &&
-                  System.IO.Directory.Exists(System.IO.Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "NotForLicensees", "Flurry", "IOS")));
+                (System.IO.Directory.Exists(System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "Flurry")) &&
+                  System.IO.Directory.Exists(System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "Flurry", "IOS"))) ||
+                (System.IO.Directory.Exists(System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "NotForLicensees")) &&
+                  System.IO.Directory.Exists(System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "NotForLicensees", "Flurry")) &&
+                  System.IO.Directory.Exists(System.IO.Path.Combine(Target.UEThirdPartySourceDirectory, "NotForLicensees", "Flurry", "IOS")));
             if (bHasFlurrySDK)
             {
-                PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/");
-                PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/libFlurry_6.7.0.a");
+                PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/");
+                PublicAdditionalLibraries.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/libFlurry_6.7.0.a");
 
                 Definitions.Add("WITH_FLURRY=1");
             }

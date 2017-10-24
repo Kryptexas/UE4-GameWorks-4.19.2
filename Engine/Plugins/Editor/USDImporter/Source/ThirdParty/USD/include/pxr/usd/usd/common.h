@@ -24,6 +24,7 @@
 #ifndef USD_COMMON_H
 #define USD_COMMON_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/base/tf/declarePtrs.h"
 #include "pxr/base/tf/stringUtils.h"
@@ -33,6 +34,9 @@
 
 #include <string>
 #include <map>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 // Forward declare Usd classes.
 class UsdStage;
@@ -49,17 +53,23 @@ TF_DECLARE_WEAK_AND_REF_PTRS(UsdStage);
 typedef UsdStagePtr UsdStageWeakPtr;
 
 /// Return a human-readable description.
-USD_API std::string UsdDescribe(const UsdObject &);
+USD_API
+std::string UsdDescribe(const UsdObject &);
 /// \overload
-USD_API std::string UsdDescribe(const UsdStageRefPtr &);
+USD_API
+std::string UsdDescribe(const UsdStageRefPtr &);
 /// \overload
-USD_API std::string UsdDescribe(const UsdStageWeakPtr &);
+USD_API
+std::string UsdDescribe(const UsdStageWeakPtr &);
 /// \overload
-USD_API std::string UsdDescribe(const UsdStage *);
+USD_API
+std::string UsdDescribe(const UsdStage *);
 /// \overload
-USD_API std::string UsdDescribe(const UsdStage &);
+USD_API
+std::string UsdDescribe(const UsdStage &);
 /// \overload
-USD_API std::string UsdDescribe(const UsdStageCache &);
+USD_API
+std::string UsdDescribe(const UsdStageCache &);
 
 // XXX:
 // Currently used for querying composed values from ascii layers, so VtValue is
@@ -70,6 +80,9 @@ typedef std::map<class TfToken, VtValue,
 
 /// Returns true if the pipeline is configured to process / generate 
 /// USD only and stop generating tidScenes.
-USD_API bool UsdIsRetireLumosEnabled();
+USD_API
+bool UsdIsRetireLumosEnabled();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

@@ -23,38 +23,20 @@ public:
 	FD3D12CustomPresent(FOculusHMD* InOculusHMD);
 
 	// Implementation of FCustomPresent, called by Plugin itself
-	virtual ovrpRenderAPIType GetRenderAPI() const override;
-	virtual bool IsUsingCorrectDisplayAdapter() override;
-	virtual void UpdateMirrorTexture_RenderThread() override;
-
+	virtual bool IsUsingCorrectDisplayAdapter() const override;
 	virtual void* GetOvrpDevice() const override;
-	virtual EPixelFormat GetDefaultPixelFormat() const override;
-	virtual FTextureSetProxyPtr CreateTextureSet_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, bool bIsCubemap, const TArray<ovrpTextureHandle>& InTextures) override;
+	virtual FTextureRHIRef CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 InTexCreateFlags) override;
+	virtual void AliasTextureResources_RHIThread(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture) override;
 };
 
 
 FD3D12CustomPresent::FD3D12CustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_D3D12, PF_B8G8R8A8, true)
 {
-	CheckInGameThread();
-
-#ifdef DISABLE_RHI_THREAD
-	if (GRHISupportsRHIThread && GIsThreadedRendering && GUseRHIThread)
-	{
-		FSuspendRenderingThread SuspendRenderingThread(true);
-		GUseRHIThread = false;
-	}
-#endif
 }
 
 
-ovrpRenderAPIType FD3D12CustomPresent::GetRenderAPI() const
-{
-	return ovrpRenderAPI_D3D12;
-}
-
-
-bool FD3D12CustomPresent::IsUsingCorrectDisplayAdapter()
+bool FD3D12CustomPresent::IsUsingCorrectDisplayAdapter() const
 {
 	const void* luid;
 
@@ -78,56 +60,6 @@ bool FD3D12CustomPresent::IsUsingCorrectDisplayAdapter()
 	return true;
 }
 
-void FD3D12CustomPresent::UpdateMirrorTexture_RenderThread()
-{
-	SCOPE_CYCLE_COUNTER(STAT_BeginRendering);
-
-	CheckInRenderThread();
-
-	const ESpectatorScreenMode MirrorWindowMode = OculusHMD->GetSpectatorScreenMode();
-	const FVector2D MirrorWindowSize = OculusHMD->GetFrame_RenderThread()->WindowSize;
-
-	if (ovrp_GetInitialized())
-	{
-		// Need to destroy mirror texture?
-		if (MirrorTextureRHI.IsValid() && (MirrorWindowMode != ESpectatorScreenMode::Distorted ||
-			MirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY())))
-		{
-			ExecuteOnRHIThread([]()
-			{
-				ovrp_DestroyMirrorTexture2();
-			});
-
-			MirrorTextureRHI = nullptr;
-		}
-
-		// Need to create mirror texture?
-		if (!MirrorTextureRHI.IsValid() &&
-			MirrorWindowMode == ESpectatorScreenMode::Distorted &&
-			MirrorWindowSize.X != 0 && MirrorWindowSize.Y != 0)
-		{
-			FD3D12DynamicRHI* DynamicRHI = static_cast<FD3D12DynamicRHI*>(GDynamicRHI);
-			int Width = (int)MirrorWindowSize.X;
-			int Height = (int)MirrorWindowSize.Y;
-			ovrpTextureHandle TextureHandle;
-
-			ExecuteOnRHIThread([&]()
-			{
-				ovrp_SetupMirrorTexture2(GetOvrpDevice(), Height, Width, ovrpTextureFormat_B8G8R8A8_sRGB, &TextureHandle);
-			});
-
-			UE_LOG(LogHMD, Log, TEXT("Allocated a new mirror texture (size %d x %d)"), Width, Height);
-
-			MirrorTextureRHI = DynamicRHI->RHICreateTexture2DFromD3D12Resource(
-				PF_B8G8R8A8,
-				TexCreate_ShaderResource,
-				FClearValueBinding::None,
-				(ID3D12Resource*) TextureHandle);
-		}
-	}
-}
-
-
 void* FD3D12CustomPresent::GetOvrpDevice() const
 {
 	FD3D12DynamicRHI* DynamicRHI = static_cast<FD3D12DynamicRHI*>(GDynamicRHI);
@@ -135,32 +67,32 @@ void* FD3D12CustomPresent::GetOvrpDevice() const
 }
 
 
-EPixelFormat FD3D12CustomPresent::GetDefaultPixelFormat() const
-{
-	return PF_B8G8R8A8;
-}
-
-
-FTextureSetProxyPtr FD3D12CustomPresent::CreateTextureSet_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, uint32 InArraySize, bool bIsCubemap, const TArray<ovrpTextureHandle>& InTextures)
+FTextureRHIRef FD3D12CustomPresent::CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 InTexCreateFlags)
 {
 	CheckInRenderThread();
 
 	FD3D12DynamicRHI* DynamicRHI = static_cast<FD3D12DynamicRHI*>(GDynamicRHI);
 
-	FTexture2DRHIRef RHITexture;
+	switch (InResourceType)
 	{
-		RHITexture = DynamicRHI->RHICreateTexture2DFromD3D12Resource(InFormat, TexCreate_ShaderResource, FClearValueBinding::None, (ID3D12Resource*) InTextures[0]);
-	}
+	case RRT_Texture2D:
+		return DynamicRHI->RHICreateTexture2DFromResource(InFormat, InTexCreateFlags, InBinding, (ID3D12Resource*) InTexture).GetReference();
 
-	TArray<FTexture2DRHIRef> RHITextureSwapChain;
-	{
-		for (int32 TextureIndex = 0; TextureIndex < InTextures.Num(); ++TextureIndex)
-		{
-			RHITextureSwapChain.Add(DynamicRHI->RHICreateTexture2DFromD3D12Resource(InFormat, TexCreate_ShaderResource, FClearValueBinding::None, (ID3D12Resource*) InTextures[TextureIndex]));
-		}
-	}
+	case RRT_TextureCube:
+		return DynamicRHI->RHICreateTextureCubeFromResource(InFormat, InTexCreateFlags, InBinding, (ID3D12Resource*) InTexture).GetReference();
 
-	return CreateTextureSetProxy_D3D12(RHITexture, RHITextureSwapChain);
+	default:
+		return nullptr;
+	}
+}
+
+
+void FD3D12CustomPresent::AliasTextureResources_RHIThread(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture)
+{
+	CheckInRHIThread();
+
+	FD3D12DynamicRHI* DynamicRHI = static_cast<FD3D12DynamicRHI*>(GDynamicRHI);
+	DynamicRHI->RHIAliasTextureResources(DestTexture, SrcTexture);
 }
 
 

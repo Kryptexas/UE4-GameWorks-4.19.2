@@ -84,6 +84,17 @@ public:
 	{
 		return false;
 	}
+
+	const TArray<TWeakObjectPtr<UObject>>& GetSelectedObjects() const override
+	{
+		static TArray<TWeakObjectPtr<UObject>> NotSupported;
+		return NotSupported;
+	}
+
+	virtual bool HasClassDefaultObject() const override
+	{
+		return false;
+	}
 private:
 
 	SPropertyTreeViewImpl& View;
@@ -980,8 +991,7 @@ void SPropertyTreeViewImpl::FilterView( const FString& InFilterText )
 
 	FString ParseString = InFilterText;
 	// Remove whitespace from the front and back of the string
-	ParseString.Trim();
-	ParseString.TrimTrailing();
+	ParseString.TrimStartAndEndInline();
 	ParseString.ParseIntoArray(FilterStrings, TEXT(" "), true);
 
 	RootPropertyNode->FilterNodes( FilterStrings );

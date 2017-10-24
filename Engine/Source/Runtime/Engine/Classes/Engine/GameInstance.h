@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "UObject/Object.h"
 #include "Templates/SubclassOf.h"
 #include "Engine/EngineBaseTypes.h"
-#include "UObject/ScriptMacros.h"
+#include "Engine/NetworkDelegates.h"
 #include "GameInstance.generated.h"
 
 class AGameModeBase;
@@ -310,6 +311,12 @@ public:
 	virtual void HandleGameNetControlMessage(class UNetConnection* Connection, uint8 MessageByte, const FString& MessageStr)
 	{}
 	
+	/** Handle setting up encryption keys. Games that override this MUST call the delegate when their own (possibly async) processing is complete. */
+	virtual void ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate);
+
+	/** Called when a client receives the EncryptionAck control message from the server, will generally enable encryption. */
+	virtual void ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate);
+
 	/** Call to preload any content before loading a map URL, used during seamless travel as well as map loading */
 	virtual void PreloadContentForURL(FURL InURL);
 

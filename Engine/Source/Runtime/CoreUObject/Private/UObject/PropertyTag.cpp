@@ -167,7 +167,7 @@ FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 }
 
 // Property serializer.
-void FPropertyTag::SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults )
+void FPropertyTag::SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults ) const
 {
 	if (Property->GetClass() == UBoolProperty::StaticClass())
 	{

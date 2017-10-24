@@ -3,12 +3,10 @@
 /*=============================================================================
 	PlatformCommon.usf: Common shader code
 =============================================================================*/
-  
+
 #pragma once
 
 #include "/Engine/Public/Platform.ush"
-
-
 // These types are used for material translator generated code, or any functions the translated code can call
 #if PIXELSHADER
 	#define MaterialFloat half
@@ -1477,6 +1475,35 @@ bool RaySegmentHitSphere(float3 RayOrigin, float3 UnitRayDirection, float RayLen
 	float3 ClosestPointOnRay = DistanceAlongRay * UnitRayDirection;
 	float3 CenterToRay = RayOrigin + ClosestPointOnRay - SphereCenter;
 	return dot(CenterToRay, CenterToRay) <= Square(SphereRadius) && DistanceAlongRay > -SphereRadius && DistanceAlongRay - SphereRadius < RayLength;
+}
+
+/**
+ * Returns near intersection in x, far intersection in y, or both -1 if no intersection.
+ * RayDirection does not need to be unit length.
+ */
+float2 RayIntersectSphere(float3 RayOrigin, float3 RayDirection, float4 Sphere)
+{
+	float3 LocalPosition = RayOrigin - Sphere.xyz;
+	float LocalPositionSqr = dot(LocalPosition, LocalPosition);
+
+	float3 QuadraticCoef;
+	QuadraticCoef.x = dot(RayDirection, RayDirection);
+	QuadraticCoef.y = 2 * dot(RayDirection, LocalPosition);
+	QuadraticCoef.z = LocalPositionSqr - Sphere.w * Sphere.w;
+
+	float Discriminant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.x * QuadraticCoef.z;
+
+	float2 Intersections = -1;
+
+	// Only continue if the ray intersects the sphere
+	FLATTEN
+	if (Discriminant >= 0)
+	{
+		float SqrtDiscriminant = sqrt(Discriminant);
+		Intersections = (-QuadraticCoef.y + float2(-1, 1) * SqrtDiscriminant) / (2 * QuadraticCoef.x);
+	}
+
+	return Intersections;
 }
 
 /** Transforms a vector from tangent space to world space */

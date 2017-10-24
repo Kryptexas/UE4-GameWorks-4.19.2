@@ -24,13 +24,6 @@ namespace D3D12RHI
 			bLatchedGProfilingGPU = false; // we do NOT permit an ordinary GPU profile during hitch profiles
 		}
 
-		if (bLatchedGProfilingGPU)
-		{
-			// Issue a bunch of GPU work at the beginning of the frame, to make sure that we are GPU bound
-			// We can't isolate idle time from GPU timestamps
-			InRHI->IssueLongGPUTask();
-		}
-
 		// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 		if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 		{

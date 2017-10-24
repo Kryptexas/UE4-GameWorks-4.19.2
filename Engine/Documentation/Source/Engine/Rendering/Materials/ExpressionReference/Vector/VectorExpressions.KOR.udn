@@ -1,14 +1,30 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3474197
 Availability:Public
-Title:Vector 표현식
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Crumbs: %ROOT%
+Title: Vector 표현식
 Description:위치나 노멀같은 벡터값을 출력하는 표현식입니다.
-Version: 4.9
-tags:Materials
+Type: Reference
+Version:4.16
+Parent:Engine/Rendering/Materials
+reference-image:PreSkinnedTriPlanar.gif
+reference-image:TriPlanarMaterial.gif
+reference-image:PS_LocalPositionMaterial.gif
+reference-image:PS_DefaultMaterial.gif
+Order:
+Tags:Materials
+topic-image:VectorExpression_Topic.png
+
+
 
 [EXCERPT:TOC]
 [TOC(start:2)]
 [/EXCERPT:TOC]
+
+
+여기서는 RGBA 에 매핑되는 벡터 값을 출력하는 벡터 표현식을 확인할 수 있습니다. 캐릭터가 특정 영역에 들어서면 머티리얼이 그에 반응하여 캐릭터의 색을 바꾸는 
+것과 같은 여러가지 다양한 이펙트를 만드는 데 사용할 수 있습니다. 공간 로컬 스타일 머티리얼 이펙트를 제어할 수 있는 것들도 여러가지 더 있는데, 
+아래 예제에서 자세히 살펴볼 수 있습니다.
+
 
 [EXCERPT:ActorPositionWS]
 ## ActorPositionWS
@@ -71,7 +87,6 @@ LightVector 표현식은 Emissive 출력 계산시에는 사용할 수 없으며
 -->
 
 
-
 ## Object Bounds
 
 Object Bounds (오브젝트 바운드)는 오브젝트 각 축의 크기를 출력하는 표현식입니다. 컬러로 사용되는 경우 X Y Z 축은 각각 R G B 에 해당합니다.
@@ -115,6 +130,78 @@ PixelNormalWS 는 현재 노멀에 따라 픽셀이 향하고 있는 방향을 �
 이 예제에서 PixelNormalWS 는 베이스 컬러에 물려 있습니다. 픽셀별 결과를 내기 위해 노멀 맵을 어찌 사용했는지 눈여겨 보세요.
 
 [/EXCERPT:PixelNormalWS]
+
+
+
+
+## Pre-Skinned Local Normal 
+
+**Pre-Skinned Local Normals** 벡터 표현식은 스켈레탈 및 스태틱 메시의 로컬 표면 위치를 나타내는 3 채널 벡터 값을 출력합니다. 머티리얼에서 3면형 로컬 축 평행 및 메시 평행 
+이펙트를 얻을 수 있습니다.
+
+이 예제에서 머티리얼은 메시의 로컬 표면 노멀에 평행인 3면형 텍스처를 사용하고 있습니다.
+
+[REGION:lightbox]
+[![](PreSkinnedTriPlanarSetup.png)(w:700)](PreSkinnedTriPlanarSetup.png)
+[/REGION]
+[REGION:caption]
+_클릭하면 이미지 원본을 확인합니다._
+[/REGION]
+
+[REGION:imagetable]
+| [INCLUDE:#LocalNormal1] | [INCLUDE:#LocalNormal2] |  
+| --- | --- |
+| Tri-Planar Pre-Skinned Local Normal Vector Expression | Tri-Planar Material |
+[/REGION]
+
+<!---
+[EXCERPT:LocalNormal1]
+[REGION:asyncgif]
+![](PreSkinnedTriPlanar.gif)(w:250)
+[/REGION]
+[/EXCERPT]
+
+[EXCERPT:LocalNormal2]
+[REGION:asyncgif]
+![](TriPlanarMaterial.gif)(w:250)
+[/REGION]
+[/EXCERPT]
+--->
+
+## Pre-Skinned Local Position
+
+**Pre-Skinned Local Position** 벡터 표현식은 버텍스별 출력에서 사용할 수 있는 스켈레탈 메시 기본 포즈 위치 데이터에 접근 가능한 3채널 벡터 값을 출력합니다.
+애니메이션 캐릭터에 로컬 이펙트를 만들 수 있습니다. 이 벡터 표현식은 스태틱 메시와도 사용할 수 있는데, 
+표준 로컬 위치를 반환합니다.
+
+[REGION:lightbox]
+[![](PreSkinnedLocalPos.png)(w:500)](PreSkinnedLocalPos.png)
+[/REGION]
+[REGION:caption]
+_클릭하면 이미지 원본을 확인합니다._
+[/REGION]
+
+이 예제에서, 스켈레탈 메시의 기본 포즈가 오른쪽의 기본 UV 매핑에 대한 매핑에 사용되었습니다.
+
+[REGION:imagetable]
+| [INCLUDE:#LocalPos1] | [INCLUDE:#LocalPos2] |  
+| --- | --- |
+| Pre-Skinned Local Position Vector Expression | Skeletal Mesh's Default UV Layout |
+[/REGION]
+
+<!---
+[EXCERPT:LocalPos1]
+[REGION:asyncgif]
+![](PS_LocalPositionMaterial.gif)(w:250)
+[/REGION]
+[/EXCERPT]
+
+[EXCERPT:LocalPos2]
+[REGION:asyncgif]
+![](PS_DefaultMaterial.gif)(w:250)
+[/REGION]
+[/EXCERPT]
+--->
 
 
 ## ReflectionVectorWS
@@ -227,14 +314,3 @@ Vector Noise 머티리얼 표현식에서 찾을 수 있는 다양한 노이즈 
 | Voronoi | 보로노이 - *Noise* 표현식의 Voronoi 함수와 인스트럭션 수나 알고리즘은 같지만, RGB 는 각 Voronoi 셀의 가장 가까운 시드 포인트 위치이며, A 는 그 시드 포인트까지의 거리입니다. |
 [/EXCERPT]
 -->
-
-
-
-
-
-
-
-
-
-
-

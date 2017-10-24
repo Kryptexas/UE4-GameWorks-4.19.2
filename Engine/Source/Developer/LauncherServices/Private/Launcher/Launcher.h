@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
-#include "Interfaces/ILauncher.h"
+#include "ILauncher.h"
+
 
 /**
  * Implements the game launcher.
@@ -14,14 +15,12 @@ class FLauncher
 {
 public:
 
-	//~ Begin ILauncher Interface
+	//~ ILauncher Interface
 
-	virtual ILauncherWorkerPtr Launch( const ITargetDeviceProxyManagerRef& DeviceProxyManager, const ILauncherProfileRef& Profile ) override;
-
-	//~ End ILauncher Interface
+	virtual ILauncherWorkerPtr Launch(const TSharedRef<ITargetDeviceProxyManager>& DeviceProxyManager, const ILauncherProfileRef& Profile) override;
 
 private:
 
-	// Worker counter, used to generate unique thread names for each worker
+	/** Worker counter, used to generate unique thread names for each worker. */
 	static FThreadSafeCounter WorkerCounter;
 };

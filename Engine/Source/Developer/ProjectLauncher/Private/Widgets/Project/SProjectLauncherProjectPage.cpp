@@ -1,8 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Project/SProjectLauncherProjectPage.h"
+#include "SProjectLauncherProjectPage.h"
+
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
+
 #include "Widgets/Project/SProjectLauncherProjectPicker.h"
 
 
@@ -12,7 +14,7 @@
 /* SProjectLauncherProjectPage interface
  *****************************************************************************/
 
-void SProjectLauncherProjectPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel, bool InShowConfig )
+void SProjectLauncherProjectPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, bool InShowConfig)
 {
 	Model = InModel;
 

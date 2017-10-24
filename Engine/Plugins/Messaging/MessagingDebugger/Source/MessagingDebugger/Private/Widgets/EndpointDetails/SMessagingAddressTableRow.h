@@ -2,14 +2,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
 #include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/MessagingDebuggerModel.h"
 #include "Widgets/Views/SListView.h"
-#include "SlateOptMacros.h"
+
+class FMessagingDebuggerModel;
+class ISlateStyle;
+
+struct FMessageTracerAddressInfo;
+
 
 /**
  * Implements a row widget for the dispatch state list.

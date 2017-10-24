@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:3355812
+﻿INTSourceChangelist:3587824
 Availability:Docs
 Title:VR 스플래시 화면
-Crumbs:%ROOT%, Platforms, Platforms/VR
+Crumbs:%ROOT%
 Description:VR 스플래시 화면 및 무비 셋업 및 작업 안내입니다.
-Navigation:platform
 Version: 4.14
 parent:Platforms/VR
 Type:overview
 Skilllevel: Intermediate
+Tags:VR
+Order:2
+
 
 [TOC(start:2)]
 
@@ -15,12 +17,13 @@ Skilllevel: Intermediate
 
 ## VR 스프래시 화면 지원 플랫폼
 
-VR 스플래시 화면은 다음 VR 플랫폼에서만 작동할 것입니다.
+VR 스플래시 화면이 작동하는 VR 플랫폼은 다음과 같습니다:
 
-* **Oculus VR**
-* **Gear VR**
-* **Steam VR**
-* **PSVR**
+* [Oculus VR](https://www.oculus.com/)
+* [Steam VR](http://store.steampowered.com/steamvr)
+* [PSVR](https://www.playstation.com/en-us/explore/playstation-vr/)
+* [Gear VR](http://www.samsung.com/global/galaxy/gear-vr/)
+* [Google Daydream](https://vr.google.com/daydream/)
 
 ## VR 스플래시 화면 프로젝트 셋업
 
@@ -49,7 +52,7 @@ Pawn 및 Game Mode 셋업이 완료되었으니, Pawn 의 이벤트 그래프에
 여기서는 Pawn 의 이벤트 그래프에서 VR 스플래시 화면 셋업 방법을 살펴보겠습니다.
 
 [region:note]
-VR 스플래시 화면 셋업에 가장 단순한 방법은 다음과 같습니다. 각 프로젝트마다 필요한 부분이 다르겠지만, VR 스플래시 화면 전반적인 셋업은 설명된 부분과 매우 비슷할 것입니다.
+참고로 이 예제는 UE4 에서 Auto Loading Splash Screens (자동 로딩 스플래시 화면)을 사용하는 가장 간단한 접근법을 보여줍니다. 실제로는 레벨 전환 도중 레벨 스트리밍 완료까지 걸리는 시간을 고려하여 수동으로 스플래시 화면을 수동으로 표시하고 숨겨줘야 할 것입니다.
 [/region]
 1. VR_Pawn 을 열고 **이벤트 그래프** 로 갑니다. 이벤트 그래프 안에 우클릭한 뒤 다음 블루프린트 노드를 추가합니다:
 

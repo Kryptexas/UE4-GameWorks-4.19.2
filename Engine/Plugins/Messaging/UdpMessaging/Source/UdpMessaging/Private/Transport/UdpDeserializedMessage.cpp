@@ -1,11 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpDeserializedMessage.h"
+
+#include "Backends/JsonStructDeserializerBackend.h"
+#include "IMessageAttachment.h"
 #include "Serialization/MemoryReader.h"
+#include "StructDeserializer.h"
+#include "Transport/UdpReassembledMessage.h"
+#include "UObject/Class.h"
 #include "UObject/Package.h"
 #include "UdpMessagingPrivate.h"
-#include "Backends/JsonStructDeserializerBackend.h"
-#include "StructDeserializer.h"
 
 
 /* FUdpDeserializedMessage structors
@@ -35,7 +39,7 @@ FUdpDeserializedMessage::~FUdpDeserializedMessage()
 /* FUdpDeserializedMessage interface
  *****************************************************************************/
 
-bool FUdpDeserializedMessage::Deserialize(const FReassembledUdpMessage& ReassembledMessage)
+bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessage& ReassembledMessage)
 {
 	// Note that some complex values are deserialized manually here, so that we
 	// can sanity check their values. @see FUdpSerializeMessageTask::DoTask()
@@ -162,7 +166,7 @@ const TWeakObjectPtr<UScriptStruct>& FUdpDeserializedMessage::GetMessageTypeInfo
 }
 
 
-IMessageContextPtr FUdpDeserializedMessage::GetOriginalContext() const
+TSharedPtr<IMessageContext, ESPMode::ThreadSafe> FUdpDeserializedMessage::GetOriginalContext() const
 {
 	return nullptr;
 }

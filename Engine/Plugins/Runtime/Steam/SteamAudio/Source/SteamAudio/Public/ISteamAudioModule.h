@@ -6,7 +6,7 @@
 
 #include "IAudioExtensionPlugin.h"
 
-class ISteamAudioModule : public IAudioPlugin
+class ISteamAudioModule : public IModuleInterface
 {
 public:
 

@@ -1138,8 +1138,8 @@ void FTranslationEditor::ImportLatestFromLocalizationService_Execute()
 	TSharedRef<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadTargetFileOp = ILocalizationServiceOperation::Create<FDownloadLocalizationTargetFile>();
 	DownloadTargetFileOp->SetInTargetGuid(AssociatedLocalizationTarget->Settings.Guid);
 	DownloadTargetFileOp->SetInLocale(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
-	FString Path = FPaths::GameSavedDir() / "Temp" / "LastImportFromLocService.po";
-	FPaths::MakePathRelativeTo(Path, *FPaths::GameDir());
+	FString Path = FPaths::ProjectSavedDir() / "Temp" / "LastImportFromLocService.po";
+	FPaths::MakePathRelativeTo(Path, *FPaths::ProjectDir());
 	DownloadTargetFileOp->SetInRelativeOutputFilePathAndName(Path);
 
 	GWarn->BeginSlowTask(LOCTEXT("ImportingFromLocalizationService", "Importing Latest from Localization Service..."), true);
@@ -1177,7 +1177,7 @@ void FTranslationEditor::DownloadLatestFromLocalizationServiceComplete(const FLo
 
 		if (InTargetGuid == AssociatedLocalizationTarget->Settings.Guid && InLocale == FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)) && !InRelativeOutputFilePathAndName.IsEmpty())
 		{
-			FString AbsoluteFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / InRelativeOutputFilePathAndName);
+			FString AbsoluteFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / InRelativeOutputFilePathAndName);
 			if (FPaths::FileExists(AbsoluteFilePathAndName))
 			{
 				GWarn->StatusUpdate(50, 100, LOCTEXT("DownloadFromLocalizationServiceFinishedNowImporting", "Download from Localization Service Finished, Importing..."));

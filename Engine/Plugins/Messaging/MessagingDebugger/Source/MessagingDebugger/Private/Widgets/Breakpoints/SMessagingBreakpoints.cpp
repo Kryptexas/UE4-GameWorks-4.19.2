@@ -1,7 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Breakpoints/SMessagingBreakpoints.h"
-#include "Widgets/Views/SListView.h"
+
+#include "IMessageTracer.h"
+#include "IMessageTracerBreakpoint.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
 #include "Widgets/Breakpoints/SMessagingBreakpointsTableRow.h"
 
 

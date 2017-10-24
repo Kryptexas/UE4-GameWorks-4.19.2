@@ -5,6 +5,7 @@
 #include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "Animation/AnimBlueprint.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "PersonaAssetFamily"
 
@@ -19,30 +20,25 @@ FPersonaAssetFamily::FPersonaAssetFamily(const UObject* InFromObject)
 		if (InFromObject->IsA<USkeleton>())
 		{
 			Skeleton = CastChecked<USkeleton>(InFromObject);
-			Mesh = Skeleton->GetPreviewMesh();
 		}
 		else if (InFromObject->IsA<UAnimationAsset>())
 		{
 			AnimationAsset = CastChecked<UAnimationAsset>(InFromObject);
-			Skeleton = AnimationAsset->GetSkeleton();
-			Mesh = AnimationAsset->GetPreviewMesh();
-			if (Mesh == nullptr)
-			{
-				Mesh = Skeleton->GetPreviewMesh();
-			}
 		}
 		else if (InFromObject->IsA<USkeletalMesh>())
 		{
 			Mesh = CastChecked<USkeletalMesh>(InFromObject);
-			Skeleton = Mesh->Skeleton;
 		}
 		else if (InFromObject->IsA<UAnimBlueprint>())
 		{
 			AnimBlueprint = CastChecked<UAnimBlueprint>(InFromObject);
-			Skeleton = AnimBlueprint->TargetSkeleton;
-			check(AnimBlueprint->TargetSkeleton);
-			Mesh = AnimBlueprint->TargetSkeleton->GetPreviewMesh();
 		}
+		else if (InFromObject->IsA<UPhysicsAsset>())
+		{
+			PhysicsAsset = CastChecked<UPhysicsAsset>(InFromObject);
+		}
+
+		FindCounterpartAssets(InFromObject, Skeleton, Mesh);
 	}
 }
 
@@ -53,6 +49,7 @@ void FPersonaAssetFamily::GetAssetTypes(TArray<UClass*>& OutAssetTypes) const
 	OutAssetTypes.Add(USkeletalMesh::StaticClass());
 	OutAssetTypes.Add(UAnimationAsset::StaticClass());
 	OutAssetTypes.Add(UAnimBlueprint::StaticClass());
+	OutAssetTypes.Add(UPhysicsAsset::StaticClass());
 }
 
 template<typename AssetType>
@@ -124,6 +121,33 @@ FAssetData FPersonaAssetFamily::FindAssetOfType(UClass* InAssetClass) const
 				}
 			}
 		}
+		else if (InAssetClass->IsChildOf<UPhysicsAsset>())
+		{
+			if (PhysicsAsset.IsValid())
+			{
+				return FAssetData(PhysicsAsset.Get());
+			}
+			else
+			{
+				TArray<FAssetData> Assets;
+
+				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+				FARFilter Filter;
+				Filter.bRecursiveClasses = true;
+				Filter.ClassNames.Add(UPhysicsAsset::StaticClass()->GetFName());
+				if(Mesh.IsValid())
+				{
+					Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PreviewSkeletalMesh), FAssetData(Mesh.Get()).ObjectPath.ToString());
+				}
+
+				AssetRegistryModule.Get().GetAssets(Filter, Assets);
+
+				if (Assets.Num() > 0)
+				{
+					return Assets[0];
+				}
+			}
+		}
 	}
 
 	return FAssetData();
@@ -150,6 +174,19 @@ void FPersonaAssetFamily::FindAssetsOfType(UClass* InAssetClass, TArray<FAssetDa
 		{
 			FindAssets<UAnimBlueprint>(Skeleton.Get(), OutAssets, "TargetSkeleton");
 		}
+		else if (InAssetClass->IsChildOf<UPhysicsAsset>())
+		{
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+			FARFilter Filter;
+			Filter.bRecursiveClasses = true;
+			Filter.ClassNames.Add(UPhysicsAsset::StaticClass()->GetFName());
+			if(Mesh != nullptr)
+			{
+				Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PreviewSkeletalMesh), FAssetData(Mesh.Get()).ObjectPath.ToString());
+			}
+
+			AssetRegistryModule.Get().GetAssets(Filter, OutAssets);
+		}
 	}
 }
 
@@ -172,6 +209,10 @@ FText FPersonaAssetFamily::GetAssetTypeDisplayName(UClass* InAssetClass) const
 		else if (InAssetClass->IsChildOf<UAnimBlueprint>())
 		{
 			return LOCTEXT("AnimBlueprintAssetDisplayName", "Blueprint");
+		}
+		else if (InAssetClass->IsChildOf<UPhysicsAsset>())
+		{
+			return LOCTEXT("PhysicsAssetDisplayName", "Physics");
 		}
 	}
 
@@ -203,6 +244,14 @@ bool FPersonaAssetFamily::IsAssetCompatible(const FAssetData& InAssetData) const
 				return *TargetSkeleton == FAssetData(Skeleton.Get()).GetExportTextName();
 			}
 		}
+		else if (Class->IsChildOf<UPhysicsAsset>())
+		{
+			const FString* PreviewMesh = InAssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PreviewSkeletalMesh));
+			if (PreviewMesh && Mesh.IsValid())
+			{
+				return *PreviewMesh == FAssetData(Mesh.Get()).ObjectPath.ToString();
+			}
+		}
 	}
 
 	return false;
@@ -227,6 +276,10 @@ UClass* FPersonaAssetFamily::GetAssetFamilyClass(UClass* InClass) const
 		else if (InClass->IsChildOf<UAnimBlueprint>())
 		{
 			return UAnimBlueprint::StaticClass();
+		}
+		else if (InClass->IsChildOf<UPhysicsAsset>())
+		{
+			return UPhysicsAsset::StaticClass();
 		}
 	}
 
@@ -256,9 +309,74 @@ void FPersonaAssetFamily::RecordAssetOpened(const FAssetData& InAssetData)
 			{
 				AnimBlueprint = Cast<UAnimBlueprint>(InAssetData.GetAsset());
 			}
+			else if (Class->IsChildOf<UPhysicsAsset>())
+			{
+				PhysicsAsset = Cast<UPhysicsAsset>(InAssetData.GetAsset());
+			}
 		}
 
 		OnAssetOpened.Broadcast(InAssetData.GetAsset());
+	}
+}
+
+void FPersonaAssetFamily::FindCounterpartAssets(const UObject* InAsset, TWeakObjectPtr<const USkeleton>& OutSkeleton, TWeakObjectPtr<const USkeletalMesh>& OutMesh)
+{
+	const USkeleton* CounterpartSkeleton = OutSkeleton.Get();
+	const USkeletalMesh* CounterpartMesh = OutMesh.Get();
+	FindCounterpartAssets(InAsset, CounterpartSkeleton, CounterpartMesh);
+	OutSkeleton = CounterpartSkeleton;
+	OutMesh = CounterpartMesh;
+}
+
+void FPersonaAssetFamily::FindCounterpartAssets(const UObject* InAsset, const USkeleton*& OutSkeleton, const USkeletalMesh*& OutMesh)
+{
+	if (InAsset->IsA<USkeleton>())
+	{
+		OutSkeleton = CastChecked<USkeleton>(InAsset);
+		OutMesh = OutSkeleton->GetPreviewMesh();
+		if(OutMesh == nullptr)
+		{
+			OutMesh = OutSkeleton->FindCompatibleMesh();
+		}
+	}
+	else if (InAsset->IsA<UAnimationAsset>())
+	{
+		const UAnimationAsset* AnimationAsset = CastChecked<const UAnimationAsset>(InAsset);
+		OutSkeleton = AnimationAsset->GetSkeleton();
+		OutMesh = AnimationAsset->GetPreviewMesh();
+		if (OutMesh == nullptr)
+		{
+			OutMesh = OutSkeleton->GetPreviewMesh();
+		}
+		if(OutMesh == nullptr)
+		{
+			OutMesh = OutSkeleton->FindCompatibleMesh();
+		}
+	}
+	else if (InAsset->IsA<USkeletalMesh>())
+	{
+		OutMesh = CastChecked<USkeletalMesh>(InAsset);
+		OutSkeleton = OutMesh->Skeleton;
+	}
+	else if (InAsset->IsA<UAnimBlueprint>())
+	{
+		const UAnimBlueprint* AnimBlueprint = CastChecked<const UAnimBlueprint>(InAsset);
+		OutSkeleton = AnimBlueprint->TargetSkeleton;
+		check(AnimBlueprint->TargetSkeleton);
+		OutMesh = AnimBlueprint->TargetSkeleton->GetPreviewMesh();
+		if(OutMesh == nullptr)
+		{
+			OutMesh = OutSkeleton->FindCompatibleMesh();
+		}
+	}
+	else if (InAsset->IsA<UPhysicsAsset>())
+	{
+		const UPhysicsAsset* PhysicsAsset = CastChecked<const UPhysicsAsset>(InAsset);
+		OutMesh = PhysicsAsset->PreviewSkeletalMesh.LoadSynchronous();
+		if(OutMesh != nullptr)
+		{
+			OutSkeleton = OutMesh->Skeleton;
+		}
 	}
 }
 

@@ -1,24 +1,30 @@
-﻿INTSourceChangelist:3464851
-Availability:Public
+﻿INTSourceChangelist:3477876
+Availability: Docs
+Crumbs: %ROOT%
 Title:스켈레탈 콘트롤
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버를 적용시킬 수 있는 애니메이션 노드입니다.
-version: 4.16
-topic-image:Engine/Animation/Overview/SkeletonControlTopic.png
+Type: Landing
+Version: 4.16
+Parent: Engine/Animation/NodeReference
+Order: 1
+Tags:Animation
+Tags:Animation Blending
+Tags:Skeletal Controls
+topic-image:SkeletalControlTopicCompact.png
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**SkeletalControl** (스켈레탈 콘트롤) (또는 SkelControl (스켈 콘트롤))을 통해 스켈레톤에 있는 본을 직접 제어할 수 있습니다. Animation Blueprint (애니메이션 블루프린트) 안에서 사용되며, 개별 본 제어, IK 체인 생성 등의 작업에 쓰입니다.내재된 스켈레톤에 대한 직접 제어할 수 있다는 것은, 절차적이고 동적으로 구동되는 애니메이션을 만들 수 있다는 것입니다. 하나의 본에 대한 Transform(트랜스폼) 작업이 다른 본을 움직일 수도 있고, 캐릭터에 걷기 애니메이션을 재생할 때 땅에 발을 일치시킬 수도 있습니다. 
-AnimationSequence (애니메이션 시퀀스)에 의해 적용된 본 트랜스폼을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
+**SkeletalControl** (스켈레탈 콘트롤) (또는 SkelControl (스켈 콘트롤))을 통해 [스켈레톤](Engine/Animation/Skeleton) 에 있는 본을 직접 제어할 수 있습니다. [애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 안에서 사용되며, 개별 본 제어, IK 체인 생성 등의 작업에 쓰입니다.내재된 스켈레톤에 대한 직접 제어할 수 있다는 것은, 절차적이고 동적으로 구동되는 애니메이션을 만들 수 있다는 것입니다. 하나의 본에 대한 Transform(트랜스폼) 작업이 다른 본을 움직일 수도 있고, 캐릭터에 걷기 애니메이션을 재생할 때 땅에 발을 일치시킬 수도 있습니다. 
+[애니메이션 시퀀스](Engine/Animation/Sequences) 에 의해 적용된 본 트랜스폼을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
 [/EXCERPT:Intro]
 
 
 ## 공통 핀 및 프로퍼티
 
-모든 _스켈레탈 콘트롤_ 에 공통인 핀과 프로퍼티가 몇 가지 있습니다. 그에 대한 설명은 다음과 같습니다.
+가능한 프로퍼티는 대부분 노드 자체에 기반하고 있지만, 모든 _스켈레탈 콘트롤_ 에 공통인 핀과 프로퍼티가 몇 가지 있습니다. 그에 대한 설명은 다음과 같습니다.
 
 | 핀 | 설명 |
 | --- | ----------- |
@@ -70,7 +76,8 @@ AnimationSequence (애니메이션 시퀀스)에 의해 적용된 본 트랜스�
 		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
 		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")	
+		* [](Engine\Animation\NodeReference\SkeletalControls\RigidBody "%Engine\Animation\NodeReference\SkeletalControls\RigidBody:description%")			
 	[/PARAM]
 [/OBJECT]
 

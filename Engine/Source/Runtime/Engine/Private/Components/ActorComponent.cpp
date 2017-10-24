@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
 #include "Components/ActorComponent.h"
@@ -203,6 +203,7 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
 		if (IsTemplate())
@@ -239,6 +240,7 @@ void UActorComponent::PostLoad()
 			}
 		}
 	}
+#endif
 
 	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 	{
@@ -727,6 +729,8 @@ void UActorComponent::OnUnregister()
 {
 	check(bRegistered);
 	bRegistered = false;
+
+	ClearNeedEndOfFrameUpdate();
 }
 
 void UActorComponent::InitializeComponent()
@@ -1203,7 +1207,6 @@ void UActorComponent::CreatePhysicsState()
 
 		// Broadcast delegate
 		GlobalCreatePhysicsDelegate.Broadcast(this);
-		InstanceCreatePhysicsDelegate.Broadcast();
 	}
 }
 
@@ -1215,7 +1218,6 @@ void UActorComponent::DestroyPhysicsState()
 	{
 		// Broadcast delegate
 		GlobalDestroyPhysicsDelegate.Broadcast(this);
-		InstanceDestroyPhysicsDelegate.Broadcast();
 
 		ensureMsgf(bRegistered, TEXT("Component has physics state when not registered (%s)"), *GetFullName()); // should not have physics state unless we are registered
 
@@ -1428,6 +1430,18 @@ void UActorComponent::MarkForNeededEndOfFrameUpdate()
 	{
 		// we don't have a world, do it right now.
 		DoDeferredRenderUpdates_Concurrent();
+	}
+}
+
+void UActorComponent::ClearNeedEndOfFrameUpdate_Internal()
+{
+	// If this is being garbage collected we don't really need to worry about clearing this
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->ClearActorComponentEndOfFrameUpdate(this);
+		}
 	}
 }
 

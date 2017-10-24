@@ -11,6 +11,7 @@ public class HTTPChunkInstaller : ModuleRules
             new string[] {
                 "BuildPatchServices",
                 "Core",
+				"ApplicationCore",
                 "Engine",
                 "Http",
                 "Json",

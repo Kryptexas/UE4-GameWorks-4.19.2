@@ -9,6 +9,8 @@
 
 class FVoicePacket;
 
+ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogVoiceEngine, Display, All);
+
 /** Enable to pipe local voice data back to this client as remote data */
 #define VOICE_LOOPBACK !UE_BUILD_SHIPPING
 

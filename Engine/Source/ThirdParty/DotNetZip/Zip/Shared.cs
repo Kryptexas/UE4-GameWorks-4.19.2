@@ -158,9 +158,12 @@ namespace Ionic.Zip
             return SimplifyFwdSlashPath(pathName);
         }
 
-
-        static System.Text.Encoding ibm437 = System.Text.Encoding.GetEncoding("IBM437");
-        static System.Text.Encoding utf8 = System.Text.Encoding.GetEncoding("UTF-8");
+		static System.Text.Encoding utf8 = System.Text.Encoding.GetEncoding("UTF-8");
+#if NET_CORE
+        public static System.Text.Encoding ibm437 = utf8;
+#else
+        public static System.Text.Encoding ibm437 = System.Text.Encoding.GetEncoding("IBM437");
+#endif
 
         internal static byte[] StringToByteArray(string value, System.Text.Encoding encoding)
         {
@@ -610,8 +613,14 @@ namespace Ionic.Zip
                 {
                     // Check if we can call GetHRForException,
                     // which makes unmanaged code calls.
+                #if NET_CORE
+                    bool bIsUnrestricted = true;
+                #else
                     var p = new SecurityPermission(SecurityPermissionFlag.UnmanagedCode);
-                    if (p.IsUnrestricted())
+                    bool bIsUnrestricted = p.IsUnrestricted();
+                #endif
+
+                    if (bIsUnrestricted)
                     {
                         uint hresult = _HRForException(ioexc1);
                         if (hresult != 0x80070021)  // ERROR_LOCK_VIOLATION

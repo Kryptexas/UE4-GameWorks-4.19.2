@@ -37,6 +37,7 @@
 #include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Engine/StaticMesh.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
@@ -126,8 +127,6 @@ public:
 	/** Used to store lightmap data during RerunConstructionScripts */
 	struct FLightMapInstanceData
 	{
-		/** Transform of instance */
-		FTransform		Transform;
 		/** MapBuildDataId from LODData */
 		TArray<FGuid>	MapBuildDataIds;
 	};
@@ -290,6 +289,8 @@ void UStaticMeshComponent::AddReferencedObjects(UObject* InThis, FReferenceColle
 
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::StaticMesh);
+
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
@@ -304,6 +305,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 
+#if WITH_EDITORONLY_DATA
 	if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
 	{
 		check(AttachmentCounter.GetValue() == 0);
@@ -332,6 +334,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 	{
 		GetBodyInstance()->bAutoWeld = false;	//existing content may rely on no auto welding
 	}
+#endif
 }
 
 void UStaticMeshComponent::PostInitProperties()
@@ -851,25 +854,21 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 			const FVector2D& Scale = Lightmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds		 = Bounds;
-				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity; // Set the PackedRelativeBox to incremental level insertion.
-				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
-				StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
+				const float TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetTexture(LightmapIndex), Bounds, TexelFactor, PackedRelativeBox_Identity);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetAOMaterialMaskTexture(), Bounds, TexelFactor, PackedRelativeBox_Identity);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetSkyOcclusionTexture(), Bounds, TexelFactor, PackedRelativeBox_Identity);
 			}
 		}
 
 		FShadowMap2D* Shadowmap = MeshMapBuildData && MeshMapBuildData->ShadowMap ? MeshMapBuildData->ShadowMap->GetShadowMap2D() : NULL;
-		if (Shadowmap != NULL && Shadowmap->IsValid())
+		if (Shadowmap && Shadowmap->IsValid())
 		{
 			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds		 = Bounds;
-				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity;
-				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
-				StreamingTexture.Texture	 = Shadowmap->GetTexture();
+				const float TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Shadowmap->GetTexture(), Bounds, TexelFactor, PackedRelativeBox_Identity);
 			}
 		}
 	}
@@ -2155,14 +2154,9 @@ int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 
 FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() const
 {
-	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
-
-	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
+	FStaticMeshComponentInstanceData* StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
 	// Fill in info
-	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
-	StaticMeshInstanceData->CachedStaticLighting.Transform = GetComponentTransform();
-
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 	{
 		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
@@ -2190,7 +2184,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 		}
 	}
 
-	return (StaticMeshInstanceData ? StaticMeshInstanceData : Super::GetComponentInstanceData());
+	return StaticMeshInstanceData;
 }
 
 void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstanceData* StaticMeshInstanceData)
@@ -2210,7 +2204,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 	if (HasStaticLighting() && NumLODLightMaps > 0)
 	{
 		// See if data matches current state
-		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(GetComponentTransform(), 1.e-3f))
+		if (StaticMeshInstanceData->GetComponentTransform().Equals(GetComponentTransform(), 1.e-3f))
 		{
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
@@ -2221,10 +2215,11 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		}
 		else
 		{
-			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
+			UE_ASSET_LOG(LogStaticMesh, Warning, this,
+				TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
 				*GetPathName(),
 				*GetComponentTransform().ToString(),
-				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
+				*StaticMeshInstanceData->GetComponentTransform().ToString());
 		}
 	}
 
@@ -2280,7 +2275,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 	SectionIndex = 0;
 
 	UStaticMesh* Mesh = GetStaticMesh();
-	if (Mesh && Mesh->RenderData.IsValid())
+	if (Mesh && Mesh->RenderData.IsValid() && FaceIndex >= 0)
 	{
 		// Get the info for the LOD that is used for collision
 		int32 LODIndex = Mesh->LODForCollision;

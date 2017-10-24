@@ -7,7 +7,6 @@
 #include "Stats/StatsMisc.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/Package.h"
-#include "Misc/StringAssetReference.h"
 #include "Misc/PackageName.h"
 #include "Widgets/SBoxPanel.h"
 #include "Styling/SlateTypes.h"
@@ -78,8 +77,8 @@ struct FGCTreeItem : public TSharedFromThis<FGCTreeItem>
 	FGameplayTag GameplayCueTag;
 	FString Description;
 
-	FStringAssetReference GameplayCueNotifyObj;
-	FStringAssetReference ParentGameplayCueNotifyObj;
+	FSoftObjectPath GameplayCueNotifyObj;
+	FSoftObjectPath ParentGameplayCueNotifyObj;
 	TWeakObjectPtr<UFunction> FunctionPtr;
 
 	int32 TranslationUniqueID;
@@ -1386,7 +1385,7 @@ void SGameplayCueEditor::OpenEditorForNotify(FString NotifyFullPath)
 	// This nonsense is to handle the case where the asset only exists in memory
 	// and there for does not have a linker/exist on disk. (The FString version
 	// of OpenEditorForAsset does not handle this).
-	FStringAssetReference AssetRef(NotifyFullPath);
+	FSoftObjectPath AssetRef(NotifyFullPath);
 
 	UObject* Obj = AssetRef.ResolveObject();
 	if (!Obj)

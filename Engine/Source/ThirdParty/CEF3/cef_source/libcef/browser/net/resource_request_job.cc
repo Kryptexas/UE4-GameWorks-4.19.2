@@ -287,15 +287,6 @@ void CefResourceRequestJob::GetLoadTimingInfo(
   load_timing_info->receive_headers_end = receive_headers_end_;
 }
 
-bool CefResourceRequestJob::GetResponseCookies(
-    std::vector<std::string>* cookies) {
-  CEF_REQUIRE_IOT();
-
-  cookies->clear();
-  FetchResponseCookies(cookies);
-  return true;
-}
-
 bool CefResourceRequestJob::IsRedirectResponse(GURL* location,
                                                int* http_status_code) {
   CEF_REQUIRE_IOT();
@@ -366,6 +357,17 @@ void CefResourceRequestJob::SendHeaders() {
   // Get header information from the handler.
   handler_->GetResponseHeaders(response_, remaining_bytes_, redirectUrl);
   receive_headers_end_ = base::TimeTicks::Now();
+
+  if (response_->GetError() != ERR_NONE) {
+    const URLRequestStatus& status =
+        URLRequestStatus::FromError(response_->GetError());
+    if (status.status() == URLRequestStatus::CANCELED ||
+        status.status() == URLRequestStatus::FAILED) {
+      NotifyStartError(status);
+      return;
+    }
+  }
+
   if (!redirectUrl.empty()) {
     std::string redirectUrlStr = redirectUrl;
     redirect_url_ = GURL(redirectUrlStr);
@@ -379,27 +381,17 @@ void CefResourceRequestJob::SendHeaders() {
 }
 
 void CefResourceRequestJob::AddCookieHeaderAndStart() {
-  // No matter what, we want to report our status as IO pending since we will
-  // be notifying our consumer asynchronously via OnStartCompleted.
-  SetStatus(URLRequestStatus(URLRequestStatus::IO_PENDING, 0));
-
   // If the request was destroyed, then there is no more work to do.
   if (!request_)
     return;
 
-  net::CookieStore* cookie_store =
-      request_->context()->cookie_store();
+  net::CookieStore* cookie_store = request_->context()->cookie_store();
   if (cookie_store &&
       !(request_->load_flags() & net::LOAD_DO_NOT_SEND_COOKIES)) {
-    net::CookieMonster* cookie_monster = cookie_store->GetCookieMonster();
-    if (cookie_monster) {
-      cookie_monster->GetAllCookiesForURLAsync(
-          request_->url(),
-          base::Bind(&CefResourceRequestJob::CheckCookiePolicyAndLoad,
-                      weak_factory_.GetWeakPtr()));
-    } else {
-      DoLoadCookies();
-    }
+    cookie_store->GetAllCookiesForURLAsync(
+        request_->url(),
+        base::Bind(&CefResourceRequestJob::CheckCookiePolicyAndLoad,
+                    weak_factory_.GetWeakPtr()));
   } else {
     DoStartTransaction();
   }
@@ -484,7 +476,6 @@ net::HttpResponseHeaders* CefResourceRequestJob::GetResponseHeaders() {
 
 void CefResourceRequestJob::SaveCookiesAndNotifyHeadersComplete() {
   if (request_->load_flags() & net::LOAD_DO_NOT_SAVE_COOKIES) {
-    SetStatus(URLRequestStatus());  // Clear the IO_PENDING status
     NotifyHeadersComplete();
     return;
   }
@@ -502,14 +493,9 @@ void CefResourceRequestJob::SaveNextCookie() {
   if (response_cookies_save_index_ == response_cookies_.size()) {
     response_cookies_.clear();
     response_cookies_save_index_ = 0;
-    SetStatus(URLRequestStatus());  // Clear the IO_PENDING status
     NotifyHeadersComplete();
     return;
   }
-
-  // No matter what, we want to report our status as IO pending since we will
-  // be notifying our consumer asynchronously via OnStartCompleted.
-  SetStatus(URLRequestStatus(URLRequestStatus::IO_PENDING, 0));
 
   net::CookieOptions options;
   options.set_include_httponly();
@@ -555,7 +541,7 @@ void CefResourceRequestJob::FetchResponseCookies(
   const std::string name = "Set-Cookie";
   std::string value;
 
-  void* iter = NULL;
+  size_t iter = 0;
   net::HttpResponseHeaders* headers = GetResponseHeaders();
   while (headers->EnumerateHeader(&iter, name, &value)) {
     if (!value.empty())

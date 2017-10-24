@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3487380
 Availability:Public
 Title:5.レベル完了のスクリプト処理
 Crumbs:
@@ -42,7 +42,7 @@ checkpoint:mod_gameplay
 
 	![](controller.png)
 
-1. ReturnToHub event の exec 出力からドラッグして **[execute Console Command]** を選択します。**Command** プロパティで _open hub_evn_ と入力します。これで、ハブ レベルを開くようにコマンドを送信します。**Specific Player** 入力をキャスト ノードの **As Player Controller** 出力に接続します。
+1. ReturnToHub event の exec 出力からドラッグして **[execute Console Command]** を選択します。**Command** プロパティで _open hub_env_ と入力します。これで、ハブ レベルを開くようにコマンドを送信します。**Specific Player** 入力をキャスト ノードの **As Player Controller** 出力に接続します。
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]

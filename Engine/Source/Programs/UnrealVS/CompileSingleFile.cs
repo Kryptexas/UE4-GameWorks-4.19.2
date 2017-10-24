@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Diagnostics;
@@ -169,10 +169,15 @@ namespace UnrealVS
 			// Create a delegate for handling output messages
 			DataReceivedEventHandler OutputHandler = (Sender, Args) => { if(Args.Data != null) BuildOutputPane.OutputString("1>  " + Args.Data + "\r\n"); };
 
+			// Get the build command line and escape any environment variables that we use
+			string BuildCommandLine = ActiveNMakeTool.BuildCommandLine;
+			BuildCommandLine = BuildCommandLine.Replace("$(SolutionDir)", Path.GetDirectoryName(UnrealVSPackage.Instance.SolutionFilepath).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+			BuildCommandLine = BuildCommandLine.Replace("$(ProjectName)", VCStartupProject.Name);
+
 			// Spawn the new process
 			ChildProcess = new System.Diagnostics.Process();
 			ChildProcess.StartInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
-			ChildProcess.StartInfo.Arguments = String.Format("/C {0} -singlefile=\"{1}\"", ActiveNMakeTool.BuildCommandLine, FileToCompile);
+			ChildProcess.StartInfo.Arguments = String.Format("/C {0} -singlefile=\"{1}\"", BuildCommandLine, FileToCompile);
 			ChildProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(StartupProject.FullName);
 			ChildProcess.StartInfo.UseShellExecute = false;
 			ChildProcess.StartInfo.RedirectStandardOutput = true;

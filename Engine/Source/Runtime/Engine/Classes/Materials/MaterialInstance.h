@@ -187,12 +187,12 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY()
 	uint32 bHasStaticPermutationResource:1;
 
-	/** Flag to detect cycles in the material instance graph. */
-	uint32 ReentrantFlag:1;
-
 	/** Defines if SubsurfaceProfile from this instance is used or it uses the parent one. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = MaterialInstance)
 	uint32 bOverrideSubsurfaceProfile:1;
+	
+	/** Flag to detect cycles in the material instance graph. */
+	bool ReentrantFlag;
 
 	/** Font parameters. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
@@ -222,6 +222,7 @@ class UMaterialInstance : public UMaterialInterface
 	TEnumAsByte<EMaterialShadingModel> ShadingModel;
 	uint32 TwoSided : 1;
 	uint32 DitheredLODTransition : 1;
+	uint32 bCastDynamicShadowAsMasked : 1;
 
 	/** 
 	 * FMaterialRenderProxy derivatives that represent this material instance to the renderer, when the renderer needs to fetch parameter values. 

@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "EdGraph/EdGraphPin.h"
 #include "UObject/StructOnScope.h"
 #include "EditorUndoClient.h"
@@ -40,7 +40,7 @@ struct FStructVariableDescription
 	FString SubCategory;
 
 	UPROPERTY()
-	TAssetPtr<UObject> SubCategoryObject;
+	TSoftObjectPtr<UObject> SubCategoryObject;
 
 	UPROPERTY()
 	FEdGraphTerminalType PinValueType;

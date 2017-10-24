@@ -6,16 +6,12 @@
 #include "EditorFramework/AssetImportData.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "AssetTools.h"
-
 #include "Editor/StaticMeshEditor/Public/StaticMeshEditorModule.h"
-
-#include "Editor/DestructibleMeshEditor/Public/DestructibleMeshEditorModule.h"
-
-#include "Engine/DestructibleMesh.h"
-
 #include "FbxMeshUtils.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "MessageDialog.h"
+#include "ScopedSlowTask.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -44,16 +40,6 @@ void FAssetTypeActions_StaticMesh::GetActions( const TArray<UObject*>& InObjects
 			);
 	}
 
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMesh", "Create Destructible Mesh"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMeshTooltip", "Creates a DestructibleMesh from the StaticMesh and opens it in the DestructibleMesh editor."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.DestructibleComponent"),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh, Meshes ),
-			FCanExecuteAction()
-			)
-		);
-
 	MenuBuilder.AddSubMenu(
 		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_LODMenu", "Level Of Detail"),
 		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_LODTooltip", "LOD Options and Tools"),
@@ -61,6 +47,15 @@ void FAssetTypeActions_StaticMesh::GetActions( const TArray<UObject*>& InObjects
 		false,
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 		);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_ClearVertexColors", "Remove Vertex Colors"),
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_ClearVertexColors", "Removes vertex colors from all LODS in all selected meshes."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_StaticMesh::ExecuteRemoveVertexColors, Meshes)
+		)
+	);
 }
 
 void FAssetTypeActions_StaticMesh::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -118,7 +113,7 @@ void FAssetTypeActions_StaticMesh::GetImportLODMenu(class FMenuBuilder& MenuBuil
 		}
 
 		MenuBuilder.AddMenuEntry( Description, ToolTip, FSlateIcon(),
-			FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_StaticMesh::ExecuteImportMeshLOD, Cast<UObject>(StaticMesh), LOD) )) ;
+			FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_StaticMesh::ExecuteImportMeshLOD, static_cast<UObject*>(StaticMesh), LOD) )) ;
 	}
 }
 
@@ -249,35 +244,6 @@ bool FAssetTypeActions_StaticMesh::CanPasteLODSettings(TArray<TWeakObjectPtr<USt
 	return LODCopyMesh.IsValid();
 }
 
-void FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
-{
-	TArray< UObject* > Assets;
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FText ErrorMsg;
-			FDestructibleMeshEditorModule& DestructibleMeshEditorModule = FModuleManager::LoadModuleChecked<FDestructibleMeshEditorModule>( "DestructibleMeshEditor" );
-			UDestructibleMesh* DestructibleMesh = DestructibleMeshEditorModule.CreateDestructibleMeshFromStaticMesh(Object->GetOuter(), Object, NAME_None, Object->GetFlags(), ErrorMsg);
-			if ( DestructibleMesh )
-			{
-				FAssetEditorManager::Get().OpenEditorForAsset(DestructibleMesh);
-				Assets.Add(DestructibleMesh);
-			}
-			else if ( !ErrorMsg.IsEmpty() )
-			{
-				FNotificationInfo ErrorNotification( ErrorMsg );
-				FSlateNotificationManager::Get().AddNotification(ErrorNotification);
-			}
-		}
-	}
-	if ( Assets.Num() > 0 )
-	{
-		FAssetTools::Get().SyncBrowserToAssets(Assets);
-	}
-}
-
 void FAssetTypeActions_StaticMesh::ExecuteSaveGeneratedLODsInPackage(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
 {
 	for (auto StaticMeshIt = Objects.CreateConstIterator(); StaticMeshIt; ++StaticMeshIt)
@@ -286,6 +252,24 @@ void FAssetTypeActions_StaticMesh::ExecuteSaveGeneratedLODsInPackage(TArray<TWea
 		if (StaticMesh)
 		{
 			StaticMesh->GenerateLodsInPackage();
+		}
+	}
+}
+
+void FAssetTypeActions_StaticMesh::ExecuteRemoveVertexColors(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
+{
+	FText WarningMessage = LOCTEXT("Warning_RemoveVertexColors", "Are you sure you want to remove vertex colors from all selected meshes?  There is no undo available.");
+	if (FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage) == EAppReturnType::Yes)
+	{
+		FScopedSlowTask SlowTask(1.0f, LOCTEXT("RemovingVertexColors", "Removing Vertex Colors"));
+		for (auto StaticMeshPtr : Objects)
+		{
+			bool bRemovedVertexColors = false;
+			UStaticMesh* Mesh = StaticMeshPtr.Get();
+			if (Mesh)
+			{
+				Mesh->RemoveVertexColors();
+			}
 		}
 	}
 }

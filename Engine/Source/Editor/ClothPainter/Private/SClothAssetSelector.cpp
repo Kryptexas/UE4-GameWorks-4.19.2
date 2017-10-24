@@ -20,6 +20,9 @@
 #include "ClothingSystemEditorInterfaceModule.h"
 #include "ModuleManager.h"
 #include "ClothingAssetFactoryInterface.h"
+#include "ClothingMeshUtils.h"
+#include "ClothingAssetListCommands.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "ClothAssetSelector"
 
@@ -40,7 +43,7 @@ FClothParameterMask_PhysMesh* FClothingMaskListItem::GetMask()
 	return nullptr;
 }
 
-class SAssetListRow : public SMultiColumnTableRow<TSharedPtr<FClothingAssetListItem>>
+class SAssetListRow : public STableRow<TSharedPtr<FClothingAssetListItem>>
 {
 public:
 
@@ -54,42 +57,97 @@ public:
 		Item = InItem;
 		OnInvalidateList = InArgs._OnInvalidateList;
 
-		SMultiColumnTableRow<TSharedPtr<FClothingAssetListItem>>::Construct(FSuperRowType::FArguments(), InOwnerTable);
+		BindCommands();
+
+		STableRow<TSharedPtr<FClothingAssetListItem>>::Construct(
+			STableRow<TSharedPtr<FClothingAssetListItem>>::FArguments()
+			.Content()
+			[
+				SNew(SBox)
+				.Padding(2.0f)
+				[
+					SAssignNew(EditableText, SInlineEditableTextBlock)
+					.Text(this, &SAssetListRow::GetAssetName)
+					.OnTextCommitted(this, &SAssetListRow::OnCommitAssetName)
+					.IsSelected(this, &SAssetListRow::IsSelected)
+				]
+			],
+			InOwnerTable
+		);
 	}
 
-	static FName Column_Name;
-
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& InColumnName) override
+	FText GetAssetName() const
 	{
-		UClothingAsset* Asset = Item->ClothingAsset.Get();
-
-		if(Asset && InColumnName == Column_Name)
+		if(Item.IsValid())
 		{
-			return SNew(SBox)
-			.Padding(2.0f)
-			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFontBold())
-				.Text(FText::FromString(Asset->GetName()))
-			];
+			return FText::FromString(Item->ClothingAsset->GetName());
 		}
 
-		return SNullWidget::NullWidget;
+		return FText::GetEmpty();
+	}
+
+	void OnCommitAssetName(const FText& InText, ETextCommit::Type CommitInfo)
+	{
+		if(Item.IsValid())
+		{
+			if(UClothingAsset* Asset = Item->ClothingAsset.Get())
+			{
+				FText TrimText = FText::TrimPrecedingAndTrailing(InText);
+
+				if(Asset->GetName() != TrimText.ToString())
+				{
+					FName NewName(*TrimText.ToString());
+
+					// Check for an existing object, and if we find one build a unique name based on the request
+					if(UObject* ExistingObject = StaticFindObject(UClothingAsset::StaticClass(), Asset->GetOuter(), *NewName.ToString()))
+					{
+						NewName = MakeUniqueObjectName(Asset->GetOuter(), UClothingAsset::StaticClass(), FName(*TrimText.ToString()));
+					}
+
+					Asset->Rename(*NewName.ToString(), Asset->GetOuter());
+				}
+			}
+		}
+	}
+
+	void BindCommands()
+	{
+		check(!UICommandList.IsValid());
+
+		UICommandList = MakeShareable(new FUICommandList);
+
+		const FClothingAssetListCommands& Commands = FClothingAssetListCommands::Get();
+
+		UICommandList->MapAction(
+			FGenericCommands::Get().Delete,
+			FExecuteAction::CreateSP(this, &SAssetListRow::DeleteAsset)
+		);
+
+		UICommandList->MapAction(
+			Commands.ReimportAsset,
+			FExecuteAction::CreateSP(this, &SAssetListRow::ReimportAsset),
+			FCanExecuteAction::CreateSP(this, &SAssetListRow::CanReimportAsset)
+		);
+
+		UICommandList->MapAction(
+			Commands.RebuildAssetParams,
+			FExecuteAction::CreateSP(this, &SAssetListRow::RebuildLODParameters),
+			FCanExecuteAction::CreateSP(this, &SAssetListRow::CanRebuildLODParameters)
+		);
 	}
 
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		if(Item.IsValid() && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 		{
-			FMenuBuilder Builder(true, nullptr);
-
-			FUIAction DeleteAction(FExecuteAction::CreateSP(this, &SAssetListRow::DeleteAsset));
-			FUIAction ReimportAction(FExecuteAction::CreateSP(this, &SAssetListRow::ReimportAsset), FCanExecuteAction::CreateSP(this, &SAssetListRow::CanReimportAsset));
+			const FClothingAssetListCommands& Commands = FClothingAssetListCommands::Get();
+			FMenuBuilder Builder(true, UICommandList);
 
 			Builder.BeginSection(NAME_None, LOCTEXT("AssetActions_SectionName", "Actions"));
 			{
-				Builder.AddMenuEntry(LOCTEXT("AssetActions_Delete", "Delete"), LOCTEXT("AssetActions_Delete_Tooltip", "Delete this clothing asset, removing it from the mesh"), FSlateIcon(), DeleteAction);
-				Builder.AddMenuEntry(LOCTEXT("AssetActions_Reimport", "Reimport"), LOCTEXT("AssetActions_Reimport_Tooltip", "Reimport this asset from the source file if it was originally imported from an APEX file."), FSlateIcon(), ReimportAction);
+				Builder.AddMenuEntry(FGenericCommands::Get().Delete);
+				Builder.AddMenuEntry(Commands.ReimportAsset);
+				Builder.AddMenuEntry(Commands.RebuildAssetParams);
 			}
 			Builder.EndSection();
 
@@ -100,7 +158,7 @@ public:
 			return FReply::Handled();
 		}
 
-		return SMultiColumnTableRow<TSharedPtr<FClothingAssetListItem>>::OnMouseButtonUp(MyGeometry, MouseEvent);
+		return STableRow<TSharedPtr<FClothingAssetListItem>>::OnMouseButtonUp(MyGeometry, MouseEvent);
 	}
 
 private:
@@ -203,12 +261,71 @@ private:
 		return Item.IsValid() && !Item->ClothingAsset->ImportedFilePath.IsEmpty();
 	}
 
+	// Using LOD0 of an asset, rebuild the other LOD masks by mapping the LOD0 parameters onto their meshes
+	void RebuildLODParameters()
+	{
+		if(!Item.IsValid())
+		{
+			return;
+		}
+
+		if(UClothingAsset* Asset = Item->ClothingAsset.Get())
+		{
+			const int32 NumLods = Asset->GetNumLods();
+
+			for(int32 CurrIndex = 0; CurrIndex < NumLods - 1; ++CurrIndex)
+			{
+				FClothLODData& SourceLod = Asset->LodData[CurrIndex];
+				FClothLODData& DestLod = Asset->LodData[CurrIndex + 1];
+
+				DestLod.ParameterMasks.Reset();
+
+				for(FClothParameterMask_PhysMesh& SourceMask : SourceLod.ParameterMasks)
+				{
+					DestLod.ParameterMasks.AddDefaulted();
+					FClothParameterMask_PhysMesh& DestMask = DestLod.ParameterMasks.Last();
+
+					DestMask.MaskName = SourceMask.MaskName;
+					DestMask.bEnabled = SourceMask.bEnabled;
+					DestMask.CurrentTarget = SourceMask.CurrentTarget;
+
+					ClothingMeshUtils::FVertexParameterMapper ParameterMapper(
+						DestLod.PhysicalMeshData.Vertices,
+						DestLod.PhysicalMeshData.Normals,
+						SourceLod.PhysicalMeshData.Vertices,
+						SourceLod.PhysicalMeshData.Normals,
+						SourceLod.PhysicalMeshData.Indices
+					);
+
+					ParameterMapper.Map(SourceMask.GetValueArray(), DestMask.Values);
+				}
+			}
+		}
+	}
+
+	bool CanRebuildLODParameters() const
+	{
+		if(!Item.IsValid())
+		{
+			return false;
+		}
+
+		if(UClothingAsset* Asset = Item->ClothingAsset.Get())
+		{
+			if(Asset->GetNumLods() > 1)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	TSharedPtr<FClothingAssetListItem> Item;
+	TSharedPtr<SInlineEditableTextBlock> EditableText;
 	FSimpleDelegate OnInvalidateList;
-
+	TSharedPtr<FUICommandList> UICommandList;
 };
-
-FName SAssetListRow::Column_Name(TEXT("Name"));
 
 class SMaskListRow : public SMultiColumnTableRow<TSharedPtr<FClothingMaskListItem>>
 {
@@ -225,6 +342,8 @@ public:
 	{
 		OnInvalidateList = InArgs._OnInvalidateList;
 		Item = InItem;
+
+		BindCommands();
 
 		SMultiColumnTableRow<TSharedPtr<FClothingMaskListItem>>::Construct(FSuperRowType::FArguments(), InOwnerTable);
 	}
@@ -298,20 +417,14 @@ public:
 		{
 			if(FClothParameterMask_PhysMesh* Mask = Item->GetMask())
 			{
-				FMenuBuilder Builder(true, nullptr);
+				FMenuBuilder Builder(true, UICommandList);
 
-				FUIAction MoveUpAction(FExecuteAction::CreateSP(this, &SMaskListRow::OnMoveUp), FCanExecuteAction::CreateSP(this, &SMaskListRow::CanMoveUp));
-				FUIAction MoveDownAction(FExecuteAction::CreateSP(this, &SMaskListRow::OnMoveDown), FCanExecuteAction::CreateSP(this, &SMaskListRow::CanMoveDown));
 				FUIAction DeleteAction(FExecuteAction::CreateSP(this, &SMaskListRow::OnDeleteMask));
-				FUIAction ApplyAction(FExecuteAction::CreateSP(this, &SMaskListRow::OnApply));
 
 				Builder.BeginSection(NAME_None, LOCTEXT("MaskActions_SectionName", "Actions"));
 				{
 					Builder.AddSubMenu(LOCTEXT("MaskActions_SetTarget", "Set Target"), LOCTEXT("MaskActions_SetTarget_Tooltip", "Choose the target for this mask"), FNewMenuDelegate::CreateSP(this, &SMaskListRow::BuildTargetSubmenu));
-					Builder.AddMenuEntry(LOCTEXT("MaskActions_MoveUp", "Move Up"), LOCTEXT("MaskActions_MoveUp_Tooltip", "Move the mask up in the list"), FSlateIcon(), MoveUpAction);
-					Builder.AddMenuEntry(LOCTEXT("MaskActions_MoveDown", "Move Down"), LOCTEXT("MaskActions_MoveDownp_Tooltip", "Move the mask down in the list"), FSlateIcon(), MoveDownAction);
-					Builder.AddMenuEntry(LOCTEXT("MaskActions_Delete", "Delete"), LOCTEXT("MaskActions_Delete_Tooltip", "Delete the mask"), FSlateIcon(), DeleteAction);
-					Builder.AddMenuEntry(LOCTEXT("MaskActions_Apply", "Apply"), LOCTEXT("MaskActions_Apply_Tooltip", "Apply the mask to the physical mesh"), FSlateIcon(), ApplyAction);
+					Builder.AddMenuEntry(FGenericCommands::Get().Delete);
 				}
 				Builder.EndSection();
 
@@ -335,6 +448,18 @@ public:
 	}
 
 private:
+
+	void BindCommands()
+	{
+		check(!UICommandList.IsValid());
+
+		UICommandList = MakeShareable(new FUICommandList);
+
+		UICommandList->MapAction(
+			FGenericCommands::Get().Delete,
+			FExecuteAction::CreateSP(this, &SMaskListRow::OnDeleteMask)
+		);
+	}
 
 	FClothLODData* GetCurrentLod() const
 	{
@@ -362,62 +487,6 @@ private:
 			{
 				LodData->ParameterMasks.RemoveAt(Item->MaskIndex);
 				OnInvalidateList.ExecuteIfBound();
-			}
-		}
-	}
-
-	void OnMoveUp()
-	{
-		if(Item->MaskIndex > 0)
-		{
-			if(FClothLODData* LodData = GetCurrentLod())
-			{
-				if(LodData->ParameterMasks.IsValidIndex(Item->MaskIndex))
-				{
-					LodData->ParameterMasks.Swap(Item->MaskIndex, Item->MaskIndex - 1);
-					OnInvalidateList.ExecuteIfBound();
-				}
-			}
-		}
-	}
-
-	bool CanMoveUp() const
-	{
-		return(Item.IsValid() && Item->MaskIndex > 0);
-	}
-
-	void OnMoveDown()
-	{
-		if(FClothLODData* LodData = GetCurrentLod())
-		{
-			if(LodData->ParameterMasks.IsValidIndex(Item->MaskIndex + 1))
-			{
-				LodData->ParameterMasks.Swap(Item->MaskIndex, Item->MaskIndex + 1);
-				OnInvalidateList.ExecuteIfBound();
-			}
-		}
-	}
-
-	bool CanMoveDown() const
-	{
-		if(Item.IsValid())
-		{
-			if(FClothLODData* LodData = GetCurrentLod())
-			{
-				return LodData->ParameterMasks.IsValidIndex(Item->MaskIndex + 1);
-			}
-		}
-
-		return false;
-	}
-
-	void OnApply()
-	{
-		if(FClothParameterMask_PhysMesh* Mask = Item->GetMask())
-		{
-			if(FClothLODData* LodData = GetCurrentLod())
-			{
-				Mask->Apply(LodData->PhysicalMeshData);
 			}
 		}
 	}
@@ -534,16 +603,33 @@ private:
 	FSimpleDelegate OnInvalidateList;
 	TSharedPtr<FClothingMaskListItem> Item;
 	TSharedPtr<SInlineEditableTextBlock> InlineText;
+	TSharedPtr<FUICommandList> UICommandList;
 };
 
 FName SMaskListRow::Column_Enabled(TEXT("Enabled"));
 FName SMaskListRow::Column_MaskName(TEXT("MaskName"));
 FName SMaskListRow::Column_CurrentTarget(TEXT("CurrentTarget"));
 
+SClothAssetSelector::~SClothAssetSelector()
+{
+	if(Mesh)
+	{
+		Mesh->UnregisterOnClothingChange(MeshClothingChangedHandle);
+	}
+}
+
 void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InMesh)
 {
+	FClothingAssetListCommands::Register();
+
 	Mesh = InMesh;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
+
+	// Register callback for external changes to clothing items
+	if(Mesh)
+	{
+		MeshClothingChangedHandle = Mesh->RegisterOnClothingChange(FSimpleMulticastDelegate::FDelegate::CreateSP(this, &SClothAssetSelector::OnRefresh));
+	}
 
 	ChildSlot
 	[
@@ -563,7 +649,7 @@ void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InM
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("AssetExpander_Title", "Assets"))
+					.Text(LOCTEXT("AssetExpander_Title", "Clothing Data"))
 					.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
 					.ShadowOffset(FVector2D(1.0f, 1.0f))
 				]
@@ -642,12 +728,6 @@ void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InM
 						.OnSelectionChanged(this, &SClothAssetSelector::OnAssetListSelectionChanged)
 						.ClearSelectionOnClick(false)
 						.SelectionMode(ESelectionMode::Single)
-						.HeaderRow
-						(
-							SNew(SHeaderRow)
-							+ SHeaderRow::Column(TEXT("Name"))
-							.DefaultLabel(LOCTEXT("AssetListHeader_Name", "Name"))
-						)
 					]
 				]
 			]
@@ -714,7 +794,7 @@ void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InM
 				SNew(SBox)
 				.MinDesiredHeight(100.0f)
 				.MaxDesiredHeight(200.0f)
-				.Padding(FMargin(5.0f, 5.0f, 5.0f, 5.0f))
+				.Padding(FMargin(3.0f))
 				[
 					SAssignNew(MaskList, SMaskList)
 					.ItemHeight(24)
@@ -811,8 +891,8 @@ TSharedRef<SWidget> SClothAssetSelector::OnGetLodMenu()
 	{
 		for(int32 LodIdx = 0; LodIdx < NumLods; ++LodIdx)
 		{
-			FText ItemText = FText::Format(LOCTEXT("LodMenuItem", "LOD{0}"), FText::AsNumber(SelectedLod));
-			FText ToolTipText = FText::Format(LOCTEXT("LodMenuItemToolTip", "Select LOD{0}"), FText::AsNumber(SelectedLod));
+			FText ItemText = FText::Format(LOCTEXT("LodMenuItem", "LOD{0}"), FText::AsNumber(LodIdx));
+			FText ToolTipText = FText::Format(LOCTEXT("LodMenuItemToolTip", "Select LOD{0}"), FText::AsNumber(LodIdx));
 
 			FUIAction Action;
 			Action.ExecuteAction.BindSP(this, &SClothAssetSelector::OnClothingLodSelected, LodIdx);

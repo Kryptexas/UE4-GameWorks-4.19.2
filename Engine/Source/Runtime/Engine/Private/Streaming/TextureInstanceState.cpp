@@ -649,3 +649,14 @@ void FTextureInstanceState::TrimBounds()
 	}
 }
 
+void FTextureInstanceState::OffsetBounds(const FVector& Offset)
+{
+	for (int32 BoundIndex = 0; BoundIndex < Bounds4Components.Num(); ++BoundIndex)
+	{
+		if (Bounds4Components[BoundIndex])
+		{
+			Bounds4[BoundIndex / 4].OffsetBounds(BoundIndex % 4, Offset);
+		}
+	}
+}
+

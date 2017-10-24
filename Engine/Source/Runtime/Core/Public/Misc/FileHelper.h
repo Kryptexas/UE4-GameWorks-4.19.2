@@ -6,33 +6,29 @@
 #include "Containers/UnrealString.h"
 #include "HAL/FileManager.h"
 #include "Containers/ArrayView.h"
+#include "EnumClassFlags.h"
 
 /*-----------------------------------------------------------------------------
 	FFileHelper
 -----------------------------------------------------------------------------*/
 struct CORE_API FFileHelper
 {
-	struct EHashOptions
+	enum class EHashOptions
 	{
-		enum Type
-		{
-			/** Enable the async task for verifying the hash for the file being loaded */
-			EnableVerify		=1<<0,
-			/** A missing hash entry should trigger an error */
-			ErrorMissingHash	=1<<1
-		};
+		None                =0,
+		/** Enable the async task for verifying the hash for the file being loaded */
+		EnableVerify		=1<<0,
+		/** A missing hash entry should trigger an error */
+		ErrorMissingHash	=1<<1
 	};
 
-	struct EEncodingOptions
+	enum class EEncodingOptions
 	{
-		enum Type
-		{
-			AutoDetect,
-			ForceAnsi,
-			ForceUnicode,
-			ForceUTF8,
-			ForceUTF8WithoutBOM
-		};
+		AutoDetect,
+		ForceAnsi,
+		ForceUnicode,
+		ForceUTF8,
+		ForceUTF8WithoutBOM
 	};
 
 	/**
@@ -43,17 +39,30 @@ struct CORE_API FFileHelper
 
 	/**
 	 * Load a binary file to a dynamic array.
+	 *
+	 * @param Result    Receives the contents of the file
+	 * @param Filename  The file to read
+	 * @param Flags     Flags to pass to IFileManager::CreateFileReader
 	*/
 	static bool LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename, uint32 Flags = 0 );
 
 	/**
-	 * Load a text file to an FString.
-	 * Supports all combination of ANSI/Unicode files and platforms.
-	 * @param Result string representation of the loaded file
-	 * @param Filename name of the file to load
-	 * @param VerifyFlags flags controlling the hash verification behavior ( see EHashOptions )
+	 * Load a text file to an FString. Supports all combination of ANSI/Unicode files and platforms.
+	 *
+	 * @param Result       String representation of the loaded file
+	 * @param Filename     Name of the file to load
+	 * @param VerifyFlags  Flags controlling the hash verification behavior ( see EHashOptions )
 	 */
-	static bool LoadFileToString( FString& Result, const TCHAR* Filename, uint32 VerifyFlags=0 );
+	static bool LoadFileToString( FString& Result, const TCHAR* Filename, EHashOptions VerifyFlags = EHashOptions::None );
+
+	/**
+	 * Load a text file to an array of strings. Supports all combination of ANSI/Unicode files and platforms.
+	 *
+	 * @param Result       String representation of the loaded file
+	 * @param Filename     Name of the file to load
+	 * @param VerifyFlags  Flags controlling the hash verification behavior ( see EHashOptions )
+	 */
+	static bool LoadFileToStringArray( TArray<FString>& Result, const TCHAR* Filename, EHashOptions VerifyFlags = EHashOptions::None );
 
 	/**
 	 * Save a binary array to a file.
@@ -64,7 +73,13 @@ struct CORE_API FFileHelper
 	 * Write the FString to a file.
 	 * Supports all combination of ANSI/Unicode files and platforms.
 	 */
-	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions::Type EncodingOptions=EEncodingOptions::AutoDetect, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
+	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions EncodingOptions = EEncodingOptions::AutoDetect, IFileManager* FileManager = &IFileManager::Get(), uint32 WriteFlags = 0 );
+
+	/**
+	 * Write the FString to a file.
+	 * Supports all combination of ANSI/Unicode files and platforms.
+	 */
+	static bool SaveStringArrayToFile( const TArray<FString>& Lines, const TCHAR* Filename, EEncodingOptions EncodingOptions = EEncodingOptions::AutoDetect, IFileManager* FileManager = &IFileManager::Get(), uint32 WriteFlags = 0 );
 
 	/**
 	 * Saves a 24/32Bit BMP file to disk
@@ -76,7 +91,7 @@ struct CORE_API FFileHelper
 	 * @param SubRectangle optional, specifies a sub-rectangle of the source image to save out. If NULL, the whole bitmap is saved
 	 * @param FileManager must not be 0
 	 * @param OutFilename optional, if specified filename will be output
-	 * @param bInWriteAlpha opional, specifies whether to write out the alpha channel. Will force BMP V4 format.
+	 * @param bInWriteAlpha optional, specifies whether to write out the alpha channel. Will force BMP V4 format.
 	 *
 	 * @return true if success
 	 */
@@ -86,7 +101,7 @@ struct CORE_API FFileHelper
 	 * Generates the next unique bitmap filename with a specified extension
 	 *
 	 * @param Pattern		Filename with path, but without extension.
-	 * @oaran Extension		File extension to be appended
+	 * @param Extension		File extension to be appended
 	 * @param OutFilename	Reference to an FString where the newly generated filename will be placed
 	 * @param FileManager	Reference to a IFileManager (or the global instance by default)
 	 *
@@ -105,4 +120,15 @@ struct CORE_API FFileHelper
 	 *	@return	bool				true if successful, false if not
 	 */
 	static bool LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManager* InFileManager, TArray<FString>& OutStrings);
+
+	/**
+	* Checks to see if a filename is valid for saving.
+	* A filename must be under MAX_UNREAL_FILENAME_LENGTH to be saved
+	*
+	* @param Filename	Filename, with or without path information, to check.
+	* @param OutError	If an error occurs, this is the reason why
+	*/
+	static bool IsFilenameValidForSaving(const FString& Filename, FText& OutError);
 };
+
+ENUM_CLASS_FLAGS(FFileHelper::EHashOptions)

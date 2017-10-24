@@ -720,7 +720,7 @@ inline const TCHAR* ToString(EPartyType Type)
 	}
 	default:
 	{
-		return TEXT("");
+		return TEXT("Unknown");
 	}
 	}
 }
@@ -759,7 +759,7 @@ inline const TCHAR* ToString(EJoinPartyDenialReason Type)
 	}
 	default:
 	{
-		return TEXT("");
+		return TEXT("Unknown");
 	}
 	}
 }
@@ -786,7 +786,7 @@ inline const TCHAR* ToString(EApprovalAction Type)
 	}
 	default:
 	{
-		return TEXT("");
+		return TEXT("Unknown");
 	}
 	}
 }

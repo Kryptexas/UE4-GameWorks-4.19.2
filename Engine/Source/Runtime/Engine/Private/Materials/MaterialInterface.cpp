@@ -18,6 +18,13 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Components.h"
 
+/**
+ * This is used to deprecate data that has been built with older versions.
+ * To regenerate the data, commands like "BUILDMATERIALTEXTURESTREAMINGDATA" can be used in the editor.
+ * Ideally the data would be stored the DDC instead of the asset, but this is not yet  possible because it requires the GPU.
+ */
+#define MATERIAL_TEXTURE_STREAMING_DATA_VERSION 1
+
 //////////////////////////////////////////////////////////////////////////
 
 UEnum* UMaterialInterface::SamplerTypeEnum = nullptr;
@@ -77,6 +84,13 @@ void UMaterialInterface::PostLoad()
 	{
 		PostLoadDefaultMaterials();
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (TextureStreamingDataVersion != MATERIAL_TEXTURE_STREAMING_DATA_VERSION)
+	{
+		TextureStreamingData.Empty();
+	}
+#endif
 }
 
 void UMaterialInterface::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const
@@ -351,6 +365,10 @@ bool UMaterialInterface::IsDeferredDecal() const
 {
 	return false;
 }
+bool UMaterialInterface::GetCastDynamicShadowAsMasked() const
+{
+	return false;
+}
 
 EMaterialShadingModel UMaterialInterface::GetShadingModel() const
 {
@@ -486,7 +504,7 @@ bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, i
 {
 #if WITH_EDITORONLY_DATA
 	// Because of redirectors (when textures are renammed), the texture names might be invalid and we need to udpate the data at every load.
-	// Normally we would do that in the post load, but since the process needs to resolve the StringAssetReference, this is forbidden at that place.
+	// Normally we would do that in the post load, but since the process needs to resolve the SoftObjectPaths, this is forbidden at that place.
 	// As a workaround, we do it on demand. Note that this is not required in cooked build as it is done in the presave.
 	const_cast<UMaterialInterface*>(this)->SortTextureStreamingData(false, false);
 #endif
@@ -515,6 +533,9 @@ bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, i
 void UMaterialInterface::SetTextureStreamingData(const TArray<FMaterialTextureInfo>& InTextureStreamingData)
 {
 	TextureStreamingData = InTextureStreamingData;
+#if WITH_EDITORONLY_DATA
+	TextureStreamingDataVersion = InTextureStreamingData.Num() ? MATERIAL_TEXTURE_STREAMING_DATA_VERSION : 0;
+#endif
 	SortTextureStreamingData(true, false);
 }
 

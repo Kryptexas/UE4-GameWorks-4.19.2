@@ -51,9 +51,10 @@ TSharedRef<IDetailCustomization> FAndroidTargetSettingsCustomization::MakeInstan
 }
 
 FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
-	: AndroidRelativePath(TEXT(""))
+	: LastLicenseChecktime(-1.0)
+	, AndroidRelativePath(TEXT(""))
 	, EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
-	, GameAndroidPath(FPaths::GameDir() + TEXT("Build/Android"))
+	, GameAndroidPath(FPaths::ProjectDir() + TEXT("Build/Android"))
 	, EngineGooglePlayAppIDPath(EngineAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, GameGooglePlayAppIDPath(GameAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, EngineProguardPath(EngineAndroidPath / TEXT("proguard-project.txt"))
@@ -85,6 +86,7 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	BuildLaunchImageSection(DetailLayout);
 	BuildDaydreamAppTileImageSection(DetailLayout);
 	BuildGraphicsDebuggerSection(DetailLayout);
+	AudioPluginWidgetManager.BuildAudioCategory(DetailLayout, EAudioPlatform::Android);
 }
 
 static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
@@ -132,7 +134,7 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 				.FillWidth(1.0f)
 				[
 					SNew(SRichTextBlock)
-					.Text(LOCTEXT("UpgradeInfoMessage", "<RichTextBlock.TextHighlight>Note to users from 4.6 or earlier</>: We now <RichTextBlock.TextHighlight>GENERATE</> an AndroidManifest.xml when building, so if you have customized your .xml file, you will need to put all of your changes into the below settings. Note that we don't touch your AndroidManifest.xml that is in your project directory.\nAdditionally, we no longer use SigningConfig.xml, the settings are now set in the Distribution Signing section."))
+					.Text(LOCTEXT("UpgradeInfoMessage", "<RichTextBlock.TextHighlight>Note to users from 4.6 or earlier</>: We now <RichTextBlock.TextHighlight>GENERATE</> an AndroidManifest.xml when building, so if you have customized your .xml file, you will need to put all of your changes into the below settings. Note that we don't touch your AndroidManifest.xml that is in your project directory.\nAdditionally, we no longer use SigningConfig.xml, the settings are now set in the Distribution Signing section.\n\n<RichTextBlock.TextHighlight>NOTE</>: You must accept the SDK license agreement (click on button below) to use Gradle if it isn't grayed out."))
 					.TextStyle(FEditorStyle::Get(), "MessageLog")
 					.DecoratorStyleSet(&FEditorStyle::Get())
 					.AutoWrapText(true)
@@ -140,7 +142,27 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 				]
 			]
 		];
-	
+
+	APKPackagingCategory.AddCustomRow(LOCTEXT("AndroidSDKLicenses", "Android SDK Licenses"), false)
+		.WholeRowWidget
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(0, 5, 5, 5))
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &FAndroidTargetSettingsCustomization::OnAcceptSDKLicenseClicked)
+				.IsEnabled(this, &FAndroidTargetSettingsCustomization::IsLicenseInvalid)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AcceptSDKLicense", "Accept SDK License"))
+				]
+			]
+		];
+
 	APKPackagingCategory.AddCustomRow(LOCTEXT("BuildFolderLabel", "Build Folder"), false)
 		.IsEnabled(SetupForPlatformAttribute)
 		.NameContent()
@@ -217,6 +239,10 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	GooglePlayCategory.AddProperty(AppIDProperty)
 		.EditCondition(SetupForGooglePlayAttribute, NULL);
 
+	TSharedRef<IPropertyHandle> SupportAdMobProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportAdMob));
+	GooglePlayCategory.AddProperty(SupportAdMobProperty)
+		.EditCondition(SetupForGooglePlayAttribute, NULL);
+
 	TSharedRef<IPropertyHandle> AdMobAdUnitIDProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, AdMobAdUnitID));
 	AdMobAdUnitIDProperty->MarkHiddenByCustomization();
 
@@ -248,7 +274,6 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	SETUP_ANDROIDARCH_PROP(TEXT("-x86"), bBuildForX86, BuildCategory, LOCTEXT("BuildForX86ToolTip", "Enable X86 CPU architecture support?"));
 	SETUP_ANDROIDARCH_PROP(TEXT("-x64"), bBuildForX8664, BuildCategory, LOCTEXT("BuildForX8664ToolTip", "Enable X86-64 CPU architecture support?"));
 	SETUP_ANDROIDARCH_PROP(TEXT("-es2"), bBuildForES2, BuildCategory, LOCTEXT("BuildForES2ToolTip", "Enable OpenGL ES2 rendering support? (this will be used if rendering types are unchecked)"));
-	SETUP_ANDROIDARCH_PROP(TEXT("-esdeferred"), bBuildForESDeferred, BuildCategory, LOCTEXT("BuildForESDeferredToolTip", "Enable the Deferred Shading Renderer using OpenGL ES 3.1+AEP (Android Extension Pack)? This setting is not recommended for general use and is supported only on Nvidia K1 and X1 devices."));
 
 	// @todo android fat binary: Put back in when we expose those
 //	SETUP_SOURCEONLY_PROP(bSplitIntoSeparateApks, BuildCategory, LOCTEXT("SplitIntoSeparateAPKsToolTip", "If checked, CPU architectures and rendering types will be split into separate .apk files"));
@@ -257,6 +282,68 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	TSharedRef<IPropertyHandle> EnableGradleProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bEnableGradle));
 	FSimpleDelegate EnableGradleChange = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnEnableGradleChange);
 	EnableGradleProperty->SetOnPropertyValueChanged(EnableGradleChange);
+}
+
+bool FAndroidTargetSettingsCustomization::IsLicenseInvalid() const
+{
+	static bool bInvalid = true;
+
+	// only check every 30 seconds after first time
+	double CurrentTime = FApp::GetCurrentTime();
+	if (LastLicenseChecktime < 0.0 || CurrentTime - LastLicenseChecktime >= 30.0)
+	{
+		const_cast<FAndroidTargetSettingsCustomization *>(this)->LastLicenseChecktime = CurrentTime;
+
+		TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
+		bInvalid = !LicenseDialog->HasLicense();
+	}
+
+	return bInvalid;
+}
+
+void FAndroidTargetSettingsCustomization::OnLicenseAccepted()
+{
+	LastLicenseChecktime = -1.0;
+}
+
+FReply FAndroidTargetSettingsCustomization::OnAcceptSDKLicenseClicked()
+{
+	// only show if don't have a valid license
+	TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
+	if (!LicenseDialog->HasLicense())
+	{
+		FSimpleDelegate LicenseAcceptedCallback = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnLicenseAccepted);
+		LicenseDialog->SetLicenseAcceptedCallback(LicenseAcceptedCallback);
+
+		const FText AndroidLicenseWindowTitle = LOCTEXT("AndroidLicenseUnrealEditor", "Android SDK License");
+
+		TSharedPtr<SWindow> AndroidLicenseWindow =
+			SNew(SWindow)
+			.Title(AndroidLicenseWindowTitle)
+			.ClientSize(FVector2D(600.f, 700.f))
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::FixedSize)
+			[
+				LicenseDialog.ToSharedRef()
+			];
+
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		TSharedPtr<SWindow> ParentWindow = MainFrame.GetParentWindow();
+
+		if (ParentWindow.IsValid())
+		{
+			FSlateApplication::Get().AddModalWindow(AndroidLicenseWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(AndroidLicenseWindow.ToSharedRef());
+		}
+	}
+
+	LastLicenseChecktime = -1.0;
+
+	return FReply::Handled();
 }
 
 void FAndroidTargetSettingsCustomization::OnEnableGradleChange()
@@ -271,6 +358,9 @@ void FAndroidTargetSettingsCustomization::OnEnableGradleChange()
 	TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
 	if (!LicenseDialog->HasLicense())
 	{
+		FSimpleDelegate LicenseAcceptedCallback = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnLicenseAccepted);
+		LicenseDialog->SetLicenseAcceptedCallback(LicenseAcceptedCallback);
+
 		const FText AndroidLicenseWindowTitle = LOCTEXT("AndroidLicenseUnrealEditor", "Android SDK License");
 
 		TSharedPtr<SWindow> AndroidLicenseWindow =

@@ -9,7 +9,7 @@
 #include "HAL/ThreadSafeBool.h"
 
 #if WITH_EDITOR
-	#include "Interfaces/IImageWrapper.h"
+	#include "IImageWrapper.h"
 #endif
 
 #include "FrameGrabber.h"
@@ -53,7 +53,7 @@ public:
 /** Single runnable thread used to dispatch captured frames */
 struct FImageCaptureThread : public FRunnable
 {
-	FImageCaptureThread(EImageFormat::Type InFormat, int32 InCompressionQuality);
+	FImageCaptureThread(EImageFormat InFormat, int32 InCompressionQuality);
 	~FImageCaptureThread();
 
 	void Add(FCapturedFrameData Frame);
@@ -65,7 +65,7 @@ struct FImageCaptureThread : public FRunnable
 
 private:
 
-	void WriteFrameToDisk(FCapturedFrameData& Frame, IImageWrapperPtr ImageWrapper) const;
+	void WriteFrameToDisk(FCapturedFrameData& Frame, TSharedPtr<IImageWrapper> ImageWrapper) const;
 
 private:
 	/** The thread itself */
@@ -80,16 +80,16 @@ private:
 	/** Set to false when the thread should terminate */
 	FThreadSafeBool bRunning;
 	/** The format we are writing out */
-	EImageFormat::Type Format;
+	EImageFormat Format;
 	/** Level of compression to apply to the image, between 1 (worst quality, best compression) and 100 (best quality, worst compression) */
 	int32 CompressionQuality;
 	/** array of image writer pointers for async writing */
-	TArray<IImageWrapperPtr> ImageWrappers;
+	TArray<TSharedPtr<IImageWrapper>> ImageWrappers;
 };
 
 struct MOVIESCENECAPTURE_API FImageSequenceProtocol : FFrameGrabberProtocol
 {
-	FImageSequenceProtocol(EImageFormat::Type InFormat);
+	FImageSequenceProtocol(EImageFormat InFormat);
 
 	/** ~FFrameGrabberProtocol implementation */
 	virtual bool Initialize(const FCaptureProtocolInitSettings& InSettings, const ICaptureProtocolHost& Host) override;
@@ -107,7 +107,7 @@ private:
 	/** Level of compression to apply to the image, between 1 (worst quality, best compression) and 100 (best quality, worst compression)*/
 	int32 CompressionQuality;
 	/** The format of the image to write out */
-	EImageFormat::Type Format;
+	EImageFormat Format;
 	/** Thread responsible for writing out frames to disk */
 	TUniquePtr<FImageCaptureThread> CaptureThread;
 };

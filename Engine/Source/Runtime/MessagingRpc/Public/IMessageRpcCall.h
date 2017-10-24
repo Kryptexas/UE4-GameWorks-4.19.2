@@ -2,8 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IMessageContext.h"
+#include "Misc/DateTime.h"
+
+class FText;
+class IMessageContext;
+class UScriptStruct;
+
+struct FGuid;
+
 
 /**
  * Interface for RPC calls.

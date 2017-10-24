@@ -277,7 +277,7 @@ int32 FAutoPackageBackup::GetBackupInterval()
  */
 FString FAutoPackageBackup::GetBackupDirectory()
 {
-	FString Directory = FPaths::GameSavedDir() / TEXT("Backup");
+	FString Directory = FPaths::ProjectSavedDir() / TEXT("Backup");
 	return Directory;
 }
 

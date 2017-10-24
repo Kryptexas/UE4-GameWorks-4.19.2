@@ -53,7 +53,7 @@ bool FD3D11DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 	if(Query->QueryType == RQT_AbsoluteTime)
 	{
 		// GetTimingFrequency is the number of ticks per second
-		uint64 Div = FGPUTiming::GetTimingFrequency() / (1000 * 1000);
+		uint64 Div = FMath::Max(1llu, FGPUTiming::GetTimingFrequency() / (1000 * 1000));
 
 		// convert from GPU specific timestamp to micro sec (1 / 1 000 000 s) which seems a reasonable resolution
 		OutResult = Query->Result / Div;

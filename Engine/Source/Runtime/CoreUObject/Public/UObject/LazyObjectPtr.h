@@ -119,7 +119,7 @@ template<> struct TIsPODType<FUniqueObjectGuid> { enum { Value = true }; };
  *
  * This is useful for cross level references or places where you need to point to an object whose name changes often.
  */
-class FLazyObjectPtr : public TPersistentObjectPtr<FUniqueObjectGuid>
+struct FLazyObjectPtr : public TPersistentObjectPtr<FUniqueObjectGuid>
 {
 public:	
 	/** Default constructor, sets to null */
@@ -172,7 +172,7 @@ template <> struct THasGetTypeHash<FLazyObjectPtr> { enum { Value = THasGetTypeH
  * TLazyObjectPtr is templatized version of the generic FLazyObjectPtr
  */
 template<class T=UObject>
-class TLazyObjectPtr : private FLazyObjectPtr
+struct TLazyObjectPtr : private FLazyObjectPtr
 {
 public:
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS

@@ -24,6 +24,7 @@
 #include "IPropertyTableCell.h"
 #include "IPropertyTableRow.h"
 #include "UserInterface/PropertyTable/SPropertyTableRow.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "PropertyTable"
 
@@ -228,7 +229,7 @@ public:
 					IsFirstRow = false;
 				}
 
-				FPlatformMisc::ClipboardCopy( *CopiedText );
+				FPlatformApplicationMisc::ClipboardCopy( *CopiedText );
 				Reply = FReply::Handled();
 			}
 		}
@@ -238,7 +239,7 @@ public:
 			{
 				// Get string from clipboard
 				FString Result;
-				FPlatformMisc::ClipboardPaste( Result );
+				FPlatformApplicationMisc::ClipboardPaste( Result );
 
 				Table->PasteTextAtCell( Result, CurrentCell.ToSharedRef() );
 

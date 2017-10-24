@@ -51,6 +51,7 @@ public class PropertyEditor : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"EditorStyle",
 				"Engine",
 				"InputCore",

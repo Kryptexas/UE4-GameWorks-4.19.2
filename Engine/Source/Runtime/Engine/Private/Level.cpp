@@ -8,6 +8,7 @@ Level.cpp: Level-related functions
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/RenderingObjectVersion.h"
 #include "Templates/ScopedPointer.h"
+#include "Templates/UnrealTemplate.h"
 #include "UObject/Package.h"
 #include "Serialization/AsyncLoading.h"
 #include "EngineStats.h"
@@ -20,6 +21,7 @@ Level.cpp: Level-related functions
 #include "SceneInterface.h"
 #include "AI/Navigation/NavigationData.h"
 #include "PrecomputedLightVolume.h"
+#include "PrecomputedVolumetricLightmap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Components/LightComponent.h"
 #include "Model.h"
@@ -239,6 +241,7 @@ ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	,	OwningWorld(NULL)
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
+	,	PrecomputedVolumetricLightmap(new FPrecomputedVolumetricLightmap())
 {
 #if WITH_EDITORONLY_DATA
 	LevelColor = FLinearColor::White;
@@ -491,7 +494,7 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 #if WITH_EDITOR
 	if( !IsTemplate() )
 	{
-		UPackage* Package = CastChecked<UPackage>(GetOutermost());
+		UPackage* Package = GetOutermost();
 
 		ValidateLightGUIDs();
 
@@ -711,6 +714,9 @@ void ULevel::FinishDestroy()
 {
 	delete PrecomputedLightVolume;
 	PrecomputedLightVolume = NULL;
+
+	delete PrecomputedVolumetricLightmap;
+	PrecomputedVolumetricLightmap = NULL;
 
 	Super::FinishDestroy();
 }
@@ -1574,11 +1580,6 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 #endif
 }
 
-ABrush* ULevel::GetBrush() const
-{
-	return GetDefaultBrush();
-}
-
 ABrush* ULevel::GetDefaultBrush() const
 {
 	ABrush* DefaultBrush = nullptr;
@@ -1698,17 +1699,22 @@ void ULevel::InitializeRenderingResources()
 	// At the point at which Pre/PostEditChange is called on that transient ULevel, it is not part of any world and therefore should not have its rendering resources initialized
 	if (OwningWorld)
 	{
-		if( !PrecomputedLightVolume->IsAddedToScene() )
+		ULevel* ActiveLightingScenario = OwningWorld->GetActiveLightingScenario();
+		UMapBuildDataRegistry* EffectiveMapBuildData = MapBuildData;
+
+		if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
 		{
-			ULevel* ActiveLightingScenario = OwningWorld->GetActiveLightingScenario();
-			UMapBuildDataRegistry* EffectiveMapBuildData = MapBuildData;
+			EffectiveMapBuildData = ActiveLightingScenario->MapBuildData;
+		}
 
-			if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
-			{
-				EffectiveMapBuildData = ActiveLightingScenario->MapBuildData;
-			}
-
+		if (!PrecomputedLightVolume->IsAddedToScene())
+		{
 			PrecomputedLightVolume->AddToScene(OwningWorld->Scene, EffectiveMapBuildData, LevelBuildDataId);
+		}
+
+		if (!PrecomputedVolumetricLightmap->IsAddedToScene())
+		{
+			PrecomputedVolumetricLightmap->AddToScene(OwningWorld->Scene, EffectiveMapBuildData, LevelBuildDataId);
 		}
 	}
 }
@@ -1718,6 +1724,11 @@ void ULevel::ReleaseRenderingResources()
 	if (OwningWorld && PrecomputedLightVolume)
 	{
 		PrecomputedLightVolume->RemoveFromScene(OwningWorld->Scene);
+	}
+
+	if (OwningWorld && PrecomputedVolumetricLightmap)
+	{
+		PrecomputedVolumetricLightmap->RemoveFromScene(OwningWorld->Scene);
 	}
 }
 
@@ -1922,8 +1933,8 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 		// Get rid of the old LevelScriptActor
 		if( LevelScriptActor )
 		{
-			LevelScriptActor->Destroy();
-			LevelScriptActor = NULL;
+			LevelScriptActor->MarkPendingKill();
+			LevelScriptActor = nullptr;
 		}
 
 		check( OwningWorld );
@@ -1953,6 +1964,35 @@ void ULevel::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatfo
 	}
 }
 
+void ULevel::FixupForPIE(int32 PIEInstanceID)
+{
+	TGuardValue<int32> SetPlayInEditorID(GPlayInEditorID, PIEInstanceID);
+
+	struct FSoftPathPIEFixupSerializer : public FArchiveUObject
+	{
+		FSoftPathPIEFixupSerializer() 
+		{
+			ArIsSaving = true;
+		}
+
+		FArchive& operator<<(FSoftObjectPath& Value)
+		{
+			Value.FixupForPIE();
+			return *this;
+		}
+	};
+
+	FSoftPathPIEFixupSerializer FixupSerializer;
+
+	TArray<UObject*> SubObjects;
+	GetObjectsWithOuter(this, SubObjects);
+
+	for (UObject* Object : SubObjects)
+	{
+		Object->Serialize(FixupSerializer);
+	}
+}
+
 #endif	//WITH_EDITOR
 
 bool ULevel::IsPersistentLevel() const
@@ -1979,15 +2019,6 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset);
 
-	if (!InWorldOffset.IsZero())
-	{
-		// Re-add level data to a manager, in case level is visible it this point
-		if (bIsVisible)
-		{
-			IStreamingManager::Get().AddLevel( this );
-		}
-	}
-
 	// Move precomputed light samples
 	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
@@ -2012,6 +2043,33 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
  				FVector, InWorldOffset, InWorldOffset,
  			{
 				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
+		}
+	}
+
+	if (PrecomputedVolumetricLightmap && !InWorldOffset.IsZero())
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_PrecomputedLightVolume);
+		
+		if (!PrecomputedVolumetricLightmap->IsAddedToScene())
+		{
+			// When we add level to world, move precomputed lighting data taking into account position of level at time when lighting was built  
+			if (bIsAssociatingLevel)
+			{
+				FVector PrecomputedVolumetricLightmapOffset = InWorldOffset - FVector(LightBuildLevelOffset);
+				PrecomputedVolumetricLightmap->ApplyWorldOffset(PrecomputedVolumetricLightmapOffset);
+			}
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedVolumetricLightmap*, InPrecomputedVolumetricLightmap, PrecomputedVolumetricLightmap,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedVolumetricLightmap->ApplyWorldOffset(InWorldOffset);
  			});
 		}
 	}
@@ -2044,6 +2102,12 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 		}
 	}
 
+	if (!InWorldOffset.IsZero()) 
+	{
+		// Notify streaming managers that level primitives were shifted
+		IStreamingManager::Get().NotifyLevelOffset(this, InWorldOffset);		
+	}
+	
 	FWorldDelegates::PostApplyLevelOffset.Broadcast(this, OwningWorld, InWorldOffset, bWorldShift);
 }
 

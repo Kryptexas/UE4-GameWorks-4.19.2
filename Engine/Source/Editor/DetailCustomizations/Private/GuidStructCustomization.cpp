@@ -100,8 +100,9 @@ void FGuidStructCustomization::SetGuidValue( const FGuid& Guid )
 {
 	for (uint32 ChildIndex = 0; ChildIndex < 4; ++ChildIndex)
 	{
+		// Mark first 3 as interactive changes so the post edit doesn't go off until the last one
 		TSharedRef<IPropertyHandle> ChildHandle = PropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
-		ChildHandle->SetValue((int32)Guid[ChildIndex]);
+		ChildHandle->SetValue((int32)Guid[ChildIndex], ChildIndex != 3 ? EPropertyValueSetFlags::InteractiveChange : EPropertyValueSetFlags::DefaultFlags);
 	}
 }
 

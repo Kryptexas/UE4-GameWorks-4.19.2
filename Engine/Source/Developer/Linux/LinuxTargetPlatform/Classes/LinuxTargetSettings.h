@@ -13,7 +13,7 @@
 
 
 /**
- * Implements the settings for the Android target platform.
+ * Implements the settings for the Linux target platform.
  */
 UCLASS(config=Engine, defaultconfig)
 class LINUXTARGETPLATFORM_API ULinuxTargetSettings
@@ -22,6 +22,18 @@ class LINUXTARGETPLATFORM_API ULinuxTargetSettings
 public:
 
 	GENERATED_UCLASS_BODY()
+
+	/** Which of the currently enabled spatialization plugins to use on Windows. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio")
+	FString SpatializationPlugin;
+
+	/** Which of the currently enabled reverb plugins to use on Windows. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio")
+	FString ReverbPlugin;
+
+	/** Which of the currently enabled occlusion plugins to use on Windows. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio")
+	FString OcclusionPlugin;
 
 	/**
 	 * The collection of RHI's we want to support on this platform.

@@ -149,13 +149,15 @@ FForwardLightingViewResources* GetMinimalDummyForwardLightingResources();
 bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 {
 	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
-	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+	const bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
 
 	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
-	bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+	const bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+
+	const bool bEarlyZMaterialMasking = CVarEarlyZPassOnlyMaterialMasking.GetValueOnAnyThread() != 0;
 
 	// Note: ShouldForceFullDepthPass affects which static draw lists meshes go into, so nothing it depends on can change at runtime, unless you do a FGlobalComponentRecreateRenderStateContext to propagate the cvar change
-	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel) || UseSelectiveBasePassOutputs();
+	return bDBufferAllowed || bStencilLODDither || bEarlyZMaterialMasking || IsForwardShadingEnabled(FeatureLevel) || UseSelectiveBasePassOutputs();
 }
 
 void GetEarlyZPassMode(ERHIFeatureLevel::Type FeatureLevel, EDepthDrawingMode& EarlyZPassMode, bool& bEarlyZPassMovable)
@@ -245,7 +247,6 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
 	const float ClearAlpha = GetSceneColorClearAlpha();
 	const FLinearColor ClearColor = bClearBlack ? FLinearColor(0, 0, 0, ClearAlpha) : FLinearColor(Views[0].BackgroundColor.R, Views[0].BackgroundColor.G, Views[0].BackgroundColor.B, ClearAlpha);
-	// Same clear color from RHIClearMRT
 	FLinearColor ClearColors[MaxSimultaneousRenderTargets] = 
 		{ClearColor, FLinearColor(0.5f,0.5f,0.5f,0), FLinearColor(0,0,0,1), FLinearColor(0,0,0,0), FLinearColor(0,1,1,1), FLinearColor(1,1,1,1), FLinearColor::Transparent, FLinearColor::Transparent};
 
@@ -429,79 +430,85 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 	FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, DepthStencilAccess, View.Family->EngineShowFlags.ShaderComplexity, ClearColor);
 }
 
-void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries)
-{		
-	if (bRenderQueries)
+bool FDeferredShadingSceneRenderer::RenderHzb(FRHICommandListImmediate& RHICmdList)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
+
+	static const auto ICVarHZBOcc = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HZBOcclusion"));
+	bool bHZBOcclusion = ICVarHZBOcc->GetInt() != 0;
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		FViewInfo& View = Views[ViewIndex];
+		FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+		const uint32 bSSR = ShouldRenderScreenSpaceReflections(View);
+		const bool bSSAO = ShouldRenderScreenSpaceAmbientOcclusion(View);
 
+		if (bSSAO || bHZBOcclusion || bSSR)
 		{
-			// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
-			// This needs to happen before occlusion tests, which makes use of the small depth buffer.
-			SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateDownsampledDepthSurface);
-			UpdateDownsampledDepthSurface(RHICmdList);
-		}
-		
-		// Issue occlusion queries
-		// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
-		BeginOcclusionTests(RHICmdList, bRenderQueries);
-
-		{
-			RHICmdList.TransitionResource( EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface() );
-
-			static const auto ICVarHZBOcc	= IConsoleManager::Get().FindConsoleVariable(TEXT("r.HZBOcclusion"));
-			bool bHZBOcclusion				= ICVarHZBOcc->GetInt() != 0;
-
-			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-			{
-				FViewInfo& View = Views[ViewIndex];
-				FSceneViewState* ViewState = (FSceneViewState*)View.State;
-				
-				const uint32 bSSR = ShouldRenderScreenSpaceReflections(View);
-				const bool bSSAO = ShouldRenderScreenSpaceAmbientOcclusion(View);
-
-				if (bSSAO || bHZBOcclusion || bSSR)
-				{
-					BuildHZB(RHICmdList, Views[ViewIndex]);
-				}
-
-				if (bHZBOcclusion && ViewState && ViewState->HZBOcclusionTests.GetNum() != 0)
-				{
-					check(ViewState->HZBOcclusionTests.IsValidFrame(ViewState->OcclusionFrameCounter));
-
-					SCOPED_DRAW_EVENT(RHICmdList, HZB);
-					ViewState->HZBOcclusionTests.Submit(RHICmdList, View);
-				}
-			}
-
-			//async ssao only requires HZB and depth as inputs so get started ASAP
-			if (GCompositionLighting.CanProcessAsyncSSAO(Views))
-			{				
-				GCompositionLighting.ProcessAsyncSSAO(RHICmdList, Views);
-			}
+			BuildHZB(RHICmdList, Views[ViewIndex]);
 		}
 
-		// Hint to the RHI to submit commands up to this point to the GPU if possible.  Can help avoid CPU stalls next frame waiting
-		// for these query results on some platforms.
-		RHICmdList.SubmitCommandsHint();
-
-		if (bRenderQueries && IsRunningRHIInSeparateThread())
+		if (bHZBOcclusion && ViewState && ViewState->HZBOcclusionTests.GetNum() != 0)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
-			int32 NumFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
-			for (int32 Dest = 1; Dest < NumFrames; Dest++)
-			{
-				CA_SUPPRESS(6385);
-				OcclusionSubmittedFence[Dest] = OcclusionSubmittedFence[Dest - 1];
-			}
-			OcclusionSubmittedFence[0] = RHICmdList.RHIThreadFence();
-			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+			check(ViewState->HZBOcclusionTests.IsValidFrame(ViewState->OcclusionFrameCounter));
+
+			SCOPED_DRAW_EVENT(RHICmdList, HZB);
+			ViewState->HZBOcclusionTests.Submit(RHICmdList, View);
 		}
 	}
+
+	//async ssao only requires HZB and depth as inputs so get started ASAP
+	if (GCompositionLighting.CanProcessAsyncSSAO(Views))
+	{
+		GCompositionLighting.ProcessAsyncSSAO(RHICmdList, Views);
+	}
+
+	return bHZBOcclusion;
 }
 
+void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList)
+{		
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+
+	{
+		// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
+		// This needs to happen before occlusion tests, which makes use of the small depth buffer.
+		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateDownsampledDepthSurface);
+		UpdateDownsampledDepthSurface(RHICmdList);
+	}
+		
+	// Issue occlusion queries
+	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
+	BeginOcclusionTests(RHICmdList, true);
+}
+
+void FDeferredShadingSceneRenderer::FinishOcclusion(FRHICommandListImmediate& RHICmdList)
+{
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+
+	// Hint to the RHI to submit commands up to this point to the GPU if possible.  Can help avoid CPU stalls next frame waiting
+	// for these query results on some platforms.
+	RHICmdList.SubmitCommandsHint();
+
+	if (IsRunningRHIInSeparateThread())
+	{
+		SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
+		int32 NumFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+		for (int32 Dest = 1; Dest < NumFrames; Dest++)
+		{
+			CA_SUPPRESS(6385);
+			OcclusionSubmittedFence[Dest] = OcclusionSubmittedFence[Dest - 1];
+		}
+		OcclusionSubmittedFence[0] = RHICmdList.RHIThreadFence();
+		RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+	}
+}
 // The render thread is involved in sending stuff to the RHI, so we will periodically service that queue
 void ServiceLocalQueue()
 {
@@ -610,8 +617,14 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 			if (ShouldPrepareGlobalDistanceField())
 			{
+				float OcclusionMaxDistance = Scene->DefaultMaxDistanceFieldOcclusionDistance;
+
 				// Use the skylight's max distance if there is one
-				const float OcclusionMaxDistance = Scene->SkyLight && !Scene->SkyLight->bWantsStaticShadowing ? Scene->SkyLight->OcclusionMaxDistance : Scene->DefaultMaxDistanceFieldOcclusionDistance;
+				if (Scene->SkyLight && Scene->SkyLight->bCastShadows && !Scene->SkyLight->bWantsStaticShadowing)
+				{
+					OcclusionMaxDistance = Scene->SkyLight->OcclusionMaxDistance;
+				}
+
 				UpdateGlobalDistanceFieldVolume(RHICmdList, Views[ViewIndex], Scene, OcclusionMaxDistance, Views[ViewIndex].GlobalDistanceFieldInfo);
 			}
 		}	
@@ -793,6 +806,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
+    if (bComputeLightGrid)
+    {
+        ComputeLightGrid(RHICmdList);
+	}
+	else
+	{
+		for (auto& View : Views)
+		{
+			View.ForwardLightingResources = GetMinimalDummyForwardLightingResources();
+		}
+	}
+
 	if (bUseGBuffer || IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
@@ -802,7 +827,19 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	const bool bOcclusionBeforeBasePass = (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders) || (EarlyZPassMode == EDepthDrawingMode::DDM_AllOpaque);
 
-	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass);
+	if (bOcclusionBeforeBasePass)
+	{
+		if (bIsOcclusionTesting)
+		{
+			RenderOcclusion(RHICmdList);
+		}
+		bool bUseHzbOcclusion = RenderHzb(RHICmdList);
+		if (bUseHzbOcclusion || bIsOcclusionTesting)
+		{
+			FinishOcclusion(RHICmdList);
+		}
+	}
+
 	ServiceLocalQueue();
 
 	if (bOcclusionBeforeBasePass)
@@ -823,18 +860,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_CustomDepthPass0);
 		RenderCustomDepthPassAtLocation(RHICmdList, 0);
-	}
-
-	if (bComputeLightGrid)
-	{
-		ComputeLightGrid(RHICmdList);
-	}
-	else
-	{
-		for (auto& View : Views)
-		{
-			View.ForwardLightingResources = GetMinimalDummyForwardLightingResources();
-		}
 	}
 
 	if (bOcclusionBeforeBasePass)
@@ -959,10 +984,23 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		bRequiresFarZQuadClear = false;
 	}
 	
+	VisualizeVolumetricLightmap(RHICmdList);
+
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
-	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
-	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass);
+	if (!bOcclusionBeforeBasePass)
+	{
+		if (bIsOcclusionTesting)
+		{
+			RenderOcclusion(RHICmdList);
+		}
+		bool bUseHzbOcclusion = RenderHzb(RHICmdList);
+		if (bUseHzbOcclusion || bIsOcclusionTesting)
+		{
+			FinishOcclusion(RHICmdList);
+		}
+	}
+
 	ServiceLocalQueue();
 
 	if (bUseGBuffer)
@@ -1194,6 +1232,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			RendererModule.RenderPostOpaqueExtensions(View, RHICmdList, SceneContext);
 		}
 	}
+
+	RendererModule.DispatchPostOpaqueCompute(RHICmdList);
 
 	// No longer needed, release
 	LightShaftOutput.LightShaftOcclusion = NULL;

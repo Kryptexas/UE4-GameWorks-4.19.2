@@ -315,13 +315,6 @@ bool ACharacter::IsJumpProvidingForce() const
 	return (bPressedJump && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
-// Deprecated
-bool ACharacter::DoJump( bool bReplayingMoves )
-{
-	return CanJump() && CharacterMovement->DoJump(bReplayingMoves);
-}
-
-
 void ACharacter::RecalculateBaseEyeHeight()
 {
 	if (!bIsCrouched)
@@ -428,7 +421,7 @@ void ACharacter::OnStartCrouch( float HeightAdjust, float ScaledHeightAdjust )
 	}
 	else
 	{
-		BaseTranslationOffset.Z = GetDefault<ACharacter>(GetClass())->BaseTranslationOffset.Z + HeightAdjust;
+		BaseTranslationOffset.Z = DefaultChar->BaseTranslationOffset.Z + HeightAdjust;
 	}
 
 	K2_OnStartCrouch(HeightAdjust, ScaledHeightAdjust);
@@ -580,15 +573,15 @@ namespace MovementBaseUtility
 		{
 			if (const FBodyInstance* BodyInstance = MovementBase->GetBodyInstance(BoneName))
 			{
-				const FVector BaseAngVel = BodyInstance->GetUnrealWorldAngularVelocity();
-				if (!BaseAngVel.IsNearlyZero())
+				const FVector BaseAngVelInRad = BodyInstance->GetUnrealWorldAngularVelocityInRadians();
+				if (!BaseAngVelInRad.IsNearlyZero())
 				{
 					FVector BaseLocation;
 					FQuat BaseRotation;
 					if (MovementBaseUtility::GetMovementBaseTransform(MovementBase, BoneName, BaseLocation, BaseRotation))
 					{
 						const FVector RadialDistanceToBase = WorldLocation - BaseLocation;
-						const FVector TangentialVel = FVector::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+						const FVector TangentialVel = BaseAngVelInRad ^ RadialDistanceToBase;
 						return TangentialVel;
 					}
 				}
@@ -660,12 +653,20 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 	{
 		// Verify no recursion.
 		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : NULL);
-		for(  ; Loop!=NULL; Loop=Cast<APawn>(Loop->GetMovementBase()) )
+		while (Loop)
 		{
-			if( Loop == this )
+			if (Loop == this)
 			{
 				UE_LOG(LogCharacter, Warning, TEXT(" SetBase failed! Recursion detected. Pawn %s already based on %s."), *GetName(), *NewBaseComponent->GetName()); //-V595
 				return;
+			}
+			if (UPrimitiveComponent* LoopBase =	Loop->GetMovementBase())
+			{
+				Loop = Cast<APawn>(LoopBase->GetOwner());
+			}
+			else
+			{
+				break;
 			}
 		}
 
@@ -978,7 +979,7 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
 			if (bDidJump)
 			{
-				// Transistion from not (actively) jumping to jumping.
+				// Transition from not (actively) jumping to jumping.
 				if (!bWasJumping)
 				{
 					JumpCurrentCount++;

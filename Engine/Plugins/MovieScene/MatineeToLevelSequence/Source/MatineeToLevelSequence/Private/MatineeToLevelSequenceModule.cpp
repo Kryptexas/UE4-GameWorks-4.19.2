@@ -505,7 +505,7 @@ protected:
 				UInterpTrackEvent* MatineeEventTrack = StaticCast<UInterpTrackEvent*>(Track);
 				if (MatineeEventTrack->GetNumKeyframes() != 0)
 				{
-					UMovieSceneEventTrack* EventTrack = Cast<UMovieSceneEventTrack>(NewMovieScene->AddMasterTrack<UMovieSceneEventTrack>());
+					UMovieSceneEventTrack* EventTrack = NewMovieScene->AddMasterTrack<UMovieSceneEventTrack>();
 					FString EventTrackName = Group->GroupName.ToString() + TEXT("Events");
 					EventTrack->SetDisplayName(FText::FromString(EventTrackName));
 					FMatineeImportTools::CopyInterpEventTrack(MatineeEventTrack, EventTrack);
@@ -519,7 +519,7 @@ protected:
 				UInterpTrackSound* MatineeSoundTrack = StaticCast<UInterpTrackSound*>(Track);
 				if (MatineeSoundTrack->GetNumKeyframes() != 0)
 				{
-					UMovieSceneAudioTrack* AudioTrack = Cast<UMovieSceneAudioTrack>(NewMovieScene->AddMasterTrack<UMovieSceneAudioTrack>());
+					UMovieSceneAudioTrack* AudioTrack = NewMovieScene->AddMasterTrack<UMovieSceneAudioTrack>();
 					FString AudioTrackName = Group->GroupName.ToString() + TEXT("Audio");
 					AudioTrack->SetDisplayName(FText::FromString(AudioTrackName));					
 					FMatineeImportTools::CopyInterpSoundTrack(MatineeSoundTrack, AudioTrack);
@@ -715,21 +715,21 @@ protected:
 				UInterpTrackDirector* MatineeDirectorTrack = DirGroup->GetDirectorTrack();
 				if (MatineeDirectorTrack && MatineeDirectorTrack->GetNumKeyframes() != 0)
 				{
-					UMovieSceneCameraCutTrack* CameraCutTrack = Cast<UMovieSceneCameraCutTrack>(NewMovieScene->AddMasterTrack<UMovieSceneCameraCutTrack>());
+					UMovieSceneCameraCutTrack* CameraCutTrack = NewMovieScene->AddMasterTrack<UMovieSceneCameraCutTrack>();
 					FMatineeImportTools::CopyInterpDirectorTrack(MatineeDirectorTrack, CameraCutTrack, MatineeActor, TemporaryPlayer);
 				}
 
 				UInterpTrackFade* MatineeFadeTrack = DirGroup->GetFadeTrack();
 				if (MatineeFadeTrack && MatineeFadeTrack->GetNumKeyframes() != 0)
 				{						
-					UMovieSceneFadeTrack* FadeTrack = Cast<UMovieSceneFadeTrack>(NewMovieScene->AddMasterTrack<UMovieSceneFadeTrack>());
+					UMovieSceneFadeTrack* FadeTrack = NewMovieScene->AddMasterTrack<UMovieSceneFadeTrack>();
 					FMatineeImportTools::CopyInterpFadeTrack(MatineeFadeTrack, FadeTrack);
 				}
 
 				UInterpTrackSlomo* MatineeSlomoTrack = DirGroup->GetSlomoTrack();
 				if (MatineeSlomoTrack && MatineeSlomoTrack->GetNumKeyframes() != 0)
 				{
-					UMovieSceneSlomoTrack* SlomoTrack = Cast<UMovieSceneSlomoTrack>(NewMovieScene->AddMasterTrack<UMovieSceneSlomoTrack>());
+					UMovieSceneSlomoTrack* SlomoTrack = NewMovieScene->AddMasterTrack<UMovieSceneSlomoTrack>();
 					FMatineeImportTools::CopyInterpFloatTrack(MatineeSlomoTrack, SlomoTrack);
 				}
 				

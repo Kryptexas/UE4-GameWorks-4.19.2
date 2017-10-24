@@ -18,6 +18,7 @@
 #include "Framework/Docking/SDockingTabStack.h"
 #include "Framework/Docking/SDockingTabWell.h"
 #include "LayoutExtender.h"
+#include "HAL/PlatformApplicationMisc.h"
 #if PLATFORM_MAC
 #include "../MultiBox/Mac/MacMenu.h"
 #endif
@@ -327,8 +328,8 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 		if ( NodeAsArea->WindowPlacement == FArea::Placement_Automatic )
 		{
 			JsonObj->SetStringField( TEXT("WindowPlacement"), TEXT("Placement_Automatic") );
-			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->WindowSize.X );
-			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->WindowSize.Y );
+			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->UnscaledWindowSize.X );
+			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->UnscaledWindowSize.Y );
 		}
 		else if (NodeAsArea->WindowPlacement == FArea::Placement_NoWindow)
 		{
@@ -337,10 +338,10 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 		else if ( NodeAsArea->WindowPlacement == FArea::Placement_Specified )
 		{
 			JsonObj->SetStringField( TEXT("WindowPlacement"), TEXT("Placement_Specified") );
-			JsonObj->SetNumberField( TEXT("WindowPosition_X"), NodeAsArea->WindowPosition.X );
-			JsonObj->SetNumberField( TEXT("WindowPosition_Y"), NodeAsArea->WindowPosition.Y );
-			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->WindowSize.X );
-			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->WindowSize.Y );
+			JsonObj->SetNumberField( TEXT("WindowPosition_X"), NodeAsArea->UnscaledWindowPosition.X );
+			JsonObj->SetNumberField( TEXT("WindowPosition_Y"), NodeAsArea->UnscaledWindowPosition.Y );
+			JsonObj->SetNumberField( TEXT("WindowSize_X"), NodeAsArea->UnscaledWindowSize.X );
+			JsonObj->SetNumberField( TEXT("WindowSize_Y"), NodeAsArea->UnscaledWindowSize.Y );
 			JsonObj->SetBoolField( TEXT("bIsMaximized"), NodeAsArea->bIsMaximized );
 		}
 				
@@ -639,7 +640,7 @@ void FTabManager::UpdateMainMenu(bool const bForce)
 			TSharedPtr<SWindow> ParentWindow = Tab->GetParentWindow();
 			if(ParentWindow.IsValid())
 			{
-				bUpdate |= (ParentWindow->HasKeyboardFocus() || ParentWindow->HasFocusedDescendants());
+				bUpdate |= ParentWindow->GetNativeWindow()->IsForegroundWindow();
 			}
 		}
 		if(bUpdate)
@@ -1081,7 +1082,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 		ParentWindowPtr->SetTitle( NewTab->GetTabLabel() );
 	}
 #if PLATFORM_MAC
-	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 #endif
 	return NewTab;
 }
@@ -1311,13 +1312,13 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 			TSharedRef<SWindow> NewWindow = (bAutoPlacement)
 				? SNew(SWindow)
 					.AutoCenter( EAutoCenter::PreferredWorkArea )
-					.ClientSize( NodeAsArea->WindowSize )
+					.ClientSize( NodeAsArea->UnscaledWindowSize )
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized )
 				: SNew(SWindow)
 					.AutoCenter( EAutoCenter::None )
-					.ScreenPosition( NodeAsArea->WindowPosition )
-					.ClientSize( NodeAsArea->WindowSize )
+					.ScreenPosition( NodeAsArea->UnscaledWindowPosition )
+					.ClientSize( NodeAsArea->UnscaledWindowSize)
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized );
 

@@ -174,7 +174,36 @@ void UEditorWorldExtension::ReparentActor(AActor* Actor, UWorld* NewWorld)
 
 	ULevel* Level = NewWorld->PersistentLevel;
 	Actor->Rename(nullptr, Level);
-	Actor->DispatchBeginPlay();
+
+
+	// Are we transitioning into a live world?
+	if( NewWorld->HasBegunPlay() )
+	{
+		// @todo vreditor simulate: Instead of doing all of this "fake finish spawn" work for actors that we've transitioned
+		// to the PlayWorld, we could instead transition the actors BEFORE PlayWorld->InitializeActorsForPlay() is called.
+		// Then, the level itself can finish getting these actors ready to play.  See UGameInstance::StartPlayInEditorGameInstance().
+
+		// @todo vreditor simulate: When transition our actors that have had BeginPlay() called on them back to the regular
+		// EditorWorld, we'll need to reset various state so that they behave correctly in both the editor world, and also
+		// in a new game world after PIE is started again.  We also may need to deregister them for replication.
+
+		// @todo vreditor simulate: Even though the actor might be set to replicate, until it's been moved into a world with BeginPlay() called on it,
+		// it will never have had a chance to actually register itself with the networking system for replication.  So we'll
+		// toggle replicated state to make sure it's registered here.
+		if( Actor->GetIsReplicated() )
+		{
+			Actor->SetReplicates( false );
+			Actor->SetReplicates( true );
+		}
+
+		// @todo vreditor simulate: This is needed because actors spawned into the EditorWorld never have PostActorConstruction()
+		// called on them, even though the actor is considered fully initialized.  Actors only have PostActorConstruction()
+		// called after being spawned into a level that has had BeginPlay() called on it, or when the actor already resided
+		// in the level before the level had BeginPlay() called on it.  
+		Actor->PostActorConstruction();		// @todo vreditor simulate: We had to make this AActor function PUBLIC instead of PRIVATE to be able to do this.  Not ideal.
+
+		Actor->DispatchBeginPlay();
+	}
 }
 
 void UEditorWorldExtension::InitInternal(UEditorWorldExtensionCollection* InOwningExtensionsCollection)
@@ -187,6 +216,7 @@ void UEditorWorldExtension::InitInternal(UEditorWorldExtensionCollection* InOwni
 /************************************************************************/
 UEditorWorldExtensionCollection::UEditorWorldExtensionCollection() :
 	Super(),
+	Currentworld(nullptr),
 	EditorWorldOnSimulate(nullptr)
 {
 	if( !IsTemplate() )
@@ -194,6 +224,7 @@ UEditorWorldExtensionCollection::UEditorWorldExtensionCollection() :
 		FEditorDelegates::PostPIEStarted.AddUObject( this, &UEditorWorldExtensionCollection::PostPIEStarted );
 		FEditorDelegates::PrePIEEnded.AddUObject( this, &UEditorWorldExtensionCollection::OnPreEndPIE );
 		FEditorDelegates::EndPIE.AddUObject( this, &UEditorWorldExtensionCollection::OnEndPIE );
+		FEditorDelegates::OnSwitchBeginPIEAndSIE.AddUObject(this, &UEditorWorldExtensionCollection::SwitchPIEAndSIE);
 	}
 }
 
@@ -202,19 +233,16 @@ UEditorWorldExtensionCollection::~UEditorWorldExtensionCollection()
 	FEditorDelegates::PostPIEStarted.RemoveAll( this );
 	FEditorDelegates::PrePIEEnded.RemoveAll( this );
 	FEditorDelegates::EndPIE.RemoveAll( this );
+	FEditorDelegates::OnSwitchBeginPIEAndSIE.RemoveAll( this );
 
 	EditorExtensions.Empty();
-	EditorWorldOnSimulate = nullptr;
+	Currentworld.Reset();
+	EditorWorldOnSimulate.Reset();
 }
 
 UWorld* UEditorWorldExtensionCollection::GetWorld() const
 {
-	return WorldContext->World();
-}
-
-FWorldContext* UEditorWorldExtensionCollection::GetWorldContext() const
-{
-	return WorldContext;
+	return Currentworld.IsValid() ? Currentworld.Get() : nullptr;
 }
 
 UEditorWorldExtension* UEditorWorldExtensionCollection::AddExtension(TSubclassOf<UEditorWorldExtension> EditorExtensionClass)
@@ -346,8 +374,11 @@ void UEditorWorldExtensionCollection::ShowAllActors(const bool bShow)
 		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
 		for (AActor* Actor : EditorExtension->ExtensionActors)
 		{
-			Actor->SetActorHiddenInGame(!bShow);
-			Actor->SetActorEnableCollision(bShow);
+			if (Actor != nullptr)
+			{
+				Actor->SetActorHiddenInGame(!bShow);
+				Actor->SetActorEnableCollision(bShow);
+			}
 		}
 	}
 }
@@ -355,10 +386,10 @@ void UEditorWorldExtensionCollection::ShowAllActors(const bool bShow)
 
 void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor )
 {
-	if( bIsSimulatingInEditor && GEditor->EditorWorld != nullptr && GEditor->EditorWorld == WorldContext->World() )
+	if( bIsSimulatingInEditor && GEditor->EditorWorld != nullptr && Currentworld.IsValid() && GEditor->EditorWorld == Currentworld.Get() )
 	{
-		SetWorldContext( GEditor->GetPIEWorldContext() );
-		EditorWorldOnSimulate = &GEditor->GetEditorWorldContext();
+		SetWorld( GEditor->GetPIEWorldContext()->World() );
+		EditorWorldOnSimulate = GEditor->GetEditorWorldContext().World();
 
 		for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
 		{
@@ -368,31 +399,30 @@ void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor
 	}
 }
 
-
 void UEditorWorldExtensionCollection::OnPreEndPIE(bool bWasSimulatingInEditor)
 {
-	if (!bWasSimulatingInEditor && EditorWorldOnSimulate != nullptr && EditorWorldOnSimulate->World() == GEditor->EditorWorld)
+	if (!bWasSimulatingInEditor && EditorWorldOnSimulate.IsValid() && EditorWorldOnSimulate.Get() == GEditor->EditorWorld)
 	{
 		if (!GIsRequestingExit)
 		{
 			// Revert back to the editor world before closing the play world, otherwise actors and objects will be destroyed.
-			SetWorldContext(EditorWorldOnSimulate);
-			EditorWorldOnSimulate = nullptr;
+			SetWorld(EditorWorldOnSimulate.Get());
+			EditorWorldOnSimulate.Reset();
 		}
 	}
 }
 
 void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
 {
-	if( bWasSimulatingInEditor && EditorWorldOnSimulate != nullptr && EditorWorldOnSimulate->World() == GEditor->EditorWorld )
+	if( bWasSimulatingInEditor && EditorWorldOnSimulate.IsValid() && EditorWorldOnSimulate.Get() == GEditor->EditorWorld )
 	{
 		if( !GIsRequestingExit )
 		{
-			UWorld* SimulateWorld = WorldContext->World();
+			UWorld* SimulateWorld = Currentworld.Get();
 
 			// Revert back to the editor world before closing the play world, otherwise actors and objects will be destroyed.
-			SetWorldContext( EditorWorldOnSimulate );
-			EditorWorldOnSimulate = nullptr;
+			SetWorld( EditorWorldOnSimulate.Get() );
+			EditorWorldOnSimulate.Reset();
 
 			for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
 			{
@@ -403,25 +433,41 @@ void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
 	}
 }
 
-
-void UEditorWorldExtensionCollection::SetWorldContext(FWorldContext* InWorldContext)
+void UEditorWorldExtensionCollection::SwitchPIEAndSIE(bool bIsSimulatingInEditor)
 {
-	check( InWorldContext != nullptr );
-
-	if( this->WorldContext != nullptr )
+	if (GEditor->EditorWorld != nullptr && EditorWorldOnSimulate.IsValid() && EditorWorldOnSimulate.Get() == GEditor->EditorWorld && 
+		GEditor->PlayWorld != nullptr && Currentworld.IsValid() && Currentworld.Get() == GEditor->PlayWorld)
 	{
-		UWorld* CurrentWorld = WorldContext->World();
-		if (CurrentWorld != nullptr)
+		if (!bIsSimulatingInEditor)
 		{
-			for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
-			{
-				UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
-				EditorExtension->TransitionWorld(InWorldContext->World());
-			}
+			// Post SIE to PIE.
+			// Transition the extensions to the editor world, so everything is stored while being in PIE.
+			SetWorld(EditorWorldOnSimulate.Get());
+		}
+		else
+		{
+			// Post PIE to SIE
+			// All the extensions were transitioned to the editor world before entering PIE from SIE. Now we have to transition the extensions back to simulate world.
+			SetWorld(Currentworld.Get());
+		}
+	}
+}
+
+void UEditorWorldExtensionCollection::SetWorld(UWorld* World)
+{
+	check( World != nullptr );
+
+	// First time setting the world on collection we don't want to transition because there is nothing yet to transition from.
+	if( Currentworld.IsValid() )
+	{
+		for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
+		{
+			UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
+			EditorExtension->TransitionWorld(World);
 		}
 	}
 
-	WorldContext = InWorldContext;
+	Currentworld = World;
 }
 
 /************************************************************************/
@@ -446,34 +492,32 @@ UEditorWorldExtensionManager::~UEditorWorldExtensionManager()
 	EditorWorldExtensionCollection.Empty();
 }
 
-UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExtensions(const UWorld* InWorld, const bool bCreateIfNeeded /**= true*/)
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExtensions(UWorld* World, const bool bCreateIfNeeded /**= true*/)
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
 	UEditorWorldExtensionCollection* Result = nullptr;
-	if (InWorld)
+	if (World)
 	{
-		UEditorWorldExtensionCollection* FoundExtensionCollection = FindExtensionCollection(InWorld);
+		UEditorWorldExtensionCollection* FoundExtensionCollection = FindExtensionCollection(World);
 		if (FoundExtensionCollection != nullptr)
 		{
 			Result = FoundExtensionCollection;
 		}
 		else if(bCreateIfNeeded)
 		{
-			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
-			Result = OnWorldContextAdd(WorldContext);
+			Result = OnWorldAdd(World);
 		}
 	}
 	return Result;
 }
 
-UEditorWorldExtensionCollection* UEditorWorldExtensionManager::OnWorldContextAdd(FWorldContext* InWorldContext)
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::OnWorldAdd(UWorld* World)
 {
-	const UWorld* World = InWorldContext->World();
 	UEditorWorldExtensionCollection* Result = nullptr;
 	if (World != nullptr)
 	{
 		UEditorWorldExtensionCollection* ExtensionCollection = NewObject<UEditorWorldExtensionCollection>();
-		ExtensionCollection->SetWorldContext(InWorldContext);
+		ExtensionCollection->SetWorld(World);
 		Result = ExtensionCollection;
 		EditorWorldExtensionCollection.Add(Result);
 	}

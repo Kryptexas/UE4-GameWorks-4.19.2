@@ -6,6 +6,7 @@
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 #include "IMessageContext.h"
+#include "IMessageTransportHandler.h"
 #include "Transport/UdpMessageTransport.h"
 #include "Tests/UdpMessagingTestTypes.h"
 
@@ -14,6 +15,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpMessageTransportTest, "System.Core.Messagin
 
 
 class FUdpMessageTransportTestState
+	: public IMessageTransportHandler
 {
 public:
 
@@ -22,11 +24,6 @@ public:
 		, Test(InTest)
 	{
 		Transport = MakeShareable(new FUdpMessageTransport(UnicastEndpoint, MulticastEndpoint, MulticastTimeToLive));
-		{
-			Transport->OnMessageReceived().BindRaw(this, &FUdpMessageTransportTestState::HandleTransportMessageReceived);
-			Transport->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransportTestState::HandleTransportNodeDiscovered);
-			Transport->OnNodeLost().BindRaw(this, &FUdpMessageTransportTestState::HandleTransportNodeLost);
-		}
 	}
 
 public:
@@ -53,7 +50,7 @@ public:
 
 	bool Start()
 	{
-		return Transport->StartTransport();
+		return Transport->StartTransport(*this);
 	}
 
 	void Stop()
@@ -61,21 +58,23 @@ public:
 		Transport->StopTransport();
 	}
 
-private:
+public:
 
-	void HandleTransportMessageReceived(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& MessageContext, const FGuid& NodeId)
-	{
-		FPlatformAtomics::InterlockedIncrement(&NumReceivedMessages);
-	}
+	//~ IMessageTransportHandler interface
 
-	void HandleTransportNodeDiscovered(const FGuid& NodeId)
+	virtual void DiscoverTransportNode(const FGuid& NodeId) override
 	{
 		DiscoveredNodes.Add(NodeId);
 	}
 
-	void HandleTransportNodeLost(const FGuid& NodeId)
+	virtual void ForgetTransportNode(const FGuid& NodeId) override
 	{
 		LostNodes.Add(NodeId);
+	}
+
+	virtual void ReceiveTransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FGuid& NodeId) override
+	{
+		FPlatformAtomics::InterlockedIncrement(&NumReceivedMessages);
 	}
 
 private:

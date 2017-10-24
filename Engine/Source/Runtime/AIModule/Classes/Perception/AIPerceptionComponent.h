@@ -299,6 +299,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	bool GetActorsPerception(AActor* Actor, FActorPerceptionBlueprintInfo& Info);
 
+	/** Note that this works only if given sense has been already configured for
+	 *	this component instance */
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	void SetSenseEnabled(TSubclassOf<UAISense> SenseClass, const bool bEnable);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Might want to move these to special "BP_AIPerceptionComponent"
 	//////////////////////////////////////////////////////////////////////////

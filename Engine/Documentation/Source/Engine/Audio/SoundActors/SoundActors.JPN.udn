@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3599948
 Availability:Public
 Title:Ambient Sound アクタのユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -101,7 +101,7 @@ MaxRadius の外側では、サウンドの音量は 0% です。
 | **Spatialize** | 3D に配置されるソースを有効にします。 |
 | **Distance Algorithm** | 減衰モデルに使用するボリュームのタイプに対する距離アルゴリズムです。 |
 | **Attenuation Shape** | 減衰ボリュームの形状です。 |
-| **Radius** | ボリュームの全体的なサイズです。 <BR> ボリューム形状のデフォルト設定は **Sphere** です。このオプションは選択されている Attenuation Shape によって変わります。 |
+| **Radius** | ボリュームの全体的なサイズです。ボリューム形状のデフォルト設定は **Sphere** です。このオプションは選択されている Attenuation Shape によって変わります。 |
 | **Falloff Distance** | フォールオフが発生する距離です。 |
 | **Non-Spatialized Radius** | サウンドソースを空間化されたものとして処理を開始する距離です。 |
 | **Attenuate with LPF** | ローパス フィルタにより減衰を有効にします。 |

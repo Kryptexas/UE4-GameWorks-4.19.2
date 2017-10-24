@@ -1296,7 +1296,7 @@ FBoxSphereBounds AbcImporterUtilities::ExtractBounds(Alembic::Abc::IBox3dPropert
 			const Imath::V3d BoundSize = BoundsSample.size();
 			const Imath::V3d BoundCenter = BoundsSample.center();
 			const FBoxSphereBounds ConvertedBounds(FVector(BoundCenter.x, BoundCenter.y, BoundCenter.z), FVector(BoundSize.x  * 0.5f, BoundSize.y * 0.5f, BoundSize.z * 0.5f), (const float)BoundSize.length() * 0.5f);
-			Bounds = Bounds + ConvertedBounds;			
+			Bounds = ( SampleIndex == 0 ) ? ConvertedBounds : Bounds + ConvertedBounds;
 		}
 	}
 

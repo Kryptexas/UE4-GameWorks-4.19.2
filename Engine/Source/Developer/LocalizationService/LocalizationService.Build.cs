@@ -28,7 +28,7 @@ public class LocalizationService : ModuleRules
             );
         }
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {
@@ -38,7 +38,7 @@ public class LocalizationService : ModuleRules
             );
         }
 
-		if (UEBuildConfiguration.bBuildDeveloperTools)
+		if (Target.bBuildDeveloperTools)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

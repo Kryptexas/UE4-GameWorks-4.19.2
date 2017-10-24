@@ -30,9 +30,10 @@ static const int32 DrawConeLimitSides = 40;
 static const float DebugJointPosSize = 5.0f;
 static const float DebugJointAxisSize = 20.0f;
 
-static const float JointRenderThickness = 0.3f;
-static const float JointRenderSize = 10.f;
-static const float LimitRenderSize = 16.0f;
+static const float JointRenderThickness = 0.1f;
+static const float UnselectedJointRenderSize = 4.f;
+static const float SelectedJointRenderSize = 10.f;
+static const float LimitRenderSize = 0.16f;
 
 static const FColor JointUnselectedColor(255, 0, 255);
 static const FColor JointRed(FColor::Red);
@@ -380,12 +381,6 @@ void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& 
 // FKConvexElem
 /////////////////////////////////////////////////////////////////////////////////////
 
-
-void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const
-{
-	DrawElemWire(PDI, ElemTM, 1.f, Color);
-}
-
 void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const float Scale, const FColor Color) const
 {
 #if WITH_PHYSX
@@ -423,7 +418,7 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 			{
 				// Get the verts that make up this line.
 				int32 I0 = PIndices[j];
-				int32 I1 = PIndices[j+1];
+				int32 I1 = (j == Data.mNbVerts - 1) ? PIndices[0] : PIndices[j + 1];
 
 				// Loop back last and first vertices
 				if(j==Data.mNbVerts - 1)
@@ -765,7 +760,8 @@ void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Col
 		FColor* BoneColor = (FColor*)( &SkeletalBodySetups[i] );
 
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
-		BoneTransform.SetScale3D(Scale3D);
+		// SkelBoneTransform should have the appropriate scale baked in from Component and Import Transform.
+		// BoneTransform.SetScale3D(Scale3D);
 		SkeletalBodySetups[i]->CreatePhysicsMeshes();
 		SkeletalBodySetups[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
 	}
@@ -904,7 +900,7 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 	return;
 #endif
 
-	const ESceneDepthPriorityGroup Layer = ESceneDepthPriorityGroup::SDPG_Foreground;
+	const ESceneDepthPriorityGroup Layer = ESceneDepthPriorityGroup::SDPG_World;
 	FPrimitiveDrawInterface* PDI = PDIOrCollector.GetPDI();
 
 	check((GEngine->ConstraintLimitMaterialX != nullptr) && (GEngine->ConstraintLimitMaterialY != nullptr) && (GEngine->ConstraintLimitMaterialZ != nullptr));
@@ -919,22 +915,14 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 	FVector Con1Pos = Con1Frame.GetTranslation();
 	FVector Con2Pos = Con2Frame.GetTranslation();
 
-	float Length = JointRenderSize;
-	float Thickness = LimitDrawScale * JointRenderThickness;
+	float Length = (bDrawSelected ? SelectedJointRenderSize : UnselectedJointRenderSize) * Scale;
+	float Thickness = JointRenderThickness;
 
 	// Special mode for drawing joints just as points..
-	if(bDrawAsPoint)
+	if(bDrawAsPoint && !bDrawSelected)
 	{
-		if(bDrawSelected)
-		{
-			PDI->DrawPoint( Con1Frame.GetTranslation(), JointRed, 3.f, Layer );
-			PDI->DrawPoint( Con2Frame.GetTranslation(), JointBlue, 3.f, Layer );
-		}
-		else
-		{
-			PDI->DrawPoint( Con1Frame.GetTranslation(), JointUnselectedColor, 3.f, Layer );
-			PDI->DrawPoint( Con2Frame.GetTranslation(), JointUnselectedColor, 3.f, Layer );
-		}
+		PDI->DrawPoint( Con1Frame.GetTranslation(), JointUnselectedColor, 4.f, ESceneDepthPriorityGroup::SDPG_Foreground );
+		PDI->DrawPoint( Con2Frame.GetTranslation(), JointUnselectedColor, 4.f, ESceneDepthPriorityGroup::SDPG_Foreground );
 
 		// do nothing else in this mode.
 		return;

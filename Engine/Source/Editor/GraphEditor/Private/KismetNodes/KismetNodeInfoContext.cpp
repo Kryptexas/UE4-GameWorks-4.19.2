@@ -45,7 +45,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 				// if the node has a specific "world context" pin, attempt to get the value set for that first
 				if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 				{
-					FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+					const FString& WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 					if (UEdGraphPin* ContextPin = FunctionNode->FindPin(WorldContextPinName))
 					{
 						if (UObjectPropertyBase* ContextProperty = Cast<UObjectPropertyBase>(ClassDebugData.FindClassPropertyForPin(ContextPin)))
@@ -94,7 +94,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 				continue;
 			}
 
-			UEdGraphNode* OwningNode = Cast<UEdGraphNode>(WatchedPin->GetOuter());
+			UEdGraphNode* OwningNode = WatchedPin->GetOuter();
 			if (!ensure(OwningNode != NULL)) // shouldn't happen, but just in case a dead pin was added to the WatchedPins array
 			{
 				continue;

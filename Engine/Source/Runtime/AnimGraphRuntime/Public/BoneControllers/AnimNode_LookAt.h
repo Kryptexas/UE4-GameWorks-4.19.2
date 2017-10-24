@@ -52,7 +52,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 
 	/** Target socket to look at. Used if LookAtBone is empty. - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
 	UPROPERTY(EditAnywhere, Category = Target)
-	FTargetReference LookAtTarget;
+	FBoneSocketTarget LookAtTarget;
 
 	/** Target Offset. It's in world space if LookAtBone is empty or it is based on LookAtBone or LookAtSocket in their local space*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target, meta = (PinHiddenByDefault))
@@ -123,26 +123,8 @@ private:
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
-	EAlphaBlendType GetInterpolationType()
-	{
-		switch (InterpolationType)
-		{
-		case EInterpolationBlend::Cubic:
-			return ABT_Cubic;
-		case EInterpolationBlend::Sinusoidal:
-			return ABT_Cubic;
-		case EInterpolationBlend::EaseInOutExponent2:
-			return ABT_EaseInOutExponent2;
-		case EInterpolationBlend::EaseInOutExponent3:
-			return ABT_EaseInOutExponent3;
-		case EInterpolationBlend::EaseInOutExponent4:
-			return ABT_EaseInOutExponent4;
-		case EInterpolationBlend::EaseInOutExponent5:
-			return ABT_EaseInOutExponent5;
-		}
-
-		return ABT_Linear;
-	}
+	/** Turn a linear interpolated alpha into the corresponding AlphaBlendType */
+	static float AlphaToBlendType(float InAlpha, EInterpolationBlend::Type BlendType);
 
 	/** Debug transient data */
 	FVector CurrentLookAtLocation;
@@ -159,7 +141,7 @@ private:
 	/** Debug draw cached data */
 	FTransform CachedOriginalTransform;
 	FTransform CachedLookAtTransform;
-	FTransform CachedTargetTransform;
+	FTransform CachedTargetCoordinate;
 	FVector CachedPreviousTargetLocation;
 	FVector CachedCurrentLookAtLocation;
 #endif // UE_BUILD_SHIPPING

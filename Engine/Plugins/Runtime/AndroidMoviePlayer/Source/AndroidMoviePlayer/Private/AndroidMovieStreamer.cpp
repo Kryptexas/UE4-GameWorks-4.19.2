@@ -23,7 +23,7 @@ FAndroidMediaPlayerStreamer::FAndroidMediaPlayerStreamer()
 	: JavaMediaPlayer(nullptr)
 	, CurrentPosition(-1)
 {
-	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(FAndroidMisc::ShouldUseVulkan()));
+	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(false, FAndroidMisc::ShouldUseVulkan()));
 	MovieViewport = MakeShareable(new FMovieViewport());
 }
 
@@ -144,7 +144,7 @@ bool FAndroidMediaPlayerStreamer::StartNextMovie()
 
 		// Construct a canonical path for the movie.
 		MoviePath
-			= FPaths::GameContentDir() + FString("Movies/")
+			= FPaths::ProjectContentDir() + FString("Movies/")
 			+ MovieQueue[0] + FString(".") + FString(MOVIE_FILE_EXTENSION);
 		FPaths::NormalizeFilename(MoviePath);
 		MovieQueue.RemoveAt(0);

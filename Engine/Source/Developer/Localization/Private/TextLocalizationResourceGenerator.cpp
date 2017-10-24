@@ -113,8 +113,8 @@ bool FTextLocalizationResourceGenerator::GenerateLocResAndUpdateLiveEntriesFromC
 	}
 	else
 	{
-		SourcePath = FPaths::Combine(*FPaths::GameDir(), *SourcePath);
-		DestinationPath = FPaths::Combine(*FPaths::GameDir(), *DestinationPath);
+		SourcePath = FPaths::Combine(*FPaths::ProjectDir(), *SourcePath);
+		DestinationPath = FPaths::Combine(*FPaths::ProjectDir(), *DestinationPath);
 	}
 
 	TArray<FString> CulturesToGenerate;

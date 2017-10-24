@@ -53,9 +53,15 @@ MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 
 void FMetalRHICommandContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
+	
+	NOT_SUPPORTED("RHISetStreamSource with Stride is invalid on MetalRHI - Stride must be correctly configured on the vertex-declaration.");
+}
+
+void FMetalRHICommandContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Offset)
+{
 	@autoreleasepool {
-	FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	Context->GetCurrentState().SetVertexStream(StreamIndex, VertexBuffer ? VertexBuffer->Buffer : nil, VertexBuffer ? VertexBuffer->Data : nil, Stride, Offset, VertexBuffer ? VertexBuffer->GetSize() : 0);
+		FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
+		Context->GetCurrentState().SetVertexStream(StreamIndex, VertexBuffer ? VertexBuffer->Buffer : nil, VertexBuffer ? VertexBuffer->Data : nil, Offset, VertexBuffer ? VertexBuffer->GetSize() : 0);
 	}
 }
 
@@ -67,13 +73,7 @@ void FMetalDynamicRHI::RHISetStreamOutTargets(uint32 NumTargets, const FVertexBu
 
 void FMetalRHICommandContext::RHISetRasterizerState(FRasterizerStateRHIParamRef NewStateRHI)
 {
-	@autoreleasepool {
-	FMetalRasterizerState* NewState = ResourceCast(NewStateRHI);
-
-	Context->GetCurrentState().SetRasterizerState(NewState);
-	
-	FShaderCache::SetRasterizerState(Context->GetCurrentState().GetShaderCacheStateObject(), NewStateRHI);
-	}
+	NOT_SUPPORTED("RHISetRasterizerState");
 }
 
 void FMetalRHICommandContext::RHISetComputeShader(FComputeShaderRHIParamRef ComputeShaderRHI)
@@ -84,6 +84,17 @@ void FMetalRHICommandContext::RHISetComputeShader(FComputeShaderRHIParamRef Comp
 	// cache this for Dispatch
 	// sets this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
 	Context->GetCurrentState().SetComputeShader(ComputeShader);
+	}
+}
+
+void FMetalRHICommandContext::RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+{
+	@autoreleasepool {
+	FMetalComputePipelineState* ComputePipeline = ResourceCast(ComputePipelineState);
+	
+	// cache this for Dispatch
+	// sets this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
+	Context->GetCurrentState().SetComputeShader(ComputePipeline->GetComputeShader());
 	}
 }
 
@@ -133,9 +144,35 @@ void FMetalRHICommandContext::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,
 	}
 }
 
-void FMetalRHICommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+void FMetalRHICommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 LeftMinY, uint32 RightMinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 LeftMaxY, uint32 RightMaxY, float MaxZ)
 {
-	NOT_SUPPORTED("RHISetStereoViewport");
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesMultipleViewports))
+	{
+		@autoreleasepool {
+		MTLViewport Viewport[2];
+		
+		Viewport[0].originX = LeftMinX;
+		Viewport[0].originY = LeftMinY;
+		Viewport[0].width = LeftMaxX - LeftMinX;
+		Viewport[0].height = LeftMaxY - LeftMinY;
+		Viewport[0].znear = MinZ;
+		Viewport[0].zfar = MaxZ;
+		
+		Viewport[1].originX = RightMinX;
+		Viewport[1].originY = RightMinY;
+		Viewport[1].width = RightMaxX - RightMinX;
+		Viewport[1].height = RightMaxY - RightMinY;
+		Viewport[1].znear = MinZ;
+		Viewport[1].zfar = MaxZ;
+		
+		Context->GetCurrentState().SetViewports(Viewport, 2);
+		FShaderCache::SetViewport(Context->GetCurrentState().GetShaderCacheStateObject(), LeftMinX, LeftMinY, MinZ, LeftMaxX, LeftMaxY, MaxZ);
+		}
+	}
+	else
+	{
+		NOT_SUPPORTED("RHISetStereoViewport");
+	}
 }
 
 void FMetalRHICommandContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
@@ -155,7 +192,7 @@ void FMetalRHICommandContext::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 
 	// metal doesn't support 0 sized scissor rect
 	if (bEnable == false || Scissor.width == 0 || Scissor.height == 0)
 	{
-		MTLViewport const& Viewport = Context->GetCurrentState().GetViewport();
+		MTLViewport const& Viewport = Context->GetCurrentState().GetViewport(0);
 		CGSize FBSize = Context->GetCurrentState().GetFrameBufferSize();
 		
 		Scissor.x = Viewport.originX;
@@ -169,17 +206,20 @@ void FMetalRHICommandContext::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 
 
 void FMetalRHICommandContext::RHISetBoundShaderState( FBoundShaderStateRHIParamRef BoundShaderStateRHI)
 {
-	@autoreleasepool {
-	FMetalBoundShaderState* BoundShaderState = ResourceCast(BoundShaderStateRHI);
-
-	Context->GetCurrentState().SetBoundShaderState(BoundShaderState);
-
-	BoundShaderStateHistory.Add(BoundShaderState);
-	
-	FShaderCache::SetBoundShaderState(Context->GetCurrentState().GetShaderCacheStateObject(), BoundShaderStateRHI);
-	}
+	NOT_SUPPORTED("RHISetBoundShaderState");
 }
 
+void FMetalRHICommandContext::RHISetGraphicsPipelineState(FGraphicsPipelineStateRHIParamRef GraphicsState)
+{
+	@autoreleasepool {
+		FMetalGraphicsPipelineState* PipelineState = ResourceCast(GraphicsState);
+		Context->GetCurrentState().SetGraphicsPipelineState(PipelineState);
+		// Bad Arne!
+		RHISetStencilRef(0);
+		RHISetBlendFactor(FLinearColor(1.0f, 1.0f, 1.0f));
+		FShaderCache::SetGraphicsPipelineStateObject(GetInternalContext().GetCurrentState().GetShaderCacheStateObject(), GraphicsState);
+	}
+}
 
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAVRHI)
 {
@@ -501,14 +541,7 @@ void FMetalRHICommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRe
 
 void FMetalRHICommandContext::RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef)
 {
-	@autoreleasepool {
-	FMetalDepthStencilState* NewState = ResourceCast(NewStateRHI);
-
-	Context->GetCurrentState().SetDepthStencilState(NewState);
-	Context->GetCurrentState().SetStencilRef(StencilRef);
-	
-	FShaderCache::SetDepthStencilState(Context->GetCurrentState().GetShaderCacheStateObject(), NewStateRHI);
-	}
+	NOT_SUPPORTED("RHISetDepthStencilState");
 }
 
 void FMetalRHICommandContext::RHISetStencilRef(uint32 StencilRef)
@@ -518,14 +551,7 @@ void FMetalRHICommandContext::RHISetStencilRef(uint32 StencilRef)
 
 void FMetalRHICommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
 {
-	@autoreleasepool {
-	FMetalBlendState* NewState = ResourceCast(NewStateRHI);
-	
-	Context->GetCurrentState().SetBlendState(NewState);
-	Context->GetCurrentState().SetBlendFactor(BlendFactor);
-	
-	FShaderCache::SetBlendState(Context->GetCurrentState().GetShaderCacheStateObject(), NewStateRHI);
-	}
+	NOT_SUPPORTED("RHISetBlendState");
 }
 
 void FMetalRHICommandContext::RHISetBlendFactor(const FLinearColor& BlendFactor)
@@ -753,7 +779,7 @@ void FMetalRHICommandContext::RHIEndDrawPrimitiveUP()
 
 	// set the vertex buffer
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
-	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexDataStride, PendingVertexBufferOffset, PendingVertexDataStride * NumVertices);
+	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexBufferOffset, PendingVertexDataStride * NumVertices);
 	if(Context->GetCurrentState().GetUsingTessellation())
 	{
 		Context->GetCurrentState().SetShaderBuffer(SF_Hull, Context->GetRingBuffer(), nil, PendingVertexBufferOffset, PendingVertexDataStride * NumVertices, UNREAL_TO_METAL_BUFFER_INDEX(0));
@@ -812,7 +838,7 @@ void FMetalRHICommandContext::RHIEndDrawIndexedPrimitiveUP()
 	RHI_DRAW_CALL_STATS(PendingPrimitiveType,PendingNumPrimitives);
 
 	// set the vertex buffer
-	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexDataStride, PendingVertexBufferOffset, PendingIndexBufferOffset - PendingVertexBufferOffset);
+	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexBufferOffset, PendingIndexBufferOffset - PendingVertexBufferOffset);
 
 	// how many to draw
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
@@ -911,199 +937,7 @@ void FMetalDynamicRHI::SetupRecursiveResources()
 
 void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
-	@autoreleasepool {
-	FIntRect ExcludeRect;
-
-	// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
-	check(GIsRHIInitialized);
-
-	// Must specify enough clear colors for all active RTs
-	check(!bClearColor || NumClearColors >= Context->GetCurrentState().GetNumRenderTargets());
-
-	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Context->GetCurrentState().GetViewport().width && ExcludeRect.Min.Y == 0 && ExcludeRect.Height() == Context->GetCurrentState().GetViewport().height)
-	{
-		// no need to do anything
-		return;
-	}
-
-	RHIPushEvent(TEXT("MetalClearMRT"), FColor(255, 0, 255, 255));
-
-	// Build new states
-	FBlendStateRHIRef BlendStateRHI;
-	
-	if (Context->GetCurrentState().GetNumRenderTargets() <= 1)
-	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
-		? TStaticBlendState<>::GetRHI()
-		: TStaticBlendState<CW_NONE>::GetRHI();
-	}
-	else
-	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
-			? TStaticBlendState<>::GetRHI()
-			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
-	}
-
-	FRasterizerStateRHIParamRef RasterizerStateRHI = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-	float BF[4] = { 0, 0, 0, 0 };
-
-	const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
-		(bClearDepth && bClearStencil)
-			? TStaticDepthStencilState<
-				true, CF_Always,
-				true,CF_Always,SO_Replace,SO_Replace,SO_Replace,
-				false,CF_Always,SO_Replace,SO_Replace,SO_Replace,
-				0xff,0xff
-				>::GetRHI()
-		: bClearDepth
-			? TStaticDepthStencilState<true, CF_Always>::GetRHI()
-		: bClearStencil
-			? TStaticDepthStencilState<
-				false, CF_Always,
-				true,CF_Always,SO_Replace,SO_Replace,SO_Replace,
-				false,CF_Always,SO_Replace,SO_Replace,SO_Replace,
-				0xff,0xff
-				>::GetRHI()
-		:     TStaticDepthStencilState<false, CF_Always>::GetRHI();
-
-	
-	FMetalStateCache const& StateCache = Context->GetCurrentState();
-	FLinearColor OriginalBlendFactor = StateCache.GetBlendFactor();
-	uint32 OriginalStencilRef = StateCache.GetStencilRef();
-	FBlendStateRHIRef OriginalBlend = StateCache.GetBlendState();
-	FDepthStencilStateRHIRef OriginalDepthStencil = StateCache.GetDepthStencilState();
-	FRasterizerStateRHIRef OriginalRasterizer = StateCache.GetRasterizerState();
-	FBoundShaderStateRHIRef OriginalBoundShaderState = StateCache.GetBoundShaderState();
-	
-	FRHICommandList_RecursiveHazardous RHICmdList(this);
-	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-	GraphicsPSOInit.BlendState = BlendStateRHI;
-	GraphicsPSOInit.RasterizerState = RasterizerStateRHI;
-	GraphicsPSOInit.DepthStencilState = DepthStencilStateRHI;
-
-	// Set the new shaders
-	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-	
-	bool const bIsLayered = Context->GetCurrentState().GetRenderTargetArraySize() > 1;
-	TShaderMapRef<TOneColorVS<true> > DefaultVertexShader(ShaderMap);
-	TShaderMapRef<TOneColorVS<true, true> > LayeredVertexShader(ShaderMap);
-	FShader* VertexShader = !bIsLayered ? (FShader*)*DefaultVertexShader : (FShader*)*LayeredVertexShader;
-
-	FOneColorPS* PixelShader = NULL;
-
-	// Set the shader to write to the appropriate number of render targets
-	if (Context->GetCurrentState().GetNumRenderTargets() <= 1)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 2)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 3)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 4)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 5)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 6)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 7)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-	else if (Context->GetCurrentState().GetNumRenderTargets() == 8)
-	{
-		TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
-		PixelShader = *MRTPixelShader;
-	}
-
-	{
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GVector4VertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
-		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-		RHICmdList.SetBlendFactor(FLinearColor::Transparent);
-		RHICmdList.SetStencilRef(Stencil);
-
-		PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
-
-		{
-			RHI_PROFILE_DRAW_CALL_STATS(EMTLSamplePointBeforeDraw, EMTLSamplePointAfterDraw, 0,0);
-			
-			const CGSize FrameBufferSize = Context->GetCurrentState().GetFrameBufferSize();
-			const bool bIgnoreExcludeRect = FrameBufferSize.width == Context->GetCurrentState().GetViewport().width && FrameBufferSize.height == Context->GetCurrentState().GetViewport().height;
-
-			// Draw a fullscreen quad
-			if (!bIgnoreExcludeRect && ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0
-				&& ExcludeRect.Width() < Context->GetCurrentState().GetViewport().width && ExcludeRect.Height() < Context->GetCurrentState().GetViewport().height)
-			{
-				// with a hole in it (optimization in case the hardware has non constant clear performance)
-				FVector4 OuterVertices[4];
-				OuterVertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
-				OuterVertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
-				OuterVertices[2].Set(1.0f, -1.0f, Depth, 1.0f);
-				OuterVertices[3].Set(-1.0f, -1.0f, Depth, 1.0f);
-
-				float InvViewWidth = 1.0f / Context->GetCurrentState().GetViewport().width;
-				float InvViewHeight = 1.0f / Context->GetCurrentState().GetViewport().height;
-				FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
-
-				FVector4 InnerVertices[4];
-				InnerVertices[0].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
-				InnerVertices[1].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
-				InnerVertices[2].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
-				InnerVertices[3].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
-
-				FVector4 Vertices[10];
-				Vertices[0] = OuterVertices[0];
-				Vertices[1] = InnerVertices[0];
-				Vertices[2] = OuterVertices[1];
-				Vertices[3] = InnerVertices[1];
-				Vertices[4] = OuterVertices[2];
-				Vertices[5] = InnerVertices[2];
-				Vertices[6] = OuterVertices[3];
-				Vertices[7] = InnerVertices[3];
-				Vertices[8] = OuterVertices[0];
-				Vertices[9] = InnerVertices[0];
-
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
-			}
-			else
-			{
-				// without a hole
-				FVector4 Vertices[4];
-				Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
-				Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
-				Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
-				Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-			}
-		}
-		// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-	}
-
-	RHIPopEvent();
-	}
+	NOT_SUPPORTED("RHIClearMRT");
 }
 
 void FMetalDynamicRHI::RHIBlockUntilGPUIdle()

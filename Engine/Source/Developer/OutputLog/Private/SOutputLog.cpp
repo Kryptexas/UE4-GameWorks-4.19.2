@@ -782,7 +782,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 		Filter.AddAvailableLogCategory(Message->Category);
 	}
 
-	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages), &Filter);
+	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(InArgs._Messages, &Filter);
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
 		.Style(FEditorStyle::Get(), "Log.TextBox")
@@ -818,7 +818,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 					.AutoWidth()
 					[
 						SNew(SComboButton)
-						.ComboButtonStyle(FEditorStyle::Get(), "OutputLog.Filters.Style")
+						.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
 						.ForegroundColor(FLinearColor::White)
 						.ContentPadding(0)
 						.ToolTipText(LOCTEXT("AddFilterToolTip", "Add an output log filter."))
@@ -833,7 +833,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 							.AutoWidth()
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
 								.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
 							]
@@ -843,43 +843,8 @@ void SOutputLog::Construct( const FArguments& InArgs )
 							.Padding(2, 0, 0, 0)
 							[
 								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
 								.Text(LOCTEXT("Filters", "Filters"))
-							]
-						]
-					]
-
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SComboButton)
-						.ComboButtonStyle(FEditorStyle::Get(), "OutputLog.Filters.Style")
-						.ForegroundColor(FLinearColor::White)
-						.ContentPadding(0)
-						.ToolTipText(LOCTEXT("SelectCategoriesToolTip", "Select Categories to display."))
-						.OnGetMenuContent(this, &SOutputLog::MakeSelectCategoriesMenu)
-						.HasDownArrow(true)
-						.ContentPadding(FMargin(1, 0))
-						.ButtonContent()
-						[
-							SNew(SHorizontalBox)
-
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
-								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
-								.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
-							]
-
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(2, 0, 0, 0)
-							[
-								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
-								.Text(LOCTEXT("Categories", "Categories"))
 							]
 						]
 					]
@@ -916,8 +881,10 @@ void SOutputLog::Construct( const FArguments& InArgs )
 			.SuggestionListPlacement(MenuPlacement_AboveAnchor)
 		]
 	];
-	
+
 	GLog->AddOutputDevice(this);
+	// Remove itself on crash (crashmalloc has limited memory and echoing logs here at that point is useless).
+	FCoreDelegates::OnHandleSystemError.AddRaw(this, &SOutputLog::OnCrash);
 
 	bIsUserScrolled = false;
 	RequestForceScroll();
@@ -926,7 +893,16 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SOutputLog::~SOutputLog()
 {
-	if (GLog != NULL)
+	if (GLog != nullptr)
+	{
+		GLog->RemoveOutputDevice(this);
+	}
+	FCoreDelegates::OnHandleSystemError.RemoveAll(this);
+}
+
+void SOutputLog::OnCrash()
+{
+	if (GLog != nullptr)
 	{
 		GLog->RemoveOutputDevice(this);
 	}
@@ -996,14 +972,14 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 						HardWrapLineLen = FMath::Min(HardWrapLen - MessagePrefix.Len(), Line.Len() - CurrentStartIndex);
 						FString HardWrapLine = Line.Mid(CurrentStartIndex, HardWrapLineLen);
 
-						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MessagePrefix + HardWrapLine)), Verbosity, Category, Style)));
+						OutMessages.Add(MakeShared<FLogMessage>(MakeShared<FString>(MessagePrefix + HardWrapLine), Verbosity, Category, Style));
 					}
 					else
 					{
 						HardWrapLineLen = FMath::Min(HardWrapLen, Line.Len() - CurrentStartIndex);
 						FString HardWrapLine = Line.Mid(CurrentStartIndex, HardWrapLineLen);
 
-						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MoveTemp(HardWrapLine))), Verbosity, Category, Style)));
+						OutMessages.Add(MakeShared<FLogMessage>(MakeShared<FString>(MoveTemp(HardWrapLine)), Verbosity, Category, Style));
 					}
 
 					bIsFirstLineInMessage = false;
@@ -1107,6 +1083,9 @@ void SOutputLog::OnFilterTextChanged(const FText& InFilterText)
 
 	// Repopulate the list to show only what has not been filtered out.
 	Refresh();
+
+	// Apply the new search text
+	MessagesTextBox->BeginSearch(InFilterText);
 }
 
 void SOutputLog::OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type InCommitType)
@@ -1117,127 +1096,104 @@ void SOutputLog::OnFilterTextCommitted(const FText& InFilterText, ETextCommit::T
 TSharedRef<SWidget> SOutputLog::MakeAddFilterMenu()
 {
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
-	FillVerbosityEntries(MenuBuilder);
+	
+	MenuBuilder.BeginSection("OutputLogVerbosityEntries", LOCTEXT("OutputLogVerbosityHeading", "Verbosity"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowMessages", "Messages"), 
+			LOCTEXT("ShowMessages_Tooltip", "Filter the Output Log to show messages"), 
+			FSlateIcon(), 
+			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::VerbosityLogs_Execute), 
+				FCanExecuteAction::CreateLambda([] { return true; }), 
+				FIsActionChecked::CreateSP(this, &SOutputLog::VerbosityLogs_IsChecked)), 
+			NAME_None, 
+			EUserInterfaceActionType::ToggleButton
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowWarnings", "Warnings"), 
+			LOCTEXT("ShowWarnings_Tooltip", "Filter the Output Log to show warnings"), 
+			FSlateIcon(), 
+			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::VerbosityWarnings_Execute), 
+				FCanExecuteAction::CreateLambda([] { return true; }), 
+				FIsActionChecked::CreateSP(this, &SOutputLog::VerbosityWarnings_IsChecked)), 
+			NAME_None, 
+			EUserInterfaceActionType::ToggleButton
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowErrors", "Errors"), 
+			LOCTEXT("ShowErrors_Tooltip", "Filter the Output Log to show errors"), 
+			FSlateIcon(), 
+			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::VerbosityErrors_Execute), 
+				FCanExecuteAction::CreateLambda([] { return true; }), 
+				FIsActionChecked::CreateSP(this, &SOutputLog::VerbosityErrors_IsChecked)), 
+			NAME_None, 
+			EUserInterfaceActionType::ToggleButton
+		);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("OutputLogMiscEntries", LOCTEXT("OutputLogMiscHeading", "Miscellaneous"));
+	{
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("Categories", "Categories"), 
+			LOCTEXT("SelectCategoriesToolTip", "Select Categories to display."), 
+			FNewMenuDelegate::CreateSP(this, &SOutputLog::MakeSelectCategoriesSubMenu)
+		);
+	}
+
 	return MenuBuilder.MakeWidget();
 }
 
-TSharedRef<SWidget> SOutputLog::MakeSelectCategoriesMenu()
+void SOutputLog::MakeSelectCategoriesSubMenu(FMenuBuilder& MenuBuilder)
 {
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/false, nullptr);
-
 	MenuBuilder.BeginSection("OutputLogCategoriesEntries");
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShowAllCategories", "Show All"),
 			LOCTEXT("ShowAllCategories_Tooltip", "Filter the Output Log to show all categories"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::MenuShowAllCategories_Execute),
-			FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute),
-			FIsActionChecked::CreateSP(this, &SOutputLog::MenuShowAllCategories_IsChecked)),
+			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::CategoriesShowAll_Execute),
+			FCanExecuteAction::CreateLambda([] { return true; }),
+			FIsActionChecked::CreateSP(this, &SOutputLog::CategoriesShowAll_IsChecked)),
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 		);
 		
-		for (const auto& Category : Filter.GetAvailableLogCategories())
+		for (const FName Category : Filter.GetAvailableLogCategories())
 		{
-			// UI callbacks don't support parameters, so using lambdas allows for capturing the Category FName
-			auto ExecuteCategoryCallback = [this, &Category]() -> void
-			{
-				this->Filter.ToggleLogCategory(Category);
-
-				// Flag the messages count as dirty
-				MessagesTextMarshaller->MarkMessagesCacheAsDirty();
-
-				Refresh();
-			};
-			auto IsCheckedCategoryCallback = [this, &Category]() -> bool
-			{
-				return this->Filter.IsLogCategoryEnabled(Category);
-			};
-
 			MenuBuilder.AddMenuEntry(
-				FText::AsCultureInvariant(FText::FromName(Category)),
-				FText::AsCultureInvariant(FString::Printf(TEXT("Filter the Output Log to show Category: %s"), *Category.ToString())),
+				FText::AsCultureInvariant(Category.ToString()),
+				FText::Format(LOCTEXT("Category_Tooltip", "Filter the Output Log to show Category: %s"), FText::AsCultureInvariant(Category.ToString())),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateLambda(ExecuteCategoryCallback),
-				FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute),
-				FIsActionChecked::CreateLambda(IsCheckedCategoryCallback)),
+				FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::CategoriesSingle_Execute, Category),
+				FCanExecuteAction::CreateLambda([] { return true; }),
+				FIsActionChecked::CreateSP(this, &SOutputLog::CategoriesSingle_IsChecked, Category)),
 				NAME_None,
 				EUserInterfaceActionType::ToggleButton
 			);
 		}
 	}
 	MenuBuilder.EndSection();
-
-	return MenuBuilder.MakeWidget();
 }
 
-void SOutputLog::FillVerbosityEntries(FMenuBuilder& MenuBuilder)
-{
-	MenuBuilder.BeginSection("OutputLogVerbosityEntries");
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ShowMessages", "Messages"), 
-			LOCTEXT("ShowMessages_Tooltip", "Filter the Output Log to show messages"), 
-			FSlateIcon(), 
-			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::MenuLogs_Execute), 
-			FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute), 
-			FIsActionChecked::CreateSP(this, &SOutputLog::MenuLogs_IsChecked)), 
-			NAME_None, 
-			EUserInterfaceActionType::ToggleButton
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ShowWarnings", "Warnings"), 
-			LOCTEXT("ShowWarnings_Tooltip", "Filter the Output Log to show warnings"), 
-			FSlateIcon(), 
-			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::MenuWarnings_Execute), 
-			FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute), 
-			FIsActionChecked::CreateSP(this, &SOutputLog::MenuWarnings_IsChecked)), 
-			NAME_None, 
-			EUserInterfaceActionType::ToggleButton
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ShowErrors", "Errors"), 
-			LOCTEXT("ShowErrors_Tooltip", "Filter the Output Log to show errors"), 
-			FSlateIcon(), 
-			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::MenuErrors_Execute), 
-			FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute), 
-			FIsActionChecked::CreateSP(this, &SOutputLog::MenuErrors_IsChecked)), 
-			NAME_None, 
-			EUserInterfaceActionType::ToggleButton
-			);
-	}
-	MenuBuilder.EndSection();
-}
-
-bool SOutputLog::Menu_CanExecute() const
-{
-	return true;
-}
-
-bool SOutputLog::MenuLogs_IsChecked() const
+bool SOutputLog::VerbosityLogs_IsChecked() const
 {
 	return Filter.bShowLogs;
 }
 
-bool SOutputLog::MenuWarnings_IsChecked() const
+bool SOutputLog::VerbosityWarnings_IsChecked() const
 {
 	return Filter.bShowWarnings;
 }
 
-bool SOutputLog::MenuErrors_IsChecked() const
+bool SOutputLog::VerbosityErrors_IsChecked() const
 {
 	return Filter.bShowErrors;
 }
 
-bool SOutputLog::MenuShowAllCategories_IsChecked() const
-{
-	return Filter.bShowAllCategories;
-}
-
-void SOutputLog::MenuLogs_Execute()
+void SOutputLog::VerbosityLogs_Execute()
 { 
 	Filter.bShowLogs = !Filter.bShowLogs;
 
@@ -1247,7 +1203,7 @@ void SOutputLog::MenuLogs_Execute()
 	Refresh();
 }
 
-void SOutputLog::MenuWarnings_Execute()
+void SOutputLog::VerbosityWarnings_Execute()
 {
 	Filter.bShowWarnings = !Filter.bShowWarnings;
 
@@ -1257,7 +1213,7 @@ void SOutputLog::MenuWarnings_Execute()
 	Refresh();
 }
 
-void SOutputLog::MenuErrors_Execute()
+void SOutputLog::VerbosityErrors_Execute()
 {
 	Filter.bShowErrors = !Filter.bShowErrors;
 
@@ -1267,7 +1223,17 @@ void SOutputLog::MenuErrors_Execute()
 	Refresh();
 }
 
-void SOutputLog::MenuShowAllCategories_Execute()
+bool SOutputLog::CategoriesShowAll_IsChecked() const
+{
+	return Filter.bShowAllCategories;
+}
+
+bool SOutputLog::CategoriesSingle_IsChecked(FName InName) const
+{
+	return Filter.IsLogCategoryEnabled(InName);
+}
+
+void SOutputLog::CategoriesShowAll_Execute()
 {
 	Filter.bShowAllCategories = !Filter.bShowAllCategories;
 
@@ -1279,6 +1245,16 @@ void SOutputLog::MenuShowAllCategories_Execute()
 			Filter.ToggleLogCategory(AvailableCategory);
 		}
 	}
+
+	// Flag the messages count as dirty
+	MessagesTextMarshaller->MarkMessagesCacheAsDirty();
+
+	Refresh();
+}
+
+void SOutputLog::CategoriesSingle_Execute(FName InName)
+{
+	Filter.ToggleLogCategory(InName);
 
 	// Flag the messages count as dirty
 	MessagesTextMarshaller->MarkMessagesCacheAsDirty();
@@ -1362,7 +1338,7 @@ void FLogFilter::ToggleLogCategory(const FName& LogCategory)
 	}
 }
 
-bool FLogFilter::IsLogCategoryEnabled(const FName& LogCategory)
+bool FLogFilter::IsLogCategoryEnabled(const FName& LogCategory) const
 {
 	return SelectedLogCategories.Contains(LogCategory);
 }

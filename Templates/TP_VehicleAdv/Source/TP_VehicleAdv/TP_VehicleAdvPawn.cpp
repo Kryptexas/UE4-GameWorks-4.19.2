@@ -20,7 +20,7 @@
 
 // Needed for VR Headset
 #if HMD_MODULE_INCLUDED
-#include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #endif // HMD_MODULE_INCLUDED
 
@@ -258,7 +258,7 @@ void ATP_VehicleAdvPawn::Tick(float Delta)
 
 	bool bHMDActive = false;
 #if HMD_MODULE_INCLUDED
-	if ((GEngine->HMDDevice.IsValid() == true ) && ( (GEngine->HMDDevice->IsHeadTrackingAllowed() == true) || (GEngine->IsStereoscopic3D() == true)))
+	if ((GEngine->XRSystem.IsValid() == true ) && ( (GEngine->XRSystem->IsHeadTrackingAllowed() == true) || (GEngine->IsStereoscopic3D() == true)))
 	{
 		bHMDActive = true;
 	}
@@ -302,9 +302,9 @@ void ATP_VehicleAdvPawn::BeginPlay()
 void ATP_VehicleAdvPawn::OnResetVR()
 {
 #if HMD_MODULE_INCLUDED
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->XRSystem.IsValid())
 	{
-		GEngine->HMDDevice->ResetOrientationAndPosition();
+		GEngine->XRSystem->ResetOrientationAndPosition();
 		InternalCamera->SetRelativeLocation(InternalCameraOrigin);
 		GetController()->SetControlRotation(FRotator());
 	}

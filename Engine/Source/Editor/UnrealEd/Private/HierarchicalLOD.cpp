@@ -572,7 +572,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 			static int32 TotalIteration = 3;
 			const int32 TotalCluster = Clusters.Num();
 
-			FScopedSlowTask SlowTask(TotalIteration*TotalCluster, FText::Format(LOCTEXT("HierarchicalLOD_BuildClusters", "Building Clusters for LOD {LODIndex} of {LevelName}..."), Arguments));
+			FScopedSlowTask SlowTask(100.0f, FText::Format(LOCTEXT("HierarchicalLOD_BuildClusters", "Building Clusters for LOD {LODIndex} of {LevelName}..."), Arguments));
 			SlowTask.MakeDialog();
 
 			for (int32 Iteration = 0; Iteration < TotalIteration; ++Iteration)
@@ -584,8 +584,11 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 					auto& Cluster = Clusters[ClusterId];
 					UE_LOG(LogLODGenerator, Verbose, TEXT("%d. %0.2f {%s}"), ClusterId + 1, Cluster.GetCost(), *Cluster.ToString());
 
-					// progress bar update
-					SlowTask.EnterProgressFrame();
+					// progress bar update every percent, if ClustersPerPercent is zero ignore the progress bar as number of iterations is small.
+					int32 ClustersPerPercent = (TotalCluster / (100.0f / TotalIteration));
+					if ( ClustersPerPercent > 0 && ClusterId % ClustersPerPercent == 0) {
+						SlowTask.EnterProgressFrame(1.0f);
+					}
 
 					if (Cluster.IsValid())
 					{

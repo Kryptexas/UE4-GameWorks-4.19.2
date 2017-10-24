@@ -9,8 +9,7 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
 					"Networking",
-				}
-			); 
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -20,23 +19,20 @@ namespace UnrealBuildTool.Rules
 					"Slate",
 					"SlateCore",
 					"Sockets",
-				}
-			);
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Messaging",
 					"Settings",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"SlateRemote/Private",
 					"SlateRemote/Private/Server",
 					"SlateRemote/Private/Shared",
-				}
-			);
+				});
 		}
 	}
 }

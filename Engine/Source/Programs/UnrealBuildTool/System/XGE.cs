@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Win32;
 using System.Text;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {

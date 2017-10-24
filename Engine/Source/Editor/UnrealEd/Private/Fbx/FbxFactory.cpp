@@ -606,6 +606,14 @@ UObject* UFbxFactory::FactoryCreateBinary
 							
 							USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(NewObject);
 							UnFbx::FFbxImporter::UpdateSkeletalMeshImportData(SkeletalMesh, ImportUI->SkeletalMeshImportData, INDEX_NONE, nullptr, nullptr);
+
+							//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
+							if (SkeletalMesh->MorphTargets.Num() > 0)
+							{
+								SkeletalMesh->ReleaseResources();
+								//Rebuild the resources with a post edit change since we have added some morph targets
+								SkeletalMesh->PostEditChange();
+							}
 						}
 					}
 				
@@ -811,17 +819,23 @@ UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 {
 	bIsReimport = false;
 	bAutomatedImportShouldDetectType = true;
+	//Make sure we are transactional to allow undo redo
+	this->SetFlags(RF_Transactional);
 	
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
+	StaticMeshImportData->SetFlags(RF_Transactional);
 	StaticMeshImportData->LoadOptions();
 	
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
+	SkeletalMeshImportData->SetFlags(RF_Transactional);
 	SkeletalMeshImportData->LoadOptions();
 	
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
+	AnimSequenceImportData->SetFlags(RF_Transactional);
 	AnimSequenceImportData->LoadOptions();
 	
 	TextureImportData = CreateDefaultSubobject<UFbxTextureImportData>(TEXT("TextureImportData"));
+	TextureImportData->SetFlags(RF_Transactional);
 	TextureImportData->LoadOptions();
 }
 

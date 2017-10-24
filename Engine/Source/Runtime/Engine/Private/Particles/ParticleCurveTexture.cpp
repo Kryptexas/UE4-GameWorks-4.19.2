@@ -13,7 +13,7 @@
 #include "RHIStaticStates.h"
 #include "SceneUtils.h"
 #include "ParticleHelper.h"
-#include "Particles/ParticleResources.h"
+#include "ParticleResources.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
@@ -254,7 +254,6 @@ static void InjectCurves(
 		RHICmdList.SetStreamSource(
 			0,
 			ScratchVertexBufferRHI,
-			/*Stride=*/ sizeof(FColor),
 			/*Offset=*/ 0
 			);
 
@@ -262,7 +261,6 @@ static void InjectCurves(
 		RHICmdList.SetStreamSource(
 			1,
 			GParticleTexCoordVertexBuffer.VertexBufferRHI,
-			/*Stride=*/ sizeof(FVector2D),
 			/*Offset=*/ 0
 			);
 

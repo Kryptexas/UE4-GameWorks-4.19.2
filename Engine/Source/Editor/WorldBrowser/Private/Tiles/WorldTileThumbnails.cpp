@@ -76,7 +76,7 @@ FSlateTextureDataPtr FTileThumbnail::UpdateThumbnail()
 				&NewThumbnail
 				);
 
-			UPackage* MyOutermostPackage = CastChecked<UPackage>(TargetLevel->GetOutermost());
+			UPackage* MyOutermostPackage = TargetLevel->GetOutermost();
 			ThumbnailTools::CacheThumbnail(TileModel.GetAssetName().ToString(), &NewThumbnail, MyOutermostPackage);
 			return ToSlateTextureData(&NewThumbnail);
 		}

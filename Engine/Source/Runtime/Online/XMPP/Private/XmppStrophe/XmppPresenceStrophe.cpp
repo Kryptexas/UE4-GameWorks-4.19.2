@@ -92,7 +92,8 @@ bool FXmppPresenceStrophe::ReceiveStanza(const FStropheStanza& IncomingStanza)
 			FDateTime::ParseIso8601(*TimestampStanza->GetText(), Presence.SentTime);
 		}
 
-		Presence.UserJid.ParseResource(Presence.AppId, Presence.Platform);
+		FString UnusedPlatformUserId;
+		Presence.UserJid.ParseResource(Presence.AppId, Presence.Platform, UnusedPlatformUserId);
 	}
 
 	return IncomingPresenceUpdates.Enqueue(MakeUnique<FXmppUserPresence>(MoveTemp(Presence)));

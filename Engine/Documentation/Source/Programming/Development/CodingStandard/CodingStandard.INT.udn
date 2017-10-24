@@ -489,7 +489,7 @@ Enum classes should always be used as a replacement for old-style namespaced enu
 			Thing2
 		};
 
-These are also supported as UPROPERTYs, as long they are based on uint8 - this replaces the old TEnumAsByte<> workaround:
+These are also supported as UPROPERTYs, as long they are based on uint8 - this replaces the old `TEnumAsByte<>` workaround:
 
 		// Old property
 		UPROPERTY()

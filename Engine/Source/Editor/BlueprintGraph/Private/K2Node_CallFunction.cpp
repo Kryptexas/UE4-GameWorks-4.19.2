@@ -32,6 +32,8 @@
 #include "BlueprintActionFilter.h"
 #include "FindInBlueprintManager.h"
 #include "SPinTypeSelector.h"
+#include "SourceCodeNavigation.h"
+#include "HAL/FileManager.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -52,7 +54,7 @@ struct FCustomStructureParamHelper
 		OutNames.Empty();
 		if (Function)
 		{
-			FString MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
+			const FString& MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
 			if (!MetaDataValue.IsEmpty())
 			{
 				MetaDataValue.ParseIntoArray(OutNames, TEXT(","), true);
@@ -238,7 +240,7 @@ UEdGraphPin* FDynamicOutputHelper::GetTypePickerPin(const UK2Node_CallFunction* 
 
 	if (UFunction* Function = FuncNode->GetTargetFunction())
 	{
-		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		const FString& TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
 		if (!TypeDeterminingPinName.IsEmpty())
 		{
 			TypePickerPin = FuncNode->FindPin(TypeDeterminingPinName);
@@ -352,7 +354,7 @@ bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
 
 	if (UFunction* Function = GetTargetFunction())
 	{
-		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		const FString& TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
 		if (!TypeDeterminingPinName.IsEmpty())
 		{
 			bIsTypeDeterminingPin = (Pin->PinName == TypeDeterminingPinName);
@@ -927,7 +929,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 		if (bPinGood)
 		{
 			// Check for a display name override
-			const FString PinDisplayName = Param->GetMetaData(FBlueprintMetadata::MD_DisplayName);
+			const FString& PinDisplayName = Param->GetMetaData(FBlueprintMetadata::MD_DisplayName);
 			if (!PinDisplayName.IsEmpty())
 			{
 				Pin->PinFriendlyName = FText::FromString(PinDisplayName);
@@ -955,8 +957,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
-				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-				FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+				const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+				const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 				bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
 
 				if (!bShowWorldContextPin || !bIsSelfPin)
@@ -975,7 +977,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	// If we have an 'enum to exec' parameter, set its default value to something valid so we don't get warnings
 	if(bWantsEnumToExecExpansion)
 	{
-		FString EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
+		const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
 		UEdGraphPin* EnumParamPin = FindPin(EnumParamName);
 		if (UEnum* PinEnum = (EnumParamPin ? Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get()) : NULL))
 		{
@@ -1009,7 +1011,7 @@ void UK2Node_CallFunction::PostReconstructNode()
 			UClass* FunctionOwnerClass = Function->GetOuterUClass();
 			if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
 			{
-				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+				SelfPin->DefaultObject = FunctionOwnerClass->GetAuthoritativeClass()->GetDefaultObject();
 			}
 			else
 			{
@@ -1384,7 +1386,7 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 		}
 
 		// trim any trailing whitespace from the descriptive text
-		ParamDesc.TrimTrailing();
+		ParamDesc.TrimEndInline();
 
 		// if we came up with a valid description for the param/return-val
 		if (!ParamDesc.IsEmpty())
@@ -1443,8 +1445,7 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 		Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
 		Tooltip.ReplaceInline(*DoxygenNote, *TooltipNote);
 
-		Tooltip.Trim();
-		Tooltip.TrimTrailing();
+		Tooltip.TrimStartAndEndInline();
 
 		UClass* CurrentSelfClass = (Function != NULL) ? Function->GetOwnerClass() : NULL;
 		UClass const* TrueSelfClass = CurrentSelfClass;
@@ -1623,7 +1624,7 @@ FString UK2Node_CallFunction::GetCompactNodeTitle(const UFunction* Function)
 	static const FString ProgrammerConversionSymbol = TEXT("->");
 	static const FString CommonConversionSymbol = TEXT("\x2022");
 
-	const FString OperatorTitle = Function->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
+	const FString& OperatorTitle = Function->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
 	if (!OperatorTitle.IsEmpty())
 	{
 		if (OperatorTitle == ProgrammerMultiplicationSymbol)
@@ -1695,8 +1696,6 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 	};
 
 	UClass* MemberClass = FunctionReference.GetMemberParentClass();
-	const bool bIsLocalMacro = Blueprint && Blueprint->MacroGraphs.Contains(GetGraph());
-	ensureMsgf(FunctionReference.IsSelfContext() || (MemberClass != nullptr) || bIsLocalMacro, TEXT("Unknown member class in %s"), *GetPathName());
 	if (FunctionReference.IsSelfContext())
 	{
 		if (MemberClass == nullptr)
@@ -1745,8 +1744,8 @@ void UK2Node_CallFunction::PostPasteNode()
 
 		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
 
-		FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-		FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+		const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+		const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
@@ -1896,23 +1895,19 @@ void UK2Node_CallFunction::Serialize(FArchive& Ar)
 		{
 			// Don't validate the enabled state if the user has explicitly set it. Also skip validation if we're just duplicating this node.
 			const bool bIsDuplicating = (Ar.GetPortFlags() & PPF_Duplicate) != 0;
-			if (!bIsDuplicating && !bUserSetEnabledState)
+			if (!bIsDuplicating && !HasUserSetTheEnabledState())
 			{
-				UClass* SelfScope = GetBlueprintClassFromNode();
-				if (!FunctionReference.IsSelfContext() || SelfScope != nullptr)
+				if (const UFunction* Function = GetTargetFunction())
 				{
-					if (const UFunction* Function = FunctionReference.ResolveMember<UFunction>(SelfScope))
+					// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
+					if (GetDesiredEnabledState() == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
 					{
-						// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
-						if (EnabledState == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::DevelopmentOnly;
-						}
-						// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
-						else if (EnabledState == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::Enabled;
-						}
+						SetEnabledState(ENodeEnabledState::DevelopmentOnly, /*bUserAction=*/ false);
+					}
+					// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
+					else if (GetDesiredEnabledState() == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+					{
+						SetEnabledState(ENodeEnabledState::Enabled, /*bUserAction=*/ false);
 					}
 				}
 			}
@@ -1927,13 +1922,13 @@ void UK2Node_CallFunction::PostPlacedNewNode()
 	// Try re-setting the function given our new parent scope, in case it turns an external to an internal, or vis versa
 	FunctionReference.RefreshGivenNewSelfScope<UFunction>(GetBlueprintClassFromNode());
 
-	// Re-enable for development only if specified in metadata.
-	if(EnabledState == ENodeEnabledState::Enabled && !bUserSetEnabledState)
+	// Set the node to development only if the function specifies that
+	check(!HasUserSetTheEnabledState());
+	if (const UFunction* Function = GetTargetFunction())
 	{
-		const UFunction* Function = GetTargetFunction();
-		if (Function && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+		if (Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
 		{
-			EnabledState = ENodeEnabledState::DevelopmentOnly;
+			SetEnabledState(ENodeEnabledState::DevelopmentOnly, /*bUserAction=*/ false);
 		}
 	}
 }
@@ -1961,8 +1956,8 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 		}
 		else if (UEdGraphPin* BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 		{
-			FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-			FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+			const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			const FString& WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 			struct FStructConnectHelper
 			{
@@ -2728,6 +2723,62 @@ TSharedPtr<SWidget> UK2Node_CallFunction::CreateNodeImage() const
 	}
 
 	return TSharedPtr<SWidget>();
+}
+
+UObject* UK2Node_CallFunction::GetJumpTargetForDoubleClick() const
+{
+	// If there is an event node, jump to it, otherwise jump to the function graph
+	const UEdGraphNode* ResultEventNode = nullptr;
+	UEdGraph* FunctionGraph = GetFunctionGraph(/*out*/ ResultEventNode);
+	if (ResultEventNode != nullptr)
+	{
+		return const_cast<UEdGraphNode*>(ResultEventNode);
+	}
+	else
+	{
+		return FunctionGraph;
+	}
+}
+
+bool UK2Node_CallFunction::CanJumpToDefinition() const
+{
+	const UFunction* TargetFunction = GetTargetFunction();
+	const bool bNativeFunction = (TargetFunction != nullptr) && (TargetFunction->IsNative());
+	return bNativeFunction || (GetJumpTargetForDoubleClick() != nullptr);
+}
+
+void UK2Node_CallFunction::JumpToDefinition() const
+{
+	// For native functions, try going to the function definition in C++ if available
+	if (UFunction* TargetFunction = GetTargetFunction())
+	{
+		if (TargetFunction->IsNative())
+		{
+			// First try the nice way that will get to the right line number
+			bool bSucceeded = false;
+			if (FSourceCodeNavigation::CanNavigateToFunction(TargetFunction))
+			{
+				bSucceeded = FSourceCodeNavigation::NavigateToFunction(TargetFunction);
+			}
+
+			// Failing that, fall back to the older method which will still get the file open assuming it exists
+			if (!bSucceeded)
+			{
+				FString NativeParentClassHeaderPath;
+				const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(TargetFunction, NativeParentClassHeaderPath) && (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
+				if (bFileFound)
+				{
+					const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull(NativeParentClassHeaderPath);
+					bSucceeded = FSourceCodeNavigation::OpenSourceFile(AbsNativeParentClassHeaderPath);
+				}
+			}
+
+			return;
+		}
+	}
+
+	// Otherwise, fall back to the inherited behavior which should go to the function entry node
+	Super::JumpToDefinition();
 }
 
 bool UK2Node_CallFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const

@@ -5,7 +5,6 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_AchievementProgress.h"
-#include "OVR_Types.h"
 #include <stdbool.h>
 #include <stddef.h>
 

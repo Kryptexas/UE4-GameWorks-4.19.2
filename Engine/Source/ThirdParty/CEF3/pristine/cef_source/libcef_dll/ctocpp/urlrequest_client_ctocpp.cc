@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -141,18 +141,18 @@ bool CefURLRequestClientCToCpp::GetAuthCredentials(bool isProxy,
 CefURLRequestClientCToCpp::CefURLRequestClientCToCpp() {
 }
 
-template<> cef_urlrequest_client_t* CefCToCpp<CefURLRequestClientCToCpp,
+template<> cef_urlrequest_client_t* CefCToCppRefCounted<CefURLRequestClientCToCpp,
     CefURLRequestClient, cef_urlrequest_client_t>::UnwrapDerived(
     CefWrapperType type, CefURLRequestClient* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefURLRequestClientCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefURLRequestClientCToCpp,
     CefURLRequestClient, cef_urlrequest_client_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefURLRequestClientCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefURLRequestClientCToCpp,
     CefURLRequestClient, cef_urlrequest_client_t>::kWrapperType =
     WT_URLREQUEST_CLIENT;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Xml;
 using System.Reflection;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -131,15 +132,6 @@ namespace UnrealBuildTool
 		[XmlConfigFile]
 		[CommandLine("-NoUBTMakefiles", Value = "false")]
 		public bool bUseUBTMakefiles = true;
-
-        /// <summary>
-        /// Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or *.uhtmanifest
-        /// gets changed, all modules up to first changed one get loaded from makefile and the rest is parsed regularly.
-		/// This feature is new and can have issues that weren't discovered in isolated testing so disabling by default.
-        /// </summary>
-        [XmlConfigFile]
-		[CommandLine("-UHTMakefiles")]
-		public bool bUseUHTMakefiles = false;
 
 		/// <summary>
 		/// Whether DMUCS/Distcc may be used.

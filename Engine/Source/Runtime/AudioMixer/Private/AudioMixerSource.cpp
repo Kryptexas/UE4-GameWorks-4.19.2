@@ -18,7 +18,6 @@ FAutoConsoleVariableRef CVarDisableHRTF(
 
 namespace Audio
 {
-
 	FMixerSource::FMixerSource(FAudioDevice* InAudioDevice)
 		: FSoundSource(InAudioDevice)
 		, MixerDevice((FMixerDevice*)InAudioDevice)
@@ -61,7 +60,7 @@ namespace Audio
 		// Get the number of frames before creating the buffer
 		int32 NumFrames = INDEX_NONE;
 
-		if (InWaveInstance->WaveData->DecompressionType != EDecompressionType::DTYPE_Procedural)
+		if (InWaveInstance->WaveData->DecompressionType != DTYPE_Procedural)
 		{
 			const int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
 			NumFrames = NumBytes / (InWaveInstance->WaveData->NumChannels * sizeof(int16));
@@ -76,7 +75,7 @@ namespace Audio
 			SCOPE_CYCLE_COUNTER(STAT_AudioSourceInitTime);
 
 			AUDIO_MIXER_CHECK(MixerDevice);
-			MixerSourceVoice = MixerDevice->GetMixerSourceVoice(InWaveInstance, this, UseHRTSpatialization());
+			MixerSourceVoice = MixerDevice->GetMixerSourceVoice();
 			if (!MixerSourceVoice)
 			{
 				return false;
@@ -88,65 +87,107 @@ namespace Audio
 			InitParams.NumInputChannels = InWaveInstance->WaveData->NumChannels;
 			InitParams.NumInputFrames = NumFrames;
 			InitParams.SourceVoice = MixerSourceVoice;
-			InitParams.bUseHRTFSpatialization = UseHRTSpatialization();
+			InitParams.bUseHRTFSpatialization = UseObjectBasedSpatialization();
 			InitParams.AudioComponentUserID = InWaveInstance->ActiveSound->GetAudioComponentUserID();
 
 			InitParams.SourceEffectChainId = 0;
 
-			if (InitParams.NumInputChannels <= 2 && InWaveInstance->SourceEffectChain)
+			if (InitParams.NumInputChannels <= 2)
 			{
-				InitParams.SourceEffectChainId = InWaveInstance->SourceEffectChain->GetUniqueID();
-
-				for (int32 i = 0; i < InWaveInstance->SourceEffectChain->Chain.Num(); ++i)
+				if (InWaveInstance->SourceEffectChain)
 				{
-					InitParams.SourceEffectChain.Add(InWaveInstance->SourceEffectChain->Chain[i]);
-					InitParams.bPlayEffectChainTails = InWaveInstance->SourceEffectChain->bPlayEffectChainTails;
+					InitParams.SourceEffectChainId = InWaveInstance->SourceEffectChain->GetUniqueID();
+
+					for (int32 i = 0; i < InWaveInstance->SourceEffectChain->Chain.Num(); ++i)
+					{
+						InitParams.SourceEffectChain.Add(InWaveInstance->SourceEffectChain->Chain[i]);
+						InitParams.bPlayEffectChainTails = InWaveInstance->SourceEffectChain->bPlayEffectChainTails;
+					}
+				}
+
+				// Setup the bus Id if this source is a bus
+				if (InWaveInstance->WaveData->bIsBus)
+				{
+					InitParams.BusId = InWaveInstance->WaveData->GetUniqueID();
+					if (!InWaveInstance->WaveData->IsLooping())
+					{
+						InitParams.BusDuration = InWaveInstance->WaveData->GetDuration();
+					}
+				}
+
+				// Toggle muting the source if sending only to output bus. 
+				// This can get set even if the source doesn't have bus sends since bus sends can be dynamically enabled.
+				InitParams.bOutputToBusOnly = InWaveInstance->bOutputToBusOnly;
+
+				// If this source is sending its audio to a bus
+				if (InWaveInstance->SoundSourceBusSends.Num() > 0)
+				{
+					// And add all the source bus sends
+					for (FSoundSourceBusSendInfo& SendInfo : InWaveInstance->SoundSourceBusSends)
+					{
+						if (SendInfo.SoundSourceBus != nullptr)
+						{
+							FMixerBusSend BusSend;
+							BusSend.BusId = SendInfo.SoundSourceBus->GetUniqueID();
+							BusSend.SendLevel = SendInfo.SendLevel;
+							InitParams.BusSends.Add(BusSend);
+						}
+					}
 				}
 			}
 
-			// If we've overridden which submix we're sending the sound, then add that as the first send
-			if (InWaveInstance->SoundSubmix != nullptr)
+			// Don't set up any submixing if we're set to output to bus only
+			if (!InitParams.bOutputToBusOnly)
 			{
-				FMixerSourceSubmixSend SubmixSend;
-				SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmix);
-				SubmixSend.SendLevel = 1.0f;
-				SubmixSend.bIsMainSend = true;
-				InitParams.SubmixSends.Add(SubmixSend);
-			}
-			else
-			{
-				// Send the voice to the EQ submix if it's enabled
-				const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
-				if (!bIsEQDisabled && IsEQFilterApplied())
+				// If we're spatializing using HRTF and its an external send, don't need to setup a default/base submix send to master or EQ submix
+				// We'll only be using non-default submix sends (e.g. reverb).
+				if (!(InWaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF && MixerDevice->bSpatializationIsExternalSend))
 				{
-					// Default the submix to use to use the master submix if none are set
-					FMixerSourceSubmixSend SubmixSend;
-					SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
-					SubmixSend.SendLevel = 1.0f;
-					SubmixSend.bIsMainSend = true;
-					InitParams.SubmixSends.Add(SubmixSend);
+					// If we've overridden which submix we're sending the sound, then add that as the first send
+					if (InWaveInstance->SoundSubmix != nullptr)
+					{
+						FMixerSourceSubmixSend SubmixSend;
+						SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmix);
+						SubmixSend.SendLevel = 1.0f;
+						SubmixSend.bIsMainSend = true;
+						InitParams.SubmixSends.Add(SubmixSend);
+					}
+					else
+					{
+						// Send the voice to the EQ submix if it's enabled
+						const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+						if (!bIsEQDisabled && IsEQFilterApplied())
+						{
+							// Default the submix to use to use the master submix if none are set
+							FMixerSourceSubmixSend SubmixSend;
+							SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
+							SubmixSend.SendLevel = 1.0f;
+							SubmixSend.bIsMainSend = true;
+							InitParams.SubmixSends.Add(SubmixSend);
+						}
+						else
+						{
+							// Default the submix to use to use the master submix if none are set
+							FMixerSourceSubmixSend SubmixSend;
+							SubmixSend.Submix = MixerDevice->GetMasterSubmix();
+							SubmixSend.SendLevel = 1.0f;
+							SubmixSend.bIsMainSend = true;
+							InitParams.SubmixSends.Add(SubmixSend);
+						}
+					}
 				}
-				else
-				{
-					// Default the submix to use to use the master submix if none are set
-					FMixerSourceSubmixSend SubmixSend;
-					SubmixSend.Submix = MixerDevice->GetMasterSubmix();
-					SubmixSend.SendLevel = 1.0f;
-					SubmixSend.bIsMainSend = true;
-					InitParams.SubmixSends.Add(SubmixSend);
-				}
-			}
 
-			// Now add any addition submix sends for this source
-			for (FSoundSubmixSendInfo& SendInfo : InWaveInstance->SoundSubmixSends)
-			{
-				if(SendInfo.SoundSubmix != nullptr)
+				// Now add any addition submix sends for this source
+				for (FSoundSubmixSendInfo& SendInfo : InWaveInstance->SoundSubmixSends)
 				{
-					FMixerSourceSubmixSend SubmixSend;
-					SubmixSend.Submix = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-					SubmixSend.SendLevel = SendInfo.SendLevel;
-					SubmixSend.bIsMainSend = false;
-					InitParams.SubmixSends.Add(SubmixSend);
+					if (SendInfo.SoundSubmix != nullptr)
+					{
+						FMixerSourceSubmixSend SubmixSend;
+						SubmixSend.Submix = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+						SubmixSend.SendLevel = SendInfo.SendLevel;
+						SubmixSend.bIsMainSend = false;
+						InitParams.SubmixSends.Add(SubmixSend);
+					}
 				}
 			}
 
@@ -165,7 +206,7 @@ namespace Audio
 #endif
 
 			// Whether or not we're 3D
-			bIs3D = !UseHRTSpatialization() && WaveInstance->bUseSpatialization && SoundBuffer->NumChannels < 3;
+			bIs3D = !UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && SoundBuffer->NumChannels < 3;
 
 			// Grab the source's reverb plugin settings 
 			InitParams.SpatializationPluginSettings = UseSpatializationPlugin() ? InWaveInstance->SpatializationPluginSettings : nullptr;
@@ -276,10 +317,10 @@ namespace Audio
 			// Set up buffer areas to decompress audio into
 			for (int32 BufferIndex = 0; BufferIndex < Audio::MAX_BUFFERS_QUEUED; ++BufferIndex)
 			{
-				const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * MixerBuffer->NumChannels;
+				const uint32 TotalSamples = MONO_PCM_BUFFER_SAMPLES * MixerBuffer->NumChannels;
 				SourceVoiceBuffers[BufferIndex]->AudioData.Reset();
-				SourceVoiceBuffers[BufferIndex]->AudioData.AddZeroed(BufferSize);
-				SourceVoiceBuffers[BufferIndex]->AudioBytes = BufferSize;
+				SourceVoiceBuffers[BufferIndex]->AudioData.AddZeroed(TotalSamples);
+				SourceVoiceBuffers[BufferIndex]->Samples = TotalSamples;
 				SourceVoiceBuffers[BufferIndex]->bRealTimeBuffer = true;
 				SourceVoiceBuffers[BufferIndex]->LoopCount = 0;
 			}
@@ -303,6 +344,11 @@ namespace Audio
 				// not ready
 				return AsyncRealtimeAudioTask->IsDone();
 			}
+			else if (WaveInstance->WaveData->bIsBus)
+			{
+				// Buses don't need to do anything to play audio
+				return true;
+			}
 			else
 			{
 				// Now check to see if we need to kick off a decode the first chunk of audio
@@ -310,10 +356,10 @@ namespace Audio
 				if ((BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming) && WaveInstance->WaveData)
 				{
 					// If any of these conditions meet, we need to do an initial async decode before we're ready to start playing the sound
-					if (WaveInstance->StartTime > 0.0f || WaveInstance->WaveData->bProcedural || !WaveInstance->WaveData->CachedRealtimeFirstBuffer)
+					if (WaveInstance->StartTime > 0.0f || WaveInstance->WaveData->bProcedural || WaveInstance->WaveData->bIsBus || !WaveInstance->WaveData->CachedRealtimeFirstBuffer)
 					{
 						// Before reading more PCMRT data, we first need to seek the buffer
-						if (WaveInstance->StartTime > 0.0f)
+						if (WaveInstance->StartTime > 0.0f && !WaveInstance->WaveData->bIsBus && !WaveInstance->WaveData->bProcedural)
 						{
 							MixerBuffer->Seek(WaveInstance->StartTime);
 						}
@@ -405,6 +451,16 @@ namespace Audio
 				WaveInstance->NotifyFinished();
 				return true;
 			}
+			// Buses don't do buffer end callbacks, so we need to directly query buses doneness
+			else if (WaveInstance->WaveData->bIsBus)
+			{
+				if (MixerSourceVoice->IsSourceEffectTailsDone() && MixerSourceVoice->IsDone())
+				{
+					bIsFinished = true;
+					WaveInstance->NotifyFinished();
+					return true;
+				}
+			}
 
 			if (bLoopCallback && WaveInstance->LoopingMode == LOOP_WithNotification)
 			{
@@ -454,45 +510,55 @@ namespace Audio
 
 		CurrentBuffer = 0;
 
-		uint8* Data = nullptr;
-		uint32 DataSize = 0;
-		MixerBuffer->GetPCMData(&Data, &DataSize);
+		RawPCMDataBuffer.Data = nullptr;
+		RawPCMDataBuffer.DataSize = 0;
+		MixerBuffer->GetPCMData(&RawPCMDataBuffer.Data, &RawPCMDataBuffer.DataSize);
+
+		RawPCMDataBuffer.NumSamples = RawPCMDataBuffer.DataSize / sizeof(int16);
+		RawPCMDataBuffer.CurrentSample = 0;
 
 		// Only submit data if we've successfully loaded it
-		if (!Data || !DataSize)
+		if (!RawPCMDataBuffer.Data || !RawPCMDataBuffer.DataSize)
 		{
 			UE_LOG(LogAudioMixer, Error, TEXT("Failed to load PCM data from sound source %s"), *WaveInstance->GetName());
 			return;
 		}
 
-		// Reset the data, copy it over
-		SourceVoiceBuffers[0]->AudioData.Reset();
-		SourceVoiceBuffers[0]->AudioData.AddDefaulted(DataSize);
-		FMemory::Memcpy(SourceVoiceBuffers[0]->AudioData.GetData(), Data, DataSize);
+		RawPCMDataBuffer.LoopCount = (WaveInstance->LoopingMode != LOOP_Never) ? Audio::LOOP_FOREVER : 0;
 
-		AUDIO_MIXER_CHECK(SourceVoiceBuffers[0]->AudioData.Num() == DataSize);
+		// Submit the first two format-converted chunks to the source voice
+		const uint32 NumSamplesPerBuffer = MONO_PCM_BUFFER_SAMPLES * MixerBuffer->NumChannels;
+		int16* RawPCMBufferDataPtr = (int16*)RawPCMDataBuffer.Data;
 
-		// Set the size of the data. In general AudioBytes may not be the same as AudioData.Num() 
-		SourceVoiceBuffers[0]->AudioBytes = DataSize;
-		SourceVoiceBuffers[0]->bRealTimeBuffer = false;
-		SourceVoiceBuffers[0]->LoopCount = (WaveInstance->LoopingMode != LOOP_Never) ? Audio::LOOP_FOREVER : 0;
-
+		RawPCMDataBuffer.GetNextBuffer(SourceVoiceBuffers[0], NumSamplesPerBuffer);
 		MixerSourceVoice->SubmitBuffer(SourceVoiceBuffers[0], false);
+
+		CurrentBuffer = 1;
 	}
 
 	void FMixerSource::SubmitPCMRTBuffers()
 	{
 		CurrentBuffer = 0;
 
-		const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * MixerBuffer->NumChannels;
-
 		bPlayedCachedBuffer = false;
 		bool bIsSeeking = (WaveInstance->StartTime > 0.0f);
 		if (!bIsSeeking && WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer)
 		{
 			bPlayedCachedBuffer = true;
-			FMemory::Memcpy(SourceVoiceBuffers[0]->AudioData.GetData(), WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
-			FMemory::Memcpy(SourceVoiceBuffers[1]->AudioData.GetData(), WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
+
+			// Format convert the first cached buffers
+			const uint32 NumSamples = MONO_PCM_BUFFER_SAMPLES * MixerBuffer->NumChannels;
+			const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * MixerBuffer->NumChannels;
+
+			int16* CachedBufferPtr0 = (int16*)WaveInstance->WaveData->CachedRealtimeFirstBuffer;
+			int16* CachedBufferPtr1 = (int16*)(WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize);
+			float* AudioData0 = SourceVoiceBuffers[0]->AudioData.GetData();
+			float* AudioData1 = SourceVoiceBuffers[1]->AudioData.GetData();
+			for (uint32 Sample = 0; Sample < NumSamples; ++Sample)
+			{
+				AudioData0[Sample] = CachedBufferPtr0[Sample] / 32768.0f;
+				AudioData1[Sample] = CachedBufferPtr1[Sample] / 32768.0f;
+			}
 
 			// Submit the already decoded and cached audio buffers
 			MixerSourceVoice->SubmitBuffer(SourceVoiceBuffers[0], false);
@@ -500,7 +566,7 @@ namespace Audio
 
 			CurrentBuffer = 2;
 		}
-		else
+		else if (WaveInstance->WaveData && !WaveInstance->WaveData->bIsBus)
 		{
 			// We should have already kicked off and finished a task. 
 			check(AsyncRealtimeAudioTask != nullptr);
@@ -515,48 +581,48 @@ namespace Audio
 	{
 		USoundWave* WaveData = WaveInstance->WaveData;
 
-		if (WaveData && WaveData->bProcedural)
+		if (WaveData)
 		{
-			const int32 MaxSamples = (MONO_PCM_BUFFER_SIZE * Buffer->NumChannels) / sizeof(int16);
-
-			if (BufferReadMode == EBufferReadMode::Synchronous || WaveData->bCanProcessAsync == false)
+			if (WaveData->bProcedural)
 			{
-				const int32 BytesWritten = WaveData->GeneratePCMData(SourceVoiceBuffers[BufferIndex]->AudioData.GetData(), MaxSamples);
-				SourceVoiceBuffers[BufferIndex]->AudioBytes = BytesWritten;
+				const int32 MaxSamples = MONO_PCM_BUFFER_SAMPLES * Buffer->NumChannels;
+
+				FProceduralAudioTaskData NewTaskData;
+				NewTaskData.ProceduralSoundWave = WaveData;
+				NewTaskData.AudioData = SourceVoiceBuffers[BufferIndex]->AudioData.GetData();
+				NewTaskData.NumSamples = MaxSamples;
+				NewTaskData.NumChannels = Buffer->NumChannels;
+				check(!AsyncRealtimeAudioTask);
+				AsyncRealtimeAudioTask = CreateAudioTask(NewTaskData);
+
+				// Procedural sound waves never loop
+				return false;
+			}
+			else if (!MixerBuffer->IsRealTimeBuffer())
+			{
+				check(RawPCMDataBuffer.Data != nullptr);
+
+				// Read the next raw PCM buffer into the source buffer index. This converts raw PCM to float.
+				const uint32 NumSamplesPerBuffer = MONO_PCM_BUFFER_SAMPLES * MixerBuffer->NumChannels;
+				return RawPCMDataBuffer.GetNextBuffer(SourceVoiceBuffers[BufferIndex], NumSamplesPerBuffer);
 			}
 			else
 			{
-				FProceduralAudioTaskData NewTaskData;
-				NewTaskData.ProceduralSoundWave = Cast<USoundWaveProcedural>(WaveData);
+				FDecodeAudioTaskData NewTaskData;
+				NewTaskData.MixerBuffer = MixerBuffer;
 				NewTaskData.AudioData = SourceVoiceBuffers[BufferIndex]->AudioData.GetData();
-				NewTaskData.MaxAudioDataSamples = MaxSamples;
+				NewTaskData.bLoopingMode = WaveInstance->LoopingMode != LOOP_Never;
+				NewTaskData.bSkipFirstBuffer = (BufferReadMode == EBufferReadMode::AsynchronousSkipFirstFrame);
+				NewTaskData.NumFramesToDecode = MONO_PCM_BUFFER_SAMPLES;
 
 				check(!AsyncRealtimeAudioTask);
 				AsyncRealtimeAudioTask = CreateAudioTask(NewTaskData);
+
+				// Not looping
+				return false;
 			}
-
-			// Not looping
-			return false;
 		}
-		else if (BufferReadMode == EBufferReadMode::Synchronous)
-		{
-			return MixerBuffer->ReadCompressedData(SourceVoiceBuffers[BufferIndex]->AudioData.GetData(), WaveInstance->LoopingMode != LOOP_Never);
-		}
-		else
-		{
-			FDecodeAudioTaskData NewTaskData;
-			NewTaskData.MixerBuffer = MixerBuffer;
-			NewTaskData.AudioData = SourceVoiceBuffers[BufferIndex]->AudioData.GetData();
-			NewTaskData.bLoopingMode = WaveInstance->LoopingMode != LOOP_Never;
-			NewTaskData.bSkipFirstBuffer = (BufferReadMode == EBufferReadMode::AsynchronousSkipFirstFrame);
-			NewTaskData.NumFramesToDecode = MONO_PCM_BUFFER_SAMPLES;
-
-			check(!AsyncRealtimeAudioTask);
-			AsyncRealtimeAudioTask = CreateAudioTask(NewTaskData);
-
-			// Not looping
-			return false;
-		}
+		return true;
 	}
 
 	void FMixerSource::SubmitRealTimeSourceData(const bool bLooped, const bool bSubmitSynchronously)
@@ -611,8 +677,7 @@ namespace Audio
 						FDecodeAudioTaskResults TaskResult;
 						AsyncRealtimeAudioTask->GetResult(TaskResult);
 
-						const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * MixerBuffer->NumChannels;
-						SourceVoiceBuffers[CurrentBuffer]->AudioBytes = BufferSize;
+						SourceVoiceBuffers[CurrentBuffer]->Samples = MONO_PCM_BUFFER_SAMPLES * MixerBuffer->NumChannels;
 						bLooped = TaskResult.bLooped;
 					}
 					break;
@@ -622,7 +687,7 @@ namespace Audio
 						FProceduralAudioTaskResults TaskResult;
 						AsyncRealtimeAudioTask->GetResult(TaskResult);
 
-						SourceVoiceBuffers[CurrentBuffer]->AudioBytes = TaskResult.NumBytesWritten;
+						SourceVoiceBuffers[CurrentBuffer]->Samples = TaskResult.NumSamplesWritten;
 					}
 					break;
 				}
@@ -670,13 +735,11 @@ namespace Audio
 		{
 			int32 BuffersQueued = MixerSourceVoice->GetNumBuffersQueued();
 
-			const bool bIsRealTimeSource = MixerBuffer->IsRealTimeBuffer();
-
-			if (BuffersQueued == 0 && (bBuffersToFlush || !bIsRealTimeSource))
+			if (BuffersQueued == 0 && bBuffersToFlush)
 			{
 				bIsFinished = true;
 			}
-			else if (bIsRealTimeSource && !bBuffersToFlush && BuffersQueued <= (Audio::MAX_BUFFERS_QUEUED - 1))
+			else if (!bBuffersToFlush && BuffersQueued <= (Audio::MAX_BUFFERS_QUEUED - 1))
 			{
 				// OnSourceBufferEnd is always called from render thread and the source needs to be 
 				// processed and any decoded buffers submitted to render thread synchronously			
@@ -686,51 +749,16 @@ namespace Audio
 		}
 	}
 
-	void FMixerSource::OnRelease()
+	void FMixerSource::OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData)
 	{
 		FPendingReleaseData* PendingReleaseData = nullptr;
 
 		while (PendingReleases.Dequeue(PendingReleaseData))
 		{
-			TasksWaitingToFinish.Add(PendingReleaseData);
+			OutPendingReleaseData.Add(PendingReleaseData);
 		}
 
 		bIsReleasing = false;
-	}
-
-	void FMixerSource::OnUpdatePendingDecodes()
-	{
-		// Don't block, but let tasks finish naturally
-		for (int32 i = TasksWaitingToFinish.Num() - 1; i >= 0; --i)
-		{
-			FPendingReleaseData* PendingReleaseData = TasksWaitingToFinish[i];
-			if (PendingReleaseData->Task)
-			{
-				// Only delete the buffer and the task when it has finished
-				if (PendingReleaseData->Task->IsDone())
-				{
-					delete PendingReleaseData->Task;
-					PendingReleaseData->Task = nullptr;
-
-					if (PendingReleaseData->Buffer)
-					{
-						delete PendingReleaseData->Buffer;
-					}
-
-					delete PendingReleaseData;
-					TasksWaitingToFinish[i] = nullptr;
-
-					TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
-				}
-			}
-			else if (PendingReleaseData->Buffer)
-			{
-				delete PendingReleaseData->Buffer;
-				PendingReleaseData->Buffer = nullptr;
-
-				TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
-			}
-		}
 	}
 
 	void FMixerSource::FreeResources()
@@ -782,6 +810,9 @@ namespace Audio
 			PendingReleases.Enqueue(PendingDecodeTask);
 		}
 
+		// Reset the raw PCM buffer data
+		RawPCMDataBuffer = FRawPCMDataBuffer();
+
 		MixerBuffer = nullptr;
 		AsyncRealtimeAudioTask = nullptr;
 		Buffer = nullptr;
@@ -819,18 +850,21 @@ namespace Audio
 
 	void FMixerSource::UpdateVolume()
 	{
-		float CurrentVolume = 0.0f;
-
-		if (!AudioDevice->IsAudioDeviceMuted())
+		float CurrentVolume;
+		if (AudioDevice->IsAudioDeviceMuted())
 		{
-			CurrentVolume = WaveInstance->GetActualVolume();
+			CurrentVolume = 0.0f;
+		}
+		else
+		{
+			CurrentVolume = WaveInstance->GetVolume();
+			CurrentVolume *= WaveInstance->GetVolumeApp();
+			CurrentVolume *= AudioDevice->GetPlatformAudioHeadroom();
+			CurrentVolume = FMath::Clamp<float>(GetDebugVolume(CurrentVolume), 0.0f, MAX_VOLUME);
 		}
 
-		CurrentVolume = GetDebugVolume(CurrentVolume);
-
-		CurrentVolume = FMath::Clamp<float>(CurrentVolume * AudioDevice->GetPlatformAudioHeadroom(), 0.0f, MAX_VOLUME);
-
 		MixerSourceVoice->SetVolume(CurrentVolume);
+		MixerSourceVoice->SetDistanceAttenuation(WaveInstance->GetDistanceAttenuation());
 	}
 
 	void FMixerSource::UpdateSpatialization()
@@ -853,36 +887,59 @@ namespace Audio
 			LastLPFFrequency = LPFFrequency;
 		}
 
+		if (LastHPFFrequency != HPFFrequency)
+		{
+			MixerSourceVoice->SetHPFFrequency(HPFFrequency);
+			LastHPFFrequency = HPFFrequency;
+		}
+
+		// If reverb is applied, figure out how of the source to "send" to the reverb.
 		if (bReverbApplied)
 		{
-			if (UseReverbPlugin())
-			{
-				FMixerSubmixPtr MasterReverbPluginSubmix = MixerDevice->GetMasterReverbPluginSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbPluginSubmix, 1.0f);
-			}
+			float ReverbSendLevel = 0.0f;
 
-			// Get fraction of the sound to the 
-			if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+			if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Manual)
 			{
-				float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
-				Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
-				float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
-				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WetLevel);
+				ReverbSendLevel = FMath::Clamp(WaveInstance->ManualReverbSendLevel, 0.0f, 1.0f);
 			}
 			else
 			{
-				// If we're not 3d spatializing a sound, then use the default send amount, which is
-				// set to ReverbWetLevelMin in the WaveInstance initialization
+				// The alpha value is determined identically between manual and custom curve methods
+				const FVector2D& ReverbSendRadialRange = WaveInstance->ReverbSendLevelDistanceRange;
+				const float Denom = FMath::Max(ReverbSendRadialRange.Y - ReverbSendRadialRange.X, 1.0f);
+				const float Alpha = FMath::Clamp((WaveInstance->ListenerToSoundDistance - ReverbSendRadialRange.X) / Denom, 0.0f, 1.0f);
+
+				if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Linear)
+				{
+					ReverbSendLevel = FMath::Clamp(FMath::Lerp(WaveInstance->ReverbSendLevelRange.X, WaveInstance->ReverbSendLevelRange.Y, Alpha), 0.0f, 1.0f);
+				}
+				else
+				{
+					ReverbSendLevel = FMath::Clamp(WaveInstance->CustomRevebSendCurve.GetRichCurveConst()->Eval(Alpha), 0.0f, 1.0f);
+				}
+			}
+
+			// Send the source audio to the reverb plugin if enabled
+			if (UseReverbPlugin())
+			{
+				FMixerSubmixPtr MasterReverbPluginSubmix = MixerDevice->GetMasterReverbPluginSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbPluginSubmix, ReverbSendLevel);
+			}
+			else 
+			{
+				// Send the source audio to the master reverb
 				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WaveInstance->ReverbWetLevelMin);
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, ReverbSendLevel);
 			}
 		}
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-			MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			if (SendInfo.SoundSubmix)
+			{
+				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			}
 		}
 	}
 
@@ -905,12 +962,12 @@ namespace Audio
 
 	bool FMixerSource::ComputeMonoChannelMap()
 	{
-		if (UseHRTSpatialization())
+		if (UseObjectBasedSpatialization())
 		{
-			if (WaveInstance->SpatializationAlgorithm != SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
+			if (WaveInstance->SpatializationMethod != ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
 			{
 				bEditorWarnedChangedSpatialization = true;
-				UE_LOG(LogAudioMixer, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
+				UE_LOG(LogAudioMixer, Warning, TEXT("Changing the spatialization method on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
 			}
 
 			// Treat the source as if it is a 2D stereo source
@@ -937,7 +994,7 @@ namespace Audio
 
 	bool FMixerSource::ComputeStereoChannelMap()
 	{
-		if (!UseHRTSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
+		if (!UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Make sure our stereo emitter positions are updated relative to the sound emitter position
 			UpdateStereoEmitterPositions();
@@ -998,13 +1055,12 @@ namespace Audio
 		return false;
 	}
 
-	bool FMixerSource::UseHRTSpatialization() const
+	bool FMixerSource::UseObjectBasedSpatialization() const
 	{
 		return (Buffer->NumChannels == 1 &&
-				AudioDevice->AudioPlugin != nullptr &&
 				AudioDevice->IsSpatializationPluginEnabled() &&
 				DisableHRTFCvar == 0 &&
-				WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
+				WaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF);
 	}
 
 	bool FMixerSource::UseSpatializationPlugin() const
@@ -1027,4 +1083,53 @@ namespace Audio
 				AudioDevice->IsReverbPluginEnabled() &&
 				WaveInstance->ReverbPluginSettings != nullptr;
 	}
+
+	bool FRawPCMDataBuffer::GetNextBuffer(FMixerSourceBufferPtr OutSourceBufferPtr, const uint32 NumSampleToGet)
+	{
+		// TODO: support loop counts
+		float* OutBufferPtr = OutSourceBufferPtr->AudioData.GetData();
+		int16* DataPtr = (int16*)Data;
+
+		if (LoopCount == Audio::LOOP_FOREVER)
+		{
+			bool bLooped = false;
+			for (uint32 Sample = 0; Sample < NumSampleToGet; ++Sample)
+			{
+				OutBufferPtr[Sample] = DataPtr[CurrentSample++] / 32768.0f;
+
+				// Loop around if we're looping
+				if (CurrentSample >= NumSamples)
+				{
+					CurrentSample = 0;
+					bLooped = true;
+				}
+			}
+			return bLooped;
+		}
+		else if (CurrentSample < NumSamples)
+		{
+			uint32 Sample = 0;
+			while (Sample < NumSampleToGet && CurrentSample < NumSamples)
+			{
+				OutBufferPtr[Sample++] = (float)DataPtr[CurrentSample++] / 32768.0f;
+			}
+
+			// Zero out the rest of the buffer
+			while (Sample < NumSampleToGet)
+			{
+				OutBufferPtr[Sample++] = 0.0f;
+			}
+		}
+		else
+		{
+			for (uint32 Sample = 0; Sample < NumSampleToGet; ++Sample)
+			{
+				OutBufferPtr[Sample] = 0.0f;
+			}
+		}
+
+		// If the current sample is greater or equal to num samples we hit the end of the buffer
+		return CurrentSample >= NumSamples;
+	}
+
 }

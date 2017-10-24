@@ -135,6 +135,8 @@ bool UAnimBlueprint::GetAssetOverrides(TArray<FAnimParentNodeAssetOverride*>& Ou
 
 void UAnimBlueprint::PostLoad()
 {
+	LLM_SCOPE(ELLMTag::Animation);
+
 	Super::PostLoad();
 #if WITH_EDITOR
 	// Validate animation overrides
@@ -165,28 +167,20 @@ void UAnimBlueprint::PostLoad()
 
 void UAnimBlueprint::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE(ELLMTag::Animation);
+
 	Super::Serialize(Ar);
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 }
 
 USkeletalMesh* UAnimBlueprint::GetPreviewMesh()
 {
-	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
-	if(!PreviewMesh)
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.LoadSynchronous();
+	// if somehow skeleton changes, just nullify it. 
+	if (PreviewMesh && PreviewMesh->Skeleton != TargetSkeleton)
 	{
-		// if preview mesh isn't loaded, see if we have set
-		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
-		// load it since now is the time to load
-		if(!PreviewMeshStringRef.ToString().IsEmpty())
-		{
-			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
-			// if somehow skeleton changes, just nullify it. 
-			if (PreviewMesh && PreviewMesh->Skeleton != TargetSkeleton)
-			{
-				PreviewMesh = NULL;
-				SetPreviewMesh(NULL);
-			}
-		}
+		PreviewMesh = nullptr;
+		SetPreviewMesh(nullptr);
 	}
 
 	return PreviewMesh;

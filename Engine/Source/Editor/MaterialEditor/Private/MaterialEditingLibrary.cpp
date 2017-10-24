@@ -154,7 +154,7 @@ void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterial* BaseMate
 			UMaterialEditorInstanceConstant* EditorInstance = Cast<UMaterialEditorInstanceConstant>(EditedAsset);
 			if (EditorInstance && EditorInstance->SourceInstance)
 			{
-				SourceInstance = Cast<UMaterialInstance>(EditorInstance->SourceInstance);
+				SourceInstance = EditorInstance->SourceInstance;
 			}
 		}
 

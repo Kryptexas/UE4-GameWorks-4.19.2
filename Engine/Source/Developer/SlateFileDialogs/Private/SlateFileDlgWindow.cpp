@@ -44,7 +44,7 @@ public:
 		for (int32 Index = 0; Index < FilterList.Num(); Index++)
 		{
 			FilterList[Index].ReplaceInline(TEXT(")"), TEXT(""));
-			FilterList[Index] = FilterList[Index].TrimQuotes().TrimTrailing().Trim();
+			FilterList[Index] = FilterList[Index].TrimQuotes().TrimStartAndEnd();
 		}
 	}
 	
@@ -1058,12 +1058,12 @@ FReply SSlateFileOpenDlg::OnQuickLinkClick(FSlateFileDlgWindow::EResult ButtonID
 	{
 		// Taken from DesktopPlatform. We have to do this to avoid a circular dependency.
 		const FString DefaultProjectSubFolder =TEXT("Unreal Projects");
-		CurrentPath = FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder + TEXT("/");
+		CurrentPath = FPaths::ConvertRelativePathToFull(FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder + TEXT("/"));
 	}
 
 	if (ButtonID == FSlateFileDlgWindow::Engine)
 	{
-		CurrentPath = FPaths::EngineDir();
+		CurrentPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
 	}
 	
 	if ((History.Num()-HistoryIndex-1) > 0)
@@ -1318,8 +1318,7 @@ void SSlateFileOpenDlg::OnFilterChanged(TSharedPtr<FString> NewValue, ESelectInf
 void SSlateFileOpenDlg::ParseTextField(TArray<FString> &FilenameArray, FString Files)
 {
 	FString FileList = Files;
-	FileList.Trim();
-	FileList.TrimTrailing();
+	FileList.TrimStartAndEndInline();
 
 	FilenameArray.Empty();
 
@@ -1374,8 +1373,7 @@ void SSlateFileOpenDlg::ParseTextField(TArray<FString> &FilenameArray, FString F
 void SSlateFileOpenDlg::SetDefaultFile(FString DefaultFile)
 {
 	FString FileList = DefaultFile;
-	FileList.Trim();
-	FileList.TrimTrailing();
+	FileList.TrimStartAndEndInline();
 
 	if  (FileList.Len() > 0 && FileList[0] == TCHAR('"'))
 	{
@@ -1590,8 +1588,7 @@ FReply SSlateFileOpenDlg::OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::E
 {
 	if (ButtonID == FSlateFileDlgWindow::Accept)
 	{
-		NewDirectoryName.Trim();
-		NewDirectoryName.TrimTrailing();
+		NewDirectoryName.TrimStartAndEndInline();
 
 		if (NewDirectoryName.Len() > 0)
 		{

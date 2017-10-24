@@ -86,7 +86,6 @@ public:
 	bool bIsInterfaceStub;
 	bool bIsConstFunction;
 	bool bEnforceConstCorrectness;
-	bool bInstrumentScriptCode;
 	bool bCreateDebugData;
 	bool bIsSimpleStubGraphWithNoParams;
 	uint32 NetFlags;
@@ -105,7 +104,7 @@ public:
 	//Does this function use requires FlowStack ?
 	bool bUseFlowStack;
 public:
-	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation);
+	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp);
 	
 	~FKismetFunctionContext();
 
@@ -180,42 +179,17 @@ public:
 
 	bool IsDebuggingOrInstrumentationRequired() const
 	{
-		return bInstrumentScriptCode || bCreateDebugData;
-	}
-
-	bool IsInstrumentationRequired() const
-	{
-		return bInstrumentScriptCode;
-	}
-
-	bool IsInstrumentationRequiredForNode(UEdGraphNode* Node) const
-	{
-		return bInstrumentScriptCode && !IsExpansionNode(Node);
-	}
-
-	bool IsInstrumentationRequiredForPin(UEdGraphPin* Pin) const
-	{
-		return bInstrumentScriptCode && !IsPinTraceSuppressed(Pin);
-	}
-
-	bool IsExpansionNode(const UEdGraphNode* Node) const
-	{
-		return MessageLog.IsExpansionNode(Node);
-	}
-
-	bool IsPinTraceSuppressed(const UEdGraphPin* Pin) const
-	{
-		return MessageLog.IsPinTraceSuppressed(Pin);
+		return bCreateDebugData;
 	}
 
 	EKismetCompiledStatementType GetWireTraceType() const
 	{
-		return bInstrumentScriptCode ? KCST_InstrumentedWireExit : KCST_WireTraceSite;
+		return KCST_WireTraceSite;
 	}
 
 	EKismetCompiledStatementType GetBreakpointType() const
 	{
-		return bInstrumentScriptCode ? KCST_InstrumentedWireEntry : KCST_DebugSite;
+		return KCST_DebugSite;
 	}
 
 	uint32 GetNetFlags() const

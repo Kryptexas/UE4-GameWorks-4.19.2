@@ -21,14 +21,14 @@ namespace UnrealBuildTool.Rules
 					"Launch"
 				});
 
-			if (UEBuildConfiguration.bBuildEditor)
+			if (Target.bBuildEditor)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
 
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
-				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GoogleCloudMessaging_UPL.xml")));
 			}
 

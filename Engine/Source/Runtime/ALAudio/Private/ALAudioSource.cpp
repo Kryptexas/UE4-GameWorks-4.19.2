@@ -103,13 +103,12 @@ void FALSoundSource::Update( void )
 	}
 	else
 	{
-		Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
+		Volume = WaveInstance->GetActualVolume();
 		if (SetStereoBleed())
 		{
 			// Emulate the bleed to rear speakers followed by stereo fold down
 			Volume *= 1.25f;
 		}
-		Volume *= FApp::GetVolumeMultiplier();
 		Volume *= AudioDevice->GetPlatformAudioHeadroom();
 		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	}

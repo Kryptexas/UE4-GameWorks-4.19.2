@@ -29,7 +29,7 @@ The basic functions of the replay system are to start or stop recording a demo, 
 | `UDemoNetDriver::GotoTimeInSeconds` | "demoscrub (ReplayTime)" | Jumps to the provided time (in seconds) in the replay. |
 | `UWorld::Pauser` (variable) | "demopause" | Setting this variable to the PlayerController held by the World's `DemoNetDriver->ServerConnection->OwningActor` variable will pause the replay. Setting it back to `NULL` will resume the replay. The "demopause" console command will automatically set or clear that variable. |
 | `WorldSettings->DemoPlayTimeDilation` (variable) | "demospeed (ReplaySpeed)" | Speeds up or slows down playback by setting the time-scaling factor. A value of 1.0 is normal speed. |
-| `AGameMode::bHandleDedicatedServerReplays` (variable) | N/A | Setting this variable to can be set to true to cause dedicated servers to record games automatically. |
+| `AGameMode::bHandleDedicatedServerReplays` (variable) | N/A | This variable can be set to `true` to cause dedicated servers to record games automatically. |
 
 ## DemoNetDriver and Streamers
 

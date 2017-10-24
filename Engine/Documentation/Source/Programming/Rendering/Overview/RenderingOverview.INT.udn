@@ -206,4 +206,4 @@ Since there are so many rendering states, it is not practical to set them all ev
 * RHISetRasterizerState
 * Any dependencies of the shaders set by RHISetBoundShaderState
 
-All other states are assumed to be at their defaults (as defined by the relevant TStaticState, for example the default stencil state is set by RHISetStencilState(TStaticStencilState<>::GetRHI()).
+All other states are assumed to be at their defaults (as defined by the relevant TStaticState, for example the default stencil state is set by `RHISetStencilState(TStaticStencilState<>::GetRHI())`.

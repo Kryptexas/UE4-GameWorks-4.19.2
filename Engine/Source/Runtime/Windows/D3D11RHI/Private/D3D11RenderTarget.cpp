@@ -86,6 +86,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	//we may change rendertargets and depth state behind the RHI's back here.
 	//save off this original state to restore it.
 	FExclusiveDepthStencil OriginalDSVAccessType = CurrentDSVAccessType;
+	TRefCountPtr<FD3D11TextureBase> OriginalDepthTexture = CurrentDepthTexture;
 
 	if(ResolveTargetDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
 	{
@@ -145,6 +146,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ResolvePixelShader);
 	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
+	CurrentDepthTexture = DestTexture;
 	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 	RHICmdList.SetBlendFactor(FLinearColor::White);
 
@@ -198,6 +200,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 	//reset DSVAccess.
 	CurrentDSVAccessType = OriginalDSVAccessType;
+	CurrentDepthTexture = OriginalDepthTexture;
 }
 
 /**

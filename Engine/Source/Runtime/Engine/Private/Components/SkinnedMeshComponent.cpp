@@ -166,6 +166,11 @@ namespace FAnimUpdateRateManager
 		0,
 		TEXT("Set to 1 to force interpolation"));
 
+	static TAutoConsoleVariable<int32> CVarURODisableInterpolation(
+		TEXT("a.URO.DisableInterpolation"),
+		0,
+		TEXT("Set to 1 to disable interpolation"));
+
 	void AnimUpdateRateSetParams(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bRecentlyRendered, float MaxDistanceFactor, int32 MinLod, bool bNeedsValidRootMotion, bool bUsingRootMotionFromEverything)
 	{
 		// default rules for setting update rates
@@ -436,7 +441,7 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
 
 			// Also check if skeletal mesh has too many bones/chunk for GPU skinning.
-			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || (GIsEditor && ShouldCPUSkin());
+			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || ShouldCPUSkin();
 			if(bIsCPUSkinned)
 			{
 				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this, SkelMeshResource, SceneFeatureLevel);
@@ -613,7 +618,7 @@ bool USkinnedMeshComponent::ShouldTickPose() const
 
 bool USkinnedMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
-	return (bLODHasChanged || bRecentlyRendered || (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones));
+	return (bRecentlyRendered || (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones));
 }
 
 bool USkinnedMeshComponent::ShouldUseUpdateRateOptimizations() const
@@ -2369,11 +2374,6 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 		}
 	}
 
-	if (bLODChanged)
-	{
-		MarkRenderDynamicDataDirty();
-	}
-
 	return bLODChanged;
 }
 
@@ -2445,10 +2445,11 @@ void USkinnedMeshComponent::GetCPUSkinnedVertices(TArray<FFinalSkinVertex>& OutV
 	FlushRenderingCommands();
 
 	check(MeshObject);
-
+	check(MeshObject->IsCPUSkinned());
+		
 	// Copy our vertices out. We know we are using CPU skinning now, so this cast is safe
 	OutVertices = static_cast<FSkeletalMeshObjectCPUSkin*>(MeshObject)->GetCachedFinalVertices();
-
+	
 	// switch skinning mode, LOD etc. back
 	bCPUSkinning = bCachedCPUSkinning;
 	ForcedLodModel = 0;
@@ -2861,17 +2862,11 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 	OptimizeMode = TrailMode;
 	ThisTickDelta = DeltaTime;
 
-	const int32 ForceAnimRate = FAnimUpdateRateManager::CVarForceAnimRate.GetValueOnGameThread();
-	if (ForceAnimRate > 0)
-	{
-		NewUpdateRate = ForceAnimRate;
-		NewEvaluationRate = ForceAnimRate;
-	}
-
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
 	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
-	bInterpolateSkippedFrames = (bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1);
+	bInterpolateSkippedFrames = (FAnimUpdateRateManager::CVarURODisableInterpolation.GetValueOnAnyThread() == 0) &&
+		((bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1));
 
 	// Make sure we don't overflow. we don't need very large numbers.
 	const uint32 Counter = (GFrameCounter + UpdateRateShift)% MAX_uint32;

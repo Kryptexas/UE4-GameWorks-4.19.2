@@ -41,7 +41,7 @@
 	#define ASYNC_DEFERRED_DELETION					0
 	#define PLATFORM_SUPPORTS_MGPU					0
 	#define ASYNC_DEFERRED_DELETION					0
-	#define PIPELINE_STATE_FILE_LOCATION			FPaths::GameContentDir()
+	#define PIPELINE_STATE_FILE_LOCATION			FPaths::ProjectContentDir()
 	#define USE_PIX									XBOXONE_PROFILING_ENABLED
 
 	// The number of sampler descriptors with the maximum value of 2048
@@ -55,7 +55,7 @@
 	#define ENABLE_RESIDENCY_MANAGEMENT				1
 	#define ASYNC_DEFERRED_DELETION					1
 	#define PLATFORM_SUPPORTS_MGPU					1
-	#define PIPELINE_STATE_FILE_LOCATION			FPaths::GameSavedDir()
+	#define PIPELINE_STATE_FILE_LOCATION			FPaths::ProjectSavedDir()
 	#define USE_PIX									D3D12_PROFILING_ENABLED
 #else
 	#error	Unknown platform!

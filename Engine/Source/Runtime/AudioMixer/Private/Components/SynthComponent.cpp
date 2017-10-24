@@ -16,36 +16,67 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 	OwningSynthComponent = InSynthComponent;
 	bVirtualizeWhenSilent = true;
 	NumChannels = InNumChannels;
-	bCanProcessAsync = true;
+
+	// Turn off async generation in old audio engine on mac.
+#if PLATFORM_MAC
+	if (!InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled())
+	{
+		bCanProcessAsync = false;
+	}
+	else
+#endif // #if PLATFORM_MAC
+	{
+		bCanProcessAsync = true;
+	}
+
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
 	SampleRate = InSynthComponent->GetAudioDevice()->SampleRate;
+	bAudioMixer = InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled();
 }
 
 bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-	GeneratedPCMData.Reset();
-	GeneratedPCMData.AddZeroed(NumSamples);
+	OutAudio.Reset();
 
-	OwningSynthComponent->OnGeneratePCMAudio(GeneratedPCMData);
+	if (bAudioMixer)
+	{
+		// If running with audio mixer, the output audio buffer will be in floats already
+		OutAudio.AddZeroed(NumSamples * sizeof(float));
+		OwningSynthComponent->OnGeneratePCMAudio((float*)OutAudio.GetData(), NumSamples);
+	}
+	else
+	{
+		// Use the float scratch buffer instead of the out buffer directly
+		FloatBuffer.Reset();
+		FloatBuffer.AddZeroed(NumSamples * sizeof(float));
+		
+		float* FloatBufferDataPtr = FloatBuffer.GetData();
+		OwningSynthComponent->OnGeneratePCMAudio(FloatBufferDataPtr, NumSamples);
 
-	OutAudio.Append((uint8*)GeneratedPCMData.GetData(), NumSamples * sizeof(int16));
+		// Convert the float buffer to int16 data
+		OutAudio.AddZeroed(NumSamples * sizeof(int16));
+		int16* OutAudioBuffer = (int16*)OutAudio.GetData();
+		for (int32 i = 0; i < NumSamples; ++i)
+		{
+			OutAudioBuffer[i] = (int16)(32767.0f * FloatBufferDataPtr[i]);
+		}
+	}
 
 	return true;
+}
+
+Audio::EAudioMixerStreamDataFormat::Type USynthSound::GetGeneratedPCMDataFormat() const 
+{ 
+	// Only audio mixer supports return float buffers
+	return bAudioMixer ? Audio::EAudioMixerStreamDataFormat::Float : Audio::EAudioMixerStreamDataFormat::Int16;
 }
 
 USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Create the audio component which will be used to play the procedural sound wave
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
 
-	AudioComponent->bAutoActivate = true;
-	AudioComponent->bStopWhenOwnerDestroyed = true;
-	AudioComponent->bShouldRemainActiveIfDropped = true;
-	AudioComponent->Mobility = EComponentMobility::Movable;
-
-	bAutoActivate = true;
+	bAutoActivate = false;
 	bStopWhenOwnerDestroyed = true;
 
 	bNeverNeedsRenderUpdate = true;
@@ -53,12 +84,12 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 
 	bIsSynthPlaying = false;
 	bIsInitialized = false;
+	bIsUISound = false;
 
 	// Set the default sound class
 	SoundClass = USoundBase::DefaultSoundClassObject;
 
 #if WITH_EDITORONLY_DATA
-	AudioComponent->bVisualizeComponent = false;
 	bVisualizeComponent = false;
 #endif
 }
@@ -88,15 +119,8 @@ void USynthComponent::Deactivate()
 	}
 }
 
-void USynthComponent::OnRegister()
+void USynthComponent::Initialize()
 {
-	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
-	{
-		AudioComponent->SetupAttachment(this);
-	}
-
-	Super::OnRegister();
-
 	FAudioDevice* AudioDevice = GetAudioDevice();
 	if (!bIsInitialized && AudioDevice)
 	{
@@ -120,16 +144,55 @@ void USynthComponent::OnRegister()
 		NumChannels = FMath::Clamp(NumChannels, 1, 2);
 #endif
 
-		Synth = NewObject<USynthSound>(this, TEXT("Synth"));	
+		Synth = NewObject<USynthSound>(this, TEXT("Synth"));
 
 		// Copy sound base data to the sound
 		Synth->SourceEffectChain = SourceEffectChain;
-		Synth->DefaultMasterReverbSendAmount = DefaultMasterReverbSendAmount;
 		Synth->SoundSubmixObject = SoundSubmix;
 		Synth->SoundSubmixSends = SoundSubmixSends;
 
 		Synth->Init(this, NumChannels);
 	}
+}
+
+UAudioComponent* USynthComponent::GetAudioComponent()
+{
+	return AudioComponent;
+}
+
+void USynthComponent::CreateAudioComponent()
+{
+	if (!AudioComponent)
+	{
+		// Create the audio component which will be used to play the procedural sound wave
+		AudioComponent = NewObject<UAudioComponent>(this);
+
+		if (AudioComponent)
+		{
+			AudioComponent->bAutoActivate = false;
+			AudioComponent->bStopWhenOwnerDestroyed = true;
+			AudioComponent->bShouldRemainActiveIfDropped = true;
+			AudioComponent->Mobility = EComponentMobility::Movable;
+
+#if WITH_EDITORONLY_DATA
+			AudioComponent->bVisualizeComponent = false;
+#endif
+			if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
+			{
+				AudioComponent->SetupAttachment(this);
+			}
+
+			Initialize();
+		}
+	}
+}
+
+
+void USynthComponent::OnRegister()
+{
+	CreateAudioComponent();
+
+	Super::OnRegister();
 }
 
 void USynthComponent::OnUnregister()
@@ -144,6 +207,13 @@ void USynthComponent::OnUnregister()
 	if (!Owner || bStopWhenOwnerDestroyed)
 	{
 		Stop();
+	}
+
+	// Make sure the audio component is destroyed during unregister
+	if (AudioComponent)
+	{
+		AudioComponent->DestroyComponent();
+		AudioComponent = nullptr;
 	}
 }
 
@@ -198,60 +268,30 @@ void USynthComponent::PumpPendingMessages()
 	}
 }
 
-void USynthComponent::OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData)
+void USynthComponent::OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSamples)
 {
 	PumpPendingMessages();
-	check(GeneratedPCMData.Num() > 0);
 
-	AudioFloatData.Reset();
-
-#if SYNTH_GENERATOR_TEST_TONE
-	if (NumChannels == 1)
-	{
-		for (int32 i = 0; i < SamplesNeeded; ++i)
-		{
-			const float SampleFloat = TestSineLeft.ProcessAudio();
-			const int16 SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-		}
-	}
-	else
-	{
-		for (int32 i = 0; i < SamplesNeeded; ++i)
-		{
-			float SampleFloat = TestSineLeft.ProcessAudio();
-			int16 SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-
-			SampleFloat = TestSineRight.ProcessAudio();
-			SamplePCM = (int16)(32767.0f * SampleFloat);
-			AudioData.Add(SamplePCM);
-		}
-	}
-#else
-	AudioFloatData.AddZeroed(GeneratedPCMData.Num());
+	check(NumSamples > 0);
 
 	// Only call into the synth if we're actually playing, otherwise, we'll write out zero's
 	if (bIsSynthPlaying)
 	{
-		this->OnGenerateAudio(AudioFloatData);
-
-		// Convert the float data to int16 data
-		for (int32 i = 0; i < GeneratedPCMData.Num(); ++i)
-		{
-			GeneratedPCMData[i] = (int16)(32767.0f * AudioFloatData[i]);
-		}
+		this->OnGenerateAudio(GeneratedPCMData, NumSamples);
 	}
-#endif
 }
 
 void USynthComponent::Start()
 {
+	// This will try to create the audio component if it hasn't yet been created
+	CreateAudioComponent();
+
 	if (AudioComponent)
 	{
 		// Copy the attenuation and concurrency data from the synth component to the audio component
 		AudioComponent->AttenuationSettings = AttenuationSettings;
 		AudioComponent->bOverrideAttenuation = bOverrideAttenuation;
+		AudioComponent->bIsUISound = bIsUISound;
 		AudioComponent->ConcurrencySettings = ConcurrencySettings;
 		AudioComponent->AttenuationOverrides = AttenuationOverrides;
 		AudioComponent->SoundClassOverride = SoundClass;

@@ -76,6 +76,8 @@ FParseCandidate ParseCandidates[] = {
 
 	{ TEXT("ppi"),					EUnit::PixelsPerInch },			{ TEXT("dpi"),		EUnit::PixelsPerInch },
 
+	{ TEXT("Percent"),				EUnit::Percentage },			{ TEXT("%"),	EUnit::Percentage },
+
 	{ TEXT("times"),				EUnit::Multiplier },			{ TEXT("x"),	EUnit::Multiplier },			{ TEXT("multiplier"),		EUnit::Multiplier },
 };
 
@@ -106,6 +108,8 @@ const TCHAR* const DisplayStrings[] = {
 
 	TEXT("ppi"),
 
+	TEXT("%"),
+
 	TEXT("x"),
 };
 
@@ -134,6 +138,8 @@ const EUnitType UnitTypes[] = {
 	EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,
 
 	EUnitType::PixelDensity,
+
+	EUnitType::Multipliers,
 
 	EUnitType::Arbitrary,
 };
@@ -636,6 +642,16 @@ namespace UnitConversion
 											return Factor;
 
 			default: 						return 1;
+		}
+	}
+
+	double MultiplierUnificationFactor(EUnit From)
+	{
+		switch (From)
+		{
+			case EUnit::Percentage:			return 0.01;
+			case EUnit::Multiplier:						// fallthrough
+			default: 						return 1.0;
 		}
 	}
 

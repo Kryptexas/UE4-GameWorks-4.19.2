@@ -1,13 +1,20 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3612551
 Availability:Public
+Crumbs: %ROOT%
 Title:Widget Interaction コンポーネント
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Widget Interaction コンポーネントを使って 3D Widget とインタラクションする方法を説明します。
-Version:4.13
+Description:Widget Interaction コンポーネントを使って 3D Widget とインタラクションする方法を説明します。 
+Type:Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
 Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
 Related:Engine/Components/Widget
-tags:UMG UI Designer
+Order:10
+Tags:UMG UI Designer
+Topic-Image:WidgetInteractionBanner.png
+
+
 
 [REGION:warning]
 この機能は実験的なものであり、一部の機能は期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。 

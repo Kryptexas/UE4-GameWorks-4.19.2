@@ -116,27 +116,27 @@ namespace HTML5LaunchHelper
 
 			Task.Factory.StartNew(()
 				=>
+				{
+					while( WebServer.IsListening)
 					{
-						while( WebServer.IsListening)
-						{
-							// Handle requests in threaded mode.
-							Task.Factory.StartNew((Ctx)
-								=>
+						// Handle requests in threaded mode.
+						Task.Factory.StartNew((Ctx)
+							=>
+							{
+								var Context = Ctx as HttpListenerContext;
+								try
 								{
-									var Context = Ctx as HttpListenerContext;
-									try
-									{
-										RequestHandler(Context);
-									}
-									catch { }
-									finally
-									{
-										Context.Response.Close();
-									}
+									RequestHandler(Context);
+								}
+								catch { }
+								finally
+								{
+									Context.Response.Close();
+								}
 
-								}, WebServer.GetContext());
-						}
+							}, WebServer.GetContext());
 					}
+				}
 			);
 			return true;
 		}
@@ -574,7 +574,7 @@ namespace HTML5LaunchHelper
 			}
 
 			var Server = new HttpServer(Convert.ToInt32(Args.ServerPort),Args.ServerRoot, Args.UseAllPrefixes == "FALSE" ? false : true );
-			if ( ! Server.Run() )
+			if (!Server.Run())
 			{
 				return 0;
 			}

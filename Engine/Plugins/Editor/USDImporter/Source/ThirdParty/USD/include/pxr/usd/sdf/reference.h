@@ -26,18 +26,20 @@
 
 /// \file sdf/reference.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/layerOffset.h"
 #include "pxr/usd/sdf/path.h"
-#include "pxr/usd/sdf/api.h"
 #include "pxr/base/vt/dictionary.h"
 #include "pxr/base/vt/value.h"
-#include "pxr/base/tf/pathUtils.h"
 
 #include <boost/operators.hpp>
 
 #include <iosfwd>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfReference;
 
@@ -75,7 +77,7 @@ public:
     /// Creates a reference with all its meta data.  The default
     /// reference is an internal reference to the default prim.
     ///
-	SDF_API SdfReference(
+    SDF_API SdfReference(
         const std::string &assetPath = std::string(),
         const SdfPath &primPath = SdfPath(),
         const SdfLayerOffset &layerOffset = SdfLayerOffset(),
@@ -139,7 +141,7 @@ public:
     ///
     /// If \a value is empty, then this removes the given custom data entry.
     ///
-	SDF_API void SetCustomData(const std::string &name, const VtValue &value);
+    SDF_API void SetCustomData(const std::string &name, const VtValue &value);
 
     /// Swaps the custom data dictionary for this reference.
     void SwapCustomData(VtDictionary &customData) {
@@ -156,18 +158,18 @@ public:
     }
 
     /// Returns whether this reference equals \a rhs.
-	SDF_API bool operator==(const SdfReference &rhs) const;
+    SDF_API bool operator==(const SdfReference &rhs) const;
 
     /// Returns whether this reference is less than \a rhs.  The meaning
     /// of less than is somewhat arbitrary.
-	SDF_API bool operator<(const SdfReference &rhs) const;
+    SDF_API bool operator<(const SdfReference &rhs) const;
 
     /// Struct that defines equality of SdfReferences based on their
     /// identity (the asset path and prim path).
     ///
     struct IdentityEqual {
         bool operator()(const SdfReference &lhs, const SdfReference &rhs) const {
-            return lhs._assetPath == rhs._assetPath and
+            return lhs._assetPath == rhs._assetPath &&
                    lhs._primPath  == rhs._primPath;
         }
     };
@@ -177,8 +179,8 @@ public:
     ///
     struct IdentityLessThan {
         bool operator()(const SdfReference &lhs, const SdfReference &rhs) const {
-            return lhs._assetPath <  rhs._assetPath or
-                  (lhs._assetPath == rhs._assetPath and
+            return lhs._assetPath <  rhs._assetPath ||
+                  (lhs._assetPath == rhs._assetPath &&
                    lhs._primPath  <  rhs._primPath);
         }
     };
@@ -214,5 +216,7 @@ SDF_API int SdfFindReferenceByIdentity(
 /// Writes the string representation of \a SdfReference to \a out.
 SDF_API std::ostream & operator<<( std::ostream &out,
                            const SdfReference &reference );
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_REFERENCE_H

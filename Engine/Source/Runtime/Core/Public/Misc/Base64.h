@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,6 +25,8 @@ class CORE_API FBase64
 	{
 	}
 
+public:
+
 	/**
 	 * Encodes the source into a Base64 string
 	 *
@@ -47,7 +49,6 @@ class CORE_API FBase64
 	 */
 	static bool Decode(const ANSICHAR* Source, uint32 Length, uint8* Dest, uint32& PadCount);
 
-public:
 	/**
 	 * Encodes a binary uint8 array into a Base64 string
 	 *
@@ -81,4 +82,13 @@ public:
 	 * @param Dest the out buffer that will be filled with the decoded data
 	 */
 	static bool Decode(const FString& Source, FString& Dest);
+
+	/**
+	* Determine the decoded data size for the incoming base64 encoded string
+	*
+	* @param Source the stringified data to test
+	*
+	* @return The size in bytes of the decoded data
+	*/
+	static uint32 GetDecodedDataSize(const FString& Source);
 };

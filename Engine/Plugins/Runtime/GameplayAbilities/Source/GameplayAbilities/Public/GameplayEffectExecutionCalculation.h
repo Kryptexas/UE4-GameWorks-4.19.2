@@ -105,6 +105,18 @@ public:
 	 */
 	bool AttemptGetCapturedAttributeAggregatorSnapshot(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT FAggregator& OutSnapshottedAggregator) const;
 
+	/** 
+	 *	Returns all modifiers for a given captured def. Note the returned list is a direct reference to the internal list stored in the attribute aggregators (possibly a snapshot copy or possibly the "real" ones).
+	 *	Also note the modifiers returned or NOT qualified! You will still want to qualifiy them on an FAggregatorEvaluateParameters yourself. (Having this function internally do it would onyl be possible if this function
+	 *	returned a copy of the mod list which is something we would like to avoid).
+	 *	
+	 *	Consider using ForEachQualifiedAttributeMod when you want to "do something for every qualifier mod"
+	 */
+	bool AttemptGatherAttributeMods(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
+
+	/** Runs given TFunction on every qualifier mod for a given AttributeCaptureDefinition */
+	bool ForEachQualifiedAttributeMod(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, TFunction< void(EGameplayModEvaluationChannel, EGameplayModOp::Type, const FAggregatorMod&) >) const;
+
 private:
 
 	/** Mapping of capture definition to aggregator with scoped modifiers added in; Used to process scoped modifiers w/o modifying underlying aggregators in the capture */

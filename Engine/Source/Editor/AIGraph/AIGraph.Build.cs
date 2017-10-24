@@ -26,6 +26,7 @@ public class AIGraph : ModuleRules
             new string[] {
 				"Core", 
 				"CoreUObject", 
+				"ApplicationCore",
 				"Engine", 
                 "RenderCore",
                 "InputCore",

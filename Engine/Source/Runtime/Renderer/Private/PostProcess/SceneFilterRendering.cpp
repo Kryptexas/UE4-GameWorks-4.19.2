@@ -9,6 +9,7 @@
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 
 /**
 * Static vertex and index buffer used for 2D screen rectangles.
@@ -154,8 +155,9 @@ static void DoDrawRectangleFlagOverride(EDrawRectangleFlags& Flags)
 #endif
 }
 
-void DrawRectangle(
-	FRHICommandList& RHICmdList,
+template <typename TRHICommandList>
+static inline void InternalDrawRectangle(
+	TRHICommandList& RHICmdList,
 	float X,
 	float Y,
 	float SizeX,
@@ -198,7 +200,7 @@ void DrawRectangle(
 	if(Flags == EDRF_UseTesselatedIndexBuffer)
 	{
 		// no vertex buffer needed as we compute it in VS
-		RHICmdList.SetStreamSource(0, NULL, 0, 0);
+		RHICmdList.SetStreamSource(0, NULL, 0);
 
 		RHICmdList.DrawIndexedPrimitive(
 			GTesselatedScreenRectangleIndexBuffer.IndexBufferRHI,
@@ -213,7 +215,7 @@ void DrawRectangle(
 	}
 	else
 	{
-		RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex), 0);
+		RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, 0);
 
 		if (Flags == EDRF_UseTriangleOptimization)
 		{
@@ -234,7 +236,7 @@ void DrawRectangle(
 		}
 		else
 		{
-			RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex), 0);
+			RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, 0);
 
 			RHICmdList.DrawIndexedPrimitive(
 				GScreenRectangleIndexBuffer.IndexBufferRHI,
@@ -248,6 +250,26 @@ void DrawRectangle(
 				);
 		}
 	}
+}
+
+void DrawRectangle(
+	FRHICommandList& RHICmdList,
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize,
+	FShader* VertexShader,
+	EDrawRectangleFlags Flags,
+	uint32 InstanceCount
+)
+{
+	InternalDrawRectangle(RHICmdList, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, TargetSize, TextureSize, VertexShader, Flags, InstanceCount);
 }
 
 void DrawTransformedRectangle(
@@ -322,7 +344,10 @@ void DrawHmdMesh(
 
 	SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
 
-	GEngine->HMDDevice->DrawVisibleAreaMesh_RenderThread(RHICmdList, StereoView);
+	if (GEngine->XRSystem->GetHMDDevice())
+	{
+		GEngine->XRSystem->GetHMDDevice()->DrawVisibleAreaMesh_RenderThread(RHICmdList, StereoView);
+	}
 }
 
 void DrawPostProcessPass(

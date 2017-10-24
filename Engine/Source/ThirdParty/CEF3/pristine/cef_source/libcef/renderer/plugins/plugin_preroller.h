@@ -14,7 +14,6 @@
 
 namespace blink {
 class WebLocalFrame;
-class WebPlugin;
 }
 
 class SkBitmap;
@@ -43,6 +42,9 @@ class CefPluginPreroller : public content::PluginInstanceThrottler::Observer,
   void OnKeyframeExtracted(const SkBitmap* bitmap) override;
   void OnThrottleStateChange() override;
   void OnThrottlerDestroyed() override;
+
+  // content::RenderFrameObserver implementation.
+  void OnDestruct() override;
 
   blink::WebLocalFrame* frame_;
   blink::WebPluginParams params_;

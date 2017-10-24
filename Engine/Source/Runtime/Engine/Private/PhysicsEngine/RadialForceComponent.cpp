@@ -9,7 +9,7 @@
 #include "Engine/Texture2D.h"
 #include "GameFramework/MovementComponent.h"
 #include "PhysicsEngine/RadialForceActor.h"
-#include "Components/DestructibleComponent.h"
+#include "DestructibleInterface.h"
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
@@ -142,9 +142,9 @@ void URadialForceComponent::FireImpulse()
 	{
 		if(DestructibleDamage > SMALL_NUMBER)
 		{
-			if(UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(PrimitiveComponent))
+			if(IDestructibleInterface* DestructibleInstance = Cast<IDestructibleInterface>(PrimitiveComponent))
 			{
-				DestructibleComponent->ApplyRadiusDamage(DestructibleDamage, Origin, Radius, ImpulseStrength, Falloff == RIF_Constant);
+				DestructibleInstance->ApplyRadiusDamage(DestructibleDamage, Origin, Radius, ImpulseStrength, Falloff == RIF_Constant);
 			}
 		}
 

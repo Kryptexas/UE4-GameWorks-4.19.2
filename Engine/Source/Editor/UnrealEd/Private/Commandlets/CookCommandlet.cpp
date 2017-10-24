@@ -6,6 +6,7 @@
 
 #include "Commandlets/CookCommandlet.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "Misc/CommandLine.h"
@@ -33,7 +34,7 @@
 #include "ShaderCompiler.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileSystemModule.h"
 #include "GameDelegates.h"
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
@@ -543,7 +544,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bVerboseCookerWarnings = Switches.Contains(TEXT("verbosecookerwarnings"));
 	bPartialGC = Switches.Contains(TEXT("Partialgc"));
 	
-	COOK_STAT(DetailedCookStats::CookProject = FApp::GetGameName());
+	COOK_STAT(DetailedCookStats::CookProject = FApp::GetProjectName());
 
 	if ( bCookOnTheFly )
 	{
@@ -675,9 +676,6 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	FString CreateReleaseVersion;
 	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
 
-	FString NativizedPluginPath;
-	FParse::Value(*Params, TEXT("NativizeAssets="), NativizedPluginPath);
-
 	FString OutputDirectoryOverride;
 	FParse::Value( *Params, TEXT("OutputDir="), OutputDirectoryOverride);
 
@@ -727,7 +725,7 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 
 	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
 	{
-		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 		for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 		{
@@ -852,8 +850,6 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	StartupOptions.ChildCookFileName = ChildCookFile;
 	StartupOptions.ChildCookIdentifier = ChildCookIdentifier;
 	StartupOptions.NumProcesses = NumProcesses;
-	StartupOptions.bNativizeAssets = !NativizedPluginPath.IsEmpty() || Switches.Contains(TEXT("NativizeAssets"));
-	Swap( StartupOptions.NativizedPluginPath, NativizedPluginPath );
 
 	COOK_STAT(
 	{
@@ -1079,7 +1075,7 @@ void UCookCommandlet::ProcessDeferredCommands()
 {
 #if PLATFORM_MAC
 	// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
-	FPlatformMisc::PumpMessages(true);
+	FPlatformApplicationMisc::PumpMessages(true);
 #endif
 
 	// update task graph

@@ -66,7 +66,6 @@ public:
 
 	// Explicit declarations here because templates unresolved when used in other files
 	void Set(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI);
-	void Set(FRHICommandListImmediate& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI) {};
 
 	template <typename TRHICmdList>
 	void Set(TRHICmdList& RHICmdList, const FComputeShaderRHIParamRef ShaderRHI);

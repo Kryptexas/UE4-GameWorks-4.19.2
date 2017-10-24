@@ -137,6 +137,11 @@ public:
 		: InternalCounter(INDEX_NONE)
 	{}
 
+	bool HasEverBeenUpdated() const
+	{
+		return (InternalCounter != INDEX_NONE);
+	}
+
 	int16 Get() const
 	{
 		return InternalCounter;
@@ -491,6 +496,12 @@ struct FAnimWeight
 	static FORCEINLINE bool IsFullWeight(float InWeight)
 	{
 		return (InWeight >= (1.f - ZERO_ANIMWEIGHT_THRESH));
+	}
+
+	/** Get a small relevant weight for ticking */
+	static FORCEINLINE float GetSmallestRelevantWeight()
+	{
+		return 2.f * ZERO_ANIMWEIGHT_THRESH;
 	}
 };
 

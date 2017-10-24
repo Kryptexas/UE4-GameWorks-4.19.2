@@ -505,6 +505,7 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 		{
 			if (AbilitySpec.AssignedHandle.IsValid() && FindAbilitySpecFromHandle(AbilitySpec.AssignedHandle) == nullptr)
 			{
+				ABILITY_LOG(Display, TEXT("::CheckForClearedAbilities is clearing AssignedHandle %s from GE %s / %s"), *AbilitySpec.AssignedHandle.ToString(), *ActiveGE.GetDebugString(), *ActiveGE.Handle.ToString() );
 				AbilitySpec.AssignedHandle = FGameplayAbilitySpecHandle();
 			}
 		}
@@ -707,6 +708,8 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 			MarkAbilitySpecDirty(*Spec);
 		}
 	}
+
+	OnAbilityEnded.Broadcast(FAbilityEndedData(Ability, Handle, false, bWasCancelled));
 }
 
 void UAbilitySystemComponent::CancelAbility(UGameplayAbility* Ability)
@@ -1848,7 +1851,7 @@ void UAbilitySystemComponent::SetUserAbilityActivationInhibited(bool NewInhibit)
 
 void UAbilitySystemComponent::NotifyAbilityCommit(UGameplayAbility* Ability)
 {
-	AbilityCommitedCallbacks.Broadcast(Ability);
+	AbilityCommittedCallbacks.Broadcast(Ability);
 }
 
 void UAbilitySystemComponent::NotifyAbilityActivated(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)

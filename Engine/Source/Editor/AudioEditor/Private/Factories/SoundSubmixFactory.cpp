@@ -4,6 +4,7 @@
 #include "Sound/SoundSubmix.h"
 #include "AudioDeviceManager.h"
 #include "Engine/Engine.h"
+#include "Classes/Sound/AudioSettings.h"
 
 USoundSubmixFactory::USoundSubmixFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -25,4 +26,9 @@ UObject* USoundSubmixFactory::FactoryCreateNew(UClass* InClass, UObject* InParen
 	}
 
 	return SoundSubmix;
+}
+
+bool USoundSubmixFactory::CanCreateNew() const
+{
+	return GetDefault<UAudioSettings>()->IsAudioMixerEnabled();
 }

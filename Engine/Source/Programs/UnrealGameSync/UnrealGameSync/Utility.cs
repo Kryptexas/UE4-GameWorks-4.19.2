@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 
 namespace UnrealGameSync
 {
@@ -200,6 +201,15 @@ namespace UnrealGameSync
 				// Extract the variable name from the string
 				string Name = Result.Substring(Idx + 2, EndIdx - (Idx + 2));
 
+				// Strip the format from the name
+				string Format = null;
+				int FormatIdx = Name.IndexOf(':');
+				if(FormatIdx != -1)
+				{ 
+					Format = Name.Substring(FormatIdx + 1);
+					Name = Name.Substring(0, FormatIdx);
+				}
+
 				// Find the value for it, either from the dictionary or the environment block
 				string Value;
 				if (AdditionalVariables == null || !AdditionalVariables.TryGetValue(Name, out Value))
@@ -212,10 +222,47 @@ namespace UnrealGameSync
 					}
 				}
 
+				// Encode the variable if necessary
+				if(Format != null)
+				{
+					if(String.Equals(Format, "URI", StringComparison.InvariantCultureIgnoreCase))
+					{
+						Value = Uri.EscapeDataString(Value);
+					}
+				}
+
 				// Replace the variable, or skip past it
 				Result = Result.Substring(0, Idx) + Value + Result.Substring(EndIdx + 1);
 			}
 			return Result;
+		}
+
+		/// <summary>
+		/// Determines if a project is an enterprise project
+		/// </summary>
+		/// <param name="FileName">Path to the project file</param>
+		/// <returns>True if the given filename is an enterprise project</returns>
+		public static bool IsEnterpriseProject(string FileName)
+		{
+			try
+			{
+				string Text = File.ReadAllText(FileName);
+
+				JavaScriptSerializer Serializer = new JavaScriptSerializer();
+				Dictionary<string, object> RawObject = Serializer.Deserialize<Dictionary<string, object>>(Text);
+
+				object Enterprise;
+				if(RawObject.TryGetValue("Enterprise", out Enterprise) && Enterprise is bool)
+				{
+					return (bool)Enterprise;
+				}
+
+				return false;
+			}
+			catch
+			{
+				return false;
+			}
 		}
 	}
 }

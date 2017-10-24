@@ -61,36 +61,37 @@ public:
 
 	FWriteToSliceVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
-    {
-        UVScaleBias.Bind(Initializer.ParameterMap, TEXT("UVScaleBias"));
-        MinZ.Bind(Initializer.ParameterMap, TEXT("MinZ"));
+	{
+		UVScaleBias.Bind(Initializer.ParameterMap, TEXT("UVScaleBias"));
+		MinZ.Bind(Initializer.ParameterMap, TEXT("MinZ"));
 	}
 
 	FWriteToSliceVS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FVolumeBounds& VolumeBounds, FIntVector VolumeResolution)
+	template <typename TRHICommandList>
+	void SetParameters(TRHICommandList& RHICmdList, const FVolumeBounds& VolumeBounds, FIntVector VolumeResolution)
 	{
 		const float InvVolumeResolutionX = 1.0f / VolumeResolution.X;
 		const float InvVolumeResolutionY = 1.0f / VolumeResolution.Y;
 		SetShaderValue(RHICmdList, GetVertexShader(), UVScaleBias, FVector4(
-			(VolumeBounds.MaxX - VolumeBounds.MinX) * InvVolumeResolutionX, 
+			(VolumeBounds.MaxX - VolumeBounds.MinX) * InvVolumeResolutionX,
 			(VolumeBounds.MaxY - VolumeBounds.MinY) * InvVolumeResolutionY,
 			VolumeBounds.MinX * InvVolumeResolutionX,
 			VolumeBounds.MinY * InvVolumeResolutionY));
-        SetShaderValue(RHICmdList, GetVertexShader(), MinZ, VolumeBounds.MinZ);
+		SetShaderValue(RHICmdList, GetVertexShader(), MinZ, VolumeBounds.MinZ);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << UVScaleBias;
-        Ar << MinZ;
-        return bShaderHasOutdatedParameters;
+		Ar << MinZ;
+		return bShaderHasOutdatedParameters;
 	}
 
 private:
-    FShaderParameter UVScaleBias;
-    FShaderParameter MinZ;
+	FShaderParameter UVScaleBias;
+	FShaderParameter MinZ;
 };
 
 /** Geometry shader used to write to a range of slices of a 3d volume texture. */
@@ -111,7 +112,8 @@ public:
 	}
 	FWriteToSliceGS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, int32 MinZValue)
+	template <typename TRHICommandList>
+	void SetParameters(TRHICommandList& RHICmdList, int32 MinZValue)
 	{
 		SetShaderValue(RHICmdList, GetGeometryShader(), MinZ, MinZValue);
 	}

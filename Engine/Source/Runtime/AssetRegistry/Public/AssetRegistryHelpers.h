@@ -54,9 +54,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Asset Data")
 	static FString GetFullName(const FAssetData& InAssetData);
 
-	/** Convert to a StringAssetReference for loading */
+	/** Convert to a SoftObjectPath for loading */
 	UFUNCTION(BlueprintPure, Category = "Asset Data")
-	static FStringAssetReference ToStringReference(const FAssetData& InAssetData);
+	static FSoftObjectPath ToSoftObjectPath(const FAssetData& InAssetData);
 
 	UFUNCTION(BlueprintPure, Category = "Asset Data")
 	static UClass* GetClass(const FAssetData& InAssetData);

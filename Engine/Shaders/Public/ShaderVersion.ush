@@ -2,4 +2,4 @@
 // Each time the console command is executed it generates a new GUID. As this file is included
 // in Platform.ush (which should be included in any shader) it allows to invalidate the shader DDC.
 // 
-// GUID = 87631D114F675167453D34BC89C9349F
+// GUID = 0E4939E5415AC2A4D06C239C5343E145

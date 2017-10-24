@@ -80,7 +80,7 @@ void WorldDestroyEventFunction(UWorld* World)
 	World->PerModuleDataObjects.RemoveAll(
 		[](UObject* Object)
 		{
-			return Object->IsA(ULandscapeInfoMap::StaticClass());
+			return Object != nullptr && Object->IsA(ULandscapeInfoMap::StaticClass());
 		}
 	);
 }

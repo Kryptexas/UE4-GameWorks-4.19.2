@@ -33,7 +33,7 @@ namespace SCommentNodeDefs
 }
 
 
-void SGraphNodeComment::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
+void SGraphNodeComment::Construct(const FArguments& InArgs, UEdGraphNode_Comment* InNode)
 {
 	this->GraphNode = InNode;
 	this->bIsSelected = false;
@@ -73,6 +73,18 @@ void SGraphNodeComment::Tick( const FGeometry& AllottedGeometry, const double In
 	{
 		CachedWidth = CurrentWidth;
 	}
+
+	UEdGraphNode_Comment* CommentNode = CastChecked<UEdGraphNode_Comment>(GraphNode);
+	if (bCachedBubbleVisibility != CommentNode->bCommentBubbleVisible_InDetailsPanel)
+	{
+		CommentBubble->UpdateBubble();
+		bCachedBubbleVisibility = CommentNode->bCommentBubbleVisible_InDetailsPanel;
+	}
+
+	if (CachedFontSize != CommentNode->FontSize)
+	{
+		UpdateGraphNode();
+	}
 }
 
 FReply SGraphNodeComment::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
@@ -104,26 +116,33 @@ void SGraphNodeComment::UpdateGraphNode()
 	// Avoid standard box model too
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
-	
+
+	// Remember if we should be showing the bubble
+	UEdGraphNode_Comment* CommentNode = CastChecked<UEdGraphNode_Comment>(GraphNode);
+	bCachedBubbleVisibility = CommentNode->bCommentBubbleVisible_InDetailsPanel;
+
 	// Setup a tag for this node
 	FString TagName;
-	if (GraphNode != nullptr)
+
+	// We want the name of the blueprint as our name - we can find the node from the GUID
+	UObject* Package = GraphNode->GetOutermost();
+	UObject* LastOuter = GraphNode->GetOuter();
+	while (LastOuter->GetOuter() != Package)
 	{
-		// We want the name of the blueprint as our name - we can find the node from the GUID
-		UObject* Package = GraphNode->GetOutermost();
-		UObject* LastOuter = GraphNode->GetOuter();
-		while (LastOuter->GetOuter() != Package)
-		{
-			LastOuter = LastOuter->GetOuter();
-		}
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
+		LastOuter = LastOuter->GetOuter();
 	}
+	TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
 
 	SetupErrorReporting();
 
 	// Setup a meta tag for this node
 	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
 	PopulateMetaTag(&TagMeta);
+
+	CommentStyle = FEditorStyle::Get().GetWidgetStyle<FInlineEditableTextBlockStyle>("Graph.CommentBlock.TitleInlineEditableText");
+	CommentStyle.EditableTextBoxStyle.Font.Size = CommentNode->FontSize;
+	CommentStyle.TextStyle.Font.Size = CommentNode->FontSize;
+	CachedFontSize = CommentNode->FontSize;
 
 	bool bIsSet = GraphNode->IsA(UEdGraphNode_Comment::StaticClass());
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
@@ -153,7 +172,7 @@ void SGraphNodeComment::UpdateGraphNode()
 					.VAlign(VAlign_Center)
 					[
 						SAssignNew(InlineEditableText, SInlineEditableTextBlock)
-						.Style( FEditorStyle::Get(), "Graph.CommentBlock.TitleInlineEditableText" )
+						.Style( &CommentStyle )
 						.Text( this, &SGraphNodeComment::GetEditableNodeTitleAsText )
 						.OnVerifyTextChanged(this, &SGraphNodeComment::OnVerifyNameTextChanged)
 						.OnTextCommitted(this, &SGraphNodeComment::OnNameTextCommited)
@@ -181,10 +200,9 @@ void SGraphNodeComment::UpdateGraphNode()
 				]
 			]			
 		];
-	// Create comment bubble
-	TSharedPtr<SCommentBubble> CommentBubble;
 
-	SAssignNew(CommentBubble, SCommentBubble)
+	// Create comment bubble
+	CommentBubble = SNew(SCommentBubble)
 	.GraphNode(GraphNode)
 	.Text(this, &SGraphNodeComment::GetNodeComment)
 	.OnTextCommitted(this, &SGraphNodeComment::OnNameTextCommited)

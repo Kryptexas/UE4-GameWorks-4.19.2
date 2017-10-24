@@ -152,7 +152,7 @@ void FOnlineSubsystemModule::ShutdownOnlineSubsystem()
 	// Unload all the supporting factories
 	for (TMap<FName, IOnlineFactory*>::TIterator It(OnlineFactories); It; ++It)
 	{
-		UE_LOG(LogOnline, Display, TEXT("Unloading online subsystem: %s"), *It.Key().ToString());
+		UE_LOG(LogOnline, Verbose, TEXT("Unloading online subsystem: %s"), *It.Key().ToString());
 
 		// Unloading the module will do proper cleanup
 		FName ModuleName = GetOnlineModuleName(It.Key().ToString());

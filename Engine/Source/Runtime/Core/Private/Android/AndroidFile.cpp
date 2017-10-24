@@ -44,13 +44,13 @@ namespace
 		}
 
 		return FFileStatData(
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_ctime), 
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_atime), 
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_ctime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_atime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_mtime), 
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)
-			);
+		);
 	}
 }
 
@@ -99,7 +99,7 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jen
 // Constructs the base path for any files which are not in OBB/pak data
 const FString &GetFileBasePath()
 {
-	static FString BasePath = GFilePathBase + FString(FILEBASE_DIRECTORY) + FApp::GetGameName() + FString("/");
+	static FString BasePath = GFilePathBase + FString(FILEBASE_DIRECTORY) + FApp::GetProjectName() + FString("/");
 	return BasePath;
 }
 

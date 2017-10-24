@@ -129,12 +129,10 @@ void UKismetMathLibrary::ReportError_DaysInMonth()
 }
 
 
-
 // Include code in this source file if it's not being inlined in the header.
 #if !KISMET_MATH_INLINE_ENABLED
 #include "Kismet/KismetMathLibrary.inl"
 #endif
-
 
 bool UKismetMathLibrary::RandomBoolWithWeight(float Weight)
 {
@@ -392,9 +390,9 @@ FVector UKismetMathLibrary::RandomUnitVector()
 	return FMath::VRand();
 }
 
-FVector UKismetMathLibrary::RandomUnitVectorInConeWithYawAndPitch(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees)
+FVector UKismetMathLibrary::RandomUnitVectorInEllipticalConeInRadians(FVector ConeDir, float MaxYawInRadians, float MaxPitchInRadians)
 {
-	return FMath::VRandCone(ConeDir, DegreesToRadians(MaxYawInDegrees), DegreesToRadians(MaxPitchInDegrees));
+	return FMath::VRandCone(ConeDir, MaxYawInRadians, MaxPitchInRadians);
 }
 
 FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
@@ -413,7 +411,6 @@ FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
 	}
 	return RRot;
 }
-
 
 FVector UKismetMathLibrary::GetReflectionVector(FVector Direction, FVector SurfaceNormal)
 {
@@ -448,6 +445,16 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 	}
 
 	return Average;
+}
+
+FRotator UKismetMathLibrary::TransformRotation(const FTransform& T, FRotator Rotation)
+{
+	return T.TransformRotation(Rotation.Quaternion()).Rotator();
+}
+
+FRotator UKismetMathLibrary::InverseTransformRotation(const FTransform& T, FRotator Rotation)
+{
+	return T.InverseTransformRotation(Rotation.Quaternion()).Rotator();
 }
 
 FRotator UKismetMathLibrary::ComposeRotators(FRotator A, FRotator B)
@@ -613,8 +620,15 @@ void UKismetMathLibrary::BreakDateTime(FDateTime InDateTime, int32& Year, int32&
 
 FTimespan UKismetMathLibrary::MakeTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds)
 {
-	return FTimespan(Days, Hours, Minutes, Seconds, Milliseconds);
+	return FTimespan(Days, Hours, Minutes, Seconds, Milliseconds * 1000 * 1000);
 }
+
+
+FTimespan UKismetMathLibrary::MakeTimespan2(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano)
+{
+	return FTimespan(Days, Hours, Minutes, Seconds, FractionNano);
+}
+
 
 void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& Milliseconds)
 {
@@ -622,8 +636,19 @@ void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32&
 	Hours = InTimespan.GetHours();
 	Minutes = InTimespan.GetMinutes();
 	Seconds = InTimespan.GetSeconds();
-	Milliseconds = InTimespan.GetMilliseconds();
+	Milliseconds = InTimespan.GetFractionMilli();
 }
+
+
+void UKismetMathLibrary::BreakTimespan2(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& FractionNano)
+{
+	Days = InTimespan.GetDays();
+	Hours = InTimespan.GetHours();
+	Minutes = InTimespan.GetMinutes();
+	Seconds = InTimespan.GetSeconds();
+	FractionNano = InTimespan.GetFractionNano();
+}
+
 
 FTimespan UKismetMathLibrary::FromDays(float Days)
 {
@@ -645,6 +670,7 @@ FTimespan UKismetMathLibrary::FromDays(float Days)
 	return FTimespan::FromDays(Days);
 }
 
+
 FTimespan UKismetMathLibrary::FromHours(float Hours)
 {
 	if (Hours < FTimespan::MinValue().GetTotalHours())
@@ -664,6 +690,7 @@ FTimespan UKismetMathLibrary::FromHours(float Hours)
 
 	return FTimespan::FromHours(Hours);
 }
+
 
 FTimespan UKismetMathLibrary::FromMinutes(float Minutes)
 {
@@ -685,6 +712,7 @@ FTimespan UKismetMathLibrary::FromMinutes(float Minutes)
 	return FTimespan::FromMinutes(Minutes);
 }
 
+
 FTimespan UKismetMathLibrary::FromSeconds(float Seconds)
 {
 	if (Seconds < FTimespan::MinValue().GetTotalSeconds())
@@ -704,6 +732,7 @@ FTimespan UKismetMathLibrary::FromSeconds(float Seconds)
 
 	return FTimespan::FromSeconds(Seconds);
 }
+
 
 FTimespan UKismetMathLibrary::FromMilliseconds(float Milliseconds)
 {
@@ -725,8 +754,9 @@ FTimespan UKismetMathLibrary::FromMilliseconds(float Milliseconds)
 	return FTimespan::FromMilliseconds(Milliseconds);
 }
 
-/* END Timespan functions */
 
+/* Rotator functions
+*****************************************************************************/
 
 FVector UKismetMathLibrary::GetForwardVector(FRotator InRot)
 {
@@ -758,10 +788,24 @@ void UKismetMathLibrary::GetYawPitchFromVector(FVector InVec, float& Yaw, float&
 {
 	FVector NormalizedVector = InVec.GetSafeNormal();
 	// Find yaw.
-	Yaw = FMath::Atan2(NormalizedVector.Y, NormalizedVector.X) * 180.f / PI;
+	Yaw = FMath::RadiansToDegrees(FMath::Atan2(NormalizedVector.Y, NormalizedVector.X));
 
 	// Find pitch.
-	Pitch = FMath::Atan2(NormalizedVector.Z, FMath::Sqrt(NormalizedVector.X*NormalizedVector.X + NormalizedVector.Y*NormalizedVector.Y)) * 180.f / PI;
+	Pitch = FMath::RadiansToDegrees(FMath::Atan2(NormalizedVector.Z, FMath::Sqrt(NormalizedVector.X*NormalizedVector.X + NormalizedVector.Y*NormalizedVector.Y)));
+}
+
+void UKismetMathLibrary::GetAzimuthAndElevation(FVector InDirection, const FTransform& ReferenceFrame, float& Azimuth, float& Elevation)
+{
+	FVector2D Result = FMath::GetAzimuthAndElevation
+	(
+		InDirection.GetSafeNormal(),
+		ReferenceFrame.GetUnitAxis(EAxis::X),
+		ReferenceFrame.GetUnitAxis(EAxis::Y),
+		ReferenceFrame.GetUnitAxis(EAxis::Z)
+	);
+
+	Azimuth = FMath::RadiansToDegrees(Result.X);
+	Elevation = FMath::RadiansToDegrees(Result.Y);
 }
 
 void UKismetMathLibrary::BreakRotIntoAxes(const FRotator& InRot, FVector& X, FVector& Y, FVector& Z)
@@ -780,7 +824,6 @@ FRotator UKismetMathLibrary::MakeRotationFromAxes(FVector Forward, FVector Right
 	return RotMatrix.Rotator();
 }
 
-
 int32 UKismetMathLibrary::RandomIntegerFromStream(int32 Max, const FRandomStream& Stream)
 {
 	return Stream.RandHelper(Max);
@@ -789,6 +832,11 @@ int32 UKismetMathLibrary::RandomIntegerFromStream(int32 Max, const FRandomStream
 int32 UKismetMathLibrary::RandomIntegerInRangeFromStream(int32 Min, int32 Max, const FRandomStream& Stream)
 {
 	return Stream.RandRange(Min, Max);
+}
+
+bool UKismetMathLibrary::InRange_IntInt(int32 Value, int32 Min, int32 Max, bool InclusiveMin, bool InclusiveMax)
+{
+	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }
 
 bool UKismetMathLibrary::RandomBoolFromStream(const FRandomStream& Stream)
@@ -842,7 +890,6 @@ void UKismetMathLibrary::SetRandomStreamSeed(FRandomStream& Stream, int32 NewSee
 {
 	Stream.Initialize(NewSeed);
 }
-
 
 void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw)
 {
@@ -1023,6 +1070,16 @@ void UKismetMathLibrary::BreakRandomStream(const FRandomStream& InRandomStream, 
 FRandomStream UKismetMathLibrary::MakeRandomStream(int32 InitialSeed)
 {
 	return FRandomStream(InitialSeed);
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInConeInRadiansFromStream(const FVector& ConeDir, float ConeHalfAngleInRadians, const FRandomStream& Stream)
+{
+	return Stream.VRandCone(ConeDir, ConeHalfAngleInRadians);
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInEllipticalConeInRadiansFromStream(const FVector& ConeDir, float MaxYawInRadians, float MaxPitchInRadians, const FRandomStream& Stream)
+{
+	return Stream.VRandCone(ConeDir, MaxYawInRadians, MaxPitchInRadians);
 }
 
 #undef LOCTEXT_NAMESPACE

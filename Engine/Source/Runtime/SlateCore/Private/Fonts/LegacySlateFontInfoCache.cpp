@@ -41,7 +41,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(con
 	if (!FPaths::FileExists(LegacyFontPath))
 	{
 		// UMG assets specify the path either relative to the game or engine content directories - test both
-		LegacyFontPath = FPaths::GameContentDir() / InLegacyFontName.ToString();
+		LegacyFontPath = FPaths::ProjectContentDir() / InLegacyFontName.ToString();
 		if (!FPaths::FileExists(LegacyFontPath))
 		{
 			LegacyFontPath = FPaths::EngineContentDir() / InLegacyFontName.ToString();

@@ -31,16 +31,20 @@
 /// \file gf/range2d.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
+
+#include "pxr/base/gf/api.h"
 #include "pxr/base/gf/vec2d.h"
 #include "pxr/base/gf/vec2f.h"
 #include "pxr/base/gf/traits.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <cfloat>
 #include <cstddef>
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class GfRange2d;
 class GfRange2f;
@@ -93,6 +97,14 @@ public:
 
     /// Returns the size of the range.
     GfVec2d GetSize() const { return _max - _min; }
+
+    /// Returns the midpoint of the range, that is, 0.5*(min+max).
+    /// Note: this returns zero in the case of default-constructed ranges,
+    /// or ranges set via SetEmpty().
+    GfVec2d GetMidpoint() const {
+        return static_cast<ScalarType>(0.5) * _min
+               + static_cast<ScalarType>(0.5) * _max;
+    }
 
     /// Sets the minimum value of the range.
     void SetMin(const GfVec2d &min) { _min = min; }
@@ -344,7 +356,9 @@ public:
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfRange2d const &);
 
+PXR_NAMESPACE_CLOSE_SCOPE
 #include "pxr/base/gf/range2f.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 inline bool
 GfRange2d::operator ==(const GfRange2f& other) const {
@@ -357,5 +371,7 @@ GfRange2d::operator !=(const GfRange2f& other) const {
     return !(*this == other);
 }
 
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_RANGE2D_H

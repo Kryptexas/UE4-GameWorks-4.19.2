@@ -29,6 +29,16 @@ FText FNullSourceCodeAccessor::GetDescriptionText() const
 
 bool FNullSourceCodeAccessor::OpenSolution()
 {
+	return true;
+}
+
+bool FNullSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	return true;
+}
+
+bool FNullSourceCodeAccessor::DoesSolutionExist() const
+{
 	return false;
 }
 

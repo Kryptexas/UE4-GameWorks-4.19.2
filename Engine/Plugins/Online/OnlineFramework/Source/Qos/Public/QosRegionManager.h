@@ -212,8 +212,10 @@ public:
 
 	/**
 	 * Try to set the selected region ID (must be present in GetRegionOptions)
+	 *
+	 * @param bForce if true then use selected region even if QoS eval has not completed successfully
 	 */
-	bool SetSelectedRegion(const FString& RegionId);
+	bool SetSelectedRegion(const FString& RegionId, bool bForce=false);
 
 	/**
 	 * Force the selected region creating a fake RegionOption if necessary

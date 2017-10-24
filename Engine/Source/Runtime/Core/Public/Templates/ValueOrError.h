@@ -40,10 +40,10 @@ class TValueOrError
 public:
 	/** Construct the result from a value, or an error (See MakeValue and MakeError) */
 	template<typename A>
-	TValueOrError(TValueOrError_ValueProxy<A>&& Proxy) 		: Value(MoveTemp(Proxy.Arg)) {}
+	TValueOrError(TValueOrError_ValueProxy<A>&& Proxy) 		: Value(Forward<A>(Proxy.Arg)) {}
 
 	template<typename A>
-	TValueOrError(TValueOrError_ErrorProxy<A>&& Proxy)		: Error(MoveTemp(Proxy.Arg)) {}
+	TValueOrError(TValueOrError_ErrorProxy<A>&& Proxy)		: Error(Forward<A>(Proxy.Arg)) {}
 
 	/** Move construction/assignment */
 	TValueOrError(TValueOrError&& In) 						: Error(MoveTemp(In.Error)), Value(MoveTemp(In.Value)) {}

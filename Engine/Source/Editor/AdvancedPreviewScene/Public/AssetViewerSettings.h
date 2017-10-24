@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/ObjectRedirector.h"
 #include "Engine/Scene.h"
 #include "Engine/TextureCube.h"
@@ -32,11 +32,11 @@ struct FPreviewSceneProfile
 		SkyLightIntensity = 1.0f;
 		LightingRigRotation = 0.0f;
 		RotationSpeed = 2.0f;
+		EnvironmentIntensity = 1.0f;
+		EnvironmentColor = FLinearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		// Set up default cube map texture from editor/engine textures
 		EnvironmentCubeMap = nullptr;
-#if WITH_EDITORONLY_DATA
-		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
-#endif
+		EnvironmentCubeMapPath = TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1");
 		bPostProcessingEnabled = true;
 		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
@@ -73,9 +73,17 @@ struct FPreviewSceneProfile
 	UPROPERTY(EditAnywhere, config, Category = Environment)
 	bool bShowFloor;
 
+	/** The environment color, used if Show Environment is false. */
+	UPROPERTY(EditAnywhere, config, Category = Environment, meta=(EditCondition="!bShowEnvironment"))
+	FLinearColor EnvironmentColor;
+	
+	/** The environment intensity (0.0 - 20.0), used if Show Environment is false. */
+	UPROPERTY(EditAnywhere, config, Category = Lighting, meta = (UIMin = "0.0", UIMax = "20.0", EditCondition="!bShowEnvironment"))
+	float EnvironmentIntensity;
+
 	/** Sets environment cube map used for sky lighting and reflections */
 	UPROPERTY(EditAnywhere, transient, Category = Environment)
-	TAssetPtr<UTextureCube> EnvironmentCubeMap;
+	TSoftObjectPtr<UTextureCube> EnvironmentCubeMap;
 
 	/** Storing path to environment cube to prevent it from getting cooked */
 	UPROPERTY(config)
@@ -106,14 +114,17 @@ struct FPreviewSceneProfile
 	{
 		if (EnvironmentCubeMap == nullptr)
 		{
-			// Load cube map from stored path
-			UObject* LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
-			while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+			if (!EnvironmentCubeMapPath.IsEmpty())
 			{
-				LoadedObject = Redirector->DestinationObject;
-			}
+				// Load cube map from stored path
+				UObject* LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
+				while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+				{
+					LoadedObject = Redirector->DestinationObject;
+				}
 
-			EnvironmentCubeMap = LoadedObject;
+				EnvironmentCubeMap = LoadedObject;
+			}
 		}		
 	}
 };

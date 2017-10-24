@@ -15,8 +15,9 @@
 #include "GenericPlatform/GenericPlatformMemoryPoolStats.h"
 #include "HAL/MemoryMisc.h"
 #include "Misc/CoreDelegates.h"
+#include "HAL/LowLevelMemTracker.h"
 
-#if PLATFORM_LINUX || PLATFORM_MAC
+#if PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_IOS
 	#include <sys/mman.h>
 	// more mmap()-based platforms can be added
 	#define UE4_PLATFORM_USES_MMAP_FOR_BINNED_OS_ALLOCS			1
@@ -32,6 +33,7 @@
 #define UE4_PLATFORM_SANITY_CHECK_OS_ALLOCATIONS			(UE_BUILD_DEBUG || (UE_BUILD_DEVELOPMENT && (UE_GAME || UE_SERVER)))
 
 DEFINE_STAT(MCR_Physical);
+DEFINE_STAT(MCR_PhysicalLLM);
 DEFINE_STAT(MCR_GPU);
 DEFINE_STAT(MCR_TexturePool);
 DEFINE_STAT(MCR_StreamingPool);
@@ -103,7 +105,8 @@ void* FGenericPlatformMemory::BackupOOMMemoryPool = nullptr;
 
 void FGenericPlatformMemory::SetupMemoryPools()
 {
-	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory for the CPU, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_PhysicalLLM, 0); // total "unlimited" physical memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_GPU, 0); // "unlimited" GPU memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_TexturePool, 0); // "unlimited" Texture memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_StreamingPool, 0);
@@ -112,7 +115,12 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	// if the platform chooses to have a BackupOOM pool, create it now
 	if (FPlatformMemory::GetBackMemoryPoolSize() > 0)
 	{
+		LLM_PLATFORM_SCOPE(ELLMTag::BackupOOMMemoryPoolPlatform);
+		LLM_SCOPE(ELLMTag::BackupOOMMemoryPool);
+
 		BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(FPlatformMemory::GetBackMemoryPoolSize());
+
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
 	}
 }
 
@@ -148,6 +156,7 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	{
 		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize());
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), FPlatformMemory::GetBackMemoryPoolSize());
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
 	}
 
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
@@ -545,3 +554,14 @@ void FGenericPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 {
 	// Generic method is empty. Implement at platform level.
 }
+
+bool FGenericPlatformMemory::IsDebugMemoryEnabled()
+{
+	return false;
+}
+
+bool FGenericPlatformMemory::GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment)
+{
+	return false;
+}
+

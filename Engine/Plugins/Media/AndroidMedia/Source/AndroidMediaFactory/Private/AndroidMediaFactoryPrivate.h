@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Logging/LogMacros.h"
 
 
-
+/** Log category for the AndroidMediaFactory module. */
 DECLARE_LOG_CATEGORY_EXTERN(LogAndroidMediaFactory, Log, All);

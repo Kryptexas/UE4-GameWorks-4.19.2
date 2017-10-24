@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3188564
+﻿INTSourceChangelist:3483116
 Title: 안드로이드 OpenGL ES 3.1 모바일 렌더러
 Description:UE4 안드로이드 프로젝트에서 OpenGL ES 3.1 모바일 렌더러를 사용하도록 구성하는 방법입니다.
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
 Availability:Public
-version:4.12
+version:4.16
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
@@ -24,35 +24,17 @@ Related:Programming/Development/BuildingUnrealEngine
 
 UE4 에디터에서 OpenGL ES 3.1 이 어때 보이는지 미리보기 위해서는, 먼저 다음과 같은 방법으로 미리보기를 켜야 합니다:
 
-1. **메인 툴바** 에서 **편집** 으로 간 뒤 **에디터 개인설정** 옵션을 선택합니다.
-
-	![](OGL3_01.png)
-
-1. **General** (일반) 섹션 아래 **Experimental** (실험단계) 카테고리를 선택한 뒤 **Rendering** (렌더링) 섹션을 찾습니다. **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** (에디터에서 Metal/Vulkan/고사양 모바일 프리뷰 렌더링 레벨 켜기) 옵션을 체크하여 OpenGL ES 3.1 미리보기를 켭니다.
+1. **메인 툴 바** 로 가서 **세팅** 옵션을 클릭한 뒤 **Preview Rendering Level** (프리뷰 렌더링 레벨) 옵션을 **High-End Mobile / Metal** (고사양 모바일 / Metal) 그리고 마지막으로 **High-End Mobile** (고사양 모바일) 옵션을 선택합니다.
 
 	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_03.png)(w:447 h:308)](Platforms\Android\VulkanMobileRenderer\VMP_03.png)
+	[![](OGL3_10.png)(w:391)](OGL3_10.png)
 	[/REGION]
 
 	[REGION:caption]
 	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-	[region:note]
-	UE4 에디터에서 Metal/Vulkan/고사양 미리보기를 켜는 방법에 대한 상세 설명은, [](Platforms/Android/VulkanMobileRenderer) 문서를 참고하세요.
-	[/region]
-
-1. 그 후 **메인 툴바** 에서 **세팅** 옵션을 선택한 뒤 **Preview Rendering Level** (프리뷰 렌더링 레벨) 옵션으로 가 **High-End Mobile / Metal** (고사양 모바일 / Metal) 옵션을 선택합니다.
-
-	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)(w:391)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)
-	[/REGION]
-
-	[REGION:caption]
-	클릭하면 이미지 원본을 확인합니다.
-	[/REGION]
-
-1. 이제 UE4 에디터 뷰포트 우하단 구석을 보면, **피처 레벨: ES3_1** 라는 문구가 보일 것입니다. 이제 OpenGL ES 3.1 피처 세트를 사용하여 레벨을 미리보고 있다는 뜻입니다.
+1. 셰이더 리컴파일이 다 되었으면, UE4 에디터 뷰포트 우하단 구석에 **피처 레벨: ES3_1** 라는 문구가 보일 것입니다. 이제 OpenGL ES 3.1 피처 세트를 사용하여 레벨을 미리보고 있다는 뜻입니다.
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)

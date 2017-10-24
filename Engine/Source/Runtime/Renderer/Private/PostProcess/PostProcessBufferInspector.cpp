@@ -22,10 +22,11 @@ FRCPassPostProcessBufferInspector::FRCPassPostProcessBufferInspector(FRHICommand
 	FSceneRenderTargets::Get(RHICmdList).AdjustGBufferRefCount(RHICmdList, 1);
 }
 
-FShader* FRCPassPostProcessBufferInspector::SetShaderTempl(const FRenderingCompositePassContext& Context)
+template <typename TRHICmdList>
+FShader* FRCPassPostProcessBufferInspector::SetShaderTempl(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	// set the state
 	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
@@ -41,10 +42,10 @@ FShader* FRCPassPostProcessBufferInspector::SetShaderTempl(const FRenderingCompo
 	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 
 	return *VertexShader;
 }
@@ -252,7 +253,7 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 	Context.SetViewportAndCallRHI(ViewRect);
 
 	{
-		FShader* VertexShader = SetShaderTempl(Context);
+		FShader* VertexShader = SetShaderTempl(Context.RHICmdList, Context);
 
 		DrawRectangle(
 			Context.RHICmdList,

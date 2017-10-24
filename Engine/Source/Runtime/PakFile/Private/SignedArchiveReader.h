@@ -116,8 +116,12 @@ class FChunkCacheWorker : public FRunnable
 	TArray<FChunkRequest*> RequestQueue;	
 	/** Lock for manipulating the queue */
 	FCriticalSection QueueLock;
+	/** Counter indicating how many pending queued request exist */
+	FThreadSafeCounter PendingQueueCounter;
 	/** Event used to signal there's work to be done */
 	FEvent* QueuedRequestsEvent;
+	/** Event used to signal there's completed work to be processed */
+	FEvent* ChunkRequestAvailable;
 	/** List of active chunk requests */
 	TArray<FChunkRequest*> ActiveRequests;
 	/** Stops this thread */
@@ -153,6 +157,24 @@ class FChunkCacheWorker : public FRunnable
 	* Initializes the public key
 	*/
 	void SetupDecryptionKey();
+	/**
+	* Is this chunk cache worker running in a thread?
+	*/
+	FORCEINLINE bool IsMultithreaded() const 
+	{ 
+		return Thread != nullptr;
+	}
+
+	/**
+	* Block until there is a new chunk to process on the main thread
+	*/
+	void WaitForNextChunk();
+
+	/**
+	* Reset any outstanding chunk completion event triggers that may still be 
+	* left over when the main thread has finished copying out all the data it needs
+	*/
+	void FlushRemainingChunkCompletionEvents();
 
 public:
 

@@ -26,7 +26,7 @@ public:
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Add", CompactNodeTitle = "ADD", SetParam = "TargetSet|NewItem", AutoCreateRefTerm = "NewItem"), Category="Utilities|Set")
-	static bool Set_Add(const TSet<int32>& TargetSet, const int32& NewItem);
+	static void Set_Add(const TSet<int32>& TargetSet, const int32& NewItem);
 	
 	/**
 	 * Adds all elements from an Array to a Set
@@ -39,7 +39,7 @@ public:
 
 	/**
 	 * Remove item from set. Output value indicates if something was actually removed. False
-	 * indicates no equilalent item was found.
+	 * indicates no equivalent item was found.
 	 *
 	 * @param	TargetSet		The set to remove from
 	 * @param	Item			The item to remove from the set
@@ -80,7 +80,7 @@ public:
 	 * @param	TargetSet		The set to get the length of
 	 * @return	The length of the set
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", SetParam = "TargetSet", Keywords = "num size count"), Category="Utilities|Set")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", SetParam = "TargetSet", Keywords = "num size count", BlueprintThreadSafe), Category="Utilities|Set")
 	static int32 Set_Length(const TSet<int32>& TargetSet);
 
 	/**
@@ -90,7 +90,7 @@ public:
 	 * @param	ItemToFind		The item to look for
 	 * @return	True if the item was found within the set
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains Item", CompactNodeTitle = "CONTAINS", SetParam = "TargetSet|ItemToFind", AutoCreateRefTerm = "ItemToFind"), Category="Utilities|Set")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains Item", CompactNodeTitle = "CONTAINS", SetParam = "TargetSet|ItemToFind", AutoCreateRefTerm = "ItemToFind", BlueprintThreadSafe), Category="Utilities|Set")
 	static bool Set_Contains(const TSet<int32>& TargetSet, const int32& ItemToFind);
 
 	/**
@@ -161,7 +161,7 @@ public:
 		P_FINISH;
 
 		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericSet_Add(SetAddr, SetProperty, ItemPtr);
+		GenericSet_Add(SetAddr, SetProperty, ItemPtr);
 		P_NATIVE_END;
 
 		ElementProp->DestroyValue(StorageSpace);
@@ -490,7 +490,7 @@ public:
 		P_NATIVE_END;
 	}
 
-	static bool GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
+	static void GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
 	static void GenericSet_AddItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty);
 	static bool GenericSet_Remove(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
 	static void GenericSet_RemoveItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty);

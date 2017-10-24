@@ -24,6 +24,7 @@
 #ifndef USDGEOM_XFORMCACHE_H
 #define USDGEOM_XFORMCACHE_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/usd/attributeQuery.h"
 #include "pxr/usd/usd/prim.h"
@@ -35,6 +36,9 @@
 #include "pxr/base/tf/token.h"
 
 #include <boost/functional/hash.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \class UsdGeomXformCache
 ///
@@ -177,5 +181,8 @@ private:
 };
 
 #define USDGEOM_XFORM_CACHE_API_VERSION 1
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USDGEOM_XFORMCACHE_H

@@ -524,6 +524,14 @@ public:
 	 */
 	static TArray<AActor*> TryPlacingActorFromObject( ULevel* InLevel, UObject* ObjToUse, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name = NAME_None );
 
+	/** 
+	 * Returns true if creating a preview actor in the viewport. 
+	 */
+	static bool IsDroppingPreviewActor()
+	{
+		return bIsDroppingPreviewActor;
+	}
+
 	/**
 	 * Static: Given a texture, returns a material for that texture, creating a new asset if necessary.  This is used
 	 * for dragging and dropping assets into the scene
@@ -731,6 +739,9 @@ public:
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
+
+	/** If currently creating a preview actor. */
+	static bool bIsDroppingPreviewActor;
 
 	/** A map of actor locations before a drag operation */
 	mutable TMap<TWeakObjectPtr<AActor>, FTransform> PreDragActorTransforms;

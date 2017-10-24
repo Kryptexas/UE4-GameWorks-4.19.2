@@ -14,7 +14,7 @@ public class WindowsServerTargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.AddRange( new string[] {
 				"Engine"

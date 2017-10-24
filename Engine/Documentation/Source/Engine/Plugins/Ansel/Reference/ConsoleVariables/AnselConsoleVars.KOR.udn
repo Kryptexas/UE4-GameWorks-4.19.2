@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3200348
+﻿INTSourceChangelist:3579346
 Availability:Public
 TItle:Ansel 콘솔 변수 참고서
-Description:Nvidia Ansel Photography 플러그인에서 사용할 수 있는 환경설정 변수에 대한 참고서입니다.
+Description:NVIDIA Ansel Photography 플러그인에서 사용할 수 있는 환경설정 변수에 대한 참고서입니다.
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:3
@@ -11,7 +11,7 @@ tags:Ansel
 version:4.14
 topic-image:Console_Topic.png
 
-Nvidia Ansel Photography 플러그인의 작동방식을 환경설정하는 데 쓰이는 콘솔 변수는 다음과 같으며, 콘솔에서 수동으로 또는 .ini 파일을 통해서나 블루프린트에서 동적으로 설정할 수도 있습니다. 대부분은 실행시간이 아닌 개발 도중 환경설정될 테지만, 동적으로 설정하기에는 `r.Photography.Allow` 가 좋습니다.
+NVIDIA Ansel Photography 플러그인의 작동방식을 환경설정하는 데 쓰이는 콘솔 변수는 다음과 같으며, 콘솔에서 수동으로 또는 .ini 파일을 통해서나 블루프린트에서 동적으로 설정할 수도 있습니다. 대부분은 실행시간이 아닌 개발 도중 환경설정될 테지만, 동적으로 설정하기에는 `r.Photography.Allow` 가 좋습니다.
 
 | 변수 | 기본 | 설명 |
 | --- | --- | --- |

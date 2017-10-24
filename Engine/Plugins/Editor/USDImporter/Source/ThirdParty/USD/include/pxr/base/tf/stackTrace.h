@@ -24,11 +24,14 @@
 #ifndef TF_STACKTRACE_H
 #define TF_STACKTRACE_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
 
 #include <cstdio>
 #include <iosfwd>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class TfCallContext;
 
@@ -68,5 +71,7 @@ void TfLogCrash(const std::string &reason,
 /// Returns the application's launch time.
 TF_API
 time_t TfGetAppLaunchTime();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

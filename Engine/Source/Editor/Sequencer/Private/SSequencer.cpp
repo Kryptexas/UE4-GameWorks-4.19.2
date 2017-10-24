@@ -62,6 +62,7 @@
 #include "ISequencerModule.h"
 #include "IVREditorModule.h"
 #include "EditorFontGlyphs.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -1116,6 +1117,11 @@ TSharedRef<SWidget> SSequencer::MakePlaybackMenu()
 
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().TogglePlaybackRangeLocked );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleForceFixedFrameIntervalPlayback );
+
+		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+		{
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleRerunConstructionScripts );
+		}
 	}
 	MenuBuilder.EndSection();
 
@@ -2187,7 +2193,7 @@ bool SSequencer::CanPaste()
 	if (SelectedNodes.Num() != 0)
 	{
 		FString TexttoImport;
-		FPlatformMisc::ClipboardPaste(TexttoImport);
+		FPlatformApplicationMisc::ClipboardPaste(TexttoImport);
 
 		if (Sequencer->CanPaste(TexttoImport))
 		{

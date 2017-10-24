@@ -11,9 +11,9 @@ type:landing
 
 [REGION:frontpage]
 	[OBJECT:SearchBox]
-		[PARAM:path]
-		[RELATIVE:Search]
-		[/PARAM]
+		[PARAMLITERAL:path]
+		https://www.unrealengine.com/bing-search
+		[/PARAMLITERAL]
 		[PARAMLITERAL:placeholder]
 		Need Help? Find a topic by searching
 		[/PARAMLITERAL]

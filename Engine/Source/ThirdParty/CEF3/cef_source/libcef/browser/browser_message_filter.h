@@ -19,16 +19,14 @@ class RenderProcessHost;
 
 struct CefProcessHostMsg_GetNewBrowserInfo_Params;
 struct CefProcessHostMsg_GetNewRenderThreadInfo_Params;
-struct ViewHostMsg_CreateWindow_Params;
 
 // This class sends and receives control messages on the browser process.
 class CefBrowserMessageFilter : public IPC::MessageFilter {
  public:
-  explicit CefBrowserMessageFilter(content::RenderProcessHost* host);
+  explicit CefBrowserMessageFilter(int render_process_id);
   ~CefBrowserMessageFilter() override;
 
   // IPC::ChannelProxy::MessageFilter implementation.
-  void OnFilterAdded(IPC::Sender* sender) override;
   void OnFilterRemoved() override;
   bool OnMessageReceived(const IPC::Message& message) override;
 
@@ -42,12 +40,9 @@ class CefBrowserMessageFilter : public IPC::MessageFilter {
       int render_view_routing_id,
       int render_frame_routing_id,
       IPC::Message* reply_msg);
-  void OnCreateWindow(const ViewHostMsg_CreateWindow_Params& params,
-                      IPC::Message* reply_msg);
   void OnFrameFocused(int32_t render_frame_routing_id);
 
-  content::RenderProcessHost* host_;
-  IPC::Sender* sender_;
+  int render_process_id_;
 
   DISALLOW_COPY_AND_ASSIGN(CefBrowserMessageFilter);
 };

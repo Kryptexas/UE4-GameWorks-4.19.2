@@ -28,10 +28,6 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "GraphDiffControl.h"
 
-
-// Blueprint Profiler
-#include "Profiler/BlueprintProfilerSettings.h"
-
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
 //////////////////////////////////////////////////////////////////////////
@@ -115,9 +111,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	// Determine some 'global' settings based on current LOD
 	const bool bDrawShadowsThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
 
-	// Enable the profiler heatmap displays.
-	const bool bDisplayProfilerHeatmap = GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode != EBlueprintProfilerHeatMapDisplayMode::None;
-
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
 
@@ -188,21 +181,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					{
 						ChildNode->ApplyRename();
 					}
-				}
-
-				// Draw the profiler heatmap if active
-				if (bDisplayProfilerHeatmap)
-				{
-					const FSlateBrush* ProfilerBrush = ChildNode->GetProfilerHeatmapBrush();
-					const FLinearColor ProfilerHeatIntensity = ChildNode->GetProfilerHeatmapIntensity();
-					FSlateDrawElement::MakeBox(
-						OutDrawElements,
-						ShadowLayerId,
-						CurWidget.Geometry.ToInflatedPaintGeometry(NodeShadowSize),
-						ProfilerBrush,
-						ESlateDrawEffect::None,
-						ProfilerHeatIntensity
-						);
 				}
 
 				// Draw the node's shadow.
@@ -596,13 +574,22 @@ FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InK
 				return FReply::Handled();
 			}
 		}
+		bool bZoomOutKeyEvent = false;
+		bool bZoomInKeyEvent = false;
+		// Iterate through all key mappings to generate key event flags
+		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		{
+			EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
+			bZoomOutKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveChord(ChordIndex)->Key;
+			bZoomInKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveChord(ChordIndex)->Key;
+		}
 
-		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveChord()->Key)
+		if(bZoomOutKeyEvent)
 		{
 			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
-		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveChord()->Key)
+		if( bZoomInKeyEvent)
 		{
 			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();

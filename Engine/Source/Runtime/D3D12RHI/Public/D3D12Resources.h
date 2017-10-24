@@ -182,6 +182,7 @@ public:
 
 	inline bool ShouldDeferDelete() const { return bDeferDelete; }
 	inline bool IsPlacedResource() const { return Heap.GetReference() != nullptr; }
+	inline FD3D12Heap* GetHeap() const { return Heap; };
 	inline bool IsDepthStencilResource() const { return bDepthStencil; }
 
 	void StartTrackingForResidency();
@@ -374,7 +375,8 @@ public:
 		eStandAlone,
 		eSubAllocation,
 		eFastAllocation,
-		eAliased // Occulus is the only API that uses this
+		eAliased, // Oculus is the only API that uses this
+		eHeapAliased, 
 	};
 
 	FD3D12ResourceLocation(FD3D12Device* Parent);
@@ -415,19 +417,27 @@ public:
 		SetResource(Resource);
 		SetSize(BufferSize);
 
-		if (IsCPUWritable(Resource->GetHeapType()))
+		if (!IsCPUInaccessible(Resource->GetHeapType()))
 		{
 			SetMappedBaseAddress(Resource->Map());
 		}
 		SetGPUVirtualAddress(Resource->GetGPUVirtualAddress());
 		SetTransient(bInIsTransient);
-
-		// don't bother tracking transient memory
-		if (!bTransient)
-		{
-			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::RHI, reinterpret_cast<void*>(GPUVirtualAddress), Size));
-		}
 	}
+
+	inline void AsHeapAliased(FD3D12Resource* Resource)
+	{
+		SetType(FD3D12ResourceLocation::ResourceLocationType::eHeapAliased);
+		SetResource(Resource);
+		SetSize(0);
+
+		if (IsCPUWritable(Resource->GetHeapType()))
+		{
+			SetMappedBaseAddress(Resource->Map());
+		}
+		SetGPUVirtualAddress(Resource->GetGPUVirtualAddress());
+	}
+
 
 	inline void AsFastAllocation(FD3D12Resource* Resource, uint32 BufferSize, D3D12_GPU_VIRTUAL_ADDRESS GPUBase, void* CPUBase, uint64 Offset)
 	{
@@ -443,7 +453,7 @@ public:
 		SetGPUVirtualAddress(GPUBase + Offset);
 	}
 
-	// Occulus API Aliases textures so this allows 2+ resource locations to reference the same underlying
+	// Oculus API Aliases textures so this allows 2+ resource locations to reference the same underlying
 	// resource. We should avoid this as much as possible as it requires expensive reference counting and
 	// it complicates the resource ownership model.
 	static void Alias(FD3D12ResourceLocation& Destination, FD3D12ResourceLocation& Source);
@@ -620,6 +630,7 @@ class FD3D12TransientResource
 {
 	// Nothing special for fast ram
 };
+class FD3D12FastClearResource {};
 #endif
 
 /** Index buffer resource class that stores stride information. */

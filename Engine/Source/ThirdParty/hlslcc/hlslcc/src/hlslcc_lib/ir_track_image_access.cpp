@@ -7,6 +7,7 @@
 #include "compiler.h"
 #include "glsl_parser_extras.h"
 #include "hash_table.h"
+#include "LanguageSpec.h"
 
 
 /**
@@ -40,7 +41,7 @@ public:
 			else
 			{
 				const glsl_type* t = var->type->inner_type;
-				if (!(t->is_scalar() && t->is_numeric() && t->base_type != GLSL_TYPE_HALF))
+				if (!ParseState->LanguageSpec->AllowsImageLoadsForNonScalar() && !(t->is_scalar() && t->is_numeric() && t->base_type != GLSL_TYPE_HALF))
 				{
 					_mesa_glsl_error(ParseState, "loads from image/UAV '%s' are only allowed for 32-bit scalar components", var->name ? var->name: "");
 				}

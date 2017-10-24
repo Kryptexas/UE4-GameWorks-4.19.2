@@ -9,6 +9,7 @@
 #include "Engine/MemberReference.h"
 #include "BlueprintEditor.h"
 #include "Editor/GraphEditor/Public/GraphEditorDragDropAction.h"
+#include "MyBlueprintItemDragDropAction.h"
 
 class UEdGraph;
 
@@ -16,10 +17,10 @@ class UEdGraph;
 * FKismetDragDropAction
 *******************************************************************************/
 
-class KISMET_API FKismetDragDropAction : public FGraphSchemaActionDragDropAction
+class KISMET_API FKismetDragDropAction : public FMyBlueprintItemDragDropAction
 {
 public:
-	DRAG_DROP_OPERATOR_TYPE(FKismetDragDropAction, FGraphSchemaActionDragDropAction)
+	DRAG_DROP_OPERATOR_TYPE(FKismetDragDropAction, FMyBlueprintItemDragDropAction)
 		
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() override;
@@ -31,7 +32,7 @@ public:
 	static TSharedRef<FKismetDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode, FNodeCreationAnalytic AnalyticCallback, FCanBeDroppedDelegate CanBeDroppedDelegate)
 	{
 		TSharedRef<FKismetDragDropAction> Operation = MakeShareable(new FKismetDragDropAction);
-		Operation->ActionNode = InActionNode;
+		Operation->SourceAction = InActionNode;
 		Operation->AnalyticCallback = AnalyticCallback;
 		Operation->CanBeDroppedDelegate = CanBeDroppedDelegate;
 		Operation->Construct();
@@ -40,9 +41,6 @@ public:
 
 protected:
 	bool ActionWillShowExistingNode() const;
-
-	/** Analytic delegate to track node creation */
-	FNodeCreationAnalytic AnalyticCallback;
 
 	/** */
 	FCanBeDroppedDelegate CanBeDroppedDelegate;
@@ -60,7 +58,6 @@ public:
 	FKismetFunctionDragDropAction();
 
 	// FGraphEditorDragDropAction interface
-	virtual void HoverTargetChanged() override;
 	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
 	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	// End of FGraphEditorDragDropAction
@@ -94,11 +91,18 @@ public:
 	FKismetMacroDragDropAction();
 
 	// FGraphEditorDragDropAction interface
-	virtual void HoverTargetChanged() override;
 	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
 	// End of FGraphEditorDragDropAction
 
-	static TSharedRef<FKismetMacroDragDropAction> New(FName InMacroName, UBlueprint* InBlueprint, UEdGraph* InMacro, FNodeCreationAnalytic AnalyticCallback);
+	static TSharedRef<FKismetMacroDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode, FName InMacroName, UBlueprint* InBlueprint, UEdGraph* InMacro, FNodeCreationAnalytic AnalyticCallback);
+
+protected:
+	// FMyBlueprintItemDragDropAction interface
+	virtual UBlueprint* GetSourceBlueprint() const override
+	{
+		return Blueprint;
+	}
+	// End of FMyBlueprintItemDragDropAction interface
 
 protected:
 	/** Name of macro being dragged */

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -27,6 +27,7 @@
 #include "SDL_x11video.h"
 #include "SDL_x11dyn.h"
 #include "SDL_assert.h"
+#include "SDL_x11messagebox.h"
 
 #include <X11/keysym.h>
 #include <locale.h>
@@ -49,7 +50,7 @@
 #define MIN_DIALOG_HEIGHT       100     /* Minimum dialog height */
 
 static const char g_MessageBoxFontLatin1[] = "-*-*-medium-r-normal--0-120-*-*-p-0-iso8859-1";
-static const char g_MessageBoxFont[] = "-*-*-*-*-*-*-*-120-*-*-*-*-*-*";
+static const char g_MessageBoxFont[] = "-*-*-medium-r-normal--*-120-*-*-*-*-*-*";
 
 static const SDL_MessageBoxColor g_default_colors[ SDL_MESSAGEBOX_COLOR_MAX ] = {
     { 56,  54,  53  }, /* SDL_MESSAGEBOX_COLOR_BACKGROUND, */

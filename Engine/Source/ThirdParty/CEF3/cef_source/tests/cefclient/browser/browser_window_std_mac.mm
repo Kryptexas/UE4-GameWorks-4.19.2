@@ -2,13 +2,13 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/browser_window_std_mac.h"
+#include "tests/cefclient/browser/browser_window_std_mac.h"
 
 #include <Cocoa/Cocoa.h>
 
 #include "include/base/cef_logging.h"
-#include "cefclient/browser/client_handler_std.h"
-#include "cefclient/browser/main_message_loop.h"
+#include "tests/cefclient/browser/client_handler_std.h"
+#include "tests/shared/browser/main_message_loop.h"
 
 namespace client {
 
@@ -60,16 +60,12 @@ void BrowserWindowStdMac::ShowPopup(ClientWindowHandle parent_handle,
 
 void BrowserWindowStdMac::Show() {
   REQUIRE_MAIN_THREAD();
-
-  if (browser_)
-    browser_->GetHost()->SetWindowVisibility(true);
+  // Nothing to do here. Chromium internally handles window show/hide.
 }
 
 void BrowserWindowStdMac::Hide() {
   REQUIRE_MAIN_THREAD();
-
-  if (browser_)
-    browser_->GetHost()->SetWindowVisibility(false);
+  // Nothing to do here. Chromium internally handles window show/hide.
 }
 
 void BrowserWindowStdMac::SetBounds(int x, int y, size_t width, size_t height) {
@@ -79,9 +75,7 @@ void BrowserWindowStdMac::SetBounds(int x, int y, size_t width, size_t height) {
 
 void BrowserWindowStdMac::SetFocus(bool focus) {
   REQUIRE_MAIN_THREAD();
-
-  if (browser_)
-    browser_->GetHost()->SetFocus(focus);
+  // Nothing to do here. Chromium internally handles window focus assignment.
 }
 
 ClientWindowHandle BrowserWindowStdMac::GetWindowHandle() const {

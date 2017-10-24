@@ -29,7 +29,7 @@ namespace UnrealBuildTool.Rules
                 }
 			);
 
-            if (UEBuildConfiguration.bBuildEditor)
+            if (Target.bBuildEditor)
             {
                 PrivateDependencyModuleNames.AddRange(
                     new string[] {
@@ -42,7 +42,7 @@ namespace UnrealBuildTool.Rules
             PrivateIncludePathModuleNames.AddRange(
 				new string[]
 				{
-					"Messaging",
+					"MessagingCommon",
 				}
 			);
 

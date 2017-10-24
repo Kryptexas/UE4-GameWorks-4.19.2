@@ -43,6 +43,7 @@
 * - POW_TO_EXP2
 * - LOG_TO_LOG2
 * - MOD_TO_FRACT
+* - ADD_MUL_TO_FMA
 *
 * SUB_TO_ADD_NEG:
 * ---------------
@@ -85,6 +86,13 @@
 * Many GPUs don't have a MOD instruction (945 and 965 included), and
 * if we have to break it down like this anyway, it gives an
 * opportunity to do things like constant fold the (1.0 / op1) easily.
+*
+* ADD_MUL_TO_FMA:
+* -------------
+* Transforms a multiply-add sequency into a fused-multiply-add.
+*
+* Many modern backends and GPUs support the concept of a fused-multiply-add
+* that executes in the same time as a multiply. Not all backends may support this.
 */
 
 #include "ShaderCompilerCommon.h"
@@ -115,6 +123,7 @@ private:
 	void exp_to_exp2(ir_expression *);
 	void pow_to_exp2(ir_expression *);
 	void log_to_log2(ir_expression *);
+	void add_mul_to_fma(ir_expression *);
 };
 
 /**
@@ -281,11 +290,58 @@ lower_instructions_visitor::mod_to_fract(ir_expression *ir)
 	this->progress = true;
 }
 
+void lower_instructions_visitor::add_mul_to_fma(ir_expression* expr)
+{
+	if ((expr->operands[0] && expr->operands[0]->type == expr->type && !expr->operands[0]->type->is_matrix()) && (expr->operands[1] && expr->operands[1]->type == expr->type && !expr->operands[1]->type->is_matrix()))
+	{
+		ir_expression* lhs = expr->operands[0]->as_expression();
+		ir_expression* rhs = expr->operands[1]->as_expression();
+		
+		bool const lhsMul = (lhs && lhs->operation == ir_binop_mul);
+		bool const rhsMul = (rhs && rhs->operation == ir_binop_mul);
+		if (lhsMul)
+		{
+			if (!lhs->operands[0]->type->is_matrix() && !lhs->operands[1]->type->is_matrix())
+			{
+				ir_rvalue* mullhs_operand = lhs->operands[0]->clone(ralloc_parent(expr), NULL);
+				ir_rvalue* mulrhs_operand = lhs->operands[1]->clone(ralloc_parent(expr), NULL);
+				ir_rvalue* add_operand = expr->operands[1];
+				
+				expr->operation = ir_ternop_fma;
+				expr->operands[0] = mullhs_operand;
+				expr->operands[1] = mulrhs_operand;
+				expr->operands[2] = add_operand;
+			}
+		}
+		else if (rhsMul && !lhsMul)
+		{
+			if (!rhs->operands[0]->type->is_matrix() && !rhs->operands[1]->type->is_matrix())
+			{
+				ir_rvalue* mullhs_operand = rhs->operands[0]->clone(ralloc_parent(expr), NULL);
+				ir_rvalue* mulrhs_operand = rhs->operands[1]->clone(ralloc_parent(expr), NULL);
+				ir_rvalue* add_operand = expr->operands[0];
+				
+				expr->operation = ir_ternop_fma;
+				expr->operands[0] = mullhs_operand;
+				expr->operands[1] = mulrhs_operand;
+				expr->operands[2] = add_operand;
+			}
+		}
+	}
+}
+
 ir_visitor_status
 lower_instructions_visitor::visit_leave(ir_expression *ir)
 {
 	switch (ir->operation)
 	{
+	case ir_binop_add:
+		if (ir->type->is_float() && (ir->type->is_scalar() || ir->type->is_vector()) && lowering(ADD_MUL_TO_FMA))
+		{
+			add_mul_to_fma(ir);
+		}
+		break;
+		
 	case ir_binop_sub:
 		if (lowering(SUB_TO_ADD_NEG))
 		{

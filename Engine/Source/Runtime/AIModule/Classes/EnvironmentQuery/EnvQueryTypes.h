@@ -205,6 +205,7 @@ enum class EAIParamType : uint8
 	Float,
 	Int,
 	Bool,
+	MAX UMETA(Hidden)
 };
 
 UENUM()
@@ -278,6 +279,10 @@ struct AIMODULE_API FEnvNamedValue
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	float Value;
+
+	FEnvNamedValue()
+		: ParamType(EAIParamType::Float), Value(0.f)
+	{}
 };
 
 USTRUCT()
@@ -1251,6 +1256,8 @@ struct AIMODULE_API FAIDynamicParam
 
 	FAIDynamicParam()
 	{
+		ParamType = EAIParamType::Float;
+		Value = 0.f;
 		BBKey.AllowNoneAsValue(true);
 	}
 

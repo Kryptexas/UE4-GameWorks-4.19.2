@@ -353,6 +353,9 @@ TArray<UScriptStruct*> FDataTableEditorUtils::GetPossibleStructs()
 			RowStructs.Add(Struct);
 		}
 	}
+
+	RowStructs.Sort();
+
 	return RowStructs;
 }
 

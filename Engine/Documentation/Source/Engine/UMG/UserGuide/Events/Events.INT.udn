@@ -1,9 +1,16 @@
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: Events
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:A guide to using Events in UMG. 
-version: 4.9
-tags:UMG UI Designer
+Description: A guide to using Events in UMG.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
+Parent:Engine/UMG/UserGuide
+Order:5
+Tags:UMG UI Designer
+Topic-Image:Engine/UMG/UserGuide/EventsTopic.png
+
+
 
 There are a couple methods in which you can call **Events** in **UMG** which are outlined below. 
 

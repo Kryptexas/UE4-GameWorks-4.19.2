@@ -6,8 +6,6 @@
 #include "OVR_Platform_Defs.h"
 #include "OVR_CloudStorage.h"
 #include "OVR_CloudStorageUpdateStatus.h"
-#include <stdbool.h>
-#include <stddef.h>
 
 typedef struct ovrCloudStorageUpdateResponse *ovrCloudStorageUpdateResponseHandle;
 

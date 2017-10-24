@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IMeshMergeUtilities.h"
+#include "SceneTypes.h"
 
 /**
  * Mesh Merge Utilities
@@ -37,6 +38,8 @@ protected:
 	float FlattenEmissivescale(TArray<struct FFlattenMaterial>& InMaterialList) const;
 	/** Populates material options object from legacy material proxy settings  */
 	UMaterialOptions* PopulateMaterialOptions(const FMaterialProxySettings& MaterialSettings) const;
+	/** Populates a single property entry with correct material baking settings */
+	void PopulatePropertyEntry(const FMaterialProxySettings& MaterialSettings, EMaterialProperty MaterialProperty, struct FPropertyEntry& InOutPropertyEntry) const;
 	/** Copies part (box) from a texture to another texture */
 	void CopyTextureRect(const FColor* Src, const FIntPoint& SrcSize, FColor* Dst, const FIntPoint& DstSize, const FIntPoint& DstPos) const;
 	/** Sets a part (box) on a texture to ColorValue */

@@ -69,15 +69,15 @@ private:
 void FDefaultValueDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
 {
 	DetailLayoutPtr = &DetailLayout;
-	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& Objects = DetailLayout.GetSelectedObjects();
 	check(Objects.Num() > 0);
 
 	if (Objects.Num() == 1)
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailsView& DetailsView = (IDetailsView&)(DetailLayout.GetDetailsView());
-		DetailsView.OnFinishedChangingProperties().AddSP(this, &FDefaultValueDetails::OnFinishedChangingProperties);
+		const IDetailsView* DetailsView = DetailLayout.GetDetailsView();
+		DetailsView->OnFinishedChangingProperties().AddSP(this, &FDefaultValueDetails::OnFinishedChangingProperties);
 
 		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("DefaultValues", LOCTEXT("DefaultValues", "Default Values"));
 
@@ -283,7 +283,7 @@ void FUserDefinedStructureEditor::RegisterTabSpawners(const TSharedRef<class FTa
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
 	InTabManager->RegisterTabSpawner( MemberVariablesTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedStructureEditor::SpawnStructureTab) )
-		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Member Variables") )
+		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Structure Editor") )
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Variables"));
 }
@@ -419,7 +419,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 
 	return SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("GenericEditor.Tabs.Properties") )
-		.Label( LOCTEXT("UserDefinedStructureEditor", "Structure") )
+		.Label( LOCTEXT("UserDefinedStructureEditor", "Structure Editor") )
 		.TabColorScale( GetTabColorScale() )
 		[
 			Splitter
@@ -1103,14 +1103,14 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 /** IDetailCustomization interface */
 void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
 {
-	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& Objects = DetailLayout.GetSelectedObjects();
 	check(Objects.Num() > 0);
 
 	if (Objects.Num() == 1)
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure"));
+		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("StructureCategory", "Structure"));
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
 		StructureCategory.AddCustomBuilder(Layout.ToSharedRef());
 	}

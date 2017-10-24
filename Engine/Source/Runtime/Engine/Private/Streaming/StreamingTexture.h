@@ -25,10 +25,10 @@ struct FStreamingTexture
 	void UpdateStaticData(const FTextureStreamingSettings& Settings);
 
 	/** Update data that the engine could change through gameplay. */
-	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings);
+	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings, bool bWaitForMipFading);
 
 	/** Lightweight version of UpdateDynamicData. */
-	void UpdateStreamingStatus();
+	void UpdateStreamingStatus(bool bWaitForMipFading);
 
 	/**
 	 * Returns the amount of memory used by the texture given a specified number of mip-maps, in bytes.
@@ -72,7 +72,12 @@ struct FStreamingTexture
 	FORCEINLINE int32 GetPerfectWantedMips() const { return FMath::Max<int32>(VisibleWantedMips,  HiddenWantedMips); }
 
 	// Whether this texture can be affected by Global Bias and Budget Bias per texture.
-	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const { return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias); }
+	// It controls if the texture resolution can be scarificed to fit into budget.
+	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const 
+	{
+		// In editor, forced stream in should never have reduced mips as they can be edited.
+		return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias) && !(GIsEditor && bForceFullyLoadHeuristic); 
+	}
 
 	FORCEINLINE bool HasUpdatePending(bool bIsStreamingPaused, bool bHasViewPoint) const 
 	{
@@ -141,9 +146,6 @@ struct FStreamingTexture
 
 	/** Whether the texture is currently being streamed in/out. */
 	uint32			bInFlight : 1;
-
-	/** Whether an attemp to cancel the inflight request has been attempted. */
-	uint32			bCancelRequestAttempted : 1;
 
 	/** Wheter the streamer has streaming plans for this texture. */
 	uint32			bHasUpdatePending : 1;

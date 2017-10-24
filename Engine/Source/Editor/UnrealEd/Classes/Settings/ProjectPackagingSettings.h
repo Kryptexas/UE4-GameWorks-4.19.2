@@ -17,11 +17,20 @@ enum EProjectPackagingBuildConfigurations
 	/** Debug configuration. */
 	PPBC_DebugGame UMETA(DisplayName="DebugGame"),
 
+	/** Debug Client configuration. */
+	PPBC_DebugGameClient UMETA(DisplayName = "DebugGame Client"),
+
 	/** Development configuration. */
 	PPBC_Development UMETA(DisplayName="Development"),
 
+	/** Development Client configuration. */
+	PPBC_DevelopmentClient UMETA(DisplayName = "Development Client"),
+
 	/** Shipping configuration. */
-	PPBC_Shipping UMETA(DisplayName="Shipping")
+	PPBC_Shipping UMETA(DisplayName="Shipping"),
+
+	/** Shipping Client configuration. */
+	PPBC_ShippingClient UMETA(DisplayName = "Shipping Client")
 };
 
 /**
@@ -44,6 +53,25 @@ enum class EProjectPackagingInternationalizationPresets : uint8
 
 	/** All known cultures. */
 	All
+};
+
+/**
+ * Determines whether to build the executable when packaging. Note the equivalence between these settings and EPlayOnBuildMode.
+ */
+UENUM()
+enum class EProjectPackagingBuild
+{
+	/** Always build. */
+	Always UMETA(DisplayName="Always"),
+
+	/** Never build. */
+	Never UMETA(DisplayName="Never"),
+
+	/** Default (if the Never build. */
+	IfProjectHasCode UMETA(DisplayName="If project has code, or running a locally built editor"),
+
+	/** If we're not packaging from a promoted build. */
+	IfEditorWasBuiltLocally UMETA(DisplayName="If running a locally built editor")
 };
 
 /**
@@ -72,6 +100,10 @@ class UNREALED_API UProjectPackagingSettings
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	/** Specifies whether to build the game executable during packaging. */
+	UPROPERTY(config, EditAnywhere, Category=Project)
+	EProjectPackagingBuild Build;
 
 	/** The build configuration for which the project is packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Project)
@@ -109,9 +141,9 @@ public:
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints, meta = (DisplayName = "List of Blueprint assets to nativize", RelativeToGameContentDir, LongPackageName))
 	TArray<FFilePath> NativizeBlueprintAssets;
 
-	/** If enabled, a warning will be emitted at build/cook time if nativization is turned on in the Project Settings, but the nativization flag was omitted from the command line. */
-	UPROPERTY(config, EditAnywhere, Category = Blueprints)
-	bool bWarnIfPackagedWithoutNativizationFlag;
+	/** If enabled, the nativized assets code plugin will be added to the Visual Studio solution if it exists when regenerating the game project. Intended primarily to assist with debugging the target platform after cooking with nativization turned on. */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints)
+	bool bIncludeNativizedAssetsInProjectGeneration;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
@@ -197,10 +229,6 @@ public:
 	/** Cultures whose data should be cooked, staged, and packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))
 	TArray<FString> CulturesToStage;
-
-	/** Culture to use if no matching culture is found. */
-	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Package default localization"))
-	FString DefaultCulture;
 
 	/**
 	 * Cook all things in the project content directory

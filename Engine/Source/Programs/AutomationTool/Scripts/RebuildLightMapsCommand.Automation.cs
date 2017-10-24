@@ -8,21 +8,19 @@ using System.Linq;
 using System.Net.Mail;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 /// <summary>
 /// Helper command used for rebuilding a projects light maps.
 /// </summary>
-/// <remarks>
-/// Command line parameters used by this command:
-/// -project					- Absolute path to a .uproject file
-/// -MapsToRebuildLightMaps		- A list of '+' delimited maps we wish to build lightmaps for.
-/// -CommandletTargetName		- The Target used in running the commandlet
-/// -StakeholdersEmailAddresses	- Users to notify of completion
-/// 
-/// </remarks>
 namespace AutomationScripts.Automation
 {
 	[RequireP4]
+	[Help("Helper command used for rebuilding a projects light maps")]
+	[Help("Project", "Absolute path to a .uproject file")]
+	[Help("MapsToRebuildLightMaps", "A list of '+' delimited maps we wish to build lightmaps for.")]
+	[Help("CommandletTargetName", "The Target used in running the commandlet")]
+	[Help("StakeholdersEmailAddresses", "Users to notify of completion")]
 	public class RebuildLightMaps : BuildCommand
 	{
 		// The rebuild lighting process
@@ -133,7 +131,7 @@ namespace AutomationScripts.Automation
                 CommandletParams += " -AutoCheckOutPackages";
                 if (P4Enabled)
                 {
-                    CommandletParams += String.Format(" -SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Changelist={4} -P4Passwd={5}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, WorkingCL.ToString(), P4.GetAuthenticationToken());
+                    CommandletParams += String.Format(" -SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Changelist={4} -P4Passwd={5}", "Perforce", P4Env.ServerAndPort, P4Env.User, P4Env.Client, WorkingCL.ToString(), P4.GetAuthenticationToken());
                 }
 				RebuildLightMapsCommandlet(Params.RawProjectPath, Params.UE4Exe, Params.MapsToRebuildLightMaps.ToArray(), CommandletParams);
 			}
@@ -269,7 +267,7 @@ namespace AutomationScripts.Automation
             string Branch = "Unknown";
             if ( P4Enabled )
             {
-                Branch = P4Env.BuildRootP4;
+                Branch = P4Env.Branch;
             }
 
 			foreach (String NextStakeHolder in StakeholdersEmailAddresses)

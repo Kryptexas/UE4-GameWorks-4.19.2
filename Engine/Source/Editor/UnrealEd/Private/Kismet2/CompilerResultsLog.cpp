@@ -30,13 +30,13 @@ FDelegateHandle FCompilerResultsLog::GetGlobalModuleCompilerDumpDelegateHandle;
 void FBacktrackMap::NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject)
 {
 	// Chase the source to make sure it's really a top-level ('source code') node
-	while (UObject** SourceOfSource = SourceBacktrackMap.Find(Cast<UObject const>(SourceObject)))
+	while (UObject** SourceOfSource = SourceBacktrackMap.Find(SourceObject))
 	{
 		SourceObject = *SourceOfSource;
 	}
 
 	// Record the backtrack link
-	SourceBacktrackMap.Add(Cast<UObject const>(NewObject), SourceObject);
+	SourceBacktrackMap.Add(NewObject, SourceObject);
 }
 
 /** Update the pin source backtrack map to note that NewPin was most closely generated/caused by the SourcePin */
@@ -56,7 +56,7 @@ void FBacktrackMap::NotifyIntermediatePinCreation(UEdGraphPin* NewPin, UEdGraphP
 /** Returns the true source object for the passed in object */
 UObject* FBacktrackMap::FindSourceObject(UObject* PossiblyDuplicatedObject)
 {
-	UObject** RemappedIfExisting = SourceBacktrackMap.Find(Cast<UObject const>(PossiblyDuplicatedObject));
+	UObject** RemappedIfExisting = SourceBacktrackMap.Find(PossiblyDuplicatedObject);
 	if (RemappedIfExisting != nullptr)
 	{
 		return *RemappedIfExisting;
@@ -130,7 +130,6 @@ FCompilerResultsLog::FCompilerResultsLog(bool bIsCompatibleWithEvents/* = true*/
 	, bLogInfoOnly(false)
 	, bAnnotateMentionedNodes(true)
 	, bLogDetailedResults(false)
-	, bTreatCompositeGraphsAsTunnels(false)
 	, EventDisplayThresholdMs(0)
 {
 	CurrentEventScope = nullptr;
@@ -319,7 +318,7 @@ int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( cons
 		LatentUUID = GetTypeHash(Node->NodeGuid);
 
 		const UEdGraphNode* ResultNode = Node;
-		const UEdGraphNode* SourceNode = Cast<UEdGraphNode>(GetIntermediateTunnelInstance(Node));
+		const UEdGraphNode* SourceNode = GetIntermediateTunnelInstance(Node);
 		while (SourceNode && SourceNode != ResultNode)
 		{
 			if (SourceNode->NodeGuid.IsValid())
@@ -327,7 +326,7 @@ int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( cons
 				LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
 			}
 			ResultNode = SourceNode;
-			SourceNode = Cast<UEdGraphNode>(GetIntermediateTunnelInstance(ResultNode));
+			SourceNode = GetIntermediateTunnelInstance(ResultNode);
 		}
 	}
 	else
@@ -458,7 +457,7 @@ TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDum
 		{
 			Line = Line.LeftChop(1);
 		}
-		Line = Line.ConvertTabsToSpaces(4).TrimTrailing();
+		Line = Line.ConvertTabsToSpaces(4).TrimEnd();
 
 		// handle output line error message if applicable
 		// @todo Handle case where there are parenthesis in path names
@@ -471,7 +470,7 @@ TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDum
 		{
 			EMessageSeverity::Type Severity = EMessageSeverity::Error;
 			FString FullPathTrimmed = FullPath;
-			FullPathTrimmed.Trim();
+			FullPathTrimmed.TrimStartInline();
 			if (FullPathTrimmed.Len() != FullPath.Len()) // check for leading whitespace
 			{
 				Severity = EMessageSeverity::Info;
@@ -696,7 +695,7 @@ void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* Inter
 {
 	for (auto Tunnel : ActiveTunnels)
 	{
-		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>())
 		{
 			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, Tunnel);
 		}
@@ -704,7 +703,7 @@ void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* Inter
 	UEdGraphNode* TrueSourceTunnelInstance = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnel));
 	if (!ActiveTunnels.Contains(TrueSourceTunnelInstance))
 	{
-		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>())
 		{
 			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, TrueSourceTunnelInstance);
 		}
@@ -716,7 +715,7 @@ UEdGraphNode* FCompilerResultsLog::GetSourceNode(const UEdGraphNode* Intermediat
 	UEdGraphNode* Result = nullptr;
 	if (UEdGraphNode* SourceTunnelInstance = GetSourceTunnelInstance(IntermediateNode))
 	{
-		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>())
 		{
 			Result = SourceTunnelInstance;
 		}

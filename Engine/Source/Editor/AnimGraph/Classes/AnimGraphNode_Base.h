@@ -156,6 +156,8 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// By default return any animation assets we have
 	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetAnimationAsset(); }
+	virtual bool CanJumpToDefinition() const override;
+	virtual void JumpToDefinition() const override;
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface
@@ -180,9 +182,6 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// Gives each visual node a chance to update the node template before it is inserted in the compiled class
 	virtual void BakeDataDuringCompilation(FCompilerResultsLog& MessageLog) {}
-
-	// preload asset required for this node in this function
-	virtual void PreloadRequiredAssets() override {}
 
 	// Give the node a chance to change the display name of a pin
 	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const;

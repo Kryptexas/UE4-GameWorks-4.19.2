@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:1 - Required Setup
-Description:Setting up your project to work with Blueprint Maps.
+﻿INTSourceChangelist:3489715
+Availability:Public
+Title:1 - 必要设置
+Description:设置项目使用蓝图 Map。
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/BP_HowTo/WorkingWithMaps
-Version: 4.15
+Version:4.15
 Tags:Blueprints
 Type:how-to
 Skilllevel:Advanced
@@ -13,170 +13,140 @@ Order:1
 
 [nav]
 
-Before you can start working with Blueprint Maps, you'll have to set up your project to display the container's contents.
+开始使用蓝图 Map 之前，需要设置项目显示容器内容。
 
-1.	From the **Unreal Project Browser**, select the **New Project** tab, choose the **First Person** Blueprint project, and name your project `ExampleMapProject`.
+1.	在 **Unreal Project Browser** 选中 **New Project** 标签，选择 **First Person** 蓝图项目，然后将项目命名为 `ExampleMapProject`。
 
 	[REGION:lightbox]
 		[![](Step1_1.png)(w:600)](Step1_1.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Before creating your new project, please make sure that the project matches the following settings: 
+1.	创建新项目之前，确保项目与以下设置匹配： 
 
 	[REGION:lightbox]
 		[![](Step1_1Note.png)(w:600)](Step1_1Note.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Double-click the **Blueprint** folder from the project's **Content Browser**.
+1.	在项目的 **Content Browser** 中双击 **Blueprint** 文件夹。
 
 	[REGION:lightbox]
 		[![](Step1_2.png)(w:600)](Step1_2.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	From the **Content Browser**, go ahead and click the **Add New** button, hovering your mouse cursor over the **Blueprint Class**, which is located under the **Create Basic Asset** pop-up menu.
+1.	在 **Content Browser** 中点击 **Add New** 按钮，将鼠标悬停在 **Create Basic Asset** 弹出菜单下方的 **Blueprint Class** 上。
 
 	[REGION:lightbox]
 		[![](Step1_3.png)(w:600)](Step1_3.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	After the **Pick Parent Class** menu opens, click the **All Classes** arrow to search for the **TextRender Actor** Blueprint Class.
+1.	**Pick Parent Class** 菜单打开后，点击 **All Classes** 箭头搜索 **TextRender Actor** 蓝图类。
 
 	![](Step1_4.png)
 
-1.	Enter `TexRenderActor` in the **Search Bar**, selecting the **TextRenderActor** Blueprint Class before clicking the **Select** button.
+1.	在 **搜索框** 中输入 `TexRenderActor`，选择 **TextRenderActor** 蓝图类，然后点击 **Select** 按钮。
 
 	![](Step1_5.png)
 
-1.	At this point, you should have a new **TextRender Actor** located in your project's **Content Browser**. Go ahead and name the new Actor `DisplayMap`.
+1.	此时项目的 **Content Browser** 将出现一个新的 **TextRender Actor**。将新 Actor 命名为 `DisplayMap`。
 
 	[REGION:lightbox]
 		[![](Step1_6.png)(w:600)](Step1_6.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Now, drag the `DisplayMap` TextRender Actor into Unreal Editor's **Perspective (3D) Viewport**.
+1.	现在将 `DisplayMap` TextRender Actor 拖入虚幻编辑器的 **透视（3D）视口**。
 
 	[REGION:lightbox]
 		[![](Step1_7.png)(w:600)](Step1_7.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	With the **DisplayMap** TextRender Actor selected, click the **+ Add Component** button (located in the **Details** panel), and enter `Box Collision` into the **Search Bar**.
+1.	选中 **DisplayMap** TextRender Actor 后，点击 **+ Add Component** 按钮（**Details** 面板中），然后将 `Box Collision` 输入 **搜索框**。
 
 	[REGION:lightbox]
 		[![](Step1_8.png)(w:600)](Step1_8.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	After adding the **Box Collision Component** to the TextRender Actor, name the new Component, `Trigger Box`.
+1.	将 **盒子碰撞组件** 添加到 TextRender Actor 后，将新组件命名为 `Trigger Box`。
 
 	[REGION:lightbox]
 		[![](Step1_9.png)(w:600)](Step1_9.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Now, select the TextRender Component to view the Actor's **Transform** in the **Details** panel.
+1.	现在选择 TextRender 组件，在 **Details** 面板中查看 Actor 的 **Transform**。
 
 	[REGION:lightbox]
 		[![](Step1_10.png)(w:600)](Step1_10.png)
 	[/REGION]
 	
 	[REGION:caption]
-		Click for full image.
+		点击查看全图。
 	[/REGION]
 
-1.	Update the **Display Map** Actor's **Transform** to reflect the following values: 
+1.	更新 **Display Map** Actor 的 **Transform**，反映以下数值： 
 
-	[REGION:lightbox]
-		[![](Step1_11.png)(w:600)](Step1_11.png)
-	[/REGION]
-	
-	[REGION:caption]
-		Click for full image.
-	[/REGION]
+	![](Step1_11.png)
 
-1.	Now, change the **Display Map** Actor's **Horizontal Alignment** to be **Center** aligned (rather than **Left** aligned, which is the default **Horizontal Alignment** value).
+1.	将 **Display Map** Actor 的 **Horizontal Alignment** 改为 **居中（Center）** 对齐（而非 **Horizontal Alignment** 默认的 **左（Left）** 对齐）。
 
-	[REGION:lightbox]
-		[![](Step1_12.png)(w:600)](Step1_12.png)
-	[/REGION]
-	
-	[REGION:caption]
-		Click for full image.
-	[/REGION]
+	![](Step1_12.png)
 
-1.	Currently, the **Trigger Box** Component is **Hidden in Game**. Go ahead and clear the **Hidden in Game** check box (located in the **Rendering** menu of the **Details** panel) so that you can view the **Box Collision** Component in-game.
+1.	当前 **Trigger Box** 组件的状态为 **在游戏中隐藏（Hidden in Game）**。取消勾选 **Hidden in Game**（**Details** 面板的 **Rendering** 菜单中），即可在游戏中查看 **盒子碰撞（Box Collision）**。
 
-	[REGION:lightbox]
-		[![](Step1_13.png)(w:600)](Step1_13.png)
-	[/REGION]
-	
-	[REGION:caption]
-		Click for full image.
-	[/REGION]
+	![](Step1_13.png)
 
 	[REGION:note]
-	Having the ability to view **Box Collision** Components in-game is a great way to debug any potential issues with the underlying logic driving a triggered event.
+	在游戏中对 **Box Collision** 组件可见后，即可十分便利地对驱动触发事件的底层逻辑进行潜在问题的调试。
 	[/REGION]
 
-1.	If you enter PIE (or Play in Editor) mode, you'll notice that your projectiles will have a collision response to the **Display Map** collision box. Currently, we only want the **Display Map** collision response to trigger an event that allows us to display the contents of your Map containers. To do this, go to the **Collision** menu (located in the **Details** panel), click the **Collision Presets** drop-down list box, and select the **Custom...** option. 
+1.	如进入 PIE 模式，您将注意到发射物将对 **Display Map** 碰撞盒产生碰撞响应。当前我们只需要 **Display Map** 碰撞响应触发一个事件，以便显示 Map 容器的内容。执行此操作的方法是前往 **Collision** 菜单（**Details** 面板中），点击 **Collision Presets** 下拉列表框，然后选择 **Custom...** 选项。 
 
-	[REGION:lightbox]
-		[![](Step1_14.png)(w:600)](Step1_14.png)
-	[/REGION]
-	
-	[REGION:caption]
-		Click for full image.
-	[/REGION]
+	![](Step1_14.png)
 
-1.	Finally, update the **Collision Presets** to reflect the following values: 
+1.	最后更新 **Collision Presets** 反映以下数值： 
 
-	[REGION:lightbox]
-		[![](Step1_15.png)(w:600)](Step1_15.png)
-	[/REGION]
-	
-	[REGION:caption]
-		Click for full image.
-	[/REGION]
+	![](Step1_15.png)
 
-## End Result
+## 最终结果
 
 [REGION:lightbox]
 	[![](Step1_EndResult.png)(w:600)](Step1_EndResult.png)
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+点击查看全图。
 [/REGION]
 
-By now, you've created a new project, having also set up a new TextRender Actor, which will display the contents of a Blueprint Map container that you'll create, edit, and display in the next step.
+此时您便已创建新项目，并设置了一个新的 TextRender Actor，它将显示蓝图 Map 容器中的内容。而您在下一步中将对此容器进行创建、编辑和显示。
 
 [nav]

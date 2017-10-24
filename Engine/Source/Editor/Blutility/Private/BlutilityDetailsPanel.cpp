@@ -37,7 +37,7 @@ TSharedRef<IDetailCustomization> FEditorUtilityInstanceDetails::MakeInstance()
 
 void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayoutBuilder)
 {
-	SelectedObjectsList = DetailLayoutBuilder.GetDetailsView().GetSelectedObjects();
+	SelectedObjectsList = DetailLayoutBuilder.GetSelectedObjects();
 
 	// Hide some useless categories
 	//@TODO: How to hide Actors, Layers, etc...?

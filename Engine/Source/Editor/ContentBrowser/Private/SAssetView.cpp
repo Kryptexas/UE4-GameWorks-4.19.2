@@ -46,6 +46,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "SSplitter.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "DesktopPlatformModule.h"
+#include "Misc/FileHelper.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1250,53 +1253,6 @@ void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr< FExternalDragOperation > ExternalDragDropOp = DragDropEvent.GetOperationAs< FExternalDragOperation >();
-	if ( ExternalDragDropOp.IsValid() )
-	{
-		if ( ExternalDragDropOp->HasFiles() )
-		{
-			return FReply::Handled();
-		}
-	}
-	else if ( HasSingleCollectionSource() )
-	{
-		TArray< FAssetData > AssetDatas = AssetUtil::ExtractAssetDataFromDrag( DragDropEvent );
-
-		if ( AssetDatas.Num() > 0 )
-		{
-			TSharedPtr< FAssetDragDropOp > AssetDragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
-			if( AssetDragDropOp.IsValid() )
-			{
-				TArray< FName > ObjectPaths;
-				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-				const FCollectionNameType& Collection = SourcesData.Collections[0];
-				CollectionManagerModule.Get().GetObjectsInCollection( Collection.Name, Collection.Type, ObjectPaths );
-
-				bool IsValidDrop = false;
-				for (const auto& AssetData : AssetDatas)
-				{
-					if (AssetData.GetClass()->IsChildOf(UClass::StaticClass()))
-					{
-						continue;
-					}
-
-					if ( !ObjectPaths.Contains( AssetData.ObjectPath ) )
-					{
-						IsValidDrop = true;
-						break;
-					}
-				}
-
-				if ( IsValidDrop )
-				{
-					AssetDragDropOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
-				}
-			}
-
-			return FReply::Handled();
-		}
-	}
-
 	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
 	if (DragDropOp.IsValid())
 	{
@@ -1312,104 +1268,179 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 		}
 	}
 
-	return FReply::Unhandled();
-}
-
-FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	// Handle drag drop for import
-	if ( IsAssetPathSelected() )
+	if (SourcesData.HasPackagePaths())
 	{
-		TSharedPtr<FExternalDragOperation> ExternalDragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
-		if (ExternalDragDropOp.IsValid())
+		// Note: We don't test IsAssetPathSelected here as we need to prevent dropping assets on class paths
+		const FString DestPath = SourcesData.PackagePaths[0].ToString();
+
+		bool bUnused = false;
+		DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, DestPath, bUnused);
+		return FReply::Handled();
+	}
+	else if (HasSingleCollectionSource())
+	{
+		TArray< FAssetData > AssetDatas = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
+
+		if (AssetDatas.Num() > 0)
 		{
-			if ( ExternalDragDropOp->HasFiles() )
+			TSharedPtr<FAssetDragDropOp> AssetDragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+			if (AssetDragDropOp.IsValid())
 			{
-				TArray<FString> ImportFiles;
-				TMap<FString, UObject*> ReimportFiles;
-				FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-				FString RootDestinationPath = SourcesData.PackagePaths[0].ToString();
-				TArray<TPair<FString, FString>> FilesAndDestinations;
-				const TArray<FString>& DragFiles = ExternalDragDropOp->GetFiles();
-				AssetToolsModule.Get().ExpandDirectories(DragFiles, RootDestinationPath, FilesAndDestinations);
+				TArray< FName > ObjectPaths;
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+				const FCollectionNameType& Collection = SourcesData.Collections[0];
+				CollectionManagerModule.Get().GetObjectsInCollection(Collection.Name, Collection.Type, ObjectPaths);
 
-				TArray<int32> ReImportIndexes;
-				for (int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
+				bool IsValidDrop = false;
+				for (const auto& AssetData : AssetDatas)
 				{
-					const FString& Filename = FilesAndDestinations[FileIdx].Key;
-					const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
-					FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
-					FString PackageName = DestinationPath + TEXT("/") + Name;
-
-					// We can not create assets that share the name of a map file in the same location
-					if (FEditorFileUtils::IsMapPackageAsset(PackageName))
+					if (AssetData.GetClass()->IsChildOf(UClass::StaticClass()))
 					{
-						//The error message will be log in the import process
-						ImportFiles.Add(Filename);
 						continue;
 					}
-					//Check if package exist in memory
-					UPackage* Pkg = FindPackage(nullptr, *PackageName);
-					bool IsPkgExist = Pkg != nullptr;
-					//check if package exist on file
-					if (!IsPkgExist && !FPackageName::DoesPackageExist(PackageName))
-					{
-						ImportFiles.Add(Filename);
-						continue;
-					}
-					if (Pkg == nullptr)
-					{
-						Pkg = CreatePackage(nullptr, *PackageName);
-						if (Pkg == nullptr)
-						{
-							//Cannot create a package that don't exist on disk or in memory!!!
-							//The error message will be log in the import process
-							ImportFiles.Add(Filename);
-							continue;
-						}
-					}
-					// Make sure the destination package is loaded
-					Pkg->FullyLoad();
 
-					// Check for an existing object
-					UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Pkg, *Name);
-					if (ExistingObject != nullptr)
+					if (!ObjectPaths.Contains(AssetData.ObjectPath))
 					{
-						ReimportFiles.Add(Filename, ExistingObject);
-						ReImportIndexes.Add(FileIdx);
-					}
-					else
-					{
-						ImportFiles.Add(Filename);
+						IsValidDrop = true;
+						break;
 					}
 				}
-				//Reimport
-				for (auto kvp : ReimportFiles)
+
+				if (IsValidDrop)
 				{
-					FReimportManager::Instance()->Reimport(kvp.Value, false, true, kvp.Key);
-				}
-				//Import
-				if (ImportFiles.Num() > 0)
-				{
-					//Remove it in reverse so the smaller index are still valid
-					for (int32 IndexToRemove = ReImportIndexes.Num() - 1; IndexToRemove >= 0; --IndexToRemove)
-					{
-						FilesAndDestinations.RemoveAt(ReImportIndexes[IndexToRemove]);
-					}
-					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString(), nullptr, true, &FilesAndDestinations);
+					AssetDragDropOp->SetToolTip(NSLOCTEXT("AssetView", "OnDragOverCollection", "Add to Collection"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")));
 				}
 			}
 
 			return FReply::Handled();
 		}
 	}
-	else if ( HasSingleCollectionSource() )
-	{
-		TArray< FAssetData > SelectedAssetDatas = AssetUtil::ExtractAssetDataFromDrag( DragDropEvent );
 
-		if ( SelectedAssetDatas.Num() > 0 )
+	return FReply::Unhandled();
+}
+
+FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+{
+	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
+	if (DragDropOp.IsValid())
+	{
+		// Do we have a custom handler for this drag event?
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>("ContentBrowser");
+		const TArray<FAssetViewDragAndDropExtender>& AssetViewDragAndDropExtenders = ContentBrowserModule.GetAssetViewDragAndDropExtenders();
+		for (const auto& AssetViewDragAndDropExtender : AssetViewDragAndDropExtenders)
 		{
-			TArray< FName > ObjectPaths;
+			if (AssetViewDragAndDropExtender.OnDropDelegate.IsBound() && AssetViewDragAndDropExtender.OnDropDelegate.Execute(FAssetViewDragAndDropExtender::FPayload(DragDropOp, SourcesData.PackagePaths, SourcesData.Collections)))
+			{
+				return FReply::Handled();
+			}
+		}
+	}
+
+	if (SourcesData.HasPackagePaths())
+	{
+		// Note: We don't test IsAssetPathSelected here as we need to prevent dropping assets on class paths
+		const FString DestPath = SourcesData.PackagePaths[0].ToString();
+
+		bool bUnused = false;
+		if (DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, DestPath, bUnused))
+		{
+			// Handle drag drop for import
+			TSharedPtr<FExternalDragOperation> ExternalDragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+			if (ExternalDragDropOp.IsValid())
+			{
+				if (ExternalDragDropOp->HasFiles())
+				{
+					TArray<FString> ImportFiles;
+					TMap<FString, UObject*> ReimportFiles;
+					FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+					FString RootDestinationPath = SourcesData.PackagePaths[0].ToString();
+					TArray<TPair<FString, FString>> FilesAndDestinations;
+					const TArray<FString>& DragFiles = ExternalDragDropOp->GetFiles();
+					AssetToolsModule.Get().ExpandDirectories(DragFiles, RootDestinationPath, FilesAndDestinations);
+
+					TArray<int32> ReImportIndexes;
+					for (int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
+					{
+						const FString& Filename = FilesAndDestinations[FileIdx].Key;
+						const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+						FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
+						FString PackageName = DestinationPath + TEXT("/") + Name;
+
+						// We can not create assets that share the name of a map file in the same location
+						if (FEditorFileUtils::IsMapPackageAsset(PackageName))
+						{
+							//The error message will be log in the import process
+							ImportFiles.Add(Filename);
+							continue;
+						}
+						//Check if package exist in memory
+						UPackage* Pkg = FindPackage(nullptr, *PackageName);
+						bool IsPkgExist = Pkg != nullptr;
+						//check if package exist on file
+						if (!IsPkgExist && !FPackageName::DoesPackageExist(PackageName))
+						{
+							ImportFiles.Add(Filename);
+							continue;
+						}
+						if (Pkg == nullptr)
+						{
+							Pkg = CreatePackage(nullptr, *PackageName);
+							if (Pkg == nullptr)
+							{
+								//Cannot create a package that don't exist on disk or in memory!!!
+								//The error message will be log in the import process
+								ImportFiles.Add(Filename);
+								continue;
+							}
+						}
+						// Make sure the destination package is loaded
+						Pkg->FullyLoad();
+
+						// Check for an existing object
+						UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Pkg, *Name);
+						if (ExistingObject != nullptr)
+						{
+							ReimportFiles.Add(Filename, ExistingObject);
+							ReImportIndexes.Add(FileIdx);
+						}
+						else
+						{
+							ImportFiles.Add(Filename);
+						}
+					}
+					//Reimport
+					for (auto kvp : ReimportFiles)
+					{
+						FReimportManager::Instance()->Reimport(kvp.Value, false, true, kvp.Key);
+					}
+					//Import
+					if (ImportFiles.Num() > 0)
+					{
+						//Remove it in reverse so the smaller index are still valid
+						for (int32 IndexToRemove = ReImportIndexes.Num() - 1; IndexToRemove >= 0; --IndexToRemove)
+						{
+							FilesAndDestinations.RemoveAt(ReImportIndexes[IndexToRemove]);
+						}
+						AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString(), nullptr, true, &FilesAndDestinations);
+					}
+				}
+			}
+
+			TSharedPtr<FAssetDragDropOp> AssetDragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+			if (AssetDragDropOp.IsValid())
+			{
+				OnAssetsOrPathsDragDropped(AssetDragDropOp->GetAssets(), AssetDragDropOp->GetAssetPaths(), DestPath);
+			}
+		}
+		return FReply::Handled();
+	}
+	else if (HasSingleCollectionSource())
+	{
+		TArray<FAssetData> SelectedAssetDatas = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
+
+		if (SelectedAssetDatas.Num() > 0)
+		{
+			TArray<FName> ObjectPaths;
 			for (const auto& AssetData : SelectedAssetDatas)
 			{
 				if (!AssetData.GetClass()->IsChildOf(UClass::StaticClass()))
@@ -1429,28 +1460,15 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		}
 	}
 
-	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
-	if (DragDropOp.IsValid())
-	{
-		// Do we have a custom handler for this drag event?
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>("ContentBrowser");
-		const TArray<FAssetViewDragAndDropExtender>& AssetViewDragAndDropExtenders = ContentBrowserModule.GetAssetViewDragAndDropExtenders();
-		for (const auto& AssetViewDragAndDropExtender : AssetViewDragAndDropExtenders)
-		{
-			if (AssetViewDragAndDropExtender.OnDropDelegate.IsBound() && AssetViewDragAndDropExtender.OnDropDelegate.Execute(FAssetViewDragAndDropExtender::FPayload(DragDropOp, SourcesData.PackagePaths, SourcesData.Collections)))
-			{
-				return FReply::Handled();
-			}
-		}
-	}
-
 	return FReply::Unhandled();
 }
 
 FReply SAssetView::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent )
 {
+	const bool bIsControlOrCommandDown = InCharacterEvent.IsControlDown() || InCharacterEvent.IsCommandDown();
+	
 	const bool bTestOnly = false;
-	if(HandleQuickJumpKeyDown(InCharacterEvent.GetCharacter(), InCharacterEvent.IsControlDown(), InCharacterEvent.IsAltDown(), bTestOnly).IsEventHandled())
+	if(HandleQuickJumpKeyDown(InCharacterEvent.GetCharacter(), bIsControlOrCommandDown, InCharacterEvent.IsAltDown(), bTestOnly).IsEventHandled())
 	{
 		return FReply::Handled();
 	}
@@ -1493,16 +1511,19 @@ static bool ContainsT3D(const FString& ClipboardText)
 
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
+	const bool bIsControlOrCommandDown = InKeyEvent.IsControlDown() || InKeyEvent.IsCommandDown();
+	
+	if (bIsControlOrCommandDown && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
 	{
 		FString AssetPaths;
 		TArray<FString> AssetPathsSplit;
 
 		// Get the copied asset paths
-		FPlatformMisc::ClipboardPaste(AssetPaths);
+		FPlatformApplicationMisc::ClipboardPaste(AssetPaths);
 
 		// Make sure the clipboard does not contain T3D
-		if (!ContainsT3D(AssetPaths.TrimTrailing()))
+		AssetPaths.TrimEndInline();
+		if (!ContainsT3D(AssetPaths))
 		{
 			AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
 
@@ -1531,7 +1552,7 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 	}
 	// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
 	// eg) Pressing "W" without this would set the viewport to "translate" mode
-	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
+	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), bIsControlOrCommandDown, InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
 	{
 		return FReply::Handled();
 	}
@@ -1804,7 +1825,7 @@ void SAssetView::RefreshSourceItems()
 		// If this is an engine folder, and we don't want to show them, remove
 		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
 		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::GameProject);
+		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Project);
 		// If this is an engine plugin folder, and we don't want to show them, remove
 		const bool IsAHiddenEnginePluginFolder = (!bDisplayEngine || !bDisplayPlugins) && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Engine);
 		// Do not show localized content folders.
@@ -2135,6 +2156,14 @@ void SAssetView::RefreshFolders()
 
 void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 {
+	auto IsFixedColumn = [this](FName InColumnId)
+	{
+		const bool bIsFixedNameColumn = InColumnId == SortManager.NameColumnId;
+		const bool bIsFixedClassColumn = bShowTypeInColumnView && InColumnId == SortManager.ClassColumnId;
+		const bool bIsFixedPathColumn = bShowPathInColumnView && InColumnId == SortManager.PathColumnId;
+		return bIsFixedNameColumn || bIsFixedClassColumn || bIsFixedPathColumn;
+	};
+
 	if ( NewMajorityAssetType != MajorityAssetType )
 	{
 		UE_LOG(LogContentBrowser, Verbose, TEXT("The majority of assets in the view are of type: %s"), *NewMajorityAssetType.ToString());
@@ -2150,11 +2179,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 		{
 			const FName ColumnId = Columns[ColumnIdx].ColumnId;
 
-			const bool bIsFixedNameColumn = ColumnId == SortManager.NameColumnId;
-			const bool bIsFixedClassColumn = bShowTypeInColumnView && ColumnId == SortManager.ClassColumnId;
-			const bool bIsFixedPathColumn = bShowPathInColumnView && ColumnId == SortManager.PathColumnId;
-
-			if ( ColumnId != NAME_None && !(bIsFixedNameColumn || bIsFixedClassColumn || bIsFixedPathColumn) )
+			if ( ColumnId != NAME_None && !IsFixedColumn(ColumnId) )
 			{
 				ColumnView->GetHeaderRow()->RemoveColumn(ColumnId);
 			}
@@ -2231,12 +2256,18 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 					TArray<UObject::FAssetRegistryTag> AssetRegistryTags;
 					CDO->GetAssetRegistryTags(AssetRegistryTags);
 
-					// Add a column for every tag that isn't hidden
+					// Add a column for every tag that isn't hidden or using a reserved name
 					for ( auto TagIt = AssetRegistryTags.CreateConstIterator(); TagIt; ++TagIt )
 					{
 						if ( TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
 						{
 							const FName TagName = TagIt->Name;
+
+							if (IsFixedColumn(TagName))
+							{
+								// Reserved name
+								continue;
+							}
 
 							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, TagName) )
 							{
@@ -2967,6 +2998,15 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 				NAME_None,
 				EUserInterfaceActionType::Button
 				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportColumns", "Export to CSV"),
+				LOCTEXT("ExportColumnsToolTip", "Export column data to CSV."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SAssetView::ExportColumns)),
+				NAME_None,
+				EUserInterfaceActionType::Button
+			);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -4136,10 +4176,10 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 				TArray<FAssetData> AssetDataList;
 				new(AssetDataList) FAssetData(Asset);
 
-				if ( OnAssetRenameCommitted.IsBound() )
+				if ( OnAssetRenameCommitted.IsBound() && !bUserSearching)
 				{
-					// If our parent wants to potentially handle the sync, let it
-					OnAssetRenameCommitted.Execute(AssetDataList);
+					// If our parent wants to potentially handle the sync, let it, but only if we're not currently searching (or it would cancel the search)
+					OnAssetRenameCommitted.Execute(AssetDataList); 
 				}
 				else
 				{
@@ -4630,6 +4670,43 @@ void SAssetView::ResetColumns()
 	NumVisibleColumns = ColumnView->GetHeaderRow()->GetColumns().Num();
 	ColumnView->GetHeaderRow()->RefreshColumns();
 	ColumnView->RebuildList();
+}
+
+void SAssetView::ExportColumns()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	const FText Title = LOCTEXT("ExportToCSV", "Export columns as CSV...");
+	const FString FileTypes = TEXT("Data Table CSV (*.csv)|*.csv");
+
+	TArray<FString> OutFilenames;
+	DesktopPlatform->SaveFileDialog(
+		ParentWindowWindowHandle,
+		Title.ToString(),
+		TEXT(""),
+		TEXT("Report.csv"),
+		FileTypes,
+		EFileDialogFlags::None,
+		OutFilenames
+	);
+
+	if (OutFilenames.Num() > 0)
+	{
+		const TIndirectArray<SHeaderRow::FColumn>& Columns = ColumnView->GetHeaderRow()->GetColumns();
+
+		TArray<FName> ColumnNames;
+		for (const SHeaderRow::FColumn& Column : Columns)
+		{
+			ColumnNames.Add(Column.ColumnId);
+		}
+
+		FString SaveString;
+		SortManager.ExportColumnsToCSV(FilteredAssetItems, ColumnNames, CustomColumns, SaveString);
+
+		FFileHelper::SaveStringToFile(SaveString, *OutFilenames[0]);
+	}
 }
 
 void SAssetView::ToggleColumn(const FString ColumnName)

@@ -3,6 +3,31 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+static FORCEINLINE uint32 Murmur32( std::initializer_list< uint32 > InitList )
+{
+	uint32 Hash = 0;
+
+	for( auto Element : InitList )
+	{
+		Element *= 0xcc9e2d51;
+		Element = ( Element << 15 ) | ( Element >> (32 - 15) );
+		Element *= 0x1b873593;
+    
+		Hash ^= Element;
+		Hash = ( Hash << 13 ) | ( Hash >> (32 - 13) );
+		Hash = Hash * 5 + 0xe6546b64;
+	}
+
+	Hash ^= Hash >> 16;
+	Hash *= 0x85ebca6b;
+	Hash ^= Hash >> 13;
+	Hash *= 0xc2b2ae35;
+	Hash ^= Hash >> 16;
+
+	return Hash;
+}
+
 /*-----------------------------------------------------------------------------
 	Statically sized hash table, used to index another data structure.
 	Vastly simpler and faster than TMap.
@@ -129,7 +154,7 @@ inline void TStaticHashTable< HashSize, IndexSize >::Remove( uint16 Key, uint16 
 class FHashTable
 {
 public:
-					FHashTable( uint16 InHashSize = 1024, uint32 InIndexSize = 0 );
+					FHashTable( uint32 InHashSize = 1024, uint32 InIndexSize = 0 );
 					~FHashTable();
 
 	void			Clear();
@@ -144,11 +169,14 @@ public:
 	void			Add( uint16 Key, uint32 Index );
 	void			Remove( uint16 Key, uint32 Index );
 
+	// Average # of compares per search
+	CORE_API float	AverageSearch() const;
+
 protected:
 	// Avoids allocating hash until first add
 	CORE_API static uint32	EmptyHash[1];
 
-	uint16			HashSize;
+	uint32			HashSize;
 	uint16			HashMask;
 	uint32			IndexSize;
 
@@ -157,13 +185,14 @@ protected:
 };
 
 
-FORCEINLINE FHashTable::FHashTable( uint16 InHashSize, uint32 InIndexSize )
+FORCEINLINE FHashTable::FHashTable( uint32 InHashSize, uint32 InIndexSize )
 	: HashSize( InHashSize )
 	, HashMask( 0 )
 	, IndexSize( InIndexSize )
 	, Hash( EmptyHash )
 	, NextIndex( NULL )
 {
+	check( HashSize <= 0x10000 );
 	check( FMath::IsPowerOfTwo( HashSize ) );
 	
 	if( IndexSize )

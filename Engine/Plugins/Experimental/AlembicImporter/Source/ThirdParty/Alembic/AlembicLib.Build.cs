@@ -11,7 +11,7 @@ public class AlembicLib : ModuleRules
         Type = ModuleType.External;
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
         {
-            bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT);
+            bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT);
 
             string LibDir = ModuleDirectory + "/Deploy/";
             string Platform;
@@ -20,7 +20,7 @@ public class AlembicLib : ModuleRules
             {
                 case UnrealTargetPlatform.Win64:
                     Platform = "x64";
-                    LibDir += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+                    LibDir += "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
                     break;
                 case UnrealTargetPlatform.Mac:
                     Platform = "Mac";
@@ -54,7 +54,7 @@ public class AlembicLib : ModuleRules
                     PublicAdditionalLibraries.Add(LibraryName + LibPostFix + LibExtension);
                 }
 
-				if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT && bDebug)
+				if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
                 {
 					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll"));
 				}

@@ -231,6 +231,11 @@ namespace UnrealBuildTool
 		public bool bEnableExceptions = false;
 
 		/// <summary>
+		/// Enable objective C exception handling
+		/// </summary>
+		public bool bEnableObjCExceptions = false;
+
+		/// <summary>
 		/// Enable warnings for shadowed variables
 		/// </summary>
 		public bool bEnableShadowVariableWarnings = true;
@@ -528,7 +533,7 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 				Definitions.Add("WITH_APEX_CLOTHING=0");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)
@@ -549,31 +554,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
-		/// </summary>
-		public void SetupModuleBox2DSupport(ReadOnlyTargetRules Target)
-		{
-			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
-			bool bSupported = false;
-			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
-			{
-				bSupported = true;
-			}
-
-			bSupported = bSupported && Target.bCompileBox2D;
-
-			if (bSupported)
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "Box2D");
-			}
-
-			// Box2D included define (required because pointer types may be in public exported structures)
-			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
-		}
-
-		/// <summary>
 		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("The BuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyTargetRules BuildConfiguration
 		{
 			get { return Target; }
@@ -582,6 +565,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("The UEBuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyTargetRules UEBuildConfiguration
 		{
 			get { return Target; }
@@ -590,6 +574,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static WindowsPlatform object; redirect it to use properties on the target rules.
 		/// </summary>
+		[Obsolete("The WindowsPlatform alias is deprecated in 4.18. Set the same properties on the WindowsPlatform member of the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyWindowsTargetRules WindowsPlatform
 		{
 			get { return Target.WindowsPlatform; }

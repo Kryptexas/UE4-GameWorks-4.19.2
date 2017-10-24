@@ -32,7 +32,7 @@ public:
 
 	/** Adds assets to current management view */
 	void AddAssetsToList(const TArray<FAssetData>& AssetsToView, bool bReplaceExisting);
-	void AddAssetsToList(const TArray<FStringAssetReference>& AssetsToView, bool bReplaceExisting);
+	void AddAssetsToList(const TArray<FSoftObjectPath>& AssetsToView, bool bReplaceExisting);
 	void AddAssetsToList(const TArray<FName>& PackageNamesToView, bool bReplaceExisting);
 
 protected:

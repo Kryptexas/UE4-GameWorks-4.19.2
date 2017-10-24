@@ -7,8 +7,7 @@
 #include "UObject/Class.h"
 #include "Templates/Casts.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 
 /*----------------------------------------------------------------------------
@@ -262,26 +261,26 @@ FArchive& FLinkerSave::operator<<( UObject*& Obj )
 	return *this << Save;
 }
 
-FArchive& FLinkerSave::operator<<( FLazyObjectPtr& LazyObjectPtr)
+FArchive& FLinkerSave::operator<<(FLazyObjectPtr& LazyObjectPtr)
 {
 	FUniqueObjectGuid ID;
 	ID = LazyObjectPtr.GetUniqueID();
 	return *this << ID;
 }
 
-FArchive& FLinkerSave::operator<<( FAssetPtr& AssetPtr)
+FArchive& FLinkerSave::operator<<(FSoftObjectPtr& SoftObjectPtr)
 {
-	FStringAssetReference ID;
-	UObject *Object = AssetPtr.Get();
+	FSoftObjectPath ID;
+	UObject *Object = SoftObjectPtr.Get();
 
 	if (Object)
 	{
 		// Use object in case name has changed. 
-		ID = FStringAssetReference(Object);
+		ID = FSoftObjectPath(Object);
 	}
 	else
 	{
-		ID = AssetPtr.GetUniqueID();
+		ID = SoftObjectPtr.GetUniqueID();
 	}
 
 	ID.Serialize(*this);

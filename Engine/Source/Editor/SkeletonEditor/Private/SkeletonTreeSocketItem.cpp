@@ -16,15 +16,6 @@
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeSocketItem"
 
-TSharedRef<ITableRow> FSkeletonTreeSocketItem::MakeTreeRowWidget(const TSharedRef<STableViewBase>& InOwnerTable, const TAttribute<FText>& InFilterText )
-{
-	return
-		SNew( SSkeletonTreeRow, InOwnerTable )
-		.Item( SharedThis(this) )
-		.FilterText( InFilterText )
-		.OnDraggingItem( this, &FSkeletonTreeSocketItem::OnDragDetected );
-}
-
 void FSkeletonTreeSocketItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected )
 {
 	const FSlateBrush* SocketIcon = ( ParentType == ESocketParentType::Mesh ) ?

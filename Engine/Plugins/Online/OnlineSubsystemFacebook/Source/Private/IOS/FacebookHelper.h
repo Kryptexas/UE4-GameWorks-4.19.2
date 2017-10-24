@@ -1,11 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#import <FBSDKCoreKit/FBSDKCoreKit.h>
-#import <FBSDKLoginKit/FBSDKLoginKit.h>
+#include "CoreMinimal.h"
 
 // Other UE4 includes
 #include "IOSAppDelegate.h"
 #include "IOS/IOSAsyncTask.h"
+
+THIRD_PARTY_INCLUDES_START
+#import <FBSDKCoreKit/FBSDKCoreKit.h>
+#import <FBSDKLoginKit/FBSDKLoginKit.h>
+THIRD_PARTY_INCLUDES_END
 
 /**
  * Delegate fired when a FBSDKAccessToken token has changed

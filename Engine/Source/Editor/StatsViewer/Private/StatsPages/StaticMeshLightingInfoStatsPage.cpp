@@ -195,7 +195,7 @@ struct StaticMeshLightingInfoStatsGenerator
 			// Iterate over static mesh components in the list of levels...
 			for (TObjectIterator<UStaticMeshComponent> SMCIt; SMCIt; ++SMCIt)
 			{
-				AActor* Owner = Cast<AActor>( (*SMCIt)->GetOwner() );			
+				AActor* Owner = (*SMCIt)->GetOwner();
 				if (Owner && !Owner->HasAnyFlags(RF_ClassDefaultObject) )
 				{
 					int32 Dummy;

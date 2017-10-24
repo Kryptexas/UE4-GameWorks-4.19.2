@@ -35,9 +35,19 @@ public:
 		return GfxQueue;
 	}
 
+	inline FVulkanQueue* GetComputeQueue()
+	{
+		return ComputeQueue;
+	}
+
 	inline FVulkanQueue* GetTransferQueue()
 	{
 		return TransferQueue;
+	}
+
+	inline FVulkanQueue* GetPresentQueue()
+	{
+		return PresentQueue;
 	}
 
 	inline VkPhysicalDevice GetPhysicalHandle() const
@@ -54,6 +64,14 @@ public:
 	{
 		return GpuProps.limits;
 	}
+
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	inline const VkPhysicalDeviceIDPropertiesKHR& GetDeviceIdProperties() const
+	{
+		check(GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2);
+		return GpuIdProps;
+	}
+#endif
 
 	inline const VkPhysicalDeviceFeatures& GetFeatures() const
 	{
@@ -120,6 +138,11 @@ public:
 		return *ImmediateContext;
 	}
 
+	inline FVulkanCommandListContext& GetImmediateComputeContext()
+	{
+		return *ComputeContext;
+	}
+
 	void NotifyDeletedRenderTarget(VkImage Image);
 	void NotifyDeletedImage(VkImage Image);
 
@@ -169,11 +192,6 @@ public:
 	inline FVulkanBufferedQueryPool& FindAvailableTimestampQueryPool()
 	{
 		return FindAvailableQueryPool(TimestampQueryPools, VK_QUERY_TYPE_TIMESTAMP);
- 	}
-
-	inline FVulkanTimestampPool* GetTimestampQueryPool()
-	{
-		return TimestampQueryPool;
 	}
 
 	inline class FVulkanPipelineStateCache* GetPipelineStateCache()
@@ -183,20 +201,33 @@ public:
 
 	void NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline);
 	void NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline);
-	
+
+	FVulkanCommandListContext* AcquireDeferredContext();
+	void ReleaseDeferredContext(FVulkanCommandListContext* InContext);
+
 	struct FOptionalVulkanDeviceExtensions
 	{
 		uint32 HasKHRMaintenance1 : 1;
+		uint32 HasMirrorClampToEdge : 1;
+		uint32 HasKHRExternalMemoryCapabilities : 1;
+		uint32 HasKHRGetPhysicalDeviceProperties2 : 1;
 	};
-	const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
+	inline const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
+
+	void SetupPresentQueue(const VkSurfaceKHR& Surface);
 
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat, int32 BlockBytes);
 	void SetComponentMapping(EPixelFormat UEFormat, VkComponentSwizzle r, VkComponentSwizzle g, VkComponentSwizzle b, VkComponentSwizzle a);
 
+	void SubmitCommands(FVulkanCommandListContext* Context);
+
 	VkPhysicalDevice Gpu;
 	VkPhysicalDeviceProperties GpuProps;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+	VkPhysicalDeviceIDPropertiesKHR GpuIdProps;
+#endif
 	VkPhysicalDeviceFeatures Features;
 	
 	VkDevice Device;
@@ -222,14 +253,17 @@ private:
 
 	TArray<FVulkanBufferedQueryPool*> OcclusionQueryPools;
 	TArray<FVulkanBufferedQueryPool*> TimestampQueryPools;
-	FVulkanTimestampPool* TimestampQueryPool;
 
 	FVulkanQueue* GfxQueue;
+	FVulkanQueue* ComputeQueue;
 	FVulkanQueue* TransferQueue;
+	FVulkanQueue* PresentQueue;
 
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
 	FVulkanCommandListContext* ImmediateContext;
+	FVulkanCommandListContext* ComputeContext;
+	TArray<FVulkanCommandListContext*> CommandContexts;
 
 	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
 

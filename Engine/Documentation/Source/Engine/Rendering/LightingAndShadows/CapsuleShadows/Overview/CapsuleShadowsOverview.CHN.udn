@@ -1,216 +1,167 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Capsule Shadows Overview
-Crumbs: %ROOT%, Engine, 
-Description: Capsule Shadows Overview
-Version: 4.13
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/CapsuleShadowsOverview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+﻿INTSourceChangelist:3454749
+Availability:Public
+Title:胶囊体阴影总览
+Crumbs:  
+Description:虚幻引擎 4 中使用的胶囊体阴影的总览。
+Version:4.15
+Type: overview
+Parent:Engine/Rendering/LightingAndShadows/CapsuleShadows
+topic-image:cs_overview_topic.png
+tags:Lighting
 
 [TOC(start:2 end:3)]
 
+虚幻引擎 4（UE4）现能通过 **胶囊体阴影** 完成对光照区域中角色的柔和阴影支持。胶囊体是代表角色的一个物理资源。 
+这种投影法会将角色投射在非直接光照区域中的地面上，并在直接光照区域产生柔和阴影，这些效果使用传统阴影映射技术无法实现。
 
-**Capsule Shadows** is a technique that is used to generate soft shadows in indirectly and directly lit areas by using a capsule representation of your characters with a Physics Asset.
-This solves the problem of making a character feel grounded in indirectly lit areas and by also giving soft shadow representations for those which are directly lit.
 
+## 角色胶囊体代表物
 
-## How do they work?
+[物理资源](Engine/Physics/PhAT/) 用于创建角色的近似代表物，以支持极为柔和的阴影。因为胶囊体被附加到角色的骨骼，这将使阴影在场景中进行精确的移动和投射。 
 
-Capsule Shadows start by using a unique Physics Asset that can be assigned to any Skeletal Mesh as a **Shadow Physics Asset**. This asset is unique to each Skeletal Mesh as an 
-accurate representation of your character. Once this information is known the [Indirect Lighting Samples](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that are 
-generated after a light build can be used to cast a cone towards the direction of the light intensity. As the character nears this point the cone is used to check if any capsules 
-are occluding the cone. If they are, then all the capsule shadows can be accumulated to get this end result of soft shadows.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Character with Capsule Representation](CapsuleShadowPA.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Capsule Representation Only](CapsuleShadowPA1.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-<!---
-The Capsule Shadow technique allows a Physics Asset to be assigned to any Skeletal Mesh as a **Shadow Physics Asset**. This asset is unique to each Skeletal Mesh so that it can represent your character 
-accurately for soft shadowing. Character shadowing has generally been handled by using standard shadow mapping techniques, which can only have sharp shadows with slight blurring. Capsule Shadows make 
-it possible to have these soft shadow representations for your character so that it can seamlessly blend with the environment.
---->
-
-[REGION:lightbox]
-[![](CapsuleShadowRepresentation.png)(w:500)](CapsuleShadowRepresentation.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size view_
+[REGION:note]
+地面上的阴影并不代表胶囊体阴影。
 [/REGION]
 
-The scene above breaks down how Capsule Shadows are created for your character. 
 
-1. Once lighting has been built for the scene the Indirect Lighting Cache samples that are generated for your level's surfaces is used to gather the directionality and intensity of the light. 
-2. The cone is placed near a light sample and from this can determine the direction the shadow will cast and how dark the shadow should be. If the light sample is brighter than ones in more covered areas the cone will be larger so that the shadows will be softer with less directionality.
-3. The cone checks if the capsules are occluding any part of it. If the capsules are occluding, the cone direction and intensity of the lighting samples is used to draw the soft shadows.
-4. Finally, we have the soft shadow that is created from the capsules that are occluding the cone.
+## 用法
+
+![](ShadowPhysicsAsset.png)(w:400)
+
+打开骨架网格体，在 **Asset Details** 面板中使用 **Shadow Physics Asset** 选项指定用于胶囊体阴影的物理资源。
 
 
+## 胶囊体阴影设置
 
-#### Capsule Representation of Character
-
-A Physics Asset is used to create a accurate representation of the character. Since the capsules are attached to the bones of the character this allows for the shadows to move with the character.
-
-For steps to setup your Phsyics Asset see the [How to Create a Shadow Phsyics Assets](Engine/Rendering/LightingAndShadows/CapsuleShadows/HowTo/CreateShadowAsset) page.
-
-For tips on setting up your Shadow Physics Asset see the [Best Practices](Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices) page for Capsule Shadows.
-
-[REGION:lightbox]
-[![](PA_WithoutArms.png)(w:500)](PA_withoutArms.png)
+![](CapsuleShadowSettings.png)(w:400)
+[REGION:simpletable]
+| 属性 | 描述 |
+| -------- | ----------- |
+| **Capsule Direct Shadow** | 当胶囊体代表物指定到骨架网格体的 Shadow Physics Asset 槽时，此属性将启用来自直接（可移动）光照的柔和阴影。|
+| **Capsule Indirect Shadow** | 当胶囊体代表物指定到骨架网格体的 Shadow Physics Asset 槽时，此属性将启用来自预计算光照（光照图和天光）的柔和阴影。|
+| **Capsule Indirect Shadow Min Visibility** | 此属性使美术师能够控制胶囊体阴影在非直接光照区域中的明暗度。|
 [/REGION]
 
-[REGION:caption]
-_Capsule representation of a Skeletal Mesh character_
+
+### 胶囊体间接阴影
+
+![](CapsuleShadowsSetting2.png)(w:400)
+
+启用 **胶囊体间接阴影（Capsule Indirect Shadow）** 后，角色的胶囊体代表物将用于投射方向性柔和阴影。投射基于在光照构建中全局光照放置和计算的 [体积光照范例](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/)。Capsule Indirect Shadows 将使角色在间接光照区域中拥有真实着地的感觉，而传统阴影映射则效果欠佳。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Capsule Indirect Shadow Enabled](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Capsule Indirect Shadow Disabled](CSDisabled.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+启用 Capsule Indirect Shadow 后，角色将投下柔和阴影，在只存在反射光照的区域中呈现出真实落地的感觉。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Capsule Shadows Enabled](SkylightCS1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Capsule Shadows Disabled](SkylightCS2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+在光源仅为天空光照的空旷区域中只有些许方向性，因为光线来自四面八方。使用预计算光照时这会在角色下方形成微妙而柔和的“一团”阴影。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ns4QW1BFSHg
+	[/PARAMLITERAL]
+[/OBJECT]
+
+在光线透过开口进入的封闭区域中，[间接光照缓存](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/) 将 
+对胶囊体阴影赋予方向性和柔和度。其工作原理是角色在空间中移动时在放置的体积光照范例之间进行插值。在门口的角色阴影强度稍弱，具有些许方向性；随着角色逐渐远离门口，阴影的强度和方向性均会增加。
+
+
+#### 间接最小阴影可见度
+
+美术师还可通过对 **Capsule Indirect Shadow Min Visibility** 属性的调整来控制效果。此属性可调整间接光照区域中胶囊体阴影的明暗度（使用预计算光照）。这可用于减少这些区域中胶囊体的自身阴影，或柔化阴影的强度，使其与周围的阴影进行较好的混合。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Capsule Shadow Indirect Min Visibility: 0.1 (Default)](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Capsule Shadow Indirect Min Visibility: 0.45](CSMinVisibility_45.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+
+### 胶囊体直接阴影
+
+![](CapsuleShadowsSetting1.png)(w:400)
+
+**胶囊体直接阴影（Direct Capsule Shadow）** 启用后，定向光照的 **光源角度（Light Source Angle）** 和点光源或聚光源的 **源半径（Source Radius）** 将用于定义接收表面上的阴影柔和度。 
+这使用户能直接控制直接光照时胶囊体阴影的柔和度。
+
+##### 光源角度 
+
+定向光照的 **光源角度（Light Source Angle）** 属性用于动态投影法，创建柔和的区域阴影。对此属性进行调整后，阴影在投射表面上的效果将更为柔和。 
+
+[REGION:imagetable]
+| ![](CS_LSA1.png)(w:400) | ![](CS_LSA2.png)(w:400) |
+| --- | --- |
+| Light Source Angle:1.0 （默认） | Light Source Angle:2.0 |
+[/REGION]
+
+#### 源半径
+
+与定向光照光源角度的工作原理相似，静态点光源或聚光源的 **源半径（Source Radius）** 可为角色赋予柔和的阴影。使用较大的源半径时，光线在表面上投射出的阴影将更为柔和。
+
+[REGION:imagetable]
+| ![](CS_SR1.png)(w:400) | ![](CS_SR2.png)(w:400) |
+| --- | --- |
+| Source Radius:5.0 | Source Radius:15.0 |
 [/REGION]
 
 [REGION:note]
-The shadows on the ground are not Capsule Shadows. 
+光照在场景中构建后，即可对 **Source Radius** 属性进行调整，而无需重构光照。此属性只会影响启用了胶囊体阴影或网格体距离场的可移动 actor。
 [/REGION]
 
+## 性能
 
-## Capsule Shadow Settings
+胶囊体阴影的 GPU 性能开销与以下因素成正比：使用的胶囊体数量、角色数量，以及受其阴影影响的画面尺寸。 
 
-You can enable Capsule Shadows for each Skeletal Mesh in your level by enabling the option for **Capsule Direct Shadows** and/or **Capsule Indirect Shadows** in its **Detail's** panel.
-
-![](EnableCapsuleShadows.png)(w:350)
-
-
-#### Capsules for Direct Shadowing
-
-**Capsule Direct Shadows** enables soft shadowing for your character when in areas that are directly lit by any **Movable** or **Stationary** light source. 
-
-[REGION:lightbox]
-[![](DirectCapsuleShadows.png)(w:500)](DirectCapsuleShadows.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
+以使用 Radeon 7870 显卡进行 1080p 渲染为例： 
+ 
+[REGION:simpletable]
+| 10 个胶囊体的 GPU 开销 | 时间（以毫秒计） |
+| ---- | --- |
+| **画面中一个角色** | 0.29 ms |
+| **画面中每增加一个角色** | 0.05 ms |
 [/REGION]
 
-##### Light Source Angle
+此实现十分有效，因为它通过感知深度的上采样以半分辨率计算阴影；同时使用画面图块剔除，使投影量控制在需要的范围内。
 
-For directly lit Capsule Shadows you can adjust the **Light Source Angle** of the Directional Light to soften the shadows. 
+## 限制
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Light Source Angle: 1.0 (Default)](DirectLightSourceAngle1.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Light Source Angle: 2.0](DirectLightSourceAngle2.png)(w:500)
-	[/PARAM]
-[/OBJECT]
-
-#### Capsules for Indirect Shadowing
-
-**Capsule Indirect Shadows** enables soft shadowing for your character in areas that are indirectly lit by any **Static** or **Stationary** light source. Capsule shadowing is created using the 
-[Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that is generated during a light build. 
-
-[REGION:lightbox]
-[![](IndirectDefault.png)(w:500)](IndirectDefault.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-
-## Directonality and Intensity of Indirect Shadows
-
-The directionality and intensity of the capsule shadowing is determined by the light samples generated after a light build. The brighter intensity of the lighting sample the less intense and softer the shadow will be since light is coming from many directions. 
-
-### Closed Area Shadowing
-
-When you have a opening for light to pour through the intensity of the light will be brighter at the opening and dimmer at the back part of this area. 
-
-[REGION:lightbox]
-[![](CS_CaveFront.png)(w:500)](CS_CaveFront.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-In the front of this area the character's shadow is much softer since there is more light and the shadow has less directionality since more light is coming from above. 
-
-[REGION:lightbox]
-[![](CS_CaveBack.png)(w:500)](CS_CaveBack.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-However, at the back of this area the shadow is more intense since it is more dimly lit and has more directionality. The intensity of the light is coming from a single opening towards the front which means there will be
-less light traveling to the back of this area.
-
-
-### Open Area Shadowing
-
-In open areas that receive indirect shadowing, the Capsule Shadows will appear much softer since the light can come from all around.
-
-[REGION:lightbox]
-[![](CS_openarea.png)(w:500)](CS_openarea.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
+* 由于平铺延迟实现使用计算着色器，需要配备 DirectX 11。
+* 任意网格体外形可能出现自身阴影穿帮。
+* 胶囊体代表物只能使用长菱体或球体。
+* 但胶囊体阴影变得非常柔和并成为环境遮挡后，阴影中的穿帮将导致硬线条的出现。 
 
 
 
-
-## Performance
-
-The cost of Capsule Shadows in your game is cheaper and more efficient than standard shadow mapping techniques because of tile defered culling which cull the capsule influences to only the tiles that could possibly 
-receive shadows from that capsule. This means that most of the areas on the screen knew they did not have to do any work. The tiles that are possibly receiving shadows will have to compute for the given pixel 
-the number of capsules that directly affect it. The performance benefit of Capsule Shadows comes by only testing these tiles that are affected and by having fewer capsules to compute.
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Standard Shdow Mapping](DirectShadowMapping.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Capsule Direct Shadows Enabled](DirectCapsuleShadows.png)(w:500)
-	[/PARAM]
-[/OBJECT]
-
-The performance benefit of Capsule Shadows is determined by the number of capsule bodies that are being used and the tiles influenced. Whereas, standard shadow mapping is more expensive because
-it needs to consider all the triangles in the shadow map, which means you can only get sharp shadows that have a little bit of blur to them.
-
-
-## Limitations
-
-* Requires DX-11 due to using tiled deferred implementation using compute shaders 
-* Self-shadowing artifacts for arbitrary mesh shapes 
-* Can only use Spheres and Sphylls for capsule representation
-* Only support for Skeletal Meshes, but could be made to work with static meshes
-* When capsule shadows get so soft that they become ambient occlusion, there's an artifact in the shadowing that causes a hard line. 

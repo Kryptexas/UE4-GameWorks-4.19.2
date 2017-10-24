@@ -24,20 +24,28 @@ void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 
 	TSharedPtr<SWidget> ButtonContent;
 	
+	const float MenuIconSize = 16.0f;
+
 	// Create the content for the button.  We always use an image over a label if it is valid
 	if( ImageName != NAME_None )
 	{
 		ButtonContent = 
-			SNew( SImage )	
-				.Image( ImageBrush )
-				.ColorAndOpacity( FSlateColor::UseForeground() );
+			SNew(SBox)
+			.HeightOverride(MenuIconSize)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew( SImage )	
+					.Image( ImageBrush )
+					.ColorAndOpacity( FSlateColor::UseForeground() )
+			];
 	}
 	else
 	{
 		if( LabelIconBrush.IsBound() || LabelIconBrush.Get() != NULL )
 		{
 			// Label with an icon to the left
-			const float MenuIconSize = 16.0f;
+			
 			ButtonContent = 
 				SNew( SHorizontalBox )
 				+SHorizontalBox::Slot()
@@ -48,6 +56,8 @@ void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 					.Visibility( this, &SEditorViewportToolbarMenu::GetLabelIconVisibility )
 					.WidthOverride( MenuIconSize )
 					.HeightOverride( MenuIconSize )
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
 					[
 						SNew( SImage )
 							.Image( LabelIconBrush )
@@ -57,18 +67,28 @@ void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 				.FillWidth( 1.0f )
 				.VAlign( VAlign_Center )
 				[
-					SNew( STextBlock )
-						.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
-						.Text( Label )
+					SNew(SBox)
+					.HeightOverride(MenuIconSize)
+					.VAlign(VAlign_Center)
+					[
+						SNew( STextBlock )
+							.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
+							.Text( Label )
+					]
 				];
 		}
 		else
 		{
 			// Just the label text, no icon
 			ButtonContent = 
-				SNew( STextBlock )
-					.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
-					.Text( Label );
+				SNew(SBox)
+				.HeightOverride(MenuIconSize)
+				.VAlign(VAlign_Center)
+				[
+					SNew( STextBlock )
+						.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
+						.Text( Label )
+				];
 		}
 	}
 

@@ -210,7 +210,7 @@ void FIOSAudioSoundSource::Update(void)
 
 	if (!AudioDevice->IsAudioDeviceMuted())
 	{
-		Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
+		Volume = WaveInstance->GetActualVolume();
 	}
 
 	if (SetStereoBleed())
@@ -233,9 +233,9 @@ void FIOSAudioSoundSource::Update(void)
 	if (IOSBuffer->NumChannels == 1 && WaveInstance->bUseSpatialization)
 	{
 		// Compute the directional offset
-		FVector Offset = WaveInstance->Location - IOSAudioDevice->PlayerLocation;
+		FVector Offset = GetSpatializationParams().EmitterPosition;
 		const AudioUnitParameterValue AzimuthRangeScale = 90.0f;
-		const AudioUnitParameterValue Pan = Offset.CosineAngle2D(IOSAudioDevice->PlayerRight) * AzimuthRangeScale;
+        const AudioUnitParameterValue Pan = Offset.Y * AzimuthRangeScale;
 
 		Status = AudioUnitSetParameter(IOSAudioDevice->GetMixerUnit(),
 		                               k3DMixerParam_Azimuth,
@@ -293,12 +293,6 @@ void FIOSAudioSoundSource::Stop(void)
 
 	if (WaveInstance)
 	{
-		
-		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
-
-		// At this point we are no longer in the render callback and we will not re-enter it either
-		
-		// This will turn off audio callbacks
 		Pause();
 
 		Paused = false;

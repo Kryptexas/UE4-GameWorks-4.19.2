@@ -1,20 +1,23 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Application/HardwareCursor.h"
-#include "Logging/LogMacros.h"
-#include "Misc/Paths.h"
 #include "HAL/PlatformProcess.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+#include "Logging/LogMacros.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "ModuleManager.h"
-#include "Interfaces/IImageWrapperModule.h"
 #include "SlateApplication.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if PLATFORM_LINUX
-#include "SDL.h"
-#include "SDL_surface.h"
+	#include "SDL.h"
+	#include "SDL_surface.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogHardwareCursor, Log, All);
+
 
 FHardwareCursor::FHardwareCursor(const FString& InPathToCursorWithoutExtension, FVector2D InHotSpot)
 #if PLATFORM_WINDOWS
@@ -257,7 +260,7 @@ bool FHardwareCursor::LoadCursorFromPngs(const FString& InPathToCursorWithoutExt
 	{
 		// @TODO NDarnell Support all resolutions by building multi-resolution cursors in memory.
 		TSharedPtr<FPngFileData> NearestCursor = CursorPngFiles[0];
-		float PlatformScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(0, 0);
+		float PlatformScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(0, 0);
 		for ( TSharedPtr<FPngFileData>& FileData : CursorPngFiles )
 		{
 			const float NewDelta = FMath::Abs(FileData->ScaleFactor - PlatformScaleFactor);
@@ -268,7 +271,7 @@ bool FHardwareCursor::LoadCursorFromPngs(const FString& InPathToCursorWithoutExt
 		}
 
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-		IImageWrapperPtr PngImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper>PngImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if ( PngImageWrapper.IsValid() && PngImageWrapper->SetCompressed(NearestCursor->FileData.GetData(), NearestCursor->FileData.Num()) )
 		{

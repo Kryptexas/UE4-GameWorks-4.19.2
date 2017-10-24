@@ -7,6 +7,9 @@
 #include "PipelineStateCache.h"
 #include "ClearReplacementShaders.h"
 #include "RendererInterface.h"
+#include "Logging/LogMacros.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogClearQuad, Log, Log)
 
 static void ClearQuadSetup( FRHICommandList& RHICmdList, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil )
 {
@@ -110,16 +113,21 @@ static void ClearQuadSetup( FRHICommandList& RHICmdList, bool bClearColor, int32
 	PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 }
 
-const uint32 GMaxSizeUAVDMA = 1024;
-static void ClearUAVShader(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, uint32 Size, uint32 Value)
+const uint32 GMaxSizeUAVDMA = 0;
+static void ClearUAVShader(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, uint32 SizeInBytes, uint32 ClearValue)
 {
+	UE_CLOG((SizeInBytes & 0x3) != 0, LogClearQuad, Warning,
+		TEXT("Buffer size is not a multiple of DWORDs. Up to 3 bytes after buffer end will also be cleared"));
+
 	TShaderMapRef<FClearBufferReplacementCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
+	
+	uint32 NumDWordsToClear = (SizeInBytes + 3) / 4;
+	uint32 NumThreadGroupsX = (NumDWordsToClear + 63) / 64;
+
 	RHICmdList.SetComputeShader(ShaderRHI);
-	ComputeShader->SetParameters(RHICmdList, UnorderedAccessViewRHI, Value);
-	uint32 NumDwords = (Size + 3) / 4;
-	uint32 NumThreads = (NumDwords + 63) / 64;
-	RHICmdList.DispatchComputeShader(NumThreads, 1, 1);
+	ComputeShader->SetParameters(RHICmdList, UnorderedAccessViewRHI, NumDWordsToClear, ClearValue);
+	RHICmdList.DispatchComputeShader(NumThreadGroupsX, 1, 1);
 	ComputeShader->FinalizeParameters(RHICmdList, UnorderedAccessViewRHI);
 }
 

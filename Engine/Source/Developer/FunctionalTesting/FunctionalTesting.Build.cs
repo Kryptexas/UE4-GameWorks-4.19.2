@@ -18,7 +18,8 @@ public class FunctionalTesting : ModuleRules
                 "RenderCore",
                 "AssetRegistry",
                 "RHI",
-                "UMG"
+                "UMG",
+				"AutomationController"
             }
         );
 
@@ -31,7 +32,7 @@ public class FunctionalTesting : ModuleRules
             }
         );
 
-        if (UEBuildConfiguration.bBuildEditor == true)
+        if (Target.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

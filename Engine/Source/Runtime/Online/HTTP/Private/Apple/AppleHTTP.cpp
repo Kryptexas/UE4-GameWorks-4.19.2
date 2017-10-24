@@ -420,6 +420,11 @@ float FAppleHttpRequest::GetElapsedTime()
 	return self;
 }
 
+- (void)dealloc
+{
+	[Response release];
+	[super dealloc];
+}
 
 -(void) connection:(NSURLConnection *)connection didSendBodyData:(NSInteger)bytesWritten totalBytesWritten:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
 {

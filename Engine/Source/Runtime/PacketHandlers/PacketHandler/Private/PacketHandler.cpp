@@ -2,11 +2,13 @@
 
 #include "PacketHandler.h"
 #include "PacketAudit.h"
+#include "EncryptionComponent.h"
 
 #include "Misc/ConfigCacheIni.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Package.h"
+#include "ConsoleManager.h"
 
 #include "HandlerComponentFactory.h"
 #include "ReliabilityHandlerComponent.h"
@@ -95,6 +97,20 @@ void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, boo
 		}
 	}
 
+	// Add encryption component, if configured.
+	FString EncryptionComponentName;
+	if (GConfig->GetString(TEXT("PacketHandlerComponents"), TEXT("EncryptionComponent"), EncryptionComponentName, GEngineIni))
+	{
+		static IConsoleVariable* const AllowEncryptionCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.AllowEncryption"));
+		if (AllowEncryptionCVar == nullptr || AllowEncryptionCVar->GetInt() != 0)
+		{
+			EncryptionComponent = StaticCastSharedPtr<FEncryptionComponent>(AddHandler(EncryptionComponentName, true));
+		}
+		else
+		{
+			UE_LOG(PacketHandlerLog, Warning, TEXT("PacketHandler encryption component is configured as %s, but it won't be used because the cvar net.AllowEncryption is false."), *EncryptionComponentName);
+		}
+	}
 
 	bool bEnableReliability = false;
 
@@ -295,6 +311,11 @@ void PacketHandler::IncomingHigh(FBitReader& Reader)
 void PacketHandler::OutgoingHigh(FBitWriter& Writer)
 {
 	// @todo #JohnB
+}
+
+TSharedPtr<FEncryptionComponent> PacketHandler::GetEncryptionComponent()
+{
+	return EncryptionComponent;
 }
 
 const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 CountBytes, bool bConnectionless, FString Address)

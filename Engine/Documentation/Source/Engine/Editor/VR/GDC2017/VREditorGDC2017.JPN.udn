@@ -1,240 +1,247 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: VR & Mesh Editor GDC 2017 Features Preview
+﻿INTSourceChangelist:3350329
+Availability:Public
+Title:GDC 2017 で紹介された VR と メッシュ エディタ機能
 Crumbs:
-Description:
+Description:GDC 2017 で紹介された VR と メッシュ エディタ機能のプレビュー
 Parent:Engine/Editor/VR
+type: reference
+order:1000
+topic-image:gdp_topic.png
 reference-image:snapping.gif
 reference-image:vr_contentBrowser.gif
 reference-image:vr_contextOption.gif
 reference-image:vr_radialMenu.gif
+prereq:Engine/Editor/VR/ActivateVRMode
+prereq:Engine/Editor/VR/Setup
+
+[TOC(start:1 end:4)]
 
 
-We are so excited about the latest additions to the VR Editor and Mesh Editor, we couldn't wait to get it into your hands! So, we have made the GDC 2017 Features Branch available in an experimental build through GitHub! This builds contains all of the VR Editor and Mesh Editor features demonstrated at the **State of Unreal** keynote at the 2017 Game Developers Conference.
+VR エディタとメッシュ エディタに最新の機能が追加されました。いち早く皆さんに使用して頂くために、GDC 2017 Features Branch を GitHub の実験的ビルドで利用できるようにしました！このビルドには、2017 Game Developers Conference の基調講演 **State of Unreal** でお披露目された VR エディタとメッシュ エディタの機能が豊富に含まれています。
 
 ![image alt text](image_0.gif)(h:320) ![](poly_extrude.png)(h:320) ![](poly_extrude_subd.png)(h:320)
 
 [REGION:note]
-The VR Editor and Mesh Editor are experimental features. For this particular release, features were tested exclusively on Windows, so there may be complications compiling for Mac or Linux.
+VR エディタおよびメッシュ エディタは実験的機能です。本リリース用に特別に Windows でテストしたので、Mac や Linux 用のコンパイルは難しかもしれません。
 [/REGION]
 
-## Major Features
+## 主要機能
 
-* Mesh Editor Mode enables manipulating Static Meshes within Unreal Editor, including using subdivision surfaces!
-* The Sequencer non-linear editing tool is now available in VR Mode
-* Redesigned Radial Menu with context sensitive actions
-* Smart Snapping allows for quickly and accurately placing objects relative to other assets in the level
-* Ability to save Static Mesh changes made during Simulate Mode
+* Mesh Editor モードで、アンリアル エディタ内でのサブビジョン サーフェスを含むスタティックメッシュの操作が可能になりました。
+* シーケンサー ノンリニア編集ツールが VR モードで利用できるようになりました。
+* ラジアル メニューが状況に応じて変化するように変更されました。
+* Smart Snapping により、レベル内の他のアセットに関連するオブジェクトを迅速かつ正確に配置できるようになりました。
+* シミュレーション モードでスタティックメッシュの変更を保存できるようになりました。
 
-## Downloading the Dev-Geometry GDC 2017 Features Branch
+## DDev-Geometry GDC 2017 Features Branch のダウンロード方法
 
-To download the Dev-Geometry GDC 2017 Features Branch:
+Dev-Geometry GDC 2017 Features Branch をダウンロードするには以下の操作を行います。
 
 1. [Associated your GitHub account with your EpicID](https://www.unrealengine.com/ue4-on-github). 
 
-1. Download the build from our GitHub repository: [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry)
+1. GitHub レポジトリ: [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry) からビルドをダウンロードします。
 
-1. [Compile](Programming/Development/BuildingUnrealEngine) and [run Unreal Editor](GettingStarted/RunningUnrealEngine).
+1. [コンパイル](Programming/Development/BuildingUnrealEngine) して [アンリアル エディタを実行](GettingStarted/RunningUnrealEngine) します。
 
 
-## Mesh Editor
+## メッシュ エディタ
 
-The **Mesh Editor** mode is a new geometry editing toolset designed to enable designers to quickly create and modify Static Mesh geometry in the Level Editor viewport. In addition to a low-poly toolset, Mesh Editor mode adds the ability to work with subdivision surfaces, enabling artists and designers to create smooth, organic surfaces directly in Unreal Editor.
+**Mesh Editor** モードは、デザイナーがレベル エディタ ビューポートでスタティックメッシュ ジオメトリを迅速に作成および修正できるようにデザインされた、新しいジオメトリ編集ツールセットです。低ポリゴン ツールセットに加えて、Mesh Editor モードはサブディビジョン サーフェスと使用できるようになりました。アーティストとデザイナーは、スムーズで有機質のサーフェスをアンリアル エンジンに直接作成できます。
 
 ![](poly_extrude.png) ![](poly_extrude_subd.png)
 [REGION:note]
-The Mesh Editor mode is an extremely early access feature.
+Mesh Editor モードは究極の早期アクセス機能です。
 [/REGION]
 
-To edit a mesh using the Mesh Editor mode:
+Mesh Editor モードを使ってメッシュを編集する手順を説明します。
 
-1. In the **Modes** panel, select the **Mesh Editor** mode.
+1. **[Modes]** パネルの **[Mesh Editor]** を選択します。
 
-1. Choose an editing mode depending on what elements - Vertices, Edges, Polygons, All - of the mesh you want to edit.
+1. 編集するメッシュのエレメント (頂点、エッジ、ポリゴン、すべて) に合った編集モードを選択します。
 
-1. Select a mesh in the viewport. The elements corresponding to the mode highlight when the cursor is over them.
+1. ビューポートでメッシュを選択します。カーソルを当てると、そのモードに対応するエレメントが強調表示されます。
 
-1. Select an element to edit it.
+1. 編集するエレメントを選択します。
 
 
-### Selection Modes
+### 選択モード
 
-#### Vertices
+#### 頂点 (Vertices)
 
-The **Vertices** selection mode limits editing to vertices of the mesh.
+**Vertices** 選択モードでは、編集対象がメッシュの頂点のみとなります。
 
 ![](vert_mode.png)(w:400)
 
-### Vertex Tools
+### 頂点ツール
 
 [REGION:imagetable]
 | ![](vert_move.png)(w:295) | ![](vert_extend.png)(w:295) |
 | --- | --- |
-| Move | Extend |
+| 移動 | 拡張 |
 [/REGION]
 
-#### Edges
+#### エッジ (Edge)
 
-The **Edges** selection mode limits editing to edges of the mesh.
+**Edges** 選択モードでは、編集対象がメッシュのエッジのみとなります。
 
 ![](edge_mode.png)(w:400)
 
-### Edge Tools
+### エッジ ツール
 
 [REGION:imagetable]
 | ![](edge_move.png)(w:235) | ![](edge_split.png)(w:235) | ![](edge_split_drag.png)(w:235) | ![](edge_loop.png)(w:235) | ![](edge_extend.png)(w:235) |
 | --- | --- | --- | --- | --- |
-| Move | Split | Split and Drag Vert | Add Loop | Extend |
+| 移動 | 分割 | 頂点を分割してドラッグ | ループを追加 | 拡張 |
 [/REGION]
 
-#### Polygons
+#### ポリゴン (Polygons)
 
-The **Polygon** selection mode limits editing to polygon faces of the mesh.
+**Polygon** 選択モードでは、編集対象がメッシュのポリゴンのみとなります。
 
 ![](poly_mode.png)(w:400)
 
-### Polygon Tools
+### ポリゴン ツール
 
 [REGION:imagetable]
 | ![](poly_move.png)(w:295) | ![](poly_extrude.png)(w:295) | ![](poly_inset.png)(w:295) | ![](poly_bevel.png)(w:295)
 | --- | --- | --- | --- |
-| Move | Extrude | Inset | Bevel |
+| 移動 | 押出 | 挿入 | 傾斜 |
 [/REGION]
 
-#### Any
+#### 自由に編集 (Any)
 
-The **Any** selection mode changes to match the selected element - Vertex, Edge, Polygon, etc. This is essentially a free editing mode that enables you to quickly jump between the other modes just by selecting a different type of element.
+**Any** 選択モードは、頂点、エッジ、ポリゴンなど選択したエレメントと一致するにように変更します。基本的にこれは自由な編集モードです。別のタイプのエレメントを選択するだけで異なるモードへすぐに切り替えることができます。
 
 [REGION:imagetable]
 | ![](vert_mode.png)(w:295) | ![](edge_mode.png)(w:295) | ![](poly_mode.png)(w:295)
 | --- | --- | --- |
-| Vertices | Edges | Polygons |
+| 頂点 | エッジ | ポリゴン |
 [/REGION]
 
-### Source vs Instance
+### ソース vs インスタンス
 
-Mesh editing can be done on a per-instance basis, which only affects the mesh of the placed Actor in the level; or editing can be applied directly to the source mesh asset, propagating changes you make to all instances of that mesh asset. By default, editing is applied to the source mesh asset. To enable per-instance editing, press the **Per Instance** button in the Mesh Editor mode panel.
+Mesh 編集は、レベル内に配置されたアクタのメッシュだけに反映させるインスタンス ベースで行ったり、ソース メッシュ アセットへ直接適用してそのメッシュ アセットのすべてのインスタンスに変更を伝播することができます。デフォルトでは、編集はソース メッシュアセットに適用されています。インスタンス単位で編集を有効にするためには、[Mesh Editor] モード パネルの **[Per Instance (インスタンス単位)]** ボタンを押します。
 
 ![](per_instance.png)
 
-### Subdivision Surfaces
+### サブディビジョン サーフェス
 
-Add or Remove Subdivisions from any of the four submodes
+4 種類のどのサブモードからもサブディビジョンの追加あるいは削除が可能になります。
 
-#### Subdivision Levels
+#### サブディビジョン レベル
 
 [REGION:imagetable]
 | ![](mesh_subd_0.png)(w:295) | ![](mesh_subd_1.png)(w:295) | ![](mesh_subd_2.png)(w:295) | ![](mesh_subd_3.png)(w:295) |
 | --- | --- | --- | --- |
-| Original | SubD Level 1 | SubD Level 2 |  SubD Level 3 |
+| 原型 | SubD レベル 1 | SubD レベル 2 |  SubD レベル 3 |
 [/REGION]
 
-#### Editing Tools with Subdivision Surfaces
+#### サブディビジョン サーフェスを使った編集ツール
 
-The editing tools always act on the elements of the low-poly mesh, and the subdivision is applied on top of those edits.
+編集ツールは常に低ポリゴン メッシュのエレメントで機能し、これらの編集の上にサブディビジョンが適用されます。
 
 [REGION:imagetable]
 | ![](poly_inset.png)(w:295) | ![](poly_extrude.png)(w:295) | ![](poly_inset_subd.png)(w:295) | ![](poly_extrude_subd.png)(w:295) |
 | --- | --- | --- | --- |
-| Inset | Extrude | Inset w/ SubD |  Extrude w/ SubD |
+| 挿入 | 押出 | SubD で挿入 |  SubD で押出 |
 [/REGION]
 
-#### Corner Sharpness
+#### コーナーのシャープさ
 
-Corner sharpness enables you to control how closely the subdivision surface follows the low-poly mesh at specific locations, which provides the ability to create hard edges on subdivision surfaces.
+コーナーのシャープさを調節することで、特定の位置で低ポリゴン メッシュからのサブディビジョン サーフェスの距離を近づけて、サブディビジョン サーフェス上にハード エッジを作成することができます。
 
 [REGION:imagetable]
-| Vertex Sharpness |||
+| 頂点 |||
 | --- | --- | --- |
 | ![](vert_sharp_0.png)(w:295) | ![](vert_sharp_1.png)(w:295) | ![](vert_sharp_2.png)(w:295)
-| Soft | Sharper | Sharpest |
+| ソフト | シャープ | 非常にシャープ |
 [/REGION]
 
 
 [REGION:imagetable]
-| Edge Sharpness |||
+| エッジ |||
 | --- | --- | --- |
 | ![](edge_sharp_0.png)(w:295) | ![](edge_sharp_1.png)(w:295) | ![](edge_sharp_2.png)(w:295)
-| Soft | Sharper | Sharpest |
+| ソフト | シャープ | 非常にシャープ |
 [/REGION]
 
-## VR Editor Controls
+## VR エディタの調節方法
 
-VR Mode is enabled by default in this build, and you can enter with the hotkey (**Alt + ~**) or via the button on the Level Editor Toolbar. In addition, auto-entry will take you into VR Mode when the Oculus or Vive Headset is on.
+このビルドでは VR モードはデフォルトで有効にされています。ホットキー (**Alt + ~**) またはレベル エディタ ツールバーのボタンでも有効にできます。さらに、Oculus または Vive ヘッドセットを装着すると、自動入力で VR モードに切り替わります。
 
-[REGION:note]Auto-entry can be enabled or disabled in the **Editor Preferences** under **Experimental > VR Editor**.[/REGION]
+[REGION:note]自動入力は、**[Editor Preferences (エディタの環境設定)]** の **[Experimental (実験的機能)] > [VR Editor]** で有効 / 無効の切り替えができます。[/REGION]
 
-Controllers are now Asynchronous on both Vive and Oculus. The left controller is used for access to menus and options, while the right controller is used to select and manipulate items.
+コントローラーが Vive と Oculus の両方で非同期式になりました。左のコントローラーはメニューとオプションのアクセス、右のコントローラーはアイテムの選択および操作に使用します。
 
 ![](controllers.png)(w:640)
 
-Teleportation no longer grays out the world and automatically resets the World Scale back to 1:1.
+テレポーテーションによるワールドのグレーアウトがなくなり、ワールドスケールが自動的に 1:1 に戻るようになりました。
 
-Half-trigger press options have been removed. Interacting with the world is now done via full trigger presses.
+トリガーの半押しオプションを削除しました。トリガーの全押しでワールドとインタラクションするようになりました。
 
-**OCULUS ONLY**: A "hard reset / Panic Button" has been added. Clicking in the left thumbstick will perform the following actions at once:
+**OCULUS のみに適用**:ハードリセット / パニックボタンが追加されました。左のサムスティックをクリックすると、以下のアクションが同時に行われます。
 
-* Deselect all selected items
-* Close all open windows / Asset Editors
-* Cancel Simulate 
-* Place the user in Actor / Selection Mode
+* すべての選択項目を解除する
+* すべての開いているウィンドウ / アセット エディタを終了する
+* シミュレーションをキャンセルする 
+* Actor / Selection モードでユーザーを配置する
 
-Options to Undo/Redo have been assigned to the right thumbstick/touchpad.
-
-[REGION:simpletable]
-| Command | Action |
-| --- | --- |
-| Undo | Press left on the thumbstick/touchpad |
-| Redo | Press right on the thumbstick/touchpad |
-[/REGION]
-
-Options to quickly place an asset currently selected in the Content Browser have been assigned to the right thumbstick / touchpad. This functionality is also present in Simulate mode.
-
-With an asset selected in the Content Browser:
+Undo/Redo への出力が、右サムスティック / タッチパッドに割り当てられました。
 
 [REGION:simpletable]
-| Platform | Action |
+| コマンド | アクション |
 | --- | --- |
-| **Oculus** | Press and hold Up on the right thumbstick. Click in the world with the right trigger. |
-| **Vive** | Click and hold Up on the right touchpad. Click in the world with the right trigger. |
+| **アンドゥ** | サムスティック/ タッチパッドの左を押します。 |
+| **リドゥ** | サムスティック/ タッチパッドの右を押します。 |
 [/REGION]
 
-Transformation Gizmos have been updated for consistency with Desktop Editor.
+コンテンツ ブラウザで選択されているアセットをすぐに配置するオプションがサムスティック/ タッチパッドに割り当てられました。この機能は Simulate モードにも付いています。
 
-Rotation Gizmo now has an indicator for the asset's original position.
+コンテンツ ブラウザで選択されたアセットへの操作を説明します。
 
-## Editor Windows
+[REGION:simpletable]
+| プラットフォーム | アクション |
+| --- | --- |
+| **Oculus** | 右サムスティックを押して上にあげます。右トリガーでワールドをクリックします。 |
+| **Vive** | 右タッチパッドをクリックして押し上げます。右トリガーでワールドをクリックします。 |
+[/REGION]
 
-Windows are no longer docked to the Controller when opened. Instead, they open slightly offset from the left controller. The Close button is now nested beside the interaction bar underneath each window
+変形ギズモがデスクトップ エディタに整合するように更新されました。
 
-When opening a window, if you keep the trigger depressed, you will see a preview of where the window will be placed.
+回転ギズモにアセットの元の位置のインジケータが付きました。
+
+## エディタのウィンドウ
+
+ウィンドウが開くと、コントローラーとドッキングはされなくなりました。その代わり、左のコントローラーから若干ずれて開くようになりました。[Close] ボタンが各ウィンドウの下にあるインタラクション バーのそばにネスティングされるようになりました。
+
+ウィンドウが開いた時にトリガーが押されたままの状態だと、ウィンドウが配置される場所のプレビューが表示されます。
 
 [REGION:asyncgif]
 ![](vr_contentBrowser.gif)(w:322)
 [/REGION]
 
 [REGION:note]
-The **Toggle All UI** option has been removed.
+**[Toggle All UI]** オプションが削除されました。
 [/REGION]
 
-## Radial Menu
+## ラジアル メニュー
 
-The new Radial Menu provides a redesigned interface that enables the user to quickly reach all functions of VR Mode, including the Modes Panels, Asset Editors, Simulate and Play in VR, consolidating the functionality of the old Radial Menu and the Quick Menu into one intuitive user interface.
-	
+ラジアル メニューのインターフェースが一新されて、ユーザーはモード パネル、アセット エディタ、VR でのシミュレーションとプレイを含むすべての VR モードをすぐに使えるようになりました。
+
 [REGION:asyncgif]
 ![](vr_radialMenu.gif)(w:388)
 [/REGION]
 
-**To open the Radial Menu:**
+**ラジアル メニューは開き方を説明します。**
 
 [REGION:simpletable]
-| Platform | Action |
+| プラットフォーム | アクション |
 | --- | --- |
-| **Oculus** | Interact with the left thumbstick |
-| **Vive** | Interact with the left touchpad |
+| **Oculus** | 左サムスティックとインタラクトします。 |
+| **Vive** | 右タッチパッドとインタラクトします。 |
 [/REGION]
 
-A context-sensitive option has been added to the Radial Main Menu. This menu option offers quick access to additional features available within different tools.
+状況に合わせたオプションがラジアル メイン メニューに追加されました。このメニュー オプションにより、他のツールで利用できる追加機能へのクイックアクセスが可能になります。
 
 [REGION:asyncgif]
 ![](vr_contextOption.gif)(w:344)

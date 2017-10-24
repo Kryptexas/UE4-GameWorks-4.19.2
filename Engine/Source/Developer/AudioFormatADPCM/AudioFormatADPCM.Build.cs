@@ -8,7 +8,7 @@ public class AudioFormatADPCM : ModuleRules
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 		PrivateDependencyModuleNames.Add("Core");
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 		}

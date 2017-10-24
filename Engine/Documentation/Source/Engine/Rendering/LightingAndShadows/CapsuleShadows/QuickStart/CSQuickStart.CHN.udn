@@ -1,67 +1,33 @@
-﻿INTSourceChangelist:0
-Availability:docs
-Title: Capsule Shadows Quick Start
-Crumbs: %ROOT%, Engine
-Description:A guide to quickly get up and running with the Sequencer Editor in Unreal Engine 4. 
-Navigation:topic
-parent:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\
+﻿INTSourceChangelist:3454749
+Availability:Public
+Title:胶囊体阴影快速入门
+Crumbs:
+Description:虚幻引擎 4 Sequencer 编辑器的快速上手指南。 
+parent:Engine/Rendering/LightingAndShadows/CapsuleShadows
 order:1
-Version: 4.14
+Version:4.15
 type:quick start
 checkpoint:capsuleshadowsqs
+tags:Lighting
+topic-image:QS_topic_image.png
+SkillLevel:Intermediate
 
+[REGION:imagetable]
+![](QS_CapsuleShadow.png)(w:700)  
+在此指南的最后，您将获得如上的场景。
+[/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](sequencerQS_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%EEngine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\]
-	[/PARAM]
-	[PARAM:description]
-	%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+## 目标
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](sequencerQS_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\]
-	[/PARAM]
-	[PARAM:description]
-	%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+胶囊体阴影快速入门助您迅速了解用物理资源创建角色胶囊体代表物、以及在不同光照环境下为游戏角色启用胶囊体阴影的基础要点。 
 
+## 目的
 
-![](QS_CapsuleShadow.png)(w:700)
+在此教程的学习中，开发者将了解以下内容： 
 
-_At the end of this guide, you'll have a scene similar to the one above._
-
-
-## Goals
-
-The Capsule Shadows Quick Start Guide aims to quickly get you up and running with the basics of creating a capsule representation of your characters with a Physics Asset in Unreal Engine 4.
-
-## Objectives
-
-After going through this tutorial, developers will know the following: 
-
-* How to create a Physics Asset for shadows.
-* How to assign the Shadow Physics Asset to your Skeletal Mesh.
-* How to enable Capsule Shadows in your level for your characters.
+* 如何为阴影创建物理资源。
+* 如何将阴影物理资源指定到骨架网格体。
+* 如何在关卡中为角色启用胶囊体阴影。
 
 
 [OBJECT:TopicList]
@@ -69,15 +35,15 @@ After going through this tutorial, developers will know the following:
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1" org:"hierarchy")]
+	[DIR(output:"checkpoint" parent:"Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1 "%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1:title%")
+	[Click to Start](Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart/1 "%Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart/1:title%")
 [/REGION]

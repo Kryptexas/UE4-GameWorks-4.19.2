@@ -20,6 +20,7 @@
 #include "Net/RepLayout.h"
 #include "ProfilingDebugging/ScopedTimers.h"
 #include "GameFramework/GameStateBase.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if WITH_EDITOR
 #include "UObject/ObjectRedirector.h"
@@ -249,6 +250,8 @@ bool UPackageMapClient::WriteObject( FArchive& Ar, UObject* ObjOuter, FNetworkGU
  */
 bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor)
 {
+	LLM_SCOPE(ELLMTag::EngineMisc);
+
 	UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "SerializeNewActor START" ) );
 
 	uint8 bIsClosingChannel = 0;
@@ -2056,6 +2059,8 @@ FNetworkGUID FNetGUIDCache::AssignNewNetGUID_Server( const UObject* Object )
 
 void FNetGUIDCache::RegisterNetGUID_Internal( const FNetworkGUID& NetGUID, const FNetGuidCacheObject& CacheObject )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	// We're pretty strict in this function, we expect everything to have been handled before we get here
 	check( !ObjectLookup.Contains( NetGUID ) );
 
@@ -2308,6 +2313,8 @@ static bool ObjectLevelHasFinishedLoading( UObject* Object, UNetDriver* Driver )
 
 UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	if ( !ensure( NetGUID.IsValid() ) )
 	{
 		return NULL;

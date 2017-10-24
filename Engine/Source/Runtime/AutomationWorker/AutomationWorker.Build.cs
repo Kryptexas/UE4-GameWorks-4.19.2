@@ -28,7 +28,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePathModuleNames.AddRange(
 				new string[]
 				{
-					"Messaging",
+					"MessagingCommon",
 				}
 			);
 
@@ -39,7 +39,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (UEBuildConfiguration.bCompileAgainstEngine)
+			if (Target.bCompileAgainstEngine)
 			{
 				PrivateDependencyModuleNames.Add("Engine");
 				PrivateDependencyModuleNames.Add("RHI");

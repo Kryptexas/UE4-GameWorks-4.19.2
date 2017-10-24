@@ -7,6 +7,7 @@
 #include "Misc/AssertionMacros.h"
 #include "Templates/EnableIf.h"
 #include "Templates/IsEnumClass.h"
+#include "Templates/Function.h"
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
@@ -16,6 +17,7 @@ class FCustomVersionContainer;
 class ITargetPlatform;
 struct FUntypedBulkData;
 template<class TEnum> class TEnumAsByte;
+typedef TFunction<bool (double RemainingTime)> FExternalReadCallback;
 
 
 // Temporary while we shake out the EDL at boot
@@ -226,25 +228,25 @@ public:
 	 * @param Value The value to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(class FLazyObjectPtr& Value);
+	virtual FArchive& operator<<(struct FLazyObjectPtr& Value);
 	
 	/**
 	 * Serializes asset pointer from or into this archive.
 	 *
-	 * Most of the time, FAssetPtrs are serialized as UObject *, but some archives need to override this.
+	 * Most of the time, FSoftObjectPtr are serialized as UObject *, but some archives need to override this.
 	 *
 	 * @param Value The asset pointer to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(class FAssetPtr& Value);
+	virtual FArchive& operator<<(struct FSoftObjectPtr& Value);
 
 	/**
-	 * Serializes string asset reference from or into this archive.
+	 * Serializes soft object paths from or into this archive.
 	 *
 	 * @param Value String asset reference to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(struct FStringAssetReference& Value);
+	virtual FArchive& operator<<(struct FSoftObjectPath& Value);
 
 	/**
 	* Serializes FWeakObjectPtr value from or into this archive.
@@ -1223,6 +1225,13 @@ public:
 		SerializedProperty = InProperty;
 	}
 
+	/** 
+	 * Adds external read dependency 
+	 *
+	 * @return true if dependency has been added, false if Archive does not support them
+	 */
+	virtual bool AttachExternalReadDependency(FExternalReadCallback& ReadCallback) { return false; };
+
 #if WITH_EDITORONLY_DATA
 	/** Pushes editor-only marker to the stack of currently serialized properties */
 	FORCEINLINE void PushEditorOnlyProperty()
@@ -1454,8 +1463,9 @@ private:
 	/**
 	* All the custom versions stored in the archive.
 	* Stored as a pointer to a heap-allocated object because of a 3-way dependency between TArray, FCustomVersionContainer and FArchive, which is too much work to change right now.
+	* Keeping it as a heap-allocated object also helps with performance in some cases as we don't need to construct it for archives that don't care about custom versions.
 	*/
-	FCustomVersionContainer* CustomVersionContainer;
+	mutable FCustomVersionContainer* CustomVersionContainer;
 
 public:
 

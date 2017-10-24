@@ -35,6 +35,9 @@
 !*.exp
 !*.manifest
 
+# Re-ignore vs host manifest
+*.vshost.exe.manifest
+
 # Java source files
 !*.java
 !*.java.template
@@ -144,6 +147,9 @@
 Engine/Binaries/DotNET/UnrealBuildTool.xml
 Engine/Binaries/DotNET/AutomationScripts/BuildGraph.Automation.xml
 
+# Ignore version files in the Engine/Binaries directory created by UBT
+/Engine/Binaries/**/*.version
+
 # Ignore content folders
 Content/
 
@@ -162,3 +168,5 @@ Saved/
 # Explcitly ignore Mac DS_Store files, regardless of where they are
 .DS_Store
 
+# Ignore VS / VS Code settings directory
+.vs

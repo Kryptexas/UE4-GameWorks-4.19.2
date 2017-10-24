@@ -27,3 +27,10 @@ void UMovieSceneUserThumbnailSettings::PostEditChangeProperty(FPropertyChangedEv
 
 	SaveConfig();
 }
+
+UMovieSceneUserImportFBXSettings::UMovieSceneUserImportFBXSettings(const FObjectInitializer& Initializer)
+	: Super(Initializer)
+{
+	bForceFrontXAxis = false;
+	bCreateCameras = true;
+}

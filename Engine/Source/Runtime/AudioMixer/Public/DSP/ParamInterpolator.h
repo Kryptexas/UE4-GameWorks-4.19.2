@@ -6,36 +6,66 @@
 
 namespace Audio
 {
-
-	/**
-	* FParamInterpolator
-	* Simple parameter interpolator which interpolates to target values
-	* in the given the required number of update ticks.
-	*/
-	class FParamInterpolator
+	class FParam
 	{
 	public:
+		FParam()
+			: CurrentValue(0.0f)
+			, StartingValue(0.0f)
+			, TargetValue(0.0f)
+			, DeltaValue(0.0f)
+			, bIsInit(true)
+		{}
 
-		FParamInterpolator();
-		virtual ~FParamInterpolator();
+		// Set the parameter value to the given target value over the given interpolation frames.
+		FORCEINLINE void SetValue(const float InValue, const int32 InNumInterpFrames = 0)
+		{
+			TargetValue = InValue;
+			if (bIsInit || InNumInterpFrames == 0)
+			{
+				bIsInit = false;
+				StartingValue = TargetValue;
+				CurrentValue = TargetValue;
+				DeltaValue = 0.0f;
+			}
+			else
+			{
+				DeltaValue = (InValue - CurrentValue) / InNumInterpFrames;
+				StartingValue = CurrentValue;
+			}
+		}
 
-		/** Initialize the value. */
-		void InitValue(const float InValue);
+		FORCEINLINE void Init()
+		{
+			bIsInit = true;
+		}
 
-		/** Set the target value to interpolate to in the given number of update ticks. */
-		void SetValue(const float InValue, const uint32 InNumInterpolationTicks);
+		// Resets the delta value back to 0.0. To be called at beginning of callback render.
+		FORCEINLINE void Reset()
+		{
+			DeltaValue = 0.0f;
+			CurrentValue = TargetValue;
+		}
 
-		/** Returns the current value without updating the tick. */
-		float GetValue() const;
+		// Updates the parameter, assumes called in one of the frames.
+		FORCEINLINE float Update()
+		{
+			CurrentValue += DeltaValue;
+			return CurrentValue;
+		}
 
-		/** Functor operator to generate new output value. */
-		virtual float operator()();
+		// Returns the current value, but does not update the value
+		FORCEINLINE float GetValue() const
+		{
+			return CurrentValue;
+		}
 
-	protected:
-		float StartValue;
-		float EndValue;
-		float CurrentTick;
-		float NumTicksToNewValue;
+	private:
+		float CurrentValue;
+		float StartingValue;
+		float TargetValue;
+		float DeltaValue;
+		bool bIsInit;
 	};
 
 }

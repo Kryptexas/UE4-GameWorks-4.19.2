@@ -644,7 +644,7 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 	if (MoveComp)
 	{
 		const FNavAgentProperties& NavAgentProps = MoveComp->GetNavAgentPropertiesRef();
-		MyDefaultAcceptanceRadius = NavAgentProps.AgentRadius;
+		MyDefaultAcceptanceRadius = NavAgentProps.AgentRadius * 0.1f;
 		MoveComp->PathFollowingComp = this;
 
 		UWorld* MyWorld = GetWorld();
@@ -1161,7 +1161,7 @@ bool UPathFollowingComponent::HasReachedInternal(const FVector& GoalLocation, fl
 	const FVector ToGoal = GoalLocation - AgentLocation;
 
 	const float Dist2DSq = ToGoal.SizeSquared2D();
-	const float UseRadius = FMath::Max(RadiusThreshold, GoalRadius + (AgentRadius * AgentRadiusMultiplier));
+	const float UseRadius = RadiusThreshold + GoalRadius + (AgentRadius * AgentRadiusMultiplier);
 	if (Dist2DSq > FMath::Square(UseRadius))
 	{
 		return false;
@@ -1217,19 +1217,12 @@ float UPathFollowingComponent::GetFinalAcceptanceRadius(const FNavigationPath& P
 
 		const float PathEndToGoalDistance = FVector::Dist(PathEndOverride ? *PathEndOverride : PathInstance.GetEndLocation(), OriginalGoalLocation);
 		const float Remaining = AcceptanceRadius - PathEndToGoalDistance;
-
-		if (Remaining <= MyDefaultAcceptanceRadius)
-		{
-			// goal is more than AcceptanceRadius from the end of the path
-			// so we just need to do regular path following, with default 
-			// acceptance radius
-			return  MyDefaultAcceptanceRadius;
-		}
-		else
-		{
-			return Remaining;
-		}
+		
+		// if goal is more than AcceptanceRadius from the end of the path
+		// we just need to do regular path following, with default radius value
+		return FMath::Max(Remaining, MyDefaultAcceptanceRadius);
 	}
+
 	return AcceptanceRadius;
 }
 

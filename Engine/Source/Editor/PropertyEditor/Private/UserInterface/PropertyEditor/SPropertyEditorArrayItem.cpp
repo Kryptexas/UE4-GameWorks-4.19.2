@@ -50,10 +50,21 @@ bool SPropertyEditorArrayItem::Supports( const TSharedRef< class FPropertyEditor
 	const TSharedRef< FPropertyNode > PropertyNode = PropertyEditor->GetPropertyNode();
 	const UProperty* Property = PropertyEditor->GetProperty();
 
-	return !Cast<const UClassProperty>( Property ) &&
-		Cast<const UArrayProperty>( Property->GetOuter() ) &&
-		PropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly) &&
-		!(Cast<const UArrayProperty>(Property->GetOuter())->PropertyFlags & CPF_EditConst);
+	if (!Cast<const UClassProperty>(Property) && PropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly))
+	{
+		if (Cast<const UArrayProperty>(Property->GetOuter()) &&
+			!(Cast<const UArrayProperty>(Property->GetOuter())->PropertyFlags & CPF_EditConst))
+		{
+			return true;
+		}
+
+		if (Cast<const UMapProperty>(Property->GetOuter()) &&
+			!(Cast<const UMapProperty>(Property->GetOuter())->PropertyFlags & CPF_EditConst))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FText SPropertyEditorArrayItem::GetValueAsString() const

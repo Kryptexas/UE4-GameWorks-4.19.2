@@ -1,9 +1,9 @@
-Availability:Docs
+Availability:Public
 Title:Add Items
 Description:Adds items from a specified Array to a Set.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+Order:2
 Version: 4.15
 Tags:Blueprints
 Type:reference

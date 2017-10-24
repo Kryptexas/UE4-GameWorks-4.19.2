@@ -136,12 +136,12 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 	// Save and Intermediate directories are always local
 	LocalDirectories.Add(FPaths::EngineDir() / TEXT("Binaries"));
 	LocalDirectories.Add(FPaths::EngineIntermediateDir());
-	LocalDirectories.Add(FPaths::GameDir() / TEXT("Binaries"));
-	LocalDirectories.Add(FPaths::GameIntermediateDir());
-	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Backup"));
-	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Config"));
-	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Logs"));
-	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Sandboxes"));
+	LocalDirectories.Add(FPaths::ProjectDir() / TEXT("Binaries"));
+	LocalDirectories.Add(FPaths::ProjectIntermediateDir());
+	LocalDirectories.Add(FPaths::ProjectSavedDir() / TEXT("Backup"));
+	LocalDirectories.Add(FPaths::ProjectSavedDir() / TEXT("Config"));
+	LocalDirectories.Add(FPaths::ProjectSavedDir() / TEXT("Logs"));
+	LocalDirectories.Add(FPaths::ProjectSavedDir() / TEXT("Sandboxes"));
 
 	if (InnerPlatformFile->GetLowerLevel())
 	{
@@ -775,14 +775,14 @@ void FNetworkPlatformFile::GetFileInfo(const TCHAR* Filename, FFileInfo& Info)
 
 void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert)
 {
-	FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FilenameToConvert, ServerEngineDir, ServerGameDir);
+	FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FilenameToConvert, ServerEngineDir, ServerProjectDir);
 }
 
 void FNetworkPlatformFile::FillGetFileList(FNetworkFileArchive& Payload)
 {
 	TArray<FString> TargetPlatformNames;
 	FPlatformMisc::GetValidTargetPlatforms(TargetPlatformNames);
-	FString GameName = FApp::GetGameName();
+	FString GameName = FApp::GetProjectName();
 	if (FPaths::IsProjectFilePathSet())
 	{
 		GameName = FPaths::GetProjectFilePath();
@@ -790,8 +790,8 @@ void FNetworkPlatformFile::FillGetFileList(FNetworkFileArchive& Payload)
 
 	FString EngineRelPath = FPaths::EngineDir();
 	FString EngineRelPluginPath = FPaths::EnginePluginsDir();
-	FString GameRelPath = FPaths::GameDir();
-	FString GameRelPluginPath = FPaths::GamePluginsDir();
+	FString GameRelPath = FPaths::ProjectDir();
+	FString GameRelPluginPath = FPaths::ProjectPluginsDir();
 
 	TArray<FString> Directories;
 	Directories.Add(EngineRelPath);
@@ -818,12 +818,12 @@ void FNetworkPlatformFile::ProcessServerInitialResponse(FArrayReader& InResponse
 
 	// receive the server engine and game dir
 	InResponse << ServerEngineDir;
-	InResponse << ServerGameDir;
+	InResponse << ServerProjectDir;
 
 	UE_LOG(LogNetworkPlatformFile, Display, TEXT("    Server EngineDir = %s"), *ServerEngineDir);
 	UE_LOG(LogNetworkPlatformFile, Display, TEXT("     Local EngineDir = %s"), *FPaths::EngineDir());
-	UE_LOG(LogNetworkPlatformFile, Display, TEXT("    Server GameDir   = %s"), *ServerGameDir);
-	UE_LOG(LogNetworkPlatformFile, Display, TEXT("     Local GameDir   = %s"), *FPaths::GameDir());
+	UE_LOG(LogNetworkPlatformFile, Display, TEXT("    Server ProjectDir   = %s"), *ServerProjectDir);
+	UE_LOG(LogNetworkPlatformFile, Display, TEXT("     Local ProjectDir   = %s"), *FPaths::ProjectDir());
 
 	// Receive a list of files and their timestamps.
 	TMap<FString, FDateTime> ServerFileMap;
@@ -1022,7 +1022,7 @@ void AsyncWriteFile(FArchive* Archive, const FString& Filename, FDateTime Server
 	(new FAutoDeleteAsyncTask<FAsyncNetworkWriteWorker>(*Filename, Archive, ServerTimeStamp, &InnerPlatformFile, Event))->StartBackgroundTask();
 }
 
-void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile, FString& InServerEngineDir, FString& InServerGameDir, FScopedEvent *InNetworkDoneEvent, FScopedEvent *InWritingDoneEvent)
+void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile, FString& InServerEngineDir, FString& InServerProjectDir, FScopedEvent *InNetworkDoneEvent, FScopedEvent *InWritingDoneEvent)
 {
 	class FAsyncReadUnsolicitedFile : public FNonAbandonableTask
 	{
@@ -1031,16 +1031,16 @@ void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile&
 		FNetworkPlatformFile& NetworkFile;
 		IPlatformFile& InnerPlatformFile;
 		FString ServerEngineDir;
-		FString ServerGameDir;
+		FString ServerProjectDir;
 		FScopedEvent* NetworkDoneEvent; // finished using the network
 		FScopedEvent* WritingDoneEvent; // finished writing the files to disk
 
-		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, IPlatformFile* In_InnerPlatformFile, FString& In_ServerEngineDir, FString& In_ServerGameDir, FScopedEvent *In_NetworkDoneEvent, FScopedEvent *In_WritingDoneEvent )
+		FAsyncReadUnsolicitedFile(int32 In_NumUnsolictedFiles, FNetworkPlatformFile* In_NetworkFile, IPlatformFile* In_InnerPlatformFile, FString& In_ServerEngineDir, FString& In_ServerProjectDir, FScopedEvent *In_NetworkDoneEvent, FScopedEvent *In_WritingDoneEvent )
 			: NumUnsolictedFiles(In_NumUnsolictedFiles)
 			, NetworkFile(*In_NetworkFile)
 			, InnerPlatformFile(*In_InnerPlatformFile)
 			, ServerEngineDir(In_ServerEngineDir)
-			, ServerGameDir(In_ServerGameDir)
+			, ServerProjectDir(In_ServerProjectDir)
 			, NetworkDoneEvent(In_NetworkDoneEvent)
 			, WritingDoneEvent(In_WritingDoneEvent)
 		{
@@ -1063,7 +1063,7 @@ void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile&
 
 				if (!UnsolictedReplyFile.IsEmpty())
 				{
-					FNetworkPlatformFile::ConvertServerFilenameToClientFilename(UnsolictedReplyFile, ServerEngineDir, ServerGameDir);
+					FNetworkPlatformFile::ConvertServerFilenameToClientFilename(UnsolictedReplyFile, ServerEngineDir, ServerProjectDir);
 					// get the server file timestamp
 					FDateTime UnsolictedServerTimeStamp;
 					*UnsolictedResponse << UnsolictedServerTimeStamp;
@@ -1081,7 +1081,7 @@ void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile&
 		}
 	};
 
-	(new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerGameDir, InNetworkDoneEvent, InWritingDoneEvent))->StartSynchronousTask();
+	(new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerProjectDir, InNetworkDoneEvent, InWritingDoneEvent))->StartSynchronousTask();
 }
 
 bool FNetworkPlatformFile::IsMediaExtension(const TCHAR* Ext)
@@ -1266,7 +1266,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 		check( FinishedAsyncWriteUnsolicitedFiles == NULL );
 		FinishedAsyncNetworkReadUnsolicitedFiles = new FScopedEvent;
 		FinishedAsyncWriteUnsolicitedFiles = new FScopedEvent;
-		AsyncReadUnsolicitedFiles(NumUnsolictedFiles, *this, *InnerPlatformFile, ServerEngineDir, ServerGameDir, FinishedAsyncNetworkReadUnsolicitedFiles, FinishedAsyncWriteUnsolicitedFiles);
+		AsyncReadUnsolicitedFiles(NumUnsolictedFiles, *this, *InnerPlatformFile, ServerEngineDir, ServerProjectDir, FinishedAsyncNetworkReadUnsolicitedFiles, FinishedAsyncWriteUnsolicitedFiles);
 	}
 	
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
@@ -1391,15 +1391,15 @@ void FNetworkPlatformFile::OnFileUpdated(const FString& LocalFileName)
 	ServerFiles.AddFileOrDirectory(LocalFileName, FDateTime::UtcNow());
 }
 
-void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir)
+void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerProjectDir)
 {
 	if (FilenameToConvert.StartsWith(InServerEngineDir))
 	{
 		FilenameToConvert = FilenameToConvert.Replace(*InServerEngineDir, *(FPaths::EngineDir()));
 	}
-	else if (FilenameToConvert.StartsWith(InServerGameDir))
+	else if (FilenameToConvert.StartsWith(InServerProjectDir))
 	{
-		FilenameToConvert = FilenameToConvert.Replace(*InServerGameDir, *(FPaths::GameDir()));
+		FilenameToConvert = FilenameToConvert.Replace(*InServerProjectDir, *(FPaths::ProjectDir()));
 	}
 }
 

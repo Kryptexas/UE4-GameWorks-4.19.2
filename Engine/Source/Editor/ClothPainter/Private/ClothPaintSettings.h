@@ -56,11 +56,11 @@ public:
 
 protected:
 	/** When painting float/1D values, this is considered the zero or black point */
-	UPROPERTY(EditAnywhere, Category = View)
+	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000))
 	float ViewMin;
 
 	/** When painting float/1D values, this is considered the one or white point */
-	UPROPERTY(EditAnywhere, Category = View)
+	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000))
 	float ViewMax;
 
 public:
@@ -73,7 +73,7 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = View)
 	bool bFlipNormal;
 
-	/** Whether to bull backfacing triangles when rendering the mesh preview */
+	/** Whether to cull backfacing triangles when rendering the mesh preview */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = View)
 	bool bCullBackface;
 

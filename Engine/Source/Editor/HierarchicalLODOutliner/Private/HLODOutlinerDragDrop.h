@@ -11,6 +11,7 @@ class AActor;
 class FActorDragDropOp;
 class SWidget;
 struct FSlateBrush;
+enum class EClusterGenerationError : uint32;
 
 namespace HLODOutliner
 {
@@ -47,9 +48,9 @@ namespace HLODOutliner
 
 		/**
 		*	Parse a drag operation into our list of actors and folders
-		*	@return true if the operation is viable for the HLOD outliner to process, false otherwise
+		*	@return Error type None if the operation is viable for the HLOD outliner to process, Error type X otherwise
 		*/
-		bool ParseDrag(const FDragDropOperation& Operation);
+		EClusterGenerationError ParseDrag(const FDragDropOperation& Operation);
 	};
 
 	/** Construct a new Drag and drop operation for a scene outliner */
@@ -62,8 +63,10 @@ namespace HLODOutliner
 		{
 			ToolTip_Compatible,
 			ToolTip_Incompatible,
+			ToolTip_Warning,
 			ToolTip_MultipleSelection_Compatible,
-			ToolTip_MultipleSelection_Incompatible
+			ToolTip_MultipleSelection_Incompatible,
+			ToolTip_MultiSelection_Warning			
 		};
 
 		DRAG_DROP_OPERATOR_TYPE(FHLODOutlinerDragDropOp, FDragDropOperation);

@@ -1,8 +1,8 @@
 {
 	"FileVersion": 3,
-	"EngineVersion": "1616732",
-	"PackageFileUE4Version": "231",
-	"PackageFileLicenseeUE4Version": "0",
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": "",
 	"Modules": [
 		{
 			"Name": "TP_Vehicle",
@@ -11,13 +11,13 @@
 		}
 	],
 	"Plugins": [
-        {
-            "Name": "PhysXVehicles",
-            "Enabled": true
+		{
+			"Name": "PhysXVehicles",
+			"Enabled": true
 		},
 		{
 			"Name": "RawInput",
 			"Enabled": true
-        }
+		}
 	]
 }

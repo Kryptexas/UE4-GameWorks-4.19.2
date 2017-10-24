@@ -148,6 +148,9 @@ class AIMODULE_API UBTNode : public UObject, public IGameplayTaskOwnerInterface
 
 	/** Get whether this node is using a blueprint for its logic */
 	virtual bool UsesBlueprint() const;
+
+	/** Called after creating new node in behavior tree editor, use for versioning */
+	virtual void OnNodeCreated() {}
 #endif
 
 	/** Gets called only for instanced nodes(bCreateNodeInstance == true). In practive overridden by BP-implemented BT nodes */

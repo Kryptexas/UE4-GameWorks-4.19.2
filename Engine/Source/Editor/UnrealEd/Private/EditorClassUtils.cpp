@@ -118,26 +118,21 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLinkFormatted(const UClass* Clas
 			.Text(FText::Format(BlueprintFormat, FText::FromString(Blueprint->GetName())))
 			.ToolTipText(NSLOCTEXT("SourceHyperlink", "EditBlueprint_ToolTip", "Click to edit the blueprint"));
 	}
-	else if( FSourceCodeNavigation::IsCompilerAvailable() )
+	else if (Class && FSourceCodeNavigation::CanNavigateToClass(Class))
 	{
-		FString ClassHeaderPath;
-		if( FSourceCodeNavigation::FindClassHeaderPath( Class, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
+		struct Local
 		{
-			struct Local
+			static void OnEditCodeClicked(const UClass* TargetClass)
 			{
-				static void OnEditCodeClicked( FString InClassHeaderPath )
-				{
-					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
-					FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-				}
-			};
+				FSourceCodeNavigation::NavigateToClass(TargetClass);
+			}
+		};
 
-			SourceHyperlink = SNew(SHyperlink)
-				.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
-				.OnNavigate_Static(&Local::OnEditCodeClicked, ClassHeaderPath)
-				.Text(FText::Format(CodeFormat, FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
-				.ToolTipText(FText::Format(NSLOCTEXT("SourceHyperlink", "GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()));
-		}
+		SourceHyperlink = SNew(SHyperlink)
+			.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
+			.OnNavigate_Static(&Local::OnEditCodeClicked, Class)
+			.Text(FText::Format(CodeFormat, FText::FromString((Class->GetName()))))
+			.ToolTipText(FText::Format(NSLOCTEXT("SourceHyperlink", "GoToCode_ToolTip", "Click to open this source file in {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE()));
 	}
 
 	return SourceHyperlink;

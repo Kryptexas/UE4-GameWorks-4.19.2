@@ -60,7 +60,7 @@ public class GoogleVRTransition2D : ModuleRules
 		{
 			PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVRTransition2D" });
 
-			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRTransition2D_APL.xml")));
 		}
 	}

@@ -352,6 +352,11 @@ void IMeshPaintEdMode::OnResetViewMode()
 	for (int32 ViewIndex = 0; ViewIndex < GEditor->AllViewportClients.Num(); ++ViewIndex)
 	{
 		FEditorViewportClient* ViewportClient = GEditor->AllViewportClients[ViewIndex];
+		if (!ViewportClient || ViewportClient->GetModeTools() != GetModeManager())
+		{
+			continue;
+		}
+
 		MeshPaintHelpers::SetViewportColorMode(EMeshPaintColorViewMode::Normal, ViewportClient);
 	}
 }

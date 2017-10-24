@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,11 +26,16 @@
 
 #include "SDL_waylandvideo.h"
 #include "SDL_waylandwindow.h"
+#include "SDL_waylanddatamanager.h"
+
+struct SDL_WaylandInput;
 
 extern void Wayland_PumpEvents(_THIS);
 
 extern void Wayland_display_add_input(SDL_VideoData *d, uint32_t id);
 extern void Wayland_display_destroy_input(SDL_VideoData *d);
+
+extern SDL_WaylandDataDevice* Wayland_get_data_device(struct SDL_WaylandInput *input);
 
 extern void Wayland_display_add_pointer_constraints(SDL_VideoData *d, uint32_t id);
 extern void Wayland_display_destroy_pointer_constraints(SDL_VideoData *d);

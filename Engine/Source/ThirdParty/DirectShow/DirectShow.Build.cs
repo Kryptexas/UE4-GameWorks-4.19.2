@@ -11,16 +11,16 @@ public class DirectShow : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 
-            string DirectShowLibPath = UEBuildConfiguration.UEThirdPartySourceDirectory
-                + "DirectShow/DirectShow-1.0.0/Lib/" + ((Target.Platform == UnrealTargetPlatform.Win32) ? "Win32" : "Win64") + "/vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+            string DirectShowLibPath = Target.UEThirdPartySourceDirectory
+                + "DirectShow/DirectShow-1.0.0/Lib/" + ((Target.Platform == UnrealTargetPlatform.Win32) ? "Win32" : "Win64") + "/vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "DirectShow/DirectShow-1.0.0/src/Public");
+			PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "DirectShow/DirectShow-1.0.0/src/Public");
 
 
             PublicLibraryPaths.Add( DirectShowLibPath );
 
 			string LibraryName = "DirectShow";
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				LibraryName += "d";
 			}

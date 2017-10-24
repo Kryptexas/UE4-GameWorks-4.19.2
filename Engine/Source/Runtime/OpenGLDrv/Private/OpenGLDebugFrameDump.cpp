@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OpenGLDebugFrameDump.cpp: Implementation of debug code that allows creating detailed summaries of OpenGL pipeline state for all draws in a single frame.
-=============================================================================*/
-
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -16,22 +12,24 @@
 #define USE_COMPRESSED_PNG_INSTEAD_OF_BMP_FOR_CONTENT_OUTPUT 1
 
 #if USE_COMPRESSED_PNG_INSTEAD_OF_BMP_FOR_CONTENT_OUTPUT
-// For PNG compression
-#include "Interfaces/IImageWrapperModule.h"
-const GLenum TextureOutputFormat = GL_RGBA;
+	// For PNG compression
+	#include "IImageWrapper.h"
+	#include "IImageWrapperModule.h"
+	const GLenum TextureOutputFormat = GL_RGBA;
 #else
-const GLenum TextureOutputFormat = GL_BGRA;
+	const GLenum TextureOutputFormat = GL_BGRA;
 #endif
 
 #define DEBUG_GL_ERRORS_CAUSED_BY_THIS_CODE 1
 
 #if DEBUG_GL_ERRORS_CAUSED_BY_THIS_CODE
-#define ASSERT_NO_GL_ERROR()	check( glGetError() == GL_NO_ERROR )
+	#define ASSERT_NO_GL_ERROR()	check( glGetError() == GL_NO_ERROR )
 #else
-#define ASSERT_NO_GL_ERROR()
+	#define ASSERT_NO_GL_ERROR()
 #endif
 
 extern bool GDisableOpenGLDebugOutput;
+
 
 #if USE_COMPRESSED_PNG_INSTEAD_OF_BMP_FOR_CONTENT_OUTPUT
 
@@ -39,7 +37,7 @@ void appCreatePNGWithAlpha( const TCHAR* File, int32 Width, int32 Height, FColor
 {
 	// We assume all resources are png for now.
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 	if ( ImageWrapper.IsValid() && ImageWrapper->SetRaw( Data, 4 * Width * Height, Width, Height, ERGBFormat::RGBA, 8 ) )
 	{
 		FArchive* Ar = FileManager->CreateFileWriter( File );

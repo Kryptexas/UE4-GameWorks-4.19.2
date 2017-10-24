@@ -637,11 +637,14 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		for(int32 Ind = 0; Ind < GridElement.MAX_VERTICES; ++Ind)
 		{
 			const int32 SampleDataIndex = GridElement.Indices[Ind];		
-			if(SampleDataIndex != INDEX_NONE && SampleData.IsValidIndex(SampleDataIndex))
+			if(SampleData.IsValidIndex(SampleDataIndex))
 			{
 				int32 Index = OutSampleDataList.AddUnique(SampleDataIndex);
-				OutSampleDataList[Index].AddWeight(GridElement.Weights[Ind]*GridWeight);
-				OutSampleDataList[Index].Animation = SampleData[SampleDataIndex].Animation;
+				FBlendSampleData& NewSampleData = OutSampleDataList[Index];
+
+				NewSampleData.AddWeight(GridElement.Weights[Ind]*GridWeight);
+				NewSampleData.Animation = SampleData[SampleDataIndex].Animation;
+				NewSampleData.SamplePlayRate = SampleData[SampleDataIndex].RateScale;
 			}
 		}
 	}
@@ -649,13 +652,22 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 	// go through merge down to first sample 
 	for (int32 Index1 = 0; Index1 < OutSampleDataList.Num(); ++Index1)
 	{
+		FBlendSampleData& FirstSample = OutSampleDataList[Index1];
 		for (int32 Index2 = Index1 + 1; Index2 < OutSampleDataList.Num(); ++Index2)
 		{
+			FBlendSampleData& SecondSample = OutSampleDataList[Index2];
 			// if they have sample sample, remove the Index2, and get out
-			if (OutSampleDataList[Index1].Animation == OutSampleDataList[Index2].Animation)
+			if (FirstSample.Animation == SecondSample.Animation)
 			{
+				//Calc New Sample Playrate
+				const float TotalWeight = FirstSample.GetWeight() + SecondSample.GetWeight();
+				const float OriginalWeightedPlayRate = FirstSample.SamplePlayRate * (FirstSample.GetWeight() / TotalWeight);
+				const float SecondSampleWeightedPlayRate = SecondSample.SamplePlayRate * (SecondSample.GetWeight() / TotalWeight);
+				FirstSample.SamplePlayRate = OriginalWeightedPlayRate + SecondSampleWeightedPlayRate;
+
 				// add weight
-				OutSampleDataList[Index1].AddWeight(OutSampleDataList[Index2].GetWeight());
+				FirstSample.AddWeight(SecondSample.GetWeight());
+
 				// as for time or previous time will be the master one(Index1)
 				OutSampleDataList.RemoveAtSwap(Index2, 1, false);
 				--Index2;
@@ -1020,7 +1032,9 @@ float UBlendSpaceBase::GetAnimationLengthFromSampleData(const TArray<FBlendSampl
 			const FBlendSample& Sample = SampleData[SampleDataIndex];
 			if (Sample.Animation)
 			{
-				const float MultipliedSampleRateScale = Sample.Animation->RateScale * Sample.RateScale;
+				//Use the SamplePlayRate from the SampleDataList, not the RateScale from SampleData as SamplePlayRate might contain
+				//Multiple samples contribution which we would otherwise lose
+				const float MultipliedSampleRateScale = Sample.Animation->RateScale * SampleDataList[I].SamplePlayRate;
 				// apply rate scale to get actual playback time
 				BlendAnimLength += (Sample.Animation->SequenceLength / ((MultipliedSampleRateScale) != 0.0f ? FMath::Abs(MultipliedSampleRateScale) : 1.0f))*SampleDataList[I].GetWeight();
 				UE_LOG(LogAnimation, Verbose, TEXT("[%d] - Sample Animation(%s) : Weight(%0.5f) "), I+1, *Sample.Animation->GetName(), SampleDataList[I].GetWeight());

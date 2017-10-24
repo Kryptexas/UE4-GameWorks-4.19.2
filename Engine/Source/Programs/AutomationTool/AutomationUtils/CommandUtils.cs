@@ -101,7 +101,7 @@ namespace AutomationTool
 		/// <returns>Initialized and ready to use BuildEnvironment</returns>
 		static internal void InitCommandEnvironment()
 		{
-			CmdEnvironment = (Automation.IsBuildMachine && !GlobalCommandLine.ForceLocal) ? new CommandEnvironment() : new LocalCommandEnvironment();
+			CmdEnvironment = new CommandEnvironment();
 		}
 
 		#endregion
@@ -116,7 +116,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void Log(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Console, Format, Args);
 		}
 
 		/// <summary>
@@ -126,7 +126,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void Log(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Console, Message);
 		}
 
 		/// <summary>
@@ -137,7 +137,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Error, Format, Args);
 		}
 
 		/// <summary>
@@ -147,7 +147,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Error, Message);
 		}
 
 		/// <summary>
@@ -158,7 +158,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Warning, Format, Args);
 		}
 
 		/// <summary>
@@ -168,7 +168,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Warning, Message);
 		}
 
 		/// <summary>
@@ -179,7 +179,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Verbose, Format, Args);
 		}
 
 		/// <summary>
@@ -189,7 +189,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Verbose, Message);
 		}
 
 		/// <summary>
@@ -200,7 +200,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVeryVerbose(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.VeryVerbose, Format, Args);
 		}
 
 		/// <summary>
@@ -210,7 +210,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVeryVerbose(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.VeryVerbose, Message);
 		}
 
 		/// <summary>
@@ -221,7 +221,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogLog(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Log, Format, Args);
 		}
 
 		/// <summary>
@@ -231,7 +231,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogLog(string Message)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Message);
+			UnrealBuildTool.Log.WriteLine(1, UnrealBuildTool.LogEventType.Log, Message);
 		}
 
 		/// <summary>
@@ -243,7 +243,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Format, Args);
+            UnrealBuildTool.Log.WriteLine(1, Verbosity, Format, Args);
 		}
 
 		/// <summary>
@@ -254,7 +254,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Message);
+            UnrealBuildTool.Log.WriteLine(1, Verbosity, Message);
 		}
 
 		/// <summary>
@@ -265,7 +265,7 @@ namespace AutomationTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, Exception Ex)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, Verbosity, LogUtils.FormatException(Ex));
+            UnrealBuildTool.Log.WriteLine(1, Verbosity, LogUtils.FormatException(Ex));
 		}
 
 		#endregion
@@ -1607,17 +1607,10 @@ namespace AutomationTool
 			{
                 throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Count, Dest.Count);
 			}
-            try
-            {
-                Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
-                {
-                    CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
-                });
-            }
-            catch (AggregateException Ex)
-            {
-                throw new AutomationException(Ex, "Failed to thread-copy files.");
-            }
+			Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
+			{
+				CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
+			});
         }
 
 		/// <summary>
@@ -2336,7 +2329,7 @@ namespace AutomationTool
 		/// <param name="FileName">The file to read from</param>
 		/// <param name="Telemetry">On success, the read telemetry data</param>
 		/// <returns>True if a telemetry object was read</returns>
-		public static bool TryRead(string FileName, out TelemetryData Telemetry)
+		public static bool TryRead(FileReference FileName, out TelemetryData Telemetry)
 		{
 			// Try to read the raw json object
 			JsonObject RawObject;

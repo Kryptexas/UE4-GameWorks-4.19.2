@@ -76,7 +76,7 @@ DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeEditorScreenshotComma
 /**
  * Latent command to load a map in game
  */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
 
 /**
  * Latent command to exit the current game
@@ -94,6 +94,11 @@ DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND( FRequestExitCommand );
 DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 
 /**
+* Latent command to wait for map to complete loading
+*/
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FWaitForSpecifiedMapToLoadCommand, FString, MapName);
+
+/**
 * Force a matinee to not loop and request that it play
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FPlayMatineeLatentCommand, AMatineeActor*, MatineeActor);
@@ -108,13 +113,13 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FWaitForMatineeToCompleteLatentCo
 /**
 * Execute command string
 */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecStringLatentCommand, FString, ExecCommand);
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecStringLatentCommand, FString, ExecCommand);
 
 
 /**
 * Wait for the given amount of time
 */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, Duration);
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, Duration);
 
 /**
 * Wait until data is streamed in
@@ -141,6 +146,6 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FS
 /**
 * Waits for shaders to finish compiling before moving on to the next thing.
 */
-DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
 
 #endif

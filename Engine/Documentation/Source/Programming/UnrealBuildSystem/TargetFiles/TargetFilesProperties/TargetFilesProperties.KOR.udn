@@ -1,13 +1,9 @@
-﻿INTSourceChangelist:3392479
+﻿INTSourceChangelist:3606403
 Availability: NoPublish
 Title: 빌드 환경설정 페이지
-Crumbs:%ROOT%
-Description: 절차적 생성되는 마크다운 페이지입니다.
-Version: 4.16
-Parent:Programming/UnrealBuildSystem/TargetFiles
-Order:
-Type:reference
-Tags:Unreal Build System
+Crumbs:
+Description: 자동 생성되는 마크다운 페이지입니다.
+Version: 4.18
 
 ### 읽기 전용 프로퍼티
 
@@ -47,6 +43,8 @@ $ PakSigningKeysFile (String): 실행파일에 삽입할 pak 사이닝 키 세�
 
 $ SolutionDirectory (String): Program Target 이 자체 솔루션 폴더 경로를 지정할 수 있도록 합니다.
 
+$ bBuildInSolutionByDefault (Nullable&lt;Boolean&gt;): 타겟을 기본 솔루션 빌드 구성에 포함시킬지 여부입니다.
+
 $ bOutputToEngineBinaries (Boolean): 실행파일을 엔진 binaries 폴더에 출력합니다.
 
 $ bShouldCompileAsDLL (Boolean): 이 타겟을 DLL 로 컴파일할지 여부입니다. LinkType 을 TargetLinkType.Monolithic 으로 설정해야 합니다.
@@ -60,8 +58,6 @@ $ bCompilePhysX (Boolean): PhysX 지원 포함 여부입니다.
 $ bCompileAPEX (Boolean): PhysX APEX 지원 포함 여부입니다.
 
 $ bCompileNvCloth (Boolean): NvCloth 포함 여부입니다.
-
-$ bRuntimePhysicsCooking (Boolean): 피직스 런타임 쿠킹 허용 여부입니다.
 
 $ bCompileBox2D (Boolean): Box2D 지원 포함 여부입니다.
 
@@ -87,6 +83,8 @@ $ bCompileSimplygonSSF (Boolean): 심플리곤의 SSF 라이브러리 지원 컴
 
 $ bCompileLeanAndMeanUE (Boolean): UE 의 lean and mean 버전 컴파일 여부입니다.
 
+$ bUseCacheFreedOSAllocs (Boolean): MallocBinned 로 캐시 프리 OS 할당을 활용할지 여부입니다.
+
 $ bCompileAgainstEngine (Boolean): 엔진 프로젝트를 포함하는 모든 빌드에 대해 활성화됩니다. Core 하고만 링크되는 독립형 앱 빌드시에만 비활성화됩니다.
 
 $ bCompileAgainstCoreUObject (Boolean): CoreUObject 프로젝트를 포함하는 모든 빌드에 대해 활성화됩니다. Core 하고만 링크되는 독립형 앱 빌드시에만 비활성화됩니다.
@@ -99,6 +97,8 @@ $ bCompileSpeedTree (Boolean): SpeedTree 지원 컴파일 여부입니다.
 
 $ bForceEnableExceptions (Boolean): 모든 모듈에 대한 예외를 활성화시킵니다.
 
+$ bForceEnableObjCExceptions (Boolean): 모든 모듈에 대한 예외를 활성화시킵니다.
+
 $ bForceEnableRTTI (Boolean): 모든 모듈에 대한 RTTI 를 활성화시킵니다.
 
 $ bWithServerCode (Boolean): 서버 전용 코드를 컴파일합니다.
@@ -106,6 +106,8 @@ $ bWithServerCode (Boolean): 서버 전용 코드를 컴파일합니다.
 $ bCompileWithStatsWithoutEngine (Boolean): 엔진 없이도 통계 지원 포함 여부입니다.
 
 $ bCompileWithPluginSupport (Boolean): 플러그인 지원 포함 여부입니다.
+
+$ bIncludePluginsForTargetPlatforms (Boolean): 모든 타겟 플랫폼을 지원하는 플러그인 허용 여부입니다.
 
 $ bWithPerfCounters (Boolean): PerfCounters 지원 포함 여부입니다.
 
@@ -209,8 +211,6 @@ $ bUseFastPDBLinking (Boolean): 윈도우에서 로컬 PDB 생성을 위해 /DEB
 
 $ bCreateMapFile (Boolean): 맵 파일을 빌드의 일부로 출력합니다.
 
-$ bEnableCodeAnalysis (Boolean): 코드 분석 모드를 켭니다. 현재, 여기에는 특별한 요건이 있습니다. 윈도우에서 MSVC 컴파일러에만 작동합니다. 또한 Visual Studio 2013 처럼 /analyze 옵션을 지원하는 컴파일러 버전이 필요합니다.
-
 $ BundleVersion (String): Mac 앱의 번들 버전입니다.
 
 $ bDeployAfterCompile (Boolean): 디플로이를 요하는 플랫폼에서 컴파일 이후 실행파일 디플로이 여부입니다.
@@ -238,6 +238,10 @@ $ GlobalDefinitions (List&lt;String&gt;): 전체 타겟에 대한 글로벌 정�
 $ ExtraModuleNames (List&lt;String&gt;): 타겟에 컴파일시킬 부가 모듈 목록입니다.
 
 $ BuildEnvironment (TargetBuildEnvironment): 이 타겟에 대한 빌드 환경을 지정합니다. 사용 가능 옵션에 대한 상세 정보는 TargetBuildEnvironment 를 참고하세요.
+
+$ PreBuildSteps (List&lt;String&gt;): 이 타겟을 빌드하기 전, 호스트 플랫폼의 셸 맥락에서 실행해야 하는 스텝 목록을 지정합니다. 실행 전 다음 변수가 확장됩니다: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+
+$ PostBuildSteps (List&lt;String&gt;): 이 타겟을 빌드한 후, 호스트 플랫폼의 셸 맥락에서 실행해야 하는 스텝 목록을 지정합니다. 실행 전 다음 변수가 확장됩니다: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
 
 $ OverrideExecutableFileExtension (String): 설정하면 실행파일 확장자를 덮어쓸 수 있습니다 (예를 들어 윈도우에서는 보통 .exe 또는 .dll 입니다).
 

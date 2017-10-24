@@ -583,6 +583,9 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		OnGameplayAbilityEnded.Broadcast(this);
 		OnGameplayAbilityEnded.Clear();
 
+		OnGameplayAbilityEndedWithData.Broadcast(FAbilityEndedData(this, Handle, bReplicateEndAbility, bWasCancelled));
+		OnGameplayAbilityEndedWithData.Clear();
+
 		if (GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
 		{
 			bIsActive = false;

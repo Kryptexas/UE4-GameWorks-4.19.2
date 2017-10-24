@@ -77,11 +77,9 @@ bool ULevelSequencePlayer::CanPlay() const
 	return World.IsValid();
 }
 
-void ULevelSequencePlayer::BeginPlay()
+void ULevelSequencePlayer::OnStartedPlaying()
 {
 	EnableCinematicMode(true);
-
-	Super::BeginPlay();
 }
 
 void ULevelSequencePlayer::OnStopped()
@@ -115,6 +113,11 @@ void ULevelSequencePlayer::OnStopped()
 
 void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut)
 {
+	if (World == nullptr || World->GetGameInstance() == nullptr)
+	{
+		return;
+	}
+
 	// skip missing player controller
 	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 
@@ -282,6 +285,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 	OutSnapshot.CurrentShotName = OutSnapshot.MasterName;
 	OutSnapshot.CurrentShotLocalTime = CurrentTime;
 	OutSnapshot.CameraComponent = CachedCameraComponent.IsValid() ? CachedCameraComponent.Get() : nullptr;
+	OutSnapshot.ShotID = MovieSceneSequenceID::Invalid;
 
 	UMovieSceneCinematicShotTrack* ShotTrack = Sequence->GetMovieScene()->FindMasterTrack<UMovieSceneCinematicShotTrack>();
 	if (ShotTrack)
@@ -334,6 +338,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 
 			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();
 			OutSnapshot.CurrentShotLocalTime = ShotPosition;
+			OutSnapshot.ShotID = ActiveShot->GetSequenceID();
 		}
 	}
 }

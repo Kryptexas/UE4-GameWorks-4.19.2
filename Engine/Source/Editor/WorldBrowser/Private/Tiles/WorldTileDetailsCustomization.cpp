@@ -29,7 +29,7 @@ static FString GetWorldRoot(TWeakPtr<FWorldTileCollectionModel> WorldModel)
 	}
 	else
 	{
-		return FPackageName::FilenameToLongPackageName(FPaths::GameContentDir());
+		return FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir());
 	}
 }
 

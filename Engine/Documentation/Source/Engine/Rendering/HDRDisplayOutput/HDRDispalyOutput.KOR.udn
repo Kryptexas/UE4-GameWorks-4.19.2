@@ -1,15 +1,19 @@
-﻿INTSourceChangelist:3387247
-Availability: Docs
+﻿INTSourceChangelist:3473611
+Availability:Public
 Crumbs:
 Title: 하이 다이내믹 레인지 디스플레이 출력
 Description: HDR Display Output 및 그 옵션에 대한 개요입니다.
-Type: Overview
+Type:overview
+Type:landing
 SkillLevel: Intermediate
-Version: 4.15
+Version: 4.16
 Parent: Engine/Rendering/
-Order:
+Order:28
 Tags: Rendering
+Topic-image:HDRDisplayOutput_Topic.png
+Social-image:HDRDisplayOutput_Social.png
 
+[TOC(start:2)]
 
 
 언리얼 엔진 4 에서는 이제 더욱 높은 대비값과 폭넓은 색 공간(color gamut)을 활용할 수 있는 하이 다이내믹 레인지 (HDR) 디스플레이로 출력할 수 있습니다. 이 글의 목표는 디스플레이되는 이미지에 
@@ -24,20 +28,11 @@ Tags: Rendering
 	![다이 다이내믹 레인지 (HDR) ](HDR.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-
-[REGION:note]
-이미지는 시뮬레이션이며, 순전히 데모용입니다. LDR 화면에 HDR 차이를 나타내는 것은 불가능하기 때문입니다.
+[REGION:caption] <!--- Spacer --->
 [/REGION]
-
-<!---
-[REGION:fullwidth raw]
-![](LDR_HDRcomparison.jpg)
+REGION:caption]
+_이는 순전히 데모용 시뮬레이션 이미지입니다. LDR 화면에 HDR 차이를 나타내는 것은 불가능합니다.
 [/REGION]
-[REGION:caption]
-_이는 시뮬레이션 이미지이며, 순전히 데모용입니다. LDR 화면에 HDR 차이를 나타내는 것은 불가능하기 때문입니다._
-[/REGION]
---->
-
 
 현재 구현을 통해서는, 렌더링된 씬의 전체 처리는 **ACES Viewing Transform** 이라 알려진 방식을 통해 처리합니다. 이 프로세스 작동방식은 씬 참조 이미지와 디스플레이 참조 이미지를 사용하는 것입니다.
 
@@ -47,7 +42,7 @@ _이는 시뮬레이션 이미지이며, 순전히 데모용입니다. LDR 화�
 이 파이프라인을 사용하면, 다른 디스플레이를 사용할 때마다 올바른 컬러 스페이스를 사용하도록 원본 소스 파일을 매번 수정할 필요가 없습니다. 대신 출력중인 디스플레이가 올바른 컬러 스페이스에 
 매핑되도록 해주면 됩니다.
 
-보다 구체적으로 ACES Viewing Transform 은 뷰 파이프라인에서 다음과 같은 방식으로 작동합니다:
+ACES Viewing Transform 은 뷰 파이프라인에서 다음과 같은 방식으로 작동합니다:
 
 * **Look Modification Transform (LMT)** - 프로세스 이 부분은 창의적 "외형" (컬러 그레이딩 및 보정)을 적용시킨 ACES 컬러 인코딩된 이미지를 받은 뒤, ACES 로 렌더링된 이미지를 출력합니다. 여기에는 Reference Rendering Transform (RRT) 와 Output Device Transform (ODT) 가 조합됩니다.
 * **Reference Rendering Transform (RRT)** - 그리고서 이 부분은 씬 참조 컬러 값을 받아 디스플레이 참조 값으로 변환합니다. 이 과정에서 렌더링된 이미지가 특정 디스플레이에만 의존하도록 하는 대신, 
@@ -71,37 +66,37 @@ HDR 출력은 런타임에 콘솔 변수 토글 또는 블루프린트의 **Game
 [REGION:simpletable]
 | 콘솔 변수 | 설명 |
 | --- | --- |
-| `r.HDR.EnableHDROutput` | 1 로 설정하면, 스왑 체인을 재생성하고 HDR 출력을 활성화시킵니다. |
-| `r.HDR.Display.OutputDevice` | 출력 디스플레이의 디바이스 포맷입니다. [INCLUDE:#deviceOuptut] |
-| `r.HDR.Display.ColorGamut` | 출력 디스플레이의 색 공간입니다. [INCLUDE:#colorGamut] |
+| **r.HDR.EnableHDROutput** | 1 로 설정하면, 스왑 체인을 재생성하고 HDR 출력을 활성화시킵니다. |
+| **r.HDR.Display.OutputDevice** | 출력 디스플레이의 디바이스 포맷입니다. [INCLUDE:#deviceOuptut] |
+| **r.HDR.Display.ColorGamut** | 출력 디스플레이의 색 공간입니다. [INCLUDE:#colorGamut] |
 [/REGION]
 
 <!---
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
-| 0 | sRGB (LDR) (기본) |
-| 1 | Rec709 (LDR) |
-| 2 | 명시적 감마 매핑 (LDR) |
-| 3 | ACES 1000-nit ST-2084 (Dolby PQ) (HDR) |
-| 4 | ACES 2000-nit ST-2084 (Dolby PQ) (HDR) |
-| 5 | ACES 1000-nit ScRGB (HDR) |
-| 6 | ACES 2000-nit ScRGB (HDR) |
+| **0** | sRGB (LDR) (기본) |
+| **1** | Rec709 (LDR) |
+| **2** | 명시적 감마 매핑 (LDR) |
+| **3** | ACES 1000-nit ST-2084 (Dolby PQ) (HDR) |
+| **4** | ACES 2000-nit ST-2084 (Dolby PQ) (HDR) |
+| **5** | ACES 1000-nit ScRGB (HDR) |
+| **6** | ACES 2000-nit ScRGB (HDR) |
 [/EXCERPT:deviceOuptut]
 
 [EXCERPT:colorGamut]
 |||
 | --- | --- |
-| 0 | Rec709 / sRGB, D65 (기본) |
-| 1 | DCI-P3, D65 |
-| 2 | Rec2020 / BT2020, D65 |
-| 3 | ACES, D60 |
-| 4 | ACEScg, D60 |
+| **0** | Rec709 / sRGB, D65 (기본) |
+| **1** | DCI-P3, D65 |
+| **2** | Rec2020 / BT2020, D65 |
+| **3** | ACES, D60 |
+| **4** | ACEScg, D60 |
 [/EXCERPT:colorGamut]
 --->
 
 GameUserSettings 에 대한 블루프린트 또는 C++ 호출을 구성한 이후에는, 쿠킹된 프로젝트 실행, 명령줄 인수 `-game mode` 사용, 독립형 게임 모드 사용, 새 창에서 독점 전체화면 에디터에서 플레이 (PIE)
-등을 실행하면 됩니다 (**Alt** + **Enter** 또는 `fullscreen` 명령 사용). 
+등을 실행하면 됩니다 (**Alt** + **Enter** 또는 콘솔 창에 `fullscreen` 명령 사용). 
 
 [REGION:note]
 테두리 없는 창 또는 창 모드는 현재 HDR 출력에 작동하지 않습니다.
@@ -110,8 +105,8 @@ GameUserSettings 에 대한 블루프린트 또는 C++ 호출을 구성한 이�
 
 ### HDR 에서 로우 다이내믹 레인지 (LDR) UI 지원
 
-[REGION:note]
-이 기능은 실험단계 기능으며, 앞으로 변경될 수 있습니다.
+[REGION:warning]
+이 기능은 실험단계 기능이며, 앞으로 변경될 수 있습니다.
 [/REGION]
 
 HDR 출력이 활성화되면 유저 인터페이스(UI)가 올바르게 보이지 않을 수 있습니다. 그래서 LDR UI 합성을 위한 실험단계 기능 지원을 추가했습니다.
@@ -122,8 +117,8 @@ LDR 모양에 가급적 비슷하게 일치하도록 시도하기는 하지만, 
 [REGION:simpletable]
 | 콘솔 변수 | 설명 |
 | --- | --- |
-| `r.HDR.UI.CompositeMode` | 1 로 설정하면 HDR UI 합성을 활성화시켜, LDR 비주얼과 블렌딩 보존을 시도합니다. |
-| `r.HDR.UI.Level` | 합성된 UI 밝기를 조절합니다. 1.5 나 2 정도 값을 추천합니다. |
+| **r.HDR.UI.CompositeMode** | 1 로 설정하면 HDR UI 합성을 활성화시켜, LDR 비주얼과 블렌딩 보존을 시도합니다. |
+| **r.HDR.UI.Level** | 합성된 UI 밝기를 조절합니다. 1.5 나 2 정도 값을 추천합니다. |
 [/REGION]
 
 
@@ -155,8 +150,5 @@ LDR 모양에 가급적 비슷하게 일치하도록 시도하기는 하지만, 
 
 ## 참고 자료
 
-* [http://www.oscars.org/science-technology/sci-tech-projects/aces](http://www.oscars.org/science-technology/sci-tech-projects/aces)
-* [http://www.oscars.org/science-technology/aces/aces-documentation](http://www.oscars.org/science-technology/aces/aces-documentation)
-
-
-
+* ["ACES." Oscars.org | Academy of Motion Picture Arts and Sciences. N.p., 06 Feb. 2017. Web. 05 June 2017.](http://www.oscars.org/science-technology/sci-tech-projects/aces)
+* ["Aces Documentation." Oscars.org | Academy of Motion Picture Arts and Sciences. N.p., 26 Sept. 2016. Web. 05 June 2017.](http://www.oscars.org/science-technology/aces/aces-documentation)

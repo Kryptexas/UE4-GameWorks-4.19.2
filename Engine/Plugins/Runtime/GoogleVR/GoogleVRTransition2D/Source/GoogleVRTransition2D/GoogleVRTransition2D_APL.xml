@@ -23,7 +23,7 @@
 			<setElement result="activityInfo" value="activity"/>
 			<addAttribute tag="$activityInfo" name="android:name" value="com.google.vr.sdk.samples.transition.GVRTransition2DActivity" />
 			<addAttribute tag="$activityInfo" name="android:screenOrientation" value="portrait" />
-			<addAttribute tag="$activityInfo" name="android:configChanges" value="orientation|screenSize" />    
+			<addAttribute tag="$activityInfo" name="android:configChanges" value="uiMode|orientation|screenSize" />    
 			<addElement tag="$" name="activityInfo"/>
 		</loopElements>
 	</androidManifestUpdates>

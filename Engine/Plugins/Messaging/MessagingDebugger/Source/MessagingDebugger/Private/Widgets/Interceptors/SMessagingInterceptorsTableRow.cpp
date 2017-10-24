@@ -2,6 +2,13 @@
 
 #include "Widgets/Interceptors/SMessagingInterceptorsTableRow.h"
 
+#include "IMessageTracer.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "Models/MessagingDebuggerModel.h"
+
 
 namespace MessagingInterceptorTableRow
 {

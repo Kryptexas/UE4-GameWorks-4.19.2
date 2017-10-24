@@ -691,14 +691,28 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 	// Whether we need to emit texture external code or not.
 	const bool bEmitTextureExternal = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "samplerExternalOES") != nullptr);
-	
+
+	bool bUseES30ShadingLanguage = Capabilities.bUseES30ShadingLanguage;
+
+#if PLATFORM_ANDROID
+	FOpenGL::EImageExternalType ImageExternalType = FOpenGL::GetImageExternalType();
+
+	if (bEmitTextureExternal && ImageExternalType == FOpenGL::EImageExternalType::ImageExternal100)
+	{
+		bUseES30ShadingLanguage = false;
+	}
+#endif
+
+	bool bNeedsExtDrawInstancedDefine = false;
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
+		bNeedsExtDrawInstancedDefine = !bES31;
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
 			// #version NNN has to be the first line in the file, so it has to be added before anything else.
-			if (Capabilities.bUseES30ShadingLanguage)
+			if (bUseES30ShadingLanguage)
 			{
+				bNeedsExtDrawInstancedDefine = false;
 				AppendCString(GlslCode, "#version 300 es\n");
 			}
 			else 
@@ -710,8 +724,17 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	}
 	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
 	{
+		bNeedsExtDrawInstancedDefine = true;
 		AppendCString(GlslCode, "#version 100\n");
 		ReplaceCString(GlslCodeOriginal, "#version 100", "");
+	}
+
+	if (bNeedsExtDrawInstancedDefine)
+	{
+		// Check for the GL_EXT_draw_instanced extension if necessary (version < 300)
+		AppendCString(GlslCode, "#ifdef GL_EXT_draw_instanced\n");
+		AppendCString(GlslCode, "#define UE_EXT_draw_instanced 1\n");
+		AppendCString(GlslCode, "#endif\n");
 	}
 
 	if (bEmitMobileMultiView)
@@ -738,7 +761,26 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		if (GSupportsImageExternal)
 		{
 			AppendCString(GlslCode, "\n\n");
-			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+
+#if PLATFORM_ANDROID
+			switch (ImageExternalType)
+			{
+				case FOpenGL::EImageExternalType::ImageExternal100:
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+					break;
+
+				case FOpenGL::EImageExternalType::ImageExternal300:
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+					break;
+
+				case FOpenGL::EImageExternalType::ImageExternalESSL300:
+					// GL_OES_EGL_image_external_essl3 is only compatible with ES 3.x
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+					break;
+			}
+#else
+			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+#endif
 			AppendCString(GlslCode, "\n\n");
 		}
 		else
@@ -851,7 +893,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			}
 
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
-			if (Capabilities.bUseES30ShadingLanguage)
+			if (bUseES30ShadingLanguage)
 			{
 				if (TypeEnum == GL_VERTEX_SHADER)
 				{
@@ -2440,7 +2482,9 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 				DomainShaderRHI
 				);
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			FShaderCache::LogBoundShaderState(FShaderCache::GetDefaultCacheState(), FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 			return BoundShaderState;
 		}
@@ -2646,6 +2690,15 @@ FOpenGLBoundShaderState::FOpenGLBoundShaderState(
 	DomainShader = InDomainShader;
 
 	LinkedProgram = InLinkedProgram;
+
+	if (InVertexDeclaration)
+	{
+		FMemory::Memcpy(StreamStrides, InVertexDeclaration->StreamStrides, sizeof(StreamStrides));
+	}
+	else
+	{
+		FMemory::Memzero(StreamStrides, sizeof(StreamStrides));
+	}
 }
 
 FOpenGLBoundShaderState::~FOpenGLBoundShaderState()
@@ -3035,7 +3088,7 @@ void FOpenGLProgramBinaryCache::Initialize()
 		CacheFolderPath = GExternalFilePath / TEXT("ProgramBinaryCache");
 			
 #else
-		CacheFolderPath = FPaths::GameSavedDir() / TEXT("ProgramBinaryCache");
+		CacheFolderPath = FPaths::ProjectSavedDir() / TEXT("ProgramBinaryCache");
 #endif
 
 		ANSICHAR* GLVersion = (ANSICHAR*)glGetString(GL_VERSION);

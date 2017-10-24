@@ -1,21 +1,24 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
+#include "ILauncherServicesModule.h"
+#include "IProjectLauncherModule.h"
+#include "ITargetDeviceServicesModule.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/ILauncherServicesModule.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Textures/SlateIcon.h"
-#include "Framework/Docking/TabManager.h"
-#include "EditorStyleSet.h"
-#include "Interfaces/IProjectLauncherModule.h"
-#include "Models/ProjectLauncherModel.h"
-#include "Widgets/SProjectLauncher.h"
-#include "Widgets/Docking/SDockTab.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 
+#include "EditorStyleSet.h"
+#include "Framework/Docking/TabManager.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Docking/SDockTab.h"
+
+#include "Models/ProjectLauncherModel.h"
+#include "Widgets/SProjectLauncher.h"
+
+
 static const FName ProjectLauncherTabName("ProjectLauncher");
+
 
 /**
  * Implements the SessionSProjectLauncher module.
@@ -25,9 +28,9 @@ class FProjectLauncherModule
 {
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 	
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 #if WITH_EDITOR
 		FGlobalTabmanager::Get()->RegisterTabSpawner(ProjectLauncherTabName, FOnSpawnTab::CreateRaw(this, &FProjectLauncherModule::SpawnProjectLauncherTab));
@@ -42,7 +45,7 @@ public:
 #endif
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 #if WITH_EDITOR
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(ProjectLauncherTabName);
@@ -68,7 +71,7 @@ private:
 		ILauncherServicesModule& ProjectLauncherServicesModule = FModuleManager::LoadModuleChecked<ILauncherServicesModule>("LauncherServices");
 		ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
 
-		FProjectLauncherModelRef Model = MakeShareable(new FProjectLauncherModel(
+		TSharedRef<FProjectLauncherModel> Model = MakeShareable(new FProjectLauncherModel(
 			TargetDeviceServicesModule.GetDeviceProxyManager(),
 			ProjectLauncherServicesModule.CreateLauncher(),
 			ProjectLauncherServicesModule.GetProfileManager()

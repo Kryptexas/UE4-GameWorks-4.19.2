@@ -987,7 +987,7 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 
 				if(bLineEnd)
 				{
-					Line = Line.TrimTrailing();
+					Line.TrimEndInline();
 					UE_LOG(LogConsoleResponse, Log, TEXT("   %s"), *Line);
 					Line.Empty();
 				}

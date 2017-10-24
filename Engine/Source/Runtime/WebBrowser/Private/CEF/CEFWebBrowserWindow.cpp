@@ -12,6 +12,7 @@
 #include "CEFWebBrowserDialog.h"
 #include "CEFBrowserClosureTask.h"
 #include "CEFJSScripting.h"
+#include "CEFImeHandler.h"
 
 #if PLATFORM_MAC
 // Needed for character code definitions
@@ -380,6 +381,7 @@ FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefR
 	, bIsDisabled(false)
 	, bIsHidden(false)
 	, bTickedLastFrame(true)
+	, bNeedsResize(false)
 	, PreviousKeyDownEvent()
 	, PreviousKeyUpEvent()
 	, PreviousCharacterEvent()
@@ -390,12 +392,33 @@ FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefR
 	, bPopupHasFocus(false)
 	, bRecoverFromRenderProcessCrash(false)
 	, ErrorCode(0)
+	, bDeferNavigations(false)
 	, Scripting(new FCEFJSScripting(InBrowser, bInJSBindingToLoweringEnabled))
+#if !PLATFORM_LINUX
+	, Ime(new FCEFImeHandler(InBrowser))
+#endif
 {
 	check(InBrowser.get() != nullptr);
 
-	UpdatableTextures[0] = nullptr;
-	UpdatableTextures[1] = nullptr;
+	if (FSlateApplication::IsInitialized())
+	{
+		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
+		{
+			// Create a transparent dummy texture for our buffers which will prevent slate from applying an 
+			// undesirable quad if it happens to ask for this buffer before we get a chance to paint to it.
+			TArray<uint8> RawData;
+			RawData.AddZeroed(4);
+			UpdatableTextures[0] = Renderer->CreateUpdatableTexture(1, 1);
+			UpdatableTextures[0]->UpdateTextureThreadSafeRaw(1, 1, RawData.GetData());
+			UpdatableTextures[1] = Renderer->CreateUpdatableTexture(1, 1);
+			UpdatableTextures[1]->UpdateTextureThreadSafeRaw(1, 1, RawData.GetData());
+		}
+	}
+	else
+	{
+		UpdatableTextures[0] = nullptr;
+		UpdatableTextures[1] = nullptr;
+	}
 
 #if USE_BUFFERED_VIDEO
 	BufferedVideo = TUniquePtr<FBrowserBufferedVideo>(new FBrowserBufferedVideo(4));
@@ -429,30 +452,12 @@ FCEFWebBrowserWindow::~FCEFWebBrowserWindow()
 
 void FCEFWebBrowserWindow::LoadURL(FString NewURL)
 {
-	if (IsValid())
-	{
-		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
-		if (MainFrame.get() != nullptr)
-		{
-			ContentsToLoad = TOptional<FString>();
-			CefString URL = *NewURL;
-			MainFrame->LoadURL(URL);
-		}
-	}
+	RequestNavigationInternal(NewURL, FString());
 }
 
 void FCEFWebBrowserWindow::LoadString(FString Contents, FString DummyURL)
 {
-	if (IsValid())
-	{
-		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
-		if (MainFrame.get() != nullptr)
-		{
-			ContentsToLoad = Contents;
-			CefString URL = *DummyURL;
-			MainFrame->LoadURL(URL);
-		}
-	}
+	RequestNavigationInternal(DummyURL, Contents);
 }
 
 TSharedRef<SViewport> FCEFWebBrowserWindow::CreateWidget()
@@ -462,6 +467,10 @@ TSharedRef<SViewport> FCEFWebBrowserWindow::CreateWidget()
 		.EnableGammaCorrection(false)
 		.EnableBlending(bUseTransparency)
 		.IgnoreTextureAlpha(!bUseTransparency);
+
+#if !PLATFORM_LINUX
+	Ime->CacheBrowserSlateInfo(BrowserWidgetRef);
+#endif
 
 	return BrowserWidgetRef;
 }
@@ -478,6 +487,7 @@ void FCEFWebBrowserWindow::SetViewportSize(FIntPoint WindowSize, FIntPoint Windo
 	// Ignore sizes that can't be seen as it forces CEF to re-render whole image
 	if (WindowSize.X > 0 && WindowSize.Y > 0 && ViewportSize != WindowSize)
 	{
+		bool bFirstSize = ViewportSize == FIntPoint::ZeroValue;
 		ViewportSize = WindowSize;
 
 		if (IsValid())
@@ -515,19 +525,21 @@ void FCEFWebBrowserWindow::SetViewportSize(FIntPoint WindowSize, FIntPoint Windo
 				::SetWindowPos(NativeHandle, 0, WindowPos.X - ParentRect.left, WindowPos.Y - ParentRect.top, WindowSize.X, WindowSize.Y, 0);
 			}
 #endif
-			InternalCefBrowser->GetHost()->WasResized();
+
+			if (bFirstSize)
+			{
+				InternalCefBrowser->GetHost()->WasResized();
+			}
+			else
+			{
+				bNeedsResize = true;
+			}
 		}
 	}
 }
 
 FSlateShaderResource* FCEFWebBrowserWindow::GetTexture(bool bIsPopup)
 {
-	if (!bIsPopup && UpdatableTextures[0] == nullptr && FSlateApplication::IsInitialized())
-	{
-		// SViewport renders a black quad over the entire view if we return nullptr. Return an empty texture instead.
-		UpdatableTextures[0] = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(1,1);
-	}
-
 	if (UpdatableTextures[bIsPopup?1:0] != nullptr)
 	{
 		return UpdatableTextures[bIsPopup?1:0]->GetSlateResource();
@@ -1262,6 +1274,10 @@ void FCEFWebBrowserWindow::OnFocus(bool SetFocus, bool bIsPopup)
 		bMainHasFocus = SetFocus;
 	}
 
+#if !PLATFORM_LINUX
+	Ime->SetFocus(!bPopupHasFocus && bMainHasFocus);
+#endif
+
 	// Only notify focus if there is no popup menu with focus, as SendFocusEvent will dismiss any popup menus.
 	if (IsValid() && !bPopupHasFocus)
 	{
@@ -1350,13 +1366,20 @@ void FCEFWebBrowserWindow::CloseBrowser(bool bForce)
 {
 	if (IsValid())
 	{
-		// In case this is called from inside a CEF event handler, use CEF's task mechanism to
-		// postpone the actual closing of the window until it is safe.
 		CefRefPtr<CefBrowserHost> Host = InternalCefBrowser->GetHost();
-		CefPostTask(TID_UI, new FCEFBrowserClosureTask(nullptr, [=]()
+		if (CefCurrentlyOn(TID_UI))
 		{
 			Host->CloseBrowser(bForce);
-		}));
+		}
+		else
+		{
+			// In case this is called from inside a CEF event handler, use CEF's task mechanism to
+			// postpone the actual closing of the window until it is safe.
+			CefPostTask(TID_UI, new FCEFBrowserClosureTask(nullptr, [=]()
+			{
+				Host->CloseBrowser(bForce);
+			}));
+		}
 	}
 }
 
@@ -1406,6 +1429,47 @@ int FCEFWebBrowserWindow::GetLoadError()
 	return ErrorCode;
 }
 
+void FCEFWebBrowserWindow::NotifyDocumentError(
+	CefLoadHandler::ErrorCode InErrorCode,
+	const CefString& ErrorText,
+	const CefString& FailedUrl)
+{
+	FString Url = FailedUrl.ToWString().c_str();
+
+	if (InErrorCode == ERR_ABORTED)
+	{
+		// Aborting navigation is not an error case but we do need to wait for any existing navigations, handled via OnBeforeBrowse(), to fully abort before we can initiate a new navigation.
+		if (!PendingAbortUrl.IsEmpty() && PendingAbortUrl == Url)
+		{
+			PendingAbortUrl.Empty();
+			bDeferNavigations = false;
+
+			if (HasPendingNavigation())
+			{
+				ProcessPendingNavigation();
+			}
+		}
+		return;
+	}
+	
+	if (IsShowingErrorMessages())
+	{
+		// Display a load error message. Note: The user's code will still have a chance to handle this error after this error message is displayed.
+		FFormatNamedArguments Args;
+		{
+			Args.Add(TEXT("FailedUrl"), FText::FromString(Url));
+			Args.Add(TEXT("ErrorText"), FText::FromString(ErrorText.ToWString().c_str()));
+			Args.Add(TEXT("ErrorCode"), FText::AsNumber((int)InErrorCode));
+		}
+		FText ErrorMsg = FText::Format(NSLOCTEXT("WebBrowserHandler", "WebBrowserLoadError", "Failed to load URL {FailedUrl} with error {ErrorText} ({ErrorCode})."), Args);
+		FString ErrorHTML = TEXT("<html><body bgcolor=\"white\"><h2>") + ErrorMsg.ToString() + TEXT("</h2></body></html>");
+
+		LoadString(ErrorHTML, Url);
+	}
+	
+	NotifyDocumentError((int)InErrorCode);
+}
+
 void FCEFWebBrowserWindow::NotifyDocumentError(int InErrorCode)
 {
 	ErrorCode = InErrorCode;
@@ -1447,6 +1511,22 @@ void FCEFWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 void FCEFWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
 	bool bNeedsRedraw = false;
+
+#if PLATFORM_MAC
+	// @todo: Ugly workaround for OPP-7200 and OPP-7449 until proper fix can be found.  CEF returns invalid OnPaint() buffer size on Retina display Macs, or Macs with 
+	//    HiDPI enabled, once rendering is disabled/enabled using WasHidden().  Invalidating the view or calling WasResized() after enabling rendering is 
+	//    not sufficient.  For the current workaround, we must dirty the viewport size and call WasResized().
+	if (FIntPoint(Width, Height) == (ViewportSize * 2))
+	{
+		ViewportSize.Y += 1;
+		InternalCefBrowser->GetHost()->WasResized();
+
+		// We ignore this frame.
+		return;
+	}
+#endif
+
+
 	if (UpdatableTextures[Type] == nullptr && FSlateApplication::IsInitialized())
 	{
 		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
@@ -1604,12 +1684,33 @@ bool FCEFWebBrowserWindow::OnBeforeBrowse( CefRefPtr<CefBrowser> Browser, CefRef
 			if(OnBeforeBrowse().IsBound())
 			{
 				FString Url = Request->GetURL().ToWString().c_str();
+				bool bIsMainFrame = Frame->IsMain();
 
 				FWebNavigationRequest RequestDetails;
 				RequestDetails.bIsRedirect = bIsRedirect;
-				RequestDetails.bIsMainFrame = Frame->IsMain();
+				RequestDetails.bIsMainFrame = bIsMainFrame;
 
-				return OnBeforeBrowse().Execute(Url, RequestDetails);
+				if (bIsMainFrame)
+				{
+					// We need to defer all future navigations until we can determine if this current navigation is going to be handled or not
+					bDeferNavigations = true;
+				}
+
+				bool bHandled = OnBeforeBrowse().Execute(Url, RequestDetails);
+				if (bIsMainFrame)
+				{
+					// If the browse request is handled and this is the main frame we must defer LoadUrl() calls until the request is fully aborted in/after NotifyDocumentError
+					bDeferNavigations = bHandled && !bIsRedirect;
+					if (bDeferNavigations)
+					{
+						PendingAbortUrl = Url;
+					}
+					else if (HasPendingNavigation())
+					{
+						ProcessPendingNavigation();
+					}
+				}
+				return bHandled;
 			}
 		}
 	}
@@ -1747,6 +1848,14 @@ int32 FCEFWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 	return Modifiers;
 }
 
+void FCEFWebBrowserWindow::UpdateCachedGeometry(const FGeometry& AllottedGeometry)
+{
+#if !PLATFORM_LINUX
+	// Forward along the geometry for use by IME
+	Ime->UpdateCachedGeometry(AllottedGeometry);
+#endif
+}
+
 void FCEFWebBrowserWindow::CheckTickActivity()
 {
 	// Early out if we're currently hidden, not initialized or currently loading.
@@ -1763,7 +1872,65 @@ void FCEFWebBrowserWindow::CheckTickActivity()
 	{
 		SetIsHidden(true);
 	}
+	else if(bNeedsResize)
+	{
+		bNeedsResize = false;
+		InternalCefBrowser->GetHost()->WasResized();
+	}
+	else
+	{
+		// @todo: Ugly workaround for OPP-7349 until proper fix can be found.  When using CefDoMessageLoopWork() we see low OnPaint() buffer update frequency.
+		//   As a workaround, we schedule something on the main thread which improves things as specified in this 
+		//   cef issue:   https://bitbucket.org/chromiumembedded/cef/issues/2203/low-fps-with-cefdomessageloopwork-or
+		CefPostTask(TID_UI, new FCEFBrowserClosureTask(nullptr, []()
+		{
+			// Intentionally empty
+		}));
+	}
+
+
 	bTickedLastFrame = false;
+}
+
+void FCEFWebBrowserWindow::RequestNavigationInternal(FString Url, FString Contents)
+{
+	if (!IsValid())
+	{
+		return;
+	}
+
+	CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+	if (MainFrame.get() != nullptr)
+	{
+		ContentsToLoad = Contents.IsEmpty() ? TOptional<FString>() : Contents;
+		PendingLoadUrl = Url;
+
+		if (!bDeferNavigations)
+		{
+			ProcessPendingNavigation();
+		}
+	}
+}
+
+bool FCEFWebBrowserWindow::HasPendingNavigation()
+{
+	return !PendingLoadUrl.IsEmpty();
+}
+
+void FCEFWebBrowserWindow::ProcessPendingNavigation()
+{
+	if (!IsValid() || bDeferNavigations || !HasPendingNavigation())
+	{
+		return;
+	}
+
+	CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+	if (MainFrame.get() != nullptr)
+	{
+		CefString Url = *PendingLoadUrl;
+		PendingLoadUrl.Empty();
+		MainFrame->LoadURL(Url);
+	}
 }
 
 void FCEFWebBrowserWindow::SetIsHidden(bool bValue)
@@ -1777,6 +1944,7 @@ void FCEFWebBrowserWindow::SetIsHidden(bool bValue)
 	{
 		CefRefPtr<CefBrowserHost> BrowserHost = InternalCefBrowser->GetHost();
 		BrowserHost->WasHidden(bIsHidden);
+
 #if PLATFORM_WINDOWS
 		HWND NativeWindowHandle = BrowserHost->GetWindowHandle();
 		if (NativeWindowHandle != nullptr)
@@ -1822,7 +1990,16 @@ CefRefPtr<CefDictionaryValue> FCEFWebBrowserWindow::GetProcessInfo()
 
 bool FCEFWebBrowserWindow::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser, CefProcessId SourceProcess, CefRefPtr<CefProcessMessage> Message)
 {
-	return Scripting->OnProcessMessageReceived(Browser, SourceProcess, Message);
+	bool bHandled = Scripting->OnProcessMessageReceived(Browser, SourceProcess, Message);
+
+	if (!bHandled)
+	{
+#if !PLATFORM_LINUX
+		bHandled = Ime->OnProcessMessageReceived(Browser, SourceProcess, Message);
+#endif
+	}
+	
+	return bHandled;
 }
 
 void FCEFWebBrowserWindow::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
@@ -1835,6 +2012,19 @@ void FCEFWebBrowserWindow::UnbindUObject(const FString& Name, UObject* Object, b
 	Scripting->UnbindUObject(Name, Object, bIsPermanent);
 }
 
+void FCEFWebBrowserWindow::BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem)
+{
+#if !PLATFORM_LINUX
+	Ime->BindInputMethodSystem(TextInputMethodSystem);
+#endif
+}
+
+void FCEFWebBrowserWindow::UnbindInputMethodSystem()
+{
+#if !PLATFORM_LINUX
+	Ime->UnbindInputMethodSystem();
+#endif
+}
 
 void FCEFWebBrowserWindow::OnBrowserClosing()
 {
@@ -1849,6 +2039,9 @@ void FCEFWebBrowserWindow::OnBrowserClosed()
 	}
 
 	Scripting->UnbindCefBrowser();
+#if !PLATFORM_LINUX
+	Ime->UnbindCefBrowser();
+#endif
 	InternalCefBrowser = nullptr;
 }
 
@@ -1872,5 +2065,17 @@ void FCEFWebBrowserWindow:: ShowPopupMenu(bool bShow)
 	}
 }
 
+#if !PLATFORM_LINUX
+void FCEFWebBrowserWindow::OnImeCompositionRangeChanged(
+	CefRefPtr<CefBrowser> Browser, 
+	const CefRange& SelectionRange, 
+	const CefRenderHandler::RectList& CharacterBounds)
+{
+	if (InternalCefBrowser != nullptr && InternalCefBrowser->IsSame(Browser))
+	{
+		Ime->CEFCompositionRangeChanged(SelectionRange, CharacterBounds);
+	}
+}
+#endif
 
 #endif

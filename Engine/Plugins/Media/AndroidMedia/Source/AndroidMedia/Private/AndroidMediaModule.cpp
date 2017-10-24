@@ -1,15 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
-#include "Player/AndroidMediaPlayer.h"
-#include "IAndroidMediaModule.h"
+#include "AndroidMediaPrivate.h"
+
 #include "Modules/ModuleManager.h"
 
+#include "IAndroidMediaModule.h"
+#include "Player/AndroidMediaPlayer.h"
 
 
-#define LOCTEXT_NAMESPACE "FAndroidMediaModule"
+DEFINE_LOG_CATEGORY(LogAndroidMedia);
 
 
+/**
+ * Implements the AndroidMedia module.
+ */
 class FAndroidMediaModule
 	: public IAndroidMediaModule
 {
@@ -17,14 +21,14 @@ public:
 
 	//~ IAndroidMediaModule interface
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
 		if (!IsSupported())
 		{
 			return nullptr;
 		}
 
-		return MakeShareable(new FAndroidMediaPlayer());
+		return MakeShared<FAndroidMediaPlayer, ESPMode::ThreadSafe>(EventSink);
 	}
 
 public:
@@ -49,5 +53,3 @@ protected:
 
 
 IMPLEMENT_MODULE(FAndroidMediaModule, AndroidMedia)
-
-#undef LOCTEXT_NAMESPACE

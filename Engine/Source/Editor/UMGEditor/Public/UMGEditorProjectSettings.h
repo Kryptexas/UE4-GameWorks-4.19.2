@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/DeveloperSettings.h"
 #include "UMGEditorProjectSettings.generated.h"
 
@@ -66,5 +66,5 @@ public:
 	TArray<FString> CategoriesToHide;
 
 	UPROPERTY(EditAnywhere, config, Category = "Class Filtering", meta = (MetaClass = "Widget"))
-	TArray<FStringClassReference> WidgetClassesToHide;
+	TArray<FSoftClassPath> WidgetClassesToHide;
 };

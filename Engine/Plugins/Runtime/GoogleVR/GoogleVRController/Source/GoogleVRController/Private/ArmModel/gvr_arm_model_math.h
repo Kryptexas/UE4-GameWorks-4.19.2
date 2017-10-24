@@ -52,6 +52,8 @@ namespace gvr_arm_model {
     static Vector3 Scale(const Vector3& a, const Vector3& b);
     static float AngleDegrees(const Vector3& a, const Vector3& b);
 
+    const static Vector3 Zero;
+
   private:
     float c_[3];
   };

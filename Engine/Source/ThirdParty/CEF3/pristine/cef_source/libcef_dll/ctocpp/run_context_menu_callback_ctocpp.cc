@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -46,19 +46,19 @@ void CefRunContextMenuCallbackCToCpp::Cancel() {
 CefRunContextMenuCallbackCToCpp::CefRunContextMenuCallbackCToCpp() {
 }
 
-template<> cef_run_context_menu_callback_t* CefCToCpp<CefRunContextMenuCallbackCToCpp,
+template<> cef_run_context_menu_callback_t* CefCToCppRefCounted<CefRunContextMenuCallbackCToCpp,
     CefRunContextMenuCallback, cef_run_context_menu_callback_t>::UnwrapDerived(
     CefWrapperType type, CefRunContextMenuCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefRunContextMenuCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefRunContextMenuCallbackCToCpp,
     CefRunContextMenuCallback, cef_run_context_menu_callback_t>::DebugObjCt =
     0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefRunContextMenuCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefRunContextMenuCallbackCToCpp,
     CefRunContextMenuCallback, cef_run_context_menu_callback_t>::kWrapperType =
     WT_RUN_CONTEXT_MENU_CALLBACK;

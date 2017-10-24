@@ -53,7 +53,7 @@ void FCategoryPropertyNode::InitChildNodes()
 			if (!bShowHiddenProperties)
 			{
 				static const FName Name_bShowOnlyWhenTrue("bShowOnlyWhenTrue");
-				FString MetaDataVisibilityCheckString = It->GetMetaData(Name_bShowOnlyWhenTrue);
+				const FString& MetaDataVisibilityCheckString = It->GetMetaData(Name_bShowOnlyWhenTrue);
 				if (MetaDataVisibilityCheckString.Len())
 				{
 					//ensure that the metadata visibility string is actually set to true in order to show this property

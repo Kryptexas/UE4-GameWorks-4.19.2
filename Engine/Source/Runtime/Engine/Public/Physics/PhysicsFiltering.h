@@ -22,7 +22,8 @@ enum EPhysXFilterDataFlags
 	EPDF_CCD				=	0x0004,
 	EPDF_ContactNotify		=	0x0008,
 	EPDF_StaticShape		=	0x0010,
-	EPDF_ModifyContacts		=   0x0020
+	EPDF_ModifyContacts		=   0x0020,
+	EPDF_KinematicKinematicPairs = 0x0040,
 };
 
 

@@ -67,15 +67,15 @@ struct ENGINE_API FLinearConstraint : public FConstraintBaseParams
 	float Limit;
 
 	/** Indicates the linear constraint applied along the X-axis. Free implies no constraint at all. Locked implies no movement along X is allowed. Limited implies the distance in the joint along all active axes must be less than the Distance provided. */
-	UPROPERTY(EditAnywhere, Category = Linear)
+	UPROPERTY(EditAnywhere, Category = Linear, meta = (DisplayName= "X Motion"))
 	TEnumAsByte<enum ELinearConstraintMotion> XMotion;
 
-	/** Indicates the linear constraint applied along the X-axis. Free implies no constraint at all. Locked implies no movement along X is allowed. Limited implies the distance in the joint along all active axes must be less than the Distance provided. */
-	UPROPERTY(EditAnywhere, Category = Linear)
+	/** Indicates the linear constraint applied along the Y-axis. Free implies no constraint at all. Locked implies no movement along Y is allowed. Limited implies the distance in the joint along all active axes must be less than the Distance provided. */
+	UPROPERTY(EditAnywhere, Category = Linear, meta = (DisplayName= "Y Motion"))
 	TEnumAsByte<enum ELinearConstraintMotion> YMotion;
 
-	/** Indicates the linear constraint applied along the X-axis. Free implies no constraint at all. Locked implies no movement along X is allowed. Limited implies the distance in the joint along all active axes must be less than the Distance provided. */
-	UPROPERTY(EditAnywhere, Category = Linear)
+	/** Indicates the linear constraint applied along theZX-axis. Free implies no constraint at all. Locked implies no movement along Z is allowed. Limited implies the distance in the joint along all active axes must be less than the Distance provided. */
+	UPROPERTY(EditAnywhere, Category = Linear, meta = (DisplayName= "Z Motion"))
 	TEnumAsByte<enum ELinearConstraintMotion> ZMotion;
 
 	FLinearConstraint();
@@ -102,11 +102,11 @@ struct ENGINE_API FConeConstraint : public FConstraintBaseParams
 	float Swing2LimitDegrees;
 
 	/** Indicates whether the Swing1 limit is used.*/
-	UPROPERTY(EditAnywhere, Category = Angular)
+	UPROPERTY(EditAnywhere, Category = Angular, meta = (DisplayName= "Swing 1 Motion"))
 	TEnumAsByte<enum EAngularConstraintMotion> Swing1Motion;
 
 	/** Indicates whether the Swing2 limit is used.*/
-	UPROPERTY(EditAnywhere, Category = Angular)
+	UPROPERTY(EditAnywhere, Category = Angular, meta = (DisplayName= "Swing 2 Motion"))
 	TEnumAsByte<enum EAngularConstraintMotion> Swing2Motion;
 
 	FConeConstraint();

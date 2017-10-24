@@ -155,8 +155,8 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 {	
 	UDataTable* This = CastChecked<UDataTable>(InThis);
 
-	// Need to emit references for referenced rows
-	if(This->RowStruct != NULL)
+	// Need to emit references for referenced rows (unless there's no properties that reference UObjects)
+	if(This->RowStruct != nullptr && This->RowStruct->RefLink != nullptr)
 	{
 		// Now iterate over rows in the map
 		for ( auto RowIt = This->RowMap.CreateIterator(); RowIt; ++RowIt )
@@ -166,8 +166,7 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 			if (RowData)
 			{
 				// Serialize all of the properties to make sure they get in the collector
-				FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( This, Collector );
-				This->RowStruct->SerializeBin(ObjectReferenceCollector, RowData);
+				This->RowStruct->SerializeBin(Collector.GetVerySlowReferenceCollectorArchive(), RowData);
 			}
 		}
 	}

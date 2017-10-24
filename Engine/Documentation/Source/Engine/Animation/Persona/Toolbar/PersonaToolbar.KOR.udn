@@ -1,27 +1,27 @@
-﻿INTSourceChangelist:3462657
-Availability:Public
-Title:애니메이션 툴바
+﻿INTSourceChangelist:3514316
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Title:애니메이션 툴바
 Description:각 애니메이션 툴 에디터에 사용되는 여러가지 툴바에 대한 개요입니다.
-Related: Engine/Animation/Persona/Modes/Skeleton
-Related: Engine/Animation/Persona/Modes/Mesh
-Related: Engine/Animation/Persona/Modes/Animation
-Related: Engine/Animation/Persona/Modes/Graph
-version: 4.16
-type:reference
-topic-image:Engine/Animation/animation_topic.png
-tags:animation
+Type: Reference
+Version: 4.16
+Parent: Engine/Animation/Persona
+Order: 1
+Tags:animation
+topic-image:SkeletonToolbar.png
+Related: Engine/Animation/Persona
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/AnimBlueprints
 
+[TOC(start:2)]
 
 [EXCERPT:Overview]
-어떤 애니메이션 툴에서 작업하든 관계 없이, 각 에디터에는 상단에 **툴바** 가 있을 수 있으나, 그 툴바의 옵션은 현재 작업중인 에디터 유형에 따라 달라집니다.
+각 [애니메이션 툴](Engine/Animation/Persona/Modes) 안에는 에디터 창 상단에 걸쳐 **툴바** 가 있습니다.
+그 툴바의 옵션은 현재 작업중인 에디터 유형에 따라 달라집니다.
 툴바는 크게 두 영역으로 나뉘는데, **애셋 툴바** 에는 현재 작업중인 에디터에 관련된 여러가지 옵션이 들어있으며, **에디터 툴바** 에서는 다른 애니메이션 툴 에디터로 빠르게 전환할 수 있습니다.
 [/EXCERPT:Overview]
 
 
-[TOC(start:2)]
-
- 
 ## 애셋 툴바
 
 툴바 왼편에는 작업중인 에디터 유형에 따라 사용할 수 있는 여러가지 옵션이 있습니다. 자세한 내용은 아래를 참고하세요:
@@ -66,7 +66,7 @@ tags:animation
 | ------- | ------------ |
 | ![](saveIcon.png) | 현재 애니메이션 애셋에 가해진 변경사항을 저장합니다. |
 | ![](findincbIcon.png) | **콘텐츠 브라우저** 를 열어 현재 스켈레톤 애셋 위치로 자동 이동합니다. |
-| ![](createassetIcon.png) | 새 애니메이션 애셋(애니메이션, 애님 애셋, 블렌드 스페이스, 에임 오프셋 등)을 생성합니다. 애니메이션을 생성할 때, 이는 **레퍼런스 포즈**, **현재 포즈**, 또는 현재 애니메이션의 **애니메이션 데이터** 또는 **프리뷰 메시** 를 기준으로 생성할 수 있습니다. 프리뷰 메시를 사용할 때, 생성되는 애니메이션에는 애님 다이내믹스나 피직스 시뮬레이션처럼 그 스켈레탈 메시에 적용된 포스트 프로세스 그래프에서 생성된 부가 애니메이션 데이터도 포함됩니다. |
+| ![](createassetIcon.png) | 새 애니메이션 애셋을 생성합니다. 애니메이션을 생성할 때, 이는 **레퍼런스 포즈**, **현재 포즈**, 또는 현재 애니메이션의 **애니메이션 데이터** 또는 **프리뷰 메시** 를 기준으로 생성할 수 있습니다. 프리뷰 메시를 사용할 때, 생성되는 애니메이션에는 애님 다이내믹스나 피직스 시뮬레이션처럼 그 스켈레탈 메시에 적용된 포스트 프로세스 그래프에서 생성된 부가 애니메이션 데이터는 물론 프리뷰 메시의 리타게팅 정보 역시 포함됩니다. |
 | ![](ReimportAnimation.png) | 현재 애니메이션을 리임포트합니다. |
 | ![](compressionIcon.png) | 애니메이션에 다양한 [압축](Engine/Animation/Sequences) 세팅을 적용할 수 있습니다 (애니메이션 시퀀스에 사용 가능). |
 | ![](ExportAsset.png) | 현재 애니메이션 소스 데이터 또는 현재 프리뷰 메시에 재생되고 있는 애니메이션을 (리타게팅, 포스트 프로세스 그래프, 또는 프리뷰 메시에 적용된 기타 세팅을 포함해서) 익스포트합니다. |
@@ -103,7 +103,7 @@ tags:animation
 
 ![](animationdropdownmenu.png)
 
-아이콘 좌하단의 ** * ** 심볼은 애셋에 저장되지 않은 변경사항이 있음을 나타냅니다.
+아이콘 좌하단의 ** * ** (별표) 심볼은 애셋에 저장되지 않은 변경사항이 있음을 나타냅니다.
 
 ![](unsavedasset.png)
 

@@ -3,7 +3,7 @@
 #include "PaperTileMapRenderSceneProxy.h"
 #include "Materials/Material.h"
 #include "SceneManagement.h"
-#include "PhysicsEngine/BodySetup2D.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "PaperTileMap.h"
@@ -245,11 +245,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			{
 				if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 				{
-					if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(TileMap->BodySetup))
-					{
-						//@TODO: Draw 2D debugging geometry
-					}
-					else if (UBodySetup* BodySetup = TileMap->BodySetup)
+					if (UBodySetup* BodySetup = TileMap->BodySetup)
 					{
 						if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 						{

@@ -113,7 +113,7 @@ TSharedPtr<FDragDropOperation> FBlueprintDragDropMenuItem::OnDragged(FNodeCreati
 		if (UMulticastDelegateProperty const* Property = DelegateSpawner->GetDelegateProperty())
 		{
 			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-			TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(Property->GetFName(), PropertyOwner, AnalyticsDelegate);
+			TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(nullptr, Property->GetFName(), PropertyOwner, AnalyticsDelegate);
 			DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
 		}
 	}
@@ -122,7 +122,7 @@ TSharedPtr<FDragDropOperation> FBlueprintDragDropMenuItem::OnDragged(FNodeCreati
 		if (UProperty const* Property = VariableSpawner->GetVarProperty())
 		{
 			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-			TSharedRef<FDragDropOperation> DragDropOpRef = FKismetVariableDragDropAction::New(Property->GetFName(), PropertyOwner, AnalyticsDelegate);
+			TSharedRef<FDragDropOperation> DragDropOpRef = FKismetVariableDragDropAction::New(nullptr, Property->GetFName(), PropertyOwner, AnalyticsDelegate);
 			DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
 		}
 		// @TODO: handle local variables as well

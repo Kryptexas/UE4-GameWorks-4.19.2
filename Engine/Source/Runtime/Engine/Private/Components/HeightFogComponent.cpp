@@ -41,6 +41,7 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInit
 	VolumetricFogAlbedo = FColor::White;
 	VolumetricFogExtinctionScale = 1.0f;
 	VolumetricFogDistance = 6000.0f;
+	VolumetricFogStaticLightingScatteringIntensity = 1;
 }
 
 void UExponentialHeightFogComponent::AddFogIfNeeded()

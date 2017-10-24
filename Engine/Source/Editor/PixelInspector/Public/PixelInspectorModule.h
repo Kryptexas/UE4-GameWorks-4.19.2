@@ -43,7 +43,7 @@ public:
 
 	virtual bool GetViewportRealtime(int32 ViewportUid, bool IsCurrentlyRealtime, bool IsMouseInsideViewport);
 
-	virtual void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface);
+	virtual void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
 
 	virtual void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize);
 

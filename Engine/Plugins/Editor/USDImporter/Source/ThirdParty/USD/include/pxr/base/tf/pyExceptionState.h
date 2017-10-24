@@ -21,11 +21,16 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
+
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/pyLock.h"
 #include "pxr/base/tf/errorMark.h"
 
 #include <boost/python/handle.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 struct TfPyExceptionState {
     TfPyExceptionState(boost::python::handle<> const &type,
@@ -46,3 +51,4 @@ struct TfPyExceptionState {
         boost::python::handle<> _type, _value, _trace;
 };
 
+PXR_NAMESPACE_CLOSE_SCOPE

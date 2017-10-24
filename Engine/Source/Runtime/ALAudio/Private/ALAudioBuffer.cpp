@@ -110,15 +110,7 @@ void FALSoundBuffer::CreateNativeBuffer(FALAudioDevice* AudioDevice, USoundWave*
 	{
 		SCOPE_CYCLE_COUNTER( STAT_AudioResourceCreationTime );
 
-		// Check to see if thread has finished decompressing on the other thread
-		if (Wave->AudioDecompressor)
-		{
-			Wave->AudioDecompressor->EnsureCompletion();
-
-			// Remove the decompressor
-			delete Wave->AudioDecompressor;
-			Wave->AudioDecompressor = nullptr;
-		}
+		check(Wave->bIsPrecacheDone);
 
 		// Create new buffer.
 		Buffer = new FALSoundBuffer(AudioDevice);

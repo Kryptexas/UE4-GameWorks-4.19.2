@@ -64,18 +64,6 @@ namespace Audio
 			return;
 		}
 
-		// If we're already loading a sound wave, finish it before trying to load a new one
-		if (bIsLoading)
-		{
-			check(SoundWave);
-			if (SoundWave->AudioDecompressor)
-			{
-				SoundWave->AudioDecompressor->EnsureCompletion();
-				delete SoundWave->AudioDecompressor;
-				SoundWave->AudioDecompressor = nullptr;
-			}
-		}
-
 		// Queue existing sound wave reference so it can be
 		// cleared when the audio thread gets newly loaded audio data. 
 		// Don't want to kill the sound wave PCM data while it's playing on audio thread.
@@ -85,13 +73,16 @@ namespace Audio
 		}
 
 		SoundWave = InSoundWave;
-		if (!SoundWave->RawPCMData)
+		if (!SoundWave->RawPCMData || SoundWave->AudioDecompressor)
 		{
 			bIsLoaded = false;
 			bIsLoading = true;
 
-			// Kick off a decompression/precache of the sound wave
-			AudioDevice->Precache(SoundWave, false, true, true);
+			if (!SoundWave->RawPCMData)
+			{
+				// Kick off a decompression/precache of the sound wave
+				AudioDevice->Precache(SoundWave, false, true, true);
+			}
 		}
 		else
 		{
@@ -108,14 +99,14 @@ namespace Audio
 	
 			if (bIsLoaded || (SoundWave->AudioDecompressor && SoundWave->AudioDecompressor->IsDone()))
 			{
-				bIsLoading = false;
-				bIsLoaded = true;
-
 				if (SoundWave->AudioDecompressor)
 				{
+					check(!bIsLoaded);
 					delete SoundWave->AudioDecompressor;
 					SoundWave->AudioDecompressor = nullptr;
 				}
+				bIsLoading = false;
+				bIsLoaded = true;
 
 				SampleBuffer.RawPCMData = (int16*)SoundWave->RawPCMData;
 				SampleBuffer.NumSamples = SoundWave->RawPCMDataSize / sizeof(int16);

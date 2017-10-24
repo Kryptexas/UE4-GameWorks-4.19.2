@@ -8,11 +8,10 @@
 
 #define LOCTEXT_NAMESPACE "PluginDescriptor"
 
-FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, bool bInEnabled, const FString& InMarketplaceURL )
+FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, bool bInEnabled )
 	: Name(InName)
 	, bEnabled(bInEnabled)
 	, bOptional(false)
-	, MarketplaceURL(InMarketplaceURL)
 { }
 
 
@@ -62,6 +61,11 @@ bool FPluginReferenceDescriptor::IsEnabledForTarget(const FString& Target) const
     return true;
 }
 
+bool FPluginReferenceDescriptor::IsSupportedTargetPlatform(const FString& Platform) const
+{
+	return SupportedTargetPlatforms.Num() == 0 || SupportedTargetPlatforms.Contains(Platform);
+}
+
 bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
 {
 	// Get the name
@@ -92,6 +96,9 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 	// Get the target lists
 	Object.TryGetStringArrayField(TEXT("WhitelistTargets"), WhitelistTargets);
 	Object.TryGetStringArrayField(TEXT("BlacklistTargets"), BlacklistTargets);
+
+	// Get the supported platform list
+	Object.TryGetStringArrayField(TEXT("SupportedTargetPlatforms"), SupportedTargetPlatforms);
 
 	return true;
 }
@@ -194,6 +201,18 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 		Writer.WriteArrayEnd();
 	}
 
+	if (SupportedTargetPlatforms.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("SupportedTargetPlatforms"));
+
+		for (int Idx = 0; Idx < SupportedTargetPlatforms.Num(); Idx++)
+		{
+			Writer.WriteValue(SupportedTargetPlatforms[Idx]);
+		}
+
+		Writer.WriteArrayEnd();
+	}
+
 	Writer.WriteObjectEnd();
 }
 
@@ -212,6 +231,5 @@ void FPluginReferenceDescriptor::WriteArray( TJsonWriter<>& Writer, const TCHAR*
 		Writer.WriteArrayEnd();
 	}
 }
-
 
 #undef LOCTEXT_NAMESPACE

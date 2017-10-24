@@ -16,7 +16,7 @@ public class MaterialShaderQualitySettings : ModuleRules
 		);
         PrivateIncludePathModuleNames.Add("Engine");
 
-        if (UEBuildConfiguration.bBuildEditor == true)
+        if (Target.bBuildEditor == true)
 		{
             PrivateDependencyModuleNames.AddRange(
                 new string[] {            

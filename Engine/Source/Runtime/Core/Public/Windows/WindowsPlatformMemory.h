@@ -46,6 +46,7 @@ struct CORE_API FWindowsPlatformMemory
 		MCR_UsedStreamingPool, // amount of texture pool used for streaming.
 		MCR_GPUDefragPool, // presized pool of memory that can be defragmented.
 		MCR_SamplePlatformSpecifcMemoryRegion, 
+		MCR_PhysicalLLM, // total physical memory displayed in the LLM stats (on consoles CPU + GPU)
 		MCR_MAX
 	};
 
@@ -91,6 +92,7 @@ struct CORE_API FWindowsPlatformMemory
 	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
 	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
+	static bool GetLLMAllocFunctions(void*(*&OutAllocFunction)(size_t), void(*&OutFreeFunction)(void*, size_t), int32& OutAlignment);
 protected:
 	friend struct FGenericStatsUpdater;
 

@@ -15,9 +15,11 @@ public class SlateReflector : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Slate",
 				"SlateCore",
+				"EditorStyle",
 				"Json",
 				"AssetRegistry",
 			}
@@ -25,7 +27,8 @@ public class SlateReflector : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"Messaging",
+                "Messaging",
+				"MessagingCommon",
 			}
 		);
 

@@ -107,7 +107,9 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, ComponentDrawSize.X, ComponentDrawSize.Y));
 								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
 								CanvasSlot->Alignment(ComponentPivot);
-								CanvasSlot->ZOrder(-ViewportPosition.Z);
+								// @todo: - DO NOT copy this change to UE4/Main
+								//CanvasSlot->ZOrder(-ViewportPosition.Z);
+								// @todo: - DO NOT copy this change to UE4/Main
 							}
 							else
 							{
@@ -115,7 +117,9 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, DrawSize.X, DrawSize.Y));
 								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
 								CanvasSlot->Alignment(Pivot);
-								CanvasSlot->ZOrder(-ViewportPosition.Z);
+								// @todo: - DO NOT copy this change to UE4/Main
+								//CanvasSlot->ZOrder(-ViewportPosition.Z);
+								// @todo: - DO NOT copy this change to UE4/Main
 							}
 						}
 					}

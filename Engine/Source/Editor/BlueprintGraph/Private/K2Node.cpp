@@ -2,6 +2,7 @@
 
 
 #include "K2Node.h"
+#include "BlueprintCompilationManager.h"
 #include "UObject/UnrealType.h"
 #include "UObject/CoreRedirects.h"
 #include "EdGraph/EdGraphPin.h"
@@ -96,14 +97,14 @@ void UK2Node::Serialize(FArchive& Ar)
 					}
 				}
 
-				if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Asset || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_AssetClass)
+				if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
 				{
-					FStringAssetReference TempRef(Pin->DefaultValue);
+					FSoftObjectPath TempRef(Pin->DefaultValue);
 
 					// Serialize the asset reference, this will do the save fixup. It won't actually serialize the string if this is a real archive like linkersave
 					TempRef.SerializePath(Ar, true);
 
-					Pin->DefaultValue = MoveTemp(TempRef.ToString());
+					Pin->DefaultValue = TempRef.ToString();
 				}
 			}
 		}
@@ -165,7 +166,7 @@ void UK2Node::FixupPinDefaultValues()
 		{
 			UEdGraphPin* Pin = Pins[i];
 
-			if (Pin->PinType.PinCategory == K2Schema->PC_Asset || Pin->PinType.PinCategory == K2Schema->PC_AssetClass)
+			if (Pin->PinType.PinCategory == K2Schema->PC_SoftObject || Pin->PinType.PinCategory == K2Schema->PC_SoftClass)
 			{
 				if (Pin->DefaultObject && Pin->DefaultValue.IsEmpty())
 				{
@@ -209,6 +210,9 @@ FText UK2Node::GetActiveBreakpointToolTipText() const
 bool UK2Node::CreatePinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// if the generated class is not up to date, use the skeleton's class function to create pins:
+	Function = FBlueprintEditorUtils::GetMostUpToDateFunction(Function);
 
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;
@@ -260,20 +264,7 @@ void UK2Node::AutowireNewNode(UEdGraphPin* FromPin)
 			}
 
 			ECanCreateConnectionResponse ConnectResponse = K2Schema->CanCreateConnection(FromPin, Pin).Response;
-			if (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE)
-			{
-				if (K2Schema->TryCreateConnection(FromPin, Pin))
-				{
-					NodeList.Add(FromPin->GetOwningNode());
-					NodeList.Add(this);
-				}
-
-				// null out the backup connection (so we don't attempt to make it 
-				// once we exit the loop... we successfully made this connection!)
-				BackupConnection = NULL;
-				break;
-			}
-			else if((FromPin->PinType.PinCategory == K2Schema->PC_Exec) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A))
+			if ((FromPin->PinType.PinCategory == K2Schema->PC_Exec) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A))
 			{
 				InsertNewNode(FromPin, Pin, NodeList);
 
@@ -286,6 +277,22 @@ void UK2Node::AutowireNewNode(UEdGraphPin* FromPin)
 			{
 				// save this off, in-case we don't make any connection at all
 				BackupConnection = Pin;
+			}
+			else if ((ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_B) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_AB))
+			{
+				if (K2Schema->TryCreateConnection(FromPin, Pin))
+				{
+					NodeList.Add(FromPin->GetOwningNode());
+					NodeList.Add(this);
+				}
+
+				// null out the backup connection (so we don't attempt to make it 
+				// once we exit the loop... we successfully made this connection!)
+				BackupConnection = NULL;
+				break;
 			}
 		}
 
@@ -361,10 +368,6 @@ void UK2Node::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNod
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "GraphNode" ) ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
-}
-
-void UK2Node::PreloadRequiredAssets()
-{
 }
 
 void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin) 
@@ -459,6 +462,19 @@ void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin)
 UObject* UK2Node::GetJumpTargetForDoubleClick() const
 {
     return GetReferencedLevelActor();
+}
+
+bool UK2Node::CanJumpToDefinition() const
+{
+	return GetJumpTargetForDoubleClick() != nullptr;
+}
+
+void UK2Node::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+	}
 }
 
 void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
@@ -611,14 +627,21 @@ void UK2Node::RestoreSplitPins(TArray<UEdGraphPin*>& OldPins)
 			// find the new pin that corresponds to parent, and split it if it isn't already split
 			for (UEdGraphPin* NewPin : Pins)
 			{
-				if (FCString::Stricmp(*(NewPin->PinName), *(OldPin->ParentPin->PinName)) == 0)
+				// The pin we're searching for has the same direction, is not a container, has the same name as our parent pin (TODO: does this handle redirects?), and is either a wildcard or a struct
+				// We allow sub categories of struct to change because it may be changing to a type that has the same members
+				if ((NewPin->Direction == OldPin->Direction) && !NewPin->PinType.IsContainer() && (NewPin->PinName == OldPin->ParentPin->PinName) 
+					&& (NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct))
 				{
 					// Make sure we're not dealing with a menu node
 					UEdGraph* OuterGraph = GetGraph();
 					if (OuterGraph && OuterGraph->Schema && NewPin->SubPins.Num() == 0)
 					{
-						NewPin->PinType = OldPin->ParentPin->PinType;
-						GetSchema()->SplitPin(NewPin);
+						if (NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+						{
+							NewPin->PinType = OldPin->ParentPin->PinType;
+						}
+						
+						GetSchema()->SplitPin(NewPin, false);
 						break;
 					}
 				}
@@ -639,7 +662,7 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 		if( OuterGraph && OuterGraph->Schema )
 		{
 			const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-			if (!K2Schema || K2Schema->IsSelfPin(*NewPin) || K2Schema->ArePinTypesCompatible(OldPin->PinType, NewPin->PinType) || GetBlueprint()->bIsRegeneratingOnLoad)
+			if (!K2Schema || GetBlueprint()->bIsRegeneratingOnLoad || K2Schema->IsSelfPin(*NewPin) || K2Schema->ArePinTypesCompatible(OldPin->PinType, NewPin->PinType) )
 			{
 				RedirectType = ERedirectType_Name;
 			}
@@ -729,10 +752,6 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 	return RedirectType;
 }
 
-void UK2Node::CustomMapParamValue(UEdGraphPin& Pin)
-{
-}
-
 void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERedirectType RedirectType)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UK2Node::ReconstructSinglePin"), STAT_LinkerLoad_ReconstructSinglePin, STATGROUP_LoadTimeVerbose);
@@ -766,12 +785,6 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 				}
 			}
 		}
-		else if (RedirectType == ERedirectType_Custom)
-		{
-			PRAGMA_DISABLE_DEPRECATION_WARNINGS
-			CustomMapParamValue(*NewPin);
-			PRAGMA_ENABLE_DEPRECATION_WARNINGS
-		}
 	}
 
 	// Update the blueprints watched pins as the old pin will be going the way of the dodo
@@ -794,26 +807,26 @@ void UK2Node::ValidateOrphanPins(FCompilerResultsLog& MessageLog, const bool bSt
 		{
 			if (Pin->LinkedTo.Num())
 			{
-				const FText LinkedMessage = LOCTEXT("RemovedConnectedPin", "In use pin @@ no longer exists on this node. Please refresh node or break links to remove pin.");
+				const FText LinkedMessage = LOCTEXT("RemovedConnectedPin", "In use pin @@ no longer exists on node @@. Please refresh node or break links to remove pin.");
 				if (bStore)
 				{
-					MessageLog.StorePotentialError(this, *LinkedMessage.ToString(), Pin);
+					MessageLog.StorePotentialError(this, *LinkedMessage.ToString(), Pin, this);
 				}
 				else
 				{
-					MessageLog.Error(*LinkedMessage.ToString(), Pin);
+					MessageLog.Error(*LinkedMessage.ToString(), Pin, this);
 				}
 			}
 			else if (!Pin->bHidden && !Pin->DoesDefaultValueMatchAutogenerated())
 			{
-				const FText NonDefaultMessage = LOCTEXT("RemovedNonDefaultPin", "Input pin @@ specifying non-default value no longer exists on this node. Please refresh node or reset pin to default value to remove pin.");
+				const FText NonDefaultMessage = LOCTEXT("RemovedNonDefaultPin", "Input pin @@ specifying non-default value no longer exists on node @@. Please refresh node or reset pin to default value to remove pin.");
 				if (bStore)
 				{
-					MessageLog.StorePotentialWarning(this, *NonDefaultMessage.ToString(), Pin);
+					MessageLog.StorePotentialWarning(this, *NonDefaultMessage.ToString(), Pin, this);
 				}
 				else
 				{
-					MessageLog.Warning(*NonDefaultMessage.ToString(), Pin);
+					MessageLog.Warning(*NonDefaultMessage.ToString(), Pin, this);
 				}
 			}
 		}
@@ -1008,13 +1021,14 @@ bool UK2Node::CanSplitPin(const UEdGraphPin* Pin) const
 	return false;
 }
 
-void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
+UK2Node* UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(CompilerContext ? CompilerContext->GetSchema() : SourceGraph->GetSchema());
+	UK2Node* ExpandedNode = nullptr;
 
 	if (Pins.Contains(Pin))
 	{
-		UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
+		ExpandedNode = Schema->CreateSplitPinNode(Pin, UEdGraphSchema_K2::FCreateSplitPinNodeParams(CompilerContext, SourceGraph));
 
 		int32 SubPinIndex = 0;
 
@@ -1044,10 +1058,6 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 					{
 						Schema->MovePinLinks(*SubPin, *ExpandedPin);
 					}
-					// We should only discard the pin set when this node owns them.
-					Pins.Remove(SubPin);
-					SubPin->ParentPin = nullptr;
-					SubPin->MarkPendingKill();
 				}
 				else
 				{
@@ -1055,8 +1065,17 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 				}
 			}
 		}
+
+		for(UEdGraphPin* SubPin : Pin->SubPins)
+		{
+			Pins.Remove(SubPin);
+			SubPin->ParentPin = nullptr;
+			SubPin->MarkPendingKill();
+		}
 		Pin->SubPins.Empty();
 	}
+
+	return ExpandedNode;
 }
 
 void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -1392,20 +1411,44 @@ UEdGraphPin* UK2Node::GetExecPin() const
 UEdGraphPin* UK2Node::GetPassThroughPin(const UEdGraphPin* FromPin) const
 {
 	UEdGraphPin* PassThroughPin = nullptr;
-	if(FromPin && Pins.Contains(FromPin))
+
+	if (FromPin && UEdGraphSchema_K2::IsExecPin(*FromPin))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if(K2Schema->IsExecPin(*FromPin))
+		// We only allow execution passing if there is exactly one input and one output exec pin otherwise there is
+		// ambiguity (e.g., on a branch or sequence node or timeline) so we want no passthrough and commenting it out will kill subsequent code
+		bool bFoundFromPin = false;
+		int32 NumInputs = 0;
+		int32 NumOutputs = 0;
+		UEdGraphPin* PotentialResult = nullptr;
+
+		for (UEdGraphPin* Pin : Pins)
 		{
-			// Locate the first exec pin that's opposite the given exec pin, if any.
-			for(UEdGraphPin* Pin : Pins)
+			if (Pin == FromPin)
 			{
-				if(Pin && Pin != FromPin && Pin->Direction != FromPin->Direction && K2Schema->IsExecPin(*Pin))
+				bFoundFromPin = true;
+			}
+
+			if (UEdGraphSchema_K2::IsExecPin(*Pin))
+			{
+				if (Pin->Direction == EGPD_Input)
 				{
-					PassThroughPin = Pin;
-					break;
+					++NumInputs;
+				}
+				else
+				{
+					++NumOutputs;
+				}
+
+				if (Pin->Direction != FromPin->Direction)
+				{
+					PotentialResult = Pin;
 				}
 			}
+		}
+
+		if ((NumInputs == 1) && (NumOutputs == 1) && bFoundFromPin)
+		{
+			PassThroughPin = PotentialResult;
 		}
 	}
 

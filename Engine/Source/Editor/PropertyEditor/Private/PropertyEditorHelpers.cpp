@@ -81,7 +81,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 	if ( !ValueEditorWidget->GetToolTip().IsValid() )
 	{
-	ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
+		ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 	}
 
 
@@ -524,7 +524,7 @@ namespace PropertyEditorHelpers
 				else
 				{
 
-					FString EnumName = Property->GetMetaData(TEXT("Enum"));
+					const FString& EnumName = Property->GetMetaData(TEXT("Enum"));
 					Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
 				}
 
@@ -619,38 +619,16 @@ namespace PropertyEditorHelpers
 		return (NodeProperty->IsA<UObjectPropertyBase>() || NodeProperty->IsA<UInterfaceProperty>()) && (!bUsingAssetPicker || !SPropertyEditorAsset::Supports(NodeProperty));
 	}
 	
-	static bool IsStringAssetReference( const UProperty* Property )
+	static bool IsSoftObjectPath( const UProperty* Property )
 	{
-		bool bIsStringAssetRef = false;
-
 		const UStructProperty* StructProp = Cast<const UStructProperty>( Property );
-		if( StructProp && StructProp->Struct )
-		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName StringAssetRef("StringAssetReference");
-
-			bIsStringAssetRef = StructName == StringAssetRef;
-		}
-
-		return bIsStringAssetRef;
+		return StructProp && StructProp->Struct == TBaseStructure<FSoftObjectPath>::Get();
 	}
 
-	static bool IsStringClassReference( const UProperty* Property )
+	static bool IsSoftClassPath( const UProperty* Property )
 	{
-		bool bIsStringClassRef = false;
-
-		const UStructProperty* StructProp = Cast<const UStructProperty>( Property );
-		if( StructProp && StructProp->Struct )
-		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName StringClassRef("StringClassReference");
-
-			bIsStringClassRef = StructName == StringClassRef;
-		}
-
-		return bIsStringClassRef;
+		const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+		return StructProp && StructProp->Struct == TBaseStructure<FSoftClassPath>::Get();
 	}
 
 	void GetRequiredPropertyButtons( TSharedRef<FPropertyNode> PropertyNode, TArray<EPropertyButton::Type>& OutRequiredButtons, bool bUsingAssetPicker )
@@ -708,7 +686,7 @@ namespace PropertyEditorHelpers
 					else
 					{
 						// ignore class properties
-						if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const UAssetClassProperty>( NodeProperty ) == NULL) )
+						if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const USoftClassProperty>( NodeProperty ) == NULL) )
 						{
 							UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
 
@@ -734,7 +712,7 @@ namespace PropertyEditorHelpers
 							}
 							
 							// Do not allow actor object properties to show the asset picker
-							if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsStringAssetReference(NodeProperty) )
+							if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsSoftObjectPath(NodeProperty) )
 							{
 								// add button for picking the asset from an asset picker
 								OutRequiredButtons.Add( EPropertyButton::PickAsset );
@@ -753,7 +731,7 @@ namespace PropertyEditorHelpers
 		// Handle a class property.
 
 		UClassProperty* ClassProp = Cast<UClassProperty>(NodeProperty);
-		if( ClassProp || IsStringClassReference(NodeProperty))
+		if( ClassProp || IsSoftClassPath(NodeProperty))
 		{
 			OutRequiredButtons.Add( EPropertyButton::Use );			
 			OutRequiredButtons.Add( EPropertyButton::Browse );
@@ -770,7 +748,7 @@ namespace PropertyEditorHelpers
 				OutRequiredButtons.Add( EPropertyButton::Clear );
 			}
 		}
-		else if (NodeProperty->IsA<UAssetClassProperty>() )
+		else if (NodeProperty->IsA<USoftClassProperty>() )
 		{
 			OutRequiredButtons.Add( EPropertyButton::Use );
 			
@@ -815,6 +793,27 @@ namespace PropertyEditorHelpers
 		PropertyEditorHelpers::MakeRequiredPropertyButtons( PropertyEditor, OutButtons, ButtonsToIgnore, bUsingAssetPicker );
 	}
 
+	TSharedRef<SWidget> MakePropertyReorderHandle(const TSharedRef<FPropertyNode>& PropertyNode, TSharedPtr<SDetailSingleItemRow> InParentRow)
+	{
+		TSharedRef<SArrayRowHandle> Handle = SNew(SArrayRowHandle)
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(5.0f, 0.0f)
+				[
+					SNew(SImage)
+					.Image(FCoreStyle::Get().GetBrush("VerticalBoxDragIndicatorShort"))
+				]
+			]
+		.ParentRow(InParentRow);
+		TWeakPtr<FPropertyNode> NodePtr(PropertyNode);
+		TAttribute<bool>::FGetter IsPropertyButtonEnabledDelegate = TAttribute<bool>::FGetter::CreateStatic(&IsPropertyButtonEnabled, NodePtr);
+		TAttribute<bool> IsEnabledAttribute = TAttribute<bool>::Create(IsPropertyButtonEnabledDelegate);
+		Handle->SetEnabled(IsEnabledAttribute);
+		return Handle;
+	}
+
 	void MakeRequiredPropertyButtons( const TSharedRef< FPropertyEditor >& PropertyEditor, TArray< TSharedRef<SWidget> >& OutButtons, const TArray<EPropertyButton::Type>& ButtonsToIgnore, bool bUsingAssetPicker )
 	{
 		TArray< EPropertyButton::Type > RequiredButtons;
@@ -843,11 +842,11 @@ namespace PropertyEditorHelpers
 
 		UProperty* Property = PropertyNode->GetProperty();
 		UClassProperty* ClassProperty = Cast<UClassProperty>(Property);
-		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>(Property);
+		USoftClassProperty* SoftClassProperty = Cast<USoftClassProperty>(Property);
 
-		if (ClassProperty || AssetClassProperty)
+		if (ClassProperty || SoftClassProperty)
 		{
-			UClass const* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProperty ? ClassProperty->MetaClass : AssetClassProperty->MetaClass);
+			UClass const* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProperty ? ClassProperty->MetaClass : SoftClassProperty->MetaClass);
 			if (SelectedClass != nullptr)
 			{
 				SelectionPathName = SelectedClass->GetPathName();
@@ -1049,13 +1048,54 @@ namespace PropertyEditorHelpers
 			Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
 			for(auto& Value : ValidEnumValuesAsString)
 			{
-				Value.Trim();
+				Value.TrimStartInline();
 				ValidEnumValues.Add(*InEnum->GenerateFullEnumName(*Value));
 			}
 		}
 
 		return ValidEnumValues;
 	}
+
+	bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName)
+	{
+		return InRootNode->AsObjectNode() && InRootNode->AsObjectNode()->GetHiddenCategories().Contains(CategoryName);
+	}
+
+	/**
+	* Determines whether or not a property should be visible in the default generated detail layout
+	*
+	* @param PropertyNode	The property node to check
+	* @param ParentNode	The parent property node to check
+	* @return true if the property should be visible
+	*/
+	bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const FPropertyNode& ParentNode)
+	{
+		const UProperty* Property = PropertyNode.GetProperty();
+		const UArrayProperty* ParentArrayProperty = Cast<const UArrayProperty>(ParentNode.GetProperty());
+
+		bool bIsVisibleStandalone = false;
+		if (Property)
+		{
+			if (Property->IsA(UObjectPropertyBase::StaticClass()))
+			{
+				// Do not add this child node to the current map if its a single object property in a category (serves no purpose for UI)
+				bIsVisibleStandalone = !ParentArrayProperty && (PropertyNode.GetNumChildNodes() == 0 || PropertyNode.GetNumChildNodes() > 1);
+			}
+			else if (Property->IsA(UArrayProperty::StaticClass()) || (Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE))
+			{
+				// Base array properties are always visible
+				bIsVisibleStandalone = true;
+			}
+			else
+			{
+				bIsVisibleStandalone = true;
+			}
+
+		}
+
+		return bIsVisibleStandalone;
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE

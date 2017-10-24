@@ -30,7 +30,11 @@
         {
             "Name": "Rejoin",
             "Type": "Runtime"
-        }
+        },
+		{
+			"Name": "LoginFlow",
+			"Type":  "Runtime"
+		}
     ],
     "LocalizationTargets": [
         {

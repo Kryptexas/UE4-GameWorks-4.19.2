@@ -584,7 +584,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 						const FTextRange RunRange = RunModel.GetTextRange();
 
 						const int32 StartIndex = FMath::Max(RunRange.BeginIndex - NonBreakingStringIndexOffset, PreviousBreak);
-						const int32 StopIndex = FMath::Min(RunRange.EndIndex - NonBreakingStringIndexOffset, CurrentBreak);
+						const int32 StopIndex = FMath::Max(StartIndex, FMath::Min(RunRange.EndIndex - NonBreakingStringIndexOffset, CurrentBreak));
 
 						BreakWidth += RunModel.GetRun()->Measure(StartIndex + NonBreakingStringIndexOffset, StopIndex + NonBreakingStringIndexOffset, Scale, RunTextContext).X;
 

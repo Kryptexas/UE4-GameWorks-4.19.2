@@ -22,7 +22,7 @@ namespace UnrealBuildTool.Rules
 			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 				(Target.Platform == UnrealTargetPlatform.Win32))
 			{
-				if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+				if (Target.bCompileLeanAndMeanUE == false)
 				{
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectShow");
 				}

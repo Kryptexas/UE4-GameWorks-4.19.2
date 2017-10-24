@@ -25,27 +25,27 @@ public class UnrealLightmassTarget : TargetRules
 		)
 	{
 		// Lean and mean
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Never use malloc profiling in Unreal Header Tool.  We set this because often UHT is compiled right before the engine
 		// automatically by Unreal Build Tool, but if bUseMallocProfiler is defined, UHT can operate incorrectly.
-		BuildConfiguration.bUseMallocProfiler = false;
+		bUseMallocProfiler = false;
 
 		// No editor needed
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 		// Editor-only data, however, is needed
-		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
+		bBuildWithEditorOnlyData = true;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		//UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		bCompileAgainstEngine = false;
+		//bCompileAgainstCoreUObject = false;
 
 		if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			// On Mac/Linux UnrealLightmass is executed locally and communicates with the editor using Messaging module instead of SwarmAgent
 			// Plugins and developer tools are needed for that
-			UEBuildConfiguration.bCompileWithPluginSupport = true;
-			UEBuildConfiguration.bBuildDeveloperTools = true;
+			bCompileWithPluginSupport = true;
+			bBuildDeveloperTools = true;
 		}
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())

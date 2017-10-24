@@ -7,7 +7,7 @@ public class DX11Audio : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
+		string DirectXSDKDir = Target.UEThirdPartySourceDirectory + "Windows/DirectX";
 
 		PublicSystemIncludePaths.Add(DirectXSDKDir + "/include");
 

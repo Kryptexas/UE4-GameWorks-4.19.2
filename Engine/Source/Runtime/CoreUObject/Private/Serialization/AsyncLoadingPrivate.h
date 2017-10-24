@@ -114,9 +114,10 @@ private:
 	int64 HeaderSizeWhenReadingExportsFromSplitFile;
 
 	ELoadPhase LoadPhase;
-	bool bKeepRestOfFilePrecached;
+
 	/** If true, this package is a cooked EDL package loaded in uncooked builds */
 	bool bCookedForEDLInEditor;
+
 	FAsyncFileCallBack ReadCallbackFunction;
 	/** Cached filename for debugging.												*/
 	FString	FileName;

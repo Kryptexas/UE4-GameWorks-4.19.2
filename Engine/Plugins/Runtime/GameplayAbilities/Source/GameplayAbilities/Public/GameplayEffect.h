@@ -184,12 +184,16 @@ public:
 	FScalableFloat Coefficient;
 
 	/** Additive value to the attribute calculation, added in before the coefficient applies */
-	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
 	FScalableFloat PreMultiplyAdditiveValue;
 
 	/** Additive value to the attribute calculation, added in after the coefficient applies */
-	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
 	FScalableFloat PostMultiplyAdditiveValue;
+
+	/** If a curve table entry is specified, the OUTPUT of this custom class magnitude (including the pre and post additive values) lookup into the curve instead of using the attribute directly. */
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
+	FCurveTableRowHandle FinalLookupCurve;
 
 	/** Equality/Inequality operators */
 	bool operator==(const FCustomCalculationBasedFloat& Other) const;
@@ -757,6 +761,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 */
 	bool AttemptAddAggregatorModsToAggregator(OUT FAggregator& OutAggregatorToAddTo) const;
 	
+	/** Gathers made for a given capture. Note that these mods are unqualified and direct references (not copies). Only use this if you know what you are doing. */
+	bool AttemptGatherAttributeMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
+	
 	/** Simple accessor to backing capture definition */
 	const FGameplayEffectAttributeCaptureDefinition& GetBackingDefinition() const;
 
@@ -1252,6 +1259,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	int32 ClientCachedStackCount;
 
 	FOnActiveGameplayEffectRemoved OnRemovedDelegate;
+	FOnActiveGameplayEffectRemoved_Info OnRemoved_InfoDelegate;
 
 	FOnActiveGameplayEffectStackChange OnStackChangeDelegate;
 
@@ -1700,7 +1708,7 @@ private:
 	
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
-	void InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
+	void InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents, const FGameplayEffectRemovalInfo& GameplayEffectRemovalInfo);
 
 	void RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
 	void AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);

@@ -50,6 +50,8 @@ struct FPointerEvent;
 class UObject;
 struct FInputEvent;
 class FWebJSScripting;
+class FCEFImeHandler;
+class ITextInputMethodSystem;
 
 #if WITH_CEF3
 
@@ -148,6 +150,8 @@ public:
 	virtual void CloseBrowser(bool bForce) override;
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;
+	virtual void BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem) override;
+	virtual void UnbindInputMethodSystem() override;
 	virtual int GetLoadError() override;
 	virtual void SetIsDisabled(bool bValue) override;
 	virtual TSharedPtr<SWindow> GetParentWindow() const override;
@@ -278,6 +282,9 @@ private:
 	 */
 	bool GetViewRect(CefRect& Rect);
 
+	/** Notifies when document loading has failed. */
+	void NotifyDocumentError(CefLoadHandler::ErrorCode InErrorCode, const CefString& ErrorText, const CefString& FailedUrl);
+	
 	/** Notifies clients that document loading has failed. */
 	void NotifyDocumentError(int ErrorCode);
 
@@ -397,6 +404,19 @@ private:
 	 */
 	void ShowPopupMenu(bool bShow);
 
+#if !PLATFORM_LINUX
+	/**
+	 * Called when the IME composition DOM node has changed.
+	 * @param Browser The CefBrowser for this window.
+	 * @param SelectionRange The range of characters that have been selected.
+	 * @param CharacterBounds The bounds of each character in view coordinates.
+	 */
+	void OnImeCompositionRangeChanged(
+		CefRefPtr<CefBrowser> Browser,
+		const CefRange& SelectionRange,
+		const CefRenderHandler::RectList& CharacterBounds);
+#endif
+
 public:
 
 	/**
@@ -426,6 +446,11 @@ public:
 public:
 
 	/**
+	 * Called from the WebBrowserViewport tick event. Allows us to cache the geometry and use it for coordinate transformations.
+	 */
+	void UpdateCachedGeometry(const FGeometry& AllottedGeometry);
+
+	/**
 	 * Called from the WebBrowserSingleton tick event. Should test wether the widget got a tick from Slate last frame and set the state to hidden if not.
 	 */
 	void CheckTickActivity();
@@ -442,6 +467,16 @@ public:
 	CefRefPtr<CefDictionaryValue> GetProcessInfo();
 
 private:
+
+	/** Executes or defers a LoadUrl navigation */
+	void RequestNavigationInternal(FString Url, FString Contents);
+
+	/** Specifies whether or not we have a pending deferred navigation */
+	bool HasPendingNavigation();
+
+	/** Executes navigation on a pending deferred navigation */
+	void ProcessPendingNavigation();
+
 	/** Helper that calls WasHidden on the CEF host object when the value changes */
 	void SetIsHidden(bool bValue);
 
@@ -538,14 +573,17 @@ private:
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;
 
-	/** Tracks wether the widget is currently disabled or not*/
+	/** Tracks whether the widget is currently disabled or not*/
 	bool bIsDisabled;
 
-	/** Tracks wether the widget is currently hidden or not*/
+	/** Tracks whether the widget is currently hidden or not*/
 	bool bIsHidden;
 
 	/** Used to detect when the widget is hidden*/
 	bool bTickedLastFrame;
+	
+	/** Tracks whether the widget has been resized and needs to be refreshed */
+	bool bNeedsResize;
 
 	/** Used for unhandled key events forwarding*/
 	TOptional<FKeyEvent> PreviousKeyDownEvent;
@@ -567,10 +605,24 @@ private:
 
 	int ErrorCode;
 
+	/** Used to defer navigations */
+	bool bDeferNavigations;
+
+	/** Used to identify a navigation that needs to fully abort before we can stop deferring navigations. */
+	FString PendingAbortUrl;
+
+	/** Used to store the url of pending navigation requests while we need to defer navigations. */
+	FString PendingLoadUrl;
+
 	TUniquePtr<FBrowserBufferedVideo> BufferedVideo;
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FCEFJSScripting> Scripting;
+
+#if !PLATFORM_LINUX
+	/** Handling of foreign language character input is delegated to a helper class */
+	TSharedPtr<FCEFImeHandler> Ime;
+#endif
 
 	TSharedPtr<SWindow> ParentWindow;
 };

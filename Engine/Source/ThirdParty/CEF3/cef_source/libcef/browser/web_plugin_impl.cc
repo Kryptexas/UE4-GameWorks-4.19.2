@@ -3,8 +3,10 @@
 // can be found in the LICENSE file.
 
 #include "libcef/browser/web_plugin_impl.h"
+
 #include "libcef/browser/context.h"
 #include "libcef/browser/thread_util.h"
+#include "libcef/common/widevine_loader.h"
 
 #include "base/bind.h"
 #include "base/files/file_path.h"
@@ -27,6 +29,22 @@ void PluginsCallbackImpl(
       break;
   }
 }
+
+#if !(defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)) || \
+    defined(OS_LINUX)
+
+void DeliverWidevineCdmError(const std::string& error_message,
+                             CefRefPtr<CefRegisterCdmCallback> callback) {
+  LOG(ERROR) << error_message;
+  if (callback.get()) {
+    CEF_POST_TASK(CEF_UIT,
+        base::Bind(&CefRegisterCdmCallback::OnCdmRegistrationComplete,
+                   callback.get(), CEF_CDM_REGISTRATION_ERROR_NOT_SUPPORTED,
+                   error_message));
+  }
+}
+
+#endif
 
 }  // namespace
 
@@ -89,57 +107,6 @@ void CefRefreshWebPlugins() {
   content::PluginServiceImpl::GetInstance()->RefreshPlugins();
 }
 
-void CefAddWebPluginPath(const CefString& path) {
-  // Verify that the context is in a valid state.
-  if (!CONTEXT_STATE_VALID()) {
-    NOTREACHED() << "context not valid";
-    return;
-  }
-
-  if (path.empty()) {
-    NOTREACHED() << "invalid parameter";
-    return;
-  }
-
-  // No thread affinity.
-  content::PluginServiceImpl::GetInstance()->AddExtraPluginPath(
-      base::FilePath(path));
-}
-
-void CefAddWebPluginDirectory(const CefString& dir) {
-  // Verify that the context is in a valid state.
-  if (!CONTEXT_STATE_VALID()) {
-    NOTREACHED() << "context not valid";
-    return;
-  }
-
-  if (dir.empty()) {
-    NOTREACHED() << "invalid parameter";
-    return;
-  }
-
-  // No thread affinity.
-  content::PluginServiceImpl::GetInstance()->AddExtraPluginDir(
-      base::FilePath(dir));
-}
-
-void CefRemoveWebPluginPath(const CefString& path) {
-  // Verify that the context is in a valid state.
-  if (!CONTEXT_STATE_VALID()) {
-    NOTREACHED() << "context not valid";
-    return;
-  }
-
-  if (path.empty()) {
-    NOTREACHED() << "invalid parameter";
-    return;
-  }
-
-  // No thread affinity.
-  content::PluginServiceImpl::GetInstance()->RemoveExtraPluginPath(
-      base::FilePath(path));
-}
-
 void CefUnregisterInternalWebPlugin(const CefString& path) {
   // Verify that the context is in a valid state.
   if (!CONTEXT_STATE_VALID()) {
@@ -155,27 +122,6 @@ void CefUnregisterInternalWebPlugin(const CefString& path) {
   // No thread affinity.
   content::PluginServiceImpl::GetInstance()->UnregisterInternalPlugin(
       base::FilePath(path));
-}
-
-void CefForceWebPluginShutdown(const CefString& path) {
-  // Verify that the context is in a valid state.
-  if (!CONTEXT_STATE_VALID()) {
-    NOTREACHED() << "context not valid";
-    return;
-  }
-
-  if (path.empty()) {
-    NOTREACHED() << "invalid parameter";
-    return;
-  }
-
-  if (CEF_CURRENTLY_ON_IOT()) {
-    content::PluginServiceImpl::GetInstance()->ForcePluginShutdown(
-        base::FilePath(path));
-  } else {
-    // Execute on the IO thread.
-    CEF_POST_TASK(CEF_IOT, base::Bind(CefForceWebPluginShutdown, path));
-  }
 }
 
 void CefRegisterWebPluginCrash(const CefString& path) {
@@ -221,4 +167,25 @@ void CefIsWebPluginUnstable(
     // Execute on the IO thread.
     CEF_POST_TASK(CEF_IOT, base::Bind(CefIsWebPluginUnstable, path, callback));
   }
+}
+
+void CefRegisterWidevineCdm(const CefString& path,
+                            CefRefPtr<CefRegisterCdmCallback> callback) {
+#if defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
+#if defined(OS_LINUX)
+  // Enforce the requirement that CefRegisterWidevineCdm() is called before
+  // CefInitialize() on Linux. See comments in
+  // CefWidevineLoader::AddPepperPlugins for details.
+  if (CONTEXT_STATE_VALID()) {
+    DeliverWidevineCdmError(
+        "Widevine registration is not supported after context initialization",
+        callback);
+    return;
+  }
+#endif  // defined(OS_LINUX)
+
+  CefWidevineLoader::GetInstance()->LoadWidevineCdm(path, callback);
+#else
+  DeliverWidevineCdmError("Widevine registration is not supported", callback);
+#endif  // defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
 }

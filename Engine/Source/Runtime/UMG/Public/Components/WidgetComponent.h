@@ -214,6 +214,7 @@ public:
 	void SetBackgroundColor( const FLinearColor NewBackgroundColor );
 
 	/** Sets the tint color and opacity scale for this widget */
+	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetTintColorAndOpacity( const FLinearColor NewTintColorAndOpacity );
 
 	/** Sets how much opacity from the UI widget's texture alpha is used when rendering to the viewport (0.0-1.0) */

@@ -90,7 +90,6 @@ DEFINE_STAT(STAT_Navigation_RecastTick);
 DEFINE_STAT(STAT_Navigation_RecastPathfinding);
 DEFINE_STAT(STAT_Navigation_RecastBuildCompressedLayers);
 DEFINE_STAT(STAT_Navigation_RecastBuildNavigation);
-DEFINE_STAT(STAT_Navigation_DestructiblesShapesExported);
 DEFINE_STAT(STAT_Navigation_UpdateNavOctree);
 DEFINE_STAT(STAT_Navigation_CollisionTreeMemory);
 DEFINE_STAT(STAT_Navigation_NavDataMemory);
@@ -405,7 +404,7 @@ void UNavigationSystem::SetSupportedAgentsNavigationClass(int32 AgentIndex, TSub
 
 	if (NavigationDataClass != nullptr)
 	{
-		SupportedAgents[AgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(NavigationDataClass);
+		SupportedAgents[AgentIndex].NavigationDataClassName = FSoftClassPath::GetOrCreateIDForClass(NavigationDataClass);
 	}
 	else
 	{
@@ -456,7 +455,7 @@ void UNavigationSystem::PostInitProperties()
 				if (SupportedAgentConfig.NavigationDataClass != nullptr && SupportedAgentConfig.NavigationDataClassName.IsValid() == false)
 				{
 					// fill NavigationDataClassName
-					SupportedAgentConfig.NavigationDataClassName = FStringClassReference(SupportedAgentConfig.NavigationDataClass);
+					SupportedAgentConfig.NavigationDataClassName = FSoftClassPath(SupportedAgentConfig.NavigationDataClass);
 				}
 				else
 				{
@@ -728,6 +727,12 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 
 	if (Mode == FNavigationSystemRunMode::EditorMode)
 	{
+#if	WITH_EDITOR
+		// make sure this static get applied to this instance
+		bNavigationAutoUpdateEnabled = !bNavigationAutoUpdateEnabled; 
+		SetNavigationAutoUpdateEnabled(!bNavigationAutoUpdateEnabled, this);
+#endif		
+		
 		// update navigation invokers
 		if (bGenerateNavigationOnlyAroundNavigationInvokers)
 		{
@@ -3374,11 +3379,11 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 					AgentToNavDataMap.Remove(ExistingNavigationData->GetConfig());
 				}
 
-				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional);
+				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional | REN_ForceNoResetLoaders);
 			}
 
 			// Set descriptive name
-			Instance->Rename(*StrName, NULL, REN_DoNotDirty);
+			Instance->Rename(*StrName, NULL, REN_DoNotDirty | REN_ForceNoResetLoaders);
 #if WITH_EDITOR
 			if (World->WorldType == EWorldType::Editor)
 			{
@@ -4058,9 +4063,9 @@ void UNavigationSystem::RegisterNavigationInvoker(AActor& Invoker, float TileGen
 {
 	UWorld* World = Invoker.GetWorld();
 
-	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	if (World && World->GetNavigationSystem())
 	{
-		((UNavigationSystem*)(World->GetNavigationSystem()))->RegisterInvoker(Invoker, TileGenerationRadius, TileRemovalRadius);
+		World->GetNavigationSystem()->RegisterInvoker(Invoker, TileGenerationRadius, TileRemovalRadius);
 	}
 }
 
@@ -4068,9 +4073,9 @@ void UNavigationSystem::UnregisterNavigationInvoker(AActor& Invoker)
 {
 	UWorld* World = Invoker.GetWorld();
 
-	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
+	if (World && World->GetNavigationSystem())
 	{
-		((UNavigationSystem*)(World->GetNavigationSystem()))->UnregisterInvoker(Invoker);
+		World->GetNavigationSystem()->UnregisterInvoker(Invoker);
 	}
 }
 

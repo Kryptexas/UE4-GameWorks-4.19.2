@@ -842,8 +842,27 @@ TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabAr
 						]
 
 						+SHeaderRow::Column(SReflectorTreeWidgetItem::NAME_Visibility)
-						.DefaultLabel(LOCTEXT("Visibility", "Visibility" ))
 						.FixedWidth(125.0f)
+						.HAlignHeader(HAlign_Center)
+						.VAlignHeader(VAlign_Center)
+						.HeaderContent()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("Visibility", "Visibility" ))
+							.ToolTipText(LOCTEXT("VisibilityTooltip", "Visibility"))
+						]
+
+						+ SHeaderRow::Column("Focusable")
+						.DefaultLabel(LOCTEXT("Focusable", "Focusable?"))
+						.FixedWidth(125.0f)
+						.HAlignHeader(HAlign_Center)
+						.VAlignHeader(VAlign_Center)
+						.HeaderContent()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("Focusable", "Focusable?"))
+							.ToolTipText(LOCTEXT("FocusableTooltip", "Focusability (Note that for hit-test directional navigation to work it must be Focusable and \"Visible\"!)"))
+						]
 
 						+SHeaderRow::Column(SReflectorTreeWidgetItem::NAME_Clipping)
 						.DefaultLabel(LOCTEXT("Clipping", "Clipping" ))

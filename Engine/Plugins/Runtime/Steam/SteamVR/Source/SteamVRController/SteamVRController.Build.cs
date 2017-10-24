@@ -16,6 +16,7 @@ public class SteamVRController : ModuleRules
         {
 			"Core",
 			"CoreUObject",
+			"ApplicationCore",
 			"Engine",
 			"InputDevice",
             "InputCore",

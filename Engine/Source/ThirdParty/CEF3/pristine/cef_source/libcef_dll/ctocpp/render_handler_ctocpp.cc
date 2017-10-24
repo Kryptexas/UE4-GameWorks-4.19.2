@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -283,23 +283,62 @@ void CefRenderHandlerCToCpp::OnScrollOffsetChanged(
       y);
 }
 
+void CefRenderHandlerCToCpp::OnImeCompositionRangeChanged(
+    CefRefPtr<CefBrowser> browser, const CefRange& selected_range,
+    const RectList& character_bounds) {
+  cef_render_handler_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, on_ime_composition_range_changed))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser.get());
+  if (!browser.get())
+    return;
+
+  // Translate param: character_bounds; type: simple_vec_byref_const
+  const size_t character_boundsCount = character_bounds.size();
+  cef_rect_t* character_boundsList = NULL;
+  if (character_boundsCount > 0) {
+    character_boundsList = new cef_rect_t[character_boundsCount];
+    DCHECK(character_boundsList);
+    if (character_boundsList) {
+      for (size_t i = 0; i < character_boundsCount; ++i) {
+        character_boundsList[i] = character_bounds[i];
+      }
+    }
+  }
+
+  // Execute
+  _struct->on_ime_composition_range_changed(_struct,
+      CefBrowserCppToC::Wrap(browser),
+      &selected_range,
+      character_boundsCount,
+      character_boundsList);
+
+  // Restore param:character_bounds; type: simple_vec_byref_const
+  if (character_boundsList)
+    delete [] character_boundsList;
+}
+
 
 // CONSTRUCTOR - Do not edit by hand.
 
 CefRenderHandlerCToCpp::CefRenderHandlerCToCpp() {
 }
 
-template<> cef_render_handler_t* CefCToCpp<CefRenderHandlerCToCpp,
+template<> cef_render_handler_t* CefCToCppRefCounted<CefRenderHandlerCToCpp,
     CefRenderHandler, cef_render_handler_t>::UnwrapDerived(CefWrapperType type,
     CefRenderHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefRenderHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefRenderHandlerCToCpp,
     CefRenderHandler, cef_render_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefRenderHandlerCToCpp, CefRenderHandler,
-    cef_render_handler_t>::kWrapperType = WT_RENDER_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefRenderHandlerCToCpp,
+    CefRenderHandler, cef_render_handler_t>::kWrapperType = WT_RENDER_HANDLER;

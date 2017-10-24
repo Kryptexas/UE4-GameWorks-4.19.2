@@ -8,10 +8,11 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Diagnostics;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
-	/* UnrealPluginLanguage (UPL) is a simple XML-based language for manipulating XML and returning
+    /* UnrealPluginLanguage (UPL) is a simple XML-based language for manipulating XML and returning
 	 * strings.  It contains an <init> section which is evaluated once per architecture before any
 	 * other sections.  The state is maintained and carried forward to the next section evaluated
 	 * so the order the sections are executed matters.
@@ -71,6 +72,7 @@ namespace UnrealBuildTool
 	 * Variables may also be set from a property in an ini file:
 	 * 
 	 *	<setBoolFromProperty result="" ini="" section="" property="" default=""/>
+	 *	<setBoolFromPropertyContains result="" ini="" section="" property="" default="" contains=""/>
 	 *	<setIntFromProperty result="" ini="" section="" property="" default=""/>
 	 *	<setStringFromProperty result="" ini="" section="" property="" default=""/>
      *	
@@ -99,6 +101,7 @@ namespace UnrealBuildTool
 	 *	<setBoolIsLessEqual result="" arg1="" arg2=""/>
 	 *	<setBoolIsGreater result="" arg1="" arg2=""/>
 	 *	<setBoolIsGreaterEqual result="" arg1="" arg2=""/>
+	 *	<setBoolFromPropertyContains result="" ini="" section="" property="" contains=""/>
 	 * 
 	 * Integer variables may use these arithmetic operations: 
 	 * 
@@ -408,6 +411,7 @@ namespace UnrealBuildTool
 	 * <setBoolEnvVarDefined result="" value=""/>
 	 * <setBoolFrom result="" value=""/>
 	 * <setBoolFromProperty result="" ini="" section="" property="" default=""/>
+	 * <setBoolFromPropertyContains result="" ini="" section="" property="" contains=""/>
 	 * <setBoolNot result="" source=""/>
 	 * <setBoolAnd result="" arg1="" arg2=""/>
 	 * <setBoolOr result="" arg1="" arg2=""/>
@@ -435,7 +439,7 @@ namespace UnrealBuildTool
 	 * 
 	 */
 
-	class UnrealPluginLanguage
+    class UnrealPluginLanguage
 	{
 		/** The merged XML program to run */
 		private XDocument XDoc;
@@ -1249,7 +1253,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Add(new XElement("uses-permission", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Add(new XElement("uses-permission", AttributeList));
 								}
 							}
 						}
@@ -1299,7 +1311,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Add(new XElement("uses-feature", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Add(new XElement("uses-feature", AttributeList));
 								}
 							}
 						}
@@ -1349,7 +1369,15 @@ namespace UnrealBuildTool
 								// add it if not found
 								if (!bFound)
 								{
-									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", Node.Attributes()));
+									// Get the attributes and apply any variable expansion needed
+									var AttributeList = Node.Attributes().ToList();
+									foreach (var Attribute in AttributeList)
+									{
+										string NewValue = ExpandVariables(CurrentContext, Attribute.Value);
+										Attribute.SetValue(NewValue);
+									}
+
+									XMLWork.Element("manifest").Element("application").Add(new XElement("uses-library", AttributeList));
 								}
 							}
 						}
@@ -1649,6 +1677,7 @@ namespace UnrealBuildTool
 											"\t\t{\n";
 								if (FailMsg != null)
 								{
+									Work += "\t\t\tLog.debug(e.toString());\n";
 									Work += "\t\t\tLog.debug(\"" + FailMsg + "\");\n";
 								}
 								GlobalContext.StringVariables["Output"] += Work + "\t\t}\n";
@@ -1707,6 +1736,40 @@ namespace UnrealBuildTool
 									if (!ConfigIni.GetBool(Section, Property, out Value))
 									{
 										Value = StringToBool(DefaultVal);
+									}
+								}
+								CurrentContext.BoolVariables[Result] = Value;
+							}
+						}
+						break;
+
+					case "setBoolFromPropertyContains":
+						{
+							string Result = GetAttribute(CurrentContext, Node, "result");
+							string Ini = GetAttribute(CurrentContext, Node, "ini");
+							string Section = GetAttribute(CurrentContext, Node, "section");
+							string Property = GetAttribute(CurrentContext, Node, "property");
+							string DefaultVal = GetAttribute(CurrentContext, Node, "default", true, false, "false");
+							string Contains = GetAttribute(CurrentContext, Node, "contains", true, true, "");
+							if (Result != null && Ini != null && Section != null && Property != null)
+							{
+								bool Value = StringToBool(DefaultVal);
+
+								ConfigCacheIni_UPL ConfigIni = GetConfigCacheIni_UPL(Ini);
+								if (ConfigIni != null)
+								{
+									List<string> StringList;
+									if (ConfigIni.GetArray(Section, Property, out StringList))
+									{
+										Value = false;
+										foreach (string Entry in StringList)
+										{
+											if (Entry.Equals(Contains))
+											{
+												Value = true;
+												break;
+											}
+										}
 									}
 								}
 								CurrentContext.BoolVariables[Result] = Value;

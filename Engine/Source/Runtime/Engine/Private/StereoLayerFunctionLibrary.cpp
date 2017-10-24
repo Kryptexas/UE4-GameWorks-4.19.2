@@ -6,14 +6,13 @@
 #include "Engine/Texture.h"
 #include "Engine/Engine.h"
 #include "IStereoLayers.h"
-#include "IHeadMountedDisplay.h"
-
+#include "StereoRendering.h"
 
 static IStereoLayers* GetStereoLayers()
 {
-	if (GEngine && GEngine->HMDDevice.IsValid())
+	if (GEngine && GEngine->StereoRenderingDevice.IsValid())
 	{
-		return GEngine->HMDDevice->GetStereoLayers();
+		return GEngine->StereoRenderingDevice->GetStereoLayers();
 	}
 
 	return nullptr;

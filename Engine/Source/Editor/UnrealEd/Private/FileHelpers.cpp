@@ -11,6 +11,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/App.h"
+#include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
@@ -72,13 +73,6 @@ bool FEditorFileUtils::bIsLoadingDefaultStartupMap = false;
 bool FEditorFileUtils::bIsPromptingForCheckoutAndSave = false;
 TSet<FString> FEditorFileUtils::PackagesNotSavedDuringSaveAll;
 TSet<FString> FEditorFileUtils::PackagesNotToPromptAnyMore;
-
-static const FString InvalidFilenames[] = {
-	TEXT("CON"), TEXT("PRN"), TEXT("AUX"), TEXT("CLOCK$"), TEXT("NUL"), TEXT("NONE"),
-	TEXT("COM1"), TEXT("COM2"), TEXT("COM3"), TEXT("COM4"), TEXT("COM5"), TEXT("COM6"), TEXT("COM7"), TEXT("COM8"), TEXT("COM9"),
-	TEXT("LPT1"), TEXT("LPT2"), TEXT("LPT3"), TEXT("LPT4"), TEXT("LPT5"), TEXT("LPT6"), TEXT("LPT7"), TEXT("LPT8"), TEXT("LPT9")
-};
-static const size_t NumInvalidNames = sizeof(InvalidFilenames) / sizeof(FString);
 
 #define LOCTEXT_NAMESPACE "FileHelpers"
 
@@ -572,11 +566,11 @@ static bool SaveWorld(UWorld* World,
 				if (!DuplicatedWorld)
 				{
 					// Duplicate failed or not needed. Just do a rename.
-					Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
 					
 					if (bWorldNeedsRename)
 					{
-						World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+						World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
 					}
 				}
 			}
@@ -729,7 +723,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 		if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / DefaultName, PackageName))
 		{
 			// Initial location is invalid (e.g. lies outside of the project): set location to /Game/Maps instead
-			DefaultDirectory = FPaths::GameContentDir() / TEXT("Maps");
+			DefaultDirectory = FPaths::ProjectContentDir() / TEXT("Maps");
 			ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / DefaultName, PackageName));
 		}
 		FString Name;
@@ -964,8 +958,37 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 	for (UObject* Asset : Assets)
 	{
 		const FString OldPackageName = Asset->GetOutermost()->GetName();
-		const FString OldPackagePath = FPackageName::GetLongPackagePath(OldPackageName);
-		const FString OldAssetName = FPackageName::GetLongPackageAssetName(OldPackageName);
+		
+		FString OldPackagePath;
+		FString OldAssetName;
+		
+		if (Asset->HasAnyFlags(RF_Transient))
+		{
+			// determine default package path
+			const FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::NEW_ASSET);
+			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, OldPackagePath);
+
+			if (OldPackagePath.IsEmpty())
+			{
+				OldPackagePath = TEXT("/Game");
+			}
+
+			// determine default asset name
+			FString DefaultName = FString(NSLOCTEXT("UnrealEd", "PrefixNew", "New").ToString() + Asset->GetClass()->GetName());
+
+			FString UniquePackageName;
+			FString UniqueAssetName;
+
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			AssetToolsModule.Get().CreateUniqueAssetName(OldPackagePath / DefaultName, TEXT(""), UniquePackageName, UniqueAssetName);
+
+			OldAssetName = FPaths::GetCleanFilename(UniqueAssetName);
+		}
+		else
+		{
+			OldAssetName = FPackageName::GetLongPackageAssetName(OldPackageName);
+			OldPackagePath = FPackageName::GetLongPackagePath(OldPackageName);
+		}
 
 		FString NewPackageName;
 
@@ -980,13 +1003,13 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 			}
 
 			FText OutError;
-			FilenameValid = FEditorFileUtils::IsFilenameValidForSaving(NewPackageName, OutError);
+			FilenameValid = FFileHelper::IsFilenameValidForSaving(NewPackageName, OutError);
 		}
 
 		// process asset
 		if (NewPackageName.IsEmpty())
 		{
-			OutSavedAssets.Add(Asset); // user cancelled
+			OutSavedAssets.Add(Asset); // user canceled
 		}
 		else if (NewPackageName != OldPackageName)
 		{
@@ -997,9 +1020,22 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 
 			if (DuplicatedAsset != nullptr)
 			{
+				// update duplicated asset & notify asset registry
+				if (Asset->HasAnyFlags(RF_Transient))
+				{
+					DuplicatedAsset->ClearFlags(RF_Transient);
+					DuplicatedAsset->SetFlags(RF_Public | RF_Standalone);
+				}
+
 				DuplicatedAsset->MarkPackageDirty();
 				FAssetRegistryModule::AssetCreated(DuplicatedAsset);
 				OutSavedAssets.Add(DuplicatedAsset);
+
+				// update last save directory
+				const FString PackageFilename = FPackageName::LongPackageNameToFilename(NewPackageName);
+				const FString PackagePath = FPaths::GetPath(PackageFilename);
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
 			}
 			else
 			{
@@ -1008,8 +1044,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 		}
 		else
 		{
-			// save existing asset
-			OutSavedAssets.Add(Asset);
+			OutSavedAssets.Add(Asset); // save existing asset
 		}
 	}
 
@@ -1109,7 +1144,9 @@ void FEditorFileUtils::Import(const FString& InFilename)
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TArray<FString> Files;
 		Files.Add(InFilename);
-		AssetToolsModule.Get().ImportAssets(Files, Path, SceneFactory);
+
+		const bool bSyncToBrowser = SceneFactory->ImportsAssets();
+		AssetToolsModule.Get().ImportAssets(Files, Path, SceneFactory, bSyncToBrowser);
 	}
 	else
 	{
@@ -1855,7 +1892,7 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 		return false;
 	}
 
-	if( !FEditorFileUtils::IsFilenameValidForSaving( MapFilename, OutErrorMessage ) )
+	if( !FFileHelper::IsFilenameValidForSaving( MapFilename, OutErrorMessage ) )
 	{
 		return false;
 	}
@@ -2514,7 +2551,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 
 			// Check if we can use this filename.
 			FText ErrorText;
-			if (!FEditorFileUtils::IsFilenameValidForSaving(ExistingFilename, ErrorText))
+			if (!FFileHelper::IsFilenameValidForSaving(ExistingFilename, ErrorText))
 			{
 				// Display the error (already localized) and exit gracefuly.
 				FMessageDialog::Open(EAppMsgType::Ok, ErrorText);
@@ -2579,7 +2616,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 			if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
 			{
 				// Original location is invalid; set default location to /Game/Maps
-				DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
+				DefaultLocation = FPaths::ProjectContentDir() / TEXT("Maps");
 				ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
 			}
 
@@ -2606,7 +2643,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				}
 			
 				FText ErrorMessage;
-				bool bValidFilename = FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
+				bool bValidFilename = FFileHelper::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
 				if ( bValidFilename )
 				{
 					bValidFilename = bIsMapPackage ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );
@@ -3410,81 +3447,12 @@ bool FEditorFileUtils::SaveWorlds(UWorld* InWorld, const FString& RootPath, cons
 }
 
 /**
- * Checks to see if a filename is valid for saving.
- * A filename must be under MAX_UNREAL_FILENAME_LENGTH to be saved
- *
- * @param Filename	Filename, with or without path information, to check.
- * @param OutError	If an error occurs, this is the reason why
+ * DEPRECATED in version 4.18, Call FFileHelper::IsFilenameValidForSaving instead
  */
 bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText& OutError )
 {
-	bool bFilenameIsValid = false;
-
-	// Get the clean filename (filename with extension but without path )
-	const FString BaseFilename = FPaths::GetBaseFilename(Filename);
-
-	// Check length of the filename
-	if ( BaseFilename.Len() > 0 )
-	{
-		if ( BaseFilename.Len() <= MAX_UNREAL_FILENAME_LENGTH )
-		{
-			bFilenameIsValid = true;
-
-			/*
-			// Check that the name isn't the name of a UClass
-			for ( TObjectIterator<UClass> It; It; ++It )
-			{
-				UClass* Class = *It;
-				if ( Class->GetName() == BaseFilename )
-				{
-					bFilenameIsValid = false;
-					break;
-				}
-			}
-			*/
-			
-			for( size_t NameIdx = 0; NameIdx < NumInvalidNames; ++NameIdx )
-			{
-				if ( BaseFilename.Equals(InvalidFilenames[NameIdx], ESearchCase::IgnoreCase) )
-				{
-					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, NONE, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
-					return false;
-				}
-			}
-
-			if (FName(*BaseFilename).IsNone())
-			{
-				OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_NoneFilename", "Filename '{0}' resolves to 'None' and cannot be used"), FText::FromString(BaseFilename));
-				return false;
-			}
-
-			// Check for invalid characters in the filename
-			if( bFilenameIsValid &&
-				(BaseFilename.Contains( TEXT( "." ), ESearchCase::CaseSensitive, ESearchDir::FromEnd ) || 
-				 BaseFilename.Contains( TEXT( ":" ), ESearchCase::CaseSensitive, ESearchDir::FromEnd ) ) )
-			{
-				bFilenameIsValid = false;
-			}
-
-			if( !bFilenameIsValid )
-			{
-				OutError = FText::Format( NSLOCTEXT("UnrealEd", "Error_FilenameDisallowed", "Filename '{0}' is disallowed." ), FText::FromString(BaseFilename) );
-			}
-		}
-		else
-		{
-			OutError = FText::Format( NSLOCTEXT("UnrealEd", "Error_FilenameIsTooLongForCooking", "Filename '{0}' is too long; this may interfere with cooking for consoles.  Unreal filenames should be no longer than {1} characters." ),
-				FText::FromString(BaseFilename), FText::AsNumber(MAX_UNREAL_FILENAME_LENGTH) );
-		}
-	}
-	else
-	{
-		OutError = LOCTEXT( "Error_FilenameIsTooShort", "Please provide a filename for the asset." );
-	}
-
-	return bFilenameIsValid;
+	return FFileHelper::IsFilenameValidForSaving(Filename, OutError);
 }
-
 
 void FEditorFileUtils::LoadDefaultMapAtStartup()
 {
@@ -3526,17 +3494,6 @@ void FEditorFileUtils::FindAllPackageFiles(TArray<FString>& OutPackages)
 
 	TArray<FString> Paths;
 	GConfig->GetArray( TEXT("Core.System"), *Key, Paths, GEngineIni );
-
-	// If doing a 'Play on XXX' from the editor, add the auto-save directory to the package search path, so streamed sub-levels can be found
-	if ( !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("PIEVIACONSOLE")) )
-	{
-		FString AutoSave;
-		GConfig->GetString( TEXT("/Script/UnrealEd.EditorEngine"), TEXT("AutoSaveDir"), AutoSave, GEngineIni );
-		if (AutoSave.Len())
-		{
-			Paths.AddUnique(AutoSave);
-		}
-	}
 
 	for (int32 PathIndex = 0; PathIndex < Paths.Num(); PathIndex++)
 	{
@@ -3589,14 +3546,14 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 static void FindAllConfigFilesRecursive(TArray<FString>& OutConfigFiles, const FString& ParentDirectory)
 {
 	TArray<FString> IniFilenames;
-	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*.ini")), true, false);
+	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::ProjectConfigDir() / ParentDirectory / TEXT("*.ini")), true, false);
 	for (const FString& IniFilename : IniFilenames)
 	{
-		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / ParentDirectory / IniFilename));
+		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir() / ParentDirectory / IniFilename));
 	}
 
 	TArray<FString> Subdirectories;
-	IFileManager::Get().FindFiles(Subdirectories, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*")), false, true);
+	IFileManager::Get().FindFiles(Subdirectories, *(FPaths::ProjectConfigDir() / ParentDirectory / TEXT("*")), false, true);
 	for (const FString& Subdirectory : Subdirectories)
 	{
 		FindAllConfigFilesRecursive(OutConfigFiles, ParentDirectory / Subdirectory);

@@ -15,8 +15,8 @@ Related: Engine/Physics/PhAT/Reference
 Related: Engine/Animation/AnimBlueprints/AnimGraph
 Related: Engine/Animation/NodeReference/Blend
 
-The **Rigid Body** Skeletal Control node can be used to create large amounts of physically-simulated characters using the high-performance **Immediate Mode** PhysX API. 
-The Rigid Body node (pictued below) can be added to the **AnimGraph** of your [](Engine/Animation/AnimBlueprints) and can even be used with any [](Engine/Animation/NodeReference/Blend/), enabling you to switch from a pose into a simulated physics state.
+The **Rigid Body** Skeletal Control node can be used to create large amounts of physically-simulated characters using the high-performance [Immediate Mode PhysX API](https://www.geforce.com/hardware/technology/physx). 
+The Rigid Body node (pictued below) can be added to the **AnimGraph** of your [](Engine/Animation/AnimBlueprints) and can even be used with any [](Engine/Animation/NodeReference/Blend) enabling you to switch from a pose into a simulated physics state.
 Characters using this simulation can also generate collision with static geometry in the world. 
 
 ![](RigidBodyNode.png)
@@ -43,12 +43,12 @@ Using this node, several simulated characters below are able to respond to an im
 
 ## Setup
 
-Before using this node, inside your [Physics Asset](Engine/Physics/PhAT) set the [](Engine/Physics/PhysicsBodies/) you want to simulate to **Simulated**. 
+Before using this node, inside your [Physics Asset](Engine/Physics/PhAT) set the [](Engine/Physics/PhysicsBodies) you want to simulate to **Simulated**. 
 
 ![](RigidBody_02.png)
 
 [REGION:caption]
-Above we **Right-clicked** on our character's **Pelvis** bone and set all bodies below it to **Simulated** so our character fully simulates physics. 
+Above we right-clicked on our character's **Pelvis** bone and set all bodies below it to **Simulated** so that our character fully simulates physics. 
 [/REGION]
 
 With your Physics Asset set up, inside the AnimGraph of your Animation Blueprint, add the Rigid Body node and the necessary logic to define when to use it. 

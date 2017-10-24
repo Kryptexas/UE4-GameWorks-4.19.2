@@ -23,7 +23,7 @@ def make_function_body(header, cls):
     cur_cls = cls
     while True:
         parent_name = cur_cls.get_parent_name()
-        if parent_name == 'CefBase':
+        if is_base_class(parent_name):
             break
         else:
             parent_cls = header.get_class(parent_name)
@@ -60,15 +60,15 @@ def make_ctocpp_header(header, clsname):
 
     if clientside:
         result += """
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 """
     else:
         result += """
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 """
 
     # build the function body
@@ -92,10 +92,17 @@ def make_ctocpp_header(header, clsname):
               result += '#include "include/'+dcls.get_file_name()+'"\n' \
                         '#include "include/capi/'+dcls.get_capi_file_name()+'"\n'
 
-    result += """#include "libcef_dll/ctocpp/ctocpp.h"
+    base_class_name = header.get_base_class_name(clsname)
+    base_scoped = True if base_class_name == 'CefBaseScoped' else False
+    if base_scoped:
+        template_file = 'ctocpp_scoped.h'
+        template_class = 'CefCToCppScoped'
+    else:
+        template_file = 'ctocpp_ref_counted.h'
+        template_class = 'CefCToCppRefCounted'
 
-// Wrap a C structure with a C++ class.
-"""
+    result += '#include "libcef_dll/ctocpp/' + template_file + '"'
+    result += '\n\n// Wrap a C structure with a C++ class.\n'
 
     if clientside:
         result += '// This class may be instantiated and accessed DLL-side only.\n'
@@ -103,17 +110,12 @@ def make_ctocpp_header(header, clsname):
         result += '// This class may be instantiated and accessed wrapper-side only.\n'
 
     result +=   'class '+clsname+'CToCpp\n'+ \
-                '    : public CefCToCpp<'+clsname+'CToCpp, '+clsname+', '+capiname+'> {\n'+ \
+                '    : public ' + template_class + '<'+clsname+'CToCpp, '+clsname+', '+capiname+'> {\n'+ \
                 ' public:\n'+ \
                 '  '+clsname+'CToCpp();\n\n'
 
     result +=   func_body
     result +=   '};\n\n'
-
-    if clientside:
-        result += '#endif  // BUILDING_CEF_SHARED\n'
-    else:
-        result += '#endif  // USING_CEF_SHARED\n'
 
     result += '#endif  // CEF_LIBCEF_DLL_CTOCPP_'+defname+'_CTOCPP_H_'
 
@@ -135,6 +137,9 @@ def write_ctocpp_header(header, clsname, dir, backup):
     if newcontents != oldcontents:
         if backup and oldcontents != '':
             backup_file(file)
+        file_dir = os.path.split(file)[0]
+        if not os.path.isdir(file_dir):
+            make_dir(file_dir)
         write_file(file, newcontents)
         return True
 

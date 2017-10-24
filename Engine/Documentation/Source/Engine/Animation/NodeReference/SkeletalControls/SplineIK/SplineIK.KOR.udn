@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467075
+﻿INTSourceChangelist:3473466
 Availability:Public
 Title:Spline IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -15,9 +15,11 @@ tags:Animation
 tags:Skeletal Controls
 tags:Animation Graph
 
-**Spline IK** 컨트롤 노드는 애니메이션 블루프린트 내 스플라인에 지정된 본 체인을 제약(컨스트레인)시키는 노드입니다. 스플라인은 주로 Control Point (컨트롤 포인트)로 정의합니다.
+**Spline IK** 컨트롤 노드는 애니메이션 블루프린트 내 스플라인에 지정된 본 체인을 Control Point (컨트롤 포인트)로 제약(컨스트레인)시키는 노드입니다.
 
 ![](SplineIKnode.png)
+
+컨트롤 포인트는 외부 값으로 구동시킬 수 있으며, **Roll**, **Twist** (및 **Twist Blend** 등의) 부가 옵션도 있습니다.
 
 아래는 애니메이션 블루프린트에 Spline IK 노드를 추가하여 캐릭터의 척추를 제어하는 모습입니다.
 
@@ -39,8 +41,6 @@ tags:Animation Graph
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Spline IK 컨트롤 노드는 애니메이션 블루프린트 내 스플라인에 지정된 본 체인을 **Control Point** (컨트롤 포인트)로 제약(컨스트레인)시킵니다.
-이 컨트롤 포인트는 외부 값에 롤이나 트위스트(는 물론 트위스트 블렌딩 옵션 포함) 부가 옵션을 붙여 구동시킬 수 있습니다.
 Spline IK 노드에 사용할 수 있는 프로퍼티의 자세한 분석은 아래 표를 참고하세요.
 
 | 프로퍼티 | 설명 |
@@ -76,4 +76,5 @@ Spline IK 노드에 기본으로 활성화된 핀 개요는 다음 표와 같습
 | **Alpha** | 알파 - 컨트롤의 현재 세기입니다. |
 
 **(As pin)** 이라고 붙어있는 프로퍼티는 해당 박스를 체크하여 노드에서 노출시킬 수 있습니다.
+
 

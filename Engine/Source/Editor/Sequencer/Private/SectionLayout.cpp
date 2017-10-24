@@ -97,7 +97,7 @@ FSectionLayout::FSectionLayout(FSequencerTrackNode& TrackNode, int32 InSectionIn
 		{
 			Elements.Add(FSectionLayoutElement::FromGroup(
 				Node.AsShared(),
-				Node.UpdateKeyGrouping(Section),
+				Node.GetKeyGrouping(Section),
 				Offset
 			));
 		}

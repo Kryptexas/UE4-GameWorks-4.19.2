@@ -14,7 +14,6 @@
 
 #define LOCALIZED_SEEKFREE_SUFFIX	TEXT("_LOC")
 #define PLAYWORLD_PACKAGE_PREFIX TEXT("UEDPIE")
-#define PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX TEXT("UED")
 
 #ifndef WITH_EDITORONLY_DATA
 	#if !PLATFORM_CAN_SUPPORT_EDITORONLY_DATA || UE_SERVER || PLATFORM_IOS
@@ -82,6 +81,22 @@
 	#define CA_SUPPRESS( WarningNumber )
 	#define CA_ASSUME( Expr )
 	#define CA_CONSTANT_IF(Condition) if (Condition)
+#endif
+
+#ifndef USING_THREAD_SANITISER
+	#define USING_THREAD_SANITISER 0
+#endif
+
+#if USING_THREAD_SANITISER
+	#if !defined( TSAN_SAFE ) || !defined( TSAN_BEFORE ) || !defined( TSAN_AFTER ) || !defined( TSAN_ATOMIC )
+		#error Thread Sanitiser macros are not configured correctly for this platform
+	#endif
+#else
+	// Define TSAN macros to empty when not enabled
+	#define TSAN_SAFE
+	#define TSAN_BEFORE(Addr)
+	#define TSAN_AFTER(Addr)
+	#define TSAN_ATOMIC(Type) Type
 #endif
 
 enum {INDEX_NONE	= -1				};

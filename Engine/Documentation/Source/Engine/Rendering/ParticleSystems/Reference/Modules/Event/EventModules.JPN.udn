@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2750643
-Availability:Public
-Title:Event モジュール
+﻿Availability:Public
+Title:イベント モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Event モジュールは、パーティクル同士またはレベルに存在するその他のアクタに基づいてイベントを生成します。
 Version:4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 
-Event モジュールは、パーティクル同士やワールドとの相互作用に基づいてイベントを生成し、これらのイベントをリッスンしパーティクルシステムレベル間で反応を引き起こします。例えば、パーティクルがワールドと衝突するたびに指名された衝突イベントを生成し、衝突の発生時は常にパーティクルをスポーンします。
+Event モジュールは、パーティクル同士やワールドとの相互作用に基づいてイベントを生成し、これらのイベントをリッスンしパーティクルシステムレベル間で反応を引き起こします。例えばパーティクルがワールドと衝突するたびに指名された衝突イベントを生成し、衝突の発生時は常にパーティクルをスポーンします。
 
 
 ## Event Generator モジュール
@@ -18,7 +18,7 @@ Event モジュールは、パーティクル同士やワールドとの相互�
 | ---- | ---- |
 |[REGION:tablesection]Events[/REGION]||
 |**Type** | イベントのタイプです。その他に以下のタイプが含まれます。[INCLUDE:#EventGenType]|
-|**Frequency** | イベントをトリガーする頻度。<=1 は毎回を意味します。例えば、1 回おきのコリジョンにこのタイプを使用します。|
+|**Frequency** | イベントをトリガーする頻度。`<=1` は毎回を意味します。例えば、1 回おきのコリジョンにこのタイプを使用します。|
 |**First Time Only** | 発行初回時のみイベントをトリガーする Boolean 値です。|
 |**Last Time Only** | 最終発行時のみイベントをトリガーする Boolean 値です。|
 |**Use Reflected Impact Vector** | 衝突イベントの結果を、衝突法線の代わりに衝突ベクトル方向に合わせるかを判断する Boolean 値です。|

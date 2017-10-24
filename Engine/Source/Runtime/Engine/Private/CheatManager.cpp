@@ -509,7 +509,7 @@ void UCheatManager::SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoa
 	{
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			(*Iterator)->ClientUpdateLevelStreamingStatus(PackageName, bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
+			(*Iterator)->ClientUpdateLevelStreamingStatus((*Iterator)->NetworkRemapPath(PackageName, false), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
 		}
 	}
 	else
@@ -518,7 +518,7 @@ void UCheatManager::SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoa
 		{
 			for (int32 i = 0; i < GetWorld()->StreamingLevels.Num(); i++)
 			{
-				(*Iterator)->ClientUpdateLevelStreamingStatus(GetWorld()->StreamingLevels[i]->GetWorldAssetPackageFName(), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
+				(*Iterator)->ClientUpdateLevelStreamingStatus((*Iterator)->NetworkRemapPath(GetWorld()->StreamingLevels[i]->GetWorldAssetPackageFName(), false), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
 			}
 		}
 	}

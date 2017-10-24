@@ -53,7 +53,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	}
 
 	FString ShortCmdLine = FCommandLine::RemoveExeName(*CmdLine);
-	ShortCmdLine = ShortCmdLine.Trim();	
+	ShortCmdLine.TrimStartInline();	
 
 	// Get game name from the commandline. It will later be used to load the correct ini files.
 	FString ModuleInfoFilename;

@@ -552,18 +552,30 @@ public:
 	FORCEINLINE FVector TransformPosition(const FVector& V) const;
 	FORCEINLINE FVector TransformPositionNoScale(const FVector& V) const;
 
-	/** Inverts the matrix and then transforms V - correctly handles scaling in this matrix. */
+	/** Inverts the transform and then transforms V - correctly handles scaling in this transform. */
 	FORCEINLINE FVector InverseTransformPosition(const FVector &V) const;
 	FORCEINLINE FVector InverseTransformPositionNoScale(const FVector &V) const;
 	FORCEINLINE FVector TransformVector(const FVector& V) const;
 	FORCEINLINE FVector TransformVectorNoScale(const FVector& V) const;
 
 	/**
-	*	Transform a direction vector by the inverse of this matrix - will not take into account translation part.
+	*	Transform a direction vector by the inverse of this transform - will not take into account translation part.
 	*	If you want to transform a surface normal (or plane) and correctly account for non-uniform scaling you should use TransformByUsingAdjointT with adjoint of matrix inverse.
 	*/
 	FORCEINLINE FVector InverseTransformVector(const FVector &V) const;
 	FORCEINLINE FVector InverseTransformVectorNoScale(const FVector &V) const;
+
+	/**
+	 * Transform a rotation.
+	 * For example if this is a LocalToWorld transform, TransformRotation(Q) would transform Q from local to world space.
+	 */
+	FORCEINLINE FQuat TransformRotation(const FQuat& Q) const;
+	
+	/**
+	* Inverse transform a rotation.
+	* For example if this is a LocalToWorld transform, InverseTransformRotation(Q) would transform Q from world to local space.
+	*/
+	FORCEINLINE FQuat InverseTransformRotation(const FQuat& Q) const;
 
 	FORCEINLINE FTransform GetScaled(float Scale) const;
 	FORCEINLINE FTransform GetScaled(FVector Scale) const;
@@ -1101,45 +1113,6 @@ public:
 	}
 
 	/**
-	* Returns an opaque copy of the rotation component
-	* This method should be used when passing rotation from one FTransform to another
-	*
-	* @return The rotation component
-	*/
-	DEPRECATED(4.5, "FTransform::GetRotationV() is deprecated, use FTransform::GetRotation() instead.")
-		FORCEINLINE FQuat GetRotationV() const
-	{
-		DiagnosticCheckNaN_Rotate();
-		return Rotation;
-	}
-
-	/**
-	* Returns an opaque copy of the translation component
-	* This method should be used when passing translation from one FTransform to another
-	*
-	* @return The translation component
-	*/
-	DEPRECATED(4.5, "FTransform::GetTranslationV() is deprecated, use FTransform::GetTranslation() instead.")
-		FORCEINLINE FVector GetTranslationV() const
-	{
-		DiagnosticCheckNaN_Translate();
-		return Translation;
-	}
-
-	/**
-	* Returns an opaque copy of the Scale3D component
-	* This method should be used when passing Scale3D from one FTransform to another
-	*
-	* @return The Scale3D component
-	*/
-	DEPRECATED(4.5, "FTransform::GetScale3DV() is deprecated, use FTransform::GetScale3D() instead.")
-		FORCEINLINE FVector GetScale3DV() const
-	{
-		DiagnosticCheckNaN_Scale3D();
-		return Scale3D;
-	}
-
-	/**
 	* Sets the Rotation and Scale3D of this transformation from another transform
 	*
 	* @param SrcBA The transform to copy rotation and Scale3D from
@@ -1464,6 +1437,15 @@ FORCEINLINE FVector FTransform::InverseTransformVectorNoScale(const FVector &V) 
 	return (Rotation.UnrotateVector(V));
 }
 
+FORCEINLINE FQuat FTransform::TransformRotation(const FQuat& Q) const
+{
+	return GetRotation() * Q;
+}
+
+FORCEINLINE FQuat FTransform::InverseTransformRotation(const FQuat& Q) const
+{
+	return GetRotation().Inverse() * Q;
+}
 
 FORCEINLINE FTransform FTransform::operator*(const FTransform& Other) const
 {

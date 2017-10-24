@@ -49,7 +49,7 @@ FInstalledPlatformInfo::FInstalledPlatformInfo()
 void FInstalledPlatformInfo::ParsePlatformConfiguration(FString PlatformConfiguration)
 {
 	// Trim whitespace at the beginning.
-	PlatformConfiguration = PlatformConfiguration.Trim();
+	PlatformConfiguration.TrimStartInline();
 	// Remove brackets.
 	PlatformConfiguration.RemoveFromStart(TEXT("("));
 	PlatformConfiguration.RemoveFromEnd(TEXT(")"));

@@ -465,7 +465,7 @@ UPackage* UUnrealEdEngine::GeneratePackageThumbnailsIfRequired( const TCHAR* Str
 					// thumbnail so the Content Browser can check for non-existent assets in the background
 					if( bNeedEmptyThumbnail )
 					{
-						UPackage* MyOutermostPackage = CastChecked< UPackage >( CurObject->GetOutermost() );
+						UPackage* MyOutermostPackage = CurObject->GetOutermost();
 						ThumbnailTools::CacheEmptyThumbnail( CurObject->GetFullName(), MyOutermostPackage );
 					}
 				}
@@ -2815,29 +2815,35 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 				INodeNameAdapter NodeNameAdapter;
 				UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
-				Exporter->CreateDocument();
-				for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
+				//Show the fbx export dialog options
+				bool ExportCancel = false;
+				bool ExportAll = false;
+				Exporter->FillExportOptions(false, true, FileName, ExportCancel, ExportAll);
+				if (!ExportCancel)
 				{
-					AActor* Actor = static_cast<AActor*>( *It );
-					if (Actor->IsA(AActor::StaticClass()))
+					Exporter->CreateDocument();
+					for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
 					{
-						if (Actor->IsA(AStaticMeshActor::StaticClass()))
+						AActor* Actor = static_cast<AActor*>(*It);
+						if (Actor->IsA(AActor::StaticClass()))
 						{
-							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter);
-						}
-						else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
-						{
-							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent(), NodeNameAdapter);
-						}
-						else if (Actor->IsA(ABrush::StaticClass()))
-						{
-							Exporter->ExportBrush( CastChecked<ABrush>(Actor), NULL, true, NodeNameAdapter );
+							if (Actor->IsA(AStaticMeshActor::StaticClass()))
+							{
+								Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter);
+							}
+							else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
+							{
+								Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent(), NodeNameAdapter);
+							}
+							else if (Actor->IsA(ABrush::StaticClass()))
+							{
+								Exporter->ExportBrush(CastChecked<ABrush>(Actor), NULL, true, NodeNameAdapter);
+							}
 						}
 					}
+					Exporter->WriteToFile(*FileName);
 				}
-				Exporter->WriteToFile(*FileName);
 			}
-
 			return true;
 		}
 

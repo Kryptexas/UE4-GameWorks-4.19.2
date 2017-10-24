@@ -292,18 +292,12 @@ public:
 	 */
 	FORCEINLINE FVector4 GetSafeNormal(float Tolerance = SMALL_NUMBER) const;
 
-	DEPRECATED(4.7, "Deprecated due to unclear name, use GetSafeNormal instead.")
-	FORCEINLINE FVector4 SafeNormal(float Tolerance=SMALL_NUMBER) const;
-
 	/**
 	 * Calculates normalized version of vector without checking if it is non-zero.
 	 *
 	 * @return Normalized version of vector.
 	 */
 	FORCEINLINE FVector4 GetUnsafeNormal3() const;
-
-	DEPRECATED(4.7, "Deprecated due to unclear name, use GetUnsafeNormal3 instead.")
-	FORCEINLINE FVector4 UnsafeNormal3() const;
 
 	/**
 	 * Return the FRotator orientation corresponding to the direction in which the vector points.
@@ -620,22 +614,10 @@ FORCEINLINE FVector4 FVector4::GetSafeNormal(float Tolerance) const
 }
 
 
-FORCEINLINE FVector4 FVector4::SafeNormal(float Tolerance) const
-{
-	return GetSafeNormal(Tolerance);
-}
-
-
 FORCEINLINE FVector4 FVector4::GetUnsafeNormal3() const
 {
 	const float Scale = FMath::InvSqrt(X*X+Y*Y+Z*Z);
 	return FVector4(X*Scale, Y*Scale, Z*Scale, 0.0f);
-}
-
-
-FORCEINLINE FVector4 FVector4::UnsafeNormal3() const
-{
-	return GetUnsafeNormal3();
 }
 
 

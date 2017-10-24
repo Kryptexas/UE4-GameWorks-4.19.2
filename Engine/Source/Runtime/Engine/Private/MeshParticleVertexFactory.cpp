@@ -216,6 +216,7 @@ void FMeshParticleVertexFactory::InitRHI()
 
 void FMeshParticleVertexFactory::SetInstanceBuffer(const FVertexBuffer* InstanceBuffer, uint32 StreamOffset, uint32 Stride)
 {
+	ensure(Stride == DynamicVertexStride);
 	Streams[0].VertexBuffer = InstanceBuffer;
 	Streams[0].Offset = StreamOffset;
 	Streams[0].Stride = Stride;
@@ -226,14 +227,16 @@ void FMeshParticleVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer* 
 	if (InDynamicParameterBuffer)
 	{
 		Streams[1].VertexBuffer = InDynamicParameterBuffer;
+		ensure(Stride == DynamicParameterVertexStride);
+		Streams[1].Stride = DynamicParameterVertexStride;
 		Streams[1].Offset = StreamOffset;
-		Streams[1].Stride = Stride;
 	}
 	else
 	{
 		Streams[1].VertexBuffer = &GNullDynamicParameterVertexBuffer;
-		Streams[1].Offset = 0;
+		ensure(DynamicParameterVertexStride == 0);
 		Streams[1].Stride = 0;
+		Streams[1].Offset = 0;
 	}
 }
 

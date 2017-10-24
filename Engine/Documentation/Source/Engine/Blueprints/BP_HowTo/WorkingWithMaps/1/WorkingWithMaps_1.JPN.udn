@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3413824
-Availability:Docs
+﻿INTSourceChangelist:3489715
+Availability:Public
 Title:1 - 必要な設定を行う
 Description:Blueprint Map を使用するためのプロジェクト設定
 Crumbs:%ROOT%
@@ -20,8 +20,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_1.png)(w:600)](Step1_1.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -30,8 +30,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_1Note.png)(w:600)](Step1_1Note.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -40,8 +40,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_2.png)(w:600)](Step1_2.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -50,8 +50,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_3.png)(w:600)](Step1_3.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -68,8 +68,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_6.png)(w:600)](Step1_6.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -78,8 +78,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_7.png)(w:600)](Step1_7.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -88,8 +88,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_8.png)(w:600)](Step1_8.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 
@@ -98,8 +98,8 @@ Blueprint Map を使用する前に、コンテナのコンテンツが表示さ
 	[REGION:lightbox]
 		[![](Step1_9.png)(w:600)](Step1_9.png)
 	[/REGION]
-	[REGION:caption]
 
+	[REGION:caption]
 		クリックしてフルサイズで表示
 	[/REGION]
 

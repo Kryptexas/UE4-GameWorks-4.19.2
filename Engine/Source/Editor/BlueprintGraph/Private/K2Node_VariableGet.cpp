@@ -367,7 +367,7 @@ void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuild
 				FSlateIcon(),
 				FUIAction(
 				FExecuteAction::CreateUObject(this, &UK2Node_VariableGet::TogglePurity),
-				FCanExecuteAction::CreateStatic(CanExecutePurityToggle, bCanTogglePurity),
+				FCanExecuteAction::CreateStatic(CanExecutePurityToggle, bCanTogglePurity && !Context.bIsDebugging),
 				FIsActionChecked()
 				)
 				);
@@ -433,7 +433,7 @@ void UK2Node_VariableGet::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 				if (PropertyReadableState == FBlueprintEditorUtils::EPropertyReadableState::NotBlueprintVisible)
 				{
 					// DEPRECATED(4.17) ... make this an error
-					MessageLog.Warning(*FText::Format(LOCTEXT("UnableToGet_NotVisible", "{VariableName} is not blueprint visible. Please fix mark up or cease accessing as this will be made an error in a future release. @@"), Args).ToString(), this);
+					MessageLog.Warning(*FText::Format(LOCTEXT("UnableToGet_NotVisible", "{VariableName} is not blueprint visible (BlueprintReadOnly or BlueprintReadWrite). Please fix mark up or cease accessing as this will be made an error in a future release. @@"), Args).ToString(), this);
 				}
 				else if (PropertyReadableState == FBlueprintEditorUtils::EPropertyReadableState::Private)
 				{

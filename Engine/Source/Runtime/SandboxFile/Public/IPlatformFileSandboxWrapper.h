@@ -108,6 +108,9 @@ class SANDBOXFILE_API FSandboxPlatformFile : public IPlatformFile
 	 * @param Files true to include directories in the Result
 	 */
 	void FindFiles( TArray<FString>& Result, const TCHAR* InFilename, bool Files, bool Directories );
+	
+	/** Allow IPlatformFile::FindFiles */
+	using IPlatformFile::FindFiles;
 
 	/**
 	 * Deletes a directory

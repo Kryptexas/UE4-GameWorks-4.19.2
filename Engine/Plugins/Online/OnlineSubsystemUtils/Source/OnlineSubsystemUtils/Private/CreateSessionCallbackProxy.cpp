@@ -49,7 +49,7 @@ void UCreateSessionCallbackProxy::Activate()
 			Settings.bUsesPresence = true;
 			Settings.bAllowJoinViaPresence = true;
 
-			Sessions->CreateSession(*Helper.UserID, GameSessionName, Settings);
+			Sessions->CreateSession(*Helper.UserID, NAME_GameSession, Settings);
 
 			// OnCreateCompleted will get called, nothing more to do now
 			return;
@@ -79,7 +79,7 @@ void UCreateSessionCallbackProxy::OnCreateCompleted(FName SessionName, bool bWas
 			if (bWasSuccessful)
 			{
 				StartCompleteDelegateHandle = Sessions->AddOnStartSessionCompleteDelegate_Handle(StartCompleteDelegate);
-				Sessions->StartSession(GameSessionName);
+				Sessions->StartSession(NAME_GameSession);
 
 				// OnStartCompleted will get called, nothing more to do now
 				return;

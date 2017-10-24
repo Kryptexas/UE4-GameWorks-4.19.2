@@ -6,18 +6,10 @@
 #include "Templates/ScopedPointer.h"
 #include "LaunchEngineLoop.h"
 THIRD_PARTY_INCLUDES_START
-#include <SDL.h>
-THIRD_PARTY_INCLUDES_END
-#if PLATFORM_HTML5_BROWSER
-	THIRD_PARTY_INCLUDES_START
+	#include <SDL.h>
 	#include <emscripten/emscripten.h>
 	#include <emscripten/trace.h>
-	THIRD_PARTY_INCLUDES_END
-#else
-	// SDL defines main to be SDL_main and expects you to use SDLmain.  We don't.
-	#undef main
-#endif
-
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Launch, Log, All);
 
@@ -25,10 +17,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogHTML5Launch, Log, All);
 
 FEngineLoop	GEngineLoop;
 TCHAR GCmdLine[2048];
-
-#if PLATFORM_HTML5_WIN32
-#include "DLL/LoadDLL.h"
-#endif
 
 void HTML5_Tick()
 {
@@ -68,18 +56,7 @@ void HTML5_Init ()
 	UE_LOG(LogHTML5Launch,Display,TEXT("Init Complete"));
 
 	emscripten_trace_record_frame_end();
-
-
-#if PLATFORM_HTML5_WIN32
-	while (!GIsRequestingExit)
-	{
-		HTML5_Tick();
-	}
-#else
 	emscripten_set_main_loop(HTML5_Tick, 0, true);
-#endif
-
-
 }
 
 class FHTML5Exec : private FSelfRegisteringExec
@@ -106,14 +83,6 @@ static TUniquePtr<FHTML5Exec> GHTML5Exec;
 int main(int argc, char* argv[])
 {
 	UE_LOG(LogHTML5Launch,Display,TEXT("Starting UE4 ... %s\n"), GCmdLine);
-
-#if PLATFORM_HTML5_WIN32
-	// load the delay load DLLs
-	HTML5Win32::LoadANGLE(TCHAR_TO_ANSI(*FPaths::EngineDir()));
-	HTML5Win32::LoadPhysXDLL (TCHAR_TO_ANSI(*FPaths::EngineDir()));
-	HTML5Win32::LoadOpenAL(TCHAR_TO_ANSI(*FPaths::EngineDir()));
-
-#endif
 
 	// TODO: configure this via the command line?
 	emscripten_trace_configure("http://127.0.0.1:5000/", "UE4Game");

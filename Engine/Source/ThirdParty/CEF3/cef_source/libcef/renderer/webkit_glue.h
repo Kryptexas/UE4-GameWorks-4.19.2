@@ -10,11 +10,12 @@
 
 #include <string>
 
-#include "third_party/skia/include/core/SkColor.h"
-
 #include "include/internal/cef_types.h"
+#include "third_party/WebKit/Source/platform/loader/fetch/AccessControlStatus.h"
+#include "v8/include/v8.h"
 
 namespace blink {
+class WebElement;
 class WebFrame;
 class WebNode;
 class WebString;
@@ -40,17 +41,31 @@ blink::WebString CreateNodeMarkup(const blink::WebNode& node);
 bool SetNodeValue(blink::WebNode& node, const blink::WebString& value);
 
 int64_t GetIdentifier(blink::WebFrame* frame);
+std::string GetUniqueName(blink::WebFrame* frame);
 
-// Find the frame with the specified |unique_name| relative to
-// |relative_to_frame| in the frame hierarchy.
-blink::WebFrame* FindFrameByUniqueName(const blink::WebString& unique_name,
-                                       blink::WebFrame* relative_to_frame);
+bool IsTextControlElement(const blink::WebElement& element);
 
-// Initialize PartitionAlloc before calling Blink functions from the browser
-// process. Safe to call multiple times.
-void InitializePartitionAlloc();
+v8::MaybeLocal<v8::Value> CallV8Function(v8::Local<v8::Context> context,
+                                         v8::Local<v8::Function> function,
+                                         v8::Local<v8::Object> receiver,
+                                         int argc,
+                                         v8::Local<v8::Value> args[],
+                                         v8::Isolate* isolate);
 
-bool ParseCSSColor(const blink::WebString& string, bool strict, SkColor& color);
+v8::MaybeLocal<v8::Value> ExecuteV8ScriptAndReturnValue(
+    const blink::WebString& source,
+    const blink::WebString& source_url,
+    int start_line,
+    v8::Local<v8::Context> context,
+    v8::Isolate* isolate,
+    v8::TryCatch& tryCatch,
+    blink::AccessControlStatus accessControlStatus);
+
+bool IsScriptForbidden();
+
+void RegisterURLSchemeAsLocal(const blink::WebString& scheme);
+void RegisterURLSchemeAsSecure(const blink::WebString& scheme);
+void RegisterURLSchemeAsCORSEnabled(const blink::WebString& scheme);
 
 }  // webkit_glue
 

@@ -10,9 +10,6 @@
 struct CORE_API FMacPlatformOutputDevices : public FGenericPlatformOutputDevices
 {
 	static FOutputDevice*			GetEventLog();
-	static FOutputDeviceConsole*	GetLogConsole();
-	static FOutputDeviceError*		GetError();
-	static FFeedbackContext*		GetWarn();
 };
 
 typedef FMacPlatformOutputDevices FPlatformOutputDevices;

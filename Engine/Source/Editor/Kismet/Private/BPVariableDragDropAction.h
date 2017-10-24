@@ -10,51 +10,32 @@
 #include "Engine/Blueprint.h"
 #include "BlueprintEditor.h"
 #include "GraphEditorDragDropAction.h"
+#include "MyBlueprintItemDragDropAction.h"
 
 class UEdGraph;
 
 /** DragDropAction class for dropping a Variable onto a graph */
-class KISMET_API FKismetVariableDragDropAction : public FGraphEditorDragDropAction
+class KISMET_API FKismetVariableDragDropAction : public FMyBlueprintItemDragDropAction
 {
 public:
-	DRAG_DROP_OPERATOR_TYPE(FKismetVariableDragDropAction, FGraphEditorDragDropAction)
+	DRAG_DROP_OPERATOR_TYPE(FKismetVariableDragDropAction, FMyBlueprintItemDragDropAction)
 
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() override;
 	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	virtual FReply DroppedOnPanel(const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
-	virtual FReply DroppedOnAction(TSharedRef<struct FEdGraphSchemaAction> Action) override;
-	virtual FReply DroppedOnCategory(FText Category) override;
 	// End of FGraphEditorDragDropAction
 
-	static TSharedRef<FKismetVariableDragDropAction> New(FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback)
+	static TSharedRef<FKismetVariableDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InAction, FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback)
 	{
 		TSharedRef<FKismetVariableDragDropAction> Operation = MakeShareable(new FKismetVariableDragDropAction);
 		Operation->VariableName = InVariableName;
 		Operation->VariableSource = InVariableSource;
 		Operation->AnalyticCallback = AnalyticCallback;
+		Operation->SourceAction = InAction;
 		Operation->Construct();
 		return Operation;
-	}
-
-	/** Helper method to see if we're dragging in the same blueprint */
-	bool IsFromBlueprint(class UBlueprint* InBlueprint) const
-	{ 
-		check(VariableSource.IsValid());
-
-		UClass* VariableSourceClass = NULL;
-		if(VariableSource.Get()->IsA(UClass::StaticClass()))
-		{
-			VariableSourceClass = CastChecked<UClass>(VariableSource.Get());
-		}
-		else
-		{
-			check(VariableSource.Get()->GetOuter());
-			VariableSourceClass = CastChecked<UClass>(VariableSource.Get()->GetOuter());
-		}
-		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VariableSourceClass);
-		return (InBlueprint == Blueprint);
 	}
 
 	UProperty* GetVariableProperty()
@@ -65,12 +46,6 @@ public:
 		}
 		return nullptr;
 	}
-
-	/** Set if operation is modified by alt */
-	void SetAltDrag(bool InIsAltDrag) {	bAltDrag = InIsAltDrag;}
-
-	/** Set if operation is modified by the ctrl key */
-	void SetCtrlDrag(bool InIsCtrlDrag) {bControlDrag = InIsCtrlDrag;}
 
 protected:
 	 /** Construct a FKismetVariableDragDropAction */
@@ -84,6 +59,14 @@ protected:
 		FName VariableName;
 		TWeakObjectPtr<UStruct> VariableSource;
 	};
+
+	// FGraphSchemaActionDragDropAction interface
+	virtual void GetDefaultStatusSymbol(const FSlateBrush*& PrimaryBrushOut, FSlateColor& IconColorOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut) const override;
+	// End of FGraphSchemaActionDragDropAction interface
+
+	// FMyBlueprintItemDragDropAction interface
+	virtual UBlueprint* GetSourceBlueprint() const override;
+	// End of FMyBlueprintItemDragDropAction interface
 
 	/** Called when user selects to create a Getter for the variable */
 	static void MakeGetter(FNodeConstructionParams InParams);
@@ -126,10 +109,4 @@ protected:
 	FName VariableName;
 	/** Scope this variable belongs to */
 	TWeakObjectPtr<UStruct> VariableSource;
-	/** Was ctrl held down at start of drag */
-	bool bControlDrag;
-	/** Was alt held down at the start of drag */
-	bool bAltDrag;
-	/** Analytic delegate to track node creation */
-	FNodeCreationAnalytic AnalyticCallback;
 };

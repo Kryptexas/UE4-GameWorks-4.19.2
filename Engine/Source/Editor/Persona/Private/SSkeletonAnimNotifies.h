@@ -154,6 +154,9 @@ private:
 	/** Utility function to display notifications to the user */
 	void NotifyUser( FNotificationInfo& NotificationInfo );
 
+	/** Handler function for when notifies are modified on the skeleton */
+	void OnNotifiesChanged();
+
 	/** The skeleton we are currently editing */
 	TSharedPtr<class IEditableSkeleton> EditableSkeleton;
 

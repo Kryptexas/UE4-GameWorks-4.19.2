@@ -10,7 +10,6 @@ public class ShaderFormatVectorVM : ModuleRules
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
                 "TargetPlatform",
-                "NiagaraEditor"
                 }
             );
 
@@ -23,7 +22,6 @@ public class ShaderFormatVectorVM : ModuleRules
 				"ShaderCompilerCommon",
 				"ShaderPreprocessor",
             	"VectorVM",
-                "Niagara",
                 }
 			);
 

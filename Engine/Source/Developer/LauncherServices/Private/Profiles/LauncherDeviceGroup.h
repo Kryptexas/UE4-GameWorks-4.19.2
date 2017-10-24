@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
-#include "Interfaces/ILauncherDeviceGroup.h"
+#include "ILauncherDeviceGroup.h"
 
 /**
  * Implements a group of devices for the Launcher user interface.

@@ -74,7 +74,7 @@ void FAnimationBlueprintEditorModule::OnNewBlueprintCreated(UBlueprint* InBluepr
 		GetOwnerNode->NodePosX = SafeXPosition;
 		GetOwnerNode->NodePosY = SafeYPosition;
 		UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
-		GetOwnerNode->DisableNode();
+		GetOwnerNode->MakeAutomaticallyPlacedGhostNode();
 
 		EventGraph->AddNode(GetOwnerNode);
 	}

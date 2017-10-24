@@ -11,8 +11,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringAssetReference.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "PreviewAssetAttachComponent.generated.h"
 
 /** Preview items that are attached to the skeleton **/
@@ -24,7 +23,7 @@ struct FPreviewAttachedObjectPair
 private:
 	/** the object to be attached */
 	UPROPERTY()
-	TAssetPtr<class UObject> AttachedObject;
+	TSoftObjectPtr<class UObject> AttachedObject;
 
 	UPROPERTY()
 	UObject* Object_DEPRECATED;
@@ -48,18 +47,7 @@ public:
 
 	UObject* GetAttachedObject() const
 	{
-		UObject* AttachedObjectPtr = AttachedObject.Get();
-		if (!AttachedObjectPtr)
-		{
-			// if preview mesh isn't loaded, see if we have set
-			FStringAssetReference AttachedObjectStringRef = AttachedObject.ToStringReference();
-			// load it since now is the time to load
-			if (!AttachedObjectStringRef.ToString().IsEmpty())
-			{
-				AttachedObjectPtr = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, *AttachedObjectStringRef.ToString(), NULL, LOAD_None, NULL));
-			}
-		}
-		return AttachedObjectPtr;
+		return AttachedObject.LoadSynchronous();
 	}
 
 	void SetAttachedObject(UObject* InObject)

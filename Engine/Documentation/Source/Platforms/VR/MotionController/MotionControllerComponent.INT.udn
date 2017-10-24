@@ -1,33 +1,38 @@
-Availability:Public
-Title:Motion Controller Component Setup
-Crumbs:%ROOT%, Platforms
-Description:Information on how to setup Motion Controllers for VR interaction.
-Navigation:platform
-Version:4.9
-Skilllevel:Intermediate
+Availability: Public
+Crumbs: %ROOT%
+Title: Motion Controller Component Setup
+Description: Information on how to setup Motion Controllers for VR interaction.
+Type: Overview
+SkillLevel:Beginner
+Version:4.17
 parent:Platforms/VR
-type:overview
+Order: 2
+Tags: VR
 
 [TOC(start:2)]
 
-You can add a Motion Controller as a component to your Pawn / Character, set which "Hand" it is supposed to represent.
-In the following document, we will cover how you can set up your Virtual Reality project to make use of Motion Controllers.
+No matter which Virtual Reality platform you are developing for, adding support for Motion Controllers can add a level of immersion and interaction that is just not possible to achieve with a controller or mouse and keyboard. In the following How - To we will take a look at how to add Motion Controller support to the VR Platforms that support it. 
 
-[region:tip]
-Before going any further make sure that your VR Headset and Motion Controllers are plugged into your PC and required the drivers installed. 
-See the [VR Documents](Platforms/VR) for information on how to get various VR headsets to work with UE4.
-[/region]
+## Supported Platforms 
+
+The Motion Controller component that is found in the Components tab will work on the following VR platforms.
+
+* Oculus VR
+* Steam VR
+* Gear VR
+* Playstation VR
+
+If you do not see the platform you are developing for listed above, make sure to check that platform's documentation for how to go about setting use of Motion Controllers. 
 
 ## Motion Controller Setup
 
-Setting up a VR project to make use of Motion Controllers requires adding a Motion Controller Component to your Pawn and configuring it. 
-In this section, we will cover how you can quickly get Motion Controllers working with your project.
+In the following section we will take a look at how to add and setup the components that are needed for Motion Controllers to work.
 
 [region:note]
-Please note this setup can be applied to any Pawn in any UE4 project.
+This How - To has been written assuming that you have setup your Pawn to work with the VR Head Mounted Display (HMD) that you are developing for. If you are not sure how to do this, check please check out the getting [started guide](Platforms/VR) for the VR Head Mounted Display (HMD) you are developing for. 
 [/region]
 
-1. In the **Content Browser** open the **Player Pawn** Blueprint.
+1. First, inside the  **Content Browser** locate and open up your **Player Pawn** Blueprint.
 
     [REGION:lightbox]
     [![](Open_VR_Pawn.png)(w:427)](Open_VR_Pawn.png)
@@ -37,76 +42,78 @@ Please note this setup can be applied to any Pawn in any UE4 project.
     Click for full image.
     [/REGION]
 
-1. Once the Blueprint is opened, navigate to the **Viewport** tab and in the **Components** section click on the **Add Component** button to expose the components that can be added to this Blueprint. 
+1.  In the **Components** section click on the **Add Component** button to expose the components that can be added to this Blueprint. 
 
     [REGION:lightbox]
-    [![](Find_Components.png)(w:418)](Find_Components.png)
+    [![](Find_Components.png)(w:435)](Find_Components.png)
     [/REGION]
 
     [REGION:caption]
     Click for full image.
     [/REGION]
 
-1. From the list that is shown search for the Motion Controller using the word **Motion** as the search term. 
-    When the Motion Controller component has been located, click on it to add it to the components list.
+1. Input **Motion** in the search box and then click on the **Motion Controller** component to add it to the components list, giving it a name of **MC_Left**..
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    kcyHnfpmWbU
-    [/PARAMLITERAL]
-    [/OBJECT]
+	![](Add_MC_Component.png)
 
-1. Once the Motion Controller has been added, select it by clicking on it and then in the **Details** panel under the **Motion Controller** section make sure the **Hand** is set to **Left**.
+1. Select the newly added Motion Controller component and over in the **Details** panel under the **Motion Controller** section make sure the **Hand** is set to **Left**.
 
     [REGION:lightbox]
-    [![](Setting_Up_Components.png)(w:418)](Setting_Up_Components.png)
+    [![](Setting_Up_Components.png)(w:787)](Setting_Up_Components.png)
     [/REGION]
 
     [REGION:caption]
     Click for full image.
     [/REGION]
 
-1. To give the Motion Controller a visual representation in the world, select the **Motion Controller Component** in the **Components panel**    and click the **Add Component** button to add a **Static Mesh Component**.
-    Drag the Static Mesh Component on to the Motion Controller to parent it to the Motion Controller Component then, 
-    in the Details panel, assign a Static Mesh asset to the Static Mesh property of the new component.
+1. Next, select the **Motion Controller Component** in the **Components panel** and click the **Add Component** button and then search for and add a **Static Mesh Component**, calling it **SM_Left**. 
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    x4vjDqnHQnk
-    [/PARAMLITERAL]
-    [/OBJECT]
+	![](Add_SM_To_MC.png)
 
-    [region:tip]
-    If your project does not currently have any Static Mesh assets, import one of your meshes or click the Marketplace button in the toolbar to visit the Marketplace and download some assets to use in your project.
-    If the Static Mesh you selected is too big or too small, you can scale to your likening using the Scale section of the Transform section in the Details panel.
-    [/region]
+	[region:note]
+	Make sure that the Static Mesh Component is a child of the Motion Controller Component otherwise the Static Mesh will not follow along when the Motion Controller is moved.
+	[/region]
 
-1. Add another Motion Controller Component parented to the root and set it to be the **Right Hand**. Add a Static Mesh Component parented to the new Motion Controller Component and applied the right-hand mesh to it.
+1. Now, in the Details panel of the Static Mesh Component under the **Static Mesh** section input a Static Mesh to represent what the Motion Controllers will look like. For this example we are using a simple box, but feel free to use any Static Mesh you have available.
 
     [REGION:lightbox]
-    [![](Finshed_MC_Setup.png)(w:418)](Finshed_MC_Setup.png)
+    [![](SM_MC_Static_Mesh.png)(w:787)](SM_MC_Static_Mesh.png)
     [/REGION]
 
     [REGION:caption]
     Click for full image.
     [/REGION]
 
-    [region:note]
-    In the image above, the two cone shaped meshes have been moved apart to show that there are two of them. 
-    When setting up your project leave both Static Mesh Components at 0,0,0 so that they are located right on top of one another.
-    [/region]
+1. Now, duplicate the entire Left hand Motion Controller setup and re-place the word **Left** with **Right**. Also make sure to change the which hand this Motion Controller is used for by going to the Motion Controller component and then changing **Hand** from Left to **Right**.
+
+    [REGION:lightbox]
+    [![](Finshed_MC_Setup.png)(w:787)](Finshed_MC_Setup.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Compile and save your Pawn Blueprint, make sure it is placed in your test level and then launch your project. When you put on your HMD and pick up your Motion Controlers you should be able to now do what is shown in the following video.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		CD6-Mje1y6g
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
 
 ## Working with Motion Controllers
 
@@ -118,12 +125,11 @@ If you search inside of the Blueprint Editor **Palette** using **MotionControlle
 
 ![](Working_With_MC.png)
 
-When looking at the available Motion Controller input options, there is a capital **L** or **R** next to the name of what that value is supposed to control. 
-This L or R means that this is for the **Left** or **Right** Motion Controller.
+Make sure to note that there are seperate inputs for both the Left and Right Motion Controllers. The captial **L** or **R** next to the name of the input node signfies if this is for the left or right Motion Controller.
 
 ![](MC_Left_Right.png)
 
-
+<!--
 ## Using Motion Controllers
 
 In the following section, we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller, a Blueprint containing a Static Mesh is spawned into the world, while pressing the trigger button on the **Left-Handed** Motion Controller will remove the mesh from the world. 
@@ -211,6 +217,7 @@ In the following section, we will set the Motion Controllers up so that when you
         VXUowSUKT9I
         [/PARAMLITERAL]
     [/OBJECT]
+-->
 
 ## Training Streams
 

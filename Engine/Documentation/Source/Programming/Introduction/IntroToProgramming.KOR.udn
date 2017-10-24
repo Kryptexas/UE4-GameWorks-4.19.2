@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3599948
 Title:UE4 C++ 프로그래밍 입문
 Crumbs:
 Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
@@ -244,7 +244,7 @@ UFUNCTION() 매크로가 반영 시스템으로의 C++ 함수 노출을 처리�
 	UFUNCTION(BlueprintNativeEvent, Category="Damage")
 	void CalledFromCpp();
 
-이 버전은 여전히 블루프린트 가상 머신으로 호출해 들어가는 썽크 메소드를 생성합니다. 그러면 기본 구현은 어떻게 제공할까요? 툴에서는 <함수명>_Implementation() 같이 보이는 함수 선언을 새로 생성하는 툴도 제공해 줍니다. 이 버전의 함수를 제공해 주지 않으면 프로젝트가 링크하는 데 실패할 것입니다. 위 선언에 대한 구현 코드는 이렇습니다.
+이 버전은 여전히 블루프린트 가상 머신으로 호출해 들어가는 썽크 메소드를 생성합니다. 그러면 기본 구현은 어떻게 제공할까요? 툴에서는 `<함수명>_Implementation()` 같이 보이는 함수 선언을 새로 생성하는 툴도 제공해 줍니다. 이 버전의 함수를 제공해 주지 않으면 프로젝트가 링크하는 데 실패할 것입니다. 위 선언에 대한 구현 코드는 이렇습니다.
 
 	void AMyActor::CalledFromCpp_Implementation()
 	{
@@ -534,7 +534,7 @@ UStructs (구조체)는 앞서 말씀드렸듯이 UObject 의 경량 버전으�
 
 부동 소수점 역시 표준 **float** (32 비트) 및 **double** (64 비트) 유형으로 지원됩니다.
 
-언리얼 엔진에서는 **TNumericLimits<t>** 템플릿으로 어떤 값 유형이 저장할 수 있는 최소 최대 값 범위를 알아낼 수 있습니다. 자세한 벙보는 [API reference](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Math/TNumericLimits/index.html) 를 참고하시기 바랍니다.
+언리얼 엔진에서는 `TNumericLimits<t>` 템플릿으로 어떤 값 유형이 저장할 수 있는 최소 최대 값 범위를 알아낼 수 있습니다. 자세한 벙보는 [API reference](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Math/TNumericLimits/index.html) 를 참고하시기 바랍니다.
 
 ### 문자열
 
@@ -594,7 +594,7 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 	TCHAR Lower = FChar::ToLower(Upper); // 'a'
 
 [REGION:note]
-FChar 유형은 **TChar<TCHAR>** 로 정의됩니다 (API 에 나열된 대로입니다).
+FChar 유형은 `TChar<TCHAR>` 로 정의됩니다 (API 에 나열된 대로입니다).
 [/REGION]
 
 [Full Topic: TChar API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Misc/TChar/index.html)

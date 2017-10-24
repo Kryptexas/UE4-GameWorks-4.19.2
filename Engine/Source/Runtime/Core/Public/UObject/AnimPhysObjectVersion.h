@@ -25,6 +25,16 @@ struct CORE_API FAnimPhysObjectVersion
 		CreateTargetReference,
 		// Tune soft limit stiffness and damping coefficients
 		TuneSoftLimitStiffnessAndDamping,
+		// Fix possible inf/nans in clothing particle masses
+		FixInvalidClothParticleMasses,
+		// Moved influence count to cached data
+		CacheClothMeshInfluences,
+		// Remove GUID from Smart Names entirely + remove automatic name fixup
+		SmartNameRefactorForDeterministicCooking,
+		// rename the variable and allow individual curves to be set
+		RenameDisableAnimCurvesToAllowAnimCurveEvaluation,
+		// link curve to LOD, so curve metadata has to include LODIndex
+		AddLODToCurveMetaData,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

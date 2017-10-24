@@ -43,7 +43,12 @@ public:
 	 * Process a response from the StoreKit
 	 */
 	void ProcessProductsResponse( SKProductsResponse* Response );
-    
+
+	/**
+	* Process a response from the StoreKit
+	*/
+	void ProcessRestorePurchases( EInAppPurchaseState::Type InCompletionState );
+
 	/** Cached in-app purchase query object, used to provide the user with product information attained from the server */
 	FOnlineProductInformationReadPtr CachedReadObject;
     

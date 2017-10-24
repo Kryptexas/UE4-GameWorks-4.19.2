@@ -7,7 +7,8 @@
 #include "StereoCapturePawn.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/Paths.h"
 #include "UnrealEngine.h"
@@ -109,7 +110,7 @@ USceneCapturer::USceneCapturer(FVTableHelper& Helper)
     , SSMethod(FMath::Clamp<int32>(FStereoPanoramaManager::SuperSamplingMethod->GetInt(), 0, ARRAY_COUNT(g_ssPatterns)))
     , bOverrideInitialYaw(FStereoPanoramaManager::ShouldOverrideInitialYaw->GetInt() != 0)
     , ForcedInitialYaw(FRotator::ClampAxis(FStereoPanoramaManager::ForcedInitialYaw->GetFloat()))
-    , OutputDir(FStereoPanoramaManager::OutputDir->GetString().IsEmpty() ? FPaths::GameSavedDir() / TEXT("StereoPanorama") : FStereoPanoramaManager::OutputDir->GetString())
+    , OutputDir(FStereoPanoramaManager::OutputDir->GetString().IsEmpty() ? FPaths::ProjectSavedDir() / TEXT("StereoPanorama") : FStereoPanoramaManager::OutputDir->GetString())
     , dbgDisableOffsetRotation(FStereoPanoramaManager::FadeStereoToZeroAtSides->GetInt() != 0)
 {}
 
@@ -130,7 +131,7 @@ USceneCapturer::USceneCapturer()
     , SSMethod( FMath::Clamp<int32>(FStereoPanoramaManager::SuperSamplingMethod->GetInt(), 0, ARRAY_COUNT(g_ssPatterns)) )
     , bOverrideInitialYaw( FStereoPanoramaManager::ShouldOverrideInitialYaw->GetInt() != 0 )
     , ForcedInitialYaw( FRotator::ClampAxis(FStereoPanoramaManager::ForcedInitialYaw->GetFloat()) )
-    , OutputDir( FStereoPanoramaManager::OutputDir->GetString().IsEmpty() ? FPaths::GameSavedDir() / TEXT("StereoPanorama") : FStereoPanoramaManager::OutputDir->GetString() )
+    , OutputDir( FStereoPanoramaManager::OutputDir->GetString().IsEmpty() ? FPaths::ProjectSavedDir() / TEXT("StereoPanorama") : FStereoPanoramaManager::OutputDir->GetString() )
     , dbgDisableOffsetRotation( FStereoPanoramaManager::FadeStereoToZeroAtSides->GetInt() != 0 )
 {
     //NOTE: ikrimae: Keeping the old sampling mechanism just until we're sure the new way is always better
@@ -648,7 +649,7 @@ TArray<FColor> USceneCapturer::SaveAtlas(FString Folder, const TArray<FColor>& S
 
 	// Write out PNG
     //TODO: ikrimae: Use threads to write out the images for performance
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
     ImageWrapper->SetRaw(SphericalAtlas.GetData(), SphericalAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight, ERGBFormat::BGRA, 8);
 	const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
 	FFileHelper::SaveArrayToFile( PNGData, *AtlasName );
@@ -706,7 +707,7 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
         if (FStereoPanoramaManager::GenerateDebugImages->GetInt() == 2)
         {
             //Read Whole Capture Buffer
-		    IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 
             TArray<FColor> SurfaceDataWhole;
             SurfaceDataWhole.AddUninitialized(CaptureWidth * CaptureHeight);
@@ -739,7 +740,7 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
                 }
             }
 
-            IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+            TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
             ImageWrapper->SetRaw(SurfaceData.GetData(), SurfaceData.GetAllocatedSize(), StripWidth, StripHeight, ERGBFormat::BGRA, 8);
 		    const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
 

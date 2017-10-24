@@ -1,16 +1,21 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "BuildPatchGeneration.h"
 #include "Templates/ScopedPointer.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/SecureHash.h"
-#include "BuildPatchChunk.h"
+#include "UniquePtr.h"
 #include "BuildPatchManifest.h"
 #include "BuildPatchServicesModule.h"
 #include "BuildPatchHash.h"
-
+#include "Core/BlockStructure.h"
+#include "Data/ChunkData.h"
 #include "Generation/DataScanner.h"
+#include "Generation/BuildStreamer.h"
+#include "Generation/CloudEnumeration.h"
 #include "Generation/ManifestBuilder.h"
-#include "UniquePtr.h"
+#include "Generation/FileAttributesParser.h"
+#include "Generation/ChunkWriter.h"
 
 using namespace BuildPatchServices;
 
@@ -45,7 +50,7 @@ namespace BuildPatchServices
 
 namespace PatchGenerationHelpers
 {
-	bool SerialiseIntersection(const FBlockStructure& ByteStructure, const FBlockStructure& Intersection, FBlockStructure& SerialRanges)
+	bool SerializeIntersection(const FBlockStructure& ByteStructure, const FBlockStructure& Intersection, FBlockStructure& SerialRanges)
 	{
 		FBlockStructure ActualIntersection = ByteStructure.Intersect(Intersection);
 		uint64 ByteOffset = 0;
@@ -114,15 +119,31 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 	ManifestDetails.BuildVersion = Settings.BuildVersion;
 	ManifestDetails.LaunchExe = Settings.LaunchExe;
 	ManifestDetails.LaunchCommand = Settings.LaunchCommand;
+	ManifestDetails.PrereqIds = Settings.PrereqIds;
 	ManifestDetails.PrereqName = Settings.PrereqName;
 	ManifestDetails.PrereqPath = Settings.PrereqPath;
 	ManifestDetails.PrereqArgs = Settings.PrereqArgs;
 	ManifestDetails.CustomFields = Settings.CustomFields;
 
+	// Use the cloud directory passed in if present, otherwise fall back to module default
+	FString CloudDirectory = Settings.CloudDirectory;
+	if (CloudDirectory.IsEmpty())
+	{
+		CloudDirectory = FBuildPatchServicesModule::GetCloudDirectory();
+	}
+
 	// Check for the required output filename.
 	if (Settings.OutputFilename.IsEmpty())
 	{
 		UE_LOG(LogPatchGeneration, Error, TEXT("Manifest OutputFilename was not provided"));
+		return false;
+	}
+
+	// Ensure that cloud directory exists, and create it if not.
+	IFileManager::Get().MakeDirectory(*CloudDirectory, true);
+	if (!IFileManager::Get().DirectoryExists(*CloudDirectory))
+	{
+		UE_LOG(LogPatchGeneration, Error, TEXT("Unable to create specified cloud directory %s"), *CloudDirectory);
 		return false;
 	}
 
@@ -142,19 +163,28 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 
 	// Enumerate Chunks.
 	const FDateTime Cutoff = Settings.bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(Settings.DataAgeThreshold) : FDateTime::MinValue();
-	ICloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(FBuildPatchServicesModule::GetCloudDirectory(), Cutoff, StatsCollector);
+	ICloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(CloudDirectory, Cutoff, StatsCollector);
 
 	// Create a build streamer.
 	FBuildStreamerRef BuildStream = FBuildStreamerFactory::Create(Settings.RootDirectory, Settings.IgnoreListFile, StatsCollector);
 
 	// Create a chunk writer.
-	FChunkWriter ChunkWriter(FBuildPatchServicesModule::GetCloudDirectory(), StatsCollector);
+	FChunkWriter ChunkWriter(CloudDirectory, StatsCollector);
 
 	// Output to log for builder info.
 	UE_LOG(LogPatchGeneration, Log, TEXT("Running Chunks Patch Generation for: %u:%s %s"), Settings.AppId, *Settings.AppName, *Settings.BuildVersion);
 
 	// Create the manifest builder.
 	IManifestBuilderRef ManifestBuilder = FManifestBuilderFactory::Create(ManifestDetails);
+
+	TArray<FString> EnumeratedFiles = BuildStream->GetAllFilenames();
+
+	// Check existence of prereq exe, if specified.
+	if (!Settings.PrereqPath.IsEmpty() && !EnumeratedFiles.Contains(FPaths::Combine(Settings.RootDirectory, Settings.PrereqPath)))
+	{
+		UE_LOG(LogPatchGeneration, Error, TEXT("Provided prerequisite executable file was not found within the build root. %s"), *Settings.PrereqPath);
+		return false;
+	}
 
 	// Used to store data read lengths.
 	uint32 ReadLen = 0;
@@ -171,7 +201,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 	GenerationScannerSizeMegabytes = FMath::Clamp<float>(GenerationScannerSizeMegabytes, 10.0f, 500.0f);
 	StatsLoggerTimeSeconds = FMath::Clamp<float>(StatsLoggerTimeSeconds, 1.0f, 60.0f);
 	const uint64 ScannerDataSize = GenerationScannerSizeMegabytes * 1048576;
-	const uint64 ScannerOverlapSize = FBuildPatchData::ChunkDataSize - 1;
+	const uint64 ScannerOverlapSize = BuildPatchServices::ChunkDataSize - 1;
 	TArray<uint8> DataBuffer;
 
 	// Setup Generation stats.
@@ -283,8 +313,8 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 			if (LayerLastChunkMatch != nullptr)
 			{
 				// Track the last match in this range's layer structure.
-				LayerSpaceUnknownStructure.Remove(LayerLastChunkMatch->DataOffset, FBuildPatchData::ChunkDataSize);
-				LayerSpaceKnownStructure.Add(LayerLastChunkMatch->DataOffset, FBuildPatchData::ChunkDataSize);
+				LayerSpaceUnknownStructure.Remove(LayerLastChunkMatch->DataOffset, BuildPatchServices::ChunkDataSize);
+				LayerSpaceKnownStructure.Add(LayerLastChunkMatch->DataOffset, BuildPatchServices::ChunkDataSize);
 				LayerSpaceKnownStructure.Remove(0, Scanner.LayerOffset);
 
 				// Assert there is one or zero blocks
@@ -314,8 +344,8 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 
 				// Translate to build space.
 				FBlockStructure BuildSpaceChunkStructure;
-				const uint64 BytesFound = Scanner.Structure.SelectSerialBytes(Match.DataOffset, FBuildPatchData::ChunkDataSize, BuildSpaceChunkStructure);
-				const bool bFoundOk = Scanner.bIsFinalScanner || BytesFound == FBuildPatchData::ChunkDataSize;
+				const uint64 BytesFound = Scanner.Structure.SelectSerialBytes(Match.DataOffset, BuildPatchServices::ChunkDataSize, BuildSpaceChunkStructure);
+				const bool bFoundOk = Scanner.bIsFinalScanner || BytesFound == BuildPatchServices::ChunkDataSize;
 				if (!bFoundOk)
 				{
 					// Fatal error if the scanner returned a matched range that doesn't fit inside it's data.
@@ -324,14 +354,14 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 				}
 
 				uint64 LayerOffset = Scanner.LayerOffset + Match.DataOffset;
-				if (LayerLastChunkMatch == nullptr || ((LayerLastChunkMatch->DataOffset + FBuildPatchData::ChunkDataSize) <= LayerOffset))
+				if (LayerLastChunkMatch == nullptr || ((LayerLastChunkMatch->DataOffset + BuildPatchServices::ChunkDataSize) <= LayerOffset))
 				{
 					// Accept the match.
 					LayerLastChunkMatch = &LayerToLastChunkMatch.Add(Scanner.Layer, FChunkMatch(LayerOffset, Match.ChunkGuid));
 
 					// Track data from this scanner.
-					LayerSpaceUnknownStructure.Remove(LayerOffset, FBuildPatchData::ChunkDataSize);
-					LayerSpaceKnownStructure.Add(LayerOffset, FBuildPatchData::ChunkDataSize);
+					LayerSpaceUnknownStructure.Remove(LayerOffset, BuildPatchServices::ChunkDataSize);
+					LayerSpaceKnownStructure.Add(LayerOffset, BuildPatchServices::ChunkDataSize);
 
 					// Process the chunk in build space.
 					BuildSpaceUnknownStructure.Remove(BuildSpaceChunkStructure);
@@ -361,7 +391,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 
 			// Remove from unknown data buffer what we now know. This covers newly recognized data from previous overlaps.
 			FBlockStructure NowKnownDataStructure;
-			if (PatchGenerationHelpers::SerialiseIntersection(UnknownLayerStructure, LayerSpaceKnownStructure, NowKnownDataStructure))
+			if (PatchGenerationHelpers::SerializeIntersection(UnknownLayerStructure, LayerSpaceKnownStructure, NowKnownDataStructure))
 			{
 				const FBlockEntry* NowKnownDataBlock = NowKnownDataStructure.GetFoot();
 				while (NowKnownDataBlock != nullptr)
@@ -449,22 +479,22 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 						ByteEnd = FMath::Max<uint64>(ProcessedCount, ByteOffset);
 					}
 					// Make a new chunk if large enough block, or it's a final single block.
-					if ((ByteEnd - ByteOffset) >= FBuildPatchData::ChunkDataSize || (bSingleBlock && bIsFinalData))
+					if ((ByteEnd - ByteOffset) >= BuildPatchServices::ChunkDataSize || (bSingleBlock && bIsFinalData))
 					{
 						// Chunk needs padding?
 						check(UnknownLayerData.Num() > ByteOffset);
-						uint64 SizeOfData = FMath::Min<uint64>(FBuildPatchData::ChunkDataSize, UnknownLayerData.Num() - ByteOffset);
-						if (SizeOfData < FBuildPatchData::ChunkDataSize)
+						uint64 SizeOfData = FMath::Min<uint64>(BuildPatchServices::ChunkDataSize, UnknownLayerData.Num() - ByteOffset);
+						if (SizeOfData < BuildPatchServices::ChunkDataSize)
 						{
-							UnknownLayerData.SetNumZeroed(ByteOffset + FBuildPatchData::ChunkDataSize);
+							UnknownLayerData.SetNumZeroed(ByteOffset + BuildPatchServices::ChunkDataSize);
 						}
 
 						// Create data for new chunk.
 						uint8* NewChunkData = &UnknownLayerData[ByteOffset];
 						FGuid NewChunkGuid = FGuid::NewGuid();
-						uint64 NewChunkHash = FRollingHash<FBuildPatchData::ChunkDataSize>::GetHashForDataSet(NewChunkData);
+						uint64 NewChunkHash = FRollingHash<BuildPatchServices::ChunkDataSize>::GetHashForDataSet(NewChunkData);
 						FSHAHash NewChunkSha;
-						FSHA1::HashBuffer(NewChunkData, FBuildPatchData::ChunkDataSize, NewChunkSha.Hash);
+						FSHA1::HashBuffer(NewChunkData, BuildPatchServices::ChunkDataSize, NewChunkSha.Hash);
 
 						// Save it out.
 						ChunkWriter.QueueChunk(NewChunkData, NewChunkGuid, NewChunkHash);
@@ -483,7 +513,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 						UE_LOG(LogPatchGeneration, Verbose, TEXT("Created a new chunk %s with hash %016llX on layer %d. Mapping:%s"), *NewChunkGuid.ToString(), NewChunkHash, Layer, *BuildSpaceChunkStructure.ToString());
 
 						// Remove from tracking.
-						UnknownLayerData.RemoveAt(ByteOffset, FBuildPatchData::ChunkDataSize, false);
+						UnknownLayerData.RemoveAt(ByteOffset, BuildPatchServices::ChunkDataSize, false);
 						FBlockStructure LayerSpaceChunkStructure;
 						if (UnknownLayerStructure.SelectSerialBytes(ByteOffset, SizeOfData, LayerSpaceChunkStructure) != SizeOfData)
 						{
@@ -499,7 +529,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 						// Check sanity of tracked data
 						check(UnknownLayerData.Num() == PatchGenerationHelpers::CountSerialBytes(UnknownLayerStructure)
 							&& UnknownLayerData.Num() == PatchGenerationHelpers::CountSerialBytes(UnknownBuildStructure));
-						check(SizeOfData >= FBuildPatchData::ChunkDataSize || UnknownLayerData.Num() == 0);
+						check(SizeOfData >= BuildPatchServices::ChunkDataSize || UnknownLayerData.Num() == 0);
 
 						// UnknownLayerBlock is now potentially invalid due to mutation of UnknownLayerStructure so we must loop from beginning.
 						UnknownLayerBlock = UnknownLayerStructure.GetHead();
@@ -516,7 +546,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 			{
 				// Make sure there are enough bytes available for a scanner, plus a chunk, so that we know no more chunks will get
 				// made from this sequential unknown data.
-				uint64 RequiredScannerBytes = ScannerDataSize + FBuildPatchData::ChunkDataSize;
+				uint64 RequiredScannerBytes = ScannerDataSize + BuildPatchServices::ChunkDataSize;
 				// We make a scanner when there's enough data, or if we are at the end of data for this layer.
 				bool bShouldMakeScanner = (ProcessedCount >= RequiredScannerBytes) || bIsFinalData;
 				if (!PatchGenerationHelpers::ScannerArrayFull(Scanners) && bShouldMakeScanner)
@@ -652,7 +682,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 	UE_LOG(LogPatchGeneration, Log, TEXT("Completed in %s."), *FPlatformTime::PrettyTime(FStatsCollector::CyclesToSeconds(EndTime - StartTime)));
 
 	// Save manifest out to the cloud directory.
-	FString OutputFilename = FBuildPatchServicesModule::GetCloudDirectory() / Settings.OutputFilename;
+	FString OutputFilename = CloudDirectory / Settings.OutputFilename;
 	if (ManifestBuilder->SaveToFile(OutputFilename) == false)
 	{
 		UE_LOG(LogPatchGeneration, Error, TEXT("Saving manifest failed."));

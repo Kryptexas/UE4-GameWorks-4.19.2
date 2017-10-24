@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "../MfMediaPrivate.h"
+#include "MfMediaPrivate.h"
+
+#if MFMEDIA_SUPPORTED_PLATFORM
 
 #if PLATFORM_WINDOWS
-	#include "WindowsHWrapper.h"
-	#include "AllowWindowsPlatformTypes.h"
+	#include "Windows/WindowsHWrapper.h"
+	#include "Windows/AllowWindowsPlatformTypes.h"
 #else
-	#include "XboxOneAllowPlatformTypes.h"
+	#include "XboxOne/XboxOneAllowPlatformTypes.h"
 #endif
 
 
@@ -36,9 +38,6 @@ public:
 		, ReadBufferSize(InReadBufferSize)
 		, RefCount(0)
 	{ }
-
-	/** Virtual destructor. */
-	virtual ~FMfMediaReadState() { }
 
 public:
 
@@ -123,6 +122,11 @@ public:
 		return CurrentRefCount;
 	}
 
+protected:
+
+	/** Hidden destructor. */
+	virtual ~FMfMediaReadState() { }
+
 private:
 
 	/** Number of bytes read. */
@@ -140,7 +144,9 @@ private:
 
 
 #if PLATFORM_WINDOWS
-	#include "HideWindowsPlatformTypes.h"
+	#include "Windows/HideWindowsPlatformTypes.h"
 #else
-	#include "XboxOneHidePlatformTypes.h"
+	#include "XboxOne/XboxOneHidePlatformTypes.h"
 #endif
+
+#endif //MFMEDIA_SUPPORTED_PLATFORM

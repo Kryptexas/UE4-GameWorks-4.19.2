@@ -28,7 +28,7 @@
 #include "UObject/MetaData.h"
 #include "Templates/Casts.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/ObjectRedirector.h"
@@ -497,19 +497,14 @@ void UObject::PropagatePostEditChange( TArray<UObject*>& AffectedObjects, FPrope
 		}
 	}
 
+	check(PropertyChangedEvent.PropertyChain.GetActiveMemberNode() != nullptr);
+
 	for ( int32 i = 0; i < Instances.Num(); i++ )
 	{
 		UObject* Obj = Instances[i];
 
-		// check for and set up the active member node
-		FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
-		if ( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
-		{
-			PropertyEvent.SetActiveMemberProperty(PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue());
-		}
-
 		// notify the object that all changes are complete
-		Obj->PostEditChangeProperty(PropertyEvent);
+		Obj->PostEditChangeChainProperty(PropertyChangedEvent);
 
 		// now recurse into this object, loading its instances
 		Obj->PropagatePostEditChange(AffectedObjects, PropertyChangedEvent);
@@ -770,6 +765,11 @@ bool bGetWorldOverridden = false;
 
 class UWorld* UObject::GetWorld() const
 {
+	if (UObject* Outer = GetOuter())
+	{
+		return Outer->GetWorld();
+	}
+
 #if DO_CHECK
 	if (IsInGameThread())
 	{
@@ -982,7 +982,6 @@ void UObject::ConditionalPostLoad()
 			}
 			else
 			{
-				LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(PostLoadMemory);
 				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetOutermost(), ELLMTagSet::Assets);
 				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetClass()->IsChildOf(UDynamicClass::StaticClass()) ? UDynamicClass::StaticClass() : GetClass(), ELLMTagSet::AssetClasses);
 
@@ -1240,7 +1239,7 @@ void UObject::Serialize( FArchive& Ar )
 	// Invalidate asset pointer caches when loading a new object
 	if (Ar.IsLoading() )
 	{
-		FStringAssetReference::InvalidateTag();
+		FSoftObjectPath::InvalidateTag();
 	}
 
 	// Memory counting (with proper alignment to match C++)
@@ -1385,8 +1384,7 @@ public:
 	{
 		if( !ReferencingObject->GetClass()->IsChildOf(UClass::StaticClass()) )
 		{
-			FSimpleObjectReferenceCollectorArchive CollectorArchive( ReferencingObject, *this );
-			ReferencingObject->SerializeScriptProperties( CollectorArchive );
+			ReferencingObject->SerializeScriptProperties(GetVerySlowReferenceCollectorArchive());
 		}
 		ReferencingObject->CallAddReferencedObjects(*this);
 	}
@@ -2010,7 +2008,7 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 
 #if WITH_EDITOR
 		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-		FString CVarName = Property->GetMetaData(ConsoleVariableFName);
+		const FString& CVarName = Property->GetMetaData(ConsoleVariableFName);
 		if (!CVarName.IsEmpty())
 		{
 			Key = CVarName;
@@ -2207,7 +2205,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 
 #if WITH_EDITOR
 			static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-			FString CVarName = Property->GetMetaData(ConsoleVariableFName);
+			const FString& CVarName = Property->GetMetaData(ConsoleVariableFName);
 			if (!CVarName.IsEmpty())
 			{
 				Key = CVarName;
@@ -2266,14 +2264,14 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 				TCHAR TempKey[MAX_SPRINTF]=TEXT("");
 				for( int32 Index=0; Index<Property->ArrayDim; Index++ )
 				{
+					if( Property->ArrayDim!=1 )
+					{
+						FCString::Sprintf( TempKey, TEXT("%s[%i]"), *Property->GetName(), Index );
+						Key = TempKey;
+					}
+
 					if ( !bShouldCheckIfIdenticalBeforeAdding || !Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{
-						if( Property->ArrayDim!=1 )
-						{
-							FCString::Sprintf( TempKey, TEXT("%s[%i]"), *Property->GetName(), Index );
-							Key = TempKey;
-						}
-
 						FString	Value;
 						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
 						Config->SetString( *Section, *Key, *Value, *PropFileName );
@@ -2396,7 +2394,7 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 		
 #if WITH_EDITOR
 		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-		FString CVarName = InProperty->GetMetaData(ConsoleVariableFName);
+		const FString& CVarName = InProperty->GetMetaData(ConsoleVariableFName);
 		if (!CVarName.IsEmpty())
 		{
 			PropertyKey = CVarName;
@@ -2931,7 +2929,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 {
 	TArray<const TCHAR*> Results;
 
-	const TCHAR* PropertyFlags[] =
+	static const TCHAR* PropertyFlags[] =
 	{
 		TEXT("CPF_Edit"),
 		TEXT("CPF_ConstParm"),
@@ -2983,6 +2981,12 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_NonPIEDuplicateTransient"),
 		TEXT("CPF_ExposeOnSpawn"),
 		TEXT("CPF_PersistentInstance"),
+		TEXT("CPF_UObjectWrapper"),
+		TEXT("CPF_HasGetValueTypeHash"),
+		TEXT("CPF_NativeAccessSpecifierPublic"),
+		TEXT("CPF_NativeAccessSpecifierProtected"),
+		TEXT("CPF_NativeAccessSpecifierPrivate"),
+		TEXT("CPF_SkipSerialization"),
 	};
 
 	for (const TCHAR* FlagName : PropertyFlags)
@@ -3127,19 +3131,19 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					if (bResult)
 					{
 						FString ExtraInfo;
-						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
+						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(*It))
 						{
 							ExtraInfo = *StructProperty->Struct->GetName();
 						}
-						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
+						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(*It))
 						{
-							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("SubclassOf<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (UAssetClassProperty* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
+						else if (USoftClassProperty* SoftClassProperty = dynamic_cast<USoftClassProperty*>(*It))
 						{
-							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *AssetClassProperty->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("SoftClassPtr<%s>"), *SoftClassProperty->MetaClass->GetName());
 						}
-						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
+						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(*It))
 						{
 							ExtraInfo = *ObjectPropertyBase->PropertyClass->GetName();
 						}

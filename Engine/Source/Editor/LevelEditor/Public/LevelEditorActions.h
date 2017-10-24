@@ -59,6 +59,8 @@ public:
 
 	static const int32 MaxRecentFiles = 10;
 	TArray< TSharedPtr< FUICommandInfo > > OpenRecentFileCommands;
+	static const int32 MaxFavoriteFiles = 10;
+	TArray< TSharedPtr< FUICommandInfo > > OpenFavoriteFileCommands;
 
 	TSharedPtr< FUICommandInfo > ToggleFavorite;
 
@@ -577,7 +579,6 @@ public:
 	
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_DefaultES2;
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_AndroidGLES2;
-	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_IOSGLES2;
 
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_DefaultES31;
 	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_AndroidGLES31;

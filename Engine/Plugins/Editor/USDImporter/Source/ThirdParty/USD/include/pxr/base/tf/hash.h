@@ -27,16 +27,15 @@
 /// \file tf/hash.h
 /// \ingroup group_tf_String
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/tf.h"
 #include "pxr/base/tf/timeStamp.h"
 #include "pxr/base/tf/api.h"
-
-#include "pxr/base/arch/defines.h"
 #include "pxr/base/arch/hash.h"
-#include <boost/static_assert.hpp>
-#include <boost/type_traits/is_same.hpp>
+
 #include <string>
-#include <ciso646>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class TfAnyWeakPtr;
 class TfEnum;
@@ -90,7 +89,11 @@ class TfWeakPtrFacade;
 class TfHash {
 private:
     inline size_t _Mix(size_t val) const {
-        return val + (val >> 3);
+        // This is based on Knuth's multiplicative hash for integers.  The
+        // constant is the closest prime to the binary expansion of the golden
+        // ratio - 1.
+        return static_cast<size_t>(
+            static_cast<uint64_t>(val) * 11400714819323198549ULL);
     }
 
 public:
@@ -133,7 +136,8 @@ public:
     // TfHashCString if you want to hash the string.
     template <class T>
     size_t operator()(const T* ptr) const {
-        BOOST_STATIC_ASSERT((not boost::is_same<T, char>::value));
+        static_assert(!std::is_same<T, char>::value,
+                      "Can not hash const char*.");
         return _Mix((size_t) ptr);
     }
 
@@ -155,5 +159,7 @@ struct TfHashCString {
 struct TfEqualCString {
     bool operator()(const char* lhs, const char* rhs) const;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

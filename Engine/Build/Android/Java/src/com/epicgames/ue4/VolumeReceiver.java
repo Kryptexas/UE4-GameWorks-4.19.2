@@ -53,6 +53,9 @@ class VolumeReceiver extends BroadcastReceiver
 		AudioManager audio = (AudioManager)activity.getSystemService( Context.AUDIO_SERVICE );
 		int volume = audio.getStreamVolume( AudioManager.STREAM_MUSIC );
 		GameActivity.Log.debug( "startVolumeReceiver: " + volume );
+
+		// initialize with the current volume state
+		volumeChanged( volume );
 	}
 
 	public static void stopReceiver( Activity activity )

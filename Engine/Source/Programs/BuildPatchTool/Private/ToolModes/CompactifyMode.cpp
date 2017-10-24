@@ -50,11 +50,8 @@ public:
 		float DataAgeThresholdFloat = TCString<TCHAR>::Atod(*DataAgeThreshold);
 		ECompactifyMode::Type CompactifyMode = bPreview ? ECompactifyMode::Preview : ECompactifyMode::Full;
 
-		// Setup the module
-		BpsInterface.SetCloudDirectory(CloudDir);
-
 		// Run the compactify routine
-		bool bSuccess = BpsInterface.CompactifyCloudDirectory(DataAgeThresholdFloat, CompactifyMode, DeletedChunkLogFile);
+		bool bSuccess = BpsInterface.CompactifyCloudDirectory(CloudDir, DataAgeThresholdFloat, CompactifyMode, DeletedChunkLogFile);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 

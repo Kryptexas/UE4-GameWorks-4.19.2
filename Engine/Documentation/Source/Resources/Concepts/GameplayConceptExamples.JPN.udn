@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3501272
 Availability:Public
 Title:ゲームプレイのコンセプト サンプル
 Crumbs:%ROOT%
@@ -46,9 +46,9 @@ resources
 [/OBJECT]
 [/VAR]
 
-以下は、特定のビジュアル スタイルやスクリプト処理スタイルを必要とする場合、具体的課題へのアプローチを見る手段として紹介するものです。当然、ある問題を解決する _唯一_ の方法ではなく、各自のプロジェクトで別のアプローチを使った方がうまくいく場合もあるかもしれません。
+以下は、特定のビジュアルやスクリプト処理スタイルを必要とする場合、課題へのアプローチを示すものです。当然、特定の問題を解決する _唯一_ の方法ではなく、各自のプロジェクトで別のアプローチを使った方がうまくいく場合もあるかもしれません。
 
-こうした例を開いて要素を分析するだけでなく、ご自分のプロジェクトでも使ってみてください。
+こうしたサンプルを開いて要素を分析するだけでなく、ご自分のプロジェクトでも使ってみてください。
 
 [REGION:topics third]
 %Resources/Showcases/BlueprintMultiplayer:topiccompact%
@@ -61,7 +61,7 @@ resources
 [VAR:splinestopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	ブループリントのスプライン トラック
+	ブループリント スプライン トラック
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
 	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
@@ -78,7 +78,10 @@ resources
 [VAR:sticktopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	アンリアルのスティック フィギュア 2D
+	Unreal Stick Figure 2D
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	qWUEkTd2Xu8
@@ -92,7 +95,7 @@ resources
 [VAR:umgtopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	UMG のインベントリ UI
+	UMG を使ったインベントリ UI
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
 	PLZlv_N0_O1gZalvQWYs8sc7RP_-8eSr3i

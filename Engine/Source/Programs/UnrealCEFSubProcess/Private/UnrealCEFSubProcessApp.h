@@ -52,6 +52,10 @@ private:
 
 	virtual void OnRenderThreadCreated( CefRefPtr<CefListValue> ExtraInfo ) override;
 
+#if !PLATFORM_LINUX
+	virtual void OnFocusedNodeChanged(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefDOMNode> Node) override;
+#endif
+
 	// Handles remote scripting messages from the frontend process
 	FUnrealCEFSubProcessRemoteScripting RemoteScripting;
 

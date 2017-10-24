@@ -102,6 +102,8 @@ public:
 	 */
 	TSharedRef<FInternetAddr> ToInternetAddr() const
 	{
+		check(CachedSocketSubsystem != nullptr && "Networking module not loaded and initialized");
+
 		TSharedRef<FInternetAddr> InternetAddr = CachedSocketSubsystem->CreateInternetAddr();
 		{
 			InternetAddr->SetIp(Address.Value);

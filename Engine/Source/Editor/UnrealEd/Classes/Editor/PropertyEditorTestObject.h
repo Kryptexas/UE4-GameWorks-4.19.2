@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/ScriptInterface.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/BlendableInterface.h"
 #include "PropertyEditorTestObject.generated.h"
 
@@ -86,7 +86,7 @@ struct FPropertyEditorTestSubStruct
 	FLinearColor CustomizedStructInsideUncustomizedStruct;
 
 	UPROPERTY(EditAnywhere, Category=PropertyEditorTestSubStruct)
-	FStringAssetReference CustomizedStructInsideUncustomizedStruct2;
+	FSoftObjectPath CustomizedStructInsideUncustomizedStruct2;
 };
 
 /**
@@ -166,13 +166,16 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	FText TextProperty;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
+	FIntPoint IntPointProperty;
+
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector Vector3Property;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector2D Vector2Property;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector4 Vector4Property;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
@@ -192,6 +195,12 @@ class UPropertyEditorTestObject : public UObject
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	TEnumAsByte<enum PropertEditorTestEnum> EnumProperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	FMatrix MatrixProperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	FTransform TransformProperty;
 
 	// Integer
 	UPROPERTY(EditAnywhere, Category=ArraysOfProperties)
@@ -290,10 +299,10 @@ class UPropertyEditorTestObject : public UObject
 	FPropertyEditorTestBasicStruct StructWithMultipleInstances2;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)
-	FStringAssetReference AssetReferenceCustomStruct;
+	FSoftObjectPath AssetReferenceCustomStruct;
 
 	UPROPERTY(EditAnywhere, Category=StructTests, meta=(DisplayThumbnail = "true"))
-	FStringAssetReference AssetReferenceCustomStructWithThumbnail;
+	FSoftObjectPath AssetReferenceCustomStructWithThumbnail;
 
 	UPROPERTY(EditAnywhere, Category=StructTests, meta=(InlineEditConditionToggle))
 	bool bEditCondition;
@@ -305,7 +314,7 @@ class UPropertyEditorTestObject : public UObject
 	bool bEditConditionAssetReferenceCustomStructWithEditCondition;
 
 	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditConditionAssetReferenceCustomStructWithEditCondition"))
-	FStringAssetReference AssetReferenceCustomStructWithEditCondition;
+	FSoftObjectPath AssetReferenceCustomStructWithEditCondition;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)
 	TArray<FPropertyEditorTestBasicStruct> ArrayOfStructs;

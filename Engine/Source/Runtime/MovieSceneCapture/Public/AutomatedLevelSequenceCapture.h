@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneCapture.h"
 #include "AutomatedLevelSequenceCapture.generated.h"
@@ -92,6 +92,9 @@ private:
 	/** Called to set up the player's playback range */
 	void SetupFrameRange();
 
+	/** Enable cinematic mode override */
+	void EnableCinematicMode();
+
 	/** Export EDL if requested */
 	void ExportEDL();
 
@@ -114,13 +117,20 @@ private:
 	/** Restore frame settings from overridden shot frames */
 	bool RestoreFrameOverrides();
 
+	void DelayBeforeWarmupFinished();
+
+	void PauseFinished();
+
 	/** A level sequence asset to playback at runtime - used where the level sequence does not already exist in the world. */
 	UPROPERTY()
-	FStringAssetReference LevelSequenceAsset;
+	FSoftObjectPath LevelSequenceAsset;
 
 	/** The pre-existing level sequence actor to use for capture that specifies playback settings */
 	UPROPERTY()
 	TWeakObjectPtr<ALevelSequenceActor> LevelSequenceActor;
+
+	/** The viewport being captured. */
+	TWeakPtr<FSceneViewport> Viewport;
 
 	/** Which state we're in right now */
 	enum class ELevelSequenceCaptureState
@@ -129,11 +139,10 @@ private:
 		DelayBeforeWarmUp,
 		ReadyToWarmUp,
 		WarmingUp,
-		FinishedWarmUp
+		FinishedWarmUp,
+		Paused,
+		FinishedPause,
 	} CaptureState;
-
-	/** Time left to wait before capturing */
-	float RemainingDelaySeconds;
 
 	/** The number of warm up frames left before we actually start saving out images */
 	int32 RemainingWarmUpFrames;
@@ -145,6 +154,10 @@ private:
 	int32 ShotIndex;
 
 	FLevelSequencePlayerSnapshot CachedState;
+
+	TOptional<float> CachedPlayRate;
+
+	FTimerHandle DelayTimer;
 
 	struct FCinematicShotCache
 	{

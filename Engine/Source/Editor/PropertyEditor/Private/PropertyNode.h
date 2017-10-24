@@ -6,7 +6,6 @@
 #include "UObject/Object.h"
 #include "UObject/UnrealType.h"
 #include "PropertyPath.h"
-#include "IDetailTreeNode.h"
 
 class FComplexPropertyNode;
 class FNotifyHook;
@@ -505,6 +504,11 @@ public:
 	 */
 	void ResetToDefault(FNotifyHook* InNotifyHook);
 
+	/**
+	 * @return If this property node is associated with a property that can be reordered within an array
+	 */
+	bool IsReorderable();
+
 	/**Walks up the hierarchy and return true if any parent node is a favorite*/
 	bool IsChildOfFavorite(void) const;
 
@@ -532,7 +536,7 @@ public:
 	 * @param	Index						Index of the modified item
 	 */
 	void PropagateContainerPropertyChange(UObject* ModifiedObject, const FString& OriginalContainerContent,
-		EPropertyArrayChangeType::Type ChangeType, int32 Index);
+		EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult = nullptr);
 
 	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
 
@@ -542,6 +546,13 @@ public:
 
 	/** Broadcasts when a child of this property changes */
 	FPropertyValueChangedEvent& OnChildPropertyValueChanged() { return ChildPropertyValueChangedEvent; }
+
+	/** Broadcasts when a property value changes */
+	DECLARE_EVENT(FPropertyNode, FPropertyValuePreChangeEvent);
+	FPropertyValuePreChangeEvent& OnPropertyValuePreChange() { return PropertyValuePreChangeEvent; }
+
+	/** Broadcasts when a child of this property changes */
+	FPropertyValuePreChangeEvent& OnChildPropertyValuePreChange() { return ChildPropertyValuePreChangeEvent; }
 
 	/**
 	 * Marks window's seem due to filtering flags
@@ -852,6 +863,13 @@ protected:
 	 */
 	void BroadcastPropertyChangedDelegates();
 
+
+	/**
+	* Helper function for derived members to be able to
+	* broadcast property pre-change notifications
+	*/
+	void BroadcastPropertyPreChangeDelegates();
+
 	/**
 	 * Gets a value tracker for the default of this property in the passed in object
 	 *
@@ -895,6 +913,12 @@ protected:
 	/** Called when this node's children are rebuilt */
 	FSimpleDelegate OnRebuildChildren;
 
+	/** Called when this node's property value is about to change (called during NotifyPreChange) */
+	FPropertyValuePreChangeEvent PropertyValuePreChangeEvent;
+
+	/** Called when a child's property value is about to change */
+	FPropertyValuePreChangeEvent ChildPropertyValuePreChangeEvent;
+
 	/** Called when this node's property value has changed (called during NotifyPostChange) */
 	FPropertyValueChangedEvent PropertyValueChangedEvent;
 	
@@ -929,7 +953,7 @@ protected:
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
 
 	/** Optional reference to a tree node that is displaying this property */
-	TWeakPtr< class IDetailTreeNode > TreeNode;
+	TWeakPtr< class FDetailTreeNode > TreeNode;
 
 	/**
 	 * Stores metadata for this instasnce of the property (in contrast

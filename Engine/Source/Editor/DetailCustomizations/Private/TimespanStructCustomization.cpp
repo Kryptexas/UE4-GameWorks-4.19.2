@@ -14,15 +14,16 @@
 /* IDetailCustomization interface
  *****************************************************************************/
 
-void FTimespanStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FTimespanStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	/* do nothing */
 }
 
 
-void FTimespanStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FTimespanStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	PropertyHandle = StructPropertyHandle;
+	InputValid = true;
 
 	HeaderRow
 		.NameContent()
@@ -40,7 +41,7 @@ void FTimespanStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> 
 				.OnTextChanged(this, &FTimespanStructCustomization::HandleTextBoxTextChanged)
 				.OnTextCommitted(this, &FTimespanStructCustomization::HandleTextBoxTextCommited)
 				.SelectAllTextOnCommit(true)
-				.Font( IPropertyTypeCustomizationUtils::GetRegularFont() )
+				.Font(IPropertyTypeCustomizationUtils::GetRegularFont())
 				.Text(this, &FTimespanStructCustomization::HandleTextBoxText)
 		];
 }
@@ -49,19 +50,19 @@ void FTimespanStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> 
 /* FTimespanStructCustomization callbacks
  *****************************************************************************/
 
-FSlateColor FTimespanStructCustomization::HandleTextBoxForegroundColor( ) const
+FSlateColor FTimespanStructCustomization::HandleTextBoxForegroundColor() const
 {
-	if (InputValid)
+	if (!InputValid)
 	{
-		static const FName InvertedForegroundName("InvertedForeground");
-		return FEditorStyle::GetSlateColor(InvertedForegroundName);
+		return FLinearColor::Red;
 	}
 
-	return FLinearColor::Red;
+	static const FName InvertedForegroundName("InvertedForeground");
+	return FEditorStyle::GetSlateColor(InvertedForegroundName);
 }
 
 
-FText FTimespanStructCustomization::HandleTextBoxText( ) const
+FText FTimespanStructCustomization::HandleTextBoxText() const
 {
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
@@ -70,39 +71,47 @@ FText FTimespanStructCustomization::HandleTextBoxText( ) const
 	{
 		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
-	else if( RawData[0] == nullptr )
+	
+	if(RawData[0] == nullptr)
 	{
 		return FText::GetEmpty();
 	}
-	else
+
+	FString ValueString;
+
+	if (!((FTimespan*)RawData[0])->ExportTextItem(ValueString, FTimespan::Zero(), NULL, 0, NULL))
 	{
-		return FText::FromString(((FTimespan*)RawData[0])->ToString());
+		return FText::GetEmpty();
 	}
+	
+	return FText::FromString(ValueString);
 }
 
 
-void FTimespanStructCustomization::HandleTextBoxTextChanged( const FText& NewText )
+void FTimespanStructCustomization::HandleTextBoxTextChanged(const FText& NewText)
 {
 	FTimespan Timespan;
 	InputValid = FTimespan::Parse(NewText.ToString(), Timespan);
 }
 
 
-void FTimespanStructCustomization::HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo )
+void FTimespanStructCustomization::HandleTextBoxTextCommited(const FText& NewText, ETextCommit::Type CommitInfo)
 {
 	FTimespan ParsedTimespan;
-			
 	InputValid = FTimespan::Parse(NewText.ToString(), ParsedTimespan);
+
 	if (InputValid && PropertyHandle.IsValid())
 	{
 		TArray<void*> RawData;
-		PropertyHandle->AccessRawData(RawData);
 
+		PropertyHandle->AccessRawData(RawData);
 		PropertyHandle->NotifyPreChange();
+
 		for (auto RawDataInstance : RawData)
 		{
 			*(FTimespan*)RawDataInstance = ParsedTimespan;
 		}
+
 		PropertyHandle->NotifyPostChange();
 		PropertyHandle->NotifyFinishedChangingProperties();
 	}

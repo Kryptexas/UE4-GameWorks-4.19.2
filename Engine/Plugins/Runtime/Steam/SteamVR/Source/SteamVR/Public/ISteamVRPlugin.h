@@ -2,7 +2,7 @@
 
 #pragma once
 
-#define STEAMVR_SUPPORTED_PLATFORMS ((PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && PLATFORM_64BITS) || (PLATFORM_WINDOWS && WINVER > 0x0502))
+#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_MAC || (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && PLATFORM_64BITS) || (PLATFORM_WINDOWS && WINVER > 0x0502))
 
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
@@ -57,11 +57,6 @@ public:
 	 */
 	virtual void Reset() = 0;
 
-	/**
-	 * Update the Controller to Device mapping.
-	 * The controller passes this to the HMD.
-	 */
-	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ vr::k_unMaxTrackedDeviceCount ] ) = 0;
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
 private:

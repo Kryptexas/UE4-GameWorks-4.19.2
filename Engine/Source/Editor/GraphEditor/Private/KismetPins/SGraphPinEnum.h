@@ -8,7 +8,7 @@
 #include "SGraphPin.h"
 #include "SGraphPinComboBox.h"
 
-class SGraphPinEnum : public SGraphPin
+class GRAPHEDITOR_API SGraphPinEnum : public SGraphPin
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphPinEnum) {}

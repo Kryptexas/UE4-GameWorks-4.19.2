@@ -40,7 +40,10 @@ class FParticleBeamTrailVertexDeclaration : public FRenderResource
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
-	// Destructor.
+	FParticleBeamTrailVertexDeclaration(bool bInUsesDynamicParameter)
+		: bUsesDynamicParameter(bInUsesDynamicParameter)
+	{
+	}
 	virtual ~FParticleBeamTrailVertexDeclaration() {}
 
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
@@ -63,7 +66,7 @@ public:
 		Offset += sizeof(float) * 4;
 		
 		/** Dynamic parameters come from a second stream */
-		Elements.Add(FVertexElement(1, 0, VET_Float4, 5, sizeof(FVector4)));
+		Elements.Add(FVertexElement(1, 0, VET_Float4, 5, bUsesDynamicParameter ? sizeof(FVector4) : 0));
 	}
 
 	virtual void InitDynamicRHI()
@@ -82,10 +85,14 @@ public:
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
+
+protected:
+	bool bUsesDynamicParameter;
 };
 
 /** The simple element vertex declaration. */
-static TGlobalResource<FParticleBeamTrailVertexDeclaration> GParticleBeamTrailVertexDeclaration;
+static TGlobalResource<FParticleBeamTrailVertexDeclaration> GParticleBeamTrailVertexDeclaration(false);
+static TGlobalResource<FParticleBeamTrailVertexDeclaration> GParticleBeamTrailVertexDeclarationDynamic(true);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -108,7 +115,8 @@ void FParticleBeamTrailVertexFactory::ModifyCompilationEnvironment(EShaderPlatfo
  */
 void FParticleBeamTrailVertexFactory::InitRHI()
 {
-	SetDeclaration(GParticleBeamTrailVertexDeclaration.VertexDeclarationRHI);
+	SetDeclaration(bUsesDynamicParameter ? GParticleBeamTrailVertexDeclarationDynamic.VertexDeclarationRHI
+		: GParticleBeamTrailVertexDeclaration.VertexDeclarationRHI);
 
 	FVertexStream* VertexStream = new(Streams) FVertexStream;
 	FVertexStream* DynamicParameterStream = new(Streams) FVertexStream;
@@ -135,12 +143,14 @@ void FParticleBeamTrailVertexFactory::SetDynamicParameterBuffer(const FVertexBuf
 	if (InDynamicParameterBuffer)
 	{
 		DynamicParameterStream.VertexBuffer = InDynamicParameterBuffer;
+		ensure(bUsesDynamicParameter);
 		DynamicParameterStream.Stride = Stride;
 		DynamicParameterStream.Offset = StreamOffset;
 	}
 	else
 	{
 		DynamicParameterStream.VertexBuffer = &GNullDynamicParameterVertexBuffer;
+		ensure(!bUsesDynamicParameter);
 		DynamicParameterStream.Stride = 0;
 		DynamicParameterStream.Offset = 0;
 	}

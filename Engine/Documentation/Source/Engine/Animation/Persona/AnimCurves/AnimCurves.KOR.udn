@@ -1,38 +1,25 @@
-﻿INTSourceChangelist:3201003
+﻿INTSourceChangelist:3473488
 Availability:Public
+Crumbs:
 Title:애님 커브
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:애님 커브 창에서 사용할 수 있는 기능에 대한 설명입니다.
-version: 4.14
-Related:Engine/Animation/Sequences/Curves/
+Type:overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Animation/Sequences/Curves
+Order:
+Tags:Animation
+Tags:Morph Target
+Topic-image:AnimCurves_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Toolbar:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Toolbar:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Toolbar]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+[TOC(start:2)]
 
 ![](AnimCurvesAlone.png)
 
-**Anim Curves** (애님 커브) 패널에는 프로젝트의 **Morph Target** (모프 타겟), **Attribute** (어트리뷰트), **Material** (머티리얼) 커브에 대한 커브 값이 표시됩니다. 
+**Anim Curves** (애님 커브) 패널에는 선택된 스켈레톤의 **Morph Target** (모프 타겟), **Attribute** (어트리뷰트), **Material** (머티리얼) 커브에 대한 커브 값이 표시됩니다. 
 여기서 커브를 삭제하고 이름을 변경할 수 있을 뿐만 아니라, 커브 데이터를 미리볼 수도 있습니다.
 **모든 커브** 를 클릭하여 선택을 해제하는 것으로 보이는 커브가 활성화된 커브만 표시하도록 필터를 적용할 수 있으며, 체크박스를 통해 **모프 타겟**, **어트리뷰트**, **머티리얼** 별로 필터를 적용할 수도 있습니다.
-추가로 [머티리얼 커브](Engine/Animation/Sequences/Curves) 를 정의하면 머티리얼 파라미터 또는 (모프 타겟이 할당된 애니메이션 안에 존재하는 경우) 모프 커브로 구동시키는 것도 가능합니다.
+추가로 [머티리얼 커브](Engine/Animation/Sequences/Curves) 를 정의하면 머티리얼 파라미터 또는 모프 커브로 구동시키는 것도 가능합니다.
 
 **애님 커브** 패널은 **스켈레톤 에디터** 또는 **애니메이션 에디터** 에서 열 수 있습니다:
 
@@ -89,3 +76,47 @@ Related:Engine/Animation/Sequences/Curves/
 	커브가 현재 프로젝트의 다른 애셋에 사용중인 경우, 그 애셋에서 커브가 삭제된다고 경고하는 확인 창이 뜹니다. 
 
 1. **예** 를 누르면 삭제되고, **아니오** 를 누르면 취소됩니다.
+
+
+## 커브를 본에 연동
+
+애니메이션 커브를 스켈레톤의 특정 본에 연동시켜 스켈레탈 메시의 레벨 오브 디테일(LOD)이 변할 때 본과 함께 같이 컬링되도록 할 수 있습니다.
+이 기능은 하위 LOD 에서는 필요치 않은 표정 애니메이션을 만들 때 유용합니다. 이 기능은 레이어 블렌딩과 함께 사용하여 잘못된 레이어의 커브 값을 덮어쓰는 것을 
+방지할 수도 있습니다.
+
+1. **애님 커브** 뷰어 창에서, 스켈레톤의 특정 본에 연동시키고자 하는 커브를 선택합니다.
+
+	![](AnimCurveViewer_CurveSelected.png)(w:400)
+
+1. 커브를 선택한 채, **디테일** 패널에서, **추가** (**+**) 버튼을 눌러 Connected Bone(s) 엘리먼트를 추가합니다.
+
+	![](DetailsPanel_AddConnectedBone.png)(w:400)
+
+	그 후 추가된 본 옆의 드롭다운으로 커브를 연동시키고자 하는 본을 선택합니다. 이 목록은 스켈레톤의 본 계층구조에 따라 채워집니다.
+
+	![](DP_SelectBones.png)(w:400)
+
+1. 커브가 Connected Bones 에 추가한 본에 할당되었으면, 카메라를 메시에 가까이 또는 멀리 이동시켜 메시 LOD 가 변할 때 연동된 커브가 뷰에서 컬링되는지 확인할 수 있습니다.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		V1SLxdRI8-4
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+
+
+
+

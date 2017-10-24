@@ -5,7 +5,7 @@
 #include "libcef/browser/extensions/pdf_extension_util.h"
 
 #include "base/strings/string_util.h"
-#include "grit/cef_resources.h"
+#include "chrome/grit/browser_resources.h"
 #include "ui/base/resource/resource_bundle.h"
 
 namespace extensions {
@@ -26,7 +26,10 @@ const char kPdfResourceIdentifier[] = "google-chrome-pdf";
 const char kPdfResourceIdentifier[] = "chromium-pdf";
 #endif
 
-const char kPdfPluginName[] = "Chromium PDF Viewer";
+// Match the GOOGLE_CHROME_BUILD value from ChromeContentClient::kPDFPluginName
+// to avoid breaking Websites that specifically look for this string in the
+// plugin list.
+const char kPdfPluginName[] = "Chrome PDF Viewer";
 
 std::string GetManifest() {
   std::string manifest_contents =

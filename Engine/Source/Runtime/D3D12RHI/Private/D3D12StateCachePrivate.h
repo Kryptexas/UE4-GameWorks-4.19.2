@@ -39,7 +39,13 @@
 // This value defines how many descriptors will be in the device global view heap which
 // is shared across contexts to allow the driver to eliminate redundant descriptor heap sets.
 // This should be tweaked for each title as heaps require VRAM. The default value of 512k takes up ~16MB
-#define GLOBAL_VIEW_HEAP_SIZE (1024 * 512)
+#if PLATFORM_XBOXONE
+  #define GLOBAL_VIEW_HEAP_SIZE ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
+  #define LOCAL_VIEW_HEAP_SIZE  ( 64 * 1024 )
+#else
+  #define GLOBAL_VIEW_HEAP_SIZE  ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
+  #define LOCAL_VIEW_HEAP_SIZE  ( 500 * 1000 )
+#endif
 
 // Heap for updating UAV counter values.
 #define COUNTER_HEAP_SIZE 1024 * 64
@@ -319,6 +325,8 @@ protected:
 			D3D12_RECT CurrentViewportScissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
 			uint32 CurrentNumberOfScissorRects;
 
+			uint16 StreamStrides[MaxVertexElementCount];
+
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
@@ -338,6 +346,9 @@ protected:
 
 			// Compute
 			FD3D12ComputeShader* CurrentComputeShader;
+
+			// Need to cache compute budget, as we need to reset if after PSO changes
+			EAsyncComputeBudget ComputeBudget;
 		} Compute;
 
 		struct
@@ -677,6 +688,7 @@ public:
 	{
 		if (BoundShaderState)
 		{
+			SetStreamStrides(BoundShaderState->StreamStrides);
 			SetShader(BoundShaderState->GetVertexShader());
 			SetShader(BoundShaderState->GetPixelShader());
 			SetShader(BoundShaderState->GetDomainShader());
@@ -685,6 +697,8 @@ public:
 		}
 		else
 		{
+			uint16 NullStrides[MaxVertexElementCount] = {0};
+			SetStreamStrides(NullStrides);
 			SetShader<FD3D12VertexShader>(nullptr);
 			SetShader<FD3D12PixelShader>(nullptr);
 			SetShader<FD3D12HullShader>(nullptr);
@@ -762,9 +776,20 @@ public:
 		*InputLayout = PipelineState.Graphics.HighLevelDesc.BoundShaderState->InputLayout;
 	}
 
+	D3D12_STATE_CACHE_INLINE void SetStreamStrides(const uint16* InStreamStrides)
+	{
+		FMemory::Memcpy(PipelineState.Graphics.StreamStrides, InStreamStrides, sizeof(PipelineState.Graphics.StreamStrides));
+	}
+
 	D3D12_STATE_CACHE_INLINE void SetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset)
 	{
+		ensure(Stride == PipelineState.Graphics.StreamStrides[StreamIndex]);
 		InternalSetStreamSource(VertexBufferLocation, StreamIndex, Stride, Offset);
+	}
+
+	D3D12_STATE_CACHE_INLINE void SetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Offset)
+	{
+		InternalSetStreamSource(VertexBufferLocation, StreamIndex, PipelineState.Graphics.StreamStrides[StreamIndex], Offset);
 	}
 
 	D3D12_STATE_CACHE_INLINE bool IsShaderResource(const FD3D12ResourceLocation* VertexBufferLocation) const
@@ -879,6 +904,11 @@ public:
 
 			bNeedSetDepthBounds = true;
 		}
+	}
+
+	void SetComputeBudget(EAsyncComputeBudget ComputeBudget)
+	{
+		PipelineState.Compute.ComputeBudget = ComputeBudget;
 	}
 
 	D3D12_STATE_CACHE_INLINE void AutoFlushComputeShaderCache(bool bEnable)

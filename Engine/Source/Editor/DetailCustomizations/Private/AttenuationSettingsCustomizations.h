@@ -11,9 +11,12 @@
 class FBaseAttenuationSettingsCustomization : public IPropertyTypeCustomization
 {
 public:
-	/** IPropertyTypeCustomization instance */
+	//~ Begin IPropertyTypeCustomization
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	//~ End IPropertyTypeCustomization
+
+	TAttribute<bool> IsAttenuationOverriddenAttribute() const;
 
 protected:
 
@@ -24,8 +27,13 @@ protected:
 	EVisibility IsNaturalSoundSelected() const;
 	EVisibility IsCustomCurveSelected() const;
 
-	TSharedPtr< IPropertyHandle > AttenuationShapeHandle;
-	TSharedPtr< IPropertyHandle > DistanceAlgorithmHandle;
+	TAttribute<bool> GetIsAttenuationEnabledAttribute() const;
+	TSharedPtr<IPropertyHandle> GetOverrideAttenuationHandle(TSharedRef<IPropertyHandle> StructPropertyHandle);
+
+	TSharedPtr<IPropertyHandle> bIsAttenuatedHandle;
+	TSharedPtr<IPropertyHandle> AttenuationShapeHandle;
+	TSharedPtr<IPropertyHandle> DistanceAlgorithmHandle;
+	TSharedPtr<IPropertyHandle> bOverrideAttenuationHandle;
 };
 
 class FSoundAttenuationSettingsCustomization : public FBaseAttenuationSettingsCustomization
@@ -33,21 +41,34 @@ class FSoundAttenuationSettingsCustomization : public FBaseAttenuationSettingsCu
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
+	//~ Begin IPropertyTypeCustomization
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	//~ End IPropertyTypeCustomization
 
 protected:
 
-	TSharedPtr< IPropertyHandle > bIsSpatializedHandle;
-	TSharedPtr< IPropertyHandle > bIsFocusedHandle;
-	TSharedPtr< IPropertyHandle > bIsOcclusionEnabledHandle;
-
-	bool IsFocusedEnabled() const;
-	TAttribute<bool> GetIsFocusEnabledAttribute() const;
-
-	bool IsOcclusionEnabled() const;
-	TAttribute<bool> GetIsOcclusionEnabledAttribute() const;
+	TSharedPtr<IPropertyHandle> bIsSpatializedHandle;
+	TSharedPtr<IPropertyHandle> bIsAirAbsorptionEnabledHandle;
+	TSharedPtr<IPropertyHandle> bIsFocusedHandle;
+	TSharedPtr<IPropertyHandle> bIsOcclusionEnabledHandle;
+	TSharedPtr<IPropertyHandle> bIsReverbSendEnabledHandle;
+	TSharedPtr<IPropertyHandle> ReverbSendMethodHandle;
+	TSharedPtr<IPropertyHandle> AbsorptionMethodHandle;
 
 	TAttribute<bool> IsFocusEnabledAttribute;
+
+	TAttribute<bool> GetIsFocusEnabledAttribute() const;
+	TAttribute<bool> GetIsOcclusionEnabledAttribute() const;
+	TAttribute<bool> GetIsSpatializationEnabledAttribute() const;
+	TAttribute<bool> GetIsAirAbsorptionEnabledAttribute() const;
+	TAttribute<bool> GetIsReverbSendEnabledAttribute() const;
+
+	EVisibility IsLinearMethodSelected() const;
+	EVisibility IsCustomReverbSendCurveSelected() const;
+	EVisibility IsLinearOrCustomReverbMethodSelected() const;
+	EVisibility IsManualReverbSendSelected() const;
+	EVisibility IsCustomAirAbsorptionCurveSelected() const;
 };
 
 class FForceFeedbackAttenuationSettingsCustomization : public FBaseAttenuationSettingsCustomization
@@ -55,5 +76,8 @@ class FForceFeedbackAttenuationSettingsCustomization : public FBaseAttenuationSe
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
+	//~ Begin IPropertyTypeCustomization
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	//~ End IPropertyTypeCustomization
 };

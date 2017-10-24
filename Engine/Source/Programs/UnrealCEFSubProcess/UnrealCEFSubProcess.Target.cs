@@ -5,6 +5,7 @@ using System.IO;
 using UnrealBuildTool;
 
 [SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux)]
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class UnrealCEFSubProcessTarget : TargetRules
 {
 	public UnrealCEFSubProcessTarget(TargetInfo Target) : base(Target)
@@ -12,6 +13,9 @@ public class UnrealCEFSubProcessTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		LaunchModuleName = "UnrealCEFSubProcess";
+
+		// Change the undecorated exe name to be the shipping one on windows
+		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
 
 	//
@@ -27,18 +31,18 @@ public class UnrealCEFSubProcessTarget : TargetRules
 		// Turn off various third party features we don't need
 
 		// Currently we force Lean and Mean mode
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
+		bBuildWithEditorOnlyData = true;
 
 		// Never use malloc profiling in CEFSubProcess.
-		BuildConfiguration.bUseMallocProfiler = false;
+		bUseMallocProfiler = false;
 
 		// Force all shader formats to be built and included.
-		//UEBuildConfiguration.bForceBuildShaderFormats = true;
+		//bForceBuildShaderFormats = true;
 
 		// CEFSubProcess is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = false;

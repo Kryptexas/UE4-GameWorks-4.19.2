@@ -61,32 +61,25 @@ inline VkFilter TranslateMinFilterMode(ESamplerFilter InFilter)
 	return OutFilter;
 }
 
-inline VkSamplerAddressMode TranslateWrapMode(ESamplerAddressMode InAddressMode)
+inline VkSamplerAddressMode TranslateWrapMode(ESamplerAddressMode InAddressMode, const bool bSupportsMirrorClampToEdge)
 {
 	VkSamplerAddressMode OutAddressMode = VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
 
 	switch (InAddressMode)
 	{
 		case AM_Wrap:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;			break;
-		case AM_Clamp:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;			break;
-		case AM_Mirror:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;		break;
+		case AM_Clamp:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;		break;
+		case AM_Mirror:		OutAddressMode = bSupportsMirrorClampToEdge
+												? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE
+												: VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;		break;
 		case AM_Border:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;	break;
-		default:																break;
+		default:
+			break;
 	}
 
 	// Check for missing translation
 	check(OutAddressMode != VK_SAMPLER_ADDRESS_MODE_MAX_ENUM);
 	return OutAddressMode;
-}
-
-static int32 GetMaxAnisotropy(ESamplerFilter Filter, int32 MaxAniso)
-{
-	switch (Filter)
-	{
-		case SF_AnisotropicPoint:
-		case SF_AnisotropicLinear:	return FMath::Clamp((MaxAniso > 0 ? MaxAniso : (int32)ComputeAnisotropyRT(MaxAniso)), 1, GMaxVulkanTextureFilterAnisotropic);
-		default:					return 1;
-	}
 }
 
 inline VkCompareOp TranslateSamplerCompareFunction(ESamplerCompareFunction InSamplerComparisonFunction)
@@ -231,20 +224,29 @@ FVulkanSamplerState::FVulkanSamplerState(const FSamplerStateInitializerRHI& Init
 	Sampler(VK_NULL_HANDLE),
 	Device(InDevice)
 {
+#if !VULKAN_KEEP_CREATE_INFO
 	VkSamplerCreateInfo SamplerInfo;
+#endif
 	FMemory::Memzero(SamplerInfo);
 	SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
 	SamplerInfo.magFilter = TranslateMagFilterMode(Initializer.Filter);
 	SamplerInfo.minFilter = TranslateMinFilterMode(Initializer.Filter);
 	SamplerInfo.mipmapMode = TranslateMipFilterMode(Initializer.Filter);
-	SamplerInfo.addressModeU = TranslateWrapMode(Initializer.AddressU);
-	SamplerInfo.addressModeV = TranslateWrapMode(Initializer.AddressV);
-	SamplerInfo.addressModeW = TranslateWrapMode(Initializer.AddressW);
+#if PLATFORM_ANDROID
+	// Some Android devices might not support this extension
+	const bool bSupportsMirrorClampToEdge = InDevice.GetOptionalExtensions().HasMirrorClampToEdge;
+#else
+	// All major desktop devices supports this extension
+	const bool bSupportsMirrorClampToEdge = true;
+#endif
+	SamplerInfo.addressModeU = TranslateWrapMode(Initializer.AddressU, bSupportsMirrorClampToEdge);
+	SamplerInfo.addressModeV = TranslateWrapMode(Initializer.AddressV, bSupportsMirrorClampToEdge);
+	SamplerInfo.addressModeW = TranslateWrapMode(Initializer.AddressW, bSupportsMirrorClampToEdge);
 	
 
 	SamplerInfo.mipLodBias = Initializer.MipBias;
-	SamplerInfo.maxAnisotropy = GetMaxAnisotropy(Initializer.Filter, Initializer.MaxAnisotropy);
+	SamplerInfo.maxAnisotropy = FMath::Clamp((float)ComputeAnisotropyRT(Initializer.MaxAnisotropy), 1.0f, InDevice.GetLimits().maxSamplerAnisotropy);
 	SamplerInfo.anisotropyEnable = SamplerInfo.maxAnisotropy > 1;
 
 	// FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Using LOD Group %d / %d, MaxAniso = %f \n"), (int32)Initializer.Filter, Initializer.MaxAnisotropy, SamplerInfo.maxAnisotropy);

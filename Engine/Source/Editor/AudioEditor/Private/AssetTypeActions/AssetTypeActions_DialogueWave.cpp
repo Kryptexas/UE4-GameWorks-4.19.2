@@ -70,7 +70,7 @@ bool FAssetTypeActions_DialogueWave::CanExecutePlayCommand(TArray<TWeakObjectPtr
 
 	USoundBase* Sound = nullptr;
 
-	auto DialogueWave = Cast<UDialogueWave>(Objects[0].Get());
+	auto DialogueWave = Objects[0].Get();
 	for (int32 i = 0; i < DialogueWave->ContextMappings.Num(); ++i)
 	{
 		const FDialogueContextMapping& ContextMapping = DialogueWave->ContextMappings[i];

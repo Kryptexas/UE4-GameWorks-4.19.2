@@ -380,7 +380,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 	UWorld* PreviewWorld = BlueprintEditor.Pin()->GetPreviewScene()->GetWorld();
 
 	const bool bModifiedIterator = CVarUseFastDebugObjectDiscovery.GetValueOnGameThread() == 1;
-	UClass* BlueprintClass = Cast<UClass>(GetBlueprintObj()->GeneratedClass);
+	UClass* BlueprintClass = GetBlueprintObj()->GeneratedClass;
 
 	if (bModifiedIterator && BlueprintClass)
 	{
@@ -664,6 +664,11 @@ void SBlueprintEditorSelectedDebugObjectWidget::AddDebugObject(UObject* TestObje
 	if (AActor* Actor = Cast<AActor>(TestObject))
 	{
 		Label = Actor->GetActorLabel();
+
+		if (Actor->IsSelected())
+		{
+			Label += TEXT(" (selected)");
+		}
 	}
 	else
 	{

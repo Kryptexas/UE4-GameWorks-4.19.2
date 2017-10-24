@@ -22,6 +22,7 @@
 #include "ScenePrivate.h"
 #include "OneColorShader.h"
 #include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
 #include "ScreenRendering.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "DynamicPrimitiveDrawing.h"
@@ -875,12 +876,10 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 		}
 	}
 
-	RenderPrePassEditorPrimitives(RHICmdList, View, Context);
-
 	return true;
 }
 
-static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState)
+static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, const bool bIsEditorPrimitivePass = false)
 {
 	// Disable color writes, enable depth tests and writes.
 	DrawRenderState.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
@@ -888,7 +887,7 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View,
 	
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-	if (!View.IsInstancedStereoPass())
+	if (!View.IsInstancedStereoPass() || bIsEditorPrimitivePass)
 	{
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 	}
@@ -900,7 +899,11 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View,
 			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
 			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
 			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
-			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0.0f, LeftMaxX, RightMaxX, View.ViewRect.Max.Y, 1.0f);
+			
+			const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
+			const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+			
+			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
 		}
 		else
 		{
@@ -922,7 +925,10 @@ static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, FGraphicsPipel
 
 	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-	GEngine->HMDDevice->DrawHiddenAreaMesh_RenderThread(RHICmdList, View.StereoPass);
+	if (GEngine->XRSystem->GetHMDDevice())
+	{
+		GEngine->XRSystem->GetHMDDevice()->DrawHiddenAreaMesh_RenderThread(RHICmdList, View.StereoPass);
+	}
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -1207,7 +1213,7 @@ bool FDeferredShadingSceneRenderer::PreRenderPrePass(FRHICommandListImmediate& R
 void FDeferredShadingSceneRenderer::RenderPrePassEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FDepthDrawingPolicyFactory::ContextType Context) 
 {
 	FDrawingPolicyRenderState DrawRenderState(View);
-	SetupPrePassView(RHICmdList, View, DrawRenderState);
+	SetupPrePassView(RHICmdList, View, DrawRenderState, true);
 
 	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
 
@@ -1276,6 +1282,8 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 					bDirty = true; // assume dirty since we are not going to wait
 					bDidPrePre = true;
 				}
+
+				RenderPrePassEditorPrimitives(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode, true));
 			}
 		}
 		else
@@ -1288,6 +1296,8 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 				{
 					bDirty |= RenderPrePassView(RHICmdList, View);
 				}
+
+				RenderPrePassEditorPrimitives(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode, true));
 			}
 		}
 	}
@@ -1328,8 +1338,8 @@ static FORCEINLINE bool HasHiddenAreaMask()
 	return (HiddenAreaMaskCVar != nullptr &&
 		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
 		GEngine &&
-		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->HasHiddenAreaMesh());
+		GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() &&
+		GEngine->XRSystem->GetHMDDevice()->HasHiddenAreaMesh());
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassHMD(FRHICommandListImmediate& RHICmdList)

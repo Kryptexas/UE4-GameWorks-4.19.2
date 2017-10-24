@@ -1,12 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpMessageProcessor.h"
-#include "Serialization/ArrayWriter.h"
+#include "UdpMessagingPrivate.h"
+
 #include "Common/UdpSocketSender.h"
+#include "HAL/Event.h"
+#include "HAL/RunnableThread.h"
+#include "IMessageAttachment.h"
+#include "Serialization/ArrayReader.h"
+#include "Serialization/ArrayWriter.h"
+#include "Sockets.h"
+#include "UObject/Class.h"
+
 #include "Shared/UdpMessagingSettings.h"
 #include "Transport/UdpMessageBeacon.h"
 #include "Transport/UdpMessageSegmenter.h"
-#include "UdpMessagingPrivate.h"
+#include "Transport/UdpReassembledMessage.h"
+#include "Transport/UdpSerializedMessage.h"
 
 
 /* FUdpMessageHelloSender static initialization
@@ -76,7 +86,7 @@ FUdpMessageProcessor::~FUdpMessageProcessor()
 /* FUdpMessageProcessor interface
  *****************************************************************************/
 
-bool FUdpMessageProcessor::EnqueueInboundSegment(const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender) 
+bool FUdpMessageProcessor::EnqueueInboundSegment(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& InSender) 
 {
 	if (!InboundSegments.Enqueue(FInboundSegment(Data, InSender)))
 	{
@@ -285,7 +295,7 @@ void FUdpMessageProcessor::ConsumeOutboundMessages()
 }
 
 
-bool FUdpMessageProcessor::FilterSegment(const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender)
+bool FUdpMessageProcessor::FilterSegment(const FUdpMessageSegment::FHeader& Header, const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& InSender)
 {
 	// filter unsupported protocol versions
 	if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
@@ -344,12 +354,12 @@ void FUdpMessageProcessor::ProcessDataSegment(FInboundSegment& Segment, FNodeInf
 		return;
 	}
 
-	TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>& ReassembledMessage = NodeInfo.ReassembledMessages.FindOrAdd(DataChunk.MessageId);
+	TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>& ReassembledMessage = NodeInfo.ReassembledMessages.FindOrAdd(DataChunk.MessageId);
 
 	// Reassemble message
 	if (!ReassembledMessage.IsValid())
 	{
-		ReassembledMessage = MakeShareable(new FReassembledUdpMessage(DataChunk.MessageSize, DataChunk.TotalSegments, DataChunk.Sequence, Segment.Sender));
+		ReassembledMessage = MakeShareable(new FUdpReassembledMessage(DataChunk.MessageSize, DataChunk.TotalSegments, DataChunk.Sequence, Segment.Sender));
 	}
 
 	ReassembledMessage->Reassemble(DataChunk.SegmentNumber, DataChunk.SegmentOffset, DataChunk.Data, CurrentTime);
@@ -371,7 +381,7 @@ void FUdpMessageProcessor::ProcessDataSegment(FInboundSegment& Segment, FNodeInf
 	}
 	else if (NodeInfo.Resequencer.Resequence(ReassembledMessage))
 	{
-		TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe> ResequencedMessage;
+		TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe> ResequencedMessage;
 
 		while (NodeInfo.Resequencer.Pop(ResequencedMessage))
 		{

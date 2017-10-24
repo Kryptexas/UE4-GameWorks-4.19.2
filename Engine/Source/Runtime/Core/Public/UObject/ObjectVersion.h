@@ -623,6 +623,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP,
 	// Added flag to control sweep behavior while walking in UCharacterMovementComponent.
 	VER_UE4_ADDED_SWEEP_WHILE_WALKING_FLAG,
+	// StringAssetReference changed to SoftObjectPath and swapped to serialize as a name+string instead of a string
+	VER_UE4_ADDED_SOFT_OBJECT_PATH,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

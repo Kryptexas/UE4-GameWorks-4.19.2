@@ -179,9 +179,6 @@ struct CORE_API FUrlConfig
 
 bool CORE_API StringHasBadDashes(const TCHAR* Str);
 
-/** Helper function to generate a set of windowed resolutions which are convenient for the current primary display size */
-void CORE_API GenerateConvenientWindowedResolutions(const struct FDisplayMetrics& InDisplayMetrics, TArray<FIntPoint>& OutResolutions);
-
 /**
  * Helper for script stack traces
  */

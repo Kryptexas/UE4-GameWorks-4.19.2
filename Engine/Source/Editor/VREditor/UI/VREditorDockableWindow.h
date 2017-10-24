@@ -54,6 +54,7 @@ public:
 	virtual void OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent ) override;
 	virtual void OnDragRelease( UViewportInteractor* Interactor ) override;
 	virtual class UViewportDragOperationComponent* GetDragOperationComponent() override;
+	virtual bool CanBeSelected() override { return false; };
 
 protected:
 

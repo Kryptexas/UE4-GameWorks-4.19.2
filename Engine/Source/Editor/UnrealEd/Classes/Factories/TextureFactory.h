@@ -7,13 +7,15 @@
 #include "UObject/UObjectGlobals.h"
 #include "Factories/Factory.h"
 #include "Engine/Texture.h"
+#include "ImportSettings.h"
 #include "TextureFactory.generated.h"
+
 
 class UTexture2D;
 class UTextureCube;
 
 UCLASS(customconstructor, collapsecategories, hidecategories=Object)
-class UNREALED_API UTextureFactory : public UFactory
+class UNREALED_API UTextureFactory : public UFactory, public IImportSettingsParser
 {
 	GENERATED_UCLASS_BODY()
 
@@ -99,6 +101,8 @@ class UNREALED_API UTextureFactory : public UFactory
 	/** If enabled, we are using the existing settings for a texture that already existed. */
 	UPROPERTY(Transient)
 	uint32 bUsingExistingSettings:1;
+	
+	
 
 public:
 	UTextureFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -110,8 +114,14 @@ public:
 	//~ Begin UFactory Interface
 	virtual bool DoesSupportClass(UClass* Class) override;
 	virtual UObject* FactoryCreateBinary( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn ) override;
+	virtual bool FactoryCanImport(const FString& Filename) override;
+	virtual IImportSettingsParser* GetImportSettingsParser() override;
+
 	//~ End UFactory Interface
 	
+	/** IImportSettingsParser interface */
+	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
+
 
 	/** Create a texture given the appropriate input parameters	*/
 	virtual UTexture2D* CreateTexture2D( UObject* InParent, FName Name, EObjectFlags Flags );
@@ -162,4 +172,10 @@ private:
 
 	/** used by CreateTexture() */
 	UTexture* ImportTexture(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn);
+
+	/** Applies import settings directly to the texture after import */
+	void ApplyAutoImportSettings(UTexture* Texture);
+private:
+	/** Texture settings from the automated importer that should be applied to the new texture */
+	TSharedPtr<class FJsonObject> AutomatedImportSettings;
 };

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,9 +71,9 @@ typedef struct {
     SDL_bool recording;
 } SDL_GestureTouch;
 
-SDL_GestureTouch *SDL_gestureTouch;
-int SDL_numGestureTouches = 0;
-SDL_bool recordAll;
+static SDL_GestureTouch *SDL_gestureTouch;
+static int SDL_numGestureTouches = 0;
+static SDL_bool recordAll;
 
 #if 0
 static void PrintPath(SDL_FloatPoint *path)
@@ -374,7 +374,7 @@ static int dollarNormalize(const SDL_DollarPath *path,SDL_FloatPoint *points)
         dist += d;
     }
     if (numPoints < DOLLARNPOINTS-1) {
-        SDL_SetError("ERROR: NumPoints = %i\n",numPoints);
+        SDL_SetError("ERROR: NumPoints = %i", numPoints);
         return 0;
     }
     /* copy the last point */
@@ -468,7 +468,7 @@ static SDL_GestureTouch * SDL_GetGestureTouch(SDL_TouchID id)
     return NULL;
 }
 
-int SDL_SendGestureMulti(SDL_GestureTouch* touch,float dTheta,float dDist)
+static int SDL_SendGestureMulti(SDL_GestureTouch* touch,float dTheta,float dDist)
 {
     SDL_Event event;
     event.mgesture.type = SDL_MULTIGESTURE;

@@ -5,8 +5,7 @@
 #include "CoreMinimal.h"
 #include "Serialization/ArchiveUObject.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/ObjectResource.h"
 #include "UObject/Linker.h"
 
@@ -147,6 +146,11 @@ public:
 	* List of imports and exports that must be serialized before other exports...all packed together, see FirstExportDependency
 	*/
 	TArray<FPackageIndex> PreloadDependencies;
+
+	/**
+	*  List of external read dependencies that must be finished to load this package
+	*/
+	TArray<FExternalReadCallback> ExternalReadDependencies;
 
 	/** 
 	 * Utility functions to query the object name redirects list for previous names for a class
@@ -563,6 +567,20 @@ public:
 	/** Used by Matinee to fixup component renaming */
 	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name, UClass* Class);
 
+	/** 
+	 * Adds external read dependency 
+	 *
+	 * @return true if dependency has been added
+	 */
+	virtual bool AttachExternalReadDependency(FExternalReadCallback& ReadCallback) override;
+
+	/**
+	 * Finalizes external dependencies till time limit is exceeded
+	 *
+	 * @return true if all dependencies are finished, false otherwise
+	 */
+	bool FinishExternalReadDependencies(double TimeLimit);
+
 private:
 #if WITH_EDITOR
 
@@ -725,12 +743,12 @@ private:
 		return Ar;
 	}
 
-	FORCEINLINE virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
+	FORCEINLINE virtual FArchive& operator<<(FSoftObjectPtr& Value) override
 	{
 		FArchive& Ar = *this;
-		FStringAssetReference ID;
+		FSoftObjectPath ID;
 		ID.Serialize(Ar);
-		AssetPtr = ID;
+		Value = ID;
 		return Ar;
 	}
 	void BadNameIndexError(NAME_INDEX NameIndex);

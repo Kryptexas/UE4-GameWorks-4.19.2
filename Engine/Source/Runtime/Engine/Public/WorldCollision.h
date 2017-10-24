@@ -64,7 +64,12 @@ struct FCollisionShape
 {
 	ECollisionShape::Type ShapeType;
 
-	/** Union that supports upto 3 floats **/
+	static FORCEINLINE CONSTEXPR float MinBoxExtent()				{ return KINDA_SMALL_NUMBER; }
+	static FORCEINLINE CONSTEXPR float MinSphereRadius()			{ return KINDA_SMALL_NUMBER; }
+	static FORCEINLINE CONSTEXPR float MinCapsuleRadius()			{ return KINDA_SMALL_NUMBER; }
+	static FORCEINLINE CONSTEXPR float MinCapsuleAxisHalfHeight()	{ return KINDA_SMALL_NUMBER; }
+
+	/** Union that supports up to 3 floats **/
 	union
 	{
 		struct 
@@ -154,16 +159,16 @@ struct FCollisionShape
 		{
 		case ECollisionShape::Box:
 			{	
-				return (Box.HalfExtentX <= KINDA_SMALL_NUMBER && Box.HalfExtentY <= KINDA_SMALL_NUMBER && Box.HalfExtentZ <= KINDA_SMALL_NUMBER);
+				return (Box.HalfExtentX <= FCollisionShape::MinBoxExtent() && Box.HalfExtentY <= FCollisionShape::MinBoxExtent() && Box.HalfExtentZ <= FCollisionShape::MinBoxExtent());
 			}
 		case  ECollisionShape::Sphere:
 			{
-				return (Sphere.Radius <= KINDA_SMALL_NUMBER);
+				return (Sphere.Radius <= FCollisionShape::MinSphereRadius());
 			}
 		case ECollisionShape::Capsule:
 			{
 				// @Todo check height? It didn't check before, so I'm keeping this way for time being
-				return (Capsule.Radius <= KINDA_SMALL_NUMBER);
+				return (Capsule.Radius <= FCollisionShape::MinCapsuleRadius());
 			}
 		}
 
@@ -197,7 +202,7 @@ struct FCollisionShape
 	float GetCapsuleAxisHalfLength() const
 	{
 		ensure (ShapeType == ECollisionShape::Capsule);
-		return FMath::Max<float>(Capsule.HalfHeight - Capsule.Radius, 1.f);
+		return FMath::Max<float>(Capsule.HalfHeight - Capsule.Radius, FCollisionShape::FCollisionShape::MinCapsuleAxisHalfHeight());
 	}
 
 	/** Utility function to get Box Extention */

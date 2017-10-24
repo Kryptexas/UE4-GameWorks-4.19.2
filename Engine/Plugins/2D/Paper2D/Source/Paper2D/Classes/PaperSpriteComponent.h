@@ -102,7 +102,3 @@ public:
 protected:
 	friend class FPaperSpriteSceneProxy;
 };
-
-// Allow the old name to continue to work for one release
-DEPRECATED(4.3, "UPaperRenderComponent has been renamed to UPaperSpriteComponent")
-typedef UPaperSpriteComponent UPaperRenderComponent;

@@ -81,7 +81,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	const FString FilePath = TargetPaths.PluginFilePath();
 	FText ErrorMessage;
 	// attempt to load an existing plugin (in case it has existing source for another platform that we wish to keep)
-	PluginDesc.Load(FilePath, /*bPluginEnabledByDefault=*/true, ErrorMessage);
+	PluginDesc.Load(FilePath, ErrorMessage);
 
 	PluginDesc.FriendlyName = TargetPaths.GetPluginName();
 	PluginDesc.CreatedBy    = TEXT("Epic Games, Inc.");
@@ -90,7 +90,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	PluginDesc.DocsURL      = TEXT("@TODO");
 	PluginDesc.SupportURL   = TEXT("https://answers.unrealengine.com/");
 	PluginDesc.Category     = TEXT("Intermediate");
-	PluginDesc.bEnabledByDefault  = true;
+	PluginDesc.EnabledByDefault  = EPluginEnabledByDefault::Enabled;
 	PluginDesc.bCanContainContent = false;
 	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
 	PluginDesc.bIsHidden    = true; 
@@ -149,7 +149,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 		}
 	}
 	
-	bool bSuccess = PluginDesc.Save(FilePath, /*bPluginEnabledByDefault=*/false, ErrorMessage);
+	bool bSuccess = PluginDesc.Save(FilePath, ErrorMessage);
 	if (!bSuccess)
 	{
 		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate the plugin description file: %s"), *ErrorMessage.ToString());
@@ -228,7 +228,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 
 	if (GameProjectUtils::ProjectHasCodeFiles()) 
 	{
-		const FString GameModuleName = FApp::GetGameName();
+		const FString GameModuleName = FApp::GetProjectName();
 		if (ModuleManager.ModuleExists(*GameModuleName))
 		{
 			PublicDependencies.Add(GameModuleName);

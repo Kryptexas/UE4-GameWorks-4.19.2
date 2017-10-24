@@ -51,7 +51,7 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 
 		const bool bIsObject = Property->IsA<UObjectPropertyBase>();
 		checkSlow(bIsObject == ((Schema->PC_Object == Pin->PinType.PinCategory || Schema->PC_Class == Pin->PinType.PinCategory || 
-			Schema->PC_Asset == Pin->PinType.PinCategory || Schema->PC_AssetClass == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
+			Schema->PC_SoftObject == Pin->PinType.PinCategory || Schema->PC_SoftClass == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
 
 		if (Property->HasAnyPropertyFlags(CPF_AdvancedDisplay))
 		{
@@ -126,7 +126,7 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 		
 		bool bHasAdvancedPins = false;
 		{
-			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
+			FStructOnScope StructOnScope(StructType);
 			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);

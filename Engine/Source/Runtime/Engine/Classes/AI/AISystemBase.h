@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Engine/EngineBaseTypes.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Modules/ModuleInterface.h"
 #include "AISystemBase.generated.h"
 
@@ -45,7 +45,7 @@ class ENGINE_API UAISystemBase : public UObject
 
 private:
 	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AISystem", DisplayName = "AISystem Class"))
-	FStringClassReference AISystemClassName;
+	FSoftClassPath AISystemClassName;
 
 	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AISystem", DisplayName = "AISystem Module"))
 	FName AISystemModuleName;
@@ -54,7 +54,7 @@ private:
 	bool bInstantiateAISystemOnClient;
 	
 public:
-	static FStringClassReference GetAISystemClassName();
+	static FSoftClassPath GetAISystemClassName();
 	static FName GetAISystemModuleName();
 	static bool ShouldInstantiateInNetMode(ENetMode NetMode);
 };

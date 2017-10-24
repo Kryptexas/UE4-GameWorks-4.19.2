@@ -43,9 +43,9 @@ server. This new style of Windows Error Reporting was added in Windows Vista, so
 
 
 This application searches for all relevant crashes in the past 'UploadHistory' days, and uploads them the the 'CrashReportUploadURL'. The application is stateless in that it does not require any direct input from the engine; it can be run as a standalone application and
-will discover and upload just the same. If the upload fails for any reason (such as the URL being unavailable), the next launch of the uploader will retry. No parameters required, but '-unattended' and '-logfolder=<folder name>' as commandline options are respected. 
+will discover and upload just the same. If the upload fails for any reason (such as the URL being unavailable), the next launch of the uploader will retry. No parameters required, but `-unattended` and `-logfolder=<folder name>` as commandline options are respected. 
 
-Crash reports are discovered in by searching for any folders matching the pattern 'SpecialFolder.LocalApplicationData\Microsoft\Windows\WER\ReportQueue\AppCrash_UE4-*'. These folders have a Guid that is used to see if the report is already uploaded.
+Crash reports are discovered in by searching for any folders matching the pattern `SpecialFolder.LocalApplicationData\Microsoft\Windows\WER\ReportQueue\AppCrash_UE4-*`. These folders have a Guid that is used to see if the report is already uploaded.
 
 To account for locally compiled binaries, the uploader checks to see if it has a pdb, and is running on the local domain. If both these conditions are met, MinidumpDiagnostics.exe will be run to generate a report (which includes a callstack). This is then uploaded as part
 of the report.

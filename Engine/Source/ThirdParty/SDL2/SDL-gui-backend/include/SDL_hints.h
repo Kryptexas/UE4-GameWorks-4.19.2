@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,8 +36,8 @@
  *  to how they would like the library to work.
  */
 
-#ifndef _SDL_hints_h
-#define _SDL_hints_h
+#ifndef SDL_hints_h_
+#define SDL_hints_h_
 
 #include "SDL_stdinc.h"
 
@@ -117,6 +117,17 @@ extern "C" {
  *  By default, SDL does not use Direct3D Debug Layer.
  */
 #define SDL_HINT_RENDER_DIRECT3D11_DEBUG    "SDL_RENDER_DIRECT3D11_DEBUG"
+
+/**
+ *  \brief  A variable controlling the scaling policy for SDL_RenderSetLogicalSize.
+ *
+ *  This variable can be set to the following values:
+ *    "0" or "letterbox" - Uses letterbox/sidebars to fit the entire rendering on screen
+ *    "1" or "overscan"  - Will zoom the rendering so it fills the entire screen, allowing edges to be drawn offscreen
+ *
+ *  By default letterbox is used
+ */
+#define SDL_HINT_RENDER_LOGICAL_SIZE_MODE       "SDL_RENDER_LOGICAL_SIZE_MODE"
 
 /**
  *  \brief  A variable controlling the scaling quality
@@ -233,15 +244,47 @@ extern "C" {
 #define SDL_HINT_GRAB_KEYBOARD              "SDL_GRAB_KEYBOARD"
 
 /**
-*  \brief  A variable controlling whether relative mouse mode is implemented using mouse warping
-*
-*  This variable can be set to the following values:
-*    "0"       - Relative mouse mode uses raw input
-*    "1"       - Relative mouse mode uses mouse warping
-*
-*  By default SDL will use raw input for relative mouse mode
-*/
+ *  \brief  A variable setting the speed scale for mouse motion, in floating point, when the mouse is not in relative mode
+ */
+#define SDL_HINT_MOUSE_NORMAL_SPEED_SCALE    "SDL_MOUSE_NORMAL_SPEED_SCALE"
+
+/**
+ *  \brief  A variable setting the scale for mouse motion, in floating point, when the mouse is in relative mode
+ */
+#define SDL_HINT_MOUSE_RELATIVE_SPEED_SCALE    "SDL_MOUSE_RELATIVE_SPEED_SCALE"
+
+/**
+ *  \brief  A variable controlling whether relative mouse mode is implemented using mouse warping
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Relative mouse mode uses raw input
+ *    "1"       - Relative mouse mode uses mouse warping
+ *
+ *  By default SDL will use raw input for relative mouse mode
+ */
 #define SDL_HINT_MOUSE_RELATIVE_MODE_WARP    "SDL_MOUSE_RELATIVE_MODE_WARP"
+
+/**
+ *  \brief Allow mouse click events when clicking to focus an SDL window
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Ignore mouse clicks that activate a window
+ *    "1"       - Generate events for mouse clicks that activate a window
+ *
+ *  By default SDL will ignore mouse clicks that activate a window
+ */
+#define SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH "SDL_MOUSE_FOCUS_CLICKTHROUGH"
+
+/**
+ *  \brief  A variable controlling whether touch events should generate synthetic mouse events
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Touch events will not generate mouse events
+ *    "1"       - Touch events will generate mouse events
+ *
+ *  By default SDL will generate mouse events for touch events
+ */
+#define SDL_HINT_TOUCH_MOUSE_EVENTS    "SDL_TOUCH_MOUSE_EVENTS"
 
 /**
  *  \brief Minimize your SDL_Window if it loses key focus when in fullscreen mode. Defaults to true.
@@ -257,8 +300,8 @@ extern "C" {
  *  this is problematic. This functionality can be disabled by setting this
  *  hint.
  *
- *  As of SDL 2.0.4, SDL_EnableScreenSaver and SDL_DisableScreenSaver accomplish
- *  the same thing on iOS. They should be preferred over this hint.
+ *  As of SDL 2.0.4, SDL_EnableScreenSaver() and SDL_DisableScreenSaver()
+ *  accomplish the same thing on iOS. They should be preferred over this hint.
  *
  *  This variable can be set to the following values:
  *    "0"       - Enable idle timer
@@ -390,6 +433,33 @@ extern "C" {
 #define SDL_HINT_TIMER_RESOLUTION "SDL_TIMER_RESOLUTION"
 
 
+/**
+ *  \brief  A variable describing the content orientation on QtWayland-based platforms.
+ *
+ *  On QtWayland platforms, windows are rotated client-side to allow for custom
+ *  transitions. In order to correctly position overlays (e.g. volume bar) and
+ *  gestures (e.g. events view, close/minimize gestures), the system needs to
+ *  know in which orientation the application is currently drawing its contents.
+ *
+ *  This does not cause the window to be rotated or resized, the application
+ *  needs to take care of drawing the content in the right orientation (the
+ *  framebuffer is always in portrait mode).
+ *
+ *  This variable can be one of the following values:
+ *    "primary" (default), "portrait", "landscape", "inverted-portrait", "inverted-landscape"
+ */
+#define SDL_HINT_QTWAYLAND_CONTENT_ORIENTATION "SDL_QTWAYLAND_CONTENT_ORIENTATION"
+
+/**
+ *  \brief  Flags to set on QtWayland windows to integrate with the native window manager.
+ *
+ *  On QtWayland platforms, this hint controls the flags to set on the windows.
+ *  For example, on Sailfish OS "OverridesSystemGestures" disables swipe gestures.
+ *
+ *  This variable is a space-separated list of the following values (empty = no flags):
+ *    "OverridesSystemGestures", "StaysOnTop", "BypassWindowManager"
+ */
+#define SDL_HINT_QTWAYLAND_WINDOW_FLAGS "SDL_QTWAYLAND_WINDOW_FLAGS"
 
 /**
 *  \brief  A string specifying SDL's threads stack size in bytes or "0" for the backend's default size
@@ -576,13 +646,6 @@ extern "C" {
 #define SDL_HINT_MAC_BACKGROUND_APP    "SDL_MAC_BACKGROUND_APP"
 
 /**
- *  \brief Allow mouse click events when clicking to focus an SDL window
- *
- *  This hint only applies to Mac OS X.
- */
-#define SDL_HINT_MAC_MOUSE_FOCUS_CLICKTHROUGH "SDL_MAC_MOUSE_FOCUS_CLICKTHROUGH"
-
-/**
  * \brief Android APK expansion main file version. Should be a string number like "1", "2" etc.
  *
  * Must be set together with SDL_HINT_ANDROID_APK_EXPANSION_PATCH_FILE_VERSION.
@@ -666,6 +729,106 @@ extern "C" {
 #define SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4	"SDL_WINDOWS_NO_CLOSE_ON_ALT_F4"
 
 /**
+ *  \brief Prevent SDL from using version 4 of the bitmap header when saving BMPs.
+ *
+ * The bitmap header version 4 is required for proper alpha channel support and
+ * SDL will use it when required. Should this not be desired, this hint can
+ * force the use of the 40 byte header version which is supported everywhere.
+ *
+ * The variable can be set to the following values:
+ *   "0"       - Surfaces with a colorkey or an alpha channel are saved to a
+ *               32-bit BMP file with an alpha mask. SDL will use the bitmap
+ *               header version 4 and set the alpha mask accordingly.
+ *   "1"       - Surfaces with a colorkey or an alpha channel are saved to a
+ *               32-bit BMP file without an alpha mask. The alpha channel data
+ *               will be in the file, but applications are going to ignore it.
+ *
+ * The default value is "0".
+ */
+#define SDL_HINT_BMP_SAVE_LEGACY_FORMAT "SDL_BMP_SAVE_LEGACY_FORMAT"
+
+/**
+ * \brief Tell SDL not to name threads on Windows with the 0x406D1388 Exception.
+ *        The 0x406D1388 Exception is a trick used to inform Visual Studio of a
+ *        thread's name, but it tends to cause problems with other debuggers,
+ *        and the .NET runtime. Note that SDL 2.0.6 and later will still use
+ *        the (safer) SetThreadDescription API, introduced in the Windows 10
+ *        Creators Update, if available.
+ *
+ * The variable can be set to the following values:
+ *   "0"       - SDL will raise the 0x406D1388 Exception to name threads.
+ *               This is the default behavior of SDL <= 2.0.4.
+ *   "1"       - SDL will not raise this exception, and threads will be unnamed. (default)
+ *               This is necessary with .NET languages or debuggers that aren't Visual Studio.
+ */
+#define SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING "SDL_WINDOWS_DISABLE_THREAD_NAMING"
+
+/**
+ * \brief Tell SDL which Dispmanx layer to use on a Raspberry PI
+ *
+ * Also known as Z-order. The variable can take a negative or positive value.
+ * The default is 10000.
+ */
+#define SDL_HINT_RPI_VIDEO_LAYER           "SDL_RPI_VIDEO_LAYER"
+
+/**
+ *  \brief  A variable controlling what driver to use for OpenGL ES contexts.
+ *
+ *  On some platforms, currently Windows and X11, OpenGL drivers may support
+ *  creating contexts with an OpenGL ES profile. By default SDL uses these
+ *  profiles, when available, otherwise it attempts to load an OpenGL ES
+ *  library, e.g. that provided by the ANGLE project. This variable controls
+ *  whether SDL follows this default behaviour or will always load an
+ *  OpenGL ES library.
+ *
+ *  Circumstances where this is useful include
+ *  - Testing an app with a particular OpenGL ES implementation, e.g ANGLE,
+ *    or emulator, e.g. those from ARM, Imagination or Qualcomm.
+ *  - Resolving OpenGL ES function addresses at link time by linking with
+ *    the OpenGL ES library instead of querying them at run time with
+ *    SDL_GL_GetProcAddress().
+ *
+ *  Caution: for an application to work with the default behaviour across
+ *  different OpenGL drivers it must query the OpenGL ES function
+ *  addresses at run time using SDL_GL_GetProcAddress().
+ *
+ *  This variable is ignored on most platforms because OpenGL ES is native
+ *  or not supported.
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Use ES profile of OpenGL, if available. (Default when not set.)
+ *    "1"       - Load OpenGL ES library using the default library names.
+ *
+ */
+#define SDL_HINT_OPENGL_ES_DRIVER   "SDL_OPENGL_ES_DRIVER"
+
+/**
+ *  \brief  A variable controlling speed/quality tradeoff of audio resampling.
+ *
+ *  If available, SDL can use libsamplerate ( http://www.mega-nerd.com/SRC/ )
+ *  to handle audio resampling. There are different resampling modes available
+ *  that produce different levels of quality, using more CPU.
+ *
+ *  If this hint isn't specified to a valid setting, or libsamplerate isn't
+ *  available, SDL will use the default, internal resampling algorithm.
+ *
+ *  Note that this is currently only applicable to resampling audio that is
+ *  being written to a device for playback or audio being read from a device
+ *  for capture. SDL_AudioCVT always uses the default resampler (although this
+ *  might change for SDL 2.1).
+ *
+ *  This hint is currently only checked at audio subsystem initialization.
+ *
+ *  This variable can be set to the following values:
+ *
+ *    "0" or "default" - Use SDL's internal resampling (Default when not set - low quality, fast)
+ *    "1" or "fast"    - Use fast, slightly higher quality resampling, if available
+ *    "2" or "medium"  - Use medium quality resampling, if available
+ *    "3" or "best"    - Use high quality resampling, if available
+ */
+#define SDL_HINT_AUDIO_RESAMPLING_MODE   "SDL_AUDIO_RESAMPLING_MODE"
+
+/**
  *  \brief  An enumeration of hint priorities
  */
 typedef enum
@@ -705,13 +868,24 @@ extern DECLSPEC SDL_bool SDLCALL SDL_SetHint(const char *name,
 extern DECLSPEC const char * SDLCALL SDL_GetHint(const char *name);
 
 /**
+ *  \brief Get a hint
+ *
+ *  \return The boolean value of a hint variable.
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_GetHintBoolean(const char *name, SDL_bool default_value);
+
+/**
+ * \brief type definition of the hint callback function.
+ */
+typedef void (*SDL_HintCallback)(void *userdata, const char *name, const char *oldValue, const char *newValue);
+
+/**
  *  \brief Add a function to watch a particular hint
  *
  *  \param name The hint to watch
  *  \param callback The function to call when the hint value changes
  *  \param userdata A pointer to pass to the callback function
  */
-typedef void (*SDL_HintCallback)(void *userdata, const char *name, const char *oldValue, const char *newValue);
 extern DECLSPEC void SDLCALL SDL_AddHintCallback(const char *name,
                                                  SDL_HintCallback callback,
                                                  void *userdata);
@@ -741,6 +915,6 @@ extern DECLSPEC void SDLCALL SDL_ClearHints(void);
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_hints_h */
+#endif /* SDL_hints_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

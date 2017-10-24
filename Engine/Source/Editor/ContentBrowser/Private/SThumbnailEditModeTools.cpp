@@ -85,7 +85,7 @@ EVisibility SThumbnailEditModeTools::GetPrimitiveToolsVisibility() const
 
 EVisibility SThumbnailEditModeTools::GetPrimitiveToolsResetToDefaultVisibility() const
 {
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(SceneThumbnailInfo.Get());
+	USceneThumbnailInfo* ThumbnailInfo = SceneThumbnailInfo.Get();
 	
 	EVisibility ResetToDefaultVisibility = EVisibility::Collapsed;
 	if (ThumbnailInfo)

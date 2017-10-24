@@ -83,7 +83,7 @@ namespace PixelInspector
 		 * viewportUniqueId: The id of the view (FSceneView::State::GetViewKey) we want to capture the pixel, ScreenPosition has to come from this viewport
 		 * SceneInterface: The interface to set the data for the next render frame.
 		*/
-		 void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface);
+		 void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
 
 		 /**
 		 * Look if there is some request ready to be read and retrieve the value.
@@ -104,7 +104,7 @@ namespace PixelInspector
 		 *
 		 * Return a unique Index to allow the request to know how to find them in the FPixelInspectorData at the post process time when sending the read buffer graphic commands.
 		 */
-		int32 CreateRequestBuffer(FSceneInterface *SceneInterface, const int32 GBufferFormat);
+		int32 CreateRequestBuffer(FSceneInterface *SceneInterface, const int32 GBufferFormat, bool bInGameViewMode);
 
 		/**
 		 * Release all Ubuffer with the BufferIndex so the garbage collector will destroy them.

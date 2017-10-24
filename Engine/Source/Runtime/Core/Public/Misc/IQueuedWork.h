@@ -39,7 +39,3 @@ public:
 	 */
 	virtual ~IQueuedWork() { }
 };
-
-
-DEPRECATED(4.8, "FQueuedWork has been renamed to IQueuedWork")
-typedef IQueuedWork FQueuedWork;

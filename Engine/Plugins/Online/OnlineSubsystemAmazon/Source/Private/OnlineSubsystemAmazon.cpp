@@ -87,7 +87,7 @@ bool FOnlineSubsystemAmazon::Tick(float DeltaTime)
 
 bool FOnlineSubsystemAmazon::Init()
 {
-	IdentityInterface = MakeShareable(new FOnlineIdentityAmazon());
+	IdentityInterface = MakeShared<FOnlineIdentityAmazon, ESPMode::ThreadSafe>(this);
 	return true;
 }
 

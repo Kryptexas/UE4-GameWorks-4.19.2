@@ -51,28 +51,37 @@ struct FVulkanBindingTable
 	struct FBinding
 	{
 		FBinding();
-		FBinding(const char* InName, int32 InIndex, EVulkanBindingType::EType InType, int8 InSubType);
+		FBinding(const char* InName, int32 InVirtualIndex, EVulkanBindingType::EType InType, int8 InSubType);
 
 		char		Name[256];
-		int32		Index;
+		int32		VirtualIndex = -1;
 		EVulkanBindingType::EType	Type;
 		int8		SubType;	// HLSL CC subtype, PACKED_TYPENAME_HIGHP and etc
 	};
 
-	FVulkanBindingTable(EHlslShaderFrequency ShaderStage) : Stage(ShaderStage){}
+	FVulkanBindingTable(EHlslShaderFrequency ShaderStage) : Stage(ShaderStage) {}
 
 	int32 RegisterBinding(const char* InName, const char* BlockName, EVulkanBindingType::EType Type);
 
-	int32 FindBinding(const char* InName) const;
+	const TArray<FBinding>& GetBindings() const
+	{
+		check(bSorted);
+		return Bindings;
+	}
 
-	const TArray<FBinding>& GetBindings() const { return Bindings; }
+	void SortBindings();
+	void PrintBindingTableDefines(char** Buffer);
 
 private:
-	// Previouse implementation supported bindings only for textures.
+	// Previous implementation supported bindings only for textures.
 	// However, layout(binding=%d) must be also used for uniform buffers.
 
 	EHlslShaderFrequency Stage;
 	TArray<FBinding> Bindings;
+
+	bool bSorted = false;
+
+	friend class FGenerateVulkanVisitor;
 };
 
 struct FVulkanCodeBackend : public FCodeBackend

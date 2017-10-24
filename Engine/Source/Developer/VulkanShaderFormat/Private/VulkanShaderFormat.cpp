@@ -20,11 +20,12 @@ class FShaderFormatVulkan : public IShaderFormat
 {
 	enum 
 	{
-		UE_SHADER_VULKAN_ES3_1_VER = 8,
-		UE_SHADER_VULKAN_ES3_1_ANDROID_VER = 8,
-		UE_SHADER_VULKAN_SM4_VER = 8,
-		UE_SHADER_VULKAN_SM5_VER = 9,
-	}; 
+		UE_SHADER_VULKAN_ES3_1_VER = 11,
+		UE_SHADER_VULKAN_ES3_1_ANDROID_VER = 11,
+		UE_SHADER_VULKAN_SM4_VER = 11,
+		UE_SHADER_VULKAN_SM5_VER = 11,
+		UE_SHADER_VULKAN_SM5_UB_VER = 12,
+	};
 
 	int32 InternalGetVersion(FName Format) const
 	{
@@ -32,7 +33,11 @@ class FShaderFormatVulkan : public IShaderFormat
 		{
 			return UE_SHADER_VULKAN_SM4_VER;
 		}
-		else if (Format == NAME_VULKAN_SM5 || Format == NAME_VULKAN_SM5_UB)
+		else if (Format == NAME_VULKAN_SM5_UB)
+		{
+			return UE_SHADER_VULKAN_SM5_UB_VER;
+		}
+		else if (Format == NAME_VULKAN_SM5)
 		{
 			return UE_SHADER_VULKAN_SM5_VER;
 		}
@@ -50,7 +55,7 @@ class FShaderFormatVulkan : public IShaderFormat
 	}
 
 public:
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint32 GetVersion(FName Format) const override
 	{
 		const uint8 HLSLCCVersion = ((HLSLCC_VersionMajor & 0x0f) << 4) | (HLSLCC_VersionMinor & 0x0f);
 		const uint16 Version = ((HLSLCCVersion & 0xff) << 8) | (InternalGetVersion(Format) & 0xff);
@@ -63,6 +68,7 @@ public:
 		OutFormats.Add(NAME_VULKAN_ES3_1_ANDROID);
 		OutFormats.Add(NAME_VULKAN_ES3_1);
 		OutFormats.Add(NAME_VULKAN_SM4_UB);
+		OutFormats.Add(NAME_VULKAN_SM5_UB);
 	}
 
 	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const
@@ -83,6 +89,10 @@ public:
 		else if (Format == NAME_VULKAN_SM4)
 		{
 			CompileShader_Windows_Vulkan(Input, Output, WorkingDirectory, EVulkanShaderVersion::SM4);
+		}
+		else if (Format == NAME_VULKAN_SM5_UB)
+		{
+			CompileShader_Windows_Vulkan(Input, Output, WorkingDirectory, EVulkanShaderVersion::SM5_UB);
 		}
 		else if (Format == NAME_VULKAN_SM5)
 		{

@@ -136,6 +136,11 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 	return bSuccess;
 }
 
+void AOnlineBeaconClient::SetEncryptionToken(const FString& InEncryptionToken)
+{
+	EncryptionToken = InEncryptionToken;
+}
+
 void AOnlineBeaconClient::SendInitialJoin()
 {
 	if (ensure(NetDriver != nullptr && NetDriver->ServerConnection != nullptr))
@@ -144,8 +149,14 @@ void AOnlineBeaconClient::SendInitialJoin()
 		check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 
 		uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-				
-		FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion);
+
+		if (CVarNetAllowEncryption.GetValueOnGameThread() == 0)
+		{
+			EncryptionToken.Reset();
+		}
+
+		FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion, EncryptionToken);
+
 		NetDriver->ServerConnection->FlushNet();
 	}
 }
@@ -225,6 +236,21 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 #endif
 		switch (MessageType)
 		{
+		case NMT_EncryptionAck:
+			{
+				if (FNetDelegates::OnReceivedNetworkEncryptionAck.IsBound())
+				{
+					TWeakObjectPtr<UNetConnection> WeakConnection = Connection;
+					FNetDelegates::OnReceivedNetworkEncryptionAck.Execute(FOnEncryptionKeyResponse::CreateUObject(this, &ThisClass::FinalizeEncryptedConnection, WeakConnection));
+				}
+				else
+				{
+					// Force close the session
+					UE_LOG(LogBeacon, Warning, TEXT("%s: No delegate available to handle encryption ack, disconnecting."), *Connection->GetName());
+					OnFailure();
+				}
+				break;
+			}
 		case NMT_BeaconWelcome:
 			{
 				Connection->ClientResponse = TEXT("0");
@@ -312,4 +338,35 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 			}
 		}
 	}	
+}
+
+void AOnlineBeaconClient::FinalizeEncryptedConnection(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection)
+{
+	UNetConnection* Connection = WeakConnection.Get();
+	if (Connection)
+	{
+		if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+		{
+			if (Response.Response == EEncryptionResponse::Success)
+			{
+				Connection->EnableEncryptionWithKey(Response.EncryptionKey);
+			}
+			else
+			{
+				FString ResponseStr(Lex::ToString(Response.Response));
+				UE_LOG(LogBeacon, Warning, TEXT("AOnlineBeaconClient::FinalizeEncryptedConnection: encryption failure [%s] %s"), *ResponseStr, *Response.ErrorMsg);
+				OnFailure();
+			}
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("AOnlineBeaconClient::FinalizeEncryptedConnection: connection in invalid state. %s"), *Connection->Describe());
+			OnFailure();
+		}
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("AOnlineBeaconClient::FinalizeEncryptedConnection: Connection is null."));
+		OnFailure();
+	}
 }

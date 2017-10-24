@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;using System.Collections.Generic;using System.Linq;using System.Text;using System.Threading.Tasks;using System.IO;using AutomationTool;using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 public class CopyUsingDistillFileSet : BuildCommand{	public override void ExecuteBuild()	{		// Command parameters - not all required if using existing manifest		string ProjectPath = ParseParamValue("ProjectPath");		string ManifestFile = ParseParamValue("ManifestFile");		string UE4Exe = ParseParamValue("UE4Exe", "UE4Editor-Cmd.exe");		string Maps = ParseParamValue("Maps");		string Parameters = ParseParamValue("Parameters");		DirectoryReference FromDir = new DirectoryReference(ParseParamValue("FromDir"));		DirectoryReference ToDir = new DirectoryReference(ParseParamValue("ToDir"));
 		bool UseExistingManifest = ParseParam("UseExistingManifest");

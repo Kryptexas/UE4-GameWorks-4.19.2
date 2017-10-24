@@ -22,7 +22,7 @@
 void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManagerRef InScreenShotManager  )
 {
 	ScreenShotManager = InScreenShotManager;
-	ComparisonRoot = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / TEXT("Automation/Comparisons"));
+	ComparisonRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Automation/Comparisons"));
 	bReportsChanged = true;
 
 	FModuleManager::Get().LoadModuleChecked(FName("ImageWrapper"));

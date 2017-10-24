@@ -10,15 +10,10 @@ class FUserDefinedChords;
 
 typedef TMap<FName, TSharedPtr<FUICommandInfo>> FCommandInfoMap;
 typedef TMap<FInputChord, FName> FChordMap;
-DEPRECATED(4.8, "Use FChordMap instead of FGestureMap")
-typedef FChordMap FGestureMap;
 
 
 /** Delegate for alerting subscribers the input manager records a user-defined chord */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserDefinedChordChanged, const FUICommandInfo& );
-
-DEPRECATED(4.8, "Use FOnUserDefinedChordChanged instead of FOnUserDefinedGestureChanged")
-typedef FOnUserDefinedChordChanged FOnUserDefinedGestureChanged;
 
 /**
  * Manager responsible for creating and processing input bindings.                  
@@ -81,8 +76,6 @@ public:
 	 * @param	bCheckDefault			Whether or not to check the default chord.  Will check the active chord if false
 	 * @return	A pointer to the command info which has the InChord as its active chord or null if one cannot be found
 	 */
-	DEPRECATED(4.8, "Use GetCommandInfoFromInputChord instead of GetCommandInfoFromInputGesture")
-	const TSharedPtr<FUICommandInfo> GetCommandInfoFromInputGesture( const FName InBindingContext, const FInputChord& InGesture, bool bCheckDefault ) const;
 	const TSharedPtr<FUICommandInfo> GetCommandInfoFromInputChord( const FName InBindingContext, const FInputChord& InChord, bool bCheckDefault ) const;
 
 	/** 
@@ -108,9 +101,7 @@ public:
 	 *
 	 * @param CommandInfo	The command that had the active chord changed. 
 	 */
-	DEPRECATED(4.8, "Use NotifyActiveChordChanged instead of NotifyActiveGestureChanged")
-	void NotifyActiveGestureChanged( const FUICommandInfo& CommandInfo );
-	virtual void NotifyActiveChordChanged( const FUICommandInfo& CommandInfo );
+	virtual void NotifyActiveChordChanged( const FUICommandInfo& CommandInfo, const EMultipleKeyBindingIndex InChordIndex);
 	
 	/**
 	 * Saves the user defined chords to a json file
@@ -120,8 +111,6 @@ public:
 	/**
 	 * Removes any user defined chords
 	 */
-	DEPRECATED(4.8, "Use RemoveUserDefinedChords instead of RemoveUserDefinedGestures")
-	void RemoveUserDefinedGestures() { RemoveUserDefinedChords(); }
 	void RemoveUserDefinedChords();
 
 	/**
@@ -133,22 +122,12 @@ public:
 	void GetCommandInfosFromContext( const FName InBindingContext, TArray< TSharedPtr<FUICommandInfo> >& OutCommandInfos ) const;
 
 	/** Registers a delegate to be called when a user-defined chord is edited */
-	DEPRECATED(4.8, "Use RegisterUserDefinedChordChanged instead of RegisterUserDefinedGestureChanged")
-	FDelegateHandle RegisterUserDefinedGestureChanged(const FOnUserDefinedChordChanged::FDelegate& Delegate)
-	{
-		return RegisterUserDefinedChordChanged(Delegate);
-	}
 	FDelegateHandle RegisterUserDefinedChordChanged(const FOnUserDefinedChordChanged::FDelegate& Delegate)
 	{
 		return OnUserDefinedChordChanged.Add(Delegate);
 	}
 
 	/** Unregisters a delegate to be called when a user-defined chord is edited */
-	DEPRECATED(4.8, "Use RegisterUserDefinedChordChanged instead of RegisterUserDefinedGestureChanged")
-	void UnregisterUserDefinedGestureChanged(FDelegateHandle DelegateHandle)
-	{
-		UnregisterUserDefinedChordChanged(DelegateHandle);
-	}
 	void UnregisterUserDefinedChordChanged(FDelegateHandle DelegateHandle)
 	{
 		OnUserDefinedChordChanged.Remove(DelegateHandle);
@@ -166,8 +145,9 @@ private:
 	 * 
 	 * @param InBindingContext	The context in which the command is active
 	 * @param InCommandName		The name of the command to get the chord from
+	 * @param ChordIndex		The index of the key binding (in the multiple key bindings array)
 	 */
-	bool GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, FInputChord& OutUserDefinedChord );
+	bool GetUserDefinedChord( const FName InBindingContext, const FName InCommandName, const EMultipleKeyBindingIndex InChordIndex, FInputChord& OutUserDefinedChord );
 
 	/**
 	 *	Checks a binding context for duplicate chords 
@@ -186,11 +166,15 @@ private:
 
 	struct FContextEntry
 	{
+		FContextEntry()
+		{
+			ChordToCommandInfoMaps.Init(FChordMap(), static_cast<uint8>(EMultipleKeyBindingIndex::NumChords));
+		}
 		/** A list of commands associated with the context */
 		FCommandInfoMap CommandInfoMap;
 
-		/** Chord to command info map */
-		FChordMap ChordToCommandInfoMap;
+		/** Chord to command info maps, one for each set of key bindings */
+		TArray<FChordMap> ChordToCommandInfoMaps;
 
 		/** The binding context for this entry*/
 		TSharedPtr< FBindingContext > BindingContext;

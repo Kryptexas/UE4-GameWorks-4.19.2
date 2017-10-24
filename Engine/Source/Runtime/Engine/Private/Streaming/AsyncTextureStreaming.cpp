@@ -165,21 +165,29 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 
 	bool bResetMipBias = false;
 
-	int64 PraticalPoolSize = PoolSize;
-	if (Settings.bLimitPoolSizeToVRAM && GPoolSizeVRAMPercentage > 0 && TotalGraphicsMemory > 0)
+	const int64 NonStreamingTextureMemory =  AllocatedMemory - MemoryUsed;
+	int64 AvailableMemoryForStreaming = PoolSize - NonStreamingTextureMemory - MemoryMargin;
+
+	// If the platform defines a max VRAM usage, check if the pool size must be reduced,
+	// but also check if it would be safe to some of the NonStreamingTextureMemory from the pool size computation.
+	// The later helps significantly in low budget settings, where NonStreamingTextureMemory would take too much of the texture pool.
+	if (GPoolSizeVRAMPercentage > 0 && TotalGraphicsMemory > 0)
 	{
-		PraticalPoolSize = FMath::Min<int64>(PoolSize, TotalGraphicsMemory * GPoolSizeVRAMPercentage / 100);
+		const int64 UsableVRAM = TotalGraphicsMemory * GPoolSizeVRAMPercentage / 100 - (int64)GCurrentRendertargetMemorySize * 1024ll; // Add any other...
+		const int64 AvailableVRAMForStreaming = FMath::Min<int64>(UsableVRAM - NonStreamingTextureMemory - MemoryMargin, PoolSize);
+		if (Settings.bLimitPoolSizeToVRAM || AvailableVRAMForStreaming > AvailableMemoryForStreaming)
+		{
+			AvailableMemoryForStreaming = AvailableVRAMForStreaming;
+		}
 	}
 
 	// Update EffectiveStreamingPoolSize, trying to stabilize it independently of temp memory, allocator overhead and non-streaming resources normal variation.
 	// It's hard to know how much temp memory and allocator overhead is actually in AllocatedMemorySize as it is platform specific.
 	// We handle it by not using all memory available. If temp memory and memory margin values are effectively bigger than the actual used values, the pool will stabilize.
-	const int64 AvailableMemoryForStreaming =  PraticalPoolSize - (AllocatedMemory - MemoryUsed);
-
 	if (AvailableMemoryForStreaming < MemoryBudget)
 	{
 		// Reduce size immediately to avoid taking more memory.
-		MemoryBudget = AvailableMemoryForStreaming;
+		MemoryBudget = FMath::Max<int64>(AvailableMemoryForStreaming, 0);
 	}
 	else if (AvailableMemoryForStreaming - MemoryBudget > TempMemoryBudget + MemoryMargin)
 	{
@@ -227,8 +235,8 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 			// Only consider non deleted textures (can change any time).
 			if (!StreamingTexture.Texture) continue;
 
-			// In editor, forced stream in and terrain should never have reduced mips as they can be edited.
-			if (GIsEditor && (StreamingTexture.bIsTerrainTexture || StreamingTexture.bForceFullyLoadHeuristic)) continue;
+			// Ignore textures for which we are not allowed to reduce resolution.
+			if (!StreamingTexture.IsMaxResolutionAffectedByGlobalBias()) continue;
 
 			// Ignore texture that can't drop any mips
 			if (StreamingTexture.BudgetedMips > StreamingTexture.MinAllowedMips)
@@ -246,14 +254,8 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 			// Drop Max Resolution until in budget.
 			//*************************************
 
-#if UE_BUILD_SHIPPING
-			// In shipping there are no limits to the persistent bias, to accommodate different VRAM configs.
-			const int32 MaxPerTextureMipBias = GMaxTextureMipCount;
-#else
-			const int32 MaxPerTextureMipBias = Settings.MaxExpectedPerTextureMipBias();
-#endif
 			// When using mip bias per texture, we first reduce the maximum resolutions (if used) in order to fit.
-			for (int32 NumDroppedMips = 0; NumDroppedMips < MaxPerTextureMipBias && MemoryBudgeted > MemoryBudget && !IsAborted(); ++NumDroppedMips)
+			for (int32 NumDroppedMips = 0; NumDroppedMips < Settings.GlobalMipBias && MemoryBudgeted > MemoryBudget && !IsAborted(); ++NumDroppedMips)
 			{
 				const int64 PreviousMemoryBudgeted = MemoryBudgeted;
 
@@ -270,8 +272,6 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 						PrioritizedTextures[PriorityIndex] = INDEX_NONE;
 						continue;
 					}
-
-					if (!StreamingTexture.IsMaxResolutionAffectedByGlobalBias()) continue;
 
 					// If the texture requires a high resolution mip, consider dropping it. 
 					// When considering dropping the first mip, only textures using the first mip will drop their resolution, 
@@ -442,7 +442,8 @@ void FAsyncTextureStreamingTask::UpdateLoadAndCancelationRequests_Async(int64 Me
 		int32 TextureIndex = PrioritizedTextures[PriorityIndex];
 		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
 
-		if (StreamingTexture.bInFlight && !StreamingTexture.bCancelRequestAttempted)
+		// If there is a pending update with no cancelation request
+		if (StreamingTexture.bInFlight && StreamingTexture.RequestedMips != StreamingTexture.ResidentMips)
 		{
 			// If there is a pending load that attempts to load unrequired data (by at least 2 mips), 
 			// or if there is a pending unload that attempts to unload required data, try to cancel it.
@@ -588,7 +589,7 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 		Stats.NonStreamingMips -= ResidentSize;
 
 		// All persistent mip bias bigger than the expected is considered overbudget.
-		const int32 OverBudgetBias = FMath::Max<int32>(0, StreamingTexture.BudgetMipBias - Settings.MaxExpectedPerTextureMipBias());
+		const int32 OverBudgetBias = FMath::Max<int32>(0, StreamingTexture.BudgetMipBias - Settings.GlobalMipBias);
 		Stats.OverBudget += StreamingTexture.GetSize(StreamingTexture.MaxAllowedMips + OverBudgetBias) - MaxSize;
 
 		const int64 UsedSize = FMath::Min3<int64>(RequiredSize, BudgetedSize, ResidentSize);

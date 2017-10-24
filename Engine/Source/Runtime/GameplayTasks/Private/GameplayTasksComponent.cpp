@@ -113,7 +113,10 @@ void UGameplayTasksComponent::OnGameplayTaskDeactivated(UGameplayTask& Task)
 
 	if (bIsFinished)
 	{
-		KnownTasks.RemoveSingleSwap(&Task);
+		// using RemoveSwap rather than RemoveSingleSwap since a Task can be added
+		// to KnownTasks both when activating as well as unpausing
+		// while removal happens only once. It's cheaper to handle it here.
+		KnownTasks.RemoveSwap(&Task);
 	}
 
 	if (Task.IsSimulatedTask())

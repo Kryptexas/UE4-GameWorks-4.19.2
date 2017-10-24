@@ -85,6 +85,7 @@ public:
 	}
 
 	virtual bool OnRequestClose() override;
+	virtual bool CanFindInContentBrowser() const override;
 
 public:
 

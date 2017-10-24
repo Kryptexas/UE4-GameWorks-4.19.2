@@ -7,6 +7,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
 #include "Sound/SoundWaveProcedural.h"
+#include "AudioMixerTypes.h"
 
 #include "SynthComponent.generated.h"
 
@@ -25,11 +26,15 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 
 	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels);
 
+	/** Begin USoundWave */
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
+	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
+	/** End USoundWave */
 
 protected:
 	USynthComponent* OwningSynthComponent;
-	TArray<int16> GeneratedPCMData;
+	TArray<float> FloatBuffer;
+	bool bAudioMixer;
 };
 
 UCLASS(ClassGroup = Synth, hidecategories = (Object, ActorComponent, Physics, Rendering, Mobility, LOD))
@@ -108,10 +113,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Effects)
 	USoundEffectSourcePresetChain* SourceEffectChain;
 
-	/** The default send level to the master rerverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
-	float DefaultMasterReverbSendAmount;
-
 	/** Submix this sound belongs to */
 	UPROPERTY(EditAnywhere, Category = Effects)
 	USoundSubmix* SoundSubmix;
@@ -119,6 +120,16 @@ public:
 	/** An array of submix sends. Audio from this sound will send a portion of its audio to these effects.  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
+	/** Whether or not this sound plays when the game is paused in the UI */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+	uint8 bIsUISound : 1;
+
+	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. */
+	void Initialize();
+
+	/** Retrieves this synth component's audio component. */
+	UAudioComponent* GetAudioComponent();
 
 protected:
 
@@ -135,13 +146,16 @@ protected:
 	virtual void OnStop() {}
 
 	// Called when more audio is needed to be generated
-	virtual void OnGenerateAudio(TArray<float>& OutAudio) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
+	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
 
 	// Called by procedural sound wave
-	void OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData);
+	void OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSamples);
 
 	// Gets the audio device associated with this synth component
-	FAudioDevice* GetAudioDevice() { return AudioComponent->GetAudioDevice(); }
+	FAudioDevice* GetAudioDevice() { return AudioComponent ? AudioComponent->GetAudioDevice() : nullptr; }
+
+	// Creates the audio component if it hasn't already been created yet
+	void CreateAudioComponent();
 
 	// Can be set by the derived class, defaults to 2
 	int32 NumChannels;
@@ -155,8 +169,6 @@ private:
 	UAudioComponent* AudioComponent;
 
 	void PumpPendingMessages();
-
-	TArray<float> AudioFloatData;
 
 #if SYNTH_GENERATOR_TEST_TONE
 	Audio::FSineOsc TestSineLeft;

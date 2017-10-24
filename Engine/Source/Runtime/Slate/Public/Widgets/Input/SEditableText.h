@@ -16,6 +16,7 @@
 #include "Styling/SlateWidgetStyleAsset.h"
 #include "Framework/SlateDelegates.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/Text/TextLayout.h"
 #include "Widgets/Text/ISlateEditableTextWidget.h"
 
 class FActiveTimerHandle;
@@ -39,6 +40,7 @@ public:
 	SLATE_BEGIN_ARGS( SEditableText )
 		: _Text()
 		, _HintText()
+		, _SearchText()
 		, _Style(&FCoreStyle::Get().GetWidgetStyle< FEditableTextStyle >("NormalEditableText"))
 		, _Font()
 		, _ColorAndOpacity()
@@ -68,6 +70,9 @@ public:
 
 		/** The text that appears when there is nothing typed into the search box */
 		SLATE_ATTRIBUTE( FText, HintText )
+
+		/** Text to search for (a new search is triggered whenever this text changes) */
+		SLATE_ATTRIBUTE( FText, SearchText )
 
 		/** The style of the text block, which dictates the font, color */
 		SLATE_STYLE_ARGUMENT( FEditableTextStyle, Style )
@@ -104,6 +109,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** How should the value be justified in the editable text field. */
+		SLATE_ATTRIBUTE(ETextJustify::Type, Justification)
 
 		/** Whether the context menu can be opened  */
 		SLATE_ATTRIBUTE(bool, AllowContextMenu)
@@ -186,6 +194,12 @@ public:
 	
 	/** Get the text that appears when there is no text in the text box */
 	FText GetHintText() const;
+
+	/** Set the text that is currently being searched for (if any) */
+	void SetSearchText(const TAttribute<FText>& InSearchText);
+
+	/** Get the text that is currently being searched for (if any) */
+	FText GetSearchText() const;
 
 	/** See the IsReadOnly attribute */
 	void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
@@ -284,6 +298,12 @@ public:
 
 	/** Scroll to the given location in the document (without moving the cursor) */
 	void ScrollTo(const FTextLocation& NewLocation);
+
+	/** Begin a new text search (this is called automatically when the bound search text changes) */
+	void BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase = ESearchCase::IgnoreCase, const bool InReverse = false);
+
+	/** Advance the current search to the next match (does nothing if not currently searching) */
+	void AdvanceSearch(const bool InReverse = false);
 
 protected:
 	//~ Begin SWidget Interface

@@ -506,6 +506,7 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 	{
 	case EMultiBoxType::MenuBar:
 	case EMultiBoxType::ToolBar:
+	case EMultiBoxType::ToolMenuBar:
 		{
 			HorizontalBox->AddSlot()
 			.AutoWidth()
@@ -625,6 +626,7 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 	{
 	case EMultiBoxType::MenuBar:
 	case EMultiBoxType::ToolBar:
+	case EMultiBoxType::ToolMenuBar:
 		{
 				MainWidget = HorizontalBox = ClippedHorizontalBox = SNew( SClippingHorizontalBox )
 					.BackgroundBrush(BackgroundBrush)
@@ -776,6 +778,7 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 	{
 	case EMultiBoxType::MenuBar:
 	case EMultiBoxType::ToolBar:
+	case EMultiBoxType::ToolMenuBar:
 		{
 			RootBorder =
 				SNew( SBorder )

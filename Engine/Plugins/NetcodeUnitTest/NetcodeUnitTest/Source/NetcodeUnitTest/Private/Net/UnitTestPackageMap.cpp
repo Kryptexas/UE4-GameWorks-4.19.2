@@ -5,12 +5,12 @@
 #include "GameFramework/Actor.h"
 
 #include "MinimalClient.h"
-#include "Net/UnitTestNetConnection.h"
 
 
 /**
- * Default constructor
+ * UUnitTestPackageMap
  */
+
 UUnitTestPackageMap::UUnitTestPackageMap(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bWithinSerializeNewActor(false)
@@ -57,20 +57,19 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 		// this is the first place we know the type of a replicated actor (in an actor channel or otherwise), but BEFORE it is spawned
 		else if ((GIsInitializingActorChan || bPendingArchetypeSpawn) && InClass == UObject::StaticClass() && Obj != nullptr)
 		{
-			UUnitTestNetConnection* UnitConn = Cast<UUnitTestNetConnection>(GActiveReceiveUnitConnection);
-			bool bAllowActor = false;
+			bool bBlockActor = true;
 
-			if (UnitConn != nullptr)
+			if (MinClient == nullptr)
 			{
-				UMinimalClient* MinClient = UnitConn->MinClient;
-
-				if (MinClient != nullptr && MinClient->RepActorSpawnDel.IsBound())
-				{
-					bAllowActor = MinClient->RepActorSpawnDel.Execute(Obj->GetClass(), GIsInitializingActorChan);
-				}
+				MinClient = UMinimalClient::GetMinClientFromConn(GActiveReceiveUnitConnection);
 			}
 
-			if (!bAllowActor)
+			if (MinClient != nullptr)
+			{
+				MinClient->RepActorSpawnDel.ExecuteIfBound(Obj->GetClass(), GIsInitializingActorChan, bBlockActor);
+			}
+
+			if (bBlockActor)
 			{
 				UE_LOG(LogUnitTest, Log,
 						TEXT("Blocking replication/spawning of actor on client (add to NotifyAllowNetActor if required)."));
@@ -80,9 +79,6 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 						*Obj->GetFullName());
 
 				Obj = nullptr;
-
-				// NULL the control channel, to break code that would disconnect the client (control chan is recovered, in ReceivedBunch)
-				Connection->Channels[0] = nullptr;
 			}
 		}
 	}

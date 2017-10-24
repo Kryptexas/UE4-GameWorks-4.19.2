@@ -859,39 +859,7 @@ void UAnimCompress::FilterTrivialKeys(
 
 void UAnimCompress::FilterAnimRotationOnlyKeys(TArray<FTranslationTrack> & PositionTracks, UAnimSequence* AnimSeq)
 {
-#if( REDUCE_ANIMROTATIONONLY_TRACKS )
 
-	USkeleton* Skeleton = AnimSeq->Skeleton;
-	if (!Skeleton)
-	{
-		return;
-	}
-
-	// Go through all tracks
-	for(int32 TrackIndex=0; TrackIndex<PositionTracks.Num(); TrackIndex++)
-	{
-		FTranslationTrack & Track = PositionTracks[TrackIndex];
-
-		// We only care if we have more than 1 key. Can't reduce otherwise.
-		if( Track.Times.Num() > 1 )
-		{
-			int32 BoneTreeIndex = AnimSeq->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
-			FName const BoneName = Skeleton->GetBoneName(BoneTreeIndex);
-			const bool bReduceTranslationTrack = (Skeleton->GetBoneTranslationRetargetingMode(BoneTreeIndex) == EBoneTranslationRetargetingMode::Skeleton);
-
-			// If it's a bAnimRotationOnly track, then reduce it to one key.
-			if( bReduceTranslationTrack )	
-			{
-				Track.PosKeys.RemoveAt(1, Track.PosKeys.Num()- 1);
-				Track.PosKeys.Shrink();
-				Track.Times.RemoveAt(1, Track.Times.Num()- 1);
-				Track.Times.Shrink();
-				Track.Times[0] = 0.0f;
-			}
-		}
-	}
-
-#endif
 }
 
 

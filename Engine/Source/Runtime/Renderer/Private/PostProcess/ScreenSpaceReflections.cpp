@@ -179,20 +179,21 @@ public:
 		SSRParams.Bind(Initializer.ParameterMap, TEXT("SSRParams"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, uint32 SSRQuality, bool EnableDiscard)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, uint32 SSRQuality, bool EnableDiscard)
 	{
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		{
 			FLinearColor Value = ComputeSSRParams(Context, SSRQuality, EnableDiscard);
 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, SSRParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, SSRParams, Value);
 		}
 	}
 
@@ -249,20 +250,21 @@ public:
 		HZBUvFactorAndInvFactor.Bind(Initializer.ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		{
 			FLinearColor Value = ComputeSSRParams(Context, SSRQuality, false);
 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, SSRParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, SSRParams, Value);
 		}
 
 		{
@@ -277,7 +279,7 @@ public:
 				1.0f / HZBUvFactor.Y
 				);
 			
-			SetShaderValue(Context.RHICmdList, ShaderRHI, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
+			SetShaderValue(RHICmdList, ShaderRHI, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
 		}
 	}
 
@@ -400,7 +402,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		RHICmdList.SetStencilRef(0x80);
 
 		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context, SSRQuality, true);	
+		PixelShader->SetParameters(Context.RHICmdList, Context, SSRQuality, true);
 	
 		DrawPostProcessPass(
 			Context.RHICmdList,
@@ -455,7 +457,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
 				SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit); \
 				VertexShader->SetParameters(Context); \
-				PixelShader->SetParameters(Context); \
+				PixelShader->SetParameters(RHICmdList, Context); \
 			}; \
 			break
 

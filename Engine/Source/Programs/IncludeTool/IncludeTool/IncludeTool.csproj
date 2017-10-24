@@ -64,25 +64,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\Formatter.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\Formatter.cs">
       <Link>FastJSON\Formatter.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\Getters.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\Getters.cs">
       <Link>FastJSON\Getters.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\JSON.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\JSON.cs">
       <Link>FastJSON\JSON.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\JsonParser.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\JsonParser.cs">
       <Link>FastJSON\JsonParser.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\JsonSerializer.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\JsonSerializer.cs">
       <Link>FastJSON\JsonSerializer.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\Reflection.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\Reflection.cs">
       <Link>FastJSON\Reflection.cs</Link>
     </Compile>
-    <Compile Include="..\..\UnrealBuildTool\fastJSON\SafeDictionary.cs">
+    <Compile Include="..\..\DotNETCommon\DotNETUtilities\FastJSON\SafeDictionary.cs">
       <Link>FastJSON\SafeDictionary.cs</Link>
     </Compile>
     <Compile Include="BuildTarget.cs" />

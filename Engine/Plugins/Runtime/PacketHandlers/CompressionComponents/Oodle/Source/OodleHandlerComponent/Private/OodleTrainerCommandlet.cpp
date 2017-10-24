@@ -104,7 +104,7 @@ int32 UOodleTrainerCommandlet::Main(const FString& Params)
 				FString OutputDictionaryFile = Tokens[1];
 				if (FPaths::IsRelative(OutputDictionaryFile))
 				{
-					OutputDictionaryFile = FPaths::Combine(*GOodleContentDir, *FString::Printf(TEXT("%s%s.udic"), FApp::GetGameName(), *OutputDictionaryFile));
+					OutputDictionaryFile = FPaths::Combine(*GOodleContentDir, *FString::Printf(TEXT("%s%s.udic"), FApp::GetProjectName(), *OutputDictionaryFile));
 				}
 
 				FString FilenameFilter = Tokens[2];
@@ -468,7 +468,7 @@ bool UOodleTrainerCommandlet::GenerateDictionary(bool bIsInput, int32 Changelist
 	{
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("Generating dictionaries for %s folder"), *InputOrOutput);
 
-		FString OutDic = FPaths::Combine(*GOodleContentDir, *FString::Printf(TEXT("%s%s.udic"), FApp::GetGameName(), *InputOrOutput));
+		FString OutDic = FPaths::Combine(*GOodleContentDir, *FString::Printf(TEXT("%s%s.udic"), FApp::GetProjectName(), *InputOrOutput));
 
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("Generating dictionary for folder '%s', outputting to: %s"), *InputOrOutput, *OutDic);
 
@@ -691,7 +691,7 @@ bool FOodleDictionaryGenerator::InitGenerator()
 	// Adjust non-absolute directories, so they are relative to the game directory
 	if (FPaths::IsRelative(OutputDictionaryFile))
 	{
-		OutputDictionaryFile = FPaths::Combine(*FPaths::GameDir(), TEXT("Server"), *OutputDictionaryFile);
+		OutputDictionaryFile = FPaths::Combine(*FPaths::ProjectDir(), TEXT("Server"), *OutputDictionaryFile);
 	}
 
 	bSuccess = UOodleTrainerCommandlet::VerifyOutputFile(OutputDictionaryFile);

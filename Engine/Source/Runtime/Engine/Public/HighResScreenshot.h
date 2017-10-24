@@ -8,6 +8,8 @@ class FSceneViewport;
 class IImageWrapper;
 class UMaterial;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogHighResScreenshot, Log, All);
+
 struct ENGINE_API FHighResScreenshotConfig
 {
 	static const float MinResolutionMultipler;

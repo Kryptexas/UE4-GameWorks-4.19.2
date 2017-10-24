@@ -23,14 +23,6 @@ struct CORE_API FGenericPlatformOutputDevices
 		return nullptr; // normally only used for dedicated servers
 	}
 
-	static FOutputDeviceConsole*		GetLogConsole()
-	{
-		return nullptr; // normally only used for PC
-	}
-
-	static FOutputDeviceError*			GetError();
-	static FFeedbackContext*			GetWarn();
-
 protected:
 	static TCHAR CachedAbsoluteFilename[1024];
 };

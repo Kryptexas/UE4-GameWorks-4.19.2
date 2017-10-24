@@ -260,6 +260,9 @@ public:
 	 */
 	virtual void UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) = 0;
 
+	virtual void BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem) {}
+
+	virtual void UnbindInputMethodSystem() {}
 
 	/**
 	 * Get current load error.

@@ -16,6 +16,10 @@
 #include "Modules/ModuleManager.h"
 #include "VulkanPipelineState.h"
 
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "VulkanRHI"
 
 #ifdef VK_API_VERSION
@@ -42,11 +46,13 @@ ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static TAutoConsoleVariable<int32> GRHIThreadCvar(
+TAutoConsoleVariable<int32> GRHIThreadCvar(
 	TEXT("r.Vulkan.RHIThread"),
 	1,
-	TEXT("1 to use RHI Thread")
-	);
+	TEXT("0 to only use Render Thread\n")
+	TEXT("1 to use ONE RHI Thread\n")
+	TEXT("2 to use multiple RHI Thread\n")
+);
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
 VkAllocationCallbacks GCallbacks;
@@ -222,8 +228,33 @@ static bool LoadVulkanLibrary()
 	return GVulkanDLLModule != nullptr;
 }
 
+// Annoyingly, some functions do not have static bindings
+namespace VulkanRHI
+{
+	PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR = nullptr;
+}
+
 static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
 {
+	if (!GVulkanDLLModule)
+	{
+		return false;
+	}
+
+	PFN_vkGetInstanceProcAddr GetInstanceProcAddr =  (PFN_vkGetInstanceProcAddr) FPlatformProcess::GetDllExport(GVulkanDLLModule, TEXT("vkGetInstanceProcAddr"));
+
+	if (!GetInstanceProcAddr)
+	{
+		return false;
+	}
+
+#pragma warning(push)
+#pragma warning(disable : 4191) // warning C4191: 'type cast': unsafe conversion
+
+	VulkanRHI::GVkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR) GetInstanceProcAddr(inInstance, "vkGetPhysicalDeviceProperties2KHR");
+
+#pragma warning(pop) // restore 4191
+
 	return true;
 }
 
@@ -276,9 +307,10 @@ FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequest
 IMPLEMENT_MODULE(FVulkanDynamicRHIModule, VulkanRHI);
 
 
-FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate)
+FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, FVulkanQueue* InQueue, bool bInIsImmediate)
 	: RHI(InRHI)
 	, Device(InDevice)
+	, Queue(InQueue)
 	, bIsImmediate(bInIsImmediate)
 	, bSubmitAtNextSafePoint(false)
 	, bAutomaticFlushAfterComputeShader(true)
@@ -295,13 +327,17 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
 	, FrameCounter(0)
+	, GpuProfiler(this, InDevice)
 {
+	FrameTiming = new FVulkanGPUTiming(this, InDevice);
+	FrameTiming->Initialize();
+
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingGfxState = new FVulkanPendingGfxState(Device);
-	PendingComputeState = new FVulkanPendingComputeState(Device);
+	PendingGfxState = new FVulkanPendingGfxState(Device, *this);
+	PendingComputeState = new FVulkanPendingComputeState(Device, *this);
 
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
@@ -342,6 +378,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	, DumpMemoryCmd(nullptr)
 #endif
 #if VULKAN_HAS_DEBUGGING_ENABLED
+	, bSupportsDebugCallbackExt(false)
 	, MsgCallback(VK_NULL_HANDLE)
 #endif
 	, PresentCount(0)
@@ -426,7 +463,7 @@ void FVulkanDynamicRHI::Shutdown()
 	delete Device;
 	Device = nullptr;
 
-#if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	RemoveDebugLayerCallback();
 #endif
 
@@ -479,10 +516,14 @@ void FVulkanDynamicRHI::CreateInstance()
 	InstInfo.enabledExtensionCount = InstanceExtensions.Num();
 	InstInfo.ppEnabledExtensionNames = InstInfo.enabledExtensionCount > 0 ? (const ANSICHAR* const*)InstanceExtensions.GetData() : nullptr;
 	
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		InstInfo.enabledLayerCount = (GValidationCvar.GetValueOnAnyThread() > 0) ? InstanceLayers.Num() : 0;
-		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
-	#endif
+	InstInfo.enabledLayerCount = InstanceLayers.Num();
+	InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
+#if VULKAN_HAS_DEBUGGING_ENABLED
+	bSupportsDebugCallbackExt = InstanceExtensions.ContainsByPredicate([](const ANSICHAR* Key)
+		{ 
+			return Key && !FCStringAnsi::Strcmp(Key, VK_EXT_DEBUG_REPORT_EXTENSION_NAME); 
+		});
+#endif
 
 	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
@@ -514,7 +555,7 @@ void FVulkanDynamicRHI::CreateInstance()
 			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
 	}
 
-#if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	SetupDebugLayerCallback();
 #endif
 }
@@ -538,8 +579,10 @@ void FVulkanDynamicRHI::InitInstance()
 
 		GRHISupportsAsyncTextureCreation = false;
 
-		bool bDeviceSupportsGeometryShaders = true;
-		bool bDeviceSupportsTessellation = true;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+		// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
+		uint64 HmdGraphicsAdapterLuid  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapterLuid() : 0;
+#endif
 
 		{
 			CreateInstance();
@@ -552,32 +595,76 @@ void FVulkanDynamicRHI::InitInstance()
 			PhysicalDevices.AddZeroed(GpuCount);
 			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkEnumeratePhysicalDevices(Instance, &GpuCount, PhysicalDevices.GetData()));
 
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+			FVulkanDevice* HmdDevice = nullptr;
+			uint32 HmdDeviceIndex = 0;
+#endif
+			FVulkanDevice* DiscreteDevice = nullptr;
+			uint32 DiscreteDeviceIndex = 0;
+
 			UE_LOG(LogVulkanRHI, Display, TEXT("Found %d device(s)"), GpuCount);
 			for (uint32 Index = 0; Index < GpuCount; ++Index)
 			{
 				FVulkanDevice* NewDevice = new FVulkanDevice(PhysicalDevices[Index]);
 				Devices.Add(NewDevice);
 
-				bool bCouldBeMainDevice = NewDevice->QueryGPU(Index);
-				if (Index == GpuCount - 1 || bCouldBeMainDevice)
-				{
-					NewDevice->InitGPU(Index);
-					Device = NewDevice;
+				bool bIsDiscrete = NewDevice->QueryGPU(Index);
 
-					bDeviceSupportsGeometryShaders = bDeviceSupportsGeometryShaders && NewDevice->GetFeatures().geometryShader;
-					bDeviceSupportsTessellation = bDeviceSupportsTessellation && NewDevice->GetFeatures().tessellationShader;
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+				if (!HmdDevice && HmdGraphicsAdapterLuid != 0 && 
+					NewDevice->GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2 && 
+					FMemory::Memcmp(&HmdGraphicsAdapterLuid, &NewDevice->GetDeviceIdProperties().deviceLUID, VK_LUID_SIZE_KHR) == 0)
+				{
+					HmdDevice = NewDevice;
+					HmdDeviceIndex = Index;
+				}
+#endif
+
+				if (!DiscreteDevice && bIsDiscrete)
+				{
+					DiscreteDevice = NewDevice;
+					DiscreteDeviceIndex = Index;
 				}
 			}
 
+			uint32 DeviceIndex;
+
+#if VULKAN_ENABLE_DESKTOP_HMD_SUPPORT
+			if (HmdDevice)
+			{
+				Device = HmdDevice;
+				DeviceIndex = HmdDeviceIndex;
+			} 
+			else
+#endif
+			if (DiscreteDevice)
+			{
+				Device = DiscreteDevice;
+				DeviceIndex = DiscreteDeviceIndex;
+			}
+			else
+			{
+				Device = Devices[0];
+				DeviceIndex = 0;
+			}
+
 			check(Device);
+			Device->InitGPU(DeviceIndex);
 		}
+
+		bool bDeviceSupportsGeometryShaders = Device->GetFeatures().geometryShader != 0;
+		bool bDeviceSupportsTessellation = Device->GetFeatures().tessellationShader != 0;
 
 		const VkPhysicalDeviceProperties& Props = Device->GetDeviceProperties();
 
 		// Initialize the RHI capabilities.
 		GRHIVendorId = Device->GetDeviceProperties().vendorID;
 		GRHIAdapterName = ANSI_TO_TCHAR(Props.deviceName);
-		if (IsRHIDeviceNVIDIA())
+		if (PLATFORM_ANDROID)
+		{
+			GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
+		}
+		else if (IsRHIDeviceNVIDIA())
 		{
 			union UNvidiaDriverVersion
 			{
@@ -604,15 +691,11 @@ void FVulkanDynamicRHI::InitInstance()
 
 			// Ignore GRHIAdapterInternalDriverVersion for now as the device name doesn't match
 		}
-		else if (PLATFORM_ANDROID)
-		{
-			GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
-		}
 		GRHISupportsFirstInstance = true;
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
-		GSupportsTimestampRenderQueries = false;	// #todo-rco
+		GSupportsTimestampRenderQueries = !PLATFORM_ANDROID;
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
@@ -620,6 +703,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsRHIThread = false;
 #else
 		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;
+		GRHISupportsParallelRHIExecute = GRHIThreadCvar->GetInt() > 1;
 #endif
 
 		GSupportsVolumeTextureRendering = true;
@@ -634,14 +718,17 @@ void FVulkanDynamicRHI::InitInstance()
 		GMaxTextureMipCount = FPlatformMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
 		GMaxCubeTextureDimensions = Props.limits.maxImageDimensionCube;
 		GMaxTextureArrayLayers = Props.limits.maxImageArrayLayers;
-		GMaxVulkanTextureFilterAnisotropic = Props.limits.maxSamplerAnisotropy;
 		GRHISupportsBaseVertexIndex = true;
 		GSupportsSeparateRenderTargetBlendState = true;
+
+		GSupportsDepthFetchDuringDepthTest = !PLATFORM_ANDROID;
 
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 && bDeviceSupportsGeometryShaders) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5 && bDeviceSupportsTessellation) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
+
+		GRHIRequiresRenderTargetForPixelShaderUAVs = true;
 
 		GDynamicRHI = this;
 
@@ -659,6 +746,9 @@ void FVulkanDynamicRHI::InitInstance()
 		FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("Vulkan"));
 
 		GProjectionSignY = 1.0f;
+
+		// Release the early HMD interface used to query extra extensions - if any was used
+		HMDVulkanExtensions = nullptr;
 
 		GIsRHIInitialized = true;
 
@@ -696,9 +786,7 @@ void FVulkanCommandListContext::RHIBeginFrame()
 	PendingGfxState->GetGlobalUniformPool().BeginFrame();
 	PendingComputeState->GetGlobalUniformPool().BeginFrame();
 
-#if 0
-	Device->GPUProfiler.BeginFrame(this);
-#endif
+	GpuProfiler.BeginFrame();
 }
 
 
@@ -741,30 +829,27 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 	WriteEndTimestamp(CmdBuffer);
 
-	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetGraphicsQueue(), bLockToVsync);
+	bool bNativePresent = Viewport->Present(CmdBuffer, Queue, Device->GetPresentQueue(), bLockToVsync);
 	if (bNativePresent)
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
 	}
-#if VULKAN_USE_NEW_GFX_STATE
-#else
-	OLDPendingGfxState->InitFrame();
-#endif
 
 	RHI->DrawingViewport = nullptr;
 
+	ReadAndCalculateGPUFrameTime();
 	WriteBeginTimestamp(CommandBufferManager->GetActiveCmdBuffer());
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
 	check(IsImmediate());
-
-	ReadAndCalculateGPUFrameTime();
-
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame()")));
 
-	Device->GetStagingManager().ProcessPendingFree();
+	
+	GetGPUProfiler().EndFrame();
+
+	Device->GetStagingManager().ProcessPendingFree(false, true);
 	Device->GetResourceHeapManager().ReleaseFreedPages();
 
 
@@ -798,9 +883,7 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 		}
 #endif
 
-#if 0
-		VulkanRHI::GManager.GPUProfilingData.PushEvent(Name, Color);
-#endif
+		GpuProfiler.PushEvent(Name, Color);
 	}
 }
 
@@ -820,9 +903,7 @@ void FVulkanCommandListContext::RHIPopEvent()
 		}
 #endif
 
-#if 0
-		VulkanRHI::GManager.GPUProfilingData.PopEvent();
-#endif
+		GpuProfiler.PopEvent();
 	}
 
 	check(EventStack.Num() > 0);
@@ -860,8 +941,18 @@ IRHICommandContext* FVulkanDynamicRHI::RHIGetDefaultContext()
 	return &Device->GetImmediateContext();
 }
 
+IRHIComputeContext* FVulkanDynamicRHI::RHIGetDefaultAsyncComputeContext()
+{
+	return &Device->GetImmediateComputeContext();
+}
+
 IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
+	if (GRHIThreadCvar.GetValueOnAnyThread() > 1)
+	{
+		return new FVulkanCommandContextContainer(Device);
+	}
+
 	return nullptr;
 }
 
@@ -870,19 +961,32 @@ void FVulkanDynamicRHI::RHISubmitCommandsAndFlushGPU()
 	Device->SubmitCommandsAndFlushGPU();
 }
 
-FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromVkImage(uint8 Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 Flags)
+FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, VkImage Resource, uint32 Flags)
 {
-	return new FVulkanBackBuffer(*Device, (EPixelFormat)Format, SizeX, SizeY, Image, Flags);
+	return new FVulkanTexture2D(*Device, Format, SizeX, SizeY, NumMips, NumSamples, Resource, Flags, FRHIResourceCreateInfo());
 }
 
-void FVulkanDynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+FTexture2DArrayRHIRef FVulkanDynamicRHI::RHICreateTexture2DArrayFromResource(EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 ArraySize, uint32 NumMips, VkImage Resource, uint32 Flags)
 {
-	FVulkanTexture2D* DestTexture2D = static_cast<FVulkanTexture2D*>(DestTexture2DRHI);
-	FVulkanTexture2D* SrcTexture2D = static_cast<FVulkanTexture2D*>(SrcTexture2DRHI);
+	return new FVulkanTexture2DArray(*Device, Format, SizeX, SizeY, ArraySize, NumMips, Resource, Flags, nullptr, FClearValueBinding());
+}
 
-	if (DestTexture2D && SrcTexture2D)
+FTextureCubeRHIRef FVulkanDynamicRHI::RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, VkImage Resource, uint32 Flags)
+{
+	return new FVulkanTextureCube(*Device, Format, Size, bArray, ArraySize, NumMips, Resource, Flags, nullptr, FClearValueBinding());
+}
+
+void FVulkanDynamicRHI::RHIAliasTextureResources(FTextureRHIParamRef DestTextureRHI, FTextureRHIParamRef SrcTextureRHI)
+{
+	if (DestTextureRHI && SrcTextureRHI)
 	{
-		// UNDONE DestTexture2D->AliasResources(SrcTexture2D);
+		FVulkanTextureBase* DestTextureBase = (FVulkanTextureBase*) DestTextureRHI->GetTextureBaseRHI();
+		FVulkanTextureBase* SrcTextureBase = (FVulkanTextureBase*) SrcTextureRHI->GetTextureBaseRHI();
+
+		if (DestTextureBase && SrcTextureBase)
+		{
+			DestTextureBase->AliasTextureResources(SrcTextureBase);
+		}
 	}
 }
 
@@ -1103,52 +1207,62 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 	}
 }
 
-void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {
+	Offset = InOffset;
+	Size = InSize;
+	check(Format != PF_Unknown);
+	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
+	check(FormatInfo.Supported);
+
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
 	ViewInfo.buffer = Buffer.GetBufferHandle();
-
-	check(Format != PF_Unknown);
-	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
-	check(FormatInfo.Supported);
 	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
-
-	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
 	ViewInfo.offset = Offset;
 	ViewInfo.range = Size;
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	INC_DWORD_STAT(STAT_VulkanNumBufferViews);
 }
 
-void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {
+	check(Format != PF_Unknown);
+	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
+	check(FormatInfo.Supported);
+	Create((VkFormat)FormatInfo.PlatformFormat, Buffer, InOffset, InSize);
+}
+
+
+void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 InOffset, uint32 InSize)
+{
+	Offset = InOffset;
+	Size = InSize;
+	check(Format != VK_FORMAT_UNDEFINED);
+
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
 	ViewInfo.buffer = Buffer->GetHandle();
-
-	check(Format != PF_Unknown);
-	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
-	check(FormatInfo.Supported);
-	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
-
-	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
+	ViewInfo.format = Format;
 	ViewInfo.offset = Offset;
 	ViewInfo.range = Size;
 	Flags = Buffer->GetBufferUsageFlags() & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	INC_DWORD_STAT(STAT_VulkanNumBufferViews);
 }
 
 void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
+		DEC_DWORD_STAT(STAT_VulkanNumBufferViews);
 		Device->GetDeferredDeletionQueue().EnqueueResource(FDeferredDeletionQueue::EType::BufferView, View);
 		View = VK_NULL_HANDLE;
 	}
@@ -1213,8 +1327,6 @@ void VulkanSetImageLayout(
 	VkImageLayout NewLayout,
 	const VkImageSubresourceRange& SubresourceRange)
 {
-	check(CmdBuffer != VK_NULL_HANDLE);
-
 	VkImageMemoryBarrier ImageBarrier;
 	FMemory::Memzero(ImageBarrier);
 	ImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1228,23 +1340,10 @@ void VulkanSetImageLayout(
 	ImageBarrier.srcAccessMask = VulkanRHI::GetAccessMask(OldLayout);
 	ImageBarrier.dstAccessMask = VulkanRHI::GetAccessMask(NewLayout);
 
-	VkImageMemoryBarrier BarrierList[] ={ImageBarrier};
+	VkPipelineStageFlags SourceStages = VulkanRHI::GetStageFlags(OldLayout);
+	VkPipelineStageFlags DestStages = VulkanRHI::GetStageFlags(NewLayout);
 
-	VkPipelineStageFlags SourceStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-	VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-	if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-	{
-		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	}
-	else if (NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-	{
-		SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	}
-
-	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, BarrierList);
+	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
 }
 
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI)
@@ -1317,7 +1416,7 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 
 void FVulkanDynamicRHI::SavePipelineCache()
 {
-	FString CacheFile = FPaths::GameSavedDir() / TEXT("VulkanPSO.cache");
+	FString CacheFile = GetPipelineCacheFilename();
 
 	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->Save(CacheFile);

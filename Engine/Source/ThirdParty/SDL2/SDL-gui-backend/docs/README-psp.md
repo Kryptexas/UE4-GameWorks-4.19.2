@@ -1,5 +1,5 @@
-PSP
-======
+PSP
+======
 SDL port for the Sony PSP contributed by 
    Captian Lex 
 

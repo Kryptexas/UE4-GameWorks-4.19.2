@@ -1,9 +1,9 @@
-Availability:Docs
+Availability:Public
 Title:Contains Item
 Description:Checks to see if a Set contains an item.
 Crumbs:%ROOT%
 Parent:Engine/Blueprints/UserGuide/Sets/SetNodes
-Order:
+Order:4
 Version: 4.15
 Tags:Blueprints
 Type:reference

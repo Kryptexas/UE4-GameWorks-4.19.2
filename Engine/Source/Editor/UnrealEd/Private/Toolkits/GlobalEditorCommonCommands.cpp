@@ -32,7 +32,7 @@ void FGlobalEditorCommonCommands::RegisterCommands()
 
 	UI_COMMAND( SummonOpenAssetDialog, "Open Asset...", "Summons an asset picker", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::P) );
 	UI_COMMAND( SummonOpenAssetDialogAlternate, "Open Asset...", "Summons an asset picker", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Alt | EModifierKey::Shift, EKeys::O));
-	UI_COMMAND( FindInContentBrowser, "Find in Content Browser", "Summons the Content Browser and navigates to the selected asset", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::B));
+	UI_COMMAND( FindInContentBrowser, "Browse to Asset", "Browses to the associated asset and selects it in the most recently used Content Browser (summoning one if necessary)", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::B));
 	UI_COMMAND( ViewReferences, "Reference Viewer...", "Launches the reference viewer showing the selected assets' references", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift | EModifierKey::Alt, EKeys::R));
 	UI_COMMAND( ViewSizeMap, "Size Map...", "Displays an interactive map showing the approximate size of this asset and everything it references", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift | EModifierKey::Alt, EKeys::M));	// @todo sizemap: Make sure key is not used already
 	
@@ -73,7 +73,7 @@ void FGlobalEditorCommonCommands::OnPressedCtrlTab(TSharedPtr<FUICommandInfo> Tr
 		const FVector2D TabListSize(700.0f, 486.0f);
 
 		// Create the contents of the popup
-		TSharedRef<SWidget> ActualWidget = SNew(SGlobalTabSwitchingDialog, TabListSize, *TriggeringCommand->GetActiveChord());
+		TSharedRef<SWidget> ActualWidget = SNew(SGlobalTabSwitchingDialog, TabListSize, *TriggeringCommand->GetFirstValidChord());
 
 		OpenPopupMenu(ActualWidget, TabListSize);
 	}
@@ -93,16 +93,6 @@ void FGlobalEditorCommonCommands::OnSummonedAssetPicker()
 	MenuBuilder.EndSection();
 
 	OpenPopupMenu(MenuBuilder.MakeWidget(), AssetPickerSize);
-}
-
-TSharedPtr<SWindow> FGlobalEditorCommonCommands::OpenPopup(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize)
-{
-	TSharedPtr<IMenu> Menu = OpenPopupMenu(WindowContents, PopupDesiredSize);
-	if (Menu.IsValid())
-	{
-		return Menu->GetOwnedWindow();
-	}
-	return TSharedPtr<SWindow>();
 }
 
 TSharedPtr<IMenu> FGlobalEditorCommonCommands::OpenPopupMenu(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize)

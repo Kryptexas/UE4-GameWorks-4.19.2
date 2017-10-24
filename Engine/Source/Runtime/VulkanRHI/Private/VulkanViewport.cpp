@@ -118,7 +118,8 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 	FVulkanCommandBufferManager* CmdBufferManager = Context.GetCommandBufferManager();
 	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
 	check(CmdBuffer->IsOutsideRenderPass());
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::ColorAttachment, VulkanRHI::SetupImageSubresourceRange());
 
 	// Submit here so we can add a dependency with the acquired semaphore
 	CmdBuffer->End();
@@ -201,6 +202,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE)
 		{
 			// Cube always renders one face at a time
+			INC_DWORD_STAT(STAT_VulkanNumImageViews);
 			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, Texture->Surface.GetFullAspectMask(), Texture->Surface.PixelFormat, Texture->Surface.ViewFormat, MipIndex, 1, InRTInfo.ColorRenderTarget[Index].ArraySliceIndex, 1, true);
 		}
 		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_3D)
@@ -259,6 +261,13 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 
 	Extents.width = CreateInfo.width;
 	Extents.height = CreateInfo.height;
+
+	INC_DWORD_STAT(STAT_VulkanNumFrameBuffers);
+}
+
+FVulkanFramebuffer::~FVulkanFramebuffer()
+{
+	ensure(Framebuffer == VK_NULL_HANDLE);
 }
 
 void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
@@ -267,11 +276,14 @@ void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
 
 	for (int32 Index = 0; Index < AttachmentViewsToDelete.Num(); ++Index)
 	{
+		DEC_DWORD_STAT(STAT_VulkanNumImageViews);
 		Queue.EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ImageView, AttachmentViews[Index]);
 	}
 
 	Queue.EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Framebuffer, Framebuffer);
 	Framebuffer = VK_NULL_HANDLE;
+
+	DEC_DWORD_STAT(STAT_VulkanNumFrameBuffers);
 }
 
 bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
@@ -420,9 +432,9 @@ void FVulkanViewport::CreateSwapchain()
 
 			VkClearColorValue Color;
 			FMemory::Memzero(Color);
-			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), Images[Index], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::TransferDest, Range);
 			VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &Color, 1, &Range);
-			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), Images[Index], EImageLayoutBarrier::TransferDest, EImageLayoutBarrier::ColorAttachment, Range);
 		}
 	}
 
@@ -432,11 +444,8 @@ void FVulkanViewport::CreateSwapchain()
 	}
 }
 
-inline static void CopyImageToBackBuffer(const VkCommandBuffer& CmdBuffer, const VkImage& SrcSurface, const VkImage& DstSurface, int32 SizeX, int32 SizeY)
+inline static void CopyImageToBackBuffer(const VkCommandBuffer& CmdBuffer, bool bSourceReadOnly, const VkImage& SrcSurface, const VkImage& DstSurface, int32 SizeX, int32 SizeY)
 {
-	VkImageLayout SrcLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	VkImageLayout DstLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
 	VkImageSubresourceRange ResourceRange;
 	ResourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	ResourceRange.baseMipLevel = 0;
@@ -444,8 +453,8 @@ inline static void CopyImageToBackBuffer(const VkCommandBuffer& CmdBuffer, const
 	ResourceRange.baseArrayLayer = 0;
 	ResourceRange.layerCount = 1;
 
-	VulkanSetImageLayout(CmdBuffer, SrcSurface, SrcLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, ResourceRange);
-	VulkanSetImageLayout(CmdBuffer, DstSurface, DstLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, ResourceRange);
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer, SrcSurface, bSourceReadOnly ? EImageLayoutBarrier::PixelShaderRead : EImageLayoutBarrier::ColorAttachment, EImageLayoutBarrier::TransferSource, ResourceRange);
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer, DstSurface, EImageLayoutBarrier::Undefined, EImageLayoutBarrier::TransferDest, ResourceRange);
 
 	VkImageCopy Region;
 	FMemory::Memzero(Region);
@@ -465,11 +474,11 @@ inline static void CopyImageToBackBuffer(const VkCommandBuffer& CmdBuffer, const
 		DstSurface, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		1, &Region);
 
-	VulkanSetImageLayout(CmdBuffer, SrcSurface, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SrcLayout, ResourceRange);
-	VulkanSetImageLayout(CmdBuffer, DstSurface, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, ResourceRange);
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer, SrcSurface, EImageLayoutBarrier::TransferSource, EImageLayoutBarrier::ColorAttachment, ResourceRange);
+	VulkanRHI::ImagePipelineBarrier(CmdBuffer, DstSurface, EImageLayoutBarrier::TransferDest, EImageLayoutBarrier::Present, ResourceRange);
 }
 
-bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, bool bLockToVsync)
+bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, FVulkanQueue* PresentQueue, bool bLockToVsync)
 {
 	//Transition back buffer to presentable and submit that command
 	check(CmdBuffer->IsOutsideRenderPass());
@@ -479,7 +488,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		SCOPE_CYCLE_COUNTER(STAT_VulkanAcquireBackBuffer);
 		AcquiredImageIndex = SwapChain->AcquireImageIndex(&AcquiredSemaphore);
 		check(AcquiredImageIndex != -1);
-		CopyImageToBackBuffer(CmdBuffer->GetHandle(), RenderingBackBuffer->Surface.Image, BackBufferImages[AcquiredImageIndex], SizeX, SizeY);
+		CopyImageToBackBuffer(CmdBuffer->GetHandle(), true, RenderingBackBuffer->Surface.Image, BackBufferImages[AcquiredImageIndex], SizeX, SizeY);
 	}
 	else
 	{
@@ -489,7 +498,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		check(RHIBackBuffer == nullptr || RHIBackBuffer->Surface.Image == BackBufferImages[AcquiredImageIndex]);
 
 		//#todo-rco: Might need to NOT be undefined...
-		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED/*VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::Present, VulkanRHI::SetupImageSubresourceRange());
 	}
 	
 
@@ -531,10 +540,10 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 
 	bool bResult = false;
-	if (bNeedNativePresent && (GCVarDelayAcquireBackBuffer->GetInt() != 0 || RHIBackBuffer != nullptr))
+	if (bNeedNativePresent && (DelayAcquireBackBuffer() || RHIBackBuffer != nullptr))
 	{
 		// Present the back buffer to the viewport window.
-		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
+		bResult = SwapChain->Present(Queue, PresentQueue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
 
 		if (bHasCustomPresent)
 		{
@@ -568,11 +577,6 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		GInputLatencyTimer.DeltaTime = EndTime - GInputLatencyTimer.StartTime;
 		GInputLatencyTimer.RenderThreadTrigger = false;
 	}
-
-#if 0
-	//#todo-rco: This needs to go on RHIEndFrame but the CmdBuffer index is not the correct one to read the stats out!
-	VulkanRHI::GManager.GPUProfilingData.EndFrame();
-#endif
 
 	FVulkanCommandBufferManager* ImmediateCmdBufMgr = Device->GetImmediateContext().GetCommandBufferManager();
 	ImmediateCmdBufMgr->PrepareForNewActiveCommandBuffer();
@@ -784,12 +788,12 @@ FTexture2DRHIRef FVulkanDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRe
 	return Viewport->GetBackBuffer(FRHICommandListExecutor::GetImmediateCommandList());
 }
 
-void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {
-	for (FVulkanViewport* Viewport : Viewports)
-	{
-		Viewport->AdvanceBackBufferFrame();
-	}
+	check(IsInRenderingThread());
+	check(ViewportRHI);
+	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
+	Viewport->AdvanceBackBufferFrame();
 
 	{
 		FRHICommandList& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
@@ -809,11 +813,6 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 void FVulkanCommandListContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
 	PendingGfxState->SetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
-}
-
-void FVulkanCommandListContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
-{
-	VULKAN_SIGNAL_UNIMPLEMENTED();
 }
 
 void FVulkanCommandListContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)

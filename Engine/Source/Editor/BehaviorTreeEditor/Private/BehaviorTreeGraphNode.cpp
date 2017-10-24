@@ -56,6 +56,7 @@ void UBehaviorTreeGraphNode::InitializeInstance()
 	{
 		BTNode->InitializeFromAsset(*BTAsset);
 		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
+		BTNode->OnNodeCreated();
 	}
 }
 

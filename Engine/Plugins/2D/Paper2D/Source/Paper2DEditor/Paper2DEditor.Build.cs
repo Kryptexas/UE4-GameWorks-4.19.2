@@ -12,11 +12,12 @@ public class Paper2DEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"Json",
 				"Slate",
 				"SlateCore",
 				"Engine",
-                "InputCore",
+				"InputCore",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
 				"Kismet",  // for FWorkflowCentricApplication
@@ -29,23 +30,20 @@ public class Paper2DEditor : ModuleRules
 				"MeshPaint",
 				"EditorWidgets",
 				"Projects"
-			}
-			);
+			});
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
 				"IntroTutorials",
-                "AssetTools",
+				"AssetTools",
 				"LevelEditor"
-			}
-		);
+			});
 
-        DynamicallyLoadedModuleNames.AddRange(
-            new string[] {
-                "AssetTools"
-            }
-        );
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[] {
+				"AssetTools"
+			});
 
 	}
 }

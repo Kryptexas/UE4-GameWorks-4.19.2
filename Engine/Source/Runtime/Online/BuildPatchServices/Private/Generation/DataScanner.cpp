@@ -2,14 +2,14 @@
 
 #include "Generation/DataScanner.h"
 #include "HAL/ThreadSafeBool.h"
-#include "BuildPatchChunk.h"
-#include "BuildPatchHash.h"
 #include "Async/Future.h"
 #include "Async/Async.h"
+#include "Data/ChunkData.h"
+#include "BuildPatchHash.h"
 
 namespace BuildPatchServices
 {
-	const uint32 WindowSize = FBuildPatchData::ChunkDataSize;
+	const uint32 WindowSize = BuildPatchServices::ChunkDataSize;
 
 	class FDataScanner
 		: public IDataScanner
@@ -96,7 +96,7 @@ namespace BuildPatchServices
 
 	TArray<FChunkMatch> FDataScanner::GetResultWhenComplete()
 	{
-		return MoveTemp(FutureResult.Get());
+		return FutureResult.Get();
 	}
 
 	uint32 FDataScanner::ConsumeData(const uint8* DataPtr, uint32 DataLen)

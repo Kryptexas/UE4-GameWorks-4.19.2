@@ -750,5 +750,11 @@ public:
 
 	/** remove an overlapping component. Called from MapCheck. */
 	LANDSCAPE_API void RemoveOverlappingComponent(ULandscapeComponent* Component);
+
+	DECLARE_EVENT(ALandscape, FLandscapeMaterialChangedDelegate);
+	FLandscapeMaterialChangedDelegate& OnMaterialChangedDelegate() { return LandscapeMaterialChangedDelegate; }
+
+protected:
+	FLandscapeMaterialChangedDelegate LandscapeMaterialChangedDelegate;
 #endif
 };

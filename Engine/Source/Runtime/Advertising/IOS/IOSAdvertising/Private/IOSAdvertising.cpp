@@ -4,6 +4,7 @@
 #include "IOSAppDelegate.h"
 #include "Modules/ModuleManager.h"
 #include "IOS/IOSAsyncTask.h"
+#include "IOS/IOSAppDelegate.h"
 
 #import <iAd/ADBannerView.h>
 
@@ -30,6 +31,12 @@ static bool bWantVisibleBanner = false;
 {
 	static IOSAdvertising * Singleton = [[IOSAdvertising alloc] init];
 	return Singleton;
+}
+
+-(void)dealloc
+{
+	[BannerView release];
+	[super dealloc];
 }
 
 /**

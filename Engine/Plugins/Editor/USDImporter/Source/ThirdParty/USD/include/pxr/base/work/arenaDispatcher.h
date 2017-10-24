@@ -26,6 +26,7 @@
 
 /// \file work/arenaDispatcher.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/work/dispatcher.h"
 #include "pxr/base/work/threadLimits.h"
 #include "pxr/base/work/api.h"
@@ -35,6 +36,8 @@
 #include <functional>
 #include <type_traits>
 #include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class WorkArenaDispatcher
 ///
@@ -57,7 +60,7 @@ public:
     WorkArenaDispatcher() : _arena(WorkGetConcurrencyLimit()) {}
 
     /// Wait() for any pending tasks to complete, then destroy the dispatcher.
-	WORK_API ~WorkArenaDispatcher();
+    WORK_API ~WorkArenaDispatcher();
 
     WorkArenaDispatcher(WorkArenaDispatcher const &) = delete;
     WorkArenaDispatcher &operator=(WorkArenaDispatcher const &) = delete;
@@ -89,13 +92,13 @@ public:
 #endif // doxygen
 
     /// Block until the work started by Run() completes.
-	WORK_API void Wait();
+    WORK_API void Wait();
 
     /// Cancel remaining work and return immediately.
     ///
     /// This call does not block.  Call Wait() after Cancel() to wait for
     /// pending tasks to complete.
-	WORK_API void Cancel();
+    WORK_API void Cancel();
 
 private:
     template <class Fn>
@@ -124,5 +127,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // WORK_ARENA_DISPATCHER_H

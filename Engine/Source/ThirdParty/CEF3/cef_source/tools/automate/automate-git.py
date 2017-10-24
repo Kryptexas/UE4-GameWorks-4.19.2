@@ -17,7 +17,7 @@ import zipfile
 ##
 
 depot_tools_url = 'https://chromium.googlesource.com/chromium/tools/depot_tools.git'
-depot_tools_archive_url = 'https://src.chromium.org/svn/trunk/tools/depot_tools.zip'
+depot_tools_archive_url = 'https://storage.googleapis.com/chrome-infra/depot_tools.zip'
 
 cef_git_url = 'https://bitbucket.org/chromiumembedded/cef.git'
 
@@ -132,7 +132,7 @@ def get_git_url(path):
     return result['out'].strip()
   return 'Unknown'
 
-def download_and_extract(src, target, contents_prefix):
+def download_and_extract(src, target):
   """ Extracts the contents of src, which may be a URL or local file, to the
       target directory. """
   temporary = False
@@ -155,19 +155,11 @@ def download_and_extract(src, target, contents_prefix):
   if not zipfile.is_zipfile(archive_path):
     raise Exception('Not a valid zip archive: ' + src)
 
-  def remove_prefix(zip, prefix):
-    offset = len(prefix)
-    for zipinfo in zip.infolist():
-      name = zipinfo.filename
-      if len(name) > offset and name[:offset] == prefix:
-        zipinfo.filename = name[offset:]
-        yield zipinfo
-
   # Attempt to extract the archive file.
   try:
     os.makedirs(target)
     zf = zipfile.ZipFile(archive_path, 'r')
-    zf.extractall(target, remove_prefix(zf, contents_prefix))
+    zf.extractall(target)
   except:
     shutil.rmtree(target, onerror=onerror)
     raise
@@ -177,17 +169,20 @@ def download_and_extract(src, target, contents_prefix):
   if temporary and os.path.exists(archive_path):
     os.remove(archive_path)
 
-def read_config_file(path):
-  """ Read a configuration file. """
+def read_file(path):
+  """ Read a file. """
   if os.path.exists(path):
     fp = open(path, 'r')
     data = fp.read()
     fp.close()
+    return data
   else:
     raise Exception("Path does not exist: %s" % (path))
 
+def read_config_file(path):
+  """ Read a configuration file. """
   # Parse the contents.
-  return eval(data, {'__builtins__': None}, None)
+  return eval(read_file(path), {'__builtins__': None}, None)
 
 def write_config_file(path, contents):
   """ Write a configuration file. """
@@ -390,7 +385,7 @@ parser.add_option('--build-target', dest='buildtarget', default='cefclient',
                   help='Target name(s) to build (defaults to "cefclient").')
 parser.add_option('--build-tests',
                   action='store_true', dest='buildtests', default=False,
-                  help='Also build the cef_unittests target.')
+                  help='Also build the ceftests target.')
 parser.add_option('--no-debug-build',
                   action='store_true', dest='nodebugbuild', default=False,
                   help="Don't perform the CEF debug build.")
@@ -407,7 +402,10 @@ parser.add_option('--build-log-file',
                        'directory.')
 parser.add_option('--x64-build',
                   action='store_true', dest='x64build', default=False,
-                  help='Build for 64-bit systems (Windows and Mac OS X only).')
+                  help='Create a 64-bit build.')
+parser.add_option('--arm-build',
+                  action='store_true', dest='armbuild', default=False,
+                  help='Create an ARM build.')
 
 # Distribution-related options.
 parser.add_option('--force-distrib',
@@ -471,10 +469,8 @@ if (options.noreleasebuild and \
   parser.print_help(sys.stderr)
   sys.exit()
 
-if (options.clientdistrib or options.clientdistribonly) and \
-   options.buildtarget.find('cefclient') == -1:
-  print "A client distribution cannot be generated if --build-target "+\
-        "excludes cefclient."
+if options.x64build and options.armbuild:
+  print 'Invalid combination of options.'
   parser.print_help(sys.stderr)
   sys.exit()
 
@@ -500,13 +496,16 @@ if platform == 'windows':
 else:
   script_ext = '.sh'
 
-if options.x64build and platform != 'windows' and platform != 'macosx':
-  print 'The x64 build option is only used on Windows and Mac OS X.'
-  sys.exit()
-
-if platform == 'windows' and not 'GYP_MSVS_VERSION' in os.environ.keys():
-  print 'You must set the GYP_MSVS_VERSION environment variable on Windows.'
-  sys.exit()
+if options.clientdistrib or options.clientdistribonly:
+  if platform == 'linux':
+    client_app = 'cefsimple'
+  else:
+    client_app = 'cefclient'
+  if options.buildtarget.find(client_app) == -1:
+    print 'A client distribution cannot be generated if --build-target '+\
+          'excludes %s.' % client_app
+    parser.print_help(sys.stderr)
+    sys.exit()
 
 # CEF branch.
 if options.branch != 'trunk' and not options.branch.isdigit():
@@ -523,6 +522,49 @@ branch_is_2272_or_newer = (cef_branch == 'trunk' or int(cef_branch) >= 2272)
 # True if the requested branch is 2357 or newer.
 branch_is_2357_or_newer = (cef_branch == 'trunk' or int(cef_branch) >= 2357)
 
+# True if the requested branch is 2743 or older.
+branch_is_2743_or_older = (cef_branch != 'trunk' and int(cef_branch) <= 2743)
+
+# True if the requested branch is newer than 2785.
+branch_is_newer_than_2785 = (cef_branch == 'trunk' or int(cef_branch) > 2785)
+
+# Enable GN by default for branches newer than 2785.
+if branch_is_newer_than_2785 and not 'CEF_USE_GN' in os.environ.keys():
+  os.environ['CEF_USE_GN'] = '1'
+
+# Whether to use GN or GYP. GYP is currently the default for older branches.
+use_gn = bool(int(os.environ.get('CEF_USE_GN', '0')))
+if use_gn:
+  if branch_is_2743_or_older:
+    print 'GN is not supported with branch 2743 and older (set CEF_USE_GN=0).'
+    sys.exit()
+
+  if options.armbuild:
+    if platform != 'linux':
+      print 'The ARM build option is only supported on Linux.'
+      sys.exit()
+
+    if not branch_is_newer_than_2785:
+      print 'The ARM build option is not supported with branch 2785 and older.'
+      sys.exit()
+else:
+  if options.armbuild:
+    print 'The ARM build option is not supported by GYP.'
+    sys.exit()
+
+  if options.x64build and platform != 'windows' and platform != 'macosx':
+    print 'The x64 build option is only used on Windows and Mac OS X.'
+    sys.exit()
+
+  if platform == 'windows' and not 'GYP_MSVS_VERSION' in os.environ.keys():
+    print 'You must set the GYP_MSVS_VERSION environment variable on Windows.'
+    sys.exit()
+
+  # True if GYP_DEFINES=target_arch=x64 must be set.
+  gyp_needs_target_arch_x64 = options.x64build and \
+    (platform == 'windows' or \
+      (platform == 'macosx' and not branch_is_2272_or_newer))
+
 # Starting with 43.0.2357.126 the DEPS file is now 100% Git and the .DEPS.git
 # file is no longer created.
 if branch_is_2357_or_newer:
@@ -534,11 +576,6 @@ if platform == 'macosx' and not options.x64build and branch_is_2272_or_newer:
   print '32-bit Mac OS X builds are no longer supported with 2272 branch and '+\
         'newer. Add --x64-build flag to generate a 64-bit build.'
   sys.exit()
-
-# True if GYP_DEFINES=target_arch=x64 must be set.
-gyp_needs_target_arch_x64 = options.x64build and \
-  (platform == 'windows' or \
-    (platform == 'macosx' and not branch_is_2272_or_newer))
 
 # Options that force the sources to change.
 force_change = options.forceclean or options.forceupdate
@@ -582,8 +619,7 @@ if not os.path.exists(depot_tools_dir):
     msg('Extracting %s to %s.' % \
         (options.depottoolsarchive, depot_tools_dir))
     if not options.dryrun:
-      download_and_extract(options.depottoolsarchive, depot_tools_dir, \
-                           'depot_tools/')
+      download_and_extract(options.depottoolsarchive, depot_tools_dir)
   else:
     # On Linux and OS X check out depot_tools using Git.
     run('git clone '+depot_tools_url+' '+depot_tools_dir, download_dir)
@@ -874,19 +910,31 @@ if not options.nobuild and (chromium_checkout_changed or \
   # Building should also force a distribution.
   options.forcedistrib = True
 
-  # Set GYP environment variables.
-  os.environ['GYP_GENERATORS'] = 'ninja'
-  if gyp_needs_target_arch_x64:
-    if 'GYP_DEFINES' in os.environ.keys():
-      os.environ['GYP_DEFINES'] = os.environ['GYP_DEFINES'] + ' ' + \
-                                  'target_arch=x64'
-    else:
-      os.environ['GYP_DEFINES'] = 'target_arch=x64'
+  if use_gn:
+    # Make sure the GN configuration exists.
+    if not options.dryrun and \
+      not os.path.exists(os.path.join(cef_src_dir, 'BUILD.gn')):
+      raise Exception('GN configuration does not exist; set CEF_USE_GN=0')
+  else:
+    # Make sure the GYP configuration exists.
+    if not options.dryrun and \
+      not os.path.exists(os.path.join(cef_src_dir, 'cef.gyp')):
+      raise Exception('GYP configuration does not exist; set CEF_USE_GN=1')
+
+    # Set GYP environment variables.
+    os.environ['GYP_GENERATORS'] = 'ninja'
+    if gyp_needs_target_arch_x64:
+      if 'GYP_DEFINES' in os.environ.keys():
+        os.environ['GYP_DEFINES'] = os.environ['GYP_DEFINES'] + ' ' + \
+                                    'target_arch=x64'
+      else:
+        os.environ['GYP_DEFINES'] = 'target_arch=x64'
 
   # Print all build-related environment variables including any that were set
   # previously.
   for key in os.environ.keys():
-    if key.startswith('GYP_') or key.startswith('DEPOT_TOOLS_'):
+    if key.startswith('CEF_') or key.startswith('GN_') or \
+       key.startswith('GYP_') or key.startswith('DEPOT_TOOLS_'):
       msg('%s=%s' % (key, os.environ[key]))
 
   # Run the cef_create_projects script to generate project files.
@@ -899,24 +947,47 @@ if not options.nobuild and (chromium_checkout_changed or \
     command = 'ninja -v -C'
   target = ' ' + options.buildtarget
   if options.buildtests:
-    target = target + ' cef_unittests'
+    target = target + ' ceftests'
   if platform == 'linux':
     target = target + ' chrome_sandbox'
+
   build_dir_suffix = ''
-  if platform == 'windows' and options.x64build:
-    build_dir_suffix = '_x64'
+  if use_gn:
+    # CEF uses a consistent directory naming scheme for GN via
+    # GetAllPlatformConfigs in tools/gn_args.py.
+    if options.x64build:
+      build_dir_suffix = '_GN_x64'
+    elif options.armbuild:
+      build_dir_suffix = '_GN_arm'
+    else:
+      build_dir_suffix = '_GN_x86'
+  else:
+    # GYP outputs both x86 and x64 builds to the same directory on Linux and
+    # Mac OS X. On Windows it suffixes the directory name for x64 builds.
+    if platform == 'windows' and options.x64build:
+      build_dir_suffix = '_x64'
 
   if not options.nodebugbuild:
+    build_path = os.path.join('out', 'Debug' + build_dir_suffix)
+    if use_gn:
+      args_path = os.path.join(chromium_src_dir, build_path, 'args.gn')
+      if os.path.exists(args_path):
+        msg(args_path + ' contents:\n' + read_file(args_path))
+
     # Make a CEF Debug build.
-    run(command + os.path.join('out', 'Debug' + build_dir_suffix) + target, \
-        chromium_src_dir, depot_tools_dir,
+    run(command + build_path + target, chromium_src_dir, depot_tools_dir,
         os.path.join(download_dir, 'build-%s-debug.log' % (cef_branch)) \
           if options.buildlogfile else None)
 
   if not options.noreleasebuild:
+    build_path = os.path.join('out', 'Release' + build_dir_suffix)
+    if use_gn:
+      args_path = os.path.join(chromium_src_dir, build_path, 'args.gn')
+      if os.path.exists(args_path):
+        msg(args_path + ' contents:\n' + read_file(args_path))
+
     # Make a CEF Release build.
-    run(command + os.path.join('out', 'Release' + build_dir_suffix) + target, \
-        chromium_src_dir, depot_tools_dir,
+    run(command + build_path + target, chromium_src_dir, depot_tools_dir,
         os.path.join(download_dir, 'build-%s-release.log' % (cef_branch)) \
           if options.buildlogfile else None)
 
@@ -960,6 +1031,8 @@ if not options.nodistrib and (chromium_checkout_changed or \
     path = path + ' --ninja-build'
     if options.x64build:
       path = path + ' --x64-build'
+    elif options.armbuild:
+      path = path + ' --arm-build'
 
     if type == 'minimal':
       path = path + ' --minimal'

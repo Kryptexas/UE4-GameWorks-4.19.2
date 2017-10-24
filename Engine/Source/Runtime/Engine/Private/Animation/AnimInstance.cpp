@@ -293,10 +293,11 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// if we do multi threading, make sure this stays in game thread. 
 	// This is because branch points need to execute arbitrary code inside this call.
 	Montage_Advance(DeltaSeconds);
+}
 
-	// now we know all montage has advanced
-	// time to test sync groups
-	for (auto& MontageInstance : MontageInstances)
+void UAnimInstance::UpdateMontageSyncGroup()
+{
+	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{
 		bool bRecordNeedsResetting = true;
 		if (MontageInstance->bDidUseMarkerSyncThisTick)
@@ -304,13 +305,13 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 			const int32 GroupIndexToUse = MontageInstance->GetSyncGroupIndex();
 
 			// that is public data, so if anybody decided to play with it
-			if (ensure (GroupIndexToUse != INDEX_NONE))
+			if (ensure(GroupIndexToUse != INDEX_NONE))
 			{
 				bRecordNeedsResetting = false;
 				FAnimGroupInstance* SyncGroup;
 				FAnimTickRecord& TickRecord = GetProxyOnGameThread<FAnimInstanceProxy>().CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
-				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(), 
-					MontageInstance->GetPreviousPosition(), MontageInstance->GetDeltaMoved(), MontageInstance->GetWeight(), 
+				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(),
+					MontageInstance->GetPreviousPosition(), MontageInstance->GetDeltaMoved(), MontageInstance->GetWeight(),
 					MontageInstance->MarkersPassedThisTick, MontageInstance->MarkerTickRecord);
 
 				// Update the sync group if it exists
@@ -327,9 +328,6 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 			MontageInstance->MarkerTickRecord.Reset();
 		}
 	}
-
-	// update montage eval data
-	UpdateMontageEvaluationData();
 }
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion)
@@ -343,6 +341,46 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 	// acquire the proxy as we need to update
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+
+	if (const USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent())
+	{
+		/**
+			If we're set to OnlyTickMontagesWhenNotRendered and we haven't been recently rendered,
+			then only update montages and skip everything else.
+		*/
+		if ((SkelMeshComp->MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
+			&& !SkelMeshComp->bRecentlyRendered)
+		{
+			/**
+				Clear NotifyQueue prior to ticking montages. 
+				This is typically done in 'PreUpdate', but we're skipping this here since we're not updating the graph.
+				A side effect of this, is that we're stopping all state notifies in the graph, until ticking resumes.
+				This should be fine. But if it is ever a problem, we should keep two versions of them. One for montages and one for the graph.
+			*/
+			NotifyQueue.Reset(GetSkelMeshComponent());
+
+			/** 
+				Reset UpdateCounter(), this will force Update to occur if Eval is triggered without an Update.
+				This is to ensure that SlotNode EvaluationData is resynced to evaluate properly.
+			*/
+			Proxy.ResetUpdateCounter();
+
+			UpdateMontage(DeltaSeconds);
+
+			/**
+				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update
+				when EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered.
+
+				We also intentionally do not call UpdateMontageEvaluationData after the call to UpdateMontage.
+				As we would have to call 'UpdateAnimation' on the graph as well, so weights could be in sync with this new data.
+				The problem lies in the fact that 'Evaluation' can be called without a call to 'Update' prior.
+				This means our data would be out of sync. So we only call UpdateMontageEvaluationData below
+				when we also update the AnimGraph as well.
+				This means that calls to 'Evaluation' without a call to 'Update' prior will render stale data, but that's to be expected.
+			*/
+			return;
+		}
+	}
 
 #if WITH_EDITOR
 	if (GIsEditor)
@@ -375,7 +413,16 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 	// need to update montage BEFORE node update or Native Update.
 	// so that node knows where montage is
-	UpdateMontage(DeltaSeconds);
+	{
+		UpdateMontage(DeltaSeconds);
+
+		// now we know all montage has advanced
+		// time to test sync groups
+		UpdateMontageSyncGroup();
+
+		// Update montage eval data, to be used by AnimGraph Update and Evaluate phases.
+		UpdateMontageEvaluationData();
+	}
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
@@ -432,7 +479,8 @@ void UAnimInstance::PostUpdateAnimation()
 
 	Proxy.PostUpdate(this);
 
-	FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
+	ExtractedRootMotion.Accumulate(Proxy.GetExtractedRootMotion());
+	Proxy.GetExtractedRootMotion().Clear();
 
 	// blend in any montage-blended root motion that we now have correct weights for
 	for(const FQueuedRootMotionBlend& RootMotionBlend : RootMotionBlendQueue)
@@ -970,9 +1018,9 @@ void UAnimInstance::RecalcRequiredBones()
 	}
 }
 
-void UAnimInstance::RecalcRequiredCurves(bool bDisableAnimCurves)
+void UAnimInstance::RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption)
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(bDisableAnimCurves);
+	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(CurveEvalOption);
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)
@@ -1121,12 +1169,15 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	SCOPE_CYCLE_COUNTER(STAT_UpdateCurves);
 
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 
 	//Track material params we set last time round so we can clear them if they aren't set again.
 	MaterialParamatersToClear.Reset();
 	for(auto Iter = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].CreateConstIterator(); Iter; ++Iter)
 	{
-		if(Iter.Value() != 0.0f)
+		// when reset, we go back to default value
+		float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(Iter.Key());
+		if(Iter.Value() != DefaultValue)
 		{
 			MaterialParamatersToClear.Add(Iter.Key());
 		}
@@ -1152,7 +1203,6 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
 	//	 - When clear, we have to make sure to add directly to the material curve list because 
 	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
-	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
@@ -1396,7 +1446,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			FRootMotionMovementParams* RootMotionParams = nullptr;
 			if (bExtractRootMotion)
 			{
-				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion() : &LocalExtractedRootMotion;
+				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &ExtractedRootMotion : &LocalExtractedRootMotion;
 			}
 
 			MontageInstance->MontageSync_PreUpdate();
@@ -2350,13 +2400,13 @@ FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion(float Alpha)
 	}
 	else if (Alpha > (1.f - ZERO_ANIMWEIGHT_THRESH))
 	{
-		FRootMotionMovementParams RootMotion = GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion();
-		GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion().Clear();
+		FRootMotionMovementParams RootMotion = ExtractedRootMotion;
+		ExtractedRootMotion.Clear();
 		return RootMotion;
 	}
 	else
 	{
-		return GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion().ConsumeRootMotion(Alpha);
+		return ExtractedRootMotion.ConsumeRootMotion(Alpha);
 	}
 }
 
@@ -2624,6 +2674,11 @@ void UAnimInstance::RecordMachineWeight(const int32 InMachineClassIndex, const f
 void UAnimInstance::RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
+}
+
+const FGraphTraversalCounter& UAnimInstance::GetUpdateCounter() const
+{
+	return GetProxyOnGameThread<FAnimInstanceProxy>().GetUpdateCounter();
 }
 
 FBoneContainer& UAnimInstance::GetRequiredBones()

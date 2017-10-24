@@ -80,8 +80,7 @@ FString FSkeletalMeshImportData::FixupBoneName( const FString &InBoneName )
 {
 	FString BoneName = InBoneName;
 
-	BoneName.Trim();
-	BoneName.TrimTrailing();
+	BoneName.TrimStartAndEndInline();
 	BoneName = BoneName.Replace( TEXT( " " ), TEXT( "-" ) );
 	
 	return BoneName;

@@ -6,7 +6,6 @@
 #include "UObject/Class.h"
 #include "IDetailsView.h"
 #include "EditorStyleSet.h"
-#include "Misc/StringAssetReference.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
@@ -23,6 +22,7 @@
 
 #include "PackageTools.h"
 #include "IDetailGroup.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "BlendSampleDetails"
 
@@ -95,7 +95,7 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 	const int32 NumParameters = BlendSpace->IsA<UBlendSpace1D>() ? 1 : 2;
 	for (int32 ParameterIndex = 0; ParameterIndex < NumParameters; ++ParameterIndex)
 	{
-		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, OnSampleMoved](const float NewValue)
+		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, OnSampleMoved](const float NewValue, bool bIsInteractive)
 		{
 			const FBlendParameter& BlendParameter = BlendSpace->GetBlendParameter(ParameterIndex);
 			const FBlendSample& Sample = BlendSpace->GetBlendSample(SampleIndex);
@@ -111,7 +111,9 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 
 			// Temporary snap this value to closest point on grid (since the spin box delta does not provide the desired functionality)
 			SampleValue[ParameterIndex] = BlendParameter.Min + (FlooredSteps * DeltaStep);
-			OnSampleMoved.ExecuteIfBound(SampleIndex, SampleValue);
+
+			OnSampleMoved.ExecuteIfBound(SampleIndex, SampleValue, bIsInteractive);
+		
 		};
 		
 		FDetailWidgetRow& ParameterRow = InFunctor();
@@ -138,13 +140,21 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 				return 0.0f;
 			})
 			.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
+			.OnBeginSliderMovement_Lambda([]()
+			{
+				GEditor->BeginTransaction(LOCTEXT("MoveSample", "Moving Blend Grid Sample"));
+			})
+			.OnEndSliderMovement_Lambda([](const float NewValue)
+			{
+				GEditor->EndTransaction();
+			})
 			.OnValueCommitted_Lambda([ValueChangedLambda](const float NewValue, ETextCommit::Type CommitType)
 			{
-				ValueChangedLambda(NewValue);
+				ValueChangedLambda(NewValue, false);
 			})
 			.OnValueChanged_Lambda([ValueChangedLambda](const float NewValue)
 			{
-				ValueChangedLambda(NewValue);
+				ValueChangedLambda(NewValue, true);
 			})
 			.LabelVAlign(VAlign_Center)
 			.AllowSpin(true)
@@ -204,9 +214,8 @@ bool FBlendSampleDetails::ShouldFilterAssetStatic(const FAssetData& AssetData, c
 	FString SkeletonName;
 	if (AssetData.GetTagValue(SkeletonTagName, SkeletonName))
 	{
-		FStringAssetReference StringAssetReference(SkeletonName);
 		// Check whether or not the skeletons match
-		if (StringAssetReference.ToString() == BlendSpaceBase->GetSkeleton()->GetPathName())
+		if (SkeletonName.Contains(BlendSpaceBase->GetSkeleton()->GetPathName()))
 		{
 			// If so check if the additive animation tpye is compatible with the blend space
 			const FName AdditiveTypeTagName = GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType);
@@ -239,9 +248,8 @@ bool FBlendSampleDetails::ShouldFilterAsset(const FAssetData& AssetData) const
 	FString SkeletonName;
 	if (AssetData.GetTagValue(SkeletonTagName, SkeletonName))
 	{
-		FStringAssetReference StringAssetReference(SkeletonName);
 		// Check whether or not the skeletons match
-		if (StringAssetReference.ToString() == BlendSpace->GetSkeleton()->GetPathName())
+		if (SkeletonName == BlendSpace->GetSkeleton()->GetPathName())
 		{
 			// If so check if the additive animation tpye is compatible with the blend space
 			const FName AdditiveTypeTagName = GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType);

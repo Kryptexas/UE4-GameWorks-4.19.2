@@ -149,14 +149,6 @@ namespace MovementBaseUtility
 
 	/** Get the transforms for the given MovementBase, optionally at the location of a bone. Returns false if MovementBase is NULL, or if BoneName is not a valid bone. */
 	ENGINE_API bool GetMovementBaseTransform(const UPrimitiveComponent* MovementBase, const FName BoneName, FVector& OutLocation, FQuat& OutQuat);
-
-
-	// Deprecated function
-	DEPRECATED(4.4, "MovementBaseUtility::UseRelativePosition() is deprecated, use MovementBaseUtility::UseRelativeLocation() instead.")
-	FORCEINLINE bool UseRelativePosition(const UPrimitiveComponent* MovementBase)
-	{
-		return UseRelativeLocation(MovementBase);
-	}
 }
 
 /** Struct to hold information about the "base" object the character is standing on. */
@@ -210,20 +202,7 @@ struct FBasedMovementInfo
 	{
 		return (MovementBase == NULL) && bServerHasBaseComponent;
 	}
-
-
-	// Deprecated function
-	DEPRECATED(4.4, "FBasedMovementInfo::HasRelativePosition() is deprecated, use FBasedMovementInfo::HasRelativeLocation() instead.")
-	FORCEINLINE bool HasRelativePosition() const
-	{
-		return HasRelativeLocation();
-	}
 };
-
-// Allow the old name to continue to work for one release
-DEPRECATED(4.4, "FRepRelativeMovement has been renamed to FBasedMovementInfo")
-typedef FBasedMovementInfo FRepRelativeMovement;
-
 
 
 /**
@@ -552,9 +531,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual bool IsJumpProvidingForce() const;
 
-	DEPRECATED(4.4, "IsJumping() has been renamed IsJumpProvidingForce().")
-	virtual bool IsJumping() const { return IsJumpProvidingForce(); }
-
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	virtual float PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate = 1.f, FName StartSectionName = NAME_None);
@@ -565,17 +541,7 @@ public:
 
 	/** Return current playing Montage **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
-	class UAnimMontage * GetCurrentMontage();
-
-protected:
-
-	/**
-	 * Player Jumped. Called internally when a jump has been detected because bPressedJump was true.
-	 * @param	bReplayingMoves: true if this is being done as part of replaying moves on a locally controlled client after a server correction.
-	 * @return	True if the jump was allowed by CanJump() and if CharacterMovement->Jump() succeeded.
-	 **/ 
-	DEPRECATED(4.5, "Character::DoJump() will be removed, use CharacterMovementComponent::DoJump() instead.")
-	virtual bool DoJump(bool bReplayingMoves);
+	class UAnimMontage* GetCurrentMontage();
 
 public:
 
@@ -651,16 +617,6 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnWalkingOffLedge(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
 	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
-
-
-	// Deprecated, use the new version that takes multiple parameters.
-	DEPRECATED(4.8, "OnWalkingOffLedge() is deprecated and will not be called, use the new version that takes multiple parameters.")
-	void OnWalkingOffLedge() {}
-
-	// Deprecated, use the new version that takes multiple parameters.
-	DEPRECATED(4.8, "OnWalkingOffLedge_Implementation() is deprecated and will not be called, use the new version that takes multiple parameters.")
-	virtual void OnWalkingOffLedge_Implementation() {}
-
 
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
@@ -759,9 +715,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
 	FCharacterMovementUpdatedSignature OnCharacterMovementUpdated;
 
-	DEPRECATED(4.4, "NotifyLanded() has been renamed ShouldNotifyLanded() instead.")
-	virtual bool NotifyLanded(const struct FHitResult& Hit) { return ShouldNotifyLanded(Hit); }
-
 	/** 
 	 * Returns true if the Landed() event should be called. Used by CharacterMovement to prevent notifications while playing back network moves.
 	 */
@@ -782,9 +735,6 @@ public:
 	 * @return Maximum jump time for the character
 	 */
 	virtual float GetJumpMaxHoldTime() const;
-
-	DEPRECATED(4.4, "UpdateFromCompressedFlags has moved to UCharacterMovementComponent")
-	virtual void UpdateFromCompressedFlags(uint8 Flags) { }
 
 public:
 

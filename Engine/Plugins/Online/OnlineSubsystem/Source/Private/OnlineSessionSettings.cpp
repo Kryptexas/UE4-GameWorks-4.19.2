@@ -2,11 +2,13 @@
 
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
+#include "Logging/LogScopedVerbosityOverride.h"
 
 void DumpNamedSession(const FNamedOnlineSession* NamedSession)
 {
 	if (NamedSession != NULL)
 	{
+		LOG_SCOPE_VERBOSITY_OVERRIDE(LogOnline, ELogVerbosity::VeryVerbose);
 		UE_LOG(LogOnline, Verbose, TEXT("dumping NamedSession: "));
 		UE_LOG(LogOnline, Verbose, TEXT("	SessionName: %s"), *NamedSession->SessionName.ToString());	
 		UE_LOG(LogOnline, Verbose, TEXT("	HostingPlayerNum: %d"), NamedSession->HostingPlayerNum);
@@ -184,7 +186,7 @@ int32 FOnlineSessionSettings::GetID(FName Key) const
 	}
 
 	UE_LOG(LogOnline, Warning, TEXT("Unable to find key for ID request: %s"), *Key.ToString());
-	return -1;
+	return INVALID_SESSION_SETTING_ID;
 }
 
 template<typename ValueType>

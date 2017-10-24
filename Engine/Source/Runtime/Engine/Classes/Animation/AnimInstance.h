@@ -322,7 +322,7 @@ struct FMontageEvaluationState
 	{}
 
 	// The montage to evaluate
-	UAnimMontage* Montage;
+	TWeakObjectPtr<UAnimMontage> Montage;
 
 	// The weight to use for this montage
 	float MontageWeight;
@@ -340,7 +340,7 @@ struct FMontageEvaluationState
 	bool bIsActive;
 };
 
-UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType, meta=(BlueprintThreadSafe))
+UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType, meta=(BlueprintThreadSafe), Within=SkeletalMeshComponent)
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -903,7 +903,7 @@ public:
 	/** Name of Class to do Post Compile Validation.
 	* See Class UAnimBlueprintPostCompileValidation. */
 	UPROPERTY()
-	FStringClassReference PostCompileValidationClassName;
+	FSoftClassPath PostCompileValidationClassName;
 
 	/** Warn if AnimNodes are not using fast path during AnimBP compilation. */
 	virtual bool PCV_ShouldWarnAboutNodesNotUsingFastPath() const { return false; }
@@ -981,6 +981,8 @@ public:
 	void ResetDynamics();
 
 public:
+	/** Access a read only version of the Updater Counter from the AnimInstanceProxy on the GameThread. */
+	const FGraphTraversalCounter& GetUpdateCounter() const; 
 
 	/** Access the required bones array */
 	FBoneContainer& GetRequiredBones();
@@ -1048,7 +1050,7 @@ public:
 	/**
 	* Recalculate Required Curves based on Required Bones [RequiredBones]
 	*/
-	void RecalcRequiredCurves(bool bDisableAnimCurves);
+	void RecalcRequiredCurves(const FCurveEvaluationOption& CurveEvalOption);
 
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
@@ -1120,16 +1122,20 @@ private:
 	 */
 	TArray<FQueuedRootMotionBlend> RootMotionBlendQueue;
 
+	// Root motion read from proxy (where it is calculated) and stored here to avoid potential stalls by calling GetProxyOnGameThread
+	FRootMotionMovementParams ExtractedRootMotion;
+
 private:
 	// update montage
 	void UpdateMontage(float DeltaSeconds);
+	void UpdateMontageSyncGroup();
 
 protected:
 	// Updates the montage data used for evaluation based on the current playing montages
 	void UpdateMontageEvaluationData();
 
 	/** Called to setup for updates */
-	void PreUpdateAnimation(float DeltaSeconds);
+	virtual void PreUpdateAnimation(float DeltaSeconds);
 
 	/** update animation curves to component */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);

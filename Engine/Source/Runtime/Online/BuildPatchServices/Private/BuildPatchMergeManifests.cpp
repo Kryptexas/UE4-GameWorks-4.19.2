@@ -79,9 +79,9 @@ bool FBuildMergeManifests::MergeManifests(const FString& ManifestFilePathA, cons
 				{
 					FString Filename, Source;
 					SelectionDetailLines[LineIdx].Split(TEXT("\t"), &Filename, &Source, ESearchCase::CaseSensitive);
-					Filename = Filename.Trim().TrimTrailing().TrimQuotes();
+					Filename = Filename.TrimStartAndEnd().TrimQuotes();
 					FPaths::NormalizeDirectoryName(Filename);
-					Source = Source.Trim().TrimTrailing().TrimQuotes();
+					Source = Source.TrimStartAndEnd().TrimQuotes();
 					if (Source == TEXT("A"))
 					{
 						StringSetPair.Key.Add(Filename);
@@ -152,6 +152,7 @@ bool FBuildMergeManifests::MergeManifests(const FString& ManifestFilePathA, cons
 	MergedManifest.AppName = ManifestB->AppName;
 	MergedManifest.LaunchExe = ManifestB->LaunchExe;
 	MergedManifest.LaunchCommand = ManifestB->LaunchCommand;
+	MergedManifest.PrereqIds = ManifestB->PrereqIds;
 	MergedManifest.PrereqName = ManifestB->PrereqName;
 	MergedManifest.PrereqPath = ManifestB->PrereqPath;
 	MergedManifest.PrereqArgs = ManifestB->PrereqArgs;

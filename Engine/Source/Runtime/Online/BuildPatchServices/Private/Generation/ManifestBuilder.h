@@ -23,6 +23,8 @@ namespace BuildPatchServices
 		FString LaunchExe;
 		// The command line that would launch this build
 		FString LaunchCommand;
+		// The set of identifiers which the prerequisites satisfy
+		TSet<FString> PrereqIds;
 		// The display name of the prerequisites installer
 		FString PrereqName;
 		// The path to the prerequisites installer

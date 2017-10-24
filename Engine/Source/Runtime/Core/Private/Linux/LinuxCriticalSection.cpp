@@ -11,7 +11,6 @@
 #include <sys/ioctl.h>
 #include <sys/file.h>
 #include <asm/ioctls.h>
-#include "Linux/LinuxApplication.h"
 
 FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& InName, FTimespan InTimeout)
 {

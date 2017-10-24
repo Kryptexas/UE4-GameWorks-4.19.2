@@ -170,9 +170,10 @@ public:
 	
 	/*
 	 * Set the viewport, which is used to transform vertexes from normalized device coordinates to window coordinates.  Fragments that lie outside of the viewport are clipped, and optionally clamped for fragments outside of znear/zfar.
-	 * @param Viewport The viewport dimensions to use.
+	 * @param Viewport The array of viewport dimensions to use.
+	 * @param NumActive The number of active viewport dimensions to use.
 	 */
-	void SetViewport(MTLViewport const& Viewport);
+	void SetViewport(MTLViewport const Viewport[], uint32 NumActive);
 	
 	/*
 	 * The winding order of front-facing primitives.
@@ -196,9 +197,10 @@ public:
 	
 	/*
 	 * Specifies a rectangle for a fragment scissor test.  All fragments outside of this rectangle are discarded.
-	 * @param Rect The scissor rect dimensions.
+	 * @param Rect The array of scissor rect dimensions.
+	 * @param NumActive The number of active scissor rect dimensions.
 	 */
-	void SetScissorRect(MTLScissorRect const& Rect);
+	void SetScissorRect(MTLScissorRect const Rect[], uint32 NumActive);
 	
 	/*
 	 * Set how to rasterize triangle and triangle strip primitives.
@@ -244,16 +246,16 @@ public:
 	 * @param Length The data length - caller is responsible for accounting for non-zero Offset.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderBuffer(MTLFunctionType const FunctionType, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const Length, NSUInteger const Index);
+	void SetShaderBuffer(MTLFunctionType const FunctionType, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const Length, NSUInteger const Index, EPixelFormat const Format = PF_Unknown);
 	
 	/*
-	 * Set an NSData to the specified shader frequency at the given bind point index.
+	 * Set an FMetalBufferData to the specified shader frequency at the given bind point index.
 	 * @param FunctionType The shader function to modify.
 	 * @param Data The data to bind or nullptr to clear.
 	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderData(MTLFunctionType const FunctionType, NSData* Data, NSUInteger const Offset, NSUInteger const Index);
+	void SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index);
 	
 	/*
 	 * Set bytes to the specified shader frequency at the given bind point index.
@@ -301,7 +303,7 @@ public:
 	 * Get the internal ring-buffer used for temporary allocations.
 	 * @returns The temporary allocation buffer for this command-encoder.
 	 */
-	TSharedRef<FRingBuffer, ESPMode::ThreadSafe> GetRingBuffer(void) const;
+	FRingBuffer& GetRingBuffer(void);
 	
 private:
 #pragma mark - Private Functions -
@@ -324,11 +326,11 @@ private:
         /** The bound buffers or nil. */
         id<MTLBuffer> Buffers[ML_MaxBuffers];
         /** The bound buffers or nil. */
-        NSData* Bytes[ML_MaxBuffers];
+        FMetalBufferData* Bytes[ML_MaxBuffers];
         /** The bound buffer offsets or 0. */
         NSUInteger Offsets[ML_MaxBuffers];
 		/** The bound buffer lengths */
-		uint32 Lengths[ML_MaxBuffers];
+		uint32 Lengths[ML_MaxBuffers*2];
         /** A bitmask for which buffers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
         uint32 Bound;
 	};
@@ -345,7 +347,7 @@ private:
 	MTLStoreAction DepthStoreAction;
 	MTLStoreAction StencilStoreAction;
 	
-	TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> RingBuffer;
+	FRingBuffer RingBuffer;
 	
 	MTLRenderPassDescriptor* RenderPassDesc;
 	NSUInteger RenderPassDescApplied;

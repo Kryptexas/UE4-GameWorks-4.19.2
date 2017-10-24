@@ -12,6 +12,7 @@
 #include "AnimNodeEditModes.h"
 #include "AnimationGraph.h"
 #include "EditorModeManager.h"
+#include "Toolkits/AssetEditorManager.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Base
@@ -85,6 +86,19 @@ void UAnimGraphNode_Base::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	InternalPinCreation(&OldPins);
 
 	RestoreSplitPins(OldPins);
+}
+
+bool UAnimGraphNode_Base::CanJumpToDefinition() const
+{
+	return GetJumpTargetForDoubleClick() != nullptr;
+}
+
+void UAnimGraphNode_Base::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(HyperlinkTarget);
+	}
 }
 
 FLinearColor UAnimGraphNode_Base::GetNodeTitleColor() const

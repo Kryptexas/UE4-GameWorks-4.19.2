@@ -142,7 +142,7 @@ public:
 	static bool IsPointInfluencedByBrush(const FVector2D& BrushSpacePosition, const float BrushRadiusSquared, float& OutInRangeValue);
 
 	template<typename T>
-	static void ApplyBrushToVertex(const FVector& VertexPosition, const FMatrix& InverseBrushMatrix, const float BrushRadius, const float BrushFalloff, const T& PaintValue, T& InOutValue);
+	static void ApplyBrushToVertex(const FVector& VertexPosition, const FMatrix& InverseBrushMatrix, const float BrushRadius, const float BrushFalloffAmount, const float BrushStrength, const T& PaintValue, T& InOutValue);
 
 public:
 	struct FPaintRay
@@ -169,23 +169,16 @@ protected:
 };
 
 template<typename T>
-void MeshPaintHelpers::ApplyBrushToVertex(const FVector& VertexPosition, const FMatrix& InverseBrushMatrix, const float BrushRadiusSquared, const float BrushFalloff, const T& PaintValue, T& InOutValue)
+void MeshPaintHelpers::ApplyBrushToVertex(const FVector& VertexPosition, const FMatrix& InverseBrushMatrix, const float BrushRadius, const float BrushFalloffAmount, const float BrushStrength, const T& PaintValue, T& InOutValue)
 {
 	const FVector BrushSpacePosition = InverseBrushMatrix.TransformPosition(VertexPosition);
 	const FVector2D BrushSpacePosition2D(BrushSpacePosition.X, BrushSpacePosition.Y);
 		
 	float InfluencedValue = 0.0f;
-	if (IsPointInfluencedByBrush(BrushSpacePosition2D, BrushRadiusSquared, InfluencedValue))
+	if (IsPointInfluencedByBrush(BrushSpacePosition2D, BrushRadius * BrushRadius, InfluencedValue))
 	{
-		float PaintStrength = 1.0f;
-
-		// Now know range from 0 - 1 how far vertex is inside of the sphere
-		// If this falls outside of the brush inner radius
-		const float InnerBrushPercentage = BrushFalloff;
-		if (InfluencedValue > InnerBrushPercentage)
-		{
-			PaintStrength *= (1.0f - InfluencedValue) / InnerBrushPercentage;
-		}
+		float InnerBrushRadius = BrushFalloffAmount * BrushRadius;
+		float PaintStrength = MeshPaintHelpers::ComputePaintMultiplier(BrushSpacePosition2D.SizeSquared(), BrushStrength, InnerBrushRadius, BrushRadius - InnerBrushRadius, 1.0f, 1.0f, 1.0f);
 
 		const T OldValue = InOutValue;
 		InOutValue = FMath::LerpStable(OldValue, PaintValue, PaintStrength);

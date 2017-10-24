@@ -94,25 +94,24 @@ void FTwoBoneIKEditMode::DrawTargetLocation(FPrimitiveDrawInterface* PDI, BoneSe
 FVector FTwoBoneIKEditMode::GetWidgetLocation(BoneSelectModeType InBoneSelectMode) const
 {
 	EBoneControlSpace Space;
-	FName BoneName;
 	FVector Location;
+	FBoneSocketTarget Target;
 
 	if (InBoneSelectMode == BSM_EndEffector)
 	{
 		Space = TwoBoneIKRuntimeNode->EffectorLocationSpace;
 		Location = TwoBoneIKRuntimeNode->EffectorLocation;
-		BoneName = TwoBoneIKRuntimeNode->EffectorSpaceBoneName;
-
+		Target = TwoBoneIKRuntimeNode->EffectorTarget;
 	}
 	else // BSM_JointTarget
 	{
 		Space = TwoBoneIKRuntimeNode->JointTargetLocationSpace;
 		Location = TwoBoneIKRuntimeNode->JointTargetLocation;
-		BoneName = TwoBoneIKRuntimeNode->JointTargetSpaceBoneName;
+		Target = TwoBoneIKRuntimeNode->JointTarget;
 	}
 
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-	return ConvertWidgetLocation(SkelComp, TwoBoneIKRuntimeNode->ForwardedPose, BoneName, Location, Space);
+	return ConvertWidgetLocation(SkelComp, TwoBoneIKRuntimeNode->ForwardedPose, Target, Location, Space);
 }
 
 FVector FTwoBoneIKEditMode::GetWidgetLocation() const
@@ -132,30 +131,28 @@ FWidget::EWidgetMode FTwoBoneIKEditMode::GetWidgetMode() const
 	return FWidget::WM_None;
 }
 
-FName FTwoBoneIKEditMode::GetSelectedBone() const
+FBoneSocketTarget FTwoBoneIKEditMode::GetSelectedTarget() const
 {
-	FName SelectedBone;
-
 	// should return mesh bone index
 	if (BoneSelectMode == BSM_EndEffector)
 	{
-		if (TwoBoneIKGraphNode->Node.EffectorLocationSpace == EBoneControlSpace::BCS_BoneSpace ||
-			TwoBoneIKGraphNode->Node.EffectorLocationSpace == EBoneControlSpace::BCS_ParentBoneSpace)
+		if (TwoBoneIKRuntimeNode->EffectorLocationSpace == EBoneControlSpace::BCS_BoneSpace ||
+			TwoBoneIKRuntimeNode->EffectorLocationSpace == EBoneControlSpace::BCS_ParentBoneSpace)
 		{
-			SelectedBone = TwoBoneIKGraphNode->Node.EffectorSpaceBoneName;
-		}
-		else
-		{
-			SelectedBone = TwoBoneIKGraphNode->Node.IKBone.BoneName;
+			return TwoBoneIKRuntimeNode->EffectorTarget;
 		}
 
 	}
 	else if (BoneSelectMode == BSM_JointTarget)
 	{
-		SelectedBone = TwoBoneIKGraphNode->Node.JointTargetSpaceBoneName;
+		if (TwoBoneIKRuntimeNode->JointTargetLocationSpace == EBoneControlSpace::BCS_BoneSpace ||
+			TwoBoneIKRuntimeNode->JointTargetLocationSpace == EBoneControlSpace::BCS_ParentBoneSpace)
+		{
+			return TwoBoneIKRuntimeNode->JointTarget;
+		}
 	}
 
-	return SelectedBone;
+	return FBoneSocketTarget();
 }
 
 bool FTwoBoneIKEditMode::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
@@ -190,6 +187,10 @@ void FTwoBoneIKEditMode::OnExternalNodePropertyChange(FPropertyChangedEvent& InP
 		return;
 	}
 
+	// @todo: talk to tom s about this - to do discuss
+	// this code doesn't really work great unless you have very specific order of operation is happening
+	// 
+/*
 	UProperty* Property = InPropertyEvent.Property;
 	UProperty* InnerProperty = InPropertyEvent.MemberProperty;
 	
@@ -211,9 +212,7 @@ void FTwoBoneIKEditMode::OnExternalNodePropertyChange(FPropertyChangedEvent& InP
 				FTransform CurrentTransform = FTransform(GetWidgetLocation());
 				FTransform NewBSTransform;
 
-				int32 SelectedBoneIndex = SkelComponent->SkeletalMesh->Skeleton->GetReferenceSkeleton().FindBoneIndex(TwoBoneIKGraphNode->Node.EffectorSpaceBoneName);
-
-				ConvertToBoneSpaceTransform(SkelComponent, CurrentTransform, NewBSTransform, SelectedBoneIndex, TwoBoneIKGraphNode->Node.EffectorLocationSpace);
+				ConvertToBoneSpaceTransform(SkelComponent, CurrentTransform, NewBSTransform, TwoBoneIKGraphNode->Node.EffectorTarget, TwoBoneIKGraphNode->Node.EffectorLocationSpace);
 
 				TwoBoneIKRuntimeNode->EffectorLocationSpace = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
 				TwoBoneIKRuntimeNode->EffectorLocation = NewBSTransform.GetLocation();
@@ -221,7 +220,7 @@ void FTwoBoneIKEditMode::OnExternalNodePropertyChange(FPropertyChangedEvent& InP
 				TwoBoneIKGraphNode->SetDefaultValue(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation), TwoBoneIKRuntimeNode->EffectorLocation);
 			}
 		}
-	}
+	}*/
 }
 
 void FTwoBoneIKEditMode::DoTranslation(FVector& InTranslation)
@@ -230,7 +229,7 @@ void FTwoBoneIKEditMode::DoTranslation(FVector& InTranslation)
 
 	if (BoneSelectMode == BSM_EndEffector)
 	{
-		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, TwoBoneIKRuntimeNode->ForwardedPose, GetSelectedBone(), TwoBoneIKGraphNode->Node.EffectorLocationSpace);
+		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, TwoBoneIKRuntimeNode->ForwardedPose, GetSelectedTarget(), TwoBoneIKGraphNode->Node.EffectorLocationSpace);
 
 		TwoBoneIKRuntimeNode->EffectorLocation += Offset;
 		TwoBoneIKGraphNode->Node.EffectorLocation = TwoBoneIKRuntimeNode->EffectorLocation;
@@ -238,7 +237,7 @@ void FTwoBoneIKEditMode::DoTranslation(FVector& InTranslation)
 	}
 	else if (BoneSelectMode == BSM_JointTarget)
 	{
-		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, TwoBoneIKRuntimeNode->ForwardedPose, GetSelectedBone(), TwoBoneIKGraphNode->Node.JointTargetLocationSpace);
+		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, TwoBoneIKRuntimeNode->ForwardedPose, GetSelectedTarget(), TwoBoneIKGraphNode->Node.JointTargetLocationSpace);
 
 		TwoBoneIKRuntimeNode->JointTargetLocation += Offset;
 		TwoBoneIKGraphNode->Node.JointTargetLocation = TwoBoneIKRuntimeNode->JointTargetLocation;

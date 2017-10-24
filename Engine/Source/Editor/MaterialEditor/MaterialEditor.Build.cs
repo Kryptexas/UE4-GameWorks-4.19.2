@@ -27,6 +27,7 @@ public class MaterialEditor : ModuleRules
                 "AppFramework",
 				"Core",
 				"CoreUObject",
+				"ApplicationCore",
 				"InputCore",
 				"Engine",
 				"Slate",
@@ -39,6 +40,7 @@ public class MaterialEditor : ModuleRules
                 "MaterialUtilities",
                 "PropertyEditor",
 				"GraphEditor",
+                "AdvancedPreviewScene",
 			}
 		);
 

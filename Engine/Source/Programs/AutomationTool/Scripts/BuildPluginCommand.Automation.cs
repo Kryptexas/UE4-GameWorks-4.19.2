@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 [Help("Builds a plugin, and packages it for distribution")]
 [Help("Plugin", "Specify the path to the descriptor file for the plugin that should be packaged")]
@@ -83,7 +84,7 @@ class BuildPlugin : BuildCommand
 
 		// Read the plugin
 		CommandUtils.Log("Reading plugin from {0}...", HostProjectPluginFile);
-		PluginDescriptor Plugin = PluginDescriptor.FromFile(HostProjectPluginFile, false);
+		PluginDescriptor Plugin = PluginDescriptor.FromFile(HostProjectPluginFile);
 
 		// Compile the plugin for all the target platforms
 		List<UnrealTargetPlatform> HostPlatforms = ParseParam("NoHostPlatform")? new List<UnrealTargetPlatform>() : new List<UnrealTargetPlatform> { BuildHostPlatform.Current.Platform };
@@ -172,7 +173,7 @@ class BuildPlugin : BuildCommand
 		// Add these modules to the build agenda
 		if(ModuleNames.Count > 0)
 		{
-			string Arguments = "";// String.Format("-plugin {0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
+			string Arguments = "-iwyu";// String.Format("-plugin {0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
 			foreach(string ModuleName in ModuleNames)
 			{
 				Arguments += String.Format(" -module {0}", ModuleName);
@@ -223,18 +224,18 @@ class BuildPlugin : BuildCommand
 
 		// Get the output plugin filename
 		FileReference TargetPluginFile = FileReference.Combine(TargetDir, SourcePluginFile.GetFileName());
-		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(TargetPluginFile, false);
-		NewDescriptor.bEnabledByDefault = false;
+		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(TargetPluginFile);
+		NewDescriptor.bEnabledByDefault = null;
 		NewDescriptor.bInstalled = true;
 		if(!bUnversioned)
 		{
 			BuildVersion Version;
-			if(BuildVersion.TryRead(out Version))
+			if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
 			{
 				NewDescriptor.EngineVersion = String.Format("{0}.{1}.0", Version.MajorVersion, Version.MinorVersion);
 			}
 		}
-		NewDescriptor.Save(TargetPluginFile.FullName, false);
+		NewDescriptor.Save(TargetPluginFile.FullName);
 	}
 
 	static IEnumerable<FileReference> FilterPluginFiles(FileReference PluginFile, IEnumerable<FileReference> BuildProducts)
@@ -270,7 +271,7 @@ class BuildPlugin : BuildCommand
 		if(!Command.ParseParam("NoTargetPlatforms"))
 		{
 			// Only interested in building for Platforms that support code projects
-			TargetPlatforms = PlatformExports.GetRegisteredPlatforms().Where(x => InstalledPlatformInfo.Current.IsValidPlatform(x, EProjectType.Code)).ToList();
+			TargetPlatforms = PlatformExports.GetRegisteredPlatforms().Where(x => InstalledPlatformInfo.IsValidPlatform(x, EProjectType.Code)).ToList();
 
 			// only build Mac on Mac
 			if (HostPlatform != UnrealTargetPlatform.Mac && TargetPlatforms.Contains(UnrealTargetPlatform.Mac))

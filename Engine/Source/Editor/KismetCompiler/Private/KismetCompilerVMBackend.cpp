@@ -10,7 +10,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Serialization/ArchiveUObject.h"
 #include "UObject/Class.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/Interface.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
@@ -95,12 +95,12 @@ public:
 		return FArchive::operator<<(LazyObjectPtr);
 	}
 
-	FArchive& operator<<(FAssetPtr& AssetPtr) override
+	FArchive& operator<<(FSoftObjectPtr& Value) override
 	{
-		return FArchive::operator<<(AssetPtr);
+		return FArchive::operator<<(Value);
 	}
 
-	FArchive& operator<<(FStringAssetReference& Value) override
+	FArchive& operator<<(FSoftObjectPath& Value) override
 	{
 		return FArchiveUObject::operator<<(Value);
 	}
@@ -536,13 +536,13 @@ public:
 			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Delegate);
 		}
 
-		static bool IsAsset(const FEdGraphPinType* Type, const UProperty* Property)
+		static bool IsSoftObject(const FEdGraphPinType* Type, const UProperty* Property)
 		{
 			if (Property)
 			{
-				return Property->IsA<UAssetObjectProperty>();
+				return Property->IsA<USoftObjectProperty>();
 			}
-			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Asset);
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_SoftObject);
 		}
 
 		// Will handle Class properties as well
@@ -972,9 +972,9 @@ public:
 					Writer << FunctionName;
 				}
 			}
-			else if (FLiteralTypeHelper::IsAsset(&Term->Type, CoerceProperty))
+			else if (FLiteralTypeHelper::IsSoftObject(&Term->Type, CoerceProperty))
 			{
-				Writer << EX_AssetConst;
+				Writer << EX_SoftObjectConst;
 				EmitStringLiteral(Term->Name);
 			}
 			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
@@ -1354,7 +1354,7 @@ public:
 		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
 		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
 		const bool bIsObj = (Schema->PC_Object == DestinationExpression->Type.PinCategory) || (Schema->PC_Class == DestinationExpression->Type.PinCategory);
-		const bool bIsAsset = Schema->PC_Asset == DestinationExpression->Type.PinCategory;
+		const bool bIsSoftObject = Schema->PC_SoftObject == DestinationExpression->Type.PinCategory;
 		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
 
 		if (bIsContainer)
@@ -1375,7 +1375,7 @@ public:
 		{
 			Writer << EX_LetBool;
 		}
-		else if (bIsObj && !bIsAsset)
+		else if (bIsObj && !bIsSoftObject)
 		{
 			if( !bIsWeakObjPtr )
 			{
@@ -2158,21 +2158,6 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 	if (bIsUbergraph)
 	{
 		ScriptWriter.CopyStatementMapToUbergraphMap();
-
-		// Create a mapping between compile time generated events and what created them.
-		if (FunctionContext.bInstrumentScriptCode)
-		{
-			FBlueprintDebugData& DebugData = CompilerContext.NewClass->GetDebugData();
-			for (const TPair<UEdGraphPin*, UK2Node_Event*>& EventInfo : CompilerContext.SourcePinToExpansionEvent)
-			{
-				TArray<int32> PinOffsets;
-				DebugData.FindAllCodeLocationsFromSourcePin(EventInfo.Key, Function, PinOffsets);
-				for (const int32 ScriptOffset : PinOffsets)
-				{
-					DebugData.RegisterEntryPoint(ScriptOffset, EventInfo.Value->GetFunctionName());
-				}
-			}
-		}
 	}
 
 	// Make sure we didn't overflow the maximum bytecode size

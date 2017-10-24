@@ -8,26 +8,33 @@
 
 #include "GPUProfiler.h"
 
+class FVulkanCmdBuffer;
+class FVulkanRenderQuery;
+class FVulkanCommandListContext;
+
 class FVulkanGPUTiming : public FGPUTiming
 {
 public:
-	FVulkanGPUTiming() :
-		StartTimestamp(0),
-		EndTimestamp(0),
-		bIsTiming(false),
-		bEndTimestampIssued(false)
-	{}
+	FVulkanGPUTiming(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: Device(InDevice)
+		, bIsTiming(false)
+		, bEndTimestampIssued(false)
+		, CmdContext(InCmd)
+		, BeginTimer(nullptr)
+		, EndTimer(nullptr)
+	{
+	}
 
 	/**
 	 * Start a GPU timing measurement.
 	 */
-	void StartTiming();
+	void StartTiming(FVulkanCmdBuffer* CmdBuffer = nullptr);
 
 	/**
 	 * End a GPU timing measurement.
 	 * The timing for this particular measurement will be resolved at a later time by the GPU.
 	 */
-	void EndTiming();
+	void EndTiming(FVulkanCmdBuffer* CmdBuffer = nullptr);
 
 	/**
 	 * Retrieves the most recently resolved timing measurement.
@@ -60,22 +67,24 @@ private:
 	 */
 	static void PlatformStaticInitialize(void* UserData);
 
-	/** Timestamps for all StartTimings. */
-	int32 StartTimestamp;
-	/** Timestamps for all EndTimings. */
-	int32 EndTimestamp;
+	FVulkanDevice* Device;
 
 	/** Whether we are currently timing the GPU: between StartTiming() and EndTiming(). */
 	bool bIsTiming;
 	bool bEndTimestampIssued;
+
+	FVulkanCommandListContext* CmdContext;
+	FVulkanRenderQuery* BeginTimer;
+	FVulkanRenderQuery* EndTimer;
 };
 
 /** A single perf event node, which tracks information about a appBeginDrawEvent/appEndDrawEvent range. */
 class FVulkanEventNode : public FGPUProfilerEventNode
 {
 public:
-	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) :
-		FGPUProfilerEventNode(InName, InParent)
+	FVulkanEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent, FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice) :
+		FGPUProfilerEventNode(InName, InParent),
+		Timing(InCmd, InDevice)
 	{
 		// Initialize Buffered timestamp queries 
 		Timing.Initialize();
@@ -111,7 +120,8 @@ class FVulkanEventNodeFrame : public FGPUProfilerEventNodeFrame
 {
 public:
 
-	FVulkanEventNodeFrame()
+	FVulkanEventNodeFrame(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: RootEventTiming(InCmd, InDevice)
 	{
 		RootEventTiming.Initialize();
 	}
@@ -145,27 +155,27 @@ struct FVulkanGPUProfiler : public FGPUProfiler
 	/** GPU hitch profile histories */
 	TIndirectArray<FVulkanEventNodeFrame> GPUHitchEventNodeFrames;
 
-	FVulkanGPUProfiler() :
-		FGPUProfiler(), 
-		bCommandlistSubmitted(false)
+	FVulkanGPUProfiler(FVulkanCommandListContext* InCmd, FVulkanDevice* InDevice)
+		: bCommandlistSubmitted(false)
+		, Device(InDevice)
+		, CmdContext(InCmd)
 	{
 	}
 
 	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override final
 	{
-		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent);
+		FVulkanEventNode* EventNode = new FVulkanEventNode(InName, InParent, CmdContext, Device);
 		return EventNode;
 	}
 
-	virtual void PushEvent(const TCHAR* Name, FColor Color) override final;
-	virtual void PopEvent() override final;
-
-	void BeginFrame(class FVulkanCommandListContext* InCmdList, class FVulkanTimestampQueryPool* InTimestampQueryPool);
+	void BeginFrame();
 
 	void EndFrameBeforeSubmit();
 	void EndFrame();
 
 	bool bCommandlistSubmitted;
+	FVulkanDevice* Device;
+	FVulkanCommandListContext* CmdContext;
 };
 
 namespace VulkanRHI

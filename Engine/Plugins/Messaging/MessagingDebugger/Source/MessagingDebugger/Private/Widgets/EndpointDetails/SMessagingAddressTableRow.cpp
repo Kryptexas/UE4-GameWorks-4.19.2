@@ -2,6 +2,11 @@
 
 #include "Widgets/EndpointDetails/SMessagingAddressTableRow.h"
 
+#include "IMessageTracer.h"
+#include "SlateOptMacros.h"
+
+#include "Models/MessagingDebuggerModel.h"
+
 
 namespace MessagingAddressTableRow
 {

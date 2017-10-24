@@ -17,19 +17,17 @@
 
 HLODOutliner::FDragDropPayload::FDragDropPayload()
 {
-	// QQ change this
 	LODActors = TArray<TWeakObjectPtr<AActor>>();
 	StaticMeshActors = TArray<TWeakObjectPtr<AActor>>();
 	bSceneOutliner = false;
 }
 
-bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operation)
+EClusterGenerationError HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operation)
 {
-	bool bApplicable = false;
+	EClusterGenerationError ErrorValue = EClusterGenerationError::None;
 
 	if (Operation.IsOfType<FHLODOutlinerDragDropOp>())
 	{
-		bApplicable = true;
 		bSceneOutliner = false;
 
 		const auto& OutlinerOp = static_cast<const FHLODOutlinerDragDropOp&>(Operation);
@@ -43,19 +41,24 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 		{
 			LODActors = OutlinerOp.LODActorOp->Actors;
 		}
+
+		ErrorValue |= EClusterGenerationError::ValidActor;
 	}
 	else if (Operation.IsOfType<FActorDragDropGraphEdOp>())
 	{
 		bSceneOutliner = true;
-		bApplicable = true;
 
+		int32 NumInvalidActors = 0;
 		const auto& ActorOp = static_cast<const FActorDragDropGraphEdOp&>(Operation);
 		for (auto& ActorPtr : ActorOp.Actors)
 		{
 			AActor* Actor = ActorPtr.Get();
 			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
-			if (Utilities->ShouldGenerateCluster(Actor))
+
+			EClusterGenerationError ClusterGenerationResult = Utilities->ShouldGenerateCluster(Actor);
+			ErrorValue |= ClusterGenerationResult;
+			if ((ClusterGenerationResult & EClusterGenerationError::ValidActor) != EClusterGenerationError::None)
 			{
 				if (!StaticMeshActors.IsSet())
 				{
@@ -66,14 +69,12 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 			}
 			else
 			{
-				// This means we have invalid static mesh actors in the scene outliner selection (could lead to invalid state)
-				bApplicable = false;
-				break;
+				++NumInvalidActors;
 			}
-		}		
+		}
 	}
 
-	return bApplicable;
+	return ErrorValue;
 }
 
 TSharedPtr<FDragDropOperation> HLODOutliner::CreateDragDropOperation(const TArray<FTreeItemPtr>& InTreeItems)

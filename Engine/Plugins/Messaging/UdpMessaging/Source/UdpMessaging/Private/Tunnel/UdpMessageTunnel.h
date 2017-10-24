@@ -2,28 +2,33 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "Misc/Guid.h"
 #include "HAL/Runnable.h"
+#include "Containers/Map.h"
 #include "Containers/Queue.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "Tunnel/UdpMessageTunnelConnection.h"
+#include "Templates/SharedPointer.h"
+
 #include "IUdpMessageTunnel.h"
 
+class FSocket;
 class FTcpListener;
+class FUdpMessageTunnelConnection;
+
 
 /**
  * Implements a bi-directional tunnel to send UDP messages over a TCP connection.
  */
 class FUdpMessageTunnel
-	: FRunnable
+	: public FRunnable
 	, public IUdpMessageTunnel
 {
 	/** Structure for transport node information. */
 	struct FNodeInfo
 	{
 		/** Holds the connection that owns the node (only used for remote nodes). */
-		FUdpMessageTunnelConnectionPtr Connection;
+		TSharedPtr<FUdpMessageTunnelConnection> Connection;
 
 		/** Holds the node's IP endpoint (only used for local nodes). */
 		FIPv4Endpoint Endpoint;
@@ -102,7 +107,7 @@ private:
 private:
 
 	/** Holds the list of open tunnel connections. */
-	TArray<FUdpMessageTunnelConnectionPtr> Connections;
+	TArray<TSharedPtr<FUdpMessageTunnelConnection>> Connections;
 
 	/** Holds a critical section for serializing access to the connections list. */
 	FCriticalSection CriticalSection;
@@ -123,7 +128,7 @@ private:
 	FSocket* MulticastSocket;
 
 	/** Holds a queue of pending connections. */
-	TQueue<FUdpMessageTunnelConnectionPtr, EQueueMode::Mpsc> PendingConnections;
+	TQueue<TSharedPtr<FUdpMessageTunnelConnection>, EQueueMode::Mpsc> PendingConnections;
 
 	/** Holds a collection of information for remote transport nodes. */
 	TMap<FGuid, FNodeInfo> RemoteNodes;

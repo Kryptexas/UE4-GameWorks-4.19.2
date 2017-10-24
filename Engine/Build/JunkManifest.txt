@@ -102,6 +102,8 @@ Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-DesktopTargetPlatform
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\UnrealFrontend-DesktopTargetPlatform.dylib
 Engine\Binaries\Win64\*-DesktopTargetPlatform*.*
 Engine\Binaries\Linux\*-DesktopTargetPlatform*.*
+Engine\Binaries\Linux\*-IOSPlatformEditor*.*
+Engine\Binaries\Linux\*-IOSRuntimeSettings*.*
 Engine\Source\Runtime\ProceduralMeshComponent
 Engine\Binaries\Win64\*-GameSubCatalog.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-GameSubCatalog.dylib

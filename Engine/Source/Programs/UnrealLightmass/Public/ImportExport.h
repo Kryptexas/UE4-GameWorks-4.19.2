@@ -52,6 +52,7 @@ namespace Lightmass
 	static const TCHAR LM_TEXTUREMAPPING_EXTENSION[]	= TEXT("tmap");
 	static const TCHAR LM_VOLUMESAMPLES_EXTENSION[]		= TEXT("vols");
 	static const TCHAR LM_VOLUMEDEBUGOUTPUT_EXTENSION[]	= TEXT("vold");
+	static const TCHAR LM_VOLUMETRICLIGHTMAP_EXTENSION[]	= TEXT("irvol");
 	static const TCHAR LM_PRECOMPUTEDVISIBILITY_EXTENSION[]	= TEXT("vis");
 	static const TCHAR LM_DOMINANTSHADOW_EXTENSION[]	= TEXT("doms");
 	static const TCHAR LM_MESHAREALIGHTDATA_EXTENSION[]	= TEXT("arealights");
@@ -76,6 +77,7 @@ namespace Lightmass
 
 	static const int32 LM_TEXTUREMAPPING_VERSION		= 1;
 	static const int32 LM_VOLUMESAMPLES_VERSION			= 1;
+	static const int32 LM_VOLUMETRICLIGHTMAP_VERSION		= 1;
 	static const int32 LM_PRECOMPUTEDVISIBILITY_VERSION	= 1;
 	static const int32 LM_VOLUMEDEBUGOUTPUT_VERSION		= 1;
 	static const int32 LM_DOMINANTSHADOW_VERSION		= 1;
@@ -148,6 +150,15 @@ namespace Lightmass
 				(uint8)FMath::Clamp<int32>(Coefficients[Component][2] * 255, 0, 255),
 				0);
 		}
+	};
+
+	/** The light incident for a point on a surface. */
+	class FLightSample : public FLightSampleData
+	{
+	public:
+		/** Initialization constructor. */
+		FLightSample() : FLightSampleData() {}
+		FLightSample(EForceInit) : FLightSampleData() {}
 	};
 
 	/**
@@ -289,6 +300,14 @@ namespace Lightmass
 
 		/** Shadow factor for the stationary directional light. */
 		float DirectionalLightShadowing;
+	};
+
+	/** Data used by the editor import process and not uploaded into textures. */
+	struct FIrradianceVoxelImportProcessingData
+	{
+		bool bInsideGeometry;
+		bool bBorderVoxel;
+		float ClosestGeometryDistance;
 	};
 
 	/** */

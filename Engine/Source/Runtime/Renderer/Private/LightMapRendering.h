@@ -60,17 +60,23 @@ uint32 GetPrecompuledLightingVersionID(const FLightCacheInterface* LCI, ERHIFeat
 void GetPrecomputedLightingParameters(
 	ERHIFeatureLevel::Type FeatureLevel,
 	FPrecomputedLightingParameters& Parameters, 
-	const class FIndirectLightingCache* LightingCache = NULL, 
-	const class FIndirectLightingCacheAllocation* LightingAllocation = NULL, 
-	const FLightCacheInterface* LCI = NULL
+	const class FIndirectLightingCache* LightingCache, 
+	const class FIndirectLightingCacheAllocation* LightingAllocation, 
+	FVector VolumetricLightmapLookupPosition,
+	uint32 SceneFrameNumber,
+	class FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	const FLightCacheInterface* LCI
 	);
 
 FUniformBufferRHIRef CreatePrecomputedLightingUniformBuffer(
 	EUniformBufferUsage BufferUsage,
 	ERHIFeatureLevel::Type FeatureLevel,
-	const class FIndirectLightingCache* LightingCache = NULL, 
-	const class FIndirectLightingCacheAllocation* LightingAllocation = NULL, 
-	const FLightCacheInterface* LCI = NULL
+	const class FIndirectLightingCache* LightingCache, 
+	const class FIndirectLightingCacheAllocation* LightingAllocation, 
+	FVector VolumetricLightmapLookupPosition,
+	uint32 SceneFrameNumber,
+	FVolumetricLightmapSceneData* VolumetricLightmapSceneData,
+	const FLightCacheInterface* LCI
 	);
 
 /**
@@ -320,6 +326,25 @@ public:
 };
 
 /**
+ * Allows precomputed irradiance lookups at any point in space.
+ */
+struct FPrecomputedVolumetricLightmapLightingPolicy
+{
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	
+		return Material->GetShadingModel() != MSM_Unlit
+			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING"),TEXT("1"));
+	}
+};
+
+/**
  * Allows a dynamic object to access indirect lighting through a per-object allocation in a volume texture atlas
  */
 struct FCachedVolumeIndirectLightingPolicy
@@ -490,6 +515,25 @@ struct FSimpleStationaryLightSingleSampleShadowsLightingPolicy : public FCachedP
 	static bool RequiresSkylight()
 	{
 		return true;
+	}
+};
+
+struct FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy : public FPrecomputedVolumetricLightmapLightingPolicy
+{
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+
+		return AllowStaticLightingVar->GetValueOnAnyThread() != 0
+			&& PlatformSupportsSimpleForwardShading(Platform)
+			&& FPrecomputedVolumetricLightmapLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_SHADING"),TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_DIRECTIONAL_LIGHT"),TEXT("1"));
+		FPrecomputedVolumetricLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 };
 
@@ -714,6 +758,7 @@ struct FMobileMovableDirectionalLightCSMWithLightmapPolicy : public FMobileMovab
 enum ELightMapPolicyType
 {
 	LMP_NO_LIGHTMAP,
+	LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING,
 	LMP_CACHED_VOLUME_INDIRECT_LIGHTING,
 	LMP_CACHED_POINT_INDIRECT_LIGHTING,
 	LMP_SIMPLE_NO_LIGHTMAP,
@@ -721,6 +766,7 @@ enum ELightMapPolicyType
 	LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING,
 	LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING,
 	LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING,
+	LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING,
 	LMP_LQ_LIGHTMAP,
 	LMP_HQ_LIGHTMAP,
 	LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP,
@@ -830,6 +876,8 @@ public:
 		{
 		case LMP_NO_LIGHTMAP:
 			return FNoLightMapPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
+			return FPrecomputedVolumetricLightmapLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
 			return FCachedVolumeIndirectLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_CACHED_POINT_INDIRECT_LIGHTING:
@@ -844,6 +892,8 @@ public:
 			return FSimpleStationaryLightPrecomputedShadowsLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
 			return FSimpleStationaryLightSingleSampleShadowsLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING:
+			return FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_LQ_LIGHTMAP:
 			return TLightMapPolicy<LQ_LIGHTMAP>::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_HQ_LIGHTMAP:
@@ -895,6 +945,9 @@ public:
 		case LMP_NO_LIGHTMAP:							
 			FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
+		case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
+			FPrecomputedVolumetricLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			break;
 		case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
 			FCachedVolumeIndirectLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
@@ -915,6 +968,9 @@ public:
 			break;
 		case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
 			return FSimpleStationaryLightSingleSampleShadowsLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+			break;
+		case LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING:
+			return FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
 		case LMP_LQ_LIGHTMAP:
 			TLightMapPolicy<LQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -1040,3 +1096,55 @@ public:
 		) const;
 };
 
+class FSelfShadowedVolumetricLightmapPolicy : public FSelfShadowedTranslucencyPolicy
+{
+public:
+
+	class PixelParametersType : public FUniformLightMapPolicyShaderParametersType, public FSelfShadowedTranslucencyPolicy::PixelParametersType
+	{
+	public:
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			FUniformLightMapPolicyShaderParametersType::Bind(ParameterMap);
+			FSelfShadowedTranslucencyPolicy::PixelParametersType::Bind(ParameterMap);
+		}
+
+		void Serialize(FArchive& Ar)
+		{
+			FUniformLightMapPolicyShaderParametersType::Serialize(Ar);
+			FSelfShadowedTranslucencyPolicy::PixelParametersType::Serialize(Ar);
+		}
+	};
+
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		static IConsoleVariable* AllowStaticLightingVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowStaticLighting"));
+
+		return Material->GetShadingModel() != MSM_Unlit 
+			&& IsTranslucentBlendMode(Material->GetBlendMode()) 
+			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetInt() != 0)
+			&& FSelfShadowedTranslucencyPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING"),TEXT("1"));	
+		FSelfShadowedTranslucencyPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	/** Initialization constructor. */
+	FSelfShadowedVolumetricLightmapPolicy() {}
+
+	void SetMesh(
+		FRHICommandList& RHICmdList, 
+		const FSceneView& View,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		const VertexParametersType* VertexShaderParameters,
+		const PixelParametersType* PixelShaderParameters,
+		FShader* VertexShader,
+		FShader* PixelShader,
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const ElementDataType& ElementData
+		) const;
+};

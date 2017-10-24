@@ -37,6 +37,7 @@ class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 {
 	GENERATED_UCLASS_BODY()
 
+	/** fixed distance added to threshold between AI and goal location in destination reach test */
 	UPROPERTY(config, Category = Node, EditAnywhere, meta=(ClampMin = "0.0", UIMin="0.0"))
 	float AcceptableRadius;
 
@@ -69,10 +70,20 @@ class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 	UPROPERTY(Category = Node, EditAnywhere, AdvancedDisplay)
 	uint32 bProjectGoalLocation : 1;
 
-	/** if set to true agent's radius will be added to AcceptableRadius for purposes of checking 
-	 *	if path's end point has been reached. Will result in AI stopping on contact with destination location*/
+	/** if set, radius of AI's capsule will be added to threshold between AI and goal location in destination reach test  */
 	UPROPERTY(Category = Node, EditAnywhere)
+	uint32 bReachTestIncludesAgentRadius : 1;
+	
+	/** if set, radius of goal's capsule will be added to threshold between AI and goal location in destination reach test  */
+	UPROPERTY(Category = Node, EditAnywhere)
+	uint32 bReachTestIncludesGoalRadius : 1;
+
+	/** DEPRECATED, please use combination of bReachTestIncludes*Radius instead */
+	UPROPERTY(Category = Node, VisibleInstanceOnly)
 	uint32 bStopOnOverlap : 1;
+
+	UPROPERTY()
+	uint32 bStopOnOverlapNeedsUpdate : 1;
 
 	/** if set, move will use pathfinding. Not exposed on purpose, please use BTTask_MoveDirectlyToward */
 	uint32 bUsePathfinding : 1;
@@ -85,6 +96,7 @@ class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual uint16 GetInstanceMemorySize() const override;
+	virtual void PostLoad() override;
 
 	virtual void OnGameplayTaskDeactivated(UGameplayTask& Task) override;
 	virtual void OnMessage(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, FName Message, int32 RequestID, bool bSuccess) override;
@@ -95,6 +107,7 @@ class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
+	virtual void OnNodeCreated() override;
 #endif // WITH_EDITOR
 
 protected:

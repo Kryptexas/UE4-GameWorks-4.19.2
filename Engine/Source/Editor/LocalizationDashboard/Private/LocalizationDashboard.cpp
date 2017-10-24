@@ -271,7 +271,7 @@ FLocalizationDashboard::~FLocalizationDashboard()
 
 void FLocalizationDashboard::RegisterTabSpawner()
 {
-	const auto& SpawnMainTab = [this](const FSpawnTabArgs& Args) -> TSharedRef<SDockTab>
+	auto SpawnMainTab = [this](const FSpawnTabArgs& Args) -> TSharedRef<SDockTab>
 	{
 		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
 			.Label(LOCTEXT("MainTabTitle", "Localization Dashboard"))

@@ -23,27 +23,27 @@ public class UnrealHeaderToolTarget : TargetRules
 		)
 	{
 		// Lean and mean
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Never use malloc profiling in Unreal Header Tool.  We set this because often UHT is compiled right before the engine
 		// automatically by Unreal Build Tool, but if bUseMallocProfiler is defined, UHT can operate incorrectly.
-		BuildConfiguration.bUseMallocProfiler = false;
+		bUseMallocProfiler = false;
 
         // No editor needed
-        UEBuildConfiguration.bCompileICU = false;
-        UEBuildConfiguration.bBuildEditor = false;
+        bCompileICU = false;
+        bBuildEditor = false;
 		// Editor-only data, however, is needed
-		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
+		bBuildWithEditorOnlyData = true;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
+		bCompileAgainstEngine = false;
 
 		// Force execption handling across all modules.
-		UEBuildConfiguration.bForceEnableExceptions = true;
+		bForceEnableExceptions = true;
 
 		// Plugin support
-		UEBuildConfiguration.bCompileWithPluginSupport = true;
-		UEBuildConfiguration.bBuildDeveloperTools = true;
+		bCompileWithPluginSupport = true;
+		bBuildDeveloperTools = true;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

@@ -9,7 +9,7 @@ public class GoogleTest : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string RootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleTest/";
+		string RootPath = Target.UEThirdPartySourceDirectory + "GoogleTest/";
         string DefaultConfiguration = "MinSizeRel";
 
 		// Includes
@@ -21,9 +21,9 @@ public class GoogleTest : ModuleRules
        
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
         {
-            PartialLibraryPath += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+            PartialLibraryPath += "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PartialLibraryPath += "/Debug";
             }

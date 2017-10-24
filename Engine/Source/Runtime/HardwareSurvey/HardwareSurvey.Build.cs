@@ -10,6 +10,7 @@ public class HardwareSurvey : ModuleRules
 			new string[]
 			{
 				"Core",
+				"ApplicationCore"
 			}
 		);
 

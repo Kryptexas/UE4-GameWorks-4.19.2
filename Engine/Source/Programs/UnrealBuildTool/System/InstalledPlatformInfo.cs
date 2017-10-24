@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -102,40 +103,28 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private static InstalledPlatformInfo InfoSingleton;
+		private static List<InstalledPlatformConfiguration> InstalledPlatformConfigurations;
 
-		private List<InstalledPlatformConfiguration> InstalledPlatformConfigurations = new List<InstalledPlatformConfiguration>();
-
-		/// <summary>
-		/// Returns the current singleton used to track installed platform info
-		/// </summary>
-		public static InstalledPlatformInfo Current
-		{
-			get
-			{
-				if (InfoSingleton == null)
-				{
-					InfoSingleton = new InstalledPlatformInfo();
-				}
-				return InfoSingleton;
-			}
-		}
-
-		private InstalledPlatformInfo()
+		static InstalledPlatformInfo()
 		{
 			List<string> InstalledPlatforms;
 			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, (DirectoryReference)null, UnrealTargetPlatform.Unknown);
 
-			if (Ini.GetArray("InstalledPlatforms", "InstalledPlatformConfigurations", out InstalledPlatforms))
+			bool bHasInstalledPlatformInfo;
+			if(Ini.TryGetValue("InstalledPlatforms", "HasInstalledPlatformInfo", out bHasInstalledPlatformInfo) && bHasInstalledPlatformInfo)
 			{
-				foreach (string InstalledPlatform in InstalledPlatforms)
+				InstalledPlatformConfigurations = new List<InstalledPlatformConfiguration>();
+				if (Ini.GetArray("InstalledPlatforms", "InstalledPlatformConfigurations", out InstalledPlatforms))
 				{
-					ParsePlatformConfiguration(InstalledPlatform);
+					foreach (string InstalledPlatform in InstalledPlatforms)
+					{
+						ParsePlatformConfiguration(InstalledPlatform);
+					}
 				}
 			}
 		}
 
-		private void ParsePlatformConfiguration(string PlatformConfiguration)
+		private static void ParsePlatformConfiguration(string PlatformConfiguration)
 		{
 			// Trim whitespace at the beginning.
 			PlatformConfiguration = PlatformConfiguration.Trim();
@@ -219,7 +208,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private bool ParseSubValue(string TrimmedLine, string Match, out string Result)
+		private static bool ParseSubValue(string TrimmedLine, string Match, out string Result)
 		{
 			Result = string.Empty;
 			int MatchIndex = TrimmedLine.IndexOf(Match);
@@ -255,7 +244,7 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">Configuration type to check</param>
 		/// <param name="ProjectType">The type of project</param>
 		/// <returns>True if supported</returns>
-		public bool IsValidConfiguration(UnrealTargetConfiguration Configuration, EProjectType ProjectType = EProjectType.Any)
+		public static bool IsValidConfiguration(UnrealTargetConfiguration Configuration, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
 				(InstalledPlatformConfiguration CurConfig) =>
@@ -273,7 +262,7 @@ namespace UnrealBuildTool
 		/// <param name="Platform">Platform to check</param>
 		/// <param name="ProjectType">The type of project</param>
 		/// <returns>True if supported</returns>
-		public bool IsValidPlatform(UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
+		public static bool IsValidPlatform(UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
 				(InstalledPlatformConfiguration CurConfig) =>
@@ -292,7 +281,7 @@ namespace UnrealBuildTool
 		/// <param name="Platform">Platform for the project</param>
 		/// <param name="ProjectType">Type of the project</param>
 		/// <returns>True if the combination is supported</returns>
-		public bool IsValidPlatformAndConfiguration(UnrealTargetConfiguration Configuration, UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
+		public static bool IsValidPlatformAndConfiguration(UnrealTargetConfiguration Configuration, UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
 				(InstalledPlatformConfiguration CurConfig) =>
@@ -304,9 +293,9 @@ namespace UnrealBuildTool
 			);
 		}
 
-		private bool ContainsValidConfiguration(Predicate<InstalledPlatformConfiguration> ConfigFilter)
+		private static bool ContainsValidConfiguration(Predicate<InstalledPlatformConfiguration> ConfigFilter)
 		{
-			if (UnrealBuildTool.IsEngineInstalled())
+			if (UnrealBuildTool.IsEngineInstalled() && InstalledPlatformConfigurations != null)
 			{
 				foreach (InstalledPlatformConfiguration PlatformConfiguration in InstalledPlatformConfigurations)
 				{
@@ -333,6 +322,7 @@ namespace UnrealBuildTool
 		{
 			// Write config section header
 			OutEntries.Add("[InstalledPlatforms]");
+			OutEntries.Add("HasInstalledPlatformInfo=true");
 
 			foreach (InstalledPlatformConfiguration Config in Configs)
 			{

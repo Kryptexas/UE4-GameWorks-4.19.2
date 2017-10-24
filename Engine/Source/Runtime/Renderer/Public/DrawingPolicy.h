@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "SceneView.h"
 #include "MeshBatch.h"
+#include "PipelineStateCache.h"
 
 class FPrimitiveSceneProxy;
 class FStaticMesh;
@@ -266,8 +267,7 @@ void CommitGraphicsPipelineState(FRHICommandList& RHICmdList, const DrawingPolic
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	//CreateGraphicsPipelineState
-	FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-	RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 	RHICmdList.SetStencilRef(DrawRenderState.GetStencilRef());
 }
 
@@ -449,6 +449,3 @@ protected:
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
 };
-
-
-uint32 GetTypeHash(const FBoundShaderStateRHIRef &Key);

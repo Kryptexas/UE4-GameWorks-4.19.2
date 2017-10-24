@@ -4,6 +4,14 @@
 	<!-- init section is always evaluated once per architecture -->
 	<init>
 		<log text="Facebook SDK Android init"/>
+
+		<!-- check if using Gradle -->
+		<setBoolFromProperty result="bGradle" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="bEnableGradle" default="false"/>
+		<if condition="bGradle">
+			<true>
+				<log text="Facebook requires minimum SDK of 15"/>
+			</true>
+		</if>
 		
 		<!-- get packaging for Facebook from ini and reset it if architecture not supported -->
 		<setBoolFromProperty result="bEnabled" ini="Engine" section="OnlineSubsystemFacebook" property="bEnabled" default="false"/>
@@ -30,14 +38,26 @@
 	<AARImports>
 		<if condition="bEnabled">
 			<true>
-				<insertValue value="repository $S(PluginDir)/ThirdParty/Android/NotForLicensees"/>
-				<insertNewline/>
-				<insertValue value="FacebookSDK,facebook-android-sdk,4.19.0" />
-				<insertNewline/>
+				<if condition="bGradle">
+					<false>
+						<insertValue value="repository $S(PluginDir)/ThirdParty/Android/NotForLicensees"/>
+						<insertNewline/>
+						<insertValue value="FacebookSDK,facebook-android-sdk,4.19.0" />
+						<insertNewline/>
+					</false>
+				</if>
 			</true>
 		</if>
 	</AARImports>
 
+	<buildGradleAdditions>
+		<insert>
+dependencies {
+	compile('com.facebook.android:facebook-android-sdk:4.19.0')
+}
+		</insert>
+	</buildGradleAdditions>
+	
 	<!-- optional updates applied to AndroidManifest.xml -->
 	<androidManifestUpdates>
 		<if condition="bEnabled">

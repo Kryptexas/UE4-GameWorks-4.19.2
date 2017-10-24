@@ -43,7 +43,7 @@ public:
 	{
 		return FString(TEXT("OSVR"));
 	}
-    virtual TSharedPtr<class IHeadMountedDisplay, ESPMode::ThreadSafe> CreateHeadMountedDisplay() override;
+    virtual TSharedPtr<class IXRTrackingSystem, ESPMode::ThreadSafe> CreateTrackingSystem() override;
 #if OSVR_UNREAL_4_12
     virtual bool IsHMDConnected() override;
 #endif
@@ -100,14 +100,14 @@ void FOSVR::LoadOSVRClientKitModule()
 
 #if PLATFORM_64BITS
         TArray<FString> pathsToTry;
-        pathsToTry.Add(FPaths::GamePluginsDir() / "OSVR/Source/OSVRClientKit/bin/Win64/");
+        pathsToTry.Add(FPaths::ProjectPluginsDir() / "OSVR/Source/OSVRClientKit/bin/Win64/");
         pathsToTry.Add(FPaths::EngineDir() / "Plugins/Runtime/OSVR/Source/OSVRClientKit/bin/Win64/");
         pathsToTry.Add(FPaths::EngineDir() / "Binaries/ThirdParty/OSVRClientKit/bin/Win64/");
         pathsToTry.Add(FPaths::EngineDir() / "Source/ThirdParty/OSVRClientKit/bin/Win64/");
 
 #else
         TArray<FString> pathsToTry;
-        pathsToTry.Add(FPaths::GamePluginsDir() / "OSVR/Source/OSVRClientKit/bin/Win32/");
+        pathsToTry.Add(FPaths::ProjectPluginsDir() / "OSVR/Source/OSVRClientKit/bin/Win32/");
         pathsToTry.Add(FPaths::EngineDir() / "Plugins/Runtime/OSVR/Source/OSVRClientKit/bin/Win32/");
         pathsToTry.Add(FPaths::EngineDir() / "Binaries/ThirdParty/OSVRClientKit/bin/Win32/");
         pathsToTry.Add(FPaths::EngineDir() / "Source/ThirdParty/OSVRClientKit/bin/Win32/");
@@ -145,7 +145,7 @@ void FOSVR::LoadOSVRClientKitModule()
     }
 }
 
-TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOSVR::CreateHeadMountedDisplay()
+TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FOSVR::CreateTrackingSystem()
 {
     return GetHMD();
 }

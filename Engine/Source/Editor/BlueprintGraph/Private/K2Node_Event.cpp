@@ -483,7 +483,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
 		if(Blueprint && Blueprint->SkeletonGeneratedClass)
 		{
-			TArray<FName> ExistingNamesInUse;
+			TSet<FName> ExistingNamesInUse;
 			TArray<FString> ExcludedEventNames;
 			TArray<UK2Node_Event*> ExistingEventNodes;
 			TArray<UClass*> ImplementedInterfaceClasses;
@@ -499,7 +499,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 			const FString ExclusionListKeyName = TEXT("KismetHideOverrides");
 			if(Blueprint->ParentClass->HasMetaData(*ExclusionListKeyName))
 			{
-				const FString ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
+				const FString& ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
 				ExcludedEventNameString.ParseIntoArray(ExcludedEventNames, TEXT(","), true);
 			}
 

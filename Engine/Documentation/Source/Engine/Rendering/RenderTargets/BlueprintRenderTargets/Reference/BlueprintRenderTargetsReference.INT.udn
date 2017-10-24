@@ -1,12 +1,11 @@
 availability:Public
 title: Blueprint and Render Targets Reference
 description: A listing of properties and descriptions for using Blueprint & Render Targets.
-crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
+crumbs:%ROOT%,
 version:4.13
 Type:reference
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 order:2
-Navigation:Reference
 tags: Render Targets
 tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Reference.png
@@ -27,10 +26,10 @@ Please note that DrawMaterialtoRenderTarget is the simpler version and should be
 
 |Property| Description|
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D reference.|
-|Canvas| Reference to canvas.|
-|Size| Size of the render target.|
-|Context| Draw to render target Context Structure.|
+|**Texture Render Target**| Texture render target 2D reference.|
+|**Canvas**| Reference to canvas.|
+|**Size**| Size of the render target.|
+|**Context**| Draw to render target Context Structure.|
 
 ## End Draw Canvas to Render Target
 
@@ -40,7 +39,7 @@ Must be paired with a **BeginDrawCanvasToRenderTarget** to complete rendering to
 
 |Property| Description|
 |----------|-----------------|
-|Context| Draw to render target Context Structure.|
+|**Context**| Draw to render target Context Structure.|
 
 
 ## Clear Render Target 2D
@@ -51,8 +50,8 @@ Clears the specified render target with the given Clear Color.
 
 |Property| Description|
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D reference.|
-|Clear Color| Clears the specified render target with the given Clear Color.|
+|**Texture Render Target**| Texture render target 2D reference.|
+|**Clear Color**| Clears the specified render target with the given Clear Color.|
 
 
 ## Create Render Target 2D
@@ -63,9 +62,9 @@ Creates a new render target and initializes it to the specified dimensions.
 
 |Property| Description|
 |----------|-----------------|
-|Width| Render targets width size.|
-|Height| Render targets height size.|
-|Return Value| Texture render target 2D reference.|
+|**Width**| Render targets width size.|
+|**Height**| Render targets height size.|
+|**Return Value**| Texture render target 2D reference.|
 
 ## Draw Material to Render Target
 
@@ -76,8 +75,8 @@ If you are rendering multiple primitives to the same target area, use **BeginDra
 
 |Property| Description|
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D reference.|
-|Material| Material that the render target results will be saved to.|
+|**Texture Render Target**| Texture render target 2D reference.|
+|**Material**| Material that the render target results will be saved to.|
 
 ## Export Render Target
 
@@ -87,9 +86,9 @@ Exports a Render Target as an HDR image onto the disk.
 
 |Property| Description|
 |----------|-----------------|
-|Texture Render Target| Texture render target 2D reference.|
-|File Path| Path to where the render target will be saved.|
-|File Name| Name to give the saved render target.|
+|**Texture Render Target**| Texture render target 2D reference.|
+|**File Path**| Path to where the render target will be saved.|
+|**File Name**| Name to give the saved render target.|
 
 
 

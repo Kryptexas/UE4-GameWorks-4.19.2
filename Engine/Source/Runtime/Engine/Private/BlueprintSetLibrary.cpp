@@ -3,14 +3,13 @@
 #include "Kismet/BlueprintSetLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
 
-bool UBlueprintSetLibrary::GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
+void UBlueprintSetLibrary::GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
 {
 	if (TargetSet)
 	{
 		FScriptSetHelper SetHelper(SetProperty, TargetSet);
-		return SetHelper.AddElement(ItemPtr);
+		SetHelper.AddElement(ItemPtr);
 	}
-	return false;
 }
 
 void UBlueprintSetLibrary::GenericSet_AddItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty)
@@ -96,7 +95,7 @@ bool UBlueprintSetLibrary::GenericSet_Contains(const void* TargetSet, const USet
 		FScriptSetHelper SetHelper(SetProperty, TargetSet);
 		UProperty* ElementProp = SetProperty->ElementProp;
 
-		return SetHelper.FindElementFromHash(ItemToFind) != nullptr;
+		return SetHelper.FindElementIndexFromHash(ItemToFind) != INDEX_NONE;
 	}
 
 	return false;
@@ -118,7 +117,7 @@ void UBlueprintSetLibrary::GenericSet_Intersect(const void* SetA, const USetProp
 			if(SetHelperA.IsValidIndex(I))
 			{
 				const void* EntryInA = SetHelperA.GetElementPtr(I);
-				if (SetHelperB.FindElementFromHash(EntryInA) != nullptr)
+				if (SetHelperB.FindElementIndexFromHash(EntryInA) != INDEX_NONE)
 				{
 					SetHelperResult.AddElement(EntryInA);
 				}
@@ -176,7 +175,7 @@ void UBlueprintSetLibrary::GenericSet_Difference(const void* SetA, const USetPro
 			if(SetHelperA.IsValidIndex(I))
 			{
 				const void* EntryInA = SetHelperA.GetElementPtr(I);
-				if (SetHelperB.FindElementFromHash(EntryInA) == nullptr)
+				if (SetHelperB.FindElementIndexFromHash(EntryInA) == INDEX_NONE)
 				{
 					SetHelperResult.AddElement(EntryInA);
 				}

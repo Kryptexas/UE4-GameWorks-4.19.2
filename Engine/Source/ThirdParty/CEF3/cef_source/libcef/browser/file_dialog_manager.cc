@@ -11,7 +11,7 @@
 #include "libcef/browser/browser_host_impl.h"
 #include "libcef/browser/thread_util.h"
 
-#include "content/public/browser/render_view_host.h"
+#include "content/public/browser/render_frame_host.h"
 #include "content/public/common/file_chooser_file_info.h"
 #include "net/base/directory_lister.h"
 
@@ -152,11 +152,12 @@ class UploadFolderHelper :
 
 CefFileDialogManager::CefFileDialogManager(
     CefBrowserHostImpl* browser,
-    scoped_ptr<CefFileDialogRunner> runner)
+    std::unique_ptr<CefFileDialogRunner> runner)
     : content::WebContentsObserver(browser->web_contents()),
       browser_(browser),
       runner_(std::move(runner)),
       file_chooser_pending_(false),
+      render_frame_host_(nullptr),
       weak_ptr_factory_(this) {
   DCHECK(web_contents());
 }
@@ -216,38 +217,39 @@ void CefFileDialogManager::RunFileDialog(
 }
 
 void CefFileDialogManager::RunFileChooser(
-    content::WebContents* web_contents,
+    content::RenderFrameHost* render_frame_host,
     const content::FileChooserParams& params) {
   CEF_REQUIRE_UIT();
-  DCHECK_EQ(web_contents, this->web_contents());
-
-  content::RenderViewHost* render_view_host = web_contents->GetRenderViewHost();
-  if (!render_view_host)
-    return;
+  DCHECK(render_frame_host);
 
   CefFileDialogRunner::FileChooserParams cef_params;
   static_cast<content::FileChooserParams&>(cef_params) = params;
 
-  if (lister_) {
-    // Cancel the previous upload folder run.
-    lister_->Cancel();
-    lister_.reset();
-  }
-
+  CefFileDialogRunner::RunFileChooserCallback callback;
   if (params.mode == content::FileChooserParams::UploadFolder) {
-    RunFileChooser(cef_params,
-        base::Bind(
-            &CefFileDialogManager::OnRunFileChooserUploadFolderDelegateCallback,
-            weak_ptr_factory_.GetWeakPtr(), params.mode));
-    return;
+    callback = base::Bind(
+        &CefFileDialogManager::OnRunFileChooserUploadFolderDelegateCallback,
+        weak_ptr_factory_.GetWeakPtr(), params.mode);
+  } else {
+    callback = base::Bind(
+        &CefFileDialogManager::OnRunFileChooserDelegateCallback,
+        weak_ptr_factory_.GetWeakPtr(), params.mode);
   }
 
-  RunFileChooser(cef_params,
-      base::Bind(&CefFileDialogManager::OnRunFileChooserDelegateCallback,
-                 weak_ptr_factory_.GetWeakPtr(), params.mode));
+  RunFileChooserInternal(render_frame_host, cef_params, callback);
 }
 
 void CefFileDialogManager::RunFileChooser(
+    const CefFileDialogRunner::FileChooserParams& params,
+    const CefFileDialogRunner::RunFileChooserCallback& callback) {
+  const CefFileDialogRunner::RunFileChooserCallback& host_callback =
+      base::Bind(&CefFileDialogManager::OnRunFileChooserCallback,
+                 weak_ptr_factory_.GetWeakPtr(), callback);
+  RunFileChooserInternal(nullptr, params, host_callback);
+}
+
+void CefFileDialogManager::RunFileChooserInternal(
+    content::RenderFrameHost* render_frame_host,
     const CefFileDialogRunner::FileChooserParams& params,
     const CefFileDialogRunner::RunFileChooserCallback& callback) {
   CEF_REQUIRE_UIT();
@@ -259,11 +261,7 @@ void CefFileDialogManager::RunFileChooser(
   }
 
   file_chooser_pending_ = true;
-
-  // Ensure that the |file_chooser_pending_| flag is cleared.
-  const CefFileDialogRunner::RunFileChooserCallback& host_callback =
-      base::Bind(&CefFileDialogManager::OnRunFileChooserCallback,
-                 weak_ptr_factory_.GetWeakPtr(), callback);
+  render_frame_host_ = render_frame_host;
 
   bool handled = false;
 
@@ -303,7 +301,7 @@ void CefFileDialogManager::RunFileChooser(
         accept_filters.push_back(*it);
 
       CefRefPtr<CefFileDialogCallbackImpl> callbackImpl(
-          new CefFileDialogCallbackImpl(host_callback));
+          new CefFileDialogCallbackImpl(callback));
       handled = handler->OnFileDialog(
           browser_,
           static_cast<cef_file_dialog_mode_t>(mode),
@@ -326,10 +324,10 @@ void CefFileDialogManager::RunFileChooser(
 
   if (!handled) {
     if (runner_.get()) {
-      runner_->Run(browser_, params, host_callback);
+      runner_->Run(browser_, params, callback);
     } else {
       LOG(WARNING) << "No file dialog runner available for this platform";
-      host_callback.Run(0, std::vector<base::FilePath>());
+      callback.Run(0, std::vector<base::FilePath>());
     }
   }
 }
@@ -340,7 +338,7 @@ void CefFileDialogManager::OnRunFileChooserCallback(
     const std::vector<base::FilePath>& file_paths) {
   CEF_REQUIRE_UIT();
 
-  file_chooser_pending_ = false;
+  Cleanup();
 
   // Execute the callback asynchronously.
   CEF_POST_TASK(CEF_UIT,
@@ -360,7 +358,7 @@ void CefFileDialogManager::OnRunFileChooserUploadFolderDelegateCallback(
   } else {
     lister_.reset(new net::DirectoryLister(
         file_paths[0],
-        net::DirectoryLister::NO_SORT,
+        net::DirectoryLister::NO_SORT_RECURSIVE,
         new UploadFolderHelper(
             base::Bind(&CefFileDialogManager::OnRunFileChooserDelegateCallback,
                        weak_ptr_factory_.GetWeakPtr(), mode))));
@@ -374,17 +372,6 @@ void CefFileDialogManager::OnRunFileChooserDelegateCallback(
     const std::vector<base::FilePath>& file_paths) {
   CEF_REQUIRE_UIT();
 
-  if (lister_.get())
-    lister_.reset();
-
-  if (!web_contents())
-    return;
-
-  content::RenderViewHost* render_view_host =
-      web_contents()->GetRenderViewHost();
-  if (!render_view_host)
-    return;
-
   // Convert FilePath list to SelectedFileInfo list.
   std::vector<content::FileChooserFileInfo> selected_files;
   for (size_t i = 0; i < file_paths.size(); ++i) {
@@ -394,5 +381,22 @@ void CefFileDialogManager::OnRunFileChooserDelegateCallback(
   }
 
   // Notify our RenderViewHost in all cases.
-  render_view_host->FilesSelectedInChooser(selected_files, mode);
+  if (render_frame_host_)
+    render_frame_host_->FilesSelectedInChooser(selected_files, mode);
+
+  Cleanup();
+}
+
+void CefFileDialogManager::Cleanup() {
+  if (lister_)
+    lister_.reset();
+
+  render_frame_host_ = nullptr;
+  file_chooser_pending_ = false;
+}
+
+void CefFileDialogManager::RenderFrameDeleted(
+    content::RenderFrameHost* render_frame_host) {
+  if (render_frame_host == render_frame_host_)
+    render_frame_host_ = nullptr;
 }

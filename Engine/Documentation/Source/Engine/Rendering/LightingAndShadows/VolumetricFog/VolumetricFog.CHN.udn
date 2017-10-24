@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3458296
 Availability:Public
-Crumbs:
-Title:Volumetric Fog
-Description: An overview of the Volumetric Fog features available when using Exponential Height Fog. 
+Crumbs:%ROOT%
+Title:体积雾
+Description:使用指数高度雾（Exponential Height Fog）时可用的体积雾功能总览。 
 Type:Overview
 Version:4.16
 Parent:Engine/Rendering/LightingAndShadows
@@ -11,43 +11,44 @@ Tags:Rendering
 Tags:Lighting
 Topic-Image:VolumetricFog_Topic.png
 Social-Image:VolumetricFog_Social.png
+SkillLevel:Advanced
 
+[TOC(start:1 end:2)]
 
-With Unreal Engine, version 4.16, we now have support for Volumetric Fog. This method computes participating media density and lighting at every point in the camera frustum, so we can 
-support varying densities and any number of lights affecting the fog. 
+虚幻引擎从 4.16 版本起开始支持体积雾（Volumetric Fog）。此法将计算计算机视锥中每个点上参与媒介的密度和光照，以便支持影响雾的各种密度以及任意数量的光照。 
 
 [REGION:fullwidth raw]
 ![](VolumetricFog.png)(w:1339)
 [/REGION]
 
-## Global Controls
+## 全局控制
 
-To control Volumetric Fog, you can adjust the properties in your Exponential Height Fog and on each light to control the light's contribution amount. 
+调整 **指数高度雾** 以及每个 **光照** 上的属性控制光照的参与量，即可控制体积雾。 
 
-### Exponential Height Fog
+### 指数高度雾
 
-Volumetric Fog controls can be found in the Exponential Height Fog component under the **Volumetric Fog** section. The exponential height distribution provides a global density for Volumetric Fog.
+指数高度雾组件中 **Volumetric Fog** 部分中有体积雾的功能按钮。指数高度分布提供体积雾的整体密度。
 
 ![](VolumetricFogProperties.png)
 
-| Property | Description |
+| 属性 | 描述 |
 | --- | --- |
-| Scattering Distribution | This determines how directional the volumetric scattering is; a value of 0, means light scatters equally in all directions, while a value close to 1 causes scattering predominantly in the direction of the light (you have to be looking at the light to see its scattering). |
-| Albedo | This is the overall reflectiveness of the participating media. Clouds, fog, and mist, which are based on water particles, have an Albedo close to 1. |
-| Extinction Scale | Controls how much the participating media blocks light. |
-| View Distance | The distance from the camera over which Volumetric Fog will be computed. There are a limited number of Z slices in the volume texture, so pushing out the View Distance will increase under-sampling artifacts near the camera. |
-| Override Light Colors with Fog Inscattering Colors | When enabled, uses the **Fog Inscattering Color**, **Directional Inscattering Color**, and **Inscattering Texture** properties to override the light color with Volumetric Fog. |
+| **Scattering Distribution** | 这决定着体积散射的方向性强弱。值为 0 则意味着光线散射在各个方向均等，而接近于 1 的值则会导致散射，主要来自光线的方向（要看向光线才能识别出散射）。|
+| **Albedo** | 这是参与媒介的整体反射度。基于水粒子的云层、雾气和薄雾的反射率接近 1。|
+| **Extinction Scale** | 决定参与媒介对光线的阻挡程度。|
+| **View Distance** | 离摄像机的距离，超过此距离将计算体积雾。体积纹理中 Z 轴切片数量有限，因此拉远 View Distance 将增加摄像机附近的向下采样穿帮。|
+| **Override Light Colors with Fog Inscattering Colors** | 启用后，使用 **Fog Inscattering Color**、**Directional Inscattering Color** 和 **Inscattering Texture** 属性用体积雾覆盖光照颜色。|
 
-### Lights
+### 光照
 
-Each light's contribution amount to the scene and whether it shadows the fog can be controlled using the following properties.
+每个光照对场景的参与量（以及其是否对雾投射阴影）可通过以下属性进行控制。
 
 ![](VolumetricFogLightProperties.png)
 
-| Property | Description |
+| 属性 | 描述 |
 | --- | --- |
-| Volumetric Scattering Intensity | Controls how much this light will contribute to the Volumetric Fog. When set to 0 there is no contribution. |
-| Cast Volumetric Shadow | Whether to cast a volumetric shadow for lights contributing to Volumetric Fog. When enabled, Point and Spot lights are ~3x more expensive than non-shadow casting lights. |
+| **Volumetric Scattering Intensity** | 控制此光照对体积雾的参与量。设为零时便没有光照参与量。|
+| **Cast Volumetric Shadow** | 切换对体积雾形成参与的光照是否投射体积阴影。启用后，点光源和聚光源的开销约为不投射阴影光照的三倍。|
 
 
 [OBJECT:ComparisonSlider]
@@ -59,72 +60,71 @@ Each light's contribution amount to the scene and whether it shadows the fog can
 	[/PARAM]
 [/OBJECT]
 
-In this example, the Spot light's contribution to the Volumetric Fog has been disabled by setting the **Volumetric Scattering Intensity** to 0.
+在此例中，**Volumetric Scattering Intensity** 设为 0，聚光源对体积雾的参与量已被禁用。
 
-## Local Controls
+## 本地控制
 
-Materials using the **Volume** domain describe Albedo, Emissive, and Extinction for a given point in space. Albedo is in the range [0-1] while Emissive and Extinction are world space densities with
-any value greater than 0. 
+使用 **Volume** 域的材质可描述空间中一个给定点的反射率（Albedo）、自发光（Emissive）和熄灭（Extinction）。Albedo 的范围在 [0-1]，而 Emissive 和 Extinction 是任意数值大于 0 的世界空间密度。 
 
 
 ![](VolumetricFogParticleMaterial.png)(w:700)
 [REGION:caption]
-This is an example of the simplest Volume material for a Particle System.
+这是一个粒子系统最简单体积材质的范例。
 [/REGION]
 
 [REGION:note]
-Volume materials currently only work on particles and only positions inside of the particle radius are valid, which is usually handled by a SphereMask. 
+体积材质当前只能在粒子上使用，只有粒子半径中的位置为有效（通常由 SphereMask 处理）。 
 [/REGION]
 
-Placing a single Particle System with the material causes a sphere of density to be added to the Volumetric Fog. The effect is fully 3D with no billboards involved. 
+放置单个带材质的粒子系统将导致一个密度球体被添加到体积雾。此效果为纯 3D，不涉及布告板。 
 
 ![](VF_ParticleInGame.png)(w:700)
 
-Taking this approach a step further, you could use multiple spherical fog particle with noise from textures to limit fog to a certain area of your scene. 
+借此方法进行拓展，可使用多个带纹理噪点的球形雾粒子来限制场景中特定区域雾的量。 
 
-## Temporal Reprojection
+## 临时二次投影
 
-The volume textures used by Volumetric Fog are relatively low-resolution and aligned to the camera frustum. Volumetric Fog uses a heavy temporal reprojection filter with a different sub-voxel jitter
-each frame to smooth out the aliasing. As a side-effect, fast-changing lights like flashlights and muzzle flashes leave lighting trails. Disable the contribution of these lights by setting
-**Volumetric Scattering Intensity** set to 0.
+体积雾使用的体积纹理（体素）分辨率相对较低，与摄像机视锥对齐。体积雾使用极强的临时二次投影滤波，带不同的每帧子体素抖动，以平滑锯齿。负面效果则是变化速度快的光照（如闪光和枪口火舌）将留下光照拖尾。可将 **Volumetric Scattering Intensity** 设为 0，禁用这些光照的参与量。
 
-## Performance
+## 性能
 
-The GPU cost of Volumetric Fog is primarily controlled by the volume texture resolution, which is set from the Engine Shadow Scalability level. Volumetric Fog costs 1ms on PlayStation 4 at High Settings,
-and 3ms on an Nvidia 970 GTX on Epic settings, which has 8x more voxels to operate on.
+体积雾的 GPU 开销主要由体积纹理分辨率控制，而此分辨率则由引擎阴影可延展性（Engine Shadow Scalability）等级决定。PlayStation 4 上高设置的体积雾开销为 1 毫秒，Nvidia 970 GTX 上 Epic 设置的体积雾开销为 3 毫米（因为需要操作的体素量是八倍之多）。
 
-* Particles using **Volume** domain can add a significant GPU cost, depending on their 3D overdraw and instruction count. Use the console command `profilegpu` to inspect this cost.
-* Point and Spot Lights that have **Cast Volumetric Shadow** enabled cost ~3x more than unshadowed Point and Spot Lights. 
+* 使用 **Volume** 域的粒子可能添加较大的 GPU 开销，具体视 3D 过度绘制和指令数而定。使用控制台命令 `profilegpu` 可查看此开销。
+* 启用了 **Cast Volumetric Shadow** 的点光源和聚光源开销约为未投射阴影点光源和聚光源开销的三倍。 
 
-## Currently Supported Features
+## 当前支持的特性
 
-This list comprises the currently supported features of Volumetric Fog:
-* A single Directional Light, with shadowing from Cascaded Shadow Maps or static shadowing, with a Light Function.
-* Any number of Point and Spot Lights, with dynamic or static shadowing if **Cast Volumetric Shadowing** is enabled.
-* A single Skylight, with shadowing from Distance Field Ambient Occlusion, if enabled. 
-* Particle Lights, if **Volumetric Scattering Intensity** is greater than 0.
+此列表中包含体积雾当前所支持的特性：
 
-Also, translucency is properly affected by Volumetric Fog, depending on its position in the scene. By default, translucency computes fog at vertices, so water planes with low tessellation can 
-introduce artifacts. These materials can be set to compute fogging per-pixel to solve this with **Compute Fog Per-Pixel** enabled in the Material Details.
+* 单一定向光源，带级联阴影贴图或静态阴影产生的阴影，带光照函数。
+* 任意数量的点光源和聚光源，带动态或静态阴影（如已启用 **Cast Volumetric Shadowing**）。
+* 单一天光，带距离场环境遮挡产生的阴影（如启用）。 
+* 粒子光照（如 **Volumetric Scattering Intensity** 大于 0）。
 
-## Known Issues & Common Questions
+此外，半透明度将受到体积雾的影响，具体取决于其在场景中的位置。半透明度默认计算顶点处的雾气，因此曲面细分低的水平面可能导致穿帮。这些材质可设为计算逐像素的雾，在材质细节中启用 **Compute Fog Per-Pixel** 即可解决此问题。
 
-The following features are **not yet supported** while using Volumetric Fog:
-* Precomputed Global Illumination.
-* Shadowing of Stationary Skylights.
-* IES profiles and Light Functions on Point and Spot Lights. 
-* Shadowing from Ray Traced Distance Field Shadows.
-* Shadowing from Volumetric Fog itself.
-* Source Radius on Point and Spot lights.
-* Some settings in the Exponential Height Fog, like Fog Cutoff Distance, Start Distance, and Fog Max Opacity.
+## 已知问题
 
-Below are some common questions/issues that may arise when using Volumetric Fog. 
+**尚不支持** 体积雾的以下特性：
 
-* **How can one achieve stronger light shafts without heavy global fog?**
-	* When the global density of fog is increased you get denser fog, so you only notice light shafts (shadows of light) if the fog is dense enough to have everything heavily fogged. There are two ways to go about having stronger light shafts without heavy fog:
-		* Keep the global fog density low, but use a higher **Volumetric Scattering Intensity** for the Directional Light. Also, adjust the **Scattering Distritbution** to near **0.9** in your Exponential Height Fog actor.
-		* Keep the global fog density low, but increase it in certain areas with Volume particles.
-* **Can Exponential Height Fog and Volumetric Fog be used at the same time?** 
-	* Right now, Volumetric Fog replaces **Fog Inscattering Color** within the Volumetric Fog **View Distance**. Because Volumetric Fog is physically-based and Exponential Height Fog is not, it's impossible to match these precisely in the distance. This means that some settings in the Exponential Height Fog will have no effect on Volumetric Fog.
-* **Can Volumetric Fog's center be decoupled from the camera, which would be ideal for top-down games?**
-	* Not currently, though, a standalone volume would be ideal for this. However, it's hard to integrate them with translucency efficiently.
+* 预计算全局照明。
+* 静态天光产生阴影。
+* 点光源和聚光源上的 IES 配置文件和光照函数。 
+* 光线追踪距离场阴影产生阴影。
+* 体积雾自身产生阴影。
+* 点光源和聚光源上的源半径。
+* 指数高度雾（Exponential Height Fog）中的部分设置，如 Fog Cutoff Distance、Start Distance 和 Fog Max Opacity。
+
+### 常见问题
+
+以下是使用体积雾的常见问题。 
+
+* **如何在没有全局浓雾的情况下实现较强的光束？**
+	* 雾的整体密度增加后，雾将变浓，因此只有在雾足够浓到将场景中物体遮挡时才会出现光束效果。脱离浓雾实现较强光束有两种方式：
+		1. 将全局雾的密度调低，但为定向光照使用较高的 **Volumetric Scattering Intensity**。此外，在 Exponential Height Fog Actor 中将 **Scattering Distritbution** 调至 **0.9** 左右。
+		1. 将全局雾的密度调低，但通过体力粒子增加特定区域的密度。
+* **能否同时使用指数高度雾和体积雾？** 
+	* 此时，体积雾将在体积雾 **View Distance** 中替代 **Fog Inscattering Color**。体积雾基于物理而指数高度雾并非基于物理，因此无法精准匹配远处的内容。这意味着指数高度雾中的部分设置在体积雾上并无效果。
+* **能否将体积雾的中心从摄像机处分离？这对顶视角游戏十分有用...**
+	* 当前版本不能。但可用独立体积进行操作。然而如果它们带半透明度，则难以进行有效整合。

@@ -10,15 +10,15 @@
 	"CreatedByURL" : "http://epicgames.com",
 	"EnabledByDefault" : false,
 
-    "Modules": [
+  "Modules": [
         {
             "Name": "OnlineSubsystemGoogle",
             "Type": "Runtime",
             "LoadingPhase" : "Default",
-			"WhitelistPlatforms" :
-			[
-				"Win64","Win32"
-			]
+			      "WhitelistPlatforms" :
+			      [
+				      "Win64","Win32"
+			      ]
         }
     ],
 	"Plugins": [

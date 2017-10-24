@@ -13,6 +13,7 @@
 #include "ContentBrowserModule.h"
 #include "UserInterface/PropertyEditor/PropertyEditorAssetConstants.h"
 #include "Styling/SlateIconFinder.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -162,7 +163,7 @@ void SPropertyMenuAssetPicker::OnCopy()
 {
 	if( CurrentObject.IsValid() )
 	{
-		FPlatformMisc::ClipboardCopy(*CurrentObject.GetExportTextName());
+		FPlatformApplicationMisc::ClipboardCopy(*CurrentObject.GetExportTextName());
 	}
 	OnClose.ExecuteIfBound();
 }
@@ -170,7 +171,7 @@ void SPropertyMenuAssetPicker::OnCopy()
 void SPropertyMenuAssetPicker::OnPaste()
 {
 	FString DestPath;
-	FPlatformMisc::ClipboardPaste(DestPath);
+	FPlatformApplicationMisc::ClipboardPaste(DestPath);
 
 	if(DestPath == TEXT("None"))
 	{
@@ -212,7 +213,7 @@ void SPropertyMenuAssetPicker::OnPaste()
 bool SPropertyMenuAssetPicker::CanPaste()
 {
 	FString ClipboardText;
-	FPlatformMisc::ClipboardPaste(ClipboardText);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardText);
 
 	FString Class;
 	FString PossibleObjectPath = ClipboardText;

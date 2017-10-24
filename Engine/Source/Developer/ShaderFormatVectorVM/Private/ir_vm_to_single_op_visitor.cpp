@@ -52,7 +52,6 @@ public:
 
 		if (replacement)
 		{
-			swiz->val->replace_with(replacement);
 			swiz->val = replacement;
 			replacement = nullptr;
 			progress = true;
@@ -64,6 +63,7 @@ public:
 
 	virtual ir_visitor_status visit_enter(ir_expression* expr)
 	{
+		check(base_ir->next && base_ir->prev);
 		assign_has_expressions = true;
 		expression_stack.Push(expr);
 		for (unsigned i = 0; i < expr->get_num_operands(); ++i)
@@ -72,7 +72,6 @@ public:
 
 			if (replacement)
 			{
-				expr->operands[i]->replace_with(replacement);
 				expr->operands[i] = replacement;
 				replacement = nullptr;
 				progress = true;
@@ -99,6 +98,7 @@ public:
 
 	virtual ir_visitor_status visit_enter(ir_assignment* assign)
 	{
+		check(base_ir->next && base_ir->prev);
 		assign_has_expressions = false;
 		assign->rhs->accept(this);
 
@@ -120,6 +120,7 @@ public:
 
 	virtual ir_visitor_status visit_enter(ir_call* call)
 	{
+		check(base_ir->next && base_ir->prev);
 		assign_has_expressions = true;
 		void *mem_ctx = ralloc_parent(call);
 
@@ -137,6 +138,7 @@ public:
 				base_ir->insert_before(tmp_var);
 				base_ir->insert_before(tmp_assign);
 				ir_rvalue* new_param = new(mem_ctx) ir_dereference_variable(tmp_var);
+				check(param->next && param->prev);
 				param->replace_with(new_param);
 				param = new_param;
 				progress = true;

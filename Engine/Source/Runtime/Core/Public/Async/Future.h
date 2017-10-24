@@ -362,7 +362,7 @@ public:
 	 */
 	ResultType Get() const
 	{
-		return MoveTemp(this->GetState()->GetResult());
+		return this->GetState()->GetResult();
 	}
 
 	/**
@@ -585,7 +585,7 @@ public:
 	 */
 	ResultType Get() const
 	{
-		return MoveTemp(this->GetState()->GetResult());
+		return this->GetState()->GetResult();
 	}
 };
 

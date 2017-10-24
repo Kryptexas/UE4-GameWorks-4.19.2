@@ -166,6 +166,17 @@ public:
 		PreviousTokenWritten = WriteValueOnly(MoveTemp(Value));
 	}
 
+	template<class ElementType>
+	void WriteValue(const FString& Identifier, const TArray<ElementType>& Array)
+	{
+		WriteArrayStart(Identifier);
+		for (int Idx = 0; Idx < Array.Num(); Idx++)
+		{
+			WriteValue(Array[Idx]);
+		}
+		WriteArrayEnd();
+	}
+
 	void WriteValue(const FString& Identifier, const TCHAR* Value)
 	{
 		WriteValue(Identifier, FString(Value));

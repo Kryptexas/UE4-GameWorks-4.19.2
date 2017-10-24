@@ -27,18 +27,22 @@
 /// \file tf/stl.h
 /// \ingroup group_tf_Stl
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/tf.h"
+#include "pxr/base/tf/hashmap.h"
+#include "pxr/base/tf/hashset.h"
 #include "pxr/base/tf/iterator.h"
 
 #include <boost/call_traits.hpp>
-#include "pxr/base/tf/hashmap.h"
-#include "pxr/base/tf/hashset.h"
 
 #include <algorithm>
 #include <iterator>
 #include <map>
 #include <set>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Helper for TfMapLookup().  Uses std::map API to get a value by key.
 template <class T>
@@ -200,11 +204,10 @@ inline void TfReset(TfHashMap<Key, Value, Hash, Equal, Alloc> &hash){
 
     if (hash.bucket_count() > emptyCount)
         TfHashMap<Key, Value, Hash, Equal, Alloc>(0).swap(hash);
-    else if (not hash.empty())
+    else if (!hash.empty())
         hash.clear();
 }
 
-TF_API size_t Tf_GetEmptyHashMapBucketCount();
 TF_API size_t Tf_GetEmptyHashSetBucketCount();
 
 /// Specialize for TfHashSet to make minimally sized hashes.
@@ -215,7 +218,7 @@ inline void TfReset(TfHashSet<Value, Hash, Equal, Alloc> &hash) {
     // See comment above about issues with TfHashSet(0).
     if (hash.bucket_count() > emptyCount)
         TfHashSet<Value, Hash, Equal, Alloc>(0).swap(hash);
-    else if (not hash.empty())
+    else if (!hash.empty())
         hash.clear();
 }
 
@@ -310,7 +313,7 @@ TfOrderedUniquingSetDifference(InputIterator1 first1, InputIterator1 last1,
     // Walk [first1, last1).  If the element is in set1, skip it.  Else insert
     // it into set1, and if the element is not in set2, output it.
     for (InputIterator1 i = first1; i != last1; ++i)
-        if (set1.insert(*i).second and not set2.count(*i))
+        if (set1.insert(*i).second && !set2.count(*i))
             *result++ = *i;
 }
 
@@ -371,4 +374,6 @@ TfFindBoundary(ForwardIterator first, ForwardIterator last,
     return first;
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_STL_H

@@ -147,7 +147,7 @@ FReply SSequencerLabelEditor::HandleCreateNewLabelButtonClicked()
 bool SSequencerLabelEditor::HandleCreateNewLabelButtonIsEnabled() const
 {
 	FString FilterString = FilterBox->GetText().ToString();
-	FilterString.Trim();
+	FilterString.TrimStartInline();
 
 	return !FilterString.IsEmpty() && !FilterString.Contains(TEXT(" ")) && !Sequencer->GetLabelManager().LabelExists(FilterString);
 }

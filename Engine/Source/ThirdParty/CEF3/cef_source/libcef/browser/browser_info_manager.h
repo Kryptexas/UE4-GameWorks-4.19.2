@@ -15,6 +15,7 @@
 #include "base/memory/scoped_vector.h"
 #include "base/synchronization/lock.h"
 #include "content/public/browser/render_process_host_observer.h"
+#include "third_party/WebKit/public/web/window_features.mojom.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
 
@@ -34,7 +35,6 @@ class Message;
 }
 
 class CefBrowserPlatformDelegate;
-struct ViewHostMsg_CreateWindow_Params;
 
 // Singleton object for managing BrowserInfo instances.
 class CefBrowserInfoManager : public content::RenderProcessHostObserver {
@@ -58,42 +58,38 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
       content::WebContents* new_contents,
       bool is_windowless);
 
-  // Called from CefBrowserMessageFilter::OnCreateWindow. See comments on
-  // PendingPopup for more information.
-  void OnCreateWindow(content::RenderProcessHost* host,
-                      const ViewHostMsg_CreateWindow_Params& params);
-
   // Called from CefContentBrowserClient::CanCreateWindow. See comments on
   // PendingPopup for more information.
   bool CanCreateWindow(
       const GURL& target_url,
       const content::Referrer& referrer,
+      const std::string& frame_name,
       WindowOpenDisposition disposition,
-      const blink::WebWindowFeatures& features,
+      const blink::mojom::WindowFeatures& features,
       bool user_gesture,
       bool opener_suppressed,
-      int render_process_id,
-      int opener_render_view_id,
+      int opener_render_process_id,
       int opener_render_frame_id,
       bool* no_javascript_access);
 
-  // Called from CefBrowserHostImpl::ShouldCreateWebContents. See comments on
+  // Called from CefBrowserHostImpl::GetCustomWebContentsView. See comments on
   // PendingPopup for more information.
-  void ShouldCreateWebContents(
-    content::WebContents* web_contents,
+  void GetCustomWebContentsView(
     const GURL& target_url,
+    int opener_render_process_id,
+    int opener_render_frame_id,
     content::WebContentsView** view,
     content::RenderViewHostDelegateView** delegate_view);
 
   // Called from CefBrowserHostImpl::WebContentsCreated. See comments on
   // PendingPopup for more information.
   void WebContentsCreated(
-      content::WebContents* source_contents,
       const GURL& target_url,
-      content::WebContents* new_contents,
+      int opener_render_process_id,
+      int opener_render_frame_id,
       CefBrowserSettings& settings,
       CefRefPtr<CefClient>& client,
-      scoped_ptr<CefBrowserPlatformDelegate>& platform_delegate);
+      std::unique_ptr<CefBrowserPlatformDelegate>& platform_delegate);
 
   // Called from CefBrowserMessageFilter::OnGetNewBrowserInfo for delivering
   // browser info to the renderer process. If the browser info already exists
@@ -103,7 +99,7 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
   // already exist for traditional popup browsers depending on timing. See
   // comments on PendingPopup for more information.
   void OnGetNewBrowserInfo(
-      content::RenderProcessHost* host,
+      int render_process_id,
       int render_view_routing_id,
       int render_frame_routing_id,
       IPC::Message* reply_msg);
@@ -118,7 +114,7 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
   // Retrieves the CefBrowserInfo matching the specified IDs or an empty
   // pointer if no match is found. It is allowed to add new callers of this
   // method but consider using CefBrowserHostImpl::GetBrowserFor[View|Frame]()
-  // or extensions::GetOwnerBrowserForView() instead.
+  // or extensions::GetOwnerBrowserForFrame() instead.
   // |is_guest_view| will be set to true if the IDs match a guest view
   // associated with the returned browser info instead of the browser itself.
   scoped_refptr<CefBrowserInfo> GetBrowserInfoForView(int render_process_id,
@@ -128,21 +124,22 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
                                                        int render_routing_id,
                                                        bool* is_guest_view);
 
+  // Retrieves all existing CefBrowserInfo objects.
+  typedef std::list<scoped_refptr<CefBrowserInfo> > BrowserInfoList;
+  void GetBrowserInfoList(BrowserInfoList& list);
+
  private:
   // RenderProcessHostObserver methods:
   void RenderProcessHostDestroyed(content::RenderProcessHost* host) override;
 
   // Store state information about pending popups. Call order is:
-  // - CefBrowserMessageFilter::OnCreateWindow (IOT)
-  //   Intercepts the ViewHostMsg_CreateWindow message to gather information
-  //   about the opener (parent browser) and target URL/frame.
   // - CefContentBrowserClient::CanCreateWindow (IOT)
   //   Provides an opportunity to cancel the popup (calls OnBeforePopup) and
   //   creates the new platform delegate for the popup. If the popup owner is
   //   an extension guest view then the popup is canceled and
   //   CefBrowserHostImpl::OpenURLFromTab is called.
   // And then the following calls may occur at the same time:
-  // - CefBrowserHostImpl::ShouldCreateWebContents (UIT)
+  // - CefBrowserHostImpl::GetCustomWebContentsView (UIT)
   //   Creates the OSR views for windowless popups.
   // - CefBrowserHostImpl::WebContentsCreated (UIT)
   //   Creates the CefBrowserHostImpl representation for the popup.
@@ -153,44 +150,41 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
     // be multiple pending popups with the same identifiers and this allows us
     // to differentiate between them at different processing steps.
     enum Step {
-      ON_CREATE_WINDOW,
       CAN_CREATE_WINDOW,
-      SHOULD_CREATE_WEB_CONTENTS
+      GET_CUSTOM_WEB_CONTENTS_VIEW,
     } step;
 
     // Initial state from ViewHostMsg_CreateWindow.
     // |target_url| will be empty if a popup is created via window.open() and
     // never navigated. For example: javascript:window.open();
     int opener_process_id;
-    int opener_view_id;
-    int64 opener_frame_id;
+    int opener_frame_id;
     GURL target_url;
     std::string target_frame_name;
 
     // Values specified by OnBeforePopup.
-    CefWindowInfo window_info;
     CefBrowserSettings settings;
     CefRefPtr<CefClient> client;
 
     // Platform delegate specific to the new popup.
-    scoped_ptr<CefBrowserPlatformDelegate> platform_delegate;
+    std::unique_ptr<CefBrowserPlatformDelegate> platform_delegate;
   };
 
-  // Between the calls to CanCreateWindow and ShouldCreateWebContents
+  // Between the calls to CanCreateWindow and GetCustomWebContentsView
   // RenderViewHostImpl::CreateNewWindow() will call
   // RenderProcessHostImpl::FilterURL() which, in the case of "javascript:"
   // URIs, rewrites the URL to "about:blank". We need to apply the same filter
-  // otherwise ShouldCreateWebContents will fail to retrieve the PopupInfo.
+  // otherwise GetCustomWebContentsView will fail to retrieve the PopupInfo.
   static void FilterPendingPopupURL(
-    int render_process_id,
-    scoped_ptr<PendingPopup> pending_popup);
+    int opener_process_id,
+    std::unique_ptr<PendingPopup> pending_popup);
 
   // Manage pending popups.
-  void PushPendingPopup(scoped_ptr<PendingPopup> popup);
-  scoped_ptr<PendingPopup> PopPendingPopup(
+  void PushPendingPopup(std::unique_ptr<PendingPopup> popup);
+  std::unique_ptr<PendingPopup> PopPendingPopup(
       PendingPopup::Step step,
       int opener_process_id,
-      int opener_view_id,
+      int opener_frame_id,
       const GURL& target_url);
 
   // Retrieves the BrowserInfo matching the specified IDs. If both sets are
@@ -204,14 +198,14 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
 
   // Send the response for a pending OnGetNewBrowserInfo request.
   static void SendNewBrowserInfoResponse(
-      content::RenderProcessHost* host,
+      int render_process_id,
       CefBrowserInfo* browser_info,
       bool is_guest_view,
       IPC::Message* reply_msg);
 
   // Pending request for OnGetNewBrowserInfo.
   struct PendingNewBrowserInfo {
-    content::RenderProcessHost* host;
+    int render_process_id;
     int render_view_routing_id;
     int render_frame_routing_id;
     IPC::Message* reply_msg;
@@ -221,7 +215,6 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
 
   // Access to the below members must be protected by |browser_info_lock_|.
 
-  typedef std::list<scoped_refptr<CefBrowserInfo> > BrowserInfoList;
   BrowserInfoList browser_info_list_;
   int next_browser_id_;
 

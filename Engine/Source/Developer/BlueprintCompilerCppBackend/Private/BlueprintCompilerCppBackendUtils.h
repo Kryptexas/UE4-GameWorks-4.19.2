@@ -1,9 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma  once
 
 #include "CoreMinimal.h"
 #include "UObject/Class.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/UnrealType.h"
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
@@ -310,7 +310,7 @@ struct FEmitHelper
 
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
-	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
+	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property, FString OverrideTypeDeclaration
 		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
 		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
 
@@ -408,17 +408,17 @@ struct FNativizationSummaryHelper
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
 
-	static void RegisterRequiredModules(const FName PlatformName, const TSet<TAssetPtr<UPackage>>& Modules);
+	static void RegisterRequiredModules(const FName PlatformName, const TSet<TSoftObjectPtr<UPackage>>& Modules);
 };
 struct FDependenciesGlobalMapHelper
 {
 	static FString EmitHeaderCode();
 	static FString EmitBodyCode(const FString& PCHFilename);
 
-	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
+	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FSoftObjectPath& Key);
 
 private:
-	static TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& GetDependenciesGlobalMap();
+	static TMap<FSoftObjectPath, FNativizationSummary::FDependencyRecord>& GetDependenciesGlobalMap();
 };
 
 struct FDisableUnwantedWarningOnScope

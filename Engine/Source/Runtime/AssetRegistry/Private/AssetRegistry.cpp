@@ -92,7 +92,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// Allow loading development asset registry
-		FString DevAssetRegistryFilename = (FPaths::GameDir() / TEXT("DevelopmentAssetRegistry.bin"));
+		FString DevAssetRegistryFilename = (FPaths::ProjectDir() / TEXT("DevelopmentAssetRegistry.bin"));
 		if (FParse::Param(FCommandLine::Get(), TEXT("LoadDevAssetRegistry")) && IFileManager::Get().FileExists(*DevAssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevAssetRegistryFilename))
 		{
 			SerializationOptions.ModifyForDevelopment();
@@ -101,7 +101,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 			bLoadedDevelopment = true;
 		}
 #endif
-		FString AssetRegistryFilename = (FPaths::GameDir() / TEXT("AssetRegistry.bin"));
+		FString AssetRegistryFilename = (FPaths::ProjectDir() / TEXT("AssetRegistry.bin"));
 		if (SerializationOptions.bSerializeAssetRegistry && !bLoadedDevelopment && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
 		{
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)
@@ -149,6 +149,8 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 		}
 	}
 
+	
+
 	if (GConfig)
 	{
 		GConfig->GetBool(TEXT("AssetRegistry"), TEXT("bUpdateDiskCacheAfterLoad"), bUpdateDiskCacheAfterLoad, GEngineIni);
@@ -172,10 +174,8 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializationOptions& Options, const FString& PlatformIniName) const
 {
 	// Use passed in platform, or current platform if empty
-	const TCHAR* FinalPlatformName = !PlatformIniName.IsEmpty() ? *PlatformIniName : ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName());
-
 	FConfigFile PlatformEngineIni;
-	FConfigCacheIni::LoadLocalIniFile(PlatformEngineIni, TEXT("Engine"), true, FinalPlatformName);
+	FConfigCacheIni::LoadLocalIniFile(PlatformEngineIni, TEXT("Engine"), true, (!PlatformIniName.IsEmpty() ? *PlatformIniName : ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName())));
 
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bSerializeAssetRegistry"), Options.bSerializeAssetRegistry);
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bSerializeDependencies"), Options.bSerializeDependencies);
@@ -199,8 +199,7 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 	for (const FString& FilterlistItem : FilterlistItems)
 	{
 		FString TrimmedFilterlistItem = FilterlistItem;
-		TrimmedFilterlistItem.Trim();
-		TrimmedFilterlistItem.TrimTrailing();
+		TrimmedFilterlistItem.TrimStartAndEndInline();
 		if (TrimmedFilterlistItem.Left(1) == TEXT("("))
 		{
 			TrimmedFilterlistItem = TrimmedFilterlistItem.RightChop(1);
@@ -221,10 +220,8 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 			FString ValueString;
 			if (Token.Split(TEXT("="), &KeyString, &ValueString))
 			{
-				KeyString.Trim();
-				KeyString.TrimTrailing();
-				ValueString.Trim();
-				ValueString.TrimTrailing();
+				KeyString.TrimStartAndEndInline();
+				ValueString.TrimStartAndEndInline();
 				if (KeyString == TEXT("Class"))
 				{
 					ClassName = ValueString;
@@ -1220,7 +1217,7 @@ void UAssetRegistryImpl::AssetDeleted(UObject* DeletedAsset)
 		if (bInitialSearchCompleted && AssetDataDeleted.IsRedirector())
 		{
 			// Need to remove from GRedirectCollector
-			GRedirectCollector.RemoveAssetPathRedirection(AssetDataDeleted.ObjectPath.ToString());
+			GRedirectCollector.RemoveAssetPathRedirection(AssetDataDeleted.ObjectPath);
 		}
 #endif
 
@@ -1753,24 +1750,15 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 			PackageDependencies.Add(AssetReference, EAssetRegistryDependencyType::Hard);
 		}
 
-		for (const FString& StringAssetReference : Result.StringAssetReferencesMap)
+		for (FName SoftPackageName : Result.SoftPackageReferenceList)
 		{
-			// Possibly resolve ini:name references before adding to dependency list
-			const FString* IniFilename = GetIniFilenameFromObjectsReference(StringAssetReference);
-			const FName AssetReference = IniFilename ? *ResolveIniObjectsReference(StringAssetReference, IniFilename) : *StringAssetReference;
-
 			// Already processed?
-			if (PackageDependencies.Contains(AssetReference))
+			if (PackageDependencies.Contains(SoftPackageName))
 			{
 				continue;
 			}
 
-			if (FPackageName::IsShortPackageName(AssetReference))
-			{
-				UE_LOG(LogAssetRegistry, Warning, TEXT("Package with string asset reference with short asset path: %s. This is unsupported, can couse errors and be slow on loading. Please resave the package to fix this."), *Result.PackageName.ToString());
-			}
-
-			PackageDependencies.Add(AssetReference, EAssetRegistryDependencyType::Soft);
+			PackageDependencies.Add(SoftPackageName, EAssetRegistryDependencyType::Soft);
 		}
 
 		for (const TPair<FPackageIndex, TArray<FName>>& SearchableNameList : Result.SearchableNamesMap)
@@ -2038,7 +2026,7 @@ void UAssetRegistryImpl::AddFilesToSearch (const TArray<FString>& Files)
 
 #if WITH_EDITOR
 
-void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& FileChanges)
+void UAssetRegistryImpl::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 {
 	// Take local copy of FileChanges array as we wish to collapse pairs of 'Removed then Added' FileChangeData
 	// entries into a single 'Modified' entry.
@@ -2078,27 +2066,27 @@ void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& File
 		const bool bIsValidPackageName = FPackageName::TryConvertFilenameToLongPackageName(File, LongPackageName);
 		const bool bIsValidPackage = bIsPackageFile && bIsValidPackageName;
 
-		if ( bIsValidPackage )
+		if (bIsValidPackage)
 		{
-			switch( FileChangesProcessed[FileIdx].Action )
+			switch (FileChangesProcessed[FileIdx].Action)
 			{
-				case FFileChangeData::FCA_Added:
-					// This is a package file that was created on disk. Mark it to be scanned for asset data.
-					NewFiles.AddUnique(File);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Added:
+				// This is a package file that was created on disk. Mark it to be scanned for asset data.
+				NewFiles.AddUnique(File);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
+				break;
 
-				case FFileChangeData::FCA_Modified:
-					// This is a package file that changed on disk. Mark it to be scanned immediately for new or removed asset data.
-					ModifiedFiles.AddUnique(File);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Modified:
+				// This is a package file that changed on disk. Mark it to be scanned immediately for new or removed asset data.
+				ModifiedFiles.AddUnique(File);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
+				break;
 
-				case FFileChangeData::FCA_Removed:
-					// This file was deleted. Remove all assets in the package from the registry.
-					RemovePackageData(*LongPackageName);
-					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
-					break;
+			case FFileChangeData::FCA_Removed:
+				// This file was deleted. Remove all assets in the package from the registry.
+				RemovePackageData(*LongPackageName);
+				UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
+				break;
 			}
 		}
 	}
@@ -2108,48 +2096,7 @@ void UAssetRegistryImpl::OnDirectoryChanged (const TArray<FFileChangeData>& File
 		AddFilesToSearch(NewFiles);
 	}
 
-	if (ModifiedFiles.Num() > 0)
-	{
-		// Convert all the filenames to package names
-		TArray<FString> ModifiedPackageNames;
-		ModifiedPackageNames.Reserve(ModifiedFiles.Num());
-		for (const FString& File : ModifiedFiles)
-		{
-			ModifiedPackageNames.Add(FPackageName::FilenameToLongPackageName(File));
-		}
-
-		// Get the assets that are currently inside the package
-		TArray<TArray<FAssetData*>> ExistingFilesAssetData;
-		ExistingFilesAssetData.Reserve(ModifiedFiles.Num());
-		for (const FString& PackageName : ModifiedPackageNames)
-		{
-			TArray<FAssetData*>* PackageAssetsPtr = State.CachedAssetsByPackageName.Find(*PackageName);
-			if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
-			{
-				ExistingFilesAssetData.Add(*PackageAssetsPtr);
-			}
-			else
-			{
-				ExistingFilesAssetData.AddDefaulted();
-			}
-		}
-
-		// Re-scan and update the asset registry with the new asset data
-		TArray<FName> FoundAssets;
-		ScanPathsAndFilesSynchronous(TArray<FString>(), ModifiedFiles, true, EAssetDataCacheMode::NoCache, &FoundAssets, nullptr);
-
-		// Remove any assets that are no longer present in the package
-		for (const TArray<FAssetData*>& OldPackageAssets : ExistingFilesAssetData)
-		{
-			for (FAssetData* OldPackageAsset : OldPackageAssets)
-			{
-				if (!FoundAssets.Contains(OldPackageAsset->ObjectPath))
-				{
-					RemoveAssetData(OldPackageAsset);
-				}
-			}
-		}
-	}
+	ScanModifiedAssetFiles(ModifiedFiles);
 }
 
 void UAssetRegistryImpl::OnAssetLoaded(UObject *AssetLoaded)
@@ -2241,13 +2188,58 @@ void UAssetRegistryImpl::UpdateRedirectCollector()
 
 		if (Destination != AssetData->ObjectPath)
 		{
-			GRedirectCollector.AddAssetPathRedirection(AssetData->ObjectPath.ToString(), Destination.ToString());
+			GRedirectCollector.AddAssetPathRedirection(AssetData->ObjectPath, Destination);
 		}
 	}
 }
 
 #endif // WITH_EDITOR
 
+void UAssetRegistryImpl::ScanModifiedAssetFiles(const TArray<FString>& InFilePaths)
+{
+	if (InFilePaths.Num() > 0)
+	{
+		// Convert all the filenames to package names
+		TArray<FString> ModifiedPackageNames;
+		ModifiedPackageNames.Reserve(InFilePaths.Num());
+		for (const FString& File : InFilePaths)
+		{
+			ModifiedPackageNames.Add(FPackageName::FilenameToLongPackageName(File));
+		}
+
+		// Get the assets that are currently inside the package
+		TArray<TArray<FAssetData*>> ExistingFilesAssetData;
+		ExistingFilesAssetData.Reserve(InFilePaths.Num());
+		for (const FString& PackageName : ModifiedPackageNames)
+		{
+			TArray<FAssetData*>* PackageAssetsPtr = State.CachedAssetsByPackageName.Find(*PackageName);
+			if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
+			{
+				ExistingFilesAssetData.Add(*PackageAssetsPtr);
+			}
+			else
+			{
+				ExistingFilesAssetData.AddDefaulted();
+			}
+		}
+
+		// Re-scan and update the asset registry with the new asset data
+		TArray<FName> FoundAssets;
+		ScanPathsAndFilesSynchronous(TArray<FString>(), InFilePaths, true, EAssetDataCacheMode::NoCache, &FoundAssets, nullptr);
+
+		// Remove any assets that are no longer present in the package
+		for (const TArray<FAssetData*>& OldPackageAssets : ExistingFilesAssetData)
+		{
+			for (FAssetData* OldPackageAsset : OldPackageAssets)
+			{
+				if (!FoundAssets.Contains(OldPackageAsset->ObjectPath))
+				{
+					RemoveAssetData(OldPackageAsset);
+				}
+			}
+		}
+	}
+}
 
 void UAssetRegistryImpl::OnContentPathMounted( const FString& InAssetPath, const FString& FileSystemPath )
 {

@@ -368,4 +368,20 @@ void SWebBrowser::UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter)
 	}
 }
 
+void SWebBrowser::BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem)
+{
+	if (BrowserView.IsValid())
+	{
+		BrowserView->BindInputMethodSystem(TextInputMethodSystem);
+	}
+}
+
+void SWebBrowser::UnbindInputMethodSystem()
+{
+	if (BrowserView.IsValid())
+	{
+		BrowserView->UnbindInputMethodSystem();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

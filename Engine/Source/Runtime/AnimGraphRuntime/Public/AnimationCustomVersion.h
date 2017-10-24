@@ -26,6 +26,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 		// Renamed Stretch Limits to better names
 		RenamedStretchLimits = 4,
 
+		// Convert IK to support FBoneSocketTarget
+		ConvertIKToSupportBoneSocketTarget = 5,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

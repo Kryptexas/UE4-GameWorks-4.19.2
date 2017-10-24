@@ -26,6 +26,12 @@ public:
 	void Construct(const FArguments& InArgs);
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
+	/** Toggles cloth paint mode */
+	void TogglePaintMode();
+
+	/** Gets whether cloth paint mode is active */
+	bool IsPaintModeActive() const;
+
 protected:
 
 	/** Called as the tool selection changes to enable/disable painting */
@@ -34,8 +40,8 @@ protected:
 	/** Called from the selector when the asset selection changes (Asset, LOD, Mask) */
 	void OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAssetPtr, int32 InLodIndex, int32 InMaskIndex);
 
-	/** Called from the details panel holding the asset config so we can respond to a config change */
-	void OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent);
+	/** Whether or not the asset config section is enabled for editing */
+	bool IsAssetDetailsPanelEnabled();
 
 	/** Helpers for getting editor objects */
 	ISkeletalMeshEditor* GetSkeletalMeshEditor() const;

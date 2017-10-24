@@ -13,7 +13,7 @@ There are two types of map: TMap and **TMultiMap**.  TMap's keys are unique, and
 
 ## TMap
 
-TMaps are primarily defined by two types - a key type and a value type - which are stored as associated pairs in the map.  It is convenient to refer to these pairs as the element type of the map as if it was an individual object.  In this document, element means a key-value pair, while individual components are referred to as the element's key or the element's value.  The element type is actually a **TPair**< KeyType, ElementType >, though it should be rare to need to refer to the TPair type directly.
+TMaps are primarily defined by two types - a key type and a value type - which are stored as associated pairs in the map.  It is convenient to refer to these pairs as the element type of the map as if it was an individual object.  In this document, element means a key-value pair, while individual components are referred to as the element's key or the element's value.  The element type is actually a `TPair< KeyType, ElementType >`, though it should be rare to need to refer to the TPair type directly.
 
 Like TArray, TMap is a homogeneous container, meaning that all of its elements are strictly the same type.  TMap is also a value type, and supports the usual copying, assignment and destructor operations, as well as strong ownership of its elements, which will be destroyed when the map is destroyed.  The key type and value type must also be value types.
 
