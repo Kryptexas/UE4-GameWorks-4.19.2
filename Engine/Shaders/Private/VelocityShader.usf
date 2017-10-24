@@ -200,7 +200,7 @@ void MainVertexShader(
 
 // Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
 #if !USING_TESSELLATION
-	Output.Position.z += View.NumSceneColorMSAASamples > 1 ? GNonTessellationDepthBias * Output.Position.w : 0.0;
+    Output.Position.z += View.NumSceneColorMSAASamples > 1 ? GNonTessellationDepthBias * Output.Position.w : 0.0;
 #endif
 
 #if USING_TESSELLATION

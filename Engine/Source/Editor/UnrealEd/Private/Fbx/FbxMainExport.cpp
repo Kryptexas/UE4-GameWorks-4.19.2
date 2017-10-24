@@ -102,7 +102,8 @@ TSharedPtr<FFbxExporter> FFbxExporter::StaticInstance;
 
 FFbxExporter::FFbxExporter()
 {
-	ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None);
+	//We use the FGCObject pattern to keep the fbx export option alive during the editor session
+	ExportOptions = NewObject<UFbxExportOption>();
 	//Load the option from the user save ini file
 	ExportOptions->LoadOptions();
 
@@ -142,12 +143,10 @@ void FFbxExporter::DeleteInstance()
 void FFbxExporter::FillExportOptions(bool BatchMode, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutExportAll)
 {
 	OutOperationCanceled = false;
-
-	if (ExportOptions == nullptr)
-	{
-		ExportOptions = NewObject<UFbxExportOption>(GetTransientPackage(), NAME_None);
-	}
-
+	
+	//Export option should have been set in the constructor
+	check(ExportOptions != nullptr);
+	
 	//Load the option from the user save ini file
 	ExportOptions->LoadOptions();
 	
@@ -3365,7 +3364,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		else
 		{
 			// Do not weld verts
-			VertRemap.Add(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
+			VertRemap.AddUninitialized(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 			for (int32 i = 0; i < VertRemap.Num(); i++)
 			{
 				VertRemap[i] = i;
@@ -3711,7 +3710,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 	else
 	{
 		// Do not weld verts
-		VertRemap.Add(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
+		VertRemap.AddUninitialized(RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 		for (int32 i = 0; i < VertRemap.Num(); i++)
 		{
 			VertRemap[i] = i;
