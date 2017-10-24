@@ -7,6 +7,7 @@
 #include "ARHitTestingSupport.h"
 #include "ARTrackingQuality.h"
 #include "AppleARKitHitTestResult.h"
+#include "Kismet/BlueprintPlatformLibrary.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -26,6 +27,7 @@ class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupp
 	
 public:
 	FAppleARKitSystem();
+	void Initialize();
 	~FAppleARKitSystem();
 	
 	/** Thread safe anchor map getter */
@@ -44,18 +46,22 @@ public:
 	//~ IXRTrackingSystem
 	
 	//~ IARHitTestingSupport
-	virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
+	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
 	//~ IARHitTestingSupport
 	
 	//~ IARTrackingQuality
 	virtual EARTrackingQuality ARGetTrackingQuality() const;
 	//~ IARTrackingQuality
+	
+	// @todo arkit : this is for the blueprint library only; try to get rid of this method
+	bool GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const;
 
 private:
 	void Run();
 	bool RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration);
 	bool IsRunning() const;
 	bool Pause();
+	void OrientationChanged(const int32 NewOrientation);
 	
 public:
 	// Session delegate callbacks
@@ -68,7 +74,7 @@ public:
 #endif // ARKIT_SUPPORT
 
 	
-private:
+public:
 	/**
 	 * Searches the last processed frame for anchors corresponding to a point in the captured image.
 	 *
@@ -81,12 +87,20 @@ private:
 	 * @param ScreenPosition The viewport pixel coordinate of the trace origin.
 	 */
 	UFUNCTION( BlueprintCallable, Category="AppleARKit|Session" )
-	bool HitTestAtScreenPosition( const FVector2D ScreenPosition, EAppleARKitHitTestResultType Types, TArray< FARHitTestResult >& OutResults );
+	bool HitTestAtScreenPosition( const FVector2D ScreenPosition, EAppleARKitHitTestResultType Types, TArray< FAppleARKitHitTestResult >& OutResults );
 	
 	
 private:
 	
 	bool bIsRunning = false;
+	
+	void SetDeviceOrientation( EScreenOrientation::Type InOrientation );
+	
+	/** The orientation of the device; see EScreenOrientation */
+	EScreenOrientation::Type DeviceOrientation;
+	
+	/** A rotation from ARKit TrackingSpace to Unreal Space. It is re-derived based on other parameters; users should not set it directly. */
+	FRotator DerivedTrackingToUnrealRotation;
 	
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 

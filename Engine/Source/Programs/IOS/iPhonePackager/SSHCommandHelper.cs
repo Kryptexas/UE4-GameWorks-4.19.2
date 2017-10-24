@@ -140,7 +140,7 @@ namespace iPhonePackager
 
 		// SSH command output, tracks output and errors from the remote execution
 		private static Dictionary<Object, StringBuilder> SSHOutputMap = new Dictionary<object, StringBuilder>();
-
+        public static Hashtable SSHReturn = new Hashtable();
 		/** 
 		 * Execute a console command on the remote mac.
 		 */
@@ -171,9 +171,9 @@ namespace iPhonePackager
 
 			SSHProcess.StartInfo.UseShellExecute = false;
 			SSHProcess.StartInfo.RedirectStandardOutput = true;
-			SSHProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			SSHProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
 			SSHProcess.StartInfo.RedirectStandardError = true;
-			SSHProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			SSHProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
 
 			DateTime Start = DateTime.Now;
 			SSHProcess.Start();
@@ -186,9 +186,9 @@ namespace iPhonePackager
 			Console.WriteLine("Execute took {0}", (DateTime.Now - Start).ToString());
 
 			// now we have enough to fill out the HashTable
-			Hashtable Return = new Hashtable();
-			Return["CommandOutput"] = SSHOutputMap[SSHProcess].ToString();
-			Return["ExitCode"] = (object)SSHProcess.ExitCode;
+			SSHReturn = new Hashtable();
+            SSHReturn["CommandOutput"] = SSHOutputMap[SSHProcess].ToString();
+            SSHReturn["ExitCode"] = (object)SSHProcess.ExitCode;
 
 			SSHOutputMap.Remove(SSHProcess);
 
@@ -362,6 +362,7 @@ namespace iPhonePackager
 		{
 			if ((Line != null) && (Line.Data != null) && (Line.Data != ""))
 			{
+                Program.Log(Line.Data);
 				StringBuilder SSHOutput = SSHOutputMap[Sender];
 				if (SSHOutput.Length != 0)
 				{

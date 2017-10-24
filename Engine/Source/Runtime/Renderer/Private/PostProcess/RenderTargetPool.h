@@ -285,6 +285,8 @@ public:
 
 	FVisualizeTexture VisualizeTexture;
 
+	void UpdateElementSize(const TRefCountPtr<IPooledRenderTarget>& Element, const uint32 OldSize);
+
 private:
 
 	bool DoesTargetNeedTransienceOverride(const FPooledRenderTargetDesc& InputDesc, ERenderTargetTransience TransienceHint) const;
@@ -296,7 +298,7 @@ private:
 	TArray< TRefCountPtr<FPooledRenderTarget> > DeferredDeleteArray;
 	TArray< FTextureRHIParamRef > TransitionTargets;	
 
-	/** These are snapshots, have odd life times, live in the scene allocator, and don't contibute to any accounting or other management. */
+	/** These are snapshots, have odd life times, live in the scene allocator, and don't contribute to any accounting or other management. */
 	TArray<FPooledRenderTarget*> PooledRenderTargetSnapshots;
 
 	// redundant, can always be computed with GetStats(), to debug "out of memory" situations and used for r.RenderTargetPoolMin
@@ -322,15 +324,14 @@ private:
 		SMemoryStats()
 			: DisplayedUsageInBytes(0)
 			, TotalUsageInBytes(0)
-			, TotalColumnSize(0)
 		{
 		}
 		// for statistics
 		uint64 DisplayedUsageInBytes;
 		// for statistics
 		uint64 TotalUsageInBytes;
-		// for display purpose, to normalize the view width
-		uint64 TotalColumnSize;
+		// for display purposes, to normalize the view width (Initialize to 1 to avoid a division by zero when compiled out)
+		uint64 TotalColumnSize = 1;
 	};
 
 	// if next frame we want to run with bEventRecording=true

@@ -126,6 +126,9 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 				TabManager->RestoreFrom(Layout, ConstructUnderWindow).ToSharedRef()
 			]
 	];
+
+	// Tell tab-manager about the multi-box for platforms with a global menu bar
+	TabManager->SetMenuMultiBox(MenuBarBuilder.GetMultiBox());
 }
 
 

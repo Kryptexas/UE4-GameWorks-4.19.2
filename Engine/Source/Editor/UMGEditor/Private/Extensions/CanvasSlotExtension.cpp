@@ -563,7 +563,7 @@ void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& 
 				const FGeometry IgnoreScale = CanvasGeometry.MakeChild(
 					FVector2D::ZeroVector,
 					CanvasGeometry.GetLocalSize(),
-					Inverse(CanvasGeometry.GetAccumulatedLayoutTransform().GetScale()) * Designer->GetPreviewScale()
+					Inverse(CanvasGeometry.GetAccumulatedLayoutTransform().GetScale()) * Designer->GetPreviewScale() * AllottedGeometry.Scale
 				);
 				CanvasGeometry = Designer->MakeGeometryWindowLocal(IgnoreScale);
 

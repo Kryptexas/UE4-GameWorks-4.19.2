@@ -50,10 +50,10 @@ class HeadsetReceiver extends BroadcastReceiver
 		stateChanged( state );
 	}
 
-	public static void stopReceiver( Context context )
+	public static void stopReceiver( Activity activity )
 	{
 		GameActivity.Log.debug("Unregistering headset receiver");
-		context.unregisterReceiver( receiver );
+		activity.unregisterReceiver( receiver );
 	}
 
 	@Override

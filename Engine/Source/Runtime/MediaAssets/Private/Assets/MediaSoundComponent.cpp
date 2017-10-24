@@ -20,6 +20,7 @@ UMediaSoundComponent::UMediaSoundComponent(const FObjectInitializer& ObjectIniti
 	, Resampler(new FMediaAudioResampler)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	bAutoActivate = true;
 }
 
 

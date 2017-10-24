@@ -1261,6 +1261,35 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 
 	KeySuffix.AppendChar(Mesh->bSupportUniformlyDistributedSampling ? TEXT('1') : TEXT('0'));
 
+	// Value of this CVar affects index buffer <-> painted vertex color correspondence (see UE-51421).
+	static const TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TriangleOrderOptimization"));
+
+	// depending on module loading order this might be called too early on Linux (possibly other platforms too?)
+	if (CVar == nullptr)
+	{
+		FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
+		CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TriangleOrderOptimization"));
+	}
+
+	if (CVar)
+	{
+		switch (CVar->GetValueOnAnyThread())
+		{
+			case 2:
+				KeySuffix += TEXT("_NoTOO");
+				break;
+			case 0:
+				KeySuffix += TEXT("_NVTS");
+				break;
+			case 1:
+				// intentional - default value will not influence DDC to avoid unnecessary invalidation
+				break;
+			default:
+				KeySuffix += FString::Printf(TEXT("_TOO%d"), CVar->GetValueOnAnyThread());	//	 allow unknown values transparently
+				break;
+		}
+	}
+
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("STATICMESH"),
 		*GetStaticMeshDerivedDataVersion(),

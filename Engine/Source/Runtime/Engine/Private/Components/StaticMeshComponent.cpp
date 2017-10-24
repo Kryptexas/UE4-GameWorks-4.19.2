@@ -127,8 +127,6 @@ public:
 	/** Used to store lightmap data during RerunConstructionScripts */
 	struct FLightMapInstanceData
 	{
-		/** Transform of instance */
-		FTransform		Transform;
 		/** MapBuildDataId from LODData */
 		TArray<FGuid>	MapBuildDataIds;
 	};
@@ -2125,14 +2123,9 @@ int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 
 FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() const
 {
-	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
-
-	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
+	FStaticMeshComponentInstanceData* StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
 	// Fill in info
-	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
-	StaticMeshInstanceData->CachedStaticLighting.Transform = GetComponentTransform();
-
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 	{
 		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
@@ -2160,7 +2153,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 		}
 	}
 
-	return (StaticMeshInstanceData ? StaticMeshInstanceData : Super::GetComponentInstanceData());
+	return StaticMeshInstanceData;
 }
 
 void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstanceData* StaticMeshInstanceData)
@@ -2180,7 +2173,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 	if (HasStaticLighting() && NumLODLightMaps > 0)
 	{
 		// See if data matches current state
-		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(GetComponentTransform(), 1.e-3f))
+		if (StaticMeshInstanceData->GetComponentTransform().Equals(GetComponentTransform(), 1.e-3f))
 		{
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
@@ -2195,7 +2188,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 				TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
 				*GetPathName(),
 				*GetComponentTransform().ToString(),
-				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
+				*StaticMeshInstanceData->GetComponentTransform().ToString());
 		}
 	}
 

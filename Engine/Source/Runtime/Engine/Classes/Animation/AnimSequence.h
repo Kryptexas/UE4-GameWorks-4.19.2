@@ -799,8 +799,13 @@ public:
 		return CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 	}
 
-	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
+	/** Clears any data in the AnimSequence */
 	void RecycleAnimSequence();
+
+#if WITH_EDITOR
+	/** Clears some data in the AnimSequence, so it can be reused when importing a new animation with same name over it. */
+	void CleanAnimSequenceForImport();
+#endif
 
 	/** 
 	 * Utility function to copy all UAnimSequence properties from Source to Destination.

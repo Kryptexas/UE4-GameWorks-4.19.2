@@ -376,7 +376,13 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		}
 		if ( FOpenGL::SupportsTextureMaxLevel() )
 		{
-			glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
+#if PLATFORM_ANDROID
+			// Do not use GL_TEXTURE_MAX_LEVEL if external texture on Android
+			if (Target != GL_TEXTURE_EXTERNAL_OES)
+#endif
+			{
+				glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
+			}
 		}
 		
 		TextureMipLimits.Add(TextureID, TPair<GLenum, GLenum>(0, NumMips - 1));

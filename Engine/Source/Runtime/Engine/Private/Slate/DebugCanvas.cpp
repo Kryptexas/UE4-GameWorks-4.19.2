@@ -159,29 +159,37 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 		GameThreadCanvas->SetAllowedModes(FCanvas::Allow_DeleteOnRender);
 	}
 
-	if (RenderThreadCanvas.IsValid())
+	if (GameThreadCanvas.IsValid())
 	{
-		if (RenderThreadCanvas->IsUsingInternalTexture() && LayerTexture && bCanvasRenderedLastFrame)
+		const bool bIsStereoscopic3D = GEngine && GEngine->IsStereoscopic3D();
+		IStereoLayers* const StereoLayers = (bIsStereoscopic3D && GEngine && GEngine->StereoRenderingDevice.IsValid()) ? GEngine->StereoRenderingDevice->GetStereoLayers() : nullptr;
+		const bool bHMDAvailable = StereoLayers && bIsStereoscopic3D;
+
+		static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
+		const bool bDebugInLayer = bHMDAvailable && DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetValueOnAnyThread() != 0;
+		GameThreadCanvas->SetUseInternalTexture(bDebugInLayer);
+
+		if (bDebugInLayer && LayerTexture && bCanvasRenderedLastFrame)
 		{
-			if (GEngine && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->GetStereoLayers() && LayerTexture)
+			if (StereoLayers)
 			{
-				const IStereoLayers::FLayerDesc StereoLayerDesc = GEngine->StereoRenderingDevice->GetStereoLayers()->GetDebugCanvasLayerDesc(LayerTexture->GetRenderTargetItem().ShaderResourceTexture);
+				const IStereoLayers::FLayerDesc StereoLayerDesc = StereoLayers->GetDebugCanvasLayerDesc(LayerTexture->GetRenderTargetItem().ShaderResourceTexture);
 				if (LayerID == INVALID_LAYER_ID)
 				{
-					LayerID = GEngine->StereoRenderingDevice->GetStereoLayers()->CreateLayer(StereoLayerDesc);
+					LayerID = StereoLayers->CreateLayer(StereoLayerDesc);
 				}
 				else
 				{
-					GEngine->StereoRenderingDevice->GetStereoLayers()->SetLayerDesc(LayerID, StereoLayerDesc);
+					StereoLayers->SetLayerDesc(LayerID, StereoLayerDesc);
 				}
 			}
 		}
 
-		if (LayerID != INVALID_LAYER_ID && (!RenderThreadCanvas->IsUsingInternalTexture() || !bCanvasRenderedLastFrame))
+		if (LayerID != INVALID_LAYER_ID && (!bDebugInLayer || !bCanvasRenderedLastFrame))
 		{
-			if (GEngine && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->GetStereoLayers())
+			if (StereoLayers)
 			{
-				GEngine->StereoRenderingDevice->GetStereoLayers()->DestroyLayer(LayerID);
+				StereoLayers->DestroyLayer(LayerID);
 			}
 			LayerID = INVALID_LAYER_ID;
 		}

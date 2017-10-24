@@ -2998,7 +2998,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 		if (bUsesInstanceID && bIsES)
 		{
-			ralloc_asprintf_append(buffer, "#ifdef GL_EXT_draw_instanced\n");
+			ralloc_asprintf_append(buffer, "#ifdef UE_EXT_draw_instanced\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_draw_instanced : enable\n");
 			ralloc_asprintf_append(buffer, "#define gl_InstanceID gl_InstanceIDEXT\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
@@ -3185,7 +3185,7 @@ bool compiler_internal_AdjustIsFrontFacing(bool isFrontFacing)
 		if (bUsesDepthbufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
-			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0f/(gl_LastFragDepthARM*C1-C2); return clamp(w, 0.0f, 65000.0f); }\n");
+			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0/(gl_LastFragDepthARM*C1-C2); return clamp(w, 0.0, 65000.0); }\n");
 			ralloc_asprintf_append(buffer, "#else\n");
 			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");

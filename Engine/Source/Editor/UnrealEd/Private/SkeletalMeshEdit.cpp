@@ -593,7 +593,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 		}
 		else
 		{
-			DestSeq->RecycleAnimSequence();
+			DestSeq->CleanAnimSequenceForImport();
 		}
 
 		DestSeq->SetSkeleton(Skeleton);
@@ -1208,6 +1208,9 @@ bool ShouldImportCurve(FbxAnimCurve* Curve, bool bDoNotImportWithZeroValues)
 
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * DestSeq, const FString& FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
+	//This destroy all previously imported animation raw data
+	DestSeq->CleanAnimSequenceForImport();
+
 	// @todo : the length might need to change w.r.t. sampling keys
 	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
 	float PreviousSequenceLength = DestSeq->SequenceLength;
@@ -1266,6 +1269,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	}
 
 	FbxNode *SkeletalMeshRootNode = NodeArray.Num() > 0 ? NodeArray[0] : nullptr;
+	
 	//
 	// import blend shape curves
 	//
@@ -1446,8 +1450,6 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	if (ImportOptions->bImportBoneTracks)
 	{
 		GWarn->BeginSlowTask( LOCTEXT("BeginImportAnimation", "Importing Animation"), true);
-
-		DestSeq->RecycleAnimSequence();
 
 		TArray<FName> FbxRawBoneNames;
 		FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);

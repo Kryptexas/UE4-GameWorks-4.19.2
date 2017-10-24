@@ -532,17 +532,17 @@ void USCS_Node::SetParent(USceneComponent* InParentComponent)
 
 USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) const
 {
-	USceneComponent* ParentComponentTemplate = NULL;
+	USceneComponent* ParentComponentTemplate = nullptr;
 	if(ParentComponentOrVariableName != NAME_None)
 	{
-		check(InBlueprint != NULL && InBlueprint->GeneratedClass != NULL);
+		check(InBlueprint != nullptr && InBlueprint->GeneratedClass != nullptr);
 
 		// If the parent component template is found in the 'Components' array of the CDO (i.e. native)
 		if(bIsParentComponentNative)
 		{
 			// Access the Blueprint CDO
 			AActor* CDO = InBlueprint->GeneratedClass->GetDefaultObject<AActor>();
-			if(CDO != NULL)
+			if(CDO != nullptr)
 			{
 				// Find the component template in the CDO that matches the specified name
 				TInlineComponentArray<USceneComponent*> Components;
@@ -567,11 +567,11 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 			UBlueprint::GetBlueprintHierarchyFromClass(InBlueprint->GeneratedClass, ParentBPStack);
 
 			// Find the parent Blueprint in the hierarchy
-			for(int32 StackIndex = ParentBPStack.Num() - 1; StackIndex > 0; --StackIndex)
+			for(int32 StackIndex = ParentBPStack.Num() - 1; StackIndex > 0 && !ParentComponentTemplate; --StackIndex)
 			{
 				UBlueprint* ParentBlueprint = ParentBPStack[StackIndex];
-				if(ParentBlueprint != NULL
-					&& ParentBlueprint->SimpleConstructionScript != NULL
+				if(ParentBlueprint != nullptr
+					&& ParentBlueprint->SimpleConstructionScript != nullptr
 					&& ParentBlueprint->GeneratedClass->GetFName() == ParentComponentOwnerClassName)
 				{
 					// Find the SCS node with a variable name that matches the specified name
@@ -579,7 +579,7 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 					for(int32 ParentNodeIndex = 0; ParentNodeIndex < ParentSCSNodes.Num(); ++ParentNodeIndex)
 					{
 						USceneComponent* CompTemplate = Cast<USceneComponent>(ParentSCSNodes[ParentNodeIndex]->ComponentTemplate);
-						if(CompTemplate != NULL && ParentSCSNodes[ParentNodeIndex]->GetVariableName() == ParentComponentOrVariableName)
+						if(CompTemplate != nullptr && ParentSCSNodes[ParentNodeIndex]->GetVariableName() == ParentComponentOrVariableName)
 						{
 							// Found a match; this is our parent, we're done
 							ParentComponentTemplate = Cast<USceneComponent>(ParentSCSNodes[ParentNodeIndex]->GetActualComponentTemplate(Cast<UBlueprintGeneratedClass>(InBlueprint->GeneratedClass)));

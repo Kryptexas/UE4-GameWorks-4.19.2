@@ -5411,6 +5411,9 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 			}
 
 			CodeGenModule.FinalizeManifest();
+
+			// Unload the module as we only need it while cooking. This will also clear the current module's state in order to allow a new cooker pass to function properly.
+			FModuleManager::Get().UnloadModule(CodeGenModule.GetModuleName());
 		}
 
 		check(CookByTheBookOptions->ChildUnsolicitedPackages.Num() == 0);
@@ -5873,7 +5876,9 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		StartSavingEDLCookInfoForVerification();
 	}
 
-	if (CookByTheBookStartupOptions.bNativizeAssets)
+	// Note: Nativization only works with "cook by the book" mode and not from within the current editor process.
+	if (CurrentCookMode == ECookMode::CookByTheBook
+		&& PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
 	{
 		FNativeCodeGenInitData CodeGenData;
 		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)
@@ -5883,17 +5888,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			CodeGenData.CodegenTargets.Push(PlatformNativizationDetails);
 		}
 		CodeGenData.ManifestIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
-		CodeGenData.DestPluginPath = CookByTheBookStartupOptions.NativizedPluginPath;
 		IBlueprintNativeCodeGenModule::InitializeModule(CodeGenData);
-	}
-	else if(PackagingSettings->bWarnIfPackagedWithoutNativizationFlag && PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
-	{
-		// Warn if we're cooking without the -nativizeAssets flag, when the project settings specify a nativization method.
-		// If the "exclusive" (whitelist) method is set, we only warn if at least one asset has been selected for conversion.
-		if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Exclusive || PackagingSettings->NativizeBlueprintAssets.Num() > 0)
-		{
-			UE_LOG(LogCook, Warning, TEXT("Project is configured for Blueprint nativization, but the conversion flag (-nativizeAssets) has been omitted from the command line. No assets will be converted as a result."));
-		}
 	}
 
 	CookByTheBookOptions->bLeakTest = (CookOptions & ECookByTheBookOptions::LeakTest) != ECookByTheBookOptions::None; // this won't work from the editor this needs to be standalone

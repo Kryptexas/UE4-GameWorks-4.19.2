@@ -8,6 +8,8 @@ Texture2DUpdate.cpp: Helpers to stream in and out mips.
 #include "RenderUtils.h"
 #include "Containers/ResourceArray.h"
 
+volatile int32 FTexture2DUpdate::GSuspendRenderThreadTasks = 0;
+
 FTexture2DUpdate::FContext::FContext(UTexture2D* InTexture, EThreadType InCurrentThread) 
 	: Texture(InTexture)
 	, CurrentThread(InCurrentThread)
@@ -74,8 +76,10 @@ void FTexture2DUpdate::Tick(UTexture2D* InTexture, EThreadType InCurrentThread)
 		// Once locked, there shouldn't be anything pending now.
 		ensure(PendingTaskState == TS_Scheduled || PendingTaskState == TS_Pending);
 
-		// If the task is ready to execute.
-		if (TaskSynchronization.GetValue() <= 0)
+		// If the task is ready to execute. 
+		// If this is the renderthread and we shouldn't run renderthread task, mark as pending.
+		// This will require a tick from the game thread to reschedule the task.
+		if (TaskSynchronization.GetValue() <= 0 && !(GSuspendRenderThreadTasks > 0 && InCurrentThread == TT_Render))
 		{
 			FContext Context(InTexture, InCurrentThread);
 
@@ -128,12 +132,12 @@ void FTexture2DUpdate::PushTask(const FContext& Context, EThreadType InTaskThrea
 	checkSlow((bool)InTaskCallback == (InTaskThread != TT_None));
 	checkSlow((bool)InCancelationCallback == (InCancelationThread != TT_None));
 
-	// TaskSynchronization is expected to be set before call this.
-	const bool bCanExecuteNow = TaskSynchronization.GetValue() <= 0;
-
 	// To ensure coherency, the cancel state is cached as it affects which thread is relevant.
 	const bool bCachedIsCancelled = bIsCancelled;
 	const EThreadType RelevantThread = !bCachedIsCancelled ? InTaskThread : InCancelationThread;
+
+	// TaskSynchronization is expected to be set before call this.
+	const bool bCanExecuteNow = TaskSynchronization.GetValue() <= 0 && !(GSuspendRenderThreadTasks > 0 && RelevantThread == TT_Render);
 
 	if (RelevantThread == TT_None)
 	{
@@ -390,4 +394,17 @@ void FTexture2DUpdate::DoUnlock()
 	// Reset the pending task state first to prevent racing condition that could fail ensure(PendingTaskState == TS_None) in DoLock()
 	PendingTaskState = TS_None;
 	TaskState = CachedPendingTaskState;
+}
+
+void SuspendTextureStreamingRenderTasksInternal()
+{
+	// This doesn't prevent from having a task pushed immediately after as some threads could already be deep in FTexture2DUpdate::PushTask.
+	// This is why GSuspendRenderThreadTasks also gets checked in FTexture2DUpdate::Tick. The goal being to avoid accessing the RHI more
+	// than avoiding pushing new render commands. The reason behind is that some code paths access the RHI outside the render thread.
+	FPlatformAtomics::InterlockedIncrement(&FTexture2DUpdate::GSuspendRenderThreadTasks);
+}
+
+void ResumeTextureStreamingRenderTasksInternal()
+{
+	FPlatformAtomics::InterlockedDecrement(&FTexture2DUpdate::GSuspendRenderThreadTasks);
 }

@@ -101,6 +101,11 @@ struct FMovieSceneSegment
 		}
 	}
 
+	friend bool operator==(const FMovieSceneSegment& A, const FMovieSceneSegment& B)
+	{
+		return A.Range == B.Range && A.Impls == B.Impls;
+	}
+
 	/** Custom serializer to accomodate the inline allocator on our array */
 	bool Serialize(FArchive& Ar)
 	{
@@ -137,5 +142,5 @@ struct FMovieSceneSegment
 
 template<> struct TStructOpsTypeTraits<FMovieSceneSegment> : public TStructOpsTypeTraitsBase2<FMovieSceneSegment>
 {
-	enum { WithSerializer = true, WithCopy = true };
+	enum { WithSerializer = true, WithCopy = true, WithIdenticalViaEquality = true };
 };

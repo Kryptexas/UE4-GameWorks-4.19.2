@@ -316,14 +316,7 @@ namespace UnrealBuildTool
 			string ProjectArg = null;
 			if (LowercaseArg.StartsWith("-project="))
 			{
-				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
-				{
-					ProjectArg = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
-				}
-				else
-				{
-					ProjectArg = InArg.Substring(9);
-				}
+				ProjectArg = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
 			}
 			else if (LowercaseArg.EndsWith(".uproject"))
 			{
@@ -737,7 +730,7 @@ namespace UnrealBuildTool
 						else if (LowercaseArg == "-vscode")
 						{
 							bGenerateProjectFiles = true;
-							ProjectFileFormats.Add(ProjectFileFormat.VSCode);
+							ProjectFileFormats.Add(ProjectFileFormat.VisualStudioCode);
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -857,7 +850,16 @@ namespace UnrealBuildTool
 							}
 
 							// Read from the editor config
-							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Win64);
+							DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
+							if(IsEngineInstalled())
+							{
+								BuildVersion Version;
+								if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+								{
+									EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
+								}
+							}
+							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
 
 							string PreferredAccessor;
 							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
@@ -919,7 +921,7 @@ namespace UnrealBuildTool
 								case ProjectFileFormat.Eddie:
 									Generator = new EddieProjectFileGenerator(ProjectFile);
 									break;
-								case ProjectFileFormat.VSCode:
+								case ProjectFileFormat.VisualStudioCode:
 									Generator = new VSCodeProjectFileGenerator(ProjectFile);
 									break;
 								default:

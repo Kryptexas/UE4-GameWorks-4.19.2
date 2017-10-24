@@ -2253,7 +2253,7 @@ UEdGraph* SMyBlueprint::GetFocusedGraph() const
 
 void SMyBlueprint::OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent)
 {
-	if (InObject == Blueprint && InPropertyChangedEvent.ChangeType != EPropertyChangeType::ValueSet)
+	if (InObject == Blueprint && (InPropertyChangedEvent.ChangeType != EPropertyChangeType::ValueSet && InPropertyChangedEvent.ChangeType != EPropertyChangeType::ArrayClear))
 	{
 		bNeedsRefresh = true;
 	}

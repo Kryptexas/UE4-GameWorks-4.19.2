@@ -1088,6 +1088,13 @@ void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	VisualizeTexture.PresentContent(RHICmdList, View);
 }
 
+void FRenderTargetPool::UpdateElementSize(const TRefCountPtr<IPooledRenderTarget>& Element, const uint32 OldElementSize)
+{
+	check(Element.IsValid() && FindIndex(&(*Element)) >= 0);
+	AllocationLevelInKB -= (OldElementSize + 1023) / 1024;
+	AllocationLevelInKB += (Element->ComputeMemorySize() + 1023) / 1024;
+}
+
 void FRenderTargetPool::AddDeallocEvents()
 {
 	check(IsInRenderingThread());

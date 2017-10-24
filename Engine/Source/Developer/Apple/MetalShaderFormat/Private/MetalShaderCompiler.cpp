@@ -45,107 +45,160 @@ static FString	GMetalLibraryPath[2];
 static FString	GMetalCompilerVers[2];
 static FString	GTempFolderPath;
 static bool		GMetalLoggedRemoteCompileNotConfigured;	// This is used to reduce log spam, its not perfect because there is not a place to reset this flag so a log msg will only be given once per editor run
+static bool		GRemoteBuildConfigured = false;
 
 // Add (|| PLATFORM_MAC) to enable Mac to Mac remote building
 #define UNIXLIKE_TO_MAC_REMOTE_BUILDING (PLATFORM_LINUX)
 
-bool IsRemoteBuildingConfigured()
+bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment)
 {
-	bool	remoteCompilingEnabled = false;
-	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("EnableRemoteShaderCompile"), remoteCompilingEnabled, GEngineIni);
-	if(!remoteCompilingEnabled)
+	// if we have gotten an environment, then it is possible the remote server data has changed, in all other cases, it is not possible for it change
+	if (!GRemoteBuildConfigured || InEnvironment != nullptr)
 	{
-		return false;
-	}
-
-	GRemoteBuildServerHost = "";
-	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
-	if(GRemoteBuildServerHost.Len() == 0)
-	{
-		if(!GMetalLoggedRemoteCompileNotConfigured)
+		GRemoteBuildConfigured = false;
+		bool	remoteCompilingEnabled = false;
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("EnableRemoteShaderCompile"), remoteCompilingEnabled, GEngineIni);
+		if (!remoteCompilingEnabled && !FParse::Param(FCommandLine::Get(), TEXT("enableremote")))
 		{
-			UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
-			GMetalLoggedRemoteCompileNotConfigured = true;
+			if (InEnvironment == nullptr || InEnvironment->RemoteServerData.Num() < 2)
+			{
+				return false;
+			}
 		}
-		return false;
-	}
 
-	GRemoteBuildServerUser = "";
-	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), GRemoteBuildServerUser, GEngineIni);
-
-	if(GRemoteBuildServerUser.Len() == 0)
-	{
-		if(!GMetalLoggedRemoteCompileNotConfigured)
+		GRemoteBuildServerHost = "";
+		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), GRemoteBuildServerHost, GEngineIni);
+		if(GRemoteBuildServerHost.Len() == 0)
 		{
-			UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
-			GMetalLoggedRemoteCompileNotConfigured = true;
+			// check for it on the command line - meant for ShaderCompileWorker
+			if (!FParse::Value(FCommandLine::Get(), TEXT("servername"), GRemoteBuildServerHost) && GRemoteBuildServerHost.Len() == 0)
+			{
+				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RemoteServerName")))
+				{
+					GRemoteBuildServerHost = InEnvironment->RemoteServerData[TEXT("RemoteServerName")];
+				}
+				if (GRemoteBuildServerHost.Len() == 0)
+				{
+					if (!GMetalLoggedRemoteCompileNotConfigured)
+					{
+						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						{
+							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RemoteServerName is not set."));
+						}
+						GMetalLoggedRemoteCompileNotConfigured = true;
+					}
+					return false;
+				}
+			}
 		}
-		return false;
-	}
 
-	GRemoteBuildServerSSHKey = "";
-	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), GRemoteBuildServerSSHKey, GEngineIni);
+		GRemoteBuildServerUser = "";
+		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), GRemoteBuildServerUser, GEngineIni);
 
-	if(GRemoteBuildServerSSHKey.Len() == 0)
-	{
-		// RemoteToolChain.cs in UBT looks in a few more places but the code in FIOSTargetSettingsCustomization::OnGenerateSSHKey() only puts the key in this location so just going with that to keep things simple
-		TCHAR Path[4096];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
-		GRemoteBuildServerSSHKey = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *GRemoteBuildServerHost, *GRemoteBuildServerUser);
-	}
-
-	if(!FPaths::FileExists(GRemoteBuildServerSSHKey))
-	{
-		if(!GMetalLoggedRemoteCompileNotConfigured)
+		if(GRemoteBuildServerUser.Len() == 0)
 		{
-			UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH private key was not found."));
-			GMetalLoggedRemoteCompileNotConfigured = true;
+			// check for it on the command line - meant for ShaderCompileWorker
+			if (!FParse::Value(FCommandLine::Get(), TEXT("serveruser"), GRemoteBuildServerUser) && GRemoteBuildServerUser.Len() == 0)
+			{
+				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("RSyncUsername")))
+				{
+					GRemoteBuildServerUser = InEnvironment->RemoteServerData[TEXT("RSyncUsername")];
+				}
+				if (GRemoteBuildServerUser.Len() == 0)
+				{
+					if (!GMetalLoggedRemoteCompileNotConfigured)
+					{
+						if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+						{
+							UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: RSyncUsername is not set."));
+						}
+						GMetalLoggedRemoteCompileNotConfigured = true;
+					}
+					return false;
+				}
+			}
 		}
-		return false;
-	}
 
-#if PLATFORM_LINUX || PLATFORM_MAC
+		GRemoteBuildServerSSHKey = "";
+		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), GRemoteBuildServerSSHKey, GEngineIni);
 
-	// On Unix like systems we have access to ssh and scp at the command line so we can invoke them directly
-	GSSHPath = FString(TEXT("/usr/bin/ssh"));
-	GRSyncPath = FString(TEXT("/usr/bin/scp"));
-	
-#else
-	
-	// Windows requires a Delta copy install for ssh and rsync
-	FString DeltaCopyPath;
-	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("DeltaCopyInstallPath"), DeltaCopyPath, GEngineIni);
-	if (DeltaCopyPath.IsEmpty() || !FPaths::DirectoryExists(DeltaCopyPath))
-	{
-		// If no user specified directory try the UE4 bundled directory
-		DeltaCopyPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Extras\\ThirdPartyNotUE\\DeltaCopy\\Binaries"));
-	}
-
-	if (!FPaths::DirectoryExists(DeltaCopyPath))
-	{
-		// if no UE4 bundled version of DeltaCopy, try and use the default install location
-		TCHAR ProgramPath[4096];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("PROGRAMFILES(X86)"), ProgramPath, ARRAY_COUNT(ProgramPath));
-		DeltaCopyPath = FPaths::Combine(ProgramPath, TEXT("DeltaCopy"));
-	}
-	
-	if (!FPaths::DirectoryExists(DeltaCopyPath))
-	{
-		if(!GMetalLoggedRemoteCompileNotConfigured)
+		if(GRemoteBuildServerSSHKey.Len() == 0)
 		{
-			UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: DeltaCopy was not found."));
-			GMetalLoggedRemoteCompileNotConfigured = true;
+			if (!FParse::Value(FCommandLine::Get(), TEXT("serverkey"), GRemoteBuildServerSSHKey) && GRemoteBuildServerSSHKey.Len() == 0)
+			{
+				if (InEnvironment != nullptr && InEnvironment->RemoteServerData.Contains(TEXT("SSHPrivateKeyOverridePath")))
+				{
+					GRemoteBuildServerSSHKey = InEnvironment->RemoteServerData[TEXT("SSHPrivateKeyOverridePath")];
+				}
+				if (GRemoteBuildServerSSHKey.Len() == 0)
+				{
+					// RemoteToolChain.cs in UBT looks in a few more places but the code in FIOSTargetSettingsCustomization::OnGenerateSSHKey() only puts the key in this location so just going with that to keep things simple
+					TCHAR Path[4096];
+					FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
+					GRemoteBuildServerSSHKey = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *GRemoteBuildServerHost, *GRemoteBuildServerUser);
+				}
+			}
 		}
-		return false;
+
+		if (!FPaths::FileExists(GRemoteBuildServerSSHKey))
+		{
+			if (!GMetalLoggedRemoteCompileNotConfigured)
+			{
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: SSH private key was not found."));
+				}
+				GMetalLoggedRemoteCompileNotConfigured = true;
+			}
+			return false;
+		}
+
+	#if PLATFORM_LINUX || PLATFORM_MAC
+
+		// On Unix like systems we have access to ssh and scp at the command line so we can invoke them directly
+		GSSHPath = FString(TEXT("/usr/bin/ssh"));
+		GRSyncPath = FString(TEXT("/usr/bin/scp"));
+
+	#else
+
+		// Windows requires a Delta copy install for ssh and rsync
+		FString DeltaCopyPath;
+		GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("DeltaCopyInstallPath"), DeltaCopyPath, GEngineIni);
+		if (DeltaCopyPath.IsEmpty() || !FPaths::DirectoryExists(DeltaCopyPath))
+		{
+			// If no user specified directory try the UE4 bundled directory
+			DeltaCopyPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Extras\\ThirdPartyNotUE\\DeltaCopy\\Binaries"));
+		}
+
+		if (!FPaths::DirectoryExists(DeltaCopyPath))
+		{
+			// if no UE4 bundled version of DeltaCopy, try and use the default install location
+			TCHAR ProgramPath[4096];
+			FPlatformMisc::GetEnvironmentVariable(TEXT("PROGRAMFILES(X86)"), ProgramPath, ARRAY_COUNT(ProgramPath));
+			DeltaCopyPath = FPaths::Combine(ProgramPath, TEXT("DeltaCopy"));
+		}
+
+		if (!FPaths::DirectoryExists(DeltaCopyPath))
+		{
+			if (!GMetalLoggedRemoteCompileNotConfigured)
+			{
+				if (!PLATFORM_MAC || UNIXLIKE_TO_MAC_REMOTE_BUILDING)
+				{
+					UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote Building is not configured: DeltaCopy was not found."));
+				}
+				GMetalLoggedRemoteCompileNotConfigured = true;
+			}
+			return false;
+		}
+
+		GSSHPath = FPaths::Combine(*DeltaCopyPath, TEXT("ssh.exe"));
+		GRSyncPath = FPaths::Combine(*DeltaCopyPath, TEXT("rsync.exe"));
+
+	#endif
+		GRemoteBuildConfigured = true;
 	}
 
-	GSSHPath = FPaths::Combine(*DeltaCopyPath, TEXT("ssh.exe"));
-	GRSyncPath = FPaths::Combine(*DeltaCopyPath, TEXT("rsync.exe"));
-	
-#endif
-
-	UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Remote shader compilation temporarily unavailable for 4.18 preview builds.  In previous builds it was almost certainly falling back to a local compile which we no longer allow. Compilation on a Mac will still properly build native shaders."));
-	return false;	
+	return true;	
 }
 
 static bool CompileProcessAllowsRuntimeShaderCompiling(const FShaderCompilerInput& InputCompilerEnvironment)
@@ -161,7 +214,7 @@ bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutRetu
 #if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
 	return FPlatformProcess::ExecProcess(Command, Params, OutReturnCode, OutStdOut, OutStdErr);
 #else
-	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + Params;
+	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
 	return FPlatformProcess::ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
 #endif
 }
@@ -286,7 +339,7 @@ bool CopyLocalFileToRemote(FString const& LocalPath, FString const& RemotePath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zae \"%s -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' %s@%s:'%s'"), 
+			TEXT("-zae \"'%s' -i '%s'\" --rsync-path=\"mkdir -p %s && rsync\" --chmod=ug=rwX,o=rxX '%s' %s@%s:'%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*remoteBasePath, 
@@ -316,7 +369,7 @@ bool CopyRemoteFileToLocal(FString const& RemotePath, FString const& LocalPath)
 
 	FString	params = 
 		FString::Printf(
-			TEXT("-zae \"%s -i '%s'\" %s@%s:'%s' '%s'"), 
+			TEXT("-zae \"'%s' -i '%s'\" %s@%s:'%s' '%s'"), 
 			*GSSHPath,
 			*GRemoteBuildServerSSHKey, 
 			*GRemoteBuildServerUser,
@@ -1189,7 +1242,7 @@ void BuildMetalShaderOutput(
 		bool bSucceeded = false;
 
 #if METAL_OFFLINE_COMPILE
-		bool bRemoteBuildingConfigured = IsRemoteBuildingConfigured();
+		bool bRemoteBuildingConfigured = IsRemoteBuildingConfigured(&ShaderInput.Environment);
 		
 		FString MetalPath = GetMetalBinaryPath(ShaderInput.Target.Platform);
 		FString MetalToolsPath = GetMetalToolsPath(ShaderInput.Target.Platform);
@@ -1536,6 +1589,58 @@ static const EHlslShaderFrequency FrequencyTable2[] =
 	HSF_ComputeShader
 };
 
+FString CreateRemoteDataFromEnvironment(const FShaderCompilerEnvironment& Environment)
+{
+	FString Line = TEXT("\n#if 0 /*BEGIN_REMOTE_SERVER*/\n");
+	for (auto Pair : Environment.RemoteServerData)
+	{
+		Line += FString::Printf(TEXT("%s=%s\n"), *Pair.Key, *Pair.Value);
+	}
+	Line += TEXT("#endif /*END_REMOTE_SERVER*/\n");
+	return Line;
+}
+
+void CreateEnvironmentFromRemoteData(const FString& String, FShaderCompilerEnvironment& OutEnvironment)
+{
+	FString Prolog = TEXT("#if 0 /*BEGIN_REMOTE_SERVER*/");
+	int32 FoundBegin = String.Find(Prolog, ESearchCase::CaseSensitive);
+	if (FoundBegin == INDEX_NONE)
+	{
+		return;
+	}
+	int32 FoundEnd = String.Find(TEXT("#endif /*END_REMOTE_SERVER*/"), ESearchCase::CaseSensitive, ESearchDir::FromStart, FoundBegin);
+	if (FoundEnd == INDEX_NONE)
+	{
+		return;
+	}
+
+	// +1 for EOL
+	const TCHAR* Ptr = &String[FoundBegin + 1 + Prolog.Len()];
+	const TCHAR* PtrEnd = &String[FoundEnd];
+	while (Ptr < PtrEnd)
+	{
+		FString Key;
+		if (!CrossCompiler::ParseIdentifier(Ptr, Key))
+		{
+			return;
+		}
+		if (!CrossCompiler::Match(Ptr, TEXT("=")))
+		{
+			return;
+		}
+		FString Value;
+		if (!CrossCompiler::ParseString(Ptr, Value))
+		{
+			return;
+		}
+		if (!CrossCompiler::Match(Ptr, '\n'))
+		{
+			return;
+		}
+		OutEnvironment.RemoteServerData.FindOrAdd(Key) = Value;
+	}
+}
+
 void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory)
 {
 	auto Input = _Input;
@@ -1746,6 +1851,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 
 		// Remove const as we are on debug-only mode
 		CrossCompiler::CreateEnvironmentFromResourceTable(PreprocessedShader, (FShaderCompilerEnvironment&)Input.Environment);
+		CreateEnvironmentFromRemoteData(PreprocessedShader, (FShaderCompilerEnvironment&)Input.Environment);
 	}
 	else
 	{
@@ -1795,6 +1901,13 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 			{
 				FString Line = CrossCompiler::CreateResourceTableFromEnvironment(Input.Environment);
 				FileWriter->Serialize(TCHAR_TO_ANSI(*Line), Line.Len());
+
+				// add the remote data if necessary
+//				if (IsRemoteBuildingConfigured(&Input.Environment))
+				{
+					Line = CreateRemoteDataFromEnvironment(Input.Environment);
+					FileWriter->Serialize(TCHAR_TO_ANSI(*Line), Line.Len());
+				}
 			}
 			FileWriter->Close();
 			delete FileWriter;

@@ -255,6 +255,9 @@ public:
 	typedef FAsyncTask< class FAsyncAudioDecompressWorker > FAsyncAudioDecompress;	// Forward declare typedef
 	FAsyncAudioDecompress*		AudioDecompressor;
 
+	/** Whether or not the the precache task has finished. */
+	FThreadSafeBool				bIsPrecacheDone;
+
 	/** Pointer to 16 bit PCM data - used to avoid synchronous operation to obtain first block of the realtime decompressed buffer */
 	uint8*						CachedRealtimeFirstBuffer;
 
@@ -434,6 +437,8 @@ public:
 	virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) override;
 
 	virtual void WillNeverCacheCookedPlatformDataAgain() override;
+
+	uint32 bNeedsThumbnailGeneration:1;
 #endif
 	
 	/**

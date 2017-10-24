@@ -280,6 +280,8 @@ UObject* USoundFactory::FactoryCreateBinary
 			ComponentsToRestart[ComponentIndex]->Play();
 		}
 
+		Sound->bNeedsThumbnailGeneration = true;
+
 		return Sound;
 	}
 	else

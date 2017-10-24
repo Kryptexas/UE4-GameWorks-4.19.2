@@ -111,13 +111,23 @@ namespace iPhonePackager
 			XcodeDeveloperDir = Utilities.GetEnvironmentVariable("ue.XcodeDeveloperDir", "/Applications/Xcode.app/Contents/Developer/");
 
 			// MacName=%ue4.iPhone_SigningServerName%
-			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable( "ue.IOSSigningServer", "a1487" );
+			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable("ue.IOSSigningServer", "a1487");
 			iPhone_SigningDevRootMac = Config.OverrideDevRoot != null ? Config.OverrideDevRoot : "/UE4/Builds";
+
+			if (!Config.bUseRPCUtil)
+			{
+				bool Results = SSHCommandHelper.Command(MacName, "xcode-select --print-path", "/usr/bin");
+				if (Results)
+				{
+					XcodeDeveloperDir = (string)SSHCommandHelper.SSHReturn["CommandOutput"] + "/";
+					XcodeDeveloperDir = XcodeDeveloperDir.TrimEnd();
+				}
+			}
 
 			// get the path to mirror into on the Mac
 			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, @"..\.."));
 			string Root = Path.GetPathRoot(BinariesDir);
-			string BranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring( Root.Length );
+			string BranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring(Root.Length);
 			BranchPath = BranchPath.Replace('\\', '/');
 
 			// similar for the game path (strip off the D:\ tpe root)

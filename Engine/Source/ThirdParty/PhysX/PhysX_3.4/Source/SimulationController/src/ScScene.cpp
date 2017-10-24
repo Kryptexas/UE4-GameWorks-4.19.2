@@ -2129,6 +2129,8 @@ void Sc::Scene::postBroadPhase(PxBaseTask* continuation)
 
 void Sc::Scene::postBroadPhaseStage2(PxBaseTask* continuation)
 {
+	processLostTouchPairs();
+
 	//Release unused Cms back to the pool (later, this needs to be done in a thread-safe way from multiple worker threads
 	mIslandInsertion.setContinuation(continuation);
 	mRegisterContactManagers.setContinuation(continuation);
@@ -6057,7 +6059,7 @@ void Sc::Scene::islandInsertion(PxBaseTask* /*continuation*/)
 		}
 
 		// - Wakes actors that lost touch if appropriate
-		processLostTouchPairs();
+//		processLostTouchPairs();
 
 		if(mCCDPass == 0)
 		{

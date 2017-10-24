@@ -252,19 +252,34 @@ void FLevelCollection::RemoveLevel(ULevel* const Level)
 
 FScopedLevelCollectionContextSwitch::FScopedLevelCollectionContextSwitch(const FLevelCollection* const InLevelCollection, UWorld* const InWorld)
 	: World(InWorld)
-	, SavedTickingCollection(InWorld ? InWorld->GetActiveLevelCollection() : nullptr)
+	, SavedTickingCollectionIndex(InWorld ? InWorld->GetActiveLevelCollectionIndex() : INDEX_NONE)
 {
-	if (InLevelCollection && World)
+	if (World)
 	{
-		World->SetActiveLevelCollection(InLevelCollection);
+		const int32 FoundIndex = World->GetLevelCollections().IndexOfByPredicate([InLevelCollection](const FLevelCollection& Collection)
+		{
+			return &Collection == InLevelCollection;
+		});
+
+		World->SetActiveLevelCollection(FoundIndex);
 	}
 }
-	
+
+FScopedLevelCollectionContextSwitch::FScopedLevelCollectionContextSwitch(int32 InLevelCollectionIndex, UWorld* const InWorld)
+	: World(InWorld)
+	, SavedTickingCollectionIndex(InWorld ? InWorld->GetActiveLevelCollectionIndex() : INDEX_NONE)
+{
+	if (World)
+	{
+		World->SetActiveLevelCollection(InLevelCollectionIndex);
+	}
+}
+
 FScopedLevelCollectionContextSwitch::~FScopedLevelCollectionContextSwitch()
 {
 	if (World)
 	{
-		World->SetActiveLevelCollection(SavedTickingCollection);
+		World->SetActiveLevelCollection(SavedTickingCollectionIndex);
 	}
 }
 
@@ -301,7 +316,7 @@ FWorldDelegates::FRefreshLevelScriptActionsEvent FWorldDelegates::RefreshLevelSc
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 : UObject(ObjectInitializer)
-, ActiveLevelCollection(nullptr)
+, ActiveLevelCollectionIndex(INDEX_NONE)
 #if WITH_EDITOR
 , HierarchicalLODBuilder(new FHierarchicalLODBuilder(this))
 #endif
@@ -1321,19 +1336,17 @@ void UWorld::ConditionallyCreateDefaultLevelCollections()
 	// Create main level collection. The persistent level will always be considered dynamic.
 	if (!FindCollectionByType(ELevelCollectionType::DynamicSourceLevels))
 	{
-		FLevelCollection& DynamicCollection = FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
-		DynamicCollection.SetPersistentLevel(PersistentLevel);
+		// Default to the dynamic source collection
+		ActiveLevelCollectionIndex = FindOrAddCollectionByType_Index(ELevelCollectionType::DynamicSourceLevels);
+		LevelCollections[ActiveLevelCollectionIndex].SetPersistentLevel(PersistentLevel);
 		
 		// Don't add the persistent level if it is already a member of another collection.
 		// This may be the case if, for example, this world is the outer of a streaming level,
 		// in which case the persistent level may be in one of the collections in the streaming level's OwningWorld.
 		if (PersistentLevel->GetCachedLevelCollection() == nullptr)
 		{
-			DynamicCollection.AddLevel(PersistentLevel);
+			LevelCollections[ActiveLevelCollectionIndex].AddLevel(PersistentLevel);
 		}
-
-		// Default to the dynamic source collection
-		ActiveLevelCollection = &DynamicCollection;
 	}
 
 	if (!FindCollectionByType(ELevelCollectionType::StaticLevels))
@@ -2632,6 +2645,18 @@ public:
 		}
 		return *this;
 	}
+
+	virtual FArchive& operator<<(FSoftObjectPtr& Value) override
+	{
+		// Explicitly do nothing, we don't want to accidentally do PIE fixups
+		return *this;
+	}
+
+	virtual FArchive& operator<<(FSoftObjectPath& Value) override
+	{
+		// Explicitly do nothing, we don't want to accidentally do PIE fixups
+		return *this;
+	}
 };
 
 UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld)
@@ -2686,6 +2711,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
 	PIELevelPackage->PIEInstanceID = PIEInstanceID;
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
+	PIELevelPackage->MarkAsFullyLoaded();
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::PIE));
@@ -3618,11 +3644,6 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 				LevelWorld->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
 			}
 		}
-	}
-
-	if (bCleanupResources)
-	{
-		LevelCollections.Empty();
 	}
 
 	FWorldDelegates::OnPostWorldCleanup.Broadcast(this, bSessionEnded, bCleanupResources);
@@ -6338,6 +6359,21 @@ FLevelCollection& UWorld::FindOrAddCollectionByType(const ELevelCollectionType I
 	return LevelCollections.Last();
 }
 
+int32 UWorld::FindOrAddCollectionByType_Index(const ELevelCollectionType InType)
+{
+	const int32 FoundIndex = FindCollectionIndexByType(InType);
+
+	if (FoundIndex != INDEX_NONE)
+	{
+		return FoundIndex;
+	}
+
+	// Not found, add a new one.
+	FLevelCollection NewLC;
+	NewLC.SetType(InType);
+	return LevelCollections.Add(MoveTemp(NewLC));
+}
+
 FLevelCollection* UWorld::FindCollectionByType(const ELevelCollectionType InType)
 {
 	for (FLevelCollection& LC : LevelCollections)
@@ -6364,18 +6400,42 @@ const FLevelCollection* UWorld::FindCollectionByType(const ELevelCollectionType 
 	return nullptr;
 }
 
-void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
+int32 UWorld::FindCollectionIndexByType(const ELevelCollectionType InType) const
 {
-	ActiveLevelCollection = InCollection;
+	return LevelCollections.IndexOfByPredicate([InType](const FLevelCollection& Collection)
+	{
+		return Collection.GetType() == InType;
+	});
+}
 
-	PersistentLevel = InCollection->GetPersistentLevel();
+const FLevelCollection* UWorld::GetActiveLevelCollection() const
+{
+	if (LevelCollections.IsValidIndex(ActiveLevelCollectionIndex))
+	{
+		return &LevelCollections[ActiveLevelCollectionIndex];
+	}
+
+	return nullptr;
+}
+
+void UWorld::SetActiveLevelCollection(int32 LevelCollectionIndex)
+{
+	ActiveLevelCollectionIndex = LevelCollectionIndex;
+	const FLevelCollection* const ActiveLevelCollection = GetActiveLevelCollection();
+
+	if (ActiveLevelCollection == nullptr)
+	{
+		return;
+	}
+
+	PersistentLevel = ActiveLevelCollection->GetPersistentLevel();
 	if (IsGameWorld())
 	{
-		SetCurrentLevel(InCollection->GetPersistentLevel());
+		SetCurrentLevel(ActiveLevelCollection->GetPersistentLevel());
 	}
-	GameState = InCollection->GetGameState();
-	NetDriver = InCollection->GetNetDriver();
-	DemoNetDriver = InCollection->GetDemoNetDriver();
+	GameState = ActiveLevelCollection->GetGameState();
+	NetDriver = ActiveLevelCollection->GetNetDriver();
+	DemoNetDriver = ActiveLevelCollection->GetDemoNetDriver();
 
 	// TODO: START TEMP FIX FOR UE-42508
 	if (NetDriver && NetDriver->NetDriverName != NAME_None)
@@ -6423,6 +6483,7 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	NewPackage->PIEInstanceID = InstanceID;
 	NewPackage->FileName = OriginalPackage->FileName;
 	NewPackage->SetGuid( OriginalPackage->GetGuid() );
+	NewPackage->MarkAsFullyLoaded();
 
 	FSoftObjectPath::AddPIEPackageName(NewPackage->GetFName());
 

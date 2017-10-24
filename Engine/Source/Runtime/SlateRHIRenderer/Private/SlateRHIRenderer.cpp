@@ -274,12 +274,9 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		}
 #endif
 
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-
 		// SDR format holds the requested format in non HDR mode
 		NewInfo->SDRPixelFormat = NewInfo->PixelFormat;
-
-		if (CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnGameThread() != 0)
+		if ( IsHDREnabled() )
 		{
 			NewInfo->PixelFormat = GRHIHDRDisplayOutputFormat;
 		}
@@ -302,11 +299,10 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 	checkSlow( IsThreadSafeForSlateRendering() );
 
 	// Force update if HDR output state changes
-	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
-	bool bHDREnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	bool bHDREnabled = IsHDREnabled();
 	int32 HDRColorGamut = CVarHDRColorGamut ? CVarHDRColorGamut->GetValueOnAnyThread() : 0;
 	int32 HDROutputDevice = CVarHDROutputDevice ? CVarHDROutputDevice->GetValueOnAnyThread() : 0;
 
@@ -324,9 +320,13 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		// The viewport size we have doesn't match the requested size of the viewport.
 		// Resize it now.
 
+		// Prevent the texture update logic to use the RHI while the viewport is resized. 
+		// This could happen if a streaming IO request completes and throws a callback.
+		SuspendTextureStreamingRenderTasks();
+
 		// cannot resize the viewport while potentially using it.
 		FlushRenderingCommands();
-	
+
 		// Windows are allowed to be zero sized ( sometimes they are animating to/from zero for example)
 		// but viewports cannot be zero sized.  Use 8x8 as a reasonably sized viewport in this case.
 		uint32 NewWidth = FMath::Max<uint32>( 8, Width );
@@ -368,6 +368,9 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		}
 
 		PostResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
+		
+		// Reset texture streaming texture updates.
+		ResumeTextureStreamingRenderTasks();
 	}
 }
 
@@ -609,12 +612,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		// Optional off-screen UI composition during HDR rendering
 		static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
 		const bool bSupportsUIComposition = GRHISupportsHDROutput && GSupportsVolumeTextureRendering && SupportsUICompositionRendering(GetFeatureLevelShaderPlatform(GMaxRHIFeatureLevel));
 		const bool bCompositeUI = bSupportsUIComposition
 			&& CVarCompositeMode && CVarCompositeMode->GetValueOnRenderThread() != 0
-			&& CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+			&& IsHDREnabled();
 
 		const int32 CompositionLUTSize = 32;
 

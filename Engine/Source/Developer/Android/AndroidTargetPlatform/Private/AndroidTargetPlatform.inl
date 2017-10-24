@@ -50,7 +50,7 @@ static bool SupportsES2()
 
 static bool SupportsES31()
 {
-	// default to support ES3
+	// default no support for ES31
 	bool bBuildForES31 = false;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
 	return bBuildForES31;
@@ -58,10 +58,7 @@ static bool SupportsES31()
 
 static bool SupportsAEP()
 {
-	// default to not supporting ES31
-	bool bBuildForESDeferred = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForESDeferred"), bBuildForESDeferred, GEngineIni);
-	return bBuildForESDeferred;
+	return false;
 }
 
 static bool SupportsVulkan()
@@ -681,9 +678,19 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 			// see if this device is already known
 			if (Devices.Contains(DeviceIt.Key()))
 			{
-				//still update its authorized status, which could change while connected
-				Devices[DeviceIt.Key()]->SetAuthorized(DeviceInfo.bAuthorizedDevice);
-				continue;
+				FAndroidTargetDevicePtr TestDevice = Devices[DeviceIt.Key()];
+
+				// ignore if authorization didn't change
+				if (DeviceInfo.bAuthorizedDevice == TestDevice->IsAuthorized())
+				{
+					continue;
+				}
+
+				// remove it to add again
+				TestDevice->SetConnected(false);
+				Devices.Remove(DeviceIt.Key());
+
+				DeviceLostEvent.Broadcast(TestDevice.ToSharedRef());
 			}
 
 			// check if this platform is supported by the extensions and version

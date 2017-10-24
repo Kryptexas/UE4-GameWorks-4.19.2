@@ -355,6 +355,12 @@ void FEdModeLandscape::Enter()
 	OnLevelsChangedDelegateHandle				= GetWorld()->OnLevelsChanged().AddRaw(this, &FEdModeLandscape::HandleLevelsChanged, true);
 	OnMaterialCompilationFinishedDelegateHandle = UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
 
+	if (CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		ALandscapeProxy* LandscapeProxy = CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+		LandscapeProxy->OnMaterialChangedDelegate().AddRaw(this, &FEdModeLandscape::OnLandscapeMaterialChangedDelegate);
+	}
+
 	if (CurrentGizmoActor.IsValid())
 	{
 		CurrentGizmoActor->SetTargetLandscape(CurrentToolTarget.LandscapeInfo.Get());
@@ -508,6 +514,12 @@ void FEdModeLandscape::Exit()
 	FEditorSupportDelegates::WorldChange.Remove(OnWorldChangeDelegateHandle);
 	GetWorld()->OnLevelsChanged().Remove(OnLevelsChangedDelegateHandle);
 	UMaterial::OnMaterialCompilationFinished().Remove(OnMaterialCompilationFinishedDelegateHandle);
+
+	if (CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		ALandscapeProxy* LandscapeProxy = CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+		LandscapeProxy->OnMaterialChangedDelegate().RemoveAll(this);
+	}
 
 	// Restore real-time viewport state if we changed it
 	const bool bWantRealTime = false;
@@ -2191,6 +2203,12 @@ void FEdModeLandscape::UpdateTargetLayerDisplayOrder(ELandscapeLayerDisplayMode 
 			StaticCastSharedPtr<FLandscapeToolKit>(Toolkit)->RefreshDetailPanel();
 		}
 	}
+}
+
+void FEdModeLandscape::OnLandscapeMaterialChangedDelegate()
+{
+	UpdateTargetList();
+	UpdateShownLayerList();
 }
 
 void FEdModeLandscape::UpdateShownLayerList()

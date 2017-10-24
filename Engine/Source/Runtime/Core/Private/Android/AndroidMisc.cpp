@@ -28,6 +28,7 @@
 #include <android_native_app_glue.h>
 #include "Function.h"
 #include "AndroidStats.h"
+#include "CoreDelegates.h"
 
 #if STATS
 int32 FAndroidMisc::TraceMarkerFileDescriptor = -1;
@@ -162,55 +163,96 @@ extern "C"
 	}
 }
 
+
+// Manage Java side OS event receivers.
+static struct
+{
+	const char*		ClazzName;
+	JNINativeMethod	Jnim;
+	jclass			Clazz;
+	jmethodID		StartReceiver;
+	jmethodID		StopReceiver;
+} JavaEventReceivers[] =
+{
+	{ "com/epicgames/ue4/VolumeReceiver",{ "volumeChanged", "(I)V",  (void *)Java_com_epicgames_ue4_VolumeReceiver_volumeChanged } },
+	{ "com/epicgames/ue4/BatteryReceiver",{ "dispatchEvent", "(III)V",(void *)Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent } },
+	{ "com/epicgames/ue4/HeadsetReceiver",{ "stateChanged",  "(I)V",  (void *)Java_com_epicgames_ue4_HeadsetReceiver_stateChanged } },
+};
+
+void InitializeJavaEventReceivers()
+{
+	// Register natives to receive Volume, Battery, Headphones events
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		auto CheckJNIExceptions = [&JEnv]()
+		{
+			if (JEnv->ExceptionCheck())
+			{
+				JEnv->ExceptionDescribe();
+				JEnv->ExceptionClear();
+			}
+		};
+		auto GetStaticMethod = [&JEnv, &CheckJNIExceptions](const char* MethodName, jclass Clazz, const char* ClazzName)
+		{
+			jmethodID Method = JEnv->GetStaticMethodID(Clazz, MethodName, "(Landroid/app/Activity;)V");
+			if (Method == 0)
+			{
+				UE_LOG(LogAndroid, Error, TEXT("Can't find method %s of class %s"), ANSI_TO_TCHAR(MethodName), ANSI_TO_TCHAR(ClazzName));
+			}
+			CheckJNIExceptions();
+			return Method;
+		};
+
+		for (auto& JavaEventReceiver : JavaEventReceivers)
+		{
+			JavaEventReceiver.Clazz = AndroidJavaEnv::FindJavaClass(JavaEventReceiver.ClazzName);
+			if (JavaEventReceiver.Clazz == nullptr)
+			{
+				UE_LOG(LogAndroid, Error, TEXT("Can't find class for %s"), ANSI_TO_TCHAR(JavaEventReceiver.ClazzName));
+				continue;
+			}
+			if (JNI_OK != JEnv->RegisterNatives(JavaEventReceiver.Clazz, &JavaEventReceiver.Jnim, 1))
+			{
+				UE_LOG(LogAndroid, Error, TEXT("RegisterNatives failed for %s on %s"), ANSI_TO_TCHAR(JavaEventReceiver.ClazzName), ANSI_TO_TCHAR(JavaEventReceiver.Jnim.name));
+				CheckJNIExceptions();
+			}
+			JavaEventReceiver.StartReceiver = GetStaticMethod("startReceiver", JavaEventReceiver.Clazz, JavaEventReceiver.ClazzName);
+			JavaEventReceiver.StopReceiver = GetStaticMethod("stopReceiver", JavaEventReceiver.Clazz, JavaEventReceiver.ClazzName);
+		}
+	}
+	else
+	{
+		UE_LOG(LogAndroid, Warning, TEXT("Failed to initialize java event receivers. JNIEnv is not valid."));
+	}
+}
+
+void EnableJavaEventReceivers(bool bEnableReceivers)
+{
+	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		extern struct android_app* GNativeAndroidApp;
+		for (auto& JavaEventReceiver : JavaEventReceivers)
+		{
+			jmethodID methodId = bEnableReceivers ? JavaEventReceiver.StartReceiver : JavaEventReceiver.StopReceiver;
+			if (methodId != 0)
+			{
+				JEnv->CallStaticVoidMethod(JavaEventReceiver.Clazz, methodId, GNativeAndroidApp->activity->clazz);
+			}
+		}
+	}
+}
+
+static FDelegateHandle AndroidOnBackgroundBinding;
+static FDelegateHandle AndroidOnForegroundBinding;
+
 void FAndroidMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
 	// Display Timer resolution.
 	// Get swap file info
 	// Display memory info
-
-	// Register natives to receive Volume, Battery, Headphones events
-	JNIEnv* JEnv = AndroidJavaEnv::GetJavaEnv();
-	if (nullptr != JEnv)
-	{
-		struct
-		{
-			const char*		ClazzName;
-			JNINativeMethod	Jnim;
-			jclass			Clazz;
-		} gMethods[] =
-		{
-			{ "com/epicgames/ue4/VolumeReceiver",  { "volumeChanged", "(I)V",  (void *)Java_com_epicgames_ue4_VolumeReceiver_volumeChanged } },
-			{ "com/epicgames/ue4/BatteryReceiver", { "dispatchEvent", "(III)V",(void *)Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent } },
-			{ "com/epicgames/ue4/HeadsetReceiver", { "stateChanged",  "(I)V",  (void *)Java_com_epicgames_ue4_HeadsetReceiver_stateChanged } },
-		};
-		const int count = sizeof(gMethods) / sizeof(gMethods[0]);
-
-		for (int i = 0; i < count; i++)
-		{
-			gMethods[i].Clazz = AndroidJavaEnv::FindJavaClass(gMethods[i].ClazzName);
-			if (gMethods[i].Clazz == nullptr)
-			{
-				UE_LOG(LogAndroid, Warning, TEXT("Can't find class for %s"), gMethods[i].ClazzName);
-				continue;
-			}
-			if (JNI_OK != JEnv->RegisterNatives(gMethods[i].Clazz, &gMethods[i].Jnim, 1))
-			{
-				UE_LOG(LogAndroid, Warning, TEXT("RegisterNatives failed for %s on %s"), gMethods[i].ClazzName, gMethods[i].Jnim.name);
-			}
-			extern struct android_app* GNativeAndroidApp;
-			jmethodID methodId = JEnv->GetStaticMethodID(gMethods[i].Clazz, "startReceiver", "(Landroid/app/Activity;)V");
-			if (methodId != 0)
-			{
-				JEnv->CallStaticVoidMethod(gMethods[i].Clazz, methodId, GNativeAndroidApp->activity->clazz);
-			}
-			else
-			{
-				UE_LOG(LogAndroid, Warning, TEXT("Can't find method startReceiver of class %s"), gMethods[i].ClazzName);
-			}
-		}
-	}
-
 	// Setup user specified thread affinity if any
 	extern void AndroidSetupDefaultThreadAffinity();
 	AndroidSetupDefaultThreadAffinity();
@@ -223,6 +265,10 @@ void FAndroidMisc::PlatformInit()
 		UE_LOG(LogAndroid, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
 	}
 #endif
+
+	InitializeJavaEventReceivers();
+	AndroidOnBackgroundBinding = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddStatic(EnableJavaEventReceivers, false);
+	AndroidOnForegroundBinding = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddStatic(EnableJavaEventReceivers, true);
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
@@ -236,6 +282,18 @@ void FAndroidMisc::PlatformTearDown()
 		close(TraceMarkerFileDescriptor);
 	}
 #endif
+
+	auto RemoveBinding = [](FCoreDelegates::FApplicationLifetimeDelegate& ApplicationLifetimeDelegate, FDelegateHandle& DelegateBinding)
+	{
+		if (DelegateBinding.IsValid())
+		{
+			ApplicationLifetimeDelegate.Remove(DelegateBinding);
+			DelegateBinding.Reset();
+		}
+	};
+
+	RemoveBinding(FCoreDelegates::ApplicationWillEnterBackgroundDelegate, AndroidOnBackgroundBinding);
+	RemoveBinding(FCoreDelegates::ApplicationHasEnteredForegroundDelegate, AndroidOnForegroundBinding);
 }
 
 void FAndroidMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)

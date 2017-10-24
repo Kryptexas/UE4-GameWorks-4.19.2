@@ -95,6 +95,8 @@ public:
 	void GetStatsBreakdown();
 	void RecordData();	
 
+	float GetAverageOfArray(TArray<float>ArrayToAvg, FString StatName);
+	
 	void StopRecordingPerformanceTimers();
 	void FinalizeFTestPerfReport();
 	void CleanUpPerfFileHandles();

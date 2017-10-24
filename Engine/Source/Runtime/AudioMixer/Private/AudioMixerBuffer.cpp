@@ -11,6 +11,7 @@ namespace Audio
 		: FSoundBuffer(InAudioDevice)
 		, RealtimeAsyncHeaderParseTask(nullptr)
 		, DecompressionState(nullptr)
+		, SoundWaveProcedural(nullptr)
 		, BufferType(InBufferType)
 		, SampleRate(InWave->SampleRate)
 		, BitsPerSample(16) // TODO: support more bits, currently hard-coded to 16
@@ -71,6 +72,12 @@ namespace Audio
 			case EBufferType::Invalid:
 			// nothing
 			break;
+		}
+
+		// Mark the procedural sound wave as being ok to be destroyed now
+		if (SoundWaveProcedural)
+		{
+			SoundWaveProcedural->bIsReadyForDestroy = true;
 		}
 	}
 
@@ -299,18 +306,16 @@ namespace Audio
 		Buffer->ResourceID = 0;
 		InWave->ResourceID = 0;
 
+		// Don't allow the procedural sound wave to be destroyed until we're done with it
+		Buffer->SoundWaveProcedural = CastChecked<USoundWaveProcedural>(InWave);
+		Buffer->SoundWaveProcedural->bIsReadyForDestroy = false;
+
 		return Buffer;
 	}
 
 	FMixerBuffer* FMixerBuffer::CreateNativeBuffer(FMixerDevice* InMixer, USoundWave* InWave)
 	{
-		// If wave a decompressor running, make sure it finishes and delete it
-		if (InWave->AudioDecompressor != nullptr)
-		{
-			InWave->AudioDecompressor->EnsureCompletion();
-			delete InWave->AudioDecompressor;
-			InWave->AudioDecompressor = nullptr;
-		}
+		check(InWave->bIsPrecacheDone);
 
 		FMixerBuffer* Buffer = new FMixerBuffer(InMixer, InWave, EBufferType::PCM);
 		return Buffer;
@@ -348,15 +353,7 @@ namespace Audio
 	{
 		check(InMixer);
 		check(InWave);
-
-		// If we have a decompressor running, make sure it finishes and delete it
-		if (InWave->AudioDecompressor != nullptr)
-		{
-			InWave->AudioDecompressor->EnsureCompletion();
-
-			delete InWave->AudioDecompressor;
-			InWave->AudioDecompressor = nullptr;
-		}
+		check(InWave->bIsPrecacheDone);
 
 		// Create a new buffer for real-time sounds
 		FMixerBuffer* Buffer = new FMixerBuffer(InMixer, InWave, EBufferType::PCMRealTime);

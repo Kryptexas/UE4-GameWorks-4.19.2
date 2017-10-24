@@ -50,7 +50,7 @@ public class CameraPlayer14
 	private int CameraFPSMin = 0;
 	private int CameraFPSMax = 0;
 	private int CameraOrientation = 0;
-	private int DeviceRotation = 0;
+	private int CameraRotationOffset = 0;
 	
 	private int iFrontId = 0;
 	private int iBackId = 0;
@@ -525,15 +525,18 @@ public class CameraPlayer14
 		mCamera.setParameters(param);
 
 		Camera.CameraInfo camInfo = new Camera.CameraInfo();
-		Camera.getCameraInfo(CameraId, camInfo);
+		Camera.getCameraInfo(cameraId, camInfo);
 		CameraOrientation = camInfo.orientation;
+		CameraRotationOffset = 0;
 
-		switch (GameActivity._activity.getWindowManager().getDefaultDisplay().getRotation())
+		// fixup for orientation depends on camera facing
+		if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)
 		{
-			case Surface.ROTATION_0:	DeviceRotation = 0;		break;
-			case Surface.ROTATION_90:	DeviceRotation = 90;	break;
-			case Surface.ROTATION_180:	DeviceRotation = 180;	break;
-			case Surface.ROTATION_270:	DeviceRotation = 270;	break;
+			CameraRotationOffset = (CameraOrientation + 90) % 360;
+		}
+		else if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK)
+		{
+			CameraRotationOffset = (450 - CameraOrientation) % 360;
 		}
 
 		// store our picks
@@ -1368,7 +1371,7 @@ public class CameraPlayer14
 
 			mSurfaceTexture.getTransformMatrix(mTransformMatrix);
 
-			int degrees = DeviceRotation;
+			int degrees = (GameActivity._activity.DeviceRotation + CameraRotationOffset) % 360;
 			if (degrees == 0) {
 				mScaleRotation00 = mTransformMatrix[1];
 				mScaleRotation01 = mTransformMatrix[5];
@@ -1907,7 +1910,7 @@ public class CameraPlayer14
 			GameActivity.Log.debug(mTransformMatrix[12] + ", " + mTransformMatrix[13] + ", " + mTransformMatrix[14] + ", " + mTransformMatrix[15]);
 			*/
 
-			int degrees = DeviceRotation;
+			int degrees = (GameActivity._activity.DeviceRotation + CameraRotationOffset) % 360;
 			if (degrees == 0) {
 				mScaleRotation00 = mTransformMatrix[1];
 				mScaleRotation01 = mTransformMatrix[5];

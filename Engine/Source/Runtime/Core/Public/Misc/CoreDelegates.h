@@ -140,6 +140,13 @@ public:
 
 	// Called after the editor dismisses a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PostModal;
+    
+    // Called before the editor displays a Slate (non-platform) modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
+    static FSimpleMulticastDelegate PreSlateModal;
+    
+    // Called after the editor dismisses a Slate (non-platform) modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
+    static FSimpleMulticastDelegate PostSlateModal;
+    
 #endif	//WITH_EDITOR
 	
 	// Called when an error occurred.

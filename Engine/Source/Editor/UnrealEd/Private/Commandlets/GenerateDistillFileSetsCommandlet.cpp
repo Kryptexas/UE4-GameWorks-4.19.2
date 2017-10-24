@@ -119,6 +119,13 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 
 			for (const FAssetData& AssetData : AssetDataList)
 			{
+				FString PackageName = AssetData.PackageName.ToString();
+				// Warn about maps in "NoShip" or "TestMaps" folders.
+				if (PackageName.Contains("/NoShip/") || PackageName.Contains("/TestMaps/"))
+				{
+					UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Skipping map package %s in TestMaps or NoShip folder"), *PackageName);
+					continue;
+				}
 				MapList.AddUnique(AssetData.PackageName.ToString());
 			}
 		}

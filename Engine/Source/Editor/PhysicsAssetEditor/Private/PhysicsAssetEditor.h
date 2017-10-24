@@ -158,9 +158,9 @@ private:
 
 	void OnAssetSelectedFromStaticMeshAssetPicker(const FAssetData& AssetData);
 
-	TSharedRef<SWidget> BuildPhysicalMaterialAssetPicker();
+	TSharedRef<SWidget> BuildPhysicalMaterialAssetPicker(bool bForAllBodies);
 
-	void OnAssetSelectedFromPhysicalMaterialAssetPicker(const FAssetData& AssetData );
+	void OnAssetSelectedFromPhysicalMaterialAssetPicker(const FAssetData& AssetData, bool bForAllBodies);
 
 	/** Call back for when bone/body properties are changed */
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);

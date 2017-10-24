@@ -66,8 +66,7 @@ namespace Audio
 
 		//~Begin ISourceBufferQueueListener
 		void OnSourceBufferEnd() override;
-		void OnRelease() override;
-		void OnUpdatePendingDecodes() override;
+		void OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData) override;
 		//~End ISourceBufferQueueListener
 
 	private:
@@ -145,23 +144,9 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		IAudioTask* AsyncRealtimeAudioTask;
-		
-		// Task used to store pending release/decode data
-		struct FPendingReleaseData
-		{
-			FSoundBuffer* Buffer;
-			IAudioTask* Task;
-
-			FPendingReleaseData()
-				: Buffer(nullptr)
-				, Task(nullptr)
-			{}
-		};
 
 		// Queue of pending release data. Pushed from audio thread, updated on audio render thread.
 		TQueue<FPendingReleaseData*> PendingReleases;
-		// Array of task data waiting to finished. Processed on audio render thread.
-		TArray<FPendingReleaseData*> TasksWaitingToFinish;
 
 		FCriticalSection RenderThreadCritSect;
 

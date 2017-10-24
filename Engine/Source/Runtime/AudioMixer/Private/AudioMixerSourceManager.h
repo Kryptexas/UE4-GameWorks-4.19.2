@@ -47,6 +47,18 @@ namespace Audio
 	typedef TSharedPtr<FMixerSourceVoiceBuffer, ESPMode::ThreadSafe> FMixerSourceBufferPtr;
 	typedef TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> FMixerSubmixPtr;
 
+	// Task used to store pending release/decode data
+	struct FPendingReleaseData
+	{
+		FSoundBuffer* Buffer;
+		IAudioTask* Task;
+
+		FPendingReleaseData()
+			: Buffer(nullptr)
+			, Task(nullptr)
+		{}
+	};
+
 	class ISourceBufferQueueListener
 	{
 	public:
@@ -54,10 +66,7 @@ namespace Audio
 		virtual void OnSourceBufferEnd() = 0;
 
 		// Called when the buffer queue listener is released. Allows cleaning up any resources from render thread.
-		virtual void OnRelease() = 0;
-
-		// Update any pending decode tasks. Used to clean up tasks without forcing them to finish.
-		virtual void OnUpdatePendingDecodes() {};
+		virtual void OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData) = 0;
 	};
 
 	struct FMixerSourceSubmixSend
@@ -112,7 +121,7 @@ namespace Audio
 			, SpatializationPluginSettings(nullptr)
 			, OcclusionPluginSettings(nullptr)
 			, ReverbPluginSettings(nullptr)
-			, bPlayEffectChainTails(true)
+			, bPlayEffectChainTails(false)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
 			, bOutputToBusOnly(false)
@@ -243,6 +252,7 @@ namespace Audio
 		int32 GetNumOutputFrames() const { return NumOutputFrames; }
 		bool IsBus(const int32 SourceId) const;
 		void PumpCommandQueue();
+		void UpdatePendingReleaseData(bool bForceWait = false);
 
 	private:
 
@@ -360,7 +370,7 @@ namespace Audio
 			FParam HPFCutoffFrequencyParam;
 
 			// One-Pole LPFs and HPFs per source
-			Audio::FOnePoleFilter LowPassFilter;
+			Audio::FOnePoleLPFBank LowPassFilter;
 			Audio::FOnePoleFilter HighPassFilter;
 
 			// Source effect instances
@@ -424,6 +434,9 @@ namespace Audio
 
 		// Async task workers for processing sources in parallel
 		TArray<FAsyncTask<FAudioMixerSourceWorker>*> SourceWorkers;
+
+		// Array of task data waiting to finished. Processed on audio render thread.
+		TArray<FPendingReleaseData*> PendingReleaseData;
 
 		// General information about sources in source manager accessible from game thread
 		struct FGameThreadInfo

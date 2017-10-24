@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CoreDelegates.h"
 #include "Misc/Attribute.h"
 #include "Layout/Margin.h"
 #include "Styling/SlateColor.h"

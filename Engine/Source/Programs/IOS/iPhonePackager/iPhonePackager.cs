@@ -264,6 +264,19 @@ namespace iPhonePackager
 								return false;
 							}
 						}
+                        // get the provisioning uuid
+                        else if (Arg == "-provisioninguuid")
+                        {
+                            // make sure there's at least one more arg
+                            if (Arguments.Length > ArgIndex + 1)
+                            {
+                                Config.ProvisionUUID = Arguments[++ArgIndex];
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
 						else if (Arg == "-manifest")
 						{
 							// make sure there's at least one more arg
@@ -693,6 +706,7 @@ namespace iPhonePackager
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
 					Log("	 -project <path>		  path to the project being packaged");
+                    Log("	 -provisioning <uuid>	  uuid of the provisioning selected");
 					Log("	 -compress=fast|best|none  packaging compression level (defaults to none)");
 					Log("	 -strip					strip symbols during packaging");
 					Log("	 -config				   game configuration (e.g., Shipping, Development, etc...)");
@@ -744,9 +758,19 @@ namespace iPhonePackager
 						string dllPath = "";
 						if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
 						{
-							dllPath = "/Applications/Xcode.app/Contents/MacOS/Xcode";
-						}
-						else
+                            ProcessStartInfo StartInfo = new ProcessStartInfo("/usr/bin/xcode-select", "--print-path");
+                            StartInfo.UseShellExecute = false;
+                            StartInfo.RedirectStandardOutput = true;
+                            StartInfo.CreateNoWindow = true;
+
+                            using (Process LocalProcess = Process.Start(StartInfo))
+                            {
+                                StreamReader OutputReader = LocalProcess.StandardOutput;
+                                // trim off any extraneous new lines, helpful for those one-line outputs
+                                dllPath = OutputReader.ReadToEnd().Trim();
+                            }
+                        }
+                        else
 						{
 							dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string;
 							if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
@@ -754,9 +778,9 @@ namespace iPhonePackager
 								dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "MobileDeviceDLL", null) as string;
 							}
 						}
-						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
-						{
-							Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
+                        if (String.IsNullOrEmpty(dllPath) || (!File.Exists(dllPath) && !Directory.Exists(dllPath)))
+                        {
+                            Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
 						}
 						else
 						{

@@ -85,7 +85,12 @@ protected:
 	virtual bool SetRate(float Rate) override;
 
 private:
-
+    /**  Callback for when the application is resumed in the foreground */
+    void HandleApplicationHasEnteredForeground();
+    
+    /** Callback for when the applicaiton is being paused in the background */
+    void HandleApplicationWillEnterBackground();
+    
 	/** The current playback rate. */
 	float CurrentRate;
 
@@ -132,4 +137,10 @@ private:
 
 	/** Mutex to ensure thread-safe access */
 	FCriticalSection CriticalSection;
+    
+    /** Foreground/background delegate for pause */
+    FDelegateHandle PauseHandle;
+    
+    /** Foreground/background delegate for resume */
+    FDelegateHandle ResumeHandle;
 };

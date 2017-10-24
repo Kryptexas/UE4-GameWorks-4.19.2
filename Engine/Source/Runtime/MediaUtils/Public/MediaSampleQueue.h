@@ -37,6 +37,10 @@ public:
 	/**
 	 * Get the number of samples in the queue.
 	 *
+	 * Note: The value returned by this function is only eventually consistent. It
+	 * can be called by both consumer and producer threads, but it should not be used
+	 * to query the actual state of the queue. Always use Dequeue and Peek instead!
+	 *
 	 * @return Number of samples.
 	 * @see Enqueue, Dequeue, Peek
 	 */
@@ -65,7 +69,8 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Pop());
+		// Use verify here so it doesn't get compiled out in shipping
+		verify(Samples.Pop());
 		check(Sample.IsValid());
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
@@ -111,7 +116,8 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Pop());
+		// Use verify here so it doesn't get compiled out in shipping
+		verify(Samples.Pop());
 		check(Sample.IsValid());
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
@@ -124,19 +130,13 @@ public:
 
 	//~ TMediaSampleSink interface (to be called only from producer thread)
 
-	virtual bool Enqueue(const TSharedPtr<SampleType, ESPMode::ThreadSafe>& Sample) override
+	virtual bool Enqueue(const TSharedRef<SampleType, ESPMode::ThreadSafe>& Sample) override
 	{
-		if (Sample.IsValid())
-		{
-			FPlatformAtomics::InterlockedIncrement(&NumSamples);
-		}
+		FPlatformAtomics::InterlockedIncrement(&NumSamples); // avoid negative sample count in Dequeue
 
 		if (!Samples.Enqueue(Sample))
 		{
-			if (Sample.IsValid())
-			{
-				FPlatformAtomics::InterlockedDecrement(&NumSamples);
-			}
+			FPlatformAtomics::InterlockedDecrement(&NumSamples);
 
 			return false;
 		}

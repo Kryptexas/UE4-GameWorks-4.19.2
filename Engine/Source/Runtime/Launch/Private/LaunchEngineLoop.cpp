@@ -1324,7 +1324,7 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 	}
 
 	// Set up the module list and version information, if it's not compiled-in
-#if BUILT_FROM_CHANGELIST == 0
+#if !IS_MONOLITHIC || BUILT_FROM_CHANGELIST == 0
 	static FBuildVersion Version;
 	if(FBuildVersion::TryRead(FBuildVersion::GetFileNameForCurrentExecutable(), Version))
 	{

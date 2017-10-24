@@ -749,51 +749,16 @@ namespace Audio
 		}
 	}
 
-	void FMixerSource::OnRelease()
+	void FMixerSource::OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData)
 	{
 		FPendingReleaseData* PendingReleaseData = nullptr;
 
 		while (PendingReleases.Dequeue(PendingReleaseData))
 		{
-			TasksWaitingToFinish.Add(PendingReleaseData);
+			OutPendingReleaseData.Add(PendingReleaseData);
 		}
 
 		bIsReleasing = false;
-	}
-
-	void FMixerSource::OnUpdatePendingDecodes()
-	{
-		// Don't block, but let tasks finish naturally
-		for (int32 i = TasksWaitingToFinish.Num() - 1; i >= 0; --i)
-		{
-			FPendingReleaseData* PendingReleaseData = TasksWaitingToFinish[i];
-			if (PendingReleaseData->Task)
-			{
-				// Only delete the buffer and the task when it has finished
-				if (PendingReleaseData->Task->IsDone())
-				{
-					delete PendingReleaseData->Task;
-					PendingReleaseData->Task = nullptr;
-
-					if (PendingReleaseData->Buffer)
-					{
-						delete PendingReleaseData->Buffer;
-					}
-
-					delete PendingReleaseData;
-					TasksWaitingToFinish[i] = nullptr;
-
-					TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
-				}
-			}
-			else if (PendingReleaseData->Buffer)
-			{
-				delete PendingReleaseData->Buffer;
-				PendingReleaseData->Buffer = nullptr;
-
-				TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
-			}
-		}
 	}
 
 	void FMixerSource::FreeResources()
@@ -970,8 +935,11 @@ namespace Audio
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-			MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			if (SendInfo.SoundSubmix)
+			{
+				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			}
 		}
 	}
 

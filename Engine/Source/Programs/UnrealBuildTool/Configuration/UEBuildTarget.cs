@@ -796,9 +796,34 @@ namespace UnrealBuildTool
 			{
 				RulesObject.bDeployAfterCompile = false;
             }
-			
-			// Generate a build target from this rules module
-			UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
+
+            // Include generated code plugin if not building an editor target and project is configured for nativization
+            if (RulesObject.ProjectFile != null && RulesObject.Type != TargetType.Editor && ShouldIncludeNativizedAssets(RulesObject.ProjectFile.Directory))
+            {
+                string PlatformName;
+                if (RulesObject.Platform == UnrealTargetPlatform.Win32 || RulesObject.Platform == UnrealTargetPlatform.Win64)
+                {
+                    PlatformName = "Windows";
+                }
+                else
+                {
+                    PlatformName = RulesObject.Platform.ToString();
+                }
+
+                FileReference PluginFile = FileReference.Combine(RulesObject.ProjectFile.Directory, "Intermediate", "Plugins", "NativizedAssets", PlatformName, RulesObject.Type.ToString(), "NativizedAssets.uplugin");
+                if (FileReference.Exists(PluginFile))
+                {
+                    Desc.ForeignPlugins.Add(PluginFile);
+                    RulesAssembly = RulesCompiler.CreatePluginRulesAssembly(PluginFile, RulesAssembly);
+                }
+                else
+                {
+                    Log.TraceWarning("{0} is configured for nativization, but is missing the generated code plugin at \"{1}\". Make sure to cook {2} data before attempting to build the {3} target. If data was cooked with nativization enabled, this can also mean there were no Blueprint assets that required conversion, in which case this warning can be safely ignored.", RulesObject.Name, PluginFile.FullName, RulesObject.Type.ToString(), RulesObject.Platform.ToString());
+                }
+            }
+
+            // Generate a build target from this rules module
+            UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
 
 			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
@@ -931,6 +956,11 @@ namespace UnrealBuildTool
 		/// Whether to use precompiled engine modules
 		/// </summary>
 		public bool bUsePrecompiled;
+
+		/// <summary>
+		/// Identifies whether the project contains a script plugin. This will cause UHT to be rebuilt, even in installed builds.
+		/// </summary>
+		public bool bHasProjectScriptPlugin;
 
 		/// <summary>
 		/// All plugins which are built for this target
@@ -1111,6 +1141,7 @@ namespace UnrealBuildTool
 			PreBuildStepScripts = (FileReference[])Info.GetValue("pr", typeof(FileReference[]));
 			PostBuildStepScripts = (FileReference[])Info.GetValue("po", typeof(FileReference[]));
 			DeployTargetFile = (FileReference)Info.GetValue("dt", typeof(FileReference));
+			bHasProjectScriptPlugin = Info.GetBoolean("sp");
 		}
 
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -1145,6 +1176,7 @@ namespace UnrealBuildTool
 			Info.AddValue("pr", PreBuildStepScripts);
 			Info.AddValue("po", PostBuildStepScripts);
 			Info.AddValue("dt", DeployTargetFile);
+			Info.AddValue("sp", bHasProjectScriptPlugin);
 		}
 
 		/// <summary>
@@ -1257,7 +1289,12 @@ namespace UnrealBuildTool
             OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
 
 			// Get the path to the version file unless this is a formal build (where it will be compiled in)
-			VersionFile = BuildVersion.GetFileNameForTarget(OutputDirectory, bCompileMonolithic? TargetName : AppName, Platform, Configuration, Architecture);
+			UnrealTargetConfiguration VersionConfig = Configuration;
+			if(VersionConfig == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic && TargetType != TargetType.Program && bUseSharedBuildEnvironment && ProjectFile != null)
+			{
+				VersionConfig = UnrealTargetConfiguration.Development;
+			}
+			VersionFile = BuildVersion.GetFileNameForTarget(OutputDirectory, bCompileMonolithic? TargetName : AppName, Platform, VersionConfig, Architecture);
 		}
 
 		/// <summary>
@@ -3635,6 +3672,9 @@ namespace UnrealBuildTool
 				}
 				PrecompilePlugins = new List<UEBuildPlugin>(NameToInstance.Values.Except(BuildPlugins));
 			}
+
+			// Determine if the project has a script plugin. We will always build UHT if there is a script plugin in the game folder.
+			bHasProjectScriptPlugin = EnabledPlugins.Any(x => x.Descriptor.bCanBeUsedWithUnrealHeaderTool && !x.File.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
 		}
 
 		/// <summary>
@@ -4234,7 +4274,7 @@ namespace UnrealBuildTool
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
 				if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 				{
-					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
+					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory) || Rules.bIWYU)
 					{
 						// Engine module or plugin module -- allow shared PCHs
 						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
@@ -4738,5 +4778,23 @@ namespace UnrealBuildTool
 
 			return FilteredFileItems;
 		}
+
+        static bool ShouldIncludeNativizedAssets(DirectoryReference GameProjectDirectory)
+        {
+            ConfigHierarchy Config = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, GameProjectDirectory, BuildHostPlatform.Current.Platform);
+            if (Config != null)
+            {
+                // Determine whether or not the user has enabled nativization of Blueprint assets at cook time (default is 'Disabled')
+                string BlueprintNativizationMethod;
+                if (!Config.TryGetValue("/Script/UnrealEd.ProjectPackagingSettings", "BlueprintNativizationMethod", out BlueprintNativizationMethod))
+                {
+                    BlueprintNativizationMethod = "Disabled";
+                }
+
+                return BlueprintNativizationMethod != "Disabled";
+            }
+
+            return false;
+        }
 	}
 }

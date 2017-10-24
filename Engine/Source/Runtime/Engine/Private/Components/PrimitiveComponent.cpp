@@ -177,7 +177,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bAlwaysCreatePhysicsState = false;
 	bVisibleInReflectionCaptures = true;
 	bRenderInMainPass = true;
-	VisibilityId = -1;
+	VisibilityId = INDEX_NONE;
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
 	CanCharacterStepUpOn = ECB_Yes;
 	ComponentId.PrimIDValue = NextComponentId.Increment();
@@ -500,23 +500,31 @@ void UPrimitiveComponent::OnUnregister()
 
 FPrimitiveComponentInstanceData::FPrimitiveComponentInstanceData(const UPrimitiveComponent* SourceComponent)
 	: FSceneComponentInstanceData(SourceComponent)
+	, VisibilityId(SourceComponent->VisibilityId)
 	, LODParent(SourceComponent->GetLODParentPrimitive())
 {
+	const_cast<UPrimitiveComponent*>(SourceComponent)->ConditionalUpdateComponentToWorld(); // sadness
+	ComponentTransform = SourceComponent->GetComponentTransform();
 }
 
 void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
 	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 
-	UPrimitiveComponent* NewComponent = CastChecked<UPrimitiveComponent>(Component);
+	UPrimitiveComponent* PrimitiveComponent = CastChecked<UPrimitiveComponent>(Component);
 
 #if WITH_EDITOR
 	// This is needed to restore transient collision profile data.
-	NewComponent->UpdateCollisionProfile();
+	PrimitiveComponent->UpdateCollisionProfile();
 #endif // #if WITH_EDITOR
-	NewComponent->SetLODParentPrimitive(LODParent);
-	
-	if (ContainsSavedProperties() && Component->IsRegistered())
+	PrimitiveComponent->SetLODParentPrimitive(LODParent);
+
+	if (VisibilityId != INDEX_NONE && GetComponentTransform().Equals(PrimitiveComponent->GetComponentTransform(), 1.e-3f))
+	{
+		PrimitiveComponent->VisibilityId = VisibilityId;
+	}
+
+	if (Component->IsRegistered() && ((VisibilityId != INDEX_NONE) || ContainsSavedProperties()))
 	{
 		Component->MarkRenderStateDirty();
 	}
@@ -524,7 +532,7 @@ void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Componen
 
 bool FPrimitiveComponentInstanceData::ContainsData() const
 {
-	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0 || LODParent);
+	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0 || LODParent || (VisibilityId != INDEX_NONE));
 }
 
 void FPrimitiveComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)

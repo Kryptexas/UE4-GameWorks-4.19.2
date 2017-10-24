@@ -1607,17 +1607,10 @@ namespace AutomationTool
 			{
                 throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Count, Dest.Count);
 			}
-            try
-            {
-                Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
-                {
-                    CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
-                });
-            }
-            catch (AggregateException Ex)
-            {
-                throw new AutomationException(Ex, "Failed to thread-copy files.");
-            }
+			Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
+			{
+				CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
+			});
         }
 
 		/// <summary>

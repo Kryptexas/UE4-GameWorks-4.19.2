@@ -3,6 +3,7 @@
 
 #include "SGraphNodeResizable.h"
 #include "ScopedTransaction.h"
+#include "Framework/Application/SlateApplication.h"
 
 namespace GraphNodeResizableDefs
 {
@@ -118,13 +119,12 @@ FReply SGraphNodeResizable::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 
 FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	
 	if (bUserIsDragging)
 	{
 		FVector2D GraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetScreenSpacePosition() );
 		FVector2D OldGraphSpaceCoordinates = NodeCoordToGraphCoord( MouseEvent.GetLastScreenSpacePosition() );
-		FVector2D Delta = GraphSpaceCoordinates - OldGraphSpaceCoordinates;
+		TSharedPtr<SWindow> OwnerWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		FVector2D Delta = (GraphSpaceCoordinates - OldGraphSpaceCoordinates) / (OwnerWindow.IsValid() ? OwnerWindow->GetDPIScaleFactor() : 1.0f);
 		
 
 		//Clamp delta value based on resizing direction
@@ -208,6 +208,7 @@ FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 	}
 	else
 	{
+		const FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 		MouseZone = FindMouseZone(LocalMouseCoordinates);
 	}
 	return SGraphNode::OnMouseMove( MyGeometry, MouseEvent );

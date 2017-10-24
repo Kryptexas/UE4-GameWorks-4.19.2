@@ -640,7 +640,7 @@ void FTabManager::UpdateMainMenu(bool const bForce)
 			TSharedPtr<SWindow> ParentWindow = Tab->GetParentWindow();
 			if(ParentWindow.IsValid())
 			{
-				bUpdate |= (ParentWindow->HasKeyboardFocus() || ParentWindow->HasFocusedDescendants());
+				bUpdate |= ParentWindow->GetNativeWindow()->IsForegroundWindow();
 			}
 		}
 		if(bUpdate)

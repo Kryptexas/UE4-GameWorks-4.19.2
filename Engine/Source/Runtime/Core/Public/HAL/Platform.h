@@ -195,6 +195,11 @@
 		#define PLATFORM_HAS_CPUID				0
 	#endif
 #endif
+#ifndef PLATFORM_ENABLE_POPCNT_INTRINSIC
+	// PC is disabled by default, but linux and mac are enabled
+	// if your min spec is an AMD cpu mid-2007 or Intel 2008, you should enable this
+	#define PLATFORM_ENABLE_POPCNT_INTRINSIC 0
+#endif
 #ifndef PLATFORM_ENABLE_VECTORINTRINSICS_NEON
 	#define PLATFORM_ENABLE_VECTORINTRINSICS_NEON	0
 #endif

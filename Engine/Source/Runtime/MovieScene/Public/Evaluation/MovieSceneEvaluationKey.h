@@ -105,10 +105,15 @@ struct FMovieSceneEvaluationKey
 	}
 
 	/** ID of the sequence that the entity is contained within */
+	UPROPERTY()
 	FMovieSceneSequenceID SequenceID;
+
 	/** ID of the track this key relates to */
+	UPROPERTY()
 	FMovieSceneTrackIdentifier TrackIdentifier;
+
 	/** ID of the section this key relates to (or -1 where this key relates to a track) */
+	UPROPERTY()
 	uint32 SectionIdentifier;
 };
 
@@ -117,6 +122,6 @@ struct TStructOpsTypeTraits<FMovieSceneEvaluationKey> : public TStructOpsTypeTra
 {
 	enum
 	{
-		WithSerializer = true
+		WithSerializer = true, WithIdenticalViaEquality = true
 	};
 };

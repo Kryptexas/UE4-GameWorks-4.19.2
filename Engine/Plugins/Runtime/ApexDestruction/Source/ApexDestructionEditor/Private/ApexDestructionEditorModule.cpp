@@ -54,14 +54,7 @@ void FDestructibleMeshEditorModule::StartupModule()
 		ContentBrowserExtenderDelegateHandle = CBMenuExtenderDelegates.Last().GetHandle();
 	}
 
-	FModuleManager::Get().OnModulesChanged().AddLambda([](FName InModuleName, EModuleChangeReason InModuleChangeReason)
-	{
-		if(InModuleChangeReason == EModuleChangeReason::ModuleLoaded && InModuleName == TEXT("UnrealEd"))
-		{
-			// Register the thumbnail renderers
-			UThumbnailManager::Get().RegisterCustomRenderer(UDestructibleMesh::StaticClass(), UDestructibleMeshThumbnailRenderer::StaticClass());
-		}
-	});
+	UThumbnailManager::Get().RegisterCustomRenderer(UDestructibleMesh::StaticClass(), UDestructibleMeshThumbnailRenderer::StaticClass());
 
 	DestructibleMeshComponentBroker = MakeShareable(new FDestructibleMeshComponentBroker);
 	FComponentAssetBrokerage::RegisterBroker(DestructibleMeshComponentBroker, UDestructibleComponent::StaticClass(), false, true);

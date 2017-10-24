@@ -127,3 +127,6 @@ struct FMetalCodeBackend : public FCodeBackend
 	unsigned int inputcontrolpoints = 0;
 	unsigned int patchesPerThreadgroup = 0;
 };
+
+struct FShaderCompilerEnvironment;
+bool IsRemoteBuildingConfigured(const FShaderCompilerEnvironment* InEnvironment = nullptr);

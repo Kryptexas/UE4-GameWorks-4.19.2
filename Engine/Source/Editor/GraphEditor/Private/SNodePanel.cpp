@@ -418,7 +418,7 @@ EActiveTimerReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float I
 	if (bDoneZooming && bDoneScrolling)
 	{
 		// One final push to make sure we centered in the end
-		ViewOffset = DesiredViewCenter - ( 0.5f * CachedGeometry.Scale * CachedGeometry.Size / GetZoomAmount() );
+		ViewOffset = DesiredViewCenter - ( 0.5f * CachedGeometry.GetLocalSize() / GetZoomAmount() );
 		
 		// Reset ZoomPadding
 		ZoomPadding = NodePanelDefs::DefaultZoomPadding;

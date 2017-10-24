@@ -303,4 +303,24 @@ EPlatformType EPlatformTypeFromString(const FString& PlatformTypeName)
 
 } // namespace PlatformFamily
 
+namespace Lex
+{
+	FString ToString(const PlatformInfo::EPlatformType Value)
+	{
+		switch (Value)
+		{
+		case PlatformInfo::EPlatformType::Game:
+			return TEXT("Game");
+		case PlatformInfo::EPlatformType::Editor:
+			return TEXT("Editor");
+		case PlatformInfo::EPlatformType::Client:
+			return TEXT("Client");
+		case PlatformInfo::EPlatformType::Server:
+			return TEXT("Server");
+		}
+
+		return TEXT("");
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

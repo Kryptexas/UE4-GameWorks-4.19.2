@@ -141,18 +141,11 @@ public:
 	 bool ReceiveMessages();
 
 	 /**
-	 * Sends all pending messages to the socket.
+	 * Sends header to the socket.
 	 *
 	 * @return true on success, false otherwise.
-	 * @see ReceiveMessages
 	 */
-	 bool SendMessages();
-
-	 /**
-	 * Updates connection state and notifies delegate
-	 */
-	 void UpdateConnectionState(EConnectionState NewConnectionState);
-
+	 bool SendHeader();
 
 private:
 
@@ -181,9 +174,6 @@ private:
 
 	/** Holds the time at which the connection was opened. */
 	FDateTime OpenedTime;
-
-	/** Holds the collection of outbound messages. */
-	TQueue<FTcpSerializedMessagePtr, EQueueMode::Mpsc> Outbox;
 
 	/** Holds the IP endpoint of the remote client. */
 	FIPv4Endpoint RemoteEndpoint;
@@ -226,5 +216,8 @@ private:
 
 	/** The number of bytes of incoming message data we're still waiting on before we have a complete message */
 	int32 RecvMessageDataRemaining;
+
+	/** Critical section preventing multiple threads from sending simultaneously */
+	FCriticalSection SendCriticalSection;
 };
 

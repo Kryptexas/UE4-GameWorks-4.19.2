@@ -881,8 +881,10 @@ void SOutputLog::Construct( const FArguments& InArgs )
 			.SuggestionListPlacement(MenuPlacement_AboveAnchor)
 		]
 	];
-	
+
 	GLog->AddOutputDevice(this);
+	// Remove itself on crash (crashmalloc has limited memory and echoing logs here at that point is useless).
+	FCoreDelegates::OnHandleSystemError.AddRaw(this, &SOutputLog::OnCrash);
 
 	bIsUserScrolled = false;
 	RequestForceScroll();
@@ -891,7 +893,16 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SOutputLog::~SOutputLog()
 {
-	if (GLog != NULL)
+	if (GLog != nullptr)
+	{
+		GLog->RemoveOutputDevice(this);
+	}
+	FCoreDelegates::OnHandleSystemError.RemoveAll(this);
+}
+
+void SOutputLog::OnCrash()
+{
+	if (GLog != nullptr)
 	{
 		GLog->RemoveOutputDevice(this);
 	}

@@ -80,6 +80,6 @@ struct TStructOpsTypeTraits<FMovieSceneTrackIdentifier> : public TStructOpsTypeT
 {
 	enum
 	{
-		WithSerializer = true
+		WithSerializer = true, WithIdenticalViaEquality = true
 	};
 };

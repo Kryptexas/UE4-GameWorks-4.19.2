@@ -2229,6 +2229,13 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 		{
 			//Update the import data so we can re-import correctly
 			UpdateSkeletalMeshImportData(NewMesh, TemplateImportData, INDEX_NONE, &ImportMaterialOriginalNameData, &ImportMeshLodData);
+			//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
+			if (NewMesh->MorphTargets.Num() > 0)
+			{
+				NewMesh->ReleaseResources();
+				//Rebuild the resources with a post edit change since we have added some morph targets
+				NewMesh->PostEditChange();
+			}
 		}
 	}
 	else

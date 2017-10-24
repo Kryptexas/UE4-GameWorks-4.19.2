@@ -17,9 +17,11 @@
 #include "Misc/App.h"
 #include "Mac/MacPlatformApplicationMisc.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "IHapticDevice.h"
 
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
+#include "CoreDelegates.h"
 
 FMacApplication* MacApplication = nullptr;
 
@@ -58,7 +60,7 @@ static bool IsAppHighResolutionCapable()
 		bInitialized = true;
 	}
 
-	return bIsAppHighResolutionCapable;
+	return bIsAppHighResolutionCapable && GIsEditor;
 }
 
 FMacApplication* FMacApplication::CreateMacApplication()
@@ -90,37 +92,39 @@ FMacApplication::FMacApplication()
 		TextInputMethodSystem.Reset();
 	}
 
-	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
-																			  object:[NSApplication sharedApplication]
-																			   queue:[NSOperationQueue mainQueue]
-																		  usingBlock:^(NSNotification* Notification) { OnApplicationDidBecomeActive(); }];
+	MainThreadCall(^{
+		AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
+																				  object:[NSApplication sharedApplication]
+																				   queue:[NSOperationQueue mainQueue]
+																			  usingBlock:^(NSNotification* Notification) { OnApplicationDidBecomeActive(); }];
 
-	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification
-																				object:[NSApplication sharedApplication]
-																				 queue:[NSOperationQueue mainQueue]
-																			usingBlock:^(NSNotification* Notification) { OnApplicationWillResignActive(); }];
+		AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification
+																					object:[NSApplication sharedApplication]
+																					 queue:[NSOperationQueue mainQueue]
+																				usingBlock:^(NSNotification* Notification) { OnApplicationWillResignActive(); }];
 
-	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification
-																								  object:[NSWorkspace sharedWorkspace]
-																								   queue:[NSOperationQueue mainQueue]
-																							  usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = true; }];
+		WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification
+																									  object:[NSWorkspace sharedWorkspace]
+																									   queue:[NSOperationQueue mainQueue]
+																								  usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = true; }];
 
-	WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification
-																									object:[NSWorkspace sharedWorkspace]
-																									 queue:[NSOperationQueue mainQueue]
-																								usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
+		WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification
+																										object:[NSWorkspace sharedWorkspace]
+																										 queue:[NSOperationQueue mainQueue]
+																									usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
 
-	WorkspaceActiveSpaceChangeObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
-																										 object:[NSWorkspace sharedWorkspace]
-																										  queue:[NSOperationQueue mainQueue]
-																									 usingBlock:^(NSNotification* Notification){ OnActiveSpaceDidChange(); }];
+		WorkspaceActiveSpaceChangeObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
+																											 object:[NSWorkspace sharedWorkspace]
+																											  queue:[NSOperationQueue mainQueue]
+																										 usingBlock:^(NSNotification* Notification){ OnActiveSpaceDidChange(); }];
 
-	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
-	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+		MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
+		EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+
+		CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+	}, NSDefaultRunLoopMode, true);
 
 	bIsHighDPIModeEnabled = IsAppHighResolutionCapable();
-
-	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
 #if WITH_EDITOR
 	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
@@ -132,47 +136,55 @@ FMacApplication::FMacApplication()
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
+
+	FCoreDelegates::PreSlateModal.AddRaw(this, &FMacApplication::StartScopedModalEvent);
+    FCoreDelegates::PostSlateModal.AddRaw(this, &FMacApplication::EndScopedModalEvent);
 #endif
 }
 
 FMacApplication::~FMacApplication()
 {
-	if (MouseMovedEventMonitor)
-	{
-		[NSEvent removeMonitor:MouseMovedEventMonitor];
-	}
-	if (EventMonitor)
-	{
-		[NSEvent removeMonitor:EventMonitor];
-	}
-	if (AppActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
-	}
-	if (AppDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
-	}
-	if (WorkspaceActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
-	}
-	if (WorkspaceDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
-	}
-	if (WorkspaceActiveSpaceChangeObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActiveSpaceChangeObserver];
-	}
+	MainThreadCall(^{
+		if (MouseMovedEventMonitor)
+		{
+			[NSEvent removeMonitor:MouseMovedEventMonitor];
+		}
+		if (EventMonitor)
+		{
+			[NSEvent removeMonitor:EventMonitor];
+		}
+		if (AppActivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
+		}
+		if (AppDeactivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
+		}
+		if (WorkspaceActivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
+		}
+		if (WorkspaceDeactivationObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
+		}
+		if (WorkspaceActiveSpaceChangeObserver)
+		{
+			[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActiveSpaceChangeObserver];
+		}
 
-	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+		CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+	}, NSDefaultRunLoopMode, true);
 
 	if (TextInputMethodSystem.IsValid())
 	{
 		TextInputMethodSystem->Terminate();
 	}
-
+#if WITH_EDITOR
+    FCoreDelegates::PreModal.RemoveAll(this);
+    FCoreDelegates::PostModal.RemoveAll(this);
+#endif
 	MacApplication = nullptr;
 }
 
@@ -333,6 +345,17 @@ void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
+}
+void FMacApplication::StartScopedModalEvent()
+{
+    FPlatformApplicationMisc::bMacApplicationModalMode = true;
+    FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
+}
+
+void FMacApplication::EndScopedModalEvent()
+{
+    FPlatformApplicationMisc::bMacApplicationModalMode = false;
+    FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 }
 #endif
 
@@ -637,11 +660,11 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 		}
 		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
 		{
-			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
+			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
 		}
 		else if (Event.NotificationName == NSWindowDidResignMainNotification)
 		{
-			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
+			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
 		}
 		else if (Event.NotificationName == NSWindowWillMoveNotification)
 		{
@@ -959,7 +982,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode && EventWindow.IsValid())
+	if (!bSystemModalMode && EventWindow.IsValid() && [Event.CharactersIgnoringModifiers length] > 0)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
@@ -1071,19 +1094,96 @@ void FMacApplication::OnWindowChangedScreen(TSharedRef<FMacWindow> Window)
 }
 
 
-bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
+bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 {
 	SCOPED_AUTORELEASE_POOL;
-	if ([Window->GetWindowHandle() isMainWindow])
+
+	FCocoaWindow* WindowHandle = DestroyedWindow->GetWindowHandle();
+	const bool bDestroyingMainWindow = DestroyedWindow == ActiveWindow;
+
+	if (bDestroyingMainWindow)
 	{
-		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
+		OnWindowActivationChanged(DestroyedWindow, EWindowActivation::Deactivate);
 	}
-	Windows.Remove(Window);
-	if (!WindowsToClose.Contains(Window->GetWindowHandle()))
+
+	Windows.Remove(DestroyedWindow);
+
+	if (!WindowsToClose.Contains(WindowHandle))
 	{
-		WindowsToClose.Add(Window->GetWindowHandle());
+		WindowsToClose.Add(WindowHandle);
 	}
+
+	TSharedPtr<FMacWindow> WindowToActivate;
+
+	if (bDestroyingMainWindow)
+	{
+		FScopeLock Lock(&WindowsMutex);
+		// Figure out which window will now become active and let Slate know without waiting for Cocoa events.
+		// Ignore notification windows as Slate keeps bringing them to front and while they technically can be main windows,
+		// trying to activate them would result in Slate dismissing menus.
+		for (int32 Index = 0; Index < Windows.Num(); ++Index)
+		{
+			TSharedRef<FMacWindow> WindowRef = Windows[Index];
+			if (!WindowsToClose.Contains(WindowRef->GetWindowHandle()) && [WindowRef->GetWindowHandle() canBecomeMainWindow] && WindowRef->GetDefinition().Type != EWindowType::Notification)
+			{
+				WindowToActivate = WindowRef;
+				break;
+			}
+		}
+	}
+
+	if (WindowToActivate.IsValid())
+	{
+		OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
+		WindowToActivate->SetWindowFocus();
+	}
+
 	return true;
+}
+
+void FMacApplication::OnWindowActivated(TSharedRef<FMacWindow> Window)
+{
+	if (ActiveWindow.IsValid())
+	{
+		OnWindowActivationChanged(ActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+	}
+	OnWindowActivationChanged(Window, EWindowActivation::Activate);
+}
+
+void FMacApplication::OnWindowOrderedFront(TSharedRef<FMacWindow> Window)
+{
+	// Sort Windows array so that the order is the same as on screen
+	TArray<TSharedRef<FMacWindow>> NewWindowsArray;
+	NewWindowsArray.Add(Window);
+
+	FScopeLock Lock(&WindowsMutex);
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
+	{
+		TSharedRef<FMacWindow> WindowRef = Windows[WindowIndex];
+		if (WindowRef != Window)
+		{
+			NewWindowsArray.Add(WindowRef);
+		}
+	}
+	Windows = NewWindowsArray;
+}
+
+void FMacApplication::OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType)
+{
+	if (ActivationType == EWindowActivation::Deactivate)
+	{
+		if (Window == ActiveWindow)
+		{
+			MessageHandler->OnWindowActivationChanged(Window, ActivationType);
+			ActiveWindow.Reset();
+		}
+	}
+	else if (ActiveWindow != Window)
+	{
+		MessageHandler->OnWindowActivationChanged(Window, ActivationType);
+		ActiveWindow = Window;
+		OnWindowOrderedFront(Window);
+	}
 }
 
 void FMacApplication::OnApplicationDidBecomeActive()
@@ -1205,12 +1305,13 @@ void FMacApplication::OnWindowsReordered()
 
 	SavedWindowsOrder.Empty();
 
-	NSArray* OrderedWindows = [NSApp orderedWindows];
+	FScopeLock Lock(&WindowsMutex);
 
 	int32 MinLevel = 0;
 	int32 MaxLevel = 0;
-	for (NSWindow* Window in OrderedWindows)
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 	{
+		FCocoaWindow* Window = Windows[WindowIndex]->GetWindowHandle();
 		const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
 		MinLevel = FMath::Min(MinLevel, WindowLevel);
 		MaxLevel = FMath::Max(MaxLevel, WindowLevel);
@@ -1218,8 +1319,9 @@ void FMacApplication::OnWindowsReordered()
 
 	for (int32 Level = MaxLevel; Level >= MinLevel; Level--)
 	{
-		for (NSWindow* Window in OrderedWindows)
+		for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 		{
+			FCocoaWindow* Window = Windows[WindowIndex]->GetWindowHandle();
 			const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
 			if (Level == WindowLevel && [Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
 			{
@@ -1232,6 +1334,8 @@ void FMacApplication::OnWindowsReordered()
 
 void FMacApplication::OnActiveSpaceDidChange()
 {
+	FScopeLock Lock(&WindowsMutex);
+
 	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 	{
 		TSharedRef<FMacWindow> WindowRef = Windows[WindowIndex];
@@ -1344,6 +1448,63 @@ FCocoaWindow* FMacApplication::FindEventWindow(NSEvent* Event) const
 	}
 
 	return EventWindow;
+}
+
+void FMacApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			InputDevice->SetChannelValue(ControllerId, ChannelType, Value);
+		}
+	}
+}
+
+void FMacApplication::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			// Mirrored from the Window's impl: "Ideally, we would want to use 
+			// GetHapticDevice instead but they're not implemented for SteamController"
+			if (InputDevice->IsGamepadAttached())
+			{
+				InputDevice->SetChannelValues(ControllerId, Values);
+			}
+		}
+	}
+}
+
+void FMacApplication::SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values)
+{
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
+	for (const TSharedPtr<IInputDevice>& InputDevice : ExternalInputDevices)
+	{
+		if (InputDevice.IsValid())
+		{
+			IHapticDevice* HapticDevice = InputDevice->GetHapticDevice();
+			if (HapticDevice)
+			{
+				HapticDevice->SetHapticFeedbackValues(ControllerId, Hand, Values);
+			}
+		}
+	}
 }
 
 void FMacApplication::UpdateScreensArray()
@@ -1662,22 +1823,6 @@ void FMacApplication::CloseQueuedWindows()
 	{
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-
-			// Set the new key window, if needed. We cannot trust Cocoa to set the key window to the actual top most window. It will prefer windows with title bars so,
-			// for example, will choose the main window over a context menu window, when closing a submenu.
-			NSArray* AllWindows = [NSApp orderedWindows];
-			for (NSWindow* Window : AllWindows)
-			{
-				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeKeyWindow])
-				{
-					if (Window != [NSApp keyWindow])
-					{
-						[Window makeKeyWindow];
-					}
-					break;
-				}
-			}
-
 			for (FCocoaWindow* Window : WindowsToClose)
 			{
 				[Window close];
@@ -1795,21 +1940,6 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 
 		OutDisplayMetrics.MonitorInfo.Add(Info);
 	}
-
-						// Now that we have the whole workspace rect calculated, we can fix DisplayRect's and WorkArea's top and bottom coordinates
-						//
-						// IMPORTANT!
-						// The following code should not be merged to //UE4/Main. FMacScreen-related code was heavily modified as part of work on high-DPI support
-						// and Info.DisplayRect and Info.WorkArea in //UE4/Main already have the origin in top-left corner, so they don't need this.
-						//
-/********************/	for (FMonitorInfo& Info : OutDisplayMetrics.MonitorInfo)
-/*					*/	{
-/* DO NOT MERGE		*/		Info.DisplayRect.Top = WholeWorkspace.size.height - (Info.DisplayRect.Top + Info.DisplayRect.Bottom);
-/* TO //UE4/Main	*/		Info.DisplayRect.Bottom += Info.DisplayRect.Top;
-/* See comment		*/		Info.WorkArea.Top = WholeWorkspace.size.height - (Info.WorkArea.Top + Info.WorkArea.Bottom);
-/*					*/		Info.WorkArea.Bottom += Info.WorkArea.Top;
-/********************/	}
-
 
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;

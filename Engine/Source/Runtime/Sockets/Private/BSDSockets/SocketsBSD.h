@@ -86,7 +86,7 @@ public:
 	virtual bool Bind(const FInternetAddr& Addr) override;
 	virtual bool Connect(const FInternetAddr& Addr) override;
 	virtual bool Listen(int32 MaxBacklog) override;
-	virtual bool HasPendingConnection(bool& bHasPendingConnection) override;
+	virtual bool WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime) override;
 	virtual bool HasPendingData(uint32& PendingDataSize) override;
 	virtual class FSocket* Accept(const FString& SocketDescription) override;
 	virtual class FSocket* Accept(FInternetAddr& OutAddr, const FString& SocketDescription) override;

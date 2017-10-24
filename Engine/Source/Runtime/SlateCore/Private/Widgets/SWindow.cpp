@@ -270,7 +270,13 @@ void SWindow::Construct(const FArguments& InArgs)
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplicationBase::Get().GetDisplayMetrics( DisplayMetrics );
 	const FPlatformRect& VirtualDisplayRect = DisplayMetrics.VirtualDisplayRect;
-	const FPlatformRect& PrimaryDisplayRect = DisplayMetrics.PrimaryDisplayWorkAreaRect;
+	FPlatformRect PrimaryDisplayRect = DisplayMetrics.GetMonitorWorkAreaFromPoint(WindowPosition);
+
+	if (PrimaryDisplayRect == FPlatformRect(0, 0, 0, 0))
+	{
+		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  so assume virtual display rect is primary rect
+		PrimaryDisplayRect = VirtualDisplayRect;
+	}
 
 	// If we're showing a pop-up window, to avoid creation of driver crashing sized 
 	// tooltips we limit the size a pop-up window can be if max size limit is unspecified.
@@ -1237,6 +1243,13 @@ void SWindow::NotifyWindowBeingDestroyed()
 {
 	OnWindowClosed.ExecuteIfBound( SharedThis( this ) );
 
+#if WITH_EDITOR
+    if(bIsModalWindow)
+    {
+        FCoreDelegates::PostSlateModal.Broadcast();
+    }
+#endif
+    
 	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
 #if !WITH_EDITOR && !IS_PROGRAM
 	UE_LOG(LogSlate, Log, TEXT("Window '%s' being destroyed"), *GetTitle().ToString() );

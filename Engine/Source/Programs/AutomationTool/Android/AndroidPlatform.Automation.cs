@@ -420,7 +420,7 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-						bDontMoveOBB ? "" : "%ADB% %DEVICE% shell 'mv %STORAGE%/Download/obb/" + PackageName + " %STORAGE%/Android/obb/" + PackageName + "'",
+						bDontMoveOBB ? "" : "\t\t$ADB $DEVICE shell mv $STORAGE/Download/obb/" + PackageName + " $STORAGE/Android/obb/" + PackageName,
 						"\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
@@ -1434,21 +1434,6 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		var AppGPUArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
-
-		// get the device extensions
-		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
-		string Extensions = ExtensionsResult.Output.Trim();
-
-		// look for AEP support (on device and in project)
-		if (Extensions.Contains("GL_ANDROID_extension_pack_es31a") && Extensions.Contains("GL_EXT_color_buffer_half_float"))
-		{
-			if (AppGPUArchitectures.Contains("-esdeferred"))
-			{
-				return "-esdeferred";
-			}
-		}
-
 		return "-es2";
 	}
 
@@ -1529,7 +1514,7 @@ public class AndroidPlatform : Platform
 					FinishedRunning = true;
 				}
 
-				Thread.Sleep(10);
+				Thread.Sleep(1000);
 
 				if(!FinishedRunning)
 				{

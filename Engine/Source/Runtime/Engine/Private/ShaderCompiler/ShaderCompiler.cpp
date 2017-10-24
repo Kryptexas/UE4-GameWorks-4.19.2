@@ -1547,12 +1547,26 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 #if UE_BUILD_DEBUG && PLATFORM_LINUX
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
 #endif
+		// Disambiguate between SCW.exe missing vs other errors.
+		static bool bFirstLaunch = true;
 		uint32 WorkerId = 0;
 		FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
-		if (!WorkerHandle.IsValid())
+		if (WorkerHandle.IsValid())
+		{
+			// Process launched at least once successfully
+			bFirstLaunch = false;
+		}
+		else
 		{
 			// If this doesn't error, the app will hang waiting for jobs that can never be completed
+			if (bFirstLaunch)
+			{
 				UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s! Make sure the file is in your binaries folder."), *ShaderCompileWorkerName);
+			}
+			else
+			{
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s!"), *ShaderCompileWorkerName);
+			}
 		}
 
 		return WorkerHandle;
@@ -2815,18 +2829,34 @@ void GlobalBeginCompileShader(
 		static ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 		const FName Format = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
 		const IShaderFormat* Compiler = TPM.FindShaderFormat(Format);
-        static const bool bCanCompileOfflineMetalShaders = Compiler && Compiler->CanCompileBinaryShaders();
-        if (!bCanCompileOfflineMetalShaders)
-        {
-            Input.Environment.CompilerFlags.Add(CFLAG_Debug);
-        }
+		static const bool bCanCompileOfflineMetalShaders = Compiler && Compiler->CanCompileBinaryShaders();
+		if (!bCanCompileOfflineMetalShaders)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_Debug);
+		}
+		else
+		{
+			// populate the data in the shader input environment
+			FString RemoteServer;
+			FString UserName;
+			FString SSHKey;
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), RemoteServer, GEngineIni);
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RSyncUsername"), UserName, GEngineIni);
+			GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("SSHPrivateKeyOverridePath"), SSHKey, GEngineIni);
+			Input.Environment.RemoteServerData.Add(TEXT("RemoteServerName"), RemoteServer);
+			Input.Environment.RemoteServerData.Add(TEXT("RSyncUsername"), UserName);
+			if (SSHKey.Len() > 0)
+			{
+				Input.Environment.RemoteServerData.Add(TEXT("SSHPrivateKeyOverridePath"), SSHKey);
+			}
+		}
 		
 		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
 		bool bArchive = false;
 		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
 		if (bCanCompileOfflineMetalShaders && bArchive)
 		{
-            Input.Environment.CompilerFlags.Add(CFLAG_Archive);
+			Input.Environment.CompilerFlags.Add(CFLAG_Archive);
 		}
 		
 		{

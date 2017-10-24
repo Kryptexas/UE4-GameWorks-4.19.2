@@ -1219,7 +1219,7 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 		OutInfo += FString::Printf(TEXT("\t\tCodec: %s\n"), *TypeName);
 
 		// create output type
-		TComPtr<IMFMediaType> OutputType = WmfMedia::CreateOutputType(MajorType, SubType, AllowNonStandardCodecs, IsVideoDevice);
+		TComPtr<IMFMediaType> OutputType = WmfMedia::CreateOutputType(*MediaType, AllowNonStandardCodecs, IsVideoDevice);
 
 		if (!OutputType.IsValid())
 		{
@@ -1236,9 +1236,6 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 			const uint32 BitsPerSample = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
 			const uint32 NumChannels = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_NUM_CHANNELS, 0);
 			const uint32 SampleRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_SAMPLES_PER_SECOND, 0);
-
-			OutputType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, NumChannels);
-			OutputType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, SampleRate);
 
 			FormatIndex = Track->Formats.Add({
 				MediaType,
@@ -1376,7 +1373,17 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 			{
 				if (OutputSubType == MFVideoFormat_NV12)
 				{
-					BufferDim = FIntPoint(Align(OutputDim.X, 16), Align(OutputDim.Y, 16) * 3 / 2);
+					if (IsVideoDevice)
+					{
+						BufferDim.X = OutputDim.X;
+						BufferDim.Y = OutputDim.Y * 3 / 2;
+					}
+					else
+					{
+						BufferDim.X = Align(OutputDim.X, 16);
+						BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+					}
+
 					BufferStride = BufferDim.X;
 					SampleFormat = EMediaTextureSampleFormat::CharNV12;
 				}

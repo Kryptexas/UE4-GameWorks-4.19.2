@@ -451,6 +451,9 @@ private:
 	FAutoConsoleVariableSink CVarSink;
 #endif
 
+	EHMDTrackingOrigin::Type TrackingOrigin;
+	bool bIs6DoFSupported;
+
 public:
 	//////////////////////////////////////////////////////
 	// Begin ISceneViewExtension Pure-Virtual Interface //
@@ -566,12 +569,6 @@ public:
 	 * May be called both from the game and the render thread.
 	 */
 	virtual void RefreshPoses() override;
-
-	/**
-	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
-	 * but some overrides are possible.
-	 */
-	virtual bool IsHeadTrackingAllowed() const override;
 	
     /**
 	 * Get the current pose for a device.
@@ -604,6 +601,12 @@ public:
 	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
 	 */
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) override;
+
+	/**
+	* Whether or not the system supports positional tracking (either via sensor or other means).
+	* The default implementation always returns false, indicating that only rotational tracking is supported.
+	*/
+	virtual bool DoesSupportPositionalTracking() const override;
 
 	///////////////////////////////////////////////
 	// Begin IXRTrackingSystem Virtual Interface //
@@ -766,9 +769,57 @@ public:
 	}
 #endif
 
+	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type) override;
+	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
+
+
 #if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 	bool GetCurrentReferencePose(FQuat& CurrentOrientation, FVector& CurrentPosition) const;
 	static FVector GetLocalEyePos(const instant_preview::EyeView& EyeView);
 	void PushVideoFrame(const FColor* VideoFrameBuffer, int width, int height, int stride, instant_preview::PixelFormat pixel_format, instant_preview::ReferencePose reference_pose);
 #endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+
+	/**
+	* Tries to get the floor height if available
+	* @param FloorHeight where the floor height read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	bool GetFloorHeight(float* FloorHeight);
+
+	/**
+	* Tries to get the Safety Cylinder Inner Radius if available
+	* @param InnerRadius where the Safety Cylinder Inner Radius read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	bool GetSafetyCylinderInnerRadius(float* InnerRadius);
+
+	/**
+	* Tries to get the Safety Cylinder Outer Radius if available
+	* @param OuterRadius where the Safety Cylinder Outer Radius read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	bool GetSafetyCylinderOuterRadius(float* OuterRadius);
+
+	/**
+	* Tries to get the Safety Region Type if available
+	* @param RegionType where the Safety Region Type read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	bool GetSafetyRegion(ESafetyRegionType* RegionType);
+
+	/**
+	* Tries to get the Recenter Transform if available
+	* @param RecenterOrientation where the Recenter Orientation read will get stored
+	* @param RecenterPosition where the Recenter Position read will get stored
+	* returns true is the read was successful, false otherwise
+	*/
+	bool GetRecenterTransform(FQuat& RecenterOrientation, FVector& RecenterPosition);
+
+private :
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	bool TryReadProperty(int32_t PropertyKey, gvr_value* ValueOut);
+#endif
+
+	bool Is6DOFSupported() const;
 };

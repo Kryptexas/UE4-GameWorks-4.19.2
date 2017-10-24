@@ -137,6 +137,7 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport(UObject* Obj)
 
 			// Mark the package dirty after the successful import
 			SoundWave->MarkPackageDirty();
+			SoundWave->bNeedsThumbnailGeneration = true;
 
 			bSourceReimported = true;
 		}

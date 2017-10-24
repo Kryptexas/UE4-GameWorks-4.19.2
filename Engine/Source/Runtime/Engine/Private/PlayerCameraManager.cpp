@@ -19,6 +19,7 @@
 #include "Camera/CameraModifier_CameraShake.h"
 #include "Camera/CameraPhotography.h"
 #include "GameFramework/PlayerState.h"
+#include "IXRTrackingSystem.h" // for IsHeadTrackingAllowed()
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
@@ -1062,7 +1063,7 @@ void APlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutVie
 	OutViewRotation += OutDeltaRot;
 	OutDeltaRot = FRotator::ZeroRotator;
 
-	if(GEngine->XRSystem.IsValid() && GEngine->IsStereoscopic3D())
+	if(GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 	{
 		// With the HMD devices, we can't limit the view pitch, because it's bound to the player's head.  A simple normalization will suffice
 		OutViewRotation.Normalize();

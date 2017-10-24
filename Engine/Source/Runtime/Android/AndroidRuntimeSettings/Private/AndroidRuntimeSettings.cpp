@@ -3,18 +3,21 @@
 #include "AndroidRuntimeSettings.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UnrealType.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/CoreDelegates.h"
 
 #if WITH_EDITOR
 #include "IAndroid_MultiTargetPlatformModule.h"
 #endif
 
+DEFINE_LOG_CATEGORY(LogAndroidRuntimeSettings);
+
 UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Orientation(EAndroidScreenOrientation::Landscape)
 	, MaxAspectRatio(2.1f)
 	, bAndroidVoiceEnabled(false)
-	, GoogleVRMode(EGoogleVRMode::DaydreamAndCardboard)
+	, GoogleVRCaps({EGoogleVRCaps::Cardboard, EGoogleVRCaps::Daydream33})
 	, bEnableGooglePlaySupport(false)
 	, bUseGetAccounts(false)
 	, bSupportAdMob(true)
@@ -34,6 +37,7 @@ UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& Objec
 	, TextureFormatPriority_ATC(0.5f)
 	, TextureFormatPriority_ASTC(0.9f)
 {
+	bBuildForES2 = !bBuildForES2 && !bBuildForES31 && !bSupportsVulkan;
 }
 
 #if WITH_EDITOR
@@ -101,8 +105,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 
 	if (PropertyChangedEvent.Property != nullptr)
 	{
-		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForESDeferred) ||
-			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportsVulkan) ||
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportsVulkan) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES31))
 		{
@@ -111,15 +114,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 		}
 	}
 
-	// Ensure that at least one GPU architecture is supported
-	if (!bBuildForES2 && !bBuildForESDeferred && !bSupportsVulkan && !bBuildForES31)
-	{
-		bBuildForES2 = true;
-		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());
-
-		// Supported shader formats changed so invalidate cache
-		InvalidateAllAndroidPlatforms();
-	}
+	EnsureValidGPUArch();
 
 	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetName().StartsWith(TEXT("bMultiTargetFormat")))
 	{
@@ -163,6 +158,50 @@ void UAndroidRuntimeSettings::PostInitProperties()
 		AdMobAdUnitIDs.Add(AdMobAdUnitID);
 		AdMobAdUnitID.Empty();
 		UpdateDefaultConfigFile();
+	}
+
+	// Upgrade old GoogleVR settings as necessary.
+	FString GoogleVRMode = GConfig->GetStr(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("GoogleVRMode"), GEngineIni);
+	if (GoogleVRMode != TEXT(""))
+	{
+		if (GoogleVRMode == TEXT("Cardboard"))
+		{
+			GoogleVRCaps.Empty(1);
+			GoogleVRCaps.Add(EGoogleVRCaps::Cardboard);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Cardboard"));
+		}
+		else if (GoogleVRMode == TEXT("Daydream"))
+		{
+			GoogleVRCaps.Empty(1);
+			GoogleVRCaps.Add(EGoogleVRCaps::Daydream33);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Daydream"));
+		}
+		else if (GoogleVRMode == TEXT("DaydreamAndCardboard"))
+		{
+			GoogleVRCaps.Empty(2);
+			GoogleVRCaps.Add(EGoogleVRCaps::Cardboard);
+			GoogleVRCaps.Add(EGoogleVRCaps::Daydream33);
+			UE_LOG(LogAndroidRuntimeSettings, Log, TEXT("Upgraded GoogleVRMode -> GoogleVRCaps, Cardboard & Daydream"));
+		}
+
+		// Save changes to the ini file.
+		UpdateDefaultConfigFile();
+	}
+
+	// Enable ES2 if no GPU arch is selected. (as can be the case with the removal of ESDeferred) 
+	EnsureValidGPUArch();
+}
+
+void UAndroidRuntimeSettings::EnsureValidGPUArch()
+{
+	// Ensure that at least one GPU architecture is supported
+	if (!bBuildForES2 && !bSupportsVulkan && !bBuildForES31)
+	{
+		bBuildForES2 = true;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());
+
+		// Supported shader formats changed so invalidate cache
+		InvalidateAllAndroidPlatforms();
 	}
 }
 #endif

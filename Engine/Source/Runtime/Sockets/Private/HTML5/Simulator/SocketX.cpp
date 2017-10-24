@@ -32,9 +32,9 @@ bool FSocketX::Listen( int32 MaxBacklog )
 	return Pimpl->Listen(MaxBacklog);
 }
 
-bool FSocketX::HasPendingConnection( bool& bHasPendingConnection )
+bool FSocketX::WaitForPendingConnection( bool& bHasPendingConnection, const FTimespan& WaitTime)
 {
-	return Pimpl->HasPendingConnection(bHasPendingConnection); 
+	return Pimpl->WaitForPendingConnection(bHasPendingConnection, WaitTime); 
 }
 
 bool FSocketX::HasPendingData( uint32& PendingDataSize )

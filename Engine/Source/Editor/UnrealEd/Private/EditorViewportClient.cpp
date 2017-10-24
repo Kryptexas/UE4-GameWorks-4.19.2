@@ -700,6 +700,16 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 
 	FSceneViewInitOptions ViewInitOptions;
 
+	// Takes care of HighDPI based screen percentage in editor viewport when not in VR editor.
+	if (!bStereoRendering)
+	{
+		// Disables any screen percentage derived for game such as r.ScreenPercentage or FPostProcessSettings::ScreenPercentage.
+		ViewInitOptions.bDisableGameScreenPercentage = true;
+
+		// Forces screen percentage showflag on so that we always upscale on HighDPI configuration.
+		ViewFamily->EngineShowFlags.ScreenPercentage = true;
+	}
+
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const ELevelViewportType EffectiveViewportType = GetViewportType();
 
@@ -3279,10 +3289,16 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
 	if (IsInspectorActive)
 	{
+		float ViewRectScale = (float)View.ViewRect.Size().X / View.UnscaledViewRect.Size().X;
+
 		if (CurrentMousePos == FIntPoint(-1, -1))
 		{
 			uint32 CoordinateViewportId = 0;
 			PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+
+			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
+			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
+
 			bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
 			IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
 			if (IsInspectorActive)
@@ -3292,9 +3308,11 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 		}
 		else
 		{
-			InspectViewportPos = CurrentMousePos;
+			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
+			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
+
 			PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-			PixelInspectorModule.SetCoordinatePosition(CurrentMousePos, false);
+			PixelInspectorModule.SetCoordinatePosition(InspectViewportPos, false);
 		}
 	}
 

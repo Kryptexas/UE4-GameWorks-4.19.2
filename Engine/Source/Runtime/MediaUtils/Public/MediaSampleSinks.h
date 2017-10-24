@@ -40,7 +40,7 @@ public:
 	 * @return true if the sample was enqueued to all sinks, false if one or more sinks overflowed.
 	 * @see Flush
 	 */
-	bool Enqueue(const TSharedPtr<SampleType, ESPMode::ThreadSafe>& Sample, int32 MaxDepth)
+	bool Enqueue(const TSharedRef<SampleType, ESPMode::ThreadSafe>& Sample, int32 MaxDepth)
 	{
 		bool Overflowed = false;
 

@@ -4032,16 +4032,6 @@ bool UClass::HotReloadPrivateStaticClass(
 		UE_LOG(LogClass, Error, TEXT("VTable for class %s did not change?"),*GetName());
 	}
 
-	// Mark class as no longer constructed and collapse the Children list so that it gets rebuilt
-	ClassFlags &= ~CLASS_Constructed;
-	for (UField* Child = Children; Child; )
-	{
-		UField* NextChild = Child->Next;
-		Child->Next = nullptr;
-		Child = NextChild;
-	}
-	Children = nullptr;
-
 	return true;
 }
 
@@ -4362,34 +4352,36 @@ void GetPrivateStaticClassBody(
 	{
 		check(!bIsDynamic);
 		UPackage* Package = FindPackage(NULL, PackageName);
-		if (!Package)
+		if (Package)
 		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."), PackageName);
-			return;
-		}
-		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
-		if (ReturnClass)
-		{
-			if (ReturnClass->HotReloadPrivateStaticClass(
-				InSize,
-				InClassFlags,
-				InClassCastFlags,
-				InConfigName,
-				InClassConstructor,
-				InClassVTableHelperCtorCaller,
-				InClassAddReferencedObjects,
-				InSuperClassFn(),
-				InWithinClassFn()
-				))
+			ReturnClass = FindObject<UClass>((UObject *)Package, Name);
+			if (ReturnClass)
 			{
-				// Register the class's native functions.
-				RegisterNativeFunc();
+				if (ReturnClass->HotReloadPrivateStaticClass(
+					InSize,
+					InClassFlags,
+					InClassCastFlags,
+					InConfigName,
+					InClassConstructor,
+					InClassVTableHelperCtorCaller,
+					InClassAddReferencedObjects,
+					InSuperClassFn(),
+					InWithinClassFn()
+					))
+				{
+					// Register the class's native functions.
+					RegisterNativeFunc();
+				}
+				return;
 			}
-			return;
+			else
+			{
+				UE_LOG(LogClass, Log, TEXT("Could not find existing class %s in package %s for HotReload, assuming new class"), Name, PackageName);
+			}
 		}
 		else
 		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing class %s in package %s for HotReload, assuming new class"), Name, PackageName);
+			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload of class %s, assuming a new package."), PackageName, Name);
 		}
 	}
 #endif

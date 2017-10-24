@@ -19,6 +19,7 @@ public class KismetCompiler : ModuleRules
 				"BlueprintGraph",
 				"AnimGraph",
                 "MessageLog",
+				"Kismet",
 			}
 			);
 	}

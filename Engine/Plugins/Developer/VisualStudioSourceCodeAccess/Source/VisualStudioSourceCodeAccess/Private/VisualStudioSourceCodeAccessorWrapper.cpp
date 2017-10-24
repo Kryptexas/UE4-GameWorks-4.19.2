@@ -44,6 +44,16 @@ bool FVisualStudioSourceCodeAccessorWrapper::OpenSolution()
 	return Inner->OpenSolution();
 }
 
+bool FVisualStudioSourceCodeAccessorWrapper::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	return Inner->OpenSolutionAtPath(InSolutionPath);
+}
+
+bool FVisualStudioSourceCodeAccessorWrapper::DoesSolutionExist() const
+{
+	return Inner->DoesSolutionExist();
+}
+
 bool FVisualStudioSourceCodeAccessorWrapper::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
 {
 	return Inner->OpenFileAtLine(FullPath, LineNumber, ColumnNumber);

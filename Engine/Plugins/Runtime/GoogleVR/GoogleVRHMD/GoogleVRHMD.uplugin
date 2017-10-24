@@ -1,7 +1,7 @@
 {
     "FileVersion": 3,
-    "Version": 9,
-    "VersionName": "1.5 (GVR NDK v1.60.1)",
+    "Version": 11,
+    "VersionName": "1.7 (GVR NDK v1.80.0)",
     "FriendlyName": "Google VR",
     "Description": "Support for Google VR on mobile devices",
     "Category": "Virtual Reality",

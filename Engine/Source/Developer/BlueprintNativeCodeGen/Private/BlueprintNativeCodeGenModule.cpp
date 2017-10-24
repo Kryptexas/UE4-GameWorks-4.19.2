@@ -40,6 +40,10 @@ public:
 	{
 	}
 
+	//~ Begin IModuleInterface interface
+	virtual void ShutdownModule();
+	//~ End IModuleInterface interface
+
 	//~ Begin IBlueprintNativeCodeGenModule interface
 	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const FName PlatformName) override;
 	virtual void SaveManifest() override;
@@ -52,7 +56,7 @@ public:
 
 	FFileHelper::EEncodingOptions ForcedEncoding() const
 	{
-		return FFileHelper::EEncodingOptions::ForceUTF8;
+		return FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM;
 	}
 	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const override;
 	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) override;
@@ -268,11 +272,7 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 	// Each platform will need a manifest, because each platform could cook different assets:
 	for (const FPlatformNativizationDetails& Platform : InitData.CodegenTargets)
 	{
-		FString TargetPath = InitData.DestPluginPath; 
-		if (TargetPath.IsEmpty())
-		{
-			TargetPath = FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(Platform.PlatformName);
-		}
+		const FString TargetPath = FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(Platform.PlatformName);
 		const FBlueprintNativeCodeGenManifest& Manifest = *Manifests.Add(Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(TargetPath, Platform.CompilerNativizationOptions, InitData.ManifestIdentifier)));
 
 		TargetPlatformNames.Add(Platform.PlatformName);
@@ -359,6 +359,18 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 			}
 		}
 	}
+}
+
+void FBlueprintNativeCodeGenModule::ShutdownModule()
+{
+	// Clear the current coordinator reference.
+	IBlueprintNativeCodeGenCore::Register(nullptr);
+
+	// Reset compiler module delegate function bindings.
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	BackEndModule.GetIsFunctionUsedInADelegateCallback().Unbind();
+	BackEndModule.OnIsTargetedForConversionQuery().Unbind();
+	BackEndModule.OnIncludingUnconvertedBP().Unbind();
 }
 
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()

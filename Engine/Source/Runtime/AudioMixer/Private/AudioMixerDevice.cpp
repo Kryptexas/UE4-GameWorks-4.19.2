@@ -381,6 +381,9 @@ namespace Audio
 		// Because we double buffer our command queues, we call this function twice to ensure all commands are successfully pumped.
 		SourceManager.PumpCommandQueue();
 		SourceManager.PumpCommandQueue();
+
+		// Make sure we force any pending release data to happen on shutdown
+		SourceManager.UpdatePendingReleaseData(true);
 	}
 
 	void FMixerDevice::InitSoundSubmixes()
@@ -517,8 +520,12 @@ namespace Audio
 			// Now add all the child submixes to this submix instance
 			for (USoundSubmix* ChildSubmix : SoundSubmix->ChildSubmixes)
 			{
-				FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
-				SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				// ChildSubmix lists can contain null entries.
+				if (ChildSubmix)
+				{
+					FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
+					SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				}
 			}
 
 			// Perform any other initialization on the submix instance

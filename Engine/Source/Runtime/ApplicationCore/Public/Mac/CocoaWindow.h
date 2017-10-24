@@ -13,6 +13,7 @@
 	bool bAcceptsInput;
 	bool bDisplayReconfiguring;
 	bool bRenderInitialized;
+	bool bIsBeingOrderedFront;
 	float Opacity;
 @public
 	bool bZoomed;

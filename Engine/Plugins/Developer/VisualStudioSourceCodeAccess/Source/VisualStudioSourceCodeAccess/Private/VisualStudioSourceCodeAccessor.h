@@ -33,6 +33,8 @@ public:
 	virtual FText GetNameText() const override;
 	virtual FText GetDescriptionText() const override;
 	virtual bool OpenSolution() override;
+	virtual bool OpenSolutionAtPath(const FString& InSolutionPath) override;
+	virtual bool DoesSolutionExist() const override;
 	virtual bool OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0) override;
 	virtual bool OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths) override;
 	virtual bool AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths, const TArray<FString>& AvailableModules) override;
@@ -131,14 +133,17 @@ private:
 	/** String storing the solution path obtained from the module manager to avoid having to use it on a thread */
 	mutable FString CachedSolutionPath;
 
-	/** Critical section for updating SolutionPath */
-	mutable FCriticalSection CachedSolutionPathCriticalSection;
+	/** Override for the cached solution path */
+	mutable FString CachedSolutionPathOverride;
 
 	/** If !0 it represents the time at which the a VS instance was opened */
 	double	VSLaunchTime;
 
 	/** Critical section for updating DeferredRequests */
 	FCriticalSection DeferredRequestsCriticalSection;
+
+	/** Critical section for updating SolutionPath */
+	mutable FCriticalSection CachedSolutionPathCriticalSection;
 
 	/** Array of file open requests that have been deferred because Visual Studio was not available when the request was made */
 	TArray<FileOpenRequest> DeferredRequests;

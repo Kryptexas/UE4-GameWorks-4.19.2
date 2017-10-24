@@ -70,6 +70,7 @@ import android.view.View.OnTouchListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
@@ -177,6 +178,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public static final int DOWNLOAD_INVALID = 5;
 	public static final int DOWNLOAD_NO_PLAY_KEY = 6;
 	public static final String DOWNLOAD_RETURN_NAME = "Result";
+
+	public static enum VirtualKeyboardCommand { VK_CMD_NONE, VK_CMD_SHOW, VK_CMD_HIDE };
+	public static VirtualKeyboardCommand lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_NONE;
+	public static final int lastVirtualKeyboardCommandDelay = 200;
 	
 	static GameActivity _activity;
 	static Bundle _bundle;
@@ -293,6 +298,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private String	localNotificationLaunchActivationEvent = "";
 	private int		localNotificationLaunchFireDate = 0;
 	
+	public int DeviceRotation = -1;
+
 	enum EAlertDialogType
 	{
 		None,
@@ -348,13 +355,19 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public int getDeviceDefaultOrientation() 
 	{
-
 		// WindowManager windowManager =  (WindowManager) getSystemService(WINDOW_SERVICE);
 		WindowManager windowManager =  getWindowManager();
 
 		Configuration config = getResources().getConfiguration();
 
 		int rotation = windowManager.getDefaultDisplay().getRotation();
+		switch (rotation)
+		{
+			case Surface.ROTATION_0:	DeviceRotation = 0;		break;
+			case Surface.ROTATION_90:	DeviceRotation = 90;	break;
+			case Surface.ROTATION_180:	DeviceRotation = 180;	break;
+			case Surface.ROTATION_270:	DeviceRotation = 270;	break;
+		}
 
 		if ( ((rotation == android.view.Surface.ROTATION_0 || rotation == android.view.Surface.ROTATION_180) &&
 				config.orientation == Configuration.ORIENTATION_LANDSCAPE)
@@ -942,6 +955,12 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			HasAllFiles = true;
 		}
 
+		// check for OBB file present if we don't have all the files and don't need to verify
+		if (!HasAllFiles && !VerifyOBBOnStartUp)
+		{
+			HasAllFiles = DownloadShim.expansionFilesDelivered(this);
+		}
+
 		containerFrameLayout = new FrameLayout(_activity);
 		virtualKeyboardLayout = new LinearLayout(_activity);
 
@@ -1138,15 +1157,21 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 		else
 		{
-			// Start the check activity here
-			Log.debug("==============> Starting activity to check files and download if required");
-			Intent intent = new Intent(this, DownloadShim.GetDownloaderType());
-			intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-			startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
-			if (noActionAnimID != -1)
-			{
-				overridePendingTransition(noActionAnimID, noActionAnimID);
-			}
+			// Post the check activity handler here to run after onResume completes
+			Log.debug("==============> Posting request for downloader activity");
+			final Handler downloadHandler = new Handler();
+			downloadHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					Log.debug("==============> Starting activity to check files and download if required");
+					Intent intent = new Intent(_activity, DownloadShim.GetDownloaderType());
+					intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+					startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
+					if (noActionAnimID != -1) {
+						overridePendingTransition(noActionAnimID, noActionAnimID);
+					}
+				}
+			});
 		}
 
 		LocalNotificationCheckAppOpen();
@@ -1362,6 +1387,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		super.onConfigurationChanged(newConfig);
 
+		switch (getWindowManager().getDefaultDisplay().getRotation())
+		{
+			case Surface.ROTATION_0:	DeviceRotation = 0;		break;
+			case Surface.ROTATION_90:	DeviceRotation = 90;	break;
+			case Surface.ROTATION_180:	DeviceRotation = 180;	break;
+			case Surface.ROTATION_270:	DeviceRotation = 270;	break;
+		}
+
 		// forward the orientation
 		boolean bPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
 		nativeOnConfigurationChanged(bPortrait);
@@ -1565,29 +1598,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		//Log.debug("VK: AndroidThunkJava_HideVirtualKeyboardInput");
 
 		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_HIDE;
 		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				if(bKeyboardShowing)
+				if(lastVirtualKeyboardCommand == VirtualKeyboardCommand.VK_CMD_HIDE)
 				{
-					//Log.debug("VK: Hide newVirtualKeyboardInput");
-
-					newVirtualKeyboardInput.clearFocus();
-					//set offscreen
-					newVirtualKeyboardInput.setY(-1000);
-
-					newVirtualKeyboardInput.setVisibility(View.GONE);
-
-					InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
-
-					nativeVirtualKeyboardVisible(false);
-					bKeyboardShowing = false;
+					processLastVirtualKeyboardCommand();
 				}
 			}
-		}, 100);
+		}, lastVirtualKeyboardCommandDelay);
 	}
 
 	//initial settings for the virtual input
@@ -1598,96 +1620,137 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		//Log.debug("VK: AndroidThunkJava_ShowVirtualKeyboardInput");
 		virtualKeyboardInputContent = Contents;
 		virtualKeyboardInputType = inInputType;
-
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_SHOW;
 		//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
 		virtualKeyboardHandler.removeCallbacksAndMessages(null) ;
 		virtualKeyboardHandler.postDelayed(new Runnable()
 		{
 			public void run()
 			{
-				newVirtualKeyboardInput.setVisibility(View.VISIBLE);
-				
-				//newVirtualKeyboardInput.setBackgroundColor(Color.TRANSPARENT);
-				//newVirtualKeyboardInput.setCursorVisible(false);
-
-				//set offscreen
-				newVirtualKeyboardInput.setY(-1000);
-
-				//set new content
-				newVirtualKeyboardInput.setText(virtualKeyboardInputContent);
-				
-				int newVirtualKeyboardInputType = virtualKeyboardInputType;
-
-				//commented: as it will disable text prediction for all devices, 
-				//	for most of them it will also block the VK in latin/english subtype
-				//	disabling chinese or korean subtypes
-				//if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
-				//{
-					//#jira UE-49117 Chinese and Korean virtual keyboards don't allow native characters
-					//#jira UE-49121 Gboard and Swift swipe entry are not supported by Virtual keyboard
-					//newVirtualKeyboardInputType |= TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
-				//}
-
-				//TYPE: disable text suggestion
-				newVirtualKeyboardInputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
-				//TYPE: disable autocorrect
-				newVirtualKeyboardInputType &= ~InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
-				
-				//TYPE: set input type flags
-				newVirtualKeyboardInput.setInputType(newVirtualKeyboardInputType);
-				newVirtualKeyboardInput.setRawInputType(newVirtualKeyboardInputType);
-
-				//IME: set Done button for single line input
-				int imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
-
-
-				if (ANDROID_BUILD_VERSION >=  11)
+				if(lastVirtualKeyboardCommand == VirtualKeyboardCommand.VK_CMD_SHOW)
 				{
-					imeOptions |= EditorInfo.IME_FLAG_NO_FULLSCREEN;
-				}
-
-				//IME: set single/multi line input type
-				if((virtualKeyboardInputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0)
-				{
-					//disable enter for multi-line - will be treated by virtualKeyboardInputType in sendKeyEvent
-					newVirtualKeyboardInput.setSingleLine(false);
-					//#jira UE-49128 Virtual Keyboard text field doesn't appear if there is too much text
-					newVirtualKeyboardInput.setMaxLines(5);
-					imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
-					imeOptions &= ~EditorInfo.IME_ACTION_DONE;
-				}
-				else
-				{
-					newVirtualKeyboardInput.setSingleLine(true);
-					imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
-					imeOptions |= EditorInfo.IME_ACTION_DONE;
-				}
-
-				//IME: set IME flags
-				newVirtualKeyboardInput.setImeOptions(imeOptions);
-
-				//TRANSFORMATION: hide input for passwords
-				newVirtualKeyboardInput.setTransformationMethod((
-					virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? 
-					null : 
-					PasswordTransformationMethod.getInstance());
-
-				//SELECTION: move to end
-				newVirtualKeyboardInput.setSelection(newVirtualKeyboardInput.getText().length());
-
-				if(newVirtualKeyboardInput.requestFocus())
-				{
-					//Log.debug("VK: Show newVirtualKeyboardInput");
-					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.showSoftInput(newVirtualKeyboardInput, 0);
-
-					nativeVirtualKeyboardVisible(true);
-					bKeyboardShowing = true;
+					processLastVirtualKeyboardCommand();
 				}
 			}
-		},100);
+		}, lastVirtualKeyboardCommandDelay);
 	}
 	
+	//jira UE-49141 Virtual keyboard is unresponsive with repeated tapping in control (some devices)
+	//#jira UE-49139 Tapping in the same text box doesn't make the virtual keyboard disappear
+	public void processLastVirtualKeyboardCommand()
+	{
+		Log.debug("VK: process last command " + lastVirtualKeyboardCommand);
+		synchronized(this) {
+			switch(lastVirtualKeyboardCommand)	
+			{
+				case VK_CMD_SHOW:
+				{
+					newVirtualKeyboardInput.setVisibility(View.VISIBLE);
+				
+					//newVirtualKeyboardInput.setBackgroundColor(Color.TRANSPARENT);
+					//newVirtualKeyboardInput.setCursorVisible(false);
+
+					//set offscreen
+					newVirtualKeyboardInput.setY(-1000);
+
+					//set new content
+					newVirtualKeyboardInput.setText(virtualKeyboardInputContent);
+				
+					int newVirtualKeyboardInputType = virtualKeyboardInputType;
+
+					//commented: as it will disable text prediction for all devices, 
+					//	for most of them it will also block the VK in latin/english subtype
+					//	disabling chinese or korean subtypes
+					//if((virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0)
+					//{
+						//#jira UE-49117 Chinese and Korean virtual keyboards don't allow native characters
+						//#jira UE-49121 Gboard and Swift swipe entry are not supported by Virtual keyboard
+						//newVirtualKeyboardInputType |= TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+					//}
+
+					//TYPE: disable text suggestion
+					newVirtualKeyboardInputType |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+					//TYPE: disable autocorrect
+					newVirtualKeyboardInputType &= ~InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
+				
+					//TYPE: set input type flags
+					newVirtualKeyboardInput.setInputType(newVirtualKeyboardInputType);
+					newVirtualKeyboardInput.setRawInputType(newVirtualKeyboardInputType);
+
+					//IME: set Done button for single line input
+					int imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+
+
+					if (ANDROID_BUILD_VERSION >=  11)
+					{
+						imeOptions |= EditorInfo.IME_FLAG_NO_FULLSCREEN;
+					}
+
+					//IME: set single/multi line input type
+					if((virtualKeyboardInputType & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0)
+					{
+						//disable enter for multi-line - will be treated by virtualKeyboardInputType in sendKeyEvent
+						newVirtualKeyboardInput.setSingleLine(false);
+						//#jira UE-49128 Virtual Keyboard text field doesn't appear if there is too much text
+						newVirtualKeyboardInput.setMaxLines(5);
+						imeOptions |= EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+						imeOptions &= ~EditorInfo.IME_ACTION_DONE;
+					}
+					else
+					{
+						newVirtualKeyboardInput.setSingleLine(true);
+						imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
+						imeOptions |= EditorInfo.IME_ACTION_DONE;
+					}
+
+					//IME: set IME flags
+					newVirtualKeyboardInput.setImeOptions(imeOptions);
+
+					//TRANSFORMATION: hide input for passwords
+					newVirtualKeyboardInput.setTransformationMethod((
+						virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? 
+						null : 
+						PasswordTransformationMethod.getInstance());
+
+					//SELECTION: move to end
+					newVirtualKeyboardInput.setSelection(newVirtualKeyboardInput.getText().length());
+
+					if(newVirtualKeyboardInput.requestFocus())
+					{
+						//Log.debug("VK: Show newVirtualKeyboardInput");
+						InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+						imm.showSoftInput(newVirtualKeyboardInput, 0);
+
+						nativeVirtualKeyboardVisible(true);
+						bKeyboardShowing = true;
+					}
+				}
+				break;
+				case VK_CMD_HIDE:
+				{
+						if(bKeyboardShowing)
+						{
+							//Log.debug("VK: Hide newVirtualKeyboardInput");
+
+							newVirtualKeyboardInput.clearFocus();
+							//set offscreen
+							newVirtualKeyboardInput.setY(-1000);
+
+							newVirtualKeyboardInput.setVisibility(View.GONE);
+
+							InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+							imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
+
+							nativeVirtualKeyboardVisible(false);
+							bKeyboardShowing = false;
+						}
+				}
+				break;
+			}
+		}
+		lastVirtualKeyboardCommand = VirtualKeyboardCommand.VK_CMD_NONE;
+	}
+
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{
 		Log.debug("[JAVA} AndroidThunkJava_LaunchURL: URL = " + URL);
@@ -2698,32 +2761,36 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		private void init() 
 		{
+			if (emojiExcludeFilter == null)
+			{
+				emojiExcludeFilter = new EmojiExcludeFilter();
+			}
 			setFilters(new InputFilter[]{emojiExcludeFilter});
 		}
 
 		@Override
 		public void setFilters(InputFilter[] filters) 
 		{
-			if (filters.length != 0) 
+			if (filters.length != 0 && emojiExcludeFilter != null) 
 			{ //if length == 0 it will here return when init() is called
-					boolean add = true;
-					for (InputFilter inputFilter : filters) 
+				boolean add = true;
+				for (InputFilter inputFilter : filters) 
+				{
+					if (inputFilter == emojiExcludeFilter) 
 					{
-						if (inputFilter == emojiExcludeFilter) 
-						{
-							add = false;
-							break;
-						}
+						add = false;
+						break;
 					}
-					if (add) {
-						filters = Arrays.copyOf(filters, filters.length + 1);
-						filters[filters.length - 1] = emojiExcludeFilter;
-					}
+				}
+				if (add) {
+					filters = Arrays.copyOf(filters, filters.length + 1);
+					filters[filters.length - 1] = emojiExcludeFilter;
+				}
 			}
 			super.setFilters(filters);
 		}
 		    
-		private EmojiExcludeFilter emojiExcludeFilter = new EmojiExcludeFilter();
+		private EmojiExcludeFilter emojiExcludeFilter;
 
 	    private class EmojiExcludeFilter implements InputFilter 
 	    {
@@ -2769,7 +2836,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 			private void replaceSubstring(String newString)
 			{
-				//Log.debug("VK: replaceSubstring");
 				StringBuffer text = new StringBuffer(owner.getText().toString());
 				int selStart, selEnd;
  
@@ -2778,6 +2844,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
  
 				selStart = Math.min(a, b);
 				selEnd = Math.max(a, b);
+				//Log.debug("VK: replaceSubstring selStart=" + selStart + " selEnd="+selEnd + " text="+text);
 
 				if (selStart != selEnd) 
 				{
@@ -2789,17 +2856,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					//insert
 					text.insert(selStart, newString);
 				} 
-				else 
+				else if(selStart > 0) 
 				{ 
-					//delete
-					if(selStart > 0)
-					{
-						selStart--;
-						text.replace(selStart, selStart + 1, "");
-					}
+					//delete last character
+					selStart--;
+					text.replace(selStart, selStart + 1, "");
+				} 
+
+				if(newString.length() == 0)
+				{
 					//#jira UE-48948 Crash when pressing backspace on empty line 
 					selStart--;
-				} 
+				}
 				//#jira UE-49120 Virtual keyboard number pad "kicks" user back to regular keyboard
 				owner.getText().clear();
 				owner.append(text.toString());
@@ -2917,11 +2985,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			public void onTextChanged(CharSequence charSequence, int start, int before, int count) 
 			{
 				//send to the associated Slate control
-				Log.debug("VK onTextChanged");
+				//Log.debug("VK onTextChanged " + charSequence);
+
+				//#jira UE-49143 Inconsistent virtual keyboard behavior tapping between controls
 				if(newVirtualKeyboardInput.getY() > 0)
 				{
-					String message = newVirtualKeyboardInput.getText().toString();
-					nativeVirtualKeyboardChanged(message);
+					//try to avoid "false empty string" events
+					//delay the "set empty string" event and wait for a second call
+					if(charSequence.length() == 0)
+					{
+						virtualKeyboardHandler.postDelayed(new Runnable()
+						{
+							public void run()
+							{
+								String message = newVirtualKeyboardInput.getText().toString();
+								nativeVirtualKeyboardChanged(message);
+							}
+						}, 100);
+					}
+					else
+					{
+						String message = newVirtualKeyboardInput.getText().toString();
+						nativeVirtualKeyboardChanged(message);
+					}
 				}
 			}
 		});

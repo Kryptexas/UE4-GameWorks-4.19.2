@@ -594,8 +594,8 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 
 	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
 
-	// iphone6 has specially named files
-    if (Device == FPlatformMisc::IOS_IPhone6 || Device == FPlatformMisc::IOS_IPhone6S || Device == FPlatformMisc::IOS_IPhone7)
+	// iphone6 has specially named files, this seems to be needed for every iphone since, so let's see if we can find a better way to do this which isn't device specific
+    if (Device == FPlatformMisc::IOS_IPhone6 || Device == FPlatformMisc::IOS_IPhone6S || Device == FPlatformMisc::IOS_IPhone7 || Device == FPlatformMisc::IOS_IPhone8)
 	{
 		[ImageString appendString:@"-IPhone6"];
 		if (!self.bDeviceInPortraitMode)
@@ -603,7 +603,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 			[ImageString appendString : @"-Landscape"];
 		}
 	}
-    else if (Device == FPlatformMisc::IOS_IPhone6Plus || Device == FPlatformMisc::IOS_IPhone6SPlus || Device == FPlatformMisc::IOS_IPhone7Plus)
+    else if (Device == FPlatformMisc::IOS_IPhone6Plus || Device == FPlatformMisc::IOS_IPhone6SPlus || Device == FPlatformMisc::IOS_IPhone7Plus || Device == FPlatformMisc::IOS_IPhone8Plus)
 	{
 		[ImageString appendString : @"-IPhone6Plus"];
 		if (!self.bDeviceInPortraitMode)

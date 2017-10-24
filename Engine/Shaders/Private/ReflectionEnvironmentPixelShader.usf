@@ -113,7 +113,9 @@ void ReflectionEnvironmentTiledDeferredMain(
 		Color.a *= SpecularOcclusion;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-		uint GridIndex = ComputeLightGridCellIndex(uint2(SvPosition.x, SvPosition.y), SceneDepth);
+		float2 LocalPosition = SvPosition.xy - View.ViewRectMin.xy;
+
+		uint GridIndex = ComputeLightGridCellIndex(uint2(LocalPosition.x, LocalPosition.y), SceneDepth);
 		uint NumCulledEntryIndex = (ForwardGlobalLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE;
 		uint NumCulledReflectionCaptures = NumCulledLightsGrid[NumCulledEntryIndex + 0];
 		uint DataStartIndex = NumCulledLightsGrid[NumCulledEntryIndex + 1];

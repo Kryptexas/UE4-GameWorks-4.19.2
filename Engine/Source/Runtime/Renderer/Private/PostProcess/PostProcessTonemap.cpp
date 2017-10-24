@@ -23,7 +23,18 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-// Note: These values are directly referenced in code, please update all paths if changing
+// Note: Enables or disables HDR support for a project. Typically this would be set on a per-project/per-platform basis in defaultengine.ini
+static TAutoConsoleVariable<int32> CVarAllowHDR(
+	TEXT("r.AllowHDR"),
+	0,
+	TEXT("Creates an HDR compatible swap-chain and enables HDR display output.")
+	TEXT("0: Disabled (default)\n")
+	TEXT("1: Allow HDR, if supported by the platform and display \n"),
+	ECVF_ReadOnly
+);
+
+// Note: These values are directly referenced in code. They are set in code at runtime and therefore cannot be set via ini files
+// Please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("r.HDR.Display.ColorGamut"),
 	0,

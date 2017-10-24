@@ -79,13 +79,9 @@ public:
 #endif // ARKIT_SUPPORT
 
 FAppleARKitVideoOverlay::FAppleARKitVideoOverlay()
-	: VideoTextureY(nullptr)
-	, VideoTextureCbCr(nullptr)
-	, RenderingOverlayMaterial(nullptr)
-	, OverlayIndexBufferRHI(nullptr)
-	, OverlayVertexBufferRHI(nullptr)
+	: RenderingOverlayMaterial(nullptr)
 	, LastUpdateTimestamp(-1.0)
-{
+{	
 	RenderingOverlayMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/AppleARKit/ARKitCameraMaterial.ARKitCameraMaterial"));
 	check(RenderingOverlayMaterial != nullptr);
 	RenderingOverlayMaterial->AddToRoot();
@@ -98,7 +94,7 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 	{
 		check(VideoTextureCbCr == nullptr);
 		check(OverlayIndexBufferRHI == nullptr);
-		check(OverlayVertexBufferRHI == nullptr);
+		check(OverlayVertexBufferRHI[0] == nullptr);
 
 		FRHIResourceCreateInfo CreateInfo;
 		VideoTextureY = RHICmdList.CreateTexture2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
@@ -122,24 +118,66 @@ void FAppleARKitVideoOverlay::UpdateVideoTexture_RenderThread(FRHICommandListImm
 		OverlayIndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfoIB);
 
 		// Setup vertex buffer
-		TResourceArray<FFilterVertex, VERTEXBUFFER_ALIGNMENT> Vertices;
-		Vertices.SetNumUninitialized(4);
+		const float UVOffset = (Frame.Camera.GetAspectRatio() - 1.0f) * 0.5f;
 
-		// Unreal uses reversed z. 0 is the farthest.
-		Vertices[0].Position = FVector4(0.0f, 1.0f, 0.0f, 1.0f);
-		Vertices[0].UV = FVector2D(0.0f, 1.0f);
+		const FVector4 Positions[] =
+		{
+			FVector4(0.0f, 1.0f, 0.0f, 1.0f), 
+			FVector4(0.0f, 0.0f, 0.0f, 1.0f), 
+			FVector4(1.0f, 1.0f, 0.0f, 1.0f), 
+			FVector4(1.0f, 0.0f, 0.0f, 1.0f)
+		};
 
-		Vertices[1].Position = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-		Vertices[1].UV = FVector2D(0.0f, 0.0f);
+		const FVector2D UVs[] =
+		{
+			// Landscape right
+			FVector2D(0.0f, 1.0f),
+			FVector2D(0.0f, 0.0f),
+			FVector2D(1.0f, 1.0f), 
+			FVector2D(1.0f, 0.0f),
 
-		Vertices[2].Position = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
-		Vertices[2].UV = FVector2D(1.0f, 1.0f);
+			// Landscape left
+			FVector2D(1.0f, 0.0f), 
+			FVector2D(1.0f, 1.0f), 
+			FVector2D(0.0f, 0.0f), 
+			FVector2D(0.0f, 1.0f), 
 
-		Vertices[3].Position = FVector4(1.0f, 0.0f, 0.0f, 1.0f);
-		Vertices[3].UV = FVector2D(1.0f, 0.0f);
+			// Portrait
+			FVector2D(1.0f + UVOffset, 1.0f),
+			FVector2D(-UVOffset, 1.0f),
+			FVector2D(1.0f + UVOffset, 0.0f),
+			FVector2D(-UVOffset, 0.0f),
 
-		FRHIResourceCreateInfo CreateInfoVB(&Vertices);
-		OverlayVertexBufferRHI = RHICreateVertexBuffer(Vertices.GetResourceDataSize(), BUF_Static, CreateInfoVB);
+			// Portrait Upside Down
+			FVector2D(-UVOffset, 0.0f),
+			FVector2D(1.0f + UVOffset, 0.0f),
+			FVector2D(-UVOffset, 1.0f),
+			FVector2D(1.0f + UVOffset, 1.0f)
+		};
+
+		uint32 UVIndex = 0;
+		for (uint32 OrientationIter = 0; OrientationIter < 4; ++OrientationIter)
+		{
+			TResourceArray<FFilterVertex, VERTEXBUFFER_ALIGNMENT> Vertices;
+			Vertices.SetNumUninitialized(4);
+
+			Vertices[0].Position = Positions[0];
+			Vertices[0].UV = UVs[UVIndex];
+			
+			Vertices[1].Position = Positions[1];
+			Vertices[1].UV = UVs[UVIndex + 1];
+			
+			Vertices[2].Position = Positions[2];
+			Vertices[2].UV = UVs[UVIndex + 2];
+			
+			Vertices[3].Position = Positions[3];
+			Vertices[3].UV = UVs[UVIndex + 3];
+
+			UVIndex += 4;
+
+			FRHIResourceCreateInfo CreateInfoVB(&Vertices);
+			OverlayVertexBufferRHI[OrientationIter] = RHICreateVertexBuffer(Vertices.GetResourceDataSize(), BUF_Static, CreateInfoVB);
+		}
 	}
 
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -263,7 +301,7 @@ public:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(, FARKitCameraOverlayPS, TEXT("/Engine/Private/PostProcessMaterialShaders.usf"), TEXT("MainPS_ES2"), SF_Pixel);
 
-void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView)
+void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView, const EScreenOrientation::Type DeviceOrientation)
 {
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 
@@ -313,13 +351,35 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 				1.0f / ViewSize.X, 1.0f / ViewSize.Y,
 				1.0f, 1.0f);
 		
-			// todo: Handle aspect ratio mis-match, just stretching here
-
 			SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
 
-			if (OverlayVertexBufferRHI.IsValid() && OverlayIndexBufferRHI.IsValid())
+			FVertexBufferRHIParamRef VertexBufferRHI = nullptr;
+			switch (DeviceOrientation)
 			{
-				RHICmdList.SetStreamSource(0, OverlayVertexBufferRHI, 0);
+				case EScreenOrientation::Type::LandscapeLeft:
+					VertexBufferRHI = OverlayVertexBufferRHI[0];
+					break;
+
+				case EScreenOrientation::Type::LandscapeRight:
+					VertexBufferRHI = OverlayVertexBufferRHI[1];
+					break;
+
+				case EScreenOrientation::Type::Portrait:
+					VertexBufferRHI = OverlayVertexBufferRHI[2];
+					break;
+
+				case EScreenOrientation::Type::PortraitUpsideDown:
+					VertexBufferRHI = OverlayVertexBufferRHI[3];
+					break;
+
+				default:
+					VertexBufferRHI = OverlayVertexBufferRHI[0];
+					break;
+			}
+
+			if (VertexBufferRHI && OverlayIndexBufferRHI.IsValid())
+			{
+				RHICmdList.SetStreamSource(0, VertexBufferRHI, 0);
 				RHICmdList.DrawIndexedPrimitive(
 					OverlayIndexBufferRHI,
 					PT_TriangleList,

@@ -48,13 +48,17 @@ void ClearTexture2DScissorCS(uint2 Position : SV_DispatchThreadID)
 }
 
 
-uint ClearDword;
+// x: clear value, y: number of uint's to clear, z: unused, w: unused
+uint4 ClearBufferCSParams;
 RWBuffer<uint> ClearBufferRW;
 
 [numthreads(64,1,1)]
 void ClearBufferCS(uint Position : SV_DispatchThreadID)
 {
-	ClearBufferRW[Position] = ClearDword;
+    if (Position < ClearBufferCSParams.y)
+    {
+        ClearBufferRW[Position] = ClearBufferCSParams.x;
+    }
 }
 
 RWTexture2DArray<Type> ClearTextureArrayRW;

@@ -95,7 +95,7 @@ public:
 
 	virtual bool IsPayloadSupported(TSharedRef<FTabPayload> Payload) const override
 	{
-		if (Payload->PayloadType == NAME_Object)
+		if (Payload->PayloadType == NAME_Object && Payload->IsValid())
 		{
 			UObject* DocumentID = FTabPayload_UObject::CastChecked<UObject>(Payload);
 			return SupportsObjectType(DocumentID);

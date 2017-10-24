@@ -697,19 +697,22 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 #if PLATFORM_ANDROID
 	FOpenGL::EImageExternalType ImageExternalType = FOpenGL::GetImageExternalType();
 
-	if (ImageExternalType == FOpenGL::EImageExternalType::ImageExternal100)
+	if (bEmitTextureExternal && ImageExternalType == FOpenGL::EImageExternalType::ImageExternal100)
 	{
 		bUseES30ShadingLanguage = false;
 	}
 #endif
 
+	bool bNeedsExtDrawInstancedDefine = false;
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
+		bNeedsExtDrawInstancedDefine = !bES31;
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
 			// #version NNN has to be the first line in the file, so it has to be added before anything else.
 			if (bUseES30ShadingLanguage)
 			{
+				bNeedsExtDrawInstancedDefine = false;
 				AppendCString(GlslCode, "#version 300 es\n");
 			}
 			else 
@@ -721,8 +724,17 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	}
 	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
 	{
+		bNeedsExtDrawInstancedDefine = true;
 		AppendCString(GlslCode, "#version 100\n");
 		ReplaceCString(GlslCodeOriginal, "#version 100", "");
+	}
+
+	if (bNeedsExtDrawInstancedDefine)
+	{
+		// Check for the GL_EXT_draw_instanced extension if necessary (version < 300)
+		AppendCString(GlslCode, "#ifdef GL_EXT_draw_instanced\n");
+		AppendCString(GlslCode, "#define UE_EXT_draw_instanced 1\n");
+		AppendCString(GlslCode, "#endif\n");
 	}
 
 	if (bEmitMobileMultiView)

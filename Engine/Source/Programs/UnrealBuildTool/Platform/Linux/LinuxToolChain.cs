@@ -1058,19 +1058,16 @@ namespace UnrealBuildTool
 			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
 
 			// Add the input files to a response file, and pass the response file on the command-line.
-			List<string> InputFileNames = new List<string>();
+			List<string> ResponseLines = new List<string>();
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
-				InputFileNames.Add(string.Format("\"{0}\"", InputFile.AbsolutePath.Replace("\\", "/")));
+				ResponseLines.Add(string.Format("\"{0}\"", InputFile.AbsolutePath.Replace("\\", "/")));
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
 
-			FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-			LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
-
 			if (LinkEnvironment.bIsBuildingDLL)
 			{
-				LinkAction.CommandArguments += string.Format(" -Wl,-soname={0}", OutputFile);
+				ResponseLines.Add(string.Format(" -soname={0}", OutputFile));
 			}
 
 			// Start with the configured LibraryPaths and also add paths to any libraries that
@@ -1095,18 +1092,18 @@ namespace UnrealBuildTool
 					if (!RPaths.Contains(RelativePath))
 					{
 						RPaths.Add(RelativePath);
-						LinkAction.CommandArguments += string.Format(" -Wl,-rpath=\"${{ORIGIN}}/{0}\"", RelativePath);
+						ResponseLines.Add(string.Format(" -rpath=\"${{ORIGIN}}/{0}\"", RelativePath.Replace('\\', '/')));
 					}
 				}
 			}
 
-			LinkAction.CommandArguments += string.Format(" -Wl,-rpath-link=\"{0}\"", Path.GetDirectoryName(OutputFile.AbsolutePath));
+			ResponseLines.Add(string.Format(" -rpath-link=\"{0}\"", Path.GetDirectoryName(OutputFile.AbsolutePath)));
 
 			// Add the library paths to the argument list.
 			foreach (string LibraryPath in AllLibraryPaths)
 			{
 				// use absolute paths because of FixDependencies script again
-				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", Path.GetFullPath(LibraryPath));
+				ResponseLines.Add(string.Format(" -L\"{0}\"", Path.GetFullPath(LibraryPath).Replace('\\', '/')));
 			}
 
 			List<string> EngineAndGameLibrariesLinkFlags = new List<string>();
@@ -1119,7 +1116,7 @@ namespace UnrealBuildTool
 			string ExternalLibraries = "";
 
 			// add libraries in a library group
-			LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
+			ResponseLines.Add(string.Format(" --start-group"));
 
 			foreach (string AdditionalLibrary in LinkEnvironment.AdditionalLibraries)
 			{
@@ -1136,15 +1133,16 @@ namespace UnrealBuildTool
 					{
 						AbsoluteAdditionalLibrary = string.Format("\"{0}\"", AbsoluteAdditionalLibrary);
 					}
+					AbsoluteAdditionalLibrary = AbsoluteAdditionalLibrary.Replace('\\', '/');
 
 					// libcrypto/libssl contain number of functions that are being used in different DSOs. FIXME: generalize?
 					if (LinkEnvironment.bIsBuildingDLL && (AbsoluteAdditionalLibrary.Contains("libcrypto") || AbsoluteAdditionalLibrary.Contains("libssl")))
 					{
-						LinkAction.CommandArguments += (" -Wl,--whole-archive " + AbsoluteAdditionalLibrary + " -Wl,--no-whole-archive");
+						ResponseLines.Add(" --whole-archive " + AbsoluteAdditionalLibrary + " --no-whole-archive");
 					}
 					else
 					{
-						LinkAction.CommandArguments += (" " + AbsoluteAdditionalLibrary);
+						ResponseLines.Add(" " + AbsoluteAdditionalLibrary);
 					}
 
 					LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
@@ -1183,7 +1181,10 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-			LinkAction.CommandArguments += " -Wl,--end-group";
+			ResponseLines.Add(" --end-group");
+
+			FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+			LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, ResponseLines));
 
 			LinkAction.CommandArguments += " -Wl,--start-group";
 			LinkAction.CommandArguments += ExternalLibraries;

@@ -56,8 +56,8 @@ class ControllerEmulatorApi : public ControllerApi {
   /// Initializes the Controller API for controller emulator
   /// For more information, see: gvr_controller_create_and_init_emulator().
   bool InitEmulator(int32_t options, const int port_num) {
-    context_ = gvr_controller_create_and_init_emulator(options, port_num);
-    return context_ != nullptr;
+    cobject_ = gvr_controller_create_and_init_emulator(options, port_num);
+    return cobject_ != nullptr;
   }
 };
 

@@ -2416,6 +2416,17 @@ static TAutoConsoleVariable<int32> CVarDisableOpenGLES31Support(
 	TEXT("  1 = OpenGLES 3.1 will be disabled, OpenGL ES2 fall back will be used."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarAndroidOverrideExternalTextureSupport(
+	TEXT("r.Android.OverrideExternalTextureSupport"),
+	0,
+	TEXT("Override external texture support for OpenGLES API. (Android Only)\n")
+	TEXT("  0 = normal detection used [default]\n")
+	TEXT("  1 = disable external texture support\n")
+	TEXT("  2 = force ImageExternal100 (version #100 with GL_OES_EGL_image_external)\n")
+	TEXT("  3 = force ImageExternal300 (version #300 with GL_OES_EGL_image_external)\n")
+	TEXT("  4 = force ImageExternalESSL300 (version #300 with GL_OES_EGL_image_external_essl3)"),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> GLSLCvar(
 	TEXT("r.Vulkan.UseGLSL"),
 	0,

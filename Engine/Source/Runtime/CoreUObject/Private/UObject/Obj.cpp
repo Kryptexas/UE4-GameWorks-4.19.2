@@ -497,19 +497,14 @@ void UObject::PropagatePostEditChange( TArray<UObject*>& AffectedObjects, FPrope
 		}
 	}
 
+	check(PropertyChangedEvent.PropertyChain.GetActiveMemberNode() != nullptr);
+
 	for ( int32 i = 0; i < Instances.Num(); i++ )
 	{
 		UObject* Obj = Instances[i];
 
-		// check for and set up the active member node
-		FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
-		if ( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
-		{
-			PropertyEvent.SetActiveMemberProperty(PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue());
-		}
-
 		// notify the object that all changes are complete
-		Obj->PostEditChangeProperty(PropertyEvent);
+		Obj->PostEditChangeChainProperty(PropertyChangedEvent);
 
 		// now recurse into this object, loading its instances
 		Obj->PropagatePostEditChange(AffectedObjects, PropertyChangedEvent);
@@ -770,6 +765,11 @@ bool bGetWorldOverridden = false;
 
 class UWorld* UObject::GetWorld() const
 {
+	if (UObject* Outer = GetOuter())
+	{
+		return Outer->GetWorld();
+	}
+
 #if DO_CHECK
 	if (IsInGameThread())
 	{

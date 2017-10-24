@@ -4,6 +4,8 @@
 #include "HAL/PlatformProcess.h"
 #include "Misc/Paths.h"
 #include "DesktopPlatformModule.h"
+#include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCodeLiteAccessor, Log, All);
 
@@ -28,7 +30,7 @@ bool FCodeLiteSourceCodeAccessor::CanAccessSourceCode() const
 
 FName FCodeLiteSourceCodeAccessor::GetFName() const
 {
-	return FName("CodeLiteSourceCodeAccessor");
+	return FName("CodeLite");
 }
 
 FText FCodeLiteSourceCodeAccessor::GetNameText() const
@@ -43,9 +45,18 @@ FText FCodeLiteSourceCodeAccessor::GetDescriptionText() const
 
 bool FCodeLiteSourceCodeAccessor::OpenSolution()
 {
-	FString Filename = FPaths::GetBaseFilename(GetSolutionPath()) + ".workspace";
-	FString Directory = FPaths::GetPath(GetSolutionPath());
-	FString Solution = "\"" + Directory + "/" + Filename + "\"";
+	FString SolutionPath = GetSolutionPath();
+	return OpenSolutionAtPath(SolutionPath);
+}
+
+bool FCodeLiteSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	FString SolutionPath = InSolutionPath;
+	if (!SolutionPath.EndsWith(TEXT(".workspace")))
+	{
+		SolutionPath += TEXT(".workspace");
+	}
+
 	FString CodeLitePath;
 	if(!CanRunCodeLite(CodeLitePath))
 	{
@@ -53,17 +64,22 @@ bool FCodeLiteSourceCodeAccessor::OpenSolution()
 		return false;
 	}
 
-	UE_LOG(LogCodeLiteAccessor, Warning, TEXT("FCodeLiteSourceCodeAccessor::OpenSolution: %s %s"), *CodeLitePath, *Solution);
+	UE_LOG(LogCodeLiteAccessor, Warning, TEXT("FCodeLiteSourceCodeAccessor::OpenSolution: \"%s\" \"%s\""), *CodeLitePath, *SolutionPath);
 	
-	FProcHandle Proc = FPlatformProcess::CreateProc(*CodeLitePath, *Solution, true, false, false, nullptr, 0, nullptr, nullptr);
+	FProcHandle Proc = FPlatformProcess::CreateProc(*CodeLitePath, *SolutionPath, true, false, false, nullptr, 0, nullptr, nullptr);
 	if(Proc.IsValid())
 	{
 		FPlatformProcess::CloseProc(Proc);
 		return true;
 	}
 	return false;
-
 }
+
+bool FCodeLiteSourceCodeAccessor::DoesSolutionExist() const
+ {
+	FString SolutionPath = GetSolutionPath();	
+	return FPaths::FileExists(SolutionPath);
+ }
 
 bool FCodeLiteSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths)
 {
@@ -156,10 +172,16 @@ FString FCodeLiteSourceCodeAccessor::GetSolutionPath() const
 {
 	if(IsInGameThread())
 	{
-		FString SolutionPath;
-		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+		CachedSolutionPath = FPaths::ProjectDir();
+		
+		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 		{
-			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
+			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.workspace"));
+		}
+		else
+		{
+			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".workspace"));
 		}
 	}
 	return CachedSolutionPath;

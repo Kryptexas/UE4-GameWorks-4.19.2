@@ -2003,7 +2003,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("FoliageEditToolBar.SToolBarButtonBlock.Padding", FMargin(0.f));
 		Set("FoliageEditToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set("FoliageEditToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(10.0f, 6.f));
-		Set("FoliageEditToolBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Set("FoliageEditToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground);
 
 		Set("FoliageEditToolBar.Block.IndentedPadding", FMargin(18.0f, 2.0f, 4.0f, 4.0f));
@@ -2253,7 +2252,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ToolBar.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Set( "ToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
-		Set( "ToolBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f) );
 		Set( "ToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Set( "ToolBar.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -2376,7 +2374,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Menu.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Set( "Menu.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Set( "Menu.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
-		Set( "Menu.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Set( "Menu.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Set( "Menu.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -2386,8 +2383,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Set( "Menu.Label.Padding", FMargin(0.0f, 0.0f, 0.0f, 0.0f) );
-		Set( "Menu.Label.ContentPadding", FMargin(10.0f, 2.0f) );
 		Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
@@ -2468,9 +2463,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		/* The style of a menu bar button when it has a sub menu open */
 		Set( "Menu.Button.SubMenuOpen", new BORDER_BRUSH( "Common/Selection", FMargin(4.f/16.f), FLinearColor(0.10f, 0.10f, 0.10f) ) );
-
-		/* The style of a menu bar button when it has a sub menu closed */
-		Set("Menu.Button.SubMenuClosed", new FSlateNoResource());
 	}
 
 	// ViewportLayoutToolbar
@@ -2496,7 +2488,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.Padding", FMargin(4.0f) );
 		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
-		Set( "ViewportLayoutToolbar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f) );
 		Set( "ViewportLayoutToolbar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 		}
 
@@ -2593,17 +2584,13 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ViewportMenu.SToolBarButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarCheckComboButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
-		Set( "ViewportMenu.SToolBarButtonBlock.Button.Padding", FMargin(3.0f) );
 		Set( "ViewportMenu.SToolBarComboButtonBlock.ComboButton.Color", FLinearColor(0.f,0.f,0.f,0.75f) );
 
 		Set( "ViewportMenu.Separator", new BOX_BRUSH( "Old/Button", 8.0f/32.0f, FLinearColor::Transparent ) );
 		Set( "ViewportMenu.Separator.Padding", FMargin( 100.0f ) );
 
 		Set( "ViewportMenu.Label", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9))
-			.SetColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)));
-		Set( "ViewportMenu.Label.Padding", FMargin(0.0f, 0.0f, 3.0f, 0.0f) );
-		Set( "ViewportMenu.Label.ContentPadding", FMargin(5.0f, 2.0f) );
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9)));
 		Set( "ViewportMenu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9) ) );
 		Set( "ViewportMenu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8) ) );
 
@@ -2697,10 +2684,15 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		/* ... and add new style */
 		Set( "ViewportMenu.ToggleButton.End", ViewportMenuToggleEndButtonStyle );
 
+		const FMargin NormalPadding = FMargin(4.0f, 4.0f, 4.0f, 4.0f);
+		const FMargin PressedPadding = FMargin(4.0f, 4.0f, 4.0f, 4.0f);
+
 		const FButtonStyle ViewportMenuButton = FButtonStyle(Button)
 			.SetNormal ( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, NormalColor))
 			.SetPressed( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, PressedColor ) )
-			.SetHovered( BOX_BRUSH( *SmallRoundedButton, 7.0f/16.0f, PressedColor ) );
+			.SetHovered(BOX_BRUSH(*SmallRoundedButton, 7.0f / 16.0f, PressedColor))
+			.SetPressedPadding(PressedPadding)
+			.SetNormalPadding(NormalPadding);
 
 		Set( "ViewportMenu.Button", ViewportMenuButton );
 
@@ -2721,12 +2713,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPressed( BOX_BRUSH( *SmallRoundedButtonEnd, 7.0f/16.0f, PressedColor ) )
 			.SetHovered( BOX_BRUSH( *SmallRoundedButtonEnd, 7.0f/16.0f, PressedColor ) )
 			);
-
-		/* The style of a menu bar button when it has a sub menu open */
-		Set("ViewportMenu.Button.SubMenuOpen", new FSlateNoResource());
-
-		/* The style of a menu bar button when it has a sub menu closed */
-		Set("ViewportMenu.Button.SubMenuClosed", new FSlateNoResource());
 	}
 
 	// Viewport actor preview's pin/unpin buttons
@@ -4981,7 +4967,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		/* ... and set new style */
 		Set( "LevelViewportToolBar.CheckBoxButton", EditorViewportToolBarButton );
 
-		Set( "EditorViewportToolBar.MenuDropdown", new IMAGE_BRUSH( "Common/ComboArrow", Icon8x8, FLinearColor(0.0f, 0.0f, 0.0f) ) );
+		Set( "EditorViewportToolBar.MenuDropdown", new IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) );
 		Set( "LevelViewportToolBar.Maximize.Normal", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Unchecked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.Maximize.Checked", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Checked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.RestoreFromImmersive.Normal", new IMAGE_BRUSH( "Icons/icon_RestoreFromImmersive_16px", Icon16x16 ) );
@@ -5075,7 +5061,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorModesToolbar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 		Set( "EditorModesToolbar.SToolBarButtonBlock.Padding", FMargin( 1.0f, 0.0f, 0.0f, 0 ) );
 		Set( "EditorModesToolbar.SToolBarButtonBlock.CheckBox.Padding", FMargin( 6.0f, 4.0f, 6.0f, 6.0f ) );
-		Set( "EditorModesToolbar.SToolBarButtonBlock.Button.Padding", FMargin( 0.0f ) );
 		Set( "EditorModesToolbar.SToolBarCheckComboButtonBlock.Padding", FMargin( 0 ) );
 
 		Set( "EditorModesToolbar.Block.IndentedPadding", FMargin( 0 ) );

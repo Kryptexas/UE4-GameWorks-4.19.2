@@ -11,6 +11,9 @@
 #include "Engine/Texture.h"
 #include "DefaultSpectatorScreenController.h"
 #include "DefaultXRCamera.h"
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h" // for UEditorEngine::IsHMDTrackingAllowed()
+#endif
 
 // including interface headers without their own implementation file, so that 
 // functions (default ctors, etc.) get compiled into this module
@@ -49,6 +52,18 @@ bool FHeadMountedDisplayBase::PopulateAnalyticsAttributes(TArray<FAnalyticsEvent
 	return true;
 }
 
+bool FHeadMountedDisplayBase::IsHeadTrackingAllowed() const
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// @todo vreditor: We need to do a pass over VREditor code and make sure we are handling the VR modes correctly.  HeadTracking can be enabled without Stereo3D, for example
+		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+		return (!EdEngine || EdEngine->IsHMDTrackingAllowed()) && IsStereoEnabled();
+	}
+#endif // WITH_EDITOR
+	return IsStereoEnabled();
+}
 
 IStereoLayers* FHeadMountedDisplayBase::GetStereoLayers()
 {
@@ -67,7 +82,11 @@ bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
 FVector2D FHeadMountedDisplayBase::GetEyeCenterPoint_RenderThread(EStereoscopicPass Eye) const
 {
 	check(IsInRenderingThread());
-	check(IsStereoEnabled());
+
+	if (!IsStereoEnabled())
+	{
+		return FVector2D(0.5f, 0.5f);
+	}
 
 	const FMatrix StereoProjectionMatrix = GetStereoProjectionMatrix(Eye);
 	//0,0,1 is the straight ahead point, wherever it maps to is the center of the projection plane in -1..1 coordinates.  -1,-1 is bottom left.

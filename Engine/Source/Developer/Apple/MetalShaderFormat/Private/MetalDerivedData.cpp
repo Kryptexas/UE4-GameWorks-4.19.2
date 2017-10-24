@@ -10,8 +10,8 @@
 #include "MetalShaderResources.h"
 #include "Misc/Paths.h"
 #include "Misc/Compression.h"
+#include "MetalBackend.h"
 
-extern bool IsRemoteBuildingConfigured();
 extern bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr);
 extern FString GetXcodePath();
 extern FString GetMetalStdLibPath(FString const& PlatformPath);

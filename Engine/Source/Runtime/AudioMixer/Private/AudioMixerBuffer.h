@@ -70,6 +70,9 @@ namespace Audio
 		/** Wrapper to handle the decompression of audio codecs. */
 		ICompressedAudioInfo* DecompressionState;
 
+		/** The ptr to this buffers sound wave procedural if it was created from a procedural sound wave. */
+		USoundWaveProcedural* SoundWaveProcedural;
+
 		/** Format of the sound referenced by this buffer */
 		EBufferType::Type BufferType;
 

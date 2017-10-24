@@ -2,6 +2,7 @@
 
 #include "GoogleARCoreBaseModule.h"
 #include "ISettingsModule.h"
+#include "ModuleManager.h"
 #include "Features/IModularFeatures.h"
 #include "Features/IModularFeature.h"
 
@@ -61,6 +62,9 @@ TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FGoogleARCoreBaseModu
 
 void FGoogleARCoreBaseModule::StartupModule()
 {
+	ensureMsgf(FModuleManager::Get().LoadModule("AugmentedReality"), TEXT("ARCore depends on the AugmentedReality module.") );
+	
+
 	// Register editor settings:
     ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
     if (SettingsModule != nullptr)
@@ -77,11 +81,10 @@ void FGoogleARCoreBaseModule::StartupModule()
 	// Register VR-like controller interface.
 	ControllerInstance.RegisterController();
 
-	// Register our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().RegisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), this);
-
 	// Register IHeadMountedDisplayModule
 	IHeadMountedDisplayModule::StartupModule();
+
+	FModuleManager::LoadModulePtr<IModuleInterface>("AugmentedReality");
 }
 
 void FGoogleARCoreBaseModule::ShutdownModule()
@@ -91,9 +94,6 @@ void FGoogleARCoreBaseModule::ShutdownModule()
 
 	// Unregister VR-like controller interface.
 	ControllerInstance.UnregisterController();
-
-	// Unregister our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().UnregisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), this);
 
 	// Complete Tango teardown.
 	FGoogleARCoreDevice::GetInstance()->OnModuleUnloaded();

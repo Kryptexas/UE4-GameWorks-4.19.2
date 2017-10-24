@@ -188,6 +188,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	/** Any override for screen percentage per editor view.  Set by DPI scale factor or user overrides */
 	TOptional<float> EditorViewScreenPercentage;
+
+	/** Whether game screen percentage should be disabled. */
+	bool bDisableGameScreenPercentage;
 #endif
 
 	FSceneViewInitOptions()
@@ -212,6 +215,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, OverrideLODViewOrigin(ForceInitToZero)
 		, bUseFauxOrthoViewPos(false)
 		, EditorViewScreenPercentage()
+		, bDisableGameScreenPercentage(false)
 		//@TODO: , const TBitArray<>& InSpriteCategoryVisibility=TBitArray<>()
 #endif
 	{

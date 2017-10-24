@@ -42,6 +42,11 @@ struct KISMET_API FBlueprintCompilationManager
 	 * will not load data while processing the compilation queue)
 	 */
 	static void FlushCompilationQueue(TArray<UObject*>* ObjLoaded = nullptr);
+	
+	/**
+	 * Flushes the compilation queue and finishes reinstancing
+	 */
+	static void FlushCompilationQueueAndReinstance();
 
 	/**
 	 * Immediately compiles the blueprint, no expectation that related blueprints be subsequently compiled.
@@ -55,8 +60,20 @@ struct KISMET_API FBlueprintCompilationManager
 	 */
 	static void NotifyBlueprintLoaded(UBlueprint* BPLoaded);
 
+	/**
+	 * Adds a blueprint to the compilation queue - useful for batch compilation
+	 */
+	static void QueueForCompilation(UBlueprint* BP);
+
 	/** Returns true when UBlueprint::GeneratedClass members are up to date */
 	static bool IsGeneratedClassLayoutReady();
+	
+	/** 
+	 * Returns the Default Value associated with ForClass::Property, if ForClass is currently 
+	 * being compiled this function can look at the old version of the CDO and read the default
+	 * value from there
+	 */
+	static bool GetDefaultValue(const UClass* ForClass, const UProperty* Property, FString& OutDefaultValueAsString);
 private:
 	FBlueprintCompilationManager();
 };
