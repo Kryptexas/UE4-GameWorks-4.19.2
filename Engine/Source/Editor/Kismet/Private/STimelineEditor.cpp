@@ -1540,7 +1540,7 @@ bool STimelineEditor::OnVerifyTrackNameCommit(const FText& TrackName, FText& Out
 			{
 				UEdGraphPin* Pin = *PinIt;
 
-				if (Pin->PinName == TrackName.ToString())
+				if (Pin->PinName == RequestedName)
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("TrackName"), TrackName);
@@ -1575,10 +1575,10 @@ void STimelineEditor::OnTrackNameCommitted( const FText& StringName, ETextCommit
 			{
 				UEdGraphPin* Pin = TimelineNode->Pins[PinIdx];
 			
-				if (Pin->PinName == TrackBase->TrackName.ToString())
+				if (Pin->PinName == TrackBase->TrackName)
 				{
 					Pin->Modify();
-					Pin->PinName = StringName.ToString();
+					Pin->PinName = RequestedName;
 					break;
 				}
 			}

@@ -1927,8 +1927,8 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 		// Get rid of the old LevelScriptActor
 		if( LevelScriptActor )
 		{
-			LevelScriptActor->Destroy();
-			LevelScriptActor = NULL;
+			LevelScriptActor->MarkPendingKill();
+			LevelScriptActor = nullptr;
 		}
 
 		check( OwningWorld );

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -889,8 +889,13 @@ public:
 	template <typename CharType>
 	bool operator==(const CharType* Other) const
 	{
+		// Make NAME_None == TEXT("") or nullptr consistent with NAME_None == FName(TEXT("")) or FName(nullptr)
+		if (Other == nullptr || Other[0] == 0)
+		{
+			return (*this == NAME_None);
+		}
+
 		// Find name entry associated with this FName.
-		check(Other);
 		const FNameEntry* const Entry = GetComparisonNameEntry();
 
 		// Temporary buffer to hold split name in case passed in name is of Name_Number format.

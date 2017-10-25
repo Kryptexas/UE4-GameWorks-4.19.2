@@ -206,9 +206,6 @@ protected:
 
 	/** The index for the ComponentSpaceTransforms buffer we can currently read from */
 	int32 CurrentReadComponentTransforms;
-protected:
-	/** Are we using double buffered ComponentSpaceTransforms */
-	bool bDoubleBufferedComponentSpaceTransforms;
 
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
@@ -225,6 +222,14 @@ protected:
 	/** Incremented every time the master bone map changes. Used to keep in sync with any duplicate data needed by other threads */
 	int32 MasterBoneMapCacheCount;
 
+public:
+	/**
+	 * Wireframe color
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
+	FColor WireframeColor;
+
+protected:
 	/** Information for current ref pose override, if present */
 	FSkelMeshRefPoseOverride* RefPoseOverride;
 
@@ -239,14 +244,6 @@ public:
 	 * @param	InLODIndex		The LOD we want to export
 	 */
 	void GetCPUSkinnedVertices(TArray<struct FFinalSkinVertex>& OutVertices, int32 InLODIndex);
-
-	/** 
-	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
-	 * to the main SkelMesh (e.g. outline mesh or a full body overdraw effect that is toggled) that is always going to be the same
-	 * bounds as parent.  We want to do no calculations in that case.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
-	uint32 bUseBoundsFromMasterPoseComponent:1;
 
 	/** Array indicating all active morph targets. This array is updated inside RefreshBoneTransforms based on the Anim Blueprint. */
 	TArray<FActiveMorphTarget> ActiveMorphTargets;
@@ -305,14 +302,6 @@ public:
 	/**	High (best) DistanceFactor that was desired for rendering this USkeletalMesh last frame. Represents how big this mesh was in screen space   */
 	float MaxDistanceFactor;
 
-	/** LOD array info. Each index will correspond to the LOD index **/
-	UPROPERTY(transient)
-	TArray<struct FSkelMeshComponentLODInfo> LODInfo;
-
-	//
-	// Rendering options.
-	//
-	
 	/**
 	 * Allows adjusting the desired streaming distance of streaming textures that uses UV 0.
 	 * 1.0 is the default, whereas a higher value makes the textures stream in sooner from far away.
@@ -322,47 +311,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	float StreamingDistanceMultiplier;
 
-	/**
-	 * Wireframe color
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
-	FColor WireframeColor;
+	/** LOD array info. Each index will correspond to the LOD index **/
+	UPROPERTY(transient)
+	TArray<struct FSkelMeshComponentLODInfo> LODInfo;
 
-	/** Forces the mesh to draw in wireframe mode. */
-	UPROPERTY()
-	uint32 bForceWireframe:1;
-
-	/** Draw the skeleton hierarchy for this skel mesh. */
-	UPROPERTY()
-	uint32 bDisplayBones_DEPRECATED:1;
-
-	/** Disable Morphtarget for this component. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
-	uint32 bDisableMorphTarget:1;
-
-	/** Don't bother rendering the skin. */
-	UPROPERTY()
-	uint32 bHideSkin:1;
 	/** Array of bone visibilities (containing one of the values in EBoneVisibilityStatus for each bone).  A bone is only visible if it is *exactly* 1 (BVS_Visible) */
 	TArray<uint8> BoneVisibilityStates;
-
-	/**
-	 *	If true, use per-bone motion blur on this skeletal mesh (requires additional rendering, can be disabled to save performance).
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
-	uint32 bPerBoneMotionBlur:1;
-
-	//
-	// Misc.
-	//
-	
-	/** When true, skip using the physics asset etc. and always use the fixed bounds defined in the SkeletalMesh. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	uint32 bComponentUseFixedSkelBounds:1;
-
-	/** If true, when updating bounds from a PhysicsAsset, consider _all_ BodySetups, not just those flagged with bConsiderForBounds. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	uint32 bConsiderAllBodiesForBounds:1;
 
 	/** This is update frequency flag even when our Owner has not been rendered recently
 	 * 
@@ -374,20 +328,55 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	TEnumAsByte<EMeshComponentUpdateFlag::Type> MeshComponentUpdateFlag;
 
-private:
-	/** If true, UpdateTransform will always result in a call to MeshObject->Update. */
-	UPROPERTY(transient)
-	uint32 bForceMeshObjectUpdate:1;
+	/** 
+	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
+	 * to the main SkelMesh (e.g. outline mesh or a full body overdraw effect that is toggled) that is always going to be the same
+	 * bounds as parent.  We want to do no calculations in that case.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+	uint8 bUseBoundsFromMasterPoseComponent:1;
 
-public:
+	/** Forces the mesh to draw in wireframe mode. */
+	UPROPERTY()
+	uint8 bForceWireframe:1;
+
+	/** Draw the skeleton hierarchy for this skel mesh. */
+	UPROPERTY()
+	uint8 bDisplayBones_DEPRECATED:1;
+
+	/** Disable Morphtarget for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+	uint8 bDisableMorphTarget:1;
+
+	/** Don't bother rendering the skin. */
+	UPROPERTY()
+	uint8 bHideSkin:1;
+	/**
+	 *	If true, use per-bone motion blur on this skeletal mesh (requires additional rendering, can be disabled to save performance).
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
+	uint8 bPerBoneMotionBlur:1;
+
+	//
+	// Misc.
+	//
+	
+	/** When true, skip using the physics asset etc. and always use the fixed bounds defined in the SkeletalMesh. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
+	uint8 bComponentUseFixedSkelBounds:1;
+
+	/** If true, when updating bounds from a PhysicsAsset, consider _all_ BodySetups, not just those flagged with bConsiderForBounds. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
+	uint8 bConsiderAllBodiesForBounds:1;
+
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	UPROPERTY(transient)
-	uint32 bCanHighlightSelectedSections:1;
+	uint8 bCanHighlightSelectedSections:1;
 
 	/** true if mesh has been recently rendered, false otherwise */
 	UPROPERTY(transient)
-	uint32 bRecentlyRendered:1;
+	uint8 bRecentlyRendered:1;
 
 	/** 
 	 * Whether to use the capsule representation (when present) from a skeletal mesh's ShadowPhysicsAsset for direct shadowing from lights.
@@ -395,23 +384,58 @@ public:
 	 * This flag will force bCastInsetShadow to be enabled.
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Direct Shadow"))
-	uint32 bCastCapsuleDirectShadow:1;
+	uint8 bCastCapsuleDirectShadow:1;
 
 	/** 
 	 * Whether to use the capsule representation (when present) from a skeletal mesh's ShadowPhysicsAsset for shadowing indirect lighting (from lightmaps or skylight).
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow"))
-	uint32 bCastCapsuleIndirectShadow:1;
+	uint8 bCastCapsuleIndirectShadow:1;
+
+	/** Whether or not to CPU skin this component, requires render data refresh after changing */
+	UPROPERTY(transient)
+	uint8 bCPUSkinning : 1;
+
+	// Update Rate
+	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AnimUpdateRateTick() 
+	 * This allows to skip frames for performance. (For example based on visibility and size on screen). */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
+	uint8 bEnableUpdateRateOptimizations:1;
+
+	/** Enable on screen debugging of update rate optimization. 
+	 * Red = Skipping 0 frames, Green = skipping 1 frame, Blue = skipping 2 frames, black = skipping more than 2 frames. 
+	 * @todo: turn this into a console command. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
+	uint8 bDisplayDebugUpdateRateOptimizations:1;
+
+protected:
+	/** Are we using double buffered ComponentSpaceTransforms */
+	uint8 bDoubleBufferedComponentSpaceTransforms : 1;
+
+	/** Track whether we still need to flip to recently modified buffer */
+	uint8 bNeedToFlipSpaceBaseBuffers : 1;
+
+	/** true when CachedLocalBounds is up to date. */
+	UPROPERTY(Transient)
+	mutable uint8 bCachedLocalBoundsUpToDate:1;
+
+private:
+	/** If true, UpdateTransform will always result in a call to MeshObject->Update. */
+	UPROPERTY(transient)
+	uint8 bForceMeshObjectUpdate:1;
+
+public:
+	/** Object responsible for sending bone transforms, morph target state etc. to render thread. */
+	class FSkeletalMeshObject*	MeshObject;
+
+	/** Gets the skeletal mesh resource used for rendering the component. */
+	FSkeletalMeshRenderData* GetSkeletalMeshRenderData() const;
 
 	/** 
 	 * Controls how dark the capsule indirect shadow can be.
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="bCastCapsuleIndirectShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
 	float CapsuleIndirectShadowMinVisibility;
-
-	/** Whether or not to CPU skin this component, requires render data refresh after changing */
-	UPROPERTY(transient)
-	uint32 bCPUSkinning : 1;
 
 	/** 
 	 * Override the Physics Asset of the mesh. It uses SkeletalMesh.PhysicsAsset, but if you'd like to override use this function
@@ -518,12 +542,6 @@ public:
 	FName GetParentBone(FName BoneName) const;
 
 public:
-	/** Object responsible for sending bone transforms, morph target state etc. to render thread. */
-	class FSkeletalMeshObject*	MeshObject;
-
-	/** Gets the skeletal mesh resource used for rendering the component. */
-	FSkeletalMeshRenderData* GetSkeletalMeshRenderData() const;
-
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;
@@ -744,31 +762,12 @@ public:
 
 	void SetComponentSpaceTransformsDoubleBuffering(bool bInDoubleBufferedComponentSpaceTransforms);
 
-
-	DEPRECATED(4.13, "GetComponentSpaceTransforms is now renamed GetComponentSpaceTransforms")
-	const TArray<FTransform>& GetSpaceBases() const { return GetComponentSpaceTransforms(); }
-
-	DEPRECATED(4.13, "GetEditableSpaceBases is now renamed GetEditableComponentSpaceTransforms")
-	TArray<FTransform>& GetEditableSpaceBases() { return GetEditableComponentSpaceTransforms(); }
-
-	DEPRECATED(4.13, "GetEditableSpaceBases is now renamed GetEditableComponentSpaceTransforms")
-	const TArray<FTransform>& GetEditableSpaceBases() const { return GetEditableComponentSpaceTransforms(); }
-
-	DEPRECATED(4.13, "GetNumSpaceBases is now renamed GetNumComponentSpaceTransforms")
-	int32 GetNumSpaceBases() const { return GetNumComponentSpaceTransforms(); }
-
-	DEPRECATED(4.13, "SetSpaceBaseDoubleBuffering is now renamed SetComponentSpaceTransformsDoubleBuffering")
-	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces) { SetComponentSpaceTransformsDoubleBuffering(bInDoubleBufferedBlendSpaces);  }
-
 	const FBoxSphereBounds& GetCachedLocalBounds() { return CachedLocalBounds; } 
 
 protected:
 
 	/** Flip the editable space base buffer */
 	void FlipEditableSpaceBases();
-
-	/** Track whether we still need to flip to recently modified buffer */
-	bool bNeedToFlipSpaceBaseBuffers;
 
 	/** 
 	 * Should update transform in Tick
@@ -797,10 +796,6 @@ protected:
 	UPROPERTY(Transient)
 	mutable FBoxSphereBounds CachedLocalBounds;
 
-	/** true when CachedLocalBounds is up to date. */
-	UPROPERTY(Transient)
-	mutable bool bCachedLocalBoundsUpToDate;
-
 public:
 
 	/** Invalidate Cached Bounds, when Mesh Component has been updated. */
@@ -820,19 +815,6 @@ protected:
 	 * return true if it needs update. Return false if not
 	 */
 	bool ShouldUpdateBoneVisibility() const;
-
-	// Update Rate
-public:
-	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AnimUpdateRateTick() 
-	 * This allows to skip frames for performance. (For example based on visibility and size on screen). */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
-	bool bEnableUpdateRateOptimizations;
-
-	/** Enable on screen debugging of update rate optimization. 
-	 * Red = Skipping 0 frames, Green = skipping 1 frame, Blue = skipping 2 frames, black = skipping more than 2 frames. 
-	 * @todo: turn this into a console command. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
-	bool bDisplayDebugUpdateRateOptimizations;
 
 protected:
 
@@ -1097,11 +1079,11 @@ private:
 
 	// Animation update rate control.
 public:
-	/** Animation Update Rate optimization parameters. */
-	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
-
 	/** Delegate when AnimUpdateRateParams is created, to override its default settings. */
 	FOnAnimUpdateRateParamsCreated OnAnimUpdateRateParamsCreated;
+
+	/** Animation Update Rate optimization parameters. */
+	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
 
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
 	* 

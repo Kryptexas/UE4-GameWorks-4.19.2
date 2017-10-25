@@ -73,7 +73,7 @@ void UNiagaraNodeParameterMapSet::OnNewTypedPinAdded(UEdGraphPin* NewPin)
 
 void UNiagaraNodeParameterMapSet::OnPinRenamed(UEdGraphPin* RenamedPin) 
 {
-	RenamedPin->PinFriendlyName = FText::FromString(RenamedPin->PinName);
+	RenamedPin->PinFriendlyName = FText::FromName(RenamedPin->PinName);
 
 }
 
@@ -85,7 +85,7 @@ bool UNiagaraNodeParameterMapSet::CommitEditablePinName(const FText& InName, UEd
 		Modify();
 		InGraphPinObj->Modify();
 		InGraphPinObj->PinFriendlyName = InName;
-		InGraphPinObj->PinName = InName.ToString();
+		InGraphPinObj->PinName = *InName.ToString();
 
 		if (InGraphPinObj == PinPendingRename)
 		{

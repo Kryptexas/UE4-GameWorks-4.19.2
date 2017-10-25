@@ -796,9 +796,34 @@ namespace UnrealBuildTool
 			{
 				RulesObject.bDeployAfterCompile = false;
             }
-			
-			// Generate a build target from this rules module
-			UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
+
+            // Include generated code plugin if not building an editor target and project is configured for nativization
+            if (RulesObject.ProjectFile != null && RulesObject.Type != TargetType.Editor && ShouldIncludeNativizedAssets(RulesObject.ProjectFile.Directory))
+            {
+                string PlatformName;
+                if (RulesObject.Platform == UnrealTargetPlatform.Win32 || RulesObject.Platform == UnrealTargetPlatform.Win64)
+                {
+                    PlatformName = "Windows";
+                }
+                else
+                {
+                    PlatformName = RulesObject.Platform.ToString();
+                }
+
+                FileReference PluginFile = FileReference.Combine(RulesObject.ProjectFile.Directory, "Intermediate", "Plugins", "NativizedAssets", PlatformName, RulesObject.Type.ToString(), "NativizedAssets.uplugin");
+                if (FileReference.Exists(PluginFile))
+                {
+                    Desc.ForeignPlugins.Add(PluginFile);
+                    RulesAssembly = RulesCompiler.CreatePluginRulesAssembly(PluginFile, RulesAssembly);
+                }
+                else
+                {
+                    throw new BuildException("{0} is configured for nativization, but is missing the generated code plugin at \"{1}\". Make sure to cook {2} data before attempting to build the {3} target.", RulesObject.Name, PluginFile.FullName, RulesObject.Type.ToString(), RulesObject.Platform.ToString());
+                }
+            }
+
+            // Generate a build target from this rules module
+            UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
 
 			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
@@ -4738,5 +4763,23 @@ namespace UnrealBuildTool
 
 			return FilteredFileItems;
 		}
+
+        static bool ShouldIncludeNativizedAssets(DirectoryReference GameProjectDirectory)
+        {
+            ConfigHierarchy Config = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, GameProjectDirectory, BuildHostPlatform.Current.Platform);
+            if (Config != null)
+            {
+                // Determine whether or not the user has enabled nativization of Blueprint assets at cook time (default is 'Disabled')
+                string BlueprintNativizationMethod;
+                if (!Config.TryGetValue("/Script/UnrealEd.ProjectPackagingSettings", "BlueprintNativizationMethod", out BlueprintNativizationMethod))
+                {
+                    BlueprintNativizationMethod = "Disabled";
+                }
+
+                return BlueprintNativizationMethod != "Disabled";
+            }
+
+            return false;
+        }
 	}
 }

@@ -1673,10 +1673,6 @@ void FCascade::Tick(float DeltaTime)
 	}
 }
 
-bool FCascade::IsTickable() const
-{
-	return true;
-}
 TStatId FCascade::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FCascade, STATGROUP_Tickables);

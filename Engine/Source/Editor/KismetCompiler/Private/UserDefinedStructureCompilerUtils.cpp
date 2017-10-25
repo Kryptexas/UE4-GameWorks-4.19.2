@@ -31,7 +31,7 @@ struct FUserDefinedStructureCompilerInner
 		BlueprintsToRecompile.Add(FoundBlueprint, &bAlreadyProcessed);
 		if (!bAlreadyProcessed)
 		{
-			for (auto Function : TFieldRange<UFunction>(FoundBlueprint->GeneratedClass, EFieldIteratorFlags::ExcludeSuper))
+			for (UFunction* Function : TFieldRange<UFunction>(FoundBlueprint->GeneratedClass, EFieldIteratorFlags::ExcludeSuper))
 			{
 				Function->Script.Empty();
 			}
@@ -64,11 +64,11 @@ struct FUserDefinedStructureCompilerInner
 			DuplicatedStruct->AddToRoot();
 			CastChecked<UUserDefinedStructEditorData>(DuplicatedStruct->EditorData)->RecreateDefaultInstance();
 
-			for (auto StructProperty : TObjectRange<UStructProperty>(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill))
+			for (UStructProperty* StructProperty : TObjectRange<UStructProperty>(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill))
 			{
 				if (StructProperty && (StructureToReinstance == StructProperty->Struct))
 				{
-					if (auto OwnerClass = Cast<UBlueprintGeneratedClass>(StructProperty->GetOwnerClass()))
+					if (UBlueprintGeneratedClass* OwnerClass = Cast<UBlueprintGeneratedClass>(StructProperty->GetOwnerClass()))
 					{
 						if (UBlueprint* FoundBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy))
 						{
@@ -76,7 +76,7 @@ struct FUserDefinedStructureCompilerInner
 							ClearStructReferencesInBP(FoundBlueprint, BlueprintsToRecompile);
 						}
 					}
-					else if (auto OwnerStruct = Cast<UUserDefinedStruct>(StructProperty->GetOwnerStruct()))
+					else if (UUserDefinedStruct* OwnerStruct = Cast<UUserDefinedStruct>(StructProperty->GetOwnerStruct()))
 					{
 						check(OwnerStruct != DuplicatedStruct);
 						const bool bValidStruct = (OwnerStruct->GetOutermost() != GetTransientPackage())
@@ -98,7 +98,7 @@ struct FUserDefinedStructureCompilerInner
 
 			DuplicatedStruct->RemoveFromRoot();
 
-			for (auto Blueprint : TObjectRange<UBlueprint>(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill))
+			for (UBlueprint* Blueprint : TObjectRange<UBlueprint>(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill))
 			{
 				if (Blueprint && !BlueprintsToRecompile.Contains(Blueprint))
 				{
@@ -116,7 +116,7 @@ struct FUserDefinedStructureCompilerInner
 	{
 		check(StructToClean);
 
-		if (auto EditorData = Cast<UUserDefinedStructEditorData>(StructToClean->EditorData))
+		if (UUserDefinedStructEditorData* EditorData = Cast<UUserDefinedStructEditorData>(StructToClean->EditorData))
 		{
 			EditorData->CleanDefaultInstance();
 		}
@@ -132,10 +132,9 @@ struct FUserDefinedStructureCompilerInner
 			TArray<UObject*> SubObjects;
 			GetObjectsWithOuter(StructToClean, SubObjects, true);
 			SubObjects.Remove(StructToClean->EditorData);
-			for (auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt)
+			for (UObject* CurrSubObj : SubObjects)
 			{
-				UObject* CurrSubObj = *SubObjIt;
-				CurrSubObj->Rename(NULL, TransientStruct, REN_DontCreateRedirectors);
+				CurrSubObj->Rename(nullptr, TransientStruct, REN_DontCreateRedirectors);
 				if (UProperty* Prop = Cast<UProperty>(CurrSubObj))
 				{
 					FKismetCompilerUtilities::InvalidatePropertyExport(Prop);
@@ -146,15 +145,15 @@ struct FUserDefinedStructureCompilerInner
 				}
 			}
 
-			StructToClean->SetSuperStruct(NULL);
-			StructToClean->Children = NULL;
+			StructToClean->SetSuperStruct(nullptr);
+			StructToClean->Children = nullptr;
 			StructToClean->Script.Empty();
 			StructToClean->MinAlignment = 0;
-			StructToClean->RefLink = NULL;
-			StructToClean->PropertyLink = NULL;
-			StructToClean->DestructorLink = NULL;
+			StructToClean->RefLink = nullptr;
+			StructToClean->PropertyLink = nullptr;
+			StructToClean->DestructorLink = nullptr;
 			StructToClean->ScriptObjectReferences.Empty();
-			StructToClean->PropertyLink = NULL;
+			StructToClean->PropertyLink = nullptr;
 			StructToClean->ErrorMessage.Empty();
 		}
 
@@ -275,7 +274,7 @@ struct FUserDefinedStructureCompilerInner
 
 		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FStructureEditorUtils::GetTooltip(Struct));
 
-		auto EditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
+		UUserDefinedStructEditorData* EditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
 		Struct->SetSuperStruct(EditorData->NativeBase);	
 
 		CreateVariables(Struct, K2Schema, MessageLog);
@@ -322,11 +321,10 @@ struct FUserDefinedStructureCompilerInner
 				Struct = ChangedStruct;
 				check(Struct);
 
-				auto Schema = GetDefault<UEdGraphSchema_K2>();
-				for (auto& VarDesc : FStructureEditorUtils::GetVarDesc(Struct))
+				for (FStructVariableDescription& VarDesc : FStructureEditorUtils::GetVarDesc(Struct))
 				{
-					auto StructType = Cast<UUserDefinedStruct>(VarDesc.SubCategoryObject.Get());
-					if (StructType && (VarDesc.Category == Schema->PC_Struct) && AllChangedStructs.Contains(StructType))
+					UUserDefinedStruct* StructType = Cast<UUserDefinedStruct>(VarDesc.SubCategoryObject.Get());
+					if (StructType && (VarDesc.Category == UEdGraphSchema_K2::PC_Struct) && AllChangedStructs.Contains(StructType))
 					{
 						StructuresToWaitFor.Add(StructType);
 					}
@@ -335,10 +333,10 @@ struct FUserDefinedStructureCompilerInner
 		};
 
 		TArray<FDependencyMapEntry> DependencyMap;
-		for (auto Iter = ChangedStructs.CreateConstIterator(); Iter; ++Iter)
+		for (UUserDefinedStruct* ChangedStruct : ChangedStructs)
 		{
 			DependencyMap.Add(FDependencyMapEntry());
-			DependencyMap.Last().Initialize(*Iter, ChangedStructs);
+			DependencyMap.Last().Initialize(ChangedStruct, ChangedStructs);
 		}
 
 		while (DependencyMap.Num())
@@ -361,9 +359,9 @@ struct FUserDefinedStructureCompilerInner
 
 			DependencyMap.RemoveAtSwap(StructureToCompileIndex);
 
-			for (auto EntryIter = DependencyMap.CreateIterator(); EntryIter; ++EntryIter)
+			for (FDependencyMapEntry& MapEntry : DependencyMap)
 			{
-				(*EntryIter).StructuresToWaitFor.Remove(Struct);
+				MapEntry.StructuresToWaitFor.Remove(Struct);
 			}
 		}
 	}
@@ -450,12 +448,12 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 			}
 		}
 
-		for (auto BPIter = BlueprintsToRecompile.CreateIterator(); BPIter; ++BPIter)
+		for (UBlueprint* BlueprintToRecompile : BlueprintsToRecompile)
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(*BPIter);
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintToRecompile);
 		}
 
-		for (auto ChangedStruct : ChangedStructs)
+		for (UUserDefinedStruct* ChangedStruct : ChangedStructs)
 		{
 			if (ChangedStruct)
 			{

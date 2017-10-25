@@ -169,9 +169,9 @@ public:
 	}
 
 	/** This is a tickable class */
-	virtual bool IsTickable() const final
+	virtual ETickableTickType GetTickableTickType() const final
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	/** Performs the main 'tick' operation on this class.  The 'tick' step checks to see if there is currently

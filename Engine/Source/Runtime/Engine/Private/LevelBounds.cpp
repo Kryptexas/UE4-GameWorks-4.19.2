@@ -137,9 +137,14 @@ TStatId ALevelBounds::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(ALevelBounds, STATGROUP_Tickables);
 }
 
+ETickableTickType ALevelBounds::GetTickableTickType() const
+{
+	return ((GIsEditor && !IsTemplate()) ? ETickableTickType::Conditional : ETickableTickType::Never);
+}
+
 bool ALevelBounds::IsTickable() const
 {
-	if (GIsEditor && bAutoUpdateBounds && !IsTemplate())
+	if (bAutoUpdateBounds)
 	{
 		UWorld* World = GetWorld();
 		return (World && World->WorldType == EWorldType::Editor);

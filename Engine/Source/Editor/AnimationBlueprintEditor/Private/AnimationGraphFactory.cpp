@@ -87,13 +87,9 @@ TSharedPtr<class SGraphPin> FAnimationGraphPinFactory::CreatePin(class UEdGraphP
 		}
 	}
 
-	const UAnimationStateMachineSchema* AnimStateMachineSchema = Cast<const UAnimationStateMachineSchema>(InPin->GetSchema());
-	if (AnimStateMachineSchema != NULL)
+	if (InPin->PinType.PinCategory == UAnimationStateMachineSchema::PC_Exec)
 	{
-		if (InPin->PinType.PinCategory == AnimStateMachineSchema->PC_Exec)
-		{
-			return SNew(SGraphPinExec, InPin);
-		}
+		return SNew(SGraphPinExec, InPin);
 	}
 
 	return nullptr;

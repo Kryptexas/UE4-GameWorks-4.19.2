@@ -200,5 +200,5 @@ protected:
 	 * @param InItem				Item selected
 	 * @param InPinCategory			This is the PinType's category, must be provided separately as the PinType in the tree item is always Object Types for any object related type.
 	 */
-	void OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory, bool bForSecondaryType);
+	void OnSelectPinType(FPinTypeTreeItem InItem, FName InPinCategory, bool bForSecondaryType);
 };

@@ -153,7 +153,7 @@ struct FMaterialInput
 	 * Note that this is the only member which is not derived from the output currently connected. 
 	 */
 	UPROPERTY()
-	FString InputName;
+	FName InputName;
 
 	UPROPERTY()
 	int32 Mask;

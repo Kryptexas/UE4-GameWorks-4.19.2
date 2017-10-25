@@ -35,6 +35,8 @@
 #include "Features/IModularFeatures.h"
 #include "Misc/RuntimeErrors.h"
 #include "AnimPhysObjectVersion.h"
+#include "ScopeExit.h"
+
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
@@ -187,13 +189,14 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 #endif//#if WITH_APEX_CLOTHING
 
+#if WITH_EDITORONLY_DATA
 	DefaultPlayRate_DEPRECATED = 1.0f;
 	bDefaultPlaying_DEPRECATED = true;
+#endif
 	bEnablePhysicsOnDedicatedServer = UPhysicsSettings::Get()->bSimulateSkeletalMeshOnDedicatedServer;
 	bEnableUpdateRateOptimizations = false;
 	RagdollAggregateThreshold = UPhysicsSettings::Get()->RagdollAggregateThreshold;
 
-	// LastPoseTickTime = -1;
 	LastPoseTickFrame = 0u;
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
@@ -1994,7 +1997,14 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 {
 #if DO_CHECK
 	checkf(!bPostEvaluatingAnimation, TEXT("PostAnimEvaluation already in progress, recursion detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(this), *GetNameSafe(EvaluationContext.AnimInstance));
-	TGuardValue<bool> CircularGuard(bPostEvaluatingAnimation, true);
+
+	const bool bWasPostEvaluatingAnimation = bPostEvaluatingAnimation;
+	bPostEvaluatingAnimation = true;
+	ON_SCOPE_EXIT
+	{
+		bPostEvaluatingAnimation = bWasPostEvaluatingAnimation;
+	};
+
 #endif
 
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);

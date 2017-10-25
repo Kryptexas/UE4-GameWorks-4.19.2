@@ -99,6 +99,23 @@ void UBehaviorTreeGraphNode_CompositeDecorator::PostCopyNode()
 	}
 }
 
+void UBehaviorTreeGraphNode_CompositeDecorator::ResetNodeOwner()
+{
+	Super::ResetNodeOwner();
+
+	if (BoundGraph)
+	{
+		for (int32 i = 0; i < BoundGraph->Nodes.Num(); i++)
+		{
+			UBehaviorTreeDecoratorGraphNode_Decorator* Node = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(BoundGraph->Nodes[i]);
+			if (Node)
+			{
+				Node->ResetNodeOwner();
+			}
+		}
+	}
+}
+
 bool UBehaviorTreeGraphNode_CompositeDecorator::RefreshNodeClass()
 {
 	bool bUpdated = false;

@@ -159,7 +159,7 @@ public:
 		{
 			if (InputPins[i])
 			{
-				InputPins[i]->PinName = SoundNode->GetInputPinName(i).ToString();
+				InputPins[i]->PinName = *SoundNode->GetInputPinName(i).ToString();
 			}
 		}
 	}

@@ -155,12 +155,12 @@ void FKCHandler_VariableSet::Transform(FKismetFunctionContext& Context, UEdGraph
 			CallFuncNode->AllocateDefaultPins();
 
 			// Copy self pin
-			UEdGraphPin* NewSelfPin = CallFuncNode->FindPinChecked(CompilerContext.GetSchema()->PN_Self);
-			UEdGraphPin* OldSelfPin = Node->FindPinChecked(CompilerContext.GetSchema()->PN_Self);
+			UEdGraphPin* NewSelfPin = CallFuncNode->FindPinChecked(UEdGraphSchema_K2::PN_Self);
+			UEdGraphPin* OldSelfPin = Node->FindPinChecked(UEdGraphSchema_K2::PN_Self);
 			NewSelfPin->CopyPersistentDataFromOldPin(*OldSelfPin);
 
 			// link new CallFuncNode -> Set Node
-			UEdGraphPin* OldExecPin = Node->FindPin(CompilerContext.GetSchema()->PN_Execute);
+			UEdGraphPin* OldExecPin = Node->FindPin(UEdGraphSchema_K2::PN_Execute);
 			check(OldExecPin);
 
 			UEdGraphPin* NewExecPin = CallFuncNode->GetExecPin();
@@ -179,12 +179,12 @@ void FKCHandler_VariableSet::Transform(FKismetFunctionContext& Context, UEdGraph
 			CallFuncNode->AllocateDefaultPins();
 
 			// Copy self pin
-			UEdGraphPin* NewSelfPin = CallFuncNode->FindPinChecked(CompilerContext.GetSchema()->PN_Self);
-			UEdGraphPin* OldSelfPin = Node->FindPinChecked(CompilerContext.GetSchema()->PN_Self);
+			UEdGraphPin* NewSelfPin = CallFuncNode->FindPinChecked(UEdGraphSchema_K2::PN_Self);
+			UEdGraphPin* OldSelfPin = Node->FindPinChecked(UEdGraphSchema_K2::PN_Self);
 			NewSelfPin->CopyPersistentDataFromOldPin(*OldSelfPin);
 
 			// link Set Node -> new CallFuncNode
-			UEdGraphPin* OldThenPin = Node->FindPin(CompilerContext.GetSchema()->PN_Then);
+			UEdGraphPin* OldThenPin = Node->FindPin(UEdGraphSchema_K2::PN_Then);
 			check(OldThenPin);
 
 			UEdGraphPin* NewThenPin = CallFuncNode->GetThenPin();

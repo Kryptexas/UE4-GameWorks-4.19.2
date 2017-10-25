@@ -56,12 +56,11 @@ class FAssetManagerGraphPanelPinFactory : public FGraphPanelPinFactory
 {
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetId>::Get())
+		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetId>::Get())
 		{
 			return SNew(SPrimaryAssetIdGraphPin, InPin);
 		}
-		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetType>::Get())
+		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetType>::Get())
 		{
 			return SNew(SPrimaryAssetTypeGraphPin, InPin);
 		}
@@ -129,11 +128,14 @@ TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetIdSelector(FOnGet
 	TAttribute<FText> OnGetObjectText = TAttribute<FText>::Create(OnGetDisplayText);
 
 	return SNew(SComboButton)
-	.OnGetMenuContent(OnCreateMenuContent)
-	.ButtonContent()
+		.OnGetMenuContent(OnCreateMenuContent)
+		.ContentPadding(FMargin(2.0f, 2.0f))
+		.ButtonContent()
 		[
 			SNew(STextBlock)
 			.Text(OnGetObjectText)
+			.ToolTipText(OnGetObjectText)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 }
 

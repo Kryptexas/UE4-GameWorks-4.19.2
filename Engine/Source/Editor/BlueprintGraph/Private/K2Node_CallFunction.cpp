@@ -50,7 +50,7 @@ struct FCustomStructureParamHelper
 
 	static void FillCustomStructureParameterNames(const UFunction* Function, TArray<FString>& OutNames)
 	{
-		OutNames.Empty();
+		OutNames.Reset();
 		if (Function)
 		{
 			const FString& MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
@@ -76,13 +76,13 @@ struct FCustomStructureParamHelper
 			else
 			{
 				Pin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-				Pin->PinType.PinSubCategory.Reset();
+				Pin->PinType.PinSubCategory = NAME_None;
 				Pin->PinType.PinSubCategoryObject = nullptr;
 			}
 		}
 	}
 
-	static void UpdateCustomStructurePins(const UFunction* Function, UK2Node* Node, UEdGraphPin* SinglePin = NULL)
+	static void UpdateCustomStructurePins(const UFunction* Function, UK2Node* Node, UEdGraphPin* SinglePin = nullptr)
 	{
 		if (Function && Node)
 		{
@@ -90,7 +90,7 @@ struct FCustomStructureParamHelper
 			FCustomStructureParamHelper::FillCustomStructureParameterNames(Function, Names);
 			if (SinglePin)
 			{
-				if (Names.Contains(SinglePin->PinName))
+				if (Names.Contains(SinglePin->PinName.ToString()))
 				{
 					HandleSinglePin(SinglePin);
 				}
@@ -356,7 +356,7 @@ bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
 		const FString& TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
 		if (!TypeDeterminingPinName.IsEmpty())
 		{
-			bIsTypeDeterminingPin = (Pin->PinName == TypeDeterminingPinName);
+			bIsTypeDeterminingPin = (Pin->PinName.ToString() == TypeDeterminingPinName);
 		}
 	}
 
@@ -402,7 +402,7 @@ UEdGraphPin* FDynamicOutputHelper::GetDynamicOutPin(const UK2Node_CallFunction* 
 	UEdGraphPin* DynamicOutPin = nullptr;
 	if (TaggedOutputParam != nullptr)
 	{
-		DynamicOutPin = FuncNode->FindPin(TaggedOutputParam->GetName());
+		DynamicOutPin = FuncNode->FindPin(TaggedOutputParam->GetFName());
 		if (DynamicOutPin && (DynamicOutPin->Direction != EGPD_Output))
 		{
 			DynamicOutPin = nullptr;
@@ -418,7 +418,7 @@ bool FDynamicOutputHelper::CanConformPinType(const UK2Node_CallFunction* FuncNod
 	{
 		UClass* BasePickerClass = CastChecked<UClass>(TypePickerPin->PinType.PinSubCategoryObject.Get());
 
-		const FString& PinCategory = TypeToTest.PinCategory;
+		const FName PinCategory = TypeToTest.PinCategory;
 		if ((PinCategory == UEdGraphSchema_K2::PC_Object) ||
 			(PinCategory == UEdGraphSchema_K2::PC_Interface) ||
 			(PinCategory == UEdGraphSchema_K2::PC_Class))
@@ -709,12 +709,12 @@ UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
 	}
 	else if (FunctionClass->IsChildOf(UInterface::StaticClass()))
 	{
-		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Interface, FString(), FunctionClass, UEdGraphSchema_K2::PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Interface, FunctionClass, UEdGraphSchema_K2::PN_Self);
 	}
 	else
 	{
 		// This means that the function is declared in an external class, and should reference that class
-		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), FunctionClass, UEdGraphSchema_K2::PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FunctionClass, UEdGraphSchema_K2::PN_Self);
 	}
 	check(SelfPin != nullptr);
 
@@ -762,8 +762,9 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 					bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
 					if (!bShouldBeHidden)
 					{
-						FString ExecName = Enum->GetNameStringByIndex(ExecIdx);
-						CreatePin(Direction, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, ExecName);
+						// Can't use Enum->GetNameByIndex here because it doesn't do namespace mangling
+						const FName ExecName = *Enum->GetNameStringByIndex(ExecIdx);
+						CreatePin(Direction, UEdGraphSchema_K2::PC_Exec, ExecName);
 					}
 				}
 				
@@ -783,16 +784,16 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 		if (bCreateSingleExecInputPin)
 		{
 			// Single input exec pin
-			CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
+			CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 		}
 
 		if (bCreateThenPin)
 		{
-			UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+			UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 			// Use 'completed' name for output pins on latent functions
 			if (Function->HasMetaData(FBlueprintMetadata::MD_Latent))
 			{
-				OutputExecPin->PinFriendlyName = FText::FromString(UEdGraphSchema_K2::PN_Completed);
+				OutputExecPin->PinFriendlyName = FText::FromName(UEdGraphSchema_K2::PN_Completed);
 			}
 		}
 	}
@@ -906,8 +907,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	}
 
 	// Build a list of the pins that should be hidden for this function (ones that are automagically filled in by the K2 compiler)
-	TSet<FString> PinsToHide;
-	TSet<FString> InternalPins;
+	TSet<FName> PinsToHide;
+	TSet<FName> InternalPins;
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(Graph, Function, PinsToHide, &InternalPins);
 
 	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
@@ -922,8 +923,10 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 
 		const EEdGraphPinDirection Direction = bIsFunctionInput ? EGPD_Input : EGPD_Output;
 
-		UEdGraphPin* Pin = CreatePin(Direction, FString(), FString(), nullptr, Param->GetName(), EPinContainerType::None, bIsRefParam);
-		const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType);
+		UEdGraphNode::FCreatePinParams PinParams;
+		PinParams.bIsReference = bIsRefParam;
+		UEdGraphPin* Pin = CreatePin(Direction, NAME_None, Param->GetFName(), PinParams);
+		const bool bPinGood = (Pin && K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType));
 
 		if (bPinGood)
 		{
@@ -956,9 +959,10 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
+				const FString PinNameStr = Pin->PinName.ToString();
 				const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 				const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
-				bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
+				bool bIsSelfPin = ((PinNameStr == DefaultToSelfMetaValue) || (PinNameStr == WorldContextMetaValue));
 
 				if (!bShowWorldContextPin || !bIsSelfPin)
 				{
@@ -1298,7 +1302,7 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 	}
 	else
 	{
-		ParamName = Pin.PinName.ToLower();
+		ParamName = Pin.PinName.ToString();
 	}
 
 	// grab the the function's comment block for us to parse
@@ -1739,29 +1743,33 @@ void UK2Node_CallFunction::PostPasteNode()
 
 	if (UFunction* Function = GetTargetFunction())
 	{
-		// After pasting we need to go through and ensure the hidden the self pins is correct in case the source blueprint had different metadata
-		TSet<FString> PinsToHide;
-		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetGraph(), Function, PinsToHide);
-
-		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
-
-		const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-		const FString& WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
-
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
+		if (Pins.Num() > 0)
 		{
-			UEdGraphPin* Pin = Pins[PinIndex];
+			// After pasting we need to go through and ensure the hidden the self pins is correct in case the source blueprint had different metadata
+			TSet<FName> PinsToHide;
+			FBlueprintEditorUtils::GetHiddenPinsForFunction(GetGraph(), Function, PinsToHide);
 
-			const bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
-			const bool bPinShouldBeHidden = ((Pin->SubPins.Num() > 0) || (PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin)));
+			const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
 
-			if (bPinShouldBeHidden && !Pin->bHidden)
+			const FString& DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			const FString& WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
 			{
-				Pin->BreakAllPinLinks();
-				K2Schema->SetPinAutogeneratedDefaultValueBasedOnType(Pin);
+				UEdGraphPin* Pin = Pins[PinIndex];
+					const FString PinNameStr = Pin->PinName.ToString();
+
+					const bool bIsSelfPin = ((PinNameStr == DefaultToSelfMetaValue) || (PinNameStr == WorldContextMetaValue));
+					const bool bPinShouldBeHidden = ((Pin->SubPins.Num() > 0) || (PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin)));
+
+				if (bPinShouldBeHidden && !Pin->bHidden)
+				{
+					Pin->BreakAllPinLinks();
+					K2Schema->SetPinAutogeneratedDefaultValueBasedOnType(Pin);
+				}
+				Pin->bHidden = bPinShouldBeHidden;
 			}
-			Pin->bHidden = bPinShouldBeHidden;
 		}
 	}
 }
@@ -2009,11 +2017,11 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 				if (EnumParamPin->Direction == EGPD_Input)
 				{
 					// Create normal exec input
-					UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
+					UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 					// Create temp enum variable
 					UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-					TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
+					TempEnumVarNode->VariableType.PinCategory = UEdGraphSchema_K2::PC_Byte;
 					TempEnumVarNode->VariableType.PinSubCategoryObject = Enum;
 					TempEnumVarNode->AllocateDefaultPins();
 					// Get the output pin
@@ -2029,7 +2037,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 						if( Pin != NULL && 
 							Pin != ExecutePin &&
 							Pin->Direction == EGPD_Input && 
-							Pin->PinType.PinCategory == Schema->PC_Exec )
+							Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec )
 						{
 							// Create node to set the temp enum var
 							UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
@@ -2045,7 +2053,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 							Schema->TryCreateConnection(AssignNode->GetThenPin(), ExecutePin);
 
 							// set the literal enum value to set to
-							AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
+							AssignNode->GetValuePin()->DefaultValue = Pin->PinName.ToString();
 
 							// Finally remove this 'cosmetic' exec pin
 							Pins[PinIdx]->MarkPendingKill();
@@ -2057,7 +2065,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 				else if (EnumParamPin->Direction == EGPD_Output)
 				{
 					// Create normal exec output
-					UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
+					UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 						
 					// Create a SwitchEnum node to switch on the output enum
 					UK2Node_SwitchEnum* SwitchEnumNode = CompilerContext.SpawnIntermediateNode<UK2Node_SwitchEnum>(this, SourceGraph);
@@ -2077,7 +2085,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 						if( Pin != NULL &&
 							Pin != ExecutePin &&
 							Pin->Direction == EGPD_Output &&
-							Pin->PinType.PinCategory == Schema->PC_Exec )
+							Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec )
 						{
 							// Move connections from fake 'enum exec' pin to this switch node
 							CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
@@ -2113,7 +2121,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 				const bool bHasConnections = Pin->LinkedTo.Num() > 0;
 				const bool bCreateDefaultValRefTerm = bHasAutoCreateRefTerms && 
-					!bHasConnections && AutoCreateRefTermPinNames.Contains(Pin->PinName);
+					!bHasConnections && AutoCreateRefTermPinNames.Contains(Pin->PinName.ToString());
 
 				if (bCreateDefaultValRefTerm)
 				{
@@ -2159,7 +2167,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 	{
 		const bool bProperInputToExpandForEach = 
 			(1 == MultiSelf->LinkedTo.Num()) && 
-			(NULL != MultiSelf->LinkedTo[0]) && 
+			(nullptr != MultiSelf->LinkedTo[0]) && 
 			(MultiSelf->LinkedTo[0]->PinType.IsArray());
 		if(bProperInputToExpandForEach)
 		{
@@ -2216,11 +2224,11 @@ void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEd
 		(MultiSelf->LinkedTo[0]->PinType.IsArray());
 	ensure(bProperInputToExpandForEach);
 
-	UEdGraphPin* ThenPin = Node->FindPinChecked(Schema->PN_Then);
+	UEdGraphPin* ThenPin = Node->FindPinChecked(UEdGraphSchema_K2::PN_Then);
 
 	// Create int Iterator
 	UK2Node_TemporaryVariable* IteratorVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(Node, SourceGraph);
-	IteratorVar->VariableType.PinCategory = Schema->PC_Int;
+	IteratorVar->VariableType.PinCategory = UEdGraphSchema_K2::PC_Int;
 	IteratorVar->AllocateDefaultPins();
 
 	// Initialize iterator
@@ -2414,9 +2422,9 @@ void UK2Node_CallFunction::ConformContainerPins()
 			{
 				// reset to wildcard:
 				Pin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-				Pin->PinType.PinSubCategory.Empty();
+				Pin->PinType.PinSubCategory = NAME_None;
 				Pin->PinType.PinSubCategoryObject = nullptr;
-				Pin->DefaultValue = TEXT("");
+				Pin->DefaultValue = FString();
 			}
 		}
 	};
@@ -2434,7 +2442,7 @@ void UK2Node_CallFunction::ConformContainerPins()
 			else
 			{
 				Pin->PinType.PinValueType.TerminalCategory = UEdGraphSchema_K2::PC_Wildcard;
-				Pin->PinType.PinValueType.TerminalSubCategory.Empty();
+				Pin->PinType.PinValueType.TerminalSubCategory = NAME_None;
 				Pin->PinType.PinValueType.TerminalSubCategoryObject = nullptr;
 			}
 		}
@@ -2674,13 +2682,13 @@ UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNo
 	return NULL;
 }
 
-bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function, const FString& PropertyName)
+bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function, const FName PropertyName)
 {
-	if (Function && !PropertyName.IsEmpty())
+	if (Function && !PropertyName.IsNone())
 	{
 		TArray<FString> Names;
 		FCustomStructureParamHelper::FillCustomStructureParameterNames(Function, Names);
-		if (Names.Contains(PropertyName))
+		if (Names.Contains(PropertyName.ToString()))
 		{
 			return true;
 		}
@@ -2692,7 +2700,7 @@ bool UK2Node_CallFunction::IsWildcardProperty(const UFunction* InFunction, const
 {
 	if (InProperty)
 	{
-		return FEdGraphUtilities::IsSetParam(InFunction, InProperty->GetName()) || FEdGraphUtilities::IsMapParam(InFunction, InProperty->GetName());
+		return FEdGraphUtilities::IsSetParam(InFunction, InProperty->GetFName()) || FEdGraphUtilities::IsMapParam(InFunction, InProperty->GetFName());
 	}
 	return false;
 }

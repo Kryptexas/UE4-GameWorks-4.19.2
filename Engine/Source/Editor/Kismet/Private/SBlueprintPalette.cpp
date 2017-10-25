@@ -81,10 +81,9 @@ static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip,
 {
 	FString VarDesc;
 
-	if(VarScope != NULL)
+	if (VarScope)
 	{
-		UProperty* Property = FindField<UProperty>(VarScope, VarName);
-		if(Property != NULL)
+		if (UProperty* Property = FindField<UProperty>(VarScope, VarName))
 		{
 			// If it is an object property, see if we can get a nice class description instead of just the name
 			UObjectProperty* ObjProp = Cast<UObjectProperty>(Property);
@@ -122,20 +121,20 @@ static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip,
 static FString GetVarTooltip(UBlueprint* InBlueprint, UClass* VarClass, FName VarName)
 {
 	FString ResultTooltip;
-	if(VarClass != NULL)
+	if (VarClass)
 	{
-		UProperty* Property = FindField<UProperty>(VarClass, VarName);
-		if(Property != NULL)
+	
+		if (UProperty* Property = FindField<UProperty>(VarClass, VarName))
 		{
 			// discover if the variable property is a non blueprint user variable
 			UClass* SourceClass = Property->GetOwnerClass();
-			if( SourceClass && SourceClass->ClassGeneratedBy == NULL )
+			if( SourceClass && SourceClass->ClassGeneratedBy == nullptr )
 			{
 				ResultTooltip = Property->GetToolTipText().ToString();
 			}
 			else
 			{
-				FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, VarName, NULL, TEXT("tooltip"), ResultTooltip);
+				FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, VarName, nullptr, TEXT("tooltip"), ResultTooltip);
 			}
 		}
 	}
@@ -156,13 +155,13 @@ static FString GetVarTooltip(UBlueprint* InBlueprint, UClass* VarClass, FName Va
  */
 static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& IconOut, FSlateColor& ColorOut, FText& ToolTipOut)
 {
-	check(BlueprintIn != NULL);
+	check(BlueprintIn);
 
 	switch (ActionIn->GraphType)
 	{
 	case EEdGraphSchemaAction_K2Graph::Graph:
 		{
-			if (ActionIn->EdGraph != NULL)
+			if (ActionIn->EdGraph)
 			{
 				IconOut = FBlueprintEditor::GetGlyphForGraph(ActionIn->EdGraph);
 			}
@@ -176,20 +175,20 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 		break;
 	case EEdGraphSchemaAction_K2Graph::Subgraph:
 		{
-			if ( ActionIn->EdGraph != NULL && ActionIn->EdGraph->IsA(UAnimationStateMachineGraph::StaticClass()) )
+			if (Cast<UAnimationStateMachineGraph>(ActionIn->EdGraph))
 			{
 				IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.StateMachine_16x") );
 				ToolTipOut = LOCTEXT("AnimationStateMachineGraph_ToolTip", "Animation State Machine");
 			}
-			else if ( ActionIn->EdGraph != NULL && ActionIn->EdGraph->IsA(UAnimationStateGraph::StaticClass()) )
+			else if (Cast<UAnimationStateGraph>(ActionIn->EdGraph))
 			{
 				IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.State_16x") );
 				ToolTipOut = LOCTEXT("AnimationState_ToolTip", "Animation State");
 			}
-			else if ( ActionIn->EdGraph != NULL && ActionIn->EdGraph->IsA(UAnimationTransitionGraph::StaticClass()) )
+			else if (Cast<UAnimationTransitionGraph>(ActionIn->EdGraph))
 			{
-				UObject* EdGraphOuter = ActionIn->EdGraph->GetOuter();
-				if ( EdGraphOuter != NULL && EdGraphOuter->IsA(UAnimStateConduitNode::StaticClass()) )
+				UAnimStateConduitNode* EdGraphOuter = Cast<UAnimStateConduitNode>(ActionIn->EdGraph->GetOuter());
+				if (EdGraphOuter)
 				{
 					IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Conduit_16x"));
 					ToolTipOut = LOCTEXT("ConduitGraph_ToolTip", "Conduit");
@@ -210,21 +209,21 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 	case EEdGraphSchemaAction_K2Graph::Macro:
 		{
 			IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Macro_16x"));
-			if ( ActionIn->EdGraph == NULL )
+			if ( ActionIn->EdGraph == nullptr )
 			{
 				ToolTipOut = LOCTEXT("PotentialOverride_Tooltip", "Potential Override");	
 			}
 			else
 			{
 				// Need to see if this is a function overriding something in the parent, or 
-				UFunction* OverrideFunc = FindField<UFunction>(BlueprintIn->ParentClass, ActionIn->FuncName);
-				if ( OverrideFunc == NULL )
+				;
+				if (UFunction* OverrideFunc = FindField<UFunction>(BlueprintIn->ParentClass, ActionIn->FuncName))
 				{
-					ToolTipOut = LOCTEXT("Macro_Tooltip", "Macro");
+					ToolTipOut = LOCTEXT("Override_Tooltip", "Override");
 				}
 				else 
 				{
-					ToolTipOut = LOCTEXT("Override_Tooltip", "Override");
+					ToolTipOut = LOCTEXT("Macro_Tooltip", "Macro");
 				}
 			}
 		}
@@ -248,7 +247,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 		break;
 	case EEdGraphSchemaAction_K2Graph::Function:
 		{
-			if ( ActionIn->EdGraph == NULL )
+			if ( ActionIn->EdGraph == nullptr )
 			{
 				IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.PotentialOverrideFunction_16x"));
 				ToolTipOut = LOCTEXT("PotentialOverride_Tooltip", "Potential Override");	
@@ -259,25 +258,21 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 				{
 					IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Animation_16x"));
 				}
+				else if (UFunction* OverrideFunc = FindField<UFunction>(BlueprintIn->ParentClass, ActionIn->FuncName))
+				{
+					IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.OverrideFunction_16x"));
+					ToolTipOut = LOCTEXT("Override_Tooltip", "Override");
+				}
 				else
 				{
-					UFunction* OverrideFunc = FindField<UFunction>(BlueprintIn->ParentClass, ActionIn->FuncName);
-					if ( OverrideFunc == NULL )
+					IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Function_16x"));
+					if (ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()))
 					{
-						IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Function_16x"));
-						if ( ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()) )
-						{
-							ToolTipOut = LOCTEXT("AnimationGraph_Tooltip", "Animation Graph");
-						}
-						else
-						{
-							ToolTipOut = LOCTEXT("Function_Tooltip", "Function");
-						}
+						ToolTipOut = LOCTEXT("AnimationGraph_Tooltip", "Animation Graph");
 					}
 					else
 					{
-						IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.OverrideFunction_16x"));
-						ToolTipOut = LOCTEXT("Override_Tooltip", "Override");
+						ToolTipOut = LOCTEXT("Function_Tooltip", "Function");
 					}
 				}
 			}
@@ -461,9 +456,9 @@ private:
 		else
 		{
 			// Check to see if the name conflicts
-			for( auto Iter = AssetData.CreateConstIterator(); Iter; ++Iter)
+			for ( const FAssetData& AssetInfo : AssetData)
 			{
-				if(Iter->AssetName.ToString() == InNewText.ToString())
+				if(AssetInfo.AssetName.ToString() == InNewText.ToString())
 				{
 					OutErrorMessage = FText::FromString(TEXT("Asset name already in use!"));
 					return false;
@@ -488,7 +483,7 @@ private:
 				AssetToolsModule.Get().RenameAssets(AssetsAndNames);
 			}
 
-			auto MyBlueprint = BlueprintEditor->GetMyBlueprintWidget();
+			TSharedPtr<SMyBlueprint> MyBlueprint = BlueprintEditor->GetMyBlueprintWidget();
 			if (MyBlueprint.IsValid())
 			{
 				MyBlueprint->SelectItemByName(FName(*Object->GetPathName()));
@@ -511,9 +506,9 @@ public:
 		// Should never make it here with anything but an enum action
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId());
 
-		auto EnumAction = (FEdGraphSchemaAction_K2Enum*)ActionPtr.Pin().Get();
+		FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)ActionPtr.Pin().Get();
 		
-		return VerifyNewAssetName(EnumAction ? EnumAction->Enum : NULL, InNewText, OutErrorMessage);
+		return VerifyNewAssetName(EnumAction ? EnumAction->Enum : nullptr, InNewText, OutErrorMessage);
 	}
 
 	/**
@@ -561,9 +556,9 @@ public:
 		// Should never make it here with anything but a struct action
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId());
 
-		auto Action = (FEdGraphSchemaAction_K2Struct*)ActionPtr.Pin().Get();
+		FEdGraphSchemaAction_K2Struct* Action = (FEdGraphSchemaAction_K2Struct*)ActionPtr.Pin().Get();
 
-		return VerifyNewAssetName(Action ? Action->Struct : NULL, InNewText, OutErrorMessage);
+		return VerifyNewAssetName(Action ? Action->Struct : nullptr, InNewText, OutErrorMessage);
 	}
 
 	/**
@@ -584,7 +579,7 @@ public:
 		FEdGraphSchemaAction_K2Event* EventAction = (FEdGraphSchemaAction_K2Event*)ActionPtr.Pin().Get();
 
 		UK2Node* AssociatedNode = EventAction->NodeTemplate;
-		if ((AssociatedNode != NULL) && AssociatedNode->bCanRenameNode)
+		if (AssociatedNode && AssociatedNode->bCanRenameNode)
 		{
 			TSharedPtr<INameValidatorInterface> NodeNameValidator = FNameValidatorFactory::MakeValidator(AssociatedNode);
 			bIsNameValid = (NodeNameValidator->IsValid(InNewText.ToString(), true) == EValidatorResult::Ok);
@@ -608,7 +603,7 @@ public:
 
 		FEdGraphSchemaAction_K2Struct* Action = (FEdGraphSchemaAction_K2Struct*)ActionPtr.Pin().Get();
 
-		CommitNewAssetName(Action ? Action->Struct : NULL, BlueprintEditorPtr.Pin().Get(), NewText);
+		CommitNewAssetName(Action ? Action->Struct : nullptr, BlueprintEditorPtr.Pin().Get(), NewText);
 	}
 
 	/**
@@ -624,7 +619,7 @@ public:
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId());
 
 		FEdGraphSchemaAction_K2Event* EventAction = (FEdGraphSchemaAction_K2Event*)ActionPtr.Pin().Get();
-		if (EventAction->NodeTemplate != NULL)
+		if (EventAction->NodeTemplate)
 		{
 			EventAction->NodeTemplate->OnRenameNode(NewText.ToString());
 		}
@@ -649,7 +644,7 @@ public:
 		FEdGraphSchemaAction_K2TargetNode* TargetNodeAction = (FEdGraphSchemaAction_K2TargetNode*)ActionPtr.Pin().Get();
 
 		UK2Node* AssociatedNode = TargetNodeAction->NodeTemplate;
-		if ((AssociatedNode != NULL) && AssociatedNode->bCanRenameNode)
+		if (AssociatedNode && AssociatedNode->bCanRenameNode)
 		{
 			TSharedPtr<INameValidatorInterface> NodeNameValidator = FNameValidatorFactory::MakeValidator(AssociatedNode);
 			bIsNameValid = (NodeNameValidator->IsValid(InNewText.ToString(), true) == EValidatorResult::Ok);
@@ -670,7 +665,7 @@ public:
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId());
 
 		FEdGraphSchemaAction_K2TargetNode* TargetNodeAction = (FEdGraphSchemaAction_K2TargetNode*)ActionPtr.Pin().Get();
-		if (TargetNodeAction->NodeTemplate != NULL)
+		if (TargetNodeAction->NodeTemplate)
 		{
 			TargetNodeAction->NodeTemplate->OnRenameNode(NewText.ToString());
 		}
@@ -797,9 +792,9 @@ public:
 			UProperty* VariableProp = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(PaletteAction)->GetProperty();
 			UObjectProperty* VariableObjProp = Cast<UObjectProperty>(VariableProp);
 
-			UStruct* VarSourceScope = (VariableProp != NULL) ? CastChecked<UStruct>(VariableProp->GetOuter()) : NULL;
+			UStruct* VarSourceScope = (VariableProp ? CastChecked<UStruct>(VariableProp->GetOuter()) : nullptr);
 			const bool bIsBlueprintVariable = (VarSourceScope == BlueprintObj->SkeletonGeneratedClass);
-			const bool bIsComponentVar = (VariableObjProp != NULL) && (VariableObjProp->PropertyClass != NULL) && (VariableObjProp->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
+			const bool bIsComponentVar = (VariableObjProp && VariableObjProp->PropertyClass && VariableObjProp->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
 			bShouldHaveAVisibilityToggle = bIsBlueprintVariable && (!bIsComponentVar || FBlueprintEditorUtils::IsVariableCreatedByBlueprint(BlueprintObj, VariableObjProp));
 		}
 
@@ -845,8 +840,7 @@ private:
 		if ( PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() )
 		{
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(PaletteAction);
-			UProperty* VariableProperty = VarAction->GetProperty();
-			if ( VariableProperty != NULL )
+			if (UProperty* VariableProperty = VarAction->GetProperty())
 			{
 				return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 			}
@@ -912,7 +906,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), nullptr, TEXT("tooltip"), Result);
 
 			if ( !Result.IsEmpty() )
 			{
@@ -944,7 +938,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), nullptr, TEXT("tooltip"), Result);
 			if ( !Result.IsEmpty() )
 			{
 				ToolTipText = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.");
@@ -1232,7 +1226,7 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 
 	FName OriginalName;
 
-	UStruct* ValidationScope = NULL;
+	UStruct* ValidationScope = nullptr;
 
 	// Check if certain action names are unchanged.
 	if (ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
@@ -1249,7 +1243,7 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	}
 	else
 	{
-		UEdGraph* Graph = NULL;
+		UEdGraph* Graph = nullptr;
 
 		if(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 		{
@@ -1269,9 +1263,9 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	}
 
 	UBlueprint* BlueprintObj = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-	check(BlueprintObj != NULL);
+	check(BlueprintObj);
 
-	if(BlueprintObj->SimpleConstructionScript != NULL)
+	if (BlueprintObj->SimpleConstructionScript)
 	{
 		for (USCS_Node* Node : BlueprintObj->SimpleConstructionScript->GetAllNodes())
 		{
@@ -1311,7 +1305,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)ActionPtr.Pin().Get();
 
 		UEdGraph* Graph = GraphAction->EdGraph;
-		if ((Graph != NULL) && (Graph->bAllowDeletion || Graph->bAllowRenaming))
+		if (Graph && (Graph->bAllowDeletion || Graph->bAllowRenaming))
 		{
 			if (GraphAction->EdGraph)
 			{
@@ -1327,7 +1321,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 
 			// Make sure we aren't renaming the graph into something that already exists
 			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewNameString );
-			if (ExistingGraph == NULL || ExistingGraph == Graph)
+			if (ExistingGraph == nullptr || ExistingGraph == Graph)
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Function", "Rename Function" ) );
 
@@ -1358,7 +1352,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)ActionPtr.Pin().Get();
 
 		UEdGraph* Graph = DelegateAction->EdGraph;
-		if ((Graph != NULL) && (Graph->bAllowDeletion || Graph->bAllowRenaming))
+		if (Graph && (Graph->bAllowDeletion || Graph->bAllowRenaming))
 		{
 			FGraphDisplayInfo DisplayInfo;
 			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
@@ -1371,7 +1365,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 
 			// Make sure we aren't renaming the graph into something that already exists
 			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewNameString );
-			if (ExistingGraph == NULL || ExistingGraph == Graph)
+			if (ExistingGraph == nullptr || ExistingGraph == Graph)
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Delegate", "Rename Event Dispatcher" ) );
 				const FName OldName =  Graph->GetFName();
@@ -1397,12 +1391,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 
 		// Double check we're not renaming a timeline disguised as a variable
 		bool bIsTimeline = false;
-		UProperty* VariableProperty = VarAction->GetProperty();
-		if (VariableProperty != NULL)
+		if (UProperty* VariableProperty = VarAction->GetProperty())
 		{
 			// Don't allow removal of timeline properties - you need to remove the timeline node for that
 			UObjectProperty* ObjProperty = Cast<UObjectProperty>(VariableProperty);
-			if(ObjProperty != NULL && ObjProperty->PropertyClass == UTimelineComponent::StaticClass())
+			if (ObjProperty && ObjProperty->PropertyClass == UTimelineComponent::StaticClass())
 			{
 				bIsTimeline = true;
 			}
@@ -1488,7 +1481,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)PaletteAction.Get();
-			if (GraphAction->EdGraph != NULL && GraphAction->EdGraph->GetSchema())
+			if (GraphAction->EdGraph)
 			{
 				if (const UEdGraphSchema* GraphSchema = GraphAction->EdGraph->GetSchema())
 				{
@@ -1502,10 +1495,10 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		{
 			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)PaletteAction.Get();
 			UClass* VarClass = VarAction->GetVariableClass();
-			if (bShowClassInTooltip && (VarClass != NULL))
+			if (bShowClassInTooltip && VarClass)
 			{
 				UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(VarClass);
-				ClassDisplayName = (BlueprintObj != NULL) ? FText::FromName(BlueprintObj->GetFName()) : VarClass->GetDisplayNameText();
+				ClassDisplayName = (BlueprintObj ? FText::FromName(BlueprintObj->GetFName()) : VarClass->GetDisplayNameText());
 			}
 			else
 			{
@@ -1521,10 +1514,10 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			if(LocalVarAction->GetVariableScope())
 			{
 				UClass* VarClass = CastChecked<UClass>(LocalVarAction->GetVariableScope()->GetOuter());
-				if (bShowClassInTooltip && (VarClass != NULL))
+				if (bShowClassInTooltip && (VarClass != nullptr))
 				{
 					UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(VarClass);
-					ClassDisplayName = (BlueprintObj != NULL) ? FText::FromName(BlueprintObj->GetFName()) : VarClass->GetDisplayNameText();
+					ClassDisplayName = (BlueprintObj ? FText::FromName(BlueprintObj->GetFName()) : VarClass->GetDisplayNameText());
 				}
 				else
 				{
@@ -1598,10 +1591,10 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)PaletteAction.Get();
-			if (GraphAction->EdGraph != NULL)
+			if (GraphAction->EdGraph)
 			{
 				FGraphDisplayInfo DisplayInfo;
-				if (auto GraphSchema = GraphAction->EdGraph->GetSchema())
+				if (const UEdGraphSchema* GraphSchema = GraphAction->EdGraph->GetSchema())
 				{
 					GraphSchema->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
 				}
@@ -1614,7 +1607,7 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 		{
 			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)PaletteAction.Get();
 			UClass* VarClass = VarAction->GetVariableClass();
-			if (!bShowClassInTooltip || VarClass == NULL)
+			if (!bShowClassInTooltip || VarClass == nullptr)
 			{
 				// Don't show big tooltip if we are showing class as well (means we are not in MyBlueprint)
 				DocExcerptRef.DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphTypes");
@@ -1646,7 +1639,7 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 	TAttribute<FText> TextAttribute;
 	TextAttribute.Bind(this, &SBlueprintPaletteItem::GetToolTipText);
 
-	TSharedRef< SToolTip > TooltipWidget = IDocumentation::Get()->CreateToolTip(TextAttribute, NULL, DocExcerptRef.DocLink, DocExcerptRef.DocExcerptName);
+	TSharedRef< SToolTip > TooltipWidget = IDocumentation::Get()->CreateToolTip(TextAttribute, nullptr, DocExcerptRef.DocLink, DocExcerptRef.DocExcerptName);
 
 	// English speakers have no real need to know this exists.
 	if ( (NodeTemplate != nullptr) && (FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en")) )

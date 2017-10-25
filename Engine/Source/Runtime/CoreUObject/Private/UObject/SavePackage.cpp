@@ -3693,7 +3693,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								}
 							}
 
-							UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
+							UE_LOG(LogSavePackage, Verbose, TEXT("Package %s contains assets that are being converted to native code."), *InOuter->GetName());
 							return ESavePackageResult::ReplaceCompletely;
 						}
 						else if (ReplacmentResult == EReplacementResult::GenerateStub)

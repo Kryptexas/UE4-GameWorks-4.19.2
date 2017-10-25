@@ -113,7 +113,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 	};
 
 	const void* ContainerAddress = Object;
-	const UStruct* ContainerStruct = Object->GetClass();
+	const UStruct* ContainerStruct = (Object ? Object->GetClass() : nullptr);
 
 	FPropertyPath Ret;
 	for( int32 I = 0; I < PropertyChain.Num(); ++I )
@@ -433,11 +433,7 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 
 		return;
 	}
-	else if (AProperty->Identical(AValue, BValue, PPF_DeepComparison))
-	{
-		return;
-	}
-
+	
 	const UStructProperty* APropAsStruct = Cast<UStructProperty>(AProperty);
 	const UArrayProperty* APropAsArray = Cast<UArrayProperty>(AProperty);
 	const USetProperty* APropAsSet = Cast<USetProperty>(AProperty);
@@ -463,7 +459,7 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 	else if (APropAsArray != nullptr)
 	{
 		const UArrayProperty* BPropAsArray = CastChecked<UArrayProperty>(BProperty);
-		if(BPropAsArray->Inner == APropAsArray->Inner)
+		if(BPropAsArray->Inner->GetClass() == APropAsArray->Inner->GetClass())
 		{
 			FScriptArrayHelper ArrayHelperA(APropAsArray, AValue);
 			FScriptArrayHelper ArrayHelperB(BPropAsArray, BValue);
@@ -488,7 +484,7 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 	else if(APropAsSet != nullptr)
 	{
 		const USetProperty* BPropAsSet = CastChecked<USetProperty>(BProperty);
-		if(BPropAsSet->ElementProp == APropAsSet->ElementProp)
+		if(BPropAsSet->ElementProp->GetClass() == APropAsSet->ElementProp->GetClass())
 		{
 			FScriptSetHelper SetHelperA(APropAsSet, AValue);
 			FScriptSetHelper SetHelperB(BPropAsSet, BValue);
@@ -527,7 +523,7 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 	else if(APropAsMap != nullptr)
 	{
 		const UMapProperty* BPropAsMap = CastChecked<UMapProperty>(BProperty);
-		if(APropAsMap->KeyProp == BPropAsMap->KeyProp && APropAsMap->ValueProp == BPropAsMap->ValueProp)
+		if(APropAsMap->KeyProp->GetClass() == BPropAsMap->KeyProp->GetClass() && APropAsMap->ValueProp->GetClass() == BPropAsMap->ValueProp->GetClass())
 		{
 			FScriptMapHelper MapHelperA(APropAsMap, AValue);
 			FScriptMapHelper MapHelperB(BPropAsMap, BValue);
@@ -564,6 +560,12 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 	}
 	else if(APropAsObject != nullptr)
 	{
+		// Past container check, do a normal identical check now before going into components
+		if (AProperty->Identical(AValue, BValue, PPF_DeepComparison))
+		{
+			return;
+		}
+
 		// dig into the objects if they are in the same package as our initial object:
 		const UObjectProperty* BPropAsObject = CastChecked<UObjectProperty>(BProperty);
 
@@ -582,12 +584,18 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 			}
 		}
 		else
-		{		
+		{
 			DifferingSubProperties.Push(RootPath);
 		}
 	}
 	else
 	{
+		// Passed all container tests that would check for nested properties being wrong
+		if (AProperty->Identical(AValue, BValue, PPF_DeepComparison))
+		{
+			return;
+		}
+
 		DifferingSubProperties.Push(RootPath);
 	}
 }

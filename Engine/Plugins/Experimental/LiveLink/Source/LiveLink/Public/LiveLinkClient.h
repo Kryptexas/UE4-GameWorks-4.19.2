@@ -77,7 +77,7 @@ public:
 	~FLiveLinkClient();
 
 	// Begin FTickableObjectBase implementation
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual bool IsTickableInEditor() const override { return true; }
 	virtual void Tick(float DeltaTime) override;

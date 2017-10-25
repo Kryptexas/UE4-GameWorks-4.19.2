@@ -107,6 +107,9 @@ struct CORE_API FFrameworkObjectVersion
 		// Fix User Defined structs so that all members are correct flagged blueprint visible 
 		UserDefinedStructsBlueprintVisible,
 
+		// FMaterialInput and FEdGraphPin store their name as FName instead of FString
+		PinsStoreFName,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

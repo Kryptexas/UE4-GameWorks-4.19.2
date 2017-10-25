@@ -19,7 +19,7 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UScriptStruct* StructType;
 
 	//~ Begin UEdGraphNode Interface
-	virtual FString GetPinMetaData(FString InPinName, FName InKey) override;
+	virtual FString GetPinMetaData(FName InPinName, FName InKey) override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface

@@ -50,6 +50,6 @@ protected:
 	bool SynchronizeWithStruct();
 	bool GetSupportedNiagaraTypeDef(const UProperty* Property, FNiagaraTypeDefinition& TypeDef);
 
-	static FString ConditionVarName;
+	static const FName ConditionVarName;
 };
 

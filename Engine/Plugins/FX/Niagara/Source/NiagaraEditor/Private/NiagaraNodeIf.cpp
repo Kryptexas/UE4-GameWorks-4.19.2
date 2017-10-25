@@ -59,19 +59,19 @@ void UNiagaraNodeIf::AllocateDefaultPins()
 	//Create the inputs for each path.
 	for (FNiagaraVariable& Var : OutputVars)
 	{
-		FString PathSuffix = TEXT(" A");
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString() + PathSuffix);		
+		const TCHAR* PathSuffix = TEXT(" A");
+		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), *(Var.GetName().ToString() + PathSuffix));	
 	}
 
 	for (FNiagaraVariable& Var : OutputVars)
 	{
-		FString PathSuffix = TEXT(" B");
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString() + PathSuffix);
+		const TCHAR* PathSuffix = TEXT(" B");
+		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), *(Var.GetName().ToString() + PathSuffix));
 	}
 
 	for (FNiagaraVariable& Var : OutputVars)
 	{
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName());
 	}
 
 	CreateAddPin(EGPD_Output);
@@ -166,7 +166,7 @@ void UNiagaraNodeIf::OnPinRenamed(UEdGraphPin* RenamedPin)
 				OutputNames.Add(OutputVars[Index].GetName());
 			}
 		}
-		FName OutputName = FNiagaraEditorUtilities::GetUniqueName(*RenamedPin->PinName, OutputNames);
+		const FName OutputName = FNiagaraEditorUtilities::GetUniqueName(RenamedPin->PinName, OutputNames);
 		OutputVars[FoundIndex].SetName(OutputName);
 	}
 	ReallocatePins();

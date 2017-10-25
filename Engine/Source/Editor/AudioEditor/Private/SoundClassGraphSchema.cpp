@@ -46,7 +46,7 @@ void USoundClassGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& M
 		FText Title = FText::FromString( TitleString );
 		if ( Pin->PinName != TEXT("") )
 		{
-			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName.ToString());
 
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
@@ -211,7 +211,7 @@ void USoundClassGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNo
 	}
 }
 
-void USoundClassGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void USoundClassGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link") );
 	Super::BreakSinglePinLink(SourcePin, TargetPin);

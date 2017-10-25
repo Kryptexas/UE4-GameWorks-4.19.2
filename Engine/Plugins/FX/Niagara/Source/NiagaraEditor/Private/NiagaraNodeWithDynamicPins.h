@@ -24,7 +24,7 @@ public:
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 
 	/** Requests a new pin be added to the node with the specified direction, type, and name. */
-	UEdGraphPin* RequestNewTypedPin(EEdGraphPinDirection Direction, const FNiagaraTypeDefinition& Type, FString InName);
+	UEdGraphPin* RequestNewTypedPin(EEdGraphPinDirection Direction, const FNiagaraTypeDefinition& Type, FName InName);
 
 	/** Requests a new pin be added to the node with the specified direction and type. */
 	UEdGraphPin* RequestNewTypedPin(EEdGraphPinDirection Direction, const FNiagaraTypeDefinition& Type);
@@ -75,5 +75,5 @@ private:
 
 public:
 	/** The sub category for add pins. */
-	static const FString AddPinSubCategory;
+	static const FName AddPinSubCategory;
 };

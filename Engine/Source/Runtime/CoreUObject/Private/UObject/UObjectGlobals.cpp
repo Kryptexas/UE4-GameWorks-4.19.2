@@ -2649,8 +2649,7 @@ FObjectInitializer::~FObjectInitializer()
 
 				FLinkerLoad* SuperClassLinker = SuperClass->GetLinker();
 				const bool bSuperLoadPending = FDeferredObjInitializerTracker::IsCdoDeferred(SuperClass) ||
-					(SuperBpCDO && SuperBpCDO->HasAnyFlags(RF_NeedLoad)) ||
-					(SuperClassLinker && SuperClassLinker->IsBlueprintFinalizationPending());
+					(SuperBpCDO && (SuperBpCDO->HasAnyFlags(RF_NeedLoad) || (SuperBpCDO->HasAnyFlags(RF_WasLoaded) && !SuperBpCDO->HasAnyFlags(RF_LoadCompleted))));
 
 				FLinkerLoad* ObjLinker = BlueprintClass->GetLinker();
 				const bool bIsBpClassSerializing    = ObjLinker && (ObjLinker->LoadFlags & LOAD_DeferDependencyLoads);

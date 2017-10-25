@@ -33,7 +33,7 @@ namespace SteamAudio
 
 	protected:
 		virtual void Tick(float DeltaTime) override;
-		virtual bool IsTickable() const override;
+		virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 		virtual TStatId GetStatId() const override;
 
 	private:

@@ -48,7 +48,7 @@ class UMaterialExpressionBlendMaterialAttributes : public UMaterialExpression
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs()override;
 	virtual FExpressionInput* GetInput(int32 InputIndex)override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const override {return true;}
 #if WITH_EDITOR
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override {return true;}

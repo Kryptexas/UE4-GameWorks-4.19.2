@@ -122,7 +122,7 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 	BindingOffset.Y += UEdGraphSchema_K2::EstimateNodeHeight(BindingNode);
 
 	UEdGraphPin* LiteralOutput = BindingNode->GetValuePin();
-	UEdGraphPin* CallSelfInput = NewNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);
+	UEdGraphPin* CallSelfInput = NewNode->FindPin(UEdGraphSchema_K2::PN_Self);
 	// connect the new "get-var" node with the spawned function node
 	if ((LiteralOutput != nullptr) && (CallSelfInput != nullptr))
 	{

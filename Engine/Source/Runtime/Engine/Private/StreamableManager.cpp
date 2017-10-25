@@ -77,9 +77,9 @@ public:
 		// When DelegatesToCall falls out of scope it may delete the referenced handles
 	}
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual bool IsTickableWhenPaused() const override
@@ -452,14 +452,18 @@ void FStreamableHandle::CompleteLoad()
 		ExecuteDelegate(CompleteDelegate, AsShared());
 		UnbindDelegates();
 
-		// Update any meta handles that are still active
-		for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandles)
+		if (ParentHandles.Num() > 0)
 		{
-			TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
-
-			if (Handle.IsValid())
+			// Update any meta handles that are still active. Copy the array first as elements may be removed from original while iterating
+			TArray<TWeakPtr<FStreamableHandle>> ParentHandlesCopy = ParentHandles;
+			for (TWeakPtr<FStreamableHandle> WeakHandle : ParentHandlesCopy)
 			{
-				Handle->UpdateCombinedHandle();
+				TSharedPtr<FStreamableHandle> Handle = WeakHandle.Pin();
+
+				if (Handle.IsValid())
+				{
+					Handle->UpdateCombinedHandle();
+				}
 			}
 		}
 	}
@@ -1033,6 +1037,12 @@ void FStreamableManager::FindInMemory( FSoftObjectPath& InOutTargetName, struct 
 	check(!Existing->bAsyncLoadRequestOutstanding);
 	UE_LOG(LogStreamableManager, Verbose, TEXT("     Searching in memory for %s"), *InOutTargetName.ToString());
 	Existing->Target = StaticFindObject(UObject::StaticClass(), nullptr, *InOutTargetName.ToString());
+
+	if (Existing->Target && Existing->Target->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+	{
+		// This can get called from PostLoad on async loaded objects, if it is we do not want to return partially loaded objects and instead want to register for their full load
+		Existing->Target = nullptr;
+	}
 
 	UObjectRedirector* Redir = Cast<UObjectRedirector>(Existing->Target);
 	

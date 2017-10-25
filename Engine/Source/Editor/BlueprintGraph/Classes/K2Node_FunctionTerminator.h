@@ -29,7 +29,7 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 	//~ Begin UEdGraphNode Interface
 	virtual bool CanDuplicateNode() const override { return false; }
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString CreateUniquePinName(FString SourcePinName) const override;
+	virtual FName CreateUniquePinName(FName SourcePinName) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	//~ End UEdGraphNode Interface
 

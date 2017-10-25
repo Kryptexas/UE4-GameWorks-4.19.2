@@ -84,7 +84,7 @@ protected:
 
 private:
 	/** Class pin name */
-	static FString ClassPinName;
+	static FName ClassPinName;
 
 	/** Blueprint that we subscribed OnBlueprintChangedDelegate and OnBlueprintCompiledDelegate to */
 	UPROPERTY()

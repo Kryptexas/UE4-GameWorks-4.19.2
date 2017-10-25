@@ -19,16 +19,16 @@
 
 void UK2Node_LoadAsset::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 	// The immediate continue pin
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	// The delayed completed pin, this used to be called Then
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Completed);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Completed);
 
-	CreatePin(EGPD_Input, GetInputCategory(), FString(), UObject::StaticClass(), GetInputPinName());
-	CreatePin(EGPD_Output, GetOutputCategory(), FString(), UObject::StaticClass(), GetOutputPinName());
+	CreatePin(EGPD_Input, GetInputCategory(), UObject::StaticClass(), GetInputPinName());
+	CreatePin(EGPD_Output, GetOutputCategory(), UObject::StaticClass(), GetOutputPinName());
 }
 
 void UK2Node_LoadAsset::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
@@ -89,13 +89,13 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 
 	// connect then to second sequence pin
 	{
-		UEdGraphPin* OutputThenPin = FindPin(Schema->PN_Then);
+		UEdGraphPin* OutputThenPin = FindPin(UEdGraphSchema_K2::PN_Then);
 		UEdGraphPin* SequenceSecondExePin = SequenceNode->GetThenPinGivenIndex(1);
 		bIsErrorFree &= OutputThenPin && SequenceSecondExePin && CompilerContext.MovePinLinksToIntermediate(*OutputThenPin, *SequenceSecondExePin).CanSafeConnect();
 	}
 
 	// Create Local Variable
-	UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(this, GetOutputCategory(), FString(), UObject::StaticClass());
+	UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(this, GetOutputCategory(), NAME_None, UObject::StaticClass());
 
 	// Create assign node
 	UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
@@ -117,14 +117,14 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 
 	// connect assign exec input to function output
 	{
-		UEdGraphPin* CallFunctionOutputExePin = CallLoadAssetNode->FindPin(Schema->PN_Then);
+		UEdGraphPin* CallFunctionOutputExePin = CallLoadAssetNode->FindPin(UEdGraphSchema_K2::PN_Then);
 		UEdGraphPin* AssignInputExePin = AssignNode->GetExecPin();
 		bIsErrorFree &= AssignInputExePin && CallFunctionOutputExePin && Schema->TryCreateConnection(AssignInputExePin, CallFunctionOutputExePin);
 	}
 
 	// connect assign exec output to output
 	{
-		UEdGraphPin* OutputCompletedPin = FindPin(Schema->PN_Completed);
+		UEdGraphPin* OutputCompletedPin = FindPin(UEdGraphSchema_K2::PN_Completed);
 		UEdGraphPin* AssignOutputExePin = AssignNode->GetThenPin();
 		bIsErrorFree &= OutputCompletedPin && AssignOutputExePin && CompilerContext.MovePinLinksToIntermediate(*OutputCompletedPin, *AssignOutputExePin).CanSafeConnect();
 	}
@@ -154,13 +154,13 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 	}
 
 	// Create OnLoadEvent
-	const FString DelegateOnLoadedParamName(TEXT("OnLoaded"));
+	const FName DelegateOnLoadedParamName(TEXT("OnLoaded"));
 	UK2Node_CustomEvent* OnLoadEventNode = CompilerContext.SpawnIntermediateEventNode<UK2Node_CustomEvent>(this, CallFunctionAssetPin, SourceGraph);
 	OnLoadEventNode->CustomFunctionName = *FString::Printf(TEXT("OnLoaded_%s"), *CompilerContext.GetGuid(this));
 	OnLoadEventNode->AllocateDefaultPins();
 	{
 		UFunction* LoadAssetFunction = CallLoadAssetNode->GetTargetFunction();
-		UDelegateProperty* OnLoadDelegateProperty = LoadAssetFunction ? FindField<UDelegateProperty>(LoadAssetFunction, *DelegateOnLoadedParamName) : nullptr;
+		UDelegateProperty* OnLoadDelegateProperty = LoadAssetFunction ? FindField<UDelegateProperty>(LoadAssetFunction, DelegateOnLoadedParamName) : nullptr;
 		UFunction* OnLoadedSignature = OnLoadDelegateProperty ? OnLoadDelegateProperty->SignatureFunction : nullptr;
 		ensure(OnLoadedSignature);
 		for (TFieldIterator<UProperty> PropIt(OnLoadedSignature); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
@@ -170,7 +170,7 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 			{
 				FEdGraphPinType PinType;
 				bIsErrorFree &= Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
-				bIsErrorFree &= (NULL != OnLoadEventNode->CreateUserDefinedPin(Param->GetName(), PinType, EGPD_Output));
+				bIsErrorFree &= (nullptr != OnLoadEventNode->CreateUserDefinedPin(Param->GetFName(), PinType, EGPD_Output));
 			}
 		}
 	}
@@ -251,25 +251,25 @@ FText UK2Node_LoadAsset::GetMenuCategory() const
 	return FText(LOCTEXT("UK2Node_LoadAssetGetMenuCategory", "Utilities"));
 }
 
-const FString& UK2Node_LoadAsset::GetInputCategory() const
+const FName& UK2Node_LoadAsset::GetInputCategory() const
 {
 	return UEdGraphSchema_K2::PC_SoftObject;
 }
 
-const FString& UK2Node_LoadAsset::GetOutputCategory() const
+const FName& UK2Node_LoadAsset::GetOutputCategory() const
 {
 	return UEdGraphSchema_K2::PC_Object;
 }
 
-const FString& UK2Node_LoadAsset::GetInputPinName() const
+const FName& UK2Node_LoadAsset::GetInputPinName() const
 {
-	static const FString InputAssetPinName("Asset");
+	static const FName InputAssetPinName("Asset");
 	return InputAssetPinName;
 }
 
-const FString& UK2Node_LoadAsset::GetOutputPinName() const
+const FName& UK2Node_LoadAsset::GetOutputPinName() const
 {
-	static const FString OutputObjectPinName("Object");
+	static const FName OutputObjectPinName("Object");
 	return OutputObjectPinName;
 }
 
@@ -296,25 +296,25 @@ FText UK2Node_LoadAssetClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText(LOCTEXT("UK2Node_LoadAssetClassGetNodeTitle", "Async Load Class Asset"));
 }
 
-const FString& UK2Node_LoadAssetClass::GetInputCategory() const
+const FName& UK2Node_LoadAssetClass::GetInputCategory() const
 {
 	return UEdGraphSchema_K2::PC_SoftClass;
 }
 
-const FString& UK2Node_LoadAssetClass::GetOutputCategory() const
+const FName& UK2Node_LoadAssetClass::GetOutputCategory() const
 {
 	return UEdGraphSchema_K2::PC_Class;
 }
 
-const FString& UK2Node_LoadAssetClass::GetInputPinName() const
+const FName& UK2Node_LoadAssetClass::GetInputPinName() const
 {
-	static const FString InputAssetPinName("AssetClass");
+	static const FName InputAssetPinName("AssetClass");
 	return InputAssetPinName;
 }
 
-const FString& UK2Node_LoadAssetClass::GetOutputPinName() const
+const FName& UK2Node_LoadAssetClass::GetOutputPinName() const
 {
-	static const FString OutputObjectPinName("Class");
+	static const FName OutputObjectPinName("Class");
 	return OutputObjectPinName;
 }
 

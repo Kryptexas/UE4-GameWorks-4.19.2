@@ -79,14 +79,14 @@ bool UK2Node_StructOperation::DoRenamedPinsMatch(const UEdGraphPin* NewPin, cons
 	return bResult;
 }
 
-FString UK2Node_StructOperation::GetPinMetaData(FString InPinName, FName InKey)
+FString UK2Node_StructOperation::GetPinMetaData(FName InPinName, FName InKey)
 {
 	FString ReturnValue;
 
 	for (TFieldIterator<UProperty> It(StructType); It; ++It)
 	{
 		const UProperty* Property = *It;
-		if(Property && Property->GetName() == InPinName)
+		if(Property && Property->GetFName() == InPinName)
 		{
 			ReturnValue = Property->GetMetaData(InKey);
 			break;

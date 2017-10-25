@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackend.h"
 #include "UObject/UnrealType.h"
@@ -219,7 +219,7 @@ static FString GenerateCastRHS(FEmitterLocalContext& EmitterContext, UClass* Cla
 {
 	check(ClassPtr != nullptr);
 
-	auto BPGC = Cast<UBlueprintGeneratedClass>(ClassPtr);
+	UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ClassPtr);
 	if (BPGC && !EmitterContext.Dependencies.WillClassBeConverted(BPGC))
 	{
 		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(ClassPtr));
@@ -486,8 +486,8 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 	const int32 TermsBeforeCases = 1;
 	const int32 TermsPerCase = 2;
 	const int32 NumCases = ((Statement.RHS.Num() - 2) / TermsPerCase);
-	auto IndexTerm = Statement.RHS[0];
-	auto DefaultValueTerm = Statement.RHS.Last();
+	FBPTerminal* IndexTerm = Statement.RHS[0];
+	FBPTerminal* DefaultValueTerm = Statement.RHS.Last();
 
 	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef
@@ -521,9 +521,11 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 				FEmitHelper::GenerateAutomaticCast(EmitterContext, LType, Term->Type, DefaultValueTerm->AssociatedVarProperty, Term->AssociatedVarProperty, BeginCast, EndCast, true);
 			}
 
-			const FString TermEvaluation = TermToText(EmitterContext, Term, ENativizedTermUsage::UnspecifiedOrReference); //should bGetter be false ?
+			const FString TermEvaluation = TermToText(EmitterContext, Term, ENativizedTermUsage::Getter);
 			const FString CastedTerm = FString::Printf(TEXT("%s%s%s"), *BeginCast, *TermEvaluation, *EndCast);
-			if (Term->bIsLiteral) //TODO it should be done for every term, that cannot be handled as reference.
+			// If the term is a literal, a weak pointer, or TSubClassOf we can't take a clean reference to it for the TSwitchPair  
+			// so it needs to be cached in to a local.
+			if (Term->bIsLiteral || Term->Type.bIsWeakPointer || Term->Type.PinCategory == UEdGraphSchema_K2::PC_Class)
 			{
 				const FString LocalVarName = EmitterContext.GenerateUniqueLocalName();
 				EmitterContext.AddLine(FString::Printf(TEXT("%s %s = %s;"), *ValueDeclaration, *LocalVarName, *CastedTerm));
@@ -644,7 +646,7 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 				FString BeginCast;
 				FString CloseCast;
 				FEdGraphPinType LType;
-				auto Schema = GetDefault<UEdGraphSchema_K2>();
+				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 				check(Schema);
 				ENativizedTermUsage TermUsage = ENativizedTermUsage::UnspecifiedOrReference;
 				if (Schema->ConvertPropertyToPinType(FuncParamProperty, LType))
@@ -783,7 +785,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 
 			FString BeginCast;
 			FEdGraphPinType RType;
-			auto Schema = GetDefault<UEdGraphSchema_K2>();
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 			check(Schema);
 			if (Schema->ConvertPropertyToPinType(FuncToCallReturnProperty, RType))
 			{
@@ -820,7 +822,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 	else
 	{
-		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
+		UBlueprintGeneratedClass* OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
 		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
 		const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
 			|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
@@ -836,7 +838,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		}
 		else if (bStaticCall)
 		{
-			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+			UClass* OwnerClass = Statement.FunctionToCall->GetOuterUClass();
 			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
 		}
 		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
@@ -1014,8 +1016,8 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)
 				&& ((bPropertyOfParent && bSelfContext) || !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected));
 
-			auto MinimalClass = Term->AssociatedVarProperty->GetOwnerClass();
-			auto MinimalBPGC = Cast<UBlueprintGeneratedClass>(MinimalClass);
+			UClass* MinimalClass = Term->AssociatedVarProperty->GetOwnerClass();
+			UBlueprintGeneratedClass* MinimalBPGC = Cast<UBlueprintGeneratedClass>(MinimalClass);
 			if (MinimalBPGC && !EmitterContext.Dependencies.WillClassBeConverted(MinimalBPGC))
 			{
 				if (bSelfContext)
@@ -1098,7 +1100,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 
 FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocalContext& EmitterContext, FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel)
 {
-	auto LatentInfoStruct = FLatentActionInfo::StaticStruct();
+	UStruct* LatentInfoStruct = FLatentActionInfo::StaticStruct();
 
 	// Find the term name we need to fixup
 	FString FixupTermName;

@@ -71,8 +71,8 @@ void USoundClassGraphNode::AllocateDefaultPins()
 {
 	check(Pins.Num() == 0);
 
-	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), FString(), nullptr, LOCTEXT("SoundClassChildren", "Children").ToString());
-	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), FString(), nullptr, FString());
+	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), *LOCTEXT("SoundClassChildren", "Children").ToString());
+	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), NAME_None);
 }
 
 void USoundClassGraphNode::AutowireNewNode(UEdGraphPin* FromPin)

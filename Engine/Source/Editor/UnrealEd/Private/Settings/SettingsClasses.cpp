@@ -520,7 +520,6 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 UProjectPackagingSettings::UProjectPackagingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 {
-	bWarnIfPackagedWithoutNativizationFlag = true;
 }
 
 
@@ -636,36 +635,6 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 				ApplocalPrerequisitesDirectory.Path = "$(ProjectDir)/" + ProjectRootedPath;
 				return;
 			}
-		}
-	}
-	else if (Name == FName((TEXT("BlueprintNativizationMethod"))))
-	{
-		IProjectManager& ProjManager = IProjectManager::Get();
-		{
-			// NOTE: these are hardcoded to match the path constructed by AddBlueprintPluginPathArgument() on CookCommand.Automation.cs, and the defaults in 
-			//       FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(); if you alter this (or either of those) then you need to update the others
-			const FString NativizedPluginDir  = TEXT("./Intermediate/Plugins");
-			const FString NativizedPluginName = TEXT("NativizedAssets");
-			const FString FullPluginPath = FPaths::ConvertRelativePathToFull( FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), NativizedPluginDir );
-
-			if (BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled)
-			{
-				
-				ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/false);
-				FText PluginDisableFailure;
-				ProjManager.SetPluginEnabled(NativizedPluginName, /*bEnabled =*/false, PluginDisableFailure);
-			}
-			else
-			{
-				ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/true);
-				// plugin is enabled by default, so let's remove it from the uproject list entirely (else it causes problem in the packaged project)
-				// SetPluginEnabled() will only remove it if the plugin exists (it may not yet), so we rely on this explicit removal
-				FText PluginEnableFailure;
-				ProjManager.RemovePluginReference(NativizedPluginName, PluginEnableFailure);
-			}
-
-			FText SaveFailure;
-			ProjManager.SaveCurrentProjectToDisk(SaveFailure);
 		}
 	}
 	else if (Name == FName((TEXT("NativizeBlueprintAssets"))))

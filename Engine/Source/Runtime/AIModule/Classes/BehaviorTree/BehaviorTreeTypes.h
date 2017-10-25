@@ -409,11 +409,17 @@ struct FBehaviorTreeSearchData
 	/** search unique number */
 	int32 SearchId;
 
+	/** active instance index to rollback to */
+	int32 RollbackInstanceIdx;
+
 	/** if set, current search will be restarted in next tick */
 	uint32 bPostponeSearch : 1;
 
 	/** set when task search is in progress */
 	uint32 bSearchInProgress : 1;
+
+	/** if set, active node state/memory won't be rolled back */
+	uint32 bPreserveActiveNodeMemoryOnRollback : 1;
 
 	/** adds update info to PendingUpdates array, removing all previous updates for this node */
 	void AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo);
@@ -425,7 +431,7 @@ struct FBehaviorTreeSearchData
 	void Reset();
 
 	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) 
-		: OwnerComp(InOwnerComp), bPostponeSearch(false), bSearchInProgress(false)
+		: OwnerComp(InOwnerComp), RollbackInstanceIdx(INDEX_NONE), bPostponeSearch(false), bSearchInProgress(false), bPreserveActiveNodeMemoryOnRollback(false)
 	{}
 
 private:

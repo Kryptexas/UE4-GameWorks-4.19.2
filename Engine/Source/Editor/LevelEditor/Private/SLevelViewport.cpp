@@ -1355,8 +1355,10 @@ void SLevelViewport::BindViewCommands( FUICommandList& OutCommandList )
 
 void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 {
+	FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
+
 	OutCommandList.MapAction( 
-		FLevelViewportCommands::Get().UseDefaultShowFlags,
+		LevelViewportCommands.UseDefaultShowFlags,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnUseDefaultShowFlags, false ) );
 
 	const TArray<FShowFlagData>& ShowFlagData = GetShowFlagMenuItems();
@@ -1368,7 +1370,7 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 
 		// NOTE: There should be one command per show flag so using ShowFlag as the index to ShowFlagCommands is acceptable
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowFlagCommands[ ShowFlag ].ShowMenuItem,
+			LevelViewportCommands.ShowFlagCommands[ ShowFlag ].ShowMenuItem,
 			FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowFlag, SFData.EngineShowFlagIndex ),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateSP( this, &SLevelViewport::IsShowFlagEnabled, SFData.EngineShowFlagIndex ) );
@@ -1378,25 +1380,23 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllVolumes,
+			LevelViewportCommands.ShowAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllVolumes,
+			LevelViewportCommands.HideAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
 		
+
+		LevelViewportCommands.RegisterShowVolumeCommands();
+		const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
+		for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
 		{
-			FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
-			LevelViewportCommands.RegisterShowVolumeCommands();
-			const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
-			for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
-			{
-				OutCommandList.MapAction(
-					ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
-					FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
-			}
+			OutCommandList.MapAction(
+				ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
+				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
 		}
 	}
 
@@ -1404,11 +1404,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllLayers,
+			LevelViewportCommands.ShowAllLayers,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllLayers,
+			LevelViewportCommands.HideAllLayers,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, false ) );
 	}
 
@@ -1416,21 +1416,23 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllSprites,
+			LevelViewportCommands.ShowAllSprites,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllSprites,
+			LevelViewportCommands.HideAllSprites,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, false ) );
 
 		// Bind each show flag to the same delegate.  We use the delegate payload system to figure out what show flag we are dealing with
-		for( int32 CategoryIndex = 0; CategoryIndex < GUnrealEd->SpriteIDToIndexMap.Num(); ++CategoryIndex )
+		LevelViewportCommands.RegisterShowSpriteCommands();
+		const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowSpriteCommands = LevelViewportCommands.ShowSpriteCommands;
+		for (int32 SpriteCommandIndex = 0; SpriteCommandIndex < ShowSpriteCommands.Num(); ++SpriteCommandIndex)
 		{
 			OutCommandList.MapAction(
-				FLevelViewportCommands::Get().ShowSpriteCommands[ CategoryIndex ].ShowMenuItem,
-				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleSpriteCategory, CategoryIndex ),
+				ShowSpriteCommands[SpriteCommandIndex].ShowMenuItem,
+				FExecuteAction::CreateSP(this, &SLevelViewport::ToggleSpriteCategory, SpriteCommandIndex),
 				FCanExecuteAction(),
-				FIsActionChecked::CreateSP( this, &SLevelViewport::IsSpriteCategoryVisible, CategoryIndex ) );
+				FIsActionChecked::CreateSP(this, &SLevelViewport::IsSpriteCategoryVisible, SpriteCommandIndex));
 		}
 	}
 
@@ -1438,10 +1440,10 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Hide All' command
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllStats,
+			LevelViewportCommands.HideAllStats,
 			FExecuteAction::CreateSP(this, &SLevelViewport::OnToggleAllStatCommands, false));
 
-		for (auto StatCatIt = FLevelViewportCommands::Get().ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+		for (auto StatCatIt = LevelViewportCommands.ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
 		{
 			const TArray< FLevelViewportCommands::FShowMenuCommand >& ShowStatCommands = StatCatIt.Value();
 			for (int32 StatIndex = 0; StatIndex < ShowStatCommands.Num(); ++StatIndex)

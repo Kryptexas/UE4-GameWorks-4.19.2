@@ -33,9 +33,9 @@ void UNiagaraStackAddModuleItem::GetNewParameterAvailableTypes(TArray<FNiagaraTy
 {
 }
 
-TOptional<FString> UNiagaraStackAddModuleItem::GetNewParameterNamespace() const
+TOptional<FName> UNiagaraStackAddModuleItem::GetNewParameterNamespace() const
 {
-	return TOptional<FString>();
+	return TOptional<FName>();
 }
 
 void UNiagaraStackAddModuleItem::SetOnItemAdded(FOnItemAdded InOnItemAdded)

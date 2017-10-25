@@ -45,7 +45,7 @@ public:
 		//@TODO: Still doesn't handle/allow users to declare new pass by reference, this only helps inherited functions
 		if( Function )
 		{
-			if (UProperty* ParentProperty = FindField<UProperty>(Function, FName(*(Net->PinName))))
+			if (UProperty* ParentProperty = FindField<UProperty>(Function, Net->PinName))
 			{
 				if (ParentProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
 				{
@@ -142,9 +142,9 @@ public:
 	{
 		UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Node);
 		//check(EntryNode->SignatureName != NAME_None);
-		if (EntryNode->SignatureName == CompilerContext.GetSchema()->FN_ExecuteUbergraphBase)
+		if (EntryNode->SignatureName == UEdGraphSchema_K2::FN_ExecuteUbergraphBase)
 		{
-			UEdGraphPin* EntryPointPin = Node->FindPin(CompilerContext.GetSchema()->PN_EntryPoint);
+			UEdGraphPin* EntryPointPin = Node->FindPin(UEdGraphSchema_K2::PN_EntryPoint);
 			FBPTerminal** pTerm = Context.NetMap.Find(EntryPointPin);
 			if ((EntryPointPin != NULL) && (pTerm != NULL))
 			{
@@ -172,9 +172,9 @@ public:
 
 struct FFunctionEntryHelper
 {
-	static const FString& GetWorldContextPinName()
+	static const FName& GetWorldContextPinName()
 	{
-		static const FString WorldContextPinName(TEXT("__WorldContext"));
+		static const FName WorldContextPinName(TEXT("__WorldContext"));
 		return WorldContextPinName;
 	}
 
@@ -288,7 +288,7 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 					K2Schema->GetPinDefaultValuesFromString(LocalVar.VarType, this, LocalVar.DefaultValue, UseDefaultValue, UseDefaultObject, UseDefaultText);
 					FString ErrorMessage;
 
-					if (!K2Schema->DefaultValueSimpleValidation(LocalVar.VarType, LocalVar.VarName.ToString(), UseDefaultValue, UseDefaultObject, UseDefaultText, &ErrorMessage))
+					if (!K2Schema->DefaultValueSimpleValidation(LocalVar.VarType, LocalVar.VarName, UseDefaultValue, UseDefaultObject, UseDefaultText, &ErrorMessage))
 					{
 						const UBlueprint* Blueprint = GetBlueprint();
 						UE_LOG(LogBlueprint, Log, TEXT("Clearing invalid default value for local variable %s on blueprint %s: %s"), *LocalVar.VarName.ToString(), Blueprint ? *Blueprint->GetName() : TEXT("Unknown"), *ErrorMessage);
@@ -312,8 +312,7 @@ FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 void UK2Node_FunctionEntry::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
 
@@ -338,8 +337,7 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 	{
 		UEdGraphPin* WorldContextPin = CreatePin(
 			EGPD_Output,
-			K2Schema->PC_Object,
-			FString(),
+			UEdGraphSchema_K2::PC_Object,
 			UObject::StaticClass(),
 			FFunctionEntryHelper::GetWorldContextPinName());
 		WorldContextPin->bHidden = true;
@@ -379,7 +377,7 @@ UEdGraphPin* UK2Node_FunctionEntry::CreatePinFromUserDefinition(const TSharedPtr
 {
 	// Make sure that if this is an exec node we are allowed one.
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (NewPinInfo->PinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
+	if (NewPinInfo->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec && !CanModifyExecutionWires())
 	{
 		return nullptr;
 	}
@@ -517,7 +515,7 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 						Schema->ConfigureVarNode(VariableSetNode, LocalVar.VarName, Function, CompilerContext.Blueprint);
 						VariableSetNode->AllocateDefaultPins();
 
-						if(UEdGraphPin* SetPin = VariableSetNode->FindPin(Property->GetName()))
+						if(UEdGraphPin* SetPin = VariableSetNode->FindPin(Property->GetFName()))
 						{
 							if(LocalVar.VarType.IsArray())
 							{
@@ -565,7 +563,7 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 								{
 									// When regenerating on load, we want to force load assets referenced by local variables.
 									// This functionality is already handled when generating Terms in the Kismet Compiler for Arrays and Structs, so we do not have to worry about them.
-									if (LocalVar.VarType.PinCategory == Schema->PC_Object || LocalVar.VarType.PinCategory == Schema->PC_Class || LocalVar.VarType.PinCategory == Schema->PC_Interface)
+									if (LocalVar.VarType.PinCategory == UEdGraphSchema_K2::PC_Object || LocalVar.VarType.PinCategory == UEdGraphSchema_K2::PC_Class || LocalVar.VarType.PinCategory == UEdGraphSchema_K2::PC_Interface)
 									{
 										FBlueprintEditorUtils::PropertyValueFromString(Property, LocalVar.DefaultValue, LocalVarData->GetStructMemory());
 									}

@@ -83,7 +83,7 @@ public:
 	}
 
 	/** Registers a delegate for creating a pin for for a specific miscellaneous sub category. */
-	void RegisterMiscSubCategoryPin(FString SubCategory, FCreateGraphPin CreateGraphPin)
+	void RegisterMiscSubCategoryPin(FName SubCategory, FCreateGraphPin CreateGraphPin)
 	{
 		MiscSubCategoryToCreatePinDelegateMap.Add(SubCategory, CreateGraphPin);
 	}
@@ -107,7 +107,7 @@ public:
 				const UEnum* Enum = Cast<const UEnum>(InPin->PinType.PinSubCategoryObject.Get());
 				if (Enum == nullptr)
 				{
-					UE_LOG(LogNiagaraEditor, Error, TEXT("Pin states that it is of Enum type, but is missing its Enum! Pin Name '%s' Owning Node '%s'. Turning into standard int definition!"), *InPin->PinName,
+					UE_LOG(LogNiagaraEditor, Error, TEXT("Pin states that it is of Enum type, but is missing its Enum! Pin Name '%s' Owning Node '%s'. Turning into standard int definition!"), *InPin->PinName.ToString(),
 						*InPin->GetOwningNode()->GetName());
 					InPin->PinType.PinCategory = UEdGraphSchema_Niagara::PinCategoryType;
 					InPin->PinType.PinSubCategoryObject = FNiagaraTypeDefinition::GetIntStruct();
@@ -132,7 +132,7 @@ public:
 
 private:
 	TMap<const UScriptStruct*, FCreateGraphPin> TypeToCreatePinDelegateMap;
-	TMap<FString, FCreateGraphPin> MiscSubCategoryToCreatePinDelegateMap;
+	TMap<FName, FCreateGraphPin> MiscSubCategoryToCreatePinDelegateMap;
 };
 
 FNiagaraEditorModule::FNiagaraEditorModule() 

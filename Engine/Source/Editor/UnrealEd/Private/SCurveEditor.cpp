@@ -36,6 +36,8 @@
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 
+DEFINE_LOG_CATEGORY_STATIC(LogCurveEditor, Log, All);
+
 const static FVector2D	CONST_KeySize		= FVector2D(11,11);
 const static FVector2D	CONST_TangentSize	= FVector2D(7,7);
 const static FVector2D	CONST_CurveSize		= FVector2D(12,12);
@@ -3242,10 +3244,17 @@ void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextComm
 	{
 		double NewBakeSampleRate = FCString::Atod(*InText.ToString());
 		const bool bIsNumber = InText.IsNumeric(); 
-		if(!bIsNumber)
+		if (!bIsNumber)
+		{
 			return;
+		}
+		if (NewBakeSampleRate <= 0.0)
+		{
+			UE_LOG(LogCurveEditor, Error, TEXT("Invalid Bake Sample Rate"));
+			return;
+		}
 
-		float BakeSampleRate = (float)NewBakeSampleRate;
+		const float BakeSampleRate = (float)NewBakeSampleRate;
 
 		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_BakeCurve", "Bake Curve"));
 		CurveOwner->ModifyOwner();
@@ -3273,8 +3282,15 @@ void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextComm
 		{
 			for (auto CurveToBake : CurveRangeMap)
 			{
-				CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
-				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+				if (CurveToBake.Value.Min != CurveToBake.Value.Max)
+				{
+					CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
+					ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+				}
+				else
+				{
+					UE_LOG(LogCurveEditor, Warning, TEXT("Unable to bake single-point curve. Check if you don't have a single key selected before Baking."));
+				}
 			}
 		}
 		else

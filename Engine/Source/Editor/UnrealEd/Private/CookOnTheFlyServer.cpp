@@ -4457,30 +4457,32 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FName CookedFile = CookedPaths.Value;
 			const FName UncookedFilename = CookedPaths.Key;
 			const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
+			bool bShouldKeep = true;
+			const FName SourcePackageName = FoundPackageName ? *FoundPackageName : NAME_None;
 			if ( !FoundPackageName )
 			{
 				// Source file no longer exists
 				++NumPackagesRemoved;
-				continue;
-			}
-			const FName PackageName = *FoundPackageName;
-			bool bShouldKeep = true;
-
-			if (ModifiedPackages.Contains(PackageName))
-			{
-				++NumPackagesFileHashMismatch;
 				bShouldKeep = false;
 			}
-			else if (NewPackages.Contains(PackageName) || RemovedPackages.Contains(PackageName))
+			else
 			{
-				++NumPackagesUnableToFindCookedPackageInfo;
-				bShouldKeep = false;
-			}
-			else if (IdenticalUncookedPackages.Contains(PackageName))
-			{
-				// These are packages which failed to save the first time 
-				// most likely because they are editor only packages
-				bShouldKeep = false;
+				if (ModifiedPackages.Contains(SourcePackageName))
+				{
+					++NumPackagesFileHashMismatch;
+					bShouldKeep = false;
+				}
+				else if (NewPackages.Contains(SourcePackageName) || RemovedPackages.Contains(SourcePackageName))
+				{
+					++NumPackagesUnableToFindCookedPackageInfo;
+					bShouldKeep = false;
+				}
+				else if (IdenticalUncookedPackages.Contains(SourcePackageName))
+				{
+					// These are packages which failed to save the first time 
+					// most likely because they are editor only packages
+					bShouldKeep = false;
+				}
 			}
 				
 			if (CookedFile == NAME_DummyCookedFilename)
@@ -4501,7 +4503,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
 
-				if (IdenticalCookedPackages.Contains(PackageName))
+				if (IdenticalCookedPackages.Contains(SourcePackageName))
 				{
 					CookedPackages.Add(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames), MoveTemp(Succeeded)));
 					++NumPackagesKept;
@@ -4509,7 +4511,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			}
 			else
 			{
-				if ( IsCookByTheBookMode() ) // cook on the fly will requeue this package when it wants it 
+				if (SourcePackageName != NAME_None && IsCookByTheBookMode()) // cook on the fly will requeue this package when it wants it 
 				{
 					// Force cook the modified file
 					CookRequests.EnqueueUnique(FFilePlatformRequest(UncookedFilename, PlatformNames));
@@ -5411,6 +5413,9 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 			}
 
 			CodeGenModule.FinalizeManifest();
+
+			// Unload the module as we only need it while cooking. This will also clear the current module's state in order to allow a new cooker pass to function properly.
+			FModuleManager::Get().UnloadModule(CodeGenModule.GetModuleName());
 		}
 
 		check(CookByTheBookOptions->ChildUnsolicitedPackages.Num() == 0);
@@ -5873,7 +5878,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		StartSavingEDLCookInfoForVerification();
 	}
 
-	if (CookByTheBookStartupOptions.bNativizeAssets)
+	if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
 	{
 		FNativeCodeGenInitData CodeGenData;
 		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)
@@ -5883,17 +5888,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			CodeGenData.CodegenTargets.Push(PlatformNativizationDetails);
 		}
 		CodeGenData.ManifestIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
-		CodeGenData.DestPluginPath = CookByTheBookStartupOptions.NativizedPluginPath;
 		IBlueprintNativeCodeGenModule::InitializeModule(CodeGenData);
-	}
-	else if(PackagingSettings->bWarnIfPackagedWithoutNativizationFlag && PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
-	{
-		// Warn if we're cooking without the -nativizeAssets flag, when the project settings specify a nativization method.
-		// If the "exclusive" (whitelist) method is set, we only warn if at least one asset has been selected for conversion.
-		if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Exclusive || PackagingSettings->NativizeBlueprintAssets.Num() > 0)
-		{
-			UE_LOG(LogCook, Warning, TEXT("Project is configured for Blueprint nativization, but the conversion flag (-nativizeAssets) has been omitted from the command line. No assets will be converted as a result."));
-		}
 	}
 
 	CookByTheBookOptions->bLeakTest = (CookOptions & ECookByTheBookOptions::LeakTest) != ECookByTheBookOptions::None; // this won't work from the editor this needs to be standalone

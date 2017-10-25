@@ -22,8 +22,8 @@
 #include "SComboBox.h"
 #include "Editor.h"
 
-static const FString OutputPinName(TEXT("Output"));
-static const FString SequencePinName(TEXT("Sequence"));
+static const FName OutputPinName(TEXT("Output"));
+static const FName SequencePinName(TEXT("Sequence"));
 
 #define LOCTEXT_NAMESPACE "UK2Node_GetSequenceBinding"
 
@@ -116,12 +116,10 @@ void UK2Node_GetSequenceBinding::ValidateNodeDuringCompilation(FCompilerResultsL
 
 void UK2Node_GetSequenceBinding::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), UMovieSceneSequence::StaticClass(), SequencePinName);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UMovieSceneSequence::StaticClass(), SequencePinName);
 
 	// Result pin
-	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FMovieSceneObjectBindingID::StaticStruct(), K2Schema->PN_ReturnValue);
+	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FMovieSceneObjectBindingID::StaticStruct(), UEdGraphSchema_K2::PN_ReturnValue);
 	ResultPin->PinFriendlyName = LOCTEXT("SequenceBindingOutput", "Binding");
 
 	Super::AllocateDefaultPins();

@@ -38,39 +38,6 @@ public partial class Project : CommandUtils
 {
 	#region Build Command
 
-    static string GetBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform)
-    {
-        string ScriptPluginArgs = "";
-
-        // if we're utilizing an auto-generated code plugin/module (a product of 
-        // the cook process), make sure to compile it along with the targets here
-
-        if (Params.RunAssetNativization)
-        {
-            ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();
-            PluginKey.Client = Client;
-            PluginKey.TargetPlatform = TargetPlatform;
-            FileReference CodePlugin = null;
-            if(Params.BlueprintPluginPaths.TryGetValue(PluginKey, out CodePlugin))
-            {
-                if (FileReference.Exists(CodePlugin))
-                {
-                    ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" ";
-                }
-                else
-                {
-                    LogWarning("Failed to find generated plugin for Blueprint nativization [" + CodePlugin.FullName + "]. Nativization has run, but maybe there are no Blueprints which were converted?");
-                }
-            }
-            else
-            {
-                LogWarning("BlueprintPluginPath for " + TargetPlatform + " " + (Client ? "client" : "server") + " was not found");
-            }
-        }
-
-        return ScriptPluginArgs;
-    }
-
 	/// <summary>
 	/// PlatformSupportsCrashReporter
 	/// </summary>
@@ -149,9 +116,8 @@ public partial class Project : CommandUtils
 			{
                 foreach (var ClientPlatformType in UniquePlatformTypes)
 				{
-                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, true, ClientPlatformType);
                     CrashReportPlatforms.Add(ClientPlatformType);
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
+					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
 				}
 			}
 		}
@@ -163,9 +129,8 @@ public partial class Project : CommandUtils
 			{
 				foreach (var ServerPlatformType in UniquePlatformTypes)
 				{
-                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, false, ServerPlatformType);
                     CrashReportPlatforms.Add(ServerPlatformType);
-					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
+					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
 				}
 			}
 		}

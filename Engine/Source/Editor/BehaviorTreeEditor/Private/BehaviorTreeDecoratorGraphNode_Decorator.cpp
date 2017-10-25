@@ -15,7 +15,7 @@ UBehaviorTreeDecoratorGraphNode_Decorator::UBehaviorTreeDecoratorGraphNode_Decor
 
 void UBehaviorTreeDecoratorGraphNode_Decorator::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
+	CreatePin(EGPD_Output, TEXT("Transition"), TEXT("Out"));
 }
 
 void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
@@ -98,6 +98,12 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostEditImport()
 	}
 }
 
+void UBehaviorTreeDecoratorGraphNode_Decorator::PostEditUndo()
+{
+	Super::PostEditUndo();
+	ResetNodeOwner();
+}
+
 void UBehaviorTreeDecoratorGraphNode_Decorator::PostCopyNode()
 {
 	ResetNodeOwner();
@@ -111,6 +117,7 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::ResetNodeOwner()
 		UBehaviorTree* BT = OwningNode ? Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter()) : NULL;
 
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+		NodeInstance->ClearFlags(RF_Transient);
 	}
 }
 

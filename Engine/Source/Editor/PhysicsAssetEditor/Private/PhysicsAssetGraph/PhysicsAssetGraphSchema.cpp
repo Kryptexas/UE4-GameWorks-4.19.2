@@ -47,7 +47,7 @@ void UPhysicsAssetGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSends
 	// Don't allow breaking any links
 }
 
-void UPhysicsAssetGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UPhysicsAssetGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	// Don't allow breaking any links
 }

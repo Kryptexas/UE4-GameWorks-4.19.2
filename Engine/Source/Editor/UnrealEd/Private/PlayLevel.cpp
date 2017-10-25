@@ -3586,6 +3586,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	PlayWorldPackage->PIEInstanceID = WorldContext.PIEInstance;
 	PlayWorldPackage->FileName = InPackage->FileName;
 	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
+	PlayWorldPackage->MarkAsFullyLoaded();
 
 	// check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
 	// Currently GPlayInEditorID is not correctly reset after map loading, so it's not safe to assert here

@@ -67,7 +67,7 @@ public:
 		UNiagaraStackEditorData& InStackEditorData,
 		UNiagaraNodeFunctionCall& InModuleNode,
 		UNiagaraNodeFunctionCall& InInputFunctionCallNode,
-		FString InInputParameterHandle,
+		FName InInputParameterHandle,
 		FNiagaraTypeDefinition InInputType);
 
 	/** Gets the function call node which owns this input. */
@@ -152,10 +152,10 @@ public:
 	void SetIsRenamePending(bool bIsRenamePending);
 
 	/** Renames this input to the name specified. */
-	void RenameInput(FString NewName);
+	void RenameInput(FName NewName);
 
 	/** Gets the namespaces which new parameters for this input can be read from. */
-	void GetNamespacesForNewParameters(TArray<FString>& OutNamespacesForNewParameters) const;
+	void GetNamespacesForNewParameters(TArray<FName>& OutNamespacesForNewParameters) const;
 
 	/** Gets a multicast delegate which is called whenever the value on this input changes. */
 	FOnValueChanged& OnValueChanged();

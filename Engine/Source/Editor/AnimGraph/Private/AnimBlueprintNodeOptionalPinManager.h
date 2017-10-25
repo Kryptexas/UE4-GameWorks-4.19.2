@@ -13,7 +13,7 @@ protected:
 	class UAnimGraphNode_Base* BaseNode;
 	TArray<UEdGraphPin*>* OldPins;
 
-	TMap<FString, UEdGraphPin*> OldPinMap;
+	TMap<FName, UEdGraphPin*> OldPinMap;
 
 public:
 	FAnimBlueprintNodeOptionalPinManager(class UAnimGraphNode_Base* Node, TArray<UEdGraphPin*>* InOldPins);

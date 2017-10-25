@@ -189,7 +189,7 @@ public:
 			if (SourcePin)
 			{
 				UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(MessageLog.FindSourceObject(SourcePin->GetOwningNode()));
-				UEdGraphPin* TrueSourcePin = TrueSourceNode->FindPin(SourcePin->GetName());
+				UEdGraphPin* TrueSourcePin = TrueSourceNode->FindPin(SourcePin->GetFName());
 				SourcePinToExpansionEvent.Add(TrueSourcePin) = Cast<UK2Node_Event>(Result);
 			}
 			else if (SourceNode)
@@ -225,17 +225,39 @@ public:
 	 */
 	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	DEPRECATED(4.17, "Use version that takes PinContainerType instead of separate booleans for array, set, and map")
-	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+	struct FNameParameterHelper
+	{
+		FNameParameterHelper(const FName InNameParameter) : NameParameter(InNameParameter) { }
+		FNameParameterHelper(const FString& InNameParameter) : NameParameter(*InNameParameter) { }
+		FNameParameterHelper(const TCHAR* InNameParameter) : NameParameter(InNameParameter) { }
 
-	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = FString(), UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+		FName operator*() const { return NameParameter; }
+
+	private:
+		FName NameParameter;
+	};
+
+	DEPRECATED(4.17, "Use version that takes Category and SubCategory as FName, and PinContainerType instead of separate booleans for array, set, and map")
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, const FString& Category, const FString& SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+
+	DEPRECATED(4.18, "Use version that takes Category and SubCategory as FName")
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, const FNameParameterHelper Category, const FString& SubCategory, UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType())
+	{
+		return SpawnInternalVariable(SourceNode, *Category, FName(*SubCategory), SubcategoryObject, PinContainerType, ValueTerminalType);
+	}
+
+	//DEPRECATED(4.18, "Remove when removing versions that take subcategory as FString. Required to avoid ambiguity")
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, const FNameParameterHelper Category, const TCHAR* SubCategory, UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType())
+	{
+		return SpawnInternalVariable(SourceNode, *Category, FName(SubCategory), SubcategoryObject, PinContainerType, ValueTerminalType);
+	}
+
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FName Category, FName SubCategory = NAME_None, UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	bool UsePersistentUberGraphFrame() const;
 
 	FString GetGuid(const UEdGraphNode* Node) const;
 
-	static TSharedPtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
-	
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();
 	
@@ -308,7 +330,7 @@ protected:
 	virtual bool PinIsImportantForDependancies(const UEdGraphPin* Pin) const override
 	{
 		// The execution wires do not form data dependencies, they are only important for final scheduling and that is handled thru gotos
-		return Pin->PinType.PinCategory != Schema->PC_Exec;
+		return Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec;
 	}
 
 protected:
@@ -399,8 +421,7 @@ protected:
 	 */
 	FName GetUbergraphCallName() const
 	{
-		check(Schema);
-		const FString UbergraphCallString = Schema->FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Blueprint->GetName();
+		const FString UbergraphCallString = UEdGraphSchema_K2::FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Blueprint->GetName();
 		return FName(*UbergraphCallString);
 	}
 
@@ -500,7 +521,7 @@ private:
 	/**
 	 * Handles creating a new event node for a given output on a timeline node utilizing the named function
 	 */
-	void CreatePinEventNodeForTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, const FString& PinName, FName ExecFuncName);
+	void CreatePinEventNodeForTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, const FName PinName, FName ExecFuncName);
 
 	/** Util for creating a node to call a function on a timeline and move connections to it */
 	class UK2Node_CallFunction* CreateCallTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, UEdGraphPin* TimelineVarPin, UEdGraphPin* TimelineFunctionPin);

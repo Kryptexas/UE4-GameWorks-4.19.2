@@ -6,6 +6,7 @@
 #include "KismetCompiler.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimGraphNode_Base.h"
+#include "KismetCompilerModule.h"
 
 class UAnimationGraphSchema;
 class UAnimGraphNode_SaveCachedPose;
@@ -31,13 +32,21 @@ struct FPoseLinkMappingRecord;
 //////////////////////////////////////////////////////////////////////////
 // FAnimBlueprintCompiler
 
-class KISMETCOMPILER_API FAnimBlueprintCompiler : public FKismetCompilerContext
+class FAnimBlueprintCompiler : public IBlueprintCompiler
+{
+public:
+	/** IBlueprintCompiler interface */
+	virtual bool CanCompile(const UBlueprint* Blueprint) override;
+	virtual void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded) override;
+};
+
+class FAnimBlueprintCompilerContext : public FKismetCompilerContext
 {
 protected:
 	typedef FKismetCompilerContext Super;
 public:
-	FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded);
-	virtual ~FAnimBlueprintCompiler();
+	FAnimBlueprintCompilerContext(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded);
+	virtual ~FAnimBlueprintCompilerContext();
 
 	virtual void PostCompile() override;
 

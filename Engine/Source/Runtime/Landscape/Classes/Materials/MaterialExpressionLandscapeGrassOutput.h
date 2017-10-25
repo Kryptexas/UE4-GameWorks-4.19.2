@@ -48,7 +48,7 @@ class LANDSCAPE_API UMaterialExpressionLandscapeGrassOutput : public UMaterialEx
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 
 	//~ Begin UObject Interface
 	virtual bool NeedsLoadForClient() const override;

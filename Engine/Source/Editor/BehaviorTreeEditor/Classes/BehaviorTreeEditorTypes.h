@@ -59,8 +59,8 @@ class UBehaviorTreeEditorTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	static const FString PinCategory_MultipleNodes;
-	static const FString PinCategory_SingleComposite;
-	static const FString PinCategory_SingleTask;
-	static const FString PinCategory_SingleNode;
+	static const FName PinCategory_MultipleNodes;
+	static const FName PinCategory_SingleComposite;
+	static const FName PinCategory_SingleTask;
+	static const FName PinCategory_SingleNode;
 };

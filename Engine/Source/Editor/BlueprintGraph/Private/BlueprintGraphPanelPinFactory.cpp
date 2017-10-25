@@ -12,8 +12,7 @@
 	
 TSharedPtr<class SGraphPin> FBlueprintGraphPanelPinFactory::CreatePin(class UEdGraphPin* InPin) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if (InPin->PinType.PinCategory == K2Schema->PC_Name)
+	if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name)
 	{
 		UObject* Outer = InPin->GetOuter();
 

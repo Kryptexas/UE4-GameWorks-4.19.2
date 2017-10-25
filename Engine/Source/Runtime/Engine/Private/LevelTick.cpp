@@ -139,7 +139,8 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 -----------------------------------------------------------------------------*/
 
 /** Static array of tickable objects */
-TArray<FTickableGameObject*> FTickableGameObject::TickableObjects;
+TArray<FTickableObjectBase::FTickableObjectEntry> FTickableGameObject::TickableObjects;
+TArray<FTickableGameObject*> FTickableGameObject::PendingTickableObjects;
 bool FTickableGameObject::bIsTickingObjects = false;
 
 #if LOG_DETAILED_PATHFINDING_STATS
@@ -1184,6 +1185,12 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 
 void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, const bool bIsPaused, const float DeltaSeconds)
 {
+	for (FTickableGameObject* PendingTickable : PendingTickableObjects)
+	{
+		AddTickableObject(TickableObjects, PendingTickable);
+	}
+	PendingTickableObjects.Empty();
+
 	if (TickableObjects.Num() > 0)
 	{
 		check(!bIsTickingObjects);
@@ -1192,12 +1199,12 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 		bool bNeedsCleanup = false;
 		const ELevelTick TickType = (ELevelTick)InTickType;
 
-		for (int32 i = 0; i < TickableObjects.Num(); ++i)
+		for (const FTickableObjectEntry& TickableEntry : TickableObjects)
 		{
-			if (FTickableGameObject* TickableObject = TickableObjects[i])
+			if (FTickableGameObject* TickableObject = static_cast<FTickableGameObject*>(TickableEntry.TickableObject))
 			{
 				// If it is tickable and in this world
-				if (TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World))
+				if (((TickableEntry.TickType == ETickableTickType::Always) || TickableObject->IsTickable()) && (TickableObject->GetTickableGameObjectWorld() == World))
 				{
 					const bool bIsGameWorld = InTickType == LEVELTICK_All || (World && World->IsGameWorld());
 					// If we are in editor and it is editor tickable, always tick
@@ -1209,7 +1216,7 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 						TickableObject->Tick(DeltaSeconds);
 
 						// In case it was removed during tick
-						if (TickableObjects[i] == nullptr)
+						if (TickableEntry.TickableObject == nullptr)
 						{
 							bNeedsCleanup = true;
 						}
@@ -1224,7 +1231,7 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 
 		if (bNeedsCleanup)
 		{
-			TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
+			TickableObjects.RemoveAll([](const FTickableObjectEntry& Entry) { return Entry.TickableObject == nullptr; });
 		}
 
 		bIsTickingObjects = false;

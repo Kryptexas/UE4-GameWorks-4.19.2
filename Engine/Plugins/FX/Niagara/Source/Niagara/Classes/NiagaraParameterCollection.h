@@ -134,7 +134,7 @@ public:
 	Takes the friendly name presented to the UI and converts to the real parameter name used under the hood.
 	Converts from "ParameterName" to "CollectionUniqueName_ParameterName".
 	*/
-	FString ParameterNameFromFriendlyName(FString FriendlyName)const;
+	FString ParameterNameFromFriendlyName(const FString& FriendlyName)const;
 	/**
 	Takes the real parameter name used under the hood and converts to the friendly name for use in the UI.
 	Converts from "CollectionUniqueName_ParameterName" to "ParameterName".
@@ -146,7 +146,7 @@ public:
 	FString FriendlyNameFromParameterName(FString ParameterName)const;
 protected:
 
-	FString GetUniqueName()const;
+	const FString& GetUniqueName() const { return UniqueName; }
 	
 	UPROPERTY()
 	TArray<FNiagaraVariable> Parameters;

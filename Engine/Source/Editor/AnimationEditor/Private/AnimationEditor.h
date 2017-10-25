@@ -71,7 +71,7 @@ public:
 	/** FTickableEditorObject Interface */
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;

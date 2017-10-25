@@ -282,8 +282,10 @@ void FBehaviorTreeSearchData::Reset()
 	PendingUpdates.Reset();
 	SearchStart = FBTNodeIndex();
 	SearchEnd = FBTNodeIndex();
+	RollbackInstanceIdx = INDEX_NONE;
 	bSearchInProgress = false;
 	bPostponeSearch = false;
+	bPreserveActiveNodeMemoryOnRollback = false;
 }
 
 //----------------------------------------------------------------------//

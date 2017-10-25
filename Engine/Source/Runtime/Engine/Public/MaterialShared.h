@@ -61,6 +61,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogMaterial,Log,Verbose);
 
 /** Creates a string that represents the given quality level. */
 extern void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InMaterialQualityLevel, FString& OutName);
+extern FName GetMaterialQualityLevelFName(EMaterialQualityLevel::Type InMaterialQualityLevel);
 
 inline bool IsSubsurfaceShadingModel(EMaterialShadingModel ShadingModel)
 {

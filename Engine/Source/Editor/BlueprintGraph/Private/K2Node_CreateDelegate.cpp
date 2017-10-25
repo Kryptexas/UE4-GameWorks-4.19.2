@@ -17,11 +17,11 @@
 
 struct FK2Node_CreateDelegate_Helper
 {
-	static FString DelegateOutputName;
-	static FString InputObjectName; // Deprecated, for fixup
+	static FName DelegateOutputName;
+	static FName InputObjectName; // Deprecated, for fixup
 };
-FString FK2Node_CreateDelegate_Helper::DelegateOutputName(TEXT("OutputDelegate"));
-FString FK2Node_CreateDelegate_Helper::InputObjectName(TEXT("InputObject"));
+FName FK2Node_CreateDelegate_Helper::DelegateOutputName(TEXT("OutputDelegate"));
+FName FK2Node_CreateDelegate_Helper::InputObjectName(TEXT("InputObject"));
 
 UK2Node_CreateDelegate::UK2Node_CreateDelegate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -30,14 +30,12 @@ UK2Node_CreateDelegate::UK2Node_CreateDelegate(const FObjectInitializer& ObjectI
 
 void UK2Node_CreateDelegate::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	if (UEdGraphPin* ObjPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), UObject::StaticClass(), K2Schema->PN_Self))
+	if (UEdGraphPin* ObjPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UObject::StaticClass(), UEdGraphSchema_K2::PN_Self))
 	{
 		ObjPin->PinFriendlyName = NSLOCTEXT("K2Node", "CreateDelegate_ObjectInputName", "Object");
 	}
 
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Output, K2Schema->PC_Delegate, FString(), nullptr, FK2Node_CreateDelegate_Helper::DelegateOutputName))
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Delegate, FK2Node_CreateDelegate_Helper::DelegateOutputName))
 	{
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "CreateDelegate_DelegateOutName", "Event");
 	}
@@ -47,10 +45,8 @@ void UK2Node_CreateDelegate::AllocateDefaultPins()
 
 UK2Node::ERedirectType UK2Node_CreateDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Handles remap of InputObject to Self, from 4.10 time frame
-	if (OldPin->PinName == FK2Node_CreateDelegate_Helper::InputObjectName && NewPin->PinName == K2Schema->PN_Self)
+	if (OldPin->PinName == FK2Node_CreateDelegate_Helper::InputObjectName && NewPin->PinName == UEdGraphSchema_K2::PN_Self)
 	{
 		return ERedirectType_Name;
 	}
@@ -120,10 +116,14 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	{
 		if (OutMsg)
 		{
-			FString SelfPinName = UEdGraphSchema_K2::PN_Self;
+			FString SelfPinName;
 			if (UEdGraphPin* SelfPin = GetObjectInPin())
 			{
-				SelfPinName = SelfPin->PinFriendlyName.IsEmpty() ? SelfPin->PinFriendlyName.ToString() : SelfPin->PinName;
+				SelfPinName = SelfPin->PinFriendlyName.IsEmpty() ? SelfPin->PinFriendlyName.ToString() : SelfPin->PinName.ToString();
+			}
+			else
+			{
+				SelfPinName = UEdGraphSchema_K2::PN_Self.ToString();
 			}
 
 			*OutMsg = FString::Printf(*NSLOCTEXT("K2Node", "Class_not_found", "Unable to determine context for the selected function/event: '%s' - make sure the target '%s' pin is properly set up.").ToString(),
@@ -334,8 +334,7 @@ UFunction* UK2Node_CreateDelegate::GetDelegateSignature() const
 
 UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/* = false*/) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_Self);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_Self);
 	if (Pin == nullptr)
 	{
 		// The BlueprintNodeTemplateCache creates nodes but doesn't call allocate default pins.
@@ -353,8 +352,8 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 	{
 		if(UEdGraphPin* ResultPin = Pin->LinkedTo[0])
 		{
-			ensure(K2Schema->PC_Object == ResultPin->PinType.PinCategory);
-			if (K2Schema->PN_Self == ResultPin->PinType.PinSubCategory)
+			ensure(UEdGraphSchema_K2::PC_Object == ResultPin->PinType.PinCategory);
+			if (UEdGraphSchema_K2::PN_Self == ResultPin->PinType.PinSubCategory)
 			{
 				bUseSelf = true;
 			}

@@ -5211,46 +5211,47 @@ protected:
 		for( int32 i = 0; i < Custom->Inputs.Num(); i++ )
 		{
 			// skip over unnamed inputs
-			if( Custom->Inputs[i].InputName.Len()==0 )
+			if( Custom->Inputs[i].InputName.IsNone() )
 			{
 				continue;
 			}
 			InputParamDecl += TEXT(",");
+			const FString InputNameStr = Custom->Inputs[i].InputName.ToString();
 			switch(GetParameterType(CompiledInputs[i]))
 			{
 			case MCT_Float:
 			case MCT_Float1:
 				InputParamDecl += TEXT("MaterialFloat ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				break;
 			case MCT_Float2:
 				InputParamDecl += TEXT("MaterialFloat2 ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				break;
 			case MCT_Float3:
 				InputParamDecl += TEXT("MaterialFloat3 ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				break;
 			case MCT_Float4:
 				InputParamDecl += TEXT("MaterialFloat4 ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				break;
 			case MCT_Texture2D:
 				InputParamDecl += TEXT("Texture2D ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				InputParamDecl += TEXT(", SamplerState ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				InputParamDecl += TEXT("Sampler ");
 				break;
 			case MCT_TextureCube:
 				InputParamDecl += TEXT("TextureCube ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				InputParamDecl += TEXT(", SamplerState ");
-				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += InputNameStr;
 				InputParamDecl += TEXT("Sampler ");
 				break;
 			default:
-				return Errorf(TEXT("Bad type %s for %s input %s"),DescribeType(GetParameterType(CompiledInputs[i])), *Custom->Description, *Custom->Inputs[i].InputName);
+				return Errorf(TEXT("Bad type %s for %s input %s"),DescribeType(GetParameterType(CompiledInputs[i])), *Custom->Description, *InputNameStr);
 				break;
 			}
 		}
@@ -5272,7 +5273,7 @@ protected:
 		for( int32 i = 0; i < CompiledInputs.Num(); i++ )
 		{
 			// skip over unnamed inputs
-			if( Custom->Inputs[i].InputName.Len()==0 )
+			if( Custom->Inputs[i].InputName.IsNone() )
 			{
 				continue;
 			}

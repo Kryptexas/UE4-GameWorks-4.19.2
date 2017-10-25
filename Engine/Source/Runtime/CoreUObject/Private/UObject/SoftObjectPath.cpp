@@ -303,7 +303,22 @@ UObject* FSoftObjectPath::ResolveObject() const
 		return nullptr;
 	}
 
-	UObject* FoundObject = FindObject<UObject>(nullptr, *ToString());
+	FString PathString = ToString();
+#if WITH_EDITOR
+	if (GPlayInEditorID != INDEX_NONE)
+	{
+		// If we are in PIE and this hasn't already been fixed up, we need to fixup at resolution time. We cannot modify the path as it may be somewhere like a blueprint CDO
+		FSoftObjectPath FixupObjectPath = *this;
+		FixupObjectPath.FixupForPIE();
+
+		if (FixupObjectPath.AssetPathName != AssetPathName)
+		{
+			PathString = FixupObjectPath.ToString();
+		}
+	}
+#endif
+
+	UObject* FoundObject = FindObject<UObject>(nullptr, *PathString);
 	while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(FoundObject))
 	{
 		FoundObject = Redirector->DestinationObject;

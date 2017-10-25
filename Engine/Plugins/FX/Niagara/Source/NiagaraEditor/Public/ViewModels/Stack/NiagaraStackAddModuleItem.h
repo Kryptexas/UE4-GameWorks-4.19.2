@@ -33,7 +33,7 @@ public:
 
 	virtual void GetNewParameterAvailableTypes(TArray<FNiagaraTypeDefinition>& OutAvailableTypes) const;
 
-	virtual TOptional<FString> GetNewParameterNamespace() const;
+	virtual TOptional<FName> GetNewParameterNamespace() const;
 
 	virtual ENiagaraScriptUsage GetOutputUsage() const PURE_VIRTUAL(UNiagaraStackAddModuleItem::GetOutputUsage, return ENiagaraScriptUsage::EmitterSpawnScript;);
 

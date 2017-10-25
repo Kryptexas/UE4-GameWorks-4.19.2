@@ -65,7 +65,7 @@ void UK2Node_CreateDragDropOperation::ExpandNode(class FKismetCompilerContext& C
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
 	static FName Create_FunctionName = GET_FUNCTION_NAME_CHECKED(UWidgetBlueprintLibrary, CreateDragDropOperation);
-	static FString OperationClass_ParamName = FString(TEXT("OperationClass"));
+	static FName OperationClass_ParamName(TEXT("OperationClass"));
 
 	UK2Node_CreateDragDropOperation* CreateOpNode = this;
 	UEdGraphPin* SpawnNodeExec = CreateOpNode->GetExecPin();

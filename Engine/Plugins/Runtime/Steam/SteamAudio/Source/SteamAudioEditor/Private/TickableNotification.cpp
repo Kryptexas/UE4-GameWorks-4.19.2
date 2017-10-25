@@ -110,11 +110,6 @@ namespace SteamAudio
 		}
 	}
 
-	bool FTickableNotification::IsTickable() const
-	{
-		return true;
-	}
-
 	TStatId FTickableNotification::GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickableNotification, STATGROUP_Tickables);

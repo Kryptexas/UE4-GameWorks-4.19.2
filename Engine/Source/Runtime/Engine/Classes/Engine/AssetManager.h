@@ -465,6 +465,9 @@ protected:
 	/** Handles updating manager if deleted object is relevant*/
 	virtual void OnInMemoryAssetDeleted(UObject *Object);
 
+	/** Called when object is saved */
+	virtual void OnObjectPreSave(UObject* Object);
+
 	/** When asset is renamed */
 	virtual void OnAssetRenamed(const FAssetData& NewData, const FString& OldPath);
 

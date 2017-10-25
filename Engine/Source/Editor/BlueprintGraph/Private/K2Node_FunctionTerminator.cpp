@@ -20,16 +20,16 @@ FLinearColor UK2Node_FunctionTerminator::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->FunctionTerminatorNodeTitleColor;
 }
 
-FString UK2Node_FunctionTerminator::CreateUniquePinName(FString InSourcePinName) const
+FName UK2Node_FunctionTerminator::CreateUniquePinName(FName InSourcePinName) const
 {
 	const UFunction* FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(this);
 
-	FString ResultName = InSourcePinName;
+	FName ResultName = InSourcePinName;
 	int UniqueNum = 0;
 	// Prevent the unique name from being the same as another of the UFunction's properties
-	while(FindPin(ResultName) || FindField<const UProperty>(FoundFunction, *ResultName) != NULL)
+	while(FindPin(ResultName) || FindField<const UProperty>(FoundFunction, ResultName) != nullptr)
 	{
-		ResultName = FString::Printf(TEXT("%s%d"), *InSourcePinName, ++UniqueNum);
+		ResultName = *FString::Printf(TEXT("%s%d"), *InSourcePinName.ToString(), ++UniqueNum);
 	}
 	return ResultName;
 }
@@ -39,8 +39,7 @@ bool UK2Node_FunctionTerminator::CanCreateUserDefinedPin(const FEdGraphPinType& 
 	const bool bIsNodeEditable = IsEditable();
 
 	// Make sure that if this is an exec node we are allowed one.
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (bIsNodeEditable && InPinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
+	if (bIsNodeEditable && InPinType.PinCategory == UEdGraphSchema_K2::PC_Exec && !CanModifyExecutionWires())
 	{
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;

@@ -34,10 +34,10 @@ struct FStructVariableDescription
 
 	// TYPE DATA
 	UPROPERTY()
-	FString Category;
+	FName Category;
 
 	UPROPERTY()
-	FString SubCategory;
+	FName SubCategory;
 
 	UPROPERTY()
 	TSoftObjectPtr<UObject> SubCategoryObject;

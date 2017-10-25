@@ -281,7 +281,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @return	The literal string
 	 */
 	UFUNCTION(BlueprintPure, Category="Utilities|String", meta=(BlueprintThreadSafe))
-	static FString MakeLiteralString(const FString& Value);
+	static FString MakeLiteralString(FString Value);
 
 	/**
 	 * Creates a literal FText
@@ -1764,7 +1764,7 @@ FORCEINLINE uint8 UKismetSystemLibrary::MakeLiteralByte(uint8 Value)
 	return Value;
 }
 
-FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(const FString& Value)
+FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(FString Value)
 {
 	return Value;
 }

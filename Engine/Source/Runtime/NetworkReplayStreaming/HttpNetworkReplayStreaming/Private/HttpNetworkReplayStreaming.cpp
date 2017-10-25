@@ -2344,16 +2344,6 @@ void FHttpNetworkReplayStreamingFactory::Tick( float DeltaTime )
 	}
 }
 
-bool FHttpNetworkReplayStreamingFactory::IsTickable() const
-{
-	return true;
-}
-
-bool FHttpNetworkReplayStreamingFactory::IsTickableWhenPaused() const
-{
-	return true;
-}
-
 TStatId FHttpNetworkReplayStreamingFactory::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT( FHttpNetworkReplayStreamingFactory, STATGROUP_Tickables );

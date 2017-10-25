@@ -110,7 +110,8 @@ class UNiagaraGraph : public UEdGraph
 	FGuid GetChangeID() { return ChangeId; }
 
 	/** Walk through the graph for an ParameterMapGet nodes and see if any of them specify a default for VariableName.*/
-	UEdGraphPin* FindParameterMapDefaultValuePin(const FString& VariableName);
+	UEdGraphPin* FindParameterMapDefaultValuePin(const FName VariableName);
+
 private:
 	
 	/** The current change identifier for this graph. Used to sync status with UNiagaraScripts.*/

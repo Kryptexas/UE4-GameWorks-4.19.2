@@ -17,7 +17,7 @@ class UK2Node_GetEnumeratorName : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	static FString EnumeratorPinName;
+	static FName EnumeratorPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

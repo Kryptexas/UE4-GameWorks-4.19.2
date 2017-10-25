@@ -219,7 +219,7 @@ void FFormatTextArgumentLayout::OnArgumentNameCommitted(const FText& NewText, ET
 	if(IsValidArgumentName(NewText))
 	{
 		FScopeTrue ScopeTrue(bCausedChange);
-		TargetNode->SetArgumentName(ArgumentIndex, NewText.ToString());
+		TargetNode->SetArgumentName(ArgumentIndex, *NewText.ToString());
 	}
 	ArgumentNameWidget.Pin()->SetError(FString());
 }
@@ -231,7 +231,7 @@ void FFormatTextArgumentLayout::OnArgumentNameChanged(const FText& NewText)
 
 bool FFormatTextArgumentLayout::IsValidArgumentName(const FText& InNewText) const
 {
-	if(TargetNode->FindArgumentPin(InNewText.ToString()))
+	if(TargetNode->FindArgumentPin(*InNewText.ToString()))
 	{
 		ArgumentNameWidget.Pin()->SetError(LOCTEXT("UniqueName_Error", "Name must be unique."));
 		return false;

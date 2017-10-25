@@ -35,7 +35,7 @@ class UK2Node_VariableSet : public UK2Node_Variable
 	//~ End K2Node Interface
 
 	/** Retrieves the output pin name for the node */
-	FString GetVariableOutputPinName() const;
+	FName GetVariableOutputPinName() const;
 
 	BLUEPRINTGRAPH_API bool HasLocalRepNotify() const;
 	BLUEPRINTGRAPH_API FName GetRepNotifyName() const;

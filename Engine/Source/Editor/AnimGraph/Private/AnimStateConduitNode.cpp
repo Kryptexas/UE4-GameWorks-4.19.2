@@ -22,8 +22,8 @@ UAnimStateConduitNode::UAnimStateConduitNode(const FObjectInitializer& ObjectIni
 
 void UAnimStateConduitNode::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
-	CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
+	CreatePin(EGPD_Input, TEXT("Transition"), TEXT("In"));
+	CreatePin(EGPD_Output, TEXT("Transition"), TEXT("Out"));
 }
 
 void UAnimStateConduitNode::AutowireNewNode(UEdGraphPin* FromPin)

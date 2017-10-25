@@ -138,8 +138,8 @@ void UDEPRECATED_K2Node_GetSequenceBindings::UpdatePins()
 				continue;
 			}
 
-			FString GuidString = Possessable.GetGuid().ToString();
-			UEdGraphPin* NewPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FString(), FMovieSceneObjectBindingID::StaticStruct(), GuidString);
+			const FName GuidString = *Possessable.GetGuid().ToString();
+			UEdGraphPin* NewPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FMovieSceneObjectBindingID::StaticStruct(), GuidString);
 			NewPin->PinFriendlyName = MovieScene->GetObjectDisplayName(Possessable.GetGuid());
 			NewPin->PersistentGuid = Possessable.GetGuid();
 

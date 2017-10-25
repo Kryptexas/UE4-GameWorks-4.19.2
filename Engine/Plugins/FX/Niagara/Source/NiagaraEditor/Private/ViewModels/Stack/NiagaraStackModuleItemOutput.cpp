@@ -15,14 +15,14 @@ int32 UNiagaraStackModuleItemOutput::GetItemIndentLevel() const
 	return 1;
 }
 
-void UNiagaraStackModuleItemOutput::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraNodeFunctionCall& InFunctionCallNode, FString InOutputParameterHandle)
+void UNiagaraStackModuleItemOutput::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraNodeFunctionCall& InFunctionCallNode, FName InOutputParameterHandle)
 {
 	checkf(FunctionCallNode.Get() == nullptr, TEXT("Can only set the Output once."));
 	Super::Initialize(InSystemViewModel, InEmitterViewModel);
 	FunctionCallNode = &InFunctionCallNode;
 
 	OutputParameterHandle = FNiagaraParameterHandle(InOutputParameterHandle);
-	DisplayName = FText::FromString(OutputParameterHandle.GetName());
+	DisplayName = FText::FromName(OutputParameterHandle.GetName());
 }
 
 FText UNiagaraStackModuleItemOutput::GetDisplayName() const
@@ -47,7 +47,7 @@ const FNiagaraParameterHandle& UNiagaraStackModuleItemOutput::GetOutputParameter
 
 FText UNiagaraStackModuleItemOutput::GetOutputParameterHandleText() const
 {
-	return FText::FromString(OutputParameterHandle.GetParameterHandleString());
+	return FText::FromName(OutputParameterHandle.GetParameterHandleString());
 }
 
 #undef LOCTEXT_NAMESPACE

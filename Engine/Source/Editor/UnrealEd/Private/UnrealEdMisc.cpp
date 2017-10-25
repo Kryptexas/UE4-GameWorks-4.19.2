@@ -88,6 +88,10 @@
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdMisc, Log, All);
 
 bool FTickableEditorObject::bCollectionIntact = true;
+bool FTickableEditorObject::bIsTickingObjects = false;
+FTickableEditorObject::TTickableObjectsCollection FTickableEditorObject::TickableObjects;
+TArray<FTickableEditorObject*> FTickableEditorObject::PendingTickableObjects;
+
 
 namespace
 {

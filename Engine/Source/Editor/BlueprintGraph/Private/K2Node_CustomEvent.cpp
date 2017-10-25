@@ -189,7 +189,7 @@ bool UK2Node_CustomEvent::CanCreateUserDefinedPin(const FEdGraphPinType& InPinTy
 		OutErrorMessage = NSLOCTEXT("K2Node", "AddInputPinError", "Cannot add input pins to custom event node!");
 		return false;
 	}
-	else if (InPinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
+	else if (InPinType.PinCategory == UEdGraphSchema_K2::PC_Exec && !CanModifyExecutionWires())
 	{
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;
@@ -393,13 +393,13 @@ void UK2Node_CustomEvent::ReconstructNode()
 		{
 			DelegateSignature = OtherNode->GetDelegateSignature();
 		}
-		else if ( LinkedPin->PinType.PinCategory == K2Schema->PC_Delegate )
+		else if ( LinkedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate )
 		{
 			DelegateSignature = FMemberReference::ResolveSimpleMemberReference<UFunction>(LinkedPin->PinType.PinSubCategoryMemberReference);
 		}
 	}
 	
-	const bool bUseDelegateSignature = (NULL == FindEventSignatureFunction()) && DelegateSignature;
+	const bool bUseDelegateSignature = (nullptr == FindEventSignatureFunction()) && DelegateSignature;
 
 	if (bUseDelegateSignature)
 	{
@@ -412,12 +412,12 @@ void UK2Node_CustomEvent::ReconstructNode()
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
 
-				FString NewPinName = Param->GetName();
+				FName NewPinName = Param->GetFName();
 				int32 Index = 1;
-				while ((DelegateOutputName == NewPinName) || (K2Schema->PN_Then == NewPinName))
+				while ((DelegateOutputName == NewPinName) || (UEdGraphSchema_K2::PN_Then == NewPinName))
 				{
 					++Index;
-					NewPinName += FString::FromInt(Index);
+					NewPinName = *FString::Printf(TEXT("%s%d"), *NewPinName.ToString(), Index);
 				}
 				TSharedPtr<FUserPinInfo> NewPinInfo = MakeShareable( new FUserPinInfo() );
 				NewPinInfo->PinName = NewPinName;
@@ -453,7 +453,7 @@ UK2Node_CustomEvent* UK2Node_CustomEvent::CreateFromFunction(FVector2D GraphPosi
 			{
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
-				CustomEventNode->CreateUserDefinedPin(Param->GetName(), PinType, EGPD_Output);
+				CustomEventNode->CreateUserDefinedPin(Param->GetFName(), PinType, EGPD_Output);
 			}
 		}
 

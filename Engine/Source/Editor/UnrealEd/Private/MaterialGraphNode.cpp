@@ -431,46 +431,67 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 	}
 }
 
-FString UMaterialGraphNode::GetShortenPinName(const FString& PinName)
+namespace MaterialPinNames
 {
-	FString InputName = PinName;
+	static const FName Coordinates(TEXT("Coordinates"));
+	static const FName UVs(TEXT("UVs"));
+	static const FName TextureObject(TEXT("TextureObject"));
+	static const FName Tex(TEXT("Tex"));
+	static const FName Input(TEXT("Input"));
+	static const FName Exponent(TEXT("Exponent"));
+	static const FName Exp(TEXT("Exp"));
+	static const FName AGreaterThanB(TEXT("AGreaterThanB"));
+	static const FName CompactAGreaterThanB(TEXT("A > B"));
+	static const FName AEqualsB(TEXT("AEqualsB"));
+	static const FName CompactAEqualsB(TEXT("A == B"));
+	static const FName ALessThanB(TEXT("ALessThanB"));
+	static const FName CompactALessThanB(TEXT("A < B"));
+	static const FName MipLevel(TEXT("MipLevel"));
+	static const FName Level(TEXT("Level"));
+	static const FName MipBias(TEXT("MipBias"));
+	static const FName Bias(TEXT("Bias"));
+}
+
+FName UMaterialGraphNode::GetShortenPinName(const FName PinName)
+{
+	FName InputName = PinName;
 
 	// Shorten long expression input names.
-	if (!FCString::Stricmp(*PinName, TEXT("Coordinates")))
+	if (PinName == MaterialPinNames::Coordinates)
 	{
-		InputName = TEXT("UVs");
+		InputName = MaterialPinNames::UVs;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("TextureObject")))
+	else if (PinName == MaterialPinNames::TextureObject)
 	{
-		InputName = TEXT("Tex");
+		InputName = MaterialPinNames::Tex;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("Input")))
+	else if (PinName == MaterialPinNames::Input)
 	{
-		InputName = TEXT("");
+		InputName = NAME_None;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("Exponent")))
+	else if (PinName == MaterialPinNames::Exponent)
 	{
-		InputName = TEXT("Exp");
+		InputName = MaterialPinNames::Exp;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("AGreaterThanB")))
+	else if (PinName == MaterialPinNames::AGreaterThanB)
 	{
-		InputName = TEXT("A > B");
+		InputName = MaterialPinNames::CompactAGreaterThanB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("AEqualsB")))
+	else if (PinName == MaterialPinNames::AEqualsB)
 	{
-		InputName = TEXT("A == B");
+		InputName = MaterialPinNames::CompactAEqualsB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("ALessThanB")))
+	else if (PinName == MaterialPinNames::ALessThanB)
 	{
-		InputName = TEXT("A < B");
+		InputName = MaterialPinNames::CompactALessThanB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("MipLevel")))
+	else if (PinName == MaterialPinNames::MipLevel)
 	{
-		InputName = TEXT("Level");
+		InputName = MaterialPinNames::Level;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("MipBias")))
+	else if (PinName == MaterialPinNames::MipBias)
 	{
-		InputName = TEXT("Bias");
+		InputName = MaterialPinNames::Bias;
 	}
 
 	return InputName;
@@ -483,16 +504,14 @@ void UMaterialGraphNode::CreateInputPins()
 	for (int32 Index = 0; Index < ExpressionInputs.Num() ; ++Index)
 	{
 		FExpressionInput* Input = ExpressionInputs[Index];
-		FString InputName = MaterialExpression->GetInputName(Index);
+		FName InputName = MaterialExpression->GetInputName(Index);
 
 		InputName = GetShortenPinName(InputName);
 
-		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
-		FString PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? Schema->PC_Required : Schema->PC_Optional;
-		FString PinSubCategory = TEXT("");
+		const FName PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? UMaterialGraphSchema::PC_Required : UMaterialGraphSchema::PC_Optional;
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, PinSubCategory, nullptr, InputName);
-		if (NewPin->PinName.IsEmpty())
+		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, InputName);
+		if (NewPin->PinName.IsNone())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Input"));
@@ -505,36 +524,33 @@ void UMaterialGraphNode::CreateOutputPins()
 {
 	TArray<FExpressionOutput>& Outputs = MaterialExpression->GetOutputs();
 
-	for( int32 Index = 0 ; Index < Outputs.Num() ; ++Index )
+	for (const FExpressionOutput& ExpressionOutput : Outputs)
 	{
-		const FExpressionOutput& ExpressionOutput = Outputs[Index];
-		FString PinCategory = TEXT("");
-		FString PinSubCategory = TEXT("");
-		FString OutputName = TEXT("");
+		FName PinCategory;
+		FName PinSubCategory;
+		FName OutputName;
 
-		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
-		
 		if (MaterialExpression->bShowMaskColorsOnPin)
 		{
 			if (ExpressionOutput.Mask)
 			{
-				PinCategory = Schema->PC_Mask;
+				PinCategory = UMaterialGraphSchema::PC_Mask;
 
 				if (ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Red;
+					PinSubCategory = UMaterialGraphSchema::PSC_Red;
 				}
 				else if (!ExpressionOutput.MaskR &&  ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Green;
+					PinSubCategory = UMaterialGraphSchema::PSC_Green;
 				}
 				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG &&  ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Blue;
+					PinSubCategory = UMaterialGraphSchema::PSC_Blue;
 				}
 				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB &&  ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Alpha;
+					PinSubCategory = UMaterialGraphSchema::PSC_Alpha;
 				}
 			}
 		}
@@ -544,8 +560,8 @@ void UMaterialGraphNode::CreateOutputPins()
 			OutputName = ExpressionOutput.OutputName;
 		}
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, nullptr, OutputName);
-		if (NewPin->PinName.IsEmpty())
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, OutputName);
+		if (NewPin->PinName.IsNone())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Output"));

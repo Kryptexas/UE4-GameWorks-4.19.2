@@ -152,29 +152,6 @@ void FLevelViewportCommands::RegisterCommands()
 	{
 		UI_COMMAND( ShowAllSprites, "Show All Sprites", "Shows all sprites", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( HideAllSprites, "Hide All Sprites", "Hides all sprites", EUserInterfaceActionType::Button, FInputChord() );
-
-		// get all the known layers
-		// Get a fresh list as GUnrealEd->SortedSpriteInfo may not yet be built.
-		TArray<FSpriteCategoryInfo> SortedSpriteInfo;
-		UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
-
-		FString SpritePrefix = TEXT("ShowSprite_");
-		for( int32 InfoIndex = 0; InfoIndex < SortedSpriteInfo.Num(); ++InfoIndex )
-		{
-			const FSpriteCategoryInfo& SpriteInfo = SortedSpriteInfo[InfoIndex];
-
-			const FName CommandName = FName( *(SpritePrefix + SpriteInfo.Category.ToString()) );
-
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("SpriteName"), SpriteInfo.DisplayName );
-			const FText LocalizedName = FText::Format( NSLOCTEXT("UICommands", "SpriteShowFlagName", "Show {SpriteName} Sprites"), Args );
-
-			TSharedPtr<FUICommandInfo> ShowSpriteCommand 
-				= FUICommandInfoDecl( this->AsShared(), CommandName, LocalizedName, SpriteInfo.Description )
-				.UserInterfaceType( EUserInterfaceActionType::ToggleButton );
-
-			ShowSpriteCommands.Add( FLevelViewportCommands::FShowMenuCommand( ShowSpriteCommand, SpriteInfo.DisplayName ) );
-		}
 	}
 
 	// Generate a command for each Stat category
@@ -354,6 +331,36 @@ void FLevelViewportCommands::RegisterShowVolumeCommands()
 				.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
 
 			ShowVolumeCommands.Add(FLevelViewportCommands::FShowMenuCommand(ShowVolumeCommand, DisplayName));
+		}
+	}
+}
+
+void FLevelViewportCommands::RegisterShowSpriteCommands()
+{
+	// get all the known layers
+	// Get a fresh list as GUnrealEd->SortedSpriteInfo may not yet be built.
+	TArray<FSpriteCategoryInfo> SortedSpriteInfo;
+	UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
+
+	FString SpritePrefix = TEXT("ShowSprite_");
+	for (int32 InfoIndex = 0; InfoIndex < SortedSpriteInfo.Num(); ++InfoIndex)
+	{
+		const FSpriteCategoryInfo& SpriteInfo = SortedSpriteInfo[InfoIndex];
+		const FName CommandName = FName(*(SpritePrefix + SpriteInfo.Category.ToString()));
+
+		// Only add a command if there is none already for this sprite class.
+		TSharedPtr<FUICommandInfo> FoundSpriteCommand = FInputBindingManager::Get().FindCommandInContext(this->AsShared()->GetContextName(), CommandName);
+		if (!FoundSpriteCommand.IsValid())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("SpriteName"), SpriteInfo.DisplayName);
+			const FText LocalizedName = FText::Format(NSLOCTEXT("UICommands", "SpriteShowFlagName", "Show {SpriteName} Sprites"), Args);
+
+			TSharedPtr<FUICommandInfo> ShowSpriteCommand
+				= FUICommandInfoDecl(this->AsShared(), CommandName, LocalizedName, SpriteInfo.Description)
+				.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
+
+			ShowSpriteCommands.Add(FLevelViewportCommands::FShowMenuCommand(ShowSpriteCommand, SpriteInfo.DisplayName));
 		}
 	}
 }

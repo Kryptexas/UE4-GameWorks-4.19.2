@@ -1317,7 +1317,7 @@ public:
 	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
 	 *	This does take into account the CharacterOwner's MaxJumpHoldTime.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovemet")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxJumpHeightWithJumpTime() const;
 
 	/** @return Maximum acceleration for the current state. */

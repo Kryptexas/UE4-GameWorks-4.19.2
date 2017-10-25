@@ -51,10 +51,10 @@ const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_SystemConstant = FLine
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_FunctionCall = FLinearColor::Blue;
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Event = FLinearColor::Red;
 
-const FString UEdGraphSchema_Niagara::PinCategoryType("Type");
-const FString UEdGraphSchema_Niagara::PinCategoryMisc("Misc");
-const FString UEdGraphSchema_Niagara::PinCategoryClass("Class");
-const FString UEdGraphSchema_Niagara::PinCategoryEnum("Enum");
+const FName UEdGraphSchema_Niagara::PinCategoryType("Type");
+const FName UEdGraphSchema_Niagara::PinCategoryMisc("Misc");
+const FName UEdGraphSchema_Niagara::PinCategoryClass("Class");
+const FName UEdGraphSchema_Niagara::PinCategoryEnum("Enum");
 
 namespace 
 {
@@ -875,7 +875,7 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 	}
 }
 
-void UEdGraphSchema_Niagara::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) 
+void UEdGraphSchema_Niagara::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "NiagaraEditorBreakConnection", "Niagara Editor: Break Connection"));
 
@@ -1035,7 +1035,7 @@ bool UEdGraphSchema_Niagara::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 
 FNiagaraVariable UEdGraphSchema_Niagara::PinToNiagaraVariable(const UEdGraphPin* Pin, bool bNeedsValue)const
 {
-	FNiagaraVariable Var = FNiagaraVariable(PinToTypeDefinition(Pin), *Pin->PinName);
+	FNiagaraVariable Var = FNiagaraVariable(PinToTypeDefinition(Pin), Pin->PinName);
 	if (Pin->DefaultValue.IsEmpty() == false)
 	{
 		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
@@ -1090,7 +1090,7 @@ FNiagaraTypeDefinition UEdGraphSchema_Niagara::PinToTypeDefinition(const UEdGrap
 		const UEnum* Enum = Cast<const UEnum>(Pin->PinType.PinSubCategoryObject.Get());
 		if (Enum == nullptr)
 		{
-			UE_LOG(LogNiagaraEditor, Error, TEXT("Pin states that it is of Enum type, but is missing its Enum! Pin Name '%s' Owning Node '%s'. Turning into standard int definition!"), *Pin->PinName,
+			UE_LOG(LogNiagaraEditor, Error, TEXT("Pin states that it is of Enum type, but is missing its Enum! Pin Name '%s' Owning Node '%s'. Turning into standard int definition!"), *Pin->PinName.ToString(),
 				*Pin->GetOwningNode()->GetName());
 			return FNiagaraTypeDefinition(FNiagaraTypeDefinition::GetIntDef());
 		}
@@ -1103,16 +1103,16 @@ FEdGraphPinType UEdGraphSchema_Niagara::TypeDefinitionToPinType(FNiagaraTypeDefi
 {
 	if (TypeDef.GetClass())
 	{
-		return FEdGraphPinType(PinCategoryClass, FString(), const_cast<UClass*>(TypeDef.GetClass()), EPinContainerType::None, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryClass, NAME_None, const_cast<UClass*>(TypeDef.GetClass()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 	else if (TypeDef.GetEnum())
 	{
-		return FEdGraphPinType(PinCategoryEnum, FString(), const_cast<UEnum*>(TypeDef.GetEnum()), EPinContainerType::None, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryEnum, NAME_None, const_cast<UEnum*>(TypeDef.GetEnum()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 	else
 	{
 		//TODO: Are base types better as structs or done like BPS as a special name?
-		return FEdGraphPinType(PinCategoryType, FString(), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), EPinContainerType::None, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryType, NAME_None, const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 }
 
@@ -1160,9 +1160,9 @@ void UEdGraphSchema_Niagara::GetBreakLinkToSubMenuActions(class FMenuBuilder& Me
 		UEdGraphPin* Pin = *Links;
 		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString(TitleString);
-		if (!Pin->PinName.IsEmpty())
+		if (!Pin->PinName.IsNone())
 		{
-			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName.ToString());
 
 			// Add name of connection if possible
 			FFormatNamedArguments Args;

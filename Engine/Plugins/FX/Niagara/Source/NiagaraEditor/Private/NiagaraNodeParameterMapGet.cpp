@@ -111,7 +111,7 @@ UEdGraphPin* UNiagaraNodeParameterMapGet::CreateDefaultPin(UEdGraphPin* OutputPi
 
 void UNiagaraNodeParameterMapGet::OnPinRenamed(UEdGraphPin* RenamedPin)
 {
-	RenamedPin->PinFriendlyName = FText::FromString(RenamedPin->PinName);
+	RenamedPin->PinFriendlyName = FText::FromName(RenamedPin->PinName);
 }
 
 
@@ -241,14 +241,14 @@ void UNiagaraNodeParameterMapGet::SynchronizeDefaultInputPin(UEdGraphPin* Defaul
 		DefaultPin->bDefaultValueIsIgnored = true;
 		DefaultPin->bNotConnectable = true;
 		DefaultPin->bHidden = true;
-		DefaultPin->PinToolTip = FText::Format(LOCTEXT("DefaultValueTooltip", "Default value for {0}. Disabled for Engine Parameters."), FText::FromString(OutputPin->PinName)).ToString();
+		DefaultPin->PinToolTip = FText::Format(LOCTEXT("DefaultValueTooltip", "Default value for {0}. Disabled for Engine Parameters."), FText::FromName(OutputPin->PinName)).ToString();
 	}
 	else
 	{
 		DefaultPin->bDefaultValueIsIgnored = false;
 		DefaultPin->bNotConnectable = false;
 		DefaultPin->bHidden = false;
-		DefaultPin->PinToolTip = FText::Format(LOCTEXT("DefaultValueTooltip", "Default value for {0} if no other module has set it previously in the stack."), FText::FromString(OutputPin->PinName)).ToString();
+		DefaultPin->PinToolTip = FText::Format(LOCTEXT("DefaultValueTooltip", "Default value for {0} if no other module has set it previously in the stack."), FText::FromName(OutputPin->PinName)).ToString();
 	}
 }
 
@@ -357,7 +357,7 @@ bool UNiagaraNodeParameterMapGet::CommitEditablePinName(const FText& InName, UEd
 		UEdGraphPin* DefaultPin = GetDefaultPin(InGraphPinObj);
 
 		InGraphPinObj->PinFriendlyName = InName;
-		InGraphPinObj->PinName = InName.ToString();
+		InGraphPinObj->PinName = *InName.ToString();
 
 		if (DefaultPin)
 		{

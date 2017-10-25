@@ -18,7 +18,7 @@ class UK2Node_ControlRigEvaluator : public UK2Node_ControlRig
 {
 	GENERATED_UCLASS_BODY()
 
-	static FString ControlRigPinName;
+	static const FName ControlRigPinName;
 
 public:
 	/** The type of the ControlRig we want to evaluate */

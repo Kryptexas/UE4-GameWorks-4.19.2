@@ -44,7 +44,7 @@ void UNiagaraNodeParameterCollection::AllocateDefaultPins()
 		{
 			if (Collection->IndexOfParameter(Var) != INDEX_NONE)
 			{
-				FString VarName = Collection->FriendlyNameFromParameterName(Var.GetName().ToString());
+				const FName VarName = *Collection->FriendlyNameFromParameterName(Var.GetName().ToString());
 				CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), VarName);
 			}
 		}

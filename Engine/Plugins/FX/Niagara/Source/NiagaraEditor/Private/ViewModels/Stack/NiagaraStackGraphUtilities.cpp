@@ -401,7 +401,7 @@ void FNiagaraStackGraphUtilities::InitializeDataInterfaceInputs(TSharedRef<FNiag
 
 FString FNiagaraStackGraphUtilities::GenerateStackFunctionInputEditorDataKey(UNiagaraNodeFunctionCall& FunctionCallNode, FNiagaraParameterHandle InputParameterHandle)
 {
-	return FunctionCallNode.GetFunctionName() + InputParameterHandle.GetParameterHandleString();
+	return FunctionCallNode.GetFunctionName() + InputParameterHandle.GetParameterHandleString().ToString();
 }
 
 FString FNiagaraStackGraphUtilities::GenerateStackModuleEditorDataKey(UNiagaraNodeFunctionCall& ModuleNode)

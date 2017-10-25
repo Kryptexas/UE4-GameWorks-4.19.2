@@ -118,7 +118,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool CreatePinForVariable(EEdGraphPinDirection Direction, FString InPinName = FString());
+	bool CreatePinForVariable(EEdGraphPinDirection Direction, FName InPinName = NAME_None);
 
 	/** Creates 'self' pin */
 	void CreatePinForSelf();
@@ -132,7 +132,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FString InPinName = FString());
+	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FName InPinName = NAME_None);
 
 	/** Get the class to look for this variable in */
 	UClass* GetVariableSourceClass() const;

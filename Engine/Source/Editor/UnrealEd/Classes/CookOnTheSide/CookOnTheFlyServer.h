@@ -1088,8 +1088,6 @@ public:
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
 		int32 NumProcesses;
-		bool bNativizeAssets;
-		FString NativizedPluginPath; // path expressing the desired .uplugin path (optional); will only be utilized if bNativizeAssets is set
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
@@ -1097,8 +1095,7 @@ public:
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
 			bErrorOnEngineContentUse(false),
-			NumProcesses(0),
-			bNativizeAssets(false)
+			NumProcesses(0)
 		{ }
 	};
 

@@ -363,3 +363,13 @@ namespace PlatformInfo
 	*/
 	DESKTOPPLATFORM_API EPlatformType EPlatformTypeFromString(const FString& PlatformTypeName);
 }
+
+namespace Lex
+{
+	DESKTOPPLATFORM_API FString ToString(const PlatformInfo::EPlatformType Value);
+
+	inline void FromString(PlatformInfo::EPlatformType& OutValue, const TCHAR* Buffer)
+	{
+		OutValue = PlatformInfo::EPlatformTypeFromString(FString(Buffer));
+	}
+}

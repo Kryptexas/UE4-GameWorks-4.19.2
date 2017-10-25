@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraph/EdGraphPin.h"
 #include "UObject/BlueprintsObjectVersion.h"
@@ -98,7 +98,23 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		return false;
 	}
 
-	Ar << PinCategory;
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::PinsStoreFName)
+	{
+		Ar << PinCategory;
+		Ar << PinSubCategory;
+	}
+	else
+	{
+		FString PinCategoryStr;
+		Ar << PinCategoryStr;
+		PinCategory = *PinCategoryStr;
+
+		FString PinSubCategoryStr;
+		Ar << PinSubCategoryStr;
+		PinSubCategory = *PinSubCategoryStr;
+	}
 
 	if (Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
 	{
@@ -113,8 +129,6 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		}
 	}
 
-	Ar << PinSubCategory;
-
 	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
 	// The PinSubCategoryObject should be serialized into the package.
 	if(!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
@@ -127,7 +141,6 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		}
 	}
 
-	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::EdGraphPinContainerType)
 	{
 		Ar << ContainerType;
@@ -544,25 +557,25 @@ void UEdGraphPin::AssignByRefPassThroughConnection(UEdGraphPin* InTargetPin)
 	{
 		if (GetOwningNode() != InTargetPin->GetOwningNode())
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' is owned by node '%s' and pin '%s' is owned by '%s', they must be owned by the same node!"), *PinName, *GetOwningNode()->GetName(), *InTargetPin->PinName, *InTargetPin->GetOwningNode()->GetName());
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' is owned by node '%s' and pin '%s' is owned by '%s', they must be owned by the same node!"), *GetName(), *GetOwningNode()->GetName(), *InTargetPin->GetName(), *InTargetPin->GetOwningNode()->GetName());
 		}
 		else if (Direction == InTargetPin->Direction)
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Both pin '%s' and pin '%s' on node '%s' go in the same direction, one must be an input and the other an output!"), *PinName, *InTargetPin->PinName, *GetOwningNode()->GetName());
+			UE_LOG(LogBlueprint, Warning, TEXT("Both pin '%s' and pin '%s' on node '%s' go in the same direction, one must be an input and the other an output!"), *GetName(), *InTargetPin->GetName(), *GetOwningNode()->GetName());
 		}
 		else if (!PinType.bIsReference && !InTargetPin->PinType.bIsReference)
 		{
 			UEdGraphPin* InputPin = (Direction == EGPD_Input) ? this : InTargetPin;
 			UEdGraphPin* OutputPin = (Direction == EGPD_Input) ? InTargetPin : this;
-			UE_LOG(LogBlueprint, Warning, TEXT("Input pin '%s' is attempting to by-ref pass-through to output pin '%s' on node '%s', however neither pin is by-ref!"), *InputPin->PinName, *OutputPin->PinName, *InputPin->GetOwningNode()->GetName());
+			UE_LOG(LogBlueprint, Warning, TEXT("Input pin '%s' is attempting to by-ref pass-through to output pin '%s' on node '%s', however neither pin is by-ref!"), *InputPin->GetName(), *OutputPin->GetName(), *InputPin->GetOwningNode()->GetName());
 		}
 		else if (!PinType.bIsReference)
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *PinName, *GetOwningNode()->GetName(), *InTargetPin->PinName);
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *GetName(), *GetOwningNode()->GetName(), *InTargetPin->GetName());
 		}
 		else if (!InTargetPin->PinType.bIsReference)
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *InTargetPin->PinName, *InTargetPin->GetOwningNode()->GetName(), *PinName);
+			UE_LOG(LogBlueprint, Warning, TEXT("Pin '%s' on node '%s' is not by-ref but it is attempting to pass-through to '%s'"), *InTargetPin->GetName(), *InTargetPin->GetOwningNode()->GetName(), *GetName());
 		}
 		else
 		{
@@ -618,7 +631,7 @@ FText UEdGraphPin::GetDisplayName() const
 	}
 	else
 	{
-		DisplayName = (!PinFriendlyName.IsEmpty()) ? PinFriendlyName : FText::FromString(PinName);
+		DisplayName = (!PinFriendlyName.IsEmpty()) ? PinFriendlyName : FText::FromName(PinName);
 
 		bool bShowNodesAndPinsUnlocalized = false;
 		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
@@ -634,11 +647,11 @@ FText UEdGraphPin::GetDisplayName() const
 const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, const FString& InInfoData, const UEdGraphPin* InToPin ) const
 {
 #if WITH_EDITOR
-	const FString FromPinName = PinName;
+	const FString FromPinName = GetName();
 	const UEdGraphNode* FromPinNode = GetOwningNodeUnchecked();
 	const FString FromPinNodeName = (FromPinNode != nullptr) ? FromPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	
-	const FString ToPinName = InToPin->PinName;
+	const FString ToPinName = InToPin->GetName();
 	const UEdGraphNode* ToPinNode = InToPin->GetOwningNodeUnchecked();
 	const FString ToPinNodeName = (ToPinNode != nullptr) ? ToPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	const FString LinkInfo = FString::Printf( TEXT("UEdGraphPin::%s Pin '%s' on node '%s' %s '%s' on node '%s'"), *InFunctionName, *ToPinName, *ToPinNodeName, *InInfoData, *FromPinName, *FromPinNodeName);
@@ -740,6 +753,7 @@ UEdGraphPin* UEdGraphPin::FindPinCreatedFromDeprecatedPin(UEdGraphPin_Deprecated
 
 bool UEdGraphPin::ExportTextItem(FString& ValueStr, int32 PortFlags) const
 {
+	const UNameProperty* NamePropCDO = GetDefault<UNameProperty>();
 	const UStrProperty* StrPropCDO = GetDefault<UStrProperty>();
 	const UTextProperty* TextPropCDO = GetDefault<UTextProperty>();
 	const UBoolProperty* BoolPropCDO = GetDefault<UBoolProperty>();
@@ -754,7 +768,7 @@ bool UEdGraphPin::ExportTextItem(FString& ValueStr, int32 PortFlags) const
 	if (PinName != DefaultPin.PinName)
 	{
 		ValueStr += PinHelpers::PinNameName + TEXT("=");
-		StrPropCDO->ExportTextItem(ValueStr, &PinName, nullptr, nullptr, PortFlags, nullptr);
+		NamePropCDO->ExportTextItem(ValueStr, &PinName, nullptr, nullptr, PortFlags, nullptr);
 		ValueStr += PinHelpers::ExportTextPropDelimiter;
 	}
 
@@ -914,6 +928,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 {
 	PinId = FGuid();
 
+	const UNameProperty* NamePropCDO = GetDefault<UNameProperty>();
 	const UStrProperty* StrPropCDO = GetDefault<UStrProperty>();
 	const UTextProperty* TextPropCDO = GetDefault<UTextProperty>();
 	const UBoolProperty* BoolPropCDO = GetDefault<UBoolProperty>();
@@ -976,7 +991,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 		}
 		else if (PropertyToken == PinHelpers::PinNameName)
 		{
-			Buffer = StrPropCDO->ImportText(Buffer, &PinName, PortFlags, Parent, ErrorText);
+			Buffer = NamePropCDO->ImportText(Buffer, &PinName, PortFlags, Parent, ErrorText);
 			bParseSuccess = (Buffer != nullptr);
 		}
 #if WITH_EDITORONLY_DATA
@@ -1014,9 +1029,8 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 		}
 		else if (PropertyToken.StartsWith(PinHelpers::PinTypeName + TEXT(".")))
 		{
-			FString Left;
 			FString Right;
-			if (ensure(PropertyToken.Split(".", &Left, &Right, ESearchCase::CaseSensitive)))
+			if (ensure(PropertyToken.Split(".", nullptr, &Right, ESearchCase::CaseSensitive)))
 			{
 				UProperty* FoundProp = FEdGraphPinType::StaticStruct()->FindPropertyByName(FName(*Right));
 				if (FoundProp)
@@ -1148,7 +1162,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 
 		if (!bParseSuccess)
 		{
-			ErrorText->Logf(ELogVerbosity::Warning, TEXT("%s: Parse error while importing property values (PinName = %s)."), *GetName(), *PinName);
+			ErrorText->Logf(ELogVerbosity::Warning, TEXT("%s: Parse error while importing property values (PinName = %s)."), *GetName(), *PinName.ToString());
 
 			// Parse error
 			return false;
@@ -1169,7 +1183,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 
 	if (!PinId.IsValid())
 	{
-		ErrorText->Logf(ELogVerbosity::Warning, TEXT("%s: Invalid PinId after importing property values (PinName = %s)."), *GetName(), *PinName);
+		ErrorText->Logf(ELogVerbosity::Warning, TEXT("%s: Invalid PinId after importing property values (PinName = %s)."), *GetName(), *PinName.ToString());
 
 		// Did not contain a valid PinId
 		return false;
@@ -1289,7 +1303,7 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 
 	OwningNode = CastChecked<UEdGraphNode>(DeprecatedPin->GetOuter());
 
-	PinName = DeprecatedPin->PinName;
+	PinName = *DeprecatedPin->PinName;
 
 #if WITH_EDITORONLY_DATA
 	PinFriendlyName = DeprecatedPin->PinFriendlyName;
@@ -1459,11 +1473,22 @@ void UEdGraphPin::DestroyImpl(bool bClearLinks)
 
 bool UEdGraphPin::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	// These properties are in every pin and are unlikely to be removed, so they are native serialized for speed.
 	Ar << OwningNode;
 	Ar << PinId;
 
-	Ar << PinName;
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::PinsStoreFName)
+	{
+		Ar << PinName;
+	}
+	else
+	{
+		FString PinNameStr;
+		Ar << PinNameStr;
+		PinName = *PinNameStr;
+	}
 
 #if WITH_EDITORONLY_DATA
 	if (!Ar.IsFilterEditorOnly())
@@ -1544,7 +1569,6 @@ bool UEdGraphPin::Serialize(FArchive& Ar)
 			bWasTrashed = !!(BitField & (1 << (PersistentBits + 3)));
 		}
 
-		Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 		if (Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::ChangeAssetPinsToString)
 		{
 			bUseBackwardsCompatForEmptyAutogeneratedValue = true;

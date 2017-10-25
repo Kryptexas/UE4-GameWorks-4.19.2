@@ -35,7 +35,7 @@ class UMaterialExpressionDepthFade : public UMaterialExpression
 
 
 	//~ Begin UMaterialExpression Interface
-	virtual FString GetInputName(int32 InputIndex) const override
+	virtual FName GetInputName(int32 InputIndex) const override
 	{
 		if (InputIndex == 0)
 		{

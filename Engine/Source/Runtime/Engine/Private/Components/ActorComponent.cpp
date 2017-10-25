@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
 #include "Components/ActorComponent.h"
@@ -1543,7 +1543,7 @@ void UActorComponent::SetTickableWhenPaused(bool bTickableWhenPaused)
 bool UActorComponent::IsOwnerRunningUserConstructionScript() const
 {
 	AActor* MyOwner = GetOwner();
-	return (MyOwner && MyOwner->bRunningUserConstructionScript);
+	return (MyOwner && MyOwner->IsRunningUserConstructionScript());
 }
 
 void UActorComponent::AddAssetUserData(UAssetUserData* InUserData)

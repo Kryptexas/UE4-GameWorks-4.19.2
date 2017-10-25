@@ -53,7 +53,7 @@ void UNiagaraStackAddScriptModuleItem::GetNewParameterAvailableTypes(TArray<FNia
 	}
 }
 
-TOptional<FString> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() const
+TOptional<FName> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() const
 {
 	switch (GetOutputUsage())
 	{
@@ -67,7 +67,7 @@ TOptional<FString> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() 
 	case ENiagaraScriptUsage::SystemUpdateScript:
 		return FNiagaraParameterHandle::SystemNamespace;
 	default:
-		return TOptional<FString>();
+		return TOptional<FName>();
 	}
 }
 

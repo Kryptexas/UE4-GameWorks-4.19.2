@@ -207,7 +207,7 @@ void UNiagaraStackParameterStoreEntry::RenameInput(FString NewName)
 
 		FNiagaraParameterHandle TargetHandle(OwningAssignmentNode->AssignmentTarget.GetName().ToString());
 		FNiagaraParameterHandle RenamedTargetHandle(TargetHandle.GetNamespace(), NewName);
-		OwningAssignmentNode->AssignmentTarget.SetName(*RenamedTargetHandle.GetParameterHandleString());
+		OwningAssignmentNode->AssignmentTarget.SetName(RenamedTargetHandle.GetParameterHandleString());
 		OwningAssignmentNode->RefreshFromExternalChanges();
 
 		InputParameterHandle = FNiagaraParameterHandle(InputParameterHandle.GetNamespace(), NewName);

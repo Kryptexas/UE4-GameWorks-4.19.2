@@ -322,7 +322,7 @@ void SFindInMaterial::MatchTokens(const TArray<FString> &Tokens)
 			if (Pin && Pin->PinFriendlyName.CompareTo(FText::FromString(TEXT(" "))) != 0)
 			{
 				FText PinName = Pin->GetSchema()->GetPinDisplayName(Pin);
-				FString PinSearchString = Pin->PinName + Pin->PinFriendlyName.ToString() + Pin->DefaultValue + Pin->PinType.PinCategory + Pin->PinType.PinSubCategory + (Pin->PinType.PinSubCategoryObject.IsValid() ? Pin->PinType.PinSubCategoryObject.Get()->GetFullName() : TEXT(""));
+				FString PinSearchString = Pin->PinName.ToString() + Pin->PinFriendlyName.ToString() + Pin->DefaultValue + Pin->PinType.PinCategory.ToString() + Pin->PinType.PinSubCategory.ToString() + (Pin->PinType.PinSubCategoryObject.IsValid() ? Pin->PinType.PinSubCategoryObject.Get()->GetFullName() : TEXT(""));
 				PinSearchString = PinSearchString.Replace(TEXT(" "), TEXT(""));
 				if (StringMatchesSearchTokens(Tokens, PinSearchString))
 				{

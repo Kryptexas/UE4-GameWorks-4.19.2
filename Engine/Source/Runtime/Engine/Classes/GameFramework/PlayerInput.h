@@ -526,7 +526,7 @@ private:
 	 * Given raw keystate value, returns the "massaged" value. Override for any custom behavior,
 	 * such as input changes dependent on a particular game state.
  	 */
-	float MassageAxisInput(FKey Key, float RawValue);
+	virtual float MassageAxisInput(FKey Key, float RawValue);
 
 	/** Process non-axes keystates */
 	void ProcessNonAxesKeys(FKey Inkey, FKeyState* KeyState);

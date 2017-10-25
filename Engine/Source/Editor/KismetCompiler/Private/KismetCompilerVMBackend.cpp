@@ -583,7 +583,7 @@ public:
 			// Additional Validation, since we cannot trust custom k2nodes
 			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext))
 			{
-			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self);
 				if(!bSecialCaseSelf)
 			    {
 				    FEdGraphPinType TrueType;
@@ -702,7 +702,7 @@ public:
 				// circumvented with AutoCreateRefTerm, but when it is a self 
 				// (literal) node we still end up here. So, we try to detect and 
 				// handle that case here.
-				if ((Term->Type.PinSubCategory == Schema->PN_Self) && CoerceProperty && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
+				if ((Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self) && CoerceProperty && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
 				{
 					Writer << EX_Self;
 				}
@@ -980,7 +980,7 @@ public:
 			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
 				// Note: This case handles both UObjectProperty and UClassProperty
-				if (Term->Type.PinSubCategory == Schema->PN_Self)
+				if (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self)
 				{
 					Writer << EX_Self;
 				}
@@ -996,7 +996,7 @@ public:
 			}
 			else if (FLiteralTypeHelper::IsInterface(&Term->Type, CoerceProperty))
 			{
-				if (Term->Type.PinSubCategory == Schema->PN_Self)
+				if (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self)
 				{
 					Writer << EX_Self;
 				}
@@ -1009,7 +1009,7 @@ public:
 					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}
 			}
-			else if (!CoerceProperty && Term->Type.PinCategory.IsEmpty() && (Term->Type.PinSubCategory == Schema->PN_Self))
+			else if (!CoerceProperty && Term->Type.PinCategory.IsNone() && (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self))
 			{
 				Writer << EX_Self;
 			}
@@ -1098,7 +1098,7 @@ public:
 			{
 				FBPTerminal CallbackTargetTerm;
 				CallbackTargetTerm.bIsLiteral = true;
-				CallbackTargetTerm.Type.PinSubCategory = Schema->PN_Self;
+				CallbackTargetTerm.Type.PinSubCategory = UEdGraphSchema_K2::PN_Self;
 				EmitTermExpr(&CallbackTargetTerm, Prop);
 			}
 			else
@@ -1347,14 +1347,14 @@ public:
 
 	void EmitDestinationExpression(FBPTerminal* DestinationExpression)
 	{
-		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
+		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsNone());
 
 		const bool bIsContainer = DestinationExpression->Type.IsContainer();
-		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
-		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
-		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
-		const bool bIsObj = (Schema->PC_Object == DestinationExpression->Type.PinCategory) || (Schema->PC_Class == DestinationExpression->Type.PinCategory);
-		const bool bIsSoftObject = Schema->PC_SoftObject == DestinationExpression->Type.PinCategory;
+		const bool bIsDelegate = UEdGraphSchema_K2::PC_Delegate == DestinationExpression->Type.PinCategory;
+		const bool bIsMulticastDelegate = UEdGraphSchema_K2::PC_MCDelegate == DestinationExpression->Type.PinCategory;
+		const bool bIsBoolean = UEdGraphSchema_K2::PC_Boolean == DestinationExpression->Type.PinCategory;
+		const bool bIsObj = (UEdGraphSchema_K2::PC_Object == DestinationExpression->Type.PinCategory) || (UEdGraphSchema_K2::PC_Class == DestinationExpression->Type.PinCategory);
+		const bool bIsSoftObject = UEdGraphSchema_K2::PC_SoftObject == DestinationExpression->Type.PinCategory;
 		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
 
 		if (bIsContainer)

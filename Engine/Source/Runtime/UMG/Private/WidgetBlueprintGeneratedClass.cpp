@@ -482,7 +482,7 @@ void UWidgetBlueprintGeneratedClass::InitializeTemplate(const ITargetPlatform* T
 			UUserWidget* OldArchetype = FindObject<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"));
 			if ( OldArchetype )
 			{
-				const ERenameFlags RenFlags = REN_DontCreateRedirectors | REN_NonTransactional | REN_DoNotDirty;
+				const ERenameFlags RenFlags = REN_DontCreateRedirectors | REN_NonTransactional | REN_DoNotDirty | REN_ForceNoResetLoaders;
 
 				FString TransientArchetypeString = FString::Printf(TEXT("OLD_TEMPLATE_%s"), *OldArchetype->GetName());
 				FName TransientArchetypeName = MakeUniqueObjectName(GetTransientPackage(), OldArchetype->GetClass(), FName(*TransientArchetypeString));

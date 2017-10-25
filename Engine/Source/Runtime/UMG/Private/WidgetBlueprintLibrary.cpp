@@ -81,9 +81,9 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWi
 	SetInputMode_UIOnlyEx(Target, InWidgetToFocus, bLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock);
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController* Target, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode)
+void UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController* PlayerController, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode)
 {
-	if (Target != nullptr)
+	if (PlayerController != nullptr)
 	{
 		FInputModeUIOnly InputMode;
 		InputMode.SetLockMouseToViewportBehavior(InMouseLockMode);
@@ -92,12 +92,12 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController* Target, U
 		{
 			InputMode.SetWidgetToFocus(InWidgetToFocus->TakeWidget());
 		}
-		Target->SetInputMode(InputMode);
+		PlayerController->SetInputMode(InputMode);
 	}
 	#if WITH_EDITOR 
 	else
 	{ 
-		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_UIOnly", "SetInputMode_UIOnly expects a valid player controller as target"));
+		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_UIOnly", "SetInputMode_UIOnly expects a valid player controller as 'PlayerController' target"));
 	}
 	#endif // WITH_EDITOR
 }
@@ -107,9 +107,9 @@ void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, 
 	SetInputMode_GameAndUIEx(Target, InWidgetToFocus, bLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock, bHideCursorDuringCapture);
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(APlayerController* Target, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode, bool bHideCursorDuringCapture)
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(APlayerController* PlayerController, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode, bool bHideCursorDuringCapture)
 {
-	if (Target != nullptr)
+	if (PlayerController != nullptr)
 	{
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewportBehavior(InMouseLockMode);
@@ -119,28 +119,28 @@ void UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(APlayerController* Target
 		{
 			InputMode.SetWidgetToFocus(InWidgetToFocus->TakeWidget());
 		}
-		Target->SetInputMode(InputMode);
+		PlayerController->SetInputMode(InputMode);
 	}
 	#if WITH_EDITOR 
 	else
 	{
-		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_GameAndUI", "SetInputMode_GameAndUI expects a valid player controller as target"));	
+		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_GameAndUI", "SetInputMode_GameAndUI expects a valid player controller as 'PlayerController' target"));	
 	}
 	#endif // WITH_EDITOR
 	
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
+void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* PlayerController)
 {
-	if (Target != nullptr)
+	if (PlayerController != nullptr)
 	{
 		FInputModeGameOnly InputMode;
-		Target->SetInputMode(InputMode);
+		PlayerController->SetInputMode(InputMode);
 	}
 	#if WITH_EDITOR 
 	else
 	{
-		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_GameOnly", "SetInputMode_GameOnly expects a valid player controller as target"));
+		FMessageLog("PIE").Error(LOCTEXT("UMG WidgetBlueprint Library: SetInputMode_GameOnly", "SetInputMode_GameOnly expects a valid player controller as 'PlayerController' target"));
 	}
 	#endif // WITH_EDITOR
 }

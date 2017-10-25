@@ -447,18 +447,23 @@ int32 UEnum::GetIndexByNameString(const FString& InSearchString, EGetByNameFlags
 			SearchEnumEntryString = **FoundNewEnumEntry;
 
 			// Recompute modified name
-			DoubleColonIndex = SearchEnumEntryString.Find(TEXT("::"), ESearchCase::CaseSensitive);
-			if (DoubleColonIndex == INDEX_NONE)
+			int32 NewDoubleColonIndex = SearchEnumEntryString.Find(TEXT("::"), ESearchCase::CaseSensitive);
+			if (NewDoubleColonIndex == INDEX_NONE)
 			{
 				ModifiedEnumEntryString = GenerateFullEnumName(*SearchEnumEntryString);
 			}
 			else
 			{
-				ModifiedEnumEntryString = SearchEnumEntryString.RightChop(DoubleColonIndex + 2);
+				ModifiedEnumEntryString = SearchEnumEntryString.RightChop(NewDoubleColonIndex + 2);
 			}
 		}
 	}
-		
+	else if (DoubleColonIndex != INDEX_NONE)
+	{
+		// If we didn't find a value redirect and our original string was namespaced, we need to fix the namespace now as it may have changed due to enum type redirect
+		SearchEnumEntryString = GenerateFullEnumName(*ModifiedEnumEntryString);
+	}
+
 	// Search for names both with and without namespace
 	FName SearchName = FName(*SearchEnumEntryString);
 	FName ModifiedName = FName(*ModifiedEnumEntryString);

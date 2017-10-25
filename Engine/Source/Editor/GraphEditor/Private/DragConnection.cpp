@@ -259,7 +259,7 @@ FReply FDragConnection::DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphP
 					bHandledPinDropOnNode = true;
 
 					// Find which pin name to use and drop the pin on the node
-					FString PinName = SourcePin->PinFriendlyName.IsEmpty()? SourcePin->PinName : SourcePin->PinFriendlyName.ToString();
+					const FName PinName = SourcePin->PinFriendlyName.IsEmpty()? SourcePin->PinName : *SourcePin->PinFriendlyName.ToString();
 
 					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddInParam", "Add In Parameter" ) );
 

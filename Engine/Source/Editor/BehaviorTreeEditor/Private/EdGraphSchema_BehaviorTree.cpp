@@ -131,7 +131,7 @@ void UEdGraphSchema_BehaviorTree::GetSubNodeClasses(int32 SubNodeFlags, TArray<F
 
 void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
-	const FString PinCategory = ContextMenuBuilder.FromPin ?
+	const FName PinCategory = ContextMenuBuilder.FromPin ?
 		ContextMenuBuilder.FromPin->PinType.PinCategory : 
 		UBehaviorTreeEditorTypes::PinCategory_MultipleNodes;
 

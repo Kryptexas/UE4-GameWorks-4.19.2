@@ -62,7 +62,6 @@ private:
 public:
 	UPrimitiveComponent* RenderingComponent;
 
-	//FTimelineDebugShapes PrimaryDebugShapes;
 	FTimelineDebugShapes TestDebugShapes;
 
 	TArray<FName> CachedRowSelection;

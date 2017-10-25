@@ -22,7 +22,7 @@ class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 	UPROPERTY()
 	UEnum* Enum;
 
-	static BLUEPRINTGRAPH_API const FString& GetEnumInputPinName();
+	static BLUEPRINTGRAPH_API const FName GetEnumInputPinName();
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
