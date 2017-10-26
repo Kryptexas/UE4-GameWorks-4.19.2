@@ -4256,6 +4256,12 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 			WaveInstanceSourceMap.Reset();
 		}
 	}
+
+	// Make sure we update any hardware changes that need to happen after flushing
+	if (IsAudioMixerEnabled() && (WorldToFlush == nullptr || WorldToFlush->bIsTearingDown))
+	{
+		UpdateHardware();
+	}
 }
 
 /**
