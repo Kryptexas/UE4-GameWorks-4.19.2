@@ -19,6 +19,16 @@
 
 class USynthComponent;
 
+/**
+* Called by a synth component and returns the sound's envelope value (using an envelope follower in the audio renderer).
+* This only works in the audio mixer.
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSynthEnvelopeValue, const float, EnvelopeValue);
+
+/** shadow delegate declaration for above */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSynthEnvelopeValueNative, const class UAudioComponent*, const float);
+
+
 UCLASS()
 class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 {
@@ -27,7 +37,9 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels, const int32 SampleRate);
 
 	/** Begin USoundWave */
+	virtual void OnBeginGenerate() override;
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
+	virtual void OnEndGenerate() override;
 	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
 	/** End USoundWave */
 
@@ -72,6 +84,10 @@ public:
 	/** Returns true if this component is currently playing. */
 	UFUNCTION(BlueprintCallable, Category = "Synth|Components|Audio")
 	bool IsPlaying() const;
+
+	/** Sets how much audio the sound should send to the given submix. */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
+	void SetVolumeMultiplier(float VolumeMultiplier);
 
 	/** Sets how much audio the sound should send to the given submix. */
 	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
@@ -131,19 +147,41 @@ public:
 	/** Retrieves this synth component's audio component. */
 	UAudioComponent* GetAudioComponent();
 
+	/** The attack time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerAttackTime;
+
+	/** The release time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerReleaseTime;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnSynthEnvelopeValue OnAudioEnvelopeValue;
+
+	/** shadow delegate for non UObject subscribers */
+	FOnSynthEnvelopeValueNative OnAudioEnvelopeValueNative;
+
+	void OnAudioComponentEnvelopeValue(const UAudioComponent* AudioComponent, const USoundWave* SoundWave, const float EnvelopeValue);
+
 protected:
 
 	// Method to execute parameter changes on game thread in audio render thread
 	void SynthCommand(TFunction<void()> Command);
 
 	// Called when synth is created.
-	virtual void Init(const int32 SampleRate) {}
+	virtual bool Init(int32& SampleRate) { return true; }
 
 	// Called when synth is about to start playing
 	virtual void OnStart() {}
 
 	// Called when synth is about to stop playing
 	virtual void OnStop() {}
+
+	// Called when the synth component begins generating audio in render thread
+	virtual void OnBeginGenerate() {}
+
+	// Called when the synth has finished generating audio on the render thread
+	virtual void OnEndGenerate() {}
 
 	// Called when more audio is needed to be generated
 	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
@@ -152,7 +190,10 @@ protected:
 	void OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSamples);
 
 	// Gets the audio device associated with this synth component
-	FAudioDevice* GetAudioDevice() { return AudioComponent->GetAudioDevice(); }
+	FAudioDevice* GetAudioDevice() { return AudioComponent ? AudioComponent->GetAudioDevice() : nullptr; }
+
+	// Creates the audio component if it hasn't already been created yet
+	void CreateAudioComponent();
 
 	// Can be set by the derived class, defaults to 2
 	int32 NumChannels;

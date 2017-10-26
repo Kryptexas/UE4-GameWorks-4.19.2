@@ -26,14 +26,20 @@
 #include "PhononProbeVolume.h"
 #include "PhononProbeVolumeDetails.h"
 #include "PhononScene.h"
-#include "PhononSceneDetails.h"
 #include "PhononProbeComponent.h"
 #include "PhononProbeComponentVisualizer.h"
 #include "PhononSourceComponent.h"
 #include "PhononSourceComponentDetails.h"
 #include "PhononSourceComponentVisualizer.h"
+#include "PhononCommon.h"
+#include "SteamAudioEdMode.h"
+
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "AssetRegistryModule.h"
+#include "EditorModeManager.h"
+#include "PlatformFileManager.h"
+#include "GenericPlatformFile.h"
+#include "Paths.h"
 
 #include <atomic>
 
@@ -49,11 +55,28 @@ namespace SteamAudio
 
 	void FSteamAudioEditorModule::StartupModule()
 	{
+		// Ensure that Steam Audio has appropriate folders within which it can manage its data
+		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+		
+		if (!PlatformFile.DirectoryExists(*BasePath))
+		{
+			PlatformFile.CreateDirectory(*BasePath);
+		}
+
+		if (!PlatformFile.DirectoryExists(*RuntimePath))
+		{
+			PlatformFile.CreateDirectory(*RuntimePath);
+		}
+
+		if (!PlatformFile.DirectoryExists(*EditorOnlyPath))
+		{
+			PlatformFile.CreateDirectory(*EditorOnlyPath);
+		}
+
 		// Register detail customizations
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 		PropertyModule.RegisterCustomClassLayout("PhononProbeVolume", FOnGetDetailCustomizationInstance::CreateStatic(&FPhononProbeVolumeDetails::MakeInstance));
-		PropertyModule.RegisterCustomClassLayout("PhononScene", FOnGetDetailCustomizationInstance::CreateStatic(&FPhononSceneDetails::MakeInstance));
 		PropertyModule.RegisterCustomClassLayout("PhononSourceComponent",  FOnGetDetailCustomizationInstance::CreateStatic(&FPhononSourceComponentDetails::MakeInstance));
 
 		// Extend the toolbar build menu with custom actions
@@ -82,6 +105,7 @@ namespace SteamAudio
 		// Create and register custom slate style
 		FString SteamAudioContent = IPluginManager::Get().FindPlugin("SteamAudio")->GetBaseDir() + "/Content";
 		FVector2D Vec16 = FVector2D(16.0f, 16.0f);
+		FVector2D Vec40 = FVector2D(40.0f, 40.0f);
 		FVector2D Vec64 = FVector2D(64.0f, 64.0f);
 
 		SteamAudioStyleSet = MakeShareable(new FSlateStyleSet("SteamAudio"));
@@ -99,7 +123,18 @@ namespace SteamAudio
 		
 		SteamAudioStyleSet->Set("ClassIcon.PhononReverbSourceSettings", new FSlateImageBrush(SteamAudioContent + "/S_PhononReverbSourceSettings_16.png", Vec16));
 		SteamAudioStyleSet->Set("ClassThumbnail.PhononReverbSourceSettings", new FSlateImageBrush(SteamAudioContent + "/S_PhononReverbSourceSettings_64.png", Vec64));
+
+		SteamAudioStyleSet->Set("LevelEditor.SteamAudioMode", new FSlateImageBrush(SteamAudioContent + "/SteamAudio_EdMode_40.png", Vec40));
+		SteamAudioStyleSet->Set("LevelEditor.SteamAudioMode.Small", new FSlateImageBrush(SteamAudioContent + "/SteamAudio_EdMode_16.png", Vec16));
+
 		FSlateStyleRegistry::RegisterSlateStyle(*SteamAudioStyleSet.Get());
+
+		// Register the ed mode
+		FEditorModeRegistry::Get().RegisterMode<FSteamAudioEdMode>(
+			FSteamAudioEdMode::EM_SteamAudio,
+			NSLOCTEXT("EditorModes", "SteamAudioMode", "Steam Audio"),
+			FSlateIcon(SteamAudioStyleSet->GetStyleSetName(), "LevelEditor.SteamAudioMode", "LevelEditor.SteamAudioMode.Small"),
+			true);
 
 		// Register component visualizers
 		RegisterComponentVisualizer(UPhononSourceComponent::StaticClass()->GetFName(), MakeShareable(new FPhononSourceComponentVisualizer()));

@@ -52,6 +52,25 @@ enum class EReverbSendMethod : uint8
 	Manual,
 };
 
+
+USTRUCT(BlueprintType)
+struct ENGINE_API FSoundAttenuationPluginSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Settings to use with occlusion audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. Note that this is an array so multiple plugins can have settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationSpatialization, meta = (DisplayName = "Spatialization Plugin Settings"))
+	TArray<USpatializationPluginSourceSettingsBase*> SpatializationPluginSettingsArray;
+
+	/** Settings to use with occlusion audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. Note that this is an array so multiple plugins can have settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationOcclusion, meta = (DisplayName = "Occlusion Plugin Settings"))
+	TArray<UOcclusionPluginSourceSettingsBase*> OcclusionPluginSettingsArray;
+
+	/** Settings to use with reverb audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. Note that this is an array so multiple plugins can have settings. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Plugin Settings"))
+	TArray<UReverbPluginSourceSettingsBase*> ReverbPluginSettingsArray;
+};
+
 /*
 The settings for attenuating.
 */
@@ -115,9 +134,8 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationSpatialization, meta = (ClampMin = "0", EditCondition = "bSpatialize", DisplayName = "Spatialization Method"))
 	TEnumAsByte<enum ESoundSpatializationAlgorithm> SpatializationAlgorithm;
 
-	/** Settings to use with occlusion audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationSpatialization)
-	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
+	UPROPERTY()
+	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings_DEPRECATED;
 
 	UPROPERTY()
 	float RadiusMin_DEPRECATED;
@@ -217,32 +235,30 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationOcclusion, meta = (ClampMin = "0", UIMin = "0.0", EditCondition = "bEnableOcclusion"))
 	float OcclusionInterpolationTime;
 
-	/** Settings to use with occlusion audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationOcclusion)
-	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+	UPROPERTY()
+	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings_DEPRECATED;
 
 	/** What method to use to control master reverb sends */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend)
 	EReverbSendMethod ReverbSendMethod;
 
-	/** Settings to use with reverb audio plugin. These are defined by the plugin creator. Not all audio plugins utilize this feature. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend)
-	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
+	UPROPERTY()
+	UReverbPluginSourceSettingsBase* ReverbPluginSettings_DEPRECATED;
 
-	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb send min distance. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb min send distance. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Min Send Level"))
 	float ReverbWetLevelMin;
 
-	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb send max distance. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	/** The amount to send to master reverb when sound is located at a distance equal to value specified in the reverb max send distance. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Max Send Level"))
 	float ReverbWetLevelMax;
 
 	/** The min distance to send to the master reverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Min Distance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Min Send Distance"))
 	float ReverbDistanceMin;
 
 	/** The max distance to send to the master reverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Send Max Distance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend, meta = (DisplayName = "Reverb Max Send Distance"))
 	float ReverbDistanceMax;
 
 	/* The custom reverb send curve to use for distance-based send level. */
@@ -252,6 +268,10 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	/* The manual master reverb send level to use. Doesn't change as a function of distance. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationReverbSend)
 	float ManualReverbSendLevel;
+
+	/** Sound attenuation plugin settings to use with sounds that play with this attenuation setting. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AttenuationPluginSettings, meta = (ShowOnlyInnerProperties))
+	FSoundAttenuationPluginSettings PluginSettings;
 
 	FSoundAttenuationSettings()
 		: bAttenuate(true)
@@ -268,7 +288,7 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, OmniRadius(0.0f)
 		, StereoSpread(200.0f)
 		, SpatializationAlgorithm(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
-		, SpatializationPluginSettings(nullptr)
+		, SpatializationPluginSettings_DEPRECATED(nullptr)
 		, RadiusMin_DEPRECATED(400.f)
 		, RadiusMax_DEPRECATED(4000.f)
 		, LPFRadiusMin(3000.f)
@@ -292,9 +312,9 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, OcclusionLowPassFilterFrequency(20000.f)
 		, OcclusionVolumeAttenuation(1.0f)
 		, OcclusionInterpolationTime(0.1f)
-		, OcclusionPluginSettings(nullptr)
+		, OcclusionPluginSettings_DEPRECATED(nullptr)
 		, ReverbSendMethod(EReverbSendMethod::Linear)
-		, ReverbPluginSettings(nullptr)
+		, ReverbPluginSettings_DEPRECATED(nullptr)
 		, ReverbWetLevelMin(0.3f)
 		, ReverbWetLevelMax(0.95f)
 		, ReverbDistanceMin(AttenuationShapeExtents.X)

@@ -47,17 +47,29 @@ namespace Audio
 	typedef TSharedPtr<FMixerSourceVoiceBuffer, ESPMode::ThreadSafe> FMixerSourceBufferPtr;
 	typedef TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> FMixerSubmixPtr;
 
+	// Task used to store pending release/decode data
+	struct FPendingReleaseData
+	{
+		FSoundBuffer* Buffer;
+		IAudioTask* Task;
+
+		FPendingReleaseData()
+			: Buffer(nullptr)
+			, Task(nullptr)
+		{}
+	};
+
 	class ISourceBufferQueueListener
 	{
 	public:
+		// Called before a source begins to generate audio. 
+		virtual void OnBeginGenerate() = 0;
+
 		// Called when the current buffer is finished and a new one needs to be queued
 		virtual void OnSourceBufferEnd() = 0;
 
 		// Called when the buffer queue listener is released. Allows cleaning up any resources from render thread.
-		virtual void OnRelease() = 0;
-
-		// Update any pending decode tasks. Used to clean up tasks without forcing them to finish.
-		virtual void OnUpdatePendingDecodes() {};
+		virtual void OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData) = 0;
 	};
 
 	struct FMixerSourceSubmixSend
@@ -91,6 +103,8 @@ namespace Audio
 		FMixerSourceVoice* SourceVoice;
 		int32 NumInputChannels;
 		int32 NumInputFrames;
+		float EnvelopeFollowerAttackTime;
+		float EnvelopeFollowerReleaseTime;
 		FString DebugName;
 		USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
 		UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
@@ -109,10 +123,12 @@ namespace Audio
 			, SourceVoice(nullptr)
 			, NumInputChannels(0)
 			, NumInputFrames(0)
+			, EnvelopeFollowerAttackTime(10.0f)
+			, EnvelopeFollowerReleaseTime(100.0f)
 			, SpatializationPluginSettings(nullptr)
 			, OcclusionPluginSettings(nullptr)
 			, ReverbPluginSettings(nullptr)
-			, bPlayEffectChainTails(true)
+			, bPlayEffectChainTails(false)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
 			, bOutputToBusOnly(false)
@@ -225,6 +241,7 @@ namespace Audio
 		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously);
 
 		int64 GetNumFramesPlayed(const int32 SourceId) const;
+		float GetEnvelopeValue(const int32 SourceId) const;
 		bool IsDone(const int32 SourceId) const;
 		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;
@@ -243,6 +260,7 @@ namespace Audio
 		int32 GetNumOutputFrames() const { return NumOutputFrames; }
 		bool IsBus(const int32 SourceId) const;
 		void PumpCommandQueue();
+		void UpdatePendingReleaseData(bool bForceWait = false);
 
 	private:
 
@@ -360,7 +378,7 @@ namespace Audio
 			FParam HPFCutoffFrequencyParam;
 
 			// One-Pole LPFs and HPFs per source
-			Audio::FOnePoleFilter LowPassFilter;
+			Audio::FOnePoleLPFBank LowPassFilter;
 			Audio::FOnePoleFilter HighPassFilter;
 
 			// Source effect instances
@@ -424,6 +442,9 @@ namespace Audio
 
 		// Async task workers for processing sources in parallel
 		TArray<FAsyncTask<FAudioMixerSourceWorker>*> SourceWorkers;
+
+		// Array of task data waiting to finished. Processed on audio render thread.
+		TArray<FPendingReleaseData*> PendingReleaseData;
 
 		// General information about sources in source manager accessible from game thread
 		struct FGameThreadInfo

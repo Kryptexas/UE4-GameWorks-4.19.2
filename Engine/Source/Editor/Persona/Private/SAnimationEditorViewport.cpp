@@ -153,7 +153,8 @@ FText SAnimationEditorViewportTabBody::GetDisplayString() const
 		}
 		else if (Component->AnimClass != NULL)
 		{
-			const bool bWarnAboutBoneManip = BlueprintEditorPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
+			TSharedPtr<FBlueprintEditor> BPEditor = BlueprintEditorPtr.Pin();
+			const bool bWarnAboutBoneManip = BPEditor.IsValid() && BPEditor->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
 			if (bWarnAboutBoneManip)
 			{
 				return FText::Format(LOCTEXT("PreviewingAnimBP_WarnDisabled", "Previewing {0}. \nBone manipulation is disabled in this mode. "), FText::FromString(Component->AnimClass->GetName()));

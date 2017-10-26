@@ -570,7 +570,7 @@ UModularSynthComponent::UModularSynthComponent(const FObjectInitializer& ObjectI
 	VoiceCount = 8;
 }
 
-void UModularSynthComponent::Init(const int32 SampleRate)
+bool UModularSynthComponent::Init(int32& SampleRate)
 {
 	NumChannels = 2;
 
@@ -601,6 +601,8 @@ void UModularSynthComponent::Init(const int32 SampleRate)
 	SetStereoDelayFeedback(0.7f);
 	SetStereoDelayWetlevel(0.3f);
 	SetChorusEnabled(false);
+
+	return true;
 }
 
 void UModularSynthComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)

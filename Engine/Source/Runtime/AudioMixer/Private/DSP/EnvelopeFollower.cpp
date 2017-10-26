@@ -94,6 +94,18 @@ namespace Audio
 		return CurrentEnvelopeValue = NewEnvelopeValue;
 	}
 
+	int16 FEnvelopeFollower::ProcessAudio(const int16 InAudioSample)
+	{
+		// Convert to float
+		float SampleValueFloat = (float)InAudioSample / 32767.0f;
+
+		// Process it
+		float Result = ProcessAudio(SampleValueFloat);
+
+		// Convert back to int16
+		return (int16)(Result * 32767.0f);
+	}
+
 	float FEnvelopeFollower::GetCurrentValue() const
 	{
 		return CurrentEnvelopeValue;

@@ -4,30 +4,8 @@
 
 #include "Components/ActorComponent.h"
 #include "LiveLinkTypes.h"
+#include "LiveLinkClientReference.h"
 #include "LiveLinkDrivenComponent.generated.h"
-
-class ILiveLinkClient;
-class IModularFeature;
-
-// References the live link client modular feature and handles add/remove
-struct FLiveLinkClientReference
-{
-public:
-
-	FLiveLinkClientReference();
-	~FLiveLinkClientReference();
-
-	ILiveLinkClient* GetClient() const { return LiveLinkClient; }
-
-	void InitClient();
-
-private:
-	// Handlers for modular features coming and going
-	void OnLiveLinkClientRegistered(const FName& Type, class IModularFeature* ModularFeature);
-	void OnLiveLinkClientUnregistered(const FName& Type, class IModularFeature* ModularFeature);
-
-	ILiveLinkClient* LiveLinkClient;
-};
 
 /** A component that applies data from Live Link to the owning actor */
 UCLASS(Blueprintable, ClassGroup = "LiveLink", meta = (BlueprintSpawnableComponent))

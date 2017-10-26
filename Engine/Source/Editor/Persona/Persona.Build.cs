@@ -58,6 +58,7 @@ public class Persona : ModuleRules
                 "ClothingSystemEditorInterface",
                 "ClothingSystemRuntimeInterface",
                 "AnimGraphRuntime",
+                "UnrealEd"
             }
         );
 

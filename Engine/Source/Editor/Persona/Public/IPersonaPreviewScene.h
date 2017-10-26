@@ -11,6 +11,7 @@ class USkeletalMesh;
 struct FSelectedSocketInfo;
 struct HActor;
 struct FViewportClick;
+class FEditorCameraController;
 
 
 // called when animation asset has been changed
@@ -85,7 +86,7 @@ public:
 	virtual USkeletalMesh* GetPreviewMesh() const = 0;
 
 	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. */
-	virtual void ShowReferencePose(bool bReferencePose) = 0;
+	virtual void ShowReferencePose() = 0;
 
 	/* Are we currently displaying the ref pose */
 	virtual bool IsShowReferencePoseEnabled() const = 0;
@@ -210,4 +211,16 @@ public:
 	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
 	/** Broadcast select LOD changed */
 	virtual void BroadcastOnSelectedLODChanged() = 0;
+
+	/** Register callback for when the camera override is changed */
+	virtual void RegisterOnCameraOverrideChanged(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister callback for when the camera override is changed */
+	virtual void UnregisterOnCameraOverrideChanged(void* Thing) = 0;
+
+	/** Function to override the editor camera for this scene */
+	virtual void SetCameraOverride(TSharedPtr<FEditorCameraController> NewCamera) = 0;
+
+	/** Get the current camera override */
+	virtual TSharedPtr<FEditorCameraController> GetCurrentCameraOverride() const = 0;
 };

@@ -150,5 +150,5 @@
 	<Notify Nodes="Compile PhysX Android Armv7;Compile PhysX Android Arm64;Compile PhysX Android x86;Compile PhysX Android x64" Users="$(AllEmailTargets);chris.babcock@epicgames.com"/>
 	<Notify Nodes="Compile PhysX HTML5" Users="$(AllEmailTargets);nshin@phosphorgames.com"/>
 	<Notify Nodes="Compile PhysX Mac;Compile PhysX IOS;Compile PhysX TVOS" Users="$(AllEmailTargets);michael.trepka@epicgames.com"/>
-	<Notify Nodes="Compile PhysX Switch" Users="$(AllEmailTargets);josh.adams@epicgames.com"/>
+	<Notify Nodes="Compile PhysX Switch" Users="$(AllEmailTargets);joe.barnes@epicgames.com"/>
 </BuildGraph>

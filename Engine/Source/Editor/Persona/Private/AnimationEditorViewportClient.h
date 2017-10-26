@@ -446,4 +446,10 @@ private:
 
 	/** Whether we have initially focused on the preview mesh */
 	bool bInitiallyFocused;
+
+	// We allow for replacing this in the underlying client so we cache it here
+	FEditorCameraController* CachedDefaultCameraController;
+
+	// Delegate Handler to allow changing of camera controller
+	void OnCameraControllerChanged();
 };

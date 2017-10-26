@@ -20,7 +20,7 @@ DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWavePro
 UCLASS()
 class ENGINE_API USoundWaveProcedural : public USoundWave
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 private:
 	// A thread safe queue for queuing audio to be consumed on audio thread
@@ -47,10 +47,13 @@ protected:
 	int32 NumSamplesToGeneratePerCallback;
 
 public:
+	USoundWaveProcedural(const FObjectInitializer& ObjectInitializer);
+	USoundWaveProcedural(FVTableHelper& Helper);
 
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual bool IsReadyForFinishDestroy() override;
 	//~ End UObject Interface. 
 
 	//~ Begin USoundWave Interface.
@@ -64,6 +67,12 @@ public:
 
 	// Virtual function to generate PCM audio from the audio render thread. 
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) { return false; }
+
+	// Called  when the procedural sound wave begins on the render thread. Only used in the audio mixer.
+	virtual void OnBeginGenerate() {}
+
+	// Called when the procedural sound wave is done generating on the render thread. Only used in the audio mixer.
+	virtual void OnEndGenerate() {};
 
 	/** Add data to the FIFO that feeds the audio device. */
 	void QueueAudio(const uint8* AudioData, const int32 BufferSize);
@@ -79,4 +88,7 @@ public:
 
 	/** Size in bytes of a single sample of audio in the procedural audio buffer. */
 	int32 SampleByteSize;
+
+	/** Whether or not this object is ready to be destroyed. Allows procedural sound wave generation to occur in async tasks without garbage collection deleting it from underneath. */
+	bool bIsReadyForDestroy;
 };

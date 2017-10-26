@@ -12,7 +12,17 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 
 	SampleByteSize = 2;
 
+	// This is set to true to default to old behavior in old audio engine
+	// Audio mixer uses sound wave procedural in async tasks and sets this to false when using it.
+	bIsReadyForDestroy = true;
+
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
+}
+
+USoundWaveProcedural::USoundWaveProcedural(FVTableHelper& Helper)
+	: Super(Helper)
+{
+	bIsReadyForDestroy = true;
 }
 
 void USoundWaveProcedural::QueueAudio(const uint8* AudioData, const int32 BufferSize)
@@ -129,6 +139,11 @@ int32 USoundWaveProcedural::GetResourceSizeForFormat(FName Format)
 void USoundWaveProcedural::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+bool USoundWaveProcedural::IsReadyForFinishDestroy()
+{
+	return bIsReadyForDestroy;
 }
 
 bool USoundWaveProcedural::HasCompressedData(FName Format) const

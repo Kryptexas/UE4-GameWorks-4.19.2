@@ -89,6 +89,9 @@ namespace Audio
 		// Retrieves the total number of samples played.
 		int64 GetNumFramesPlayed() const;
 
+		// Retrieves the envelope value of the source.
+		float GetEnvelopeValue() const;
+
 		// Mixes the dry and wet buffer audio into the given buffers.
 		void MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
 

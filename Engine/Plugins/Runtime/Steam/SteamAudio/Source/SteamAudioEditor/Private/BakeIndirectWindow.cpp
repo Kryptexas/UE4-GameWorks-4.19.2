@@ -145,7 +145,7 @@ namespace SteamAudio
 				+ SHorizontalBox::Slot()
 				[
 					SNew(STextBlock)
-					.Text(GetKBTextFromByte(Item->DataSize))
+					.Text(PrettyPrintedByte(Item->DataSize))
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 			];

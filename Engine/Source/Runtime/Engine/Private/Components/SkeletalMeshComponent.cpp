@@ -429,9 +429,9 @@ bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 {
 	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
 	const USkeleton* AnimSkeleton = (AnimClassInterface) ? AnimClassInterface->GetTargetSkeleton() : nullptr;
-	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimSkeleton != nullptr) &&
-		(SkeletalMesh != nullptr) && (SkeletalMesh->Skeleton->IsCompatible(AnimSkeleton)
-		&& AnimSkeleton->IsCompatibleMesh(SkeletalMesh)))
+	const bool bAnimSkelValid = !AnimClassInterface || (AnimSkeleton && SkeletalMesh && SkeletalMesh->Skeleton->IsCompatible(AnimSkeleton) && AnimSkeleton->IsCompatibleMesh(SkeletalMesh));
+
+	if (AnimationMode == EAnimationMode::AnimationBlueprint && AnimClass && bAnimSkelValid)
 	{
 		// Check for an 'invalid' AnimScriptInstance:
 		// - Could be NULL (in the case of 'standard' first-time initialization)
@@ -2268,7 +2268,6 @@ void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 {
 	if (NewClass != nullptr)
 	{
-		ensureMsgf(nullptr != IAnimClassInterface::GetFromClass(NewClass), TEXT("(%s) does not implement IAnimClassInterface!? SkelMesh(%s) Outer(%s)"), *GetNameSafe(NewClass), *GetNameSafe(SkeletalMesh), *GetNameSafe(GetOuter()));
 		// set the animation mode
 		const bool bWasUsingBlueprintMode = AnimationMode == EAnimationMode::AnimationBlueprint;
 		AnimationMode = EAnimationMode::Type::AnimationBlueprint;

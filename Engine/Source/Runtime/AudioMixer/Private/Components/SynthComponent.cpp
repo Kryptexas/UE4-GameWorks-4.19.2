@@ -35,6 +35,12 @@ void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChann
 	bAudioMixer = InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled();
 }
 
+void USynthSound::OnBeginGenerate()
+{
+	check(OwningSynthComponent);
+	OwningSynthComponent->OnBeginGenerate();
+}
+
 bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
 	OutAudio.Reset();
@@ -66,6 +72,12 @@ bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 	return true;
 }
 
+void USynthSound::OnEndGenerate()
+{
+	check(OwningSynthComponent);
+	OwningSynthComponent->OnEndGenerate();
+}
+
 Audio::EAudioMixerStreamDataFormat::Type USynthSound::GetGeneratedPCMDataFormat() const 
 { 
 	// Only audio mixer supports return float buffers
@@ -75,15 +87,8 @@ Audio::EAudioMixerStreamDataFormat::Type USynthSound::GetGeneratedPCMDataFormat(
 USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Create the audio component which will be used to play the procedural sound wave
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	bAutoActivate = false;
 
-	AudioComponent->bAutoActivate = true;
-	AudioComponent->bStopWhenOwnerDestroyed = true;
-	AudioComponent->bShouldRemainActiveIfDropped = true;
-	AudioComponent->Mobility = EComponentMobility::Movable;
-
-	bAutoActivate = true;
 	bStopWhenOwnerDestroyed = true;
 
 	bNeverNeedsRenderUpdate = true;
@@ -97,9 +102,21 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	SoundClass = USoundBase::DefaultSoundClassObject;
 
 #if WITH_EDITORONLY_DATA
-	AudioComponent->bVisualizeComponent = false;
 	bVisualizeComponent = false;
 #endif
+}
+
+void USynthComponent::OnAudioComponentEnvelopeValue(const UAudioComponent* InAudioComponent, const USoundWave* SoundWave, const float EnvelopeValue)
+{
+	if (OnAudioEnvelopeValue.IsBound())
+	{
+		OnAudioEnvelopeValue.Broadcast(EnvelopeValue);
+	}
+
+	if (OnAudioEnvelopeValueNative.IsBound())
+	{
+		OnAudioEnvelopeValueNative.Broadcast(InAudioComponent, EnvelopeValue);
+	}
 }
 
 void USynthComponent::Activate(bool bReset)
@@ -172,14 +189,43 @@ UAudioComponent* USynthComponent::GetAudioComponent()
 	return AudioComponent;
 }
 
+void USynthComponent::CreateAudioComponent()
+{
+	if (!AudioComponent)
+	{
+		// Create the audio component which will be used to play the procedural sound wave
+		AudioComponent = NewObject<UAudioComponent>(this);
+
+		if (AudioComponent)
+		{
+			AudioComponent->bAutoActivate = false;
+			AudioComponent->bStopWhenOwnerDestroyed = true;
+			AudioComponent->bShouldRemainActiveIfDropped = true;
+			AudioComponent->Mobility = EComponentMobility::Movable;
+
+#if WITH_EDITORONLY_DATA
+			AudioComponent->bVisualizeComponent = false;
+#endif
+			if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
+			{
+				AudioComponent->SetupAttachment(this);
+			}
+
+			AudioComponent->OnAudioSingleEnvelopeValueNative.AddUObject(this, &USynthComponent::OnAudioComponentEnvelopeValue);
+
+			// Set defaults to be the same as audio component defaults
+			EnvelopeFollowerAttackTime = AudioComponent->EnvelopeFollowerAttackTime;
+			EnvelopeFollowerReleaseTime = AudioComponent->EnvelopeFollowerReleaseTime;
+
+			Initialize();
+		}
+	}
+}
+
+
 void USynthComponent::OnRegister()
 {
-	Initialize();
-
-	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
-	{
-		AudioComponent->SetupAttachment(this);
-	}
+	CreateAudioComponent();
 
 	Super::OnRegister();
 }
@@ -196,6 +242,13 @@ void USynthComponent::OnUnregister()
 	if (!Owner || bStopWhenOwnerDestroyed)
 	{
 		Stop();
+	}
+
+	// Make sure the audio component is destroyed during unregister
+	if (AudioComponent)
+	{
+		AudioComponent->DestroyComponent();
+		AudioComponent = nullptr;
 	}
 }
 
@@ -265,19 +318,30 @@ void USynthComponent::OnGeneratePCMAudio(float* GeneratedPCMData, int32 NumSampl
 
 void USynthComponent::Start()
 {
+	// This will try to create the audio component if it hasn't yet been created
+	CreateAudioComponent();
+
 	if (AudioComponent)
 	{
 		// Copy the attenuation and concurrency data from the synth component to the audio component
 		AudioComponent->AttenuationSettings = AttenuationSettings;
 		AudioComponent->bOverrideAttenuation = bOverrideAttenuation;
 		AudioComponent->bIsUISound = bIsUISound;
+		AudioComponent->bAllowSpatialization = bAllowSpatialization;
 		AudioComponent->ConcurrencySettings = ConcurrencySettings;
 		AudioComponent->AttenuationOverrides = AttenuationOverrides;
 		AudioComponent->SoundClassOverride = SoundClass;
+		AudioComponent->EnvelopeFollowerAttackTime = EnvelopeFollowerAttackTime;
+		AudioComponent->EnvelopeFollowerReleaseTime = EnvelopeFollowerReleaseTime;
 
 		// Set the audio component's sound to be our procedural sound wave
 		AudioComponent->SetSound(Synth);
 		AudioComponent->Play(0);
+
+		// Copy sound base data to the sound
+		Synth->SourceEffectChain = SourceEffectChain;
+		Synth->SoundSubmixObject = SoundSubmix;
+		Synth->SoundSubmixSends = SoundSubmixSends;
 
 		bIsActive = AudioComponent->IsActive();
 
@@ -308,6 +372,14 @@ bool USynthComponent::IsPlaying() const
 	return AudioComponent && AudioComponent->IsPlaying();
 }
 
+void USynthComponent::SetVolumeMultiplier(float VolumeMultiplier)
+{
+	if (AudioComponent)
+	{
+		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
+	}
+}
+
 void USynthComponent::SetSubmixSend(USoundSubmix* Submix, float SendLevel)
 {
 	if (AudioComponent)
@@ -315,7 +387,6 @@ void USynthComponent::SetSubmixSend(USoundSubmix* Submix, float SendLevel)
 		AudioComponent->SetSubmixSend(Submix, SendLevel);
 	}
 }
-
 
 void USynthComponent::SynthCommand(TFunction<void()> Command)
 {

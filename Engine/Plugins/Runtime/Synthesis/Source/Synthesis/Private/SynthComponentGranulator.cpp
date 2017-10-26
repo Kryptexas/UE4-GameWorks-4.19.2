@@ -16,10 +16,11 @@ UGranularSynth::~UGranularSynth()
 
 }
 
-void UGranularSynth::Init(const int32 SampleRate)
+bool UGranularSynth::Init(int32& SampleRate)
 {
 	NumChannels = 2;
 	SoundWaveLoader.Init(GetAudioDevice());
+	return true;
 }
 
 void UGranularSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)

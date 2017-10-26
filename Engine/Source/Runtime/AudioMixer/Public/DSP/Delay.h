@@ -52,6 +52,9 @@ namespace Audio
 		// Process audio input and output buffer
 		virtual void ProcessAudio(const float* InAudio, float* OutAudio);
 
+		// Process audio in the delay line, return the delayed value
+		float ProcessAudio(const float InAudio);
+
 	protected:
 
 		// Updates delay line based on any recent changes to settings

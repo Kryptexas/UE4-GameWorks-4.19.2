@@ -1022,7 +1022,7 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 
 		FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
 		FString DerivedDataKey;
-		GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+		GetStreamedAudioDerivedDataKeySuffix(*this, PlatformFormat, DerivedDataKey);
 
 		FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
 

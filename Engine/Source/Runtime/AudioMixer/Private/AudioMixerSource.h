@@ -52,22 +52,23 @@ namespace Audio
 		~FMixerSource();
 
 		//~ Begin FSoundSource Interface
-		bool Init(FWaveInstance* InWaveInstance) override;
-		void Update() override;
-		bool PrepareForInitialization(FWaveInstance* InWaveInstance) override;
-		bool IsPreparedToInit() override;
-		void Play() override;
-		void Stop() override;
-		void Pause() override;
-		bool IsFinished() override;
-		FString Describe(bool bUseLongName) override;
-		float GetPlaybackPercent() const override;
+		virtual bool Init(FWaveInstance* InWaveInstance) override;
+		virtual void Update() override;
+		virtual bool PrepareForInitialization(FWaveInstance* InWaveInstance) override;
+		virtual bool IsPreparedToInit() override;
+		virtual void Play() override;
+		virtual void Stop() override;
+		virtual void Pause() override;
+		virtual bool IsFinished() override;
+		virtual FString Describe(bool bUseLongName) override;
+		virtual float GetPlaybackPercent() const override;
+		virtual float GetEnvelopeValue() const override;
 		//~ End FSoundSource Interface
 
 		//~Begin ISourceBufferQueueListener
-		void OnSourceBufferEnd() override;
-		void OnRelease() override;
-		void OnUpdatePendingDecodes() override;
+		virtual void OnBeginGenerate() override;
+		virtual void OnSourceBufferEnd() override;
+		virtual void OnRelease(TArray<FPendingReleaseData*>& OutPendingReleaseData) override;
 		//~End ISourceBufferQueueListener
 
 	private:
@@ -145,23 +146,9 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		IAudioTask* AsyncRealtimeAudioTask;
-		
-		// Task used to store pending release/decode data
-		struct FPendingReleaseData
-		{
-			FSoundBuffer* Buffer;
-			IAudioTask* Task;
-
-			FPendingReleaseData()
-				: Buffer(nullptr)
-				, Task(nullptr)
-			{}
-		};
 
 		// Queue of pending release data. Pushed from audio thread, updated on audio render thread.
 		TQueue<FPendingReleaseData*> PendingReleases;
-		// Array of task data waiting to finished. Processed on audio render thread.
-		TArray<FPendingReleaseData*> TasksWaitingToFinish;
 
 		FCriticalSection RenderThreadCritSect;
 

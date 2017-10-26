@@ -19,12 +19,13 @@ USynthSamplePlayer::~USynthSamplePlayer()
 {
 }
 
-void USynthSamplePlayer::Init(const int32 SampleRate)
+bool USynthSamplePlayer::Init(int32& SampleRate)
 {
 	NumChannels = 2;
 
 	SampleBufferReader.Init(SampleRate);
 	SoundWaveLoader.Init(GetAudioDevice());
+	return true;
 }
 
 void USynthSamplePlayer::SetPitch(float InPitch, float InTimeSec)

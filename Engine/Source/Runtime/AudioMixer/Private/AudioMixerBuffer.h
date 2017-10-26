@@ -62,6 +62,9 @@ namespace Audio
 		int32 GetNumChannels() const { return NumChannels; }
 		void InitSampleRate(const float InSampleRate) { SampleRate = InSampleRate; }
 
+		// Called on a buffer before it starts generating audio. Only used for the case of a procedural sound wave.
+		void OnBeginGenerate();
+
 	private:
 
 		/** Async task for parsing real-time decompressed compressed info headers. */
@@ -69,6 +72,9 @@ namespace Audio
 
 		/** Wrapper to handle the decompression of audio codecs. */
 		ICompressedAudioInfo* DecompressionState;
+
+		/** The ptr to this buffers sound wave procedural if it was created from a procedural sound wave. */
+		USoundWaveProcedural* SoundWaveProcedural;
 
 		/** Format of the sound referenced by this buffer */
 		EBufferType::Type BufferType;

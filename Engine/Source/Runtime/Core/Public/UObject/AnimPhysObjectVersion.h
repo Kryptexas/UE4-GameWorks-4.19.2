@@ -37,6 +37,8 @@ struct CORE_API FAnimPhysObjectVersion
 		AddLODToCurveMetaData,
 		// Fixed blend profile references persisting after paste when they aren't compatible
 		FixupBadBlendProfileReferences,
+		// Allowing multiple audio plugin settings
+		AllowMultipleAudioPluginSettings,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

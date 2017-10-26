@@ -1710,6 +1710,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 
 					GlobalMeshSettings.Add(MeshData);
 					GlobalMaterialSettings.Add(MaterialData);
+					SectionMaterialImportanceValues.Add(MaterialImportanceValues[MaterialIndex]);
 				}
 				else
 				{
@@ -1725,12 +1726,11 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 						DefaultMeshDataIndex = GlobalMeshSettings.Num();
 						GlobalMeshSettings.Add(MeshData);
 						GlobalMaterialSettings.Add(MaterialData);
+						SectionMaterialImportanceValues.Add(MaterialImportanceValues[MaterialIndex]);
 					}
 
 					MeshDataIndex = DefaultMeshDataIndex;
 				}
-
-				SectionMaterialImportanceValues.Add(MaterialImportanceValues[MaterialIndex]);
 
 				for (const uint32& OriginalSectionIndex : SectionIndices)
 				{
