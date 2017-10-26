@@ -96,7 +96,7 @@ void UK2Node_LatentAbilityCall::ValidateNodeDuringCompilation(class FCompilerRes
 		{
 			if (Property->GetBoolMetaData(FK2Node_LatentAbilityCallHelper_RequiresConnection))
 			{
-				if (UEdGraphPin* DelegateExecPin = FindPin(Property->GetName()))
+				if (UEdGraphPin* DelegateExecPin = FindPin(Property->GetFName()))
 				{
 					if (DelegateExecPin->LinkedTo.Num() < 1)
 					{

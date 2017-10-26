@@ -90,6 +90,9 @@ namespace Audio
 			InitParams.bUseHRTFSpatialization = UseObjectBasedSpatialization();
 			InitParams.AudioComponentUserID = InWaveInstance->ActiveSound->GetAudioComponentUserID();
 
+			InitParams.EnvelopeFollowerAttackTime = InWaveInstance->EnvelopeFollowerAttackTime;
+			InitParams.EnvelopeFollowerReleaseTime = InWaveInstance->EnvelopeFollowerReleaseTime;
+
 			InitParams.SourceEffectChainId = 0;
 
 			if (InitParams.NumInputChannels <= 2)
@@ -494,6 +497,15 @@ namespace Audio
 		}
 	}
 
+	float FMixerSource::GetEnvelopeValue() const
+	{
+		if (MixerSourceVoice)
+		{
+			return MixerSourceVoice->GetEnvelopeValue();
+		}
+		return 0.0f;
+	}
+
 	void FMixerSource::SubmitPCMBuffers()
 	{
 		if (!AudioDevice)
@@ -724,6 +736,14 @@ namespace Audio
 			{
 				SubmitRealTimeSourceData(bLooped, bSubmitSynchronously);
 			}
+		}
+	}
+
+	void FMixerSource::OnBeginGenerate()
+	{
+		if (MixerBuffer)
+		{
+			MixerBuffer->OnBeginGenerate();
 		}
 	}
 

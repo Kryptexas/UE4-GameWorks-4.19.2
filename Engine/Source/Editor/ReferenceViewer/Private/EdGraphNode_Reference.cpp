@@ -165,8 +165,8 @@ FText UEdGraphNode_Reference::GetTooltipText() const
 
 void UEdGraphNode_Reference::AllocateDefaultPins()
 {
-	ReferencerPin = CreatePin( EEdGraphPinDirection::EGPD_Input, FString(), FString(), nullptr, FString() );
-	DependencyPin = CreatePin( EEdGraphPinDirection::EGPD_Output, FString(), FString(), nullptr, FString() );
+	ReferencerPin = CreatePin( EEdGraphPinDirection::EGPD_Input, NAME_None, NAME_None);
+	DependencyPin = CreatePin( EEdGraphPinDirection::EGPD_Output, NAME_None, NAME_None);
 
 	ReferencerPin->bHidden = true;
 	DependencyPin->bHidden = true;

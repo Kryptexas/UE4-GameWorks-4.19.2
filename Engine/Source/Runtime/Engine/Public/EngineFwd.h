@@ -169,7 +169,7 @@ class HHitProxy;
 class INavLinkCustomInterface;
 
 enum class ECacheApplyPhase;
-enum class ETeleportType;
+enum class ETeleportType : uint8;
 
 struct FActiveSound;
 struct FActorComponentTickFunction;

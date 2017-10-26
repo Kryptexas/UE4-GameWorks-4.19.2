@@ -139,7 +139,7 @@ public:
 	virtual void BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle) override;
 
 	/** FTickableGameObject interface */
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual bool IsTickableInEditor() const override { return true; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSlateRHIResourceManager, STATGROUP_Tickables); }

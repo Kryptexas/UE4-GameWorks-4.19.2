@@ -961,9 +961,10 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bPhysi
 			PxShape* PShape = AllShapes[ShapeIdx];
 			const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
 			const bool bIsWelded = BI != this;
+			const UBodySetup *InstanceBodySetup = BI->BodySetup.Get();
 
-			const bool bUseComplexAsSimple = (BI->BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
-			const bool bUseSimpleAsComplex = (BI->BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
+			const bool bUseComplexAsSimple = InstanceBodySetup? (InstanceBodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple) : false;
+			const bool bUseSimpleAsComplex = InstanceBodySetup? (InstanceBodySetup->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex) : false;
 
 			const TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled = CollisionEnabledOverride && !bIsWelded ? *CollisionEnabledOverride : (TEnumAsByte<ECollisionEnabled::Type>)BI->GetCollisionEnabled();
 			const FCollisionResponseContainer& UseResponse = ResponseOverride && !bIsWelded ? *ResponseOverride : BI->CollisionResponses.GetResponseContainer();

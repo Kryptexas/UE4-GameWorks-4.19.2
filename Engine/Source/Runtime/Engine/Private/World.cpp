@@ -1501,9 +1501,8 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 
 void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 {
-	bool	bSuccessfulRemoval = false;
 	ULevel* CheckLevel = Actor->GetLevel();
-	int32 ActorListIndex = CheckLevel->Actors.Find( Actor );
+	const int32 ActorListIndex = CheckLevel->Actors.Find( Actor );
 	// Search the entire list.
 	if( ActorListIndex != INDEX_NONE )
 	{
@@ -1517,37 +1516,11 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 			CheckLevel->Actors[ActorListIndex]->Modify();
 		}
 		
-		CheckLevel->Actors[ActorListIndex] = NULL;
-		bSuccessfulRemoval = true;		
+		CheckLevel->Actors[ActorListIndex] = nullptr;
 	}
 
 	// Remove actor from network list
 	RemoveNetworkActor( Actor );
-
-	// TTP 281860: Callstack will hopefully indicate how the actors array ends up without the required default actors
-	check(CheckLevel->Actors.Num() >= 2);
-
-	if ( !bSuccessfulRemoval && !( Actor->GetFlags() & RF_Transactional ) )
-	{
-		//CheckLevel->Actors is a transactional array so it is very likely that non-transactional
-		//actors could be missing from the array if the array was reverted to a state before they
-		//existed. (but they won't be reverted since they are non-transactional)
-		bSuccessfulRemoval = true;
-	}
-
-	if ( !bSuccessfulRemoval )
-	{
-		// TTP 270000: Trying to track down why certain actors aren't in the level actor list when saving.  If we're reinstancing, dump the list
-		{
-			UE_LOG(LogWorld, Log, TEXT("--- Actors Currently in %s ---"), *CheckLevel->GetPathName());
-			for (int32 ActorIdx = 0; ActorIdx < CheckLevel->Actors.Num(); ActorIdx++)
-			{
-				AActor* CurrentActor = CheckLevel->Actors[ActorIdx];
-				UE_LOG(LogWorld, Log, TEXT("  %s"), (CurrentActor ? *CurrentActor->GetPathName() : TEXT("NONE")));
-			}
-		}
-		ensureMsgf(false, TEXT("Could not remove actor %s from world (check level is %s)"), *Actor->GetPathName(), *CheckLevel->GetPathName());
-	}
 }
 
 
@@ -2735,6 +2708,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
 
+		// If editor has run construction scripts or applied level offset, we dont do it again
+		PIELevel->bAlreadyMovedActors = EditorLevel->bAlreadyMovedActors;
 		PIELevel->bHasRerunConstructionScripts = EditorLevel->bHasRerunConstructionScripts;
 
 		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order

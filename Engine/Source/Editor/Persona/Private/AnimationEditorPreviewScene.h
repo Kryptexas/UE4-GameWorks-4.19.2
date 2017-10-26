@@ -34,7 +34,7 @@ public:
 	virtual void SetPreviewMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent) override { SkeletalMeshComponent = InSkeletalMeshComponent; }
 	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
-	virtual void ShowReferencePose(bool bReferencePose) override;
+	virtual void ShowReferencePose() override;
 	virtual bool IsShowReferencePoseEnabled() const override;
 	virtual void SetSelectedBone(const FName& BoneName) override;
 	virtual void ClearSelectedBone() override;
@@ -137,6 +137,27 @@ public:
 		{
 			OnSelectedLODChanged.Broadcast();
 		}
+	}
+
+	virtual void RegisterOnCameraOverrideChanged(const FSimpleDelegate& Delegate) override
+	{
+		OnCameraOverrideChanged.Add(Delegate);
+	}
+
+	virtual void UnregisterOnCameraOverrideChanged(void* Thing) override
+	{
+		OnCameraOverrideChanged.RemoveAll(Thing);
+	}
+
+	void SetCameraOverride(TSharedPtr<class FEditorCameraController> NewCamera)
+	{
+		CameraOverride = NewCamera;
+		OnCameraOverrideChanged.Broadcast();
+	}
+
+	TSharedPtr<FEditorCameraController> GetCurrentCameraOverride() const
+	{
+		return CameraOverride;
 	}
 
 	/** FPreviewScene interface */
@@ -252,9 +273,6 @@ private:
 	/** Cached bounds of the floor mesh */
 	FBoxSphereBounds FloorBounds;
 
-	/** Preview asset cached so we can re-apply it when reverting from ref pose */
-	TWeakObjectPtr<UObject> CachedPreviewAsset;
-
 	/** Delegate to be called after the preview animation has been changed */
 	FOnAnimChangedMulticaster OnAnimChanged;
 
@@ -307,4 +325,10 @@ private:
 
 	/* Selected LOD changed delegate */
 	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
+
+	/** Camera override delegate */
+	FSimpleMulticastDelegate OnCameraOverrideChanged;
+
+	/** Currently specified camera override */
+	TSharedPtr<FEditorCameraController> CameraOverride;
 };

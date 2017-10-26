@@ -18,7 +18,7 @@ private:
 	{
 		if(K2Schema && Pin)
 		{
-			const bool bValuePin = (Pin->PinType.PinCategory != K2Schema->PC_Exec);
+			const bool bValuePin = (Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec);
 			const bool bNotConnected = (Pin->Direction == EEdGraphPinDirection::EGPD_Input) && (0 == Pin->LinkedTo.Num());
 			const bool bNeedToResetDefaultValue = (Pin->DefaultValue.IsEmpty() && Pin->DefaultObject == nullptr && Pin->DefaultTextValue.IsEmpty()) || !(K2Schema->IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue).IsEmpty());
 			if (bValuePin && bNotConnected && bNeedToResetDefaultValue)
@@ -70,16 +70,17 @@ public:
 		// Do not register as a default any Pin that comes from being Split
 		if (Net->ParentPin == nullptr)
 		{
-			for (auto& ResultTerm : Context.Results)
+			FString NetPinName = Net->PinName.ToString();
+			for (FBPTerminal& ResultTerm : Context.Results)
 			{
-				if ((ResultTerm.Name == Net->PinName) && (ResultTerm.Type == Net->PinType))
+				if ((ResultTerm.Name == NetPinName) && (ResultTerm.Type == Net->PinType))
 				{
 					Context.NetMap.Add(Net, &ResultTerm);
 					return;
 				}
 			}
 			FBPTerminal* Term = new (Context.Results) FBPTerminal();
-			Term->CopyFromPin(Net, Net->PinName);
+			Term->CopyFromPin(Net, MoveTemp(NetPinName));
 			Context.NetMap.Add(Net, Term);
 		}
 	}
@@ -132,11 +133,9 @@ FText UK2Node_FunctionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 void UK2Node_FunctionResult::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
-	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
-	if (Function != NULL)
+	if (UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName))
 	{
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ false);
 	}

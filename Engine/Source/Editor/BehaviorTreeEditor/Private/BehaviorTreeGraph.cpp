@@ -33,8 +33,9 @@ namespace BTGraphVersion
 	const int32 Initial = 0;
 	const int32 UnifiedSubNodes = 1;
 	const int32 InnerGraphWhitespace = 2;
+	const int32 RunBehaviorInSeparateGraph = 3;
 
-	const int32 Latest = InnerGraphWhitespace;
+	const int32 Latest = RunBehaviorInSeparateGraph;
 }
 
 UBehaviorTreeGraph::UBehaviorTreeGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -184,7 +185,6 @@ void UBehaviorTreeGraph::OnLoaded()
 {
 	Super::OnLoaded();
 	UpdatePinConnectionTypes();
-	UpdateDeprecatedNodes();
 	RemoveUnknownSubNodes();
 }
 
@@ -212,7 +212,7 @@ void UBehaviorTreeGraph::UpdatePinConnectionTypes()
 
 		for (int32 iPin = 0; iPin < Node->Pins.Num(); iPin++)
 		{
-			FString& PinCategory = Node->Pins[iPin]->PinType.PinCategory;
+			FName& PinCategory = Node->Pins[iPin]->PinType.PinCategory;
 			if (PinCategory == TEXT("Transition"))
 			{
 				PinCategory = bIsCompositeNode ? 
@@ -251,7 +251,7 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 	}
 }
 
-void UBehaviorTreeGraph::UpdateDeprecatedNodes()
+void UBehaviorTreeGraph::UpdateVersion_RunBehaviorInSeparateGraph()
 {
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
 	{
@@ -1316,6 +1316,11 @@ void UBehaviorTreeGraph::UpdateVersion()
 	if (GraphVersion < BTGraphVersion::InnerGraphWhitespace)
 	{
 		UpdateVersion_InnerGraphWhitespace();
+	}
+
+	if (GraphVersion < BTGraphVersion::RunBehaviorInSeparateGraph)
+	{
+		UpdateVersion_RunBehaviorInSeparateGraph();
 	}
 
 	GraphVersion = BTGraphVersion::Latest;

@@ -19,8 +19,6 @@
 #include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
 
-#include "AnimBlueprintCompiler.h"
-
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -29,6 +27,7 @@
 #include "Engine/UserDefinedStruct.h"
 #include "BlueprintCompilerCppBackendInterface.h"
 #include "IMessageLogListing.h"
+#include "Engine/Engine.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
@@ -119,18 +118,9 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 		// if no one handles it, then use the default blueprint compiler.
 		if ( !Compiled )
 		{
-			if ( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint) )
-			{
-				FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
-				Compiler.Compile();
-				check(Compiler.NewClass);
-			}
-			else
-			{
-				FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
-				Compiler.Compile();
-				check(Compiler.NewClass);
-			}
+			FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
+			Compiler.Compile();
+			check(Compiler.NewClass);
 		}
 
 		if (bRecompileDependencies)
@@ -195,6 +185,9 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	Results.SetSourcePath(Blueprint->GetPathName());
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
+
+	// load required modules before compiling
+	Blueprint->LoadModulesRequiredForCompilation();
 
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{

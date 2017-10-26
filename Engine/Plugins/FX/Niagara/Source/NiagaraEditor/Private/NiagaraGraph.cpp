@@ -127,8 +127,7 @@ class UNiagaraScriptSource* UNiagaraGraph::GetSource() const
 	return CastChecked<UNiagaraScriptSource>(GetOuter());
 }
 
-
-UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FString& VariableName)
+UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FName VariableName)
 {
 	TArray<UEdGraphPin*> MatchingDefaultPins;
 	TArray<UNiagaraNodeParameterMapGet*> GetNodes;
@@ -142,18 +141,12 @@ UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FString& Varia
 		{
 			if (VariableName == OutputPin->PinName)
 			{
-				UEdGraphPin* Pin = GetNode->GetDefaultPin(OutputPin);
-				if (Pin)
+				if (UEdGraphPin* Pin = GetNode->GetDefaultPin(OutputPin))
 				{
-					MatchingDefaultPins.Add(Pin);
+					return Pin;
 				}
 			}
 		}
-	}
-
-	if (MatchingDefaultPins.Num() > 0)
-	{
-		return MatchingDefaultPins[0];
 	}
 
 	return nullptr;

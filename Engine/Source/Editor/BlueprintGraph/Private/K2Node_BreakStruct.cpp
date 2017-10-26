@@ -84,7 +84,7 @@ public:
 
 	void RegisterOutputTerm(FKismetFunctionContext& Context, UScriptStruct* StructType, UEdGraphPin* Net, FBPTerminal* ContextTerm)
 	{
-		if (UProperty* BoundProperty = FindField<UProperty>(StructType, *(Net->PinName)))
+		if (UProperty* BoundProperty = FindField<UProperty>(StructType, Net->PinName))
 		{
 			if (BoundProperty->HasAnyPropertyFlags(CPF_Deprecated) && Net->LinkedTo.Num())
 			{
@@ -95,7 +95,7 @@ public:
 			}
 
 			UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
+			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName.ToString());
 			Term->bPassedByReference = ContextTerm->bPassedByReference;
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);
@@ -169,11 +169,14 @@ bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct, const bool bF
 
 void UK2Node_BreakStruct::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if(Schema && StructType)
+	if (StructType)
 	{
+		UEdGraphNode::FCreatePinParams PinParams;
+		PinParams.bIsConst = true;
+		PinParams.bIsReference = true;
+
 		PreloadObject(StructType);
-		CreatePin(EGPD_Input, Schema->PC_Struct, FString(), StructType, StructType->GetName(), EPinContainerType::None, true, true);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, StructType, StructType->GetFName(), PinParams);
 		
 		struct FBreakStructPinManager : public FStructOperationOptionalPinManager
 		{
@@ -267,7 +270,7 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
 				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
 
-				const UEdGraphPin* Pin = FindPin(Property->GetName());
+				const UEdGraphPin* Pin = FindPin(Property->GetFName());
 				const bool bIsLinked = Pin && Pin->LinkedTo.Num();
 
 				if (!bIsBlueprintVisible && bIsLinked)
@@ -305,7 +308,7 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 	if(const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>())
 	{
 		FEdGraphPinType PinType;
-		PinType.PinCategory = K2Schema->PC_Struct;
+		PinType.PinCategory = UEdGraphSchema_K2::PC_Struct;
 		PinType.PinSubCategoryObject = StructType;
 		return K2Schema->GetPinTypeColor(PinType);
 	}
@@ -331,11 +334,11 @@ UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const U
 		}
 		else if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
 		{
-			FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, FName(*OldPin->PinName));
+			FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, OldPin->PinName);
 
 			if (RedirectedPinName != NAME_Name)
 			{
-				Result = ((FCString::Stricmp(*RedirectedPinName.ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
+				Result = (RedirectedPinName != NewPin->PinName ? ERedirectType_None : ERedirectType_Name);
 			}
 		}
 	}
@@ -448,7 +451,7 @@ void UK2Node_BreakStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeC
 		UFunction* BreakNodeFunction = nullptr;
 
 		// If any pins need to change their names during the conversion, add them to the map.
-		TMap<FString, FString> OldPinToNewPinMap;
+		TMap<FName, FName> OldPinToNewPinMap;
 
 		if (StructType == TBaseStructure<FRotator>::Get())
 		{
@@ -476,7 +479,7 @@ void UK2Node_BreakStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeC
 				{
 					if (FieldIterator->PropertyFlags & CPF_Parm && !(FieldIterator->PropertyFlags & CPF_ReturnParm))
 					{
-						OldPinToNewPinMap.Add(*StructType->GetName(), *FieldIterator->GetName());
+						OldPinToNewPinMap.Add(StructType->GetFName(), FieldIterator->GetFName());
 						break;
 					}
 				}

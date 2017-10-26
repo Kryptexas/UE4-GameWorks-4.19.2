@@ -24,7 +24,7 @@ private:
 	const static int32 BinaryOperatorInputsNum = 2;
 
 	static int32 GetMaxInputPinsNum();
-	static FString GetNameForPin(int32 PinIndex);
+	static FName GetNameForPin(int32 PinIndex);
 
 	FEdGraphPinType GetType() const;
 

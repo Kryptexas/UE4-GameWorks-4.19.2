@@ -17,6 +17,7 @@ namespace SteamAudio
 
 	FPhononPluginManager::~FPhononPluginManager()
 	{
+		// Perform cleanup here instead of in OnListenerShutdown, because plugins will still be active and may be using them
 		if (bEnvironmentCreated)
 		{
 			Environment.Shutdown();
@@ -26,6 +27,11 @@ namespace SteamAudio
 
 	void FPhononPluginManager::OnListenerInitialize(FAudioDevice* AudioDevice, UWorld* ListenerWorld)
 	{
+		if (ListenerWorld->WorldType == EWorldType::Editor)
+		{
+			return;
+		}
+
 		IPLhandle RendererPtr = Environment.Initialize(ListenerWorld, AudioDevice);
 
 		// If we've succeeded, pass the phonon environmental renderer to the occlusion and reverb plugins, if we're using them
@@ -42,6 +48,7 @@ namespace SteamAudio
 			if (IsUsingSteamAudioPlugin(EAudioPlugin::OCCLUSION))
 			{
 				OcclusionPtr = (FPhononOcclusion*)AudioDevice->OcclusionInterface.Get();
+				OcclusionPtr->SetEnvironment(Environment.GetEnvironmentHandle());
 				OcclusionPtr->SetEnvironmentalRenderer(RendererPtr);
 				OcclusionPtr->SetCriticalSectionHandle(Environment.GetEnvironmentCriticalSection());
 			}

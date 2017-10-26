@@ -61,7 +61,8 @@ struct FBPTerminal
 	{
 	}
 
-	KISMETCOMPILER_API void CopyFromPin(UEdGraphPin* Net, const FString& NewName);
+	KISMETCOMPILER_API void CopyFromPin(UEdGraphPin* Net, FString NewName);
+	KISMETCOMPILER_API void CopyFromPin(UEdGraphPin* Net, const FName NewName) { CopyFromPin(Net, NewName.ToString()); }
 
 	bool IsTermWritable() const
 	{

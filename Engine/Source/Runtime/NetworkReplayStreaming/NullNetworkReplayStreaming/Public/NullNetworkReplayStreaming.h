@@ -79,7 +79,7 @@ public:
 
 	/** FTickableObjectBase implementation */
 	virtual void Tick(float DeltaSeconds) override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override;
 
 	/** FTickableGameObject implementation */

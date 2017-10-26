@@ -14,7 +14,7 @@
 UK2Node_ControlRigComponentInputOutput::UK2Node_ControlRigComponentInputOutput(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ControlRigComponentPinName = LOCTEXT("ControlRigComponentPinName", "ControlRig Component").ToString();
+	ControlRigComponentPinName = *LOCTEXT("ControlRigComponentPinName", "ControlRig Component").ToString();
 }
 
 void UK2Node_ControlRigComponentInputOutput::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -34,12 +34,12 @@ void UK2Node_ControlRigComponentInputOutput::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Optionally create input pin for ControlRig
 	if (IsInActor())
 	{
-		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), UControlRigComponent::StaticClass(), ControlRigComponentPinName, EPinContainerType::None, true);
+		UEdGraphNode::FCreatePinParams PinParams;
+		PinParams.bIsReference = true;
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UControlRigComponent::StaticClass(), ControlRigComponentPinName, PinParams);
 	}
 }
 

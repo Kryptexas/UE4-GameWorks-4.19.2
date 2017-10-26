@@ -2521,7 +2521,7 @@ UClass* FMaterialEditor::GetOnPromoteToParameterClass(UEdGraphPin* TargetPin)
 
 	if (RootPinNode != nullptr)
 	{
-		EMaterialProperty propertyId = (EMaterialProperty)FCString::Atoi(*TargetPin->PinType.PinSubCategory);
+		EMaterialProperty propertyId = (EMaterialProperty)FCString::Atoi(*TargetPin->PinType.PinSubCategory.ToString());
 
 		switch (propertyId)
 		{
@@ -2549,12 +2549,12 @@ UClass* FMaterialEditor::GetOnPromoteToParameterClass(UEdGraphPin* TargetPin)
 	else if (OtherPinNode)
 	{
 		const TArray<FExpressionInput*> ExpressionInputs = OtherPinNode->MaterialExpression->GetInputs();
-		FString TargetPinName = OtherPinNode->GetShortenPinName(TargetPin->PinName);
+		FName TargetPinName = OtherPinNode->GetShortenPinName(TargetPin->PinName);
 
 		for (int32 Index = 0; Index < ExpressionInputs.Num(); ++Index)
 		{
 			FExpressionInput* Input = ExpressionInputs[Index];
-			FString InputName = OtherPinNode->MaterialExpression->GetInputName(Index);
+			FName InputName = OtherPinNode->MaterialExpression->GetInputName(Index);
 			InputName = OtherPinNode->GetShortenPinName(InputName);
 
 			if (InputName == TargetPinName)
@@ -2609,7 +2609,7 @@ void FMaterialEditor::OnPromoteToParameter()
 
 		if (MaterialNode->MaterialExpression->HasAParameterName())
 		{
-			MaterialNode->MaterialExpression->SetParameterName(FName(*TargetPin->PinName));
+			MaterialNode->MaterialExpression->SetParameterName(TargetPin->PinName);
 			MaterialNode->MaterialExpression->ValidateParameterName();
 		}
 	}
@@ -4106,7 +4106,7 @@ bool FMaterialEditor::CheckExpressionRemovalWarnings(const TArray<UEdGraphNode*>
 					FunctionWarningString += TEXT(", ");
 				}
 				bFirstExpression = false;
-				FunctionWarningString += FunctionInput->InputName;
+				FunctionWarningString += FunctionInput->InputName.ToString();
 			}
 
 			if (FunctionOutput)
@@ -4116,7 +4116,7 @@ bool FMaterialEditor::CheckExpressionRemovalWarnings(const TArray<UEdGraphNode*>
 					FunctionWarningString += TEXT(", ");
 				}
 				bFirstExpression = false;
-				FunctionWarningString += FunctionOutput->OutputName;
+				FunctionWarningString += FunctionOutput->OutputName.ToString();
 			}
 		}
 	}

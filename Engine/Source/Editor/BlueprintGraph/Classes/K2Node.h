@@ -308,7 +308,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 
 	// Renames an existing pin on the node.
-	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false);
+	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FName OldName, const FName NewName, bool bTest = false);
 
 	// Returns which dynamic binding class (if any) to use for this node
 	BLUEPRINTGRAPH_API virtual UClass* GetDynamicBindingClass() const { return NULL; }
@@ -420,7 +420,7 @@ protected:
 	 * 
 	 * returns the redirect type
 	 */
-	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const;
+	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node* NewPinNode) const;
 
 	// Helper function to restore Split Pins after ReallocatePinsDuringReconstruction, call after recreating all pins to restore split pin state
 	BLUEPRINTGRAPH_API void RestoreSplitPins(TArray<UEdGraphPin*>& OldPins);

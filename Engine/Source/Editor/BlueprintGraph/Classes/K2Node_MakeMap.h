@@ -29,8 +29,8 @@ public:
 	// End of UK2Node interface
 
 	// UK2Node_MakeContainer interface
-	virtual FString GetOutputPinName() const override;
-	virtual FString GetPinName(int32 PinIndex) const override;
+	virtual FName GetOutputPinName() const override;
+	virtual FName GetPinName(int32 PinIndex) const override;
 	virtual void GetKeyAndValuePins(TArray<UEdGraphPin*>& KeyPins, TArray<UEdGraphPin*>& ValuePins) const override;
 	// UK2Node_MakeContainer interface
 

@@ -235,7 +235,7 @@ private:
 
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin PluginType);
-ENGINE_API bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType);
+ENGINE_API UClass* GetAudioPluginCustomSettingsClass(EAudioPlugin PluginType);
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -284,7 +284,15 @@ private:
 	/** The volume of the wave instance due to application volume or tab-state */
 	float VolumeApp;
 
+	/** The current envelope value of the wave instance. */
+	float EnvelopValue;
+
 public:
+	/** The envelope follower attack time in milliseconds. */
+	int32 EnvelopeFollowerAttackTime;
+
+	/** The envelope follower release time in milliseconds. */
+	int32 EnvelopeFollowerReleaseTime;
 
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
 	float Priority;
@@ -480,6 +488,13 @@ public:
 
 	/** Returns the name of the contained USoundWave */
 	FString GetName() const;
+
+	/** Sets the envelope value of the wave instance. Only set if the wave instance is actually generating real audio with a source voice. Only implemented in the audio mixer. */
+	void SetEnvelopeValue(const float InEnvelopeValue) { EnvelopValue = InEnvelopeValue; }
+
+	/** Gets the envelope value of the waveinstance. Only returns non-zero values if it's a real voice. Only implemented in the audio mixer. */
+	float GetEnvelopeValue() const { return EnvelopValue; }
+
 };
 
 inline uint32 GetTypeHash(FWaveInstance* A) { return A->TypeHash; }
@@ -696,7 +711,10 @@ public:
 	/** Returns the source's playback percent. */
 	ENGINE_API virtual float GetPlaybackPercent() const;
 
-	void NotifyPlaybackPercent();
+	/** Returns the source's envelope at the callback block rate. Only implemented in audio mixer. */
+	ENGINE_API virtual float GetEnvelopeValue() const { return 0.0f; };
+
+	void NotifyPlaybackData();
 
 protected:
 

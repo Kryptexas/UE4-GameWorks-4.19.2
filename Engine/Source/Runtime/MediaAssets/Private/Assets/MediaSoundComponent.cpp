@@ -100,7 +100,7 @@ void UMediaSoundComponent::Deactivate()
 /* USynthComponent interface
  *****************************************************************************/
 
-void UMediaSoundComponent::Init(const int32 SampleRate)
+bool UMediaSoundComponent::Init(int32& SampleRate)
 {
 	Super::Init(SampleRate);
 
@@ -118,6 +118,7 @@ void UMediaSoundComponent::Init(const int32 SampleRate)
 	}*/
 
 	Resampler->Initialize(NumChannels, SampleRate);
+	return true;
 }
 
 

@@ -53,6 +53,9 @@ namespace SteamAudio
 		// Receives updates on listener positions from the game thread using this function call.
 		void UpdateDirectSoundSources(const FVector& ListenerPosition, const FVector& ListenerForward, const FVector& ListenerUp);
 
+		// Sets up handle to the environment handle owned by the FPhononPluginManager.
+		void SetEnvironment(IPLhandle Environment);
+
 		// Sets up handle to the environmental handle owned by the FPhononPluginManager.
 		void SetEnvironmentalRenderer(IPLhandle EnvironmentalRenderer);
 
@@ -65,6 +68,7 @@ namespace SteamAudio
 		
 		//Handle to FPhononPluginManager's Environmental Renderer.
 		IPLhandle EnvironmentalRenderer;
+		IPLhandle Environment;
 
 		//Cached Audio Formats:
 		IPLAudioFormat InputAudioFormat;

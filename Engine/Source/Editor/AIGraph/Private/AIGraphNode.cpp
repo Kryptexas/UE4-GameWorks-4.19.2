@@ -104,11 +104,7 @@ void UAIGraphNode::ResetNodeOwner()
 
 		for (auto& SubNode : SubNodes)
 		{
-			if (SubNode->NodeInstance != nullptr)
-			{
-				SubNode->NodeInstance->Rename(NULL, GraphOwner, REN_DontCreateRedirectors | REN_DoNotDirty);
-				SubNode->NodeInstance->ClearFlags(RF_Transient);
-			}
+			SubNode->ResetNodeOwner();
 		}
 	}
 }

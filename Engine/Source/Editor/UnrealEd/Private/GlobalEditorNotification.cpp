@@ -8,11 +8,6 @@ void FGlobalEditorNotification::Tick(float DeltaTime)
 	TickNotification(DeltaTime);
 }
 
-bool FGlobalEditorNotification::IsTickable() const
-{
-	return true;
-}
-
 TStatId FGlobalEditorNotification::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FGlobalEditorNotification, STATGROUP_Tickables);

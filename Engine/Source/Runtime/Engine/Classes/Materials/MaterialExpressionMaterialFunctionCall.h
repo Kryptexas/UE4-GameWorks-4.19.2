@@ -118,7 +118,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const override;
 #if WITH_EDITOR
 	virtual FString GetDescription() const override;
@@ -133,7 +133,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	//~ End UMaterialExpression Interface
 
 	/** Util to get name of a particular type, optionally with type appended in parenthesis */
-	ENGINE_API FString GetInputNameWithType(int32 InputIndex, bool bWithType) const;
+	ENGINE_API FName GetInputNameWithType(int32 InputIndex, bool bWithType) const;
 
 #if WITH_EDITOR
 	/** 

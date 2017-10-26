@@ -847,11 +847,22 @@ void FRichCurve::BakeCurve(float SampleRate, float FirstKeyTime, float LastKeyTi
 		return;
 	}
 
-	for (float Time = FirstKeyTime + SampleRate; Time < LastKeyTime;  )
+	// we need to generate new keys first rather than modifying the
+	// curve directly since that would affect the results of Eval calls
+	TArray<TPair<float, float> > BakedKeys;
+	BakedKeys.Reserve(((LastKeyTime - FirstKeyTime) / SampleRate) - 1);
+
+	// the skip the first and last key unchanged
+	for (float Time = FirstKeyTime + SampleRate; Time < LastKeyTime; )
 	{
-		float Value = Eval(Time);
-		UpdateOrAddKey(Time, Value);
+		const float Value = Eval(Time);
+		BakedKeys.Add(TPair<float, float>(Time, Value));
 		Time += SampleRate;
+	}
+
+	for (auto NewKey : BakedKeys)
+	{
+		UpdateOrAddKey(NewKey.Key, NewKey.Value);
 	}
 }
 

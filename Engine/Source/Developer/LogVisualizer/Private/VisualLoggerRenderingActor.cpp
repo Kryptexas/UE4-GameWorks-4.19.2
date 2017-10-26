@@ -148,8 +148,6 @@ AVisualLoggerRenderingActor::~AVisualLoggerRenderingActor()
 
 void AVisualLoggerRenderingActor::ObjectSelectionChanged(const TArray<FName>& Selection)
 {
-	//PrimaryDebugShapes.Reset();
-
 	if (Selection.Num() > 0)
 	{
 		for (auto CurrentName : Selection)
@@ -169,11 +167,11 @@ void AVisualLoggerRenderingActor::ObjectSelectionChanged(const TArray<FName>& Se
 			}
 		}
 
-		for (auto Element : DebugShapesPerRow)
+		for (TMap<FName, FTimelineDebugShapes>::TIterator It(DebugShapesPerRow); It; ++It)
 		{
-			if (Selection.Find(Element.Key) == INDEX_NONE)
+			if (Selection.Find(It->Key) == INDEX_NONE)
 			{
-				DebugShapesPerRow.Remove(Element.Key);
+				It.RemoveCurrent();
 			}
 		}
 	}

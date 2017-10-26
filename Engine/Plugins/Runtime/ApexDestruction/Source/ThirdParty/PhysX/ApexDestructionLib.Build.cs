@@ -81,9 +81,9 @@ public class ApexDestructionLib : ModuleRules
 
         string ApexVersion = "APEX_1.4";
 
-        string APEXDir = Target.UEThirdPartySourceDirectory + "PhysX/" + ApexVersion + "/";
+        string APEXDir = Target.UEThirdPartySourceDirectory + "PhysX3/" + ApexVersion + "/";
 
-        string APEXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib";
+        string APEXLibDir = Target.UEThirdPartySourceDirectory + "PhysX3/Lib";
 
         PublicSystemIncludePaths.AddRange(
             new string[] {
@@ -115,7 +115,7 @@ public class ApexDestructionLib : ModuleRules
                 "APEX_Destructible{0}_x64.dll",
             };
 
-            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
             foreach (string RuntimeDependency in RuntimeDependenciesX64)
             {
                 string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -137,7 +137,7 @@ public class ApexDestructionLib : ModuleRules
                 "APEX_Destructible{0}_x86.dll",
             };
 
-            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
             foreach (string RuntimeDependency in RuntimeDependenciesX86)
             {
                 string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -153,7 +153,7 @@ public class ApexDestructionLib : ModuleRules
                 "/libAPEX_Destructible{0}.dylib"
             };
 
-            string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX/Mac";
+            string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX3/Mac";
             foreach (string Lib in DynamicLibrariesMac)
             {
                 string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);

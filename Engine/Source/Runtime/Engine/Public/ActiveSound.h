@@ -52,6 +52,12 @@ struct FSoundParseParameters
 	// Volume due to application-level volume scaling (tabbing, master volume)
 	float VolumeApp;
 
+	// Attack time of the source envelope follower
+	int32 EnvelopeFollowerAttackTime;
+
+	// Release time of the source envelope follower
+	int32 EnvelopeFollowerReleaseTime;
+
 	// The multiplier to apply if the sound class desires
 	float InteriorVolumeMultiplier;
 
@@ -153,6 +159,8 @@ struct FSoundParseParameters
 		, DistanceAttenuation(1.f)
 		, VolumeMultiplier(1.f)
 		, VolumeApp(1.f)
+		, EnvelopeFollowerAttackTime(10)
+		, EnvelopeFollowerReleaseTime(100)
 		, InteriorVolumeMultiplier(1.f)
 		, Pitch(1.f)
 		, StartTime(-1.f)
@@ -343,6 +351,12 @@ public:
 	/** Whether or not this active sound will update play percentage. Based on set delegates on audio component. */
 	uint8 bUpdatePlayPercentage:1;
 
+	/** Whether or not this active sound will update the envelope value of every wave instance that plays a sound source. Based on set delegates on audio component. */
+	uint8 bUpdateSingleEnvelopeValue:1;
+
+	/** Whether or not this active sound will update the average envelope value of every wave instance that plays a sound source. Based on set delegates on audio component. */
+	uint8 bUpdateMultiEnvelopeValue:1;
+
 public:
 	uint8 UserIndex;
 
@@ -424,6 +438,10 @@ public:
 	float SourceInteriorLPF;
 	float CurrentInteriorVolume;
 	float CurrentInteriorLPF;
+
+	// Envelope follower attack and release time parameters
+	int32 EnvelopeFollowerAttackTime;
+	int32 EnvelopeFollowerReleaseTime;
 
 	TMap<UPTRINT, struct FWaveInstance*> WaveInstances;
 

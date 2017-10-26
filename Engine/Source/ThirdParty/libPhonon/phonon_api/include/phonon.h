@@ -1,9 +1,12 @@
 /*
- *  Copyright (C) Impulsonic, Inc. All rights reserved.
+ *  Copyright 2017 Valve Corporation. All rights reserved. Subject to the following license:
+ *  https://valvesoftware.github.io/steam-audio/license.html
  */
 
 #ifndef IPL_PHONON_H
 #define IPL_PHONON_H
+
+#include <stddef.h>
 
 #if (defined(_WIN32) || defined(_WIN64))
 #define IPLAPI __declspec(dllexport)
@@ -204,14 +207,15 @@ extern "C" {
      *  parts of the Phonon integration. Depending on the OpenCL driver and device, this function may take some
      *  time to execute, so do not call it from performance-sensitive code.
      *
+     *  \param  context         The Context object used by the game engine.
      *  \param  deviceType      The type of device to use.
      *  \param  numComputeUnits Reserved for future use.
      *  \param  device          [out] Handle to the created Compute Device object.
      *
      *  \return Status code indicating whether or not the operation succeeded.
      */
-    IPLAPI IPLerror iplCreateComputeDevice(IPLComputeDeviceType deviceType, IPLint32 numComputeUnits,
-        IPLhandle* device);
+    IPLAPI IPLerror iplCreateComputeDevice(IPLContext context, IPLComputeDeviceType deviceType,
+        IPLint32 numComputeUnits, IPLhandle* device);
 
     /** Destroys a Compute Device object. If any other API objects are still referencing the Compute Device object,
      *  it will not be destroyed; destruction occurs when the object's reference count reaches zero.
@@ -297,11 +301,8 @@ extern "C" {
                                                          Phonon encodes the simulation results using Ambisonics.
                                                          Increasing this number increases the amount of directional
                                                          detail in the simulated acoustics, but at the cost of
-                                                         increased CPU usage and memory consumption. Any non-negative
-                                                         integer may be specified, but typical values are between 0
-                                                         and 3. A value of 0 results in no directional variation in
-                                                         the simulation results. Values of 4 or higher incur a
-                                                         significant performance penalty. */
+                                                         increased CPU usage and memory consumption. Supported values 
+                                                         are between 0 and 3. */
         IPLint32            maxConvolutionSources;  /**< The maximum number of sound sources that can be simulated
                                                          and rendered using a Convolution Effect object at any point
                                                          in time. If you attempt to create more than this many
@@ -388,15 +389,16 @@ extern "C" {
      *  \param  hitDistance         [out] Distance between the origin and the closest intersection point on the ray.
      *  \param  hitNormal           [out] Array containing the x, y, z coordinates (in that order) of the unit-length
      *                              surface normal of the geometry at the closest intersection point.
-     *  \param  hitMaterialIndex    [out] Index of the material of the surface at the closest intersection point. The
-     *                              returned value must lie between 0 and N-1, where N is the value of \c numMaterials
-     *                              passed to \c ::iplCreateScene.
+     *  \param  hitMaterial         [out] Address of a pointer to the material properties of the surface at the closest
+     *                              intersection point. The array contains the low-, mid-, and high-frequency
+     *                              absorption coefficients, the scattering coefficient, and the low-, mid-, and
+     *                              high-frequency transmission coefficients, in that order.
      *  \param  userData            Pointer a block of memory containing arbitrary data, specified during the call to
      *                              \c ::iplSetRayTracerCallbacks.
      */
     typedef void (*IPLClosestHitCallback)(const IPLfloat32* origin, const IPLfloat32* direction,
         const IPLfloat32 minDistance, const IPLfloat32 maxDistance, IPLfloat32* hitDistance, IPLfloat32* hitNormal,
-        IPLint32* hitMaterialIndex, IPLvoid* userData);
+        IPLMaterial** hitMaterial, IPLvoid* userData);
 
     /** A callback that is called to calculate whether a ray hits any geometry. Strictly speaking, the function
      *  looks for any intersection with a ray _interval_ (equivalent to a line segment).
@@ -790,17 +792,19 @@ extern "C" {
                                                                      multi-channel, speaker-based audio data. Ignored
                                                                      if \c channelLayoutType is
                                                                      \c ::IPL_CHANNELLAYOUTTYPE_AMBISONICS. */
-        IPLint32                    numSpeakers;                /**< The number of channels in the audio data. Must be
-                                                                     specified regardless of the value of
-                                                                     \c channelLayoutType. */
+        IPLint32                    numSpeakers;                /**< The number of channels in the audio data. Only
+                                                                     used if \c channelLayoutType is 
+                                                                     \c ::IPL_CHANNELLAYOUTTYPE_SPEAKERS and
+                                                                     \c channelLayout is
+                                                                     \c ::IPL_CHANNELLAYOUT_CUSTOM. */
         IPLVector3*                 speakerDirections;          /**< An array of \c IPLVector3 objects indicating the
                                                                      direction of each speaker relative to the user.
                                                                      Can be \c NULL. Only used if \c channelLayoutType
                                                                      is \c ::IPL_CHANNELLAYOUTTYPE_SPEAKERS and
                                                                      \c channelLayout is
                                                                      \c ::IPL_CHANNELLAYOUT_CUSTOM. */
-        IPLint32                    ambisonicsOrder;            /**< The order of Ambisonics to use. Must be 0 or
-                                                                     greater. Ignored if \c channelLayoutType is
+        IPLint32                    ambisonicsOrder;            /**< The order of Ambisonics to use. Must be between 0
+                                                                     and 3. Ignored if \c channelLayoutType is
                                                                      \c ::IPL_CHANNELLAYOUTTYPE_SPEAKERS. */
         IPLAmbisonicsOrdering       ambisonicsOrdering;         /**< The ordering of Ambisonics channels within the
                                                                      data. Ignored if \c channelLayoutType is
@@ -1423,7 +1427,12 @@ extern "C" {
      *  \{
      */
 
+    /** Callback function that is called when the simulation thread is created.
+     */
     typedef void (*IPLSimulationThreadCreateCallback)(void);
+
+    /** Callback function that is called when the simulation thread is destroyed.
+     */
     typedef void (*IPLSimulationThreadDestroyCallback)(void);
 
     /** Creates an Environmental Renderer object.
@@ -1437,6 +1446,10 @@ extern "C" {
      *  \param  outputFormat        The audio format of the output buffers passed to any subsequent call to
      *                              \c ::iplGetMixedEnvironmentalAudio. This format must not be changed once it is set
      *                              during the call to this function.
+     *  \param  threadCreateCallback    Pointer to a function that will be called when the internal simulation thread
+     *                                  is created. May be NULL.
+     *  \param  threadDestroyCallback   Pointer to a function that will be called when the internal simulation thread
+     *                                  is destroyed. May be NULL.
      *  \param  renderer            [out] Handle to the created Environmental Renderer object.
      *
      *  \return Status code indicating whether or not the operation succeeded.
@@ -1524,7 +1537,7 @@ extern "C" {
     /** Parameters describing a direct sound path. For each frequency band, the attenuation factor applied to the
      *  direct sound path is:
      *
-     *  \f$ distanceAttenuation \cdot airAbsorption \cdot (occlusionFactor + (1 - occlusionFactor) \cdot transmissionFactor) \f$
+     *  distanceAttenuation * airAbsorption * (occlusionFactor + (1 - occlusionFactor) * transmissionFactor)
      */
     typedef struct {
         IPLVector3  direction;              /**< Unit vector from the listener to the source. */
@@ -1546,7 +1559,7 @@ extern "C" {
     /** Calculates direct sound path parameters for a single source. It is up to the audio engine to perform audio
      *  processing that uses the information returned by this function.
      *
-     *  \param  renderer            Handle to an Environmental Renderer object.
+     *  \param  environment         Handle to an Environment object.
      *  \param  listenerPosition    World-space position of the listener.
      *  \param  listenerAhead       Unit vector pointing in the direction in which the listener is looking.
      *  \param  listenerUp          Unit vector pointing upwards from the listener.
@@ -1558,7 +1571,7 @@ extern "C" {
      *
      *  \return Parameters of the direct path from the source to the listener.
      */
-    IPLAPI IPLDirectSoundPath iplGetDirectSoundPath(IPLhandle renderer, IPLVector3 listenerPosition,
+    IPLAPI IPLDirectSoundPath iplGetDirectSoundPath(IPLhandle environment, IPLVector3 listenerPosition,
         IPLVector3 listenerAhead, IPLVector3 listenerUp, IPLVector3 sourcePosition, IPLfloat32 sourceRadius,
         IPLDirectOcclusionMode occlusionMode, IPLDirectOcclusionMethod occlusionMethod);
 

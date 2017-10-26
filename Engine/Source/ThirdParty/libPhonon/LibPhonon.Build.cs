@@ -39,6 +39,11 @@ public class libPhonon : ModuleRules
 
             RuntimeDependencies.Add(new RuntimeDependency(BinaryPath + DllName));
         }
+        else if (Target.Platform == UnrealTargetPlatform.Android)
+        {
+            PublicLibraryPaths.Add(LibraryPath + "/lib/Android");
+            PublicAdditionalLibraries.Add("phonon");
+        }
     }
 }
 

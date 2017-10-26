@@ -16,7 +16,7 @@
 
 #include "ClothingAssetFactory.h"
 #include "PhysicsPublic.h"
-#include "EditorPhysXSupport.h"
+#include "PhysXIncludes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 

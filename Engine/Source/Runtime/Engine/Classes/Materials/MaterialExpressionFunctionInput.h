@@ -39,7 +39,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 
 	/** The input's name, which will be drawn on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
-	FString InputName;
+	FName InputName;
 
 	/** The input's description, which will be used as a tooltip on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)

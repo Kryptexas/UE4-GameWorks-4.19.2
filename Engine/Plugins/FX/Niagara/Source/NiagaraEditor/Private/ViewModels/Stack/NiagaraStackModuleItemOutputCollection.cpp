@@ -67,7 +67,7 @@ void UNiagaraStackModuleItemOutputCollection::RefreshChildrenInternal(const TArr
 					for (UNiagaraStackEntry* CurrentChild : CurrentChildren)
 					{
 						UNiagaraStackModuleItemOutput* ChildOutput = CastChecked<UNiagaraStackModuleItemOutput>(CurrentChild);
-						if (ChildOutput->GetOutputParameterHandle().GetParameterHandleString() == Variable.GetName().ToString())
+						if (ChildOutput->GetOutputParameterHandle().GetParameterHandleString() == Variable.GetName())
 						{
 							Output = ChildOutput;
 							break;
@@ -76,7 +76,7 @@ void UNiagaraStackModuleItemOutputCollection::RefreshChildrenInternal(const TArr
 					if (Output == nullptr)
 					{
 						Output = NewObject<UNiagaraStackModuleItemOutput>(this);
-						Output->Initialize(GetSystemViewModel(), GetEmitterViewModel(), *FunctionCallNode, Variable.GetName().ToString());
+						Output->Initialize(GetSystemViewModel(), GetEmitterViewModel(), *FunctionCallNode, Variable.GetName());
 					}
 
 					NewChildren.Add(Output);

@@ -130,7 +130,7 @@ void ACharacter::PostInitializeComponents()
 			CharacterMovement->UpdateNavAgent(*CapsuleComponent);
 		}
 
-		if (Controller == NULL && GetNetMode() != NM_Client)
+		if (Controller == nullptr && GetNetMode() != NM_Client)
 		{
 			if (CharacterMovement && CharacterMovement->bRunPhysicsWithNoController)
 			{
@@ -432,7 +432,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 	UDamageType const* const DmgTypeCDO = DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>();
 	float const ImpulseScale = DmgTypeCDO->DamageImpulse;
 
-	if ( (ImpulseScale > 3.f) && (CharacterMovement != NULL) )
+	if ( (ImpulseScale > 3.f) && (CharacterMovement != nullptr) )
 	{
 		FHitResult HitInfo;
 		FVector ImpulseDir;
@@ -461,9 +461,9 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 
 void ACharacter::ClearCrossLevelReferences()
 {
-	if( BasedMovement.MovementBase != NULL && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
+	if( BasedMovement.MovementBase != nullptr && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
 	{
-		SetBase( NULL );
+		SetBase( nullptr );
 	}
 
 	Super::ClearCrossLevelReferences();
@@ -631,7 +631,7 @@ namespace MovementBaseUtility
 			return true;
 		}
 
-		// NULL MovementBase
+		// nullptr MovementBase
 		OutLocation = FVector::ZeroVector;
 		OutQuat = FQuat::Identity;
 		return false;
@@ -642,7 +642,7 @@ namespace MovementBaseUtility
 /**	Change the Pawn's base. */
 void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InBoneName, bool bNotifyPawn )
 {
-	// If NewBaseComponent is null, ignore bone name.
+	// If NewBaseComponent is nullptr, ignore bone name.
 	const FName BoneName = (NewBaseComponent ? InBoneName : NAME_None);
 
 	// See what changed.
@@ -652,7 +652,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 	if (bBaseChanged || bBoneChanged)
 	{
 		// Verify no recursion.
-		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : NULL);
+		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : nullptr);
 		while (Loop)
 		{
 			if (Loop == this)
@@ -711,7 +711,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 
 			if (Role == ROLE_Authority || Role == ROLE_AutonomousProxy)
 			{
-				BasedMovement.bServerHasBaseComponent = (BasedMovement.MovementBase != NULL); // Also set on proxies for nicer debugging.
+				BasedMovement.bServerHasBaseComponent = (BasedMovement.MovementBase != nullptr); // Also set on proxies for nicer debugging.
 				UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
 			}
 			else
@@ -757,13 +757,13 @@ FVector ACharacter::GetNavAgentLocation() const
 
 void ACharacter::TurnOff()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement != nullptr)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->DisableMovement();
 	}
 
-	if (GetNetMode() != NM_DedicatedServer && Mesh != NULL)
+	if (GetNetMode() != NM_DedicatedServer && Mesh != nullptr)
 	{
 		Mesh->bPauseAnims = true;
 		if (Mesh->IsSimulatingPhysics())
@@ -794,7 +794,7 @@ void ACharacter::Restart()
 
 void ACharacter::PawnClientRestart()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement != nullptr)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->ResetPredictionData_Client();
@@ -855,7 +855,7 @@ void ACharacter::BaseChange()
 	if (CharacterMovement && CharacterMovement->MovementMode != MOVE_None)
 	{
 		AActor* ActualMovementBase = GetMovementBaseActor(this);
-		if ((ActualMovementBase != NULL) && !ActualMovementBase->CanBeBaseForCharacter(this))
+		if ((ActualMovementBase != nullptr) && !ActualMovementBase->CanBeBaseForCharacter(this))
 		{
 			CharacterMovement->JumpOff(ActualMovementBase);
 		}
@@ -874,7 +874,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
-		if ( CharacterMovement == NULL || BasedMovement.MovementBase == NULL )
+		if ( CharacterMovement == nullptr || BasedMovement.MovementBase == nullptr )
 		{
 			BaseString = "Not Based";
 		}
@@ -887,7 +887,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToCompactString(), *BasedMovement.Rotation.ToCompactString(), *BaseString), Indent);
 
-		if ( CharacterMovement != NULL )
+		if ( CharacterMovement != nullptr )
 		{
 			CharacterMovement->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
@@ -1324,35 +1324,6 @@ void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQu
 	CharacterMovement->bJustTeleported = true;
 }
 
-// Deprecated, remove
-void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation)
-{
-	// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-	if( (NewLocation != GetActorLocation()) || (CreationTime == GetWorld()->TimeSeconds) )
-	{
-		FVector FinalLocation = NewLocation;
-
-		// Only need to check for encroachment when teleported without any velocity.
-		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
-		bSimGravityDisabled = false;
-		if (CharacterMovement->Velocity.IsZero())
-		{
-			if (GetWorld()->EncroachingBlockingGeometry(this, NewLocation, NewRotation))
-			{
-				bSimGravityDisabled = true;
-			}
-		}
-		
-		// Don't use TeleportTo(), that clears our base.
-		SetActorLocationAndRotation(FinalLocation, NewRotation, false);
-		CharacterMovement->bJustTeleported = true;
-	}
-	else if( NewRotation != GetActorRotation() )
-	{
-		GetRootComponent()->MoveComponent(FVector::ZeroVector, NewRotation, false);
-	}
-}
-
 void ACharacter::PostNetReceiveLocationAndRotation()
 {
 	if( Role == ROLE_SimulatedProxy )
@@ -1511,7 +1482,7 @@ float ACharacter::GetAnimRootMotionTranslationScale() const
 
 float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	if( AnimMontage && AnimInstance )
 	{
 		float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
@@ -1533,7 +1504,7 @@ float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayR
 
 void ACharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	UAnimMontage * MontageToStop = (AnimMontage)? AnimMontage : GetCurrentMontage();
 	bool bShouldStopMontage =  AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
 
@@ -1545,13 +1516,13 @@ void ACharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 
 class UAnimMontage * ACharacter::GetCurrentMontage()
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	if ( AnimInstance )
 	{
 		return AnimInstance->GetCurrentActiveMontage();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ACharacter::ClientCheatWalk_Implementation()

@@ -101,9 +101,9 @@ public:
 	}
 
 	/** We should call Tick on this object */
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	/** Need this to be ticked when paused (that is the point!) */

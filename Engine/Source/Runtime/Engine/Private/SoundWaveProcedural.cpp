@@ -19,6 +19,12 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
 }
 
+USoundWaveProcedural::USoundWaveProcedural(FVTableHelper& Helper)
+	: Super(Helper)
+{
+	bIsReadyForDestroy = true;
+}
+
 void USoundWaveProcedural::QueueAudio(const uint8* AudioData, const int32 BufferSize)
 {
 	Audio::EAudioMixerStreamDataFormat::Type Format = GetGeneratedPCMDataFormat();

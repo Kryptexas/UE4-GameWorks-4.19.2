@@ -29,6 +29,6 @@ public:
 	// End of UK2Node interface
 
 	// UK2Node_MakeContainer interface
-	virtual FString GetOutputPinName() const override;
+	virtual FName GetOutputPinName() const override;
 	// UK2Node_MakeContainer interface
 };

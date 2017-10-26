@@ -128,7 +128,7 @@ void UNiagaraStackFunctionInput::Initialize(
 	UNiagaraStackEditorData& InStackEditorData,
 	UNiagaraNodeFunctionCall& InModuleNode,
 	UNiagaraNodeFunctionCall& InInputFunctionCallNode,
-	FString InInputParameterHandle,
+	FName InInputParameterHandle,
 	FNiagaraTypeDefinition InInputType)
 {
 	checkf(OwningModuleNode.IsValid() == false && OwningFunctionCallNode.IsValid() == false, TEXT("Can only initialize once."));
@@ -145,7 +145,7 @@ void UNiagaraStackFunctionInput::Initialize(
 	GenerateInputParameterHandlePath(*OwningModuleNode, *OwningFunctionCallNode, InputParameterHandlePath);
 	InputParameterHandlePath.Add(InputParameterHandle);
 
-	DisplayName = FText::FromString(InputParameterHandle.GetName());
+	DisplayName = FText::FromName(InputParameterHandle.GetName());
 	AliasedInputParameterHandle = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(InputParameterHandle, OwningFunctionCallNode.Get());
 
 	InputType = InInputType;
@@ -192,11 +192,6 @@ void UNiagaraStackFunctionInput::RefreshChildrenInternal(const TArray<UNiagaraSt
 			DisplayOptions.bShouldShowInStack = false;
 			DisplayOptions.ChildItemIndentLevel = ItemIndentLevel + 1;
 
-			TArray<FString> InputParameterHandleStringPath;
-			for (const FNiagaraParameterHandle& InputParameterHandlePathItem : InputParameterHandlePath)
-			{
-				InputParameterHandleStringPath.Add(InputParameterHandlePathItem.GetParameterHandleString());
-			}
 			DynamicInputEntry = NewObject<UNiagaraStackFunctionInputCollection>(this);
 			DynamicInputEntry->Initialize(GetSystemViewModel(), GetEmitterViewModel(), *StackEditorData, *OwningModuleNode, *InputValues.DynamicNode.Get(), DisplayOptions);
 		}
@@ -356,7 +351,7 @@ bool IsSpawnUsage(ENiagaraScriptUsage Usage)
 		Usage == ENiagaraScriptUsage::ParticleSpawnScript;
 }
 
-FString GetNamespaceForUsage(ENiagaraScriptUsage Usage)
+FName GetNamespaceForUsage(ENiagaraScriptUsage Usage)
 {
 	switch (Usage)
 	{
@@ -370,7 +365,7 @@ FString GetNamespaceForUsage(ENiagaraScriptUsage Usage)
 	case ENiagaraScriptUsage::SystemUpdateScript:
 		return FNiagaraParameterHandle::SystemNamespace;
 	default:
-		return FString();
+		return NAME_None;
 	}
 }
 
@@ -425,7 +420,7 @@ void UNiagaraStackFunctionInput::GetAvailableParameterHandles(TArray<FNiagaraPar
 							{
 								if (Cast<UNiagaraNodeParameterMapSet>(WritePin->GetOwningNode()) != nullptr)
 								{
-									FNiagaraParameterHandle AvailableHandle = FNiagaraParameterHandle(Variable.GetName().ToString());
+									FNiagaraParameterHandle AvailableHandle = FNiagaraParameterHandle(Variable.GetName());
 									AvailableParameterHandles.AddUnique(AvailableHandle);
 									AvailableParameterHandlesForThisOutput.AddUnique(AvailableHandle);
 									break;
@@ -438,8 +433,8 @@ void UNiagaraStackFunctionInput::GetAvailableParameterHandles(TArray<FNiagaraPar
 
 			if (OutputNode != CurrentOutputNode && IsSpawnUsage(OutputNode->GetUsage()))
 			{
-				FString OutputNodeNamespace = GetNamespaceForUsage(OutputNode->GetUsage());
-				if (OutputNodeNamespace.IsEmpty() == false)
+				FName OutputNodeNamespace = GetNamespaceForUsage(OutputNode->GetUsage());
+				if (OutputNodeNamespace.IsNone() == false)
 				{
 					for (FNiagaraParameterHandle& AvailableParameterHandleForThisOutput : AvailableParameterHandlesForThisOutput)
 					{
@@ -645,10 +640,10 @@ void UNiagaraStackFunctionInput::Reset()
 			UEdGraphPin& OverridePin = GetOrCreateOverridePin();
 			RemoveAllNodesConnectedToOverridePin(OverridePin, this);
 
-			FString InputNodeName = InputParameterHandlePath[0].GetName();
+			FString InputNodeName = InputParameterHandlePath[0].GetName().ToString();
 			for (int32 i = 1; i < InputParameterHandlePath.Num(); i++)
 			{
-				InputNodeName += "." + InputParameterHandlePath[i].GetName();
+				InputNodeName += "." + InputParameterHandlePath[i].GetName().ToString();
 			}
 
 			UEdGraph* Graph = OwningFunctionCallNode->GetGraph();
@@ -656,7 +651,7 @@ void UNiagaraStackFunctionInput::Reset()
 			UNiagaraNodeInput* InputNode = InputNodeCreator.CreateNode();
 			FNiagaraEditorUtilities::InitializeParameterInputNode(*InputNode, InputType, CastChecked<UNiagaraGraph>(Graph), *InputNodeName);
 
-			UNiagaraDataInterface* InputValueObject = NewObject<UNiagaraDataInterface>(InputNode, const_cast<UClass*>(InputType.GetClass()), *InputParameterHandle.GetName(), RF_Transactional);
+			UNiagaraDataInterface* InputValueObject = NewObject<UNiagaraDataInterface>(InputNode, const_cast<UClass*>(InputType.GetClass()), InputParameterHandle.GetName(), RF_Transactional);
 			if (InputValues.DataObjects.GetDefaultValueObject() != nullptr)
 			{
 				InputValues.DataObjects.GetDefaultValueObject()->CopyTo(InputValueObject);
@@ -706,23 +701,23 @@ void UNiagaraStackFunctionInput::SetIsRenamePending(bool bIsRenamePending)
 	}
 }
 
-void UNiagaraStackFunctionInput::RenameInput(FString NewName)
+void UNiagaraStackFunctionInput::RenameInput(FName NewName)
 {
 	if (OwningAssignmentNode.IsValid() && InputParameterHandlePath.Num() == 1 && InputParameterHandle.GetName() != NewName)
 	{
 		bool bIsCurrentlyPinned = GetIsPinned();
 		bool bIsCurrentlyExpanded = StackEditorData->GetStackEntryIsExpanded(FNiagaraStackGraphUtilities::GenerateStackModuleEditorDataKey(*OwningAssignmentNode), false);
 
-		FNiagaraParameterHandle TargetHandle(OwningAssignmentNode->AssignmentTarget.GetName().ToString());
+		FNiagaraParameterHandle TargetHandle(OwningAssignmentNode->AssignmentTarget.GetName());
 		FNiagaraParameterHandle RenamedTargetHandle(TargetHandle.GetNamespace(), NewName);
-		OwningAssignmentNode->AssignmentTarget.SetName(*RenamedTargetHandle.GetParameterHandleString());
+		OwningAssignmentNode->AssignmentTarget.SetName(RenamedTargetHandle.GetParameterHandleString());
 		OwningAssignmentNode->RefreshFromExternalChanges();
 
 		InputParameterHandle = FNiagaraParameterHandle(InputParameterHandle.GetNamespace(), NewName);
-		InputParameterHandlePath.Empty();
+		InputParameterHandlePath.Empty(1);
 		InputParameterHandlePath.Add(InputParameterHandle);
 		AliasedInputParameterHandle = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(InputParameterHandle, OwningAssignmentNode.Get());
-		DisplayName = FText::FromString(InputParameterHandle.GetName());
+		DisplayName = FText::FromName(InputParameterHandle.GetName());
 
 		UEdGraphPin* OverridePin = GetOverridePin();
 		if (OverridePin != nullptr)
@@ -738,7 +733,7 @@ void UNiagaraStackFunctionInput::RenameInput(FString NewName)
 	}
 }
 
-void UNiagaraStackFunctionInput::GetNamespacesForNewParameters(TArray<FString>& OutNamespacesForNewParameters) const
+void UNiagaraStackFunctionInput::GetNamespacesForNewParameters(TArray<FName>& OutNamespacesForNewParameters) const
 {
 	UNiagaraNodeOutput* OutputNode = FNiagaraStackGraphUtilities::GetEmitterOutputNodeForStackNode(*OwningFunctionCallNode);
 	bool bIsSystemTransient = GetSystemViewModel()->GetSystemIsTransient();
@@ -1052,7 +1047,7 @@ void UNiagaraStackFunctionInput::RemoveAllNodesConnectedToOverridePin(UEdGraphPi
 				DynamicInputNodeOverrideNode->GetInputPins(InputPins);
 				for (UEdGraphPin* InputPin : InputPins)
 				{
-					if (InputPin->PinName.StartsWith(DynamicInputNode->GetFunctionName()))
+					if (InputPin->PinName.ToString().StartsWith(DynamicInputNode->GetFunctionName()))
 					{
 						RemoveAllNodesConnectedToOverridePin(*InputPin, OwningInput);
 						DynamicInputNodeOverrideNode->RemovePin(InputPin);

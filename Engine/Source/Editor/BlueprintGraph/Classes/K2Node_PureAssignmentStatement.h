@@ -15,11 +15,11 @@ class UK2Node_PureAssignmentStatement : public UK2Node
 	GENERATED_UCLASS_BODY()
 
 	// Name of the Variable pin for this node
-	static FString VariablePinName;
+	static FName VariablePinName;
 	// Name of the Value pin for this node
-	static FString ValuePinName;
+	static FName ValuePinName;
 	// Name of the output pin for this node
-	static FString OutputPinName;
+	static FName OutputPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

@@ -17,10 +17,8 @@ UK2Node_GetNumEnumEntries::UK2Node_GetNumEnumEntries(const FObjectInitializer& O
 
 void UK2Node_GetNumEnumEntries::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Create the return value pin
-	CreatePin(EGPD_Output, Schema->PC_Int, FString(), nullptr, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Int, UEdGraphSchema_K2::PN_ReturnValue);
 
 	Super::AllocateDefaultPins();
 }
@@ -76,9 +74,6 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 		Enum->GetLinker()->Preload(Enum);
 	}
 
-	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-	check(NULL != Schema);
-
 	//MAKE LITERAL
 	const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, MakeLiteralInt);
 	UK2Node_CallFunction* MakeLiteralInt = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph); 
@@ -86,7 +81,7 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 	MakeLiteralInt->AllocateDefaultPins();
 
 	//OPUTPUT PIN
-	UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* OrgReturnPin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 	UEdGraphPin* NewReturnPin = MakeLiteralInt->GetReturnValuePin();
 	check(NULL != NewReturnPin);
 	CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);

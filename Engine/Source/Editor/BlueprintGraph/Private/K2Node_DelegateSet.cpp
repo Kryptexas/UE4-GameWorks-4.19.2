@@ -35,7 +35,7 @@ public:
 
 			// Create a term to store the locally created delegate that we'll use to add to the MC delegate
 			FBPTerminal* DelegateTerm = Context.CreateLocalTerminal();
-			DelegateTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Delegate;
+			DelegateTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Delegate;
 			FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), DelegateTerm->Type.PinSubCategoryMemberReference);
 			DelegateTerm->Source = Node;
 			DelegateTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_TempBindingDelegate");
@@ -106,7 +106,7 @@ public:
 
 		// Create a delegate name term
 		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		DelegateNameTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Name;
+		DelegateNameTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Name;
 		DelegateNameTerm->Name = DelegateNode->GetDelegateTargetEntryPointName().ToString();
 		DelegateNameTerm->bIsLiteral = true;
 
@@ -123,7 +123,7 @@ public:
 		AddStatement.LHS = *pDelegateOwnerTerm;
 		AddStatement.RHS.Add(LocalDelegate);
 
-		GenerateSimpleThenGoto(Context, *Node, DelegateNode->FindPin(CompilerContext.GetSchema()->PN_Then));
+		GenerateSimpleThenGoto(Context, *Node, DelegateNode->FindPin(UEdGraphSchema_K2::PN_Then));
 
 		FNodeHandlingFunctor::Compile(Context, Node);
 	}
@@ -136,16 +136,14 @@ UK2Node_DelegateSet::UK2Node_DelegateSet(const FObjectInitializer& ObjectInitial
 
 void UK2Node_DelegateSet::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Cache off the delegate signature, which will update the DelegatePropertyName as well, if it's been redirected
 	UFunction* DelegateSignature = GetDelegateSignature();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-	CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), DelegatePropertyClass, DelegatePropertyName.ToString());
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, DelegatePropertyClass, DelegatePropertyName);
 
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_DelegateEntry);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_DelegateEntry);
 	
 	CreatePinsForFunctionEntryExit(DelegateSignature, true);
 
@@ -185,10 +183,8 @@ FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(DelegatePropertyName.ToString());
-	check(Pin != NULL);
+	UEdGraphPin* Pin = FindPin(DelegatePropertyName);
+	check(Pin);
 	check(Pin->Direction == EGPD_Input);
 	return Pin;
 }
@@ -246,11 +242,10 @@ FNodeHandlingFunctor* UK2Node_DelegateSet::CreateNodeHandler(FKismetCompilerCont
 UK2Node::ERedirectType UK2Node_DelegateSet::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType OrginalResult = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-	if ((ERedirectType::ERedirectType_None == OrginalResult) && K2Schema && NewPin && OldPin)
+	if ((ERedirectType::ERedirectType_None == OrginalResult) && NewPin && OldPin)
 	{
-		bool const bOldPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
-		bool const bNewPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
+		bool const bOldPinIsObj = (OldPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (OldPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
+		bool const bNewPinIsObj = (OldPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (OldPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
 
 		if ((NewPin->Direction == EGPD_Input && OldPin->Direction == EGPD_Input) &&
 			bOldPinIsObj && bNewPinIsObj)
@@ -271,11 +266,8 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 	}
 	else
 	{
-		UFunction* TargetFunction = GetDelegateSignature();
-		if(TargetFunction != NULL)
+		if (UFunction* TargetFunction = GetDelegateSignature())
 		{
-			const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
 			// First, create an event node matching the delegate signature
 			UK2Node_Event* DelegateEvent = CompilerContext.SpawnIntermediateEventNode<UK2Node_Event>(this, nullptr, SourceGraph);
 			DelegateEvent->EventReference.SetFromField<UFunction>(TargetFunction, false);
@@ -291,10 +283,10 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 
 				if( CurrentPin->Direction == EGPD_Output )
 				{
-					if( CurrentPin->PinType.PinCategory == Schema->PC_Exec )
+					if( CurrentPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec )
 					{
 						// Hook up the exec pin specially, since it has a different name on the dynamic delegate node
-						UEdGraphPin* OldExecPin = FindPin(Schema->PN_DelegateEntry);
+						UEdGraphPin* OldExecPin = FindPin(UEdGraphSchema_K2::PN_DelegateEntry);
 						check(OldExecPin);
 						CompilerContext.MovePinLinksToIntermediate(*OldExecPin, *CurrentPin);
 					}

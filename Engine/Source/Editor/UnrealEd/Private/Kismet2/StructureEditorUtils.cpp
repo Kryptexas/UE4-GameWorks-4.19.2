@@ -49,8 +49,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		Struct->Status = UDSS_Error;
 
 		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType()));
+			AddVariable(Struct, FEdGraphPinType(UEdGraphSchema_K2::PC_Boolean, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType()));
 		}
 	}
 
@@ -177,8 +176,7 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 
 bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if ((VarType.PinCategory == K2Schema->PC_Struct) && Struct)
+	if ((VarType.PinCategory == UEdGraphSchema_K2::PC_Struct) && Struct)
 	{
 		if (const UScriptStruct* SubCategoryStruct = Cast<const UScriptStruct>(VarType.PinSubCategoryObject.Get()))
 		{
@@ -197,10 +195,10 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 			return false;
 		}
 	}
-	else if ((VarType.PinCategory == K2Schema->PC_Exec) 
-		|| (VarType.PinCategory == K2Schema->PC_Wildcard)
-		|| (VarType.PinCategory == K2Schema->PC_MCDelegate)
-		|| (VarType.PinCategory == K2Schema->PC_Delegate))
+	else if ((VarType.PinCategory == UEdGraphSchema_K2::PC_Exec) 
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate)
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_Delegate))
 	{
 		if (OutMsg)
 		{
@@ -405,27 +403,27 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 {
 	auto ValidateDefaultValue = [](const FStructVariableDescription& VarDesc, const FString& InNewDefaultValue) -> bool
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		const FEdGraphPinType PinType = VarDesc.ToPinType();
 
 		bool bResult = false;
 		//TODO: validation for values, that are not passed by string
-		if (PinType.PinCategory == K2Schema->PC_Text)
+		if (PinType.PinCategory == UEdGraphSchema_K2::PC_Text)
 		{
 			bResult = true;
 		}
-		else if ((PinType.PinCategory == K2Schema->PC_Object) 
-			|| (PinType.PinCategory == K2Schema->PC_Interface) 
-			|| (PinType.PinCategory == K2Schema->PC_Class)
-			|| (PinType.PinCategory == K2Schema->PC_SoftClass)
-			|| (PinType.PinCategory == K2Schema->PC_SoftObject))
+		else if ((PinType.PinCategory == UEdGraphSchema_K2::PC_Object) 
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_Interface) 
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject))
 		{
 			// K2Schema->DefaultValueSimpleValidation finds an object, passed by path, invalid
 			bResult = true;
 		}
 		else
 		{
-			bResult = K2Schema->DefaultValueSimpleValidation(PinType, FString(), InNewDefaultValue, NULL, FText::GetEmpty());
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			bResult = K2Schema->DefaultValueSimpleValidation(PinType, NAME_None, InNewDefaultValue, nullptr, FText::GetEmpty());
 		}
 		return bResult;
 	};
@@ -589,7 +587,6 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 {
 	if (Blueprint)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		const UScriptStruct* FallbackStruct = GetFallbackStruct();
 
 		FString DislpayList;
@@ -597,7 +594,7 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 		for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
 		{
 			const FBPVariableDescription& Var = Blueprint->NewVariables[VarIndex];
-			if (Var.VarType.PinCategory == K2Schema->PC_Struct)
+			if (Var.VarType.PinCategory == UEdGraphSchema_K2::PC_Struct)
 			{
 				const UScriptStruct* ScriptStruct = Cast<const UScriptStruct>(Var.VarType.PinSubCategoryObject.Get());
 				const bool bInvalidStruct = (NULL == ScriptStruct) || (FallbackStruct == ScriptStruct);

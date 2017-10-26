@@ -44,7 +44,7 @@ namespace
 		{
 			for (const FStructVariableDescription& StructVariableDesc : UDSEditorData->VariablesDescriptions)
 			{
-				static const FString TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
+				static const FName TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
 				if (StructVariableDesc.Category == TextCategory)
 				{
 					FText StructVariableValue;

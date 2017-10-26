@@ -4457,30 +4457,32 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FName CookedFile = CookedPaths.Value;
 			const FName UncookedFilename = CookedPaths.Key;
 			const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
+			bool bShouldKeep = true;
+			const FName SourcePackageName = FoundPackageName ? *FoundPackageName : NAME_None;
 			if ( !FoundPackageName )
 			{
 				// Source file no longer exists
 				++NumPackagesRemoved;
-				continue;
-			}
-			const FName PackageName = *FoundPackageName;
-			bool bShouldKeep = true;
-
-			if (ModifiedPackages.Contains(PackageName))
-			{
-				++NumPackagesFileHashMismatch;
 				bShouldKeep = false;
 			}
-			else if (NewPackages.Contains(PackageName) || RemovedPackages.Contains(PackageName))
+			else
 			{
-				++NumPackagesUnableToFindCookedPackageInfo;
-				bShouldKeep = false;
-			}
-			else if (IdenticalUncookedPackages.Contains(PackageName))
-			{
-				// These are packages which failed to save the first time 
-				// most likely because they are editor only packages
-				bShouldKeep = false;
+				if (ModifiedPackages.Contains(SourcePackageName))
+				{
+					++NumPackagesFileHashMismatch;
+					bShouldKeep = false;
+				}
+				else if (NewPackages.Contains(SourcePackageName) || RemovedPackages.Contains(SourcePackageName))
+				{
+					++NumPackagesUnableToFindCookedPackageInfo;
+					bShouldKeep = false;
+				}
+				else if (IdenticalUncookedPackages.Contains(SourcePackageName))
+				{
+					// These are packages which failed to save the first time 
+					// most likely because they are editor only packages
+					bShouldKeep = false;
+				}
 			}
 				
 			if (CookedFile == NAME_DummyCookedFilename)
@@ -4501,7 +4503,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
 
-				if (IdenticalCookedPackages.Contains(PackageName))
+				if (IdenticalCookedPackages.Contains(SourcePackageName))
 				{
 					CookedPackages.Add(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames), MoveTemp(Succeeded)));
 					++NumPackagesKept;
@@ -4509,7 +4511,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			}
 			else
 			{
-				if ( IsCookByTheBookMode() ) // cook on the fly will requeue this package when it wants it 
+				if (SourcePackageName != NAME_None && IsCookByTheBookMode()) // cook on the fly will requeue this package when it wants it 
 				{
 					// Force cook the modified file
 					CookRequests.EnqueueUnique(FFilePlatformRequest(UncookedFilename, PlatformNames));
@@ -5876,9 +5878,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		StartSavingEDLCookInfoForVerification();
 	}
 
-	// Note: Nativization only works with "cook by the book" mode and not from within the current editor process.
-	if (CurrentCookMode == ECookMode::CookByTheBook
-		&& PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
+	if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
 	{
 		FNativeCodeGenInitData CodeGenData;
 		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)

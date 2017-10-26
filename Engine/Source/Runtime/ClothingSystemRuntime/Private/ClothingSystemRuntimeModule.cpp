@@ -104,7 +104,7 @@ void FClothingSystemRuntimeModule::ShutdownNvClothLibs()
 #if PLATFORM_WINDOWS
 void FClothingSystemRuntimeModule::DelayLoadNvCloth_Windows()
 {
-	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
+	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX3/");
 
 #if _MSC_VER >= 1900
 	FString VSDirectory(TEXT("VS2015/"));
@@ -144,7 +144,7 @@ void FClothingSystemRuntimeModule::ShutdownNvCloth_Windows()
 #if PLATFORM_MAC
 void FClothingSystemRuntimeModule::DelayLoadNvCloth_Mac()
 {
-	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/Mac/");
+	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX3/Mac/");
 
 #ifdef UE_NVCLOTH_SUFFIX
 	FString LibSuffix(TEXT(PREPROCESSOR_TO_STRING(UE_NVCLOTH_SUFFIX)) + FString(TEXT(".dylib")));

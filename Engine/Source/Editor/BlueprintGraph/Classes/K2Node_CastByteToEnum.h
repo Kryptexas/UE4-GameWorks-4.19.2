@@ -26,7 +26,7 @@ class UK2Node_CastByteToEnum : public UK2Node
 	UPROPERTY()
 	bool bSafe;
 
-	static const FString ByteInputPinName;
+	static const FName ByteInputPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

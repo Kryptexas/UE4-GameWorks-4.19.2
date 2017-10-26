@@ -20,8 +20,7 @@ UAnimStateEntryNode::UAnimStateEntryNode(const FObjectInitializer& ObjectInitial
 
 void UAnimStateEntryNode::AllocateDefaultPins()
 {
-	const UAnimationStateMachineSchema* Schema = GetDefault<UAnimationStateMachineSchema>();
-	UEdGraphPin* Outputs = CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, TEXT("Entry"));
+	UEdGraphPin* Outputs = CreatePin(EGPD_Output, UAnimationStateMachineSchema::PC_Exec, TEXT("Entry"));
 }
 
 FText UAnimStateEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const

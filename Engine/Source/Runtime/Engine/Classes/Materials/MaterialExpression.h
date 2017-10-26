@@ -36,7 +36,7 @@ struct FExpressionInput
 	 * Note that this is the only member which is not derived from the output currently connected. 
 	 */
 	UPROPERTY()
-	FString InputName;
+	FName InputName;
 
 	UPROPERTY()
 	int32 Mask;
@@ -73,7 +73,7 @@ USTRUCT(noexport)
 struct FExpressionOutput
 {
 	UPROPERTY()
-	FString OutputName;
+	FName OutputName;
 
 	UPROPERTY()
 	int32 Mask;
@@ -246,7 +246,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual TArray<FExpressionOutput>& GetOutputs();
 	virtual const TArray<FExpressionInput*> GetInputs();
 	virtual FExpressionInput* GetInput(int32 InputIndex);
-	virtual FString GetInputName(int32 InputIndex) const;
+	virtual FName GetInputName(int32 InputIndex) const;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const;
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex);

@@ -330,7 +330,7 @@ void SReplaceNodeReferences::GatherAllAvailableBlueprintVariables(UClass* InTarg
 		const FString UserCategoryName = FEditorCategoryUtils::GetCategoryDisplayString( PropertyCategory.ToString() );
 
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (CategoryName.EqualTo(FText::FromString(PathObject->GetName())) || CategoryName.EqualTo(K2Schema->VR_DefaultCategory))
+		if (CategoryName.EqualTo(FText::FromString(PathObject->GetName())) || CategoryName.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory))
 		{
 			CategoryName = FText::GetEmpty();		// default, so place in 'non' category
 			PropertyCategory = FText::GetEmpty();

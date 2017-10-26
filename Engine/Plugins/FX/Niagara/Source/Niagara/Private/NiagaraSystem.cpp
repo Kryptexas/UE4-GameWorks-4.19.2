@@ -296,9 +296,9 @@ void UNiagaraSystem::SetAutoImportChangedEmitters(bool bShouldImport)
 
 void UNiagaraSystem::CompileScripts(TArray<ENiagaraScriptCompileStatus>& OutScriptStatuses, TArray<FString>& OutGraphLevelErrorMessages, TArray<FString>& PathNames, TArray<UNiagaraScript*>& Scripts)
 {
-	PathNames.Empty();
-	OutScriptStatuses.Empty();
-	OutGraphLevelErrorMessages.Empty();
+	PathNames.Reset();
+	OutScriptStatuses.Reset();
+	OutGraphLevelErrorMessages.Reset();
 
 	TArray<FNiagaraVariable> ExposedVars;
 

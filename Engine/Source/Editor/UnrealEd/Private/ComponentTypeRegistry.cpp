@@ -38,7 +38,7 @@ struct FComponentTypeRegistryData
 
 	/** Implementation of FTickableEditorObject */
 	virtual void Tick(float) override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FTypeDatabaseUpdater, STATGROUP_Tickables); }
 
 	// Request a refresh of the components list next frame

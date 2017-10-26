@@ -7,6 +7,7 @@
 #include "MaterialShared.h"
 #include "Stats/StatsMisc.h"
 #include "UObject/CoreObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "Misc/App.h"
 #include "UObject/UObjectHash.h"
 #include "LocalVertexFactory.h"
@@ -57,6 +58,12 @@ void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InQualityLevel, FSt
 {
 	check(InQualityLevel < ARRAY_COUNT(MaterialQualityLevelNames));
 	MaterialQualityLevelNames[(int32)InQualityLevel].ToString(OutName);
+}
+
+FName GetMaterialQualityLevelFName(EMaterialQualityLevel::Type InQualityLevel)
+{
+	check(InQualityLevel < ARRAY_COUNT(MaterialQualityLevelNames));
+	return MaterialQualityLevelNames[(int32)InQualityLevel];
 }
 
 static inline SIZE_T AddShaderSize(FShader* Shader, TSet<FShaderResourceId>& UniqueShaderResourceIds)
@@ -144,6 +151,7 @@ FExpressionInput FExpressionInput::GetTracedInput() const
 static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 {
 	Ar.UsingCustomVersion(FCoreObjectVersion::GUID);
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
 	if (Ar.CustomVer(FCoreObjectVersion::GUID) < FCoreObjectVersion::MaterialInputNativeSerialize)
 	{
@@ -157,7 +165,16 @@ static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 	}
 #endif
 	Ar << Input.OutputIndex;
-	Ar << Input.InputName;
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::PinsStoreFName)
+	{
+		Ar << Input.InputName;
+	}
+	else
+	{
+		FString InputNameStr;
+		Ar << InputNameStr;
+		Input.InputName = *InputNameStr;
+	}
 	Ar << Input.Mask;
 	Ar << Input.MaskR;
 	Ar << Input.MaskG;

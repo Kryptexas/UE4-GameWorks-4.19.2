@@ -77,29 +77,46 @@ bool IsAudioPluginEnabled(EAudioPlugin PluginType)
 	}
 }
 
-bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType)
+UClass* GetAudioPluginCustomSettingsClass(EAudioPlugin PluginType)
 {
-	if (PluginType == EAudioPlugin::SPATIALIZATION)
+	switch (PluginType)
 	{
-		IAudioSpatializationFactory* Factory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
-		return Factory && Factory->HasCustomSpatializationSetting();
-	}
-	else if (PluginType == EAudioPlugin::REVERB)
-	{
-		IAudioReverbFactory* Factory = AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform);
-		return Factory && Factory->HasCustomReverbSetting();
-	}
-	else if (PluginType == EAudioPlugin::OCCLUSION)
-	{
-		IAudioOcclusionFactory* Factory = AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform);
-		return Factory && Factory->HasCustomOcclusionSetting();
-	}
-	else
-	{
-		return false;
-	}
-}
+		case EAudioPlugin::SPATIALIZATION:
+		{
+			IAudioSpatializationFactory* Factory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
+			if (Factory)
+			{
+				return Factory->GetCustomOcclusionSettingsClass();
+			}
+		}
+		break;
 
+		case EAudioPlugin::REVERB:
+		{
+			IAudioReverbFactory* Factory = AudioPluginUtilities::GetDesiredReverbPlugin(AudioPluginUtilities::CurrentPlatform);
+			if (Factory)
+			{
+				return Factory->GetCustomReverbSettingsClass();
+			}
+		}
+		break;
+
+		case EAudioPlugin::OCCLUSION:
+		{
+			IAudioOcclusionFactory* Factory = AudioPluginUtilities::GetDesiredOcclusionPlugin(AudioPluginUtilities::CurrentPlatform);
+			if (Factory)
+			{
+				return Factory->GetCustomOcclusionSettingsClass();
+			}
+		}
+		break;
+
+		default:
+		break;
+	}
+
+	return nullptr;
+}
 
 /*-----------------------------------------------------------------------------
 	FSoundBuffer implementation.
@@ -215,6 +232,10 @@ void FSoundSource::Stop()
 {
 	if (WaveInstance)
 	{
+		// The sound is stopping, so set the envelope value to 0.0f
+		WaveInstance->SetEnvelopeValue(0.0f);
+		NotifyPlaybackData();
+
 		check(AudioDevice);
 		AudioDevice->WaveInstanceSourceMap.Remove(WaveInstance);
 		WaveInstance->NotifyFinished(true);
@@ -600,15 +621,16 @@ float FSoundSource::GetPlaybackPercent() const
 
 }
 
-void FSoundSource::NotifyPlaybackPercent()
+void FSoundSource::NotifyPlaybackData()
 {
-	if (WaveInstance->ActiveSound->bUpdatePlayPercentage)
+	const uint64 AudioComponentID = WaveInstance->ActiveSound->GetAudioComponentID();
+	if (AudioComponentID > 0)
 	{
-		const uint64 AudioComponentID = WaveInstance->ActiveSound->GetAudioComponentID();
-		if (AudioComponentID > 0)
+		const USoundWave* SoundWave = WaveInstance->WaveData;
+
+		if (WaveInstance->ActiveSound->bUpdatePlayPercentage)
 		{
 			const float PlaybackPercent = GetPlaybackPercent();
-			const USoundWave* SoundWave = WaveInstance->WaveData;
 			FAudioThread::RunCommandOnGameThread([AudioComponentID, SoundWave, PlaybackPercent]()
 			{
 				if (UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(AudioComponentID))
@@ -624,6 +646,33 @@ void FSoundSource::NotifyPlaybackPercent()
 					}
 				}
 			});
+		}
+
+		if (WaveInstance->ActiveSound->bUpdateSingleEnvelopeValue)
+		{
+			const float EnvelopeValue = GetEnvelopeValue();
+			FAudioThread::RunCommandOnGameThread([AudioComponentID, SoundWave, EnvelopeValue]()
+			{
+				if (UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(AudioComponentID))
+				{
+					if (AudioComponent->OnAudioSingleEnvelopeValue.IsBound())
+					{
+						AudioComponent->OnAudioSingleEnvelopeValue.Broadcast(SoundWave, EnvelopeValue);
+					}
+
+					if (AudioComponent->OnAudioSingleEnvelopeValueNative.IsBound())
+					{
+						AudioComponent->OnAudioSingleEnvelopeValueNative.Broadcast(AudioComponent, SoundWave, EnvelopeValue);
+					}
+				}
+			});
+		}
+
+		// We do a broadcast from the active sound in this case, just update the envelope value of the wave instance here
+		if (WaveInstance->ActiveSound->bUpdateMultiEnvelopeValue)
+		{
+			const float EnvelopeValue = GetEnvelopeValue();
+			WaveInstance->SetEnvelopeValue(EnvelopeValue);
 		}
 	}
 }
@@ -708,6 +757,9 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, DistanceAttenuation(1.0f)
 	, VolumeMultiplier(1.0f)
 	, VolumeApp(1.0f)
+	, EnvelopValue(0.0f)
+	, EnvelopeFollowerAttackTime(10)
+	, EnvelopeFollowerReleaseTime(100)
 	, Priority(1.0f)
 	, VoiceCenterChannelVolume(0.0f)
 	, RadioFilterVolume(0.0f)

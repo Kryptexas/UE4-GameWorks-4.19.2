@@ -682,25 +682,8 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += *PlatformInfo->TargetPlatformName.ToString();
 	}
 
-	// Only build if the user elects to do so
-	bool bBuild = false;
-	if(PackagingSettings->Build == EProjectPackagingBuild::Always)
-	{
-		bBuild = true;
-	}
-	else if(PackagingSettings->Build == EProjectPackagingBuild::Never)
-	{
-		bBuild = false;
-	}
-	else if(PackagingSettings->Build == EProjectPackagingBuild::IfProjectHasCode)
-	{
-		bBuild = bProjectHasCode || !FApp::GetEngineIsPromotedBuild();
-	}
-	else if(PackagingSettings->Build == EProjectPackagingBuild::IfEditorWasBuiltLocally)
-	{
-		bBuild = !FApp::GetEngineIsPromotedBuild();
-	}
-	if(bBuild)
+	// only build if the project has code that might need to be built
+	if (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()))
 	{
 		OptionalParams += TEXT(" -build");
 	}

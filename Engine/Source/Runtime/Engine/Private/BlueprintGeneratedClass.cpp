@@ -649,7 +649,11 @@ UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentH
 	
 	if (InheritableComponentHandler)
 	{
-		InheritableComponentHandler->PreloadAll();
+		if (!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+		{
+			// This preload will not succeed in EDL
+			InheritableComponentHandler->PreloadAll();
+		}	
 	}
 
 	if (!InheritableComponentHandler && bCreateIfNecessary)
@@ -763,6 +767,14 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 				if (ComponentKey.IsValid())
 				{
 					Archetype = ICH->GetOverridenComponentTemplate(ComponentKey);
+
+					if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+					{
+						if (Archetype && Archetype->HasAnyFlags(RF_NeedLoad))
+						{
+							UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when searching for an archetype of %s named %s"), *GetFullNameSafe(Archetype), *GetFullNameSafe(ArchetypeClass), *ArchetypeName.ToString());
+						}
+					}
 				}
 			}
 
@@ -1304,6 +1316,16 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 				OutDeps.Add(SubObj->GetArchetype());
 			}
 		});
+	}
+
+	if (InheritableComponentHandler)
+	{
+		OutDeps.Add(InheritableComponentHandler);
+	}
+
+	if (SimpleConstructionScript)
+	{
+		OutDeps.Add(SimpleConstructionScript);
 	}
 }
 

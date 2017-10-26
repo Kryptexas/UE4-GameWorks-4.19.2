@@ -20,7 +20,7 @@ struct FGetSequenceBindingGuidMapping
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FString PinName;
+	FName PinName;
 
 	UPROPERTY()
 	FGuid Guid;

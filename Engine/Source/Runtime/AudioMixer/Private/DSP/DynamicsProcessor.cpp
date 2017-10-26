@@ -18,8 +18,7 @@ namespace Audio
 		, bIsAnalogMode(true)
 	{
 		// The knee will have 2 points
-		KneePoints.Add(FVector2D());
-		KneePoints.Add(FVector2D());
+		KneePoints.Init(FVector2D(), 2);
 	}
 
 	FDynamicsProcessor::~FDynamicsProcessor()

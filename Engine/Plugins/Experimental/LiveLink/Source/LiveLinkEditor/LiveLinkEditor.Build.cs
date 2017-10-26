@@ -27,6 +27,7 @@ namespace UnrealBuildTool.Rules
                     "BlueprintGraph",
 					"LiveLink",
                     "AnimGraph",
+                    "Persona"
                 }
 			); 
 

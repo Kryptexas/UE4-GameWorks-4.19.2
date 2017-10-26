@@ -135,6 +135,7 @@ void UAssetManager::PostInitProperties()
 
 		FEditorDelegates::PreBeginPIE.AddUObject(this, &UAssetManager::PreBeginPIE);
 		FEditorDelegates::EndPIE.AddUObject(this, &UAssetManager::EndPIE);
+		FCoreUObjectDelegates::OnObjectSaved.AddUObject(this, &UAssetManager::OnObjectPreSave);
 
 		// In editor builds guess the type/name if allowed
 		bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
@@ -375,14 +376,18 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 			if (!ParentClassFromData.IsEmpty())
 			{
 				const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(ParentClassFromData);
-				const FString ClassName = FPackageName::ObjectPathToObjectName(ClassObjectPath);
+				const FName ClassName = FName(*FPackageName::ObjectPathToObjectName(ClassObjectPath));
 
 				TArray<FName> ValidNames;
+				ValidNames.Add(ClassName);
 #if WITH_EDITOR
-				// Also check old names
-				ValidNames = FLinkerLoad::FindPreviousNamesForClass(BaseClass->GetPathName(), false);
+				// Check for redirected name
+				FName RedirectedName = FLinkerLoad::FindNewNameForClass(ClassName, false);
+				if (RedirectedName != NAME_None && RedirectedName != ClassName)
+				{
+					ValidNames.Add(RedirectedName);
+				}
 #endif
-				ValidNames.Add(FName(*ClassName));		
 				for (const FName& ValidName : ValidNames)
 				{
 					if (DerivedClassNames.Contains(ValidName))
@@ -2951,6 +2956,23 @@ void UAssetManager::OnInMemoryAssetDeleted(UObject *Object)
 	FPrimaryAssetId PrimaryAssetId = Object->GetPrimaryAssetId();
 
 	RemovePrimaryAssetId(PrimaryAssetId);
+}
+
+void UAssetManager::OnObjectPreSave(UObject* Object)
+{
+	// If this is in the asset manager dictionary, make sure it actually has a primary asset id that matches
+	FPrimaryAssetId FoundPrimaryAssetId = GetPrimaryAssetIdForPath(FSoftObjectPath(Object));
+
+	if ((Object->IsAsset() || Object->IsA(UClass::StaticClass())) && FoundPrimaryAssetId.IsValid())
+	{
+		TSharedRef<FPrimaryAssetTypeData>* FoundType = AssetTypeMap.Find(FoundPrimaryAssetId.PrimaryAssetType);
+		FPrimaryAssetId ObjectPrimaryAssetId = Object->GetPrimaryAssetId();
+
+		if (FoundPrimaryAssetId != ObjectPrimaryAssetId && !(*FoundType)->Info.bIsEditorOnly)
+		{
+			UE_LOG(LogAssetManager, Error, TEXT("Registered PrimaryAssetId %s for asset %s does not match object's real id of %s! This will not load properly at runtime!"), *FoundPrimaryAssetId.ToString(), *Object->GetPathName(), *ObjectPrimaryAssetId.ToString());
+		}
+	}
 }
 
 void UAssetManager::OnAssetRenamed(const FAssetData& NewData, const FString& OldPath)

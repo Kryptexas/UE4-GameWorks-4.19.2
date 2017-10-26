@@ -86,7 +86,7 @@ namespace SteamAudio
 		int32 SecondaryRays;
 	};
 
-	// 1 Unreal Unit = 1cm, 1 Phonon Unit = 1m
+	/** 1 Unreal Unit = 1cm, 1 Phonon Unit = 1m */
 	const float SCALEFACTOR = 0.01f;
 
 	extern TMap<EQualitySettings, FSimulationQualitySettings> RealtimeSimulationQualityPresets;
@@ -94,6 +94,11 @@ namespace SteamAudio
 
 	extern const IPLContext STEAMAUDIO_API GlobalContext;
 
+	extern FString STEAMAUDIO_API BasePath;
+	extern FString STEAMAUDIO_API RuntimePath;
+	extern FString STEAMAUDIO_API EditorOnlyPath;
+
+	/** Functions to convert to/from Phonon/UE4 and IPLVector3/FVector. */
 	IPLVector3 STEAMAUDIO_API IPLVector3FromFVector(const FVector& Coords);
 	FVector STEAMAUDIO_API FVectorFromIPLVector3(const IPLVector3& Coords);
 	FVector STEAMAUDIO_API UnrealToPhononFVector(const FVector& Coords, const bool bScale = true);
@@ -101,9 +106,22 @@ namespace SteamAudio
 	FVector STEAMAUDIO_API PhononToUnrealFVector(const FVector& Coords, const bool bScale = true);
 	IPLVector3 STEAMAUDIO_API PhononToUnrealIPLVector3(const FVector& Coords, const bool bScale = true);
 
+	/** Given a UE4 transform, produces a corresponding 4x4 transformation matrix. */
 	void STEAMAUDIO_API GetMatrixForTransform(const FTransform& Transform, float* OutMatrix);
 
-	FText STEAMAUDIO_API GetKBTextFromByte(const int32 NumBytes);
+	/** Phonon raytracer callback that routes ClosestHit queries to the UE4 raytracer. */
+	void STEAMAUDIO_API ClosestHit(const IPLfloat32* Origin, const IPLfloat32* Direction, const IPLfloat32 MinDistance,
+		const IPLfloat32 MaxDistance, IPLfloat32* HitDistance, IPLfloat32* HitNormal, IPLint32* HitMaterialIndex, IPLvoid* UserData);
+
+	/** Phonon raytracer callback that routes AnyHit queries to the UE4 raytracer. */
+	void STEAMAUDIO_API AnyHit(const IPLfloat32* Origin, const IPLfloat32* Direction, const IPLfloat32 MinDistance, const IPLfloat32 MaxDistance,
+		IPLint32* HitExists, IPLvoid* UserData);
+
+	/** Gives a nice representation of bytes (e.g. KB, MB, GB, ...). */
+	FText STEAMAUDIO_API PrettyPrintedByte(const int32 NumBytes);
+
+	/** Strips PIE prefix from map name for use in-editor. */
+	FString STEAMAUDIO_API StrippedMapName(const FString& MapName);
 
 	/** Attempts to loads the specified DLL, performing some basic error checking. Returns handle to DLL or nullptr on error.*/
 	void* LoadDll(const FString& DllFile);

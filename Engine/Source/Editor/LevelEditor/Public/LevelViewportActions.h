@@ -191,6 +191,9 @@ public:
 	/** Registers our commands with the binding system for showing volumes. */
 	void RegisterShowVolumeCommands();
 
+	/** Registers our commands with the binding system for showing sprites. */
+	void RegisterShowSpriteCommands();
+
 private:
 	/** Registers additional commands as they are loaded */
 	void HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos);

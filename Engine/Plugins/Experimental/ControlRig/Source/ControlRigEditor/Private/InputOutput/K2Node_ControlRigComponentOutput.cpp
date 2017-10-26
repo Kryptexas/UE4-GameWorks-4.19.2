@@ -36,7 +36,7 @@ void UK2Node_ControlRigComponentOutput::CreateOutputPins()
 
 	for (const TSharedRef<IControlRigField>& OutputInfo : OutputInfos)
 	{
-		CreatePin(EGPD_Output, OutputInfo->GetPinType(), OutputInfo->GetPinString());
+		CreatePin(EGPD_Output, OutputInfo->GetPinType(), OutputInfo->GetPinName());
 	}
 }
 

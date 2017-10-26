@@ -157,9 +157,9 @@ void UNiagaraNodeAssignment::InitializeScript(UNiagaraScript* NewScript)
 		// Now create the proper new pins and connect them.
 		if (AssignmentTarget.GetName() != NAME_None)
 		{
-			FNiagaraParameterHandle TargetHandle(AssignmentTarget.GetName().ToString());
-			UEdGraphPin* SetPin = SetNodes[0]->RequestNewTypedPin(EGPD_Input, AssignmentTarget.GetType(), AssignmentTarget.GetName().ToString());
-			UEdGraphPin* GetPin = GetNodes[0]->RequestNewTypedPin(EGPD_Output, AssignmentTarget.GetType(), TEXT("Module.") + TargetHandle.GetName());
+			FNiagaraParameterHandle TargetHandle(AssignmentTarget.GetName());
+			UEdGraphPin* SetPin = SetNodes[0]->RequestNewTypedPin(EGPD_Input, AssignmentTarget.GetType(), AssignmentTarget.GetName());
+			UEdGraphPin* GetPin = GetNodes[0]->RequestNewTypedPin(EGPD_Output, AssignmentTarget.GetType(), *FString::Printf(TEXT("Module.%s"), *TargetHandle.GetName().ToString()));
 
 			GetPin->MakeLinkTo(SetPin);
 
@@ -172,7 +172,7 @@ void UNiagaraNodeAssignment::InitializeScript(UNiagaraScript* NewScript)
 				const FNiagaraVariable* FoundVar = FNiagaraConstants::FindEngineConstant(SeekVar);
 				if (FoundVar != nullptr)
 				{
-					UEdGraphPin* DefaultGetPin = GetNodes[1]->RequestNewTypedPin(EGPD_Output, AssignmentTarget.GetType(), FoundVar->GetName().ToString());
+					UEdGraphPin* DefaultGetPin = GetNodes[1]->RequestNewTypedPin(EGPD_Output, AssignmentTarget.GetType(), FoundVar->GetName());
 					DefaultGetPin->MakeLinkTo(DefaultInputPin);
 				}
 				else

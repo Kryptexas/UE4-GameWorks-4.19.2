@@ -13,6 +13,8 @@ struct CORE_API FGeometryObjectVersion
 		BeforeCustomVersionWasAdded = 0,
 		// Compress Geometry Cache Flipbooks to save disk space
 		CompressGeometryCache,
+		// Fix for serializing in Mesh vertices for new DynamicMeshVertex layout
+		DynamicMeshVertexLayoutChange,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

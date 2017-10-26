@@ -54,6 +54,8 @@ FActiveSound::FActiveSound()
 #endif
 	, bEnableLowPassFilter(false)
 	, bUpdatePlayPercentage(false)
+	, bUpdateSingleEnvelopeValue(false)
+	, bUpdateMultiEnvelopeValue(false)
 	, UserIndex(0)
 	, bIsOccluded(false)
 	, bAsyncOcclusionPending(false)
@@ -86,6 +88,8 @@ FActiveSound::FActiveSound()
 	, SourceInteriorLPF(MAX_FILTER_FREQUENCY)
 	, CurrentInteriorVolume(1.f)
 	, CurrentInteriorLPF(MAX_FILTER_FREQUENCY)
+	, EnvelopeFollowerAttackTime(10)
+	, EnvelopeFollowerReleaseTime(100)
 	, ClosestListenerPtr(nullptr)
 	, InternalFocusFactor(1.0f)
 {
@@ -397,8 +401,8 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// Early out if the sound is further away than we could possibly hear it, but only do this for non-virtualizable sounds.
 	if (bPerformDistanceCheckOptimization)
 	{
-	// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
-	float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
+		// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
+		float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
 		if (!FAudioDevice::LocationIsAudible(Transform.GetLocation(), ClosestListenerPtr->Transform, ApparentMaxDistance))
 		{
 			return;
@@ -438,6 +442,10 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 
 	// Set up the base source effect chain. 
 	ParseParams.SourceEffectChain = Sound->SourceEffectChain;
+
+	// Setup the envelope attack and release times
+	ParseParams.EnvelopeFollowerAttackTime = EnvelopeFollowerAttackTime;
+	ParseParams.EnvelopeFollowerReleaseTime = EnvelopeFollowerReleaseTime;
 
 	if (bApplyInteriorVolumes)
 	{
@@ -501,6 +509,41 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 					VolumeConcurrency = WaveInstanceVolume;
 				}
 			}
+		}
+
+		// Check to see if we need to broadcast the envelope value of sounds playing with this active sound
+		if (bUpdateMultiEnvelopeValue && AudioComponentID > 0)
+		{
+			int32 NumWaveInstances = ThisSoundsWaveInstances.Num();
+
+			// Add up the envelope value for every wave instance so we get a sum of the envelope value for all sources.
+			float EnvelopeValueSum = 0.0f;
+			float MaxEnvelopeValue = 0.0f;
+			for (FWaveInstance* WaveInstance : ThisSoundsWaveInstances)
+			{
+				const float WaveInstanceEnvelopeValue = WaveInstance->GetEnvelopeValue();
+				EnvelopeValueSum += WaveInstanceEnvelopeValue;
+				MaxEnvelopeValue = FMath::Max(WaveInstanceEnvelopeValue, MaxEnvelopeValue);
+			}
+
+			// Now divide by the number of instances to get the average
+			float AverageEnvelopeValue = EnvelopeValueSum / NumWaveInstances;
+			uint64 AudioComponentIDCopy = AudioComponentID;
+			FAudioThread::RunCommandOnGameThread([AudioComponentIDCopy, AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances]()
+			{
+				if (UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(AudioComponentIDCopy))
+				{
+					if (AudioComponent->OnAudioMultiEnvelopeValue.IsBound())
+					{
+						AudioComponent->OnAudioMultiEnvelopeValue.Broadcast(AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances);
+					}
+
+					if (AudioComponent->OnAudioMultiEnvelopeValueNative.IsBound())
+					{
+						AudioComponent->OnAudioMultiEnvelopeValueNative.Broadcast(AudioComponent, AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances);
+					}
+				}
+			});
 		}
 	}
 
@@ -1158,9 +1201,20 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 	if (Settings->bEnableOcclusion)
 	{
 		// If we've got a occlusion plugin settings, then the plugin will handle occlusion calculations
-		if (Settings->OcclusionPluginSettings)
+		if (Settings->PluginSettings.OcclusionPluginSettingsArray.Num())
 		{
-			ParseParams.OcclusionPluginSettings = Settings->OcclusionPluginSettings;
+			UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::OCCLUSION);
+			if (PluginClass)
+			{
+				for (UOcclusionPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.OcclusionPluginSettingsArray)
+				{
+					if (SettingsBase->IsA(PluginClass))
+					{
+						ParseParams.OcclusionPluginSettings = SettingsBase;
+						break;
+					}
+				}
+			}
 		}
 		else if (Volume > 0.0f && !AudioDevice->IsAudioDeviceMuted())
 		{
@@ -1175,8 +1229,38 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 	}
 
-	ParseParams.SpatializationPluginSettings = Settings->SpatializationPluginSettings;
-	ParseParams.ReverbPluginSettings = Settings->ReverbPluginSettings;
+	// Figure out which attenuation settings to use
+	if (Settings->PluginSettings.SpatializationPluginSettingsArray.Num() > 0)
+	{
+		UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::SPATIALIZATION);
+		if (PluginClass)
+		{
+			for (USpatializationPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.SpatializationPluginSettingsArray)
+			{
+				if (SettingsBase->IsA(PluginClass))
+				{
+					ParseParams.SpatializationPluginSettings = SettingsBase;
+					break;
+				}
+			}
+		}
+	}
+
+	if (Settings->PluginSettings.ReverbPluginSettingsArray.Num() > 0)
+	{
+		UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::REVERB);
+		if (PluginClass)
+		{
+			for (UReverbPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.ReverbPluginSettingsArray)
+			{
+				if (SettingsBase->IsA(PluginClass))
+				{
+					ParseParams.ReverbPluginSettings = SettingsBase;
+					break;
+				}
+			}
+		}
+	}
 
 	// Attenuate with the absorption filter if necessary
 	if (Settings->bAttenuateWithLPF)

@@ -89,7 +89,7 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 		{
 			if (InputNode->IsExposed())
 			{
-				UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(InputNode->Input.GetType()), InputNode->Input.GetName().ToString());
+				UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(InputNode->Input.GetType()), InputNode->Input.GetName());
 					
 				//An inline pin default only makes sense if we are required. 
 				//Non exposed or optional inputs will used their own function input nodes defaults when not directly provided by a link.
@@ -122,7 +122,7 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 
 		for (FNiagaraVariable& Output : Outputs)
 		{
-			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
+			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName());
 			NewPin->bDefaultValueIsIgnored = true;
 		}
 
@@ -134,13 +134,13 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 		
 		for (FNiagaraVariable& Input : Signature.Inputs)
 		{
-			UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Input.GetType()), Input.GetName().ToString());
+			UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Input.GetType()), Input.GetName());
 			NewPin->bDefaultValueIsIgnored = false;
 		}
 
 		for (FNiagaraVariable& Output : Signature.Outputs)
 		{
-			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
+			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName());
 			NewPin->bDefaultValueIsIgnored = true;
 		}
 
@@ -474,8 +474,7 @@ void UNiagaraNodeFunctionCall::BuildParameterMapHistory(FNiagaraParameterMapHist
 	}
 }
 
-
-UEdGraphPin* UNiagaraNodeFunctionCall::FindParameterMapDefaultValuePin(const FString& VariableName)
+UEdGraphPin* UNiagaraNodeFunctionCall::FindParameterMapDefaultValuePin(const FName VariableName)
 {
 	if (FunctionScript)
 	{

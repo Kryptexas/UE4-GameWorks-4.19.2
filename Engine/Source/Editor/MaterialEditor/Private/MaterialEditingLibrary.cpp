@@ -29,7 +29,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditingLibrary, Warning, All);
 
 /** Util to find expression  */
-static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expression, const FString& InputName)
+static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expression, const FName InputName)
 {
 	check(Expression);
 	FExpressionInput* Result = nullptr;
@@ -37,7 +37,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 	TArray<FExpressionInput*> Inputs = Expression->GetInputs();
 
 	// Return first input if no name specified
-	if (InputName.IsEmpty())
+	if (InputName.IsNone())
 	{
 		if (Inputs.Num() > 0)
 		{
@@ -50,7 +50,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 		// Get name of each input, see if its the one we want
 		for (int InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
 		{
-			FString TestName;
+			FName TestName;
 			if (UMaterialExpressionMaterialFunctionCall* FuncCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
 			{
 				// If a function call, don't want to compare string with type postfix
@@ -58,8 +58,8 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 			}
 			else
 			{
-				TestName = Expression->GetInputName(InputIdx);
-				TestName = UMaterialGraphNode::GetShortenPinName(TestName);
+				const FName ExpressionInputName = Expression->GetInputName(InputIdx);
+				TestName = UMaterialGraphNode::GetShortenPinName(ExpressionInputName);
 			}
 
 			if (TestName == InputName)
@@ -73,7 +73,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 	return Result;
 }
 
-static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, const FString& OutputName)
+static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, const FName OutputName)
 {
 	check(Expression);
 	
@@ -84,7 +84,7 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 		// leave as INDEX_NONE
 	}
 	// Return first output if no name specified
-	else if (OutputName.IsEmpty())
+	else if (OutputName.IsNone())
 	{
 		Result = 0;
 	}
@@ -97,7 +97,7 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 
 			FExpressionOutput& Output = Expression->Outputs[OutIdx];
 			// If output name is no empty - see if it matches
-			if(!Output.OutputName.IsEmpty())
+			if(!Output.OutputName.IsNone())
 			{
 				if (OutputName == Output.OutputName)
 				{
@@ -107,19 +107,19 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 			// if it is empty we look for R/G/B/A
 			else
 			{
-				if (OutputName == TEXT("R") && Output.MaskR && !Output.MaskG && !Output.MaskB && !Output.MaskA)
+				if (Output.MaskR && !Output.MaskG && !Output.MaskB && !Output.MaskA && OutputName == TEXT("R"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("G") && !Output.MaskR && Output.MaskG && !Output.MaskB && !Output.MaskA)
+				else if (!Output.MaskR && Output.MaskG && !Output.MaskB && !Output.MaskA && OutputName == TEXT("G"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("B") && !Output.MaskR && !Output.MaskG && Output.MaskB && !Output.MaskA)
+				else if (!Output.MaskR && !Output.MaskG && Output.MaskB && !Output.MaskA && OutputName == TEXT("B"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("A") && !Output.MaskR && !Output.MaskG && !Output.MaskB && Output.MaskA)
+				else if (!Output.MaskR && !Output.MaskG && !Output.MaskB && Output.MaskA && OutputName == TEXT("A"))
 				{
 					bFoundMatch = true;
 				}
@@ -456,7 +456,7 @@ bool UMaterialEditingLibrary::ConnectMaterialProperty(UMaterialExpression* FromE
 		if (Material)
 		{
 			FExpressionInput* Input = Material->GetExpressionInputForProperty(Property);
-			int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, FromOutputName);
+			int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, *FromOutputName);
 			if (Input && FromIndex != INDEX_NONE)
 			{
 				Input->Connect(FromIndex, FromExpression);
@@ -472,8 +472,8 @@ bool UMaterialEditingLibrary::ConnectMaterialExpressions(UMaterialExpression* Fr
 	bool bResult = false;
 	if (FromExpression && ToExpression)
 	{
-		FExpressionInput* Input = GetExpressionInputByName(ToExpression, ToInputName);
-		int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, FromOutputName);
+		FExpressionInput* Input = GetExpressionInputByName(ToExpression, *ToInputName);
+		int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, *FromOutputName);
 		if (Input && FromIndex != INDEX_NONE)
 		{
 			Input->Connect(FromIndex, FromExpression);

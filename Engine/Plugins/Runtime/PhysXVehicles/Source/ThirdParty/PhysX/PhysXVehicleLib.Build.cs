@@ -75,7 +75,7 @@ public class PhysXVehicleLib : ModuleRules
         PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
         string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
 
-        string PhysXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib/";
+        string PhysXLibDir = Target.UEThirdPartySourceDirectory + "PhysX3/Lib/";
 
         // Libraries and DLLs for windows platform
         if (Target.Platform == UnrealTargetPlatform.Win64)

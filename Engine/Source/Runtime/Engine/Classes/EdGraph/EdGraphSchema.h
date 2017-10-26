@@ -831,7 +831,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param	SourcePin	The pin where the link begins.
 	 * @param	TargetLink	The pin where the link ends.
 	 */
-	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin);
+	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const;
 
 	/** Split a pin in to subelements */
 	virtual void SplitPin(UEdGraphPin* Pin, bool bNotify = true) const { };
@@ -852,7 +852,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual bool IsSelfPin(const UEdGraphPin& Pin) const   {return false;}
 
 	/** Is given string a delegate category name ? */
-	virtual bool IsDelegateCategory(const FString& Category) const   {return false;}
+	virtual bool IsDelegateCategory(const FName Category) const   {return false;}
 
 	/** 
 	 * Populate new graph with any default nodes
@@ -974,7 +974,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param InSourcePinDirection			Direction of the source pin
 	 * @return								Returns the new pin if created
 	 */
-	virtual UEdGraphPin* DropPinOnNode(UEdGraphNode* InTargetNode, const FString& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const { return nullptr; }
+	virtual UEdGraphPin* DropPinOnNode(UEdGraphNode* InTargetNode, const FName& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const { return nullptr; }
 
 	/**
 	 * Checks if the node supports dropping a pin on it

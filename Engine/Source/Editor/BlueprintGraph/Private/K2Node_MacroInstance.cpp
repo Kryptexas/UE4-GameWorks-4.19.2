@@ -250,13 +250,11 @@ void UK2Node_MacroInstance::NotifyPinConnectionListChanged(UEdGraphPin* ChangedP
 {
 	Super::NotifyPinConnectionListChanged(ChangedPin);
 
-	const UEdGraphSchema_K2* const Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// added a link?
 	if (ChangedPin->LinkedTo.Num() > 0)
 	{
 		// ... to a wildcard pin?
-		bool const bIsWildcardPin = ChangedPin->PinType.PinCategory == Schema->PC_Wildcard;
+		bool const bIsWildcardPin = ChangedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard;
 		if (bIsWildcardPin)
 		{
 			// get type of pin we just got linked to
@@ -270,7 +268,7 @@ void UK2Node_MacroInstance::NotifyPinConnectionListChanged(UEdGraphPin* ChangedP
 				UEdGraphPin* const TmpPin = Pins[PinIdx];
 				if (TmpPin)
 				{
-					if (TmpPin->PinType.PinCategory == Schema->PC_Wildcard)
+					if (TmpPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 					{
 						// only copy the category stuff to preserve array and ref status
 						TmpPin->PinType.PinCategory = LinkedPinType.PinCategory;

@@ -292,11 +292,6 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 	}
 }
 
-bool FAdvancedPreviewScene::IsTickable() const
-{
-	return true;
-}
-
 TStatId FAdvancedPreviewScene::GetStatId() const
 {
 	return TStatId();

@@ -19,15 +19,13 @@ UK2Node_Knot::UK2Node_Knot(const FObjectInitializer& ObjectInitializer)
 
 void UK2Node_Knot::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	const FName InputPinName(TEXT("InputPin"));
+	const FName OutputPinName(TEXT("OutputPin"));
 
-	const FString InputPinName(TEXT("InputPin"));
-	const FString OutputPinName(TEXT("OutputPin"));
-
-	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, InputPinName);
+	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, InputPinName);
 	MyInputPin->bDefaultValueIsIgnored = true;
 
-	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, OutputPinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, OutputPinName);
 }
 
 FText UK2Node_Knot::GetTooltipText() const
@@ -122,15 +120,13 @@ void UK2Node_Knot::PropagatePinType()
 	else
 	{
 		// Revert to wildcard
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		MyInputPin->BreakAllPinLinks();
 		MyInputPin->PinType.ResetToDefaults();
-		MyInputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
+		MyInputPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
 
 		MyOutputPin->BreakAllPinLinks();
 		MyOutputPin->PinType.ResetToDefaults();
-		MyOutputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
+		MyOutputPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
 	}
 }
 

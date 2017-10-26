@@ -23,7 +23,7 @@ void FKCHandler_DynamicCast::RegisterNets(FKismetFunctionContext& Context, UEdGr
 		{
 			// Create a term to determine if the cast was successful or not
 			FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
-			BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+			BoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 			BoolTerm->Source = Node;
 			BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CastSuccess");
 			BoolTermMap.Add(Node, BoolTerm);
@@ -84,7 +84,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	ClassTerm->bIsLiteral = true;
 	ClassTerm->Source = Node;
 	ClassTerm->ObjectLiteral = DynamicCastNode->TargetType;
-	ClassTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Class;
+	ClassTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Class;
 
 	UClass const* const InputObjClass  = Cast<UClass>((*ObjectToCast)->Type.PinSubCategoryObject.Get());
 	UClass const* const OutputObjClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());

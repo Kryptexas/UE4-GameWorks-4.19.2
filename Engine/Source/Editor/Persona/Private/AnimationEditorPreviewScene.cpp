@@ -16,6 +16,7 @@
 #include "ComponentAssetBroker.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "PersonaPreviewSceneDescription.h"
+#include "PersonaPreviewSceneDefaultController.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PersonaModule.h"
@@ -57,8 +58,8 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	PreviewSceneDescription = NewObject<UPersonaPreviewSceneDescription>(GetTransientPackage());
 	PreviewSceneDescription->SetFlags(RF_Transactional);
 
-	PreviewSceneDescription->AnimationMode = EPreviewAnimationMode::Default;
-	PreviewSceneDescription->Animation = InPersonaToolkit->GetAnimationAsset();
+	PreviewSceneDescription->SetPreviewController(UPersonaPreviewSceneDefaultController::StaticClass(), this);
+	
 	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetPreviewMesh();
 	PreviewSceneDescription->AdditionalMeshes = InEditableSkeleton->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
 
@@ -506,8 +507,6 @@ void FAnimationEditorPreviewScene::SetPreviewAnimationAsset(UAnimationAsset* Ani
 			}
 		}
 
-		CachedPreviewAsset = AnimAsset;
-
 		SkeletalMeshComponent->EnablePreview(bEnablePreview, AnimAsset);
 	}
 
@@ -533,38 +532,11 @@ void FAnimationEditorPreviewScene::SetFloorLocation(const FVector& InPosition)
 	FloorMeshComponent->SetWorldTransform(FTransform(FQuat::Identity, InPosition, FVector(3.0f, 3.0f, 1.0f)));
 }
 
-void FAnimationEditorPreviewScene::ShowReferencePose(bool bReferencePose)
+void FAnimationEditorPreviewScene::ShowReferencePose()
 {
 	if(SkeletalMeshComponent)
 	{
-		if(bReferencePose == false)
-		{
-			UAnimBlueprint* AnimBP = PersonaToolkit.Pin()->GetAnimBlueprint();
-			if (AnimBP)
-			{
-				SkeletalMeshComponent->EnablePreview(false, nullptr);
-				SkeletalMeshComponent->SetAnimInstanceClass(AnimBP->GeneratedClass);
-			}
-			else
-			{
-				UObject* PreviewAsset = CachedPreviewAsset.IsValid() ? CachedPreviewAsset.Get() : (PersonaToolkit.Pin()->GetAnimationAsset());
-				SkeletalMeshComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset));
-
-				if (SkeletalMeshComponent->PreviewInstance && SkeletalMeshComponent->PreviewInstance->GetCurrentAsset())
-				{
-					CachedPreviewAsset = SkeletalMeshComponent->PreviewInstance->GetCurrentAsset();
-				}
-			}
-		}
-		else
-		{
-			if (SkeletalMeshComponent->PreviewInstance && SkeletalMeshComponent->PreviewInstance->GetCurrentAsset())
-			{
-				CachedPreviewAsset = SkeletalMeshComponent->PreviewInstance->GetCurrentAsset();
-			}
-			
-			SkeletalMeshComponent->EnablePreview(true, nullptr);
-		}
+		SkeletalMeshComponent->EnablePreview(true, nullptr);
 	}
 }
 
@@ -588,11 +560,11 @@ void FAnimationEditorPreviewScene::ShowDefaultMode()
 	switch (DefaultMode)
 	{
 	case EPreviewSceneDefaultAnimationMode::ReferencePose:
-		ShowReferencePose(true);
+		ShowReferencePose();
 		break;
 	case EPreviewSceneDefaultAnimationMode::Animation:
 		{
-			UObject* PreviewAsset = CachedPreviewAsset.IsValid() ? CachedPreviewAsset.Get() : (PersonaToolkit.Pin()->GetAnimationAsset());
+			UObject* PreviewAsset = PersonaToolkit.Pin()->GetAnimationAsset();
 			if (PreviewAsset)
 			{
 				SkeletalMeshComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset));
@@ -630,7 +602,7 @@ FText FAnimationEditorPreviewScene::GetPreviewAssetTooltip(bool bEditingAnimBlue
 		}
 		else
 		{
-			UObject* PreviewAsset = CachedPreviewAsset.IsValid() ? CachedPreviewAsset.Get() : (PersonaToolkit.Pin()->GetAnimationAsset());
+			UObject* PreviewAsset = PersonaToolkit.Pin()->GetAnimationAsset();
 			if (PreviewAsset)
 			{
 				return FText::Format(PreviewFormat, FText::FromString(PreviewAsset->GetName()));
@@ -993,18 +965,7 @@ void FAnimationEditorPreviewScene::PostUndo(bool bSuccess)
 	if (PreviewSceneDescription)
 	{
 		SetPreviewMesh(PreviewSceneDescription->PreviewMesh.Get());
-		switch (PreviewSceneDescription->AnimationMode)
-		{
-		case EPreviewAnimationMode::Default:
-			ShowDefaultMode();
-			break;
-		case EPreviewAnimationMode::ReferencePose:
-			ShowReferencePose(true);
-			break;
-		case EPreviewAnimationMode::UseSpecificAnimation:
-			SetPreviewAnimationAsset(Cast<UAnimationAsset>(PreviewSceneDescription->Animation.LoadSynchronous()));
-			break;
-		}
+		PreviewSceneDescription->PreviewControllerInstance->InitializeView(PreviewSceneDescription, this);
 	}
 }
 

@@ -79,7 +79,7 @@ public:
 	virtual TSubclassOf<AGameSession> GetGameSessionClass() const;
 
 	/** Returns default pawn class for given controller */
-	UFUNCTION(BlueprintNativeEvent, Category=Classes)
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category=Classes)
 	UClass* GetDefaultPawnClassForController(AController* InController);
 
 	/** Class of GameSession, which handles login approval and online game interface */

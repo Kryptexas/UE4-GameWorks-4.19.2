@@ -3106,7 +3106,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 				// If we've already been initialized, then just update the voice
 				if (Source->IsInitialized())
 				{
-					Source->NotifyPlaybackPercent();
+					Source->NotifyPlaybackData();
 					Source->Update();
 				}
 				// Otherwise, we need still need to initialize
@@ -4255,6 +4255,12 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 
 			WaveInstanceSourceMap.Reset();
 		}
+	}
+
+	// Make sure we update any hardware changes that need to happen after flushing
+	if (IsAudioMixerEnabled() && (WorldToFlush == nullptr || WorldToFlush->bIsTearingDown))
+	{
+		UpdateHardware();
 	}
 }
 

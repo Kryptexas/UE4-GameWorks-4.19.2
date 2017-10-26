@@ -107,7 +107,7 @@ void UNiagaraNodeConvert::AutowireNewNode(UEdGraphPin* FromPin)
 				DestPath.Empty(DestPath.Num());
 				const UProperty* Property = *PropertyIt;
 				FNiagaraTypeDefinition PropType = Schema->GetTypeDefForProperty(Property);
-				UEdGraphPin* NewPin = RequestNewTypedPin(Dir, PropType, Property->GetDisplayNameText().ToString());
+				UEdGraphPin* NewPin = RequestNewTypedPin(Dir, PropType, *Property->GetDisplayNameText().ToString());
 
 				if (Dir == EGPD_Input)
 				{
@@ -171,7 +171,7 @@ void UNiagaraNodeConvert::AutowireNewNode(UEdGraphPin* FromPin)
 		
 		check(AutowireSwizzle.Len() <= 4 && AutowireSwizzle.Len() > 0);
 		FNiagaraTypeDefinition SwizType = SwizTypes[AutowireSwizzle.Len() - 1];
-		UEdGraphPin* NewPin = RequestNewTypedPin(EGPD_Output, SwizType, SwizType.GetNameText().ToString());
+		UEdGraphPin* NewPin = RequestNewTypedPin(EGPD_Output, SwizType, *SwizType.GetNameText().ToString());
 
 		TArray<FName> SrcPath;
 		TArray<FName> DestPath;

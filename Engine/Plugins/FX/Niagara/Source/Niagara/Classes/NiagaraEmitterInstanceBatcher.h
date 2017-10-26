@@ -82,12 +82,12 @@ public:
 
 	void Queue(FNiagaraComputeExecutionContext *InContext);
 
-	virtual bool IsTickable() const
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
-	virtual TStatId GetStatId() const
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(NiagaraEmitterInstanceBatcher, STATGROUP_Tickables);
 	}

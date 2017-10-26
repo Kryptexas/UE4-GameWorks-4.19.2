@@ -62,7 +62,7 @@ public:
 	FString GetFunctionName() const { return FunctionDisplayName; }
 
 	/** Walk through the internal script graph for an ParameterMapGet nodes and see if any of them specify a default for VariableName.*/
-	UEdGraphPin* FindParameterMapDefaultValuePin(const FString& VariableName);
+	UEdGraphPin* FindParameterMapDefaultValuePin(const FName VariableName);
 
 protected:
 	/** Resets the node name based on the referenced script or signature. Guaranteed unique within a given graph instance.*/

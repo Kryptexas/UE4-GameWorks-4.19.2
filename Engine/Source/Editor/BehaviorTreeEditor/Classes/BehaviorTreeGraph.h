@@ -41,7 +41,6 @@ class UBehaviorTreeGraph : public UAIGraph
 	void CreateBTFromGraph(class UBehaviorTreeGraphNode* RootEdNode);
 	void SpawnMissingNodes();
 	void UpdatePinConnectionTypes();
-	void UpdateDeprecatedNodes();
 	bool UpdateInjectedNodes();
 	void UpdateBrokenComposites();
 	class UEdGraphNode* FindInjectedNode(int32 Index);
@@ -63,4 +62,5 @@ protected:
 
 	void UpdateVersion_UnifiedSubNodes();
 	void UpdateVersion_InnerGraphWhitespace();
+	void UpdateVersion_RunBehaviorInSeparateGraph();
 };

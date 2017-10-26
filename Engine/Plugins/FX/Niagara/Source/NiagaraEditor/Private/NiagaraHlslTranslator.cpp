@@ -346,7 +346,7 @@ void PreprocessFunctionGraph(FHlslNiagaraTranslator& Compiler, const UEdGraphSch
 		FNiagaraVariable& Input = InputNode->Input;
 		if (Input.GetType() == FNiagaraTypeDefinition::GetGenericNumericDef())
 		{
-			UEdGraphPin* const* MatchingPin = CallInputs.FindByPredicate([&](const UEdGraphPin* Pin) { return *(Pin->PinName) == Input.GetName(); });
+			UEdGraphPin* const* MatchingPin = CallInputs.FindByPredicate([&](const UEdGraphPin* Pin) { return (Pin->PinName == Input.GetName()); });
 
 			if (MatchingPin != nullptr)
 			{
@@ -370,7 +370,7 @@ void PreprocessFunctionGraph(FHlslNiagaraTranslator& Compiler, const UEdGraphSch
 	{
 		if (Output.GetType() == FNiagaraTypeDefinition::GetGenericNumericDef())
 		{
-			UEdGraphPin* const* MatchingPin = CallOutputs.FindByPredicate([&](const UEdGraphPin* Pin) { return *(Pin->PinName) == Output.GetName(); });
+			UEdGraphPin* const* MatchingPin = CallOutputs.FindByPredicate([&](const UEdGraphPin* Pin) { return (Pin->PinName == Output.GetName()); });
 
 			if (MatchingPin != nullptr)
 			{
@@ -3128,7 +3128,7 @@ void FHlslNiagaraTranslator::Operation(class UNiagaraNodeOp* Operation, TArray<i
 
 		if (!AddStructToDefinitionSet(OutputType))
 		{
-			FText PinNameText = OutputPins[OutputIndex]->PinFriendlyName.IsEmpty() ? FText::FromString(OutputPins[OutputIndex]->PinName) : OutputPins[OutputIndex]->PinFriendlyName;
+			FText PinNameText = OutputPins[OutputIndex]->PinFriendlyName.IsEmpty() ? FText::FromName(OutputPins[OutputIndex]->PinName) : OutputPins[OutputIndex]->PinFriendlyName;
 			Error(FText::Format(LOCTEXT("GetConstantFailTypePin", "Cannot handle type {0}! Output Pin: {1}"), OutputType.GetNameText(), PinNameText), Operation, OutputPins[OutputIndex]);
 		}
 
@@ -3765,7 +3765,7 @@ void FHlslNiagaraTranslator::Convert(class UNiagaraNodeConvert* Convert, TArray 
 			OutputPin->PinType.PinCategory == UEdGraphSchema_Niagara::PinCategoryEnum)
 		{
 			FNiagaraTypeDefinition Type = Schema->PinToTypeDefinition(OutputPin);
-			int32 OutChunk = AddBodyChunk(GetUniqueSymbolName(*OutputPin->PinName), TEXT(""), Type);
+			int32 OutChunk = AddBodyChunk(GetUniqueSymbolName(OutputPin->PinName), TEXT(""), Type);
 			Outputs.Add(OutChunk);
 		}
 	}

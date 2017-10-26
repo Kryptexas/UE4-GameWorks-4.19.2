@@ -31,6 +31,8 @@
 #include "ISettingsModule.h"
 #include "SequencerSettings.h"
 
+#include "BlueprintEditorModule.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
@@ -75,6 +77,8 @@ public:
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
 
+		FBlueprintEditorModule::RegisterCompilerGetter(UWidgetBlueprint::StaticClass(), FOnGetBlueprintCompiler::CreateStatic(&UWidgetBlueprint::GetCompilerForWidgetBP));
+
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterPropertyTrackEditor<FMarginTrackEditor>();
@@ -100,6 +104,8 @@ public:
 			}
 		}
 		CreatedAssetTypeActions.Empty();
+
+		FBlueprintEditorModule::UnregisterCompilerGetter(UWidgetBlueprint::StaticClass());
 
 		// Unregister sequencer track creation delegates
 		ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>( "Sequencer" );

@@ -192,7 +192,7 @@ void FKCHandler_AddRemoveDelegate::Compile(FKismetFunctionContext& Context, UEdG
 		AddStatement.RHS.Add(*DelegateInputTerm);
 	}
 
-	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(CompilerContext.GetSchema()->PN_Then));
+	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(UEdGraphSchema_K2::PN_Then));
 	FNodeHandlingFunctor::Compile(Context, DelegateNode);
 }
 
@@ -229,7 +229,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 			{
 				InputObjTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 				InputObjTerm->Name = Context.NetNameMap->MakeValidName(Net);
-				InputObjTerm->Type.PinSubCategory = CompilerContext.GetSchema()->PN_Self;
+				InputObjTerm->Type.PinSubCategory = UEdGraphSchema_K2::PN_Self;
 			}
 			else
 			{
@@ -289,7 +289,7 @@ void FKCHandler_CreateDelegate::Compile(FKismetFunctionContext& Context, UEdGrap
 
 	{
 		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		DelegateNameTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Name;
+		DelegateNameTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Name;
 		DelegateNameTerm->Name = DelegateNode->GetFunctionName().ToString();
 		DelegateNameTerm->bIsLiteral = true;
 		Statement.RHS.Add(DelegateNameTerm);
@@ -339,7 +339,7 @@ void FKCHandler_ClearDelegate::Compile(FKismetFunctionContext& Context, UEdGraph
 		AddStatement.LHS = *VarDelegate;
 	}
 
-	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(CompilerContext.GetSchema()->PN_Then));
+	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(UEdGraphSchema_K2::PN_Then));
 	FNodeHandlingFunctor::Compile(Context, DelegateNode);
 }
 

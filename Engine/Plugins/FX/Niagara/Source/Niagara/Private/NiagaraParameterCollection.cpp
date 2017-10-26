@@ -263,11 +263,6 @@ void UNiagaraParameterCollection::RenameParameter(FNiagaraVariable& Parameter, F
 	DefaultInstance->RenameParameter(Parameter, NewName);
 }
 
-FString UNiagaraParameterCollection::GetUniqueName()const
-{
-	return UniqueName;
-}
-
 FNiagaraVariable UNiagaraParameterCollection::CollectionParameterFromFriendlyParameter(const FNiagaraVariable& FriendlyParameter)const
 {
 	return FNiagaraVariable(FriendlyParameter.GetType(), *ParameterNameFromFriendlyName(FriendlyParameter.GetName().ToString()));
@@ -280,10 +275,11 @@ FNiagaraVariable UNiagaraParameterCollection::FriendlyParameterFromCollectionPar
 
 FString UNiagaraParameterCollection::FriendlyNameFromParameterName(FString ParameterName)const
 {
-	return ParameterName.Replace(*(GetUniqueName() + TEXT("_")), TEXT(""), ESearchCase::CaseSensitive);
+	ParameterName.ReplaceInline(*(GetUniqueName() + TEXT("_")), TEXT(""), ESearchCase::CaseSensitive);
+	return ParameterName;
 }
 
-FString UNiagaraParameterCollection::ParameterNameFromFriendlyName(FString FriendlyName)const
+FString UNiagaraParameterCollection::ParameterNameFromFriendlyName(const FString& FriendlyName)const
 {
-	return GetUniqueName() + TEXT("_") + FriendlyName;
+	return FString::Printf(TEXT("%s_%s"), *GetUniqueName(), *FriendlyName);
 }

@@ -124,7 +124,7 @@ void USoundCueGraphNode_Base::AllocateDefaultPins()
 
 	if (!IsRootNode())
 	{
-		CreatePin(EGPD_Output, TEXT("SoundNode"), FString(), nullptr, TEXT("Output"));
+		CreatePin(EGPD_Output, TEXT("SoundNode"), TEXT("Output"));
 	}
 }
 

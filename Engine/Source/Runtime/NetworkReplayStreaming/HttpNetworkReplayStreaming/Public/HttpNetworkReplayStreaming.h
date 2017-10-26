@@ -349,9 +349,9 @@ public:
 
 	/** FTickableGameObject */
 	virtual void Tick( float DeltaTime ) override;
-	virtual bool IsTickable() const override;
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override;
-	bool IsTickableWhenPaused() const override;
+	bool IsTickableWhenPaused() const override { return true; }
 
 	TArray< TSharedPtr< FHttpNetworkReplayStreamer > > HttpStreamers;
 };

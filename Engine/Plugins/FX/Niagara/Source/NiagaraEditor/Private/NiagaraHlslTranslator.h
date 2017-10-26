@@ -26,9 +26,9 @@ class UNiagaraNodeEmitter;
 //
 class FNiagaraShaderProcessorTickable : FTickableEditorObject
 {
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual void Tick(float DeltaSeconds) override

@@ -97,7 +97,7 @@ void SNiagaraGraphPinAdd::OnAddType(FNiagaraVariable InAdd)
 	if (OwningNode != nullptr)
 	{
 		FScopedTransaction AddNewPinTransaction(LOCTEXT("AddNewPinTransaction", "Add pin to node"));
-		OwningNode->RequestNewTypedPin(GetPinObj()->Direction, InAdd.GetType(), InAdd.GetName().ToString());
+		OwningNode->RequestNewTypedPin(GetPinObj()->Direction, InAdd.GetType(), InAdd.GetName());
 	}
 }
 #undef LOCTEXT_NAMESPACE

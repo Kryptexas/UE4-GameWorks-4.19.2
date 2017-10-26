@@ -58,13 +58,11 @@ static FBPTerminal* RegisterStructVar(FCompilerResultsLog& MessageLog, FKismetFu
 static void ResolveAndRegisterScopedStructTerm(FCompilerResultsLog& MessageLog, FKismetFunctionContext& Context, UScriptStruct* StructType, UEdGraphPin* Net, FBPTerminal* ContextTerm)
 {
 	// Find the property for the struct
-	UProperty* BoundProperty = FindField<UProperty>(StructType, *(Net->PinName));
-
-	if (BoundProperty != NULL)
+	if (UProperty* BoundProperty = FindField<UProperty>(StructType, Net->PinName))
 	{
 		// Create the term in the list
 		FBPTerminal* Term = new (Context.VariableReferences) FBPTerminal();
-		Term->CopyFromPin(Net, Net->PinName);
+		Term->CopyFromPin(Net, Net->PinName.ToString());
 		Term->AssociatedVarProperty = BoundProperty;
 		Context.NetMap.Add(Net, Term);
 		Term->Context = ContextTerm;

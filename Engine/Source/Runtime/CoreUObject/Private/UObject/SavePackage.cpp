@@ -3711,6 +3711,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							{
 								bRequestStub = true;
 							}
+
+							UE_LOG(LogSavePackage, Verbose, TEXT("Package %s contains assets that are being converted to native code."), *InOuter->GetName());
+							return ESavePackageResult::ReplaceCompletely;
 						}
 					}
 #endif

@@ -230,10 +230,14 @@ public:
 	*/
 	virtual TAudioSpatializationPtr CreateNewSpatializationPlugin(FAudioDevice* OwningDevice) = 0;
 
-	/*
-	* @return true if this plugin uses a custom setting.
+
+	/** 
+	* @return the UClass type of your settings for occlusion. This allows us to only pass in user settings for your plugin.
 	*/
-	virtual bool HasCustomSpatializationSetting() const { return false; }
+	virtual UClass* GetCustomOcclusionSettingsClass() const
+	{
+		return nullptr;
+	}
 };
 
 /**
@@ -370,7 +374,13 @@ public:
 
 	virtual TAudioOcclusionPtr CreateNewOcclusionPlugin(FAudioDevice* OwningDevice) = 0;
 
-	virtual bool HasCustomOcclusionSetting() const { return false; }
+	/**
+	* @return the UClass type of your settings for occlusion. This allows us to only pass in user settings for your plugin.
+	*/
+	virtual UClass* GetCustomOcclusionSettingsClass() const
+	{
+		return nullptr;
+	}
 };
 
 class IAudioOcclusion
@@ -434,7 +444,13 @@ public:
 
 	virtual TAudioReverbPtr CreateNewReverbPlugin(FAudioDevice* OwningDevice) = 0;
 
-	virtual bool HasCustomReverbSetting() const { return false; }
+	/**
+	* @return the UClass type of your settings for reverb. This allows us to only pass in user settings for your plugin.
+	*/
+	virtual UClass* GetCustomReverbSettingsClass() const
+	{
+		return nullptr;
+	}
 };
 
 class IAudioReverb

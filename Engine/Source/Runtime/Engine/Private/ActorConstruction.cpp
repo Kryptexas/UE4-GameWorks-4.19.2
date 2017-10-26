@@ -877,11 +877,6 @@ void AActor::FinishAndRegisterComponent(UActorComponent* Component)
 	BlueprintCreatedComponents.Add(Component);
 }
 
-UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString& InName)
-{
-	return CreateComponentFromTemplate(Template, FName(*InName));
-}
-
 #if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarLogBlueprintComponentInstanceCalls(
 	TEXT("LogBlueprintComponentInstanceCalls"),

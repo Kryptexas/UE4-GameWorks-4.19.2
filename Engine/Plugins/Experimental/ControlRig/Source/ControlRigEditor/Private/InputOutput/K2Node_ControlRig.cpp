@@ -69,7 +69,7 @@ void UK2Node_ControlRig::GetInputParameterPins(const TArray<FName>& DisabledPins
 			// check each property
 			for (const TSharedRef<IControlRigField>& VariableInfo : VariableInfos)
 			{
-				if (Pin->Direction == GetInputDirection() && Pin->PinName == VariableInfo->GetPinString())
+				if (Pin->Direction == GetInputDirection() && Pin->PinName == VariableInfo->GetPinName())
 				{
 					OutPins.Add(Pin);
 					OutFieldInfo.Add(VariableInfo);
@@ -104,7 +104,7 @@ void UK2Node_ControlRig::GetOutputParameterPins(const TArray<FName>& DisabledPin
 			// check each property
 			for (const TSharedRef<IControlRigField>& VariableInfo : VariableInfos)
 			{
-				if (Pin->Direction == GetOutputDirection() && Pin->PinName == VariableInfo->GetPinString())
+				if (Pin->Direction == GetOutputDirection() && Pin->PinName == VariableInfo->GetPinName())
 				{
 					OutPins.Add(Pin);
 					OutFieldInfo.Add(VariableInfo);
@@ -208,7 +208,7 @@ void UK2Node_ControlRig::HandleVariableRenamed(UBlueprint* InBlueprint, UClass* 
 		}
 	}
 
-	RenameUserDefinedPin(InOldVarName.ToString(), InNewVarName.ToString());
+	RenameUserDefinedPin(InOldVarName, InNewVarName);
 }
 
 bool UK2Node_ControlRig::ReferencesVariable(const FName& InVarName, const UStruct* InScope) const

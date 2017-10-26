@@ -370,7 +370,7 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 
 			if (NumMatches == 0)
 			{
-				FString PinName = FromPin->PinFriendlyName.IsEmpty() ? FromPin->PinName : FromPin->PinFriendlyName.ToString();
+				const FString PinName = FromPin->PinFriendlyName.IsEmpty() ? FromPin->PinName.ToString() : FromPin->PinFriendlyName.ToString();
 				if (UNiagaraNodeOp* OpNode = Cast<UNiagaraNodeOp>(FromPin->GetOwningNode()))
 				{
 					const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpNode->OpName);

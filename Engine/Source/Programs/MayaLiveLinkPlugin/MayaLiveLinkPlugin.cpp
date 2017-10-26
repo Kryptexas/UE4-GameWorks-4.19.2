@@ -454,6 +454,8 @@ public:
 			OutputRotation(CameraTransformMatrix);
 
 			TArray<FTransform> CameraTransform = { BuildUETransformFromMayaTransform(CameraTransformMatrix) };
+			// Convert Maya Camera orientation to Unreal
+			CameraTransform[0].SetRotation(CameraTransform[0].GetRotation() * FRotator(0.f, -90.f, 0.f).Quaternion());
 			TArray<FLiveLinkCurveElement> Curves;
 
 			LiveLinkProvider->UpdateSubjectFrame(ActiveCameraName, CameraTransform, Curves, StreamTime, FrameNumber);

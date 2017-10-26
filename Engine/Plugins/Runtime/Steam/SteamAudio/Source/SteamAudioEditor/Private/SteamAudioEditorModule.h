@@ -6,6 +6,7 @@
 
 #include "ISteamAudioEditorModule.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
+#include "PhononScene.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSteamAudioEditor, Log, All);
 
@@ -30,9 +31,13 @@ namespace SteamAudio
 
 		void RegisterComponentVisualizer(const FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer);
 
+		void SetCurrentPhononSceneInfo(const FPhononSceneInfo& PhononSceneInfo) { CurrentPhononSceneInfo = PhononSceneInfo; }
+		const FPhononSceneInfo& GetCurrentPhononSceneInfo() const { return CurrentPhononSceneInfo; }
+
 	private:
 		TSharedPtr<FSlateStyleSet> SteamAudioStyleSet;
 		TSharedPtr<FBakeIndirectWindow> BakeIndirectWindow;
 		TArray<FName> RegisteredComponentClassNames;
+		FPhononSceneInfo CurrentPhononSceneInfo;
 	};
 }

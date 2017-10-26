@@ -33,6 +33,7 @@
 #include "SkeletalRenderPublic.h"
 #include "AudioDevice.h"
 #include "RawIndexBuffer.h"
+#include "CameraController.h"
 
 namespace {
 	// Value from UE3
@@ -75,6 +76,12 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 {
 	// we actually own the mode tools here, we just override its type in the FEditorViewportClient constructor above
 	bOwnsModeTools = true;
+
+	CachedDefaultCameraController = CameraController;
+
+	OnCameraControllerChanged();
+
+	InPreviewScene->RegisterOnCameraOverrideChanged(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::OnCameraControllerChanged));
 
 	// Let the asset editor toolkit know about the mode manager so it can be used outside of thew viewport
 	InAssetEditorToolkit->SetAssetEditorModeManager((FAssetEditorModeManager*)ModeTools);
@@ -150,6 +157,8 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 
 FAnimationViewportClient::~FAnimationViewportClient()
 {
+	CameraController = CachedDefaultCameraController;
+
 	if (PreviewScenePtr.IsValid())
 	{
 		TSharedPtr<IPersonaPreviewScene> ScenePtr = PreviewScenePtr.Pin();
@@ -162,6 +171,7 @@ FAnimationViewportClient::~FAnimationViewportClient()
 
 		ScenePtr->UnregisterOnPreviewMeshChanged(this);
 		ScenePtr->UnregisterOnInvalidateViews(this);
+		ScenePtr->UnregisterOnCameraOverrideChanged(this);
 	}
 
 	if (AssetEditorToolkitPtr.IsValid())
@@ -1876,6 +1886,12 @@ void FAnimationViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFami
 	{
 		UpdateAudioListener(View);
 	}
+}
+
+void FAnimationViewportClient::OnCameraControllerChanged()
+{
+	TSharedPtr<FEditorCameraController> Override = GetAnimPreviewScene()->GetCurrentCameraOverride();
+	CameraController = Override.IsValid() ? Override.Get() : CachedDefaultCameraController;
 }
 
 #undef LOCTEXT_NAMESPACE

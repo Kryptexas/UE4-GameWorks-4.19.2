@@ -168,7 +168,7 @@ private:
 
 	void OnNameTextCommitted(const FText& InText, ETextCommit::Type InCommitType)
 	{
-		FunctionInput->RenameInput(InText.ToString());
+		FunctionInput->RenameInput(*InText.ToString());
 	}
 
 private:
@@ -423,7 +423,7 @@ private:
 
 	FText GetLinkedValueHandleText() const
 	{
-		return FText::FromString(FunctionInput->GetLinkedValueHandle().GetParameterHandleString());
+		return FText::FromName(FunctionInput->GetLinkedValueHandle().GetParameterHandleString());
 	}
 
 	FText GetDataValueText() const
@@ -556,10 +556,10 @@ private:
 			MenuBuilder.BeginSection(NAME_None, SectionDisplayText);
 			for (const FNiagaraParameterHandle& Handle : Handles)
 			{
-				FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(Handle.GetName(), false));
+				FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(Handle.GetName().ToString(), false));
 				MenuBuilder.AddMenuEntry(
 					HandleDisplayName,
-					FText::Format(MapInputFormat, FText::FromString(Handle.GetParameterHandleString())),
+					FText::Format(MapInputFormat, FText::FromName(Handle.GetParameterHandleString())),
 					FSlateIcon(),
 					FUIAction(FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, Handle)));
 			}
@@ -574,10 +574,10 @@ private:
 		MenuBuilder.BeginSection(NAME_None, LOCTEXT("OtherSection", "Other"));
 		for (const FNiagaraParameterHandle OtherHandle : OtherHandles)
 		{
-			FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(OtherHandle.GetParameterHandleString(), false));
+			FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(OtherHandle.GetParameterHandleString().ToString(), false));
 			MenuBuilder.AddMenuEntry(
 				HandleDisplayName,
-				FText::Format(MapInputFormat, FText::FromString(OtherHandle.GetParameterHandleString())),
+				FText::Format(MapInputFormat, FText::FromName(OtherHandle.GetParameterHandleString())),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, OtherHandle)));
 		}
@@ -589,24 +589,27 @@ private:
 		}
 
 		// Read from new attribute
-		TArray<FString> AvailableNamespaces;
+		TArray<FName> AvailableNamespaces;
 		FunctionInput->GetNamespacesForNewParameters(AvailableNamespaces);
 
 		TArray<FString> InputNames;
 		for (int32 i = FunctionInput->GetInputParameterHandlePath().Num() - 1; i >= 0; i--)
 		{
-			InputNames.Add(FunctionInput->GetInputParameterHandlePath()[i].GetName());
+			InputNames.Add(FunctionInput->GetInputParameterHandlePath()[i].GetName().ToString());
 		}
-		FString InputName = FString::Join(InputNames, TEXT("."));
+		FName InputName = *FString::Join(InputNames, TEXT("."));
 
-		for (const FString& AvailableNamespace : AvailableNamespaces)
+		for (const FName AvailableNamespace : AvailableNamespaces)
 		{
 			FNiagaraParameterHandle HandleToRead(AvailableNamespace, InputName);
 			bool bCanExecute = AvailableHandles.Contains(HandleToRead) == false;
 
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("AvailableNamespace"), FText::FromName(AvailableNamespace));
+
 			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("ReadLabelFormat", "Read from new {0} parameter"), FText::FromString(AvailableNamespace)),
-				FText::Format(LOCTEXT("ReadToolTipFormat", "Read this input from a new parameter in the {0} namespace."), FText::FromString(AvailableNamespace)), 
+				FText::Format(LOCTEXT("ReadLabelFormat", "Read from new {AvailableNamespace} parameter"), Args),
+				FText::Format(LOCTEXT("ReadToolTipFormat", "Read this input from a new parameter in the {AvailableNamespace} namespace."), Args), 
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, HandleToRead),
@@ -1172,7 +1175,7 @@ private:
 		}
 
 		// Generate actions for setting new typed parameters.
-		TOptional<FString> NewParameterNamespace = AddModuleItem->GetNewParameterNamespace();
+		TOptional<FName> NewParameterNamespace = AddModuleItem->GetNewParameterNamespace();
 		if (NewParameterNamespace.IsSet())
 		{
 			TArray<FNiagaraTypeDefinition> AvailableTypes;
@@ -1184,7 +1187,7 @@ private:
 				FText CategoryName = LOCTEXT("CreateNewParameterCategory", "Create New Parameter");
 
 				FNiagaraParameterHandle NewParameterHandle(NewParameterNamespace.GetValue(), *(TEXT("New") + AvailableType.GetName()));
-				FNiagaraVariable NewParameter(AvailableType, *NewParameterHandle.GetParameterHandleString());
+				FNiagaraVariable NewParameter(AvailableType, NewParameterHandle.GetParameterHandleString());
 				TSharedPtr<FNiagaraStackGraphSchemaAction> NewNodeAction(new FNiagaraStackGraphSchemaAction(CategoryName, NameText, Tooltip, 0, FText(),
 					FNiagaraStackGraphSchemaAction::FOnPerformStackAction::CreateUObject(AddModuleItem, &UNiagaraStackAddModuleItem::AddParameterModule, NewParameter, true)));
 				OutAllActions.AddAction(NewNodeAction);

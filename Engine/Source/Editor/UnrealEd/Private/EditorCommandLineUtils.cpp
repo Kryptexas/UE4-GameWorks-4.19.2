@@ -140,7 +140,7 @@ public:
 
 	// FTickableEditorObject interface
 	virtual TStatId GetStatId() const override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual void Tick(float DeltaTime) override;	
 	// End FTickableEditorObject interface
 

@@ -33,6 +33,24 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAudioPlaybackPercent, const clas
 /** shadow delegate declaration for above */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioPlaybackPercentNative, const class UAudioComponent*, const class USoundWave*, const float);
 
+/** 
+* Called while a sound plays and returns the sound's envelope value (using an envelope follower in the audio renderer).
+* This only works in the audio mixer.
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAudioSingleEnvelopeValue, const class USoundWave*, PlayingSoundWave, const float, EnvelopeValue);
+
+/** shadow delegate declaration for above */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioSingleEnvelopeValueNative, const class UAudioComponent*, const class USoundWave*, const float);
+
+/**
+* Called while a sound plays and returns the sound's average and max envelope value (using an envelope follower in the audio renderer per wave instance).
+* This only works in the audio mixer.
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioMultiEnvelopeValue, const float, AverageEnvelopeValue, const float, MaxEnvelope, const int32, NumWaveInstances);
+
+/** shadow delegate declaration for above */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnAudioMultiEnvelopeValueNative, const class UAudioComponent*, const float, const float, const int32);
+
 /**
  *	Struct used for storing one per-instance named parameter for this AudioComponent.
  *	Certain nodes in the SoundCue may reference parameters by name so they can be adjusted per-instance.
@@ -196,6 +214,14 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sound)
 	float VolumeMultiplier;
 
+	/** The attack time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerAttackTime;
+
+	/** The release time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerReleaseTime;
+
 	/** A priority value that is used for sounds that play on this component that scales against final output volume. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bOverridePriority"))
 	float Priority;
@@ -249,6 +275,18 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** shadow delegate for non UObject subscribers */
 	FOnAudioPlaybackPercentNative OnAudioPlaybackPercentNative;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAudioSingleEnvelopeValue OnAudioSingleEnvelopeValue;
+
+	/** shadow delegate for non UObject subscribers */
+	FOnAudioSingleEnvelopeValueNative OnAudioSingleEnvelopeValueNative;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAudioMultiEnvelopeValue OnAudioMultiEnvelopeValue;
+
+	/** shadow delegate for non UObject subscribers */
+	FOnAudioMultiEnvelopeValueNative OnAudioMultiEnvelopeValueNative;
 
 	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
 	UPROPERTY()

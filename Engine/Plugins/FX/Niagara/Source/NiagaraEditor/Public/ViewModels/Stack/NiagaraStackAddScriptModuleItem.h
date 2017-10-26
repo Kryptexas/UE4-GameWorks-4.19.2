@@ -21,7 +21,7 @@ public:
 
 	virtual void GetNewParameterAvailableTypes(TArray<FNiagaraTypeDefinition>& OutAvailableTypes) const override;
 
-	virtual TOptional<FString> GetNewParameterNamespace() const override;
+	virtual TOptional<FName> GetNewParameterNamespace() const override;
 
 	virtual ENiagaraScriptUsage GetOutputUsage() const override;
 

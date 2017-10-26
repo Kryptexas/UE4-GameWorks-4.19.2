@@ -38,11 +38,9 @@ void UK2Node_InputAction::PostLoad()
 
 void UK2Node_InputAction::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Pressed"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Released"));
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FKey::StaticStruct(), TEXT("Key"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT("Pressed"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT("Released"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FKey::StaticStruct(), TEXT("Key"));
 
 	Super::AllocateDefaultPins();
 }
@@ -98,7 +96,7 @@ bool UK2Node_InputAction::IsCompatibleWithGraph(UEdGraph const* Graph) const
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 
 		UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
-		bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+		bool const bIsConstructionScript = (K2Schema != nullptr) ? UEdGraphSchema_K2::IsConstructionScript(Graph) : false;
 
 		bIsCompatible = (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
 	}
@@ -159,7 +157,7 @@ void UK2Node_InputAction::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 		// Create a temporary variable to copy Key in to
 		static UScriptStruct* KeyStruct = FKey::StaticStruct();
 		UK2Node_TemporaryVariable* ActionKeyVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-		ActionKeyVar->VariableType.PinCategory = Schema->PC_Struct;
+		ActionKeyVar->VariableType.PinCategory = UEdGraphSchema_K2::PC_Struct;
 		ActionKeyVar->VariableType.PinSubCategoryObject = KeyStruct;
 		ActionKeyVar->AllocateDefaultPins();
 

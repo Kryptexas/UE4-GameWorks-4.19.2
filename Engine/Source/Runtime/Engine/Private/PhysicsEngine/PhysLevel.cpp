@@ -325,7 +325,7 @@ void InitGamePhys()
 	ApexDesc.resourceCallback		= &GApexResourceCallback;	// The resource callback is how APEX asks the application to find assets when it needs them
 
 #if PLATFORM_MAC
-	FString DylibFolder = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
+	FString DylibFolder = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX3/");
 	ANSICHAR* DLLLoadPath = (ANSICHAR*)FMemory::Malloc(DylibFolder.Len() + 1);
 	FCStringAnsi::Strcpy(DLLLoadPath, DylibFolder.Len() + 1, TCHAR_TO_UTF8(*DylibFolder));
 	ApexDesc.dllLoadPath = DLLLoadPath;

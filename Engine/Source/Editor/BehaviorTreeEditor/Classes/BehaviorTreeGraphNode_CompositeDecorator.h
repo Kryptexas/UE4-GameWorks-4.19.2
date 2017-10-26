@@ -65,6 +65,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 
 protected:
 	void CreateBoundGraph();
+	virtual void ResetNodeOwner() override;
 
 	UPROPERTY()
 	class UBTCompositeNode* ParentNodeInstance;

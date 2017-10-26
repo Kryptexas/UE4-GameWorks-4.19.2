@@ -596,7 +596,7 @@ void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifi
 #endif	//#if WITH_EDITOR
 }
 
-void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	SourcePin->BreakLinkTo(TargetPin);
 
@@ -693,7 +693,7 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	check(Pin != nullptr);
 	if (Pin->PinFriendlyName.IsEmpty())
 	{
-		ResultPinName = FText::FromString(Pin->PinName);
+		ResultPinName = FText::FromName(Pin->PinName);
 	}
 	else
 	{

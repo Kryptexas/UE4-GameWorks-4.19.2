@@ -910,11 +910,11 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 						ActionEntry += "," + PinDetailsIndentedNewline + PinTooltipFieldLabel + MakeJsonString(PinTooltipStr) + "\"";
 					}
 
-					ActionEntry += "," + PinDetailsIndentedNewline + "\"PinCategory\"          : \"" + MakeJsonString(Pin->PinType.PinCategory) + "\"";
+					ActionEntry += "," + PinDetailsIndentedNewline + "\"PinCategory\"          : \"" + MakeJsonString(Pin->PinType.PinCategory.ToString()) + "\"";
 
-					if (!Pin->PinType.PinSubCategory.IsEmpty())
+					if (!Pin->PinType.PinSubCategory.IsNone())
 					{
-						ActionEntry += "," + PinDetailsIndentedNewline + "\"PinSubCategory\"       : \"" + MakeJsonString(Pin->PinType.PinSubCategory) + "\"";
+						ActionEntry += "," + PinDetailsIndentedNewline + "\"PinSubCategory\"       : \"" + MakeJsonString(Pin->PinType.PinSubCategory.ToString()) + "\"";
 					}
 
 					if (Pin->PinType.PinSubCategoryObject.IsValid())

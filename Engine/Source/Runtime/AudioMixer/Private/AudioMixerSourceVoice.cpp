@@ -239,6 +239,13 @@ namespace Audio
 		return SourceManager->GetNumFramesPlayed(SourceId);
 	}
 
+	float FMixerSourceVoice::GetEnvelopeValue() const
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		return SourceManager->GetEnvelopeValue(SourceId);
+	}
+
 	void FMixerSourceVoice::MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);

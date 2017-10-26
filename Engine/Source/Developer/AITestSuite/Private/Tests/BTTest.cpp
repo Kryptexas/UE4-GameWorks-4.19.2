@@ -911,9 +911,9 @@ struct FAITest_BTServiceAbortingTask : public FAITest_SimpleBT
 
 		ExpectedResult.Add(5);
 		ExpectedResult.Add(1);
-		ExpectedResult.Add(6);
 		ExpectedResult.Add(3);
 		ExpectedResult.Add(4);
+		ExpectedResult.Add(6);
 		ExpectedResult.Add(0);
 	}
 };

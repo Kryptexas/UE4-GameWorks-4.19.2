@@ -1011,9 +1011,9 @@ FExpressionInput* UMaterialExpressionLandscapeGrassOutput::GetInput(int32 InputI
 	return &GrassTypes[InputIndex].Input;
 }
 
-FString UMaterialExpressionLandscapeGrassOutput::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionLandscapeGrassOutput::GetInputName(int32 InputIndex) const
 {
-	return GrassTypes[InputIndex].Name.ToString();
+	return GrassTypes[InputIndex].Name;
 }
 
 bool UMaterialExpressionLandscapeGrassOutput::NeedsLoadForClient() const

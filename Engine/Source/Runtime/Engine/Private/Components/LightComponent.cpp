@@ -617,7 +617,8 @@ void ULightComponent::UpdateLightSpriteTexture()
 			bAffectsWorld &&
 			CastShadows &&
 			CastStaticShadows &&
-			PreviewShadowMapChannel == INDEX_NONE)
+			PreviewShadowMapChannel == INDEX_NONE &&
+			(GetWorld() && !GetWorld()->IsPreviewWorld()))
 		{
 			UTexture2D* SpriteTexture = NULL;
 			SpriteTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/LightIcons/S_LightError.S_LightError"));

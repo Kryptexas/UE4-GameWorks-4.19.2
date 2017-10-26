@@ -307,7 +307,13 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar, int32 NavMeshVersion )
 	{
 		TilesToSave.Reserve(DetourNavMesh->getMaxTiles());
 		
-		if (NavMeshOwner->SupportsStreaming() && !IsRunningCommandlet())
+		// if not registered yet will add everything. Worst case it will get dumped later on
+		// Note, this is especially needed during world duplication, where NavigationSystem
+		// gets instantiated after Serialize has already been called on all duplicated 
+		// NavigationData instances 
+		if (NavMeshOwner->IsRegistered() 
+			&& NavMeshOwner->SupportsStreaming()
+			&& !IsRunningCommandlet())
 		{
 			// We save only tiles that belongs to this level
 			GetNavMeshTilesIn(NavMeshOwner->GetNavigableBoundsInLevel(NavMeshOwner->GetLevel()), TilesToSave);

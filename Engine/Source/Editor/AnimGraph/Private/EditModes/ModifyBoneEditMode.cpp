@@ -66,7 +66,7 @@ FVector FModifyBoneEditMode::GetWidgetLocation() const
 	if (CurWidgetMode == FWidget::WM_Translate)
 	{
 		FCSPose<FCompactHeapPose>& MeshBases = RuntimeNode->ForwardedPose;
-		WidgetLoc = ConvertWidgetLocation(SkelComp, MeshBases, GraphNode->Node.BoneToModify.BoneName, GraphNode->GetNodeValue(FString("Translation"), GraphNode->Node.Translation), GraphNode->Node.TranslationSpace);
+		WidgetLoc = ConvertWidgetLocation(SkelComp, MeshBases, GraphNode->Node.BoneToModify.BoneName, GraphNode->GetNodeValue(TEXT("Translation"), GraphNode->Node.Translation), GraphNode->Node.TranslationSpace);
 
 		if (MeshBases.GetPose().IsValid() && GraphNode->Node.TranslationMode == BMM_Additive)
 		{

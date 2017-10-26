@@ -77,9 +77,9 @@ public:
 		// When DelegatesToCall falls out of scope it may delete the referenced handles
 	}
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual bool IsTickableWhenPaused() const override

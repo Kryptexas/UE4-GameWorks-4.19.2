@@ -77,6 +77,7 @@ namespace Audio
 		// Mark the procedural sound wave as being ok to be destroyed now
 		if (SoundWaveProcedural)
 		{
+			SoundWaveProcedural->OnEndGenerate();
 			SoundWaveProcedural->bIsReadyForDestroy = true;
 		}
 	}
@@ -410,6 +411,14 @@ namespace Audio
 			RealtimeAsyncHeaderParseTask->EnsureCompletion();
 			delete RealtimeAsyncHeaderParseTask;
 			RealtimeAsyncHeaderParseTask = nullptr;
+		}
+	}
+
+	void FMixerBuffer::OnBeginGenerate()
+	{
+		if (SoundWaveProcedural)
+		{
+			SoundWaveProcedural->OnBeginGenerate();
 		}
 	}
 

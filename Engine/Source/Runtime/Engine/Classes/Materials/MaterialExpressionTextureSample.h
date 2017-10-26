@@ -89,7 +89,7 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	//~ Begin UMaterialExpression Interface
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual int32 GetWidth() const override;
 	virtual int32 GetLabelPadding() override { return 8; }
 #if WITH_EDITOR

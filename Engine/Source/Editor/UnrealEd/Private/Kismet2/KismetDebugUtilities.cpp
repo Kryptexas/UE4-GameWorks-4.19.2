@@ -826,12 +826,11 @@ void FKismetDebugUtilities::GetValidBreakpointLocations(const UK2Node_MacroInsta
 	if (!bIsMacroPure && MacroEntryNode)
 	{
 		// Get the execute pin outputs on the entry node
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		for (auto PinIt = MacroEntryNode->Pins.CreateConstIterator(); PinIt; ++PinIt)
 		{
 			const UEdGraphPin* ExecPin = *PinIt;
 			if (ExecPin && ExecPin->Direction == EGPD_Output
-				&& ExecPin->PinType.PinCategory == K2Schema->PC_Exec)
+				&& ExecPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 			{
 				// For each pin linked to each execute pin, collect the node that owns it
 				for (auto LinkedToPinIt = ExecPin->LinkedTo.CreateConstIterator(); LinkedToPinIt; ++LinkedToPinIt)

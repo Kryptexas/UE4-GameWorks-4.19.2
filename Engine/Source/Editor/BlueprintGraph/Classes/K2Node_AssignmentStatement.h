@@ -18,9 +18,9 @@ class UK2Node_AssignmentStatement : public UK2Node
 
 
 	// Name of the Variable pin for this node
-	static FString VariablePinName;
+	static FName VariablePinName;
 	// Name of the Value pin for this node
-	static FString ValuePinName;
+	static FName ValuePinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

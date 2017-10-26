@@ -62,6 +62,9 @@ namespace Audio
 	class ISourceBufferQueueListener
 	{
 	public:
+		// Called before a source begins to generate audio. 
+		virtual void OnBeginGenerate() = 0;
+
 		// Called when the current buffer is finished and a new one needs to be queued
 		virtual void OnSourceBufferEnd() = 0;
 
@@ -100,6 +103,8 @@ namespace Audio
 		FMixerSourceVoice* SourceVoice;
 		int32 NumInputChannels;
 		int32 NumInputFrames;
+		float EnvelopeFollowerAttackTime;
+		float EnvelopeFollowerReleaseTime;
 		FString DebugName;
 		USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
 		UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
@@ -118,6 +123,8 @@ namespace Audio
 			, SourceVoice(nullptr)
 			, NumInputChannels(0)
 			, NumInputFrames(0)
+			, EnvelopeFollowerAttackTime(10.0f)
+			, EnvelopeFollowerReleaseTime(100.0f)
 			, SpatializationPluginSettings(nullptr)
 			, OcclusionPluginSettings(nullptr)
 			, ReverbPluginSettings(nullptr)
@@ -234,6 +241,7 @@ namespace Audio
 		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously);
 
 		int64 GetNumFramesPlayed(const int32 SourceId) const;
+		float GetEnvelopeValue(const int32 SourceId) const;
 		bool IsDone(const int32 SourceId) const;
 		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;

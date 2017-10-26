@@ -142,12 +142,12 @@ void UAnimGraphNode_Constraint::PostProcessPinName(const UEdGraphPin* Pin, FStri
 	if (Pin->Direction == EGPD_Input)
 	{
 		const FString ConstraintWeightPrefix = TEXT("ConstraintWeights_");
-		FString PinName = Pin->PinName;
+		const FString PinName = Pin->PinName.ToString();
 		FString IndexString;
 		if (PinName.Split(ConstraintWeightPrefix, nullptr, &IndexString))
 		{
 			// convert index and display better name
-			int32 Index = FCString::Atoi(*IndexString);
+			const int32 Index = FCString::Atoi(*IndexString);
 			if (Node.ConstraintSetup.IsValidIndex(Index))
 			{
 				const FConstraint& Constraint = Node.ConstraintSetup[Index];

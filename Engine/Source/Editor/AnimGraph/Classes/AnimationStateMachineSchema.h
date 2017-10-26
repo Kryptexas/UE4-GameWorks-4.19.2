@@ -68,8 +68,7 @@ class UAnimationStateMachineSchema : public UEdGraphSchema
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	FString PC_Exec;
+	ANIMGRAPH_API static const FName PC_Exec;
 
 	//~ Begin UEdGraphSchema Interface
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
@@ -89,6 +88,6 @@ class UAnimationStateMachineSchema : public UEdGraphSchema
 
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const override;
 	virtual void BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotification) const override;
-	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) override;
+	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const override;
 	//~ End UEdGraphSchema Interface
 };

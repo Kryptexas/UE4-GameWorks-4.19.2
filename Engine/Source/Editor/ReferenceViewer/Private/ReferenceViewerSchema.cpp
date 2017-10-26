@@ -100,7 +100,7 @@ void UReferenceViewerSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNo
 	// Don't allow breaking any links
 }
 
-void UReferenceViewerSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UReferenceViewerSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	// Don't allow breaking any links
 }

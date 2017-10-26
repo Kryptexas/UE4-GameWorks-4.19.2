@@ -628,14 +628,14 @@ namespace BlueprintSearchMetaDataHelpers
 	{
 		// Only save strings that are not empty
 
-		if(!InPinType.PinCategory.IsEmpty())
+		if(!InPinType.PinCategory.IsNone())
 		{
-			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinCategory, InPinType.PinCategory);
+			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinCategory, InPinType.PinCategory.ToString());
 		}
 
-		if(!InPinType.PinSubCategory.IsEmpty())
+		if(!InPinType.PinSubCategory.IsNone())
 		{
-			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinSubCategory, InPinType.PinSubCategory);
+			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinSubCategory, InPinType.PinSubCategory.ToString());
 		}
 
 		if(InPinType.PinSubCategoryObject.IsValid())
@@ -1172,7 +1172,6 @@ public:
 	/** Enables the caching process */
 	void Start() { bIsStarted = true; }
 
-	/** FTickableEditorObject interface */
 	EActiveTimerReturnType Tick(double InCurrentTime, float InDeltaTime)
 	{
 		// Protect against Slate recursion if a modal dialog appears from loading/resaving an asset

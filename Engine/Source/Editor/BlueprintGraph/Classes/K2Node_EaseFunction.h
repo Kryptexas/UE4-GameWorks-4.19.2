@@ -22,11 +22,11 @@ struct FCustomPin
 
 	/** Name of the pin within the current node */
 	UPROPERTY()
-	FString PinName;
+	FName PinName;
 
 	/** Name of the pin of the call function */
 	UPROPERTY()
-	FString CallFuncPinName;
+	FName CallFuncPinName;
 
 	/** If TRUE this is a custom pin that does come from the type of wildcard pin connected */
 	UPROPERTY()
@@ -99,7 +99,7 @@ private:
 
 	/** Name of the kismet ease function to be called */
 	UPROPERTY()
-	FString EaseFunctionName;
+	FName EaseFunctionName;
 
 	/** Tooltip text for this node. */
 	FText NodeTooltip;

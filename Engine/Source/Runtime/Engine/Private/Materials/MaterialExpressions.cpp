@@ -468,9 +468,9 @@ void UMaterialExpression::CopyMaterialExpressions(const TArray<UMaterialExpressi
 	TMap<UMaterialExpression*,UMaterialExpression*> SrcToDestMap;
 
 	// Duplicate source expressions into the editor's material copy buffer.
-	for (int32 SrcExpressionIndex = 0; SrcExpressionIndex < SrcExpressions.Num(); ++SrcExpressionIndex)
+	for( int32 SrcExpressionIndex = 0 ; SrcExpressionIndex < SrcExpressions.Num() ; ++SrcExpressionIndex )
 	{
-		UMaterialExpression* SrcExpression = SrcExpressions[SrcExpressionIndex];
+		UMaterialExpression*	SrcExpression		= SrcExpressions[SrcExpressionIndex];
 		UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<UMaterialExpressionMaterialFunctionCall>(SrcExpression);
 		bool bIsValidFunctionExpression = true;
 
@@ -775,7 +775,7 @@ FExpressionInput* UMaterialExpression::GetInput(int32 InputIndex)
 }
 
 
-FString UMaterialExpression::GetInputName(int32 InputIndex) const
+FName UMaterialExpression::GetInputName(int32 InputIndex) const
 {
 	int32 Index = 0;
 	for( TFieldIterator<UStructProperty> InputIt(GetClass(),EFieldIteratorFlags::IncludeSuper,  EFieldIteratorFlags::ExcludeDeprecated) ; InputIt ; ++InputIt )
@@ -788,20 +788,28 @@ FString UMaterialExpression::GetInputName(int32 InputIndex) const
 			if( Index == InputIndex )
 			{
 					FExpressionInput const* Input = StructProp->ContainerPtrToValuePtr<FExpressionInput>(this, ArrayIndex);
-					FString StructName = StructProp->GetFName().ToString();
+
+						if (!Input->InputName.IsNone())
+						{
+							return Input->InputName;
+						}
+						else
+						{
+							FName StructName = StructProp->GetFName();
 
 					if (StructProp->ArrayDim > 1)
 					{
-						StructName += FString::FromInt(ArrayIndex);
+								StructName = *FString::Printf(TEXT("%s_%d"), *StructName.ToString(), ArrayIndex);
 					}
 
-					return (Input->InputName.Len() > 0) ? Input->InputName : StructName;
+							return StructName;
+						}
 			}
 			Index++;
 		}
 	}
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR
@@ -1467,7 +1475,7 @@ FExpressionInput* UMaterialExpressionTextureSample::GetInput(int32 InputIndex)
 
 // this define is only used for the following function
 #define IF_INPUT_RETURN(Item, Name) if(!InputIndex) return Name; --InputIndex
-FString UMaterialExpressionTextureSample::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionTextureSample::GetInputName(int32 InputIndex) const
 {
 	IF_INPUT_RETURN(Coordinates, TEXT("Coordinates"));
 
@@ -4444,16 +4452,16 @@ FExpressionInput* UMaterialExpressionBreakMaterialAttributes::GetInput(int32 Inp
 		return &MaterialAttributes;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-FString UMaterialExpressionBreakMaterialAttributes::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionBreakMaterialAttributes::GetInputName(int32 InputIndex) const
 {
 	if( 0 == InputIndex )
 	{
-		return NSLOCTEXT("BreakMaterialAttributes", "InputName", "Attr").ToString();
+		return *NSLOCTEXT("BreakMaterialAttributes", "InputName", "Attr").ToString();
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 bool UMaterialExpressionBreakMaterialAttributes::IsInputConnectionRequired(int32 InputIndex) const
@@ -4550,9 +4558,9 @@ FExpressionInput* UMaterialExpressionGetMaterialAttributes::GetInput(int32 Input
 	return nullptr;
 }
 
-FString UMaterialExpressionGetMaterialAttributes::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionGetMaterialAttributes::GetInputName(int32 InputIndex) const
 {
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR
@@ -4622,7 +4630,7 @@ void UMaterialExpressionGetMaterialAttributes::PostEditChangeProperty(FPropertyC
 			// Type changed, update pin names
 			for (int i = 1; i < Outputs.Num(); ++i)
 			{
-				Outputs[i].OutputName = FMaterialAttributeDefinitionMap::GetDisplayName(AttributeGetTypes[i-1]);
+				Outputs[i].OutputName = *FMaterialAttributeDefinitionMap::GetDisplayName(AttributeGetTypes[i-1]);
 			}
 
 			GraphNode->ReconstructNode();
@@ -4641,8 +4649,8 @@ void UMaterialExpressionGetMaterialAttributes::PostLoad()
 
 	for (int i = 1; i < Outputs.Num(); ++i)
 	{
-		FString DisplayName = FMaterialAttributeDefinitionMap::GetDisplayName(AttributeGetTypes[i-1]);
-		if (Outputs[i].OutputName != DisplayName)
+		const FString DisplayName = FMaterialAttributeDefinitionMap::GetDisplayName(AttributeGetTypes[i-1]);
+		if (Outputs[i].OutputName.ToString() != DisplayName)
 		{
 			FString MaterialName;
 			if (Material)
@@ -4654,8 +4662,8 @@ void UMaterialExpressionGetMaterialAttributes::PostLoad()
 				Function->GetName(MaterialName);
 			}
 
-			UE_LOG(LogMaterial, Warning, TEXT("Serialized attribute that no longer exists (%s) for material \"%s\"."), *(Outputs[i].OutputName), *MaterialName);
-			Outputs[i].OutputName = DisplayName;
+			UE_LOG(LogMaterial, Warning, TEXT("Serialized attribute that no longer exists (%s) for material \"%s\"."), *(Outputs[i].OutputName.ToString()), *MaterialName);
+			Outputs[i].OutputName = *DisplayName;
 		}
 	}
 }
@@ -4753,17 +4761,17 @@ FExpressionInput* UMaterialExpressionSetMaterialAttributes::GetInput(int32 Input
 	return &Inputs[InputIndex];
 }
 
-FString UMaterialExpressionSetMaterialAttributes::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionSetMaterialAttributes::GetInputName(int32 InputIndex) const
 {
-	FString Name(TEXT(""));
+	FName Name;
 
 	if (InputIndex == 0)
 	{
-		Name = NSLOCTEXT("SetMaterialAttributes", "InputName", "MaterialAttributes").ToString();
+		Name = *NSLOCTEXT("SetMaterialAttributes", "InputName", "MaterialAttributes").ToString();
 	}
 	else if (InputIndex > 0)
 	{
-		Name = FMaterialAttributeDefinitionMap::GetDisplayName(AttributeSetTypes[InputIndex-1]);
+		Name = *FMaterialAttributeDefinitionMap::GetDisplayName(AttributeSetTypes[InputIndex-1]);
 	}
 
 	return Name;
@@ -4941,9 +4949,9 @@ FExpressionInput* UMaterialExpressionBlendMaterialAttributes::GetInput(int32 Inp
 	return nullptr;
 }
 
-FString UMaterialExpressionBlendMaterialAttributes::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionBlendMaterialAttributes::GetInputName(int32 InputIndex) const
 {
-	FString Name;
+	FName Name;
 
 	switch (InputIndex)
 	{
@@ -5381,9 +5389,9 @@ FExpressionInput* UMaterialExpressionMaterialAttributeLayers::GetInput(int32 Inp
 	return nullptr;
 }
 
-FString UMaterialExpressionMaterialAttributeLayers::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionMaterialAttributeLayers::GetInputName(int32 InputIndex) const
 {
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR
@@ -6020,7 +6028,7 @@ void UMaterialExpressionStaticSwitchParameter::GetCaption(TArray<FString>& OutCa
 }
 #endif // WITH_EDITOR
 
-FString UMaterialExpressionStaticSwitchParameter::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionStaticSwitchParameter::GetInputName(int32 InputIndex) const
 {
 	if (InputIndex == 0)
 	{
@@ -6188,7 +6196,7 @@ void UMaterialExpressionStaticSwitch::GetCaption(TArray<FString>& OutCaptions) c
 }
 #endif // WITH_EDITOR
 
-FString UMaterialExpressionStaticSwitch::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionStaticSwitch::GetInputName(int32 InputIndex) const
 {
 	if (InputIndex == 0)
 	{
@@ -6276,7 +6284,7 @@ void UMaterialExpressionPreviousFrameSwitch::GetExpressionToolTip(TArray<FString
 }
 #endif // WITH_EDITOR
 
-FString UMaterialExpressionPreviousFrameSwitch::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionPreviousFrameSwitch::GetInputName(int32 InputIndex) const
 {
 	if (InputIndex == 0)
 	{
@@ -6369,16 +6377,14 @@ FExpressionInput* UMaterialExpressionQualitySwitch::GetInput(int32 InputIndex)
 	return &Inputs[InputIndex - 1];
 }
 
-FString UMaterialExpressionQualitySwitch::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionQualitySwitch::GetInputName(int32 InputIndex) const
 {
 	if (InputIndex == 0)
 	{
 		return TEXT("Default");
 	}
 
-	FString QualityLevelName;
-	GetMaterialQualityLevelName((EMaterialQualityLevel::Type)(InputIndex - 1), QualityLevelName);
-	return QualityLevelName;
+	return GetMaterialQualityLevelFName((EMaterialQualityLevel::Type)(InputIndex - 1));
 }
 
 bool UMaterialExpressionQualitySwitch::IsInputConnectionRequired(int32 InputIndex) const
@@ -6483,14 +6489,14 @@ FExpressionInput* UMaterialExpressionFeatureLevelSwitch::GetInput(int32 InputInd
 	return &Inputs[InputIndex - 1];
 }
 
-FString UMaterialExpressionFeatureLevelSwitch::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionFeatureLevelSwitch::GetInputName(int32 InputIndex) const
 {
 	if (InputIndex == 0)
 	{
 		return TEXT("Default");
 	}
 
-	FString FeatureLevelName;
+	FName FeatureLevelName;
 	GetFeatureLevelName((ERHIFeatureLevel::Type)(InputIndex - 1), FeatureLevelName);
 	return FeatureLevelName;
 }
@@ -7305,15 +7311,16 @@ void UMaterialExpressionSceneDepth::GetCaption(TArray<FString>& OutCaptions) con
 }
 #endif // WITH_EDITOR
 
-FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 {
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
+		// Can't use GetNameByValue as GetNameStringByValue does name mangling that GetNameByValue does not
+		return *InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 
@@ -7612,15 +7619,16 @@ void UMaterialExpressionLogarithm10::GetExpressionToolTip(TArray<FString>& OutTo
 }
 #endif // WITH_EDITOR
 
-FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 {
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
+		// Can't use GetNameByValue as GetNameStringByValue does name mangling that GetNameByValue does not
+		return *InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 UMaterialExpressionIf::UMaterialExpressionIf(const FObjectInitializer& ObjectInitializer)
@@ -8754,7 +8762,7 @@ int32 UMaterialExpressionCustom::Compile(class FMaterialCompiler* Compiler, int3
 	for( int32 i=0;i<Inputs.Num();i++ )
 	{
 		// skip over unnamed inputs
-		if( Inputs[i].InputName.Len()==0 )
+		if( Inputs[i].InputName.IsNone() )
 		{
 			CompiledInputs.Add(INDEX_NONE);
 		}
@@ -8762,7 +8770,7 @@ int32 UMaterialExpressionCustom::Compile(class FMaterialCompiler* Compiler, int3
 		{
 			if(!Inputs[i].Input.GetTracedInput().Expression)
 			{
-				return Compiler->Errorf(TEXT("Custom material %s missing input %d (%s)"), *Description, i+1, *Inputs[i].InputName);
+				return Compiler->Errorf(TEXT("Custom material %s missing input %d (%s)"), *Description, i+1, *Inputs[i].InputName.ToString());
 			}
 			int32 InputCode = Inputs[i].Input.Compile(Compiler);
 			if( InputCode < 0 )
@@ -8802,13 +8810,13 @@ FExpressionInput* UMaterialExpressionCustom::GetInput(int32 InputIndex)
 	return NULL;
 }
 
-FString UMaterialExpressionCustom::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionCustom::GetInputName(int32 InputIndex) const
 {
 	if( InputIndex < Inputs.Num() )
 	{
 		return Inputs[InputIndex].InputName;
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR
@@ -8816,25 +8824,26 @@ void UMaterialExpressionCustom::PostEditChangeProperty(FPropertyChangedEvent& Pr
 {
 	// strip any spaces from input name
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if( PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("InputName")) )
+	if( PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(FCustomInput, InputName))
 	{
-		for( int32 i=0;i<Inputs.Num();i++ )
+		for( FCustomInput& Input : Inputs )
+	{
+			FString InputName = Input.InputName.ToString();
+			if (InputName.ReplaceInline(TEXT(" "),TEXT("")) > 0)
 		{
-			Inputs[i].InputName.ReplaceInline(TEXT(" "),TEXT(""));
+				Input.InputName = *InputName;
+			}
 		}
 	}
 
-	if (PropertyChangedEvent.MemberProperty)
+	if (PropertyChangedEvent.MemberProperty && GraphNode)
 	{
 		const FName PropertyName = PropertyChangedEvent.MemberProperty->GetFName();
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionCustom, Inputs))
 		{
-			if (GraphNode)
-			{
 				GraphNode->ReconstructNode();
 			}
 		}
-	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -9315,7 +9324,7 @@ static const FFunctionExpressionInput* FindInputById(const FGuid& Id, const TArr
 }
 
 /** Finds an input in the passed in array with a matching name. */
-static const FFunctionExpressionInput* FindInputByName(const FString& Name, const TArray<FFunctionExpressionInput>& Inputs)
+static const FFunctionExpressionInput* FindInputByName(const FName& Name, const TArray<FFunctionExpressionInput>& Inputs)
 {
 	for (int32 InputIndex = 0; InputIndex < Inputs.Num(); InputIndex++)
 	{
@@ -9357,7 +9366,7 @@ static int32 FindOutputIndexById(const FGuid& Id, const TArray<FFunctionExpressi
 }
 
 /** Finds an output in the passed in array with a matching name. */
-static int32 FindOutputIndexByName(const FString& Name, const TArray<FFunctionExpressionOutput>& Outputs)
+static int32 FindOutputIndexByName(const FName& Name, const TArray<FFunctionExpressionOutput>& Outputs)
 {
 	for (int32 OutputIndex = 0; OutputIndex < Outputs.Num(); OutputIndex++)
 	{
@@ -9467,15 +9476,15 @@ int32 UMaterialFunction::Compile(FMaterialCompiler* Compiler, const FFunctionExp
 
 	if (ValidateFunctionUsage(Compiler, Output))
 	{
-		if (Output.ExpressionOutput->A.GetTracedInput().Expression)
-		{
-			// Compile the given function output
-			ReturnValue = Output.ExpressionOutput->A.Compile(Compiler);
-		}
-		else
-		{
-			ReturnValue = Compiler->Errorf(TEXT("Missing function output connection '%s'"), *Output.ExpressionOutput->OutputName);
-		}
+	if (Output.ExpressionOutput->A.GetTracedInput().Expression)
+	{
+		// Compile the given function output
+		ReturnValue = Output.ExpressionOutput->A.Compile(Compiler);
+	}
+	else
+	{
+		ReturnValue = Compiler->Errorf(TEXT("Missing function output connection '%s'"), *Output.ExpressionOutput->OutputName.ToString());
+	}
 	}
 
 	return ReturnValue;
@@ -9564,7 +9573,7 @@ bool UMaterialFunction::IsDependent(UMaterialFunctionInterface* OtherFunction)
 		if (MaterialFunctionExpression && MaterialFunctionExpression->MaterialFunction)
 		{
 			// Recurse to handle nesting
-			bIsDependent = bIsDependent
+			bIsDependent = bIsDependent 
 				|| MaterialFunctionExpression->MaterialFunction->GetReentrantFlag()
 				|| MaterialFunctionExpression->MaterialFunction->IsDependent(OtherFunction);
 		}
@@ -9590,7 +9599,7 @@ void UMaterialFunction::AppendReferencedTextures(TArray<UTexture*>& InOutTexture
 {
 	for (UMaterialExpression* CurrentExpression : FunctionExpressions)
 	{
-		if (CurrentExpression)
+		if(CurrentExpression)
 		{
 			UTexture* ReferencedTexture = CurrentExpression->GetReferencedTexture();
 
@@ -10154,23 +10163,23 @@ static const TCHAR* GetInputTypeName(uint8 InputType)
 	return TypeNames[InputType];
 }
 
-FString UMaterialExpressionMaterialFunctionCall::GetInputNameWithType(int32 InputIndex, bool bWithType) const
+FName UMaterialExpressionMaterialFunctionCall::GetInputNameWithType(int32 InputIndex, bool bWithType) const
 {
 	if (InputIndex < FunctionInputs.Num())
 	{
-		if (FunctionInputs[InputIndex].ExpressionInput != NULL && bWithType)
+		if (FunctionInputs[InputIndex].ExpressionInput != nullptr && bWithType)
 		{
-			return FunctionInputs[InputIndex].Input.InputName + TEXT(" (") + GetInputTypeName(FunctionInputs[InputIndex].ExpressionInput->InputType) + TEXT(")");
+			return *FString::Printf(TEXT("%s (%s)"), *FunctionInputs[InputIndex].Input.InputName.ToString(), GetInputTypeName(FunctionInputs[InputIndex].ExpressionInput->InputType));
 		}
 		else
 		{
 			return FunctionInputs[InputIndex].Input.InputName;
 		}
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
-FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
 {
 	return GetInputNameWithType(InputIndex, true);
 }
@@ -10394,7 +10403,7 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource(bool bR
 			{
 				// Maintain the input connection if an input with matching Id is found, but propagate the new name
 				// This way function inputs names can be changed without affecting material connections
-				const FString TempInputName = CurrentInput.Input.InputName;
+				const FName TempInputName = CurrentInput.Input.InputName;
 				CurrentInput.Input = OriginalInput->Input;
 				CurrentInput.Input.InputName = TempInputName;
 			}
@@ -10615,11 +10624,11 @@ void UMaterialExpressionFunctionInput::PostEditImport()
 	ConditionallyGenerateId(true);
 }
 
-FString InputNameBackup;
+FName InputNameBackup;
 
 void UMaterialExpressionFunctionInput::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == FName(TEXT("InputName")))
+	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(UMaterialExpressionFunctionInput, InputName))
 	{
 		InputNameBackup = InputName;
 	}
@@ -10629,7 +10638,7 @@ void UMaterialExpressionFunctionInput::PreEditChange(UProperty* PropertyAboutToC
 void UMaterialExpressionFunctionInput::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("InputName")))
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMaterialExpressionFunctionInput, InputName))
 	{
 		if (Material)
 		{
@@ -10663,7 +10672,7 @@ void UMaterialExpressionFunctionInput::GetCaption(TArray<FString>& OutCaptions) 
 		TEXT("MaterialAttributes")
 	};
 	check(InputType < FunctionInput_MAX);
-	OutCaptions.Add(FString(TEXT("Input ")) + InputName + TEXT(" (") + TypeNames[InputType] + TEXT(")"));
+	OutCaptions.Add(FString(TEXT("Input ")) + InputName.ToString() + TEXT(" (") + TypeNames[InputType] + TEXT(")"));
 }
 
 void UMaterialExpressionFunctionInput::GetExpressionToolTip(TArray<FString>& OutToolTip) 
@@ -10697,7 +10706,7 @@ int32 UMaterialExpressionFunctionInput::CompilePreviewValue(FMaterialCompiler* C
 		case FunctionInput_Texture2D:
 		case FunctionInput_TextureCube:
 		case FunctionInput_StaticBool:
-			return Compiler->Errorf(TEXT("Missing Preview connection for function input '%s'"), *InputName);
+			return Compiler->Errorf(TEXT("Missing Preview connection for function input '%s'"), *InputName.ToString());
 		default:
 			return Compiler->Errorf(TEXT("Unknown input type"));
 		}
@@ -10767,7 +10776,7 @@ int32 UMaterialExpressionFunctionInput::Compile(class FMaterialCompiler* Compile
 		}
 		else
 		{
-			return Compiler->Errorf(TEXT("Missing function input '%s'"), *InputName);
+			return Compiler->Errorf(TEXT("Missing function input '%s'"), *InputName.ToString());
 		}
 	}
 }
@@ -10793,7 +10802,7 @@ void UMaterialExpressionFunctionInput::ValidateName()
 	{
 		int32 InputNameIndex = 0;
 		bool bResultNameIndexValid = true;
-		FString PotentialInputName;
+		FName PotentialInputName;
 
 		// Find an available unique name
 		do 
@@ -10801,7 +10810,7 @@ void UMaterialExpressionFunctionInput::ValidateName()
 			PotentialInputName = InputName;
 			if (InputNameIndex != 0)
 			{
-				PotentialInputName += FString::FromInt(InputNameIndex);
+				PotentialInputName = *FString::Printf(TEXT("%s%d"), *InputName.ToString(), InputNameIndex);
 			}
 
 			bResultNameIndexValid = true;
@@ -10920,12 +10929,12 @@ void UMaterialExpressionFunctionOutput::PostEditImport()
 }
 #endif	//#if WITH_EDITOR
 
-FString OutputNameBackup;
+FName OutputNameBackup;
 
 #if WITH_EDITOR
 void UMaterialExpressionFunctionOutput::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == FName(TEXT("OutputName")))
+	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(UMaterialExpressionFunctionOutput, OutputName))
 	{
 		OutputNameBackup = OutputName;
 	}
@@ -10935,7 +10944,7 @@ void UMaterialExpressionFunctionOutput::PreEditChange(UProperty* PropertyAboutTo
 void UMaterialExpressionFunctionOutput::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("OutputName")))
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMaterialExpressionFunctionOutput, OutputName))
 	{
 		if (Material)
 		{
@@ -10956,7 +10965,7 @@ void UMaterialExpressionFunctionOutput::PostEditChangeProperty(FPropertyChangedE
 
 void UMaterialExpressionFunctionOutput::GetCaption(TArray<FString>& OutCaptions) const
 {
-	OutCaptions.Add(FString(TEXT("Output ")) + OutputName);
+	OutCaptions.Add(FString(TEXT("Output ")) + OutputName.ToString());
 }
 
 void UMaterialExpressionFunctionOutput::GetExpressionToolTip(TArray<FString>& OutToolTip) 
@@ -10974,7 +10983,7 @@ int32 UMaterialExpressionFunctionOutput::Compile(class FMaterialCompiler* Compil
 {
 	if (!A.GetTracedInput().Expression)
 	{
-		return Compiler->Errorf(TEXT("Missing function output '%s'"), *OutputName);
+		return Compiler->Errorf(TEXT("Missing function output '%s'"), *OutputName.ToString());
 	}
 	return A.Compile(Compiler);
 }
@@ -10994,7 +11003,7 @@ void UMaterialExpressionFunctionOutput::ValidateName()
 	{
 		int32 OutputNameIndex = 0;
 		bool bResultNameIndexValid = true;
-		FString PotentialOutputName;
+		FName PotentialOutputName;
 
 		// Find an available unique name
 		do 
@@ -11002,7 +11011,7 @@ void UMaterialExpressionFunctionOutput::ValidateName()
 			PotentialOutputName = OutputName;
 			if (OutputNameIndex != 0)
 			{
-				PotentialOutputName += FString::FromInt(OutputNameIndex);
+				PotentialOutputName = *FString::Printf(TEXT("%s%d"), *OutputName.ToString(), OutputNameIndex);
 			}
 
 			bResultNameIndexValid = true;

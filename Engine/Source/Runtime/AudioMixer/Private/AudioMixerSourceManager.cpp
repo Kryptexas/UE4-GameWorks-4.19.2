@@ -466,6 +466,10 @@ namespace Audio
 			SourceInfo.bUseHRTFSpatializer = InitParams.bUseHRTFSpatialization;
 
 			SourceInfo.BufferQueueListener = InitParams.BufferQueueListener;
+
+			// Call initialization from the render thread so anything wanting to do any initialization here can do so (e.g. procedural sound waves)
+			SourceInfo.BufferQueueListener->OnBeginGenerate();
+
 			SourceInfo.NumInputChannels = InitParams.NumInputChannels;
 			SourceInfo.NumInputFrames = InitParams.NumInputFrames;
 
@@ -474,6 +478,8 @@ namespace Audio
 
 			SourceInfo.HighPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels, 0, nullptr);
 			SourceInfo.HighPassFilter.SetFilterType(EFilter::Type::HighPass);
+
+			SourceInfo.SourceEnvelopeFollower = Audio::FEnvelopeFollower(MixerDevice->SampleRate, (float)InitParams.EnvelopeFollowerAttackTime, (float)InitParams.EnvelopeFollowerReleaseTime, Audio::EPeakMode::Peak);
 
 			// Create the spatialization plugin source effect
 			if (InitParams.bUseHRTFSpatialization)
@@ -897,6 +903,12 @@ namespace Audio
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 		return SourceInfos[SourceId].NumFramesPlayed;
+	}
+
+	float FMixerSourceManager::GetEnvelopeValue(const int32 SourceId) const
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+		return SourceInfos[SourceId].SourceEnvelopeValue;
 	}
 
 	bool FMixerSourceManager::IsDone(const int32 SourceId) const

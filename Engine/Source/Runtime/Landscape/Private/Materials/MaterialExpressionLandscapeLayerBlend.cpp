@@ -96,24 +96,24 @@ FExpressionInput* UMaterialExpressionLandscapeLayerBlend::GetInput(int32 InputIn
 }
 
 
-FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) const
 {
 	int32 Idx = 0;
 	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
 	{
 		if (InputIndex == Idx++)
 		{
-			return FString::Printf(TEXT("Layer %s"), *Layers[LayerIdx].LayerName.ToString());
+			return *FString::Printf(TEXT("Layer %s"), *Layers[LayerIdx].LayerName.ToString());
 		}
 		if (Layers[LayerIdx].BlendType == LB_HeightBlend)
 		{
 			if (InputIndex == Idx++)
 			{
-				return FString::Printf(TEXT("Height %s"), *Layers[LayerIdx].LayerName.ToString());
+				return *FString::Printf(TEXT("Height %s"), *Layers[LayerIdx].LayerName.ToString());
 			}
 		}
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR

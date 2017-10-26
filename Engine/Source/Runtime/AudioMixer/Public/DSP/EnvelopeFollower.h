@@ -50,6 +50,9 @@ namespace Audio
 		// Processes the input audio stream and returns the envelope value.
 		float ProcessAudio(const float InAudioSample);
 
+		// Process the input audio stream in int16 format
+		int16 ProcessAudio(const int16 InAudioSample);
+
 		// Gets the current envelope value
 		float GetCurrentValue() const;
 

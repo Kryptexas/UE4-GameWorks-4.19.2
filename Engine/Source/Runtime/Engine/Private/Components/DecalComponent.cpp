@@ -134,11 +134,12 @@ void UDecalComponent::LifeSpanCallback()
 {
 	DestroyComponent();
 
-	auto* Owner = GetOwner();
-
-	if (bDestroyOwnerAfterFade && Owner && (FadeDuration > 0.0f || FadeStartDelay > 0.0f))
+	if (bDestroyOwnerAfterFade  && (FadeDuration > 0.0f || FadeStartDelay > 0.0f))
 	{
-		Owner->Destroy();
+		if (AActor* Owner = GetOwner())
+		{
+			Owner->Destroy();
+		}
 	}
 }
 

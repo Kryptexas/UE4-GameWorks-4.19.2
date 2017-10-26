@@ -49,7 +49,6 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
-	virtual FString GetUniquePinName() override;
 	virtual FEdGraphPinType GetPinType() const override;
 	virtual void AddPinToSwitchNode() override;
 	virtual void RemovePinFromSwitchNode(UEdGraphPin* TargetPin) override;
