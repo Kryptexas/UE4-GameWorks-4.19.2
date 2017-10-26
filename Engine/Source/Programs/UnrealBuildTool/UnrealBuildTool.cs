@@ -376,6 +376,9 @@ namespace UnrealBuildTool
 		/// <param name="Arguments">Cmdline arguments</param>
 		private static int GuardedMain(string[] Arguments)
 		{
+			DateTime StartTime = DateTime.UtcNow;
+			ECompilationResult Result = ECompilationResult.Succeeded;
+
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
 			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new UEConsoleTraceListener() });
 
@@ -388,160 +391,6 @@ namespace UnrealBuildTool
 			{
 				throw new BuildException("Environment could not be read");
 			}
-
-			// Change the working directory to be the Engine/Source folder. We are likely running from Engine/Binaries/DotNET
-			// This is critical to be done early so any code that relies on the current directory being Engine/Source will work.
-			// UEBuildConfiguration.PostReset is susceptible to this, so we must do this before configs are loaded.
-			string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
-
-			//@todo.Rocket: This is a workaround for recompiling game code in editor
-			// The working directory when launching is *not* what we would expect
-			if (Directory.Exists(EngineSourceDirectory) == false)
-			{
-				// We are assuming UBT always runs from <>/Engine/Binaries/DotNET/...
-				EngineSourceDirectory = Assembly.GetExecutingAssembly().GetOriginalLocation();
-				EngineSourceDirectory = EngineSourceDirectory.Replace("\\", "/");
-				Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/Binaries/DotNET/", StringComparison.InvariantCultureIgnoreCase);
-				if (EngineIdx > 0)
-				{
-					EngineSourceDirectory = Path.Combine(EngineSourceDirectory.Substring(0, EngineIdx), "Engine", "Source");
-				}
-			}
-			if (Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
-			{
-				Directory.SetCurrentDirectory(EngineSourceDirectory);
-			}
-
-			// Read the XML configuration files
-			if(!XmlConfig.ReadConfigFiles())
-			{
-				return 1;
-			}
-
-			// Create the build configuration object, and read the settings
-			BuildConfiguration BuildConfiguration = new BuildConfiguration();
-			XmlConfig.ApplyTo(BuildConfiguration);
-			CommandLine.ParseArguments(Arguments, BuildConfiguration);
-
-			// Copy some of the static settings that are being deprecated from BuildConfiguration
-			bPrintDebugInfo = BuildConfiguration.bPrintDebugInfo;
-			bPrintPerformanceInfo = BuildConfiguration.bPrintPerformanceInfo;
-
-			// Then let the command lines override any configs necessary.
-			foreach (string Argument in Arguments)
-			{
-				string LowercaseArg = Argument.ToLowerInvariant();
-				if (LowercaseArg == "-verbose")
-				{
-					bPrintDebugInfo = true;
-					BuildConfiguration.LogLevel = "Verbose";
-				}
-				else if (LowercaseArg.StartsWith("-log="))
-				{
-					BuildConfiguration.LogFilename = LowercaseArg.Replace("-log=", "");
-				}
-				else if (LowercaseArg == "-xgeexport")
-				{
-					BuildConfiguration.bXGEExport = true;
-					BuildConfiguration.bAllowXGE = true;
-				}
-				else if (LowercaseArg.StartsWith("-singlefile="))
-				{
-					BuildConfiguration.bUseUBTMakefiles = false;
-					BuildConfiguration.SingleFileToCompile = LowercaseArg.Replace("-singlefile=", "");
-				}
-				else if (LowercaseArg == "-installed" || LowercaseArg == "-installedengine")
-				{
-					bIsEngineInstalled = true;
-				}
-				else if (LowercaseArg == "-notinstalledengine")
-				{
-					bIsEngineInstalled = false;
-				}
-				else if(LowercaseArg.StartsWith("-buildconfigurationdoc="))
-				{
-					XmlConfig.WriteDocumentation(new FileReference(Argument.Substring("-buildconfigurationdoc=".Length)));
-					return 0;
-				}
-				else if(LowercaseArg.StartsWith("-modulerulesdoc="))
-				{
-					RulesDocumentation.WriteDocumentation(typeof(ModuleRules), new FileReference(Argument.Substring("-modulerulesdoc=".Length)));
-					return 0;
-				}
-				else if(LowercaseArg.StartsWith("-targetrulesdoc="))
-				{
-					RulesDocumentation.WriteDocumentation(typeof(TargetRules), new FileReference(Argument.Substring("-targetrulesdoc=".Length)));
-					return 0;
-				}
-			}
-
-			// If it wasn't set explicitly by a command line option, check for the installed build marker file
-			if (!bIsEngineInstalled.HasValue)
-			{
-				bIsEngineInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt"));
-			}
-
-			DateTime StartTime = DateTime.UtcNow;
-
-			// We can now do a full initialization of the logging system with proper configuration values.
-			Log.InitLogging(
-				bLogTimestamps: false,
-				InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
-				bLogSeverity: true,
-				bLogSources: false,
-				bLogSourcesToConsole: false,
-				bColorConsoleOutput: true,
-				TraceListeners: new[] 
-				{
-					(TraceListener)(new UEConsoleTraceListener()),
-					!string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
-				});
-
-			// Parse rocket-specific arguments.
-			FileReference ProjectFile = null;
-			foreach (string Arg in Arguments)
-			{
-				string TempGameName = null;
-				if (ParseRocketCommandlineArg(Arg, ref TempGameName, ref ProjectFile) == true)
-				{
-					// This is to allow relative paths for the project file
-					Log.TraceVerbose("UBT Running for Rocket: " + ProjectFile);
-					break;
-				}
-			}
-
-			// Read the project file from the installed project text file
-			if(ProjectFile == null)
-			{
-				FileReference InstalledProjectFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"); 
-				if(FileReference.Exists(InstalledProjectFile))
-				{
-					ProjectFile = FileReference.Combine(UnrealBuildTool.RootDirectory, File.ReadAllText(InstalledProjectFile.FullName).Trim());
-				}
-			}
-
-			// Build the list of game projects that we know about. When building from the editor (for hot-reload) or for projects from installed builds, we require the 
-			// project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
-			if (ProjectFile != null)
-			{
-				UProjectInfo.AddProject(ProjectFile);
-			}
-			else
-			{
-				UProjectInfo.FillProjectInfo();
-			}
-
-			// Read the project-specific build configuration settings
-			ConfigCache.ReadSettings(DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Unknown, BuildConfiguration);
-
-			DateTime BasicInitStartTime = DateTime.UtcNow;
-
-			ECompilationResult Result = ECompilationResult.Succeeded;
-
-			Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
-			Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
-
-			Telemetry.Initialize();
 
 			// @todo: Ideally we never need to Mutex unless we are invoked with the same target project,
 			// in the same branch/path!  This would allow two clientspecs to build at the same time (even though we need
@@ -569,7 +418,6 @@ namespace UnrealBuildTool
 				if (Utils.ParseCommandLineFlag(Arguments, "-autosdkonly", out AutoSDKOnlyArgumentIndex))
 				{
 					bAutoSDKOnly = true;
-					BuildConfiguration.bIgnoreJunk = true;
 				}
 			}
 			bool bValidatePlatforms = false;
@@ -578,7 +426,6 @@ namespace UnrealBuildTool
 				if (Utils.ParseCommandLineFlag(Arguments, "-validateplatform", out ValidatePlatformsArgumentIndex))
 				{
 					bValidatePlatforms = true;
-					BuildConfiguration.bIgnoreJunk = true;
 				}
 			}
 
@@ -629,6 +476,162 @@ namespace UnrealBuildTool
 
 				try
 				{
+					// Change the working directory to be the Engine/Source folder. We are likely running from Engine/Binaries/DotNET
+					// This is critical to be done early so any code that relies on the current directory being Engine/Source will work.
+					// UEBuildConfiguration.PostReset is susceptible to this, so we must do this before configs are loaded.
+					string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
+
+					//@todo.Rocket: This is a workaround for recompiling game code in editor
+					// The working directory when launching is *not* what we would expect
+					if (Directory.Exists(EngineSourceDirectory) == false)
+					{
+						// We are assuming UBT always runs from <>/Engine/Binaries/DotNET/...
+						EngineSourceDirectory = Assembly.GetExecutingAssembly().GetOriginalLocation();
+						EngineSourceDirectory = EngineSourceDirectory.Replace("\\", "/");
+						Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/Binaries/DotNET/", StringComparison.InvariantCultureIgnoreCase);
+						if (EngineIdx > 0)
+						{
+							EngineSourceDirectory = Path.Combine(EngineSourceDirectory.Substring(0, EngineIdx), "Engine", "Source");
+						}
+					}
+					if (Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
+					{
+						Directory.SetCurrentDirectory(EngineSourceDirectory);
+					}
+
+					// Read the XML configuration files
+					if(!XmlConfig.ReadConfigFiles())
+					{
+						return 1;
+					}
+
+					// Create the build configuration object, and read the settings
+					BuildConfiguration BuildConfiguration = new BuildConfiguration();
+					XmlConfig.ApplyTo(BuildConfiguration);
+					CommandLine.ParseArguments(Arguments, BuildConfiguration);
+
+					// Copy some of the static settings that are being deprecated from BuildConfiguration
+					bPrintDebugInfo = BuildConfiguration.bPrintDebugInfo;
+					bPrintPerformanceInfo = BuildConfiguration.bPrintPerformanceInfo;
+
+					// Don't run junk deleter if we're just setting up autosdks
+					if(bAutoSDKOnly || bValidatePlatforms)
+					{
+						BuildConfiguration.bIgnoreJunk = true;
+					}
+
+					// Then let the command lines override any configs necessary.
+					foreach (string Argument in Arguments)
+					{
+						string LowercaseArg = Argument.ToLowerInvariant();
+						if (LowercaseArg == "-verbose")
+						{
+							bPrintDebugInfo = true;
+							BuildConfiguration.LogLevel = "Verbose";
+						}
+						else if (LowercaseArg.StartsWith("-log="))
+						{
+							BuildConfiguration.LogFilename = LowercaseArg.Replace("-log=", "");
+						}
+						else if (LowercaseArg == "-xgeexport")
+						{
+							BuildConfiguration.bXGEExport = true;
+							BuildConfiguration.bAllowXGE = true;
+						}
+						else if (LowercaseArg.StartsWith("-singlefile="))
+						{
+							BuildConfiguration.bUseUBTMakefiles = false;
+							BuildConfiguration.SingleFileToCompile = LowercaseArg.Replace("-singlefile=", "");
+						}
+						else if (LowercaseArg == "-installed" || LowercaseArg == "-installedengine")
+						{
+							bIsEngineInstalled = true;
+						}
+						else if (LowercaseArg == "-notinstalledengine")
+						{
+							bIsEngineInstalled = false;
+						}
+						else if(LowercaseArg.StartsWith("-buildconfigurationdoc="))
+						{
+							XmlConfig.WriteDocumentation(new FileReference(Argument.Substring("-buildconfigurationdoc=".Length)));
+							return 0;
+						}
+						else if(LowercaseArg.StartsWith("-modulerulesdoc="))
+						{
+							RulesDocumentation.WriteDocumentation(typeof(ModuleRules), new FileReference(Argument.Substring("-modulerulesdoc=".Length)));
+							return 0;
+						}
+						else if(LowercaseArg.StartsWith("-targetrulesdoc="))
+						{
+							RulesDocumentation.WriteDocumentation(typeof(TargetRules), new FileReference(Argument.Substring("-targetrulesdoc=".Length)));
+							return 0;
+						}
+					}
+
+					// If it wasn't set explicitly by a command line option, check for the installed build marker file
+					if (!bIsEngineInstalled.HasValue)
+					{
+						bIsEngineInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt"));
+					}
+
+					// We can now do a full initialization of the logging system with proper configuration values.
+					Log.InitLogging(
+						bLogTimestamps: false,
+						InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
+						bLogSeverity: true,
+						bLogSources: false,
+						bLogSourcesToConsole: false,
+						bColorConsoleOutput: true,
+						TraceListeners: new[] 
+						{
+							(TraceListener)(new UEConsoleTraceListener()),
+							!string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
+						});
+
+					// Parse rocket-specific arguments.
+					FileReference ProjectFile = null;
+					foreach (string Arg in Arguments)
+					{
+						string TempGameName = null;
+						if (ParseRocketCommandlineArg(Arg, ref TempGameName, ref ProjectFile) == true)
+						{
+							// This is to allow relative paths for the project file
+							Log.TraceVerbose("UBT Running for Rocket: " + ProjectFile);
+							break;
+						}
+					}
+
+					// Read the project file from the installed project text file
+					if(ProjectFile == null)
+					{
+						FileReference InstalledProjectFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"); 
+						if(FileReference.Exists(InstalledProjectFile))
+						{
+							ProjectFile = FileReference.Combine(UnrealBuildTool.RootDirectory, File.ReadAllText(InstalledProjectFile.FullName).Trim());
+						}
+					}
+
+					// Build the list of game projects that we know about. When building from the editor (for hot-reload) or for projects from installed builds, we require the 
+					// project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
+					if (ProjectFile != null)
+					{
+						UProjectInfo.AddProject(ProjectFile);
+					}
+					else
+					{
+						UProjectInfo.FillProjectInfo();
+					}
+
+					// Read the project-specific build configuration settings
+					ConfigCache.ReadSettings(DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Unknown, BuildConfiguration);
+
+					DateTime BasicInitStartTime = DateTime.UtcNow;
+
+					Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
+					Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
+
+					Telemetry.Initialize();
+
 					string GameName = null;
 					bool bSpecificModulesOnly = false;
 
