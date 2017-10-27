@@ -12,6 +12,7 @@
 
 #if UE_ENABLE_ICU
 
+#include "Internationalization/ICUUtilities.h"
 #include "Internationalization/ICUBreakIterator.h"
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/locid.h>
@@ -150,6 +151,7 @@ bool FICUInternationalization::Initialize()
 	I18N->CurrentLanguage = I18N->DefaultLanguage;
 	I18N->CurrentLocale = I18N->DefaultLocale;
 
+	InitializeTimeZone();
 	InitializeInvariantGregorianCalendar();
 
 	return U_SUCCESS(ICUStatus) ? true : false;
@@ -679,6 +681,19 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 	}
 
 	return NewCulture;
+}
+
+void FICUInternationalization::InitializeTimeZone()
+{
+	const FString TimeZoneId = FPlatformMisc::GetTimeZoneId();
+
+	icu::TimeZone* ICUDefaultTz = TimeZoneId.IsEmpty() ? icu::TimeZone::createDefault() : icu::TimeZone::createTimeZone(ICUUtilities::ConvertString(TimeZoneId));
+	icu::TimeZone::adoptDefault(ICUDefaultTz);
+
+	const int32 DefaultTzOffsetMinutes = ICUDefaultTz->getRawOffset() / 60000;
+	const int32 RawOffsetHours = DefaultTzOffsetMinutes / 60;
+	const int32 RawOffsetMinutes = DefaultTzOffsetMinutes % 60;
+	UE_LOG(LogICUInternationalization, Display, TEXT("ICU TimeZone Detection - Raw Offset: %+d:%02d, Platform Override: '%s'"), RawOffsetHours, RawOffsetMinutes, *TimeZoneId);
 }
 
 void FICUInternationalization::InitializeInvariantGregorianCalendar()
