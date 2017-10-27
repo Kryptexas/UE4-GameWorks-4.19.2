@@ -248,7 +248,10 @@ void FGameplayTagQueryCustomization::CloseWidgetWindow(bool WasCancelled)
 
 		FPropertyChangedEvent ChangeEvent(StructPropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
 		FNotifyHook* NotifyHook = PropertyUtilities->GetNotifyHook();
-		NotifyHook->NotifyPostChange(ChangeEvent, &PropertyChain);
+		if (NotifyHook != nullptr)
+		{
+			NotifyHook->NotifyPostChange(ChangeEvent, &PropertyChain);
+		}
 	}
 
  	if( GameplayTagQueryWidgetWindow.IsValid() )
