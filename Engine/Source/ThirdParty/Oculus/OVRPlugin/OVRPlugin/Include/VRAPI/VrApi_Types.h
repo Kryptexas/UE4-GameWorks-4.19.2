@@ -13,6 +13,7 @@ Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
 #define OVR_VrApi_Types_h
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "VrApi_Config.h"   // needed for VRAPI_EXPORT
 
 //-----------------------------------------------------------------
@@ -132,8 +133,15 @@ OVR_VRAPI_ASSERT_TYPE_SIZE( ovrRectf, 16 );
 typedef enum
 {
 	VRAPI_FALSE = 0,
-	VRAPI_TRUE
+	VRAPI_TRUE	= 1
 } ovrBooleanResult;
+
+typedef enum
+{
+	VRAPI_EYE_LEFT	= 0,
+	VRAPI_EYE_RIGHT	= 1,
+	VRAPI_EYE_COUNT	= 2
+} ovrEye;
 
 //-----------------------------------------------------------------
 // Structure Types
@@ -152,53 +160,81 @@ typedef enum
 
 typedef enum
 {
-	VRAPI_DEVICE_TYPE_NOTE4,
-	VRAPI_DEVICE_TYPE_NOTE5,
-	VRAPI_DEVICE_TYPE_S6,
-	VRAPI_DEVICE_TYPE_S7,
-	VRAPI_DEVICE_TYPE_NOTE7,			// No longer supported.
-	VRAPI_DEVICE_TYPE_S8,
-	VRAPI_MAX_DEVICE_TYPES,
+	VRAPI_DEVICE_TYPE_GEARVR_START			= 0,
+
+	VRAPI_DEVICE_TYPE_NOTE4					= VRAPI_DEVICE_TYPE_GEARVR_START,
+	VRAPI_DEVICE_TYPE_NOTE5					= 1,
+	VRAPI_DEVICE_TYPE_S6					= 2,
+	VRAPI_DEVICE_TYPE_S7					= 3,
+	VRAPI_DEVICE_TYPE_NOTE7					= 4,			// No longer supported.
+	VRAPI_DEVICE_TYPE_S8					= 5,
+	VRAPI_DEVICE_TYPE_NOTE8					= 6,
+	VRAPI_DEVICE_TYPE_NOTE7_FE				= 7,			// Fan Edition
 
 ///--BEGIN_SDK_REMOVE
-	VRAPI_DEVICE_TYPE_DAWN_PROTO0
+	VRAPI_DEVICE_TYPE_A5_2018				= 8,			// A series
+	VRAPI_DEVICE_TYPE_GEARVR_PLUS			= 32,
 ///--END_SDK_REMOVE
+	VRAPI_DEVICE_GEARVR_END					= 63,
+
+///--BEGIN_SDK_REMOVE
+	VRAPI_DEVICE_TYPE_PACIFIC_START			= 64,
+	VRAPI_DEVICE_TYPE_PACIFIC				= VRAPI_DEVICE_TYPE_PACIFIC_START,
+	VRAPI_DEVICE_TYPE_PACIFIC_END			= 127,
+
+	VRAPI_DEVICE_TYPE_MONTEREY_START		= 256,
+	VRAPI_DEVICE_TYPE_DAWN_PROTO0			= VRAPI_DEVICE_TYPE_MONTEREY_START,
+	VRAPI_DEVICE_TYPE_MONTEREY_PROTO1_SDC,
+	VRAPI_DEVICE_TYPE_MONTEREY_PROTO1_AUO,
+	VRAPI_DEVICE_TYPE_MONTEREY_END			= 319,
+///--END_SDK_REMOVE
+
+	VRAPI_DEVICE_TYPE_UNKNOWN				= -1,
 } ovrDeviceType;
 
 typedef enum
 {
-	VRAPI_HEADSET_TYPE_R320,			// Note4 Innovator
-	VRAPI_HEADSET_TYPE_R321,			// S6 Innovator
-	VRAPI_HEADSET_TYPE_R322,			// Commercial 1
-	VRAPI_HEADSET_TYPE_R323,			// Commercial 2 (USB Type C)
-	VRAPI_HEADSET_TYPE_R324,			// Commercial 3 (USB Type C)
-	VRAPI_MAX_HEADSET_TYPES
+	VRAPI_HEADSET_TYPE_R320					= 0,			// Note4 Innovator
+	VRAPI_HEADSET_TYPE_R321					= 1,			// S6 Innovator
+	VRAPI_HEADSET_TYPE_R322					= 2,			// Commercial 1
+	VRAPI_HEADSET_TYPE_R323					= 3,			// Commercial 2 (USB Type C)
+	VRAPI_HEADSET_TYPE_R324					= 4,			// Commercial 3 (USB Type C)
+	VRAPI_HEADSET_TYPE_R325					= 5,			// Commercial 4 2017 (USB Type C)
+
+///--BEGIN_SDK_REMOVE
+	// Unannounced devices.
+	VRAPI_HEADSET_TYPE_PACIFIC				= 64,
+
+	// Prototype headsets.
+	VRAPI_HEADSET_TYPE_MONTEREY_PROTO1		= 256,
+///--END_SDK_REMOVE
+
+	VRAPI_HEADSET_TYPE_UNKNOWN				= -1,
 } ovrHeadsetType;
 
 typedef enum
 {
-	VRAPI_DEVICE_REGION_UNSPECIFIED,
-	VRAPI_DEVICE_REGION_JAPAN,
-	VRAPI_DEVICE_REGION_CHINA,
-	VRAPI_MAX_DEVICE_REGIONS
+	VRAPI_DEVICE_REGION_UNSPECIFIED	= 0,
+	VRAPI_DEVICE_REGION_JAPAN		= 1,
+	VRAPI_DEVICE_REGION_CHINA		= 2,
 } ovrDeviceRegion;
 
 typedef enum
 {
-	VRAPI_VIDEO_DECODER_LIMIT_4K_30FPS,
-	VRAPI_VIDEO_DECODER_LIMIT_4K_60FPS,
+	VRAPI_VIDEO_DECODER_LIMIT_4K_30FPS	= 0,
+	VRAPI_VIDEO_DECODER_LIMIT_4K_60FPS	= 1,
 } ovrVideoDecoderLimit;
 
 typedef enum
 {
-	VRAPI_SYS_PROP_DEVICE_TYPE,
-	VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES,
+	VRAPI_SYS_PROP_DEVICE_TYPE								= 0,
+	VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES		= 1,
 	// Physical width and height of the display in pixels.
-	VRAPI_SYS_PROP_DISPLAY_PIXELS_WIDE,
-	VRAPI_SYS_PROP_DISPLAY_PIXELS_HIGH,
+	VRAPI_SYS_PROP_DISPLAY_PIXELS_WIDE						= 2,
+	VRAPI_SYS_PROP_DISPLAY_PIXELS_HIGH						= 3,
 	// Refresh rate of the display in cycles per second.
 	// Currently 60Hz.
-	VRAPI_SYS_PROP_DISPLAY_REFRESH_RATE,
+	VRAPI_SYS_PROP_DISPLAY_REFRESH_RATE						= 4,
 	// With a display resolution of 2560x1440, the pixels at the center
 	// of each eye cover about 0.06 degrees of visual arc. To wrap a
 	// full 360 degrees, about 6000 pixels would be needed and about one
@@ -207,8 +243,8 @@ typedef enum
 	// in the center, but they need mip-maps for off center pixels. To
 	// avoid the need for mip-maps and for significantly improved rendering
 	// performance this currently returns a conservative 1024x1024.
-	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH,
-	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT,
+	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH				= 5,
+	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT				= 6,
 	// This is a product of the lens distortion and the screen size,
 	// but there is no truly correct answer.
 	// There is a tradeoff in resolution and coverage.
@@ -220,57 +256,65 @@ typedef enum
 	// acceleration is high to reduce black pull in at the edges by
 	// the time warp.
 	// Currently symmetric 90.0 degrees.
-	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X,		// Horizontal field of view in degrees
-	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y,		// Vertical field of view in degrees
+	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X				= 7,
+	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y				= 8,
 	// Path to the external SD card. On Android-M, this path is dynamic and can
 	// only be determined once the SD card is mounted. Returns an empty string if
 	// device does not support an ext sdcard or if running Android-M and the SD card
 	// is not mounted.
-	VRAPI_SYS_PROP_EXT_SDCARD_PATH,
-	VRAPI_SYS_PROP_DEVICE_REGION,
+	VRAPI_SYS_PROP_EXT_SDCARD_PATH							= 9,
+	VRAPI_SYS_PROP_DEVICE_REGION							= 10,
 	// Video decoder limit for the device.
-	VRAPI_SYS_PROP_VIDEO_DECODER_LIMIT,
-	VRAPI_SYS_PROP_HEADSET_TYPE,
+	VRAPI_SYS_PROP_VIDEO_DECODER_LIMIT						= 11,
+	VRAPI_SYS_PROP_HEADSET_TYPE								= 12,
 
 	// A single press and release of the back button in less than this time is considered
 	// a 'short press'.
-	VRAPI_SYS_PROP_BACK_BUTTON_SHORTPRESS_TIME,		// in seconds
+	// Specified in seconds.
+	VRAPI_SYS_PROP_BACK_BUTTON_SHORTPRESS_TIME				= 13,
 	// Pressing the back button twice within this time is considered a 'double tap'.
-	VRAPI_SYS_PROP_BACK_BUTTON_DOUBLETAP_TIME,		// in seconds
+	// Specified in seconds.
+	VRAPI_SYS_PROP_BACK_BUTTON_DOUBLETAP_TIME				= 14,
+
+	// Returns an ovrHandedness enum indicating left or right hand.
+	VRAPI_SYS_PROP_DOMINANT_HAND							= 15,
 
 	// Returns VRAPI_TRUE if Multiview rendering support is available for this system,
 	// otherwise VRAPI_FALSE.
-	VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE = 128,
+	VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE						= 128,
 	// Returns VRAPI_TRUE if submission of SRGB Layers is supported for this system,
 	// otherwise VRAPI_FALSE.
-	VRAPI_SYS_PROP_SRGB_LAYER_SOURCE_AVAILABLE,
+	VRAPI_SYS_PROP_SRGB_LAYER_SOURCE_AVAILABLE				= 129,
+///--BEGIN_SDK_REMOVE
+	// Returns VRAPI_TRUE if on-chip foveated rendering of swapchains is supported
+	// for this system, otherwise VRAPI_FALSE.
+	VRAPI_SYS_PROP_FOVEATION_AVAILABLE						= 130,
+	// Returns VRAPI_TRUE if gpu utilization functionality is supported for this system,
+	// otherwise VRAPI_FALSE.
+	VRAPI_SYS_PROP_GPU_UTIL_AVAILABLE						= 131,
+///--END_SDK_REMOVE
 } ovrSystemProperty;
 
 ///--BEGIN_SDK_REMOVE
 typedef enum
 {
-	//-- DEPRECATED--
-	VRAPI_OIT_MODE,
-	VRAPI_OIT_EYE2IMU_X,
-	VRAPI_OIT_EYE2IMU_Y,
-	VRAPI_OIT_EYE2IMU_Z,
-	//-- DEPRECATED--
-	VRAPI_TUTORIAL_COMPLETED,						// Used by Oculus Home application for marking Tutorial Completed for China flow.
-	VRAPI_INHIBIT_HANDLE_LONGPRESS,					// Used by First Party Native Social apps which need to disable Long Press to UM handling.
-	VRAPI_DO_NOT_DISTURB_MODE,						// Used by System Activities application for setting the Do-Not-Disturb Mode.
-	VRAPI_SYSTEM_BRIGHTNESS,						// Used by System Activities application for setting the System Brightness.
-	VRAPI_REMOTE_HANDEDNESS,						// Used by System Activities application for setting the Remote Handedness.
-	VRAPI_INHIBIT_HANDLE_HOMEKEY,					// Used by First Party Apps which need to disable Home Button handling.
-	VRAPI_INHIBIT_CONFIRM_QUIT_MENU,				// Used by specific First Party Apps which should go straight to Home instead of Confirm-Quit.
-	VRAPI_INHIBIT_SCREEN_CAPTURE					// Used by System Activities to decide whether to allow screen capture or not
-} ovrProperty;
+	// enum 0-3 have been deprecated.
 
-typedef enum
-{
-	VRAPI_HAND_UNKNOWN	= 0,
-	VRAPI_HAND_LEFT		= 1,
-	VRAPI_HAND_RIGHT	= 2
-} ovrHandedness;
+	VRAPI_TUTORIAL_COMPLETED			= 4,		// Used by Oculus Home application for marking Tutorial Completed for China flow.
+	VRAPI_INHIBIT_HANDLE_LONGPRESS		= 5,		// Used by First Party Native Social apps which need to disable Long Press to UM handling.
+	VRAPI_DO_NOT_DISTURB_MODE			= 6,		// Used by System Activities application for setting the Do-Not-Disturb Mode.
+	VRAPI_SYSTEM_BRIGHTNESS				= 7,		// Used by System Activities application for setting the System Brightness.
+	VRAPI_REMOTE_HANDEDNESS				= 8,		// Used by System Activities application for setting the Remote Handedness.
+	VRAPI_INHIBIT_HANDLE_HOMEKEY		= 9,		// Used by First Party Apps which need to disable Home Button handling.
+	VRAPI_INHIBIT_CONFIRM_QUIT_MENU		= 10,		// Used by specific First Party Apps which should go straight to Home instead of Confirm-Quit.
+	VRAPI_INHIBIT_SCREEN_CAPTURE		= 11,		// Used by System Activities to decide whether to allow screen capture or not
+
+	// enum 12 used to be VRAPI_RECENTER_REMOTE_POSE.
+
+	VRAPI_SHELL_SYSTEM_UTILS			= 13,		// Used by System Activities to query the cached value of Shell System Utils GK ( This enum can be removed once sysUtils is 100% )
+	VRAPI_TRANSCRIBE_AVAILABLE			= 14,		// Used by System Activities to query the cached value of Transcribe enabled GK ( This enum can be removed once transcribe is 100% )
+	VRAPI_FOVEATION_LEVEL				= 15,		// Used by apps that want to control swapchain foveation levels
+} ovrProperty;
 
 typedef enum
 {
@@ -282,34 +326,48 @@ typedef enum
 
 typedef enum
 {
-	VRAPI_SYS_STATUS_DOCKED,						// Device is docked.
-	VRAPI_SYS_STATUS_MOUNTED,						// Device is mounted.
-	VRAPI_SYS_STATUS_THROTTLED,						// Device is in powersave mode.
-	VRAPI_SYS_STATUS_THROTTLED2,					// Device is in extreme powersave mode.
-	VRAPI_SYS_STATUS_THROTTLED_WARNING_LEVEL,		// Powersave mode warning required.
+	VRAPI_HAND_UNKNOWN	= 0,
+	VRAPI_HAND_LEFT		= 1,
+	VRAPI_HAND_RIGHT	= 2
+} ovrHandedness;
 
-	VRAPI_SYS_STATUS_RENDER_LATENCY_MILLISECONDS,	// Average time between render tracking sample and scanout.
-	VRAPI_SYS_STATUS_TIMEWARP_LATENCY_MILLISECONDS,	// Average time between timewarp tracking sample and scanout.
-	VRAPI_SYS_STATUS_SCANOUT_LATENCY_MILLISECONDS,	// Average time between Vsync and scanout.
-	VRAPI_SYS_STATUS_APP_FRAMES_PER_SECOND,			// Number of frames per second delivered through vrapi_SubmitFrame.
-	VRAPI_SYS_STATUS_SCREEN_TEARS_PER_SECOND,		// Number of screen tears per second (per eye).
-	VRAPI_SYS_STATUS_EARLY_FRAMES_PER_SECOND,		// Number of frames per second delivered a whole display refresh early.
-	VRAPI_SYS_STATUS_STALE_FRAMES_PER_SECOND,		// Number of frames per second delivered late.
+typedef enum
+{
+	VRAPI_SYS_STATUS_DOCKED							= 0,	// Device is docked.
+	VRAPI_SYS_STATUS_MOUNTED						= 1,	// Device is mounted.
+	VRAPI_SYS_STATUS_THROTTLED						= 2,	// Device is in powersave mode.
 
-	VRAPI_SYS_STATUS_HEADPHONES_PLUGGED_IN,			// Returns VRAPI_TRUE if headphones are plugged into the device.
-	VRAPI_SYS_STATUS_RECENTER_COUNT,				// Returns the current HMD recenter count. Defaults to 0.
+	// enum  3 used to be VRAPI_SYS_STATUS_THROTTLED2.
 
-	VRAPI_SYS_STATUS_FRONT_BUFFER_PROTECTED	= 128,	// True if the front buffer is allocated in TrustZone memory.
-	VRAPI_SYS_STATUS_FRONT_BUFFER_565,				// True if the front buffer is 16-bit 5:6:5
-	VRAPI_SYS_STATUS_FRONT_BUFFER_SRGB,				// True if the front buffer uses the sRGB color space.
+	// enum  4 used to be VRAPI_SYS_STATUS_THROTTLED_WARNING_LEVEL.
+
+	VRAPI_SYS_STATUS_RENDER_LATENCY_MILLISECONDS	= 5,	// Average time between render tracking sample and scanout.
+	VRAPI_SYS_STATUS_TIMEWARP_LATENCY_MILLISECONDS	= 6,	// Average time between timewarp tracking sample and scanout.
+	VRAPI_SYS_STATUS_SCANOUT_LATENCY_MILLISECONDS	= 7,	// Average time between Vsync and scanout.
+	VRAPI_SYS_STATUS_APP_FRAMES_PER_SECOND			= 8,	// Number of frames per second delivered through vrapi_SubmitFrame.
+	VRAPI_SYS_STATUS_SCREEN_TEARS_PER_SECOND		= 9,	// Number of screen tears per second (per eye).
+	VRAPI_SYS_STATUS_EARLY_FRAMES_PER_SECOND		= 10,	// Number of frames per second delivered a whole display refresh early.
+	VRAPI_SYS_STATUS_STALE_FRAMES_PER_SECOND		= 11,	// Number of frames per second delivered late.
+
+	// enum 12 used to be VRAPI_SYS_STATUS_HEADPHONES_PLUGGED_IN
+
+	VRAPI_SYS_STATUS_RECENTER_COUNT					= 13,	// Returns the current HMD recenter count. Defaults to 0.
+	VRAPI_SYS_STATUS_SYSTEM_UX_ACTIVE				= 14,	// Returns VRAPI_TRUE if a system UX layer is active
+
+	VRAPI_SYS_STATUS_FRONT_BUFFER_PROTECTED			= 128,	// True if the front buffer is allocated in TrustZone memory.
+	VRAPI_SYS_STATUS_FRONT_BUFFER_565				= 129,	// True if the front buffer is 16-bit 5:6:5
+	VRAPI_SYS_STATUS_FRONT_BUFFER_SRGB				= 130,	// True if the front buffer uses the sRGB color space.
 
 ///--BEGIN_SDK_REMOVE
-	VRAPI_SYS_STATUS_SHOULD_QUIT = 256,				// True if the app should terminate. (PC only)
-	VRAPI_SYS_STATUS_HAS_FOCUS,						// True if the app has focus and is therefore visible on the HMD. (PC only)
-	VRAPI_SYS_STATUS_HDCP_FAILURE,					// True if the HDCP link is broken. (PC only)
+	VRAPI_SYS_STATUS_SHOULD_QUIT					= 256,	// True if the app should terminate. (VrApi->CAPI Shim only)
+	VRAPI_SYS_STATUS_HAS_FOCUS						= 257,	// True if the app has focus and is therefore visible on the HMD. (VrApi->CAPI Shim only)
+	VRAPI_SYS_STATUS_HDCP_FAILURE					= 258,	// True if the HDCP link is broken. (VrApi->CAPI Shim only)
 
-	VRAPI_SYS_STATUS_DO_NOT_DISTURB_MODE,			// Returns VRAPI_TRUE if DND Mode is active. (SA only)
-	VRAPI_SYS_STATUS_SYSTEM_BRIGHTNESS,				// Returns the current System Brightness. (SA only)
+	VRAPI_SYS_STATUS_DO_NOT_DISTURB_MODE			= 259,	// Returns VRAPI_TRUE if DND Mode is active. (SA only)
+	VRAPI_SYS_STATUS_SYSTEM_BRIGHTNESS				= 260,	// Returns the current System Brightness. (SA only)
+
+	VRAPI_SYS_STATUS_TOTAL_STALE_FRAMES				= 261,	// Returns the total stale frames starting from when VR mode is entered
+	VRAPI_SYS_STATUS_GPU_UTIL						= 262,	// Returns the current GPU Utilization, from 0.0 to 1.0
 ///--END_SDK_REMOVE
 } ovrSystemStatus;
 
@@ -453,6 +511,25 @@ typedef enum
 } ovrTrackingStatus;
 
 // Tracking state at a given absolute time.
+typedef struct ovrTracking2_
+{
+	// Sensor status described by ovrTrackingStatus flags.
+	unsigned int		Status;
+
+	OVR_VRAPI_PADDING( 4 );
+
+	// Predicted head configuration at the requested absolute time.
+	// The pose describes the head orientation and center eye position.
+	ovrRigidBodyPosef	HeadPose;
+	struct
+	{
+		ovrMatrix4f			ProjectionMatrix;
+		ovrMatrix4f			ViewMatrix;
+	} Eye[ VRAPI_EYE_COUNT ];
+} ovrTracking2;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrTracking2, 360 );
+
 typedef struct ovrTracking_
 {
 	// Sensor status described by ovrTrackingStatus flags.
@@ -467,17 +544,25 @@ typedef struct ovrTracking_
 
 OVR_VRAPI_ASSERT_TYPE_SIZE( ovrTracking, 104 );
 
+typedef enum
+{
+	VRAPI_TRACKING_TRANSFORM_IDENTITY					= 0,
+	VRAPI_TRACKING_TRANSFORM_CURRENT					= 1,
+	VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_EYE_LEVEL	= 2,
+	VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_FLOOR_LEVEL	= 3,
+} ovrTrackingTransform;
+
 //-----------------------------------------------------------------
 // Texture Swap Chain
 //-----------------------------------------------------------------
 
 typedef enum
 {
-	VRAPI_TEXTURE_TYPE_2D,				// 2D textures.
-	VRAPI_TEXTURE_TYPE_2D_EXTERNAL,		// External 2D texture.
-	VRAPI_TEXTURE_TYPE_2D_ARRAY,		// Texture array.
-	VRAPI_TEXTURE_TYPE_CUBE,			// Cube maps.
-	VRAPI_TEXTURE_TYPE_MAX,
+	VRAPI_TEXTURE_TYPE_2D			= 0,	// 2D textures.
+	VRAPI_TEXTURE_TYPE_2D_EXTERNAL	= 1,	// External 2D texture.
+	VRAPI_TEXTURE_TYPE_2D_ARRAY		= 2,	// Texture array.
+	VRAPI_TEXTURE_TYPE_CUBE			= 3,	// Cube maps.
+	VRAPI_TEXTURE_TYPE_MAX			= 4,
 ///--BEGIN_SDK_REMOVE
 	// Needed for UE4 multi-res push until vrapi_refactor ships.
 	VRAPI_TEXTURE_TYPE_2D_ARRAY_FOVEATED = 128,		// 4-deep texture array.
@@ -486,32 +571,32 @@ typedef enum
 
 typedef enum
 {
-	VRAPI_TEXTURE_FORMAT_NONE,
-	VRAPI_TEXTURE_FORMAT_565,
-	VRAPI_TEXTURE_FORMAT_5551,
-	VRAPI_TEXTURE_FORMAT_4444,
-	VRAPI_TEXTURE_FORMAT_8888,
-	VRAPI_TEXTURE_FORMAT_8888_sRGB,
-	VRAPI_TEXTURE_FORMAT_RGBA16F,
-	VRAPI_TEXTURE_FORMAT_DEPTH_16,
-	VRAPI_TEXTURE_FORMAT_DEPTH_24,
-	VRAPI_TEXTURE_FORMAT_DEPTH_24_STENCIL_8,
+	VRAPI_TEXTURE_FORMAT_NONE				= 0,
+	VRAPI_TEXTURE_FORMAT_565				= 1,
+	VRAPI_TEXTURE_FORMAT_5551				= 2,
+	VRAPI_TEXTURE_FORMAT_4444				= 3,
+	VRAPI_TEXTURE_FORMAT_8888				= 4,
+	VRAPI_TEXTURE_FORMAT_8888_sRGB			= 5,
+	VRAPI_TEXTURE_FORMAT_RGBA16F			= 6,
+	VRAPI_TEXTURE_FORMAT_DEPTH_16			= 7,
+	VRAPI_TEXTURE_FORMAT_DEPTH_24			= 8,
+	VRAPI_TEXTURE_FORMAT_DEPTH_24_STENCIL_8	= 9,
 
 ///--BEGIN_SDK_REMOVE
-	VRAPI_TEXTURE_FORMAT_8888_HDCP = 128,	// PC only
-	VRAPI_TEXTURE_FORMAT_8888_sRGB_HDCP,	// PC only
+	VRAPI_TEXTURE_FORMAT_8888_HDCP			= 128,	// VrApi->CAPI Shim only
+	VRAPI_TEXTURE_FORMAT_8888_sRGB_HDCP		= 129,	// VrApi->CAPI Shim only
 ///--END_SDK_REMOVE
 } ovrTextureFormat;
 
 typedef enum
 {
-	VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK			= 0x1,
+	VRAPI_DEFAULT_TEXTURE_SWAPCHAIN					= 0x1,
 	VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_LOADING_ICON	= 0x2
 } ovrDefaultTextureSwapChain;
 
 typedef enum
 {
-	VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN		= -1
+	VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN	= -1
 } ovrTextureSwapChainSettings;
 
 typedef struct ovrTextureSwapChain ovrTextureSwapChain;
@@ -552,11 +637,18 @@ typedef enum
 	// enum 128 used to be VRAPI_FRAME_FLAG_SHOW_LAYER_COMPLEXITY.
 
 	// enum 256 used to be VRAPI_FRAME_FLAG_SHOW_TEXTURE_DENSITY.
+
+///--BEGIN_SDK_REMOVE
+	VRAPI_FRAME_FLAG_IGNORE_FENCES								= 512,
+///--END_SDK_REMOVE
+
 } ovrFrameFlags;
 
 typedef enum
 {
 	// Enable writing to the alpha channel
+	// NOTE: *_WRITE_ALPHA is DEPRECATED. Please do not write any new code which
+	// relies on it's use.
 	VRAPI_FRAME_LAYER_FLAG_WRITE_ALPHA								= 1,
 	// Correct for chromatic aberration. Quality/perf trade-off.
 	VRAPI_FRAME_LAYER_FLAG_CHROMATIC_ABERRATION_CORRECTION			= 2,
@@ -580,40 +672,52 @@ typedef enum
 	// 24 fps update rate across "five eyes".
 	VRAPI_FRAME_LAYER_FLAG_INHIBIT_LEFT_UPDATE						= 512,
 	VRAPI_FRAME_LAYER_FLAG_INHIBIT_RIGHT_UPDATE						= 1024,
+
+	// If you set this flag, vrapi will use this layer to draw
+	// the pass-through camera feed.
+	// It is basically a dummy layer that allows fine control of when
+	// the pass-through camera will draw in relation to other layers.
+	VRAPI_FRAME_LAYER_FLAG_PASS_THROUGH_CAMERA						= 2048,
 ///--END_SDK_REMOVE
 
 } ovrFrameLayerFlags;
 
 typedef enum
 {
-	VRAPI_FRAME_LAYER_EYE_LEFT,
-	VRAPI_FRAME_LAYER_EYE_RIGHT,
-	VRAPI_FRAME_LAYER_EYE_MAX
+	VRAPI_FRAME_LAYER_EYE_LEFT		= 0,
+	VRAPI_FRAME_LAYER_EYE_RIGHT		= 1,
+	VRAPI_FRAME_LAYER_EYE_MAX		= 2
 } ovrFrameLayerEye;
 
 typedef enum
 {
-	VRAPI_FRAME_LAYER_BLEND_ZERO,
-	VRAPI_FRAME_LAYER_BLEND_ONE,
-	VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA,
-	VRAPI_FRAME_LAYER_BLEND_DST_ALPHA,
-	VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_DST_ALPHA,
-	VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA
+	VRAPI_FRAME_LAYER_BLEND_ZERO					= 0,
+	VRAPI_FRAME_LAYER_BLEND_ONE						= 1,
+	VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA				= 2,
+	// NOTE: *_DST_ALPHA blend modes are DEPRECATED. Please do not
+	// write any new code which relies on it's use.
+	VRAPI_FRAME_LAYER_BLEND_DST_ALPHA				= 3,
+	VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_DST_ALPHA		= 4,
+	VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA		= 5
 } ovrFrameLayerBlend;
 
 typedef enum
 {
 	// enum 0-3 have been deprecated. Explicit indices
 	// for frame layers should be used instead.
-	VRAPI_FRAME_LAYER_TYPE_MAX = 4
+	VRAPI_FRAME_LAYER_TYPE_MAX	= 4
 } ovrFrameLayerType;
 
 typedef enum
 {
-	VRAPI_EXTRA_LATENCY_MODE_OFF,
-	VRAPI_EXTRA_LATENCY_MODE_ON,
-	VRAPI_EXTRA_LATENCY_MODE_DYNAMIC
+	VRAPI_EXTRA_LATENCY_MODE_OFF		= 0,
+	VRAPI_EXTRA_LATENCY_MODE_ON			= 1,
+	VRAPI_EXTRA_LATENCY_MODE_DYNAMIC	= 2
 } ovrExtraLatencyMode;
+
+//-------------------------------------
+// Legacy monolithic FrameParm submission structures.
+//-------------------------------------
 
 // Note that any layer textures that are dynamic must be triple buffered.
 typedef struct
@@ -651,7 +755,7 @@ typedef struct
 	ovrRigidBodyPosef		HeadPose;
 
 	// If not zero, this fence will be used to determine whether or not
-	// rendering to the color and depth texture swap chains has completed.
+	// rendering to the color texture swap chains has completed.
 	unsigned long long		CompletionFence;
 } ovrFrameLayerTexture;
 
@@ -719,7 +823,7 @@ typedef struct
 	// passed since the previous WarpSwap returned.
 	// Setting to 2 will reduce power consumption and may make animation
 	// more regular for applications that can't hold full frame rate.
-	int						MinimumVsyncs;
+	int						SwapInterval;
 
 	// Latency Mode.
 	ovrExtraLatencyMode		ExtraLatencyMode;
@@ -753,135 +857,37 @@ typedef struct
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameParms, 1856 );
 OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrFrameParms, 1936 );
 
-///--BEGIN_SDK_REMOVE
-enum {
-    ovrMaxLayerCount = 16
+//-------------------------------------
+// New Style Flexible Layer List structures.
+//-------------------------------------
+enum
+{
+	ovrMaxLayerCount = 16
 };
 
-typedef enum ovrLayerType_
+typedef enum ovrLayerType2_
 {
-	VRAPI_LAYER_TYPE_PROJECTION				= 1,
-	VRAPI_LAYER_TYPE_LOADING_ICON			= 2,
-	VRAPI_LAYER_TYPE_CUBE					= 3,
-	VRAPI_LAYER_TYPE_EQUIRECT				= 4,
-	VRAPI_LAYER_TYPE_CYLINDER				= 5,
-	VRAPI_LAYER_TYPE_SURFACE_TEXTURE_PROJECTION = 6,
-	VRAPI_LAYER_TYPE_SURFACE_TEXTURE_EQUIRECT	= 7,
-	VRAPI_LAYER_TYPE_SURFACE_TEXTURE_CYLINDER	= 8,
-	VRAPI_LAYER_TYPE_SURFACE_TEXTURE_FISHEYE	= 9,
-} ovrLayerType;
+	VRAPI_LAYER_TYPE_PROJECTION2			= 1,
+///--BEGIN_SDK_REMOVE
+//	enum 2 is reserved for VRAPI_LAYER_TYPE_QUAD2
+///--END_SDK_REMOVE
+	VRAPI_LAYER_TYPE_CYLINDER2				= 3,
+	VRAPI_LAYER_TYPE_CUBE2					= 4,
+	VRAPI_LAYER_TYPE_EQUIRECT2				= 5,
+	VRAPI_LAYER_TYPE_LOADING_ICON2			= 6,
+///--BEGIN_SDK_REMOVE
+	VRAPI_LAYER_TYPE_FISHEYE2				= 7,
+///--END_SDK_REMOVE
+} ovrLayerType2;
 
-typedef struct ovrLayerHeader_
+typedef struct ovrLayerHeader2_
 {
-	ovrLayerType		Type;
-	int					Flags;				// Bitfield of ovrFrameLayerFlags
+	ovrLayerType2		Type;
+	uint32_t			Flags;
 
 	ovrVector4f			ColorScale;
 	ovrFrameLayerBlend	SrcBlend;
 	ovrFrameLayerBlend	DstBlend;
-} ovrLayerHeader;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE( ovrLayerHeader, 32 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_PROJECTION.
-
-	ovrRigidBodyPosef	HeadPose;
-
-	struct
-	{
-		ovrTextureSwapChain * ColorSwapChain;
-		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
-		ovrMatrix4f			TexCoordsFromTanAngles;
-		ovrRectf			TextureRect;
-	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerProjection;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerProjection, 320 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerProjection, 336 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_LOADING_ICON.
-
-	float				SpinSpeed;				// radians per second
-	float				SpinScale;
-
-	// Only monoscopic texture supported for spinning layer.
-	ovrTextureSwapChain * ColorSwapChain;
-	int					SwapChainIndex;
-	unsigned long long	CompletionFence;
-} ovrLayerLoadingIcon;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerLoadingIcon, 56 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerLoadingIcon, 64 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_CUBEMAP.
-
-	ovrRigidBodyPosef	HeadPose;
-	ovrMatrix4f         TexCoordsFromTanAngles;
-
-	struct
-	{
-		ovrTextureSwapChain * ColorSwapChain;	// Must VRAPI_TEXTURE_TYPE_CUBE.
-		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
-		ovrVector3f			Offset;
-	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerCube;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerCube, 256 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerCube, 272 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_EQUIRECT.
-
-	ovrRigidBodyPosef	HeadPose;
-	ovrMatrix4f			TexCoordsFromTanAngles;
-
-	struct
-	{
-		ovrTextureSwapChain * ColorSwapChain;	// Must VRAPI_TEXTURE_TYPE_2D_*.
-		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
-		ovrRectf			TextureRect;
-		ovrVector2f			Scale;
-		ovrVector2f			Bias;
-	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerEquirect;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerEquirect, 288 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerEquirect, 304 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_CYLINDER.
-
-	ovrRigidBodyPosef	HeadPose;
-
-	struct
-	{
-		ovrTextureSwapChain * ColorSwapChain;
-		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
-		ovrMatrix4f			TexCoordsFromTanAngles;
-		ovrRectf			TextureRect;
-		ovrVector2f			Scale;
-		ovrVector2f			Bias;
-	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerCylinder;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerCylinder, 352 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerCylinder, 368 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_SURFACE_TEXTURE_PROJECTION.
 
 	// jobject that will be updated before each eye for minimal
 	// latency.
@@ -890,73 +896,62 @@ typedef struct
 	// calling SurfaceTexture->Update, which allows it to be safely
 	// freed by the application.
 	jobject				SurfaceTextureObject;
+} ovrLayerHeader2;
 
-	ovrRigidBodyPosef	HeadPose;
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerHeader2, 36 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerHeader2, 40 );
+
+// ovrLayerProjection2 provides support for a typical world view layer.
+//
+typedef struct
+{
+	// Header.Type must be VRAPI_LAYER_TYPE_PROJECTION2.
+	ovrLayerHeader2			Header;
+
+	ovrRigidBodyPosef		HeadPose;
 
 	struct
 	{
 		ovrTextureSwapChain * ColorSwapChain;
 		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
 		ovrMatrix4f			TexCoordsFromTanAngles;
 		ovrRectf			TextureRect;
 	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerSurfaceTextureProjection;
+} ovrLayerProjection2;
 
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerSurfaceTextureProjection, 328 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerSurfaceTextureProjection, 344 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerProjection2, 312 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerProjection2, 328 );
 
+// ovrLayerCylinder2 provides support for a single 2D texture projected onto a cylinder shape.
+//
+// For Cylinder, the vertex coordinates will be transformed as if the texture type was CUBE.
+// Additionally, the interpolated vec3 will be remapped to vec2 by a direction-to-hemicyl mapping.
+// This mapping is currently hard-coded to 180 degrees around and 60 degrees vertical FOV.
+//
+// After the mapping to 2D, an optional textureMatrix is applied. In the monoscopic case, the matrix
+// will typically be the identity matrix (ie no scale, bias). In the stereo case, when the image source
+// comes from a single image, the transform is necessary to map the [0.0,1.0] output to a different
+// (sub)rect.
+//
+// Regardless of how the textureMatrix transforms the vec2 output of the equirect transform, each
+// TextureRect clamps the resulting texture coordinates so that no coordinates are beyond the specified
+// extents. No guarantees are made about whether fragments will be shaded outside the rect, so it is
+// important that the subrect have a transparent border.
+//
 typedef struct
 {
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_SURFACE_TEXTURE_EQUIRECT.
+	// Header.Type must be VRAPI_LAYER_TYPE_CYLINDER2.
+	ovrLayerHeader2			Header;
 
-	// jobject that will be updated before each eye for minimal
-	// latency.
-	// IMPORTANT: This should be a JNI weak reference to the object.
-	// The system will try to convert it into a global reference before
-	// calling SurfaceTexture->Update, which allows it to be safely
-	// freed by the application.
-	jobject				SurfaceTextureObject;
-
-	ovrRigidBodyPosef	HeadPose;
-	ovrMatrix4f			TexCoordsFromTanAngles;
+	ovrRigidBodyPosef		HeadPose;
 
 	struct
 	{
-		ovrTextureSwapChain * ColorSwapChain;	// Must VRAPI_TEXTURE_TYPE_2D_*.
-		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
-		ovrRectf			TextureRect;
-		ovrVector2f			Scale;
-		ovrVector2f			Bias;
-	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerSurfaceTextureEquirect;
-
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerSurfaceTextureEquirect, 296 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerSurfaceTextureEquirect, 312 );
-
-typedef struct
-{
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_SURFACE_TEXTURE_CYLINDER.
-
-												// jobject that will be updated before each eye for minimal
-												// latency.
-												// IMPORTANT: This should be a JNI weak reference to the object.
-												// The system will try to convert it into a global reference before
-												// calling SurfaceTexture->Update, which allows it to be safely
-												// freed by the application.
-	jobject				SurfaceTextureObject;
-
-	ovrRigidBodyPosef	HeadPose;
-
-	struct
-	{
+		// Texture type used to create the swapchain must be a 2D target (VRAPI_TEXTURE_TYPE_2D_*).
 		ovrTextureSwapChain * ColorSwapChain;
 		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
 		ovrMatrix4f			TexCoordsFromTanAngles;
 		ovrRectf			TextureRect;
-
 		// NOTE: textureMatrix is set up like the following:
 		//	sx,  0, tx, 0
 		//	0,  sy, ty, 0
@@ -965,12 +960,121 @@ typedef struct
 		// since we do not need z coord for mapping to 2d texture.
 		ovrMatrix4f			TextureMatrix;
 	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerSurfaceTextureCylinder;
+} ovrLayerCylinder2;
 
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerSurfaceTextureCylinder, 456 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerSurfaceTextureCylinder, 472 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerCylinder2, 440 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerCylinder2, 456 );
 
+// ovrLayerCube2 provides support for a single timewarped cubemap at infinity
+// with optional Offset vector (provided in normalized [-1.0,1.0] space).
+//
+// Cube maps are an omni-directional layer source that are directly supported
+// by the graphics hardware. The nature of the cube map definition results in
+// higher resolution (in pixels per solid angle) at the corners and edges of
+// the cube and lower resolution at the center of each face. While the cube map
+// does have variability in sample density, the variability is spread symmetrically
+// around the sphere.
+//
+// Sometimes it is valuable to have an omni-directional format that has a
+// directional bias where quality and sample density is better in a particular
+// direction or over a particular region. If we changed the cube map sampling
+// 
+// from:
+//   color = texture( cubeLayerSampler, direction );
+// to:
+//   color = texture( cubeLayerSampler, normalize( direction ) + offset );
+//
+// we can provide a remapping of the cube map sample distribution such that
+// samples in the "offset" direction map to a smaller region of the cube map
+// (and are thus higher resolution).
+//
+// A normal high resolution cube map can be resampled using the inverse of this
+// mapping to retain high resolution for one direction while signficantly reducing
+// the required size of the cube map.
+//
+typedef struct
+{
+	// Header.Type must be VRAPI_LAYER_TYPE_CUBE2.
+	ovrLayerHeader2			Header;
 
+	ovrRigidBodyPosef		HeadPose;
+	ovrMatrix4f				TexCoordsFromTanAngles;
+
+	ovrVector3f				Offset;
+
+	struct
+	{
+		// Texture type used to create the swapchain must be a cube target (VRAPI_TEXTURE_TYPE_CUBE).
+		ovrTextureSwapChain * ColorSwapChain;
+		int					SwapChainIndex;
+	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
+} ovrLayerCube2;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerCube2, 232 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerCube2, 248 );
+
+// ovrLayerEquirect2 provides support for a single Equirectangular texture at infinity.
+//
+// For Equirectangular, the vertex coordinates will be transformed as if the texture type was CUBE,
+// and in the fragment shader, the interpolated vec3 will be remapped to vec2 by a direction-to-equirect
+// mapping.
+//
+// After the mapping to 2D, an optional textureMatrix is applied. In the monoscopic case, the matrix
+// will typically be the identity matrix (ie no scale, bias). In the stereo case, when the image source
+// come from a single image, the transform is necessary to map the [0.0,1.0] output to a different
+// (sub)rect.
+//
+// Regardless of how the textureMatrix transforms the vec2 output of the equirect transform, each
+// TextureRect clamps the resulting texture coordinates so that no coordinates are beyond the specified
+// extents. No guarantees are made about whether fragments will be shaded outside the rect, so it is
+// important that the subrect have a transparent border.
+//
+typedef struct
+{
+	// Header.Type must be VRAPI_LAYER_TYPE_EQUIRECT2.
+	ovrLayerHeader2			Header;
+
+	ovrRigidBodyPosef		HeadPose;
+	ovrMatrix4f				TexCoordsFromTanAngles;
+
+	struct
+	{
+		// Texture type used to create the swapchain must be a 2D target (VRAPI_TEXTURE_TYPE_2D_*).
+		ovrTextureSwapChain * ColorSwapChain;
+		int					SwapChainIndex;
+		ovrRectf			TextureRect;
+		// NOTE: textureMatrix is set up like the following:
+		//	sx,  0, tx, 0
+		//	0,  sy, ty, 0
+		//	0,   0,  1, 0
+		//	0,   0,  0, 1
+		// since we do not need z coord for mapping to 2d texture.
+		ovrMatrix4f			TextureMatrix;
+	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
+} ovrLayerEquirect2;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerEquirect2, 376 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerEquirect2, 392 );
+
+// ovrLayerLoadingIcon2 provides support for a monoscopic spinning layer.
+//
+typedef struct
+{
+	// Header.Type must be VRAPI_LAYER_TYPE_LOADING_ICON2.
+	ovrLayerHeader2			Header;
+
+	float					SpinSpeed;				// radians per second
+	float					SpinScale;
+
+	// Only monoscopic texture supported for spinning layer.
+	ovrTextureSwapChain *	ColorSwapChain;
+	int						SwapChainIndex;
+} ovrLayerLoadingIcon2;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerLoadingIcon2, 52 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerLoadingIcon2, 64 );
+
+///--BEGIN_SDK_REMOVE
 // An "equiangular fisheye" or "f-theta" lens can be used to capture photos or video
 // of around 180 degrees without stitching.
 //
@@ -983,17 +1087,11 @@ OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerSurfaceTextureCylinder, 472 );
 // 180 degree hemisphere is mapped to a -1 to 1 2D space.
 //
 // From there it can be mapped into actual texture coordinates, possibly two to an image for stereo.
+//
 typedef struct
 {
-	ovrLayerHeader		Header;					// Must be VRAPI_LAYER_TYPE_SURFACE_TEXTURE_FISHEYE.
-
-												// jobject that will be updated before each eye for minimal
-												// latency.
-												// IMPORTANT: This should be a JNI weak reference to the object.
-												// The system will try to convert it into a global reference before
-												// calling SurfaceTexture->Update, which allows it to be safely
-												// freed by the application.
-	jobject				SurfaceTextureObject;
+	// Header.Type must be VRAPI_LAYER_TYPE_FISHEYE2.
+	ovrLayerHeader2	Header;
 
 	ovrRigidBodyPosef	HeadPose;
 
@@ -1001,59 +1099,54 @@ typedef struct
 	{
 		ovrTextureSwapChain * ColorSwapChain;
 		int					SwapChainIndex;
-		unsigned long long	CompletionFence;
 		ovrMatrix4f			LensFromTanAngles;			// transforms a tanAngle ray into lens space
 		ovrRectf			TextureRect;				// packed stereo images will need to clamp at the mid border
 		ovrMatrix4f			TextureMatrix;				// transform from a -1 to 1 ideal fisheye to the texture
 		ovrVector4f			Distortion;					// Not currently used.
 	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
-} ovrLayerSurfaceTextureFisheye;
+} ovrLayerFishEye2;
 
-OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerSurfaceTextureFisheye, 488 );
-OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerSurfaceTextureFisheye, 504 );
-
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerFishEye2, 472 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerFishEye2, 488 );
+///--END_SDK_REMOVE
 
 // Union that combines ovrLayer types in a way that allows them
 // to be used in a polymorphic way.
 typedef union
 {
-	ovrLayerHeader				Header;
-	ovrLayerProjection			Projection;
-	ovrLayerLoadingIcon			LoadingIcon;
-	ovrLayerCube				Cube;
-	ovrLayerEquirect			Equirect;
-	ovrLayerCylinder			Cylinder;
-	ovrLayerSurfaceTextureProjection	SurfaceTextureProjection;
-	ovrLayerSurfaceTextureEquirect	SurfaceTextureEquirect;
-	ovrLayerSurfaceTextureCylinder	SurfaceTextureCylinder;
-	ovrLayerSurfaceTextureFisheye	SurfaceTextureFisheye;
-} ovrLayer_Union;
+	ovrLayerHeader2			Header;
+	ovrLayerProjection2		Projection;
+	ovrLayerCylinder2		Cylinder;
+	ovrLayerCube2			Cube;
+	ovrLayerEquirect2		Equirect;
+	ovrLayerLoadingIcon2	LoadingIcon;
+///--BEGIN_SDK_REMOVE
+	ovrLayerFishEye2		FishEye;
 ///--END_SDK_REMOVE
+} ovrLayer_Union2;
 
-//-----------------------------------------------------------------
-// Head Model
-//-----------------------------------------------------------------
-
-typedef struct
+typedef struct ovrSubmitFrameDescription2_
 {
-	float	InterpupillaryDistance;	// Distance between eyes.
-	float	EyeHeight;				// Eye height relative to the ground.
-	float	HeadModelDepth;			// Eye offset forward from the head center at EyeHeight.
-	float	HeadModelHeight;		// Neck joint offset down from the head center at EyeHeight.
-} ovrHeadModelParms;
+	uint32_t			Flags;
+	uint32_t			SwapInterval;
+	uint64_t			FrameIndex;
+	double 				DisplayTime;
+	unsigned long long	CompletionFence;
+	uint32_t			LayerCount;
+	const ovrLayerHeader2 *	const * Layers;
+} ovrSubmitFrameDescription2;
 
-OVR_VRAPI_ASSERT_TYPE_SIZE( ovrHeadModelParms, 16 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrSubmitFrameDescription2, 40 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrSubmitFrameDescription2, 48 );
 
 //-----------------------------------------------------------------
-// FIXME:VRAPI remove this once all simulation code uses ovrFrameInput::PredictedDisplayTimeInSeconds and perf timing uses LOGCPUTIME
+// Performance
 //-----------------------------------------------------------------
 
-#if defined( __cplusplus )
-extern "C" {
-#endif
-OVR_VRAPI_EXPORT double vrapi_GetTimeInSeconds();
-#if defined( __cplusplus )
-}	// extern "C"
-#endif
+typedef enum
+{
+	VRAPI_PERF_THREAD_TYPE_MAIN			= 0,
+	VRAPI_PERF_THREAD_TYPE_RENDERER		= 1,
+} ovrPerfThreadType;
 
 #endif	// OVR_VrApi_Types_h

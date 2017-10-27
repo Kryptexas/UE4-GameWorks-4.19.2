@@ -208,7 +208,7 @@ OVR_VRAPI_EXPORT unsigned int vrapi_GetConnectedControllerTypes();
 
 // Turns on vibration of the given controller.
 //
-// To disable vibration, call ovr_SetControllerVibration with an amplitude of 0.
+// To disable vibration, call vrapi_SetControllerVibration with an amplitude of 0.
 // Vibration automatically stops after a nominal amount of time, so if you want vibration 
 // to be continuous over multiple seconds then you need to call this function periodically.
 OVR_VRAPI_EXPORT ovrResult vrapi_SetControllerVibration( ovrControllerType controllerType, float frequency, float amplitude );
@@ -261,6 +261,11 @@ typedef enum ovrButton_
 	ovrButton_Home      = 0x01000000,	// Home button on the Gear VR Controller and headset, but never sent to applications
 ///--END_SDK_REMOVE
 
+///--BEGIN_SDK_REMOVE
+	ovrButton_CapTrigger = 0x02000000,	// capacitive trigger on the Controller that has capacitive trigger
+	ovrButton_GripTrigger = 0x04000000,	// grip trigger on controllers that have a grip trigger
+///--END_SDK_REMOVE
+
 	ovrButton_EnumSize  = 0x7fffffff
 } ovrButton;
 
@@ -302,6 +307,11 @@ typedef enum ovrControllerCapabilities_
 	ovrControllerCaps_HasPositionTracking 		= 0x00000002,
 	ovrControllerCaps_LeftHand					= 0x00000004,	// controller is configured for left hand
 	ovrControllerCaps_RightHand					= 0x00000008,	// controller is configured for right hand
+
+///--BEGIN_SDK_REMOVE
+	ovrControllerCaps_ModelPacific				= 0x00000010,	// Controller for Pacific devices
+	ovrControllerCaps_ModelMonterey				= 0x00000020,	// controller for Monterey devices
+///--END_SDK_REMOVE
 
 	ovrControllerCaps_EnumSize 					= 0x7fffffff
 } ovrControllerCapabilties;
@@ -393,6 +403,56 @@ typedef struct ovrInputStateTrackedRemote_
 	uint16_t			Reserved;
 } ovrInputStateTrackedRemote;
 
+///--BEGIN_SDK_REMOVE
+// This header starts all ovrInputState structures. It should only hold fields
+// that are common to all input controllers.
+typedef enum ovrInputStateType_
+{
+	ovrInputStateType_InputStateHeader2
+} ovrInputStateType;
+
+typedef struct ovrInputStateHeader2_
+{
+	// type of structure
+	ovrInputStateType	Type;
+
+	// type of controller
+	ovrControllerType 	ControllerType;
+
+	// System time when the controller state was last updated.
+	double				TimeInSeconds;
+} ovrInputStateHeader2;
+
+typedef struct ovrInputStateTrackedRemote2_ {
+	ovrInputStateHeader2	Header;
+
+	// Values for buttons described by ovrButton.
+	uint32_t	        Buttons;
+
+	// finger contact status for trackpad
+	// true = finger is on trackpad, false = finger is off trackpad
+	uint32_t            TrackpadStatus;
+
+	// X and Y coordinates of the Trackpad
+	ovrVector2f         TrackpadPosition;
+
+	// The percentage of max battery charge remaining.
+	uint8_t				BatteryPercentRemaining;
+	// Increments every time the remote is recentered. If this changes, the application may need
+	// to adjust its arm model accordingly.
+	uint8_t				RecenterCount;
+	// Reserved for future use.
+	uint16_t			Reserved;
+
+	// Analog value from 0.0 - 1.0 of the pull of the Index Trigger
+	float					IndexTrigger;
+	// Analog value from 0.0 - 1.0 of the pull of the Grip Trigger
+	float					GripTrigger;
+	// Reserved for future use.
+	uint64_t				Reserved2;
+} ovrInputStateTrackedRemote2;
+///--END_SDK_REMOVE
+
 // ovrInputStateHeadset describes the complete input state for the 
 // GearVR headset. The TrackpadPosition coordinates return for the
 // headset are relative coordinates, centered at (1280,720). See the
@@ -456,6 +516,21 @@ OVR_VRAPI_EXPORT ovrResult vrapi_GetInputDeviceCapabilities( ovrMobile * ovr, ov
 //     if ( vrapi_GetCurrentInputState( ovr, remoteDeviceID, &state.Header ) >= 0 ) {
 OVR_VRAPI_EXPORT ovrResult vrapi_GetCurrentInputState( ovrMobile * ovr, const ovrDeviceID deviceID, ovrInputStateHeader * inputState );
 
+///--BEGIN_SDK_REMOVE
+// Returns the current extended input state for controllers, without positional tracking info.
+//
+// Input: ovr, deviceID, pointer to a capabilities structure (with Type field set)
+// Output: Upon return the inputStateEx structure will be set to the device's current inputStateEx
+// Example:
+//     The pointer to the ovrInputStateHeader should be a pointer to a Header field in
+//     structure matching the value of the Type field.
+// 
+//     ovrInputStateTrackedRemote2 state;
+//     state.Header.Type = ovrControllerType_TrackedRemote;
+//     if ( vrapi_GetCurrentInputState2( ovr, remoteDeviceID, &state.Header ) >= 0 ) {
+OVR_VRAPI_EXPORT ovrResult vrapi_GetCurrentInputState2( ovrMobile * ovr, const ovrDeviceID deviceID, ovrInputStateHeader2 * inputState );
+///--END_SDK_REMOVE
+
 // Returns the predicted input state based on the specified absolute system time
 // in seconds. Pass absTime value of 0.0 to request the most recent sensor reading.
 // Input: ovr, device ID, prediction time
@@ -466,7 +541,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_GetInputTrackingState( ovrMobile * ovr, const o
 // Can be called from any thread while in VR mode. Recenters the tracked remote to the current yaw of the headset.
 // Input: ovr, device ID
 // Output: None
-OVR_VRAPI_EXPORT void vrapi_RecenterInputPose( ovrMobile * ovr, const ovrDeviceID deviceID );
+OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_RecenterInputPose( ovrMobile * ovr, const ovrDeviceID deviceID ) );
 
 // Enable or disable emulation for the GearVR Controller. 
 // Emulation is on by default.

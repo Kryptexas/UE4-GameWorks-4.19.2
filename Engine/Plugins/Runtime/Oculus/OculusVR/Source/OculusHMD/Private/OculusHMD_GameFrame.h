@@ -25,6 +25,7 @@ public:
 
 	FQuat PlayerOrientation;		// (CalculateStereoViewOffset)
 	FVector PlayerLocation;			// (CalculateStereoViewOffset)
+	float NearClippingPlane;		// (GetStereoProjectionMatrix)
 
 	union
 	{

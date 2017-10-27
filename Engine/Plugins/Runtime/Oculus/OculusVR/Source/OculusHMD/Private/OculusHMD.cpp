@@ -2055,12 +2055,19 @@ namespace OculusHMD
 			void* activity = nullptr;
 #endif
 
+			int initializeFlags = ovrpInitializeFlag_SupportsVRToggle;
+
+			if (Settings->Flags.bSupportsDash)
+			{
+				initializeFlags |= ovrpInitializeFlag_FocusAware;
+			}
+
 			if (OVRP_FAILURE(ovrp_Initialize4(
 				CustomPresent->GetRenderAPI(),
 				logCallback,
 				activity,
 				CustomPresent->GetOvrpInstance(),
-				ovrpInitializeFlag_SupportsVRToggle)))
+				initializeFlags)))
 			{
 				return false;
 			}
@@ -2120,6 +2127,8 @@ namespace OculusHMD
 			return false; // don't bother if HMD is not connected
 		}
 
+		LoadFromIni();
+
 		if (InitializeSession())
 		{
 			OCFlags.NeedSetFocusToGameViewport = true;
@@ -2131,7 +2140,6 @@ namespace OculusHMD
 					Settings->SystemHeadset = ovrpSystemHeadset_None;
 				}
 
-				LoadFromIni();
 				UpdateHmdRenderInfo();
 				UpdateStereoRenderingParams();
 
@@ -2979,6 +2987,7 @@ namespace OculusHMD
 		Result->WindowSize = CachedWindowSize;
 		Result->WorldToMetersScale = CachedWorldToMetersScale;
 		Result->MonoCullingDistance = CachedMonoCullingDistance;
+		Result->NearClippingPlane = GNearClippingPlane;
 		return Result;
 	}
 
@@ -3525,6 +3534,10 @@ namespace OculusHMD
 		if (GConfig->GetBool(OculusSettings, TEXT("bCompositeDepth"), v, GEngineIni))
 		{
 			Settings->Flags.bCompositeDepth = v;
+		}
+		if (GConfig->GetBool(OculusSettings, TEXT("bSupportsDash"), v, GEngineIni))
+		{
+			Settings->Flags.bSupportsDash = v;
 		}
 	}
 

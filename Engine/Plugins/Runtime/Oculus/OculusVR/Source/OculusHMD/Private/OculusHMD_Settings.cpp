@@ -34,6 +34,7 @@ FSettings::FSettings() :
 #else
 	Flags.bCompositeDepth = true;
 #endif
+	Flags.bSupportsDash = false;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 
 	RenderTargetSize = FIntPoint(0, 0);
