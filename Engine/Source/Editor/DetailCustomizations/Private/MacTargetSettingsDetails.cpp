@@ -296,7 +296,11 @@ TSharedRef<SWidget> FMacTargetSettingsDetails::OnGetShaderVersionContent()
 	
 	for (int32 i = 0; i < Enum->GetMaxEnumValue(); i++)
 	{
-		if (Enum->IsValidEnumValue(i) && FPlatformMisc::MacOSXVersionCompare(GMacTargetSettingsMinOSVers[i][0], GMacTargetSettingsMinOSVers[i][1], GMacTargetSettingsMinOSVers[i][2]) >= 0)
+		bool bValidTargetForCurrentOS = true;
+#if PLATFORM_MAC
+		bValidTargetForCurrentOS = FPlatformMisc::MacOSXVersionCompare(GMacTargetSettingsMinOSVers[i][0], GMacTargetSettingsMinOSVers[i][1], GMacTargetSettingsMinOSVers[i][2]) >= 0;
+#endif
+		if (Enum->IsValidEnumValue(i) && bValidTargetForCurrentOS)
 		{
 			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FMacTargetSettingsDetails::SetShaderStandard, i));
 			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
