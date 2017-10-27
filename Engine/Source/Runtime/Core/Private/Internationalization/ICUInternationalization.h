@@ -56,6 +56,7 @@ private:
 	enum class EAllowDefaultCultureFallback : uint8 { No, Yes, };
 	FCulturePtr FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback);
 
+	void InitializeTimeZone();
 	void InitializeInvariantGregorianCalendar();
 
 private:

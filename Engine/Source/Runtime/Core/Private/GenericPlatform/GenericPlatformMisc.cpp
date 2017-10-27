@@ -917,6 +917,12 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 #endif
 }
 
+FString FGenericPlatformMisc::GetTimeZoneId()
+{
+	// ICU will calculate this correctly for most platforms (if enabled)
+	return FString();
+}
+
 FText FGenericPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");

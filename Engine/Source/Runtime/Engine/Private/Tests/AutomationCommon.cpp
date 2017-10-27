@@ -85,7 +85,7 @@ namespace AutomationCommon
 	void GetScreenshotPath(const FString& TestName, FString& OutScreenshotName)
 	{
 		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::IniPlatformName();
-		PathName = PathName + TEXT("_") + GetRenderDetailsString();
+		PathName = PathName + TEXT("/") + GetRenderDetailsString();
 
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
 
@@ -129,7 +129,7 @@ namespace AutomationCommon
 		// TBD - 
 		// Device's native resolution (we want to use a hardware dump of the frontbuffer at the native resolution so we compare what we actually output rather than what we think we rendered)
 
-		const FString MapAndTest = MapOrContext + TEXT("_") + TestName;
+		const FString MapAndTest = MapOrContext + TEXT("/") + TestName;
 		AutomationCommon::GetScreenshotPath(MapAndTest, Data.Path);
 
 		return Data;

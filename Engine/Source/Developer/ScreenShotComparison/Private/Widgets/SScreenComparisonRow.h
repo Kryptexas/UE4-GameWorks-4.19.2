@@ -74,5 +74,6 @@ private:
 	FIntPoint CachedActualImageSize;
 
 	TSharedPtr<SAsyncImage> ApprovedImageWidget;
+	TSharedPtr<SAsyncImage> DeltaImageWidget;
 	TSharedPtr<SAsyncImage> UnapprovedImageWidget;
 };

@@ -17,7 +17,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpSerializeMessageTaskTest, "System.Core.Mess
 namespace UdpSerializeMessageTaskTest
 {
 	const int32 NumMessages = 100000;
-	const FTimespan MaxWaitTime(0, 0, 5);
+	const FTimespan MaxWaitTime(0, 0, 10);
 
 	int32 CompletedMessages = 0;
 	int32 FailedMessages = 0;

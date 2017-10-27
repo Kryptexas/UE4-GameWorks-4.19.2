@@ -782,6 +782,12 @@ public:
 	static FString GetDefaultLocale();
 
 	/**
+	 * Get the timezone identifier for this platform, or an empty string if the default timezone calculation will work.
+	 * @note This should return either an Olson timezone (eg, "America/Los_Angeles") or an offset from GMT/UTC (eg, "GMT-8:00").
+	 */
+	static FString GetTimeZoneId();
+
+	/**
 	 *	Platform-specific Exec function
 	 *
 	 *  @param	InWorld		World context
