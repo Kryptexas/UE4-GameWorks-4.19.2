@@ -180,4 +180,8 @@ private:
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TSoftObjectPtr<class USkeletalMesh> PreviewSkeletalMesh;
 #endif
+
+#if WITH_EDITOR
+	virtual void LoadModulesRequiredForCompilation() override;
+#endif //WITH_EDITOR
 };
