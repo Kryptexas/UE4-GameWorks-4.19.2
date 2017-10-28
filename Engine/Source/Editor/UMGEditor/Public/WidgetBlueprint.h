@@ -260,8 +260,4 @@ public:
 
 private:
 	void ForEachSourceWidgetImpl(TFunctionRef<void(UWidget*)> Fn) const;
-
-#if WITH_EDITOR
-	virtual void LoadModulesRequiredForCompilation() override;
-#endif 
 };

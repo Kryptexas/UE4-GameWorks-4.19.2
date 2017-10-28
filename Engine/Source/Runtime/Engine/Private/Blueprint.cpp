@@ -1823,9 +1823,4 @@ UEdGraph* UBlueprint::GetLastEditedUberGraph() const
 	return nullptr;
 }
 
-void UBlueprint::LoadModulesRequiredForCompilation()
-{
-	static const FName ModuleName(TEXT("KismetCompiler"));
-	FModuleManager::Get().LoadModule(ModuleName);
-}
 #endif //WITH_EDITOR

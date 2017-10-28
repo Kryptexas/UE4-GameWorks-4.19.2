@@ -457,9 +457,6 @@ TSharedPtr<FKismetCompilerContext> FBlueprintEditorModule::GetCompiler(UBlueprin
 {
 	if (BP != nullptr)
 	{
-		// Load required modules to make sure we have the required items we have
-		BP->LoadModulesRequiredForCompilation();
-
 		if (BlueprintCompilers.Num() > 0)
 		{
 			for (UClass* Class = BP->GetClass(); Class != UBlueprint::StaticClass(); Class = Class->GetSuperClass())

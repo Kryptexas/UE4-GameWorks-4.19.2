@@ -186,9 +186,6 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
 
-	// load required modules before compiling
-	Blueprint->LoadModulesRequiredForCompilation();
-
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
 		Compiler->PreCompile(Blueprint, CompileOptions);

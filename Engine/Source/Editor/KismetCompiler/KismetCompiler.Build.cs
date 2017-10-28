@@ -8,6 +8,7 @@ public class KismetCompiler : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"AnimationBlueprintEditor",
 				"Core",
 				"CoreUObject",
 				"Engine",

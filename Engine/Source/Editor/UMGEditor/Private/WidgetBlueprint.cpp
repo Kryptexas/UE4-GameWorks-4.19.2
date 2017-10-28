@@ -795,11 +795,4 @@ void UWidgetBlueprint::ForEachSourceWidgetImpl (TFunctionRef<void(UWidget*)> Fn)
 	);
 }
 
-#if WITH_EDITOR
-void UWidgetBlueprint::LoadModulesRequiredForCompilation()
-{
-	static const FName ModuleName(TEXT("UMGEditor"));
-	FModuleManager::Get().LoadModule(ModuleName);
-}
-#endif // WITH_EDITOR
 #undef LOCTEXT_NAMESPACE 

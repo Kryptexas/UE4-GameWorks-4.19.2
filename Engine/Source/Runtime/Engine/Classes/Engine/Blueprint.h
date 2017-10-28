@@ -874,11 +874,6 @@ public:
 	void Message_Note(const FString& MessageToLog);
 	void Message_Warn(const FString& MessageToLog);
 	void Message_Error(const FString& MessageToLog);
-	
-	/** 
-	 * Blueprint can choose to load specific modules for compilation
-	 */
-	virtual void LoadModulesRequiredForCompilation();
 #endif
 	
 };
