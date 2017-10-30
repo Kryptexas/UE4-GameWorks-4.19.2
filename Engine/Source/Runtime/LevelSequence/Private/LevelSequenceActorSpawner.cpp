@@ -87,7 +87,9 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 	SpawnedActor->RegisterAllComponents();
 
 	// Ensure this spawnable is not a preview actor. Preview actors will not have BeginPlay() called on them.
+#if WITH_EDITOR
 	SpawnedActor->bIsEditorPreviewActor = false;
+#endif
 
 	// tag this actor so we know it was spawned by sequencer
 	SpawnedActor->Tags.AddUnique(SequencerActorTag);
