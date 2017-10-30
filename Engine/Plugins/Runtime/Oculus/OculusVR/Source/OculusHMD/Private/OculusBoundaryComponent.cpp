@@ -224,11 +224,30 @@ void UOculusBoundaryComponent::BeginPlay()
 #endif
 }
 
+OculusHMD::FOculusHMD* GetOculusHMD()
+{
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
+	if (GEngine && GEngine->XRSystem.IsValid())
+	{
+		IHeadMountedDisplay* HMDDevice = GEngine->XRSystem->GetHMDDevice();
+		if (HMDDevice)
+		{
+			EHMDDeviceType::Type HMDDeviceType = HMDDevice->GetHMDDeviceType();
+			if (HMDDeviceType == EHMDDeviceType::DT_OculusRift || HMDDeviceType == EHMDDeviceType::DT_GearVR)
+			{
+				return static_cast<OculusHMD::FOculusHMD*>(HMDDevice);
+			}
+		}
+	}
+#endif
+	return nullptr;
+}
+
 void UOculusBoundaryComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->XRSystem->GetHMDDevice());
+	FOculusHMD* OculusHMD = GetOculusHMD();
 	if (OculusHMD && OculusHMD->IsHMDActive())
 	{
 		OuterBoundsInteractionList.Empty(); // Reset list of FBoundaryTestResults

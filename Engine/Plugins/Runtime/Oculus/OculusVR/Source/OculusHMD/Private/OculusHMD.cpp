@@ -46,8 +46,6 @@
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 
-#include "OculusHMDModule.h" // for IsOVRPluginAvailable()
-
 namespace OculusHMD
 {
 
@@ -2629,11 +2627,7 @@ namespace OculusHMD
 
 	bool FOculusHMD::IsHMDActive() const
 	{
-		if (FOculusHMDModule::Get().IsOVRPluginAvailable())
-		{
-			return ovrp_GetInitialized() != ovrpBool_False;
-		}
-		return false;
+		return ovrp_GetInitialized() != ovrpBool_False;
 	}
 
 	float FOculusHMD::GetWorldToMetersScale() const
