@@ -627,7 +627,11 @@ bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, cons
 	for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
 	{
 		uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
-		check(BaseOffset != NULL);
+		if (!BaseOffset)
+		{
+			bAllConditionsMet = false;
+			break;
+		}
 
 		uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
 
