@@ -80,14 +80,14 @@ void FWmfMediaSession::GetEvents(TArray<EMediaEvent>& OutEvents)
 
 		if ((Time < FTimespan::Zero()) || (Time > CurrentDuration))
 		{
-			if (ShouldLoop)
+			if (!ShouldLoop)
 			{
-				HandleSessionEnded();
+				const HRESULT Result = MediaSession->Stop();
+
+				UE_LOG(LogWmfMedia, Verbose, TEXT("Session %p: Forced media session to stop at end: %s"), this, *WmfMedia::ResultToString(Result));
 			}
-			else
-			{
-				MediaSession->Stop();
-			}
+
+			HandleSessionEnded();
 		}
 	}
 #endif

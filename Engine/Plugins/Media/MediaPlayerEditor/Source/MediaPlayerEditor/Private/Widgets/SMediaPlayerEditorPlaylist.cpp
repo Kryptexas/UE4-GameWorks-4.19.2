@@ -145,7 +145,7 @@ void SMediaPlayerEditorPlaylist::Construct(const FArguments& InArgs, UMediaPlaye
 						// previous item button
 						SNew(SButton)
 							.IsEnabled_Lambda([this]() -> bool {
-								return (MediaPlayer->GetPlaylistRef().Loop || (MediaPlayer->GetPlaylistIndex() > 0));
+								return (MediaPlayer->GetPlaylistIndex() > 0);
 							})
 							.OnClicked_Lambda([this]() -> FReply
 							{
@@ -167,7 +167,7 @@ void SMediaPlayerEditorPlaylist::Construct(const FArguments& InArgs, UMediaPlaye
 						// next item button
 						SNew(SButton)
 							.IsEnabled_Lambda([this]() -> bool {
-								return (MediaPlayer->GetPlaylistRef().Loop || (MediaPlayer->GetPlaylistIndex() + 1 < MediaPlayer->GetPlaylistRef().Num()));
+								return (MediaPlayer->GetPlaylistIndex() + 1 < MediaPlayer->GetPlaylistRef().Num());
 							})
 							.OnClicked_Lambda([this]() -> FReply
 							{

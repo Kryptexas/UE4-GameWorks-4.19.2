@@ -541,11 +541,18 @@ namespace WmfMedia
 			}
 
 			// copy media type attributes
-			if (FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_RATE)) ||
-				FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_SIZE)))
+			if (IsVideoDevice)
 			{
-				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to copy video output type attributes"));
-				return NULL;
+				// the following attributes seem to help with web cam issues on Windows 7,
+				// but we generally don't want to copy these for any other media sources
+				// and let the WMF topology resolver pick optimal defaults instead.
+
+				if (FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_RATE)) ||
+					FAILED(CopyAttribute(&InputType, OutputType, MF_MT_FRAME_SIZE)))
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("Failed to copy video output type attributes"));
+					return NULL;
+				}
 			}
 		}
 		else

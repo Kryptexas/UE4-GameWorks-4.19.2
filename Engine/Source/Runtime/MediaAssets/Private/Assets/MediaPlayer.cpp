@@ -668,7 +668,7 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 
 	case EMediaEvent::MediaOpened:
 		PlayerFacade->SetCacheWindow(CacheAhead, FApp::IsGame() ? CacheBehindGame : CacheBehind);
-		PlayerFacade->SetLooping(Loop);
+		PlayerFacade->SetLooping(Loop && (Playlist->Num() == 1));
 		PlayerFacade->SetViewField(HorizontalFieldOfView, VerticalFieldOfView, true);
 		PlayerFacade->SetViewOrientation(FQuat(ViewRotation), true);
 
@@ -684,7 +684,7 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 	case EMediaEvent::MediaOpenFailed:
 		OnMediaOpenFailed.Broadcast(PlayerFacade->GetUrl());
 
-		if (!Loop && (Playlist != nullptr))
+		if ((Loop && (Playlist->Num() != 1)) || (PlaylistIndex + 1 < Playlist->Num()))
 		{
 			Next();
 		}
@@ -693,7 +693,7 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 	case EMediaEvent::PlaybackEndReached:
 		OnEndReached.Broadcast();
 
-		if (!Loop && (Playlist != nullptr) && (Playlist->Num() > 1))
+		if ((Loop && (Playlist->Num() != 1)) || (PlaylistIndex + 1 < Playlist->Num()))
 		{
 			PlayOnNext = true;
 			Next();
