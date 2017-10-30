@@ -3321,8 +3321,6 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 		{
 			GEditor->RebuildLevel(*ChangedLevel);
 		}
-
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
 }
 
@@ -5300,8 +5298,6 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
-
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
 }
 
@@ -5700,14 +5696,17 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				// If it does it will mark the original for delete and select the new actor
 				if (ClassToReplace->IsChildOf(ALight::StaticClass()))
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting light from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertLightActors(ConvertToClass);
 				}
 				else if (ClassToReplace->IsChildOf(ABrush::StaticClass()) && ConvertToClass->IsChildOf(AVolume::StaticClass()))
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting brush from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertSelectedBrushesToVolumes(ConvertToClass);
 				}
 				else
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting actor from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertActorsFromClass(ClassToReplace, ConvertToClass);
 				}
 
@@ -5715,10 +5714,13 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				{
 					// Converted by one of the above
 					check (1 == GEditor->GetSelectedActorCount());
-					NewActor = CastChecked< AActor >(GEditor->GetSelectedActors()->GetSelectedObject(0));
-
-					// Caches information for finding the new actor using the pre-converted actor.
-					ReattachActorsHelper::CacheActorConvert(ActorToConvert, NewActor, ConvertedMap, AttachmentInfo[ActorIdx]);
+					NewActor = Cast< AActor >(GEditor->GetSelectedActors()->GetSelectedObject(0));
+					if (ensureMsgf(NewActor, TEXT("Actor conversion of %s to %s failed"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName()))
+					{
+						// Caches information for finding the new actor using the pre-converted actor.
+						ReattachActorsHelper::CacheActorConvert(ActorToConvert, NewActor, ConvertedMap, AttachmentInfo[ActorIdx]);
+					}
+					
 				}
 				else
 				{
