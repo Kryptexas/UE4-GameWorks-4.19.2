@@ -2426,10 +2426,13 @@ namespace UnrealBuildTool
 		public static string GetReplacementModuleSuffix(List<OnlyModule> OnlyModules, string ModuleName)
 		{
 			// Check the OnlyModules list for a prefix
-			OnlyModule FoundModule = OnlyModules?.Find((OnlyModule) => OnlyModule.OnlyModuleName.Equals(ModuleName, StringComparison.InvariantCultureIgnoreCase));
-			if (FoundModule != null)
+			if (OnlyModules != null)
 			{
-				return FoundModule.OnlyModuleSuffix;
+				OnlyModule FoundModule = OnlyModules.Find((OnlyModule) => OnlyModule.OnlyModuleName.Equals(ModuleName, StringComparison.InvariantCultureIgnoreCase));
+				if (FoundModule != null)
+				{
+					return FoundModule.OnlyModuleSuffix;
+				}
 			}
 
 			// Generate a new random suffix
