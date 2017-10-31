@@ -9,7 +9,9 @@
 
 struct FPrivateTextFormatArguments;
 
-template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
+/// @cond DOXYGEN_WARNINGS
+template<typename KeyType, typename ValueType, typename SetAllocator, typename KeyFuncs > class TMap;
+/// @endcond
 
 /**
  * Plural form argument modifier.
