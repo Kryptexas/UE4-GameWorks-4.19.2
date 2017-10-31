@@ -6,7 +6,6 @@
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "IAnimationBlueprintEditorModule.h"
-#include "AnimBlueprintCompiler.h"
 
 struct FAnimationGraphNodeFactory;
 struct FAnimationGraphPinFactory;
@@ -49,9 +48,4 @@ private:
 	TSharedPtr<FAnimationGraphNodeFactory> AnimGraphNodeFactory;
 	TSharedPtr<FAnimationGraphPinFactory> AnimGraphPinFactory;
 	TSharedPtr<FAnimationGraphPinConnectionFactory> AnimGraphPinConnectionFactory;
-
-	static TSharedPtr<FKismetCompilerContext> GetCompiler(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
-
-	/** Compiler customization for animation controllers */
-	FAnimBlueprintCompiler AnimBlueprintCompiler;
 };

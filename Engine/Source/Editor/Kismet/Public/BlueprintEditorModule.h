@@ -90,7 +90,6 @@ public:
 };
 
 DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<class ISCSEditorCustomization>, FSCSEditorCustomizationBuilder, TSharedRef< IBlueprintEditor > /* InBlueprintEditor */);
-DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<FKismetCompilerContext>, FOnGetBlueprintCompiler, UBlueprint*, FCompilerResultsLog&, const FKismetCompilerOptions&);
 
 /**
  * The blueprint editor module provides the blueprint editor application.
@@ -193,24 +192,6 @@ public:
 	DECLARE_EVENT_OneParam( FBlueprintEditorModule, FBlueprintEditorOpenedEvent, EBlueprintType );
 	FBlueprintEditorOpenedEvent& OnBlueprintEditorOpened() { return BlueprintEditorOpened; }
 
-	/**
-	 * Register custom compiler getter for the specific blueprint class (ex. UAnimBlueprint vs UBlueprint)
-	 * @param	UBlueprint class		The Blueprint derived class type 
-	 * @param	InCompilerGetter		The delegate for compiler getter
-	 */
-	KISMET_API static void RegisterCompilerGetter(const TSubclassOf<UBlueprint> BlueprintType, FOnGetBlueprintCompiler InCompilerGetter);
-
-	/**
-	 * Unregister a previously registered compiler getter for the specific blueprint class (ex. UAnimBlueprint vs UBlueprint)
-	 * @param	UBlueprint class		The Blueprint derived class type 
-	 */
-	KISMET_API static void UnregisterCompilerGetter(const TSubclassOf<UBlueprint> BlueprintType);
-
-	/** 
-	 * Return compiler for the specific blueprint instance
-	 */
-	static TSharedPtr<FKismetCompilerContext> GetCompiler(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
-
 	/** 
 	 * Exposes a way for other modules to fold in their own Blueprint editor 
 	 * commands (folded in with other BP editor commands, when the editor is 
@@ -252,7 +233,4 @@ private:
 
 	/** Reference to keep our custom configuration panel alive */
 	TSharedPtr<SWidget> ConfigurationPanel;
-
-	/** list of compiler getters for the blueprint types */
-	static TMap<TSubclassOf<UBlueprint>, FOnGetBlueprintCompiler> BlueprintCompilers;
 };
