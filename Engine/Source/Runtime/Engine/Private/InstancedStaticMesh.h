@@ -170,6 +170,9 @@ private:
 	void AllocateData(FStaticMeshInstanceData& Other, bool bRequestsCPUAccess);
 
 	void UpdateRHIVertexBuffer(int32 StartingIndex, uint32 InstanceCount);
+
+	void CreateVertexBuffer(FResourceArrayInterface* InResourceArray, uint32 InUsage, uint32 InStride, uint8 InFormat, FVertexBufferRHIRef& OutVertexBufferRHI, FShaderResourceViewRHIRef& OutInstanceSRV);
+	bool UpdateDynamicVertexBuffer(int32 StartingIndex, uint32 InstanceCount, uint32 Stride, FVertexBufferRHIRef VetexBuffer, FResourceArrayInterface* ResourceArray);
 	
 	bool ComponentRequestsCPUAccess(UInstancedStaticMeshComponent* InComponent);
 };

@@ -1035,6 +1035,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	}
 	else
 	{
+		Component->InitPerInstanceRenderData(false);
 		Component->InvalidateLightingCache();
 	}
 

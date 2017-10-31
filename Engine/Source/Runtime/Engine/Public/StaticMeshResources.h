@@ -722,7 +722,6 @@ class FStaticMeshInstanceData
 		F InstanceTransform1[4];
 		F InstanceTransform2[4];
 		F InstanceTransform3[4];
-		bool IsUsed;
 
 		friend FArchive& operator<<(FArchive& Ar, FInstanceTransformMatrix& V)
 		{
@@ -807,6 +806,7 @@ public:
 
 	void AllocateInstances(int32 InNumInstances, bool DestroyExistingInstances)
 	{
+		int32 Delta = InNumInstances - NumInstances;
 		NumInstances = InNumInstances;
 
 		if (DestroyExistingInstances)
@@ -826,6 +826,14 @@ public:
 
 		InstanceTransformData->ResizeBuffer(NumInstances);
 		InstanceTransformDataPtr = InstanceTransformData->GetDataPointer();
+
+		if (Delta > 0)
+		{
+			for (int32 i = 0; i < Delta; ++i)
+			{
+				InstancesUsage.Add(false);
+			}
+		}
 	}
 
 	FORCEINLINE int32 IsValidIndex(int32 Index) const
@@ -885,36 +893,10 @@ public:
 
 	FORCEINLINE int32 GetNextAvailableInstanceIndex() const
 	{
-		for (int32 i = 0; i < NumInstances; ++i)
-		{
-			if (bUseHalfFloat)
-			{
-				FInstanceTransformMatrix<FFloat16>* ElementData = reinterpret_cast<FInstanceTransformMatrix<FFloat16>*>(InstanceTransformData[i].GetDataPointer());
-				check((void*)((&ElementData[i]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
-				check((void*)((&ElementData[i]) + 0) >= (void*)(InstanceTransformDataPtr));
-
-				if (!ElementData->IsUsed)
-				{
-					return i;
-				}
-			}
-			else
-			{
-				FInstanceTransformMatrix<float>* ElementData = reinterpret_cast<FInstanceTransformMatrix<float>*>(InstanceTransformData[i].GetDataPointer());
-				check((void*)((&ElementData[i]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
-				check((void*)((&ElementData[i]) + 0) >= (void*)(InstanceTransformDataPtr));
-
-				if (!ElementData->IsUsed)
-				{
-					return i;
-				}
-			}
-		}
-
-		return INDEX_NONE;
+		return InstancesUsage.Find(false);
 	}
 
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
+	void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
 	{
 		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
 		SetInstanceOriginInternal(InstanceIndex, Origin);
@@ -926,17 +908,19 @@ public:
 
 		if (bUseHalfFloat)
 		{
-			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
 	{
 		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
 		SetInstanceOriginInternal(InstanceIndex, Origin);
@@ -948,14 +932,16 @@ public:
 
 		if (bUseHalfFloat)
 		{
-			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(LightmapUVBias.X, LightmapUVBias.Y, ShadowmapUVBias.X, ShadowmapUVBias.Y));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
 	FORCEINLINE void NullifyInstance(int32 InstanceIndex)
@@ -969,14 +955,16 @@ public:
 
 		if (bUseHalfFloat)
 		{
-			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform, false);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform, false);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = false;
 	}
 
 	FORCEINLINE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
@@ -988,7 +976,7 @@ public:
 			InstanceTransform[0][3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
 			InstanceTransform[1][3] = (float)HitProxyColor.G;
 			InstanceTransform[2][3] = (float)HitProxyColor.B;
-			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
@@ -996,8 +984,10 @@ public:
 			InstanceTransform[0][3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
 			InstanceTransform[1][3] = (float)HitProxyColor.G;
 			InstanceTransform[2][3] = (float)HitProxyColor.B;
-			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform, true);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 
 	FORCEINLINE void SwapInstance(int32 Index1, int32 Index2)
@@ -1150,7 +1140,7 @@ private:
 	}
 
 	template<typename T>
-	FORCEINLINE void SetInstanceTransformInternal(int32 InstanceIndex, FVector4(Transform)[3], bool InIsUsed) const
+	void SetInstanceTransformInternal(int32 InstanceIndex, FVector4(Transform)[3]) const
 	{
 		FInstanceTransformMatrix<T>* ElementData = reinterpret_cast<FInstanceTransformMatrix<T>*>(InstanceTransformDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
@@ -1170,8 +1160,6 @@ private:
 		ElementData[InstanceIndex].InstanceTransform3[1] = Transform[2][1];
 		ElementData[InstanceIndex].InstanceTransform3[2] = Transform[2][2];
 		ElementData[InstanceIndex].InstanceTransform3[3] = Transform[2][3];
-
-		ElementData->IsUsed = InIsUsed;
 	}
 
 	FORCEINLINE void SetInstanceOriginInternal(int32 InstanceIndex, const FVector4& Origin) const
@@ -1203,6 +1191,8 @@ private:
 
 	FStaticMeshVertexDataInterface* InstanceLightmapData = nullptr;
 	uint8* InstanceLightmapDataPtr = nullptr;	
+
+	TBitArray<> InstancesUsage;
 
 	int32 NumInstances = 0;
 	const bool bUseHalfFloat = false;

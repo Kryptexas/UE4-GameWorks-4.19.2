@@ -98,7 +98,10 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	int32 NumRenderInstances = InComponent->PerInstanceSMData.Num() - InComponent->RemovedInstances.Num();
 
 	// Allocate the vertex data storage type.
-	InstanceData->AllocateInstances(NumRenderInstances, false);
+	if (NumRenderInstances >= InstanceData->GetNumInstances())
+	{
+		InstanceData->AllocateInstances(NumRenderInstances, false);
+	}
 
 	NumInstances = InstanceData->GetNumInstances();
 
@@ -245,38 +248,9 @@ void FStaticMeshInstanceBuffer::InitRHI()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitRHI);
 	
 	auto AccessFlags = IsDynamic ? BUF_Dynamic : BUF_Static;
-	{
-		FResourceArrayInterface* ResourceArray = InstanceData->GetOriginResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceOriginBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceOriginSRV = RHICreateShaderResourceView(InstanceOriginBuffer.VertexBufferRHI, 16, PF_A32B32G32R32F);
-		}
-	}
-	{
-		FResourceArrayInterface* ResourceArray = InstanceData->GetTransformResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceTransformBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceTransformSRV = RHICreateShaderResourceView(InstanceTransformBuffer.VertexBufferRHI, InstanceData->GetTranslationUsesHalfs() ? 8 : 16, InstanceData->GetTranslationUsesHalfs() ? PF_FloatRGBA : PF_A32B32G32R32F);
-		}
-	}
-	{
-		// TODO: possibility over allocated the vertex buffer when we support partial update for when working in the editor
-		// Create the vertex buffer.
-		FResourceArrayInterface* ResourceArray = InstanceData->GetLightMapResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceLightmapBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceLightmapSRV = RHICreateShaderResourceView(InstanceTransformBuffer.VertexBufferRHI, 8, PF_R16G16B16A16_SNORM);
-		}
-	}
+	CreateVertexBuffer(InstanceData->GetOriginResourceArray(), AccessFlags | BUF_ShaderResource, 16, PF_A32B32G32R32F, InstanceOriginBuffer.VertexBufferRHI, InstanceOriginSRV);
+	CreateVertexBuffer(InstanceData->GetTransformResourceArray(), AccessFlags | BUF_ShaderResource, InstanceData->GetTranslationUsesHalfs() ? 8 : 16, InstanceData->GetTranslationUsesHalfs() ? PF_FloatRGBA : PF_A32B32G32R32F, InstanceTransformBuffer.VertexBufferRHI, InstanceTransformSRV);
+	CreateVertexBuffer(InstanceData->GetLightMapResourceArray(), AccessFlags | BUF_ShaderResource, 8, PF_R16G16B16A16_SNORM, InstanceLightmapBuffer.VertexBufferRHI, InstanceLightmapSRV);
 }
 
 void FStaticMeshInstanceBuffer::ReleaseRHI()
@@ -300,6 +274,38 @@ void FStaticMeshInstanceBuffer::ReleaseResource()
 	InstanceOriginBuffer.ReleaseResource();
 	InstanceTransformBuffer.ReleaseResource();
 	InstanceLightmapBuffer.ReleaseResource();
+}
+
+void FStaticMeshInstanceBuffer::CreateVertexBuffer(FResourceArrayInterface* InResourceArray, uint32 InUsage, uint32 InStride, uint8 InFormat, FVertexBufferRHIRef& OutVertexBufferRHI, FShaderResourceViewRHIRef& OutInstanceSRV)
+{
+	if (InResourceArray->GetResourceDataSize() > 0)
+	{
+		// TODO: possibility over allocated the vertex buffer when we support partial update for when working in the editor
+		FRHIResourceCreateInfo CreateInfo(InResourceArray);
+		OutVertexBufferRHI = RHICreateVertexBuffer(InResourceArray->GetResourceDataSize(), InUsage, CreateInfo);
+		OutInstanceSRV = RHICreateShaderResourceView(OutVertexBufferRHI, InStride, InFormat);
+	}
+}
+
+bool FStaticMeshInstanceBuffer::UpdateDynamicVertexBuffer(int32 StartingIndex, uint32 InstanceCount, uint32 Stride, FVertexBufferRHIRef VetexBuffer, FResourceArrayInterface* ResourceArray)
+{
+	check(IsDynamic);
+
+	auto VertexBufferRHI = VetexBuffer;
+
+	uint32 UpdateSize = InstanceCount * Stride;
+	uint32 UpdateOffset = StartingIndex * Stride;
+
+	if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
+	{
+		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
+
+		FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+		return true;
+	}
+
+	return false;
 }
 
 void FStaticMeshInstanceBuffer::UpdateRHIVertexBuffer(const TSet<int32>& InIndexList)
@@ -335,80 +341,20 @@ void FStaticMeshInstanceBuffer::UpdateRHIVertexBuffer(int32 StartingIndex, uint3
 		return;
 	}
 
-	bool forcedUpdate = false;
+	bool ForcedUpdate = true;
+
+
 	if (IsDynamic)
 	{
+		if (UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetOriginStride(), InstanceOriginBuffer.VertexBufferRHI, InstanceData->GetOriginResourceArray()))
 		{
-			uint32 Stride = InstanceData->GetOriginStride();
-			auto VertexBufferRHI = InstanceOriginBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetOriginResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
+			UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetTransformStride(), InstanceTransformBuffer.VertexBufferRHI, InstanceData->GetTransformResourceArray());
+			UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetLightMapStride(), InstanceLightmapBuffer.VertexBufferRHI, InstanceData->GetLightMapResourceArray());
+			ForcedUpdate = false;
 		}
-
-		if(!forcedUpdate)
-		{
-			uint32 Stride = InstanceData->GetTransformStride();
-			auto VertexBufferRHI = InstanceTransformBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetTransformResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
-		}
-
-		if (!forcedUpdate)
-		{
-			uint32 Stride = InstanceData->GetLightMapStride();
-			auto VertexBufferRHI = InstanceLightmapBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetLightMapResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
-		}
-	}
-	else
-	{
-		forcedUpdate = true;
 	}
 	
-	if(forcedUpdate)// in non dynamic mode we have to recreate the RHI from scratch
+	if(ForcedUpdate)// in non dynamic mode we have to recreate the RHI from scratch
 	{
 		UpdateRHI();
 	}
@@ -1969,12 +1915,11 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFro
 		InstancingRandomSeed = FMath::Rand();
 	}
 
-	UWorld* World = GetWorld();
-
-	ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
-
 	if (!PerInstanceRenderData.IsValid())
 	{
+		UWorld* World = GetWorld();
+		ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
+
 		bool IsDynamic = UseDynamicInstanceBuffer;
 
 #if WITH_EDITOR
