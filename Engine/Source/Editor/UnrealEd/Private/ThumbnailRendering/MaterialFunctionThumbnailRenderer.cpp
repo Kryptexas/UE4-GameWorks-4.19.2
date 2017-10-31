@@ -24,8 +24,14 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 	UMaterialFunction* MatFunc = Cast<UMaterialFunction>(Object);
 	if (MatFunc != nullptr)
 	{
-		if ( ThumbnailScene == nullptr )
+		if (ThumbnailScene == nullptr || ensure(ThumbnailScene->GetWorld() != nullptr) == false)
 		{
+			if (ThumbnailScene)
+			{
+				FlushRenderingCommands();
+				delete ThumbnailScene;
+			}
+
 			ThumbnailScene = new FMaterialThumbnailScene();
 		}
 
