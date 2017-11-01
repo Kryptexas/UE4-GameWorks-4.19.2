@@ -8,7 +8,6 @@
 #include "K2Node_CallFunction.h"
 #include "Animation/AnimBlueprint.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "AnimBlueprintCompiler.h"
 
 IMPLEMENT_MODULE( FAnimationBlueprintEditorModule, AnimationBlueprintEditor);
 
@@ -29,23 +28,10 @@ void FAnimationBlueprintEditorModule::StartupModule()
 	FEdGraphUtilities::RegisterVisualPinConnectionFactory(AnimGraphPinConnectionFactory);
 
 	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimInstance::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FAnimationBlueprintEditorModule::OnNewBlueprintCreated));
-
-	// Register widget blueprint compiler we do this no matter what.
-	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-	KismetCompilerModule.GetCompilers().Add(&AnimBlueprintCompiler);
-
-	FBlueprintEditorModule::RegisterCompilerGetter(UAnimBlueprint::StaticClass(), FOnGetBlueprintCompiler::CreateStatic(&FAnimationBlueprintEditorModule::GetCompiler));
 }
 
 void FAnimationBlueprintEditorModule::ShutdownModule()
 {
-	IKismetCompilerInterface* KismetCompilerModule = FModuleManager::GetModulePtr<IKismetCompilerInterface>("KismetCompiler");
-	if (KismetCompilerModule)
-	{
-		KismetCompilerModule->GetCompilers().Remove(&AnimBlueprintCompiler);
-	}
-
-	FBlueprintEditorModule::UnregisterCompilerGetter(UAnimBlueprint::StaticClass());
 	FKismetEditorUtilities::UnregisterAutoBlueprintNodeCreation(this);
 
 	FEdGraphUtilities::UnregisterVisualNodeFactory(AnimGraphNodeFactory);
@@ -94,11 +80,5 @@ void FAnimationBlueprintEditorModule::OnNewBlueprintCreated(UBlueprint* InBluepr
 		EventGraph->AddNode(GetOwnerNode);
 	}
 }
-
-TSharedPtr<FKismetCompilerContext> FAnimationBlueprintEditorModule::GetCompiler(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
-{
-	return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompilerContext(CastChecked<UAnimBlueprint>(BP), InMessageLog, InCompileOptions, nullptr));
-}
-
 
 #undef LOCTEXT_NAMESPACE

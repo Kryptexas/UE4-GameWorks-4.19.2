@@ -6,6 +6,7 @@
 
 
 #include "KismetCompiler.h"
+#include "AnimBlueprintCompiler.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Misc/CoreMisc.h"
 #include "Components/ActorComponent.h"
@@ -4474,6 +4475,32 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	FGuid Ret = Node->NodeGuid;
 	Ret.D = ResultCRC;
 	return Ret.ToString();
+}
+
+TMap< UClass*, CompilerContextFactoryFunction> CustomCompilerMap;
+
+TSharedPtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+{
+	// Typically whatever loads the compiler module can also register it (or the module can self register). Due to load order
+	// issues anim blueprint is part of Engine and so there is no obvious place to register FAnimBlueprintCompilerContext,
+	// so I have simply hard-coded it:
+	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
+	{
+		return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompilerContext(AnimBP, InMessageLog, InCompileOptions, nullptr));
+	}
+	else if(CompilerContextFactoryFunction* FactoryFunction = CustomCompilerMap.Find(BP->GetClass()))
+	{
+		return (*FactoryFunction)(BP, InMessageLog, InCompileOptions);
+	}
+	else
+	{
+		return TSharedPtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+	}
+}
+
+void FKismetCompilerContext::RegisterCompilerForBP(UClass* BPClass, TFunction<TSharedPtr<FKismetCompilerContext>(UBlueprint*, FCompilerResultsLog&, const FKismetCompilerOptions&)> FactoryFunction)
+{
+	CustomCompilerMap.Add(BPClass, FactoryFunction);
 }
 
 #undef LOCTEXT_NAMESPACE

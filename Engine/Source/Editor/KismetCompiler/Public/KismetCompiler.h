@@ -35,6 +35,8 @@ enum class EInternalCompilerFlags
 };
 ENUM_CLASS_FLAGS(EInternalCompilerFlags)
 
+typedef TFunction<TSharedPtr<FKismetCompilerContext>(UBlueprint*, FCompilerResultsLog&, const FKismetCompilerOptions&)> CompilerContextFactoryFunction;
+
 class KISMETCOMPILER_API FKismetCompilerContext : public FGraphCompilerContext
 {
 protected:
@@ -257,6 +259,9 @@ public:
 	bool UsePersistentUberGraphFrame() const;
 
 	FString GetGuid(const UEdGraphNode* Node) const;
+
+	static TSharedPtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
+	static void RegisterCompilerForBP(UClass* BPClass, CompilerContextFactoryFunction FactoryFunction );
 
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();

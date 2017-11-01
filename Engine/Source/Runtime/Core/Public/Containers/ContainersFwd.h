@@ -2,6 +2,7 @@
 
 #pragma once
 
+/// @cond DOXYGEN_WARNINGS
 class FDefaultAllocator;
 class FDefaultSetAllocator;
 
@@ -14,3 +15,4 @@ template<typename KeyType, typename ValueType, typename SetAllocator = FDefaultS
 template<typename KeyType, typename ValueType, typename SetAllocator = FDefaultSetAllocator, typename KeyFuncs = TDefaultMapHashableKeyFuncs<KeyType, ValueType, true > > class TMultiMap;
 template <typename T = void > struct TLess;
 template<typename KeyType, typename ValueType, typename ArrayAllocator = FDefaultAllocator, typename SortPredicate = TLess<KeyType> > class TSortedMap;
+/// @endcond

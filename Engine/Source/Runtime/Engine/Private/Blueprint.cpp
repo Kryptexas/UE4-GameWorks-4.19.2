@@ -616,6 +616,8 @@ extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
+	LoadModulesRequiredForCompilation();
+
 	if(GBlueprintUseCompilationManager)
 	{
 		// ensure that we have UProperties for any properties declared in the blueprint:
@@ -1823,9 +1825,13 @@ UEdGraph* UBlueprint::GetLastEditedUberGraph() const
 	return nullptr;
 }
 
+#endif //WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
 void UBlueprint::LoadModulesRequiredForCompilation()
 {
 	static const FName ModuleName(TEXT("KismetCompiler"));
 	FModuleManager::Get().LoadModule(ModuleName);
 }
-#endif //WITH_EDITOR
+#endif //WITH_EDITORONLY_DATA
+

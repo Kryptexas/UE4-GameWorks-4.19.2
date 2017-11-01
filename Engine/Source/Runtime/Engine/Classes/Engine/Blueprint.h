@@ -874,13 +874,15 @@ public:
 	void Message_Note(const FString& MessageToLog);
 	void Message_Warn(const FString& MessageToLog);
 	void Message_Error(const FString& MessageToLog);
+#endif
 	
+#if WITH_EDITORONLY_DATA
+protected:
 	/** 
-	 * Blueprint can choose to load specific modules for compilation
+	 * Blueprint can choose to load specific modules for compilation. Children are expected to call base implementation.
 	 */
 	virtual void LoadModulesRequiredForCompilation();
 #endif
-	
 };
 
 
