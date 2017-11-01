@@ -246,7 +246,7 @@ bool FPhysicsAssetEditorEditMode::InputKey(FEditorViewportClient* InViewportClie
 		InViewportClient->Invalidate();
 	}
 
-	return bHandled || SharedData->bManipulating;
+	return bHandled;
 }
 
 bool FPhysicsAssetEditorEditMode::InputAxis(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
