@@ -82,7 +82,7 @@ namespace FindInBlueprintsHelpers
 	/**
 	* Iterates through all the given tree node's children and tells the tree view to expand them
 	*/
-	void ExpandAllChildren(FSearchResult InTreeNode, TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView);
+	void ExpandAllChildren(FSearchResult InTreeNode, TSharedPtr<STreeView<TSharedPtr<FFindInBlueprintsResult>>> InTreeView);
 }
 
 /** Graph nodes use this class to store their data */

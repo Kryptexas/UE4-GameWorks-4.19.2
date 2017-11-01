@@ -95,12 +95,15 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	bool bUpdateAllInstances = UpdateInstanceIndexCount == InComponent->PerInstanceSMData.Num();
 	bool bUseRemapTable = InComponent->InstanceReorderTable.Num() > 0;
 
-	int32 NumRenderInstances = InComponent->PerInstanceSMData.Num() + InComponent->RemovedInstances.Num();
-
-	NumInstances = NumRenderInstances;
+	int32 NumRenderInstances = InComponent->PerInstanceSMData.Num() - InComponent->RemovedInstances.Num();
 
 	// Allocate the vertex data storage type.
-	InstanceData->AllocateInstances(NumInstances, false);
+	if (NumRenderInstances >= InstanceData->GetNumInstances())
+	{
+		InstanceData->AllocateInstances(NumRenderInstances, false);
+	}
+
+	NumInstances = InstanceData->GetNumInstances();
 
 	const FMeshMapBuildData* MeshMapBuildData = NULL;
 
@@ -121,6 +124,23 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 				DestInstanceIndex = InComponent->InstanceReorderTable.IsValidIndex(InstanceIndex) ? InComponent->InstanceReorderTable[InstanceIndex] : INDEX_NONE;
 			}
 
+			if (DestInstanceIndex == INDEX_NONE)
+			{
+				DestInstanceIndex = InstanceData->GetNextAvailableInstanceIndex();
+
+				if (DestInstanceIndex != INDEX_NONE)
+				{
+					InComponent->InstanceReorderTable.Add(DestInstanceIndex);
+				}
+			}
+			else
+			{
+				if (InComponent->RemovedInstances.Contains(DestInstanceIndex))
+				{
+					continue;
+				}
+			}
+
 			if (DestInstanceIndex != INDEX_NONE && InstanceData->IsValidIndex(DestInstanceIndex))
 			{
 				FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
@@ -134,6 +154,22 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 
 				InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
 
+				#if WITH_EDITOR
+					if (GIsEditor)
+					{
+						// Record if the instance is selected
+						FColor HitProxyColor(ForceInit);
+						bool bSelected = InComponent->SelectedInstances.IsValidIndex(InstanceIndex) && InComponent->SelectedInstances[InstanceIndex];
+
+						if (InHitProxies.IsValidIndex(InstanceIndex))
+						{
+							HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
+						}
+
+						InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+					}
+				#endif
+
 				if (!bUpdateAllInstances)
 				{
 					//TODO: to uncomment when RHI interface support proper vertex buffer partial update lock/unlock
@@ -141,10 +177,12 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 				}
 			}
 		}
+		else if (InstanceData->IsValidIndex(InstanceIndex))
+		{
+			InstanceData->NullifyInstance(InstanceIndex);
+		}
 	}
 
-	SetPerInstanceEditorData(InComponent, InHitProxies, UpdateInstanceStartingIndex, UpdateInstanceIndexCount);
-	
 	// Hide any removed instances
 	for (int32 Index = 0; Index < InComponent->RemovedInstances.Num(); Index++)
 	{
@@ -198,43 +236,6 @@ void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshCom
 	NumInstances = NewNumInstances;
 }
 
-void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies, int32 UpdateInstanceStartingIndex, int32 UpdateInstanceIndexCount)
-{
-#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		bool bUseRemapTable = InComponent->InstanceReorderTable.Num() > 0;
-		
-		for (int32 InstanceIndex = UpdateInstanceStartingIndex; InstanceIndex < UpdateInstanceStartingIndex + UpdateInstanceIndexCount; ++InstanceIndex)
-		{
-			if (InComponent->PerInstanceSMData.IsValidIndex(InstanceIndex))
-			{
-				int32 DestInstanceIndex = InstanceIndex;
-
-				if (bUseRemapTable)
-				{
-					DestInstanceIndex = InComponent->InstanceReorderTable.IsValidIndex(InstanceIndex) ? InComponent->InstanceReorderTable[InstanceIndex] : INDEX_NONE;
-				}
-
-				if (DestInstanceIndex != INDEX_NONE && InstanceData->IsValidIndex(DestInstanceIndex))
-				{
-					// Record if the instance is selected
-					FColor HitProxyColor(ForceInit);
-					bool bSelected = InComponent->SelectedInstances.IsValidIndex(InstanceIndex) && InComponent->SelectedInstances[InstanceIndex];
-
-					if (InHitProxies.IsValidIndex(InstanceIndex))
-					{
-						HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
-					}
-
-					InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
-				}
-			}
-		}
-	}
-#endif
-}
-
 /**
  * Specialized assignment operator, only used when importing LOD's.  
  */
@@ -250,38 +251,9 @@ void FStaticMeshInstanceBuffer::InitRHI()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitRHI);
 	
 	auto AccessFlags = IsDynamic ? BUF_Dynamic : BUF_Static;
-	{
-		FResourceArrayInterface* ResourceArray = InstanceData->GetOriginResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceOriginBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceOriginSRV = RHICreateShaderResourceView(InstanceOriginBuffer.VertexBufferRHI, 16, PF_A32B32G32R32F);
-		}
-	}
-	{
-		FResourceArrayInterface* ResourceArray = InstanceData->GetTransformResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceTransformBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceTransformSRV = RHICreateShaderResourceView(InstanceTransformBuffer.VertexBufferRHI, InstanceData->GetTranslationUsesHalfs() ? 8 : 16, InstanceData->GetTranslationUsesHalfs() ? PF_FloatRGBA : PF_A32B32G32R32F);
-		}
-	}
-	{
-		// TODO: possibility over allocated the vertex buffer when we support partial update for when working in the editor
-		// Create the vertex buffer.
-		FResourceArrayInterface* ResourceArray = InstanceData->GetLightMapResourceArray();
-		if (ResourceArray->GetResourceDataSize())
-		{
-			// Create the vertex buffer.
-			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			InstanceLightmapBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), AccessFlags | BUF_ShaderResource, CreateInfo);
-			InstanceLightmapSRV = RHICreateShaderResourceView(InstanceTransformBuffer.VertexBufferRHI, 8, PF_R16G16B16A16_SNORM);
-		}
-	}
+	CreateVertexBuffer(InstanceData->GetOriginResourceArray(), AccessFlags | BUF_ShaderResource, 16, PF_A32B32G32R32F, InstanceOriginBuffer.VertexBufferRHI, InstanceOriginSRV);
+	CreateVertexBuffer(InstanceData->GetTransformResourceArray(), AccessFlags | BUF_ShaderResource, InstanceData->GetTranslationUsesHalfs() ? 8 : 16, InstanceData->GetTranslationUsesHalfs() ? PF_FloatRGBA : PF_A32B32G32R32F, InstanceTransformBuffer.VertexBufferRHI, InstanceTransformSRV);
+	CreateVertexBuffer(InstanceData->GetLightMapResourceArray(), AccessFlags | BUF_ShaderResource, 8, PF_R16G16B16A16_SNORM, InstanceLightmapBuffer.VertexBufferRHI, InstanceLightmapSRV);
 }
 
 void FStaticMeshInstanceBuffer::ReleaseRHI()
@@ -305,6 +277,38 @@ void FStaticMeshInstanceBuffer::ReleaseResource()
 	InstanceOriginBuffer.ReleaseResource();
 	InstanceTransformBuffer.ReleaseResource();
 	InstanceLightmapBuffer.ReleaseResource();
+}
+
+void FStaticMeshInstanceBuffer::CreateVertexBuffer(FResourceArrayInterface* InResourceArray, uint32 InUsage, uint32 InStride, uint8 InFormat, FVertexBufferRHIRef& OutVertexBufferRHI, FShaderResourceViewRHIRef& OutInstanceSRV)
+{
+	if (InResourceArray->GetResourceDataSize() > 0)
+	{
+		// TODO: possibility over allocated the vertex buffer when we support partial update for when working in the editor
+		FRHIResourceCreateInfo CreateInfo(InResourceArray);
+		OutVertexBufferRHI = RHICreateVertexBuffer(InResourceArray->GetResourceDataSize(), InUsage, CreateInfo);
+		OutInstanceSRV = RHICreateShaderResourceView(OutVertexBufferRHI, InStride, InFormat);
+	}
+}
+
+bool FStaticMeshInstanceBuffer::UpdateDynamicVertexBuffer(int32 StartingIndex, uint32 InstanceCount, uint32 Stride, FVertexBufferRHIRef VetexBuffer, FResourceArrayInterface* ResourceArray)
+{
+	check(IsDynamic);
+
+	auto VertexBufferRHI = VetexBuffer;
+
+	uint32 UpdateSize = InstanceCount * Stride;
+	uint32 UpdateOffset = StartingIndex * Stride;
+
+	if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
+	{
+		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
+
+		FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+		return true;
+	}
+
+	return false;
 }
 
 void FStaticMeshInstanceBuffer::UpdateRHIVertexBuffer(const TSet<int32>& InIndexList)
@@ -340,80 +344,20 @@ void FStaticMeshInstanceBuffer::UpdateRHIVertexBuffer(int32 StartingIndex, uint3
 		return;
 	}
 
-	bool forcedUpdate = false;
+	bool ForcedUpdate = true;
+
+
 	if (IsDynamic)
 	{
+		if (UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetOriginStride(), InstanceOriginBuffer.VertexBufferRHI, InstanceData->GetOriginResourceArray()))
 		{
-			uint32 Stride = InstanceData->GetOriginStride();
-			auto VertexBufferRHI = InstanceOriginBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetOriginResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
+			UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetTransformStride(), InstanceTransformBuffer.VertexBufferRHI, InstanceData->GetTransformResourceArray());
+			UpdateDynamicVertexBuffer(StartingIndex, InstanceCount, InstanceData->GetLightMapStride(), InstanceLightmapBuffer.VertexBufferRHI, InstanceData->GetLightMapResourceArray());
+			ForcedUpdate = false;
 		}
-
-		if(!forcedUpdate)
-		{
-			uint32 Stride = InstanceData->GetTransformStride();
-			auto VertexBufferRHI = InstanceTransformBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetTransformResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
-		}
-
-		if (!forcedUpdate)
-		{
-			uint32 Stride = InstanceData->GetLightMapStride();
-			auto VertexBufferRHI = InstanceLightmapBuffer.VertexBufferRHI;
-
-			uint32 UpdateSize = InstanceCount * Stride;
-			uint32 UpdateOffset = StartingIndex * Stride;
-
-			if (UpdateOffset + UpdateSize <= VertexBufferRHI->GetSize()) // we can only update the buffer
-			{
-				void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, UpdateOffset, UpdateSize, RLM_WriteOnly);
-				FResourceArrayInterface* ResourceArray = InstanceData->GetLightMapResourceArray();
-
-				FMemory::Memcpy(VertexBufferData, (uint8*)ResourceArray->GetResourceData() + UpdateOffset, UpdateSize);
-				RHIUnlockVertexBuffer(VertexBufferRHI);
-			}
-			else // not enough space, so must recreate the RHI resource with proper size
-			{
-				forcedUpdate = true;
-			}
-		}
-	}
-	else
-	{
-		forcedUpdate = true;
 	}
 	
-	if(forcedUpdate)// in non dynamic mode we have to recreate the RHI from scratch
+	if(ForcedUpdate)// in non dynamic mode we have to recreate the RHI from scratch
 	{
 		UpdateRHI();
 	}
@@ -887,6 +831,7 @@ void FInstancedStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInst
 UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, UseDynamicInstanceBuffer(false)
+	, KeepInstanceBufferCPUAccess(true)
 	, bPerInstanceRenderDataWasPrebuilt(false)
 {
 	Mobility = EComponentMobility::Movable;
@@ -894,14 +839,6 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
 	bDisallowMeshPaintPerInstance = true;
-
-	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
-	{
-		while (InstancingRandomSeed == 0)
-		{
-			InstancingRandomSeed = FMath::Rand();
-		}
-	}
 }
 
 UInstancedStaticMeshComponent::~UInstancedStaticMeshComponent()
@@ -1074,7 +1011,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 		}
 
 		const bool bSupportsVertexHalfFloat = GVertexElementTypeSupport.IsSupported(VET_Half2);
-		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num(), bSupportsVertexHalfFloat);
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceRenderData->InstanceBuffer.GetNumInstances(), bSupportsVertexHalfFloat);
 		return ::new FInstancedStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
 	}
 	else
@@ -1466,7 +1403,7 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 
 		MeshBuildData.IrrelevantLights = PossiblyIrrelevantLights.Array();
 
-		PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());		
+		PerInstanceRenderData->UpdateAllInstanceData(this);
 	}
 }
 #endif
@@ -1530,12 +1467,16 @@ void UInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 #endif
 }
 
-int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
+int32 UInstancedStaticMeshComponent::AddInstanceInternal(int32 InstanceIndex, FInstancedStaticMeshInstanceData* InNewInstanceData, const FTransform& InstanceTransform)
 {
-	int InstanceIdx = PerInstanceSMData.Num();
+	FInstancedStaticMeshInstanceData* NewInstanceData = InNewInstanceData;
 
-	FInstancedStaticMeshInstanceData* NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
-	SetupNewInstanceData(*NewInstanceData, InstanceIdx, InstanceTransform);
+	if (NewInstanceData == nullptr)
+	{
+		NewInstanceData = new(PerInstanceSMData) FInstancedStaticMeshInstanceData();
+	}
+
+	SetupNewInstanceData(*NewInstanceData, InstanceIndex, InstanceTransform);
 
 #if WITH_EDITOR
 	if (SelectedInstances.Num())
@@ -1544,16 +1485,45 @@ int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTrans
 	}
 #endif
 
+	int32 UpdateInstanceCount = 1;
+
+	if (!InstanceReorderTable.Contains(InstanceIndex))
+	{
+		InstanceReorderTable.Add(InstanceIndex);
+	}
+	else
+	{
+		InstanceReorderTable.Insert(InstanceIndex, InstanceIndex);
+
+		for (int32 i = InstanceIndex + 1; i < InstanceReorderTable.Num(); ++i)
+		{
+			InstanceReorderTable[i] = i;
+		}
+
+		UpdateInstanceCount = InstanceReorderTable.Num() - InstanceIndex;
+	}
+
 	if (PerInstanceRenderData.IsValid())
 	{
-		PerInstanceRenderData->UpdateInstanceData(this, InstanceIdx);
+		PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, UpdateInstanceCount);
 	}
+
+	PartialNavigationUpdate(InstanceIndex);
 
 	MarkRenderStateDirty();
 
-	PartialNavigationUpdate(InstanceIdx);
+	return InstanceIndex;
+}
 
-	return InstanceIdx;
+int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
+{
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
+		return INDEX_NONE;
+	}
+
+	return AddInstanceInternal(PerInstanceSMData.Num(), nullptr, InstanceTransform);
 }
 
 int32 UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
@@ -1563,18 +1533,58 @@ int32 UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& Wor
 	return AddInstance(RelativeTM);
 }
 
-bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+bool UInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex, bool ReorderInstances, bool InstanceAlreadyRemoved)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
 	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
 	}
 
 	// Request navigation update
 	PartialNavigationUpdate(InstanceIndex);
 
+	// Save the render index
+	int32 RemovedRenderIndex = InstanceIndex;
+
+	if (InstanceReorderTable.Num() > 0 && InstanceReorderTable.IsValidIndex(InstanceIndex))
+	{
+		RemovedRenderIndex = InstanceReorderTable[InstanceIndex];
+	}
+
+	if (RemovedRenderIndex != INDEX_NONE)
+	{
+		RemovedInstances.Add(RemovedRenderIndex);
+	}
+
+	if (PerInstanceRenderData.IsValid())
+	{
+		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
+	}
+
+	if (InstanceReorderTable.IsValidIndex(InstanceIndex))
+	{
+		InstanceReorderTable.RemoveAt(InstanceIndex);
+	}
+
+	if (ReorderInstances)
+	{
+		for (int32 i = InstanceIndex; i < InstanceReorderTable.Num(); ++i)
+		{
+			InstanceReorderTable[i] = i;
+		}
+
+		if (PerInstanceRenderData.IsValid())
+		{
+			PerInstanceRenderData->UpdateInstanceData(this, InstanceIndex, PerInstanceRenderData->InstanceBuffer.GetNumInstances() - InstanceIndex);
+		}
+	}
+
 	// remove instance
-	PerInstanceSMData.RemoveAt(InstanceIndex);
+	if (!InstanceAlreadyRemoved && PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		PerInstanceSMData.RemoveAt(InstanceIndex);
+	}
 
 #if WITH_EDITOR
 	// remove selection flag if array is filled in
@@ -1591,16 +1601,18 @@ bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
 		ClearAllInstanceBodies();
 		CreateAllInstanceBodies();
 	}
-		
-	if (PerInstanceRenderData.IsValid())
-	{
-		PerInstanceRenderData->RemoveInstanceData(this, InstanceIndex);
-	}
+
+	RemovedInstances.Reset();
 
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
 	return true;
+}
+
+bool UInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+{
+	return RemoveInstanceInternal(InstanceIndex, false, false);
 }
 
 bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace) const
@@ -1643,6 +1655,12 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
+		return false;
+	}
+
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
 	}
 
@@ -1893,19 +1911,18 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 	}
 }
 
-void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, bool RequireCPUAccess, FStaticMeshInstanceData* InSharedInstanceBufferData)
+void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData)
 {
 	while (InstancingRandomSeed == 0)
 	{
 		InstancingRandomSeed = FMath::Rand();
 	}
 
-	UWorld* World = GetWorld();
-
-	ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
-
 	if (!PerInstanceRenderData.IsValid())
 	{
+		UWorld* World = GetWorld();
+		ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
+
 		bool IsDynamic = UseDynamicInstanceBuffer;
 
 #if WITH_EDITOR
@@ -1920,13 +1937,23 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFro
 
 		if (InSharedInstanceBufferData != nullptr)
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic, RequireCPUAccess));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, *InSharedInstanceBufferData, FeatureLevel, IsDynamic, KeepInstanceBufferCPUAccess));
 			bPerInstanceRenderDataWasPrebuilt = true;
 		}
 		else
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, RequireCPUAccess, InitializeFromCurrentData));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, KeepInstanceBufferCPUAccess, InitializeFromCurrentData));
 		}
+	}
+}
+
+void UInstancedStaticMeshComponent::OnComponentCreated()
+{
+	Super::OnComponentCreated();
+
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		InitPerInstanceRenderData(PerInstanceSMData.Num() > 0);
 	}
 }
 
@@ -1934,7 +1961,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 	{
 		InitPerInstanceRenderData(false);
 
@@ -1952,7 +1979,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 			}
 			else
 			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+				PerInstanceRenderData->UpdateAllInstanceData(this);
 			}
 		}
 	}
@@ -1965,8 +1992,8 @@ void FAsyncBuildInstanceBuffer::DoWork()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageAsyncBufferUpdate);
 
 	check(Component->PerInstanceRenderData.IsValid());
-	Component->PerInstanceRenderData->UpdateInstanceData(Component, 0, Component->PerInstanceSMData.Num());
-
+	Component->PerInstanceRenderData->UpdateAllInstanceData(Component);
+	
 	check(World);
 	check(World->AsyncPreRegisterLevelStreamingTasks.GetValue() > 0);
 	FPlatformMisc::MemoryBarrier();
@@ -2088,23 +2115,30 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 {
 	if(PropertyChangedEvent.Property != NULL)
 	{
-		if (PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData")
+		// Only permit editing archetype or instance if instance was changed by an archetype
+		if (PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData" && (HasAnyFlags(RF_ArchetypeObject|RF_ClassDefaultObject) ||  PropertyChangedEvent.HasArchetypeInstanceChanged(this)))
 		{
-			if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd)
+			if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayAdd
+				|| PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 			{
 				int32 AddedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
 				check(AddedAtIndex != INDEX_NONE);
-				SetupNewInstanceData(PerInstanceSMData[AddedAtIndex], AddedAtIndex, FTransform::Identity);
+
+				AddInstanceInternal(AddedAtIndex, &PerInstanceSMData[AddedAtIndex], FTransform::Identity);
 
 				// added via the property editor, so we will want to interactively work with instances
 				bHasPerInstanceHitProxies = true;
+			}
+			else if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayRemove)
+			{
+				int32 RemovedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
+				check(RemovedAtIndex != INDEX_NONE);
 
-				if (PerInstanceRenderData.IsValid())
-				{
-					PerInstanceRenderData->UpdateInstanceData(this, AddedAtIndex);
-				}
-
-				PartialNavigationUpdate(AddedAtIndex);
+				RemoveInstanceInternal(RemovedAtIndex, true, true);
+			}
+			else if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayClear)
+			{
+				ClearInstances();
 			}
 
 			MarkRenderStateDirty();
@@ -2113,14 +2147,15 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 		{
 			if (PerInstanceRenderData.IsValid())
 			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+				PerInstanceRenderData->UpdateAllInstanceData(this);
 			}
 
 			PartialNavigationUpdate(-1);
 
 			MarkRenderStateDirty();
 		}
-		else if (PropertyChangedEvent.Property->GetFName() == "UseDynamicInstanceBuffer")
+		else if (PropertyChangedEvent.Property->GetFName() == "UseDynamicInstanceBuffer"
+			|| PropertyChangedEvent.Property->GetFName() == "KeepInstanceBufferCPUAccess")
 		{
 			// Force a full refresh of the instance buffer
 			ReleasePerInstanceRenderData();

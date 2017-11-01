@@ -43,7 +43,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, const FAnimat
 	bShowStats = InArgs._ShowStats;
 	bShowFloorOptions = InArgs._ShowFloorOptions;
 	bShowTurnTable = InArgs._ShowTurnTable;
-
+	bShowPhysicsMenu = InArgs._ShowPhysicsMenu;
 	InRequiredArgs.OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimationEditorViewport::OnUndoRedo));
 
 	SEditorViewport::Construct(
@@ -77,7 +77,8 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 		.ShowLODMenu(bShowLODMenu)
 		.ShowPlaySpeedMenu(bShowPlaySpeedMenu)
 		.ShowFloorOptions(bShowFloorOptions)
-		.ShowTurnTable(bShowTurnTable);
+		.ShowTurnTable(bShowTurnTable)
+		.ShowPhysicsMenu(bShowPhysicsMenu);
 }
 
 void SAnimationEditorViewport::OnUndoRedo()
@@ -248,7 +249,8 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 		.ShowPlaySpeedMenu(InArgs._ShowPlaySpeedMenu)
 		.ShowStats(InArgs._ShowStats)
 		.ShowFloorOptions(InArgs._ShowFloorOptions)
-		.ShowTurnTable(InArgs._ShowTurnTable);
+		.ShowTurnTable(InArgs._ShowTurnTable)
+		.ShowPhysicsMenu(InArgs._ShowPhysicsMenu);
 
 	TSharedPtr<SVerticalBox> ViewportContainer = nullptr;
 	this->ChildSlot

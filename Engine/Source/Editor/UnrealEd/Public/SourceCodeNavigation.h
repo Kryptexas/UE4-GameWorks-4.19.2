@@ -286,7 +286,14 @@ public:
 	/** Add multiple source files to the current solution/project/workspace */
 	UNREALED_API static bool AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths);
 
+	/** Open the current source code solution */
 	UNREALED_API static bool OpenModuleSolution();
+
+	/** Open the source code solution for the project at the given location */
+	UNREALED_API static bool OpenProjectSolution(const FString& InProjectPath);
+
+	/** Query if the current source code solution exists */
+	UNREALED_API static bool DoesModuleSolutionExist();
 
 	/** Attempt to locate fully qualified class module name */
 	UNREALED_API static bool FindClassModuleName( UClass* InClass, FString& ModuleName );

@@ -162,7 +162,7 @@ public:
 
 		for (; *OldFormat != 0; NewIndex++, OldFormat++)
 		{
-			// fix up %s -> %ls
+			// fix up %s -> %ls and %c -> %lc
 			if (OldFormat[0] == LITERAL(WIDECHAR, '%'))
 			{
 				NewFormat[NewIndex++] = *OldFormat++;
@@ -181,7 +181,7 @@ public:
 						++NextChar;
 					};
 
-					if (*NextChar == LITERAL(WIDECHAR, 's'))
+					if (*NextChar == LITERAL(WIDECHAR, 's') || *NextChar == LITERAL(WIDECHAR, 'c'))
 					{
 						NewFormat[NewIndex++] = LITERAL(WIDECHAR, 'l');
 						NewFormat[NewIndex] = *NextChar;

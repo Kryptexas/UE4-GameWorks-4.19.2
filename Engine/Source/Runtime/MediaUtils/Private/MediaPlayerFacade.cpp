@@ -915,7 +915,7 @@ void FMediaPlayerFacade::ProcessAudioSamples(IMediaSamples& Samples, TRange<FTim
 
 	while (Samples.FetchAudio(TimeRange, Sample))
 	{
-		if (!AudioSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxAudioSinkDepth))
+		if (Sample.IsValid() && !AudioSampleSinks.Enqueue(Sample.ToSharedRef(), MediaPlayerFacade::MaxAudioSinkDepth))
 		{
 			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
 				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Audio sample sink overflow"), this);
@@ -931,7 +931,7 @@ void FMediaPlayerFacade::ProcessCaptionSamples(IMediaSamples& Samples, TRange<FT
 
 	while (Samples.FetchCaption(TimeRange, Sample))
 	{
-		if (!CaptionSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxCaptionSinkDepth))
+		if (Sample.IsValid() && !CaptionSampleSinks.Enqueue(Sample.ToSharedRef(), MediaPlayerFacade::MaxCaptionSinkDepth))
 		{
 			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
 				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Caption sample sink overflow"), this);
@@ -947,7 +947,7 @@ void FMediaPlayerFacade::ProcessMetadataSamples(IMediaSamples& Samples, TRange<F
 
 	while (Samples.FetchMetadata(TimeRange, Sample))
 	{
-		if (!MetadataSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxMetadataSinkDepth))
+		if (Sample.IsValid() && !MetadataSampleSinks.Enqueue(Sample.ToSharedRef(), MediaPlayerFacade::MaxMetadataSinkDepth))
 		{
 			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
 				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Metadata sample sink overflow"), this);
@@ -963,7 +963,7 @@ void FMediaPlayerFacade::ProcessSubtitleSamples(IMediaSamples& Samples, TRange<F
 
 	while (Samples.FetchSubtitle(TimeRange, Sample))
 	{
-		if (!SubtitleSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxSubtitleSinkDepth))
+		if (Sample.IsValid() && !SubtitleSampleSinks.Enqueue(Sample.ToSharedRef(), MediaPlayerFacade::MaxSubtitleSinkDepth))
 		{
 			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
 				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Subtitle sample sink overflow"), this);
@@ -979,7 +979,7 @@ void FMediaPlayerFacade::ProcessVideoSamples(IMediaSamples& Samples, TRange<FTim
 
 	while (Samples.FetchVideo(TimeRange, Sample))
 	{
-		if (!VideoSampleSinks.Enqueue(Sample, MediaPlayerFacade::MaxVideoSinkDepth))
+		if (Sample.IsValid() && !VideoSampleSinks.Enqueue(Sample.ToSharedRef(), MediaPlayerFacade::MaxVideoSinkDepth))
 		{
 			#if MEDIAPLAYERFACADE_TRACE_SINKOVERFLOWS
 				UE_LOG(LogMediaUtils, VeryVerbose, TEXT("PlayerFacade %p: Video sample sink overflow"), this);

@@ -649,18 +649,7 @@ void FD3D12Viewport::IssueFrameEvent()
 
 bool FD3D12Viewport::CheckHDRSupport()
 {
-	// Check if the RHI supports HDR.
-	if (GRHISupportsHDROutput)
-	{
-		// Check if HDR is enabled.
-		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-		if (CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return GRHISupportsHDROutput && IsHDREnabled();
 }
 
 void FD3D12Viewport::AdvanceBackBufferFrame_RenderThread()

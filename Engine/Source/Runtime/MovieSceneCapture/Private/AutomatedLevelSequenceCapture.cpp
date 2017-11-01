@@ -541,8 +541,10 @@ void UAutomatedLevelSequenceCapture::SequenceUpdated(const UMovieSceneSequencePl
 		ALevelSequenceActor* Actor = LevelSequenceActor.Get();
 		if (Actor && Actor->SequencePlayer)
 		{
-			// If this is a new shot, set the state to shot warm up and pause on this frame until warmed up
-			bool bNewShot = !PreviousState.CurrentShotName.IdenticalTo(CachedState.CurrentShotName);
+			// If this is a new shot, set the state to shot warm up and pause on this frame until warmed up			
+			bool bHasMultipleShots = !PreviousState.CurrentShotName.IdenticalTo(PreviousState.MasterName);
+			bool bNewShot = bHasMultipleShots && PreviousState.ShotID != CachedState.ShotID;
+
 			if (bNewShot && Actor->SequencePlayer->IsPlaying() && DelayBeforeWarmUp > 0)
 			{
 				CaptureState = ELevelSequenceCaptureState::Paused;

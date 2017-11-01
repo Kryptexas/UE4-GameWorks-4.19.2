@@ -16,6 +16,13 @@
 #include "Sound/SoundCue.h"
 #include "AudioDevice.h"
 
+// Console platforms default HDR to on in the user settings, since this setting may not actually be exposed.
+#if PLATFORM_XBOXONE || PLATFORM_PS4
+const bool GUserSettingsDefaultHDRValue = true;
+#else
+const bool GUserSettingsDefaultHDRValue = false;
+#endif
+
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 enum EGameUserSettingsVersion
@@ -199,7 +206,7 @@ void UGameUserSettings::SetToDefaults()
 		UpdateResolutionQuality();
 	}
 
-	bUseHDRDisplayOutput = false;
+	bUseHDRDisplayOutput = GUserSettingsDefaultHDRValue;
 	HDRDisplayOutputNits = 1000;
 }
 
@@ -342,10 +349,13 @@ void UGameUserSettings::ValidateSettings()
 		LastUserConfirmedResolutionSizeY = ResolutionSizeY;
 	}
 
+#if !PLATFORM_PS4 && !PLATFORM_XBOXONE
+	// We do not modify the user setting on console if HDR is not supported
 	if (bUseHDRDisplayOutput && !SupportsHDRDisplayOutput())
 	{
 		bUseHDRDisplayOutput = false;
 	}
+#endif
 
 	// The user settings have now been validated for the current version.
 	UpdateVersion();
@@ -406,14 +416,10 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	}
 #endif
 
-	if (bUseHDRDisplayOutput && !bWithEditor)
-	{
-		EnableHDRDisplayOutput(true, HDRDisplayOutputNits);
-	}
-	else
-	{
-		EnableHDRDisplayOutput(false, HDRDisplayOutputNits);
-	}
+	static IConsoleVariable* CVarHDROutputAllowed = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowHDR"));
+	bool bEnableHDR = ( ( CVarHDROutputAllowed->GetInt() != 0 ) && bUseHDRDisplayOutput && !bWithEditor );
+
+	EnableHDRDisplayOutput(bEnableHDR, HDRDisplayOutputNits);
 }
 
 void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrides)
@@ -537,14 +543,22 @@ void UGameUserSettings::PreloadResolutionSettings()
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 		}
 #endif
-
-		if (GConfig->GetBool(*GameUserSettingsCategory, TEXT("bUseHDRDisplayOutput"), bUseHDR, GGameUserSettingsIni))
+		// Initialize HDR based on the high level switch and user settings
+		static const auto CVarHDRAllow = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowHDR"));
+		if (CVarHDRAllow && CVarHDRAllow->GetValueOnAnyThread() != 0)
 		{
-			static auto CVarHDROutputEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.EnableHDROutput"));
-			if (CVarHDROutputEnabled)
+			bool bUserSettingsUseHdr = GUserSettingsDefaultHDRValue;
+			if (GConfig->GetBool(*GameUserSettingsCategory, TEXT("bUseHDRDisplayOutput"), bUserSettingsUseHdr, GGameUserSettingsIni))
 			{
-				CVarHDROutputEnabled->Set(bUseHDR ? 1 : 0, ECVF_SetByGameSetting);
+				bUseHDR = bUserSettingsUseHdr;
 			}
+		}
+
+		// Set the HDR switch
+		static auto CVarHDROutputEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.EnableHDROutput"));
+		if (CVarHDROutputEnabled)
+		{
+			CVarHDROutputEnabled->Set(bUseHDR ? 1 : 0, ECVF_SetByGameSetting);
 		}
 	}
 
@@ -784,6 +798,10 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 
 	if (ensure(CVarHDROutputDevice && CVarHDRColorGamut && CVarHDROutputEnabled))
 	{
+#if DO_CHECK
+		static IConsoleVariable* CVarHDROutputAllowed = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowHDR"));
+		check( CVarHDROutputAllowed && ( !bEnable || CVarHDROutputAllowed->GetInt() == 1 ) );
+#endif
 		if (bEnable && !GRHISupportsHDROutput)
 		{
 			UE_LOG(LogConsoleResponse, Display, TEXT("Tried to enable HDR display output but unsupported, forcing off."));
@@ -853,7 +871,10 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 		}
 
 		// Update final requested state for saved config
+#if !PLATFORM_PS4 && !PLATFORM_XBOXONE
+		// Do not override the user setting on console (we rely on the OS setting)
 		bUseHDRDisplayOutput = bEnable;
+#endif
 		HDRDisplayOutputNits = DisplayNitLevel;
 	}
 }

@@ -259,6 +259,12 @@ extern CORE_API void (*ResumeAsyncLoading)();
 /** Returns true if async loading is using the async loading thread */
 extern CORE_API bool(*IsAsyncLoadingMultithreaded)();
 
+/** Suspends texture updates caused by completed async IOs. */
+extern CORE_API void (*SuspendTextureStreamingRenderTasks)();
+
+/** Resume texture updates caused by completed async IOs. */
+extern CORE_API void (*ResumeTextureStreamingRenderTasks)();
+
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
 

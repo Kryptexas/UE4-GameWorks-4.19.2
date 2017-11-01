@@ -252,11 +252,11 @@ namespace UnrealBuildTool
 			// Emit a .symbols map file of the minified function names. (on -g2 builds this has no effect)
 			Result += " --emit-symbol-map";
 
-			if (LinkEnvironment.Configuration != CppConfiguration.Debug)
-			{
-				if (LinkEnvironment.bOptimizeForSize) Result += " -s OUTLINING_LIMIT=40000";
-				else Result += " -s OUTLINING_LIMIT=110000";
-			}
+//			if (LinkEnvironment.Configuration != CppConfiguration.Debug)
+//			{
+//				if (LinkEnvironment.bOptimizeForSize) Result += " -s OUTLINING_LIMIT=40000";
+//				else Result += " -s OUTLINING_LIMIT=110000";
+//			}
 
 			if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.Configuration == CppConfiguration.Development)
 			{
@@ -286,6 +286,7 @@ namespace UnrealBuildTool
 			Result += " -s BINARYEN=1 -s ALLOW_MEMORY_GROWTH=1";
 //			Result += " -s BINARYEN_METHOD=\\'native-wasm\\'";
 //			Result += " -s BINARYEN_MEM_MAX=-1";
+//			Result += " -s BINARYEN_TRAP_MODE=\\'clamp\\'";
 
 			// no need for exceptions
 			Result += " -s DISABLE_EXCEPTION_CATCHING=1";

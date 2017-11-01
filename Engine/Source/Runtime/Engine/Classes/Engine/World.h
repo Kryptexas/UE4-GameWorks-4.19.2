@@ -692,18 +692,29 @@ public:
 	/**
 	 * Constructor that will save the current relevant values of InWorld
 	 * and set the collection's context values for InWorld.
+	 * The constructor that takes an index is preferred, but this one
+	 * still exists for backwards compatibility.
 	 *
 	 * @param InLevelCollection The collection's context to use
 	 * @param InWorld The world on which to set the context.
 	 */
 	FScopedLevelCollectionContextSwitch(const FLevelCollection* const InLevelCollection, UWorld* const InWorld);
-	
+
+	/**
+	 * Constructor that will save the current relevant values of InWorld
+	 * and set the collection's context values for InWorld.
+	 *
+	 * @param InLevelCollectionIndex The index of the collection to use
+	 * @param InWorld The world on which to set the context.
+	 */
+	FScopedLevelCollectionContextSwitch(int32 InLevelCollectionIndex, UWorld* const InWorld);
+
 	/** The destructor restores the context on the world that was saved in the constructor. */
 	~FScopedLevelCollectionContextSwitch();
 
 private:
 	class UWorld* World;
-	const FLevelCollection* SavedTickingCollection;
+	int32 SavedTickingCollectionIndex;
 };
 
 /** 
@@ -851,8 +862,8 @@ private:
 	UPROPERTY(Transient, NonTransactional)
 	TArray<FLevelCollection>					LevelCollections;
 
-	/** Pointer to the level collection that's currently ticking. */
-	const FLevelCollection*						ActiveLevelCollection;
+	/** Index of the level collection that's currently ticking. */
+	int32										ActiveLevelCollectionIndex;
 
 	/** Creates the dynamic source and static level collections if they don't already exist. */
 	void ConditionallyCreateDefaultLevelCollections();
@@ -2537,20 +2548,32 @@ public:
 	/** Returns the FLevelCollection for the given InType. If one does not exist, it is created. */
 	FLevelCollection& FindOrAddCollectionByType(const ELevelCollectionType InType);
 
+	/** Returns the index of the first FLevelCollection of the given InType. If one does not exist, it is created and its index returned. */
+	int32 FindOrAddCollectionByType_Index(const ELevelCollectionType InType);
+
 	/** Returns the FLevelCollection for the given InType, or null if a collection of that type hasn't been created yet. */
 	FLevelCollection* FindCollectionByType(const ELevelCollectionType InType);
 
 	/** Returns the FLevelCollection for the given InType, or null if a collection of that type hasn't been created yet. */
 	const FLevelCollection* FindCollectionByType(const ELevelCollectionType InType) const;
 
+	/** Returns the index of the FLevelCollection with the given InType, or INDEX_NONE if a collection of that type hasn't been created yet. */
+	int32 FindCollectionIndexByType(const ELevelCollectionType InType) const;
+	
 	/**
 	 * Returns the level collection which currently has its context set on this world. May be null.
 	 * If non-null, this implies that execution is currently within the scope of an FScopedLevelCollectionContextSwitch for this world.
 	 */
-	const FLevelCollection* GetActiveLevelCollection() const { return ActiveLevelCollection; }
+	const FLevelCollection* GetActiveLevelCollection() const;
+
+	/**
+	 * Returns the index of the level collection which currently has its context set on this world. May be INDEX_NONE.
+	 * If not INDEX_NONE, this implies that execution is currently within the scope of an FScopedLevelCollectionContextSwitch for this world.
+	 */
+	int32 GetActiveLevelCollectionIndex() const { return ActiveLevelCollectionIndex; }
 
 	/** Sets the level collection and its context on this world. Should only be called by FScopedLevelCollectionContextSwitch. */
-	void SetActiveLevelCollection(const FLevelCollection* InCollection);
+	void SetActiveLevelCollection(int32 LevelCollectionIndex);
 
 	/** Returns a read-only reference to the list of level collections in this world. */
 	const TArray<FLevelCollection>& GetLevelCollections() const { return LevelCollections; }

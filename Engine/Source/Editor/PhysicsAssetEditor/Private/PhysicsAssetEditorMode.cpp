@@ -186,37 +186,32 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 		InMenuBuilder.PopCommandList();
 	};
 
-	auto ExtendMenuBar = [this](FMenuBarBuilder& InMenuBarBuilder)
+	auto ExtendMenuBar = [this](FMenuBuilder& InMenuBuilder)
 	{
-		InMenuBarBuilder.AddPullDownMenu(
-			LOCTEXT("PhysicsMenu", "Physics"),
-			LOCTEXT("PhysicsMenuTooltip", "Adjust physics settings"),
-			FSlateIcon(),
-			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InSubMenuBuilder)
-			{
-				FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-				FDetailsViewArgs DetailsViewArgs;
-				DetailsViewArgs.bAllowSearch = false;
-				DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-				TSharedPtr<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-				DetailsView->SetObject(PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions);
-				DetailsView->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent& InEvent){ PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions->SaveConfig(); });
-
-				InSubMenuBuilder.AddWidget(DetailsView.ToSharedRef(), FText(), true);
-			})
-		);
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+		TSharedPtr<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		DetailsView->SetObject(PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions);
+		DetailsView->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent& InEvent) { PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions->SaveConfig(); });
+		InMenuBuilder.AddWidget(DetailsView.ToSharedRef(), FText(), true);
+			
 	};
 
-	TSharedRef<FExtender> ViewportExtender = MakeShared<FExtender>();
-	ViewportExtender->AddMenuExtension("AnimViewportGeneralShowFlags", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
-	ViewportExtender->AddMenuBarExtension("AnimViewportShowMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuBarExtensionDelegate::CreateLambda(ExtendMenuBar));
+	TArray<TSharedPtr<FExtender>> ViewportExtenders;
+	ViewportExtenders.Add(MakeShared<FExtender>());
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportGeneralShowFlags", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportShowMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendMenuBar));
+
 
 	FPersonaViewportArgs ViewportArgs(InSkeletonTree, InPreviewScene, PhysicsAssetEditor->OnPostUndo);
 	ViewportArgs.bAlwaysShowTransformToolbar = true;
 	ViewportArgs.bShowStats = false;
 	ViewportArgs.bShowTurnTable = false;
-	ViewportArgs.Extenders = ViewportExtender;
+	ViewportArgs.bShowPhysicsMenu = true;
+	ViewportArgs.Extenders = ViewportExtenders;
 
 	TabFactories.RegisterFactory(PersonaModule.CreatePersonaViewportTabFactory(InHostingApp, ViewportArgs));
 

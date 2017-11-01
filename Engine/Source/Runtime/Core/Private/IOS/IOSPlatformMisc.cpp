@@ -40,7 +40,8 @@
 #include <netinet/in.h>
 
 //#include <libproc.h>
-#include <mach-o/dyld.h>
+// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+//#include <mach-o/dyld.h>
 
 /** Amount of free memory in MB reported by the system at startup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -120,6 +121,32 @@ int FIOSPlatformMisc::GetBatteryLevel()
 bool FIOSPlatformMisc::IsRunningOnBattery()
 {
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
+}
+
+#if !PLATFORM_TVOS
+EDeviceScreenOrientation ConvertFromUIDeviceOrientation(UIDeviceOrientation Orientation)
+{
+	switch(Orientation)
+	{
+		default:
+		case UIDeviceOrientationUnknown : return EDeviceScreenOrientation::Unknown; break;
+		case UIDeviceOrientationPortrait : return EDeviceScreenOrientation::Portrait; break;
+		case UIDeviceOrientationPortraitUpsideDown : return EDeviceScreenOrientation::PortraitUpsideDown; break;
+		case UIDeviceOrientationLandscapeLeft : return EDeviceScreenOrientation::LandscapeLeft; break;
+		case UIDeviceOrientationLandscapeRight : return EDeviceScreenOrientation::LandscapeRight; break;
+		case UIDeviceOrientationFaceUp : return EDeviceScreenOrientation::FaceUp; break;
+		case UIDeviceOrientationFaceDown : return EDeviceScreenOrientation::FaceDown; break;
+	}
+}
+#endif
+
+EDeviceScreenOrientation FIOSPlatformMisc::GetDeviceOrientation()
+{
+#if !PLATFORM_TVOS
+	return ConvertFromUIDeviceOrientation([[UIDevice currentDevice] orientation]);
+#else
+	return EDeviceScreenOrientation::Unknown;
+#endif
 }
 
 #include "ModuleManager.h"
@@ -249,6 +276,10 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			{
 				DeviceType = IOS_IPadPro_97;
 			}
+			else if (Minor == 11 || Minor == 12)
+			{
+				DeviceType = IOS_IPad5;
+			}
 			else
 			{
 				DeviceType = IOS_IPadPro_129;
@@ -333,24 +364,54 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
                 DeviceType = IOS_IPhone7Plus;
             }
 		}
-        else if (Major >= 10)
+        else if (Major == 10)
         {
-            // for going forward into unknown devices (like 8/8+?), we can't use Minor,
-            // so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
-            if ([UIScreen mainScreen].scale > 2.5f)
-            {
-                DeviceType = IOS_IPhone7Plus;
-            }
-            else
-            {
-                DeviceType = IOS_IPhone7;
-            }
-        }
+			if (Minor == 1 || Minor == 4)
+			{
+				DeviceType = IOS_IPhone8;
+			}
+			else if (Minor == 2 || Minor == 5)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else if (Minor == 3 || Minor == 6)
+			{
+				DeviceType = IOS_IPhoneX;
+			}
+		}
+		else if (Major >= 10)
+		{
+			// for going forward into unknown devices (like 8/8+?), we can't use Minor,
+			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
+			if ([UIScreen mainScreen].scale > 2.5f)
+			{
+				DeviceType = IOS_IPhone8Plus;
+			}
+			else
+			{
+				DeviceType = IOS_IPhone8;
+			}
+		}
 	}
 	// tvOS
 	else if (DeviceIDString.StartsWith(TEXT("AppleTV")))
 	{
-		DeviceType = IOS_AppleTV;
+		const int Major = FCString::Atoi(&DeviceIDString[7]);
+		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 6);
+		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
+
+		if (Major == 5)
+		{
+			DeviceType = IOS_AppleTV;
+		}
+		else if (Major == 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
+		else if (Major >= 6)
+		{
+			DeviceType = IOS_AppleTV4K;
+		}
 	}
 	// simulator
 	else if (DeviceIDString.StartsWith(TEXT("x86")))
@@ -1023,7 +1084,8 @@ void FIOSPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 
 void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
 {
-    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
+	// @pjs commented out to resolve issue with PLATFORM_TVOS being defined by mach-o loader
+/*    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
     if (ReportFile != -1)
     {
         TCHAR Line[PATH_MAX] = {};
@@ -1214,7 +1276,7 @@ void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
         WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
         
         close(ReportFile);
-    }
+    }*/
 }
 
 void FIOSCrashContext::CopyMinidump(char const* OutputPath, char const* InputPath) const

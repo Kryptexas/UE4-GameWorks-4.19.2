@@ -316,13 +316,7 @@ namespace Audio
 
 	FMixerBuffer* FMixerBuffer::CreateNativeBuffer(FMixerDevice* InMixer, USoundWave* InWave)
 	{
-		// If wave a decompressor running, make sure it finishes and delete it
-		if (InWave->AudioDecompressor != nullptr)
-		{
-			InWave->AudioDecompressor->EnsureCompletion();
-			delete InWave->AudioDecompressor;
-			InWave->AudioDecompressor = nullptr;
-		}
+		check(InWave->bIsPrecacheDone);
 
 		FMixerBuffer* Buffer = new FMixerBuffer(InMixer, InWave, EBufferType::PCM);
 		return Buffer;
@@ -360,15 +354,7 @@ namespace Audio
 	{
 		check(InMixer);
 		check(InWave);
-
-		// If we have a decompressor running, make sure it finishes and delete it
-		if (InWave->AudioDecompressor != nullptr)
-		{
-			InWave->AudioDecompressor->EnsureCompletion();
-
-			delete InWave->AudioDecompressor;
-			InWave->AudioDecompressor = nullptr;
-		}
+		check(InWave->bIsPrecacheDone);
 
 		// Create a new buffer for real-time sounds
 		FMixerBuffer* Buffer = new FMixerBuffer(InMixer, InWave, EBufferType::PCMRealTime);

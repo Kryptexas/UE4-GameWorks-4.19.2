@@ -12,7 +12,7 @@ using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
-	/* UnrealPluginLanguage (UPL) is a simple XML-based language for manipulating XML and returning
+    /* UnrealPluginLanguage (UPL) is a simple XML-based language for manipulating XML and returning
 	 * strings.  It contains an <init> section which is evaluated once per architecture before any
 	 * other sections.  The state is maintained and carried forward to the next section evaluated
 	 * so the order the sections are executed matters.
@@ -101,6 +101,7 @@ namespace UnrealBuildTool
 	 *	<setBoolIsLessEqual result="" arg1="" arg2=""/>
 	 *	<setBoolIsGreater result="" arg1="" arg2=""/>
 	 *	<setBoolIsGreaterEqual result="" arg1="" arg2=""/>
+	 *	<setBoolFromPropertyContains result="" ini="" section="" property="" contains=""/>
 	 * 
 	 * Integer variables may use these arithmetic operations: 
 	 * 
@@ -410,6 +411,7 @@ namespace UnrealBuildTool
 	 * <setBoolEnvVarDefined result="" value=""/>
 	 * <setBoolFrom result="" value=""/>
 	 * <setBoolFromProperty result="" ini="" section="" property="" default=""/>
+	 * <setBoolFromPropertyContains result="" ini="" section="" property="" contains=""/>
 	 * <setBoolNot result="" source=""/>
 	 * <setBoolAnd result="" arg1="" arg2=""/>
 	 * <setBoolOr result="" arg1="" arg2=""/>
@@ -437,7 +439,7 @@ namespace UnrealBuildTool
 	 * 
 	 */
 
-	class UnrealPluginLanguage
+    class UnrealPluginLanguage
 	{
 		/** The merged XML program to run */
 		private XDocument XDoc;

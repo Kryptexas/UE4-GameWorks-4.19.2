@@ -1234,6 +1234,20 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 #endif
 }
 
+/** Struct to remember a pending component transform change */
+struct FPhysScenePendingComponentTransform
+{
+	/** Component to move */
+	TWeakObjectPtr<UPrimitiveComponent> OwningComp;
+	/** New transform from physics engine */
+	FTransform NewTransform;
+
+	FPhysScenePendingComponentTransform(UPrimitiveComponent* InOwningComp, const FTransform& InNewTransform)
+		: OwningComp(InOwningComp)
+		, NewTransform(InNewTransform)
+	{}
+};
+
 void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 {
 	checkSlow(SceneType < PST_MAX);
@@ -1252,6 +1266,8 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 
 	PxU32 NumActors = 0;
 	PxActor** PActiveActors = PScene->getActiveActors(NumActors);
+
+	TArray<FPhysScenePendingComponentTransform> PendingTransforms;
 
 	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
 	{
@@ -1277,24 +1293,13 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 			{
 				check(BodyInstance->OwnerComponent->IsRegistered()); // shouldn't have a physics body for a non-registered component!
 
-				AActor* Owner = BodyInstance->OwnerComponent->GetOwner();
-
-				// See if the transform is actually different, and if so, move the component to match physics
 				const FTransform NewTransform = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
-				if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->GetComponentTransform()))
-				{
-					const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->GetComponentTransform().GetLocation();
-					const FQuat NewRotation = NewTransform.GetRotation();
 
-					//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
-					BodyInstance->OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
-				}
-
-				// Check if we didn't fall out of the world
-				if (Owner != NULL && !Owner->IsPendingKill())
-				{
-					Owner->CheckStillInWorld();
-				}
+				// Add to set of transforms to process
+				// We can't actually move the component now (or check for out of world), because that could destroy a body
+				// elsewhere in the PActiveActors array, resulting in a bad pointer
+				FPhysScenePendingComponentTransform NewEntry(BodyInstance->OwnerComponent.Get(), NewTransform);
+				PendingTransforms.Add(NewEntry);
 			}
 		}
 		else if (const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(RigidActor->userData))
@@ -1306,6 +1311,34 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 			}
 		}
 	}
+
+	/// Now actually move components
+	for (FPhysScenePendingComponentTransform& Entry : PendingTransforms)
+	{
+		// Check if still valid (ie not destroyed)
+		UPrimitiveComponent* OwnerComponent = Entry.OwningComp.Get();
+		if (OwnerComponent != nullptr)
+		{
+			AActor* Owner = OwnerComponent->GetOwner();
+
+			// See if the transform is actually different, and if so, move the component to match physics
+			if (!Entry.NewTransform.EqualsNoScale(OwnerComponent->GetComponentTransform()))
+			{
+				const FVector MoveBy = Entry.NewTransform.GetLocation() - OwnerComponent->GetComponentTransform().GetLocation();
+				const FQuat NewRotation = Entry.NewTransform.GetRotation();
+
+				//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
+				OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+			}
+
+			// Check if we didn't fall out of the world
+			if (Owner != NULL && !Owner->IsPendingKill())
+			{
+				Owner->CheckStillInWorld();
+			}
+		}
+	}
+
 
 	for(FCustomPhysXSyncActors* CustomSync : CustomPhysXSyncActors)
 	{

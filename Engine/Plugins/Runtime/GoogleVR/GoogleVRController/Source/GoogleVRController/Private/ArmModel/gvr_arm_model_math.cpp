@@ -52,6 +52,8 @@ float Vector3::z() const {
   return c_[2];
 }
 
+const Vector3 Vector3::Zero = Vector3{ 0.0f, 0.0f, 0.0f };
+
 Vector3& Vector3::operator*=(float k) {
   Set(x() * k, y() * k, z() * k);
   return *this;

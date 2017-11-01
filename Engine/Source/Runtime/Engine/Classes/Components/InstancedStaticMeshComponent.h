@@ -105,7 +105,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual ~UInstancedStaticMeshComponent();
 
 	/** Array of instances, bulk serialized. */
-	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
+	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true, EditFixedOrder))
 	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
@@ -133,6 +133,10 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	/** Set to true to permit updating the vertex buffer used in the instance buffer without recreating it completely. This should be used if you plan on dynamically changing the instances at run-time. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = InstancedStaticMeshComponent)
 	bool UseDynamicInstanceBuffer;
+
+	/** Set to true to keep instance buffer accessible by the CPU, otherwise it's discarded and considered never changing, only GPU has a copy of the data. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = InstancedStaticMeshComponent)
+	bool KeepInstanceBufferCPUAccess;
 
 	/** Tracks outstanding proxysize, as this is a bit hard to do with the fire-and-forget grass. */
 	SIZE_T ProxySize;
@@ -203,6 +207,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual bool ShouldCreatePhysicsState() const override;
 
 	virtual void PostLoad() override;
+	virtual void OnComponentCreated() override;
 
 public:
 	/** Render data will be initialized on PostLoad or on demand. Released on the rendering thread. */
@@ -272,13 +277,10 @@ public:
 	void ClearInstanceSelection();
 
 	/** Initialize the Per Instance Render Data */
-	void InitPerInstanceRenderData(bool InitializeFromCurrentData, bool InRequireCPUAccess = false, FStaticMeshInstanceData* InSharedInstanceBufferData = nullptr);
+	void InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData = nullptr);
 
 	/** Transfers ownership of instance render data to a render thread. Instance render data will be released in scene proxy destructor or on render thread task. */
 	void ReleasePerInstanceRenderData();
-
-	// Number of instances in the render-side instance buffer
-	virtual int32 GetNumRenderInstances() const { return PerInstanceSMData.Num() + RemovedInstances.Num(); }
 
 	virtual void PropagateLightingScenarioChange() override;
 
@@ -295,6 +297,12 @@ private:
 protected:
 	/** Request to navigation system to update only part of navmesh occupied by specified instance. */
 	virtual void PartialNavigationUpdate(int32 InstanceIdx);
+
+	/** Internal version of AddInstance */
+	int32 AddInstanceInternal(int32 InstanceIndex, FInstancedStaticMeshInstanceData* InNewInstanceData, const FTransform& InstanceTransform);
+	
+	/** Internal version of RemoveInstance */	
+	bool RemoveInstanceInternal(int32 InstanceIndex, bool ReorderInstances, bool InstanceAlreadyRemoved);
 	
 	/** Handles request from navigation system to gather instance transforms in a specific area box. */
 	virtual void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const;

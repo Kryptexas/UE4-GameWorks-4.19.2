@@ -631,16 +631,46 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 	if (!bDynamic)
 	{
 #if WITH_HOT_RELOAD
+		UClass* ClassToHotReload = nullptr;
+		bool    bFound           = false;
+
 		// Either add all classes if not hot-reloading, or those which have changed
 		TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
-		if (!GIsHotReload || DeferMap.FindChecked(Name)->bHasChanged)
+		if (GIsHotReload)
+		{
+			FFieldCompiledInInfo* FoundInfo = DeferMap.FindChecked(Name);
+			if (FoundInfo->bHasChanged)
+			{
+				bFound = true;
+				ClassToHotReload = FoundInfo->OldClass;
+			}
+		}
+		if (!GIsHotReload || bFound)
 #endif
 		{
 			FString NoPrefix(RemoveClassPrefix(Name));
 			NotifyRegistrationEvent(PackageName, *NoPrefix, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
 			NotifyRegistrationEvent(PackageName, *(FString(DEFAULT_OBJECT_PREFIX) + NoPrefix), ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
-			checkSlow(!GetDeferredCompiledInRegistration().Contains(InRegister));
-			GetDeferredCompiledInRegistration().Add(InRegister);
+
+			TArray<UClass *(*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();
+			checkSlow(!DeferredCompiledInRegistration.Contains(InRegister));
+
+#if WITH_HOT_RELOAD
+			// Mark existing class as no longer constructed and collapse the Children list so that it gets rebuilt upon registration
+			if (ClassToHotReload)
+			{
+				ClassToHotReload->ClassFlags &= ~CLASS_Constructed;
+				for (UField* Child = ClassToHotReload->Children; Child; )
+				{
+					UField* NextChild = Child->Next;
+					Child->Next = nullptr;
+					Child = NextChild;
+				}
+				ClassToHotReload->Children = nullptr;
+			}
+#endif
+
+			DeferredCompiledInRegistration.Add(InRegister);
 		}
 	}
 	else

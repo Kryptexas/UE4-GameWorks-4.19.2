@@ -33,6 +33,7 @@
 #include "FindInBlueprintManager.h"
 #include "SPinTypeSelector.h"
 #include "SourceCodeNavigation.h"
+#include "HAL/FileManager.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -1699,8 +1700,6 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 	};
 
 	UClass* MemberClass = FunctionReference.GetMemberParentClass();
-	const bool bIsLocalMacro = Blueprint && Blueprint->MacroGraphs.Contains(GetGraph());
-	ensureMsgf(FunctionReference.IsSelfContext() || (MemberClass != nullptr) || bIsLocalMacro, TEXT("Unknown member class in %s"), *GetPathName());
 	if (FunctionReference.IsSelfContext())
 	{
 		if (MemberClass == nullptr)
@@ -2763,7 +2762,25 @@ void UK2Node_CallFunction::JumpToDefinition() const
 	{
 		if (TargetFunction->IsNative())
 		{
-			FSourceCodeNavigation::NavigateToFunctionAsync(TargetFunction);
+			// First try the nice way that will get to the right line number
+			bool bSucceeded = false;
+			if (FSourceCodeNavigation::CanNavigateToFunction(TargetFunction))
+			{
+				bSucceeded = FSourceCodeNavigation::NavigateToFunction(TargetFunction);
+			}
+
+			// Failing that, fall back to the older method which will still get the file open assuming it exists
+			if (!bSucceeded)
+			{
+				FString NativeParentClassHeaderPath;
+				const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(TargetFunction, NativeParentClassHeaderPath) && (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
+				if (bFileFound)
+				{
+					const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull(NativeParentClassHeaderPath);
+					bSucceeded = FSourceCodeNavigation::OpenSourceFile(AbsNativeParentClassHeaderPath);
+				}
+			}
+
 			return;
 		}
 	}

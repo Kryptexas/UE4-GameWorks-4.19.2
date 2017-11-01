@@ -107,6 +107,7 @@ struct FPersonaViewportArgs
 		, bAlwaysShowTransformToolbar(false)
 		, bShowFloorOptions(true)
 		, bShowTurnTable(true)
+		, bShowPhysicsMenu(false)
 	{}
 
 	/** Required args */
@@ -121,7 +122,7 @@ struct FPersonaViewportArgs
 	FOnViewportCreated OnViewportCreated;
 	
 	/** Menu extenders */
-	TSharedPtr<FExtender> Extenders;
+	TArray<TSharedPtr<FExtender>> Extenders;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
@@ -146,6 +147,9 @@ struct FPersonaViewportArgs
 
 	/** Whether to show options relating to turntable */
 	bool bShowTurnTable;
+
+	/** Whether to show options relating to physics */
+	bool bShowPhysicsMenu;
 };
 
 /**

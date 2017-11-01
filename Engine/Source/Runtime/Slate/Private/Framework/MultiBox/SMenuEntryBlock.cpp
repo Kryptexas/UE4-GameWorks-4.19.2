@@ -13,7 +13,7 @@
 #include "Widgets/Input/SCheckBox.h"
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const FSlateIcon& InIconOverride, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( InCommand, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabelOverride )
 	, ToolTipOverride( InToolTipOverride )
@@ -23,12 +23,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const TAttribute<FSlateIcon>& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const FSlateIcon& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( InUIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -40,12 +39,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TAttribute<FSlateIcon>& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -55,12 +53,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, UserInterfaceActionType( InUserInterfaceActionType )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -72,12 +69,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -89,12 +85,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const TAttribute<FSlateIcon>& InIcon, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -106,11 +101,10 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, ToolTipOverride( InToolTip )
 	, EntryWidget( Contents )
@@ -119,12 +113,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 	, UserInterfaceActionType( InUserInterfaceActionType )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
@@ -134,12 +127,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection, bool bInInvertLabelOnHover)
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
@@ -149,7 +141,6 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
-	, bInvertLabelOnHover(bInInvertLabelOnHover)
 {
 }
 
@@ -163,7 +154,7 @@ void FMenuEntryBlock::CreateMenuEntry(FMenuBuilder& InMenuBuilder) const
 bool FMenuEntryBlock::HasIcon() const
 {
 	const FSlateIcon ActionIcon = GetAction().IsValid() ? GetAction()->GetIcon() : FSlateIcon();
-	const FSlateIcon& ActualIcon = !IconOverride.IsSet() || !IconOverride.Get().IsSet() ? ActionIcon : IconOverride.Get();
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() ? ActionIcon : IconOverride;
 
 	if (ActualIcon.IsSet())
 	{
@@ -182,9 +173,7 @@ bool FMenuEntryBlock::HasIcon() const
  */
 TSharedRef< class IMultiBlockBaseWidget > FMenuEntryBlock::ConstructWidget() const
 {
-	return SNew( SMenuEntryBlock )
-		.Icon(IconOverride)
-		.InvertOnHover(bInvertLabelOnHover);
+	return SNew( SMenuEntryBlock );
 }
 
 /**
@@ -198,22 +187,17 @@ void SMenuEntryBlock::Construct( const FArguments& InArgs )
 	/*TimeToSubMenuOpen = 0.0f;*/
 	//SubMenuRequestState = Idle;
 
-	Icon = InArgs._Icon;
-
 	// No images by default
 	CheckedImage = nullptr;
 	UncheckedImage = nullptr;
 
-	if (InArgs._InvertOnHover)
-	{
-		this->SetForegroundColor(TAttribute<FSlateColor>::Create(TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SMenuEntryBlock::InvertOnHover)));
-	}
+	this->SetForegroundColor(TAttribute<FSlateColor>::Create(TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SMenuEntryBlock::InvertOnHover)));
 }
 
 
 TSharedRef< SWidget> SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams )
 {
-	Label = InBuildParams.Label;
+	const TAttribute<FText>& Label = InBuildParams.Label;
 	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	check( OwnerMultiBoxWidget.IsValid() );
@@ -224,7 +208,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildP
 	/* Style for menu bar button with sub menu opened */
 	MenuBarButtonBorderSubmenuOpen = StyleSet->GetBrush(StyleName, ".Button.SubMenuOpen");
 	/* Style for menu bar button with no sub menu opened */
-	MenuBarButtonBorderSubmenuClosed = StyleSet->GetBrush(StyleName, ".Button.SubMenuClosed");
+	MenuBarButtonBorderSubmenuClosed = FCoreStyle::Get().GetBrush("NoBorder");
 
 	TSharedPtr< SMenuAnchor > NewMenuAnchor;
 
@@ -233,74 +217,36 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildP
 	TSharedRef<SWidget> Widget =
 		SAssignNew( NewMenuAnchor, SMenuAnchor )
 		.Placement( MenuPlacement_BelowAnchor )
-
 		// When the menu is summoned, this callback will fire to generate content for the menu window
 		.OnGetMenuContent( this, &SMenuEntryBlock::MakeNewMenuWidget )
-
 		[
-			SNew( SBorder )
-
-			.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
-
-			.Padding( StyleSet->GetMargin(ISlateStyle::Join( StyleName, ".Label.Padding" ) ) )
-
+			SNew(SBorder)
+			.BorderImage(this, &SMenuEntryBlock::GetMenuBarButtonBorder)
+			.Padding(0)
 			[
-				SNew( SBorder )
-
-				.BorderImage( this, &SMenuEntryBlock::GetMenuBarButtonBorder )
-
-				.Padding(0)
-
+				// Create a button
+				SNew(SButton)
+				// Use the menu bar item style for this button
+				.ButtonStyle(StyleSet, ISlateStyle::Join(StyleName, ".Button"))
+				// Pull-down menu bar items always activate on mouse-down, not mouse-up
+				.ClickMethod(EButtonClickMethod::MouseDown)
+				// Pass along the block's tool-tip string
+				.ToolTipText(this, &SMenuEntryBlock::GetFilteredToolTipText, EntryToolTip)
+				// Add horizontal padding between the edge of the button and the content.  Also add a bit of vertical
+				// padding to push the text down from the top of the menu bar a bit.
+				.ContentPadding(FMargin(10.0f, 2.0f))
+				.ForegroundColor(FSlateColor::UseForeground())
+				.VAlign(VAlign_Center)
 				[
-					// Create a button
-					SNew( SButton )
-
-					// Use the menu bar item style for this button
-					.ButtonStyle( StyleSet, ISlateStyle::Join( StyleName, ".Button" ) )
-
-					// Pull-down menu bar items always activate on mouse-down, not mouse-up
-					.ClickMethod( EButtonClickMethod::MouseDown )
-
-					// Pass along the block's tool-tip string
-					.ToolTipText( this, &SMenuEntryBlock::GetFilteredToolTipText, EntryToolTip)
-
-					// Add horizontal padding between the edge of the button and the content.  Also add a bit of vertical
-					// padding to push the text down from the top of the menu bar a bit.
-					.ContentPadding( StyleSet->GetMargin(ISlateStyle::Join(StyleName, ".Label.ContentPadding") ) )
-
-					.ForegroundColor( FSlateColor::UseForeground() )
-
-					.VAlign( VAlign_Center )
-
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.HAlign(HAlign_Left)
-						.VAlign(VAlign_Center)
-						.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SMenuEntryBlock::GetMenuEntryIconPadding)))
-						[
-							SNew(SImage)
-							.Image(this, &SMenuEntryBlock::GetMenuEntryBrush)
-						]
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.TextStyle(StyleSet, ISlateStyle::Join(StyleName, ".Label"))
-							.Text(Label)
-							.HighlightText(OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText)
-						]
-					]
-
-					// Bind the button's "on clicked" event to our object's method for this
-					.OnClicked( this, &SMenuEntryBlock::OnMenuItemButtonClicked )
+					SNew(STextBlock)
+					.TextStyle(StyleSet, ISlateStyle::Join(StyleName, ".Label"))
+					.Text(Label)
+					.HighlightText(OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText)
 				]
+				// Bind the button's "on clicked" event to our object's method for this
+				.OnClicked(this, &SMenuEntryBlock::OnMenuItemButtonClicked)
 			]
-		]
-	;
+		];
 
 	MenuAnchor = NewMenuAnchor;
 
@@ -459,7 +405,7 @@ private:
 
 TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBuildParams& InBuildParams )
 {
-	Label = InBuildParams.Label;
+	const TAttribute<FText>& Label = InBuildParams.Label;
 	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
 	const TSharedPtr< const FMultiBox > MultiBox = InBuildParams.MultiBox;
@@ -469,7 +415,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 	const FSlateIcon ActionIcon = UICommand.IsValid() ? UICommand->GetIcon() : FSlateIcon();
 
 	// Allow the block to override the tool bar icon, too
-	const FSlateIcon& ActualIcon = !MenuEntryBlock->IconOverride.IsSet() || !MenuEntryBlock->IconOverride.Get().IsSet() ? ActionIcon : MenuEntryBlock->IconOverride.Get();
+	const FSlateIcon& ActualIcon = !MenuEntryBlock->IconOverride.IsSet() ? ActionIcon : MenuEntryBlock->IconOverride;
 
 	check( OwnerMultiBoxWidget.IsValid() );
 
@@ -729,7 +675,7 @@ private:
 
 TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildParams& InBuildParams )
 {
-	Label = InBuildParams.Label;
+	const TAttribute<FText>& Label = InBuildParams.Label;
 	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
@@ -740,7 +686,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 	const FSlateIcon ActionIcon = UICommand.IsValid() ? UICommand->GetIcon() : FSlateIcon();
 	
 	// Allow the block to override the tool bar icon, too
-	const FSlateIcon& ActualIcon = !MenuEntryBlock->IconOverride.IsSet() || !MenuEntryBlock->IconOverride.Get().IsSet()  ? ActionIcon : MenuEntryBlock->IconOverride.Get();
+	const FSlateIcon& ActualIcon = !MenuEntryBlock->IconOverride.IsSet() ? ActionIcon : MenuEntryBlock->IconOverride;
 
 	check( OwnerMultiBoxWidget.IsValid() );
 
@@ -1494,19 +1440,4 @@ const FSlateBrush* SMenuEntryBlock::GetCheckBoxImageBrushFromStyle(const FCheckB
 	case ECheckBoxState::Unchecked: return &Style->UncheckedImage;
 	default: return &Style->UndeterminedImage;
 	}
-}
-
-const FSlateBrush* SMenuEntryBlock::GetMenuEntryBrush() const
-{
-	return Icon.Get().GetIcon();
-}
-
-FMargin SMenuEntryBlock::GetMenuEntryIconPadding() const
-{
-	if ((!Icon.IsSet() || !Icon.Get().IsSet()) || (!Label.IsSet() || Label.Get().IsEmpty()))
-	{
-		return FMargin(0.0f);
-	}
-	
-	return FMargin(0.0f, 0.0f, 3.0f, 0.0f);
 }

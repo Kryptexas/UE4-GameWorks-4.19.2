@@ -215,20 +215,12 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	Super::TickDispatch( DeltaTime );
 
 	// Set the context on the world for this driver's level collection.
-	const FLevelCollection* FoundCollection = nullptr;
-	if (World)
+	const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
 	{
-		for (const FLevelCollection& LC : World->GetLevelCollections())
-		{
-			if (LC.GetNetDriver() == this)
-			{
-				FoundCollection = &LC;
-				break;
-			}
-		}
-	}
+		return Collection.GetNetDriver() == this;
+	}) : INDEX_NONE;
 
-	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, World);
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollectionIndex, World);
 
 	ISocketSubsystem* SocketSubsystem = GetSocketSubsystem();
 

@@ -520,8 +520,12 @@ namespace Audio
 			// Now add all the child submixes to this submix instance
 			for (USoundSubmix* ChildSubmix : SoundSubmix->ChildSubmixes)
 			{
-				FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
-				SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				// ChildSubmix lists can contain null entries.
+				if (ChildSubmix)
+				{
+					FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
+					SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+				}
 			}
 
 			// Perform any other initialization on the submix instance

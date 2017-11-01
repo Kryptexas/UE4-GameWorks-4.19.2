@@ -272,6 +272,13 @@ namespace UnrealBuildTool
 					RequiredCaps += "\t\t<string>" + Arches[0] + "</string>\n";
 				}
 			}
+			ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirRef, UnrealTargetPlatform.IOS);
+			bool bStartInAR = false;
+			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bStartInAR", out bStartInAR);
+			if (bStartInAR)
+			{
+				RequiredCaps += "\t\t<string>arkit</string>\n";
+			}
 
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
@@ -292,9 +299,11 @@ namespace UnrealBuildTool
 						MinVersion = "7.0";
 						break;
 					case "IOS_7":
+						Log.TraceWarning("IOS 7 is no longer supported in UE4 as 4.15");
 						MinVersion = "7.0";
 						break;
 					case "IOS_8":
+						Log.TraceWarning("IOS 8 is no longer supported in UE4 as 4.18");
 						MinVersion = "8.0";
 						break;
 					case "IOS_9":
@@ -310,7 +319,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				MinVersion = "7.0";
+				MinVersion = "9.0";
 			}
 
 			// Get Facebook Support details
@@ -524,9 +533,7 @@ namespace UnrealBuildTool
                         "Default-IPhone6.png", "Portrait", "{375, 667}",  "8.0",
                         "Default-IPhone6Plus-Landscape.png", "Landscape", "{414, 736}",  "8.0",
                         "Default-IPhone6Plus-Portrait.png", "Portrait", "{414, 736}",  "8.0",
-                        "Default.png", "Landscape", "{320, 480}", "7.0",
                         "Default.png", "Portrait", "{320, 480}", "7.0",
-                        "Default-568h.png", "Landscape", "{320, 568}", "7.0",
                         "Default-568h.png", "Portrait", "{320, 568}", "7.0",
 					};
 
@@ -535,7 +542,7 @@ namespace UnrealBuildTool
 				for (int ConfigIndex = 0; ConfigIndex < IPhoneConfigs.Length; ConfigIndex += 4)
 				{
                     if ((bSupportsPortrait && IPhoneConfigs[ConfigIndex + 1] == "Portrait") ||
-                        (bSupportsLandscape && IPhoneConfigs[ConfigIndex + 1] == "Landscape"))
+                        (bSupportsLandscape && (IPhoneConfigs[ConfigIndex + 1] == "Landscape") || ConfigIndex > 12))
                     {
                         Text.AppendLine("\t\t<dict>");
                         Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
@@ -634,6 +641,13 @@ namespace UnrealBuildTool
 						Text.AppendLine("\t" + Line);
 					}
 				}
+			}
+
+			// add the camera usage key
+			if (bStartInAR)
+			{
+				Text.AppendLine("\t<key>NSCameraUsageDescription</key>");
+				Text.AppendLine("\t\t<string>The camera is used for augmenting reality.</string>");
 			}
 
 			// Add remote-notifications as background mode

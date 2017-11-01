@@ -2512,6 +2512,12 @@ public:
 	 */
 	class UActorGroupingUtils* GetActorGroupingUtils();
 
+	/**
+	 * Query to tell if the editor is currently in a mode where it wants XR HMD
+	 * tracking to be used (like in the VR editor or VR PIE preview).
+	 */
+	bool IsHMDTrackingAllowed() const;
+
 private:
 	//
 	// Map execs.
@@ -2835,7 +2841,7 @@ private:
 	FString PlayUsingLauncherDeviceId;
 	FString PlayUsingLauncherDeviceName;
 	bool bPlayUsingLauncherHasCode;
-	bool bPlayUsingLauncherHasCompiler;
+	bool bPlayUsingLauncherBuild;
 
 	/** Used to prevent reentrant calls to EndPlayMap(). */
 	bool bIsEndingPlay;

@@ -15,6 +15,7 @@
 #include "Engine/TimelineTemplate.h"
 #include "FileHelpers.h"
 #include "FindInBlueprintManager.h"
+#include "IMessageLogListing.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
@@ -301,6 +302,7 @@ struct FCompilerData
 	bool ShouldSkipReinstancerCreation() const { return (IsSkeletonOnly() && BP->ParentClass->IsNative()); }
 	bool ShouldCompileClassLayout() const { return JobType == ECompilationManagerJobType::Normal; }
 	bool ShouldCompileClassFunctions() const { return JobType == ECompilationManagerJobType::Normal; }
+	bool ShouldRegisterCompilerResults() const { return JobType == ECompilationManagerJobType::Normal; }
 	bool ShouldRelinkAfterSkippingCompile() const { return JobType == ECompilationManagerJobType::RelinkOnly; }
 	bool ShouldSkipIfDependenciesAreUnchanged() const { return InternalOptions.CompileType == EKismetCompileType::BytecodeOnly || JobType == ECompilationManagerJobType::RelinkOnly; }
 
@@ -400,9 +402,8 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					bSkipCompile = true;
 				}
-				else
+				else if (const UClass* CurrentClass = QueuedBP->GeneratedClass)
 				{
-					const UClass* CurrentClass = QueuedBP->GeneratedClass;
 					if(FStructUtils::TheSameLayout(CurrentClass, CurrentClass->GetSuperStruct()))
 					{
 						bSkipCompile = true;
@@ -514,6 +515,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			{
 				UBlueprint* BP = CompilerData.BP;
 				BP->bBeingCompiled = true;
+				BP->CurrentMessageLog = CompilerData.ActiveResultsLog;
 				BP->bIsRegeneratingOnLoad = !BP->bHasBeenRegenerated && BP->GetLinker();
 				if(BP->bIsRegeneratingOnLoad)
 				{
@@ -955,9 +957,18 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				UBlueprint::ValidateGeneratedClass(BP->GeneratedClass);
 			}
 
+			if(CompilerData.ShouldRegisterCompilerResults())
+			{
+				// This helper structure registers the results log messages with the UI control that displays them:
+				FScopedBlueprintMessageLog MessageLog(BP);
+				MessageLog.Log->ClearMessages();
+				MessageLog.Log->AddMessages(CompilerData.ActiveResultsLog->Messages, false);
+			}
+
 			if(CompilerData.ShouldSetTemporaryBlueprintFlags())
 			{
 				BP->bBeingCompiled = false;
+				BP->CurrentMessageLog = nullptr;
 				BP->bIsRegeneratingOnLoad = false;
 			}
 
@@ -1516,7 +1527,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 			UFunction* SignatureOverride) -> UFunction*
 	{
 		if(!ensure(FunctionNameFName != FName())
-			|| FindObjectFast<UFunction>(Ret, FunctionNameFName, true ))
+			|| FindObjectFast<UField>(Ret, FunctionNameFName))
 		{
 			return nullptr;
 		}

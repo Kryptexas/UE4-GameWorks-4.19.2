@@ -70,6 +70,24 @@ float FAppleARKitCamera::GetVerticalFieldOfView() const
 		: 0.0f;
 }
 
+float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const
+{
+	// Use the global viewport size as the screen size
+	FVector2D ViewportSize;
+	GEngine->GameViewport->GetViewportSize( ViewportSize );
+	
+	return GetHorizontalFieldOfViewForScreen( BackgroundFitMode, ViewportSize.X, ViewportSize.Y );
+}
+
+float FAppleARKitCamera::GetVerticalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode ) const
+{
+	// Use the global viewport size as the screen size
+	FVector2D ViewportSize;
+	GEngine->GameViewport->GetViewportSize( ViewportSize );
+	
+	return GetVerticalFieldOfViewForScreen( BackgroundFitMode, ViewportSize.X, ViewportSize.Y );
+}
+
 float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const
 {
 	// Sanity check?
@@ -127,11 +145,69 @@ float FAppleARKitCamera::GetHorizontalFieldOfViewForScreen( EAppleARKitBackgroun
 	return GetHorizontalFieldOfView();
 }
 
-FVector2D FAppleARKitCamera::GetImageCoordinateForScreenPosition( FVector2D ScreenPosition, EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const
+float FAppleARKitCamera::GetVerticalFieldOfViewForScreen( EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const
 {
+	// Sanity check?
+	if ( FocalLength.Y <= 0.0f )
+	{
+		return 0.0f;
+	}
+	
 	// Are they the same aspect ratio anyway?
 	float ScreenAspectRatio = ScreenWidth / ScreenHeight;
-	float CameraAspectRatio = GetAspectRatio();
+	float CameraAspectRatio = 1.0f / GetAspectRatio();
+	if ( ScreenAspectRatio == CameraAspectRatio )
+	{
+		return GetHorizontalFieldOfView();
+	}
+	
+	// Not matching, figure out FOV for fit mode
+	switch ( BackgroundFitMode )
+	{
+			/** The background image will be letterboxed to fit the screen */
+		case EAppleARKitBackgroundFitMode::Fit:
+		{
+			return GetVerticalFieldOfView();
+		}
+			/** The background will be scaled & cropped to the screen */
+		case EAppleARKitBackgroundFitMode::Fill:
+		{
+			// Is the screen wider than the camera (is the camera taller than the screen)?
+			if ( ScreenAspectRatio > CameraAspectRatio )
+			{
+				// The camera texture will be scaled uniformly to fill the width of the screen,
+				// leaving the full horizonatal FOV visibile
+				return GetVerticalFieldOfView();
+			}
+			// The camera is wider than the screen (the screen is taller than the camera)
+			else
+			{
+				// The camera texture will be scaled uniformly to fill the height of the screen.
+				// As the camera is wider than the screen, the camera image will extend beyond
+				// the sides of the screen, thus cropping the image & FOV to the screen aspect
+				// ratio.
+				const float CroppedImageWidth = ImageResolution.X * ScreenAspectRatio;
+				return FMath::RadiansToDegrees( 2.0f * FMath::Atan( ( CroppedImageWidth / 2.0f ) / FocalLength.Y ) );
+			}
+		}
+			/** The background image will be stretched to fill the screen */
+		case EAppleARKitBackgroundFitMode::Stretch:
+		{
+			return GetVerticalFieldOfView();
+		}
+	}
+	
+	// Fallback
+	return GetVerticalFieldOfView();
+}
+
+FVector2D FAppleARKitCamera::GetImageCoordinateForScreenPosition( FVector2D ScreenPosition, EAppleARKitBackgroundFitMode BackgroundFitMode, float ScreenWidth, float ScreenHeight ) const
+{
+	const bool bIsInPortraitMode = ScreenWidth < ScreenHeight;
+	
+	// Are they the same aspect ratio anyway?
+	float ScreenAspectRatio = ScreenWidth / ScreenHeight;
+	float CameraAspectRatio = bIsInPortraitMode ? 1.0f / GetAspectRatio() : GetAspectRatio();
 	if ( ScreenAspectRatio == CameraAspectRatio )
 	{
 		// Normalize ScreenPosition by viewport size

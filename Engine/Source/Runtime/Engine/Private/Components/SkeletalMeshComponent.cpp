@@ -1686,7 +1686,7 @@ void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>&
 {
 	if(PostProcessAnimInstance)
 	{
-		if(InOutPose.IsValid())
+		if (InOutPose.IsValid())
 		{
 			// Push the previous pose to any input nodes required
 			if (FAnimNode_SubInput* InputNode = PostProcessAnimInstance->GetSubInputNode())

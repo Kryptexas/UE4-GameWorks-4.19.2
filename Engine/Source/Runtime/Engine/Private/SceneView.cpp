@@ -1835,24 +1835,24 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		float ScreenPercentageValue = 100.f;
 #if WITH_EDITOR
-		// Let the editor override screen percentage per view if needed.  Otherwise check the global cvar
-		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && (!GEngine->StereoRenderingDevice.IsValid() || !GEngine->StereoRenderingDevice->IsStereoEnabled()))
+		if (ViewInitOptions.bDisableGameScreenPercentage)
 		{
-			ScreenPercentageValue = ViewInitOptions.EditorViewScreenPercentage.GetValue();
+			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
 		else
 #endif
 		{
-		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-			ScreenPercentageValue = ScreenPercentageCVar->GetValueOnGameThread();
+			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageCVar->GetValueOnGameThread() / 100.0f;
 		}
 
-		if (ScreenPercentageValue >= 0.0)
+#if WITH_EDITOR
+		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && StereoPass == EStereoscopicPass::eSSP_FULL)
 		{
-			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageValue / 100.0f;
+			FinalPostProcessSettings.ScreenPercentage *= ViewInitOptions.EditorViewScreenPercentage.GetValue() / 100.0f;
 		}
+#endif
 	}
 
 	{

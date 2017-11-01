@@ -213,6 +213,13 @@ void FLandscapeEditorDetails::OnChangeTargetLandscape(TWeakObjectPtr<ULandscapeI
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
+		// Unregister from old one
+		if (LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid())
+		{
+			ALandscapeProxy* LandscapeProxy = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+			LandscapeProxy->OnMaterialChangedDelegate().RemoveAll(LandscapeEdMode);
+		}
+
 		LandscapeEdMode->CurrentToolTarget.LandscapeInfo = LandscapeInfo.Get();
 		LandscapeEdMode->UpdateTargetList();
 		// force a Leave and Enter the current tool, in case it has something about the current landscape cached
@@ -221,6 +228,16 @@ void FLandscapeEditorDetails::OnChangeTargetLandscape(TWeakObjectPtr<ULandscapeI
 		{
 			LandscapeEdMode->CurrentGizmoActor->SetTargetLandscape(LandscapeEdMode->CurrentToolTarget.LandscapeInfo.Get());
 		}
+
+		// register to new one
+		if (LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid())
+		{
+			ALandscapeProxy* LandscapeProxy = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+			LandscapeProxy->OnMaterialChangedDelegate().AddRaw(LandscapeEdMode, &FEdModeLandscape::OnLandscapeMaterialChangedDelegate);
+		}
+
+		LandscapeEdMode->UpdateTargetList();
+		LandscapeEdMode->UpdateShownLayerList();
 	}
 }
 

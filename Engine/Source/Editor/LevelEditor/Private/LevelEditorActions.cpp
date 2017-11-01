@@ -1502,7 +1502,11 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 	}
 	else
 	{
-		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCopy;
@@ -1538,7 +1542,11 @@ bool FLevelEditorActionCallbacks::Delete_CanExecute()
 	}
 	else
 	{
-		bCanDelete = GUnrealEd->CanDeleteSelectedActors(GetWorld(), true, false);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanDelete = GUnrealEd->CanDeleteSelectedActors(World, true, false);
+		}
 	}
 
 	return bCanDelete;
@@ -1612,7 +1620,11 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 	else
 	{
 		// For actors, if we can copy, we can cut
-		bCanCut = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCut = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCut;
@@ -1648,7 +1660,11 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 	}
 	else
 	{
-		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(World);
+		}
 	}
 
 	return bCanCopy;
@@ -1682,7 +1698,11 @@ bool FLevelEditorActionCallbacks::Paste_CanExecute()
 	}
 	else
 	{
-		bCanPaste = GUnrealEd->CanPasteSelectedActorsFromClipboard(GetWorld());
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			bCanPaste = GUnrealEd->CanPasteSelectedActorsFromClipboard(World);
+		}
 	}
 
 	return bCanPaste;

@@ -605,7 +605,7 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 
 	if (ArrayIdx != INDEX_NONE)
 	{
-		if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Unspecified)
+		if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Unspecified && PropertyChangedEvent.ChangeType != EPropertyChangeType::ArrayRemove)
 		{
 			int32 CollisionCount = 0;
 			FName NewName = PostProfiles[ArrayIdx] == NAME_None ? FName(TEXT("New")) : PostProfiles[ArrayIdx];
@@ -622,7 +622,7 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 	}
 	
 
-	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet)
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::ArrayClear)
 	{
 		if (ArrayIdx != INDEX_NONE)	//INDEX_NONE can come when emptying the array, so just ignore it
 		{

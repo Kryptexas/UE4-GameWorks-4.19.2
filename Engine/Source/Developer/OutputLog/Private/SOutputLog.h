@@ -254,6 +254,9 @@ protected:
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
+	/* Remove itself on crash to prevent adding log lines here */
+	void OnCrash();
+
 protected:
 	/**
 	 * Extends the context menu used by the text box

@@ -18,6 +18,9 @@ namespace UnrealBuildTool
 		// Minimum Android SDK that must be used for Java compiling
 		readonly int MinimumSDKLevel = 23;
 
+		// Minimum SDK version needed for Gradle based on active plugins (14 is for Google Play Services 11.0.4)
+		private int MinimumSDKLevelForGradle = 14;
+
 		// Reserved Java keywords not allowed in package names without modification
 		static private string[] JavaReservedKeywords = new string[] {
 			"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do",
@@ -43,6 +46,8 @@ namespace UnrealBuildTool
 		private bool bGradleEnabled = false;
 
 		private UnrealPluginLanguage UPL = null;
+		private bool ARCorePluginEnabled = false;
+		private bool FacebookPluginEnabled = false;
 		private bool GearVRPluginEnabled = false;
 		private bool GoogleVRPluginEnabled = false;
 		private bool CrashlyticsPluginEnabled = false;
@@ -56,23 +61,39 @@ namespace UnrealBuildTool
 			}
 
 			// check if certain plugins are enabled
+			ARCorePluginEnabled = false;
+			FacebookPluginEnabled = false;
 			GoogleVRPluginEnabled = false;
 			GearVRPluginEnabled = false;
 			CrashlyticsPluginEnabled = false;
 			foreach (var Plugin in inPluginExtraData)
 			{
+				// check if the Facebook plugin was enabled
+				if (Plugin.Contains("OnlineSubsystemFacebook_UPL"))
+				{
+					FacebookPluginEnabled = true;
+					continue;
+				}
+
+				// check if the ARCore plugin was enabled
+				if (Plugin.Contains("GoogleARCoreBase_APL"))
+				{
+					ARCorePluginEnabled = true;
+					continue;
+				}
+
 				// check if the Gear VR plugin was enabled
 				if (Plugin.Contains("GearVR_APL"))
 				{
 					GearVRPluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if the GoogleVR plugin was enabled
 				if (Plugin.Contains("GoogleVRHMD"))
 				{
 					GoogleVRPluginEnabled = true;
-					break;
+					continue;
 				}
 
 				// check if Crashlytics plugin was enabled
@@ -80,12 +101,24 @@ namespace UnrealBuildTool
 				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
 					CrashlyticsPluginEnabled = true;
-					break;
+					continue;
 				}
 			}
 
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
+		}
+
+		private void SetMinimumSDKLevelForGradle()
+		{
+			if (FacebookPluginEnabled)
+			{
+				MinimumSDKLevelForGradle = Math.Max(MinimumSDKLevelForGradle, 15);
+			}
+			if (ARCorePluginEnabled)
+			{
+				MinimumSDKLevelForGradle = Math.Max(MinimumSDKLevelForGradle, 19);
+			}
 		}
 
 		/// <summary>
@@ -378,18 +411,18 @@ namespace UnrealBuildTool
 				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
-			string GoogleVRMode = "";
-			if(Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRMode", out GoogleVRMode))
-			{
-				return GoogleVRMode == "Daydream" || GoogleVRMode == "DaydreamAndCardboard";
-			}
-			else
-			{
-				// the default value for the VRMode is DaydreamAndCardboard, so unless the developer
-				// changes the mode, there will be no setting string to look up here
-				return true;
-			}
-		}
+            List<string> GoogleVRCaps = new List<string>();
+            if (Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRCaps", out GoogleVRCaps))
+            {
+                return GoogleVRCaps.Contains("Daydream33") || GoogleVRCaps.Contains("Daydream63");
+            }
+            else
+            {
+                // the default values for the VRCaps are Cardboard and Daydream33, so unless the
+                // developer changes the mode, there will be no setting string to look up here
+                return true;
+            }
+        }
 
 		public bool IsPackagingForGearVR(ConfigHierarchy Ini = null)
 		{
@@ -725,37 +758,34 @@ namespace UnrealBuildTool
 			ShimFileContent.AppendFormat("import {0}.OBBDownloaderService;\n", replacements["$$PackageName$$"]);
 			ShimFileContent.AppendFormat("import {0}.DownloaderActivity;\n", replacements["$$PackageName$$"]);
 
-			// Workaround to do OBB file checking without using DownloadActivity to avoid transit to another activity in Daydream
-			bool bPackageForDaydream = IsPackagingForDaydream();
-			if (bPackageForDaydream)
-			{
-				ShimFileContent.Append("import android.app.Activity;\n");
-				ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
-				ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
-			}
+			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
+			ShimFileContent.Append("import android.app.Activity;\n");
+			ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
+			ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
 
 			ShimFileContent.Append("\n\npublic class DownloadShim\n{\n");
 			ShimFileContent.Append("\tpublic static OBBDownloaderService DownloaderService;\n");
 			ShimFileContent.Append("\tpublic static DownloaderActivity DownloadActivity;\n");
 			ShimFileContent.Append("\tpublic static Class<DownloaderActivity> GetDownloaderType() { return DownloaderActivity.class; }\n");
 
-			// Workaround to do OBB file checking without using DownloadActivity to avoid a SPM bug
-			if (bPackageForDaydream)
-			{
-				ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
-				ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
-				ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
-				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
-				ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
-				ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
-				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
-				ShimFileContent.Append("\t\t\tif (!Helpers.doesFileExist(activity, fileName, xf.mFileSize, false) &&\n");
-				ShimFileContent.Append("\t\t\t\t!Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false))\n");
-				ShimFileContent.Append("\t\t\t\treturn false;\n");
-				ShimFileContent.Append("\t\t\t}\n");
-				ShimFileContent.Append("\t\treturn true;\n");
-				ShimFileContent.Append("\t}\n");
-			}
+			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
+			ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
+			ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
+			ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
+			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
+			ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
+			ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
+			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
+			ShimFileContent.Append("\t\t\tif (Helpers.doesFileExist(activity, fileName, xf.mFileSize, false)) {\n");
+			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForNewFile);\n");
+			ShimFileContent.Append("\t\t\t}\n");
+			ShimFileContent.Append("\t\t\telse if (Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false)) {\n");
+			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForDevFile);\n");
+			ShimFileContent.Append("\t\t\t}\n");
+			ShimFileContent.Append("\t\t\telse return false;\n");
+			ShimFileContent.Append("\t\t}\n");
+			ShimFileContent.Append("\t\treturn true;\n");
+			ShimFileContent.Append("\t}\n");
 
 			ShimFileContent.Append("}\n");
 			Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);
@@ -1762,7 +1792,7 @@ namespace UnrealBuildTool
 		}
 
 
-		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, string EngineDirectory, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir, string Configuration)
+		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, string EngineDirectory, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir, string Configuration, int SDKLevelInt)
 		{
 			// Read the engine version
 			string EngineVersion = ReadEngineVersion(EngineDirectory);
@@ -1824,6 +1854,8 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			string AndroidGraphicsDebugger;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
+			bool bSupportAdMob = true;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportAdMob", out bSupportAdMob);
 
 			string InstallLocation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
@@ -1850,16 +1882,19 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (bGradleEnabled && MinSDKVersion < 13)
+			if (bGradleEnabled && MinSDKVersion < MinimumSDKLevelForGradle)
 			{
-				MinSDKVersion = 13;
-				Log.TraceInformation("Fixing minSdkVersion; AndroidPermission requires minSdkVersion of 13 with Gradle");
+				MinSDKVersion = MinimumSDKLevelForGradle;
+				Log.TraceInformation("Fixing minSdkVersion; requires minSdkVersion of {0} with Gradle based on active plugins", MinimumSDKLevelForGradle);
 			}
 
 			if (TargetSDKVersion < MinSDKVersion)
 			{
 				TargetSDKVersion = MinSDKVersion;
 			}
+
+			// only apply density to configChanges if using android-24 or higher and minimum sdk is 17
+			bool bAddDensity = (SDKLevelInt >= 24) && (MinSDKVersion >= 17);
 
 			// disable GearVR if not supported platform (in this case only armv7 for now)
 			if (UE4Arch != "-armv7")
@@ -1987,14 +2022,16 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
 				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
 				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
-			}
+				Text.AppendLine(bAddDensity ? "\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\""
+											: "\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				}
 			else
 			{
 				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
 				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
 				Text.AppendLine("\t\t          android:theme=\"@android:style/Theme.Black.NoTitleBar.Fullscreen\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				Text.AppendLine(bAddDensity ? "\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\""
+											: "\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
 			}
 			Text.AppendLine("\t\t          android:launchMode=\"singleTask\"");
 			Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
@@ -2037,7 +2074,8 @@ namespace UnrealBuildTool
 			{
 				Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\"");
 				Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+				Text.AppendLine(bAddDensity ? "\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\""
+											: "\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
 				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\" />");
 			}
 			else
@@ -2062,8 +2100,11 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
 			Text.AppendLine("\t\t           android:value=\"@integer/google_play_services_version\" />");
-			Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
-			Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			if (bSupportAdMob)
+			{
+				Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
+				Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			}
 			if (!string.IsNullOrEmpty(ExtraApplicationSettings))
 			{
 				ExtraApplicationSettings = ExtraApplicationSettings.Replace("\\n", "\n");
@@ -2572,6 +2613,8 @@ namespace UnrealBuildTool
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
+			SetMinimumSDKLevelForGradle();
+
 			// check for Gradle enabled for this project
 			bGradleEnabled = GradleEnabled();
 
@@ -2585,6 +2628,7 @@ namespace UnrealBuildTool
 
 			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
 			string SDKAPILevel = GetSdkApiLevel(ToolChain);
+			int SDKLevelInt = GetApiLevelInt(SDKAPILevel);
 			string BuildToolsVersion = GetBuildToolsVersion(bGradleEnabled);
 
 			if (!bGradleEnabled)
@@ -2747,12 +2791,6 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Application display name is different than last build, forcing repackage.");
 			}
 
-			// Write Crashlytics data if enabled
-			if (CrashlyticsPluginEnabled)
-			{
-				WriteCrashlyticsResources(Path.Combine(ProjectDirectory, "Build", "Android"), PackageName, ApplicationDisplayName);
-			}
-
 			// if the manifest matches, look at other settings stored in a file
 			if (bBuildSettingsMatch)
 			{
@@ -2825,7 +2863,7 @@ namespace UnrealBuildTool
 			{
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
-							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration, SDKLevelInt)
 							select Tuple.Create(Arch, GPUArch, manifest);
 			}
 			else
@@ -2833,7 +2871,7 @@ namespace UnrealBuildTool
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
 							let manifestFile = Path.Combine(IntermediateAndroidPath, Arch + "_" + GPUArch + "_AndroidManifest.xml")
-							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration, SDKLevelInt)
 							let OldManifest = File.Exists(manifestFile) ? File.ReadAllText(manifestFile) : ""
 							where manifest != OldManifest
 							select Tuple.Create(Arch, GPUArch, manifest);
@@ -2915,6 +2953,13 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
+
+			// Write Crashlytics data if enabled
+			if (CrashlyticsPluginEnabled)
+			{
+				Trace.TraceInformation("Writing Crashlytics resources");
+				WriteCrashlyticsResources(Path.Combine(ProjectDirectory, "Build", "Android"), PackageName, ApplicationDisplayName);
+			}
 
 			if (!bGradleEnabled)
 			{
@@ -3179,9 +3224,10 @@ namespace UnrealBuildTool
 					Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
 
 					// Make sure minSdkVersion is at least 13 (need this for appcompat-v13 used by AndroidPermissions)
-					if (MinSDKVersion < 13)
+					// this may be changed by active plugins (Google Play Services 11.0.4 needs 14 for example)
+					if (MinSDKVersion < MinimumSDKLevelForGradle)
 					{
-						MinSDKVersion = 13;
+						MinSDKVersion = MinimumSDKLevelForGradle;
 					}
 					if (TargetSDKVersion < MinSDKVersion)
 					{

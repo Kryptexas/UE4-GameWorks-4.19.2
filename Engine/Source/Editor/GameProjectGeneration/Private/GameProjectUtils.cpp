@@ -657,38 +657,15 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 		SolutionFilenameWithoutExtension = TEXT("UE4");
 	}
 
-	// Get the solution filename
-	FString CodeSolutionFile;
-#if PLATFORM_WINDOWS
-	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".sln");
-#elif PLATFORM_MAC
-	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcworkspace");
-#elif PLATFORM_LINUX
-	// FIXME: Should depend on PreferredAccessor setting
-	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".workspace");
-#else
-	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." );
-	return false;
-#endif
-
-	// Open the solution with the default application
-	const FString FullPath = FPaths::Combine(*SolutionFolder, *CodeSolutionFile);
-#if PLATFORM_MAC
-	if ( IFileManager::Get().DirectoryExists(*FullPath) )
-#else
-	if ( FPaths::FileExists(FullPath) )
-#endif
-	{
-		FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
-		return true;
-	}
-	else
+	if (!FSourceCodeNavigation::OpenProjectSolution(FPaths::Combine(SolutionFolder, SolutionFilenameWithoutExtension)))
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("Path"), FText::FromString( FullPath ) );
-		OutFailReason = FText::Format( LOCTEXT( "OpenCodeIDE_MissingFile", "Could not edit the code editing IDE. {Path} could not be found." ), Args );
+		Args.Add(TEXT("AccessorName"), FSourceCodeNavigation::GetSelectedSourceCodeIDE());
+		OutFailReason = FText::Format(LOCTEXT("OpenCodeIDE_FailedToOpen", "Failed to open selected source code accessor '{AccessorName}'"), Args);
 		return false;
 	}
+
+	return true;
 }
 
 void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)

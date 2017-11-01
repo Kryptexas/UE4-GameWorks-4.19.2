@@ -227,6 +227,32 @@ namespace CrossCompiler
 		return OutStr.Len() > 0;
 	}
 
+	inline bool ParseString(const ANSICHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while (*Str != ' ' && *Str != '\n')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
+	inline bool ParseString(const TCHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while (*Str != ' ' && *Str != '\n')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
 	FORCEINLINE bool Match(const ANSICHAR*& Str, ANSICHAR Char)
 	{
 		if (*Str == Char)
@@ -324,4 +350,5 @@ namespace CrossCompiler
 
 		return false;
 	}
+
 }

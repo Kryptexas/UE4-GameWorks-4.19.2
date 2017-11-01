@@ -26,7 +26,7 @@ public:
 	 * @return true if the item was added, false otherwise.
 	 * @see Num, RequestFlush
 	 */
-	virtual bool Enqueue(const TSharedPtr<SampleType, ESPMode::ThreadSafe>& Sample) = 0;
+	virtual bool Enqueue(const TSharedRef<SampleType, ESPMode::ThreadSafe>& Sample) = 0;
 
 	/**
 	 * Get the number of samples in the queue.

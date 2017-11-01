@@ -3035,7 +3035,13 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 	for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 	{
 		FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
-
+		
+		// Make sure we've finished precaching the wave instance's wave data before trying to create a source for it
+		if (!WaveInstance->WaveData->bIsPrecacheDone)
+		{
+			continue;
+		}
+		
 		// Editor uses bIsUISound for sounds played in the browser.
 		if (!WaveInstance->ShouldStopDueToMaxConcurrency() && (bGameTicking || WaveInstance->bIsUISound))
 		{
@@ -4356,6 +4362,9 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			}
 			else
 			{
+				// This should only happen in the game thread.
+				ensure(IsInGameThread());
+				SoundWave->bIsPrecacheDone = false;
 				SoundWave->AudioDecompressor = new FAsyncAudioDecompress(SoundWave);
 				SoundWave->AudioDecompressor->StartBackgroundTask();
 			}

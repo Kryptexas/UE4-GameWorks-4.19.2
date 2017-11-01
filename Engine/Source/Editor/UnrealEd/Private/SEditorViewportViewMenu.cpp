@@ -18,17 +18,17 @@ void SEditorViewportViewMenu::Construct( const FArguments& InArgs, TSharedRef<SE
 		SEditorViewportToolbarMenu::FArguments()
 			.ParentToolBar( InParentToolBar)
 			.Cursor( EMouseCursor::Default )
-			.Label_Static( &SEditorViewportViewMenu::GetViewMenuLabel, Viewport)
-			.LabelIcon( this, &SEditorViewportViewMenu::GetViewMenuLabelBrush)
+			.Label(this, &SEditorViewportViewMenu::GetViewMenuLabel)
+			.LabelIcon(this, &SEditorViewportViewMenu::GetViewMenuLabelIcon)
 			.OnGetMenuContent( this, &SEditorViewportViewMenu::GenerateViewMenuContent )
 	);
 		
 }
 
-FText SEditorViewportViewMenu::GetViewMenuLabel(TWeakPtr<SEditorViewport> InViewport)
+FText SEditorViewportViewMenu::GetViewMenuLabel() const
 {
 	FText Label = LOCTEXT("ViewMenuTitle_Default", "View");
-	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		switch( PinnedViewport->GetViewportClient()->GetViewMode() )
@@ -128,15 +128,10 @@ FText SEditorViewportViewMenu::GetViewMenuLabel(TWeakPtr<SEditorViewport> InView
 	return Label;
 }
 
-const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelBrush() const
-{
-	return GetViewMenuLabelIcon(Viewport).GetIcon();
-}
-
-FSlateIcon SEditorViewportViewMenu::GetViewMenuLabelIcon(TWeakPtr<SEditorViewport> InViewport)
+const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 {
 	FName Icon = NAME_None;
-	TSharedPtr< SEditorViewport > PinnedViewport = InViewport.Pin();
+	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
 		static FName WireframeIcon( "EditorViewport.WireframeMode" );
@@ -259,23 +254,16 @@ FSlateIcon SEditorViewportViewMenu::GetViewMenuLabelIcon(TWeakPtr<SEditorViewpor
 		}
 	}
 
-	return FSlateIcon( "EditorStyle", Icon );
+	return FEditorStyle::GetBrush(Icon);
 }
 
 TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 {
-	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	TSharedPtr<FEditorViewportClient> EditorViewPostClient = Viewport.Pin()->GetViewportClient();
-
-	FMenuBuilder ViewMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtenders);
-	GenerateViewMenu(ViewMenuBuilder, ParentToolBar, Viewport.Pin()->BuildFixedEV100Menu(), EditorViewPostClient.IsValid() && EditorViewPostClient->IsLevelEditorClient());
-
-	return ViewMenuBuilder.MakeWidget();
-}
-
-void SEditorViewportViewMenu::GenerateViewMenu(FMenuBuilder& ViewMenuBuilder, TWeakPtr<SViewportToolBar> ParentToolBar, TSharedRef<SWidget> FixedEV100Menu, bool bIsLevelEditor)
-{
 	const FEditorViewportCommands& BaseViewportActions = FEditorViewportCommands::Get();
+
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder ViewMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtenders);
+
 	{
 		// View modes
 		{
@@ -344,12 +332,17 @@ void SEditorViewportViewMenu::GenerateViewMenu(FMenuBuilder& ViewMenuBuilder, TW
 		{
 			const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
 
+			TSharedRef<SWidget> FixedEV100Menu = Viewport.Pin()->BuildFixedEV100Menu();
+			TSharedPtr<FEditorViewportClient> EditorViewPostClient = Viewport.Pin()->GetViewportClient();
+			const bool bIsLevelEditor = EditorViewPostClient.IsValid() && EditorViewPostClient->IsLevelEditorClient();
+
 			ViewMenuBuilder.BeginSection("Exposure", LOCTEXT("ExposureHeader", "Exposure"));
 			ViewMenuBuilder.AddMenuEntry( bIsLevelEditor ? BaseViewportCommands.ToggleInGameExposure : BaseViewportCommands.ToggleAutoExposure, NAME_None );
 			ViewMenuBuilder.AddWidget( FixedEV100Menu, LOCTEXT("FixedEV100", "EV100") );
 			ViewMenuBuilder.EndSection();
 		}
 	}
+	return ViewMenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

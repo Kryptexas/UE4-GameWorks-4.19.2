@@ -40,13 +40,11 @@ public:
 
 	virtual void Discard() override
 	{
-		//temporarily remove until the semantics around lighting scenarios are fixed.
-#if 0
+		// Keep backing data in the editor for saving
 		if (!GIsEditor)
 		{
 			Data.Empty();
 		}
-#endif
 	}
 
 	void Resize(int32 NewSize)

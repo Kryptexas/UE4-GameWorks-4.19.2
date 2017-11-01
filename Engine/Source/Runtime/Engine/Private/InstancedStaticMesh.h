@@ -85,9 +85,6 @@ public:
 	 */
 	ENGINE_API void InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, bool InRequireCPUAccess);
 
-	/** Propagates instance selection state and hit proxy colors */
-	void SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies, int32 InUpdateInstanceStartingIndex, int32 InUpdateInstanceIndexCount);
-
 	/**
 	 * Update the RHI vertex buffer (called on render thread)
 	 * @param InIndexList - List of items to update in the buffer (an empty list means we want to update all the buffer)
@@ -106,6 +103,11 @@ public:
 	FORCEINLINE uint32 GetNumInstances() const
 	{
 		return NumInstances;
+	}
+
+	FORCEINLINE uint32 GetCurrentNumInstances() const
+	{
+		return InstanceData->GetNumInstances();
 	}
 
 	FORCEINLINE  void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
@@ -168,6 +170,9 @@ private:
 	void AllocateData(FStaticMeshInstanceData& Other, bool bRequestsCPUAccess);
 
 	void UpdateRHIVertexBuffer(int32 StartingIndex, uint32 InstanceCount);
+
+	void CreateVertexBuffer(FResourceArrayInterface* InResourceArray, uint32 InUsage, uint32 InStride, uint8 InFormat, FVertexBufferRHIRef& OutVertexBufferRHI, FShaderResourceViewRHIRef& OutInstanceSRV);
+	bool UpdateDynamicVertexBuffer(int32 StartingIndex, uint32 InstanceCount, uint32 Stride, FVertexBufferRHIRef VetexBuffer, FResourceArrayInterface* ResourceArray);
 	
 	bool ComponentRequestsCPUAccess(UInstancedStaticMeshComponent* InComponent);
 };
@@ -496,6 +501,19 @@ struct FPerInstanceRenderData
 		}
 
 		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, InUpdateInstanceStartingIndex, InUpdateInstanceIndexCount);
+	}
+
+	void UpdateAllInstanceData(UInstancedStaticMeshComponent* InComponent, bool InUpdateProxyData = true)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageBufferUpdate);
+
+		if (InUpdateProxyData)
+		{
+			AddHitProxyData(InComponent, 0, InComponent->PerInstanceSMData.Num());
+		}
+
+		// Force full refresh of ALL the buffer instance (including the removed one as we might need to re locate them)
+		InstanceBuffer.UpdateInstanceData(InComponent, HitProxies, 0, FMath::Max((int32)InstanceBuffer.GetNumInstances(), InComponent->PerInstanceSMData.Num()));
 	}
 
 	/**

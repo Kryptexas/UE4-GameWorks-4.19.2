@@ -199,4 +199,11 @@ private:
 	EThreadType CancelationThread; // The thread on which the callbacks should be called.
 	/** The callback handling the cancellation of the update (only if the update gets cancelled). */
 	FCallback CancelationCallback;
+
+public:
+	/** A counter defining whether render thread tasks should be postponed The callback handling the cancellation of the update (only if the update gets cancelled). */
+	static volatile int32 GSuspendRenderThreadTasks;
 };
+
+void SuspendTextureStreamingRenderTasksInternal();
+void ResumeTextureStreamingRenderTasksInternal();

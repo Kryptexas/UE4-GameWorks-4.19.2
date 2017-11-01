@@ -101,15 +101,6 @@ void FKismet2Menu::FillDeveloperMenu( FMenuBuilder& MenuBuilder )
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("FileDeveloperModuleIteration", LOCTEXT("ModuleIterationHeading", "Module Iteration"));
-	{
-		MenuBuilder.AddMenuEntry( FBlueprintEditorCommands::Get().RecompileGraphEditor );
-		MenuBuilder.AddMenuEntry( FBlueprintEditorCommands::Get().RecompileKismetCompiler );
-		MenuBuilder.AddMenuEntry( FBlueprintEditorCommands::Get().RecompileBlueprintEditor );
-		MenuBuilder.AddMenuEntry( FBlueprintEditorCommands::Get().RecompilePersona );
-	}
-	MenuBuilder.EndSection();
-
 	MenuBuilder.BeginSection("GenerateNativeCode", LOCTEXT("Cpp", "C++"));
 	{
 		MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().GenerateNativeCode);

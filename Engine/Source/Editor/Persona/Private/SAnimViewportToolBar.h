@@ -23,9 +23,10 @@ public:
 		: _ShowShowMenu(true)
 		, _ShowLODMenu(true)
 		, _ShowPlaySpeedMenu(true)
+		, _ShowPhysicsMenu(false)
 	{}
 
-	SLATE_ARGUMENT(TSharedPtr<FExtender>, Extenders)
+	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
 	SLATE_ARGUMENT(bool, ShowShowMenu)
 
@@ -37,6 +38,8 @@ public:
 
 	SLATE_ARGUMENT(bool, ShowTurnTable)
 
+	SLATE_ARGUMENT(bool, ShowPhysicsMenu)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class SAnimationEditorViewportTabBody> InViewport, TSharedPtr<class SEditorViewport> InRealViewport);
@@ -45,17 +48,22 @@ private:
 	/**
 	 * Generates the toolbar view menu content 
 	 */
-	void GenerateViewMenu(FMenuBuilder& InMenuBuilder) const;
+	TSharedRef<SWidget> GenerateViewMenu() const;
+
+	/**
+	* Generates the physics view menu content
+	*/
+	TSharedRef<SWidget> GeneratePhysicsMenu() const;
 
 	/**
 	 * Generates the toolbar show menu content 
 	 */
-	void GenerateShowMenu(FMenuBuilder& InMenuBuilder) const;
+	TSharedRef<SWidget> GenerateShowMenu() const;
 
 	/**
 	 * Generates the Show -> Scene sub menu content
 	 */
-	void FillShowSceneMenu(FMenuBuilder& MenuBuilder) const;
+	TSharedRef<SWidget> FillShowSceneMenu() const;
 
 	/**
 	 * Generates the Show -> Advanced sub menu content
@@ -70,7 +78,7 @@ private:
 	/**
 	 * Generates the toolbar LOD menu content 
 	 */
-	void GenerateLODMenu(FMenuBuilder& InMenuBuilder) const;
+	TSharedRef<SWidget> GenerateLODMenu() const;
 
 	/**
 	 * Returns the label for the "LOD" tool bar menu, which changes depending on the current LOD selection
@@ -82,12 +90,12 @@ private:
 	/**
 	 * Generates the toolbar viewport type menu content 
 	 */
-	void GenerateViewportTypeMenu(FMenuBuilder& InMenuBuilder) const;
+	TSharedRef<SWidget> GenerateViewportTypeMenu() const;
 
 	/**
 	 * Generates the toolbar playback menu content 
 	 */
-	void GeneratePlaybackMenu(FMenuBuilder& InMenuBuilder) const;
+	TSharedRef<SWidget> GeneratePlaybackMenu() const;
 
 	/** Generate the turntable menu entries */
 	void GenerateTurnTableMenu(FMenuBuilder& MenuBuilder) const;
@@ -110,7 +118,7 @@ private:
 	 * @return	Label to use for this Menu
 	 */
 	FText GetCameraMenuLabel() const;
-	FSlateIcon GetCameraMenuLabelIcon() const;
+	const FSlateBrush* GetCameraMenuLabelIcon() const;
 
 	/** Called by the FOV slider in the perspective viewport to get the FOV value */
 	float OnGetFOVValue() const;
@@ -139,7 +147,7 @@ private:
 	TSharedPtr<FUICommandList> CommandList;
 
 	/** Extenders */
-	TSharedPtr<FExtender> Extenders;
+	TArray<TSharedPtr<FExtender>> Extenders;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
@@ -155,4 +163,7 @@ private:
 
 	/** Whether to show options relating to turntable */
 	bool bShowTurnTable;
+
+	/** Whether to show the physics menu*/
+	bool bShowPhysicsMenu;
 };

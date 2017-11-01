@@ -9,6 +9,8 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
+#include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 #include "HAL/PlatformTime.h"
 
 #if WITH_EDITOR
@@ -754,6 +756,38 @@ bool FVisualStudioSourceCodeAccessor::OpenSolution()
 	return OpenVisualStudioSolutionViaProcess();
 }
 
+bool FVisualStudioSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
+{
+	bool bSuccess = false;
+
+	{
+		FScopeLock Lock(&CachedSolutionPathCriticalSection);
+		CachedSolutionPathOverride = InSolutionPath;
+	}
+#if VSACCESSOR_HAS_DTE
+	if (OpenVisualStudioSolutionViaDTE())
+	{
+		bSuccess = true;
+	}
+	else
+#endif
+	{
+		bSuccess = OpenVisualStudioSolutionViaProcess();
+	}
+
+	{
+		FScopeLock Lock(&CachedSolutionPathCriticalSection);
+		CachedSolutionPathOverride = TEXT("");
+	}
+	return bSuccess;
+}
+
+bool FVisualStudioSourceCodeAccessor::DoesSolutionExist() const
+{
+	const FString SolutionPath = GetSolutionPath();
+	return FPaths::FileExists(SolutionPath);
+}
+
 bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternal(const TArray<FileOpenRequest>& Requests)
 {
 #if VSACCESSOR_HAS_DTE
@@ -1234,12 +1268,26 @@ FText FVisualStudioSourceCodeAccessor::GetDescriptionText() const
 FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 {
 	FScopeLock Lock(&CachedSolutionPathCriticalSection);
+
 	if(IsInGameThread())
 	{
-		FString SolutionPath;
-		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+		if (CachedSolutionPathOverride.Len() > 0)
 		{
-			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
+			CachedSolutionPath = CachedSolutionPathOverride + TEXT(".sln");
+		}
+		else
+		{
+			CachedSolutionPath = FPaths::ProjectDir();
+
+			if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
+			{
+				CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), TEXT("UE4.sln"));
+			}
+			else
+			{
+				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+			}
 		}
 	}
 	return CachedSolutionPath;

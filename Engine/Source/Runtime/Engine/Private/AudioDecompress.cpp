@@ -692,6 +692,9 @@ void FAsyncAudioDecompressWorker::DoWork()
 		}
 
 		delete AudioInfo;
+
+		// Flag that we've finished this precache decompress task.
+		Wave->bIsPrecacheDone = true;
 	}
 }
 

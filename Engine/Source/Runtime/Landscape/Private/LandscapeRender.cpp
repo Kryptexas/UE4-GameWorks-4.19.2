@@ -2625,32 +2625,31 @@ public:
 	{
 		if (VertexFactoryType)
 		{
-			if (bIsLayerThumbnail)
+			// Always check against FLocalVertexFactory in editor builds as it is required to render thumbnails
+			// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
+			static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
+			if (VertexFactoryType->GetFName() == LocalVertexFactory)
 			{
-				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
-				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
-				if (VertexFactoryType->GetFName() == LocalVertexFactory)
+				if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
 				{
-					if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
+					return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+				}
+				else
+				{
+					if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
 					{
-						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
+						UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
+						return false;
 					}
 					else
 					{
-						if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
-						{
-							UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
-							return false;
-						}
-						else
-						{
-							UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
-							return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
-						}
+						UE_LOG(LogLandscape, Warning, TEXT("Shader %s unknown by landscape thumbnail material, please add to either AllowedShaderTypes or ExcludedShaderTypes"), ShaderType->GetName());
+						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 				}
 			}
-			else
+
+			if (!bIsLayerThumbnail)
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
@@ -2723,11 +2722,16 @@ public:
 			FName(TEXT("TBasePassPSTLightMapPolicyLQSkylight")),
 			FName(TEXT("TBasePassVSTLightMapPolicyLQ")),
 
+			FName(TEXT("TMobileBasePassPSFMobileMovableDirectionalLightCSMWithLightmapPolicyINT32_MAXHDRLinear64Skylight")),
+
 			FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
 			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
 			FName(TEXT("TBasePassVSFCachedVolumeIndirectLightingPolicy")),
 			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicy")),
 			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicySkylight")),
+			FName(TEXT("TBasePassVSFPrecomputedVolumetricLightmapLightingPolicy")),
+			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicy")),
+			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicySkylight")),
 
 			FName(TEXT("TBasePassVSFNoLightMapPolicyAtmosphericFog")),
 			FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicyAtmosphericFog")),
@@ -2764,6 +2768,15 @@ public:
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightPositionOnly")),
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthPositionOnly")),
 			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectPositionOnly")),
+
+			FName(TEXT("TBasePassVSTDistanceFieldShadowsAndLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyHQAtmosphericFog")),
+			FName(TEXT("TBasePassVSTLightMapPolicyLQAtmosphericFog")),
+			FName(TEXT("TBasePassVSFPrecomputedVolumetricLightmapLightingPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedVolumetricLightmapPolicySkylight")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFSelfShadowedVolumetricLightmapPolicy")),
 		};
 		return ExcludedShaderTypes;
 	}

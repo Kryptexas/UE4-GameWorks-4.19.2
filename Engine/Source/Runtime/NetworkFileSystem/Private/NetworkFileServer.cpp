@@ -221,39 +221,44 @@ uint32 FNetworkFileServer::Run( )
 		}
 
 		// check for incoming connections
-		if (Socket->HasPendingConnection(bReadReady) && bReadReady)
+		if (Socket->WaitForPendingConnection(bReadReady, FTimespan::FromSeconds(0.25f)))
 		{
-			FSocket* ClientSocket = Socket->Accept(TEXT("Remote Console Connection"));
-
-			if (ClientSocket != NULL)
+			if (bReadReady)
 			{
-				TSharedPtr<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-				ClientSocket->GetAddress(*Addr);
-				TSharedPtr<FInternetAddr> PeerAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-				ClientSocket->GetPeerAddress(*PeerAddr);
+				FSocket* ClientSocket = Socket->Accept(TEXT("Remote Console Connection"));
 
-				for ( auto PreviousConnection : Connections )
+				if (ClientSocket != NULL)
 				{
-					TSharedPtr<FInternetAddr> PreviousAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
-					PreviousConnection->GetAddress( *PreviousAddr );
-					TSharedPtr<FInternetAddr> PreviousPeerAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
-					PreviousConnection->GetPeerAddress( *PreviousPeerAddr );
-					if ( ( *Addr == *PreviousAddr ) &&
-						(*PeerAddr == *PreviousPeerAddr ) )
-					{
-						// kill hte connection 
-						PreviousConnection->Stop();
-						UE_LOG(LogFileServer, Warning, TEXT( "Killing client connection %s because new client connected from same address." ), *PreviousConnection->GetDescription() );
-					}
-				}
+					TSharedPtr<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+					ClientSocket->GetAddress(*Addr);
+					TSharedPtr<FInternetAddr> PeerAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+					ClientSocket->GetPeerAddress(*PeerAddr);
 
-				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, &NetworkFileDelegates, ActiveTargetPlatforms);
-				Connections.Add(Connection);
-				UE_LOG(LogFileServer, Display, TEXT( "Client %s connected." ), *Connection->GetDescription() );
+					for (auto PreviousConnection : Connections)
+					{
+						TSharedPtr<FInternetAddr> PreviousAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
+						PreviousConnection->GetAddress(*PreviousAddr);
+						TSharedPtr<FInternetAddr> PreviousPeerAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
+						PreviousConnection->GetPeerAddress(*PreviousPeerAddr);
+						if ((*Addr == *PreviousAddr) &&
+							(*PeerAddr == *PreviousPeerAddr))
+						{
+							// kill the connection 
+							PreviousConnection->Stop();
+							UE_LOG(LogFileServer, Warning, TEXT("Killing client connection %s because new client connected from same address."), *PreviousConnection->GetDescription());
+						}
+					}
+
+					FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, &NetworkFileDelegates, ActiveTargetPlatforms);
+					Connections.Add(Connection);
+					UE_LOG(LogFileServer, Display, TEXT("Client %s connected."), *Connection->GetDescription());
+				}
 			}
 		}
-
-		FPlatformProcess::Sleep(0.25f);
+		else
+		{
+			FPlatformProcess::Sleep(0.25f);
+		}
 	}
 
 	return 0;

@@ -550,8 +550,11 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 
 			if (!Package)
 			{
-				bStartedSlowTask = true;
-				GWarn->BeginSlowTask(ReferenceUpdateSlowTask, true);
+				if(!bStartedSlowTask)
+				{
+					bStartedSlowTask = true;
+					GWarn->BeginSlowTask(ReferenceUpdateSlowTask, true);
+				}
 				Package = LoadPackage(nullptr, *PackageName.ToString(), LOAD_None);
 			}
 

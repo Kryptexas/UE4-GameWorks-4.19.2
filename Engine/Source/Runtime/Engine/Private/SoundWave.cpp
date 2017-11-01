@@ -85,6 +85,9 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	CompressionQuality = 40;
 	SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY;
 	ResourceState = ESoundWaveResourceState::NeedsFree;
+
+	// Default this to true since most sound wave types don't need precaching
+	bIsPrecacheDone = true;
 }
 
 void USoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
@@ -434,6 +437,8 @@ void USoundWave::PostLoad()
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->SourceData = MoveTemp(Info);
 	}
+
+	bNeedsThumbnailGeneration = true;
 #endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
@@ -563,7 +568,10 @@ void USoundWave::FreeResources()
 	USoundWave* SoundWave = this;
 	FAudioThread::RunCommandOnGameThread([SoundWave]()
 	{
-		SoundWave->ResourceState = ESoundWaveResourceState::Freed;
+		if (SoundWave->ResourceState == ESoundWaveResourceState::Freeing)
+		{
+			SoundWave->ResourceState = ESoundWaveResourceState::Freed;
+		}
 	}, TStatId());
 }
 
@@ -622,6 +630,13 @@ bool USoundWave::IsReadyForFinishDestroy()
 void USoundWave::FinishDestroy()
 {
 	Super::FinishDestroy();
+
+	if (AudioDecompressor)
+	{
+		check(AudioDecompressor->IsDone());
+		delete AudioDecompressor;
+		AudioDecompressor = nullptr;
+	}
 
 	CleanupCachedRunningPlatformData();
 #if WITH_EDITOR

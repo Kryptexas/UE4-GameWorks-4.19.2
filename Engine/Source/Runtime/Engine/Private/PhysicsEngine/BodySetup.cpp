@@ -684,8 +684,8 @@ void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs,
 void FBodySetupShapeIterator::GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset)
 {
 	// Get contact offset params
-	InOutContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
-	InOutMaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
+	InOutContactOffsetFactor = CVarContactOffsetFactor.GetValueOnAnyThread();
+	InOutMaxContactOffset = CVarMaxContactOffset.GetValueOnAnyThread();
 
 	InOutContactOffsetFactor = InOutContactOffsetFactor < 0.f ? UPhysicsSettings::Get()->ContactOffsetMultiplier : InOutContactOffsetFactor;
 	InOutMaxContactOffset = InOutMaxContactOffset < 0.f ? UPhysicsSettings::Get()->MaxContactOffset : InOutMaxContactOffset;

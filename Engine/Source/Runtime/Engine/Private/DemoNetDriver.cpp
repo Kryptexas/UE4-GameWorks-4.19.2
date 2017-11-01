@@ -770,20 +770,12 @@ void UDemoNetDriver::TickFlushAsyncEndOfFrame(float DeltaSeconds)
 void UDemoNetDriver::TickFlushInternal( float DeltaSeconds )
 {
 	// Set the context on the world for this driver's level collection.
-	const FLevelCollection* FoundCollection = nullptr;
-	if (GetWorld())
+	const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
 	{
-		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
-		{
-			if (LC.GetDemoNetDriver() == this)
-			{
-				FoundCollection = &LC;
-				break;
-			}
-		}
-	}
+		return Collection.GetDemoNetDriver() == this;
+	}) : INDEX_NONE;
 
-	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollectionIndex, GetWorld());
 
 	Super::TickFlush( DeltaSeconds );
 
@@ -875,20 +867,12 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 	LLM_SCOPE(ELLMTag::Networking);
 
 	// Set the context on the world for this driver's level collection.
-	const FLevelCollection* FoundCollection = nullptr;
-	if (GetWorld())
+		const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
 	{
-		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
-		{
-			if (LC.GetDemoNetDriver() == this)
-			{
-				FoundCollection = &LC;
-				break;
-			}
-		}
-	}
+		return Collection.GetDemoNetDriver() == this;
+	}) : INDEX_NONE;
 
-	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollectionIndex, GetWorld());
 
 	Super::TickDispatch( DeltaSeconds );
 

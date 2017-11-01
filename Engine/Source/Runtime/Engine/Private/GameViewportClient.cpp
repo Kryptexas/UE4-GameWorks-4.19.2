@@ -996,14 +996,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	UCanvas* DebugCanvasObject = GetCanvasByName(DebugCanvasObjectName);
 	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL, DebugCanvas);
 
-	static const auto DebugCanvasInLayerCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.DebugCanvasInLayer"));
-	const bool bDebugInLayer = bStereoRendering && (DebugCanvasInLayerCVar && DebugCanvasInLayerCVar->GetValueOnAnyThread() != 0);
-
 	if (DebugCanvas)
 	{
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
 		DebugCanvas->SetStereoRendering(bStereoRendering);
-		DebugCanvas->SetUseInternalTexture(bDebugInLayer);
 	}
 	if (SceneCanvas)
 	{
@@ -1022,6 +1018,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		MyWorld->Scene,
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// Force enable view family show flag for HighDPI derived's screen percentage.
+		ViewFamily.EngineShowFlags.ScreenPercentage = true;
+	}
+#endif
 
 	ViewFamily.ViewExtensions = GEngine->ViewExtensions->GatherActiveExtensions(InViewport);
 

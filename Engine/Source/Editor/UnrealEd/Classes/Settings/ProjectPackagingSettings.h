@@ -56,6 +56,25 @@ enum class EProjectPackagingInternationalizationPresets : uint8
 };
 
 /**
+ * Determines whether to build the executable when packaging. Note the equivalence between these settings and EPlayOnBuildMode.
+ */
+UENUM()
+enum class EProjectPackagingBuild
+{
+	/** Always build. */
+	Always UMETA(DisplayName="Always"),
+
+	/** Never build. */
+	Never UMETA(DisplayName="Never"),
+
+	/** Default (if the Never build. */
+	IfProjectHasCode UMETA(DisplayName="If project has code, or running a locally built editor"),
+
+	/** If we're not packaging from a promoted build. */
+	IfEditorWasBuiltLocally UMETA(DisplayName="If running a locally built editor")
+};
+
+/**
 * Enumerates the available methods for Blueprint nativization during project packaging.
 */
 UENUM()
@@ -81,6 +100,10 @@ class UNREALED_API UProjectPackagingSettings
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	/** Specifies whether to build the game executable during packaging. */
+	UPROPERTY(config, EditAnywhere, Category=Project)
+	EProjectPackagingBuild Build;
 
 	/** The build configuration for which the project is packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Project)

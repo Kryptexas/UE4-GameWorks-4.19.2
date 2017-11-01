@@ -177,30 +177,31 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 
 	// TODO early out for point lights
 	
+	float InvDistToLightSqr = rcp( dot( ToLight, ToLight ) );
+	float NoV = saturate( dot( N, V ) );
+	
 	float3 R = reflect( -V, N );
-    float DistToLightSqr = dot( ToLight, ToLight );
-
+	
 	// Point lobe in off-specular peak direction
 	float a = Square( LobeRoughness[1] );
 	R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
 	R = normalize( R );
 
-    BRANCH
-    if (LightData.SoftSourceRadius > 0)
-    {
-        float SphereAngleSqr = saturate(Pow2(LightData.SoftSourceRadius) / DistToLightSqr);
-        m2 += SphereAngleSqr / (saturate(dot(N, V)) * 3.6 + 0.4);
-        LobeRoughness = sqrt(sqrt(m2));
-    }
+	BRANCH
+	if( LightData.SoftSourceRadius > 0 )
+	{
+		float SphereAngleSqr = saturate( Pow2( LightData.SoftSourceRadius ) * InvDistToLightSqr );
+		m2 += SphereAngleSqr / ( NoV * 3.6 + 0.4 );
+		m = sqrt(m2);
+		LobeRoughness = sqrt(m);
+	}
 
 	BRANCH
 	if( SourceLength > 0 )
 	{
-		// asin(x) is angle to sphere, atan(x) is angle to disk, saturate(x) is free and in the middle
-        float LineAngleSqr = saturate(Pow2(SourceLength) / DistToLightSqr);
-
 		// Energy conservation
-        LobeEnergy *= sqrt(m2 / (m2 + LineAngleSqr / (saturate(dot(N, V)) * 3.6 + 0.4)));
+		float LineAngleSqr = saturate( Pow2( 0.5 * SourceLength ) * InvDistToLightSqr );
+		LobeEnergy *= sqrt( m2 / ( m2 + LineAngleSqr / ( NoV * 3.6 + 0.4 ) ) );
 
 		// Closest point on line segment to ray
 		float3 L01 = LightData.LightTangent * SourceLength;
@@ -229,16 +230,15 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 	if( SourceRadius > 0 )
 	{
 		// asin(x) is angle to sphere, atan(x) is angle to disk, saturate(x) is free and in the middle
-		float SphereAngleSqr = saturate( Pow2( SourceRadius ) / DistToLightSqr );
+		float SphereAngleSqr = saturate( Pow2( SourceRadius ) * InvDistToLightSqr );
 
 		// Energy conservation
-        LobeEnergy *= LobeRoughness[1] / (LobeRoughness[1] + 0.375892 * tan(saturate(SourceRadius / length(ToLight) / 2.0f)) * rsqrt(LobeRoughness[1]));
-   
+		LobeEnergy *= m2 / ( m2 + SphereAngleSqr / ( NoV * 3.6 + 0.4 ) );
+		
 		// Closest point on sphere to ray
 		float3 ClosestPointOnRay = dot( ToLight, R ) * R;
 		float3 CenterToRay = ClosestPointOnRay - ToLight;
-        float MinValue = Softmin(SourceRadius * rsqrt(dot(CenterToRay, CenterToRay)));
-        float3 ClosestPointOnSphere = ToLight + CenterToRay * max(0, MinValue);
+		float3 ClosestPointOnSphere = ToLight + CenterToRay * saturate( SourceRadius * rsqrt( dot( CenterToRay, CenterToRay ) ) );
 		ToLight = ClosestPointOnSphere;
 	}
 

@@ -352,12 +352,13 @@ void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& 
 	FBPTerminal* MapTerm = Statement.LHS;
 	const FString Map = TermToText(EmitterContext, MapTerm, ENativizedTermUsage::UnspecifiedOrReference);
 
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num()));
+	check((Statement.RHS.Num() % 2) == 0);
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num() / 2));
 
-	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	for (int32 i = 0; i < Statement.RHS.Num(); i+=2)
 	{
 		FBPTerminal* KeyTerminal = Statement.RHS[i];
-		FBPTerminal* ValueTerminal = Statement.RHS[i];
+		FBPTerminal* ValueTerminal = Statement.RHS[i+1];
 		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
 	}
 }

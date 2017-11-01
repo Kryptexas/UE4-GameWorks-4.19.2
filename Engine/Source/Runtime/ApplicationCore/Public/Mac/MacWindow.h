@@ -113,4 +113,7 @@ private:
 
 	bool bIsVisible : 1;
 	bool bIsClosed : 1;
+
+	/** Whether the window is yet to have its first Show() call. This is set false after first Show(). */
+	bool bIsFirstTimeVisible : 1;
 };

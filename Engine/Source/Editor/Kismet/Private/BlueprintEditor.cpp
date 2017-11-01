@@ -2577,18 +2577,6 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts));
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileGraphEditor,
-		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileGraphEditor_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileKismetCompiler,
-		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileKismetCompiler_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileBlueprintEditor,
-		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileBlueprintEditor_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompilePersona,
-		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompilePersona_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
 
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::CreateMergeToolTab),

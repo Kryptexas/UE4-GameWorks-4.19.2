@@ -13,6 +13,7 @@ FMacWindow::FMacWindow()
 ,	DisplayID(kCGNullDirectDisplay)
 ,	bIsVisible(false)
 ,	bIsClosed(false)
+,	bIsFirstTimeVisible(true)
 {
 }
 
@@ -126,6 +127,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			}
 
 			[WindowHandle setLevel:WindowLevel];
+
+			WindowedModeSavedState.WindowLevel = WindowLevel;
 
 			if( !Definition->HasOSWindowBorder )
 			{
@@ -250,6 +253,8 @@ void FMacWindow::BringToFront( bool bForce )
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
 		}, UE4ShowEventMode, true);
+
+		MacApplication->OnWindowOrderedFront(SharedThis(this));
 	}
 }
 
@@ -307,12 +312,34 @@ void FMacWindow::Show()
 {
 	if (!bIsClosed && !bIsVisible)
 	{
-		const bool bMakeMainAndKey = [WindowHandle canBecomeKeyWindow] && Definition->ActivationPolicy != EWindowActivationPolicy::Never;
+		// Should the show command include activation?
+		// Do not activate windows that do not take input; e.g. tool-tips and cursor decorators
+		bool bShouldActivate = false;
+		if (Definition->AcceptsInput)
+		{
+			bShouldActivate = Definition->ActivationPolicy == EWindowActivationPolicy::Always;
+			if (bIsFirstTimeVisible && Definition->ActivationPolicy == EWindowActivationPolicy::FirstShown)
+			{
+				bShouldActivate = true;
+			}
+		}
+
+		bIsFirstTimeVisible = false;
 
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
-		}, UE4ShowEventMode, false);
+			[WindowHandle orderFrontAndMakeMain:bShouldActivate andKey:bShouldActivate];
+		}, UE4ShowEventMode, true);
+
+		if (bShouldActivate)
+		{
+			// Tell MacApplication to send window deactivate and activate messages to Slate without waiting for Cocoa events.
+			MacApplication->OnWindowActivated(SharedThis(this));
+		}
+		else
+		{
+			MacApplication->OnWindowOrderedFront(SharedThis(this));
+		}
 
 		bIsVisible = true;
 	}
@@ -327,7 +354,7 @@ void FMacWindow::Hide()
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderOut:nil];
-		}, UE4CloseEventMode, false);
+		}, UE4CloseEventMode, true);
 	}
 }
 
@@ -389,6 +416,8 @@ void FMacWindow::SetWindowFocus()
 		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle orderFrontAndMakeMain:true andKey:true];
 	}, UE4ShowEventMode, true);
+
+	MacApplication->OnWindowOrderedFront(SharedThis(this));
 }
 
 void FMacWindow::SetOpacity( const float InOpacity )
@@ -635,7 +664,7 @@ void FMacWindow::UpdateFullScreenState(bool bToggleFullScreen)
 			}
 			[NSApp setPresentationOptions:NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar];
 		}
-		else
+		else if (WindowHandle.level != WindowedModeSavedState.WindowLevel)
 		{
 			[WindowHandle setLevel:WindowedModeSavedState.WindowLevel];
 			[NSApp setPresentationOptions:NSApplicationPresentationDefault];

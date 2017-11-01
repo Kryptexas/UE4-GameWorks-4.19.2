@@ -8,6 +8,8 @@
 #include "Engine/EngineTypes.h"
 #include "AndroidRuntimeSettings.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogAndroidRuntimeSettings, Log, All);
+
 UENUM()
 namespace EAndroidAntVerbosity
 {
@@ -144,6 +146,17 @@ namespace EGoogleVRMode
 }
 
 UENUM()
+namespace EGoogleVRCaps
+{
+	enum Type
+	{
+		Cardboard = 0 UMETA(DisplayName = "Cardboard", ToolTip = "Head orientation, no controller."),
+		Daydream33 = 1 UMETA(DisplayName = "Daydream (3.3 DoF)", ToolTip = "Head orientation, controller orientation. Daydream without positional tracking."),
+		Daydream63 = 2 UMETA(DisplayName = "Daydream (6.3 DoF)", ToolTip = "Head position and orientation, controller orientation. Daydream with positional tracking.")
+	};
+}
+
+UENUM()
 namespace EAndroidGraphicsDebugger
 {
 	enum Type
@@ -274,9 +287,9 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 
-	// Configure AndroidManifest.xml for Cardboard, Cardboard Advanced, or Daydream deployment. If running in Daydream-only mode, sustained performance and async reprojection are forced.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR Deployment Mode"))
-	TEnumAsByte<EGoogleVRMode::Type> GoogleVRMode;
+	// Configure AndroidManifest.xml to support specific hardward configurations, position and orientation of the head and controller.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR to support specific hardware configurations"))
+	TArray<TEnumAsByte<EGoogleVRCaps::Type>> GoogleVRCaps;
 
 	// Configure the Android to run in sustained performance with lower max speeds, but no FPS fluctuations due to temperature
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR for sustained-performance mode"))
@@ -321,10 +334,6 @@ public:
 	// Enable ES3.1 support?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES3.1"))
 	bool bBuildForES31;
-
-	// Enable ES Deferred shading support? [CURRENTLY FOR FULL SOURCE GAMES ONLY. SUPPORTED BY NVIDIA K-1 AND X-1 ONLY.]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL Deferred Renderer [Nvidia K1 & X1 only]"))
-	bool bBuildForESDeferred;
 
 	// Enable Vulkan rendering support?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
@@ -486,5 +495,8 @@ public:
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
 	// End of UObject interface
+
+private:
+	void EnsureValidGPUArch();
 #endif
 };

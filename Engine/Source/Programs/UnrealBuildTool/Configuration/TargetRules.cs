@@ -549,6 +549,12 @@ namespace UnrealBuildTool
 		public bool bUseXGEController = true;
 
 		/// <summary>
+		/// Enables "include what you use" by default for modules in this target. Changes the default PCH mode for any module in this project to PCHUsageModule.UseExplicitOrSharedPCHs.
+		/// </summary>
+		[CommandLine("-IWYU")]
+		public bool bIWYU = false;
+
+		/// <summary>
 		/// Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 		/// </summary>
 		public bool bEnforceIWYU = true;
@@ -1692,6 +1698,11 @@ namespace UnrealBuildTool
 		public bool bEventDrivenLoader
 		{
 			get { return Inner.bEventDrivenLoader; }
+		}
+
+		public bool bIWYU
+		{
+			get { return Inner.bIWYU; }
 		}
 
 		public bool bEnforceIWYU

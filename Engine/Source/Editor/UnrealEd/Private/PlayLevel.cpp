@@ -1227,7 +1227,12 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 		// Build the connection String
 		FString ConnectionAddr(TEXT("127.0.0.1"));
-		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+
+		// Ignore the user's settings if the autoconnect option is inaccessible due to settings conflicts.
+		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); 
+			return (PlayInSettings->GetAutoConnectToServerVisibility() == EVisibility::Visible) ? 
+				(PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer) : true; }();
+
 		if (WillAutoConnectToServer)
 		{
 			uint16 ServerPort = 0;
@@ -1540,14 +1545,13 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	}
 	else if (InStage.Contains(TEXT("Build Task")))
 	{
-		EPlayOnBuildMode bBuildType = GetDefault<ULevelEditorPlaySettings>()->BuildGameBeforeLaunch;
 		FString PlatformName = PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")));
 		if (PlatformName.Contains(TEXT("NoEditor")))
 		{
 			PlatformName = PlatformName.Left(PlatformName.Find(TEXT("NoEditor")));
 		}
 		Arguments.Add(TEXT("PlatformName"), FText::FromString(PlatformName));
-		if (FApp::IsEngineInstalled() || !bPlayUsingLauncherHasCode || !bPlayUsingLauncherHasCompiler || bBuildType == EPlayOnBuildMode::PlayOnBuild_Never)
+		if (!bPlayUsingLauncherBuild)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskValidateNotification", "Validating Executable for {PlatformName}..."), Arguments);
 		}
@@ -1873,16 +1877,27 @@ void UEditorEngine::PlayUsingLauncher()
 		// does the project have any code?
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bPlayUsingLauncherHasCode = GameProjectModule.Get().ProjectRequiresBuild(FName(*PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
-		bPlayUsingLauncherHasCompiler = FSourceCodeNavigation::IsCompilerAvailable();
 
 		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Launch On Device"));
-		EPlayOnBuildMode bBuildType = PlayInSettings->BuildGameBeforeLaunch;
-		if ((bBuildType == EPlayOnBuildMode::PlayOnBuild_Always) || (bBuildType == PlayOnBuild_Default && (bPlayUsingLauncherHasCode) && bPlayUsingLauncherHasCompiler))
+		if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Always)
 		{
-			LauncherProfile->SetBuildGame(true);
+			bPlayUsingLauncherBuild = true;
 		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Never)
+		{
+			bPlayUsingLauncherBuild = false;
+		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Default)
+		{
+			bPlayUsingLauncherBuild = bPlayUsingLauncherHasCode || !FApp::GetEngineIsPromotedBuild();
+		}
+		else if(PlayInSettings->BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_IfEditorBuiltLocally)
+		{
+			bPlayUsingLauncherBuild = !FApp::GetEngineIsPromotedBuild();
+		}
+		LauncherProfile->SetBuildGame(bPlayUsingLauncherBuild);
 
 		// set the build/launch configuration 
 		switch (PlayInSettings->LaunchConfiguration)

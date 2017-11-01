@@ -169,7 +169,16 @@ FReply SDetailSingleItemRow::OnArrayDrop(const FDragDropEvent& DragDropEvent)
 {
 	bIsHoveredDragTarget = false;
 	TSharedPtr<FArrayRowDragDropOp> ArrayDropOp = DragDropEvent.GetOperationAs< FArrayRowDragDropOp >();
-	TSharedPtr<FPropertyNode> SwappingPropertyNode = ArrayDropOp->Row->SwappablePropertyNode;
+	TSharedPtr<SDetailSingleItemRow> RowPtr = nullptr;
+	if (ArrayDropOp.IsValid())
+	{
+		RowPtr = ArrayDropOp->Row.Pin();
+	}
+	if (!RowPtr.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+	TSharedPtr<FPropertyNode> SwappingPropertyNode = RowPtr->SwappablePropertyNode;
 	if (SwappingPropertyNode.IsValid() && SwappablePropertyNode.IsValid())
 	{
 		if (SwappingPropertyNode != SwappablePropertyNode)
@@ -300,7 +309,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
 			if (PropertyNode.IsValid() && PropertyNode->IsReorderable())
 			{
-				TSharedRef<SWidget> Handle = PropertyEditorHelpers::MakePropertyReorderHandle(PropertyNode.ToSharedRef(), this);
+				TSharedPtr<SDetailSingleItemRow> InRow = SharedThis(this);
+				TSharedRef<SWidget> Handle = PropertyEditorHelpers::MakePropertyReorderHandle(PropertyNode.ToSharedRef(), InRow);
 				Handle->SetEnabled(IsPropertyEditingEnabled);
 				LeftSideOverlay->AddSlot()
 					.Padding(0.0f, 0.0f, 10.0f, 0.0f)
@@ -688,7 +698,7 @@ FReply SArrayRowHandle::OnDragDetected(const FGeometry& MyGeometry, const FPoint
 	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		{	
-			TSharedPtr<FDragDropOperation> DragDropOp = CreateDragDropOperation(ParentRow);
+			TSharedPtr<FDragDropOperation> DragDropOp = CreateDragDropOperation(ParentRow.Pin());
 			if (DragDropOp.IsValid())
 			{
 				return FReply::Handled().BeginDragDrop(DragDropOp.ToSharedRef());
@@ -700,7 +710,7 @@ FReply SArrayRowHandle::OnDragDetected(const FGeometry& MyGeometry, const FPoint
 
 }
 
-TSharedPtr<FArrayRowDragDropOp> SArrayRowHandle::CreateDragDropOperation(class SDetailSingleItemRow* InRow)
+TSharedPtr<FArrayRowDragDropOp> SArrayRowHandle::CreateDragDropOperation(TSharedPtr<SDetailSingleItemRow> InRow)
 {
 	TSharedPtr<FArrayRowDragDropOp> Operation = MakeShareable(new FArrayRowDragDropOp(InRow));
 

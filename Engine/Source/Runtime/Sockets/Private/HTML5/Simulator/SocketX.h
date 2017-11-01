@@ -23,7 +23,7 @@ public:
 
 	virtual bool Listen( int32 MaxBacklog );
 
-	virtual bool HasPendingConnection( bool& bHasPendingConnection );
+	virtual bool WaitForPendingConnection( bool& bHasPendingConnection, const FTimespan& WaitTime );
 
 	virtual bool HasPendingData( uint32& PendingDataSize );
 

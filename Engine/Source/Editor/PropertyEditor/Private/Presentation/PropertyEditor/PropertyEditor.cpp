@@ -15,6 +15,7 @@
 #include "EditorClassUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "IConfigEditorModule.h"
+#include "PropertyNode.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -403,21 +404,27 @@ bool FPropertyEditor::IsEditConst() const
 
 void FPropertyEditor::SetEditConditionState( bool bShouldEnable )
 {
+	// Propagate the value change to any instances if we're editing a template object.
+	FObjectPropertyNode* ObjectNode = PropertyNode->FindObjectItemParent();
+
+	FPropertyNode* ParentNode = PropertyNode->GetParentNode();
+	check(ParentNode != nullptr);
+
 	PropertyNode->NotifyPreChange( PropertyNode->GetProperty(), PropertyUtilities->GetNotifyHook() );
 	for ( int32 ValueIdx = 0; ValueIdx < PropertyEditConditions.Num(); ValueIdx++ )
 	{
-		uint8* ValueAddr = PropertyEditConditions[ValueIdx].Address;
+		// Get the address corresponding to the base of this property (i.e. if a struct property, set BaseOffset to the address of value for the whole struct)
+		uint8* BaseOffset = ParentNode->GetValueAddress(PropertyEditConditions[ValueIdx].BaseAddress);
+		check(BaseOffset != NULL);
+
+		uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+
 		const bool OldValue = EditConditionProperty->GetPropertyValue( ValueAddr );
 		const bool NewValue = XOR(bShouldEnable, PropertyEditConditions[ValueIdx].bNegateValue);
 		EditConditionProperty->SetPropertyValue( ValueAddr, NewValue );
 
-		// Propagate the value change to any instances if we're editing a template object.
-		FObjectPropertyNode* ObjectNode = PropertyNode->FindObjectItemParent();
 		if (ObjectNode != nullptr)
 		{
-			FPropertyNode* ParentNode = PropertyNode->GetParentNode();
-			check(ParentNode != nullptr);
-
 			for (int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex)
 			{
 				TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject(ObjIndex);
@@ -429,14 +436,14 @@ void FPropertyEditor::SetEditConditionState( bool bShouldEnable )
 					for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
 					{
 						// Only propagate if the current value on the instance matches the previous value on the template.
-						uint8* BaseOffset = ParentNode->GetValueAddress((uint8*)ArchetypeInstances[InstanceIndex]);
-						if(BaseOffset)
+						uint8* ArchetypeBaseOffset = ParentNode->GetValueAddress((uint8*)ArchetypeInstances[InstanceIndex]);
+						if(ArchetypeBaseOffset)
 						{
-							ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
-							const bool CurValue = EditConditionProperty->GetPropertyValue(ValueAddr);
+							uint8* ArchetypeValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(ArchetypeBaseOffset);
+							const bool CurValue = EditConditionProperty->GetPropertyValue(ArchetypeValueAddr);
 							if(OldValue == CurValue)
 							{
-								EditConditionProperty->SetPropertyValue(ValueAddr, NewValue);
+								EditConditionProperty->SetPropertyValue(ArchetypeValueAddr, NewValue);
 							}
 						}
 					}
@@ -607,23 +614,30 @@ TSharedRef< IPropertyHandle > FPropertyEditor::GetPropertyHandle() const
 	return PropertyHandle.ToSharedRef();
 }
 
-bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, const TArray<FPropertyConditionInfo>& ConditionValues )
+bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, const TArray<FPropertyConditionInfo>& ConditionValues ) const
 {
 	check( ConditionProperty );
 
 	bool bResult = false;
 	bool bAllConditionsMet = true;
 
-	for ( int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++ )
+	FPropertyNode* ParentNode = PropertyNode->GetParentNode();
+	FComplexPropertyNode* ComplexParentNode = ParentNode->FindComplexParent();
+
+	for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
 	{
-		uint8* ValueAddr = ConditionValues[ValueIdx].Address;
+		uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
+		check(BaseOffset != NULL);
+
+		uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+
 		if (ConditionValues[ValueIdx].bNegateValue)
 		{
-			bAllConditionsMet = !ConditionProperty->GetPropertyValue( ValueAddr );
+			bAllConditionsMet = !ConditionProperty->GetPropertyValue(ValueAddr);
 		}
 		else
 		{
-			bAllConditionsMet = ConditionProperty->GetPropertyValue( ValueAddr );
+			bAllConditionsMet = ConditionProperty->GetPropertyValue(ValueAddr);
 		}
 	}
 
@@ -668,7 +682,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 
 					FPropertyConditionInfo NewCondition;
 					// now calculate the address of the property value being used as the condition and add it to the array.
-					NewCondition.Address = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+					NewCondition.BaseAddress = BaseAddress;
 					NewCondition.bNegateValue = bNegate;
 					ConditionPropertyAddresses.Add(NewCondition);
 					bResult = true;

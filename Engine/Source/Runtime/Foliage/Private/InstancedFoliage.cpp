@@ -605,7 +605,10 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	{
 		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
-			It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			if (It->GetWorld() != nullptr)
+			{
+				It->NotifyFoliageTypeChanged(this, bMeshChanged);
+			}
 		}
 	}
 }
@@ -764,6 +767,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	}
 
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
+	FoliageComponent->KeepInstanceBufferCPUAccess = false;
 	FoliageComponent->InitPerInstanceRenderData(false);
 
 	Component = FoliageComponent;
@@ -1031,6 +1035,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	}
 	else
 	{
+		Component->InitPerInstanceRenderData(false);
 		Component->InvalidateLightingCache();
 	}
 

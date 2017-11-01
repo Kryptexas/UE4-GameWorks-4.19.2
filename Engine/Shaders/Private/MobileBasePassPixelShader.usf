@@ -206,6 +206,10 @@ float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Rough
 #if OUTPUT_GAMMA_SPACE
 	// the capture will also be in gamma space, convert to linear:
 	PlanarReflection.rgb *= PlanarReflection.rgb;
+	// the capture has applied exposure scale so need to cancel that.
+#if !MATERIALBLENDING_MODULATE
+	PlanarReflection.rgb /= ResolvedView.PreExposure;
+#endif
 #endif
 	return PlanarReflection;
 }
@@ -531,9 +535,12 @@ void Main(
 			UNROLL
 			for (int i = 0; i < MAX_DYNAMIC_POINT_LIGHTS; i++)
 			{
-				if(i >= NumDynamicPointLights)
+				if (NumDynamicPointLights < MAX_DYNAMIC_POINT_LIGHTS)
 				{
-					break;
+					if (i >= NumDynamicPointLights)
+					{
+						break;
+					}
 				}
 			#else
 			for (int i = 0; i < NumDynamicPointLights; i++)

@@ -494,7 +494,7 @@ enum EObjectFlags
 #define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_DuplicateTransient | RF_NonPIEDuplicateTransient)) // Flags to load from Unrealfiles.
 #define RF_PropagateToSubObjects	((EObjectFlags)(RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient))		// Sub-objects will inherit these flags from their SuperObject.
 
-ENUM_CLASS_FLAGS(EObjectFlags)
+ENUM_CLASS_FLAGS(EObjectFlags);
 
 //@}
 
@@ -502,8 +502,8 @@ ENUM_CLASS_FLAGS(EObjectFlags)
 enum class EInternalObjectFlags : int32
 {
 	None = 0,
-	// All the other bits are reserved, DO NOT ADD NEW FLAGS HERE!
-	ReachableInCluster = 1 << 23, /// External reference to object in cluster exists
+	//~ All the other bits are reserved, DO NOT ADD NEW FLAGS HERE!
+	ReachableInCluster = 1 << 23, ///< External reference to object in cluster exists
 	ClusterRoot = 1 << 24, ///< Root of a cluster
 	Native = 1 << 25, ///< Native (UClass only). 
 	Async = 1 << 26, ///< Object exists only on a different thread than the game thread.
@@ -514,7 +514,7 @@ enum class EInternalObjectFlags : int32
 	HadReferenceKilled = 1 << 31, ///< Object had a reference null'd out by markpendingkill
 
 	GarbageCollectionKeepFlags = Native | Async | AsyncLoading,
-	// Make sure this is up to date!
+	//~ Make sure this is up to date!
 	AllFlags = ReachableInCluster | ClusterRoot | Native | Async | AsyncLoading | Unreachable | PendingKill | RootSet | HadReferenceKilled
 };
 ENUM_CLASS_FLAGS(EInternalObjectFlags);

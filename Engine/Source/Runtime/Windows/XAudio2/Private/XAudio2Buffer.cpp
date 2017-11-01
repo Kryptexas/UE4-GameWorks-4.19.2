@@ -361,16 +361,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 	check(XAudio2Device);
 	check(Wave);
 
-	// Check to see if thread has finished decompressing on the other thread
-	if( Wave->AudioDecompressor != nullptr )
-	{
-		Wave->AudioDecompressor->EnsureCompletion();
-
-		// Remove the decompressor
-		delete Wave->AudioDecompressor;
-		Wave->AudioDecompressor = nullptr;
-	}
-
+	check(Wave->bIsPrecacheDone);
 	// Always create a new buffer for real time decompressed sounds
 	FXAudio2SoundBuffer* Buffer = new FXAudio2SoundBuffer( XAudio2Device, SoundFormat_PCMRT );
 
@@ -456,15 +447,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreatePreviewBuffer( FXAudio2Device* X
 
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {
-	// Check to see if thread has finished decompressing on the other thread
-	if( Wave->AudioDecompressor != NULL )
-	{
-		Wave->AudioDecompressor->EnsureCompletion();
-
-		// Remove the decompressor
-		delete Wave->AudioDecompressor;
-		Wave->AudioDecompressor = NULL;
-	}
+	check(Wave->bIsPrecacheDone);
 
 	// Create new buffer.
 	FXAudio2SoundBuffer* Buffer = new FXAudio2SoundBuffer( XAudio2Device, SoundFormat_PCM );

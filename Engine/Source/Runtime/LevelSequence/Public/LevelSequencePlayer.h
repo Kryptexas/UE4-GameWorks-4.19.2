@@ -74,6 +74,9 @@ struct FLevelSequencePlayerSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	FLevelSequenceSnapshotSettings Settings;
+
+	UPROPERTY()
+	FMovieSceneSequenceID ShotID;
 };
 
 /**

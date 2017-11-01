@@ -40,6 +40,16 @@ public:
 	virtual bool OpenSolution() override;
 
 	/**
+	 * Open the CodeLite Workspace for editing.
+	 */
+	virtual bool OpenSolutionAtPath(const FString& InSolutionPath) override;
+
+	/**
+	 * Open the CodeLite Workspace for editing.
+	 */
+	virtual bool DoesSolutionExist() const override;
+
+	/**
 	 * Open a file at a specific line and optional column.
 	 */
 	virtual bool OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0) override;

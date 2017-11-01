@@ -2241,7 +2241,11 @@ public:
 
 	bool ContainsData() const;
 
+	const FTransform& GetComponentTransform() const { return ComponentTransform; }
+
 private:
+	FTransform ComponentTransform;
+	int32 VisibilityId;
 	UPrimitiveComponent* LODParent;
 };
 

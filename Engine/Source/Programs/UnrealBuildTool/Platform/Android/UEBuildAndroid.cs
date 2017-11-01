@@ -171,7 +171,7 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForESDeferred", "bBuildForES3", "bBuildWithHiddenSymbolVisibility"
+				"bBuildForES2", "bBuildForES31", "bBuildWithHiddenSymbolVisibility"
 			};
 
 			// look up Android specific settings

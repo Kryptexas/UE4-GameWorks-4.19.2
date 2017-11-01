@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,6 +31,11 @@ namespace UnrealBuildTool
 		/// BaseEncryption.ini, DefaultEncryption.ini, etc..
 		/// </summary>
 		Encryption,
+
+		/// <summary>
+		/// BaseEditorSettings.ini, DefaultEditorSettings.ini, etc...
+		/// </summary>
+		EditorSettings,
 	}
 
 	/// <summary>

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/BlueprintPlatformLibrary.h"
 #include "AppleARKitVideoOverlay.generated.h"
 
 /** Helper class to ensure the ARKit camera material is cooked. */
@@ -32,13 +33,16 @@ public:
 	FAppleARKitVideoOverlay();
 
 	void UpdateVideoTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FAppleARKitFrame& Frame);
-	void RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView);
+	void RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& InView, const EScreenOrientation::Type DeviceOrientation);
 
 private:
 	FTextureRHIRef VideoTextureY;
 	FTextureRHIRef VideoTextureCbCr;
 	UMaterialInterface* RenderingOverlayMaterial;
 	FIndexBufferRHIRef OverlayIndexBufferRHI;
-	FVertexBufferRHIRef OverlayVertexBufferRHI;
+	
+	// Separate vertex buffer for each supported device orientation
+	FVertexBufferRHIRef OverlayVertexBufferRHI[4];
+
 	double LastUpdateTimestamp;
 };

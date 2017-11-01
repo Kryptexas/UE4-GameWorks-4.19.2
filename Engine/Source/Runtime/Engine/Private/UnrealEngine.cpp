@@ -131,6 +131,7 @@
 
 #include "Components/TextRenderComponent.h"
 #include "Classes/Sound/AudioSettings.h"
+#include "Streaming/Texture2DUpdate.h"
 
 
 #if WITH_EDITOR
@@ -231,6 +232,9 @@ void FEngineModule::StartupModule()
 
 	static auto CVarCacheWPOPrimitives = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.CacheWPOPrimitives"));
 	CVarCacheWPOPrimitives->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeEngineCVarRequiringRecreateRenderState));
+
+	SuspendTextureStreamingRenderTasks = &SuspendTextureStreamingRenderTasksInternal;
+	ResumeTextureStreamingRenderTasks = &ResumeTextureStreamingRenderTasksInternal;
 }
 
 
@@ -524,8 +528,7 @@ void SystemResolutionSinkCallback()
 	uint32 ResX, ResY;
 	int32 WindowModeInt = GSystemResolution.WindowMode;
 
-	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	bool bHDROutputEnabled = GRHISupportsHDROutput && IsHDREnabled();
 	
 	if (ParseResolution(*ResString, ResX, ResY, WindowModeInt))
 	{
@@ -9024,6 +9027,10 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldError
 
 	bool bSupported = true;
 	UWorld* World = (ErrorMode == EGetWorldErrorMode::Assert) ? Object->GetWorldChecked(/*out*/ bSupported) : Object->GetWorld();
+	if (bSupported && (World == nullptr) && (ErrorMode == EGetWorldErrorMode::LogAndReturnNull))
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("No world was found for object (%s) passed in to UEngine::GetWorldFromContextObject()."), *GetPathNameSafe(Object)), ELogVerbosity::Error);
+	}
 	return (bSupported ? World : GWorld);
 }
 

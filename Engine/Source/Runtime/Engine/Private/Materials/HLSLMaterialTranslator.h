@@ -3313,6 +3313,8 @@ protected:
 
 		switch( SamplerType )
 		{
+			case SAMPLERTYPE_External:
+				// fall through since should be treated same as SAMPLERTYPE_Color
 			case SAMPLERTYPE_Color:
 				SampleCode = FString::Printf( TEXT("ProcessMaterialColorTextureLookup(%s)"), *SampleCode );
 				break;

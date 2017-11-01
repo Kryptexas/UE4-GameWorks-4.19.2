@@ -88,17 +88,23 @@ enum EPlayNetMode
 };
 
 
+/**
+ * Determines whether to build the executable when launching on device. Note the equivalence between these settings and EProjectPackagingBuild.
+ */
 UENUM()
 enum EPlayOnBuildMode
 {
 	/** Always build. */
-	PlayOnBuild_Always UMETA(DisplayName="Always Build"),
+	PlayOnBuild_Always UMETA(DisplayName="Always"),
 
 	/** Never build. */
-	PlayOnBuild_Never UMETA(DisplayName="Never Build"),
+	PlayOnBuild_Never UMETA(DisplayName="Never"),
 
 	/** Build based on project type. */
-	PlayOnBuild_Default UMETA(DisplayName="Only Build Code Projects"),
+	PlayOnBuild_Default UMETA(DisplayName="If project has code, or running a locally built editor"),
+
+	/** Build if we're using a locally built (ie. non-promoted) editor. */
+	PlayOnBuild_IfEditorBuiltLocally UMETA(DisplayName="If running a locally built editor"),
 };
 
 /* Configuration to use when launching on device. */

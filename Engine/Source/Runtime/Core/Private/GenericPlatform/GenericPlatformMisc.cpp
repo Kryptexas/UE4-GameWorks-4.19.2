@@ -933,6 +933,11 @@ bool FGenericPlatformMisc::IsRunningOnBattery()
 	return false;
 }
 
+EDeviceScreenOrientation FGenericPlatformMisc::GetDeviceOrientation()
+{
+	return EDeviceScreenOrientation::Unknown;
+}
+
 FGuid FGenericPlatformMisc::GetMachineId()
 {
 	static FGuid MachineId;

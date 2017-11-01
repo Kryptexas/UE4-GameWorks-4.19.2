@@ -92,19 +92,33 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 	return Devices.FindRef(DeviceId);
 }
 
+static FString OutputMessage;
+static void OnOutput(FString Message)
+{
+    OutputMessage += Message;
+    UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
+}
 
 bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const
 {
 #if PLATFORM_MAC
 	OutTutorialPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
-	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
-    
-    // Check for Xcode betas
-    if(!biOSSDKInstalled
-       && IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform")))
-    {
-        biOSSDKInstalled = true;
-    }
+
+	// run xcode-select and get the location of Xcode
+	FString CmdExe = TEXT("/usr/bin/xcode-select");
+	FString CommandLine = FString::Printf(TEXT("--print-path"));
+	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+	OutputMessage = TEXT("");
+	IPPProcess->OnOutput().BindStatic(&OnOutput);
+	IPPProcess->Launch();
+	while (IPPProcess->Update())
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}
+	int RetCode = IPPProcess->GetReturnCode();
+	UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
+
+	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(*OutputMessage);
 #else
 	OutTutorialPath = FString("/Engine/Tutorial/Mobile/InstallingiTunesTutorial.InstallingiTunesTutorial");
 
@@ -141,13 +155,6 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutori
 
 #endif
 	return biOSSDKInstalled;
-}
-
-static FString OutputMessage;
-static void OnOutput(FString Message)
-{
-	OutputMessage += Message;
-	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
 int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath, FText& CustomizedLogMessage) const

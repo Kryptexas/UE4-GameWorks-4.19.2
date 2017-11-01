@@ -3117,7 +3117,7 @@ void ULandscapeInfo::ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FSt
 	GWarn->EndSlowTask();
 }
 
-void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
+void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, const FName& LayerName)
 {
 	GWarn->BeginSlowTask(LOCTEXT("BeginDeletingLayerTask", "Deleting Layer"), true);
 
@@ -3127,7 +3127,7 @@ void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
 
 	// Remove from layer settings array
 	{
-		int32 LayerIndex = Layers.IndexOfByPredicate([LayerInfo](const FLandscapeInfoLayerSettings& LayerSettings) { return LayerSettings.LayerInfoObj == LayerInfo; });
+		int32 LayerIndex = Layers.IndexOfByPredicate([LayerInfo, LayerName](const FLandscapeInfoLayerSettings& LayerSettings) { return LayerSettings.LayerInfoObj == LayerInfo && LayerSettings.LayerName == LayerName; });
 		if (LayerIndex != INDEX_NONE)
 		{
 			Layers.RemoveAt(LayerIndex);
@@ -3315,18 +3315,22 @@ void ALandscape::PostEditMove(bool bFinished)
 	Super::PostEditMove(bFinished);
 }
 
+bool ALandscape::ShouldImport(FString* ActorPropString, bool IsMovingLevel)
+{
+	return GetWorld() != nullptr && !GetWorld()->IsGameWorld();
+}
+
 void ALandscape::PostEditImport()
 {
-	if (GetWorld())
+	check(GetWorld() && !GetWorld()->IsGameWorld());
+
+	for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
 	{
-		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
 		{
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
-			{
-				// Copy/Paste case, need to generate new GUID
-				LandscapeGuid = FGuid::NewGuid();
-				break;
-			}
+			// Copy/Paste case, need to generate new GUID
+			LandscapeGuid = FGuid::NewGuid();
+			break;
 		}
 	}
 
@@ -3929,6 +3933,12 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			{
 				Gizmo->MarkComponentsRenderStateDirty();
 			}
+		}
+
+		// Must be done after the AActor::PostEditChange as we depend on the relinking of the landscapeInfo->LandscapeActor
+		if (ChangedMaterial)
+		{
+			LandscapeMaterialChangedDelegate.Broadcast();
 		}
 	}
 }

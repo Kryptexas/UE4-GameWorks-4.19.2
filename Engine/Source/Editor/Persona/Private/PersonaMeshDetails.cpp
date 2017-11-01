@@ -2634,6 +2634,7 @@ void FPersonaMeshDetails::OnMaterialSelectedChanged(ECheckBoxState NewState, int
 		{
 			Mesh->SelectedEditorMaterial = INDEX_NONE;
 		}
+		MeshComponent->PushSelectionToProxy();
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 	}
 }
@@ -2713,6 +2714,7 @@ void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int3
 		{
 			Mesh->SelectedEditorSection = INDEX_NONE;
 		}
+		MeshComponent->PushSelectionToProxy();
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 	}
 }

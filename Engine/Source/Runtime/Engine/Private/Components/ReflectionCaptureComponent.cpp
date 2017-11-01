@@ -39,6 +39,9 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "ComponentRecreateRenderStateContext.h"
 
+// ES3.0+ devices support seamless cubemap filtering, averaging edges will produce artifacts on those devices
+#define MOBILE_AVERAGE_CUBEMAP_EDGES 0 
+
 /** 
  * Size of all reflection captures.
  * Reflection capture derived data versions must be changed if modifying this
@@ -477,8 +480,8 @@ void GenerateEncodedHDRData(const TArray<uint8>& FullHDRData, int32 CubemapSize,
 		const FFloat16Color*	MipSrcData = (const FFloat16Color*)&FullHDRData[SourceMipBaseIndex];
 		FColor*					MipDstData = (FColor*)&OutEncodedHDRData[DestMipBaseIndex];
 
+#if MOBILE_AVERAGE_CUBEMAP_EDGES
 		// Fix cubemap seams by averaging colors across edges
-
 		int32 CornerTable[4] =
 		{
 			0,
@@ -552,6 +555,7 @@ void GenerateEncodedHDRData(const TArray<uint8>& FullHDRData, int32 CubemapSize,
 				FaceDstDataA[ EdgeTexelA ] = FaceDstDataB[ EdgeTexelB ] = RGBMEncode( AvgColor * Brightness );
 			}
 		}
+#endif // MOBILE_AVERAGE_CUBEMAP_EDGES
 		
 		// Encode rest of texels
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -564,9 +568,11 @@ void GenerateEncodedHDRData(const TArray<uint8>& FullHDRData, int32 CubemapSize,
 			// Convert each texel from linear space FP16 to RGBM FColor
 			// Note: Brightness on the capture is baked into the encoded HDR data
 			// Skip edges
-			for( int32 y = 1; y < MipSize - 1; y++ )
+			const int32 SkipEdges = MOBILE_AVERAGE_CUBEMAP_EDGES ? 1 : 0;
+
+			for( int32 y = SkipEdges; y < MipSize - SkipEdges; y++ )
 			{
-				for( int32 x = 1; x < MipSize - 1; x++ )
+				for( int32 x = SkipEdges; x < MipSize - SkipEdges; x++ )
 				{
 					int32 TexelIndex = x + y * MipSize;
 					const FLinearColor LinearColor = FLinearColor( FaceSourceData[ TexelIndex ]) * Brightness;

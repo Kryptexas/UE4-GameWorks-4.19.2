@@ -1597,6 +1597,8 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					// so it can get the screen size
 					int32 Y = 130;
 					FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, FeatureLevel);
+					// Make sure draws to the canvas are not rendered upside down.
+					Canvas.SetAllowSwitchVerticalAxis(false);
 					if (bViewParentOrFrozen)
 					{
 						const FText StateText =

@@ -816,7 +816,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.SToolBarButtonBlock.Padding", FMargin(4.0f,0.0f));
 		Style->Set( "ToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f,0.0f));
 		Style->Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f,0.0f) );
-		Style->Set( "ToolBar.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Style->Set( "ToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Style->Set( "ToolBar.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -896,7 +895,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Menu.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "Menu.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "Menu.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
-		Style->Set( "Menu.SToolBarButtonBlock.Button.Padding", FMargin(0.0f));
 		Style->Set( "Menu.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Style->Set( "Menu.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -906,8 +904,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Style->Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "Menu.Label.Padding", FMargin(0.0f, 0.0f, 0.0f, 0.0f) );
-		Style->Set( "Menu.Label.ContentPadding", FMargin(10.0f, 2.0f) );
 		Style->Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Style->Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
@@ -988,9 +984,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 		/* The style of a menu bar button when it has a sub menu open */
 		Style->Set( "Menu.Button.SubMenuOpen", new BORDER_BRUSH( "Common/Selection", FMargin(4.f/16.f), FLinearColor(0.10f, 0.10f, 0.10f) ) );
-
-		/* The style of a menu bar button when it has a sub menu closed */
-		Style->Set("Menu.Button.SubMenuClosed", new FSlateNoResource());
 	}
 
 	// SExpandableButton defaults...

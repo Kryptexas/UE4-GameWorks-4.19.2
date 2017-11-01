@@ -8309,7 +8309,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 		{
 			if (bFoundGeneratedInclude)
 			{
-				UE_LOG_ERROR_UHT(TEXT("#include found after .generated.h file - the .generated.h file should always be the last #include in a header"));
+				FFileLineException::Throwf(Filename, CurrentLine, TEXT("#include found after .generated.h file - the .generated.h file should always be the last #include in a header"));
 			}
 
 			// Handle #include directives as if they were 'dependson' keywords.
@@ -8489,7 +8489,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 
 	if (bFoundExportedClasses && !bFoundGeneratedInclude)
 	{
-		UE_LOG_ERROR_UHT(TEXT("No #include found for the .generated.h file - the .generated.h file should always be the last #include in a header"));
+		FError::Throwf(TEXT("No #include found for the .generated.h file - the .generated.h file should always be the last #include in a header"));
 	}
 }
 

@@ -75,12 +75,25 @@ public:
 	virtual bool Listen(int32 MaxBacklog) = 0;
 
 	/**
+	 * Waits for a pending connection on the socket.
+	 *
+	 * @param out bHasPendingConnection Will indicate whether a connection is pending or not.
+	 * @param WaitTime The maximum time to wait for a connection. If zero, the function will not 
+	 *                 wait and will return immediately with a value in bHasPendingConnection.
+	 * @return true if successful, false otherwise.
+	 */
+	virtual bool WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime) = 0;
+
+	/**
 	 * Queries the socket to determine if there is a pending connection.
 	 *
 	 * @param bHasPendingConnection Will indicate whether a connection is pending or not.
 	 * @return true if successful, false otherwise.
 	 */
-	virtual bool HasPendingConnection(bool& bHasPendingConnection) = 0;
+	bool HasPendingConnection(bool& bHasPendingConnection)
+	{
+		return WaitForPendingConnection(bHasPendingConnection, FTimespan::Zero());
+	}
 
 	/**
 	* Queries the socket to determine if there is pending data on the queue.

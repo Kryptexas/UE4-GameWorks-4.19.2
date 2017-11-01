@@ -146,11 +146,6 @@ bool FSimpleHMD::IsChromaAbCorrectionEnabled() const
 	return false;
 }
 
-bool FSimpleHMD::IsHeadTrackingAllowed() const
-{
-	return IsStereoEnabled();
-}
-
 void FSimpleHMD::ResetOrientationAndPosition(float yaw)
 {
 	ResetOrientation(yaw);

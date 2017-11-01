@@ -208,8 +208,7 @@ HRESULT FD3D12Viewport::PresentInternal(int32 SyncInterval)
 
 void FD3D12Viewport::EnableHDR()
 {
-	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	if (GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
+	if ( GRHISupportsHDROutput && IsHDREnabled() )
 	{
 		static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 		const EDisplayFormat OutputDevice = EDisplayFormat(CVarHDROutputDevice->GetValueOnAnyThread());

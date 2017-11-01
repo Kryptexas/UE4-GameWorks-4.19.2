@@ -119,7 +119,12 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawin
 		View.InitRHIResources();
 
 		const auto FeatureLevel = View.GetFeatureLevel();
-	
+
+		if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+		{
+			View.MobileDirectionalLightUniformBuffers[0] = TUniformBufferRef<FMobileDirectionalLightShaderParameters>::CreateUniformBufferImmediate(FMobileDirectionalLightShaderParameters(), UniformBuffer_SingleFrame);
+		}
+		
 		const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
 		//get the blend mode of the material

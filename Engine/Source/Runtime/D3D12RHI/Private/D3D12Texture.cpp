@@ -1960,7 +1960,7 @@ FUpdateTexture3DData FD3D12DynamicRHI::BeginUpdateTexture3D_Internal(FTexture3DR
 		check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
 
 		UpdateData.RowPitch = Align(OriginalRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-		UpdateData.DepthPitch = Align(OriginalDepthPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		UpdateData.DepthPitch = UpdateData.RowPitch * UpdateRegion.Height;
 		const uint32 BufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*UpdateData.RowPitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 		UpdateData.DataSizeBytes = BufferSize;
 

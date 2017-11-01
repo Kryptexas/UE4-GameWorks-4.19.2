@@ -660,7 +660,11 @@ void FVulkanDynamicRHI::InitInstance()
 		// Initialize the RHI capabilities.
 		GRHIVendorId = Device->GetDeviceProperties().vendorID;
 		GRHIAdapterName = ANSI_TO_TCHAR(Props.deviceName);
-		if (IsRHIDeviceNVIDIA())
+		if (PLATFORM_ANDROID)
+		{
+			GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
+		}
+		else if (IsRHIDeviceNVIDIA())
 		{
 			union UNvidiaDriverVersion
 			{
@@ -687,15 +691,11 @@ void FVulkanDynamicRHI::InitInstance()
 
 			// Ignore GRHIAdapterInternalDriverVersion for now as the device name doesn't match
 		}
-		else if (PLATFORM_ANDROID)
-		{
-			GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
-		}
 		GRHISupportsFirstInstance = true;
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
-		GSupportsTimestampRenderQueries = true;
+		GSupportsTimestampRenderQueries = !PLATFORM_ANDROID;
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER

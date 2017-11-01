@@ -6551,19 +6551,22 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 	InPinB->BreakAllPinLinks();
 }
 
-UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph) const
+UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, const FCreateSplitPinNodeParams& Params) const
 {
+	ensure((Params.bTransient == false) || ((Params.CompilerContext == nullptr) && (Params.SourceGraph == nullptr)));
+
 	UEdGraphNode* GraphNode = Pin->GetOwningNode();
 	UEdGraph* Graph = GraphNode->GetGraph();
 	UScriptStruct* StructType = CastChecked<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get(), ECastCheckedType::NullAllowed);
 	if (!StructType)
 	{
-		if (CompilerContext)
+		if (Params.CompilerContext)
 		{
-			CompilerContext->MessageLog.Error(TEXT("No structure in SubCategoryObject in pin @@"), Pin);
+			Params.CompilerContext->MessageLog.Error(TEXT("No structure in SubCategoryObject in pin @@"), Pin);
 		}
 		StructType = GetFallbackStruct();
 	}
+
 	UK2Node* SplitPinNode = nullptr;
 
 	if (Pin->Direction == EGPD_Input)
@@ -6572,9 +6575,9 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 		{
 			UK2Node_MakeStruct* MakeStructNode;
 
-			if (CompilerContext)
+			if (Params.bTransient || Params.CompilerContext)
 			{
-				MakeStructNode = CompilerContext->SpawnIntermediateNode<UK2Node_MakeStruct>(GraphNode, SourceGraph);
+				MakeStructNode = (Params.bTransient ? NewObject<UK2Node_MakeStruct>(Graph) : Params.CompilerContext->SpawnIntermediateNode<UK2Node_MakeStruct>(GraphNode, Params.SourceGraph));
 				MakeStructNode->StructType = StructType;
 				MakeStructNode->bMadeAfterOverridePinRemoval = true;
 				MakeStructNode->AllocateDefaultPins();
@@ -6596,10 +6599,10 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 			const UFunction* Function = FindObject<UFunction>(nullptr, *MetaData, true);
 
 			UK2Node_CallFunction* CallFunctionNode;
-			
-			if (CompilerContext)
+
+			if (Params.bTransient || Params.CompilerContext)
 			{
-				CallFunctionNode = CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph);
+				CallFunctionNode = (Params.bTransient ? NewObject<UK2Node_CallFunction>(Graph) : Params.CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, Params.SourceGraph));
 				CallFunctionNode->SetFromFunction(Function);
 				CallFunctionNode->AllocateDefaultPins();
 			}
@@ -6620,9 +6623,9 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 		{
 			UK2Node_BreakStruct* BreakStructNode;
 
-			if (CompilerContext)
+			if (Params.bTransient || Params.CompilerContext)
 			{
-				BreakStructNode = CompilerContext->SpawnIntermediateNode<UK2Node_BreakStruct>(GraphNode, SourceGraph);
+				BreakStructNode = (Params.bTransient ? NewObject<UK2Node_BreakStruct>(Graph) : Params.CompilerContext->SpawnIntermediateNode<UK2Node_BreakStruct>(GraphNode, Params.SourceGraph));
 				BreakStructNode->StructType = StructType;
 				BreakStructNode->bMadeAfterOverridePinRemoval = true;
 				BreakStructNode->AllocateDefaultPins();
@@ -6645,9 +6648,9 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 
 			UK2Node_CallFunction* CallFunctionNode;
 
-			if (CompilerContext)
+			if (Params.bTransient || Params.CompilerContext)
 			{
-				CallFunctionNode = CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, SourceGraph);
+				CallFunctionNode = (Params.bTransient ? NewObject<UK2Node_CallFunction>(Graph) : Params.CompilerContext->SpawnIntermediateNode<UK2Node_CallFunction>(GraphNode, Params.SourceGraph));
 				CallFunctionNode->SetFromFunction(Function);
 				CallFunctionNode->AllocateDefaultPins();
 			}
@@ -6687,7 +6690,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin, const bool bNotify) const
 
 	Pin->bHidden = true;
 
-	UK2Node* ProtoExpandNode = CreateSplitPinNode(Pin);
+	UK2Node* ProtoExpandNode = CreateSplitPinNode(Pin, FCreateSplitPinNodeParams(/*bTransient*/true));
 			
 	for (UEdGraphPin* ProtoPin : ProtoExpandNode->Pins)
 	{

@@ -1357,7 +1357,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportSkeletalMesh(void* VoidF
 							}
 							else
 							{
-								DestSeq->RecycleAnimSequence();
+								DestSeq->CleanAnimSequenceForImport();
 							}
 							DestSeq->SetSkeleton(Mesh->Skeleton);
 							// since to know full path, reimport will need to do same

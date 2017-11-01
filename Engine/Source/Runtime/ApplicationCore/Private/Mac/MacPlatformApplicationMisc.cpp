@@ -35,6 +35,7 @@ extern FMacMallocCrashHandler* GCrashMalloc;
 
 UpdateCachedMacMenuStateProc FPlatformApplicationMisc::UpdateCachedMacMenuState = nullptr;
 bool FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
+bool FPlatformApplicationMisc::bMacApplicationModalMode = false;
 id<NSObject> FPlatformApplicationMisc::CommandletActivity = nil;
 
 extern CORE_API TFunction<EAppReturnType::Type(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)> MessageBoxExtCallback;
@@ -213,6 +214,31 @@ EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* T
 
 void FMacPlatformApplicationMisc::PreInit()
 {
+	SCOPED_AUTORELEASE_POOL;
+
+	// We don't support running from case-sensitive file systems on Mac yet
+	NSURL* CurrentWorkingDirURL = [NSURL fileURLWithPath:[[NSFileManager defaultManager] currentDirectoryPath] isDirectory:YES];
+	if (CurrentWorkingDirURL)
+	{
+		NSNumber* VolumeSupportsCaseSensitive;
+		if ([CurrentWorkingDirURL getResourceValue:&VolumeSupportsCaseSensitive forKey:NSURLVolumeSupportsCaseSensitiveNamesKey error:nil])
+		{
+			if ([VolumeSupportsCaseSensitive boolValue])
+			{
+				MainThreadCall(^{
+					NSAlert* AlertPanel = [NSAlert new];
+					[AlertPanel setAlertStyle:NSAlertStyleCritical];
+					[AlertPanel setInformativeText:[NSString stringWithFormat:@"Please install the application on a drive formatted as case-insensitive."]];
+					[AlertPanel setMessageText:@"Unreal Engine does not support running from case-sensitive file systems."];
+					[AlertPanel addButtonWithTitle:@"Quit"];
+					[AlertPanel runModal];
+					[AlertPanel release];
+					exit(1);
+				}, NSDefaultRunLoopMode, true);
+			}
+		}
+	}
+
 	FMacApplication::UpdateScreensArray();
 	MessageBoxExtCallback = MessageBoxExtImpl;
 }
@@ -221,52 +247,56 @@ void FMacPlatformApplicationMisc::PostInit()
 {
 	FMacPlatformMisc::PostInitMacAppInfoUpdate();
 
+	if (MacApplication)
+	{
+		// Now that the engine is initialized we need to recalculate display work areas etc. that depend on DPI settings
+		FMacApplication::OnDisplayReconfiguration(kCGNullDirectDisplay, kCGDisplayDesktopShapeChangedFlag, MacApplication);
+	}
+
 	// Setup the app menu in menu bar
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
 	if (bIsBundledApp)
 	{
-		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetProjectName()).GetNSString();
-
-		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
-		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
-
-		NSMenuItem* PreferencesItem = GIsEditor ? [[[NSMenuItem alloc] initWithTitle:@"Preferences..." action:@selector(showPreferencesWindow:) keyEquivalent:@","] autorelease] : nil;
-
-		NSMenuItem* HideItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", AppName] action:@selector(hide:) keyEquivalent:@"h"] autorelease];
-		NSMenuItem* HideOthersItem = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"] autorelease];
-		[HideOthersItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
-		NSMenuItem* ShowAllItem = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
-
-		SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
-		NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
-
-		NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
-		FCocoaMenu* ServicesMenu = [[FCocoaMenu new] autorelease];
-		[ServicesItem setTitle:@"Services"];
-		[ServicesItem setSubmenu:ServicesMenu];
-		[NSApp setServicesMenu:ServicesMenu];
-
-		FCocoaMenu* AppMenu = [[FCocoaMenu new] autorelease];
-		[AppMenu addItem:AboutItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		if (PreferencesItem)
-		{
-			[AppMenu addItem:PreferencesItem];
-			[AppMenu addItem:[NSMenuItem separatorItem]];
-		}
-		[AppMenu addItem:ServicesItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		[AppMenu addItem:HideItem];
-		[AppMenu addItem:HideOthersItem];
-		[AppMenu addItem:ShowAllItem];
-		[AppMenu addItem:[NSMenuItem separatorItem]];
-		[AppMenu addItem:QuitItem];
-
-		FCocoaMenu* MenuBar = [[FCocoaMenu new] autorelease];
-		NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
-		[MenuBar addItem:AppMenuItem];
-		[NSApp setMainMenu:MenuBar];
-		[AppMenuItem setSubmenu:AppMenu];
+        FCocoaMenu* MenuBar = [[FCocoaMenu new] autorelease];
+        FCocoaMenu* AppMenu = [[FCocoaMenu new] autorelease];
+        NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
+        [AppMenuItem setTitle:@"AppMenuItem"];
+        [MenuBar addItem:AppMenuItem];
+        [AppMenuItem setSubmenu:AppMenu];
+        [NSApp setMainMenu:MenuBar];
+        
+        NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetProjectName()).GetNSString();
+        NSMenu* MainMenu = [NSApp mainMenu];
+        SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
+        NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
+        NSMenuItem* PreferencesItem = GIsEditor ? [[[NSMenuItem alloc] initWithTitle:@"Preferences..." action:@selector(showPreferencesWindow:) keyEquivalent:@","] autorelease] : nil;
+        NSMenuItem* HideItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", AppName] action:@selector(hide:) keyEquivalent:@"h"] autorelease];
+        NSMenuItem* HideOthersItem = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"] autorelease];
+        [HideOthersItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
+        NSMenuItem* ShowAllItem = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
+        
+        SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
+        NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
+        
+        NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
+        FCocoaMenu* ServicesMenu = [[FCocoaMenu new] autorelease];
+        [ServicesItem setTitle:@"Services"];
+        [ServicesItem setSubmenu:ServicesMenu];
+        [NSApp setServicesMenu:ServicesMenu];
+        [AppMenu addItem:AboutItem];
+        [AppMenu addItem:[NSMenuItem separatorItem]];
+        if (PreferencesItem)
+        {
+            [AppMenu addItem:PreferencesItem];
+            [AppMenu addItem:[NSMenuItem separatorItem]];
+        }
+        [AppMenu addItem:ServicesItem];
+        [AppMenu addItem:[NSMenuItem separatorItem]];
+        [AppMenu addItem:HideItem];
+        [AppMenu addItem:HideOthersItem];
+        [AppMenu addItem:ShowAllItem];
+        [AppMenu addItem:[NSMenuItem separatorItem]];
+        [AppMenu addItem:QuitItem];
 
 		if (FApp::IsGame())
 		{
@@ -281,7 +311,27 @@ void FMacPlatformApplicationMisc::PostInit()
 			[ViewMenu addItem:ToggleFullscreenItem];
 		}
 		
-		UpdateWindowMenu();
+        NSMenu* WindowMenu = [NSApp windowsMenu];
+        if (!WindowMenu)
+        {
+            WindowMenu = [[FCocoaMenu new] autorelease];
+            [WindowMenu setTitle:@"Window"];
+            NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
+            [WindowMenuItem setSubmenu:WindowMenu];
+            [[NSApp mainMenu] addItem:WindowMenuItem];
+            [NSApp setWindowsMenu:WindowMenu];
+        }
+        
+        NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
+        NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(zoom:) keyEquivalent:@""] autorelease];
+        NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
+        NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+        [WindowMenu addItem:MinimizeItem];
+        [WindowMenu addItem:ZoomItem];
+        [WindowMenu addItem:CloseItem];
+        [WindowMenu addItem:[NSMenuItem separatorItem]];
+        [WindowMenu addItem:BringAllToFrontItem];
+        [WindowMenu addItem:[NSMenuItem separatorItem]];
 	}
 
 	if (!MacApplication)
@@ -412,7 +462,7 @@ FLinearColor FMacPlatformApplicationMisc::GetScreenPixelColor(const FVector2D& I
 
 float FMacPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (GIsEditor && MacApplication && MacApplication->IsHighDPIModeEnabled())
+	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
 	{
 		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
 		return Screen->Screen.backingScaleFactor;
@@ -462,8 +512,14 @@ void FMacPlatformApplicationMisc::PumpMessages(bool bFromMainLoop)
 		{
 			if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate)
 			{
+				MainThreadCall(^{
+					UpdateApplicationMenu();
+					UpdateWindowMenu();
+					UpdateCocoaButtons();
+				}, NSDefaultRunLoopMode, false);
+
 				UpdateCachedMacMenuState();
-				bChachedMacMenuStateNeedsUpdate = false;
+                bChachedMacMenuStateNeedsUpdate = false;
 			}
 		}
 	}
@@ -513,29 +569,106 @@ void FMacPlatformApplicationMisc::ActivateApplication()
 	}, NSDefaultRunLoopMode, false);
 }
 
+void FMacPlatformApplicationMisc::UpdateApplicationMenu()
+{
+    NSMenu* MainMenu = [NSApp mainMenu];
+    NSMenuItem* AppMenuItem = [MainMenu itemWithTitle:@"AppMenuItem"];
+    NSMenu* AppMenu = [AppMenuItem submenu];
+
+    NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetProjectName()).GetNSString();
+    SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
+    NSMenuItem* AboutItem = [AppMenu itemWithTitle:[NSString stringWithFormat:@"About %@", AppName]];
+    NSMenuItem* PreferencesItem = GIsEditor ? [AppMenu itemWithTitle:@"Preferences..."] : nil;
+    NSMenuItem* HideItem = [AppMenu itemWithTitle:[NSString stringWithFormat:@"Hide %@", AppName]];
+    NSMenuItem* HideOthersItem = [AppMenu itemWithTitle:@"Hide Others"];
+    NSMenuItem* ShowAllItem = [AppMenu itemWithTitle:@"Show All"];
+    NSMenuItem* QuitItem = [AppMenu itemWithTitle:[NSString stringWithFormat:@"Quit %@", AppName]];
+
+    if(!bMacApplicationModalMode)
+    {
+        [AboutItem setAction:ShowAboutSelector];
+        [PreferencesItem setAction:@selector(showPreferencesWindow:)];
+        [HideItem setAction:@selector(hide:)];
+        [HideOthersItem setAction:@selector(hideOtherApplications:)];
+        [ShowAllItem setAction:@selector(unhideAllApplications:)];
+        SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
+        [QuitItem setAction:RequestQuitSelector];
+    }
+    else
+    {
+        for (NSMenuItem* Item in [AppMenu itemArray])
+        {
+            if(![Item hasSubmenu])
+            {
+            [Item setAction:nil];
+            }
+        }
+    }
+    
+    [AppMenu update];
+    [MainMenu update];
+    
+}
+
 void FMacPlatformApplicationMisc::UpdateWindowMenu()
 {
 	NSMenu* WindowMenu = [NSApp windowsMenu];
-	if (!WindowMenu)
-	{
-		WindowMenu = [[FCocoaMenu new] autorelease];
-		[WindowMenu setTitle:@"Window"];
-		NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
-		[WindowMenuItem setSubmenu:WindowMenu];
-		[[NSApp mainMenu] addItem:WindowMenuItem];
-		[NSApp setWindowsMenu:WindowMenu];
-	}
 
-	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
-	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(zoom:) keyEquivalent:@""] autorelease];
-	NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
-	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+	NSMenuItem* MinimizeItem = [WindowMenu itemWithTitle:@"Minimize"];
+	NSMenuItem* ZoomItem = [WindowMenu itemWithTitle:@"Zoom"];
+	NSMenuItem* CloseItem = [WindowMenu itemWithTitle:@"Close"];
+	NSMenuItem* BringAllToFrontItem = [WindowMenu itemWithTitle:@"Bring All to Front"];
+    
+    if(!bMacApplicationModalMode)
+    {
+        [MinimizeItem setAction:@selector(miniaturize:)];
+        [ZoomItem setAction:@selector(zoom:)];
+        [CloseItem setAction:@selector(performClose:)];
+        [BringAllToFrontItem setAction:@selector(arrangeInFront:)];
 
-	[WindowMenu addItem:MinimizeItem];
-	[WindowMenu addItem:ZoomItem];
-	[WindowMenu addItem:CloseItem];
-	[WindowMenu addItem:[NSMenuItem separatorItem]];
-	[WindowMenu addItem:BringAllToFrontItem];
-	[WindowMenu addItem:[NSMenuItem separatorItem]];
+    }
+    else
+    {
+        for (NSMenuItem* Item in [WindowMenu itemArray])
+        {
+            if(![Item hasSubmenu])
+            {
+                [Item setAction:nil];
+            }
+        }
+    }
+    
+    [WindowMenu update];
+    [[NSApp mainMenu] update];
 }
 
+
+void FMacPlatformApplicationMisc::UpdateCocoaButtons()
+{
+	MacApplication->GetWindowsArrayMutex().Lock();
+
+    const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
+    for (auto Window : AllWindows)
+    {
+        NSWindow* WindowHandle = Window->GetWindowHandle();
+        {
+            NSButton* CloseButton = [WindowHandle standardWindowButton:NSWindowCloseButton];
+            NSButton* MinimizeButton = [WindowHandle standardWindowButton:NSWindowMiniaturizeButton];
+            NSButton* MaximizeButton = [WindowHandle standardWindowButton:NSWindowZoomButton];
+            if(bMacApplicationModalMode && WindowHandle != [NSApp mainWindow])
+            {
+                CloseButton.enabled = false;
+                MinimizeButton.enabled = false;
+                MaximizeButton.enabled = false;
+            }
+            else if(!bMacApplicationModalMode)
+            {
+                CloseButton.enabled = Window->GetDefinition().HasCloseButton;
+                MinimizeButton.enabled = Window->GetDefinition().SupportsMinimize;
+                MaximizeButton.enabled = Window->GetDefinition().SupportsMaximize;
+            }
+        }
+    }
+
+	MacApplication->GetWindowsArrayMutex().Unlock();
+}

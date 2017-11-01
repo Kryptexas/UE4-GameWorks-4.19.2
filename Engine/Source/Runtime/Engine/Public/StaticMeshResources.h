@@ -806,6 +806,7 @@ public:
 
 	void AllocateInstances(int32 InNumInstances, bool DestroyExistingInstances)
 	{
+		int32 Delta = InNumInstances - NumInstances;
 		NumInstances = InNumInstances;
 
 		if (DestroyExistingInstances)
@@ -825,6 +826,14 @@ public:
 
 		InstanceTransformData->ResizeBuffer(NumInstances);
 		InstanceTransformDataPtr = InstanceTransformData->GetDataPointer();
+
+		if (Delta > 0)
+		{
+			for (int32 i = 0; i < Delta; ++i)
+			{
+				InstancesUsage.Add(false);
+			}
+		}
 	}
 
 	FORCEINLINE int32 IsValidIndex(int32 Index) const
@@ -882,6 +891,11 @@ public:
 		GetInstanceOriginInternal(InstanceIndex, InstanceOrigin);
 	}
 
+	FORCEINLINE int32 GetNextAvailableInstanceIndex() const
+	{
+		return InstancesUsage.Find(false);
+	}
+
 	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
 	{
 		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
@@ -902,6 +916,8 @@ public:
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
 	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
@@ -924,6 +940,8 @@ public:
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(LightmapUVBias.X, LightmapUVBias.Y, ShadowmapUVBias.X, ShadowmapUVBias.Y));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
 	FORCEINLINE void NullifyInstance(int32 InstanceIndex)
@@ -945,6 +963,8 @@ public:
 		}
 
 		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = false;
 	}
 
 	FORCEINLINE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
@@ -966,6 +986,8 @@ public:
 			InstanceTransform[2][3] = (float)HitProxyColor.B;
 			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 
 	FORCEINLINE void SwapInstance(int32 Index1, int32 Index2)
@@ -1169,6 +1191,8 @@ private:
 
 	FStaticMeshVertexDataInterface* InstanceLightmapData = nullptr;
 	uint8* InstanceLightmapDataPtr = nullptr;	
+
+	TBitArray<> InstancesUsage;
 
 	int32 NumInstances = 0;
 	const bool bUseHalfFloat = false;

@@ -256,6 +256,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, DefaultColorClear(SnapshotSource.DefaultColorClear)
 	, DefaultDepthClear(SnapshotSource.DefaultDepthClear)
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
+	, bHMDAllocatedDepthTarget(SnapshotSource.bHMDAllocatedDepthTarget)
 {
 	FMemory::Memcpy(LargestDesiredSizes, SnapshotSource.LargestDesiredSizes);
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
@@ -1852,6 +1853,9 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 
 		if (bHMDAllocated)
 		{
+			const uint32 OldElementSize = SceneDepthZ->ComputeMemorySize();
+			bHMDAllocatedDepthTarget = true;
+
 			// If SRT and texture are different (MSAA), only modify the resolve render target, to avoid creating a swapchain of MSAA textures
 			if (SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture == SceneDepthZ->GetRenderTargetItem().TargetableTexture)
 			{
@@ -1861,8 +1865,16 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 			{
 				SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture = SRTex;
 			}
+
+			GRenderTargetPool.UpdateElementSize(SceneDepthZ, OldElementSize);
 		}
 
+		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
+	}
+	else if (bStereo && bHMDAllocatedDepthTarget)
+	{
+		// We need to update the stencil SRV every frame if the depth target was allocated by an HMD.
+		// TODO: This should be handled by the HMD depth target swap chain, but currently it only updates the depth SRV.
 		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
 	}
 

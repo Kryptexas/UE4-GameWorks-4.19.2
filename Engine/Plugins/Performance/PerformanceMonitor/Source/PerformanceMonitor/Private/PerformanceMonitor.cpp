@@ -449,18 +449,56 @@ void FPerformanceMonitorModule::StopRecordingPerformanceTimers()
 #endif
 }
 
-float GetAverageOfArray(TArray<float>ArrayToAvg)
+float FPerformanceMonitorModule::GetAverageOfArray(TArray<float>ArrayToAvg, FString StatName)
 {
 	float RetVal = 0.f;
 	int NumValidValues = 0;
+	int NumOutlierValues = 0;
+	float AvgWithOutliers = 0.f;
+	float MaxOutlierValue = 0.f;
+	bool bSlowStart = true;
 	for (int i = 0; i < ArrayToAvg.Num(); i++)
 	{
 		if (ArrayToAvg[i] >= 0)
 		{
-			RetVal += ArrayToAvg[i];
+			AvgWithOutliers += ArrayToAvg[i];
 			NumValidValues++;
 		}
 	}
+	if (NumValidValues)
+	{
+		AvgWithOutliers /= NumValidValues;
+	}
+
+	NumValidValues = 0;
+	for (int i = 0; i < ArrayToAvg.Num(); i++)
+	{
+		if (ArrayToAvg[i] >= 0)
+		{
+			// Anything more than twice the average (including outliers) is likely an outlier.
+			// Count and filter out the ones that occur at the beginning.
+			if (bSlowStart && (ArrayToAvg[i] > (AvgWithOutliers * 2)))
+			{
+				NumOutlierValues++;
+				if (ArrayToAvg[i] > MaxOutlierValue)
+				{
+					MaxOutlierValue = ArrayToAvg[i];
+				}
+			}
+			else
+			{
+				bSlowStart = false;
+				RetVal += ArrayToAvg[i];
+				NumValidValues++;
+			}
+		}
+	}
+
+	if (NumOutlierValues)
+	{
+		GLog->Log(TEXT("PerformanceMonitor"), ELogVerbosity::Warning, FString::Printf(TEXT("Stat Array for %s contained %d initial outliers, the max of which was %0.4f"), *StatName, NumOutlierValues, MaxOutlierValue));
+	}
+
 	if (NumValidValues)
 	{
 		RetVal /= NumValidValues;
@@ -496,7 +534,7 @@ void FPerformanceMonitorModule::RecordData()
 		TArray<float> StatValues = ThreadedItr.Value();
 		float StatMin = FMath::Min(StatValues);
 		float StatMax = FMath::Max(StatValues);
-		float StatAvg = GetAverageOfArray(StatValues);
+		float StatAvg = GetAverageOfArray(StatValues, ThreadedItr.Key());
 		int ActiveFrames = StatValues.Num();
 		// Skip 0 frame because it tends to be the hitchiest frame.
 		for (int i = 1; i < StatValues.Num(); i++)

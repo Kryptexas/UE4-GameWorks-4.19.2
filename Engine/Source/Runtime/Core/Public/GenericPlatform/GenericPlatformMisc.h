@@ -118,6 +118,31 @@ enum class EConvertibleLaptopMode
 	Tablet
 };
 
+/** Device orientations for screens. e.g. Landscape, Portrait, etc.*/
+enum class EDeviceScreenOrientation : uint8
+{
+	/** The orientation is not known */
+	Unknown,
+	
+	/** The orientation is portrait with the home button at the bottom */
+	Portrait,
+	
+	/** The orientation is portrait with the home button at the top */
+	PortraitUpsideDown,
+	
+	/** The orientation is landscape with the home button at the right side */
+	LandscapeLeft,
+	
+	/** The orientation is landscape with the home button at the left side */
+	LandscapeRight,
+	
+	/** The orientation is as if place on a desk with the screen upward */
+	FaceUp,
+	
+	/** The orientation is as if place on a desk with the screen downward */
+	FaceDown
+};
+
 
 namespace EErrorReportMode
 {
@@ -918,6 +943,12 @@ public:
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+	
+	/**
+	 * Returns the orientation of the device: e.g. Portrait, LandscapeRight.
+	 * @see EScreenOrientation
+	 */
+	static EDeviceScreenOrientation GetDeviceOrientation();
 
 	/**
 	 * Get (or create) the unique ID used to identify this computer.

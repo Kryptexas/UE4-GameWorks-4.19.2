@@ -237,6 +237,8 @@ void UK2Node_ConstructObjectFromClass::OnClassPinChanged()
 
 void UK2Node_ConstructObjectFromClass::PinConnectionListChanged(UEdGraphPin* Pin)
 {
+	Super::PinConnectionListChanged(Pin);
+
 	if (Pin && (Pin->PinName == FK2Node_ConstructObjectFromClassHelper::ClassPinName))
 	{
 		OnClassPinChanged();

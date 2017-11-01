@@ -25,6 +25,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bAcceptsInput = false;
 	bDisplayReconfiguring = false;
 	bRenderInitialized = false;
+	bIsBeingOrderedFront = false;
 	Opacity = 0.0f;
 
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
@@ -100,6 +101,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	SCOPED_AUTORELEASE_POOL;
 	if ([NSApp isHidden] == NO)
 	{
+		bIsBeingOrderedFront = true;
+
 		[self orderFront:nil];
 
 		if (bMain && [self canBecomeMainWindow] && self != [NSApp mainWindow])
@@ -110,6 +113,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		{
 			[self makeKeyWindow];
 		}
+		
+		bIsBeingOrderedFront = false;
 	}
 }
 
@@ -249,12 +254,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	{
 		MacApplication->DeferEvent(Notification);
 	}
-}
-
-- (NSSize)window:(NSWindow*)Window willUseFullScreenContentSize:(NSSize)ProposedSize
-{
-	// Make sure the window in fullscreen is the size of the screen instead of the size of Metal drawable
-	return Window.screen.frame.size;
 }
 
 - (void)windowDidBecomeMain:(NSNotification*)Notification
@@ -426,7 +425,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
 {
 	SCOPED_AUTORELEASE_POOL;
-	if (MacApplication && sender == self)
+	if (MacApplication && sender == self && !bIsBeingOrderedFront) // Skip informing Slate if we're simply changing the z order of windows
 	{
 		GameThreadCall(^{
 			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here

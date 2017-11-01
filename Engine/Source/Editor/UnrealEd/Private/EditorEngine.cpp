@@ -792,7 +792,7 @@ void UEditorEngine::HandleSettingChanged( FName Name )
 		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue();
 		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType(DeficiencyType);
 
-		GEngine->Exec(NULL, TEXT("RecompileShaders SlateElementPixelShader"));
+		GEngine->Exec(NULL, TEXT("RecompileShaders /Engine/Private/SlateElementPixelShader.usf"));
 	}
 	if (Name == FName("SelectionColor") || Name == NAME_None)
 	{
@@ -7151,6 +7151,12 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	}
 #endif
 	return;
+}
+
+bool UEditorEngine::IsHMDTrackingAllowed() const
+{
+	// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
+	return GEnableVREditorHacks || (PlayWorld && (bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl));
 }
 
 #undef LOCTEXT_NAMESPACE 

@@ -131,8 +131,6 @@ void FSteamVRHMD::D3D11Bridge::BeginRendering()
 
 void FSteamVRHMD::D3D11Bridge::FinishRendering()
 {
-	FFrameSettings FS = GetFrameSettings(1);
-
 	vr::Texture_t Texture;
 	Texture.handle = RenderTargetTexture;
 	Texture.eType = vr::TextureType_DirectX;
@@ -238,8 +236,6 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		VkImageSubresourceRange SubresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		vlkRHI->VulkanSetImageLayout( CmdBuffer->GetHandle(), Texture2D->Surface.Image, CurrentLayout ? *CurrentLayout : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SubresourceRange );
 
-		FFrameSettings FS = GetFrameSettings();
-
 		vr::VRTextureBounds_t LeftBounds;
 		LeftBounds.uMin = 0.0f;
 		LeftBounds.uMax = 0.5f;
@@ -335,8 +331,6 @@ void FSteamVRHMD::OpenGLBridge::FinishRendering()
 		return;
 	}
 
-	FFrameSettings FS = GetFrameSettings();
-
 	vr::VRTextureBounds_t LeftBounds;
 	LeftBounds.uMin = 0.0f;
 	LeftBounds.uMax = 0.5f;
@@ -429,8 +423,6 @@ void FSteamVRHMD::MetalBridge::FinishRendering()
 	LastPresentedFrameNumber = GetFrameNumber();
 	
 	check(TextureSet.IsValid());
-	
-	FFrameSettings FS = GetFrameSettings();
 
 	vr::VRTextureBounds_t LeftBounds;
 	LeftBounds.uMin = 0.0f;

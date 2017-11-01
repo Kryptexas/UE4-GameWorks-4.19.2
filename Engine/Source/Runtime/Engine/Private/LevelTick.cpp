@@ -1387,12 +1387,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		ResetAsyncTrace();
 	}
 
-	for (FLevelCollection& LC : LevelCollections)
+	for (int32 i = 0; i < LevelCollections.Num(); ++i)
 	{
 		// Build a list of levels from the collection that are also in the world's Levels array.
 		// Collections may contain levels that aren't loaded in the world at the moment.
 		TArray<ULevel*> LevelsToTick;
-		for (ULevel* CollectionLevel : LC.GetLevels())
+		for (ULevel* CollectionLevel : LevelCollections[i].GetLevels())
 		{
 			if (Levels.Contains(CollectionLevel))
 			{
@@ -1401,7 +1401,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 
 		// Set up context on the world for this level collection
-		FScopedLevelCollectionContextSwitch LevelContext(&LC, this);
+		FScopedLevelCollectionContextSwitch LevelContext(i, this);
 
 		// If caller wants time update only, or we are paused, skip the rest.
 		if (bDoingActorTicks)
@@ -1448,7 +1448,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 		
 		// We only want to run the following once, so only run it for the source level collection.
-		if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
+		if (LevelCollections[i].GetType() == ELevelCollectionType::DynamicSourceLevels)
 		{
 			// Process any remaining latent actions
 			if( !bIsPaused )

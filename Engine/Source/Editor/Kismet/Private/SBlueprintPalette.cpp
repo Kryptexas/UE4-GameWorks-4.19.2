@@ -1309,13 +1309,16 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		{
 			if (GraphAction->EdGraph)
 			{
-				FGraphDisplayInfo DisplayInfo;
-				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*GraphAction->EdGraph, DisplayInfo);
-
-				// Check if the name is unchanged
-				if( NewText.EqualTo( DisplayInfo.PlainName ) )
+				if (const UEdGraphSchema* GraphSchema = GraphAction->EdGraph->GetSchema())
 				{
-					return;
+					FGraphDisplayInfo DisplayInfo;
+					GraphSchema->GetGraphDisplayInformation(*GraphAction->EdGraph, DisplayInfo);
+
+					// Check if the name is unchanged
+					if (NewText.EqualTo(DisplayInfo.PlainName))
+					{
+						return;
+					}
 				}
 			}
 
@@ -1354,13 +1357,16 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		UEdGraph* Graph = DelegateAction->EdGraph;
 		if (Graph && (Graph->bAllowDeletion || Graph->bAllowRenaming))
 		{
-			FGraphDisplayInfo DisplayInfo;
-			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
-
-			// Check if the name is unchanged
-			if( NewText.EqualTo( DisplayInfo.PlainName ) )
+			if (const UEdGraphSchema* GraphSchema = Graph->GetSchema())
 			{
-				return;
+				FGraphDisplayInfo DisplayInfo;
+				GraphSchema->GetGraphDisplayInformation(*Graph, DisplayInfo);
+
+				// Check if the name is unchanged
+				if (NewText.EqualTo(DisplayInfo.PlainName))
+				{
+					return;
+				}
 			}
 
 			// Make sure we aren't renaming the graph into something that already exists

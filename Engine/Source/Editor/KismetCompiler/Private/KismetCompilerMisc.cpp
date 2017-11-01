@@ -21,6 +21,7 @@
 #include "EdGraphUtilities.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
+#include "K2Node_BaseAsyncTask.h"
 #include "K2Node_Event.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_CallArrayFunction.h"
@@ -2109,7 +2110,7 @@ struct FEventGraphUtils
 		return Results;
 	}
 
-	static bool PinRepresentsSharedTerminal(const UEdGraphPin& Net)
+	static bool PinRepresentsSharedTerminal(const UEdGraphPin& Net, FCompilerResultsLog& MessageLog)
 	{
 		// TODO: Strange cases..
 		if ((Net.Direction != EEdGraphPinDirection::EGPD_Output)
@@ -2128,6 +2129,13 @@ struct FEventGraphUtils
 		ensure(OwnerNode);
 		const UK2Node_CallFunction* CallFunction = Cast<const UK2Node_CallFunction>(OwnerNode);
 		if (!CallFunction || (&Net != CallFunction->GetReturnValuePin()))
+		{
+			return true;
+		}
+
+		// If the function call node is an intermediate node resulting from expansion of an async task node, then the return value term must also be persistent.
+		const UEdGraphNode* SourceNode = MessageLog.GetSourceNode(OwnerNode);
+		if (SourceNode && SourceNode->IsA<UK2Node_BaseAsyncTask>())
 		{
 			return true;
 		}
@@ -2213,7 +2221,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
 
 		// Pin's connections are checked, to tell if created terminal is shared, or if it could be a local variable.
-		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net);
+		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net, MessageLog);
 	}
 	FBPTerminal* Term = new (bSharedTerm ? EventGraphLocals : Locals) FBPTerminal();
 	Term->CopyFromPin(Net, MoveTemp(NewName));

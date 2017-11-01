@@ -75,10 +75,10 @@ void FClearTexture2DReplacementScissorCS::FinalizeParameters(FRHICommandList& RH
 	SetUAVParameter(RHICmdList, ComputeShaderRHI, ClearTextureRW, FUnorderedAccessViewRHIRef());
 }
 
-void FClearBufferReplacementCS::SetParameters( FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword )
+void FClearBufferReplacementCS::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 NumDWordsToClear,uint32 ClearValue)
 {
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearDword, Dword);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearBufferCSParams, FUintVector4(ClearValue, NumDWordsToClear, 0, 0));
 	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, BufferRW);
 	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearBufferRW.GetBaseIndex(), BufferRW);
 }

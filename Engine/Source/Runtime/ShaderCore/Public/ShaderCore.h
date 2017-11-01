@@ -362,6 +362,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	TMap<uint32,uint8> RenderTargetOutputFormatsMap;
 	TMap<FString,FResourceTableEntry> ResourceTableMap;
 	TMap<FString,uint32> ResourceTableLayoutHashes;
+	TMap<FString, FString> RemoteServerData;
 
 	/** Default constructor. */
 	FShaderCompilerEnvironment()
@@ -401,7 +402,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerEnvironment& Environment)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Environment.IncludeVirtualPathToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap << Environment.ResourceTableMap << Environment.ResourceTableLayoutHashes;
+		return Ar << Environment.IncludeVirtualPathToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap << Environment.ResourceTableMap << Environment.ResourceTableLayoutHashes << Environment.RemoteServerData;
 	}
 
 	void Merge(const FShaderCompilerEnvironment& Other)
@@ -431,6 +432,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 		ResourceTableLayoutHashes.Append(Other.ResourceTableLayoutHashes);
 		Definitions.Merge(Other.Definitions);
 		RenderTargetOutputFormatsMap.Append(Other.RenderTargetOutputFormatsMap);
+		RemoteServerData.Append(Other.RemoteServerData);
 	}
 
 private:

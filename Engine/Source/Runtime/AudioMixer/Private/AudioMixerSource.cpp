@@ -955,8 +955,11 @@ namespace Audio
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-			MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			if (SendInfo.SoundSubmix)
+			{
+				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+			}
 		}
 	}
 

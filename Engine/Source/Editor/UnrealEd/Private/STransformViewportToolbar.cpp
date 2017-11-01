@@ -130,7 +130,6 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeSurfaceSnappingButton( FNam
 
 		+SHorizontalBox::Slot()
 		.AutoWidth()
-		.VAlign(VAlign_Center)
 		[
 			SNew(SCheckBox)
 			.Cursor( EMouseCursor::Default )

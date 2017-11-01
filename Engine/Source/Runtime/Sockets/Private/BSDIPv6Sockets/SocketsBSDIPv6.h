@@ -79,7 +79,7 @@ public:
 
 	virtual bool Listen(int32 MaxBacklog) override;
 
-	virtual bool HasPendingConnection(bool& bHasPendingConnection) override;
+	virtual bool WaitForPendingConnection(bool& bHasPendingConnection, const FTimespan& WaitTime) override;
 
 	virtual bool HasPendingData(uint32& PendingDataSize) override;
 

@@ -218,7 +218,7 @@ void FIOSPlatformApplicationMisc::ClipboardPaste(class FString& Result)
 EScreenPhysicalAccuracy FIOSPlatformApplicationMisc::ComputePhysicalScreenDensity(int32& ScreenDensity)
 {
 	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
-	static_assert( FPlatformMisc::EIOSDevice::IOS_Unknown == 27, "Every device needs to be handled here." );
+	static_assert( FPlatformMisc::EIOSDevice::IOS_Unknown == 32, "Every device needs to be handled here." );
 
 	ScreenDensity = 0;
 	EScreenPhysicalAccuracy Accuracy = EScreenPhysicalAccuracy::Unknown;
@@ -238,12 +238,15 @@ EScreenPhysicalAccuracy FIOSPlatformApplicationMisc::ComputePhysicalScreenDensit
 	case FPlatformMisc::IOS_IPhone6:
 	case FPlatformMisc::IOS_IPhone6S:
 	case FPlatformMisc::IOS_IPhone7:
+	case FPlatformMisc::IOS_IPhone8:
 		ScreenDensity = 326;
 		Accuracy = EScreenPhysicalAccuracy::Truth;
 		break;
 	case FPlatformMisc::IOS_IPhone6Plus:
 	case FPlatformMisc::IOS_IPhone6SPlus:
 	case FPlatformMisc::IOS_IPhone7Plus:
+	case FPlatformMisc::IOS_IPhone8Plus:
+	case FPlatformMisc::IOS_IPhoneX:
 		ScreenDensity = 401;
 		Accuracy = EScreenPhysicalAccuracy::Truth;
 		break;
@@ -256,6 +259,7 @@ EScreenPhysicalAccuracy FIOSPlatformApplicationMisc::ComputePhysicalScreenDensit
 	case FPlatformMisc::IOS_IPad2:
 	case FPlatformMisc::IOS_IPad3:
 	case FPlatformMisc::IOS_IPad4:
+	case FPlatformMisc::IOS_IPad5:
 	case FPlatformMisc::IOS_IPadAir:
 	case FPlatformMisc::IOS_IPadAir2:
 	case FPlatformMisc::IOS_IPadPro_97:
@@ -270,6 +274,7 @@ EScreenPhysicalAccuracy FIOSPlatformApplicationMisc::ComputePhysicalScreenDensit
 		Accuracy = EScreenPhysicalAccuracy::Truth;
 		break;
 	case FPlatformMisc::IOS_AppleTV:
+	case FPlatformMisc::IOS_AppleTV4K:
 		Accuracy = EScreenPhysicalAccuracy::Unknown;
 		break;
 	default:
