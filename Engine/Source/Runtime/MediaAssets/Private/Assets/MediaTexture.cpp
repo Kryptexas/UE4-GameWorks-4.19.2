@@ -225,7 +225,9 @@ void UMediaTexture::TickResource(FTimespan Timecode)
 {
 	if ((MediaPlayer == nullptr) || (Resource == nullptr))
 	{
+		CurrentPlayerFacade.Reset();
 		SampleQueue.Reset();
+
 		return;
 	}
 
