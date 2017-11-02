@@ -2708,16 +2708,17 @@ void UCookOnTheFlyServer::OnObjectSaved( UObject* ObjectSaved )
 		return;
 	}
 
-	UPackage *Package = ObjectSaved->GetOutermost();
+	UPackage* Package = ObjectSaved->GetOutermost();
+	if (Package == nullptr || Package == GetTransientPackage())
+	{
+		return;
+	}
 
 	MarkPackageDirtyForCooker(Package);
 
-	FName PackageFFileName = GetCachedStandardPackageFileFName(Package);
-
-	if (PackageFFileName != NAME_None)
-	{
-		ModifiedAssetFilenames.Add(PackageFFileName);
-	}
+	// Register the package filename as modified. We don't use the cache because the file may not exist on disk yet at this point
+	const FString PackageFilename = FPackageName::LongPackageNameToFilename(Package->GetName(), Package->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension());
+	ModifiedAssetFilenames.Add(FName(*PackageFilename));
 }
 
 void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
