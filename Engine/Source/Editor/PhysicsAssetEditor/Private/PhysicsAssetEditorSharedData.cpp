@@ -53,7 +53,7 @@ FPhysicsAssetEditorSharedData::FPhysicsAssetEditorSharedData()
 	MouseHandle = NewObject<UPhysicsHandleComponent>();
 
 	// Construct sim options.
-	EditorOptions = NewObject<UPhysicsAssetEditorOptions>(GetTransientPackage(), TEXT("EditorOptions"));
+	EditorOptions = NewObject<UPhysicsAssetEditorOptions>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UPhysicsAssetEditorOptions::StaticClass(), FName(TEXT("EditorOptions"))));
 	check(EditorOptions);
 
 	EditorOptions->LoadConfig();
