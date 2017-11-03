@@ -5,6 +5,7 @@
 #include "UObject/Class.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
+#include "UObject/UObjectThreadContext.h"
 
 /*-----------------------------------------------------------------------------
 	UByteProperty.
@@ -354,15 +355,27 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 	if( Enum && (PortFlags & PPF_ConsoleVariable) == 0 )
 	{
 		FString Temp;
-		const TCHAR* Buffer = UPropertyHelpers::ReadToken( InBuffer, Temp, true );
-		if( Buffer != NULL )
+		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp, true))
 		{
-			int32 EnumIndex = Enum->GetIndexByName(*Temp, EGetByNameFlags::ErrorIfNotFound);
+			int32 EnumIndex = Enum->GetIndexByName(*Temp);
+			if (EnumIndex == INDEX_NONE && Temp.IsNumeric())
+			{
+				int64 EnumValue = INDEX_NONE;
+				Lex::FromString(EnumValue, *Temp);
+				EnumIndex = Enum->GetIndexByValue(EnumValue);
+			}
 			if (EnumIndex != INDEX_NONE)
 			{
 				*(uint8*)Data = Enum->GetValueByIndex(EnumIndex);
 				return Buffer;
 			}
+
+			// Enum could not be created from value. This indicates a bad value so
+			// return null so that the caller of ImportText can generate a more meaningful
+			// warning/error
+			FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+			UE_LOG(LogClass, Warning, TEXT("In asset '%s', there is an enum property of type '%s' with an invalid value of '%s'"), *GetPathNameSafe(ThreadContext.SerializedObject), *Enum->GetName(), *Temp);
+			return nullptr;
 		}
 	}
 	
@@ -370,8 +383,7 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 	if (!Enum)
 	{
 		FString Temp;
-		const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp);
-		if (Buffer)
+		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp))
 		{
 			if (Temp == TEXT("True") || Temp == *(GTrue.ToString()))
 			{

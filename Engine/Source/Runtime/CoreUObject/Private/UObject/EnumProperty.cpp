@@ -2,6 +2,7 @@
 
 #include "UObject/EnumProperty.h"
 #include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectThreadContext.h"
 #include "PropertyTag.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IsSigned.h"
@@ -258,19 +259,25 @@ const TCHAR* UEnumProperty::ImportText_Internal(const TCHAR* InBuffer, void* Dat
 		FString Temp;
 		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp, true))
 		{
-			int32 EnumIndex = Enum->GetIndexByName(*Temp, EGetByNameFlags::ErrorIfNotFound);
+			int32 EnumIndex = Enum->GetIndexByName(*Temp);
+			if (EnumIndex == INDEX_NONE && Temp.IsNumeric())
+			{
+				int64 EnumValue = INDEX_NONE;
+				Lex::FromString(EnumValue, *Temp);
+				EnumIndex = Enum->GetIndexByValue(EnumValue);
+			}
 			if (EnumIndex != INDEX_NONE)
 			{
 				UnderlyingProp->SetIntPropertyValue(Data, Enum->GetValueByIndex(EnumIndex));
 				return Buffer;
 			}
-			else
-			{
-				// Enum could not be created from value. This indicates a bad value so
-				// return null so that the caller of ImportText can generate a more meaningful
-				// warning/error
-				return nullptr;
-			}
+
+			// Enum could not be created from value. This indicates a bad value so
+			// return null so that the caller of ImportText can generate a more meaningful
+			// warning/error
+			FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+			UE_LOG(LogClass, Warning, TEXT("In asset '%s', there is an enum property of type '%s' with an invalid value of '%s'"), *GetPathNameSafe(ThreadContext.SerializedObject), *Enum->GetName(), *Temp);
+			return nullptr;
 		}
 	}
 
