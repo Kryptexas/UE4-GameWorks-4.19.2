@@ -1919,7 +1919,7 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int
 		return true;
 	}
 
-	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0 && !KeepInstanceBufferCPUAccess)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
@@ -1957,7 +1957,7 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 		return false;
 	}
 
-	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0)
+	if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData.IsValid() && PerInstanceRenderData->InstanceBuffer.GetCurrentNumInstances() == 0 && !KeepInstanceBufferCPUAccess)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Trying to change instance buffer for component %s, but we have no CPU copy. Set KeepInstanceBufferCPUAccess to true to keep access at the cost of memory."), *GetPathName());
 		return false;
