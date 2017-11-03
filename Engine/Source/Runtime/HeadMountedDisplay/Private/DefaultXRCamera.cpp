@@ -92,13 +92,15 @@ void FDefaultXRCamera::CalculateStereoCameraOffset(const enum EStereoscopicPass 
 	}
 }
 
+static const FName DayDreamHMD(TEXT("FGoogleVRHMD"));
+
 void FDefaultXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	check(IsInRenderingThread());
 
 	// Disable late update for day dream, their compositor doesn't support it.
-	const auto HMD = TrackingSystem->GetHMDDevice();
-	const bool bDoLateUpdate = (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GoogleVR) ? false : true;
+	const bool bDoLateUpdate = (TrackingSystem->GetSystemName() != DayDreamHMD);
+
 	if (bDoLateUpdate)
 	{
 		FQuat DeviceOrientation;
