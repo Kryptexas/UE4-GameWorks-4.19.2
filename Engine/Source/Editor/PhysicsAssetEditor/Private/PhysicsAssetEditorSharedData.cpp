@@ -169,6 +169,18 @@ void FPhysicsAssetEditorSharedData::CachePreviewMesh()
 				LOCTEXT("Error_PhysicsAssetHasNoSkelMesh", "Warning: Physics Asset has no skeletal mesh assigned.\nFor now, a simple default skeletal mesh ({0}) will be used.\nYou can fix this by opening the asset and choosing another skeletal mesh from the toolbar."),
 				FText::FromString(PreviewMesh->GetFullName())));
 	}
+	else if(PreviewMesh->Skeleton == nullptr)
+	{
+		// Fall back in the case of a deleted skeleton
+		PreviewMesh = (USkeletalMesh*)StaticLoadObject(USkeletalMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/SkeletalCube.SkeletalCube"), NULL, LOAD_None, NULL);
+		check(PreviewMesh);
+
+		PhysicsAsset->PreviewSkeletalMesh = PreviewMesh;
+
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+				LOCTEXT("Error_PhysicsAssetHasNoSkelMeshSkeleton", "Warning: Physics Asset has a skeletal mesh with no skeleton assigned.\nFor now, a simple default skeletal mesh ({0}) will be used.\nYou can fix this by opening the asset and choosing another skeletal mesh from the toolbar, or repairing the skeleton."),
+				FText::FromString(PreviewMesh->GetFullName())));
+	}
 }
 
 void FPhysicsAssetEditorSharedData::CopyConstraintProperties(UPhysicsConstraintTemplate * FromConstraintSetup, UPhysicsConstraintTemplate * ToConstraintSetup)
