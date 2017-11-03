@@ -49,6 +49,20 @@ public:
 
 	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance) = 0;
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter) = 0;
+
+	// GPUSpriteEmitterInstance
+	virtual void GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NumParticles) = 0;
+	virtual void GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile) = 0;
+
+	virtual void GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Count) = 0;
+	virtual void GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count) = 0;
+
+	virtual int32 GPUSpriteEmitterInstance_CreateNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount) = 0;
+	virtual void GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 RegularIndex) = 0;
+	virtual void GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity) = 0;
 };
 
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;

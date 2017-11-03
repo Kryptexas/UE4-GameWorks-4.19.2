@@ -55,8 +55,12 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 	FFlexContainerInstance(UFlexContainer* Template, FPhysScene* Owner);
 	virtual ~FFlexContainerInstance();
 
+	int32 CreateParticle();
+	int32 CreateParticles(int32* Indices, int32 NumIndices);
+	void SetParticle(int32 Index, const FVector4& Pos, const FVector& Vel, int32 Phase);
 	int32 CreateParticle(const FVector4& Pos, const FVector& Vel, int32 Phase);
 	void DestroyParticle(int32 Index);
+	void DestroyParticles(const int32* Indices, int32 NumIndices);
 
 	void CopyParticle(int32 Source, int32 Dest);
 

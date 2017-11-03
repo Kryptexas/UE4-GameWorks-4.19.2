@@ -21,6 +21,7 @@
 #include "FlexParticleEmitterInstance.h"
 #include "FlexCollisionComponent.h"
 #include "FlexParticleSpriteEmitter.h"
+#include "FlexGPUParticleEmitterInstance.h"
 
 #include "Misc/ScopeRWLock.h"
 
@@ -633,6 +634,74 @@ void FFlexManager::FlexEmitterInstanceFillReplayData(struct FParticleEmitterInst
 	}
 }
 
+void FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NumParticles)
+{
+	verify(FlexEmitterInstance);
+	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance, NumParticles);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->DestroyParticles(Start, Count);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->DestroyAllParticles(ParticlesPerTile);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Count)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->AllocParticleIndices(Count);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->FreeParticleIndices(Start, Count);
+}
+
+int32 FFlexManager::GPUSpriteEmitterInstance_CreateNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	return FlexEmitterInstance->GPUImpl->CreateNewParticles(NewStart, NewCount);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->DestroyNewParticles(NewStart, NewCount);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 RegularIndex)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->InitNewParticle(NewIndex, RegularIndex);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity);
+}
 
 UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
 {

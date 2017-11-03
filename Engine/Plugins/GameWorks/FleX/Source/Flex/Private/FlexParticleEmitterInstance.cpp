@@ -8,7 +8,7 @@ FFlexParticleEmitterInstance::FFlexParticleEmitterInstance(FParticleEmitterInsta
 	: Emitter(Instance)
 	, FlexDataOffset(0)
 	, bFlexAnisotropyData(0)
-	, FlexFluidSurfaceComponent(NULL)
+	, FlexFluidSurfaceComponent(nullptr)
 {
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 	if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
@@ -42,6 +42,8 @@ FFlexParticleEmitterInstance::FFlexParticleEmitterInstance(FParticleEmitterInsta
 		}
 
 		RegisterNewFlexFluidSurfaceComponent(FlexEmitter->FlexFluidSurfaceTemplate);
+
+		FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 	}
 }
 
@@ -250,8 +252,6 @@ bool FFlexParticleEmitterInstance::SpawnParticle(struct FBaseParticle* Particle,
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 	if (FlexEmitter == nullptr)
 		return true;
-
-	const float FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 
 	if (Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{

@@ -4,7 +4,6 @@
 #include "NvFlexExt.h"
 
 #include "FlexContainer.h"
-#include "FlexParticleEmitterInstance.h"
 
 /*-----------------------------------------------------------------------------
 FFlexParticleEmitterInstance
@@ -84,4 +83,8 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	uint32 bFlexAnisotropyData : 1;
 	/** Registered fluid surface component								*/
 	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
+
+	float FlexInvMass;
+
+	struct FFlexGPUParticleEmitterInstance* GPUImpl = nullptr;
 };
