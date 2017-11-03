@@ -1819,11 +1819,14 @@ ALandscapeProxy* ULandscapeInfo::GetLandscapeProxy() const
 	// so it doesn't really matter which proxy we return here
 
 	// prefer LandscapeActor in case it is loaded
-	ALandscape* Landscape = LandscapeActor.Get();
-	if (Landscape != nullptr &&
-		Landscape->GetRootComponent()->IsRegistered())
+	if (LandscapeActor.IsValid())
 	{
-		return Landscape;
+		ALandscape* Landscape = LandscapeActor.Get();
+		if (Landscape != nullptr &&
+			Landscape->GetRootComponent()->IsRegistered())
+		{
+			return Landscape;
+		}
 	}
 
 	// prefer current level proxy 
