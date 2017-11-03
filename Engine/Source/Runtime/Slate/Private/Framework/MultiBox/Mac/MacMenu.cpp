@@ -464,13 +464,13 @@ NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>&
 
 NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class FMenuEntryBlock>& Block, uint32* OutModifiers)
 {
+	*OutModifiers = 0;
+
 	if (Block->GetAction().IsValid())
 	{
-		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
+		const TSharedRef<const FInputChord> Chord = Block->GetAction()->GetFirstValidChord();
+		if (Chord->IsValidChord())
 		{
-			const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord(static_cast<EMultipleKeyBindingIndex>(i));
-
-			*OutModifiers = 0;
 			if (Chord->NeedsControl())
 			{
 				*OutModifiers |= NSControlKeyMask;
@@ -492,6 +492,7 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 			return KeyString.GetNSString();
 		}
 	}
+
 	return @"";
 }
 

@@ -2437,14 +2437,15 @@ static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKe
 	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 	{
 		// check each bound chord
-		EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
+		EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex>(i);
 		const FInputChord& Chord = *Command->GetActiveChord(ChordIndex);
 
-		bAccepted |= (!Chord.NeedsControl() || ViewportClient.IsCtrlPressed())
+		bAccepted |= Chord.IsValidChord()
+			&& (!Chord.NeedsControl() || ViewportClient.IsCtrlPressed())
 			&& (!Chord.NeedsAlt() || ViewportClient.IsAltPressed())
 			&& (!Chord.NeedsShift() || ViewportClient.IsShiftPressed())
 			&& (!Chord.NeedsCommand() || ViewportClient.IsCmdPressed())
-		&& Chord.Key == Key;
+			&& Chord.Key == Key;
 	}
 	return bAccepted;
 }

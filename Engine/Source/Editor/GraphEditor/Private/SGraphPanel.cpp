@@ -579,9 +579,11 @@ FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InK
 		// Iterate through all key mappings to generate key event flags
 		for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 		{
-			EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
-			bZoomOutKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveChord(ChordIndex)->Key;
-			bZoomInKeyEvent |= InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveChord(ChordIndex)->Key;
+			EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex>(i);
+			const FInputChord& ZoomOutChord = *FGraphEditorCommands::Get().ZoomOut->GetActiveChord(ChordIndex);
+			const FInputChord& ZoomInChord = *FGraphEditorCommands::Get().ZoomIn->GetActiveChord(ChordIndex);
+			bZoomOutKeyEvent |= ZoomOutChord.IsValidChord() && InKeyEvent.GetKey() == ZoomOutChord.Key;
+			bZoomInKeyEvent |= ZoomInChord.IsValidChord() && InKeyEvent.GetKey() == ZoomInChord.Key;
 		}
 
 		if(bZoomOutKeyEvent)
