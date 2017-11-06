@@ -115,6 +115,8 @@ private:
 class FArrayRowDragDropOp : public FDecoratedDragDropOp
 {
 public:
+	DRAG_DROP_OPERATOR_TYPE(FArrayRowDragDropOp, FDecoratedDragDropOp)
+
 	FArrayRowDragDropOp(TSharedPtr<SDetailSingleItemRow> InRow)
 	{
 		Row = InRow;
