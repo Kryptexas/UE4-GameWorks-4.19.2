@@ -663,7 +663,15 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* I
 
 	case BCS_BoneSpace:
 	{
-		FTransform BoneTM = Target.GetTargetTransform(FVector::ZeroVector, InMeshBases, InSkelComp->GetComponentToWorld());
+		// hack fix for crash, and if target's bone reference has cached index
+		bool bValidToEvaluate = true;
+		if (Target.bUseSocket == false && Target.BoneReference.CachedCompactPoseIndex != INDEX_NONE)
+		{
+			// make sure the bone index is still fine
+			bValidToEvaluate = InMeshBases.GetPose().IsValidIndex(Target.BoneReference.CachedCompactPoseIndex);
+		}
+
+		FTransform BoneTM = (bValidToEvaluate)? Target.GetTargetTransform(FVector::ZeroVector, InMeshBases, InSkelComp->GetComponentToWorld()) : InSkelComp->GetComponentToWorld();
 		WidgetLoc = BoneTM.TransformPosition(InLocation);
 	}
 	break;
