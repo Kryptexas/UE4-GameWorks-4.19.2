@@ -2,6 +2,7 @@
 
 #include "UI/SLogWidget.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Layout/SSpacer.h"
@@ -695,35 +696,29 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 						.OnGenerateRow_Lambda(
 							[](TSharedRef<FLogLine> Item, const TSharedRef<STableViewBase>& OwnerTable)
 							{
-								// Various types of special font formatting
-								FString FontPath;
 								ELogType CurLogType = Item->LogType;
 
+								// Various types of special font formatting
+								const int32 FontSize = 9;
+								FSlateFontInfo RenderFont = FCoreStyle::GetDefaultFontStyle("Regular", FontSize);
 								if (!!(CurLogType & ELogType::StyleMonospace))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/DroidSansMono.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Mono", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleBold) && !!(CurLogType & ELogType::StyleItalic))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-BoldCondensedItalic.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("BoldCondensedItalic", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleBold))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Bold", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleItalic))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-Italic.ttf");
-								}
-								else
-								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Italic", FontSize);
 								}
 
-
-								FSlateFontInfo RenderFont(FontPath, 9);
 								FString RenderText = *Item->LogLine;
-
 
 								// Pseudo-underline; just adds newline, and then underlines with lots of ----
 								if (!!(CurLogType & ELogType::StyleUnderline) && RenderText.Len() > 0)

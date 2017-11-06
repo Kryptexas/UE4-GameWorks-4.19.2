@@ -8,6 +8,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/SToolTip.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
@@ -446,7 +447,7 @@ TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrus
 	SAssignNew(ToolTipWidget, SToolTip).Text(ToolTipText);
 
 	static FTextBlockStyle TitleStyle = FTextBlockStyle()
-		.SetFont(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10))
+		.SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 10))
 		.SetColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f));
 
 	return SNew(SVerticalBox)

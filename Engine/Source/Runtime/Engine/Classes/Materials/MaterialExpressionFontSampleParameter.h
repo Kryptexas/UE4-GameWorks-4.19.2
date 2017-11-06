@@ -55,6 +55,10 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	/** Return whether this is the named parameter, and fill in its value */
 	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage) const;
 
+#if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, UFont* InFontValue, int32 InFontPage);
+#endif
+
 	/**
 	*	Sets the default Font if none is set
 	*/

@@ -22,8 +22,13 @@ void UStaticMeshThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint3
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(Object);
 	if (StaticMesh != nullptr && !StaticMesh->IsPendingKill())
 	{
-		if ( ThumbnailScene == nullptr )
+		if (ThumbnailScene == nullptr || ensure(ThumbnailScene->GetWorld() != nullptr) == false)
 		{
+			if (ThumbnailScene)
+			{
+				FlushRenderingCommands();
+				delete ThumbnailScene;
+			}
 			ThumbnailScene = new FStaticMeshThumbnailScene();
 		}
 

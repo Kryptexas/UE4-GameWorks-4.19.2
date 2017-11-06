@@ -6,6 +6,7 @@
 #include "Widgets/Notifications/SProgressBar.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "SurveyPage.h"
 #include "SSurveyPage.h"
@@ -19,7 +20,7 @@ void SSurvey::Construct( const FArguments& Args, const TSharedRef< FEpicSurvey >
 	PageBox = NULL;
 
 	TitleFont = MakeShareable( new FTextBlockStyle() );
-	TitleFont->SetFont( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 ) );
+	TitleFont->SetFont( FCoreStyle::GetDefaultFontStyle("Regular", 18) );
 	TitleFont->SetColorAndOpacity( FLinearColor::White );
 	TitleFont->SetShadowOffset( FVector2D( 1,1 ) );
 	TitleFont->SetShadowColorAndOpacity( FLinearColor::Black );
@@ -262,7 +263,7 @@ void SSurvey::ConstructFailureLayout()
 				[
 					SNew( STextBlock )
 					.Text( LOCTEXT( "FailureMessage01" , "We seem to be having some problems :(" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 18) )
 				]
 			]
 		]

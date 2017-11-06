@@ -1149,7 +1149,28 @@ bool FMacPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FSt
 		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
+	delete[] Buffer;
 	return (BytesWritten == BytesAvailable);
+}
+
+bool FMacPlatformProcess::WritePipe(void* WritePipe, const uint8* Data, const int32 DataLength, int32* OutDataLength)
+{
+	// if there is not a message or WritePipe is null
+	if ((DataLength == 0) || (WritePipe == nullptr))
+	{
+		return false;
+	}
+
+	// write to pipe
+	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Data, DataLength);
+
+	// Get written Data Length
+	if (OutDataLength)
+	{
+		*OutDataLength = (int32)BytesWritten;
+	}
+
+	return (BytesWritten == DataLength);
 }
 
 bool FMacPlatformProcess::IsApplicationRunning(const TCHAR* ProcName)

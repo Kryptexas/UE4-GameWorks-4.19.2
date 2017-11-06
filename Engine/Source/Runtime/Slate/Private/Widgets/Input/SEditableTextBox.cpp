@@ -49,6 +49,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.SelectAllTextWhenFocused( InArgs._SelectAllTextWhenFocused )
 					.RevertTextOnEscape( InArgs._RevertTextOnEscape )
 					.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
+					.Justification( InArgs._Justification )
 					.AllowContextMenu( InArgs._AllowContextMenu )
 					.OnContextMenuOpening( InArgs._OnContextMenuOpening )
 					.OnTextChanged( InArgs._OnTextChanged )
@@ -370,6 +371,13 @@ void SEditableTextBox::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelect
 {
 	EditableText->SetSelectAllTextOnCommit(InSelectAllTextOnCommit);
 }
+
+
+void SEditableTextBox::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	EditableText->SetJustification(InJustification);
+}
+
 
 void SEditableTextBox::SetAllowContextMenu(TAttribute<bool> InAllowContextMenu)
 {

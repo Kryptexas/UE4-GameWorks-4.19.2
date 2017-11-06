@@ -21,6 +21,7 @@
 #include "Widgets/Input/STextComboBox.h"
 #include "Widgets/SToolTip.h"
 #include "Editor.h"
+#include "IDetailGroup.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 
@@ -200,10 +201,15 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 		}
 	}
 
+	TMap<FString, TArray<TSharedPtr<IPropertyHandle>>> SubCategoriesProperties;
+	TMap<FString, bool > SubCategoriesAdvanced;
+	TMap<FString, FText > SubCategoriesTooltip;
+
 	for(TSharedPtr<IPropertyHandle> Handle : ExtraProperties)
 	{
 		FString ImportTypeMetaData = Handle->GetMetaData(TEXT("ImportType"));
 		const FString& CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
+		const FString& SubCategoryData = Handle->GetMetaData(TEXT("SubCategory"));
 		if(IsImportTypeMetaDataValid(ImportType, ImportTypeMetaData))
 		{
 			// Decide on category
@@ -212,6 +218,18 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 				// Populate custom categories.
 				IDetailCategoryBuilder& CustomCategory = DetailBuilder.EditCategory(*CategoryMetaData);
 				CustomCategory.AddProperty(Handle);
+			}
+			else if (!SubCategoryData.IsEmpty())
+			{
+				TArray<TSharedPtr<IPropertyHandle> >& SubCategoryProperties = SubCategoriesProperties.FindOrAdd(SubCategoryData);
+				SubCategoryProperties.Add(Handle);
+				bool& SubCategoryAdvanced = SubCategoriesAdvanced.FindOrAdd(SubCategoryData);
+				FText& SubCategoryTooltip = SubCategoriesTooltip.FindOrAdd(SubCategoryData);
+				if (SubCategoryData.Equals(TEXT("Thresholds")))
+				{
+					SubCategoryAdvanced = true;
+					SubCategoryTooltip = LOCTEXT("Thresholds_subcategory_tooltip", "Thresholds for when a vertex is considered the same as another vertex");
+				}
 			}
 			else
 			{
@@ -235,8 +253,13 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 					}
 				}
 			}
+
+			
 		}
 	}
+
+	//Lets add all "Mesh" sub category we found
+	AddSubCategory(DetailBuilder, "Mesh", SubCategoriesProperties, SubCategoriesAdvanced, SubCategoriesTooltip);
 
 	// Animation Category
 	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
@@ -344,6 +367,36 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 					MaterialCategory.AddProperty(Handle);
 				}
 			}
+		}
+	}
+}
+
+void FFbxImportUIDetails::AddSubCategory(IDetailLayoutBuilder& DetailBuilder, FName MainCategoryName, TMap<FString, TArray<TSharedPtr<IPropertyHandle>>>& SubCategoriesProperties, TMap<FString, bool >& SubCategoriesAdvanced, TMap<FString, FText >& SubCategoriesTooltip)
+{
+	IDetailCategoryBuilder& MainCategory = DetailBuilder.EditCategory(MainCategoryName);
+	//If we found some sub category we can add them to the group
+	for (auto Kvp : SubCategoriesProperties)
+	{
+		FString& SubCategoryName = Kvp.Key;
+		TArray<TSharedPtr<IPropertyHandle>>& SubCategoryProperties = Kvp.Value;
+		bool SubCategoryAdvanced = SubCategoriesAdvanced[Kvp.Key];
+		IDetailGroup& Group = MainCategory.AddGroup(FName(*SubCategoryName), FText::FromString(SubCategoryName), SubCategoryAdvanced);
+		for (int32 PropertyIndex = 0; PropertyIndex < SubCategoryProperties.Num(); ++PropertyIndex)
+		{
+			TSharedPtr<IPropertyHandle>& PropertyHandle = SubCategoryProperties[PropertyIndex];
+			DetailBuilder.HideProperty(PropertyHandle);
+			Group.AddPropertyRow(PropertyHandle.ToSharedRef());
+		}
+		const FText& SubCategoryTooltip = SubCategoriesTooltip[Kvp.Key];
+		if (!SubCategoryTooltip.IsEmpty())
+		{
+			FDetailWidgetRow& GroupHeaderRow = Group.HeaderRow();
+			GroupHeaderRow.NameContent().Widget = SNew(SBox)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(SubCategoryName))
+				.ToolTipText(SubCategoryTooltip)
+			];
 		}
 	}
 }

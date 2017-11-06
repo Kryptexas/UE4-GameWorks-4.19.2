@@ -899,22 +899,22 @@ void SReferenceViewer::RegisterActions()
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().CopyReferencedObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencedObjects),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().CopyReferencingObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencingObjects),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowReferencedObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencedObjects),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowReferencingObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencingObjects),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakeLocalCollectionWithReferencers,
@@ -1016,39 +1016,38 @@ FString SReferenceViewer::GetReferencedObjectsList() const
 {
 	FString ReferencedObjectsList;
 
-	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
+	TSet<FName> AllSelectedPackageNames;
+	GetPackageNamesFromSelectedNodes(AllSelectedPackageNames);
 
-	if (SelectedObject)
+	if (AllSelectedPackageNames.Num() > 0)
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		const FName SelectedPackageName = SelectedObject->GetOutermost()->GetFName();
 
+		for (const FName SelectedPackageName : AllSelectedPackageNames)
 		{
 			TArray<FName> HardDependencies;
 			AssetRegistryModule.Get().GetDependencies(SelectedPackageName, HardDependencies, EAssetRegistryDependencyType::Hard);
 			
-			if (HardDependencies.Num() > 0)
-			{
-				ReferencedObjectsList += TEXT("[HARD]\n");
-				for (const FName HardDependency : HardDependencies)
-				{
-					const FString PackageString = HardDependency.ToString();
-					ReferencedObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
-				}
-			}
-		}
-
-		{
 			TArray<FName> SoftDependencies;
 			AssetRegistryModule.Get().GetDependencies(SelectedPackageName, SoftDependencies, EAssetRegistryDependencyType::Soft);
 
+			ReferencedObjectsList += FString::Printf(TEXT("[%s - Dependencies]\n"), *SelectedPackageName.ToString());
+			if (HardDependencies.Num() > 0)
+			{
+				ReferencedObjectsList += TEXT("  [HARD]\n");
+				for (const FName HardDependency : HardDependencies)
+				{
+					const FString PackageString = HardDependency.ToString();
+					ReferencedObjectsList += FString::Printf(TEXT("    %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
 			if (SoftDependencies.Num() > 0)
 			{
-				ReferencedObjectsList += TEXT("\n[SOFT]\n");
+				ReferencedObjectsList += TEXT("  [SOFT]\n");
 				for (const FName SoftDependency : SoftDependencies)
 				{
 					const FString PackageString = SoftDependency.ToString();
-					ReferencedObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+					ReferencedObjectsList += FString::Printf(TEXT("    %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
 				}
 			}
 		}
@@ -1061,39 +1060,38 @@ FString SReferenceViewer::GetReferencingObjectsList() const
 {
 	FString ReferencingObjectsList;
 
-	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
+	TSet<FName> AllSelectedPackageNames;
+	GetPackageNamesFromSelectedNodes(AllSelectedPackageNames);
 
-	if (SelectedObject)
+	if (AllSelectedPackageNames.Num() > 0)
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		const FName SelectedPackageName = SelectedObject->GetOutermost()->GetFName();
 
+		for (const FName SelectedPackageName : AllSelectedPackageNames)
 		{
 			TArray<FName> HardDependencies;
 			AssetRegistryModule.Get().GetReferencers(SelectedPackageName, HardDependencies, EAssetRegistryDependencyType::Hard);
 
-			if (HardDependencies.Num() > 0)
-			{
-				ReferencingObjectsList += TEXT("[HARD]\n");
-				for (const FName HardDependency : HardDependencies)
-				{
-					const FString PackageString = HardDependency.ToString();
-					ReferencingObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
-				}
-			}
-		}
-
-		{
 			TArray<FName> SoftDependencies;
 			AssetRegistryModule.Get().GetReferencers(SelectedPackageName, SoftDependencies, EAssetRegistryDependencyType::Soft);
 
+			ReferencingObjectsList += FString::Printf(TEXT("[%s - Referencers]\n"), *SelectedPackageName.ToString());
+			if (HardDependencies.Num() > 0)
+			{
+				ReferencingObjectsList += TEXT("  [HARD]\n");
+				for (const FName HardDependency : HardDependencies)
+				{
+					const FString PackageString = HardDependency.ToString();
+					ReferencingObjectsList += FString::Printf(TEXT("    %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
 			if (SoftDependencies.Num() > 0)
 			{
-				ReferencingObjectsList += TEXT("\n[SOFT]\n");
+				ReferencingObjectsList += TEXT("  [SOFT]\n");
 				for (const FName SoftDependency : SoftDependencies)
 				{
 					const FString PackageString = SoftDependency.ToString();
-					ReferencingObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+					ReferencingObjectsList += FString::Printf(TEXT("    %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
 				}
 			}
 		}

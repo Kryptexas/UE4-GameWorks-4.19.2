@@ -3,7 +3,7 @@
 #include "MaterialLayersFunctionsCustomization.h"
 #include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialFunctionInterface.h"
-
+#include "Materials/MaterialFunctionInstance.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SGridPanel.h"
@@ -27,6 +27,8 @@
 #include "SlateDelegates.h"
 #include "Attribute.h"
 #include "SlateTypes.h"
+#include "MaterialPropertyHelpers.h"
+
 
 
 #define LOCTEXT_NAMESPACE "MaterialLayerCustomization"
@@ -132,8 +134,7 @@ void FMaterialLayersFunctionsCustomization::GenerateChildContent(IDetailChildren
 	uint32 BlendChildren;
 	BlendHandle->GetNumChildren(BlendChildren);
 	TSharedRef<SWidget> RemoveWidget = SNullWidget::NullWidget;
-	int32 InitCounter = LayerChildren - 1;
-	FText GroupName = MaterialLayersFunctions->GetLayerName(InitCounter);
+	FText GroupName = MaterialLayersFunctions->GetLayerName(LayerChildren - 1);
 	FName GroupFName = FName(*(GroupName.ToString()));
 	
 	IDetailGroup& Group = ChildrenBuilder.AddGroup(GroupFName, GroupName);
@@ -142,22 +143,28 @@ void FMaterialLayersFunctionsCustomization::GenerateChildContent(IDetailChildren
 	// You can never have fewer than one layer
 	DetailGroups.Add(&Group);
 	FDetailWidgetRow& NewLayerRow = Group.AddWidgetRow();
-	TSharedRef<class FMaterialLayerFunctionElement> LayerLayout = MakeShareable(new FMaterialLayerFunctionElement(this, LayerHandle->AsArray()->GetElement(InitCounter), EMaterialLayerRowType::Layer));
+	TSharedRef<class FMaterialLayerFunctionElement> LayerLayout = MakeShareable(new FMaterialLayerFunctionElement(this, LayerHandle->AsArray()->GetElement(LayerChildren - 1), EMaterialLayerRowType::Layer));
 	LayerLayout->GenerateHeaderRowContent(NewLayerRow);
 	if (BlendChildren > 0)
 	{
-		RemoveWidget = PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FMaterialLayersFunctionsCustomization::RemoveLayer, InitCounter));
+		RemoveWidget = PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FMaterialLayersFunctionsCustomization::RemoveLayer, (int32)LayerChildren - 1));
 		Group.HeaderRow()
 			.NameContent()
 			[
 				SNew(SInlineEditableTextBlock)
-				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FMaterialLayersFunctionsCustomization::GetLayerName, InitCounter)))
-				.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FMaterialLayersFunctionsCustomization::OnNameChanged, InitCounter))
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FMaterialLayersFunctionsCustomization::GetLayerName, (int32)LayerChildren - 1)))
+				.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FMaterialLayersFunctionsCustomization::OnNameChanged, (int32)LayerChildren-1))
 				.Font(FEditorStyle::GetFontStyle(TEXT("MaterialEditor.Layers.EditableFont")))
 			]
-		.ValueContent()
+			.ValueContent()
+			.HAlign(HAlign_Fill)
 			[
 				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNullWidget::NullWidget
+				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
@@ -190,14 +197,20 @@ void FMaterialLayersFunctionsCustomization::GenerateChildContent(IDetailChildren
 						.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FMaterialLayersFunctionsCustomization::OnNameChanged, Counter))
 						.Font(FEditorStyle::GetFontStyle(TEXT("MaterialEditor.Layers.EditableFont")))
 					]
-				.ValueContent()
+					.ValueContent()
+					.HAlign(HAlign_Fill)
 					[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						RemoveWidget
-					]
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						[
+							SNullWidget::NullWidget
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							RemoveWidget
+						]
 					];
 			}
 
@@ -242,6 +255,14 @@ void FMaterialLayersFunctionsCustomization::RemoveLayer(int32 Index)
 	SavedStructPropertyHandle->NotifyPostChange();
 }
 
+
+void FMaterialLayersFunctionsCustomization::RefreshOnAssetChange(const struct FAssetData& InAssetData, int32 Index, EMaterialParameterAssociation MaterialType, const bool bIsFilterField)
+{
+	FMaterialPropertyHelpers::OnMaterialLayerAssetChanged(InAssetData, Index, MaterialType, SavedStructPropertyHandle, MaterialLayersFunctions, bIsFilterField);
+
+	RebuildChildren();
+}
+
 FMaterialLayerFunctionElement::FMaterialLayerFunctionElement(FMaterialLayersFunctionsCustomization* InCustomization, TWeakPtr<IPropertyHandle> InPropertyHandle, EMaterialLayerRowType InRowType)
 {
 	ParentCustomization = InCustomization;
@@ -253,31 +274,109 @@ FMaterialLayerFunctionElement::FMaterialLayerFunctionElement(FMaterialLayersFunc
 	}
 }
 
-void FMaterialLayerFunctionElement::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType)
+void FMaterialLayerFunctionElement::ResetFilterToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ResetLayerOrBlend", "Reset Layer/Blend Value"));
-	PropertyHandle->NotifyPreChange();
+	InPropertyHandle->NotifyPreChange();
 	switch (MaterialType)
 	{
 	case EMaterialLayerRowType::Layer:
 	{
 		InCustomization->GetMaterialLayersFunctions()->Layers[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->FilterLayers[InIndex] = nullptr;
 		break;
 	}
 	case EMaterialLayerRowType::Blend:
 	{
 		InCustomization->GetMaterialLayersFunctions()->Blends[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->FilterBlends[InIndex] = nullptr;
 		break;
 	}
 	}
-	PropertyHandle->NotifyPostChange();
+	ResetInstanceToDefault(PropertyHandle, InPropertyHandle, InCustomization, InIndex, MaterialType, true);
+	InPropertyHandle->NotifyPostChange();
+	InCustomization->RebuildChildren();
 }
 
-bool FMaterialLayerFunctionElement::CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle)
+void FMaterialLayerFunctionElement::ResetInstanceToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType, bool bTriggeredByFilter)
 {
-	FString DisplayString;
-	PropertyHandle->GetValueAsDisplayString(DisplayString);
-	return DisplayString != TEXT("None");
+	if (!bTriggeredByFilter)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetLayerOrBlend", "Reset Layer/Blend Value"));
+		InPropertyHandle->NotifyPreChange();
+	}
+	switch (MaterialType)
+	{
+	case EMaterialLayerRowType::Layer:
+	{
+		InCustomization->GetMaterialLayersFunctions()->FilterLayers[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->Layers[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->InstanceLayers[InIndex] = nullptr;
+		break;
+	}
+	case EMaterialLayerRowType::Blend:
+	{
+		InCustomization->GetMaterialLayersFunctions()->FilterBlends[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->Blends[InIndex] = nullptr;
+		InCustomization->GetMaterialLayersFunctions()->InstanceBlends[InIndex] = nullptr;
+		break;
+	}
+	}
+	if (!bTriggeredByFilter)
+	{
+		InPropertyHandle->NotifyPostChange();
+		InCustomization->RebuildChildren();
+	}
+}
+
+bool FMaterialLayerFunctionElement::CanResetFilterToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType)
+{
+	UObject* StoredObject = nullptr;
+	switch (MaterialType)
+	{
+	case EMaterialLayerRowType::Layer:
+	{
+		if (InCustomization->GetMaterialLayersFunctions()->FilterLayers.IsValidIndex(InIndex))
+		{
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->FilterLayers[InIndex];
+		}
+		break;
+	}
+	case EMaterialLayerRowType::Blend:
+	{
+		if (InCustomization->GetMaterialLayersFunctions()->FilterBlends.IsValidIndex(InIndex))
+		{
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->FilterBlends[InIndex];
+		}
+		break;
+	}
+	}
+	return StoredObject != nullptr;
+}
+
+bool FMaterialLayerFunctionElement::CanResetInstanceToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, TSharedPtr<IPropertyHandle> InPropertyHandle, FMaterialLayersFunctionsCustomization* InCustomization, int32 InIndex, EMaterialLayerRowType MaterialType)
+{
+	UObject* StoredObject = nullptr;
+	switch (MaterialType)
+	{
+	case EMaterialLayerRowType::Layer:
+	{
+		if (InCustomization->GetMaterialLayersFunctions()->InstanceLayers.IsValidIndex(InIndex))
+		{
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->InstanceLayers[InIndex];
+		}
+		break;
+	}
+	case EMaterialLayerRowType::Blend:
+	{
+		if (InCustomization->GetMaterialLayersFunctions()->InstanceBlends.IsValidIndex(InIndex))
+		{
+			StoredObject = InCustomization->GetMaterialLayersFunctions()->InstanceBlends[InIndex];
+		}
+		break;
+	}
+	}
+	return StoredObject != nullptr;
 }
 
 void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
@@ -304,6 +403,16 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 		break;
 	}
 
+	EMaterialParameterAssociation InAssociation = EMaterialParameterAssociation::GlobalParameter;
+	if (RowType == EMaterialLayerRowType::Blend)
+	{
+		InAssociation = EMaterialParameterAssociation::BlendParameter;
+	}
+	if (RowType == EMaterialLayerRowType::Layer)
+	{
+		InAssociation = EMaterialParameterAssociation::LayerParameter;
+	}
+
 	TSharedRef<SWidget> PlaceholderIcon = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.Padding(10.0f);
@@ -313,11 +422,54 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 
 	FMargin AssetPadding = FMargin(0.0f);
 
-	FIsResetToDefaultVisible IsResetVisible = FIsResetToDefaultVisible::CreateStatic(&FMaterialLayerFunctionElement::CanResetToDefault);
-	FResetToDefaultHandler ResetHandler = FResetToDefaultHandler::CreateStatic(&FMaterialLayerFunctionElement::ResetToDefault, ParentCustomization, Index, RowType);
-	FResetToDefaultOverride ResetOverride = FResetToDefaultOverride::Create(IsResetVisible, ResetHandler);
+	FIsResetToDefaultVisible IsFilterResetVisible = FIsResetToDefaultVisible::CreateStatic(&FMaterialLayerFunctionElement::CanResetFilterToDefault, RowPropertyHandle, ParentCustomization, Index, RowType);
+	FResetToDefaultHandler ResetFilterHandler = FResetToDefaultHandler::CreateStatic(&FMaterialLayerFunctionElement::ResetFilterToDefault, RowPropertyHandle, ParentCustomization, Index, RowType);
+	FResetToDefaultOverride ResetFilterOverride = FResetToDefaultOverride::Create(IsFilterResetVisible, ResetFilterHandler);
 
-	FOnShouldFilterAsset AssetFilter = FOnShouldFilterAsset::CreateStatic(&FMaterialLayerFunctionElement::FilterTargets, RowType);
+	FIsResetToDefaultVisible IsInstanceResetVisible = FIsResetToDefaultVisible::CreateStatic(&FMaterialLayerFunctionElement::CanResetInstanceToDefault, RowPropertyHandle, ParentCustomization, Index, RowType);
+	FResetToDefaultHandler ResetInstanceHandler = FResetToDefaultHandler::CreateStatic(&FMaterialLayerFunctionElement::ResetInstanceToDefault, RowPropertyHandle, ParentCustomization, Index, RowType, false);
+	FResetToDefaultOverride ResetInstanceOverride = FResetToDefaultOverride::Create(IsInstanceResetVisible, ResetInstanceHandler);
+
+	FOnShouldFilterAsset FilterFilter = FOnShouldFilterAsset::CreateStatic(&FMaterialPropertyHelpers::FilterAssetFilters, InAssociation);
+	FOnShouldFilterAsset InstanceFilter = FOnShouldFilterAsset::CreateStatic(&FMaterialPropertyHelpers::FilterAssetInstances, ParentCustomization->GetMaterialLayersFunctions(), InAssociation, Index);
+
+	FString FilterPath;
+	if (RowType == EMaterialLayerRowType::Blend && ParentCustomization->GetMaterialLayersFunctions()->FilterBlends.IsValidIndex(Index))
+	{
+		FilterPath = ParentCustomization->GetMaterialLayersFunctions()->FilterBlends[Index]->GetPathName();
+	}
+	else if (RowType == EMaterialLayerRowType::Layer && ParentCustomization->GetMaterialLayersFunctions()->FilterLayers.IsValidIndex(Index))
+	{
+		FilterPath = ParentCustomization->GetMaterialLayersFunctions()->FilterLayers[Index]->GetPathName();
+	}
+
+	FString InstancePath;
+	if (RowType == EMaterialLayerRowType::Blend && ParentCustomization->GetMaterialLayersFunctions()->InstanceBlends.IsValidIndex(Index))
+	{
+		InstancePath = ParentCustomization->GetMaterialLayersFunctions()->InstanceBlends[Index]->GetPathName();
+	}
+	else if (RowType == EMaterialLayerRowType::Layer && ParentCustomization->GetMaterialLayersFunctions()->InstanceLayers.IsValidIndex(Index))
+	{
+		InstancePath = ParentCustomization->GetMaterialLayersFunctions()->InstanceLayers[Index]->GetPathName();
+	}
+
+
+	FIntPoint ThumbnailOverride;
+	if (RowType == EMaterialLayerRowType::Layer)
+	{
+		ThumbnailOverride = FIntPoint(64, 64);
+	}
+	else if (RowType == EMaterialLayerRowType::Blend)
+	{
+		ThumbnailOverride = FIntPoint(32, 32);
+	}
+	FOnSetObject FilterAssetChanged = FOnSetObject::CreateSP(ParentCustomization, &FMaterialLayersFunctionsCustomization::RefreshOnAssetChange, Index, InAssociation, true);
+	FOnSetObject AssetChanged = FOnSetObject::CreateSP(ParentCustomization, &FMaterialLayersFunctionsCustomization::RefreshOnAssetChange, Index, InAssociation, false);
+	TSharedRef<STextBlock> ParentTextBlock = SNew(STextBlock)
+		.Text(LOCTEXT("Parent", "Parent "))
+		.TextStyle(FEditorStyle::Get(), "TinyText");
+	ParentTextBlock->SetToolTipText(LOCTEXT("ParentTooltip", "This allows you to set the parent class of your layer or blend asset to filter the possible assets to use."));
+	ParentTextBlock->EnableToolTipForceField(true);
 
 	NodeRow
 		.NameContent()
@@ -333,54 +485,43 @@ void FMaterialLayerFunctionElement::GenerateHeaderRowContent(FDetailWidgetRow& N
 		.ValueContent()
 		.MinDesiredWidth(400.0)
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.Padding(AssetPadding)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					ParentTextBlock
+				]
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNew(SObjectPropertyEntryBox)
+					.AllowedClass(UMaterialFunction::StaticClass())
+					.ObjectPath(FilterPath)
+					.OnObjectChanged(FilterAssetChanged)
+					.OnShouldFilterAsset(FilterFilter)
+					.CustomResetToDefault(ResetFilterOverride)
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
 				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(UMaterialFunctionInterface::StaticClass())
-				.PropertyHandle(RowPropertyHandle)
-				.OnShouldFilterAsset(AssetFilter)
-				.CustomResetToDefault(ResetOverride)
+				.ObjectPath(InstancePath)
+				.OnObjectChanged(AssetChanged)
+				.OnShouldFilterAsset(InstanceFilter)
+				.CustomResetToDefault(ResetInstanceOverride)
 				.ThumbnailPool(ParentCustomization->GetPropertyUtilities()->GetThumbnailPool())
+				.DisplayCompactSize(true)
+				.ThumbnailSizeOverride(ThumbnailOverride)
 			]
 		];
 }
 
-bool FMaterialLayerFunctionElement::FilterTargets(const struct FAssetData& InAssetData, EMaterialLayerRowType MaterialType)
-{
-	bool ShouldAssetBeFilteredOut = false;
-	const FName FilterTag = FName(TEXT("MaterialFunctionUsage"));
-	const FString* MaterialFunctionUsage = InAssetData.TagsAndValues.Find(FilterTag);
-	FString CompareString;
-	if (MaterialFunctionUsage)
-	{
-		switch (MaterialType)
-		{
-		case EMaterialLayerRowType::Layer:
-		{
-			CompareString = "MaterialLayer";
-		}
-		break;
-		case EMaterialLayerRowType::Blend:
-		{
-			CompareString = "MaterialLayerBlend";
-		}
-		break;
-		default:
-		break;
-		}
-
-		if (*MaterialFunctionUsage != CompareString)
-		{
-			ShouldAssetBeFilteredOut = true;
-		}
-	}
-	else
-	{
-		ShouldAssetBeFilteredOut = true;
-	}
-	return ShouldAssetBeFilteredOut;
-}
 
 #undef LOCTEXT_NAMESPACE

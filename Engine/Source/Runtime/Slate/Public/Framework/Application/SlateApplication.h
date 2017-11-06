@@ -291,6 +291,9 @@ public:
 	/** @return the global tab manager */
 	static TSharedRef<class FGlobalTabmanager> GetGlobalTabManager();
 
+	/** Initializes high dpi support for the process */
+	static void InitHighDPI();
+
 	/** @return the root style node, which is the entry point to the style graph representing all the current style rules. */
 	const class FStyleNode* GetRootStyle() const;
 
@@ -619,7 +622,7 @@ public:
 	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationMousePreInputButtonDownListener, const FPointerEvent&);
 	FOnApplicationMousePreInputButtonDownListener& OnApplicationMousePreInputButtonDownListener() { return OnApplicationMousePreInputButtonDownListenerEvent; }
 
-	/** Gets a delegate that is invoked in the editor when a windows dpi scale changes */
+	/** Gets a delegate that is invoked in the editor when a windows dpi scale changes or when a widget window may have changed and DPI scale info needs to be checked */
 	DECLARE_EVENT_OneParam(FSlateApplication, FOnWindowDPIScaleChanged, TSharedRef<SWindow>);
 	FOnWindowDPIScaleChanged& OnWindowDPIScaleChanged() { return OnWindowDPIScaleChangedEvent; }
 #endif //WITH_EDITOR
@@ -1183,7 +1186,7 @@ public:
 	 * @param InMouseEvent       Optional mouse event that caused this action.
 	 * @param UserIndex			 User index that generated the event we are replying to (defaults to 0, at least for now)
 	 */
-	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex = 0);
+	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply& TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex = 0);
 	
 	/** Bubble a request for which cursor to display for widgets under the mouse or the widget that captured the mouse. */
 	void QueryCursor();

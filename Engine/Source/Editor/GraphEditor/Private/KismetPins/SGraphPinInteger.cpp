@@ -10,7 +10,7 @@
 
 void SGraphPinInteger::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {
-	SGraphPinNum::Construct(SGraphPinNum::FArguments(), InGraphPinObj);
+	SGraphPinNum<int32>::Construct(SGraphPinNum<int32>::FArguments(), InGraphPinObj);
 }
 
 TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
@@ -153,22 +153,5 @@ TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
 			});
 	}
 	
-	return SGraphPinNum::GetDefaultValueWidget();
-}
-
-void SGraphPinInteger::SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type /*CommitInfo*/)
-{
-	const FString TypeValueString = NewTypeInValue.ToString();
-	if (FDefaultValueHelper::IsStringValidFloat(TypeValueString) || FDefaultValueHelper::IsStringValidInteger(TypeValueString))
-	{
-		if (GraphPinObj->GetDefaultAsString() != TypeValueString)
-		{
-			const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeNumberPinValue", "Change Number Pin Value"));
-			GraphPinObj->Modify();
-
-			// Round-tripped here to allow floating point values to be pasted and truncated rather than failing to be set at all
-			const int32 IntValue = FCString::Atoi(*TypeValueString);
-			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, FString::FromInt(IntValue));
-		}
-	}
+	return SGraphPinNum<int32>::GetDefaultValueWidget();
 }

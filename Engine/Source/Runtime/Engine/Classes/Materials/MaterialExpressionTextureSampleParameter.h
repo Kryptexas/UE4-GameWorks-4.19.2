@@ -55,6 +55,10 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExp
 	/** Return whether this is the named parameter, and fill in its value */
 	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue) const;
 
+#if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, UTexture* InValue);
+#endif
+
 	/**
 	 * Return true if the texture is a movie texture
 	 *

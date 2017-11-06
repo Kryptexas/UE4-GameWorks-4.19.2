@@ -42,6 +42,8 @@ class UMaterialExpressionScalarParameter : public UMaterialExpressionParameter
 	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, float& OutValue) const;
 
 #if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, float InValue);
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };

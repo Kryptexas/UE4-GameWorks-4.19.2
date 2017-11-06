@@ -218,7 +218,7 @@ int32 FCanvasWordWrapper::FindEndOfLastWholeGraphemeCluster(const int32 InStartI
 	return BreakIndex;
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode InDrawMode)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode InDrawMode, float InDPIScale)
 :	ViewRect(0,0,0,0)
 ,	ScissorRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
@@ -233,6 +233,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 ,	bUseInternalTexture(false)
 ,	StereoDepth(150)
 ,	DrawMode(InDrawMode)
+,	DPIScale(InDPIScale)
 {
 	Construct();
 
@@ -244,7 +245,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 	}
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, float InDPIScale)
 :	ViewRect(0,0,0,0)
 ,	ScissorRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
@@ -259,6 +260,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	bUseInternalTexture(false)
 ,	StereoDepth(150)
 ,	DrawMode(CDM_DeferDrawing)
+,	DPIScale(InDPIScale)
 {
 	Construct();
 }
@@ -273,9 +275,8 @@ void FCanvas::Construct()
 	bScaledToRenderTarget = false;
 	bAllowsToSwitchVerticalAxis = true;
 
-	// Push the viewport transform onto the stack.  Default to using a 2D projection. 
 	new(TransformStack) FTransformEntry( 
-		FMatrix( CalcBaseTransform2D(RenderTarget->GetSizeXY().X,RenderTarget->GetSizeXY().Y) ) 
+		FMatrix( FScaleMatrix(GetDPIScale()) * CalcBaseTransform2D(RenderTarget->GetSizeXY().X,RenderTarget->GetSizeXY().Y) ) 
 		);
 
 	// init alpha to 1
@@ -535,7 +536,7 @@ FCanvas::FCanvasSortElement& FCanvas::GetSortElement(int32 DepthSortKey)
 }
 
 
-FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatchedElementParameters* InBatchedElementParameters, const FTexture* InTexture, ESimpleElementBlendMode InBlendMode, const FDepthFieldGlowInfo& GlowInfo)
+FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatchedElementParameters* InBatchedElementParameters, const FTexture* InTexture, ESimpleElementBlendMode InBlendMode, const FDepthFieldGlowInfo& GlowInfo, bool bApplyDPIScale)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_GetBatchElementsTime);
 
@@ -544,7 +545,12 @@ FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatch
 	// find a batch to use 
 	FCanvasBatchedElementRenderItem* RenderBatch = NULL;
 	// get the current transform entry from top of transform stack
-	const FTransformEntry& TopTransformEntry = TransformStack.Top();
+	FTransformEntry FinalTransform = TransformStack.Top();
+
+	if (!bApplyDPIScale && GetDPIScale() != 1.0f)
+	{
+		FinalTransform = FTransformEntry(FScaleMatrix(1/GetDPIScale()) * FinalTransform.GetMatrix());
+	}
 
 	// try to use the current top entry in the render batch array
 	if( SortElement.RenderBatchArray.Num() > 0 )
@@ -555,11 +561,11 @@ FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatch
 
 	// if a matching entry for this batch doesn't exist then allocate a new entry
 	if( RenderBatch == NULL ||		
-		!RenderBatch->IsMatch(InBatchedElementParameters, InTexture, InBlendMode, InElementType, TopTransformEntry, GlowInfo) )
+		!RenderBatch->IsMatch(InBatchedElementParameters, InTexture, InBlendMode, InElementType, FinalTransform, GlowInfo) )
 	{
 		INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
 
-		RenderBatch = new FCanvasBatchedElementRenderItem( InBatchedElementParameters, InTexture, InBlendMode, InElementType, TopTransformEntry, GlowInfo);
+		RenderBatch = new FCanvasBatchedElementRenderItem( InBatchedElementParameters, InTexture, InBlendMode, InElementType, FinalTransform, GlowInfo);
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	return RenderBatch->GetBatchedElements();
@@ -982,11 +988,10 @@ void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, flo
 	DrawItem(TileItem);
 }
 
-int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const float TextScale, const FLinearColor& ShadowColor )
+int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor)
 {
 	const float Z = 1.0f;
-	FCanvasTextItem TextItem( FVector2D( StartX, StartY ), FText::FromString( Text ), Font, Color );
-	TextItem.Scale = FVector2D(TextScale, TextScale);
+	FCanvasTextItem TextItem( FVector2D( StartX, StartY ), FText::FromString( Text ), Font, Color);
 	// just render text in single pass for distance field drop shadow
 	if (Font && Font->ImportOptions.bUseDistanceFieldAlpha)
 	{	
@@ -1383,6 +1388,9 @@ void UCanvas::Update()
 
 	if (Canvas)
 	{
+		ClipX /= Canvas->GetDPIScale();
+		ClipY /= Canvas->GetDPIScale();
+
 		Canvas->SetParentCanvasSize(FIntPoint(SizeX, SizeY));
 	}
 }

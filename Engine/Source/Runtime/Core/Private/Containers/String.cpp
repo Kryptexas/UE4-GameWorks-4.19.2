@@ -718,7 +718,7 @@ bool FString::ToHexBlob( const FString& Source, uint8* DestBuffer, const uint32 
 	return false;
 }
 
-FString FString::SanitizeFloat( double InFloat )
+FString FString::SanitizeFloat( double InFloat, const int32 InMinFractionalDigits )
 {
 	// Avoids negative zero
 	if( InFloat == 0 )
@@ -726,29 +726,55 @@ FString FString::SanitizeFloat( double InFloat )
 		InFloat = 0;
 	}
 
-	FString TempString;
 	// First create the string
-	TempString = FString::Printf(TEXT("%f"), InFloat );
-	const TArray< TCHAR >& Chars = TempString.GetCharArray();	
-	const TCHAR Zero = '0';
-	const TCHAR Period = '.';
-	int32 TrimIndex = 0;
-	// Find the first non-zero char in the array
-	for (int32 Index = Chars.Num()-2; Index >= 2; --Index )
+	FString TempString = FString::Printf(TEXT("%f"), InFloat);
+	if (!TempString.IsNumeric())
 	{
-		const TCHAR EachChar = Chars[Index];
-		const TCHAR NextChar = Chars[Index-1];
-		if( ( EachChar != Zero ) || (NextChar == Period ) )
-		{			
-			TrimIndex = Index;
+		// String did not format as a valid decimal number so avoid messing with it
+		return TempString;
+	}
+
+	// Trim all trailing zeros (up-to and including the decimal separator) from the fractional part of the number
+	int32 TrimIndex = INDEX_NONE;
+	int32 DecimalSeparatorIndex = INDEX_NONE;
+	for (int32 CharIndex = TempString.Len() - 1; CharIndex >= 0; --CharIndex)
+	{
+		const TCHAR Char = TempString[CharIndex];
+		if (Char == TEXT('.'))
+		{
+			DecimalSeparatorIndex = CharIndex;
+			TrimIndex = FMath::Max(TrimIndex, DecimalSeparatorIndex);
 			break;
 		}
-	}	
-	// If we changed something trim the string
-	if( TrimIndex != 0 )
-	{
-		TempString = TempString.Left( TrimIndex + 1 );
+		if (TrimIndex == INDEX_NONE && Char != TEXT('0'))
+		{
+			TrimIndex = CharIndex + 1;
+		}
 	}
+	check(TrimIndex != INDEX_NONE && DecimalSeparatorIndex != INDEX_NONE);
+	TempString.RemoveAt(TrimIndex, TempString.Len() - TrimIndex, /*bAllowShrinking*/false);
+
+	// Pad the number back to the minimum number of fractional digits
+	if (InMinFractionalDigits > 0)
+	{
+		if (TrimIndex == DecimalSeparatorIndex)
+		{
+			// Re-add the decimal separator
+			TempString.AppendChar(TEXT('.'));
+		}
+
+		const int32 NumFractionalDigits = (TempString.Len() - DecimalSeparatorIndex) - 1;
+		const int32 FractionalDigitsToPad = InMinFractionalDigits - NumFractionalDigits;
+		if (FractionalDigitsToPad > 0)
+		{
+			TempString.Reserve(TempString.Len() + FractionalDigitsToPad);
+			for (int32 Cx = 0; Cx < FractionalDigitsToPad; ++Cx)
+			{
+				TempString.AppendChar(TEXT('0'));
+			}
+		}
+	}
+
 	return TempString;
 }
 

@@ -51,7 +51,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #else
 	#define PLATFORM_ENABLE_VECTORINTRINSICS				1
 #endif
-//#define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR					1
+#define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR					0
 //#define PLATFORM_USE_SYSTEM_VSWPRINTF						1
 //#define PLATFORM_TCHAR_IS_4_BYTES							0
 #define PLATFORM_HAS_BSD_TIME								0

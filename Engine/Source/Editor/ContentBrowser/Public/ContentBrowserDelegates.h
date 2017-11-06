@@ -11,6 +11,24 @@
 struct FARFilter;
 struct FCollectionNameType;
 
+
+ enum class CONTENTBROWSER_API EMovedContentFolderFlags : uint8
+{
+	None = 0,
+	Favorite = 1 << 0,
+};
+
+ENUM_CLASS_FLAGS(EMovedContentFolderFlags)
+
+struct CONTENTBROWSER_API FMovedContentFolder
+{
+	FString OldPath;
+	FString NewPath;
+	EMovedContentFolderFlags Flags;
+
+	FMovedContentFolder(const FString& InOldPath, const FString& InNewPath);
+};
+
 /** Called when a "Find in Asset Tree" is requested */
 DECLARE_DELEGATE_OneParam(FOnFindInAssetTreeRequested, const TArray<FAssetData>& /*AssetsToFind*/);
 
@@ -111,6 +129,9 @@ DECLARE_DELEGATE_OneParam(FOnAssetsChosenForOpen, const TArray<FAssetData>& /*Se
 
 /** Called from the Asset Dialog when an asset name is chosen in non-modal Save dialogs */
 DECLARE_DELEGATE_OneParam(FOnObjectPathChosenForSave, const FString& /*ObjectPath*/);
+
+/** Called when a favorite folder is moved or renamed in the content browser */
+DECLARE_DELEGATE_OneParam(FOnFolderPathChanged, const TArray<struct FMovedContentFolder>& /*MovedFolders*/);
 
 /** Contains the delegates used to handle a custom drag-and-drop in the asset view */
 struct FAssetViewDragAndDropExtender

@@ -270,6 +270,13 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 
 		AdjustWindowRegion( ClientWidth, ClientHeight );
 	}
+	else if (Definition->HasOSWindowBorder)
+	{
+		if (!Definition->HasCloseButton)
+		{
+			EnableMenuItem(GetSystemMenu(HWnd, false), SC_CLOSE, MF_GRAYED);
+		}
+	}
 
 	if ( IsRegularWindow() )
 	{

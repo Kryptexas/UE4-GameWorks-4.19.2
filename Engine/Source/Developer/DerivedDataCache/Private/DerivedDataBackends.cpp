@@ -47,6 +47,7 @@ public:
 		, AsyncPutWrapper(NULL)
 		, KeyLengthWrapper(NULL)
 		, HierarchicalWrapper(NULL)
+		, bUsingSharedDDC(false)
 		, MountPakCommand(
 		TEXT( "DDC.MountPak" ),
 		*LOCTEXT("CommandText_DDCMountPak", "Mounts read-only pak file").ToString(),
@@ -560,15 +561,18 @@ public:
 			}
 
 			FDerivedDataBackendInterface* InnerFileSystem = NULL;
-
+			
 			// Don't create the file system if shared data cache directory is not mounted
-			if( FCString::Strcmp(NodeName, TEXT("Shared")) != 0 || IFileManager::Get().DirectoryExists(*Path) )
+			bool bShared = FCString::Stricmp(NodeName, TEXT("Shared")) == 0;
+			if( !bShared || IFileManager::Get().DirectoryExists(*Path) )
 			{
 				InnerFileSystem = CreateFileSystemDerivedDataBackend( *Path, bReadOnly, bTouch, bPurgeTransient, bDeleteUnused, UnusedFileAge, MaxFoldersToClean, MaxFileChecksPerSec);
 			}
 
 			if( InnerFileSystem )
 			{
+				bUsingSharedDDC = bUsingSharedDDC ? bUsingSharedDDC : bShared;
+
 				DataCache = new FDerivedDataBackendCorruptionWrapper( InnerFileSystem );
 				UE_LOG( LogDerivedDataCache, Log, TEXT("Using %s data cache path %s: %s"), NodeName, *Path, bReadOnly ? TEXT("ReadOnly") : TEXT("Writable") );
 				Directories.AddUnique(Path);
@@ -758,6 +762,12 @@ public:
 		}
 	}
 
+	/** Get whether a shared cache is in use */
+	virtual bool GetUsingSharedDDC() const override
+	{
+		return bUsingSharedDDC;
+	}
+
 	virtual void AddToAsyncCompletionCounter(int32 Addend) override
 	{
 		AsyncCompletionCounter.Add(Addend);
@@ -893,6 +903,9 @@ private:
 
 	/** List of directories used by the DDC */
 	TArray<FString> Directories;
+
+	/** Whether a shared cache is in use */
+	bool bUsingSharedDDC;
 
 	/** MountPak console command */
 	FAutoConsoleCommand MountPakCommand;

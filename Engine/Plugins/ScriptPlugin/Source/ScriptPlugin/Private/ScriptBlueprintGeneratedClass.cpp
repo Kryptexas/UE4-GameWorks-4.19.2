@@ -14,7 +14,7 @@ UScriptBlueprintGeneratedClass::UScriptBlueprintGeneratedClass(const FObjectInit
 {
 }
 
-void UScriptBlueprintGeneratedClass::AddUniqueNativeFunction(const FName& InName, Native InPointer)
+void UScriptBlueprintGeneratedClass::AddUniqueNativeFunction(const FName& InName, FNativeFuncPtr InPointer)
 {
 	// Find the function in the class's native function lookup table.
 	for (int32 FunctionIndex = 0; FunctionIndex < NativeFunctionLookupTable.Num(); ++FunctionIndex)

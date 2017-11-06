@@ -23,6 +23,11 @@ public:
 	TSharedPtr<const FCompositeFont> GetCompositeFont(const FName& InLegacyFontName, const EFontHinting InLegacyFontHinting);
 
 	/**
+	 * Get (or create) the default font based on the current build configuration
+	 */
+	TSharedRef<const FCompositeFont> GetDefaultFont();
+
+	/**
 	 * Get (or create) the default system font
 	 */
 	TSharedPtr<const FCompositeFont> GetSystemFont();
@@ -100,6 +105,7 @@ private:
 	};
 
 	TMap<FLegacyFontKey, TSharedPtr<const FCompositeFont>> LegacyFontNameToCompositeFont;
+	TSharedPtr<const FCompositeFont> DefaultFont;
 	TSharedPtr<const FCompositeFont> SystemFont;
 	TSharedPtr<const FCompositeFont> LastResortFont;
 	

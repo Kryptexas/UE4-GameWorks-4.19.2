@@ -70,6 +70,17 @@
 #include "InstancedFoliage.h"
 #include "Engine/Selection.h"
 
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Components/LightComponent.h"
+#include "Particles/Emitter.h"
+#include "Engine/Brush.h"
+#include "Components/BrushComponent.h"
+
+#include "Misc/App.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
 /*------------------------------------------------------------------------------
@@ -1465,9 +1476,117 @@ ULevelExporterFBX::ULevelExporterFBX(const FObjectInitializer& ObjectInitializer
 	FormatDescription.Add(TEXT("FBX File"));
 }
 
+bool IsSomethingToExport(AActor* Actor)
+{
+	check(Actor);
+	TInlineComponentArray<USceneComponent*> SceneComponents;
+	Actor->GetComponents(SceneComponents);
+
+	TInlineComponentArray<USceneComponent*> ComponentsToExport;
+	for (int32 ComponentIndex = 0; ComponentIndex < SceneComponents.Num(); ++ComponentIndex)
+	{
+		USceneComponent* Component = SceneComponents[ComponentIndex];
+
+		if (Component == nullptr || (Component && Component->bHiddenInGame))
+		{
+			//Skip hidden component like camera mesh or other editor helper
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component);
+		USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(Component);
+		UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(Component);
+
+		if ((StaticMeshComp && StaticMeshComp->GetStaticMesh()) ||
+			(SkelMeshComp && SkelMeshComp->SkeletalMesh) ||
+			Component->IsA(UCameraComponent::StaticClass()) ||
+			Component->IsA(ULightComponent::StaticClass()) ||
+			(ChildActorComp && ChildActorComp->GetChildActor() && IsSomethingToExport(ChildActorComp->GetChildActor()))
+			)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsSomethingToExport(ULevel* InLevel, bool bSelectedOnly)
+{
+	TArray<AActor*> ActorToExport;
+	int32 ActorCount = InLevel->Actors.Num();
+	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
+	{
+		AActor* Actor = InLevel->Actors[ActorIndex];
+		if (Actor != nullptr && (!bSelectedOnly || (bSelectedOnly && Actor->IsSelected())))
+		{
+			if (IsSomethingToExport(Actor))
+			{
+				return true;
+			}
+			else if(Actor->IsA(ALandscapeProxy::StaticClass()) || Actor->IsA(AEmitter::StaticClass()))
+			{
+				return true;
+			}
+			else if (Actor->IsA(ABrush::StaticClass()))
+			{
+				ABrush* BrushActor = Cast<ABrush>(Actor);
+				UModel* Model = BrushActor->GetBrushComponent()->Brush;
+				if (Model != NULL && Model->VertexBuffer.Vertices.Num() >= 3 && Model->MaterialIndexBuffers.Num() != 0)
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool IsSomethingToExport(UWorld* World, bool bSelectedOnly)
+{
+	if (bSelectedOnly && World->GetModel()->Nodes.Num())
+	{
+		return true;
+	}
+	ULevel* Level = World->PersistentLevel;
+	if (IsSomethingToExport(Level, bSelectedOnly))
+	{
+		return true;
+	}
+	// Export streaming levels and actors
+	for (int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex)
+	{
+		ULevel* CurLevel = World->GetLevel(CurLevelIndex);
+		if (CurLevel != NULL && CurLevel != Level)
+		{
+			if (IsSomethingToExport(CurLevel, bSelectedOnly))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
-	GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"), true );
+	UWorld* World = CastChecked<UWorld>(Object);
+	//Check if there is something to export
+	if (!IsSomethingToExport(World, bSelectedOnly))
+	{
+		UE_LOG(LogEditorExporters, Warning, TEXT("There is nothing to export to a fbx file."));
+		if (!GIsAutomationTesting && !FApp::IsUnattended())
+		{
+			FNotificationInfo NotificationInfo(FText::GetEmpty());
+			NotificationInfo.Text = bSelectedOnly
+				? FText(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX_Selection", "The selection has nothing that can be export to fbx!"))
+				: FText(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "The world has nothing that can be export to fbx!"));
+			NotificationInfo.ExpireDuration = 5.0f;
+			FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		}
+		return false;
+	}
+
+	GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"), true);
 
 	UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 	
@@ -1480,9 +1599,7 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 		Exporter->CreateDocument();
 
 		GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"));
-
 		{
-			UWorld* World = CastChecked<UWorld>(Object);
 			ULevel* Level = World->PersistentLevel;
 
 			if (bSelectedOnly)

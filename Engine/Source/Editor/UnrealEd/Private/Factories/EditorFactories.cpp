@@ -457,7 +457,7 @@ UMaterialFunctionMaterialLayerFactory::UMaterialFunctionMaterialLayerFactory(con
 
 UObject* UMaterialFunctionMaterialLayerFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	UMaterialFunction* Function = NewObject<UMaterialFunction>(InParent, UMaterialFunction::StaticClass(), Name, Flags);
+	UMaterialFunctionMaterialLayer* Function = NewObject<UMaterialFunctionMaterialLayer>(InParent, UMaterialFunctionMaterialLayer::StaticClass(), Name, Flags);
 	if (Function)
 	{
 		Function->SetMaterialFunctionUsage(EMaterialFunctionUsage::MaterialLayer);
@@ -478,7 +478,7 @@ UMaterialFunctionMaterialLayerBlendFactory::UMaterialFunctionMaterialLayerBlendF
 
 UObject* UMaterialFunctionMaterialLayerBlendFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	UMaterialFunction* Function = NewObject<UMaterialFunction>(InParent, UMaterialFunction::StaticClass(), Name, Flags);
+	UMaterialFunctionMaterialLayerBlend* Function = NewObject<UMaterialFunctionMaterialLayerBlend>(InParent, UMaterialFunctionMaterialLayerBlend::StaticClass(), Name, Flags);
 	if (Function)
 	{
 		Function->SetMaterialFunctionUsage(EMaterialFunctionUsage::MaterialLayerBlend);
@@ -510,6 +510,51 @@ UObject* UMaterialFunctionInstanceFactory::FactoryCreateNew(UClass* Class,UObjec
 	return MFI;
 }
 
+/*------------------------------------------------------------------------------
+UMaterialFunctionMaterialLayerInstanceFactory implementation.
+------------------------------------------------------------------------------*/
+UMaterialFunctionMaterialLayerInstanceFactory::UMaterialFunctionMaterialLayerInstanceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UMaterialFunctionMaterialLayerInstance::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialFunctionMaterialLayerInstanceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	auto MFI = NewObject<UMaterialFunctionMaterialLayerInstance>(InParent, Class, Name, Flags);
+
+	if (MFI)
+	{
+		MFI->SetParent(InitialParent);
+	}
+
+	return MFI;
+}
+
+/*------------------------------------------------------------------------------
+UMaterialFunctionMaterialLayerBlendInstanceFactory implementation.
+------------------------------------------------------------------------------*/
+UMaterialFunctionMaterialLayerBlendInstanceFactory::UMaterialFunctionMaterialLayerBlendInstanceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UMaterialFunctionMaterialLayerBlendInstance::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UMaterialFunctionMaterialLayerBlendInstanceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	auto MFI = NewObject<UMaterialFunctionMaterialLayerBlendInstance>(InParent, Class, Name, Flags);
+
+	if (MFI)
+	{
+		MFI->SetParent(InitialParent);
+	}
+
+	return MFI;
+}
 
 /*------------------------------------------------------------------------------
 	UMaterialParameterCollectionFactoryNew implementation.
@@ -2962,8 +3007,14 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				uint8* MipData = Texture->Source.LockMip(0);
 				FMemory::Memcpy( MipData, RawPNG->GetData(), RawPNG->Num() );
 
-				// Replace the pixels with 0.0 alpha with a color value from the nearest neighboring color which has a non-zero alpha
-				FillZeroAlphaPNGData( Texture->Source, MipData );
+				bool bFillPNGZeroAlpha = true;
+				GConfig->GetBool(TEXT("TextureImporter"), TEXT("FillPNGZeroAlpha"), bFillPNGZeroAlpha, GEditorIni);
+
+				if (bFillPNGZeroAlpha) 
+				{
+					// Replace the pixels with 0.0 alpha with a color value from the nearest neighboring color which has a non-zero alpha
+					FillZeroAlphaPNGData(Texture->Source, MipData);
+				}
 			}
 			else
 			{
@@ -5072,7 +5123,6 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	
 	UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
 	ReimportUI->MeshTypeToImport = FBXIT_StaticMesh;
-	ReimportUI->bOverrideFullName = false;
 	ReimportUI->StaticMeshImportData->bCombineMeshes = true;
 
 	if (!ImportUI)
@@ -5320,7 +5370,6 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	// Prepare the import options
 	UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
 	ReimportUI->MeshTypeToImport = FBXIT_SkeletalMesh;
-	ReimportUI->bOverrideFullName = false;
 	ReimportUI->Skeleton = SkeletalMesh->Skeleton;
 	ReimportUI->bCreatePhysicsAsset = false;
 	ReimportUI->PhysicsAsset = SkeletalMesh->PhysicsAsset;

@@ -9,6 +9,7 @@
 #include "Components.h"
 #include "BoneIndices.h"
 #include "SkelImport.h"
+#include "MeshBuild.h"
 
 class USkeletalMesh;
 struct FSoftSkinVertex;
@@ -76,22 +77,22 @@ struct FSkinnedModelData
 
 namespace SkeletalMeshTools
 {
-	inline bool SkeletalMesh_UVsEqual(const FMeshWedge& V1, const FMeshWedge& V2, const int32 UVIndex = 0)
+	inline bool SkeletalMesh_UVsEqual(const FMeshWedge& V1, const FMeshWedge& V2, const FOverlappingThresholds& OverlappingThresholds, const int32 UVIndex = 0)
 	{
 		const FVector2D& UV1 = V1.UVs[UVIndex];
 		const FVector2D& UV2 = V2.UVs[UVIndex];
 
-		if(FMath::Abs(UV1.X - UV2.X) > (1.0f / 1024.0f))
+		if(FMath::Abs(UV1.X - UV2.X) > OverlappingThresholds.ThresholdUV)
 			return 0;
 
-		if(FMath::Abs(UV1.Y - UV2.Y) > (1.0f / 1024.0f))
+		if(FMath::Abs(UV1.Y - UV2.Y) > OverlappingThresholds.ThresholdUV)
 			return 0;
 
 		return 1;
 	}
 
 	/** @return true if V1 and V2 are equal */
-	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2 );
+	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2, const FOverlappingThresholds& OverlappingThresholds);
 
 	/**
 	 * Creates chunks and populates the vertex and index arrays inside each chunk
@@ -99,15 +100,10 @@ namespace SkeletalMeshTools
 	 * @param Faces						List of raw faces
 	 * @param RawVertices				List of raw created, unordered, unwelded vertices
 	 * @param RawVertIndexAndZ			List of indices into the RawVertices array and each raw vertex Z position.  This is used for fast lookup of overlapping vertices
-	 * @param bKeepOverlappingVertices	Whether or not to do the overlapping vertices or not.  If true each vertex is considered unique
+	 * @param OverlappingThresholds		The thresholds to use to compute overlap vertex instance
 	 * @param OutChunks					Created array of chunks
 	 */
-	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, bool bKeepOverlappingVertices, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts );
-
-	/**
-	 * Adds a new vertex to the list of vertices.  Note this method is very slow with a lot of vertices as this will amount to n^2 checks that the passed in vertex is not the same as another vertex in the vertices list
-	 */
-	int32 AddSkinVertex(TArray<FSoftSkinBuildVertex>& Vertices,FSoftSkinBuildVertex& Vertex, bool bKeepOverlappingVertices );
+	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, const FOverlappingThresholds &OverlappingThresholds, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts );
 
 	/**
 	 * Splits chunks to satisfy the requested maximum number of bones per chunk
@@ -121,7 +117,5 @@ namespace SkeletalMeshTools
 	 */
 	void CopySkinnedModelData(FSkinnedModelData& OutData, FSkeletalMeshLODModel& Model);
 	
-	void UnchunkSkeletalModel(TArray<FSkinnedMeshChunk*>& Chunks, TArray<int32>& PointToOriginalMap, const FSkinnedModelData& SrcModel);
-
 	void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant);
 };

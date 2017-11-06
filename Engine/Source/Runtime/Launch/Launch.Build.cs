@@ -81,7 +81,6 @@ public class Launch : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				DynamicallyLoadedModuleNames.Add("ALAudio");
 				DynamicallyLoadedModuleNames.Add("AudioMixerSDL");
 				PrivateDependencyModuleNames.Add("Json");
 			}

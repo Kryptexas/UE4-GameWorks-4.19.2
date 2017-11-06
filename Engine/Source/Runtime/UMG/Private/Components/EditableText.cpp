@@ -58,7 +58,8 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 		.SelectAllTextOnCommit( SelectAllTextOnCommit )
 		.OnTextChanged( BIND_UOBJECT_DELEGATE( FOnTextChanged, HandleOnTextChanged ) )
 		.OnTextCommitted( BIND_UOBJECT_DELEGATE( FOnTextCommitted, HandleOnTextCommitted ) )
-		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) );
+		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) )
+		.Justification( Justification );
 	
 	return MyEditableText.ToSharedRef();
 }
@@ -75,6 +76,7 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
 	MyEditableText->SetAllowContextMenu(AllowContextMenu);
+	MyEditableText->SetJustification(Justification);
 	// TODO UMG Complete making all properties settable on SEditableText
 
 	ShapedTextOptions.SynchronizeShapedTextProperties(*MyEditableText);
@@ -192,7 +194,7 @@ void UEditableText::PostLoad()
 
 const FText UEditableText::GetPaletteCategory()
 {
-	return LOCTEXT("Primitive", "Primitive");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

@@ -43,7 +43,7 @@ public:
 public:
 
 	/** The style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=(DisplayName="Style", ShowOnlyInnerProperties))
 	FEditableTextBoxStyle WidgetStyle;
 
 	/** Style used for the text box */
@@ -117,6 +117,10 @@ public:
 	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EVirtualKeyboardType::Type> KeyboardType;
+
+	/** How the text should be aligned with the margin. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	TEnumAsByte<ETextJustify::Type> Justification;
 
 	/** Controls how the text within this widget should be shaped. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Localization, AdvancedDisplay, meta=(ShowOnlyInnerProperties))

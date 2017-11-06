@@ -14,6 +14,42 @@ class SEditableText;
 
 DECLARE_DELEGATE_OneParam(FOnCollectParameterGroups, TArray<FString>*);
 
+class FMaterialEditorParameterDetails : public IDetailCustomization
+{
+
+public:
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance(class UMaterialEditorPreviewParameters* Material);
+
+	/** Constructor */
+	FMaterialEditorParameterDetails(class UMaterialEditorPreviewParameters* Material);
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
+
+	static TOptional<float> OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle);
+	static void OnValueCommitted(float NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle);
+
+private:
+	/** Builds the custom parameter groups category */
+	void CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, class IDetailCategoryBuilder& GroupsCategory);
+
+	/** Builds the widget for an individual parameter group */
+	void CreateSingleGroupWidget(struct FEditorParameterGroup& ParameterGroup, TSharedPtr<IPropertyHandle> ParameterGroupProperty, class IDetailGroup& DetailGroup);
+
+	/** These methods generate the custom widgets for the various parameter types */
+	void CreateParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup);
+	void CreateMaskParameterValueWidget(class UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup);
+
+	/** Gets the expression description of this parameter from the the base material */
+	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
+
+private:
+	/** Object that stores all of the possible parameters we can edit */
+	UMaterialEditorPreviewParameters* MaterialEditorInstance;
+
+};
+
 class FMaterialExpressionParameterDetails : public IDetailCustomization
 {
 public:

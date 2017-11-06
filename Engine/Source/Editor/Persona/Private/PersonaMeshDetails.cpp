@@ -172,7 +172,11 @@ private:
 
 		USkeletalMesh* SkelMesh = SharedToolkit->GetMesh();
 		check(SkelMesh);
-		check(SkelMesh->LODInfo.IsValidIndex(LODIndex)); // Should be true for the button to exist
+		if (!SkelMesh->LODInfo.IsValidIndex(LODIndex))
+		{
+			// Should be true for the button to exist except if we delete a LOD
+			return LOCTEXT("ReimportButton_NewFile_LODNotValid_ToolTip", "Cannot reimport, LOD was delete");
+		}
 
 		FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
 

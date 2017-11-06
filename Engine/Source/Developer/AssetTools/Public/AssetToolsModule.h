@@ -28,6 +28,12 @@ public:
 		return FModuleManager::LoadModuleChecked< FAssetToolsModule >(ModuleName);
 	}
 
+	static inline bool IsModuleLoaded()
+	{
+		static const FName ModuleName = "AssetTools";
+		return FModuleManager::Get().IsModuleLoaded(ModuleName);
+	}
+
 private:
 	TWeakObjectPtr<class UAssetToolsImpl> AssetToolsPtr;
 	class FAssetToolsConsoleCommands* ConsoleCommands;

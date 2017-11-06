@@ -402,6 +402,11 @@ namespace ObjectTools
 
 	/** Converts all invalid object name characters to _ */
 	UNREALED_API FString SanitizeObjectName(const FString& InObjectName);
+	/** Converts all invalid object path characters to _ */
+	UNREALED_API FString SanitizeObjectPath(const FString& InObjectPath);
+	/** Converts all specified invalid characters to _ */
+	UNREALED_API FString SanitizeInvalidChars(const FString& InObjectName, const FString& InvalidChars);
+
 
 	/**
 	 * Populates two strings with all of the file types and extensions the provided factory supports.

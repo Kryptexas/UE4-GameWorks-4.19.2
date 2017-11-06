@@ -226,6 +226,16 @@ void SSourceControlSubmitWidget::Construct(const FArguments& InArgs)
 	ParentFrame.Pin()->SetWidgetToFocusOnActivate(ChangeListDescriptionTextCtrl);
 }
 
+FReply SSourceControlSubmitWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
+{
+   // Pressing escape returns as if the user clicked cancel
+   if ( InKeyEvent.GetKey() == EKeys::Escape )
+   {
+      return CancelClicked();
+   }
+
+   return FReply::Unhandled();
+}
 
 TSharedRef<SWidget> SSourceControlSubmitWidget::GenerateWidgetForItemAndColumn(TSharedPtr<FSubmitItem> Item, const FName ColumnID) const
 {

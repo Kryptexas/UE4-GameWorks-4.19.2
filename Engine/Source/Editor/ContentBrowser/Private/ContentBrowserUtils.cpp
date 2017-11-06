@@ -60,6 +60,7 @@
 
 #define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
 
+
 namespace ContentBrowserUtils
 {
 	// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
@@ -1127,22 +1128,28 @@ ContentBrowserUtils::ECBFolderCategory ContentBrowserUtils::GetFolderCategory( c
 	}
 	else
 	{
-		const bool bIsEngineContent = IsEngineFolder(InPath) || IsPluginFolder(InPath, EPluginLoadedFrom::Engine);
-		if(bIsEngineContent)
+		if (IsEngineFolder(InPath))
 		{
 			return ECBFolderCategory::EngineContent;
 		}
 
-		const bool bIsPluginContent = IsPluginFolder(InPath, EPluginLoadedFrom::Project);
-		if(bIsPluginContent)
-		{
-			return ECBFolderCategory::PluginContent;
-		}
-
-		const bool bIsDeveloperContent = IsDevelopersFolder(InPath);
-		if(bIsDeveloperContent)
+		if (IsDevelopersFolder(InPath))
 		{
 			return ECBFolderCategory::DeveloperContent;
+		}
+
+		EPluginLoadedFrom PluginSource;
+		if (IsPluginFolder(InPath, &PluginSource))
+		{
+			if (PluginSource == EPluginLoadedFrom::Project)
+			{
+				return ECBFolderCategory::PluginContent;
+			}
+			else
+			{
+				checkSlow(PluginSource == EPluginLoadedFrom::Engine);
+				return ECBFolderCategory::EngineContent;
+			}
 		}
 
 		return ECBFolderCategory::GameContent;
@@ -1165,20 +1172,46 @@ bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 	return InPath.StartsWith(DeveloperPathWithSlash) || InPath == DeveloperPathWithoutSlash;
 }
 
-bool ContentBrowserUtils::IsPluginFolder( const FString& InPath , EPluginLoadedFrom WhereFromFilter)
+static bool PathStartsWithPluginAssetPath(const FString& Path, const FString& PluginName)
 {
-	FString PathWithSlash = InPath / TEXT("");
-	for(const TSharedRef<IPlugin>& Plugin: IPluginManager::Get().GetEnabledPlugins())
+	// accepted path examples for a plugin named "Plugin":
+	// "/Plugin"
+	// "/Plugin/"
+	// "/Plugin/More/Stuff"
+	const int32 PluginNameLength = PluginName.Len();
+	const int32 PathLength = Path.Len();
+	if (PathLength <= PluginNameLength)
 	{
-		if(Plugin->CanContainContent() && Plugin->GetLoadedFrom() == WhereFromFilter)
+		return false;
+	}
+	else
+	{
+		const TCHAR* PathCh = *Path;
+		return PathCh[0] == '/' && (PathCh[PluginNameLength + 1] == '/' || PathCh[PluginNameLength + 1] == 0) && FCString::Strnicmp(PathCh + 1, *PluginName, PluginNameLength) == 0;
+	}
+}
+
+bool ContentBrowserUtils::IsPluginFolder(const FString& InPath, const TArray<TSharedRef<IPlugin>>& InPlugins, EPluginLoadedFrom* OutPluginSource)
+{
+	for (const TSharedRef<IPlugin>& PluginRef : InPlugins)
+	{
+		const IPlugin& Plugin = *PluginRef;
+		const FString& PluginName = Plugin.GetName();
+		if (PathStartsWithPluginAssetPath(InPath, PluginName) || InPath == PluginName)
 		{
-			if(PathWithSlash.StartsWith(Plugin->GetMountedAssetPath()) || InPath == Plugin->GetName())
+			if (OutPluginSource != nullptr)
 			{
-				return true;
+				*OutPluginSource = Plugin.GetLoadedFrom();
 			}
+			return true;
 		}
 	}
 	return false;
+}
+
+bool ContentBrowserUtils::IsPluginFolder(const FString& InPath, EPluginLoadedFrom* OutPluginSource)
+{
+	return IsPluginFolder(InPath, IPluginManager::Get().GetEnabledPluginsWithContent(), OutPluginSource);
 }
 
 bool ContentBrowserUtils::IsClassesFolder(const FString& InPath)
@@ -2194,5 +2227,47 @@ bool ContentBrowserUtils::CanRenameFromPathView(const TArray<FString>& SelectedP
 	return true;
 }
 
+bool ContentBrowserUtils::IsFavoriteFolder(const FString& FolderPath)
+{
+	return FContentBrowserSingleton::Get().FavoriteFolderPaths.Contains(FolderPath);
+}
+
+void ContentBrowserUtils::AddFavoriteFolder(const FString& FolderPath, bool bFlushConfig /*= true*/)
+{
+	FContentBrowserSingleton::Get().FavoriteFolderPaths.Add(FolderPath);
+
+	if (bFlushConfig)
+	{
+		GConfig->Flush(false, GEditorPerProjectIni);
+	}
+}
+
+void ContentBrowserUtils::RemoveFavoriteFolder(const FString& FolderPath, bool bFlushConfig /*= true*/)
+{
+	TArray<FString> FoldersToRemove;
+	FoldersToRemove.Add(FolderPath);
+	
+	// Find and remove any subfolders
+	for (const FString& FavoritePath : FContentBrowserSingleton::Get().FavoriteFolderPaths)
+	{
+		if (FavoritePath.StartsWith(FolderPath + TEXT("/")))
+		{
+			FoldersToRemove.Add(FavoritePath);
+		}
+	}
+	for (const FString& FolderToRemove : FoldersToRemove)
+	{
+		FContentBrowserSingleton::Get().FavoriteFolderPaths.Remove(FolderToRemove);
+	}
+	if (bFlushConfig)
+	{
+		GConfig->Flush(false, GEditorPerProjectIni);
+	}
+}
+
+const TArray<FString>& ContentBrowserUtils::GetFavoriteFolders()
+{
+	return FContentBrowserSingleton::Get().FavoriteFolderPaths;
+}
 
 #undef LOCTEXT_NAMESPACE

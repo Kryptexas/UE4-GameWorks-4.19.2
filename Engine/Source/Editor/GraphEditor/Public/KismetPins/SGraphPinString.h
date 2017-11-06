@@ -20,7 +20,6 @@ protected:
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	//~ End SGraphPin Interface
 
-	FString GetFormattedTypeInValue() const;
 	FText GetTypeInValue() const;
 	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo);
 

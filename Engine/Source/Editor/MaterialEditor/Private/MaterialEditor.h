@@ -634,7 +634,7 @@ private:
 	 * Refreshes material expression previews.  Refreshes all previews if bAlwaysRefreshAllPreviews is true.
 	 * Otherwise, refreshes only those previews that have a bRealtimePreview of true.
 	 */
-	void RefreshExpressionPreviews();
+	void RefreshExpressionPreviews(bool bForceRefreshAll = false);
 
 	/**
 	 * Refreshes the preview for the specified material expression.  Does nothing if the specified expression
@@ -690,6 +690,8 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_PreviewSettings(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_ParameterDefaults(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_LayerProperties(const FSpawnTabArgs& Args);
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 private:
@@ -698,6 +700,9 @@ private:
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> MaterialDetailsView;
+
+	/** Parameters View */
+	TSharedPtr<class IDetailsView> MaterialParametersView;
 
 	/** New Graph Editor */
 	TSharedPtr<class SGraphEditor> GraphEditor;
@@ -728,6 +733,9 @@ private:
 
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInMaterial> FindResults;
+
+	/** Layer Properties View */
+	TSharedPtr<class SMaterialLayersFunctionsMaterialWrapper> MaterialLayersFunctionsInstance;
 
 	/** The current transaction. */
 	FScopedTransaction* ScopedTransaction;
@@ -777,4 +785,9 @@ private:
 	static const FName StatsTabId;
 	static const FName FindTabId;
 	static const FName PreviewSettingsTabId;
+	static const FName ParameterDefaultsTabId;
+	static const FName LayerPropertiesTabId;
+
+	/** Object that stores all of the possible parameters we can edit. */
+	class UMaterialEditorPreviewParameters* MaterialEditorInstance;
 };

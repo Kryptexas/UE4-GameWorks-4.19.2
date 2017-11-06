@@ -967,6 +967,16 @@ public:
 	 * Optionally do custom handling of a navigation. 
 	 */
 	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) { return false; }
+
+	/**
+	 * @return Whether or not the scene canvas should be scaled.  Note: The debug canvas is always scaled 
+	 */
+	virtual bool ShouldDPIScaleSceneCanvas() const { return true; }
+
+	/**
+	 * @return The DPI Scale of this viewport
+	 */
+	virtual float GetDPIScale() { return 1.0f; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */
@@ -980,8 +990,10 @@ class FCommonViewportClient : public FViewportClient
 {
 public:
 	FCommonViewportClient()
+		: CachedDPIScale(1.0f)
+		, bShouldUpdateDPIScale(true)
 #if WITH_EDITOR
-		: EditorScreenPercentage(100)
+		, EditorScreenPercentage(100)
 		, bShouldUpdateScreenPercentage(true)
 #endif
 	{}
@@ -995,29 +1007,35 @@ public:
 		}
 	}
 
+	/** Tells this viewport to update editor dpi scale when needed */
+	ENGINE_API void RequestUpdateDPIScale();
+
 #if WITH_EDITOR
-	/** Tells this viewport to update editor screen percentage when safe */
-	ENGINE_API void RequestUpdateEditorScreenPercentage();
 	/** @return the current screen percentage to be used for scene rendering in this client */
 	ENGINE_API TOptional<float> GetEditorScreenPercentage();
 #endif
+
+	/**
+	 * @return The DPI Scale of this viewport
+	 */
+	ENGINE_API virtual float GetDPIScale() override;
 
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
 
 protected:
 	/** @return the DPI scale of the window that the viewport client is in */
-	virtual float GetViewportClientWindowDPIScale() const { return 1.0; }
+	virtual float UpdateViewportClientWindowDPIScale() const { return 1.0; }
 
 private:
-
+	float CachedDPIScale;
+	bool bShouldUpdateDPIScale;
 #if WITH_EDITOR
 	/** Screen percentage to apply to the scene view in editor only (to adjust for DPI scale). 
 	 * Note: This is still used in game viewports for PIE
 	 */
 	TOptional<float> EditorScreenPercentage;
 	bool bShouldUpdateScreenPercentage;
-#endif
-
+#endif	
 };
 
 

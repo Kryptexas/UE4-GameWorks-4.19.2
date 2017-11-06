@@ -90,9 +90,12 @@ static FName InvalidDetailWidgetName = TEXT("SInvalidDetailWidget");
 class FDetailWidgetRow
 {
 public:
+	PROPERTYEDITOR_API const static float DefaultValueMinWidth;
+	PROPERTYEDITOR_API const static float DefaultValueMaxWidth;
+
 	FDetailWidgetRow()
 		: NameWidget( *this, 0.0f, 0.0f, HAlign_Fill, VAlign_Center )
-		, ValueWidget( *this, 125.0f, 125.0f, HAlign_Left, VAlign_Fill )
+		, ValueWidget( *this, DefaultValueMinWidth, DefaultValueMaxWidth, HAlign_Left, VAlign_Fill )
 		, WholeRowWidget( *this, 0.0f, 0.0f, HAlign_Fill, VAlign_Fill )
 		, VisibilityAttr( EVisibility::Visible )
 		, IsEnabledAttr( true )

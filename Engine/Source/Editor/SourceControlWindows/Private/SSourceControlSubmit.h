@@ -103,6 +103,9 @@ public:
 	/** Constructs the widget */
 	void Construct(const FArguments& InArgs);
 
+	/** Used to intercept Escape key press, and interpret it as cancel */
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+
 	/** Get dialog result */
 	ESubmitResults::Type GetResult() { return DialogResult; }
 

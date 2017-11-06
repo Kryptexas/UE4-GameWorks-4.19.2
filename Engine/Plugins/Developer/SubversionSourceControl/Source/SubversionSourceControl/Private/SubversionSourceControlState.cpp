@@ -309,4 +309,9 @@ bool FSubversionSourceControlState::IsConflicted() const
 	return PendingMergeBaseFileRevNumber != INVALID_REVISION;
 }
 
+bool FSubversionSourceControlState::CanRevert() const
+{
+	return CanCheckIn();
+}
+
 #undef LOCTEXT_NAMESPACE

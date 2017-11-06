@@ -107,7 +107,8 @@ bool FTextInspector::GetHistoricNumericData(const FText& Text, FHistoricTextNume
 
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
 FNumberFormattingOptions::FNumberFormattingOptions()
-	: UseGrouping(true)
+	: AlwaysSign(false)
+	, UseGrouping(true)
 	, RoundingMode(ERoundingMode::HalfToEven)
 	, MinimumIntegralDigits(1)
 	, MaximumIntegralDigits(DBL_MAX_10_EXP + DBL_DIG + 1)
@@ -119,6 +120,13 @@ FNumberFormattingOptions::FNumberFormattingOptions()
 
 FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value)
 {
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::AddedAlwaysSignNumberFormattingOption)
+	{
+		Ar << Value.AlwaysSign;
+	}
+
 	Ar << Value.UseGrouping;
 
 	int8 RoundingModeInt8 = (int8)Value.RoundingMode;
@@ -136,6 +144,7 @@ FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value)
 uint32 GetTypeHash( const FNumberFormattingOptions& Key )
 {
 	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(Key.AlwaysSign));
 	Hash = HashCombine(Hash, GetTypeHash(Key.UseGrouping));
 	Hash = HashCombine(Hash, GetTypeHash(Key.RoundingMode));
 	Hash = HashCombine(Hash, GetTypeHash(Key.MinimumIntegralDigits));
@@ -147,7 +156,8 @@ uint32 GetTypeHash( const FNumberFormattingOptions& Key )
 
 bool FNumberFormattingOptions::IsIdentical( const FNumberFormattingOptions& Other ) const
 {
-	return UseGrouping == Other.UseGrouping
+	return AlwaysSign == Other.AlwaysSign
+		&& UseGrouping == Other.UseGrouping
 		&& RoundingMode == Other.RoundingMode
 		&& MinimumIntegralDigits == Other.MinimumIntegralDigits
 		&& MaximumIntegralDigits == Other.MaximumIntegralDigits

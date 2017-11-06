@@ -3,6 +3,7 @@
 #include "SProjectLauncherDeployTaskSettings.h"
 
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "SlateOptMacros.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SGridPanel.h"
@@ -55,7 +56,7 @@ void SProjectLauncherDeployTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 									.Text(LOCTEXT("ProjectSectionHeader", "Project"))
 							]
 
@@ -79,7 +80,7 @@ void SProjectLauncherDeployTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 									.Text(LOCTEXT("DeploySectionHeader", "Deploy"))
 							]
 
@@ -103,7 +104,7 @@ void SProjectLauncherDeployTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 									.Text(LOCTEXT("LaunchSectionHeader", "Launch"))
 							]
 

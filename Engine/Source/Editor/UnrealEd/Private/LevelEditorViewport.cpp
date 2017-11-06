@@ -1440,16 +1440,20 @@ FTrackingTransaction::FTrackingTransaction()
 	: TransCount(0)
 	, ScopedTransaction(NULL)
 	, TrackingTransactionState(ETransactionState::Inactive)
-{}
+{
+	USelection::SelectionChangedEvent.AddRaw(this, &FTrackingTransaction::OnEditorSelectionChanged);
+}
 
 FTrackingTransaction::~FTrackingTransaction()
 {
 	End();
+	USelection::SelectionChangedEvent.RemoveAll(this);
 }
 
 void FTrackingTransaction::Begin(const FText& Description)
 {
 	End();
+	
 	ScopedTransaction = new FScopedTransaction( Description );
 
 	TrackingTransactionState = ETransactionState::Active;
@@ -1461,6 +1465,14 @@ void FTrackingTransaction::Begin(const FText& Description)
 	{
 		AActor* Actor = CastChecked<AActor>(*It);
 
+		// Some tracking transactions, such as a duplication operation into a sublevel do not modify the selected Actors
+		// Store the initial package dirty state so we can restore if necessary
+		UPackage* Package = Actor->GetOutermost();
+		if (!InitialPackageDirtyStates.Contains(Package))
+		{
+			InitialPackageDirtyStates.Add(Package, Package->IsDirty());
+		}
+		
 		Actor->Modify();
 
 		if (UActorGroupingUtils::IsGroupingActive())
@@ -1476,7 +1488,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 	// Modify unique group actors
 	for (AGroupActor* GroupActor : GroupActors)
-	{
+	{		
 		GroupActor->Modify();
 	}
 
@@ -1495,6 +1507,7 @@ void FTrackingTransaction::End()
 		ScopedTransaction = NULL;
 	}
 	TrackingTransactionState = ETransactionState::Inactive;
+	InitialPackageDirtyStates.Empty();
 }
 
 void FTrackingTransaction::Cancel()
@@ -1522,6 +1535,40 @@ void FTrackingTransaction::PromotePendingToActive()
 		PendingDescription = FText();
 	}
 }
+
+void FTrackingTransaction::OnEditorSelectionChanged(UObject* NewSelection)
+{
+	if (!InitialPackageDirtyStates.Num())
+	{
+		return;
+	}
+
+	checkf(TrackingTransactionState == ETransactionState::Active, TEXT("Inactive tracking transaction contains package states"));
+
+	// The selection has changed due to a duplication or other operation
+	// So, restore dirty state on any package which is no longer selected
+	TArray<UPackage*> SelectedPackages;
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = static_cast<AActor*>(*It);
+		checkSlow(Actor->IsA(AActor::StaticClass()));
+		SelectedPackages.AddUnique(Actor->GetOutermost());
+	}
+
+	for (const auto& Entry : InitialPackageDirtyStates)
+	{
+		// If no Actors in the package are currently selected, restore unmodified package state
+		UPackage* Package = Entry.Key;
+		if (!SelectedPackages.Contains(Package) && !Entry.Value && Package->IsDirty())
+		{
+			Package->SetDirtyFlag(false);
+		}
+	}
+
+	InitialPackageDirtyStates.Empty();
+
+}
+
 
 FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelViewport>& InLevelViewport)
 	: FEditorViewportClient(&GLevelEditorModeTools(), nullptr, StaticCastSharedPtr<SEditorViewport>(InLevelViewport))
@@ -1591,11 +1638,21 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	FEditorSupportDelegates::CleanseEditor.RemoveAll(this);
 	FEditorDelegates::PreBeginPIE.RemoveAll(this);
 
-	// Remove our move delegate
-	GEngine->OnActorMoved().RemoveAll(this);
+	if(GEngine)
+	{
+		// Remove our move delegate
+		GEngine->OnActorMoved().RemoveAll(this);
 
-	// make sure all actors have this view removed from their visibility bits
-	GEditor->Layers->RemoveViewFromActorViewVisibility( this );
+		// make sure all actors have this view removed from their visibility bits
+		GEditor->Layers->RemoveViewFromActorViewVisibility(this);
+
+		GEditor->LevelViewportClients.Remove(this);
+
+		GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+
+
+		RemoveReferenceToWorldContext(GEditor->GetEditorWorldContext());
+	}
 
 	//make to clean up the global "current" & "last" clients when we delete the active one.
 	if (GCurrentLevelEditingViewportClient == this)
@@ -1606,12 +1663,6 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	{
 		GLastKeyLevelEditingViewportClient = NULL;
 	}
-
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
-
-	GEditor->LevelViewportClients.Remove(this);
-
-	RemoveReferenceToWorldContext(GEditor->GetEditorWorldContext());
 }
 
 void FLevelEditorViewportClient::InitializeVisibilityFlags()
@@ -2437,14 +2488,15 @@ static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKe
 	for (uint32 i = 0; i < static_cast<uint8>(EMultipleKeyBindingIndex::NumChords); ++i)
 	{
 		// check each bound chord
-		EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex> (i);
+		EMultipleKeyBindingIndex ChordIndex = static_cast<EMultipleKeyBindingIndex>(i);
 		const FInputChord& Chord = *Command->GetActiveChord(ChordIndex);
 
-		bAccepted |= (!Chord.NeedsControl() || ViewportClient.IsCtrlPressed())
+		bAccepted |= Chord.IsValidChord()
+			&& (!Chord.NeedsControl() || ViewportClient.IsCtrlPressed())
 			&& (!Chord.NeedsAlt() || ViewportClient.IsAltPressed())
 			&& (!Chord.NeedsShift() || ViewportClient.IsShiftPressed())
 			&& (!Chord.NeedsCommand() || ViewportClient.IsCmdPressed())
-		&& Chord.Key == Key;
+			&& Chord.Key == Key;
 	}
 	return bAccepted;
 }
@@ -2759,7 +2811,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Don't do this if AddDelta was never called.
 	if( bDidAnythingActuallyChange && MouseDeltaTracker->HasReceivedDelta() )
 	{
-		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It) 
 		{
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow(Actor->IsA(AActor::StaticClass()));
@@ -4468,6 +4520,15 @@ void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
 	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
 }
 
+float FLevelEditorViewportClient::GetCameraSpeedScalar() const
+{
+	return GetDefault<ULevelEditorViewportSettings>()->CameraSpeedScalar;
+}
+
+void FLevelEditorViewportClient::SetCameraSpeedScalar(float SpeedScalar)
+{	
+	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeedScalar = SpeedScalar;
+}
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {

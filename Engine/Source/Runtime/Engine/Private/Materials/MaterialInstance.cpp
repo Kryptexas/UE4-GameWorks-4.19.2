@@ -659,7 +659,7 @@ bool UMaterialInstance::GetVectorParameterValue(const FMaterialParameterInfo& Pa
 
 				if (Function && Function->GetNamedParameterOfType(ParameterInfo, Parameter, &ParameterOwner))
 				{
-					if (!ParameterOwner->OverrideNamedVectorParameter(ParameterInfo, OutValue))
+					if (ParameterOwner->OverrideNamedVectorParameter(ParameterInfo, OutValue))
 					{
 						return true;
 					}

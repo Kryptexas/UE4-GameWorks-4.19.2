@@ -294,6 +294,7 @@ FSlateUser::FSlateUser(int32 InUserIndex, bool InVirtualUser)
 	, bVirtualUser(InVirtualUser)
 	, FocusVersion(0)
 {
+	UE_LOG(LogSlate, Log, TEXT("New Slate User Created.  User Index %d, Is Virtual User: %d"), UserIndex, bVirtualUser);
 	FocusWidgetPathWeak = FWidgetPath();
 	FocusCause = EFocusCause::Cleared;
 	ShowFocus = false;
@@ -301,6 +302,7 @@ FSlateUser::FSlateUser(int32 InUserIndex, bool InVirtualUser)
 
 FSlateUser::~FSlateUser()
 {
+	UE_LOG(LogSlate, Log, TEXT("Slate User Destroyed.  User Index %d, Is Virtual User: %d"), UserIndex, bVirtualUser);
 }
 
 TSharedPtr<SWidget> FSlateUser::GetFocusedWidget() const
@@ -1044,6 +1046,32 @@ void FSlateApplication::SetupPhysicalSensitivities()
 #endif
 
 	FGestureDetector::LongPressAllowedMovement = DragTriggerDistance;
+}
+
+void FSlateApplication::InitHighDPI()
+{
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("EnableHighDPIAwareness"));
+
+	if (GIsEditor && CVar)
+	{
+		bool bRequestEnableHighDPI = true;
+		GConfig->GetBool(TEXT("HDPI"), TEXT("EnableHighDPIAwareness"), bRequestEnableHighDPI, GEditorSettingsIni);
+		const bool bEnableHighDPI = bRequestEnableHighDPI && !FParse::Param(FCommandLine::Get(), TEXT("nohighdpi"));
+
+		// Set the cvar here for other systems that need it.
+		CVar->Set(bEnableHighDPI);
+
+		// High DPI must be enabled before any windows are shown.
+		// only doing this in editor for now
+		if (bEnableHighDPI)
+		{
+			FPlatformApplicationMisc::SetHighDPIMode();
+		}
+	}
+	else if (CVar)
+	{
+		CVar->Set(false);
+	}
 }
 
 const FStyleNode* FSlateApplication::GetRootStyle() const
@@ -3017,7 +3045,7 @@ void FSlateApplication::ProcessExternalReply(const FWidgetPath& CurrentEventPath
 	}
 }
 
-void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex )
+void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const FReply& TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, const uint32 UserIndex )
 {
 	const TSharedPtr<FDragDropOperation> ReplyDragDropContent = TheReply.GetDragDropContent();
 	const bool bStartingDragDrop = ReplyDragDropContent.IsValid();
@@ -4484,6 +4512,7 @@ void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 		Users[NewUser->GetUserIndex()] = NewUser;
 	}
 
+	UE_LOG(LogSlate, Log, TEXT("Slate User Registered.  User Index %d, Is Virtual User: %d"), NewUser->UserIndex, NewUser->bVirtualUser);
 	NewUser->NavigationConfig = NavigationConfigFactory();
 	UserRegisteredEvent.Broadcast(NewUser->GetUserIndex());
 }
@@ -4492,6 +4521,8 @@ void FSlateApplication::UnregisterUser(int32 UserIndex)
 {
 	if ( UserIndex < Users.Num() )
 	{
+		UE_LOG(LogSlate, Log, TEXT("Slate User Unregistered.  User Index %d"), UserIndex);
+
 		ClearUserFocus(UserIndex, EFocusCause::SetDirectly);
 		Users[UserIndex].Reset();
 	}
@@ -4503,7 +4534,7 @@ void FSlateApplication::ForEachUser(TFunctionRef<void(FSlateUser*)> InPredicate,
 	{
 		if ( FSlateUser* User = Users[UserIndex].Get() )
 		{
-			// Ignore virutal users unless told not to.
+			// Ignore virtual users unless told not to.
 			if ( !bIncludeVirtualUsers && User->IsVirtualUser() )
 			{
 				continue;
@@ -6407,7 +6438,7 @@ void FSlateApplication::HandleDPIScaleChanged(const TSharedRef<FGenericWindow>& 
 #if WITH_EDITOR
 	TSharedPtr< SWindow > SlateWindow = FSlateWindowHelper::FindWindowByPlatformWindow(SlateWindows, PlatformWindow);
 
-	if (SlateWindow.IsValid())
+	if (SlateWindow.IsValid() && SlateWindow->IsRegularWindow())
 	{
 		OnWindowDPIScaleChangedEvent.Broadcast(SlateWindow.ToSharedRef());
 	}

@@ -272,9 +272,6 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 	const EFbxExportCompatibility FbxExportCompatibility = ExportOptions->FbxExportCompatibility;
 	switch (FbxExportCompatibility)
 	{
-		case EFbxExportCompatibility::FBX_2010:
-			CompatibilitySetting = FBX_2010_00_COMPATIBLE;
-			break;
 		case EFbxExportCompatibility::FBX_2011:
 			CompatibilitySetting = FBX_2011_00_COMPATIBLE;
 			break;
@@ -292,6 +289,9 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 			break;
 		case EFbxExportCompatibility::FBX_2018:
 			CompatibilitySetting = FBX_2018_00_COMPATIBLE;
+			break;
+		default:
+			CompatibilitySetting = FBX_2013_00_COMPATIBLE;
 			break;
 	}
 	
@@ -333,6 +333,7 @@ void FFbxExporter::CloseDocument()
 	FbxSkeletonRoots.Reset();
 	FbxMaterials.Reset();
 	FbxMeshes.Reset();
+	FbxCollisionMeshes.Reset();
 	FbxNodeNameToIndexMap.Reset();
 	
 	if (Scene)
@@ -818,13 +819,11 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	{
 		return;
 	}
-	int32 LODIndex = StaticMeshComponent->ForcedLodModel-1;
-
 	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
-	
-	if(LODIndex == INDEX_NONE && StaticMesh->GetNumLODs() > 1)
+
+	if(ExportOptions->LevelOfDetail && StaticMesh->GetNumLODs() > 1)
 	{
 		//Create a fbx LOD Group node
 		FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
@@ -861,11 +860,11 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 	else
 	{
+		const int32 LODIndex = (StaticMeshComponent->ForcedLodModel > 0 ? StaticMeshComponent->ForcedLodModel - 1 : /* auto-select*/ 0);
 		if (LODIndex != INDEX_NONE && LODIndex < StaticMeshComponent->LODData.Num())
 		{
 			ColorBuffer = StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
 		}
-		//Export all LOD
 		FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
 		ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
 	}
@@ -1627,7 +1626,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 			{
 				USceneComponent* Component = SceneComponents[ComponentIndex];
 	
-				if (Component && Component->bHiddenInGame)
+				if (Component == nullptr || (Component && Component->bHiddenInGame))
 				{
 					//Skip hidden component like camera mesh or other editor helper
 					continue;
@@ -3280,12 +3279,9 @@ FbxNode* FFbxExporter::ExportCollisionMesh(const UStaticMesh* StaticMesh, const 
 		//We export collision only if the mesh is already exported
 		return nullptr;
 	}
-	//Name the mesh attribute with the mesh name
-	FString MeshCollisionName = TEXT("UCX_");
-	MeshCollisionName += MeshName;
-	Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
+
 	//Name the node with the actor name
-	MeshCollisionName = TEXT("UCX_");
+	FString MeshCollisionName = TEXT("UCX_");
 	MeshCollisionName += UTF8_TO_TCHAR(ParentActor->GetName()); //-V595
 	FbxNode* FbxActor = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
 
@@ -3302,17 +3298,26 @@ FbxNode* FFbxExporter::ExportCollisionMesh(const UStaticMesh* StaticMesh, const 
 	{
 		ParentOfParentMesh = Scene->GetRootNode();
 	}
-	
+
 	Scene->GetRootNode()->AddChild(FbxActor);
 
-	//Export all collision elements in one mesh
-	FbxSurfaceMaterial* FbxMaterial = nullptr;
-	int32 ActualMatIndex = FbxActor->AddMaterial(FbxMaterial);
-	FCollisionFbxExporter CollisionFbxExporter(StaticMesh, Mesh, ActualMatIndex);
-	CollisionFbxExporter.ExportCollisions();
+	FbxMesh* CollisionMesh = FbxCollisionMeshes.FindRef(StaticMesh);
+	if (!CollisionMesh)
+	{
+		//Name the mesh attribute with the mesh name
+		MeshCollisionName = TEXT("UCX_");
+		MeshCollisionName += MeshName;
+		CollisionMesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
+		//Export all collision elements in one mesh
+		FbxSurfaceMaterial* FbxMaterial = nullptr;
+		int32 ActualMatIndex = FbxActor->AddMaterial(FbxMaterial);
+		FCollisionFbxExporter CollisionFbxExporter(StaticMesh, CollisionMesh, ActualMatIndex);
+		CollisionFbxExporter.ExportCollisions();
+		FbxCollisionMeshes.Add(StaticMesh, CollisionMesh);
+	}
 
 	//Set the original meshes in case it was already existing
-	FbxActor->SetNodeAttribute(Mesh);
+	FbxActor->SetNodeAttribute(CollisionMesh);
 	return FbxActor;
 }
 #endif
@@ -3644,12 +3649,6 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		{
 			FbxMeshes.Add(StaticMesh, Mesh);
 		}
-#if WITH_PHYSX
-		if ((ExportLOD == 0 || ExportLOD == -1) && ExportOptions->Collision)
-		{
-			ExportCollisionMesh(StaticMesh, MeshName, FbxActor);
-		}
-#endif
 	}
 	else
 	{
@@ -3672,6 +3671,14 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			FbxActor->AddMaterial(FbxMaterial);
 		}
 	}
+
+#if WITH_PHYSX
+	if ((ExportLOD == 0 || ExportLOD == -1) && ExportOptions->Collision)
+	{
+		ExportCollisionMesh(StaticMesh, MeshName, FbxActor);
+	}
+#endif
+
 
 	//Set the original meshes in case it was already existing
 	FbxActor->SetNodeAttribute(Mesh);

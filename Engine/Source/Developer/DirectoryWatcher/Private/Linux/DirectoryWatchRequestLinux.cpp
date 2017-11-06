@@ -126,9 +126,9 @@ void FDirectoryWatchRequestLinux::WatchDirectoryTree(const FString & RootAbsolut
 		if (WatchDescriptor == -1)
 		{
 			int ErrNo = errno;
-			UE_LOG(LogDirectoryWatcher, Error, TEXT("inotify_add_watch cannot watch folder %s (errno = %d, %s)"), *FolderName,
+			UE_LOG(LogDirectoryWatcher, Warning, TEXT("inotify_add_watch cannot watch folder %s (errno = %d, %s)"), *FolderName,
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				UTF8_TO_TCHAR(strerror(ErrNo))
 				);
 			// proceed further
 		}

@@ -316,7 +316,9 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					//Copy UFbxSkeletalMeshImportData
 					ImportData->bImportMeshesInBoneHierarchy = TestPlan->ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
 					ImportData->bImportMorphTargets = TestPlan->ImportUI->SkeletalMeshImportData->bImportMorphTargets;
-					ImportData->bKeepOverlappingVertices = TestPlan->ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
+					ImportData->ThresholdPosition = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdPosition;
+					ImportData->ThresholdTangentNormal = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdTangentNormal;
+					ImportData->ThresholdUV = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdUV;
 					ImportData->bPreserveSmoothingGroups = TestPlan->ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 					ImportData->bUpdateSkeletonReferencePose = TestPlan->ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose;
 					ImportData->bUseT0AsRefPose = TestPlan->ImportUI->SkeletalMeshImportData->bUseT0AsRefPose;
@@ -408,7 +410,9 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					//Copy UFbxSkeletalMeshImportData
 					ImportData->bImportMeshesInBoneHierarchy = TestPlan->ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
 					ImportData->bImportMorphTargets = TestPlan->ImportUI->SkeletalMeshImportData->bImportMorphTargets;
-					ImportData->bKeepOverlappingVertices = TestPlan->ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
+					ImportData->ThresholdPosition = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdPosition;
+					ImportData->ThresholdTangentNormal = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdTangentNormal;
+					ImportData->ThresholdUV = TestPlan->ImportUI->SkeletalMeshImportData->ThresholdUV;
 					ImportData->bPreserveSmoothingGroups = TestPlan->ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 					ImportData->bUpdateSkeletonReferencePose = TestPlan->ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose;
 					ImportData->bUseT0AsRefPose = TestPlan->ImportUI->SkeletalMeshImportData->bUseT0AsRefPose;
@@ -1209,6 +1213,179 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 			}
 			break;
+
+			case Mesh_LOD_Vertex_Position:
+			{
+				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index, vertex index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Vertex_Position"), ExpectedResultIndex)));
+					break;
+				}
+				if (ExpectedResult.ExpectedPresetsDataFloat.Num() < 3)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 3 float data (expected position X, Y and Z)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Vertex_Position"), ExpectedResultIndex)));
+					break;
+				}
+				const int32 LODIndex = ExpectedResult.ExpectedPresetsDataInteger[0];
+				const int32 VertexIndex = ExpectedResult.ExpectedPresetsDataInteger[1];
+				const FVector ExpectedPosition(ExpectedResult.ExpectedPresetsDataFloat[0], ExpectedResult.ExpectedPresetsDataFloat[1], ExpectedResult.ExpectedPresetsDataFloat[2]);
+				int32 LODNumber = 0;
+				int32 VertexNumber = 0;
+				bool BadLodIndex = false;
+				bool BadVertexIndex = false;
+				FVector VertexPosition(0.0f);
+				if (ImportedObjects.Num() > 0)
+				{
+					UObject *Object = ImportedObjects[0];
+					if (Object->IsA(UStaticMesh::StaticClass()))
+					{
+						UStaticMesh *Mesh = Cast<UStaticMesh>(Object);
+						LODNumber = Mesh->GetNumLODs();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							VertexNumber = Mesh->RenderData->LODResources[LODIndex].VertexBuffers.PositionVertexBuffer.GetNumVertices();
+							if (VertexIndex < 0 || VertexIndex >= VertexNumber)
+							{
+								BadVertexIndex = true;
+							}
+							else
+							{
+								VertexPosition = Mesh->RenderData->LODResources[LODIndex].VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+							}
+						}
+					}
+					else if (Object->IsA(USkeletalMesh::StaticClass()))
+					{
+						USkeletalMesh *Mesh = Cast<USkeletalMesh>(Object);
+						LODNumber = Mesh->GetResourceForRendering()->LODRenderData.Num();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							VertexNumber = Mesh->GetResourceForRendering()->LODRenderData[LODIndex].StaticVertexBuffers.PositionVertexBuffer.GetNumVertices();
+							if (VertexIndex < 0 || VertexIndex >= VertexNumber)
+							{
+								BadVertexIndex = true;
+							}
+							else
+							{
+								VertexPosition = Mesh->GetResourceForRendering()->LODRenderData[LODIndex].StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+							}
+						}
+					}
+				}
+				if (BadLodIndex)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Vertex_Position LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
+				}
+				else if (BadVertexIndex)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Vertex_Position Vertex index [%d] is invalid. Expect Vertex Index between 0 and %d which is the mesh LOD vertex number"),
+						*CleanFilename, *(TestPlan->TestPlanName), VertexIndex, VertexNumber));
+				}
+				else if (!VertexPosition.Equals(ExpectedPosition))
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Vertex index %d has the following position (%s) but expected position (%s)]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Vertex_Position"), ExpectedResultIndex), LODIndex, VertexIndex, *VertexPosition.ToString(), *ExpectedPosition.ToString()));
+				}
+			}
+			break;
+
+			case Mesh_LOD_Vertex_Normal:
+			{
+				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index, vertex index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Vertex_Normal"), ExpectedResultIndex)));
+					break;
+				}
+				if (ExpectedResult.ExpectedPresetsDataFloat.Num() < 3)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 3 float data (expected normal X, Y and Z)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Vertex_Normal"), ExpectedResultIndex)));
+					break;
+				}
+				const int32 LODIndex = ExpectedResult.ExpectedPresetsDataInteger[0];
+				const int32 VertexIndex = ExpectedResult.ExpectedPresetsDataInteger[1];
+				const FVector ExpectedNormal(ExpectedResult.ExpectedPresetsDataFloat[0], ExpectedResult.ExpectedPresetsDataFloat[1], ExpectedResult.ExpectedPresetsDataFloat[2]);
+				int32 LODNumber = 0;
+				int32 VertexNumber = 0;
+				bool BadLodIndex = false;
+				bool BadVertexIndex = false;
+				FVector VertexNormal(0.0f);
+				if (ImportedObjects.Num() > 0)
+				{
+					UObject *Object = ImportedObjects[0];
+					if (Object->IsA(UStaticMesh::StaticClass()))
+					{
+						UStaticMesh *Mesh = Cast<UStaticMesh>(Object);
+						LODNumber = Mesh->GetNumLODs();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							VertexNumber = Mesh->RenderData->LODResources[LODIndex].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
+							if (VertexIndex < 0 || VertexIndex >= VertexNumber)
+							{
+								BadVertexIndex = true;
+							}
+							else
+							{
+								VertexNormal = Mesh->RenderData->LODResources[LODIndex].VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+							}
+						}
+					}
+					else if (Object->IsA(USkeletalMesh::StaticClass()))
+					{
+						USkeletalMesh *Mesh = Cast<USkeletalMesh>(Object);
+						LODNumber = Mesh->GetResourceForRendering()->LODRenderData.Num();
+						if (LODIndex < 0 || LODIndex >= LODNumber)
+						{
+							BadLodIndex = true;
+						}
+						else
+						{
+							VertexNumber = Mesh->GetResourceForRendering()->LODRenderData[LODIndex].StaticVertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
+							if (VertexIndex < 0 || VertexIndex >= VertexNumber)
+							{
+								BadVertexIndex = true;
+							}
+							else
+							{
+								VertexNormal = Mesh->GetResourceForRendering()->LODRenderData[LODIndex].StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+							}
+						}
+					}
+				}
+				if (BadLodIndex)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Vertex_Normal LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
+				}
+				else if (BadVertexIndex)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Vertex_Normal Vertex index [%d] is invalid. Expect Vertex Index between 0 and %d which is the mesh LOD vertex number"),
+						*CleanFilename, *(TestPlan->TestPlanName), VertexIndex, VertexNumber));
+				}
+				else if (!VertexNormal.Equals(ExpectedNormal))
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Vertex index %d has the following normal (%s) but expected normal (%s)]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Vertex_Normal"), ExpectedResultIndex), LODIndex, VertexIndex, *VertexNormal.ToString(), *ExpectedNormal.ToString()));
+				}
+			}
+			break;
+
 			case LOD_UV_Channel_Number:
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)

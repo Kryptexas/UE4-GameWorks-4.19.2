@@ -14,6 +14,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/SWindow.h"
+#include "SlateApplicationBase.h"
 #include <AnselSDK.h>
 
 DEFINE_LOG_CATEGORY_STATIC(LogAnsel, Log, All);
@@ -275,6 +276,15 @@ bool FNVAnselCameraPhotographyPrivate::UpdateCamera(FMinimalViewInfo& InOutPOV, 
 			}
 
 			PCMgr->GetWorld()->bIsCameraMoveableWhenPaused = bWasMovableCameraBeforeSession;
+
+			// Re-activate Windows Cursor as Ansel will automatically hide the Windows mouse cursor when Ansel UI is enabled.
+			//	See https://nvidiagameworks.github.io/Ansel/md/Ansel_integration_guide.html
+			// !Needs to be done after AnselStopSessionCallback
+			TSharedPtr<GenericApplication> PlatformApplication = FSlateApplicationBase::Get().GetPlatformApplication();
+			if (PlatformApplication.IsValid() && PlatformApplication->Cursor.IsValid())
+			{
+				PlatformApplication->Cursor->Show(PCOwner->ShouldShowMouseCursor());
+			}
 
 			PCMgr->OnPhotographySessionEnd(); // after unpausing
 

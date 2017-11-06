@@ -9,6 +9,7 @@
 #include "Framework/Commands/Commands.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/SToolTip.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "BlueprintPaletteFavorites.h"
@@ -180,7 +181,7 @@ struct SBlueprintFavoritesPaletteUtils
 					// @TODO how do we best localize this
 					.Text(FText::FromString(FriendlyProfileName));
 
-				FSlateFontInfo ToolTipFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8);
+				FSlateFontInfo ToolTipFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
 				TSharedPtr<SVerticalBox> ToolTipBox;
 				// build the specialized tooltip

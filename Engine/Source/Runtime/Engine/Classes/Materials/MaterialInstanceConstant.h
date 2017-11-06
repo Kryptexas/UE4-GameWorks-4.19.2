@@ -24,9 +24,6 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	 *  Updated on changes in the editor to allow those changes to be detected */
 	UPROPERTY()
 	FGuid ParameterStateId;
-
-	UPROPERTY()
-	TMap<FString, bool> LayerParameterExpansion;
 #endif
 
 #if WITH_EDITOR

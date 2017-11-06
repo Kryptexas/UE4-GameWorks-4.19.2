@@ -75,7 +75,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.Padding(FMargin(2.0f, 0.0f))
 			[
 				SNew(SCheckBox)
-				.Style(&FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>("Toolbar.Check"))
+				.Style(FCoreStyle::Get(), "WidgetReflector.FocusableCheck")
 				.IsChecked(this, &SReflectorTreeWidgetItem::GetFocusableAsCheckBoxState)
 			];
 	}

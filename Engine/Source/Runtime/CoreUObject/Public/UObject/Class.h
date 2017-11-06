@@ -1296,7 +1296,7 @@ public:
 
 private:
 	/** C++ function this is bound to */
-	Native Func;
+	FNativeFuncPtr Func;
 
 public:
 	/**
@@ -1304,7 +1304,7 @@ public:
 	 *
 	 * @return The native function pointer.
 	 */
-	FORCEINLINE Native GetNativeFunc() const
+	FORCEINLINE FNativeFuncPtr GetNativeFunc() const
 	{
 		return Func;
 	}
@@ -1314,7 +1314,7 @@ public:
 	 *
 	 * @param InFunc - The new function pointer.
 	 */
-	FORCEINLINE void SetNativeFunc(Native InFunc)
+	FORCEINLINE void SetNativeFunc(FNativeFuncPtr InFunc)
 	{
 		Func = InFunc;
 	}
@@ -1919,9 +1919,9 @@ struct COREUOBJECT_API FImplementedInterface
 struct FNativeFunctionLookup
 {
 	FName Name;
-	Native Pointer;
+	FNativeFuncPtr Pointer;
 
-	FNativeFunctionLookup(FName InName,Native InPointer)
+	FNativeFunctionLookup(FName InName, FNativeFuncPtr InPointer)
 		:	Name(InName)
 		,	Pointer(InPointer)
 	{}
@@ -2178,7 +2178,7 @@ public:
 	*											because dispatch is shared, so the C++ remap table does not work in this case, and this should be false
 	* @return	true if the function was found and replaced, false if it was not
 	*/
-	bool ReplaceNativeFunction(FName InName, Native InPointer, bool bAddToFunctionRemapTable);
+	bool ReplaceNativeFunction(FName InName, FNativeFuncPtr InPointer, bool bAddToFunctionRemapTable);
 #endif
 
 	/**
@@ -2197,7 +2197,7 @@ public:
 	 * @param	InName							name of the function
 	 * @param	InPointer						pointer to the function
 	 */
-	void AddNativeFunction(const ANSICHAR* InName, Native InPointer);
+	void AddNativeFunction(const ANSICHAR* InName, FNativeFuncPtr InPointer);
 
 	/**
 	 * Add a native function to the internal native function table, but with a unicode name. Used when generating code from blueprints, 
@@ -2205,7 +2205,7 @@ public:
 	 * @param	InName							name of the function
 	 * @param	InPointer						pointer to the function
 	 */
-	void AddNativeFunction(const WIDECHAR* InName, Native InPointer);
+	void AddNativeFunction(const WIDECHAR* InName, FNativeFuncPtr InPointer);
 
 	/** Add a function to the function map */
 	void AddFunctionToFunctionMap(UFunction* Function, FName FuncName)
@@ -2313,6 +2313,11 @@ public:
 
 		return ClassDefaultObject;
 	}
+
+	/**
+	 * Called after PostInitProperties during object construction to allow class specific initialization of an object instance.
+	 */
+	virtual void PostInitInstance(UObject* InObj) {}
 
 	/**
 	 * Helper method to assist with initializing object properties from an explicit list.

@@ -64,7 +64,7 @@ public:
 	/**
 	* Adds a function to re-map after hot-reload.
 	*/
-	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) = 0;
+	virtual void AddHotReloadFunctionRemap(FNativeFuncPtr NewFunctionPointer, FNativeFuncPtr OldFunctionPointer) = 0;
 
 	/**
 	* Performs hot reload from the editor of all currently loaded game modules.

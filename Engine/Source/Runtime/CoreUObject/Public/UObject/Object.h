@@ -1064,7 +1064,7 @@ public:
 	// Internal function call processing.
 	// @warning: might not write anything to Result if proper type isn't returned.
 	//
-	void ProcessInternal( FFrame& Stack, RESULT_DECL );
+	DECLARE_FUNCTION(ProcessInternal);
 
 	/**
 	 * This function handles a console exec sent to the object; it is virtual so 'nexus' objects like

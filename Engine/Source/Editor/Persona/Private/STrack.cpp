@@ -9,6 +9,7 @@
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Styling/CoreStyle.h"
 
 #include "SCurveEditor.h"
 #include "SScrubWidget.h"
@@ -99,7 +100,7 @@ void STrackNode::Construct(const FArguments& InArgs)
 	NodeSelectionSet = InArgs._NodeSelectionSet;
 	AllowDrag = InArgs._AllowDrag;
 
-	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	Font = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush("ProgressBar.Background"); // FIXME: make slate argument for STrackNode
 
@@ -378,7 +379,7 @@ void STrack::Construct( const FArguments& InArgs )
 
 	SetClipping(EWidgetClipping::ClipToBounds);
 
-	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	Font = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 }
 
 void STrack::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const

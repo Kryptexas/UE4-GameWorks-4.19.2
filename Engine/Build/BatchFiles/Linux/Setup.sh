@@ -110,6 +110,25 @@ if [ -e /etc/os-release ]; then
        libmono-system-runtime4.0-cil
        mono-devel
        clang-3.8
+       llvm
+       build-essential
+       "
+    elif [ -n "$VERSION_ID" ] && [[ "$VERSION_ID" < 17.10 ]]; then
+     DEPS="mono-xbuild \
+       mono-dmcs \
+       libmono-microsoft-build-tasks-v4.0-4.0-cil \
+       libmono-system-data-datasetextensions4.0-cil
+       libmono-system-web-extensions4.0-cil
+       libmono-system-management4.0-cil
+       libmono-system-xml-linq4.0-cil
+       libmono-corlib4.5-cil
+       libmono-windowsbase4.0-cil
+       libmono-system-io-compression4.0-cil
+       libmono-system-io-compression-filesystem4.0-cil
+       libmono-system-runtime4.0-cil
+       mono-devel
+       clang-3.9
+       llvm
        build-essential
        "
     elif [[ $PRETTY_NAME == *sid ]] || [[ $PRETTY_NAME == *stretch ]]; then
@@ -128,7 +147,7 @@ if [ -e /etc/os-release ]; then
        mono-devel
        clang-3.8
        "
-    else # assume the latest Ubuntu, this is going to be a moving target
+    else # assume the latest Ubuntu, this is going to be a moving target (17.10 as of now)
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -142,7 +161,9 @@ if [ -e /etc/os-release ]; then
        libmono-system-io-compression-filesystem4.0-cil
        libmono-system-runtime4.0-cil
        mono-devel
-       clang-3.9
+       clang-5.0
+       lld-5.0
+       llvm
        build-essential
        "
     fi

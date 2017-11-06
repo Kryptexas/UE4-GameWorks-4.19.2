@@ -9,8 +9,7 @@ public class TextureEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
-				"WorkspaceMenuStructure",
-				"PropertyEditor"
+				"WorkspaceMenuStructure"
 			}
 		);
 
@@ -44,8 +43,9 @@ public class TextureEditor : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
-				"UnrealEd"
-			}
+				"UnrealEd",
+                "PropertyEditor"
+            }
 		);
 	}
 }

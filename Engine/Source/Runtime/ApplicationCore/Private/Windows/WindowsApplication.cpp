@@ -17,6 +17,7 @@
 #include "IHapticDevice.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "UniquePtr.h"
+#include "WindowsPlatformApplicationMisc.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
@@ -100,7 +101,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 
 	if (GIsEditor)
 	{
-		FWindowsPlatformMisc::SetHighDPIMode();
+		FWindowsPlatformApplicationMisc::SetHighDPIMode();
 	}
 
 	// Register the Win32 class for Slate windows and assign the application instance and icon

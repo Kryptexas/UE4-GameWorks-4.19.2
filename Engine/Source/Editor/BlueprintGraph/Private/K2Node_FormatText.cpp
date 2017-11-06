@@ -193,8 +193,12 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 			UEdGraphPin* CheckPin = *It;
 			if (CheckPin != FormatPin && CheckPin->Direction == EGPD_Input)
 			{
-				int Index = 0;
-				if (!ArgumentParams.Find(CheckPin->PinName.ToString(), Index))
+				const bool bIsValidArgPin = ArgumentParams.ContainsByPredicate([&CheckPin](const FString& InPinName)
+				{
+					return InPinName.Equals(CheckPin->PinName.ToString(), ESearchCase::CaseSensitive);
+				});
+
+				if(!bIsValidArgPin)
 				{
 					CheckPin->MarkPendingKill();
 					It.RemoveCurrent();
@@ -423,7 +427,7 @@ UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FName InPinName) const
 	const UEdGraphPin* FormatPin = GetFormatPin();
 	for (UEdGraphPin* Pin : Pins)
 	{
-		if( Pin != FormatPin && Pin->Direction != EGPD_Output && Pin->PinName == InPinName )
+		if( Pin != FormatPin && Pin->Direction != EGPD_Output && Pin->PinName.ToString().Equals(InPinName.ToString(), ESearchCase::CaseSensitive) )
 		{
 			return Pin;
 		}
@@ -437,7 +441,7 @@ UK2Node::ERedirectType UK2Node_FormatText::DoPinsMatchForReconstruction(const UE
 	ERedirectType RedirectType = ERedirectType_None;
 
 	// if the pin names do match
-	if (NewPin->PinName == OldPin->PinName)
+	if (NewPin->PinName.ToString().Equals(OldPin->PinName.ToString(), ESearchCase::CaseSensitive))
 	{
 		// Make sure we're not dealing with a menu node
 		UEdGraph* OuterGraph = GetGraph();
@@ -467,7 +471,7 @@ UK2Node::ERedirectType UK2Node_FormatText::DoPinsMatchForReconstruction(const UE
 			RedirectType = ShouldRedirectParam(OldPinNames, /*out*/ NewPinName, Node);
 
 			// make sure they match
-			if ((RedirectType != ERedirectType_None) && (NewPin->PinName != NewPinName))
+			if ((RedirectType != ERedirectType_None) && (!NewPin->PinName.ToString().Equals(NewPinName.ToString(), ESearchCase::CaseSensitive)))
 			{
 				RedirectType = ERedirectType_None;
 			}

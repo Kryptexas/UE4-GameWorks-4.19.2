@@ -85,7 +85,7 @@ struct FSortTestActorsByName
 	}
 };
 
-bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog /*= true*/, bool bRunLooped /*= true*/, FString ReproString /*= TEXT("")*/)
 {
 	UFunctionalTestingManager* Manager = GetManager(WorldContextObject);
 	if (!ensureAsRuntimeWarning(Manager != nullptr))

@@ -3756,14 +3756,13 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue( UObject* const& NewValu
 
 FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
 {
-	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+	const TSharedPtr<FPropertyNode>& PropertyNode = Implementation->GetPropertyNode();
 
 	bool bResult = false;
-	// Instanced references can not be set this way (most likely editinlinenew )
-	if( !Property->HasAnyPropertyFlags(CPF_InstancedReference) )
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew))
 	{
 		FString ObjectPathName = NewValue ? NewValue->GetPathName() : TEXT("None");
-		bResult = Implementation->SendTextToObjectProperty( ObjectPathName, Flags );
+		bResult = Implementation->SendTextToObjectProperty(ObjectPathName, Flags);
 	}
 
 	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
@@ -3784,13 +3783,12 @@ FPropertyAccess::Result FPropertyHandleObject::GetValue(FAssetData& OutValue) co
 
 FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewValue, EPropertyValueSetFlags::Type Flags)
 {
-	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+	const TSharedPtr<FPropertyNode>& PropertyNode = Implementation->GetPropertyNode();
 
 	bool bResult = false;
-	// Instanced references can not be set this way (most likely editinlinenew )
-	if (!Property->HasAnyPropertyFlags(CPF_InstancedReference))
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew))
 	{
-		if ( !Property->IsA( USoftObjectProperty::StaticClass() ) )
+		if (!PropertyNode->GetProperty()->IsA(USoftObjectProperty::StaticClass()))
 		{
 			// Make sure the asset is loaded if we are not a string asset reference.
 			NewValue.GetAsset();

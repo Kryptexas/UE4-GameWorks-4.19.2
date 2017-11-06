@@ -5,6 +5,7 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "SSkeletonAnimNotifies.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotNames.h"
@@ -420,7 +421,7 @@ TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWo
 																		TEXT("AnimBlueprintPropertyEditorPreviewMode")))
 						[
 							SNew( STextBlock )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Bold", 9) )
 							.Text( LOCTEXT("AnimBlueprintDefaultsPreviewMode", "Edit Preview") )
 						]
 					]
@@ -442,7 +443,7 @@ TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWo
 																		TEXT("AnimBlueprintPropertyEditorDefaultMode")))
 						[
 							SNew( STextBlock )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Bold", 9) )
 							.Text( LOCTEXT("AnimBlueprintDefaultsDefaultsMode", "Edit Defaults") )
 						]
 					]

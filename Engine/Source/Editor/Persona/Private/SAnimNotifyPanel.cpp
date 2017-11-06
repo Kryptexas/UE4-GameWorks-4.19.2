@@ -16,6 +16,7 @@
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBar.h"
@@ -1433,7 +1434,7 @@ const float SAnimNotifyNode::MinimumStateDuration = (1.0f / 30.0f);
 void SAnimNotifyNode::Construct(const FArguments& InArgs)
 {
 	Sequence = InArgs._Sequence;
-	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	Font = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 	bBeingDragged = false;
 	CurrentDragHandle = ENotifyStateHandleHit::None;
 	bDrawTooltipToRight = true;

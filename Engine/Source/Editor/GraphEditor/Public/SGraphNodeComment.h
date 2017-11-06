@@ -13,7 +13,7 @@
 class UEdGraphNode_Comment;
 class SCommentBubble;
 
-class SGraphNodeComment : public SGraphNodeResizable
+class GRAPHEDITOR_API SGraphNodeComment : public SGraphNodeResizable
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeComment){}

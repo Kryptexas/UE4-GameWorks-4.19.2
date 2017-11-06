@@ -109,7 +109,7 @@ public:
 class UUMGSequencePlayer;
 
 /** Describes playback modes for UMG sequences. */
-UENUM()
+UENUM(BlueprintType)
 namespace EUMGSequencePlayMode
 {
 	enum Type

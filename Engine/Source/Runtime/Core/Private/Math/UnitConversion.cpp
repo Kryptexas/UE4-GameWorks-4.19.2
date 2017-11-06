@@ -280,12 +280,8 @@ struct FUnitExpressionParser
 	{
 		auto& Stream = Consumer.GetStream();
 
-		if (!FChar::IsDigit(Stream.PeekChar()))
-		{
-			return TOptional<FExpressionError>();
-		}
-
-		TOptional<FStringToken> NumberToken = ExpressionParser::ParseNumber(Stream);
+		double Value = 0.0;
+		TOptional<FStringToken> NumberToken = ExpressionParser::ParseLocalizedNumberWithAgnosticFallback(Stream, nullptr, &Value);
 		
 		if (NumberToken.IsSet())
 		{
@@ -304,7 +300,6 @@ struct FUnitExpressionParser
 				}
 			}
 
-			const double Value = FCString::Atod(*NumberToken.GetValue().GetString());
 			if (Unit.IsSet())
 			{
 				Consumer.Add(NumberToken.GetValue(), FNumericUnit<double>(Value, Unit.GetValue()));

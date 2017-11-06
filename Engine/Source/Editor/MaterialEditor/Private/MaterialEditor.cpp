@@ -114,6 +114,8 @@
 #include "Materials/Material.h"
 #include "AdvancedPreviewSceneModule.h"
 #include "MaterialLayersFunctionsCustomization.h"
+#include "MaterialEditor/MaterialEditorPreviewParameters.h"
+#include "SMaterialLayersFunctionsTree.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -133,7 +135,8 @@ const FName FMaterialEditor::PaletteTabId( TEXT( "MaterialEditor_Palette" ) );
 const FName FMaterialEditor::StatsTabId( TEXT( "MaterialEditor_Stats" ) );
 const FName FMaterialEditor::FindTabId( TEXT( "MaterialEditor_Find" ) );
 const FName FMaterialEditor::PreviewSettingsTabId( TEXT ("MaterialEditor_PreviewSettings" ) );
-
+const FName FMaterialEditor::ParameterDefaultsTabId( TEXT ("MaterialEditor_ParameterDefaults" ) );
+const FName FMaterialEditor::LayerPropertiesTabId(TEXT("MaterialInstanceEditor_MaterialLayerProperties"));
 ///////////////////////////
 // FMatExpressionPreview //
 ///////////////////////////
@@ -267,6 +270,19 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& I
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 
+	InTabManager->RegisterTabSpawner(ParameterDefaultsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_ParameterDefaults))
+		.SetDisplayName(LOCTEXT("ParameterDefaultsTab", "Parameter Defaults"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
+	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	if (MaterialEditorModule->MaterialLayersEnabled() && !MaterialFunction)
+	{
+		InTabManager->RegisterTabSpawner(LayerPropertiesTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_LayerProperties))
+			.SetDisplayName(LOCTEXT("LayerPropertiesTab", "Layer Parameters"))
+			.SetGroup(WorkspaceMenuCategoryRef)
+			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Layers"));
+	}
 
 	OnRegisterTabSpawners().Broadcast(InTabManager);
 }
@@ -284,6 +300,8 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	InTabManager->UnregisterTabSpawner( FindTabId );
 	InTabManager->UnregisterTabSpawner( HLSLCodeTabId );
 	InTabManager->UnregisterTabSpawner( PreviewSettingsTabId );
+	InTabManager->UnregisterTabSpawner( ParameterDefaultsTabId );
+	InTabManager->UnregisterTabSpawner(LayerPropertiesTabId);
 
 	OnUnregisterTabSpawners().Broadcast(InTabManager);
 }
@@ -411,7 +429,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	BindCommands();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v6")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v8")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -439,6 +457,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 					FTabManager::NewStack()
 					->AddTab( PropertiesTabId, ETabState::OpenedTab )
 					->AddTab( PreviewSettingsTabId, ETabState::ClosedTab)
+					->AddTab( ParameterDefaultsTabId, ETabState::OpenedTab )
+					->SetForegroundTab( PropertiesTabId )
 				)
 			)
 			->Split
@@ -637,6 +657,7 @@ FMaterialEditor::FMaterialEditor()
 	, bShowMobileStats(false)
 	, MenuExtensibilityManager(new FExtensibilityManager)
 	, ToolBarExtensibilityManager(new FExtensibilityManager)
+	, MaterialEditorInstance(NULL)
 {
 }
 
@@ -667,6 +688,7 @@ FMaterialEditor::~FMaterialEditor()
 	SaveEditorSettings();
 
 	MaterialDetailsView.Reset();
+	MaterialParametersView.Reset();
 
 	{
 		SCOPED_SUSPEND_RENDERING_THREAD(true);
@@ -677,6 +699,8 @@ FMaterialEditor::~FMaterialEditor()
 	check( !ScopedTransaction );
 	
 	GEditor->UnregisterForUndo( this );
+
+	MaterialEditorInstance = NULL;
 }
 
 void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
@@ -773,6 +797,31 @@ void FMaterialEditor::CreateInternalWidgets()
 
 	PropertyEditorModule.RegisterCustomClassLayout( UMaterial::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialDetailCustomization::MakeInstance ) );
 
+	const FDetailsViewArgs ParametersViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true);
+	MaterialParametersView = PropertyEditorModule.CreateDetailView(ParametersViewArgs);
+	MaterialEditorInstance = NewObject<UMaterialEditorPreviewParameters>(GetTransientPackage(), NAME_None, RF_Transactional);
+	MaterialEditorInstance->PreviewMaterial = Material;
+	MaterialEditorInstance->OriginalMaterial = OriginalMaterial;
+	if (MaterialFunction)
+	{
+		MaterialEditorInstance->OriginalFunction = MaterialFunction->ParentFunction;
+	}
+	MaterialEditorInstance->DetailsView = MaterialParametersView;
+	MaterialEditorInstance->RegenerateArrays();
+
+	FOnGetDetailCustomizationInstance LayoutParameterDetails = FOnGetDetailCustomizationInstance::CreateStatic(
+		&FMaterialEditorParameterDetails::MakeInstance, MaterialEditorInstance);
+	MaterialParametersView->RegisterInstancedCustomPropertyLayout(UMaterialEditorPreviewParameters::StaticClass(), LayoutParameterDetails);
+	MaterialParametersView->SetObject(MaterialEditorInstance, true);
+	MaterialParametersView->OnFinishedChangingProperties().AddSP(this, &FMaterialEditor::OnFinishedChangingProperties);
+	
+	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	if (MaterialEditorModule->MaterialLayersEnabled() && !MaterialFunction)
+	{
+		MaterialLayersFunctionsInstance = SNew(SMaterialLayersFunctionsMaterialWrapper)
+			.InMaterialEditorInstance(MaterialEditorInstance);
+	}
+
 	Palette = SNew(SMaterialPalette, SharedThis(this));
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
@@ -838,7 +887,7 @@ void FMaterialEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& 
 		{
 			if (Property->Struct->GetFName() == TEXT("LinearColor") || Property->Struct->GetFName() == TEXT("Color")) // if we changed a color property refresh the previews
 			{
-				RefreshExpressionPreviews();
+				RefreshExpressionPreviews(true);
 			}
 		}
 	}
@@ -1420,8 +1469,17 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 		// Null out the expression preview material so they can be GC'ed
 		ExpressionPreviewMaterial = NULL;
 	}
+	if (MaterialEditorInstance != nullptr)
+	{
+		MaterialEditorInstance->RegenerateArrays();
+		MaterialParametersView->ForceRefresh();
 
-
+		if (MaterialLayersFunctionsInstance.IsValid())
+		{
+			MaterialLayersFunctionsInstance->SetEditorInstance(MaterialEditorInstance);
+			MaterialLayersFunctionsInstance->Refresh();
+		}
+	}
 	// Reregister all components that use the preview material, since UMaterial::PEC does not reregister components using a bIsPreviewMaterial=true material
 	RefreshPreviewViewport();
 }
@@ -1818,6 +1876,7 @@ void FMaterialEditor::AddReferencedObjects( FReferenceCollector& Collector )
 	Collector.AddReferencedObject( MaterialFunction );
 	Collector.AddReferencedObject( ExpressionPreviewMaterial );
 	Collector.AddReferencedObject( EmptyMaterial );
+	Collector.AddReferencedObject( MaterialEditorInstance );
 }
 
 void FMaterialEditor::BindCommands()
@@ -2613,6 +2672,11 @@ void FMaterialEditor::OnPromoteToParameter()
 			MaterialNode->MaterialExpression->ValidateParameterName();
 		}
 	}
+	if (MaterialEditorInstance != nullptr)
+	{
+		MaterialEditorInstance->RegenerateArrays();
+		MaterialParametersView->ForceRefresh();
+	}
 }
 
 bool FMaterialEditor::OnCanPromoteToParameter()
@@ -2986,6 +3050,37 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_PreviewSettings(const FSpawnTabAr
 			SNew(SBox)
 			[
 				InWidget
+			]
+		];
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FMaterialEditor::SpawnTab_ParameterDefaults(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Details"))
+		.Label(LOCTEXT("ParameterDefaults", "Parameter Defaults"))
+		[
+			SNew(SBox)
+			[
+				MaterialParametersView.ToSharedRef()
+			]
+		];
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FMaterialEditor::SpawnTab_LayerProperties(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("MaterialInstanceEditor.Tabs.Properties"))
+		.Label(LOCTEXT("MaterialLayerPropertiesTitle", "Layer Parameter Preview"))
+		[
+			SNew(SBorder)
+			.Padding(4)
+			[
+				MaterialLayersFunctionsInstance.ToSharedRef()
 			]
 		];
 
@@ -3636,6 +3731,11 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 	if ( PropertyThatChanged )
 	{
+		if (MaterialLayersFunctionsInstance.IsValid())
+		{
+			MaterialLayersFunctionsInstance->SetEditorInstance(MaterialEditorInstance);
+		}
+
 		const FName NameOfPropertyThatChanged( *PropertyThatChanged->GetName() );
 		if ((NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterialInterface, PreviewMesh)) ||
 			(NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, bUsedWithSkeletalMesh)))
@@ -3738,11 +3838,11 @@ void FMaterialEditor::ToggleCollapsed(UMaterialExpression* MaterialExpression)
 	RefreshPreviewViewport();
 }
 
-void FMaterialEditor::RefreshExpressionPreviews()
+void FMaterialEditor::RefreshExpressionPreviews(bool bForceRefreshAll /*= false*/)
 {
 	const FScopedBusyCursor BusyCursor;
 
-	if ( bAlwaysRefreshAllPreviews )
+	if ( bAlwaysRefreshAllPreviews || bForceRefreshAll)
 	{
 		// we need to make sure the rendering thread isn't drawing these tiles
 		SCOPED_SUSPEND_RENDERING_THREAD(true);
@@ -4267,8 +4367,8 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			FColorPickerArgs PickerArgs;
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
 			PickerArgs.bUseAlpha = ChannelEditStruct.Alpha != nullptr;
-			PickerArgs.bOnlyRefreshOnOk = false;
-			PickerArgs.bOnlyRefreshOnMouseUp = true;
+			PickerArgs.bOnlyRefreshOnOk = true;
+			PickerArgs.bOnlyRefreshOnMouseUp = false;
 			PickerArgs.bExpandAdvancedSection = true;
 			PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
 			PickerArgs.ColorChannelsArray = &Channels;

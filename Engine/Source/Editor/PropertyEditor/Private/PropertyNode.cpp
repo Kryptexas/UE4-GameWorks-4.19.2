@@ -1800,6 +1800,10 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
 
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(ObjectNode->GetNumObjects());
+
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
 			UObject* Object = ObjectNode->GetUObject( ObjIndex );
@@ -2008,6 +2012,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 						PropagatePropertyChange(Object, *ValueAfterImport, PreviousArrayValue.IsEmpty() ? PreviousValue : PreviousArrayValue);
 					}
 
+					TopLevelObjects.Add(Object);
+
 					if(OldGWorld)
 					{
 						// restore the original (editor) GWorld
@@ -2024,7 +2030,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		{
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
-			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet );
+			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet, &TopLevelObjects );
 			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 
 			NotifyPostChange( ChangeEvent, InNotifyHook );

@@ -2,6 +2,7 @@
 
 #include "UDNParser.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -752,8 +753,8 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& InLink,
 	const FString SourcePath = FDocumentationLink::ToSourcePath( InLink );
 	const FString FullPath = FPaths::GetPath( SourcePath );
 
-	FSlateFontInfo Header1Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 );
-	FSlateFontInfo Header2Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 );
+	FSlateFontInfo Header1Font = FCoreStyle::GetDefaultFontStyle("Regular", 18);
+	FSlateFontInfo Header2Font = FCoreStyle::GetDefaultFontStyle("Regular", 14);
 
 	bool bCriticalError = false;
 	FString VariableName;

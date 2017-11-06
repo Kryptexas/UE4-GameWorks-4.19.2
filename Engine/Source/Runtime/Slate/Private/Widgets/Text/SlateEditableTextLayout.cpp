@@ -12,7 +12,7 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/Text/SlatePasswordRun.h"
-#include "Widgets/Text/TextBlockLayout.h"
+#include "Widgets/Text/SlateTextBlockLayout.h"
 #include "Framework/Text/TextEditHelper.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Internationalization/BreakIterator.h"
@@ -267,7 +267,7 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
 	{
 		HintTextStyle = TextStyle;
-		HintTextLayout = MakeUnique<FTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), CreateSlateTextLayout, HintMarshaller.ToSharedRef(), nullptr);
+		HintTextLayout = MakeUnique<FSlateTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), CreateSlateTextLayout, HintMarshaller.ToSharedRef(), nullptr);
 		HintTextLayout->SetDebugSourceInfo(DebugSourceInfo);
 	}
 	else
@@ -3337,7 +3337,7 @@ FVector2D FSlateEditableTextLayout::ComputeDesiredSize(float LayoutScaleMultipli
 		MarginValue.Right += CaretWidth;
 
 		const FVector2D HintTextSize = HintTextLayout->ComputeDesiredSize(
-			FTextBlockLayout::FWidgetArgs(HintText, FText::GetEmpty(), WrapTextAt, AutoWrapText, WrappingPolicy, MarginValue, LineHeightPercentage, Justification),
+			FSlateTextBlockLayout::FWidgetArgs(HintText, FText::GetEmpty(), WrapTextAt, AutoWrapText, WrappingPolicy, MarginValue, LineHeightPercentage, Justification),
 			LayoutScaleMultiplier, HintTextStyle
 			);
 

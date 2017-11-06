@@ -18,7 +18,7 @@
 
 class FPaintArgs;
 class FSlateWindowElementList;
-class FTextBlockLayout;
+class FSlateTextBlockLayout;
 class IBreakIterator;
 enum class ETextShapingMethod : uint8;
 
@@ -253,7 +253,7 @@ private:
 	TAttribute< FText > BoundText;
 
 	/** The wrapped layout for this text block */
-	TUniquePtr< FTextBlockLayout > TextLayoutCache;
+	TUniquePtr< FSlateTextBlockLayout > TextLayoutCache;
 
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;

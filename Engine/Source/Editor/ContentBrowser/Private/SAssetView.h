@@ -52,6 +52,7 @@ public:
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
 		, _CanShowCollections(false)
+		, _CanShowFavorites(false)
 		, _PreloadAssetsForContextMenu(true)
 		, _SelectionMode( ESelectionMode::Multi )
 		, _AllowDragging(true)
@@ -151,6 +152,9 @@ public:
 
 		/** Indicates if the 'Show Collections' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowCollections )
+
+		/** Indicates if the 'Show Favorites' option should be enabled or disabled */
+		SLATE_ARGUMENT(bool, CanShowFavorites)
 
 		/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 		SLATE_ARGUMENT( bool, PreloadAssetsForContextMenu )
@@ -484,6 +488,15 @@ private:
 	/** @return true when we are showing collections */
 	bool IsShowingCollections() const;
 
+	/** Toggle whether favorites should be shown or not */
+	void ToggleShowFavorites();
+
+	/** Whether or not it's possible to toggle favorites */
+	bool IsToggleShowFavoritesAllowed() const;
+
+	/** @return true when we are showing favorites */
+	bool IsShowingFavorites() const;
+
 	/** Toggle whether C++ content should be shown or not */
 	void ToggleShowCppContent();
 
@@ -722,6 +735,10 @@ private:
 	/** Will compute the max row size from all its children for the specified column id*/
 	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId);
 
+public:
+	/** Delegate that handles if any folder paths changed as a result of a move, rename, etc. in the asset view*/
+	FOnFolderPathChanged OnFolderPathChanged;
+
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -890,6 +907,9 @@ private:
 
 	/** Indicates if the 'Show Collections' option should be enabled or disabled */
 	bool bCanShowCollections;
+
+	/** Indicates if the 'Show Favorites' option should be enabled or disabled */
+	bool bCanShowFavorites;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 	bool bPreloadAssetsForContextMenu;

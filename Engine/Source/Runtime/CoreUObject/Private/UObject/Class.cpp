@@ -102,12 +102,12 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 	NotifyRegistrationEvent(PackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Finished);
 }
 
-void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSICHAR* InName, Native InPointer)
+void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSICHAR* InName, FNativeFuncPtr InPointer)
 {
 	Class->AddNativeFunction(InName, InPointer);
 }
 
-void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDECHAR* InName, Native InPointer)
+void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDECHAR* InName, FNativeFuncPtr InPointer)
 {
 	Class->AddNativeFunction(InName, InPointer);
 }
@@ -4035,7 +4035,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	return true;
 }
 
-bool UClass::ReplaceNativeFunction(FName InFName, Native InPointer, bool bAddToFunctionRemapTable)
+bool UClass::ReplaceNativeFunction(FName InFName, FNativeFuncPtr InPointer, bool bAddToFunctionRemapTable)
 {
 	IHotReloadInterface* HotReloadSupport = nullptr;
 
@@ -4063,7 +4063,7 @@ bool UClass::ReplaceNativeFunction(FName InFName, Native InPointer, bool bAddToF
 
 #endif
 
-void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
+void UClass::AddNativeFunction(const ANSICHAR* InName, FNativeFuncPtr InPointer)
 {
 	FName InFName(InName);
 #if WITH_HOT_RELOAD
@@ -4084,7 +4084,7 @@ void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 	new(NativeFunctionLookupTable) FNativeFunctionLookup(InFName,InPointer);
 }
 
-void UClass::AddNativeFunction(const WIDECHAR* InName, Native InPointer)
+void UClass::AddNativeFunction(const WIDECHAR* InName, FNativeFuncPtr InPointer)
 {
 	FName InFName(InName);
 #if WITH_HOT_RELOAD
@@ -4506,7 +4506,7 @@ void UFunction::Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL)
 	}
 
 	TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, this);
-	return (Obj->*Func)(Stack, RESULT_PARAM);
+	return (*Func)(Obj, Stack, RESULT_PARAM);
 }
 
 void UFunction::Serialize( FArchive& Ar )

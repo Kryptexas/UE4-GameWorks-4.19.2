@@ -38,7 +38,7 @@
 
 ELFTC_VCSID("$Id: elf_end.c 2240 2011-11-28 06:36:48Z jkoshy $");
 
-int
+__attribute__ ((visibility ("default"))) int
 elf_end(Elf *e)
 {
 	Elf *sv;

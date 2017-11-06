@@ -34,7 +34,6 @@ struct CORE_API FWindowsOSVersionHelper
 struct CORE_API FWindowsPlatformMisc
 	: public FGenericPlatformMisc
 {
-	static void SetHighDPIMode();
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static void SetGracefulTerminationHandler();

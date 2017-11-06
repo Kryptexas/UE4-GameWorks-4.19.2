@@ -160,6 +160,9 @@ private:
 	/** Handler for when a path has been selected in the path view */
 	void PathSelected(const FString& FolderPath);
 
+	/** Handler for when a path has been selected in the favorite path view */
+	void FavoritePathSelected(const FString& FolderPath);
+
 	/** Gets the current path if one exists, otherwise returns empty string. */
 	FString GetCurrentPath() const;
 
@@ -411,6 +414,15 @@ private:
 	/** Gets the visibility of the collection view */
 	EVisibility GetCollectionViewVisibility() const;
 
+	/** Gets the visibility of the favorites view */
+	EVisibility GetFavoriteFolderVisibility() const;
+	
+	/** The visibility of the search bar for the base path view*/
+	EVisibility GetAlternateSearchBarVisibility() const;
+
+	/** Toggles the favorite status of an array of folders*/
+	void ToggleFolderFavorite(const TArray<FString>& FolderPaths);
+
 private:
 
 	/** The tab that contains this browser */
@@ -427,6 +439,9 @@ private:
 
 	/** The asset tree widget */
 	TSharedPtr<SPathView> PathViewPtr;
+
+	/** The favorites tree widget */
+	TSharedPtr<class SFavoritePathView> FavoritePathViewPtr;
 
 	/** The collection widget */
 	TSharedPtr<SCollectionView> CollectionViewPtr;

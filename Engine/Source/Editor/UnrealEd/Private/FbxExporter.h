@@ -236,6 +236,7 @@ private:
 	TMap<const USkeletalMeshComponent*, FbxNode*> FbxSkeletonRoots;
 	TMap<const UMaterialInterface*, FbxSurfaceMaterial*> FbxMaterials;
 	TMap<const UStaticMesh*, FbxMesh*> FbxMeshes;
+	TMap<const UStaticMesh*, FbxMesh*> FbxCollisionMeshes;
 
 	/** The frames-per-second (FPS) used when baking transforms */
 	static const float BakeTransformsFPS;

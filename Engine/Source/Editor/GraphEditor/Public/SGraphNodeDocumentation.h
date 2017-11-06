@@ -10,7 +10,7 @@
 #include "SGraphNodeResizable.h"
 #include "Types/SlateStructs.h"
 
-class SGraphNodeDocumentation : public SGraphNodeResizable
+class GRAPHEDITOR_API SGraphNodeDocumentation : public SGraphNodeResizable
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeDocumentation){}

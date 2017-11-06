@@ -1373,19 +1373,13 @@ public:
 	 * @param InPaintWindow		The window that owns the widgets being painted.  This is almost most always the same window that is being rendered to
 	 * @param InRenderWindow	The window that we will be rendering to.
 	 */
-	explicit FSlateWindowElementList( TSharedPtr<SWindow> InPaintWindow = nullptr )
-		: PaintWindow(InPaintWindow)
-		, RenderTargetWindow(nullptr)
-		, bNeedsDeferredResolve( false )
-		, ResolveToDeferredIndex()
-		, MemManager(0)
-	{
-		DrawStack.Push(&RootDrawLayer);
-	}
+	SLATECORE_API explicit FSlateWindowElementList(TSharedPtr<SWindow> InPaintWindow = nullptr);
 
 	/** @return Get the window that we will be painting */
 	FORCEINLINE TSharedPtr<SWindow> GetWindow() const
 	{
+		// check that we are in game thread or are in slate/movie loading thread
+		check(IsInGameThread() || IsInSlateThread())
 		return PaintWindow.Pin();
 	}
 
@@ -1417,6 +1411,12 @@ public:
 	{
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Add(InDrawElement);
+	}
+
+	/** @return Get the window size that we will be painting */
+	FORCEINLINE FVector2D GetWindowSize() const
+	{
+		return WindowSize;
 	}
 
 	/**
@@ -1633,4 +1633,7 @@ private:
 
 	// Mem stack for temp allocations
 	FMemStackBase MemManager; 
+
+	/** Store the size of the window being used to paint */
+	FVector2D WindowSize;
 };

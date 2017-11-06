@@ -89,5 +89,9 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 
 #define P_FINISH									Stack.Code += !!Stack.Code; /* increment the code ptr unless it is null */
 
+#define P_THIS_OBJECT								(Context)
+#define P_THIS_CAST(ClassType)						((ClassType*)P_THIS_OBJECT)
+#define P_THIS										P_THIS_CAST(ThisClass)
+
 #define P_NATIVE_BEGIN { SCOPED_SCRIPT_NATIVE_TIMER(ScopedNativeCallTimer);
 #define P_NATIVE_END   }

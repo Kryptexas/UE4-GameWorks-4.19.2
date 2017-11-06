@@ -180,7 +180,9 @@ UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Material(BlendablesCategoryBit)));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunction));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayer));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerInstance));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerBlend));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerBlendInstance));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionInstance));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInterface));
@@ -585,9 +587,9 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 	return NewObject;
 }
 
-void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
+void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
 {
-	AssetRenameManager->RenameAssets(AssetsAndNames);
+	AssetRenameManager->RenameAssets(AssetsAndNames, bAutoCheckout);
 }
 
 void UAssetToolsImpl::FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const
@@ -1302,8 +1304,12 @@ TArray<UObject*> UAssetToolsImpl::ImportAssetsInternal(const TArray<FString>& Fi
 	// Now iterate over the input files and use the same factory object for each file with the same extension
 	for(int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 	{
+		// Filename and DestinationPath will need to get santized before we create an asset out of them as they
+		// can be created out of sources that contain spaces and other invalid characters. Filename cannot be sanitized
+		// until other checks are done that rely on looking at the actual source file so sanitation is delayed.
 		const FString& Filename = FilesAndDestinations[FileIdx].Key;
-		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+		const FString DestinationPath = ObjectTools::SanitizeObjectPath(FilesAndDestinations[FileIdx].Value);
+
 
 		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("Import_ImportingFile", "Importing \"{0}\"..."), FText::FromString(FPaths::GetBaseFilename(Filename))));
 

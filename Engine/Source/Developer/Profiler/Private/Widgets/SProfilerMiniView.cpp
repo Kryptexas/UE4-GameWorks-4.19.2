@@ -6,6 +6,7 @@
 #include "Rendering/DrawElements.h"
 #include "Brushes/SlateColorBrush.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "EditorStyleSet.h"
 #include "ProfilerSession.h"
@@ -107,7 +108,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	const float MiniViewSizeY = AllottedGeometry.Size.Y;
 
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	FSlateFontInfo SummaryFont( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 );
+	FSlateFontInfo SummaryFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 	const float MaxFontCharHeight = FontMeasureService->Measure( TEXT( "!" ), SummaryFont ).Y;
 
 	// Draw background.

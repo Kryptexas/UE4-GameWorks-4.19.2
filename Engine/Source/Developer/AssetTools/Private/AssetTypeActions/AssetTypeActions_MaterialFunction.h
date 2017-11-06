@@ -24,15 +24,15 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::MaterialsAndTextures; }
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
 
-private:
+protected:
 	/** Handler for when NewMFI is selected */
-	void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects);
+	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects);
 
 	/** Handler for when FindMaterials is selected */
 	void ExecuteFindMaterials(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects);
 };
 
-class FAssetTypeActions_MaterialFunctionLayer : public FAssetTypeActions_Base
+class FAssetTypeActions_MaterialFunctionLayer : public FAssetTypeActions_MaterialFunction
 {
 public:
 	// IAssetTypeActions Implementation
@@ -41,9 +41,13 @@ public:
 	virtual UClass* GetSupportedClass() const override;
 	virtual bool CanFilter() override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::MaterialsAndTextures; }
+
+private:
+	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
 };
 
-class FAssetTypeActions_MaterialFunctionLayerBlend : public FAssetTypeActions_Base
+
+class FAssetTypeActions_MaterialFunctionLayerBlend : public FAssetTypeActions_MaterialFunction
 {
 public:
 	// IAssetTypeActions Implementation
@@ -52,4 +56,7 @@ public:
 	virtual UClass* GetSupportedClass() const override;
 	virtual bool CanFilter() override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::MaterialsAndTextures; }
+
+private:
+	virtual void ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects) override;
 };

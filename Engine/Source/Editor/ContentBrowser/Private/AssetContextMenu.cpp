@@ -1084,6 +1084,8 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 
 void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 {
+	MenuBuilder.BeginSection("AssetSourceControlActions", LOCTEXT("AssetSourceControlActionsMenuHeading", "Source Control"));
+
 	if( CanExecuteSCCMerge() )
 	{
 		MenuBuilder.AddMenuEntry(
@@ -1194,6 +1196,8 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 			)
 		);
 	}
+
+	MenuBuilder.EndSection();
 }
 
 bool FAssetContextMenu::CanExecuteSourceControlActions() const
@@ -2589,6 +2593,10 @@ void FAssetContextMenu::CacheCanExecuteVars()
 				if ( SourceControlState->CanCheckIn() )
 				{
 					bCanExecuteSCCCheckIn = true;
+				}
+
+				if (SourceControlState->CanRevert())
+				{
 					bCanExecuteSCCRevert = true;
 				}
 			}

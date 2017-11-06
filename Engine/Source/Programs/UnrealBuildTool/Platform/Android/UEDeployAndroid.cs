@@ -2791,6 +2791,12 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Application display name is different than last build, forcing repackage.");
 			}
 
+			// Write Crashlytics data if enabled
+			if (CrashlyticsPluginEnabled)
+			{
+				WriteCrashlyticsResources(Path.Combine(ProjectDirectory, "Build", "Android"), PackageName, ApplicationDisplayName);
+			}
+
 			// if the manifest matches, look at other settings stored in a file
 			if (bBuildSettingsMatch)
 			{

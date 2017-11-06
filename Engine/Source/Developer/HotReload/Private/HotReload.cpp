@@ -107,7 +107,7 @@ public:
 	virtual bool RecompileModule(const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar, bool bFailIfGeneratedCodeChanges = true, bool bForceCodeProject = false) override;
 	virtual bool IsCurrentlyCompiling() const override { return ModuleCompileProcessHandle.IsValid(); }
 	virtual void RequestStopCompilation() override { bRequestCancelCompilation = true; }
-	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) override;	
+	virtual void AddHotReloadFunctionRemap(FNativeFuncPtr NewFunctionPointer, FNativeFuncPtr OldFunctionPointer) override;	
 	virtual ECompilationResult::Type RebindPackages(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) override;
 	virtual ECompilationResult::Type DoHotReloadFromEditor(const bool bWaitForCompletion) override;
 	virtual FHotReloadEvent& OnHotReload() override { return HotReloadEvent; }	
@@ -742,21 +742,21 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 }
 
 /** Type hash for a UObject Function Pointer, maybe not a great choice, but it should be sufficient for the needs here. **/
-inline uint32 GetTypeHash(Native A)
+inline uint32 GetTypeHash(FNativeFuncPtr A)
 {
 	return *(uint32*)&A;
 }
 
 /** Map from old function pointer to new function pointer for hot reload. */
-static TMap<Native, Native> HotReloadFunctionRemap;
+static TMap<FNativeFuncPtr, FNativeFuncPtr> HotReloadFunctionRemap;
 
 static TSet<UBlueprint*> HotReloadBPSetToRecompile;
 static TSet<UBlueprint*> HotReloadBPSetToRecompileBytecodeOnly;
 
 /** Adds and entry for the UFunction native pointer remap table */
-void FHotReloadModule::AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer)
+void FHotReloadModule::AddHotReloadFunctionRemap(FNativeFuncPtr NewFunctionPointer, FNativeFuncPtr OldFunctionPointer)
 {
-	Native OtherNewFunction = HotReloadFunctionRemap.FindRef(OldFunctionPointer);
+	FNativeFuncPtr OtherNewFunction = HotReloadFunctionRemap.FindRef(OldFunctionPointer);
 	check(!OtherNewFunction || OtherNewFunction == NewFunctionPointer);
 	check(NewFunctionPointer);
 	check(OldFunctionPointer);
@@ -881,7 +881,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 		{
 			if (UFunction* Function = Cast<UFunction>(static_cast<UObject*>(It->Object)))
 			{
-				if (Native NewFunction = HotReloadFunctionRemap.FindRef(Function->GetNativeFunc()))
+				if (FNativeFuncPtr NewFunction = HotReloadFunctionRemap.FindRef(Function->GetNativeFunc()))
 				{
 					++NumFunctionsRemapped;
 					Function->SetNativeFunc(NewFunction);

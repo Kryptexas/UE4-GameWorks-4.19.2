@@ -82,7 +82,7 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 						// media source name
 						SNew(STextBlock)
 							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+							.Font(Style->GetFontStyle("MediaPlayerEditor.ViewportFont"))
 							.ShadowOffset(FVector2D(1.f, 1.f))
 							.Text(this, &SMediaPlayerEditorViewport::HandleMediaSourceNameText)
 							.ToolTipText(LOCTEXT("OverlaySourceNameTooltip", "Name of the currently opened media source"))
@@ -95,7 +95,7 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 						// player name
 						SNew(STextBlock)
 							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+							.Font(Style->GetFontStyle("MediaPlayerEditor.ViewportFont"))
 							.ShadowOffset(FVector2D(1.f, 1.f))
 							.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerNameText)
 							.ToolTipText(LOCTEXT("OverlayPlayerNameTooltip", "Name of the currently used media player plug-in"))
@@ -119,7 +119,7 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 						// playback state
 						SNew(STextBlock)
 							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+							.Font(Style->GetFontStyle("MediaPlayerEditor.ViewportFont"))
 							.ShadowOffset(FVector2D(1.f, 1.f))
 							.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerStateText)
 							.ToolTipText(LOCTEXT("OverlayPlayerStateTooltip", "The media player's current state"))
@@ -132,7 +132,7 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 						// view settings
 						SNew(STextBlock)
 							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+							.Font(Style->GetFontStyle("MediaPlayerEditor.ViewportFont"))
 							.ShadowOffset(FVector2D(1.f, 1.f))
 							.Text(this, &SMediaPlayerEditorViewport::HandleViewSettingsText)
 							.ToolTipText(LOCTEXT("OverlayViewSettingsTooltip", "The current view settings"))

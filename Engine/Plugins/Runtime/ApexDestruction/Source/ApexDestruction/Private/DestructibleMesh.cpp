@@ -555,10 +555,10 @@ void UDestructibleMesh::CreateFractureSettings()
 
 #if WITH_APEX && WITH_EDITORONLY_DATA
 
-bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, nvidia::apex::ExplicitSubmeshData& SubmeshData, TArray<nvidia::apex::ExplicitRenderTriangle>& Triangles)
+bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, nvidia::apex::ExplicitSubmeshData& SubmeshData, TArray<nvidia::apex::ExplicitRenderTriangle>& Triangles, const int32 SectionMaterialIndex)
 {
 	// Create submesh descriptor, just a material name and a vertex format
-	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"),Section.MaterialIndex)), nvidia::apex::ExplicitSubmeshData::MaterialNameBufferSize);
+	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"), SectionMaterialIndex)), nvidia::apex::ExplicitSubmeshData::MaterialNameBufferSize);
 	SubmeshData.mVertexFormat.mHasStaticPositions = SubmeshData.mVertexFormat.mHasStaticNormals = SubmeshData.mVertexFormat.mHasStaticTangents = true;
 	SubmeshData.mVertexFormat.mHasStaticBinormals = true;
 	SubmeshData.mVertexFormat.mBonesPerVertex = 1;
@@ -674,9 +674,21 @@ bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticM
 			apex::ExplicitSubmeshData& SubmeshData = Submeshes[SubmeshIndexCounter];
 
 			// Parallel materials array
-			MeshMaterials.Add(CurrentStaticMesh->GetMaterial(Section.MaterialIndex));
+			int32 SectionMaterialIndex = INDEX_NONE;
+			for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+			{
+				if (MeshMaterials[MaterialIndex]->GetFName() == CurrentStaticMesh->GetMaterial(Section.MaterialIndex)->GetFName())
+				{
+					SectionMaterialIndex = MaterialIndex;
+					break;
+				}
+			}
+			if (SectionMaterialIndex == INDEX_NONE)
+			{
+				SectionMaterialIndex = MeshMaterials.Add(CurrentStaticMesh->GetMaterial(Section.MaterialIndex));
+			}
 
-			CreateSubmeshFromSMSection(RenderMesh, SubmeshIndexCounter, Section, SubmeshData, Triangles);
+			CreateSubmeshFromSMSection(RenderMesh, SubmeshIndexCounter, Section, SubmeshData, Triangles, SectionMaterialIndex);
 		}
 
 		//if (MeshIdx > 0)

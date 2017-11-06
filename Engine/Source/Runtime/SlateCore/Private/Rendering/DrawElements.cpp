@@ -13,6 +13,21 @@ DEFINE_STAT(STAT_SlateBufferPoolMemory);
 
 FSlateShaderResourceManager* FSlateDataPayload::ResourceManager;
 
+FSlateWindowElementList::FSlateWindowElementList(TSharedPtr<SWindow> InPaintWindow)
+	: PaintWindow(InPaintWindow)
+	, RenderTargetWindow(nullptr)
+	, bNeedsDeferredResolve(false)
+	, ResolveToDeferredIndex()
+	, MemManager(0)
+	, WindowSize(FVector2D(0.0f, 0.0f))
+{
+	DrawStack.Push(&RootDrawLayer);
+	if (InPaintWindow.IsValid())
+	{
+		WindowSize = InPaintWindow->GetSizeInScreen();
+	}
+}
+
 void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& ElementList, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 InStartIndex, const int32 InEndIndex )
 {
 	Tint = InTint;

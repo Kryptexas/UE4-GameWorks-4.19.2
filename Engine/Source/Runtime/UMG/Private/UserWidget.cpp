@@ -407,11 +407,10 @@ void UUserWidget::DuplicateAndInitializeFromWidgetTree(UWidgetTree* InWidgetTree
 	{
 		FObjectDuplicationParameters Parameters(InWidgetTree, this);
 
-		// Set to be transient and strip public flags
-		Parameters.ApplyFlags = RF_Transient | RF_DuplicateTransient;
-		Parameters.FlagMask = Parameters.FlagMask & ~( RF_Public | RF_DefaultSubObject );
-
 		WidgetTree = Cast<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
+
+		// Set widget tree to be transient
+		WidgetTree->SetFlags(RF_Transient | RF_DuplicateTransient);
 	}
 }
 

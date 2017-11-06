@@ -247,10 +247,14 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		else
 		{
 			// Starts off with a mount point (not case sensitive)
-			MountPoint = TEXT("/") + SourceDirectoryMountPoint + TEXT("/");
-			FString SourceDirectoryLeftChop = SourceDirectory.Left(MountPoint.Len());
-			FString SourceDirectoryRightChop = SourceDirectory.RightChop(MountPoint.Len());
-
+			FString SourceMountPoint = TEXT("/") + SourceDirectoryMountPoint + TEXT("/");
+			if (MountPoint.IsEmpty() || FPackageName::GetPackageMountPoint(MountPoint).IsNone())
+			{
+				//Set the mountPoint
+				MountPoint = SourceMountPoint;
+			}
+			FString SourceDirectoryLeftChop = SourceDirectory.Left(SourceMountPoint.Len());
+			FString SourceDirectoryRightChop = SourceDirectory.RightChop(SourceMountPoint.Len());
 			// Resolve mount point on file system (possibly case sensitive, so re-use original source path)
 			SourceDirectory = FPaths::ConvertRelativePathToFull(
 				FPackageName::LongPackageNameToFilename(SourceDirectoryLeftChop) / SourceDirectoryRightChop);

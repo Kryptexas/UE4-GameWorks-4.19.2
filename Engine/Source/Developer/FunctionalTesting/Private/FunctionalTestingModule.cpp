@@ -240,7 +240,7 @@ void FFunctionalTestingModule::RunTestOnMap(const FString& TestName, bool bClear
 	if (UWorld* TestWorld = GetTestWorld())
 	{
 		bPendingActivation = false;
-		if (UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped, true, TestName) == false)
+		if (UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped, TestName) == false)
 		{
 			UE_LOG(LogFunctionalTest, Error, TEXT("No functional testing script on map."));
 		}

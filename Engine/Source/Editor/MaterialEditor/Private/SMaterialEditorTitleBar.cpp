@@ -4,6 +4,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Views/SListView.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 
 void SMaterialEditorTitleBar::Construct(const FArguments& InArgs)
@@ -71,7 +72,7 @@ TSharedRef<ITableRow> SMaterialEditorTitleBar::MakeMaterialInfoWidget(TSharedPtr
 			[
 				SNew(STextBlock)
 				.ColorAndOpacity(TextColor)
-				.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), FontSize ))
+				.Font(FCoreStyle::GetDefaultFontStyle("Regular", FontSize))
 				.Text(FText::FromString(Text))
 			];
 	}

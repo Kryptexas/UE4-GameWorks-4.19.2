@@ -268,13 +268,20 @@ SLevelEditor::~SLevelEditor()
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
 	LevelEditorModule.OnNotificationBarChanged().RemoveAll( this );
 	
-	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll( this );
-	GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll( this );
+	if(UObjectInitialized())
+	{
+		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
+		GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll(this);
+	}
+
 	FEditorModeRegistry::Get().OnRegisteredModesChanged().RemoveAll( this );
 
 	FEditorDelegates::MapChange.RemoveAll(this);
 
-	GEditor->GetEditorWorldContext(true).RemoveRef(World);
+	if (GEditor)
+	{
+		GEditor->GetEditorWorldContext(true).RemoveRef(World);
+	}
 }
 
 FText SLevelEditor::GetTabTitle() const

@@ -16,6 +16,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/SListView.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "UnrealEdMisc.h"
 #include "IDocumentation.h"
@@ -149,7 +150,7 @@ TSharedRef<ITableRow> SAboutScreen::MakeAboutTextItemWidget(TSharedRef<FLineDefi
 			[
 				SNew(STextBlock)
 				.ColorAndOpacity( Item->TextColor )
-				.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), Item->FontSize ))
+				.Font( FCoreStyle::GetDefaultFontStyle("Regular", Item->FontSize) )
 				.Text( Item->Text )
 			];
 	}

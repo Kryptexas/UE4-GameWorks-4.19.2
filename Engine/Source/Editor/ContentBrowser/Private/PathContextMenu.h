@@ -34,6 +34,10 @@ public:
 	DECLARE_DELEGATE(FOnFolderDeleted)
 	void SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDeleted);
 
+	/** Delegate for when the context menu has successfully toggled the favorite status of a folder */
+	DECLARE_DELEGATE_OneParam(FOnFolderFavoriteToggled, const TArray<FString>& /*FoldersToToggle*/)
+	void SetOnFolderFavoriteToggled(const FOnFolderFavoriteToggled& InOnFolderFavoriteToggled);
+
 	/** Sets the currently selected paths */
 	void SetSelectedPaths(const TArray<FString>& InSelectedPaths);
 
@@ -81,6 +85,9 @@ public:
 
 	/** Handler for when new or set color is selected */
 	void ExecutePickColor();
+
+	/** Handler for favoriting */
+	void ExecuteFavorite();
 
 	/** Handler for when "Save" is selected */
 	void ExecuteSaveFolder();
@@ -160,6 +167,7 @@ private:
 	FNewAssetOrClassContextMenu::FOnImportAssetRequested OnImportAssetRequested;
 	FOnRenameFolderRequested OnRenameFolderRequested;
 	FOnFolderDeleted OnFolderDeleted;
+	FOnFolderFavoriteToggled OnFolderFavoriteToggled;
 
 	/** Cached SCC CanExecute vars */
 	bool bCanExecuteSCCCheckOut;

@@ -11,6 +11,7 @@
 #include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/FbxTextureImportData.h"
 #include "Factories/FbxSceneImportFactory.h"
+#include "MeshBuild.h"
 
 class AActor;
 class ACameraActor;
@@ -159,7 +160,7 @@ struct FBXImportOptions
 	bool bImportRigidMesh;
 	bool bUseT0AsRefPose;
 	bool bPreserveSmoothingGroups;
-	bool bKeepOverlappingVertices;
+	FOverlappingThresholds OverlappingThresholds;
 	bool bImportMeshesInBoneHierarchy;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
@@ -514,6 +515,19 @@ public:
 	static void DeletePreviewInstance();
 
 	/**
+	* Clear all data that need to be clear when we start importing a fbx file.
+	*/
+	void ClearAllCaches()
+	{
+		//Clear the mesh name cache use to ensure unique mesh name and avoid name clash
+		MeshNamesCache.Reset();
+		
+		//this cache is use to prevent a node to be transform twice. it has to be reset everytime we
+		//read a new fbx file
+		TransformSettingsToFbxApply.Reset();
+	}
+
+	/**
 	 * Detect if the FBX file has skeletal mesh model. If there is deformer definition, then there is skeletal mesh.
 	 * In this function, we don't need to import the scene. But the open process is time-consume if the file is large.
 	 *
@@ -639,7 +653,7 @@ public:
 	* 1. Build the staticmesh render data
 	* 2. Reorder the material array to follow the fbx file material order
 	*/
-	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
+	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray, int32 LODIndex = 0);
     
 	static void UpdateStaticMeshImportData(UStaticMesh *StaticMesh, UFbxStaticMeshImportData* StaticMeshImportData);
 	static void UpdateSkeletalMeshImportData(USkeletalMesh *SkeletalMesh, UFbxSkeletalMeshImportData* SkeletalMeshImportData, int32 SpecificLod, TArray<FName> *ImportMaterialOriginalNameData, TArray<FImportMeshLodSectionsData> *ImportMeshLodData);

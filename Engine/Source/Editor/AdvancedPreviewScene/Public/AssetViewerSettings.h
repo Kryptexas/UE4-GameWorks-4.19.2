@@ -26,7 +26,6 @@ struct FPreviewSceneProfile
 		bShowFloor = true;
 		bShowEnvironment = true;
 		bRotateLightingRig = false;
-		EnvironmentCubeMap = nullptr;
 		DirectionalLightIntensity = 1.0f;
 		DirectionalLightColor = FLinearColor::White;
 		SkyLightIntensity = 1.0f;

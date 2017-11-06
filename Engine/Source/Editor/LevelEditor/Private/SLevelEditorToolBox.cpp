@@ -18,7 +18,10 @@
 
 SLevelEditorToolBox::~SLevelEditorToolBox()
 {
-	GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll( this );
+	if (UObjectInitialized())
+	{
+		GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll(this);
+	}
 }
 
 void SLevelEditorToolBox::Construct( const FArguments& InArgs, const TSharedRef< class ILevelEditor >& OwningLevelEditor )

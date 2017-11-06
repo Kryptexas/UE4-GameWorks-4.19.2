@@ -144,6 +144,7 @@ public:
 		SLATE_ARGUMENT(bool, DisplayThumbnail)
 		/** A custom content slot for widgets */ 
 		SLATE_NAMED_SLOT(FArguments, CustomContentSlot)
+		SLATE_ATTRIBUTE(FIntPoint, ThumbnailSizeOverride)
 	SLATE_END_ARGS()
 
 	PROPERTYEDITOR_API void Construct( const FArguments& InArgs );

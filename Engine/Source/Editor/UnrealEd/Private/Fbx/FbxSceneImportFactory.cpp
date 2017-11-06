@@ -2012,8 +2012,8 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			}
 		}
 	}
-
-	USkeletalMesh *ImportedSkelMesh = Cast<USkeletalMesh>(NewObject);
+	
+	USkeletalMesh* ImportedSkelMesh = Cast<USkeletalMesh>(NewObject);
 	//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
 	if (ImportedSkelMesh->MorphTargets.Num() > 0)
 	{
@@ -2021,7 +2021,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 		//Rebuild the resources with a post edit change since we have added some morph targets
 		ImportedSkelMesh->PostEditChange();
 	}
-
+	
 	//Put back the options
 	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;

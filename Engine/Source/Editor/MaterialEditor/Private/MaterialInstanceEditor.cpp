@@ -9,6 +9,7 @@
 #include "UObject/Package.h"
 #include "Editor.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "MaterialEditor/DEditorTextureParameterValue.h"
 #include "Materials/Material.h"
 #include "MaterialEditor/MaterialEditorInstanceConstant.h"
@@ -79,7 +80,7 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		FText Entry;
-		FSlateFontInfo FontInfo = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
+		FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", 9);
 		if ( ColumnName == "Parent" )
 		{
 			if ( ParentIndex == 0 )
@@ -95,7 +96,7 @@ public:
 			else
 			{
 				Entry = NSLOCTEXT("UnrealEd", "Current", "Current");
-				FontInfo = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 );
+				FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 9);
 			}
 		}
 		else
@@ -103,7 +104,7 @@ public:
 			Entry = FText::FromString( WidgetInfo.Get()->GetName() );
 			if ( ParentIndex == -1 )
 			{
-				FontInfo = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 );
+				FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 9);
 			}
 		}
 		
@@ -1339,6 +1340,10 @@ void FMaterialInstanceEditor::UpdatePropertyWindow()
 	TArray<UObject*> SelectedObjects;
 	SelectedObjects.Add( MaterialEditorInstance );
 	MaterialInstanceDetails->SetObjects( SelectedObjects, true );
+	if (MaterialLayersFunctionsInstance.IsValid())
+	{
+		MaterialLayersFunctionsInstance->SetEditorInstance(MaterialEditorInstance);
+	}
 }
 
 UObject* FMaterialInstanceEditor::GetSyncObject()

@@ -49,7 +49,7 @@ namespace TextFilterExpressionParser
 	{
 		auto& Stream = Consumer.GetStream();
 
-		TOptional<FStringToken> NumberToken = ExpressionParser::ParseNumber(Stream);
+		TOptional<FStringToken> NumberToken = ExpressionParser::ParseLocalizedNumberWithAgnosticFallback(Stream);
 		
 		if (NumberToken.IsSet())
 		{

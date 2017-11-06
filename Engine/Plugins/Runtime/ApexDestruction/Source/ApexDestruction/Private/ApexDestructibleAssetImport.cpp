@@ -319,14 +319,19 @@ static void ImportMaterialsForSkelMesh(FSkeletalMeshImportData &ImportData, cons
 
 	// Create material slots
 	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	if (DefaultMaterial)
+	if (DefaultMaterial && ApexRenderMesh != nullptr)
 	{
-		for (uint32 MatIndex = 0; MatIndex < SubmeshCount; MatIndex++)
+		TArray<FString> Materials;
+		for (uint32 SubmeshIdx = 0; SubmeshIdx < SubmeshCount; SubmeshIdx++)
 		{
-			ImportData.Materials.Add( VMaterial() );
-
-			ImportData.Materials.Last().Material = DefaultMaterial;
-			ImportData.Materials.Last().MaterialImportName = DefaultMaterial->GetName();
+			FString MaterialName = ApexRenderMesh->getMaterialName(SubmeshIdx);
+			if (!Materials.Contains(MaterialName))
+			{
+				Materials.Add(MaterialName);
+				ImportData.Materials.Add(VMaterial());
+				ImportData.Materials.Last().Material = DefaultMaterial;
+				ImportData.Materials.Last().MaterialImportName = DefaultMaterial->GetName();
+			}
 		}
 	}
 }
@@ -482,6 +487,9 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 	bHaveAllNormals = true;
 	bHaveAllTangents = true;
 
+	uint32_t MaterialCount = 0;
+	TMap<FString, int32> MaterialMap = TMap<FString, int32>();
+
 	// APEX render meshes are organized by submesh (render elements)
 	// Looping through submeshes first, can be done either way
 	for (uint32 SubmeshIndex = 0; SubmeshIndex < ApexRenderMesh->getSubmeshCount(); ++SubmeshIndex)
@@ -497,6 +505,19 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 			// Empty submesh, but the mesh as a whole may be valid, keep looking for more submeshes.
 			continue;
 		}
+
+		FString MaterialName(ApexRenderMesh->getMaterialName(SubmeshIndex));
+ 		uint32 MaterialIndex = 0;
+ 		if (!MaterialMap.Contains(MaterialName))
+ 		{
+ 			MaterialMap.Add(MaterialName, MaterialCount);
+ 			MaterialIndex = MaterialCount;
+ 			MaterialCount++;
+ 		}
+ 		else
+ 		{
+ 			MaterialIndex = MaterialMap[MaterialName];
+ 		}
 
 		// Get VB data semantic indices:
 
@@ -604,7 +625,7 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 				Triangle.SmoothingGroups = 255; 
 
 				// Material index
-				Triangle.MatIndex = SubmeshIndex;
+				Triangle.MatIndex = MaterialIndex;
 				Triangle.AuxMatIndex = 0;
 
 				// Per-vertex
@@ -876,7 +897,6 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
 		IMeshUtilities::MeshBuildOptions BuildOptions;
-		BuildOptions.bKeepOverlappingVertices = false;
 		BuildOptions.bComputeNormals = !bHaveNormals;
 		BuildOptions.bComputeTangents = !bHaveTangents;
 
@@ -965,10 +985,14 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 			if (MaterialIndex < OverrideMaterials.Num())	//if user has overridden materials use it
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = OverrideMaterials[MaterialIndex];
+				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
 			}
 			else
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = DestructibleMesh.FractureSettings->Materials[MaterialIndex];
+				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
 			}
 
 		}

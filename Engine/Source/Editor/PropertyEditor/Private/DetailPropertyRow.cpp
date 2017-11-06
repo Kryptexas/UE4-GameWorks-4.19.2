@@ -11,6 +11,10 @@
 #include "StructurePropertyNode.h"
 #include "ItemPropertyNode.h"
 #include "ObjectPropertyNode.h"
+#include "DetailWidgetRow.h"
+
+const float FDetailWidgetRow::DefaultValueMinWidth = 125.0f;
+const float FDetailWidgetRow::DefaultValueMaxWidth = 125.0f;
 
 #define LOCTEXT_NAMESPACE	"DetailPropertyRow"
 

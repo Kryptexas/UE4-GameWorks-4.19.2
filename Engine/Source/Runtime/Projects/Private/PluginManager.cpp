@@ -92,16 +92,6 @@ FPlugin::~FPlugin()
 {
 }
 
-FString FPlugin::GetName() const
-{
-	return Name;
-}
-
-FString FPlugin::GetDescriptorFileName() const
-{
-	return FileName;
-}
-
 FString FPlugin::GetBaseDir() const
 {
 	return FPaths::GetPath(FileName);
@@ -114,12 +104,12 @@ FString FPlugin::GetContentDir() const
 
 FString FPlugin::GetMountedAssetPath() const
 {
-	return FString::Printf(TEXT("/%s/"), *Name);
-}
-
-bool FPlugin::IsEnabled() const
-{
-	return bEnabled;
+	FString Path;
+	Path.Reserve(Name.Len() + 2);
+	Path.AppendChar('/');
+	Path.Append(Name);
+	Path.AppendChar('/');
+	return Path;
 }
 
 bool FPlugin::IsEnabledByDefault() const
@@ -136,21 +126,6 @@ bool FPlugin::IsEnabledByDefault() const
 	{
 		return GetLoadedFrom() == EPluginLoadedFrom::Project;
 	}
-}
-
-bool FPlugin::IsHidden() const
-{
-	return Descriptor.bIsHidden;
-}
-
-bool FPlugin::CanContainContent() const
-{
-	return Descriptor.bCanContainContent;
-}
-
-EPluginType FPlugin::GetType() const
-{
-	return Type;
 }
 
 EPluginLoadedFrom FPlugin::GetLoadedFrom() const
@@ -619,9 +594,9 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		TArray<FString>	FoundPaks;
 		FPakFileSearchVisitor PakVisitor(FoundPaks);
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-		for(TSharedRef<IPlugin> Plugin: GetEnabledPlugins())
+		for (TSharedRef<IPlugin> Plugin: GetEnabledPluginsWithContent())
 		{
-			if (Plugin->CanContainContent() && ensure(RegisterMountPointDelegate.IsBound()))
+			if (ensure(RegisterMountPointDelegate.IsBound()))
 			{
 				FString ContentDir = Plugin->GetContentDir();
 				RegisterMountPointDelegate.Execute(Plugin->GetMountedAssetPath(), ContentDir);
@@ -1088,9 +1063,25 @@ TArray<TSharedRef<IPlugin>> FPluginManager::GetEnabledPlugins()
 	return Plugins;
 }
 
+TArray<TSharedRef<IPlugin>> FPluginManager::GetEnabledPluginsWithContent() const
+{
+	TArray<TSharedRef<IPlugin>> Plugins;
+	for (const TPair<FString, TSharedRef<FPlugin>>& PluginPair : AllPlugins)
+	{
+		const TSharedRef<FPlugin>& PluginRef = PluginPair.Value;
+		const FPlugin& Plugin = *PluginRef;
+		if (Plugin.IsEnabled() && Plugin.CanContainContent())
+		{
+			Plugins.Add(PluginRef);
+		}
+	}
+	return Plugins;
+}
+
 TArray<TSharedRef<IPlugin>> FPluginManager::GetDiscoveredPlugins()
 {
 	TArray<TSharedRef<IPlugin>> Plugins;
+	Plugins.Reserve(AllPlugins.Num());
 	for (TPair<FString, TSharedRef<FPlugin>>& PluginPair : AllPlugins)
 	{
 		Plugins.Add(PluginPair.Value);

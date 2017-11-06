@@ -20,7 +20,7 @@ class FArrangedChildren;
 class FPaintArgs;
 class FRichTextLayoutMarshaller;
 class FSlateWindowElementList;
-class FTextBlockLayout;
+class FSlateTextBlockLayout;
 class IRichTextMarkupParser;
 enum class ETextShapingMethod : uint8;
 
@@ -223,7 +223,7 @@ private:
 	TAttribute< FText > BoundText;
 
 	/** The wrapped layout for this text block */
-	TUniquePtr< FTextBlockLayout > TextLayoutCache;
+	TUniquePtr< FSlateTextBlockLayout > TextLayoutCache;
 
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;

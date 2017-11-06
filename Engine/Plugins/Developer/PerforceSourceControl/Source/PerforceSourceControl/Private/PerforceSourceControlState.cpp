@@ -291,4 +291,10 @@ bool FPerforceSourceControlState::IsConflicted() const
 	return PendingResolveRevNumber != INVALID_REVISION;
 }
 
+bool FPerforceSourceControlState::CanRevert() const
+{
+	// Note that this is not entirely true, as for instance conflicted files can technically be reverted by perforce
+	return CanCheckIn();
+}
+
 #undef LOCTEXT_NAMESPACE

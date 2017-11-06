@@ -1555,7 +1555,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 		SkelMeshImportDataPtr->CopyLODImportData(LODPoints,LODWedges,LODFaces,LODInfluences,LODPointToRawMap);
 
 		IMeshUtilities::MeshBuildOptions BuildOptions;
-		BuildOptions.bKeepOverlappingVertices = ImportOptions->bKeepOverlappingVertices;
+		BuildOptions.OverlappingThresholds = ImportOptions->OverlappingThresholds;
 		BuildOptions.bComputeNormals = !ImportOptions->ShouldImportNormals() || !SkelMeshImportDataPtr->bHasNormals;
 		BuildOptions.bComputeTangents = !ImportOptions->ShouldImportTangents() || !SkelMeshImportDataPtr->bHasTangents;
 		BuildOptions.bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace) && (!ImportOptions->ShouldImportNormals() || !ImportOptions->ShouldImportTangents());
@@ -2093,6 +2093,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 
 	if (FbxNodes)
 	{
+		//Empty the morph target before re-importing, it will prevent to have old data that can point on random vertex
+		if (Mesh->MorphTargets.Num() > 0)
+		{
+			Mesh->UnregisterAllMorphTarget();
+		}
+
 		// set import options, how about others?
 		if (!ImportOptions->bImportScene)
 		{
@@ -3594,7 +3600,7 @@ public:
 	FAsyncImportMorphTargetWork(FSkeletalMeshLODModel* InLODModel, const FReferenceSkeleton& InRefSkeleton, const FSkeletalMeshImportData& InBaseImportData, TArray<FVector>&& InMorphLODPoints,
 		FBXImportOptions* InImportOptions, TArray< FMorphTargetDelta >& InMorphDeltas, TArray<uint32>& InBaseIndexData, TArray< uint32 >& InBaseWedgePointIndices,
 		TMap<uint32,uint32>& InWedgePointToVertexIndexMap, const TMultiMap<int32, int32>& InOverlappingCorners,
-		const TSet<uint32> InModifiedPoints, const TMultiMap< int32, int32 >& InWedgeToFaces, const TArray<FVector>& InTangentX, const TArray<FVector>& InTangentY, const TArray<FVector>& InTangentZ)
+		const TSet<uint32> InModifiedPoints, const TMultiMap< int32, int32 >& InWedgeToFaces, const TArray<FVector>& InTangentZ)
 		: LODModel(InLODModel)
 		, RefSkeleton(InRefSkeleton)
 		, BaseImportData(InBaseImportData)
@@ -3608,8 +3614,6 @@ public:
 		, ModifiedPoints(InModifiedPoints)
 		, WedgeToFaces(InWedgeToFaces)
 		, BaseTangentZ(InTangentZ)
-		, TangentX(InTangentX)
-		, TangentY(InTangentY)
 		, TangentZ(InTangentZ)
 	{
 		MeshUtilities = &FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
@@ -3631,8 +3635,6 @@ public:
 
 			if ( ModifiedPoints.Find( PointIdx ) != nullptr )
 			{
-				TangentX[ WedgeIdx ] = FVector::ZeroVector;
-				TangentY[ WedgeIdx ] = FVector::ZeroVector;
 				TangentZ[ WedgeIdx ] = FVector::ZeroVector;
 
 				OverlappingWedges.Reset();
@@ -3657,8 +3659,6 @@ public:
 						{
 							int32 WedgeIndex = BaseImportData.Faces[ FaceIndex ].WedgeIndex[ CornerIndex ];
 
-							TangentX[ WedgeIndex ] = FVector::ZeroVector;
-							TangentY[ WedgeIndex ] = FVector::ZeroVector;
 							TangentZ[ WedgeIndex ] = FVector::ZeroVector;
 
 							TArray< int32 > OtherOverlappingWedges;
@@ -3676,8 +3676,6 @@ public:
 									{
 										int32 OtherWedgeIndex = BaseImportData.Faces[ OtherFaceIndex ].WedgeIndex[ OtherCornerIndex ];
 
-										TangentX[ OtherWedgeIndex ] = FVector::ZeroVector;
-										TangentY[ OtherWedgeIndex ] = FVector::ZeroVector;
 										TangentZ[ OtherWedgeIndex ] = FVector::ZeroVector;
 									}
 								}
@@ -3711,7 +3709,7 @@ public:
 			TangentOptions = (ETangentOptions::Type)(TangentOptions | ETangentOptions::UseMikkTSpace);
 		}
 
-		MeshUtilities->CalculateTangents( MorphLODPoints, Indices, UVs, SmoothingGroups, TangentOptions, TangentX, TangentY, TangentZ );
+		MeshUtilities->CalculateNormals( MorphLODPoints, Indices, UVs, SmoothingGroups, TangentOptions, TangentZ );
 	}
 
 	void ComputeMorphDeltas()
@@ -3810,8 +3808,6 @@ private:
 	const TMultiMap< int32, int32 >& WedgeToFaces;
 
 	const TArray<FVector>& BaseTangentZ;
-	TArray<FVector> TangentX;
-	TArray<FVector> TangentY;
 	TArray<FVector> TangentZ;
 };
 
@@ -3903,10 +3899,6 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 	} // for NodeIndex
 
 	// Prepare base data
-	TArray<FVector> TangentX;
-	TArray<FVector> TangentY;
-	TArray<FVector> TangentZ;
-
 	FSkeletalMeshLODModel& BaseLODModel = BaseSkelMesh->GetImportedModel()->LODModels[ LODIndex ];
 
 	// Calculate overlapping corners and tangents
@@ -3933,7 +3925,9 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 	TMultiMap<int32, int32> OverlappingVertices;
 	MeshUtilities.CalculateOverlappingCorners( Points, Indices, false, OverlappingVertices );
-	MeshUtilities.CalculateTangents( Points, Indices, UVs, SmoothingGroups, TangentOptions, TangentX, TangentY, TangentZ );
+
+	TArray<FVector> TangentZ;
+	MeshUtilities.CalculateNormals( Points, Indices, UVs, SmoothingGroups, TangentOptions, TangentZ );
 
 	TArray< uint32 > BaseWedgePointIndices;
 	if (BaseLODModel.RawPointIndices.GetBulkDataSize())
@@ -3964,22 +3958,36 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 		}
 	}
 
+	int32 NumCompleted = 0;
+	int32 NumTasks = 0;
+	int32 MaxShapeInProcess = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+
 	int32 ShapeIndex = 0;
 	int32 TotalShapeCount = ShapeNameToShapeArray.Num();
 	// iterate through shapename, and create morphtarget
 	for (auto Iter = ShapeNameToShapeArray.CreateIterator(); Iter; ++Iter)
 	{
+		int32 CurrentNumTasks = PendingWork.Num();
+		while (CurrentNumTasks >= MaxShapeInProcess)
+		{
+			//Wait until the first slot is available
+			PendingWork[0].EnsureCompletion();
+			for (int32 TaskIndex = PendingWork.Num()-1; TaskIndex >= 0; --TaskIndex)
+			{
+				if (PendingWork[TaskIndex].IsDone())
+				{
+					PendingWork.RemoveAt(TaskIndex);
+					++NumCompleted;
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("NumCompleted"), NumCompleted);
+					Args.Add(TEXT("NumTasks"), TotalShapeCount);
+					GWarn->StatusUpdate(NumCompleted, TotalShapeCount, FText::Format(LOCTEXT("ImportingMorphTargetStatus", "Importing Morph Target: {NumCompleted} of {NumTasks}"), Args));
+				}
+			}
+			CurrentNumTasks = PendingWork.Num();
+		}
 		FString ShapeName = Iter.Key();
 		TArray< FbxShape* >& ShapeArray = Iter.Value();
-
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ShapeName"), FText::FromString(ShapeName));
-		Args.Add(TEXT("CurrentShapeIndex"), ShapeIndex + 1);
-		Args.Add(TEXT("TotalShapes"), TotalShapeCount);
-		const FText StatusUpate = FText::Format(NSLOCTEXT("FbxImporter", "GeneratingMorphTargetMeshStatus", "Generating morph target mesh {ShapeName} ({CurrentShapeIndex} of {TotalShapes})"), Args);
-
-		GWarn->StatusUpdate(ShapeIndex + 1, TotalShapeCount, StatusUpate);
-
 		FSkeletalMeshImportData ShapeImportData = BaseImportData;
 
 		TSet<uint32> ModifiedPoints;
@@ -4011,18 +4019,17 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 			FAsyncTask<FAsyncImportMorphTargetWork>* NewWork = new (PendingWork)FAsyncTask<FAsyncImportMorphTargetWork>( &BaseLODModel, BaseSkelMesh->RefSkeleton, BaseImportData,
 				MoveTemp( ShapeImportData.Points ), ImportOptions, *Deltas, BaseIndexData, BaseWedgePointIndices, WedgePointToVertexIndexMap, OverlappingVertices, MoveTemp( ModifiedPoints ), WedgeToFaces,
-				TangentX, TangentY, TangentZ);
+				TangentZ);
 
-			NewWork->StartBackgroundTask();
+			NewWork->StartBackgroundTask(GLargeThreadPool);
+			CurrentNumTasks++;
+			NumTasks++;
 		}
 
-		++ShapeIndex;;
+		++ShapeIndex;
 	}
 
 	// Wait for all importing tasks to complete
-	int32 NumCompleted = 0;
-	int32 NumTasks = PendingWork.Num();
-
 	for ( int32 TaskIndex = 0; TaskIndex < PendingWork.Num(); ++TaskIndex )
 	{
 		PendingWork[TaskIndex].EnsureCompletion();
@@ -4031,7 +4038,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("NumCompleted"), NumCompleted );
-		Args.Add( TEXT("NumTasks"), NumTasks );
+		Args.Add( TEXT("NumTasks"), TotalShapeCount );
 		GWarn->StatusUpdate( NumCompleted, NumTasks, FText::Format( LOCTEXT("ImportingMorphTargetStatus", "Importing Morph Target: {NumCompleted} of {NumTasks}"), Args ) );
 	}
 

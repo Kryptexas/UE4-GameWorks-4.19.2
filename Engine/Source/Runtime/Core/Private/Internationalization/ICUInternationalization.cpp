@@ -726,26 +726,27 @@ UDate FICUInternationalization::UEDateTimeToICUDate(const FDateTime& DateTime)
 
 UBool FICUInternationalization::OpenDataFile(const void* context, void** fileContext, void** contents, const char* path)
 {
+	const FString PathStr = StringCast<TCHAR>(path).Get();
 	auto& PathToCachedFileDataMap = FInternationalization::Get().Implementation->PathToCachedFileDataMap;
 
 	// Try to find existing buffer
-	FICUInternationalization::FICUCachedFileData* CachedFileData = PathToCachedFileDataMap.Find(path);
+	FICUInternationalization::FICUCachedFileData* CachedFileData = PathToCachedFileDataMap.Find(PathStr);
 
 	// If there's no file context, we might have to load the file.
 	if (!CachedFileData)
 	{
 #if !UE_BUILD_SHIPPING
-		FScopedLoadingState ScopedLoadingState(StringCast<TCHAR>(path).Get());
+		FScopedLoadingState ScopedLoadingState(*PathStr);
 #endif
 
 		// Attempt to load the file.
-		FArchive* FileAr = IFileManager::Get().CreateFileReader(StringCast<TCHAR>(path).Get());
+		FArchive* FileAr = IFileManager::Get().CreateFileReader(*PathStr);
 		if (FileAr)
 		{
 			const int64 FileSize = FileAr->TotalSize();
 
 			// Create file data.
-			CachedFileData = &(PathToCachedFileDataMap.Emplace(FString(path), FICUInternationalization::FICUCachedFileData(FileSize)));
+			CachedFileData = &(PathToCachedFileDataMap.Emplace(PathStr, FICUInternationalization::FICUCachedFileData(FileSize)));
 
 			// Load file into buffer.
 			FileAr->Serialize(CachedFileData->Buffer, FileSize); 
@@ -770,7 +771,7 @@ UBool FICUInternationalization::OpenDataFile(const void* context, void** fileCon
 	}
 
 	// Use the file path as the context, so we can look up the cached file data later and decrement its reference count.
-	*fileContext = CachedFileData ? new FString(path) : nullptr;
+	*fileContext = CachedFileData ? new FString(PathStr) : nullptr;
 
 	// Use the buffer from the cached file data.
 	*contents = CachedFileData ? CachedFileData->Buffer : nullptr;

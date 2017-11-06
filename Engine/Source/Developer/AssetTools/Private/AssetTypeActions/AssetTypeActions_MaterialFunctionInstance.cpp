@@ -76,4 +76,32 @@ void FAssetTypeActions_MaterialFunctionInstance::ExecuteFindParent(TArray<TWeakO
 	}
 }
 
+UClass* FAssetTypeActions_MaterialFunctionLayerInstance::GetSupportedClass() const
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	UClass* SupportedClass = MaterialEditorModule.MaterialLayersEnabled() ? UMaterialFunctionMaterialLayerInstance::StaticClass() : nullptr;
+	return SupportedClass;
+}
+
+bool FAssetTypeActions_MaterialFunctionLayerInstance::CanFilter()
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	return MaterialEditorModule.MaterialLayersEnabled();
+}
+
+UClass* FAssetTypeActions_MaterialFunctionLayerBlendInstance::GetSupportedClass() const
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	UClass* SupportedClass = MaterialEditorModule.MaterialLayersEnabled() ? UMaterialFunctionMaterialLayerBlendInstance::StaticClass() : nullptr;
+	return SupportedClass;
+}
+
+bool FAssetTypeActions_MaterialFunctionLayerBlendInstance::CanFilter()
+{
+	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
+	return MaterialEditorModule.MaterialLayersEnabled();
+}
+
+
+
 #undef LOCTEXT_NAMESPACE

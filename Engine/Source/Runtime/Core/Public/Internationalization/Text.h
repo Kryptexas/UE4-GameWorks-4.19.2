@@ -10,6 +10,7 @@
 #include "Containers/Map.h"
 #include "Containers/EnumAsByte.h"
 #include "Templates/SharedPointer.h"
+#include "Internationalization/LocKeyFuncs.h"
 #include "Internationalization/CulturePointer.h"
 #include "Internationalization/TextLocalizationManager.h"
 #include "Internationalization/StringTableCoreFwd.h"
@@ -25,8 +26,6 @@ class FTextHistory;
 class FTextFormatData;
 class FHistoricTextFormatData;
 class FHistoricTextNumericData;
-
-template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 //DECLARE_CYCLE_STAT_EXTERN( TEXT("Format Text"), STAT_TextFormat, STATGROUP_Text, );
 
@@ -110,7 +109,7 @@ namespace EFormatArgumentType
 }
 
 class FFormatArgumentValue;
-typedef TMap<FString, FFormatArgumentValue> FFormatNamedArguments;
+typedef TMap<FString, FFormatArgumentValue, FDefaultSetAllocator, FLocKeyMapFuncs<FFormatArgumentValue>> FFormatNamedArguments;
 typedef TArray<FFormatArgumentValue> FFormatOrderedArguments;
 
 /** Redeclared in KismetTextLibrary for meta-data extraction purposes, be sure to update there as well */
@@ -138,6 +137,9 @@ enum ERoundingMode
 struct CORE_API FNumberFormattingOptions
 {
 	FNumberFormattingOptions();
+
+	bool AlwaysSign;
+	FNumberFormattingOptions& SetAlwaysSign( bool InValue ){ AlwaysSign = InValue; return *this; }
 
 	bool UseGrouping;
 	FNumberFormattingOptions& SetUseGrouping( bool InValue ){ UseGrouping = InValue; return *this; }

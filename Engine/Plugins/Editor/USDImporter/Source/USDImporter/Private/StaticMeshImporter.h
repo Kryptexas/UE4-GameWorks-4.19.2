@@ -4,13 +4,13 @@
 
 class UStaticMesh;
 struct FUsdImportContext;
-struct FUsdPrimToImport;
+struct FUsdAssetPrimToImport;
 struct FUsdGeomData;
 
 class FUSDStaticMeshImporter
 {
 public:
-	static UStaticMesh* ImportStaticMesh(FUsdImportContext& ImportContext, const FUsdPrimToImport& PrimToImport);
+	static UStaticMesh* ImportStaticMesh(FUsdImportContext& ImportContext, const FUsdAssetPrimToImport& PrimToImport);
 private:
 	static bool IsTriangleMesh(const FUsdGeomData* GeomData);
 };

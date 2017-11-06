@@ -13,8 +13,10 @@
 #include "AssetToolsModule.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Toolkits/SimpleAssetEditor.h"
+#include "ARFilter.h"
 
 struct FAssetData;
+struct FARFilter;
 class FMenuBuilder;
 
 /** A base class for all AssetTypeActions. Provides helper functions useful for many types. Deriving from this class is optional. */
@@ -121,6 +123,13 @@ public:
 
 	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override
 	{
+	}
+
+	virtual void BuildBackendFilter(FARFilter& InFilter) override
+	{
+		// Add the supported class for this type to a filter
+		InFilter.ClassNames.Add(GetSupportedClass()->GetFName());
+		InFilter.bRecursiveClasses = true;
 	}
 
 protected:

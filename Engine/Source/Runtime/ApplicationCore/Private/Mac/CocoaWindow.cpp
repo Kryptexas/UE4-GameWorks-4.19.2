@@ -26,6 +26,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bDisplayReconfiguring = false;
 	bRenderInitialized = false;
 	bIsBeingOrderedFront = false;
+	bIsBeingResized = false;
 	Opacity = 0.0f;
 
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
@@ -113,7 +114,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		{
 			[self makeKeyWindow];
 		}
-		
+
 		bIsBeingOrderedFront = false;
 	}
 }
@@ -172,7 +173,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 				MacApplication->CloseWindow(Window.ToSharedRef());
 			}
 		}
-	}, @[ NSDefaultRunLoopMode ], false);
+	});
 }
 
 - (void)performZoom:(id)Sender
@@ -447,7 +448,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bZoomed = [self isZoomed];
 	if (MacApplication)
 	{
+		bIsBeingResized = true;
 		MacApplication->DeferEvent(Notification);
+		bIsBeingResized = false;
 	}
 }
 

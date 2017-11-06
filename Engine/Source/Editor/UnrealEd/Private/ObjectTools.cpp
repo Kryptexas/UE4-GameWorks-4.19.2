@@ -3010,18 +3010,27 @@ namespace ObjectTools
 		}
 	}
 
-	FString SanitizeObjectName (const FString& InObjectName)
+	FString SanitizeObjectName(const FString& InObjectName)
+	{
+		return SanitizeInvalidChars(InObjectName, INVALID_OBJECTNAME_CHARACTERS);
+	}
+
+	FString SanitizeObjectPath(const FString& InObjectPath)
+	{
+		return SanitizeInvalidChars(InObjectPath, INVALID_OBJECTPATH_CHARACTERS);
+	}
+
+	FString SanitizeInvalidChars(const FString& InObjectName, const FString& InvalidChars)
 	{
 		FString SanitizedName;
-		FString InvalidChars = INVALID_OBJECTNAME_CHARACTERS;
 
 		// See if the name contains invalid characters.
 		FString Char;
-		for( int32 CharIdx = 0; CharIdx < InObjectName.Len(); ++CharIdx )
+		for (int32 CharIdx = 0; CharIdx < InObjectName.Len(); ++CharIdx)
 		{
 			Char = InObjectName.Mid(CharIdx, 1);
 
-			if ( InvalidChars.Contains(*Char) )
+			if (InvalidChars.Contains(*Char))
 			{
 				SanitizedName += TEXT("_");
 			}

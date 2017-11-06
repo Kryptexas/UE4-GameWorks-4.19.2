@@ -13,10 +13,9 @@ class UUSDPrimResolverKind : public UUSDPrimResolver
 	GENERATED_BODY()
 
 public:
-	virtual void FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnData) override;
+	virtual void FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnData) const override;
 
 private:
 
-	void FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, class IUsdPrim* Prim, class IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas);
-	IUsdPrim* FindMeshPrim(IUsdPrim* StartPrim) const;
+	void FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, class IUsdPrim* Prim, class IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas) const;
 };

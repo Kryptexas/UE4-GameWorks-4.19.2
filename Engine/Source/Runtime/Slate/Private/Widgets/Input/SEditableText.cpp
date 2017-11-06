@@ -316,6 +316,11 @@ void SEditableText::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAll
 	bSelectAllTextOnCommit = InSelectAllTextOnCommit;
 }
 
+void SEditableText::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	EditableTextLayout->SetJustification(InJustification);
+}
+
 void SEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
 {
 	bAllowContextMenu = InAllowContextMenu;

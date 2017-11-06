@@ -105,16 +105,16 @@ private:
 	 *  node and pin titles localized and updates the cache accordingly */
 	FORCEINLINE void UpdateCacheIternal(FText const& InText) const
 	{
-		bool bShowNodesAndPinsUnlocalized = false;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+		bool bShouldUseLocalizedNodeAndPinNames = false;
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), bShouldUseLocalizedNodeAndPinNames, GEditorSettingsIni );
 
-		if (bShowNodesAndPinsUnlocalized)
+		if (bShouldUseLocalizedNodeAndPinNames)
 		{
-			CachedText = FText::FromString(InText.BuildSourceString());
+			CachedText = InText;
 		}
 		else
 		{
-			CachedText = InText;
+			CachedText = FText::FromString(InText.BuildSourceString());
 		}
 	}
 

@@ -8,6 +8,7 @@
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/SToolTip.h"
+#include "Styling/CoreStyle.h"
 #include "GraphEditorSettings.h"
 #include "SCommentBubble.h"
 #include "K2Node_Composite.h"
@@ -184,7 +185,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Composite::GetComplexTooltip()
 			[
 				SNew( STextBlock )
 				.Text(this, &SGraphNodeK2Composite::GetTooltipTextForNode)
-				.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
+				.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 				.WrapTextAt(160.0f)
 			]
 			+SVerticalBox::Slot()
@@ -222,7 +223,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Composite::GetComplexTooltip()
 				[
 					SNew( STextBlock )
 					.Text(NSLOCTEXT("CompositeNode", "CompositeNodeInvalidGraphMessage", "ERROR: Invalid Graph"))
-					.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 					.WrapTextAt(160.0f)
 				]
 			];

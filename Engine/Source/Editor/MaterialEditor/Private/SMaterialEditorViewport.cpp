@@ -28,7 +28,7 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "AdvancedPreviewScene.h"
 #include "AssetViewerSettings.h"
-
+#include "Engine/PostProcessVolume.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -215,6 +215,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 
 	PreviewMaterial = nullptr;
 	PreviewMeshComponent = nullptr;
+	PostProcessVolumeActor = nullptr;
 
 	UMaterialInterface* Material = MaterialEditorPtr.Pin()->GetMaterialInterface();
 	if (Material)
@@ -223,6 +224,9 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 	}
 
 	SetPreviewAsset( GUnrealEd->GetThumbnailManager()->EditorSphere );
+
+	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SMaterialEditor3DPreviewViewport::OnPropertyChanged);
+	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 }
 
 SMaterialEditor3DPreviewViewport::~SMaterialEditor3DPreviewViewport()
@@ -237,12 +241,17 @@ SMaterialEditor3DPreviewViewport::~SMaterialEditor3DPreviewViewport()
 	{
 		EditorViewportClient->Viewport = NULL;
 	}
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
+
+	PostProcessVolumeActor = nullptr;
 }
 
 void SMaterialEditor3DPreviewViewport::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( PreviewMeshComponent );
 	Collector.AddReferencedObject( PreviewMaterial );
+	Collector.AddReferencedObject( PostProcessVolumeActor );
 }
 
 void SMaterialEditor3DPreviewViewport::RefreshViewport()
@@ -360,10 +369,39 @@ void SMaterialEditor3DPreviewViewport::SetPreviewMaterial(UMaterialInterface* In
 {
 	PreviewMaterial = InMaterialInterface;
 
-	if (PreviewMeshComponent != nullptr)
+	// Spawn post processing volume actor if the material has post processing as domain.
+	if (PreviewMaterial->GetMaterial()->IsPostProcessMaterial())
 	{
-		PreviewMeshComponent->OverrideMaterials.Empty();
-		PreviewMeshComponent->OverrideMaterials.Add(PreviewMaterial);
+		if (PostProcessVolumeActor == nullptr)
+		{
+			PostProcessVolumeActor = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FTransform::Identity);
+
+			GetViewportClient()->EngineShowFlags.SetPostProcessing(true);
+			GetViewportClient()->EngineShowFlags.SetPostProcessMaterial(true);
+		}
+
+		check (PreviewMaterial != nullptr);
+		PostProcessVolumeActor->AddOrUpdateBlendable(PreviewMaterial);
+		PostProcessVolumeActor->bEnabled = true;
+		PostProcessVolumeActor->BlendWeight = 1.0f;
+		PostProcessVolumeActor->bUnbound = true;
+
+		// Remove preview material from the preview mesh.
+		if (PreviewMeshComponent != nullptr)
+		{
+			PreviewMeshComponent->OverrideMaterials.Empty();
+		}
+	}
+	else
+	{
+		// Add the preview material to the preview mesh.
+		if (PreviewMeshComponent != nullptr)
+		{
+			PreviewMeshComponent->OverrideMaterials.Empty();
+			PreviewMeshComponent->OverrideMaterials.Add(PreviewMaterial);
+		}
+		
+		PostProcessVolumeActor = nullptr;
 	}
 }
 
@@ -630,6 +668,19 @@ EVisibility SMaterialEditor3DPreviewViewport::OnGetViewportContentVisibility() c
 		return BaseVisibility;
 	}
 	return IsVisible() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SMaterialEditor3DPreviewViewport::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (ObjectBeingModified != nullptr && ObjectBeingModified == PreviewMaterial)
+	{
+		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+		static const FString MaterialDomain = TEXT("MaterialDomain");
+		if (PropertyThatChanged != nullptr && PropertyThatChanged->GetName() == MaterialDomain)
+		{
+			SetPreviewMaterial(PreviewMaterial);
+		}
+	}
 }
 
 class SMaterialEditorUIPreviewZoomer : public SPanel

@@ -48,14 +48,14 @@ UObject* UUSDAssetImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 			ImportContext.ImportOptions = ImportOptions;
 			ImportContext.bApplyWorldTransformToGeometry = ImportOptions->bApplyWorldTransformToGeometry;
 
-			TArray<FUsdPrimToImport> PrimsToImport;
+			TArray<FUsdAssetPrimToImport> PrimsToImport;
 
-			ImportContext.PrimResolver->FindPrimsToImport(ImportContext, PrimsToImport);
+			ImportContext.PrimResolver->FindMeshAssetsToImport(ImportContext, ImportContext.RootPrim, PrimsToImport);
 
-			ImportedObject = USDImporter->ImportMeshes(ImportContext, PrimsToImport);
+			TArray<UObject*> ImportedObjects = USDImporter->ImportMeshes(ImportContext, PrimsToImport);
 
 			// Just return the first one imported
-			ImportedObject = ImportContext.PathToImportAssetMap.Num() > 0 ? ImportContext.PathToImportAssetMap.CreateConstIterator().Value() : nullptr;
+			ImportedObject = ImportedObjects.Num() > 0 ? ImportedObjects[0] : nullptr;
 		}
 
 		ImportContext.DisplayErrorMessages(IsAutomatedImport());

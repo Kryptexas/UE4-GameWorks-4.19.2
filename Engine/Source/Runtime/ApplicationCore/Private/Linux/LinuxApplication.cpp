@@ -1417,14 +1417,8 @@ void FLinuxApplication::UpdateMouseCaptureWindow(SDL_HWindow TargetWindow)
 	}
 	else
 	{
-		if (MouseCaptureWindow)
-		{
-			if (bShouldGrab)
-			{
-				SDL_CaptureMouse(SDL_FALSE);
-			}
-			MouseCaptureWindow = nullptr;
-		}
+		SDL_CaptureMouse(SDL_FALSE);
+		MouseCaptureWindow = nullptr;
 	}
 }
 

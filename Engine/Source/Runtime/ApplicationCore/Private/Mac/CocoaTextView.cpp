@@ -378,6 +378,12 @@
  */
 - (NSRange)selectedRange
 {
+	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
+	if (CocoaWindow && CocoaWindow->bIsBeingResized)
+	{
+		return {0, 0};
+	}
+	
 	if (IMMContext.IsValid())
 	{
 		__block uint32 SelectionLocation;

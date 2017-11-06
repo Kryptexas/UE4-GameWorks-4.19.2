@@ -456,9 +456,6 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #endif // #if !UE_BUILD_SHIPPING
 
-	static const auto DebugTextCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DebugTextScale"));
-	const float TextScale = DebugTextCVar->GetFloat();
-
 	// Render CPU thread and GPU frame times.
 	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
@@ -467,46 +464,46 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	int32 X3 = InX * (bStereoRendering ? 0.5f : 1.0f);
 	if (bShowUnitMaxTimes)
 	{
-		X3 -= (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms ")) * TextScale);
+		X3 -= (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms ")));
 	}
 
-	int32 X2 = bShowUnitMaxTimes ? X3 - (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms ")) * TextScale) : X3;
-	int32 X1 = X2 - (int32)((float)Font->GetStringSize(TEXT("Frame: ")) * TextScale);
-	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f  * TextScale);
+	int32 X2 = bShowUnitMaxTimes ? X3 - (int32)((float)Font->GetStringSize(TEXT(" 000.00 ms "))) : X3;
+	int32 X1 = X2 - (int32)((float)Font->GetStringSize(TEXT("Frame: ")));
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
 
 	{
 		const FColor FrameTimeAverageColor = GEngine->GetFrameTimeDisplayColor(FrameTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White, TextScale);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, FrameTimeAverageColor, TextScale);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, FrameTimeAverageColor);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor MaxFrameTimeColor = GEngine->GetFrameTimeDisplayColor(Max_FrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, MaxFrameTimeColor, TextScale);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, MaxFrameTimeColor);
 		}
 		InY += RowHeight;
 	}
 
 	{
 		const FColor GameThreadAverageColor = GEngine->GetFrameTimeDisplayColor(GameThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White, TextScale);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, GameThreadAverageColor, TextScale);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, GameThreadAverageColor);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor GameThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GameThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, GameThreadMaxColor, TextScale);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, GameThreadMaxColor);
 		}
 		InY += RowHeight;
 	}
 
 	{
 		const FColor RenderThreadAverageColor = GEngine->GetFrameTimeDisplayColor(RenderThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White, TextScale);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, RenderThreadAverageColor, TextScale);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, RenderThreadAverageColor);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor RenderThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_RenderThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, RenderThreadMaxColor, TextScale);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, RenderThreadMaxColor);
 		}
 		InY += RowHeight;
 	}
@@ -515,12 +512,12 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	if (bHaveGPUData)
 	{
 		const FColor GPUAverageColor = GEngine->GetFrameTimeDisplayColor(GPUFrameTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White, TextScale);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, GPUAverageColor, TextScale);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, GPUAverageColor);
 		if (bShowUnitMaxTimes)
 		{
 			const FColor GPUMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GPUFrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor, TextScale);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor);
 		}
 		if(GMaxRHIShaderPlatform == SP_PS4)
 		{
@@ -549,7 +546,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 			if(!Warnings.IsEmpty())
 			{
-				InCanvas->DrawShadowedString(X3 + 100, InY, *Warnings, Font, FColor::Red, TextScale);
+				InCanvas->DrawShadowedString(X3 + 100, InY, *Warnings, Font, FColor::Red);
 			}
 		}
 		InY += RowHeight;
@@ -561,8 +558,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	{
 		UFont* SmallFont = GEngine->GetSmallFont();
 		check(SmallFont);
-		int32 AlertPrintWidth = SmallFont->GetStringSize(TEXT("000.0")) * TextScale;
-		int32 AlertPrintHeight = SmallFont->GetStringHeightSize(TEXT("000.0")) * TextScale;
+		int32 AlertPrintWidth = SmallFont->GetStringSize(TEXT("000.0"));
+		int32 AlertPrintHeight = SmallFont->GetStringHeightSize(TEXT("000.0"));
 
 		// The vertical axis is time in milliseconds
 		// The horizontal axis is the frame number (NOT time!!!)
@@ -576,8 +573,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 		// Graph layout
 		const float GraphLeftXPos = 80.0f;
 		const float GraphBottomYPos = InViewport->GetSizeXY().Y - 50.0f;
-		const float GraphHorizPixelsPerFrame = 2.0f * TextScale;
-		const float GraphVerticalPixelsPerMS = 10.0f * TextScale;
+		const float GraphHorizPixelsPerFrame = 2.0f;
+		const float GraphVerticalPixelsPerMS = 10.0f;
 		const float GraphHeightInMS = 40.0f;
 
 		const FLinearColor GraphBorderColor(0.1f, 0.1f, 0.1f);
@@ -734,7 +731,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 					if (StartX > LastPrintX)
 					{
 
-						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), SmallFont, StatColor, TextScale);
+						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), SmallFont, StatColor);
 						LastPrintX = StartX + AlertPrintWidth + AlertPadding;
 					}
 				}
@@ -911,15 +908,18 @@ void FViewport::HighResScreenshot()
 	check(CVarSceneColorFormat && CVarPostColorFormat);
 	const int32 OldSceneColorFormat = CVarSceneColorFormat->GetInt();
 	const int32 OldPostColorFormat = CVarPostColorFormat->GetInt();
-	const int32 OldForceLOD = CVarForceLOD->GetInt();
+	const int32 OldForceLOD = CVarForceLOD ? CVarForceLOD->GetInt() : -1;
 	if (GetHighResScreenshotConfig().bForce128BitRendering)
 	{
 		CVarSceneColorFormat->Set(5, ECVF_SetByCode);
 		CVarPostColorFormat->Set(1, ECVF_SetByCode);
 	}
 
-	// Force highest LOD
-	CVarForceLOD->Set(0, ECVF_SetByCode);
+	if (CVarForceLOD)
+	{
+		// Force highest LOD
+		CVarForceLOD->Set(0, ECVF_SetByCode);
+	}
 
 	// Render the requested number of frames (at least once)
 	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
@@ -949,7 +949,10 @@ void FViewport::HighResScreenshot()
 
 	CVarSceneColorFormat->Set(OldSceneColorFormat, ECVF_SetByCode);
 	CVarPostColorFormat->Set(OldPostColorFormat, ECVF_SetByCode);
-	CVarForceLOD->Set(OldForceLOD, ECVF_SetByCode);
+	if (CVarForceLOD)
+	{
+		CVarForceLOD->Set(OldForceLOD, ECVF_SetByCode);
+	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		EndDrawingCommand,
@@ -1197,7 +1200,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				}
 
 				UWorld* ViewportWorld = ViewportClient->GetWorld();
-				FCanvas Canvas(this, NULL, ViewportWorld, ViewportWorld ? ViewportWorld->FeatureLevel : GMaxRHIFeatureLevel);
+				FCanvas Canvas(this, nullptr, ViewportWorld, ViewportWorld ? ViewportWorld->FeatureLevel : GMaxRHIFeatureLevel, FCanvas::CDM_DeferDrawing, ViewportClient->ShouldDPIScaleSceneCanvas() ? ViewportClient->GetDPIScale() : 1.0f);
 				Canvas.SetRenderTargetRect(FIntRect(0, 0, SizeX, SizeY));
 				{
 					// Make sure the Canvas is not rendered upside down
@@ -1315,7 +1318,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 
 		// Let the viewport client draw its hit proxies.
 		auto World = ViewportClient->GetWorld();
-		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
+		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel, FCanvas::CDM_DeferDrawing, ViewportClient->ShouldDPIScaleSceneCanvas() ? ViewportClient->GetDPIScale() : 1.0f);
 		{
 			ViewportClient->Draw(this, &Canvas);
 		}
@@ -1831,6 +1834,19 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 /** Tracks the viewport client that should process the stat command, can be NULL */
 FCommonViewportClient* GStatProcessingViewportClient = NULL;
 
+
+float FCommonViewportClient::GetDPIScale()
+{
+	if (bShouldUpdateDPIScale)
+	{
+		CachedDPIScale = UpdateViewportClientWindowDPIScale();
+
+		bShouldUpdateDPIScale = false;
+	}
+
+	return CachedDPIScale;
+}
+
 void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 {
 	const FLinearColor BoxColor = FLinearColor::Red;
@@ -1846,12 +1862,15 @@ void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 	LineItem.Draw( &Canvas, FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Max.Y), FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Min.Y));
 }
 
-#if WITH_EDITOR
-
-void FCommonViewportClient::RequestUpdateEditorScreenPercentage()
+void FCommonViewportClient::RequestUpdateDPIScale()
 {
+#if WITH_EDITOR
+	bShouldUpdateDPIScale = true;
 	bShouldUpdateScreenPercentage = true;
+#endif // WITH_EDITOR
 }
+
+#if WITH_EDITOR
 
 TOptional<float> FCommonViewportClient::GetEditorScreenPercentage()
 {
@@ -1868,7 +1887,7 @@ TOptional<float> FCommonViewportClient::GetEditorScreenPercentage()
 			if (CVarEnableEditorScreenPercentageOverride->GetInt() == 0)
 			{
 				float EditorScreenPercentageValue;
-				float DPIScale = GetViewportClientWindowDPIScale();
+				float DPIScale = GetDPIScale();
 
 				if (DPIScale > 1.0f)
 				{

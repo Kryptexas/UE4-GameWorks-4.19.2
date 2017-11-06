@@ -50,6 +50,7 @@
 #include "StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
+#include "DDCNotifications.h"
 #include "PerformanceMonitor.h"
 #include "BSPOps.h"
 #include "SourceCodeNavigation.h"
@@ -73,7 +74,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	FSourceCodeNavigation::Initialize();
 
 	PackageAutoSaver.Reset(new FPackageAutoSaver);
-	PackageAutoSaver->LoadRestoreFile();
+	PackageAutoSaver->LoadRestoreFile();	
 
 #if !UE_BUILD_DEBUG
 	if( !GEditorSettingsIni.IsEmpty() )
@@ -111,6 +112,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	// Iterate over all always fully loaded packages and load them.
 	if (!IsRunningCommandlet())
 	{
+		DDCNotifications.Reset(new FDDCNotifications);
+
 		for( int32 PackageNameIndex=0; PackageNameIndex<PackagesToBeFullyLoadedAtStartup.Num(); PackageNameIndex++ )
 		{
 			const FString& PackageName = PackagesToBeFullyLoadedAtStartup[PackageNameIndex];
@@ -375,6 +378,8 @@ void UUnrealEdEngine::FinishDestroy()
 		PackageAutoSaver->UpdateRestoreFile(false);
 		PackageAutoSaver.Reset();
 	}
+
+	DDCNotifications.Reset();
 
 	if( PerformanceMonitor )
 	{

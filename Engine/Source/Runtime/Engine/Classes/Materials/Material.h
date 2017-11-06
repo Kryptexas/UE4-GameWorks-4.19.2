@@ -928,6 +928,7 @@ public:
 #if WITH_EDITOR
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, const FGuid& AttributeID ) override;
+	ENGINE_API virtual bool ShouldForcePlanePreview() override;
 #endif // WITH_EDITOR
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	//~ End UMaterialInterface Interface.
@@ -1000,6 +1001,16 @@ public:
 	
 	/** Useful to customize rendering if that case (e.g. hide the object) */
 	ENGINE_API bool IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel);
+
+#if WITH_EDITOR
+	ENGINE_API bool SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor InValue);
+	ENGINE_API bool SetScalarParameterValueEditorOnly(FName ParameterName, float InValue);
+	ENGINE_API bool SetTextureParameterValueEditorOnly(FName ParameterName, class UTexture* InValue);
+	ENGINE_API bool SetFontParameterValueEditorOnly(FName ParameterName, class UFont* InFontValue, int32 InFontPage);
+	ENGINE_API bool SetMaterialLayersParameterValueEditorOnly(FName ParameterName, struct FMaterialLayersFunctions InValue, FGuid OutExpressionGuid);
+	ENGINE_API bool SetStaticComponentMaskParameterValueEditorOnly(FName ParameterName, bool R, bool G, bool B, bool A, FGuid OutExpressionGuid);
+	ENGINE_API bool SetStaticSwitchParameterValueEditorOnly(FName ParameterName, bool OutValue, FGuid OutExpressionGuid);
+#endif // WITH_EDITOR
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1122,6 +1133,13 @@ public:
 			{
 				const TArray<UMaterialFunctionInterface*>* Layers = &LayersExpression->GetLayers();
 				const TArray<UMaterialFunctionInterface*>* Blends = &LayersExpression->GetBlends();
+#if WITH_EDITOR
+				const TArray<UMaterialFunctionInterface*>* InstanceLayers = &LayersExpression->GetInstanceLayers();
+				const TArray<UMaterialFunctionInterface*>* InstanceBlends = &LayersExpression->GetInstanceBlends();
+				const TArray<UMaterialFunctionInterface*>* FilterLayers = &LayersExpression->GetFilterLayers();
+				const TArray<UMaterialFunctionInterface*>* FilterBlends = &LayersExpression->GetFilterBlends();
+				const TArray<FText>* LayerNames = &LayersExpression->GetLayerNames();
+#endif
 
 				// Handle function overrides when searching for parameters
 				if (MaterialLayersParameters)
@@ -1133,6 +1151,13 @@ public:
 						{
 							Layers = &LayersParameter.Value.Layers;
 							Blends = &LayersParameter.Value.Blends;
+#if WITH_EDITOR
+							InstanceLayers = &LayersParameter.Value.InstanceLayers;
+							InstanceBlends = &LayersParameter.Value.InstanceBlends;
+							FilterLayers = &LayersParameter.Value.FilterLayers;
+							FilterBlends = &LayersParameter.Value.FilterBlends;
+							LayerNames = &LayersParameter.Value.LayerNames;
+#endif
 							break;
 						}
 					}

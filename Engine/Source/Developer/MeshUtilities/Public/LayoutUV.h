@@ -89,7 +89,7 @@ private:
 };
 
 
-#define THRESH_UVS_ARE_SAME (GetUVEqualityThreshold())
+#define UVLAYOUT_THRESH_UVS_ARE_SAME (GetUVEqualityThreshold())
 
 
 inline bool FLayoutUV::PositionsMatch( uint32 a, uint32 b ) const
@@ -109,7 +109,7 @@ inline bool FLayoutUV::NormalsMatch( uint32 a, uint32 b ) const
 
 inline bool FLayoutUV::UVsMatch( uint32 a, uint32 b ) const
 {
-	return ( RawMesh->WedgeTexCoords[ SrcChannel ][a] - RawMesh->WedgeTexCoords[ SrcChannel ][b] ).IsNearlyZero( THRESH_UVS_ARE_SAME );
+	return ( RawMesh->WedgeTexCoords[ SrcChannel ][a] - RawMesh->WedgeTexCoords[ SrcChannel ][b] ).IsNearlyZero(UVLAYOUT_THRESH_UVS_ARE_SAME);
 }
 
 inline bool FLayoutUV::VertsMatch( uint32 a, uint32 b ) const

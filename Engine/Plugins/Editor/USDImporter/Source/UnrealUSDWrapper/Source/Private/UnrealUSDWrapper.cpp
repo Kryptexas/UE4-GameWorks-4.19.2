@@ -57,6 +57,10 @@ namespace UnrealIdentifiers
 	static const TfToken ActorClass("unrealActorClass");
 
 	static const TfToken PropertyPath("unrealPropertyPath");
+
+	static const TfToken ProxyPurpose("proxy");
+
+	static const TfToken GuidePurpose("guide");
 }
 
 
@@ -177,6 +181,8 @@ struct FPrimAndData
 		: Prim(InPrim)
 		, PrimData(nullptr)
 	{}
+
+	~FPrimAndData();
 };
 
 
@@ -506,26 +512,7 @@ public:
 			delete GeomData;
 		}
 
-		for (FPrimAndData& Child : Children)
-		{
-			if (Child.PrimData)
-			{
-				delete Child.PrimData;
-			}
-		}		
-
-		for (FPrimAndData& Child : VariantData)
-		{
-			if (Child.PrimData)
-			{
-				delete Child.PrimData;
-			}
-		}
-
 		Children.clear();
-
-		VariantData.clear();
-		
 	}
 
 	virtual const char* GetPrimName() const override
@@ -548,15 +535,15 @@ public:
 		return Kind.c_str();
 	}
 
-	virtual bool IsKindChildOf(const std::string& InKind) const override
+	virtual bool IsKindChildOf(const std::string& InBaseKind) const override
 	{
-		TfToken TestKind(InKind);
+		TfToken BaseKind(InBaseKind);
 	
 		KindRegistry& Registry = KindRegistry::GetInstance();
 
 		TfToken PrimKind(Kind);
 
-		return Registry.IsA(TestKind, PrimKind);
+		return Registry.IsA(PrimKind, BaseKind);
 	}
 
 
@@ -568,6 +555,22 @@ public:
 	virtual bool IsModel() const override
 	{
 		return Prim.IsModel();
+	}
+
+	virtual bool IsProxyOrGuide() const override
+	{
+		UsdGeomImageable Geom(Prim);
+		if (Geom)
+		{
+			UsdAttribute PurposeAttr = Geom.GetPurposeAttr();
+
+			TfToken Purpose;
+			PurposeAttr.Get(&Purpose);
+
+			return Purpose == UnrealIdentifiers::ProxyPurpose || Purpose == UnrealIdentifiers::GuidePurpose;
+		}
+
+		return false;
 	}
 
 	virtual bool IsUnrealProperty() const override
@@ -696,12 +699,12 @@ public:
 	{
 		UsdGeomMesh Mesh(Prim);
 
-		return Mesh || GetNumLODs() > 0;
+		return Mesh;
 	}
 
-	virtual const FUsdGeomData* GetGeometryData() override
+	virtual bool HasGeometryDataOrLODVariants() const override
 	{
-		return GetGeometryData(UsdTimeCode::Default().GetValue());
+		return HasGeometryData() || GetNumLODs() > 0;
 	}
 
 	virtual const FUsdGeomData* GetGeometryData(double Time) override
@@ -923,7 +926,7 @@ public:
 						// See if the material has an "unrealAssetPath" attribute.  This should be the full name of the material
 						static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
 						UsdAttribute UnrealAssetPathAttr = MaterialPrim.GetAttribute(AssetPathToken);
-						if (UnrealAssetPathAttr.HasValue())
+						if (UnrealAssetPathAttr && UnrealAssetPathAttr.HasValue())
 						{
 							UnrealAssetPathAttr.Get(&MaterialName);
 						}
@@ -1070,53 +1073,36 @@ public:
 		return NumLODs;
 	}
 
-	virtual IUsdPrim* GetLODChild(int LODIndex) override
+	virtual bool SetActiveLODIndex(int LODIndex) override
 	{
 		if (Prim.HasVariantSets())
 		{
 			UsdVariantSet LODVariantSet = Prim.GetVariantSet(UnrealIdentifiers::LOD);
 			if (LODVariantSet.IsValid())
 			{
-				char LODName[10];
-#if _WINDOWS
-				sprintf_s(LODName, "LOD%d", LODIndex);
-#else
-				sprintf(LODName, "LOD%d", LODIndex);
-#endif
-				LODVariantSet.SetVariantSelection(string(LODName));
+				vector<string> VariantNames = LODVariantSet.GetVariantNames();
 
-				string ChildPrimName = PrimName + "_" + LODName;
-				UsdPrim LODChild = Prim.GetChild(TfToken(ChildPrimName));
-				if (LODChild)
+				bool bResult = false;
+				if(LODIndex < VariantNames.size())
 				{
+					bResult = LODVariantSet.SetVariantSelection(VariantNames[LODIndex]);
 
-					auto Result = std::find_if(
-						std::begin(VariantData),
-						std::end(VariantData),
-						[&LODChild](const FPrimAndData& Elem)
+					if (bResult)
 					{
-						return Elem.Prim == LODChild;
-					});
+						// Children cannot be trusted as they are deleted by usd, clear them out and rebuild
 
-					if (Result == std::end(VariantData))
-					{
-						FUsdPrim* LODChildData = new FUsdPrim(LODChild);
-						FPrimAndData LODData(LODChild);
-						LODData.PrimData = LODChildData;
+						Children.clear();
 
-						VariantData.push_back(LODData);
-						return LODData.PrimData;
+						for (const UsdPrim& Child : Prim.GetChildren())
+						{
+							Children.push_back(FPrimAndData(Child));
+						}
 					}
-					else
-					{
-						return Result->PrimData;
-					}
-			
 				}
 			}
 		}
-
-		return nullptr;
+		
+		return false;
 	}
 
 	virtual const std::vector<FUsdAttribute>& GetAttributes() const override
@@ -1156,7 +1142,6 @@ private:
 private:
 	UsdPrim Prim;
 	vector<FPrimAndData> Children;
-	vector<FPrimAndData> VariantData;
 	mutable std::vector<FUsdAttribute> AllAttributes;
 	mutable std::vector<FUsdAttribute> UnrealPropAttributes;
 	string PrimName;
@@ -1235,6 +1220,13 @@ bool UnrealUSDWrapper::bInitialized = false;
 FUsdStage* UnrealUSDWrapper::CurrentStage = nullptr;
 std::string UnrealUSDWrapper::Errors;
 
+FPrimAndData::~FPrimAndData()
+{
+	if (PrimData)
+	{
+		delete PrimData;
+	}
+}
 
 void UnrealUSDWrapper::Initialize(const std::vector<std::string>& PluginDirectories)
 {

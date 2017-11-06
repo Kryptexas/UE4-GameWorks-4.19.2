@@ -42,6 +42,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
+		, _Justification(ETextJustify::Left)
 		, _AllowContextMenu(true)
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
@@ -90,6 +91,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** How should the value be justified in the editable text field. */
+		SLATE_ATTRIBUTE(ETextJustify::Type, Justification)
 
 		/** Whether the context menu can be opened */
 		SLATE_ATTRIBUTE(bool, AllowContextMenu)
@@ -252,6 +256,9 @@ public:
 	 * @param  InSelectAllTextOnCommit		Select all text when pressing enter?
 	 */
 	void SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
 
 	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction

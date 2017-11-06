@@ -996,6 +996,8 @@ public:
 
 	void UnregisterMorphTarget(UMorphTarget* MorphTarget);
 
+	void UnregisterAllMorphTarget();
+
 	/** Initialize MorphSets look up table : MorphTargetIndexMap */
 	void InitMorphTargets();
 

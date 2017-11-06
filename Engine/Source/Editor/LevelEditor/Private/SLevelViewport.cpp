@@ -26,6 +26,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Views/SHeaderRow.h"
 #include "Framework/Docking/LayoutService.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Exporters/ExportTextContainer.h"
@@ -120,9 +121,13 @@ SLevelViewport::~SLevelViewport()
 	LevelEditor.OnTakeHighResScreenShots().RemoveAll( this );
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
-	GEngine->OnLevelActorDeleted().RemoveAll( this );
 
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
+	if(UObjectInitialized())
+	{
+		GEngine->OnLevelActorDeleted().RemoveAll(this);
+
+		GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+	}
 
 	// If this viewport has a high res screenshot window attached to it, close it
 	if (HighResScreenshotDialog.IsValid())
@@ -2722,7 +2727,7 @@ void SActorPreview::Construct( const FArguments& InArgs )
 									[
 										SNew( STextBlock )
 											.Text( this, &SActorPreview::OnReadText )
-											.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10 ) )
+											.Font( FCoreStyle::GetDefaultFontStyle("Bold", 10) )
 											.ShadowOffset( FVector2D::UnitVector )
 											.WrapTextAt( this, &SActorPreview::OnReadTextWidth )
 									]
@@ -3632,7 +3637,7 @@ void SLevelViewport::ShowMouseCaptureLabel(ELabelAnchorMode AnchorMode)
 				[
 					SNew(STextBlock)
 					.Text(this, &SLevelViewport::GetMouseCaptureLabelText)
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 					.ColorAndOpacity(FLinearColor::White)
 				]
 			]

@@ -1,13 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Text/TextBlockLayout.h"
+#include "Widgets/Text/SlateTextBlockLayout.h"
 #include "Fonts/FontCache.h"
 #include "Framework/Text/SlateTextHighlightRunRenderer.h"
 #include "Stats/SlateStats.h"
 
-SLATE_DECLARE_CYCLE_COUNTER(GSlateTextBlockLayoutComputeDesiredSize, "FTextBlockLayout ComputeDesiredSize");
+SLATE_DECLARE_CYCLE_COUNTER(GSlateTextBlockLayoutComputeDesiredSize, "FSlateTextBlockLayout ComputeDesiredSize");
 
-FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+FSlateTextBlockLayout::FSlateTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 	: TextLayout((InCreateSlateTextLayout.IsBound()) ? InCreateSlateTextLayout.Execute(MoveTemp(InDefaultTextStyle)) : FSlateTextLayout::Create(MoveTemp(InDefaultTextStyle)))
 	, Marshaller(MoveTemp(InMarshaller))
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
@@ -26,7 +26,7 @@ FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOp
 	TextLayout->SetLineBreakIterator(MoveTemp(InLineBreakPolicy));
 }
 
-FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle)
+FVector2D FSlateTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle)
 {
 	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateTextBlockLayoutComputeDesiredSize);
 	TextLayout->SetScale(InScale);
@@ -86,20 +86,21 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 	return TextLayout->GetSize();
 }
 
-int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
+int32 FSlateTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
 {
 	CachedSize = InAllottedGeometry.GetLocalSize();
 
 	// Text blocks don't have scroll bars, so when the visible region is smaller than the desired size, 
 	// we attempt to auto-scroll to keep the view of the text aligned with the current justification method
+	const ETextJustify::Type VisualJustification = TextLayout->GetVisualJustification();
 	FVector2D AutoScrollValue = FVector2D::ZeroVector; // Scroll to the left
-	if(TextLayout->GetJustification() != ETextJustify::Left)
+	if(VisualJustification != ETextJustify::Left)
 	{
 		const float ActualWidth = TextLayout->GetSize().X;
-		const float VisibleWidth = InAllottedGeometry.GetLocalSize().X;
+		const float VisibleWidth = CachedSize.X;
 		if(VisibleWidth < ActualWidth)
 		{
-			switch(TextLayout->GetJustification())
+			switch(VisualJustification)
 			{
 			case ETextJustify::Center:
 				AutoScrollValue.X = (ActualWidth - VisibleWidth) * 0.5f; // Scroll to the center
@@ -115,25 +116,24 @@ int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& 
 		}
 	}
 
-	TextLayout->SetVisibleRegion(InAllottedGeometry.GetLocalSize(), AutoScrollValue);
-
+	TextLayout->SetVisibleRegion(CachedSize, AutoScrollValue * TextLayout->GetScale());
 	TextLayout->UpdateIfNeeded();
 
 	return TextLayout->OnPaint(InPaintArgs, InAllottedGeometry, InClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
-void FTextBlockLayout::DirtyLayout()
+void FSlateTextBlockLayout::DirtyLayout()
 {
 	TextLayout->DirtyLayout();
 }
 
-void FTextBlockLayout::DirtyContent()
+void FSlateTextBlockLayout::DirtyContent()
 {
 	DirtyLayout();
 	Marshaller->MakeDirty();
 }
 
-void FTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
+void FSlateTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
 {
 	// Has the style used for this text block changed?
 	if(!IsStyleUpToDate(InTextStyle))
@@ -146,38 +146,38 @@ void FTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
 	}
 }
 
-void FTextBlockLayout::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+void FSlateTextBlockLayout::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
 {
 	TextLayout->SetTextShapingMethod((InTextShapingMethod.IsSet()) ? InTextShapingMethod.GetValue() : GetDefaultTextShapingMethod());
 }
 
-void FTextBlockLayout::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+void FSlateTextBlockLayout::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
 {
 	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
 }
 
-void FTextBlockLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
+void FSlateTextBlockLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
 {
 	TextLayout->SetDebugSourceInfo(InDebugSourceInfo);
 }
 
-FChildren* FTextBlockLayout::GetChildren()
+FChildren* FSlateTextBlockLayout::GetChildren()
 {
 	return TextLayout->GetChildren();
 }
 
-void FTextBlockLayout::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+void FSlateTextBlockLayout::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	TextLayout->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 }
 
 
-void FTextBlockLayout::UpdateTextLayout(const FText& InText)
+void FSlateTextBlockLayout::UpdateTextLayout(const FText& InText)
 {
 	UpdateTextLayout(InText.ToString());
 }
 
-void FTextBlockLayout::UpdateTextLayout(const FString& InText)
+void FSlateTextBlockLayout::UpdateTextLayout(const FString& InText)
 {
 	Marshaller->ClearDirty();
 	TextLayout->ClearLines();
@@ -190,7 +190,7 @@ void FTextBlockLayout::UpdateTextLayout(const FString& InText)
 	HighlightTextLastUpdate = FTextSnapshot();
 }
 
-void FTextBlockLayout::UpdateTextHighlights(const FText& InHighlightText)
+void FSlateTextBlockLayout::UpdateTextHighlights(const FText& InHighlightText)
 {
 	const FString& HighlightTextString = InHighlightText.ToString();
 	const int32 HighlightTextLength = HighlightTextString.Len();
@@ -223,7 +223,7 @@ void FTextBlockLayout::UpdateTextHighlights(const FText& InHighlightText)
 	TextLayout->SetRunRenderers(TextHighlights);
 }
 
-bool FTextBlockLayout::IsStyleUpToDate(const FTextBlockStyle& NewStyle) const
+bool FSlateTextBlockLayout::IsStyleUpToDate(const FTextBlockStyle& NewStyle) const
 {
 	const FTextBlockStyle& CurrentStyle = TextLayout->GetDefaultTextStyle();
 
@@ -236,7 +236,7 @@ bool FTextBlockLayout::IsStyleUpToDate(const FTextBlockStyle& NewStyle) const
 		&& (CurrentStyle.HighlightShape == NewStyle.HighlightShape);
 }
 
-float FTextBlockLayout::CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const
+float FSlateTextBlockLayout::CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const
 {
 	const float WrapTextAt = InWidgetArgs.WrapTextAt.Get(0.0f);
 	const bool bAutoWrapText = InWidgetArgs.AutoWrapText.Get(false);

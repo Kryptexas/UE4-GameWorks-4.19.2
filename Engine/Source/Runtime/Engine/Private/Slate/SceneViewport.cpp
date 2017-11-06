@@ -1498,7 +1498,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 		}
 	}
 
-	DebugCanvasDrawer->InitDebugCanvas(GetClient()->GetWorld());
+	DebugCanvasDrawer->InitDebugCanvas(GetClient(), GetClient()->GetWorld());
 
 	// Note: ViewportRHI is only updated on the game thread
 

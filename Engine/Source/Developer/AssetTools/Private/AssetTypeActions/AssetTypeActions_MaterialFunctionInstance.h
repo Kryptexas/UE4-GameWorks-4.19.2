@@ -23,3 +23,24 @@ private:
 	/** Handler for when FindParent is selected */
 	void ExecuteFindParent(TArray<TWeakObjectPtr<UMaterialFunctionInstance>> Objects);
 };
+
+
+class FAssetTypeActions_MaterialFunctionLayerInstance : public FAssetTypeActions_MaterialFunctionInstance
+{
+public:
+	// IAssetTypeActions Implementation
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_MaterialFunctionMaterialLayerInstance", "Material Layer Instance"); }
+	virtual FColor GetTypeColor() const override { return FColor(0, 175, 175); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual bool CanFilter() override;
+};
+
+class FAssetTypeActions_MaterialFunctionLayerBlendInstance : public FAssetTypeActions_MaterialFunctionInstance
+{
+public:
+	// IAssetTypeActions Implementation
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_MaterialFunctionMaterialLayerBlendInstance", "Material Layer Blend Instance"); }
+	virtual FColor GetTypeColor() const override { return FColor(0, 175, 175); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual bool CanFilter() override;
+};

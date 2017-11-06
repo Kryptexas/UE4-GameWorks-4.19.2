@@ -87,6 +87,7 @@ public:
 		, _Orientation(Orient_Vertical)
 		, _ScrollBarVisibility(EVisibility::Visible)
 		, _ScrollBarAlwaysVisible(false)
+		, _ScrollBarDragFocusCause(EFocusCause::Mouse)
 		, _ScrollBarThickness(FVector2D(5, 5))
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _NavigationDestination(EDescendantScrollDestination::IntoView)
@@ -114,6 +115,8 @@ public:
 		SLATE_ARGUMENT( EVisibility, ScrollBarVisibility )
 
 		SLATE_ARGUMENT( bool, ScrollBarAlwaysVisible )
+
+		SLATE_ARGUMENT( EFocusCause, ScrollBarDragFocusCause )
 
 		SLATE_ARGUMENT( FVector2D, ScrollBarThickness )
 

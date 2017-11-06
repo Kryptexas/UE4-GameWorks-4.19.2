@@ -10,6 +10,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "SequencerTrackNode.h"
 #include "MovieSceneTrack.h"
@@ -37,7 +38,7 @@ static EVisibility GetRolloverVisibility(TAttribute<bool> HoverState, TWeakPtr<S
 
 TSharedRef<SWidget> FSequencerUtilities::MakeAddButton(FText HoverText, FOnGetContent MenuContent, const TAttribute<bool>& HoverState)
 {
-	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
+	FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
 	TSharedRef<STextBlock> ComboButtonText = SNew(STextBlock)
 		.Text(HoverText)

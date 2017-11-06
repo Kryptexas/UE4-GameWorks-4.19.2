@@ -449,7 +449,7 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
 	printf("%ls", Str);
 #else
-	printf("%s", Str);
+	wprintf(TEXT("%s"), Str);
 #endif
 }
 

@@ -7,6 +7,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -164,19 +165,15 @@ FReply SModeWidget::OnModeTabClicked(const FGeometry& MyGeometry, const FPointer
 
 FSlateFontInfo SModeWidget::GetDesiredTitleFont() const
 {
-	const bool bSmallIcons = FMultiBoxSettings::UseSmallToolBarIcons.Get();
-	
+	const bool bSmallIcons = FMultiBoxSettings::UseSmallToolBarIcons.Get();	
 	const int16 FontSize = bSmallIcons ? 10 : 14;
 
-	FString FontName;
 	if (IsActiveMode())
 	{
-		FontName = bSmallIcons ? TEXT("Roboto-Bold.ttf") : TEXT("Roboto-Regular.ttf");
+		return FCoreStyle::GetDefaultFontStyle(bSmallIcons ? TEXT("Bold") : TEXT("Regular"), FontSize);
 	}
 	else
 	{
-		FontName = bSmallIcons ? TEXT("Roboto-Regular.ttf") : TEXT("Roboto-Light.ttf");
+		return FCoreStyle::GetDefaultFontStyle(bSmallIcons ? TEXT("Regular") : TEXT("Light"), FontSize);
 	}
-	
-	return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts") / FontName, FontSize);
 }

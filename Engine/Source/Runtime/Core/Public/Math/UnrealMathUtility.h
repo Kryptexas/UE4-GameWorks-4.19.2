@@ -67,6 +67,7 @@ struct FLinearColor;
 #define THRESH_POINTS_ARE_SAME			(0.00002f)	/* Two points are same if within this distance */
 #define THRESH_POINTS_ARE_NEAR			(0.015f)	/* Two points are near if within this distance and can be combined if imprecise math is ok */
 #define THRESH_NORMALS_ARE_SAME			(0.00002f)	/* Two normal points are same if within this distance */
+#define THRESH_UVS_ARE_SAME			    (0.0009765625f)/* Two UV are same if within this threshold (1.0f/1024f) */
 													/* Making this too large results in incorrect CSG classification and disaster */
 #define THRESH_VECTORS_ARE_NEAR			(0.0004f)	/* Two vectors are near if within this distance and can be combined if imprecise math is ok */
 													/* Making this too large results in lighting problems due to inaccurate texture coordinates */

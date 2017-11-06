@@ -117,19 +117,15 @@ namespace WorldHierarchy
 	{
 		FText LockToolTip;
 
-		if (!bPersistentLevel)
+		if (GEngine && GEngine->bLockReadOnlyLevels)
 		{
-			//Non-Persistent
-			if (GEngine && GEngine->bLockReadOnlyLevels)
+			if (LevelModel.IsValid() && LevelModel.Pin()->IsFileReadOnly())
 			{
-				if (LevelModel.IsValid() && LevelModel.Pin()->IsFileReadOnly())
-				{
-					LockToolTip = LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!");
-				}
+				LockToolTip = LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!");
 			}
-
-			LockToolTip = LOCTEXT("LockButtonToolTip", "Toggle Level Lock");
 		}
+
+		LockToolTip = LOCTEXT("LockButtonToolTip", "Toggle Level Lock");
 
 		return LockToolTip;
 	}
@@ -225,8 +221,7 @@ namespace WorldHierarchy
 
 	bool FLevelModelTreeItem::HasLockControls() const
 	{
-		// The root level cannot be locked
-		return IsLoaded() && Parent.IsValid();
+		return IsLoaded() ;
 	}
 
 	bool FLevelModelTreeItem::HasVisibilityControls() const

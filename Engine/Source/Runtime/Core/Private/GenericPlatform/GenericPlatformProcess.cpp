@@ -565,6 +565,12 @@ bool FGenericPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 	return false;
 }
 
+bool FGenericPlatformProcess::WritePipe(void* WritePipe, const uint8* Data, const int32 DataLength, int32* OutDataLength)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::WriteToPipe not implemented on this platform"));
+	return false;
+}
+
 bool FGenericPlatformProcess::SupportsMultithreading()
 {
 #if DEFAULT_NO_THREADING

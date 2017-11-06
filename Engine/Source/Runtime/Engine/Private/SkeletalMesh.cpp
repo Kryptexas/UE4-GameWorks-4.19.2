@@ -1744,6 +1744,14 @@ void USkeletalMesh::RegisterMorphTarget(UMorphTarget* MorphTarget)
 	}
 }
 
+void USkeletalMesh::UnregisterAllMorphTarget()
+{
+	MorphTargets.Empty();
+	MarkPackageDirty();
+	// need to refresh the map
+	InitMorphTargets();
+}
+
 void USkeletalMesh::UnregisterMorphTarget(UMorphTarget* MorphTarget)
 {
 	if ( MorphTarget )

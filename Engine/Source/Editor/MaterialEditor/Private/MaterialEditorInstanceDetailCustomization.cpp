@@ -19,6 +19,7 @@
 #include "MaterialEditor/DEditorTextureParameterValue.h"
 #include "MaterialEditor/DEditorVectorParameterValue.h"
 #include "MaterialEditor/MaterialEditorInstanceConstant.h"
+#include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
@@ -35,6 +36,14 @@
 #include "ScopedTransaction.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "MaterialPropertyHelpers.h"
+#include "Widgets/Input/SButton.h"
+#include "SBox.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "ModuleManager.h"
+#include "AssetToolsModule.h"
+#include "Materials/MaterialFunctionInterface.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/MaterialFunctionInstance.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 
@@ -172,19 +181,67 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, IDetailCategoryBuilder& GroupsCategory)
 {
+	bool bShowSaveButtons = false;
 	check(MaterialEditorInstance);
-	static FName MaterialParamName = FName("Material Layers Parameter Values");
+	static FName MaterialParamName = FName("Global Material Layers Parameter Values");
 	for (int32 GroupIdx = 0; GroupIdx < MaterialEditorInstance->ParameterGroups.Num(); ++GroupIdx)
 	{
 		FEditorParameterGroup& ParameterGroup = MaterialEditorInstance->ParameterGroups[GroupIdx];
-		if (ParameterGroup.GroupAssociation == EMaterialParameterAssociation::GlobalParameter)
+		if (ParameterGroup.GroupAssociation == EMaterialParameterAssociation::GlobalParameter
+			&& ParameterGroup.GroupName != MaterialParamName)
 		{
+			bShowSaveButtons = true;
 			IDetailGroup& DetailGroup = GroupsCategory.AddGroup(ParameterGroup.GroupName, FText::FromName(ParameterGroup.GroupName), false, true);
-
 			CreateSingleGroupWidget(ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup);
 		}
 	}
+	if (bShowSaveButtons)
+	{
+		FDetailWidgetRow& SaveInstanceRow = GroupsCategory.AddCustomRow(LOCTEXT("SaveInstances", "Save Instances"));
+		FOnClicked OnChildButtonClicked;
+		FOnClicked OnSiblingButtonClicked;
+		if (!MaterialEditorInstance->bIsFunctionPreviewMaterial)
+		{
+			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
+			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance, MaterialEditorInstance->SourceInstance->Parent, Cast<UObject>(MaterialEditorInstance));
+		}
+		else
+		{
+			OnChildButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, Cast<UMaterialFunctionInterface>(MaterialEditorInstance->SourceFunction), Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
+			OnSiblingButtonClicked = FOnClicked::CreateStatic(&FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance, Cast<UMaterialFunctionInterface>(MaterialEditorInstance->SourceFunction->Parent), Cast<UMaterialInterface>(MaterialEditorInstance->SourceInstance), Cast<UObject>(MaterialEditorInstance));
+		}
+		SaveInstanceRow.ValueContent()
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNullWidget::NullWidget
+			]
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f)
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Right)
+			.OnClicked(OnSiblingButtonClicked)
+			.Text(LOCTEXT("SaveToSiblingInstance", "Save To Sibling Instance"))
+			]
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f)
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Right)
+			.OnClicked(OnChildButtonClicked)
+			.Text(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+			]
+			];
+	}
 }
+
+
 
 void FMaterialInstanceParameterDetails::CreateSingleGroupWidget(FEditorParameterGroup& ParameterGroup, TSharedPtr<IPropertyHandle> ParameterGroupProperty, IDetailGroup& DetailGroup )
 {
@@ -507,5 +564,6 @@ void FMaterialInstanceParameterDetails::OnOverrideDitheredLODTransitionChanged(b
 	MaterialEditorInstance->PostEditChange();
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 }
+
 #undef LOCTEXT_NAMESPACE
 

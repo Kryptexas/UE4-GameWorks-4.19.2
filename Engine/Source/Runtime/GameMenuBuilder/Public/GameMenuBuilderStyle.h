@@ -24,13 +24,10 @@ public:
 	static const ISlateStyle& Get();
 
 	static FName GetStyleSetName();
-		
-	GAMEMENUBUILDER_API static FString FontName;
-	GAMEMENUBUILDER_API static int32	FontSize;
+	
 private:
 
 	static TSharedRef< class FSlateStyleSet > Create(const FString StyleName);
 
 	static TSharedPtr< class FSlateStyleSet > SimpleStyleInstance;
 };
-

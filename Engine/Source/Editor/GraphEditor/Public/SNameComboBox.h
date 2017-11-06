@@ -16,7 +16,7 @@
 /**
  * A combo box that shows FName content.
  */
-class SNameComboBox : public SCompoundWidget
+class GRAPHEDITOR_API SNameComboBox : public SCompoundWidget
 {
 public:
 

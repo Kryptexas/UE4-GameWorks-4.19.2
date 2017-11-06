@@ -13,7 +13,11 @@ namespace UnrealBuildTool
 {
 	class LinuxToolChain : UEToolChain
 	{
+		/** Flavor of the current build (target triplet)*/
 		string Architecture;
+
+		/** Cache to avoid making multiple checks for lld availability/usability */
+		bool bUseLld = false;
 
 		public LinuxToolChain(string InArchitecture)
 			: base(CppPlatform.Linux)
@@ -26,6 +30,7 @@ namespace UnrealBuildTool
 				ClangPath = LinuxCommon.WhichClang();
 				GCCPath = LinuxCommon.WhichGcc();
 				ArPath = LinuxCommon.Which("ar");
+				LlvmArPath = LinuxCommon.Which("llvm-ar");
 				RanlibPath = LinuxCommon.Which("ranlib");
 				StripPath = LinuxCommon.Which("strip");
 
@@ -72,6 +77,7 @@ namespace UnrealBuildTool
 				ClangPath = Path.Combine(BaseLinuxPath, @"bin\clang++.exe");
 				// ar and ranlib will be switched later to match the architecture
 				ArPath = "ar.exe";
+				LlvmArPath = "llvm-ar.exe";
 				RanlibPath = "ranlib.exe";
 				StripPath = "strip.exe";
 
@@ -102,6 +108,10 @@ namespace UnrealBuildTool
 						CompilerVersionString)
 					);
 			}
+
+			// trust lld only for clang 5.x and above (FIXME: also find if present on the system?)
+			// NOTE: with early version you can run into errors like "failed to compute relocation:" and others
+			bUseLld = (CompilerVersionMajor >= 5);
 		}
 
 		protected static bool CrossCompiling()
@@ -195,12 +205,6 @@ namespace UnrealBuildTool
 				// icl?
 			}
 
-			if (!CrossCompiling() && !ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				Console.WriteLine("Using {0} version '{1}' (string), {2} (major), {3} (minor), {4} (patch)",
-					String.IsNullOrEmpty(ClangPath) ? "gcc" : "clang",
-					CompilerVersionString, CompilerVersionMajor, CompilerVersionMinor, CompilerVersionPatch);
-			}
 			return !String.IsNullOrEmpty(CompilerVersionString);
 		}
 
@@ -292,7 +296,7 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		static string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
+		string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
 		{
 			string Result = "";
 
@@ -377,6 +381,12 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";
 			// we use this feature to allow static FNames.
 			Result += " -Wno-gnu-string-literal-operator-template";
+
+			// whether we actually can do that is checked in CanUseLTO() earlier
+			if (CompileEnvironment.bAllowLTCG)
+			{
+				Result += " -flto";
+			}
 
 			if (CompileEnvironment.bEnableShadowVariableWarnings)
 			{
@@ -552,6 +562,11 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
+			if (UsingLld() && !LinkEnvironment.bIsBuildingDLL)
+			{
+				Result += CrossCompiling() ? " -fuse-ld=lld.exe" : " -fuse-ld=lld";
+			}
+
 			// debugging symbols
 			// Applying to all configurations @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
 			Result += " -rdynamic";   // needed for backtrace_symbols()...
@@ -582,7 +597,6 @@ namespace UnrealBuildTool
 				// x86_64 is now using updated ICU that doesn't need extra .so
 				Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/" + LinkEnvironment.Architecture;
 			}
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenAL/Linux/" + LinkEnvironment.Architecture;
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_10/linux64";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
@@ -601,6 +615,12 @@ namespace UnrealBuildTool
 			// This apparently can help LLDB speed up symbol lookups
 			Result += " -Wl,--build-id";
 
+			// whether we actually can do that is checked in CanUseLTO() earlier
+			if (LinkEnvironment.bAllowLTCG)
+			{
+				Result += " -flto";
+			}
+
 			if (CrossCompiling())
 			{
 				if (UsingClang())
@@ -614,9 +634,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetArchiveArguments(LinkEnvironment LinkEnvironment)
+		string GetArchiveArguments(LinkEnvironment LinkEnvironment)
 		{
-			return " rc";
+			return " rcs";
 		}
 
 		public static void CrossCompileOutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs e)
@@ -669,6 +689,7 @@ namespace UnrealBuildTool
 		static string ClangPath;
 		static string GCCPath;
 		static string ArPath;
+		static string LlvmArPath;
 		static string RanlibPath;
 		static string StripPath;
 
@@ -708,30 +729,86 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Tracks that information about used C++ library is only printed once
 		/// </summary>
-		private bool bHasPrintedLibcxxInformation = false;
+		private bool bHasPrintedBuildDetails = false;
+
+		/// <summary>
+		/// Checks if we actually can use LTO with this set of tools
+		/// </summary>
+		private bool CanUseLTO()
+		{
+			return UsingLld() && !String.IsNullOrEmpty(LlvmArPath);
+		}
+
+		/// <summary>
+		/// Returns a helpful string for the user
+		/// </summary>
+		protected string ExplainWhyCannotUseLTO()
+		{
+			string Explanation = "Cannot use LTO on this toolchain:";
+			int NumProblems = 0;
+			if (!UsingLld())
+			{
+				Explanation += " not using lld";
+				++NumProblems;
+			}
+			if (String.IsNullOrEmpty(LlvmArPath))
+			{
+				if (NumProblems > 0)
+				{
+					Explanation += " and";
+				}
+				Explanation += " llvm-ar was not found";
+			}
+			return Explanation;
+		}
+
+		protected void PrintBuildDetails(CppCompileEnvironment CompileEnvironment)
+		{
+			Console.WriteLine("------- Build details --------");
+			Console.WriteLine("Using {0} ({1}) version '{2}' (string), {3} (major), {4} (minor), {5} (patch)",
+				String.IsNullOrEmpty(ClangPath) ? "gcc" : "clang",
+				String.IsNullOrEmpty(ClangPath) ? GCCPath : ClangPath,
+				CompilerVersionString, CompilerVersionMajor, CompilerVersionMinor, CompilerVersionPatch);
+
+			if (UsingClang())
+			{
+				// inform the user which C++ library the engine is going to be compiled against - important for compatibility with third party code that uses STL
+				Console.WriteLine("Using {0} standard C++ library.", ShouldUseLibcxx(CompileEnvironment.Architecture) ? "bundled libc++" : "compiler default (most likely libstdc++)");
+				Console.WriteLine("Using {0}", UsingLld() ? "lld linker" : "default linker (ld)");
+				Console.WriteLine("Using {0}", !String.IsNullOrEmpty(LlvmArPath) ? String.Format("llvm-ar : {0}", LlvmArPath) : String.Format("ar and ranlib: {0}, {1}", GetArPath(CompileEnvironment.Architecture), GetRanlibPath(CompileEnvironment.Architecture)));
+			}
+
+			// Also print other once-per-build information
+			if (bUseFixdeps)
+			{
+				Console.WriteLine("Using old way to relink circularly dependent libraries (with a FixDeps step).");
+			}
+			else
+			{
+				Console.WriteLine("Using fast way to relink  circularly dependent libraries (no FixDeps).");
+			}
+
+			if (CompileEnvironment.bAllowLTCG)
+			{
+				Console.WriteLine("Using LTO (link-time optimization).");
+			}
+			Console.WriteLine("------------------------------");
+		}
 
 		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
 			string PCHArguments = "";
 
-			if (!bHasPrintedLibcxxInformation)
+			if (!bHasPrintedBuildDetails)
 			{
-				// inform the user which C++ library the engine is going to be compiled against - important for compatibility with third party code that uses STL
-				bool bUseLibCxx = ShouldUseLibcxx(CompileEnvironment.Architecture);
-				Console.WriteLine("Using {0} standard C++ library.", bUseLibCxx ? "bundled libc++" : "compiler default (most likely libstdc++)");
+				PrintBuildDetails(CompileEnvironment);
+				bHasPrintedBuildDetails = true;
+			}
 
-				// Also print other once-per-build information
-				if (bUseFixdeps)
-				{
-					Console.WriteLine("Using old way to relink circularly dependent libraries (with a FixDeps step).");
-				}
-				else
-				{
-					Console.WriteLine("Using fast way to relink  circularly dependent libraries (no FixDeps).");
-				}
-
-				bHasPrintedLibcxxInformation = true;
+			if (CompileEnvironment.bAllowLTCG && !CanUseLTO())
+			{
+				throw new BuildException(ExplainWhyCannotUseLTO());
 			}
 
 			if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
@@ -879,6 +956,11 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+		bool UsingLld()
+		{
+			return bUseLld;
+		}
+
 		/// <summary>
 		/// Creates an action to archive all the .o files into single .a file
 		/// </summary>
@@ -926,8 +1008,11 @@ namespace UnrealBuildTool
 			}
 			ArchiveAction.CommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
 
-			// add ranlib
-			ArchiveAction.CommandArguments += string.Format(" && \"{0}\" \"{1}\"", GetRanlibPath(LinkEnvironment.Architecture), OutputFile.AbsolutePath);
+			// add ranlib if not using llvm-ar
+			if (String.IsNullOrEmpty(LlvmArPath))
+			{
+				ArchiveAction.CommandArguments += string.Format(" && \"{0}\" \"{1}\"", GetRanlibPath(LinkEnvironment.Architecture), OutputFile.AbsolutePath);
+			}
 
 			// Add the additional arguments specified by the environment.
 			ArchiveAction.CommandArguments += LinkEnvironment.AdditionalArguments;
@@ -1022,6 +1107,11 @@ namespace UnrealBuildTool
 		{
 			Debug.Assert(!bBuildImportLibraryOnly);
 
+			if (LinkEnvironment.bAllowLTCG && !CanUseLTO())
+			{
+				throw new BuildException(ExplainWhyCannotUseLTO());
+			}
+
 			List<string> RPaths = new List<string>();
 
 			if (LinkEnvironment.bIsBuildingLibrary || bBuildImportLibraryOnly)
@@ -1051,7 +1141,9 @@ namespace UnrealBuildTool
 			// Add the output file as a production of the link action.
 			FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
-			LinkAction.CommandDescription = "Link";
+			LinkAction.CommandDescription = LinkEnvironment.bAllowLTCG ? "Link-LTO" : "Link";	// LTO can take a lot of time, make it clear for the user
+			// because the logic choosing between lld and ld is somewhat messy atm (lld fails to link .DSO due to bugs), make the name of the linker clear
+			LinkAction.CommandDescription += (LinkAction.CommandArguments.Contains("-fuse-ld=lld")) ? " (lld)" : " (ld)";
 			LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 
 			// Add the output file to the command-line.

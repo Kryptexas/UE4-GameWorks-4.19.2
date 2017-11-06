@@ -2072,7 +2072,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile())
+				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(Encoding.UTF8))
 				{
 					Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
 					foreach (FileReference FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
@@ -2116,7 +2116,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(Encoding.UTF8);
 				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
 				foreach(FileReference File in Files)
 				{

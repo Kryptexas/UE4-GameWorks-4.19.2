@@ -1133,7 +1133,7 @@ void FStaticMeshEditor::RegenerateLODComboList()
 		// Fill out the LOD level combo.
 		LODLevels.Empty();
 		LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "Base LOD").ToString() ) ) );
+		LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
 		for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
 		{
 			LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );
@@ -1603,7 +1603,7 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCame
 	// Fill out the LOD level combo.
 	LODLevels.Empty();
 	LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-	LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "Base LOD").ToString() ) ) );
+	LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
 	for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
 	{
 		LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );

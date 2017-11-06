@@ -648,7 +648,7 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 
 	const float InverseDesignerScale = (1.f / Designer->GetPreviewScale());
 
-	const FSlateFontInfo AnchorFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10.f);
+	const FSlateFontInfo AnchorFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 	const FVector2D TextSize = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Text, AnchorFont);
 	FVector2D Offset = FVector2D::ZeroVector;
 

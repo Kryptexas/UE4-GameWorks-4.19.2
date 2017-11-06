@@ -579,8 +579,12 @@ namespace SceneOutliner
 		}
 		FEditorDelegates::MapChange.RemoveAll( this );
 		FEditorDelegates::NewCurrentLevel.RemoveAll( this );
-		GEngine->OnLevelActorListChanged().RemoveAll( this );
-		GEditor->UnregisterForUndo( this );
+
+		if(GEngine)
+		{
+			GEngine->OnLevelActorListChanged().RemoveAll(this);
+			GEditor->UnregisterForUndo(this);
+		}
 
 		SearchBoxFilter->OnChanged().RemoveAll( this );
 		Filters->OnChanged().RemoveAll( this );

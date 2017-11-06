@@ -191,6 +191,26 @@ void SMultiLineEditableText::SetIsReadOnly(const TAttribute<bool>& InIsReadOnly)
 	bIsReadOnly = InIsReadOnly;
 }
 
+void SMultiLineEditableText::SetSelectAllTextWhenFocused(const TAttribute<bool>& InSelectAllTextWhenFocused)
+{
+	bSelectAllTextWhenFocused = InSelectAllTextWhenFocused;
+}
+
+void SMultiLineEditableText::SetClearTextSelectionOnFocusLoss(const TAttribute<bool>& InClearTextSelectionOnFocusLoss)
+{
+	bClearTextSelectionOnFocusLoss = InClearTextSelectionOnFocusLoss;
+}
+
+void SMultiLineEditableText::SetRevertTextOnEscape(const TAttribute<bool>& InRevertTextOnEscape)
+{
+	bRevertTextOnEscape = InRevertTextOnEscape;
+}
+
+void SMultiLineEditableText::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClearKeyboardFocusOnCommit)
+{
+	bClearKeyboardFocusOnCommit = InClearKeyboardFocusOnCommit;
+}
+
 void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
 {
 	EditableTextLayout->SetHorizontalScrollFraction(InScrollOffsetFraction);

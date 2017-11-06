@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Framework/Application/SlateApplication.h"
 #include "EditorStyleSettings.h"
+#include "ConfigCacheIni.h"
+#include "ModuleManager.h"
 
 #if WITH_EDITOR
 	#include "UObject/UnrealType.h"
@@ -33,6 +35,14 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 
 	bShowFriendlyNames = true;
 	LogTimestampMode = ELogTimes::None;
+}
+
+void UEditorStyleSettings::Init()
+{
+
+	// Set from CVar 
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("EnableHighDPIAwareness"));
+	bEnableHighDPIAwareness = CVar->GetInt() != 0;
 }
 
 FLinearColor UEditorStyleSettings::GetSubduedSelectionColor() const
@@ -67,6 +77,12 @@ void UEditorStyleSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorStyleSettings, bEnableWindowAnimations))
 	{
 		FSlateApplication::Get().EnableMenuAnimations(bEnableWindowAnimations);
+	}
+
+	// This property is intentionally not per project so it must be manually written to the correct config file
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorStyleSettings, bEnableHighDPIAwareness))
+	{
+		GConfig->SetBool(TEXT("HDPI"), TEXT("EnableHighDPIAwareness"), bEnableHighDPIAwareness, GEditorSettingsIni);
 	}
 
 //	if (!FUnrealEdMisc::Get().IsDeletePreferences())

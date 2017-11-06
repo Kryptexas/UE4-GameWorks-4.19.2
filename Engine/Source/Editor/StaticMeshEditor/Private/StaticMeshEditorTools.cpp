@@ -3304,7 +3304,7 @@ void FLevelOfDetailSettingsLayout::OnLODScreenSizeCommitted( float NewValue, ETe
 void FLevelOfDetailSettingsLayout::UpdateLODNames()
 {
 	LODNames.Empty();
-	LODNames.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "Base LOD").ToString() ) ) );
+	LODNames.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "LOD 0").ToString() ) ) );
 	for(int32 LODLevelID = 1; LODLevelID < LODCount; ++LODLevelID)
 	{
 		LODNames.Add( MakeShareable( new FString( FText::Format( NSLOCTEXT("LODSettingsLayout", "LODLevel_Reimport", "Reimport LOD Level {0}"), FText::AsNumber( LODLevelID ) ).ToString() ) ) );

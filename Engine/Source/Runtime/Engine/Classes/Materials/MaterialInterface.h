@@ -241,6 +241,8 @@ public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
+	UPROPERTY()
+	TMap<FString, bool> LayerParameterExpansion;
 private:
 	/** Unique ID for this material, used for caching during distributed lighting */
 	UPROPERTY()
@@ -721,6 +723,18 @@ public:
 
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, const FGuid& AttributeID );
+
+	/** True if this Material Interface should force a plane preview */
+	ENGINE_API virtual bool ShouldForcePlanePreview()
+	{
+		return bShouldForcePlanePreview;
+	}
+	
+	/** Set whether or not this Material Interface should force a plane preview */
+	ENGINE_API void SetShouldForcePlanePreview(const bool bInShouldForcePlanePreview)
+	{
+		bShouldForcePlanePreview = bInShouldForcePlanePreview;
+	};
 #endif // WITH_EDITOR
 
 	/** Get bitfield indicating which feature levels should be compiled by default */
@@ -795,6 +809,13 @@ private:
 	* Cached type information for the sampler type enumeration. 
 	*/
 	static UEnum* SamplerTypeEnum;
+
+#if WITH_EDITOR
+	/**
+	* Whether or not this material interface should force the preview to be a plane mesh.
+	*/
+	bool bShouldForcePlanePreview;
+#endif
 };
 
 /** Helper function to serialize inline shader maps for the given material resources. */

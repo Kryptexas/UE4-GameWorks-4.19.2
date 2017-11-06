@@ -211,11 +211,10 @@ void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
 	}
 
-	const FName ResolvedRowStructName = GetRowStructName();
-	if (!ResolvedRowStructName.IsNone())
+	// Add the row structure tag
 	{
 		static const FName RowStructureTag = "RowStructure";
-		OutTags.Add( FAssetRegistryTag(RowStructureTag, ResolvedRowStructName.ToString(), FAssetRegistryTag::TT_Alphabetical) );
+		OutTags.Add( FAssetRegistryTag(RowStructureTag, GetRowStructName().ToString(), FAssetRegistryTag::TT_Alphabetical) );
 	}
 
 	Super::GetAssetRegistryTags(OutTags);

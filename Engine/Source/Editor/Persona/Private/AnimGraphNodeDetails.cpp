@@ -40,6 +40,7 @@
 #include "SNumericEntryBox.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Styling/CoreStyle.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -1039,7 +1040,7 @@ void FPlayerTreeViewEntry::GenerateNameWidget(TSharedPtr<SHorizontalBox> Box)
 		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10))
+			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
 			.Text(FText::FromString(EntryName))
 		];
 }

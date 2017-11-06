@@ -607,7 +607,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
-	const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
+	UEditorStyleSettings* StyleSettings = GetMutableDefault<UEditorStyleSettings>();
+	StyleSettings->Init();
+
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 
 	// Needs to be set early as materials can be cached with selected material color baked in
@@ -3322,8 +3324,6 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 		{
 			GEditor->RebuildLevel(*ChangedLevel);
 		}
-
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
 }
 
@@ -5409,8 +5409,6 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
-
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
 }
 
@@ -5809,14 +5807,17 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				// If it does it will mark the original for delete and select the new actor
 				if (ClassToReplace->IsChildOf(ALight::StaticClass()))
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting light from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertLightActors(ConvertToClass);
 				}
 				else if (ClassToReplace->IsChildOf(ABrush::StaticClass()) && ConvertToClass->IsChildOf(AVolume::StaticClass()))
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting brush from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertSelectedBrushesToVolumes(ConvertToClass);
 				}
 				else
 				{
+					UE_LOG(LogEditor, Log, TEXT("Converting actor from %s to %s"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName());
 					ConvertActorsFromClass(ClassToReplace, ConvertToClass);
 				}
 
@@ -5824,10 +5825,13 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				{
 					// Converted by one of the above
 					check (1 == GEditor->GetSelectedActorCount());
-					NewActor = CastChecked< AActor >(GEditor->GetSelectedActors()->GetSelectedObject(0));
-
-					// Caches information for finding the new actor using the pre-converted actor.
-					ReattachActorsHelper::CacheActorConvert(ActorToConvert, NewActor, ConvertedMap, AttachmentInfo[ActorIdx]);
+					NewActor = Cast< AActor >(GEditor->GetSelectedActors()->GetSelectedObject(0));
+					if (ensureMsgf(NewActor, TEXT("Actor conversion of %s to %s failed"), *ActorToConvert->GetFullName(), *ConvertToClass->GetName()))
+					{
+						// Caches information for finding the new actor using the pre-converted actor.
+						ReattachActorsHelper::CacheActorConvert(ActorToConvert, NewActor, ConvertedMap, AttachmentInfo[ActorIdx]);
+					}
+					
 				}
 				else
 				{
@@ -6516,8 +6520,17 @@ void UEditorEngine::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 	else
 	{
 		// UEngine::LoadMap broadcast this event with InLevel==NULL, before cleaning up the world
-		// Reset transactions buffer, to ensure that there are no references to a world which is about to be destroyed
-		ResetTransaction( NSLOCTEXT("UnrealEd", "LoadMapTransReset", "Loading a New Map") );
+		if (InWorld->IsPlayInEditor())
+		{
+			// Each additional instance of PIE in a multiplayer game will add another barrier, so if the event is triggered then this is the case and we need to lift it
+			// Otherwise there will be an imbalance between barriers set and barriers removed and we won't be able to undo when we return.
+			Trans->RemoveUndoBarrier();
+		}
+		else
+		{	
+			// If we're in editor mode, reset transactions buffer, to ensure that there are no references to a world which is about to be destroyed
+			ResetTransaction(NSLOCTEXT("UnrealEd", "LoadMapTransReset", "Loading a New Map"));
+		}
 	}
 }
 

@@ -2834,6 +2834,8 @@ void FObjectInitializer::PostConstructInit()
 		Obj->PostInitProperties();
 	}
 
+	Class->PostInitInstance(Obj);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!FUObjectThreadContext::Get().PostInitPropertiesCheck.Num() || (FUObjectThreadContext::Get().PostInitPropertiesCheck.Pop() != Obj))
 	{

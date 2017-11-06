@@ -161,6 +161,12 @@ FString UMulticastDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL
 }
 
 
+FString UMulticastDelegateProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
+
 void UMulticastDelegateProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
 	if (0 != (PortFlags & PPF_ExportCpp))

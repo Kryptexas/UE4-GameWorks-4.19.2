@@ -1129,7 +1129,9 @@ void FCascadeEmitterCanvasClient::DrawHeaderBlock(int32 Index, int32 XPos, UPart
 					// If there is an object configured to handle it, draw the thumbnail
 					if (RenderInfo != NULL && RenderInfo->Renderer != NULL)
 					{
-						RenderInfo->Renderer->Draw(MaterialInterface, ThumbPos.X, ThumbPos.Y, ThumbSize, ThumbSize, InViewport, Canvas);
+						float DPIScale = Canvas->GetDPIScale();
+						int32 ScaledSize = FMath::RoundToInt(ThumbSize*DPIScale);
+						RenderInfo->Renderer->Draw(MaterialInterface, FMath::RoundToInt(ThumbPos.X*DPIScale), FMath::RoundToInt(ThumbPos.Y*DPIScale), ScaledSize, ScaledSize, InViewport, Canvas);
 					}
 				}
 				else
@@ -1357,8 +1359,12 @@ void FCascadeEmitterCanvasClient::DrawModule(int32 XPos, int32 YPos, UParticleEm
 void FCascadeEmitterCanvasClient::DrawModule(FCanvas* Canvas, UParticleModule* Module, FColor ModuleBkgColor, UParticleEmitter* Emitter)
 {
 	if (Canvas->IsHitTesting())
+	{
 		Canvas->SetHitProxy(new HCascadeEdModuleProxy(Emitter, Module));
+	}
+
 	Canvas->DrawTile(-1, -1, EmitterWidth+1, ModuleHeight+2, 0.f, 0.f, 0.f, 0.f, FLinearColor::Black);
+
 	if (Canvas->IsHitTesting())
 	{
 		Canvas->SetHitProxy(NULL);
@@ -2250,4 +2256,19 @@ bool FCascadeEmitterCanvasClient::IsModuleTypeDataPairSuitableForModuleMenu(FStr
 	}
 
 	return true;
+}
+
+float FCascadeEmitterCanvasClient::UpdateViewportClientWindowDPIScale()  const
+{
+	float DPIScale = 1.f;
+	if (CascadeViewportPtr.IsValid())
+	{
+		TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(CascadeViewportPtr.Pin().ToSharedRef());
+		if (WidgetWindow.IsValid())
+		{
+			DPIScale = WidgetWindow->GetNativeWindow()->GetDPIScaleFactor();
+		}
+	}
+
+	return DPIScale;
 }

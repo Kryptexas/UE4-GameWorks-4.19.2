@@ -64,6 +64,11 @@ case $ACTION in
 		BuildTasks=$(defaults read com.apple.dt.Xcode IDEBuildOperationMaxNumberOfConcurrentCompileTasks)
 		export NumUBTBuildTasks=$BuildTasks
 
+		if [ "$4" == "-buildscw" ] || [ "$5" == "-buildscw" ]; then
+			echo Building ShaderCompileWorker...
+			mono Engine/Binaries/DotNET/UnrealBuildTool.exe ShaderCompileWorker Mac Development
+		fi
+
 		echo Running command : Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "${@:4}"
 		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "${@:4}"
 		;;

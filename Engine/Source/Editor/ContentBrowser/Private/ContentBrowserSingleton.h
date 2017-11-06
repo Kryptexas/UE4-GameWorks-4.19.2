@@ -63,6 +63,9 @@ public:
 
 	TSharedRef<FEmptyFolderVisibilityManager> GetEmptyFolderVisibilityManager();
 
+	/** Single storage location for content browser favorites */
+	TArray<FString> FavoriteFolderPaths;
+
 private:
 
 	/** Util to get or create the content browser that should be used by the various Sync functions */

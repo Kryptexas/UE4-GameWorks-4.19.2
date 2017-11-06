@@ -12,6 +12,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimBlueprint.h"
@@ -97,7 +98,7 @@ void SCreateAnimationAssetDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("SelectPath", "Select Path to create animation"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
 					]
 
 					+ SVerticalBox::Slot()

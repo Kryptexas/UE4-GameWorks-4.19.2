@@ -133,4 +133,14 @@ public:
 	virtual bool GetReentrantFlag() const override { return bReentrantFlag; }
 	virtual void SetReentrantFlag(const bool bIsReentrant) override { bReentrantFlag = bIsReentrant; }
 	//~ End UMaterialFunctionInterface interface
+
+
+#if WITH_EDITOR
+	ENGINE_API bool SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor InValue);
+	ENGINE_API bool SetScalarParameterValueEditorOnly(FName ParameterName, float InValue);
+	ENGINE_API bool SetTextureParameterValueEditorOnly(FName ParameterName, class UTexture* InValue);
+	ENGINE_API bool SetFontParameterValueEditorOnly(FName ParameterName, class UFont* InFontValue, int32 InFontPage);
+	ENGINE_API bool SetStaticComponentMaskParameterValueEditorOnly(FName ParameterName, bool R, bool G, bool B, bool A, FGuid OutExpressionGuid);
+	ENGINE_API bool SetStaticSwitchParameterValueEditorOnly(FName ParameterName, bool OutValue, FGuid OutExpressionGuid);
+#endif // WITH_EDITOR
 };

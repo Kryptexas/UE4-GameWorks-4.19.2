@@ -456,6 +456,7 @@ void FUnrealEdMisc::OnInit()
 	{
 		FMessageLogInitializationOptions InitOptions;
 		InitOptions.bShowPages = true;
+		InitOptions.bShowFilters = true;
 		MessageLogModule.RegisterLogListing("PackagingResults", LOCTEXT("PackagingResults", "Packaging Results"), InitOptions);
 	}
 

@@ -41,6 +41,10 @@ public:
 
 	/** Return whether this is the named parameter, and fill in its value */
 	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid&OutExpressionGuid) const;
+
+#if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, bool InR, bool InG, bool InB, bool InA, FGuid InExpressionGuid);
+#endif
 };
 
 

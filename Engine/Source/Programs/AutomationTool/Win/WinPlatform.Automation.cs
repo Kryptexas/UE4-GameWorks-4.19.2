@@ -128,7 +128,7 @@ public abstract class BaseWinPlatform : Platform
 				}
 
 				// Update the resources in the new file
-				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile.FullName, true))
+				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile.FullName, false))
 				{
 					const int IconResourceId = 101;
 					if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);

@@ -60,7 +60,8 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.AllowContextMenu(AllowContextMenu)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()));
+		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()))
+		.Justification(Justification);
 
 	return MyEditableTextBlock.ToSharedRef();
 }
@@ -84,6 +85,7 @@ void UEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
+	MyEditableTextBlock->SetJustification(Justification);
 
 	ShapedTextOptions.SynchronizeShapedTextProperties(*MyEditableTextBlock);
 }

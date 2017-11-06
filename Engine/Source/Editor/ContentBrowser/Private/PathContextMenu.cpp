@@ -79,6 +79,11 @@ void FPathContextMenu::SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDele
 	OnFolderDeleted = InOnFolderDeleted;
 }
 
+void FPathContextMenu::SetOnFolderFavoriteToggled(const FOnFolderFavoriteToggled& InOnFolderFavoriteToggled)
+{
+	OnFolderFavoriteToggled = InOnFolderFavoriteToggled;
+}
+
 void FPathContextMenu::SetSelectedPaths(const TArray<FString>& InSelectedPaths)
 {
 	SelectedPaths = InSelectedPaths;
@@ -224,6 +229,28 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecutePickColor ) )
 					);
 			}			
+
+			// If this folder is already favorited, show the option to remove from favorites
+			if (ContentBrowserUtils::IsFavoriteFolder(SelectedPaths[0]))
+			{
+				// Remove from favorites
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("RemoveFromFavorites", "Remove From Favorites"),
+					LOCTEXT("RemoveFromFavoritesTooltip", "Removes this folder from the favorites section."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FPathContextMenu::ExecuteFavorite))
+				);
+			}
+			else
+			{
+				// Add to favorites
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("AddToFavorites", "Add To Favorites"),
+					LOCTEXT("AddToFavoritesTooltip", "Adds this folder to the favorites section for easy access."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FPathContextMenu::ExecuteFavorite))
+				);
+			}
 		}
 		MenuBuilder.EndSection();
 
@@ -552,6 +579,11 @@ void FPathContextMenu::ExecutePickColor()
 	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateSP(this, &FPathContextMenu::NewColorComplete);
 
 	OpenColorPicker(PickerArgs);
+}
+
+void FPathContextMenu::ExecuteFavorite()
+{
+	OnFolderFavoriteToggled.ExecuteIfBound(SelectedPaths);
 }
 
 void FPathContextMenu::NewColorComplete(const TSharedRef<SWindow>& Window)

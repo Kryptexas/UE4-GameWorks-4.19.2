@@ -676,8 +676,8 @@ int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve, float MaxReferenceRate)
 			for (int32 KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
 			{
 				float KeyTime = (float)(CurrentCurve->KeyGet(KeyIndex).GetTime().GetSecondDouble());
-				//Collect the smallest delta time
-				float Delta = KeyTime - OldKeyTime;
+				//Collect the smallest delta time, there is no delta in case the first animation key time is negative
+				float Delta = (KeyTime < 0 && KeyIndex == 0) ? 0.0f : KeyTime - OldKeyTime;
 				//use the fractional part of the delta to have the delta between 0.0f and 1.0f
 				Delta = FPlatformMath::Fractional(Delta);
 				int32 DeltaKey = FPlatformMath::RoundToInt(Delta*KeyMultiplier);
@@ -812,6 +812,11 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 	// Make sure we're not hitting 0 for samplerate
 	if ( MaxStackResampleRate != 0 )
 	{
+		//Make sure the resample rate is positive
+		if (!ensure(MaxStackResampleRate >= 0))
+		{
+			MaxStackResampleRate *= -1;
+		}
 		return MaxStackResampleRate;
 	}
 
@@ -1478,9 +1483,15 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 			}
 		}
 
+		const int32 NumSamplingFrame = FMath::RoundToInt((AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate));
+		//Set the time increment from the re-sample rate
+		FbxTime TimeIncrement = 0;
+		TimeIncrement.SetSecondDouble(1.0 / ((double)(ResampleRate)));
 
-		const int32 NumSamplingKeys = FMath::FloorToInt(AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate);
-		const FbxTime TimeIncrement = AnimTimeSpan.GetDuration() / FMath::Max(NumSamplingKeys, 1);
+		//Add a threshold when we compare if we have reach the end of the animation
+		const FbxTime TimeComparisonThreshold = (KINDA_SMALL_NUMBER*FBXSDK_TC_SECOND);
+		
+		
 		for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
 		{
 			int32 NumKeysForTrack = 0;
@@ -1492,7 +1503,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 			// update status
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("TrackName"), FText::FromName(BoneName));
-			Args.Add(TEXT("TotalKey"), FText::AsNumber(NumSamplingKeys));
+			Args.Add(TEXT("TotalKey"), FText::AsNumber(NumSamplingFrame+1)); //Key number is Frame + 1
 			Args.Add(TEXT("TrackIndex"), FText::AsNumber(SourceTrackIdx+1));
 			Args.Add(TEXT("TotalTracks"), FText::AsNumber(FbxRawBoneNames.Num()));
 			const FText StatusUpate = FText::Format(LOCTEXT("ImportingAnimTrackDetail", "Importing Animation Track [{TrackName}] ({TrackIndex}/{TotalTracks}) - TotalKey {TotalKey}"), Args);
@@ -1511,7 +1522,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 				FbxNode* Link = SortedLinks[SourceTrackIdx];
 				FbxNode * LinkParent = Link->GetParent();
-				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime <= AnimTimeSpan.GetStop(); CurTime += TimeIncrement)
+				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime < (AnimTimeSpan.GetStop()+TimeComparisonThreshold); CurTime += TimeIncrement)
 				{
 					// save global trasnform
 					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime) * FFbxDataConverter::GetJointPostConversionMatrix();

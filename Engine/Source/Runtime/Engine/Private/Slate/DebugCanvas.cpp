@@ -145,7 +145,7 @@ void FDebugCanvasDrawer::BeginRenderingCanvas( const FIntRect& CanvasRect )
 }
 
 
-void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
+void FDebugCanvasDrawer::InitDebugCanvas(FViewportClient* ViewportClient, UWorld* InWorld)
 {
 	// If the canvas is not null there is more than one viewport draw call before slate draws.  This can happen on resizes. 
 	// We need to delete the old canvas
@@ -153,7 +153,7 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 		// the same canvas
 	if (FSlateApplication::Get().IsNormalExecution())
 	{
-		GameThreadCanvas = MakeShared<FCanvas, ESPMode::ThreadSafe>(RenderTarget, nullptr, InWorld, InWorld ? InWorld->FeatureLevel : GMaxRHIFeatureLevel);
+		GameThreadCanvas = MakeShared<FCanvas, ESPMode::ThreadSafe>(RenderTarget, nullptr, InWorld, InWorld ? InWorld->FeatureLevel : GMaxRHIFeatureLevel, FCanvas::CDM_DeferDrawing, ViewportClient->GetDPIScale());
 
 		// Do not allow the canvas to be flushed outside of our debug rendering path
 		GameThreadCanvas->SetAllowedModes(FCanvas::Allow_DeleteOnRender);

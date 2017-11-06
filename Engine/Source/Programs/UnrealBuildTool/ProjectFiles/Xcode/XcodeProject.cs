@@ -425,7 +425,7 @@ namespace UnrealBuildTool
 			Content.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
 		}
 
-		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid, FileReference UProjectPath)
+		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid, FileReference UProjectPath, bool bHasEditorConfiguration)
 		{
 			string UE4Dir = ConvertPath(Path.GetFullPath(Directory.GetCurrentDirectory() + "../../.."));
 			string BuildToolPath = UE4Dir + "/Engine/Build/BatchFiles/Mac/Build.sh";
@@ -434,7 +434,7 @@ namespace UnrealBuildTool
 
 			Content.Append("\t\t" + TargetGuid + " /* " + TargetName + " */ = {" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tisa = PBXLegacyTarget;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + (UProjectPath == null ? "" : " \\\"" + UProjectPath.FullName + "\\\"") + "\";" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + (UProjectPath == null ? "" : " \\\"" + UProjectPath.FullName + "\\\"") + (bHasEditorConfiguration ? " -buildscw" : "") + "\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildConfigurationList = "  + TargetBuildConfigGuid + " /* Build configuration list for PBXLegacyTarget \"" + TargetName + "\" */;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildPhases = (" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
@@ -589,7 +589,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine);
 			foreach (var Definition in IntelliSensePreprocessorDefinitions)
 			{
-				Content.Append("\t\t\t\t\t\"" + Definition.Replace("\"", "") + "\"," + ProjectFileGenerator.NewLine);
+				Content.Append("\t\t\t\t\t\"" + Definition.Replace("\"", "").Replace("\\", "") + "\"," + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\t\t\"MONOLITHIC_BUILD=1\"," + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\t);" + ProjectFileGenerator.NewLine);
@@ -1262,7 +1262,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t<key>" + TargetName + ".xcscheme_^#shared#^_</key>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t<dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t<key>orderHint</key>" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t<integer>" + SchemeOrderHint.ToString() + "</integer>" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\t<integer>1</integer>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t</dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t</dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t<key>SuppressBuildableAutocreation</key>" + ProjectFileGenerator.NewLine);
@@ -1294,8 +1294,6 @@ namespace UnrealBuildTool
 
 			string ManagementFilePath = ManagementFileDir + "/xcschememanagement.plist";
 			File.WriteAllText(ManagementFilePath, Content.ToString(), new UTF8Encoding());
-
-			SchemeOrderHint++;
 		}
 
 		/// Implements Project interface
@@ -1383,7 +1381,7 @@ namespace UnrealBuildTool
 				AppendTargetDependencySection(ProjectFileContent, BuildTargetName, BuildTargetGuid, TargetDependencyGuid, TargetProxyGuid);
 			}
 			AppendGroupSection(ProjectFileContent, MainGroupGuid, ProductRefGroupGuid, TargetAppGuid, TargetName);
-			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid, GameProjectPath);
+			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid, GameProjectPath, bHasEditorConfiguration);
 			AppendRunTargetSection(ProjectFileContent, TargetName, TargetGuid, TargetConfigListGuid, TargetDependencyGuid, TargetAppGuid);
 			AppendIndexTargetSection(ProjectFileContent, IndexTargetName, IndexTargetGuid, IndexTargetConfigListGuid, SourcesBuildPhaseGuid);
 			AppendProjectSection(ProjectFileContent, TargetName, TargetGuid, BuildTargetName, BuildTargetGuid, IndexTargetName, IndexTargetGuid, MainGroupGuid, ProductRefGroupGuid, ProjectGuid, ProjectConfigListGuid, GameProjectPath);
@@ -1408,7 +1406,5 @@ namespace UnrealBuildTool
 
 			return bSuccess;
 		}
-
-		static private int SchemeOrderHint = 0;
 	}
 }

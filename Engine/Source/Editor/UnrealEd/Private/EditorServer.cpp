@@ -4376,7 +4376,8 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 
 		if( FParse::Value( Str, TEXT( "FILE=" ), TempFname, 256 ) && ParseObject<UPackage>( Str, TEXT( "Package=" ), Pkg, NULL ) )
 		{
-			if ( GUnrealEd == NULL || Pkg == NULL || !GUnrealEd->CanSavePackage(Pkg) )
+			// Allow commandlets proceed without testing if we need to check out on assumption that they know what they are doing.
+			if ( Pkg == nullptr || ( !IsRunningCommandlet() && ( GUnrealEd == nullptr || !GUnrealEd->CanSavePackage(Pkg ) ) ) )
 			{
 				return false;
 			}

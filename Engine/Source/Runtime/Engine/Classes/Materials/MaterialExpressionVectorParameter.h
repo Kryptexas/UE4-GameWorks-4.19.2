@@ -29,9 +29,13 @@ class UMaterialExpressionVectorParameter : public UMaterialExpressionParameter
 	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue) const;
 
 #if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, FLinearColor InValue);
+
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };
+
 
 
 

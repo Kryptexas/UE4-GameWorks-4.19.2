@@ -84,7 +84,7 @@ struct FPropertyTypeLayoutCallback
 
 	TSharedPtr<class IPropertyTypeIdentifier> PropertyTypeIdentifier;
 
-	bool IsValid() { return PropertyTypeLayoutDelegate.IsBound(); }
+	bool IsValid() const { return PropertyTypeLayoutDelegate.IsBound(); }
 
 	TSharedRef<class IPropertyTypeCustomization> GetCustomizationInstance() const;
 };

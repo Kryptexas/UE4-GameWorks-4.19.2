@@ -110,7 +110,7 @@ private:
 
 IMPLEMENT_MODULE( FMaterialEditorModule, MaterialEditor );
 
-bool FMaterialEditorModule::bMaterialLayersEnabled = false;
+bool FMaterialEditorModule::bMaterialLayersEnabled = true;
 
 namespace MatEd
 {

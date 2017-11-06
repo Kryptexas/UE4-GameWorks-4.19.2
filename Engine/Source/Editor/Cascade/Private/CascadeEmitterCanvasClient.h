@@ -134,6 +134,8 @@ private:
 	/** Is the base module of the given name suitable for the right-click module menu given the currently selected emitter TypeData? */
 	bool IsModuleTypeDataPairSuitableForModuleMenu(FString& InModuleName) const;
 
+	/** FViewport interface */
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 private:
 	/** Pointer back to the Particle editor tool that owns us */
 	TWeakPtr<FCascade> CascadePtr;

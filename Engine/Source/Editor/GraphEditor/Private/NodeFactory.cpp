@@ -270,7 +270,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		}
 		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Float)
 		{
-			return SNew(SGraphPinNum, InPin);
+			return SNew(SGraphPinNum<float>, InPin);
 		}
 		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_String || InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name)
 		{

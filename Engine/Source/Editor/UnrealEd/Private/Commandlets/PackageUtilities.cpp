@@ -51,6 +51,7 @@
 #include "Animation/AnimationSettings.h"
 
 #include "EngineUtils.h"
+#include "Materials/Material.h"
 
 DEFINE_LOG_CATEGORY(LogPackageHelperFunctions);
 DEFINE_LOG_CATEGORY_STATIC(LogPackageUtilities, Log, All);
@@ -215,11 +216,30 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 		for ( int32 PackageIndex = 0; PackageIndex < PackagePathNames.Num(); PackageIndex++ )
 		{
 			// (otherwise, attempting to run a commandlet on e.g. Engine.xxx will always return results for Engine.u instead)
-			const FString& PackageName = PackagePathNames[PackageIndex];
+			FString PackageName = FPackageName::FilenameToLongPackageName(PackagePathNames[PackageIndex]);
 			UPackage* ExistingPackage = FindObject<UPackage>(NULL, *PackageName, true);
 			if ( ExistingPackage != NULL )
 			{
-				ResetLoaders(ExistingPackage);
+				// skip resetting loaders on default materials since they are expected to be post-loaded at that point
+				bool bContainsDefaultMaterial = false;
+				ForEachObjectWithOuter(ExistingPackage,
+					[&bContainsDefaultMaterial](UObject* Obj)
+					{
+						if (!bContainsDefaultMaterial)
+						{
+							UMaterial* Material = Cast<UMaterial>(Obj);
+							if (Material && Material->IsDefaultMaterial())
+							{
+								bContainsDefaultMaterial = true;
+							}
+						}
+					}
+				);
+
+				if (!bContainsDefaultMaterial)
+				{
+					ResetLoaders(ExistingPackage);
+				}
 			}
 		}
 	}

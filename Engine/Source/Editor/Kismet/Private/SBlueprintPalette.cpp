@@ -11,6 +11,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/SToolTip.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Components/ActorComponent.h"
 #include "Engine/Blueprint.h"
@@ -391,7 +392,7 @@ static TSharedRef<IToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 	if (ActionItem.IsValid())
 	{
 		static FTextBlockStyle PathStyle = FTextBlockStyle()
-			.SetFont(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
+			.SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 			.SetColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f));
 
 		NewToolTip = SNew(SToolTip)
@@ -1038,7 +1039,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 		TagMeta.FriendlyName = GraphAction->GetMenuDescription().ToString();
 	}
 	// construct the text widget
-	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+	FSlateFontInfo NameFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
 	
 	// For Variables and Local Variables, we will convert the icon widget into a pin type selector.

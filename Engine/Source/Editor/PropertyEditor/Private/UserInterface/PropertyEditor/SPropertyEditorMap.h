@@ -27,7 +27,7 @@ public:
 
 private:
 
-	FText GetSetTextValue() const;
+	FText GetMapTextValue() const;
 	FText GetMapTooltipText() const;
 
 	/** @return True if the property can be edited */

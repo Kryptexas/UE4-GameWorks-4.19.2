@@ -16,6 +16,15 @@ bool FGenericPlatformApplicationMisc::CachedPhysicalScreenData = false;
 EScreenPhysicalAccuracy FGenericPlatformApplicationMisc::CachedPhysicalScreenAccuracy = EScreenPhysicalAccuracy::Unknown;
 int32 FGenericPlatformApplicationMisc::CachedPhysicalScreenDensity = 0;
 
+static int32 bEnableHighDPIAwareness = 0;
+
+FAutoConsoleVariableRef FGenericPlatformApplicationMisc::CVarEnableHighDPIAwareness(
+	TEXT("EnableHighDPIAwareness"),
+	bEnableHighDPIAwareness,
+	TEXT("Enables or disables high dpi mode"),
+	ECVF_ReadOnly
+);
+
 void FGenericPlatformApplicationMisc::PreInit()
 {
 }
@@ -71,6 +80,11 @@ bool FGenericPlatformApplicationMisc::IsThisApplicationForeground()
 FLinearColor FGenericPlatformApplicationMisc::GetScreenPixelColor(const struct FVector2D& InScreenPos, float InGamma)
 { 
 	return FLinearColor::Black;
+}
+
+bool FGenericPlatformApplicationMisc::IsHighDPIAwarenessEnabled()
+{
+	return bEnableHighDPIAwareness != 0;
 }
 
 void FGenericPlatformApplicationMisc::ClipboardCopy(const TCHAR* Str)

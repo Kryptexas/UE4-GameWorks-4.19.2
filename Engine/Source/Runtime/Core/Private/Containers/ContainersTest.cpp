@@ -10,6 +10,8 @@
 #include "Stats/StatsMisc.h"
 #include "Math/RandomStream.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define MAX_TEST_OBJECTS      65
 #define MAX_TEST_OBJECTS_STEP 1
 #define RANDOM_SEED 12345
@@ -595,3 +597,5 @@ namespace ArrayViewTests
 		return true;
 	}
 };
+
+#endif // WITH_DEV_AUTOMATION_TESTS

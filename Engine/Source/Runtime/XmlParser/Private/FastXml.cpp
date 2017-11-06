@@ -451,11 +451,11 @@ protected:
 										AttributeCount++;
 										Attributes[ AttributeCount ] = Buffer;
 										AttributeCount++;
-										while (*Buffer && *Buffer != *AttributeDelimiter)
+										while(*Buffer && *Buffer != *AttributeDelimiter)
 										{
 											Buffer++;
 										}
-										if (*Buffer == *AttributeDelimiter)
+										if(*Buffer == *AttributeDelimiter)
 										{
 											*Buffer = 0;
 											Buffer++;

@@ -10,7 +10,7 @@
 
 class FScopedTransaction;
 
-class SGraphNodeResizable : public SGraphNode
+class GRAPHEDITOR_API SGraphNodeResizable : public SGraphNode
 {
 public:
 

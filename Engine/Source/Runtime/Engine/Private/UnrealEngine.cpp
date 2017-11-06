@@ -291,12 +291,6 @@ ENGINE_API uint32 GGPUFrameTime = 0;
 /** System resolution instance */
 FSystemResolution GSystemResolution;
 
-static TAutoConsoleVariable<float> CVarDebugTextScale(
-	TEXT("r.DebugTextScale"),
-	1.0,
-	TEXT("Sets the scale of the debug text.\n"),
-	ECVF_Default);
-
 TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
 	TEXT("r.OneFrameThreadLag"),
 	1,
@@ -3079,6 +3073,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("CULTURE="), CultureName))
 		{
 			FInternationalization::Get().SetCurrentCulture(CultureName);
+			return true;
 		}
 	}
 
@@ -3087,6 +3082,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("LANGUAGE="), LanguageName))
 		{
 			FInternationalization::Get().SetCurrentLanguage(LanguageName);
+			return true;
 		}
 	}
 
@@ -3095,6 +3091,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("LOCALE="), LocaleName))
 		{
 			FInternationalization::Get().SetCurrentLocale(LocaleName);
+			return true;
 		}
 	}
 
@@ -3104,6 +3101,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
 			ILocalizationModule::Get().HandleRegenLocCommand(ConfigFilePath, /*bSkipSourceCheck*/false);
+			return true;
 		}
 	}
 #endif
@@ -8586,22 +8584,25 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		return;
 	}
 
+
+	float DPIScale = Canvas->GetDPIScale();
+
+	const FVector2D ScaledViewportSize = FVector2D(Viewport->GetSizeXY()) / DPIScale;
+
 	//@todo joeg: Move this stuff to a function, make safe to use on consoles by
 	// respecting the various safe zones, and make it compile out.
-	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
+	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? ScaledViewportSize.X * 0.5f * 0.334f / DPIScale : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
 	const int32 StatsXOffset = 100;// FPlatformProperties::SupportsWindowedMode() ? 4 : 100;
 
 	static const int32 MessageStartY = GIsEditor ? 35 : 100; // Account for safe frame
 	int32 MessageY = MessageStartY;
 
-	// This is the percentage of the screen that a single line of stats should take up.
-	float TextScale = CVarDebugTextScale.GetValueOnAnyThread();
-	const FVector2D FontScale = FVector2D(TextScale, TextScale);
-	const int32 FontSizeY = 20 * FontScale.X;
+	const FVector2D FontScale(1, 1);
+	const int32 FontSizeY = 20;
 #if !UE_BUILD_SHIPPING
 	if (!GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled)
 	{
-		const int32 MessageX = (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
+		const int32 MessageX = (GEngine->IsStereoscopic3D(Viewport)) ? ScaledViewportSize.X * 0.5f * 0.3f : 40;
 		
 		FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
 		SmallTextItem.Scale = FontScale;
@@ -8621,7 +8622,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			FString String = FString::Printf(TEXT("VisLog recording active"));
 			StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
 
-			SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
+			SmallTextItem.Position = FVector2D((int32)ScaledViewportSize.X - XSize - 16, 36);
 			SmallTextItem.Text = FText::FromString(String);
 			SmallTextItem.SetColor(FLinearColor::Red);
 			SmallTextItem.EnableShadow(FLinearColor::Black);
@@ -8693,8 +8694,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #endif // UE_BUILD_SHIPPING 
 
 	{
-		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
-		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
+		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : ScaledViewportSize.X - FPSXOffset; //??
+		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(ScaledViewportSize.Y * 0.40f) : FMath::TruncToInt(ScaledViewportSize.Y * 0.20f);
 
 		// give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
@@ -8703,8 +8704,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
 
 #if STATS
-		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX, const float TextScale);
-		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : Viewport->GetSizeXY().X, TextScale);
+		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX);
+		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : ScaledViewportSize.X);
 #endif
 	}
 

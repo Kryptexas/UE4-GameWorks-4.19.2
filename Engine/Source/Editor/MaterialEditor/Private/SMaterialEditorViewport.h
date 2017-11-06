@@ -102,6 +102,9 @@ protected:
 	virtual void BindCommands() override;
 	virtual void OnFocusViewportToSelection() override;
 private:
+
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
+
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;
 
@@ -115,6 +118,15 @@ private:
 
 	/** Preview Scene - uses advanced preview settings */
 	TSharedPtr<class FAdvancedPreviewScene> AdvancedPreviewScene;
+
+	/** Post process volume actor. */
+	class APostProcessVolume* PostProcessVolumeActor;
+
+	/** Property changed delegate. */
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+
+	/** Handle to the registered OnPropertyChangedHandle delegate. */
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 };
 
 /**

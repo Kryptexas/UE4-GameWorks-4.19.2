@@ -2712,7 +2712,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		{
 			// normally, we just save the package
 			SaveOutput.Log("LogFileHelpers", ELogVerbosity::Log, FString::Printf(TEXT("Saving Package: %s"), *PackageName));
-			bWasSuccessful = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true"), *PackageName, *FinalPackageSavePath ), SaveOutput );
+			bWasSuccessful = GEngine->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true"), *PackageName, *FinalPackageSavePath ), SaveOutput );
 		}
 
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -3133,7 +3133,7 @@ bool FEditorFileUtils::SaveCurrentLevel()
 FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( const TArray<UPackage*>& InPackages, bool bCheckDirty, bool bPromptToSave, TArray<UPackage*>* OutFailedPackages, bool bAlreadyCheckedOut, bool bCanBeDeclined )
 {
 	// Check for re-entrance into this function
-	if ( bIsPromptingForCheckoutAndSave || FApp::IsUnattended() )
+	if ( bIsPromptingForCheckoutAndSave || (FApp::IsUnattended() && !bAlreadyCheckedOut) )
 	{
 		return PR_Cancelled;
 	}

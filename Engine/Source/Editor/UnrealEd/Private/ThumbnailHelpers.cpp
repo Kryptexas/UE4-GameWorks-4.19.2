@@ -278,8 +278,11 @@ void FMaterialThumbnailScene::SetMaterialInterface(UMaterialInterface* InMateria
 
 		if(BaseMaterial)
 		{
-			// UI and particle sprite material thumbnails always get a 2D plane centered at the camera which is a better representation of the what the material will look like
-			bForcePlaneThumbnail = BaseMaterial->IsUIMaterial() || (BaseMaterial->bUsedWithParticleSprites && !ThumbnailInfo->bUserModifiedShape);
+			bForcePlaneThumbnail = BaseMaterial->ShouldForcePlanePreview();
+		}
+		else
+		{
+			bForcePlaneThumbnail = InMaterial->ShouldForcePlanePreview();
 		}
 
 		EThumbnailPrimType PrimitiveType = bForcePlaneThumbnail ? TPT_Plane : ThumbnailInfo->PrimitiveType.GetValue();

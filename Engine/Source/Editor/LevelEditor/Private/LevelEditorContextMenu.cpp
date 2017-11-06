@@ -172,19 +172,19 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 		MenuBuilder.BeginSection("ComponentControl", LOCTEXT("ComponentControlHeading", "Component"));
 		{
-			auto OwnerActor = GEditor->GetSelectedActors()->GetTop<AActor>();
-			check(OwnerActor);
-
-			MenuBuilder.AddMenuEntry(
-				FLevelEditorCommands::Get().SelectComponentOwnerActor,
-				NAME_None,
-				FText::Format(LOCTEXT("SelectComponentOwner", "Select Owner [{0}]"), FText::FromString(OwnerActor->GetHumanReadableName())),
-				TAttribute<FText>(),
-				FSlateIconFinder::FindIconForClass(OwnerActor->GetClass())
+			AActor* OwnerActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+			if(OwnerActor)
+			{
+				MenuBuilder.AddMenuEntry(
+					FLevelEditorCommands::Get().SelectComponentOwnerActor,
+					NAME_None,
+					FText::Format(LOCTEXT("SelectComponentOwner", "Select Owner [{0}]"), FText::FromString(OwnerActor->GetHumanReadableName())),
+					TAttribute<FText>(),
+					FSlateIconFinder::FindIconForClass(OwnerActor->GetClass())
 				);
+			}
 
 			MenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
-
 
 			const FVector* ClickLocation = &GEditor->ClickLocation;
 			FUIAction GoHereAction;

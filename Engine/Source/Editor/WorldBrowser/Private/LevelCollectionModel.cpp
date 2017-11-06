@@ -166,12 +166,10 @@ void FLevelCollectionModel::BindCommands()
 		
 	//lock
 	ActionList.MapAction( Commands.World_LockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockSelectedLevels_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockSelectedLevels_Executed  ) );
 	
 	ActionList.MapAction( Commands.World_UnockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ) );
 	
 	ActionList.MapAction( Commands.World_LockAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockAllLevels_Executed  ) );

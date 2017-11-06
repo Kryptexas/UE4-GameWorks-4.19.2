@@ -729,8 +729,14 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 				if (ArchiveEntry.IsValid())
 				{
 					const FString PreviousTranslation = TranslationUnit->Translation;
-					TranslationUnit->Translation = ""; // Reset to null string
-					const FString TranslatedString = ArchiveEntry->Translation.Text;
+					TranslationUnit->Translation.Reset();
+
+					FString TranslatedString = ArchiveEntry->Translation.Text;
+					if (!ArchiveEntry->Source.Text.Equals(TranslationUnit->Source, ESearchCase::CaseSensitive))
+					{
+						// Stale translation
+						TranslatedString.Reset();
+					}
 
 					if (TranslatedString.IsEmpty())
 					{

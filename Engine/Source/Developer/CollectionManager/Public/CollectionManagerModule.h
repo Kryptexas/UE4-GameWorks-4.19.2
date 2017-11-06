@@ -25,7 +25,15 @@ public:
 	static inline FCollectionManagerModule& GetModule()
 	{
 		static const FName CollectionManagerModuleName("CollectionManager");
-		return FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+		FCollectionManagerModule* Module = FModuleManager::GetModulePtr<FCollectionManagerModule>(CollectionManagerModuleName);
+		if (Module == nullptr)
+		{
+			return FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+		}
+		else
+		{
+			return *Module;
+		}
 	}
 
 	/**

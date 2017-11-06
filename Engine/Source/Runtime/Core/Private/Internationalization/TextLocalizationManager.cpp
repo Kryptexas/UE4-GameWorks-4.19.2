@@ -284,8 +284,10 @@ void EndInitTextLocalization()
 			}
 		}
 
+		// Validate that we have translations for this language and locale
+		// Note: We skip the locale check for the editor as we a limited number of translations, but want to allow locale correct display of numbers, dates, etc
 		const FString TargetLanguage = ValidateRequestedCulture(RequestedLanguage, FallbackLanguage, TEXT("language"), true);
-		const FString TargetLocale = ValidateRequestedCulture(RequestedLocale, TargetLanguage, TEXT("locale"), false);
+		const FString TargetLocale = GIsEditor ? RequestedLocale : ValidateRequestedCulture(RequestedLocale, TargetLanguage, TEXT("locale"), false);
 		if (TargetLanguage == TargetLocale)
 		{
 			I18N.SetCurrentLanguageAndLocale(TargetLanguage);
@@ -670,22 +672,30 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	{
 		GameLocalizationPaths += FPaths::GetGameLocalizationPaths();
 	}
+
+	TArray<FString> EditorNativePaths;
 	TArray<FString> EditorLocalizationPaths;
 	if (ShouldLoadEditor)
 	{
 		EditorLocalizationPaths += FPaths::GetEditorLocalizationPaths();
 		EditorLocalizationPaths += FPaths::GetToolTipLocalizationPaths();
 
-		bool bShouldLoadLocalizedPropertyNames = true;
-		if (!GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni))
+		bool bShouldUseLocalizedPropertyNames = false;
+		if (!GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), bShouldUseLocalizedPropertyNames, GEditorSettingsIni))
 		{
-			GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni);
+			GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), bShouldUseLocalizedPropertyNames, GEngineIni);
 		}
-		if (bShouldLoadLocalizedPropertyNames)
+
+		if (bShouldUseLocalizedPropertyNames)
 		{
 			EditorLocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
 		}
+		else
+		{
+			EditorNativePaths += FPaths::GetPropertyNameLocalizationPaths();
+		}
 	}
+
 	TArray<FString> EngineLocalizationPaths;
 	EngineLocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
@@ -702,12 +712,26 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	PrioritizedLocalizationPaths += EngineLocalizationPaths;
 	PrioritizedLocalizationPaths += AdditionalLocalizationPaths;
 
-	// Load the native texts first to ensure we always apply translations to a consistent base
+	TArray<FString> PrioritizedNativePaths;
 	if (ShouldLoadNative)
+	{
+		PrioritizedNativePaths = PrioritizedLocalizationPaths;
+
+		if (EditorNativePaths.Num() > 0)
+		{
+			for (const FString& LocalizationPath : EditorNativePaths)
+			{
+				PrioritizedNativePaths.AddUnique(LocalizationPath);
+			}
+		}
+	}
+
+	// Load the native texts first to ensure we always apply translations to a consistent base
+	if (PrioritizedNativePaths.Num() > 0)
 	{
 		TArray<FTextLocalizationResource> TextLocalizationResources;
 
-		for (const FString& LocalizationPath : PrioritizedLocalizationPaths)
+		for (const FString& LocalizationPath : PrioritizedNativePaths)
 		{
 			TArray<FString> LocMetaFilenames;
 			IFileManager::Get().FindFiles(LocMetaFilenames, *(LocalizationPath / TEXT("*.locmeta")), true, false);

@@ -108,6 +108,7 @@ public:
 	virtual void AddToAsyncCompletionCounter(int32 Addend) = 0;
 	virtual void WaitForQuiescence(bool bShutdown = false) = 0;
 	virtual void GetDirectories(TArray<FString>& OutResults) = 0;
+	virtual bool GetUsingSharedDDC() const = 0;
 
 	/**
 	 * Mounts a read-only pak file.

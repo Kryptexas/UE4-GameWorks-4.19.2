@@ -6,6 +6,7 @@
 #include "Types/SlateEnums.h"
 #include "Layout/Visibility.h"
 #include "IDetailCustomization.h"
+#include "Reply.h"
 
 struct FAssetData;
 class IDetailGroup;
@@ -77,7 +78,6 @@ private:
 	void OnOverrideShadingModelChanged(bool NewValue);
 	void OnOverrideTwoSidedChanged(bool NewValue);
 	void OnOverrideDitheredLODTransitionChanged(bool NewValue);
-
 
 private:
 	/** Object that stores all of the possible parameters we can edit */

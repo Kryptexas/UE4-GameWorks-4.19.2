@@ -29,8 +29,14 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 
 	if (MatFunc || bIsFunctionInstancePreview)
 	{
-		if (!ThumbnailScene)
+		if (ThumbnailScene == nullptr || ensure(ThumbnailScene->GetWorld() != nullptr) == false)
 		{
+			if (ThumbnailScene)
+			{
+				FlushRenderingCommands();
+				delete ThumbnailScene;
+			}
+
 			ThumbnailScene = new FMaterialThumbnailScene();
 		}
 
@@ -43,17 +49,23 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 			{
 				FunctionInstanceProxy = NewObject<UMaterialInstanceConstant>((UObject*)GetTransientPackage(), FName(TEXT("None")), RF_Transactional);
 				FunctionInstanceProxy->SetParentEditorOnly(PreviewMaterial);
-				
 				MatFuncInst->OverrideMaterialInstanceParameterValues(FunctionInstanceProxy);
 				FunctionInstanceProxy->PreEditChange(NULL);
 				FunctionInstanceProxy->PostEditChange();
-
 				PreviewMaterial->ThumbnailInfo = MatFuncInst->ThumbnailInfo;
+				if (MatFuncInst->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+				{
+					FunctionInstanceProxy->SetShouldForcePlanePreview(true);
+				}
 				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)FunctionInstanceProxy);
 			}
 			else
 			{
 				PreviewMaterial->ThumbnailInfo = MatFunc->ThumbnailInfo;
+				if (MatFunc->GetMaterialFunctionUsage() == EMaterialFunctionUsage::MaterialLayerBlend)
+				{
+					PreviewMaterial->SetShouldForcePlanePreview(true);
+				}
 				ThumbnailScene->SetMaterialInterface((UMaterialInterface*)PreviewMaterial);
 			}
 	

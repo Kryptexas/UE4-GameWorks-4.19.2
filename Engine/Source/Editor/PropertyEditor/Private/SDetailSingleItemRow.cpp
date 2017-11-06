@@ -170,7 +170,7 @@ FReply SDetailSingleItemRow::OnArrayDrop(const FDragDropEvent& DragDropEvent)
 	bIsHoveredDragTarget = false;
 	TSharedPtr<FArrayRowDragDropOp> ArrayDropOp = DragDropEvent.GetOperationAs< FArrayRowDragDropOp >();
 	TSharedPtr<SDetailSingleItemRow> RowPtr = nullptr;
-	if (ArrayDropOp.IsValid())
+	if (ArrayDropOp.IsValid() && ArrayDropOp->Row.IsValid())
 	{
 		RowPtr = ArrayDropOp->Row.Pin();
 	}

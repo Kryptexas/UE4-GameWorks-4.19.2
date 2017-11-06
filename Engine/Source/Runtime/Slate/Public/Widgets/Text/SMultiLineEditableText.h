@@ -255,6 +255,34 @@ public:
 	/** Sets the ReadOnly attribute */
 	void SetIsReadOnly(const TAttribute< bool >& InIsReadOnly);
 
+	/**
+	 * Sets whether to select all text when the user clicks to give focus on the widget
+	 *
+	 * @param  InSelectAllTextWhenFocused	Select all text when the user clicks?
+	 */
+	void SetSelectAllTextWhenFocused(const TAttribute<bool>& InSelectAllTextWhenFocused);
+
+	/**
+	 * Sets whether to clear text selection when focus is lost
+	 *
+	 * @param  InClearTextSelectionOnFocusLoss	Clear text selection when focus is lost?
+	 */
+	void SetClearTextSelectionOnFocusLoss(const TAttribute<bool>& InClearTextSelectionOnFocusLoss);
+
+	/**
+	 * Sets whether to allow the user to back out of changes when they press the escape key
+	 *
+	 * @param  InRevertTextOnEscape			Allow the user to back out of changes?
+	 */
+	void SetRevertTextOnEscape(const TAttribute<bool>& InRevertTextOnEscape);
+
+	/**
+	 * Sets whether to clear keyboard focus when pressing enter to commit changes
+	 *
+	 * @param  InClearKeyboardFocusOnCommit		Clear keyboard focus when pressing enter?
+	 */
+	void SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClearKeyboardFocusOnCommit);
+
 	/** Query to see if any text is selected within the document */
 	bool AnyTextSelected() const;
 

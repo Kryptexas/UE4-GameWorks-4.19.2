@@ -51,8 +51,24 @@ public:
 	UPROPERTY()
 	FSlateFontInfo Font_DEPRECATED;
 
+	/** Whether to select all text when the user clicks to give focus on the widget */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool SelectAllTextWhenFocused;
+
+	/** Whether to clear text selection when focus is lost */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool ClearTextSelectionOnFocusLoss;
+
+	/** Whether to allow the user to back out of changes when they press the escape key */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool RevertTextOnEscape;
+
+	/** Whether to clear keyboard focus when pressing enter to commit changes */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool ClearKeyboardFocusOnCommit;
+
 	/** Whether the context menu can be opened */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool AllowContextMenu;
 
 	/** Called whenever the text is changed interactively by the user */

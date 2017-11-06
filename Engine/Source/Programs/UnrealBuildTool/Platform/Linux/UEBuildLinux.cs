@@ -308,17 +308,8 @@ namespace UnrealBuildTool
 
 				if (bBuildShaderFormats)
 				{
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-				}
-			}
-			else if (ModuleName == "Launch")
-			{
-				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
-				if (Target.LinkType != TargetLinkType.Monolithic && Target.bCompileCEF3)
-				{
-					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
 				}
 			}
 		}
@@ -346,6 +337,20 @@ namespace UnrealBuildTool
 			if (Target.Architecture.StartsWith("arm"))	// AArch64 doesn't strictly need that - aligned access improves perf, but this will be likely offset by memcpys we're doing to guarantee it.
 			{
 				CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+			}
+
+			if (CompileEnvironment.bAllowLTCG != LinkEnvironment.bAllowLTCG)
+			{
+				Log.TraceWarning("Inconsistency between LTCG settings in Compile and Link environments: link one takes priority");
+				CompileEnvironment.bAllowLTCG = LinkEnvironment.bAllowLTCG;
+			}
+
+			// disable to LTO for modular builds
+			if (CompileEnvironment.bAllowLTCG && Target.LinkType != TargetLinkType.Monolithic)
+			{
+				Log.TraceWarning("LTO (LTCG) for modular builds is not supported, disabling it");
+				CompileEnvironment.bAllowLTCG = false;
+				LinkEnvironment.bAllowLTCG = false;
 			}
 
 			// link with Linux libraries.
@@ -395,7 +400,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// This is the SDK version we support
 		/// </summary>
-		static string ExpectedSDKVersion = "v10_clang-5.0.0-centos7";	// now unified for all the architectures
+		static string ExpectedSDKVersion = "v11_clang-5.0.0-centos7";	// now unified for all the architectures
 
 		/// <summary>
 		/// Platform name (embeds architecture for now)

@@ -28,10 +28,14 @@ class UEditorPerformanceSettings : public UDeveloperSettings
 
 	/** 
 	 * By default the editor will adjust scene scaling (quality) for high DPI in order to ensure consistent performance with very large render targets.
-	 * Enabling this will disable automatic adjusting and use the screen percentage specified here
+	 * Enabling this will disable automatic adjusting and render at the full resolution of the viewport
 	 */
 	UPROPERTY(EditAnywhere, config, Category=EditorPerformance, meta=(DisplayName="Disable DPI Based Editor Viewport Scaling", ConsoleVariable="Editor.OverrideDPIBasedEditorViewportScaling"))
 	bool bOverrideDPIBasedEditorViewportScaling;
+
+	/** When enabled, Shared Data Cache performance notifications may be displayed when not connected to a shared cache */
+	UPROPERTY(EditAnywhere, config, Category = EditorPerformance, meta = (DisplayName = "Enable Shared Data Cache Performance Notifications"))
+	uint32 bEnableSharedDDCPerformanceNotifications : 1;
 
 public:
 	/** UObject interface */

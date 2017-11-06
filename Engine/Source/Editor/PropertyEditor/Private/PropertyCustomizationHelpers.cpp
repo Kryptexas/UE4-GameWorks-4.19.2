@@ -413,6 +413,11 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 
 	bool bDisplayThumbnail = InArgs._DisplayThumbnail;
 	FIntPoint ThumbnailSize(64, 64);
+	if (InArgs._ThumbnailSizeOverride.IsSet())
+	{
+		ThumbnailSize = InArgs._ThumbnailSizeOverride.Get();
+	}
+
 
 	if( InArgs._PropertyHandle.IsValid() && InArgs._PropertyHandle->IsValidHandle() )
 	{

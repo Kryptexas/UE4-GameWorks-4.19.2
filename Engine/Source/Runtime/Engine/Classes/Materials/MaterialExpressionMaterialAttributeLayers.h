@@ -43,6 +43,33 @@ class UMaterialExpressionMaterialAttributeLayers : public UMaterialExpression
 		return ParamLayers ? ParamLayers->Blends : DefaultLayers.Blends;
 	}
 
+#if WITH_EDITOR
+	const TArray<UMaterialFunctionInterface*>& GetInstanceLayers() const
+	{
+		return ParamLayers ? ParamLayers->InstanceLayers : DefaultLayers.InstanceLayers;
+	}
+
+	const TArray<UMaterialFunctionInterface*>& GetInstanceBlends() const
+	{
+		return ParamLayers ? ParamLayers->InstanceBlends : DefaultLayers.InstanceBlends;
+	}
+
+	const TArray<UMaterialFunctionInterface*>& GetFilterLayers() const
+	{
+		return ParamLayers ? ParamLayers->FilterLayers : DefaultLayers.FilterLayers;
+	}
+
+	const TArray<UMaterialFunctionInterface*>& GetFilterBlends() const
+	{
+		return ParamLayers ? ParamLayers->FilterBlends : DefaultLayers.FilterBlends;
+	}
+
+	const TArray<FText>& GetLayerNames() const
+	{
+		return ParamLayers ? ParamLayers->LayerNames : DefaultLayers.LayerNames;
+	}
+#endif
+
 	const TArray<bool>& GetLayerStates() const
 	{
 		return ParamLayers ? ParamLayers->LayerStates : DefaultLayers.LayerStates;

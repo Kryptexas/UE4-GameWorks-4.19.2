@@ -518,7 +518,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 			LayersExpression->OverrideLayerGraph(nullptr);
 		}
 	}
-	else if (FunctionInputExpression && !bCompilingFunctionPreview)
+	else if (FunctionInputExpression && FunctionStack.Num() > 1)
 	{
 		GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionInputExpression->Preview.Expression, FunctionInputExpression->Preview.OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
 		

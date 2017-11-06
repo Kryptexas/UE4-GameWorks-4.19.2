@@ -8,7 +8,7 @@
 
 class UK2Node;
 
-class SGraphNodeK2Default : public SGraphNodeK2Base
+class GRAPHEDITOR_API SGraphNodeK2Default : public SGraphNodeK2Base
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeK2Default){}

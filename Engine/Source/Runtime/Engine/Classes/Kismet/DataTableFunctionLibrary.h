@@ -63,7 +63,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 				EBlueprintExceptionType::AccessViolation,
 				NSLOCTEXT("GetDataTableRow", "MissingTableInput", "Failed to resolve the table input. Be sure the DataTable is valid.")
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 		else if(StructProp && OutRowPtr)
 		{
@@ -84,7 +84,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 					EBlueprintExceptionType::AccessViolation,
 					NSLOCTEXT("GetDataTableRow", "IncompatibleProperty", "Incompatible output parameter; the data table's type is not the same as the return type.")
 					);
-				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+				FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 			}
 		}
 		else
@@ -93,7 +93,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 				EBlueprintExceptionType::AccessViolation,
 				NSLOCTEXT("GetDataTableRow", "MissingOutputProperty", "Failed to resolve the output parameter for GetDataTableRow.")
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 		*(bool*)RESULT_PARAM = bSuccess;
     }

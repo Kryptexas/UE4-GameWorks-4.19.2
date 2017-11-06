@@ -8,6 +8,7 @@
 #include "Components.h"
 #include "Engine/MeshMerging.h"
 #include "SkelImport.h"
+#include "MeshBuild.h"
 
 #include "IMeshMergeUtilities.h"
 
@@ -206,19 +207,18 @@ public:
 	struct MeshBuildOptions
 	{
 		MeshBuildOptions()
-		: bKeepOverlappingVertices(false)
-		, bRemoveDegenerateTriangles(false)
+		: bRemoveDegenerateTriangles(false)
 		, bComputeNormals(true)
 		, bComputeTangents(true)
 		, bUseMikkTSpace(false)
 		{
 		}
 
-		bool bKeepOverlappingVertices;
 		bool bRemoveDegenerateTriangles;
 		bool bComputeNormals;
 		bool bComputeTangents;
 		bool bUseMikkTSpace;
+		FOverlappingThresholds OverlappingThresholds;
 	};
 	
 	/**
@@ -308,19 +308,31 @@ public:
 	 * @param InSmoothingGroupIndices Smoothing group index (per-face based)
 	 * @param InTangentOptions Flags for Tangent calculation
 	 * @param OutTangentX Array to hold calculated Tangents
-	 * @param OutTangentX Array to hold calculated Tangents
-	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation	
+	 * @param OutTangentY Array to hold calculated Bitangents
+	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation)	
 	*/
 	virtual void CalculateTangents(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const = 0;
 
 	/** 
-	* Calculates the overlapping corners for a given set of vertex data
-	* 
-	* @param InVertices Vertices that make up the mesh
-	* @param InIndices Indices for the Vertex array
-	* @param bIgnoreDegenerateTriangles Indicates if we should skip degenerate triangles
-	* @param OutOverlappingCorners MultiMap to hold the overlapping corners. For a vertex, lists all the overlapping vertices.
-	*/
+	 * Calculates Normals for a given set of vertex data
+	 * 
+	 * @param InVertices Vertices that make up the mesh
+	 * @param InIndices Indices for the Vertex array
+	 * @param InUVs Texture coordinates (per-index based)
+	 * @param InSmoothingGroupIndices Smoothing group index (per-face based)
+	 * @param InTangentOptions Flags for Tangent calculation
+	 * @param OutNormals Array to hold calculated normals	
+	 */
+	virtual void CalculateNormals(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutNormals) const = 0;
+
+	/** 
+	 * Calculates the overlapping corners for a given set of vertex data
+	 * 
+	 * @param InVertices Vertices that make up the mesh
+	 * @param InIndices Indices for the Vertex array
+	 * @param bIgnoreDegenerateTriangles Indicates if we should skip degenerate triangles
+	 * @param OutOverlappingCorners MultiMap to hold the overlapping corners. For a vertex, lists all the overlapping vertices.
+	 */
 	virtual void CalculateOverlappingCorners(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, bool bIgnoreDegenerateTriangles, TMultiMap<int32, int32>& OutOverlappingCorners) const = 0;
 
 	virtual void RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, FRawMesh &OutRawMesh) const = 0;

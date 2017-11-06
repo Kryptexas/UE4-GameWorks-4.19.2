@@ -2151,14 +2151,12 @@ static void MikkGetTexCoord_Skeletal(const SMikkTSpaceContext* Context, float UV
 	UV[1] = TexCoord.Y;
 }
 
-static void ComputeTangents_MikkTSpace(
+static void ComputeNormals(
 	const TArray<FVector>& InVertices,
 	const TArray<uint32>& InIndices,
 	const TArray<FVector2D>& InUVs,
 	const TArray<uint32>& SmoothingGroupIndices,
 	TMultiMap<int32, int32> const& OverlappingCorners,
-	TArray<FVector>& OutTangentX,
-	TArray<FVector>& OutTangentY,
 	TArray<FVector>& OutTangentZ,
 	const uint32 TangentOptions
 	)
@@ -2189,18 +2187,6 @@ static void ComputeTangents_MikkTSpace(
 
 	int32 NumWedges = InIndices.Num();
 	int32 NumFaces = NumWedges / 3;
-
-	bool bWedgeTSpace = false;
-
-	if (OutTangentX.Num() > 0 && OutTangentY.Num() > 0)
-	{
-		bWedgeTSpace = true;
-		for (int32 WedgeIdx = 0; WedgeIdx < OutTangentX.Num()
-			&& WedgeIdx < OutTangentY.Num(); ++WedgeIdx)
-		{
-			bWedgeTSpace = bWedgeTSpace && (!OutTangentX[WedgeIdx].IsNearlyZero()) && (!OutTangentY[WedgeIdx].IsNearlyZero());
-		}
-	}
 
 	// Allocate storage for tangents if none were provided, and calculate normals for MikkTSpace.
 	if (OutTangentZ.Num() != NumWedges)
@@ -2410,6 +2396,39 @@ static void ComputeTangents_MikkTSpace(
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
 			OutTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
+		}
+	}
+
+	check(OutTangentZ.Num() == NumWedges);
+}
+
+static void ComputeTangents_MikkTSpace(
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
+	const TArray<FVector2D>& InUVs,
+	const TArray<uint32>& SmoothingGroupIndices,
+	TMultiMap<int32, int32> const& OverlappingCorners,
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
+	const uint32 TangentOptions
+	)
+{
+	ComputeNormals( InVertices, InIndices, InUVs, SmoothingGroupIndices, OverlappingCorners, OutTangentZ, TangentOptions );
+
+	bool bIgnoreDegenerateTriangles = (TangentOptions & ETangentOptions::IgnoreDegenerateTriangles) != 0;
+
+	int32 NumWedges = InIndices.Num();
+
+	bool bWedgeTSpace = false;
+
+	if (OutTangentX.Num() > 0 && OutTangentY.Num() > 0)
+	{
+		bWedgeTSpace = true;
+		for (int32 WedgeIdx = 0; WedgeIdx < OutTangentX.Num()
+			&& WedgeIdx < OutTangentY.Num(); ++WedgeIdx)
+		{
+			bWedgeTSpace = bWedgeTSpace && (!OutTangentX[WedgeIdx].IsNearlyZero()) && (!OutTangentY[WedgeIdx].IsNearlyZero());
 		}
 	}
 
@@ -3395,6 +3414,38 @@ public:
 		MikkTInterface.m_getTexCoord = MikkGetTexCoord_Skeletal;
 		MikkTInterface.m_setTSpaceBasic = MikkSetTSpaceBasic_Skeletal;
 		MikkTInterface.m_setTSpace = nullptr;
+
+		//Fill the NTBs information
+		if (!InBuildOptions.bComputeNormals || !InBuildOptions.bComputeTangents)
+		{
+			if (!InBuildOptions.bComputeTangents)
+			{
+				TangentX.AddZeroed(Wedges.Num());
+				TangentY.AddZeroed(Wedges.Num());
+			}
+
+			if (!InBuildOptions.bComputeNormals)
+			{
+				TangentZ.AddZeroed(Wedges.Num());
+			}
+
+			for (const FMeshFace& MeshFace : Faces)
+			{
+				for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+				{
+					uint32 WedgeIndex = MeshFace.iWedge[CornerIndex];
+					if (!InBuildOptions.bComputeTangents)
+					{
+						TangentX[WedgeIndex] = MeshFace.TangentX[CornerIndex];
+						TangentY[WedgeIndex] = MeshFace.TangentY[CornerIndex];
+					}
+					if (!InBuildOptions.bComputeNormals)
+					{
+						TangentZ[WedgeIndex] = MeshFace.TangentZ[CornerIndex];
+					}
+				}
+			}
+		}
 	}
 
 	virtual uint32 GetWedgeIndex(uint32 FaceIndex, uint32 TriIndex) override
@@ -3608,8 +3659,7 @@ public:
 	{
 		bool bBlendOverlappingNormals = true;
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
-		float ComparisonThreshold = bIgnoreDegenerateTriangles ? THRESH_POINTS_ARE_SAME : 0.0f;
-
+		
 		// Compute per-triangle tangents.
 		TArray<FVector> TriangleTangentX;
 		TArray<FVector> TriangleTangentY;
@@ -3671,9 +3721,9 @@ public:
 			}
 
 			// Don't process degenerate triangles.
-			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			if (PointsEqual(CornerPositions[0], CornerPositions[1], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[0], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[1], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds))
 			{
 				continue;
 			}
@@ -3742,7 +3792,7 @@ public:
 							if (PointsEqual(
 								CornerPositions[OurCornerIndex],
 								BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
-								ComparisonThreshold
+								BuildData->BuildOptions.OverlappingThresholds
 								))
 							{
 								CommonIndexCount++;
@@ -3786,7 +3836,7 @@ public:
 								if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 								{
 									if (NextFaceIndex != OtherFaceIdx)
-										//&& (RawMesh.FaceSmoothingMasks[NextFace.FaceIndex] & RawMesh.FaceSmoothingMasks[OtherFace.FaceIndex]))
+										//&& (BuildData->GetFaceSmoothingGroups(NextFace.FaceIndex) & BuildData->GetFaceSmoothingGroups(OtherFace.FaceIndex)))
 									{
 										int32 CommonVertices = 0;
 										int32 CommonTangentVertices = 0;
@@ -3800,14 +3850,15 @@ public:
 												if (PointsEqual(
 													BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
 													BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
-													ComparisonThreshold))
+													BuildData->BuildOptions.OverlappingThresholds))
 												{
 													CommonVertices++;
 
 
 													if (UVsEqual(
 														BuildData->GetVertexUV(NextFace.FaceIndex, NextCornerIndex, 0),
-														BuildData->GetVertexUV(OtherFace.FaceIndex, OtherCornerIndex, 0)))
+														BuildData->GetVertexUV(OtherFace.FaceIndex, OtherCornerIndex, 0),
+														BuildData->BuildOptions.OverlappingThresholds))
 													{
 														CommonTangentVertices++;
 													}
@@ -3930,7 +3981,6 @@ public:
 	{
 		bool bBlendOverlappingNormals = true;
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
-		float ComparisonThreshold = bIgnoreDegenerateTriangles ? THRESH_POINTS_ARE_SAME : 0.0f;
 
 		// Compute per-triangle tangents.
 		TArray<FVector> TriangleTangentX;
@@ -3994,9 +4044,9 @@ public:
 			}
 
 			// Don't process degenerate triangles.
-			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			if (PointsEqual(CornerPositions[0], CornerPositions[1], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[0], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[1], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds))
 			{
 				continue;
 			}
@@ -4056,7 +4106,7 @@ public:
 							if (PointsEqual(
 								CornerPositions[OurCornerIndex],
 								BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
-								ComparisonThreshold
+								BuildData->BuildOptions.OverlappingThresholds
 								))
 							{
 								CommonIndexCount++;
@@ -4113,7 +4163,7 @@ public:
 												if (PointsEqual(
 													BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
 													BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
-													ComparisonThreshold))
+													BuildData->BuildOptions.OverlappingThresholds))
 												{
 													CommonVertices++;
 													if (bBlendOverlappingNormals
@@ -4435,7 +4485,7 @@ public:
 		}
 
 		// Generate chunks and their vertices and indices
-		SkeletalMeshTools::BuildSkeletalMeshChunks(BuildData.Faces, RawVertices, VertIndexAndZ, BuildData.BuildOptions.bKeepOverlappingVertices, BuildData.Chunks, BuildData.bTooManyVerts);
+		SkeletalMeshTools::BuildSkeletalMeshChunks(BuildData.Faces, RawVertices, VertIndexAndZ, BuildData.BuildOptions.OverlappingThresholds, BuildData.Chunks, BuildData.bTooManyVerts);
 
 		// Chunk vertices to satisfy the requested limit.
 		const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
@@ -4490,7 +4540,7 @@ bool FMeshUtilities::BuildSkeletalMesh(FSkeletalMeshLODModel& LODModel, const FR
 	// Temporarily supporting both import paths
 	if (!BuildOptions.bUseMikkTSpace)
 	{
-		return BuildSkeletalMesh_Legacy(LODModel, RefSkeleton, Influences, Wedges, Faces, Points, PointToOriginalMap, BuildOptions.bKeepOverlappingVertices, BuildOptions.bComputeNormals, BuildOptions.bComputeTangents, OutWarningMessages, OutWarningNames);
+		return BuildSkeletalMesh_Legacy(LODModel, RefSkeleton, Influences, Wedges, Faces, Points, PointToOriginalMap, BuildOptions.OverlappingThresholds, BuildOptions.bComputeNormals, BuildOptions.bComputeTangents, OutWarningMessages, OutWarningNames);
 	}
 
 	SkeletalMeshBuildData BuildData(
@@ -4588,7 +4638,18 @@ bool FMeshUtilities::BuildSkeletalMesh(FSkeletalMeshLODModel& LODModel, const FR
 }
 
 //@TODO: The OutMessages has to be a struct that contains FText/FName, or make it Token and add that as error. Needs re-work. Temporary workaround for now. 
-bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
+bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel
+											, const FReferenceSkeleton& RefSkeleton
+											, const TArray<FVertInfluence>& Influences
+											, const TArray<FMeshWedge>& Wedges
+											, const TArray<FMeshFace>& Faces
+											, const TArray<FVector>& Points
+											, const TArray<int32>& PointToOriginalMap
+											, const FOverlappingThresholds& OverlappingThresholds
+											, bool bComputeNormals
+											, bool bComputeTangents
+											, TArray<FText> * OutWarningMessages
+											, TArray<FName> * OutWarningNames)
 {
 	bool bTooManyVerts = false;
 
@@ -4726,7 +4787,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, c
 			// only need to search forward, since we add pairs both ways
 			for (int32 j = i + 1; j < VertIndexAndZ.Num(); j++)
 			{
-				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > THRESH_POINTS_ARE_SAME)
+				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > OverlappingThresholds.ThresholdPosition)
 				{
 					// our list is sorted, so there can't be any more dupes
 					break;
@@ -4735,7 +4796,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, c
 				// check to see if the points are really overlapping
 				if (PointsEqual(
 					Points[VertIndexAndZ[i].Index],
-					Points[VertIndexAndZ[j].Index]))
+					Points[VertIndexAndZ[j].Index], OverlappingThresholds))
 				{
 					Vert2Duplicates.Add(VertIndexAndZ[i].Index, VertIndexAndZ[j].Index);
 					Vert2Duplicates.Add(VertIndexAndZ[j].Index, VertIndexAndZ[i].Index);
@@ -4837,10 +4898,11 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, c
 					{
 						if (PointsEqual(
 							Points[Wedges[OtherFace.iWedge[OtherVertexIndex]].iVertex],
-							Points[Wedges[Face.iWedge[VertexIndex]].iVertex]
+							Points[Wedges[Face.iWedge[VertexIndex]].iVertex],
+							OverlappingThresholds
 							))
 						{
-							if (Determinant * OtherFaceDeterminant > 0.0f && SkeletalMeshTools::SkeletalMesh_UVsEqual(Wedges[OtherFace.iWedge[OtherVertexIndex]], Wedges[Face.iWedge[VertexIndex]]))
+							if (Determinant * OtherFaceDeterminant > 0.0f && SkeletalMeshTools::SkeletalMesh_UVsEqual(Wedges[OtherFace.iWedge[OtherVertexIndex]], Wedges[Face.iWedge[VertexIndex]], OverlappingThresholds))
 							{
 								VertexTangentX[VertexIndex] += FaceTangentX[OtherFaceIndex];
 								VertexTangentY[VertexIndex] += FaceTangentY[OtherFaceIndex];
@@ -4961,7 +5023,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel, c
 	}
 
 	// Generate chunks and their vertices and indices
-	SkeletalMeshTools::BuildSkeletalMeshChunks(Faces, RawVertices, VertIndexAndZ, bKeepOverlappingVertices, Chunks, bTooManyVerts);
+	SkeletalMeshTools::BuildSkeletalMeshChunks(Faces, RawVertices, VertIndexAndZ, OverlappingThresholds, Chunks, bTooManyVerts);
 
 	// Chunk vertices to satisfy the requested limit.
 	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
@@ -5495,6 +5557,16 @@ void FMeshUtilities::CalculateTangents(const TArray<FVector>& InVertices, const 
 	{
 		ComputeTangents(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
 	}
+}
+
+void FMeshUtilities::CalculateNormals(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutNormals) const
+{
+	const float ComparisonThreshold = (InTangentOptions & ETangentOptions::IgnoreDegenerateTriangles ) ? THRESH_POINTS_ARE_SAME : 0.0f;
+
+	TMultiMap<int32, int32> OverlappingCorners;
+	FindOverlappingCorners(OverlappingCorners, InVertices, InIndices, ComparisonThreshold);
+
+	ComputeNormals(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutNormals, InTangentOptions);
 }
 
 void FMeshUtilities::CalculateOverlappingCorners(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, bool bIgnoreDegenerateTriangles, TMultiMap<int32, int32>& OutOverlappingCorners) const

@@ -24,8 +24,6 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		return TDefaultNumericTypeInterface<NumericType>::ToString(Value);
 	}
 
-	using namespace Lex;
-
 	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
 
 	if (FixedDisplayUnits.IsSet())
@@ -33,11 +31,14 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		auto Converted = FinalValue.ConvertTo(FixedDisplayUnits.GetValue());
 		if (Converted.IsSet())
 		{
-			return ToSanitizedString(Converted.GetValue());
+			FinalValue = Converted.GetValue();
 		}
 	}
 	
-	return ToSanitizedString(FinalValue);
+	FString String = TDefaultNumericTypeInterface<NumericType>::ToString(FinalValue.Value);
+	String += TEXT(" ");
+	String += FUnitConversion::GetUnitDisplayString(FinalValue.Units);
+	return String;
 }
 
 template<typename NumericType>
@@ -47,8 +48,6 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 	{
 		return TDefaultNumericTypeInterface<NumericType>::FromString(InString, InExistingValue);
 	}
-
-	using namespace Lex;
 
 	EUnit DefaultUnits = FixedDisplayUnits.IsSet() ? FixedDisplayUnits.GetValue() : UnderlyingUnits;
 

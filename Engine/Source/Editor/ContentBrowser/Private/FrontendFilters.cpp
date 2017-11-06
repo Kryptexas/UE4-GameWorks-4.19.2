@@ -995,8 +995,11 @@ FFrontendFilter_InUseByLoadedLevels::~FFrontendFilter_InUseByLoadedLevels()
 {
 	FEditorDelegates::MapChange.RemoveAll(this);
 
-	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
-	AssetTools.OnAssetPostRename().RemoveAll(this);
+	if(FAssetToolsModule::IsModuleLoaded())
+	{
+		IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+		AssetTools.OnAssetPostRename().RemoveAll(this);
+	}
 }
 
 void FFrontendFilter_InUseByLoadedLevels::ActiveStateChanged( bool bActive )

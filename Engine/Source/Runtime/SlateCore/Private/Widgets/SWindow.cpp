@@ -274,7 +274,7 @@ void SWindow::Construct(const FArguments& InArgs)
 
 	if (PrimaryDisplayRect == FPlatformRect(0, 0, 0, 0))
 	{
-		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  so assume virtual display rect is primary rect
+		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  So assume virtual display rect is primary rect
 		PrimaryDisplayRect = VirtualDisplayRect;
 	}
 

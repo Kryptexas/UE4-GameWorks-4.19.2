@@ -13,6 +13,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Text/STextBlock.h"
 #include "IContentBrowserSingleton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeAttachedAssetItem"
@@ -38,8 +39,8 @@ void FSkeletonTreeAttachedAssetItem::GenerateWidgetForNameColumn( TSharedPtr< SH
 			.Image( IconBrush )
 		];
 
-	const FSlateFontInfo TextFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
-	const FLinearColor TextColor(FLinearColor::White);
+	const FSlateFontInfo TextFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
+	const FLinearColor TextColor = FLinearColor::White;
 
 	Box->AddSlot()
 		.AutoWidth()

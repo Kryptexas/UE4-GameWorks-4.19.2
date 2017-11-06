@@ -141,5 +141,8 @@ public:
 
 	/** Get whether this file is in a conflicted state */
 	virtual bool IsConflicted() const = 0;
+
+	/** Get whether this file can be reverted, i.e. its changes are discarded and the file will no longer be checked-out. */
+	virtual bool CanRevert() const = 0;
 };
 

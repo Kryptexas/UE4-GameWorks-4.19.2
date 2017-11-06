@@ -12,6 +12,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSlider.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
@@ -851,7 +852,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				. VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 14) )
 					.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
 					.Text( this, &STimelineEditor::GetTimelineName )
 				]

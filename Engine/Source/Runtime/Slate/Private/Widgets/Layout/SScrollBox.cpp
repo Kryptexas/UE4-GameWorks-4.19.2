@@ -190,6 +190,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	{
 		// Make a scroll bar 
 		ScrollBar = ConstructScrollBar();
+		ScrollBar->SetDragFocusCause(InArgs._ScrollBarDragFocusCause);
 		ScrollBar->SetThickness(InArgs._ScrollBarThickness);
 		ScrollBar->SetUserVisibility(InArgs._ScrollBarVisibility);
 		ScrollBar->SetScrollBarAlwaysVisible(InArgs._ScrollBarAlwaysVisible);

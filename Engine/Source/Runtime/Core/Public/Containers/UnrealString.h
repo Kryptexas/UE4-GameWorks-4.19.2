@@ -1738,10 +1738,12 @@ public:
 	 * Converts a float string with the trailing zeros stripped
 	 * For example - 1.234 will be "1.234" rather than "1.234000"
 	 * 
-	 * @param	InFloat		The float to sanitize
-	 * @returns sanitized string version of float
+	 * @param	InFloat					The float to sanitize
+	 * @param	InMinFractionalDigits	The minimum number of fractional digits the number should have (will be padded with zero)
+	 *
+	 * @return sanitized string version of float
 	 */
-	static FString SanitizeFloat( double InFloat );
+	static FString SanitizeFloat( double InFloat, const int32 InMinFractionalDigits = 1 );
 
 	/**
 	 * Joins an array of 'something that can be concatentated to strings with +=' together into a single string with separators.

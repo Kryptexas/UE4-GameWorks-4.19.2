@@ -189,7 +189,7 @@ namespace FbxMeshUtils
 				if( TempStaticMesh )
 				{
 					//Build the staticmesh
-					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]));
+					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]), LODLevel);
 					TArray<int32> ReimportLodList;
 					ReimportLodList.Add(LODLevel);
 					UpdateSomeLodsImportMeshData(BaseStaticMesh, &ReimportLodList);

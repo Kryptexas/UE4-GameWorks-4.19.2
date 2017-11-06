@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 
 		/// True if we should include documentation in the generated projects
 		[XmlConfigFile]
-		bool bIncludeDocumentation = true;
+		protected bool bIncludeDocumentation = true;
 
 		/// True if all documentation languages should be included in generated projects, otherwise only "INT" will be included
 		bool bAllDocumentationLanguages = false;
@@ -218,19 +218,19 @@ namespace UnrealBuildTool
 		protected bool bIncludeEngineSource = true;
 
 		/// True if shader source files should be included in the generated projects
-		bool bIncludeShaderSource = true;
+		protected bool bIncludeShaderSource = true;
 
 		/// True if build system files should be included
 		bool bIncludeBuildSystemFiles = true;
 
 		/// True if we should include config files (.ini files) in the generated project
-		bool bIncludeConfigFiles = true;
+		protected bool bIncludeConfigFiles = true;
 
 		/// True if we should include localization files (.int/.kor/etc files) in the generated project
 		bool bIncludeLocalizationFiles = false;
 
-        /// True if we should include template files (.template files) in the generated project
-        bool bIncludeTemplateFiles = true;
+		/// True if we should include template files (.template files) in the generated project
+		protected bool bIncludeTemplateFiles = true;
 
 		/// True if we should include program projects in the generated solution
 		protected bool IncludeEnginePrograms = true;

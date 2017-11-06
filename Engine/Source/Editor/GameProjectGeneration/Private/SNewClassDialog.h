@@ -216,6 +216,9 @@ private:
 	/** The available modules combo box */
 	TSharedPtr<SComboBox<TSharedPtr<FModuleContextInfo>>> AvailableModulesCombo;
 
+	/** The last selected module name. Meant to keep the same module selected after first selection */
+	static FString LastSelectedModuleName;
+
 	/** The name of the class being created */
 	FString NewClassName;
 

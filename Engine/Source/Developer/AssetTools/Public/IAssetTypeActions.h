@@ -104,4 +104,7 @@ public:
 
 	/** Collects the resolved source paths for the imported assets */
 	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const = 0;
+
+	/** Builds the filter for this class*/
+	virtual void BuildBackendFilter(struct FARFilter& InFilter) = 0;
 };

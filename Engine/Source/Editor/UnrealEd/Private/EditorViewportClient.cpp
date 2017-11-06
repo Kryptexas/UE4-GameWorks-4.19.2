@@ -243,6 +243,16 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 	return CameraSpeedSetting;
 }
 
+float FEditorViewportClient::GetCameraSpeedScalar() const
+{
+	return CameraSpeedScalar;
+}
+
+void FEditorViewportClient::SetCameraSpeedScalar(float SpeedScalar)
+{
+	CameraSpeedScalar = FMath::Clamp<float>(SpeedScalar, 1.0f, TNumericLimits <float>::Max());
+}
+
 float const FEditorViewportClient::SafePadding = 0.075f;
 
 static int32 ViewOptionIndex = 0;
@@ -270,6 +280,7 @@ void InitViewOptionsArray()
 FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
 	: bAllowCinematicPreview(false)
 	, CameraSpeedSetting(4)
+	, CameraSpeedScalar(1.0f)
 	, ImmersiveDelegate()
 	, VisibilityDelegate()
 	, Viewport(NULL)
@@ -396,12 +407,9 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	FCoreDelegates::StatDisabled.AddRaw(this, &FEditorViewportClient::HandleViewportStatDisabled);
 	FCoreDelegates::StatDisableAll.AddRaw(this, &FEditorViewportClient::HandleViewportStatDisableAll);
 
-	if (EditorViewportWidget.IsValid())
-	{
-		RequestUpdateEditorScreenPercentage();
+	RequestUpdateDPIScale();
 
-		FSlateApplication::Get().OnWindowDPIScaleChanged().AddRaw(this, &FEditorViewportClient::HandleWindowDPIScaleChanged);
-	}
+	FSlateApplication::Get().OnWindowDPIScaleChanged().AddRaw(this, &FEditorViewportClient::HandleWindowDPIScaleChanged);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
@@ -428,12 +436,15 @@ FEditorViewportClient::~FEditorViewportClient()
 		UE_LOG(LogEditorViewport, Fatal, TEXT("Viewport != NULL in FLevelEditorViewportClient destructor."));
 	}
 
-	GEditor->AllViewportClients.Remove(this);
-
-	// fix up the other viewport indices
-	for (int32 ViewportIndex = ViewIndex; ViewportIndex < GEditor->AllViewportClients.Num(); ViewportIndex++)
+	if(GEditor)
 	{
-		GEditor->AllViewportClients[ViewportIndex]->ViewIndex = ViewportIndex;
+		GEditor->AllViewportClients.Remove(this);
+
+		// fix up the other viewport indices
+		for (int32 ViewportIndex = ViewIndex; ViewportIndex < GEditor->AllViewportClients.Num(); ViewportIndex++)
+		{
+			GEditor->AllViewportClients[ViewportIndex]->ViewIndex = ViewportIndex;
+		}
 	}
 
 	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
@@ -1692,9 +1703,9 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		float NewViewFOV = ViewFOV;
 
 		// We'll combine the regular camera speed scale (controlled by viewport toolbar setting) with
-		// the flight camera speed scale (controlled by mouse wheel).
+		// the flight camera speed scale (controlled by mouse wheel) and the CameraSpeedScalar (set in the transform viewport toolbar).
 		const float CameraSpeed = GetCameraSpeed();
-		const float FinalCameraSpeedScale = FlightCameraSpeedScale * CameraSpeed;
+		const float FinalCameraSpeedScale = FlightCameraSpeedScale * CameraSpeed * GetCameraSpeedScalar();
 
 		// Only allow FOV recoil if flight camera mode is currently inactive.
 		const bool bAllowRecoilIfNoImpulse = (!bUsingFlightInput) && (!IsMatineeRecordingWindow());
@@ -2005,11 +2016,8 @@ void FEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewpo
 
 void FEditorViewportClient::HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow)
 {
-	// Ignore tooltips and other strange window types. These cannot be our window
-	if (InWindow->IsRegularWindow())
-	{
-		RequestUpdateEditorScreenPercentage();
-	}
+	RequestUpdateDPIScale();
+	Invalidate();
 }
 
 void FEditorViewportClient::UpdateMouseDelta()
@@ -2795,8 +2803,8 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 		ViewTM = FRotationMatrix( *InRotation );
 	}
 
-	const int32 SizeX = InViewport->GetSizeXY().X;
-	const int32 SizeY = InViewport->GetSizeXY().Y;
+	const int32 SizeX = InViewport->GetSizeXY().X / Canvas->GetDPIScale();
+	const int32 SizeY = InViewport->GetSizeXY().Y / Canvas->GetDPIScale();
 
 	const FIntPoint AxisOrigin( 30, SizeY - 30 );
 	const float AxisSize = 25.f;
@@ -2911,7 +2919,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 	StringSize(Font, TextWidth, TextHeight, *DisplayText);
 
 	// Origin is the bottom left of the scale
-	const FIntPoint StartPoint(80, InViewport->GetSizeXY().Y - 30);
+	const FIntPoint StartPoint(80, InViewport->GetSizeXY().Y/Canvas->GetDPIScale() - 30);
 	const FIntPoint EndPoint = StartPoint + (UnitsPerPixel != 0 ? FIntPoint(SegmentWidthUnits / UnitsPerPixel, 0) : FIntPoint(0,0));
 
 	// Sort out the color for the text and widget
@@ -5351,7 +5359,7 @@ bool FEditorViewportClient::IsStatEnabled(const FString& InName) const
 	return EnabledStats.Contains(InName);
 }
 
-float FEditorViewportClient::GetViewportClientWindowDPIScale() const
+float FEditorViewportClient::UpdateViewportClientWindowDPIScale() const
 {
 	float DPIScale = 1.f;
 	if(EditorViewportWidget.IsValid())

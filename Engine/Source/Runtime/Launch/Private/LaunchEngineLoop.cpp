@@ -291,7 +291,8 @@ public:
 		if (Verbosity <= AllowedLogVerbosity)
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("%ls\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			// printf prints wchar_t strings just fine with %ls, while mixing printf()/wprintf() is not recommended (see https://stackoverflow.com/questions/8681623/printf-and-wprintf-in-single-c-code)
+			printf("%ls\n", *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
 			wprintf(TEXT("%s\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
@@ -1687,12 +1688,8 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 
 	EndInitTextLocalization();
 
-	if (GIsEditor)
-	{
-		// High DPI must be enabled before any windows are shown.
-		// only doing this in editor for now
-		FPlatformMisc::SetHighDPIMode();
-	}
+	// This must be called before any window (including the splash screen is created
+	FSlateApplication::InitHighDPI();
 
 	UStringTable::InitializeEngineBridge();
 

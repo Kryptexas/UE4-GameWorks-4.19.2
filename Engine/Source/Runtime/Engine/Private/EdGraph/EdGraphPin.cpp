@@ -633,9 +633,9 @@ FText UEdGraphPin::GetDisplayName() const
 	{
 		DisplayName = (!PinFriendlyName.IsEmpty()) ? PinFriendlyName : FText::FromName(PinName);
 
-		bool bShowNodesAndPinsUnlocalized = false;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
-		if (bShowNodesAndPinsUnlocalized)
+		bool bShouldUseLocalizedNodeAndPinNames = false;
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), bShouldUseLocalizedNodeAndPinNames, GEditorSettingsIni );
+		if (!bShouldUseLocalizedNodeAndPinNames)
 		{
 			return FText::FromString(DisplayName.BuildSourceString());
 		}

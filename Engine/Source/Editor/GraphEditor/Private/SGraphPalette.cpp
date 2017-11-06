@@ -5,6 +5,7 @@
 #include "Modules/ModuleManager.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Images/SImage.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "GraphEditorDragDropAction.h"
 
@@ -19,7 +20,7 @@
 
 void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData)
 {
-	FSlateFontInfo NameFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+	FSlateFontInfo NameFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	check(InCreateData->Action.IsValid());
 

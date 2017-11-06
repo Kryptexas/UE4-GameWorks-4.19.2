@@ -18,6 +18,7 @@
 @public
 	bool bZoomed;
 	bool bIsOnActiveSpace;
+	bool bIsBeingResized;
 }
 
 @property (assign) EWindowMode::Type TargetWindowMode;

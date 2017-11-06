@@ -17,6 +17,10 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
 	bIsReadOnly = Defaults._IsReadOnly.Get();
+	SelectAllTextWhenFocused = Defaults._SelectAllTextWhenFocused.Get();
+	ClearTextSelectionOnFocusLoss = Defaults._ClearTextSelectionOnFocusLoss.Get();
+	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
+	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
 	Clipping = Defaults._Clipping;
 	AutoWrapText = true;
@@ -45,9 +49,10 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	.IsReadOnly(bIsReadOnly)
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
-//	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
-//	.RevertTextOnEscape(RevertTextOnEscape)
-//	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
+	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
+	.ClearTextSelectionOnFocusLoss(ClearTextSelectionOnFocusLoss)
+	.RevertTextOnEscape(RevertTextOnEscape)
+	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 //	.SelectAllTextOnCommit(SelectAllTextOnCommit)
 //	.BackgroundImageSelected(BackgroundImageSelected ? TAttribute<const FSlateBrush*>(&BackgroundImageSelected->Brush) : TAttribute<const FSlateBrush*>())
 //	.BackgroundImageSelectionTarget(BackgroundImageSelectionTarget ? TAttribute<const FSlateBrush*>(&BackgroundImageSelectionTarget->Brush) : TAttribute<const FSlateBrush*>())
@@ -71,8 +76,11 @@ void UMultiLineEditableText::SynchronizeProperties()
 	MyMultiLineEditableText->SetHintText(HintTextBinding);
 	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
 	MyMultiLineEditableText->SetIsReadOnly(bIsReadOnly);
+	MyMultiLineEditableText->SetSelectAllTextWhenFocused(SelectAllTextWhenFocused);
+	MyMultiLineEditableText->SetClearTextSelectionOnFocusLoss(ClearTextSelectionOnFocusLoss);
+	MyMultiLineEditableText->SetRevertTextOnEscape(RevertTextOnEscape);
+	MyMultiLineEditableText->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 
-//	MyMultiLineEditableText->SetIsPassword(IsPassword);
 //	MyMultiLineEditableText->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SMultiLineEditableText
@@ -137,7 +145,7 @@ void UMultiLineEditableText::PostLoad()
 
 const FText UMultiLineEditableText::GetPaletteCategory()
 {
-	return LOCTEXT("Primitive", "Primitive");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

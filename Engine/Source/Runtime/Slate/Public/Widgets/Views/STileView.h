@@ -52,6 +52,7 @@ public:
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
 		, _ScrollbarVisibility(EVisibility::Visible)
+		, _ScrollbarDragFocusCause(EFocusCause::Mouse)
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
@@ -94,6 +95,8 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 
 		SLATE_ATTRIBUTE(EVisibility, ScrollbarVisibility)
+
+		SLATE_ARGUMENT(EFocusCause, ScrollbarDragFocusCause)
 
 		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
@@ -180,6 +183,7 @@ public:
 			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, InArgs._ItemAlignment, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar, InArgs._OnTileViewScrolled);
 			if (this->ScrollBar.IsValid())
 			{
+				this->ScrollBar->SetDragFocusCause(InArgs._ScrollbarDragFocusCause);
 				this->ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
 			}
 		}

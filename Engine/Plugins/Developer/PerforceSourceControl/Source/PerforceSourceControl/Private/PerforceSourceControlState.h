@@ -85,6 +85,7 @@ public:
 	virtual bool CanAdd() const override;
 	virtual bool CanDelete() const override;
 	virtual bool IsConflicted() const override;
+	virtual bool CanRevert() const override;
 
 	/** Get the state of a file */
 	EPerforceState::Type GetState() const

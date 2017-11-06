@@ -51,6 +51,8 @@ struct CORE_API FEditorObjectVersion
 		MovieSceneMetaDataSerialization,
 		// Text gathered from properties now adds two variants: a version without the package localization ID (for use at runtime), and a version with it (which is editor-only)
 		GatheredTextEditorOnlyPackageLocId,
+		// Added AlwaysSign to FNumberFormattingOptions
+		AddedAlwaysSignNumberFormattingOption,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

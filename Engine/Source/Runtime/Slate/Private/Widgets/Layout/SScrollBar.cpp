@@ -12,6 +12,7 @@ void SScrollBar::Construct(const FArguments& InArgs)
 {
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
+	DragFocusCause = InArgs._DragFocusCause;
 	UserVisibility = InArgs._Visibility;
 
 	check(InArgs._Style);
@@ -131,7 +132,7 @@ FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 	if( bDraggingThumb )
 	{
-		return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
+		return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), DragFocusCause);
 	}
 	else
 	{
@@ -328,6 +329,11 @@ void SScrollBar::SetStyle(const FScrollBarStyle* InStyle)
 		TopBrush = &Style->HorizontalTopSlotImage;
 		BottomBrush = &Style->HorizontalBottomSlotImage;
 	}
+}
+
+void SScrollBar::SetDragFocusCause(EFocusCause InDragFocusCause)
+{
+	DragFocusCause = InDragFocusCause;
 }
 
 void SScrollBar::SetThickness(TAttribute<FVector2D> InThickness)

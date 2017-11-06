@@ -636,7 +636,7 @@ void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEdit
 	}
 }
 
-float UGameViewportClient::GetViewportClientWindowDPIScale() const
+float UGameViewportClient::UpdateViewportClientWindowDPIScale() const
 {
 	TSharedPtr<SWindow> PinnedWindow = Window.Pin();
 
@@ -3308,7 +3308,7 @@ void UGameViewportClient::HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWind
 #if WITH_EDITOR
 	if (InWindow == Window)
 	{
-		RequestUpdateEditorScreenPercentage();
+		RequestUpdateDPIScale();
 	}
 #endif
 }

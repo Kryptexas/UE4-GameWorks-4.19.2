@@ -17,7 +17,7 @@ class ISlateRunRenderer;
 enum class ETextShapingMethod : uint8;
 
 /** Class to handle the cached layout of STextBlock/SRichTextBlock by proxying around a FTextLayout */
-class SLATE_API FTextBlockLayout
+class SLATE_API FSlateTextBlockLayout
 {
 public:
 	struct FWidgetArgs
@@ -56,7 +56,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	FSlateTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required

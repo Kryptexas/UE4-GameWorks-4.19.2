@@ -53,6 +53,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit(true)
+		, _Justification(ETextJustify::Left)
 		, _AllowContextMenu(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
@@ -261,6 +262,9 @@ public:
 	 * @param  InSelectAllTextOnCommit		Select all text when pressing enter?
 	 */
 	void SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
 
 	/**
 	 * Sets the OnKeyDownHandler to provide first chance handling of the OnKeyDown event

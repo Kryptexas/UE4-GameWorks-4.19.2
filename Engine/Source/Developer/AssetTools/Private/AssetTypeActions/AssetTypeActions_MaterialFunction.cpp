@@ -13,8 +13,16 @@
 #include "MaterialEditorModule.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
+#include "ARFilter.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
+
+const FName MaterialFunctionClass = FName(TEXT("MaterialFunction"));
+const FName MaterialFunctionInstanceClass = FName(TEXT("MaterialFunctionInstance"));
+const FName MaterialFunctionUsageTag = FName(TEXT("MaterialFunctionUsage"));
+const FString LayerCompareString = (TEXT("MaterialLayer"));
+const FString BlendCompareString = (TEXT("MaterialLayerBlend"));
+
 
 void FAssetTypeActions_MaterialFunction::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
@@ -173,6 +181,65 @@ bool FAssetTypeActions_MaterialFunctionLayer::CanFilter()
 	return MaterialEditorModule.MaterialLayersEnabled();
 }
 
+
+
+
+void FAssetTypeActions_MaterialFunctionLayer::ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects)
+{
+	const FString DefaultSuffix = TEXT("_Inst");
+
+	if (Objects.Num() == 1)
+	{
+		auto Object = Objects[0].Get();
+
+		if (Object)
+		{
+			// Create an appropriate and unique name 
+			FString Name;
+			FString PackageName;
+			CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+
+			UMaterialFunctionMaterialLayerInstanceFactory* Factory = NewObject<UMaterialFunctionMaterialLayerInstanceFactory>();
+			Factory->InitialParent = Object;
+
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerInstance::StaticClass(), Factory);
+		}
+	}
+	else
+	{
+		TArray<UObject*> ObjectsToSync;
+		for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+		{
+			auto Object = (*ObjIt).Get();
+			if (Object)
+			{
+				// Determine an appropriate name
+				FString Name;
+				FString PackageName;
+				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+
+				// Create the factory used to generate the asset
+				UMaterialFunctionMaterialLayerInstanceFactory* Factory = NewObject<UMaterialFunctionMaterialLayerInstanceFactory>();
+				Factory->InitialParent = Object;
+
+				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerInstance::StaticClass(), Factory);
+
+				if (NewAsset)
+				{
+					ObjectsToSync.Add(NewAsset);
+				}
+			}
+		}
+
+		if (ObjectsToSync.Num() > 0)
+		{
+			FAssetTools::Get().SyncBrowserToAssets(ObjectsToSync);
+		}
+	}
+}
+
 UClass* FAssetTypeActions_MaterialFunctionLayerBlend::GetSupportedClass() const
 {
 	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
@@ -184,6 +251,62 @@ bool FAssetTypeActions_MaterialFunctionLayerBlend::CanFilter()
 {
 	IMaterialEditorModule& MaterialEditorModule = FModuleManager::LoadModuleChecked<IMaterialEditorModule>("MaterialEditor");
 	return MaterialEditorModule.MaterialLayersEnabled();
+}
+
+void FAssetTypeActions_MaterialFunctionLayerBlend::ExecuteNewMFI(TArray<TWeakObjectPtr<UMaterialFunctionInterface>> Objects)
+{
+	const FString DefaultSuffix = TEXT("_Inst");
+
+	if (Objects.Num() == 1)
+	{
+		auto Object = Objects[0].Get();
+
+		if (Object)
+		{
+			// Create an appropriate and unique name 
+			FString Name;
+			FString PackageName;
+			CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+
+			UMaterialFunctionMaterialLayerBlendInstanceFactory* Factory = NewObject<UMaterialFunctionMaterialLayerBlendInstanceFactory>();
+			Factory->InitialParent = Object;
+
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerBlendInstance::StaticClass(), Factory);
+		}
+	}
+	else
+	{
+		TArray<UObject*> ObjectsToSync;
+		for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+		{
+			auto Object = (*ObjIt).Get();
+			if (Object)
+			{
+				// Determine an appropriate name
+				FString Name;
+				FString PackageName;
+				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
+
+				// Create the factory used to generate the asset
+				UMaterialFunctionMaterialLayerBlendInstanceFactory* Factory = NewObject<UMaterialFunctionMaterialLayerBlendInstanceFactory>();
+				Factory->InitialParent = Object;
+
+				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UMaterialFunctionMaterialLayerBlendInstance::StaticClass(), Factory);
+
+				if (NewAsset)
+				{
+					ObjectsToSync.Add(NewAsset);
+				}
+			}
+		}
+
+		if (ObjectsToSync.Num() > 0)
+		{
+			FAssetTools::Get().SyncBrowserToAssets(ObjectsToSync);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

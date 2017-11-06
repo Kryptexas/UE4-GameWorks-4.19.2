@@ -450,7 +450,7 @@ namespace LinuxPlatformApplicationMisc
 
 float FLinuxPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if ((GIsEditor || IS_PROGRAM) && !FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
+	if ((GIsEditor || IS_PROGRAM) && IsHighDPIAwarenessEnabled())
 	{
 		FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);

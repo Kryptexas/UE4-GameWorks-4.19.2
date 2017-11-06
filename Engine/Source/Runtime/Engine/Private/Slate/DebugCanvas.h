@@ -32,7 +32,7 @@ public:
 	/**
 	 * Creates a new debug canvas and enqueues the previous one for deletion
 	 */
-	void InitDebugCanvas(UWorld* InWorld);
+	void InitDebugCanvas(FViewportClient* ViewportClient, UWorld* InWorld);
 
 	/** 
 	* Releases rendering resources

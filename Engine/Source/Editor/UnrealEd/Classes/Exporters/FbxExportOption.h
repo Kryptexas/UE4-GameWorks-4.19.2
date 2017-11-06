@@ -14,7 +14,6 @@
 UENUM()
 enum class EFbxExportCompatibility : uint8
 {
-	FBX_2010,
 	FBX_2011,
 	FBX_2012,
 	FBX_2013,

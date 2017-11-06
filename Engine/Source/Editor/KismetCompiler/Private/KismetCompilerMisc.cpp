@@ -912,6 +912,13 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 				{
 					NewPropertyObj = NewObject<UObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
+
+				// Is the property a reference to something that should default to instanced?
+				if (SubType->HasAnyClassFlags(CLASS_DefaultToInstanced))
+				{
+					NewPropertyObj->SetPropertyFlags(CPF_InstancedReference);
+				}
+
 				// we want to use this setter function instead of setting the 
 				// PropertyClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)

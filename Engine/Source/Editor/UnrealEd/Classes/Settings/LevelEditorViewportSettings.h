@@ -246,6 +246,10 @@ class UNREALED_API ULevelEditorViewportSettings
 	UPROPERTY(config, meta=(UIMin = "1", UIMax = "8", ClampMin="1", ClampMax="8"))
 	int32 CameraSpeed;
 
+	/** Scalar applied to perspective camera movement to increase movement range. */
+	UPROPERTY(config, meta = (ClampMin = "1", UIMax = "128"))
+	float CameraSpeedScalar;
+
 	/** How fast the perspective camera moves through the world when using mouse scroll. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(UIMin = "1", UIMax = "8", ClampMin="1", ClampMax="8"))
 	int32 MouseScrollCameraSpeed;

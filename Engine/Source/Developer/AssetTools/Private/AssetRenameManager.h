@@ -21,7 +21,7 @@ class FAssetRenameManager : public TSharedFromThis<FAssetRenameManager>
 {
 public:
 	/** Renames assets using the specified names. */
-	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
+	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const;
 
 	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
 	void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const;
@@ -42,7 +42,7 @@ public:
 
 private:
 	/** Attempts to load and fix redirector references for the supplied assets */
-	void FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames) const;
+	void FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout = false) const;
 
 	/** Get a list of assets referenced from CDOs */
 	TArray<TWeakObjectPtr<UObject>> FindCDOReferencedAssets(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
@@ -66,7 +66,10 @@ private:
 	 * Trims PackagesToSave when necessary.
 	 * Returns true if the user opted to continue the operation or no dialog was required.
 	 */
-	bool CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const;
+	bool CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave, bool bAutoCheckout) const;
+
+	/** Attempts to check out packages, returns false on any failure */
+	bool AutoCheckOut(TArray<UPackage*>& PackagesToCheckOut) const;
 
 	/** Finds any collections that are referencing the assets to be renamed. Assets referenced by collections will leave redirectors */
 	void DetectReferencingCollections(TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;

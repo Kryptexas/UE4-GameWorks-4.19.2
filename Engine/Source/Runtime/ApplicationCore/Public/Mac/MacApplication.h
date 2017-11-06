@@ -207,8 +207,6 @@ public:
 
 	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
 
-	bool IsHighDPIModeEnabled() const { return bIsHighDPIModeEnabled; }
-
 	void SystemModalMode(bool const bInSystemModalMode) { bSystemModalMode = bInSystemModalMode; }
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
@@ -365,8 +363,6 @@ private:
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
-
-	bool bIsHighDPIModeEnabled;
 
 	/** Notification center observers */
 	id AppActivationObserver;

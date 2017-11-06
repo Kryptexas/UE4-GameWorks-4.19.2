@@ -13,6 +13,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Editor.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 //#include "Persona.h"
 #include "Developer/AssetTools/Public/IAssetTools.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
@@ -91,7 +92,7 @@ void SCreateAnimationDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("SelectPath", "Select Path to create animation"))
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
 					]
 
 					+SVerticalBox::Slot()

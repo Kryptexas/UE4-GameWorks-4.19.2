@@ -1132,6 +1132,11 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			FString ReplaceStr;
 			FParse::Value(Str, TEXT("Replace="), ReplaceStr );
 
+			FString AutoCheckOutStr;
+			FParse::Value(Str, TEXT("AutoCheckOut="), AutoCheckOutStr);
+			AutoCheckOutStr = AutoCheckOutStr.ToLower();
+			bool bAutoCheckOut = (AutoCheckOutStr == "yes" || AutoCheckOutStr == "true" || AutoCheckOutStr == "1");
+
 			GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "RenamingAssets", "Renaming Assets"), true, true);
 
 			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -1178,7 +1183,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 			if( AssetsToRename.Num() > 0 )
 			{
-				AssetTools.RenameAssets( AssetsToRename );
+				AssetTools.RenameAssets( AssetsToRename, bAutoCheckOut );
 			}
 
 			GWarn->EndSlowTask();

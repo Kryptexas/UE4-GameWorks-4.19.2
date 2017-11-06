@@ -638,7 +638,7 @@ namespace UnrealBuildTool
 
 					// @todo ubtmake: remove this when building with RPCUtility works
 					// @todo tvos merge: Check the change to this line, not clear why. Is TVOS needed here?
-					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS)
+					if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS))
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}
@@ -898,7 +898,7 @@ namespace UnrealBuildTool
 									Generator = new KDevelopGenerator(ProjectFile);
 									break;
 								case ProjectFileFormat.CodeLite:
-									Generator = new CodeLiteGenerator(ProjectFile);
+									Generator = new CodeLiteGenerator(ProjectFile, Arguments);
 									break;
 								case ProjectFileFormat.VisualStudio:
 									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.Default, OverrideWindowsCompiler);

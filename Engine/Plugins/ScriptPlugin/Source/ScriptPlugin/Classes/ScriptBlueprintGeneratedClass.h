@@ -143,7 +143,7 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	* @param InName Name of the native function
 	* @param InPointer Pointer to the native member function
 	*/
-	void AddUniqueNativeFunction(const FName& InName, Native InPointer);
+	void AddUniqueNativeFunction(const FName& InName, FNativeFuncPtr InPointer);
 
 	/**
 	* Removes native function mapping

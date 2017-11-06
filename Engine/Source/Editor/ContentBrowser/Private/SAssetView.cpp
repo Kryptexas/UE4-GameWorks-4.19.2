@@ -196,7 +196,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
 
 	bCanShowCollections = InArgs._CanShowCollections;
-
+	bCanShowFavorites = InArgs._CanShowFavorites;
 	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
 	SelectionMode = InArgs._SelectionMode;
@@ -1701,7 +1701,8 @@ bool SAssetView::IsValidSearchToken(const FString& Token) const
 void SAssetView::RefreshSourceItems()
 {
 	// Load the asset registry module
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	static const FName AssetRegistryName(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 
 	RecentlyLoadedOrChangedAssets.Empty();
 	RecentlyAddedAssets.Empty();
@@ -1817,21 +1818,27 @@ void SAssetView::RefreshSourceItems()
 	const bool bDisplayEngine = IsShowingEngineContent();
 	const bool bDisplayPlugins = IsShowingPluginContent();
 	const bool bDisplayL10N = IsShowingLocalizedContent();
+	const TArray<TSharedRef<IPlugin>> Plugins = IPluginManager::Get().GetEnabledPluginsWithContent();
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
+		const FString PackagePath = Item.PackagePath.ToString();
 		// Do not show redirectors if they are not the main asset in the uasset file.
 		const bool IsMainlyARedirector = Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset();
 		// If this is an engine folder, and we don't want to show them, remove
-		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
-		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Project);
-		// If this is an engine plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenEnginePluginFolder = (!bDisplayEngine || !bDisplayPlugins) && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Engine);
+		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(PackagePath);
+		// If this is a plugin folder (engine or project), and we don't want to show them, remove
+		bool IsHiddenPluginFolder = false;
+		if (!bDisplayPlugins || !bDisplayEngine)
+		{
+			EPluginLoadedFrom PluginSource;
+			const bool bIsPluginFolder = ContentBrowserUtils::IsPluginFolder(PackagePath, Plugins, &PluginSource);
+			IsHiddenPluginFolder = bIsPluginFolder && (!bDisplayPlugins || (!bDisplayEngine && PluginSource == EPluginLoadedFrom::Engine));
+		}
 		// Do not show localized content folders.
-		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
+		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(PackagePath);
 
-		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenGameProjectPluginFolder || IsAHiddenEnginePluginFolder || IsTheHiddenLocalizedContentFolder;
+		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsHiddenPluginFolder || IsTheHiddenLocalizedContentFolder;
 		if (ShouldFilterOut)
 		{
 			Items.RemoveAtSwap(AssetIdx);
@@ -2865,6 +2872,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowFavoriteOptions", "Show Favorites"),
+			LOCTEXT("ShowFavoriteOptionToolTip", "Show the favorite folders in the view?"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SAssetView::ToggleShowFavorites),
+				FCanExecuteAction::CreateSP(this, &SAssetView::IsToggleShowFavoritesAllowed),
+				FIsActionChecked::CreateSP(this, &SAssetView::IsShowingFavorites)
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+		);
 	}
 	MenuBuilder.EndSection();
 
@@ -3170,6 +3190,24 @@ bool SAssetView::IsToggleShowCollectionsAllowed() const
 bool SAssetView::IsShowingCollections() const
 {
 	return IsToggleShowCollectionsAllowed() && GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
+}
+
+
+void SAssetView::ToggleShowFavorites()
+{
+	const bool bShowingFavorites = GetDefault<UContentBrowserSettings>()->GetDisplayFavorites();
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayFavorites(!bShowingFavorites);
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsToggleShowFavoritesAllowed() const
+{
+	return bCanShowFavorites;
+}
+
+bool SAssetView::IsShowingFavorites() const
+{
+	return IsToggleShowFavoritesAllowed() && GetDefault<UContentBrowserSettings>()->GetDisplayFavorites();
 }
 
 void SAssetView::ToggleShowCppContent()
@@ -4054,6 +4092,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 	}
 	else if( ItemType == EAssetItemType::Folder )
 	{
+		TArray<FMovedContentFolder> MovedFolders;
 		const TSharedPtr<FAssetViewFolder>& ItemAsFolder = StaticCastSharedPtr<FAssetViewFolder>(Item);
 		if(ItemAsFolder->bNewFolder)
 		{
@@ -4118,6 +4157,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 
 			if(bSuccess)
 			{
+				MovedFolders.Add(FMovedContentFolder(ItemAsFolder->FolderPath, NewPath));
 				// move any assets in our folder
 				TArray<FAssetData> AssetsInFolder;
 				AssetRegistryModule.Get().GetAssetsByPath(*ItemAsFolder->FolderPath, AssetsInFolder, true);
@@ -4135,7 +4175,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 					ContentBrowserUtils::DeleteFolders(FoldersToDelete);
 				}
 			}
-
+			OnFolderPathChanged.ExecuteIfBound(MovedFolders);
 			RequestQuickFrontendListRefresh();
 		}		
 	}
@@ -4473,10 +4513,21 @@ void SAssetView::ExecuteDropMove(TArray<FAssetData> AssetList, TArray<FString> A
 		ContentBrowserUtils::MoveAssets(DroppedObjects, DestinationPath);
 	}
 
+	// Prepare to fixup any asset paths that are favorites
+	TArray<FMovedContentFolder> MovedFolders;
+	for (const FString& OldPath : AssetPaths)
+	{
+		const FString SubFolderName = FPackageName::GetLongPackageAssetName(OldPath);
+		const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+		MovedFolders.Add(FMovedContentFolder(OldPath, NewPath));
+	}
+
 	if (AssetPaths.Num() > 0)
 	{
 		ContentBrowserUtils::MoveFolders(AssetPaths, DestinationPath);
 	}
+
+	OnFolderPathChanged.ExecuteIfBound(MovedFolders);
 }
 
 void SAssetView::SetUserSearching(bool bInSearching)

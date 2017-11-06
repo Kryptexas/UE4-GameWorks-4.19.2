@@ -23,6 +23,7 @@
 #include "Misc/OutputDeviceError.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/FeedbackContext.h"
+#include "Misc/CoreDelegates.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
 #include "Modules/ModuleManager.h"
@@ -551,7 +552,9 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 void FMacPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogMac, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
-	
+
+	FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+
 	notify_cancel(GMacAppInfo.PowerSourceNotification);
 	GMacAppInfo.PowerSourceNotification = 0;
 	

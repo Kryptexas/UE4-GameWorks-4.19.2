@@ -8,6 +8,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Images/SThrobber.h"
@@ -66,7 +67,7 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 					[
 						SNew(STextBlock)
 						.Text(this, &SAuthorizingPlugin::GetWaitingText)
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 					]
 				]
 

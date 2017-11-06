@@ -81,6 +81,7 @@ public:
 	virtual bool CanAdd() const override;
 	virtual bool CanDelete() const override;
 	virtual bool IsConflicted() const override;
+	virtual bool CanRevert() const override;
 
 public:
 	/** History of the item, if any */

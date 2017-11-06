@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AssetData.h"
 #include "MaterialLayersFunctions.generated.h"
 
 #define LOCTEXT_NAMESPACE "MaterialLayersFunctions"
@@ -69,7 +70,14 @@ struct ENGINE_API FMaterialLayersFunctions
 	{
 		// Default to a non-blended "background" layer
 		Layers.AddDefaulted();
+#if WITH_EDITOR
+		FText LayerName = FText(LOCTEXT("Background", "Background"));
+		LayerNames.Add(LayerName);
+		FilterLayers.AddDefaulted();
+		InstanceLayers.AddDefaulted();
+#endif
 		LayerStates.Push(true);
+
 	}
 
 	UPROPERTY(EditAnywhere, Category=MaterialLayers)
@@ -81,6 +89,18 @@ struct ENGINE_API FMaterialLayersFunctions
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	TArray<FText> LayerNames;
+
+	UPROPERTY()
+	TArray<class UMaterialFunctionInterface*> FilterLayers;
+
+	UPROPERTY()
+	TArray<class UMaterialFunctionInterface*> FilterBlends;
+
+	UPROPERTY()
+	TArray<class UMaterialFunctionInterface*> InstanceLayers;
+
+	UPROPERTY()
+	TArray<class UMaterialFunctionInterface*> InstanceBlends;
 #endif
 
 	UPROPERTY()
@@ -90,6 +110,14 @@ struct ENGINE_API FMaterialLayersFunctions
 	{
 		Layers.AddDefaulted();
 		Blends.AddDefaulted();
+#if WITH_EDITOR
+		FilterLayers.AddDefaulted();
+		FilterBlends.AddDefaulted();
+		InstanceLayers.AddDefaulted();
+		InstanceBlends.AddDefaulted();
+		FText LayerName = FText::Format(LOCTEXT("LayerPrefix", "Layer {0}"), Layers.Num()-1);
+		LayerNames.Add(LayerName);
+#endif
 		LayerStates.Push(true);
 	}
 
@@ -99,6 +127,13 @@ struct ENGINE_API FMaterialLayersFunctions
 		Layers.RemoveAt(Index);
 		Blends.RemoveAt(Index-1);
 		LayerStates.RemoveAt(Index);
+#if WITH_EDITOR
+		FilterLayers.RemoveAt(Index);
+		FilterBlends.RemoveAt(Index - 1);
+		InstanceLayers.RemoveAt(Index);
+		InstanceBlends.RemoveAt(Index - 1);
+		LayerNames.RemoveAt(Index);
+#endif
 	}
 
 	void ToggleBlendedLayerVisibility(int32 Index)
@@ -116,27 +151,14 @@ struct ENGINE_API FMaterialLayersFunctions
 #if WITH_EDITORONLY_DATA
 	FText GetLayerName(int32 Counter)
 	{
-		FText LayerName;
-		if (!LayerNames.IsValidIndex(Counter))
-		{
-			if (Counter == 0)
-			{
-				LayerName = FText(LOCTEXT("Background", "Background"));
-				LayerNames.Add(LayerName);
-			}
-			else
-			{
-				LayerName = FText::Format(LOCTEXT("LayerPrefix", "Layer {0}"), Counter);
-				LayerNames.Add(LayerName);
-			}
-		}
-		else
+		FText LayerName = FText::Format(LOCTEXT("LayerPrefix", "Layer {0}"), Counter);
+		if (LayerNames.IsValidIndex(Counter))
 		{
 			LayerName = LayerNames[Counter];
 		}
-
 		return LayerName;
 	}
+
 #endif
 
 	/** Lists referenced function packages in a string, intended for use as a static permutation identifier. */

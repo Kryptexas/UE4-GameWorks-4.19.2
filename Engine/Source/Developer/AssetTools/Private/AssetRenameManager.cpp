@@ -42,6 +42,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/RedirectCollector.h"
+#include "AssetToolsLog.h"
 
 #define LOCTEXT_NAMESPACE "AssetRenameManager"
 
@@ -195,7 +196,7 @@ private:
 // FAssetRenameManager
 ///////////////////////////
 
-void FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
+void FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
 {
 	// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -203,13 +204,13 @@ void FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAnd
 	{
 		// Open a dialog asking the user to wait while assets are being discovered
 		SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRename, AssetsAndNames)
+			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRename, AssetsAndNames, bAutoCheckout)
 		);
 	}
 	else
 	{
 		// No need to wait, attempt to fix references and rename now.
-		FixReferencesAndRename(AssetsAndNames);
+		FixReferencesAndRename(AssetsAndNames, bAutoCheckout);
 	}
 }
 
@@ -226,7 +227,7 @@ void FAssetRenameManager::FindSoftReferencesToObject(FSoftObjectPath TargetObjec
 	LoadReferencingPackages(AssetsToRename, true, false, ReferencingPackagesToSave, ReferencingObjects);
 }
 
-void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames) const
+void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout) const
 {
 	bool bSoftReferencesOnly = true;
 	// Prep a list of assets to rename with an extra boolean to determine if they should leave a redirector or not
@@ -279,7 +280,7 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 		LoadReferencingPackages(AssetsToRename, bSoftReferencesOnly, true, ReferencingPackagesToSave, SoftReferencingObjects);
 
 		// Prompt to check out source package and all referencing packages, leave redirectors for assets referenced by packages that are not checked out and remove those packages from the save list.
-		const bool bUserAcceptedCheckout = CheckOutPackages(AssetsToRename, ReferencingPackagesToSave);
+		const bool bUserAcceptedCheckout = CheckOutPackages(AssetsToRename, ReferencingPackagesToSave, bAutoCheckout);
 
 		if (bUserAcceptedCheckout || bSoftReferencesOnly)
 		{
@@ -310,8 +311,14 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 					}
 
 					// Warn user before saving referencing packages
-					const FText MessageText = FText::Format(LOCTEXT("SoftReferenceFixedUp", "The following packages were fixed up because they have soft references to a renamed object: \n{0}\n\nDo you want to save them now?\nIf you quit without saving references will be broken!"), FText::FromString(AssetNames));
-					if (FMessageDialog::Open(EAppMsgType::YesNo, MessageText) == EAppReturnType::Yes)
+					bool bAgreedToSaveReferencingPackages = bAutoCheckout;
+					if (!bAgreedToSaveReferencingPackages)
+					{
+						const FText MessageText = FText::Format(LOCTEXT("SoftReferenceFixedUp", "The following packages were fixed up because they have soft references to a renamed object: \n{0}\n\nDo you want to save them now?\nIf you quit without saving references will be broken!"), FText::FromString(AssetNames));
+						bAgreedToSaveReferencingPackages = FMessageDialog::Open(EAppMsgType::YesNo, MessageText) == EAppReturnType::Yes;
+					}
+
+					if (bAgreedToSaveReferencingPackages)
 					{
 						SaveReferencingPackages(ReferencingPackagesToSave);
 					}
@@ -602,7 +609,7 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 	}
 }
 
-bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const
+bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave, bool bAutoCheckout) const
 {
 	bool bUserAcceptedCheckout = true;
 
@@ -628,7 +635,7 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 	{
 		TArray<UPackage*> PackagesCheckedOutOrMadeWritable;
 		TArray<UPackage*> PackagesNotNeedingCheckout;
-		bUserAcceptedCheckout = FEditorFileUtils::PromptToCheckoutPackages(false, PackagesToCheckOut, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout);
+		bUserAcceptedCheckout = bAutoCheckout ? AutoCheckOut(PackagesToCheckOut) : FEditorFileUtils::PromptToCheckoutPackages(false, PackagesToCheckOut, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout);
 		if (bUserAcceptedCheckout)
 		{
 			// Make a list of any packages in the list which weren't checked out for some reason
@@ -653,6 +660,48 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 	}
 
 	return bUserAcceptedCheckout;
+}
+
+bool FAssetRenameManager::AutoCheckOut(TArray<UPackage*>& PackagesToCheckOut) const
+{
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> SourceControlStates;
+	ECommandResult::Type GetStateResult = SourceControlProvider.GetState(PackagesToCheckOut, SourceControlStates, EStateCacheUsage::ForceUpdate);
+	if (GetStateResult != ECommandResult::Succeeded || SourceControlStates.Num() != PackagesToCheckOut.Num())
+	{
+		UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: could not get source control state for packages"));
+		return false;
+	}
+
+	bool bSomethingFailed = false;
+	for (const TSharedRef<ISourceControlState, ESPMode::ThreadSafe>& PackageState : SourceControlStates)
+	{
+		if (PackageState->IsCheckedOutOther())
+		{
+			UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is already checked out by someone, will not check out"), *PackageState->GetFilename());
+			bSomethingFailed = true;
+		}
+		else if (!PackageState->IsCurrent())
+		{
+			UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is not at head, will not check out"), *PackageState->GetFilename());
+			bSomethingFailed = true;
+		}
+	}
+
+	if (!bSomethingFailed)
+	{
+		if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), PackagesToCheckOut) == ECommandResult::Succeeded)
+		{
+			PackagesToCheckOut.Empty();
+		}
+		else
+		{
+			bSomethingFailed = true;
+		}
+	}
+
+	return !bSomethingFailed;
 }
 
 void FAssetRenameManager::DetectReferencingCollections(TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const

@@ -956,6 +956,12 @@ public:
 	/** Get the camera speed setting for this viewport */
 	virtual int32 GetCameraSpeedSetting() const;
 
+	/** Get the camera speed scalar for this viewport */
+	virtual float GetCameraSpeedScalar() const;
+
+	/** Set the camera speed scalar for this viewport */
+	virtual void SetCameraSpeedScalar(float SpeedScalar);
+
 	/** Editor mode tool manager being used for this viewport client */
 	FEditorModeTools* GetModeTools() const
 	{
@@ -972,6 +978,9 @@ protected:
 
 	/** Camera speed setting */
 	int32 CameraSpeedSetting;
+
+	/** Camera speed scalar */
+	float CameraSpeedScalar;
 
 public:
 
@@ -1072,9 +1081,8 @@ protected:
 	/** Invalidates this and other linked viewports (anything viewing the same scene) */
 	virtual void RedrawAllViewportsIntoThisScene();
 
-
 	/** FCommonViewportClient interface */
-	virtual float GetViewportClientWindowDPIScale() const override;
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -1266,7 +1274,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 
 	/** Delegate handler for when a window DPI changes and we might need to adjust the scenes resolution */
-	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
+	virtual void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
 
 	/** Handle the camera about to be moved or stopped **/
 	virtual void BeginCameraMovement(bool bHasMovement) {}
