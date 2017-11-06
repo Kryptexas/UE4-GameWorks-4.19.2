@@ -688,7 +688,11 @@ void FWorldTileModel::OnLevelRemovedFromWorld()
 {
 	FLevelModel::OnLevelRemovedFromWorld();
 
-	LoadedLevel.Get()->LevelBoundsActorUpdated().RemoveAll(this);
+	ULevel* ThisLevel = LoadedLevel.Get();
+	if (ThisLevel)
+	{
+		ThisLevel->LevelBoundsActorUpdated().RemoveAll(this);
+	}
 }
 
 void FWorldTileModel::OnParentChanged()
