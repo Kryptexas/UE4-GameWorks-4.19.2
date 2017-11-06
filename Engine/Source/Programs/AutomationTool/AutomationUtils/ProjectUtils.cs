@@ -504,7 +504,8 @@ namespace AutomationTool
 						"System.Xml.dll", 
 						typeof(UnrealBuildTool.PlatformExports).Assembly.Location
 					};
-			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, null, DoNotCompile);
+			List<string> PreprocessorDefinitions = RulesAssembly.GetPreprocessorDefinitions();
+			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, PreprocessorDefinitions, DoNotCompile);
 			var AllCompiledTypes = TargetsDLL.GetTypes();
 			foreach (Type TargetType in AllCompiledTypes)
 			{
