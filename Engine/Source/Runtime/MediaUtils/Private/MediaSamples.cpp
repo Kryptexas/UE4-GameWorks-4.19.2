@@ -27,7 +27,7 @@ bool FMediaSamples::FetchAudio(TRange<FTimespan> TimeRange, TSharedPtr<IMediaAud
 		return false;
 	}
 
-	check(AudioSampleQueue.Pop());
+	AudioSampleQueue.Pop();
 	OutSample = Sample;
 
 	return true;
@@ -50,7 +50,7 @@ bool FMediaSamples::FetchCaption(TRange<FTimespan> TimeRange, TSharedPtr<IMediaO
 		return false;
 	}
 
-	check(CaptionSampleQueue.Pop());
+	CaptionSampleQueue.Pop();
 	OutSample = Sample;
 
 	return true;
@@ -73,7 +73,7 @@ bool FMediaSamples::FetchMetadata(TRange<FTimespan> TimeRange, TSharedPtr<IMedia
 		return false;
 	}
 
-	check(MetadataSampleQueue.Pop());
+	MetadataSampleQueue.Pop();
 	OutSample = Sample;
 
 	return true;
@@ -96,7 +96,7 @@ bool FMediaSamples::FetchSubtitle(TRange<FTimespan> TimeRange, TSharedPtr<IMedia
 		return false;
 	}
 
-	check(SubtitleSampleQueue.Pop());
+	SubtitleSampleQueue.Pop();
 	OutSample = Sample;
 
 	return true;
@@ -119,7 +119,7 @@ bool FMediaSamples::FetchVideo(TRange<FTimespan> TimeRange, TSharedPtr<IMediaTex
 		return false;
 	}
 
-	check(VideoSampleQueue.Pop());
+	VideoSampleQueue.Pop();
 	OutSample = Sample;
 
 	return true;
