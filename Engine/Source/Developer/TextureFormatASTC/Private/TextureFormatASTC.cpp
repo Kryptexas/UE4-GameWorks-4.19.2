@@ -328,7 +328,7 @@ public:
 		const struct FTextureBuildSettings* BuildSettings = nullptr
 	) const override
 	{
-		return GetQualityVersion((BuildSettings ? BuildSettings->CompressionQuality : -1) + BASE_ASTC_FORMAT_VERSION);
+		return GetQualityVersion(BuildSettings ? BuildSettings->CompressionQuality : -1) + BASE_ASTC_FORMAT_VERSION;
 	}
 
 //	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
