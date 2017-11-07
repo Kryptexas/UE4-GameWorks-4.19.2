@@ -1706,6 +1706,9 @@ namespace OculusHMD
 			RHICmdList.SetViewport(GapMinX, GapMinY, 0, GapMaxX, GapMaxY, 1.0f);
 			DrawClearQuad(RHICmdList, FLinearColor::Black);
 		}
+#else 
+		// ensure we have attached JNI to this thread - this has to happen persistently as the JNI could detach if the app loses focus 
+		FAndroidApplication::GetJavaEnv();
 #endif
 
 		// Start RHI frame
