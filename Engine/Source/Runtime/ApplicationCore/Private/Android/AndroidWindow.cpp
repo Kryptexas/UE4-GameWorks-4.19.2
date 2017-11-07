@@ -314,6 +314,9 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 void FAndroidWindow::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, int32_t& SurfaceHeight)
 {
 	check(InWindow);
+
+	static const bool bIsGearVRApp = AndroidThunkCpp_IsGearVRApplication();
+
 	ANativeWindow* Window = (ANativeWindow*)InWindow;
 
 	SurfaceWidth = (GSurfaceViewWidth > 0) ? GSurfaceViewWidth : ANativeWindow_getWidth(Window);
@@ -328,7 +331,8 @@ void FAndroidWindow::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth,
 
 	// ensure the size is divisible by a specified amount
 	// do not convert to a surface size that is larger than native resolution
-	const int DividableBy = 8;
+	// GearVR doesn’t need buffer quantization as UE4 never renders directly to the buffer in VR mode. 
+	const int DividableBy = bIsGearVRApp ? 1 : 8;
 	SurfaceWidth = (SurfaceWidth / DividableBy) * DividableBy;
 	SurfaceHeight = (SurfaceHeight / DividableBy) * DividableBy;
 }
