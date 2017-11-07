@@ -300,8 +300,11 @@ namespace
 			}
 
 			// Forward string to proper log.
-			const TSharedPtr<FTaskListModel> CurrentTaskModel = TaskListModels[CurrentTaskIndex];
-			CurrentTaskModel->LogOutput.Append(String);
+			if (TaskListModels.IsValidIndex(CurrentTaskIndex))
+			{
+				const TSharedPtr<FTaskListModel> CurrentTaskModel = TaskListModels[CurrentTaskIndex];
+				CurrentTaskModel->LogOutput.Append(String);
+			}
 		}
 
 		// On Task Completed.
