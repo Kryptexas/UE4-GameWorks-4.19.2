@@ -185,13 +185,13 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		{
 			FLinearColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color);	
+			SavedPreColorPickerColors.Add(FLinearOrSrgbColor(Color));
 		}
 		else
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(FLinearColor(Color));
+			SavedPreColorPickerColors.Add(FLinearOrSrgbColor(Color));
 		}
 	}
 
@@ -239,13 +239,13 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker(TWea
 		{
 			FLinearColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(Color);	
+			SavedPreColorPickerColors.Add(FLinearOrSrgbColor(Color));	
 		}
 		else
 		{
 			FColor Color;
 			Color.InitFromString(PerObjectValues[ObjectIndex]);
-			SavedPreColorPickerColors.Add(FLinearColor(Color));
+			SavedPreColorPickerColors.Add(FLinearOrSrgbColor(Color));
 		}
 	}
 
@@ -296,12 +296,11 @@ void FColorStructCustomization::OnColorPickerCancelled(FLinearColor OriginalColo
 	{
 		if (bIsLinearColor)
 		{
-			PerObjectColors.Add(SavedPreColorPickerColors[ColorIndex].ToString());
+			PerObjectColors.Add(SavedPreColorPickerColors[ColorIndex].GetLinear().ToString());
 		}
 		else
 		{
-			const bool bSRGB = true;
-			FColor Color = SavedPreColorPickerColors[ColorIndex].ToFColor(bSRGB);
+			FColor Color = SavedPreColorPickerColors[ColorIndex].GetSrgb();
 			PerObjectColors.Add(Color.ToString());
 		}
 	}
@@ -350,46 +349,28 @@ FPropertyAccess::Result FColorStructCustomization::GetColorAsLinear(FLinearColor
 	// Default to full alpha in case the alpha component is disabled.
 	OutColor.A = 1.0f;
 
-	// Get each color component 
-	for (int32 ChildIndex = 0; ChildIndex < SortedChildHandles.Num(); ++ChildIndex)
-	{
-		FPropertyAccess::Result ValueResult = FPropertyAccess::Fail;
+	FString StringValue;
+	FPropertyAccess::Result Result = StructPropertyHandle->GetValueAsFormattedString(StringValue);
 
+	if(Result == FPropertyAccess::Success)
+	{
 		if (bIsLinearColor)
 		{
-			float ComponentValue = 0;
-			ValueResult = SortedChildHandles[ChildIndex]->GetValue(ComponentValue);
-
-			OutColor.Component(ChildIndex) = ComponentValue;
+			OutColor.InitFromString(StringValue);
 		}
 		else
 		{
-			uint8 ComponentValue = 0;
-			ValueResult = SortedChildHandles[ChildIndex]->GetValue(ComponentValue);
-
-			// Convert the FColor to a linear equivalent
-			OutColor.Component(ChildIndex) = ComponentValue/255.0f;
-		}
-
-		switch(ValueResult)
-		{
-		case FPropertyAccess::MultipleValues:
-			{
-				// Default the color to white if we've got multiple values selected
-				OutColor = FLinearColor::White;
-				return FPropertyAccess::MultipleValues;
-			}
-
-		case FPropertyAccess::Fail:
-			return FPropertyAccess::Fail;
-
-		default:
-			break;
+			FColor SrgbColor;
+			SrgbColor.InitFromString(StringValue);
+			OutColor = FLinearColor(SrgbColor);
 		}
 	}
+	else if(Result == FPropertyAccess::MultipleValues)
+	{
+		OutColor = FLinearColor::White;
+	}
 
-	// If we've got this far, we have to have successfully read a color with a single value
-	return FPropertyAccess::Success;
+	return Result;
 }
 
 
