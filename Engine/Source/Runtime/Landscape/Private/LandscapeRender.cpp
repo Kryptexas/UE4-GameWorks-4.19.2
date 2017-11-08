@@ -2739,6 +2739,8 @@ public:
 			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicy")),
 			FName(TEXT("TBasePassPSFPrecomputedVolumetricLightmapLightingPolicySkylight")),
 
+			FName(TEXT("TBasePassPSFSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy")),			
+
 			FName(TEXT("TBasePassVSFNoLightMapPolicyAtmosphericFog")),
 			FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicyAtmosphericFog")),
 			FName(TEXT("TBasePassVSFSelfShadowedCachedPointIndirectLightingPolicy")),
