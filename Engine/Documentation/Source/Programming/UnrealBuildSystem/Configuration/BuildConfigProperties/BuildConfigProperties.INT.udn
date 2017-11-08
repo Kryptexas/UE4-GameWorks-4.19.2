@@ -162,13 +162,29 @@ $ bShowXGEMonitor : Whether to display the XGE build monitor.
 
 $ bStopXGECompilationAfterErrors : When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
 
+### CMakefileGenerator
+
+### CodeLiteGenerator
+
+### EddieProjectFileGenerator
+
+### KDevelopGenerator
+
+### MakefileGenerator
+
 ### ProjectFileGenerator
 
 $ Format : Default list of project file formats to generate
 
+### QMakefileGenerator
+
+### VSCodeProjectFileGenerator
+
 ### VCProjectFileGenerator
 
 $ Version : The version of Visual Studio to generate project files for.
+
+### XcodeProjectFileGenerator
 
 ### SourceFileWorkingSet
 
