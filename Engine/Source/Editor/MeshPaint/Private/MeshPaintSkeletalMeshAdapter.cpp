@@ -199,10 +199,12 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnRemoved()
 bool FMeshPaintGeometryAdapterForSkeletalMeshes::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
 	const bool bHitBounds = FMath::LineSphereIntersection(Start, End.GetSafeNormal(), (End - Start).SizeSquared(), SkeletalMeshComponent->Bounds.Origin, SkeletalMeshComponent->Bounds.SphereRadius);
+	const float SqrRadius = FMath::Square(SkeletalMeshComponent->Bounds.SphereRadius);
+	const bool bInsideBounds = (SkeletalMeshComponent->Bounds.ComputeSquaredDistanceFromBoxToPoint(Start) <= SqrRadius) || (SkeletalMeshComponent->Bounds.ComputeSquaredDistanceFromBoxToPoint(End) <= SqrRadius);
 	const bool bHitPhysicsBodies = SkeletalMeshComponent->LineTraceComponent(OutHit, Start, End, Params);
 
 	bool bHitTriangle = false;
-	if (bHitBounds && !bHitPhysicsBodies)
+	if ((bHitBounds || bInsideBounds) && !bHitPhysicsBodies)
 	{
 		const int32 NumTriangles = MeshIndices.Num() / 3;
 		const FTransform& ComponentTransform = SkeletalMeshComponent->GetComponentTransform();
@@ -216,18 +218,29 @@ bool FMeshPaintGeometryAdapterForSkeletalMeshes::LineTraceComponent(struct FHitR
 
 		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; ++TriangleIndex)
 		{
-			FVector IntersectPoint;
-			FVector HitNormal;
-			bool bHit = FMath::SegmentTriangleIntersection(LocalStart, LocalEnd, MeshVertices[MeshIndices[(TriangleIndex * 3) + 0]], MeshVertices[MeshIndices[(TriangleIndex * 3) + 1]], MeshVertices[MeshIndices[(TriangleIndex * 3) + 2]], IntersectPoint, HitNormal);
+			// Compute the normal of the triangle
+			const FVector& P0 = MeshVertices[MeshIndices[(TriangleIndex * 3) + 0]];
+			const FVector& P1 = MeshVertices[MeshIndices[(TriangleIndex * 3) + 1]];
+			const FVector& P2 = MeshVertices[MeshIndices[(TriangleIndex * 3) + 2]];
 
-			if (bHit)
+			const FVector TriNorm = (P1 - P0) ^ (P2 - P0);
+
+			//check collinearity of A,B,C
+			if (TriNorm.SizeSquared() > SMALL_NUMBER)
 			{
-				const float Distance = (LocalStart - IntersectPoint).SizeSquared();
-				if (Distance < MinDistance)
+				FVector IntersectPoint;
+				FVector HitNormal;
+				bool bHit = FMath::SegmentTriangleIntersection(LocalStart, LocalEnd, P0, P1, P2, IntersectPoint, HitNormal);
+
+				if (bHit)
 				{
-					MinDistance = Distance;
-					Intersect = IntersectPoint;
-					Normal = HitNormal;
+					const float Distance = (LocalStart - IntersectPoint).SizeSquared();
+					if (Distance < MinDistance)
+					{
+						MinDistance = Distance;
+						Intersect = IntersectPoint;
+						Normal = HitNormal;
+					}
 				}
 			}
 		}
