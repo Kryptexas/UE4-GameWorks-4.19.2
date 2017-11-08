@@ -148,11 +148,12 @@
         AF_WritingSystemClass  writing_system_class =
           AF_WRITING_SYSTEM_CLASSES_GET[style_class->writing_system];
 
-
+#ifndef __EMSCRIPTEN__ // UE-512233 skip this on HTML5 for now...
         if ( writing_system_class->style_hints_apply )
           writing_system_class->style_hints_apply( hints,
                                                    &gloader->base.outline,
                                                    metrics );
+#endif
       }
 
       /* we now need to adjust the metrics according to the change in */
