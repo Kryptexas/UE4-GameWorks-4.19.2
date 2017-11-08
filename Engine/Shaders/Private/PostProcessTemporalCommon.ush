@@ -485,7 +485,7 @@ which can be configured via defines for various temporal AA passes.
 		// Transform NaNs to black, transform negative colors to black.
 		OutColor.rgb = -min(-OutColor.rgb, 0.0);
 		#if AA_ALPHA
-			OutColor.a = -min(-OutColor.a, 0.0);
+			OutColor.a = isnan(OutColor.a) ? 0.0 : OutColor.a;
 		#endif
 	#endif
 
