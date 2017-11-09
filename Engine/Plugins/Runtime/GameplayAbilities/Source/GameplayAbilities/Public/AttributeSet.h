@@ -16,6 +16,7 @@
 class UAbilitySystemComponent;
 class UAttributeSet;
 struct FGameplayAbilityActorInfo;
+struct FAggregator;
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAttributeData
@@ -197,6 +198,9 @@ public:
 	 *	final value of the attribute actually changing.
 	 */
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const { }
+
+	/** Callback for when an FAggregator is created for an attribute in this set. Allows custom setup of FAggregator::EvaluationMetaData */
+	virtual void OnAttributeAggregatorCreated(const FGameplayAttribute& Attribute, FAggregator* NewAggregator) const { }
 
 	/** This signifies the attribute set can be ID'd by name over the network. */
 	void SetNetAddressable();

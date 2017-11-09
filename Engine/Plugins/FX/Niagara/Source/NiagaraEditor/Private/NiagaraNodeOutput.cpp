@@ -3,6 +3,7 @@
 #include "NiagaraNodeOutput.h"
 #include "UObject/UnrealType.h"
 #include "NiagaraHlslTranslator.h"
+#include "NiagaraEmitter.h"
 #include "NiagaraScript.h"
 #include "NiagaraGraph.h"
 #include "NiagaraScriptSource.h"
@@ -12,11 +13,12 @@
 #include "MultiBoxBuilder.h"
 #include "SBox.h"
 #include "SEditableTextBox.h"
+#include "NiagaraEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeOutput"
 
 UNiagaraNodeOutput::UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer), ScriptTypeIndex(0)
+: Super(ObjectInitializer), ScriptTypeIndex_DEPRECATED(0)
 {
 }
 
@@ -154,7 +156,12 @@ FText UNiagaraNodeOutput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 	else if (ScriptType == ENiagaraScriptUsage::ParticleEventScript)
 	{
-		return FText::Format(NSLOCTEXT("NiagaraNodeOutput", "OutputEvent", "Output Event {0}"), FText::AsNumber(ScriptTypeIndex));
+		FText EventName;
+		if (FNiagaraEditorUtilities::TryGetEventDisplayName(GetTypedOuter<UNiagaraEmitter>(), ScriptTypeId, EventName) == false)
+		{
+			EventName = NSLOCTEXT("NiagaraNodeOutput", "UnknownEventName", "Unknown");
+		}
+		return FText::Format(NSLOCTEXT("NiagaraNodeOutput", "OutputEvent", "Output Event {0}"), EventName);
 	}
 	else if (ScriptType == ENiagaraScriptUsage::Function)
 	{

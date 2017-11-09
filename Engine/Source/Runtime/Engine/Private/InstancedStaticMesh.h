@@ -705,6 +705,7 @@ private:
 class FInstancedStaticMeshSceneProxy : public FStaticMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
 
 	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
 	:	FStaticMeshSceneProxy(InComponent, true)

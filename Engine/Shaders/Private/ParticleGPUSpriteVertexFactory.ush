@@ -272,7 +272,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	float2 UVFlipOffset = float2( AttributeSample.x < 0.5 ? 0.0f : -0.5, AttributeSample.y < 0.5 ? 0.0f : -0.5);
 	float2 InitialSize = (AttributeSample.xy + UVFlipOffset) * float2(2.0,2.0);
 	float2 SizeScale = MiscCurve.xy * EmitterDynamicUniforms.LocalToWorldScale;
-	float2 SizeScaleBySpeed = clamp(EmitterUniforms.SizeBySpeed.xy * ParticleSpeed,float2(1,1), EmitterUniforms.SizeBySpeed.zw);
+
+	//Explicit ordering of clamp's min max to bypass compiler diff on PS4.
+	float2 SizeScaleBySpeed = max(EmitterUniforms.SizeBySpeed.xy * ParticleSpeed,float2(1,1));
+	SizeScaleBySpeed = min(SizeScaleBySpeed, EmitterUniforms.SizeBySpeed.zw);
+
 	float2 Size = InitialSize * SizeScale * SizeScaleBySpeed * IsAlive.xx;
 	
 	float2 FlippedUV = Input.TexCoord.xy;

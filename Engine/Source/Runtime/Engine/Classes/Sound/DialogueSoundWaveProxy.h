@@ -48,4 +48,6 @@ public:
 	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& AudioComponent, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 
 	virtual USoundClass* GetSoundClass() const override;
+
+	virtual class UCurveTable* GetCurveData() const override;
 };

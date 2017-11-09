@@ -90,7 +90,7 @@ void FVectorFieldInstance::UpdateTransforms(const FMatrix& LocalToWorld)
 	VolumeToWorldNoScale = LocalToWorld.GetMatrixWithoutScale().RemoveTranslation();
 	VolumeToWorld = FScaleMatrix(VolumeScale) * FTranslationMatrix(VolumeOffset)
 		* LocalToWorld;
-	WorldToVolume = VolumeToWorld.InverseFast();
+	WorldToVolume = VolumeToWorld.Inverse();
 }
 
 /*------------------------------------------------------------------------------
@@ -392,9 +392,14 @@ public:
 	Scene proxy for visualizing vector fields.
 ------------------------------------------------------------------------------*/
 
-class FVectorFieldSceneProxy : public FPrimitiveSceneProxy
+class FVectorFieldSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	/** Initialization constructor. */
 	explicit FVectorFieldSceneProxy( UVectorFieldComponent* VectorFieldComponent )

@@ -132,9 +132,9 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Stats
 	StatUpdateTime			= Driver->Time;
 	LastReceiveTime			= Driver->Time;
-	LastReceiveRealtime		= FPlatformTime::Seconds();
-	LastGoodPacketRealtime	= FPlatformTime::Seconds();
-	LastTime				= FPlatformTime::Seconds();
+	LastReceiveRealtime		= 0.0;			// These are set to 0 and initialized on our first tick to delay with scenarios where
+	LastGoodPacketRealtime	= 0.0;			// notable time may elapse between now and then
+	LastTime				= 0.0;
 	LastSendTime			= Driver->Time;
 	LastTickTime			= Driver->Time;
 	LastRecvAckTime			= Driver->Time;
@@ -157,8 +157,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Reset Handler
 	Handler.Reset(NULL);
 
-	InitHandler();
-
+	InitHandler(InDriver->AnalyticsProvider);
 
 #if DO_ENABLE_NET_TEST
 	// Copy the command line settings from the net driver
@@ -237,7 +236,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	PackageMap = PackageMapClient;
 }
 
-void UNetConnection::InitHandler()
+void UNetConnection::InitHandler(TSharedPtr<IAnalyticsProvider> InProvider/*=nullptr*/)
 {
 	check(!Handler.IsValid());
 
@@ -252,7 +251,7 @@ void UNetConnection::InitHandler()
 			Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
 
 			Handler->InitializeDelegates(FPacketHandlerLowLevelSend::CreateUObject(this, &UNetConnection::LowLevelSend));
-			Handler->Initialize(Mode, MaxPacket * 8);
+			Handler->Initialize(Mode, MaxPacket * 8, false, InProvider);
 
 
 			// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
@@ -1775,6 +1774,15 @@ void UNetConnection::Tick()
 
 	// Get frame time.
 	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
+
+	// if this is 0 it's our first tick since init, so start our real-time tracking from here
+	if (LastTime == 0.0)
+	{
+		LastTime = CurrentRealtimeSeconds;
+		LastReceiveRealtime = CurrentRealtimeSeconds;
+		LastGoodPacketRealtime = CurrentRealtimeSeconds;
+	}
+	
 	FrameTime = CurrentRealtimeSeconds - LastTime;
 	LastTime = CurrentRealtimeSeconds;
 	CumulativeTime += FrameTime;
@@ -1847,7 +1855,7 @@ void UNetConnection::Tick()
 	// Handle timeouts.
 	const float Timeout = GetTimeoutValue();
 
-	if ((Driver->Time - LastReceiveTime) > Timeout)
+	if ((CurrentRealtimeSeconds - LastReceiveRealtime) > Timeout)
 	{
 		const TCHAR* const TimeoutString = TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection.");
 		const TCHAR* const DestroyString = TEXT("UNetConnection::Tick: Connection closing during pending destroy, not all shutdown traffic may have been negotiated");

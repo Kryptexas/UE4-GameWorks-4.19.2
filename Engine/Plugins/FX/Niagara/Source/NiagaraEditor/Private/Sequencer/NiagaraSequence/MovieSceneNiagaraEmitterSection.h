@@ -73,7 +73,7 @@ public:
 
 private:
 	/** The view model for the handle to the emitter this section represents. */
-	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
+	TWeakPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
 
 	/** Storage for the key times in the burst curve. */
 	TArray<float> Times;

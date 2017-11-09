@@ -100,7 +100,7 @@ struct FMaterialParticleParameters
 
 float4 GetDynamicParameter(FMaterialParticleParameters Parameters, float4 Default)
 {
-	#if PARTICLE_FACTORY
+	#if (PARTICLE_FACTORY || NIAGARA_PARTICLE_FACTORY)
 	return Parameters.DynamicParameter;
 	#else
 	return Default;

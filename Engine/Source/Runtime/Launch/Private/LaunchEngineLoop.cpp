@@ -931,18 +931,6 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 		return -1;
 	}
 
-	// Check for special instruction cpu support if needed
-	if (FPlatformMisc::NeedsNonoptionalCPUFeaturesCheck())
-	{
-		bool bHasNonoptionalCPUFeatures = FPlatformMisc::HasNonoptionalCPUFeatures();
-		// If it's not supported, we'll crash later so better to return an error
-		if (!bHasNonoptionalCPUFeatures)
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("RequiresNonoptionalCPUFeatures", "Error: This application requires a CPU that supports the specific instruction set(s)"));
-			return -1;
-		}
-	}
-
 #if WITH_ENGINE
 	FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(DeferredPhysResourceCleanup);
 #endif

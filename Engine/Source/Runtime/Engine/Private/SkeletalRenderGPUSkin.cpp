@@ -53,6 +53,7 @@ static FAutoConsoleVariableRef CVarMorphTargetWeightThreshold(
 	ECVF_Default
 );
 
+
 /*-----------------------------------------------------------------------------
 FMorphVertexBuffer
 -----------------------------------------------------------------------------*/
@@ -1279,15 +1280,87 @@ void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 	ClothBlendWeight = 0.0f;
 }
 
+#define SKELETON_POOL_GPUSKINS 1
+#if SKELETON_POOL_GPUSKINS
+TArray<FDynamicSkelMeshObjectDataGPUSkin*> FreeGpuSkins;
+FCriticalSection FreeGpuSkinsCriticalSection;
+
+static int32 GPoolGpuSkins = 1;
+static int32 GMinPoolCount = 0;
+static int32 GAllocationCounter = 0;
+static const int32 GAllocationsBeforeCleanup = 1000; // number of allocations we make before we clean up the pool, this number is increased when we have to allocate not from the pool
+static FAutoConsoleVariableRef CVarPoolGpuSkins(
+	TEXT("r.GpuSkin.Pool"),
+	GPoolGpuSkins,
+	TEXT("Should we pool gpu skins.\n")
+	TEXT(" 0: Don't pool anything\n")
+	TEXT(" 1: Pool gpu skins bro (default)\n"),
+	ECVF_Default
+);
+#endif
+
 
 FDynamicSkelMeshObjectDataGPUSkin* FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin()
 {
+#if SKELETON_POOL_GPUSKINS
+	if (!GPoolGpuSkins)
+	{
+		return new FDynamicSkelMeshObjectDataGPUSkin;
+	}
+
+	FScopeLock S(&FreeGpuSkinsCriticalSection);
+	++GAllocationCounter;
+	GMinPoolCount = FMath::Min(FreeGpuSkins.Num(), GMinPoolCount);
+	if ( FreeGpuSkins.Num() > 0 )
+	{
+		FDynamicSkelMeshObjectDataGPUSkin *Result = FreeGpuSkins[0];
+		FreeGpuSkins.RemoveAtSwap(0);
+		return Result;
+	}
+	else
+	{
+		return new FDynamicSkelMeshObjectDataGPUSkin;
+	}
+#else
 	return new FDynamicSkelMeshObjectDataGPUSkin;
+#endif
 }
 
 void FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who)
 {
+#if SKELETON_POOL_GPUSKINS
+	if (!GPoolGpuSkins)
+	{
+		delete Who;
+
+		if ( FreeGpuSkins.Num() > 0 )
+		{
+			FScopeLock S(&FreeGpuSkinsCriticalSection);
+			for ( FDynamicSkelMeshObjectDataGPUSkin* I : FreeGpuSkins )
+			{
+				delete I;
+			}
+			FreeGpuSkins.Empty();
+		}
+		return;
+	}
+
+	Who->Clear();
+	FScopeLock S(&FreeGpuSkinsCriticalSection);
+	FreeGpuSkins.Add(Who);
+	if ( GAllocationCounter > GAllocationsBeforeCleanup )
+	{
+		GAllocationCounter = 0;
+		for ( int32 I = 0; I < GMinPoolCount; ++I )
+		{
+			delete FreeGpuSkins[0];
+			FreeGpuSkins.RemoveAtSwap(0);
+		}
+		GMinPoolCount = FreeGpuSkins.Num();
+	}
+#else
 	delete Who;
+#endif
 }
 
 void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(

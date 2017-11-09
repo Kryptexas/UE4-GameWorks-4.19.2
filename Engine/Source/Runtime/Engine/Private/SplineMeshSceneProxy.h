@@ -131,7 +131,7 @@ private:
 // SplineMeshSceneProxy
 
 /** Scene proxy for SplineMesh instance */
-class FSplineMeshSceneProxy : public FStaticMeshSceneProxy
+class FSplineMeshSceneProxy final : public FStaticMeshSceneProxy
 {
 protected:
 	struct FLODResources
@@ -145,6 +145,7 @@ protected:
 		}
 	};
 public:
+	SIZE_T GetTypeHash() const override;
 
 	FSplineMeshSceneProxy(USplineMeshComponent* InComponent);
 

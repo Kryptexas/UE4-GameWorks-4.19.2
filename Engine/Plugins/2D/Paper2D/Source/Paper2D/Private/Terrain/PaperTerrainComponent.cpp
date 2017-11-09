@@ -61,9 +61,15 @@ void FTerrainSegment::RepositionStampsToFillSpace()
 //////////////////////////////////////////////////////////////////////////
 // FPaperTerrainSceneProxy
 
-class FPaperTerrainSceneProxy : public FPaperRenderSceneProxy
+class FPaperTerrainSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FPaperTerrainSpriteGeometry>& InDrawingData);
 
 protected:

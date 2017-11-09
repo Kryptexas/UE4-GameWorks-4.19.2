@@ -12,6 +12,7 @@
 #include "ShaderParameters.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "GlobalShader.h"
+#include "GPUSkinCache.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderPublic.h"
 #include "ClothingSystemRuntimeTypes.h"

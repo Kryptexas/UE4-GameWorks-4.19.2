@@ -274,6 +274,12 @@ FLandscapeComponentSceneProxyMobile::~FLandscapeComponentSceneProxyMobile()
 	}
 }
 
+SIZE_T FLandscapeComponentSceneProxyMobile::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 {
 	auto FeatureLevel = GetScene().GetFeatureLevel();

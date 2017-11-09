@@ -161,6 +161,12 @@ public:
 		this->InitBones(BoneContainer->GetBoneIndicesArray().Num());
 	}
 
+	void CopyAndAssignBoneContainer(FBoneContainer& NewBoneContainer)
+	{
+		NewBoneContainer = *BoneContainer;
+		BoneContainer = &NewBoneContainer;
+	}
+
 	void InitFrom(const FBaseCompactPose& SrcPose)
 	{
 		SetBoneContainer(SrcPose.BoneContainer);
@@ -203,6 +209,12 @@ public:
 		// you'll like to make CopyBonesTo(FBaseCompactPose<OtherAllocator>& DestPose) to fix this properly
 		// if you need bone container
 		DestPoseBones = this->Bones;
+	}
+
+	void Empty()
+	{
+		BoneContainer = nullptr;
+		this->Bones.Empty();
 	}
 
 	// Sets this pose to its ref pose
@@ -448,6 +460,19 @@ struct FCSPose
 	{
 		Pose.CopyBonesFrom(SrcPose.GetPose());
 		ComponentSpaceFlags = SrcPose.GetComponentSpaceFlags();
+	}
+
+	void CopyAndAssignBoneContainer(FBoneContainer& NewBoneContainer)
+	{
+		Pose.CopyAndAssignBoneContainer(NewBoneContainer);
+	}
+
+	void Empty()
+	{
+		Pose.Empty();
+		ComponentSpaceFlags.Empty();
+		BonesToConvert.Empty();
+		BoneMask.Empty();
 	}
 
 	const PoseType& GetPose() const { return Pose; }

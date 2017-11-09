@@ -26,9 +26,15 @@ float UBillboardComponent::EditorScale = 1.0f;
 #endif
 
 /** Represents a billboard sprite to the scene manager. */
-class FSpriteSceneProxy : public FPrimitiveSceneProxy
+class FSpriteSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	/** Initialization constructor. */
 	FSpriteSceneProxy(const UBillboardComponent* InComponent, float SpriteScale)
 		: FPrimitiveSceneProxy(InComponent)

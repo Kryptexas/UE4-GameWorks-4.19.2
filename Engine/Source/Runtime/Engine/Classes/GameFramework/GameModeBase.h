@@ -327,6 +327,7 @@ public:
 	 * @return PlayerController for the player, NULL if there is any reason this player shouldn't exist or due to some error
 	 */
 	virtual APlayerController* SpawnPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation);
+	virtual APlayerController* SpawnReplayPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
 	/** Signals that a player is ready to enter the game, which may start it up */
 	UFUNCTION(BlueprintNativeEvent, Category=Game)
@@ -532,6 +533,8 @@ protected:
 	/** Called when a PlayerController is swapped to a new one during seamless travel */
 	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta=(DisplayName="OnSwapPlayerControllers"))
 	void K2_OnSwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
+
+	virtual APlayerController* SpawnPlayerControllerCommon(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation, TSubclassOf<APlayerController> InPlayerControllerClass);
 
 public:
 	/** Whether the game perform map travels using SeamlessTravel() which loads in the background and doesn't disconnect clients */

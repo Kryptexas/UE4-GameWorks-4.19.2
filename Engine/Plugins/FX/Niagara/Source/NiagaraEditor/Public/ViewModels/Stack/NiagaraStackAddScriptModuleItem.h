@@ -15,7 +15,9 @@ class NIAGARAEDITOR_API UNiagaraStackAddScriptModuleItem : public UNiagaraStackA
 	GENERATED_BODY()
 
 public:
-	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode);
+	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode, int32 InTargetIndex);
+
+	virtual EDisplayMode GetDisplayMode() const override;
 
 	virtual void GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const override;
 
@@ -25,8 +27,14 @@ public:
 
 	virtual ENiagaraScriptUsage GetOutputUsage() const override;
 
-	UNiagaraNodeOutput* GetOrCreateOutputNode() override;
+	virtual UNiagaraNodeOutput* GetOrCreateOutputNode() override;
+
+	virtual int32 GetTargetIndex() const override;
+
+	virtual FName GetItemBackgroundName() const override;
 
 private:
 	TWeakObjectPtr<UNiagaraNodeOutput> OutputNode;
+
+	int32 TargetIndex;
 };

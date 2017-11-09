@@ -65,10 +65,11 @@ public:
 };
 
 /** Procedural mesh scene proxy */
-class GEOMETRYCACHE_API FGeometryCacheSceneProxy : public FPrimitiveSceneProxy
+class GEOMETRYCACHE_API FGeometryCacheSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
-	
+	SIZE_T GetTypeHash() const override;
+
 	FGeometryCacheSceneProxy(class UGeometryCacheComponent* Component);
 
 	virtual ~FGeometryCacheSceneProxy();

@@ -1364,9 +1364,14 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 		return Super::CreateSceneProxy();
 	}
 
-	class FSplineSceneProxy : public FPrimitiveSceneProxy
+	class FSplineSceneProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
 
 		FSplineSceneProxy(const USplineComponent* InComponent)
 			: FPrimitiveSceneProxy(InComponent)

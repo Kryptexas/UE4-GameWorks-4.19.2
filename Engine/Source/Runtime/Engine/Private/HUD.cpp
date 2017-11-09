@@ -29,6 +29,9 @@
 #include "Misc/UObjectToken.h"
 #include "DisplayDebugHelpers.h"
 #include "DrawDebugHelpers.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/MovementComponent.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -343,18 +346,27 @@ void AHUD::ShowHUD()
 	bShowHUD = !bShowHUD;
 }
 
-static FName NAME_Reset = FName(TEXT("Reset"));
+namespace ShowDebugNames
+{
+	static const FName Reset(TEXT("Reset"));
+	static const FName HitBox(TEXT("HitBox"));
+	static const FName Animation(TEXT("Animation"));
+	static const FName Physics(TEXT("Physics"));
+}
+
 void AHUD::ShowDebug(FName DebugType)
 {
+	const bool bPreviousShowDebugInfo = bShowDebugInfo;
+
 	if (DebugType == NAME_None)
 	{
 		bShowDebugInfo = !bShowDebugInfo;
 	}
-	else if ( DebugType == FName("HitBox") )
+	else if (DebugType == ShowDebugNames::HitBox)
 	{
 		bShowHitBoxDebugInfo = !bShowHitBoxDebugInfo;
 	}
-	else if( DebugType == NAME_Reset )
+	else if (DebugType == ShowDebugNames::Reset)
 	{
 		DebugDisplay.Reset();
 		bShowDebugInfo = false;
@@ -377,14 +389,19 @@ void AHUD::ShowDebug(FName DebugType)
 		}
 
 		bShowDebugInfo = true;
-
 		SaveConfig();
+	}
+
+	// Reset Target to ourselves when enabled/disabled
+	if (bShowDebugInfo != bPreviousShowDebugInfo)
+	{
+		ShowDebugTargetActor = nullptr;
 	}
 }
 
 void AHUD::ShowDebugToggleSubCategory(FName Category)
 {
-	if( Category == NAME_Reset )
+	if (Category == ShowDebugNames::Reset)
 	{
 		ToggledDebugCategories.Reset();
 		SaveConfig();
@@ -412,36 +429,35 @@ bool AHUD::ShouldDisplayDebug(const FName& DebugType) const
 
 void AHUD::ShowDebugInfo(float& YL, float& YPos)
 {
-	if (DebugCanvas != nullptr )
+	if (DebugCanvas != nullptr)
 	{
+		// Darken background, so we can read text better.
 		FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.2f);
 		DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
 
 		FDebugDisplayInfo DisplayInfo(DebugDisplay, ToggledDebugCategories);
+		ShowDebugTargetActor = GetCurrentDebugTargetActor();
 
-		if (bShowDebugForReticleTarget)
+		// Draw Header.
 		{
-			FRotator CamRot; FVector CamLoc; PlayerOwner->GetPlayerViewPoint(CamLoc, CamRot);
-
-			FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
-			FHitResult Hit;
-			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
-			if (bHit)
-			{
-				AActor* HitActor = Hit.Actor.Get();
-				if (HitActor && (ShowDebugTargetDesiredClass == NULL || HitActor->IsA(ShowDebugTargetDesiredClass)))
-				{
-					ShowDebugTargetActor = HitActor;
-				}
-			}
-		}
-		else
-		{
-			ShowDebugTargetActor = PlayerOwner->PlayerCameraManager->ViewTarget.Target;
+			FDisplayDebugManager& DisplayDebugManager = DebugCanvas->DisplayDebugManager;
+			DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Showing Debug for %s, Press [PageUp] and [PageDown] to cycle between targets."), *GetNameSafe(ShowDebugTargetActor)));
 		}
 
 		if (ShowDebugTargetActor && !ShowDebugTargetActor->IsPendingKill())
 		{
+			// Draw box around Actor being debugged.
+#if ENABLE_DRAW_DEBUG
+			{
+				FVector BoundsOrigin, BoundsExtent;
+				ShowDebugTargetActor->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+				// Expand extent a little bit
+				BoundsExtent *= 1.1f;
+				DrawDebugBox(GetWorld(), BoundsOrigin, BoundsExtent, FColor::Green, false, -1.f, 0, 2.f);
+			}
+#endif
 			ShowDebugTargetActor->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
 
 			if (!bShowDebugForReticleTarget && ShowDebugTargetActor->Role == ROLE_SimulatedProxy)
@@ -463,6 +479,160 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 		{
 			OnShowDebugInfo.Broadcast(this, DebugCanvas, DisplayInfo, YL, YPos);
 		}
+	}
+}
+
+AActor* AHUD::GetCurrentDebugTargetActor()
+{
+	AActor* DebugTargetActor = nullptr;
+
+	// Find targets through the reticle.
+	if (bShowDebugForReticleTarget && PlayerOwner->PlayerCameraManager)
+	{
+		FRotator CamRot; FVector CamLoc; PlayerOwner->GetPlayerViewPoint(CamLoc, CamRot);
+
+		FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
+		FHitResult Hit;
+		bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
+		if (bHit)
+		{
+			AActor* HitActor = Hit.Actor.Get();
+			if (HitActor && ((ShowDebugTargetDesiredClass == nullptr) || HitActor->IsA(ShowDebugTargetDesiredClass)))
+			{
+				DebugTargetActor = HitActor;
+			}
+		}
+
+		// If we hit something new, return this.
+		// Otherwise fall back to our last successful hit.
+		return DebugTargetActor ? DebugTargetActor : ShowDebugTargetActor;
+	}
+	else 
+	{
+		// Otherwise we use our Cached DebugTargetActor.
+		DebugTargetActor = ShowDebugTargetActor;
+	}
+
+	// If we have no one to view, default to current view target.
+	if ((DebugTargetActor == nullptr) && PlayerOwner->PlayerCameraManager && PlayerOwner->PlayerCameraManager->ViewTarget.Target)
+	{
+		DebugTargetActor = PlayerOwner->PlayerCameraManager->ViewTarget.Target;
+	}
+
+	return DebugTargetActor;
+}
+
+void AHUD::AddActorToDebugList(AActor* InActor, TArray<AActor*>& InOutList, UWorld* InWorld)
+{
+	// Only consider actors that are visible, not destroyed and in the same world.
+	if (InActor && !InActor->IsPendingKill() && (InActor->GetWorld() == InWorld) && InActor->WasRecentlyRendered())
+	{
+		InOutList.AddUnique(InActor);
+	}
+}
+
+void AHUD::AddComponentOwnerToDebugList(UActorComponent* InComponent, TArray<AActor*>& InOutList, UWorld* InWorld)
+{
+	if (InComponent && InComponent->GetOwner())
+	{
+		AddActorToDebugList(InComponent->GetOwner(), InOutList, InWorld);
+	}
+}
+
+void AHUD::GetDebugActorList(TArray<AActor*>& InOutList)
+{
+	UWorld* World = GetWorld();
+
+	// By default, add all Pawns.
+	for (TActorIterator<APawn> It(World); It; ++It)
+	{
+		AddActorToDebugList(*It, InOutList, World);
+	}
+
+	// If we're viewing animations, add all actors using an AnimInstance.
+	if (ShouldDisplayDebug(ShowDebugNames::Animation))
+	{
+		for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		{
+			if (It->GetAnimInstance())
+			{
+				AddComponentOwnerToDebugList(*It, InOutList, World);
+			}
+		}
+	}
+
+	// If we're viewing physics, add all actors using a movement component.
+	if (ShouldDisplayDebug(ShowDebugNames::Physics))
+	{
+		for (TObjectIterator<UMovementComponent> It; It; ++It)
+		{
+			AddComponentOwnerToDebugList(*It, InOutList, World);
+		}
+	}
+}
+
+void AHUD::NextDebugTarget()
+{
+	TArray<AActor*> Targets;
+	GetDebugActorList(Targets);
+
+	// If we have an existing target, find it in list.
+	// As list can change as actors are spawned and destroyed.
+	if (ShowDebugTargetActor)
+	{
+		if (!Targets.IsValidIndex(CurrentTargetIndex) || (Targets[CurrentTargetIndex] != ShowDebugTargetActor))
+		{
+			int32 FoundIndex;
+			if (Targets.Find(ShowDebugTargetActor, FoundIndex))
+			{
+				CurrentTargetIndex = FoundIndex;
+			}
+		}
+	}
+
+	CurrentTargetIndex = (CurrentTargetIndex + 1) % Targets.Num();
+	if (Targets.IsValidIndex(CurrentTargetIndex))
+	{
+		ShowDebugTargetActor = Targets[CurrentTargetIndex];
+	}
+	else if (PlayerOwner->PlayerCameraManager && PlayerOwner->PlayerCameraManager->ViewTarget.Target)
+	{
+		ShowDebugTargetActor = PlayerOwner->PlayerCameraManager->ViewTarget.Target;
+	}
+}
+
+void AHUD::PreviousDebugTarget()
+{
+	TArray<AActor*> Targets;
+	GetDebugActorList(Targets);
+
+	// If we have an existing target, find it in list.
+	// As list can change as actors are spawned and destroyed.
+	if (ShowDebugTargetActor)
+	{
+		if (!Targets.IsValidIndex(CurrentTargetIndex) || (Targets[CurrentTargetIndex] != ShowDebugTargetActor))
+		{
+			int32 FoundIndex;
+			if (Targets.Find(ShowDebugTargetActor, FoundIndex))
+			{
+				CurrentTargetIndex = FoundIndex;
+			}
+		}
+	}
+
+	CurrentTargetIndex--;
+	if (CurrentTargetIndex < 0)
+	{
+		CurrentTargetIndex = Targets.Num() - 1;
+	}
+
+	if (Targets.IsValidIndex(CurrentTargetIndex))
+	{
+		ShowDebugTargetActor = Targets[CurrentTargetIndex];
+	}
+	else if (PlayerOwner->PlayerCameraManager && PlayerOwner->PlayerCameraManager->ViewTarget.Target)
+	{
+		ShowDebugTargetActor = PlayerOwner->PlayerCameraManager->ViewTarget.Target;
 	}
 }
 
@@ -494,8 +664,6 @@ UFont* AHUD::GetFontFromSizeIndex(int32 FontSizeIndex) const
 
 	return GEngine->GetLargeFont();
 }
-
-
 
 void AHUD::OnLostFocusPause(bool bEnable)
 {

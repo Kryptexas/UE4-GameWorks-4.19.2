@@ -38,7 +38,7 @@ public:
 	*/
 	bool IsEnabled() const
 	{
-		return FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal")) == false;
+		return FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal")) == false && FParse::Param(FCommandLine::Get(), TEXT("q")) == false;
 	}
 
 public:

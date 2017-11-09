@@ -49,6 +49,8 @@ UObject* UNiagaraEmitterFactoryNew::FactoryCreateNew(UClass* Class, UObject* InP
 			NewEmitter->GraphSource = Source;
 			NewEmitter->SpawnScriptProps.Script->SetSource(Source);
 			NewEmitter->UpdateScriptProps.Script->SetSource(Source);
+			NewEmitter->EmitterSpawnScriptProps.Script->SetSource(Source);
+			NewEmitter->EmitterUpdateScriptProps.Script->SetSource(Source);
 		}
 	}
 	

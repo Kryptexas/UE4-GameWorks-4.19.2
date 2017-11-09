@@ -283,6 +283,8 @@ public:
 	/** Reference to the PacketHandler component, for managing stateless connection handshakes */
 	TWeakPtr<StatelessConnectHandlerComponent> StatelessConnectComponent;
 
+	/** The analytics provider used by the packet handler */
+	TSharedPtr<class IAnalyticsProvider> AnalyticsProvider;
 
 	/** World this net driver is associated with */
 	UPROPERTY()
@@ -471,6 +473,9 @@ public:
 	 * causes the dialog to be shown/hidden as needed
 	 */
 	void UpdateStandbyCheatStatus(void);
+
+	/** Sets the analytics provider */
+	void SetAnalyticsProvider(TSharedPtr<class IAnalyticsProvider> InProvider) { AnalyticsProvider = InProvider; }
 
 #if DO_ENABLE_NET_TEST
 	FPacketSimulationSettings	PacketSimulationSettings;

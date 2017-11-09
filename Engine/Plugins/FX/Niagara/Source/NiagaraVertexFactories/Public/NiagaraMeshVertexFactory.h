@@ -64,6 +64,8 @@ struct FNiagaraMeshInstanceVertexPrevTransform
 * Uniform buffer for mesh particle vertex factories.
 */
 BEGIN_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters, NIAGARAVERTEXFACTORIES_API)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorld, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorldInverseTransposed, EShaderPrecisionModifier::Half)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightA)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightB)
@@ -131,6 +133,7 @@ public:
 		: FNiagaraVertexFactoryBase(InType, InFeatureLevel)
 		, DynamicVertexStride(InDynamicVertexStride)
 		, DynamicParameterVertexStride(InDynamicParameterVertexStride)
+		, MeshFacingMode(0)
 		, InstanceVerticesCPU(nullptr)
 	{}
 
@@ -138,6 +141,7 @@ public:
 		: FNiagaraVertexFactoryBase(NVFT_MAX, ERHIFeatureLevel::Num)
 		, DynamicVertexStride(-1)
 		, DynamicParameterVertexStride(-1)
+		, MeshFacingMode(0)
 		, InstanceVerticesCPU(nullptr)
 	{}
 
@@ -167,31 +171,28 @@ public:
 
 	inline FShaderResourceViewRHIParamRef GetFloatDataSRV() const
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetGPUBufferFloat()->SRV;
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetGPUBufferFloat()->SRV;
-#endif
+		const FShaderResourceViewRHIRef& Ret = DataSet->GetRenderDataFloatSRV();
+		if (Ret.IsValid())
+		{
+			return Ret;
+		}
+		return DummyBuffer.SRV;
 	}
+
 	inline FShaderResourceViewRHIParamRef GetIntDataSRV() const
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetGPUBufferInt()->SRV;
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetGPUBufferInt()->SRV;
-#endif
+		const FShaderResourceViewRHIRef& Ret = DataSet->GetRenderDataInt32SRV();
+		if (Ret.IsValid())
+		{
+			return Ret;
+		}
+		return DummyBuffer.SRV;
 	}
 
 	uint32 GetComponentBufferSize()
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetFloatStride() / sizeof(float);
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetFloatStride() / sizeof(float);
-#endif
+		check(!IsInGameThread());
+		return DataSet->CurrDataRender().GetFloatStride() / sizeof(float);
 	}
 
 	/**
@@ -234,9 +235,9 @@ public:
 	*/
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
 
-	uint8* LockPreviousTransformBuffer(uint32 ParticleCount);
-	void UnlockPreviousTransformBuffer();
-	FShaderResourceViewRHIParamRef GetPreviousTransformBufferSRV() const;
+	//uint8* LockPreviousTransformBuffer(uint32 ParticleCount);
+	//void UnlockPreviousTransformBuffer();
+	//FShaderResourceViewRHIParamRef GetPreviousTransformBufferSRV() const;
 
 	/**
 	* Copy the data from another vertex factory
@@ -256,18 +257,27 @@ public:
 		return InstanceVerticesCPU;
 	}
 
+	uint32 GetMeshFacingMode() const
+	{
+		return MeshFacingMode;
+	}
+
+	void SetMeshFacingMode(uint32 InMode)
+	{
+		MeshFacingMode = InMode;
+	}
+
 protected:
 	FDataType Data;
 	const FNiagaraDataSet *DataSet;
 	/** Stride information for instanced mesh particles */
 	int32 DynamicVertexStride;
 	int32 DynamicParameterVertexStride;
+	uint32 MeshFacingMode;
 
 	/** Uniform buffer with mesh particle parameters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
-
-	FDynamicReadBuffer PrevTransformBuffer;
-
+	
 	/** Used to remember this in the case that we reuse the same vertex factory for multiple renders . */
 	FNiagaraMeshInstanceVertices* InstanceVerticesCPU;
 };

@@ -30,9 +30,14 @@ float UArrowComponent::EditorScale = 1.0f;
 #endif
 
 /** Represents a UArrowComponent to the scene manager. */
-class FArrowSceneProxy : public FPrimitiveSceneProxy
+class FArrowSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FArrowSceneProxy(UArrowComponent* Component)
 		: FPrimitiveSceneProxy(Component)

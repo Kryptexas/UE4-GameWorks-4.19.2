@@ -248,6 +248,8 @@ struct ExistingSkelMeshData
 	//The last import material data (fbx original data before user changes)
 	TArray<FName> LastImportMaterialOriginalNameData;
 	TArray<TArray<FName>> LastImportMeshLodSectionMaterialData;
+
+	FSkeletalMeshSamplingInfo				ExistingSamplingInfo;
 };
 
 /**

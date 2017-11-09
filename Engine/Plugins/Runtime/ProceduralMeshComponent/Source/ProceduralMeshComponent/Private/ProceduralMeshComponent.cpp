@@ -95,9 +95,14 @@ static void ConvertProcMeshToDynMeshVertex(FDynamicMeshVertex& Vert, const FProc
 }
 
 /** Procedural mesh scene proxy */
-class FProceduralMeshSceneProxy : public FPrimitiveSceneProxy
+class FProceduralMeshSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FProceduralMeshSceneProxy(UProceduralMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)

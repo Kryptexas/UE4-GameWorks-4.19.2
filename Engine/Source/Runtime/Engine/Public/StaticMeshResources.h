@@ -500,6 +500,7 @@ private:
 class ENGINE_API FStaticMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
 
 	/** Initialization constructor. */
 	FStaticMeshSceneProxy(UStaticMeshComponent* Component, bool bForceLODsShareStaticLighting);

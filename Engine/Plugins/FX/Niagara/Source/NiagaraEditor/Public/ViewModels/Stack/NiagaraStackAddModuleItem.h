@@ -19,15 +19,26 @@ public:
 	DECLARE_DELEGATE(FOnItemAdded);
 
 public:
+	enum class EDisplayMode
+	{
+		Standard,
+		Compact
+	};
+
+public:
 	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData);
 
 	virtual FText GetDisplayName() const override;
+
+	virtual EDisplayMode GetDisplayMode() const;
 
 	void SetOnItemAdded(FOnItemAdded InOnItemAdded);
 
 	void AddScriptModule(FAssetData ModuleScriptAsset);
 
 	void AddParameterModule(FNiagaraVariable ParameterVariable, bool bRenamePending);
+
+	void AddMaterialParameterModule();
 
 	virtual void GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const;
 
@@ -36,6 +47,8 @@ public:
 	virtual TOptional<FName> GetNewParameterNamespace() const;
 
 	virtual ENiagaraScriptUsage GetOutputUsage() const PURE_VIRTUAL(UNiagaraStackAddModuleItem::GetOutputUsage, return ENiagaraScriptUsage::EmitterSpawnScript;);
+
+	virtual int32 GetTargetIndex() const;
 
 protected:
 	virtual UNiagaraNodeOutput* GetOrCreateOutputNode() PURE_VIRTUAL(UNiagaraStackModuleItem::GetOrCreateOutputNode, return nullptr;);

@@ -17,9 +17,14 @@
 #include "StaticMeshResources.h"
 
 /** Scene proxy */
-class FCustomMeshSceneProxy : public FPrimitiveSceneProxy
+class FCustomMeshSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FCustomMeshSceneProxy(UCustomMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)

@@ -492,6 +492,12 @@ USoundClass* UDialogueSoundWaveProxy::GetSoundClass() const
 	return SoundWave->GetSoundClass();
 }
 
+
+UCurveTable* UDialogueSoundWaveProxy::GetCurveData() const
+{
+	return SoundWave ? SoundWave->GetCurveData() : nullptr;
+}
+
 UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, LocalizationGUID(FGuid::NewGuid())

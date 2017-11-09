@@ -14,7 +14,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnSystemCompiled)
 
 public:
-	FNiagaraSystemScriptViewModel(UNiagaraSystem& InSystem);
+	FNiagaraSystemScriptViewModel(UNiagaraSystem& InSystem, class FNiagaraSystemViewModel* InParent);
 
 	~FNiagaraSystemScriptViewModel();
 
@@ -23,11 +23,13 @@ public:
 
 	FOnSystemCompiled& OnSystemCompiled();
 
-	void CompileSystem();
+	void CompileSystem(bool bForce);
 
 private:
 	/** Called whenever the graph for the System script changes. */
 	void OnGraphChanged(const struct FEdGraphEditAction& InAction);
+
+	FNiagaraSystemViewModel* Parent;
 
 	/** The System who's script is getting viewed and edited by this view model. */
 	UNiagaraSystem& System;

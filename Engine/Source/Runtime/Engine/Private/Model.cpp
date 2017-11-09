@@ -743,7 +743,9 @@ void UModel::UpdateVertices()
 #endif
 		VertexBuffer.Buffers.InitModelBuffers(VertexBuffer.Vertices);
 		
-		if (FApp::IsGame())
+		//  Empty this if we have cooked data and thus won't need it later to generate collision
+		// data etc
+		if (FApp::IsGame() && FPlatformProperties::RequiresCookedData())
 		{
 			VertexBuffer.Vertices.Empty();
 		}

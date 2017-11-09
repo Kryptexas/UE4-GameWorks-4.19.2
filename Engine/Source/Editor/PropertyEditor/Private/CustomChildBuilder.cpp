@@ -95,13 +95,13 @@ TArray<TSharedPtr<IPropertyHandle>> FCustomChildrenBuilder::AddAllExternalStruct
 	return ParentCategory.Pin()->AddAllExternalStructureProperties(ChildStructure);
 }
 
-IDetailPropertyRow* FCustomChildrenBuilder::AddExternalObjectProperty(const TArray<UObject*>& Objects, FName PropertyName, FName UniqueIdName)
+IDetailPropertyRow* FCustomChildrenBuilder::AddExternalObjectProperty(const TArray<UObject*>& Objects, FName PropertyName, FName UniqueIdName, TOptional<bool> bAllowChildrenOverride, TOptional<bool> bCreateCategoryNodesOverride)
 {
 	FDetailLayoutCustomization NewCustomization;
 
 	TSharedRef<FDetailCategoryImpl> ParentCategoryRef = ParentCategory.Pin().ToSharedRef();
 
-	FDetailPropertyRow::MakeExternalPropertyRowCustomization(Objects, PropertyName, ParentCategoryRef, NewCustomization);
+	FDetailPropertyRow::MakeExternalPropertyRowCustomization(Objects, PropertyName, ParentCategoryRef, NewCustomization, bAllowChildrenOverride, bCreateCategoryNodesOverride);
 
 	TSharedPtr<FDetailPropertyRow> NewRow = NewCustomization.PropertyRow;
 

@@ -693,8 +693,10 @@ static void SearchDynamicClassCues(const FName PropertyName, const TArray<FStrin
 	}
 }
 
-void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
+TSharedPtr<FStreamableHandle> UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 {
+	TSharedPtr<FStreamableHandle> RetVal;
+
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Library"), STAT_ObjectLibrary, STATGROUP_LoadTime);
 
 	// Instantiate the UObjectLibraries if they aren't there already
@@ -796,6 +798,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 		if (AssetsToLoad.Num() > 0)
 		{
 			GameplayCueAssetHandle = StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, Lib.OnLoaded), Lib.AsyncPriority);
+			RetVal = GameplayCueAssetHandle;
 		}
 		else
 		{
@@ -806,6 +809,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 
 	// Build Tag Translation table
 	TranslationManager.BuildTagTranslationTable();
+	return RetVal;
 }
 
 static FAutoConsoleVariable CVarGameplyCueAddToGlobalSetDebug(TEXT("GameplayCue.AddToGlobalSet.DebugTag"), TEXT(""), TEXT("Debug Tag adding to global set"), ECVF_Default	);
@@ -1342,6 +1346,8 @@ void UGameplayCueManager::EndGameplayCueSendContext()
 
 void UGameplayCueManager::FlushPendingCues()
 {
+	OnFlushPendingCues.Broadcast();
+
 	TArray<FGameplayCuePendingExecute> LocalPendingExecuteCues = PendingExecuteCues;
 	PendingExecuteCues.Empty();
 	for (int32 i = 0; i < LocalPendingExecuteCues.Num(); i++)

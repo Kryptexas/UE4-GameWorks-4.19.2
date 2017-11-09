@@ -176,7 +176,7 @@ FNiagaraShaderCompileJob* FNiagaraShaderType::BeginCompileShader(
 	EShaderPlatform Platform,
 	TArray<FNiagaraShaderCompileJob*>& NewJobs,
 	FShaderTarget Target,
-	TArray< TArray<DIGPUBufferParamDescriptor> >&InBufferDescriptors
+	TArray< FDIBufferDescriptorStore >&InBufferDescriptors
 	)
 {
 	FNiagaraShaderCompileJob* NewJob = new FNiagaraShaderCompileJob(ShaderMapId, this, Script->HlslOutput);
@@ -742,6 +742,9 @@ bool FNiagaraShaderMap::TryToAddToExistingCompilationTask(FNiagaraScript* Script
 	if (CorrespondingScripts)
 	{
 		CorrespondingScripts->AddUnique(Script);
+
+		//UE_LOG(LogShaders, Error, TEXT("TryToAddToExistingCompilationTask %p %d"), Script, GetCompilingId());
+
 #if DEBUG_INFINITESHADERCOMPILE
 		UE_LOG(LogTemp, Display, TEXT("Added shader map 0x%08X%08X from Niagara script 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Script) >> 32), (int)((int64)(Script)));
 #endif
@@ -971,6 +974,11 @@ void FNiagaraShaderMap::RemovePendingScript(FNiagaraScript* Script)
 	{
 		TArray<FNiagaraScript*>& Scripts = It.Value();
 		int32 Result = Scripts.Remove(Script);
+		if (Result)
+		{
+			Script->RemoveOutstandingCompileId(It.Key()->CompilingId);
+			Script->NotifyCompilationFinished();
+		}
 #if DEBUG_INFINITESHADERCOMPILE
 		if ( Result )
 		{
@@ -978,6 +986,22 @@ void FNiagaraShaderMap::RemovePendingScript(FNiagaraScript* Script)
 		}
 #endif
 	}
+}
+
+
+void FNiagaraShaderMap::RemovePendingMap(FNiagaraShaderMap* Map)
+{
+	TArray<FNiagaraScript*>* Scripts = NiagaraShaderMapsBeingCompiled.Find(Map);
+	if (Scripts)
+	{
+		for (FNiagaraScript* Script : *Scripts)
+		{
+			Script->RemoveOutstandingCompileId(Map->CompilingId);
+			Script->NotifyCompilationFinished();
+		}
+	}
+
+	NiagaraShaderMapsBeingCompiled.Remove(Map);
 }
 
 const FNiagaraShaderMap* FNiagaraShaderMap::GetShaderMapBeingCompiled(const FNiagaraScript* Script)
@@ -1030,10 +1054,9 @@ bool FNiagaraShader::Serialize(FArchive& Ar)
 	Ar << OutputIndexBufferParam;
 	Ar << EmitterTickCounterParam;
 
-	Ar << NumInstancesPerThreadParam;
-	Ar << NumInstancesParam;
-	Ar << StartInstanceParam;
-	Ar << GroupStartInstanceParam;
+	Ar << TotalNumInstancesParam;
+	Ar << StartInstancePhase0Param;
+	Ar << StartInstancePhase1Param;
 	Ar << ComponentBufferSizeReadParam;
 	Ar << ComponentBufferSizeWriteParam;
 
@@ -1050,10 +1073,10 @@ bool FNiagaraShader::Serialize(FArchive& Ar)
 	// params for data interface buffers
 	if (Ar.IsLoading())
 	{
-		for (TArray<DIGPUBufferParamDescriptor> &InterfaceDescs : DIBufferDescriptors)
+		for (FDIBufferDescriptorStore &InterfaceDescs : DIBufferDescriptors)
 		{
 			int32 Idx = NameToDIBufferParamMap.AddDefaulted(1);
-			for (DIGPUBufferParamDescriptor &Desc : InterfaceDescs)
+			for (FDIGPUBufferParamDescriptor &Desc : InterfaceDescs.Descriptors)
 			{
 				FShaderResourceParameter &Param = NameToDIBufferParamMap[Idx].Add(*Desc.BufferParamName);
 				Ar << Param;
@@ -1063,9 +1086,9 @@ bool FNiagaraShader::Serialize(FArchive& Ar)
 	else
 	{
 		uint32 Idx = 0;
-		for (TArray<DIGPUBufferParamDescriptor> &InterfaceDescs : DIBufferDescriptors)
+		for (FDIBufferDescriptorStore &InterfaceDescs : DIBufferDescriptors)
 		{
-			for (DIGPUBufferParamDescriptor &Desc : InterfaceDescs)
+			for (FDIGPUBufferParamDescriptor &Desc : InterfaceDescs.Descriptors)
 			{
 				FShaderResourceParameter *Param = NameToDIBufferParamMap[Idx].Find(*Desc.BufferParamName);
 				check(Param);
@@ -1075,8 +1098,6 @@ bool FNiagaraShader::Serialize(FArchive& Ar)
 		}
 	}
 
-	Ar << SimulateStartInstanceParam;
-	Ar << NumThreadGroupsParam;
 	Ar << EmitterConstantBufferParam;
 	Ar << DataInterfaceUniformBufferParam;
 	Ar << NumEventsPerParticleParam;
@@ -1094,8 +1115,15 @@ uint32 FNiagaraShader::GetAllocatedSize() const
 		+ DebugDescription.GetAllocatedSize();
 }
 
+FArchive &operator << (FArchive &Ar, FDIBufferDescriptorStore &Store)
+{
+	Ar << Store.DataInterfaceName;
+	Ar << Store.Descriptors;
+	return Ar;
+}
 
-FArchive &operator << (FArchive &Ar, DIGPUBufferParamDescriptor &Desc)
+
+FArchive &operator << (FArchive &Ar, FDIGPUBufferParamDescriptor &Desc)
 {
 	Ar << Desc.BufferParamName;
 	Ar << Desc.Index;

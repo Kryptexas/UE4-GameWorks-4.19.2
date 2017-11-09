@@ -35,4 +35,9 @@ public:
 
 	/** Toggles the locking/unlocking of refreshing from changes*/
 	TSharedPtr<FUICommandInfo> ToggleUnlockToChanges;
+
+	TSharedPtr<FUICommandInfo> ToggleOrbit;
+	TSharedPtr<FUICommandInfo> ToggleBounds;
+	TSharedPtr<FUICommandInfo> ToggleBounds_SetFixedBounds;
+	TSharedPtr<FUICommandInfo> SaveThumbnailImage;
 };

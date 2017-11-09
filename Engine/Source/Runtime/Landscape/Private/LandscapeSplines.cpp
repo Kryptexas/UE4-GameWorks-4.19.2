@@ -51,9 +51,15 @@ IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy_Tangent, HLandscapeSplineProxy);
 
 /** Represents a ULandscapeSplinesComponent to the scene manager. */
 #if WITH_EDITOR
-class FLandscapeSplinesSceneProxy : public FPrimitiveSceneProxy
+class FLandscapeSplinesSceneProxy final : public FPrimitiveSceneProxy
 {
 private:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	const FLinearColor	SplineColor;
 
 	const UTexture2D*	ControlPointSprite;

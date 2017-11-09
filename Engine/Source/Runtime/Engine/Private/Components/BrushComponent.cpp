@@ -83,9 +83,15 @@ private:
 };
 #endif // WITH_EDITORONLY_DATA
 
-class FBrushSceneProxy : public FPrimitiveSceneProxy
+class FBrushSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FBrushSceneProxy(UBrushComponent* Component, ABrush* Owner):
 		FPrimitiveSceneProxy(Component),
 #if WITH_EDITORONLY_DATA

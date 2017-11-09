@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Private/NiagaraHlslTranslator.h"
 #include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphNode.h"
 #include "NiagaraEditorCommon.h"
@@ -90,6 +91,11 @@ public:
 	
 protected:
 	virtual int32 CompileInputPin(class FHlslNiagaraTranslator *Translator, UEdGraphPin* Pin);
+	virtual bool IsValidPinToCompile(UEdGraphPin* Pin) const { return true; };
+
+	/** Route input parameter map to output parameter map if it exists. Note that before calling this function,
+		the input pins should have been visited already.*/
+	virtual void RouteParameterMapAroundMe(FNiagaraParameterMapHistoryBuilder& OutHistory, bool bRecursive);
 
 	//ID for the most recent visitor. Allows faster tracking of what nodes have been visited.
 	int32 VisitID;

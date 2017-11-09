@@ -185,7 +185,7 @@ public:
 	virtual ENodeVisibility GetVisibility() const override;
 	virtual void FilterNode(const FDetailFilter& DetailFilter) override;
 	virtual void Tick(float DeltaTime) override {}
-	virtual bool ShouldShowOnlyChildren() const override { return false; }
+	virtual bool ShouldShowOnlyChildren() const override { return bShowOnlyChildren; }
 	virtual FName GetNodeName() const override { return GetCategoryName(); }
 
 	/**
@@ -419,4 +419,5 @@ private:
 	bool bIsCategoryVisible : 1;
 	/*true if the category is the special favorite category, all property in the layout will be display when we generate the roottree */
 	bool bFavoriteCategory : 1;
+	bool bShowOnlyChildren : 1;
 };

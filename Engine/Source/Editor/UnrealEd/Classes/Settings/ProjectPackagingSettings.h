@@ -305,6 +305,22 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
+	/**
+	 * Directories containing files that should always be added to the .pak file for a dedicated server (if using a .pak file; otherwise they're copied as individual files)
+	 * This is used to stage additional files that you manually load via the UFS (Unreal File System) file IO API
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories to Package for dedicated server only", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsUFSServer;
+
+	/**
+	 * Directories containing files that should always be copied when packaging your project for a dedicated server, but are not supposed to be part of the .pak file
+	 * This is used to stage additional files that you manually load without using the UFS (Unreal File System) file IO API, eg, third-party libraries that perform their own internal file IO
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy for dedicated server only", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFSServer;	
+
 private:
 	/** Helper array used to mirror Blueprint asset selections across edits */
 	TArray<FFilePath> CachedNativizeBlueprintAssets;

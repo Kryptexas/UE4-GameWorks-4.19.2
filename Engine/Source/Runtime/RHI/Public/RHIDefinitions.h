@@ -924,6 +924,12 @@ inline bool RHISupportsMobileMultiView(const EShaderPlatform Platform)
 	return (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
 }
 
+inline bool RHISupportsDrawIndirect(const EShaderPlatform Platform)
+{
+	return (Platform == EShaderPlatform::SP_METAL_SM5 || Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_VULKAN_SM5 || Platform == EShaderPlatform::SP_PS4);
+}
+
+
 // Return what the expected number of samplers will be supported by a feature level
 // Note that since the Feature Level is pretty orthogonal to the RHI/HW, this is not going to be perfect
 // If should only be used for a guess at the limit, the real limit will not be known until runtime

@@ -44,6 +44,12 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 #endif
 }
 
+SIZE_T FPaperTileMapRenderSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 FPaperTileMapRenderSceneProxy* FPaperTileMapRenderSceneProxy::CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FDynamicMeshVertex>*& OutVertices)
 {
 	FPaperTileMapRenderSceneProxy* NewProxy = new FPaperTileMapRenderSceneProxy(InComponent);

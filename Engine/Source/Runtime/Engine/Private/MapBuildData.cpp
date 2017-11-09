@@ -330,6 +330,7 @@ void FReflectionCaptureMapBuildData::FinalizeLoad()
 	INC_DWORD_STAT_BY(STAT_ReflectionCaptureBuildData, AllocatedSize);
 }
 
+
 UMapBuildDataRegistry::UMapBuildDataRegistry(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

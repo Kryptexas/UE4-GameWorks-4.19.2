@@ -15,9 +15,15 @@
 //////////////////////////////////////////////////////////////////////////
 // Scene proxy
 
-class FNavLocalGridSceneProxy : public FDebugRenderSceneProxy
+class FNavLocalGridSceneProxy final : public FDebugRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FNavLocalGridSceneProxy(const UPrimitiveComponent* InComponent,
 		const FGameplayDebuggerCategory_NavLocalGrid::FRepData& RepData,
 		const FGameplayDebuggerCategory_NavLocalGrid::FRepAgentData& AgentData) 

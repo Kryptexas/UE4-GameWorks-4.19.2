@@ -56,6 +56,8 @@ struct FAnalyticsEventAttribute
 		case AttrTypeEnum::JsonFragment:
 			return AttrValueString;
 		case AttrTypeEnum::Number:
+			if (AttrValueNumber - FMath::TruncToFloat(AttrValueNumber) == 0.0)
+				return Lex::ToSanitizedString((int64)AttrValueNumber);
 			return Lex::ToSanitizedString(AttrValueNumber);
 		case AttrTypeEnum::Boolean:
 			return Lex::ToString(AttrValueBool);

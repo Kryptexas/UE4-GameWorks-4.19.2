@@ -91,6 +91,10 @@ UEdGraphPin* UNiagaraNodeWithDynamicPins::RequestNewTypedPin(EEdGraphPinDirectio
 
 void UNiagaraNodeWithDynamicPins::CreateAddPin(EEdGraphPinDirection Direction)
 {
+	if (!AllowDynamicPins())
+	{
+		return;
+	}
 	CreatePin(Direction, FEdGraphPinType(UEdGraphSchema_Niagara::PinCategoryMisc, AddPinSubCategory, nullptr, EPinContainerType::None, false, FEdGraphTerminalType()), TEXT("Add"));
 }
 
@@ -214,6 +218,7 @@ void UNiagaraNodeWithDynamicPins::GetContextMenuActions(const FGraphNodeContextM
 					FUIAction(FExecuteAction::CreateUObject(const_cast<UNiagaraNodeWithDynamicPins*>(this), &UNiagaraNodeWithDynamicPins::MoveDynamicPin, const_cast<UEdGraphPin*>(Context.Pin), 1)));
 			}
 		}
+		Context.MenuBuilder->EndSection();
 	}
 }
 
@@ -267,9 +272,9 @@ void UNiagaraNodeWithDynamicPins::PinNameTextCommitted(const FText& Text, ETextC
 	{
 		FScopedTransaction RemovePinTransaction(LOCTEXT("RenamePinTransaction", "Rename pin"));
 		Modify();
-
+		FString PinOldName = Pin->PinName.ToString();
 		Pin->PinName = *Text.ToString();
-		OnPinRenamed(Pin);
+		OnPinRenamed(Pin, PinOldName);
 	}
 }
 

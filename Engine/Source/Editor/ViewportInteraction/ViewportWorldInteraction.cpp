@@ -3010,6 +3010,16 @@ bool UViewportWorldInteraction::ShouldSuppressExistingCursor() const
 
 }
 
+void UViewportWorldInteraction::SetForceCursor(const bool bInShouldForceCursor)
+{
+	bShouldForceCursor = bInShouldForceCursor;
+}
+
+bool UViewportWorldInteraction::ShouldForceCursor() const
+{
+	return true;
+}
+
 const UViewportInteractionAssetContainer& UViewportWorldInteraction::GetAssetContainer() const
 {
 	return *AssetContainer;

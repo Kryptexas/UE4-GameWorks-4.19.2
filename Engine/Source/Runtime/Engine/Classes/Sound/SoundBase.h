@@ -142,6 +142,11 @@ public:
 	/** Returns whether or not any part of this sound wants interior volumes applied to it */
 	virtual bool ShouldApplyInteriorVolumes();
 
+	/** Returns curves associated with this sound if it has any. By default returns nullptr, but types
+	*	supporting curves can return a corresponding curve table.
+	*/
+	virtual class UCurveTable* GetCurveData() const { return nullptr; }
+
 	/** Returns whether or not this sound is looping. */
 	bool IsLooping();
 

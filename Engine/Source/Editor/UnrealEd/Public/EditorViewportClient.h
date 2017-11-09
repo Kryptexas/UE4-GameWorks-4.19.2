@@ -1113,6 +1113,9 @@ protected:
 	/** Setup the cursor visibility state we require and store in RequiredCursorVisibiltyAndAppearance struct */
 	void UpdateRequiredCursorVisibility();
 	
+	/** Sets the required hardware and software cursor. */
+	void SetRequiredCursor(const bool bHardwareCursorVisible, const bool bSoftwareCursorVisible);
+
 	/** 
 	 * Apply the required cursor visibility states from the RequiredCursorVisibiltyAndAppearance struct 
 	 * @param	View				True - Set the position of the software cursor if being made visible. This defaults to FALSE.

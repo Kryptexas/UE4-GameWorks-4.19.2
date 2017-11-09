@@ -319,6 +319,10 @@ public:
 		bShouldSuppressCursor = bInShouldSuppressCursor;
 	};
 
+	/** Getters and setters for whether or not to show the cursor on the viewport */
+	bool ShouldForceCursor() const;
+	void SetForceCursor(const bool bInShouldForceCursor);
+
 	/** Gets the container for all the assets of ViewportInteraction. */
 	const class UViewportInteractionAssetContainer& GetAssetContainer() const;
 
@@ -700,6 +704,9 @@ private:
 
 	/** Whether or not to show the cursor on the viewport */
 	bool bShouldSuppressCursor;
+
+	/** Whether or not to force the cursor on the viewport */
+	bool bShouldForceCursor;
 
 	/** The current tick number */
 	uint32 CurrentTickNumber;

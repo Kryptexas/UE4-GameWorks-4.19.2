@@ -50,7 +50,7 @@ public:
 	{
 		//const FUniformExpressionSet& UniformExpressionSet;
 		const FString DebugDescription;
-		TArray< TArray<DIGPUBufferParamDescriptor>> DIBufferDescriptors;
+		TArray< FDIBufferDescriptorStore > DIBufferDescriptors;
 
 		CompiledShaderInitializerType(
 			FShaderType* InType,
@@ -58,7 +58,7 @@ public:
 			FShaderResource* InResource,
 			const FSHAHash& InNiagaraShaderMapHash,
 			const FString& InDebugDescription,
-			const TArray< TArray<DIGPUBufferParamDescriptor>> &InDataInterfaceBufferDescriptors
+			const TArray< FDIBufferDescriptorStore > &InDataInterfaceBufferDescriptors
 			)
 		: FGlobalShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource, InNiagaraShaderMapHash,nullptr,nullptr)
 		, DebugDescription(InDebugDescription)
@@ -97,7 +97,7 @@ public:
 		EShaderPlatform Platform,
 		TArray<FNiagaraShaderCompileJob*>& NewJobs,
 		FShaderTarget Target,
-		TArray< TArray<DIGPUBufferParamDescriptor> >&InBufferDescriptors
+		TArray< FDIBufferDescriptorStore >&InBufferDescriptors
 		);
 
 	/**

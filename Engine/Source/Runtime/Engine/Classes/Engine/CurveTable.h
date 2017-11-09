@@ -156,7 +156,7 @@ struct ENGINE_API FCurveTableRowHandle
 	/** Returns true if the curve is valid */
 	bool IsValid(const FString& ContextString) const
 	{
-		return (GetCurve(ContextString) != nullptr);
+		return (GetCurve(ContextString, false) != nullptr);
 	}
 
 	/** Returns true if this handle is specifically pointing to nothing */
@@ -166,7 +166,7 @@ struct ENGINE_API FCurveTableRowHandle
 	}
 
 	/** Get the curve straight from the row handle */
-	FRichCurve* GetCurve(const FString& ContextString) const;
+	FRichCurve* GetCurve(const FString& ContextString, bool WarnIfNotFound=true) const;
 
 	/** Evaluate the curve if it is valid
 	 * @param XValue The input X value to the curve
@@ -186,6 +186,12 @@ struct ENGINE_API FCurveTableRowHandle
 	bool operator==(const FCurveTableRowHandle& Other) const;
 	bool operator!=(const FCurveTableRowHandle& Other) const;
 	void PostSerialize(const FArchive& Ar);
+
+	/** Used so we can have a TMap of this struct */
+	FORCEINLINE friend uint32 GetTypeHash(const FCurveTableRowHandle& Handle)
+	{
+		return HashCombine(::GetTypeHash(Handle.RowName), PointerHash(Handle.CurveTable));
+	}
 };
 
 template<>

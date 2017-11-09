@@ -561,6 +561,8 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 
 		ExistingMeshDataPtr->ExistingClothingAssets = ExistingSkelMesh->MeshClothingAssets;
 
+		ExistingMeshDataPtr->ExistingSamplingInfo = ExistingSkelMesh->GetSamplingInfo();
+
 		//Add the last fbx import data
 		UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(ExistingSkelMesh->AssetImportData);
 		if (ImportData && ExistingMeshDataPtr->UseMaterialNameSlotWorkflow)
@@ -910,6 +912,8 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 		{
 			ClothingAsset->RefreshBoneMapping(SkeletalMesh);
 		}
+
+		SkeletalMesh->SetSamplingInfo(MeshData->ExistingSamplingInfo);
 
 		//Restore the section change only for the base LOD, other LOD will be restore when setting the LOD.
 		if (MeshData->UseMaterialNameSlotWorkflow)

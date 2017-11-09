@@ -15,8 +15,6 @@
 
 #include "NiagaraDataInterface.h"
 
-#include "NiagaraNodeParameterCollection.h"
-
 #define LOCTEXT_NAMESPACE "NiagaraScriptInputCollection"
 
 template<> TMap<UNiagaraParameterCollection*, TArray<FNiagaraParameterCollectionAssetViewModel*>> TNiagaraViewModelManager<UNiagaraParameterCollection, FNiagaraParameterCollectionAssetViewModel>::ObjectsToViewModels{};
@@ -105,7 +103,7 @@ FName FNiagaraParameterCollectionAssetViewModel::GenerateNewName(FNiagaraTypeDef
 		Existing.Add(ParameterViewModel->GetName());
 	}
 
-	return *Collection->ParameterNameFromFriendlyName(FNiagaraEditorUtilities::GetUniqueName(ProposedName, Existing).ToString());
+	return *Collection->ParameterNameFromFriendlyName(FNiagaraUtilities::GetUniqueName(ProposedName, Existing).ToString());
 }
 
 void FNiagaraParameterCollectionAssetViewModel::AddParameter(TSharedPtr<FNiagaraTypeDefinition> ParameterType)
@@ -223,14 +221,14 @@ void FNiagaraParameterCollectionAssetViewModel::CollectionChanged(bool bRecompil
 	//Refresh any existing view models that might be showing changed instances.
 	UpdateOpenInstances();
 
-	//Refresh any nodes that are referencing this collection.
-	for (TObjectIterator<UNiagaraNodeParameterCollection> It; It; ++It)
-	{
-		if (It->GetReferencedAsset() == Collection)
-		{
-			It->RefreshFromExternalChanges();
-		}
-	}
+// 	//Refresh any nodes that are referencing this collection.
+// 	for (TObjectIterator<UNiagaraNodeParameterCollection> It; It; ++It)
+// 	{
+// 		if (It->GetReferencedAsset() == Collection)
+// 		{
+// 			It->RefreshFromExternalChanges();
+// 		}
+// 	}
 
 	if (bRecompile)
 	{
@@ -359,7 +357,13 @@ void FNiagaraParameterCollectionAssetViewModel::OnParameterProvidedChanged(FNiag
 
 void FNiagaraParameterCollectionAssetViewModel::OnParameterValueChangedInternal(TSharedRef<FNiagaraCollectionParameterViewModel> ChangedParameter)
 {
+	//restart any systems using this collection.
+	FNiagaraSystemUpdateContext UpdateContext(Collection, true);
+
 	OnParameterValueChanged().Broadcast(ChangedParameter->GetName());
+	
+	//Push the change to anyone already bound.
+	Instance->GetParameterStore().Tick();
 }
 
 #undef LOCTEXT_NAMESPACE // "NiagaraScriptInputCollectionViewModel"

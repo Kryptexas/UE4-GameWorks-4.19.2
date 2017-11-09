@@ -1809,29 +1809,26 @@ void USkeletalMeshComponent::UpdatePhysicsToRBChannels()
 	}
 }
 
-FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
+template<bool bCachedMatrices>
+FVector GetTypedSkinnedVertexPositionWithCloth(USkeletalMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& LODData, FSkinWeightVertexBuffer& SkinWeightBuffer, TArray<FMatrix>& CachedRefToLocals)
 {
+	// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
+	int32 SectionIndex;
+	int32 VertIndexInChunk;
+	LODData.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndexInChunk);
+	const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
+
 	// only if this component has clothing and is showing simulated results	
-	if (SkeletalMesh &&
-		SkeletalMesh->MeshClothingAssets.Num() > 0 &&
-		MeshObject &&
-		!bDisableClothSimulation &&
-		ClothBlendWeight > 0.0f // if cloth blend weight is 0.0, only showing skinned vertices regardless of simulation positions
+	if (Component->SkeletalMesh &&
+		Component->SkeletalMesh->MeshClothingAssets.Num() > 0 &&
+		!Component->bDisableClothSimulation &&
+		Component->ClothBlendWeight > 0.0f // if cloth blend weight is 0.0, only showing skinned vertices regardless of simulation positions
 		)
 	{
-		FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
-
-		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
-		int32 SectionIndex;
-		int32 VertIndexInChunk;
-		LODData.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndexInChunk);
-
 		bool bClothVertex = false;
 		FGuid ClothAssetGuid;
 
 		// if this section corresponds to a cloth section, returns corresponding cloth section's info instead
-		const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
-
 		// if this chunk has cloth data
 		if (Section.HasClothingData())
 		{
@@ -1842,25 +1839,146 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 		if (bClothVertex)
 		{
 			FVector SimulatedPos;
-			if (GetClothSimulatedPosition_GameThread(ClothAssetGuid, VertIndexInChunk, SimulatedPos))
+			if (Component->GetClothSimulatedPosition_GameThread(ClothAssetGuid, VertIndexInChunk, SimulatedPos))
 			{
 				// a simulated position is in world space and convert this to local space
 				// because SkinnedMeshComponent::GetSkinnedVertexPosition() returns the position in local space
-				SimulatedPos = GetComponentTransform().InverseTransformPosition(SimulatedPos);
+				SimulatedPos = Component->GetComponentTransform().InverseTransformPosition(SimulatedPos);
 
 				// if blend weight is 1.0, doesn't need to blend with a skinned position
-				if (ClothBlendWeight < 1.0f) 
+				if (Component->ClothBlendWeight < 1.0f)
 				{
 					// blend with a skinned position
-					FVector SkinnedPos = Super::GetSkinnedVertexPosition(VertexIndex);
-					SimulatedPos = SimulatedPos*ClothBlendWeight + SkinnedPos*(1.0f - ClothBlendWeight);
+					FVector SkinnedPos = SkinWeightBuffer.HasExtraBoneInfluences() ?
+						GetTypedSkinnedVertexPosition<true, bCachedMatrices>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, VertIndexInChunk, CachedRefToLocals) :
+						GetTypedSkinnedVertexPosition<false, bCachedMatrices>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, VertIndexInChunk, CachedRefToLocals);
+
+					SimulatedPos = SimulatedPos*Component->ClothBlendWeight + SkinnedPos*(1.0f - Component->ClothBlendWeight);
 				}
 				return SimulatedPos;
 			}
 		}
 	}
 
-	return Super::GetSkinnedVertexPosition(VertexIndex);
+	return SkinWeightBuffer.HasExtraBoneInfluences() ?
+		GetTypedSkinnedVertexPosition<true, bCachedMatrices>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, VertIndexInChunk, CachedRefToLocals) :
+		GetTypedSkinnedVertexPosition<false, bCachedMatrices>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, VertIndexInChunk, CachedRefToLocals);
+}
+
+FVector USkeletalMeshComponent::GetSkinnedVertexPosition(USkeletalMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& LODData, FSkinWeightVertexBuffer& SkinWeightBuffer)
+{
+	TArray<FMatrix> Dummy;
+	return GetTypedSkinnedVertexPositionWithCloth<false>(Component, VertexIndex, LODData, SkinWeightBuffer, Dummy);
+}
+
+FVector USkeletalMeshComponent::GetSkinnedVertexPosition(USkeletalMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& LODData, FSkinWeightVertexBuffer& SkinWeightBuffer, TArray<FMatrix>& CachedRefToLocals)
+{
+	return GetTypedSkinnedVertexPositionWithCloth<true>(Component, VertexIndex, LODData, SkinWeightBuffer, CachedRefToLocals);
+}
+
+void USkeletalMeshComponent::ComputeSkinnedPositions(USkeletalMeshComponent* Component, TArray<FVector> & OutPositions, TArray<FMatrix>& CachedRefToLocals, const FSkeletalMeshLODRenderData& LODData, FSkinWeightVertexBuffer& SkinWeightBuffer)
+{
+	// Fail if no mesh
+	if (!Component->SkeletalMesh)
+	{
+		return;
+	}
+
+	OutPositions.Empty();
+	OutPositions.AddUninitialized(LODData.GetNumVertices());
+	bool bHasExtraBoneInfluences = SkinWeightBuffer.HasExtraBoneInfluences();
+	
+	if (Component->SkeletalMesh->MeshClothingAssets.Num() > 0 &&
+		!Component->bDisableClothSimulation &&
+		Component->ClothBlendWeight > 0.0f // if cloth blend weight is 0.0, only showing skinned vertices regardless of simulation positions
+		)
+	{
+		//update positions
+		for (int32 SectionIdx = 0; SectionIdx < LODData.RenderSections.Num(); ++SectionIdx)
+		{
+			const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIdx];
+
+			bool bClothVertex = false;
+			int32 ClothAssetIndex = -1;
+			FGuid ClothAssetGuid;
+
+			// if this section corresponds to a cloth section, returns corresponding cloth section's info instead
+			// if this chunk has cloth data
+			if (Section.HasClothingData())
+			{
+				bClothVertex = true;
+				ClothAssetIndex = Section.CorrespondClothAssetIndex;
+				ClothAssetGuid = Section.ClothingData.AssetGuid;
+			}
+
+			if (bClothVertex)
+			{
+				int32 AssetIndex = Component->SkeletalMesh->GetClothingAssetIndex(ClothAssetGuid);
+				if (AssetIndex != INDEX_NONE)
+				{
+					const FClothSimulData* ActorData = Component->CurrentSimulationData_GameThread.Find(AssetIndex);
+
+					if (ActorData)
+					{
+						const uint32 SoftOffset = Section.GetVertexBufferIndex();
+						const uint32 NumSoftVerts = Section.GetNumVertices();
+
+						// if blend weight is 1.0, doesn't need to blend with a skinned position
+						if (Component->ClothBlendWeight < 1.0f)
+						{
+							for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+							{
+								FVector SimulatedPos = ActorData->Positions[SoftIdx];
+
+								FVector SkinnedPosition = bHasExtraBoneInfluences ? 
+									GetTypedSkinnedVertexPosition<true, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals) :
+									GetTypedSkinnedVertexPosition<false, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals);
+
+								OutPositions[SoftOffset + SoftIdx] = SimulatedPos*Component->ClothBlendWeight + SkinnedPosition*(1.0f - Component->ClothBlendWeight);
+							}
+						}
+						else
+						{
+							for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+							{
+								OutPositions[SoftOffset + SoftIdx] = ActorData->Positions[SoftIdx];
+							}
+						}
+
+						return;
+					}
+				}
+			}
+
+			//fall back to just regular skinning.
+			const uint32 SoftOffset = Section.GetVertexBufferIndex();
+			const uint32 NumSoftVerts = Section.GetNumVertices();
+			for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+			{
+				FVector SkinnedPosition = bHasExtraBoneInfluences ?
+					GetTypedSkinnedVertexPosition<true, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals) :
+					GetTypedSkinnedVertexPosition<false, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals);
+				OutPositions[SoftOffset + SoftIdx] = SkinnedPosition;
+			}
+		}
+	}
+	else
+	{
+		for (int32 SectionIdx = 0; SectionIdx < LODData.RenderSections.Num(); ++SectionIdx)
+		{
+			const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIdx];
+
+			const uint32 SoftOffset = Section.GetVertexBufferIndex();
+			const uint32 NumSoftVerts = Section.GetNumVertices();
+			for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+			{
+				FVector SkinnedPosition = bHasExtraBoneInfluences ? 
+					GetTypedSkinnedVertexPosition<true, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals) :
+					GetTypedSkinnedVertexPosition<false, true>(Component, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightBuffer, SoftIdx, CachedRefToLocals);
+				OutPositions[SoftOffset + SoftIdx] = SkinnedPosition;
+			}
+		}
+	}
 }
 
 void USkeletalMeshComponent::SetEnableBodyGravity(bool bEnableGravity, FName BoneName)

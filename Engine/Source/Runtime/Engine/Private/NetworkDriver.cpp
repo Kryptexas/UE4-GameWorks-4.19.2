@@ -1143,7 +1143,7 @@ void UNetDriver::InitConnectionlessHandler()
 		{
 			ConnectionlessHandler->bConnectionlessHandler = true;
 
-			ConnectionlessHandler->Initialize(Handler::Mode::Server, MAX_PACKET_SIZE, true);
+			ConnectionlessHandler->Initialize(Handler::Mode::Server, MAX_PACKET_SIZE, true, AnalyticsProvider);
 
 			// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
 			TSharedPtr<HandlerComponent> NewComponent =

@@ -405,10 +405,12 @@ public:
 //
 // FLandscapeMeshProxySceneProxy
 //
-class FLandscapeMeshProxySceneProxy : public FStaticMeshSceneProxy
+class FLandscapeMeshProxySceneProxy final : public FStaticMeshSceneProxy
 {
 	TArray<FLandscapeNeighborInfo> ProxyNeighborInfos;
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FLandscapeMeshProxySceneProxy(UStaticMeshComponent* InComponent, const FGuid& InGuid, const TArray<FIntPoint>& InProxyComponentBases, int8 InProxyLOD);
 	virtual ~FLandscapeMeshProxySceneProxy();
 	virtual void CreateRenderThreadResources() override;
@@ -423,6 +425,7 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 {
 	friend class FLandscapeSharedBuffers;
 
+	SIZE_T GetTypeHash() const override;
 
 	class FLandscapeLCI final : public FLightCacheInterface
 	{

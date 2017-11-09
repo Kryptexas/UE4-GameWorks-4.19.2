@@ -14,15 +14,15 @@ class NIAGARA_API UNiagaraDataInterfaceCurlNoise : public UNiagaraDataInterface
 	bool bGPUBufferDirty;
 public:
 
-	UNiagaraDataInterfaceCurlNoise()
-		: bGPUBufferDirty(true)
-	{}
-	static VectorRegister NoiseTable[17][17][17];
-
-	static void InitNoiseLUT();
-
+	UPROPERTY(EditAnywhere, Category = "Curl Noise")
+	uint32 Seed;
+	
 	//UObject Interface
 	virtual void PostInitProperties()override;
+	virtual void PostLoad() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	//UObject Interface End
 
 	//UNiagaraDataInterface Interface
@@ -34,9 +34,20 @@ public:
 	template<typename XType, typename YType, typename ZType>
 	void SampleNoiseField(FVectorVMContext& Context);
 
+	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
+
 	// GPU sim functionality
-	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
-	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
+	virtual bool GetFunctionHLSL(const FName&  DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
+	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
 	virtual TArray<FNiagaraDataInterfaceBufferData> &GetBufferDataArray() override;
-	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors) override;
+	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors) override;
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
+	void InitNoiseLUT();
+
+	VectorRegister NoiseTable[17][17][17];
+
+	template<typename T>
+	void ReplicateBorder(T* DestBuffer);
 };

@@ -31,10 +31,6 @@
 	"Plugins":
 	[
 		{
-			"Name": "OnlineSubsystemUtils",
-			"Enabled": true
-		},
-		{
 			"Name": "NetcodeUnitTest",
 			"Enabled": true
 		}

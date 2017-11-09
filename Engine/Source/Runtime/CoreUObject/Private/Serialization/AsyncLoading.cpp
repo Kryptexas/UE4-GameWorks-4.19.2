@@ -174,7 +174,6 @@ static FAutoConsoleVariableRef CVar_EditorLoadPrecacheSizeKB(
 	TEXT("Size, in KB, to precache when loading packages in the editor.")
 );
 
-
 #if !UE_BUILD_SHIPPING
 
 static void NotifyAsyncLoadingStateHasMaybeChanged()

@@ -265,9 +265,15 @@ private:
 
 
 /** Represents a billboard sprite to the scene manager. */
-class FWidget3DSceneProxy : public FPrimitiveSceneProxy
+class FWidget3DSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	/** Initialization constructor. */
 	FWidget3DSceneProxy( UWidgetComponent* InComponent, ISlate3DRenderer& InRenderer )
 		: FPrimitiveSceneProxy( InComponent )
@@ -636,9 +642,15 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 
 #if WITH_EDITOR
 	// make something so we can see this component in the editor
-	class FWidgetBoxProxy : public FPrimitiveSceneProxy
+	class FWidgetBoxProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		FWidgetBoxProxy(const UWidgetComponent* InComponent)
 			: FPrimitiveSceneProxy(InComponent)
 			, BoxExtents(1.f, InComponent->GetDrawSize().X / 2.0f, InComponent->GetDrawSize().Y / 2.0f)

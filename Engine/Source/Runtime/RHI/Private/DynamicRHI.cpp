@@ -223,7 +223,7 @@ void RHIExit()
 	if ( !GUsingNullRHI && GDynamicRHI != NULL )
 	{
 		// Clean up all cached pipelines
-		ClearPipelineCache();
+		PipelineStateCache::Shutdown();
 
 		// Destruct the dynamic RHI.
 		GDynamicRHI->Shutdown();

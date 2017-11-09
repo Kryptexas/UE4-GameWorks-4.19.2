@@ -1028,7 +1028,7 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 			Actor->GetComponents<UStaticMeshComponent>(Components);
 
 			// Remove anything non-regular or non-spline static mesh components
-			Components.RemoveAll([](UStaticMeshComponent* Val) { return !(Val->GetClass() == UStaticMeshComponent::StaticClass() || Val->IsA(USplineMeshComponent::StaticClass())); });
+			Components.RemoveAll([](UStaticMeshComponent* Val) { return !((Val->GetClass() == UStaticMeshComponent::StaticClass() && Val->GetStaticMesh()) || Val->IsA(USplineMeshComponent::StaticClass())); });
 
 			ComponentsToMerge.Append(Components);
 		}

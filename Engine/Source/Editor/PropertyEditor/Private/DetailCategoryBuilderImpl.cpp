@@ -86,8 +86,12 @@ FDetailCategoryImpl::FDetailCategoryImpl(FName InCategoryName, TSharedRef<FDetai
 	, bHasVisibleDetails(true)
 	, bIsCategoryVisible(true)
 	, bFavoriteCategory(false)
+	, bShowOnlyChildren(false)
 {
 	const UStruct* BaseStruct = InDetailLayout->GetRootNode()->GetBaseStructure();
+
+	bShowOnlyChildren = InDetailLayout->IsLayoutForExternalRoot() && !InDetailLayout->GetRootNode()->HasNodeFlags(EPropertyNodeFlags::ShowCategories);
+
 	// Use the base class name if there is one otherwise this is a generic category not specific to a class
 	FName BaseStructName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 

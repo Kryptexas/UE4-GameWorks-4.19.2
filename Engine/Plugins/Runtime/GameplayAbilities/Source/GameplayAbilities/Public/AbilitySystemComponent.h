@@ -586,15 +586,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	// Additional Helper Functions
 	// --------------------------------------------
 	
+	FOnGivenActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
 	DEPRECATED(4.17, "Use OnGameplayEffectRemoved_InfoDelegate (the delegate signature has changed)")
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);
 
+	FActiveGameplayEffectEvents* GetActiveEffectEventSet(FActiveGameplayEffectHandle Handle);
 	FOnActiveGameplayEffectRemoved_Info* OnGameplayEffectRemoved_InfoDelegate(FActiveGameplayEffectHandle Handle);
-
-	FOnGivenActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
-
 	FOnActiveGameplayEffectStackChange* OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle);
-
 	FOnActiveGameplayEffectTimeChange* OnGameplayEffectTimeChangeDelegate(FActiveGameplayEffectHandle Handle);
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DisplayName = "ApplyGameplayEffectToTarget"))
@@ -652,12 +650,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** This will give the world time that all effects matching this query will be finished. If multiple effects match, it returns the one that returns last.*/
 	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
 	{
-		return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
+		TArray<AActor*> DummyInstigators;
+		return ActiveGameplayEffects.GetActiveEffectsEndTime(Query, DummyInstigators);
+	}
+	
+	float GetActiveEffectsEndTimeWithInstigators(const FGameplayEffectQuery& Query, TArray<AActor*>& Instigators) const
+	{
+		return ActiveGameplayEffects.GetActiveEffectsEndTime(Query, Instigators);
 	}
 
 	bool GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration) const
 	{
-		return ActiveGameplayEffects.GetActiveEffectsEndTimeAndDuration(Query, EndTime, Duration);
+		TArray<AActor*> DummyInstigators;
+		return ActiveGameplayEffects.GetActiveEffectsEndTimeAndDuration(Query, EndTime, Duration, DummyInstigators);
 	}
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
@@ -1046,7 +1051,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION()
 	virtual void OnRep_ServerDebugString();
 
-	float GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags);
+	float GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags, const TArray<FActiveGameplayEffectHandle>& HandlesToIgnore = TArray<FActiveGameplayEffectHandle>());
 
 protected:
 

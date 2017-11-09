@@ -20,6 +20,8 @@ public:
 
 	// SCommonEditorViewportToolbarBase interface
 	virtual TSharedRef<SWidget> GenerateShowMenu() const override;
+	virtual void ExtendOptionsMenu(FMenuBuilder& OptionsMenuBuilder) const override;
+
 	// End of SCommonEditorViewportToolbarBase
 
 	virtual bool IsViewModeSupported(EViewModeIndex ViewModeIndex) const override; 

@@ -10,13 +10,14 @@
 #include "Misc/LocalTimestampDirectoryVisitor.h"
 #include "Curl/CurlHttpThread.h"
 #include "Curl/CurlHttp.h"
+#include "Http.h"
 #include "Modules/ModuleManager.h"
-
-#if WITH_SSL
-#include "Modules/ModuleManager.h"
-#endif
+#include "Misc/OutputDeviceRedirector.h"
 
 #if WITH_LIBCURL
+
+#include "SocketSubsystem.h"
+#include "IPAddress.h"
 
 #if PLATFORM_WINDOWS
 #include "SslModule.h"
@@ -505,6 +506,37 @@ void FCurlHttpManager::InitCurl()
 		}
 	}
 
+	CurlRequestOptions.MaxHostConnections = FHttpModule::Get().GetHttpMaxConnectionsPerServer();
+	if (CurlRequestOptions.MaxHostConnections > 0)
+	{
+		const CURLMcode SetOptResult = curl_multi_setopt(GMultiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, static_cast<long>(CurlRequestOptions.MaxHostConnections));
+		if (SetOptResult != CURLM_OK)
+		{
+			FUTF8ToTCHAR Converter(curl_multi_strerror(SetOptResult));
+			UE_LOG(LogHttp, Warning, TEXT("Failed to set max host connections options (%d), error %d ('%s')"),
+				CurlRequestOptions.MaxHostConnections, (int32)SetOptResult, Converter.Get());
+			CurlRequestOptions.MaxHostConnections = 0;
+		}
+	}
+	else
+	{
+		CurlRequestOptions.MaxHostConnections = 0;
+	}
+
+	TCHAR Home[256] = TEXT("");
+	if (FParse::Value(FCommandLine::Get(), TEXT("MULTIHOME="), Home, ARRAY_COUNT(Home)))
+	{
+		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+
+		if (SocketSubsystem)
+		{
+			// Check for the local addr to route requests through (respects MULTIHOME cmd line option)
+			bool bCanBindAll;
+			TSharedRef<FInternetAddr> HostAddr = SocketSubsystem->GetLocalHostAddr(*GLog, bCanBindAll);
+			CurlRequestOptions.LocalHostAddr = HostAddr->ToString(false);
+		}
+	}
+
 	// print for visibility
 	CurlRequestOptions.Log();
 }
@@ -523,7 +555,7 @@ void FCurlHttpManager::FCurlRequestOptions::Log()
 		);	
 	if (bUseHttpProxy)
 	{
-		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *CurlRequestOptions.HttpProxyAddress);
+		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *HttpProxyAddress);
 	}
 
 	UE_LOG(LogInit, Log, TEXT(" - bDontReuseConnections = %s  - Libcurl will %sreuse connections"),
@@ -535,6 +567,13 @@ void FCurlHttpManager::FCurlRequestOptions::Log()
 		(CertBundlePath != nullptr) ? *FString(CertBundlePath) : TEXT("nullptr"),
 		(CertBundlePath != nullptr) ? TEXT("set CURLOPT_CAINFO to it") : TEXT("use whatever was configured at build time.")
 		);
+
+	UE_LOG(LogInit, Log, TEXT(" - MaxHostConnections = %d  - Libcurl will %slimit the number of connections to a host"),
+		MaxHostConnections,
+		(MaxHostConnections == 0) ? TEXT("NOT ") : TEXT("")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - LocalHostAddr = %s"), LocalHostAddr.IsEmpty() ? TEXT("Default") : *LocalHostAddr);
 }
 
 
@@ -555,7 +594,5 @@ FHttpThread* FCurlHttpManager::CreateHttpThread()
 {
 	return new FCurlHttpThread();
 }
-
-
 
 #endif //WITH_LIBCURL

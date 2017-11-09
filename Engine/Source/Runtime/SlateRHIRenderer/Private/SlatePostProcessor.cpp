@@ -316,7 +316,7 @@ void FSlatePostProcessor::UpsampleRect(FRHICommandListImmediate& RHICmdList, IRe
 	SetRenderTarget(RHICmdList, DestTexture, FTextureRHIRef());
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
-	Params.RestoreStateFunc(GraphicsPSOInit);
+	Params.RestoreStateFunc(RHICmdList, GraphicsPSOInit);
 
 	TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 

@@ -553,7 +553,7 @@ public:
 	virtual void CleanUpAndMarkPendingKill();
 
 	FORCEINLINE bool IsRegistered() const { return bRegistered; }
-	void OnRegistered();
+	virtual void OnRegistered();
 	void OnUnregistered();
 	
 	FORCEINLINE uint16 GetNavDataUniqueID() const { return NavDataUniqueID; }

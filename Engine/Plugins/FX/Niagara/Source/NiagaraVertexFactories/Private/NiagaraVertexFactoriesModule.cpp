@@ -2,5 +2,8 @@
 
 #include "NiagaraVertexFactoriesModule.h"
 #include "Modules/ModuleManager.h"
+#include "NiagaraVertexFactory.h"
 
 IMPLEMENT_MODULE(INiagaraVertexFactoriesModule, NiagaraVertexFactories);
+
+FRWBuffer FNiagaraVertexFactoryBase::DummyBuffer;

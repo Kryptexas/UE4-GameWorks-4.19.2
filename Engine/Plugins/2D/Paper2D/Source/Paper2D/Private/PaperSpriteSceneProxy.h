@@ -13,9 +13,11 @@ class UPaperSpriteComponent;
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy
 
-class FPaperSpriteSceneProxy : public FPaperRenderSceneProxy
+class FPaperSpriteSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface

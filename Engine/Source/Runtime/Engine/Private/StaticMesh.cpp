@@ -1942,6 +1942,10 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	UpdateUVChannelData(true);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+#if WITH_EDITOR
+	OnMeshChanged.Broadcast();
+#endif
 }
 
 void UStaticMesh::SetLODGroup(FName NewGroup, bool bRebuildImmediately)

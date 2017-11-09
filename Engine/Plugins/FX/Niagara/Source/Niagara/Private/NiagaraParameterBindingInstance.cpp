@@ -11,5 +11,6 @@ FNiagaraParameterBindingInstance::FNiagaraParameterBindingInstance(const FNiagar
 
 void FNiagaraParameterBindingInstance::Tick()
 {
+	check(Source.GetSizeInBytes() == Destination.GetSizeInBytes());
 	Source.CopyTo(Destination.GetData());
 }

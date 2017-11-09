@@ -50,7 +50,7 @@ void UMovieSceneNiagaraEmitterSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHan
 
 TSharedPtr<FNiagaraEmitterHandleViewModel> UMovieSceneNiagaraEmitterSection::GetEmitterHandle()
 {
-	return EmitterHandleViewModel;
+	return EmitterHandleViewModel.Pin();
 }
 
 void UMovieSceneNiagaraEmitterSection::SetEmitterHandle(TSharedRef<FNiagaraEmitterHandleViewModel> InEmitterHandleViewModel)

@@ -23,10 +23,17 @@
 #include "HAL/ExceptionHandling.h"
 #include "HAL/ThreadHeartBeat.h"
 
-bool FDebug::bHasAsserted = false;
+namespace 
+{
+	// used to track state of assets/ensures
+	bool bHasAsserted = false;
+	int32 ActiveEnsureCount = 0;
+
+	/** Lock used to synchronize the fail debug calls. */
+	FCriticalSection FailDebugCriticalSection;
+}
 
 #define FILE_LINE_DESC TEXT(" [File:%s] [Line: %i] ")
-
 
 /*
 	Ensure behavior
@@ -62,9 +69,6 @@ bool FDebug::bHasAsserted = false;
 */
 
 
-
-/** Lock used to synchronize the fail debug calls. */
-static FCriticalSection	FailDebugCriticalSection;
 
 /** Number of top function calls to hide when dumping the callstack as text. */
 #if PLATFORM_LINUX
@@ -141,6 +145,18 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
 }
 
+
+/// track thread asserts
+bool FDebug::HasAsserted()
+{
+	return bHasAsserted;
+}
+
+// track ensures
+bool FDebug::IsEnsuring()
+{
+	return ActiveEnsureCount > 0;
+}
 
 void FDebug::LogFormattedMessageWithCallstack(const FName& LogName, const ANSICHAR* File, int32 Line, const TCHAR* Heading, const TCHAR* Message, ELogVerbosity::Type Verbosity)
 {
@@ -241,7 +257,6 @@ VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(con
  */
 void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg)
 {
-
 #if STATS
 	FString EnsureFailedPerfMessage = FString::Printf(TEXT("FDebug::EnsureFailed"));
 	SCOPE_LOG_TIME_IN_SECONDS(*EnsureFailedPerfMessage, nullptr)
@@ -255,6 +270,9 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 		FDebug::LogAssertFailedMessage( Expr, File, Line, Msg );
 		return;
 	}
+
+	// Should we spin here?
+	FPlatformAtomics::InterlockedIncrement(&ActiveEnsureCount);
 
 	// Print out the blueprint callstack
 	InternalPrintScriptCallstack(false);
@@ -271,124 +289,128 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 #if !NO_LOGGING
 		UE_LOG(LogOutputDevice, Error, TEXT("%s") FILE_LINE_DESC TEXT("\n%s\n"), ErrorString, ANSI_TO_TCHAR(File), Line, Msg);
 #endif
-		return;
-	}
-
-	// If we determine that we have not sent a report for this ensure yet, send the report below.
-	bool bShouldSendNewReport = false;
-
-	// No debugger attached, so generate a call stack and submit a crash report
-	// Walk the stack and dump it to the allocated memory.
-	const SIZE_T StackTraceSize = 65535;
-	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
-	if( StackTrace != NULL )
-	{
-		// Stop checking heartbeat for this thread. Ensure can take a lot of time (when stackwalking)
-		// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
-		// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
-		// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
-		FThreadHeartBeat::Get().KillHeartBeat();
-
-		{
-#if STATS
-			FString StackWalkPerfMessage = FString::Printf(TEXT("FPlatformStackWalk::StackWalkAndDump"));
-			SCOPE_LOG_TIME_IN_SECONDS(*StackWalkPerfMessage, nullptr)
-#endif
-			StackTrace[0] = 0;
-			FPlatformStackWalk::StackWalkAndDumpEx( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH, FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure );
-		}
-
-		// Create a final string that we'll output to the log (and error history buffer)
-		TCHAR ErrorMsg[16384];
-		FCString::Snprintf( ErrorMsg, ARRAY_COUNT( ErrorMsg ), TEXT( "Ensure condition failed: %s [File:%s] [Line: %i]" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR TEXT( "Stack: " ) LINE_TERMINATOR, ANSI_TO_TCHAR( Expr ), ANSI_TO_TCHAR( File ), Line, Msg );
-
-		// Also append the stack trace
-		FCString::Strncat( ErrorMsg, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(ErrorMsg) - 1 );
-		FMemory::SystemFree( StackTrace );
-
-		// Dump the error and flush the log.
-#if !NO_LOGGING
-		FDebug::LogFormattedMessageWithCallstack(LogOutputDevice.GetCategoryName(), __FILE__, __LINE__, TEXT("=== Handled ensure: ==="), ErrorMsg, ELogVerbosity::Error);
-#endif
-		GLog->Flush();
-
-		// Submit the error report to the server! (and display a balloon in the system tray)
-		{
-			// How many unique previous errors we should keep track of
-			const uint32 MaxPreviousErrorsToTrack = 4;
-			static uint32 StaticPreviousErrorCount = 0;
-			if( StaticPreviousErrorCount < MaxPreviousErrorsToTrack )
-			{
-				// Check to see if we've already reported this error.  No point in blasting the server with
-				// the same error over and over again in a single application session.
-				bool bHasErrorAlreadyBeenReported = false;
-
-				// Static: Array of previous unique error message CRCs
-				static uint32 StaticPreviousErrorCRCs[ MaxPreviousErrorsToTrack ];
-
-				// Compute CRC of error string.  Note that along with the call stack, this includes the message
-				// string passed to the macro, so only truly redundant errors will go unreported.  Though it also
-				// means you shouldn't pass loop counters to ensureMsgf(), otherwise failures may spam the server!
-				const uint32 ErrorStrCRC = FCrc::StrCrc_DEPRECATED( ErrorMsg );
-
-				for( uint32 CurErrorIndex = 0; CurErrorIndex < StaticPreviousErrorCount; ++CurErrorIndex )
-				{
-					if( StaticPreviousErrorCRCs[ CurErrorIndex ] == ErrorStrCRC )
-					{
-						// Found it!  This is a redundant error message.
-						bHasErrorAlreadyBeenReported = true;
-						break;
-					}
-				}
-
-				// Add the element to the list and bump the count
-				StaticPreviousErrorCRCs[ StaticPreviousErrorCount++ ] = ErrorStrCRC;
-
-				if( !bHasErrorAlreadyBeenReported )
-				{
-#if STATS
-					FString SubmitErrorReporterfMessage = FString::Printf(TEXT("SubmitErrorReport"));
-					SCOPE_LOG_TIME_IN_SECONDS(*SubmitErrorReporterfMessage, nullptr)
-#endif
-
-					FCoreDelegates::OnHandleSystemEnsure.Broadcast();
-
-					FPlatformMisc::SubmitErrorReport( ErrorMsg, EErrorReportMode::Balloon );
-
-					bShouldSendNewReport = true;
-				}
-			}
-		}
 	}
 	else
 	{
-		// If we fail to generate the string to identify the crash we don't know if we should skip sending the report,
-		// so we will just send the report anyway.
-		bShouldSendNewReport = true;
+		// If we determine that we have not sent a report for this ensure yet, send the report below.
+		bool bShouldSendNewReport = false;
 
-		// Add message to log even without stacktrace. It is useful for testing fail on ensure.
-#if !NO_LOGGING
-		UE_LOG(LogOutputDevice, Error, TEXT("%s [File:%s] [Line: %i]"), ErrorString, ANSI_TO_TCHAR(File), Line);
-#endif
-	}
+		// No debugger attached, so generate a call stack and submit a crash report
+		// Walk the stack and dump it to the allocated memory.
+		const SIZE_T StackTraceSize = 65535;
+		ANSICHAR* StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
+		if (StackTrace != NULL)
+		{
+			// Stop checking heartbeat for this thread. Ensure can take a lot of time (when stackwalking)
+			// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
+			// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
+			// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
+			FThreadHeartBeat::Get().KillHeartBeat();
 
-	if ( bShouldSendNewReport )
-	{
+			{
 #if STATS
-		FString SendNewReportMessage = FString::Printf(TEXT("SendNewReport"));
-		SCOPE_LOG_TIME_IN_SECONDS(*SendNewReportMessage, nullptr)
+				FString StackWalkPerfMessage = FString::Printf(TEXT("FPlatformStackWalk::StackWalkAndDump"));
+				SCOPE_LOG_TIME_IN_SECONDS(*StackWalkPerfMessage, nullptr)
+#endif
+					StackTrace[0] = 0;
+				FPlatformStackWalk::StackWalkAndDumpEx(StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH, FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure);
+			}
+
+			// Create a final string that we'll output to the log (and error history buffer)
+			TCHAR ErrorMsg[16384];
+			FCString::Snprintf(ErrorMsg, ARRAY_COUNT(ErrorMsg), TEXT("Ensure condition failed: %s [File:%s] [Line: %i]") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR TEXT("Stack: ") LINE_TERMINATOR, ANSI_TO_TCHAR(Expr), ANSI_TO_TCHAR(File), Line, Msg);
+
+			// Also append the stack trace
+			FCString::Strncat(ErrorMsg, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(ErrorMsg) - 1);
+			FMemory::SystemFree(StackTrace);
+
+			// Dump the error and flush the log.
+#if !NO_LOGGING
+			FDebug::LogFormattedMessageWithCallstack(LogOutputDevice.GetCategoryName(), __FILE__, __LINE__, TEXT("=== Handled ensure: ==="), ErrorMsg, ELogVerbosity::Error);
+#endif
+			GLog->Flush();
+
+			// Submit the error report to the server! (and display a balloon in the system tray)
+			{
+				// How many unique previous errors we should keep track of
+				const uint32 MaxPreviousErrorsToTrack = 4;
+				static uint32 StaticPreviousErrorCount = 0;
+				if (StaticPreviousErrorCount < MaxPreviousErrorsToTrack)
+				{
+					// Check to see if we've already reported this error.  No point in blasting the server with
+					// the same error over and over again in a single application session.
+					bool bHasErrorAlreadyBeenReported = false;
+
+					// Static: Array of previous unique error message CRCs
+					static uint32 StaticPreviousErrorCRCs[MaxPreviousErrorsToTrack];
+
+					// Compute CRC of error string.  Note that along with the call stack, this includes the message
+					// string passed to the macro, so only truly redundant errors will go unreported.  Though it also
+					// means you shouldn't pass loop counters to ensureMsgf(), otherwise failures may spam the server!
+					const uint32 ErrorStrCRC = FCrc::StrCrc_DEPRECATED(ErrorMsg);
+
+					for (uint32 CurErrorIndex = 0; CurErrorIndex < StaticPreviousErrorCount; ++CurErrorIndex)
+					{
+						if (StaticPreviousErrorCRCs[CurErrorIndex] == ErrorStrCRC)
+						{
+							// Found it!  This is a redundant error message.
+							bHasErrorAlreadyBeenReported = true;
+							break;
+						}
+					}
+
+					// Add the element to the list and bump the count
+					StaticPreviousErrorCRCs[StaticPreviousErrorCount++] = ErrorStrCRC;
+
+					if (!bHasErrorAlreadyBeenReported)
+					{
+#if STATS
+						FString SubmitErrorReporterfMessage = FString::Printf(TEXT("SubmitErrorReport"));
+						SCOPE_LOG_TIME_IN_SECONDS(*SubmitErrorReporterfMessage, nullptr)
+#endif
+
+							FCoreDelegates::OnHandleSystemEnsure.Broadcast();
+
+						FPlatformMisc::SubmitErrorReport(ErrorMsg, EErrorReportMode::Balloon);
+
+						bShouldSendNewReport = true;
+					}
+				}
+			}
+		}
+		else
+		{
+			// If we fail to generate the string to identify the crash we don't know if we should skip sending the report,
+			// so we will just send the report anyway.
+			bShouldSendNewReport = true;
+
+			// Add message to log even without stacktrace. It is useful for testing fail on ensure.
+#if !NO_LOGGING
+			UE_LOG(LogOutputDevice, Error, TEXT("%s [File:%s] [Line: %i]"), ErrorString, ANSI_TO_TCHAR(File), Line);
+#endif
+		}
+
+		if (bShouldSendNewReport)
+		{
+#if STATS
+			FString SendNewReportMessage = FString::Printf(TEXT("SendNewReport"));
+			SCOPE_LOG_TIME_IN_SECONDS(*SendNewReportMessage, nullptr)
 #endif
 
 #if PLATFORM_DESKTOP
-		FScopeLock Lock( &FailDebugCriticalSection );
+				FScopeLock Lock(&FailDebugCriticalSection);
 
-		NewReportEnsure( GErrorMessage );
+			NewReportEnsure(GErrorMessage);
 
-		GErrorHist[0] = 0;
-		GErrorMessage[0] = 0;
-		GErrorExceptionDescription[0] = 0;
+			GErrorHist[0] = 0;
+			GErrorMessage[0] = 0;
+			GErrorExceptionDescription[0] = 0;
 #endif
+		}
 	}
+
+
+	FPlatformAtomics::InterlockedDecrement(&ActiveEnsureCount);
 }
 
 #endif // DO_CHECK || DO_GUARD_SLOW

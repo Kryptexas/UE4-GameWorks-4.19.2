@@ -1451,12 +1451,20 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 	
 	// Allow the viewport interaction to override any previously set mouse cursor
 	UViewportWorldInteraction* WorldInteraction = Cast<UViewportWorldInteraction>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld())->FindExtension(UViewportWorldInteraction::StaticClass()));
-	if (WorldInteraction != nullptr && WorldInteraction->ShouldSuppressExistingCursor())
+	if (WorldInteraction != nullptr)
 	{
-			MouseCursor = EMouseCursor::None;
-			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
-			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+		if (WorldInteraction->ShouldForceCursor())
+		{
+			MouseCursor = EMouseCursor::Crosshairs;
+			SetRequiredCursor(false, true);
 			UpdateRequiredCursorVisibility();
+		}
+		else if (WorldInteraction->ShouldSuppressExistingCursor())
+		{
+			MouseCursor = EMouseCursor::None;
+			SetRequiredCursor(false, false);
+			UpdateRequiredCursorVisibility();
+		}
 	}
 
 	CachedMouseX = X;
@@ -2735,8 +2743,7 @@ void FEditorViewportClient::ProcessDoubleClickInViewport( const struct FInputEve
 	// This needs to be set to false to allow the axes to update
 	bWidgetAxisControlledByDrag = false;
 	MouseDeltaTracker->ResetUsedDragModifier();
-	RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = true;
-	RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+	SetRequiredCursor(true, false);
 	ApplyRequiredCursorVisibility();
 }
 
@@ -4284,8 +4291,7 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 
 	if (GetViewportType() == LVT_None)
 	{
-		RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = true;
-		RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+		SetRequiredCursor(true, false);
 		return;
 	}
 
@@ -4298,8 +4304,7 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 			(  GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ||
 			( GetWidgetMode() == FWidget::WM_2D && Widget->GetCurrentAxis() != EAxisList::Rotate2D &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
 		{
-			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
-			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = true;								
+			SetRequiredCursor(false, true);
 			SetRequiredCursorOverride( true , EMouseCursor::CardinalCross );
 			return;
 		}
@@ -4313,13 +4318,11 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 			{
 				// Always turn the hardware cursor on before turning the software cursor off
 				// so the hardware cursor will be be set where the software cursor was
-				RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = !bHasMouseMovedSinceClick;
-				RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = bHasMouseMovedSinceClick;
+				SetRequiredCursor(!bHasMouseMovedSinceClick, bHasMouseMovedSinceClick);
 				SetRequiredCursorOverride( true , EMouseCursor::GrabHand );
 				return;
 			}
-			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
-			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+			SetRequiredCursor(false, false);
 			return;
 		}
 	}
@@ -4328,8 +4331,7 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 	if (IsUsingAbsoluteTranslation() && !MouseDeltaTracker->UsingDragTool() )
 	{
 		//If we are dragging something we should hide the hardware cursor and show the s/w one
-		RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
-		RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = true;
+		SetRequiredCursor(false, true);
 		SetRequiredCursorOverride( true , EMouseCursor::CardinalCross );
 	}
 	else
@@ -4340,8 +4342,7 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 		if (bMouseButtonDown && (RawMouseDelta.SizeSquared() >= MOUSE_CLICK_DRAG_DELTA || IsFlightCameraActive() || ShouldOrbitCamera()) && !MouseDeltaTracker->UsingDragTool())
 		{
 			//current system - do not show cursor when mouse is down
-			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
-			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+			SetRequiredCursor(false, false);
 			return;
 		}
 
@@ -4350,9 +4351,14 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 			RequiredCursorVisibiltyAndAppearance.bOverrideAppearance = false;
 		}
 
-		RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = true;
-		RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+		SetRequiredCursor(true, false);
 	}
+}
+
+void FEditorViewportClient::SetRequiredCursor(const bool bHardwareCursorVisible, const bool bSoftwareCursorVisible)
+{
+	RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = bHardwareCursorVisible;
+	RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = bSoftwareCursorVisible;
 }
 
 void FEditorViewportClient::ApplyRequiredCursorVisibility( bool bUpdateSoftwareCursorPostion )

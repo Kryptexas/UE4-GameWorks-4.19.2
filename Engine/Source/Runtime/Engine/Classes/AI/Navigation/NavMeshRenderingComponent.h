@@ -93,10 +93,12 @@ struct ENGINE_API FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneP
 };
 
 // exported to API for GameplayDebugger module
-class ENGINE_API FNavMeshSceneProxy : public FDebugRenderSceneProxy
+class ENGINE_API FNavMeshSceneProxy final : public FDebugRenderSceneProxy
 {
 	friend class FNavMeshDebugDrawDelegateHelper;
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, FNavMeshSceneProxyData* InProxyData, bool ForceToRender = false);
 	virtual ~FNavMeshSceneProxy();
 

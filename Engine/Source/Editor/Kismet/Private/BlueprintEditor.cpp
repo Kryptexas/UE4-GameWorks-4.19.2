@@ -4593,7 +4593,7 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 		{
 			for (UEdGraphPin* NodePin : Node->Pins)
 			{
-				if(NodePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+				if (NodePin->PinType.PinCategory == K2Schema->PC_Exec)
 				{
 					if (NodePin->LinkedTo.Num() == 0 && NodePin->Direction == EGPD_Input)
 					{

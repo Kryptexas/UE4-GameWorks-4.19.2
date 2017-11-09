@@ -164,6 +164,11 @@ void VoxelizeVS(
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
+
+
+
+
+
 #if USING_VERTEX_SHADER_LAYER
 	FVoxelizeVolumePrimitiveVSToGS Inputs[1];
 	Inputs[0].FactoryInterpolants = Output.FactoryInterpolants;

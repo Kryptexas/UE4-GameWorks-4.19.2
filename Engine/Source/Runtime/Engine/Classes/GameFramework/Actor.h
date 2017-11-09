@@ -208,6 +208,7 @@ public:
 	UPROPERTY()
 	uint8 bCollideWhenPlacing:1;
 
+
 	/** If true, this actor should search for an owned camera component to view through when used as a view target. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor, AdvancedDisplay)
 	uint8 bFindCameraComponentWhenViewTarget:1;
@@ -287,9 +288,6 @@ private:
 	UPROPERTY()
 	uint8 bActorEnableCollision:1;
 
-	/** Flag indicating we have checked initial simulating physics state to sync networked proxies to the server. */
-	uint8 bNetCheckedInitialPhysicsState:1;
-
 	/** Set when actor is about to be deleted. */
 	uint8 bActorIsBeingDestroyed:1;
 
@@ -313,6 +311,11 @@ private:
 	TEnumAsByte<enum ENetRole> RemoteRole;
 
 public:
+
+	// ORION TODO - was moved to private. Add accessor?
+	/** Flag indicating we have checked initial simulating physics state to sync networked proxies to the server. */
+	uint8 bNetCheckedInitialPhysicsState : 1;
+
 	/**
 	 * Set whether this actor replicates to network clients. When this actor is spawned on the server it will be sent to clients as well.
 	 * Properties flagged for replication will update on clients if they change on the server.

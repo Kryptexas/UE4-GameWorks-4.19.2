@@ -67,11 +67,11 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, 
 			for (FFreePageBlock* Block = First; Block != Last; ++Block)
 			{
 				FPlatformMemory::BinnedFreeToOS(Block->Ptr, Block->ByteSize);
-				Block->Ptr      = nullptr;
+				Block->Ptr = nullptr;
 				Block->ByteSize = 0;
 			}
 			FreedPageBlocksNum = 0;
-			CachedTotal        = 0;
+			CachedTotal = 0;
 		}
 	}
 

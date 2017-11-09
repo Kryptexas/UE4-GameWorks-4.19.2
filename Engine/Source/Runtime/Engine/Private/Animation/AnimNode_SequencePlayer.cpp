@@ -13,7 +13,8 @@ float FAnimNode_SequencePlayer::GetCurrentAssetTime()
 
 float FAnimNode_SequencePlayer::GetCurrentAssetTimePlayRateAdjusted()
 {
-	float EffectivePlayrate = PlayRate * (Sequence ? Sequence->RateScale : 1.0f);
+	const float SequencePlayRate = (Sequence ? Sequence->RateScale : 1.f);
+	const float EffectivePlayrate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (SequencePlayRate * PlayRate / PlayRateBasis);
 	return (EffectivePlayrate < 0.0f) ? GetCurrentAssetLength() - InternalTimeAccumulator : InternalTimeAccumulator;
 }
 
@@ -28,11 +29,11 @@ void FAnimNode_SequencePlayer::Initialize_AnyThread(const FAnimationInitializeCo
 
 	EvaluateGraphExposedInputs.Execute(Context);
 	InternalTimeAccumulator = StartPosition;
-	if (Sequence != NULL)
+	if (Sequence != nullptr)
 	{
 		InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, Sequence->SequenceLength);
-
-		if (StartPosition == 0.f && (PlayRate * Sequence->RateScale) < 0.0f)
+		const float EffectivePlayrate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (Sequence->RateScale * PlayRate / PlayRateBasis);
+		if ((StartPosition == 0.f) && (EffectivePlayrate < 0.f))
 		{
 			InternalTimeAccumulator = Sequence->SequenceLength;
 		}
@@ -47,10 +48,11 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	if ((Sequence != NULL) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != nullptr) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
 		InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
-		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, PlayRate);
+		const float AdjustedPlayRate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (PlayRate / PlayRateBasis);
+		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, AdjustedPlayRate);
 	}
 }
 
@@ -61,7 +63,7 @@ void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output)
 
 void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
 {
-	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != nullptr) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
 		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
 	}

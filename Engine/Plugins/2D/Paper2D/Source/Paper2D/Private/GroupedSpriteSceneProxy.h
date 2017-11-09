@@ -14,9 +14,11 @@ struct FPerInstanceRenderData;
 //////////////////////////////////////////////////////////////////////////
 // FGroupedSpriteSceneProxy
 
-class FGroupedSpriteSceneProxy : public FPaperRenderSceneProxy
+class FGroupedSpriteSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent* InComponent);
 
 protected:

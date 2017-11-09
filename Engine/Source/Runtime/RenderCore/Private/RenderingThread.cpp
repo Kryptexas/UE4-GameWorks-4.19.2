@@ -1051,6 +1051,11 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			const double StartTime = FPlatformTime::Seconds();
 			const double EndTime = StartTime + (GTimeoutForBlockOnRenderFence / 1000.0);
 
+			bool bRenderThreadEnsured = FDebug::IsEnsuring();
+
+			static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+			static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
+
 			do
 			{
 				CheckRenderingThreadHealth();
@@ -1061,13 +1066,13 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 				bDone = Event->Wait(WaitTime);
 
+				// track whether the thread ensured, if so don't do timeout checks
+				bRenderThreadEnsured = FDebug::IsEnsuring() || bRenderThreadEnsured;
+
 #if !WITH_EDITOR
 				// editor threads can block for quite a while... 
-				if (!bDone && !FPlatformMisc::IsDebuggerPresent())
-				{
-					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
-					static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
-
+				if (!bDone && !bRenderThreadEnsured && !FPlatformMisc::IsDebuggerPresent())
+				{				
 					if (bGPUDebugging && FPlatformTime::Seconds() > 2.0f)
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).

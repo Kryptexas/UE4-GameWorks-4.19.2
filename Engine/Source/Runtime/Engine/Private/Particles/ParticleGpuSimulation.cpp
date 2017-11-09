@@ -46,8 +46,8 @@
 #include "CoreDelegates.h"
 #include "PipelineStateCache.h"
 
-DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
+DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init GT"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation RT"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.
@@ -91,7 +91,11 @@ static_assert(TILES_PER_INSTANCE <= MAX_PARTICLES_PER_INSTANCE, "Tiles per insta
 static_assert((TILES_PER_INSTANCE & (TILES_PER_INSTANCE - 1)) == 0, "Tiles per instance is not a power of two.");
 
 /** Maximum number of vector fields that can be evaluated at once. */
+#if GPUPARTICLE_LOCAL_VF_ONLY
+enum { MAX_VECTOR_FIELDS = 1 };
+#else
 enum { MAX_VECTOR_FIELDS = 4 };
+#endif
 
 // Using a fix step 1/30, allows game targetting 30 fps and 60 fps to have single iteration updates.
 static TAutoConsoleVariable<float> CVarGPUParticleFixDeltaSeconds(TEXT("r.GPUParticle.FixDeltaSeconds"), 1.f/30.f,TEXT("GPU particle fix delta seconds."));
@@ -1148,7 +1152,7 @@ public:
 	void SetVectorFieldParameters(FRHICommandList& RHICmdList, const FVectorFieldUniformBufferRef& UniformBuffer, const FTexture3DRHIParamRef VolumeTexturesRHI[])
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
-		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
+			SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
 		
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
@@ -1380,6 +1384,7 @@ struct FSimulationCommandGPU
 	FParticlePerFrameSimulationParameters PerFrameParameters;
 	/** Parameters to sample the local vector field for this simulation. */
 	FVectorFieldUniformBufferRef VectorFieldsUniformBuffer;
+	FLocalUniformBuffer VectorFieldsUniformBufferLocal;
 	/** Vector field volume textures for this simulation. */
 	FTexture3DRHIParamRef VectorFieldTexturesRHI[MAX_VECTOR_FIELDS];
 	/** The number of tiles to simulate. */
@@ -1428,6 +1433,7 @@ void ExecuteSimulationCommands(
 		return;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_GPUParticlesSimulationCommands);
 	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
 	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
 
@@ -1461,7 +1467,7 @@ void ExecuteSimulationCommands(
 			RHICmdList, 
 			Command.VectorFieldsUniformBuffer,
 			Command.VectorFieldTexturesRHI
-			);
+		);
 		DrawAlignedParticleTiles(RHICmdList, Command.TileCount);
 	}
 
@@ -2481,6 +2487,12 @@ public:
 	/** The vertex factory for visualizing the local vector field. */
 	FVectorFieldVisualizationVertexFactory* VectorFieldVisualizationVertexFactory;
 
+#if GPUPARTICLE_LOCAL_VF_ONLY
+	/** If we only support local VF's then we can cache this uniform buffer */
+	FVectorFieldUniformBufferRef LocalVectorFieldUniformBuffer;
+	float LocalIntensity;
+#endif
+
 	/** The simulation index within the associated FX system. */
 	int32 SimulationIndex;
 
@@ -2506,6 +2518,9 @@ public:
 	FParticleSimulationGPU()
 		: EmitterSimulationResources(NULL)
 		, VectorFieldVisualizationVertexFactory(NULL)
+#if GPUPARTICLE_LOCAL_VF_ONLY
+		, LocalIntensity(0.0f)
+#endif
 		, SimulationIndex(INDEX_NONE)
 		, SimulationPhase(EParticleSimulatePhase::Main)
 		, bWantsCollision(false)
@@ -4609,8 +4624,8 @@ void FFXSystem::SimulateGPUParticles(
 			VectorFieldParameters.IntensityAndTightness[Index] = FVector4(0.0f);
 		}
 		VectorFieldParameters.Count = 0;
-		EmptyVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
-	}
+			EmptyVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
+		}
 
 	// Gather simulation commands from all active simulations.
 	static TArray<FSimulationCommandGPU> SimulationCommands;
@@ -4650,10 +4665,13 @@ void FFXSystem::SimulateGPUParticles(
 
 				// Add the local vector field.
 				VectorFieldParameters.Count = 0;
+
+				
+				float LocalIntensity = 0.0f;
 				if (Simulation->LocalVectorField.Resource)
 				{
-					const float Intensity = Simulation->LocalVectorField.Intensity * Simulation->LocalVectorField.Resource->Intensity;
-					if (FMath::Abs(Intensity) > 0.0f)
+					LocalIntensity = Simulation->LocalVectorField.Intensity * Simulation->LocalVectorField.Resource->Intensity;
+					if (FMath::Abs(LocalIntensity) > 0.0f)
 					{
 						Simulation->LocalVectorField.Resource->Update(RHICmdList, Simulation->PerFrameSimulationParameters.DeltaSeconds);
 						SimulationCommand->VectorFieldTexturesRHI[0] = Simulation->LocalVectorField.Resource->VolumeTextureRHI;
@@ -4661,6 +4679,7 @@ void FFXSystem::SimulateGPUParticles(
 					}
 				}
 
+#if !GPUPARTICLE_LOCAL_VF_ONLY
 				// Add any world vector fields that intersect the simulation.
 				const float GlobalVectorFieldScale = Simulation->EmitterSimulationResources->GlobalVectorFieldScale;
 				const float GlobalVectorFieldTightness = Simulation->EmitterSimulationResources->GlobalVectorFieldTightness;
@@ -4679,10 +4698,12 @@ void FFXSystem::SimulateGPUParticles(
 						}
 					}
 				}
+#endif
 
 				// Fill out any remaining vector field entries.
 				if (VectorFieldParameters.Count > 0)
 				{
+#if !GPUPARTICLE_LOCAL_VF_ONLY
 					int32 PadCount = VectorFieldParameters.Count;
 					while (PadCount < MAX_VECTOR_FIELDS)
 					{
@@ -4692,7 +4713,20 @@ void FFXSystem::SimulateGPUParticles(
 						VectorFieldParameters.VolumeSize[Index] = FVector4(1.0f);
 						VectorFieldParameters.IntensityAndTightness[Index] = FVector4(0.0f);
 					}
+#endif
+		
+						
+#if GPUPARTICLE_LOCAL_VF_ONLY
+					const bool bRecreateBuffer = !Simulation->LocalVectorFieldUniformBuffer || LocalIntensity != Simulation->LocalIntensity;
+					if (bRecreateBuffer)
+					{
+						Simulation->LocalVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_MultiFrame);
+						Simulation->LocalIntensity = LocalIntensity;
+					}
+					SimulationCommand->VectorFieldsUniformBuffer = Simulation->LocalVectorFieldUniformBuffer;
+#else
 					SimulationCommand->VectorFieldsUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
+#endif
 				}
 			}
 		
@@ -4755,6 +4789,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Inject any new particles that have spawned into the simulation.
 	if (NewParticles.Num())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_GPUParticlesInjectionTime);
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);		
 

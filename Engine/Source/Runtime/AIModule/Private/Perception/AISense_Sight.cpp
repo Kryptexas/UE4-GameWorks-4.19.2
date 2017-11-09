@@ -354,11 +354,12 @@ void UAISense_Sight::RegisterSource(AActor& SourceActor)
 void UAISense_Sight::UnregisterSource(AActor& SourceActor)
 {
 	const FAISightTarget::FTargetId AsTargetId = SourceActor.GetUniqueID();
-	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
+	FAISightTarget AsTarget;
 	
-	if (AsTarget != nullptr && SightQueryQueue.Num() > 0)
+	if (ObservedTargets.RemoveAndCopyValue(AsTargetId, AsTarget)
+		&& SightQueryQueue.Num() > 0)
 	{
-		AActor* TargetActor = AsTarget->Target.Get();
+		AActor* TargetActor = AsTarget.Target.Get();
 
 		if (TargetActor)
 		{

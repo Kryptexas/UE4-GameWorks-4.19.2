@@ -30,6 +30,7 @@ UNiagaraComponent* UNiagaraFunctionLibrary::SpawnSystemAtLocation(UObject* World
 			AActor* Actor = World->GetWorldSettings();
 			PSC = NewObject<UNiagaraComponent>((Actor ? Actor : (UObject*)World));
 			PSC->SetAsset(SystemTemplate);
+			PSC->SetAutoDestroy(bAutoDestroy);
 			PSC->RegisterComponentWithWorld(World);
 
 			PSC->SetAbsolute(true, true, true);
@@ -63,6 +64,7 @@ UNiagaraComponent* UNiagaraFunctionLibrary::SpawnSystemAttached(UNiagaraSystem* 
 			AActor* Actor = AttachToComponent->GetOwner();
 			PSC = NewObject<UNiagaraComponent>((Actor ? Actor : (UObject*)AttachToComponent->GetWorld()));
 			PSC->SetAsset(SystemTemplate);
+			PSC->SetAutoDestroy(bAutoDestroy);
 			PSC->RegisterComponentWithWorld(AttachToComponent->GetWorld());
 
 			PSC->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, AttachPointName);

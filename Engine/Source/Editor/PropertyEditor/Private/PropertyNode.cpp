@@ -114,7 +114,14 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 	//default to copying from the parent
 	if (ParentNode)
 	{
-		SetNodeFlags(EPropertyNodeFlags::ShowCategories, !!ParentNode->HasNodeFlags(EPropertyNodeFlags::ShowCategories));
+		if (ParentNode->HasNodeFlags(EPropertyNodeFlags::ShowCategories) != 0)
+		{
+			SetNodeFlags(EPropertyNodeFlags::ShowCategories, true);
+		}
+		else
+		{
+			SetNodeFlags(EPropertyNodeFlags::ShowCategories, false);
+		}
 
 		// We are advanced if our parent is advanced or our property is marked as advanced
 		SetNodeFlags(EPropertyNodeFlags::IsAdvanced, ParentNode->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) || bAdvanced );

@@ -8,7 +8,7 @@
 #include "NiagaraSettings.generated.h"
 
 
-UCLASS(config = Engine, defaultconfig, meta=(DisplayName="Niagara"))
+UCLASS(config = Niagara, defaultconfig, meta=(DisplayName="Niagara"))
 class NIAGARA_API UNiagaraSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()

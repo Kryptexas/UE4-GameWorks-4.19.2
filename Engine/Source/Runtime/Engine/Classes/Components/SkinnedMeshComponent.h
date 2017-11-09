@@ -16,6 +16,9 @@ class FPrimitiveSceneProxy;
 class FColorVertexBuffer;
 class FSkinWeightVertexBuffer;
 class FSkeletalMeshRenderData;
+class FSkeletalMeshLODRenderData;
+struct FSkelMeshRenderSection;
+class FPositionVertexBuffer;
 
 DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
 
@@ -369,6 +372,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint8 bConsiderAllBodiesForBounds:1;
 
+	/** If true, this component uses its parents LOD when attached if available
+	* ForcedLOD can override this change. By default, it will use parent LOD.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Rendering)
+	uint32 bSyncAttachParentLOD : 1;
+
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	UPROPERTY(transient)
@@ -621,20 +630,39 @@ public:
 	 */
 	virtual void PostInitMeshObject(class FSkeletalMeshObject*) {}
 
-	/** 
-	 * Simple, CPU evaluation of a vertex's skinned position (returned in component space) 
+	/**
+	* Simple, CPU evaluation of a vertex's skinned position (returned in component space)
+	*
+	* @param VertexIndex Vertex Index. If compressed, this will be slow.
+	* @param Model The Model to use.
+	* @param SkinWeightBuffer The SkinWeightBuffer to use.
+	* @param CachedRefToLocals Cached RefToLocal matrices.
+	*/
+	static FVector GetSkinnedVertexPosition(USkinnedMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& LODDatal, FSkinWeightVertexBuffer& SkinWeightBuffer);
+
+	/**
+	 * Simple, CPU evaluation of a vertex's skinned position (returned in component space)
 	 *
-	 * @param VertexIndex Vertex Index. If compressed, this will be slow. 
-	 */
-	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
+	 * @param VertexIndex Vertex Index. If compressed, this will be slow.
+	 * @param Model The Model to use.
+	 * @param SkinWeightBuffer The SkinWeightBuffer to use.
+	 * @param CachedRefToLocals Cached RefToLocal matrices.
+	*/
+	static FVector GetSkinnedVertexPosition(USkinnedMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& LODData, FSkinWeightVertexBuffer& SkinWeightBuffer, TArray<FMatrix>& CachedRefToLocals);
 
 	/**
 	* CPU evaluation of the positions of all vertices (returned in component space)
 	*
 	* @param OutPositions buffer to place positions into
+	* @param CachedRefToLocals Cached RefToLocal matrices.
+	* @param Model The Model to use.
+	* @param SkinWeightBuffer The SkinWeightBuffer to use.
 	*/
-	virtual void ComputeSkinnedPositions(TArray<FVector> & OutPositions) const;
+	static void ComputeSkinnedPositions(USkinnedMeshComponent* Component, TArray<FVector> & OutPositions, TArray<FMatrix>& CachedRefToLocals, const FSkeletalMeshLODRenderData& LODData, const FSkinWeightVertexBuffer& SkinWeightBuffer);
 
+	/** Caches the RefToLocal matrices. */
+	void CacheRefToLocalMatrices(TArray<FMatrix>& OutRefToLocal) const;
+	
 	/**
 	* Returns color of the vertex.
 	*
@@ -1085,12 +1113,6 @@ public:
 	/** Animation Update Rate optimization parameters. */
 	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
 
-	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
-	* 
-	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
-	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bInRecentlyRendered, const float& InMaxDistanceFactor, const bool & bPlayingRootMotion);
-
 	virtual bool IsPlayingRootMotion() const { return false; }
 	virtual bool IsPlayingNetworkedRootMotionMontage() const { return false; }
 	virtual bool IsPlayingRootMotionFromEverything() const { return false; }
@@ -1142,3 +1164,15 @@ public:
 		}
 	}
 };
+
+
+/** Simple, CPU evaluation of a vertex's skinned position helper function */
+template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
+FVector GetTypedSkinnedVertexPosition(
+	const USkinnedMeshComponent* SkinnedComp,
+	const FSkelMeshRenderSection& Section,
+	const FPositionVertexBuffer& PositionVertexBuffer,
+	const FSkinWeightVertexBuffer& SkinWeightVertexBuffer,
+	const int32 VertIndex,
+	const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()
+);

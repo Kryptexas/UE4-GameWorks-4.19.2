@@ -242,6 +242,8 @@ class ENGINE_API USoundWave : public USoundBase
 	
 #endif // WITH_EDITORONLY_DATA
 
+protected:
+
 	/** Curves associated with this sound wave */
 	UPROPERTY(EditAnywhere, Category = SoundWave, AdvancedDisplay)
 	class UCurveTable* Curves;
@@ -400,6 +402,28 @@ public:
 	 * Change the guid and flush all compressed data
 	 */ 
 	void InvalidateCompressedData();
+
+	/** Returns curves associated with this sound wave */
+	virtual class UCurveTable* GetCurveData() const override { return Curves; }
+
+#if WITH_EDITOR
+	/** These functions are required for support for some custom details/editor functionality.*/
+
+	/** Returns internal curves associated with this sound wave */
+	class UCurveTable* GetInternalCurveData() const { return InternalCurves; }
+
+	/** Returns whether this sound wave has internal curves. */
+	bool HasInternalCurves() const { return InternalCurves != nullptr; }
+
+	/** Sets the curve data for this sound wave. */
+	void SetCurveData(UCurveTable* InCurves) { Curves = InCurves; }
+
+	/** Sets the internal curve data for this sound wave. */
+	void SetInternalCurveData(UCurveTable* InCurves) { InternalCurves = InCurves; }
+
+	/** Gets the member name for the Curves property of the USoundWave object. */
+	static FName GetCurvePropertyName() { return GET_MEMBER_NAME_CHECKED(USoundWave, Curves); }
+#endif
 
 	/**
 	 * Checks whether sound has been categorised as streaming

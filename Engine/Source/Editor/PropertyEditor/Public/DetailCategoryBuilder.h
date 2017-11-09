@@ -163,6 +163,12 @@ public:
 	virtual class IDetailLayoutBuilder& GetParentLayout() const = 0;
 
 	/**
+	 * @return true if the parent layout is valid or has been destroyed by a refresh.
+	 */
+	virtual bool IsParentLayoutValid() const = 0;
+
+
+	/**
 	 * @return The localized display name of the category
 	 */
 	virtual const FText& GetDisplayName() const = 0;

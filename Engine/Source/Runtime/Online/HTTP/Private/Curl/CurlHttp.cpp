@@ -553,6 +553,12 @@ bool FCurlHttpRequest::SetupRequest()
 
 	curl_easy_setopt(EasyHandle, CURLOPT_URL, TCHAR_TO_ANSI(*URL));
 
+	if (!FCurlHttpManager::CurlRequestOptions.LocalHostAddr.IsEmpty())
+	{
+		// Set the local address to use for making these requests
+		CURLcode ErrCode = curl_easy_setopt(EasyHandle, CURLOPT_INTERFACE, TCHAR_TO_ANSI(*FCurlHttpManager::CurlRequestOptions.LocalHostAddr));
+	}
+
 	// set up verb (note that Verb is expected to be uppercase only)
 	if (Verb == TEXT("POST"))
 	{

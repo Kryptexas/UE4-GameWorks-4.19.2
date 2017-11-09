@@ -1642,7 +1642,7 @@ void FProjectedShadowInfo::CopyCachedShadowMap(FRHICommandList& RHICmdList, cons
 	DrawRenderState.ApplyToPSO(GraphicsPSOInit);
 	uint32 StencilRef = DrawRenderState.GetStencilRef();
 
-	if (CachedShadowMapData.bCachedShadowMapHasPrimitives)
+	if (CachedShadowMapData.bCachedShadowMapHasPrimitives && CachedShadowMapData.ShadowMap.IsValid())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CopyCachedShadowMap);
 

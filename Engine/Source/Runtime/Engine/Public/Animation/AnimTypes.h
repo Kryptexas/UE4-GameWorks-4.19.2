@@ -587,3 +587,35 @@ namespace EAxisOption
 		Custom
 	};
 }
+
+struct FAxisOption
+{
+	static FVector GetAxisVector(const TEnumAsByte<EAxisOption::Type> InAxis, const FVector& CustomAxis)
+	{
+		switch (InAxis)
+		{
+		case EAxisOption::X:
+			return FVector::ForwardVector;
+		case EAxisOption::X_Neg:
+			return -FVector::ForwardVector;
+		case EAxisOption::Y:
+			return FVector::RightVector;
+		case EAxisOption::Y_Neg:
+			return -FVector::RightVector;
+		case EAxisOption::Z:
+			return FVector::UpVector;
+		case EAxisOption::Z_Neg:
+			return -FVector::UpVector;
+		case EAxisOption::Custom:
+			return CustomAxis;
+		}
+
+		return FVector::ForwardVector;
+	}
+
+	static FVector GetAxisVector(const TEnumAsByte<EAxisOption::Type> InAxis)
+	{
+		return GetAxisVector(InAxis, FVector::ForwardVector);
+	}
+};
+

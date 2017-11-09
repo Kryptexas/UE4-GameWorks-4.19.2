@@ -44,7 +44,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		{
 			// We are showing an entirely different object inline.  Generate a layout for it now.
 			ExternalObjectLayout = MakeShared<FDetailLayoutData>();
-			InParentCategory->GetDetailsView()->UpdateSinglePropertyMap(InExternalRootNode, *ExternalObjectLayout);
+			InParentCategory->GetDetailsView()->UpdateSinglePropertyMap(InExternalRootNode, *ExternalObjectLayout, true);
 		}
 
 		if (PropertyNode->GetPropertyKeyNode().IsValid())
@@ -459,7 +459,7 @@ void FDetailPropertyRow::MakeExternalPropertyRowCustomization(TSharedPtr<FStruct
 	}
 }
 
-void FDetailPropertyRow::MakeExternalPropertyRowCustomization(const TArray<UObject*>& InObjects, FName PropertyName, TSharedRef<FDetailCategoryImpl> ParentCategory, struct FDetailLayoutCustomization& OutCustomization)
+void FDetailPropertyRow::MakeExternalPropertyRowCustomization(const TArray<UObject*>& InObjects, FName PropertyName, TSharedRef<FDetailCategoryImpl> ParentCategory, struct FDetailLayoutCustomization& OutCustomization, TOptional<bool> bAllowChildrenOverride, TOptional<bool> bCreateCategoryNodesOverride)
 {
 	TSharedRef<FObjectPropertyNode> RootPropertyNode = MakeShared<FObjectPropertyNode>();
 
@@ -476,6 +476,15 @@ void FDetailPropertyRow::MakeExternalPropertyRowCustomization(const TArray<UObje
 	InitParams.bAllowChildren = false;
 	InitParams.bForceHiddenPropertyVisibility = FPropertySettings::Get().ShowHiddenProperties();
 	InitParams.bCreateCategoryNodes = PropertyName == NAME_None;
+
+	if (bAllowChildrenOverride.IsSet())
+	{
+		InitParams.bAllowChildren = bAllowChildrenOverride.GetValue();
+	}
+	if (bCreateCategoryNodesOverride.IsSet())
+	{
+		InitParams.bCreateCategoryNodes = bCreateCategoryNodesOverride.GetValue();
+	}
 
 	RootPropertyNode->InitNode(InitParams);
 

@@ -140,6 +140,12 @@ namespace
 			VertexFactory.ReleaseResource();
 		}
 
+		SIZE_T GetTypeHash() const
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		virtual void CreateRenderThreadResources() override
 		{
 			BuildMesh();

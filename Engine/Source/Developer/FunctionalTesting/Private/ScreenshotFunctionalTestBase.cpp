@@ -97,7 +97,7 @@ void AScreenshotFunctionalTestBase::OnScreenShotCaptured(int32 InSizeX, int32 In
 	check(GEngine->GameViewport);
 
 	GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
-
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GetWorld()->GetName(), GetName(), InSizeX, InSizeY);
 
 	// Copy the relevant data into the metadata for the screenshot.
@@ -121,6 +121,7 @@ void AScreenshotFunctionalTestBase::OnScreenShotCaptured(int32 InSizeX, int32 In
 	FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(InImageData, Data);
 
 	UE_LOG(LogScreenshotFunctionalTest, Log, TEXT("Screenshot captured as %s"), *Data.Path);
+#endif
 }
 
 void AScreenshotFunctionalTestBase::RequestScreenshot()

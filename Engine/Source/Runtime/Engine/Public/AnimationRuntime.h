@@ -310,19 +310,18 @@ public:
 	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight) { AccumulateAdditivePose(BasePose, MeshSpaceRotationAdditive, BaseCurve, AdditiveCurve, Weight, EAdditiveAnimationType::AAT_RotationOffsetMeshSpace); }
 
 
-	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
-	* @param A : In/Out FCompactPose.
-	* @param B : B In FCompactPose.
-	* @param Alpha : Alpha.
-	*/
+	/** Lerp for FCompactPose. Stores results in PoseA. Performs PoseA = Lerp(PoseA, PoseB, Alpha); */
 	static void LerpPoses(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha);
 
-	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
-	* @param A : In/Out FCompactPose.
-	* @param B : B In FCompactPose.
-	* @param Alpha : Alpha.
-	*/
+	/** Lerp for FCompactPose. Stores results in PoseA. 
+	 * For each bone performs BoneA[i] = Lerp(BoneA[i], BoneB[i], Alpha * PerBoneWeights[i]);
+	 */
 	static void LerpPosesPerBone(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<float>& PerBoneWeights);
+
+	/** Lerp for FCompactPose. Stores results in PoseA. Performs PoseA = Lerp(PoseA, PoseB, Alpha);
+	 * on reduced set of bones defined in BoneIndices list.
+	 */
+	static void LerpPosesWithBoneIndexList(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<FCompactPoseBoneIndex>& BoneIndices);
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
 	 * @param A : In/Out transform array.

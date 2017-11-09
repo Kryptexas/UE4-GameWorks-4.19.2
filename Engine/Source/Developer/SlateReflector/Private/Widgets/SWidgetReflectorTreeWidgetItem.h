@@ -22,6 +22,7 @@ public:
 	static FName NAME_WidgetName;
 	static FName NAME_WidgetInfo;
 	static FName NAME_Visibility;
+	static FName NAME_Focusable;
 	static FName NAME_Clipping;
 	static FName NAME_ForegroundColor;
 	static FName NAME_Address;

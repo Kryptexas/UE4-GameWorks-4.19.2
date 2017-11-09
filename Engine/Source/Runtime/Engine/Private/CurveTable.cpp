@@ -568,18 +568,18 @@ TArray<const UObject*> UCurveTable::GetOwners() const
 //////////////////////////////////////////////////////////////////////////
 
 
-FRichCurve* FCurveTableRowHandle::GetCurve(const FString& ContextString) const
+FRichCurve* FCurveTableRowHandle::GetCurve(const FString& ContextString, bool WarnIfNotFound) const
 {
 	if(CurveTable == NULL)
 	{
 		if (RowName != NAME_None)
 		{
-			UE_LOG(LogCurveTable, Warning, TEXT("FCurveTableRowHandle::FindRow : No CurveTable for row %s (%s)."), *RowName.ToString(), *ContextString);
+			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("FCurveTableRowHandle::FindRow : No CurveTable for row %s (%s)."), *RowName.ToString(), *ContextString);
 		}
 		return NULL;
 	}
 
-	return CurveTable->FindCurve(RowName, ContextString);
+	return CurveTable->FindCurve(RowName, ContextString, WarnIfNotFound);
 }
 
 float FCurveTableRowHandle::Eval(float XValue,const FString& ContextString) const

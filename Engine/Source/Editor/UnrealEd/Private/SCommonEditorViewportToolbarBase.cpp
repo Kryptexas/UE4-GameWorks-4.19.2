@@ -248,6 +248,7 @@ TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateOptionsMenu() cons
 			}
 		}
 		OptionsMenuBuilder.EndSection();
+		ExtendOptionsMenu(OptionsMenuBuilder);
 	}
 
 	return OptionsMenuBuilder.MakeWidget();

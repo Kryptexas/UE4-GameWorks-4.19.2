@@ -2038,8 +2038,15 @@ bool UParticleModuleLocationBoneSocket::GetSocketInfoForSourceIndex(FModuleLocat
 	{
 		case EBoneSocketSourceIndexMode::SourceLocations:
 		{
-			OutSocket = SourceComponent->SkeletalMesh->FindSocket(SourceLocations[SourceIndex].BoneSocketName);
-			OutOffset = SourceLocations[SourceIndex].Offset + UniversalOffset;
+			if (ensureMsgf(SourceIndex < SourceLocations.Num(), TEXT("Invalid index of %s for %s"), SourceIndex, *GetPathName()))
+			{
+				OutSocket = SourceComponent->SkeletalMesh->FindSocket(SourceLocations[SourceIndex].BoneSocketName);
+				OutOffset = SourceLocations[SourceIndex].Offset + UniversalOffset;
+			}
+			else
+			{
+				return false;
+			}
 		}
 		break;
 		case EBoneSocketSourceIndexMode::PreSelectedIndices:
@@ -2818,9 +2825,11 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 
 	if (SkelMeshResource)
 	{
+		FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[0];
+		FSkinWeightVertexBuffer& SkinWeightBuffer = *InSkelMeshComponent->GetSkinWeightBuffer(0);
 		if (SourceType == VERTSURFACESOURCE_Vert)
 		{
-			FVector VertPos = InSkelMeshComponent->GetSkinnedVertexPosition(InPrimaryVertexIndex);
+			FVector VertPos = USkeletalMeshComponent::GetSkinnedVertexPosition(InSkelMeshComponent, InPrimaryVertexIndex, LODData, SkinWeightBuffer);
 			OutPosition = InSkelMeshComponent->GetComponentTransform().TransformPosition(VertPos);
 			OutRotation = FQuat::Identity;
 		}
@@ -2828,14 +2837,13 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 		{
 			FVector Verts[3];
 			int32 VertIndex[3];
-			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[0];
 
 			VertIndex[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex );
 			VertIndex[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+1 );
 			VertIndex[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+2 );
-			Verts[0] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[0]));
-			Verts[1] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[1]));
-			Verts[2] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[2]));
+			Verts[0] = InSkelMeshComponent->GetComponentTransform().TransformPosition(USkeletalMeshComponent::GetSkinnedVertexPosition(InSkelMeshComponent, VertIndex[0], LODData, SkinWeightBuffer));
+			Verts[1] = InSkelMeshComponent->GetComponentTransform().TransformPosition(USkeletalMeshComponent::GetSkinnedVertexPosition(InSkelMeshComponent, VertIndex[1], LODData, SkinWeightBuffer));
+			Verts[2] = InSkelMeshComponent->GetComponentTransform().TransformPosition(USkeletalMeshComponent::GetSkinnedVertexPosition(InSkelMeshComponent, VertIndex[2], LODData, SkinWeightBuffer));
 
 			FVector V0ToV2 = (Verts[2] - Verts[0]);
 			V0ToV2.Normalize();

@@ -14,6 +14,12 @@ static const FColor NavMeshRenderColor_ClosedSet(255,196,0,255);
 static const uint8 NavMeshRenderAlpha_Modifed = 255;
 static const uint8 NavMeshRenderAlpha_NonModified = 64;
 
+SIZE_T FNavTestSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 FNavTestSceneProxy::FNavTestSceneProxy(const UNavTestRenderingComponent* InComponent)
 	: FDebugRenderSceneProxy(InComponent)
 	, NavMeshDrawOffset(0,0,10)

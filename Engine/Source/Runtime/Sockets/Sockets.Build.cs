@@ -10,7 +10,7 @@ public class Sockets : ModuleRules
 			new string[] {
 				"DerivedDataCache"
 			});
-
+			
 		PrivateIncludePaths.Add("Runtime/Sockets/Private");
 
 		PrivateDependencyModuleNames.AddRange(

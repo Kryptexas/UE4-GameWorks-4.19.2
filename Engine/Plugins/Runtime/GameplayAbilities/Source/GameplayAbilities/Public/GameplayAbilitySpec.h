@@ -136,6 +136,9 @@ struct FGameplayAbilitySpecDef
 	UPROPERTY(NotReplicated)
 	UObject* SourceObject;
 
+	// SetbyCaller Magnitudes that were passed in to this ability by a GE (GE's that grant abilities). Made available so that 
+	TMap<FGameplayTag, float>	SetByCallerTagMagnitudes;
+
 	/** This handle can be set if the SpecDef is used to create a real FGameplaybilitySpec */
 	UPROPERTY()
 	FGameplayAbilitySpecHandle	AssignedHandle;
@@ -278,6 +281,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	/** Handle to GE that granted us (usually invalid) */
 	UPROPERTY(NotReplicated)
 	FActiveGameplayEffectHandle	GameplayEffectHandle;
+
+	/** Passed on SetByCaller magnitudes if this ability was granted by a GE */
+	TMap<FGameplayTag, float> SetByCallerTagMagnitudes;
 
 	/** Returns the primary instance, used for instance once abilities */
 	UGameplayAbility* GetPrimaryInstance() const;

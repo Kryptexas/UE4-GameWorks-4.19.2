@@ -985,6 +985,12 @@ void FLandscapeComponentSceneProxy::GetLightRelevance(const FLightSceneProxy* Li
 	}
 }
 
+SIZE_T FLandscapeComponentSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 FLightInteraction FLandscapeComponentSceneProxy::FLandscapeLCI::GetInteraction(const class FLightSceneProxy* LightSceneProxy) const
 {
 	// ask base class
@@ -3168,6 +3174,13 @@ FLandscapeMeshProxySceneProxy::FLandscapeMeshProxySceneProxy(UStaticMeshComponen
 		new(ProxyNeighborInfos) FLandscapeNeighborInfo(InComponent->GetWorld(), InGuid, ComponentBase, nullptr, InProxyLOD, 0);
 	}
 }
+
+SIZE_T FLandscapeMeshProxySceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 
 void FLandscapeMeshProxySceneProxy::CreateRenderThreadResources()
 {

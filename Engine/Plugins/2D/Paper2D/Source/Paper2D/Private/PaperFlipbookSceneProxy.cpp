@@ -14,3 +14,9 @@ FPaperFlipbookSceneProxy::FPaperFlipbookSceneProxy(const UPaperFlipbookComponent
 	Material = InComponent->GetMaterial(0);
 	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 }
+
+SIZE_T FPaperFlipbookSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}

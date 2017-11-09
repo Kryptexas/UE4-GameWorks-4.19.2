@@ -903,6 +903,7 @@ public:
 		ColorGradingLUT.Bind(ParameterMap, TEXT("ColorGradingLUT"));
 		ColorGradingLUTSampler.Bind(ParameterMap, TEXT("ColorGradingLUTSampler"));
 		InverseGamma.Bind(ParameterMap,TEXT("InverseGamma"));
+		ChromaticAberrationParams.Bind(ParameterMap, TEXT("ChromaticAberrationParams"));
 
 		ColorMatrixR_ColorCurveCd1.Bind(ParameterMap, TEXT("ColorMatrixR_ColorCurveCd1"));
 		ColorMatrixG_ColorCurveCd3Cm3.Bind(ParameterMap, TEXT("ColorMatrixG_ColorCurveCd3Cm3"));
@@ -1071,6 +1072,34 @@ public:
 		}
 
 		{
+			// for scene color fringe
+			// from percent to fraction
+			float Offset = 0.f;
+			float StartOffset = 0.f;
+			float Multiplier = 1.f;
+
+			if (Context.View.FinalPostProcessSettings.ChromaticAberrationStartOffset < 1.f - KINDA_SMALL_NUMBER)
+			{
+				Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
+				StartOffset = Context.View.FinalPostProcessSettings.ChromaticAberrationStartOffset;
+				Multiplier = 1.f / (1.f - StartOffset);
+			}
+
+			// Wavelength of primaries in nm
+			const float PrimaryR = 611.3f;
+			const float PrimaryG = 549.1f;
+			const float PrimaryB = 464.3f;
+
+			// Simple lens chromatic aberration is roughly linear in wavelength
+			float ScaleR = 0.007f * (PrimaryR - PrimaryB);
+			float ScaleG = 0.007f * (PrimaryG - PrimaryB);
+			FVector4 Value(Offset * ScaleR * Multiplier, Offset * ScaleG * Multiplier, StartOffset, 0.f);
+
+			// we only get bigger to not leak in content from outside
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ChromaticAberrationParams, Value);
+		}
+
+		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskPC[ConfigIndex], &Context.View.FinalPostProcessSettings, false);
 			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
@@ -1092,6 +1121,7 @@ public:
 		Ar << P.ColorMatrixR_ColorCurveCd1 << P.ColorMatrixG_ColorCurveCd3Cm3 << P.ColorMatrixB_ColorCurveCm2 << P.ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << P.ColorCurve_Ch1_Ch2 << P.ColorShadow_Luma << P.ColorShadow_Tint1 << P.ColorShadow_Tint2;
 		Ar << P.OverlayColor;
 		Ar << P.OutputDevice << P.OutputGamut << P.EncodeHDROutput;
+		Ar << P.ChromaticAberrationParams;
 
 		return Ar;
 	}
@@ -1106,6 +1136,7 @@ public:
 	FShaderResourceParameter ColorGradingLUT;
 	FShaderResourceParameter ColorGradingLUTSampler;
 	FShaderParameter InverseGamma;
+	FShaderParameter ChromaticAberrationParams;
 
 	FShaderParameter ColorMatrixR_ColorCurveCd1;
 	FShaderParameter ColorMatrixG_ColorCurveCd3Cm3;
@@ -1277,7 +1308,6 @@ public:
 	// VS params
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
-	FShaderParameter FringeUVParams;
 	FShaderParameter DefaultEyeExposure;
 
 	// PS params
@@ -1296,7 +1326,6 @@ public:
 		// VS params
 		EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
-		FringeUVParams.Bind(Initializer.ParameterMap, TEXT("FringeUVParams"));
 		DefaultEyeExposure.Bind(Initializer.ParameterMap, TEXT("DefaultEyeExposure"));
 	}
 
@@ -1337,26 +1366,6 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, DefaultEyeExposure, FixedExposure);
 		}
 
-		{
-			// for scene color fringe
-			// from percent to fraction
-			float Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
-			//FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
-
-			// Wavelength of primaries in nm
-			const float PrimaryR = 611.3f;
-			const float PrimaryG = 549.1f;
-			const float PrimaryB = 464.3f;
-
-			// Simple lens chromatic aberration is roughly linear in wavelength
-			float ScaleR = 0.007f * ( PrimaryR - PrimaryB );
-			float ScaleG = 0.007f * ( PrimaryG - PrimaryB );
-			FVector4 Value( 1.0f / ( 1.0f + Offset * ScaleG ), 1.0f / ( 1.0f + Offset * ScaleR ), 0.0f, 0.0f);
-
-			// we only get bigger to not leak in content from outside
-			SetShaderValue(RHICmdList, ShaderRHI, FringeUVParams, Value);
-		}
-
 		// PS params
 		{
 			// filtering can cost performance so we use point where possible, we don't want anisotropic sampling
@@ -1389,7 +1398,7 @@ public:
 		Ar << PostprocessParameter << OutComputeTex << TonemapComputeParams;
 
 		// VS params
-		Ar << GrainRandomFull << EyeAdaptation << FringeUVParams << DefaultEyeExposure;
+		Ar << GrainRandomFull << EyeAdaptation << DefaultEyeExposure;
 
 		// PS params
 		Ar << PostProcessTonemapShaderParameters;

@@ -131,6 +131,11 @@ public:
 		InFilter.ClassNames.Add(GetSupportedClass()->GetFName());
 		InFilter.bRecursiveClasses = true;
 	}
+	
+	virtual FText GetDisplayNameFromAssetData(const FAssetData& AssetData) const
+	{
+		return FText::GetEmpty();
+	}
 
 protected:
 

@@ -15,7 +15,7 @@ struct Rect;
 class FSlateNullRenderer : public FSlateRenderer
 {
 public:
-	explicit FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices);
+	FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices, const TSharedRef<FSlateShaderResourceManager>& InResourceManager);
 
 	/** FSlateRenderer interface */
 	virtual bool Initialize() override;
@@ -38,4 +38,7 @@ public:
 	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) override;
 	virtual int32 GetCurrentSceneIndex() const override;
 	virtual void ClearScenes() override;
+
+private:
+	TSharedPtr<FSlateShaderResourceManager> ResourceManager;
 };

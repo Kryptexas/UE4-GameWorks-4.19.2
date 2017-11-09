@@ -26,7 +26,7 @@ void FVolumetricLightmapDataLayer::CreateTexture(FIntVector Dimensions)
 		Dimensions.Z, 
 		Format,
 		1,
-		TexCreate_ShaderResource,
+		TexCreate_ShaderResource | TexCreate_DisableAutoDefrag,
 		CreateInfo);
 }
 

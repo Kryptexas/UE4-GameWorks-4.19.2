@@ -8,6 +8,7 @@
 #include "NiagaraScriptSourceBase.h"
 #include "INiagaraCompiler.h"
 #include "NiagaraParameterMapHistory.h"
+#include "GraphEditAction.h"
 #include "NiagaraScriptSource.generated.h"
 
 UCLASS(MinimalAPI)
@@ -38,13 +39,22 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	virtual void PreCompile(UNiagaraEmitter* Emitter, bool bClearErrors = true) override;
 	virtual bool GatherPreCompiledVariables(const FString& InNamespaceFilter, TArray<FNiagaraVariable>& OutVars) override;
 	virtual void PostCompile() override;
+	virtual bool PostLoadFromEmitter(UNiagaraEmitter& OwningEmitter) override;
+
+	NIAGARAEDITOR_API virtual bool AddModuleIfMissing(FString ModulePath, ENiagaraScriptUsage Usage, bool& bOutFoundModule)override;
 
 	TArray<FNiagaraParameterMapHistory>& GetPrecomputedHistories() { return PrecompiledHistories; }
 	class UNiagaraGraph* GetPrecomputedNodeGraph() { return NodeGraphDeepCopy; }
 
 private:
+	void OnGraphChanged(const FEdGraphEditAction &Action);
+	void OnGraphDataInterfaceChanged();
+
+private:
 	bool bIsPrecompiled;
 	TArray<FNiagaraParameterMapHistory> PrecompiledHistories;
+
+	void UpgradeForScriptRapidIterationVariables();
 
 	UPROPERTY()
 	class UNiagaraGraph* NodeGraphDeepCopy;

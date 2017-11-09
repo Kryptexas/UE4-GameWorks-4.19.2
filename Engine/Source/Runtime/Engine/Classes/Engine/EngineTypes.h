@@ -2290,6 +2290,12 @@ public:
 	UPROPERTY()
 	EUpdateRateShiftBucket ShiftBucket;
 
+	UPROPERTY()
+	int32 SkippedUpdateFrames;
+
+	UPROPERTY()
+	int32 SkippedEvalFrames;
+
 public:
 
 	/** Default constructor. */
@@ -2308,6 +2314,8 @@ public:
 		, BaseNonRenderedUpdateRate(4)
 		, MaxEvalRateForInterpolation(4)
 		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
+		, SkippedUpdateFrames(0)
+		, SkippedEvalFrames(0)
 	{ 
 		BaseVisibleDistanceFactorThesholds.Add(0.24f);
 		BaseVisibleDistanceFactorThesholds.Add(0.12f);

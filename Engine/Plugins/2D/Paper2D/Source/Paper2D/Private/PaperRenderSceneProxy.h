@@ -120,6 +120,8 @@ struct PAPER2D_API FSpriteRenderSection
 class PAPER2D_API FPaperRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FPaperRenderSceneProxy(const UPrimitiveComponent* InComponent);
 	virtual ~FPaperRenderSceneProxy();
 

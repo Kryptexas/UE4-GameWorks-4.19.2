@@ -112,6 +112,9 @@ public:
 	/** Gets the appropriate AssetTypeActions for the supplied class */
 	virtual TWeakPtr<IAssetTypeActions> GetAssetTypeActionsForClass(UClass* Class) const = 0;
 
+	/** Gets the list of appropriate AssetTypeActions for the supplied class */
+	virtual TArray<TWeakPtr<IAssetTypeActions>> GetAssetTypeActionsListForClass(UClass* Class) const = 0;
+
 	/**
 	* Allocates a Category bit for a user-defined Category, or EAssetTypeCategories::Misc if all available bits are allocated.
 	* Ignores duplicate calls with the same CategoryKey (returns the existing bit but does not change the display name).

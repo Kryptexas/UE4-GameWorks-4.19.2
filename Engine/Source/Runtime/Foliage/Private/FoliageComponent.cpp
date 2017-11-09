@@ -15,9 +15,14 @@
 #include "Engine/StaticMesh.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
-class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
+class FInteractiveFoliageSceneProxy final : public FStaticMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FInteractiveFoliageSceneProxy(UInteractiveFoliageComponent* InComponent) :
 		FStaticMeshSceneProxy(InComponent, false),

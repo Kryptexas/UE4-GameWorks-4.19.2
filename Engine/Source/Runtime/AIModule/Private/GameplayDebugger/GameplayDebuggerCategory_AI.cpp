@@ -331,9 +331,15 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 
 FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
-	class FPathDebugRenderSceneProxy : public FDebugRenderSceneProxy
+	class FPathDebugRenderSceneProxy final : public FDebugRenderSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		FPathDebugRenderSceneProxy(const UPrimitiveComponent* InPrimitiveCComponent, const FString &InViewFlagName)
 			: FDebugRenderSceneProxy(InPrimitiveCComponent)
 		{

@@ -14,11 +14,13 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifyQueue.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+// #include "Engine/Canvas.h"
 #include "AnimInstance.generated.h"
 
 // Post Compile Validation requires WITH_EDITOR
 #define ANIMINST_PostCompileValidation WITH_EDITOR
 
+struct FDisplayDebugManager;
 class FDebugDisplayInfo;
 class IAnimClassInterface;
 class UAnimInstance;
@@ -974,8 +976,11 @@ public:
 	// Check for whether a native exit delegate is bound to the specified state
 	bool HasNativeStateExitBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName);
 
-	// Debug output for this anim instance 
+	// Debug output for this anim instance. Info for SyncGroups, Graph, Montages, etc.
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	// Display debug info about AnimInstance. Can be overridden to add custom info from child classes.
+	virtual void DisplayDebugInstance(FDisplayDebugManager& DisplayDebugManager, float& Indent);
 
 	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
 	void ResetDynamics();

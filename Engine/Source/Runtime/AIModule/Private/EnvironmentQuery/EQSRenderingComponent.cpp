@@ -26,6 +26,12 @@ namespace FEQSRenderingHelper
 //----------------------------------------------------------------------//
 const FVector FEQSSceneProxy::ItemDrawRadius(30,30,30);
 
+SIZE_T FEQSSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent& InComponent, const FString& InViewFlagName, const TArray<FSphere>& InSpheres, const TArray<FText3d>& InTexts)
 	: FDebugRenderSceneProxy(&InComponent)
 	, ActorOwner(nullptr)

@@ -559,9 +559,15 @@ FTextRenderComponentMIDCache* FTextRenderComponentMIDCache::InstancePtr = nullpt
 // ------------------------------------------------------
 
 /** Represents a URenderTextComponent to the scene manager. */
-class FTextRenderSceneProxy : public FPrimitiveSceneProxy
+class FTextRenderSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	// constructor / destructor
 	FTextRenderSceneProxy(UTextRenderComponent* Component);
 	virtual ~FTextRenderSceneProxy();

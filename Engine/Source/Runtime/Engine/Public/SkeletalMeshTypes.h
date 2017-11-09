@@ -183,6 +183,8 @@ FSkeletalMeshSceneProxy
 class ENGINE_API FSkeletalMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	/** 
 	 * Constructor. 
 	 * @param	Component - skeletal mesh primitive being added

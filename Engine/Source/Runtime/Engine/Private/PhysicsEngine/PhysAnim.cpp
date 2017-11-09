@@ -640,21 +640,24 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		{
 			if (bNeedsSkinning)
 			{
+					const FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
+				FSkinWeightVertexBuffer& SkinWeightBuffer = *GetSkinWeightBuffer(0);
+				TArray<FMatrix> RefToLocals;
 				TArray<FVector> NewPositions;
 				if (true)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
-					ComputeSkinnedPositions(NewPositions);
+					CacheRefToLocalMatrices(RefToLocals);
+					ComputeSkinnedPositions(this, NewPositions, RefToLocals, LODData, SkinWeightBuffer);
 				}
 				else	//keep old way around for now - useful for comparing performance
 				{
-					const FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
 					NewPositions.AddUninitialized(LODData.GetNumVertices());
 					{
 						SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
 						for (uint32 VertIndex = 0; VertIndex < LODData.GetNumVertices(); ++VertIndex)
 						{
-							NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+							NewPositions[VertIndex] = GetSkinnedVertexPosition(this, VertIndex, LODData, SkinWeightBuffer);
 						}
 					}
 				}

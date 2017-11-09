@@ -98,9 +98,14 @@ namespace
 	};
 
 	/** Represents a sprite to the scene manager. */
-	class FImagePlateSceneProxy : public FPrimitiveSceneProxy
+	class FImagePlateSceneProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
 
 		/** Initialization constructor. */
 		FImagePlateSceneProxy(UImagePlateComponent* InComponent)

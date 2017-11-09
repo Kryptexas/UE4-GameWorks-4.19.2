@@ -696,12 +696,11 @@ void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene,
 
 			NewSortEntry.CaptureIndex = -1;
 			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, 1.0f);
-
 			if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 			{
 				const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
-				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : -1;
-				check(NewSortEntry.CaptureIndex < MaxCubemaps);
+				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : 0;
+				check(NewSortEntry.CaptureIndex < MaxCubemaps || NewSortEntry.CaptureIndex == 0);
 				NewSortEntry.CaptureOffsetAndAverageBrightness.W = ComponentStatePtr ? ComponentStatePtr->AverageBrightness : 1.0f;
 			}
 

@@ -322,7 +322,7 @@ struct FReinstancingJob
 	TSharedPtr<FBlueprintCompileReinstancer> Reinstancer;
 	TSharedPtr<FKismetCompilerContext> Compiler;
 };
-
+	
 void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled)
 {
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
@@ -2144,7 +2144,6 @@ bool FBlueprintCompilationManager::IsGeneratedClassLayoutReady()
 	}
 	return BPCMImpl->IsGeneratedClassLayoutReady();
 }
-
 
 bool FBlueprintCompilationManager::GetDefaultValue(const UClass* ForClass, const UProperty* Property, FString& OutDefaultValueAsString)
 {

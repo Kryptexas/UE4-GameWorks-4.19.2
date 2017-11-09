@@ -110,6 +110,12 @@ class FRHICommandListBase;
 
 
 
+#ifdef CONTINUABLE_PSO_VERIFY
+#define PSO_VERIFY ensure
+#else
+#define PSO_VERIFY	check
+#endif
+
 enum class ECmdList
 {
 	EGfx,
@@ -462,8 +468,8 @@ protected:
 	struct FPSOContext
 	{
 		uint32 CachedNumSimultanousRenderTargets = 0;
-		TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
-		FRHIDepthRenderTargetView CachedDepthStencilTarget;
+	TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
+	FRHIDepthRenderTargetView CachedDepthStencilTarget;
 	} PSOContext;
 
 	void CacheActiveRenderTargets(
@@ -1344,7 +1350,7 @@ struct FRHICommandTransitionUAVs final : public FRHICommand<FRHICommandTransitio
 	EResourceTransitionPipeline TransitionPipeline;
 	FComputeFenceRHIParamRef WriteFence;
 
-	FORCEINLINE_DEBUGGABLE FRHICommandTransitionUAVs(EResourceTransitionAccess InTransitionType, EResourceTransitionPipeline InTransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef InWriteFence)
+		FORCEINLINE_DEBUGGABLE FRHICommandTransitionUAVs(EResourceTransitionAccess InTransitionType, EResourceTransitionPipeline InTransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef InWriteFence)
 		: NumUAVs(InNumUAVs)
 		, UAVs(InUAVs)
 		, TransitionType(InTransitionType)
@@ -3703,7 +3709,7 @@ public:
 		LLM_SCOPE(ELLMTag::Shaders);
 		return GDynamicRHI->CreateDomainShader_RenderThread(*this, Code);
 	}
-	
+		
 	FORCEINLINE FDomainShaderRHIRef CreateDomainShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
 	{
 		LLM_SCOPE(ELLMTag::Shaders);
@@ -4058,8 +4064,6 @@ public:
 	
 	FORCEINLINE void UpdateTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 	{		
-		checkf(UpdateRegion.DestX + UpdateRegion.Width <= Texture->GetSizeX(), TEXT("UpdateTexture2D out of bounds on X. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestX, UpdateRegion.Width, Texture->GetSizeX());
-		checkf(UpdateRegion.DestY + UpdateRegion.Height <= Texture->GetSizeY(), TEXT("UpdateTexture2D out of bounds on Y. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestY, UpdateRegion.Height, Texture->GetSizeY());
 		LLM_SCOPE(ELLMTag::Textures);
 		GDynamicRHI->UpdateTexture2D_RenderThread(*this, Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
 	}
@@ -4081,9 +4085,6 @@ public:
 	
 	FORCEINLINE void UpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 	{
-		checkf(UpdateRegion.DestX + UpdateRegion.Width <= Texture->GetSizeX(), TEXT("UpdateTexture3D out of bounds on X. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestX, UpdateRegion.Width, Texture->GetSizeX());
-		checkf(UpdateRegion.DestY + UpdateRegion.Height <= Texture->GetSizeY(), TEXT("UpdateTexture3D out of bounds on Y. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestY, UpdateRegion.Height, Texture->GetSizeY());
-		checkf(UpdateRegion.DestZ + UpdateRegion.Depth <= Texture->GetSizeZ(), TEXT("UpdateTexture3D out of bounds on Z. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestZ, UpdateRegion.Depth, Texture->GetSizeZ());
 		LLM_SCOPE(ELLMTag::Textures);
 		GDynamicRHI->UpdateTexture3D_RenderThread(*this, Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
 	}

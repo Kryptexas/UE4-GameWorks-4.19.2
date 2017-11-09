@@ -359,7 +359,6 @@ private:
 	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades, bool bPrecomputedLightingIsValid) const
 	{
 		int32 EffectiveNumDynamicShadowCascades = DynamicShadowCascades;
-		
 		if (!bPrecomputedLightingIsValid)
 		{
 			EffectiveNumDynamicShadowCascades = FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());

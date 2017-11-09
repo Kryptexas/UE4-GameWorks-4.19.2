@@ -3,8 +3,9 @@
 #include "SlateNullRenderer.h"
 #include "Rendering/SlateDrawBuffer.h"
 
-FSlateNullRenderer::FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices)
+FSlateNullRenderer::FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices, const TSharedRef<FSlateShaderResourceManager>& InResourceManager)
 	: FSlateRenderer(InSlateFontServices)
+	, ResourceManager(InResourceManager)
 {
 }
 
@@ -56,7 +57,7 @@ bool FSlateNullRenderer::GenerateDynamicImageResource( FName ResourceName, uint3
 
 FSlateResourceHandle FSlateNullRenderer::GetResourceHandle( const FSlateBrush& Brush )
 {
-	return FSlateResourceHandle();
+	return ResourceManager.IsValid() ? ResourceManager->GetResourceHandle(Brush) : FSlateResourceHandle();
 }
 
 void FSlateNullRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )

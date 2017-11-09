@@ -64,7 +64,9 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	TEnumAsByte<EEnvQueryRunMode::Type> QueryingMode;
-	
+
+	UPROPERTY(Category = EQS, EditAnywhere)
+	FNavAgentProperties NavAgentProperties;
 
 #if WITH_EDITORONLY_DATA
 private:
@@ -96,6 +98,10 @@ public:
 	virtual bool GetShouldDrawFailedItems() const override{ return bDrawFailedItems; }
 	virtual float GetHighlightRangePct() const override;
 	// IEQSQueryResultSourceInterface end
+
+	// INavAgentInterface begin
+	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override;
+	// INavAgentInterface end
 
 	void RunEQSQuery();
 

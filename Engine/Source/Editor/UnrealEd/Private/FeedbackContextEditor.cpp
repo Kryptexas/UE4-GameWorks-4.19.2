@@ -403,7 +403,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 
 		if( bHaveOpenMenu )
 		{
-			UE_LOG(LogSlate, Warning, TEXT("Prevented a slow task dialog from being summoned while a context menu was open") );
+			UE_LOG(LogSlate, Log, TEXT("Prevented a slow task dialog from being summoned while a context menu was open") );
 		}
 
 		// reset the cancellation flag

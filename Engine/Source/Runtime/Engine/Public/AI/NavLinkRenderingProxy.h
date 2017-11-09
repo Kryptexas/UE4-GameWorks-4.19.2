@@ -19,6 +19,8 @@ private:
 	class INavLinkHostInterface* LinkOwnerHost;
 
 public:
+	SIZE_T GetTypeHash() const override;
+
 	struct FNavLinkDrawing
 	{
 		FVector Left;

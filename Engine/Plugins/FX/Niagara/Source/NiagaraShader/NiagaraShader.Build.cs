@@ -12,6 +12,7 @@ public class NiagaraShader : ModuleRules
                 "Engine",
 				"RenderCore",
                 "ShaderCore",
+                "CoreUObject",
             }
         );
 

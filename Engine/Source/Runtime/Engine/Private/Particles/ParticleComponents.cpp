@@ -83,28 +83,28 @@
 #include "GameFramework/GameState.h"
 #include "HAL/LowLevelMemTracker.h"
 
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderTransform Concurrent"), STAT_ParticleSystemComponent_SendRenderTransform_Concurrent, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent DestroyRenderState Concurrent"), STAT_ParticleSystemComponent_DestroyRenderState_Concurrent, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData"), STAT_ParticleSystemComponent_CreateDynamicData, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Replay"), STAT_ParticleSystemComponent_CreateDynamicData_Replay, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Capture"), STAT_ParticleSystemComponent_CreateDynamicData_Capture, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Gather"), STAT_ParticleSystemComponent_CreateDynamicData_Gather, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData"), STAT_ParticleSystemComponent_GetDynamicData, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData Selected"), STAT_ParticleSystemComponent_GetDynamicData_Selected, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData GatherCapture"), STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent UpdateDynamicData"), STAT_ParticleSystemComponent_UpdateDynamicData, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent OrientZAxisTowardCamera"), STAT_UParticleSystemComponent_OrientZAxisTowardCamera, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueFinalize"), STAT_UParticleSystemComponent_QueueFinalize, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CheckForReset"), STAT_UParticleSystemComponent_CheckForReset, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD_Inactive"), STAT_UParticleSystemComponent_LOD_Inactive, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD"), STAT_UParticleSystemComponent_LOD, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent ResetAndCheckParallel"), STAT_UParticleSystemComponent_ResetAndCheckParallel, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueTasks"), STAT_UParticleSystemComponent_QueueTasks, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueAsync"), STAT_UParticleSystemComponent_QueueAsync, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent WaitForAsyncAndFinalize"), STAT_UParticleSystemComponent_WaitForAsyncAndFinalize, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateRenderState Concurrent"), STAT_ParticleSystemComponent_CreateRenderState_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles GT"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData GT"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderTransform Concurrent GT"), STAT_ParticleSystemComponent_SendRenderTransform_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent DestroyRenderState Concurrent GT"), STAT_ParticleSystemComponent_DestroyRenderState_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData GT"), STAT_ParticleSystemComponent_CreateDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Replay GT"), STAT_ParticleSystemComponent_CreateDynamicData_Replay, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Capture GT"), STAT_ParticleSystemComponent_CreateDynamicData_Capture, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Gather GT"), STAT_ParticleSystemComponent_CreateDynamicData_Gather, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData GT"), STAT_ParticleSystemComponent_GetDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData Selected GT"), STAT_ParticleSystemComponent_GetDynamicData_Selected, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData GatherCapture GT"), STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent UpdateDynamicData GT"), STAT_ParticleSystemComponent_UpdateDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent OrientZAxisTowardCamera GT"), STAT_UParticleSystemComponent_OrientZAxisTowardCamera, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueFinalize GT"), STAT_UParticleSystemComponent_QueueFinalize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CheckForReset GT"), STAT_UParticleSystemComponent_CheckForReset, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD_Inactive GT"), STAT_UParticleSystemComponent_LOD_Inactive, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD GT"), STAT_UParticleSystemComponent_LOD, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent ResetAndCheckParallel GT"), STAT_UParticleSystemComponent_ResetAndCheckParallel, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueTasksGT"), STAT_UParticleSystemComponent_QueueTasks, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueAsyncGT"), STAT_UParticleSystemComponent_QueueAsync, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent WaitForAsyncAndFinalize GT"), STAT_UParticleSystemComponent_WaitForAsyncAndFinalize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateRenderState Concurrent GT"), STAT_ParticleSystemComponent_CreateRenderState_Concurrent, STATGROUP_Particles);
 
 #include "InGamePerformanceTracker.h"
 
@@ -1773,6 +1773,7 @@ bool UParticleEmitter::HasAnyEnabledLODs()const
 #if STATS
 
 DEFINE_STAT(STAT_EmittersStatGroupTester);
+DEFINE_STAT(STAT_EmittersRTStatGroupTester);
 
 void UParticleEmitter::CreateStatID() const
 {
@@ -1783,6 +1784,7 @@ void UParticleEmitter::CreateStatID() const
 	FString LongName;
 	LongName = FString(TEXT("Emitter")) / OuterName.ToString() / EmitterName.ToString();
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Emitters>(LongName);
+	StatIDRT = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_EmittersRT>(LongName / TEXT("RT"));
 }
 #endif
 
@@ -3807,7 +3809,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 #if STATS
 	if (EmitterData)
 	{
-		EmitterData->StatID = EmitterInstance->SpriteTemplate->GetStatID();
+		EmitterData->StatID = EmitterInstance->SpriteTemplate->GetStatIDRT();
 	}
 #endif
 
@@ -3978,7 +3980,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 					if( NewDynamicEmitterData != NULL )
 					{
 #if STATS
-						NewDynamicEmitterData->StatID = EmitterInst->SpriteTemplate->GetStatID();
+						NewDynamicEmitterData->StatID = EmitterInst->SpriteTemplate->GetStatIDRT();
 #endif
 						NewDynamicEmitterData->bValid = true;
 						ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
@@ -4376,7 +4378,7 @@ public:
 
 TAutoConsoleVariable<int32> CVarFXEarlySchedule(TEXT("FX.EarlyScheduleAsync"), 0, TEXT("If 1, particle system components that can run async will be scheduled earlier in the frame"));
 
-DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time"),STAT_UParticleSystemComponent_Marshall,STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time GT"),STAT_UParticleSystemComponent_Marshall,STATGROUP_Particles);
 
 bool UParticleSystemComponent::IsReadyForOwnerToAutoDestroy() const
 {
@@ -4841,14 +4843,14 @@ void UParticleSystemComponent::FinalizeTickComponent()
 	else
 	{
 		LastSignificantTime = CurrTime;
-	// If component has just totally finished, call script event.
-	const bool bIsCompleted = HasCompleted(); 
-	if (bIsCompleted && !bWasCompleted)
-	{
+		// If component has just totally finished, call script event.
+		const bool bIsCompleted = HasCompleted(); 
+		if (bIsCompleted && !bWasCompleted)
+		{
 			Complete();
 		}
 		bWasCompleted = bIsCompleted;
-		}
+	}
 
 	// Update bounding box.
 	if (!bWarmingUp && !bWasCompleted && !Template->bUseFixedRelativeBoundingBox && !bIsTransformDirty)

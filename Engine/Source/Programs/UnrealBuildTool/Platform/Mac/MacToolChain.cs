@@ -209,9 +209,10 @@ namespace UnrealBuildTool
 				Result += " -Wundef" + (CompileEnvironment.bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef");
 			}
 
-			// @todo: Remove these two when the code is fixed and they're no longer needed
+			// @todo: Remove these three when the code is fixed and they're no longer needed
 			Result += " -Wno-logical-op-parentheses";
 			Result += " -Wno-unknown-pragmas";
+			Result += " -Wno-undefined-var-template";
 
 			Result += " -c";
 

@@ -70,6 +70,7 @@ void FPhysicsAssetEditorSharedData::Initialize(const TSharedRef<IPersonaPreviewS
 
 	EditorSkelComp = nullptr;
 	PhysicalAnimationComponent = nullptr;
+	FStringAssetReference PreviewMeshStringRef = PhysicsAsset->PreviewSkeletalMesh.ToSoftObjectPath();
 
 	// Look for body setups with no shapes (how does this happen?).
 	// If we find one- just bang on a default box.

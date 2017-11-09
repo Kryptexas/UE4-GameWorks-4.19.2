@@ -3922,7 +3922,8 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 				UE_LOG(LogEditor, Warning, TEXT("Unable to build Reflection Capture %s, max number of reflection captures exceeded"), *CaptureComponent->GetPathName());
 			}
 		}
-
+				// Queue an update
+		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
 		if (LightingScenario)
 		{
 			// Hide current scenario now that we are done capturing it
@@ -3930,13 +3931,20 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 		}
 	}
 
+		// Passing in flag to verify all recaptures, no uploads
 	// Restore initial visibility
 	for (int32 LevelIndex = 0; LevelIndex < LightingScenarios.Num(); LevelIndex++)
 	{
 		ULevel* LightingScenario = LightingScenarios[LevelIndex];
 
+			// Recreate capture render state now that we have valid BuildData
+
+
 		if (LightingScenario)
 		{
+			// Hide current scenario now that we are done capturing it
+
+	// Restore initial visibility
 			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, true);
 		}
 	}

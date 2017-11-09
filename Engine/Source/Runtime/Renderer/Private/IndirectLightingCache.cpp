@@ -476,7 +476,7 @@ void FIndirectLightingCache::ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& Vi
 	if (!bPrecomputedLightingBufferWasDirty && PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
 	{
 		// Since the update can be executed on a threaded job (see GILCUpdatePrimTaskEnabled), no reallocation must happen here.
-		checkSlow(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
+		check(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
 		View.DirtyPrecomputedLightingBufferPrimitives.Push(PrimitiveSceneInfo);
 	}
 }

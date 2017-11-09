@@ -38,10 +38,10 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Engine/StaticMesh.h"
 
-DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData PerParticleWorkOrTasks"), STAT_FDynamicSpriteEmitterData_PerParticleWorkOrTasks, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter Task"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements RT"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData RT"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData PerParticleWorkOrTasks RT"), STAT_FDynamicSpriteEmitterData_PerParticleWorkOrTasks, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter Task RT"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task, STATGROUP_Particles);
 
 
 #include "InGamePerformanceTracker.h"
@@ -6748,7 +6748,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 //	ParticleSystemSceneProxy
 ///////////////////////////////////////////////////////////////////////////////
 /** Initialization constructor. */
-FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData)
+FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData, bool InbCanBeOccluded)
 	: FPrimitiveSceneProxy(Component, Component->Template ? Component->Template->GetFName() : NAME_None)
 	, Owner(Component->GetOwner())
 	, bCastShadow(Component->CastShadow)
@@ -6772,6 +6772,8 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	, FirstFreeMeshBatch(0)
 	, bVertexFactoriesDirty(false)
 	, FeatureLevel(GetScene().GetFeatureLevel())
+	, bCanBeOccluded(InbCanBeOccluded)
+	, bHasCustomOcclusionBounds(false)
 {
 	WireframeColor = FLinearColor(3.0f, 0.0f, 0.0f);
 	LevelColor = FLinearColor(1.0f, 1.0f, 0.0f);
@@ -6781,6 +6783,18 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 
 	// Particle systems intrinsically always have motion, but is this motion relevant to systems external to particle systems?
 	bAlwaysHasVelocity = Component->Template && Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
+
+	if (bCanBeOccluded && Component->Template && (Component->Template->OcclusionBoundsMethod == EPSOBM_CustomBounds))
+	{
+		OcclusionBounds = FBoxSphereBounds(Component->Template->CustomOcclusionBounds);
+		bHasCustomOcclusionBounds = true;
+	}
+}
+
+SIZE_T FParticleSystemSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
@@ -7159,25 +7173,6 @@ void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewF
 	}
 }
 
-/**
- *	Occluding particle system scene proxy...
- */
-/** Initialization constructor. */
-FParticleSystemOcclusionSceneProxy::FParticleSystemOcclusionSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData) :
-	  FParticleSystemSceneProxy(Component,InDynamicData)
-	, bHasCustomOcclusionBounds(false)
-{
-	if (Component->Template && (Component->Template->OcclusionBoundsMethod == EPSOBM_CustomBounds))
-	{
-		OcclusionBounds = FBoxSphereBounds(Component->Template->CustomOcclusionBounds);
-		bHasCustomOcclusionBounds = true;
-	}
-}
-
-FParticleSystemOcclusionSceneProxy::~FParticleSystemOcclusionSceneProxy()
-{
-}
-
 FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 {
 	FParticleSystemSceneProxy* NewProxy = NULL;
@@ -7203,11 +7198,11 @@ FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 		if (CanBeOccluded())
 		{
 			Template->CustomOcclusionBounds.IsValid = true;
-			NewProxy = ::new FParticleSystemOcclusionSceneProxy(this,ParticleDynamicData);
+			NewProxy = ::new FParticleSystemSceneProxy(this,ParticleDynamicData, true);
 		}
 		else
 		{
-			NewProxy = ::new FParticleSystemSceneProxy(this,ParticleDynamicData);
+			NewProxy = ::new FParticleSystemSceneProxy(this,ParticleDynamicData, false);
 		}
 		check (NewProxy);
 		if (ParticleDynamicData)

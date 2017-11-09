@@ -11,6 +11,7 @@
 #include "Misc/EngineVersion.h"
 
 #include "OodleTrainerCommandlet.h"
+#include "OodleAnalytics.h"
 
 #if !UE_BUILD_SHIPPING
 #include "EngineGlobals.h"
@@ -275,16 +276,40 @@ OodleHandlerComponent::OodleHandlerComponent()
 	, OodleReservedPacketBits(0)
 	, ServerDictionary()
 	, ClientDictionary()
+	, TotalInCompressedLength(0)
+	, TotalInDecompressedLength(0)
+	, TotalOutCompressedLength(0)
+	, TotalOutUncompressedLength(0)
 {
 	SetActive(true);
 
 #if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	OodleComponentList.Add(this);
 #endif
+
+	Analytics = FOodleAnalyticsFactory::Create();
 }
 
 OodleHandlerComponent::~OodleHandlerComponent()
 {
+	float InTotalSavings = 0.0f;
+	float OutTotalSavings = 0.0f;
+
+	if (TotalInCompressedLength > 0)
+	{
+		InTotalSavings = (1.0 - ((double)TotalInCompressedLength / (double)TotalInDecompressedLength)) * 100.0;
+	}
+
+	if (TotalOutCompressedLength > 0)
+	{
+		OutTotalSavings = (1.0 - ((double)TotalOutCompressedLength / (double)TotalOutUncompressedLength)) * 100.0;
+	}
+
+	if (Analytics.IsValid())
+	{
+		Analytics->FireEvent_OodleAnalytics(InTotalSavings, OutTotalSavings);
+	}
+
 #if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	OodleComponentList.Remove(this);
 
@@ -852,6 +877,8 @@ void OodleHandlerComponent::Incoming(FBitReader& Packet)
 #if STATS
 						GOodleNetStats.IncomingStats(CompressedLength, DecompressedLength);
 #endif
+						TotalInCompressedLength += CompressedLength;
+						TotalInDecompressedLength += DecompressedLength;
 					}
 					else
 					{
@@ -971,6 +998,9 @@ void OodleHandlerComponent::Outgoing(FBitWriter& Packet)
 #if STATS
 						GOodleNetStats.OutgoingStats(CompressedBytes, UncompressedBytes);
 #endif
+						TotalOutCompressedLength += CompressedBytes;
+						TotalOutUncompressedLength += UncompressedBytes;
+
 					}
 					else
 					{
@@ -978,22 +1008,28 @@ void OodleHandlerComponent::Outgoing(FBitWriter& Packet)
 						//					at the start of the bit writer
 						Packet.SerializeBits(UncompressedData, UncompressedBits);
 
-#if STATS
+
 						if (!bWithinBitBounds)
 						{
+#if STATS
 							INC_DWORD_STAT(STAT_Oodle_CompressFailSize);
+#endif
 						}
 						else if (CompressedBytes >= UncompressedBytes)
 						{
+#if STATS
 							GOodleNetStats.OutgoingStats(UncompressedBytes, UncompressedBytes);
 
 							INC_DWORD_STAT(STAT_Oodle_CompressFailSavings);
+#endif
+
+							TotalOutCompressedLength += CompressedBytes;
+							TotalOutUncompressedLength += UncompressedBytes;
 						}
 						else
 						{
 							// @todo #JohnB
 						}
-#endif
 					}
 				}
 				else
@@ -1076,6 +1112,13 @@ int32 OodleHandlerComponent::GetReservedPacketBits()
 	return ReturnVal;
 }
 
+void OodleHandlerComponent::SetAnalyticsProvider(TSharedPtr<class IAnalyticsProvider> Provider)
+{
+	if (Analytics.IsValid())
+	{
+		Analytics->SetProvider(Provider);
+	}
+}
 
 #if !UE_BUILD_SHIPPING
 /**

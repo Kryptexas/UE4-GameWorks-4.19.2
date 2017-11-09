@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorModule.h"
+#include "NiagaraModule.h"
 #include "NiagaraEditorTickables.h"
 #include "Modules/ModuleManager.h"
 #include "IAssetTypeActions.h"
@@ -32,6 +33,7 @@
 #include "EdGraphSchema_Niagara.h"
 #include "TypeEditorUtilities/NiagaraFloatTypeEditorUtilities.h"
 #include "TypeEditorUtilities/NiagaraIntegerTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraEnumTypeEditorUtilities.h"
 #include "TypeEditorUtilities/NiagaraBoolTypeEditorUtilities.h"
 #include "TypeEditorUtilities/NiagaraFloatTypeEditorUtilities.h"
 #include "TypeEditorUtilities/NiagaraVectorTypeEditorUtilities.h"
@@ -55,6 +57,8 @@
 #include "NiagaraEmitterViewModel.h"
 #include "TNiagaraGraphPinEditableName.h"
 #include "Class.h"
+#include "NiagaraScriptMergeManager.h"
+#include "NiagaraEmitter.h"
 
 #include "Customizations/NiagaraComponentDetails.h"
 #include "Customizations/NiagaraTypeCustomizations.h"
@@ -149,7 +153,9 @@ void FNiagaraEditorModule::StartupModule()
 	NiagaraAssetCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("FX")), LOCTEXT("NiagaraAssetsCategory", "FX"));
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraSystem()));
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraEmitter()));
-	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraScript()));
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraScriptFunctions()));
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraScriptModules()));
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraScriptDynamicInputs()));
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraParameterCollection()));
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraParameterCollectionInstance()));
 
@@ -217,6 +223,7 @@ void FNiagaraEditorModule::StartupModule()
 	GraphPanelPinFactory->RegisterMiscSubCategoryPin(UNiagaraNodeWithDynamicPins::AddPinSubCategory, FNiagaraScriptGraphPanelPinFactory::FCreateGraphPin::CreateLambda(
 		[](UEdGraphPin* GraphPin) -> TSharedRef<SGraphPin> { return SNew(SNiagaraGraphPinAdd, GraphPin); }));
 
+	EnumTypeUtilities = MakeShareable(new FNiagaraEditorEnumTypeUtilities());
 	RegisterTypeUtilities(FNiagaraTypeDefinition::GetFloatDef(), MakeShareable(new FNiagaraEditorFloatTypeUtilities()));
 	RegisterTypeUtilities(FNiagaraTypeDefinition::GetIntDef(), MakeShareable(new FNiagaraEditorIntegerTypeUtilities()));
 	RegisterTypeUtilities(FNiagaraTypeDefinition::GetBoolDef(), MakeShareable(new FNiagaraEditorBoolTypeUtilities()));
@@ -254,6 +261,9 @@ void FNiagaraEditorModule::StartupModule()
 		FNiagaraShaderQueueTickable::ProcessQueue();
 	}));
 
+	// Register the emitter merge handler.
+	ScriptMergeManager = MakeShared<FNiagaraScriptMergeManager>();
+	MergeEmitterHandle = NiagaraModule.RegisterOnMergeEmitter(INiagaraModule::FOnMergeEmitter::CreateSP(ScriptMergeManager.ToSharedRef(), &FNiagaraScriptMergeManager::MergeEmitter));
 }
 
 
@@ -291,6 +301,12 @@ void FNiagaraEditorModule::ShutdownModule()
 		SequencerModule->UnRegisterTrackEditor(CreateEmitterTrackEditorHandle);
 	}
 
+	INiagaraModule* NiagaraModule = FModuleManager::GetModulePtr<INiagaraModule>("Niagara");
+	if (NiagaraModule != nullptr)
+	{
+		NiagaraModule->UnregisterOnMergeEmitter(MergeEmitterHandle);
+	}
+
 	// Verify that we've cleaned up all the view models in the world.
 	FNiagaraScriptViewModel::CleanAll();
 	FNiagaraSystemViewModel::CleanAll();
@@ -314,10 +330,16 @@ void FNiagaraEditorModule::RegisterTypeUtilities(FNiagaraTypeDefinition Type, TS
 TSharedPtr<INiagaraEditorTypeUtilities> FNiagaraEditorModule::GetTypeUtilities(const FNiagaraTypeDefinition& Type)
 {
 	TSharedRef<INiagaraEditorTypeUtilities>* EditorUtilities = TypeToEditorUtilitiesMap.Find(Type);
-	if (EditorUtilities != nullptr)
+	if(EditorUtilities != nullptr)
 	{
 		return *EditorUtilities;
 	}
+
+	if (Type.IsEnum())
+	{
+		return EnumTypeUtilities;
+	}
+
 	return TSharedPtr<INiagaraEditorTypeUtilities>();
 }
 
@@ -340,8 +362,10 @@ void FNiagaraEditorModule::ResetOnCreateStackWidget(FDelegateHandle Handle)
 	OnCreateStackWidget.Unbind();
 }
 
-
-
+TSharedRef<FNiagaraScriptMergeManager> FNiagaraEditorModule::GetScriptMergeManager() const
+{
+	return ScriptMergeManager.ToSharedRef();
+}
 
 void FNiagaraEditorModule::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
 {

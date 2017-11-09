@@ -16,11 +16,12 @@ class UCanvas;
 class UNavTestRenderingComponent;
 struct FNodeDebugData;
 
-class FNavTestSceneProxy : public FDebugRenderSceneProxy
+class FNavTestSceneProxy final : public FDebugRenderSceneProxy
 {
 	friend class FNavTestDebugDrawDelegateHelper;
 
 public:
+	SIZE_T GetTypeHash() const override;
 
 	struct FNodeDebugData
 	{

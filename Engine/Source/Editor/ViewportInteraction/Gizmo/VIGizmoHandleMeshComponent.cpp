@@ -5,9 +5,14 @@
 
 #include "RHIResources.h"
 
-class FGimzoHandleSceneProxy: public FStaticMeshSceneProxy
+class FGimzoHandleSceneProxy final : public FStaticMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FGimzoHandleSceneProxy(UGizmoHandleMeshComponent* InComponent)
 		: FStaticMeshSceneProxy(InComponent, false)

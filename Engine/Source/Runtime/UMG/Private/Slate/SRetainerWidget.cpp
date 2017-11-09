@@ -92,7 +92,9 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 
 	SurfaceBrush.SetResourceObject(RenderTarget);
 
-	Window = SNew(SVirtualWindow);
+	Window = SNew(SVirtualWindow)
+    .Visibility(EVisibility::SelfHitTestInvisible);  // deubanks: We don't want Retainer Widgets blocking hit testing for tooltips
+
 	Window->SetShouldResolveDeferred(false);
 	
 	UpdateWidgetRenderer();

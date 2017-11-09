@@ -256,6 +256,24 @@ TWeakPtr<IAssetTypeActions> UAssetToolsImpl::GetAssetTypeActionsForClass( UClass
 	return MostDerivedAssetTypeActions;
 }
 
+TArray<TWeakPtr<IAssetTypeActions>> UAssetToolsImpl::GetAssetTypeActionsListForClass(UClass* Class) const
+{
+	TArray<TWeakPtr<IAssetTypeActions>> ResultAssetTypeActionsList;
+
+	for (int32 TypeActionsIdx = 0; TypeActionsIdx < AssetTypeActionsList.Num(); ++TypeActionsIdx)
+	{
+		TSharedRef<IAssetTypeActions> TypeActions = AssetTypeActionsList[TypeActionsIdx];
+		UClass* SupportedClass = TypeActions->GetSupportedClass();
+
+		if (Class->IsChildOf(SupportedClass))
+		{
+			ResultAssetTypeActionsList.Add(TypeActions);
+		}
+	}
+
+	return ResultAssetTypeActionsList;
+}
+
 EAssetTypeCategories::Type UAssetToolsImpl::RegisterAdvancedAssetCategory(FName CategoryKey, FText CategoryDisplayName)
 {
 	EAssetTypeCategories::Type Result = FindAdvancedAssetCategory(CategoryKey);

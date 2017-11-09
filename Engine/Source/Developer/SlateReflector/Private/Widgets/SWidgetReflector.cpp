@@ -852,7 +852,7 @@ TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabAr
 							.ToolTipText(LOCTEXT("VisibilityTooltip", "Visibility"))
 						]
 
-						+ SHeaderRow::Column("Focusable")
+						+ SHeaderRow::Column(SReflectorTreeWidgetItem::NAME_Focusable)
 						.DefaultLabel(LOCTEXT("Focusable", "Focusable?"))
 						.FixedWidth(125.0f)
 						.HAlignHeader(HAlign_Center)

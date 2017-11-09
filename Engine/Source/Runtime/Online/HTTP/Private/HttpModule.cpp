@@ -21,8 +21,6 @@ void FHttpModule::StartupModule()
 	Singleton = this;
 	MaxReadBufferSize = 256 * 1024;
 
-	FPlatformHttp::Init();
-
 	HttpTimeout = 300.0f;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpTimeout"), HttpTimeout, GEngineIni);
 
@@ -58,6 +56,8 @@ void FHttpModule::StartupModule()
 
 	HttpThreadIdleMinimumSleepTimeInSeconds = 0.0f;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadIdleMinimumSleepTimeInSeconds"), HttpThreadIdleMinimumSleepTimeInSeconds, GEngineIni);
+
+	FPlatformHttp::Init();
 
 	HttpManager = FPlatformHttp::CreatePlatformHttpManager();
 	if (NULL == HttpManager)

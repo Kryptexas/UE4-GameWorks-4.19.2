@@ -26,8 +26,11 @@ struct CORE_API FDebug
 	/** Logs final assert message and exits the program. */
 	static void VARARGS AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 
-	/** Records the calling of AssertFailed() */
-	static bool bHasAsserted;
+	// returns true if an assert has occurred
+	static bool HasAsserted();
+
+	// returns true if an ensure is currently in progress (e.g. the RenderThread is ensuring)
+	static bool IsEnsuring();
 
 	/** Dumps the stack trace into the log, meant to be used for debugging purposes. */
 	static void DumpStackTraceToLog();

@@ -1980,6 +1980,15 @@ public:
 	/** Packed array of primitive components associated with the primitive. */
 	TArray<FPrimitiveComponentId> PrimitiveComponentIds;
 
+	struct FTypeOffsetTableEntry
+	{
+		FTypeOffsetTableEntry(SIZE_T InPrimitiveSceneProxyType, uint32 InOffset) : PrimitiveSceneProxyType(InPrimitiveSceneProxyType), Offset(InOffset) {}
+		SIZE_T PrimitiveSceneProxyType;
+		uint32 Offset; //(e.g. prefix sum where the next type starts)
+	};
+	/* During insertion and deletion, used to skip large chunks of items of the same type */
+	TArray<FTypeOffsetTableEntry> TypeOffsetTable;
+
 	/** The lights in the scene. */
 	TSparseArray<FLightSceneInfoCompact> Lights;
 

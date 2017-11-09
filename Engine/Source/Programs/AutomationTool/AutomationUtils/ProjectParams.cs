@@ -227,6 +227,8 @@ namespace AutomationTool
 			this.DLCFile = InParams.DLCFile;
 			this.GenerateRemaster = InParams.GenerateRemaster;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
+			this.DLCActLikePatch = InParams.DLCActLikePatch;
+			this.DLCPakPluginFile = InParams.DLCPakPluginFile;
             this.DiffCookedContentPath = InParams.DiffCookedContentPath;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
@@ -245,7 +247,7 @@ namespace AutomationTool
 			this.IterativeCooking = InParams.IterativeCooking;
 			this.IterateSharedCookedBuild = InParams.IterateSharedCookedBuild;
 			this.IterateSharedBuildUsePrecompiledExe = InParams.IterateSharedBuildUsePrecompiledExe;
-			this.CookAll = InParams.CookAll;
+            this.CookAll = InParams.CookAll;
 			this.CookPartialGC = InParams.CookPartialGC;
 			this.CookInEditor = InParams.CookInEditor; 
 			this.CookOutputDir = InParams.CookOutputDir;
@@ -265,7 +267,7 @@ namespace AutomationTool
             this.UnversionedCookedContent = InParams.UnversionedCookedContent;
 			this.EncryptIniFiles = InParams.EncryptIniFiles;
             this.EncryptPakIndex = InParams.EncryptPakIndex;
-            this.EncryptEverything = InParams.EncryptEverything;
+			this.EncryptEverything = InParams.EncryptEverything;
 			this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
             this.NumCookersToSpawn = InParams.NumCookersToSpawn;
 			this.FileServer = InParams.FileServer;
@@ -390,7 +392,7 @@ namespace AutomationTool
             bool? UnversionedCookedContent = null,
 			bool? EncryptIniFiles = null,
             bool? EncryptPakIndex = null,
-            bool? EncryptEverything = null,
+			bool? EncryptEverything = null,
 			bool? SkipCookingEditorContent = null,
             int? NumCookersToSpawn = null,
             string AdditionalCookerOptions = null,
@@ -402,9 +404,11 @@ namespace AutomationTool
 			bool? AddPatchLevel = null,
 			bool? StageBaseReleasePaks = null,
 			bool? GenerateRemaster = null,
-			string DLCName = null,
+            string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
+			bool? DLCPakPluginFile = null,
+			bool? DLCActLikePatch = null,
 			bool? CrashReporter = null,
 			bool? DedicatedServer = null,
 			bool? Client = null,
@@ -537,7 +541,7 @@ namespace AutomationTool
             this.AddPatchLevel = GetParamValueIfNotSpecified(Command, AddPatchLevel, this.AddPatchLevel, "AddPatchLevel");
 			this.StageBaseReleasePaks = GetParamValueIfNotSpecified(Command, StageBaseReleasePaks, this.StageBaseReleasePaks, "StageBaseReleasePaks");
 			this.GenerateRemaster = GetParamValueIfNotSpecified(Command, GenerateRemaster, this.GenerateRemaster, "GenerateRemaster");
-			this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
+            this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
 
 			DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
 			if(!String.IsNullOrEmpty(DLCName))
@@ -554,6 +558,9 @@ namespace AutomationTool
             //this.DLCName = 
             this.DiffCookedContentPath = ParseParamValueIfNotSpecified(Command, DiffCookedContentPath, "DiffCookedContentPath", String.Empty);
             this.DLCIncludeEngineContent = GetParamValueIfNotSpecified(Command, DLCIncludeEngineContent, this.DLCIncludeEngineContent, "DLCIncludeEngineContent");
+			this.DLCPakPluginFile = GetParamValueIfNotSpecified(Command, DLCPakPluginFile, this.DLCPakPluginFile, "DLCPakPluginFile");
+			this.DLCActLikePatch = GetParamValueIfNotSpecified(Command, DLCActLikePatch, this.DLCActLikePatch, "DLCActLikePatch");
+			
 			this.SkipCook = GetParamValueIfNotSpecified(Command, SkipCook, this.SkipCook, "skipcook");
 			if (this.SkipCook)
 			{
@@ -586,7 +593,7 @@ namespace AutomationTool
             this.UnversionedCookedContent = GetParamValueIfNotSpecified(Command, UnversionedCookedContent, this.UnversionedCookedContent, "UnversionedCookedContent");
 			this.EncryptIniFiles = GetParamValueIfNotSpecified(Command, EncryptIniFiles, this.EncryptIniFiles, "EncryptIniFiles");
             this.EncryptPakIndex = GetParamValueIfNotSpecified(Command, EncryptPakIndex, this.EncryptPakIndex, "EncryptPakIndex");
-            this.EncryptEverything = GetParamValueIfNotSpecified(Command, EncryptEverything, this.EncryptEverything, "EncryptEverything");
+			this.EncryptEverything = GetParamValueIfNotSpecified(Command, EncryptEverything, this.EncryptEverything, "EncryptEverything");
 			this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
             if (NumCookersToSpawn.HasValue)
             {
@@ -601,7 +608,7 @@ namespace AutomationTool
 			this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" });
 			this.IterateSharedCookedBuild = GetParamValueIfNotSpecified(Command, IterateSharedCookedBuild, this.IterateSharedCookedBuild, new string[] { "IterateSharedCookedBuild"});
 			this.IterateSharedBuildUsePrecompiledExe = GetParamValueIfNotSpecified(Command, IterateSharedBuildUsePrecompiledExe, this.IterateSharedBuildUsePrecompiledExe, new string[] { "IterateSharedBuildUsePrecompiledExe" });
-
+			
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
 			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
 			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
@@ -1328,8 +1335,8 @@ namespace AutomationTool
         /// Cook: Create a cooked release version.  Also, the version. e.g. 1.0
         /// </summary>
         public string CreateReleaseVersion;
-        
-		/// <summary>
+
+        /// <summary>
 		/// Cook: While cooking clean up packages as we go along rather then cleaning everything (and potentially having to reload some of it) when we run out of space
 		/// </summary>
 		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
@@ -1367,8 +1374,8 @@ namespace AutomationTool
         /// see also CreateReleaseVersion, BasedOnReleaseVersion
         /// </summary>
         public bool GeneratePatch;
-		
-		/// <summary>
+
+        /// <summary>
 		/// Are we generating a remaster, generate a patch from a previously released version of the game (use CreateReleaseVersion to create a release). 
 		/// this requires BasedOnReleaseVersion
 		/// see also CreateReleaseVersion, BasedOnReleaseVersion
@@ -1383,7 +1390,7 @@ namespace AutomationTool
         public bool StageBaseReleasePaks;
 
         /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
-		/// </summary>
+        /// </summary>
         public FileReference DLCFile;
 
         /// <summary>
@@ -1392,11 +1399,23 @@ namespace AutomationTool
         /// </summary>
         public bool DLCIncludeEngineContent;
 
-        /// <summary>
-        /// After cook completes diff the cooked content against another cooked content directory.
-        ///  report all errors to the log
-        /// </summary>
-        public string DiffCookedContentPath;
+
+		/// <summary>
+		/// Enable packaging up the uplugin file inside the dlc pak.  This is sometimes desired if you want the plugin to be standalone
+		/// </summary>
+		public bool DLCPakPluginFile;
+
+		/// <summary>
+		/// DLC will remap it's files to the game directory and act like a patch.  This is useful if you want to override content in the main game along side your main game.
+		/// For example having different main game content in different DLCs
+		/// </summary>
+		public bool DLCActLikePatch;
+
+		/// <summary>
+		/// After cook completes diff the cooked content against another cooked content directory.
+		///  report all errors to the log
+		/// </summary>
+		public string DiffCookedContentPath;
 
         /// <summary>
         /// Cook: Additional cooker options to include on the cooker commandline
@@ -1423,15 +1442,15 @@ namespace AutomationTool
 		/// </summary>
 		public bool EncryptEverything;
 
-        /// <summary>
+		/// <summary>
 		/// Encrypt all files which are packaged into the pak file.  Only valid when encryption keys and building pak file specified. 
 		/// </summary>
         public bool EncryptPakIndex;
 
         /// <summary>
-        /// put -debug on the editorexe commandline
-        /// </summary>
-        public bool UseDebugParamForEditorExe;
+		/// put -debug on the editorexe commandline
+		/// </summary>
+		public bool UseDebugParamForEditorExe;
 
         /// <summary>
         /// Cook: Do not include a version number in the cooked content
@@ -2180,7 +2199,7 @@ namespace AutomationTool
             get { return GeneratePatch; }
         }
 
-        /// <summary>
+		/// <summary>
         /// True if we are generating a new patch pak tier
         /// </summary>
         public bool ShouldAddPatchLevel
@@ -2386,7 +2405,11 @@ namespace AutomationTool
 
             if (!HasDLCName && DLCIncludeEngineContent)
             {
-                throw new AutomationException("DLCIncludeEngineContent flag is only valid when cooking dlc.");
+                throw new AutomationException("DLCIncludeEngineContent flag is only valid when building DLC.");
+            }
+			if (!HasDLCName && DLCPakPluginFile )
+			{
+				throw new AutomationException("DLCPakPluginFile flag is only valid when building DLC.");
             }
 
             if ((IsGeneratingPatch || HasDLCName || ShouldAddPatchLevel) && !HasBasedOnReleaseVersion)
@@ -2466,17 +2489,18 @@ namespace AutomationTool
 				CommandUtils.LogLog("UnversionedCookedContent={0}", UnversionedCookedContent);
 				CommandUtils.LogLog("EncryptIniFiles={0}", EncryptIniFiles);
                 CommandUtils.LogLog("EncryptPakIndex={0}", EncryptPakIndex);
-                CommandUtils.LogLog("EncryptEverything={0}", EncryptEverything);
+				CommandUtils.LogLog("EncryptEverything={0}", EncryptEverything);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
-				CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
+                CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
 				CommandUtils.LogLog("AddPatchLevel={0}", AddPatchLevel);
 				CommandUtils.LogLog("StageBaseReleasePaks={0}", StageBaseReleasePaks);
 				CommandUtils.LogLog("GenerateRemaster={0}", GenerateRemaster);
-				CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
+                CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.LogLog("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.LogLog("DLCFile={0}", DLCFile);
                 CommandUtils.LogLog("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);
+				CommandUtils.LogLog("DLCPakPluginFile={0}", DLCPakPluginFile);
                 CommandUtils.LogLog("DiffCookedContentPath={0}", DiffCookedContentPath);
                 CommandUtils.LogLog("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.LogLog("DedicatedServer={0}", DedicatedServer);

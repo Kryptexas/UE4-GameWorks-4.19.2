@@ -17,6 +17,14 @@ class ULevelStreaming;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLevelTools, Warning, All);
 
+enum class ELevelVisibilityDirtyMode
+{
+	// Use when the user is causing the visibility change.  Will update transaction state and mark the package dirty.
+	ModifyOnChange,
+	// Use when code is causing the visibility change.
+	DontModify
+};
+
 UCLASS(transient)
 class UEditorLevelUtils : public UObject
 {
@@ -144,7 +152,7 @@ public:
 	 * @param	bShouldBeVisible		The level's new visibility state.
 	 * @param	bForceLayersVisible		If true and the level is visible, force the level's layers to be visible.
 	 */
-	static UNREALED_API void SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible);
+	static UNREALED_API void SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible, ELevelVisibilityDirtyMode ModifyMode = ELevelVisibilityDirtyMode::ModifyOnChange);
 	
 	/** 
 	 * Deselects all BSP surfaces in this level 

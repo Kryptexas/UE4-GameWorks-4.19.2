@@ -51,9 +51,14 @@ struct FCableDynamicData
 //////////////////////////////////////////////////////////////////////////
 // FCableSceneProxy
 
-class FCableSceneProxy : public FPrimitiveSceneProxy
+class FCableSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FCableSceneProxy(UCableComponent* Component)
 		: FPrimitiveSceneProxy(Component)

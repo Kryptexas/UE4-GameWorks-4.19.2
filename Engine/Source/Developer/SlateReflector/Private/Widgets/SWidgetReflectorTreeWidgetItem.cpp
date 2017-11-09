@@ -5,7 +5,6 @@
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SHyperlink.h"
 #include "HAL/PlatformApplicationMisc.h"
-#include "EditorStyleSet.h"
 #include "SCheckBox.h"
 
 
@@ -15,6 +14,7 @@
 FName SReflectorTreeWidgetItem::NAME_WidgetName(TEXT("WidgetName"));
 FName SReflectorTreeWidgetItem::NAME_WidgetInfo(TEXT("WidgetInfo"));
 FName SReflectorTreeWidgetItem::NAME_Visibility(TEXT("Visibility"));
+FName SReflectorTreeWidgetItem::NAME_Focusable(TEXT("Focusable"));
 FName SReflectorTreeWidgetItem::NAME_Clipping(TEXT("Clipping"));
 FName SReflectorTreeWidgetItem::NAME_ForegroundColor(TEXT("ForegroundColor"));
 FName SReflectorTreeWidgetItem::NAME_Address(TEXT("Address"));
@@ -67,7 +67,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 					.Justification(ETextJustify::Center)
 			];
 	}
-	else if (ColumnName == "Focusable")
+	else if (ColumnName == NAME_Focusable)
 	{
 		return SNew(SBox)
 			.HAlign(HAlign_Center)

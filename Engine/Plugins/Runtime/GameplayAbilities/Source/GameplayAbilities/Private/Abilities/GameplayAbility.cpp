@@ -945,6 +945,10 @@ FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(const
 	{
 		FGameplayAbilitySpec* AbilitySpec =  ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
 		ApplyAbilityTagsToGameplayEffectSpec(*NewHandle.Data.Get(), AbilitySpec);
+
+		// Copy over set by caller magnitudes
+		NewHandle.Data->SetByCallerTagMagnitudes = AbilitySpec->SetByCallerTagMagnitudes;
+
 	}
 	return NewHandle;
 }
@@ -964,6 +968,9 @@ void UGameplayAbility::ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec&
 
 			Spec.CapturedSourceTags.GetSpecTags().AppendTags(SourceObjTags);
 		}
+
+		// Copy SetByCallerMagnitudes 
+		Spec.MergeSetByCallerMagnitudes(AbilitySpec->SetByCallerTagMagnitudes);
 	}
 }
 
@@ -1419,6 +1426,12 @@ FGameplayEffectContextHandle UGameplayAbility::MakeEffectContext(const FGameplay
 
 	// add in the ability tracking here.
 	Context.SetAbility(this);
+
+	// Pass along the source object to the effect
+	if (FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle))
+	{
+		Context.AddSourceObject(AbilitySpec->SourceObject);
+	}
 
 	return Context;
 }

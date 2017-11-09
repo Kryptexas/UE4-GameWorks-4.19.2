@@ -678,7 +678,7 @@ void FClothingSimulationNv::DestroyContext(IClothingSimulationContext* InContext
 	delete InContext;
 }
 
-void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutData, USkeletalMeshComponent* InOwnerComponent, USkeletalMeshComponent* InOverrideComponent) const
+void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutData, USkeletalMeshComponent* InOwnerComponent, USkinnedMeshComponent* InOverrideComponent) const
 {
 	const int32 NumActors = Actors.Num();
 

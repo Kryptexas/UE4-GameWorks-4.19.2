@@ -17,7 +17,8 @@ public class OodleHandlerComponent : ModuleRules
 				"PacketHandler",
 				"Core",
 				"CoreUObject",
-				"Engine"
+				"Engine",
+                "Analytics"
 			});
 
 

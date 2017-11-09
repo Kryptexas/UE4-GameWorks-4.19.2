@@ -65,9 +65,14 @@ void FAnimNode_SkeletalControlBase::UpdateInternal(const FAnimationUpdateContext
 {
 }
 
-void FAnimNode_SkeletalControlBase::Update_AnyThread(const FAnimationUpdateContext& Context)
+void FAnimNode_SkeletalControlBase::UpdateComponentPose_AnyThread(const FAnimationUpdateContext& Context)
 {
 	ComponentPose.Update(Context);
+}
+
+void FAnimNode_SkeletalControlBase::Update_AnyThread(const FAnimationUpdateContext& Context)
+{
+	UpdateComponentPose_AnyThread(Context);
 
 	ActualAlpha = 0.f;
 	if (IsLODEnabled(Context.AnimInstanceProxy, LODThreshold))
@@ -96,26 +101,29 @@ bool ContainsNaN(const TArray<FBoneTransform> & BoneTransforms)
 	return false;
 }
 
+void FAnimNode_SkeletalControlBase::EvaluateComponentPose_AnyThread(FComponentSpacePoseContext& Output)
+{
+	// Evaluate the input
+	ComponentPose.EvaluateComponentSpace(Output);
+}
+
 void FAnimNode_SkeletalControlBase::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
 {
 }
 
 void FAnimNode_SkeletalControlBase::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
 {
-	// Evaluate the input
-	ComponentPose.EvaluateComponentSpace(Output);
+	EvaluateComponentPose_AnyThread(Output);
+
+#if WITH_EDITORONLY_DATA
+	// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
+	ForwardedPose.CopyPose(Output.Pose);
+#endif // #if WITH_EDITORONLY_DATA
 
 	// Apply the skeletal control if it's valid
 	if (FAnimWeight::IsRelevant(ActualAlpha) && IsValidToEvaluate(Output.AnimInstanceProxy->GetSkeleton(), Output.AnimInstanceProxy->GetRequiredBones()))
 	{
 		EvaluateComponentSpaceInternal(Output);
-
-#if WITH_EDITORONLY_DATA
-		// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
-		ForwardedPose.CopyPose(Output.Pose);
-#endif // #if WITH_EDITORONLY_DATA
-
-		USkeletalMeshComponent* Component = Output.AnimInstanceProxy->GetSkelMeshComponent();
 
 		BoneTransforms.Reset(BoneTransforms.Num());
 		EvaluateSkeletalControl_AnyThread(Output, BoneTransforms);

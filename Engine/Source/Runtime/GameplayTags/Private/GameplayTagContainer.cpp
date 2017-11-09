@@ -1319,16 +1319,7 @@ bool FGameplayTag::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject
 		return false;
 	}
 
-	FName ImportedTagName = FName(*ImportedTag);
-	if (UGameplayTagsManager::Get().ValidateTagCreation(ImportedTagName))
-	{
-		// We found the tag. Assign it here.
-		TagName = ImportedTagName;
-		return true;
-	}
-
-	// Let normal ImportText try.
-	return false;
+	return UGameplayTagsManager::Get().ImportSingleGameplayTag(*this, FName(*ImportedTag));
 }
 
 void FGameplayTag::FromExportString(const FString& ExportString)

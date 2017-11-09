@@ -170,6 +170,9 @@ protected:
 
 	void CreateViewMenuExtensions(FMenuBuilder& MenuBuilder);
 
+	/** Extension allowing derived classes to add to the options menu.*/	
+	virtual void ExtendOptionsMenu(FMenuBuilder& OptionsMenuBuilder) const {}
+
 protected:
 	// Returns the info provider for this viewport
 	ICommonEditorViewportToolbarInfoProvider& GetInfoProvider() const;

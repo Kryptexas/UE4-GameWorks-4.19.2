@@ -369,6 +369,11 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToSel
 {
 	if ( GameplayEffectClass )
 	{
+		if (!EffectContext.IsValid())
+		{
+			EffectContext = MakeEffectContext();
+		}
+
 		UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
 		return ApplyGameplayEffectToSelf(GameplayEffect, Level, EffectContext);
 	}
@@ -397,50 +402,36 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(c
 FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle)
 {
 	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (ActiveEffect)
-	{
-		return &ActiveEffect->OnRemovedDelegate;
-	}
+	return ActiveEffect ? &ActiveEffect->EventSet.DEPRECATED_OnEffectRemoved : nullptr;
+}
 
-	return nullptr;
+FActiveGameplayEffectEvents* UAbilitySystemComponent::GetActiveEffectEventSet(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	return ActiveEffect ? &ActiveEffect->EventSet : nullptr;
 }
 
 FOnActiveGameplayEffectRemoved_Info* UAbilitySystemComponent::OnGameplayEffectRemoved_InfoDelegate(FActiveGameplayEffectHandle Handle)
 {
 	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (ActiveEffect)
-	{
-		return &ActiveEffect->OnRemoved_InfoDelegate;
-	}
-
-	return nullptr;
-}
-
-FOnGivenActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemovedDelegate()
-{
-	return ActiveGameplayEffects.OnActiveGameplayEffectRemovedDelegate;
+	return ActiveEffect ? &ActiveEffect->EventSet.OnEffectRemoved : nullptr;
 }
 
 FOnActiveGameplayEffectStackChange* UAbilitySystemComponent::OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle)
 {
 	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (ActiveEffect)
-	{
-		return &ActiveEffect->OnStackChangeDelegate;
-	}
-
-	return nullptr;
+	return ActiveEffect ? &ActiveEffect->EventSet.OnStackChanged : nullptr;
 }
 
 FOnActiveGameplayEffectTimeChange* UAbilitySystemComponent::OnGameplayEffectTimeChangeDelegate(FActiveGameplayEffectHandle Handle)
 {
 	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (ActiveEffect)
-	{
-		return &ActiveEffect->OnTimeChangeDelegate;
-	}
+	return ActiveEffect ? &ActiveEffect->EventSet.OnTimeChanged : nullptr;
+}
 
-	return nullptr;
+FOnGivenActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemovedDelegate()
+{
+	return ActiveGameplayEffects.OnActiveGameplayEffectRemovedDelegate;
 }
 
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag, EGameplayTagEventType::Type EventType)
@@ -1571,11 +1562,11 @@ void UAbilitySystemComponent::OnRep_ServerDebugString()
 	}
 }
 
-float UAbilitySystemComponent::GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags)
+float UAbilitySystemComponent::GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags, const TArray<FActiveGameplayEffectHandle>& HandlesToIgnore)
 {
 	float AttributeValue = 0.f;
 
-	if (SourceTags.RequireTags.Num() == 0 && SourceTags.IgnoreTags.Num() == 0)
+	if (SourceTags.RequireTags.Num() == 0 && SourceTags.IgnoreTags.Num() == 0 && HandlesToIgnore.Num() == 0)
 	{
 		// No qualifiers so we can just read this attribute normally
 		AttributeValue = GetNumericAttribute(Attribute);
@@ -1605,6 +1596,7 @@ float UAbilitySystemComponent::GetFilteredAttributeValue(const FGameplayAttribut
 		Params.SourceTags = &QuerySourceTags;
 		Params.TargetTags = &QueryTargetTags;
 		Params.IncludePredictiveMods = true;
+		Params.IgnoreHandles = HandlesToIgnore;
 
 		if (CaptureSpec.AttemptCalculateAttributeMagnitude(Params, AttributeValue) == false)
 		{
@@ -2054,7 +2046,10 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 			{
 				FAggregator& Aggregator = *AggregatorRef.Get();
 
+				FAggregatorEvaluateParameters EmptyParams;
+
 				TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*> ModMap;
+				Aggregator.EvaluateQualificationForAllMods(EmptyParams);
 				Aggregator.GetAllAggregatorMods(ModMap);
 
 				if (ModMap.Num() == 0)
@@ -2091,8 +2086,7 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 						const TArray<FAggregatorMod>& CurModArray = ModArrays[ModOpIdx];
 						for (const FAggregatorMod& Mod : CurModArray)
 						{
-							FAggregatorEvaluateParameters EmptyParams;
-							bool IsActivelyModifyingAttribute = Mod.Qualifies(EmptyParams);
+							bool IsActivelyModifyingAttribute = Mod.Qualifies();
 							if (Info.Canvas)
 							{
 								Info.Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
@@ -2201,20 +2195,6 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 
 				const FModifierSpec& ModSpec = ActiveGE.Spec.Modifiers[ModIdx];
 				const FGameplayModifierInfo& ModInfo = ActiveGE.Spec.Def->Modifiers[ModIdx];
-
-				// Do a quick Qualifies() check to see if this mod is active.
-				FAggregatorMod TempMod;
-				TempMod.SourceTagReqs = &ModInfo.SourceTags;
-				TempMod.TargetTagReqs = &ModInfo.TargetTags;
-				TempMod.IsPredicted = false;
-
-				FAggregatorEvaluateParameters EmptyParams;
-				bool IsActivelyModifyingAttribute = TempMod.Qualifies(EmptyParams);
-
-				if (IsActivelyModifyingAttribute == false)
-				{
-					if (Info.Canvas) Info.Canvas->SetDrawColor(FColor(128, 128, 128));
-				}
 
 				DebugLine(Info, FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude()), 7.f, 0.f);
 

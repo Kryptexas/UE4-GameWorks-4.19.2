@@ -61,6 +61,7 @@ struct FMeshBatchElement
 	/** Conceptual element index used for debug viewmodes. */
 	int8 VisualizeElementIndex;
 #endif
+	FVertexBufferRHIParamRef IndirectArgsBuffer;
 
 	FMeshBatchElement()
 	:	PrimitiveUniformBufferResource(nullptr)
@@ -81,7 +82,7 @@ struct FMeshBatchElement
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	,	VisualizeElementIndex(INDEX_NONE)
 #endif
-
+	,	IndirectArgsBuffer(nullptr)
 	{
 	}
 };

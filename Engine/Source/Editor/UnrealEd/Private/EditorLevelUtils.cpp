@@ -826,7 +826,7 @@ void UEditorLevelUtils::SetLevelVisibilityTemporarily(ULevel* Level, bool bShoul
 	}
 }
 
-void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible)
+void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible, ELevelVisibilityDirtyMode ModifyMode)
 {
 	// Nothing to do
 	if (Level == NULL)
@@ -841,7 +841,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 	{
 		//create a transaction so we can undo the visibilty toggle
 		const FScopedTransaction Transaction(LOCTEXT("ToggleLevelVisibility", "Toggle Level Visibility"));
-		if (Level->bIsVisible != bShouldBeVisible)
+		if (Level->bIsVisible != bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 		{
 			Level->Modify();
 		}
@@ -851,7 +851,11 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 			AActor* CurActor = *PLevelActorIter;
 			if (CurActor && !FActorEditorUtils::IsABuilderBrush(CurActor) && CurActor->bHiddenEdLevel == bShouldBeVisible)
 			{
-				CurActor->Modify();
+				if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+				{
+					CurActor->Modify();
+				}
+				
 				CurActor->bHiddenEdLevel = !bShouldBeVisible;
 				CurActor->RegisterAllComponents();
 				CurActor->MarkComponentsRenderStateDirty();
@@ -862,7 +866,10 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		UModel* CurLevelModel = Level->Model;
 		if (CurLevelModel)
 		{
-			CurLevelModel->Modify();
+			if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+			{
+				CurLevelModel->Modify();
+			}
 
 			for (TArray<FBspSurf>::TIterator SurfaceIterator(CurLevelModel->Surfs); SurfaceIterator; ++SurfaceIterator)
 			{
@@ -905,11 +912,14 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		// Handle the case of a streaming level
 		if (StreamingLevel)
 		{
-			// We need to set the RF_Transactional to make a streaming level serialize itself. so store the original ones, set the flag, and put the original flags back when done
-			EObjectFlags cachedFlags = StreamingLevel->GetFlags();
-			StreamingLevel->SetFlags(RF_Transactional);
-			StreamingLevel->Modify();
-			StreamingLevel->SetFlags(cachedFlags);
+			if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+			{
+				// We need to set the RF_Transactional to make a streaming level serialize itself. so store the original ones, set the flag, and put the original flags back when done
+				EObjectFlags cachedFlags = StreamingLevel->GetFlags();
+				StreamingLevel->SetFlags(RF_Transactional);
+				StreamingLevel->Modify();
+				StreamingLevel->SetFlags(cachedFlags);
+			}
 
 			// Set the visibility state for this streaming level.  
 			StreamingLevel->bShouldBeVisibleInEditor = bShouldBeVisible;
@@ -921,7 +931,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		}
 
 		// UpdateLevelStreaming sets Level->bIsVisible directly, so we need to make sure it gets saved to the transaction buffer.
-		if (Level->bIsVisible != bShouldBeVisible)
+		if (Level->bIsVisible != bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 		{
 			Level->Modify();
 		}
@@ -975,7 +985,11 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 					// Make the actor layer visible, if it's not already.
 					if (Actor->bHiddenEdLayer)
 					{
-						bModified = Actor->Modify();
+						if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+						{
+							bModified = Actor->Modify();
+						}
+						
 						Actor->bHiddenEdLayer = false;
 					}
 
@@ -986,7 +1000,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 				// Set the visibility of each actor in the streaming level
 				if (!FActorEditorUtils::IsABuilderBrush(Actor) && Actor->bHiddenEdLevel == bShouldBeVisible)
 				{
-					if (!bModified)
+					if (!bModified && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 					{
 						bModified = Actor->Modify();
 					}
@@ -1011,7 +1025,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 	GEngine->BroadcastLevelActorListChanged();
 
 	// If the level is being hidden, deselect actors and surfaces that belong to this level.
-	if (!bShouldBeVisible)
+	if (!bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 	{
 		USelection* SelectedActors = GEditor->GetSelectedActors();
 		SelectedActors->Modify();

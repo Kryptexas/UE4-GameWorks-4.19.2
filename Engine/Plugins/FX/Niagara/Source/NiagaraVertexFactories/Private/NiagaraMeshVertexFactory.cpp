@@ -19,18 +19,20 @@ public:
 
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		PrevTransformBuffer.Bind(ParameterMap, TEXT("PrevTransformBuffer"));
+		//PrevTransformBuffer.Bind(ParameterMap, TEXT("PrevTransformBuffer"));
 		NiagaraParticleDataFloat.Bind(ParameterMap, TEXT("NiagaraParticleDataFloat"));
 		NiagaraParticleDataInt.Bind(ParameterMap, TEXT("NiagaraParticleDataInt"));
 		SafeComponentBufferSizeParam.Bind(ParameterMap, TEXT("SafeComponentBufferSize"));
+		MeshFacingMode.Bind(ParameterMap, TEXT("MeshFacingMode"));
 	}
 
 	virtual void Serialize(FArchive& Ar) override
 	{
-		Ar << PrevTransformBuffer;
+		//Ar << PrevTransformBuffer;
 		Ar << NiagaraParticleDataFloat;
 		Ar << NiagaraParticleDataInt;
 		Ar << SafeComponentBufferSizeParam;
+		Ar << MeshFacingMode;
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
@@ -40,20 +42,22 @@ public:
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FNiagaraMeshUniformParameters>(), NiagaraMeshVF->GetUniformBuffer());
 
-		SetSRVParameter(RHICmdList, VertexShaderRHI, PrevTransformBuffer, NiagaraMeshVF->GetPreviousTransformBufferSRV());
+		//SetSRVParameter(RHICmdList, VertexShaderRHI, PrevTransformBuffer, NiagaraMeshVF->GetPreviousTransformBufferSRV());
 
 		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataFloat, NiagaraMeshVF->GetFloatDataSRV());
 		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataInt, NiagaraMeshVF->GetIntDataSRV());
 		SetShaderValue(RHICmdList, VertexShaderRHI, SafeComponentBufferSizeParam, NiagaraMeshVF->GetComponentBufferSize());
+		SetShaderValue(RHICmdList, VertexShaderRHI, MeshFacingMode, NiagaraMeshVF->GetMeshFacingMode());
 	}
 
 private:
 
-	FShaderResourceParameter PrevTransformBuffer;
+	//FShaderResourceParameter PrevTransformBuffer;
 
 	FShaderResourceParameter NiagaraParticleDataFloat;
 	FShaderResourceParameter NiagaraParticleDataInt;
 	FShaderParameter SafeComponentBufferSizeParam;
+	FShaderParameter MeshFacingMode;
 
 };
 
@@ -187,6 +191,7 @@ void FNiagaraMeshVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer* I
 	}
 }
 
+/*
 uint8* FNiagaraMeshVertexFactory::LockPreviousTransformBuffer(uint32 ParticleCount)
 {
 	const static uint32 ElementSize = sizeof(FVector4);
@@ -217,6 +222,7 @@ FShaderResourceViewRHIParamRef FNiagaraMeshVertexFactory::GetPreviousTransformBu
 {
 	return PrevTransformBuffer.SRV;
 }
+*/
 
 bool FNiagaraMeshVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {

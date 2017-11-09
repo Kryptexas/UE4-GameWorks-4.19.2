@@ -136,7 +136,8 @@ static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	ECVF_RenderThreadSafe
 	);
 
-static int32 GILCUpdatePrimTaskEnabled = 0;
+static int32 GILCUpdatePrimTaskEnabled = 1;
+
 static FAutoConsoleVariableRef CVarILCUpdatePrimitivesTask(
 	TEXT("r.Cache.UpdatePrimsTaskEnabled"),
 	GILCUpdatePrimTaskEnabled,
@@ -2710,7 +2711,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 	if (ViewFamily.EngineShowFlags.HitProxies == 0 && Scene->PrecomputedLightVolumes.Num() > 0)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_IndirectLightingCache_Update);
-		if (GILCUpdatePrimTaskEnabled)
+		if (GILCUpdatePrimTaskEnabled && FPlatformProcess::SupportsMultithreading())
 		{
 			Scene->IndirectLightingCache.StartUpdateCachePrimitivesTask(Scene, *this, true, OutILCTaskData);
 		}

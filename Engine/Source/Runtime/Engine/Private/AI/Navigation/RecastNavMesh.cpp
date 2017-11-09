@@ -1906,13 +1906,18 @@ void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld)
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> AttachedIndices = NavDataChunk->AttachTiles(*RecastNavMeshImpl);
-			if (AttachedIndices.Num() > 0)
-			{
-				InvalidateAffectedPaths(AttachedIndices);
-				RequestDrawingUpdate();
-			}
+			AttachNavMeshDataChunk(*NavDataChunk);
 		}
+	}
+}
+
+void ARecastNavMesh::AttachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk)
+{
+	TArray<uint32> AttachedIndices = NavDataChunk.AttachTiles(*RecastNavMeshImpl);
+	if (AttachedIndices.Num() > 0)
+	{
+		InvalidateAffectedPaths(AttachedIndices);
+		RequestDrawingUpdate();
 	}
 }
 
@@ -1925,13 +1930,18 @@ void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> DetachedIndices = NavDataChunk->DetachTiles(*RecastNavMeshImpl);
-			if (DetachedIndices.Num() > 0)
-			{
-				InvalidateAffectedPaths(DetachedIndices);
-				RequestDrawingUpdate();
-			}
+			DetachNavMeshDataChunk(*NavDataChunk);
 		}
+	}
+}
+
+void ARecastNavMesh::DetachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk)
+{
+	TArray<uint32> DetachedIndices = NavDataChunk.DetachTiles(*RecastNavMeshImpl);
+	if (DetachedIndices.Num() > 0)
+	{
+		InvalidateAffectedPaths(DetachedIndices);
+		RequestDrawingUpdate();
 	}
 }
 

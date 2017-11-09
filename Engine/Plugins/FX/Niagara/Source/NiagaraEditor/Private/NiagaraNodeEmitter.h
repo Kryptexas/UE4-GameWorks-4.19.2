@@ -82,8 +82,5 @@ private:
 	FText DisplayName;
 
 	UPROPERTY()
-	FGuid CachedEmitterChangeId;
-
-	UPROPERTY()
 	ENiagaraScriptUsage ScriptType;
 };

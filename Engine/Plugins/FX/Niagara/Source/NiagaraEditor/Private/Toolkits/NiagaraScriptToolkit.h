@@ -77,7 +77,7 @@ private:
 	void ExtendToolbar();
 
 	/** Compiles the script. */
-	void CompileScript();
+	void CompileScript(bool bForce);
 
 	/** Refreshes the nodes in the script graph, updating the pins to match external changes. */
 	void RefreshNodes();

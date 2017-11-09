@@ -8,8 +8,10 @@
 //////////////////////////////////////////////////////////////////////////
 // FPaperFlipbookSceneProxy
 
-class FPaperFlipbookSceneProxy : public FPaperRenderSceneProxy
+class FPaperFlipbookSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FPaperFlipbookSceneProxy(const class UPaperFlipbookComponent* InComponent);
 };

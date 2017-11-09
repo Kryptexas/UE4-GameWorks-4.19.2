@@ -112,7 +112,7 @@ protected:
 	FTimerHandle TimerHandle_DestroyDecalComponent;
 
 	/** Called when the life span of the decal has been exceeded */
-	void LifeSpanCallback();
+	virtual void LifeSpanCallback();
 
 public:
 	

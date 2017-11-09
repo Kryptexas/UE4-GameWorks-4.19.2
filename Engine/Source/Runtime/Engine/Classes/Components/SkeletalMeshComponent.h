@@ -1063,6 +1063,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = Animation)
 	FOnAnimInitialized OnAnimInitialized;
 
+	/**
+		If MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered
+		Should we tick Montages only?
+	*/
+	bool ShouldOnlyTickMontages(const float DeltaTime) const;
+
 	/** Tick Animation system */
 	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
 
@@ -1338,7 +1344,10 @@ public:
 	virtual void UnHideBone( int32 BoneIndex ) override;
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset,bool bForceReInit = false) override;
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true) override;
-	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
+
+	static FVector GetSkinnedVertexPosition(USkeletalMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& Model, FSkinWeightVertexBuffer& SkinWeightBuffer);
+	static FVector GetSkinnedVertexPosition(USkeletalMeshComponent* Component, int32 VertexIndex, const FSkeletalMeshLODRenderData& Model, FSkinWeightVertexBuffer& SkinWeightBuffer, TArray<FMatrix>& CachedRefToLocals);
+	static void ComputeSkinnedPositions(USkeletalMeshComponent* Component, TArray<FVector> & OutPositions, TArray<FMatrix>& CachedRefToLocals, const FSkeletalMeshLODRenderData& Model, FSkinWeightVertexBuffer& SkinWeightBuffer);
 
 	void SetSkeletalMeshWithoutResettingAnimation(class USkeletalMesh* NewMesh);
 

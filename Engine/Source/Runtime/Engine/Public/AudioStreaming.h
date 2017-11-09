@@ -294,7 +294,7 @@ protected:
 	TMap<USoundWave*, FWaveRequest> WaveRequests;
 
 	/** Results of async loading audio chunks. */
-	TQueue<FASyncAudioChunkLoadResult*> AsyncAudioStreamChunkResults;
+	TQueue<FASyncAudioChunkLoadResult*, EQueueMode::Mpsc> AsyncAudioStreamChunkResults;
 
 	/** Critical section to protect usage of shared gamethread/audiothread members */
 	mutable FCriticalSection CriticalSection;

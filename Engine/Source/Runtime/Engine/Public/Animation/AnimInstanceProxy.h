@@ -99,6 +99,20 @@ struct ENGINE_API FAnimInstanceProxy
 
 public:
 	FAnimInstanceProxy()
+		: AnimInstanceObject(nullptr)
+		, AnimClassInterface(nullptr)
+		, Skeleton(nullptr)
+		, SkeletalMeshComponent(nullptr)
+		, CurrentDeltaSeconds(0.0f)
+#if WITH_EDITORONLY_DATA
+		, bIsBeingDebugged(false)
+#endif
+		, RootNode(nullptr)
+		, SubInstanceInputNode(nullptr)
+		, SyncGroupWriteIndex(0)
+		, RootMotionMode(ERootMotionMode::NoRootMotionExtraction)
+		, bShouldExtractRootMotion(false)
+		, bBoneCachesInvalidated(false)
 	{
 	}
 

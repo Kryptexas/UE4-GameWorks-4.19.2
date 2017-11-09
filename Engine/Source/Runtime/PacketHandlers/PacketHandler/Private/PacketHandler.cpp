@@ -77,7 +77,7 @@ void PacketHandler::Tick(float DeltaTime)
 	}
 }
 
-void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, bool bConnectionlessOnly/*=false*/)
+void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, bool bConnectionlessOnly/*=false*/, TSharedPtr<IAnalyticsProvider> InProvider/*=nullptr*/)
 {
 	Mode = InMode;
 	MaxPacketBits = InMaxPacketBits;
@@ -121,6 +121,8 @@ void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, boo
 		ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 		AddHandler(ReliabilityComponent, true);
 	}
+
+	Provider = InProvider;
 }
 
 void PacketHandler::InitializeComponents()
@@ -145,6 +147,7 @@ void PacketHandler::InitializeComponents()
 		if (!CurComponent.IsInitialized())
 		{
 			CurComponent.Initialize();
+			CurComponent.SetAnalyticsProvider(Provider);
 		}
 	}
 

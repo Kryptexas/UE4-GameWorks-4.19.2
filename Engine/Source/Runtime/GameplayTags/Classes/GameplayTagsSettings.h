@@ -25,6 +25,12 @@ struct GAMEPLAYTAGS_API FGameplayTagRedirect
 	{
 		return A.OldTagName == B.OldTagName && A.NewTagName == B.NewTagName;
 	}
+
+	// This enables lookups by old tag name via FindByKey
+	bool operator==(FName OtherOldTagName) const
+	{
+		return OldTagName == OtherOldTagName;
+	}
 };
 
 /** Category remapping. This allows base engine tag category meta data to remap to multiple project-specific categories. */

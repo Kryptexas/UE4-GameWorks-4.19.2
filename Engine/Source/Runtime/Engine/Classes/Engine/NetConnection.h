@@ -610,8 +610,10 @@ public:
 
 	/**
 	 * Initializes the PacketHandler
+	 *
+	 * @param InProvider Analytics provider that's passed in to the packet handler
 	 */
-	ENGINE_API virtual void InitHandler();
+	ENGINE_API virtual void InitHandler(TSharedPtr<IAnalyticsProvider> InProvider = nullptr);
 
 	/**
 	 * Initializes the sequence numbers for the connection, usually from shared randomized data

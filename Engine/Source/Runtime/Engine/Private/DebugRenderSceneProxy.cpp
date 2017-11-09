@@ -95,6 +95,12 @@ void FDebugDrawDelegateHelper::DrawDebugLabels(UCanvas* Canvas, APlayerControlle
 	Canvas->SetDrawColor(OldDrawColor);
 }
 
+SIZE_T FDebugRenderSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const 
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_DebugRenderSceneProxy_GetDynamicMeshElements );
@@ -107,7 +113,7 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 		FMaterialRenderProxy* operator[](FLinearColor Color)
 		{
 			FMaterialRenderProxy* MeshColor = NULL;
-			const uint32 HashKey = GetTypeHash(Color);
+			const uint32 HashKey = ::GetTypeHash(Color);
 			if (MeshColorInstances.Contains(HashKey))
 			{
 				MeshColor = *MeshColorInstances.Find(HashKey);

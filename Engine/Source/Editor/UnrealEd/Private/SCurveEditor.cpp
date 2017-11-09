@@ -493,6 +493,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	}
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SCurveEditor::OnObjectPropertyChanged);
+
+	bRequireFocusToZoom = false;
 }
 
 FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
@@ -1305,6 +1307,21 @@ void SCurveEditor::SetZoomToFit(bool bNewZoomToFitVertical, bool bNewZoomToFitHo
 	bZoomToFitHorizontal = bNewZoomToFitHorizontal;
 }
 
+void SCurveEditor::SetRequireFocusToZoom(bool bInRequireFocusToZoom)
+{
+	bRequireFocusToZoom = bInRequireFocusToZoom;
+}
+
+TOptional<bool> SCurveEditor::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	if (bRequireFocusToZoom)
+	{
+		// Enable showing a focus rectangle when the widget has keyboard focus
+		return TOptional<bool>(true);
+	}
+	return TOptional<bool>();
+}
+
 FCurveOwnerInterface* SCurveEditor::GetCurveOwner() const
 {
 	return CurveOwner;
@@ -1557,8 +1574,12 @@ void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPoin
 
 FReply SCurveEditor::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ZoomView(FVector2D(MouseEvent.GetWheelDelta(), MouseEvent.GetWheelDelta()));
-	return FReply::Handled();
+	if (!bRequireFocusToZoom || HasKeyboardFocus())
+	{
+		ZoomView(FVector2D(MouseEvent.GetWheelDelta(), MouseEvent.GetWheelDelta()));
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 void SCurveEditor::ZoomView(FVector2D Delta)

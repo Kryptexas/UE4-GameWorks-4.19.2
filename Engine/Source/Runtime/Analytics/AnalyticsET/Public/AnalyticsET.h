@@ -9,14 +9,10 @@
 class IAnalyticsProvider;
 class IAnalyticsProviderET;
 
-
-
-class IAnalyticsProviderET;
-
 /**
  *  Public implementation of EpicGames.MCP.AnalyticsProvider
  */
-class FAnalyticsET : public IAnalyticsProviderModule
+class ANALYTICSET_API FAnalyticsET : public IAnalyticsProviderModule
 {
 	//--------------------------------------------------------------------------
 	// Module functionality

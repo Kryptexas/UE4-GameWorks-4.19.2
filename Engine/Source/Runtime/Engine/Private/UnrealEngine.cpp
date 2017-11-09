@@ -9017,7 +9017,7 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldError
 			check(Object);
 			break;
 		case EGetWorldErrorMode::LogAndReturnNull:
-			FFrame::KismetExecutionMessage(TEXT("A null object was passed as a world context object to UEngine::GetWorldFromContextObject()."), ELogVerbosity::Error);
+			FFrame::KismetExecutionMessage(TEXT("A null object was passed as a world context object to UEngine::GetWorldFromContextObject()."), ELogVerbosity::Warning);
 			//UE_LOG(LogEngine, Warning, TEXT("UEngine::GetWorldFromContextObject() passed a nullptr"));
 			break;
 		case EGetWorldErrorMode::ReturnNull:
@@ -9030,7 +9030,7 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldError
 	UWorld* World = (ErrorMode == EGetWorldErrorMode::Assert) ? Object->GetWorldChecked(/*out*/ bSupported) : Object->GetWorld();
 	if (bSupported && (World == nullptr) && (ErrorMode == EGetWorldErrorMode::LogAndReturnNull))
 	{
-		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("No world was found for object (%s) passed in to UEngine::GetWorldFromContextObject()."), *GetPathNameSafe(Object)), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("No world was found for object (%s) passed in to UEngine::GetWorldFromContextObject()."), *GetPathNameSafe(Object)), ELogVerbosity::Warning);
 	}
 	return (bSupported ? World : GWorld);
 }

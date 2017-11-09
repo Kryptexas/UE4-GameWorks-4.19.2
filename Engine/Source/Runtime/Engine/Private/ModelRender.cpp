@@ -153,6 +153,12 @@ void UModelComponent::BuildRenderData()
 						}
 						Element.MinVertexIndex = FMath::Min(Node.iVertexIndex + Node.NumVertices * BackFace, Element.MinVertexIndex);
 						Element.MaxVertexIndex = FMath::Max(Node.iVertexIndex + Node.NumVertices * BackFace + Node.NumVertices - 1, Element.MaxVertexIndex);
+
+						if (Element.MaxVertexIndex > (uint32)TheModel->VertexBuffer.Vertices.Num())
+						{
+							UE_LOG(LogModelComponent, Warning, TEXT("Model %s has elements that reference missing vertices. MaxVertex=%d, NumVertices=%d"),
+								*GetPathName(), Element.MaxVertexIndex, TheModel->VertexBuffer.Vertices.Num());
+						}
 					}
 				}
 			}
@@ -166,12 +172,17 @@ void UModelComponent::BuildRenderData()
 /**
  * A model component scene proxy.
  */
-class FModelSceneProxy : public FPrimitiveSceneProxy
+class FModelSceneProxy final : public FPrimitiveSceneProxy
 {
 	/** The vertex factory which is used to access VertexBuffer. */
 	FLocalVertexFactory VertexFactory;
 
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FModelSceneProxy(UModelComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),

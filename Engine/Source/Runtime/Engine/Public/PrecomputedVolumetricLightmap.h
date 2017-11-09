@@ -40,7 +40,7 @@ public:
 
 	virtual void Discard() override
 	{
-		// Keep backing data in the editor for saving
+		//temporarily remove until the semantics around lighting scenarios are fixed.
 		if (!GIsEditor)
 		{
 			Data.Empty();

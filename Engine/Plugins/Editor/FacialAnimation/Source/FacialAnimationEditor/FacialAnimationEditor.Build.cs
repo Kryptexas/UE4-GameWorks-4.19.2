@@ -5,7 +5,14 @@ namespace UnrealBuildTool.Rules
 	public class FacialAnimationEditor : ModuleRules
 	{
 		public FacialAnimationEditor(ReadOnlyTargetRules Target) : base(Target)
-		{			
+		{
+			PublicIncludePaths.AddRange(
+				new string[] {
+					"Source/FacialAnimationEditor/Public",
+					// ... add public include paths required here ...
+				}
+				);
+
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
                     "Core",

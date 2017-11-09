@@ -14,6 +14,8 @@
 #include "StaticMeshResources.h"
 #include "FXSystem.h"
 
+#include "HAL/PlatformStackWalk.h"
+
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
@@ -85,6 +87,8 @@ DEFINE_STAT(STAT_GPUSpriteSpawnTime);
 DEFINE_STAT(STAT_GPUSpriteTickTime);
 DEFINE_STAT(STAT_GPUSingleIterationEmitters);
 DEFINE_STAT(STAT_GPUMultiIterationsEmitters);
+DEFINE_STAT(STAT_GPUParticlesInjectionTime);
+DEFINE_STAT(STAT_GPUParticlesSimulationCommands);
 
 /** Particle memory stats */
 
@@ -135,15 +139,152 @@ DEFINE_STAT(STAT_DynamicAnimTrailCount_MAX);
 DEFINE_STAT(STAT_DynamicAnimTrailGTMem_MAX);
 DEFINE_STAT(STAT_DynamicUntrackedGTMem_MAX);
 
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init"), STAT_ParticleEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance Init"), STAT_MeshEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance InitParams"), STAT_ParticleEmitterInstance_InitParameters, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance InitParams"), STAT_MeshEmitterInstance_InitParameters, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init Sizes"), STAT_ParticleEmitterInstance_InitSize, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock"), STAT_PrepPerInstanceBlock, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init GT"), STAT_ParticleEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance Init GT"), STAT_MeshEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance InitParams GT"), STAT_ParticleEmitterInstance_InitParameters, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance InitParams GT"), STAT_MeshEmitterInstance_InitParameters, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init Sizes GT"), STAT_ParticleEmitterInstance_InitSize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock GT"), STAT_PrepPerInstanceBlock, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize GT"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
 
 
+#define USE_FAST_PARTICLE_POOL 1
+#if USE_FAST_PARTICLE_POOL
+
+static int32 GEnableFastPools = 0;
+static FAutoConsoleVariableRef CVarEnableFastPools(
+	TEXT("r.Emitter.FastPoolEnable"),
+	GEnableFastPools,
+	TEXT("Should we use fast pools for emitters.\n")
+	TEXT(" 0: Don't pool anything\n")
+	TEXT(" 1: Pool the emitters bro (default)\n"),
+	ECVF_Default
+);
+
+static int32 GMaxFreePoolSizeBytes = 2 * 1024 * 1024;
+static FAutoConsoleVariableRef CVarFastPoolMaxFreeSize(
+	TEXT("r.Emitter.FastPoolMaxFreeSize"),
+	GMaxFreePoolSizeBytes,
+	TEXT("Max free pool size to keep around without cleaning up."),
+	ECVF_Default
+);
+
+FCriticalSection GFastPoolsCriticalSection;
+
+struct FFastPoolFreePool
+{
+	FFastPoolFreePool() : LastUsedTime(0.0) { }
+
+	TArray<void*> FreeAllocations;
+	double LastUsedTime;
+};
+
+TMap<int32, FFastPoolFreePool> GFastPoolFreedAllocations;
+int32 GFreePoolSizeBytes = 0;
+
+#define FASTPARTICLEALLOC_CHECKSIZE 0
+#if FASTPARTICLEALLOC_CHECKSIZE 
+FCriticalSection GFastPoolSizeMapCriticalSection;
+TMap<void*, int32> GFastPoolSizeMap;
+#endif
+
+FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
+
+	if (GEnableFastPools)
+	{
+		FScopeLock S(&GFastPoolsCriticalSection);
+
+		FFastPoolFreePool* Allocations = GFastPoolFreedAllocations.Find(AllocSize);
+		if ( Allocations  && Allocations->FreeAllocations.Num() )
+		{
+			void* Result = Allocations->FreeAllocations[0];
+			Allocations->FreeAllocations.RemoveAtSwap(0,1, false);
+			Allocations->LastUsedTime = FPlatformTime::Seconds();
+			GFreePoolSizeBytes -= AllocSize;
+#if FASTPARTICLEALLOC_CHECKSIZE
+			FScopeLock Q(&GFastPoolSizeMapCriticalSection);
+			GFastPoolSizeMap.Add(Result, AllocSize);
+#endif
+			return Result;
+		}
+
+	}
+
+#if FASTPARTICLEALLOC_CHECKSIZE
+	FScopeLock S(&GFastPoolSizeMapCriticalSection);
+	void *Result = FMemory::Malloc(AllocSize);
+	GFastPoolSizeMap.Add(Result, AllocSize);
+	return Result;
+#else
+	return FMemory::Malloc(AllocSize);
+#endif
+}
+
+FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t AllocSize)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
+
+
+#if FASTPARTICLEALLOC_CHECKSIZE
+	{
+		FScopeLock S(&GFastPoolSizeMapCriticalSection);
+		int32* AllocatedSize = GFastPoolSizeMap.Find(RawMemory);
+		GFastPoolSizeMap.Remove(RawMemory);
+		check(AllocatedSize);
+		if (AllocatedSize)
+		{
+			check(*AllocatedSize == AllocSize);
+		}
+	}
+#endif
+	if (GEnableFastPools)
+	{
+		FScopeLock S(&GFastPoolsCriticalSection);
+		FFastPoolFreePool& Allocations = GFastPoolFreedAllocations.FindOrAdd(AllocSize);
+		Allocations.FreeAllocations.Add(RawMemory);
+		GFreePoolSizeBytes += AllocSize;
+
+		if ( GFreePoolSizeBytes > GMaxFreePoolSizeBytes )
+		{
+			// free the oldest allocation
+			FFastPoolFreePool* OldestPool = nullptr;
+			int32 OldestPoolAllocSize  = 0;
+			for ( auto& PoolItr : GFastPoolFreedAllocations )
+			{
+				FFastPoolFreePool& Pool = PoolItr.Value;
+				if ( Pool.FreeAllocations.Num() )
+				{
+					if ( OldestPool == nullptr )
+					{
+						OldestPoolAllocSize = PoolItr.Key;
+						OldestPool = &Pool;
+					}
+					else
+					{
+						if (OldestPool->LastUsedTime > Pool.LastUsedTime)
+						{
+							OldestPoolAllocSize = PoolItr.Key;
+							OldestPool = &Pool;
+						}
+					}
+				}
+			}
+			check( OldestPool );
+			check( OldestPoolAllocSize  != 0 );
+			void* OldAllocation = OldestPool->FreeAllocations[0];
+			OldestPool->FreeAllocations.RemoveAtSwap(0, 1, false);
+			GFreePoolSizeBytes -= OldestPoolAllocSize;
+			FMemory::Free(OldAllocation);
+		}
+		return;
+	}
+	FMemory::Free(RawMemory);
+}
+
+
+#else
 FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
@@ -155,6 +296,9 @@ FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t Alloc
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	FMemory::Free(RawMemory);
 }
+
+#endif
+
 
 
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)

@@ -30,6 +30,7 @@
 #include "UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "FbxAnimUtils.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 
@@ -1106,31 +1107,6 @@ namespace AnimationTransformDebug
 	}
 }
 
-/**
- * We only support float values, so these are the numbers we can take
- */
-bool IsSupportedCurveDataType(EFbxType DatatType)
-{
-
-	switch (DatatType)
-	{
-	case eFbxShort:		//!< 16 bit signed integer.
-	case eFbxUShort:		//!< 16 bit unsigned integer.
-	case eFbxUInt:		//!< 32 bit unsigned integer.
-	case eFbxHalfFloat:	//!< 16 bit floating point.
-	case eFbxInt:		//!< 32 bit signed integer.
-	case eFbxFloat:		//!< Floating point value.
-	case eFbxDouble:		//!< Double width floating point value.
-	case eFbxDouble2:	//!< Vector of two double values.
-	case eFbxDouble3:	//!< Vector of three double values.
-	case eFbxDouble4:	//!< Vector of four double values.
-	case eFbxDouble4x4:	//!< Four vectors of four double values.
-		return true;
-	}
-
-	return false;
-}
-
 bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString& CurveName, const FbxAnimCurve* FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale/*=1.f*/) const
 {
 	if (TargetSequence && FbxCurve)
@@ -1181,29 +1157,6 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 			{
 				CurveToImport->FloatCurve.RemoveRedundantKeys(SMALL_NUMBER);
 			}
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool ShouldImportCurve(FbxAnimCurve* Curve, bool bDoNotImportWithZeroValues)
-{
-	if (Curve && Curve->KeyGetCount() > 0)
-	{
-		if (bDoNotImportWithZeroValues)
-		{
-			for (int32 KeyIndex = 0; KeyIndex < Curve->KeyGetCount(); ++KeyIndex)
-			{
-				if (!FMath::IsNearlyZero(Curve->KeyGetValue(KeyIndex)))
-				{
-					return true;
-				}
-			}
-		}
-		else
-		{
 			return true;
 		}
 	}
@@ -1323,7 +1276,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							}
 
 							FbxAnimCurve* Curve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, (FbxAnimLayer*)CurAnimStack->GetMember(0));
-							if (ShouldImportCurve(Curve, ImportOptions->bDoNotImportCurveWithZero))
+							if (FbxAnimUtils::ShouldImportCurve(Curve, ImportOptions->bDoNotImportCurveWithZero))
 							{
 								FFormatNamedArguments Args;
 								Args.Add(TEXT("BlendShape"), FText::FromString(ChannelName));
@@ -1360,75 +1313,52 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		int32 CurLinkIndex=0;
 		for(auto Node: SortedLinks)
 		{
-			FbxProperty Property = Node->GetFirstProperty();
-			while (Property.IsValid())
+			FbxAnimUtils::ExtractAttributeCurves(Node, ImportOptions->bDoNotImportCurveWithZero, 
+			[this, &CurLinkIndex, &TotalLinks, &DestSeq, &AnimTimeSpan, &ExistingCurveNames](FbxAnimCurve* InCurve, const FString& InCurveName, const FString& InChannelName, int32 InChannelIndex, int32 InNumChannels)
 			{
-				FbxAnimCurveNode* CurveNode = Property.GetCurveNode();
-				// do this if user defined and animated and leaf node
-				if( CurveNode && Property.GetFlag(FbxPropertyFlags::eUserDefined) &&
-					CurveNode->IsAnimated() && IsSupportedCurveDataType(Property.GetPropertyDataType().GetType()) )
+				FString FinalCurveName;
+				if (InNumChannels == 1)
 				{
-					FString CurveName = UTF8_TO_TCHAR(CurveNode->GetName());
-					UE_LOG(LogFbx, Log, TEXT("CurveName : %s"), *CurveName );
-
-					int32 TotalCount = CurveNode->GetChannelsCount();
-					for (int32 ChannelIndex=0; ChannelIndex<TotalCount; ++ChannelIndex)
-					{
-						FbxAnimCurve * AnimCurve = CurveNode->GetCurve(ChannelIndex);
-						FString ChannelName = CurveNode->GetChannelName(ChannelIndex).Buffer();
-
-						if (ShouldImportCurve(AnimCurve, ImportOptions->bDoNotImportCurveWithZero))
-						{
-							FString FinalCurveName;
-							if (TotalCount == 1)
-							{
-								FinalCurveName = CurveName;
-							}
-							else
-							{
-								FinalCurveName = CurveName + "_" + ChannelName;
-							}
-
-							FFormatNamedArguments Args;
-							Args.Add(TEXT("CurveName"), FText::FromString(FinalCurveName));
-							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
-							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
-
-							int32 CurveFlags = AACF_DefaultCurve;
-							if (ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan))
-							{
-								// first let them override material curve if required
-								if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
-								{
-									// now mark this curve as morphtarget
-									MySkeleton->AccumulateCurveMetaData(FName(*FinalCurveName), true, false);
-								}
-								else
-								{
-									// if not material set by default, apply naming convention for material
-									for (const auto& Suffix : ImportOptions->MaterialCurveSuffixes)
-									{
-										int32 TotalSuffix = Suffix.Len();
-										if (CurveName.Right(TotalSuffix) == Suffix)
-										{
-											MySkeleton->AccumulateCurveMetaData(FName(*FinalCurveName), true, false);
-											break;
-										}
-									}
-								}
-
-								ExistingCurveNames.Remove(FinalCurveName);
-							}
-						}
-						else
-						{
-							UE_LOG(LogFbx, Log, TEXT("CurveName(%s) is skipped because it only contains invalid values."), *CurveName);
-						}
-					}
+					FinalCurveName = InCurveName;
+				}
+				else
+				{
+					FinalCurveName = InCurveName + "_" + InChannelName;
 				}
 
-				Property = Node->GetNextProperty(Property); 
-			}
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("CurveName"), FText::FromString(InChannelName));
+				const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
+				GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
+
+				int32 CurveFlags = AACF_DefaultCurve;
+				if (ImportCurveToAnimSequence(DestSeq, InChannelName, InCurve, CurveFlags, AnimTimeSpan))
+				{
+					USkeleton* SeqSkeleton = DestSeq->GetSkeleton();
+
+					// first let them override material curve if required
+					if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
+					{
+						// now mark this curve as morphtarget
+						SeqSkeleton->AccumulateCurveMetaData(FName(*InChannelName), true, false);
+					}
+					else
+					{
+						// if not material set by default, apply naming convention for material
+						for (const auto& Suffix : ImportOptions->MaterialCurveSuffixes)
+						{
+							int32 TotalSuffix = Suffix.Len();
+							if (InChannelName.Right(TotalSuffix) == Suffix)
+							{
+								SeqSkeleton->AccumulateCurveMetaData(FName(*InChannelName), true, false);
+								break;
+							}
+						}
+					}
+
+					ExistingCurveNames.Remove(InChannelName);
+				}	
+			});
 
 			CurLinkIndex++;
 		}

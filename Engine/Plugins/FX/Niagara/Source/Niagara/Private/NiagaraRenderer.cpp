@@ -5,6 +5,7 @@
 #include "ParticleBeamTrailVertexFactory.h"
 #include "NiagaraDataSet.h"
 #include "NiagaraStats.h"
+#include "NiagaraVertexFactory.h"
 
 DECLARE_CYCLE_STAT(TEXT("Generate Particle Lights"), STAT_NiagaraGenLights, STATGROUP_Niagara);
 
@@ -19,6 +20,17 @@ static FAutoConsoleVariableRef CVarParallelEmitterRenderers(
 	);
 
 
+
+NiagaraRenderer::NiagaraRenderer()
+	: CPUTimeMS(0.0f)
+	, bLocalSpace(false)
+	, bEnabled(true)
+	, DynamicDataRender(nullptr)
+	, BaseExtents(1.0f, 1.0f, 1.0f)
+{
+	Material = UMaterial::GetDefaultMaterial(MD_Surface);
+	FNiagaraVertexFactoryBase::Init();
+}
 
 
 NiagaraRenderer::~NiagaraRenderer() 

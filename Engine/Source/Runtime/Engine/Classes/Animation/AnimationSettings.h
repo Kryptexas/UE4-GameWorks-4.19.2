@@ -94,6 +94,10 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Performance)
 	bool bStripAnimationDataOnDedicatedServer;
 
+	/** If true, pre-4.19 behavior of zero-ticking animations during skeletal mesh init */
+	UPROPERTY(config, EditAnywhere, Category = Performance)
+	bool bTickAnimationOnSkeletalMeshInit;
+
 public:
 	static UAnimationSettings * Get() { return CastChecked<UAnimationSettings>(UAnimationSettings::StaticClass()->GetDefaultObject()); }
 

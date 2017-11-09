@@ -116,13 +116,15 @@ public:
 //
 // FLandscapeComponentSceneProxy
 //
-class FLandscapeComponentSceneProxyMobile : public FLandscapeComponentSceneProxy
+class FLandscapeComponentSceneProxyMobile final : public FLandscapeComponentSceneProxy
 {
 	TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> MobileRenderData;
 
 	virtual ~FLandscapeComponentSceneProxyMobile();
 
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent);
 
 	virtual void CreateRenderThreadResources() override;

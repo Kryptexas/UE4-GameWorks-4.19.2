@@ -990,16 +990,22 @@ namespace EGameplayCueEvent
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnActiveGameplayEffectRemoved_Info, const FGameplayEffectRemovalInfo&);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActiveGameplayEffectHandle, int32 /*NewStackCount*/, int32 /*PreviousStackCount*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectTimeChange, FActiveGameplayEffectHandle, float /*NewStartTime*/, float /*NewDuration*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActiveGameplayEffectInhibitionChanged, FActiveGameplayEffectHandle, bool /*bIsInhibited*/);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
-
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActiveGameplayEffectHandle, int32, int32);
-
-/** FActiveGameplayEffectHandle that is being effect, the start time, duration of the effect */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectTimeChange, FActiveGameplayEffectHandle, float, float);
+struct FActiveGameplayEffectEvents
+{
+	FOnActiveGameplayEffectRemoved DEPRECATED_OnEffectRemoved;
+	FOnActiveGameplayEffectRemoved_Info OnEffectRemoved;
+	FOnActiveGameplayEffectStackChange OnStackChanged;
+	FOnActiveGameplayEffectTimeChange OnTimeChanged;
+	FOnActiveGameplayEffectInhibitionChanged OnInhibitionChanged;
+};
 
 // This is deprecated, use FOnGameplayAttributeValueChange
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float, const FGameplayEffectModCallbackData*);

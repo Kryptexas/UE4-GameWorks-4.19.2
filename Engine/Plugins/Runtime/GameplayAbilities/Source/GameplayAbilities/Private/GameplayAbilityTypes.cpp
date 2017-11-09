@@ -209,6 +209,8 @@ FGameplayAbilitySpec::FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int32
 	InDef.AssignedHandle = Handle;
 	GameplayEffectHandle = InGameplayEffectHandle;
 
+	SetByCallerTagMagnitudes = InDef.SetByCallerTagMagnitudes;
+
 	FString ContextString = FString::Printf(TEXT("FGameplayAbilitySpec::FGameplayAbilitySpec for %s from %s"), 
 		(InDef.Ability ? *InDef.Ability->GetName() : TEXT("INVALID ABILITY")), 
 		(InDef.SourceObject ? *InDef.SourceObject->GetName() : TEXT("INVALID ABILITY")));

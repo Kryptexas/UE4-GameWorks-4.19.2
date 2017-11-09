@@ -22,6 +22,8 @@
 #include "Animation/AnimNodeBase.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNode_StateMachine.h"
+#include "SkeletalRenderPublic.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 /** Anim stats */
 
@@ -346,13 +348,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 	{
 		/**
 			If we're set to OnlyTickMontagesWhenNotRendered and we haven't been recently rendered,
-			then only update montages and skip everything else.
+			then only update montages and skip everything else. 
 		*/
-		if ((SkelMeshComp->MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
-			&& !SkelMeshComp->bRecentlyRendered)
+		if (SkelMeshComp->ShouldOnlyTickMontages(DeltaSeconds))
 		{
 			/**
-				Clear NotifyQueue prior to ticking montages. 
+				Clear NotifyQueue prior to ticking montages.
 				This is typically done in 'PreUpdate', but we're skipping this here since we're not updating the graph.
 				A side effect of this, is that we're stopping all state notifies in the graph, until ticking resumes.
 				This should be fine. But if it is ever a problem, we should keep two versions of them. One for montages and one for the graph.
@@ -368,9 +369,17 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 			UpdateMontage(DeltaSeconds);
 
 			/**
-				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update
-				when EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered.
+				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update.
+				We do need to reset tick records since the montage will appear to have "jumped" if normal ticking resumes.
+			*/
+			for (FAnimMontageInstance* MontageInstance : MontageInstances)
+			{
+				MontageInstance->bDidUseMarkerSyncThisTick = false;
+				MontageInstance->MarkerTickRecord.Reset();
+				MontageInstance->MarkersPassedThisTick.Reset();
+			};
 
+			/**
 				We also intentionally do not call UpdateMontageEvaluationData after the call to UpdateMontage.
 				As we would have to call 'UpdateAnimation' on the graph as well, so weights could be in sync with this new data.
 				The problem lies in the fact that 'Evaluation' can be called without a call to 'Update' prior.
@@ -696,20 +705,27 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 		DisplayDebugManager.SetLinearDrawColor((PlayerIndex == HighlightIndex) ? HighlightColor : TextColor);
 
-		FString PlayerEntry;
+		FString PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W(%.f%%)"), 
+			PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f);
+
+		// See if we have access to SequenceLength
+		if (UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(Player.SourceAsset))
+		{
+			PlayerEntry += FString::Printf(TEXT(" P(%.2f/%.2f)"), 
+				Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f, AnimSeqBase->SequenceLength);
+		}
+		else
+		{
+			PlayerEntry += FString::Printf(TEXT(" P(%.2f)"),
+				Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f);
+		}
 
 		// Part of a sync group
 		if (HighlightIndex != INDEX_NONE)
 		{
-			PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W:%.1f%% P:%.2f, Prev(i:%d, t:%.3f) Next(i:%d, t:%.3f)"),
-				PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f, Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f
-				, Player.MarkerTickRecord->PreviousMarker.MarkerIndex, Player.MarkerTickRecord->PreviousMarker.TimeToMarker, Player.MarkerTickRecord->NextMarker.MarkerIndex, Player.MarkerTickRecord->NextMarker.TimeToMarker);
-		}
-		// not part of a sync group
-		else
-		{
-			PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W:%.1f%% P:%.2f"),
-				PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f, Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f);
+			PlayerEntry += FString::Printf(TEXT(" Prev(i:%d, t:%.3f) Next(i:%d, t:%.3f)"),
+				Player.MarkerTickRecord->PreviousMarker.MarkerIndex, Player.MarkerTickRecord->PreviousMarker.TimeToMarker, 
+				Player.MarkerTickRecord->NextMarker.MarkerIndex, Player.MarkerTickRecord->NextMarker.TimeToMarker);
 		}
 
 		DisplayDebugManager.DrawString(PlayerEntry, Indent);
@@ -760,6 +776,35 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 	}
 }
 
+void UAnimInstance::DisplayDebugInstance(FDisplayDebugManager& DisplayDebugManager, float& Indent)
+{
+	DisplayDebugManager.SetLinearDrawColor(FLinearColor::Green);
+
+	if (USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent())
+	{
+		const int32 MaxLODIndex = SkelMeshComp->MeshObject ? (SkelMeshComp->MeshObject->GetSkeletalMeshRenderData().LODRenderData.Num() - 1) : INDEX_NONE;
+		FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+
+		FString DebugText = FString::Printf(TEXT("LOD(%d/%d) UpdateCounter(%d) EvalCounter(%d) CacheBoneCounter(%d) InitCounter(%d) DeltaSeconds(%.3f)"),
+			SkelMeshComp->PredictedLODLevel, MaxLODIndex, Proxy.GetUpdateCounter().Get(), Proxy.GetEvaluationCounter().Get(),
+			Proxy.GetCachedBonesCounter().Get(), Proxy.GetInitializationCounter().Get(), Proxy.GetDeltaSeconds());
+
+		DisplayDebugManager.DrawString(DebugText, Indent);
+
+		if (SkelMeshComp->ShouldUseUpdateRateOptimizations())
+		{
+			if (FAnimUpdateRateParameters* UROParams = SkelMeshComp->AnimUpdateRateParams)
+			{
+				DebugText = FString::Printf(TEXT("URO Rate(%d) SkipUpdate(%d) SkipEval(%d) Interp(%d)"),
+					UROParams->UpdateRate, UROParams->ShouldSkipUpdate(), UROParams->ShouldSkipEvaluation(),
+					UROParams->ShouldInterpolateSkippedFrames());
+
+				DisplayDebugManager.DrawString(DebugText, Indent);
+			}
+		}
+	}
+}
+
 void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 #if ENABLE_DRAW_DEBUG
@@ -795,6 +840,11 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 	FString Heading = FString::Printf(TEXT("Animation: %s"), *GetName());
 	DisplayDebugManager.DrawString(Heading, Indent);
+
+	{
+		FIndenter CustomDebugIndent(Indent);
+		DisplayDebugInstance(DisplayDebugManager, Indent);
+	}
 
 	if (bShowGraph && Proxy.HasRootNode())
 	{

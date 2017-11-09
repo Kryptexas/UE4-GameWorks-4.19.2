@@ -27,6 +27,8 @@ public:
 private:
 	void SelectedEmitterHandlesChanged();
 
+	void EmitterHandleViewModelsChanged();
+
 	void RefreshEmitterWidgets();
 
 	EVisibility GetUnsupportedSelectionTextVisibility() const;

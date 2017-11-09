@@ -35,6 +35,7 @@ namespace
 		}
 	}
 #if WITH_EDITOR
+
 	void WriteJSONObjectStartWithOptionalIdentifier(FDataTableExporterJSON::FDataTableJsonWriter& InJsonWriter, const FString* InIdentifier)
 	{
 		if (InIdentifier)
@@ -59,7 +60,9 @@ namespace
 			InJsonWriter.WriteValue(InValue);
 		}
 	}
+
 #endif
+
 }
 
 

@@ -113,8 +113,9 @@ class NIAGARA_API UNiagaraParameterCollection : public UObject
 public:
 
 	//~UObject interface
-	virtual void PostInitProperties()override;
-	virtual void PostLoad()override;
+#if WITH_EDITORONLY_DATA
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
+#endif
 	//~UObject interface
 
 	int32 IndexOfParameter(const FNiagaraVariable& Var);
@@ -144,17 +145,18 @@ public:
 	FNiagaraVariable FriendlyParameterFromCollectionParameter(const FNiagaraVariable& CollectionParameter)const;
 
 	FString FriendlyNameFromParameterName(FString ParameterName)const;
+	FString GetFullNamespace()const;
 protected:
+	
+	void MakeNamespaceNameUnique();
 
-	const FString& GetUniqueName() const { return UniqueName; }
+	/** Namespace for this parameter collection. Is enforced to be unique across all parameter collections. */
+	UPROPERTY(EditAnywhere, Category = "Parameter Collection", AssetRegistrySearchable)
+	FName Namespace;
 	
 	UPROPERTY()
 	TArray<FNiagaraVariable> Parameters;
 	
 	UPROPERTY()
 	UNiagaraParameterCollectionInstance* DefaultInstance;
-
-	/** Unique name used by parameters in this collection and the scripts referencing them to link them with this collection. */
-	UPROPERTY()
-	FString UniqueName;
 };

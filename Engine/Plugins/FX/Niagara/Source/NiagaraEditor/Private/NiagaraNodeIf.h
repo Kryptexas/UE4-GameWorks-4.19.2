@@ -27,12 +27,16 @@ public:
 	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	//~ End EdGraphNode Interface
 
 	//~ Begin UNiagaraNode Interface
 	virtual void Compile(class FHlslNiagaraTranslator* Translator, TArray<int32>& Outputs) override;
 	virtual bool RefreshFromExternalChanges() override;
 	//~ End UNiagaraNode Interface
+
+	/** Helper function to create a variable to add to the OutputVars and FGuid to add to OutputVarGuids. */
+	FGuid AddOutput(FNiagaraTypeDefinition Type, const FName& Name);
 
 protected:
 	//~ Begin EdGraphNode Interface
@@ -41,7 +45,7 @@ protected:
 
 	//~ Begin UNiagaraNodeWithDynamicPins Interface
 	virtual void OnNewTypedPinAdded(UEdGraphPin* NewPin) override;
-	virtual void OnPinRenamed(UEdGraphPin* RenamedPin) override;
+	virtual void OnPinRenamed(UEdGraphPin* RenamedPin, const FString& OldName) override;
 	virtual bool CanRenamePin(const UEdGraphPin* Pin) const override;
 	virtual bool CanRemovePin(const UEdGraphPin* Pin) const override;
 	virtual bool CanMovePin(const UEdGraphPin* Pin) const override { return false; }

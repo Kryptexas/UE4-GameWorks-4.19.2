@@ -341,16 +341,16 @@ void SDetailsViewBase::UpdatePropertyMaps()
 	for(int32 RootNodeIndex = 0; RootNodeIndex < RootPropertyNodes.Num(); ++RootNodeIndex)
 	{
 		FDetailLayoutData& LayoutData = DetailLayouts[RootNodeIndex];
-		UpdateSinglePropertyMap(RootPropertyNodes[RootNodeIndex], LayoutData);
+		UpdateSinglePropertyMap(RootPropertyNodes[RootNodeIndex], LayoutData, false);
 	}
 }
 
-void SDetailsViewBase::UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData)
+void SDetailsViewBase::UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData, bool bIsExternal)
 {
 	// Reset everything
 	LayoutData.ClassToPropertyMap.Empty();
 
-	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayout = MakeShareable(new FDetailLayoutBuilderImpl(InRootPropertyNode, LayoutData.ClassToPropertyMap, PropertyUtilities.ToSharedRef(), SharedThis(this)));
+	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayout = MakeShareable(new FDetailLayoutBuilderImpl(InRootPropertyNode, LayoutData.ClassToPropertyMap, PropertyUtilities.ToSharedRef(), SharedThis(this), bIsExternal));
 	LayoutData.DetailLayout = DetailLayout;
 
 	TSharedPtr<FComplexPropertyNode> RootPropertyNode = InRootPropertyNode;

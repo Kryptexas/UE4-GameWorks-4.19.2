@@ -158,7 +158,6 @@ void FDebugCanvasDrawer::InitDebugCanvas(FViewportClient* ViewportClient, UWorld
 		// Do not allow the canvas to be flushed outside of our debug rendering path
 		GameThreadCanvas->SetAllowedModes(FCanvas::Allow_DeleteOnRender);
 	}
-
 	if (GameThreadCanvas.IsValid())
 	{
 		const bool bIsStereoscopic3D = GEngine && GEngine->IsStereoscopic3D();

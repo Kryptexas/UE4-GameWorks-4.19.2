@@ -767,6 +767,9 @@ public:
 	virtual void OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld) override;
 	//~ End ANavigationData Interface
 
+	virtual void AttachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk);
+	virtual void DetachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk);
+
 protected:
 	/** Serialization helper. */
 	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh, int32 NavMeshVersion);

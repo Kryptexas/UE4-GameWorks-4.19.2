@@ -22,6 +22,8 @@ DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerCont
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	ENGINE_API SIZE_T GetTypeHash() const override;
+
 	enum EDrawType
 	{
 		SolidMesh = 0,

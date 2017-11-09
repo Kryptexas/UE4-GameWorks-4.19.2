@@ -33,6 +33,12 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponen
 	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 }
 
+SIZE_T FPaperSpriteSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	if (BodySetup != nullptr)

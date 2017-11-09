@@ -53,7 +53,8 @@ static TAutoConsoleVariable<int32> CVarDisableCull(
 static TAutoConsoleVariable<int32> CVarCullAll(
 	TEXT("foliage.CullAll"),
 	0,
-	TEXT("If greater than zero, everything is considered culled."));
+	TEXT("If greater than zero, everything is considered culled."),
+	ECVF_Scalability);
 
 static TAutoConsoleVariable<int32> CVarDitheredLOD(
 	TEXT("foliage.DitheredLOD"),
@@ -746,7 +747,7 @@ struct FFoliageElementParams;
 struct FFoliageRenderInstanceParams;
 struct FFoliageCullInstanceParams;
 
-class FHierarchicalStaticMeshSceneProxy : public FInstancedStaticMeshSceneProxy
+class FHierarchicalStaticMeshSceneProxy final : public FInstancedStaticMeshSceneProxy
 {
 	TSharedRef<TArray<FClusterNode>, ESPMode::ThreadSafe> ClusterTreePtr;
 	const TArray<FClusterNode>& ClusterTree;
@@ -772,6 +773,11 @@ class FHierarchicalStaticMeshSceneProxy : public FInstancedStaticMeshSceneProxy
 #endif
 
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FHierarchicalStaticMeshSceneProxy(bool bInIsGrass, UHierarchicalInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
 		: FInstancedStaticMeshSceneProxy(InComponent, InFeatureLevel)
@@ -1109,6 +1115,8 @@ inline bool CanGroup(const FVector& BoundMin, const FVector& BoundMax, const FVe
 	// We are sure that everything in the bound won't be distance culled
 	return FarDot < MaxDrawDist;
 }
+
+
 
 template<bool TUseVector>
 void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParams& Params, int32 Index, int32 MinLOD, int32 MaxLOD, bool bFullyContained) const

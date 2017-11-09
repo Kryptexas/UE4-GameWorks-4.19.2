@@ -960,16 +960,17 @@ void FAnimationEditor::CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData
 	}
 
 	// If no internal table, create one now
-	if (!SoundWave->InternalCurves)
+	if (!SoundWave->GetInternalCurveData())
 	{
 		static const FName InternalCurveTableName("InternalCurveTable");
-		SoundWave->Curves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
-		SoundWave->Curves->ClearFlags(RF_Public);
-		SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
-		SoundWave->InternalCurves = SoundWave->Curves;
+		UCurveTable* NewCurves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
+		NewCurves->ClearFlags(RF_Public);
+		NewCurves->SetFlags(NewCurves->GetFlags() | RF_Standalone | RF_Transactional);
+		SoundWave->SetCurveData(NewCurves);
+		SoundWave->SetInternalCurveData(NewCurves);
 	}
 
-	UCurveTable* CurveTable = SoundWave->InternalCurves;
+	UCurveTable* CurveTable = SoundWave->GetInternalCurveData();
 
 	// iterate over curves in anim data
 	const int32 NumCurves = Sequence->RawCurveData.FloatCurves.Num();

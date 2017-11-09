@@ -67,18 +67,16 @@ public:
 		NiagaraParticleDataFloat.Bind(ParameterMap, TEXT("NiagaraParticleDataFloat"));
 		NiagaraParticleDataInt.Bind(ParameterMap, TEXT("NiagaraParticleDataInt"));
 		SafeComponentBufferSizeParam.Bind(ParameterMap, TEXT("SafeComponentBufferSize"));
-		UseCustomAlignmentVector.Bind(ParameterMap, TEXT("UseCustomAlignment"));
-		UseVectorAlignment.Bind(ParameterMap, TEXT("UseVectorAlignment"));
-		UseCameraPlaneFacing.Bind(ParameterMap, TEXT("CameraPlaneFacing"));
+		ParticleAlignmentMode.Bind(ParameterMap, TEXT("ParticleAlignmentMode"));
+		ParticleFacingMode.Bind(ParameterMap, TEXT("ParticleFacingMode"));
 	}
 
 	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << NumCutoutVerticesPerFrame;
 		Ar << CutoutGeometry;
-		Ar << UseCustomAlignmentVector;
-		Ar << UseVectorAlignment;
-		Ar << UseCameraPlaneFacing;
+		Ar << ParticleFacingMode;
+		Ar << ParticleAlignmentMode;
 		Ar << NiagaraParticleDataFloat;
 		Ar << NiagaraParticleDataInt;
 		Ar << SafeComponentBufferSizeParam;
@@ -100,9 +98,8 @@ public:
 		FShaderResourceViewRHIParamRef NullSRV = GFNiagaraNullSubUVCutoutVertexBuffer.VertexBufferSRV;
 		SetSRVParameter(RHICmdList, VertexShaderRHI, CutoutGeometry, SpriteVF->GetCutoutGeometrySRV() ? SpriteVF->GetCutoutGeometrySRV() : NullSRV);
 
-		SetShaderValue(RHICmdList, VertexShaderRHI, UseCustomAlignmentVector, SpriteVF->GetCustomAlignment());
-		SetShaderValue(RHICmdList, VertexShaderRHI, UseVectorAlignment, SpriteVF->GetVectorAligned());
-		SetShaderValue(RHICmdList, VertexShaderRHI, UseCameraPlaneFacing, SpriteVF->GetCameraPlaneFacing());
+		SetShaderValue(RHICmdList, VertexShaderRHI, ParticleAlignmentMode, SpriteVF->GetAlignmentMode());
+		SetShaderValue(RHICmdList, VertexShaderRHI, ParticleFacingMode, SpriteVF->GetFacingMode());
 
 		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataFloat, SpriteVF->GetFloatDataSRV());
 		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataInt, SpriteVF->GetIntDataSRV());
@@ -111,9 +108,10 @@ public:
 
 private:
 	FShaderParameter NumCutoutVerticesPerFrame;
-	FShaderParameter UseCustomAlignmentVector;
-	FShaderParameter UseVectorAlignment;
-	FShaderParameter UseCameraPlaneFacing;
+
+	FShaderParameter ParticleAlignmentMode;
+	FShaderParameter ParticleFacingMode;
+
 	FShaderResourceParameter CutoutGeometry;
 	FShaderResourceParameter NiagaraParticleDataFloat;
 	FShaderResourceParameter NiagaraParticleDataInt;
@@ -190,6 +188,10 @@ public:
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 3, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 
+		/** The per-particle dynamic parameter stream */
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 5, Stride, bInstanced));
+		Offset += sizeof(float) * 4;
+
 		/** The stream to read the custom alignment vector from. */
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float3, 6, Stride, bInstanced));
 		Offset += sizeof(float) * 3;
@@ -197,15 +199,6 @@ public:
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float3, 7, Stride, bInstanced));
 		Offset += sizeof(float) * 3;
 
-		/** The per-particle dynamic parameter stream */
-
-		// The -V519 disables a warning from PVS-Studio's static analyzer. It noticed that offset is assigned
-		// twice before being read. It is probably safer to leave the redundant assignments here to reduce
-		// the chance of an error being introduced if this code is modified.
-		Offset = 0;  //-V519
-		Stride = sizeof(float) * 4;
-		Elements.Add(FVertexElement(bInstanced ? 2 : 1, Offset, VET_Float4, 5, Stride, bInstanced));
-		Offset += sizeof(float) * 4;
 
 	}
 
@@ -290,12 +283,11 @@ void FNiagaraSpriteVertexFactory::InitStreams()
 		TexCoordStream->Offset = 0;
 	}
 	FVertexStream* InstanceStream = new(Streams) FVertexStream;
-	FVertexStream* DynamicParameterStream = new(Streams) FVertexStream;
 }
 
 void FNiagaraSpriteVertexFactory::SetInstanceBuffer(const FVertexBuffer* InInstanceBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced)
 {
-	check(Streams.Num() == (bInstanced ? 3 : 2));
+	check(Streams.Num() == (bInstanced ? 2 : 1));
 	FVertexStream& InstanceStream = Streams[bInstanced ? 1 : 0];
 	InstanceStream.VertexBuffer = InInstanceBuffer;
 	InstanceStream.Stride = Stride;
@@ -306,24 +298,6 @@ void FNiagaraSpriteVertexFactory::SetTexCoordBuffer(const FVertexBuffer* InTexCo
 {
 	FVertexStream& TexCoordStream = Streams[0];
 	TexCoordStream.VertexBuffer = InTexCoordBuffer;
-}
-
-void FNiagaraSpriteVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced)
-{
-	check(Streams.Num() == (bInstanced ? 3 : 2));
-	FVertexStream& DynamicParameterStream = Streams[bInstanced ? 2 : 1];
-	if (InDynamicParameterBuffer)
-	{
-		DynamicParameterStream.VertexBuffer = InDynamicParameterBuffer;
-		DynamicParameterStream.Stride = Stride;
-		DynamicParameterStream.Offset = StreamOffset;
-	}
-	else
-	{
-		DynamicParameterStream.VertexBuffer = &GNullNiagaraDynamicParameterVertexBuffer;
-		DynamicParameterStream.Stride = 0;
-		DynamicParameterStream.Offset = 0;
-	}
 }
 
 FVertexFactoryShaderParameters* FNiagaraSpriteVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

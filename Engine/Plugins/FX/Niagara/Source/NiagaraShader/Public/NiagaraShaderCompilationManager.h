@@ -60,7 +60,7 @@ public:
 	FShaderCompilerInput Input;
 	FShaderCompilerOutput Output;
 	FString Hlsl;
-	TArray< TArray<DIGPUBufferParamDescriptor> >DIBufferDescriptors;
+	TArray< FDIBufferDescriptorStore >DIBufferDescriptors;
 
 	FNiagaraShaderCompileJob(uint32 InId, FShaderType* InShaderType, FString InHlsl) :
 		Id(InId),

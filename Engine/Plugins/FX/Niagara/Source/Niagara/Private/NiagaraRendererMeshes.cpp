@@ -41,17 +41,33 @@ NiagaraRendererMeshes::NiagaraRendererMeshes(ERHIFeatureLevel::Type FeatureLevel
 
 	if (Properties && Properties->ParticleMesh)
 	{
+		if (Properties->bOverrideMaterials && Properties->OverrideMaterials.Num() != 0)
+		{
+			for (UMaterialInterface* Interface : Properties->OverrideMaterials)
+			{
+				if (Interface)
+				{
+					Interface->CheckMaterialUsage_Concurrent(MATUSAGE_NiagaraMeshParticles);
+				}
+			}
+		}
+
 		const FStaticMeshLODResources& LODModel = Properties->ParticleMesh->RenderData->LODResources[0];
 		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 		{
 			//FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
 			const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 			UMaterialInterface* ParticleMeshMaterial = Properties->ParticleMesh->GetMaterial(Section.MaterialIndex);
-			if (ParticleMeshMaterial)
+			if (ParticleMeshMaterial && Properties->bOverrideMaterials == false)
 			{
-				ParticleMeshMaterial->CheckMaterialUsage_Concurrent(MATUSAGE_NiagaraMeshParticles);
+				if (ParticleMeshMaterial)
+				{
+					ParticleMeshMaterial->CheckMaterialUsage_Concurrent(MATUSAGE_NiagaraMeshParticles);
+				}
 			}
 		}
+
+		BaseExtents = Properties->ParticleMesh->GetBounds().BoxExtent;
 	}
 
 }
@@ -138,11 +154,20 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 	SimpleTimer MeshElementsTimer;
 
 	FNiagaraDynamicDataMesh *DynamicDataMesh = (static_cast<FNiagaraDynamicDataMesh*>(DynamicDataRender));
-	if (!DynamicDataMesh || DynamicDataMesh->DataSet->GetNumInstances()==0)
+	//if (!DynamicDataMesh || !DynamicDataMesh->DataSet || DynamicDataMesh->DataSet->GetNumInstances()==0)
+	if (!DynamicDataMesh 
+		|| DynamicDataMesh->DataSet->CurrDataRender().GetNumInstancesAllocated() == 0
+		|| DynamicDataMesh->DataSet->CurrDataRender().GetNumInstances() == 0
+		|| DynamicDataMesh->DataSet->CurrDataRender().GetGPUBufferFloat() == nullptr
+		|| nullptr == Properties)
 	{
 		return;
 	}
 
+	//check(DynamicDataMesh->DataSet->PrevDataRender().GetNumInstances() > 0);
+	//check(DynamicDataMesh->DataSet->PrevDataRender().GetNumInstancesAllocated() > 0);
+	//check(DynamicDataMesh->DataSet->PrevData().GetGPUBufferFloat()->NumBytes > 0 || DynamicDataMesh->DataSet->PrevData().GetGPUBufferInt()->NumBytes > 0)
+	
 	{
 		// Update the primitive uniform buffer if needed.
 		if (!WorldSpacePrimitiveUniformBuffer.IsInitialized())
@@ -175,6 +200,8 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 				FNiagaraMeshCollectorResourcesMesh& CollectorResources = Collector.AllocateOneFrameResource<FNiagaraMeshCollectorResourcesMesh>();
 				SetupVertexFactory(&CollectorResources.VertexFactory, LODModel);
 				FNiagaraMeshUniformParameters PerViewUniformParameters;// = UniformParameters;
+				PerViewUniformParameters.LocalToWorld = bLocalSpace ? SceneProxy->GetLocalToWorld() : FMatrix::Identity;//For now just handle local space like this but maybe in future have a VF variant to avoid the transform entirely?
+				PerViewUniformParameters.LocalToWorldInverseTransposed = bLocalSpace ? SceneProxy->GetLocalToWorld().Inverse().GetTransposed() : FMatrix::Identity;
 				PerViewUniformParameters.PrevTransformAvailable = false;
 				PerViewUniformParameters.DeltaSeconds = ViewFamily.DeltaWorldTime;
 				PerViewUniformParameters.PositionDataOffset = DynamicDataMesh->PositionDataOffset;
@@ -194,6 +221,7 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
 				CollectorResources.VertexFactory.SetParticleFactoryType(NVFT_Mesh);
+				CollectorResources.VertexFactory.SetMeshFacingMode((uint32)Properties->FacingMode);
 				CollectorResources.UniformBuffer = FNiagaraMeshUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 				CollectorResources.VertexFactory.SetStrides(0, 0);
 
@@ -210,7 +238,18 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 					{
 						continue;
 					}
-					FMaterialRenderProxy* MaterialProxy = ParticleMeshMaterial->GetRenderProxy(false, false);
+					FMaterialRenderProxy* MaterialProxy = nullptr;
+					
+					if (Properties->bOverrideMaterials && Properties->OverrideMaterials.Num() > Section.MaterialIndex && 
+						Properties->OverrideMaterials[Section.MaterialIndex] != nullptr)
+					{
+						MaterialProxy = Properties->OverrideMaterials[Section.MaterialIndex]->GetRenderProxy(false, false);
+					}
+
+					if (MaterialProxy == nullptr)
+					{
+						MaterialProxy = ParticleMeshMaterial->GetRenderProxy(false, false);
+					}
 
 					if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
 					{
@@ -231,7 +270,8 @@ void NiagaraRendererMeshes::GetDynamicMeshElements(const TArray<const FSceneView
 					BatchElement.FirstIndex = 0;
 					BatchElement.MinVertexIndex = 0;
 					BatchElement.MaxVertexIndex = 0;
-					BatchElement.NumInstances = DynamicDataMesh->DataSet->PrevDataRender().GetNumInstances();
+					BatchElement.NumInstances = DynamicDataMesh->DataSet->CurrDataRender().GetNumInstances();
+					BatchElement.IndirectArgsBuffer = DynamicDataMesh->DataSet->GetDataSetIndices().Buffer;
 
 					if (bIsWireframe)
 					{
@@ -289,7 +329,7 @@ FNiagaraDynamicDataBase *NiagaraRendererMeshes::GenerateVertexData(const FNiagar
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenMeshVertexData);
 
-	if (!Properties || Properties->ParticleMesh == nullptr || !bEnabled)
+	if (!Properties || Properties->ParticleMesh == nullptr || !bEnabled || Data.CurrData().GetNumInstances() == 0)
 	{
 		return nullptr;
 	}
@@ -302,9 +342,9 @@ FNiagaraDynamicDataBase *NiagaraRendererMeshes::GenerateVertexData(const FNiagar
 	const FNiagaraVariableLayoutInfo* PositionLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Position")));
 	const FNiagaraVariableLayoutInfo* VelocityLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Velocity")));
 	const FNiagaraVariableLayoutInfo* ColorLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetColorDef(), TEXT("Color")));
-	const FNiagaraVariableLayoutInfo* XformLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("Transform")));
+	const FNiagaraVariableLayoutInfo* XformLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("MeshOrientation")));
 	const FNiagaraVariableLayoutInfo* ScaleLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Scale")));
-	const FNiagaraVariableLayoutInfo* SizeLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec2Def(), TEXT("Size")));
+	const FNiagaraVariableLayoutInfo* SizeLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec2Def(), TEXT("SpriteSize")));
 	const FNiagaraVariableLayoutInfo* MatParamLayout = Data.GetVariableLayout(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("DynamicMaterialParameter")));
 
 	//Bail if we don't have the required attributes to render this emitter.
@@ -329,18 +369,20 @@ FNiagaraDynamicDataBase *NiagaraRendererMeshes::GenerateVertexData(const FNiagar
 	int32 IntDummy;
 	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetColorDef(), TEXT("Color")), DynamicData->ColorDataOffset, IntDummy);
 	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Scale")), DynamicData->ScaleDataOffset, IntDummy);
-	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec2Def(), TEXT("Size")), DynamicData->SizeDataOffset, IntDummy);
+	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec2Def(), TEXT("SpriteSize")), DynamicData->SizeDataOffset, IntDummy);
 	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("DynamicMaterialParameter")), DynamicData->MaterialParamDataOffset, IntDummy);
-	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("Transform")), DynamicData->TransformDataOffset, IntDummy);
+	Data.GetVariableComponentOffsets(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("MeshOrientation")), DynamicData->TransformDataOffset, IntDummy);
 
 	// if we're CPU simulating, need to init the GPU buffers for the vertex factory
-	if (Data.PrevData().GetNumInstances() > 0)
+	if (Target == ENiagaraSimTarget::CPUSim)
 	{
-		if (Target == ENiagaraSimTarget::CPUSim)
-		{
-			Data.ValidateBufferIndices();
-			Data.InitGPUFromCPU();
-		}
+		//Data.ValidateBufferIndices();
+		Data.InitGPUFromCPU();
+	}
+	else
+	{
+		check(Data.GetDataSetIndices().Buffer != nullptr);
+		Data.InitGPUSimSRVs();
 	}
 
 	DynamicData->DataSet = &Data;

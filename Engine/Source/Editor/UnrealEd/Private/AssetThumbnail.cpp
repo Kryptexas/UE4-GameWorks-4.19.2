@@ -30,7 +30,7 @@
 #include "ObjectTools.h"
 
 #include "IAssetTools.h"
-#include "IAssetTypeActions.h"
+#include "AssetTypeActions_Base.h"
 #include "AssetToolsModule.h"
 #include "Styling/SlateIconFinder.h"
 #include "ClassIconFinder.h"
@@ -562,16 +562,29 @@ private:
 		return FText::GetEmpty();
 	}
 
-	FText GetDisplayNameForClass( UClass* Class ) const
+	FText GetDisplayNameForClass( UClass* Class, const FAssetData* AssetData = nullptr) const
 	{
 		FText ClassDisplayName;
 		if ( Class )
 		{
 			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 			TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
+			
 			if ( AssetTypeActions.IsValid() )
 			{
-				ClassDisplayName = AssetTypeActions.Pin()->GetName();
+				if (AssetData != nullptr)
+				{
+					FAssetTypeActions_Base* BaseAssetTypeAction = static_cast<FAssetTypeActions_Base*>(AssetTypeActions.Pin().Get());
+					if (BaseAssetTypeAction != nullptr)
+					{
+						ClassDisplayName = BaseAssetTypeAction->GetDisplayNameFromAssetData(*AssetData);
+					}
+				}
+
+				if (ClassDisplayName.IsEmpty())
+				{
+					ClassDisplayName = AssetTypeActions.Pin()->GetName();
+				}
 			}
 
 			if ( ClassDisplayName.IsEmpty() )
@@ -591,7 +604,7 @@ private:
 
 		if ( Class )
 		{
-			return GetDisplayNameForClass( Class );
+			return GetDisplayNameForClass( Class, &AssetData );
 		}
 
 		return FText::FromString(AssetClass);

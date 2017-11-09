@@ -334,6 +334,13 @@ protected:
 	// Interface for derived skeletal controls to implement
 	// use this function to update for skeletal control base
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context);
+
+	// Update incoming component pose.
+	virtual void UpdateComponentPose_AnyThread(const FAnimationUpdateContext& Context);
+
+	// Evaluate incoming component pose.
+	virtual void EvaluateComponentPose_AnyThread(FComponentSpacePoseContext& Output);
+
 	// use this function to evaluate for skeletal control base
 	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context);
 	DEPRECATED(4.16, "Please use EvaluateSkeletalControl_AnyThread.")

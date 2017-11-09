@@ -195,8 +195,9 @@ public:
 	 * @param Mode					The mode the manager should be initialized in
 	 * @param InMaxPacketBits		The maximum supported packet size
 	 * @param bConnectionlessOnly	Whether or not this is a connectionless-only manager (ignores .ini components)
+	 * @param InProvider			The analytics provider
 	 */
-	void Initialize(Handler::Mode Mode, uint32 InMaxPacketBits, bool bConnectionlessOnly=false);
+	void Initialize(Handler::Mode Mode, uint32 InMaxPacketBits, bool bConnectionlessOnly=false, TSharedPtr<class IAnalyticsProvider> InProvider=nullptr);
 
 	/**
 	 * Used for external initialization of delegates
@@ -545,6 +546,9 @@ private:
 	/** Whether or not outgoing packets bypass the handler */
 	bool bRawSend;
 
+	/** The analytics provider */
+	TSharedPtr<class IAnalyticsProvider> Provider;
+	
 	/** Whether or not component handshaking has begun */
 	bool bBeganHandshaking;
 };
@@ -668,6 +672,13 @@ public:
 	 * @return	The worst-case reserved packet bits for the component
 	 */
 	virtual int32 GetReservedPacketBits() PURE_VIRTUAL(Handler::Component::GetReservedPacketBits, return -1;);
+
+	/**
+	* Sets the analytics provider that can be used to send analytics events as needed.
+	*
+	* @param Provider The analytics provider
+	*/
+	virtual void SetAnalyticsProvider(TSharedPtr<class IAnalyticsProvider> Provider) {}
 
 protected:
 	/**

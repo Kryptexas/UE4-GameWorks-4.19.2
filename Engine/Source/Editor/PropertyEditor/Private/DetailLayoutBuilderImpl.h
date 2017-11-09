@@ -20,7 +20,8 @@ public:
 		TSharedPtr<FComplexPropertyNode>& InRootNode,
 		FClassToPropertyMap& InPropertyMap,
 		const TSharedRef<IPropertyUtilities>& InPropertyUtilities,
-		const TSharedPtr<IDetailsViewPrivate>& InDetailsView);
+		const TSharedPtr<IDetailsViewPrivate>& InDetailsView,
+		bool bIsExternal);
 
 	/** IDetailLayoutBuilder Interface */
 	virtual const IDetailsView* GetDetailsView() const override;

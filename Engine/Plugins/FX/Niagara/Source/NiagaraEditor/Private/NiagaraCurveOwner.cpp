@@ -87,6 +87,7 @@ void FNiagaraCurveOwner::OnCurveChanged(const TArray<FRichCurveEditInfo>& Change
 		if (CurveChanged != nullptr && CurveOwner != nullptr)
 		{
 			CurveChanged->Execute(ChangedCurveEditInfo.CurveToEdit, *CurveOwner);
+			(*CurveOwner)->PostEditChange();
 		}
 	}
 }

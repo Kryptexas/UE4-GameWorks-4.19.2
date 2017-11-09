@@ -12,10 +12,20 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraStackViewModel"
 
-void UNiagaraStackAddScriptModuleItem::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode)
+void UNiagaraStackAddScriptModuleItem::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode, int32 InTargetIndex)
 {
 	Super::Initialize(InSystemViewModel, InEmitterViewModel, InStackEditorData);
 	OutputNode = &InOutputNode;
+	TargetIndex = InTargetIndex;
+}
+
+UNiagaraStackAddModuleItem::EDisplayMode UNiagaraStackAddScriptModuleItem::GetDisplayMode() const
+{
+	if (TargetIndex != INDEX_NONE)
+	{
+		return EDisplayMode::Compact;
+	}
+	return EDisplayMode::Standard;
 }
 
 void UNiagaraStackAddScriptModuleItem::GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const
@@ -79,6 +89,23 @@ ENiagaraScriptUsage UNiagaraStackAddScriptModuleItem::GetOutputUsage() const
 UNiagaraNodeOutput* UNiagaraStackAddScriptModuleItem::GetOrCreateOutputNode()
 {
 	return OutputNode.Get();
+}
+
+int32 UNiagaraStackAddScriptModuleItem::GetTargetIndex() const
+{
+	return TargetIndex;
+}
+
+FName UNiagaraStackAddScriptModuleItem::GetItemBackgroundName() const
+{
+	if (GetDisplayMode() == UNiagaraStackAddModuleItem::EDisplayMode::Compact)
+	{
+		return "NiagaraEditor.Stack.Group.BackgroundColor";
+	}
+	else
+	{
+		return Super::GetItemBackgroundName();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

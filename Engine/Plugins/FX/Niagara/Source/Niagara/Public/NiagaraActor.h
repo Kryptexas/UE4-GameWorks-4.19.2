@@ -7,14 +7,14 @@
 #include "GameFramework/Actor.h"
 #include "NiagaraActor.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, hideCategories = (Activation, "Components|Activation", Input, Collision, "Game|Damage"), ComponentWrapperClass)
 class ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
 private:
 	/** Pointer to System component */
-	UPROPERTY(VisibleAnywhere, Category=NiagaraActor)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=NiagaraActor, meta = (AllowPrivateAccess = "true"))
 	class UNiagaraComponent* NiagaraComponent;
 
 #if WITH_EDITORONLY_DATA

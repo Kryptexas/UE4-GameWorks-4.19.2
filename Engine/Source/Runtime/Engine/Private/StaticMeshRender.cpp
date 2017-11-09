@@ -295,6 +295,12 @@ void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 M
 	}
 }
 
+SIZE_T FStaticMeshSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const
 {
 	const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];

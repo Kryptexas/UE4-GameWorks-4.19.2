@@ -12,9 +12,14 @@
 
 
 /** Represents a draw frustum to the scene manager. */
-class FDrawFrustumSceneProxy : public FPrimitiveSceneProxy
+class FDrawFrustumSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	/** 
 	* Initialization constructor. 

@@ -127,7 +127,7 @@ public:
 	{
 	}
 
-	void SetDatainterfaceBufferDescriptors(const TArray< TArray<DIGPUBufferParamDescriptor>> &InBufferDescriptors)
+	void SetDatainterfaceBufferDescriptors(const TArray< FDIBufferDescriptorStore > &InBufferDescriptors)
 	{
 		DIBufferDescriptors = InBufferDescriptors;
 	}
@@ -170,17 +170,16 @@ public:
 		IntOutputBufferParam.Bind(ParameterMap, TEXT("OutputInt"));
 		OutputIndexBufferParam.Bind(ParameterMap, TEXT("DataSetIndices"));
 		EmitterTickCounterParam.Bind(ParameterMap, TEXT("EmitterTickCounter"));
-		NumInstancesPerThreadParam.Bind(ParameterMap, TEXT("NumInstancesPerThread"));		
 		NumEventsPerParticleParam.Bind(ParameterMap, TEXT("NumEventsPerParticle"));
 		NumParticlesPerEventParam.Bind(ParameterMap, TEXT("NumParticlesPerEvent"));
 		CopyInstancesBeforeStartParam.Bind(ParameterMap, TEXT("CopyInstancesBeforeStart"));
-		NumInstancesParam.Bind(ParameterMap, TEXT("NumInstances"));
-		StartInstanceParam.Bind(ParameterMap, TEXT("StartInstance"));
-		SimulateStartInstanceParam.Bind(ParameterMap, TEXT("SimulateStartInstance"));
-		GroupStartInstanceParam.Bind(ParameterMap, TEXT("GroupStartInstance"));
+
+		TotalNumInstancesParam.Bind(ParameterMap, TEXT("TotalNumInstances"));
+		StartInstancePhase0Param.Bind(ParameterMap, TEXT("StartInstancePhase0"));
+		StartInstancePhase1Param.Bind(ParameterMap, TEXT("StartInstancePhase1"));
+
 		ComponentBufferSizeReadParam.Bind(ParameterMap, TEXT("ComponentBufferSizeRead"));
 		ComponentBufferSizeWriteParam.Bind(ParameterMap, TEXT("ComponentBufferSizeWrite"));
-		NumThreadGroupsParam.Bind(ParameterMap, TEXT("NumThreadGroups"));
 		EmitterConstantBufferParam.Bind(ParameterMap, TEXT("FEmitterParameters"));
 
 		// params for event buffers
@@ -212,11 +211,11 @@ public:
 		BuildDIBufferParamMap(ParameterMap);
 
 		ensure(FloatOutputBufferParam.IsBound() || IntOutputBufferParam.IsBound());	// we should have at least one output buffer we're writing to
-		ensure(OutputIndexBufferParam.IsBound());		
-		ensure(NumInstancesPerThreadParam.IsBound());	
 		ensure(ComponentBufferSizeWriteParam.IsBound());
-		ensure(NumInstancesPerThreadParam.IsBound());
-		ensure(StartInstanceParam.IsBound());
+		ensure(OutputIndexBufferParam.IsBound());
+		ensure(StartInstancePhase0Param.IsBound());
+		ensure(StartInstancePhase1Param.IsBound());
+		ensure(TotalNumInstancesParam.IsBound());
 	}
 
 	// FShader interface.
@@ -231,15 +230,12 @@ public:
 	FShaderUniformBufferParameter EmitterConstantBufferParam;
 	FShaderUniformBufferParameter DataInterfaceUniformBufferParam;
 	FShaderParameter EmitterTickCounterParam;
-	FShaderParameter NumInstancesPerThreadParam;
-	FShaderParameter NumInstancesParam;
 	FShaderParameter NumEventsPerParticleParam;
 	FShaderParameter NumParticlesPerEventParam;
 	FShaderParameter CopyInstancesBeforeStartParam;
-	FShaderParameter StartInstanceParam;
-	FShaderParameter SimulateStartInstanceParam;
-	FShaderParameter GroupStartInstanceParam;
-	FShaderParameter NumThreadGroupsParam;
+	FShaderParameter TotalNumInstancesParam;
+	FShaderParameter StartInstancePhase0Param;
+	FShaderParameter StartInstancePhase1Param;
 	FShaderParameter ComponentBufferSizeReadParam;
 	FShaderParameter ComponentBufferSizeWriteParam;
 	FRWShaderParameter EventIntUAVParams[MAX_CONCURRENT_EVENT_DATASETS];
@@ -263,10 +259,10 @@ public:
 
 	void BuildDIBufferParamMap(const FShaderParameterMap &ParameterMap)
 	{
-		for (TArray<DIGPUBufferParamDescriptor> &InterfaceDescs : DIBufferDescriptors)
+		for (FDIBufferDescriptorStore &InterfaceDescs : DIBufferDescriptors)
 		{
 			int32 Idx = NameToDIBufferParamMap.AddDefaulted(1);
-			for (DIGPUBufferParamDescriptor &Desc : InterfaceDescs)
+			for (FDIGPUBufferParamDescriptor &Desc : InterfaceDescs.Descriptors)
 			{
 				FShaderResourceParameter &Param = NameToDIBufferParamMap[Idx].Add(*Desc.BufferParamName);
 				Param.Bind(ParameterMap, *Desc.BufferParamName);
@@ -275,14 +271,19 @@ public:
 		}
 	}
 
+	TArray< FDIBufferDescriptorStore > &GetDIBufferDescriptors()
+	{
+		return DIBufferDescriptors;
+	}
+
 private:
 	FShaderUniformBufferParameter NiagaraUniformBuffer;
 
 	// buffer descriptors for data interfaces holding names and params for binding
-	TArray< TArray<DIGPUBufferParamDescriptor> > DIBufferDescriptors;
+	TArray< FDIBufferDescriptorStore > DIBufferDescriptors;
 
 	// buffer descriptors for event data sets holding names and params for binding
-	TArray< TArray<DIGPUBufferParamDescriptor> > EventBufferDescriptors;
+	TArray< TArray<FDIGPUBufferParamDescriptor> > EventBufferDescriptors;
 
 	// one map per data interface, mapping buffer names to their params
 	TArray< TMap<FName, FShaderResourceParameter> > NameToDIBufferParamMap;

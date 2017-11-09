@@ -406,7 +406,7 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 	{
 		UStaticMeshComponent* SMComponent = Cast<UStaticMeshComponent>(Component);
 		// TODO: support instanced static meshes
-		if (Component && !Component->IsA<UInstancedStaticMeshComponent>())
+		if (SMComponent && !Component->IsA<UInstancedStaticMeshComponent>())
 		{
 			Components.Add(SMComponent);
 		}

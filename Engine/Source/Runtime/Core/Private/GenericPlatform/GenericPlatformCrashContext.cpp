@@ -253,8 +253,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
 	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
-	AddCrashProperty( TEXT( "IsAssert" ), FDebug::bHasAsserted );
-	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed) );
+	AddCrashProperty( TEXT( "IsAssert" ), FDebug::HasAsserted() );
+	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::HasAsserted(), GIsGPUCrashed) );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 

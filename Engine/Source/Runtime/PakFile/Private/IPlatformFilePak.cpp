@@ -4250,7 +4250,8 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
 	DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
 
-	bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero();
+	// signed if we have keys, and are not running with fileopenlog (currently results in a deadlock).
+	bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero() && !FParse::Param(FCommandLine::Get(), TEXT("fileopenlog"));;
 	
 	bool bMountPaks = true;
 	TArray<FString> PaksToLoad;

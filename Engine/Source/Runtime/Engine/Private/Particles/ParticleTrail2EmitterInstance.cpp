@@ -43,7 +43,7 @@ DEFINE_STAT(STAT_TrailTickTime);
 
 DEFINE_STAT(STAT_AnimTrailNotifyTime);
 
-DECLARE_CYCLE_STAT(TEXT("TrailEmitterInstance Init"), STAT_TrailEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("TrailEmitterInstance Init GT"), STAT_TrailEmitterInstance_Init, STATGROUP_Particles);
 
 
 #define MAX_TRAIL_INDICES	65535

@@ -490,22 +490,98 @@ void FScene::CheckPrimitiveArrays()
 	check(Primitives.Num() == PrimitiveOcclusionBounds.Num());
 }
 
+
+template<typename T>
+static void SwapTArray(TArray<T>& Array, int i1, int i2)
+{
+	T tmp = Array[i1];
+	Array[i1] = Array[i2];
+	Array[i2] = tmp;
+}
+
 void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddScenePrimitiveRenderThreadTime);
 	
 	CheckPrimitiveArrays();
 
-	int32 PrimitiveIndex = Primitives.Add(PrimitiveSceneInfo);
-	PrimitiveSceneInfo->PackedIndex = PrimitiveIndex;
-
-	PrimitiveSceneProxies.AddUninitialized();
+	Primitives.Add(PrimitiveSceneInfo);
+	PrimitiveSceneProxies.Add(PrimitiveSceneInfo->Proxy);
 	PrimitiveBounds.AddUninitialized();
 	PrimitiveFlagsCompact.AddUninitialized();
 	PrimitiveVisibilityIds.AddUninitialized();
 	PrimitiveOcclusionFlags.AddUninitialized();
 	PrimitiveComponentIds.AddUninitialized();
 	PrimitiveOcclusionBounds.AddUninitialized();
+	
+	const int SourceIndex = PrimitiveSceneProxies.Num() - 1;
+	PrimitiveSceneInfo->PackedIndex = SourceIndex;
+
+	{
+		bool EntryFound = false;
+		int BroadIndex = - 1;
+		SIZE_T InsertProxyHash = PrimitiveSceneInfo->Proxy->GetTypeHash();
+		//broad phase search for a matching type
+		for (BroadIndex = TypeOffsetTable.Num() - 1; BroadIndex >= 0; BroadIndex--)
+		{
+			// example how the prefix sum of the tails could look like
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,2,1,1,1,7,4,8]
+			// TypeOffsetTable[3,8,12,15,16,17,18]
+
+			if (TypeOffsetTable[BroadIndex].PrimitiveSceneProxyType == InsertProxyHash)
+			{
+				EntryFound = true;
+				break;
+			}
+		}
+
+		//new type encountered
+		if (EntryFound == false)
+		{
+			BroadIndex = TypeOffsetTable.Num();
+			if (BroadIndex)
+			{
+				FTypeOffsetTableEntry Entry = TypeOffsetTable[BroadIndex - 1];
+				//adding to the end of the list and offset of the tail (will will be incremented once during the while loop)
+				TypeOffsetTable.Push(FTypeOffsetTableEntry(InsertProxyHash, Entry.Offset));
+			}
+			else
+			{
+				//starting with an empty list and offset zero (will will be incremented once during the while loop)
+				TypeOffsetTable.Push(FTypeOffsetTableEntry(InsertProxyHash, 0));
+			}
+		}
+
+		while (BroadIndex < TypeOffsetTable.Num())
+		{
+			FTypeOffsetTableEntry& NextEntry = TypeOffsetTable[BroadIndex++];
+			int DestIndex = NextEntry.Offset++; //prepare swap and increment
+
+			// example swap chain of inserting a type of 6 at the end
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,2,1,1,1,7,4,8,6]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,6,2,2,2,1,1,1,7,4,8,2]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,6,2,2,2,2,1,1,7,4,8,1]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,6,2,2,2,2,1,1,1,4,8,7]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,6,2,2,2,2,1,1,1,7,8,4]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,6,2,2,2,2,1,1,1,7,4,8]
+
+			if (DestIndex != SourceIndex)
+			{
+				checkfSlow(SourceIndex > DestIndex, TEXT("Corrupted Prefix Sum [%d, %d]"), SourceIndex, DestIndex);
+				Primitives[DestIndex]->PackedIndex = SourceIndex;
+				Primitives[SourceIndex]->PackedIndex = DestIndex;
+
+				SwapTArray(Primitives, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveSceneProxies, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveBounds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveFlagsCompact, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveVisibilityIds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveOcclusionFlags, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveComponentIds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveOcclusionBounds, DestIndex, SourceIndex);
+			}
+		}
+	}
 
 	CheckPrimitiveArrays();
 
@@ -975,22 +1051,85 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 	CheckPrimitiveArrays();
 
 	int32 PrimitiveIndex = PrimitiveSceneInfo->PackedIndex;
-	Primitives.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveSceneProxies.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveBounds.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveFlagsCompact.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveVisibilityIds.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveOcclusionFlags.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveComponentIds.RemoveAtSwap(PrimitiveIndex);
-	PrimitiveOcclusionBounds.RemoveAtSwap(PrimitiveIndex);
-	if (Primitives.IsValidIndex(PrimitiveIndex))
 	{
-		FPrimitiveSceneInfo* OtherPrimitive = Primitives[PrimitiveIndex];
-		OtherPrimitive->PackedIndex = PrimitiveIndex;
+		int BroadIndex = -1;
+		SIZE_T InsertProxyHash = PrimitiveSceneInfo->Proxy->GetTypeHash();
+		//broad phase search for a matching type
+		for (BroadIndex = TypeOffsetTable.Num() - 1; BroadIndex >= 0; BroadIndex--)
+		{
+			// example how the prefix sum of the tails could look like
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,2,1,1,1,7,4,8]
+			// TypeOffsetTable[3,8,12,15,16,17,18]
 
-		// Invalidate the scene info's PackedIndex now that it is used by another primitive
-		PrimitiveSceneInfo->PackedIndex = MAX_int32;
+			if (TypeOffsetTable[BroadIndex].PrimitiveSceneProxyType == InsertProxyHash)
+			{
+				const int InsertionOffset = TypeOffsetTable[BroadIndex].Offset;
+				const int PrevOffset = BroadIndex > 0 ? TypeOffsetTable[BroadIndex - 1].Offset : 0;
+				checkfSlow(PrimitiveIndex >= PrevOffset && PrimitiveIndex < InsertionOffset, TEXT("PrimitiveIndex %d not in Bucket Range [%d, %d]"), PrimitiveIndex, PrevOffset, InsertionOffset);
+				break;
+			}
+		}
+
+		int SourceIndex = PrimitiveIndex;
+		const int SavedBroadIndex = BroadIndex;
+		while ( BroadIndex < TypeOffsetTable.Num() )
+		{
+			FTypeOffsetTableEntry& NextEntry = TypeOffsetTable[BroadIndex++];
+			int DestIndex = --NextEntry.Offset; //decrement and prepare swap 
+
+			// example swap chain of removing X 
+			// PrimitiveSceneProxies[0,0,0,6,X,6,6,6,2,2,2,2,1,1,1,7,4,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,X,2,2,2,1,1,1,7,4,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,X,1,1,1,7,4,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,1,1,1,X,7,4,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,1,1,1,7,X,4,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,1,1,1,7,4,X,8]
+			// PrimitiveSceneProxies[0,0,0,6,6,6,6,6,2,2,2,1,1,1,7,4,8,X]
+
+			if (DestIndex != SourceIndex)
+			{
+				checkfSlow(DestIndex > SourceIndex, TEXT("Corrupted Prefix Sum [%d, %d]"), DestIndex, SourceIndex);
+				Primitives[DestIndex]->PackedIndex = SourceIndex;
+				Primitives[SourceIndex]->PackedIndex = DestIndex;
+
+				SwapTArray(Primitives, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveSceneProxies, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveBounds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveFlagsCompact, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveVisibilityIds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveOcclusionFlags, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveComponentIds, DestIndex, SourceIndex);
+				SwapTArray(PrimitiveOcclusionBounds, DestIndex, SourceIndex);
+				SourceIndex = DestIndex;
+			}
+		}
+
+		const int PreviousOffset = SavedBroadIndex > 0 ? TypeOffsetTable[SavedBroadIndex - 1].Offset : 0;
+		const int CurrentOffset = TypeOffsetTable[SavedBroadIndex].Offset;
+
+		checkfSlow(PreviousOffset <= CurrentOffset, TEXT("Corrupted Bucket [%d, %d]"), PreviousOffset, CurrentOffset);
+		if (CurrentOffset - PreviousOffset == 0)
+		{
+			// remove empty OffsetTable entries e.g.
+			// TypeOffsetTable[3,8,12,15,15,17,18]
+			// TypeOffsetTable[3,8,12,15,17,18]
+			TypeOffsetTable.RemoveAt(SavedBroadIndex);
+		}
+
+		checkfSlow((TypeOffsetTable.Num() == 0 && Primitives.Num() == 1) || TypeOffsetTable[TypeOffsetTable.Num() - 1].Offset == Primitives.Num() - 1, TEXT("Corrupted Tail Offset [%d, %d]"), TypeOffsetTable[TypeOffsetTable.Num() - 1].Offset, Primitives.Num() - 1);
+		checkfSlow(Primitives[Primitives.Num() - 1] == PrimitiveSceneInfo, TEXT("Removed item should be at the end"));
+
+		Primitives.Pop();
+		PrimitiveSceneProxies.Pop();
+		PrimitiveBounds.Pop();
+		PrimitiveFlagsCompact.Pop();
+		PrimitiveVisibilityIds.Pop();
+		PrimitiveOcclusionFlags.Pop();
+		PrimitiveComponentIds.Pop();
+		PrimitiveOcclusionBounds.Pop();
 	}
+
+	PrimitiveSceneInfo->PackedIndex = MAX_int32;
 	
 	CheckPrimitiveArrays();
 

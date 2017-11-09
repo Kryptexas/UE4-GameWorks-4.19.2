@@ -20,6 +20,7 @@
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "EngineTypes.h"
+#include "SkeletalMeshSampling.h"
 
 #include "SkeletalMesh.generated.h"
 
@@ -39,6 +40,8 @@ class UPhysicsAsset;
 class FSkeletalMeshRenderData;
 class FSkeletalMeshModel;
 class FSkeletalMeshLODModel;
+class FSkeletalMeshLODRenderData;
+class FSkinWeightVertexBuffer;
 
 #if WITH_APEX_CLOTHING
 
@@ -322,12 +325,26 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	uint32 bHasPerLODVertexColors : 1;
 
+	/** Keeps this LODs data on the CPU so it can be used for things such as sampling in FX. */
+	UPROPERTY(EditAnywhere, Category = SkeletalMeshLODInfo)
+	uint32 bAllowCPUAccess : 1;
+
+	/**
+	Mesh supports uniformly distributed sampling in constant time.
+	Memory cost is 8 bytes per triangle.
+	Example usage is uniform spawning of particles.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = SkeletalMeshLODInfo, meta=(EditCondition="bAllowCPUAccess"))
+	uint32 bSupportUniformlyDistributedSampling : 1;
+
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
 		, BakePose(nullptr)
 		, bHasPerLODVertexColors(false)
+		, bAllowCPUAccess(false)
+		, bSupportUniformlyDistributedSampling(false)
 	{
 	}
 
@@ -497,6 +514,10 @@ class ENGINE_API USkeletalMesh : public UObject, public IInterface_CollisionData
 	USkeletalMesh(FVTableHelper& Helper);
 	~USkeletalMesh();
 
+#if WITH_EDITOR
+	/** Notification when anything changed */
+	DECLARE_MULTICAST_DELEGATE(FOnMeshChanged);
+#endif
 private:
 #if WITH_EDITORONLY_DATA
 	/** Imported skeletal mesh geometry information (not used at runtime). */
@@ -613,6 +634,9 @@ public:
 	/** Whether or not the mesh has vertex colors */
 	UPROPERTY()
 	uint32 bHasVertexColors:1;
+
+	//caching optimization to avoid recalculating in non-editor builds
+	uint32 bHasActiveClothingAssets:1;
 
 	/** Uses skinned data for collision data. Per poly collision cannot be used for simulation, in most cases you are better off using the physics asset */
 	UPROPERTY(EditAnywhere, Category = Physics)
@@ -798,6 +822,8 @@ public:
 
 	/* Get whether or not any bound clothing assets exist for this mesh **/
 	bool HasActiveClothingAssets() const;
+	/* Compute whether or not any bound clothing assets exist for this mesh **/
+	bool ComputeActiveClothingAssets() const;
 
 	/** Populates OutClothingAssets with all clothing assets that are mapped to sections in the mesh. */
 	void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
@@ -805,11 +831,31 @@ public:
 	/** Adds an asset to this mesh with validation and event broadcast */
 	void AddClothingAsset(UClothingAssetBase* InNewAsset);
 
+	const FSkeletalMeshSamplingInfo& GetSamplingInfo() { return SamplingInfo; }
+
+#if WITH_EDITOR
+	void SetSamplingInfo(const FSkeletalMeshSamplingInfo& InSamplingInfo) { SamplingInfo = InSamplingInfo; }
+	FOnMeshChanged& GetOnMeshChanged() { return OnMeshChanged; }
+#endif
+
+	/** 
+	True if this mesh LOD needs to keep it's data on CPU. 
+	*/
+	bool NeedCPUData(int32 LODIndex)const;
+
 protected:
+
+	/** Defines if and how to generate a set of precomputed data allowing targeted and fast sampling of this mesh on the CPU. */
+	UPROPERTY(EditAnywhere, Category = "Sampling", meta=(ShowOnlyInnerProperties))
+	FSkeletalMeshSamplingInfo SamplingInfo;
 
 	/** Array of user data stored with the asset */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=SkeletalMesh)
 	TArray<UAssetUserData*> AssetUserData;
+
+#if WITH_EDITOR
+	FOnMeshChanged OnMeshChanged;
+#endif
 
 private:
 	/** 
@@ -1125,3 +1171,5 @@ private:
  * @param	InSkeletalMesh	SkeletalMesh that physics asset has been changed for
  */
 ENGINE_API void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh);
+
+ENGINE_API FVector GetSkeletalMeshRefVertLocation(const USkeletalMesh* Mesh, const FSkeletalMeshLODRenderData& LODData, const FSkinWeightVertexBuffer& SkinWeightVertexBuffer, const int32 VertIndex);

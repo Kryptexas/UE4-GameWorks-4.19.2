@@ -116,9 +116,15 @@ FBoxSphereBounds UBoxComponent::CalcBounds(const FTransform& LocalToWorld) const
 FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 {
 	/** Represents a UBoxComponent to the scene manager. */
-	class FBoxSceneProxy : public FPrimitiveSceneProxy
+	class FBoxSceneProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		FBoxSceneProxy(const UBoxComponent* InComponent)
 			:	FPrimitiveSceneProxy(InComponent)
 			,	bDrawOnlyIfSelected( InComponent->bDrawOnlyIfSelected )

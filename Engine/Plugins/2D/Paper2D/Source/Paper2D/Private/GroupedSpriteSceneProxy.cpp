@@ -36,6 +36,12 @@ FSpriteRenderSection& FGroupedSpriteSceneProxy::FindOrAddSection(FSpriteDrawCall
 	return NewSection;
 }
 
+SIZE_T FGroupedSpriteSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
 	, MyComponent(InComponent)

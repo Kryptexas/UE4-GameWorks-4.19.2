@@ -104,7 +104,6 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	}
 
 	NumInstances = InstanceData->GetNumInstances();
-
 	const FMeshMapBuildData* MeshMapBuildData = NULL;
 
 	if (InComponent->LODData.Num() > 0)
@@ -620,6 +619,11 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 	}
 }
 
+SIZE_T FInstancedStaticMeshSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
 
 void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {

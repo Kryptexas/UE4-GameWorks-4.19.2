@@ -12,6 +12,9 @@
 #include "NiagaraScriptFactoryNew.h"
 #include "NiagaraNodeOutput.h"
 #include "NiagaraEditorSettings.h"
+#include "IAssetTypeActions.h"
+#include "AssetToolsModule.h"
+#include "AssetTypeActions/AssetTypeActions_NiagaraScript.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptFactory"
 
@@ -33,8 +36,8 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 	check(Settings);
 
 	UNiagaraScript* NewScript;
-
-	if (UNiagaraScript* Default = Cast<UNiagaraScript>(Settings->DefaultScript.TryLoad()))
+	const FStringAssetReference& SettingDefaultScript = GetDefaultScriptFromSettings(Settings);
+	if (UNiagaraScript* Default = Cast<UNiagaraScript>(SettingDefaultScript.TryLoad()))
 	{
 		NewScript = Cast<UNiagaraScript>(StaticDuplicateObject(Default, InParent, Name, Flags, Class));
 	}
@@ -45,6 +48,59 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 	}
 
 	return NewScript;
+}
+
+const FStringAssetReference& UNiagaraScriptFactoryNew::GetDefaultScriptFromSettings(const UNiagaraEditorSettings* Settings)
+{
+	switch (GetScriptUsage())
+	{
+	case ENiagaraScriptUsage::Module:
+		if (Settings->DefaultModuleScript.IsValid())
+		{
+			return Settings->DefaultModuleScript;
+		}
+		break;
+	case ENiagaraScriptUsage::DynamicInput:
+		if (Settings->DefaultDynamicInputScript.IsValid())
+		{
+			return Settings->DefaultDynamicInputScript;
+		}
+		break;
+	case ENiagaraScriptUsage::Function:
+		if (Settings->DefaultFunctionScript.IsValid())
+		{
+			return Settings->DefaultFunctionScript;
+		}
+		break;
+	}
+	return Settings->DefaultScript;
+}
+
+FText UNiagaraScriptFactoryNew::GetDisplayName() const
+{
+	// Get the displayname for this factory from the action type.
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+
+	UClass* LocalSupportedClass = GetSupportedClass();
+	if (LocalSupportedClass)
+	{
+		TArray<TWeakPtr<IAssetTypeActions>> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsListForClass(LocalSupportedClass);
+		for (auto& CurrentAssetTypeAction : AssetTypeActions)
+		{
+			TSharedPtr<FAssetTypeActions_NiagaraScript> AssetTypeAction = StaticCastSharedPtr<FAssetTypeActions_NiagaraScript>(CurrentAssetTypeAction.Pin());
+			if (AssetTypeAction.IsValid() && AssetTypeAction->GetTypeName() == GetAssetTypeActionName())
+			{
+				FText Name = AssetTypeAction->GetName();
+				if (!Name.IsEmpty())
+				{
+					return Name;
+				}
+			}
+		}
+	}
+
+	// Factories that have no supported class have no display name.
+	return FText();
 }
 
 void UNiagaraScriptFactoryNew::InitializeScript(UNiagaraScript* NewScript)
@@ -85,6 +141,80 @@ void UNiagaraScriptFactoryNew::InitializeScript(UNiagaraScript* NewScript)
 			NiagaraEditorModule.CompileScript(NewScript, ErrorMessages);
 		}
 	}
+}
+
+ENiagaraScriptUsage UNiagaraScriptFactoryNew::GetScriptUsage() const
+{
+	return ENiagaraScriptUsage::Module;
+}
+
+/************************************************************************/
+/* UNiagaraScriptModulesFactory											*/
+/************************************************************************/
+UNiagaraModuleScriptFactory::UNiagaraModuleScriptFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+FName UNiagaraModuleScriptFactory::GetNewAssetThumbnailOverride() const
+{
+	return TEXT("NiagaraEditor.Thumbnails.Modules");
+}
+
+FName UNiagaraModuleScriptFactory::GetAssetTypeActionName() const
+{
+	return FAssetTypeActions_NiagaraScriptModules::NiagaraModuleScriptName;
+}
+
+ENiagaraScriptUsage UNiagaraModuleScriptFactory::GetScriptUsage() const
+{
+	return ENiagaraScriptUsage::Module;
+}
+
+/************************************************************************/
+/* UNiagaraScriptFunctionsFactory										*/
+/************************************************************************/
+UNiagaraFunctionScriptFactory::UNiagaraFunctionScriptFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+FName UNiagaraFunctionScriptFactory::GetNewAssetThumbnailOverride() const
+{
+	return TEXT("NiagaraEditor.Thumbnails.Functions");
+}
+
+FName UNiagaraFunctionScriptFactory::GetAssetTypeActionName() const
+{
+	return FAssetTypeActions_NiagaraScriptFunctions::NiagaraFunctionScriptName;
+}
+
+ENiagaraScriptUsage UNiagaraFunctionScriptFactory::GetScriptUsage() const
+{
+	return ENiagaraScriptUsage::Function;
+}
+
+/************************************************************************/
+/* UNiagaraScriptDynamicInputsFactory									*/
+/************************************************************************/
+UNiagaraDynamicInputScriptFactory::UNiagaraDynamicInputScriptFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+FName UNiagaraDynamicInputScriptFactory::GetNewAssetThumbnailOverride() const
+{
+	return TEXT("NiagaraEditor.Thumbnails.DynamicInputs");
+}
+
+FName UNiagaraDynamicInputScriptFactory::GetAssetTypeActionName() const
+{
+	return FAssetTypeActions_NiagaraScriptDynamicInputs::NiagaraDynamicInputScriptName;
+}
+
+ENiagaraScriptUsage UNiagaraDynamicInputScriptFactory::GetScriptUsage() const
+{
+	return ENiagaraScriptUsage::DynamicInput;
 }
 
 #undef LOCTEXT_NAMESPACE

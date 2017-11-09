@@ -529,6 +529,15 @@ int32 USkeletalMesh::GetClothingAssetIndex(const FGuid& InAssetGuid) const
 
 bool USkeletalMesh::HasActiveClothingAssets() const
 {
+#if WITH_EDITOR
+	return ComputeActiveClothingAssets();
+#else
+	return bHasActiveClothingAssets;
+#endif
+}
+
+bool USkeletalMesh::ComputeActiveClothingAssets() const
+{
 	if(FSkeletalMeshRenderData* Resource = GetResourceForRendering())
 	{
 		for(const FSkeletalMeshLODRenderData& LodData : Resource->LODRenderData)
@@ -574,6 +583,11 @@ void USkeletalMesh::GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutCloth
 			}
 		}
 	}
+}
+
+bool USkeletalMesh::NeedCPUData(int32 LODIndex)const
+{
+	return SamplingInfo.IsSamplingEnabled(this, LODIndex);
 }
 
 void USkeletalMesh::InitResources()
@@ -920,7 +934,29 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
 	}
 
+	if (PropertyThatChanged && PropertyChangedEvent.MemberProperty)
+	{
+		if (PropertyChangedEvent.MemberProperty->GetFName() == FName(TEXT("SamplingInfo")))
+		{
+			SamplingInfo.BuildRegions(this);
+		}
+		else if (PropertyChangedEvent.MemberProperty->GetFName() == FName(TEXT("LODInfo")))
+		{
+			SamplingInfo.BuildWholeMesh(this);
+		}
+	}
+	else
+	{
+		//Rebuild the lot. No property could mean a reimport.
+		SamplingInfo.BuildRegions(this);
+		SamplingInfo.BuildWholeMesh(this);
+	}
+
 	UpdateUVChannelData(true);
+
+#if WITH_EDITOR
+	OnMeshChanged.Broadcast();
+#endif
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -1594,6 +1630,8 @@ void USkeletalMesh::PostLoad()
 			ClothingAsset->InvalidateCachedData();
 		}
 	}
+
+	bHasActiveClothingAssets = ComputeActiveClothingAssets();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -2330,9 +2368,12 @@ void USkeletalMesh::ReleaseCPUResources()
 	FSkeletalMeshRenderData* SkelMeshRenderData = GetResourceForRendering();
 	if (SkelMeshRenderData)
 	{
-		for (int32 Index = 0; Index < SkelMeshRenderData->LODRenderData.Num(); ++Index)
-	{
-			SkelMeshRenderData->LODRenderData[Index].ReleaseCPUResources();
+		for(int32 Index = 0; Index < SkelMeshRenderData->LODRenderData.Num(); ++Index)
+		{
+			if (!NeedCPUData(Index))
+			{
+				SkelMeshRenderData->LODRenderData[Index].ReleaseCPUResources();
+			}
 		}
 	}
 }
@@ -3546,6 +3587,12 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	}
 }
 
+SIZE_T FSkeletalMeshSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 bool FSkeletalMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
 {
 	return CastsDynamicShadow() && CastsDynamicIndirectShadow();
@@ -3885,6 +3932,60 @@ FSkeletalMeshComponentRecreateRenderStateContext::~FSkeletalMeshComponentRecreat
 		{
 			Component->CreateRenderState_Concurrent();
 		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+template <bool bExtraBoneInfluencesT>
+FVector GetRefVertexLocationTyped(
+	const USkeletalMesh* Mesh,
+	const FSkelMeshRenderSection& Section,
+	const FPositionVertexBuffer& PositionBuffer,
+	const FSkinWeightVertexBuffer& SkinWeightVertexBuffer,
+	const int32 VertIndex
+)
+{
+	FVector SkinnedPos(0, 0, 0);
+
+	// Do soft skinning for this vertex.
+	int32 BufferVertIndex = Section.GetVertexBufferIndex() + VertIndex;
+	const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(BufferVertIndex);
+	int32 MaxBoneInfluences = bExtraBoneInfluencesT ? MAX_TOTAL_INFLUENCES : MAX_INFLUENCES_PER_STREAM;
+
+#if !PLATFORM_LITTLE_ENDIAN
+	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
+	for (int32 InfluenceIndex = MAX_INFLUENCES - 1; InfluenceIndex >= MAX_INFLUENCES - MaxBoneInfluences; InfluenceIndex--)
+#else
+	for (int32 InfluenceIndex = 0; InfluenceIndex < MaxBoneInfluences; InfluenceIndex++)
+#endif
+	{
+		const int32 MeshBoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
+		const float	Weight = (float)SrcSkinWeights->InfluenceWeights[InfluenceIndex] / 255.0f;
+		{
+			const FMatrix BoneTransformMatrix = FMatrix::Identity;//Mesh->GetComposedRefPoseMatrix(MeshBoneIndex);
+			const FMatrix RefToLocal = Mesh->RefBasesInvMatrix[MeshBoneIndex] * BoneTransformMatrix;
+
+			SkinnedPos += BoneTransformMatrix.TransformPosition(PositionBuffer.VertexPosition(BufferVertIndex)) * Weight;
+		}
+	}
+
+	return SkinnedPos;
+}
+
+FVector GetSkeletalMeshRefVertLocation(const USkeletalMesh* Mesh, const FSkeletalMeshLODRenderData& LODData, const FSkinWeightVertexBuffer& SkinWeightVertexBuffer, const int32 VertIndex)
+{
+	int32 SectionIndex;
+	int32 VertIndexInChunk;
+	LODData.GetSectionFromVertexIndex(VertIndex, SectionIndex, VertIndexInChunk);
+	const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
+	if (SkinWeightVertexBuffer.HasExtraBoneInfluences())
+	{
+		return GetRefVertexLocationTyped<true>(Mesh, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightVertexBuffer, VertIndexInChunk);
+	}
+	else
+	{
+		return GetRefVertexLocationTyped<false>(Mesh, Section, LODData.StaticVertexBuffers.PositionVertexBuffer, SkinWeightVertexBuffer, VertIndexInChunk);
 	}
 }
 

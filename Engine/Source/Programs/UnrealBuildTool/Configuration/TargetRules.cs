@@ -213,9 +213,9 @@ namespace UnrealBuildTool
 				set { Inner.bEnableOSX109Support = value; }
 			}
 
-			#if !__MonoCS__
-			#pragma warning restore CS1591
-			#endif
+#if !__MonoCS__
+#pragma warning restore CS1591
+#endif
 			#endregion
 		}
 
@@ -738,7 +738,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to allow the use of link time code generation (LTCG).
 		/// </summary>
-		[CommandLine("-NoLTCG", Value = "false")]
+		[CommandLine("-LTCG")]
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bAllowLTCG = false;
 

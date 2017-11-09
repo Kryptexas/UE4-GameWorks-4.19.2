@@ -128,6 +128,9 @@ public:
 	/** Virtual destructor. */
 	ENGINE_API virtual ~FPrimitiveSceneProxy();
 
+	/** Return a type (or subtype) specific hash for sorting purposes */
+	ENGINE_API virtual SIZE_T GetTypeHash() const = 0;
+
 	/**
 	 * Updates selection for the primitive proxy. This simply sends a message to the rendering thread to call SetSelection_RenderThread.
 	 * This is called in the game thread as selection is toggled.

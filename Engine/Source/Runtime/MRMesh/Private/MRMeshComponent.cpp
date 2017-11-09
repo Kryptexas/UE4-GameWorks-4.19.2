@@ -187,9 +187,15 @@ static void InitVertexFactory(FLocalVertexFactory* VertexFactory, const FMRMeshP
 }
 
 
-class FMRMeshProxy : public FPrimitiveSceneProxy
+class FMRMeshProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FMRMeshProxy(const UMRMeshComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
 	, MaterialToUse((InComponent->Material!=nullptr) ? InComponent->Material : UMaterial::GetDefaultMaterial(MD_Surface) )

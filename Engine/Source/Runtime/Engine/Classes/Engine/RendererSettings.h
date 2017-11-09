@@ -407,6 +407,9 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use a GPU-based method on Shader Model 5 hardware."))
 	uint32 bUseGPUMorphTargets : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = "Optimizations", meta = (DisplayName = "GPU Particles Support Only Local Vector Field", Tooltip = "Limits Cascade GPU Particle simulations to applying local vector fields.  Global vector fields are not applied."))
+	bool bGPUParticlesLocalVFOnly;
+
 	UPROPERTY(config, EditAnywhere, Category = Debugging, meta = (
 		ConsoleVariable = "r.GPUCrashDebugging", DisplayName = "Enable vendor specific GPU crash analysis tools",
 		ToolTip = "Enables vendor specific GPU crash analysis tools.  Currently only supports NVIDIA Aftermath on DX11.",

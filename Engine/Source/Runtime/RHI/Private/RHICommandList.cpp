@@ -9,6 +9,7 @@
 #include "Async/TaskGraphInterfaces.h"
 #include "RHI.h"
 #include "ScopeLock.h"
+#include "PipelineStateCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST);
@@ -1649,6 +1650,7 @@ void FRHICommandList::BeginFrame()
 		QUICK_SCOPE_CYCLE_COUNTER(BeginFrame_Flush);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 	}
+
 }
 
 void FRHICommandList::EndFrame()
@@ -1868,7 +1870,7 @@ void FRHICommandListBase::HandleRTThreadTaskCompletion(const FGraphEventRef& MyC
 	check(!IsImmediate() && !IsInRHIThread());
 	for (int32 Index = 0; Index < RTTasks.Num(); Index++)
 	{
-		if (!RTTasks[Index]->IsComplete())
+		if (RTTasks[Index].IsValid() && !RTTasks[Index]->IsComplete())
 		{
 			MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::Type(CPrio_FParallelTranslateCommandList.Get() | ENamedThreads::HighTaskPriority));
 			MyCompletionGraphEvent->DontCompleteUntil(RTTasks[Index]);

@@ -31,7 +31,7 @@ class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChangeRatioThreshold : pub
 
 	/** Wait on attribute ratio change meeting a comparison threshold. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_WaitAttributeChangeRatioThreshold* WaitForAttributeChangeRatioThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute AttributeNumerator, FGameplayAttribute AttributeDenominator, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce);
+	static UAbilityTask_WaitAttributeChangeRatioThreshold* WaitForAttributeChangeRatioThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute AttributeNumerator, FGameplayAttribute AttributeDenominator, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce, AActor* OptionalExternalOwner = nullptr);
 
 	FGameplayAttribute AttributeNumerator;
 	FGameplayAttribute AttributeDenominator;
@@ -49,6 +49,11 @@ protected:
 
 	/** Timer used when either numerator or denominator attribute is changed to delay checking of ratio to avoid false positives (MaxHealth changed before Health updates accordingly) */
 	FTimerHandle CheckAttributeTimer;
+
+	UPROPERTY()
+	UAbilitySystemComponent* ExternalOwner;
+
+	UAbilitySystemComponent* GetFocusedASC();
 
 	void OnAttributeChange();
 	void OnRatioChange();

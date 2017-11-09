@@ -49,7 +49,7 @@ bool UNiagaraStackRoot::GetShouldShowInStack() const
 void UNiagaraStackRoot::RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren)
 {
 	// We only allow displaying and editing system stacks if the system isn't transient which is the case in the emitter editor.
-	bool bShowSystemGroups = GetSystemViewModel()->GetSystemIsTransient() == false;
+	bool bShowSystemGroups = GetSystemViewModel()->GetEditMode() == ENiagaraSystemViewModelEditMode::SystemAsset;
 
 	// Create static entries as needed.
 	if (bShowSystemGroups && SystemExposedVariablesGroup == nullptr)
@@ -137,23 +137,15 @@ void UNiagaraStackRoot::RefreshChildrenInternal(const TArray<UNiagaraStackEntry*
 	NewChildren.Add(ParticleSpawnGroup);
 	NewChildren.Add(ParticleUpdateGroup);
 
-	for (int32 EventHandlerIdx = 0; EventHandlerIdx < GetEmitterViewModel()->GetEmitter()->EventHandlerScriptProps.Num(); EventHandlerIdx++)
+	for (const FNiagaraEventScriptProperties& EventScriptProperties : GetEmitterViewModel()->GetEmitter()->GetEventHandlers())
 	{
-		UNiagaraStackEventScriptItemGroup* EventHandlerGroup = nullptr;
-		for (UNiagaraStackEntry* CurrentChild : CurrentChildren)
-		{
-			UNiagaraStackEventScriptItemGroup* CurrentEventHandlerChild = Cast<UNiagaraStackEventScriptItemGroup>(CurrentChild);
-			if (CurrentEventHandlerChild != nullptr && CurrentEventHandlerChild->GetScriptOccurrence() == EventHandlerIdx)
-			{
-				EventHandlerGroup = CurrentEventHandlerChild;
-				break;
-			}
-		}
+		UNiagaraStackEventScriptItemGroup* EventHandlerGroup = FindCurrentChildOfTypeByPredicate<UNiagaraStackEventScriptItemGroup>(CurrentChildren,
+			[&](UNiagaraStackEventScriptItemGroup* CurrentEventHandlerGroup) { return CurrentEventHandlerGroup->GetScriptUsageId() == EventScriptProperties.Script->GetUsageId(); });
 
 		if (EventHandlerGroup == nullptr)
 		{
 			EventHandlerGroup = NewObject<UNiagaraStackEventScriptItemGroup>(this, NAME_None, RF_Transactional);
-			EventHandlerGroup->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetEmitterViewModel()->GetEditorData().GetStackEditorData(), GetEmitterViewModel()->GetSharedScriptViewModel(), ENiagaraScriptUsage::ParticleEventScript, EventHandlerIdx);
+			EventHandlerGroup->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetEmitterViewModel()->GetEditorData().GetStackEditorData(), GetEmitterViewModel()->GetSharedScriptViewModel(), ENiagaraScriptUsage::ParticleEventScript, EventScriptProperties.Script->GetUsageId());
 			EventHandlerGroup->SetOnModifiedEventHandlers(UNiagaraStackEventScriptItemGroup::FOnModifiedEventHandlers::CreateUObject(this, &UNiagaraStackRoot::EmitterEventArraysChanged));
 			EventHandlerGroup->SetTooltipText(LOCTEXT("EventGroupTooltip", "Determines how this Emitter responds to incoming events. There can be more than one event handler script stack per Emitter."));
 		}

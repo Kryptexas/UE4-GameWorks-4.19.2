@@ -125,9 +125,15 @@ public:
 };
 
 /** Represents a LandscapeGizmoRenderingComponent to the scene manager. */
-class FLandscapeGizmoRenderSceneProxy : public FPrimitiveSceneProxy
+class FLandscapeGizmoRenderSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FMatrix MeshRT;
 	FVector XAxis, YAxis, Origin;
 	FVector FrustumVerts[8];

@@ -107,15 +107,19 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)
 			Serialize(SerializedAssetData);
 		}
-		TArray<TSharedRef<IPlugin>> PakPlugins = IPluginManager::Get().GetPluginsWithPakFile();
-		for (TSharedRef<IPlugin> PakPlugin : PakPlugins)
+
+		TArray<TSharedRef<IPlugin>> ContentPlugins = IPluginManager::Get().GetEnabledPlugins();
+		for ( TSharedRef<IPlugin> ContentPlugin : ContentPlugins )
 		{
-			if (FFileHelper::LoadFileToArray(SerializedAssetData, *(PakPlugin->GetBaseDir() / TEXT("AssetRegistry.bin"))))
+			if ( ContentPlugin->CanContainContent() )
+		{
+				if (FFileHelper::LoadFileToArray(SerializedAssetData, *(ContentPlugin->GetBaseDir() / TEXT("AssetRegistry.bin"))))
 			{
 				SerializedAssetData.Seek(0);
 				Serialize(SerializedAssetData);
 			}
 		}
+	}
 	}
 
 	// Report startup time. This does not include DirectoryWatcher startup time.
@@ -1759,7 +1763,7 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 			}
 
 			PackageDependencies.Add(SoftPackageName, EAssetRegistryDependencyType::Soft);
-		}
+			}
 
 		for (const TPair<FPackageIndex, TArray<FName>>& SearchableNameList : Result.SearchableNamesMap)
 		{

@@ -351,6 +351,9 @@ public:
 
 	virtual int32 GetReservedPacketBits() override;
 
+	/** Sets the analytics provider that's used for sending Oodle performance */
+	virtual void SetAnalyticsProvider(TSharedPtr<class IAnalyticsProvider> Provider);
+
 protected:
 	/** Whether or not Oodle is enabled */
 	bool bEnableOodle;
@@ -372,6 +375,8 @@ protected:
 	/** Cached reserved packet bits for Oodle */
 	uint32 OodleReservedPacketBits;
 
+	/** The analytics provider that's used for sending Oodle performance */
+	TSharedPtr<class FOodleAnalytics> Analytics;
 
 #if !UE_BUILD_SHIPPING
 public:
@@ -382,6 +387,19 @@ public:
 
 	/** Client (Incoming - relative to server) dictionary data */
 	TSharedPtr<FOodleDictionary> ClientDictionary;
+
+	/** Input traffic compressed packet length */
+	uint32 TotalInCompressedLength;
+
+	/** Input traffic decompressed packet length */
+	uint32 TotalInDecompressedLength;
+
+	/** Output traffic compressed packet length */
+	uint32 TotalOutCompressedLength;
+
+	/** Output traffic uncompressed packet length */
+	uint32 TotalOutUncompressedLength;
+
 };
 #endif
 

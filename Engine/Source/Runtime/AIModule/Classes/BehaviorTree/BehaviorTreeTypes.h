@@ -520,7 +520,11 @@ public:
 UCLASS(Abstract)
 class AIMODULE_API UBehaviorTreeTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	static FString BTLoggingContext;
+
+public:
 
 	static FString DescribeNodeHelper(const UBTNode* Node);
 
@@ -532,4 +536,10 @@ class AIMODULE_API UBehaviorTreeTypes : public UObject
 
 	/** returns short name of object's class (BTTaskNode_Wait -> Wait) */
 	static FString GetShortTypeName(const UObject* Ob);
+	
+	static FString GetBTLoggingContext() { return BTLoggingContext; }
+	
+	// @param NewBTLoggingContext the object which name's will be added to some of the BT logging
+	// 	pass nullptr to clear
+	static void SetBTLoggingContext(const UBTNode* NewBTLoggingContext);
 };

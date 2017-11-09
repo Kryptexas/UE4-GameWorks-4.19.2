@@ -12,9 +12,15 @@
 #include "VisualLoggerRenderingComponent.h"
 
 class UVisualLoggerRenderingComponent;
-class FVisualLoggerSceneProxy : public FDebugRenderSceneProxy
+class FVisualLoggerSceneProxy final : public FDebugRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FVisualLoggerSceneProxy(const UVisualLoggerRenderingComponent* InComponent)
 		: FDebugRenderSceneProxy(InComponent)
 	{

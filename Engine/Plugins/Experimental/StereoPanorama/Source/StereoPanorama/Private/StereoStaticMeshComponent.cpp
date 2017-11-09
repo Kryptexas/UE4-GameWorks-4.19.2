@@ -5,12 +5,17 @@
 #include "Engine/StaticMesh.h"
 
 
-class FStereoStaticMeshSceneProxy
+class FStereoStaticMeshSceneProxy final
 	: public FStaticMeshSceneProxy
 {
     ESPStereoCameraLayer EyeToRender;
 
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
     FStereoStaticMeshSceneProxy(UStereoStaticMeshComponent* Component) :
         FStaticMeshSceneProxy(Component, false)

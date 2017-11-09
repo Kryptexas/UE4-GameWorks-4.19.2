@@ -302,6 +302,12 @@ void FBlackboardKeySelector::ResolveSelectedKey(const UBlackboardData& Blackboar
 
 		SelectedKeyID = BlackboardAsset.GetKeyID(SelectedKeyName);
 		SelectedKeyType = BlackboardAsset.GetKeyType(SelectedKeyID);
+		UE_CLOG(IsSet() == false, LogBehaviorTree, Warning
+			, TEXT("%s> Failed to find key \'%s\' in BB asset %s. BB Key Selector will be set to \'Invalid\'")
+			, *UBehaviorTreeTypes::GetBTLoggingContext()
+			, *SelectedKeyName.ToString()
+			, *BlackboardAsset.GetFullName()
+		);
 	}
 }
 
@@ -415,9 +421,7 @@ void FBlackboardKeySelector::AddNameFilter(UObject* Owner, FName PropertyName)
 //----------------------------------------------------------------------//
 // UBehaviorTreeTypes
 //----------------------------------------------------------------------//
-UBehaviorTreeTypes::UBehaviorTreeTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-{
-}
+FString UBehaviorTreeTypes::BTLoggingContext;
 
 FString UBehaviorTreeTypes::DescribeNodeResult(EBTNodeResult::Type NodeResult)
 {
@@ -469,6 +473,13 @@ FString UBehaviorTreeTypes::GetShortTypeName(const UObject* Ob)
 	}
 
 	return TypeDesc;
+}
+
+void UBehaviorTreeTypes::SetBTLoggingContext(const UBTNode* NewBTLoggingContext)
+{
+	BTLoggingContext = NewBTLoggingContext 
+		? FString::Printf(TEXT("%s[%d]"), *NewBTLoggingContext->GetNodeName(), NewBTLoggingContext->GetExecutionIndex())
+		: TEXT("");
 }
 
 //----------------------------------------------------------------------//

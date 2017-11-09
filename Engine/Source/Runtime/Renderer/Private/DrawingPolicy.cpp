@@ -155,20 +155,32 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		}
 		else
 		{
-			// Currently only supporting this path for instanced stereo.
-			const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
-			SetInstanceParameters(RHICmdList, 0, InstanceCount);
+			if (BatchElement.IndirectArgsBuffer)
+			{
+				RHICmdList.DrawIndexedPrimitiveIndirect(
+					Mesh.Type, 
+					BatchElement.IndexBuffer->IndexBufferRHI, 
+					BatchElement.IndirectArgsBuffer, 
+					0
+				);
+			}
+			else
+			{
+				// Currently only supporting this path for instanced stereo.
+				const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
+				SetInstanceParameters(RHICmdList, 0, InstanceCount);
 
-			RHICmdList.DrawIndexedPrimitive(
-				BatchElement.IndexBuffer->IndexBufferRHI,
-				Mesh.Type,
-				BatchElement.BaseVertexIndex,
-				0,
-				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-				BatchElement.FirstIndex,
-				BatchElement.NumPrimitives,
-				InstanceCount * GetInstanceFactor()
-			);
+				RHICmdList.DrawIndexedPrimitive(
+					BatchElement.IndexBuffer->IndexBufferRHI,
+					Mesh.Type,
+					BatchElement.BaseVertexIndex,
+					0,
+					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+					BatchElement.FirstIndex,
+					BatchElement.NumPrimitives,
+					InstanceCount * GetInstanceFactor()
+				);
+			}
 		}
 	}
 	else

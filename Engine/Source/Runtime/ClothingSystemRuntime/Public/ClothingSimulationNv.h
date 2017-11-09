@@ -164,7 +164,7 @@ public:
 
 	virtual void DestroyActors() override;
 	virtual void DestroyContext(IClothingSimulationContext* InContext) override;
-	virtual void GetSimulationData(TMap<int32, FClothSimulData>& OutData, USkeletalMeshComponent* InOwnerComponent, USkeletalMeshComponent* InOverrideComponent) const override;
+	virtual void GetSimulationData(TMap<int32, FClothSimulData>& OutData, USkeletalMeshComponent* InOwnerComponent, USkinnedMeshComponent* InOverrideComponent) const override;
 	virtual void AddExternalCollisions(const FClothCollisionData& InData) override;
 	virtual void ClearExternalCollisions() override;
 	virtual void GetCollisions(FClothCollisionData& OutCollisions, bool bIncludeExternal = true) const override;
