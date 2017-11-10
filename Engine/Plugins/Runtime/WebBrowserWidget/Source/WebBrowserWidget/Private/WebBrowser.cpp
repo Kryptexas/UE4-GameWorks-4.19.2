@@ -4,6 +4,7 @@
 #include "SWebBrowser.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "TaskGraphInterfaces.h"
 
 #define LOCTEXT_NAMESPACE "WebBrowser"
 
@@ -85,7 +86,8 @@ TSharedRef<SWidget> UWebBrowser::RebuildWidget()
 			.InitialURL(InitialURL)
 			.ShowControls(false)
 			.SupportsTransparency(bSupportsTransparency)
-			.OnUrlChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnUrlChanged));
+			.OnUrlChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnUrlChanged))
+			.OnBeforePopup(BIND_UOBJECT_DELEGATE(FOnBeforePopupDelegate, HandleOnBeforePopup));
 
 		return WebBrowserWidget.ToSharedRef();
 	}
@@ -104,6 +106,33 @@ void UWebBrowser::SynchronizeProperties()
 void UWebBrowser::HandleOnUrlChanged(const FText& InText)
 {
 	OnUrlChanged.Broadcast(InText);
+}
+
+bool UWebBrowser::HandleOnBeforePopup(FString URL, FString Frame)
+{
+	if (OnBeforePopup.IsBound())
+	{
+		if (IsInGameThread())
+		{
+			OnBeforePopup.Broadcast(URL, Frame);
+		}
+		else
+		{
+			// Retry on the GameThread.
+			TWeakObjectPtr<UWebBrowser> WeakThis = this;
+			FFunctionGraphTask::CreateAndDispatchWhenReady([WeakThis, URL, Frame]()
+			{
+				if (WeakThis.IsValid())
+				{
+					WeakThis->HandleOnBeforePopup(URL, Frame);
+				}
+			}, TStatId(), nullptr, ENamedThreads::GameThread);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 #if WITH_EDITOR

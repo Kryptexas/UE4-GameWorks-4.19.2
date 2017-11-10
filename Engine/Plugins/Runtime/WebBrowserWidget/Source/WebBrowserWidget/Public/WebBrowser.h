@@ -16,6 +16,7 @@ class WEBBROWSERWIDGET_API UWebBrowser : public UWidget
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUrlChanged, const FText&, Text);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBeforePopup, FString, URL, FString, Frame);
 
 	/**
 	 * Load the specified URL
@@ -60,6 +61,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Web Browser|Event")
 	FOnUrlChanged OnUrlChanged;
 
+	/** Called when a popup is about to spawn. */
+	UPROPERTY(BlueprintAssignable, Category = "Web Browser|Event")
+	FOnBeforePopup OnBeforePopup;
+
 public:
 
 	//~ Begin UWidget interface
@@ -90,4 +95,5 @@ protected:
 	// End of UWidget interface
 
 	void HandleOnUrlChanged(const FText& Text);
+	bool HandleOnBeforePopup(FString URL, FString Frame);
 };

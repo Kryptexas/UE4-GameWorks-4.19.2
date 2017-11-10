@@ -321,12 +321,6 @@ private:
 	/** Handler for clicking the directory up button */
 	void HandleDirectoryUpCommandExecute();
 
-	/** Handler for the view references command */
-	void HandleViewReferencesCommand();
-
-	/** Returns true if the view references command can be handled */
-	bool HandleViewReferencesCanExecute();
-
 	/** True if the user may use the history back button */
 	bool IsBackEnabled() const;
 
@@ -404,6 +398,9 @@ private:
 
 	/** Delegate called when generating the context menu for a folder */
 	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder OnCreateNewFolder, bool bPathView);
+
+	/** Delegate called to get the current selection state */
+	void GetSelectionState(TArray<FAssetData>& SelectedAssets, TArray<FString>& SelectedPaths);
 
 	/** Sets up an inline-name for the creation of a default-named folder the specified path */
 	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder OnCreateNewFolder);

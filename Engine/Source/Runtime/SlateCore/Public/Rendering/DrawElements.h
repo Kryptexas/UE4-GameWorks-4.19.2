@@ -1198,8 +1198,7 @@ class FSlateBatchData
 {
 public:
 	FSlateBatchData()
-		: DynamicOffset(0, 0)
-		, NumBatchedVertices(0)
+		: NumBatchedVertices(0)
 		, NumBatchedIndices(0)
 		, NumLayers(0)
 	{}
@@ -1311,9 +1310,6 @@ private:
 	TArray<FSlateClippingState> RenderClipStates;
 
 	/**  */
-	FVector2D DynamicOffset;
-
-	/**  */
 	int32 NumBatchedVertices;
 
 	/**  */
@@ -1411,6 +1407,12 @@ public:
 	{
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Add(InDrawElement);
+	}
+	
+	FORCEINLINE void AppendItems(const TArray<FSlateDrawElement>& InDrawElements)
+	{
+		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		ActiveDrawElements.Append(InDrawElements);
 	}
 
 	/** @return Get the window size that we will be painting */
@@ -1512,6 +1514,7 @@ public:
 	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
 
 	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
+	SLATECORE_API int32 PaintVolatileRootLayer(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
 
 	SLATECORE_API void BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle);
 	SLATECORE_API void EndLogicalLayer();

@@ -61,6 +61,7 @@ struct FSaveGameFileVersion
 
 DECLARE_CYCLE_STAT(TEXT("BreakHitResult"), STAT_BreakHitResult, STATGROUP_Game);
 DECLARE_CYCLE_STAT(TEXT("MakeHitResult"), STAT_MakeHitResult, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("SpawnTime"), STAT_SpawnTime, STATGROUP_Game);
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -411,6 +412,7 @@ class AActor* UGameplayStatics::BeginSpawningActorFromClass(const UObject* World
 
 class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride /*= ESpawnActorCollisionHandlingMethod::Undefined*/, AActor* Owner /*= nullptr*/)
 {
+	SCOPE_CYCLE_COUNTER(STAT_SpawnTime);
 	if (UClass* Class = *ActorClass)
 	{
 		// If the WorldContextObject is a Pawn we will use that as the instigator.
@@ -445,6 +447,7 @@ class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(const UObject* 
 
 AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& SpawnTransform)
 {
+	SCOPE_CYCLE_COUNTER(STAT_SpawnTime);
 	if (Actor)
 	{
 		Actor->FinishSpawning(SpawnTransform);

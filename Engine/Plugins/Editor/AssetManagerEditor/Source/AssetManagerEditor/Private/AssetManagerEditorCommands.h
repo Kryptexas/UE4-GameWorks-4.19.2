@@ -7,22 +7,23 @@
 #include "Framework/Commands/Commands.h"
 
 // Actions that can be invoked in the reference viewer
-class FReferenceViewerActions : public TCommands<FReferenceViewerActions>
+class FAssetManagerEditorCommands : public TCommands<FAssetManagerEditorCommands>
 {
 public:
-	FReferenceViewerActions() : TCommands<FReferenceViewerActions>
-	(
-		"ReferenceViewer",
-		NSLOCTEXT("Contexts", "ReferenceViewer", "Reference Viewer"),
-		"MainFrame", FEditorStyle::GetStyleSetName()
-	)
-	{
-	}
+	FAssetManagerEditorCommands();
 
 	// TCommands<> interface
 	virtual void RegisterCommands() override;
 	// End of TCommands<> interface
-public:
+
+	// Shows the reference viewer for the selected assets
+	TSharedPtr<FUICommandInfo> ViewReferences;
+
+	// Shows a size map for the selected assets
+	TSharedPtr<FUICommandInfo> ViewSizeMap;
+
+	// Adds assets to asset audit window
+	TSharedPtr<FUICommandInfo> ViewAssetAudit;
 
 	// Opens the selected asset in the asset editor
 	TSharedPtr<FUICommandInfo> OpenSelectedInAssetEditor;
@@ -42,11 +43,11 @@ public:
 	// Shows a list of objects that reference the selected asset
 	TSharedPtr<FUICommandInfo> ShowReferencingObjects;
 
-	// Shows a size map for the selected asset.
-	TSharedPtr<FUICommandInfo> ShowSizeMap;
-
-	// Shows a reference tree for the selected asset.
+	// Shows a reference tree for the selected asset
 	TSharedPtr<FUICommandInfo> ShowReferenceTree;
+
+	// Adds all referenced objects to asset audit window
+	TSharedPtr<FUICommandInfo> AuditReferencedObjects;
 
 	// Creates a new collection with the list of assets that this asset references, user selects which ECollectionShareType to use.
 	TSharedPtr<FUICommandInfo> MakeLocalCollectionWithReferencers;

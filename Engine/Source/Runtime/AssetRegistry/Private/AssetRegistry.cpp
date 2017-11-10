@@ -1508,6 +1508,11 @@ void UAssetRegistryImpl::InitializeTemporaryAssetRegistryState(FAssetRegistrySta
 	OutState.InitializeFromExisting(DataToUse, State.CachedDependsNodes, State.CachedPackageData, Options, bRefreshExisting);
 }
 
+const FAssetRegistryState* UAssetRegistryImpl::GetAssetRegistryState() const
+{
+	return &State;
+}
+
 void UAssetRegistryImpl::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
 {
 	ScanPathsAndFilesSynchronous(InPaths, InSpecificFiles, bForceRescan, AssetDataCacheMode, nullptr, nullptr);
@@ -2460,14 +2465,15 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 	}
 
 	TSet<FDependsNode*> Visited;
-	TArray<FDependsNode*> NodesToManage;
+	TMap<FDependsNode*, EAssetRegistryDependencyType::Type> NodesToManage;
+	TArray<FDependsNode*> NodesToHardReference;
 	TArray<FDependsNode*> NodesToRecurse;
 
 	// For each explicitly set asset
-	for (const TPair<FDependsNode*, TArray<FDependsNode *>>& Pair : ExplicitMap)
+	for (const TPair<FDependsNode*, TArray<FDependsNode *>>& ExplicitPair : ExplicitMap)
 	{
-		FDependsNode* BaseManagedNode = Pair.Key;
-		const TArray<FDependsNode*>& ManagerNodes = Pair.Value;
+		FDependsNode* BaseManagedNode = ExplicitPair.Key;
+		const TArray<FDependsNode*>& ManagerNodes = ExplicitPair.Value;
 
 		for (FDependsNode* ManagerNode : ManagerNodes)
 		{	
@@ -2477,7 +2483,7 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 			
 			FDependsNode* SourceNode = ManagerNode;
 
-			auto IterateFunction = [&ManagerNode, &SourceNode, &ShouldSetManager, &NodesToManage, &NodesToRecurse, &Visited, &ExplicitMap, &ExistingManagedNodes](FDependsNode* TargetNode, EAssetRegistryDependencyType::Type DependencyType)
+			auto IterateFunction = [&ManagerNode, &SourceNode, &ShouldSetManager, &NodesToManage, &NodesToHardReference, &NodesToRecurse, &Visited, &ExplicitMap, &ExistingManagedNodes](FDependsNode* TargetNode, EAssetRegistryDependencyType::Type DependencyType)
 			{
 				// Only recurse if we haven't already visited, and this node passes recursion test
 				if (!Visited.Contains(TargetNode))
@@ -2493,7 +2499,8 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 						return;
 					}
 
-					NodesToManage.Push(TargetNode);
+					EAssetRegistryDependencyType::Type ManageType = (Flags & EAssetSetManagerFlags::IsDirectSet) ? EAssetRegistryDependencyType::HardManage : EAssetRegistryDependencyType::SoftManage;
+					NodesToManage.Add(TargetNode, ManageType);
 
 					if (Result == EAssetSetManagerResult::SetAndRecurse)
 					{
@@ -2519,14 +2526,10 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 				}
 			}
 
-			// Now set all the dependencies
-			while (NodesToManage.Num())
+			for (TPair<FDependsNode*, EAssetRegistryDependencyType::Type>& ManagePair : NodesToManage)
 			{
-				// Pull off end of array, order doesn't matter
-				FDependsNode* ManagedNode = NodesToManage.Pop();
-
-				ManagerNode->AddDependency(ManagedNode, EAssetRegistryDependencyType::Manage);
-				ManagedNode->AddReferencer(ManagerNode);
+				ManagePair.Key->AddReferencer(ManagerNode);
+				ManagerNode->AddDependency(ManagePair.Key, ManagePair.Value);
 			}
 		}
 	}

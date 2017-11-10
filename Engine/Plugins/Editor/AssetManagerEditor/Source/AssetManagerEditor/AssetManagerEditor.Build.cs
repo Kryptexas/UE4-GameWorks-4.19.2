@@ -6,12 +6,18 @@ public class AssetManagerEditor : ModuleRules
 {
 	public AssetManagerEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"AssetManagerEditor/Private",
+			}
+		);
+
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"TargetPlatform"
+				"TargetPlatform",
 			}
 		);
 		
@@ -19,7 +25,8 @@ public class AssetManagerEditor : ModuleRules
 			new string[] {
 				"Slate",
 				"SlateCore",
-				"InputCore",
+                "ApplicationCore",
+                "InputCore",
 				"UnrealEd",
 				"AssetRegistry",
 				"Json",
@@ -32,8 +39,10 @@ public class AssetManagerEditor : ModuleRules
 				"GraphEditor",
 				"BlueprintGraph",
 				"KismetCompiler",
-				"ReferenceViewer",
-				"SandboxFile"
+				"LevelEditor",
+				"SandboxFile",
+				"EditorWidgets",
+				"TreeMap",
 			}
 		);
 	}

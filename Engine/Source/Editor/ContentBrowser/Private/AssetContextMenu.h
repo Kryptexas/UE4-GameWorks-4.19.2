@@ -211,12 +211,6 @@ private:
 	/** Handler for when "Migrate Asset" is selected */
 	void ExecuteMigrateAsset();
 
-	/** Handler for ShowReferenceViewer */
-	void ExecuteShowReferenceViewer();
-
-	/** Handler for ShowSizeMap */
-	void ExecuteShowSizeMap();
-
 	/** Handler for GoToAssetCode */
 	void ExecuteGoToCodeForAsset(UClass* SelectedClass);
 

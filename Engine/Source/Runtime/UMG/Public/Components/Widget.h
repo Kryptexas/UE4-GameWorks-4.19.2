@@ -728,6 +728,8 @@ public:
 
 	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
+	static FString GetDefaultFontName();
+
 protected:
 	virtual void OnBindingChanged(const FName& Property);
 

@@ -66,9 +66,9 @@ void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FDrawingPolicyRende
 	}
 }
 
-void FMeshDrawingPolicy::SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InInstanceOffset, uint32 InInstanceCount) const
+void FMeshDrawingPolicy::SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 {
-	BaseVertexShader->SetInstanceParameters(RHICmdList, InInstanceOffset, InInstanceCount);
+	BaseVertexShader->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
 }
 
 void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
@@ -96,7 +96,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
 						const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-						SetInstanceParameters(RHICmdList, 0, InstanceCount);
+						SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
 						GetVertexFactory()->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
 
 						RHICmdList.DrawIndexedPrimitive(
@@ -116,7 +116,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
 						uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-						SetInstanceParameters(RHICmdList, 0, InstanceCount);
+						SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
 						GetVertexFactory()->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
 
 						RHICmdList.DrawIndexedPrimitive(
@@ -138,7 +138,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 				{
 					const uint32 InstanceOffset = BatchElement.InstanceRuns[Run * 2];
 					const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-					SetInstanceParameters(RHICmdList, InstanceOffset, InstanceCount);
+					SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, InstanceOffset, InstanceCount);
 
 					RHICmdList.DrawIndexedPrimitive(
 						BatchElement.IndexBuffer->IndexBufferRHI,
@@ -168,7 +168,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 			{
 				// Currently only supporting this path for instanced stereo.
 				const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
-				SetInstanceParameters(RHICmdList, 0, InstanceCount);
+				SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
 
 				RHICmdList.DrawIndexedPrimitive(
 					BatchElement.IndexBuffer->IndexBufferRHI,
@@ -185,7 +185,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	}
 	else
 	{
-		SetInstanceParameters(RHICmdList, 0, 1);
+		SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex + BatchElement.FirstIndex, 0, 1);
 
 		RHICmdList.DrawPrimitive(
 			Mesh.Type,

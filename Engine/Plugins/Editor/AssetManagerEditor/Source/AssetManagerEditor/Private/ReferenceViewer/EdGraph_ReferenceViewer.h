@@ -68,7 +68,7 @@ private:
 
 	bool ExceedsMaxSearchDepth(int32 Depth) const;
 	bool ExceedsMaxSearchBreadth(int32 Breadth) const;
-	EAssetRegistryDependencyType::Type GetReferenceSearchFlags(bool bReferencers) const;
+	EAssetRegistryDependencyType::Type GetReferenceSearchFlags(bool bHardOnly) const;
 
 	UEdGraphNode_Reference* CreateReferenceNode();
 
@@ -103,4 +103,3 @@ private:
 	bool bIsShowSearchableNames;
 	bool bIsShowNativePackages;
 };
-

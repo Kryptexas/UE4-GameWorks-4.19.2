@@ -32,11 +32,11 @@ namespace UnrealBuildTool.Rules
 					"AdjustSdk",													// Framework name
 					"../../ThirdPartyFrameworks/AdjustSdk.embeddedframework.zip"	// Zip name
 				)
-			); 
+			);
 
 			PublicFrameworks.AddRange(
 				new string[] {
-//					"AdSuppport",	// optional
+//					"AdSupport",	// optional
 //					"iAd",			// optional
 				}
 			);

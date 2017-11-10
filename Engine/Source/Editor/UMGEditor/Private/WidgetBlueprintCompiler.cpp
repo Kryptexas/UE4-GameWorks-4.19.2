@@ -152,15 +152,15 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 {
 	UWidgetBlueprint* WidgetBP = WidgetBlueprint();
 
+	const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
+	const ERenameFlags RenFlags = REN_DontCreateRedirectors | (bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
+
 	if ( !Blueprint->bIsRegeneratingOnLoad && bIsFullCompile )
 	{
 		UPackage* WidgetTemplatePackage = WidgetBP->GetWidgetTemplatePackage();
 		UUserWidget* OldArchetype = FindObjectFast<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"));
-		if ( OldArchetype )
+		if (OldArchetype)
 		{
-			const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
-			const ERenameFlags RenFlags = REN_DontCreateRedirectors | ( bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0 ) | REN_NonTransactional | REN_DoNotDirty;
-
 			FString TransientArchetypeString = FString::Printf(TEXT("OLD_TEMPLATE_%s"), *OldArchetype->GetName());
 			FName TransientArchetypeName = MakeUniqueObjectName(GetTransientPackage(), OldArchetype->GetClass(), FName(*TransientArchetypeString));
 			OldArchetype->Rename(*TransientArchetypeName.ToString(), GetTransientPackage(), RenFlags);
@@ -187,9 +187,9 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass && NewWidgetBlueprintClass == NewClass);
 
-	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
+	for (UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations)
 	{
-		Animation->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
+		Animation->Rename(nullptr, GetTransientPackage(), RenFlags);
 	}
 	NewWidgetBlueprintClass->Animations.Empty();
 
@@ -198,6 +198,8 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 
 void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean)
 {
+	Super::SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean);
+
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);
 	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
@@ -207,14 +209,6 @@ void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjec
 	// We need to save the widget tree to survive the initial sub-object clean blitz, 
 	// otherwise they all get renamed, and it causes early loading errors.
 	SubObjectsToSave.AddObject(WidgetBP->WidgetTree);
-
-	// We need to save all the animations to survive the initial sub-object clean blitz, 
-	// otherwise they all get renamed, and it causes early loading errors.
-	SubObjectsToSave.AddObject(NewWidgetBlueprintClass->WidgetTree);
-	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
-	{
-		SubObjectsToSave.AddObject(Animation);
-	}
 }
 
 void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()

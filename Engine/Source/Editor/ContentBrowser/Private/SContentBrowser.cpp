@@ -55,7 +55,6 @@
 #include "AddToProjectConfig.h"
 #include "GameProjectGenerationModule.h"
 #include "GlobalEditorCommonCommands.h"
-#include "ReferenceViewer.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -833,10 +832,17 @@ void SContentBrowser::BindCommands()
 		FExecuteAction::CreateSP(this, &SContentBrowser::HandleResaveAllCurrentFolderCommand)
 	));
 
-	Commands->MapAction(FGlobalEditorCommonCommands::Get().ViewReferences, FUIAction(
-		FExecuteAction::CreateSP(this, &SContentBrowser::HandleViewReferencesCommand),
-		FCanExecuteAction::CreateSP(this, &SContentBrowser::HandleViewReferencesCanExecute)
-	));
+	// Allow extenders to add commands
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+	TArray<FContentBrowserCommandExtender> CommmandExtenderDelegates = ContentBrowserModule.GetAllContentBrowserCommandExtenders();
+
+	for (int32 i = 0; i < CommmandExtenderDelegates.Num(); ++i)
+	{
+		if (CommmandExtenderDelegates[i].IsBound())
+		{
+			CommmandExtenderDelegates[i].Execute(Commands.ToSharedRef(), FOnContentBrowserGetSelection::CreateSP(this, &SContentBrowser::GetSelectionState));
+		}
+	}
 }
 
 EVisibility SContentBrowser::GetCollectionViewVisibility() const
@@ -2300,15 +2306,10 @@ void SContentBrowser::HandleDirectoryUpCommandExecute()
 	}
 }
 
-void SContentBrowser::HandleViewReferencesCommand()
+void SContentBrowser::GetSelectionState(TArray<FAssetData>& SelectedAssets, TArray<FString>& SelectedPaths)
 {
-	TArray<FName> ViewableAssets;
-
-	TArray<FAssetData> SelectedAssets;
-	TArray<FString> SelectedPaths;
-
-	// Get the list of selected assets and paths from the view that actually has focus
-
+	SelectedAssets.Reset();
+	SelectedPaths.Reset();
 	if (AssetViewPtr->HasAnyUserFocusOrFocusedDescendants())
 	{
 		SelectedAssets = AssetViewPtr->GetSelectedAssets();
@@ -2318,61 +2319,6 @@ void SContentBrowser::HandleViewReferencesCommand()
 	{
 		SelectedPaths = PathViewPtr->GetSelectedPaths();
 	}
-
-	// For any selected assets, just get the package name from the asset data
-	for (const FAssetData& Asset : SelectedAssets)
-	{
-		ViewableAssets.Add(Asset.PackageName);
-	}
-
-	// For any selected paths, get all assets that exist within that path
-	if (SelectedPaths.Num() > 0)
-	{
-		FARFilter Filter;
-		Filter.bRecursivePaths = true;
-
-		for (const FString& Path : SelectedPaths)
-		{
-			new (Filter.PackagePaths) FName(*Path);
-		}
-
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		
-		TArray<FAssetData> AssetsInPaths;
-		AssetRegistryModule.Get().GetAssets(Filter, AssetsInPaths);
-
-		for (const FAssetData& Asset : AssetsInPaths)
-		{
-			ViewableAssets.Add(Asset.PackageName);
-		}
-	}
-
-	if (ViewableAssets.Num() > 0)
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableAssets);
-	}
-}
-
-bool SContentBrowser::HandleViewReferencesCanExecute()
-{
-	bool bCanViewReferences = IReferenceViewerModule::IsAvailable();
-
-	if (bCanViewReferences)
-	{
-		// The reference viewer should be called if either the asset view or the path view have focus and have
-		// at least one item selected
-
-		if (AssetViewPtr.IsValid() && AssetViewPtr->HasAnyUserFocusOrFocusedDescendants())
-		{
-			bCanViewReferences = AssetViewPtr->GetSelectedItems().Num() > 0;
-		}
-		else if (PathViewPtr.IsValid() && PathViewPtr->HasAnyUserFocusOrFocusedDescendants())
-		{
-			bCanViewReferences = PathViewPtr->GetSelectedPaths().Num() > 0;
-		}
-	}
-
-	return bCanViewReferences;
 }
 
 bool SContentBrowser::IsBackEnabled() const

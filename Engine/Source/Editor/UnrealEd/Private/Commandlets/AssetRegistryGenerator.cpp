@@ -414,7 +414,8 @@ bool FAssetRegistryGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 		if (!bUseAssetManager)
 		{
-			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists")));
+			// In new flow, this is written later
+			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists")), true);
 		}
 	}
 
@@ -701,7 +702,7 @@ void FAssetRegistryGenerator::AddAssetToFileOrderRecursive(FAssetData* InAsset, 
 	}
 }
 
-bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry )
+bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry)
 {
 	UE_LOG(LogAssetRegistryGenerator, Display, TEXT("Saving asset registry."));
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
@@ -731,6 +732,14 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool
 		FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *TargetPlatform->PlatformName());
 		PlatformSandboxPath.ReplaceInline(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
 		FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
+
+		if (bGenerateChunks && bUseAssetManager)
+		{
+			FString ChunkListsPath = PlatformSandboxPath.Replace(TEXT("/DevelopmentAssetRegistry.bin"), TEXT(""));
+
+			// Write out CSV file with chunking information
+			GenerateAssetChunkInformationCSV(ChunkListsPath, false);
+		}
 	}
 
 	if (SaveOptions.bSerializeAssetRegistry)
@@ -959,7 +968,7 @@ bool FAssetRegistryGenerator::GatherAllPackageDependencies(FName PackageName, TA
 	return true;
 }
 
-bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& OutputPath)
+bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& OutputPath, bool bWriteIndividualFiles)
 {
 	FString TmpString;
 	FString CSVString;
@@ -969,29 +978,31 @@ bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& Ou
 	CSVString = HeaderText;
 
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
+	TArray<const FAssetData*> AssetDataList;
+	for (const TPair<FName, const FAssetData*> Pair : ObjectToDataMap)
+	{
+		AssetDataList.Add(Pair.Value);
+	}
+
+	// Sort list so it's consistent over time
+	AssetDataList.Sort([](const FAssetData& A, const FAssetData& B)
+	{
+		return A.ObjectPath < B.ObjectPath;
+	});
+
 	for (int32 ChunkID = 0, ChunkNum = FinalChunkManifests.Num(); ChunkID < ChunkNum; ++ChunkID)
 	{
 		FString PerChunkManifestCSV = HeaderText;
-		for (const TPair<FName, const FAssetData*> Pair : ObjectToDataMap)
+		for (const FAssetData* AssetDataPtr : AssetDataList)
 		{
-			const FAssetData& AssetData = *Pair.Value;
+			const FAssetData& AssetData = *AssetDataPtr;
 			// Add only assets that have actually been cooked and belong to any chunk
 			if (AssetData.ChunkIDs.Num() > 0)
 			{
-				FString Fullname;
-				if (AssetData.ChunkIDs.Contains(ChunkID) && FPackageName::DoesPackageExist(*AssetData.PackageName.ToString(), nullptr, &Fullname))
+				const FAssetPackageData* PackageData = State.GetAssetPackageData(AssetData.PackageName);
+				if (AssetData.ChunkIDs.Contains(ChunkID) && PackageData && PackageData->DiskSize >= 0)
 				{
-					auto FileSize = IFileManager::Get().FileSize(*FPackageName::LongPackageNameToFilename(*AssetData.PackageName.ToString(), FPackageName::GetAssetPackageExtension()));
-					if (FileSize == INDEX_NONE)
-					{
-						FileSize = IFileManager::Get().FileSize(*FPackageName::LongPackageNameToFilename(*AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension()));
-					}
-
-					if (FileSize == INDEX_NONE)
-					{
-						FileSize = 0;
-					}
-
+					int64 FileSize = PackageData->DiskSize;
 					FString SoftChain;
 					bool bHardChunk = false;
 					if (ChunkID < ChunkManifests.Num())
@@ -1035,7 +1046,10 @@ bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& Ou
 			}
 		}
 
-		FFileHelper::SaveStringToFile(PerChunkManifestCSV, *FPaths::Combine(*OutputPath, *FString::Printf(TEXT("Chunks%dInfo.csv"), ChunkID)));
+		if (bWriteIndividualFiles)
+		{
+			FFileHelper::SaveStringToFile(PerChunkManifestCSV, *FPaths::Combine(*OutputPath, *FString::Printf(TEXT("Chunks%dInfo.csv"), ChunkID)));
+		}
 	}
 
 	return FFileHelper::SaveStringToFile(CSVString, *FPaths::Combine(*OutputPath, TEXT("AllChunksInfo.csv")));

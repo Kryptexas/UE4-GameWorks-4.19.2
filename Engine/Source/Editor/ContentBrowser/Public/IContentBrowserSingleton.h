@@ -204,6 +204,9 @@ struct FAssetPickerConfig
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 
+	/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+	FOnGetCustomSourceAssets OnGetCustomSourceAssets;
+
 	/** Fired when an asset item is about to show its tool tip */
 	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
 

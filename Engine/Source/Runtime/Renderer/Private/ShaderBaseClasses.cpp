@@ -76,6 +76,7 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 
 	InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
 	InstanceOffset.Bind(Initializer.ParameterMap, TEXT("InstanceOffset"));
+	VertexOffset.Bind(Initializer.ParameterMap, TEXT("VertexOffset"));
 }
 
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
@@ -479,6 +480,7 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 
 	Ar << InstanceCount;
 	Ar << InstanceOffset;
+	Ar << VertexOffset;
 
 	return bShaderHasOutdatedParameters;
 }

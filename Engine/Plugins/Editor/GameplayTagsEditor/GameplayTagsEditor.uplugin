@@ -21,5 +21,12 @@
 			"Type" : "Developer",
 			"LoadingPhase" : "PreDefault"
 		}
+	],
+	"Plugins": 
+	[
+		{
+			"Name" : "AssetManagerEditor",
+			"Enabled" : true
+		}
 	]
 }

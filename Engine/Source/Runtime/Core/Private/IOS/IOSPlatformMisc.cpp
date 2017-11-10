@@ -97,6 +97,43 @@ void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 //    GShowSplashScreen = ShowSplashScreen;
 }
 
+const TCHAR* FIOSPlatformMisc::GamePersistentDownloadDir()
+{
+    static FString GamePersistentDownloadDir = TEXT("");
+    
+    if (GamePersistentDownloadDir.Len() == 0)
+    {
+        FString BaseProjectDir = ProjectDir();
+        
+        if (BaseProjectDir.Len() > 0)
+        {
+            GamePersistentDownloadDir = BaseProjectDir / TEXT("PersistentDownloadDir");
+        }
+        
+        // create the directory so we can exclude it from iCloud backup
+        FString Result = GamePersistentDownloadDir;
+        Result.ReplaceInline(TEXT("../"), TEXT(""));
+        Result.ReplaceInline(TEXT(".."), TEXT(""));
+        Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
+        FString DownloadPath = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+        Result = DownloadPath + Result;
+        NSURL* URL = [NSURL fileURLWithPath : Result.GetNSString()];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:[URL path]])
+        {
+            [[NSFileManager defaultManager] createDirectoryAtURL:URL withIntermediateDirectories : YES attributes : nil error : nil];
+        }
+        
+        // mark it to not be uploaded
+        NSError *error = nil;
+        BOOL success = [URL setResourceValue : [NSNumber numberWithBool : YES] forKey : NSURLIsExcludedFromBackupKey error : &error];
+        if (!success)
+        {
+            NSLog(@"Error excluding %@ from backup %@",[URL lastPathComponent], error);
+        }
+    }
+    return *GamePersistentDownloadDir;
+}
+
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
 	extern EAppReturnType::Type MessageBoxExtImpl( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );

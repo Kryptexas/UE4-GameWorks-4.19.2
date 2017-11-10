@@ -34,8 +34,6 @@ public:
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialog;
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialogAlternate;
 	TSharedPtr<FUICommandInfo> OpenDocumentation;
-	TSharedPtr<FUICommandInfo> ViewReferences;
-	TSharedPtr<FUICommandInfo> ViewSizeMap;
 	TSharedPtr<FUICommandInfo> OpenConsoleCommandBox;
 };
 

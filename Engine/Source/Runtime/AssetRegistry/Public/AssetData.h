@@ -28,6 +28,7 @@ struct ASSETREGISTRY_API FAssetRegistryVersion
 		AddAssetRegistryState,	// Added FAssetRegistryState and support for piecemeal serialization
 		ChangedAssetData,		// AssetData serialization format changed, versions before this are not readable
 		RemovedMD5Hash,			// Removed MD5 hash from package data
+		AddedHardManage,		// Added hard/soft manage references
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

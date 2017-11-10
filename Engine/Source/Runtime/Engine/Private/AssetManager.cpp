@@ -97,6 +97,7 @@ struct FPrimaryAssetTypeData
 
 const FPrimaryAssetType UAssetManager::MapType = FName(TEXT("Map"));
 const FPrimaryAssetType UAssetManager::PrimaryAssetLabelType = FName(TEXT("PrimaryAssetLabel"));
+const FPrimaryAssetType UAssetManager::PackageChunkType = FName(TEXT("PackageChunk"));
 
 UAssetManager::UAssetManager()
 {
@@ -191,6 +192,27 @@ UAssetManager* UAssetManager::GetIfValid()
 	}
 
 	return nullptr;
+}
+
+FPrimaryAssetId UAssetManager::CreatePrimaryAssetIdFromChunkId(int32 ChunkId)
+{
+	if (ChunkId == INDEX_NONE)
+	{
+		return FPrimaryAssetId();
+	}
+
+	// Name_0 is actually stored as 1 inside FName, so offset
+	static FName ChunkName = "Chunk";
+	return FPrimaryAssetId(PackageChunkType, FName(ChunkName, ChunkId + 1));
+}
+
+int32 UAssetManager::ExtractChunkIdFromPrimaryAssetId(const FPrimaryAssetId& PrimaryAssetId)
+{
+	if (PrimaryAssetId.PrimaryAssetType == PackageChunkType)
+	{
+		return PrimaryAssetId.PrimaryAssetName.GetNumber() - 1;
+	}
+	return INDEX_NONE;
 }
 
 IAssetRegistry& UAssetManager::GetAssetRegistry() const
@@ -603,7 +625,7 @@ bool UAssetManager::AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const
 	return true;
 }
 
-void UAssetManager::RecursivelyExpandBundleData(FAssetBundleData& BundleData)
+void UAssetManager::RecursivelyExpandBundleData(FAssetBundleData& BundleData) const
 {
 	TArray<FSoftObjectPath> ReferencesToExpand;
 	TSet<FName> FoundBundleNames;
@@ -1130,6 +1152,44 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForMatchingPrimary
 	return nullptr;
 }
 
+bool UAssetManager::GetPrimaryAssetLoadSet(TSet<FSoftObjectPath>& OutAssetLoadSet, const FPrimaryAssetId& PrimaryAssetId, const TArray<FName>& LoadBundles, bool bLoadRecursive) const
+{
+	const FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
+	if (NameData)
+	{
+		// Gather asset refs
+		const FSoftObjectPath& AssetPath = NameData->AssetPtr.ToSoftObjectPath();
+		if (!AssetPath.IsNull())
+		{
+			// Dynamic types can have no base asset path
+			OutAssetLoadSet.Add(AssetPath);
+		}
+
+		// Construct a temporary bundle data with the bundles specified
+		FAssetBundleData TempBundleData;
+		for (const FName& BundleName : LoadBundles)
+		{
+			FAssetBundleEntry Entry = GetAssetBundleEntry(PrimaryAssetId, BundleName);
+
+			if (Entry.IsValid())
+			{
+				TempBundleData.Bundles.Add(Entry);
+			}
+		}
+
+		if (bLoadRecursive)
+		{
+			RecursivelyExpandBundleData(TempBundleData);
+		}
+
+		for (const FAssetBundleEntry& Entry : TempBundleData.Bundles)
+		{
+			OutAssetLoadSet.Append(Entry.BundleAssets);
+		}
+	}
+	return NameData != nullptr;
+}
+
 TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
 {
 	TSet<FSoftObjectPath> PathsToLoad;
@@ -1138,41 +1198,8 @@ TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<F
 
 	for (const FPrimaryAssetId& PrimaryAssetId : AssetsToLoad)
 	{
-		FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
-
-		if (NameData)
+		if (GetPrimaryAssetLoadSet(PathsToLoad, PrimaryAssetId, LoadBundles, bLoadRecursive))
 		{
-			// Gather asset refs
-			const FSoftObjectPath& AssetPath = NameData->AssetPtr.ToSoftObjectPath();
-
-			if (!AssetPath.IsNull())
-			{
-				// Dynamic types can have no base asset path
-				PathsToLoad.Add(AssetPath);
-			}
-
-			// Construct a temporary bundle data with the bundles specified
-			FAssetBundleData TempBundleData;
-			for (const FName& BundleName : LoadBundles)
-			{
-				FAssetBundleEntry Entry = GetAssetBundleEntry(PrimaryAssetId, BundleName);
-
-				if (Entry.IsValid())
-				{
-					TempBundleData.Bundles.Add(Entry);
-				}
-			}
-
-			if (bLoadRecursive)
-			{
-				RecursivelyExpandBundleData(TempBundleData);
-			}
-
-			for (const FAssetBundleEntry& Entry : TempBundleData.Bundles)
-			{
-				PathsToLoad.Append(Entry.BundleAssets);
-			}
-
 			if (DebugName.IsEmpty())
 			{
 				DebugName += TEXT("Preloading ");
@@ -2194,6 +2221,12 @@ void UAssetManager::DumpReferencersForPackage(const TArray< FString >& PackageNa
 
 bool UAssetManager::ShouldScanPrimaryAssetType(FPrimaryAssetTypeInfo& TypeInfo) const
 {
+	if (!ensureMsgf(TypeInfo.PrimaryAssetType != PackageChunkType, TEXT("Cannot use %s as an asset manager type, this is reserved for internal use"), *TypeInfo.PrimaryAssetType.ToString()))
+	{
+		// Cannot use this as a proper type
+		return false;
+	}
+
 	if (TypeInfo.bIsEditorOnly && !GIsEditor)
 	{
 		return false;
@@ -2298,8 +2331,11 @@ bool UAssetManager::GetPackageManagers(FName PackageName, bool bRecurseToParents
 				{
 					for (const FPrimaryAssetId& Manager : *ManagementParents)
 					{
-						// Add to end of list, this will recurse again if needed
-						ReferencingPrimaryAssets.AddUnique(Manager);
+						if (!ManagerSet.Contains(Manager))
+						{
+							// Add to end of list, this will recurse again if needed
+							ReferencingPrimaryAssets.Add(Manager);
+						}
 					}
 				}
 			}
@@ -2526,6 +2562,9 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 	// List of references to not recurse on, priority doesn't matter
 	TMultiMap<FAssetIdentifier, FAssetIdentifier> NoReferenceManagementMap;
 
+	// List of packages that need to have their chunks updated
+	TSet<FName> PackagesToUpdateChunksFor;
+
 	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
@@ -2547,6 +2586,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 				FName PackageName = FName(*AssetRef.GetLongPackageName());
 
 				AssetPackagesReferenced.AddUnique(PackageName);
+				PackagesToUpdateChunksFor.Add(PackageName);
 			}
 
 			TMap<FName, FAssetBundleEntry>* BundleMap = CachedAssetBundles.Find(PrimaryAssetId);
@@ -2558,9 +2598,10 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 				{
 					for (const FSoftObjectPath& BundleAssetRef : BundlePair.Value.BundleAssets)
 					{
-						FString PackageName = BundleAssetRef.GetLongPackageName();
+						FName PackageName = FName(*BundleAssetRef.GetLongPackageName());
 
-						AssetPackagesReferenced.AddUnique(FName(*PackageName));
+						AssetPackagesReferenced.AddUnique(PackageName);
+						PackagesToUpdateChunksFor.Add(PackageName);
 					}
 				}
 			}
@@ -2585,9 +2626,14 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 	const bool bAllowInPIE = true;
 	SlowTask.MakeDialog(bShowCancelButton, bAllowInPIE);
 
-	auto SetManagerPredicate = [this](const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags)
+	auto SetManagerPredicate = [this, &PackagesToUpdateChunksFor](const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags)
 	{
-		return this->ShouldSetManager(Manager, Source, Target, DependencyType, Flags);
+		EAssetSetManagerResult::Type Result = this->ShouldSetManager(Manager, Source, Target, DependencyType, Flags);
+		if (Result != EAssetSetManagerResult::DoNotSet && Target.IsPackage())
+		{
+			PackagesToUpdateChunksFor.Add(Target.PackageName);
+		}
+		return Result;
 	};
 
 	for (int32 PriorityIndex = 0; PriorityIndex < PriorityArray.Num(); PriorityIndex++)
@@ -2607,6 +2653,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 
 
 	TMultiMap<FAssetIdentifier, FAssetIdentifier> PrimaryAssetIdManagementMap;
+	TArray<int32> ChunkList, ExistingChunkList, OverrideChunkList;
 
 	// Update management parent list, which is PrimaryAssetId -> PrimaryAssetId
 	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
@@ -2619,11 +2666,11 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 			FPrimaryAssetId PrimaryAssetId(TypePair.Key, NamePair.Key);
 			const FSoftObjectPath& AssetRef = NameData.AssetPtr.ToSoftObjectPath();
 
+			TSet<FPrimaryAssetId> Managers;
+
 			if (AssetRef.IsValid())
 			{
 				FName PackageName = FName(*AssetRef.GetLongPackageName());
-
-				TSet<FPrimaryAssetId> Managers;
 
 				if (GetPackageManagers(PackageName, false, Managers) && Managers.Num() > 1)
 				{
@@ -2640,6 +2687,22 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 					}
 				}
 			}
+			else
+			{
+				Managers.Add(PrimaryAssetId);
+			}
+
+			// Compute chunk assignment and store those as manager references
+			ChunkList.Reset();
+			GetPrimaryAssetSetChunkIds(Managers, nullptr, ExistingChunkList, ChunkList);
+
+			for (int32 ChunkId : ChunkList)
+			{
+				FPrimaryAssetId ChunkPrimaryAsset = CreatePrimaryAssetIdFromChunkId(ChunkId);
+
+				CachedChunkMap.FindOrAdd(ChunkId).ExplicitAssets.Add(PrimaryAssetId);
+				PrimaryAssetIdManagementMap.Add(ChunkPrimaryAsset, PrimaryAssetId);
+			}
 		}
 	}
 
@@ -2648,8 +2711,34 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 		AssetRegistry.SetManageReferences(PrimaryAssetIdManagementMap, false, EAssetRegistryDependencyType::None);
 	}
 
+	// Update chunk package list for all chunks
+	for (FName PackageName : PackagesToUpdateChunksFor)
+	{
+		ChunkList.Reset();
+		OverrideChunkList.Reset();
+		GetPackageChunkIds(PackageName, nullptr, ExistingChunkList, ChunkList, &OverrideChunkList);
+
+		if (ChunkList.Num() > 0)
+		{
+			for (int32 ChunkId : ChunkList)
+			{
+				CachedChunkMap.FindOrAdd(ChunkId).AllAssets.Add(PackageName);
+
+				if (OverrideChunkList.Contains(ChunkId))
+				{
+					// This was in the override list, so add an explicit dependency
+					CachedChunkMap.FindOrAdd(ChunkId).ExplicitAssets.Add(PackageName);
+				}
+			}
+		}
+	}
 
 	bIsManagementDatabaseCurrent = true;
+}
+
+const TMap<int32, FAssetManagerChunkInfo>& UAssetManager::GetChunkManagementMap() const
+{
+	return CachedChunkMap;
 }
 
 void UAssetManager::ApplyPrimaryAssetLabels()
@@ -2759,24 +2848,38 @@ bool UAssetManager::VerifyCanCookPackage(FName PackageName, bool bLogError) cons
 	return true;
 }
 
-bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const
+bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList, TArray<int32>* OutOverrideChunkList) const
 {
 	// Include preset chunks
 	OutChunkList.Append(ExistingChunkList);
+	if (OutOverrideChunkList)
+	{
+		OutOverrideChunkList->Append(ExistingChunkList);
+	}
 
 	if (PackageName.ToString().StartsWith(TEXT("/Engine/"), ESearchCase::CaseSensitive))
 	{
 		// Some engine content is only referenced by string, make sure it's all in chunk 0 to avoid issues
 		OutChunkList.AddUnique(0);
+
+		if (OutOverrideChunkList)
+		{
+			OutOverrideChunkList->AddUnique(0);
+		}
 	}
 
 	// Add all chunk ids from the asset rules of managers. By default priority will not override other chunks
-	bool bFoundAny = false;
 	TSet<FPrimaryAssetId> Managers;
 
 	GetPackageManagers(PackageName, true, Managers);
+	return GetPrimaryAssetSetChunkIds(Managers, TargetPlatform, ExistingChunkList, OutChunkList);
+}
 
-	for (const FPrimaryAssetId& PrimaryAssetId : Managers)
+bool UAssetManager::GetPrimaryAssetSetChunkIds(const TSet<FPrimaryAssetId>& PrimaryAssetSet, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const
+{
+	bool bFoundAny = false;
+	int32 HighestChunk = 0;
+	for (const FPrimaryAssetId& PrimaryAssetId : PrimaryAssetSet)
 	{
 		FPrimaryAssetRules Rules = GetPrimaryAssetRules(PrimaryAssetId);
 
@@ -2784,20 +2887,16 @@ bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform*
 		{
 			bFoundAny = true;
 			OutChunkList.AddUnique(Rules.ChunkId);
-		}
-	}
 
-	int32 HighestChunk = 0;
-	for (int32 ChunkId : OutChunkList)
-	{
-		if (ChunkId > HighestChunk)
-		{
-			HighestChunk = ChunkId;
+			if (Rules.ChunkId > HighestChunk)
+			{
+				HighestChunk = Rules.ChunkId;
+			}
 		}
 	}
 
 	// Use chunk dependency info to remove redundant chunks
-	UChunkDependencyInfo *DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
+	UChunkDependencyInfo* DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
 	DependencyInfo->GetOrBuildChunkDependencyGraph(HighestChunk);
 	DependencyInfo->RemoveRedundantChunks(OutChunkList);
 

@@ -138,3 +138,13 @@ public:
 	ENGINE_API bool FillRuntimeData();
 
 };
+
+/** Information about a package chunk, computed by the asset manager or read out of the cooked asset registry */
+struct FAssetManagerChunkInfo
+{
+	/** Packages/PrimaryAssets that were explicitly added to a chunk */
+	TSet<FAssetIdentifier> ExplicitAssets;
+
+	/** All packages/Primary Assets in a chunk, includes everything in Explicit plus recursively added ones */
+	TSet<FAssetIdentifier> AllAssets;
+};

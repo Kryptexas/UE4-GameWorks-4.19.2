@@ -115,7 +115,15 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 					break;
 				}
 
-				LastFinalScale = FinalScale;
+				// Force full layout calculations when the previously calculated final scale is zero
+				if (!FMath::IsNearlyZero(FinalScale) || !bSingleLayoutPass)
+				{
+					LastFinalScale = FinalScale;
+				}
+				else
+				{
+					LastFinalScale.Reset();
+				}
 			}
 			else
 			{

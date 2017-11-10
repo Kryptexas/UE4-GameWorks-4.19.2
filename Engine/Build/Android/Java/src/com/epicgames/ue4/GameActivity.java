@@ -348,7 +348,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			consoleCmdReceiver = new ConsoleCmdReceiver(this);
 			registerReceiver(consoleCmdReceiver, new IntentFilter(Intent.ACTION_RUN));
 		}
-		
 //$${gameActivityOnStartAdditions}$$
 		Log.debug("==================================> Inside onStart function in GameActivity");
 	}

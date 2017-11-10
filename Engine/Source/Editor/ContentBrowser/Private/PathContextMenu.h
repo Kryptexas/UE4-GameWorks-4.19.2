@@ -95,12 +95,6 @@ public:
 	/** Handler for when "Resave" is selected */
 	void ExecuteResaveFolder();
 
-	/** Handler for when "ReferenceViewer" is selected */
-	void ExecuteReferenceViewer();
-
-	/** Handler for when "SizeMap" is selected */
-	void ExecuteSizeMap();
-
 	/** Handler for when "Fix up Redirectors in Folder" is selected */
 	void ExecuteFixUpRedirectorsInFolder();
 

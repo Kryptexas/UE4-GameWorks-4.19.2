@@ -116,9 +116,6 @@ private:
 	/** Handler for show in explorer */
 	void ExecuteExplore();
 
-	/** Handler for size map tool */
-	void ExecuteSizeMap();
-
 	/** Setup function for the context menu creation of folder and assets */
 	void SetupContextMenuContent(FMenuBuilder& MenuBuilder, const TArray<FString>& SelectedPaths);
 	

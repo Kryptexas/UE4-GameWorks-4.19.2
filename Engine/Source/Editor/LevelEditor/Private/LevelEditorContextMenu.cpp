@@ -264,10 +264,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 						);
 
 				}
-
-				MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().ViewReferences);
-				MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().ViewSizeMap);
-
 			}
 			MenuBuilder.EndSection();
 		}

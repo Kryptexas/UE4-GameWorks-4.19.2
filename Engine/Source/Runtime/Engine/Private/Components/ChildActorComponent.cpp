@@ -532,8 +532,9 @@ void UChildActorComponent::CreateChildActor()
 				{
 					Params.ObjectFlags &= ~RF_Transactional;
 				}
-				if (HasAllFlags(RF_Transient))
+				if (HasAllFlags(RF_Transient) || IsEditorOnly())
 				{
+					// If we are either transient or editor only, set our created actor to transient. We can't programatically set editor only on an actor so this is the best option
 					Params.ObjectFlags |= RF_Transient;
 				}
 

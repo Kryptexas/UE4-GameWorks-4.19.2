@@ -41,7 +41,8 @@ UComboBoxString::UComboBoxString(const FObjectInitializer& ObjectInitializer)
 	// We don't want to try and load fonts on the server.
 	if ( !IsRunningDedicatedServer() )
 	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(*UWidget::GetDefaultFontName());
+#include "Widgets/SNullWidget.h"
 		Font = FSlateFontInfo(RobotoFontObj.Object, 16, FName("Bold"));
 	}
 }

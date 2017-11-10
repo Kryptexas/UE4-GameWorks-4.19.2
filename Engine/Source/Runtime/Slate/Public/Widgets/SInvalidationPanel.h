@@ -85,7 +85,7 @@ private:
 #endif
 	
 
-	bool IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect) const;
+	bool IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, int32 LayerId) const;
 
 private:
 	mutable FGeometry LastAllottedGeometry;
@@ -109,9 +109,11 @@ private:
 	mutable int32 LastUsedCachedNodeIndex;
 	mutable int32 LastHitTestIndex;
 	mutable FVector2D LastClipRectSize;
+	mutable FVector2D LastClippingIntersectionSize;
 	mutable int32 LastClippingIndex;
 	mutable int32 LastClippingStateOffset;
 	mutable TOptional<FSlateClippingState> LastClippingState;
+	mutable int32 LastLayerId;
 
 	mutable int32 CachedMaxChildLayer;
 	mutable bool bNeedsCaching;

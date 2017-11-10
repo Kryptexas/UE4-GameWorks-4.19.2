@@ -7,9 +7,12 @@
 #include "AssetRegistryModule.h"
 #include "AssetThumbnail.h"
 #include "SReferenceViewer.h"
+#include "SReferenceNode.h"
 #include "GraphEditor.h"
 #include "ICollectionManager.h"
 #include "CollectionManagerModule.h"
+#include "AssetManagerEditorModule.h"
+#include "Engine/AssetManager.h"
 
 UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -50,6 +53,15 @@ void UEdGraph_ReferenceViewer::SetGraphRoot(const TArray<FAssetIdentifier>& Grap
 		if (AssetId.IsValue())
 		{
 			bIsShowSearchableNames = true;
+		}
+		else if (AssetId.GetPrimaryAssetId().IsValid())
+		{
+			if (UAssetManager::IsValid())
+			{
+				UAssetManager::Get().UpdateManagementDatabase();
+			}
+			
+			bIsShowManagementReferences = true;
 		}
 	}
 }
@@ -210,11 +222,11 @@ void UEdGraph_ReferenceViewer::SetEnableCollectionFilter(bool bEnabled)
 	bEnableCollectionFilter = bEnabled;
 }
 
-EAssetRegistryDependencyType::Type UEdGraph_ReferenceViewer::GetReferenceSearchFlags(bool bReferencers) const
+EAssetRegistryDependencyType::Type UEdGraph_ReferenceViewer::GetReferenceSearchFlags(bool bHardOnly) const
 {
 	int32 ReferenceFlags = 0;
 
-	if (bIsShowSoftReferences)
+	if (bIsShowSoftReferences && !bHardOnly)
 	{
 		ReferenceFlags |= EAssetRegistryDependencyType::Soft;
 	}
@@ -222,13 +234,17 @@ EAssetRegistryDependencyType::Type UEdGraph_ReferenceViewer::GetReferenceSearchF
 	{
 		ReferenceFlags |= EAssetRegistryDependencyType::Hard;
 	}
-	if (bIsShowSearchableNames)
+	if (bIsShowSearchableNames && !bHardOnly)
 	{
 		ReferenceFlags |= EAssetRegistryDependencyType::SearchableName;
 	}
 	if (bIsShowManagementReferences)
 	{
-		ReferenceFlags |= EAssetRegistryDependencyType::Manage;
+		ReferenceFlags |= EAssetRegistryDependencyType::HardManage;
+		if (!bHardOnly)
+		{
+			ReferenceFlags |= EAssetRegistryDependencyType::SoftManage;
+		}
 	}
 	
 	return (EAssetRegistryDependencyType::Type)ReferenceFlags;
@@ -316,14 +332,14 @@ int32 UEdGraph_ReferenceViewer::RecursivelyGatherSizes(bool bReferencers, const 
 	{
 		for (const FAssetIdentifier& AssetId : Identifiers)
 		{
-			AssetRegistryModule.Get().GetReferencers(AssetId, ReferenceNames, GetReferenceSearchFlags(bReferencers));
+			AssetRegistryModule.Get().GetReferencers(AssetId, ReferenceNames, GetReferenceSearchFlags(false));
 		}
 	}
 	else
 	{
 		for (const FAssetIdentifier& AssetId : Identifiers)
 		{
-			AssetRegistryModule.Get().GetDependencies(AssetId, ReferenceNames, GetReferenceSearchFlags(bReferencers));
+			AssetRegistryModule.Get().GetDependencies(AssetId, ReferenceNames, GetReferenceSearchFlags(false));
 		}
 	}
 
@@ -340,9 +356,12 @@ int32 UEdGraph_ReferenceViewer::RecursivelyGatherSizes(bool bReferencers, const 
 		int32 NumReferencesMade = 0;
 		int32 NumReferencesExceedingMax = 0;
 
+		// Filter for our registry source
+		IAssetManagerEditorModule::Get().FilterAssetIdentifiersForCurrentRegistrySource(ReferenceNames, GetReferenceSearchFlags(false), !bReferencers);
+
 		// Since there are referencers, use the size of all your combined referencers.
 		// Do not count your own size since there could just be a horizontal line of nodes
-		for (const FAssetIdentifier& AssetId : ReferenceNames)
+		for (FAssetIdentifier& AssetId : ReferenceNames)
 		{
 			if ( !VisitedNames.Contains(AssetId) && (!AssetId.IsPackage() || !ShouldFilterByCollection() || AllowedPackageNames.Contains(AssetId.PackageName)) )
 			{
@@ -423,18 +442,16 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 	{
 		for (const FAssetIdentifier& AssetId : Identifiers)
 		{
-			AssetRegistryModule.Get().GetReferencers(AssetId, HardReferenceNames, EAssetRegistryDependencyType::Hard);
-
-			AssetRegistryModule.Get().GetReferencers(AssetId, ReferenceNames, GetReferenceSearchFlags(bReferencers));
+			AssetRegistryModule.Get().GetReferencers(AssetId, HardReferenceNames, GetReferenceSearchFlags(true));
+			AssetRegistryModule.Get().GetReferencers(AssetId, ReferenceNames, GetReferenceSearchFlags(false));
 		}
 	}
 	else
 	{
 		for (const FAssetIdentifier& AssetId : Identifiers)
 		{
-			AssetRegistryModule.Get().GetDependencies(AssetId, HardReferenceNames, EAssetRegistryDependencyType::Hard);
-
-			AssetRegistryModule.Get().GetDependencies(AssetId, ReferenceNames, GetReferenceSearchFlags(bReferencers));
+			AssetRegistryModule.Get().GetDependencies(AssetId, HardReferenceNames, GetReferenceSearchFlags(true));
+			AssetRegistryModule.Get().GetDependencies(AssetId, ReferenceNames, GetReferenceSearchFlags(false));
 		}
 	}
 
@@ -469,12 +486,19 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 
 		int32 NumReferencesMade = 0;
 		int32 NumReferencesExceedingMax = 0;
+		
+		// Filter for our registry source
+		IAssetManagerEditorModule::Get().FilterAssetIdentifiersForCurrentRegistrySource(ReferenceNames, GetReferenceSearchFlags(false), !bReferencers);
+		IAssetManagerEditorModule::Get().FilterAssetIdentifiersForCurrentRegistrySource(HardReferenceNames, GetReferenceSearchFlags(false), !bReferencers);
+
 		for ( int32 RefIdx = 0; RefIdx < ReferenceNames.Num(); ++RefIdx )
 		{
 			FAssetIdentifier ReferenceName = ReferenceNames[RefIdx];
 
 			if ( !VisitedNames.Contains(ReferenceName) && (!ReferenceName.IsPackage() || !ShouldFilterByCollection() || AllowedPackageNames.Contains(ReferenceName.PackageName)) )
 			{
+				bool bIsHardReference = HardReferenceNames.Contains(ReferenceName);
+
 				if ( !ExceedsMaxSearchBreadth(NumReferencesMade) )
 				{
 					int32 ThisNodeSizeY = ReferenceName.IsValue() ? 100 : NodeSizeY;
@@ -488,7 +512,7 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 					NewIdentifiers.Add(ReferenceName);
 					
 					UEdGraphNode_Reference* ReferenceNode = RecursivelyConstructNodes(bReferencers, RootNode, NewIdentifiers, RefNodeLoc, NodeSizes, PackagesToAssetDataMap, AllowedPackageNames, CurrentDepth + 1, VisitedNames);
-					if (HardReferenceNames.Contains(ReferenceName))
+					if (bIsHardReference)
 					{
 						if (bReferencers)
 						{

@@ -19,6 +19,7 @@ public:
 	virtual ~FIOSPlatformTextField();
 
 	virtual void ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget) override;
+	virtual bool AllowMoveCursor() override { return true; };
 
 private:
 	SlateTextField* TextField;

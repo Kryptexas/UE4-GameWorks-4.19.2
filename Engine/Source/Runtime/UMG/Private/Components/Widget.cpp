@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/Widget.h"
+#include "ConfigCacheIni.h"
+#include "CoreGlobals.h"
 #include "Widgets/SNullWidget.h"
 #include "Types/NavigationMetaData.h"
 #include "Widgets/IToolTip.h"
@@ -1174,6 +1176,15 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 	}
 
 	return nullptr;
+}
+
+// TODO: Clean this up to, move it to a user interface setting, don't use a config. 
+FString UWidget::GetDefaultFontName()
+{
+	FString DefaultFontName = TEXT("/Engine/EngineFonts/Roboto");
+	GConfig->GetString(TEXT("SlateStyle"), TEXT("DefaultFontName"), DefaultFontName, GEngineIni);
+
+	return DefaultFontName;
 }
 
 //bool UWidget::BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty)

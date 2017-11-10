@@ -1307,6 +1307,8 @@ protected:
 						return EScrollIntoViewResult::Deferred;
 					}
 				}
+
+				EndInertialScrolling();
 				
 				// Only scroll the item into view if it's not already in the visible range
 				const double IndexPlusOne = IndexOfItem+1;

@@ -31,8 +31,6 @@
 #include "ContentBrowserUtils.h"
 #include "SourceControlWindows.h"
 #include "ContentBrowserModule.h"
-#include "ReferenceViewer.h"
-#include "ISizeMapModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -274,22 +272,6 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					LOCTEXT("DeleteFolder", "Delete"),
 					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
 					FSlateIcon()
-					);
-
-				// Reference Viewer
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("ReferenceViewer", "Reference Viewer..."),
-					LOCTEXT("ReferenceViewerOnFolderTooltip", "Shows a graph of references for this folder."),
-					FSlateIcon(),
-					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteReferenceViewer ) )
-					);
-    
-				// Size Map
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("SizeMap", "Size Map..."),
-					LOCTEXT("SizeMapOnFolderTooltip", "Shows an interactive map of the approximate memory used by the assets in this folder and everything they reference."),
-					FSlateIcon(),
-					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSizeMap ) )
 					);
 
 				// Fix Up Redirectors in Folder
@@ -724,40 +706,6 @@ void FPathContextMenu::ExecuteDelete()
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),
 			ParentContent.Pin().ToSharedRef(),
 			OnYesClicked);
-	}
-}
-
-void FPathContextMenu::ExecuteReferenceViewer()
-{
-	TArray<FString> PackageNamesAsStrings;
-	GetPackageNamesInSelectedPaths(PackageNamesAsStrings);
-
-	TArray<FName> PackageNames;
-	for ( auto PackageNameIt = PackageNamesAsStrings.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
-	{
-		PackageNames.Add(**PackageNameIt);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
-	}
-}
-
-void FPathContextMenu::ExecuteSizeMap()
-{
-	TArray<FString> PackageNamesAsStrings;
-	GetPackageNamesInSelectedPaths(PackageNamesAsStrings);
-
-	TArray<FName> PackageNames;
-	for ( auto PackageNameIt = PackageNamesAsStrings.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
-	{
-		PackageNames.Add(**PackageNameIt);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab(PackageNames);
 	}
 }
 

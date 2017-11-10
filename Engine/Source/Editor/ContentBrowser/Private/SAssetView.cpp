@@ -230,6 +230,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
+	OnGetCustomSourceAssets = InArgs._OnGetCustomSourceAssets;
 	HighlightedText = InArgs._HighlightedText;
 	ThumbnailLabel = InArgs._ThumbnailLabel;
 	AllowThumbnailHintLabel = InArgs._AllowThumbnailHintLabel;
@@ -1792,6 +1793,12 @@ void SAssetView::RefreshSourceItems()
 					Items.Add( Class );
 				}
 			}
+		}
+
+		// Add any custom assets 
+		if (OnGetCustomSourceAssets.IsBound())
+		{
+			OnGetCustomSourceAssets.Execute(Filter, Items);
 		}
 	}
 

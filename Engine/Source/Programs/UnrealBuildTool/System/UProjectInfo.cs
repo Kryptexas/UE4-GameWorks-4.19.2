@@ -140,7 +140,7 @@ namespace UnrealBuildTool
 		{
 			DateTime StartTime = DateTime.Now;
 
-			List<DirectoryReference> DirectoriesToSearch = new List<DirectoryReference>();
+			List<DirectoryInfo> DirectoriesToSearch = new List<DirectoryInfo>();
 
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
 			string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
@@ -156,7 +156,7 @@ namespace UnrealBuildTool
 						DirectoryReference BaseProjectDir = DirectoryReference.Combine(UnrealBuildTool.RootDirectory, TrimLine);
 						if(BaseProjectDir.IsUnderDirectory(UnrealBuildTool.RootDirectory))
 						{
-							DirectoriesToSearch.Add(BaseProjectDir);
+							DirectoriesToSearch.Add(new DirectoryInfo(BaseProjectDir.FullName));
 						}
 						else
 						{
@@ -168,18 +168,18 @@ namespace UnrealBuildTool
 
 			Log.TraceVerbose("\tFound {0} directories to search", DirectoriesToSearch.Count);
 
-			foreach (DirectoryReference DirToSearch in DirectoriesToSearch)
+			foreach (DirectoryInfo DirToSearch in DirectoriesToSearch)
 			{
 				Log.TraceVerbose("\t\tSearching {0}", DirToSearch.FullName);
-				if (DirectoryReference.Exists(DirToSearch))
+				if (DirToSearch.Exists)
 				{
-					foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(DirToSearch, "*", SearchOption.TopDirectoryOnly))
+					foreach (DirectoryInfo SubDir in DirToSearch.EnumerateDirectories())
 					{
-						Log.TraceVerbose("\t\t\tFound subdir {0}", SubDir.FullName);
-						foreach(FileReference UProjFile in DirectoryReference.EnumerateFiles(SubDir, "*.uproject", SearchOption.TopDirectoryOnly))
+						Log.TraceVerbose("\t\t\tFound subdir {0} ({1})", SubDir.FullName, SubDir.Name);
+						foreach(FileInfo UProjFile in SubDir.EnumerateFiles("*.uproject", SearchOption.TopDirectoryOnly))
 						{
 							Log.TraceVerbose("\t\t\t\t{0}", UProjFile.FullName);
-							AddProject(UProjFile);
+							AddProject(new FileReference(UProjFile));
 						}
 					}
 				}

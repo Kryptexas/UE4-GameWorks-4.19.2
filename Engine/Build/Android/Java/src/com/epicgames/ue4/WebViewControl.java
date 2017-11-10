@@ -14,9 +14,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.JsResult;
 import android.webkit.JsPromptResult;
 import android.graphics.Bitmap;
-// @HSL_BEGIN - Josh.May - 3/08/2017 - Added background transparency support for AndroidWebBrowserWidget.
 import android.graphics.Color;
-// @HSL_END - Josh.May - 3/08/2017
 import android.webkit.WebBackForwardList;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,9 +42,7 @@ class WebViewPositionLayout extends ViewGroup
 // Wrapper for the layout and WebView for the C++ to call
 class WebViewControl
 {
-	// @HSL_BEGIN - Josh.May - 3/08/2017 - Added background transparency support for AndroidWebBrowserWidget.
 	public WebViewControl(long inNativePtr, final boolean bEnableRemoteDebugging, final boolean bUseTransparency)
-	// @HSL_END - Josh.May - 3/08/2017
 	{
 		final WebViewControl w = this;
 
@@ -70,12 +66,10 @@ class WebViewControl
 				webView.getSettings().setLightTouchEnabled(true);
 				webView.setFocusableInTouchMode(true);
 
-				// @HSL_BEGIN - Josh.May - 3/08/2017 - Added background transparency support for AndroidWebBrowserWidget.
 				if (bUseTransparency)
 				{
 					webView.setBackgroundColor(Color.TRANSPARENT);
 				}
-				// @HSL_END - Josh.May - 3/08/2017
 
 				// Wrap the webview in a layout that will do absolute positioning for us
 				positionLayout = new WebViewPositionLayout(GameActivity._activity, w);

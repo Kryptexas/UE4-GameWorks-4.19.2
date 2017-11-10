@@ -109,6 +109,7 @@ float3 SplineMeshY;
 
 	uint3 VertexFetch_Parameters;
 	uint InstanceOffset;
+	uint VertexOffset;
 
 	#define VF_ColorIndexMask_Index 0
 	#define VF_NumTexcoords_Index 1
@@ -407,7 +408,7 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 		UNROLL
 		for (uint CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
 		{
-			Result.TexCoords[CoordinateIndex] = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * Input.VertexId + CoordinateIndex];
+			Result.TexCoords[CoordinateIndex] = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId) + CoordinateIndex];
 		}
 #elif NUM_MATERIAL_TEXCOORDS_VERTEX
 		#if GPUSKIN_PASS_THROUGH
@@ -563,8 +564,8 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input, out float TangentSign)
 	half3x3 Result;
 	
 #if MANUAL_VERTEX_FETCH
-	half3 TangentInputX = VertexFetch_PackedTangentsBuffer[2 * Input.VertexId + 0].xyz;
-	half4 TangentInputZ = VertexFetch_PackedTangentsBuffer[2 * Input.VertexId + 1].xyzw;
+	half3 TangentInputX = VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 0].xyz;
+	half4 TangentInputZ = VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 1].xyzw;
 #else
 	half3 TangentInputX = Input.TangentX;
 	half4 TangentInputZ = Input.TangentZ;
@@ -615,7 +616,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	FVertexFactoryIntermediates Intermediates;
 
 #if MANUAL_VERTEX_FETCH
-	Intermediates.Color = VertexFetch_ColorComponentsBuffer[Input.VertexId & VertexFetch_Parameters[VF_ColorIndexMask_Index]] FMANUALFETCH_COLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
+	Intermediates.Color = VertexFetch_ColorComponentsBuffer[(VertexOffset + Input.VertexId) & VertexFetch_Parameters[VF_ColorIndexMask_Index]] FMANUALFETCH_COLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
 #else
 	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
 #endif
@@ -717,7 +718,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 
 #elif NUM_MATERIAL_TEXCOORDS_VERTEX == 0 && USE_PARTICLE_SUBUVS
 	#if MANUAL_VERTEX_FETCH
-		SetUV(Interpolants, 0, VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * Input.VertexId]);
+		SetUV(Interpolants, 0, VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId)]);
 	#else
 		SetUV(Interpolants, 0, Input.TexCoords[0]);
 	#endif
@@ -727,7 +728,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	float2 LightMapCoordinate = 0;
 	float2 ShadowMapCoordinate = 0;
 	#if MANUAL_VERTEX_FETCH
-		float2 LightMapCoordinateInput = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * Input.VertexId + VertexFetch_Parameters[FV_LightMapIndex_Index]];
+		float2 LightMapCoordinateInput = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId) + VertexFetch_Parameters[FV_LightMapIndex_Index]];
 	#else
 		float2 LightMapCoordinateInput = Input.LightMapCoordinate;
 	#endif

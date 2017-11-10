@@ -420,6 +420,8 @@ protected:
 					}
 				}
 
+				this->EndInertialScrolling();
+
 				// Only scroll the item into view if it's not already in the visible range
 				const int32 NumItemsWide = GetNumItemsWide();
 				const float Index = (IndexOfItem / NumItemsWide) * NumItemsWide;

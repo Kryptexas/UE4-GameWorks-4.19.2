@@ -186,11 +186,14 @@ public:
 		/** Called when a folder is entered */
 		SLATE_EVENT( FOnPathSelected, OnPathSelected )
 
+		/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+		SLATE_EVENT( FOnGetCustomSourceAssets, OnGetCustomSourceAssets )
+
 		/** Columns to hide by default */
 		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
 
 		/** Custom columns that can be use specific */
-		SLATE_ARGUMENT(TArray<FAssetViewCustomColumn>, CustomColumns)
+		SLATE_ARGUMENT( TArray<FAssetViewCustomColumn>, CustomColumns )
 
 	SLATE_END_ARGS()
 
@@ -822,6 +825,9 @@ private:
 
 	/** Called when a custom asset item's tooltip is closing */
 	FOnAssetToolTipClosing OnAssetToolTipClosing;
+
+	/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+	FOnGetCustomSourceAssets OnGetCustomSourceAssets;
 
 	/** When true, filtered list items will be sorted next tick. Provided another sort hasn't happened recently or we are renaming an asset */
 	bool bPendingSortFilteredItems;

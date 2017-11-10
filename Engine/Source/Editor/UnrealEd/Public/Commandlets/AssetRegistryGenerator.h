@@ -295,49 +295,31 @@ private:
 	/** Gather a list of dependencies required by to completely load this package */
 	bool GatherAllPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames);
 
-	/**
-	* Gather the list of dependencies that link the source to the target.  Output array includes the target.
-	*/
+	/** Gather the list of dependencies that link the source to the target.  Output array includes the target */
 	bool GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TSet<FName>& VisitedPackages, TArray<FName>& OutDependencyChain);
 
-	/**
-	* Get an array of Packages this package will import.
-	*/
+	/** Get an array of Packages this package will import */
 	bool GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type InDependencyType);
 
-	/**
-	 * Save a CSV dump of chunk asset information.
-	 */
-	bool GenerateAssetChunkInformationCSV(const FString& OutputPath);
+	/** Save a CSV dump of chunk asset information, if bWriteIndividualFiles is true it writes a CSV per chunk in addition to AllChunksInfo */
+	bool GenerateAssetChunkInformationCSV(const FString& OutputPath, bool bWriteIndividualFiles = false);
 
-	/**
-	* Finds the asset belonging to ChunkID with the smallest number of links to Packages In PackageNames.
-	*/
-	void			FindShortestReferenceChain(TArray<FReferencePair> PackageNames, int32 ChunkID, uint32& OutParentIndex, FString& OutChainPath);
+	/** Finds the asset belonging to ChunkID with the smallest number of links to Packages In PackageNames */
+	void FindShortestReferenceChain(TArray<FReferencePair> PackageNames, int32 ChunkID, uint32& OutParentIndex, FString& OutChainPath);
 
-	/**
-	* Helper function for FindShortestReferenceChain
-	*/
-	FString			GetShortestReferenceChain(FName PackageName, int32 ChunkID);
+	/** Helper function for FindShortestReferenceChain */
+	FString	GetShortestReferenceChain(FName PackageName, int32 ChunkID);
 
-	/**
-	* 
-	*/
-	void			ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet, TArray<TArray<FName>>& OutPackagesMovedBetweenChunks);
+	/** Deprecated method to remove redundant chunks */
+	void ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet, TArray<TArray<FName>>& OutPackagesMovedBetweenChunks);
 
-	/**
-	* Helper function to verify Chunk asset assigment is valid.
-	*/
-	bool			CheckChunkAssetsAreNotInChild(const FChunkDependencyTreeNode& Node);
+	/** Helper function to verify Chunk asset assigment is valid */
+	bool CheckChunkAssetsAreNotInChild(const FChunkDependencyTreeNode& Node);
 
-	/**
-	* Helper function to create a given collection.
-	*/
-	bool			CreateOrEmptyCollection(FName CollectionName);
+	/** Helper function to create a given collection. */
+	bool CreateOrEmptyCollection(FName CollectionName);
 
-	/**
-	* Helper function to fill a given collection with a set of packages.
-	*/
-	void			WriteCollection(FName CollectionName, const TArray<FName>& PackageNames);
+	/** Helper function to fill a given collection with a set of packages */
+	void WriteCollection(FName CollectionName, const TArray<FName>& PackageNames);
 
 };

@@ -1036,12 +1036,24 @@ public class IOSPlatform : Platform
 
 			// copy in the application
 			string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
+			if (!File.Exists(ProjectIPA))
+			{
+				Console.WriteLine("Couldn't find IPA: " + ProjectIPA);
+			}
 			using (ZipFile Zip = new ZipFile(ProjectIPA))
 			{
 				Zip.ExtractAll(ArchivePath, ExtractExistingFileAction.OverwriteSilently);
 
 				List<string> Dirs = new List<string>(Directory.EnumerateDirectories(Path.Combine(ArchivePath, "Payload"), "*.app"));
 				AppName = Dirs[0].Substring(Dirs[0].LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+				foreach (string Dir in Dirs)
+				{
+					if (Dir.Contains(Params.ShortProjectName + ".app"))
+					{
+						Console.WriteLine("Using Directory: " + Dir);
+						AppName = Dir.Substring(Dir.LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+					}
+				}
 				CopyDirectory_NoExceptions(Path.Combine(ArchivePath, "Payload", AppName), Path.Combine(ArchiveName, "Products", "Applications", AppName));
 			}
 
@@ -1094,23 +1106,33 @@ public class IOSPlatform : Platform
 			string AppPlist = Path.Combine(ArchiveName, "Products", "Applications", AppName, "Info.plist");
 			string OldPListData = File.Exists(AppPlist) ? File.ReadAllText(AppPlist) : "";
 
-			// bundle identifier
-			int index = OldPListData.IndexOf("CFBundleIdentifier");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			int length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleIdentifier = OldPListData.Substring(index, length);
+			string BundleIdentifier = "";
+			string BundleShortVersion = "";
+			string BundleVersion = "";
+			if (!string.IsNullOrEmpty(OldPListData))
+			{
+				// bundle identifier
+				int index = OldPListData.IndexOf("CFBundleIdentifier");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				int length = OldPListData.IndexOf("</string>", index) - index;
+				BundleIdentifier = OldPListData.Substring(index, length);
 
-			// short version
-			index = OldPListData.IndexOf("CFBundleShortVersionString");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleShortVersion = OldPListData.Substring(index, length);
+				// short version
+				index = OldPListData.IndexOf("CFBundleShortVersionString");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				length = OldPListData.IndexOf("</string>", index) - index;
+				BundleShortVersion = OldPListData.Substring(index, length);
 
-			// bundle version
-			index = OldPListData.IndexOf("CFBundleVersion");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleVersion = OldPListData.Substring(index, length);
+				// bundle version
+				index = OldPListData.IndexOf("CFBundleVersion");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				length = OldPListData.IndexOf("</string>", index) - index;
+				BundleVersion = OldPListData.Substring(index, length);
+			}
+			else
+			{
+				Console.WriteLine("Could not load Info.plist");
+			}
 
 			// date we made this
 			const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";

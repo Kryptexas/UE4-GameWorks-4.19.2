@@ -12,8 +12,6 @@ public class LevelEditor : ModuleRules
 				"ClassViewer",
 				"MainFrame",
                 "PlacementMode",
-				"ReferenceViewer",
-				"SizeMap",
 				"SlateReflector",
                 "IntroTutorials",
                 "AppFramework",
@@ -87,8 +85,6 @@ public class LevelEditor : ModuleRules
 				"NewLevelDialog",
 				"DeviceProfileEditor",
                 "PlacementMode",
-				"ReferenceViewer",
-				"SizeMap",
                 "IntroTutorials",
 				"HeadMountedDisplay",
 				"VREditor"

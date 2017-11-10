@@ -928,9 +928,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("BehaviorTreeEditor"),
 			TEXT("HardwareTargeting"),
 			TEXT("LocalizationDashboard"),
-			TEXT("ReferenceViewer"),
-			TEXT("TreeMap"),
-			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("InputBindingEditor"),
 			TEXT("AudioEditor")

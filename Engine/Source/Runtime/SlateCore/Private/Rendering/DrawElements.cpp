@@ -516,7 +516,6 @@ FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometr
 void FSlateBatchData::Reset()
 {
 	RenderBatches.Reset();
-	DynamicOffset = FVector2D(0, 0);
 	
 	// note: LayerToElementBatches is not reset here as the same layers are 
 	// more than likely reused and we can save memory allocations by not resetting the map every frame
@@ -673,7 +672,7 @@ void FSlateBatchData::AddRenderBatch(uint32 InLayer, const FSlateElementBatch& I
 	NumBatchedIndices += InNumIndices;
 
 	const int32 Index = RenderBatches.Add(FSlateRenderBatch(InLayer, InElementBatch, RenderDataHandle, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset));
-	RenderBatches[Index].DynamicOffset = DynamicOffset;
+	RenderBatches[Index].DynamicOffset = FVector2D::ZeroVector;
 }
 
 void FSlateBatchData::ResetVertexArray(FSlateVertexArray& InOutVertexArray)
@@ -714,8 +713,6 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 				{
 					if ( FSlateRenderDataHandle* RenderHandle = ElementBatch.GetCachedRenderHandle().Get() )
 					{
-						DynamicOffset += ElementBatch.GetCachedRenderDataOffset();
-
 						TArray<FSlateRenderBatch>* ForeignBatches = RenderHandle->GetRenderBatches();
 						//TArray<FSlateClippingState>* ForeignClipState = RenderHandle->GetClipStates();
 						if (ForeignBatches /*&& ForeignClipState*/)
@@ -739,13 +736,11 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 								else
 								{
 									const int32 Index = RenderBatches.Add(ForeignBatchesRef[i]);
-									RenderBatches[Index].DynamicOffset = DynamicOffset;
+									RenderBatches[Index].DynamicOffset = ElementBatch.GetCachedRenderDataOffset();
 									//RenderBatches[Index].ClippingIndex = ElementBatch.GetClippingIndex();
 								}
 							}
 						}
-
-						DynamicOffset -= ElementBatch.GetCachedRenderDataOffset();
 
 						continue;
 					}
@@ -797,25 +792,22 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 void FSlateWindowElementList::MergeElementList(FSlateWindowElementList* ElementList, FVector2D AbsoluteOffset)
 {
 	const bool bMoved = !AbsoluteOffset.IsZero();
-
-	const TArray< FSlateClippingState >& States = ElementList->ClippingManager.GetClippingStates();
-	const int32 ClippingStateOffset = ClippingManager.MergeClippingStates(States);
-
 	const TArray<FSlateDrawElement>& CachedElements = ElementList->GetDrawElements();
 	const int32 CachedElementCount = CachedElements.Num();
-	for (int32 Index = 0; Index < CachedElementCount; Index++)
+
+	if (bMoved)
 	{
-		const FSlateDrawElement& LocalElement = CachedElements[Index];
-
-		FSlateDrawElement AbsElement = LocalElement;
-		if (bMoved)
+		for (int32 Index = 0; Index < CachedElementCount; Index++)
 		{
+			const FSlateDrawElement& LocalElement = CachedElements[Index];
+			FSlateDrawElement AbsElement = LocalElement;
 			FSlateDrawElement::ApplyPositionOffset(AbsElement, AbsoluteOffset);
+			AddItem(AbsElement);
 		}
-		
-		AbsElement.SetClippingIndex(LocalElement.GetClippingIndex() == -1 ? GetClippingIndex() : (ClippingStateOffset + GetClippingIndex()));
-
-		AddItem(AbsElement);
+	}
+	else
+	{
+		AppendItems(CachedElements);
 	}
 }
 
@@ -980,6 +972,20 @@ int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElement
 
 	return MaxLayerId;
 }
+
+int32 FSlateWindowElementList::PaintVolatileRootLayer(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset)
+{
+	int32 MaxLayerId = 0;
+
+	for (int32 VolatileIndex = 0; VolatileIndex < VolatilePaintList.Num(); ++VolatileIndex)
+	{
+		const TSharedPtr<FVolatilePaint>& Args = VolatilePaintList[VolatileIndex];
+		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList, InCurrentTime, InDeltaTime, InDynamicOffset));
+	}
+
+	return MaxLayerId;
+}
+
 
 void FSlateWindowElementList::BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle)
 {

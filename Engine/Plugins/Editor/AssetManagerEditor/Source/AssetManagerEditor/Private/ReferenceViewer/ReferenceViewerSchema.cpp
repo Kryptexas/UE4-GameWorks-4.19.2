@@ -6,9 +6,9 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "EditorStyleSet.h"
 #include "CollectionManagerTypes.h"
-#include "ReferenceViewerActions.h"
+#include "AssetManagerEditorCommands.h"
+#include "AssetManagerEditorModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-
 #include "ConnectionDrawingPolicy.h"
 
 
@@ -56,14 +56,13 @@ void UReferenceViewerSchema::GetContextMenuActions(const UEdGraph* CurrentGraph,
 	MenuBuilder->BeginSection(TEXT("Asset"), NSLOCTEXT("ReferenceViewerSchema", "AssetSectionLabel", "Asset"));
 	{
 		MenuBuilder->AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().OpenSelectedInAssetEditor);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowSizeMap);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().OpenSelectedInAssetEditor);
 	}
 	MenuBuilder->EndSection();
 
 	MenuBuilder->BeginSection(TEXT("Misc"), NSLOCTEXT("ReferenceViewerSchema", "MiscSectionLabel", "Misc"));
 	{
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ReCenterGraph);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ReCenterGraph);
 		MenuBuilder->AddSubMenu(
 			NSLOCTEXT("ReferenceViewerSchema", "MakeCollectionWithTitle", "Make Collection with"),
 			NSLOCTEXT("ReferenceViewerSchema", "MakeCollectionWithTooltip", "Makes a collection with either the referencers or dependencies of the selected nodes."),
@@ -74,11 +73,13 @@ void UReferenceViewerSchema::GetContextMenuActions(const UEdGraph* CurrentGraph,
 
 	MenuBuilder->BeginSection(TEXT("References"), NSLOCTEXT("ReferenceViewerSchema", "ReferencesSectionLabel", "References"));
 	{
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().CopyReferencedObjects);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().CopyReferencingObjects);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencedObjects);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencingObjects);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferenceTree, TEXT("ContextMenu"));
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().CopyReferencedObjects);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().CopyReferencingObjects);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ShowReferencedObjects);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ShowReferencingObjects);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ShowReferenceTree);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ViewSizeMap);
+		MenuBuilder->AddMenuEntry(FAssetManagerEditorCommands::Get().ViewAssetAudit, TEXT("ContextMenu"));
 	}
 	MenuBuilder->EndSection();
 }
@@ -122,6 +123,19 @@ FConnectionDrawingPolicy* UReferenceViewerSchema::CreateConnectionDrawingPolicy(
 	return new FReferenceViewerConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements);
 }
 
+void UReferenceViewerSchema::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
+{
+	TArray<FAssetIdentifier> AssetIdentifiers;
+
+	IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(Assets, AssetIdentifiers);
+	IAssetManagerEditorModule::Get().OpenReferenceViewerUI(AssetIdentifiers);
+}
+
+void UReferenceViewerSchema::GetAssetsGraphHoverMessage(const TArray<FAssetData>& Assets, const UEdGraph* HoverGraph, FString& OutTooltipText, bool& OutOkIcon) const
+{
+	OutOkIcon = true;
+}
+
 void UReferenceViewerSchema::GetMakeCollectionWithSubMenu(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.AddSubMenu(NSLOCTEXT("ReferenceViewerSchema", "MakeCollectionWithReferencersTitle", "Referencers <-"),
@@ -139,17 +153,17 @@ void UReferenceViewerSchema::GetMakeCollectionWithReferencersOrDependenciesSubMe
 {
 	if (bReferencers)
 	{
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakeLocalCollectionWithReferencers, 
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakeLocalCollectionWithReferencers, 
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Local), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Local))
 			);
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakePrivateCollectionWithReferencers,
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakePrivateCollectionWithReferencers,
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Private), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Private))
 			);
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakeSharedCollectionWithReferencers,
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakeSharedCollectionWithReferencers,
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Shared), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Shared))
@@ -157,17 +171,17 @@ void UReferenceViewerSchema::GetMakeCollectionWithReferencersOrDependenciesSubMe
 	}
 	else
 	{
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakeLocalCollectionWithDependencies, 
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakeLocalCollectionWithDependencies, 
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Local), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Local))
 			);
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakePrivateCollectionWithDependencies,
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakePrivateCollectionWithDependencies,
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Private), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Private))
 			);
-		MenuBuilder.AddMenuEntry(FReferenceViewerActions::Get().MakeSharedCollectionWithDependencies,
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().MakeSharedCollectionWithDependencies,
 			NAME_None, TAttribute<FText>(), 
 			ECollectionShareType::GetDescription(ECollectionShareType::CST_Shared), 
 			FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(ECollectionShareType::CST_Shared))

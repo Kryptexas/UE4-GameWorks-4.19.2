@@ -8,8 +8,9 @@
 #include "Widgets/SCompoundWidget.h"
 #include "GraphEditor.h"
 #include "AssetData.h"
-#include "Editor/ReferenceViewer/Private/HistoryManager.h"
+#include "HistoryManager.h"
 #include "CollectionManagerTypes.h"
+#include "AssetManagerEditorModule.h"
 
 class UEdGraph;
 class UEdGraph_ReferenceViewer;
@@ -30,10 +31,13 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Sets a new root package name */
-	void SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers);
+	void SetGraphRootIdentifiers(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers);
 
 	/** Gets graph editor */
 	TSharedPtr<SGraphEditor> GetGraphEditor() const { return GraphEditorPtr; }
+
+	/** Called when the current registry source changes */
+	void SetCurrentRegistrySource(const FAssetManagerEditorRegistrySource* RegistrySource);
 
 private:
 
@@ -123,8 +127,9 @@ private:
 	void ShowReferencedObjects();
 	void ShowReferencingObjects();
 	void MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
-	void ShowSizeMap();
 	void ShowReferenceTree();
+	void ViewSizeMap();
+	void ViewAssetAudit();
 
 	void ReCenterGraphOnNodes(const TSet<UObject*>& Nodes);
 
@@ -138,6 +143,7 @@ private:
 	bool HasAtLeastOnePackageNodeSelected() const;
 
 	void OnInitialAssetRegistrySearchComplete();
+	EActiveTimerReturnType TriggerZoomToFit(double InCurrentTime, float InDeltaTime);
 private:
 
 	/** The manager that keeps track of history data for this browser */

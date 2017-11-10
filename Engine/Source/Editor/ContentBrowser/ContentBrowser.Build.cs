@@ -16,9 +16,7 @@ public class ContentBrowser : ModuleRules
                 "MainFrame",
 				"PackagesDialog",
 				"SourceControl",
-				"SourceControlWindows",
-                "ReferenceViewer",
-                "SizeMap",
+				"SourceControlWindows"
 			}
 		);
 
@@ -52,9 +50,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"GameProjectGeneration",
-                "MainFrame",
-                "ReferenceViewer",
-                "SizeMap",
+                "MainFrame"
 			}
 		);
 		

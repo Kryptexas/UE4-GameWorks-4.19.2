@@ -10,6 +10,7 @@
 
 struct FARFilter;
 struct FCollectionNameType;
+class FUICommandList;
 
 
  enum class CONTENTBROWSER_API EMovedContentFolderFlags : uint8
@@ -101,6 +102,10 @@ DECLARE_DELEGATE_OneParam(FOnPathSelected, const FString& /*Path*/);
 /** Called when a path is double clicked in the asset view */
 DECLARE_DELEGATE_OneParam(FOnPathDoubleClicked, const FString& /*Path*/);
 
+/** Called when registering a custom command/keybinding for the content browser */
+DECLARE_DELEGATE_TwoParams(FOnContentBrowserGetSelection, TArray<FAssetData>& /*SelectedAssets*/, TArray<FString>& /*SelectedPaths*/);
+DECLARE_DELEGATE_TwoParams(FContentBrowserCommandExtender, TSharedRef<FUICommandList> /*CommandList*/, FOnContentBrowserGetSelection /*GetSelectionDelegate*/);
+
 /** Called to request the menu when right clicking on a path */
 DECLARE_DELEGATE_RetVal(TSharedRef<FExtender>, FContentBrowserMenuExtender);
 DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<FExtender>, FContentBrowserMenuExtender_SelectedAssets, const TArray<FAssetData>& /*SelectedAssets*/);
@@ -112,8 +117,11 @@ DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<SWidget>, FOnGetFolderContextMenu
 /** Called to request a custom asset item tooltip */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, FAssetData& /*AssetData*/);
 
-/** Called to get value for a custom column, will get converted as necesary */
+/** Called to get value for a custom column, will get converted as necessary */
 DECLARE_DELEGATE_RetVal_TwoParams(FString, FOnGetCustomAssetColumnData, FAssetData& /*AssetData*/, FName /*ColumnName*/);
+
+/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+DECLARE_DELEGATE_TwoParams(FOnGetCustomSourceAssets, const FARFilter& /*SourceFilter*/, TArray<FAssetData>& /*AddedAssets*/);
 
 /** Called when an asset item visualizes its tooltip */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVisualizeAssetToolTip, const TSharedPtr<SWidget>& /*ToolTipContent*/, FAssetData& /*AssetData*/);

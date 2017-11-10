@@ -43,9 +43,6 @@
 #include "PropertyEditorModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ConsolidateWindow.h"
-#include "ReferenceViewer.h"
-#include "ISizeMapModule.h"
-
 #include "ReferencedAssetsUtils.h"
 #include "Internationalization/PackageLocalizationUtil.h"
 
@@ -859,24 +856,6 @@ bool FAssetContextMenu::AddReferenceMenuOptions(FMenuBuilder& MenuBuilder)
 			LOCTEXT("CopyReferenceTooltip", "Copies reference paths for the selected assets to the clipboard."),
 			FSlateIcon(),
 			FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteCopyReference ) )
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ReferenceViewer", "Reference Viewer..."),
-			LOCTEXT("ReferenceViewerTooltip", "Shows a graph of references for this asset."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowReferenceViewer )
-				)
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SizeMap", "Size Map..."),
-			LOCTEXT("SizeMapTooltip", "Shows an interactive map of the approximate memory used by this asset and everything it references."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowSizeMap )
-				)
 			);
 	}
 	MenuBuilder.EndSection();
@@ -1969,34 +1948,6 @@ void FAssetContextMenu::ExecuteMigrateAsset()
 
 	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	AssetToolsModule.Get().MigratePackages( PackageNames );
-}
-
-void FAssetContextMenu::ExecuteShowReferenceViewer()
-{
-	TArray<FName> PackageNames;
-	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		PackageNames.Add(AssetIt->PackageName);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
-	}
-}
-
-void FAssetContextMenu::ExecuteShowSizeMap()
-{
-	TArray<FName> PackageNames;
-	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		PackageNames.Add(AssetIt->PackageName);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab(PackageNames);
-	}
 }
 
 void FAssetContextMenu::ExecuteGoToCodeForAsset(UClass* SelectedClass)

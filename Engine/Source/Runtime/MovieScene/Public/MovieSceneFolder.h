@@ -11,8 +11,8 @@
 
 class UMovieSceneTrack;
 
-/** Reprents a folder used for organizing objects in tracks in a movie scene. */
-UCLASS()
+/** Represents a folder used for organizing objects in tracks in a movie scene. */
+UCLASS(DefaultToInstanced)
 class MOVIESCENE_API UMovieSceneFolder : public UObject
 {
 	GENERATED_UCLASS_BODY()

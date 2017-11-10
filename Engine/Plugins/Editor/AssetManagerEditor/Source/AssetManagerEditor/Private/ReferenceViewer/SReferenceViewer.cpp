@@ -26,13 +26,13 @@
 #include "CollectionManagerModule.h"
 #include "Editor.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "ReferenceViewerActions.h"
+#include "AssetManagerEditorCommands.h"
 #include "EditorWidgetsModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-#include "ISizeMapModule.h"
 #include "Engine/AssetManager.h"
 #include "Widgets/Input/SComboBox.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "AssetManagerEditorModule.h"
 
 #include "ObjectTools.h"
 
@@ -442,14 +442,32 @@ void SReferenceViewer::Construct(const FArguments& InArgs)
 	];
 }
 
-void SReferenceViewer::SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers)
+void SReferenceViewer::SetGraphRootIdentifiers(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers)
 {
 	GraphObj->SetGraphRoot(NewGraphRootIdentifiers);
 	
 	RebuildGraph();
 
+	// Zoom once this frame to make sure widgets are visible, then zoom again so size is correct
+	TriggerZoomToFit(0, 0);
+	RegisterActiveTimer(0.1f, FWidgetActiveTimerDelegate::CreateSP(this, &SReferenceViewer::TriggerZoomToFit));
+
 	// Set the initial history data
 	HistoryManager.AddHistoryData();
+}
+
+EActiveTimerReturnType SReferenceViewer::TriggerZoomToFit(double InCurrentTime, float InDeltaTime)
+{
+	if (GraphEditorPtr.IsValid())
+	{
+		GraphEditorPtr->ZoomToFit(false);
+	}
+	return EActiveTimerReturnType::Stop;
+}
+
+void SReferenceViewer::SetCurrentRegistrySource(const FAssetManagerEditorRegistrySource* RegistrySource)
+{
+	RebuildGraph();
 }
 
 void SReferenceViewer::OnNodeDoubleClicked(UEdGraphNode* Node)
@@ -570,7 +588,7 @@ void SReferenceViewer::OnAddressBarTextCommitted(const FText& NewText, ETextComm
 		TArray<FAssetIdentifier> NewPaths;
 		NewPaths.Add(FAssetIdentifier::FromString(NewText.ToString()));
 
-		SetGraphRootPackageNames(NewPaths);
+		SetGraphRootIdentifiers(NewPaths);
 	}
 
 	TemporaryPathBeingEdited = FText();
@@ -879,7 +897,7 @@ void SReferenceViewer::OnSearchBreadthCommitted(int32 NewValue)
 void SReferenceViewer::RegisterActions()
 {
 	ReferenceViewerActions = MakeShareable(new FUICommandList);
-	FReferenceViewerActions::Register();
+	FAssetManagerEditorCommands::Register();
 
 	ReferenceViewerActions->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
@@ -887,74 +905,79 @@ void SReferenceViewer::RegisterActions()
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().OpenSelectedInAssetEditor,
+		FAssetManagerEditorCommands::Get().OpenSelectedInAssetEditor,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::OpenSelectedInAssetEditor),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ReCenterGraph,
+		FAssetManagerEditorCommands::Get().ReCenterGraph,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ReCenterGraph),
 		FCanExecuteAction());
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().CopyReferencedObjects,
+		FAssetManagerEditorCommands::Get().CopyReferencedObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencedObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().CopyReferencingObjects,
+		FAssetManagerEditorCommands::Get().CopyReferencingObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencingObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ShowReferencedObjects,
+		FAssetManagerEditorCommands::Get().ShowReferencedObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencedObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ShowReferencingObjects,
+		FAssetManagerEditorCommands::Get().ShowReferencingObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencingObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakeLocalCollectionWithReferencers,
+		FAssetManagerEditorCommands::Get().MakeLocalCollectionWithReferencers,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Local, true),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakePrivateCollectionWithReferencers,
+		FAssetManagerEditorCommands::Get().MakePrivateCollectionWithReferencers,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Private, true),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakeSharedCollectionWithReferencers,
+		FAssetManagerEditorCommands::Get().MakeSharedCollectionWithReferencers,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Shared, true),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakeLocalCollectionWithDependencies,
+		FAssetManagerEditorCommands::Get().MakeLocalCollectionWithDependencies,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Local, false),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakePrivateCollectionWithDependencies,
+		FAssetManagerEditorCommands::Get().MakePrivateCollectionWithDependencies,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Private, false),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().MakeSharedCollectionWithDependencies,
+		FAssetManagerEditorCommands::Get().MakeSharedCollectionWithDependencies,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Shared, false),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ShowSizeMap,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSizeMap),
+		FAssetManagerEditorCommands::Get().ShowReferenceTree,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferenceTree),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ShowReferenceTree,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferenceTree),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+		FAssetManagerEditorCommands::Get().ViewSizeMap,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ViewSizeMap),
+		FCanExecuteAction());
+
+	ReferenceViewerActions->MapAction(
+		FAssetManagerEditorCommands::Get().ViewAssetAudit,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ViewAssetAudit),
+		FCanExecuteAction());
 }
 
 void SReferenceViewer::ShowSelectionInContentBrowser()
@@ -1182,68 +1205,17 @@ void SReferenceViewer::MakeCollectionWithReferencersOrDependencies(ECollectionSh
 				}
 			}
 
-			TSet<FName> ObjectPathsToAddToCollection;
+			TSet<FName> PackageNameSet;
 			for (FName PackageToAdd : PackageNamesToAddToCollection)
 			{
 				if (!AllSelectedPackageNames.Contains(PackageToAdd))
 				{
-					const FString PackageString = PackageToAdd.ToString();
-					const FName ObjectPath = *FString::Printf(TEXT("%s.%s"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
-					ObjectPathsToAddToCollection.Add(ObjectPath);
+					PackageNameSet.Add(PackageToAdd);
 				}
 			}
 
-			if (ObjectPathsToAddToCollection.Num() > 0)
-			{
-				if (CollectionManagerModule.Get().CreateCollection(CollectionName, ShareType, ECollectionStorageMode::Static))
-				{
-					if (CollectionManagerModule.Get().AddToCollection(CollectionName, ShareType, ObjectPathsToAddToCollection.Array()))
-					{
-						ResultsMessage = FText::Format(LOCTEXT("CreateCollectionSucceeded", "Created collection {0}"), FText::FromName(CollectionName));
-					}
-					else
-					{
-						ResultsMessage = FText::Format(LOCTEXT("AddToCollectionFailed", "Failed to add to the collection. {0}"), CollectionManagerModule.Get().GetLastError());
-					}
-				}
-				else
-				{
-					ResultsMessage = FText::Format(LOCTEXT("CreateCollectionFailed", "Failed to create the collection. {0}"), CollectionManagerModule.Get().GetLastError());
-				}
-			}
-			else
-			{
-				ResultsMessage = LOCTEXT("NothingToAddToCollection", "Nothing to add to collection.");
-			}
-
-			FMessageDialog::Open(EAppMsgType::Ok, ResultsMessage);
+			IAssetManagerEditorModule::Get().WriteCollection(CollectionName, ShareType, PackageNameSet.Array(), true);
 		}
-	}
-}
-
-void SReferenceViewer::ShowSizeMap()
-{
-	TArray<FName> SelectedAssetPackageNames;
-
-	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
-	if ( ensure(SelectedNodes.Num() == 1) )
-	{
-		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(SelectedNodes.Array()[0]);
-		if ( ReferenceNode )
-		{
-			TArray<FName> PackageNames;
-			ReferenceNode->GetAllPackageNames(PackageNames);
-
-			for (FName Name : PackageNames)
-			{
-				SelectedAssetPackageNames.AddUnique(Name);
-			}
-		}
-	}
-
-	if( SelectedAssetPackageNames.Num() > 0 )
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab( SelectedAssetPackageNames );
 	}
 }
 
@@ -1269,6 +1241,36 @@ void SReferenceViewer::ShowReferenceTree()
 		{
 			GEditor->GetSelectedObjects()->Select( SelectedObject );
 		}
+	}
+}
+
+void SReferenceViewer::ViewSizeMap()
+{
+	TArray<FAssetIdentifier> AssetIdentifiers;
+	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
+	for (UObject* Node : SelectedNodes)
+	{
+		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(Node);
+		if (ReferenceNode)
+		{
+			ReferenceNode->GetAllIdentifiers(AssetIdentifiers);
+		}
+	}
+
+	if (AssetIdentifiers.Num() > 0)
+	{
+		IAssetManagerEditorModule::Get().OpenSizeMapUI(AssetIdentifiers);
+	}
+}
+
+void SReferenceViewer::ViewAssetAudit()
+{
+	TSet<FName> SelectedAssetPackageNames;
+	GetPackageNamesFromSelectedNodes(SelectedAssetPackageNames);
+
+	if (SelectedAssetPackageNames.Num() > 0)
+	{
+		IAssetManagerEditorModule::Get().OpenAssetAuditUI(SelectedAssetPackageNames.Array());
 	}
 }
 

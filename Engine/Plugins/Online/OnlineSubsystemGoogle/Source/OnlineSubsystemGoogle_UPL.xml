@@ -31,7 +31,7 @@
 	<AARImports>
 		<if condition="bEnabled">
 			<true>
-				<insertValue value="com.google.android.gms,play-services-auth,9.8.0" />
+				<insertValue value="com.google.android.gms,play-services-auth,11.0.4" />
 				<insertNewline/>
 			</true>
 		</if>

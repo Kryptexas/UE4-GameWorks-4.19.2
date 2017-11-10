@@ -162,8 +162,9 @@ public:
 	virtual bool Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize() const override;
 
-	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InInstanceOffset, uint32 InInstanceCount) const
+	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 	{
+		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, InVertexOffset);
 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, InInstanceOffset);
 	}
@@ -185,6 +186,7 @@ private:
 
 	FShaderParameter InstanceCount;
 	FShaderParameter InstanceOffset;
+	FShaderParameter VertexOffset;
 
 	FDebugUniformExpressionSet	DebugUniformExpressionSet;
 	FRHIUniformBufferLayout		DebugUniformExpressionUBLayout;
