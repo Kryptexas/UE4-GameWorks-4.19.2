@@ -156,7 +156,7 @@ void UModelComponent::BuildRenderData()
 
 						if (Element.MaxVertexIndex > (uint32)TheModel->VertexBuffer.Vertices.Num())
 						{
-							UE_LOG(LogModelComponent, Warning, TEXT("Model %s has elements that reference missing vertices. MaxVertex=%d, NumVertices=%d"),
+							UE_LOG(LogModelComponent, Log, TEXT("Model %s has elements that reference missing vertices. MaxVertex=%d, NumVertices=%d"),
 								*GetPathName(), Element.MaxVertexIndex, TheModel->VertexBuffer.Vertices.Num());
 						}
 					}

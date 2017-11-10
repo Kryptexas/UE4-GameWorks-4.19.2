@@ -25,7 +25,7 @@ public:
 
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
 	virtual void OnRenameNode(const FString& NewName) override;
-	virtual FLinearColor UNiagaraNodeCustomHlsl::GetNodeTitleColor() const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 
 	FText GetHlslText() const;
 	void OnCustomHlslTextCommitted(const FText& InText, ETextCommit::Type InType);
