@@ -4,24 +4,135 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleEmitter.h"
 
+
+class FFlexSimulationVertexBuffer : public FVertexBuffer
+{
+public:
+	typedef FVertexBuffer Parent;
+
+	static const int32 MinCapacity = 32;
+
+	/** Shader resource of the vertex buffer. */
+	FShaderResourceViewRHIRef VertexBufferSRV;
+
+	/** Default constructor. */
+	FFlexSimulationVertexBuffer(int32 VertexSizeIn, EPixelFormat VertexFormatIn, int32 BufferCreateFlagsIn = (BUF_Static | BUF_KeepCPUAccessible))
+		: VertexSize(VertexSizeIn)
+		, VertexFormat(VertexFormatIn)
+		, Count(0)
+		, Capacity(MinCapacity)
+		, BufferCreateFlags(BufferCreateFlagsIn | BUF_ShaderResource)
+	{
+	}
+
+	// May delete the buffer, and recreate if needs more capacity
+	void RequireCapacity(int32 CapacityIn)
+	{
+		check(IsInRenderingThread());
+
+		if (Capacity < CapacityIn)
+		{
+			// Make it expand by at least 1/2 the size of it's current size
+			int32 MinNewCapacity = Capacity + (Capacity >> 1);
+			MinNewCapacity = (MinNewCapacity < MinCapacity) ? MinCapacity : MinNewCapacity;
+
+			// Must be at least as big as MinNewCapacity
+			CapacityIn = (CapacityIn < MinNewCapacity) ? MinNewCapacity : CapacityIn;
+
+			// Release if need more capacity
+			ReleaseRHI();
+
+			// Set the required capacity
+			Capacity = CapacityIn;
+		}
+
+		if (Capacity > 0 && !VertexBufferRHI)
+		{
+			// Set up with the new Capacity
+			InitRHI();
+		}
+	}
+
+	/// Lock - specifying the amount of vertices wanted
+	void* Lock(int32 NumVerticesIn)
+	{
+		RequireCapacity(NumVerticesIn);
+		Count = NumVerticesIn;
+		return RHILockVertexBuffer(VertexBufferRHI, 0, NumVerticesIn * VertexSize, RLM_WriteOnly);
+	}
+
+	/// Unlock - must match up with previous Lock
+	void Unlock()
+	{
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+
+	/**
+	* Set the contents
+	*/
+	void Set(const void* Data, int32 NumVerticesIn)
+	{
+		void* Dst = Lock(NumVerticesIn);
+		FMemory::Memcpy(Dst, Data, VertexSize * NumVerticesIn);
+		Unlock();
+	}
+	/**
+	* Initialize RHI resources.
+	*/
+	virtual void InitRHI() override
+	{
+		if (Capacity > 0)
+		{
+			const int32 BufferSize = Capacity * VertexSize;
+			check(BufferSize > 0);
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, BufferCreateFlags, CreateInfo);
+			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, /*Stride=*/ VertexSize, VertexFormat);
+		}
+	}
+
+	/**
+	* Release RHI resources.
+	*/
+	virtual void ReleaseRHI() override
+	{
+		VertexBufferSRV.SafeRelease();
+		Parent::ReleaseRHI();
+	}
+
+	virtual FString GetFriendlyName() const override { return TEXT("FFlexSimulationVertexBuffer"); }
+
+	// BUF_Static | BUF_KeepCPUAccessible | BUF_ShaderResource
+
+	int32 BufferCreateFlags;			///< Flags to create the buffer
+	EPixelFormat VertexFormat;			///< The format of the vertex
+	int32 VertexSize;					///< The size of the vertex in bytes
+	int32 Capacity;						///< The total number of vertices the buffer can handle
+	int32 Count;					///< The number of vertices currently held
+};
+
+struct FFlexParticleVertex
+{
+	FVector4 Position;
+	FVector4 Velocity;
+};
+
 struct FFlexParticleSimulationState
 {
-	TArray<FVector4> Positions;
-	TArray<FVector4> Velocities;
+	TArray<FFlexParticleVertex> Vertices;
 };
 
 
-FFlexGPUParticleEmitterInstance::FFlexGPUParticleEmitterInstance(FFlexParticleEmitterInstance* InOwner, int32 NumParticles)
+FFlexGPUParticleEmitterInstance::FFlexGPUParticleEmitterInstance(FFlexParticleEmitterInstance* InOwner)
 	: Owner(InOwner)
 {
-	AllocParticleIndices(NumParticles);
 }
 
 FFlexGPUParticleEmitterInstance::~FFlexGPUParticleEmitterInstance()
 {
 }
 
-void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpawning)
+void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource)
 {
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Owner->Emitter->SpriteTemplate);
 	if (FlexEmitter == nullptr)
@@ -53,57 +164,62 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 			}
 		}
 
-		// sync UE4 particles with FLEX
-		const int32 NumFlexParticleIndices = FlexParticleIndices.Num();
-
-		FFlexParticleSimulationState* State = new FFlexParticleSimulationState;
-		State->Positions.SetNumUninitialized(NumFlexParticleIndices);
-
-		for (int32 i = 0; i < NumFlexParticleIndices; i++)
+		FFlexSimulationVertexBuffer* SimulationVertexBuffer = (FFlexSimulationVertexBuffer*)FlexSimulationResource;
+		if (SimulationVertexBuffer)
 		{
-			const int32 FlexParticleIndex = FlexParticleIndices[i];
-			if (FlexParticleIndex < 0)
+			// sync UE4 particles with FLEX
+			const int32 NumFlexParticleIndices = FlexParticleIndices.Num();
+
+			FFlexParticleSimulationState* State = new FFlexParticleSimulationState;
+			State->Vertices.SetNumUninitialized(NumFlexParticleIndices);
+
+			for (int32 i = 0; i < NumFlexParticleIndices; i++)
 			{
-				// Just zero for now. Should only be < 0 (ie not set) on the non used members of 
-				// the currently being allocated from tile
-				// For now mark w as -1 to show that's whats going on
-				State->Positions[i] = FVector4(0, 0, 0, -1);
-				continue;
+				const int32 FlexParticleIndex = FlexParticleIndices[i];
+				if (FlexParticleIndex < 0)
+				{
+					// Just zero for now. Should only be < 0 (ie not set) on the non used members of 
+					// the currently being allocated from tile
+					// For now mark w as -1 to show that's whats going on
+					State->Vertices[i].Position = FVector4(0, 0, 0, -1);
+					State->Vertices[i].Velocity = FVector4(0, 0, 0, 0);
+					continue;
+				}
+
+				if (Parent && FlexEmitter->bLocalSpace)
+				{
+					// Localize the position and velocity using the localization API
+					// NOTE: Once we have a feature to detect particle inside the mesh container
+					//       we can then test for it and apply localization as needed.
+					FVector4* Position = (FVector4*)&Container->Particles[FlexParticleIndex];
+					FVector* Velocity = (FVector*)&Container->Velocities[FlexParticleIndex];
+
+					NvFlexExtMovingFrameApply(&Owner->MeshFrame, (float*)Position, (float*)Velocity,
+						1, Owner->LinearInertialScale, Owner->AngularInertialScale, DeltaSeconds);
+				}
+
+				// sync UE4 particle with FLEX
+				if (Container->SmoothPositions.size() > 0)
+				{
+					State->Vertices[i].Position = Container->SmoothPositions[FlexParticleIndex];
+				}
+				else
+				{
+					State->Vertices[i].Position = Container->Particles[FlexParticleIndex];
+				}
+				State->Vertices[i].Velocity = Container->Velocities[FlexParticleIndex];
 			}
 
-			if (Parent && FlexEmitter->bLocalSpace)
-			{
-				// Localize the position and velocity using the localization API
-				// NOTE: Once we have a feature to detect particle inside the mesh container
-				//       we can then test for it and apply localization as needed.
-				FVector4* Position = (FVector4*)&Container->Particles[FlexParticleIndex];
-				FVector* Velocity = (FVector*)&Container->Velocities[FlexParticleIndex];
-
-				NvFlexExtMovingFrameApply(&Owner->MeshFrame, (float*)Position, (float*)Velocity,
-					1, Owner->LinearInertialScale, Owner->AngularInertialScale, DeltaSeconds);
-			}
-
-			// sync UE4 particle with FLEX
-			if (Container->SmoothPositions.size() > 0)
-			{
-				State->Positions[i] = Container->SmoothPositions[FlexParticleIndex];
-			}
-			else
-			{
-				State->Positions[i] = Container->Particles[FlexParticleIndex];
-			}
+			// Send to the rendering thread
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				FUpdateSimulationVertexBufferGPUCommand,
+				FFlexSimulationVertexBuffer*, SimulationVertexBuffer, SimulationVertexBuffer,
+				FFlexParticleSimulationState*, State, State,
+				{
+					SimulationVertexBuffer->Set(State->Vertices.GetData(), State->Vertices.Num());
+					delete State;
+				});
 		}
-#if 0
-		// Send to the rendering thread
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FUpdateParticleSimulationGPUCommand,
-			FParticleSimulationGPU*, Simulation, Simulation,
-			FFlexParticleSimulationState*, State, State,
-			{
-				Simulation->FlexParticlePositionVertexBuffer.Set(State->Positions.GetData(), State->Positions.Num());
-				delete State;
-			});
-#endif
 	}
 }
 
@@ -129,7 +245,7 @@ void FFlexGPUParticleEmitterInstance::DestroyParticles(int32 Start, int32 Count)
 	}
 }
 
-void FFlexGPUParticleEmitterInstance::DestroyAllParticles(int32 ParticlesPerTile)
+void FFlexGPUParticleEmitterInstance::DestroyAllParticles(int32 ParticlesPerTile, bool bFreeParticleIndices)
 {
 	// Release all of the allocated particles
 	const int32 NumFlexIndices = FlexParticleIndices.Num();
@@ -137,12 +253,20 @@ void FFlexGPUParticleEmitterInstance::DestroyAllParticles(int32 ParticlesPerTile
 	{
 		DestroyParticles(StartIndex, ParticlesPerTile);
 	}
+
+	if (bFreeParticleIndices)
+	{
+		FlexParticleIndices.Reset();
+	}
 }
 
 void FFlexGPUParticleEmitterInstance::AllocParticleIndices(int32 Count)
 {
-	const int32 NewParticlesIndex = FlexParticleIndices.AddUninitialized(Count);
-	FMemory::Memset(&FlexParticleIndices[NewParticlesIndex], uint8(-1), sizeof(int32) * Count);
+	if (Count > 0)
+	{
+		const int32 NewParticlesIndex = FlexParticleIndices.AddUninitialized(Count);
+		FMemory::Memset(&FlexParticleIndices[NewParticlesIndex], uint8(-1), sizeof(int32) * Count);
+	}
 }
 
 void FFlexGPUParticleEmitterInstance::FreeParticleIndices(int32 Start, int32 Count)
@@ -173,4 +297,15 @@ void FFlexGPUParticleEmitterInstance::SetNewParticle(int32 NewIndex, const FVect
 	const int32 FlexParticleIndex = NewFlexParticleIndices[NewIndex];
 
 	Owner->Container->SetParticle(FlexParticleIndex, FVector4(Position, Owner->FlexInvMass), Velocity, Owner->Phase);
+}
+
+FRenderResource* FFlexGPUParticleEmitterInstance::CreateSimulationResource()
+{
+	return new FFlexSimulationVertexBuffer(sizeof(FVector4) * 2, PF_A32B32G32R32F, BUF_Dynamic);
+}
+
+FRHIShaderResourceView* FFlexGPUParticleEmitterInstance::GetSimulationResourceView(FRenderResource* FlexSimulationResource)
+{
+	FFlexSimulationVertexBuffer* SimulationVertexBuffer = (FFlexSimulationVertexBuffer*)FlexSimulationResource;
+	return SimulationVertexBuffer ? SimulationVertexBuffer->VertexBufferSRV : nullptr;
 }

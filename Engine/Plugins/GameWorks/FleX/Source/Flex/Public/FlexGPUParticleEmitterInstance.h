@@ -8,12 +8,12 @@ FFlexGPUParticleEmitterInstance
 
 struct FFlexGPUParticleEmitterInstance
 {
-	FFlexGPUParticleEmitterInstance(struct FFlexParticleEmitterInstance* InOwner, int32 NumParticles);
+	FFlexGPUParticleEmitterInstance(struct FFlexParticleEmitterInstance* InOwner);
 	virtual ~FFlexGPUParticleEmitterInstance();
 
-	void Tick(float DeltaSeconds, bool bSuppressSpawning);
+	void Tick(float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource);
 	void DestroyParticles(int32 Start, int32 Count);
-	void DestroyAllParticles(int32 ParticlesPerTile);
+	void DestroyAllParticles(int32 ParticlesPerTile, bool bFreeParticleIndices);
 
 	void AllocParticleIndices(int32 Count);
 	void FreeParticleIndices(int32 Start, int32 Count);
@@ -22,6 +22,11 @@ struct FFlexGPUParticleEmitterInstance
 	void DestroyNewParticles(int32 NewStart, int32 NewCount);
 	void InitNewParticle(int32 NewIndex, int32 RegularIndex);
 	void SetNewParticle(int32 NewIndex, const FVector& Position, const FVector& Velocity);
+
+	FRenderResource* CreateSimulationResource();
+
+	static FRHIShaderResourceView* GetSimulationResourceView(FRenderResource* FlexSimulationResource);
+
 
 	FFlexParticleEmitterInstance* Owner;
 

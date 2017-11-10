@@ -1053,6 +1053,11 @@ public:
 		CollisionDepthBounds.Bind(Initializer.ParameterMap,TEXT("CollisionDepthBounds"));
 		PerFrameParameters.Bind(Initializer.ParameterMap);
 		GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
+		// NvFlex begin
+#if WITH_FLEX
+		FlexParticleBuffer.Bind(Initializer.ParameterMap, TEXT("FlexParticleBuffer"));
+#endif
+		// NvFlex end
 	}
 
 	/** Serialization. */
@@ -1081,6 +1086,11 @@ public:
 		Ar << CollisionDepthBounds;
 		Ar << PerFrameParameters;
 		Ar << GlobalDistanceFieldParameters;
+		// NvFlex begin
+#if WITH_FLEX
+		Ar << FlexParticleBuffer;
+#endif
+		// NvFlex end
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1179,6 +1189,19 @@ public:
 		PerFrameParameters.Set(RHICmdList, PixelShaderRHI, InPerFrameParameters, bUseFixDT);
 	}
 
+	// NvFlex begin
+#if WITH_FLEX
+	void SetFlexParameters(FRHICommandList& RHICmdList, FParticleShaderParamRef InFlexParticleBufferRef)
+	{
+		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
+		if (FlexParticleBuffer.IsBound())
+		{
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, FlexParticleBuffer.GetBaseIndex(), InFlexParticleBufferRef);
+		}
+	}
+#endif
+	// NvFlex end
+
 	/**
 	 * Unbinds buffers that may need to be bound as UAVs.
 	 */
@@ -1193,6 +1216,14 @@ public:
 				RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures[i].GetBaseIndex(), NullSRV);
 			}
 		}
+		// NvFlex begin
+#if WITH_FLEX
+		if (FlexParticleBuffer.IsBound())
+		{
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, FlexParticleBuffer.GetBaseIndex(), NullSRV);
+		}
+#endif
+		// NvFlex end
 	}
 
 private:
@@ -1226,6 +1257,12 @@ private:
 	/** Collision depth bounds. */
 	FShaderParameter CollisionDepthBounds;
 	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
+
+	// NvFlex begin
+#if WITH_FLEX
+	FShaderResourceParameter FlexParticleBuffer;
+#endif
+	// NvFlex end
 };
 
 /**
@@ -1400,6 +1437,11 @@ struct FSimulationCommandGPU
 	FTexture3DRHIParamRef VectorFieldTexturesRHI[MAX_VECTOR_FIELDS];
 	/** The number of tiles to simulate. */
 	int32 TileCount;
+	// NvFlex begin
+#if WITH_FLEX
+	FParticleShaderParamRef FlexParticleBufferRef;
+#endif
+	// NvFlex end
 
 	/** Initialization constructor. */
 	FSimulationCommandGPU(FParticleShaderParamRef InTileOffsetsRef, FUniformBufferRHIParamRef InUniformBuffer, const FParticlePerFrameSimulationParameters& InPerFrameParameters, FVectorFieldUniformBufferRef& InVectorFieldsUniformBuffer, int32 InTileCount)
@@ -1408,6 +1450,11 @@ struct FSimulationCommandGPU
 		, PerFrameParameters(InPerFrameParameters)
 		, VectorFieldsUniformBuffer(InVectorFieldsUniformBuffer)
 		, TileCount(InTileCount)
+		// NvFlex begin
+#if WITH_FLEX
+		, FlexParticleBufferRef(nullptr)
+#endif
+	// NvFlex end
 	{
 		FTexture3DRHIParamRef BlackVolumeTextureRHI = (FTexture3DRHIParamRef)(FTextureRHIParamRef)GBlackVolumeTexture->TextureRHI;
 		for (int32 i = 0; i < MAX_VECTOR_FIELDS; ++i)
@@ -1478,6 +1525,14 @@ void ExecuteSimulationCommands(
 			Command.VectorFieldsUniformBuffer,
 			Command.VectorFieldTexturesRHI
 			);
+		// NvFlex begin
+#if WITH_FLEX
+		if (CollisionMode == PCM_Flex)
+		{
+			PixelShader->SetFlexParameters(RHICmdList, Command.FlexParticleBufferRef);
+		}
+#endif
+		// NvFlex end
 		DrawAlignedParticleTiles(RHICmdList, Command.TileCount);
 	}
 
@@ -2540,6 +2595,13 @@ public:
 	/** Allows disabling of simulation. */
 	bool bEnabled;
 
+	// NvFlex begin
+#if WITH_FLEX
+	FRenderResource* FlexSimulationResource;
+#endif
+	// NvFlex end
+
+
 	/** Default constructor. */
 	FParticleSimulationGPU()
 		: EmitterSimulationResources(NULL)
@@ -2552,6 +2614,11 @@ public:
 		, bReleased_GameThread(true)
 		, bDestroyed_GameThread(false)
 		, bEnabled(true)
+		// NvFlex begin
+#if WITH_FLEX
+		, FlexSimulationResource(nullptr)
+#endif
+		// NvFlex end
 	{
 	}
 
@@ -2560,6 +2627,12 @@ public:
 	{
 		delete VectorFieldVisualizationVertexFactory;
 		VectorFieldVisualizationVertexFactory = NULL;
+		// NvFlex begin
+#if WITH_FLEX
+		delete FlexSimulationResource;
+		FlexSimulationResource = nullptr;
+#endif
+		// NvFlex end
 	}
 
 	/**
@@ -2635,6 +2708,14 @@ private:
 		{
 			VectorFieldVisualizationVertexFactory->ReleaseResource();
 		}
+		// NvFlex begin
+#if WITH_FLEX
+		if (FlexSimulationResource)
+		{
+			FlexSimulationResource->ReleaseResource();
+		}
+#endif
+		// NvFlex end
 	}
 };
 
@@ -3506,9 +3587,13 @@ public:
 		if (FlexEmitterInstance)
 		{
 			verify(GFlexPluginBridge);
-			GFlexPluginBridge->GPUSpriteEmitterInstance_Init(FlexEmitterInstance, NumAllocated * GParticlesPerTile);
-
-			Simulation->SimulationPhase = EParticleSimulatePhase::Flex;
+			// check if this is the first call to Init()
+			if (Simulation->SimulationPhase != EParticleSimulatePhase::Flex)
+			{
+				Simulation->FlexSimulationResource = GFlexPluginBridge->GPUSpriteEmitterInstance_Init(FlexEmitterInstance);
+				Simulation->SimulationPhase = EParticleSimulatePhase::Flex;
+			}
+			GFlexPluginBridge->GPUSpriteEmitterInstance_AllocParticleIndices(FlexEmitterInstance, NumAllocated * GParticlesPerTile);
 		}
 #endif
 		// NvFlex end
@@ -3561,7 +3646,7 @@ public:
 			if (FlexEmitterInstance)
 			{
 				verify(GFlexPluginBridge);
-				GFlexPluginBridge->GPUSpriteEmitterInstance_Tick(FlexEmitterInstance, DeltaSeconds, bSuppressSpawning);
+				GFlexPluginBridge->GPUSpriteEmitterInstance_Tick(FlexEmitterInstance, DeltaSeconds, bSuppressSpawning, Simulation->FlexSimulationResource);
 			}
 #endif
 
@@ -3592,8 +3677,39 @@ public:
 				FSpawnInfo BurstInfo;
 				int32 LeftoverBurst = 0;
 				{
+					// NvFlex begin
+#if WITH_FLEX
+					const float OldLeftover = SpawnFraction;
+					bool bProcessBurstList = true;
+					// Process all Spawning modules that are present in the emitter.
+					for (int32 SpawnModIndex = 0; SpawnModIndex < LODLevel->SpawningModules.Num(); SpawnModIndex++)
+					{
+						UParticleModuleSpawnBase* SpawnModule = LODLevel->SpawningModules[SpawnModIndex];
+						if (SpawnModule && SpawnModule->bEnabled)
+						{
+							// Update the burst list
+							int32 BurstNumber = 0;
+							if (SpawnModule->GetBurstCount(this, /*Offset=*/ 0, OldLeftover, DeltaSeconds, BurstNumber) == false)
+							{
+								bProcessBurstList = false;
+							}
+
+							BurstInfo.Count += BurstNumber;
+						}
+					}
+
+					// Take Bursts into account as well...
+					if (bProcessBurstList)
+					{
+						int32 Burst = 0;
+						float BurstTime = GetCurrentBurstRateOffset(DeltaSeconds, Burst);
+						BurstInfo.Count += Burst;
+					}
+#else
 					float BurstDeltaTime = DeltaSeconds;
 					GetCurrentBurstRateOffset(BurstDeltaTime, BurstInfo.Count);
+#endif
+					// NvFlex end
 
 					BurstInfo.Count += ForceBurstSpawnedParticles.Num();
 
@@ -3726,6 +3842,16 @@ public:
 		TileToAllocateFrom = INDEX_NONE;
 		FreeParticlesInTile = 0;
 		ActiveTiles.Init(false,ActiveTiles.Num());
+
+		// NvFlex begin
+#if WITH_FLEX
+		if (FlexEmitterInstance)
+		{
+			verify(GFlexPluginBridge);
+			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, GParticlesPerTile, false); // false - don't free all FlexParticleIndices
+		}
+#endif
+		// NvFlex end
 	}
 
 	/**
@@ -3954,7 +4080,7 @@ private:
 		if (FlexEmitterInstance)
 		{
 			verify(GFlexPluginBridge);
-			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, GParticlesPerTile);
+			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, GParticlesPerTile, true); // true - free all FlexParticleIndices
 		}
 #endif
 		// NvFlex end
@@ -4852,6 +4978,16 @@ void FFXSystem::SimulateGPUParticles(
 					}
 					SimulationCommand->VectorFieldsUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
 				}
+
+				// NvFlex begin
+#if WITH_FLEX
+				if (Simulation->SimulationPhase == EParticleSimulatePhase::Flex)
+				{
+					verify(GFlexPluginBridge);
+					SimulationCommand->FlexParticleBufferRef = GFlexPluginBridge->GetGPUParticleSimulationResourceView(Simulation->FlexSimulationResource);
+				}
+#endif
+				// NvFlex end
 			}
 		
 			// Add to the list of tiles to clear.

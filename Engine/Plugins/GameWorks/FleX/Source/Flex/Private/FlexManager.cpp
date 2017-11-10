@@ -634,17 +634,20 @@ void FFlexManager::FlexEmitterInstanceFillReplayData(struct FParticleEmitterInst
 	}
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NumParticles)
+FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance)
 {
 	verify(FlexEmitterInstance);
-	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance, NumParticles);
+	verify(FlexEmitterInstance->GPUImpl == nullptr);
+	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	return FlexEmitterInstance->GPUImpl->CreateSimulationResource();
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning)
+void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning);
+	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning, FlexSimulationResource);
 }
 
 void FFlexManager::GPUSpriteEmitterInstance_DestroyParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count)
@@ -654,11 +657,13 @@ void FFlexManager::GPUSpriteEmitterInstance_DestroyParticles(struct FFlexParticl
 	FlexEmitterInstance->GPUImpl->DestroyParticles(Start, Count);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile)
+void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile, bool bFreeParticleIndices)
 {
 	verify(FlexEmitterInstance);
-	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->DestroyAllParticles(ParticlesPerTile);
+	if (FlexEmitterInstance->GPUImpl)
+	{
+		FlexEmitterInstance->GPUImpl->DestroyAllParticles(ParticlesPerTile, bFreeParticleIndices);
+	}
 }
 
 void FFlexManager::GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Count)
@@ -702,6 +707,13 @@ void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleE
 	verify(FlexEmitterInstance->GPUImpl);
 	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity);
 }
+
+FRHIShaderResourceView* FFlexManager::GetGPUParticleSimulationResourceView(FRenderResource* FlexSimulationResource)
+{
+	verify(FlexSimulationResource);
+	return FFlexGPUParticleEmitterInstance::GetSimulationResourceView(FlexSimulationResource);
+}
+
 
 UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
 {

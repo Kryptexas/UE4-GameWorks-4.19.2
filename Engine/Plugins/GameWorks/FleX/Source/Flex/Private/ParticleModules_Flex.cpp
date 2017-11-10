@@ -150,6 +150,8 @@ void UParticleModuleFlexFluidSpawn::PostInitProperties()
 
 void UParticleModuleFlexFluidSpawn::CompileModule(FParticleEmitterBuildInfo& EmitterInfo)
 {
+	UParticleModuleSpawnBase::CompileModule(EmitterInfo);
+
 	/*
 	FVector AxisScaleMask(
 		MultiplyX ? 1.0f : 0.0f,
