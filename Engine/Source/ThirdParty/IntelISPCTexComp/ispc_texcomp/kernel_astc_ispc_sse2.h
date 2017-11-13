@@ -14,6 +14,19 @@
 #ifdef __cplusplus
 namespace ispc { /* namespace */
 #endif // __cplusplus
+
+#ifndef __ISPC_ALIGN__
+#if defined(__clang__) || !defined(_MSC_VER)
+// Clang, GCC, ICC
+#define __ISPC_ALIGN__(s) __attribute__((aligned(s)))
+#define __ISPC_ALIGNED_STRUCT__(s) struct __ISPC_ALIGN__(s)
+#else
+// Visual Studio
+#define __ISPC_ALIGN__(s) __declspec(align(s))
+#define __ISPC_ALIGNED_STRUCT__(s) __ISPC_ALIGN__(s) struct
+#endif
+#endif
+
 #ifndef __ISPC_STRUCT_rgba_surface__
 #define __ISPC_STRUCT_rgba_surface__
 struct rgba_surface {
@@ -70,13 +83,13 @@ struct astc_block {
 ///////////////////////////////////////////////////////////////////////////
 // Functions exported from ispc code
 ///////////////////////////////////////////////////////////////////////////
-#if defined(__cplusplus) && !defined(__ISPC_NO_EXTERN_C)
+#if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 extern "C" {
 #endif // __cplusplus
     extern void astc_encode_ispc(struct rgba_surface * src, float * block_scores, uint8_t * dst, uint64_t * list, struct astc_enc_context * list_context, struct astc_enc_settings * settings);
     extern void astc_rank_ispc(struct rgba_surface * src, int32_t xx, int32_t yy, uint32_t * mode_buffer, struct astc_enc_settings * settings);
     extern int32_t get_programCount();
-#if defined(__cplusplus) && !defined(__ISPC_NO_EXTERN_C)
+#if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 } /* end extern C */
 #endif // __cplusplus
 
@@ -85,4 +98,4 @@ extern "C" {
 } /* namespace */
 #endif // __cplusplus
 
-#endif // ISPC_E__P4_RELEASE_4_18_ENGINE_SOURCE_THIRDPARTY_INTELISPCTEXCOMP_ISPC_TEXCOMP_KERNEL_ASTC_ISPC_SSE2_H
+#endif // ISPC_D__ISPC_ISPCTEXTURECOMPRESSOR_MASTER_ISPC_TEXTURE_COMPRESSOR_ISPC_TEXCOMP_KERNEL_ASTC_ISPC_SSE2_H
