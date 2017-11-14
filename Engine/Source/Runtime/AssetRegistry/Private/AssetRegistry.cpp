@@ -112,14 +112,15 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 		for ( TSharedRef<IPlugin> ContentPlugin : ContentPlugins )
 		{
 			if ( ContentPlugin->CanContainContent() )
-		{
-				if (FFileHelper::LoadFileToArray(SerializedAssetData, *(ContentPlugin->GetBaseDir() / TEXT("AssetRegistry.bin"))))
 			{
-				SerializedAssetData.Seek(0);
-				Serialize(SerializedAssetData);
+				FString PluginAssetRegistry = ContentPlugin->GetBaseDir() / TEXT("AssetRegistry.bin");
+				if (IFileManager::Get().FileExists(*PluginAssetRegistry) && FFileHelper::LoadFileToArray(SerializedAssetData, *PluginAssetRegistry))
+				{
+					SerializedAssetData.Seek(0);
+					Serialize(SerializedAssetData);
+				}
 			}
 		}
-	}
 	}
 
 	// Report startup time. This does not include DirectoryWatcher startup time.
