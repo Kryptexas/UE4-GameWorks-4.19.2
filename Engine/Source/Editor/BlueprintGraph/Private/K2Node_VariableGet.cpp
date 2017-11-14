@@ -317,7 +317,7 @@ FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerCont
 
 bool UK2Node_VariableGet::IsValidTypeForNonPure(const FEdGraphPinType& InPinType)
 {
-	return !InPinType.IsContainer() && (InPinType.PinCategory == UObject::StaticClass()->GetFName() ||InPinType.PinCategory == UClass::StaticClass()->GetFName());
+	return !InPinType.IsContainer() && (InPinType.PinCategory == UEdGraphSchema_K2::PC_Object || InPinType.PinCategory == UEdGraphSchema_K2::PC_Class || InPinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject || InPinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass);
 }
 
 void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
@@ -481,13 +481,21 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		UK2Node_CallFunction* IsValidFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
 
 		// Based on if the type is an "Object" or a "Class" changes which function to use
-		if (ValuePin->PinType.PinCategory == UObject::StaticClass()->GetFName())
+		if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object)
 		{
 			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValid)));
 		}
-		else if (ValuePin->PinType.PinCategory == UClass::StaticClass()->GetFName())
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
 		{
 			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidClass)));
+		}
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject)
+		{
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidSoftObjectReference)));
+		}
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
+		{
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidSoftClassReference)));
 		}
 		IsValidFunction->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(IsValidFunction, this);

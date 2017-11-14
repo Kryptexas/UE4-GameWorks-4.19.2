@@ -155,6 +155,11 @@ void UAssetManager::PostInitProperties()
 		
 		bShouldUseSynchronousLoad = IsRunningCommandlet();
 
+		if (Settings.bShouldManagerDetermineTypeAndName)
+		{
+			FCoreUObjectDelegates::GetPrimaryAssetIdForObject.BindUObject(this, &UAssetManager::DeterminePrimaryAssetIdForObject);
+		}
+
 		LoadRedirectorMaps();
 	}
 }
@@ -233,6 +238,90 @@ const UAssetManagerSettings& UAssetManager::GetSettings() const
 		CachedSettings = GetDefault<UAssetManagerSettings>();
 	}
 	return *CachedSettings;
+}
+
+FPrimaryAssetId UAssetManager::DeterminePrimaryAssetIdForObject(const UObject* Object)
+{
+	const UObject* AssetObject = Object;
+	// First find the object that would be registered, need to use class if we're a BP CDO
+	if (Object->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetObject = Object->GetClass();
+	}
+
+	FString AssetPath = AssetObject->GetPathName();
+	FPrimaryAssetId RegisteredId = GetPrimaryAssetIdForPath(FName(*AssetPath));
+
+	if (RegisteredId.IsValid())
+	{
+		return RegisteredId;
+	}
+
+	FPrimaryAssetType FoundType;
+
+	// Not registered, so search the types for one that matches class/path
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
+	{
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+
+		// Check the originally passed object, which is either an asset or a CDO, not the BP class
+		if (Object->IsA(TypeData.Info.AssetBaseClassLoaded))
+		{
+			// Check paths, directories will end in /, specific paths will end in full assetname.assetname
+			for (const FString& ScanPath : TypeData.Info.AssetScanPaths)
+			{
+				if (AssetPath.StartsWith(ScanPath))
+				{
+					if (FoundType.IsValid())
+					{
+						UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetType %s for asset %s which is already registered as %s, it is not possible to have conflicting directories when bShouldManagerDetermineTypeAndName is true!"), *TypeData.Info.PrimaryAssetType.ToString(), *AssetPath, *FoundType.ToString());
+					}
+					else
+					{
+						FoundType = TypeData.Info.PrimaryAssetType;
+					}
+				}
+			}
+		}
+	}
+
+	if (FoundType.IsValid())
+	{
+		// Use the package's short name, avoids issues with _C
+		return FPrimaryAssetId(FoundType, FPackageName::GetShortFName(AssetObject->GetOutermost()->GetName()));
+	}
+
+	return FPrimaryAssetId();
+}
+
+bool UAssetManager::IsAssetDataBlueprintOfClassSet(const FAssetData& AssetData, const TSet<FName>& ClassNameSet)
+{
+	const FString ParentClassFromData = AssetData.GetTagValueRef<FString>("ParentClass");
+	if (!ParentClassFromData.IsEmpty())
+	{
+		const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(ParentClassFromData);
+		const FName ClassName = FName(*FPackageName::ObjectPathToObjectName(ClassObjectPath));
+
+		TArray<FName> ValidNames;
+		ValidNames.Add(ClassName);
+#if WITH_EDITOR
+		// Check for redirected name
+		FName RedirectedName = FLinkerLoad::FindNewNameForClass(ClassName, false);
+		if (RedirectedName != NAME_None && RedirectedName != ClassName)
+		{
+			ValidNames.Add(RedirectedName);
+		}
+#endif
+		for (const FName& ValidName : ValidNames)
+		{
+			if (ClassNameSet.Contains(ValidName))
+			{
+				// Our parent class is in the class name set
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetType, const TArray<FString>& Paths, UClass* BaseClass, bool bHasBlueprintClasses, bool bIsEditorOnly, bool bForceSynchronousScan)
@@ -393,35 +482,7 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 		// Verify blueprint class
 		if (bHasBlueprintClasses)
 		{
-			bool bShouldRemove = true;
-			const FString ParentClassFromData = Data.GetTagValueRef<FString>("ParentClass");
-			if (!ParentClassFromData.IsEmpty())
-			{
-				const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(ParentClassFromData);
-				const FName ClassName = FName(*FPackageName::ObjectPathToObjectName(ClassObjectPath));
-
-				TArray<FName> ValidNames;
-				ValidNames.Add(ClassName);
-#if WITH_EDITOR
-				// Check for redirected name
-				FName RedirectedName = FLinkerLoad::FindNewNameForClass(ClassName, false);
-				if (RedirectedName != NAME_None && RedirectedName != ClassName)
-				{
-					ValidNames.Add(RedirectedName);
-				}
-#endif
-				for (const FName& ValidName : ValidNames)
-				{
-					if (DerivedClassNames.Contains(ValidName))
-					{
-						// This asset is derived from ObjectBaseClass. Keep it.
-						bShouldRemove = false;
-						break;
-					}
-				}
-			}
-
-			if (bShouldRemove)
+			if (!IsAssetDataBlueprintOfClassSet(Data, DerivedClassNames))
 			{
 				continue;
 			}
@@ -2966,8 +3027,8 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 			// Clear old data
 			TypeData.AssetMap.Reset();
 
-			// Rescan all assets
-			ScanPathsForPrimaryAssets(TypePair.Key, TypeData.Info.AssetScanPaths, TypeData.Info.AssetBaseClassLoaded, TypeData.Info.bHasBlueprintClasses, TypeData.Info.bIsEditorOnly, true);
+			// Rescan all assets. We don't force synchronous here as in the editor it was already loaded async
+			ScanPathsForPrimaryAssets(TypePair.Key, TypeData.Info.AssetScanPaths, TypeData.Info.AssetBaseClassLoaded, TypeData.Info.bHasBlueprintClasses, TypeData.Info.bIsEditorOnly, false);
 		}
 	}
 
@@ -2990,6 +3051,15 @@ void UAssetManager::ReinitializeFromConfig()
 	bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
 	bShouldAcquireMissingChunksOnLoad = Settings.bShouldAcquireMissingChunksOnLoad;
 	bOnlyCookProductionAssets = Settings.bOnlyCookProductionAssets;
+
+	if (FCoreUObjectDelegates::GetPrimaryAssetIdForObject.IsBoundToObject(this))
+	{
+		FCoreUObjectDelegates::GetPrimaryAssetIdForObject.Unbind();
+	}
+	if (Settings.bShouldManagerDetermineTypeAndName)
+	{
+		FCoreUObjectDelegates::GetPrimaryAssetIdForObject.BindUObject(this, &UAssetManager::DeterminePrimaryAssetIdForObject);
+	}
 
 	LoadRedirectorMaps();
 	ScanPrimaryAssetTypesFromConfig();

@@ -489,8 +489,8 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static bool K2_IsValidTimerHandle(FTimerHandle Handle);
 
 	/**
-	 * Returns whether the timer handle is valid. This does not indicate that there is an active timer that this handle references, but rather that it once referenced a valid timer.
-	 * @param Handle		The handle of the timer to check validity of.
+	 * Invalidate the supplied TimerHandle and return it.
+	 * @param Handle		The handle of the timer to invalidate.
 	 * @return				Return the invalidated timer handle for convenience.
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Invalidate"), Category="Utilities|Time")

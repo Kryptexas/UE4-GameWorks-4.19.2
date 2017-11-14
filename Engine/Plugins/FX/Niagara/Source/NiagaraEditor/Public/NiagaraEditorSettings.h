@@ -16,15 +16,15 @@ public:
 		
 	/** System to duplicate as the base of all new System assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultSystem;
+	FSoftObjectPath DefaultSystem;
 
 	/** Emitter to duplicate as the base of all new emitter assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultEmitter;
+	FSoftObjectPath DefaultEmitter;
 
 	/** Niagara script to duplicate as the base of all new script assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultScript;
+	FSoftObjectPath DefaultScript;
 
 	/** Niagara script to duplicate as the base of all new script assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)

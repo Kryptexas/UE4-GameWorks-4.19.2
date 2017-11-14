@@ -1039,6 +1039,7 @@ IPerformanceDataConsumer::FFrameData FPerformanceTrackingSystem::AnalyzeFrame(fl
 		MaxThreadTimeValue = FMath::Max3<uint32>( GGameThreadTime, LocalRenderThreadTime, PossibleGPUTime );
 	}
 
+	FrameData.IdleSeconds = FApp::GetIdleTime();
 	FrameData.GameThreadTimeSeconds = FPlatformTime::ToSeconds(GGameThreadTime);
 	FrameData.RenderThreadTimeSeconds = FPlatformTime::ToSeconds(LocalRenderThreadTime);
 	FrameData.GPUTimeSeconds = FPlatformTime::ToSeconds(LocalGPUFrameTime);

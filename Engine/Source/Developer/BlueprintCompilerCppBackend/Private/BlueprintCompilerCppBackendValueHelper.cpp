@@ -40,38 +40,8 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, EPropertyAccessOperator AccessOperator
 	, bool bAllowProtected)
 {
-	// Determine if the given property contains an instanced default subobject reference and obtain the reference value.
-	auto IsInstancedSubobjectLambda = [Property, DataContainer, OptionalDefaultDataContainer](int32 ArrayIndex, const UObject*& OutSubobject, const UObject*& OutDefaultSubobject) -> bool
-	{
-		OutSubobject = nullptr;
-		OutDefaultSubobject = nullptr;
-
-		if (auto ObjectProperty = Cast<UObjectProperty>(Property))
-		{
-			check(DataContainer);
-
-			UObject* PropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
-			if (PropertyValue && PropertyValue->IsDefaultSubobject())
-			{
-				OutSubobject = PropertyValue;
-
-				if (OptionalDefaultDataContainer)
-				{
-					UObject* DefaultPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(OptionalDefaultDataContainer, ArrayIndex);
-					if (DefaultPropertyValue && DefaultPropertyValue->IsDefaultSubobject() && PropertyValue->GetFName() == DefaultPropertyValue->GetFName())
-					{
-						OutDefaultSubobject = DefaultPropertyValue;
-					}
-				}
-
-				return true;
-			}
-		}
-
-		return false;
-	};
-
 	check(Property);
+
 	if (Property->HasAnyPropertyFlags(CPF_EditorOnly | CPF_Transient))
 	{
 		UE_LOG(LogK2Compiler, Verbose, TEXT("FEmitDefaultValueHelper Skip EditorOnly or Transient property: %s"), *Property->GetPathName());
@@ -84,6 +54,9 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 		return;
 	}
 
+	// Check if this is an object property and cache the result.
+	const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+
 	for (int32 ArrayIndex = 0; ArrayIndex < Property->ArrayDim; ++ArrayIndex)
 	{
 		if (!OptionalDefaultDataContainer
@@ -91,10 +64,6 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 			|| !Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex))
 		{
 			FNativizationSummaryHelper::PropertyUsed(Context.GetCurrentlyGeneratedClass(), Property);
-
-			const UObject* SubobjectInstance = nullptr;
-			const UObject* DefaultSubobjectInstance = nullptr;
-			const bool bIsInstancedSubobject = IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance);
 
 			FString PathToMember;
 			UBlueprintGeneratedClass* PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
@@ -134,10 +103,14 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				}
 
 				FString OverrideTypeDeclaration;
-				if (bIsInstancedSubobject)
+				if (ObjectProperty)
 				{
-					UClass* SubobjectClass = SubobjectInstance->GetClass();
-					OverrideTypeDeclaration = FString::Printf(TEXT("%s%s*"), SubobjectClass->GetPrefixCPP(), *SubobjectClass->GetName());
+					UObject* ObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
+					if (ObjectPropertyValue && ObjectPropertyValue->IsDefaultSubobject())
+					{
+						UClass* SubobjectClass = ObjectPropertyValue->GetClass();
+						OverrideTypeDeclaration = FString::Printf(TEXT("%s%s*"), SubobjectClass->GetPrefixCPP(), *SubobjectClass->GetName());
+					}
 				}
 
 				const FString GetPtrStr = FEmitHelper::AccessInaccessibleProperty(Context, Property, OverrideTypeDeclaration, ContainerStr, OperatorStr, ArrayIndex, ENativizedTermUsage::UnspecifiedOrReference, nullptr);
@@ -153,42 +126,9 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
 
-			if (bIsInstancedSubobject)
-			{
-				// Emit code to create subobjects that were not originally instanced with CreateDefaultSubobject() (e.g. - 'EditInlineNew' instances).
-				if (!SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && SubobjectInstance->HasAnyFlags(RF_ArchetypeObject))
-				{
-					const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
-					const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
-					InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
-				}
-
-				// Recursively emit property values for nested default subobjects.
-				if (SubobjectInstance->HasAnyFlags(RF_DefaultSubObject|RF_ArchetypeObject) && !SubobjectInstance->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
-				{
-					check(SubobjectInstance != nullptr);
-
-					UClass* SubobjectInstanceClass = SubobjectInstance->GetClass();
-					check(DefaultSubobjectInstance == nullptr || SubobjectInstanceClass == DefaultSubobjectInstance->GetClass());
-
-					TArray<UObject*> NestedDefaultSubobjects;
-					SubobjectInstanceClass->GetDefaultObjectSubobjects(NestedDefaultSubobjects);
-
-					for (auto SubobjectProperty : TFieldRange<const UProperty>(SubobjectInstanceClass))
-					{
-						OuterGenerate(Context, SubobjectProperty, PathToMember,
-							reinterpret_cast<const uint8*>(SubobjectInstance),
-							reinterpret_cast<const uint8*>(DefaultSubobjectInstance),
-							EPropertyAccessOperator::Pointer);
-					}
-				}
-			}
-			else
-			{
-				const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
-				const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
-				InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
-			}
+			const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
+			const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
+			InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
 		}
 	}
 }
@@ -1989,7 +1929,25 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 
 	auto BPGC = Context.GetCurrentlyGeneratedClass();
 	auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
-	if (!bIsEditorOnlySubobject && ensure(CDO) && (CDO == Object->GetOuter()))
+
+	FString OuterStr;
+	if (ensure(CDO) && (CDO == Object->GetOuter()))
+	{
+		OuterStr = TEXT("this");
+	}
+	else
+	{
+		OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
+	}
+
+	// Outer must be non-empty at this point.
+	if (OuterStr.IsEmpty())
+	{
+		ensureMsgf(false, TEXT("Encountered an unknown or missing outer for subobject %s (%s)"), *Object->GetName(), *BPGC->GetName());
+		return FString();
+	}
+	
+	if (!bIsEditorOnlySubobject)
 	{
 		if (bCreateInstance)
 		{
@@ -2000,10 +1958,8 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 			}
 			else
 			{
-				check(Object->HasAnyFlags(RF_ArchetypeObject));
-
-				Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<%s>(this, TEXT(\"%s\"), GetMaskedFlags(RF_PropagateToSubObjects) | RF_ArchetypeObject);")
-					, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+				Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"), (EObjectFlags)0x%08x);")
+					, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *OuterStr, *Object->GetName(), (int32)Object->GetFlags()));
 			}
 		}
 		else
@@ -2017,6 +1973,7 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 				, *Object->GetName()));
 		}
 
+		// Nested default subobjects are recursively handled through this iteration.
 		const UObject* ObjectArchetype = Object->GetArchetype();
 		for (auto Property : TFieldRange<const UProperty>(ObjectClass))
 		{
@@ -2028,13 +1985,7 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	}
 	else
 	{
-		const FString OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
-		if (OuterStr.IsEmpty())
-		{
-			ensure(false);
-			return FString();
-		}
-
+		// Dummy object that's instanced for any editor-only subobject dependencies.
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
 		if(!ObjectClass->IsNative())

@@ -5537,12 +5537,19 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 	//Blueprint Merge
 	{
 		Set("BlueprintMerge.NextDiff", new IMAGE_BRUSH("/Icons/diff_next_40x", Icon16x16));
+		Set("BlueprintMerge.NextDiff.Small", new IMAGE_BRUSH("/Icons/diff_next_40x", Icon16x16));
 		Set("BlueprintMerge.PrevDiff", new IMAGE_BRUSH("/Icons/diff_prev_40x", Icon16x16));
+		Set("BlueprintMerge.PrevDiff.Small", new IMAGE_BRUSH("/Icons/diff_prev_40x", Icon16x16));
 		Set("BlueprintMerge.Finish", new IMAGE_BRUSH("/Icons/LV_Save", Icon16x16));
+		Set("BlueprintMerge.Finish.Small", new IMAGE_BRUSH("/Icons/LV_Save", Icon16x16));
 		Set("BlueprintMerge.Cancel", new IMAGE_BRUSH("/Icons/LV_Remove", Icon16x16));
+		Set("BlueprintMerge.Cancel.Small", new IMAGE_BRUSH("/Icons/LV_Remove", Icon16x16));
 		Set("BlueprintMerge.AcceptSource", new IMAGE_BRUSH("/Icons/AcceptMergeSource_40x", Icon16x16));
+		Set("BlueprintMerge.AcceptSource.Small", new IMAGE_BRUSH("/Icons/AcceptMergeSource_40x", Icon16x16));
 		Set("BlueprintMerge.AcceptTarget", new IMAGE_BRUSH("/Icons/AcceptMergeTarget_40x", Icon16x16));
+		Set("BlueprintMerge.AcceptTarget.Small", new IMAGE_BRUSH("/Icons/AcceptMergeTarget_40x", Icon16x16));
 		Set("BlueprintMerge.StartMerge", new IMAGE_BRUSH("/Icons/StartMerge_42x", Icon16x16));
+		Set("BlueprintMerge.StartMerge.Small", new IMAGE_BRUSH("/Icons/StartMerge_42x", Icon16x16));
 	}
 
 	// Play in editor / play in world

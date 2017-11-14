@@ -1698,7 +1698,10 @@ bool UObject::IsAsset() const
 
 FPrimaryAssetId UObject::GetPrimaryAssetId() const
 {
-	if (FCoreUObjectDelegates::GetPrimaryAssetIdForObject.IsBound() && IsAsset())
+	// Check if we are an asset or a blueprint CDO
+	if (FCoreUObjectDelegates::GetPrimaryAssetIdForObject.IsBound() &&
+		(IsAsset() || (HasAnyFlags(RF_ClassDefaultObject) && !GetClass()->HasAnyClassFlags(CLASS_Native)))
+		)
 	{
 		// Call global callback if bound
 		return FCoreUObjectDelegates::GetPrimaryAssetIdForObject.Execute(this);

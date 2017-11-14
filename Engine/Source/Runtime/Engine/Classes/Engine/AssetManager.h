@@ -331,6 +331,9 @@ public:
 	/** Gets the FAssetData at a specific path, handles redirectors and blueprint classes correctly. Returns true if it found a valid data */
 	virtual bool GetAssetDataForPath(const FSoftObjectPath& ObjectPath, FAssetData& AssetData) const;
 
+	/** Checks to see if the given asset data is a blueprint with a base class in the ClassNameSet. This checks the parent asset tag */
+	virtual bool IsAssetDataBlueprintOfClassSet(const FAssetData& AssetData, const TSet<FName>& ClassNameSet);
+
 	/** Turns an FAssetData into FSoftObjectPath, handles adding _C as necessary */
 	virtual FSoftObjectPath GetAssetPathForData(const FAssetData& AssetData) const;
 
@@ -339,6 +342,9 @@ public:
 
 	/** Reads redirector list and gets a list of the redirected previous names for a Primary Asset Id */
 	virtual void GetPreviousPrimaryAssetIds(const FPrimaryAssetId& NewId, TArray<FPrimaryAssetId>& OutOldIds) const;
+
+	/** If bShouldManagerDetermineTypeAndName is true in settings, this function is used to determine the primary asset id for any object that does not have it's own implementation. Games can override the behavior here or call it from other places */
+	virtual FPrimaryAssetId DeterminePrimaryAssetIdForObject(const UObject* Object);
 
 	/** Reads AssetManagerSettings for specifically redirected asset paths. This is useful if you need to convert older saved data */
 	virtual FName GetRedirectedAssetPath(FName OldPath) const;

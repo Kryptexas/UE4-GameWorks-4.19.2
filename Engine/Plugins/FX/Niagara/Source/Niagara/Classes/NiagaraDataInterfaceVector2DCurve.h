@@ -20,7 +20,7 @@ class NIAGARA_API UNiagaraDataInterfaceVector2DCurve : public UNiagaraDataInterf
 public:
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Curve", meta = (AllowedClasses = CurveVector))
-		FStringAssetReference CurveToCopy;
+	FSoftObjectPath CurveToCopy;
 #endif
 
 	UPROPERTY(EditAnywhere, Category = "Curve")

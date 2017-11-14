@@ -2,11 +2,13 @@
 
 #include "K2Node_CallFunction.h"
 #include "BlueprintCompilationManager.h"
+#include "BlueprintEditorSettings.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/Interface.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "GraphEditorSettings.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
@@ -31,9 +33,11 @@
 #include "K2Node_PureAssignmentStatement.h"
 #include "BlueprintActionFilter.h"
 #include "FindInBlueprintManager.h"
+#include "ScopedTransaction.h"
 #include "SPinTypeSelector.h"
 #include "SourceCodeNavigation.h"
 #include "HAL/FileManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -2764,21 +2768,49 @@ void UK2Node_CallFunction::JumpToDefinition() const
 		{
 			// First try the nice way that will get to the right line number
 			bool bSucceeded = false;
-			if (FSourceCodeNavigation::CanNavigateToFunction(TargetFunction))
+			const bool bNavigateToNativeFunctions = GetDefault<UBlueprintEditorSettings>()->bNavigateToNativeFunctionsFromCallNodes;
+			
+			if(bNavigateToNativeFunctions) 
 			{
-				bSucceeded = FSourceCodeNavigation::NavigateToFunction(TargetFunction);
-			}
-
-			// Failing that, fall back to the older method which will still get the file open assuming it exists
-			if (!bSucceeded)
-			{
-				FString NativeParentClassHeaderPath;
-				const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(TargetFunction, NativeParentClassHeaderPath) && (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
-				if (bFileFound)
+				if(FSourceCodeNavigation::CanNavigateToFunction(TargetFunction))
 				{
-					const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull(NativeParentClassHeaderPath);
-					bSucceeded = FSourceCodeNavigation::OpenSourceFile(AbsNativeParentClassHeaderPath);
+					bSucceeded = FSourceCodeNavigation::NavigateToFunction(TargetFunction);
 				}
+
+				// Failing that, fall back to the older method which will still get the file open assuming it exists
+				if (!bSucceeded)
+				{
+					FString NativeParentClassHeaderPath;
+					const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(TargetFunction, NativeParentClassHeaderPath) && (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
+					if (bFileFound)
+					{
+						const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull(NativeParentClassHeaderPath);
+						bSucceeded = FSourceCodeNavigation::OpenSourceFile(AbsNativeParentClassHeaderPath);
+					}
+				}
+			}
+			else
+			{	
+				// Inform user that the function is native, give them opportunity to enable navigation to native
+				// functions:
+				FNotificationInfo Info(LOCTEXT("NavigateToNativeDisabled", "Navigation to Native (c++) Functions Disabled"));
+				Info.ExpireDuration = 10.0f;
+				Info.CheckBoxState = bNavigateToNativeFunctions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			
+				Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateStatic(
+					[](ECheckBoxState NewState)
+					{
+						const FScopedTransaction Transaction(LOCTEXT("ChangeNavigateToNativeFunctionsFromCallNodes", "Change Navigate to Native Functions from Call Nodes Setting"));
+	
+						UBlueprintEditorSettings* MutableEditorSetings = GetMutableDefault<UBlueprintEditorSettings>();
+						MutableEditorSetings->Modify();
+						MutableEditorSetings->bNavigateToNativeFunctionsFromCallNodes = (NewState == ECheckBoxState::Checked) ? true : false;
+						MutableEditorSetings->SaveConfig();
+					}
+				);
+				Info.CheckBoxText = LOCTEXT("EnableNavigationToNative", "Navigate to Native Functions from Blueprint Call Nodes?");
+			
+				FSlateNotificationManager::Get().AddNotification(Info);
 			}
 
 			return;

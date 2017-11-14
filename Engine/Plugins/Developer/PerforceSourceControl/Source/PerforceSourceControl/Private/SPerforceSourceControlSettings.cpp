@@ -264,6 +264,16 @@ FString SPerforceSourceControlSettings::GetPassword()
 	return FString();
 }
 
+void SPerforceSourceControlSettings::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	// When a dialog is up, the editor stops ticking, and we take over:
+	if( FSlateApplication::Get().GetActiveModalWindow().IsValid())
+	{
+		ISourceControlModule::Get().Tick();
+	}
+	return SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime );
+}
+
 FText SPerforceSourceControlSettings::GetPortText() const
 {
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );

@@ -27,6 +27,7 @@
 #include "ObjectEditorUtils.h"
 #include "Engine/AssetManager.h"
 #include "AssetManagerEditorCommands.h"
+#include "Engine/BlueprintCore.h"
 #include "Widgets/Input/SComboBox.h"
 #include "SlateApplication.h"
 #include "DragAndDrop/AssetDragDropOp.h"
@@ -159,13 +160,13 @@ void SAssetAuditBrowser::FindReferencesForSelectedAssets() const
 	IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(Assets, AssetIdentifiers);
 
 	if (AssetIdentifiers.Num() > 0)
-	{
+{
 		IAssetManagerEditorModule::Get().OpenReferenceViewerUI(AssetIdentifiers);
 	}
 }
 
 void SAssetAuditBrowser::ShowSizeMapForSelectedAssets() const
-{
+	{
 	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
 	TArray<FAssetIdentifier> AssetIdentifiers;
 	IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(Assets, AssetIdentifiers);
@@ -204,7 +205,7 @@ void SAssetAuditBrowser::OnGetCustomSourceAssets(const FARFilter& Filter, TArray
 		IAssetManagerEditorModule::Get().GetCurrentRegistrySource(true);
 
 		for (const TPair<int32, FAssetManagerChunkInfo>& Pair : CurrentRegistrySource->ChunkAssignments)
-		{
+{
 			OutAssets.Add(IAssetManagerEditorModule::CreateFakeAssetDataFromChunkId(Pair.Key));
 		}
 	}
@@ -703,7 +704,7 @@ FReply SAssetAuditBrowser::RefreshAssets()
 {
 	// This will end up refreshing the UI indirectly
 	IAssetManagerEditorModule::Get().RefreshRegistryData();
-	
+
 	return FReply::Handled();
 }
 
@@ -712,7 +713,7 @@ void SAssetAuditBrowser::AddAssetsOfType(FPrimaryAssetType AssetType)
 	if (AssetType.IsValid())
 	{
 		TArray<FSoftObjectPath> AssetArray;
-
+		
 		if (AssetType == IAssetManagerEditorModule::AllPrimaryAssetTypes)
 		{
 			TArray<FPrimaryAssetTypeInfo> TypeList;
@@ -725,7 +726,7 @@ void SAssetAuditBrowser::AddAssetsOfType(FPrimaryAssetType AssetType)
 		}
 		else
 		{
-			AssetManager->GetPrimaryAssetPathList(AssetType, AssetArray);
+		AssetManager->GetPrimaryAssetPathList(AssetType, AssetArray);
 		}
 
 		AddAssetsToList(AssetArray, false);
@@ -752,15 +753,34 @@ void SAssetAuditBrowser::AddAssetsOfClass(UClass* AssetClass)
 	{
 		TArray<FAssetData> FoundData;
 		FARFilter AssetFilter;
+		TSet<FName> DerivedClassNames;
+		bool bAssetClassIsBlueprint = AssetClass->IsChildOf(UBlueprintCore::StaticClass());
+
 		AssetFilter.ClassNames.Add(AssetClass->GetFName());
 		AssetFilter.bRecursiveClasses = true;
 
+		if (!bAssetClassIsBlueprint)
+		{
+			// If we didn't search specifically for a Blueprint class, find the derived class and look for all blueprints of those derived classes
+			AssetRegistry->GetDerivedClassNames(AssetFilter.ClassNames, TSet<FName>(), DerivedClassNames);
+			AssetFilter.ClassNames.Add(UBlueprintCore::StaticClass()->GetFName());
+		}
+		
 		if (AssetRegistry->GetAssets(AssetFilter, FoundData) && FoundData.Num() > 0)
 		{
 			TArray<FName> AssetPackageArray;
 
 			for (FAssetData& AssetData : FoundData)
 			{
+				if (!bAssetClassIsBlueprint && AssetData.AssetClass.ToString().EndsWith(TEXT("Blueprint")))
+				{
+					// This is a blueprint but the filter type wasn't, check the derived class list
+					if (!AssetManager->IsAssetDataBlueprintOfClassSet(AssetData, DerivedClassNames))
+					{
+						continue;
+					}
+				}
+
 				AssetPackageArray.Add(AssetData.PackageName);
 			}
 
@@ -796,7 +816,7 @@ bool SAssetAuditBrowser::HandleFilterAsset(const FAssetData& InAssetData) const
 	}
 
 	return !EditorModule->IsPackageInCurrentRegistrySource(InAssetData.PackageName);
-}
+	}
 
 TSharedRef<SWidget> SAssetAuditBrowser::GenerateSourceComboItem(TSharedPtr<FString> InItem)
 {

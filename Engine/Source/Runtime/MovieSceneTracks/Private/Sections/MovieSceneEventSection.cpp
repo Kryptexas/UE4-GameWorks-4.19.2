@@ -37,22 +37,22 @@ namespace
 class FEventParameterArchive : public FMemoryArchive
 {
 public:
-	/** Serialize a string asset reference */
-	virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override
+	/** Serialize a soft object path */
+	virtual FArchive& operator<<(FSoftObjectPath& Value) override
 	{
-		AssetPtr.SerializePath(*this);
+		Value.SerializePath(*this);
 		return *this;
 	}
 
-	/** Serialize an asset ptr */
-	virtual FArchive& operator<<(FSoftObjectPtr& AssetPtr) override
+	/** Serialize a soft object ptr */
+	virtual FArchive& operator<<(FSoftObjectPtr& Value) override
 	{
-		FSoftObjectPath Ref = AssetPtr.ToSoftObjectPath();
+		FSoftObjectPath Ref = Value.ToSoftObjectPath();
 		*this << Ref;
 
 		if (IsLoading())
 		{
-			AssetPtr = FSoftObjectPtr(Ref);
+			Value = FSoftObjectPtr(Ref);
 		}
 
 		return *this;

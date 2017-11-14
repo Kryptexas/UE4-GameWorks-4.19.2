@@ -18,7 +18,7 @@ struct FOculusSplashDesc
 	UPROPERTY(config, EditAnywhere, Category = Settings, meta = (
 		AllowedClasses = "Texture2D",
 		ToolTip = "Texture to display"))
-	FStringAssetReference TexturePath;
+	FSoftObjectPath TexturePath;
 
 	UPROPERTY(config, EditAnywhere, Category = Settings, meta = (
 		ToolTip = "transform of center of quad (meters)."))

@@ -139,8 +139,6 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 -----------------------------------------------------------------------------*/
 
 /** Static array of tickable objects */
-TArray<FTickableObjectBase::FTickableObjectEntry> FTickableGameObject::TickableObjects;
-TArray<FTickableGameObject*> FTickableGameObject::PendingTickableObjects;
 bool FTickableGameObject::bIsTickingObjects = false;
 
 #if LOG_DETAILED_PATHFINDING_STATS
@@ -1185,6 +1183,9 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 
 void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, const bool bIsPaused, const float DeltaSeconds)
 {
+	TArray<FTickableGameObject*>& PendingTickableObjects = GetPendingTickableObjects();
+	TArray<FTickableObjectEntry>& TickableObjects = GetTickableObjects();
+
 	for (FTickableGameObject* PendingTickable : PendingTickableObjects)
 	{
 		AddTickableObject(TickableObjects, PendingTickable);

@@ -24,7 +24,7 @@ class NIAGARA_API UNiagaraDataInterfaceVector4Curve : public UNiagaraDataInterfa
 public:
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Curve", meta = (AllowedClasses = CurveLinearColor))
-	FStringAssetReference CurveToCopy;
+	FSoftObjectPath CurveToCopy;
 #endif
 
 	UPROPERTY(EditAnywhere, Category = "Curve")

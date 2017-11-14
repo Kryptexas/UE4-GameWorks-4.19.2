@@ -340,7 +340,7 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 	}
 
 
-	for (FStringAssetReference AssetRef : Settings->AdditionalParameterEnums)
+	for (FSoftObjectPath AssetRef : Settings->AdditionalParameterEnums)
 	{
 		UObject* Obj = AssetRef.ResolveObject();
 		if (Obj == nullptr)
@@ -350,8 +350,8 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 
 		if (Obj != nullptr)
 		{
-			const FStringAssetReference* ParamRefFound = Settings->AdditionalParameterEnums.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
-			const FStringAssetReference* PayloadRefFound = nullptr;
+			const FSoftObjectPath* ParamRefFound = Settings->AdditionalParameterEnums.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			const FSoftObjectPath* PayloadRefFound = nullptr;
 			UEnum* Enum = Cast<UEnum>(Obj);
 			if (Enum != nullptr)
 			{

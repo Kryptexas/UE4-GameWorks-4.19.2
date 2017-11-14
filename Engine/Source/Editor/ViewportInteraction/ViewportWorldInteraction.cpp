@@ -86,7 +86,7 @@ namespace VI
 	static FAutoConsoleVariable SFXMultiplier(TEXT("VI.SFXMultiplier"), 1.5f, TEXT("Default Sound Effect Volume Multiplier"));
 }
 
-const FString UViewportWorldInteraction::AssetContainerPath = FString("/Engine/VREditor/ViewportInteractionAssetContainerData");
+const TCHAR* UViewportWorldInteraction::AssetContainerPath = TEXT("/Engine/VREditor/ViewportInteractionAssetContainerData");
 
 struct FGuideData
 {
@@ -315,8 +315,7 @@ void UViewportWorldInteraction::Init()
 	AppTimeEntered = FTimespan::FromSeconds( FApp::GetCurrentTime() );
 
 	// Setup the asset container.
-	AssetContainer = LoadObject<UViewportInteractionAssetContainer>(nullptr, *UViewportWorldInteraction::AssetContainerPath);
-	check(AssetContainer != nullptr);
+	AssetContainer = &LoadAssetContainer();
 
 	// Start with the default transformer
 	SetTransformer( nullptr );
@@ -3027,7 +3026,9 @@ const UViewportInteractionAssetContainer& UViewportWorldInteraction::GetAssetCon
 
 const class UViewportInteractionAssetContainer& UViewportWorldInteraction::LoadAssetContainer()
 {
-	return *LoadObject<UViewportInteractionAssetContainer>(nullptr, *UViewportWorldInteraction::AssetContainerPath);
+	UViewportInteractionAssetContainer* AssetContainer = LoadObject<UViewportInteractionAssetContainer>(nullptr, UViewportWorldInteraction::AssetContainerPath);
+	checkf(AssetContainer, TEXT("Failed to load ViewportInteractionAssetContainer (%s). See log for reason."), UViewportWorldInteraction::AssetContainerPath);
+	return *AssetContainer;
 }
 
 void UViewportWorldInteraction::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume /*= 1.0f*/)

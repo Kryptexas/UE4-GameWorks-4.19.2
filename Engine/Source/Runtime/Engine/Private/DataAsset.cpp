@@ -85,7 +85,7 @@ FPrimaryAssetId UPrimaryDataAsset::GetPrimaryAssetId() const
 			// If this is a native class use the raw name if it's a blueprint use the package name as it will be missing _C
 			FName PrimaryAssetType = BestPrimaryAssetTypeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) ? BestPrimaryAssetTypeClass->GetFName() : FPackageName::GetShortFName(BestPrimaryAssetTypeClass->GetOutermost()->GetFName());
 
-			return FPrimaryAssetId(PrimaryAssetType, FPackageName::GetShortFName(GetOutermost()->GetFName()));
+			return FPrimaryAssetId(PrimaryAssetType, FPackageName::GetShortFName(GetOutermost()->GetName()));
 		}
 
 		// No valid parent class found, return invalid

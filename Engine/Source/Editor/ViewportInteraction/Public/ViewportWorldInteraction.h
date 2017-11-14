@@ -33,6 +33,7 @@ namespace ViewportWorldActionTypes
 // Forward declare the GizmoHandleTypes
 enum class EGizmoHandleTypes : uint8;
 class IViewportInteractableInterface;
+class UViewportInteractionAssetContainer;
 class UViewportInteractor;
 
 UCLASS()
@@ -324,10 +325,10 @@ public:
 	void SetForceCursor(const bool bInShouldForceCursor);
 
 	/** Gets the container for all the assets of ViewportInteraction. */
-	const class UViewportInteractionAssetContainer& GetAssetContainer() const;
+	const UViewportInteractionAssetContainer& GetAssetContainer() const;
 
 	/** Static function to load the asset container */
-	static const class UViewportInteractionAssetContainer& LoadAssetContainer();
+	static const UViewportInteractionAssetContainer& LoadAssetContainer();
 
 	/** Plays sound at location. */
 	void PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume = 1.0f);
@@ -479,10 +480,10 @@ public:
 	/** Gets the color from color type */
 	FLinearColor GetColor(const EColors Color, const float Multiplier = 1.f) const;
 
-	/** The path of the asset container */
-	static const FString AssetContainerPath;
-
 private:
+
+	/** The path of the asset container */
+	static const TCHAR* AssetContainerPath;
 
 	// All the colors for this mode
 	TArray<FLinearColor> Colors;
@@ -713,7 +714,7 @@ private:
 
 	/** Container of assets */
 	UPROPERTY()
-	class UViewportInteractionAssetContainer* AssetContainer;
+	const UViewportInteractionAssetContainer* AssetContainer;
 
 	/** If we want to skip playing the sound when refreshing the transform gizmo next time */
 	bool bPlayNextRefreshTransformGizmoSound;

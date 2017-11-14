@@ -2445,11 +2445,10 @@ void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, TSoftObjectPtr
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FLoadAssetAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
-		{
-			FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToSoftObjectPath(), OnLoaded, LatentInfo);
-			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
-		}
+
+		// We always spawn a new load even if this node already queued one, the outside node handles this case
+		FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToSoftObjectPath(), OnLoaded, LatentInfo);
+		LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 	}
 }
 
@@ -2475,11 +2474,10 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, TSoftClas
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FLoadAssetClassAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
-		{
-			FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToSoftObjectPath(), OnLoaded, LatentInfo);
-			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
-		}
+
+		// We always spawn a new load even if this node already queued one, the outside node handles this case
+		FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToSoftObjectPath(), OnLoaded, LatentInfo);
+		LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 	}
 }
 

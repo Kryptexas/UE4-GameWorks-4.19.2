@@ -10,12 +10,15 @@
  * This class provides common registration for gamethread editor only tickable objects. It is an
  * abstract base class requiring you to implement the GetStatId, IsTickable, and Tick methods.
  */
-class FTickableEditorObject : public FTickableObjectBase
+class UNREALED_API FTickableEditorObject : public FTickableObjectBase
 {
 public:
 
 	static void TickObjects(const float DeltaSeconds)
 	{
+		TArray<FTickableEditorObject*>& PendingTickableObjects = GetPendingTickableObjects();
+		TArray<FTickableObjectEntry>& TickableObjects = GetTickableObjects();
+
 		for (FTickableEditorObject* PendingTickable : PendingTickableObjects)
 		{
 			AddTickableObject(TickableObjects, PendingTickable);
@@ -62,17 +65,17 @@ public:
 	/** Registers this instance with the static array of tickable objects. */
 	FTickableEditorObject()
 	{
-		check(!PendingTickableObjects.Contains(this));
-		check(!TickableObjects.Contains(this));
-		PendingTickableObjects.Add(this);
+		check(!GetPendingTickableObjects().Contains(this));
+		check(!GetTickableObjects().Contains(this));
+		GetPendingTickableObjects().Add(this);
 	}
 
 	/** Removes this instance from the static array of tickable objects. */
 	virtual ~FTickableEditorObject()
 	{
-		if (bCollectionIntact && PendingTickableObjects.Remove(this) == 0)
+		if (bCollectionIntact && GetPendingTickableObjects().Remove(this) == 0)
 		{
-			RemoveTickableObject(TickableObjects, this, bIsTickingObjects);
+			RemoveTickableObject(GetTickableObjects(), this, bIsTickingObjects);
 		}
 	}
 
@@ -96,9 +99,19 @@ private:
 	friend class TTickableObjectsCollection;
 
 	/** True if collection of tickable objects is still intact. */
-	UNREALED_API static bool bCollectionIntact;
+	static bool bCollectionIntact;
 	/** True if currently ticking of tickable editor objects. */
-	UNREALED_API static bool bIsTickingObjects;
-	UNREALED_API static TTickableObjectsCollection TickableObjects;
-	UNREALED_API static TArray<FTickableEditorObject*> PendingTickableObjects;
+	static bool bIsTickingObjects;
+
+	static TArray<FTickableObjectEntry>& GetTickableObjects()
+	{
+		static TTickableObjectsCollection TickableObjects;
+		return TickableObjects;
+	}
+
+	static TArray<FTickableEditorObject*>& GetPendingTickableObjects()
+	{
+		static TArray<FTickableEditorObject*> PendingTickableObjects;
+		return PendingTickableObjects;
+	}
 };

@@ -127,8 +127,18 @@ class ENGINE_API FTickableGameObject : public FTickableObjectBase
 {
 private:
 	/** Static array of tickable objects */
-	static TArray<FTickableObjectEntry> TickableObjects;
-	static TArray<FTickableGameObject*> PendingTickableObjects;
+	static TArray<FTickableObjectEntry>& GetTickableObjects()
+	{
+		static TArray<FTickableObjectEntry> TickableObjects;
+		return TickableObjects;
+	}
+
+	static TArray<FTickableGameObject*>& GetPendingTickableObjects()
+	{
+		static TArray<FTickableGameObject*> PendingTickableObjects;
+		return PendingTickableObjects;
+	}
+
 	static bool bIsTickingObjects;
 
 public:
@@ -138,9 +148,9 @@ public:
 	 */
 	FTickableGameObject()
 	{
-		check(!PendingTickableObjects.Contains(this));
-		check(!TickableObjects.Contains(this));
-		PendingTickableObjects.Add(this);
+		check(!GetPendingTickableObjects().Contains(this));
+		check(!GetTickableObjects().Contains(this));
+		GetPendingTickableObjects().Add(this);
 	}
 
 	/**
@@ -148,9 +158,9 @@ public:
 	 */
 	virtual ~FTickableGameObject()
 	{
-		if (PendingTickableObjects.Remove(this) == 0)
+		if (GetPendingTickableObjects().Remove(this) == 0)
 		{
-			RemoveTickableObject(TickableObjects, this, bIsTickingObjects);
+			RemoveTickableObject(GetTickableObjects(), this, bIsTickingObjects);
 		}
 	}
 
