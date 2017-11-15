@@ -1034,10 +1034,22 @@ protected:
 						int BufferIndex = Buffers.GetIndex(var);
 						bool bNeedsPointer = (var->semantic && (strlen(var->semantic) == 1));
 						check(BufferIndex >= 0 && BufferIndex <= 30);
-						ralloc_asprintf_append(
-							buffer,
-							"constant "
-							);
+						// There is a bug on Nvidia's pipeline compiler where the VSHS shaders are doing something bad with constant buffers
+						// Let us make them "const device" buffers instead as that bypasses the issue and is very, very easy to do!
+						if(bNeedsPointer && !var->type->is_record() && Backend.bIsTessellationVSHS && strcmp(var->name, "BufferSizes"))
+						{
+							ralloc_asprintf_append(
+								buffer,
+								"const device "
+								);
+						}
+						else
+						{
+							ralloc_asprintf_append(
+								buffer,
+								"constant "
+								);
+						}
 						print_type_pre(PtrType);
 						ralloc_asprintf_append(buffer, " %s%s", bNeedsPointer ? "*" : "&", unique_name(var));
 						print_type_post(PtrType);

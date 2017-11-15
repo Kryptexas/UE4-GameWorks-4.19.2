@@ -612,6 +612,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					ensure(!SkeletonToRelink->GetSuperClass()->HasAnyClassFlags(CLASS_NewerVersionExists));
 
 					SkeletonToRelink->Bind();
+					SkeletonToRelink->ClearFunctionMapsCaches();
 					SkeletonToRelink->StaticLink(true);
 				}
 
@@ -1763,7 +1764,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	UField** CurrentFieldStorageLocation = &Ret->Children;
 	
 	// Helper function for making UFunctions generated for 'event' nodes, e.g. custom event and timelines
-	const auto MakeEventFunction = [&CurrentFieldStorageLocation, MakeFunction, Schema]( FName InName, EFunctionFlags ExtraFnFlags, const TArray<UEdGraphPin*>& InputPins, UFunction* InSourceFN, bool bInCallInEditor )
+	const auto MakeEventFunction = [&CurrentFieldStorageLocation, MakeFunction, Schema]( FName InName, EFunctionFlags ExtraFnFlags, const TArray<UEdGraphPin*>& InputPins, UFunction* InSourceFN, bool bInCallInEditor, TArray< TSharedPtr<FUserPinInfo> >* UserAddedPins )
 	{
 		UField** CurrentParamStorageLocation = nullptr;
 
@@ -1787,10 +1788,32 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 				if(	!Schema->IsMetaPin(*InputPin) && 
 					(InputPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Object) && 
 					(InputPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Class) && 
-					(InputPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface) && 
-					!InputPin->DefaultValue.IsEmpty() )
+					(InputPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface) )
 				{
-					NewFunction->SetMetaData(*InputPin->PinName, *InputPin->DefaultValue);
+					// First look in user defined pins. There appears to be an issue propagating the user defined pin's default value
+					// to the actual input pins. This may only be a problem with old data, but it's easiest to go right to the source,
+					// rather than rely on other editor logic to keep UserDefinedPins and Node::Pins in sync.
+					bool bFoundDefaultInUserAddedPins = false;
+					if(UserAddedPins )
+					{
+						const TSharedPtr<FUserPinInfo>* UserPin = UserAddedPins->FindByPredicate(
+							[InputPin](const TSharedPtr<FUserPinInfo>& PinInfo ) 
+							{ 
+								return PinInfo.IsValid() && PinInfo->PinName == InputPin->PinName; 
+							} 
+						);
+
+						if(UserPin)
+						{
+							bFoundDefaultInUserAddedPins = true;
+							NewFunction->SetMetaData(*InputPin->PinName, *((*UserPin)->PinDefaultValue));
+						}
+					}
+
+					if(!bFoundDefaultInUserAddedPins && !InputPin->DefaultValue.IsEmpty())
+					{
+						NewFunction->SetMetaData(*InputPin->PinName, *InputPin->DefaultValue);
+					}
 				}
 			}
 
@@ -1834,9 +1857,11 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		for( UK2Node_Event* Event : EventNodes )
 		{
 			bool bCallInEditor = false;
+			TArray< TSharedPtr<FUserPinInfo> >* UserAddedPins = nullptr;
 			if(UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(Event))
 			{
 				bCallInEditor = CustomEvent->bCallInEditor;
+				UserAddedPins = &CustomEvent->UserDefinedPins;
 			}
 
 			MakeEventFunction(
@@ -1844,7 +1869,8 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 				(EFunctionFlags)Event->FunctionFlags, 
 				Event->Pins, 
 				Event->FindEventSignatureFunction(),
-				bCallInEditor
+				bCallInEditor,
+				UserAddedPins
 			);
 		}
 	}
@@ -1853,11 +1879,11 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	{
 		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
 		{
-			MakeEventFunction(Timeline->GetEventTrackFunctionName(EventTrackIdx), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false);
+			MakeEventFunction(Timeline->GetEventTrackFunctionName(EventTrackIdx), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false, nullptr);
 		}
 		
-		MakeEventFunction(Timeline->GetUpdateFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false);
-		MakeEventFunction(Timeline->GetFinishedFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false);
+		MakeEventFunction(Timeline->GetUpdateFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false, nullptr);
+		MakeEventFunction(Timeline->GetFinishedFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr, false, nullptr);
 	}
 
 	CompilerContext.NewClass = Ret;

@@ -1117,6 +1117,9 @@ static void ClearHierarchyCache( const TCHAR* BaseIniName )
 #endif
 }
 
+/// This is a 4.18 hack. FConfigFile::ProcessPropertyAndWriteForDefaults needs a new parameter, but due to "no change to public headers" policy we cannot modify ConfigCacheIni.h
+EConfigFileHierarchy GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
+
 bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/, const FString& InitialText/*=FString()*/ )
 {
 	if( !Dirty || NoSave || FParse::Param( FCommandLine::Get(), TEXT("nowrite")) || 
@@ -1197,7 +1200,19 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 
 					if( bIsADefaultIniWrite )
 					{
+						GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
+						// find the filename in ini hierarchy
+						FString IniName = FPaths::GetCleanFilename(Filename);
+						for (const auto& HierarchyFileIt : SourceIniHierarchy)
+						{
+							if (FPaths::GetCleanFilename(HierarchyFileIt.Value.Filename) == IniName)
+							{
+								GProcessPropertyAndWriteForDefaults_IniCombineThreshold = HierarchyFileIt.Key;
+								break;
+							}
+						}
 						ProcessPropertyAndWriteForDefaults(CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
+						GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
 					}
 					else
 					{
@@ -1526,7 +1541,6 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 	}
 }
 
-
 void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
 {
 	// Only process against a hierarchy if this config file has one.
@@ -1551,7 +1565,13 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue
 
 			for (const auto& HierarchyFileIt : SourceIniHierarchy)
 			{
-				DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
+				// Combine everything up to the level we're writing, but not including it.
+				// Inclusion would result in a bad feedback loop where on subsequent writes 
+				// we would be diffing against the same config we've just written to.
+				if (HierarchyFileIt.Key < GProcessPropertyAndWriteForDefaults_IniCombineThreshold)
+				{
+					DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
+				}
 			}
 
 			// Remove any array elements from the default configs hierearchy, we will add these in below

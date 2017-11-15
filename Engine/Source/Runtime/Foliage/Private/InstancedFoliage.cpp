@@ -2789,18 +2789,18 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType,
 			// If the type's mesh has changed, the UI needs to be notified so it can update thumbnails accordingly
 			OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
 
-			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr) //If the mesh has been deleted and we're a per foliage actor instance we must remove all instances of the mesh
-			{
-				RemoveFoliageType(&FoliageType, 1);
-			}
-
 			// Change bounds delegate bindings
-			if (TypeInfo->Component != nullptr && TypeInfo->Component->GetStaticMesh() != nullptr)
+			if (TypeInfo->Component != nullptr && TypeInfo->Component->GetStaticMesh() != nullptr && FoliageType->GetStaticMesh() != nullptr)
 			{
 				TypeInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(TypeInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
 
 				// Mesh changed, so we must update the occlusion tree
 				TypeInfo->Component->BuildTreeIfOutdated(true, false);
+			}
+
+			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr) //If the mesh has been deleted and we're a per foliage actor instance we must remove all instances of the mesh
+			{
+				RemoveFoliageType(&FoliageType, 1);
 			}
 		}
 	}

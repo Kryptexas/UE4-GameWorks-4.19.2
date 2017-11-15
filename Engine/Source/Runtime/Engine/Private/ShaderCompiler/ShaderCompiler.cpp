@@ -45,6 +45,8 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "SceneInterface.h"
 
+#define LOCTEXT_NAMESPACE "ShaderCompiler"
+
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 #if ENABLE_COOK_STATS
@@ -1559,7 +1561,20 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 			// If this doesn't error, the app will hang waiting for jobs that can never be completed
 			if (bFirstLaunch)
 			{
-				UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s! Make sure the file is in your binaries folder."), *ShaderCompileWorkerName);
+				// When using source builds users are likely to make a mistake of not building SCW (e.g. in particular on Linux, even though default makefile target builds it).
+				// Make the engine exit gracefully with a helpful message instead of a crash.
+				static bool bShowedMessageBox = false;
+				if (!bShowedMessageBox && !IsRunningCommandlet() && !FApp::IsUnattended())
+				{
+					bShowedMessageBox = true;
+					FText ErrorMessage = FText::Format(LOCTEXT("LaunchingShaderCompileWorkerFailed", "Unable to launch {0} - make sure you built ShaderCompileWorker."), FText::FromString(ShaderCompileWorkerName));
+					FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(),
+												 *LOCTEXT("LaunchingShaderCompileWorkerFailedTitle", "Unable to launch ShaderCompileWorker.").ToString());
+				}
+				UE_LOG(LogShaderCompilers, Error, TEXT("Couldn't launch %s! Make sure you build ShaderCompileWorker."), *ShaderCompileWorkerName);
+				// duplicate to printf() since threaded logs may not be always flushed
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Couldn't launch %s! Make sure you build ShaderCompileWorker.\n"), *ShaderCompileWorkerName);
+				FPlatformMisc::RequestExitWithStatus(true, 1);
 			}
 			else
 			{
@@ -4130,3 +4145,4 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 		SaveGlobalShaderMapToDerivedDataCache(ShaderPlatformsProcessed[PlatformIndex]);
 	}
 }
+#undef LOCTEXT_NAMESPACE

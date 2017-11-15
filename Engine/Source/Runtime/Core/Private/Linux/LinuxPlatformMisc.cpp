@@ -501,6 +501,13 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 	return FString(Result);
 }
 
+// __builtin_popcountll() will not be compiled to use popcnt instruction unless -mpopcnt or a sufficiently recent target CPU arch is passed (which UBT doesn't by default)
+#if defined(__POPCNT__)
+	#define UE4_LINUX_NEED_TO_CHECK_FOR_POPCNT_PRESENCE				(PLATFORM_ENABLE_POPCNT_INTRINSIC)
+#else
+	#define UE4_LINUX_NEED_TO_CHECK_FOR_POPCNT_PRESENCE				0
+#endif // __POPCNT__
+
 bool FLinuxPlatformMisc::HasNonoptionalCPUFeatures()
 {
 	static bool bHasNonOptionalFeature = false;
@@ -511,7 +518,10 @@ bool FLinuxPlatformMisc::HasNonoptionalCPUFeatures()
 #if PLATFORM_HAS_CPUID
 		int Info[4];
 		__cpuid(1, Info[0], Info[1], Info[2], Info[3]);
+	
+	#if UE4_LINUX_NEED_TO_CHECK_FOR_POPCNT_PRESENCE
 		bHasNonOptionalFeature = (Info[2] & (1 << 23)) != 0;
+	#endif // UE4_LINUX_NEED_TO_CHECK_FOR_POPCNT
 #endif // PLATFORM_HAS_CPUID
 
 		bHaveResult = true;
@@ -522,7 +532,11 @@ bool FLinuxPlatformMisc::HasNonoptionalCPUFeatures()
 
 bool FLinuxPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
 {
-	return PLATFORM_ENABLE_POPCNT_INTRINSIC;
+#if UE4_LINUX_NEED_TO_CHECK_FOR_POPCNT_PRESENCE
+	return true;
+#else
+	return false;
+#endif
 }
 
 

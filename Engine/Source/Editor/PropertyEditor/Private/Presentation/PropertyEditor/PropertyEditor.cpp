@@ -619,29 +619,34 @@ bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, cons
 	check( ConditionProperty );
 
 	bool bResult = false;
-	bool bAllConditionsMet = true;
 
 	FPropertyNode* ParentNode = PropertyNode->GetParentNode();
-	FComplexPropertyNode* ComplexParentNode = ParentNode->FindComplexParent();
-
-	for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
+	if(ParentNode)
 	{
-		uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
-		check(BaseOffset != NULL);
-
-		uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
-
-		if (ConditionValues[ValueIdx].bNegateValue)
+		bool bAllConditionsMet = true;
+		for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
 		{
-			bAllConditionsMet = !ConditionProperty->GetPropertyValue(ValueAddr);
+			uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
+			if (!BaseOffset)
+			{
+				bAllConditionsMet = false;
+				break;
+			}
+
+			uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+
+			if (ConditionValues[ValueIdx].bNegateValue)
+			{
+				bAllConditionsMet = !ConditionProperty->GetPropertyValue(ValueAddr);
+			}
+			else
+			{
+				bAllConditionsMet = ConditionProperty->GetPropertyValue(ValueAddr);
+			}
 		}
-		else
-		{
-			bAllConditionsMet = ConditionProperty->GetPropertyValue(ValueAddr);
-		}
+
+		bResult = bAllConditionsMet;
 	}
-
-	bResult = bAllConditionsMet;
 
 	return bResult;
 }

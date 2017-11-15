@@ -2346,6 +2346,10 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 {
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
 
+	// Block selection broadcast until we have selected all, as this can be an expensive operation
+	FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
+	SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+	
 	//Bodies
 	//first deselect everything
 	SharedData->ClearSelectedBody();
@@ -2383,14 +2387,20 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 				FPhysicsAssetEditorSharedData::FSelection Selection(i, EAggCollisionShape::Convex, j);
 				SharedData->SetSelectedBody(Selection, true);
 			}
-
 		}
 	}
+	
+	SharedData->SelectionChangedEvent = SelectionChangedEvent;
+	SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 }
 
 void FPhysicsAssetEditor::OnSelectAllConstraints()
 {
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
+
+	// Block selection broadcast until we have selected all, as this can be an expensive operation
+	FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
+	SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
 
 	//Constraints
 	//Deselect everything first
@@ -2407,6 +2417,9 @@ void FPhysicsAssetEditor::OnSelectAllConstraints()
 			SharedData->SetSelectedConstraint(i, true);
 		}
 	}
+
+	SharedData->SelectionChangedEvent = SelectionChangedEvent;
+	SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 }
 
 void FPhysicsAssetEditor::OnDeselectAll()
@@ -2477,6 +2490,10 @@ void FPhysicsAssetEditor::HandleGraphObjectsSelected(const TArrayView<UObject*>&
 			PhysAssetProperties->SetObjects(Objects);
 		}
 
+		// Block selection broadcast until we have selected all, as this can be an expensive operation
+		FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
+		SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+
 		// clear selection
 		SharedData->SelectedBodies.Empty();
 		SharedData->SelectedConstraints.Empty();
@@ -2508,6 +2525,9 @@ void FPhysicsAssetEditor::HandleGraphObjectsSelected(const TArrayView<UObject*>&
 				}
 			}
 		}
+
+		SharedData->SelectionChangedEvent = SelectionChangedEvent;
+		SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 
 		SkeletonTree->SelectItemsBy([&SelectedBodies, &SelectedConstraints](const TSharedRef<ISkeletonTreeItem>& InItem, bool& bInOutExpand)
 		{
@@ -2559,6 +2579,10 @@ void FPhysicsAssetEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISk
 		// Only a user selection should change other view's selections
 		if (InSelectInfo != ESelectInfo::Direct)
 		{
+			// Block selection broadcast until we have selected all, as this can be an expensive operation
+			FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
+			SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+
 			// clear selection
 			SharedData->ClearSelectedBody();
 			SharedData->ClearSelectedConstraints();
@@ -2587,6 +2611,9 @@ void FPhysicsAssetEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISk
 					bBoneSelected = true;
 				}
 			}
+
+			SharedData->SelectionChangedEvent = SelectionChangedEvent;
+			SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 
 			if(!bBoneSelected)
 			{

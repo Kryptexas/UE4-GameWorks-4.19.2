@@ -75,10 +75,22 @@ void FVisualStudioCodeSourceCodeAccessor::RefreshAvailability()
 		}
 	}
 #elif PLATFORM_LINUX
-	FString URL = TEXT("/usr/bin/code");
-	if (FPaths::FileExists(URL))
+	FString OutURL;
+	int32 ReturnCode = -1;
+
+	FPlatformProcess::ExecProcess(TEXT("/bin/bash"), TEXT("-c \"type -p code\""), &ReturnCode, &OutURL, nullptr);
+	if (ReturnCode == 0)
 	{
-		Location.URL = URL;
+		Location.URL = OutURL.TrimStartAndEnd();
+	}
+	else
+	{
+		// Fallback to default install location
+		FString URL = TEXT("/usr/bin/code");
+		if (FPaths::FileExists(URL))
+		{
+			Location.URL = URL;
+		}
 	}
 #elif PLATFORM_MAC
 	NSURL* AppURL = [[NSWorkspace sharedWorkspace] URLForApplicationWithBundleIdentifier:@"com.microsoft.VSCode"];

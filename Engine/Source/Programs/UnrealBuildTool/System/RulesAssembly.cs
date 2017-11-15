@@ -73,20 +73,7 @@ namespace UnrealBuildTool
 			// Compile the assembly
 			if (AssemblySourceFiles.Count > 0)
 			{
-				List<string> PreprocessorDefines = new List<string>();
-				PreprocessorDefines.Add("WITH_FORWARDED_MODULE_RULES_CTOR");
-				PreprocessorDefines.Add("WITH_FORWARDED_TARGET_RULES_CTOR");
-
-				// Define macros for the UE4 version, starting with 4.17
-				BuildVersion Version;
-				if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-				{
-					for(int MinorVersion = 17; MinorVersion <= Version.MinorVersion; MinorVersion++)
-					{
-						PreprocessorDefines.Add(String.Format("UE_4_{0}_OR_LATER", MinorVersion));
-					}
-				}
-
+				List<string> PreprocessorDefines = GetPreprocessorDefinitions();
 				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly(AssemblyFileName, AssemblySourceFiles, PreprocessorDefines: PreprocessorDefines);
 			}
 
@@ -144,6 +131,28 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// Finds all the preprocessor definitions that need to be set for the current engine.
+		/// </summary>
+		/// <returns>List of preprocessor definitions that should be set</returns>
+		public static List<string> GetPreprocessorDefinitions()
+		{
+			List<string> PreprocessorDefines = new List<string>();
+			PreprocessorDefines.Add("WITH_FORWARDED_MODULE_RULES_CTOR");
+			PreprocessorDefines.Add("WITH_FORWARDED_TARGET_RULES_CTOR");
+
+			// Define macros for the UE4 version, starting with 4.17
+			BuildVersion Version;
+			if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+			{
+				for(int MinorVersion = 17; MinorVersion <= Version.MinorVersion; MinorVersion++)
+				{
+					PreprocessorDefines.Add(String.Format("UE_4_{0}_OR_LATER", MinorVersion));
+				}
+			}
+			return PreprocessorDefines;
 		}
 
 		/// <summary>

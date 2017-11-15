@@ -16,6 +16,7 @@
 #include "Misc/FileHelper.h"
 #include "ScopeRWLock.h"
 #include "Misc/Compression.h"
+#include "Misc/MessageDialog.h"
 
 #define SHADERCOMPILERCOMMON_API
 #	include "Developer/ShaderCompilerCommon/Public/ShaderCompilerCommon.h"
@@ -112,6 +113,64 @@ NSString* DecodeMetalSourceCode(uint32 CodeSize, TArray<uint8> const& Compressed
 	return GlslCodeNSString;
 }
 
+static MTLLanguageVersion ValidateVersion(uint8 Version)
+{
+	static uint32 MetalMacOSVersions[][3] = {
+		{10,11,6},
+		{10,11,6},
+		{10,12,6},
+		{10,13,0},
+	};
+	static uint32 MetaliOSVersions[][3] = {
+		{8,0,0},
+		{9,0,0},
+		{10,0,0},
+		{11,0,0},
+	};
+	static TCHAR const* StandardNames[] =
+	{
+		TEXT("Metal 1.0"),
+		TEXT("Metal 1.1"),
+		TEXT("Metal 1.2"),
+		TEXT("Metal 2.0"),
+	};
+	
+	Version = FMath::Min(Version, (uint8)3);
+	
+	MTLLanguageVersion Result = MTLLanguageVersion1_1;
+	if (Version < 3)
+	{
+#if PLATFORM_MAC
+		Result = Version == 0 ? MTLLanguageVersion1_1 : (MTLLanguageVersion)((1 << 16) + FMath::Min(Version, (uint8)2u));
+#else
+		Result = (MTLLanguageVersion)((1 << 16) + FMath::Min(Version, (uint8)2u));
+#endif
+	}
+	else if (Version == 3)
+	{
+		Result = (MTLLanguageVersion)(2 << 16);
+	}
+	
+	if (!FApplePlatformMisc::IsOSAtLeastVersion(MetalMacOSVersions[Version], MetaliOSVersions[Version], MetaliOSVersions[Version]))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ShaderVersion"), FText::FromString(FString(StandardNames[Version])));
+#if PLATFORM_MAC
+		Args.Add(TEXT("RequiredOS"), FText::FromString(FString::Printf(TEXT("macOS %d.%d.%d"), MetalMacOSVersions[Version][0], MetalMacOSVersions[Version][1], MetalMacOSVersions[Version][2])));
+#else
+		Args.Add(TEXT("RequiredOS"), FText::FromString(FString::Printf(TEXT("macOS %d.%d.%d"), MetaliOSVersions[Version][0], MetaliOSVersions[Version][1], MetaliOSVersions[Version][2])));
+#endif
+		FText LocalizedMsg = FText::Format(NSLOCTEXT("MetalRHI", "ShaderVersionUnsupported","The current OS version does not support {Version} required by the project. You must upgrade to {RequiredOS} to run this project."),Args);
+		
+		FText Title = NSLOCTEXT("MetalRHI", "ShaderVersionUnsupported","Shader Version Unsupported");
+		FMessageDialog::Open(EAppMsgType::Ok, LocalizedMsg, &Title);
+		
+		FPlatformMisc::RequestExit(true);
+	}
+	
+	return Result;
+}
+
 /** Initialization constructor. */
 template<typename BaseResourceType, int32 ShaderType>
 void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& InShaderCode, FMetalCodeHeader& Header, id<MTLLibrary> InLibrary)
@@ -130,6 +189,8 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 	// get the header
 	Header = { 0 };
 	Ar << Header;
+	
+	ValidateVersion(Header.Version);
 	
 	// Validate that the compiler flags match the offline compiled flag - somehow they sometimes don't..
 	checkf((Header.CompileFlags & (1 << CFLAG_Debug)) == ((!OfflineCompiledFlag) << CFLAG_Debug), TEXT("Header: 0x%x, Offline: 0x%x, 0x%x"), Header.CompileFlags, OfflineCompiledFlag, !OfflineCompiledFlag);

@@ -432,9 +432,10 @@ bool UOculusFunctionLibrary::HasSystemOverlayPresent()
 	if (OculusHMD != nullptr && OculusHMD->IsHMDActive())
 	{
 		ovrpBool IsPresent = ovrpBool_False;
-		if (OVRP_SUCCESS(ovrp_GetAppHasOverlayPresent(&IsPresent)))
+
+		if (OVRP_SUCCESS(ovrp_GetAppHasInputFocus(&IsPresent)))
 		{
-			return IsPresent == ovrpBool_True;
+			return IsPresent == ovrpBool_False;
 		}
 		else
 		{

@@ -308,17 +308,8 @@ namespace UnrealBuildTool
 
 				if (bBuildShaderFormats)
 				{
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-				}
-			}
-			else if (ModuleName == "Launch")
-			{
-				// this is a hack to influence symbol resolution on Linux that results in global delete being called from within CEF
-				if (Target.LinkType != TargetLinkType.Monolithic && Target.bCompileCEF3)
-				{
-					Rules.AddEngineThirdPartyPrivateStaticDependencies(Target, "CEF3");
 				}
 			}
 		}

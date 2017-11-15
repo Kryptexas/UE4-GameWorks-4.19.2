@@ -809,6 +809,32 @@ namespace UnrealBuildTool
 			}
 		}
 
+        static public void OutputErrorForRsync(Object Sender, DataReceivedEventArgs Line)
+        {
+            if ((Line != null) && (Line.Data != null) && (Line.Data != ""))
+            {
+                // check to see if we're trying to delete a floder that does not exist (not really an error in this case)
+                if (Line.Data.IndexOf("failed: No such file or directory") >= 0)
+                {
+                    int startDir = Line.Data.IndexOf('"');
+                    if (startDir >= 0)
+                    {
+                        int endDir = Line.Data.LastIndexOf('"');
+                        string dirPath = Line.Data.Substring(startDir + 1, endDir - startDir - 1) + "/";
+                        if (dirPath.StartsWith("/cygdrive/"))
+                        {
+                            dirPath = dirPath.Substring(10);
+                        }
+                        if (RelativeRsyncDirs.Contains(dirPath))
+                        {
+                            return;
+                        }
+                    }
+                }
+                Log.TraceInformation(Line.Data);
+            }
+        }
+
 		private static Dictionary<Object, StringBuilder> SSHOutputMap = new Dictionary<object, StringBuilder>();
 		private static System.Threading.Mutex DictionaryLock = new System.Threading.Mutex();
 		static public void OutputReceivedForSSH(Object Sender, DataReceivedEventArgs Line)
@@ -835,6 +861,7 @@ namespace UnrealBuildTool
 			return "/cygdrive/" + Utils.CleanDirectorySeparators(InPath.Replace(":", ""), '/');
 		}
 
+        static List<string> RelativeRsyncDirs = new List<string>();
 		public static void PreBuildSync()
 		{
 			// no need to sync on the Mac!
@@ -887,7 +914,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				List<string> RelativeRsyncDirs = new List<string>();
+				RelativeRsyncDirs.Clear();
 				foreach (string Dir in RsyncDirs)
 				{
 					RelativeRsyncDirs.Add(Utils.CleanDirectorySeparators(Dir.Replace(":", ""), '/') + "/");
@@ -929,7 +956,7 @@ namespace UnrealBuildTool
 				Console.WriteLine("Command: " + RsyncProcess.StartInfo.Arguments);
 
 				RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
-				RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+				RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputErrorForRsync);
 
 				// run rsync
 				Utils.RunLocalProcess(RsyncProcess);

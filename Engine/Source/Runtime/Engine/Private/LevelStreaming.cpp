@@ -34,6 +34,45 @@ DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
 int32 ULevelStreamingKismet::UniqueLevelInstanceId = 0;
 
+/**
+ * This helper function is defined here so that it can go into the 4.18.1 hotfix (for UE-51791),
+ * even though it would make more logical sense to have this logic in a member function of UNetDriver.
+ * We're getting away with this because UNetDriver::GuidCache is (unfortunately) public.
+ *
+ * Renames any package entries in the GuidCache with a path matching UnPrefixedName to have a PIE prefix.
+ * This is needed because a client may receive an export for a level package before it's loaded and
+ * its name registered with FSoftObjectPath::AddPIEPackageName. In this case, the entry in the GuidCache
+ * will not be PIE-prefixed, but when the level is actually loaded, its package will be renamed with the
+ * prefix. Any subsequent references to this package won't resolve unless the name is fixed up.
+ *
+ * @param World the world whose NetDriver will be used for the rename
+ * @param UnPrefixedPackageName the path of the package to rename
+ */
+static void NetDriverRenameStreamingLevelPackageForPIE(const UWorld* World, FName UnPrefixedPackageName)
+{
+	if (World == nullptr || World->NetDriver == nullptr || !World->NetDriver->GuidCache.IsValid())
+	{
+		UE_LOG(LogNet, Verbose, TEXT("NetDriverRenameStreamingLevelPackageForPIE, GuidCache is invalid! Package name %s"), *UnPrefixedPackageName.ToString());
+		return;
+	}
+
+	const FWorldContext* const WorldContext = GEngine->GetWorldContextFromWorld(World);
+	if (!WorldContext || WorldContext->WorldType != EWorldType::PIE)
+	{
+		return;
+	}
+
+	for (TPair<FNetworkGUID, FNetGuidCacheObject>& GuidPair : World->NetDriver->GuidCache->ObjectLookup)
+	{
+		// Only look for packages, which will have a static GUID and an invalid OuterGUID.
+		const bool bIsPackage = GuidPair.Key.IsStatic() && !GuidPair.Value.OuterGUID.IsValid();
+		if (bIsPackage && GuidPair.Value.PathName == UnPrefixedPackageName)
+		{
+			GuidPair.Value.PathName = *UWorld::ConvertToPIEPackageName(GuidPair.Value.PathName.ToString(), WorldContext->PIEInstance);
+		}
+	}
+}
+
 FStreamLevelAction::FStreamLevelAction(bool bIsLoading, const FName& InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World)
 	: bLoading(bIsLoading)
 	, bMakeVisibleAfterLoad(bIsMakeVisibleAfterLoad)
@@ -864,6 +903,8 @@ void ULevelStreaming::SetWorldAssetByPackageName(FName InPackageName)
 
 void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 {
+	const UWorld* const World = GetWorld();
+
 	// Apply PIE prefix so this level references
 	if (!WorldAsset.IsNull())
 	{
@@ -878,6 +919,8 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 		FName PlayWorldStreamingPackageName = FName(*UWorld::ConvertToPIEPackageName(GetWorldAssetPackageName(), PIEInstanceID));
 		FSoftObjectPath::AddPIEPackageName(PlayWorldStreamingPackageName);
 		SetWorldAssetByPackageName(PlayWorldStreamingPackageName);
+
+		NetDriverRenameStreamingLevelPackageForPIE(World, PackageNameToLoad);
 	}
 	
 	// Rename LOD levels if any
@@ -889,8 +932,11 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 			// Store LOD level original package name
 			LODPackageNamesToLoad.Add(LODPackageName); 
 			// Apply PIE prefix to package name			
+			const FName NonPrefixedLODPackageName = LODPackageName;
 			LODPackageName = FName(*UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID));
 			FSoftObjectPath::AddPIEPackageName(LODPackageName);
+
+			NetDriverRenameStreamingLevelPackageForPIE(World, NonPrefixedLODPackageName);
 		}
 	}
 }

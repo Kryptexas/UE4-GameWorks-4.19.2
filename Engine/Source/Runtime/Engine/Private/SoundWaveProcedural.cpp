@@ -14,7 +14,11 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 
 	// This is set to true to default to old behavior in old audio engine
 	// Audio mixer uses sound wave procedural in async tasks and sets this to false when using it.
-	bIsReadyForDestroy = true;
+	
+	// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
+	// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
+	// should be added which sets this to true.
+	bIsReadyForDestroy = false;
 
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
 }
@@ -137,7 +141,7 @@ void USoundWaveProcedural::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTa
 
 bool USoundWaveProcedural::IsReadyForFinishDestroy()
 {
-	return bIsReadyForDestroy;
+	return !bIsReadyForDestroy;
 }
 
 bool USoundWaveProcedural::HasCompressedData(FName Format) const

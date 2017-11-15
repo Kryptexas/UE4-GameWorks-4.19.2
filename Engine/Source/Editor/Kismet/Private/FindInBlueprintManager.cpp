@@ -2078,21 +2078,25 @@ void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceC
 	// Multiple threads can be adding to this at the same time
 	FScopeLock ScopeLock(&SafeModifyCacheCriticalSection);
 
-	if(bInSourceControlActive && bInCheckoutAndSave)
+	// We need to check validity first in case the user has closed the initiating FiB tab before responding to the source control login dialog (which is modeless).
+	if (CachingObject)
 	{
-		TArray<FString> UncachedBlueprintStrings;
-		const TArray<FName>& TotalUncachedBlueprints = CachingObject->GetUncachedBlueprintList();
-		
-		UncachedBlueprintStrings.Reserve(TotalUncachedBlueprints.Num());
-		for (const FName& UncachedBlueprint : TotalUncachedBlueprints)
+		if(bInSourceControlActive && bInCheckoutAndSave)
 		{
-			UncachedBlueprintStrings.Add(UncachedBlueprint.ToString());
+			TArray<FString> UncachedBlueprintStrings;
+			const TArray<FName>& TotalUncachedBlueprints = CachingObject->GetUncachedBlueprintList();
+		
+			UncachedBlueprintStrings.Reserve(TotalUncachedBlueprints.Num());
+			for (const FName& UncachedBlueprint : TotalUncachedBlueprints)
+			{
+				UncachedBlueprintStrings.Add(UncachedBlueprint.ToString());
+			}
+			FEditorFileUtils::CheckoutPackages(UncachedBlueprintStrings);
 		}
-		FEditorFileUtils::CheckoutPackages(UncachedBlueprintStrings);
-	}
 
-	// Start the cache process.
-	CachingObject->Start();
+		// Start the cache process.
+		CachingObject->Start();
+	}
 }
 
 void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindInBlueprints > InSourceWidget, FWidgetActiveTimerDelegate& InOutActiveTimerDelegate, FSimpleDelegate InOnFinished/* = FSimpleDelegate()*/, EFiBVersion InMinimiumVersionRequirement/* = EFiBVersion::FIB_VER_LATEST*/)

@@ -762,8 +762,10 @@ void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Col
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
 		// SkelBoneTransform should have the appropriate scale baked in from Component and Import Transform.
 		// BoneTransform.SetScale3D(Scale3D);
-		SkeletalBodySetups[i]->CreatePhysicsMeshes();
-		SkeletalBodySetups[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
+		if (SkeletalBodySetups[i]->bCreatedPhysicsMeshes)
+		{
+			SkeletalBodySetups[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
+		}
 	}
 }
 

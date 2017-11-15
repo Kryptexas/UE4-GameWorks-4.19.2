@@ -106,7 +106,7 @@ void FPhysicsAssetEditorEditMode::GetOnScreenDebugInfo(TArray<FText>& OutDebugIn
 bool FPhysicsAssetEditorEditMode::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	const EAxisList::Type CurrentAxis = InViewportClient->GetCurrentWidgetAxis();
-	if(CurrentAxis != EAxisList::None)
+	if(!SharedData->bManipulating && CurrentAxis != EAxisList::None)
 	{
 		if(SharedData->GetSelectedBody() || SharedData->GetSelectedConstraint())
 		{
@@ -120,8 +120,6 @@ bool FPhysicsAssetEditorEditMode::StartTracking(FEditorViewportClient* InViewpor
 			}
 		}
 
-		// If releasing the mouse button, check we are done manipulating
-		check(!SharedData->bManipulating);
 		if (SharedData->GetSelectedBody())
 		{
 			for (int32 i = 0; i<SharedData->SelectedBodies.Num(); ++i)
@@ -287,7 +285,7 @@ bool FPhysicsAssetEditorEditMode::InputDelta(FEditorViewportClient* InViewportCl
 {
 	bool bHandled = false;
 	const EAxisList::Type CurrentAxis = InViewportClient->GetCurrentWidgetAxis();
-	if (SharedData->bManipulating && CurrentAxis != EAxisList::None)
+	if (!SharedData->bRunningSimulation && SharedData->bManipulating && CurrentAxis != EAxisList::None)
 	{
 		for (int32 i = 0; i< SharedData->SelectedBodies.Num(); ++i)
 		{
@@ -550,7 +548,7 @@ void FPhysicsAssetEditorEditMode::DrawHUD(FEditorViewportClient* ViewportClient,
 
 bool FPhysicsAssetEditorEditMode::AllowWidgetMove()
 {
-	return true;
+	return ShouldDrawWidget();
 }
 
 bool FPhysicsAssetEditorEditMode::ShouldDrawWidget() const
@@ -768,44 +766,47 @@ bool FPhysicsAssetEditorEditMode::SimMousePress(FEditorViewportClient* InViewpor
 	FHitResult Result(1.f);
 	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(NAME_None, true));
 
-	if (bHit && (bCtrlDown || bShiftDown))
+	if (bHit)
 	{
-		check(Result.Item != INDEX_NONE);
-		FName BoneName = SharedData->PhysicsAsset->SkeletalBodySetups[Result.Item]->BoneName;
-
-		//UE_LOG(LogPhysics, Warning, TEXT("Hit Bone Name (%s)"), *BoneName.ToString());
-
-		// Right mouse is for dragging things around
-		if (Key == EKeys::RightMouseButton)
+		if(bCtrlDown || bShiftDown)
 		{
-			SharedData->bManipulating = true;
-			DragX = 0.0f;
-			DragY = 0.0f;
-			SimGrabPush = 0.0f;
+			check(Result.Item != INDEX_NONE);
+			FName BoneName = SharedData->PhysicsAsset->SkeletalBodySetups[Result.Item]->BoneName;
 
-			// Update mouse force properties from sim options.
-			SharedData->MouseHandle->LinearDamping = SharedData->EditorOptions->HandleLinearDamping;
-			SharedData->MouseHandle->LinearStiffness = SharedData->EditorOptions->HandleLinearStiffness;
-			SharedData->MouseHandle->AngularDamping = SharedData->EditorOptions->HandleAngularDamping;
-			SharedData->MouseHandle->AngularStiffness = SharedData->EditorOptions->HandleAngularStiffness;
-			SharedData->MouseHandle->InterpolationSpeed = SharedData->EditorOptions->InterpolationSpeed;
+			//UE_LOG(LogPhysics, Warning, TEXT("Hit Bone Name (%s)"), *BoneName.ToString());
 
-			// Create handle to object.
-			SharedData->MouseHandle->GrabComponentAtLocationWithRotation(SharedData->EditorSkelComp, BoneName, Result.Location, FRotator::ZeroRotator);
+			// Right mouse is for dragging things around
+			if (Key == EKeys::RightMouseButton)
+			{
+				SharedData->bManipulating = true;
+				DragX = 0.0f;
+				DragY = 0.0f;
+				SimGrabPush = 0.0f;
 
-			FMatrix	InvViewMatrix = View->ViewMatrices.GetInvViewMatrix();
+				// Update mouse force properties from sim options.
+				SharedData->MouseHandle->LinearDamping = SharedData->EditorOptions->HandleLinearDamping;
+				SharedData->MouseHandle->LinearStiffness = SharedData->EditorOptions->HandleLinearStiffness;
+				SharedData->MouseHandle->AngularDamping = SharedData->EditorOptions->HandleAngularDamping;
+				SharedData->MouseHandle->AngularStiffness = SharedData->EditorOptions->HandleAngularStiffness;
+				SharedData->MouseHandle->InterpolationSpeed = SharedData->EditorOptions->InterpolationSpeed;
 
-			SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
+				// Create handle to object.
+				SharedData->MouseHandle->GrabComponentAtLocationWithRotation(SharedData->EditorSkelComp, BoneName, Result.Location, FRotator::ZeroRotator);
 
-			SimGrabLocation = Result.Location;
-			SimGrabX = InvViewMatrix.GetUnitAxis(EAxis::X);
-			SimGrabY = InvViewMatrix.GetUnitAxis(EAxis::Y);
-			SimGrabZ = InvViewMatrix.GetUnitAxis(EAxis::Z);
-		}
-		// Left mouse is for poking things
-		else if (Key == EKeys::LeftMouseButton)
-		{
-			SharedData->EditorSkelComp->AddImpulseAtLocation(Click.GetDirection() * SharedData->EditorOptions->PokeStrength, Result.Location, BoneName);
+				FMatrix	InvViewMatrix = View->ViewMatrices.GetInvViewMatrix();
+
+				SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
+
+				SimGrabLocation = Result.Location;
+				SimGrabX = InvViewMatrix.GetUnitAxis(EAxis::X);
+				SimGrabY = InvViewMatrix.GetUnitAxis(EAxis::Y);
+				SimGrabZ = InvViewMatrix.GetUnitAxis(EAxis::Z);
+			}
+			// Left mouse is for poking things
+			else if (Key == EKeys::LeftMouseButton)
+			{
+				SharedData->EditorSkelComp->AddImpulseAtLocation(Click.GetDirection() * SharedData->EditorOptions->PokeStrength, Result.Location, BoneName);
+			}
 		}
 
 		return true;

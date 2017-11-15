@@ -172,7 +172,7 @@ void FLightmassProcessor::ImportIrradianceTasks(bool& bGenerateSkyShadowing, TAr
 		}
 		else
 		{
-			UE_LOG(LogVolumetricLightmapImport, Warning,  TEXT("Error, OpenChannel failed to open %s with error code %d"), *ChannelName, Channel );
+			UE_LOG(LogVolumetricLightmapImport, Fatal,  TEXT("Error, failed to import volumetric lightmap %s with error code %d"), *ChannelName, Channel );
 		}
 
 		delete Element;
@@ -840,7 +840,7 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 
 	ImportIrradianceTasks(bGenerateSkyShadowing, TaskDataArray);
 
-	check(TaskDataArray.Num() == Exporter->VolumetricLightmapTaskGuids.Num());
+	checkf(TaskDataArray.Num() == Exporter->VolumetricLightmapTaskGuids.Num(), TEXT("Import Volumetric Lightmap failed: Expected %u tasks, only found %u"), Exporter->VolumetricLightmapTaskGuids.Num(), TaskDataArray.Num());
 
 	TArray<TArray<const FImportedVolumetricLightmapBrick*>> BricksByDepth;
 	BricksByDepth.Empty(VolumetricLightmapSettings.MaxRefinementLevels);

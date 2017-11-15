@@ -606,19 +606,23 @@ const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 
 	const FSlateBrush* IconBrush = nullptr;
 
-	for (auto ObjectIt = EditingObjects.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	for (UObject* Object : EditingObjects)
 	{
-		const FSlateBrush* ThisAssetBrush = FSlateIconFinder::FindIconBrushForClass((*ObjectIt)->GetClass());
-		
-		if (!IconBrush)
+		if(Object)
 		{
-			IconBrush = ThisAssetBrush;
+			// Find the first object that has a valid brush
+			const FSlateBrush* ThisAssetBrush = FSlateIconFinder::FindIconBrushForClass(Object->GetClass());
+			if (ThisAssetBrush != nullptr)
+			{
+				IconBrush = ThisAssetBrush;
+				break;
+			}
 		}
-		else if (IconBrush != ThisAssetBrush)
-		{
-			// Fallback icon
-			return FEditorStyle::GetBrush(TEXT("ClassIcon.Default"));
-		}
+	}
+
+	if (!IconBrush)
+	{
+		IconBrush = FEditorStyle::GetBrush(TEXT("ClassIcon.Default"));;
 	}
 
 	return IconBrush;

@@ -3688,7 +3688,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
@@ -3698,7 +3698,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
@@ -3711,7 +3711,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
@@ -4371,7 +4371,7 @@ protected:
 			{
 				if ((SourceCoordBasis == MCB_Local || DestCoordBasis == MCB_Local))
 				{
-					return Errorf(TEXT("Local space in only supported for vertex, compute or pixel shader"));
+					return Errorf(TEXT("Local space is only supported for vertex, compute or pixel shader"));
 				}
 			}
 

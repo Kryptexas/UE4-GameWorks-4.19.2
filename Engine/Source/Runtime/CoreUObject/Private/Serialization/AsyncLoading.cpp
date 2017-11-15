@@ -7030,6 +7030,7 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 		{
 			if (GEventDrivenLoaderEnabled)
 			{
+				FScopeLock Lock(&SummaryRacePreventer);
 				// in this case we don't need to serialize the summary because we know the header is the whole file
 				HeaderSize = FileSize;
 				LogItem(TEXT("Starting Split Header"), 0, FileSize);

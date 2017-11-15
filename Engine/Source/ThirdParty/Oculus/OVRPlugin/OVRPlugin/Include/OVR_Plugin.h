@@ -42,12 +42,12 @@ OVRP_EXPORT ovrpBool ovrp_GetInitialized();
 /// You must call this before any other function except ovrp_PreInitialize() or
 /// ovrp_GetInitialized().
 OVRP_EXPORT ovrpResult ovrp_Initialize4(
-    ovrpRenderAPIType apiType,
-    ovrpLogCallback logCallback,
-    void* activity,
-    void* instance,
-    int initializeFlags,
-    OVRP_CONSTREF(ovrpVersion) version OVRP_DEFAULTVALUE({OVRP_VERSION}));
+	ovrpRenderAPIType apiType,
+	ovrpLogCallback logCallback,
+	void* activity,
+	void* instance,
+	int initializeFlags,
+	OVRP_CONSTREF(ovrpVersion) version OVRP_DEFAULTVALUE({ OVRP_VERSION }));
 
 /// Tears down the Oculus runtime, VR tracking, and graphics resources.
 OVRP_EXPORT ovrpResult ovrp_Shutdown2();
@@ -101,6 +101,13 @@ OVRP_EXPORT ovrpResult ovrp_DestroyDistortionWindow2();
 /// The desc remains constant for the lifetime of the layer.
 OVRP_EXPORT ovrpResult ovrp_SetupLayer(void* device, OVRP_CONSTREF(ovrpLayerDesc) desc, int* layerId);
 
+/// Create depth swap chain for a layer
+OVRP_EXPORT ovrpResult ovrp_SetupLayerDepth(void* device, ovrpTextureFormat depthFormat, int layerId);
+
+/// Get Eye Fov layer index if created
+/// Otherwise return fail
+OVRP_EXPORT ovrpResult ovrp_GetEyeFovLayerId(int* layerId);
+
 /// Gets the number of texture stages in the layer.
 /// Layers have multiple stages, unless the ovrpLayer_Static flag was specified.
 OVRP_EXPORT ovrpResult ovrp_GetLayerTextureStageCount(int layerId, int* layerTextureStageCount);
@@ -133,15 +140,15 @@ OVRP_EXPORT ovrpResult ovrp_CalculateLayerDesc(
 
 /// Calculates eye layer description
 OVRP_EXPORT ovrpResult ovrp_CalculateEyeLayerDesc2(
-    ovrpLayout layout,
-    float textureScale,
-    int mipLevels,
-    int sampleCount,
-    ovrpTextureFormat format,
+	ovrpLayout layout,
+	float textureScale,
+	int mipLevels,
+	int sampleCount,
+	ovrpTextureFormat format,
 	ovrpTextureFormat depthFormat,
 	ovrpFrustum2f frustum,
-    int layerFlags,
-    ovrpLayerDesc_EyeFov* layerDesc);
+	int layerFlags,
+	ovrpLayerDesc_EyeFov* layerDesc);
 
 /// Calculates the recommended viewport rect for the specified eye
 OVRP_EXPORT ovrpResult ovrp_CalculateEyeViewportRect(
@@ -345,6 +352,16 @@ OVRP_EXPORT ovrpResult ovrp_ShowSystemUI2(ovrpUI ui);
 /// If true, the app has VR focus.
 OVRP_EXPORT ovrpResult ovrp_GetAppHasVrFocus2(ovrpBool* appHasVrFocus);
 
+/// True if the application is the foreground application and receives input (e.g. Touch
+/// controller state). If this is false then the application is in the background (but posssibly
+/// still visible) should hide any input representations such as hands.
+OVRP_EXPORT ovrpResult ovrp_GetAppHasInputFocus(ovrpBool* appHasInputFocus);
+
+/// True if a system overlay is present, such as a dashboard. In this case the application
+/// (if visible) should pause while still drawing, avoid drawing near-field graphics so they
+/// don't visually fight with the system overlay, and consume fewer CPU and GPU resources.
+OVRP_EXPORT ovrpResult ovrp_GetAppHasOverlayPresent(ovrpBool* appHasOverlayPresent);
+
 /// If true, the app should quit as soon as possible.
 OVRP_EXPORT ovrpResult ovrp_GetAppShouldQuit2(ovrpBool* appShouldQuit);
 
@@ -353,12 +370,6 @@ OVRP_EXPORT ovrpResult ovrp_GetAppShouldRecenter2(ovrpBool* appShouldRecenter);
 
 /// If true, the app should recreate the distortion window as soon as possible.
 OVRP_EXPORT ovrpResult ovrp_GetAppShouldRecreateDistortionWindow2(ovrpBool* appShouldRecreateDistortionWindow);
-
-/// If true, the app should quit as soon as possible.
-OVRP_EXPORT ovrpResult ovrp_GetAppHasInputFocus(ovrpBool* appHasInputFocus);
-
-/// If true, the app should recenter as soon as possible.
-OVRP_EXPORT ovrpResult ovrp_GetAppHasOverlayPresent(ovrpBool* appHasOverlayPresent);
 
 /// Gets the latest measured latency timings.
 OVRP_EXPORT ovrpResult ovrp_GetAppLatencyTimings2(ovrpAppLatencyTimings* appLatencyTimings);
@@ -401,6 +412,9 @@ OVRP_EXPORT ovrpResult ovrp_GetEyeTextureArraySupported2(ovrpBool* eyeTextureArr
 /// If true, the boundary system is configured with valid boundary data.
 OVRP_EXPORT ovrpResult ovrp_GetBoundaryConfigured2(ovrpBool* boundaryConfigured);
 
+/// Return success if the device supports depth compositing
+OVRP_EXPORT ovrpResult ovrp_GetDepthCompositingSupported(ovrpBool* depthCompositingSupported);
+
 /// Performs a boundary test between the specified node and boundary types.
 OVRP_EXPORT ovrpResult
 ovrp_TestBoundaryNode2(ovrpNode node, ovrpBoundaryType boundaryType, ovrpBoundaryTestResult* boundaryTestResult);
@@ -442,6 +456,12 @@ OVRP_EXPORT ovrpResult ovrp_ResetAppPerfStats2();
 
 /// Return the app FPS, thread safe
 OVRP_EXPORT ovrpResult ovrp_GetAppFramerate2(float* appFramerate);
+
+/// Set a latency when getting the hand node poses through ovrp_GetNodePoseState2(ovrpStep_Render, ...)
+OVRP_EXPORT ovrpResult ovrp_SetHandNodePoseStateLatency(double latencyInSeconds);
+
+/// Get the current latency when getting the hand node poses through ovrp_GetNodePoseState2(ovrpStep_Render, ...)
+OVRP_EXPORT ovrpResult ovrp_GetHandNodePoseStateLatency(double* latencyInSeconds);
 
 /// Returns the recommended multisample antialiasing level for the current device.
 OVRP_EXPORT ovrpResult ovrp_GetSystemRecommendedMSAALevel2(int* systemRecommendedMSAALevel);

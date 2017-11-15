@@ -204,11 +204,6 @@ namespace UnrealBuildTool
 		public static bool bForceDebugUnrealHeaderTool = false;
 
 		/// <summary>
-		/// True if performing hot-reload from IDE
-		/// </summary>
-		public bool bHotReloadFromIDE = false;
-
-		/// <summary>
 		/// When true, the targets won't execute their link actions if there was nothing to compile
 		/// </summary>
 		[CommandLine("-CanSkipLink")]

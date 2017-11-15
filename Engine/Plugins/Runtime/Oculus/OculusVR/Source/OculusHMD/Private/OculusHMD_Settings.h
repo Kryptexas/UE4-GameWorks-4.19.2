@@ -62,6 +62,9 @@ public:
 
 			/** Send the depth buffer to the compositor */
 			uint64				bCompositeDepth : 1;
+
+			/** Supports Dash in-game compositing */
+			uint64				bSupportsDash : 1;
 #if !UE_BUILD_SHIPPING
 			/** Show status / statistics on screen. See 'hmd stats' cmd */
 			uint64				bShowStats : 1;

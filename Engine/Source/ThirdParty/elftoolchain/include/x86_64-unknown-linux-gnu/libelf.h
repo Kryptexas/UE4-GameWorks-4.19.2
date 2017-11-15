@@ -179,7 +179,7 @@ enum Elf_Error {
 __BEGIN_DECLS
 Elf		*elf_begin(int _fd, Elf_Cmd _cmd, Elf *_elf);
 int		elf_cntl(Elf *_elf, Elf_Cmd _cmd);
-int		elf_end(Elf *_elf);
+int		elf_end(Elf *_elf) __attribute__((visibility("default")));
 const char	*elf_errmsg(int _error);
 int		elf_errno(void);
 void		elf_fill(int _fill);

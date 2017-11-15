@@ -468,6 +468,12 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 			OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_HeadLocked;
 		}
 	}
+	else
+	{
+		OvrpLayerSubmit.EyeFov.DepthFar = 0;
+		OvrpLayerSubmit.EyeFov.DepthNear = Frame->NearClippingPlane / 100.f; //physical scale is 100UU/meter
+		OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_ReverseZ;
+	}
 
 	return &OvrpLayerSubmit.Base;
 }

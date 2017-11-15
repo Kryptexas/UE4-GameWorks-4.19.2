@@ -370,8 +370,7 @@ void FSkeletonSelectionEditMode::DrawHUD(FEditorViewportClient* ViewportClient, 
 
 bool FSkeletonSelectionEditMode::AllowWidgetMove()
 {
-	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
-	return !PreviewMeshComponent->IsAnimBlueprintInstanced();
+	return ShouldDrawWidget();
 }
 
 bool FSkeletonSelectionEditMode::IsSelectedBoneRequired() const

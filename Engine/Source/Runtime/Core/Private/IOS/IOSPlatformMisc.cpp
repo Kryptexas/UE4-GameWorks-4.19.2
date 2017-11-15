@@ -94,7 +94,7 @@ void FIOSPlatformMisc::PlatformInit()
 
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
-//    GShowSplashScreen = ShowSplashScreen;
+    GShowSplashScreen = ShowSplashScreen;
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
