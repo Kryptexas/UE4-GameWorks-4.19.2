@@ -131,7 +131,7 @@ public:
 	static void Terminate();
 
 	void Add(PxBase* Obj, const FString& OwnerName);
-	void Remove(PxBase* Obj) { if (Obj) { SharedObjects->remove(*Obj); OwnerNames.Remove(Obj); } }
+	void Remove(PxBase* Obj);
 
 	const PxCollection* GetCollection()	{ return SharedObjects; }
 
@@ -385,7 +385,7 @@ public:
 				return B < A;
 			}
 		};
-			
+				
 		size_t TotalSize = 0;
 		AllocationsByType.ValueSort(FSortBySize());
 		for( auto It=AllocationsByType.CreateConstIterator(); It; ++It )

@@ -58,6 +58,8 @@ private:
 	
 	void OnSourceListSelectionChanged(FLiveLinkSourceUIEntryPtr Entry, ESelectInfo::Type SelectionType) const;
 	
+	void OnPropertyChanged(const FPropertyChangedEvent& InEvent);
+
 	TSharedPtr<SListView<FLiveLinkSourceUIEntryPtr>> ListView;
 
 	TArray<FLiveLinkSourceUIEntryPtr> SourceData;
@@ -69,7 +71,7 @@ private:
 	TMap<ULiveLinkSourceFactory*, TSharedPtr<SWidget>> SourcePanels;
 
 	// Reference to connection settings struct details panel
-	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
+	TSharedPtr<class IDetailsView> SettingsDetailsView;
 
 	// Handle to delegate registered with client so we can update when a source disappears
 	FDelegateHandle OnSourcesChangedHandle;

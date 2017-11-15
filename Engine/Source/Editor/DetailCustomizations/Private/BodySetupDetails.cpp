@@ -110,28 +110,45 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		return PhysAnimEditable() == true ? EVisibility::Collapsed : EVisibility::Visible;
 	}));
 
-	Cat.AddCustomRow(LOCTEXT("Profile", "Physical Animation Profile"))
-	[
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.DarkGroupBorder"))
-		.Padding(4.0f)
-		[
-			SNew(SRichTextBlock)
-			.DecoratorStyleSet(&FEditorStyle::Get())
-			.Text_Lambda([ObjectsCustomizedLocal]()
-			{
-				if (ObjectsCustomizedLocal.Num() > 0)
+	IDetailCategoryBuilder& PhysicsCat = DetailBuilder.EditCategory(TEXT("Physics"));
+	PhysicsCat.HeaderContent(
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SRichTextBlock)
+				.DecoratorStyleSet(&FEditorStyle::Get())
+				.Text_Lambda([ObjectsCustomizedLocal]()
 				{
-					if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(ObjectsCustomizedLocal[0].Get()))
+					if (ObjectsCustomizedLocal.Num() > 0)
 					{
-						return FText::Format(LOCTEXT("ProfileFormat", "Current Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(BS->GetCurrentPhysicalAnimationProfileName()));
+						if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(ObjectsCustomizedLocal[0].Get()))
+						{
+							FName CurrentProfileName = BS->GetCurrentPhysicalAnimationProfileName();
+							if(CurrentProfileName != NAME_None)
+							{
+								if(BS->FindPhysicalAnimationProfile(CurrentProfileName) != nullptr)
+								{
+									return FText::Format(LOCTEXT("ProfileFormatAssigned", "Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+								else
+								{
+									return FText::Format(LOCTEXT("ProfileFormatNotAssigned", "Not Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+							}
+							else
+							{
+								return LOCTEXT("ProfileFormatNone", "Current Profile: <RichTextBlock.Bold>None</>");
+							}
+						}
 					}
-				}
 
-				return FText();
-			})
-		]
-	];
+					return FText();
+				})
+			]
+		);
 
 	TSharedPtr<IPropertyHandle> PhysicalAnimationProfile = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalBodySetup, CurrentPhysicalAnimationProfile));
 	PhysicalAnimationProfile->MarkHiddenByCustomization();

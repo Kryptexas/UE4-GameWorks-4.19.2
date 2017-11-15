@@ -1252,7 +1252,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			//Use the existing LOD custom paint and remap it on the new mesh
 			RemapPaintedVertexColors(
 				LODInfo.PaintedVertices,
-				*LODInfo.OverrideVertexColors,
+				LODInfo.OverrideVertexColors,
 				SourceRenderData.VertexBuffers.PositionVertexBuffer,
 				SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
 				CurRenderData.VertexBuffers.PositionVertexBuffer,
@@ -1264,7 +1264,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 		{
 			RemapPaintedVertexColors(
 				LOD0Info.PaintedVertices,
-				*LOD0Info.OverrideVertexColors,
+				LOD0Info.OverrideVertexColors,
 				SourceRenderData.VertexBuffers.PositionVertexBuffer,
 				SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
 				CurRenderData.VertexBuffers.PositionVertexBuffer,

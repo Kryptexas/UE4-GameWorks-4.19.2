@@ -10,8 +10,12 @@
 #include "AudioDeviceManager.h"
 #include "Engine/Engine.h"
 #include "Components/AudioComponent.h"
+#include "DSP/Dsp.h"
 
 DEFINE_LOG_CATEGORY(LogMicManager);
+
+namespace Audio
+{
 
 /**
 * Callback Function For the Microphone Capture for RtAudio
@@ -34,11 +38,11 @@ static int32 OnAudioCaptureCallback(void *OutBuffer, void* InBuffer, uint32 InBu
 
 FAudioRecordingManager::FAudioRecordingManager()
 	: NumRecordedSamples(0)
-	, NumFramesToRecord(0)
+	, NumFramesToRecord()
 	, RecordingBlockSize(0)
 	, RecordingSampleRate(44100.0f)
 	, NumInputChannels(1)
-	, InputGain(0.0f)
+	, InputGain(1.0f)
 	, bRecording(false)
 	, bError(false)
 {
@@ -55,17 +59,18 @@ FAudioRecordingManager& FAudioRecordingManager::Get()
 	return MicInputManager;
 }
 
-USoundWave* FAudioRecordingManager::StartRecording(const FDirectoryPath& Directory, const FString& AssetName, float RecordingDurationSec, float GainDB, int32 InputBufferSize)
+void FAudioRecordingManager::StartRecording(const FRecordingSettings& InSettings, TArray<USoundWave*>& OutSoundWaves)
 {
 	if (bError)
 	{
-		return nullptr;
+		return;
 	}
 
 	// Stop any recordings currently going on (if there is one)
-	USoundWave* NewSoundWave = StopRecording();
+	StopRecording(OutSoundWaves);
 
-	RecordingBlockSize = InputBufferSize;
+	// Default to 1024 blocks
+	RecordingBlockSize = 1024;
 
 	// If we have a stream open close it (reusing streams can cause a blip of previous recordings audio)
 	if (ADC.isStreamOpen())
@@ -80,49 +85,50 @@ USoundWave* FAudioRecordingManager::StartRecording(const FDirectoryPath& Directo
 			FString ErrorMessage = FString(e.what());
 			bError = true;
 			UE_LOG(LogMicManager, Error, TEXT("Failed to close the mic capture device stream: %s"), *ErrorMessage);
-			return nullptr;
+			return;
 		}
 	}
 
 	UE_LOG(LogMicManager, Log, TEXT("Starting mic recording."));
 
-	// Convert input gain decibels into linear scale
-	if (GainDB != 0.0f)
-	{
-		InputGain = FMath::Pow(10.0f, GainDB / 20.0f);
-	}
-	else
-	{
-		InputGain = 0.0f;
-	}
+	// Copy the settings
+	Settings = InSettings;
 
+	// Convert input gain decibels into linear scale
+	InputGain = Audio::ConvertToLinear(Settings.GainDb);
+
+	// Get the default mic input device info
 	RtAudio::DeviceInfo Info = ADC.getDeviceInfo(StreamParams.deviceId);
 	RecordingSampleRate = Info.preferredSampleRate;
-	NumInputChannels = Info.inputChannels;
+	NumInputChannels = Info.inputChannels;	
 
 	// Reserve enough space in our current recording buffer for 10 seconds of audio to prevent slowing down due to allocations
-	if (RecordingDurationSec != -1.0f)
+	if (Settings.RecordingDuration > 0.0f)
 	{
-		int32 NumSamplesToReserve = RecordingDurationSec * RecordingSampleRate * NumInputChannels;
+		int32 NumSamplesToReserve = Settings.RecordingDuration * RecordingSampleRate * NumInputChannels;
 		CurrentRecordedPCMData.Reset(NumSamplesToReserve);
+
+		// Set a limit on the number of frames to record
+		NumFramesToRecord = RecordingSampleRate * Settings.RecordingDuration;
 	}
 	else
 	{
 		// if not given a duration, resize array to 60 seconds of audio anyway
 		int32 NumSamplesToReserve = 60 * RecordingSampleRate * NumInputChannels;
 		CurrentRecordedPCMData.Reset(NumSamplesToReserve);
+
+		// Set to be INDEX_NONE otherwise
+		NumFramesToRecord = INDEX_NONE;
 	}
 
-	CurrentRecordingName = AssetName;
-	CurrentRecordingDirectory = Directory;
+	// If we have more than 2 channels, we're going to force splitting up the assets since we don't propertly support multi-channel USoundWave assets
+	if (NumInputChannels > 2)
+	{
+		Settings.bSplitChannels = true;
+	}
 
 	NumRecordedSamples = 0;
 	NumOverflowsDetected = 0;
-
-	if (RecordingDurationSec > 0.0f)
-	{
-		NumFramesToRecord = RecordingSampleRate * RecordingDurationSec;
-	}
 
 	// Publish to the mic input thread that we're ready to record...
 	bRecording = true;
@@ -161,8 +167,6 @@ USoundWave* FAudioRecordingManager::StartRecording(const FDirectoryPath& Directo
 	}
 
 	ADC.startStream();
-
-	return NewSoundWave;
 }
 
 static void WriteUInt32ToByteArrayLE(TArray<uint8>& InByteArray, int32& Index, const uint32 Value)
@@ -179,7 +183,7 @@ static void WriteUInt16ToByteArrayLE(TArray<uint8>& InByteArray, int32& Index, c
 	InByteArray[Index++] = (uint8)(Value >> 8);
 }
 
-void FAudioRecordingManager::SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes)
+static void SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes, const int32 NumChannels, const int32 SampleRate)
 {
 	// Reserve space for the raw wave data
 	OutWaveFileData.Empty(NumBytes + 44);
@@ -230,17 +234,17 @@ void FAudioRecordingManager::SerializeWaveFile(TArray<uint8>& OutWaveFileData, c
 	// FieldName: NumChannels
 	// FieldSize: 2 bytes
 	// FieldValue: 1 for for mono
-	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, NumInputChannels);
+	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, NumChannels);
 
 	// FieldName: SampleRate
 	// FieldSize: 4 bytes
-	// FieldValue: MIC_SAMPLE_RATE
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, WAVE_FILE_SAMPLERATE);
+	// FieldValue: Passed in sample rate
+	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, SampleRate);
 
 	// FieldName: ByteRate
 	// FieldSize: 4 bytes
 	// FieldValue: SampleRate * NumChannels * BitsPerSample/8
-	int32 ByteRate = WAVE_FILE_SAMPLERATE * NumInputChannels * 2;
+	int32 ByteRate = SampleRate * NumChannels * 2;
 	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, ByteRate);
 
 	// FieldName: BlockAlign
@@ -319,7 +323,7 @@ static void SampleRateConvert(float CurrentSR, float TargetSR, int32 NumChannels
 	}
 }
 
-USoundWave* FAudioRecordingManager::StopRecording()
+void FAudioRecordingManager::StopRecording(TArray<USoundWave*>& OutSoundWaves)
 {
 	FScopeLock Lock(&CriticalSection);
 
@@ -330,7 +334,14 @@ USoundWave* FAudioRecordingManager::StopRecording()
 
 		if (CurrentRecordedPCMData.Num() > 0)
 		{
-			NumRecordedSamples = FMath::Min(NumFramesToRecord * NumInputChannels, CurrentRecordedPCMData.Num());
+			if (NumFramesToRecord != INDEX_NONE)
+			{
+				NumRecordedSamples = FMath::Min(NumFramesToRecord * NumInputChannels, CurrentRecordedPCMData.Num());
+			}
+			else
+			{
+				NumRecordedSamples = CurrentRecordedPCMData.Num();
+			}
 
 			UE_LOG(LogMicManager, Log, TEXT("Stopping mic recording. Recorded %d frames of audio (%.4f seconds). Detected %d buffer overflows."), 
 				NumRecordedSamples, 
@@ -357,8 +368,8 @@ USoundWave* FAudioRecordingManager::StopRecording()
 				PCMDataToSerialize = &CurrentRecordedPCMData;
 			}
 
-			// Scale by the linear gain if it's been set to something (0.0f is ctor default and impossible to set by dB)
-			if (InputGain != 0.0f)
+			// Scale by the linear gain if it's been set to something
+			if (InputGain != 1.0f)
 			{
 				UE_LOG(LogMicManager, Log, TEXT("Scaling gain of recording by %.2f linear gain."), InputGain);
 
@@ -369,97 +380,166 @@ USoundWave* FAudioRecordingManager::StopRecording()
 				}
 			}
 
-			// Get the raw data
-			const uint8* RawData = (const uint8*)PCMDataToSerialize->GetData();
-			int32 NumBytes = NumRecordedSamples * sizeof(int16);
+			uint8* RawData = nullptr;
+			int32 NumBytes = 0;
+			int32 NumChannelsToSerialize = 0;
+			int32 NumWavesToSerialize = 0;
 
-			USoundWave* NewSoundWave = nullptr;
-			USoundWave* ExistingSoundWave = nullptr;
-			TArray<UAudioComponent*> ComponentsToRestart;
-			bool bCreatedPackage = false;
-
-			if (CurrentRecordingDirectory.Path.IsEmpty() || CurrentRecordingName.IsEmpty())
+			if (Settings.bSplitChannels)
 			{
-				// Create a new sound wave object from the transient package
-				NewSoundWave = NewObject<USoundWave>(GetTransientPackage(), *CurrentRecordingName);
-			}
-			else
-			{
-				// Create a new package
-				FString PackageName = CurrentRecordingDirectory.Path / CurrentRecordingName;
-				UPackage* Package = CreatePackage(nullptr, *PackageName);
+				// We're going to serialize several waves, one for each input channel
+				NumWavesToSerialize = NumInputChannels;
 
-				//FEditorDelegates::OnAssetPreImport.Broadcast(this, USoundWave::StaticClass(), Package, *CurrentRecordingName, TEXT("wav"));
+				// We're only going to serialize 1 channel of audio at a time
+				NumChannelsToSerialize = 1;
 
-				// Create a raw .wav file to stuff the raw PCM data in so when we create the sound wave asset it's identical to a normal imported asset
-				SerializeWaveFile(RawWaveData, RawData, NumBytes);
+				// De-interleaved buffer size will be the number of frames of audio
+				int32 NumFrames = NumRecordedSamples / NumInputChannels;
 
-				// Check to see if a sound wave already exists at this location
-				ExistingSoundWave = FindObject<USoundWave>(Package, *CurrentRecordingName);
+				// This is the num bytes per de-interleaved audio buffer
+				NumBytes = NumFrames * sizeof(int16);
 
-				// See if it's currently being played right now
-				FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-				if (AudioDeviceManager && ExistingSoundWave)
+				// Reset our deinterleaved audio buffer
+				DeinterleavedAudio.Reset(NumInputChannels);
+
+				// Get ptr to the interleaved buffer for speed in non-release builds
+				int16* InterleavedBufferPtr = PCMDataToSerialize->GetData();
+
+				// For every input channel, create a new buffer
+				for (int32 Channel = 0; Channel < NumInputChannels; ++Channel)
 				{
-					AudioDeviceManager->StopSoundsUsingResource(ExistingSoundWave, &ComponentsToRestart);
-				}
+					// Prepare a new deinterleaved buffer
+					DeinterleavedAudio.Add(FDeinterleavedAudio());
+					FDeinterleavedAudio& DeinterleavedChannelAudio = DeinterleavedAudio[Channel];
 
-				// Create a new sound wave object
-				if (ExistingSoundWave)
-				{
-					NewSoundWave = ExistingSoundWave;
-					NewSoundWave->FreeResources();
-				}
-				else
-				{
-					NewSoundWave = NewObject<USoundWave>(Package, *CurrentRecordingName, RF_Public | RF_Standalone);
-				}
+					DeinterleavedChannelAudio.PCMData.Reset();
+					DeinterleavedChannelAudio.PCMData.AddUninitialized(NumFrames);
 
-				// Compressed data is now out of date.
-				NewSoundWave->InvalidateCompressedData();
+					// Get a ptr to the buffer for speed
+					int16* DeinterleavedBufferPtr = DeinterleavedChannelAudio.PCMData.GetData();
 
-				// Copy the raw wave data file to the sound wave for storage. Will allow the recording to be exported.
-				NewSoundWave->RawData.Lock(LOCK_READ_WRITE);
-				void* LockedData = NewSoundWave->RawData.Realloc(RawWaveData.Num());
-				FMemory::Memcpy(LockedData, RawWaveData.GetData(), RawWaveData.Num());
-				NewSoundWave->RawData.Unlock();
-
-				bCreatedPackage = true;
-			}
-
-			if (NewSoundWave)
-			{
-				// Copy the recorded data to the sound wave so we can quickly preview it
-				NewSoundWave->RawPCMDataSize = NumBytes;
-				NewSoundWave->RawPCMData = (uint8*)FMemory::Malloc(NewSoundWave->RawPCMDataSize);
-				FMemory::Memcpy(NewSoundWave->RawPCMData, RawData, NumBytes);
-
-				// Calculate the duration of the sound wave
-				NewSoundWave->Duration = (float)(NumRecordedSamples / NumInputChannels) / WAVE_FILE_SAMPLERATE;
-				NewSoundWave->SampleRate = WAVE_FILE_SAMPLERATE;
-				NewSoundWave->NumChannels = NumInputChannels;
-
-				if (bCreatedPackage)
-				{
-					//FEditorDelegates::OnAssetPostImport.Broadcast(this, NewSoundWave);
-
-					FAssetRegistryModule::AssetCreated(NewSoundWave);
-					NewSoundWave->MarkPackageDirty();
-
-					// Restart any audio components if they need to be restarted
-					for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToRestart.Num(); ++ComponentIndex)
+					// Copy every N channel to the deinterleaved buffer, starting with the current channel
+					int32 CurrentSample = Channel;
+					for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 					{
-						ComponentsToRestart[ComponentIndex]->Play();
+						// Simply copy the interleaved value to the deinterleaved value
+						DeinterleavedBufferPtr[Frame] = InterleavedBufferPtr[CurrentSample];
+
+						// Increment the stride according the num channels
+						CurrentSample += NumInputChannels;
 					}
 				}
 			}
+			else
+			{
+				// Only need to serialize one channel
+				NumWavesToSerialize = 1;
+				RawData = (uint8*)PCMDataToSerialize->GetData();
+				NumBytes = NumRecordedSamples * sizeof(int16);
+				NumChannelsToSerialize = NumInputChannels;
+			}
 
-			return NewSoundWave;
+			// Loop through the number of waves we're going to serialize
+			for (int32 i = 0; i < NumWavesToSerialize; ++i)
+			{
+				USoundWave* NewSoundWave = nullptr;
+				USoundWave* ExistingSoundWave = nullptr;
+				TArray<UAudioComponent*> ComponentsToRestart;
+				bool bCreatedPackage = false;
+
+				if (Settings.Directory.Path.IsEmpty() || Settings.AssetName.IsEmpty())
+				{
+					// Create a new sound wave object from the transient package
+					NewSoundWave = NewObject<USoundWave>(GetTransientPackage(), *Settings.AssetName);
+				}
+				else
+				{
+					FString PackageName;
+					FString AssetName = Settings.AssetName;
+					if (NumWavesToSerialize != 1)
+					{
+						AssetName = FString::Printf(TEXT("%s_Channel_%d"), *AssetName, i);
+						PackageName = Settings.Directory.Path / AssetName;
+
+						// Get the raw data from the deinterleaved audio location.
+						RawData = (uint8*)DeinterleavedAudio[i].PCMData.GetData();
+					}
+					else
+					{
+						// Create a new package
+						PackageName = Settings.Directory.Path / AssetName;
+					}
+
+					UPackage* Package = CreatePackage(nullptr, *PackageName);
+
+					// Create a raw .wav file to stuff the raw PCM data in so when we create the sound wave asset it's identical to a normal imported asset
+					check(RawData != nullptr);
+					SerializeWaveFile(RawWaveData, RawData, NumBytes, NumChannelsToSerialize, WAVE_FILE_SAMPLERATE);
+
+					// Check to see if a sound wave already exists at this location
+					ExistingSoundWave = FindObject<USoundWave>(Package, *AssetName);
+
+					// See if it's currently being played right now
+					FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+					if (AudioDeviceManager && ExistingSoundWave)
+					{
+						AudioDeviceManager->StopSoundsUsingResource(ExistingSoundWave, &ComponentsToRestart);
+					}
+
+					// Create a new sound wave object
+					if (ExistingSoundWave)
+					{
+						NewSoundWave = ExistingSoundWave;
+						NewSoundWave->FreeResources();
+					}
+					else
+					{
+						NewSoundWave = NewObject<USoundWave>(Package, *AssetName, RF_Public | RF_Standalone);
+					}
+
+					// Compressed data is now out of date.
+					NewSoundWave->InvalidateCompressedData();
+
+					// Copy the raw wave data file to the sound wave for storage. Will allow the recording to be exported.
+					NewSoundWave->RawData.Lock(LOCK_READ_WRITE);
+					void* LockedData = NewSoundWave->RawData.Realloc(RawWaveData.Num());
+					FMemory::Memcpy(LockedData, RawWaveData.GetData(), RawWaveData.Num());
+					NewSoundWave->RawData.Unlock();
+
+					bCreatedPackage = true;
+				}
+
+				if (NewSoundWave)
+				{
+					// Copy the recorded data to the sound wave so we can quickly preview it
+					NewSoundWave->RawPCMDataSize = NumBytes;
+					NewSoundWave->RawPCMData = (uint8*)FMemory::Malloc(NewSoundWave->RawPCMDataSize);
+					FMemory::Memcpy(NewSoundWave->RawPCMData, RawData, NumBytes);
+
+					// Calculate the duration of the sound wave
+					NewSoundWave->Duration = (float)(NumRecordedSamples / NumChannelsToSerialize) / WAVE_FILE_SAMPLERATE;
+					NewSoundWave->SampleRate = WAVE_FILE_SAMPLERATE;
+					NewSoundWave->NumChannels = NumChannelsToSerialize;
+
+					if (bCreatedPackage)
+					{
+						//FEditorDelegates::OnAssetPostImport.Broadcast(this, NewSoundWave);
+
+						FAssetRegistryModule::AssetCreated(NewSoundWave);
+						NewSoundWave->MarkPackageDirty();
+
+						// Restart any audio components if they need to be restarted
+						for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToRestart.Num(); ++ComponentIndex)
+						{
+							ComponentsToRestart[ComponentIndex]->Play();
+						}
+					}
+
+					OutSoundWaves.Add(NewSoundWave);
+				}
+			}
 		}
 	}
-
-
-	return nullptr;
 }
 
 int32 FAudioRecordingManager::OnAudioCapture(void* InBuffer, uint32 InBufferFrames, double StreamTime, bool bOverflow)
@@ -477,3 +557,5 @@ int32 FAudioRecordingManager::OnAudioCapture(void* InBuffer, uint32 InBufferFram
 
 	return 1;
 }
+
+} // namespace Audio

@@ -184,6 +184,10 @@ public:
 	/** Update skeletal meshes when physics asset changes*/
 	ENGINE_API void RefreshPhysicsAssetChange() const;
 
+	/** Delegate fired when physics asset changes */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRefreshPhysicsAssetChangeDelegate, const UPhysicsAsset*);
+	ENGINE_API static FRefreshPhysicsAssetChangeDelegate OnRefreshPhysicsAssetChange;
+
 	/** Set the preview mesh for this physics asset */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh);
 

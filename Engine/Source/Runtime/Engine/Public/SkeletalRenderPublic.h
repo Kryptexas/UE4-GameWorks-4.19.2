@@ -241,6 +241,11 @@ public:
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	int32 SectionIndexPreview;
 	int32 MaterialIndexPreview;
+
+	/** The section currently selected in the Editor. Used for highlighting */
+	int32 SelectedEditorSection;
+	/** The Material currently selected. need to remember this index for reimporting cloth */
+	int32 SelectedEditorMaterial;
 #endif
 
 	/** returns the feature level this FSkeletalMeshObject was created with */

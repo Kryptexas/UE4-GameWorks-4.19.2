@@ -21,6 +21,7 @@ class SAnimViewportToolBar : public SViewportToolBar
 public:
 	SLATE_BEGIN_ARGS( SAnimViewportToolBar )
 		: _ShowShowMenu(true)
+		, _ShowCharacterMenu(true)
 		, _ShowLODMenu(true)
 		, _ShowPlaySpeedMenu(true)
 		, _ShowPhysicsMenu(false)
@@ -29,6 +30,8 @@ public:
 	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
 	SLATE_ARGUMENT(bool, ShowShowMenu)
+
+	SLATE_ARGUMENT(bool, ShowCharacterMenu)
 
 	SLATE_ARGUMENT(bool, ShowLODMenu)
 
@@ -55,6 +58,11 @@ private:
 	*/
 	TSharedRef<SWidget> GeneratePhysicsMenu() const;
 
+	/*
+	 * Generates the toolbar character menu content 
+	 */
+	TSharedRef<SWidget> GenerateCharacterMenu() const;
+
 	/**
 	 * Generates the toolbar show menu content 
 	 */
@@ -63,17 +71,17 @@ private:
 	/**
 	 * Generates the Show -> Scene sub menu content
 	 */
-	TSharedRef<SWidget> FillShowSceneMenu() const;
+	void FillCharacterSceneMenu(FMenuBuilder& MenuBuilder) const;
 
 	/**
 	 * Generates the Show -> Advanced sub menu content
 	 */
-	void FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const;
+	void FillCharacterAdvancedMenu(FMenuBuilder& MenuBuilder) const;
 
 	/**
 	* Generates the Show -> Clothing sub menu content
 	*/
-	void FillShowClothingMenu(FMenuBuilder& MenuBuilder);
+	void FillCharacterClothingMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	 * Generates the toolbar LOD menu content 
@@ -139,6 +147,9 @@ private:
 	/** Build the main toolbar */
 	TSharedRef<SWidget> MakeViewportToolbar(TSharedPtr<class SEditorViewport> InRealViewport);
 
+	/** Extend the view menu */
+	TSharedRef<FExtender> GetViewMenuExtender(TSharedPtr<class SEditorViewport> InRealViewport);
+
 private:
 	/** The viewport that we are in */
 	TWeakPtr<class SAnimationEditorViewportTabBody> Viewport;
@@ -151,6 +162,9 @@ private:
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
+
+	/** Whether to show the 'Character' menu */
+	bool bShowCharacterMenu;
 
 	/** Whether to show the 'LOD' menu */
 	bool bShowLODMenu;

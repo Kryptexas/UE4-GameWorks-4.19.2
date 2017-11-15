@@ -39,10 +39,6 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	TurnTableSpeedScaling = 1.f;
 	TurnTableMode = EPersonaTurnTableMode::Stopped;
 
-	SectionsDisplayMode = ESectionDisplayMode::None;
-	// always shows cloth morph target when previewing in editor
-	bClothMorphTarget = false;
-
 	bPauseClothingSimulationWithAnim = false;
 	bPerformSingleClothingTick = false;
 
@@ -189,11 +185,6 @@ FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 	{
 		const FColor WireframeMeshOverlayColor(102,205,170,255);
 		Result = ::new FDebugSkelMeshSceneProxy(this, SkelMeshRenderData, WireframeMeshOverlayColor);
-	}
-
-	if (SectionsDisplayMode == ESectionDisplayMode::None)
-	{
-		SectionsDisplayMode = FindCurrentSectionDisplayMode();
 	}
 
 	return Result;
@@ -614,8 +605,6 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
 	if (SkelMeshRenderData)
 	{
-		PreEditChange(NULL);
-
 		for (int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); LODIndex++)
 		{
 			FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
@@ -626,15 +615,14 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 
 				if(Section.HasClothingData())
 				{
-					Section.bDisabled = bShowOnlyClothSections;
+					ShowMaterialSection(Section.MaterialIndex, bShowOnlyClothSections, LODIndex);
 				}
 				else
 				{
-					Section.bDisabled = !bShowOnlyClothSections;
+					ShowMaterialSection(Section.MaterialIndex, !bShowOnlyClothSections, LODIndex);
 				}
 			}
 		}
-		PostEditChange();
 	}
 }
 
@@ -646,25 +634,9 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 		return;
 	}
 
-	// @TODO: This should be controlled on the instance (component), not on the asset
-
-	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
-	if (SkelMeshRenderData)
+	for(int32 LODIndex = 0; LODIndex < GetNumLODs(); LODIndex++)
 	{
-		PreEditChange(NULL);
-
-		for(int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); LODIndex++)
-		{
-			FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
-
-			// enables all sections first
-			for(int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); SecIdx++)
-			{
-				LODData.RenderSections[SecIdx].bDisabled = false;
-			}
-		}
-
-		PostEditChange();
+		ShowAllMaterialSections(LODIndex);
 	}
 }
 
@@ -679,8 +651,6 @@ void UDebugSkelMeshComponent::SetMeshSectionVisibilityForCloth(FGuid InClothGuid
 	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
 	if(SkelMeshRenderData)
 	{
-		PreEditChange(NULL);
-
 		for(int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); LODIndex++)
 		{
 			FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
@@ -692,34 +662,18 @@ void UDebugSkelMeshComponent::SetMeshSectionVisibilityForCloth(FGuid InClothGuid
 				// disables cloth section and also corresponding original section for matching cloth asset
 				if(Section.HasClothingData() && Section.ClothingData.AssetGuid == InClothGuid)
 				{
-					Section.bDisabled = !bVisibility;
+					ShowMaterialSection(Section.MaterialIndex, bVisibility, LODIndex);
 				}
 			}
 		}
-		PostEditChange();
 	}
 }
 
 void UDebugSkelMeshComponent::ResetMeshSectionVisibility()
 {
-	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
-	if(SkelMeshRenderData)
+	for (int32 LODIndex = 0; LODIndex < GetNumLODs(); LODIndex++)
 	{
-		PreEditChange(NULL);
-
-		for(int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); LODIndex++)
-		{
-			FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
-
-			for(int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); SecIdx++)
-			{
-				FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
-
-				Section.bDisabled = false;
-			}
-		}
-
-		PostEditChange();
+		ShowAllMaterialSections(LODIndex);
 	}
 }
 
@@ -767,79 +721,6 @@ void UDebugSkelMeshComponent::RebuildClothingSectionsFixedVerts()
 	}
 
 	ReregisterComponent();
-}
-
-int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
-{
-	ESectionDisplayMode DisplayMode = ESectionDisplayMode::None;
-
-	FSkeletalMeshRenderData* SkelMeshRenderData = GetSkeletalMeshRenderData();
-	// if this skeletal mesh doesn't have any clothing asset, returns "None"
-	if (!SkelMeshRenderData || !SkeletalMesh || SkeletalMesh->MeshClothingAssets.Num() == 0)
-	{
-		return ESectionDisplayMode::None;
-	}
-	else
-	{
-		int32 LODIndex;
-		int32 NumLODs = SkelMeshRenderData->LODRenderData.Num();
-		for (LODIndex = 0; LODIndex < NumLODs; LODIndex++)
-		{
-			// if find any LOD model which has cloth data, then break
-			if (SkelMeshRenderData->LODRenderData[LODIndex].HasClothData())
-			{
-				break;
-			}
-		}
-
-		// couldn't find 
-		if (LODIndex == NumLODs)
-		{
-			return ESectionDisplayMode::None;
-		}
-
-		FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
-
-		// firstly, find cloth sections
-		for (int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); SecIdx++)
-		{
-			FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
-
-			if (Section.HasClothingData())
-			{
-				DisplayMode = ESectionDisplayMode::ShowOnlyClothSections;
-				break;
-			}
-		}
-
-		// secondly, find non-cloth sections except cloth-corresponding sections
-		bool bFoundNonClothSection = false;
-
-		for (int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); SecIdx++)
-		{
-			FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
-
-			// not related to cloth sections
-			if (!Section.HasClothingData())
-			{
-				bFoundNonClothSection = true;
-				if (!Section.bDisabled)
-				{
-					if (DisplayMode == ESectionDisplayMode::ShowOnlyClothSections)
-					{
-						DisplayMode = ESectionDisplayMode::ShowAll;
-					}
-					else
-					{
-						DisplayMode = ESectionDisplayMode::HideOnlyClothSections;
-					}
-				}
-				break;
-			}
-		}
-	}
-
-	return DisplayMode;
 }
 
 void UDebugSkelMeshComponent::CheckClothTeleport()

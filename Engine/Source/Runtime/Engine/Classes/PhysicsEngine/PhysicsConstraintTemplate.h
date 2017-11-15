@@ -110,6 +110,9 @@ class UPhysicsConstraintTemplate : public UObject
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
+	/** Update the profile instance if anything changes */
+	ENGINE_API void UpdateProfileInstance();
+
 	ENGINE_API FName GetCurrentConstraintProfileName() const;
 	ENGINE_API void UpdateConstraintProfiles(const TArray<FName>& Profiles);
 	ENGINE_API void DuplicateConstraintProfile(FName DuplicateFromName, FName DuplicateToName);

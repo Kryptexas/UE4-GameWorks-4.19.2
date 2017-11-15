@@ -3910,6 +3910,7 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	Result.Component = OtherInfo.Component;
 	Result.Item = OtherInfo.BodyIndex;
 	Result.BoneName = OtherInfo.BoneName;
+	Result.MyBoneName = MyInfo.BoneName;
 	Result.bBlockingHit = true;
 
 	NotifyHit(MyInfo.Component.Get(), OtherInfo.Actor.Get(), OtherInfo.Component.Get(), true, Result.Location, Result.Normal, RigidCollisionData.TotalNormalImpulse, Result);

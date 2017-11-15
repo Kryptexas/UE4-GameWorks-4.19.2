@@ -2489,11 +2489,8 @@ void FPersonaMeshDetails::SetCurrentLOD(int32 NewLodIndex)
 	GetPersonaToolkit()->GetPreviewMeshComponent()->SetForcedLOD(NewLodIndex);
 	
 	//Reset the preview section since we do not edit the same LOD
-	if (GetPersonaToolkit()->GetMesh() != nullptr)
-	{
-		GetPersonaToolkit()->GetPreviewMeshComponent()->SetSectionPreview(INDEX_NONE);
-		GetPersonaToolkit()->GetMesh()->SelectedEditorSection = INDEX_NONE;
-	}
+	GetPersonaToolkit()->GetPreviewMeshComponent()->SetSectionPreview(INDEX_NONE);
+	GetPersonaToolkit()->GetPreviewMeshComponent()->SetSelectedEditorSection(INDEX_NONE);
 
 	GetPersonaToolkit()->GetPreviewScene()->BroadcastOnSelectedLODChanged();
 }
@@ -2521,11 +2518,8 @@ void FPersonaMeshDetails::UpdateLODCategoryVisibility() const
 	}
 
 	//Reset the preview section since we do not edit the same LOD
-	if (GetPersonaToolkit()->GetMesh() != nullptr)
-	{
-		GetPersonaToolkit()->GetPreviewMeshComponent()->SetSectionPreview(INDEX_NONE);
-		GetPersonaToolkit()->GetMesh()->SelectedEditorSection = INDEX_NONE;
-	}
+	GetPersonaToolkit()->GetPreviewMeshComponent()->SetSectionPreview(INDEX_NONE);
+	GetPersonaToolkit()->GetPreviewMeshComponent()->SetSelectedEditorSection(INDEX_NONE);
 }
 
 FText FPersonaMeshDetails::GetCurrentLodName() const
@@ -2602,41 +2596,35 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateLodMenuForSectionList(int32 L
 ECheckBoxState FPersonaMeshDetails::IsMaterialSelected(int32 MaterialIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-	if (Mesh)
+	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (MeshComponent)
 	{
-		check(Mesh->GetResourceForRendering());
-		State = Mesh->SelectedEditorMaterial == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		State = MeshComponent->GetSelectedEditorMaterial() == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	return State;
-
 }
 
 void FPersonaMeshDetails::OnMaterialSelectedChanged(ECheckBoxState NewState, int32 MaterialIndex)
 {
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-
 	// Currently assumes that we only ever have one preview mesh in Persona.
-	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
-
-	if (Mesh && MeshComponent)
+	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (MeshComponent)
 	{
-		check(Mesh->GetResourceForRendering());
 		if (NewState == ECheckBoxState::Checked)
 		{
-			Mesh->SelectedEditorMaterial = MaterialIndex;
-			if (MeshComponent->MaterialIndexPreview != MaterialIndex)
+			MeshComponent->SetSelectedEditorMaterial(MaterialIndex);
+			if (MeshComponent->GetMaterialPreview() != MaterialIndex)
 			{
 				// Unhide all mesh sections
 				MeshComponent->SetMaterialPreview(INDEX_NONE);
 			}
 			//Remove any section isolate or highlight
-			Mesh->SelectedEditorSection = INDEX_NONE;
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
 			MeshComponent->SetSectionPreview(INDEX_NONE);
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
-			Mesh->SelectedEditorMaterial = INDEX_NONE;
+			MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
 		}
 		MeshComponent->PushSelectionToProxy();
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
@@ -2646,32 +2634,28 @@ void FPersonaMeshDetails::OnMaterialSelectedChanged(ECheckBoxState NewState, int
 ECheckBoxState FPersonaMeshDetails::IsIsolateMaterialEnabled(int32 MaterialIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
-	const USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-	if (MeshComponent && Mesh)
+	const UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (MeshComponent)
 	{
-		check(Mesh->GetResourceForRendering());
-		State = MeshComponent->MaterialIndexPreview == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		State = MeshComponent->GetMaterialPreview() == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	return State;
 }
 
 void FPersonaMeshDetails::OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 MaterialIndex)
 {
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
-	if (Mesh && MeshComponent)
+	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (MeshComponent)
 	{
-		check(Mesh->GetResourceForRendering());
 		if (NewState == ECheckBoxState::Checked)
 		{
 			MeshComponent->SetMaterialPreview(MaterialIndex);
-			if (Mesh->SelectedEditorMaterial != MaterialIndex)
+			if (MeshComponent->GetSelectedEditorMaterial() != MaterialIndex)
 			{
-				Mesh->SelectedEditorMaterial = INDEX_NONE;
+				MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
 			}
 			//Remove any section isolate or highlight
-			Mesh->SelectedEditorSection = INDEX_NONE;
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
 			MeshComponent->SetSectionPreview(INDEX_NONE);
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
@@ -2685,10 +2669,10 @@ void FPersonaMeshDetails::OnMaterialIsolatedChanged(ECheckBoxState NewState, int
 ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-	if (Mesh)
+	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
+	if (MeshComponent)
 	{
-		State = Mesh->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		State = MeshComponent->GetSelectedEditorSection() == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	return State;
@@ -2696,27 +2680,25 @@ ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 
 void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-
 	// Currently assumes that we only ever have one preview mesh in Persona.
-	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
 
-	if (Mesh && MeshComponent)
+	if (MeshComponent)
 	{
 		if (NewState == ECheckBoxState::Checked)
 		{
-			Mesh->SelectedEditorSection = SectionIndex;
-			if (MeshComponent->SectionIndexPreview != SectionIndex)
+			MeshComponent->SetSelectedEditorSection(SectionIndex);
+			if (MeshComponent->GetSectionPreview() != SectionIndex)
 			{
 				// Unhide all mesh sections
 				MeshComponent->SetSectionPreview(INDEX_NONE);
 			}
-			Mesh->SelectedEditorMaterial = INDEX_NONE;
+			MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
 			MeshComponent->SetMaterialPreview(INDEX_NONE);
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
-			Mesh->SelectedEditorSection = INDEX_NONE;
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
 		}
 		MeshComponent->PushSelectionToProxy();
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
@@ -2726,10 +2708,10 @@ void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int3
 ECheckBoxState FPersonaMeshDetails::IsIsolateSectionEnabled(int32 SectionIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+	const UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
 	if (MeshComponent)
 	{
-		State = MeshComponent->SectionIndexPreview == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		State = MeshComponent->GetSectionPreview() == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	return State;
 }
@@ -2737,18 +2719,18 @@ ECheckBoxState FPersonaMeshDetails::IsIsolateSectionEnabled(int32 SectionIndex) 
 void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
-	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewMeshComponent();
 	if (Mesh && MeshComponent)
 	{
 		if (NewState == ECheckBoxState::Checked)
 		{
 			MeshComponent->SetSectionPreview(SectionIndex);
-			if (Mesh->SelectedEditorSection != SectionIndex)
+			if (MeshComponent->GetSelectedEditorSection() != SectionIndex)
 			{
-				Mesh->SelectedEditorSection = INDEX_NONE;
+				MeshComponent->SetSelectedEditorSection(INDEX_NONE);
 			}
 			MeshComponent->SetMaterialPreview(INDEX_NONE);
-			Mesh->SelectedEditorMaterial = INDEX_NONE;
+			MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{

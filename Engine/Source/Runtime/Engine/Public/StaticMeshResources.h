@@ -1211,7 +1211,7 @@ private:
  */
 ENGINE_API void RemapPaintedVertexColors(
 	const TArray<FPaintedVertex>& InPaintedVertices,
-	const FColorVertexBuffer& InOverrideColors,
+	const FColorVertexBuffer* InOverrideColors,
 	const FPositionVertexBuffer& OldPositions,
 	const FStaticMeshVertexBuffer& OldVertexBuffer,
 	const FPositionVertexBuffer& NewPositions,	

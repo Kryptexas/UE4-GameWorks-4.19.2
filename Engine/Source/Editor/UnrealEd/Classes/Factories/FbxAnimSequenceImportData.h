@@ -69,7 +69,8 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	/** Import if custom attribute as a curve within the animation */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bImportCustomAttribute;
-
+	
+	/** Import bone transform tracks. If false, this will discard any bone transform tracks. (useful for curves only animations)*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bImportBoneTracks;
 

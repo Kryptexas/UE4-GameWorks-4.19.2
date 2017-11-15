@@ -5,12 +5,16 @@
 #include "Transform.h"
 #include "CriticalSection.h"
 #include "Tickable.h"
+#include "GCObject.h"
 
 #include "ILiveLinkClient.h"
 #include "ILiveLinkSource.h"
 #include "LiveLinkRefSkeleton.h"
 #include "LiveLinkTypes.h"
-#include "LiveLinkConnectionSettings.h"
+#include "LiveLinkSourceSettings.h"
+
+// Live Link Log Category
+DECLARE_LOG_CATEGORY_EXTERN(LogLiveLink, Log, All);
 
 /** Delegate called when the state the client sources has changed. */
 DECLARE_MULTICAST_DELEGATE(FLiveLinkSourcesChanged);
@@ -54,7 +58,7 @@ struct FLiveLinkSubject
 	FGuid LastModifier;
 
 	// Connection settings specified by user
-	FLiveLinkConnectionSettings CachedConnectionSettings;
+	FLiveLinkInterpolationSettings CachedInterpolationSettings;
 
 	FLiveLinkSubject(const FLiveLinkRefSkeleton& InRefSkeleton)
 		: RefSkeleton(InRefSkeleton)
@@ -70,19 +74,23 @@ struct FLiveLinkSubject
 	void BuildInterpolatedFrame(const double InSeconds, FLiveLinkSubjectFrame& OutFrame);
 };
 
-class LIVELINK_API FLiveLinkClient : public ILiveLinkClient, public FTickableGameObject
+class LIVELINK_API FLiveLinkClient : public ILiveLinkClient, public FTickableGameObject, public FGCObject
 {
 public:
 	FLiveLinkClient() : LastValidationCheck(0.0) {}
 	~FLiveLinkClient();
 
-	// Begin FTickableObjectBase implementation
+	// Begin FTickableGameObject implementation
 	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual bool IsTickableInEditor() const override { return true; }
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(LiveLinkClient, STATGROUP_Tickables); }
-	// End FTickableObjectBase
+	// End FTickableGameObject
+
+	// Begin FGCObject implementation
+	void AddReferencedObjects(FReferenceCollector & Collector);
+	// End FGCObject
 
 	// Remove the specified source from the live link client
 	void RemoveSource(FGuid InEntryGuid);
@@ -109,7 +117,13 @@ public:
 	FText GetMachineNameForEntry(FGuid InEntryGuid) const;
 	FText GetEntryStatusForEntry(FGuid InEntryGuid) const;
 
-	FLiveLinkConnectionSettings* GetConnectionSettingsForEntry(FGuid InEntryGuid);
+	// Get interpolation settings for a source
+	FLiveLinkInterpolationSettings* GetInterpolationSettingsForEntry(FGuid InEntryGuid);
+
+	// Get full settings structure for source 
+	ULiveLinkSourceSettings* GetSourceSettingsForEntry(FGuid InEntryGuid);
+
+	void OnPropertyChanged(FGuid InEntryGuid, const FPropertyChangedEvent& PropertyChangedEvent);
 
 	// Functions for managing sources changed delegate
 	FDelegateHandle RegisterSourcesChangedHandle(const FLiveLinkSourcesChanged::FDelegate& SourcesChanged);
@@ -142,7 +156,7 @@ private:
 	// Current Sources
 	TArray<TSharedPtr<ILiveLinkSource>> Sources;
 	TArray<FGuid>			 SourceGuids;
-	TArray<FLiveLinkConnectionSettings> ConnectionSettings;
+	TArray<ULiveLinkSourceSettings*> SourceSettings;
 
 	// Sources that we are currently trying to remove
 	TArray<TSharedPtr<ILiveLinkSource>>			 SourcesToRemove;

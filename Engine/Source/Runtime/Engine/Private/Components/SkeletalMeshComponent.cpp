@@ -33,6 +33,7 @@
 
 #include "ClothingSimulationFactoryInterface.h"
 #include "ClothingSimulationInterface.h"
+#include "ClothingSimulationInteractor.h"
 #include "Features/IModularFeatures.h"
 #include "Misc/RuntimeErrors.h"
 #include "AnimPhysObjectVersion.h"
@@ -224,6 +225,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 	ClothingSimulation = nullptr;
 	ClothingSimulationContext = nullptr;
+	ClothingInteractor = nullptr;
 
 	bPostEvaluatingAnimation = false;
 	bAllowAnimCurveEvaluation = true;
@@ -477,6 +479,10 @@ void USkeletalMeshComponent::OnRegister()
 
 	Super::OnRegister();
 
+	// Ensure we have an empty list of subinstances on registration. Ready for the initialization below 
+	// to correctly populate that list.
+	SubInstances.Reset();
+
 	// We force an initialization here because we're in one of two cases.
 	// 1) First register, no spawned instance, need to initialize
 	// 2) We're being re-registered, in which case we've went through
@@ -514,16 +520,21 @@ void USkeletalMeshComponent::OnRegister()
 		UClothingSimulationFactory* SimFactory = SimFactoryClass->GetDefaultObject<UClothingSimulationFactory>();
 		ClothingSimulation = SimFactory->CreateSimulation();
 
-		if (ClothingSimulation)
+		if(ClothingSimulation)
 		{
-		    ClothingSimulation->Initialize();
-		    ClothingSimulationContext = ClothingSimulation->CreateContext();
+			ClothingSimulation->Initialize();
+			ClothingSimulationContext = ClothingSimulation->CreateContext();
 
-			if (SkeletalMesh)
-		    {
-			    RecreateClothingActors();
-		    }
-	    }
+			if(SimFactory->SupportsRuntimeInteraction())
+			{
+				ClothingInteractor = SimFactory->CreateInteractor();
+			}
+
+			if(SkeletalMesh)
+			{
+				RecreateClothingActors();
+			}
+		}
 	}
 #endif
 }
@@ -1726,6 +1737,11 @@ const IClothingSimulation* USkeletalMeshComponent::GetClothingSimulation() const
 	return ClothingSimulation;
 }
 
+UClothingSimulationInteractor* USkeletalMeshComponent::GetClothingSimulationInteractor() const
+{
+	return ClothingInteractor;
+}
+
 void USkeletalMeshComponent::CompleteParallelClothSimulation()
 {
 	if(IsValidRef(ParallelClothTask))
@@ -1758,6 +1774,11 @@ void USkeletalMeshComponent::UpdateClothSimulationContext(float InDeltaTime)
 	if(ClothingSimulation)
 	{
 		ClothingSimulation->FillContext(this, InDeltaTime, ClothingSimulationContext);
+
+		if(ClothingInteractor && ClothingInteractor->IsDirty())
+		{
+			ClothingInteractor->Sync(ClothingSimulation, ClothingSimulationContext);
+		}
 	}
 
 	ClothTeleportMode = EClothingTeleportMode::None;

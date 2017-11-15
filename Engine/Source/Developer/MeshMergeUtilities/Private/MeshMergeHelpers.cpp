@@ -107,11 +107,6 @@ void FMeshMergeHelpers::ExtractSections(const USkeletalMeshComponent* Component,
 			SectionInfo.EnabledProperties.Add(GET_MEMBER_NAME_CHECKED(FSkelMeshSection, bCastShadow));
 		}
 
-		if (MeshSection.bDisabled)
-		{
-			SectionInfo.EnabledProperties.Add(GET_MEMBER_NAME_CHECKED(FSkelMeshSection, bDisabled));
-		}
-
 		if (MeshSection.bRecomputeTangent)
 		{
 			SectionInfo.EnabledProperties.Add(GET_MEMBER_NAME_CHECKED(FSkelMeshSection, bRecomputeTangent));
@@ -235,63 +230,60 @@ void FMeshMergeHelpers::RetrieveMesh(USkeletalMeshComponent* SkeletalMeshCompone
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 		{
 			const FSkelMeshSection& SkelMeshSection = LODModel.Sections[SectionIndex];
-			if (!SkelMeshSection.bDisabled)
+			// Build 'wedge' info
+			const int32 NumWedges = SkelMeshSection.NumTriangles * 3;
+			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; WedgeIndex++)
 			{
-				// Build 'wedge' info
-				const int32 NumWedges = SkelMeshSection.NumTriangles * 3;
-				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; WedgeIndex++)
+				const int32 VertexIndexForWedge = LODModel.IndexBuffer[SkelMeshSection.BaseIndex + WedgeIndex];
+
+				RawMesh.WedgeIndices.Add(VertexIndexForWedge);
+
+				const FSoftSkinVertex& SoftVertex = SkelMeshSection.SoftVertices[VertexIndexForWedge - SkelMeshSection.BaseVertexIndex];
+
+				const FFinalSkinVertex& SkinnedVertex = FinalVertices[VertexIndexForWedge];
+				const FVector TangentX = SkinnedVertex.TangentX;
+				const FVector TangentZ = SkinnedVertex.TangentZ;
+				const FVector4 UnpackedTangentZ = SkinnedVertex.TangentZ;
+				const FVector TangentY = (TangentX ^ TangentZ).GetSafeNormal() * UnpackedTangentZ.W;
+
+				RawMesh.WedgeTangentX.Add(TangentX);
+				RawMesh.WedgeTangentY.Add(TangentY);
+				RawMesh.WedgeTangentZ.Add(TangentZ);
+
+				for (uint32 TexCoordIndex = 0; TexCoordIndex < MAX_MESH_TEXTURE_COORDS; TexCoordIndex++)
 				{
-					const int32 VertexIndexForWedge = LODModel.IndexBuffer[SkelMeshSection.BaseIndex + WedgeIndex];
-
-					RawMesh.WedgeIndices.Add(VertexIndexForWedge);
-
-					const FSoftSkinVertex& SoftVertex = SkelMeshSection.SoftVertices[VertexIndexForWedge - SkelMeshSection.BaseVertexIndex];
-
-					const FFinalSkinVertex& SkinnedVertex = FinalVertices[VertexIndexForWedge];
-					const FVector TangentX = SkinnedVertex.TangentX;
-					const FVector TangentZ = SkinnedVertex.TangentZ;
-					const FVector4 UnpackedTangentZ = SkinnedVertex.TangentZ;
-					const FVector TangentY = (TangentX ^ TangentZ).GetSafeNormal() * UnpackedTangentZ.W;
-
-					RawMesh.WedgeTangentX.Add(TangentX);
-					RawMesh.WedgeTangentY.Add(TangentY);
-					RawMesh.WedgeTangentZ.Add(TangentZ);
-
-					for (uint32 TexCoordIndex = 0; TexCoordIndex < MAX_MESH_TEXTURE_COORDS; TexCoordIndex++)
+					if (TexCoordIndex >= MAX_TEXCOORDS)
 					{
-						if (TexCoordIndex >= MAX_TEXCOORDS)
-						{
-							RawMesh.WedgeTexCoords[TexCoordIndex].AddDefaulted();
-						}
-						else
-						{
-							RawMesh.WedgeTexCoords[TexCoordIndex].Add(SoftVertex.UVs[TexCoordIndex]);
-						}
-					}
-
-					if (bPropagateVertexColours)
-					{
-						RawMesh.WedgeColors.Add(SoftVertex.Color);
+						RawMesh.WedgeTexCoords[TexCoordIndex].AddDefaulted();
 					}
 					else
 					{
-						RawMesh.WedgeColors.Add(FColor::White);
+						RawMesh.WedgeTexCoords[TexCoordIndex].Add(SoftVertex.UVs[TexCoordIndex]);
 					}
 				}
 
-				int32 MaterialIndex = SkelMeshSection.MaterialIndex;
-				// use the remapping of material indices for all LODs besides the base LOD 
-				if (LODIndex > 0 && SrcLODInfo.LODMaterialMap.IsValidIndex(SkelMeshSection.MaterialIndex))
+				if (bPropagateVertexColours)
 				{
-					MaterialIndex = FMath::Clamp<int32>(SrcLODInfo.LODMaterialMap[SkelMeshSection.MaterialIndex], 0, SkeletalMeshComponent->SkeletalMesh->Materials.Num());
+					RawMesh.WedgeColors.Add(SoftVertex.Color);
 				}
+				else
+				{
+					RawMesh.WedgeColors.Add(FColor::White);
+				}
+			}
 
-				// copy face info
-				for (uint32 TriIndex = 0; TriIndex < SkelMeshSection.NumTriangles; TriIndex++)
-				{
-					RawMesh.FaceMaterialIndices.Add(MaterialIndex);
-					RawMesh.FaceSmoothingMasks.Add(0); // Assume this is ignored as bRecomputeNormals is false
-				}
+			int32 MaterialIndex = SkelMeshSection.MaterialIndex;
+			// use the remapping of material indices for all LODs besides the base LOD 
+			if (LODIndex > 0 && SrcLODInfo.LODMaterialMap.IsValidIndex(SkelMeshSection.MaterialIndex))
+			{
+				MaterialIndex = FMath::Clamp<int32>(SrcLODInfo.LODMaterialMap[SkelMeshSection.MaterialIndex], 0, SkeletalMeshComponent->SkeletalMesh->Materials.Num());
+			}
+
+			// copy face info
+			for (uint32 TriIndex = 0; TriIndex < SkelMeshSection.NumTriangles; TriIndex++)
+			{
+				RawMesh.FaceMaterialIndices.Add(MaterialIndex);
+				RawMesh.FaceSmoothingMasks.Add(0); // Assume this is ignored as bRecomputeNormals is false
 			}
 		}
 	}

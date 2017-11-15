@@ -114,6 +114,7 @@ public:
 	virtual UObject* GetSettingsObject() override;
 	virtual void Activate(TWeakPtr<FUICommandList> InCommands) override;
 	virtual void Deactivate(TWeakPtr<FUICommandList> InCommands) override;
+	virtual void OnMeshChanged() override;
 	/* End FClothPaintToolBase interface */
 	
 protected:

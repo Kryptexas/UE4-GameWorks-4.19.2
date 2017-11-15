@@ -39,6 +39,8 @@
 #include "Widgets/SWidget.h"
 #include "ISlateMetaData.h"
 #include "Textures/SlateIcon.h"
+#include "ShowFlagMenuCommands.h"
+#include "BufferVisualizationMenuCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -58,24 +60,25 @@ public:
 	{
 		AnimViewportPtr = InArgs._AnimEditorViewport;
 
-		TSharedPtr<SWidget> ExtraWidget = SNew( STextBlock )
-			.Text(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetWindStrengthLabel)
-			.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) );
-
 		this->ChildSlot
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Right)
 			[
-				SNew(SAnimPlusMinusSlider)
-				.IsEnabled( this, &SClothWindSettings::IsWindEnabled ) 
-				.Label( LOCTEXT("WindStrength", "Wind Strength:") )
-				.OnMinusClicked( this, &SClothWindSettings::OnDecreaseWindStrength )
-				.MinusTooltip( LOCTEXT("DecreaseWindStrength_ToolTip", "Decrease Wind Strength") )
-				.SliderValue(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetWindStrengthSliderValue)
-				.OnSliderValueChanged(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetWindStrength)
-				.SliderTooltip( LOCTEXT("WindStrength_ToolTip", "Change wind strength") )
-				.OnPlusClicked( this, &SClothWindSettings::OnIncreaseWindStrength )
-				.PlusTooltip( LOCTEXT("IncreasetWindStrength_ToolTip", "Increase Wind Strength") )
-				.ExtraWidget( ExtraWidget )
-			];
+				SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+				.WidthOverride(100.0f)
+				[
+					SNew(SSpinBox<float>)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ToolTipText(LOCTEXT("WindStrength_ToolTip", "Change wind strength"))
+					.MinValue(0)
+					.MaxValue(1)
+					.Value(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetWindStrengthSliderValue)
+					.OnValueChanged(SSpinBox<float>::FOnValueChanged::CreateSP(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetWindStrength))
+				]
+			]
+		];
 	}
 
 protected:
@@ -121,23 +124,25 @@ public:
 	{
 		AnimViewportPtr = InArgs._AnimEditorViewport;
 
-		TSharedPtr<SWidget> ExtraWidget = SNew( STextBlock )
-			.Text(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetGravityScaleLabel)
-			.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) );
-
 		this->ChildSlot
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Right)
 			[
-				SNew(SAnimPlusMinusSlider)
-				.Label( LOCTEXT("Gravity Scale", "Gravity Scale Preview:")  )
-				.OnMinusClicked( this, &SGravitySettings::OnDecreaseGravityScale )
-				.MinusTooltip( LOCTEXT("DecreaseGravitySize_ToolTip", "Decrease Gravity Scale") )
-				.SliderValue(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetGravityScaleSliderValue)
-				.OnSliderValueChanged(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetGravityScale)
-				.SliderTooltip( LOCTEXT("GravityScale_ToolTip", "Change Gravity Scale") )
-				.OnPlusClicked( this, &SGravitySettings::OnIncreaseGravityScale )
-				.PlusTooltip( LOCTEXT("IncreaseGravityScale_ToolTip", "Increase Gravity Scale") )
-				.ExtraWidget( ExtraWidget )
-			];
+				SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+				.WidthOverride(100.0f)
+				[
+					SNew(SSpinBox<float>)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ToolTipText(LOCTEXT("GravityScale_ToolTip", "Change gravity scale"))
+					.MinValue(0)
+					.MaxValue(4)
+					.Value(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetGravityScaleSliderValue)
+					.OnValueChanged(SSpinBox<float>::FOnValueChanged::CreateSP(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetGravityScale))
+				]
+			]
+		];
 	}
 
 protected:
@@ -165,6 +170,7 @@ protected:
 void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class SAnimationEditorViewportTabBody> InViewport, TSharedPtr<class SEditorViewport> InRealViewport)
 {
 	bShowShowMenu = InArgs._ShowShowMenu;
+	bShowCharacterMenu= InArgs._ShowCharacterMenu;
 	bShowLODMenu = InArgs._ShowLODMenu;
 	bShowPlaySpeedMenu = InArgs._ShowPlaySpeedMenu;
 	bShowFloorOptions = InArgs._ShowFloorOptions;
@@ -173,6 +179,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 
 	CommandList = InRealViewport->GetCommandList();
 	Extenders = InArgs._Extenders;
+	Extenders.Add(GetViewMenuExtender(InRealViewport));
 
 	// If we have no extender, make an empty one
 	if (Extenders.Num() == 0)
@@ -216,6 +223,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportViewMenu, InRealViewport.ToSharedRef(), SharedThis(this))
+			.MenuExtenders(FExtender::Combine(Extenders))
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -237,6 +245,16 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 			.Label(LOCTEXT("Physics", "Physics"))
 			.OnGetMenuContent(this, &SAnimViewportToolBar::GeneratePhysicsMenu)
 			.Visibility(bShowPhysicsMenu ? EVisibility::Visible : EVisibility::Collapsed)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(ToolbarSlotPadding)
+		[
+			SNew(SEditorViewportToolbarMenu)
+			.ParentToolBar(SharedThis(this))
+			.Label(LOCTEXT("Character", "Character"))
+			.OnGetMenuContent(this, &SAnimViewportToolBar::GenerateCharacterMenu)
+			.Visibility(bShowCharacterMenu ? EVisibility::Visible : EVisibility::Collapsed)
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -430,7 +448,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GeneratePhysicsMenu() const
 	InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 	InMenuBuilder.PushExtender(MenuExtender.ToSharedRef());
 	{
-		InMenuBuilder.BeginSection("AnimViewportShowMenu", LOCTEXT("ViewMenu_AnimViewportShowMenu", "Anim Viewport Show Menu"));
+		InMenuBuilder.BeginSection("AnimViewportPhysicsMenu", LOCTEXT("ViewMenu_AnimViewportPhysicsMenu", "Physics Menu"));
 		InMenuBuilder.EndSection();
 	}
 	InMenuBuilder.PopCommandList();
@@ -438,7 +456,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GeneratePhysicsMenu() const
 	return InMenuBuilder.MakeWidget();
 }
 
-TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
+TSharedRef<SWidget> SAnimViewportToolBar::GenerateCharacterMenu() const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
@@ -451,20 +469,14 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 	InMenuBuilder.PushExtender(MenuExtender.ToSharedRef());
 
 	{
-		InMenuBuilder.BeginSection("AnimViewportGeneralShowFlags", LOCTEXT("ViewMenu_GeneralShowFlags", "General Show Flags"));
-		{
-			InMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ToggleGrid);
-		}
-		InMenuBuilder.EndSection();
-
-		InMenuBuilder.BeginSection("AnimViewportSceneElements", LOCTEXT("ViewMenu_SceneElements", "Scene Elements"));
+		InMenuBuilder.BeginSection("AnimViewportSceneElements", LOCTEXT("CharacterMenu_SceneElements", "Scene Elements"));
 		{
 			InMenuBuilder.AddSubMenu(
-				LOCTEXT("AnimViewportMeshSubMenu", "Mesh"),
-				LOCTEXT("AnimViewportMeshSubMenuToolTip", "Mesh-related options"),
+				LOCTEXT("CharacterMenu_MeshSubMenu", "Mesh"),
+				LOCTEXT("CharacterMenu_MeshSubMenuToolTip", "Mesh-related options"),
 				FNewMenuDelegate::CreateLambda([](FMenuBuilder& SubMenuBuilder)
 				{
-					SubMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
+					SubMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("CharacterMenu_Actions_Mesh", "Mesh"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowRetargetBasePose );
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBound );
@@ -475,7 +487,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 					}
 					SubMenuBuilder.EndSection();
 
-					SubMenuBuilder.BeginSection("AnimViewportMeshInfo", LOCTEXT("ShowMenu_Actions_MeshInfo", "Mesh Info"));
+					SubMenuBuilder.BeginSection("AnimViewportMeshInfo", LOCTEXT("CharacterMenu_Actions_MeshInfo", "Mesh Info"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowDisplayInfoBasic);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowDisplayInfoDetailed);
@@ -484,7 +496,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 					}
 					SubMenuBuilder.EndSection();
 
-					SubMenuBuilder.BeginSection("AnimViewportPreviewOverlayDraw", LOCTEXT("ShowMenu_Actions_Overlay", "Mesh Overlay Drawing"));
+					SubMenuBuilder.BeginSection("AnimViewportPreviewOverlayDraw", LOCTEXT("CharacterMenu_Actions_Overlay", "Mesh Overlay Drawing"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowOverlayNone);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBoneWeight);
@@ -495,17 +507,17 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			);
 
 			InMenuBuilder.AddSubMenu(
-				LOCTEXT("AnimViewportAnimationSubMenu", "Animation"),
-				LOCTEXT("AnimViewportAnimationSubMenuToolTip", "Animation-related options"),
+				LOCTEXT("CharacterMenu_AnimationSubMenu", "Animation"),
+				LOCTEXT("CharacterMenu_AnimationSubMenuToolTip", "Animation-related options"),
 				FNewMenuDelegate::CreateLambda([](FMenuBuilder& SubMenuBuilder)
 				{
-					SubMenuBuilder.BeginSection("AnimViewportRootMotion", LOCTEXT("Viewport_RootMotionLabel", "Root Motion"));
+					SubMenuBuilder.BeginSection("AnimViewportRootMotion", LOCTEXT("CharacterMenu_RootMotionLabel", "Root Motion"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ProcessRootMotion);
 					}
 					SubMenuBuilder.EndSection();
 
-					SubMenuBuilder.BeginSection("AnimViewportAnimation", LOCTEXT("ShowMenu_Actions_AnimationAsset", "Animation"));
+					SubMenuBuilder.BeginSection("AnimViewportAnimation", LOCTEXT("CharacterMenu_Actions_AnimationAsset", "Animation"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowRawAnimation);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowNonRetargetedAnimation);
@@ -518,18 +530,18 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			);
 
 			InMenuBuilder.AddSubMenu(
-				LOCTEXT("AnimViewportBoneDrawSubMenu", "Bones"),
-				LOCTEXT("AnimViewportBoneDrawSubMenuToolTip", "Bone Drawing Options"),
+				LOCTEXT("CharacterMenu_BoneDrawSubMenu", "Bones"),
+				LOCTEXT("CharacterMenu_BoneDrawSubMenuToolTip", "Bone Drawing Options"),
 				FNewMenuDelegate::CreateLambda([](FMenuBuilder& SubMenuBuilder)
 				{
-					SubMenuBuilder.BeginSection("BonesAndSockets", LOCTEXT("Viewport_BonesAndSocketsLabel", "Bones & Sockets"));
+					SubMenuBuilder.BeginSection("BonesAndSockets", LOCTEXT("CharacterMenu_BonesAndSocketsLabel", "Show"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowSockets);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBoneNames);
 					}
 					SubMenuBuilder.EndSection();
 
-					SubMenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_BoneDrawing", "Bone Drawing"));
+					SubMenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("CharacterMenu_Actions_BoneDrawing", "Bone Drawing"));
 					{
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBoneDrawAll);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBoneDrawSelected);
@@ -546,25 +558,31 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			if(PreviewComp)
 			{
 				InMenuBuilder.AddSubMenu(
-					LOCTEXT("AnimViewportClothingSubMenu", "Clothing"),
-					LOCTEXT("AnimViewportClothingSubMenuToolTip", "Options relating to clothing"),
-					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowClothingMenu));
+					LOCTEXT("CharacterMenu_ClothingSubMenu", "Clothing"),
+					LOCTEXT("CharacterMenu_ClothingSubMenuToolTip", "Options relating to clothing"),
+					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillCharacterClothingMenu));
 			}
 #endif // #if WITH_APEX_CLOTHING
 		}
 
 		InMenuBuilder.AddSubMenu(
-			LOCTEXT("AnimViewportAdvancedSubMenu", "Advanced"),
-			LOCTEXT("AnimViewportAdvancedSubMenuToolTip", "Advanced options"),
-			FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowAdvancedMenu));
+			LOCTEXT("CharacterMenu_AudioSubMenu", "Audio"),
+			LOCTEXT("CharacterMenu_AudioSubMenuToolTip", "Audio options"),
+			FNewMenuDelegate::CreateLambda([&Actions](FMenuBuilder& SubMenuBuilder)
+			{
+				SubMenuBuilder.BeginSection("AnimViewportAudio", LOCTEXT("CharacterMenu_Audio", "Audio"));
+				{
+					SubMenuBuilder.AddMenuEntry(Actions.MuteAudio);
+					SubMenuBuilder.AddMenuEntry(Actions.UseAudioAttenuation);
+				}
+				SubMenuBuilder.EndSection();
+			}));
 
-		InMenuBuilder.EndSection();
+		InMenuBuilder.AddSubMenu(
+			LOCTEXT("CharacterMenu_AdvancedSubMenu", "Advanced"),
+			LOCTEXT("CharacterMenu_AdvancedSubMenuToolTip", "Advanced options"),
+			FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillCharacterAdvancedMenu));
 
-		InMenuBuilder.BeginSection("AnimViewportOtherFlags", LOCTEXT("ViewMenu_OtherFlags", "Other Flags"));
-		{
-			InMenuBuilder.AddMenuEntry(Actions.MuteAudio);
-			InMenuBuilder.AddMenuEntry(Actions.UseAudioAttenuation);
-		}
 		InMenuBuilder.EndSection();
 	}
 
@@ -574,14 +592,13 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 	return InMenuBuilder.MakeWidget();
 }
 
-void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
+void SAnimViewportToolBar::FillCharacterAdvancedMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
 	// Draw UVs
 	MenuBuilder.BeginSection("UVVisualization", LOCTEXT("UVVisualization_Label", "UV Visualization"));
 	{
-		MenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().AnimSetDrawUVs);
 		MenuBuilder.AddWidget(Viewport.Pin()->UVChannelCombo.ToSharedRef(), FText());
 	}
 	MenuBuilder.EndSection();
@@ -611,19 +628,22 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.EndSection();
 }
 
-void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder)
+void SAnimViewportToolBar::FillCharacterClothingMenu(FMenuBuilder& MenuBuilder)
 {
 #if WITH_APEX_CLOTHING
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
-	MenuBuilder.BeginSection("ClothPreview", LOCTEXT("ClothPreview_Label", "Preview"));
+	MenuBuilder.BeginSection("ClothPreview", LOCTEXT("ClothPreview_Label", "Simulation"));
 	{
-		MenuBuilder.AddMenuEntry(Actions.DisableClothSimulation);
-		MenuBuilder.AddMenuEntry(Actions.ApplyClothWind);
+		MenuBuilder.AddMenuEntry(Actions.EnableClothSimulation);
+		MenuBuilder.AddMenuEntry(Actions.ResetClothSimulation);
+
 		TSharedPtr<SWidget> WindWidget = SNew(SClothWindSettings).AnimEditorViewport(Viewport);
-		MenuBuilder.AddWidget(WindWidget.ToSharedRef(), FText());
+		MenuBuilder.AddWidget(WindWidget.ToSharedRef(), LOCTEXT("ClothPreview_WindStrength", "Wind Strength:"));
+
 		TSharedPtr<SWidget> GravityWidget = SNew(SGravitySettings).AnimEditorViewport(Viewport);
-		MenuBuilder.AddWidget(GravityWidget.ToSharedRef(), FText());
+		MenuBuilder.AddWidget(GravityWidget.ToSharedRef(), LOCTEXT("ClothPreview_GravityScale", "Gravity Scale:"));
+
 		MenuBuilder.AddMenuEntry(Actions.EnableCollisionWithAttachedClothChildren);
 		MenuBuilder.AddMenuEntry(Actions.PauseClothWithAnim);
 	}
@@ -654,6 +674,57 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder)
 	}
 
 #endif // #if WITH_APEX_CLOTHING
+}
+
+TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
+{
+	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
+
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder InMenuBuilder(bInShouldCloseWindowAfterMenuSelection, CommandList, MenuExtender);
+
+	// Only include helpful show flags.
+	static const FShowFlagFilter ShowFlagFilter = FShowFlagFilter(FShowFlagFilter::ExcludeAllFlagsByDefault)
+		// General
+		.IncludeFlag(FEngineShowFlags::SF_AntiAliasing)
+		.IncludeFlag(FEngineShowFlags::SF_Collision)
+		.IncludeFlag(FEngineShowFlags::SF_Grid)
+		.IncludeFlag(FEngineShowFlags::SF_Particles)
+		.IncludeFlag(FEngineShowFlags::SF_Translucency)
+		// Post Processing
+		.IncludeFlag(FEngineShowFlags::SF_Bloom)
+		.IncludeFlag(FEngineShowFlags::SF_DepthOfField)
+		.IncludeFlag(FEngineShowFlags::SF_EyeAdaptation)
+		.IncludeFlag(FEngineShowFlags::SF_HMDDistortion)
+		.IncludeFlag(FEngineShowFlags::SF_MotionBlur)
+		.IncludeFlag(FEngineShowFlags::SF_Tonemapper)
+		// Lighting Components
+		.IncludeGroup(SFG_LightingComponents)
+		// Lighting Features
+		.IncludeFlag(FEngineShowFlags::SF_AmbientCubemap)
+		.IncludeFlag(FEngineShowFlags::SF_DistanceFieldAO)
+		.IncludeFlag(FEngineShowFlags::SF_IndirectLightingCache)
+		.IncludeFlag(FEngineShowFlags::SF_LightFunctions)
+		.IncludeFlag(FEngineShowFlags::SF_LightShafts)
+		.IncludeFlag(FEngineShowFlags::SF_ReflectionEnvironment)
+		.IncludeFlag(FEngineShowFlags::SF_ScreenSpaceAO)
+		.IncludeFlag(FEngineShowFlags::SF_ContactShadows)
+		.IncludeFlag(FEngineShowFlags::SF_ScreenSpaceReflections)
+		.IncludeFlag(FEngineShowFlags::SF_SubsurfaceScattering)
+		.IncludeFlag(FEngineShowFlags::SF_TexturedLightProfiles)
+		// Developer
+		.IncludeFlag(FEngineShowFlags::SF_Refraction)
+		// Advanced
+		.IncludeFlag(FEngineShowFlags::SF_DeferredLighting)
+		.IncludeFlag(FEngineShowFlags::SF_Selection)
+		.IncludeFlag(FEngineShowFlags::SF_SeparateTranslucency)
+		.IncludeFlag(FEngineShowFlags::SF_TemporalAA)
+		.IncludeFlag(FEngineShowFlags::SF_Tessellation)
+		;
+
+	FShowFlagMenuCommands::Get().BuildShowFlagsMenu(InMenuBuilder, ShowFlagFilter);
+
+	return InMenuBuilder.MakeWidget();
 }
 
 FText SAnimViewportToolBar::GetLODMenuLabel() const
@@ -994,6 +1065,25 @@ void SAnimViewportToolBar::OnFloorOffsetChanged( float NewValue )
 	FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)Viewport.Pin()->GetLevelViewportClient();
 
 	AnimViewportClient.SetFloorOffset( NewValue );
+}
+
+TSharedRef<FExtender> SAnimViewportToolBar::GetViewMenuExtender(TSharedPtr<class SEditorViewport> InRealViewport)
+{
+	TSharedRef<FExtender> Extender(new FExtender());
+	Extender->AddMenuExtension(
+		TEXT("ViewMode"),
+		EExtensionHook::After,
+		InRealViewport->GetCommandList(),
+		FMenuExtensionDelegate::CreateLambda([](FMenuBuilder& InMenuBuilder)
+		{
+			InMenuBuilder.AddSubMenu(LOCTEXT("VisualizeBufferViewModeDisplayName", "Buffer Visualization"),
+				LOCTEXT("BufferVisualizationMenu_ToolTip", "Select a mode for buffer visualization"),
+				FNewMenuDelegate::CreateStatic(&FBufferVisualizationMenuCommands::BuildVisualisationSubMenu),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorViewport.VisualizeBufferMode"));
+		}));
+
+	return Extender;
 }
 
 #undef LOCTEXT_NAMESPACE

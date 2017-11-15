@@ -302,12 +302,6 @@ void UClothingAsset::UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InM
 			{
 				if(!bChangedMesh)
 				{
-					// Clear selection if we're going to remove that section
-					if(InSkelMesh->SelectedEditorSection == SectionIdx)
-					{
-						InSkelMesh->SelectedEditorSection = INDEX_NONE;
-					}
-
 					InSkelMesh->PreEditChange(nullptr);
 				}
 
@@ -496,6 +490,9 @@ void UClothingAsset::ApplyParameterMasks()
 					break;
 				case MaskTarget_PhysMesh::MaxDistance:
 					TargetArray = &Lod.PhysicalMeshData.MaxDistances;
+					break;
+				case MaskTarget_PhysMesh::AnimDriveMultiplier:
+					TargetArray = &Lod.PhysicalMeshData.AnimDriveMultipliers;
 					break;
 				default:
 					break;
@@ -950,10 +947,21 @@ void FClothPhysicalMeshData::Reset(const int32 InNumVerts)
 
 void FClothPhysicalMeshData::ClearParticleParameters()
 {
-	// All float parameter arrays can just be memzeroed
-	FMemory::Memzero(MaxDistances.GetData(), MaxDistances.GetAllocatedSize());
-	FMemory::Memzero(BackstopDistances.GetData(), BackstopDistances.GetAllocatedSize());
-	FMemory::Memzero(BackstopRadiuses.GetData(), BackstopRadiuses.GetAllocatedSize());
+	MaxDistances.Empty();
+	BackstopDistances.Empty();
+	BackstopRadiuses.Empty();
+	AnimDriveMultipliers.Empty();
+}
+
+bool FClothPhysicalMeshData::HasBackStops()
+{
+	const int32 NumBackStopDistances = BackstopDistances.Num();
+	return NumBackStopDistances > 0 && NumBackStopDistances == BackstopRadiuses.Num();
+}
+
+bool FClothPhysicalMeshData::HasAnimDrive()
+{
+	return AnimDriveMultipliers.Num() > 0;
 }
 
 void FClothParameterMask_PhysMesh::Initialize(const FClothPhysicalMeshData& InMeshData)
@@ -986,6 +994,9 @@ void FClothParameterMask_PhysMesh::CopyFromPhysMesh(const FClothPhysicalMeshData
 			break;
 		case MaskTarget_PhysMesh::MaxDistance:
 			Values = InMeshData.MaxDistances;
+			break;
+		case MaskTarget_PhysMesh::AnimDriveMultiplier:
+			Values = InMeshData.AnimDriveMultipliers;
 			break;
 		default:
 			break;
@@ -1071,6 +1082,9 @@ void FClothParameterMask_PhysMesh::Apply(FClothPhysicalMeshData& InTargetMesh)
 				break;
 			case MaskTarget_PhysMesh::BackstopRadius:
 				TargetArray = &InTargetMesh.BackstopRadiuses;
+				break;
+			case MaskTarget_PhysMesh::AnimDriveMultiplier:
+				TargetArray = &InTargetMesh.AnimDriveMultipliers;
 				break;
 			default:
 				break;

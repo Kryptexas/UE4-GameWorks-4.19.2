@@ -50,6 +50,9 @@ public:
 	// Wind velocity at the component location
 	FVector WindVelocity;
 
+	// Gravity extracted from the world
+	FVector WorldGravity;
+
 	// Wind adaption, a measure of how quickly to adapt to the wind speed
 	// when using the legacy wind calculation mode
 	float WindAdaption;

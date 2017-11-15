@@ -4907,22 +4907,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelViewportContextMenu.AssetLabel.Text", FTextBlockStyle(NormalText) .SetFont( DEFAULT_FONT( "Regular", 9 ) ) );
 
 		Set( "LevelViewport.CursorIcon", new IMAGE_BRUSH( "Common/Cursor", Icon16x16 ) );
-
-		Set( "LevelViewport.AntiAliasing", new IMAGE_BRUSH( "Icons/icon_ShowAnti-aliasing_16x", Icon16x16 ) );
-		Set( "LevelViewport.Atmosphere", new IMAGE_BRUSH( "Icons/icon_ShowAtmosphere_16x", Icon16x16 ) );
-		Set( "LevelViewport.BSP", new IMAGE_BRUSH( "Icons/icon_ShowBSP_16x", Icon16x16 ) );
-		Set( "LevelViewport.Collision", new IMAGE_BRUSH( "Icons/icon_ShowCollision_16x", Icon16x16 ) );
-		Set( "LevelViewport.Decals", new IMAGE_BRUSH( "Icons/icon_ShowDecals_16x", Icon16x16 ) );
-		Set( "LevelViewport.Fog", new IMAGE_BRUSH( "Icons/icon_ShowFog_16x", Icon16x16 ) );
-		Set( "LevelViewport.Grid", new IMAGE_BRUSH( "Icons/icon_ShowGrid_16x", Icon16x16 ) );
-		Set( "LevelViewport.Landscape", new IMAGE_BRUSH( "Icons/icon_ShowLandscape_16x", Icon16x16 ) );
-		Set( "LevelViewport.MediaPlanes", new IMAGE_BRUSH( "Icons/icon_ShowMediaPlanes_16x", Icon16x16 ) );
-		Set( "LevelViewport.Navigation", new IMAGE_BRUSH( "Icons/icon_ShowNavigation_16x", Icon16x16 ) );
-		Set( "LevelViewport.Particles", new IMAGE_BRUSH( "Icons/icon_ShowParticlesSprite_16x", Icon16x16 ) );
-		Set( "LevelViewport.SkeletalMeshes", new IMAGE_BRUSH( "Icons/icon_ShowSkeletalMeshes_16x", Icon16x16 ) );
-		Set( "LevelViewport.StaticMeshes", new IMAGE_BRUSH( "Icons/icon_ShowStaticMeshes_16x", Icon16x16 ) );
-		Set( "LevelViewport.Translucency", new IMAGE_BRUSH( "Icons/icon_ShowTranslucency_16x", Icon16x16 ) );
-		Set( "LevelViewport.WidgetComponents", new IMAGE_BRUSH( "UMG/Designer_16x", Icon16x16 ) );
 	}
 
 	// Level editor ui command icons
@@ -4961,6 +4945,24 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelViewportToolBar.Maximize.Normal", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Unchecked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.Maximize.Checked", new IMAGE_BRUSH( "Old/LevelViewportToolBar/Maximized_Checked", Icon16x16 ) );
 		Set( "LevelViewportToolBar.RestoreFromImmersive.Normal", new IMAGE_BRUSH( "Icons/icon_RestoreFromImmersive_16px", Icon16x16 ) );
+	}
+	// Show flags menus
+	{
+		Set( "ShowFlagsMenu.AntiAliasing", new IMAGE_BRUSH( "Icons/icon_ShowAnti-aliasing_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Atmosphere", new IMAGE_BRUSH( "Icons/icon_ShowAtmosphere_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.BSP", new IMAGE_BRUSH( "Icons/icon_ShowBSP_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Collision", new IMAGE_BRUSH( "Icons/icon_ShowCollision_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Decals", new IMAGE_BRUSH( "Icons/icon_ShowDecals_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Fog", new IMAGE_BRUSH( "Icons/icon_ShowFog_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Grid", new IMAGE_BRUSH( "Icons/icon_ShowGrid_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Landscape", new IMAGE_BRUSH( "Icons/icon_ShowLandscape_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.MediaPlanes", new IMAGE_BRUSH( "Icons/icon_ShowMediaPlanes_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Navigation", new IMAGE_BRUSH( "Icons/icon_ShowNavigation_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Particles", new IMAGE_BRUSH( "Icons/icon_ShowParticlesSprite_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.SkeletalMeshes", new IMAGE_BRUSH( "Icons/icon_ShowSkeletalMeshes_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.StaticMeshes", new IMAGE_BRUSH( "Icons/icon_ShowStaticMeshes_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.Translucency", new IMAGE_BRUSH( "Icons/icon_ShowTranslucency_16x", Icon16x16 ) );
+		Set( "ShowFlagsMenu.WidgetComponents", new IMAGE_BRUSH( "UMG/Designer_16x", Icon16x16 ) );
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
@@ -5216,6 +5218,8 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		// preview set up
 		Set("Persona.TogglePreviewAsset", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewAsset_40x"), Icon40x40));
 		Set("Persona.TogglePreviewAsset.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewAsset_40x"), Icon20x20));
+		Set("Persona.TogglePreviewAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewAnim_40x"), Icon40x40));
+		Set("Persona.TogglePreviewAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewAnim_40x"), Icon20x20));
 		Set("Persona.ToggleReferencePose", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReferencePose_40x"), Icon40x40));
 		Set("Persona.ToggleReferencePose.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReferencePose_40x"), Icon20x20));
 		Set("Persona.SavePreviewMeshCollection", new IMAGE_BRUSH(TEXT("Icons/Save_16x"), Icon16x16));
@@ -5266,6 +5270,7 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("SkeletonTree.SkeletonSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketG_16px", Icon16x16));
 		Set("SkeletonTree.MeshSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketC_16px", Icon16x16));
 		Set("SkeletonTree.LODBone", new IMAGE_BRUSH(TEXT("Persona/SkeletonTree/icon_LODBone_16x"), Icon16x16));
+		Set("SkeletonTree.NonRequiredBone", new IMAGE_BRUSH(TEXT("Persona/SkeletonTree/icon_NonRequiredBone_16x"), Icon16x16));
 		Set("SkeletonTree.NormalFont", FTextBlockStyle(NormalText)
 			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f)));
 		Set("SkeletonTree.BoldFont", FTextBlockStyle(NormalText)

@@ -77,6 +77,12 @@ public:
 
 		return FTransform::Identity;
 	}
+
+	void InvalidateCachedBoneIndex()
+	{
+		CachedSocketMeshBoneIndex = INDEX_NONE;
+		CachedSocketCompactBoneIndex = FCompactPoseBoneIndex(INDEX_NONE);
+	}
 };
 
 USTRUCT()
@@ -112,10 +118,12 @@ struct FBoneSocketTarget
 		if (bUseSocket)
 		{
 			SocketReference.InitialzeCompactBoneIndex(RequiredBones);
+			BoneReference.InvalidateCachedBoneIndex();
 		}
 		else
 		{
 			BoneReference.Initialize(RequiredBones);
+			SocketReference.InvalidateCachedBoneIndex();
 		}
 	}
 
@@ -216,7 +224,8 @@ struct FBoneSocketTarget
 		// if valid data is available
 		else if (BoneReference.HasValidSetup())
 		{
-			if (BoneReference.IsValidToEvaluate())
+			if (BoneReference.IsValidToEvaluate() && 
+				ensureMsgf(InPose.GetPose().IsValidIndex(BoneReference.CachedCompactPoseIndex), TEXT("Invalid Cached Pose : Name %s(Bone Index (%d), Cached (%d))"), *BoneReference.BoneName.ToString(), BoneReference.BoneIndex, BoneReference.CachedCompactPoseIndex))
 			{
 				OutTargetTransform = InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
 				FVector CSTargetOffset = OutTargetTransform.TransformPosition(TargetOffset);
@@ -262,7 +271,8 @@ struct FBoneSocketTarget
 		// if valid data is available
 		else if (BoneReference.HasValidSetup())
 		{
-			if (BoneReference.IsValidToEvaluate())
+			if (BoneReference.IsValidToEvaluate() && 
+				ensureMsgf(InPose.GetPose().IsValidIndex(BoneReference.CachedCompactPoseIndex), TEXT("Invalid Cached Pose : Name %s(Bone Index (%d), Cached (%d))"), *BoneReference.BoneName.ToString(), BoneReference.BoneIndex, BoneReference.CachedCompactPoseIndex))
 			{
 				OutTargetTransform = TargetOffset * InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
 			}

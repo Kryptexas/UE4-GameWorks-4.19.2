@@ -32,6 +32,7 @@
 #include "Interfaces/IProjectManager.h"
 #include "LevelViewportLayoutEntity.h"
 #include "PixelInspectorModule.h"
+#include "CommonMenuExtensionsModule.h"
 
 // @todo Editor: remove this circular dependency
 #include "Interfaces/IMainFrameModule.h"
@@ -44,6 +45,7 @@ IMPLEMENT_MODULE( FLevelEditorModule, LevelEditor );
 
 const FName LevelEditorApp = FName(TEXT("LevelEditorApp"));
 const FName MainFrame("MainFrame");
+const FName CommonMenuExtensionsName(TEXT("CommonMenuExtensions"));
 
 FLevelEditorModule::FLevelEditorModule()
 	: ToggleImmersiveConsoleCommand(
@@ -220,6 +222,8 @@ void FLevelEditorModule::StartupModule()
 {
 	// Our command context bindings depend on having the mainframe loaded
 	FModuleManager::LoadModuleChecked<IMainFrameModule>(MainFrame);
+
+	FModuleManager::LoadModuleChecked<FCommonMenuExtensionsModule>(CommonMenuExtensionsName);
 
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	

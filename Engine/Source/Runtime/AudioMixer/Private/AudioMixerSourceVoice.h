@@ -54,7 +54,7 @@ namespace Audio
 		void SetHPFFrequency(const float InFrequency);
 
 		// Sets the source voice's channel map (2d or 3d).
-		void SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
+		void SetChannelMap(ESubmixChannelFormat InChannelType, TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 
 		// Sets params used by HRTF spatializer
 		void SetSpatializationParams(const FSpatializationParams& InParams);
@@ -93,7 +93,7 @@ namespace Audio
 		float GetEnvelopeValue() const;
 
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const;
 
 		// Sets the submix send levels
 		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel);
@@ -108,7 +108,7 @@ namespace Audio
 		FMixerSourceManager* SourceManager;
 		TMap<uint32, FMixerSourceSubmixSend> SubmixSends;
 		FMixerDevice* MixerDevice;
-		TArray<float> ChannelMap;
+		TMap<ESubmixChannelFormat, TArray<float>> ChannelMaps;
 		FThreadSafeCounter NumBuffersQueued;
 		float Pitch;
 		float Volume;

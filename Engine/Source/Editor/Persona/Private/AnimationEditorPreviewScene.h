@@ -34,7 +34,7 @@ public:
 	virtual void SetPreviewMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent) override { SkeletalMeshComponent = InSkeletalMeshComponent; }
 	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
-	virtual void ShowReferencePose() override;
+	virtual void ShowReferencePose(bool bResetBoneTransforms = false) override;
 	virtual bool IsShowReferencePoseEnabled() const override;
 	virtual void SetSelectedBone(const FName& BoneName) override;
 	virtual void ClearSelectedBone() override;

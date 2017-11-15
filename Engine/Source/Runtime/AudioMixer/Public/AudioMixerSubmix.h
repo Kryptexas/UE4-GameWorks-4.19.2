@@ -33,6 +33,9 @@ namespace Audio
 		// Adds the given submix to this submix's children
 		void AddChildSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix);
 
+		// Gets the submix channels channels
+		ESubmixChannelFormat GetSubmixChannels() const;
+
 		// Gets this submix's parent submix
 		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> GetParentSubmix();
 
@@ -58,7 +61,7 @@ namespace Audio
 		void ClearSoundEffectSubmixes();
 
 		// Function which processes audio.
-		void ProcessAudio(AlignedFloatBuffer& OutAudio);
+		void ProcessAudio(const ESubmixChannelFormat ParentInputChannels, AlignedFloatBuffer& OutAudio);
 
 		// Returns the device sample rate this submix is rendering to
 		int32 GetSampleRate() const;
@@ -77,7 +80,7 @@ namespace Audio
 
 	protected:
 		// Down mix the given buffer to the desired down mix channel count
-		void DownmixBuffer(const int32 InputChannelCount, const AlignedFloatBuffer& InBuffer, const int32 DownMixChannelCount, AlignedFloatBuffer& OutDownmixedBuffer);
+		void FormatChangeBuffer(const ESubmixChannelFormat NewChannelType, AlignedFloatBuffer& InBuffer, AlignedFloatBuffer& OutNewBuffer);
 
 	protected:
 
@@ -121,7 +124,13 @@ namespace Audio
 		TMap<FMixerSourceVoice*, float> MixerSourceVoices;
 
 		AlignedFloatBuffer ScratchBuffer;
+		AlignedFloatBuffer InputBuffer;
 		AlignedFloatBuffer DownmixedBuffer;
+		AlignedFloatBuffer SourceInputBuffer;
+
+		ESubmixChannelFormat ChannelFormat;
+		int32 NumChannels;
+		int32 NumSamples;
 
 		// Submic command queue to shuffle commands from audio thread to audio render thread.
 		TQueue<TFunction<void()>> CommandQueue;

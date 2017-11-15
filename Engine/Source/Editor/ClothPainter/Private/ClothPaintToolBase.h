@@ -48,6 +48,9 @@ public:
 	/** Called as tool is deselected, can be used to shutdown and unbind actions */
 	virtual void Deactivate(TWeakPtr<FUICommandList> InCommands) {};
 
+	/** Called as a change in the target geometry changes, to clear anything the tool may have cached */
+	virtual void OnMeshChanged() {};
+
 	/** 
 	 * Optionally return a UObject that will be displayed in the details panel when the tool is selected.
 	 * This is intended for settings unique to the tool, common settings (brush size etc) are available from

@@ -345,11 +345,8 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	bool bIsAudioMixerEnabled = GetDefault<UAudioSettings>()->IsAudioMixerEnabled();
 
 	// Check to see if a spatialization plugin is enabled
-	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
-	{
-		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm)))
-			.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
-	}
+	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm)))
+		.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
 
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OmniRadius)))
 		.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
@@ -486,8 +483,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)))
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	// Hide the plugin settings if there's no audio plugin loaded. Otherwise, show them all.
-	if (bIsAudioMixerEnabled && (GetAudioPluginCustomSettingsClass(EAudioPlugin::OCCLUSION) || GetAudioPluginCustomSettingsClass(EAudioPlugin::REVERB) || GetAudioPluginCustomSettingsClass(EAudioPlugin::SPATIALIZATION)))
+	if (bIsAudioMixerEnabled)
 	{
 		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, PluginSettings)))
 			.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);

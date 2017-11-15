@@ -267,8 +267,27 @@ public:
 	/** Delegate broadcast when a preview scene is created */
 	virtual FOnPreviewSceneCreated& OnPreviewSceneCreated() { return OnPreviewSceneCreatedDelegate; }
 
+	/** Settings for AddCommonToolbarExtensions */
+	struct FCommonToolbarExtensionArgs
+	{
+		FCommonToolbarExtensionArgs()
+			: bPreviewMesh(true)
+			, bPreviewAnimation(true)
+			, bReferencePose(false)
+		{}
+
+		/** Adds a shortcut to setup a preview mesh to override the current display */
+		bool bPreviewMesh;
+
+		/** Adds a shortcut to setup a preview animation to override the current display */
+		bool bPreviewAnimation;
+
+		/** Adds a shortcut to set the character back to reference pose (also clears all bone modifications) */
+		bool bReferencePose;
+	};
+
 	/** Add common toobar extensions */
-	virtual void AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit);
+	virtual void AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit, const FCommonToolbarExtensionArgs& InArgs = FCommonToolbarExtensionArgs());
 
 private:
 	/** When a new anim notify blueprint is created, this will handle post creation work such as adding non-event default nodes */

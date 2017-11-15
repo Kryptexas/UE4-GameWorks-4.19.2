@@ -232,9 +232,9 @@ public:
 
 
 	/** 
-	* @return the UClass type of your settings for occlusion. This allows us to only pass in user settings for your plugin.
+	* @return the UClass type of your settings for spatialization. This allows us to only pass in user settings for your plugin.
 	*/
-	virtual UClass* GetCustomOcclusionSettingsClass() const
+	virtual UClass* GetCustomSpatializationSettingsClass() const
 	{
 		return nullptr;
 	}

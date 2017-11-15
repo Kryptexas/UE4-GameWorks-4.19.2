@@ -103,17 +103,10 @@ namespace Audio
 
 		int32 GetNumDeviceChannels() const { return PlatformInfo.NumChannels; }
 
-		int32 GetNumSpatialChannels() const { return NumSpatialChannels; }
-
 		int32 GetNumOutputFrames() const { return PlatformSettings.CallbackBufferFrameSize; }
 
-		const TArray<FChannelPositionInfo>& GetCurrentChannelPositions() const { return CurrentChannelAzimuthPositions; }
-
-		void Get3DChannelMap(const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
-		void Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
-		const float* Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
-
-		void SetChannelAzimuth(EAudioMixerChannel::Type ChannelType, int32 Azimuth);
+		void Get3DChannelMap(const ESubmixChannelFormat InSubmixChannelType, const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
+		void Get2DChannelMap(const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
 
 		int32 GetDeviceSampleRate() const;
 		int32 GetDeviceOutputChannels() const;
@@ -134,6 +127,16 @@ namespace Audio
 		// Clear all submix effects from master submix
 		void ClearMasterSubmixEffects();
 
+		// Returns the number of channels for a given submix channel type
+		int32 GetNumChannelsForSubmixFormat(const ESubmixChannelFormat InSubmixChannelType) const;
+		ESubmixChannelFormat GetSubmixChannelFormatForNumChannels(const int32 InNumChannels) const;
+
+		// Returns the channel array for the given submix channel type
+		const TArray<EAudioMixerChannel::Type>& GetChannelArrayForSubmixChannelType(const ESubmixChannelFormat InSubmixChannelType) const;
+
+		// Retrieves the listener transforms
+		const TArray<FTransform>* GetListenerTransforms();
+
 	private:
 		// Resets the thread ID used for audio rendering
 		void ResetAudioRenderingThreadId();
@@ -143,8 +146,6 @@ namespace Audio
 		int32 GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const;
 		void CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly);
 		void InitializeChannelAzimuthMap(const int32 NumChannels);
-
-		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);
 
 		void WhiteNoiseTest(AlignedFloatBuffer& Output);
 		void SineOscTest(AlignedFloatBuffer& Output);
@@ -170,21 +171,17 @@ namespace Audio
 		/** Contains a map of channel/speaker azimuth positions. */
 		FChannelPositionInfo DefaultChannelAzimuthPosition[EAudioMixerChannel::MaxSupportedChannel];
 
-		/** The azimuth positions of the current output speakers. */
-		TArray<FChannelPositionInfo> CurrentChannelAzimuthPositions;
+		/** The azimuth positions for submix channel types. */
+		TMap<ESubmixChannelFormat, TArray<FChannelPositionInfo>> ChannelAzimuthPositions;
 
-		/** 2D channel maps of input-output channel maps. */
-		static TMap<int32, TArray<float>> ChannelMapCache;
+		int32 OutputChannels[(int32)ESubmixChannelFormat::Count];
+
+		/** Channel type arrays for submix channel types. */
+		TMap<ESubmixChannelFormat, TArray<EAudioMixerChannel::Type>> ChannelArrays;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;
 
-		/** The number of output channels which are used for calculating 3d audio. */
-		int32 NumSpatialChannels;
-
-		/** The amount of volume per speaker for fully omni-directional 3d audio. */
-		float OmniPanFactor;
-	
 		/** The time delta for each callback block. */
 		double AudioClockDelta;
 

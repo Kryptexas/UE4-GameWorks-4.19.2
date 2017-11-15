@@ -119,6 +119,8 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace_AnyThread(FComponentS
 	// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
 	ForwardedPose.CopyPose(Output.Pose);
 #endif // #if WITH_EDITORONLY_DATA
+	// this is to ensure Source data does not contain NaN
+	ensure(Output.ContainsNaN() == false);
 
 	// Apply the skeletal control if it's valid
 	if (FAnimWeight::IsRelevant(ActualAlpha) && IsValidToEvaluate(Output.AnimInstanceProxy->GetSkeleton(), Output.AnimInstanceProxy->GetRequiredBones()))
@@ -128,13 +130,13 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace_AnyThread(FComponentS
 		BoneTransforms.Reset(BoneTransforms.Num());
 		EvaluateSkeletalControl_AnyThread(Output, BoneTransforms);
 
-		checkSlow(!ContainsNaN(BoneTransforms));
-
 		if (BoneTransforms.Num() > 0)
 		{
 			const float BlendWeight = FMath::Clamp<float>(ActualAlpha, 0.f, 1.f);
 			Output.Pose.LocalBlendCSBoneTransforms(BoneTransforms, BlendWeight);
 		}
+
+		// we check NaN when you get out of this function in void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext& Output)
 	}
 }
 

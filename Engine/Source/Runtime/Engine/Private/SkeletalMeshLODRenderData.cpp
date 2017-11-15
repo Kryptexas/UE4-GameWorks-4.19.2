@@ -28,7 +28,6 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
 	Ar << S.NumTriangles;
 	Ar << S.bRecomputeTangent;
 	Ar << S.bCastShadow;
-	Ar << S.bDisabled;
 	Ar << S.BaseVertexIndex;
 	Ar << S.ClothMappingData;
 	Ar << S.BoneMap;
@@ -181,7 +180,6 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* 
 		NewRenderSection.NumTriangles = ModelSection.NumTriangles;
 		NewRenderSection.bRecomputeTangent = ModelSection.bRecomputeTangent;
 		NewRenderSection.bCastShadow = ModelSection.bCastShadow;
-		NewRenderSection.bDisabled = ModelSection.bDisabled;
 		NewRenderSection.BaseVertexIndex = ModelSection.BaseVertexIndex;
 		NewRenderSection.ClothMappingData = ModelSection.ClothMappingData;
 		NewRenderSection.BoneMap = ModelSection.BoneMap;

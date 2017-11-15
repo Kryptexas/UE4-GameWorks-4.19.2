@@ -97,7 +97,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	// DrawHelper set up
 	DrawHelper.PerspectiveGridSize = HALF_WORLD_MAX1;
 	DrawHelper.AxesLineThickness = ConfigOption->bHighlightOrigin ? 1.0f : 0.0f;
-	DrawHelper.bDrawGrid = ConfigOption->bShowGrid;
+	DrawHelper.bDrawGrid = true;	// Toggling grid now relies on the show flag
 
 	WidgetMode = FWidget::WM_Rotate;
 	ModeTools->SetWidgetMode(WidgetMode);
@@ -106,6 +106,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	EngineShowFlags.ScreenSpaceReflections = 1;
 	EngineShowFlags.AmbientOcclusion = 1;
 	EngineShowFlags.SetSnap(0);
+	EngineShowFlags.Grid = ConfigOption->bShowGrid;
 
 	SetRealtime(true);
 	if(GEditor->PlayWorld)
@@ -182,18 +183,6 @@ FAnimationViewportClient::~FAnimationViewportClient()
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(nullptr);
 
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
-}
-
-void FAnimationViewportClient::OnToggleShowGrid()
-{
-	FEditorViewportClient::SetShowGrid();
-
-	ConfigOption->SetShowGrid(DrawHelper.bDrawGrid);
-}
-
-bool FAnimationViewportClient::IsShowingGrid() const
-{
-	return FEditorViewportClient::IsSetShowGridChecked();
 }
 
 void FAnimationViewportClient::OnToggleAutoAlignFloor()
@@ -546,16 +535,16 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		const int32 BoneIndex = LODData.RequiredBones[i];
 
 		// If previewing a specific section, only show the bone names that belong to it
-		if ((PreviewMeshComponent->SectionIndexPreview >= 0) && !LODData.RenderSections[PreviewMeshComponent->SectionIndexPreview].BoneMap.Contains(BoneIndex))
+		if ((PreviewMeshComponent->GetSectionPreview() >= 0) && !LODData.RenderSections[PreviewMeshComponent->GetSectionPreview()].BoneMap.Contains(BoneIndex))
 		{
 			continue;
 		}
-		if ((PreviewMeshComponent->MaterialIndexPreview >= 0))
+		if ((PreviewMeshComponent->GetMaterialPreview() >= 0))
 		{
 			TArray<int32> FoundSectionIndex;
 			for (int32 SectionIndex = 0; SectionIndex < LODData.RenderSections.Num(); ++SectionIndex)
 			{
-				if (LODData.RenderSections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
+				if (LODData.RenderSections[SectionIndex].MaterialIndex == PreviewMeshComponent->GetMaterialPreview())
 				{
 					FoundSectionIndex.Add(SectionIndex);
 					break;
@@ -924,7 +913,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		}
 	}
 
-	if (PreviewMeshComponent->SectionIndexPreview != INDEX_NONE)
+	if (PreviewMeshComponent->GetSectionPreview() != INDEX_NONE)
 	{
 		// Notify the user if they are isolating a mesh section.
 		CurYOffset += YL + 2;
@@ -932,7 +921,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 		
 	}
-	if (PreviewMeshComponent->MaterialIndexPreview != INDEX_NONE)
+	if (PreviewMeshComponent->GetMaterialPreview() != INDEX_NONE)
 	{
 		// Notify the user if they are isolating a mesh section.
 		CurYOffset += YL + 2;
@@ -1535,11 +1524,7 @@ bool FAnimationViewportClient::PreviewComponentSelectionOverride(const UPrimitiv
 	if (InComponent == GetPreviewScene()->GetPreviewMeshComponent())
 	{
 		const USkeletalMeshComponent* Component = CastChecked<USkeletalMeshComponent>(InComponent);
-		USkeletalMesh* Mesh = Component->SkeletalMesh;
-		if (Mesh)
-		{
-			return (Mesh->SelectedEditorSection != INDEX_NONE || Mesh->SelectedEditorMaterial != INDEX_NONE);
-		}
+		return (Component->GetSelectedEditorSection() != INDEX_NONE || Component->GetSelectedEditorMaterial() != INDEX_NONE);
 	}
 
 	return false;
@@ -1561,7 +1546,7 @@ FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() cons
 	}
 
 	const int32 LODLevel = PreviewMeshComponent->PredictedLODLevel;
-	const int32 SelectedEditorSection = SkeletalMesh->SelectedEditorSection;
+	const int32 SelectedEditorSection = PreviewMeshComponent->GetSelectedEditorSection();
 	const FSkeletalMeshRenderData& SkelMeshRenderData = MeshObject->GetSkeletalMeshRenderData();
 
 	const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData.LODRenderData[LODLevel];
@@ -1629,7 +1614,7 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bUseCustomCamera)
 		return;
 	}
 
-	if ( SkelMesh->SelectedEditorSection != INDEX_NONE )
+	if (PreviewMeshComponent->GetSelectedEditorSection() != INDEX_NONE )
 	{
 		const FBox SelectedSectionBounds = ComputeBoundingBoxForSelectedEditorSection();
 		
@@ -1756,9 +1741,9 @@ bool FAnimationViewportClient::IsSetShowBinormalsChecked() const
 	return false;
 }
 
-void FAnimationViewportClient::ToggleDrawUVOverlay()
+void FAnimationViewportClient::SetDrawUVOverlay(bool bInDrawUVs)
 {
-	bDrawUVs = !bDrawUVs;
+	bDrawUVs = bInDrawUVs;
 	Invalidate();
 }
 
@@ -1886,6 +1871,13 @@ void FAnimationViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFami
 	{
 		UpdateAudioListener(View);
 	}
+}
+
+void FAnimationViewportClient::HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex)
+{
+	FEditorViewportClient::HandleToggleShowFlag(EngineShowFlagIndex);
+
+	ConfigOption->SetShowGrid(EngineShowFlags.Grid);
 }
 
 void FAnimationViewportClient::OnCameraControllerChanged()

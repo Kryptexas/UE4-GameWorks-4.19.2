@@ -120,13 +120,13 @@ namespace Audio
 		void UpdateChannelMaps();
 
 		/** Computes the mono-channel map. */
-		bool ComputeMonoChannelMap();
+		bool ComputeMonoChannelMap(const ESubmixChannelFormat SubmixChannelType, TArray<float>& OutChannelMap);
 
 		/** Computes the stereo-channel map. */
-		bool ComputeStereoChannelMap();
+		bool ComputeStereoChannelMap(const ESubmixChannelFormat SubmixChannelType, TArray<float>& OutChannelMap);
 
-		/** Compute the channel map based on the number of channels. */
-		bool ComputeChannelMap(const int32 NumChannels);
+		/** Compute the channel map based on the number of output and source channels. */
+		bool ComputeChannelMap(const ESubmixChannelFormat SubmixChannelType, const int32 NumSourceChannels, TArray<float>& OutChannelMap);
 
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
 		bool UseObjectBasedSpatialization() const;
@@ -152,8 +152,18 @@ namespace Audio
 
 		FCriticalSection RenderThreadCritSect;
 
-		TArray<float> ChannelMap;
-		TArray<float> StereoChannelMap;
+		struct FChannelMapInfo
+		{
+			TArray<float> ChannelMap;
+			bool bUsed;
+
+			FChannelMapInfo()
+				: bUsed(false)
+			{}
+		};
+
+		// Mapping of channel map types to channel maps. Determined by what submixes this source sends its audio to.
+		FChannelMapInfo ChannelMaps[(int32) ESubmixChannelFormat::Count];
 
 		int32 CurrentBuffer;
 		float PreviousAzimuth;

@@ -464,21 +464,6 @@ private:
 	void OnUseDefaultShowFlags(bool bUseSavedDefaults = false);
 
 	/**
-	 * Changes the buffer visualization mode for this viewport
-	 *
-	 * @param InName	The ID of the required visualization mode
-	 */
-	void ChangeBufferVisualizationMode( FName InName );
-
-	/**
-	 * Checks if a buffer visualization mode is selected
-	 * 
-	 * @param InName	The ID of the required visualization mode
-	 * @return	true if the supplied buffer visualization mode is checked
-	 */
-	bool IsBufferVisualizationModeSelected( FName InName ) const;
-
-	/**
 	 * Called to set a bookmark
 	 *
 	 * @param BookmarkIndex	The index of the bookmark to set

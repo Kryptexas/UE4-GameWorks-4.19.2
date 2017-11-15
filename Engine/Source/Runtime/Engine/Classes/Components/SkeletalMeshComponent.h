@@ -255,7 +255,7 @@ class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public I
 {
 	GENERATED_UCLASS_BODY()
 
-	friend class FSkeletalMeshComponentRecreateRenderStateContext;
+	friend class FSkinnedMeshComponentRecreateRenderStateContext;
 	
 	/**
 	 * Animation 
@@ -299,7 +299,7 @@ public:
 
 	/** Temporary array of local-space (relative to parent bone) rotation/translation for each bone. */
 	TArray<FTransform> BoneSpaceTransforms;
-
+	
 	/** Offset of the root bone from the reference pose. Used to offset bounding box. */
 	UPROPERTY(transient)
 	FVector RootBoneTranslation;
@@ -402,6 +402,9 @@ private:
 	/** Flag denoting whether or not the clothing transform needs to update */
 	uint8 bPendingClothTransformUpdate:1;
 
+	/** Flag denoting whether or not the clothing collision needs to update from its physics asset */
+	uint8 bPendingClothCollisionUpdate:1;
+
 public:
 	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
@@ -418,14 +421,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Clothing)
 	uint8 bLocalSpaceSimulation : 1;
-
-	/**
-	 * cloth morph target option
-	 * This option will be applied only before playing because should do pre-calculation to reduce computation time for run-time play
-	 * so it's impossible to change this option in run-time
-	 */
-	UPROPERTY(EditAnywhere, Category = Clothing)
-	uint8 bClothMorphTarget : 1;
 
 	/** reset the clothing after moving the clothing position (called teleport) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
@@ -530,7 +525,7 @@ public:
 	/** Cache AnimCurveUidVersion from Skeleton and this will be used to identify if it needs to be updated */
 	UPROPERTY(transient)
 	uint16 CachedAnimCurveUidVersion;
-
+	
 	/**
 	 * weight to blend between simulated results and key-framed positions
 	 * if weight is 1.0, shows only cloth simulation results and 0.0 will show only skinned results
@@ -972,9 +967,6 @@ private:
 	UPROPERTY(Transient)
 	uint32 LastPoseTickFrame;
 
-	/** Ref for the clothing parallel task, so we can detect whether or not a sim is running */
-	FGraphEventRef ParallelClothTask;
-
 public:
 
 	/** Checked whether we have already ticked the pose this frame */
@@ -983,7 +975,11 @@ public:
 	bool IsClothBoundToMasterComponent() const { return bBindClothToMasterComponent; }
 
 	/** Get the current clothing simulation (read only) */
-	const class IClothingSimulation* GetClothingSimulation() const;
+	const IClothingSimulation* GetClothingSimulation() const;
+
+	/** Get the current interactor for a clothing simulation, if the current simulation supports runtime interaction. */
+	UFUNCTION(BlueprintCallable, Category=ClothingSimulation)
+	UClothingSimulationInteractor* GetClothingSimulationInteractor() const;
 
 	/** Callback when the parallel clothing task finishes, copies needed data back to component for gamethread */
 	void CompleteParallelClothSimulation();
@@ -1016,6 +1012,17 @@ private:
 	 */
 	IClothingSimulation* ClothingSimulation;
 	IClothingSimulationContext* ClothingSimulationContext;
+
+	/** 
+	 * Object responsible for interacting with the clothing simulation.
+	 * Blueprints and code can call/set data on this from the game thread and the next time
+	 * it is safe to do so the interactor will sync to the simulation context
+	 */
+	UPROPERTY(Transient)
+	UClothingSimulationInteractor* ClothingInteractor;
+
+	/** Ref for the clothing parallel task, so we can detect whether or not a sim is running */
+	FGraphEventRef ParallelClothTask;
 
 	/** Stalls on any currently running clothing simulations, needed when changing core sim state */
 	void HandleExistingParallelClothSimulation();
@@ -1614,6 +1621,12 @@ public:
 	 * Should be called when scene changes or world position changes
 	 */
 	void UpdateClothTransform(ETeleportType TeleportType);
+
+	/**
+	 * Updates cloth collision inside the cloth asset (from a physics asset).
+	 * Should be called when the physics asset changes and the effects are needed straight away.
+	 */
+	void UpdateClothCollision();
 
 	/** if the vertex index is valid for simulated vertices, returns the position in world space */
 	bool GetClothSimulatedPosition_GameThread(const FGuid& AssetGuid, int32 VertexIndex, FVector& OutSimulPos) const;

@@ -598,7 +598,7 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 		{
 			const FSkelMeshRenderSection& SkelMeshSection = LODData.RenderSections[SectionIndex];
-			if (!SkelMeshSection.bDisabled)
+			if (InSkinnedMeshComponent->IsMaterialSectionShown(SkelMeshSection.MaterialIndex, LODIndexRead))
 			{
 				// Build 'wedge' info
 				const int32 NumWedges = SkelMeshSection.NumTriangles * 3;

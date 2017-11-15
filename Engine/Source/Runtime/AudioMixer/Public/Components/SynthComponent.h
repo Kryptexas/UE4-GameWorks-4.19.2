@@ -34,7 +34,8 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 {
 	GENERATED_UCLASS_BODY()
 
-	void Init(USynthComponent* INSynthComponent, const int32 InNumChannels, const int32 SampleRate);
+	void Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 SampleRate);
+	void StartOnAudioDevice(FAudioDevice* InAudioDevice);
 
 	/** Begin USoundWave */
 	virtual void OnBeginGenerate() override;

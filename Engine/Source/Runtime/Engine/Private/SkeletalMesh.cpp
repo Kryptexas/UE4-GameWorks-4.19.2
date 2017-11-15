@@ -318,8 +318,6 @@ USkeletalMesh::USkeletalMesh(const FObjectInitializer& ObjectInitializer)
 	SkelMirrorAxis = EAxis::X;
 	SkelMirrorFlipAxis = EAxis::Z;
 #if WITH_EDITORONLY_DATA
-	SelectedEditorSection = INDEX_NONE;
-	SelectedEditorMaterial = INDEX_NONE;
 	ImportedModel = MakeShareable(new FSkeletalMeshModel());
 #endif
 }
@@ -840,34 +838,12 @@ void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh)
 }
 
 #if WITH_EDITOR
-void USkeletalMesh::PreEditChange(UProperty* PropertyAboutToChange)
-{
-	Super::PreEditChange(PropertyAboutToChange);
-
-	if (GIsEditor &&
-		PropertyAboutToChange &&
-		PropertyAboutToChange->GetOuterUField() &&
-		PropertyAboutToChange->GetOuterUField()->GetFName() == FName(TEXT("ClothPhysicsProperties")))
-	{
-		// if this is a member property of ClothPhysicsProperties, don't release render resources to drag sliders smoothly 
-		return;
-	}
-	FlushRenderState();
-}
-
 void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	bool bFullPrecisionUVsReallyChanged = false;
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	
-	// if this is a member property of ClothPhysicsProperties, skip InvalidateRenderData to drag ClothPhysicsProperties sliders smoothly
-	bool bSkipInvalidateRenderData =
-		GIsEditor &&
-		PropertyThatChanged &&
-		PropertyThatChanged->GetOuterUField() &&
-		PropertyThatChanged->GetOuterUField()->GetFName() == FName(TEXT("ClothPhysicsProperties"));	
-
 	if( GIsEditor &&
 		PropertyThatChanged &&
 		PropertyThatChanged->GetFName() == FName(TEXT("bUseFullPrecisionUVs")) )
@@ -881,7 +857,8 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		}
 	}
 	
-	if (!bSkipInvalidateRenderData)
+	// Don't invalidate render data when dragging sliders, too slow
+	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
 		InvalidateRenderData();
 	}
@@ -1215,7 +1192,7 @@ uint32 USkeletalMesh::GetVertexBufferFlags() const
 void USkeletalMesh::InvalidateRenderData()
 {
 	// Unregister all instances of this component
-	FSkeletalMeshComponentRecreateRenderStateContext RecreateRenderStateContext(this, false);
+	FSkinnedMeshComponentRecreateRenderStateContext RecreateRenderStateContext(this, false);
 
 	// Release the static mesh's resources.
 	ReleaseResources();
@@ -1352,7 +1329,7 @@ void USkeletalMesh::UpgradeOldClothingAssets()
 					{
 						FSkelMeshSection& Section = LodModel.Sections[SecIdx];
 
-						if (Section.CorrespondClothSectionIndex_DEPRECATED != INDEX_NONE && Section.bDisabled)
+						if (Section.CorrespondClothSectionIndex_DEPRECATED != INDEX_NONE && Section.bLegacyClothingSection_DEPRECATED)
 						{
 							FSkelMeshSection& ClothSection = LodModel.Sections[Section.CorrespondClothSectionIndex_DEPRECATED];
 
@@ -1438,7 +1415,7 @@ void USkeletalMesh::RemoveLegacyClothingSections()
 					FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
 
 					// If the section is disabled, it could be a clothing section
-					if(Section.bDisabled && Section.CorrespondClothSectionIndex_DEPRECATED != INDEX_NONE)
+					if(Section.bLegacyClothingSection_DEPRECATED && Section.CorrespondClothSectionIndex_DEPRECATED != INDEX_NONE)
 					{
 						FSkelMeshSection& DuplicatedSection = LodModel.Sections[Section.CorrespondClothSectionIndex_DEPRECATED];
 
@@ -1469,7 +1446,7 @@ void USkeletalMesh::RemoveLegacyClothingSections()
 						});
 
 						Section.BoneMap = DuplicatedSection.BoneMap;
-						Section.bDisabled = false;
+						Section.bLegacyClothingSection_DEPRECATED = false;
 
 						// Remove the reference index
 						Section.CorrespondClothSectionIndex_DEPRECATED = INDEX_NONE;
@@ -1573,7 +1550,7 @@ void USkeletalMesh::PostLoad()
 	if (GetResourceForRendering() == nullptr)
 	{
 		CacheDerivedData();
-			}
+	}
 #endif // WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
@@ -3080,9 +3057,6 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			// If Section is hidden, do not cast shadow
 			bool bSectionHidden = MeshObject->IsMaterialHidden(LODIdx,UseMaterialIndex);
 
-			// Disable rendering for cloth mapped sections
-			bSectionHidden |= Section.bDisabled;
-
 			// If the material is NULL, or isn't flagged for use with skeletal meshes, it will be replaced by the default material.
 			UMaterialInterface* Material = Component->GetMaterial(UseMaterialIndex);
 			if (GForceDefaultMaterial && Material && !IsTranslucentBlendMode(Material->GetBlendMode()))
@@ -3373,24 +3347,18 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 #if WITH_EDITORONLY_DATA
 			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			if (SkeletalMeshForDebug->SelectedEditorMaterial != INDEX_NONE)
+			if (MeshObject->SelectedEditorMaterial != INDEX_NONE)
 			{
-				bSectionSelected = (SkeletalMeshForDebug->SelectedEditorMaterial == SectionElementInfo.UseMaterialIndex);
+				bSectionSelected = (MeshObject->SelectedEditorMaterial == SectionElementInfo.UseMaterialIndex);
 			}
 			else
 			{
-				bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionIndex);
+				bSectionSelected = (MeshObject->SelectedEditorSection == SectionIndex);
 			}
 			
 #endif
 			// If hidden skip the draw
 			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
-			{
-				continue;
-			}
-
-			// If disabled, then skip the draw
-			if(Section.bDisabled)
 			{
 				continue;
 			}
@@ -3893,10 +3861,10 @@ bool FSkeletalMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Sec
 }
 #endif
 
-FSkeletalMeshComponentRecreateRenderStateContext::FSkeletalMeshComponentRecreateRenderStateContext(USkeletalMesh* InSkeletalMesh, bool InRefreshBounds /*= false*/)
+FSkinnedMeshComponentRecreateRenderStateContext::FSkinnedMeshComponentRecreateRenderStateContext(USkeletalMesh* InSkeletalMesh, bool InRefreshBounds /*= false*/)
 	: bRefreshBounds(InRefreshBounds)
 {
-	for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 	{
 		if (It->SkeletalMesh == InSkeletalMesh)
 		{
@@ -3906,7 +3874,7 @@ FSkeletalMeshComponentRecreateRenderStateContext::FSkeletalMeshComponentRecreate
 			{
 				check(It->IsRegistered());
 				It->DestroyRenderState_Concurrent();
-				SkeletalMeshComponents.Add(*It);
+				MeshComponents.Add(*It);
 			}
 		}
 	}
@@ -3916,12 +3884,12 @@ FSkeletalMeshComponentRecreateRenderStateContext::FSkeletalMeshComponentRecreate
 	FlushRenderingCommands();
 }
 
-FSkeletalMeshComponentRecreateRenderStateContext::~FSkeletalMeshComponentRecreateRenderStateContext()
+FSkinnedMeshComponentRecreateRenderStateContext::~FSkinnedMeshComponentRecreateRenderStateContext()
 {
-	const int32 ComponentCount = SkeletalMeshComponents.Num();
+	const int32 ComponentCount = MeshComponents.Num();
 	for (int32 ComponentIndex = 0; ComponentIndex < ComponentCount; ++ComponentIndex)
 	{
-		USkeletalMeshComponent* Component = SkeletalMeshComponents[ComponentIndex];
+		USkinnedMeshComponent* Component = MeshComponents[ComponentIndex];
 
 		if (bRefreshBounds)
 		{

@@ -1505,6 +1505,33 @@ void UAnimCompress_PerTrackCompression::FilterBeforeMainKeyRemoval(
 	FilterTrivialKeys(TranslationData, RotationData, ScaleData, TRANSLATION_ZEROING_THRESHOLD, QUATERNION_ZEROING_THRESHOLD, SCALE_ZEROING_THRESHOLD);
 }
 
+void UAnimCompress_PerTrackCompression::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property)
+	{
+		const FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+
+		// It is an error to set both bUseAdaptiveError and bUseAdaptiveError2 to true at the same time so make sure if 
+		// we are enabling one the other is not enabled.
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UAnimCompress_PerTrackCompression, bUseAdaptiveError))
+		{
+			// We have changed bUseAdaptiveError, bUseAdaptiveError2 can only be true if it was already true
+			// and bUseAdaptiveError is false
+			bUseAdaptiveError2 = (!bUseAdaptiveError) && bUseAdaptiveError2;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UAnimCompress_PerTrackCompression, bUseAdaptiveError2))
+		{
+			// We have changed bUseAdaptiveError2, bUseAdaptiveError can only be true if it was already true
+			// and bUseAdaptiveError2 is not true
+			bUseAdaptiveError = (!bUseAdaptiveError2) && bUseAdaptiveError;
+		}
+	}
+}
+
 void UAnimCompress_PerTrackCompression::DoReduction(UAnimSequence* AnimSeq, const TArray<FBoneData>& BoneData)
 {
 	if (FPlatformProperties::HasEditorOnlyData())

@@ -695,6 +695,16 @@ void FPhysxSharedData::Add( PxBase* Obj, const FString& OwnerName )
 	}
 }
 
+void FPhysxSharedData::Remove(PxBase* Obj) 
+{ 
+	// Check for containment first due to multiple UBodySetups sharing the same ref counted object causing harmless double-frees
+	if (Obj && SharedObjects->contains(*Obj)) 
+	{ 
+		SharedObjects->remove(*Obj); 
+		OwnerNames.Remove(Obj); 
+	} 
+}	
+
 struct FSharedResourceEntry
 {
 	uint64 MemorySize;

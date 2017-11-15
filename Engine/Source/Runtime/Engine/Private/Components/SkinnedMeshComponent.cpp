@@ -326,9 +326,11 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bCanHighlightSelectedSections = false;
 	CanCharacterStepUpOn = ECB_Owner;
 #if WITH_EDITORONLY_DATA
-	ChunkIndexPreview = -1;
 	SectionIndexPreview = -1;
 	MaterialIndexPreview = -1;
+
+	SelectedEditorSection = INDEX_NONE;
+	SelectedEditorMaterial = INDEX_NONE;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
 	bCastCapsuleDirectShadow = false;
@@ -1368,28 +1370,44 @@ void USkinnedMeshComponent::SetForceWireframe(bool InForceWireframe)
 	}
 }
 
-
+#if WITH_EDITOR
 void USkinnedMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
 {
-#if WITH_EDITORONLY_DATA
 	if (SectionIndexPreview != InSectionIndexPreview)
 	{
 		SectionIndexPreview = InSectionIndexPreview;
 		MarkRenderStateDirty();
 	}
-#endif
 }
 
 void USkinnedMeshComponent::SetMaterialPreview(int32 InMaterialIndexPreview)
 {
-#if WITH_EDITORONLY_DATA
 	if (MaterialIndexPreview != InMaterialIndexPreview)
 	{
 		MaterialIndexPreview = InMaterialIndexPreview;
 		MarkRenderStateDirty();
 	}
-#endif
 }
+
+void USkinnedMeshComponent::SetSelectedEditorSection(int32 InSelectedEditorSection)
+{
+	if (SelectedEditorSection != InSelectedEditorSection)
+	{
+		SelectedEditorSection = InSelectedEditorSection;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkinnedMeshComponent::SetSelectedEditorMaterial(int32 InSelectedEditorMaterial)
+{
+	if (SelectedEditorMaterial != InSelectedEditorMaterial)
+	{
+		SelectedEditorMaterial = InSelectedEditorMaterial;
+		MarkRenderStateDirty();
+	}
+}
+
+#endif // WITH_EDITOR
 
 UMorphTarget* USkinnedMeshComponent::FindMorphTarget( FName MorphTargetName ) const
 {
@@ -1859,6 +1877,53 @@ void USkinnedMeshComponent::ShowMaterialSection(int32 MaterialID, bool bShow, in
 			});
 		}
 	}
+}
+
+void USkinnedMeshComponent::ShowAllMaterialSections(int32 LODIndex)
+{
+	InitLODInfos();
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		FSkelMeshComponentLODInfo& SkelCompLODInfo = LODInfo[LODIndex];
+		TArray<bool>& HiddenMaterials = SkelCompLODInfo.HiddenMaterials;
+
+		// Only need to do anything if array is allocated - otherwise nothing is being hidden
+		if (HiddenMaterials.Num() > 0)
+		{
+			for (int32 MatIdx = 0; MatIdx < HiddenMaterials.Num(); MatIdx++)
+			{
+				HiddenMaterials[MatIdx] = false;
+			}
+
+			if (MeshObject)
+			{
+				// need to send render thread for updated hidden section
+				ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+					FUpdateHiddenSectionCommand,
+					FSkeletalMeshObject*, MeshObject, MeshObject,
+					TArray<bool>, HiddenMaterials, HiddenMaterials,
+					int32, LODIndex, LODIndex,
+					{
+						MeshObject->SetHiddenMaterials(LODIndex,HiddenMaterials);
+					});
+			}
+		}
+	}
+}
+
+bool USkinnedMeshComponent::IsMaterialSectionShown(int32 MaterialID, int32 LODIndex)
+{
+	bool bHidden = false;
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		FSkelMeshComponentLODInfo& SkelCompLODInfo = LODInfo[LODIndex];
+		TArray<bool>& HiddenMaterials = SkelCompLODInfo.HiddenMaterials;
+		if (HiddenMaterials.IsValidIndex(MaterialID))
+		{
+			bHidden = HiddenMaterials[MaterialID];
+		}
+	}
+	return bHidden;
 }
 
 

@@ -32,13 +32,27 @@
 #include "PropertyEditorModule.h"
 #include "SButton.h"
 #include "STextBlock.h"
+#include "ClothingSimulationInteractor.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAssetEditorShared"
+
+FScopedBulkSelection::FScopedBulkSelection(TSharedPtr<FPhysicsAssetEditorSharedData> InSharedData)
+	: SharedData(InSharedData)
+{
+	SharedData->bSuspendSelectionBroadcast = true;
+}
+
+FScopedBulkSelection::~FScopedBulkSelection()
+{
+	SharedData->bSuspendSelectionBroadcast = false;
+	SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
+}
 
 FPhysicsAssetEditorSharedData::FPhysicsAssetEditorSharedData()
 	: COMRenderColor(255,255,100)
 	, CopiedBodySetup(NULL)
 	, CopiedConstraintTemplate(NULL)
+	, bSuspendSelectionBroadcast(false)
 	, InsideSelChange(0)
 {
 	// Editor variables
@@ -170,6 +184,18 @@ void FPhysicsAssetEditorSharedData::CachePreviewMesh()
 				LOCTEXT("Error_PhysicsAssetHasNoSkelMesh", "Warning: Physics Asset has no skeletal mesh assigned.\nFor now, a simple default skeletal mesh ({0}) will be used.\nYou can fix this by opening the asset and choosing another skeletal mesh from the toolbar."),
 				FText::FromString(PreviewMesh->GetFullName())));
 	}
+	else if(PreviewMesh->Skeleton == nullptr)
+	{
+		// Fall back in the case of a deleted skeleton
+		PreviewMesh = (USkeletalMesh*)StaticLoadObject(USkeletalMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/SkeletalCube.SkeletalCube"), NULL, LOAD_None, NULL);
+		check(PreviewMesh);
+
+		PhysicsAsset->PreviewSkeletalMesh = PreviewMesh;
+
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+				LOCTEXT("Error_PhysicsAssetHasNoSkelMeshSkeleton", "Warning: Physics Asset has a skeletal mesh with no skeleton assigned.\nFor now, a simple default skeletal mesh ({0}) will be used.\nYou can fix this by opening the asset and choosing another skeletal mesh from the toolbar, or repairing the skeleton."),
+				FText::FromString(PreviewMesh->GetFullName())));
+	}
 }
 
 void FPhysicsAssetEditorSharedData::CopyConstraintProperties(UPhysicsConstraintTemplate * FromConstraintSetup, UPhysicsConstraintTemplate * ToConstraintSetup)
@@ -189,6 +215,8 @@ void FPhysicsAssetEditorSharedData::CopyConstraintProperties(UPhysicsConstraintT
 	ToConstraintSetup->DefaultInstance.ConstraintBone2 = OldInstance.ConstraintBone2;
 	ToConstraintSetup->DefaultInstance.Pos1 = OldInstance.Pos1;
 	ToConstraintSetup->DefaultInstance.Pos2 = OldInstance.Pos2;
+
+	ToConstraintSetup->UpdateProfileInstance();
 }
 
 struct FMirrorInfo
@@ -355,7 +383,7 @@ void FPhysicsAssetEditorSharedData::HitConstraint(int32 ConstraintIndex, bool bG
 	}
 }
 
-void FPhysicsAssetEditorSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset)
+void FPhysicsAssetEditorSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset, bool bFullClothRefresh)
 {
 	if (InPhysAsset)
 	{
@@ -370,6 +398,14 @@ void FPhysicsAssetEditorSharedData::RefreshPhysicsAssetChange(const UPhysicsAsse
 		// ideally maybe in the future, we'll fix it by controlling tick?
 		EnableSimulation(false);
 		EditorSkelComp->RecreatePhysicsState();
+		if(bFullClothRefresh)
+		{
+			EditorSkelComp->RecreateClothingActors();
+		}
+		else
+		{
+			UpdateClothPhysics();
+		}
 		ForceDisableSimulation();
 	}
 }
@@ -416,7 +452,10 @@ void FPhysicsAssetEditorSharedData::ClearSelectedBody()
 	SelectedBodies.Empty();
 	SelectedConstraints.Empty();
 
-	SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	if(!bSuspendSelectionBroadcast)
+	{
+		SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	}
 }
 
 void FPhysicsAssetEditorSharedData::SetSelectedBody(const FSelection& Body, bool bSelected)
@@ -435,7 +474,10 @@ void FPhysicsAssetEditorSharedData::SetSelectedBody(const FSelection& Body, bool
 		SelectedBodies.Remove(Body);
 	}
 
-	SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	if(!bSuspendSelectionBroadcast)
+	{
+		SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	}
 
 	if(!GetSelectedBody())
 	{
@@ -489,7 +531,10 @@ void FPhysicsAssetEditorSharedData::ClearSelectedConstraints()
 	SelectedBodies.Empty();
 	SelectedConstraints.Empty();
 
-	SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	if(!bSuspendSelectionBroadcast)
+	{
+		SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	}
 
 	++InsideSelChange;
 	PreviewChangedEvent.Broadcast();
@@ -515,7 +560,10 @@ void FPhysicsAssetEditorSharedData::SetSelectedConstraint(int32 ConstraintIndex,
 			SelectedConstraints.Remove(Constraint);
 		}
 
-		SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+		if(!bSuspendSelectionBroadcast)
+		{
+			SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+		}
 
 		++InsideSelChange;
 		PreviewChangedEvent.Broadcast();
@@ -678,18 +726,23 @@ void FPhysicsAssetEditorSharedData::PasteBodyProperties()
 		return;
 	}
 
-	const FScopedTransaction Transaction( NSLOCTEXT("PhysicsAssetEditor", "PasteBodyProperties", "Paste Body Properties") );
-
-	for(int32 i=0; i<SelectedBodies.Num(); ++i)
+	if(SelectedBodies.Num() > 0)
 	{
-		UBodySetup* ToBodySetup = PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index];
-		UBodySetup* FromBodySetup = CopiedBodySetup;
-		ToBodySetup->Modify();
-		ToBodySetup->CopyBodyPropertiesFrom(FromBodySetup);
-	}
+		const FScopedTransaction Transaction( NSLOCTEXT("PhysicsAssetEditor", "PasteBodyProperties", "Paste Body Properties") );
+
+		PhysicsAsset->Modify();
+
+		for(int32 i=0; i<SelectedBodies.Num(); ++i)
+		{
+			UBodySetup* ToBodySetup = PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index];
+			UBodySetup* FromBodySetup = CopiedBodySetup;
+			ToBodySetup->Modify();
+			ToBodySetup->CopyBodyPropertiesFrom(FromBodySetup);
+		}
 	
-	ClearSelectedBody();	//paste can change the primitives on our selected bodies. There's probably a way to properly update this, but for now just deselect
-	PreviewChangedEvent.Broadcast();
+		ClearSelectedBody();	//paste can change the primitives on our selected bodies. There's probably a way to properly update this, but for now just deselect
+		PreviewChangedEvent.Broadcast();
+	}
 }
 
 bool FPhysicsAssetEditorSharedData::WeldSelectedBodies(bool bWeld /* = true */)
@@ -1010,7 +1063,11 @@ void FPhysicsAssetEditorSharedData::MakeNewConstraint(int32 BodyIndex0, int32 Bo
 	// update the tree
 	HierarchyChangedEvent.Broadcast();
 	RefreshPhysicsAssetChange(PhysicsAsset);
-	SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+
+	if(!bSuspendSelectionBroadcast)
+	{
+		SelectionChangedEvent.Broadcast(SelectedBodies, SelectedConstraints);
+	}
 }
 
 void FPhysicsAssetEditorSharedData::SetConstraintRelTM(const FPhysicsAssetEditorSharedData::FSelection* Constraint, const FTransform& RelTM)
@@ -1083,17 +1140,18 @@ void FPhysicsAssetEditorSharedData::PasteConstraintProperties()
 		return;
 	}
 
-	const FScopedTransaction Transaction( NSLOCTEXT("PhysicsAssetEditor", "PasteConstraintProperties", "Paste Constraint Properties") );
-
-	UPhysicsConstraintTemplate* FromConstraintSetup = CopiedConstraintTemplate;
-
-	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
+	if(SelectedConstraints.Num() > 0)
 	{
-		// If we are showing instance properties - copy instance properties. If showing setup, just copy setup properties.
-		UPhysicsConstraintTemplate* ToConstraintSetup = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
-		CopyConstraintProperties(FromConstraintSetup, ToConstraintSetup);
+		const FScopedTransaction Transaction( NSLOCTEXT("PhysicsAssetEditor", "PasteConstraintProperties", "Paste Constraint Properties") );
+
+		UPhysicsConstraintTemplate* FromConstraintSetup = CopiedConstraintTemplate;
+
+		for(int32 i=0; i<SelectedConstraints.Num(); ++i)
+		{
+			UPhysicsConstraintTemplate* ToConstraintSetup = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
+			CopyConstraintProperties(FromConstraintSetup, ToConstraintSetup);
+		}
 	}
-	
 }
 
 void CycleMatrixRows(FMatrix* TM)
@@ -1110,17 +1168,20 @@ void FPhysicsAssetEditorSharedData::CycleCurrentConstraintOrientation()
 {
 	const FScopedTransaction Transaction( LOCTEXT("CycleCurrentConstraintOrientation", "Cycle Current Constraint Orientation") );
 
-	UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
-	ConstraintTemplate->Modify();
-	FMatrix ConstraintTransform = ConstraintTemplate->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixWithScale();
-	FTransform WParentFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame2);
-	FTransform WChildFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame1);
-	FTransform RelativeTransform = WChildFrame * WParentFrame.Inverse();
+	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
+	{
+		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
+		ConstraintTemplate->Modify();
+		FMatrix ConstraintTransform = ConstraintTemplate->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixWithScale();
+		FTransform WParentFrame = GetConstraintWorldTM(&SelectedConstraints[i], EConstraintFrame::Frame2);
+		FTransform WChildFrame = GetConstraintWorldTM(&SelectedConstraints[i], EConstraintFrame::Frame1);
+		FTransform RelativeTransform = WChildFrame * WParentFrame.Inverse();
 
-	CycleMatrixRows(&ConstraintTransform);
+		CycleMatrixRows(&ConstraintTransform);
 
-	ConstraintTemplate->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, FTransform(ConstraintTransform));
-	SetSelectedConstraintRelTM(RelativeTransform);
+		ConstraintTemplate->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, FTransform(ConstraintTransform));
+		SetSelectedConstraintRelTM(RelativeTransform);
+	}
 }
 
 void FPhysicsAssetEditorSharedData::CycleCurrentConstraintActive()
@@ -1129,7 +1190,7 @@ void FPhysicsAssetEditorSharedData::CycleCurrentConstraintActive()
 
 	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
 	{
-		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
+		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
 		ConstraintTemplate->Modify();
 		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
 
@@ -1150,6 +1211,7 @@ void FPhysicsAssetEditorSharedData::CycleCurrentConstraintActive()
 			DefaultInstance.SetAngularTwistMotion(ACM_Limited);
 		}
 		
+		ConstraintTemplate->UpdateProfileInstance();
 	}
 }
 
@@ -1174,6 +1236,7 @@ void FPhysicsAssetEditorSharedData::ToggleConstraint(EPhysicsAssetEditorConstrai
 			DefaultInstance.SetAngularTwistMotion(DefaultInstance.GetAngularTwistMotion() == ACM_Limited ? ACM_Locked : ACM_Limited);
 		}
 		
+		ConstraintTemplate->UpdateProfileInstance();
 	}
 }
 
@@ -1524,9 +1587,21 @@ void FPhysicsAssetEditorSharedData::EnableSimulation(bool bEnableSimulation)
 
 		// Make it start simulating
 		EditorSkelComp->WakeAllRigidBodies();
+
+		if(EditorOptions->bResetClothWhenSimulating)
+		{
+			EditorSkelComp->RecreateClothingActors();
+		}
 	}
 	else
 	{
+		EditorSkelComp->AnimScriptInstance = nullptr;
+
+		if(EditorSkelComp->GetAnimationMode() != EAnimationMode::AnimationSingleNode)
+		{
+			EditorSkelComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		}
+
 		// Stop any animation and clear node when stopping simulation.
 		PhysicalAnimationComponent->SetSkeletalMeshComponent(nullptr);
 
@@ -1745,6 +1820,14 @@ void FPhysicsAssetEditorSharedData::ForceDisableSimulation()
 				BodyInst->SetInstanceSimulatePhysics(false);
 			}
 		}
+	}
+}
+
+void FPhysicsAssetEditorSharedData::UpdateClothPhysics()
+{
+	if(EditorSkelComp && EditorSkelComp->GetClothingSimulationInteractor())
+	{
+		EditorSkelComp->GetClothingSimulationInteractor()->PhysicsAssetUpdated();
 	}
 }
 

@@ -38,8 +38,9 @@ public:
 	FText GetSourceType() { return Client->GetSourceTypeForEntry(EntryGuid); }
 	FText GetMachineName() { return Client->GetMachineNameForEntry(EntryGuid); }
 	FText GetEntryStatus() { return Client->GetEntryStatusForEntry(EntryGuid); }
-	FLiveLinkConnectionSettings* GetConnectionSettings() { return Client->GetConnectionSettingsForEntry(EntryGuid); }
+	ULiveLinkSourceSettings* GetSourceSettings() { return Client->GetSourceSettingsForEntry(EntryGuid); }
 	void RemoveFromClient() { Client->RemoveSource(EntryGuid); }
+	void OnPropertyChanged(const FPropertyChangedEvent& InEvent) { Client->OnPropertyChanged(EntryGuid, InEvent); }
 
 private:
 	FGuid EntryGuid;
@@ -169,7 +170,8 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 	StructureViewArgs.bShowInterfaces = true;
 	StructureViewArgs.bShowObjects = true;
 
-	StructureDetailsView = PropertyEditorModule.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr);
+	SettingsDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+	SettingsDetailsView->OnFinishedChangingProperties().AddSP(this, &SLiveLinkClientPanel::OnPropertyChanged);
 
 	ChildSlot
 	[
@@ -226,7 +228,7 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 			.FillHeight(0.5f)
 			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
 			[
-				StructureDetailsView->GetWidget().ToSharedRef()
+				SettingsDetailsView.ToSharedRef()
 			]
 		]
 	];
@@ -281,12 +283,21 @@ void SLiveLinkClientPanel::OnSourceListSelectionChanged(FLiveLinkSourceUIEntryPt
 {
 	if(Entry.IsValid())
 	{
-		FStructOnScope* Struct = new FStructOnScope(FLiveLinkConnectionSettings::StaticStruct(), (uint8*)Entry->GetConnectionSettings());
-		StructureDetailsView->SetStructureData(MakeShareable(Struct));
+		SettingsDetailsView->SetObject(Entry->GetSourceSettings());
 	}
 	else
 	{
-		StructureDetailsView->SetStructureData(nullptr);
+		SettingsDetailsView->SetObject(nullptr);
+	}
+}
+
+void SLiveLinkClientPanel::OnPropertyChanged(const FPropertyChangedEvent& InEvent)
+{
+	TArray<FLiveLinkSourceUIEntryPtr> Selected;
+	ListView->GetSelectedItems(Selected);
+	for (FLiveLinkSourceUIEntryPtr Item : Selected)
+	{
+		Item->OnPropertyChanged(InEvent);
 	}
 }
 

@@ -71,6 +71,11 @@ void UPhysicsConstraintTemplate::PostEditChangeChainProperty(FPropertyChangedCha
 void UPhysicsConstraintTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	//If anything changes, update the profile instance
+	UpdateProfileInstance();
+}
+
+void UPhysicsConstraintTemplate::UpdateProfileInstance()
+{
 	const FName CurrentProfileName = GetCurrentConstraintProfileName();
 	if(CurrentProfileName == NAME_None)
 	{

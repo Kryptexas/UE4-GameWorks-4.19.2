@@ -46,6 +46,15 @@ struct FAnimationEditorViewportRequiredArgs
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewport
 
+enum class ESectionDisplayMode
+{
+	None = -1,
+	ShowAll,
+	ShowOnlyClothSections,
+	HideOnlyClothSections,
+	NumSectionDisplayMode
+};
+
 class SAnimationEditorViewport : public SEditorViewport
 {
 public:
@@ -88,6 +97,8 @@ protected:
 
 	/**  Handle undo/redo by refreshing the viewport */
 	void OnUndoRedo();
+
+	virtual void BindCommands() override;
 
 protected:
 	// Viewport client
@@ -213,9 +224,6 @@ public:
 	/** Function to get anim viewport widget */
 	TSharedPtr<class SEditorViewport> GetViewportWidget() const { return ViewportWidget; }
 
-	/** Function to check whether grid is displayed or not */
-	bool IsShowingGrid() const;
-
 	/** Gets the editor client for this viewport */
 	FEditorViewportClient& GetLevelViewportClient()
 	{		
@@ -247,7 +255,6 @@ public:
 	/** Show gravity scale */
 	void SetGravityScale( float SliderPos );
 	float GetGravityScaleSliderValue() const;
-	FText GetGravityScaleLabel() const;
 
 	/** Function to set LOD model selection*/
 	void OnSetLODModel(int32 LODSelectionType);
@@ -354,9 +361,6 @@ private:
 	/** Function to check whether mesh info is displayed or not */
 	bool IsShowingMeshInfo(int32 DisplayInfoMode) const;
 
-	/** Function to show/hide grid in the viewport */
-	void OnShowGrid();	
-
 	/** Toggles floor alignment in the preview scene */
 	void OnToggleAutoAlignFloor();
 
@@ -454,11 +458,12 @@ public:
 	 * clothing show options 
 	*/
 private:
-	/** disable cloth simulation */
-	void OnDisableClothSimulation();
-	bool IsDisablingClothSimulation() const;
+	/** Enable cloth simulation */
+	void OnEnableClothSimulation();
+	bool IsClothSimulationEnabled() const;
 
-	void OnApplyClothWind();
+	/** Reset clothing simulation */
+	void OnResetClothSimulation();
 
 	void OnPauseClothingSimWithAnim();
 	bool IsPausingClothingSimWithAnim();
@@ -468,8 +473,8 @@ private:
 	bool IsEnablingCollisionWithAttachedClothChildren() const;
 
 	/** Show all sections which means the original state */
-	void OnSetSectionsDisplayMode(int32 DisplayMode);
-	bool IsSectionsDisplayMode(int32 DisplayMode) const;
+	void OnSetSectionsDisplayMode(ESectionDisplayMode DisplayMode);
+	bool IsSectionsDisplayMode(ESectionDisplayMode DisplayMode) const;
 
 #endif // #if WITH_APEX_CLOTHING
 
@@ -523,6 +528,9 @@ private:
 
 	/** Current LOD selection*/
 	int32 LODSelection;
+
+	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
+	ESectionDisplayMode SectionsDisplayMode;
 
 	/** Get Min/Max Input of value **/
 	float GetViewMinInput() const;

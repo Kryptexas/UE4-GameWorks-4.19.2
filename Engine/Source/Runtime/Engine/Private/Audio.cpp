@@ -86,7 +86,7 @@ UClass* GetAudioPluginCustomSettingsClass(EAudioPlugin PluginType)
 			IAudioSpatializationFactory* Factory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
 			if (Factory)
 			{
-				return Factory->GetCustomOcclusionSettingsClass();
+				return Factory->GetCustomSpatializationSettingsClass();
 			}
 		}
 		break;

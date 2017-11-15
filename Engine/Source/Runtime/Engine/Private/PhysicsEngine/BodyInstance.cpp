@@ -3604,7 +3604,7 @@ void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhy
 {
 	
 #if WITH_PHYSX
-	ExecuteOnPxRigidBodyReadOnly(this, [&](const PxRigidBody* PRigidBody)
+	ExecuteOnPxRigidBodyReadWrite(this, [&](const PxRigidBody* PRigidBody)
 	{
 		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{

@@ -99,17 +99,24 @@ namespace Audio
 		To7Point1Matrix
 	};
 
-	TMap<int32, TArray<float>> FMixerDevice::ChannelMapCache;
+	// Make a channel map cache
+	static TArray<TArray<float>> ChannelMapCache;
 
 	int32 FMixerDevice::GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const
 	{
-		// Just create a unique number for source and output channel combination
-		return NumSourceChannels + 10 * NumOutputChannels + 100 * (int32)bIsCenterChannelOnly;
+		int32 Index = NumSourceChannels + AUDIO_MIXER_MAX_OUTPUT_CHANNELS * NumOutputChannels;
+		if (bIsCenterChannelOnly)
+		{
+			Index += AUDIO_MIXER_MAX_OUTPUT_CHANNELS * AUDIO_MIXER_MAX_OUTPUT_CHANNELS;
+		}
+		return Index;
 	}
 
-	void FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const
+	void FMixerDevice::Get2DChannelMap(const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const
 	{
-		if (NumSourceChannels > 8 || NumOutputChannels > 8)
+		const int32 AdjustedSourceChannels = NumSourceChannels - 1;
+		int32 NumOutputChannels = GetNumChannelsForSubmixFormat(InSubmixChannelType) - 1;
+		if (AdjustedSourceChannels > 7 || NumOutputChannels > 7)
 		{
 			// Return a zero'd channel map buffer in the case of an unsupported channel configuration
 			OutChannelMap.AddZeroed(NumSourceChannels * NumOutputChannels);
@@ -117,50 +124,23 @@ namespace Audio
 			return;
 		}
 
-		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
-		const TArray<float>* CachedChannelMap = ChannelMapCache.Find(CacheID);
-		if (!CachedChannelMap)
-		{
-			Get2DChannelMapInternal(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly, OutChannelMap);
-		}
-		else
-		{
-			OutChannelMap = *CachedChannelMap;
-		}
+		const int32 CacheID = GetChannelMapCacheId(AdjustedSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
+		OutChannelMap = ChannelMapCache[CacheID];
 	}
-
-	const float* FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly) const
-	{
-		if (NumSourceChannels > 8 || NumOutputChannels > 8)
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported source channel (%d) count or output channels (%d)"), NumSourceChannels, NumOutputChannels);
-			return nullptr;
-		}
-
-		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
-		const TArray<float>* CachedChannelMap = ChannelMapCache.Find(CacheID);
-		if (CachedChannelMap)
-		{
-			return CachedChannelMap->GetData();
-		}
-
-		return nullptr;
-	}
-
-
+	 
 	void FMixerDevice::Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const
 	{
-		const int32 OutputChannelMapIndex = NumOutputChannels - 1;
+		const int32 OutputChannelMapIndex = NumOutputChannels;
 		check(OutputChannelMapIndex < ARRAY_COUNT(OutputChannelMaps));
 
 		float* Matrix = OutputChannelMaps[OutputChannelMapIndex];
 		check(Matrix != nullptr);
 
 		// Mono input sources have some special cases to take into account
-		if (NumSourceChannels == 1)
+		if (NumSourceChannels == 0)
 		{
 			// Mono-in mono-out channel map
-			if (NumOutputChannels == 1)
+			if (NumOutputChannels == 0)
 			{
 				OutChannelMap.Add(1.0f);		
 			}
@@ -168,9 +148,9 @@ namespace Audio
 			{
 				// If we have more than stereo output (means we have center channel, which is always the 3rd index)
 				// Then we need to only apply 1.0 to the center channel, 0.0 for everything else
-				if ((NumOutputChannels == 3 || NumOutputChannels > 4) && bIsCenterChannelOnly)
+				if ((NumOutputChannels == 2 || NumOutputChannels > 3) && bIsCenterChannelOnly)
 				{
-					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
+					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels + 1; ++OutputChannel)
 					{
 						// Center channel is always 3rd index
 						if (OutputChannel == 2)
@@ -189,7 +169,7 @@ namespace Audio
 					OutChannelMap.Add(0.707f);
 					OutChannelMap.Add(0.707f);
 
-					for (int32 OutputChannel = 2; OutputChannel < NumOutputChannels; ++OutputChannel)
+					for (int32 OutputChannel = 2; OutputChannel < NumOutputChannels + 1; ++OutputChannel)
 					{
 						const int32 Index = OutputChannel * AUDIO_MIXER_MAX_OUTPUT_CHANNELS;
 						OutChannelMap.Add(Matrix[Index]);
@@ -199,9 +179,9 @@ namespace Audio
 		}
 		else
 		{
-			for (int32 SourceChannel = 0; SourceChannel < NumSourceChannels; ++SourceChannel)
+			for (int32 SourceChannel = 0; SourceChannel < NumSourceChannels + 1; ++SourceChannel)
 			{
-				for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
+				for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels + 1; ++OutputChannel)
 				{
 					const int32 Index = OutputChannel * AUDIO_MIXER_MAX_OUTPUT_CHANNELS + SourceChannel;
 					OutChannelMap.Add(Matrix[Index]);
@@ -214,9 +194,7 @@ namespace Audio
 	{
 		// Generate the unique cache ID for the channel count configuration
 		const int32 CacheID = GetChannelMapCacheId(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly);
-		TArray<float> ChannelMap;
-		Get2DChannelMapInternal(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly, ChannelMap);
-		ChannelMapCache.Add(CacheID, ChannelMap);
+		Get2DChannelMapInternal(NumSourceChannels, NumOutputChannels, bIsCenterChannelOnly, ChannelMapCache[CacheID]);
 	}
 
 	void FMixerDevice::InitializeChannelMaps()
@@ -224,10 +202,13 @@ namespace Audio
 		// If we haven't yet created the static channel map cache
 		if (!ChannelMapCache.Num())
 		{
+			// Make a matrix big enough for every possible configuration, double it to account for center channel only 
+			ChannelMapCache.AddZeroed(AUDIO_MIXER_MAX_OUTPUT_CHANNELS * AUDIO_MIXER_MAX_OUTPUT_CHANNELS * 2);
+
 			// Loop through all input to output channel map configurations and cache them
-			for (int32 InputChannelCount = 1; InputChannelCount < 9; ++InputChannelCount)
+			for (int32 InputChannelCount = 0; InputChannelCount < AUDIO_MIXER_MAX_OUTPUT_CHANNELS; ++InputChannelCount)
 			{
-				for (int32 OutputChannelCount = 1; OutputChannelCount < 9; ++OutputChannelCount)
+				for (int32 OutputChannelCount = 0; OutputChannelCount < AUDIO_MIXER_MAX_OUTPUT_CHANNELS; ++OutputChannelCount)
 				{
 					CacheChannelMap(InputChannelCount, OutputChannelCount, true);
 					CacheChannelMap(InputChannelCount, OutputChannelCount, false);
@@ -324,21 +305,6 @@ namespace Audio
 			}
 		}
 
-		// Build a map of azimuth positions of only the current audio device's output channels
-		CurrentChannelAzimuthPositions.Reset();
-		for (EAudioMixerChannel::Type Channel : PlatformInfo.OutputChannelArray)
-		{
-			// Only track non-LFE and non-Center channel azimuths for use with 3d channel mappings
-			if (Channel != EAudioMixerChannel::LowFrequency && DefaultChannelAzimuthPosition[Channel].Azimuth >= 0)
-			{
-				++NumSpatialChannels;
-				CurrentChannelAzimuthPositions.Add(DefaultChannelAzimuthPosition[Channel]);
-			}
-		}
-
-		check(NumSpatialChannels > 0);
-		OmniPanFactor = 1.0f / FMath::Sqrt(NumSpatialChannels);
-
 		// Sort the current mapping by azimuth
 		struct FCompareByAzimuth
 		{
@@ -348,6 +314,103 @@ namespace Audio
 			}
 		};
 
-		CurrentChannelAzimuthPositions.Sort(FCompareByAzimuth());
+		// Build a map of azimuth positions of only the current audio device's output channels
+		ChannelAzimuthPositions.Reset();
+
+		// Setup the default channel azimuth positions
+		TArray<FChannelPositionInfo> DevicePositions;
+		for (EAudioMixerChannel::Type Channel : PlatformInfo.OutputChannelArray)
+		{
+			// Only track non-LFE and non-Center channel azimuths for use with 3d channel mappings
+			if (Channel != EAudioMixerChannel::LowFrequency && DefaultChannelAzimuthPosition[Channel].Azimuth >= 0)
+			{
+				DevicePositions.Add(DefaultChannelAzimuthPosition[Channel]);
+			}
+		}
+		DevicePositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::Device, DevicePositions);
+		OutputChannels[int32(ESubmixChannelFormat::Device)] = 0;
+
+		// Now add channel mappings for the other submix types
+		TArray<FChannelPositionInfo> StereoPositions;
+		StereoPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontLeft]);
+		StereoPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight]);
+		StereoPositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::Stereo, StereoPositions);
+		OutputChannels[int32(ESubmixChannelFormat::Stereo)] = StereoPositions.Num();
+
+		TArray<FChannelPositionInfo> QuadPositions;
+		QuadPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontLeft]);
+		QuadPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight]);
+		QuadPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideLeft]);
+		QuadPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideRight]);
+		QuadPositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::Quad, QuadPositions);
+		OutputChannels[int32(ESubmixChannelFormat::Quad)] = QuadPositions.Num();
+
+		TArray<FChannelPositionInfo> FiveDotOnePositions;
+		FiveDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontLeft]);
+		FiveDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight]);
+		FiveDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideLeft]);
+		FiveDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideRight]);
+		FiveDotOnePositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::FiveDotOne, FiveDotOnePositions);
+		OutputChannels[int32(ESubmixChannelFormat::FiveDotOne)] = FiveDotOnePositions.Num();
+
+		TArray<FChannelPositionInfo> SevenDotOnePositions;
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontLeft]);
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight]);
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::BackLeft]);
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::BackRight]);
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideLeft]);
+		SevenDotOnePositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideRight]);
+		SevenDotOnePositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::SevenDotOne, SevenDotOnePositions);
+		OutputChannels[int32(ESubmixChannelFormat::SevenDotOne)] = SevenDotOnePositions.Num();
+
+		TArray<FChannelPositionInfo> FirstOrderAmbisonicsPositions;
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontLeft]);
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::FrontRight]);
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::BackLeft]);
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::BackRight]);
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideLeft]);
+		FirstOrderAmbisonicsPositions.Add(DefaultChannelAzimuthPosition[EAudioMixerChannel::SideRight]);
+		FirstOrderAmbisonicsPositions.Sort(FCompareByAzimuth());
+		ChannelAzimuthPositions.Add(ESubmixChannelFormat::FirstOrderAmbisonics, FirstOrderAmbisonicsPositions);
+		OutputChannels[int32(ESubmixChannelFormat::FirstOrderAmbisonics)] = FirstOrderAmbisonicsPositions.Num();
 	}
+
+	int32 FMixerDevice::GetNumChannelsForSubmixFormat(const ESubmixChannelFormat InSubmixChannelType) const
+	{
+		if (InSubmixChannelType == ESubmixChannelFormat::Device)
+		{
+			return PlatformInfo.NumChannels;
+		}
+
+		return OutputChannels[(int32)InSubmixChannelType];
+	}
+
+	ESubmixChannelFormat FMixerDevice::GetSubmixChannelFormatForNumChannels(const int32 InNumChannels) const
+	{
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
+		{
+			if (OutputChannels[i] == InNumChannels)
+			{
+				return (ESubmixChannelFormat)i;
+			}
+		}
+		ensureMsgf(false, TEXT("Unsupported number of submix channels %d"), InNumChannels);
+		return ESubmixChannelFormat::Device;
+	}
+
+	const TArray<EAudioMixerChannel::Type>& FMixerDevice::GetChannelArrayForSubmixChannelType(const ESubmixChannelFormat InSubmixChannelType) const
+	{
+		if (InSubmixChannelType == ESubmixChannelFormat::Device)
+		{
+			return PlatformInfo.OutputChannelArray;
+		}
+		const TArray<EAudioMixerChannel::Type>* ChannelArray = ChannelArrays.Find(InSubmixChannelType);
+		return *ChannelArray;
+	}
+
 }

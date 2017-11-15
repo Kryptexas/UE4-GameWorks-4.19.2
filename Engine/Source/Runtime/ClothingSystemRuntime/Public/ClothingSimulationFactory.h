@@ -16,4 +16,7 @@ public:
 	virtual IClothingSimulation* CreateSimulation() override;
 	virtual void DestroySimulation(IClothingSimulation* InSimulation) override;
 	virtual bool SupportsAsset(UClothingAssetBase* InAsset) override;
+
+	virtual bool SupportsRuntimeInteraction() override;
+	virtual UClothingSimulationInteractor* CreateInteractor() override;
 };

@@ -121,4 +121,8 @@ class UNREALED_API UPhysicsAssetEditorOptions : public UObject
 	/** When set, turns opacity of solid rendering for unselected bodies to zero */
 	UPROPERTY(config)
 	bool bSolidRenderingForSelectedOnly;
+
+	/** When set, cloth will reset each time simulation is toggled */
+	UPROPERTY(EditAnywhere, config, Category=Clothing)
+	bool bResetClothWhenSimulating;
 };

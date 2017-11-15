@@ -24,9 +24,6 @@ public:
 	{
 	}
 
-	/** Option to show grid */
-	TSharedPtr< FUICommandInfo > ToggleGrid;
-
 	/** Option to align floor to Mesh */
 	TSharedPtr< FUICommandInfo > AutoAlignFloorToMesh;
 
@@ -110,11 +107,11 @@ public:
 	/** Show all local axes */
 	TSharedPtr< FUICommandInfo > ShowLocalAxesAll;
 
-	/** Disable cloth simulation */
-	TSharedPtr< FUICommandInfo > DisableClothSimulation;
+	/** Enable cloth simulation */
+	TSharedPtr< FUICommandInfo > EnableClothSimulation;
 
-	/** Apply wind for clothing */
-	TSharedPtr< FUICommandInfo > ApplyClothWind;
+	/** Reset cloth simulation */
+	TSharedPtr< FUICommandInfo > ResetClothSimulation;
 
 	/** Enables collision detection between collision primitives in the base mesh 
 	  * and clothing on any attachments in the preview scene. 

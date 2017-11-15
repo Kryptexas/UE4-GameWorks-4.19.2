@@ -367,17 +367,6 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
 #endif
 
-	enum ESectionDisplayMode
-	{
-		None = -1,
-		ShowAll,
-		ShowOnlyClothSections,
-		HideOnlyClothSections,
-		NumSectionDisplayMode
-	};
-	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
-	int32 SectionsDisplayMode;
-
 	/** 
 	 * toggle visibility between cloth sections and non-cloth sections for all LODs
 	 * if bShowOnlyClothSections is true, shows only cloth sections. On the other hand, 
@@ -392,8 +381,6 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 * one from this editor-only component. Intended for debug options/visualisations/editor-only code to poke the sim
 	 */
 	IClothingSimulation* GetMutableClothingSimulation();
-
-	int32 FindCurrentSectionDisplayMode();
 
 	/** to avoid clothing reset while modifying properties in Persona */
 	virtual void CheckClothTeleport() override;

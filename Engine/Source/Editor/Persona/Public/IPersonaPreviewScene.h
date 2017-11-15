@@ -85,8 +85,8 @@ public:
 	/** Get the preview mesh for this scene (does go via skeleton/asset) */
 	virtual USkeletalMesh* GetPreviewMesh() const = 0;
 
-	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. */
-	virtual void ShowReferencePose() = 0;
+	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. Optionally reset bone transforms, if any. */
+	virtual void ShowReferencePose(bool bResetBoneTransforms = false) = 0;
 
 	/* Are we currently displaying the ref pose */
 	virtual bool IsShowReferencePoseEnabled() const = 0;

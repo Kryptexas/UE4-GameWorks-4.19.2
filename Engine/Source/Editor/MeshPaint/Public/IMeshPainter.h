@@ -107,7 +107,6 @@ protected:
 
 	float WidgetLineThickness;
 	FLinearColor WidgetLineColor;
-	float VertexPointSize;
 	FLinearColor VertexPointColor;
 	FLinearColor HoverVertexPointColor;
 protected:

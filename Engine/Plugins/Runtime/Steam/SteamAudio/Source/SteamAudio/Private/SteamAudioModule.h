@@ -43,7 +43,7 @@ namespace SteamAudio
 
 		virtual TAudioSpatializationPtr CreateNewSpatializationPlugin(FAudioDevice* OwningDevice) override;
 
-		virtual UClass* GetCustomOcclusionSettingsClass() const override
+		virtual UClass* GetCustomSpatializationSettingsClass() const override
 		{ 
 			return UPhononOcclusionSourceSettings::StaticClass(); 
 		}

@@ -1421,12 +1421,10 @@ public:
 	/** 3rd party listener observers registered to this audio device. */
 	TArray<TAudioPluginListenerPtr> PluginListeners;
 
-private:
-	// Audio thread representation of listeners
-	TArray<FListener> Listeners;
-
 	// Game thread cache of listener transforms
 	TArray<FTransform> ListenerTransforms;
+
+private:
 
 	uint64 CurrentTick;
 
@@ -1454,6 +1452,8 @@ private:
 
 	/** Set of sources used to play sounds (platform will subclass these) */
 protected:
+	// Audio thread representation of listeners
+	TArray<FListener> Listeners;
 	TArray<FSoundSource*> Sources;
 	TArray<FSoundSource*> FreeSources;
 

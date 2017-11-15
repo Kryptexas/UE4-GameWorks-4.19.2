@@ -234,9 +234,12 @@ namespace Audio
 		void SetVolume(const int32 SourceId, const float Volume);
 		void SetDistanceAttenuation(const int32 SourceId, const float DistanceAttenuation);
 		void SetSpatializationParams(const int32 SourceId, const FSpatializationParams& InParams);
-		void SetChannelMap(const int32 SourceId, const TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
+		void SetChannelMap(const int32 SourceId, const ESubmixChannelFormat SubmixChannelType, const TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 		void SetLPFFrequency(const int32 SourceId, const float Frequency);
 		void SetHPFFrequency(const int32 SourceId, const float Frequency);
+
+		void SetListenerTransforms(const TArray<FTransform>& ListenerTransforms);
+		const TArray<FTransform>* GetListenerTransforms() const;
 
 		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously);
 
@@ -246,7 +249,7 @@ namespace Audio
 		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;
 		void ComputeNextBlockOfSamples();
-		void MixOutputBuffers(const int32 SourceId, AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(const int32 SourceId, const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const;
 
 		void SetSubmixSendInfo(const int32 SourceId, const FMixerSourceSubmixSend& SubmixSend);
 
@@ -336,6 +339,22 @@ namespace Audio
 
 		TArray<int32> DebugSoloSources;
 
+		struct FSubmixChannelTypeInfo
+		{
+			// Channel map parameter
+			FSourceChannelMap ChannelMapParam;
+
+			// Output buffer based on channel map param
+			TArray<float> OutputBuffer;
+
+			// Whether or not this channel type is used
+			bool bUsed;
+
+			FSubmixChannelTypeInfo()
+				: bUsed(false)
+			{}
+		};
+
 		struct FSourceInfo
 		{
 			FSourceInfo() {}
@@ -395,14 +414,15 @@ namespace Audio
 			Audio::FEnvelopeFollower SourceEnvelopeFollower;
 			float SourceEnvelopeValue;
 
-			FSourceChannelMap ChannelMapParam;
 			FSpatializationParams SpatParams;
 			TArray<float> ScratchChannelMap;
 
 			// Output data, after computing a block of sample data, this is read back from mixers
 			TArray<float> ReverbPluginOutputBuffer;
 			TArray<float>* PostEffectBuffers;
-			TArray<float> OutputBuffer;
+
+			// Data needed for outputting to submixes
+			FSubmixChannelTypeInfo SubmixChannelInfo[(int32) ESubmixChannelFormat::Count];
 
 			// State management
 			bool bIs3D;
@@ -430,6 +450,9 @@ namespace Audio
 
 		void ApplyDistanceAttenuation(FSourceInfo& InSourceInfo, int32 NumSamples);
 		void ComputePluginAudio(FSourceInfo& InSourceInfo, int32 SourceId, int32 NumSamples);
+
+		// Array of listener transforms
+		TArray<FTransform> ListenerTransforms;
 
 		// Array of source infos.
 		TArray<FSourceInfo> SourceInfos;

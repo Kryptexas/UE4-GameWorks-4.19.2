@@ -92,7 +92,8 @@ private:
 	int32 MaxRemainderSize;
 	/** Current amount of raw data left over from last encode */
 	int32 LastRemainderSize;
-
+	/** Cached Sample Count to allow us to compare the SampleCount of a call to GetVoiceData against the previous call. */
+	uint64 CachedSampleCount;
 	/** Use hard coded audio test data in TestVoiceData.h */
 	bool bUseTestSample;
 	/** Zero out input before encoding */

@@ -194,6 +194,14 @@ namespace Audio
 				}
 			}
 
+			// Loop through all submix sends to figure out what speaker maps this source is using
+			for (FMixerSourceSubmixSend& Send : InitParams.SubmixSends)
+			{
+				ESubmixChannelFormat SubmixChannelType = Send.Submix->GetSubmixChannels();
+				ChannelMaps[(int32)SubmixChannelType].bUsed = true;
+				ChannelMaps[(int32)SubmixChannelType].ChannelMap.Reset();
+			}
+
 			// Check to see if this sound has been flagged to be in debug mode
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
 			InitParams.DebugName = InWaveInstance->GetName();
@@ -248,8 +256,6 @@ namespace Audio
 				}
 
 				bInitialized = true;
-
-				ChannelMap.Reset();
 
 				Update();
 
@@ -308,6 +314,9 @@ namespace Audio
 			LPFFrequency = MAX_FILTER_FREQUENCY;
 			LastLPFFrequency = FLT_MAX;
 			bIsFinished = false;
+
+			EBufferType::Type BufferType = MixerBuffer->GetType();
+			bResourcesNeedFreeing = (BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming);
 
 			// Not all wave data types have PCM data size at this point (e.g. procedural sound waves)
 			if (InWaveInstance->WaveData->RawPCMDataSize > 0)
@@ -586,7 +595,8 @@ namespace Audio
 			ProcessRealTimeSource(true, false);
 		}
 
-		bResourcesNeedFreeing = true;
+		// We should have set this
+		check(bResourcesNeedFreeing);
 	}
 
 	bool FMixerSource::ReadMorePCMRTData(const int32 BufferIndex, EBufferReadMode BufferReadMode, bool* OutLooped)
@@ -839,6 +849,13 @@ namespace Audio
 		bBuffersToFlush = false;
 		bLoopCallback = false;
 		bResourcesNeedFreeing = false;
+
+		// Reset the source's channel maps
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
+		{
+			ChannelMaps[i].bUsed = false;
+			ChannelMaps[i].ChannelMap.Reset();
+		}
 	}
 
 	void FMixerSource::UpdatePitch()
@@ -917,6 +934,7 @@ namespace Audio
 		if (bReverbApplied)
 		{
 			float ReverbSendLevel = 0.0f;
+			ChannelMaps[(int32)ESubmixChannelFormat::Device].bUsed = true;
 
 			if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Manual)
 			{
@@ -955,11 +973,12 @@ namespace Audio
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			if (SendInfo.SoundSubmix)
-			{
-				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
-				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
-			}
+			FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
+			MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+
+			// Make sure we flag that we're using this submix sends since these can be dynamically added from BP
+			// If we don't flag this then these channel maps won't be generated for this channel format
+			ChannelMaps[(int32)SendInfo.SoundSubmix->ChannelFormat].bUsed = true;
 		}
 	}
 
@@ -969,18 +988,26 @@ namespace Audio
 
 		SetLFEBleed();
 
-		bool bChanged = false;
+		int32 NumOutputDeviceChannels = MixerDevice->GetNumDeviceChannels();
+		const FAudioPlatformDeviceInfo& DeviceInfo = MixerDevice->GetPlatformDeviceInfo();
 
-		check(Buffer);
-		bChanged = ComputeChannelMap(Buffer->NumChannels);
-
-		if (bChanged)
+		// Compute a new speaker map for each possible output channel mapping for the source
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
 		{
-			MixerSourceVoice->SetChannelMap(ChannelMap, bIs3D, WaveInstance->bCenterChannelOnly);
+			FChannelMapInfo& ChannelMapInfo = ChannelMaps[i];
+			if (ChannelMapInfo.bUsed)
+			{
+				ESubmixChannelFormat ChannelType = (ESubmixChannelFormat)i;
+				check(Buffer);
+				if (ComputeChannelMap(ChannelType, Buffer->NumChannels, ChannelMapInfo.ChannelMap))
+				{
+					MixerSourceVoice->SetChannelMap(ChannelType, ChannelMapInfo.ChannelMap, bIs3D, WaveInstance->bCenterChannelOnly);
+				}
+			}
 		}
 	}
 
-	bool FMixerSource::ComputeMonoChannelMap()
+	bool FMixerSource::ComputeMonoChannelMap(const ESubmixChannelFormat SubmixChannelType, TArray<float>& OutChannelMap)
 	{
 		if (UseObjectBasedSpatialization())
 		{
@@ -991,20 +1018,20 @@ namespace Audio
 			}
 
 			// Treat the source as if it is a 2D stereo source
-			return ComputeStereoChannelMap();
+			return ComputeStereoChannelMap(SubmixChannelType, OutChannelMap);
 		}
 		else if (WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Don't need to compute the source channel map if the absolute azimuth hasn't changed much
 			PreviousAzimuth = WaveInstance->AbsoluteAzimuth;
-			ChannelMap.Reset();
-			MixerDevice->Get3DChannelMap(WaveInstance, WaveInstance->AbsoluteAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			OutChannelMap.Reset();
+			MixerDevice->Get3DChannelMap(SubmixChannelType, WaveInstance, WaveInstance->AbsoluteAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
 			return true;
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
 			// Only need to compute the 2D channel map once
-			MixerDevice->Get2DChannelMap(1, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(SubmixChannelType, 1, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 
@@ -1012,7 +1039,7 @@ namespace Audio
 		return false;
 	}
 
-	bool FMixerSource::ComputeStereoChannelMap()
+	bool FMixerSource::ComputeStereoChannelMap(const ESubmixChannelFormat InSubmixChannelType, TArray<float>& OutChannelMap)
 	{
 		if (!UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
@@ -1039,37 +1066,35 @@ namespace Audio
 			}
 
 			// Reset the channel map, the stereo spatialization channel mapping calls below will append their mappings
-			ChannelMap.Reset();
+			OutChannelMap.Reset();
 
-			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
-			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			MixerDevice->Get3DChannelMap(InSubmixChannelType, WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
+			MixerDevice->Get3DChannelMap(InSubmixChannelType, WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
 
-			int32 NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
-			check(ChannelMap.Num() == 2 * NumDeviceChannels);
 			return true;
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(2, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(InSubmixChannelType, 2, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool FMixerSource::ComputeChannelMap(const int32 NumChannels)
+	bool FMixerSource::ComputeChannelMap(const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, TArray<float>& OutChannelMap)
 	{
-		if (NumChannels == 1)
+		if (NumSourceChannels == 1)
 		{
-			return ComputeMonoChannelMap();
+			return ComputeMonoChannelMap(InSubmixChannelType, OutChannelMap);
 		}
-		else if (NumChannels == 2)
+		else if (NumSourceChannels == 2)
 		{
-			return ComputeStereoChannelMap();
+			return ComputeStereoChannelMap(InSubmixChannelType, OutChannelMap);
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(NumChannels, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(InSubmixChannelType, NumSourceChannels, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 		return false;

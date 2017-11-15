@@ -1061,6 +1061,27 @@ public:
 	 */
 	bool IsFlightCameraActive() const;
 
+	/** Delegate handler fired when a show flag is toggled */
+	virtual void HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex);
+
+	/** Delegate handler fired to determine the state of a show flag */
+	virtual bool HandleIsShowFlagEnabled(FEngineShowFlags::EShowFlag EngineShowFlagIndex) const;
+
+	/**
+	 * Changes the buffer visualization mode for this viewport
+	 *
+	 * @param InName	The ID of the required visualization mode
+	 */
+	void ChangeBufferVisualizationMode( FName InName );
+
+	/**
+	 * Checks if a buffer visualization mode is selected
+	 * 
+	 * @param InName	The ID of the required visualization mode
+	 * @return	true if the supplied buffer visualization mode is checked
+	 */
+	bool IsBufferVisualizationModeSelected( FName InName ) const;
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();

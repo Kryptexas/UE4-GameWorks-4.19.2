@@ -51,6 +51,7 @@ THIRD_PARTY_INCLUDES_END
 #include "AbcAssetImportData.h"
 
 #include "AssetRegistryModule.h"
+#include "AnimationUtils.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporter"
 
@@ -1192,6 +1193,7 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		// Retrieve the name mapping container
 		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 		Sequence->RawCurveData.RefreshName(NameMapping);
+		Sequence->CompressionScheme = FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
 		Sequence->MarkRawDataAsModified();
 		Sequence->PostEditChange();
 		Sequence->SetPreviewMesh(SkeletalMesh);

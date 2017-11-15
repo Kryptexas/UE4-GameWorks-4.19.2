@@ -460,7 +460,9 @@ void FPhysicsAssetEditor::ExtendToolbar()
 			TSharedRef<FUICommandList> InCommandList = PhysicsAssetEditor->GetToolkitCommands();
 
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef());
+			FPersonaModule::FCommonToolbarExtensionArgs Args;
+			Args.bReferencePose = true;
+			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef(), Args);
 
 			ToolbarBuilder.BeginSection("PhysicsAssetEditorBodyTools");
 			{
@@ -1662,16 +1664,19 @@ void FPhysicsAssetEditor::OnCopyProperties()
 
 void FPhysicsAssetEditor::OnPasteProperties()
 {
-	if(SharedData->SelectedBodies.Num() == 1)
+	if(SharedData->SelectedBodies.Num() > 0)
 	{
 		SharedData->PasteBodyProperties();
 	}
-	else if (SharedData->SelectedConstraints.Num() == 1)
+	else if (SharedData->SelectedConstraints.Num() > 0)
 	{
 		SharedData->PasteConstraintProperties();
 	}
 	
+	RecreatePhysicsState();
+	SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);
 	RefreshPreviewViewport();
+	RefreshHierachyTree();
 }
 
 bool FPhysicsAssetEditor::CanCopyProperties() const
@@ -1693,7 +1698,7 @@ bool FPhysicsAssetEditor::CanCopyProperties() const
 
 bool FPhysicsAssetEditor::CanPasteProperties() const
 {
-	return IsSelectedEditMode() && IsCopyProperties();
+	return IsSelectedEditMode() && IsCopyProperties() && (SharedData->SelectedBodies.Num() > 0 || SharedData->SelectedConstraints.Num() > 0);
 }
 
 bool FPhysicsAssetEditor::IsCopyProperties() const
@@ -2357,6 +2362,9 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 {
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
 
+	// Block selection broadcast until we have selected all, as this can be an expensive operation
+	FScopedBulkSelection BulkSelection(SharedData);
+	
 	//Bodies
 	//first deselect everything
 	SharedData->ClearSelectedBody();
@@ -2394,7 +2402,6 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 				FPhysicsAssetEditorSharedData::FSelection Selection(i, EAggCollisionShape::Convex, j);
 				SharedData->SetSelectedBody(Selection, true);
 			}
-
 		}
 	}
 }
@@ -2402,6 +2409,9 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 void FPhysicsAssetEditor::OnSelectAllConstraints()
 {
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
+
+	// Block selection broadcast until we have selected all, as this can be an expensive operation
+	FScopedBulkSelection BulkSelection(SharedData);
 
 	//Constraints
 	//Deselect everything first
@@ -2488,6 +2498,9 @@ void FPhysicsAssetEditor::HandleGraphObjectsSelected(const TArrayView<UObject*>&
 			PhysAssetProperties->SetObjects(Objects);
 		}
 
+		// Block selection broadcast until we have selected all, as this can be an expensive operation
+		FScopedBulkSelection BulkSelection(SharedData);
+
 		// clear selection
 		SharedData->SelectedBodies.Empty();
 		SharedData->SelectedConstraints.Empty();
@@ -2570,6 +2583,9 @@ void FPhysicsAssetEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISk
 		// Only a user selection should change other view's selections
 		if (InSelectInfo != ESelectInfo::Direct)
 		{
+			// Block selection broadcast until we have selected all, as this can be an expensive operation
+			FScopedBulkSelection BulkSelection(SharedData);
+
 			// clear selection
 			SharedData->ClearSelectedBody();
 			SharedData->ClearSelectedConstraints();
@@ -2768,6 +2784,7 @@ void FPhysicsAssetEditor::RecreatePhysicsState()
 	// Flush geometry cache inside the asset (don't want to use cached version of old geometry!)
 	SharedData->PhysicsAsset->InvalidateAllPhysicsMeshes();
 	SharedData->EditorSkelComp->RecreatePhysicsState();
+	SharedData->EditorSkelComp->RecreateClothingActors();
 
 	// Reset simulation state of body instances so we dont actually simulate outside of 'simulation mode'
 	SharedData->ForceDisableSimulation();

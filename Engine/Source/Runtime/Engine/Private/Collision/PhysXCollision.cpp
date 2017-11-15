@@ -16,6 +16,7 @@ float DebugLineLifetime = 2.f;
 
 #include "Collision/CollisionDebugDrawing.h"
 #include "Collision/CollisionConversions.h"
+#include "ScopedTimers.h"
 
 /**
  * Helper to lock/unlock multiple scenes that also makes sure to unlock everything when it goes out of scope.
@@ -157,11 +158,193 @@ PxQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilterData
 	return PxQueryHitType::eNONE;
 }
 
+#if DETECT_SQ_HITCHES
+int GSQHitchDetection = 0;
+FAutoConsoleVariableRef CVarSQHitchDetection(TEXT("p.SQHitchDetection"), GSQHitchDetection,
+	TEXT("Whether to detect scene query hitches. 0 is off. 1 repeats a slow scene query once and prints extra information. 2+ repeat slow query n times without recording (useful when profiling)")
+);
+
+int GSQHitchDetectionForceNames = 0;
+FAutoConsoleVariableRef CVarSQHitchDetectionForceNames(TEXT("p.SQHitchDetectionForceNames"), GSQHitchDetectionForceNames,
+	TEXT("Whether name resolution is forced off the game thread. This is not 100% safe, but can be useful when looking at hitches off GT")
+);
+
+float GSQHitchDetectionThreshold = 0.05f;
+FAutoConsoleVariableRef CVarSQHitchDetectionThreshold(TEXT("p.SQHitchDetectionThreshold"), GSQHitchDetectionThreshold,
+	TEXT("Determines the threshold in milliseconds for a scene query hitch.")
+);
+#endif
+
+#if WITH_PHYSX
+/** Various info we want to capture for hitch detection reporting */
+struct FHitchDetectionInfo
+{
+#if DETECT_SQ_HITCHES
+	FVector Start;
+	FVector End;
+	PxTransform Pose;
+	ECollisionChannel TraceChannel;
+	const FCollisionQueryParams& Params;
+	bool bInTM;
+
+	FHitchDetectionInfo(const FVector& InStart, const FVector& InEnd, ECollisionChannel InTraceChannel, const FCollisionQueryParams& InParams)
+		: Start(InStart)
+		, End(InEnd)
+		, TraceChannel(InTraceChannel)
+		, Params(InParams)
+		, bInTM(false)
+	{
+	}
+
+	FHitchDetectionInfo(const PxTransform& InPose, ECollisionChannel InTraceChannel, const FCollisionQueryParams& InParams)
+		: Pose(InPose)
+		, TraceChannel(InTraceChannel)
+		, Params(InParams)
+		, bInTM(true)
+	{
+	}
+
+	FString ToString() const
+	{
+		if (bInTM)
+		{
+			return FString::Printf(TEXT("Pose:%s TraceChannel:%d Params:%s"), *P2UTransform(Pose).ToString(), (int32)TraceChannel, *Params.ToString());
+		}
+		else
+		{
+			return FString::Printf(TEXT("Start:%s End:%s TraceChannel:%d Params:%s"), *Start.ToString(), *End.ToString(), (int32)TraceChannel, *Params.ToString());
+		}
+	};
+#else
+	FHitchDetectionInfo(const FVector&, const FVector&, ECollisionChannel, const FCollisionQueryParams&) {}
+	FHitchDetectionInfo(const PxTransform& InPose, ECollisionChannel InTraceChannel, const FCollisionQueryParams& InParams) {}
+	FString ToString() const { return FString(); }
+#endif
+};
+
+template <typename BufferType>
+struct FScopedSQHitchRepeater
+{
+#if DETECT_SQ_HITCHES
+	double HitchDuration;
+	FDurationTimer HitchTimer;
+	int32 LoopCounter;
+	BufferType& UserBuffer;	//The buffer the user would normally use when no repeating happens
+	BufferType* OriginalBuffer;	//The buffer as it was before the query, this is needed to maintain the same buffer properties for each loop
+	BufferType* RepeatBuffer;			//Dummy buffer for loops
+	FPxQueryFilterCallback& QueryCallback;
+	FHitchDetectionInfo HitchDetectionInfo;
+
+	bool RepeatOnHitch()
+	{
+		if(GSQHitchDetection)
+		{
+			if (LoopCounter == 0)
+			{
+				HitchTimer.Stop();
+			}
+
+			const bool bLoop = (LoopCounter < GSQHitchDetection) && (HitchDuration * 1000.0) >= GSQHitchDetectionThreshold;
+			++LoopCounter;
+			
+			QueryCallback.bRecordHitches = QueryCallback.bRecordHitches ? true : bLoop && GSQHitchDetection == 1;
+			if (bLoop)
+			{
+				if (!RepeatBuffer)
+				{
+					RepeatBuffer = new BufferType(*OriginalBuffer);
+				}
+				else
+				{
+					*RepeatBuffer = *OriginalBuffer;	//make a copy to make sure we have the same behavior every iteration
+				}
+			}
+			return bLoop;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	FScopedSQHitchRepeater(BufferType& OutBuffer, FPxQueryFilterCallback& PQueryCallback, const FHitchDetectionInfo& InHitchDetectionInfo)
+		: HitchDuration(0.0)
+		, HitchTimer(HitchDuration)
+		, LoopCounter(0)
+		, UserBuffer(OutBuffer)
+		, OriginalBuffer(nullptr)
+		, RepeatBuffer(nullptr)
+		, QueryCallback(PQueryCallback)
+		, HitchDetectionInfo(InHitchDetectionInfo)
+	{
+		if (GSQHitchDetection)
+		{
+			OriginalBuffer = new BufferType(UserBuffer);
+			HitchTimer.Start();
+		}
+	}
+
+	BufferType& GetBuffer()
+	{
+		return LoopCounter == 0 ? UserBuffer : *RepeatBuffer;
+	}
+
+	~FScopedSQHitchRepeater()
+	{
+		if (QueryCallback.bRecordHitches)
+		{
+			const double DurationInMS = HitchDuration * 1000.0;
+			UE_LOG(LogCollision, Warning, TEXT("SceneQueryHitch: took %.3fms with %d calls to PreFilter"), DurationInMS, QueryCallback.PreFilterHitchInfo.Num());
+			UE_LOG(LogCollision, Warning, TEXT("\t%s"), *HitchDetectionInfo.ToString());
+			for (const FPxQueryFilterCallback::FPreFilterRecord& Record : QueryCallback.PreFilterHitchInfo)
+			{
+				UE_LOG(LogCollision, Warning, TEXT("\tPreFilter:%s, result=%d"), *Record.OwnerComponentReadableName, (int32)Record.Result);
+			}
+			QueryCallback.PreFilterHitchInfo.Empty();
+		}
+
+		QueryCallback.bRecordHitches = false;
+		delete RepeatBuffer;
+		delete OriginalBuffer;
+	}
+#else
+	FScopedSQHitchRepeater(BufferType& OutBuffer, FPxQueryFilterCallback& PQueryCallback, const FHitchDetectionInfo&)
+		: UserBuffer(OutBuffer)
+	{
+	}
+
+	BufferType& UserBuffer;	//The buffer the user would normally use when no repeating happens
+
+	BufferType& GetBuffer() const { return UserBuffer; }
+	bool RepeatOnHitch() const { return false; }
+#endif
+};
+#endif // WITH_PHYSX
+
 PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxHitFlags& queryFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_PreFilter);
 
 	ensureMsgf(shape, TEXT("Invalid shape encountered in FPxQueryFilterCallback::preFilter, actor: %p, filterData: %x %x %x %x"), actor, filterData.word0, filterData.word1, filterData.word2, filterData.word3);
+
+#if DETECT_SQ_HITCHES
+	FPreFilterRecord* PreFilterRecord = nullptr;
+	if (bRecordHitches && (IsInGameThread() || GSQHitchDetectionForceNames))
+	{
+		PreFilterHitchInfo.AddZeroed();
+		PreFilterRecord = &PreFilterHitchInfo[PreFilterHitchInfo.Num() - 1];
+		if (actor)
+		{
+			if (FBodyInstance* OwnerBI = FPhysxUserData::Get<FBodyInstance>(actor->userData))
+			{
+				if (UPrimitiveComponent* OwnerComp = OwnerBI->OwnerComponent.Get())
+				{
+					PreFilterRecord->OwnerComponentReadableName = OwnerComp->GetReadableName();
+				}
+			}
+		}
+	}
+#endif
 
 	if(!shape)
 	{
@@ -251,6 +434,13 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	{
 		Result = PxQueryHitType::eTOUCH;	//In the case of overlaps, physx only understands touches. We do this at the end to ensure all filtering logic based on block vs overlap is correct
 	}
+
+#if DETECT_SQ_HITCHES
+	if (PreFilterRecord)
+	{
+		PreFilterRecord->Result = Result;
+	}
+#endif
 
 	return  (PrefilterReturnValue = Result);
 }
@@ -479,7 +669,11 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 				// Enable scene locks, in case they are required
 				PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 				SCOPED_SCENE_READ_LOCK(SyncScene);
-				SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
+				FScopedSQHitchRepeater<decltype(PRaycastBuffer)> HitchRepeater(PRaycastBuffer, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do
+				{
+					SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
 				bHaveBlockingHit = PRaycastBuffer.hasBlock;
 			}
 
@@ -488,7 +682,11 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 			{
 				PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 				SCOPED_SCENE_READ_LOCK(AsyncScene);
-				AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
+				FScopedSQHitchRepeater<decltype(PRaycastBuffer)> HitchRepeater(PRaycastBuffer, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do
+				{
+					AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
 				bHaveBlockingHit = PRaycastBuffer.hasBlock;
 			}
 		}
@@ -550,7 +748,13 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 			PxRaycastBuffer PRaycastBuffer;
-			SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
+			{
+				FScopedSQHitchRepeater<decltype(PRaycastBuffer)> HitchRepeater(PRaycastBuffer, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do
+				{
+					SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
+			}
 			bHaveBlockingHit = PRaycastBuffer.hasBlock;
 			if (!bHaveBlockingHit)
 			{
@@ -564,7 +768,11 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 				PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 				SceneLocks.LockRead(World, AsyncScene, PST_Async);
 				PxRaycastBuffer PRaycastBufferAsync;
-				AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBufferAsync, POutputFlags, PQueryFilterData, &PQueryCallback);
+				FScopedSQHitchRepeater<decltype(PRaycastBufferAsync)> HitchRepeater(PRaycastBufferAsync, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do
+				{
+					AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
 				const bool bHaveBlockingHitAsync = PRaycastBufferAsync.hasBlock;
 
 				// If we have a blocking hit in the async scene and there was no sync blocking hit, or if the async blocking hit came first,
@@ -710,8 +918,14 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 
 		FScopedMultiSceneReadLock SceneLocks;
 		SceneLocks.LockRead(World, SyncScene, PST_Sync);
+		{
+			FScopedSQHitchRepeater<decltype(PRaycastBuffer)> HitchRepeater(PRaycastBuffer, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+			} while (HitchRepeater.RepeatOnHitch());
+		}
 
-		SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
 		PxI32 NumHits = PRaycastBuffer.GetNumHits();
 
 		if (NumHits == 0)
@@ -735,7 +949,12 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 			PxI32 NumAsyncHits = 0;
 			if(RayLength > SMALL_NUMBER) // don't bother doing the trace if the sync scene trace gave a hit time of zero
 			{
-				AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
+				FScopedSQHitchRepeater<decltype(PRaycastBuffer)> HitchRepeater(PRaycastBuffer, PQueryCallback, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do 
+				{
+					AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
+
 				NumAsyncHits = PRaycastBuffer.GetNumHits() - NumHits;
 			}
 
@@ -952,7 +1171,12 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 			PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 			SCOPED_SCENE_READ_LOCK(SyncScene);
 			PxSweepBuffer PSweepBuffer;
-			SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			} while (HitchRepeater.RepeatOnHitch());
+
 			bHaveBlockingHit = PSweepBuffer.hasBlock;
 		}
 
@@ -962,7 +1186,11 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 			SCOPED_SCENE_READ_LOCK(AsyncScene);
 			PxSweepBuffer PSweepBuffer;
-			AsyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				AsyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			} while (HitchRepeater.RepeatOnHitch());
 			bHaveBlockingHit = PSweepBuffer.hasBlock;
 		}
 	}
@@ -1037,7 +1265,14 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 		PxSweepBuffer PSweepBuffer;
-		SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+		{
+			FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+
+			} while (HitchRepeater.RepeatOnHitch());
+		}
 		bHaveBlockingHit = PSweepBuffer.hasBlock;
 		PxSweepHit PHit = PSweepBuffer.block;
 
@@ -1055,7 +1290,12 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 			bool bHaveBlockingHitAsync;
 			PxSweepBuffer PSweepBufferAsync;
-			AsyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBufferAsync, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				AsyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+
+			} while (HitchRepeater.RepeatOnHitch());
 			bHaveBlockingHitAsync = PSweepBufferAsync.hasBlock;
 			PxSweepHit PHitAsync = PSweepBufferAsync.block;
 
@@ -1156,8 +1396,14 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 		float MinBlockDistance = DeltaMag;
 
 		FDynamicHitBuffer<PxSweepHit> PSweepBuffer;
-
-		SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+		{
+			FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+			do
+			{
+				SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			} while (HitchRepeater.RepeatOnHitch());
+		}
+				
 		bool bBlockingHitSync = PSweepBuffer.hasBlock;
 		PxI32 NumHits = PSweepBuffer.GetNumHits();
 
@@ -1178,7 +1424,14 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 			SceneLocks.LockRead(World, AsyncScene, PST_Async);
 
-			AsyncScene->sweep(PGeom, PStartTM, PDir, MinBlockDistance, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+			{
+				FScopedSQHitchRepeater<decltype(PSweepBuffer)> HitchRepeater(PSweepBuffer, PQueryCallbackSweep, FHitchDetectionInfo(Start, End, TraceChannel, Params));
+				do
+				{
+					AsyncScene->sweep(PGeom, PStartTM, PDir, MinBlockDistance, HitchRepeater.GetBuffer(), POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
+				} while (HitchRepeater.RepeatOnHitch());
+			}
+
 			bool bBlockingHitAsync = PSweepBuffer.hasBlock;
 			PxI32 NumAsyncHits = PSweepBuffer.GetNumHits() - NumHits;
 			if (NumAsyncHits == 0)
@@ -1311,7 +1564,12 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		
 		if ((InfoType == EQueryInfo::IsAnything) || (InfoType == EQueryInfo::IsBlocking))
 		{
-			SyncScene->overlap(PGeom, PGeomPose, POverlapBuffer, PQueryFilterDataAny, &PQueryCallback);
+			FScopedSQHitchRepeater<decltype(POverlapBuffer)> HitchRepeater(POverlapBuffer, PQueryCallback, FHitchDetectionInfo(PGeomPose, TraceChannel, Params));
+			do
+			{
+				SyncScene->overlap(PGeom, PGeomPose, HitchRepeater.GetBuffer(), PQueryFilterDataAny, &PQueryCallback);
+			} while (HitchRepeater.RepeatOnHitch());
+
 			if (POverlapBuffer.hasBlock)
 			{
 				return true;
@@ -1320,7 +1578,13 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		else
 		{
 			checkSlow(InfoType == EQueryInfo::GatherAll);
-			SyncScene->overlap(PGeom, PGeomPose, POverlapBuffer, PQueryFilterData, &PQueryCallback);
+			
+			FScopedSQHitchRepeater<decltype(POverlapBuffer)> HitchRepeater(POverlapBuffer, PQueryCallback, FHitchDetectionInfo(PGeomPose, TraceChannel, Params));
+			do
+			{
+				SyncScene->overlap(PGeom, PGeomPose, HitchRepeater.GetBuffer(), PQueryFilterData, &PQueryCallback);
+			} while (HitchRepeater.RepeatOnHitch());
+
 			NumHits = POverlapBuffer.GetNumHits();
 			if (NumHits == 0)
 			{
@@ -1339,7 +1603,12 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		
 			if ((InfoType == EQueryInfo::IsAnything) || (InfoType == EQueryInfo::IsBlocking))
 			{
-				AsyncScene->overlap(PGeom, PGeomPose, POverlapBuffer, PQueryFilterDataAny, &PQueryCallback);
+				FScopedSQHitchRepeater<decltype(POverlapBuffer)> HitchRepeater(POverlapBuffer, PQueryCallback, FHitchDetectionInfo(PGeomPose, TraceChannel, Params));
+				do
+				{
+					AsyncScene->overlap(PGeom, PGeomPose, HitchRepeater.GetBuffer(), PQueryFilterDataAny, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
+				
 				if (POverlapBuffer.hasBlock)
 				{
 					return true;
@@ -1348,7 +1617,13 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 			else
 			{
 				checkSlow(InfoType == EQueryInfo::GatherAll);
-				AsyncScene->overlap(PGeom, PGeomPose, POverlapBuffer, PQueryFilterData, &PQueryCallback);
+
+				FScopedSQHitchRepeater<decltype(POverlapBuffer)> HitchRepeater(POverlapBuffer, PQueryCallback, FHitchDetectionInfo(PGeomPose, TraceChannel, Params));
+				do
+				{
+					AsyncScene->overlap(PGeom, PGeomPose, HitchRepeater.GetBuffer(), PQueryFilterData, &PQueryCallback);
+				} while (HitchRepeater.RepeatOnHitch());
+
 				PxI32 NumAsyncHits = POverlapBuffer.GetNumHits() - NumHits;
 				if (NumAsyncHits == 0)
 				{

@@ -5,6 +5,9 @@
 #include "UObjectHash.h"
 #include "LiveLinkSourceFactory.h"
 #include "Guid.h"
+#include "Package.h"
+
+DEFINE_LOG_CATEGORY(LogLiveLink);
 
 const double VALIDATE_SOURCES_TIME = 3.0; //How long should we wait between validation checks
 const int32 MIN_FRAMES_TO_REMOVE = 5;
@@ -66,7 +69,7 @@ void FLiveLinkSubject::AddFrame(const TArray<FTransform>& Transforms, const TArr
 
 	FLiveLinkFrame* NewFrame = nullptr;
 
-	if(CachedConnectionSettings.bUseInterpolation)
+	if(CachedInterpolationSettings.bUseInterpolation)
 	{
 		if (TimeCode.Time < LastReadTime)
 		{
@@ -151,7 +154,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 	OutFrame.Transforms.Reset();
 	OutFrame.Curves.Reset();
 
-	if (!CachedConnectionSettings.bUseInterpolation)
+	if (!CachedInterpolationSettings.bUseInterpolation)
 	{
 		OutFrame.Transforms = Frames.Last().Transforms;
 		OutFrame.Curves = Frames.Last().Curves;
@@ -160,7 +163,7 @@ void FLiveLinkSubject::BuildInterpolatedFrame(const double InSeconds, FLiveLinkS
 	}
 	else
 	{
-		LastReadTime = (InSeconds - SubjectTimeOffset) - CachedConnectionSettings.InterpolationOffset;
+		LastReadTime = (InSeconds - SubjectTimeOffset) - CachedInterpolationSettings.InterpolationOffset;
 
 		bool bBuiltFrame = false;
 
@@ -240,6 +243,14 @@ void FLiveLinkClient::Tick(float DeltaTime)
 	BuildThisTicksSubjectSnapshot();
 }
 
+void FLiveLinkClient::AddReferencedObjects(FReferenceCollector & Collector)
+{
+	for (const ULiveLinkSourceSettings* Settings : SourceSettings)
+	{
+		Collector.AddReferencedObject(Settings);
+	}
+}
+
 void FLiveLinkClient::ValidateSources()
 {
 	bool bSourcesChanged = false;
@@ -287,10 +298,10 @@ void FLiveLinkClient::BuildThisTicksSubjectSnapshot()
 
 			FLiveLinkSubject& SourceSubject = SubjectPair.Value;
 
-			FLiveLinkConnectionSettings* SubjectConnectionSettings = GetConnectionSettingsForEntry(SourceSubject.LastModifier);
-			if (SubjectConnectionSettings)
+			FLiveLinkInterpolationSettings* SubjectInterpolationSettings = GetInterpolationSettingsForEntry(SourceSubject.LastModifier);
+			if (SubjectInterpolationSettings)
 			{
-				SourceSubject.CachedConnectionSettings = *SubjectConnectionSettings;
+				SourceSubject.CachedInterpolationSettings = *SubjectInterpolationSettings;
 			}
 
 			if (SourceSubject.Frames.Num() > 0)
@@ -312,16 +323,29 @@ void FLiveLinkClient::AddSource(TSharedPtr<ILiveLinkSource> InSource)
 {
 	Sources.Add(InSource);
 	SourceGuids.Add(FGuid::NewGuid());
-	ConnectionSettings.AddDefaulted();
 
+	UClass* CustomSettingsClass = InSource->GetCustomSettingsClass();
+
+	if (CustomSettingsClass && !CustomSettingsClass->IsChildOf<ULiveLinkSourceSettings>())
+	{
+		UE_LOG(LogLiveLink, Warning, TEXT("Custom Setting Failure: Source '%s' settings class '%s' does not derive from ULiveLinkSourceSettings"), *InSource->GetSourceType().ToString(), *CustomSettingsClass->GetName());
+		CustomSettingsClass = nullptr;
+	}
+
+	UClass* SettingsClass = CustomSettingsClass ? CustomSettingsClass : ULiveLinkSourceSettings::StaticClass();
+	ULiveLinkSourceSettings* NewSettings = NewObject<ULiveLinkSourceSettings>(GetTransientPackage(), SettingsClass);
+
+	SourceSettings.Add(NewSettings);
+	
 	InSource->ReceiveClient(this, SourceGuids.Last());
+	InSource->InitializeSettings(NewSettings);
 }
 
 void FLiveLinkClient::RemoveSourceInternal(int32 SourceIdx)
 {
 	Sources.RemoveAtSwap(SourceIdx, 1, false);
 	SourceGuids.RemoveAtSwap(SourceIdx, 1, false);
-	ConnectionSettings.RemoveAtSwap(SourceIdx, 1, false);
+	SourceSettings.RemoveAtSwap(SourceIdx, 1, false);
 }
 
 void FLiveLinkClient::RemoveSource(FGuid InEntryGuid)
@@ -342,7 +366,7 @@ void FLiveLinkClient::RemoveAllSources()
 	SourcesToRemove = Sources;
 	Sources.Reset();
 	SourceGuids.Reset();
-	ConnectionSettings.Reset();
+	SourceSettings.Reset();
 	OnLiveLinkSourcesChanged.Broadcast();
 }
 
@@ -444,10 +468,25 @@ FText FLiveLinkClient::GetEntryStatusForEntry(FGuid InEntryGuid) const
 	return FText(NSLOCTEXT("TempLocTextLiveLink","InvalidSourceStatus", "Invalid Source Status"));
 }
 
-FLiveLinkConnectionSettings* FLiveLinkClient::GetConnectionSettingsForEntry(FGuid InEntryGuid)
+FLiveLinkInterpolationSettings* FLiveLinkClient::GetInterpolationSettingsForEntry(FGuid InEntryGuid)
 {
 	const int32 SourceIndex = GetSourceIndexForGUID(InEntryGuid);
-	return (SourceIndex != INDEX_NONE) ? &ConnectionSettings[SourceIndex] : nullptr;
+	return (SourceIndex != INDEX_NONE) ? &SourceSettings[SourceIndex]->InterpolationSettings : nullptr;
+}
+
+ULiveLinkSourceSettings* FLiveLinkClient::GetSourceSettingsForEntry(FGuid InEntryGuid)
+{
+	const int32 SourceIndex = GetSourceIndexForGUID(InEntryGuid);
+	return (SourceIndex != INDEX_NONE) ? SourceSettings[SourceIndex] : nullptr;
+}
+
+void FLiveLinkClient::OnPropertyChanged(FGuid InEntryGuid, const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const int32 SourceIndex = GetSourceIndexForGUID(InEntryGuid);
+	if (SourceIndex != INDEX_NONE)
+	{
+		Sources[SourceIndex]->OnSettingsChanged(SourceSettings[SourceIndex], PropertyChangedEvent);
+	}
 }
 
 FDelegateHandle FLiveLinkClient::RegisterSourcesChangedHandle(const FLiveLinkSourcesChanged::FDelegate& SourcesChanged)

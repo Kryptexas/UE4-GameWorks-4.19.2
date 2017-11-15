@@ -285,7 +285,7 @@ struct FStaticMeshComponentVertPosOctreeSemantics
 typedef TOctree<FPaintedVertex, FStaticMeshComponentVertPosOctreeSemantics> TSMCVertPosOctree;
 
 void RemapPaintedVertexColors(const TArray<FPaintedVertex>& InPaintedVertices,
-	const FColorVertexBuffer& InOverrideColors,
+	const FColorVertexBuffer* InOverrideColors,
 	const FPositionVertexBuffer& OldPositions,
 	const FStaticMeshVertexBuffer& OldVertexBuffer,
 	const FPositionVertexBuffer& NewPositions,
@@ -310,11 +310,11 @@ void RemapPaintedVertexColors(const TArray<FPaintedVertex>& InPaintedVertices,
 			Bounds += Vertex.Position;
 		}
 	}
-	else
+	else if ( InOverrideColors )
 	{
 		// Otherwise we have to retrieve the data from the override color and vertex buffers
 		TArray<FColor> Colors;
-		InOverrideColors.GetVertexColors(Colors);
+		InOverrideColors->GetVertexColors(Colors);
 
 		PaintedVertices.Reset(Colors.Num());
 		FPaintedVertex PaintedVertex;

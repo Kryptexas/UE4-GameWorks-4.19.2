@@ -16,89 +16,119 @@ class USoundWave;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMicManager, Log, All);
 
-/**
- * FAudioRecordingManager
- * Singleton Mic Recording Manager -- generates recordings, stores the recorded data and plays them back
- */
-class FAudioRecordingManager
+namespace Audio
 {
-public:
-	// Retrieves the singleton recording manager
-	static FAudioRecordingManager& Get();
+	// Settings used for starting a recording with the recording manager
+	struct FRecordingSettings
+	{
+		// The place to put the audio file recording
+		FDirectoryPath Directory;
 
-	// Starts a new recording with the given name and optional duration. 
-	// If set to -1.0f, a duration won't be used and the recording length will be determined by StopRecording().
-	USoundWave* StartRecording(const FDirectoryPath& Directory, const FString& AssetName, float RecordingDurationSec, float GainDB, int32 InputBufferSize);
+		// The name of the asset you want to record
+		FString AssetName;
 
-	// Stops recording if the recording manager is recording. If not recording but has recorded data (due to set duration), it will just return the generated USoundWave.
-	USoundWave* StopRecording();
+		// The length of the recording. Set to 0.0 or less for unbounded recording duration.
+		float RecordingDuration;
 
-	// Called by RtAudio when a new audio buffer is ready to be supplied.
-	int32 OnAudioCapture(void* InBuffer, uint32 InBufferFrames, double StreamTime, bool bOverflow);
+		// The output gain of the recording. Allows you to boost the amplitude of your recording.
+		float GainDb;
 
-private:
+		// Whether or not to split the asset into separate assets for each microphone input channel
+		bool bSplitChannels;
 
-	// Private Constructor
-	FAudioRecordingManager();
+		FRecordingSettings()
+			: RecordingDuration(0.0f)
+			, GainDb(0.0f)
+			, bSplitChannels(false)
+		{}
+	};
 
-	// Private Destructor
-	~FAudioRecordingManager();
+	/**
+	 * FAudioRecordingManager
+	 * Singleton Mic Recording Manager -- generates recordings, stores the recorded data and plays them back
+	 */
+	class FAudioRecordingManager
+	{
+	public:
+		// Retrieves the singleton recording manager
+		static FAudioRecordingManager& Get();
 
-	// Saves raw PCM data recorded to a wave file format
-	void SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes);
+		// Starts a new recording with the given name and optional duration. 
+		// If set to -1.0f, a duration won't be used and the recording length will be determined by StopRecording().
+		void StartRecording(const FRecordingSettings& Settings, TArray<USoundWave*>& OutSoundWaves);
 
-	// The default mic sample rate
-	const int32 WAVE_FILE_SAMPLERATE = 44100;
+		// Stops recording if the recording manager is recording. If not recording but has recorded data (due to set duration), it will just return the generated USoundWave.
+		void StopRecording(TArray<USoundWave*>& OutSoundWaves);
 
-	// RtAudio ADC object -- used to interact with low-level audio device.
-	RtAudio ADC;
+		// Called by RtAudio when a new audio buffer is ready to be supplied.
+		int32 OnAudioCapture(void* InBuffer, uint32 InBufferFrames, double StreamTime, bool bOverflow);
 
-	// Stream parameters to initialize the ADC
-	RtAudio::StreamParameters StreamParams;
+	private:
 
-	// Critical section used to stop and retrieve finished audio buffers.
-	FCriticalSection CriticalSection;
+		// Private Constructor
+		FAudioRecordingManager();
 
-	// The current recording name that is actively recording. Empty string if nothing is currently recording.
-	FString CurrentRecordingName;
+		// Private Destructor
+		~FAudioRecordingManager();
 
-	// Where to store the current recording.
-	FDirectoryPath CurrentRecordingDirectory;
+		// The default mic sample rate
+		const int32 WAVE_FILE_SAMPLERATE = 44100;
 
-	// The data which is currently being recorded to, if the manager is actively recording. This is not safe to access while recording.
-	TArray<int16> CurrentRecordedPCMData;
+		// Copy of the input recording settings
+		FRecordingSettings Settings;
 
-	// Buffer to store sample rate converted PCM data
-	TArray<int16> ConvertedPCMData;
+		// RtAudio ADC object -- used to interact with low-level audio device.
+		RtAudio ADC;
 
-	// Reusable raw wave data buffer to generate .wav file formats
-	TArray<uint8> RawWaveData;
+		// Stream parameters to initialize the ADC
+		RtAudio::StreamParameters StreamParams;
 
-	// The number of frames that have been recorded
-	int32 NumRecordedSamples;
+		// Critical section used to stop and retrieve finished audio buffers.
+		FCriticalSection CriticalSection;
 
-	// The number of frames to record if recording a set duration
-	int32 NumFramesToRecord;
+		// The data which is currently being recorded to, if the manager is actively recording. This is not safe to access while recording.
+		TArray<int16> CurrentRecordedPCMData;
 
-	// Recording block size (number of frames per callback block)
-	int32 RecordingBlockSize;
+		// Buffer to store sample rate converted PCM data
+		TArray<int16> ConvertedPCMData;
 
-	// The sample rate used in the recording
-	float RecordingSampleRate;
+		// Buffers to de-interleave recorded audio
+		struct FDeinterleavedAudio
+		{
+			TArray<int16> PCMData;
+		};
+		TArray<FDeinterleavedAudio> DeinterleavedAudio;
 
-	// Num input channels
-	int32 NumInputChannels;
+		// Reusable raw wave data buffer to generate .wav file formats
+		TArray<uint8> RawWaveData;
 
-	// A linear gain to apply on mic input
-	float InputGain;
+		// The number of frames that have been recorded
+		int32 NumRecordedSamples;
 
-	// Whether or not the manager is actively recording.
-	FThreadSafeBool bRecording;
+		// The number of frames to record if recording a set duration
+		int32 NumFramesToRecord;
 
-	// Number of overflows detected while recording
-	int32 NumOverflowsDetected;
+		// Recording block size (number of frames per callback block)
+		int32 RecordingBlockSize;
 
-	// Whether or not we have an error
-	uint32 bError : 1;
+		// The sample rate used in the recording
+		float RecordingSampleRate;
 
-};
+		// Num input channels
+		int32 NumInputChannels;
+
+		// A linear gain to apply on mic input
+		float InputGain;
+
+		// Whether or not the manager is actively recording.
+		FThreadSafeBool bRecording;
+
+		// Number of overflows detected while recording
+		int32 NumOverflowsDetected;
+
+		// Whether or not we have an error
+		uint32 bError : 1;
+
+	};
+
+}

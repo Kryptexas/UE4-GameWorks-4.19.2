@@ -406,7 +406,6 @@ public:
 #if WITH_EDITORONLY_DATA
 	/**
 	 * The compression scheme that was most recently used to compress this animation.
-	 * May be NULL.
 	 */
 	UPROPERTY(Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;

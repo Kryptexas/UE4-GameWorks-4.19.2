@@ -155,7 +155,11 @@ void FPoseDataContainer::Shrink(USkeleton* InSkeleton, FName& InRetargetSourceNa
 
 void FPoseDataContainer::DeleteTrack(int32 TrackIndex)
 {
-	TrackMap.Remove(Tracks[TrackIndex]);
+	if (TrackMap.Contains(Tracks[TrackIndex]))
+	{
+		TrackMap.Remove(Tracks[TrackIndex]);
+	}
+
 	Tracks.RemoveAt(TrackIndex);
 	for (auto& Pose : Poses)
 	{
@@ -1279,13 +1283,21 @@ void UPoseAsset::RecacheTrackmap()
 	{
 		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
 
-		// set up track data - @todo: add revaliation code when checked
+		// set up track data 
 		for (int32 TrackIndex = 0; TrackIndex < PoseContainer.Tracks.Num(); ++TrackIndex)
 		{
 			const FName& TrackName = PoseContainer.Tracks[TrackIndex];
 			const int32 SkeletonTrackIndex = RefSkeleton.FindBoneIndex(TrackName);
-			ensureAlways(SkeletonTrackIndex != INDEX_NONE);
-			PoseContainer.TrackMap.Add(TrackName, SkeletonTrackIndex);
+			if (SkeletonTrackIndex != INDEX_NONE)
+			{
+				PoseContainer.TrackMap.Add(TrackName, SkeletonTrackIndex);
+			}
+			else
+			{
+				// delete this track. It's missing now
+				PoseContainer.DeleteTrack(TrackIndex);
+				--TrackIndex;
+			}
 		}
 	}
 }

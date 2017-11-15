@@ -398,6 +398,10 @@ void UAnimSequence::PostLoad()
 {
 	AddAnimLoadingDebugEntry(TEXT("PostLoadStart"));
 
+	//Parent PostLoad will ensure that skeleton is fully loaded
+	//before we do anything further in PostLoad
+	Super::PostLoad();
+
 #if WITH_EDITOR
 	if (!RawDataGuid.IsValid())
 	{
@@ -414,8 +418,6 @@ void UAnimSequence::PostLoad()
 	VerifyTrackMap(nullptr);
 
 #endif // WITH_EDITOR
-
-	Super::PostLoad();
 
 	// if valid additive, but if base additive isn't 
 	// this seems to happen from retargeting sometimes, which we still have to investigate why, 
@@ -595,7 +597,29 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 
 void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
-	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
+	USkeleton* UseSkeleton = (MySkeleton) ? MySkeleton : GetSkeleton();
+
+#if WITH_EDITOR
+	TArray<FStringFormatArg> Args;
+	Args.Add(UseSkeleton ? TEXT("Yes") : TEXT("No"));
+	if (UseSkeleton)
+	{
+		Args.Add(UseSkeleton->HasAllFlags(EObjectFlags::RF_NeedLoad) ? TEXT("Yes") : TEXT("No"));
+		Args.Add(UseSkeleton->HasAllFlags(EObjectFlags::RF_NeedPostLoad) ? TEXT("Yes") : TEXT("No"));
+		Args.Add(UseSkeleton->GetReferenceSkeleton().GetNum());
+		Args.Add(UseSkeleton->GetReferenceSkeleton().GetRawBoneNum());
+	}
+	else
+	{
+		Args.Add(TEXT("N/A"));
+		Args.Add(TEXT("N/A"));
+		Args.Add(TEXT("N/A"));
+		Args.Add(TEXT("N/A"));
+	}
+
+	const FString DebugStartMessage = FString::Format(TEXT("VerifyTrackMapStart - Skeleton Valid: {0} NeedsLoad: {1} NeedsPostLoad: {2} NumBones: {3} NumRawBones: {4}"), Args);
+	AddAnimLoadingDebugEntry(*DebugStartMessage);
+#endif
 
 	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=nullptr)
 	{
@@ -657,6 +681,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			TrackMap.BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
 		}		
 	}
+	AddAnimLoadingDebugEntry(TEXT("VerifyTrackMapEnd"));
 }
 
 #endif // WITH_EDITOR
@@ -2206,6 +2231,7 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 
 	// Need to make sure this is up to date.
 	VerifyCurveNames<FFloatCurve>(*CurrentSkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
+	VerifyTrackMap(CurrentSkeleton);
 
 	if (bAsyncCompression)
 	{

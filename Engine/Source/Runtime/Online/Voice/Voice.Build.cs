@@ -29,8 +29,9 @@ public class Voice : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] { 
-				"Core"
-			}
+				"Core",
+                "AudioMixer"
+            }
 			);
 
 		if (Target.Platform == UnrealTargetPlatform.Win32 ||

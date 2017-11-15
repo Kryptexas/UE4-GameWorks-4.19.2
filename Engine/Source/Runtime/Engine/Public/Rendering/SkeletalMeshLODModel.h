@@ -77,8 +77,8 @@ struct FSkelMeshSection
 	/** This section will cast shadow */
 	bool bCastShadow;
 
-	/** This Section can be disabled for cloth simulation and corresponding Cloth Section will be enabled*/
-	bool bDisabled;
+	/** This is set for old 'duplicate' sections that need to get removed on load */
+	bool bLegacyClothingSection_DEPRECATED;
 
 	/** Corresponding Section Index will be enabled when this section is disabled
 	because corresponding cloth section will be shown instead of this
@@ -121,7 +121,7 @@ struct FSkelMeshSection
 		, bSelected(false)
 		, bRecomputeTangent(false)
 		, bCastShadow(true)
-		, bDisabled(false)
+		, bLegacyClothingSection_DEPRECATED(false)
 		, CorrespondClothSectionIndex_DEPRECATED(-1)
 		, BaseVertexIndex(0)
 		, NumVertices(0)

@@ -903,7 +903,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 
 	// Return start location as 'safe location'
 	OutResult.Location = P2UVector(QueryTM.p);
-	OutResult.ImpactPoint = OutResult.Location; // @todo not really sure of a better thing to do here...
+	OutResult.ImpactPoint = P2UVector(PHit.position);
 
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;

@@ -183,11 +183,17 @@ private:
 	/** Function to copy selected sockets to the clipboard */
 	void OnCopySockets() const;
 
+	/** Whether we can copy sockets */
+	bool CanCopySockets() const;
+
 	/** Function to serialize a single socket to a string */
 	FString SerializeSocketToString( class USkeletalMeshSocket* Socket, ESocketParentType ParentType ) const;
 
 	/** Function to paste selected sockets from the clipboard */
 	void OnPasteSockets(bool bPasteToSelectedBone);
+
+	/** Whether we can paste sockets */
+	bool CanPasteSockets() const;
 
 	/** Function to add a socket to the selected bone (skeleton, not mesh) */
 	void OnAddSocket();

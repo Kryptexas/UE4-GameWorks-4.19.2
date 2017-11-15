@@ -401,6 +401,12 @@ struct FBoneReference
 		return (!bUseSkeletonIndex && CachedCompactPoseIndex != INDEX_NONE);
 	}
 
+	void InvalidateCachedBoneIndex()
+	{
+		BoneIndex = INDEX_NONE;
+		CachedCompactPoseIndex = FCompactPoseBoneIndex(INDEX_NONE);
+	}
+
 	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const
 	{ 
 		// accessing array with invalid index would cause crash, so we have to check here

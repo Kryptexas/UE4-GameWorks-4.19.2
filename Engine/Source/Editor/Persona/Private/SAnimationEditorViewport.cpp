@@ -25,6 +25,8 @@
 #include "IEditableSkeleton.h"
 #include "EditorViewportCommands.h"
 #include "TabSpawners.h"
+#include "ShowFlagMenuCommands.h"
+#include "BufferVisualizationMenuCommands.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -93,12 +95,21 @@ void SAnimationEditorViewport::OnFocusViewportToSelection()
 	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
+void SAnimationEditorViewport::BindCommands()
+{
+	SEditorViewport::BindCommands();
+
+	FShowFlagMenuCommands::Get().BindCommands(*CommandList, Client);
+	FBufferVisualizationMenuCommands::Get().BindCommands(*CommandList, Client);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewportTabBody
 
 SAnimationEditorViewportTabBody::SAnimationEditorViewportTabBody()
 	: SelectedTurnTableSpeed(EAnimationPlaybackSpeeds::Normal)
 	, SelectedTurnTableMode(EPersonaTurnTableMode::Stopped)
+	, SectionsDisplayMode(ESectionDisplayMode::None)
 {
 }
 
@@ -384,12 +395,6 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::IsSetShowBinormalsChecked ) );
 
-	CommandList.MapAction(
-		MenuActions.AnimSetDrawUVs,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::ToggleDrawUVOverlay ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::IsSetDrawUVOverlayChecked ) );
-
 	//Bind Show commands
 	const FAnimViewportShowCommands& ViewportShowMenuCommands = FAnimViewportShowCommands::Get();
 
@@ -564,17 +569,15 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	//Clothing show options
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.DisableClothSimulation,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnDisableClothSimulation),
+		ViewportShowMenuCommands.EnableClothSimulation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnEnableClothSimulation),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsDisablingClothSimulation));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsClothSimulationEnabled));
 
-	//Apply wind
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ApplyClothWind,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnApplyClothWind),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsApplyingClothWind));
+		ViewportShowMenuCommands.ResetClothSimulation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnResetClothSimulation),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::IsClothSimulationEnabled));
 
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.EnableCollisionWithAttachedClothChildren,
@@ -590,21 +593,21 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowAllSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, ESectionDisplayMode::ShowAll),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, ESectionDisplayMode::ShowAll));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowOnlyClothSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, ESectionDisplayMode::ShowOnlyClothSections),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, ESectionDisplayMode::ShowOnlyClothSections));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.HideOnlyClothSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, ESectionDisplayMode::HideOnlyClothSections),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, ESectionDisplayMode::HideOnlyClothSections));
 
 #endif// #if WITH_APEX_CLOTHING		
 
@@ -626,13 +629,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, 1));
 
-	// all other LODs will be added dynamically 
-	
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ToggleGrid,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid));
+	// all other LODs will be added dynamically
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.AutoAlignFloorToMesh,
@@ -970,19 +967,6 @@ bool SAnimationEditorViewportTabBody::IsShowingSockets() const
 	return PreviewComponent != NULL && PreviewComponent->bDrawSockets;
 }
 
-
-void SAnimationEditorViewportTabBody::OnShowGrid()
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->OnToggleShowGrid();
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingGrid() const
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	return AnimViewportClient->IsShowingGrid();
-}
-
 void SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
@@ -1112,9 +1096,17 @@ void SAnimationEditorViewportTabBody::AnimChanged(UAnimationAsset* AnimAsset)
 
 void SAnimationEditorViewportTabBody::ComboBoxSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	int32 NewUVSelection = UVChannels.Find(NewSelection);
-
+	int32 NewUVSelection = UVChannels.Find(NewSelection) - 1;
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+
+	// "None" is index -1 here.
+	if ( NewUVSelection < 0 )
+	{
+		AnimViewportClient->SetDrawUVOverlay(false);
+		return;
+	}
+
+	AnimViewportClient->SetDrawUVOverlay(true);
 	AnimViewportClient->SetUVChannelToDraw(NewUVSelection);
 
 	RefreshViewport();
@@ -1144,6 +1136,8 @@ void SAnimationEditorViewportTabBody::PopulateUVChoices()
 {
 	// Fill out the UV channels combo.
 	UVChannels.Empty();
+
+	UVChannels.Add(MakeShareable(new FString(NSLOCTEXT("AnimationEditorViewport", "NoUVChannel", "None").ToString())));
 	
 	if (UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
 	{
@@ -1434,19 +1428,19 @@ void SAnimationEditorViewportTabBody::OnShowVertexColorsChanged()
 }
 
 #if WITH_APEX_CLOTHING
-bool SAnimationEditorViewportTabBody::IsDisablingClothSimulation() const
+bool SAnimationEditorViewportTabBody::IsClothSimulationEnabled() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
 
 	if( PreviewComponent )
 	{
-		return PreviewComponent->bDisableClothSimulation;
+		return !PreviewComponent->bDisableClothSimulation;
 	}
 
-	return false;
+	return true;
 }
 
-void SAnimationEditorViewportTabBody::OnDisableClothSimulation()
+void SAnimationEditorViewportTabBody::OnEnableClothSimulation()
 {
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
 
@@ -1458,15 +1452,21 @@ void SAnimationEditorViewportTabBody::OnDisableClothSimulation()
 	}
 }
 
+void SAnimationEditorViewportTabBody::OnResetClothSimulation()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if( PreviewComponent )
+	{
+		PreviewComponent->RecreateClothingActors();
+
+		RefreshViewport();
+	}
+}
+
 bool SAnimationEditorViewportTabBody::IsApplyingClothWind() const
 {
 	return GetPreviewScene()->IsWindEnabled();
-}
-
-void SAnimationEditorViewportTabBody::OnApplyClothWind()
-{
-	GetPreviewScene()->EnableWind(!GetPreviewScene()->IsWindEnabled());
-	RefreshViewport();
 }
 
 void SAnimationEditorViewportTabBody::OnPauseClothingSimWithAnim()
@@ -1510,24 +1510,33 @@ bool SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim()
 
 void SAnimationEditorViewportTabBody::SetWindStrength(float SliderPos)
 {
+	TSharedRef<FAnimationEditorPreviewScene> PreviewScene = GetPreviewScene();
+
+	if ( SliderPos <= 0.0f )
+	{
+		if ( PreviewScene->IsWindEnabled() )
+		{
+			PreviewScene->EnableWind(false);
+			PreviewScene->SetWindStrength(0.0f);
+			RefreshViewport();
+		}
+
+		return;
+	}
+
+	if ( !PreviewScene->IsWindEnabled() )
+	{
+		PreviewScene->EnableWind(true);
+	}
+
 	GetPreviewScene()->SetWindStrength(SliderPos);
+
 	RefreshViewport();
 }
 
 float SAnimationEditorViewportTabBody::GetWindStrengthSliderValue() const
 {
 	return GetPreviewScene()->GetWindStrength();
-}
-
-FText SAnimationEditorViewportTabBody::GetWindStrengthLabel() const
-{
-	//Clamp slide value so that minimum value displayed is 0.00 and maximum is 1.0
-	float SliderValue = FMath::Clamp<float>(GetWindStrengthSliderValue(), 0.0f, 1.0f);
-
-	static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
-		.SetMinimumFractionalDigits(2)
-		.SetMaximumFractionalDigits(2);
-	return FText::AsNumber(SliderValue, &FormatOptions);
 }
 
 void SAnimationEditorViewportTabBody::SetGravityScale(float SliderPos)
@@ -1539,17 +1548,6 @@ void SAnimationEditorViewportTabBody::SetGravityScale(float SliderPos)
 float SAnimationEditorViewportTabBody::GetGravityScaleSliderValue() const
 {
 	return GetPreviewScene()->GetGravityScale();
-}
-
-FText SAnimationEditorViewportTabBody::GetGravityScaleLabel() const
-{
-	//Clamp slide value so that minimum value displayed is 0.00 and maximum is 4.0
-	float SliderValue = FMath::Clamp<float>(GetGravityScaleSliderValue() * 4, 0.0f, 4.0f);
-
-	static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
-		.SetMinimumFractionalDigits(2)
-		.SetMaximumFractionalDigits(2);
-	return FText::AsNumber(SliderValue, &FormatOptions);
 }
 
 void SAnimationEditorViewportTabBody::OnEnableCollisionWithAttachedClothChildren()
@@ -1575,7 +1573,7 @@ bool SAnimationEditorViewportTabBody::IsEnablingCollisionWithAttachedClothChildr
 	return false;
 }
 
-void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode)
+void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(ESectionDisplayMode DisplayMode)
 {
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
 
@@ -1584,19 +1582,19 @@ void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode
 		return;
 	}
 
-	PreviewComponent->SectionsDisplayMode = DisplayMode;
+	SectionsDisplayMode = DisplayMode;
 
-	switch (DisplayMode)
+	switch (SectionsDisplayMode)
 	{
-	case UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll:
+	case ESectionDisplayMode::ShowAll:
 		// restore to the original states
 		PreviewComponent->RestoreClothSectionsVisibility();
 		break;
-	case UDebugSkelMeshComponent::ESectionDisplayMode::ShowOnlyClothSections:
+	case ESectionDisplayMode::ShowOnlyClothSections:
 		// disable all except clothing sections and shows only cloth sections
 		PreviewComponent->ToggleClothSectionsVisibility(true);
 		break;
-	case UDebugSkelMeshComponent::ESectionDisplayMode::HideOnlyClothSections:
+	case ESectionDisplayMode::HideOnlyClothSections:
 		// disables only clothing sections
 		PreviewComponent->ToggleClothSectionsVisibility(false);
 		break;
@@ -1605,16 +1603,9 @@ void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode
 	RefreshViewport();
 }
 
-bool SAnimationEditorViewportTabBody::IsSectionsDisplayMode(int32 DisplayMode) const
+bool SAnimationEditorViewportTabBody::IsSectionsDisplayMode(ESectionDisplayMode DisplayMode) const
 {
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if (ensure(PreviewComponent))
-	{
-		return (PreviewComponent->SectionsDisplayMode == DisplayMode);
-	}
-
-	return false;
+	return SectionsDisplayMode == DisplayMode;
 }
 #endif // #if WITH_APEX_CLOTHING
 

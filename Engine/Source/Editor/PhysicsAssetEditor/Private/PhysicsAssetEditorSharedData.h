@@ -17,8 +17,18 @@ class USkeletalMesh;
 class UStaticMeshComponent;
 struct FBoneVertInfo;
 class IPersonaPreviewScene;
+class FPhysicsAssetEditorSharedData;
 
 #define DEBUG_CLICK_VIEWPORT 0
+
+/** Scoped object that blocks selection broadcasts until it leaves scope */
+struct FScopedBulkSelection
+{
+	FScopedBulkSelection(TSharedPtr<FPhysicsAssetEditorSharedData> InSharedData);
+	~FScopedBulkSelection();
+
+	TSharedPtr<FPhysicsAssetEditorSharedData> SharedData;
+};
 
 /*-----------------------------------------------------------------------------
    FPhysicsAssetEditorSharedData
@@ -136,7 +146,7 @@ public:
 	void SetSelectedBodyAnyPrim(int32 BodyIndex, bool bSelected);
 	void DeleteCurrentPrim();
 	void DeleteBody(int32 DelBodyIndex, bool bRefreshComponent=true);
-	void RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset);
+	void RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset, bool bFullClothRefresh = true);
 	void MakeNewBody(int32 NewBoneIndex, bool bAutoSelect = true);
 	void MakeNewConstraint(int32 BodyIndex0, int32 BodyIndex1);
 	void CopyBody();
@@ -181,6 +191,9 @@ public:
 
 	/** Force simulation off for all bodies, regardless of physics type */
 	void ForceDisableSimulation();
+
+	/** Update the clothing simulation's (if any) collision */
+	void UpdateClothPhysics();
 
 private:
 	/** Initializes a constraint setup */
@@ -277,6 +290,9 @@ public:
 	
 	/** Manipulation (rotate, translate, scale) */
 	bool bManipulating;
+
+	/** when true, we dont broadcast every selection change - allows for bulk changes without so much overhead */
+	bool bSuspendSelectionBroadcast;
 
 	/** Used to prevent recursion with tree hierarchy ... needs to be rewritten! */
 	int32 InsideSelChange;

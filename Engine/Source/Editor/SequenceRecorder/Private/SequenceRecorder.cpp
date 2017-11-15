@@ -634,12 +634,12 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 
 				ISequenceRecorder& Recorder = FModuleManager::Get().LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
 
-				FAudioRecorderSettings AudioSettings;
+				FSequenceAudioRecorderSettings AudioSettings;
 				AudioSettings.Directory = AudioDirectory;
 				AudioSettings.AssetName = FText::Format(LOCTEXT("AudioFormatStr", "{0}_Audio"), FText::FromString(LevelSequence->GetName())).ToString();
-				AudioSettings.RecordingDurationSec = Settings->SequenceLength;
-				AudioSettings.GainDB = Settings->AudioGain;
-				AudioSettings.InputBufferSize = Settings->AudioInputBufferSize;
+				AudioSettings.RecordingDuration = Settings->SequenceLength;
+				AudioSettings.GainDb = Settings->AudioGain;
+				AudioSettings.bSplitChannels = Settings->bSplitAudioChannelsIntoSeparateTracks;
 
 				AudioRecorder = Recorder.CreateAudioRecorder();
 				if (AudioRecorder)
@@ -704,13 +704,13 @@ bool FSequenceRecorder::StopRecording()
 	SlowTask.EnterProgressFrame(1.f, LOCTEXT("ProcessingAudio", "Processing Audio"));
 	if (AudioRecorder && LevelSequence)
 	{
-		USoundWave* RecordedAudio = AudioRecorder->Stop();
+		TArray<USoundWave*> RecordedSoundWaves;
+		AudioRecorder->Stop(RecordedSoundWaves);
 		AudioRecorder.Reset();
 
-		if (RecordedAudio)
+		for (USoundWave* RecordedAudio : RecordedSoundWaves)
 		{
-			// Add a new master audio track to the level sequence
-			
+			// Add a new master audio track to the level sequence		
 			UMovieScene* MovieScene = LevelSequence->GetMovieScene();
 
 			UMovieSceneAudioTrack* AudioTrack = MovieScene->FindMasterTrack<UMovieSceneAudioTrack>();

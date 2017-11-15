@@ -11,7 +11,7 @@
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
 #include "Sound/SoundBase.h"
-
+#include "Misc/CommandLine.h"
 #define LOCTEXT_NAMESPACE "AmbientSound"
 
 /*-----------------------------------------------------------------------------
@@ -123,7 +123,11 @@ void AAmbientSound::Play(float StartTime)
 {
 	if (AudioComponent)
 	{
-		AudioComponent->Play(StartTime);
+		static bool bMuteAmbientActors = FParse::Param(FCommandLine::Get(), TEXT("NoAmbientActors"));
+		if (!bMuteAmbientActors)
+		{
+			AudioComponent->Play(StartTime);
+		}
 	}
 }
 

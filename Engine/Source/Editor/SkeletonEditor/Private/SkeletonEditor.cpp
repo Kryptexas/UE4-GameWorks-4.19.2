@@ -184,6 +184,9 @@ void FSkeletonEditor::ExtendToolbar()
 		GetToolkitCommands(),
 		FToolBarExtensionDelegate::CreateLambda([this](FToolBarBuilder& ToolbarBuilder)
 		{
+			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef());
+
 			ToolbarBuilder.BeginSection("Skeleton");
 			{
 				ToolbarBuilder.AddToolBarButton(FSkeletonEditorCommands::Get().AnimNotifyWindow);
@@ -191,9 +194,6 @@ void FSkeletonEditor::ExtendToolbar()
 				ToolbarBuilder.AddToolBarButton(FSkeletonEditorCommands::Get().ImportMesh);
 			}
 			ToolbarBuilder.EndSection();
-
-			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef());
 
 			TSharedRef<class IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(Skeleton);
 			AddToolbarWidget(PersonaModule.CreateAssetFamilyShortcutWidget(SharedThis(this), AssetFamily));

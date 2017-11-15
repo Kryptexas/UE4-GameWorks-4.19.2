@@ -477,7 +477,7 @@ private:
 };
 
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh, UObject* ReimportObject = nullptr);
-void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
+UNREALED_API void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
 struct FImportedMaterialData
 {
@@ -796,7 +796,7 @@ public:
 	 * @param BaseSkelMesh - base Skeletal Mesh
 	 * @param LODIndex - LOD index
 	 */
-	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
+	UNREALED_API void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
 
 	/**
 	 * Import LOD object for skeletal mesh
@@ -808,7 +808,7 @@ public:
 									But you can set this to false when in the first loading before rendering this mesh for a performance issue 
 	   @param ReregisterAssociatedComponents - if NULL, just re-registers all SkinnedMeshComponents but if you set the specific components, will only re-registers those components
 	 */
-	bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL, UFbxSkeletalMeshImportData* TemplateImportData = nullptr);
+	UNREALED_API bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL, UFbxSkeletalMeshImportData* TemplateImportData = nullptr);
 
 	/**
 	 * Empties the FBX scene, releasing its memory.

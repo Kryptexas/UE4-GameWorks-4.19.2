@@ -72,8 +72,15 @@ public:
 	EMeshPaintColorViewMode ColorViewMode;
 };
 
-UCLASS()
+UCLASS(config = EditorPerProjectUserSettings)
 class MESHPAINT_API UMeshPaintSettings : public UObject
 {
 	GENERATED_BODY()
+
+public:
+
+	/** Size of vertex points drawn when mesh painting is active. */
+	UPROPERTY(config, EditAnywhere, Category=Visualization)
+	float VertexPreviewSize;
+
 };

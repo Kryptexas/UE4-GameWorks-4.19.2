@@ -136,10 +136,12 @@ public:
 	 * @param OutVoiceBuffer allocated buffer to fill with voice data
 	 * @param InVoiceBufferSize size, in bytes, of allocated buffer
 	 * @param OutAvailableVoiceData size, in bytes, of data placed in the OutVoiceBuffer
+	 * @param OutSampleCounter optional parameter for beginning sample of this buffer.
 	 *
 	 * @return state of the voice capture buffer
 	 */
-	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) = 0;
+	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) { return EVoiceCaptureState::UnInitialized; };
+	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData, uint64& OutSampleCounter) { return GetVoiceData(OutVoiceBuffer, InVoiceBufferSize, OutAvailableVoiceData); };
 
 	/**
 	 * @return number of bytes currently allocated in the capture buffer

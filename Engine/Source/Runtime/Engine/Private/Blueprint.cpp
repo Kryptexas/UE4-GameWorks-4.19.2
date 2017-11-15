@@ -658,6 +658,8 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 		
 		FBlueprintEditorUtils::PreloadBlueprintSpecificData( this );
 
+		FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
+
 		// clear this now that we're not in a re-entrrant context - bHasBeenRegenerated will guard against 'real' 
 		// double regeneration calls:
 		bIsRegeneratingOnLoad = false;
@@ -778,9 +780,6 @@ void UBlueprint::PostLoad()
 	{
 		FBlueprintEditorUtils::ConformAllowDeletionFlag(this);
 	}
-
-	// Update old Anim Blueprints
-	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
 
 #if WITH_EDITORONLY_DATA
 	// Ensure all the pin watches we have point to something useful

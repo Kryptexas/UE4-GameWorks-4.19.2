@@ -491,6 +491,16 @@ private:
 			if(LodData->ParameterMasks.IsValidIndex(Item->MaskIndex))
 			{
 				LodData->ParameterMasks.RemoveAt(Item->MaskIndex);
+
+				// We've removed a mask, so it will need to be applied to the clothing data
+				if(Item.IsValid())
+				{
+					if(UClothingAsset* Asset = Item->ClothingAsset.Get())
+					{
+						Asset->ApplyParameterMasks();
+					}
+				}
+
 				OnInvalidateList.ExecuteIfBound();
 			}
 		}

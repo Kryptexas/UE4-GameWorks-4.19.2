@@ -177,31 +177,32 @@ void FSkeletalMeshEditor::ExtendToolbar()
 
 	ToolbarExtender = MakeShareable(new FExtender);
 
-
 	// extend extra menu/toolbars
-	struct Local
+	auto FillToolbar = [this](FToolBarBuilder& ToolbarBuilder)
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
-		{
-			ToolbarBuilder.BeginSection("Mesh");
-			{
-				ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().ReimportMesh);
-			}
-			ToolbarBuilder.EndSection();
+		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+		FPersonaModule::FCommonToolbarExtensionArgs Args;
+		Args.bPreviewMesh = false;
+		PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef(), Args);
 
-			ToolbarBuilder.BeginSection("Selection");
-			{
-				ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().MeshSectionSelection);
-			}
-			ToolbarBuilder.EndSection();
+		ToolbarBuilder.BeginSection("Mesh");
+		{
+			ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().ReimportMesh);
 		}
+		ToolbarBuilder.EndSection();
+
+		ToolbarBuilder.BeginSection("Selection");
+		{
+			ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().MeshSectionSelection);
+		}
+		ToolbarBuilder.EndSection();
 	};
 
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+		FToolBarExtensionDelegate::CreateLambda(FillToolbar)
 		);
 
 	AddToolbarExtender(ToolbarExtender);
@@ -630,16 +631,10 @@ bool FSkeletalMeshEditor::IsMeshSectionSelectionChecked() const
 
 void FSkeletalMeshEditor::HandleMeshClick(HActor* HitProxy, const FViewportClick& Click)
 {
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
-
-	if(Mesh)
-	{
-		Mesh->SelectedEditorSection = HitProxy->SectionIndex;
-	}
-
 	USkeletalMeshComponent* Component = GetPersonaToolkit()->GetPreviewMeshComponent();
 	if (Component)
 	{
+		Component->SetSelectedEditorSection(HitProxy->SectionIndex);
 		Component->PushSelectionToProxy();
 	}
 

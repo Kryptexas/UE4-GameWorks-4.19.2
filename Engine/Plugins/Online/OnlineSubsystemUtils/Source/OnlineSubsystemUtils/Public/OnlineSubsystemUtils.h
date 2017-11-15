@@ -10,11 +10,18 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Online.h"
 #include "EngineGlobals.h"
+#include "VoipListenerSynthComponent.h"
 
 #ifdef ONLINESUBSYSTEMUTILS_API
 
 /** @return an initialized audio component specifically for use with VoIP */
 ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels);
+
+/** @return an initialized Synth component specifically for use with VoIP */
+ONLINESUBSYSTEMUTILS_API UVoipListenerSynthComponent* CreateVoiceSynthComponent(uint32 SampleRate);
+
+/** Updates InSynthComponent based on InSettings. */
+ONLINESUBSYSTEMUTILS_API void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings);
 
 /** @return the world associated with a named online subsystem instance */
 ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);

@@ -740,17 +740,6 @@ public:
 	TArray<FMatrix> RefBasesInvMatrix;    
 
 #if WITH_EDITORONLY_DATA
-	/** The section currently selected in the Editor. Used for highlighting */
-	UPROPERTY(transient)
-	int32 SelectedEditorSection;
-
-	/** The Material currently selected. need to remember this index for reimporting cloth */
-	UPROPERTY(transient)
-	int32 SelectedEditorMaterial;
-
-	/** The section currently selected for clothing. need to remember this index for reimporting cloth */
-	UPROPERTY(transient)
-	int32 SelectedClothingSection;
 
 	/** Height offset for the floor mesh in the editor */
 	UPROPERTY()
@@ -909,7 +898,6 @@ public:
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	virtual void PostEditUndo() override;

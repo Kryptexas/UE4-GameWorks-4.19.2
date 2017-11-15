@@ -27,6 +27,14 @@
 static_assert(HIT_BUFFER_SIZE > 0, "Invalid PhysX hit buffer size.");
 static_assert(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, "Invalid PhysX sync buffer size.");
 
+#if !UE_BUILD_SHIPPING
+#define DETECT_SQ_HITCHES 1
+#endif
+
+#ifndef DETECT_SQ_HITCHES
+#define DETECT_SQ_HITCHES 0
+#endif
+
 // FILTER
 
 /** TArray typedef of components to ignore. */
@@ -62,6 +70,9 @@ public:
 	FPxQueryFilterCallback(const FCollisionQueryParams& InQueryParams)
 		: IgnoreComponents(InQueryParams.GetIgnoredComponents())
 		, IgnoreActors(InQueryParams.GetIgnoredActors())
+#if DETECT_SQ_HITCHES
+		, bRecordHitches(false)
+#endif
 	{
 		PrefilterReturnValue = PxQueryHitType::eNONE;		
 		bIsOverlapQuery = false;
@@ -87,6 +98,18 @@ public:
 		// Currently not used
 		return PxQueryHitType::eBLOCK;
 	}
+
+#if DETECT_SQ_HITCHES
+	// Util struct to record what preFilter was called with
+	struct FPreFilterRecord
+	{
+		FString OwnerComponentReadableName;
+		PxQueryHitType::Enum Result;
+	};
+
+	TArray<FPreFilterRecord> PreFilterHitchInfo;
+	bool bRecordHitches;
+#endif
 };
 
 

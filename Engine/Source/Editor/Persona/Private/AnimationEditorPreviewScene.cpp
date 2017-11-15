@@ -25,6 +25,7 @@
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "AnimPreviewAttacheInstance.h"
 #include "PreviewCollectionInterface.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -532,11 +533,36 @@ void FAnimationEditorPreviewScene::SetFloorLocation(const FVector& InPosition)
 	FloorMeshComponent->SetWorldTransform(FTransform(FQuat::Identity, InPosition, FVector(3.0f, 3.0f, 1.0f)));
 }
 
-void FAnimationEditorPreviewScene::ShowReferencePose()
+void FAnimationEditorPreviewScene::ShowReferencePose(bool bResetBoneTransforms)
 {
 	if(SkeletalMeshComponent)
 	{
 		SkeletalMeshComponent->EnablePreview(true, nullptr);
+
+		// Also reset bone transforms
+		if(bResetBoneTransforms && SkeletalMeshComponent->SkeletalMesh != nullptr)
+		{
+			bool bModified = false;
+			FScopedTransaction Transaction(LOCTEXT("ResetBoneTransforms", "Reset Bone Transforms"));
+
+			int32 NumBones = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.GetNum();
+			for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+			{
+				FName BoneName = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+				const FAnimNode_ModifyBone* ModifiedBone = SkeletalMeshComponent->PreviewInstance->FindModifiedBone(BoneName);
+				if (ModifiedBone != nullptr)
+				{
+					if (!bModified)
+					{
+						SkeletalMeshComponent->PreviewInstance->SetFlags(RF_Transactional);
+						SkeletalMeshComponent->PreviewInstance->Modify();
+						bModified = true;
+					}
+
+					SkeletalMeshComponent->PreviewInstance->RemoveBoneModification(BoneName);
+				}
+			}
+		}
 	}
 }
 

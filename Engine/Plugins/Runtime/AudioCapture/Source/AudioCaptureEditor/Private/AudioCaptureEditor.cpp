@@ -6,31 +6,38 @@
 #include "ModuleManager.h"
 #include "AudioRecordingManager.h"
 
-class FAudioRecorder : public ISequenceAudioRecorder
+class FSequenceAudioRecorder : public ISequenceAudioRecorder
 {
 public:
 
-	virtual void Start(const FAudioRecorderSettings& Settings) override
+	virtual void Start(const FSequenceAudioRecorderSettings& InSettings) override
 	{
-		FAudioRecordingManager::Get().StartRecording(Settings.Directory, Settings.AssetName, Settings.RecordingDurationSec, Settings.GainDB, Settings.InputBufferSize);
+		Audio::FRecordingSettings RecordingSettings;
+		RecordingSettings.AssetName = InSettings.AssetName;
+		RecordingSettings.Directory = InSettings.Directory;
+		RecordingSettings.GainDb = InSettings.GainDb;
+		RecordingSettings.RecordingDuration = InSettings.RecordingDuration;
+		RecordingSettings.bSplitChannels = InSettings.bSplitChannels;
+
+		TArray<USoundWave*> OutSoundWaves;
+		Audio::FAudioRecordingManager::Get().StartRecording(RecordingSettings, OutSoundWaves);
 	}
 
-	virtual USoundWave* Stop() override
+	virtual void Stop(TArray<USoundWave*>& OutSoundWaves) override
 	{
-		return FAudioRecordingManager::Get().StopRecording();
+		Audio::FAudioRecordingManager::Get().StopRecording(OutSoundWaves);
 	}
 };
 
 
-class FAudioCaptureEditorModule
-	: public IModuleInterface
+class FAudioCaptureEditorModule : public IModuleInterface
 {
 	virtual void StartupModule() override
 	{
 		ISequenceRecorder& Recorder = FModuleManager::Get().LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
 		RecorderHandle = Recorder.RegisterAudioRecorder(
 			[](){
-				return TUniquePtr<ISequenceAudioRecorder>(new FAudioRecorder());
+				return TUniquePtr<ISequenceAudioRecorder>(new FSequenceAudioRecorder());
 			}
 		);
 	}

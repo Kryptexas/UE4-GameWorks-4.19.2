@@ -27,7 +27,6 @@ FClothPainter::FClothPainter()
 	, PaintSettings(nullptr)
 	, BrushSettings(nullptr)
 {
-	VertexPointSize = 3.0f;
 	VertexPointColor = FLinearColor::White;
 	WidgetLineThickness = .5f;
 	bShouldSimulate = false;
@@ -432,6 +431,10 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 
 			ClothAdapter->SetSelectedClothingAsset(NewGuid, InAssetLod, InMaskIndex);
 
+			for(TSharedPtr<FClothPaintToolBase> Tool : Tools)
+			{
+				Tool->OnMeshChanged();
+			}
 		}
 	}
 }

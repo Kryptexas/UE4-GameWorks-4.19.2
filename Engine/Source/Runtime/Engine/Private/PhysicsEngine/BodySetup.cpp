@@ -843,7 +843,7 @@ template <> FString FBodySetupShapeIterator::GetDebugName<FKSphylElem>() const
 ////////////////////////////// Convex elements ////////////////////////////
 template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKConvexElem& ConvexElem, PxConvexMeshGeometry& OutGeometry, PxTransform& OutTM) const
 {
-	const bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, OutTM);
+	const bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D * RelativeTM.GetScale3D(), OutTM);
 
 	PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.GetMirroredConvexMesh() : ConvexElem.GetConvexMesh();
 	if (UseConvexMesh)

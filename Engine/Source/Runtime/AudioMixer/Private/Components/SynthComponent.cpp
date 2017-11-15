@@ -32,7 +32,12 @@ void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChann
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
 	SampleRate = InSampleRate;
-	bAudioMixer = InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled();
+}
+
+void USynthSound::StartOnAudioDevice(FAudioDevice* InAudioDevice)
+{
+	check(InAudioDevice != nullptr);
+	bAudioMixer = InAudioDevice->IsAudioMixerEnabled();
 }
 
 void USynthSound::OnBeginGenerate()
@@ -146,41 +151,50 @@ void USynthComponent::Deactivate()
 
 void USynthComponent::Initialize(int32 SampleRateOverride)
 {
-	FAudioDevice* AudioDevice = GetAudioDevice();
-	if (!bIsInitialized && AudioDevice)
+	if (!bIsInitialized)
 	{
-		bIsInitialized = true;
-
-		int32 SampleRate = AudioDevice->SampleRate;
-		if (SampleRateOverride != INDEX_NONE)
+		// Try to get a proper sample rate
+		int32 SampleRate = SampleRateOverride;
+		if (SampleRate == INDEX_NONE)
 		{
-			SampleRate = SampleRateOverride;
+			// Check audio device if we've not explicitly been told what sample rate to use
+			FAudioDevice* AudioDevice = GetAudioDevice();
+			if (AudioDevice)
+			{
+				SampleRate = AudioDevice->SampleRate;
+			}
 		}
+
+		// Only allow initialization if we've gota  proper sample rate
+		if (SampleRate != INDEX_NONE)
+		{
+			bIsInitialized = true;
 
 #if SYNTH_GENERATOR_TEST_TONE
-		NumChannels = 2;
-		TestSineLeft.Init(SampleRate, 440.0f, 0.5f);
-		TestSineRight.Init(SampleRate, 220.0f, 0.5f);
+			NumChannels = 2;
+			TestSineLeft.Init(SampleRate, 440.0f, 0.5f);
+			TestSineRight.Init(SampleRate, 220.0f, 0.5f);
 #else	
-		// Initialize the synth component
-		this->Init(SampleRate);
+			// Initialize the synth component
+			this->Init(SampleRate);
 
-		if (NumChannels < 0 || NumChannels > 2)
-		{
-			UE_LOG(LogAudioMixer, Error, TEXT("Synthesis component '%s' has set an invalid channel count '%d' (only mono and stereo currently supported)."), *GetName(), NumChannels);
-		}
+			if (NumChannels < 0 || NumChannels > 2)
+			{
+				UE_LOG(LogAudioMixer, Error, TEXT("Synthesis component '%s' has set an invalid channel count '%d' (only mono and stereo currently supported)."), *GetName(), NumChannels);
+			}
 
-		NumChannels = FMath::Clamp(NumChannels, 1, 2);
+			NumChannels = FMath::Clamp(NumChannels, 1, 2);
 #endif
 
-		Synth = NewObject<USynthSound>(this, TEXT("Synth"));
+			Synth = NewObject<USynthSound>(this, TEXT("Synth"));
 
-		// Copy sound base data to the sound
-		Synth->SourceEffectChain = SourceEffectChain;
-		Synth->SoundSubmixObject = SoundSubmix;
-		Synth->SoundSubmixSends = SoundSubmixSends;
+			// Copy sound base data to the sound
+			Synth->SourceEffectChain = SourceEffectChain;
+			Synth->SoundSubmixObject = SoundSubmix;
+			Synth->SoundSubmixSends = SoundSubmixSends;
 
-		Synth->Init(this, NumChannels, SampleRate);
+			Synth->Init(this, NumChannels, SampleRate);
+		}
 	}
 }
 
@@ -218,6 +232,11 @@ void USynthComponent::CreateAudioComponent()
 			EnvelopeFollowerReleaseTime = AudioComponent->EnvelopeFollowerReleaseTime;
 
 			Initialize();
+
+			if (FAudioDevice* AudioDevice = AudioComponent->GetAudioDevice())
+			{
+				Synth->StartOnAudioDevice(AudioDevice);
+			}
 		}
 	}
 }
@@ -333,6 +352,12 @@ void USynthComponent::Start()
 		AudioComponent->SoundClassOverride = SoundClass;
 		AudioComponent->EnvelopeFollowerAttackTime = EnvelopeFollowerAttackTime;
 		AudioComponent->EnvelopeFollowerReleaseTime = EnvelopeFollowerReleaseTime;
+
+		// Copy sound base data to the sound
+		Synth->AttenuationSettings = AttenuationSettings;
+		Synth->SourceEffectChain = SourceEffectChain;
+		Synth->SoundSubmixObject = SoundSubmix;
+		Synth->SoundSubmixSends = SoundSubmixSends;
 
 		// Set the audio component's sound to be our procedural sound wave
 		AudioComponent->SetSound(Synth);

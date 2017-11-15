@@ -166,43 +166,8 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 			ApexAsset = ConvertApexAssetCoordSystem(ApexAsset);
 			AssetName = *FPaths::GetBaseFilename(Filename);
 
-			// Work out the bindings to the old asset so we can reproduce them for the new asset
-			struct Local_BindingInfo
-			{
-				int32 MeshLodIndex;
-				int32 MeshLodSectionIndex;
-				int32 AssetLodIndex;
-			};
-			TArray<Local_BindingInfo> AssetBindings;
-
-			FSkeletalMeshModel* MeshResource = TargetMesh->GetImportedModel();
-			if(MeshResource)
-			{
-				const int32 NumLods = MeshResource->LODModels.Num();
-
-				for(int32 LodIndex = 0; LodIndex < NumLods; ++LodIndex)
-				{
-					FSkeletalMeshLODModel& LodModel = MeshResource->LODModels[LodIndex];
-
-					const int32 NumSections = LodModel.Sections.Num();
-
-					for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
-					{
-						FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
-
-						if(Section.ClothingData.AssetGuid == OldClothingAsset->AssetGuid && Section.bDisabled == true)
-						{
-							// Found a binding
-							AssetBindings.AddDefaulted();
-
-							Local_BindingInfo& Binding = AssetBindings.Last();
-							Binding.MeshLodIndex = LodIndex;
-							Binding.MeshLodSectionIndex = SectionIndex;
-							Binding.AssetLodIndex = Section.ClothingData.AssetLodIndex;
-						}
-					}
-				}
-			}
+			TArray<ClothingAssetUtils::FClothingAssetMeshBinding> AssetBindings;
+			ClothingAssetUtils::GetMeshClothingAssetBindings(TargetMesh, AssetBindings);
 
 			OldClothingAsset->UnbindFromSkeletalMesh(TargetMesh);
 
@@ -216,11 +181,10 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 
 				TargetMesh->MeshClothingAssets[OldIndex] = NewClothingAsset;
 
-				for(Local_BindingInfo& Binding : AssetBindings)
+				for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : AssetBindings)
 				{
-					NewClothingAsset->BindToSkeletalMesh(TargetMesh, Binding.MeshLodIndex, Binding.MeshLodSectionIndex, Binding.AssetLodIndex);
+					NewClothingAsset->BindToSkeletalMesh(TargetMesh, Binding.LODIndex, Binding.SectionIndex, Binding.AssetInternalLodIndex);
 				}
-
 			}
 		}
 

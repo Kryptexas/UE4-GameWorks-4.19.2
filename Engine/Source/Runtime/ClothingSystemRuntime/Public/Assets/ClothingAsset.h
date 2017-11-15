@@ -33,6 +33,7 @@ enum class MaskTarget_PhysMesh : uint8
 	MaxDistance,
 	BackstopDistance,
 	BackstopRadius,
+	AnimDriveMultiplier
 };
 
 /** 
@@ -164,6 +165,12 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 	// Clear out any target properties in this physical mesh
 	void ClearParticleParameters();
 
+	// Whether the mesh uses backstops
+	bool HasBackStops();
+
+	// Whether the mesh uses anim drives
+	bool HasAnimDrive();
+
 	// Positions of each simulation vertex
 	UPROPERTY(EditAnywhere, Category = SimMesh)
 	TArray<FVector> Vertices;
@@ -187,6 +194,10 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 	// Radius of movement to allow for backstop movement
 	UPROPERTY(EditAnywhere, Category = SimMesh)
 	TArray<float> BackstopRadiuses;
+
+	// Strength of anim drive per-particle (spring driving particle back to skinned location
+	UPROPERTY(EditAnywhere, Category = SimMesh)
+	TArray<float> AnimDriveMultipliers;
 
 	// Inverse mass for each vertex in the physical mesh
 	UPROPERTY(EditAnywhere, Category = SimMesh)
@@ -334,6 +345,8 @@ struct FClothConfig
 		, TetherStiffness(1.0f)
 		, TetherLimit(1.0f)
 		, CollisionThickness(1.0f)
+		, AnimDriveSpringStiffness(1.0f)
+		, AnimDriveDamperStiffness(1.0f)
 	{}
 
 	bool HasSelfCollision() const;
@@ -435,6 +448,14 @@ struct FClothConfig
 	// 'Thickness' of the simulated cloth, used to adjust collisions
 	UPROPERTY(EditAnywhere, Category = ClothConfig)
 	float CollisionThickness;
+
+	// Default spring stiffness for anim drive if an anim drive is in use
+	UPROPERTY(EditAnywhere, Category = ClothConfig)
+	float AnimDriveSpringStiffness;
+
+	// Default damper stiffness for anim drive if an anim drive is in use
+	UPROPERTY(EditAnywhere, Category = ClothConfig)
+	float AnimDriveDamperStiffness;
 };
 
 namespace ClothingAssetUtils

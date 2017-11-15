@@ -24,7 +24,8 @@ public class LevelEditor : ModuleRules
 				"Settings",
 				"IntroTutorials",
 				"HeadMountedDisplay",
-				"VREditor"
+				"VREditor",
+				"CommonMenuExtensions"
 			}
 		);
 
@@ -64,7 +65,8 @@ public class LevelEditor : ModuleRules
 				"HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
 				"PixelInspectorModule",
-				"FunctionalTesting"
+				"FunctionalTesting",
+				"CommonMenuExtensions"
 			}
 		);
 

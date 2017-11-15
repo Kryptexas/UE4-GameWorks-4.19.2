@@ -408,7 +408,7 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.CopyBoneNames,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopyBoneNames ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopyBoneNames ));
 
 	CommandList.MapAction(
 		MenuActions.ResetBoneTransforms,
@@ -416,15 +416,18 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.CopySockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopySockets ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopySockets ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanCopySockets ));
 
 	CommandList.MapAction(
 		MenuActions.PasteSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPasteSockets, false ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPasteSockets, false ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanPasteSockets ));
 
 	CommandList.MapAction(
 		MenuActions.PasteSocketsToSelectedBone,
-		FExecuteAction::CreateSP(this, &SSkeletonTree::OnPasteSockets, true));
+		FExecuteAction::CreateSP(this, &SSkeletonTree::OnPasteSockets, true),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanPasteSockets ));
 
 	CommandList.MapAction(
 		MenuActions.FocusCamera,
@@ -1103,6 +1106,14 @@ void SSkeletonTree::OnCopySockets() const
 	}
 }
 
+bool SSkeletonTree::CanCopySockets() const
+{
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	TArray<TSharedPtr<FSkeletonTreeSocketItem>> SelectedSockets = TreeSelection.GetSelectedItems<FSkeletonTreeSocketItem>();
+	return SelectedSockets.Num() > 0;
+}
+
 FString SSkeletonTree::SerializeSocketToString( USkeletalMeshSocket* Socket, ESocketParentType ParentType) const
 {
 	FString SocketString;
@@ -1131,6 +1142,19 @@ void SSkeletonTree::OnPasteSockets(bool bPasteToSelectedBone)
 
 		CreateFromSkeleton();
 	}
+}
+
+bool SSkeletonTree::CanPasteSockets() const
+{
+	if(SkeletonTreeView->GetNumItemsSelected() == 1)
+	{
+		TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
+
+		return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>();
+	}
+
+	return false;
 }
 
 void SSkeletonTree::OnAddSocket()

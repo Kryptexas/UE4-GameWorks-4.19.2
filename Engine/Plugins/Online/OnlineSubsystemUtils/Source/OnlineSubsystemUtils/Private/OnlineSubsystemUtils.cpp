@@ -12,8 +12,6 @@
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemBPCallHelper.h"
 
-
-
 #include "VoiceModule.h"
 #include "AudioDevice.h"
 #include "Sound/AudioSettings.h"
@@ -70,6 +68,69 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels)
 	}
 
 	return AudioComponent;
+}
+
+UVoipListenerSynthComponent* CreateVoiceSynthComponent(uint32 SampleRate)
+{
+	UVoipListenerSynthComponent* SynthComponentPtr = nullptr;
+	if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice())
+	{
+		SynthComponentPtr = NewObject<UVoipListenerSynthComponent>();
+		if (SynthComponentPtr)
+		{
+			const FSoftObjectPath VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
+			if (VoiPSoundClassName.IsValid())
+			{
+				SynthComponentPtr->SoundClass = LoadObject<USoundClass>(nullptr, *VoiPSoundClassName.ToString());
+			}
+
+			SynthComponentPtr->Initialize(SampleRate);
+		}
+		else
+		{
+			UE_LOG(LogVoiceDecode, Warning, TEXT("Unable to create voice synth component!"));
+		}
+	}
+
+	return SynthComponentPtr;
+}
+
+ONLINESUBSYSTEMUTILS_API void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings)
+{
+	InSynthComponent->bAllowSpatialization = true;
+	UAudioComponent* AudioComponent = InSynthComponent->GetAudioComponent();
+
+	if (InSettings.ComponentToAttachTo)
+	{
+		//If this component is simulating physics, it won't correctly attach to the parent.
+		check(AudioComponent->IsSimulatingPhysics() == false);
+
+		if (AudioComponent->GetAttachParent() == nullptr)
+		{
+			AudioComponent->SetupAttachment(InSettings.ComponentToAttachTo);
+		}
+		else
+		{
+			AudioComponent->AttachToComponent(InSettings.ComponentToAttachTo, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		}
+
+		// Since the Synth Component's internal audio component was created as a subobject when this
+		// SynthComponent did not have an owning world, we need to register it independently.
+		if (!AudioComponent->IsRegistered())
+		{
+			AudioComponent->RegisterComponentWithWorld(InSettings.ComponentToAttachTo->GetWorld());
+		}
+	}
+
+	if (InSettings.AttenuationSettings != nullptr)
+	{
+		InSynthComponent->AttenuationSettings = InSettings.AttenuationSettings;
+	}
+
+	if (InSettings.SourceEffectChain != nullptr)
+	{
+		InSynthComponent->SourceEffectChain = InSettings.SourceEffectChain;
+	}
 }
 
 UWorld* GetWorldForOnline(FName InstanceName)

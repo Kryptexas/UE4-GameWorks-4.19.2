@@ -437,7 +437,10 @@ void UPhysicalAnimationComponent::ReleasePhysicsEngine()
 		
 		if(Instance.TargetActor)
 		{
-			Scene->removeActor(*Instance.TargetActor);
+			if (Scene)
+			{
+				Scene->removeActor(*Instance.TargetActor);
+			}
 			Instance.TargetActor->release();
 
 			Instance.TargetActor = nullptr;

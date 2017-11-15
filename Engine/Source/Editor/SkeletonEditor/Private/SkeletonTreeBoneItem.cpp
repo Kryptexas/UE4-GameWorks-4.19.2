@@ -40,14 +40,14 @@ FSkeletonTreeBoneItem::FSkeletonTreeBoneItem(const FName& InBoneName, const TSha
 	}
 }
 
-EVisibility FSkeletonTreeBoneItem::GetLODIconVisibility() const
+const FSlateBrush* FSkeletonTreeBoneItem::GetLODIcon() const
 {
 	if (bRequiredBone)
 	{
-		return EVisibility::Visible;
+		return FEditorStyle::GetBrush("SkeletonTree.LODBone");
 	}
 
-	return EVisibility::Hidden;
+	return FEditorStyle::GetBrush("SkeletonTree.NonRequiredBone");
 }
 
 void FSkeletonTreeBoneItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected )
@@ -62,8 +62,7 @@ void FSkeletonTreeBoneItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontal
 		[
 			SNew(SImage)
 			.ColorAndOpacity(FSlateColor::UseForeground())
-			.Image(LODIcon)
-			.Visibility(this, &FSkeletonTreeBoneItem::GetLODIconVisibility)
+			.Image(this, &FSkeletonTreeBoneItem::GetLODIcon)
 		];
 
 	if (GetSkeletonTree()->GetPreviewScene().IsValid())

@@ -146,12 +146,11 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceVoice::SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
+	void FMixerSourceVoice::SetChannelMap(ESubmixChannelFormat InChannelType, TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
-		ChannelMap = InChannelMap;
-		SourceManager->SetChannelMap(SourceId, InChannelMap, bInIs3D, bInIsCenterChannelOnly);
+		SourceManager->SetChannelMap(SourceId, InChannelType, InChannelMap, bInIs3D, bInIsCenterChannelOnly);
 	}
 
 	void FMixerSourceVoice::SetSpatializationParams(const FSpatializationParams& InParams)
@@ -246,13 +245,13 @@ namespace Audio
 		return SourceManager->GetEnvelopeValue(SourceId);
 	}
 
-	void FMixerSourceVoice::MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
+	void FMixerSourceVoice::MixOutputBuffers(const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
 		check(!bOutputToBusOnly);
 
-		return SourceManager->MixOutputBuffers(SourceId, OutWetBuffer, SendLevel);
+		return SourceManager->MixOutputBuffers(SourceId, InSubmixChannelType, SendLevel, OutWetBuffer);
 	}
 
 	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel)

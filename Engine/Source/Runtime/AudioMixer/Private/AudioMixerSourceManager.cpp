@@ -321,7 +321,6 @@ namespace Audio
 
 		SourceInfo.LowPassFilter.Reset();
 		SourceInfo.HighPassFilter.Reset();
-		SourceInfo.ChannelMapParam.Reset();
 		SourceInfo.BufferQueue.Empty();
 		SourceInfo.CurrentPCMBuffer = nullptr;
 		SourceInfo.CurrentAudioChunkNumFrames = 0;
@@ -334,7 +333,6 @@ namespace Audio
 		SourceInfo.CurrentFrameIndex = 0;
 		SourceInfo.NumFramesPlayed = 0;
 		SourceInfo.PostEffectBuffers = nullptr;
-		SourceInfo.OutputBuffer.Reset();
 		SourceInfo.bIs3D = false;
 		SourceInfo.bIsCenterChannelOnly = false;
 		SourceInfo.bIsActive = false;
@@ -352,6 +350,14 @@ namespace Audio
 		SourceInfo.DebugName = FString();
 		SourceInfo.NumInputChannels = 0;
 		SourceInfo.NumPostEffectChannels = 0;
+
+		// Reset submix channel infos
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
+		{
+			SourceInfo.SubmixChannelInfo[i].OutputBuffer.Reset();
+			SourceInfo.SubmixChannelInfo[i].ChannelMapParam.Reset();
+			SourceInfo.SubmixChannelInfo[i].bUsed = false;
+		}
 
 		GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
 	}
@@ -612,6 +618,12 @@ namespace Audio
 				const FMixerSourceSubmixSend& MixerSubmixSend = InitParams.SubmixSends[i];
 				SourceInfo.SubmixSends.Add(MixerSubmixSend);
 				MixerSubmixSend.Submix->AddOrSetSourceVoice(InitParams.SourceVoice, MixerSubmixSend.SendLevel);
+
+				// Prepare output buffers and speaker map entries for every submix channel type
+				const ESubmixChannelFormat SubmixChannelType = MixerSubmixSend.Submix->GetSubmixChannels();
+
+				// Flag that we're going to be using this channel info entry
+				SourceInfo.SubmixChannelInfo[(int32)SubmixChannelType].bUsed = true;
 			}
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
@@ -767,13 +779,13 @@ namespace Audio
 		});
 	}
 
-	void FMixerSourceManager::SetChannelMap(const int32 SourceId, const TArray<float>& ChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
+	void FMixerSourceManager::SetChannelMap(const int32 SourceId, const ESubmixChannelFormat SubmixChannelType, const TArray<float>& ChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
 	{
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
 		AUDIO_MIXER_CHECK(GameThreadInfo.bIsBusy[SourceId]);
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
-		AudioMixerThreadCommand([this, SourceId, ChannelMap, bInIs3D, bInIsCenterChannelOnly]()
+		AudioMixerThreadCommand([this, SourceId, SubmixChannelType, ChannelMap, bInIs3D, bInIsCenterChannelOnly]()
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
@@ -785,35 +797,47 @@ namespace Audio
 			SourceInfo.bIs3D = bInIs3D;
 			SourceInfo.bIsCenterChannelOnly = bInIsCenterChannelOnly;
 
+			FSubmixChannelTypeInfo& ChannelTypeInfo = SourceInfo.SubmixChannelInfo[(int32)SubmixChannelType];
+			check(ChannelTypeInfo.bUsed);
+
 			// Fix up the channel map in case device output count changed
-			const int32 NumSourceChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
-			const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
-			const int32 ChannelMapSize = NumSourceChannels * NumOutputChannels;
-
-			// If this is true, then the device changed while the command was in-flight
-			if (ChannelMap.Num() != ChannelMapSize)
+			if (SubmixChannelType == ESubmixChannelFormat::Device)
 			{
-				TArray<float> NewChannelMap;
+				const int32 NumSourceChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
+				const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
+				const int32 ChannelMapSize = NumSourceChannels * NumOutputChannels;
 
-				// If 3d then just zero it out, we'll get another channel map shortly
-				if (bInIs3D)
+				// If this is true, then the device changed while the command was in-flight
+				if (ChannelMap.Num() != ChannelMapSize)
 				{
-					NewChannelMap.AddZeroed(ChannelMapSize);
-					GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+					TArray<float> NewChannelMap;
+
+					// If 3d then just zero it out, we'll get another channel map shortly
+					if (bInIs3D)
+					{
+						NewChannelMap.AddZeroed(ChannelMapSize);
+						GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+					}
+					// Otherwise, get an appropriate channel map for the new device configuration
+					else
+					{
+						MixerDevice->Get2DChannelMap(ESubmixChannelFormat::Device, NumSourceChannels, bInIsCenterChannelOnly, NewChannelMap);
+					}
+
+					// Make sure we've been flagged to be using this submix channel type entry
+					ChannelTypeInfo.ChannelMapParam.SetChannelMap(NewChannelMap, NumOutputChannels);
 				}
-				// Otherwise, get an appropriate channel map for the new device configuration
 				else
 				{
-					MixerDevice->Get2DChannelMap(NumSourceChannels, NumOutputChannels, bInIsCenterChannelOnly, NewChannelMap);
+					GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
+					ChannelTypeInfo.ChannelMapParam.SetChannelMap(ChannelMap, NumOutputFrames);
 				}
-				SourceInfo.ChannelMapParam.SetChannelMap(NewChannelMap, NumOutputFrames);
 			}
 			else
 			{
-				GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
-				SourceInfo.ChannelMapParam.SetChannelMap(ChannelMap, NumOutputFrames);
+				// Since we're artificially mixing to this channel count, we don't need to deal with device reset
+				ChannelTypeInfo.ChannelMapParam.SetChannelMap(ChannelMap, NumOutputFrames);
 			}
-
 		});
 	}
 
@@ -892,11 +916,29 @@ namespace Audio
 
 			if (bIsNew)
 			{
-				SourceInfos[SourceId].SubmixSends.Add(InSubmixSend);
+				SourceInfo.SubmixSends.Add(InSubmixSend);
+
+				// Flag that we're now using this submix channel info
+				ESubmixChannelFormat ChannelType = InSubmixSend.Submix->GetSubmixChannels();
+				SourceInfo.SubmixChannelInfo[(int32)ChannelType].bUsed = true;
 			}
 
 			InSubmixSend.Submix->AddOrSetSourceVoice(MixerSources[SourceId], InSubmixSend.SendLevel);
 		});
+	}
+
+	void FMixerSourceManager::SetListenerTransforms(const TArray<FTransform>& InListenerTransforms)
+	{
+		AudioMixerThreadCommand([this, InListenerTransforms]()
+		{
+			ListenerTransforms = InListenerTransforms;
+		});
+	}
+
+	const TArray<FTransform>* FMixerSourceManager::GetListenerTransforms() const
+	{
+		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+		return &ListenerTransforms;
 	}
 
 	int64 FMixerSourceManager::GetNumFramesPlayed(const int32 SourceId) const
@@ -1498,8 +1540,6 @@ namespace Audio
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceOutputBuffers);
 
-		const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
-
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
 			FSourceInfo& SourceInfo = SourceInfos[SourceId];
@@ -1520,56 +1560,70 @@ namespace Audio
 				continue;
 			}
 
-			// Zero the buffers for all cases, this will catch the pause state. We want to zero buffers when paused.
-			SourceInfo.OutputBuffer.Reset();
-			SourceInfo.OutputBuffer.AddZeroed(NumOutputSamples);
-
-			// If we're paused, then early return now
-			if (SourceInfo.bIsPaused)
+			// Perform output buffer computation for each submix channel type output
+			for (int32 SubmixInfoId = 0; SubmixInfoId < (int32)ESubmixChannelFormat::Count; ++SubmixInfoId)
 			{
-				continue;
-			}
+				FSubmixChannelTypeInfo& ChannelInfo = SourceInfo.SubmixChannelInfo[SubmixInfoId];
 
-			for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
-			{
-				const int32 PostEffectChannels = SourceInfo.NumPostEffectChannels;
-
-				float SourceSampleValue = 0.0f;
-
-				// Make sure that our channel map is appropriate for the source channel and output channel count!
-				SourceInfo.ChannelMapParam.UpdateChannelMap();
-
-				// For each source channel, compute the output channel mapping
-				for (int32 SourceChannel = 0; SourceChannel < PostEffectChannels; ++SourceChannel)
+				if (!ChannelInfo.bUsed)
 				{
-					const int32 SourceSampleIndex = Frame * PostEffectChannels + SourceChannel;
-					TArray<float>* Buffer = SourceInfo.PostEffectBuffers;
-					SourceSampleValue = (*Buffer)[SourceSampleIndex];
+					continue;
+				}
 
-					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
+				int32 NumOutputChannels = MixerDevice->GetNumChannelsForSubmixFormat((ESubmixChannelFormat)SubmixInfoId);
+
+				ChannelInfo.OutputBuffer.Reset();
+				ChannelInfo.OutputBuffer.AddZeroed(NumOutputFrames * NumOutputChannels);
+
+				// If we're paused, then early return now
+				if (SourceInfo.bIsPaused)
+				{
+					continue;
+				}
+
+				float* OutputBufferPtr = ChannelInfo.OutputBuffer.GetData();
+				float* PostEffetBufferPtr = SourceInfo.PostEffectBuffers->GetData();
+
+				// Apply speaker mapping
+				for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
+				{
+					const int32 PostEffectChannels = SourceInfo.NumPostEffectChannels;
+
+					float SourceSampleValue = 0.0f;
+
+					// Make sure that our channel map is appropriate for the source channel and output channel count!
+					ChannelInfo.ChannelMapParam.UpdateChannelMap();
+
+					// For each source channel, compute the output channel mapping
+					for (int32 SourceChannel = 0; SourceChannel < PostEffectChannels; ++SourceChannel)
 					{
-						// Look up the channel map value (maps input channels to output channels) for the source
-						// This is the step that either applies the spatialization algorithm or just maps a 2d sound
-						const int32 ChannelMapIndex = NumOutputChannels * SourceChannel + OutputChannel;
-						const float ChannelMapValue = SourceInfo.ChannelMapParam.GetChannelValue(ChannelMapIndex);
+						const int32 SourceSampleIndex = Frame * PostEffectChannels + SourceChannel;
+						SourceSampleValue = PostEffetBufferPtr[SourceSampleIndex];
 
-						// If we have a non-zero sample value, write it out. Note that most 3d audio channel maps
-						// for surround sound will result in 0.0 sample values so this branch should save a bunch of multiplies + adds
-						if (ChannelMapValue > 0.0f)
+						for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
 						{
-							// Scale the input source sample for this source channel value
-							const float SampleValue = SourceSampleValue * ChannelMapValue;
+							// Look up the channel map value (maps input channels to output channels) for the source
+							// This is the step that either applies the spatialization algorithm or just maps a 2d sound
+							const int32 ChannelMapIndex = NumOutputChannels * SourceChannel + OutputChannel;
+							const float ChannelMapValue = ChannelInfo.ChannelMapParam.GetChannelValue(ChannelMapIndex);
 
-							const int32 OutputSampleIndex = Frame * NumOutputChannels + OutputChannel;
+							// If we have a non-zero sample value, write it out. Note that most 3d audio channel maps
+							// for surround sound will result in 0.0 sample values so this branch should save a bunch of multiplies + adds
+							if (ChannelMapValue > 0.0f)
+							{
+								// Scale the input source sample for this source channel value
+								const float SampleValue = SourceSampleValue * ChannelMapValue;
+								const int32 OutputSampleIndex = Frame * NumOutputChannels + OutputChannel;
 
-							SourceInfo.OutputBuffer[OutputSampleIndex] += SampleValue;
+								OutputBufferPtr[OutputSampleIndex] += SampleValue;
+							}
 						}
 					}
 				}
-			}
 
-			// Reset the channel map param interpolation
-			SourceInfo.ChannelMapParam.ResetInterpolation();
+				// Reset the channel map param interpolation
+				ChannelInfo.ChannelMapParam.ResetInterpolation();
+			}
 		}
 	}
 
@@ -1616,7 +1670,7 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
+	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const
 	{
 		if (SendLevel > 0.0f)
 		{
@@ -1625,7 +1679,11 @@ namespace Audio
 			// Don't need to mix into submixes if the source is paused
 			if (!SourceInfo.bIsPaused && !SourceInfo.bIsDone && SourceInfo.bIsPlaying)
 			{
-				const float* SourceOutputBufferPtr = SourceInfo.OutputBuffer.GetData();
+				const FSubmixChannelTypeInfo& ChannelInfo = SourceInfo.SubmixChannelInfo[(int32)InSubmixChannelType];
+				check(ChannelInfo.bUsed);
+				check(ChannelInfo.OutputBuffer.Num() == OutWetBuffer.Num());
+
+				const float* SourceOutputBufferPtr = ChannelInfo.OutputBuffer.GetData();
 				const int32 OutWetBufferSize = OutWetBuffer.Num();
 				float* OutWetBufferPtr = OutWetBuffer.GetData();
 
@@ -1664,23 +1722,29 @@ namespace Audio
 				continue;
 			}
 
-			SourceInfo.ScratchChannelMap.Reset();
-			const int32 NumSoureChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
+			FSubmixChannelTypeInfo& ChannelTypeInfo = SourceInfo.SubmixChannelInfo[(int32)ESubmixChannelFormat::Device];
 
-			// If this is a 3d source, then just zero out the channel map, it'll cause a temporary blip
-			// but it should reset in the next tick
-			if (SourceInfo.bIs3D)
-			{
-				GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
-				SourceInfo.ScratchChannelMap.AddZeroed(NumSoureChannels * InNumOutputChannels);
-			}
-			// If it's a 2D sound, then just get a new channel map appropriate for the new device channel count
-			else
+			if (ChannelTypeInfo.bUsed)
 			{
 				SourceInfo.ScratchChannelMap.Reset();
-				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, SourceInfo.bIsCenterChannelOnly, SourceInfo.ScratchChannelMap);
+				const int32 NumSoureChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
+
+				// If this is a 3d source, then just zero out the channel map, it'll cause a temporary blip
+				// but it should reset in the next tick
+				if (SourceInfo.bIs3D)
+				{
+					GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
+					SourceInfo.ScratchChannelMap.AddZeroed(NumSoureChannels * InNumOutputChannels);
+				}
+				// If it's a 2D sound, then just get a new channel map appropriate for the new device channel count
+				else
+				{
+					SourceInfo.ScratchChannelMap.Reset();
+					MixerDevice->Get2DChannelMap(ESubmixChannelFormat::Device, NumSoureChannels, SourceInfo.bIsCenterChannelOnly, SourceInfo.ScratchChannelMap);
+				}
+			
+				ChannelTypeInfo.ChannelMapParam.SetChannelMap(SourceInfo.ScratchChannelMap, NumOutputFrames);
 			}
-			SourceInfo.ChannelMapParam.SetChannelMap(SourceInfo.ScratchChannelMap, NumOutputFrames);
 		}
 	}
 

@@ -202,8 +202,8 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 
 	TArray<TSharedPtr<FExtender>> ViewportExtenders;
 	ViewportExtenders.Add(MakeShared<FExtender>());
-	ViewportExtenders[0]->AddMenuExtension("AnimViewportGeneralShowFlags", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
-	ViewportExtenders[0]->AddMenuExtension("AnimViewportShowMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendMenuBar));
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportSceneElements", EExtensionHook::Before, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportPhysicsMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendMenuBar));
 
 
 	FPersonaViewportArgs ViewportArgs(InSkeletonTree, InPreviewScene, PhysicsAssetEditor->OnPostUndo);

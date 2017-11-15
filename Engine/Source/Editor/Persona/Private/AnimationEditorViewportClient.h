@@ -150,6 +150,7 @@ public:
 	virtual void RotateViewportType() override;
 	virtual bool CanCycleWidgetMode() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
+	virtual void HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex) override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */
@@ -178,12 +179,6 @@ public:
 
 	/** Function to display bone names*/
 	void ShowBoneNames(FViewport* Viewport, FCanvas* Canvas);
-
-	/** Function to show/hide grid in the viewport */
-	void OnToggleShowGrid();
-
-	/** Function to check whether grid is displayed or not */
-	bool IsShowingGrid() const;
 
 	/** Function to enable/disable floor auto align */
 	void OnToggleAutoAlignFloor();
@@ -268,7 +263,7 @@ public:
 	bool IsSetShowBinormalsChecked() const;
 
 	/** Callback for toggling UV drawing in the viewport */
-	void ToggleDrawUVOverlay();
+	void SetDrawUVOverlay(bool bInDrawUVs);
 
 	/** Callback for checking whether the UV drawing is switched on. */
 	bool IsSetDrawUVOverlayChecked() const;

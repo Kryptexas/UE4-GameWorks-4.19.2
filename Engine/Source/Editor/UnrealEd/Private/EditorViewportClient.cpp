@@ -2342,6 +2342,36 @@ bool FEditorViewportClient::IsFlightCameraActive() const
 		bIsFlightMovementKey;
 }
 
+void FEditorViewportClient::HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex)
+{
+	const bool bOldState = EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
+	EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
+
+	// If changing collision flag, need to do special handling for hidden objects.
+	if (EngineShowFlagIndex == FEngineShowFlags::EShowFlag::SF_Collision)
+	{
+		UpdateHiddenCollisionDrawing();
+	}
+
+	// Invalidate clients which aren't real-time so we see the changes.
+	Invalidate();
+}
+
+bool FEditorViewportClient::HandleIsShowFlagEnabled(FEngineShowFlags::EShowFlag EngineShowFlagIndex) const
+{
+	return EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
+}
+
+void FEditorViewportClient::ChangeBufferVisualizationMode( FName InName )
+{
+	SetViewMode(VMI_VisualizeBuffer);
+	CurrentBufferVisualizationMode = InName;
+}
+
+bool FEditorViewportClient::IsBufferVisualizationModeSelected( FName InName ) const
+{
+	return IsViewModeEnabled( VMI_VisualizeBuffer ) && CurrentBufferVisualizationMode == InName;	
+}
 
 bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float/*AmountDepressed*/, bool/*Gamepad*/)
 {

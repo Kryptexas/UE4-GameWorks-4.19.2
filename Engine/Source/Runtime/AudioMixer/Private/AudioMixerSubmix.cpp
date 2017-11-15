@@ -15,6 +15,9 @@ namespace Audio
 		: Id(GSubmixMixerIDs++)
 		, ParentSubmix(nullptr)
 		, MixerDevice(InMixerDevice)
+		, ChannelFormat(ESubmixChannelFormat::Device)
+		, NumChannels(0)
+		, NumSamples(0)
 	{
 	}
 
@@ -57,6 +60,11 @@ namespace Audio
 					EffectSubmixChain.Add(EffectInfo);
 				}
 			}
+
+			ChannelFormat = InSoundSubmix->ChannelFormat;
+			NumChannels = MixerDevice->GetNumChannelsForSubmixFormat(ChannelFormat);
+			const int32 NumOutputFrames = MixerDevice->GetNumOutputFrames();
+			NumSamples = NumChannels * NumOutputFrames;
 		}
 	}
 
@@ -78,6 +86,11 @@ namespace Audio
 
 			ChildSubmixes.Add(Submix->GetId(), Submix);
 		});
+	}
+
+	ESubmixChannelFormat FMixerSubmix::GetSubmixChannels() const
+	{
+		return ChannelFormat;
 	}
 
 	TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> FMixerSubmix::GetParentSubmix()
@@ -154,34 +167,38 @@ namespace Audio
 		EffectSubmixChain.Reset();
 	}
 
-	void FMixerSubmix::DownmixBuffer(const int32 InputChannelCount, const AlignedFloatBuffer& InBuffer, const int32 DownMixChannelCount, AlignedFloatBuffer& OutDownmixedBuffer)
+	void FMixerSubmix::FormatChangeBuffer(const ESubmixChannelFormat InNewChannelType, AlignedFloatBuffer& InBuffer, AlignedFloatBuffer& OutNewBuffer)
 	{
 		// Retrieve ptr to the cached downmix channel map from the mixer device
-		const float* DownmixChannelMap = MixerDevice->Get2DChannelMap(InputChannelCount, DownMixChannelCount, false);
+		int32 NewChannelCount = MixerDevice->GetNumChannelsForSubmixFormat(InNewChannelType);
+		TArray<float> ChannelMap;
+		MixerDevice->Get2DChannelMap(InNewChannelType, NumChannels, false, ChannelMap);
+		float* ChannelMapPtr = ChannelMap.GetData();
 
 		// Input and output frame count is going to be the same
-		const int32 InputFrames = InBuffer.Num() / InputChannelCount;
+		const int32 NumFrames = InBuffer.Num() / NumChannels;
 
 		// Reset the passed in downmix scratch buffer
-		OutDownmixedBuffer.Reset();
-		OutDownmixedBuffer.AddZeroed(InputFrames * DownMixChannelCount);
-
+		OutNewBuffer.Reset();
+		OutNewBuffer.AddZeroed(NumFrames * NewChannelCount);
+		float* OutNewBufferPtr = OutNewBuffer.GetData();
+		
 		// Loop through the down mix map and perform the downmix operation
 		int32 InputSampleIndex = 0;
 		int32 DownMixedBufferIndex = 0;
 		for (; InputSampleIndex < InBuffer.Num();)
 		{
-			for (int32 DownMixChannel = 0; DownMixChannel < DownMixChannelCount; ++DownMixChannel)
+			for (int32 DownMixChannel = 0; DownMixChannel < NewChannelCount; ++DownMixChannel)
 			{
-				for (int32 InChannel = 0; InChannel < InputChannelCount; ++InChannel)
+				for (int32 InChannel = 0; InChannel < NumChannels; ++InChannel)
 				{
-					const int32 ChannelMapIndex = DownMixChannelCount * InChannel + DownMixChannel;
-					DownmixedBuffer[DownMixedBufferIndex + DownMixChannel] += InBuffer[InputSampleIndex + InChannel] * DownmixChannelMap[ChannelMapIndex];
+					const int32 ChannelMapIndex = NewChannelCount * InChannel + DownMixChannel;
+					OutNewBufferPtr[DownMixedBufferIndex + DownMixChannel] += InBuffer[InputSampleIndex + InChannel] * ChannelMapPtr[ChannelMapIndex];
 				}
 			}
 
-			InputSampleIndex += InputChannelCount;
-			DownMixedBufferIndex += DownMixChannelCount;
+			InputSampleIndex += NumChannels;
+			DownMixedBufferIndex += NewChannelCount;
 		}
 	}
 
@@ -199,17 +216,21 @@ namespace Audio
 		CommandQueue.Enqueue(MoveTemp(Command));
 	}
 
-	void FMixerSubmix::ProcessAudio(AlignedFloatBuffer& OutAudioBuffer)
+	void FMixerSubmix::ProcessAudio(const ESubmixChannelFormat ParentChannelType, AlignedFloatBuffer& OutAudioBuffer)
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
 		// Pump pending command queues
 		PumpCommandQueue();
 
-		// Create a zero'd scratch buffer to get the audio from this submix's children
-		const int32 NumSamples = OutAudioBuffer.Num();
-		float* OutAudioBufferPtr = OutAudioBuffer.GetData();
+		MixerDevice->GetNumOutputFrames();
 
+		InputBuffer.Reset(NumSamples);
+		InputBuffer.AddZeroed(NumSamples);
+
+		float* BufferPtr = InputBuffer.GetData();
+
+		// Mix all submix audio into this submix's input scratch buffer
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixChildren);
 
@@ -223,14 +244,14 @@ namespace Audio
 				ScratchBuffer.Reset(NumSamples);
 				ScratchBuffer.AddZeroed(NumSamples);
 
-				ChildSubmix->ProcessAudio(ScratchBuffer);
+				ChildSubmix->ProcessAudio(ChannelFormat, ScratchBuffer);
 
 				float* ScratchBufferPtr = ScratchBuffer.GetData();
 
 				// Mix the output of the submix into the output buffer
 				for (int32 i = 0; i < NumSamples; ++i)
 				{
-					OutAudioBufferPtr[i] += ScratchBufferPtr[i];
+					BufferPtr[i] += ScratchBufferPtr[i];
 				}
 			}
 		}
@@ -244,7 +265,7 @@ namespace Audio
 				const FMixerSourceVoice* MixerSourceVoice = MixerSourceVoiceIter.Key;
 				const float SendLevel = MixerSourceVoiceIter.Value;
 
-				MixerSourceVoice->MixOutputBuffers(OutAudioBuffer, SendLevel);
+				MixerSourceVoice->MixOutputBuffers(ChannelFormat, SendLevel, InputBuffer);
 			}
 		}
 
@@ -257,13 +278,15 @@ namespace Audio
 			InputData.AudioClock = MixerDevice->GetAudioTime();
 
 			// Compute the number of frames of audio. This will be independent of if we downmix our wet buffer.
-			const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
-			const int32 NumFrames = NumSamples / NumOutputChannels;
-			InputData.NumFrames = NumFrames;
+			InputData.NumFrames = NumSamples / NumChannels;
+			InputData.NumChannels = NumChannels;
+			InputData.NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
+			InputData.ListenerTransforms = MixerDevice->GetListenerTransforms();
+			InputData.AudioClock = MixerDevice->GetAudioClock();
 
 			FSoundEffectSubmixOutputData OutputData;
 			OutputData.AudioBuffer = &ScratchBuffer;
-			OutputData.NumChannels = NumOutputChannels;
+			OutputData.NumChannels = NumChannels;
 
 			for (FSubmixEffectInfo& SubmixEffectInfo : EffectSubmixChain)
 			{
@@ -273,13 +296,14 @@ namespace Audio
 				ScratchBuffer.Reset(NumSamples);
 				ScratchBuffer.AddZeroed(NumSamples);
 
-				// Check to see if we need to downmix our audio before sending to the submix effect
+				// Check to see if we need to down-mix our audio before sending to the submix effect
 				const uint32 ChannelCountOverride = SubmixEffect->GetDesiredInputChannelCountOverride();
-				const int32 NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
-				if (ChannelCountOverride < (uint32)NumDeviceChannels)
+
+				// Only support downmixing to stereo. TODO: change GetDesiredInputChannelCountOverride() API to be "DownmixToStereo"
+				if (ChannelCountOverride < (uint32)NumChannels && ChannelCountOverride == 2)
 				{
-					// Perform the downmix operation with the downmixed scratch buffer
-					DownmixBuffer(NumDeviceChannels, OutAudioBuffer, ChannelCountOverride, DownmixedBuffer);
+					// Perform the down-mix operation with the down-mixed scratch buffer
+					FormatChangeBuffer(ESubmixChannelFormat::Stereo, InputBuffer, DownmixedBuffer);
 
 					InputData.NumChannels = ChannelCountOverride;
 					InputData.AudioBuffer = &DownmixedBuffer;
@@ -287,17 +311,24 @@ namespace Audio
 				}
 				else
 				{
-					// If we're not downmixing, then just pass in the current wet buffer and our channel count is the same as the output channel count
-					InputData.NumChannels = NumOutputChannels;
-					InputData.AudioBuffer = &OutAudioBuffer;
+					// If we're not down-mixing, then just pass in the current wet buffer and our channel count is the same as the output channel count
+					InputData.NumChannels = NumChannels;
+					InputData.AudioBuffer = &InputBuffer;
 					SubmixEffect->ProcessAudio(InputData, OutputData);
 				}
 
-				for (int32 i = 0; i < NumSamples; ++i)
-				{
-					OutAudioBufferPtr[i] = ScratchBuffer[i];
-				}
+				FMemory::Memcpy((void*)BufferPtr, (void*)ScratchBuffer.GetData(), sizeof(float)*NumSamples);
 			}
+		}
+
+		// If the channel types match, just do a copy
+		if (ChannelFormat != ParentChannelType)
+		{
+			FormatChangeBuffer(ParentChannelType, InputBuffer, OutAudioBuffer);
+		}
+		else
+		{
+			FMemory::Memcpy((void*)OutAudioBuffer.GetData(), (void*)InputBuffer.GetData(), sizeof(float)*NumSamples);
 		}
 	}
 

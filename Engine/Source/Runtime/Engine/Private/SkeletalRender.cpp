@@ -30,8 +30,10 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	WorkingMaxDistanceFactor(0.f)
 ,   bHasBeenUpdatedAtLeastOnce(false)
 #if WITH_EDITORONLY_DATA
-,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
-,   MaterialIndexPreview(InMeshComponent->MaterialIndexPreview)
+,   SectionIndexPreview(InMeshComponent->GetSectionPreview())
+,   MaterialIndexPreview(InMeshComponent->GetMaterialPreview())
+,	SelectedEditorSection(InMeshComponent->GetSelectedEditorSection())
+,	SelectedEditorMaterial(InMeshComponent->GetSelectedEditorMaterial())
 #endif	
 ,	SkeletalMeshRenderData(InSkelMeshRenderData)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)

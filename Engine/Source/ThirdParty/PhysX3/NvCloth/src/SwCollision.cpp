@@ -414,8 +414,8 @@ void cloth::SwCollision<T4f>::buildSphereAcceleration(const SphereData* sIt)
 		T4f sphere = loadAligned(array(sIt->center));
 		T4f radius = splat<3>(sphere);
 
-		T4i first = intFloor(max((sphere - radius) * mGridScale + mGridBias, gSimd4fZero));
-		T4i last = intFloor(min((sphere + radius) * mGridScale + mGridBias, sGridLength));
+		T4i first = intFloor(min(max((sphere - radius) * mGridScale + mGridBias, gSimd4fZero), sGridLength));
+		T4i last = intFloor(min(max((sphere + radius) * mGridScale + mGridBias, gSimd4fZero), sGridLength));
 
 		const int* firstIdx = array(first);
 		const int* lastIdx = array(last);

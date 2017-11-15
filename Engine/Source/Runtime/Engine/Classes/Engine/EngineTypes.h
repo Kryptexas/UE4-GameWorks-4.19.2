@@ -1933,6 +1933,10 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	int32 FaceIndex;
 
+	/** Name of the _my_ bone which took part in hit event (in case of two skeletal meshes colliding). */
+	UPROPERTY()
+	FName MyBoneName;
+
 
 	FHitResult()
 	{

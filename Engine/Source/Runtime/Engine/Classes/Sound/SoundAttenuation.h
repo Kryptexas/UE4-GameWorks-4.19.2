@@ -17,15 +17,14 @@ enum ESoundDistanceCalc
 	SOUNDDISTANCE_MAX,
 };
 
-// This enumeration is deprecated
 UENUM()
 enum ESoundSpatializationAlgorithm
 {
-	// Standard panning method for spatialization.
-	SPATIALIZATION_Default,
+	// Standard panning method for spatialization, built-in to the audio engine.
+	SPATIALIZATION_Default UMETA(DisplayName = "Panning"),
 
-	// 3rd party object-based spatialization (HRTF, Atmos). Requires a spatializaton plugin.
-	SPATIALIZATION_HRTF,
+	// 3rd party binaural spatialization (HRTF, Atmos). Requires a spatializaton plugin.
+	SPATIALIZATION_HRTF UMETA(DisplayName = "Binaural"),
 };
 
 UENUM(BlueprintType)

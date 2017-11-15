@@ -148,7 +148,7 @@ bool MeshPaintHelpers::PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 L
 		TempPositionVertexBuffer.Init(RawMesh.VertexPositions);
 		RemapPaintedVertexColors(
 			ComponentLODInfo.PaintedVertices,
-			*ComponentLODInfo.OverrideVertexColors,
+			ComponentLODInfo.OverrideVertexColors,
 			RenderModel.VertexBuffers.PositionVertexBuffer,
 			RenderModel.VertexBuffers.StaticMeshVertexBuffer,
 			TempPositionVertexBuffer,
@@ -806,7 +806,7 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 	}
 	else if (USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(MeshComponent))
 	{
-		TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+		TUniquePtr< FSkinnedMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
 		USkeletalMesh* Mesh = SkeletalMeshComponent->SkeletalMesh;
 		if (Mesh)
 		{
@@ -824,7 +824,7 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 
 			if (Mesh->LODInfo.Num() > 0)
 			{
-				RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
+				RecreateRenderStateContext = MakeUnique<FSkinnedMeshComponentRecreateRenderStateContext>(Mesh);
 				const int32 NumLods = Mesh->LODInfo.Num();
 				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
 				{
@@ -1134,10 +1134,9 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 		//We need at least some painting on the base LOD to apply it to the lower LODs
 		return;
 	}
-	FStaticMeshComponentLODInfo& SourceCompLODInfo = StaticMeshComponent->LODData[0];
-	FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0];
+
 	//Make sure we have something paint in the LOD 0 to apply it to all lower LODs.
-	if (SourceCompLODInfo.OverrideVertexColors == nullptr && SourceCompLODInfo.PaintedVertices.Num() <= 0)
+	if (StaticMeshComponent->LODData[0].OverrideVertexColors == nullptr && StaticMeshComponent->LODData[0].PaintedVertices.Num() <= 0)
 	{
 		return;
 	}
@@ -1172,6 +1171,9 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 	}
 
 	FlushRenderingCommands();
+
+	const FStaticMeshComponentLODInfo& SourceCompLODInfo = StaticMeshComponent->LODData[0];
+	const FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0];
 	for (uint32 i = 1; i < NumLODs; ++i)
 	{
 		FStaticMeshComponentLODInfo& CurCompLODInfo = StaticMeshComponent->LODData[i];
@@ -1184,7 +1186,7 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& Geo
 		
 		RemapPaintedVertexColors(
 			SourceCompLODInfo.PaintedVertices,
-			*SourceCompLODInfo.OverrideVertexColors,
+			SourceCompLODInfo.OverrideVertexColors,
 			SourceRenderData.VertexBuffers.PositionVertexBuffer,
 			SourceRenderData.VertexBuffers.StaticMeshVertexBuffer,
 			CurRenderData.VertexBuffers.PositionVertexBuffer,
@@ -1422,14 +1424,14 @@ void MeshPaintHelpers::ImportVertexColorsToSkeletalMesh(USkeletalMesh* SkeletalM
 	Texture->Source.GetMipData(SrcMipData, 0);
 	const uint8* MipData = SrcMipData.GetData();
 
-	TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+	TUniquePtr< FSkinnedMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
 	FSkeletalMeshRenderData* Resource = SkeletalMesh->GetResourceForRendering();
 	const int32 ImportLOD = Options->LODIndex;
 	const int32 UVIndex = Options->UVIndex;
 	const FColor ColorMask = Options->CreateColorMask();
 	if (Resource && Resource->LODRenderData.IsValidIndex(ImportLOD))
 	{
-		RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(SkeletalMesh);
+		RecreateRenderStateContext = MakeUnique<FSkinnedMeshComponentRecreateRenderStateContext>(SkeletalMesh);
 		SkeletalMesh->Modify();
 		SkeletalMesh->ReleaseResources();
 		SkeletalMesh->ReleaseResourcesFence.Wait();
