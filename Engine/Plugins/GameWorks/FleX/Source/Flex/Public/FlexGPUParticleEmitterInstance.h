@@ -25,7 +25,7 @@ struct FFlexGPUParticleEmitterInstance
 
 	FRenderResource* CreateSimulationResource();
 
-	static FRHIShaderResourceView* GetSimulationResourceView(FRenderResource* FlexSimulationResource);
+	static void FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams);
 
 
 	FFlexParticleEmitterInstance* Owner;

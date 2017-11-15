@@ -95,7 +95,7 @@ public:
 	virtual void GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 RegularIndex);
 	virtual void GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity);
 
-	virtual FRHIShaderResourceView* GetGPUParticleSimulationResourceView(FRenderResource* FlexSimulationResource);
+	virtual void GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams);
 
 private:
 	struct FPhysSceneContext;

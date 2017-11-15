@@ -4,91 +4,119 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleEmitter.h"
 
+#include "GameWorks/FlexPluginGPUParticles.h"
 
-class FFlexSimulationVertexBuffer : public FVertexBuffer
+
+class FFlexSimulationResourceBuffer
 {
 public:
-	typedef FVertexBuffer Parent;
-
 	static const int32 MinCapacity = 32;
 
-	/** Shader resource of the vertex buffer. */
-	FShaderResourceViewRHIRef VertexBufferSRV;
+	FFlexSimulationResourceBuffer(int32 InElementSize, int32 InElementFormat, int32 InBufferUsage = (BUF_Static | BUF_KeepCPUAccessible))
+	{
+		Capacity = 0;
+		ElementSize = InElementSize;
+		ElementFormat = InElementFormat;
+		BufferUsage = InBufferUsage;
+	}
+
+	void RequireCapacity(int32 InCapacity)
+	{
+		check(IsInRenderingThread());
+
+		if (InCapacity > Capacity)
+		{
+			// Release if need more capacity
+			Release();
+
+			// Make it expand by at least 1/2 the size of it's current size
+			int32 MinNewCapacity = Capacity + (Capacity >> 1);
+			MinNewCapacity = (MinNewCapacity < MinCapacity) ? MinCapacity : MinNewCapacity;
+			// Must be at least as big as MinNewCapacity
+			Capacity = (InCapacity < MinNewCapacity) ? MinNewCapacity : InCapacity;
+
+			// Set up with the new Capacity
+			FRHIResourceCreateInfo CreateInfo;
+
+			const int32 BufferSize = Capacity * ElementSize;
+			check(BufferSize > 0);
+			Buffer = RHICreateVertexBuffer(BufferSize, BufferUsage, CreateInfo);
+			BufferSRV = RHICreateShaderResourceView(Buffer, /*Stride=*/ ElementSize, ElementFormat);
+		}
+	}
+
+	void Release()
+	{
+		BufferSRV.SafeRelease();
+		Buffer.SafeRelease();
+	}
+
+	void* Lock(int32 InNumElements)
+	{
+		check(InNumElements <= Capacity);
+		return RHILockVertexBuffer(Buffer, 0, InNumElements * ElementSize, RLM_WriteOnly);
+	}
+
+	void Unlock()
+	{
+		RHIUnlockVertexBuffer(Buffer);
+	}
+
+	void Set(const void* Src, int32 Count)
+	{
+		void* Dest = Lock(Count);
+		if (Dest)
+		{
+			FMemory::Memcpy(Dest, Src, ElementSize * Count);
+		}
+		Unlock();
+	}
+
+	const FShaderResourceViewRHIRef& GetSRV() const
+	{
+		return BufferSRV;
+	}
+
+private:
+	FVertexBufferRHIRef Buffer;
+	FShaderResourceViewRHIRef BufferSRV;
+
+	int32 Capacity;
+	int32 ElementSize;
+	int32 ElementFormat;
+	int32 BufferUsage;
+};
+
+class FFlexSimulationResource : public FRenderResource
+{
+public:
+	static const int32 ParticleIndexFormat = PF_R32_SINT;
+	static const int32 ParticleIndexSize = sizeof(int);
+
+	static const int32 PositionFormat = PF_A32B32G32R32F;
+	static const int32 PositionSize = sizeof(float) * 4;
+
+	static const int32 VelocityFormat = PF_A32B32G32R32F;
+	static const int32 VelocitySize = sizeof(float) * 4;
+
+	FFlexSimulationResourceBuffer ParticleIndexBuffer;
+	FFlexSimulationResourceBuffer PositionBuffer;
+	FFlexSimulationResourceBuffer VelocityBuffer;
 
 	/** Default constructor. */
-	FFlexSimulationVertexBuffer(int32 VertexSizeIn, EPixelFormat VertexFormatIn, int32 BufferCreateFlagsIn = (BUF_Static | BUF_KeepCPUAccessible))
-		: VertexSize(VertexSizeIn)
-		, VertexFormat(VertexFormatIn)
-		, Count(0)
-		, Capacity(MinCapacity)
-		, BufferCreateFlags(BufferCreateFlagsIn | BUF_ShaderResource)
+	FFlexSimulationResource(int32 InBufferUsage = (BUF_Static | BUF_KeepCPUAccessible))
+		: ParticleIndexBuffer(ParticleIndexSize, ParticleIndexFormat, InBufferUsage)
+		, PositionBuffer(PositionSize, PositionFormat, InBufferUsage)
+		, VelocityBuffer(VelocitySize, VelocityFormat, InBufferUsage)
 	{
 	}
 
 	// May delete the buffer, and recreate if needs more capacity
-	void RequireCapacity(int32 CapacityIn)
+	void RequireCapacity(int32 InIndicesCapacity, int32 InParticlesCapacity)
 	{
-		check(IsInRenderingThread());
-
-		if (Capacity < CapacityIn)
-		{
-			// Make it expand by at least 1/2 the size of it's current size
-			int32 MinNewCapacity = Capacity + (Capacity >> 1);
-			MinNewCapacity = (MinNewCapacity < MinCapacity) ? MinCapacity : MinNewCapacity;
-
-			// Must be at least as big as MinNewCapacity
-			CapacityIn = (CapacityIn < MinNewCapacity) ? MinNewCapacity : CapacityIn;
-
-			// Release if need more capacity
-			ReleaseRHI();
-
-			// Set the required capacity
-			Capacity = CapacityIn;
-		}
-
-		if (Capacity > 0 && !VertexBufferRHI)
-		{
-			// Set up with the new Capacity
-			InitRHI();
-		}
-	}
-
-	/// Lock - specifying the amount of vertices wanted
-	void* Lock(int32 NumVerticesIn)
-	{
-		RequireCapacity(NumVerticesIn);
-		Count = NumVerticesIn;
-		return RHILockVertexBuffer(VertexBufferRHI, 0, NumVerticesIn * VertexSize, RLM_WriteOnly);
-	}
-
-	/// Unlock - must match up with previous Lock
-	void Unlock()
-	{
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-
-	/**
-	* Set the contents
-	*/
-	void Set(const void* Data, int32 NumVerticesIn)
-	{
-		void* Dst = Lock(NumVerticesIn);
-		FMemory::Memcpy(Dst, Data, VertexSize * NumVerticesIn);
-		Unlock();
-	}
-	/**
-	* Initialize RHI resources.
-	*/
-	virtual void InitRHI() override
-	{
-		if (Capacity > 0)
-		{
-			const int32 BufferSize = Capacity * VertexSize;
-			check(BufferSize > 0);
-			FRHIResourceCreateInfo CreateInfo;
-			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, BufferCreateFlags, CreateInfo);
-			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, /*Stride=*/ VertexSize, VertexFormat);
-		}
+		ParticleIndexBuffer.RequireCapacity(InIndicesCapacity);
+		PositionBuffer.RequireCapacity(InParticlesCapacity);
+		VelocityBuffer.RequireCapacity(InParticlesCapacity);
 	}
 
 	/**
@@ -96,30 +124,19 @@ public:
 	*/
 	virtual void ReleaseRHI() override
 	{
-		VertexBufferSRV.SafeRelease();
-		Parent::ReleaseRHI();
+		ParticleIndexBuffer.Release();
+		PositionBuffer.Release();
+		VelocityBuffer.Release();
 	}
 
-	virtual FString GetFriendlyName() const override { return TEXT("FFlexSimulationVertexBuffer"); }
-
-	// BUF_Static | BUF_KeepCPUAccessible | BUF_ShaderResource
-
-	int32 BufferCreateFlags;			///< Flags to create the buffer
-	EPixelFormat VertexFormat;			///< The format of the vertex
-	int32 VertexSize;					///< The size of the vertex in bytes
-	int32 Capacity;						///< The total number of vertices the buffer can handle
-	int32 Count;					///< The number of vertices currently held
-};
-
-struct FFlexParticleVertex
-{
-	FVector4 Position;
-	FVector4 Velocity;
+	virtual FString GetFriendlyName() const override { return TEXT("FFlexSimulationResource"); }
 };
 
 struct FFlexParticleSimulationState
 {
-	TArray<FFlexParticleVertex> Vertices;
+	TArray<int32> ParticleIndexArray;
+	TArray<FVector4> PositionArray;
+	TArray<FVector4> VelocityArray;
 };
 
 
@@ -164,35 +181,28 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 			}
 		}
 
-		FFlexSimulationVertexBuffer* SimulationVertexBuffer = (FFlexSimulationVertexBuffer*)FlexSimulationResource;
-		if (SimulationVertexBuffer)
+		FFlexSimulationResource* SimulationResource = (FFlexSimulationResource*)FlexSimulationResource;
+		if (SimulationResource)
 		{
 			// sync UE4 particles with FLEX
 			const int32 NumFlexParticleIndices = FlexParticleIndices.Num();
+			const int32 NumActiveParticles = Container->GetActiveParticleCount();
 
 			FFlexParticleSimulationState* State = new FFlexParticleSimulationState;
-			State->Vertices.SetNumUninitialized(NumFlexParticleIndices);
+			State->ParticleIndexArray = FlexParticleIndices;
 
-			for (int32 i = 0; i < NumFlexParticleIndices; i++)
+			State->PositionArray.SetNumUninitialized(NumActiveParticles);
+			State->VelocityArray.SetNumUninitialized(NumActiveParticles);
+
+			for (int32 i = 0; i < NumActiveParticles; i++)
 			{
-				const int32 FlexParticleIndex = FlexParticleIndices[i];
-				if (FlexParticleIndex < 0)
-				{
-					// Just zero for now. Should only be < 0 (ie not set) on the non used members of 
-					// the currently being allocated from tile
-					// For now mark w as -1 to show that's whats going on
-					State->Vertices[i].Position = FVector4(0, 0, 0, -1);
-					State->Vertices[i].Velocity = FVector4(0, 0, 0, 0);
-					continue;
-				}
-
 				if (Parent && FlexEmitter->bLocalSpace)
 				{
 					// Localize the position and velocity using the localization API
 					// NOTE: Once we have a feature to detect particle inside the mesh container
 					//       we can then test for it and apply localization as needed.
-					FVector4* Position = (FVector4*)&Container->Particles[FlexParticleIndex];
-					FVector* Velocity = (FVector*)&Container->Velocities[FlexParticleIndex];
+					FVector4* Position = (FVector4*)&Container->Particles[i];
+					FVector* Velocity = (FVector*)&Container->Velocities[i];
 
 					NvFlexExtMovingFrameApply(&Owner->MeshFrame, (float*)Position, (float*)Velocity,
 						1, Owner->LinearInertialScale, Owner->AngularInertialScale, DeltaSeconds);
@@ -201,24 +211,70 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 				// sync UE4 particle with FLEX
 				if (Container->SmoothPositions.size() > 0)
 				{
-					State->Vertices[i].Position = Container->SmoothPositions[FlexParticleIndex];
+					State->PositionArray[i] = Container->SmoothPositions[i];
 				}
 				else
 				{
-					State->Vertices[i].Position = Container->Particles[FlexParticleIndex];
+					State->PositionArray[i] = Container->Particles[i];
 				}
-				State->Vertices[i].Velocity = Container->Velocities[FlexParticleIndex];
+				State->VelocityArray[i] = Container->Velocities[i];
 			}
+#if 1
+			// Send to the rendering thread
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				FUpdateSimulationResourceGPUCommand,
+				FFlexSimulationResource*, SimulationResource, SimulationResource,
+				FFlexParticleSimulationState*, State, State,
+				{
+					const int32 NumIndices = State->ParticleIndexArray.Num();
+					const int32 NumParticles = State->PositionArray.Num();
+					SimulationResource->RequireCapacity(NumIndices, NumParticles);
+
+					SimulationResource->ParticleIndexBuffer.Set(State->ParticleIndexArray.GetData(), NumIndices);
+
+					SimulationResource->PositionBuffer.Set(State->PositionArray.GetData(), NumParticles);
+					SimulationResource->VelocityBuffer.Set(State->VelocityArray.GetData(), NumParticles);
+
+					delete State;
+				});
+#else
+			struct FUpdateSimulationResourceData
+			{
+				int32 ParticleCount;
+				NvFlexSolver* FlexSolver;
+				NvFlexLibrary* FlexLib;
+			};
+			FUpdateSimulationResourceData UpdateSimulationResourceData =
+			{
+
+			};
+
 
 			// Send to the rendering thread
 			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				FUpdateSimulationVertexBufferGPUCommand,
-				FFlexSimulationVertexBuffer*, SimulationVertexBuffer, SimulationVertexBuffer,
-				FFlexParticleSimulationState*, State, State,
+				FUpdateSimulationResourceGPUCommand,
+				FFlexSimulationResource*, SimulationResource, SimulationResource,
+				NvFlexLibrary*, FlexLib, FFlexManager::get().GetFlexLib(),
 				{
-					SimulationVertexBuffer->Set(State->Vertices.GetData(), State->Vertices.Num());
-					delete State;
+					const int32 Count;
+
+					const void* PositionBufferPtr = GDynamicRHI->RHIGetVertexBufferPtrForFlex(SimulationResource->PositionBuffer);
+					const void* VelocityBufferPtr = GDynamicRHI->RHIGetVertexBufferPtrForFlex(SimulationResource->VelocityBuffer);
+					if (PositionBufferPtr && VelocityBufferPtr)
+					{
+						NvFlexBuffer* PositionFlexBuffer = NvFlexRegisterD3DBuffer(FlexLib, PositionBufferPtr, SimulationResource->Capacity, FFlexSimulationResource::PositionSize);
+						NvFlexBuffer* VelocityFlexBuffer = NvFlexRegisterD3DBuffer(FlexLib, VelocityBufferPtr, SimulationResource->Capacity, FFlexSimulationResource::VelocitySize);
+
+						NvFlexCopyDesc PositionCopyDesc = { 0, 0, Count };
+						//NvFlexGetParticles(FlexSolver, PositionFlexBuffer, &PositionCopyDesc);
+						NvFlexCopyDesc VelocityCopyDesc = { 0, 0, Count };
+						//NvFlexGetVelocities(FlexSolver, VelocityFlexBuffer, &VelocityCopyDesc);
+
+						NvFlexUnregisterD3DBuffer(VelocityFlexBuffer);
+						NvFlexUnregisterD3DBuffer(PositionFlexBuffer);
+					}
 				});
+#endif
 		}
 	}
 }
@@ -301,11 +357,22 @@ void FFlexGPUParticleEmitterInstance::SetNewParticle(int32 NewIndex, const FVect
 
 FRenderResource* FFlexGPUParticleEmitterInstance::CreateSimulationResource()
 {
-	return new FFlexSimulationVertexBuffer(sizeof(FVector4) * 2, PF_A32B32G32R32F, BUF_Dynamic);
+	return new FFlexSimulationResource(BUF_Dynamic);
 }
 
-FRHIShaderResourceView* FFlexGPUParticleEmitterInstance::GetSimulationResourceView(FRenderResource* FlexSimulationResource)
+void FFlexGPUParticleEmitterInstance::FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams)
 {
-	FFlexSimulationVertexBuffer* SimulationVertexBuffer = (FFlexSimulationVertexBuffer*)FlexSimulationResource;
-	return SimulationVertexBuffer ? SimulationVertexBuffer->VertexBufferSRV : nullptr;
+	FFlexSimulationResource* SimulationResource = (FFlexSimulationResource*)FlexSimulationResource;
+	if (SimulationResource)
+	{
+		SimulationParams.ParticleIndexBufferSRV = SimulationResource->ParticleIndexBuffer.GetSRV();
+		SimulationParams.PositionBufferSRV = SimulationResource->PositionBuffer.GetSRV();
+		SimulationParams.VelocityBufferSRV = SimulationResource->VelocityBuffer.GetSRV();
+	}
+	else
+	{
+		SimulationParams.ParticleIndexBufferSRV = nullptr;
+		SimulationParams.PositionBufferSRV = nullptr;
+		SimulationParams.VelocityBufferSRV = nullptr;
+	}
 }

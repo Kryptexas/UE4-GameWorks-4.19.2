@@ -88,12 +88,9 @@ float2 TileCoord = Input.TexCoord.xy * float2(TILE_SIZE_X,TILE_SIZE_Y) + TileOff
 
 // NvFlex begin
 #if WITH_FLEX
-struct FlexParticle
-{
-	float4 Position;
-	float4 Velocity;
-};
-StructuredBuffer<FlexParticle> FlexParticleBuffer;
+Buffer<int> FlexParticleIndexBuffer;
+Buffer<float4> FlexPositionBuffer;
+Buffer<float4> FlexVelocityBuffer;
 #endif
 // NvFlex end
 
@@ -575,11 +572,11 @@ void PixelMain(
 	int TileParticleIndex = int(Interpolants.ParticleTexCoord.x) + TILE_SIZE * int(Interpolants.ParticleTexCoord.y + 0.5f);
 
 	// Get Flex particle index
-	int FlexParticleIndex = TileBaseIndex + TileParticleIndex;
+	int FlexParticleIndex = FlexParticleIndexBuffer[TileBaseIndex + TileParticleIndex];
 
-	OutPosition.xyz = FlexParticleBuffer[FlexParticleIndex].Position;
+	OutPosition.xyz = FlexPositionBuffer[FlexParticleIndex].xyz;
 	OutPosition.w = RelativeTime + DeltaSeconds * TimeScale * NumIterations;
-	OutVelocity.xyz = FlexParticleBuffer[FlexParticleIndex].Velocity;
+	OutVelocity.xyz = FlexVelocityBuffer[FlexParticleIndex].xyz;
 	OutVelocity.w = TimeScale;
 	return;
 #endif	

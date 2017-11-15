@@ -708,10 +708,10 @@ void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleE
 	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity);
 }
 
-FRHIShaderResourceView* FFlexManager::GetGPUParticleSimulationResourceView(FRenderResource* FlexSimulationResource)
+void FFlexManager::GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams)
 {
 	verify(FlexSimulationResource);
-	return FFlexGPUParticleEmitterInstance::GetSimulationResourceView(FlexSimulationResource);
+	return FFlexGPUParticleEmitterInstance::FillSimulationParams(FlexSimulationResource, SimulationParams);
 }
 
 

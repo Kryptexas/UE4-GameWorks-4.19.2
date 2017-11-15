@@ -48,6 +48,7 @@
 //NvFlex begin
 #if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
+#include "GameWorks/FlexPluginGPUParticles.h"
 #endif
 //NvFlex end
 
@@ -1055,7 +1056,7 @@ public:
 		GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
 		// NvFlex begin
 #if WITH_FLEX
-		FlexParticleBuffer.Bind(Initializer.ParameterMap, TEXT("FlexParticleBuffer"));
+		FlexSimulationParameters.Bind(Initializer.ParameterMap);
 #endif
 		// NvFlex end
 	}
@@ -1088,7 +1089,7 @@ public:
 		Ar << GlobalDistanceFieldParameters;
 		// NvFlex begin
 #if WITH_FLEX
-		Ar << FlexParticleBuffer;
+		Ar << FlexSimulationParameters;
 #endif
 		// NvFlex end
 		return bShaderHasOutdatedParameters;
@@ -1191,13 +1192,10 @@ public:
 
 	// NvFlex begin
 #if WITH_FLEX
-	void SetFlexParameters(FRHICommandList& RHICmdList, FParticleShaderParamRef InFlexParticleBufferRef)
+	void SetFlexSimulationParameters(FRHICommandList& RHICmdList, const FFlexGPUParticleSimulationParameters& InFlexSimulationParameters)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
-		if (FlexParticleBuffer.IsBound())
-		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, FlexParticleBuffer.GetBaseIndex(), InFlexParticleBufferRef);
-		}
+		FlexSimulationParameters.Set(RHICmdList, PixelShaderRHI, InFlexSimulationParameters);
 	}
 #endif
 	// NvFlex end
@@ -1218,10 +1216,7 @@ public:
 		}
 		// NvFlex begin
 #if WITH_FLEX
-		if (FlexParticleBuffer.IsBound())
-		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, FlexParticleBuffer.GetBaseIndex(), NullSRV);
-		}
+		FlexSimulationParameters.UnbindBuffers(RHICmdList, PixelShaderRHI);
 #endif
 		// NvFlex end
 	}
@@ -1260,7 +1255,7 @@ private:
 
 	// NvFlex begin
 #if WITH_FLEX
-	FShaderResourceParameter FlexParticleBuffer;
+	FFlexGPUParticleSimulationShaderParameters FlexSimulationParameters;
 #endif
 	// NvFlex end
 };
@@ -1439,7 +1434,7 @@ struct FSimulationCommandGPU
 	int32 TileCount;
 	// NvFlex begin
 #if WITH_FLEX
-	FParticleShaderParamRef FlexParticleBufferRef;
+	FFlexGPUParticleSimulationParameters FlexSimulationParameters;
 #endif
 	// NvFlex end
 
@@ -1450,11 +1445,6 @@ struct FSimulationCommandGPU
 		, PerFrameParameters(InPerFrameParameters)
 		, VectorFieldsUniformBuffer(InVectorFieldsUniformBuffer)
 		, TileCount(InTileCount)
-		// NvFlex begin
-#if WITH_FLEX
-		, FlexParticleBufferRef(nullptr)
-#endif
-	// NvFlex end
 	{
 		FTexture3DRHIParamRef BlackVolumeTextureRHI = (FTexture3DRHIParamRef)(FTextureRHIParamRef)GBlackVolumeTexture->TextureRHI;
 		for (int32 i = 0; i < MAX_VECTOR_FIELDS; ++i)
@@ -1529,7 +1519,7 @@ void ExecuteSimulationCommands(
 #if WITH_FLEX
 		if (CollisionMode == PCM_Flex)
 		{
-			PixelShader->SetFlexParameters(RHICmdList, Command.FlexParticleBufferRef);
+			PixelShader->SetFlexSimulationParameters(RHICmdList, Command.FlexSimulationParameters);
 		}
 #endif
 		// NvFlex end
@@ -4984,7 +4974,7 @@ void FFXSystem::SimulateGPUParticles(
 				if (Simulation->SimulationPhase == EParticleSimulatePhase::Flex)
 				{
 					verify(GFlexPluginBridge);
-					SimulationCommand->FlexParticleBufferRef = GFlexPluginBridge->GetGPUParticleSimulationResourceView(Simulation->FlexSimulationResource);
+					GFlexPluginBridge->GPUSpriteEmitterInstance_FillSimulationParams(Simulation->FlexSimulationResource, SimulationCommand->FlexSimulationParameters);
 				}
 #endif
 				// NvFlex end

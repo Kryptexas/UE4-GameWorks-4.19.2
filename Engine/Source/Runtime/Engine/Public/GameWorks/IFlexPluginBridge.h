@@ -2,6 +2,8 @@
 
 #include "Async/TaskGraphInterfaces.h"
 
+struct FFlexGPUParticleSimulationParameters;
+
 class IFlexPluginBridge
 {
 public:
@@ -64,7 +66,7 @@ public:
 	virtual void GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 RegularIndex) = 0;
 	virtual void GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity) = 0;
 
-	virtual FRHIShaderResourceView* GetGPUParticleSimulationResourceView(FRenderResource* FlexSimulationResource) = 0;
+	virtual void GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams) = 0;
 };
 
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;
