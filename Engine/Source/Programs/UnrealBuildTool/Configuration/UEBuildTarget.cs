@@ -1782,12 +1782,12 @@ namespace UnrealBuildTool
 						Receipt.PrecompiledBuildDependencies.Add(ExternalFile);
 					}
 				}
+			}
 
-				// Also add the version file if it's been specified
-				if (VersionFile != null)
-				{
-					Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
-				}
+			// Also add the version file if it's been specified
+			if (VersionFile != null)
+			{
+				Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
 			}
 
 			// Prepare all the version manifests
