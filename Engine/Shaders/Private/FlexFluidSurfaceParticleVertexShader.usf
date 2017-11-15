@@ -1,0 +1,169 @@
+#include "Common.ush"
+#include "/Engine/Generated/Material.ush"
+#include "/Engine/Generated/VertexFactory.ush"
+
+#if FLEX_FLUID_SURFACE_PARTICLE_VERTEX_FACTORY
+
+void SphereMainVS(
+	FVertexFactoryInput Input,
+	out float4 OutPosition : SV_POSITION,
+	out float4 OutViewPos : VIEW_POS,
+	out float4 OutParticleViewPosAndRadius : PARTICLE_VIEW_POS_AND_RADIUS, 
+	out float4 OutParticleColor : PARTICLE_COLOR
+	)
+{
+	ResolvedView = ResolveView();
+
+	float4 TranslatedWorldPosition = mul(float4(Input.PositionSize.xyz,1), Primitive.LocalToWorld);
+	TranslatedWorldPosition.xyz += ResolvedView.PreViewTranslation;
+
+	float Radius = 0.5 * Input.PositionSize.w * ParticleScale;
+
+	// generates v0: (-1.0, -1.0), v1: (-1.0, 1.0), v2: (1.0, 1.0), v3: (1.0, -1.0)
+	float2 OffsetCoords = float2(Input.VertexId >> 1, ((Input.VertexId + 1) >> 1) & 1)*2.0 - float2(1, 1);
+	float3 Up  = normalize(-ResolvedView.ViewUp);
+	float3 Right = normalize(ResolvedView.ViewRight);
+
+	float4 VertexWorldPosition = TranslatedWorldPosition;
+	VertexWorldPosition.xyz += Radius * OffsetCoords.x * Right;
+	VertexWorldPosition.xyz += Radius * OffsetCoords.y * Up;
+
+	OutPosition = mul(VertexWorldPosition, ResolvedView.TranslatedWorldToClip);
+	OutViewPos = mul(VertexWorldPosition, ResolvedView.TranslatedWorldToView);
+	OutParticleViewPosAndRadius = float4(mul(TranslatedWorldPosition, ResolvedView.TranslatedWorldToView).xyz, Radius);
+	OutParticleColor = Input.Color;
+}
+
+float Sign(float x) { return x < 0.0 ? -1.0: 1.0; }
+
+bool SolveQuadratic(float a, float b, float c, out float minT, out float maxT)
+{
+	if (a == 0.0 && b == 0.0)
+	{
+		minT = maxT = 0.0;
+		return false;
+	}
+
+	float discriminant = b*b - 4.0*a*c;
+
+	if (discriminant < 0.0)
+	{
+		return false;
+	}
+
+	float t = -0.5*(b + Sign(b)*sqrt(discriminant));
+	minT = t / a;
+	maxT = c / t;
+
+	if (minT > maxT)
+	{
+		float tmp = minT;
+		minT = maxT;
+		maxT = tmp;
+	}
+
+	return true;
+}
+
+float DotInvW(float4 a, float4 b) {	return a.x*b.x + a.y*b.y + a.z*b.z - a.w*b.w; }
+
+void EllipsoidMainVS(
+	FVertexFactoryInput Input,
+	uint InstanceId : SV_InstanceID,
+	uint VertexId : SV_VertexID,
+	out float4 OutPosition : SV_POSITION,
+	out float4x4 OutInvQuadric : INV_QUADRIC, 
+	out float4 OutParticleColor : PARTICLE_COLOR
+	)
+{
+	ResolvedView = ResolveView();
+
+	float4 TranslatedWorldPosition = mul(float4(Input.PositionSize.xyz,1), Primitive.LocalToWorld);
+	TranslatedWorldPosition.xyz += ResolvedView.PreViewTranslation;
+
+	float Radius = 0.5 * Input.PositionSize.w * ParticleScale;
+
+	float4 ClipVertexPos = mul(TranslatedWorldPosition, ResolvedView.TranslatedWorldToClip);
+	
+	//custom culling to avoid redundant work and artefacts
+	if (View.NearPlane > ClipVertexPos.w)
+	{
+		OutPosition = float4(2,2,-1,1);
+		return;
+	}
+
+	float NdcVertexZ = ClipVertexPos.z/ClipVertexPos.w;
+
+	// Read anisotropy
+	float4 Q1 = Input.Anisotropy1;
+	float4 Q2 = Input.Anisotropy2;
+	float4 Q3 = Input.Anisotropy3;
+
+	Q1.w = clamp(Q1.w*ParticleScale, 0.0f, Radius);
+	Q2.w = clamp(Q2.w*ParticleScale, 0.0f, Radius);
+	Q3.w = clamp(Q3.w*ParticleScale, 0.0f, Radius);
+
+	// Construct quadric matrix
+	float4x4 Quadric;
+	Quadric[0] = float4(Q1.xyz*Q1.w, 0.0);
+	Quadric[1] = float4(Q2.xyz*Q2.w, 0.0);
+	Quadric[2] = float4(Q3.xyz*Q3.w, 0.0);
+	Quadric[3] = TranslatedWorldPosition;
+
+	// Transforms a normal from clip to parameter space
+	float4x4 NClipToParam = transpose(mul(Quadric, ResolvedView.TranslatedWorldToClip));
+
+	// Solve for the right hand bounds in homogenous clip space
+	float2 MinXY;
+	float2 MaxXY;
+
+	float A1 = DotInvW(NClipToParam[3], NClipToParam[3]);
+	float B1 = -2.0f*DotInvW(NClipToParam[0], NClipToParam[3]);
+	float C1 = DotInvW(NClipToParam[0], NClipToParam[0]);
+ 	SolveQuadratic(A1, B1, C1, MinXY.x, MaxXY.x);	
+
+	float A2 = DotInvW(NClipToParam[3], NClipToParam[3]);
+	float B2 = -2.0f*DotInvW(NClipToParam[1], NClipToParam[3]);
+	float C2 = DotInvW(NClipToParam[1], NClipToParam[1]); 
+ 	SolveQuadratic(A2, B2, C2, MinXY.y, MaxXY.y);
+
+	// generates v0: (0.0, 0.0), v1: (1.0, 0.0), v2: (1.0, 1.0), v3: (0.0, 1.0)
+	float2 Selection = float2(((Input.VertexId + 1) >> 1) & 1, Input.VertexId >> 1);
+	float2 CoordsXY = MinXY * (float2(1, 1) - Selection) + MaxXY * Selection;
+	OutPosition = float4(CoordsXY.x, CoordsXY.y, NdcVertexZ, 1.0);
+
+	// Construct inverse quadric matrix (used for ray-casting in parameter space)
+	float4x4 InvQuadric;
+	InvQuadric[0] = float4(Q1.xyz/Q1.w, 0.0);
+	InvQuadric[1] = float4(Q2.xyz/Q2.w, 0.0);
+	InvQuadric[2] = float4(Q3.xyz/Q3.w, 0.0);
+	InvQuadric[3] = float4(0.0, 0.0, 0.0, 1.0);
+
+	InvQuadric = transpose(InvQuadric);
+	InvQuadric[3] = -mul(TranslatedWorldPosition, InvQuadric);
+
+	// transform a point from view space to parameter space
+	OutInvQuadric = mul(ResolvedView.ViewToTranslatedWorld, InvQuadric);
+
+	OutParticleColor = Input.Color;
+}
+
+#else // FLEX_FLUID_SURFACE_PARTICLE_VERTEX_FACTORY
+
+//stubs needed to compile against random vertex factories
+
+void SphereMainVS(FVertexFactoryInput Input, out float4 OutPosition : SV_POSITION)
+{
+	ResolvedView = ResolveView();
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	OutPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+}
+
+void EllipsoidMainVS(FVertexFactoryInput Input, out float4 OutPosition : SV_POSITION)
+{
+	ResolvedView = ResolveView();
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	OutPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+}
+
+#endif // FLEX_FLUID_SURFACE_PARTICLE_VERTEX_FACTORY

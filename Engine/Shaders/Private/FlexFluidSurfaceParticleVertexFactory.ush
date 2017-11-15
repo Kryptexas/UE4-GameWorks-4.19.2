@@ -1,0 +1,138 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	FlexFluidSurfaceParticleVertexFactory.hlsl
+=============================================================================*/
+
+#include "VertexFactoryCommon.ush"
+ 
+struct FVertexFactoryInput
+{
+	float4 PositionSize	: ATTRIBUTE0;
+	float4 Color		: ATTRIBUTE1;
+	float4 Anisotropy1	: ATTRIBUTE2;
+	float4 Anisotropy2	: ATTRIBUTE3;
+	float4 Anisotropy3	: ATTRIBUTE4;
+
+	uint VertexId		: SV_VertexID;
+	uint InstanceId		: SV_InstanceID;
+};
+
+float ParticleScale; 
+float TexResScale;
+
+//vertex factory methods: need to work with ShadowDepthVertexShader & ShadowDepthPixelShader.
+//FlexFluidSurfaceParticleVertexShader & FlexFluidSurfaceParticlePixelShader directly access FVertexFactoryInput
+
+struct FVertexFactoryInterpolantsVSToPS
+{
+	float2 OffsetCoords : TEXCOORD0;
+#if INSTANCED_STEREO
+	nointerpolation uint PackedEyeIndex : PACKED_EYE_INDEX;
+#endif
+};
+
+struct FVertexFactoryIntermediates
+{
+	/** The position of the vertex in translated world space. */
+	float3 VertexWorldPosition;
+
+	/** [-1,-1],[1,1] **/
+	float2 OffsetCoords;
+};
+
+FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
+{
+	// GetMaterialPixelParameters is responsible for fully initializing the result
+	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
+
+	// do clipping here, because we can't customize GetMaterialClippingShadowDepth 
+	clip(1.0 - sqrt(dot(Interpolants.OffsetCoords, Interpolants.OffsetCoords)));
+
+	return Result;
+}
+
+FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 WorldPosition, float3x3 TangentToLocal)
+{
+	FMaterialVertexParameters Result = (FMaterialVertexParameters)0;
+	Result.WorldPosition = WorldPosition;
+	Result.TangentToWorld = TangentToLocal; 
+	return Result;
+}
+
+FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
+{
+	FVertexFactoryIntermediates Intermediates = (FVertexFactoryIntermediates)0;
+	
+	// World position.
+	float4 ParticleWorldPosition = float4(Input.PositionSize.xyz,1);
+
+	// Vertex position.
+	float Radius = 0.5 * Input.PositionSize.w;
+	
+	// generates v0: (-1.0, -1.0), v1: (-1.0, 1.0), v2: (1.0, 1.0), v3: (1.0, -1.0)
+	float2 OffsetCoords = float2(Input.VertexId >> 1, ((Input.VertexId + 1) >> 1) & 1)*2.0 - float2(1, 1);
+	float3 Up  = normalize(-ResolvedView.ViewUp);
+	float3 Right = normalize(ResolvedView.ViewRight);
+	//float3 Forward = cross(Up, Right);
+
+	float4 VertexWorldPosition = float4(ParticleWorldPosition.xyz + ResolvedView.PreViewTranslation,1);
+	VertexWorldPosition.xyz += Radius * ParticleScale * OffsetCoords.x * Right;
+	VertexWorldPosition.xyz += Radius * ParticleScale * OffsetCoords.y * Up;
+	//VertexWorldPosition.xyz += Radius * ParticleScale * Forward * 1.0f;
+
+	Intermediates.OffsetCoords = OffsetCoords;
+	Intermediates.VertexWorldPosition = VertexWorldPosition.xyz;
+
+	return Intermediates;
+}
+
+float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
+{
+	return float4(Intermediates.VertexWorldPosition,1);
+}
+
+float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float4 TranslatedWorldPosition)
+{
+	return float4(0,0,0,0);
+}
+
+float3 VertexFactoryGetPositionForVertexLighting(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 TranslatedWorldPosition)
+{
+	return float3(0.0f, 0.0f, 0.0f);
+}
+
+FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)
+{
+	FVertexFactoryInterpolantsVSToPS Interpolants;
+
+	// Initialize the whole struct to 0
+	Interpolants = (FVertexFactoryInterpolantsVSToPS)0;
+
+	Interpolants.OffsetCoords = Intermediates.OffsetCoords;
+#if INSTANCED_STEREO
+	Interpolants.PackedEyeIndex = 0;
+#endif
+
+	return Interpolants;
+}
+
+float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
+{
+	return float4(0,0,0,0);
+}
+
+float3x3 VertexFactoryGetTangentToLocal(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
+{
+	// Return the identity matrix.
+	return float3x3(1,0,0,0,1,0,0,0,1);
+}
+
+#if INSTANCED_STEREO
+// Instanced stereo sets the eye index explicitly for instanced geometry
+uint InstancedEyeIndex;	 
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	return InstancedEyeIndex & bIsInstancedStereo;
+}
+#endif

@@ -5,6 +5,8 @@
 #include "DrawDebugHelpers.h"
 #include "PhysXSupport.h"
 #include "PhysicsEngine/FlexCollisionComponent.h"
+#include "PhysicsEngine/FlexFluidSurfaceActor.h"
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
 
 #if WITH_FLEX
 
@@ -817,6 +819,13 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	Map();
 
 	GPhysXSDK->registerDeletionListener(*this, PxDeletionEventFlag::eMEMORY_RELEASE);
+
+	// fluid surface actor
+	FluidSurfaceComponent = NULL;
+	if (Template->FluidSurface)
+	{
+		FluidSurfaceComponent = AFlexFluidSurfaceActor::SpawnActor(Template->FluidSurface, GetMaxParticleCount(), Owner->GetOwningWorld());
+	}
 }
 
 FFlexContainerInstance::~FFlexContainerInstance()
@@ -826,6 +835,9 @@ FFlexContainerInstance::~FFlexContainerInstance()
 
 	UE_LOG(LogFlex, Display, TEXT("Destroying a FLEX system for.."));
 	
+	if (FluidSurfaceComponent)
+		FluidSurfaceComponent->GetOwner()->Destroy();
+
 	GPhysXSDK->unregisterDeletionListener(*this);
 
 	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
@@ -1168,6 +1180,11 @@ void FFlexContainerInstance::Synchronize()
 		for (int32 i=0; i < Components.Num(); ++i)
 			Components[i]->Synchronize();
 	}
+
+	if (FluidSurfaceComponent)
+	{
+		FluidSurfaceComponent->ClearParticles();
+	}
 }
 
 // maps particle data, synchronizing with GPU, should only be called by Synchronize()
@@ -1424,7 +1441,6 @@ int FFlexContainerInstance::GetMaxParticleCount()
 {
 	return Template->MaxParticles;
 }
-
 
 #endif //WITH_FLEX
 

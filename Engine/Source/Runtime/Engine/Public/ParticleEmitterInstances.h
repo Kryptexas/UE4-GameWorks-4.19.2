@@ -330,14 +330,8 @@ public:
 #if WITH_FLEX
 	/** The offset to the index of the associated flex particle			*/
 	int32 FlexDataOffset;
-	/** Set if anisotropy data is available for rendering				*/
-	uint32 bFlexAnisotropyData : 1;
-	/** The container instance to emit into								*/
+/** The container instance to emit into								*/
 	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
-	/** Registered fluid surface component								*/
-	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
-	/** Replace the FlexFluidSurfaceComponent for material overrides	*/
-	void RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface);
 	/** Attach a component to the Flex particles in this emitter instance */
 	void AttachFlexToComponent(USceneComponent* InComponent, float InRadius);
 #endif // WITH_FLEX

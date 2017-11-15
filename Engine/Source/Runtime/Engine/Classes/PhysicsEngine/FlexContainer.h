@@ -208,6 +208,10 @@ class UFlexContainer : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Fluid, meta = (editcondition = "Fluid"))
 	float PositionSmoothing;
 
+	/** Configuration for surface rendering */
+	UPROPERTY(EditAnywhere, Category = Fluid, meta = (editcondition = "Fluid"))
+	class UFlexFluidSurface* FluidSurface;
+
 	/** Drag force applied to boundary fluid particles */
 	UPROPERTY()
 	float FreeSurfaceDrag;
