@@ -1491,7 +1491,7 @@ private:
 	enum
 	{
 		/** Compile time maximum number of threads. Didn't really need to be a compile time constant, but task thread are limited by MAX_LOCK_FREE_LINKS_AS_BITS **/
-		MAX_THREADS = 22 * (CREATE_HIPRI_TASK_THREADS + CREATE_BACKGROUND_TASK_THREADS + 1) + ENamedThreads::ActualRenderingThread + 1,
+		MAX_THREADS = 26 * (CREATE_HIPRI_TASK_THREADS + CREATE_BACKGROUND_TASK_THREADS + 1) + ENamedThreads::ActualRenderingThread + 1,
 		MAX_THREAD_PRIORITIES = 3
 	};
 
@@ -2511,6 +2511,91 @@ static FAutoConsoleCommand TestLockFreeCmd(
 	TEXT("Test lock free lists"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&TestLockFree)
 	);
+
+
+class FForegroundGraphTask : public FCustomStatIDGraphTaskBase
+{
+public:
+	FORCEINLINE FForegroundGraphTask(uint64 InCycles)
+		: FCustomStatIDGraphTaskBase(TStatId())
+		, StartCycles(InCycles)
+	{
+	}
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyHiPriThreadHiPriTask;
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+	void FORCENOINLINE DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		float Latency = float(double(FPlatformTime::Cycles64() - StartCycles) * FPlatformTime::GetSecondsPerCycle64() * 1000.0 * 1000.0);
+		//UE_LOG(LogTemp, Display, TEXT("Latency %6.2fus"), Latency);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Latency %6.2fus\r\n"), Latency);
+	}
+private:
+	uint64 StartCycles;
+};
+
+class FBackgroundGraphTask : public FCustomStatIDGraphTaskBase
+{
+public:
+	FORCEINLINE FBackgroundGraphTask(bool InPri)
+		: FCustomStatIDGraphTaskBase(TStatId())
+	{
+	}
+	FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return Pri ? ENamedThreads::AnyNormalThreadNormalTask : ENamedThreads::AnyBackgroundThreadNormalTask;
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+	void FORCENOINLINE DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		while (true)
+		{
+			uint32 RunningCrc = 0;
+			for (int32 Index = 0; Index < 1000000; Index++)
+			{
+				FCrc::MemCrc32(this, sizeof(*this), RunningCrc);
+			}
+			TGraphTask<FForegroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(FPlatformTime::Cycles64());
+		}
+	}
+private:
+	bool Pri;
+};
+
+static void TestLowToHighPri(const TArray<FString>& Args)
+{
+	UE_LOG(LogTemp, Display, TEXT("Starting latency test...."));
+
+#if 0
+	const int NumBackgroundTasks = 32;
+	const int NumNormalTasks = 32;
+	for (int32 Index = 0; Index < NumBackgroundTasks; Index++)
+	{
+		TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(false);
+	}
+	for (int32 Index = 0; Index < NumNormalTasks; Index++)
+	{
+		TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(true);
+	}
+	while (true)
+	{
+		FPlatformProcess::Sleep(25.0f);
+	}
+#else
+	TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(false);
+#endif
+}
+
+static FAutoConsoleCommand TestLowToHighPriCmd(
+	TEXT("TaskGraph.TestLowToHighPri"),
+	TEXT("Test latency of high priority tasks when low priority tasks are saturating the CPU"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&TestLowToHighPri)
+);
+
 
 #if WITH_DEV_AUTOMATION_TESTS
 

@@ -102,13 +102,13 @@ RHI_API bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLev
 inline bool RHISupportsInstancedStereo(const EShaderPlatform Platform)
 {
 	// Only D3D SM5, PS4 and Metal SM5 supports Instanced Stereo
-	return (Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4 || Platform == EShaderPlatform::SP_METAL_SM5);
+	return (Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4 || Platform == EShaderPlatform::SP_METAL_SM5 || Platform == EShaderPlatform::SP_METAL_SM5_NOTESS);
 }
 
 inline bool RHISupportsMultiView(const EShaderPlatform Platform)
 {
 	// Only PS4 and Metal SM5 from 10.13 onward supports Multi-View
-	return (Platform == EShaderPlatform::SP_PS4) || (Platform == EShaderPlatform::SP_METAL_SM5 && RHIGetShaderLanguageVersion(Platform) >= 3);
+	return (Platform == EShaderPlatform::SP_PS4) || ((Platform == EShaderPlatform::SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS) && RHIGetShaderLanguageVersion(Platform) >= 3);
 }
 
 inline bool RHISupportsMSAA(EShaderPlatform Platform)
@@ -116,9 +116,9 @@ inline bool RHISupportsMSAA(EShaderPlatform Platform)
 	return Platform != SP_PS4
 		//@todo-rco: Fix when iOS OpenGL supports MSAA
 		&& Platform != SP_OPENGL_ES2_IOS
-		// @todo marksatt Metal on macOS 10.12 and earlier (or Intel on any macOS) don't reliably support our MSAA usage & custom resolve.
+		// @todo marksatt Metal on macOS 10.12 and earlier (or Intel on any macOS < 10.13.2) don't reliably support our MSAA usage & custom resolve.
 #if PLATFORM_MAC
-		&& IsMetalPlatform(Platform) && !IsRHIDeviceIntel() && (FPlatformMisc::MacOSXVersionCompare(10, 13, 0) >= 0)
+		&& IsMetalPlatform(Platform) && (FPlatformMisc::MacOSXVersionCompare(10, 13, 0) >= 0) && (!IsRHIDeviceIntel() || FPlatformMisc::MacOSXVersionCompare(10, 13, 2) >= 0)
 #endif
 		// @todo marksatt iOS Desktop Forward needs more work internally
 		&& Platform != SP_METAL_MRT;
@@ -197,6 +197,9 @@ extern RHI_API bool GSupportsShaderDepthStencilFetch;
 
 /** true if RQT_AbsoluteTime is supported by RHICreateRenderQuery */
 extern RHI_API bool GSupportsTimestampRenderQueries;
+
+/** true if RQT_AbsoluteTime is supported by RHICreateRenderQuery */
+extern RHI_API bool GRHISupportsGPUTimestampBubblesRemoval;
 
 /** true if the GPU supports hidden surface removal in hardware. */
 extern RHI_API bool GHardwareHiddenSurfaceRemoval;
@@ -364,9 +367,6 @@ extern RHI_API bool GRHISupportsResolveCubemapFaces;
 
 /** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsFirstInstance;
-
-/** Whether or not the engine should set the BackBuffer as a render target early in the frame. */
-extern RHI_API bool GRHIRequiresEarlyBackBufferRenderTarget;
 
 /** Whether or not the RHI supports an RHI thread.
 Requirements for RHI thread
@@ -642,7 +642,7 @@ struct FSamplerStateInitializerRHI
 		ESamplerAddressMode InAddressU = AM_Wrap,
 		ESamplerAddressMode InAddressV = AM_Wrap,
 		ESamplerAddressMode InAddressW = AM_Wrap,
-		int32 InMipBias = 0,
+		float InMipBias = 0,
 		int32 InMaxAnisotropy = 0,
 		float InMinMipLevel = 0,
 		float InMaxMipLevel = FLT_MAX,
@@ -666,7 +666,7 @@ struct FSamplerStateInitializerRHI
 	TEnumAsByte<ESamplerAddressMode> AddressU;
 	TEnumAsByte<ESamplerAddressMode> AddressV;
 	TEnumAsByte<ESamplerAddressMode> AddressW;
-	int32 MipBias;
+	float MipBias;
 	/** Smallest mip map level that will be used, where 0 is the highest resolution mip level. */
 	float MinMipLevel;
 	/** Largest mip map level that will be used, where 0 is the highest resolution mip level. */

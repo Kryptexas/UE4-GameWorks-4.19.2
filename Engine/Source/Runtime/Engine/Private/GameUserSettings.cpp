@@ -15,6 +15,7 @@
 #include "Sound/AudioSettings.h"
 #include "Sound/SoundCue.h"
 #include "AudioDevice.h"
+#include "DynamicResolutionState.h"
 
 // Console platforms default HDR to on in the user settings, since this setting may not actually be exposed.
 #if PLATFORM_XBOXONE || PLATFORM_PS4
@@ -125,6 +126,16 @@ bool UGameUserSettings::IsVSyncEnabled() const
 	return bUseVSync;
 }
 
+void UGameUserSettings::SetDynamicResolutionEnabled(bool bEnable)
+{
+	bUseDynamicResolution = bEnable;
+}
+
+bool UGameUserSettings::IsDynamicResolutionEnabled() const
+{
+	return bUseDynamicResolution;
+}
+
 bool UGameUserSettings::IsScreenResolutionDirty() const
 {
 	bool bIsDirty = false;
@@ -158,9 +169,19 @@ bool UGameUserSettings::IsVSyncDirty() const
 	return bIsDirty;
 }
 
+bool UGameUserSettings::IsDynamicResolutionDirty() const
+{
+	bool bIsDirty = false;
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame && GEngine->GetDynamicResolutionState())
+	{
+		bIsDirty = (bUseDynamicResolution != GEngine->GetDynamicResolutionState()->IsEnabled());
+	}
+	return bIsDirty;
+}
+
 bool UGameUserSettings::IsDirty() const
 {
-	return IsScreenResolutionDirty() || IsFullscreenModeDirty() || IsVSyncDirty();
+	return IsScreenResolutionDirty() || IsFullscreenModeDirty() || IsVSyncDirty() || IsDynamicResolutionDirty();
 }
 
 void UGameUserSettings::ConfirmVideoMode()
@@ -206,6 +227,7 @@ void UGameUserSettings::SetToDefaults()
 		UpdateResolutionQuality();
 	}
 
+	bUseDynamicResolution = false;
 	bUseHDRDisplayOutput = GUserSettingsDefaultHDRValue;
 	HDRDisplayOutputNits = 1000;
 }
@@ -331,8 +353,13 @@ void UGameUserSettings::ValidateSettings()
 		{
 			// Force reset if there aren't any default .ini settings.
 			SetToDefaults();
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
-			SetVSyncEnabled( CVar->GetValueOnGameThread() != 0 );
+			static const auto CVarVSync = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
+			SetVSyncEnabled(CVarVSync->GetValueOnGameThread() != 0 );
+
+			if (GEngine && GEngine->GetDynamicResolutionState())
+			{
+				SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionState()->IsEnabled());
+			}
 
 			IFileManager::Get().Delete( *GGameUserSettingsIni );
 			LoadSettings(true);
@@ -386,6 +413,11 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
 			CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
 		}
+	}
+
+	if (GEngine->GetDynamicResolutionState())
+	{
+		GEngine->GetDynamicResolutionState()->SetEnabled(IsDynamicResolutionEnabled());
 	}
 
 	if (!IsRunningDedicatedServer())
@@ -594,8 +626,18 @@ void UGameUserSettings::ResetToCurrentSettings()
 		SetScreenResolution(FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY));
 
 		// Set the current VSync state
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
-		SetVSyncEnabled( CVar->GetValueOnGameThread() != 0 );
+		static const auto CVarVSync = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
+		SetVSyncEnabled(CVarVSync->GetValueOnGameThread() != 0 );
+
+		// Set the current dynamic resolution state
+		if (GEngine && GEngine->GetDynamicResolutionState())
+		{
+			SetDynamicResolutionEnabled(GEngine->GetDynamicResolutionState()->IsEnabled());
+		}
+		else
+		{
+			SetDynamicResolutionEnabled(false);
+		}
 
 		// Reset to confirmed settings
 		FullscreenMode = LastConfirmedFullscreenMode;

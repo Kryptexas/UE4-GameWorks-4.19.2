@@ -237,7 +237,6 @@ public:
 				ComputeMeshOverrideSettings(Parameters.Mesh),
 				DVSM_None,
 				FeatureLevel,
-				Parameters.bEditorCompositeDepthTest,
 				IsMobileHDR() // bEnableReceiveDecalOutput
 				),
 			FeatureLevel
@@ -252,9 +251,6 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& R
 	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
-	// Don't composite static meshes
-	const bool bEditorCompositeDepthTest = false;
-
 	// Only draw opaque materials.
 	if( !IsTranslucentBlendMode(BlendMode) )
 	{
@@ -268,7 +264,6 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& R
 				Material,
 				StaticMesh->PrimitiveSceneInfo->Proxy,
 				true,
-				bEditorCompositeDepthTest,
 				ESceneRenderTargetsMode::DontSet,
 				FeatureLevel
 				),
@@ -357,7 +352,6 @@ public:
 			ComputeMeshOverrideSettings(Parameters.Mesh),
 			View.Family->GetDebugViewShaderMode(),
 			View.GetFeatureLevel(),
-			Parameters.bEditorCompositeDepthTest,
 			IsMobileHDR() // bEnableReceiveDecalOutput
 			);
 
@@ -380,7 +374,7 @@ public:
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ElementDataType(LightMapElementData),
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType()
 				);
-			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList, View, Parameters.Mesh, BatchElementIndex);
 		}
 	}
 };
@@ -404,7 +398,6 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 			Material, 
 			PrimitiveSceneProxy, 
 			true, 
-			DrawingContext.bEditorCompositeDepthTest, 
 			DrawingContext.TextureMode, 
 			View.GetFeatureLevel()
 		),
@@ -710,7 +703,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 			SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
 			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
-			FMobileBasePassOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
+			FMobileBasePassOpaqueDrawingPolicyFactory::ContextType Context(ESceneRenderTargetsMode::DontSet);
 
 			for (const FMeshBatchAndRelevance& MeshBatchAndRelevance : View.DynamicMeshElements)
 			{
@@ -721,20 +714,20 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 				}
 			}
 
-			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, NULL, EBlendModeFilter::OpaqueAndMasked);
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::OpaqueAndMasked);
 
 			if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)
 			{
 				const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[FeatureLevel]) && !IsMobileHDR();
 
 				// Draw the base pass for the view's batched mesh elements.
-				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true);
+				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::DontSet), SDPG_World, true);
 
 				// Draw the view's batched simple elements(lines, sprites, etc).
 				View.BatchedViewElements.Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, View, false);
 
 				// Draw foreground objects last
-				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
+				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
 
 				// Draw the view's batched simple elements(lines, sprites, etc).
 				View.TopBatchedViewElements.Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, View, false);

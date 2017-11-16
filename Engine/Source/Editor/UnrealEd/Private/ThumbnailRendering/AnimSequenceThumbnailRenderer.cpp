@@ -7,10 +7,6 @@
 #include "Animation/AnimSequenceBase.h"
 #include "ThumbnailHelpers.h"
 
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
-
 UAnimSequenceThumbnailRenderer::UAnimSequenceThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -37,7 +33,7 @@ void UAnimSequenceThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 			ViewFamily.EngineShowFlags.LOD = 0;
 
 			ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-			GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+			RenderViewFamily(Canvas, &ViewFamily);
 			ThumbnailScene->SetAnimation(nullptr);
 		}
 	}

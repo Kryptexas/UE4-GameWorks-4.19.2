@@ -127,7 +127,7 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 				.SetWorldTimes(0.0f, 0.0f, 0.0f)
 				.SetGammaCorrection(RenderTarget->GameThread_GetRenderTargetResource()->GetDisplayGamma()));
 
-			TargetsViewFamilyPairs.Add(TPair<UTextureRenderTarget2D*, FSceneViewFamily>(RenderTarget, ViewFamily));
+			TargetsViewFamilyPairs.Add(TPair<UTextureRenderTarget2D*, FSceneViewFamily>(RenderTarget, Forward<FSceneViewFamily>(ViewFamily)));
 			MaterialRenderProxies.Add(Proxy);
 			MaterialPropertiesToBakeOut.Add(Property);
 		}

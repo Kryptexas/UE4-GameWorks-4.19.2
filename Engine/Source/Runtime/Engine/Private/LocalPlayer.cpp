@@ -43,7 +43,7 @@ DEFINE_LOG_CATEGORY(LogPlayerManagement);
 #if !UE_BUILD_SHIPPING
 
 static TAutoConsoleVariable<int32> CVarViewportTest(
-	TEXT("r.ViewportTest"),
+	TEXT("r.Test.ConstrainedView"),
 	0,
 	TEXT("Allows to test different viewport rectangle configuations (in game only) as they can happen when using Matinee/Editor.\n")
 	TEXT("0: off(default)\n")
@@ -676,20 +676,6 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 	{
 		return false;
 	}
-
-#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		if (!ViewportClient->GetEngineShowFlags()->ScreenPercentage)
-		{
-			// Disables any screen percentage derived for game such as r.ScreenPercentage or FPostProcessSettings::ScreenPercentage.
-			ViewInitOptions.bDisableGameScreenPercentage = true;
-		}
-
-		// PIE viewports should adjust screen percentage if necessary (for DPI scale performance)
-		ViewInitOptions.EditorViewScreenPercentage = ViewportClient->GetEditorScreenPercentage();
-	}
-#endif
 
 	if (PlayerController->PlayerCameraManager != NULL)
 	{

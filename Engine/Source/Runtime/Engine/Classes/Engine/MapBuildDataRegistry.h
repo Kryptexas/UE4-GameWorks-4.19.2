@@ -331,15 +331,15 @@ public:
 	ENGINE_API const FReflectionCaptureMapBuildData* GetReflectionCaptureBuildData(FGuid CaptureId) const;
 	ENGINE_API FReflectionCaptureMapBuildData* GetReflectionCaptureBuildData(FGuid CaptureId);
 
-	ENGINE_API void InvalidateStaticLighting(UWorld* World);
-	ENGINE_API void InvalidateReflectionCaptures();
+	ENGINE_API void InvalidateStaticLighting(UWorld* World, const TSet<FGuid>* ResourcesToKeep = nullptr);
+	ENGINE_API void InvalidateReflectionCaptures(const TSet<FGuid>* ResourcesToKeep = nullptr);
 
 	ENGINE_API bool IsLegacyBuildData() const;
 
 private:
 
-	ENGINE_API void ReleaseResources();
-	ENGINE_API void EmptyLevelData();
+	ENGINE_API void ReleaseResources(const TSet<FGuid>* ResourcesToKeep = nullptr);
+	ENGINE_API void EmptyLevelData(const TSet<FGuid>* ResourcesToKeep = nullptr);
 
 	TMap<FGuid, FMeshMapBuildData> MeshBuildData;
 	TMap<FGuid, FPrecomputedLightVolumeData*> LevelPrecomputedLightVolumeBuildData;

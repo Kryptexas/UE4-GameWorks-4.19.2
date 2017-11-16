@@ -537,7 +537,7 @@ void UActorFactoryDeferredDecal::PostSpawnActor(UObject* Asset, AActor* NewActor
 
 		DecalComponent->UnregisterComponent();
 
-		DecalComponent->DecalMaterial = Material;
+		DecalComponent->SetDecalMaterial(Material);
 
 		// Init Component
 		DecalComponent->RegisterComponent();
@@ -562,7 +562,7 @@ void UActorFactoryDeferredDecal::PostCreateBlueprint( UObject* Asset, AActor* CD
 			}
 
 			check(DecalComponent);
-			DecalComponent->DecalMaterial = Material;
+			DecalComponent->SetDecalMaterial(Material);
 		}
 	}
 }

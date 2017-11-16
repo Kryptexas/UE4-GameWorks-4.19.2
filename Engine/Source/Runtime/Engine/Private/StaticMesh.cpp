@@ -2654,6 +2654,17 @@ void UStaticMesh::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
+
+	if (SourceModels.Num() > 0)
+	{
+		UStaticMesh* DistanceFieldReplacementMesh = SourceModels[0].BuildSettings.DistanceFieldReplacementMesh;
+ 
+		if (DistanceFieldReplacementMesh)
+		{
+			DistanceFieldReplacementMesh->ConditionalPostLoad();
+		}
+	}
+
 	if (!GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
 		// Needs to happen before 'CacheDerivedData'

@@ -771,6 +771,7 @@ public:
 		FGPUSkinVertexFactoryShaderParameters::Bind(ParameterMap);
 		ClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("ClothSimulVertsPositionsNormals"));
 		PreviousClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("PreviousClothSimulVertsPositionsNormals"));
+		ClothLocalToWorldParameter.Bind(ParameterMap, TEXT("ClothLocalToWorld"));
 		ClothBlendWeightParameter.Bind(ParameterMap, TEXT("ClothBlendWeight"));
 		GPUSkinApexClothParameter.Bind(ParameterMap, TEXT("GPUSkinApexCloth"));
 		GPUSkinApexClothStartIndexOffsetParameter.Bind(ParameterMap, TEXT("GPUSkinApexClothStartIndexOffset"));
@@ -784,6 +785,7 @@ public:
 		FGPUSkinVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << ClothSimulVertsPositionsNormalsParameter;
 		Ar << PreviousClothSimulVertsPositionsNormalsParameter;
+		Ar << ClothLocalToWorldParameter;
 		Ar << ClothBlendWeightParameter;
 		Ar << GPUSkinApexClothParameter;
 		Ar << GPUSkinApexClothStartIndexOffsetParameter;
@@ -822,6 +824,13 @@ public:
 			SetShaderValue(
 				RHICmdList,
 				VertexShader,
+				ClothLocalToWorldParameter,
+				ClothShaderData.ClothLocalToWorld
+				);
+
+			SetShaderValue(
+				RHICmdList,
+				VertexShader,
 				ClothBlendWeightParameter,
 				ClothShaderData.ClothBlendWeight
 				);
@@ -847,6 +856,7 @@ public:
 protected:
 	FShaderResourceParameter ClothSimulVertsPositionsNormalsParameter;
 	FShaderResourceParameter PreviousClothSimulVertsPositionsNormalsParameter;
+	FShaderParameter ClothLocalToWorldParameter;
 	FShaderParameter ClothBlendWeightParameter;
 	FShaderResourceParameter GPUSkinApexClothParameter;
 	FShaderParameter GPUSkinApexClothStartIndexOffsetParameter;
@@ -860,11 +870,11 @@ struct FRHICommandUpdateClothBuffer final : public FRHICommand<FRHICommandUpdate
 {
 	FVertexBufferRHIParamRef VertexBuffer;
 	uint32 BufferSize;
-	const TArray<FVector4>& SimulPositions;
-	const TArray<FVector4>& SimulNormals;
+	const TArray<FVector>& SimulPositions;
+	const TArray<FVector>& SimulNormals;
 
 
-	FORCEINLINE_DEBUGGABLE FRHICommandUpdateClothBuffer(FVertexBufferRHIParamRef InVertexBuffer, uint32 InBufferSize, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals)
+	FORCEINLINE_DEBUGGABLE FRHICommandUpdateClothBuffer(FVertexBufferRHIParamRef InVertexBuffer, uint32 InBufferSize, const TArray<FVector>& InSimulPositions, const TArray<FVector>& InSimulNormals)
 		: VertexBuffer(InVertexBuffer)
 		, BufferSize(InBufferSize)
 		, SimulPositions(InSimulPositions)
@@ -881,22 +891,21 @@ struct FRHICommandUpdateClothBuffer final : public FRHICommand<FRHICommandUpdate
 		float* RESTRICT Normal = (float* RESTRICT) &SimulNormals[0].X;
 		for (uint32 Index = 0; Index < NumSimulVerts; Index++)
 		{
-			Data[0] = Pos[0];
-			Data[1] = Pos[1];
-			Data[2] = Pos[2];
-			Data[3] = Normal[0];
-			Data[4] = Normal[1];
-			Data[5] = Normal[2];
+			FPlatformMisc::Prefetch(Pos + PLATFORM_CACHE_LINE_SIZE);
+			FPlatformMisc::Prefetch(Normal + PLATFORM_CACHE_LINE_SIZE);
+
+			FMemory::Memcpy(Data, Pos, sizeof(float) * 3);
+			FMemory::Memcpy(Data + 3, Normal, sizeof(float) * 3);
 			Data += 6;
-			Pos += 4;
-			Normal += 4;
+			Pos += 3;
+			Normal += 3;
 		}
 		GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
 	}
 };
 
-bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions,
-	const TArray<FVector4>& InSimulNormals, uint32 FrameNumberToPrepare, ERHIFeatureLevel::Type FeatureLevel)
+bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector>& InSimulPositions,
+	const TArray<FVector>& InSimulNormals, uint32 FrameNumberToPrepare, ERHIFeatureLevel::Type FeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FGPUBaseSkinAPEXClothVertexFactory_UpdateClothSimulData);
 
@@ -938,23 +947,18 @@ bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(F
 				float* RESTRICT Normal = (float* RESTRICT) &InSimulNormals[0].X;
 				for (uint32 Index = 0; Index < NumSimulVerts; Index++)
 				{
-					Data[0] = Pos[0];
-					Data[1] = Pos[1];
-					Data[2] = Pos[2];
-					Data[3] = Normal[0];
-					Data[4] = Normal[1];
-					Data[5] = Normal[2];
+					FPlatformMisc::Prefetch(Pos + PLATFORM_CACHE_LINE_SIZE);
+					FPlatformMisc::Prefetch(Normal + PLATFORM_CACHE_LINE_SIZE);
+
+					FMemory::Memcpy(Data, Pos, sizeof(float) * 3);
+					FMemory::Memcpy(Data + 3, Normal, sizeof(float) * 3);
 					Data += 6;
-					Pos += 4;
-					Normal += 4;
+					Pos += 3;
+					Normal += 3;
 				}
 			}
 			RHIUnlockVertexBuffer(CurrentClothBuffer->VertexBufferRHI);
 		}
-	}
-	else
-	{
-		UpdateClothUniformBuffer(InSimulPositions, InSimulNormals);
 	}
 	return false;
 }
@@ -964,26 +968,6 @@ bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(F
 -----------------------------------------------------------------------------*/
 TGlobalResource<FClothBufferPool> FGPUBaseSkinAPEXClothVertexFactory::ClothSimulDataBufferPool;
 
-void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals)
-{
-	FAPEXClothUniformShaderParameters ClothUniformShaderParameters;
-
-	uint32 NumSimulVertices = InSimulPositions.Num();
-
-	if(NumSimulVertices > 0)
-	{
-		NumSimulVertices = FMath::Min((uint32)MAX_APEXCLOTH_VERTICES_FOR_UB, NumSimulVertices);
-
-		for(uint32 i=0; i<NumSimulVertices; i++)
-		{
-			ClothUniformShaderParameters.Positions[i] = InSimulPositions[i];
-			ClothUniformShaderParameters.Normals[i] = InSimulNormals[i];
-		}
-	}
-		
-	APEXClothUniformBuffer = TUniformBufferRef<FAPEXClothUniformShaderParameters>::CreateUniformBufferImmediate(ClothUniformShaderParameters, UniformBuffer_SingleFrame);
-
-}
 /**
 * Modify compile environment to enable the apex clothing path
 * @param OutEnvironment - shader compile environment to modify

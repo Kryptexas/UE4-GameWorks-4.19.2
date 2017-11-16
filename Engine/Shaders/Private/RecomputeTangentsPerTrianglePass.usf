@@ -7,6 +7,10 @@
 #include "RecomputeTangentsCommon.ush"
 #include "FastMath.ush"
 
+#if MERGE_DUPLICATED_VERTICES 
+Buffer<uint> DuplicatedIndices;
+Buffer<uint> DuplicatedIndicesIndices;
+#endif
 struct FVertexData
 {
 	// vertex index in the vertexbuffer
@@ -49,36 +53,14 @@ FVertexData GetVertex(uint VertexIndex)
 		Ret.Position.y = GPUPositionCacheBuffer[3 * OutputOffset + 1];
 		Ret.Position.z = GPUPositionCacheBuffer[3 * OutputOffset + 2];
 
-#if COMPILER_METAL
-		// Read the original sign as the tangent spaced might be flipped
-		uint W = GPUTangentCacheBuffer[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] & 0xff000000;
-		Ret.OriginalOrientation = (W == 0) ? 1 : -1;
-#else
 		float W = GPUTangentCacheBuffer[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z].w;
 		Ret.OriginalOrientation = (W == 0) ? 1 : -1;
-#endif
 	}
 
 	{
 		uint InputOffset = VertexIndex + InputStreamStart;
 
-#if COMPILER_METAL //type conversion from float2 or half2
-		if(FULL_PRECISION_UV)
-		{
-			// float precision
-			Ret.UV.x = asfloat(UVsInputBuffer[InputOffset * 2 + 0]);
-			Ret.UV.y = asfloat(UVsInputBuffer[InputOffset * 2 + 1]);
-		}
-		else
-		{
-			// half precision
-			uint IntUV = UVsInputBuffer[InputOffset];
-			Ret.UV.x = f16tof32(IntUV & 0xffff);
-			Ret.UV.y = f16tof32(IntUV >> 16);
-		}
-#else
 		Ret.UV = UVsInputBuffer[InputOffset];
-#endif
 	}
 
 	return Ret;
@@ -201,6 +183,26 @@ void MainCS(
 				InterlockedAdd(IntermediateAccumBufferUAV[Index + 5], IntTangentX.z);
 				// Orientation
 				InterlockedAdd(IntermediateAccumBufferUAV[Index + 6], IntOrientation);
+                
+#if MERGE_DUPLICATED_VERTICES 
+                uint DupVertexIndicesLength = DuplicatedIndicesIndices[2 * VertexIndex];
+                uint DupIndexStart = DuplicatedIndicesIndices[2 * VertexIndex + 1];
+                for(uint DupIndexOffset = 0; DupIndexOffset < DupVertexIndicesLength; ++DupIndexOffset)
+                {
+                    uint DupVertexIndex = DuplicatedIndices[DupIndexStart + DupIndexOffset];
+                    uint DupIndex = DupVertexIndex * INTERMEDIATE_ACCUM_BUFFER_NUM_INTS;
+                    // TangentZ
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 0], IntTangentZ.x);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 1], IntTangentZ.y);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 2], IntTangentZ.z);
+                    // TangentX
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 3], IntTangentX.x);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 4], IntTangentX.y);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 5], IntTangentX.z);
+                    // Orientation
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 6], IntOrientation);
+                }
+#endif
 			}
 		}
 	}

@@ -80,10 +80,8 @@ public:
 	static const FUniformBufferStruct* GetStruct() { return NULL; }
 };
 
-// Uniform buffer for APEX cloth (for now) buffer limitation is up to 64kb
+// Uniform buffer for APEX cloth
 BEGIN_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector,Positions,[MAX_APEXCLOTH_VERTICES_FOR_UB])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector,Normals,[MAX_APEXCLOTH_VERTICES_FOR_UB])
 END_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters)
 
 enum
@@ -632,9 +630,7 @@ public:
 			Reset();
 		}
 
-		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
-
-		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel);
+		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector>& InSimulPositions, const TArray<FVector>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
@@ -688,6 +684,11 @@ public:
 			check(ClothSimulPositionNormalBuffer[Index].VertexBufferRHI.IsValid());
 			return ClothSimulPositionNormalBuffer[Index];
 		}
+
+		/**
+		* Matrix to apply to positions/normals
+		*/
+		FMatrix ClothLocalToWorld;
 		
 		/**
 		 * weight to blend between simulated positions and key-framed poses
@@ -861,6 +862,7 @@ public:
 	*/
 	void SetData(const FDataType& InData)
 	{
+        Super::SetData(InData);
 		MeshMappingData = InData;
 		FGPUBaseSkinVertexFactory::UpdateRHI();
 	}

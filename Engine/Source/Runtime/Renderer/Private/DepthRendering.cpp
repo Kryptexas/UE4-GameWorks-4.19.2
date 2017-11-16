@@ -693,7 +693,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 						BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::DepthPositionOnly));
 
 						DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FPositionOnlyDepthDrawingPolicy::ElementDataType(), FPositionOnlyDepthDrawingPolicy::ContextDataType());
-						DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
+						DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex, bIsInstancedStereo);
 					}
 				}
 				Mask >>= 1;
@@ -760,7 +760,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 							BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Depth));
 
 							DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FDepthDrawingPolicy::ContextDataType());
-							DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
+							DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex, bIsInstancedStereo);
 						}
 					}
 					Mask >>= 1;
@@ -840,12 +840,6 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
-	// Transition after static since only dynamic needs the skin cache (currently)
-	if (FGPUSkinCache* GPUSkinCache = Scene->GetGPUSkinCache())
-	{
-		GPUSkinCache->TransitionAllToReadable(RHICmdList);
-	}
-
 	FDepthDrawingPolicyFactory::ContextType Context(EarlyZPassMode, true);
 
 	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
@@ -881,7 +875,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 	return true;
 }
 
-static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, const bool bIsEditorPrimitivePass = false)
+static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View, const FSceneRenderer* SceneRenderer, FDrawingPolicyRenderState& DrawRenderState, const bool bIsEditorPrimitivePass = false)
 {
 	// Disable color writes, enable depth tests and writes.
 	DrawRenderState.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
@@ -897,19 +891,19 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View,
 	{
 		if (View.bIsMultiViewEnabled)
 		{
-			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
-			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
-			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
-			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			const uint32 LeftMinX = SceneRenderer->Views[0].ViewRect.Min.X;
+			const uint32 LeftMaxX = SceneRenderer->Views[0].ViewRect.Max.X;
+			const uint32 RightMinX = SceneRenderer->Views[1].ViewRect.Min.X;
+			const uint32 RightMaxX = SceneRenderer->Views[1].ViewRect.Max.X;
 			
-			const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
-			const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+			const uint32 LeftMaxY = SceneRenderer->Views[0].ViewRect.Max.Y;
+			const uint32 RightMaxY = SceneRenderer->Views[1].ViewRect.Max.Y;
 			
 			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
 		}
 		else
 		{
-			RHICmdList.SetViewport(0, 0, 0, View.Family->InstancedStereoWidth, View.ViewRect.Max.Y, 1);
+			RHICmdList.SetViewport(0, 0, 0, SceneRenderer->InstancedStereoWidth, View.ViewRect.Max.Y, 1);
 		}
 	}
 }
@@ -938,7 +932,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 	bool bDirty = false;
 
 	FDrawingPolicyRenderState DrawRenderState(View);
-	SetupPrePassView(RHICmdList, View, DrawRenderState);
+	SetupPrePassView(RHICmdList, View, this, DrawRenderState);
 
 	// Draw the static occluder primitives using a depth drawing policy.
 
@@ -1032,8 +1026,8 @@ DECLARE_CYCLE_STAT(TEXT("Prepass"), STAT_CLP_Prepass, STATGROUP_ParallelCommandL
 class FPrePassParallelCommandListSet : public FParallelCommandListSet
 {
 public:
-	FPrePassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Prepass), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FPrePassParallelCommandListSet(const FViewInfo& InView, const FSceneRenderer* InSceneRenderer, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Prepass), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 	{
 		// Do not copy-paste. this is a very unusual FParallelCommandListSet because it is a prepass and we want to do some work after starting some tasks
 	}
@@ -1049,14 +1043,14 @@ public:
 	{
 		FParallelCommandListSet::SetStateOnCommandList(CmdList);
 		FSceneRenderTargets::Get(CmdList).BeginRenderingPrePass(CmdList, false);
-		SetupPrePassView(CmdList, View, DrawRenderState);
+		SetupPrePassView(CmdList, View, SceneRenderer, DrawRenderState);
 	}
 };
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, TFunctionRef<void()> AfterTasksAreStarted, bool bDoPrePre)
 {
 	bool bDepthWasCleared = false;
-	FPrePassParallelCommandListSet ParallelCommandListSet(View, ParentCmdList,
+	FPrePassParallelCommandListSet ParallelCommandListSet(View, this, ParentCmdList,
 		CVarRHICmdPrePassDeferredContexts.GetValueOnRenderThread() > 0, 
 		CVarRHICmdFlushRenderThreadTasksPrePass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0);
 
@@ -1215,9 +1209,9 @@ bool FDeferredShadingSceneRenderer::PreRenderPrePass(FRHICommandListImmediate& R
 void FDeferredShadingSceneRenderer::RenderPrePassEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FDepthDrawingPolicyFactory::ContextType Context) 
 {
 	FDrawingPolicyRenderState DrawRenderState(View);
-	SetupPrePassView(RHICmdList, View, DrawRenderState, true);
+	SetupPrePassView(RHICmdList, View, this, DrawRenderState, true);
 
-	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::OpaqueAndMasked);
 
 	bool bDirty = false;
 	if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)

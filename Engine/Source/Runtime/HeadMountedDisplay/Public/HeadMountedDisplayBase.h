@@ -79,4 +79,14 @@ protected:
 	friend class FDefaultStereoLayers;
 
 	TUniquePtr<FDefaultSpectatorScreenController> SpectatorScreenController;
+
+	// Sane pixel density values
+	static constexpr float PixelDensityMin = 0.1f;
+	static constexpr float PixelDensityMax = 2.0f;
+
+	/**
+	 * CVar sink for pixel density
+	 */
+	static void CVarSinkHandler();
+	static FAutoConsoleVariableSink CVarSink;
 };

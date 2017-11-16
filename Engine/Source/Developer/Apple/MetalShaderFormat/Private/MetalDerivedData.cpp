@@ -22,6 +22,7 @@ extern FString LocalPathToRemote(const FString& LocalPath, const FString& Remote
 extern bool CopyLocalFileToRemote(FString const& LocalPath, FString const& RemotePath);
 extern bool CopyRemoteFileToLocal(FString const& RemotePath, FString const& LocalPath);
 extern bool ChecksumRemoteFile(FString const& RemotePath, uint32* CRC, uint32* Len);
+extern bool ModificationTimeRemoteFile(FString const& RemotePath, uint64& Time);
 extern bool RemoveRemoteFile(FString const& RemotePath);
 extern FString GetMetalBinaryPath(uint32 ShaderPlatform);
 extern FString GetMetalToolsPath(uint32 ShaderPlatform);
@@ -39,9 +40,13 @@ extern void BuildMetalShaderOutput(
 	uint8 Version,
 	TCHAR const* Standard,
 	TCHAR const* MinOSVersion,
+	EMetalTypeBufferMode TypeMode,
 	TArray<FShaderCompilerError>& OutErrors,
 	FMetalTessellationOutputs const& TessOutputAttribs,
-	uint8 const AtomicUAVs,
+	uint32 TypedBuffers,
+	uint32 InvariantBuffers,
+	uint32 TypedUAVs,
+	TArray<uint8> const& TypedBufferFormats,
 	bool bAllowFastIntriniscs
 	);
 
@@ -135,7 +140,14 @@ FString FMetalShaderBytecodeCooker::GetPluginSpecificCacheKeySuffix() const
 	FString CompilerVersion = GetMetalCompilerVersion(MetalShaderFormatToLegacyShaderPlatform(Job.ShaderFormat));
 	FString CompilerPath = GetMetalToolsPath(MetalShaderFormatToLegacyShaderPlatform(Job.ShaderFormat));
 	
-	FString VersionedName = FString::Printf(TEXT("%s%u%u%s%s%s%s%s%s%s%d"), *Job.ShaderFormat.GetPlainNameString(), Job.SourceCRCLen, Job.SourceCRC, *Job.Hash.ToString(), *Job.CompilerVersion, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, Job.bRetainObjectFile ? TEXT("+Object") : TEXT(""), GetTypeHash(CompilerPath));
+	// PCHs need the modifiction time (in secs. since UTC Epoch) to ensure that the result can be used with the current version of the file
+	uint64 ModTime = 0;
+	if(Job.bCompileAsPCH)
+	{
+		ModificationTimeRemoteFile(*Job.InputFile, ModTime);
+	}
+	
+	FString VersionedName = FString::Printf(TEXT("%s%u%u%llu%s%s%s%s%s%s%s%d%d"), *Job.ShaderFormat.GetPlainNameString(), Job.SourceCRCLen, Job.SourceCRC, ModTime, *Job.Hash.ToString(), *Job.CompilerVersion, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, Job.bRetainObjectFile ? TEXT("+O") : TEXT(""), GetTypeHash(CompilerPath), GetTypeHash(Job.Defines));
 	// get rid of some not so filename-friendly characters ('=',' ' -> '_')
     VersionedName = VersionedName.Replace(TEXT("="), TEXT("_")).Replace(TEXT(" "), TEXT("_"));
 
@@ -173,11 +185,18 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 	FString MetalPath = GetMetalBinaryPath(ShaderPlatform);
 	FString MetalToolsPath = GetMetalToolsPath(ShaderPlatform);
 	FString MetalLibPath = MetalToolsPath + TEXT("/metallib");
-
+    
 	FString MetalParams;
 	if (Job.bCompileAsPCH)
 	{
-		MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.InputFile, *RemoteOutputFilename);
+		if (Job.InputPCHFile.Len())
+		{
+			MetalParams = FString::Printf(TEXT("-x metal-header -include-pch %s %s %s %s %s %s -o %s"), *Job.InputPCHFile, *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.Defines, *Job.InputFile, *RemoteOutputFilename);
+		}
+		else
+		{
+			MetalParams = FString::Printf(TEXT("-x metal-header %s %s %s %s %s -o %s"), *Job.MinOSVersion, *Job.MathMode, *Job.Standard, *Job.Defines, *Job.InputFile, *RemoteOutputFilename);
+		}
 	}
 	else
 	{
@@ -188,11 +207,11 @@ bool FMetalShaderBytecodeCooker::Build(TArray<uint8>& OutData)
 		if (bUseSharedPCH)
         {
             CopyLocalFileToRemote(Job.InputPCHFile, RemoteInputPCHFile);
-			MetalParams = FString::Printf(TEXT("-include-pch %s %s %s %s -Wno-null-character -fbracket-depth=1024 %s %s -o %s"), *RemoteInputPCHFile, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *RemoteInputFile, *RemoteObjFile);
+			MetalParams = FString::Printf(TEXT("-include-pch %s %s %s %s -Wno-null-character -fbracket-depth=1024 %s %s %s -o %s"), *RemoteInputPCHFile, *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *Job.Defines, *RemoteInputFile, *RemoteObjFile);
         }
         else
         {
-            MetalParams = FString::Printf(TEXT("%s %s %s -Wno-null-character -fbracket-depth=1024 %s %s -o %s"), *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *RemoteInputFile, *RemoteObjFile);
+            MetalParams = FString::Printf(TEXT("%s %s %s -Wno-null-character -fbracket-depth=1024 %s %s %s -o %s"), *Job.MinOSVersion, *Job.DebugInfo, *Job.MathMode, *Job.Standard, *Job.Defines, *RemoteInputFile, *RemoteObjFile);
         }
 	}
 				
@@ -354,8 +373,16 @@ bool FMetalShaderOutputCooker::Build(TArray<uint8>& OutData)
 		LexicalConversion::FromString(bAllowFastIntriniscs, *(*FastIntrinsics));
 	}
 	
+	bool bForceInvariance = false;
+	FString const* UsingWPO = Input.Environment.GetDefinitions().Find(TEXT("USES_WORLD_POSITION_OFFSET"));
+	if (UsingWPO && FString("1") == *UsingWPO)
+	{
+		// WPO requires that we make all multiply/sincos instructions invariant :(
+		bForceInvariance = true;
+	}
+	
 	FMetalTessellationOutputs Attribs;
-	FMetalCodeBackend MetalBackEnd(Attribs, CCFlags, MetalCompilerTarget, VersionEnum, Semantics, TypeMode, MaxUnrollLoops, bZeroInitialise, bBoundsChecks, bAllowFastIntriniscs);
+	FMetalCodeBackend MetalBackEnd(Attribs, CCFlags, MetalCompilerTarget, VersionEnum, Semantics, TypeMode, MaxUnrollLoops, bZeroInitialise, bBoundsChecks, bAllowFastIntriniscs, bForceInvariance);
 	FMetalLanguageSpec MetalLanguageSpec(VersionEnum);
 
 	int32 Result = 0;
@@ -408,7 +435,7 @@ bool FMetalShaderOutputCooker::Build(TArray<uint8>& OutData)
 	if (Result != 0)
 	{
 		Output.Target = Input.Target;
-		BuildMetalShaderOutput(Output, Input, GUIDHash, MetalShaderSource, SourceLen, CRCLen, CRC, VersionEnum, *Standard, *MinOSVersion, Output.Errors, Attribs, MetalBackEnd.AtomicUAVs, bAllowFastIntriniscs);
+		BuildMetalShaderOutput(Output, Input, GUIDHash, MetalShaderSource, SourceLen, CRCLen, CRC, VersionEnum, *Standard, *MinOSVersion, TypeMode, Output.Errors, Attribs, MetalBackEnd.TypedBuffers, MetalBackEnd.InvariantBuffers, MetalBackEnd.TypedUAVs, MetalBackEnd.TypedBufferFormats, bAllowFastIntriniscs);
 		
 		FMemoryWriter Ar(OutData);
 		Ar << Output;

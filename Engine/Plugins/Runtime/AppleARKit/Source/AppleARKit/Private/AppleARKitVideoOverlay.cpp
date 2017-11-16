@@ -341,7 +341,7 @@ void FAppleARKitVideoOverlay::RenderVideoOverlay_RenderThread(FRHICommandListImm
 			VertexShader->SetParameters(RHICmdList, InView);
 			PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
 
-			const FIntPoint ViewSize = InView.ViewRect.Size();
+			const FIntPoint ViewSize = InView.UnconstrainedViewRect.Size();
 
 			FDrawRectangleParameters Parameters;
 			Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);

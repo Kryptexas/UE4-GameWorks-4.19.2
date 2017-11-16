@@ -274,17 +274,18 @@ namespace VulkanRHI
 		}
 	}
 
-	void FDeviceMemoryAllocation::InvalidateMappedMemory()
+	void FDeviceMemoryAllocation::InvalidateMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize)
 	{
 		if (!IsCoherent())
 		{
 			check(IsMapped());
+			check(InOffset + InSize <= Size);
 			VkMappedMemoryRange Range;
 			FMemory::Memzero(Range);
 			Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 			Range.memory = Handle;
-			//Range.offset = 0;
-			Range.size = Size;
+			Range.offset = InOffset;
+			Range.size = InSize;
 			VERIFYVULKANRESULT(VulkanRHI::vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
 		}
 	}
@@ -1269,11 +1270,17 @@ namespace VulkanRHI
 
 		FScopeLock Lock(&GAllocationLock);
 		UsedStagingBuffers.RemoveSingleSwap(StagingBuffer, false);
-		ensure(CmdBuffer);
 
-		FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
-		FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer ? CmdBuffer->GetFenceSignaledCounter() : 0);
-		ItemsForFence->Resources.Add(StagingBuffer);
+		if (CmdBuffer)
+		{
+			FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
+			FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer ? CmdBuffer->GetFenceSignaledCounter() : 0);
+			ItemsForFence->Resources.Add(StagingBuffer);
+		}
+		else
+		{
+			FreeStagingBuffers.Add({StagingBuffer, GFrameNumberRenderThread});
+		}
 		StagingBuffer = nullptr;
 	}
 
@@ -1483,6 +1490,8 @@ namespace VulkanRHI
 
 	bool FFenceManager::WaitForFence(FFence* Fence, uint64 TimeInNanoseconds)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitFence);
+
 		check(UsedFences.Contains(Fence));
 		check(Fence->State == FFence::EState::NotReady);
 		VkResult Result = VulkanRHI::vkWaitForFences(Device->GetInstanceHandle(), 1, &Fence->Handle, true, TimeInNanoseconds);
@@ -1689,16 +1698,19 @@ namespace VulkanRHI
 		VkPipelineStageFlags DestStages = (VkPipelineStageFlags)0;
 		SetImageBarrierInfo(Source, Dest, ImageBarrier, SourceStages, DestStages);
 
-		// special handling for VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (otherwise Mali devices flicker)
-		if (Source == EImageLayoutBarrier::Present)
+		if (!DelayAcquireBackBuffer())
 		{
-			SourceStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		}
-		else if (Dest == EImageLayoutBarrier::Present)
-		{
-			SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			// special handling for VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (otherwise Mali devices flicker)
+			if (Source == EImageLayoutBarrier::Present)
+			{
+				SourceStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+				DestStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			}
+			else if (Dest == EImageLayoutBarrier::Present)
+			{
+				SourceStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			}
 		}
 
 		VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);

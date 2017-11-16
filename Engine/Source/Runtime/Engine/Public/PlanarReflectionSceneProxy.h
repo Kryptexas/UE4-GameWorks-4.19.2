@@ -123,7 +123,7 @@ public:
 	FVector PlanarReflectionParameters;
 	FVector2D PlanarReflectionParameters2;
 	FMatrix ProjectionWithExtraFOV[GMaxPlanarReflectionViews];
-	FVector4 ScreenScaleBias[GMaxPlanarReflectionViews];
+	FIntRect ViewRect[GMaxPlanarReflectionViews];
 	FVector4 InverseTransposeMirrorMatrix[3];
 	FName OwnerName;
 	int32 PlanarReflectionId;

@@ -395,7 +395,7 @@ void FStaticMeshInstanceBuffer::BindInstanceVertexBuffer(const class FVertexFact
 			0,
 			16,
 			VET_Float4,
-			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instancing
 		);
 
 		EVertexElementType TransformType = InstanceData->GetTranslationUsesHalfs() ? VET_Half4 : VET_Float4;
@@ -406,21 +406,21 @@ void FStaticMeshInstanceBuffer::BindInstanceVertexBuffer(const class FVertexFact
 			0 * TransformStride,
 			3 * TransformStride,
 			TransformType,
-			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instancing
 		);
 		InstancedStaticMeshData.InstanceTransformComponent[1] = FVertexStreamComponent(
 			&InstanceTransformBuffer,
 			1 * TransformStride,
 			3 * TransformStride,
 			TransformType,
-			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instancing
 		);
 		InstancedStaticMeshData.InstanceTransformComponent[2] = FVertexStreamComponent(
 			&InstanceTransformBuffer,
 			2 * TransformStride,
 			3 * TransformStride,
 			TransformType,
-			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instancing
 		);
 
 		InstancedStaticMeshData.InstanceLightmapAndShadowMapUVBiasComponent = FVertexStreamComponent(
@@ -428,7 +428,7 @@ void FStaticMeshInstanceBuffer::BindInstanceVertexBuffer(const class FVertexFact
 			0,
 			8,
 			VET_Short4N,
-			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Instancing
 		);
 	}
 }

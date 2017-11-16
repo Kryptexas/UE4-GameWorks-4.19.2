@@ -144,7 +144,7 @@ namespace VulkanRHI
 		}
 
 		void FlushMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize);
-		void InvalidateMappedMemory();
+		void InvalidateMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize);
 
 		inline VkDeviceMemory GetHandle() const
 		{
@@ -350,6 +350,11 @@ namespace VulkanRHI
 		inline void FlushMappedMemory()
 		{
 			DeviceMemoryAllocation->FlushMappedMemory(AllocationOffset, AllocationSize);
+		}
+
+		inline void InvalidateMappedMemory()
+		{
+			DeviceMemoryAllocation->InvalidateMappedMemory(AllocationOffset, AllocationSize);
 		}
 
 		void BindBuffer(FVulkanDevice* Device, VkBuffer Buffer);
@@ -892,6 +897,11 @@ namespace VulkanRHI
 		inline void FlushMappedMemory()
 		{
 			ResourceAllocation->FlushMappedMemory();
+		}
+
+		inline void InvalidateMappedMemory()
+		{
+			ResourceAllocation->InvalidateMappedMemory();
 		}
 
 	protected:

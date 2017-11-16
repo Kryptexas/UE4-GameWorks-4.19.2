@@ -277,12 +277,12 @@ void FCanvasTileRendererItem::InitTileBuffers(FLocalVertexFactory* VertexFactory
 
 		if (bNeedsToSwitchVerticalAxis)
 		{
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 0) = FVector(X + SizeX, View.ViewRect.Height() - (Y + SizeY), 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 1) = FVector(X, View.ViewRect.Height() - (Y + SizeY), 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 2) = FVector(X + SizeX, View.ViewRect.Height() - Y, 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 3) = FVector(X + SizeX, View.ViewRect.Height() - Y, 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 4) = FVector(X, View.ViewRect.Height() - (Y + SizeY), 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 5) = FVector(X, View.ViewRect.Height() - Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 0) = FVector(X + SizeX, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 1) = FVector(X, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 2) = FVector(X + SizeX, View.UnscaledViewRect.Height() - Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 3) = FVector(X + SizeX, View.UnscaledViewRect.Height() - Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 4) = FVector(X, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 5) = FVector(X, View.UnscaledViewRect.Height() - Y, 0.0f);
 
 			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 0, 0, FVector2D(U + SizeU, V + SizeV));
 			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 1, 0, FVector2D(U, V + SizeV));

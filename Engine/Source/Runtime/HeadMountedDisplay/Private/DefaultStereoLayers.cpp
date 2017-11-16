@@ -228,7 +228,7 @@ void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate&
 	FMatrix TrackerMatrix = FTranslationMatrix(-HmdLocation) * FInverseRotationMatrix(HmdOrientation.Rotator()) * EyeMatrix;
 
 	FLayerRenderParams RenderParams{
-		InView.ViewRect, // Viewport
+		InView.UnscaledViewRect, // Viewport
 		{
 			ViewProjectionMatrix,				// WorldLocked,
 			TrackerMatrix * ProjectionMatrix,	// TrackerLocked,
@@ -306,6 +306,9 @@ void FDefaultStereoLayers::UpdateSplashScreen()
 
 void FDefaultStereoLayers::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
+	// Disable screen percentage because screen percentage needs to be applied to UnscaledViewRect in AdjustViewRect().
+	InViewFamily.EngineShowFlags.ScreenPercentage = false;
+
 	// Initialize HMD position.
 	FQuat HmdOrientation = FQuat::Identity;
 	FVector HmdPosition = FVector::ZeroVector;

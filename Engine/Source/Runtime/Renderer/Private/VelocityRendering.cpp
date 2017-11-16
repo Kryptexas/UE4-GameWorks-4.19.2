@@ -574,7 +574,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Velocity));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
+					DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex, bIsInstancedStereo);
 				}
 			}
 			return true;
@@ -696,7 +696,7 @@ static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPo
 	}
 }
 
-static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSceneRenderer* SceneRender, FDrawingPolicyRenderState& DrawRenderState, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
@@ -713,19 +713,19 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 	{
 		if (View.bIsMultiViewEnabled)
 		{
-			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
-			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
-			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
-			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			const uint32 LeftMinX = SceneRender->Views[0].ViewRect.Min.X;
+			const uint32 LeftMaxX = SceneRender->Views[0].ViewRect.Max.X;
+			const uint32 RightMinX = SceneRender->Views[1].ViewRect.Min.X;
+			const uint32 RightMaxX = SceneRender->Views[1].ViewRect.Max.X;
 			
-			const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
-			const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+			const uint32 LeftMaxY = SceneRender->Views[0].ViewRect.Max.Y;
+			const uint32 RightMaxY = SceneRender->Views[1].ViewRect.Max.Y;
 			
 			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
 		}
 		else
 		{
-			const uint32 MaxX = View.Family->InstancedStereoWidth * VelocityBufferSize.X / BufferSize.X;
+			const uint32 MaxX = SceneRender->InstancedStereoWidth * VelocityBufferSize.X / BufferSize.X;
 			const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
 			RHICmdList.SetViewport(0, 0, 0.0f, MaxX, MaxY, 1.0f);
 		}
@@ -743,9 +743,16 @@ DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLP_Velocity, STATGROUP_ParallelComman
 class FVelocityPassParallelCommandListSet : public FParallelCommandListSet
 {
 	TRefCountPtr<IPooledRenderTarget>& VelocityRT;
+
 public:
-	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Velocity), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FVelocityPassParallelCommandListSet(
+		const FViewInfo& InView,
+		const FSceneRenderer* InSceneRenderer,
+		FRHICommandListImmediate& InParentCmdList,
+		bool bInParallelExecute,
+		bool bInCreateSceneContext,
+		TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Velocity), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, VelocityRT(InVelocityRT)
 	{
 		SetStateOnCommandList(ParentCmdList);
@@ -760,7 +767,7 @@ public:
 	{
 		FParallelCommandListSet::SetStateOnCommandList(CmdList);
 		BeginVelocityRendering(CmdList, VelocityRT, false);
-		SetVelocitiesState(CmdList, View, DrawRenderState, VelocityRT);
+		SetVelocitiesState(CmdList, View, SceneRenderer, DrawRenderState, VelocityRT);
 	}
 };
 
@@ -781,6 +788,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 		if (View.ShouldRenderView())
 		{
 			FVelocityPassParallelCommandListSet ParallelCommandListSet(View,
+				this,
 				RHICmdList,
 				CVarRHICmdVelocityPassDeferredContexts.GetValueOnRenderThread() > 0,
 				CVarRHICmdFlushRenderThreadTasksVelocityPass.GetValueOnRenderThread() == 0 && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0,
@@ -837,7 +845,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 
 		if (View.ShouldRenderView())
 		{
-			SetVelocitiesState(RHICmdList, View, DrawRenderState, VelocityRT);
+			SetVelocitiesState(RHICmdList, View, this, DrawRenderState, VelocityRT);
 
 			// Draw velocities for movable static meshes.
 			if (!View.IsInstancedStereoPass())

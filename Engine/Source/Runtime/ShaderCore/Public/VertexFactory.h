@@ -20,7 +20,7 @@ class FMaterial;
 enum class EVertexStreamUsage : uint8
 {
 	Default			= 0 << 0,
-	Instanceing		= 1 << 0,
+	Instancing		= 1 << 0,
 	Overridden		= 1 << 1,
 	ManualFetch		= 1 << 2
 };
@@ -433,7 +433,8 @@ public:
 	bool SupportsManualVertexFetch(ERHIFeatureLevel::Type InFeatureLevel) const 
 	{ 
 		check(InFeatureLevel != ERHIFeatureLevel::Num);
-		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && !IsMetalPlatform(GMaxRHIShaderPlatform); 
+		static const auto MetalCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
+		return bSupportsManualVertexFetch && !(InFeatureLevel == ERHIFeatureLevel::ES2) && !IsES2Platform(GMaxRHIShaderPlatform) && (!IsMetalPlatform(GMaxRHIShaderPlatform) || (MetalCVar && MetalCVar->GetInt() != 0 && IsPCPlatform(GMaxRHIShaderPlatform)));
 	}
 
 protected:

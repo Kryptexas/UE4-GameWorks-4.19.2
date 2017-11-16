@@ -59,7 +59,7 @@ public:
 	 * @param View			SceneView for view constants when compositing
 	 * @param DepthTexture	Depth texture to read from when depth testing for compositing.  If not set no compositing will occur
 	 */
-	void SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture );
+	void SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View);
 
 	void SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue );
 

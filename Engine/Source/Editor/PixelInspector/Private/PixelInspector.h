@@ -84,7 +84,7 @@ namespace PixelInspector
 		 * viewportUniqueId: The id of the view (FSceneView::State::GetViewKey) we want to capture the pixel, ScreenPosition has to come from this viewport
 		 * SceneInterface: The interface to set the data for the next render frame.
 		*/
-		 void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
+		 void CreatePixelInspectorRequest(FVector2D InspectViewportUV, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
 
 		 /**
 		 * Look if there is some request ready to be read and retrieve the value.

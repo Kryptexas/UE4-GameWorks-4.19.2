@@ -45,6 +45,8 @@ class FGPUSkinPassthroughVertexFactory;
 class FGPUBaseSkinVertexFactory;
 class FMorphVertexBuffer;
 class FSkeletalMeshObjectGPUSkin;
+class FSkeletalMeshVertexClothBuffer;
+struct FClothSimulData;
 struct FSkelMeshRenderSection;
 struct FVertexBufferAndSRV;
 
@@ -55,6 +57,26 @@ extern ENGINE_API bool IsGPUSkinCacheAvailable();
 extern ENGINE_API int32 GEnableGPUSkinCache;
 
 class FGPUSkinCacheEntry;
+
+struct FClothSimulEntry
+{
+	FVector Position;
+	FVector Normal;
+
+	/**
+	 * Serializer
+	 *
+	 * @param Ar - archive to serialize with
+	 * @param V - vertex to serialize
+	 * @return archive that was used
+	 */
+	friend FArchive& operator<<(FArchive& Ar, FClothSimulEntry& V)
+	{
+		Ar << V.Position
+		   << V.Normal;
+		return Ar;
+	}
+};
 
 struct FGPUSkinBatchElementUserData
 {
@@ -83,7 +105,8 @@ public:
 
 	void ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseSkinVertexFactory* VertexFactory,
 		FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshRenderSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
-		const FMorphVertexBuffer* MorphVertexBuffer, uint32 FrameNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry);
+		const FMorphVertexBuffer* MorphVertexBuffer, const FSkeletalMeshVertexClothBuffer* ClothVertexBuffer, const FClothSimulData* SimData,
+		const FMatrix& ClothLocalToWorld, float ClothBlendWeight, uint32 FrameNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry);
 
 	static void SetVertexStreams(FGPUSkinCacheEntry* Entry, int32 Section, FRHICommandList& RHICmdList, uint32 FrameNumber,
 		class FShader* Shader, const FGPUSkinPassthroughVertexFactory* VertexFactory,

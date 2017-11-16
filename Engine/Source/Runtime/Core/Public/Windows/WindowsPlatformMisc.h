@@ -93,6 +93,7 @@ struct CORE_API FWindowsPlatformMisc
 	static bool IsValidAbsolutePathFormat(const FString& Path);
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
+	static int32 NumberOfWorkerThreadsToSpawn();
 
 	static FString GetDefaultLanguage();
 	static FString GetDefaultLocale();

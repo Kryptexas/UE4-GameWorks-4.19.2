@@ -6,10 +6,6 @@
 #include "Misc/App.h"
 #include "Animation/AnimBlueprint.h"
 
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
-
 UAnimBlueprintThumbnailRenderer::UAnimBlueprintThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -32,7 +28,7 @@ void UAnimBlueprintThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, ui
 			ViewFamily.EngineShowFlags.LOD = 0;
 
 			ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-			GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+			RenderViewFamily(Canvas, &ViewFamily);
 		}
 	}
 }

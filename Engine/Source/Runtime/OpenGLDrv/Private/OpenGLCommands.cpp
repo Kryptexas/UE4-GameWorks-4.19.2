@@ -274,15 +274,6 @@ static FORCEINLINE GLint ModifyFilterByMips(GLint Filter, bool bHasMips)
 }
 
 // Vertex state.
-void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
-{
-	ensure(PendingState.BoundShaderState->StreamStrides[StreamIndex] == Stride);
-	FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	PendingState.Streams[StreamIndex].VertexBuffer = VertexBuffer;
-	PendingState.Streams[StreamIndex].Stride = PendingState.BoundShaderState ? PendingState.BoundShaderState->StreamStrides[StreamIndex] : 0;
-	PendingState.Streams[StreamIndex].Offset = Offset;
-}
-
 void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
 {
 	FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);

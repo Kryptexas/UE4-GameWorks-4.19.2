@@ -99,7 +99,7 @@ void FRCPassPostProcessVisualizeShadingModels::Process(FRenderingCompositePassCo
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessVisualizeShadingModels);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FViewInfo& ViewInfo = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	

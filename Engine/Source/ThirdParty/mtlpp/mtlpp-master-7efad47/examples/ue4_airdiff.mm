@@ -71,9 +71,9 @@ int main(int argc, const char * argv[])
 			}
 			else if ((!strcmp(argv[i], "-l-sdk") || !strcmp(argv[i], "-r-sdk")) && i+1 < argc)
 			{
+				mtlpp::CompilerOptions& Options = (!strcmp(argv[i], "-l-sdk")) ? OptionsLeft : OptionsRight;
 				i++;
 				
-				mtlpp::CompilerOptions& Options = (!strcmp(argv[i], "-l-sdk")) ? OptionsLeft : OptionsRight;
 				if (!strcmp(argv[i], "macosx"))
 				{
 					Options.Platform = mtlpp::Platform::macOS;
@@ -93,8 +93,8 @@ int main(int argc, const char * argv[])
 			}
 			else if ((!strcmp(argv[i], "-l-vers") || !strcmp(argv[i], "-r-vers")) && i+1 < argc)
 			{
-				i++;
 				mtlpp::CompilerOptions& Options = (!strcmp(argv[i], "-l-vers")) ? OptionsLeft : OptionsRight;
+				i++;
 				if (!strcmp(argv[i], "1.0"))
 				{
 					Options.SetLanguageVersion(mtlpp::LanguageVersion::Version1_0);

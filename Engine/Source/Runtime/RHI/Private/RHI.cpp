@@ -271,6 +271,7 @@ TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_FloatRGBA(true);
 bool GSupportsShaderFramebufferFetch = false;
 bool GSupportsShaderDepthStencilFetch = false;
 bool GSupportsTimestampRenderQueries = false;
+bool GRHISupportsGPUTimestampBubblesRemoval = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
@@ -305,7 +306,6 @@ bool GSupportsEfficientAsyncCompute = false;
 bool GRHISupportsBaseVertexIndex = true;
 TRHIGlobal<bool> GRHISupportsInstancing(true);
 bool GRHISupportsFirstInstance = false;
-bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
 bool GRHISupportsRHIOnTaskThread = false;
 bool GRHISupportsParallelRHIExecute = false;
@@ -421,7 +421,7 @@ static FName NAME_VULKAN_SM4_UB(TEXT("SF_VULKAN_SM4_UB"));
 static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
 static FName NAME_VULKAN_SM5_UB(TEXT("SF_VULKAN_SM5_UB"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
-static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+static FName NAME_SF_METAL_SM5_NOTESS(TEXT("SF_METAL_SM5_NOTESS"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 static FName NAME_GLSL_SWITCH(TEXT("GLSL_SWITCH"));
@@ -466,8 +466,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL_MRT;
 	case SP_METAL_MRT_MAC:
 		return NAME_SF_METAL_MRT_MAC;
-	case SP_METAL_SM4:
-		return NAME_SF_METAL_SM4;
+	case SP_METAL_SM5_NOTESS:
+		return NAME_SF_METAL_SM5_NOTESS;
 	case SP_METAL_SM5:
 		return NAME_SF_METAL_SM5;
 	case SP_METAL_MACES3_1:
@@ -524,7 +524,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_VULKAN_SM4_UB)			return SP_VULKAN_SM4;
 	if (ShaderFormat == NAME_VULKAN_SM5_UB)			return SP_VULKAN_SM5;
-	if (ShaderFormat == NAME_SF_METAL_SM4)			return SP_METAL_SM4;
+	if (ShaderFormat == NAME_SF_METAL_SM5_NOTESS)	return SP_METAL_SM5_NOTESS;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
@@ -626,7 +626,7 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
 	{
 		return true;
 	}
-	else if (Platform == SP_METAL_SM5)
+	else if (Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS || Platform == SP_METAL_MRT || Platform == SP_METAL_MRT_MAC)
 	{
 		return (RHIGetShaderLanguageVersion(Platform) >= 2);
 	}

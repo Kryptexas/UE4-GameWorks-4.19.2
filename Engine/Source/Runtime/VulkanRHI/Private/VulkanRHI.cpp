@@ -55,9 +55,16 @@ TAutoConsoleVariable<int32> GRHIThreadCvar(
 );
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
-VkAllocationCallbacks GCallbacks;
+VkAllocationCallbacks GDefaultCallbacks;
+VkAllocationCallbacks GInstrumentedCallbacks;
+VkAllocationCallbacks* GDefaultMemoryAllocator = &GDefaultCallbacks;
+VkAllocationCallbacks* GInstrumentedMemoryAllocator = &GInstrumentedCallbacks;
+#else
+VkAllocationCallbacks* GDefaultMemoryAllocator = nullptr;
+VkAllocationCallbacks* GInstrumentedMemoryAllocator = nullptr;
 #endif
 
+static FCriticalSection GMemMgrCS;
 struct FVulkanMemManager
 {
 	static VKAPI_ATTR void* Alloc(
@@ -66,21 +73,15 @@ struct FVulkanMemManager
 		size_t                                      alignment,
 		VkSystemAllocationScope                           allocScope)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
-		This->UsedMemory += size;
-		void* Data = FMemory::Malloc(size, alignment);
-		This->Allocs.Add(Data, size);
-		return Data;
+		FScopeLock Lock(&GMemMgrCS);
+		return FMemory::Malloc(size, alignment);
 	}
 
 	static VKAPI_ATTR void Free(
 		void*                                       pUserData,
 		void*                                       pMem)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		size_t Size = This->Allocs.FindAndRemoveChecked(pMem);
-		This->UsedMemory -= Size;
+		FScopeLock Lock(&GMemMgrCS);
 		FMemory::Free(pMem);
 	}
 
@@ -91,14 +92,8 @@ struct FVulkanMemManager
 		size_t										alignment,
 		VkSystemAllocationScope						allocScope)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		size_t Size = This->Allocs.FindAndRemoveChecked(pOriginal);
-		This->UsedMemory -= Size;
-		void* Data = FMemory::Realloc(pOriginal, size, alignment);
-		This->Allocs.Add(Data, size);
-		This->UsedMemory += size;
-		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
-		return Data;
+		FScopeLock Lock(&GMemMgrCS);
+		return FMemory::Realloc(pOriginal, size, alignment);
 	}
 
 	static VKAPI_ATTR void InternalAllocationNotification(
@@ -119,18 +114,74 @@ struct FVulkanMemManager
 		//@TODO
 	}
 
-	FVulkanMemManager() :
+};
+
+struct FVulkanInstrumentedMemManager : public FVulkanMemManager
+{
+	static VKAPI_ATTR void* Alloc(
+		void*                                       pUserData,
+		size_t                                      size,
+		size_t                                      alignment,
+		VkSystemAllocationScope                     allocScope)
+	{
+		void* Data = FVulkanMemManager::Alloc(pUserData, size, alignment, allocScope);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
+		This->UsedMemory += size;
+		This->Allocs.Add(Data, size);
+		return Data;
+	}
+
+	static VKAPI_ATTR void Free(
+		void*                                       pUserData,
+		void*                                       pMem)
+	{
+		FVulkanMemManager::Free(pUserData, pMem);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		size_t Size = pMem ? This->Allocs.FindAndRemoveChecked(pMem) : 0;
+		This->UsedMemory -= Size;
+	}
+
+	static VKAPI_ATTR void* Realloc(
+		void*										pUserData,
+		void*										pOriginal,
+		size_t										size,
+		size_t										alignment,
+		VkSystemAllocationScope						allocScope)
+	{
+		void* Data = FVulkanMemManager::Realloc(pUserData, pOriginal, size, alignment, allocScope);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		size_t Size = pOriginal ? This->Allocs.FindAndRemoveChecked(pOriginal) : 0;
+		This->UsedMemory -= Size;
+		This->Allocs.Add(Data, size);
+		This->UsedMemory += size;
+		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
+		return Data;
+	}
+
+	FVulkanInstrumentedMemManager() :
 		MaxAllocSize(0),
 		UsedMemory(0)
 	{
 	}
 
+	FCriticalSection MemLock;
 	TMap<void*, size_t> Allocs;
 	size_t MaxAllocSize;
 	size_t UsedMemory;
 };
 
-static FVulkanMemManager GVulkanMemMgr;
+static FVulkanMemManager GDefaultVulkanMemMgr;
+static FVulkanInstrumentedMemManager GVulkanInstrumentedMemMgr;
 
 static inline int32 CountSetBits(int32 n)
 {
@@ -339,10 +390,11 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	PendingGfxState = new FVulkanPendingGfxState(Device, *this);
 	PendingComputeState = new FVulkanPendingComputeState(Device, *this);
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	// Add an initial pool
-	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
+	FOLDVulkanDescriptorPool* Pool = new FOLDVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
-
+#endif
 	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
 }
 
@@ -360,11 +412,13 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 
 	TempFrameAllocationBuffer.Destroy();
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	for (int32 Index = 0; Index < DescriptorPools.Num(); ++Index)
 	{
 		delete DescriptorPools[Index];
 	}
 	DescriptorPools.Reset(0);
+#endif
 }
 
 
@@ -387,7 +441,6 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	check(IsInGameThread());
 	check(!GIsThreadedRendering);
 
-	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
@@ -501,14 +554,24 @@ void FVulkanDynamicRHI::CreateInstance()
 	InstInfo.pApplicationInfo = &App;
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
-	GCallbacks.pUserData = &GVulkanMemMgr;
-	GCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
-	GCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
-	GCallbacks.pfnFree = &FVulkanMemManager::Free;
-	GCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
-	GCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
 
-//@TODO: pass GCallbacks into funcs that take them. currently it's just a nullptr
+	// both callbacks use same static function pointers
+	GDefaultCallbacks.pUserData = &GDefaultVulkanMemMgr;
+	GDefaultCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
+	GDefaultCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
+	GDefaultCallbacks.pfnFree = &FVulkanMemManager::Free;
+	GDefaultCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
+	GDefaultCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
+
+	GInstrumentedCallbacks.pUserData = &GVulkanInstrumentedMemMgr;
+	GInstrumentedCallbacks.pfnAllocation = &FVulkanInstrumentedMemManager::Alloc;
+	GInstrumentedCallbacks.pfnReallocation = &FVulkanInstrumentedMemManager::Realloc;
+	GInstrumentedCallbacks.pfnFree = &FVulkanInstrumentedMemManager::Free;
+	// note, the instrumented doesn't override these, so it uses the base class one
+	GInstrumentedCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
+	GInstrumentedCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
+
+
 #endif
 
 	GetInstanceLayersAndExtensions(InstanceExtensions, InstanceLayers);
@@ -696,7 +759,6 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
 		GSupportsTimestampRenderQueries = !PLATFORM_ANDROID;
-		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
 		// Disable RHI thread by default if the dump layer is enabled
@@ -1173,8 +1235,8 @@ void FVulkanDescriptorSetsLayout::Compile()
 	}
 }
 
-
-FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSets::FOLDVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
 	, Pool(nullptr)
 	, Layout(InLayout)
@@ -1197,7 +1259,7 @@ FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVul
 	}
 }
 
-FVulkanDescriptorSets::~FVulkanDescriptorSets()
+FOLDVulkanDescriptorSets::~FOLDVulkanDescriptorSets()
 {
 	Pool->TrackRemoveUsage(Layout);
 
@@ -1206,6 +1268,7 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 		VERIFYVULKANRESULT(VulkanRHI::vkFreeDescriptorSets(Device->GetInstanceHandle(), Pool->GetHandle(), Sets.Num(), Sets.GetData()));
 	}
 }
+#endif
 
 void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {

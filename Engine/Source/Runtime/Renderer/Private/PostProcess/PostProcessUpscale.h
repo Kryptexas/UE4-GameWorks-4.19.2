@@ -55,7 +55,7 @@ public:
 	//				2: 4 tap Bilinear (with radius adjustment)
 	//				3: Directional blur with unsharp mask upsample.
 	// @param InPaniniConfig - the panini configuration parameter
-	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default);
+	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default, bool bInIsSecondaryUpscale = false);
 
 	// interface FRenderingCompositePass ---------
 
@@ -65,7 +65,7 @@ public:
 
 private:
 	// @param InCylinderDistortion 0=none..1=full in percent, must be in that range
-	template <uint32 Quality, uint32 bTesselatedQuad> static FShader* SetShader(const FRenderingCompositePassContext& Context, const PaniniParams& PaniniConfig);
+	template <uint32 Quality, uint32 bTesselatedQuad> static FShader* SetShader(const FRenderingCompositePassContext& Context, const PaniniParams& PaniniConfig, bool ManullyClampUV);
 
 	// 0: Nearest, 1: Bilinear, 2: 4 tap Bilinear (with radius adjustment), 3: Directional blur with unsharp mask upsample.
 	uint32 UpscaleQuality;
@@ -73,6 +73,9 @@ private:
 	// Panini projection's parameter
 	PaniniParams PaniniConfig;
 
+	const bool bIsSecondaryUpscale;
+
+protected:
 	// Extent of upscaled output
 	FIntPoint OutputExtent;
 };
@@ -82,9 +85,4 @@ class FRCPassPostProcessUpscaleES2 : public FRCPassPostProcessUpscale
 {
 public:
 	FRCPassPostProcessUpscaleES2(const FViewInfo& InView);
-
-	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
-private:
-	const FViewInfo& View;
 };
-

@@ -1106,6 +1106,9 @@ void* FVulkanDynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 		checkf(!*StagingBuffer, TEXT("Can't lock the same texture twice!"));
 	}
 
+	// No locks for read allowed yet
+	check(LockMode == RLM_WriteOnly);
+
 	uint32 BufferSize = 0;
 	DestStride = 0;
 	Texture->Surface.GetMipSize(MipIndex, BufferSize);
@@ -1483,6 +1486,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	, PartialView(nullptr)
 	, MSAASurface(nullptr)
 	#endif
+	, bIsAliased(false)
 {
 	if (Surface.ViewFormat == VK_FORMAT_UNDEFINED)
 	{
@@ -1574,6 +1578,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 	, MSAASurface(nullptr)
 	#endif
+	, bIsAliased(false)
 {
 	check(InMem == VK_NULL_HANDLE);
 	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM && Surface.Image != VK_NULL_HANDLE)

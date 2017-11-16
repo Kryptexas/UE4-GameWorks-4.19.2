@@ -1732,7 +1732,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		ActionList.MapAction(
 			Commands.FeatureLevelPreview[i],
 			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetFeatureLevelPreview, (ERHIFeatureLevel::Type)i),
-			FCanExecuteAction(),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::IsFeatureLevelPreviewAvailable, (ERHIFeatureLevel::Type)i),
 			FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked, (ERHIFeatureLevel::Type)i));
 	}
 }

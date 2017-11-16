@@ -438,17 +438,13 @@ namespace PixelInspector
 		TickSinceLastCreateRequest++;
 	}
 	
-	void SPixelInspector::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode)
+	void SPixelInspector::CreatePixelInspectorRequest(FVector2D InspectViewportUV, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode)
 	{
 		if (TickSinceLastCreateRequest < MINIMUM_TICK_BETWEEN_CREATE_REQUEST)
 			return;
 
-		if (ScreenPosition == FIntPoint(-1, -1))
-		{
-			return;
-		}
 		//Make sure we dont get value outside the viewport size
-		if ( ScreenPosition.X >= LastViewportInspectionSize.X || ScreenPosition.Y >= LastViewportInspectionSize.Y )
+		if ( InspectViewportUV.X >= 1.0f || InspectViewportUV.Y >= 1.0f || InspectViewportUV.X <= 0.0f || InspectViewportUV.Y <= 0.0f )
 		{
 			return;
 		}
@@ -473,7 +469,7 @@ namespace PixelInspector
 		if (BufferIndex == -1)
 			return;
 		
-		Requests[BufferIndex].SetRequestData(ScreenPosition, BufferIndex, viewportUniqueId, GBufferFormat, AllowStaticLighting);
+		Requests[BufferIndex].SetRequestData(InspectViewportUV, BufferIndex, viewportUniqueId, GBufferFormat, AllowStaticLighting);
 		SceneInterface->AddPixelInspectorRequest(&(Requests[BufferIndex]));
 	}
 
@@ -670,12 +666,12 @@ namespace PixelInspector
 			{
 				if (Requests[RequestIndex].FrameCountAfterRenderingCommandSend >= WAIT_FRAMENUMBER_BEFOREREADING)
 				{
-					if (Requests[RequestIndex].SourcePixelPosition == FIntPoint(-1, -1))
+					if (Requests[RequestIndex].SourceViewportUV == FVector2D(-1, -1))
 					{
 						continue;
 					}
 					PixelInspectorResult PixelResult;
-					PixelResult.ScreenPosition = Requests[RequestIndex].SourcePixelPosition;
+					PixelResult.ViewportUV = Requests[RequestIndex].SourceViewportUV;
 					PixelResult.ViewUniqueId = Requests[RequestIndex].ViewId;
 
 					TArray<FColor> BufferFinalColorValue;
@@ -806,10 +802,8 @@ namespace PixelInspector
 			}
 			DisplayResult->SetFromResult(AccumulationResult[0]);
 			DisplayDetailsView->SetObject(DisplayResult, true);
-			if (AccumulationResult[0].ScreenPosition != LastViewportInspectionPosition)
-			{
-				LastViewportInspectionPosition = AccumulationResult[0].ScreenPosition;
-			}
+			LastViewportInspectionPosition.X = AccumulationResult[0].ViewportUV.X * LastViewportInspectionSize.X;
+			LastViewportInspectionPosition.Y = AccumulationResult[0].ViewportUV.Y * LastViewportInspectionSize.Y;
 			LastViewportId = AccumulationResult[0].ViewUniqueId;
 			AccumulationResult.RemoveAt(0);
 		}

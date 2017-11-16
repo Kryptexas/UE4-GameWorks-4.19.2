@@ -483,6 +483,7 @@ struct FEditorShaderCodeArchive
 {
 	FEditorShaderCodeArchive(FName InFormat)
 	: FormatName(InFormat)
+	, Offset(0)
 	, Format(nullptr)
 	{
 		Format = FindShaderFormat(InFormat);

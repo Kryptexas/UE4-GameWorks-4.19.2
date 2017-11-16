@@ -11,6 +11,7 @@
 #include "MetalComputeCommandEncoder.h"
 #include "MetalRenderCommandEncoder.h"
 #include "MetalProfiler.h"
+#include "MetalShaderResources.h"
 
 const uint32 EncoderRingBufferSize = 1024 * 1024;
 
@@ -750,7 +751,7 @@ void FMetalCommandEncoder::SetShaderBuffer(MTLFunctionType const FunctionType, i
     if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset) && Buffer && (ShaderBuffers[FunctionType].Bound & (1 << index)) && ShaderBuffers[FunctionType].Buffers[index] == Buffer)
     {
 		SetShaderBufferOffset(FunctionType, Offset, Length, index);
-		ShaderBuffers[FunctionType].Lengths[index+ML_MaxBuffers] = Format;
+		ShaderBuffers[FunctionType].Lengths[index+ML_MaxBuffers] = GMetalBufferFormats[Format].DataFormat;
     }
     else
     {
@@ -766,13 +767,13 @@ void FMetalCommandEncoder::SetShaderBuffer(MTLFunctionType const FunctionType, i
 		ShaderBuffers[FunctionType].Bytes[index] = nil;
 		ShaderBuffers[FunctionType].Offsets[index] = Offset;
 		ShaderBuffers[FunctionType].Lengths[index] = Length;
-		ShaderBuffers[FunctionType].Lengths[index+ML_MaxBuffers] = Format;
+		ShaderBuffers[FunctionType].Lengths[index+ML_MaxBuffers] = GMetalBufferFormats[Format].DataFormat;
 		
 		SetShaderBufferInternal(FunctionType, index);
     }
 }
 
-void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index)
+void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index, EPixelFormat const Format)
 {
 	check(Index < ML_MaxBuffers);
 	
@@ -796,6 +797,7 @@ void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, FMe
 	ShaderBuffers[FunctionType].Bytes[Index] = Data;
 	ShaderBuffers[FunctionType].Offsets[Index] = Offset;
 	ShaderBuffers[FunctionType].Lengths[Index] = Data ? (Data->Len - Offset) : 0;
+	ShaderBuffers[FunctionType].Lengths[Index+ML_MaxBuffers] = GMetalBufferFormats[Format].DataFormat;
 	
 	SetShaderBufferInternal(FunctionType, Index);
 }
@@ -822,6 +824,7 @@ void FMetalCommandEncoder::SetShaderBytes(MTLFunctionType const FunctionType, ui
 		ShaderBuffers[FunctionType].Bytes[Index] = nil;
 		ShaderBuffers[FunctionType].Offsets[Index] = Offset;
 		ShaderBuffers[FunctionType].Lengths[Index] = Length;
+		ShaderBuffers[FunctionType].Lengths[Index+ML_MaxBuffers] = GMetalBufferFormats[PF_Unknown].DataFormat;
 		
 		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Bytes, Length);
 	}
@@ -833,6 +836,7 @@ void FMetalCommandEncoder::SetShaderBytes(MTLFunctionType const FunctionType, ui
 		ShaderBuffers[FunctionType].Bytes[Index] = nil;
 		ShaderBuffers[FunctionType].Offsets[Index] = 0;
 		ShaderBuffers[FunctionType].Lengths[Index] = 0;
+		ShaderBuffers[FunctionType].Lengths[Index+ML_MaxBuffers] = GMetalBufferFormats[PF_Unknown].DataFormat;
 	}
 	
 	SetShaderBufferInternal(FunctionType, Index);
@@ -845,6 +849,7 @@ void FMetalCommandEncoder::SetShaderBufferOffset(MTLFunctionType FunctionType, N
 	check(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset));
 	ShaderBuffers[FunctionType].Offsets[index] = Offset;
 	ShaderBuffers[FunctionType].Lengths[index] = Length;
+	ShaderBuffers[FunctionType].Lengths[index+ML_MaxBuffers] = GMetalBufferFormats[PF_Unknown].DataFormat;
 	switch (FunctionType)
 	{
 		case MTLFunctionTypeVertex:

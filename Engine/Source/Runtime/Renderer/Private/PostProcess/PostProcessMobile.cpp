@@ -169,7 +169,7 @@ static void BloomSetup_SetShader(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessBloomSetupES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
 	uint32 UseDof = (GetMobileDepthOfFieldScale(Context.View) > 0.0f) ? 1 : 0;
 	uint32 UseSunDof = (UseSun << 1) + UseDof;
@@ -210,7 +210,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
-		const FSceneView& View = Context.View;
+		const FViewInfo& View = Context.View;
 		SrcSize = InputDesc->Extent;
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
@@ -423,7 +423,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
-		const FSceneView& View = Context.View;
+		const FViewInfo& View = Context.View;
 		SrcSize = InputDesc->Extent;
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
@@ -1001,7 +1001,7 @@ static void SunMask_SetShader(const FRenderingCompositePassContext& Context)
 template <bool bUseDepthTexture>
 void FRCPassPostProcessSunMaskES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
 	uint32 UseDof = (GetMobileDepthOfFieldScale(Context.View) > 0.0f) ? 1 : 0;
 	uint32 UseFetch = GSupportsShaderFramebufferFetch ? 1 : 0;
@@ -1048,7 +1048,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(Context.GetShaderMap());
 	if(bOnChip)
@@ -1673,7 +1673,7 @@ FShader* SunMerge_SetShader(const FRenderingCompositePassContext& Context)
 
 FShader* FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	uint32 UseBloom = (View.FinalPostProcessSettings.BloomIntensity > 0.0f) ? 1 : 0;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
 	uint32 UseSunBloom = UseBloom + (UseSun<<1);
@@ -2102,7 +2102,7 @@ static void DofDown_SetShader(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessDofDownES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	if(Context.View.bLightShaftUse)
 	{
 		DofDown_SetShader<1>(Context);
@@ -2135,7 +2135,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
-		const FSceneView& View = Context.View;
+		const FViewInfo& View = Context.View;
 		SrcSize = InputDesc->Extent;
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
@@ -2325,7 +2325,7 @@ static void DofNear_SetShader(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessDofNearES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	if(Context.View.bLightShaftUse)
 	{
 		DofNear_SetShader<1>(Context);

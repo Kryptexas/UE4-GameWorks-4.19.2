@@ -1081,7 +1081,25 @@ public:
 	 * @return	true if the supplied buffer visualization mode is checked
 	 */
 	bool IsBufferVisualizationModeSelected( FName InName ) const;
+	
+	/** @return True if PreviewResolutionFraction is supported. */
+	bool SupportsPreviewResolutionFraction() const;
 
+	/** @return preview screen percentage for UI. */
+	int32 GetPreviewScreenPercentage() const;
+
+	/** Set preview screen percentage on UI behalf. */
+	void SetPreviewScreenPercentage(int32 PreviewScreenPercentage);
+
+	/** @return True if DPI preview is supported. */
+	bool SupportsLowDPIPreview() const;
+
+	/** @return whether previewing for low DPI. */
+	bool IsLowDPIPreview();
+
+	/** Set whether previewing for low DPI. */
+	void SetLowDPIPreview(bool LowDPIPreview);
+	
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1298,7 +1316,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 
 	/** Delegate handler for when a window DPI changes and we might need to adjust the scenes resolution */
-	virtual void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow);
 
 	/** Handle the camera about to be moved or stopped **/
 	virtual void BeginCameraMovement(bool bHasMovement) {}
@@ -1540,6 +1558,23 @@ protected:
 	TArray<FString> EnabledStats;
 
 private:
+	/** Controles resolution fraction for previewing in editor viewport at different screen percentage. */
+	float PreviewResolutionFraction;
+
+	// DPI mode for scene rendering.
+	enum class ESceneDPIMode
+	{
+		// Uses Editor.OverrideDPIBasedEditorViewportScaling.
+		EditorDefault,
+
+		// Force emulating low DPI.
+		EmulateLowDPI,
+
+		// Force using high dpi.
+		HighDPI
+	};
+	ESceneDPIMode SceneDPIMode;
+
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;
 

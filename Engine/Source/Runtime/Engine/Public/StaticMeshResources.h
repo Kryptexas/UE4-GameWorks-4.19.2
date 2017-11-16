@@ -837,12 +837,12 @@ public:
 		}
 	}
 
-	FORCEINLINE int32 IsValidIndex(int32 Index) const
+	FORCEINLINE_DEBUGGABLE int32 IsValidIndex(int32 Index) const
 	{
 		return InstanceOriginData->IsValidIndex(Index);
 	}
 
-	FORCEINLINE void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
 	{
 		FVector4 TransformVec[3];
 		if (bUseHalfFloat)
@@ -878,7 +878,7 @@ public:
 		Transform.M[3][3] = 0.f;
 	}
 
-	FORCEINLINE void GetInstanceShaderValues(int32 InstanceIndex, FVector4 (&InstanceTransform)[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceShaderValues(int32 InstanceIndex, FVector4 (&InstanceTransform)[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
 	{
 		if (bUseHalfFloat)
 		{
@@ -897,7 +897,7 @@ public:
 		return InstancesUsage.Find(false);
 	}
 
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
+	FORCEINLINE_DEBUGGABLE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
 	{
 		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
 		SetInstanceOriginInternal(InstanceIndex, Origin);
@@ -921,7 +921,7 @@ public:
 		InstancesUsage[InstanceIndex] = true;
 	}
 	
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	FORCEINLINE_DEBUGGABLE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
 	{
 		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
 		SetInstanceOriginInternal(InstanceIndex, Origin);
@@ -945,7 +945,7 @@ public:
 		InstancesUsage[InstanceIndex] = true;
 	}
 	
-	FORCEINLINE void NullifyInstance(int32 InstanceIndex)
+	FORCEINLINE_DEBUGGABLE void NullifyInstance(int32 InstanceIndex)
 	{
 		SetInstanceOriginInternal(InstanceIndex, FVector4(0, 0, 0, 0));
 
@@ -968,7 +968,7 @@ public:
 		InstancesUsage[InstanceIndex] = false;
 	}
 
-	FORCEINLINE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
+	FORCEINLINE_DEBUGGABLE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
 	{
 		FVector4 InstanceTransform[3];
 		if (bUseHalfFloat)
@@ -991,7 +991,7 @@ public:
 		InstancesUsage[InstanceIndex] = true;
 	}
 
-	FORCEINLINE void SwapInstance(int32 Index1, int32 Index2)
+	FORCEINLINE_DEBUGGABLE void SwapInstance(int32 Index1, int32 Index2)
 	{
 		if (bUseHalfFloat)
 		{
@@ -1042,59 +1042,59 @@ public:
 		}
 	}
 
-	FORCEINLINE int32 GetNumInstances() const
+	FORCEINLINE_DEBUGGABLE int32 GetNumInstances() const
 	{
 		return NumInstances;
 	}
 
-	FORCEINLINE size_t GetResourceSize() const
+	FORCEINLINE_DEBUGGABLE size_t GetResourceSize() const
 	{
 		return (size_t)InstanceOriginData->GetResourceSize() + (size_t)InstanceTransformData->GetResourceSize() + (size_t)InstanceLightmapData->GetResourceSize();
 	}
 
-	FORCEINLINE bool GetAllowCPUAccess() const
+	FORCEINLINE_DEBUGGABLE bool GetAllowCPUAccess() const
 	{
 		return bNeedsCPUAccess;
 	}
 
-	FORCEINLINE bool GetTranslationUsesHalfs() const
+	FORCEINLINE_DEBUGGABLE bool GetTranslationUsesHalfs() const
 	{
 		return bUseHalfFloat;
 	}
 
-	FORCEINLINE FResourceArrayInterface* GetOriginResourceArray()
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetOriginResourceArray()
 	{
 		return InstanceOriginData->GetResourceArray();
 	}
 
-	FORCEINLINE FResourceArrayInterface* GetTransformResourceArray()
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetTransformResourceArray()
 	{
 		return InstanceTransformData->GetResourceArray();
 	}
 
-	FORCEINLINE FResourceArrayInterface* GetLightMapResourceArray()
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetLightMapResourceArray()
 	{
 		return InstanceLightmapData->GetResourceArray();
 	}
 
-	FORCEINLINE uint32 GetOriginStride()
+	FORCEINLINE_DEBUGGABLE uint32 GetOriginStride()
 	{
 		return InstanceOriginData->GetStride();
 	}
 
-	FORCEINLINE uint32 GetTransformStride()
+	FORCEINLINE_DEBUGGABLE uint32 GetTransformStride()
 	{
 		return InstanceTransformData->GetStride();
 	}
 
-	FORCEINLINE uint32 GetLightMapStride()
+	FORCEINLINE_DEBUGGABLE uint32 GetLightMapStride()
 	{
 		return InstanceLightmapData->GetStride();
 	}
 
 private:
 	template<typename T>
-	FORCEINLINE void GetInstanceTransformInternal(int32 InstanceIndex, FVector4 (&Transform)[3]) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceTransformInternal(int32 InstanceIndex, FVector4 (&Transform)[3]) const
 	{
 		FInstanceTransformMatrix<T>* ElementData = reinterpret_cast<FInstanceTransformMatrix<T>*>(InstanceTransformDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
@@ -1116,7 +1116,7 @@ private:
 		Transform[2][3] = ElementData[InstanceIndex].InstanceTransform3[3];
 	}
 
-	FORCEINLINE void GetInstanceOriginInternal(int32 InstanceIndex, FVector4 &Origin) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceOriginInternal(int32 InstanceIndex, FVector4 &Origin) const
 	{
 		FVector4* ElementData = reinterpret_cast<FVector4*>(InstanceOriginDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
@@ -1125,7 +1125,7 @@ private:
 		Origin = ElementData[InstanceIndex];
 	}
 
-	FORCEINLINE void GetInstanceLightMapDataInternal(int32 InstanceIndex, FVector4 &LightmapData) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceLightMapDataInternal(int32 InstanceIndex, FVector4 &LightmapData) const
 	{
 		FInstanceLightMapVector* ElementData = reinterpret_cast<FInstanceLightMapVector*>(InstanceLightmapDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));
@@ -1141,7 +1141,7 @@ private:
 	}
 
 	template<typename T>
-	FORCEINLINE void SetInstanceTransformInternal(int32 InstanceIndex, FVector4(Transform)[3]) const
+	FORCEINLINE_DEBUGGABLE void SetInstanceTransformInternal(int32 InstanceIndex, FVector4(Transform)[3]) const
 	{
 		FInstanceTransformMatrix<T>* ElementData = reinterpret_cast<FInstanceTransformMatrix<T>*>(InstanceTransformDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
@@ -1163,7 +1163,7 @@ private:
 		ElementData[InstanceIndex].InstanceTransform3[3] = Transform[2][3];
 	}
 
-	FORCEINLINE void SetInstanceOriginInternal(int32 InstanceIndex, const FVector4& Origin) const
+	FORCEINLINE_DEBUGGABLE void SetInstanceOriginInternal(int32 InstanceIndex, const FVector4& Origin) const
 	{
 		FVector4* ElementData = reinterpret_cast<FVector4*>(InstanceOriginDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
@@ -1172,7 +1172,7 @@ private:
 		ElementData[InstanceIndex] = Origin;
 	}
 
-	FORCEINLINE void SetInstanceLightMapDataInternal(int32 InstanceIndex, const FVector4& LightmapData) const
+	FORCEINLINE_DEBUGGABLE void SetInstanceLightMapDataInternal(int32 InstanceIndex, const FVector4& LightmapData) const
 	{
 		FInstanceLightMapVector* ElementData = reinterpret_cast<FInstanceLightMapVector*>(InstanceLightmapDataPtr);
 		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));

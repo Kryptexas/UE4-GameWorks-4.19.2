@@ -25,14 +25,6 @@ public:
 	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
 private:
-	/**
-	 * Draws primitives that need to be composited
-	 *
-	 * @param View	The view to draw in
-	 */
-	template <typename TBasePass>
-	void RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState);
-
 	bool bDeferredBasePass;
 };
 

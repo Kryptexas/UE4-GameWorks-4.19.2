@@ -160,9 +160,6 @@ void FDefaultXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InV
 
 	InView.BaseHmdOrientation = DeviceOrientation;
 	InView.BaseHmdLocation = DevicePosition;
-	auto StereoRendering = TrackingSystem->GetStereoRenderingDevice();
-	auto RenderTargetManager = StereoRendering.IsValid() ? StereoRendering->GetRenderTargetManager() : nullptr;
-	InViewFamily.bUseSeparateRenderTarget = RenderTargetManager ? RenderTargetManager->ShouldUseSeparateRenderTarget() : false;
 }
 
 bool FDefaultXRCamera::IsActiveThisFrame(class FViewport* InViewport) const

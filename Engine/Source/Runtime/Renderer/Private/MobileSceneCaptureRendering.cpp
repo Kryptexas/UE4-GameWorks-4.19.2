@@ -395,7 +395,8 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 			? FlippedPooledRenderTarget.GetReference()->GetRenderTargetItem().TargetableTexture->GetTexture2D()
 			: nullptr);
 		FViewInfo& View = SceneRenderer->Views[0];
-		FIntRect ViewRect = View.ViewRect;
+		// We don't support screen percentage in scene capture.
+		FIntRect ViewRect = View.UnscaledViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 
 		if(bNeedsFlippedFinalColor)

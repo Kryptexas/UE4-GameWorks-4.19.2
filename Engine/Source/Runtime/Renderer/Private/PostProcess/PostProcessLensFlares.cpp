@@ -147,36 +147,26 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint TexSize1 = InputDesc1->Extent;
 	FIntPoint TexSize2 = InputDesc2->Extent;
 
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
-	uint32 ScaleToFullRes1 = SceneContext.GetBufferSizeXY().X / TexSize1.X;
-	uint32 ScaleToFullRes2 = SceneContext.GetBufferSizeXY().X / TexSize2.X;
+	uint32 ScaleToFullRes1 = Context.ReferenceBufferSize.X / TexSize1.X;
+	uint32 ScaleToFullRes2 = Context.ReferenceBufferSize.X / TexSize2.X;
 
-	FIntRect ViewRect1 = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes1);
-	FIntRect ViewRect2 = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes2);
+	FIntRect ViewRect1 = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, ScaleToFullRes1);
+	FIntRect ViewRect2 = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, ScaleToFullRes2);
 
 	FIntPoint ViewSize1 = ViewRect1.Size();
 	FIntPoint ViewSize2 = ViewRect2.Size();
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		
-	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
-	{
-		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0);
-	}
-	else
-	{
-		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
-	}
+	FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::ENoAction);
+	FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
 
 	Context.SetViewportAndCallRHI(ViewRect1);
 

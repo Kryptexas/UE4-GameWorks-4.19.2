@@ -7,10 +7,6 @@
 #include "Engine/SkeletalMesh.h"
 #include "ThumbnailHelpers.h"
 
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
-
 USkeletalMeshThumbnailRenderer::USkeletalMeshThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -36,7 +32,7 @@ void USkeletalMeshThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 		ViewFamily.EngineShowFlags.LOD = 0;
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-		GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
+		RenderViewFamily(Canvas,&ViewFamily);
 		ThumbnailScene->SetSkeletalMesh(nullptr);
 	}
 }

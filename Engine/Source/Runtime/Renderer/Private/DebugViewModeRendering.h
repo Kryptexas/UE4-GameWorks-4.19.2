@@ -208,6 +208,15 @@ struct FDebugViewMode
 		bool bHasHullAndDomainShader
 		);
 
+	static void SetInstanceParameters(
+		FRHICommandList& RHICmdList,
+		const FVertexFactory* VertexFactory,
+		const FSceneView& View,
+		const FMaterial* Material, 
+		uint32 InVertexOffset, 
+		uint32 InInstanceOffset, 
+		uint32 InInstanceCount);
+
 	static void PatchBoundShaderState(
 			FBoundShaderStateInput& BoundShaderStateInput,
 			const FMaterial* Material,

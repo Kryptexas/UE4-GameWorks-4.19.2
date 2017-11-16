@@ -2214,12 +2214,13 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 			}
 		}
 
+		// Set visibility before adding the rendering resource and adding to streaming.
+		Level->bIsVisible = true;
+
 		Level->InitializeRenderingResources();
 
 		// Notify the texture streaming system now that everything is set up.
 		IStreamingManager::Get().AddLevel( Level );
-
-		Level->bIsVisible = true;
 	
 		// send a callback that a level was added to the world
 		FWorldDelegates::LevelAddedToWorld.Broadcast(Level, this);

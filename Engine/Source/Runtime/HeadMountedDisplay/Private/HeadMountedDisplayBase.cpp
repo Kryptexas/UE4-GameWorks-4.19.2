@@ -11,6 +11,7 @@
 #include "Engine/Texture.h"
 #include "DefaultSpectatorScreenController.h"
 #include "DefaultXRCamera.h"
+#include "Engine/Engine.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h" // for UEditorEngine::IsHMDTrackingAllowed()
 #endif
@@ -133,3 +134,26 @@ class ISpectatorScreenController const * FHeadMountedDisplayBase::GetSpectatorSc
 {
 	return SpectatorScreenController.Get();
 }
+
+void FHeadMountedDisplayBase::CVarSinkHandler()
+{
+	check(IsInGameThread());
+
+	if (GEngine && GEngine->XRSystem.IsValid())
+	{
+		static const auto PixelDensityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.PixelDensity"));
+		IHeadMountedDisplay* const HMDDevice = GEngine->XRSystem->GetHMDDevice();
+		if (HMDDevice && PixelDensityCVar)
+		{
+			float NewPixelDensity = PixelDensityCVar->GetFloat();
+			if (NewPixelDensity < PixelDensityMin || NewPixelDensity > PixelDensityMax)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Invalid pixel density. Valid values must be within the range: [%f, %f]."), PixelDensityMin, PixelDensityMax);
+				NewPixelDensity = FMath::Clamp(NewPixelDensity, PixelDensityMin, PixelDensityMax);
+			}
+			HMDDevice->SetPixelDensity(NewPixelDensity);
+		}
+	}
+}
+
+FAutoConsoleVariableSink FHeadMountedDisplayBase::CVarSink(FConsoleCommandDelegate::CreateStatic(&FHeadMountedDisplayBase::CVarSinkHandler));

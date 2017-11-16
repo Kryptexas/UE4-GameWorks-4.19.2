@@ -228,17 +228,27 @@ void FStaticLightingSystem::EmitDirectPhotons(
 
 	const FDirectPhotonEmittingInput Input(ImportanceBounds, LightDistribution);
 
+	int32 NumIndirectPhotonPathsRemaining = NumIndirectPhotonPaths;
 	// Setup work ranges, which are sections of work that can be done in parallel.
 	DirectPhotonEmittingWorkRanges.Empty(NumPhotonWorkRanges);
 	for (int32 RangeIndex = 0; RangeIndex < NumPhotonWorkRanges - 1; RangeIndex++)
 	{
-		DirectPhotonEmittingWorkRanges.Add(FDirectPhotonEmittingWorkRange(RangeIndex, NumDirectPhotonsToEmit / NumPhotonWorkRanges, NumIndirectPhotonPaths / NumPhotonWorkRanges));
+		int32 NumIndirectPhotonPathsRange = FMath::Max(NumIndirectPhotonPaths / NumPhotonWorkRanges, 1);
+
+		if (NumIndirectPhotonPathsRemaining == 0)
+		{
+			NumIndirectPhotonPathsRange = 0;
+		}
+
+		NumIndirectPhotonPathsRemaining = FMath::Max(NumIndirectPhotonPathsRemaining - NumIndirectPhotonPathsRange, 0);
+
+		DirectPhotonEmittingWorkRanges.Add(FDirectPhotonEmittingWorkRange(RangeIndex, NumDirectPhotonsToEmit / NumPhotonWorkRanges, NumIndirectPhotonPathsRange));
 	}
 	// The last work range contains the remainders
 	DirectPhotonEmittingWorkRanges.Add(FDirectPhotonEmittingWorkRange(
 		NumPhotonWorkRanges - 1, 
 		NumDirectPhotonsToEmit / NumPhotonWorkRanges + NumDirectPhotonsToEmit % NumPhotonWorkRanges, 
-		NumIndirectPhotonPaths / NumPhotonWorkRanges + NumIndirectPhotonPaths % NumPhotonWorkRanges));
+		NumIndirectPhotonPathsRemaining));
 
 	DirectPhotonEmittingOutputs.Empty(NumPhotonWorkRanges);
 	for (int32 RangeIndex = 0; RangeIndex < NumPhotonWorkRanges; RangeIndex++)
@@ -546,7 +556,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 			{
 				LIGHTINGSTAT(FScopedRDTSCTimer CustomAttenuationTimer(Output.DirectCustomAttenuationThreadTime));
 				// Allow the light to attenuate in a non-physically correct way
-				PathAlpha *= Light->CustomAttenuation(PathIntersection.IntersectionVertex.WorldPosition, RandomStream);
+				PathAlpha *= Light->CustomAttenuation(PathIntersection.IntersectionVertex.WorldPosition, RandomStream, true);
 			}
 			
 			// Apply transmission
@@ -561,7 +571,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 			}
 
 			NumberOfPathVertices++;
-			// Note: SampleRay.Start is offset from the actual start position, but not enough to matter for the algorthims which make use of the photon's traveled distance.
+			// Note: SampleRay.Start is offset from the actual start position, but not enough to matter for the algorithms which make use of the photon's traveled distance.
 			const float RayLength = (SampleRay.Start - PathIntersection.IntersectionVertex.WorldPosition).Size3();
 			// Create a photon from this path vertex's information
 			const FPhoton NewPhoton(Output.NumPhotonsEmitted, PathIntersection.IntersectionVertex.WorldPosition, RayLength, -WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ, PathAlpha);
@@ -1001,7 +1011,7 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 			{
 				LIGHTINGSTAT(FScopedRDTSCTimer CustomAttenuationTimer(Output.IndirectCustomAttenuationThreadTime));
 				// Allow the light to attenuate in a non-physically correct way
-				PathAlpha *= Light->CustomAttenuation(PathIntersection.IntersectionVertex.WorldPosition, RandomStream);
+				PathAlpha *= Light->CustomAttenuation(PathIntersection.IntersectionVertex.WorldPosition, RandomStream, false);
 			}
 
 			// Apply transmission
@@ -1013,19 +1023,22 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 				break;
 			}
 
+			checkSlow(FLinearColorUtils::AreFloatsValid(PathAlpha));
+
 			NumberOfPathVertices++;
 
-			// Note: SampleRay.Start is offset from the actual start position, but not enough to matter for the algorthims which make use of the photon's traveled distance.
-			const float RayLength = (SampleRay.Start - PathIntersection.IntersectionVertex.WorldPosition).Size3();
-			// Create a photon from this path vertex's information
-			const FPhoton NewPhoton(Output.NumPhotonsEmitted, PathIntersection.IntersectionVertex.WorldPosition, RayLength, -WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ, PathAlpha);
-			checkSlow(FLinearColorUtils::AreFloatsValid(PathAlpha));
 			// Only deposit photons inside the importance bounds
 			if (Input.ImportanceBounds.GetBox().IsInside(PathIntersection.IntersectionVertex.WorldPosition))
 			{
 				// Only deposit a photon if it is not a direct lighting path, and we still need to gather more indirect photons
-				if (NumberOfPathVertices > 1 && Output.NumPhotonsEmitted < WorkRange.NumIndirectPhotonsToEmit)
+				if (NumberOfPathVertices > 1 
+					&& Output.NumPhotonsEmitted < WorkRange.NumIndirectPhotonsToEmit)
 				{
+					// Note: SampleRay.Start is offset from the actual start position, but not enough to matter for the algorithms which make use of the photon's traveled distance.
+					const float RayLength = (SampleRay.Start - PathIntersection.IntersectionVertex.WorldPosition).Size3();
+					// Create a photon from this path vertex's information
+					const FPhoton NewPhoton(Output.NumPhotonsEmitted, PathIntersection.IntersectionVertex.WorldPosition, RayLength, -WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ, PathAlpha);
+
 					bool bShouldCreateIrradiancePhoton = false;
 					if (NumberOfPathVertices == 2)
 					{ 
@@ -1075,8 +1088,12 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 				}
 			}
 
+			// Photon bounce number = NumberOfPathVertices - 1
+			// But with final gathering, a first bounce photon is second bounce lighting
+			const int32 EffectiveBounceNumber = NumberOfPathVertices - 1 + 1;
+
 			// Stop tracing this photon due to bounce number
-			if (NumberOfPathVertices > GeneralSettings.NumIndirectLightingBounces
+			if (EffectiveBounceNumber >= GeneralSettings.NumIndirectLightingBounces
 				// Ray can hit translucent meshes if they have bCastShadowAsMasked, but we don't have diffuse for translucency, so just terminate
 				|| PathIntersection.Mesh->IsTranslucent(PathIntersection.ElementIndex))
 			{

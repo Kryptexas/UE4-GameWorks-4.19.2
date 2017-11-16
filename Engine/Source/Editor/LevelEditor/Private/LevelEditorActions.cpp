@@ -614,6 +614,11 @@ bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel:
 	return InPreviewFeatureLevel == GetWorld()->FeatureLevel;
 }
 
+bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewAvailable(ERHIFeatureLevel::Type InPreviewFeatureLevel)
+{
+	return GShaderPlatformForFeatureLevel[InPreviewFeatureLevel] != SP_NumPlatforms;
+}
+
 void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLightingBuildOptions& Options )
 {
 	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"),		Options.bOnlyBuildSelected,			GEditorPerProjectIni );

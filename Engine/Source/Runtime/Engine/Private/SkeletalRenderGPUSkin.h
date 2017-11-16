@@ -82,6 +82,9 @@ public:
 	/** data for updating cloth section */
 	TMap<int32, FClothSimulData> ClothingSimData;
 
+    /** store transform of the cloth object **/
+    FMatrix ClothObjectLocalToWorld;
+
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;
 
@@ -557,7 +560,8 @@ public:
 		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
 
 		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
-		OffsetAndSizeParameter.Bind(Initializer.ParameterMap, TEXT("OffsetAndSize"));
+		ThreadOffsetsParameter.Bind(Initializer.ParameterMap, TEXT("ThreadOffsets"));
+		GlobalDispatchOffsetParameter.Bind(Initializer.ParameterMap, TEXT("GlobalDispatchOffset"));
 		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
 
 		VertexIndicesParameter.Bind(Initializer.ParameterMap, TEXT("VertexIndicies"));
@@ -571,7 +575,8 @@ public:
 		Ar << MorphVertexBufferParameter;
 
 		Ar << MorphTargetWeightParameter;
-		Ar << OffsetAndSizeParameter;
+		Ar << ThreadOffsetsParameter;
+		Ar << GlobalDispatchOffsetParameter;
 		Ar << PositionScaleParameter;
 
 		Ar << VertexIndicesParameter;
@@ -580,7 +585,7 @@ public:
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FVector4& LocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer);
-	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 Offset, uint32 Size, float Weight);
+	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& MorphTargetWeights);
 
 	void Dispatch(FRHICommandList& RHICmdList, uint32 Size);
 	void EndAllDispatches(FRHICommandList& RHICmdList);
@@ -595,6 +600,8 @@ protected:
 
 	FShaderParameter MorphTargetWeightParameter;
 	FShaderParameter OffsetAndSizeParameter;
+	FShaderParameter ThreadOffsetsParameter;
+	FShaderParameter GlobalDispatchOffsetParameter;
 	FShaderParameter PositionScaleParameter;
 
 	FShaderResourceParameter VertexIndicesParameter;
@@ -612,9 +619,11 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
+		MorphPermutationBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphPermutations"));
 
 		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
-		MorphWorkItemsParameter.Bind(Initializer.ParameterMap, TEXT("MorphWorkItems"));
+		ThreadOffsetsParameter.Bind(Initializer.ParameterMap, TEXT("ThreadOffsets"));
+		GlobalDispatchOffsetParameter.Bind(Initializer.ParameterMap, TEXT("GlobalDispatchOffset"));
 		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
 	}
 
@@ -623,9 +632,11 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << MorphVertexBufferParameter;
+		Ar << MorphPermutationBufferParameter;
 
 		Ar << MorphTargetWeightParameter;
-		Ar << MorphWorkItemsParameter;
+		Ar << ThreadOffsetsParameter;
+		Ar << GlobalDispatchOffsetParameter;
 		Ar << PositionScaleParameter;
 
 		return bShaderHasOutdatedParameters;
@@ -636,14 +647,18 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
+	void SetParameters(FRHICommandList& RHICmdList, const FVector4& LocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer);
+	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& InverseAccumulatedWeights);
 
-	void Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
+	void Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies);
+	void EndAllDispatches(FRHICommandList& RHICmdList);
 
 protected:
 	FShaderResourceParameter MorphVertexBufferParameter;
+	FShaderResourceParameter MorphPermutationBufferParameter;
 
 	FShaderParameter MorphTargetWeightParameter;
-	FShaderParameter MorphWorkItemsParameter;
+	FShaderParameter ThreadOffsetsParameter;
+	FShaderParameter GlobalDispatchOffsetParameter;
 	FShaderParameter PositionScaleParameter;
 };

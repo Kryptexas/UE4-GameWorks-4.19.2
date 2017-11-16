@@ -624,7 +624,7 @@ void FEdModeGeometry::RenderVertex( const FSceneView* View, FPrimitiveDrawInterf
 			check(GeomObject->GetActualBrush());
 
 			Location = GeomObject->GetActualBrush()->ActorToWorld().TransformPosition( *GeomVertex );
-			Scale = View->WorldToScreen( Location ).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0] );
+			Scale = View->WorldToScreen( Location ).W * ( 4.0f / View->UnscaledViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0] );
 			Color = GeomVertex->IsSelected() ? FColor(255,128,64) : GeomObject->GetActualBrush()->GetWireColor();
 
 			PDI->SetHitProxy( new HGeomVertexProxy( GeomObject, VertIdx) );

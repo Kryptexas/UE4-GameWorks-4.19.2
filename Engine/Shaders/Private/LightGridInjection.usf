@@ -5,7 +5,7 @@
 #include "Common.ush"
 #include "Definitions.usf"
 
-Buffer<uint4> ForwardLocalLightBuffer;
+Buffer<float4> ForwardLocalLightBuffer;
 
 RWBuffer<uint> RWNumCulledLightsGrid;
 RWBuffer<uint> RWCulledLightDataGrid;
@@ -126,18 +126,18 @@ void LightGridInjectionCS(
 		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardGlobalLightData.NumLocalLights; LocalLightIndex++)
 		{
 			uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-			float4 LightPositionAndInvRadius = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 0]);
+			float4 LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
 			float LightRadius = 1.0f / LightPositionAndInvRadius.w;
 			bool bPassSpotlightTest = true;
 
 			#define REFINE_SPOTLIGHT_BOUNDS 1
 			#if REFINE_SPOTLIGHT_BOUNDS
-				float CosOuterCone = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 3].x);
+				float CosOuterCone = ForwardLocalLightBuffer[LocalLightBaseIndex + 3].x;
 
 				if (CosOuterCone > -2.0f)
 				{
 					float2 CosSinAngle = float2(CosOuterCone, sqrt(1 - CosOuterCone * CosOuterCone));
-					float3 LightDirection = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz);
+					float3 LightDirection = ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz;
 
 					bPassSpotlightTest = IntersectConeWithSphere(LightPositionAndInvRadius.xyz, LightDirection, LightRadius, CosSinAngle, WorldTileBoundingSphere);
 

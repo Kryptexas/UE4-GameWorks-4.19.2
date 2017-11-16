@@ -5,8 +5,6 @@
 #include "ShowFlags.h"
 #include "SceneView.h"
 #include "GeometryCacheThumbnailScene.h"
-#include "RendererInterface.h"
-#include "EngineModule.h"
 #include "GeometryCache.h"
 
 UGeometryCacheThumbnailRenderer::UGeometryCacheThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
@@ -36,7 +34,7 @@ void UGeometryCacheThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, ui
 		ViewFamily.EngineShowFlags.LOD = 0;
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+		RenderViewFamily(Canvas, &ViewFamily);
 		ThumbnailScene->SetGeometryCache(nullptr);
 	}
 }

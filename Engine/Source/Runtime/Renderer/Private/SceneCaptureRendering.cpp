@@ -13,6 +13,7 @@
 #include "RenderingThread.h"
 #include "Engine/Scene.h"
 #include "SceneInterface.h"
+#include "LegacyScreenPercentageDriver.h"
 #include "GameFramework/Actor.h"
 #include "RHIStaticStates.h"
 #include "SceneView.h"
@@ -251,9 +252,9 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 
 		const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
 
+		// TODO: Could avoid the clear by replacing with dummy black system texture.
 		FViewInfo& View = SceneRenderer->Views[0];
 		FIntRect ViewRect = View.ViewRect;
-		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
 		DrawClearQuad(RHICmdList, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
 
@@ -375,11 +376,9 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Ty
 	}
 }
 
-FSceneRenderer* CreateSceneRendererForSceneCapture(
-	FScene* Scene,
+void SetupViewVamilyForSceneCapture(
+	FSceneViewFamily& ViewFamily,
 	USceneCaptureComponent* SceneCaptureComponent,
-	FRenderTarget* RenderTarget,
-	FIntPoint RenderTargetSize,
 	const TArrayView<const FSceneCaptureViewInfo> Views,
 	float MaxViewDistance,
 	bool bCaptureSceneColor,
@@ -388,12 +387,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 	float PostProcessBlendWeight,
 	const AActor* ViewActor)
 {
-	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-		RenderTarget,
-		Scene,
-		SceneCaptureComponent->ShowFlags)
-		.SetResolveScene(!bCaptureSceneColor)
-		.SetRealtimeUpdate(bIsPlanarReflection || SceneCaptureComponent->bCaptureEveryFrame || SceneCaptureComponent->bAlwaysPersistRenderingState));
+	check(!ViewFamily.GetScreenPercentageInterface());
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 	{
@@ -496,11 +490,9 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		View->OverridePostProcessSettings(*PostProcessSettings, PostProcessBlendWeight);
 		View->EndFinalPostprocessSettings(ViewInitOptions);
 	}
-
-	return FSceneRenderer::CreateSceneRenderer(&ViewFamily, NULL);
 }
 
-FSceneRenderer* CreateSceneRendererForSceneCapture(
+static FSceneRenderer* CreateSceneRendererForSceneCapture(
 	FScene* Scene,
 	USceneCaptureComponent* SceneCaptureComponent,
 	FRenderTarget* RenderTarget,
@@ -510,7 +502,6 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 	const FMatrix& ProjectionMatrix,
 	float MaxViewDistance,
 	bool bCaptureSceneColor,
-	bool bIsPlanarReflection,
 	FPostProcessSettings* PostProcessSettings,
 	float PostProcessBlendWeight,
 	const AActor* ViewActor)
@@ -521,19 +512,31 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 	SceneCaptureViewInfo.ProjectionMatrix = ProjectionMatrix;
 	SceneCaptureViewInfo.StereoPass = EStereoscopicPass::eSSP_FULL;
 	SceneCaptureViewInfo.ViewRect = FIntRect(0, 0, RenderTargetSize.X, RenderTargetSize.Y);
-	
-	return CreateSceneRendererForSceneCapture(
-		Scene, 
-		SceneCaptureComponent, 
-		RenderTarget, 
-		RenderTargetSize, 
+
+	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+		RenderTarget,
+		Scene,
+		SceneCaptureComponent->ShowFlags)
+		.SetResolveScene(!bCaptureSceneColor)
+		.SetRealtimeUpdate(SceneCaptureComponent->bCaptureEveryFrame || SceneCaptureComponent->bAlwaysPersistRenderingState));
+
+	SetupViewVamilyForSceneCapture(
+		ViewFamily,
+		SceneCaptureComponent,
 		{ SceneCaptureViewInfo },
 		MaxViewDistance, 
-		bCaptureSceneColor, 
-		bIsPlanarReflection, 
+		bCaptureSceneColor,
+		/* bIsPlanarReflection = */ false,
 		PostProcessSettings, 
 		PostProcessBlendWeight,
 		ViewActor);
+
+	// Screen percentage is still not supported in scene capture.
+	ViewFamily.EngineShowFlags.ScreenPercentage = false;
+	ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+		ViewFamily, /* GlobalResolutionFraction = */ 1.0f, /* AllowPostProcessSettingsScreenPercentage = */ false));
+
+	return FSceneRenderer::CreateSceneRenderer(&ViewFamily, nullptr);
 }
 
 void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureComponent)
@@ -588,8 +591,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 			ViewLocation, 
 			ProjectionMatrix, 
 			CaptureComponent->MaxViewDistanceOverride, 
-			bUseSceneColorTexture, 
-			false, 
+			bUseSceneColorTexture,
 			&CaptureComponent->PostProcessSettings, 
 			CaptureComponent->PostProcessBlendWeight,
 			CaptureComponent->GetViewOwner());
@@ -686,7 +688,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			BuildProjectionMatrix(CaptureSize, ECameraProjectionMode::Perspective, FOV, 1.0f, ProjectionMatrix);
 			FPostProcessSettings PostProcessSettings;
 
-			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, false, &PostProcessSettings, 0, CaptureComponent->GetViewOwner());
+			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, &PostProcessSettings, 0, CaptureComponent->GetViewOwner());
 			SceneRenderer->ViewFamily.SceneCaptureSource = SCS_SceneColorHDR;
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());

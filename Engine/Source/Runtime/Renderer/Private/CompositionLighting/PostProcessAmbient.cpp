@@ -78,7 +78,7 @@ void FRCPassPostProcessAmbient::Render(FRenderingCompositePassContext& Context, 
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessAmbientPS> PixelShader(Context.GetShaderMap());
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);

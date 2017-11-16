@@ -415,7 +415,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 					View->WorldToPixel( Position, PixelPos );
 
 					// Ensure the vertex is inside the view
-					bOutside = PixelPos.X < 0.0f || PixelPos.X > View->ViewRect.Width() || PixelPos.Y < 0.0f || PixelPos.Y > View->ViewRect.Height();
+					bOutside = PixelPos.X < 0.0f || PixelPos.X > View->UnscaledViewRect.Width() || PixelPos.Y < 0.0f || PixelPos.Y > View->UnscaledViewRect.Height();
 
 					if( !bOutside )
 					{

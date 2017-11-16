@@ -24,14 +24,15 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	, FadeScreenSize( InComponent->FadeScreenSize )
 {
 	UMaterialInterface* EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_DeferredDecal);
+	UMaterialInterface* ComponentMaterial = InComponent->GetDecalMaterial();
 
-	if(InComponent->DecalMaterial)
+	if (ComponentMaterial)
 	{
-		UMaterial* BaseMaterial = InComponent->DecalMaterial->GetMaterial();
+		UMaterial* BaseMaterial = ComponentMaterial->GetMaterial();
 
-		if(BaseMaterial->MaterialDomain == MD_DeferredDecal)
+		if (BaseMaterial->MaterialDomain == MD_DeferredDecal)
 		{
-			EffectiveMaterial = InComponent->DecalMaterial;
+			EffectiveMaterial = ComponentMaterial;
 		}
 	}
 

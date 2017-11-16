@@ -29,6 +29,7 @@ public:
 		ProjectionWithExtraFOV.Bind(ParameterMap, TEXT("ProjectionWithExtraFOV"));
 		PlanarReflectionScreenScaleBias.Bind(ParameterMap, TEXT("PlanarReflectionScreenScaleBias"));
 		IsStereoParameter.Bind(ParameterMap, TEXT("bIsStereo"));
+		PlanarReflectionScreenBound.Bind(ParameterMap, TEXT("PlanarReflectionScreenBound"));
 		PlanarReflectionTexture.Bind(ParameterMap, TEXT("PlanarReflectionTexture"));
 		PlanarReflectionSampler.Bind(ParameterMap, TEXT("PlanarReflectionSampler"));
 	}
@@ -48,6 +49,7 @@ public:
 		Ar << P.ProjectionWithExtraFOV;
 		Ar << P.PlanarReflectionScreenScaleBias;
 		Ar << P.IsStereoParameter;
+		Ar << P.PlanarReflectionScreenBound;
 		Ar << P.PlanarReflectionTexture;
 		Ar << P.PlanarReflectionSampler;
 		return Ar;
@@ -65,6 +67,7 @@ private:
 	FShaderParameter ProjectionWithExtraFOV;
 	FShaderParameter PlanarReflectionScreenScaleBias;
 	FShaderParameter IsStereoParameter;
+	FShaderParameter PlanarReflectionScreenBound;
 	FShaderResourceParameter PlanarReflectionTexture;
 	FShaderResourceParameter PlanarReflectionSampler;
 };

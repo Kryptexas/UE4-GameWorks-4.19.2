@@ -686,6 +686,11 @@ void ULandscapeComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& Ou
 	}
 }
 
+void ULandscapeComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
+{
+	InGUIDs.Add(MapBuildDataId);
+}
+
 bool ULandscapeComponent::GetLightMapResolution( int32& Width, int32& Height ) const
 {
 	// Assuming DXT_1 compression at the moment...

@@ -171,6 +171,20 @@ private:
 	void OnFOVValueChanged( float NewValue );
 
 	/**
+	* @return The widget containing the screen percentage.
+	*/
+	TSharedRef<SWidget> GenerateScreenPercentageMenu() const;
+
+	/** Called by the ScreenPercentage slider */
+	int32 OnGetScreenPercentageValue() const;
+
+	/** Called by the ScreenPercentage slider */
+	bool OnScreenPercentageIsEnabled() const;
+
+	/** Called when the ScreenPercentage slider is adjusted in the viewport */
+	void OnScreenPercentageValueChanged(int32 NewValue);
+
+	/**
 	 * @return The widget containing the far view plane slider.
 	 */
 	TSharedRef<SWidget> GenerateFarViewPlaneMenu() const;

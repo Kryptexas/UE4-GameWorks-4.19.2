@@ -19,6 +19,9 @@
 
 float4 HZBUvFactorAndInvFactor;
 
+// Equivalent of View.ScreenPositionScaleBias, but for SSR.
+float4 PrevScreenPositionScaleBias;
+
 float4 SampleDepthTexture( Texture2D Texture, SamplerState Sampler, float Level, float4 SampleUV0, float4 SampleUV1 )
 {
 	float4 SampleDepth;
@@ -455,7 +458,7 @@ float2 ReprojectHit( float3 HitUVz )
 	float4 ThisClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
 	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
 	float2 PrevScreen = PrevClip.xy / PrevClip.w;
-	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float2 PrevUV = PrevScreen.xy * PrevScreenPositionScaleBias.xy + PrevScreenPositionScaleBias.zw;
 	return PrevUV;
 }
 
@@ -472,7 +475,7 @@ float2 ReprojectHit( Texture2D Texture, SamplerState Sampler, float3 HitUVz )
 		PrevScreen = ThisClip.xy - DecodeVelocityFromTexture( Velocity );
 	}
 
-	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float2 PrevUV = PrevScreen.xy * PrevScreenPositionScaleBias.xy + PrevScreenPositionScaleBias.zw;
 	return PrevUV;
 }
 
@@ -484,7 +487,7 @@ float4 SampleScreenColor( Texture2D Texture, SamplerState Sampler, float2 UV )
 	OutColor.a = 1;
 
 	// Off screen masking
-	float2 ScreenPos = ( UV - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
+	float2 ScreenPos = ( UV - PrevScreenPositionScaleBias.zw ) / PrevScreenPositionScaleBias.xy;
 	float2 Vignette = saturate( abs( ScreenPos ) * 5 - 4 );
 		
 	//PrevScreen sometimes has NaNs or Infs.  DX11 is protected because saturate turns NaNs -> 0.

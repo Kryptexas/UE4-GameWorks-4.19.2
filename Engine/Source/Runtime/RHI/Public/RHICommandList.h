@@ -804,22 +804,6 @@ struct FRHICommandSetBlendFactor final : public FRHICommand<FRHICommandSetBlendF
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-struct FRHICommandSetStreamSourceDEPRECATED final : public FRHICommand<FRHICommandSetStreamSourceDEPRECATED>
-{
-	uint32 StreamIndex;
-	FVertexBufferRHIParamRef VertexBuffer;
-	uint32 Stride;
-	uint32 Offset;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetStreamSourceDEPRECATED(uint32 InStreamIndex, FVertexBufferRHIParamRef InVertexBuffer, uint32 InStride, uint32 InOffset)
-		: StreamIndex(InStreamIndex)
-		, VertexBuffer(InVertexBuffer)
-		, Stride(InStride)
-		, Offset(InOffset)
-	{
-	}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
 struct FRHICommandSetStreamSource final : public FRHICommand<FRHICommandSetStreamSource>
 {
 	uint32 StreamIndex;
@@ -2663,20 +2647,6 @@ public:
 		}
 		new (AllocCommand<FRHICommandDrawIndexedPrimitive>()) FRHICommandDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
 	}
-
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	DEPRECATED(4.18, "Use alternate SetStreamSource() call with no Stride parameter.")
-	FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
-	{
-		check(IsOutsideRenderPass());
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetStreamSource)(StreamIndex, VertexBuffer, Stride, Offset);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSourceDEPRECATED(StreamIndex, VertexBuffer, Stride, Offset);
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset)
 	{

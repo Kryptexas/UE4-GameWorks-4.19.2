@@ -923,12 +923,12 @@ RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer()
 	return GUnitCubeIndexBuffer.IndexBufferRHI;
 }
 
-RENDERCORE_API void QuantizeSceneBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY)
+RENDERCORE_API void QuantizeSceneBufferSize(const FIntPoint& InBufferSize, FIntPoint& OutBufferSize)
 {
 	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
 	const uint32 DividableBy = 4;
 
 	const uint32 Mask = ~(DividableBy - 1);
-	InOutBufferSizeX = (InOutBufferSizeX + DividableBy - 1) & Mask;
-	InOutBufferSizeY = (InOutBufferSizeY + DividableBy - 1) & Mask;
+	OutBufferSize.X = (InBufferSize.X + DividableBy - 1) & Mask;
+	OutBufferSize.Y = (InBufferSize.Y + DividableBy - 1) & Mask;
 }

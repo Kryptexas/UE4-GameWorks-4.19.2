@@ -1004,7 +1004,7 @@ FLinearColor FPointLight::GetDirectIntensity(const FVector4& Point, bool bCalcul
 }
 
 /** Returns an intensity scale based on the receiving point. */
-float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const
+float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const
 {
 	// Remove the physical attenuation, then attenuation using Unreal point light radial falloff
 	const float PointDistanceSquared = (Position - Point).SizeSquared3();
@@ -1034,7 +1034,9 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 	// If the photon map has a high density of low power photons near light sources,
 	// Combined with sparse, high power photons from other light sources (directional lights for example), the result will be very splotchy.
 	const float FullProbabilityDistance = .5f * Radius;
-	const float DepositProbability =  FMath::Clamp(PointDistanceSquared / (FullProbabilityDistance * FullProbabilityDistance), 0.0f, 1.0f);
+	const float DepositProbability = bMaintainEvenDensity ?
+		FMath::Clamp(PointDistanceSquared / (FullProbabilityDistance * FullProbabilityDistance), 0.0f, 1.0f) : 
+		1.0f;
 
 	if (RandomStream.GetFraction() < DepositProbability)
 	{
@@ -1048,7 +1050,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 }
 
 // Fudge factor to get point light photon intensities to match direct lighting more closely.
-static const float PointLightIntensityScale = 1.5f; 
+static const float PointLightIntensityScale = 1.0f; 
 
 /** Generates a direction sample from the light's domain */
 void FPointLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const
@@ -1471,6 +1473,19 @@ void FSpotLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& Sampl
 	RayPDF = UniformConePDF(CosOuterConeAngle);
 	checkSlow(RayPDF > 0.0f);
 	Power = IndirectColor * Brightness * PointLightIntensityScale;
+}
+
+/** Generates a direction sample from the light based on the given rays */
+void FSpotLight::SampleDirection(
+	const TArray<FIndirectPathRay>& IndirectPathRays, 
+	FLMRandomStream& RandomStream, 
+	FLightRay& SampleRay, 
+	float& RayPDF, 
+	FLinearColor& Power) const
+{
+	FVector4 Unused;
+	FVector2D Unused2;
+	FSpotLight::SampleDirection(RandomStream, SampleRay, Unused, Unused2, RayPDF, Power);
 }
 
 FVector FSpotLight::GetLightTangent() const
@@ -1988,7 +2003,7 @@ FLinearColor FMeshAreaLight::GetDirectIntensity(const FVector4& Point, bool bCal
 }
 
 /** Returns an intensity scale based on the receiving point. */
-float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const
+float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const
 {
 	const float FullProbabilityDistance = .5f * InfluenceRadius;
 	float PowerWeightedAttenuation = 0.0f;
@@ -2017,6 +2032,12 @@ float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& 
 	}
 
 	DepositProbability = FMath::Clamp(DepositProbability, 0.0f, 1.0f);
+
+	if (!bMaintainEvenDensity)
+	{
+		DepositProbability = 1.0f;
+	}
+
 	// Thin out photons near the light source.
 	// This is partly an optimization since the photon density near light sources doesn't need to be high, and the natural 1 / R^2 density is overkill, 
 	// But this also improves quality since we are doing a nearest N photon neighbor search when calculating irradiance.  

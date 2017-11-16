@@ -117,8 +117,8 @@ return TSuper::SupportsFeature(Feature);
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
 		{
-			static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
-			OutFormats.AddUnique(NAME_SF_METAL_SM4);
+			static FName NAME_SF_METAL_SM5_NOTESS(TEXT("SF_METAL_SM5_NOTESS"));
+			OutFormats.AddUnique(NAME_SF_METAL_SM5_NOTESS);
 			static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 			OutFormats.AddUnique(NAME_SF_METAL_SM5);
 			static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
@@ -163,8 +163,8 @@ return TSuper::SupportsFeature(Feature);
 	{
 		if (!IS_DEDICATED_SERVER)
 		{
-			// just use the standard texture format name for this texture (with no DX11 support)
-			FName TextureFormatName = GetDefaultTextureFormatName(this, Texture, EngineSettings, false);
+			// just use the standard texture format name for this texture (with DX11 support)
+			FName TextureFormatName = GetDefaultTextureFormatName(this, Texture, EngineSettings, true);
 			OutFormats.Add(TextureFormatName);
 		}
 	}
@@ -174,8 +174,8 @@ return TSuper::SupportsFeature(Feature);
 	{
 		if (!IS_DEDICATED_SERVER)
 		{
-			// just use the standard texture format name for this texture (with no DX11 support)
-			GetAllDefaultTextureFormats(this, OutFormats, false);
+			// just use the standard texture format name for this texture (with DX11 support)
+			GetAllDefaultTextureFormats(this, OutFormats, true);
 		}
 	}
 

@@ -129,6 +129,7 @@
 	#include "Engine/DemoNetDriver.h"
 	#include "LongGPUTask.h"
 	#include "RenderUtils.h"
+	#include "DynamicResolutionState.h"
 
 #if !UE_SERVER
 	#include "AppMediaTimeSource.h"
@@ -3158,6 +3159,14 @@ void FEngineLoop::Tick()
 			RHICmdList.BeginFrame();
 		});
 
+		#if !UE_SERVER && WITH_ENGINE
+		if (!GIsEditor && GEngine->GameViewport && GEngine->GameViewport->GetWorld() && GEngine->GameViewport->GetWorld()->IsCameraMoveable())
+		{
+			// When not in editor, we emit dynamic resolution's begin frame right after RHI's.
+			GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
+		}
+		#endif
+
 		FCoreDelegates::OnBeginFrame.Broadcast();
 
 		// flush debug output which has been buffered by other threads
@@ -3462,6 +3471,13 @@ void FEngineLoop::Tick()
 #endif
 
 		FCoreDelegates::OnEndFrame.Broadcast();
+
+		#if !UE_SERVER && WITH_ENGINE
+		{
+			// We emit dynamic resolution's end frame right before RHI's. GEngine is going to ignore it if no BeginFrame was done.
+			GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::EndFrame);
+		}
+		#endif
 
 		// end of RHI frame
 		ENQUEUE_UNIQUE_RENDER_COMMAND(EndFrame,

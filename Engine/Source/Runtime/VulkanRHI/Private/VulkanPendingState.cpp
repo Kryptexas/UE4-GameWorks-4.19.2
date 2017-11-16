@@ -9,7 +9,8 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
 
-FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorPool::FOLDVulkanDescriptorPool(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, MaxDescriptorSets(0)
 	, NumAllocatedDescriptorSets(0)
@@ -87,10 +88,12 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	PoolInfo.pPoolSizes = Types.GetData();
 	PoolInfo.maxSets = MaxDescriptorSets;
 
+
+	SCOPE_CYCLE_COUNTER(STAT_VulkanVkCreateDescriptorPool);
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), &PoolInfo, nullptr, &DescriptorPool));
 }
 
-FVulkanDescriptorPool::~FVulkanDescriptorPool()
+FOLDVulkanDescriptorPool::~FOLDVulkanDescriptorPool()
 {
 	if (DescriptorPool != VK_NULL_HANDLE)
 	{
@@ -99,7 +102,7 @@ FVulkanDescriptorPool::~FVulkanDescriptorPool()
 	}
 }
 
-void FVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout)
+void FOLDVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout)
 {
 	// Check and increment our current type usage
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
@@ -112,7 +115,7 @@ void FVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Lay
 	PeakAllocatedDescriptorSets = FMath::Max(NumAllocatedDescriptorSets, PeakAllocatedDescriptorSets);
 }
 
-void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout)
+void FOLDVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout)
 {
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
 	{
@@ -122,7 +125,7 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 
 	NumAllocatedDescriptorSets -= Layout.GetLayouts().Num();
 }
-
+#endif
 
 FVulkanPendingComputeState::~FVulkanPendingComputeState()
 {
@@ -202,6 +205,20 @@ void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCmdBuffer* InCmdBuffe
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallPrepareTime);
 
 	check(CurrentState);
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	const FVulkanDescriptorSetArray* DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, InCmdBuffer, &GlobalUniformPool);
+
+	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
+		CurrentPipeline->Bind(CmdBuffer);
+		if (DescriptorSetHandles)
+		{
+			CurrentState->BindDescriptorSets(CmdBuffer, DescriptorSetHandles);
+		}
+	}
+#else
 	const bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(&Context, InCmdBuffer, &GlobalUniformPool);
 
 	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
@@ -215,6 +232,7 @@ void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCmdBuffer* InCmdBuffe
 			CurrentState->BindDescriptorSets(CmdBuffer);
 		}
 	}
+#endif
 }
 
 FVulkanPendingGfxState::~FVulkanPendingGfxState()
@@ -232,6 +250,16 @@ void FVulkanPendingGfxState::PrepareForDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimi
 
 	ensure(Topology == UEToVulkanType(CurrentPipeline->PipelineStateInitializer.PrimitiveType));
 
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	const FVulkanDescriptorSetArray* DescriptorSetHandles = CurrentState->UpdateDescriptorSets(&Context, CmdBuffer, &GlobalUniformPool);
+
+	UpdateDynamicStates(CmdBuffer);
+
+	if (DescriptorSetHandles)
+	{
+		CurrentState->BindDescriptorSets(CmdBuffer->GetHandle(), DescriptorSetHandles);
+	}
+#else
 	bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(&Context, CmdBuffer, &GlobalUniformPool);
 
 	UpdateDynamicStates(CmdBuffer);
@@ -240,6 +268,7 @@ void FVulkanPendingGfxState::PrepareForDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimi
 	{
 		CurrentState->BindDescriptorSets(CmdBuffer->GetHandle());
 	}
+#endif
 
 	if (bDirtyVertexStreams)
 	{

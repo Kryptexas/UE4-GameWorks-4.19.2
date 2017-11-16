@@ -117,7 +117,7 @@ public:
 	CA_SUPPRESS(6262);
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
+		const FViewInfo& View, 
 		int32 ViewIndex,
 		int32 NumViews,
 		const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 

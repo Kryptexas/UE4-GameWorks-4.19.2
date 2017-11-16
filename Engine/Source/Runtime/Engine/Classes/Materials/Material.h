@@ -982,7 +982,7 @@ public:
 	 */
 	ENGINE_API bool IsDefaultMaterial() const;
 
-#if WITH_EDITOR
+#if USE_EDITOR_ONLY_DEFAULT_MATERIAL_FALLBACK
 	/**
 	 * Returns true if the material is one of the editor-time-only default materials.
 	 */

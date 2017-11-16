@@ -24,6 +24,7 @@
 #include "GPUSkinCache.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+#include "RendererModule.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
@@ -531,6 +532,8 @@ static TAutoConsoleVariable<float> CVarStallInitViews(
 
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	PrepareViewRectsForRendering();
+
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_Render, FColor::Emerald);
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -568,7 +571,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
 		// Allocate the maximum scene render target space for the current view family.
-		SceneContext.Allocate(RHICmdList, ViewFamily);
+		SceneContext.Allocate(RHICmdList, this);
 	}
 	SceneContext.AllocDummyGBufferTargets(RHICmdList);
 
@@ -763,6 +766,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	};
 
+	if (FGPUSkinCache* GPUSkinCache = Scene->GetGPUSkinCache())
+	{
+		GPUSkinCache->TransitionAllToReadable(RHICmdList);
+	}
+
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 	const bool bNeedsPrePass = NeedsPrePass(this);
@@ -773,11 +781,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	else
 	{
-		if (FGPUSkinCache* GPUSkinCache = Scene->GetGPUSkinCache())
-		{
-			GPUSkinCache->TransitionAllToReadable(RHICmdList);
-		}
-
 		// we didn't do the prepass, but we still want the HMD mask if there is one
 		AfterTasksAreStarted();
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
@@ -804,11 +807,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		? FExclusiveDepthStencil::DepthRead_StencilWrite 
 		: FExclusiveDepthStencil::DepthWrite_StencilWrite;
 
-	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 
-    if (bComputeLightGrid)
-    {
-        ComputeLightGrid(RHICmdList);
+	if (bComputeLightGrid)
+	{
+		ComputeLightGrid(RHICmdList);
 	}
 	else
 	{
@@ -954,7 +957,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (!bAllowReadonlyDepthBasePass)
 	{
-		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 	}
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
@@ -1069,7 +1072,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GRenderTargetPool.AddPhaseEvent(TEXT("AfterBasePass"));
 		if (!IsForwardShadingEnabled(FeatureLevel))
 		{
-			SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+			SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 		}
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -1221,19 +1224,19 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
-	IRendererModule& RendererModule = GetRendererModule();
-	if (RendererModule.HasPostOpaqueExtentions())
+	FRendererModule* RendererModule = FRendererModule::GetRendererModule();
+	if (RendererModule->HasPostOpaqueExtentions())
 	{
 		SceneContext.BeginRenderingSceneColor(RHICmdList);
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{
 			const FViewInfo& View = Views[ViewIndex];
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			RendererModule.RenderPostOpaqueExtensions(View, RHICmdList, SceneContext);
+			RendererModule->RenderPostOpaqueExtensions(View, RHICmdList, SceneContext);
 		}
 	}
 
-	RendererModule.DispatchPostOpaqueCompute(RHICmdList);
+	RendererModule->DispatchPostOpaqueCompute(RHICmdList);
 
 	// No longer needed, release
 	LightShaftOutput.LightShaftOcclusion = NULL;
@@ -1289,7 +1292,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-		RendererModule.RenderOverlayExtensions(View, RHICmdList, SceneContext);
+		RendererModule->RenderOverlayExtensions(View, RHICmdList, SceneContext);
 	}
 
 	if (ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO || ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI)

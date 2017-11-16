@@ -95,6 +95,17 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheSceneMemoryLimitInMB(
 	ECVF_RenderThreadSafe
 );
 
+////temporary disable until resource lifetimes are safe for all cases
+static int32 GAllowDupedVertsForRecomputeTangentsTempDisable = 1;
+static int32 GAllowDupedVertsForRecomputeTangents = 1;
+FAutoConsoleVariableRef CVarGPUSkinCacheAllowDupedVertesForRecomputeTangents(
+	TEXT("r.SkinCache.AllowDupedVertsForRecomputeTangents"),
+	GAllowDupedVertsForRecomputeTangentsTempDisable,
+	TEXT("0: off (default)\n")
+	TEXT("1: Forces that vertices at the same position will be treated differently and has the potential to cause seams when verts are split.\n"),
+	ECVF_RenderThreadSafe
+);
+
 static int32 GGPUSkinCacheFlushCounter = 0;
 
 bool IsGPUSkinCacheAvailable()
@@ -104,7 +115,7 @@ bool IsGPUSkinCacheAvailable()
 
 static inline bool DoesPlatformSupportGPUSkinCache(EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MRT_MAC || Platform == SP_METAL_MRT || Platform == SP_VULKAN_SM5;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS || Platform == SP_METAL_MRT_MAC || Platform == SP_METAL_MRT || Platform == SP_VULKAN_SM5;
 }
 
 // We don't have it always enabled as it's not clear if this has a performance cost
@@ -191,6 +202,12 @@ public:
 
 		// morph input
 		uint32 MorphBufferOffset;
+		
+        // cloth input
+        float ClothBlendWeight;
+
+        FMatrix ClothLocalToWorld;
+        FMatrix ClothWorldToLocal;
 
 		// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
 		uint32 IndexBufferOffsetValue;
@@ -199,6 +216,10 @@ public:
 		FRWBuffer* TangentBuffer;
 		FRWBuffer* PositionBuffer;
 		FRWBuffer* PreviousPositionBuffer;
+
+        // Handle duplicates
+        FShaderResourceViewRHIRef DuplicatedIndicesIndices;
+        FShaderResourceViewRHIRef DuplicatedIndices;
 
 		FSectionDispatchData()
 			: SourceVertexFactory(nullptr)
@@ -265,8 +286,8 @@ public:
 		return GPUSkin == InSkin && GPUSkin->GetLOD() == LOD;
 	}
 
-	void SetupSection(int32 SectionIndex, FGPUSkinCache::FRWBuffersAllocation* InPositionAllocation, FSkelMeshRenderSection* Section, const FMorphVertexBuffer* MorphVertexBuffer, uint32 NumVertices,
-		uint32 InputStreamStart, FGPUBaseSkinVertexFactory* InSourceVertexFactory, FGPUSkinPassthroughVertexFactory* InTargetVertexFactory)
+	void SetupSection(int32 SectionIndex, FGPUSkinCache::FRWBuffersAllocation* InPositionAllocation, FSkelMeshRenderSection* Section, const FMorphVertexBuffer* MorphVertexBuffer, const FSkeletalMeshVertexClothBuffer* ClothVertexBuffer,
+		uint32 NumVertices, uint32 InputStreamStart, FGPUBaseSkinVertexFactory* InSourceVertexFactory, FGPUSkinPassthroughVertexFactory* InTargetVertexFactory)
 	{
 		//UE_LOG(LogSkinCache, Warning, TEXT("*** SetupSection E %p Alloc %p Sec %d(%p) LOD %d"), this, InAllocation, SectionIndex, Section, LOD);
 		FSectionDispatchData& Data = DispatchData[SectionIndex];
@@ -297,8 +318,8 @@ public:
 
 		//INC_DWORD_STAT(STAT_GPUSkinCache_TotalNumChunks);
 
-		// SkinType 0:normal, 1:with morph target, 2:with APEX cloth (not yet implemented)
-		Data.SkinType = MorphVertexBuffer ? 1 : 0;
+		// SkinType 0:normal, 1:with morph target, 2:with cloth
+		Data.SkinType = ClothVertexBuffer ? 2 : (MorphVertexBuffer ? 1 : 0);
 		Data.InputStreamStart = InputStreamStart;
 		Data.OutputStreamStart = Section->BaseVertexIndex;
 
@@ -339,6 +360,8 @@ protected:
 	uint32 InputWeightStride;
 	FShaderResourceViewRHIRef InputWeightStreamSRV;
 	FShaderResourceViewRHIParamRef MorphBuffer;
+	FShaderResourceViewRHIRef ClothBuffer;
+	FShaderResourceViewRHIRef ClothPositionsAndNormalsBuffer;
 	int32 LOD;
 
 	friend class FGPUSkinCache;
@@ -374,6 +397,12 @@ public:
 		MorphBuffer.Bind(Initializer.ParameterMap, TEXT("MorphBuffer"));
 		MorphBufferOffset.Bind(Initializer.ParameterMap, TEXT("MorphBufferOffset"));
 		SkinCacheDebug.Bind(Initializer.ParameterMap, TEXT("SkinCacheDebug"));
+
+		ClothBuffer.Bind(Initializer.ParameterMap, TEXT("ClothBuffer"));
+		ClothPositionsAndNormalsBuffer.Bind(Initializer.ParameterMap, TEXT("ClothPositionsAndNormalsBuffer"));
+		ClothBlendWeight.Bind(Initializer.ParameterMap, TEXT("ClothBlendWeight"));
+		ClothLocalToWorld.Bind(Initializer.ParameterMap, TEXT("ClothLocalToWorld"));
+		ClothWorldToLocal.Bind(Initializer.ParameterMap, TEXT("ClothWorldToLocal"));
 	}
 
 	void SetParameters(FRHICommandListImmediate& RHICmdList, const FVertexBufferAndSRV& BoneBuffer,
@@ -408,6 +437,16 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, MorphBufferOffset, DispatchData.MorphBufferOffset);
 		}
 
+		const bool bCloth = DispatchData.SkinType == 2;
+		if (bCloth)
+		{
+			SetSRVParameter(RHICmdList, ShaderRHI, ClothBuffer, Entry->ClothBuffer);
+			SetSRVParameter(RHICmdList, ShaderRHI, ClothPositionsAndNormalsBuffer, Entry->ClothPositionsAndNormalsBuffer);
+			SetShaderValue(RHICmdList, ShaderRHI, ClothBlendWeight, DispatchData.ClothBlendWeight);
+			SetShaderValue(RHICmdList, ShaderRHI, ClothLocalToWorld, DispatchData.ClothLocalToWorld);
+			SetShaderValue(RHICmdList, ShaderRHI, ClothWorldToLocal, DispatchData.ClothWorldToLocal);
+		}
+
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheDebug, CVarGPUSkinCacheDebug.GetValueOnRenderThread());
 	}
 
@@ -428,6 +467,8 @@ public:
 			<< SkinCacheDebug;
 
 		Ar << InputWeightStart << InputWeightStride << InputWeightStream;
+
+        Ar << ClothBuffer << ClothPositionsAndNormalsBuffer << ClothBlendWeight << ClothLocalToWorld << ClothWorldToLocal;
 
 		//Ar << DebugParameter;
 		return bShaderHasOutdatedParameters;
@@ -456,15 +497,22 @@ private:
 
 	FShaderResourceParameter MorphBuffer;
 	FShaderParameter MorphBufferOffset;
+
+	FShaderResourceParameter ClothBuffer;
+	FShaderResourceParameter ClothPositionsAndNormalsBuffer;
+	FShaderParameter ClothBlendWeight;
+	FShaderParameter ClothLocalToWorld;
+	FShaderParameter ClothWorldToLocal;
 };
 
 /** Compute shader that skins a batch of vertices. */
-// @param SkinType 0:normal, 1:with morph targets calculated outside the cache, 2:with morph target calculated insde the cache (not yet implemented), 3:with APEX cloth (not yet implemented)
-template <int Permuation>
+// @param SkinType 0:normal, 1:with morph targets calculated outside the cache, 2: with cloth, 3:with morph target calculated insde the cache (not yet implemented)
+template <int Permutation>
 class TGPUSkinCacheCS : public FBaseGPUSkinCacheCS
 {
-	constexpr static bool bUseExtraBoneInfluencesT = (2 == (Permuation & 2));
-	constexpr static uint32 SkinType = (1 == (Permuation & 1));
+    constexpr static bool bUseExtraBoneInfluencesT = (4 == (Permutation & 4));
+    constexpr static bool bMorphBlend = (1 == (Permutation & 3));
+	constexpr static bool bApexCloth = (2 == (Permutation & 3));
 
 	DECLARE_SHADER_TYPE(TGPUSkinCacheCS, Global)
 public:
@@ -478,8 +526,11 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
+		const uint32 MorphBlend = bMorphBlend;
+		const uint32 ApexCloth = bApexCloth;
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
-		OutEnvironment.SetDefine(TEXT("GPUSKIN_MORPH_BLEND"), SkinType);
+		OutEnvironment.SetDefine(TEXT("GPUSKIN_MORPH_BLEND"), MorphBlend);
+		OutEnvironment.SetDefine(TEXT("GPUSKIN_APEX_CLOTH"), ApexCloth);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_TANGENT_X"), FGPUSkinCache::RWTangentXOffsetInFloats);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z"), FGPUSkinCache::RWTangentZOffsetInFloats);
 	}
@@ -497,7 +548,9 @@ public:
 IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<0>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<1>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<2>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<3>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<4>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<5>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, TGPUSkinCacheCS<6>, TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf"), TEXT("SkinCacheUpdateBatchCS"), SF_Compute);
 
 FGPUSkinCache::FGPUSkinCache(bool bInRequiresMemoryLimit)
 	: UsedMemoryInBytes(0)
@@ -582,6 +635,8 @@ public:
 	FShaderParameter InputStreamStart;
 	FShaderResourceParameter TangentInputBuffer;
 	FShaderResourceParameter UVsInputBuffer;
+	FShaderResourceParameter DuplicatedIndices;
+	FShaderResourceParameter DuplicatedIndicesIndices;
 
 	FBaseRecomputeTangents()
 	{}
@@ -600,6 +655,9 @@ public:
 		InputStreamStart.Bind(Initializer.ParameterMap, TEXT("InputStreamStart"));
 		TangentInputBuffer.Bind(Initializer.ParameterMap, TEXT("TangentInputBuffer"));
 		UVsInputBuffer.Bind(Initializer.ParameterMap, TEXT("UVsInputBuffer"));
+
+        DuplicatedIndices.Bind(Initializer.ParameterMap, TEXT("DuplicatedIndices"));
+        DuplicatedIndicesIndices.Bind(Initializer.ParameterMap, TEXT("DuplicatedIndicesIndices"));
 	}
 
 	void SetParameters(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, FGPUSkinCacheEntry::FSectionDispatchData& DispatchData, FRWBuffer& StagingBuffer)
@@ -625,6 +683,12 @@ public:
 
 		// UAV
 		SetUAVParameter(RHICmdList, ShaderRHI, IntermediateAccumBufferUAV, StagingBuffer.UAV);
+
+        if (!GAllowDupedVertsForRecomputeTangents)
+        {
+		    SetSRVParameter(RHICmdList, ShaderRHI, DuplicatedIndices, DispatchData.DuplicatedIndices);
+            SetSRVParameter(RHICmdList, ShaderRHI, DuplicatedIndicesIndices, DispatchData.DuplicatedIndicesIndices);
+        }
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
@@ -639,16 +703,18 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << IntermediateAccumBufferUAV << NumTriangles << GPUPositionCacheBuffer << GPUTangentCacheBuffer << SkinCacheStart << IndexBuffer << IndexBufferOffset
 			<< InputStreamStart << TangentInputBuffer << UVsInputBuffer;
+        Ar << DuplicatedIndices << DuplicatedIndicesIndices;
 		return bShaderHasOutdatedParameters;
 	}
 };
 
 /** Encapsulates the RecomputeSkinTangents compute shader. */
-template <int Permuation>
+template <int Permutation>
 class FRecomputeTangentsPerTrianglePassCS : public FBaseRecomputeTangents
 {
-	constexpr static bool bUseExtraBoneInfluencesT = (2 == (Permuation & 2));
-	constexpr static bool bFullPrecisionUV = (1 == (Permuation & 1));
+    constexpr static bool bMergeDuplicatedVerts = (4 == (Permutation & 4));
+	constexpr static bool bUseExtraBoneInfluencesT = (2 == (Permutation & 2));
+	constexpr static bool bFullPrecisionUV = (1 == (Permutation & 1));
 
 	DECLARE_SHADER_TYPE(FRecomputeTangentsPerTrianglePassCS, Global);
 
@@ -656,6 +722,7 @@ class FRecomputeTangentsPerTrianglePassCS : public FBaseRecomputeTangents
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
+		OutEnvironment.SetDefine(TEXT("MERGE_DUPLICATED_VERTICES"), bMergeDuplicatedVerts);
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), ThreadGroupSizeX);
 		OutEnvironment.SetDefine(TEXT("INTERMEDIATE_ACCUM_BUFFER_NUM_INTS"), FGPUSkinCache::IntermediateAccumBufferNumInts);
@@ -675,6 +742,10 @@ IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<0>, TEXT("
 IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<1>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<2>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<3>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<4>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<5>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<6>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FRecomputeTangentsPerTrianglePassCS<7>, TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf"), TEXT("MainCS"), SF_Compute);
 
 /** Encapsulates the RecomputeSkinTangentsResolve compute shader. */
 class FRecomputeTangentsPerVertexPassCS : public FGlobalShader
@@ -798,22 +869,41 @@ void FGPUSkinCache::DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdL
 		// This code can be optimized by batched up and doing it with less Dispatch calls (costs more memory)
 		{
 			auto* GlobalShaderMap = GetGlobalShaderMap(ERHIFeatureLevel::SM5);
-			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<0>> ComputeShader00(GlobalShaderMap);
-			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<1>> ComputeShader01(GlobalShaderMap);
-			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<2>> ComputeShader10(GlobalShaderMap);
-			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<3>> ComputeShader11(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<0>> ComputeShader000(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<1>> ComputeShader010(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<2>> ComputeShader100(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<3>> ComputeShader110(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<4>> ComputeShader001(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<5>> ComputeShader011(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<6>> ComputeShader101(GlobalShaderMap);
+			TShaderMapRef<FRecomputeTangentsPerTrianglePassCS<7>> ComputeShader111(GlobalShaderMap);
 
 			bool bFullPrecisionUV = LodData.StaticVertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs();
 
 			FBaseRecomputeTangents* Shader = 0;
 
-			switch ((uint32)bFullPrecisionUV)
-			{
-			case 0: Shader = DispatchData.bExtraBoneInfluences ? (FBaseRecomputeTangents*)*ComputeShader10 : (FBaseRecomputeTangents*)*ComputeShader00; break;
-			case 1: Shader = DispatchData.bExtraBoneInfluences ? (FBaseRecomputeTangents*)*ComputeShader11 : (FBaseRecomputeTangents*)*ComputeShader01; break;
-			default:
-				check(0);
-			}
+            if (bFullPrecisionUV)
+            {
+                if (DispatchData.bExtraBoneInfluences)
+                {
+                    Shader = GAllowDupedVertsForRecomputeTangents ? (FBaseRecomputeTangents*)*ComputeShader100 : (FBaseRecomputeTangents*)*ComputeShader101;
+                }
+                else
+                {
+                    Shader = GAllowDupedVertsForRecomputeTangents ? (FBaseRecomputeTangents*)*ComputeShader000 : (FBaseRecomputeTangents*)*ComputeShader001;
+                }
+            }
+            else
+            {
+                if (DispatchData.bExtraBoneInfluences)
+                {
+                    Shader = GAllowDupedVertsForRecomputeTangents ? (FBaseRecomputeTangents*)*ComputeShader110 : (FBaseRecomputeTangents*)*ComputeShader111;
+                }
+                else
+                {
+                    Shader = GAllowDupedVertsForRecomputeTangents ? (FBaseRecomputeTangents*)*ComputeShader010 : (FBaseRecomputeTangents*)*ComputeShader011;
+                }
+            }
 
 			check(Shader);
 
@@ -827,6 +917,12 @@ void FGPUSkinCache::DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdL
 			RHICmdList.SetComputeShader(ShaderRHI);
 
 			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWNoBarrier, EResourceTransitionPipeline::EComputeToCompute, StagingBuffer.UAV.GetReference());
+        
+            if (!GAllowDupedVertsForRecomputeTangents)
+            {
+                DispatchData.DuplicatedIndices = LodData.RenderSections[SectionIndex].DuplicatedVerticesIndexBuffer.VertexBufferSRV;
+                DispatchData.DuplicatedIndicesIndices = LodData.RenderSections[SectionIndex].LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferSRV;
+            }
 
 			INC_DWORD_STAT_BY(STAT_GPUSkinCache_NumTrianglesForRecomputeTangents, NumTriangles);
 			Shader->SetParameters(RHICmdList, Entry, DispatchData, StagingBuffer);
@@ -894,7 +990,8 @@ void FGPUSkinCache::DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCac
 
 void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseSkinVertexFactory* VertexFactory,
 	FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshRenderSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
-	const FMorphVertexBuffer* MorphVertexBuffer, uint32 FrameNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry)
+	const FMorphVertexBuffer* MorphVertexBuffer, const FSkeletalMeshVertexClothBuffer* ClothVertexBuffer, const FClothSimulData* SimData,
+	const FMatrix& ClothLocalToWorld, float ClothBlendWeight, uint32 FrameNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry)
 {
 	INC_DWORD_STAT(STAT_GPUSkinCache_NumSectionsProcessed);
 
@@ -927,7 +1024,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 			if (!InOutEntry->IsSectionValid(Section) || !InOutEntry->IsSourceFactoryValid(Section, VertexFactory))
 			{
 				// This section might not be valid yet, so set it up
-				InOutEntry->SetupSection(Section, InOutEntry->PositionAllocation, &LodData.RenderSections[Section], MorphVertexBuffer, NumVertices, InputStreamStart, VertexFactory, TargetVertexFactory);
+				InOutEntry->SetupSection(Section, InOutEntry->PositionAllocation, &LodData.RenderSections[Section], MorphVertexBuffer, ClothVertexBuffer, NumVertices, InputStreamStart, VertexFactory, TargetVertexFactory);
 			}
 		}
 	}
@@ -948,7 +1045,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		InOutEntry = new FGPUSkinCacheEntry(this, Skin, NewPositionAllocation);
 		InOutEntry->GPUSkin = Skin;
 
-		InOutEntry->SetupSection(Section, NewPositionAllocation, &LodData.RenderSections[Section], MorphVertexBuffer, NumVertices, InputStreamStart, VertexFactory, TargetVertexFactory);
+		InOutEntry->SetupSection(Section, NewPositionAllocation, &LodData.RenderSections[Section], MorphVertexBuffer, ClothVertexBuffer, NumVertices, InputStreamStart, VertexFactory, TargetVertexFactory);
 		Entries.Add(InOutEntry);
 	}
 
@@ -971,7 +1068,46 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		InOutEntry->InputWeightStride = WeightStride;
 		InOutEntry->InputWeightStreamSRV = WeightBuffer->GetSRV();
 	}
-	InOutEntry->DispatchData[Section].SkinType = MorphVertexBuffer ? 1 : 0;
+
+    FVertexBufferAndSRV ClothPositionAndNormalsBuffer;
+    TSkeletalMeshVertexData<FClothSimulEntry> VertexAndNormalData(true);
+    if (ClothVertexBuffer)
+    {
+        InOutEntry->ClothBuffer = ClothVertexBuffer->GetSRV();
+        check(InOutEntry->ClothBuffer);
+
+        check(SimData->Positions.Num() == SimData->Normals.Num());
+        VertexAndNormalData.ResizeBuffer( SimData->Positions.Num() );
+
+        uint8* Data = VertexAndNormalData.GetDataPointer();
+        uint32 Stride = VertexAndNormalData.GetStride();
+
+        // Copy the vertices into the buffer.
+        checkSlow(Stride*VertexAndNormalData.GetNumVertices() == sizeof(FClothSimulEntry) * SimData->Positions.Num());
+        check(sizeof(FClothSimulEntry) == 6 * sizeof(float));
+
+        for (int32 Index = 0;Index < SimData->Positions.Num();Index++)
+        {
+            FClothSimulEntry NewEntry;
+            NewEntry.Position = SimData->Positions[Index];
+            NewEntry.Normal = SimData->Normals[Index];
+            *((FClothSimulEntry*)(Data + Index * Stride)) = NewEntry;
+        }
+
+        FResourceArrayInterface* ResourceArray = VertexAndNormalData.GetResourceArray();
+        check(ResourceArray->GetResourceDataSize() > 0);
+
+        FRHIResourceCreateInfo CreateInfo(ResourceArray);
+        ClothPositionAndNormalsBuffer.VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+        ClothPositionAndNormalsBuffer.VertexBufferSRV = RHICreateShaderResourceView(ClothPositionAndNormalsBuffer.VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
+        InOutEntry->ClothPositionsAndNormalsBuffer = ClothPositionAndNormalsBuffer.VertexBufferSRV;
+
+        InOutEntry->DispatchData[Section].ClothBlendWeight = ClothBlendWeight;
+        InOutEntry->DispatchData[Section].ClothLocalToWorld = ClothLocalToWorld;
+        InOutEntry->DispatchData[Section].ClothWorldToLocal = ClothLocalToWorld.Inverse();
+    }
+    InOutEntry->DispatchData[Section].SkinType = ClothVertexBuffer ? 2 : (MorphVertexBuffer ? 1 : 0);
+
 
 	DoDispatch(RHICmdList, InOutEntry, Section, FrameNumber);
 
@@ -1021,10 +1157,12 @@ void FGPUSkinCache::DispatchUpdateSkinning(FRHICommandListImmediate& RHICmdList,
 		(int32)DispatchData.bExtraBoneInfluences, DispatchData.SkinType,
 		DispatchData.SectionIndex, DispatchData.InputStreamStart, DispatchData.OutputStreamStart, DispatchData.NumVertices, Entry->MorphBuffer != 0, DispatchData.MorphBufferOffset);
 	auto* GlobalShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-	TShaderMapRef<TGPUSkinCacheCS<2>> SkinCacheCS10(GlobalShaderMap);
-	TShaderMapRef<TGPUSkinCacheCS<0>> SkinCacheCS00(GlobalShaderMap);
-	TShaderMapRef<TGPUSkinCacheCS<3>> SkinCacheCS11(GlobalShaderMap);
-	TShaderMapRef<TGPUSkinCacheCS<1>> SkinCacheCS01(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<0>> SkinCacheCS00(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<1>> SkinCacheCS01(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<2>> SkinCacheCS02(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<4>> SkinCacheCS10(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<5>> SkinCacheCS11(GlobalShaderMap);
+    TShaderMapRef<TGPUSkinCacheCS<6>> SkinCacheCS12(GlobalShaderMap);
 
 	FBaseGPUSkinCacheCS* Shader = 0;
 
@@ -1033,6 +1171,8 @@ void FGPUSkinCache::DispatchUpdateSkinning(FRHICommandListImmediate& RHICmdList,
 	case 0: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS10 : (FBaseGPUSkinCacheCS*)*SkinCacheCS00;
 		break;
 	case 1: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS11 : (FBaseGPUSkinCacheCS*)*SkinCacheCS01;
+		break;
+	case 2: Shader = DispatchData.bExtraBoneInfluences ? (FBaseGPUSkinCacheCS*)*SkinCacheCS12 : (FBaseGPUSkinCacheCS*)*SkinCacheCS02;
 		break;
 	default:
 		check(0);

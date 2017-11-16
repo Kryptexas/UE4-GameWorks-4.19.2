@@ -313,11 +313,11 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 	}
 
 	FIntPoint DesiredBufferSize = FIntPoint::ZeroValue;
-
+	FIntPoint DesiredFamilyBufferSize = FSceneRenderer::GetDesiredInternalBufferSize(ViewFamily);
 	switch (SceneTargetsSizingMethod)
 	{
 		case RequestedSize:
-			DesiredBufferSize = FIntPoint(ViewFamily.FamilySizeX, ViewFamily.FamilySizeY);
+			DesiredBufferSize = DesiredFamilyBufferSize;
 			break;
 
 		case ScreenRes:
@@ -325,8 +325,9 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 			break;
 
 		case Grow:
-			DesiredBufferSize = FIntPoint(FMath::Max((uint32)GetBufferSizeXY().X, ViewFamily.FamilySizeX),
-					FMath::Max((uint32)GetBufferSizeXY().Y, ViewFamily.FamilySizeY));
+			DesiredBufferSize = FIntPoint(
+				FMath::Max((int32)GetBufferSizeXY().X, DesiredFamilyBufferSize.X),
+				FMath::Max((int32)GetBufferSizeXY().Y, DesiredFamilyBufferSize.Y));
 			break;
 
 		default:
@@ -406,11 +407,13 @@ uint16 FSceneRenderTargets::GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type I
 	return NumSamples;
 }
 
-void FSceneRenderTargets::Allocate(FRHICommandListImmediate& RHICmdList, const FSceneViewFamily& ViewFamily)
+void FSceneRenderTargets::Allocate(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer)
 {
 	check(IsInRenderingThread());
 	// ViewFamily setup wasn't complete
-	check(ViewFamily.FrameNumber != UINT_MAX);
+	check(SceneRenderer->ViewFamily.FrameNumber != UINT_MAX);
+
+	const FSceneViewFamily& ViewFamily = SceneRenderer->ViewFamily;
 
 	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
@@ -429,7 +432,7 @@ void FSceneRenderTargets::Allocate(FRHICommandListImmediate& RHICmdList, const F
 
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
-	QuantizeSceneBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
+	QuantizeSceneBufferSize(DesiredBufferSize, DesiredBufferSize);
 
 	int GBufferFormat = CVarGBufferFormat.GetValueOnRenderThread();
 
@@ -530,7 +533,7 @@ void FSceneRenderTargets::Allocate(FRHICommandListImmediate& RHICmdList, const F
 	AllocateRenderTargets(RHICmdList);
 	if (ViewFamily.IsMonoscopicFarFieldEnabled() && ViewFamily.Views.Num() == 3)
 	{
-		AllocSceneMonoRenderTargets(RHICmdList, *ViewFamily.Views[2]);
+		AllocSceneMonoRenderTargets(RHICmdList, SceneRenderer->Views[2]);
 	}
 }
 
@@ -595,7 +598,8 @@ void FSceneRenderTargets::SetQuadOverdrawUAV(FRHICommandList& RHICmdList, bool b
 			Info.UnorderedAccessView[Info.NumUAVs++] = QuadOverdrawBuffer->GetRenderTargetItem().UAV;
 
 			// Clear to default value
-			ClearUAV(RHICmdList, QuadOverdrawBuffer->GetRenderTargetItem(), FLinearColor::Transparent);
+			const uint32 ClearValue[4] = { 0, 0, 0, 0 };
+			ClearUAV(RHICmdList, QuadOverdrawBuffer->GetRenderTargetItem(), ClearValue);
 			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToGfx, QuadOverdrawBuffer->GetRenderTargetItem().UAV);
 		}
 	}
@@ -807,7 +811,7 @@ void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList,
 	check(MobileMultiViewSceneDepthZ);
 }
 
-void FSceneRenderTargets::AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FSceneView& MonoView)
+void FSceneRenderTargets::AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FViewInfo& MonoView)
 {
 	if (SceneMonoColor && SceneMonoDepthZ)
 	{
@@ -1672,9 +1676,7 @@ void FSceneRenderTargets::InitEditorPrimitivesDepth(FRHICommandList& RHICmdList)
 
 void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY)
 {
-	QuantizeSceneBufferSize(InBufferSizeX, InBufferSizeY);
-	BufferSize.X = InBufferSizeX;
-	BufferSize.Y = InBufferSizeY;
+	QuantizeSceneBufferSize(FIntPoint(InBufferSizeX, InBufferSizeY), BufferSize);
 }
 
 void FSceneRenderTargets::SetSeparateTranslucencyBufferSize(bool bAnyViewWantsDownsampledSeparateTranslucency)
@@ -2666,16 +2668,6 @@ void FSceneTextureShaderParameters::Set(
 				&& !SceneColorSurfaceParameter.IsBound()
 				&& !SceneDepthSurfaceParameter.IsBound()
 				&& !SceneDepthTextureNonMS.IsBound()
-				&& !SceneStencilTextureParameter.IsBound());
-		}
-		else if (TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
-		{
-			// Verify that none of these were bound if we were told not to set them
-			// ignore SceneDepthTextureNonMS
-			ensure(!SceneColorTextureParameter.IsBound()
-				&& !SceneDepthTextureParameter.IsBound()
-				&& !SceneColorSurfaceParameter.IsBound()
-				&& !SceneDepthSurfaceParameter.IsBound()
 				&& !SceneStencilTextureParameter.IsBound());
 		}
 	}

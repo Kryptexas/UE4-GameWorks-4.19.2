@@ -403,7 +403,9 @@ void SetFogShaders(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitialize
 
 bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput)
 {
-	if (Scene->ExponentialFogs.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque)
+	if (Scene->ExponentialFogs.Num() > 0 
+		// Fog must be done in the base pass for MSAA to work
+		&& !IsForwardShadingEnabled(FeatureLevel))
 	{
 		static const FVector2D Vertices[4] =
 		{

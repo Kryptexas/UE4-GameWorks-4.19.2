@@ -40,7 +40,14 @@ static TAutoConsoleVariable<int32> CVarMixLayerPriorities(
 	*LOCTEXT("CVarText_MixLayerPriorities", "By default, Face-Locked Stereo Layers are always rendered on top of any other layer position types.\nSet this to a non-zero value to disable this behavior (not supported on all platforms.)").ToString(),
 	ECVF_RenderThreadSafe);
 
-
+static TAutoConsoleVariable<float> CVarPixelDensity(
+	TEXT("vr.PixelDensity"),
+	1.0f,
+	TEXT("Pixel density sets the VR render target texture size as a factor of recommended texture size.\n")
+	TEXT("The recommended texture size is the size that will result in no under sampling in most distorted area of the view when computing the final image to be displayed on the device by the runtime compositor.\n")
+	TEXT("Note that the recommended texture size will likely be larger than the display panel resolution of the device as the texture is used as input data for the final composition/lens distortion pass provided by the device's runtime.\n")
+	TEXT("A pixel density of 1.0 (default) will use the device's recommended texture size.\n"),
+	ECVF_Scalability | ECVF_Default);
 
 #if !UE_BUILD_SHIPPING
 static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController* PlayerController)

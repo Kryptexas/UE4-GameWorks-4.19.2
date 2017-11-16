@@ -19,6 +19,8 @@
 #include "RenderCore.h"
 #include "Modules/ModuleManager.h"
 #include "EngineGlobals.h"
+#include "Classes/Engine/Engine.h"
+#include "DynamicResolutionState.h"
 
 #if CSV_PROFILER
 
@@ -363,6 +365,16 @@ void FCsvProfiler::EndFrame()
 		float ElapsedMs = FPlatformTime::ToMilliseconds64(ElapsedCycles);
 		CSV_CUSTOM_STAT_SET(FrameTime, ElapsedMs);
 		LastEndFrameTimestamp = CurrentTimeStamp;
+	}
+
+	if (const IDynamicResolutionState* DynResState = GEngine->GetDynamicResolutionState())
+	{
+		// Record dynamic resolution's fraction.
+		float ResolutionFraction = DynResState->GetResolutionFractionApproximation();
+		if (ResolutionFraction >= 0.0f)
+		{
+			CSV_CUSTOM_STAT_SET(DynamicResolutionFraction, ResolutionFraction);
+		}
 	}
 
 	if (NumFramesToCapture >= 0)

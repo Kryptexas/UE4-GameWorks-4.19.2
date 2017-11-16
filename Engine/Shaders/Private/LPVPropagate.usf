@@ -176,6 +176,35 @@ float3 GetNormalisedDirectionFromIndex( const uint index )
 	return normalize( float3( idx/9,	(idx/3) % 3,  idx % 3 )- float3(1,1,1) );
 }
 
+static const int destIndex1[12] = { 1, 3, 5, 7, 9, 11, 14, 16, 18, 20, 22, 24 };
+int GetdestIndex1(int i)
+{
+	return destIndex1[i];
+}
+
+static const int destIndex2[6] = { 4, 10, 12, 13, 15, 21 };
+int GetdestIndex2(int i)
+{
+	return destIndex2[i];
+}
+
+static const int4 sourceIndex2[6] = { int4(0,2,4,6), int4(0,1,4,5), int4(0,1,2,3), int4(4,5,6,7), int4(2,3,6,7), int4(1,3,5,7) };
+int4 GetsourceIndex2(int i)
+{
+	return sourceIndex2[i];
+}
+
+static const int2 sourceIndex1[12] = { int2(0,4), int2(0,2), int2(4,6), int2(2,6), int2(0,1), int2(4,5), int2(2,3), int2(6,7), int2(1,5), int2(1,3), int2(5,7), int2(3,7) };
+int2 GetsourceIndex1(int i)
+{
+	return sourceIndex1[i];
+}
+
+static const int destIndex0[8] = { 0, 17, 6, 23, 2, 19, 8, 25 };
+int GetdestIndex0(int i)
+{
+	return destIndex0[i];
+}
 
 GeometryVolumeEntry ReadGvCell_Pos( int3 pos ) // TODO: move this to GvCommon
 {
@@ -208,111 +237,106 @@ void GetGeometryVolumeCellWeights( int3 gridPos,
 
 	// 8 1-tap weights (corners)
 	{
-		const int destIndex[8] = { 0, 17, 6, 23, 2, 19, 8, 25 };
-
 #if PS4_PROFILE
 		[unroll]
 #endif
 		for ( int i=0; i<8; i++ )
 		{
+			const int index = GetdestIndex0(i);
 #if NORMALS_LOOKUP
-			const float3 direction = directions[ destIndex[i] ];
+			const float3 direction = directions[ index ];
 #else
-			const float3 direction = GetNormalisedDirectionFromIndex( destIndex[i] );//directions[ destIndex[i] ];
+			const float3 direction = GetNormalisedDirectionFromIndex( index );//directions[ index ];
 #endif
 
 			gvCells[i] = ReadGvCell_Pos( gridPos + int3( i&1,i&2,i&4 ) );
 			float weight = 1.0f-saturate( SHLookupGeometryVolume( gvCells[i], direction ) * LpvWrite.SecondaryOcclusionStrength );
 #if LDS_OPTIMISATION
  #if !LPV_MULTIPLE_BOUNCES_ENABLED
-			StoreWeight( groupIndex, destIndex[i], weight );
+			StoreWeight( groupIndex, index, weight );
  #endif
 #else
-			weights[ destIndex[i] ] = weight;
+			weights[ index ] = weight;
 #endif
 
 #if LPV_MULTIPLE_BOUNCES_ENABLED 
 			float3 color = gvCells[i].color;
 #if LDS_OPTIMISATION
-			StoreWeightAndColor( groupIndex, destIndex[i], weight, color );
+			StoreWeightAndColor( groupIndex, index, weight, color );
 #else
-			colors[ destIndex[i] ] = color;
+			colors[ index ] = color;
 #endif
 #endif
 		}
 	}
 	// 12 2-tap weights (edges)
 	{
-		const int destIndex[12]      = {  1,	 3,	    5,	   7,	  9,	 11,	14,    16,    18,    20,    22,    24 };
-		const int sourceIndex[12][2] = { {0,4}, {0,2}, {4,6}, {2,6}, {0,1}, {4,5}, {2,3}, {6,7}, {1,5}, {1,3}, {5,7}, {3,7} };
-
 #if PS4_PROFILE
 		[unroll]
 #endif
 		for ( int i=0; i<12; i++ )
 		{
+			const int index = GetdestIndex1(i);
 #if NORMALS_LOOKUP
-			const float3 direction = directions[ destIndex[i] ];
+			const float3 direction = directions[ index ];
 #else
-			const float3 direction = GetNormalisedDirectionFromIndex( destIndex[i] );
+			const float3 direction = GetNormalisedDirectionFromIndex( index );
 #endif
-			float cellWeight = SHLookupGeometryVolume( gvCells[ sourceIndex[i][0] ], direction );
-			cellWeight		+= SHLookupGeometryVolume( gvCells[ sourceIndex[i][1] ], direction );
+			float cellWeight = SHLookupGeometryVolume( gvCells[ GetsourceIndex1(i)[0] ], direction );
+			cellWeight		+= SHLookupGeometryVolume( gvCells[ GetsourceIndex1(i)[1] ], direction );
 			float weight = 1.0f-saturate( cellWeight * 0.5f * LpvWrite.SecondaryOcclusionStrength );
 #if LDS_OPTIMISATION
  #if !LPV_MULTIPLE_BOUNCES_ENABLED
-			StoreWeight( groupIndex, destIndex[i], weight );
+			StoreWeight( groupIndex, index, weight );
  #endif
 #else
-			weights[ destIndex[i] ] = weight;
+			weights[ index ] = weight;
 #endif
 
 #if LPV_MULTIPLE_BOUNCES_ENABLED 
-			float3 cellColour = gvCells[ sourceIndex[i][0] ].color + gvCells[ sourceIndex[i][1] ].color;
+			float3 cellColour = gvCells[ GetsourceIndex1(i)[0] ].color + gvCells[ GetsourceIndex1(i)[1] ].color;
 			float3 color = cellColour * 0.5f;
 #if LDS_OPTIMISATION
-			StoreWeightAndColor( groupIndex, destIndex[i], weight, color );
+			StoreWeightAndColor( groupIndex, index, weight, color );
 #else
-			colors[ destIndex[i] ] = color;
+			colors[ index ] = color;
 #endif
 #endif
 		} 
 	}
 	// 6 4-tap weights (faces)
 	{
-		const int destIndex[6]      = {  4,         10,        12,        13,        15,        21 };
-		const int sourceIndex[6][4] = { {0,2,4,6}, {0,1,4,5}, {0,1,2,3}, {4,5,6,7}, {2,3,6,7}, {1,3,5,7} };
-
 #if PS4_PROFILE
 		[unroll]
 #endif
 		for ( int i=0; i<6; i++ )
 		{
+			const int index = GetdestIndex2(i);
 #if NORMALS_LOOKUP
-			const float3 direction = directions[ destIndex[i] ];
+			const float3 direction = directions[ index ];
 #else
-			const float3 direction = GetNormalisedDirectionFromIndex( destIndex[i] );
+			const float3 direction = GetNormalisedDirectionFromIndex( index );
 #endif
-			float cellWeight = SHLookupGeometryVolume( gvCells[ sourceIndex[i][0] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
-			cellWeight		+= SHLookupGeometryVolume( gvCells[ sourceIndex[i][1] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
-			cellWeight		+= SHLookupGeometryVolume( gvCells[ sourceIndex[i][2] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
-			cellWeight		+= SHLookupGeometryVolume( gvCells[ sourceIndex[i][3] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
+			float cellWeight = SHLookupGeometryVolume( gvCells[ GetsourceIndex2(i)[0] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
+			cellWeight		+= SHLookupGeometryVolume( gvCells[ GetsourceIndex2(i)[1] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
+			cellWeight		+= SHLookupGeometryVolume( gvCells[ GetsourceIndex2(i)[2] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
+			cellWeight		+= SHLookupGeometryVolume( gvCells[ GetsourceIndex2(i)[3] ], direction ) * LpvWrite.SecondaryOcclusionStrength;
 			float weight = 1.0f-saturate( cellWeight * 0.25f );
 #if LDS_OPTIMISATION
  #if !LPV_MULTIPLE_BOUNCES_ENABLED
-			StoreWeight( groupIndex, destIndex[i], weight );
+			StoreWeight( groupIndex, index, weight );
  #endif
 #else
-			weights[ destIndex[i] ] = weight; 
+			weights[ index ] = weight;
 #endif 
 #if LPV_MULTIPLE_BOUNCES_ENABLED
-			float3 cellColour = gvCells[ sourceIndex[i][0] ].color + gvCells[ sourceIndex[i][1] ].color +
-								gvCells[ sourceIndex[i][2] ].color + gvCells[ sourceIndex[i][3] ].color;
+			float3 cellColour = gvCells[ GetsourceIndex2(i)[0] ].color + gvCells[ GetsourceIndex2(i)[1] ].color +
+								gvCells[ GetsourceIndex2(i)[2] ].color + gvCells[ GetsourceIndex2(i)[3] ].color;
 			float3 color = cellColour * 0.25f;
 #if LDS_OPTIMISATION
-			StoreWeightAndColor( groupIndex, destIndex[i], weight, color );
+			StoreWeightAndColor( groupIndex, index, weight, color );
 #else
-			colors[ destIndex[i] ] = color;
+			colors[ index ] = color;
 #endif
 #endif
 		}

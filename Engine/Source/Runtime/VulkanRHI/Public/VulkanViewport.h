@@ -97,3 +97,10 @@ struct TVulkanResourceTraits<FRHIViewport>
 {
 	typedef FVulkanViewport TConcreteType;
 };
+
+
+inline bool DelayAcquireBackBuffer()
+{
+	extern FAutoConsoleVariable GCVarDelayAcquireBackBuffer;
+	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
+}

@@ -47,6 +47,7 @@ namespace UnrealBuildTool.Rules
 					"CoreVideo",
 					"AVFoundation",
 					"AudioToolbox",
+					"MediaToolbox",
 					"QuartzCore"
 				});
 		}

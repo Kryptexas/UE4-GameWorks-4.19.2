@@ -621,7 +621,6 @@ void FD3D12DynamicRHI::Init()
 	FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("D3D12"));
 
 	GRHISupportsTextureStreaming = true;
-	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GRHISupportsFirstInstance = true;
 
 	// Indicate that the RHI needs to use the engine's deferred deletion queue.

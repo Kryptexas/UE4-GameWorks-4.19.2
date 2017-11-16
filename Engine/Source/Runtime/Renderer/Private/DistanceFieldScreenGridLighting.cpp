@@ -711,6 +711,7 @@ void PostProcessBentNormalAOScreenGrid(
 	}
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	FIntRect* DistanceFieldAOHistoryViewRect = ViewState ? &ViewState->DistanceFieldAOHistoryViewRect : nullptr;
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState = ViewState ? &ViewState->DistanceFieldAOHistoryRT : NULL;
 	TRefCountPtr<IPooledRenderTarget>* ConfidenceHistoryState = ViewState ? &ViewState->DistanceFieldAOConfidenceHistoryRT : NULL;
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState = ViewState ? &ViewState->DistanceFieldIrradianceHistoryRT : NULL;
@@ -727,6 +728,7 @@ void PostProcessBentNormalAOScreenGrid(
 			TEXT("DistanceFieldIrradianceHistory"),
 			VelocityTexture,
 			DistanceFieldNormal,
+			DistanceFieldAOHistoryViewRect,
 			BentNormalHistoryState,
 			ConfidenceHistoryState,
 			IrradianceHistoryState,

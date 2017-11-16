@@ -130,12 +130,40 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 		case MP_DiffuseColor: 
 			Ret = MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast);
 			break;
+
 		case MP_BaseColor: 
 			Ret = MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast);
 			break;
+
+		case MP_Opacity:
+		case MP_OpacityMask:
+			// Force basic opaque surfaces to skip masked/translucent-only attributes.
+			// Some features can force the material to create a masked variant which unintentionally runs this dormant code
+			if (GetMaterialDomain() != MD_Surface || GetBlendMode() != BLEND_Opaque || !(GetShadingModel() == MSM_Unlit || GetShadingModel() == MSM_DefaultLit))
+			{
+				Ret = MaterialInterface->CompileProperty(Compiler, Property);
+			}
+			else
+			{
+				Ret = FMaterialAttributeDefinitionMap::CompileDefaultExpression(Compiler, Property);
+			}
+			break;
+
+		case MP_WorldDisplacement:
+			if (Compiler->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
+			{
+				Ret = MaterialInterface->CompileProperty(Compiler, Property);
+			}
+			else
+			{
+				Ret = FMaterialAttributeDefinitionMap::CompileDefaultExpression(Compiler, Property);
+			}
+			break;
+
 		case MP_MaterialAttributes:
 			Ret = INDEX_NONE;
 			break;
+
 		default:
 			Ret = MaterialInterface->CompileProperty(Compiler, Property);
 	};

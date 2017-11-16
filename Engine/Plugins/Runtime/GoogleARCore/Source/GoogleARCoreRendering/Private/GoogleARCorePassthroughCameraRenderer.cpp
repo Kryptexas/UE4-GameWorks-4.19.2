@@ -312,7 +312,7 @@ void FGoogleARCorePassthroughCameraRenderer::RenderVideoOverlay_RenderThread(FRH
 		VertexShader->SetParameters(RHICmdList, InView);
 		PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
 
-		FIntPoint ViewSize = InView.ViewRect.Size();
+		FIntPoint ViewSize = InView.UnscaledViewRect.Size();
 
 		FDrawRectangleParameters Parameters;
 		Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);

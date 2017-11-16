@@ -681,7 +681,7 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, TRHICom
 	check(BlendCount > 0);
 
 	FShader* LocalPixelShader = 0;
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	const auto FeatureLevel = Context.GetFeatureLevel();
 	auto ShaderMap = Context.GetShaderMap();
@@ -872,7 +872,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	float LocalWeights[GMaxLUTBlendCount];
 	AsyncEndFence = FComputeFenceRHIRef();
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	uint32 LocalCount = 1;

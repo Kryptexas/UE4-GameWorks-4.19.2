@@ -400,12 +400,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSki
 			bool bUseSkinCache = bGPUSkinCacheEnabled;
 			if (bUseSkinCache)
 			{
-				if (bClothFactory)
-				{
-					//INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForCloth);
-					bUseSkinCache = false;
-				}
-				else if (Section.MaxBoneInfluences == 0)
+				if (Section.MaxBoneInfluences == 0)
 				{
 					//INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForZeroInfluences);
 					bUseSkinCache = false;
@@ -428,13 +423,6 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSki
 			// Create a uniform buffer from the bone transforms.
 			TArray<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
 			bool bNeedFence = ShaderData.UpdateBoneData(RHICmdList, ReferenceToLocalMatrices, Section.BoneMap, FrameNumberToPrepare, FeatureLevel, bUseSkinCache);
-			// Try to use the GPU skinning cache if possible
-			if (bUseSkinCache)
-			{
-				GPUSkinCache->ProcessEntry(RHICmdList, VertexFactory,
-					VertexFactoryData.PassthroughVertexFactories[SectionIdx].Get(), Section, this, bMorph ? &LOD.MorphVertexBuffer : 0,
-					FrameNumberToPrepare, SectionIdx, SkinCacheEntry);
-			}
 #if WITH_APEX_CLOTHING
 			// Update uniform buffer for APEX cloth simulation mesh positions and normals
 			if( bClothFactory )
@@ -444,10 +432,22 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSki
 				int16 ActorIdx = Section.CorrespondClothAssetIndex;
 				if(FClothSimulData* SimData = DynamicData->ClothingSimData.Find(ActorIdx))
 				{
+					ClothShaderData.ClothLocalToWorld = DynamicData->ClothingSimData[ActorIdx].Transform.ToMatrixWithScale();
 					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, DynamicData->ClothingSimData[ActorIdx].Positions, DynamicData->ClothingSimData[ActorIdx].Normals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
 				}
 			}
 #endif // WITH_APEX_CLOTHING
+			// Try to use the GPU skinning cache if possible
+			if (bUseSkinCache)
+			{
+                // This takes the cloth positions from cloth space into world space
+                FMatrix ClothLocalToWorld = bClothFactory ? VertexFactoryData.ClothVertexFactories[SectionIdx]->GetClothShaderData().ClothLocalToWorld : FMatrix::Identity;
+                // Matrices are transposed in ue4 meaning matrix multiples need to happen in reverse ((AB)x = b becomes xTBTAT = b).
+                FMatrix LocalToCloth = DynamicData->ClothObjectLocalToWorld * ClothLocalToWorld.Inverse();
+				GPUSkinCache->ProcessEntry(RHICmdList, VertexFactory,
+					VertexFactoryData.PassthroughVertexFactories[SectionIdx].Get(), Section, this, bMorph ? &LOD.MorphVertexBuffer : 0, bClothFactory ? &LODData.ClothVertexBuffer : 0,
+					bClothFactory ? DynamicData->ClothingSimData.Find(Section.CorrespondClothAssetIndex) : 0, LocalToCloth, DynamicData->ClothBlendWeight, FrameNumberToPrepare, SectionIdx, SkinCacheEntry);
+			}
 			if (bNeedFence)
 			{
 				RHIThreadFenceForDynamicData = RHICmdList.RHIThreadFence(true);
@@ -471,12 +471,38 @@ void FGPUMorphUpdateCS::SetParameters(FRHICommandList& RHICmdList, const FVector
 	SetSRVParameter(RHICmdList, CS, MorphDeltasParameter, MorphTargetVertexInfoBuffers.MorphDeltasSRV);
 }
 
-void FGPUMorphUpdateCS::SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 Offset, uint32 Size, float Weight)
+static const uint32 GMorphTargetDispatchBatchSize = 128;
+
+void FGPUMorphUpdateCS::SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& MorphTargetWeights)
 {
 	FComputeShaderRHIRef CS = GetComputeShader();
-	uint32 OffsetAndSize[2] = { Offset, Offset + Size };
-	SetShaderValue(RHICmdList, CS, OffsetAndSizeParameter, OffsetAndSize);
-	SetShaderValue(RHICmdList, CS, MorphTargetWeightParameter, Weight);
+
+	uint32 ThreadOffsets[GMorphTargetDispatchBatchSize];
+	float Weights[GMorphTargetDispatchBatchSize];
+	
+	uint32 BaseOffset = MorphTargetVertexInfoBuffers.GetStartOffset(StartIndex);
+	uint32 ThreadOffset = 0u;
+	for (uint32 i = 0; i < GMorphTargetDispatchBatchSize; i++)
+	{
+		uint32 NumMorphs = MorphTargetVertexInfoBuffers.GetNumMorphs();
+		if (StartIndex + i < NumMorphs)
+		{
+			Weights[i] = MorphTargetWeights[StartIndex + i];
+			ThreadOffsets[i] = ThreadOffset;
+			ThreadOffset += MorphTargetVertexInfoBuffers.GetNumWorkItems(StartIndex + i);
+		}
+		else
+		{
+			uint32 LastStart = MorphTargetVertexInfoBuffers.GetStartOffset(NumMorphs - 1);
+			uint32 LastSize = MorphTargetVertexInfoBuffers.GetNumWorkItems(NumMorphs - 1);
+			Weights[i] = 0.0f;
+			ThreadOffsets[i] = ThreadOffset;
+		}
+	}
+
+	SetShaderValue(RHICmdList, CS, GlobalDispatchOffsetParameter, BaseOffset);
+	SetShaderValue(RHICmdList, CS, ThreadOffsetsParameter, ThreadOffsets);
+	SetShaderValue(RHICmdList, CS, MorphTargetWeightParameter, Weights);
 }
 
 
@@ -493,42 +519,71 @@ void FGPUMorphUpdateCS::EndAllDispatches(FRHICommandList& RHICmdList)
 
 IMPLEMENT_SHADER_TYPE(, FGPUMorphUpdateCS, TEXT("/Engine/Private/MorphTargets.usf"), TEXT("GPUMorphUpdateCS"), SF_Compute);
 
-void FGPUMorphNormalizeCS::SetParameters(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& InvLocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer)
+void FGPUMorphNormalizeCS::SetParameters(FRHICommandList& RHICmdList, const FVector4& InvLocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer)
 {
 	FComputeShaderRHIRef CS = GetComputeShader();
 	RHICmdList.SetComputeShader(CS);
 
 	SetUAVParameter(RHICmdList, CS, MorphVertexBufferParameter, MorphVertexBuffer.GetUAV());
-
-	SetShaderValue(RHICmdList, CS, MorphTargetWeightParameter, AccumulatedWeight);
-	SetShaderValue(RHICmdList, CS, MorphWorkItemsParameter, NumVerticies);
+	SetSRVParameter(RHICmdList, CS, MorphPermutationBufferParameter, MorphTargetVertexInfoBuffers.MorphPermutationsSRV);
 	SetShaderValue(RHICmdList, CS, PositionScaleParameter, InvLocalScale);
 }
 
-void FGPUMorphNormalizeCS::Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& InvLocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer)
+void FGPUMorphNormalizeCS::SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& InverseAccumulatedWeights)
 {
 	FComputeShaderRHIRef CS = GetComputeShader();
-	FGPUMorphNormalizeCS::SetParameters(RHICmdList, NumVerticies, InvLocalScale, AccumulatedWeight, MorphVertexBuffer);
+
+	uint32 ThreadOffsets[GMorphTargetDispatchBatchSize];
+	float Weights[GMorphTargetDispatchBatchSize];
+
+	uint32 BaseOffset = MorphTargetVertexInfoBuffers.GetPermutationStartOffset(StartIndex);
+	uint32 ThreadOffset = 0u;
+	for (uint32 i = 0; i < GMorphTargetDispatchBatchSize; i++)
+	{
+		uint32 NumPermuations = MorphTargetVertexInfoBuffers.GetNumPermutations();
+		if (StartIndex + i < NumPermuations)
+		{
+			Weights[i] = InverseAccumulatedWeights[StartIndex + i];
+			ThreadOffsets[i] = ThreadOffset;
+			ThreadOffset += MorphTargetVertexInfoBuffers.GetPermutationSize(StartIndex + i);
+		}
+		else
+		{
+			uint32 LastStart = MorphTargetVertexInfoBuffers.GetPermutationStartOffset(NumPermuations - 1);
+			uint32 LastSize = MorphTargetVertexInfoBuffers.GetPermutationSize(NumPermuations - 1);
+			Weights[i] = 0.0f;
+			ThreadOffsets[i] = ThreadOffset;
+		}
+	}
+
+	SetShaderValue(RHICmdList, CS, GlobalDispatchOffsetParameter, BaseOffset);
+	SetShaderValue(RHICmdList, CS, ThreadOffsetsParameter, ThreadOffsets);
+	SetShaderValue(RHICmdList, CS, MorphTargetWeightParameter, Weights);
+}
+
+void FGPUMorphNormalizeCS::Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies)
+{
 	RHICmdList.DispatchComputeShader(1, (NumVerticies + 31) / 32, 1);
+}
+
+void FGPUMorphNormalizeCS::EndAllDispatches(FRHICommandList& RHICmdList)
+{
+	FComputeShaderRHIRef CS = GetComputeShader();
 	SetUAVParameter(RHICmdList, CS, MorphVertexBufferParameter, nullptr);
 }
 
 IMPLEMENT_SHADER_TYPE(, FGPUMorphNormalizeCS, TEXT("/Engine/Private/MorphTargets.usf"), TEXT("GPUMorphNormalizeCS"), SF_Compute);
 
-static const float MorphTargetWeightCutoffThreshold = 0.00000001f;
-
-static void CalculateMorphDeltaBounds(const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FVector4& MorphScale, FVector4& InvMorphScale, float &InvTotalAccumulatedWeight)
+static void CalculateMorphDeltaBounds(const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FVector4& MorphScale, FVector4& InvMorphScale)
 {
-	double TotalAccumulatedWeight = 0.0;
 	double MinAccumScale[4] = { 0, 0, 0, 0 };
 	double MaxAccumScale[4] = { 0, 0, 0, 0 };
 	double MaxScale[4] = { 0, 0, 0, 0 };
 	for (uint32 i = 0; i < MorphTargetVertexInfoBuffers.GetNumMorphs(); i++)
 	{
 		float AbsoluteMorphTargetWeight = FMath::Abs(MorphTargetWeights[i]);
-		if (AbsoluteMorphTargetWeight > MorphTargetWeightCutoffThreshold)
+		if (AbsoluteMorphTargetWeight > GMorphTargetWeightThreshold)
 		{
-			TotalAccumulatedWeight += AbsoluteMorphTargetWeight;
 			FVector4 MinMorphScale = MorphTargetVertexInfoBuffers.GetMinimumMorphScale(i);
 			FVector4 MaxMorphScale = MorphTargetVertexInfoBuffers.GetMaximumMorphScale(i);
 
@@ -561,27 +616,14 @@ static void CalculateMorphDeltaBounds(const TArray<float>& MorphTargetWeights, c
 		(double)((uint64)(MaxScale[2] + 1.0)) / ScaleToInt24,
 		(double)((uint64)(MaxScale[3] + 1.0)) / ScaleToInt24
 	);
-
-	// if accumulated weight is >1.f
-	// previous code was applying the weight again in GPU if less than 1, but it doesn't make sense to do so
-	// so instead, we just divide by AccumulatedWeight if it's more than 1.
-	// now DeltaTangentZ isn't FPackedNormal, so you can apply any value to it. 
-	if (TotalAccumulatedWeight > 1.0f)
-	{
-		InvTotalAccumulatedWeight = (float)(1.0f / TotalAccumulatedWeight);
-	}
-	else
-	{
-		InvTotalAccumulatedWeight = 1.0f;
-	}
 }
 
 void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers)
 {
-	SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Update);
-
 	if (IsValidRef(MorphVertexBuffer.VertexBufferRHI))
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Update);
+
 		// LOD of the skel mesh is used to find number of vertices in buffer
 		FSkeletalMeshLODRenderData& LodData = SkelMeshRenderData->LODRenderData[LODIndex];
 
@@ -598,21 +640,34 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 		ClearUAV(RHICmdList, MorphVertexBuffer.GetUAV(), MorphVertexBuffer.GetUAVSize(), 0);
 
 		{		
-			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);
-
 			FVector4 MorphScale; 
 			FVector4 InvMorphScale; 
-			float InvTotalAccumulatedWeight;
-			CalculateMorphDeltaBounds(MorphTargetWeights, MorphTargetVertexInfoBuffers, MorphScale, InvMorphScale, InvTotalAccumulatedWeight);
-			
-			TShaderMapRef<FGPUMorphUpdateCS> GPUMorphUpdateCS(GetGlobalShaderMap(ERHIFeatureLevel::SM5));
-			for (uint32 i = 0; i < MorphTargetVertexInfoBuffers.GetNumMorphs(); i++)
+			TArray<float> InverseAccumulatedWeights;
 			{
-				uint32 NumMorphDeltas = MorphTargetVertexInfoBuffers.GetNumWorkItems(i);
-				if (FMath::Abs(MorphTargetWeights[i]) > MorphTargetWeightCutoffThreshold && NumMorphDeltas > 0)
+				SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);
+				CalculateMorphDeltaBounds(MorphTargetWeights, MorphTargetVertexInfoBuffers, MorphScale, InvMorphScale);
+				MorphTargetVertexInfoBuffers.CalculateInverseAccumulatedWeights(MorphTargetWeights, InverseAccumulatedWeights);
+			}
+			
+			//the first pass scatters all morph targets into the vertexbuffer using atomics
+			//multiple morph targets can be batched by a single shader where the shader will rely on
+			//binary search to find the correct target weight within the batch.
+			TShaderMapRef<FGPUMorphUpdateCS> GPUMorphUpdateCS(GetGlobalShaderMap(ERHIFeatureLevel::SM5));
+			for (uint32 i = 0; i < MorphTargetVertexInfoBuffers.GetNumMorphs(); i+= GMorphTargetDispatchBatchSize - 1)
+			{
+				uint32 NumMorphDeltas = 0;
+				for (uint32 j = 0; j < GMorphTargetDispatchBatchSize - 1; j++)
+				{
+					if (i + j < MorphTargetVertexInfoBuffers.GetNumMorphs())
+					{
+						NumMorphDeltas += MorphTargetVertexInfoBuffers.GetNumWorkItems(i + j);
+					}
+				}
+
+				if (NumMorphDeltas > 0)
 				{
 					GPUMorphUpdateCS->SetParameters(RHICmdList, MorphScale, MorphTargetVertexInfoBuffers, MorphVertexBuffer);
-					GPUMorphUpdateCS->SetOffsetAndSize(RHICmdList, MorphTargetVertexInfoBuffers.GetStartOffset(i), NumMorphDeltas, MorphTargetWeights[i]);
+					GPUMorphUpdateCS->SetOffsetAndSize(RHICmdList, i, MorphTargetVertexInfoBuffers, MorphTargetWeights);
 					GPUMorphUpdateCS->Dispatch(RHICmdList, NumMorphDeltas);
 					RHICmdList.TransitionResource(EResourceTransitionAccess::ERWNoBarrier, EResourceTransitionPipeline::EComputeToCompute, MorphVertexBuffer.GetUAV());
 				}
@@ -620,11 +675,34 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			GPUMorphUpdateCS->EndAllDispatches(RHICmdList);
 			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, MorphVertexBuffer.GetUAV());
 
+			//The second pass normalizes the scattered result and converts it back into floats.
+			//The dispatches are split by morph permutation (and their accumulated weight) .
+			//Every vertex is touched only by a single permutation. 
+			//multiple permutations can be batched by a single shader where the shader will rely on
+			//binary search to find the correct target weight within the batch.
 			TShaderMapRef<FGPUMorphNormalizeCS> GPUMorphNormalizeCS(GetGlobalShaderMap(ERHIFeatureLevel::SM5));
-			GPUMorphNormalizeCS->Dispatch(RHICmdList, LodData.GetNumVertices(), InvMorphScale, InvTotalAccumulatedWeight, MorphVertexBuffer);
-		}
+			for (uint32 i = 0; i < MorphTargetVertexInfoBuffers.GetNumPermutations(); i+= GMorphTargetDispatchBatchSize - 1)
+			{
+				uint32 DispatchSize = 0;
+				for (uint32 j = 0; j < GMorphTargetDispatchBatchSize - 1; j++)
+				{
+					if (i + j < MorphTargetVertexInfoBuffers.GetNumPermutations())
+					{
+						DispatchSize += MorphTargetVertexInfoBuffers.GetPermutationSize(i + j);
+					}
+				}
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, MorphVertexBuffer.GetUAV());
+				if (DispatchSize > 0)
+				{
+					GPUMorphNormalizeCS->SetParameters(RHICmdList, InvMorphScale, MorphTargetVertexInfoBuffers, MorphVertexBuffer);
+					GPUMorphNormalizeCS->SetOffsetAndSize(RHICmdList, i, MorphTargetVertexInfoBuffers, InverseAccumulatedWeights);
+					GPUMorphNormalizeCS->Dispatch(RHICmdList, DispatchSize);
+					RHICmdList.TransitionResource(EResourceTransitionAccess::ERWNoBarrier, EResourceTransitionPipeline::EComputeToCompute, MorphVertexBuffer.GetUAV());
+				}
+			}
+			GPUMorphNormalizeCS->EndAllDispatches(RHICmdList);
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, MorphVertexBuffer.GetUAV());
+		}
 
 		// set update flag
 		MorphVertexBuffer.bHasBeenUpdated = true;
@@ -759,18 +837,18 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 	const FSkelMeshObjectLODInfo& MeshLODInfo = LODInfo[LODIndex];
 	const FSkeletalMeshObjectLOD& LOD = LODs[LODIndex];
 
+	// If the GPU skinning cache was used, return the passthrough vertex factory
+	if (SkinCacheEntry && FGPUSkinCache::IsEntryValid(SkinCacheEntry, ChunkIdx))
+	{
+		return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
+	}
+
 	// cloth simulation is updated & if this ChunkIdx is for ClothVertexFactory
 	if ( DynamicData->ClothingSimData.Num() > 0 
 		&& LOD.GPUSkinVertexFactories.ClothVertexFactories.IsValidIndex(ChunkIdx)  
 		&& LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx].IsValid() )
 	{
 		return LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx]->GetVertexFactory();
-	}
-
-	// If the GPU skinning cache was used, return the passthrough vertex factory
-	if (SkinCacheEntry && FGPUSkinCache::IsEntryValid(SkinCacheEntry, ChunkIdx))
-	{
-		return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
 	}
 
 	// use the morph enabled vertex factory if any active morphs are set
@@ -1447,6 +1525,7 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 
 	if (SimMeshComponent)
 	{
+        ClothObjectLocalToWorld = SimMeshComponent->GetComponentToWorld().ToMatrixWithScale();
 		if(SimMeshComponent->bDisableClothSimulation)
 		{
 			ClothBlendWeight = 0.0f;

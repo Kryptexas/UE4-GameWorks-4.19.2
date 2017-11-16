@@ -40,6 +40,6 @@ public:
 
 	// -------------------------------------------
 
-	static FIntPoint ComputeGatherExtent(const FSceneView& View);
+	static FIntPoint ComputeGatherExtent(const FRenderingCompositePassContext& Context);
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
 };

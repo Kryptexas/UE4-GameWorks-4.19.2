@@ -389,6 +389,7 @@ private:
 		SetRequiredTextureResolution(false);
 		SetMotionBlur(InitMode != ESFIM_Editor);
 		SetBones(false);
+		SetScreenPercentage(InitMode != ESFIM_Editor);
 	}
 
 

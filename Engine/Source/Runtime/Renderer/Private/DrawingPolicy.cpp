@@ -9,6 +9,7 @@
 #include "SceneRendering.h"
 #include "LogMacros.h"
 #include "MaterialShader.h"
+#include "DebugViewModeRendering.h"
 
 int32 GEmitMeshDrawEvent = 0;
 static FAutoConsoleVariableRef CVarEmitMeshDrawEvent(
@@ -66,12 +67,19 @@ void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FDrawingPolicyRende
 	}
 }
 
-void FMeshDrawingPolicy::SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
+void FMeshDrawingPolicy::SetInstanceParameters(FRHICommandList& RHICmdList, const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 {
-	BaseVertexShader->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
+	if (UseDebugViewPS() && View.Family->UseDebugViewVSDSHS())
+	{
+		FDebugViewMode::SetInstanceParameters(RHICmdList, VertexFactory, View, MaterialResource, InVertexOffset, InInstanceOffset, InInstanceCount);
+	}
+	else
+	{
+		BaseVertexShader->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
+	}
 }
 
-void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
+void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
 	DEFINE_LOG_CATEGORY_STATIC(LogFMeshDrawingPolicyDrawMesh, Warning, All);
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
@@ -96,7 +104,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
 						const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-						SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
+						SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
 						GetVertexFactory()->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
 
 						RHICmdList.DrawIndexedPrimitive(
@@ -116,7 +124,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
 						uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-						SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
+						SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
 						GetVertexFactory()->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
 
 						RHICmdList.DrawIndexedPrimitive(
@@ -138,7 +146,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 				{
 					const uint32 InstanceOffset = BatchElement.InstanceRuns[Run * 2];
 					const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
-					SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, InstanceOffset, InstanceCount);
+					SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, InstanceOffset, InstanceCount);
 
 					RHICmdList.DrawIndexedPrimitive(
 						BatchElement.IndexBuffer->IndexBufferRHI,
@@ -168,7 +176,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 			{
 				// Currently only supporting this path for instanced stereo.
 				const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
-				SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex, 0, InstanceCount);
+				SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
 
 				RHICmdList.DrawIndexedPrimitive(
 					BatchElement.IndexBuffer->IndexBufferRHI,
@@ -185,7 +193,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	}
 	else
 	{
-		SetInstanceParameters(RHICmdList, BatchElement.BaseVertexIndex + BatchElement.FirstIndex, 0, 1);
+		SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex + BatchElement.FirstIndex, 0, 1);
 
 		RHICmdList.DrawPrimitive(
 			Mesh.Type,

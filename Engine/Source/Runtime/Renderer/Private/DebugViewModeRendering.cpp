@@ -201,3 +201,18 @@ void FDebugViewMode::SetMeshVSHSDS(
 		Material->GetShader<FDebugViewModeDS>(VertexFactoryType)->SetMesh(RHICmdList, VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 	}
 }
+
+void FDebugViewMode::SetInstanceParameters(
+	FRHICommandList& RHICmdList,
+	const FVertexFactory* VertexFactory,
+	const FSceneView& View,
+	const FMaterial* Material, 
+	uint32 InVertexOffset, 
+	uint32 InInstanceOffset, 
+	uint32 InInstanceCount)
+{
+	GetMaterialForVSHSDS(nullptr, &Material, View.GetFeatureLevel());
+	FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
+	Material->GetShader<FDebugViewModeVS>(VertexFactoryType)->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
+}
+

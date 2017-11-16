@@ -2134,6 +2134,8 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		FViewInfo& View = Views[ViewIndex];
 		FSceneViewState* ViewState = View.ViewState;
 
+		check(View.VerifyMembersChecks());
+
 		// Once per render increment the occlusion frame counter.
 		if (ViewState)
 		{
@@ -2157,9 +2159,10 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		View.OneOverNumPossiblePixels = NumPossiblePixels > 0.0 ? 1.0f / NumPossiblePixels : 0.0f;
 
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
-		View.TemporalJitterPixelsX = 0.0f;
-		View.TemporalJitterPixelsY = 0.0f;
+		check(View.TemporalJitterPixels.X == 0.0f);
+		check(View.TemporalJitterPixels.Y == 0.0f);
 		
+		// Cache the projection matrix b		
 		// Cache the projection matrix before AA is applied
 		View.ViewMatrices.SaveProjectionNoAAMatrix();
 
@@ -2248,6 +2251,22 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
 				}
+				else if (View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::TemporalUpscale)
+				{
+					// When doing TAA upsample with screen percentage < 100%, we need extra temporal samples to have a
+					// constant temporal sample density for final output pixels to avoid output pixel aligned converging issues.
+					float EffectivePrimaryResolutionFraction = float(View.ViewRect.Width()) / float(View.GetSecondaryViewRectSize().X);
+					int32 EffectiveTemporalAASamples = float(TemporalAASamples) * FMath::Max(1.f, 1.f / (EffectivePrimaryResolutionFraction * EffectivePrimaryResolutionFraction));
+
+					ViewState->OnFrameRenderingSetup(EffectiveTemporalAASamples, ViewFamily);
+					uint32 TemporalSampleIndex = ViewState->GetCurrentTemporalAASampleIndex();
+
+					// Uniformly distribute temporal jittering in [-.5; .5], because there is no longer any alignement of input and output pixels.
+					SampleX = Halton(TemporalSampleIndex + 1, 2) - 0.5f;
+					SampleY = Halton(TemporalSampleIndex + 1, 3) - 0.5f;
+
+					View.MaterialTextureMipBias = -(FMath::Max(-FMath::Log2(EffectivePrimaryResolutionFraction), 0.0f) + 0.3f);
+				}
 				else
 				{
 					ViewState->OnFrameRenderingSetup(TemporalAASamples, ViewFamily);
@@ -2279,8 +2298,8 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					SampleY = r * FMath::Sin( Theta );
 				}
 
-				View.TemporalJitterPixelsX = SampleX;
-				View.TemporalJitterPixelsY = SampleY;
+				View.TemporalJitterPixels.X = SampleX;
+				View.TemporalJitterPixels.Y = SampleY;
 
 				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * -2.0f / View.ViewRect.Height()));
 			}
@@ -2290,8 +2309,8 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			// no TemporalAA
 			ViewState->OnFrameRenderingSetup(1, ViewFamily);
 
-			ViewState->TemporalAAHistoryRT.SafeRelease();
-			ViewState->PendingTemporalAAHistoryRT.SafeRelease();
+			ViewState->TemporalAAHistory.SafeRelease();
+			ViewState->PendingTemporalAAHistory.SafeRelease();
 		}
 
 		if ( ViewState )
@@ -2348,10 +2367,10 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					if(!ViewFamily.bWorldIsPaused)
 					{
 						ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
-						if( ViewState->PendingTemporalAAHistoryRT.GetRefCount() )
+						if( ViewState->PendingTemporalAAHistory.IsValid() )
 						{
-							ViewState->TemporalAAHistoryRT = ViewState->PendingTemporalAAHistoryRT;
-							ViewState->PendingTemporalAAHistoryRT.SafeRelease();
+							ViewState->TemporalAAHistory = ViewState->PendingTemporalAAHistory;
+							ViewState->PendingTemporalAAHistory.SafeRelease();
 						}
 
 						// pending is needed as we are in init view and still need to render.
@@ -2887,18 +2906,6 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_InitViews, FColor::Emerald);
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{		
-		FViewInfo& View = Views[ViewIndex];
-
-		const bool bWillApplyTemporalAA = GPostProcessing.AllowFullPostProcessing(View, FeatureLevel) || (View.bIsPlanarReflection && FeatureLevel >= ERHIFeatureLevel::SM4);
-
-		if (!bWillApplyTemporalAA)
-		{
-			// Disable anti-aliasing if we are not going to be able to apply final post process effects
-			View.AntiAliasingMethod = AAM_None;
-		}
-	}
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
 

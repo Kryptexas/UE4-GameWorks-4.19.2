@@ -75,6 +75,8 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 // Keep the Vk*CreateInfo stored per object for debugging
 #define VULKAN_KEEP_CREATE_INFO									0
 
+#define VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS				PLATFORM_WINDOWS
+
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0
 
 #define VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED					0

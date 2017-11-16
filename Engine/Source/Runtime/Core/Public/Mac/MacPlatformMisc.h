@@ -120,6 +120,7 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 		FGPUDescriptor& operator=(FGPUDescriptor const& Other);
 		TMap<FString, float> GetPerformanceStatistics() const;
 		
+		uint64 RegistryID;
 		uint32 PCIDevice; // This is really an io_registry_entry_t which is a mach port name
 		NSString* GPUName;
 		NSString* GPUMetalBundle;

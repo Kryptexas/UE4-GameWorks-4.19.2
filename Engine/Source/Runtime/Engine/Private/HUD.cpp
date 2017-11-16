@@ -134,11 +134,8 @@ FVector2D AHUD::GetCoordinateOffset() const
 
 		if (SceneView)
 		{
-			Offset.X = (SceneView->ViewRect.Min.X - SceneView->UnscaledViewRect.Min.X) // This accounts for the borders when the aspect ratio is locked
-				- SceneView->UnscaledViewRect.Min.X;						// And this will deal with the viewport offset if its a split screen
-
-			Offset.Y = (SceneView->ViewRect.Min.Y - SceneView->UnscaledViewRect.Min.Y)
-				- SceneView->UnscaledViewRect.Min.Y;
+			Offset.X = - SceneView->UnscaledViewRect.Min.X; // And this will deal with the viewport offset if its a split screen
+			Offset.Y = - SceneView->UnscaledViewRect.Min.Y;
 		}
 	}
 

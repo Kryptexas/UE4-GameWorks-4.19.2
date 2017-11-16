@@ -822,7 +822,7 @@ void RayTraceShadows(TRHICommandList& RHICmdList, const FViewInfo& View, FProjec
 {
 	FIntRect ScissorRect;
 
-	if (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetScissorRect(ScissorRect, View))
+	if (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 	{
 		ScissorRect = View.ViewRect;
 	}
@@ -859,7 +859,8 @@ void RayTraceShadows(TRHICommandList& RHICmdList, const FViewInfo& View, FProjec
 
 void FProjectedShadowInfo::BeginRenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
-	if (SupportsDistanceFieldShadows(View.GetFeatureLevel(), View.GetShaderPlatform()))
+	if (SupportsDistanceFieldShadows(View.GetFeatureLevel(), View.GetShaderPlatform())
+		&& View.Family->EngineShowFlags.RayTracedDistanceFieldShadows)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_BeginRenderRayTracedDistanceFieldShadows);
 		SCOPED_DRAW_EVENT(RHICmdList, BeginRayTracedDistanceFieldShadow);
@@ -937,7 +938,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 
 		FIntRect ScissorRect;
 
-		if (!LightSceneInfo->Proxy->GetScissorRect(ScissorRect, View))
+		if (!LightSceneInfo->Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 		{
 			ScissorRect = View.ViewRect;
 		}

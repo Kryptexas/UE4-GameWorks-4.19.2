@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	DistanceFieldSurfaceCacheLighting.cpp
+	DistanceFieldObjectManagement.cpp
 =============================================================================*/
 
 #include "CoreMinimal.h"
@@ -961,6 +961,8 @@ void ProcessPrimitiveUpdate(
 	}
 }
 
+bool bVerifySceneIntegrity = false;
+
 void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList) 
 {
 	FDistanceFieldSceneData& DistanceFieldSceneData = Scene->DistanceFieldSceneData;
@@ -1227,7 +1229,10 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 
 		check(DistanceFieldSceneData.NumObjectsInBuffer == DistanceFieldSceneData.PrimitiveInstanceMapping.Num());
 
-		DistanceFieldSceneData.VerifyIntegrity();
+		if (bVerifySceneIntegrity)
+		{
+			DistanceFieldSceneData.VerifyIntegrity();
+		}
 	}
 }
 

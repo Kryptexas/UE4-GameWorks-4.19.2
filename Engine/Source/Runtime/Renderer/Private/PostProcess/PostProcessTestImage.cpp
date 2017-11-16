@@ -95,11 +95,10 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, TestImage);
 
-	const FSceneView& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
+	const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 	
-	FIntRect SrcRect = View.UnscaledViewRect;
-	FIntRect DestRect = View.UnscaledViewRect;
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -138,7 +137,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 		EDRF_UseTriangleOptimization);
 
 	{
-		FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
+		FRenderTargetTemp TempRenderTarget(Context.View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
 		FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 		float X = 30;

@@ -78,7 +78,7 @@ struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 		}
 	}
 
-	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
+	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override
 	{
 		if (!bNeedsCapture)
 		{
@@ -114,14 +114,15 @@ struct FFrameCaptureViewExtension : public FSceneViewExtensionBase
 			PostProcessingMaterial->OverrideBlendableSettings(InView, 1.f);
 		}
 
-
-		// Ensure we're rendering at full size
-		InView.ViewRect = InView.UnscaledViewRect;
-
 		bNeedsCapture = false;
 	}
 
-	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) {}
+	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override
+	{
+		// Ensure we're rendering at full size.
+		InViewFamily.EngineShowFlags.ScreenPercentage = false;
+	}
+
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) {}
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}

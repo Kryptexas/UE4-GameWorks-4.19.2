@@ -228,9 +228,9 @@ void MainSetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 
 	// can be optimized
 	float2 UV[4];
 	UV[0] = InUV + float2(-0.5f, -0.5f) * Pixel;
-	UV[1] = InUV + float2( 0.5f, -0.5f) * Pixel;
-	UV[2] = InUV + float2(-0.5f,  0.5f) * Pixel;
-	UV[3] = InUV + float2( 0.5f,  0.5f) * Pixel;
+	UV[1] = min(InUV + float2( 0.5f, -0.5f) * Pixel, View.BufferBilinearUVMinMax.zw);
+	UV[2] = min(InUV + float2(-0.5f,  0.5f) * Pixel, View.BufferBilinearUVMinMax.zw);
+	UV[3] = min(InUV + float2( 0.5f,  0.5f) * Pixel, View.BufferBilinearUVMinMax.zw);
 
 	float4 Samples[4];
 	

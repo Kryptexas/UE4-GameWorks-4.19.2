@@ -6,8 +6,6 @@
 #include "SceneView.h"
 #include "ThumbnailHelpers.h"
 
-// FPreviewScene derived helpers for rendering
-#include "EngineModule.h"
 #include "FoliageType_InstancedStaticMesh.h"
 
 bool UFoliageType_ISMThumbnailRenderer::CanVisualizeAsset(UObject* Object)
@@ -38,7 +36,7 @@ void UFoliageType_ISMThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, 
 		ViewFamily.EngineShowFlags.LOD = 0;
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+		RenderViewFamily(Canvas, &ViewFamily);
 		ThumbnailScene->SetStaticMesh(nullptr);
 		ThumbnailScene->SetOverrideMaterials(TArray<class UMaterialInterface*>());
 	}

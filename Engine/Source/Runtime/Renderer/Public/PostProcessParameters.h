@@ -96,6 +96,7 @@ private:
 	FShaderParameter PostprocessInputSizeParameter[ePId_Input_MAX];
 	FShaderParameter PostProcessInputMinMaxParameter[ePId_Input_MAX];
 	FShaderParameter ScreenPosToPixel;
+	FShaderParameter SceneColorBufferUVViewport;
 	FShaderResourceParameter BilinearTextureSampler0;
 	FShaderResourceParameter BilinearTextureSampler1;
 

@@ -23,15 +23,9 @@ uint NumTriangles;
 
 //
 
-#if COMPILER_METAL
-Buffer<uint> TangentInputBuffer;
-Buffer<float> UVsInputBuffer;
-RWBuffer<uint> TangentBufferUAV;
-#else
 Buffer<float4> TangentInputBuffer;
 Buffer<float2> UVsInputBuffer;
 RWBuffer<float4> TangentBufferUAV;
-#endif
 
 // in vertices
 uint InputStreamStart;
@@ -48,11 +42,7 @@ Buffer<uint> IndexBuffer;
 
 // input vertex data (SkinCache output)
 // used as input in MainCS()
-#if COMPILER_METAL
-Buffer<uint> GPUTangentCacheBuffer;
-#else
 Buffer<float4> GPUTangentCacheBuffer;
-#endif
 Buffer<float> GPUPositionCacheBuffer;
 
 // start offset in vertices

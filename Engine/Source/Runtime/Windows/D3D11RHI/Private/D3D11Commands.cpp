@@ -54,7 +54,7 @@ static FAutoConsoleVariableRef CVarDX11TransitionChecks(
 	ECVF_Default
 	);
 
-int32 GUnbindResourcesBetweenDrawsInDX11 = 0;
+static int32 GUnbindResourcesBetweenDrawsInDX11 = 0;
 static FAutoConsoleVariableRef CVarUnbindResourcesBetweenDrawsInDX11(
 	TEXT("r.UnbindResourcesBetweenDrawsInDX11"),
 	GUnbindResourcesBetweenDrawsInDX11,
@@ -154,14 +154,6 @@ void FD3D11DynamicRHI::RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIPar
 }
 
 // Vertex state.
-void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
-{
-	FD3D11VertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-
-	ID3D11Buffer* D3DBuffer = VertexBuffer ? VertexBuffer->Resource : NULL;
-	StateCache.SetStreamSource(D3DBuffer, StreamIndex, Stride, Offset);
-}
-
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
 {
 	FD3D11VertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
@@ -330,7 +322,9 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 		}
 	}
 
-	if (GUnbindResourcesBetweenDrawsInDX11)
+	extern bool D3D11RHI_ShouldCreateWithD3DDebug();
+	static bool bHasD3DDebug = D3D11RHI_ShouldCreateWithD3DDebug();
+	if (GUnbindResourcesBetweenDrawsInDX11 || bHasD3DDebug)
 	{
 		ClearAllShaderResources();
 	}

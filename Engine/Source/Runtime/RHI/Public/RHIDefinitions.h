@@ -51,7 +51,7 @@ enum EShaderPlatform
 	SP_OPENGL_PCES3_1	= 15,
 	SP_METAL_SM5		= 16,
 	SP_VULKAN_PCES3_1	= 17,
-	SP_METAL_SM4		= 18,
+	SP_METAL_SM5_NOTESS	= 18,
 	SP_VULKAN_SM4		= 19,
 	SP_VULKAN_SM5		= 20,
 	SP_VULKAN_ES3_1_ANDROID = 21,
@@ -73,7 +73,7 @@ enum ERenderQueryType
 	RQT_Undefined,
 	// Result is the number of samples that are not culled (divide by MSAACount to get pixels)
 	RQT_Occlusion,
-	// Result is time in micro seconds = 1/1000 ms = 1/1000000 sec
+	// Result is current time in micro seconds = 1/1000 ms = 1/1000000 sec (not a duration).
 	RQT_AbsoluteTime,
 };
 
@@ -739,7 +739,7 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
 		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
-		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
+		Platform == SP_METAL_SM5_NOTESS || Platform == SP_METAL_SM5 ||
 		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2 || Platform == SP_METAL_MRT_MAC;
 }
 
@@ -766,7 +766,7 @@ inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2 || Platform == SP_METAL_MRT_MAC;
+	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM5_NOTESS || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2 || Platform == SP_METAL_MRT_MAC;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -834,13 +834,13 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_METAL_SM5:
 	case SP_METAL_MRT:
 	case SP_METAL_MRT_MAC:
+	case SP_METAL_SM5_NOTESS:
 	case SP_VULKAN_SM5:
 	case SP_SWITCH:
 		return ERHIFeatureLevel::SM5;
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
-	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:

@@ -89,6 +89,27 @@ private:
 	FRecomputeTangentCustomVersion() {}
 };
 
+// custom version for overlapping vertcies code
+struct FOverlappingVerticesCustomVersion
+{
+	enum Type
+	{
+		// Before any version changes were made in the plugin
+		BeforeCustomVersionWasAdded = 0,
+		// Converted to use HierarchicalInstancedStaticMeshComponent
+		DetectOVerlappingVertices = 1,
+		// -----<new versions can be added above this line>-------------------------------------------------
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+
+	// The GUID for this custom version number
+	const static FGuid GUID;
+
+private:
+	FOverlappingVerticesCustomVersion() {}
+};
+
 /** Flags used when building vertex buffers. */
 struct ESkeletalMeshVertexFlags
 {

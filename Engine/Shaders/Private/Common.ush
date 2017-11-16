@@ -212,10 +212,8 @@ float4 PseudoVolumeTexture(Texture2D Tex, SamplerState TexSampler, float3 inPos,
 	}
 #endif
 
-void Bicubic2DCatmullRom( in float2 UV, in float2 Size, out float2 Sample[3], out float2 Weight[3] )
+void Bicubic2DCatmullRom( in float2 UV, in float2 Size, in float2 InvSize, out float2 Sample[3], out float2 Weight[3] )
 {
-	const float2 InvSize = 1.0 / Size;
- 
 	UV *= Size;
 
 	float2 tc = floor( UV - 0.5 ) + 0.5;
@@ -241,42 +239,77 @@ void Bicubic2DCatmullRom( in float2 UV, in float2 Size, out float2 Sample[3], ou
 	Sample[2] *= InvSize;
 }
 
-MaterialFloat4 Texture2DSampleBicubic( Texture2D Tex, SamplerState Sampler, float2 UV, float2 Size )
+#define BICUBIC_CATMULL_ROM_SAMPLES 5
+
+struct FCatmullRomSamples
 {
+	// Constant number of samples (BICUBIC_CATMULL_ROM_SAMPLES)
+	uint Count;
+	
+	// Constant sign of the UV direction from master UV sampling location.
+	int2 UVDir[BICUBIC_CATMULL_ROM_SAMPLES];
+
+	// Bilinear sampling UV coordinates of the samples
+	float2 UV[BICUBIC_CATMULL_ROM_SAMPLES];
+
+	// Weights of the samples
+	float Weight[BICUBIC_CATMULL_ROM_SAMPLES];
+
+	// Final multiplier (it is faster to multiply 3 RGB values than reweights the 5 weights)
+	float FinalMultiplier;
+};
+
+FCatmullRomSamples GetBicubic2DCatmullRomSamples(float2 UV, float2 Size, in float2 InvSize)
+{
+	FCatmullRomSamples Samples;
+	Samples.Count = BICUBIC_CATMULL_ROM_SAMPLES;
+	
 	float2 Weight[3];
 	float2 Sample[3];
-	Bicubic2DCatmullRom( UV, Size, Sample, Weight );
+	Bicubic2DCatmullRom( UV, Size, InvSize, Sample, Weight );
 
-	MaterialFloat4 OutColor;
-#if 0
-	OutColor  = Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[0].y ), 0 ) * Weight[0].x * Weight[0].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[0].y ), 0 ) * Weight[1].x * Weight[0].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[0].y ), 0 ) * Weight[2].x * Weight[0].y;
-
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[1].y ), 0 ) * Weight[0].x * Weight[1].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[1].y ), 0 ) * Weight[1].x * Weight[1].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[1].y ), 0 ) * Weight[2].x * Weight[1].y;
-
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[2].y ), 0 ) * Weight[0].x * Weight[2].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[2].y ), 0 ) * Weight[1].x * Weight[2].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[2].y ), 0 ) * Weight[2].x * Weight[2].y;
-#else
 	// Optimized by removing corner samples
-	OutColor  = Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[0].y ), 0 ) * Weight[1].x * Weight[0].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[1].y ), 0 ) * Weight[0].x * Weight[1].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[1].y ), 0 ) * Weight[1].x * Weight[1].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[1].y ), 0 ) * Weight[2].x * Weight[1].y;
-	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[2].y ), 0 ) * Weight[1].x * Weight[2].y;
+	Samples.UV[0] = float2(Sample[1].x, Sample[0].y);
+	Samples.UV[1] = float2(Sample[0].x, Sample[1].y);
+	Samples.UV[2] = float2(Sample[1].x, Sample[1].y);
+	Samples.UV[3] = float2(Sample[2].x, Sample[1].y);
+	Samples.UV[4] = float2(Sample[1].x, Sample[2].y);
+	
+	Samples.Weight[0] = Weight[1].x * Weight[0].y;
+	Samples.Weight[1] = Weight[0].x * Weight[1].y;
+	Samples.Weight[2] = Weight[1].x * Weight[1].y;
+	Samples.Weight[3] = Weight[2].x * Weight[1].y;
+	Samples.Weight[4] = Weight[1].x * Weight[2].y;
+
+	Samples.UVDir[0] = int2(0, -1);
+	Samples.UVDir[1] = int2(-1, 0);
+	Samples.UVDir[2] = int2(0, 0);
+	Samples.UVDir[3] = int2(1, 0);
+	Samples.UVDir[4] = int2(0, 1);
 
 	// Reweight after removing the corners
 	float CornerWeights;
-	CornerWeights  = Weight[1].x * Weight[0].y;
-	CornerWeights += Weight[0].x * Weight[1].y;
-	CornerWeights += Weight[1].x * Weight[1].y;
-	CornerWeights += Weight[2].x * Weight[1].y;
-	CornerWeights += Weight[1].x * Weight[2].y;
-	OutColor /= CornerWeights;
-#endif
+	CornerWeights  = Samples.Weight[0];
+	CornerWeights += Samples.Weight[1];
+	CornerWeights += Samples.Weight[2];
+	CornerWeights += Samples.Weight[3];
+	CornerWeights += Samples.Weight[4];
+	Samples.FinalMultiplier = 1 / CornerWeights;
+
+	return Samples;
+}
+
+MaterialFloat4 Texture2DSampleBicubic( Texture2D Tex, SamplerState Sampler, float2 UV, float2 Size, in float2 InvSize )
+{
+	FCatmullRomSamples Samples = GetBicubic2DCatmullRomSamples(UV, Size, InvSize);
+
+	float4 OutColor = 0;
+	for (uint i = 0; i < Samples.Count; i++)
+	{
+		OutColor += Tex.SampleLevel(Sampler, Samples.UV[i], 0) * Samples.Weight[i];
+	}
+	OutColor *= Samples.FinalMultiplier;
+
 	return OutColor;
 }
 
@@ -1209,6 +1242,13 @@ float2 BufferUVToViewportUV(float2 BufferUV)
 	float2 PixelPos = BufferUV.xy * View.BufferSizeAndInvSize.xy - View.ViewRectMin.xy;
 	return PixelPos.xy * View.ViewSizeAndInvSize.zw;
 }
+
+float2 ViewportUVToBufferUV(float2 ViewportUV)
+{
+	float2 PixelPos = ViewportUV * View.ViewSizeAndInvSize.xy;
+	return (PixelPos + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
+}
+
 // ----------------------------
 
 /** 

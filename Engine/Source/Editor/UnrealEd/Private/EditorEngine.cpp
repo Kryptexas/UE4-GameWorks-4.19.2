@@ -197,6 +197,8 @@
 #include "LauncherPlatformModule.h"
 #include "Engine/MapBuildDataRegistry.h"
 
+#include "DynamicResolutionState.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -1575,9 +1577,18 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// if we have the side-by-side world for "Play From Here", tick it unless we are ensuring slate is responsive
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{
-		for (auto ContextIt = WorldList.CreateIterator(); ContextIt; ++ContextIt)
+		// Count number of worlds that tick.
+		int32 TickingWorldCount = false;
+		for (const FWorldContext& PieContext : WorldList)
 		{
-			FWorldContext &PieContext = *ContextIt;
+			if (PieContext.WorldType == EWorldType::PIE && PieContext.World() != NULL)
+			{
+				TickingWorldCount += 1;
+			}
+		}
+
+		for (FWorldContext& PieContext : WorldList)
+		{
 			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL || !PieContext.World()->ShouldTick())
 			{
 				continue;
@@ -1591,6 +1602,17 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			UWorld* OldGWorld = NULL;
 			// Use the PlayWorld as the GWorld, because who knows what will happen in the Tick.
 			OldGWorld = SetPlayInEditorWorld( PlayWorld );
+
+			// Begin's dynamic resolution frame before any ticking of the world.
+			// Notes:
+			//  - We don't support dynamic resolution for multiple-world PIE, since the dynamic resolution state assume only
+			//	  one world ticking as we do in game builds.
+			//  - We don't support dynamic resolution in simulate because only implemented in FGameViewportClient and must remain so.
+			//	- We don't emit Begin frame when the world is paused.
+			if (TickingWorldCount == 1 && PieContext.GameViewport && !PieContext.GameViewport->IsSimulateInEditorViewport() && PlayWorld->IsCameraMoveable())
+			{
+				EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
+			}
 
 			// Transfer debug references to ensure debugging ref's are valid for this tick in case of multiple game instances.
 			if (OldGWorld && OldGWorld != PlayWorld)
@@ -3825,6 +3847,31 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 	World->UpdateAllSkyCaptures();
 
 	TArray<ULevel*> LightingScenarios;
+	
+	// The list of scene capture component from hidden levels to keep.
+	TSet<FGuid> ResourcesToKeep; 
+	for (ULevel* Level : World->GetLevels())
+	{
+		check(Level);
+		// If the level is hidden and not a lighting scenario, scene capture data from this level should be preserved.
+		if (!Level->bIsVisible && !Level->bIsLightingScenario)
+		{
+			for (const AActor* Actor : Level->Actors)
+			{
+				if (Actor)
+				{
+					for (const UActorComponent* Component : Actor->GetComponents())
+					{
+						const UReflectionCaptureComponent* ReflectionCaptureComponent = Cast<UReflectionCaptureComponent>(Component);
+						if (ReflectionCaptureComponent)
+						{
+							ResourcesToKeep.Add(ReflectionCaptureComponent->MapBuildDataId);
+						}
+					}
+				}
+			}
+		}
+	}
 
 	for (ULevel* Level : World->GetLevels())
 	{
@@ -3833,7 +3880,7 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 			if (Level->MapBuildData)
 			{
 				// Remove all existing reflection capture data from visible levels before the build
-				Level->MapBuildData->InvalidateReflectionCaptures();
+				Level->MapBuildData->InvalidateReflectionCaptures(Level->bIsLightingScenario ? &ResourcesToKeep : nullptr);
 			}
 
 			if (Level->bIsLightingScenario)
@@ -3847,6 +3894,7 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 	{
 		// No lighting scenario levels present, add a null entry to represent the default case
 		LightingScenarios.Add(nullptr);
+		ResourcesToKeep.Empty();
 	}
 
 	// All but the first scenario start hidden
@@ -3879,7 +3927,8 @@ void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 			if (CaptureComponent->GetOwner()
 				&& World->ContainsActor(CaptureComponent->GetOwner()) 
 				&& !CaptureComponent->GetOwner()->bHiddenEdLevel
-				&& !CaptureComponent->IsPendingKill())
+				&& !CaptureComponent->IsPendingKill()
+				&& !ResourcesToKeep.Contains(CaptureComponent->MapBuildDataId))
 			{
 				// Queue an update
 				// Note InvalidateReflectionCaptures will guarantee this is a recapture, we don't want old data to persist

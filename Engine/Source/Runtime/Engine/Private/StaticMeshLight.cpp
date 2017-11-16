@@ -351,6 +351,14 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 		}
 	}
 }
+
+void UStaticMeshComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
+{
+	for (const FStaticMeshComponentLODInfo& ComponentLODInfo : LODData)
+	{
+		InGUIDs.Add(ComponentLODInfo.MapBuildDataId);
+	}
+}
 #endif
 
 

@@ -65,7 +65,6 @@ public:
 			DistortionTexture.Bind(Initializer.ParameterMap, TEXT("DistortionTexture"));
 			SceneColorTexture.Bind(Initializer.ParameterMap, TEXT("SceneColorTexture"));
 		}
-		SceneColorRect.Bind(Initializer.ParameterMap, TEXT("SceneColorRect"));
 		DistortionTextureSampler.Bind(Initializer.ParameterMap,TEXT("DistortionTextureSampler"));
 		SceneColorTextureSampler.Bind(Initializer.ParameterMap,TEXT("SceneColorTextureSampler"));
 	}
@@ -99,20 +98,12 @@ public:
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			SceneColorTextureValue
 			);
-
-		FIntPoint SceneBufferSize = SceneContext.GetBufferSizeXY();
-		FIntRect ViewportRect = Context.GetViewport();
-		FVector4 SceneColorRectValue = FVector4((float)ViewportRect.Min.X/SceneBufferSize.X,
-												(float)ViewportRect.Min.Y/SceneBufferSize.Y,
-												(float)ViewportRect.Max.X/SceneBufferSize.X,
-												(float)ViewportRect.Max.Y/SceneBufferSize.Y);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, SceneColorRect, SceneColorRectValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << DistortionTexture << DistortionTextureSampler << SceneColorTexture << SceneColorTextureSampler << SceneColorRect;
+		Ar << DistortionTexture << DistortionTextureSampler << SceneColorTexture << SceneColorTextureSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -131,7 +122,6 @@ private:
 	FShaderResourceParameter DistortionTextureSampler;
 	FShaderResourceParameter SceneColorTexture;
 	FShaderResourceParameter SceneColorTextureSampler;
-	FShaderParameter SceneColorRect;
 	FShaderParameter DistortionParams;
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -757,7 +747,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::DistortionDynamic));
 
 			DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex, DrawRenderStateLocal,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType(), typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
-			DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 		}
 
 		return true;
@@ -819,7 +809,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 					typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType(),
 					typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType()
 					);
-				DrawingPolicy.DrawMesh(RHICmdList, StaticMesh, BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList, *View, StaticMesh, BatchElementIndex);
 			}
 			BatchElementMask >>= 1;
 			BatchElementIndex++;
@@ -1200,7 +1190,7 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 		
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 
 		TRefCountPtr<IPooledRenderTarget> SceneColorDistorted;
 		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();

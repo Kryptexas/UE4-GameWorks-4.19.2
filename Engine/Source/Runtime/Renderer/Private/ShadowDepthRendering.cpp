@@ -1108,7 +1108,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepthRsm));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderStateLocal,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 				}
 			}
 			else
@@ -1139,7 +1139,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepth));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderStateLocal,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 				}
 			}
 
@@ -1259,7 +1259,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 			BeginMeshDrawEvent(RHICmdList, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::ShadowDepthStatic));
 
 			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(),PolicyContext);
-			SharedDrawingPolicy.DrawMesh(RHICmdList, *Mesh, BatchElementIndex);
+			SharedDrawingPolicy.DrawMesh(RHICmdList, View, *Mesh, BatchElementIndex);
 			INC_DWORD_STAT(STAT_ShadowDynamicPathDrawCalls);
 		}
 
@@ -1500,8 +1500,8 @@ class FShadowParallelCommandListSet : public FParallelCommandListSet
 	EShadowDepthRenderMode RenderMode;
 
 public:
-	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, FProjectedShadowInfo& InProjectedShadowInfo, FSetShadowRenderTargetFunction InSetShadowRenderTargets, EShadowDepthRenderMode RenderModeIn )
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Shadow), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FShadowParallelCommandListSet(const FViewInfo& InView, const FSceneRenderer* InSceneRenderer, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, FProjectedShadowInfo& InProjectedShadowInfo, FSetShadowRenderTargetFunction InSetShadowRenderTargets, EShadowDepthRenderMode RenderModeIn )
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Shadow), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, ProjectedShadowInfo(InProjectedShadowInfo)
 		, SetShadowRenderTargets(InSetShadowRenderTargets)
 		, RenderMode(RenderModeIn)
@@ -1783,7 +1783,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 		{
 			check(RHICmdList.IsImmediate());
 			FRHICommandListImmediate& Immed = static_cast<FRHICommandListImmediate&>(RHICmdList);
-			FShadowParallelCommandListSet ParallelCommandListSet(*FoundView, Immed, CVarRHICmdShadowDeferredContexts.GetValueOnRenderThread() > 0, !bFlush, *this, SetShadowRenderTargets, RenderMode);
+			FShadowParallelCommandListSet ParallelCommandListSet(*FoundView, SceneRenderer, Immed, CVarRHICmdShadowDeferredContexts.GetValueOnRenderThread() > 0, !bFlush, *this, SetShadowRenderTargets, RenderMode);
 
 			// Draw the subject's static elements using static draw lists
 			if (bIsWholeSceneDirectionalShadow && RenderMode != ShadowDepthRenderMode_EmissiveOnly && RenderMode != ShadowDepthRenderMode_GIBlockingVolumes)
@@ -1870,6 +1870,9 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FoundView->ViewRect.Max.Y =  ResolutionY;
 
 	FoundView->ViewMatrices.HackRemoveTemporalAAProjectionJitter();
+
+	// Don't do material texture mip biasing in shadow maps.
+	FoundView->MaterialTextureMipBias = 0;
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	FoundView->CachedViewUniformShaderParameters = MakeUnique<FViewUniformShaderParameters>();

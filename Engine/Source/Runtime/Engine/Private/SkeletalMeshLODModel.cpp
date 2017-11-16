@@ -387,6 +387,15 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshSection& S)
 		{
 			Ar << S.ClothingData;
 		}
+
+        Ar.UsingCustomVersion(FOverlappingVerticesCustomVersion::GUID);
+
+        if (Ar.CustomVer(FOverlappingVerticesCustomVersion::GUID) >= FOverlappingVerticesCustomVersion::DetectOVerlappingVertices)
+        {
+            Ar << S.OverlappingVertices;
+        }
+
+        return Ar;
 	}
 
 	return Ar;

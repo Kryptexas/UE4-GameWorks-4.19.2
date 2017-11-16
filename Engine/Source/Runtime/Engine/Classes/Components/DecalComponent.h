@@ -23,10 +23,12 @@ class ENGINE_API UDecalComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
 	/** Decal material. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Decal)
 	class UMaterialInterface* DecalMaterial;
 
+public:
 	/** 
 	 * Controls the order in which decal elements are rendered.  Higher values draw later (on top). 
 	 * Setting many different sort orders on many different decals prevents sorting by state and can reduce performance.

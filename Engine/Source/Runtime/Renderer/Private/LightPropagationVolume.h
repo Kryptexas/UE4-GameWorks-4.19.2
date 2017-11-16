@@ -265,6 +265,5 @@ bool UseLightPropagationVolumeRT(ERHIFeatureLevel::Type InFeatureLevel);
 
 static inline bool IsLPVSupported(EShaderPlatform Platform)
 {
-	//@todo-rco: This is requires until we add support for byte/append consume buffers on hlslcc
-	return !IsHlslccShaderPlatform(Platform);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (IsD3DPlatform(Platform, true) || IsConsolePlatform(Platform) || IsMetalPlatform(Platform));
 }

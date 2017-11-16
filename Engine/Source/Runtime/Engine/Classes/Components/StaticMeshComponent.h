@@ -424,6 +424,7 @@ public:
 	virtual int32 GetNumMaterials() const override;
 #if WITH_EDITOR
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
+	virtual void AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const override;
 #endif
 	virtual float GetEmissiveBoost(int32 ElementIndex) const override;
 	virtual float GetDiffuseBoost(int32 ElementIndex) const override;

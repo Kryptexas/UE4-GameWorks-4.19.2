@@ -125,6 +125,22 @@ public:
 
 
 public:
+
+	/**
+	 * Gets the current pixel density setting.
+	 */
+	virtual float GetPixelDenity() const { return 1.0f; }
+
+	/**
+	 * Sets the pixel density. This may cause render target resizing.
+	 */
+	virtual void SetPixelDensity(const float NewDensity) { };
+
+	/**
+	* Gets the ideal render target size for the device. See vr.pixeldensity description.
+	*/
+	virtual FIntPoint GetIdealRenderTargetSize() const { return FIntPoint(); }
+
 	/**
 	 * Gets the scaling factor, applied to the post process warping effect
 	 */

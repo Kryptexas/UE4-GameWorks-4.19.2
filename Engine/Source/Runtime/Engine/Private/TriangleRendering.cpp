@@ -215,9 +215,9 @@ void FCanvasTriangleRendererItem::InitTriangleBuffers(FLocalVertexFactory* Verte
 		// create verts. Notice the order is (1, 0, 2)
 		if (bNeedsToSwitchVerticalAxis)
 		{
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 0) = FVector(Tri.V1_Pos.X, View.ViewRect.Height() - Tri.V1_Pos.Y, 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 1) = FVector(Tri.V0_Pos.X, View.ViewRect.Height() - Tri.V0_Pos.Y, 0.0f);
-			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 2) = FVector(Tri.V2_Pos.X, View.ViewRect.Height() - Tri.V2_Pos.Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 0) = FVector(Tri.V1_Pos.X, View.UnscaledViewRect.Height() - Tri.V1_Pos.Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 1) = FVector(Tri.V0_Pos.X, View.UnscaledViewRect.Height() - Tri.V0_Pos.Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * 3 + 2) = FVector(Tri.V2_Pos.X, View.UnscaledViewRect.Height() - Tri.V2_Pos.Y, 0.0f);
 		}
 		else
 		{

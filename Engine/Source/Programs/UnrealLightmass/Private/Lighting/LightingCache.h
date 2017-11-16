@@ -445,6 +445,19 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 				{
 					RecordCollector->AddInfluencingRecord(LightingRecord.Id, RecordWeight);
 				}
+
+				if (bVisualizeIrradianceSamples && bDebugThisSample && BounceNumber == 1)
+				{
+					for (int32 i = 0; i < DebugCacheRecords.Num(); i++)
+					{
+						FDebugLightingCacheRecord& CurrentRecord =  DebugCacheRecords[i];
+
+						if (CurrentRecord.RecordId == LightingRecord.Id)
+						{
+							CurrentRecord.bAffectsSelectedTexel = true;
+						}
+					}
+				}
 			}
 		}
 

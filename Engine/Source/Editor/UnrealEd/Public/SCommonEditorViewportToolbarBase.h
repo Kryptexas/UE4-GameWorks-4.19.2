@@ -151,6 +151,17 @@ private:
 	float OnGetFOVValue() const;
 
 	/**
+	* @return The widget containing the screen percentage.
+	*/
+	TSharedRef<SWidget> GenerateScreenPercentageMenu() const;
+
+	/** Called by the ScreenPercentage slider */
+	int32 OnGetScreenPercentageValue() const;
+
+	/** Called by the ScreenPercentage slider */
+	bool OnScreenPercentageIsEnabled() const;
+
+	/**
 	 * @return The widget containing the far view plane slider.
 	 */
 	TSharedRef<SWidget> GenerateFarViewPlaneMenu() const;
@@ -186,6 +197,9 @@ protected:
 
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	virtual void OnFOVValueChanged(float NewValue) const;
+
+	/** Called when the ScreenPercentage slider is adjusted in the viewport */
+	void OnScreenPercentageValueChanged(int32 NewValue);
 
 private:
 	/** The viewport that we are in */

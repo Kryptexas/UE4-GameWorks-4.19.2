@@ -3,7 +3,8 @@
 #include "Embree.h"
 #include "LightingSystem.h"
 #include "UnrealLightmass.h"
- 
+#include "HAL/PlatformTime.h"
+
 // #pragma optimize( "", off )
 // #define EMBREE_INLINE
 
@@ -390,11 +391,16 @@ void EmbreeFilterFunc4(const void* valid, void* UserPtr, RTCRay4& InRay)
 {
 	FEmbreeRay4& EmbreeRay4 = (FEmbreeRay4&)InRay;
 
+	const FEmbreeGeometry* TestGeometry = (FEmbreeGeometry*)UserPtr;
+
 	for (int32 i = 0; i < 4; i++)
 	{
-		FEmbreeRay SingleRay = EmbreeRay4.BuildSingleRay(i);
-		EmbreeFilterFunc(UserPtr, SingleRay);
-		EmbreeRay4.SetFromSingleRay(SingleRay, i);
+		if (EmbreeRay4.primID[i] != uint32(-1) && EmbreeRay4.geomID[i] == TestGeometry->GeomID)
+		{
+			FEmbreeRay SingleRay = EmbreeRay4.BuildSingleRay(i);
+			EmbreeFilterFunc(UserPtr, SingleRay);
+			EmbreeRay4.SetFromSingleRay(SingleRay, i);
+		}
 	}
 }
 
@@ -517,6 +523,14 @@ FEmbreeAggregateMesh::FEmbreeAggregateMesh(const FScene& InScene):
 
 	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC, (RTCAlgorithmFlags)AlgorithmFlags);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+
+	if (InScene.GeneralSettings.bUseEmbreePacketTracing)
+	{
+#if RTCORE_VERSION_MAJOR >= 2 && RTCORE_VERSION_MINOR >= 14
+		ssize_t SupportsPacketTracing = rtcDeviceGetParameter1i(EmbreeDevice, RTC_CONFIG_INTERSECT4);
+		check(SupportsPacketTracing);
+#endif
+	}
 }
 
 FEmbreeAggregateMesh::~FEmbreeAggregateMesh()
@@ -561,8 +575,13 @@ void FEmbreeAggregateMesh::AddMesh(const FStaticLightingMesh* Mesh, const FStati
 
 void FEmbreeAggregateMesh::PrepareForRaytracing()
 {
+	const double StartTime = FPlatformTime::Seconds();
+
 	rtcCommit(EmbreeScene);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+
+	const float Buildtime = FPlatformTime::Seconds() - StartTime;
+	UE_LOG(LogLightmass, Log, TEXT("Embree Build %.1fs"), Buildtime);
 }
 
 void FEmbreeAggregateMesh::DumpStats() const 

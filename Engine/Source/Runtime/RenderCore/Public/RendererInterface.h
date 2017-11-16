@@ -582,7 +582,7 @@ class FPixelInspectorRequest
 public:
 	FPixelInspectorRequest()
 	{
-		SourcePixelPosition = FIntPoint(-1, -1);
+		SourceViewportUV = FVector2D(-1, -1);
 		BufferIndex = -1;
 		RenderingCommandSend = false;
 		RequestComplete = true;
@@ -593,9 +593,9 @@ public:
 		RequestTickSinceCreation = 0;
 	}
 
-	void SetRequestData(FIntPoint SrcPixelPosition, int32 TargetBufferIndex, int32 ViewUniqueId, int32 GBufferFormat, bool StaticLightingEnable)
+	void SetRequestData(FVector2D SrcViewportUV, int32 TargetBufferIndex, int32 ViewUniqueId, int32 GBufferFormat, bool StaticLightingEnable)
 	{
-		SourcePixelPosition = SrcPixelPosition;
+		SourceViewportUV = SrcViewportUV;
 		BufferIndex = TargetBufferIndex;
 		RenderingCommandSend = false;
 		RequestComplete = false;
@@ -616,7 +616,7 @@ public:
 	int32 FrameCountAfterRenderingCommandSend;
 	int32 RequestTickSinceCreation;
 	bool RequestComplete;
-	FIntPoint SourcePixelPosition;
+	FVector2D SourceViewportUV;
 	int32 BufferIndex;
 	int32 ViewId;
 
@@ -728,9 +728,6 @@ public:
 
 	virtual void RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate) = 0;
 	virtual void RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate) = 0;
-	virtual void RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
-	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) = 0;
-	virtual bool HasPostOpaqueExtentions() const = 0;
 
 	virtual void RegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher) = 0;
 	virtual void UnRegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher) = 0;

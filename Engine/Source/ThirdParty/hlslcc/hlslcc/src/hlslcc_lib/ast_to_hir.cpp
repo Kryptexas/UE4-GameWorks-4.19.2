@@ -2302,6 +2302,11 @@ const glsl_type* ast_type_specifier::glsl_type(const char **name, _mesa_glsl_par
 		type = glsl_type::GetStructuredBufferInstance(this->type_name, InnerType);
 		*name = type->name;
 	}
+	else if (!strcmp(this->type_name, "ByteAddressBuffer") || !strcmp(this->type_name + 2, "ByteAddressBuffer"))
+	{
+		type = glsl_type::GetByteAddressBufferInstance(this->type_name);
+		*name = type->name;
+	}
 	else if (this->inner_type)
 	{
 		// Lazily create sampler or outputstream types with specified return types.
@@ -2900,20 +2905,26 @@ ir_rvalue* ast_declarator_list::hir(exec_list *instructions, struct _mesa_glsl_p
 					"Undeclared variable '%s' cannot be marked "
 					"invariant\n", decl->identifier);
 			}
-			else if ((state->target == vertex_shader)
-				&& (earlier->mode != ir_var_out))
-			{
-				_mesa_glsl_error(&loc, state,
-					"'%s' cannot be marked invariant, vertex shader "
-					"outputs only\n", decl->identifier);
-			}
-			else if ((state->target == fragment_shader)
-				&& (earlier->mode != ir_var_in))
-			{
-				_mesa_glsl_error(&loc, state,
-					"'%s' cannot be marked invariant, fragment shader "
-					"inputs only\n", decl->identifier);
-			}
+            else if ((state->target == vertex_shader)
+                && (earlier->mode != ir_var_out))
+            {
+				if (!state->LanguageSpec->AllowsInvariantBufferTypes() || !earlier->type->sampler_buffer)
+				{
+					_mesa_glsl_error(&loc, state,
+						"'%s' cannot be marked invariant, vertex shader "
+						"outputs only\n", decl->identifier);
+				}
+            }
+            else if ((state->target == fragment_shader)
+                && (earlier->mode != ir_var_in))
+            {
+				if (!state->LanguageSpec->AllowsInvariantBufferTypes() || !earlier->type->sampler_buffer)
+				{
+					_mesa_glsl_error(&loc, state,
+						"'%s' cannot be marked invariant, fragment shader "
+						"inputs only\n", decl->identifier);
+				}
+            }
 			else if (earlier->used)
 			{
 				_mesa_glsl_error(&loc, state,
@@ -3046,26 +3057,32 @@ ir_rvalue* ast_declarator_list::hir(exec_list *instructions, struct _mesa_glsl_p
 
 		if (this->type->qualifier.flags.q.invariant)
 		{
-			if ((state->target == vertex_shader) && !(var->mode == ir_var_out ||
-				var->mode == ir_var_inout))
-			{
+            if ((state->target == vertex_shader) && !(var->mode == ir_var_out ||
+                var->mode == ir_var_inout))
+            {
 				/* FINISHME: Note that this doesn't work for invariant on
-				* a function signature outval
-				*/
-				_mesa_glsl_error(&loc, state,
-					"'%s' cannot be marked invariant, vertex shader "
-					"outputs only\n", var->name);
-			}
-			else if ((state->target == fragment_shader) &&
-				!(var->mode == ir_var_in || var->mode == ir_var_inout))
-			{
-				/* FINISHME: Note that this doesn't work for invariant on
-				* a function signature inval
-				*/
-				_mesa_glsl_error(&loc, state,
-					"'%s' cannot be marked invariant, fragment shader "
-					"inputs only\n", var->name);
-			}
+				 * a function signature outval
+				 */
+				if (!state->LanguageSpec->AllowsInvariantBufferTypes() || !var->type->sampler_buffer)
+				{
+					_mesa_glsl_error(&loc, state,
+									 "'%s' cannot be marked invariant, vertex shader "
+									 "outputs only\n", var->name);
+				}
+            }
+            else if ((state->target == fragment_shader) &&
+                !(var->mode == ir_var_in || var->mode == ir_var_inout))
+            {
+                /* FINISHME: Note that this doesn't work for invariant on
+                * a function signature inval
+                */
+				if (!state->LanguageSpec->AllowsInvariantBufferTypes() || !var->type->sampler_buffer)
+				{
+					_mesa_glsl_error(&loc, state,
+									 "'%s' cannot be marked invariant, fragment shader "
+									 "inputs only\n", var->name);
+				}
+            }
 		}
 
 		if (state->current_function != NULL)

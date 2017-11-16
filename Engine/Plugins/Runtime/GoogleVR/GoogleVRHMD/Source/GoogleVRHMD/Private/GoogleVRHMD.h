@@ -214,7 +214,7 @@ public:
 	/** Get the maximal effective render target size for the current windows size(surface size).
 	 *  This value is got from GVR SDK. Which may change based on the viewer.
 	 */
-	FIntPoint GetGVRMaxRenderTargetSize();
+	FIntPoint GetGVRMaxRenderTargetSize() const;
 
 	/** Set RenderTarget size to the default size and return the value. */
 	FIntPoint SetRenderTargetSizeToDefault();
@@ -325,11 +325,6 @@ private:
 	void SplashScreenDistanceCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void SplashScreenRenderScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void EnableSustainedPerformanceModeHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
-
-	/**
-	Clutch to ensure that changes in r.ScreenPercentage are reflected in render target size.
-	*/
-	void CVarSinkHandler();
 #endif
 public:
 
@@ -381,6 +376,7 @@ private:
 	FQuat		BaseOrientation;
 
 	// Drawing Data
+	float PixelDensity;
 	FIntPoint GVRRenderTargetSize;
 	IRendererModule* RendererModule;
 	uint16* DistortionMeshIndices;
@@ -447,8 +443,6 @@ private:
 	FAutoConsoleCommand SplashScreenDistanceCommand;
 	FAutoConsoleCommand SplashScreenRenderScaleCommand;
 	FAutoConsoleCommand EnableSustainedPerformanceModeCommand;
-
-	FAutoConsoleVariableSink CVarSink;
 #endif
 
 	EHMDTrackingOrigin::Type TrackingOrigin;
@@ -747,6 +741,10 @@ public:
 	/////////////////////////////////////////////////
 	
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
+
+	virtual float GetPixelDenity() const override { return PixelDensity; }
+	virtual void SetPixelDensity(const float NewDensity) override;
+	virtual FIntPoint GetIdealRenderTargetSize() const override { return GetGVRMaxRenderTargetSize(); }
 
 	///////////////////////////////////////////////////////
 	// Begin FSelfRegisteringExec Pure-Virtual Interface //

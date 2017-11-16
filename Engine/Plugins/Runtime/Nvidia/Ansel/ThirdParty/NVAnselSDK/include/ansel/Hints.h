@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright 2015 NVIDIA Corporation. All rights reserved.
+// Copyright 2016 NVIDIA Corporation. All rights reserved.
 
 #pragma once
 #include <cstdint>
@@ -31,6 +31,14 @@
 
 namespace ansel
 {
+    enum BufferType
+    {
+        kBufferTypeHDR = 0,
+        kBufferTypeDepth,
+        kBufferTypeHUDless,
+        kBufferTypeCount
+    };
+
     enum HintType
     {
         kHintTypePreBind,
@@ -44,6 +52,8 @@ namespace ansel
     };
 
     // Call this right before setting HDR render target active
+    // bufferType is an optional argument specifying what type of buffer is this - 
+    // an HDR color buffer, a depth buffer or HUDless buffer. The default option is HDR color buffer.
     // hintType is an optional argument specifying what type of hint is this -
     // it could be called after or before the bind of a buffer that this hint marks.
     // The default option is kHintTypePreBind, which means the hint should be called before 
@@ -54,14 +64,16 @@ namespace ansel
     // means that no such matching is going to happen. The special value of 0 means that
     // Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id
     // known at integration side.
-    ANSEL_SDK_API void markHdrBufferBind(HintType hintType = kHintTypePreBind, uint64_t threadId = kThreadingBehaviourNoMatching);
+    ANSEL_SDK_API void markBufferBind(BufferType bufferType = kBufferTypeHDR, HintType hintType = kHintTypePreBind, uint64_t threadId = kThreadingBehaviourNoMatching);
     // Call this right after the last draw call into the HDR render target
+    // bufferType is an optional argument specifying what type of buffer is this - 
+    // an HDR color buffer, a depth buffer or HUDless buffer. The default option is HDR color buffer.
     // threadId is an optional argument allowing Ansel to match the thread which calls
     // SetRenderTarget (or analogous function, since this is graphics API dependent)
     // to the thread which called the hint. The default value of kNoMatching
     // means that no such matching is going to happen. The special value of 0 means that
     // Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id
     // known at integration side.
-    ANSEL_SDK_API void markHdrBufferFinished(uint64_t threadId = kThreadingBehaviourNoMatching);
+    ANSEL_SDK_API void markBufferFinished(BufferType bufferType = kBufferTypeHDR, uint64_t threadId = kThreadingBehaviourNoMatching);
 }
 

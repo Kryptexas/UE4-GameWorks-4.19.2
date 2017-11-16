@@ -127,6 +127,7 @@ public:
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
 	FShaderParameter DefaultEyeExposure;
+	FShaderParameter ScreenPosToScenePixel;
 
 	/** Initialization constructor. */
 	TPostProcessTonemapVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -136,6 +137,7 @@ public:
 		EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
 		DefaultEyeExposure.Bind(Initializer.ParameterMap, TEXT("DefaultEyeExposure"));
+		ScreenPosToScenePixel.Bind(Initializer.ParameterMap, TEXT("ScreenPosToScenePixel"));
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -191,13 +193,24 @@ public:
 			// Load a default value 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, FixedExposure);
 		}
+
+		{
+			FIntPoint ViewportOffset = Context.SceneColorViewRect.Min;
+			FIntPoint ViewportExtent = Context.SceneColorViewRect.Size();
+			FVector4 ScreenPosToScenePixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f,
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ScreenPosToScenePixel, ScreenPosToScenePixelValue);
+		}
 	}
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << DefaultEyeExposure;
+		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << DefaultEyeExposure << ScreenPosToScenePixel;
 
 		return bShaderHasOutdatedParameters;
 	}

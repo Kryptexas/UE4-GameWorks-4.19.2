@@ -78,6 +78,10 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
 	int32 ConstMipValue;
 
+	/** Whether the texture should be sampled with per view mip biasing for sharper output with Temporal AA. */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
+	uint32 AutomaticViewMipBias : 1;
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;

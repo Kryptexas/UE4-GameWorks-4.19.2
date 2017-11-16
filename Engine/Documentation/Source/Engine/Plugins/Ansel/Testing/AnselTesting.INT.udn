@@ -16,10 +16,6 @@ topic-image:Ansel_Testing_Topic.png
 
 		C:\Program Files\NVIDIA Corporation\Ansel\Tools\NvCameraConfiguration.exe
 
-1. Run the NvCameraEnable.exe application passing it `whitelisting-everything` to allow your game to use Ansel. This persists across reboots and may be reset by typing `whitelisting-default` in place of `whitelisting-everything`.
-
-		"C:\Program Files\NVIDIA Corporation\Ansel\Tools\NvCameraEnable.exe" whitelisting-everything
-
 1. In Unreal Editor, select **Play > Standalone Game** in the Level Editor toolbar to run as a Standalone Game. Ansel will not activate when playing in the Editor.
 
 1. Press **Alt + F2** to activate Ansel photography in the game. When a Session has been successfully started, the game world pauses and the Ansel UI will appear over the game view.

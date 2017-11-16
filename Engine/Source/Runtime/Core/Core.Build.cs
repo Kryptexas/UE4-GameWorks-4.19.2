@@ -78,7 +78,8 @@ public class Core : ModuleRules
 				"zlib");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, 
-				"IntelTBB"
+				"IntelTBB",
+				"IntelVTune"
 				);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)

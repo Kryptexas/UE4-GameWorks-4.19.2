@@ -694,6 +694,9 @@ void FTrackEditorThumbnailCache::SetupViewportEngineFlags()
 
 	InternalViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 
+	// Screen percentage is not supported in thumbnail.
+	InternalViewportClient->EngineShowFlags.ScreenPercentage = false;
+
 	switch (CurrentCache.Quality)
 	{
 	case EThumbnailQuality::Draft:

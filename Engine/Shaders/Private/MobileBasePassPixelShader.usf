@@ -238,44 +238,6 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 }
 #endif //!FULLY_ROUGH
 
-#if USE_EDITOR_COMPOSITING
-bool bEnableEditorPrimitiveDepthTest;
-// depth in the red channel in DeviceZ
-Texture2D		FilteredSceneDepthTexture;
-SamplerState	FilteredSceneDepthTextureSampler;
-#endif
-
-
-#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
-// @return 0:translucent..1:opaque
-float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
-{
-	float Ret = 1;
-
-	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
-	BRANCH
-		if (bEnableEditorPrimitiveDepthTest)
-		{
-			bool bIsPerspective = (ResolvedView.ViewToClip._m33 < 1.0f);
-
-			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - ResolvedView.TemporalAAParams.zw) * ResolvedView.BufferSizeAndInvSize.zw, 0).r;
-
-			float PixelDeviceZ = MaterialParameters.SvPosition.z;
-
-			// Soft Bias with DeviceZ for best quality
-			const float DeviceDepthFade = 0.00005f;
-
-			// 0.5f is to bias around the actual value, 1 or 0 are another option
-			Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
-		}
-
-	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
-	return Ret;
-}
-#endif
-
-
 half3 FrameBufferBlendOp(half4 Source)
 {
 #if (COMPILER_GLSL_ES2)
@@ -636,8 +598,6 @@ void Main(
 		// some material might have an opacity value
 		OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 	#endif
-		// we output premultiplied alpha to we have to darken all 4 channels
-	OutColor *= ClipForEditorPrimitives(MaterialParameters);
 	clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 #else
 	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE && !MATERIALDOMAIN_UI

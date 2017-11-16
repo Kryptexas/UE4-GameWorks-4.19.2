@@ -64,5 +64,10 @@ public:
 	 * @return True if the thumbnail needs to always be redrawn, false if it can be just drawn once and then reused.
 	 */
 	virtual bool AllowsRealtimeThumbnails(UObject* Object) const { return true; }
+
+
+protected:
+	/** Renders the thumbnail's view family. */
+	UNREALED_API static void RenderViewFamily(FCanvas* Canvas, class FSceneViewFamily* ViewFamily);
 };
 

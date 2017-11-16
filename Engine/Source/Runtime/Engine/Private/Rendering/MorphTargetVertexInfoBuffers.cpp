@@ -23,7 +23,15 @@ void FMorphTargetVertexInfoBuffers::InitRHI()
 		RHIUnlockVertexBuffer(MorphDeltasVB);
 		MorphDeltasSRV = RHICreateShaderResourceView(MorphDeltasVB, 2, PF_R16F);
 	}
-
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		void* MorphPermutationsVBData = nullptr;
+		MorphPermutationsVB = RHICreateAndLockVertexBuffer(MorphPermutations.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, MorphPermutationsVBData);
+		FMemory::Memcpy(MorphPermutationsVBData, MorphPermutations.GetData(), MorphPermutations.GetAllocatedSize());
+		RHIUnlockVertexBuffer(MorphPermutationsVB);
+		MorphPermutationsSRV = RHICreateShaderResourceView(MorphPermutationsVB, 4, PF_R32_UINT);
+	}
+	MorphPermutations.Empty();
 	VertexIndices.Empty();
 	MorphDeltas.Empty();
 }

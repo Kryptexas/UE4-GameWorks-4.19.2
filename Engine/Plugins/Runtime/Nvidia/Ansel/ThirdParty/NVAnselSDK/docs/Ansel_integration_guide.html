@@ -51,94 +51,63 @@
               <article class="markdown-body entry-content" itemprop="text" id="grip-content">
                 <h1>
 <a id="user-content-ansel-integration-guide" class="anchor" href="#ansel-integration-guide" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>ANSEL INTEGRATION GUIDE</h1>
-
 <h2>
 <a id="user-content-1-setting-up" class="anchor" href="#1-setting-up" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1. SETTING UP</h2>
-
 <h3>
 <a id="user-content-11-code-compiler-and-linker-configuration" class="anchor" href="#11-code-compiler-and-linker-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.1 CODE, COMPILER, AND LINKER CONFIGURATION</h3>
-
-<p>The include folder in the Ansel SDK contains all the public header files you will need. A top-level include file, 
-AnselSDK.h, is provided for convenience so that you only need to include that one file in your project's code. If you 
-add the path to the Ansel SDK include folder to your project settings this is all you need to gain access to the 
-functionality of the SDK: </p>
-
+<p>The include folder in the Ansel SDK contains all the public header files you will need. A top-level include file, <code>AnselSDK.h</code>, is provided for convenience so that you only need to include that one file in your project's code. If you add the path to the Ansel SDK include folder to your project settings this is all you need to gain access to the functionality of the SDK:</p>
 <div class="highlight highlight-source-c++"><pre>#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>AnselSDK.h<span class="pl-pds">&gt;</span></span></pre></div>
-
-<p>Note that we do not offer Ansel SDK for static linking: this is intentional. However we do provide an option of either
-linking to the Ansel SDK using an import library or delay loading it. The lib folder in the Ansel SDK contains the import 
-libraries for 32-bit and 64-bit architecture DLLs. Based on the targeted platform architecture you must link in the 
-corresponding import library. If you wish to delay load the Ansel SDK, link the AnselSDKLoader static library for appropriate 
-architecture also provided in the lib folder. This method requires you to also call the <code>ansel::loadLibrary(&lt;optional path&gt;)</code> 
-function (see <code>ansel/DelayLoad.h</code> header&gt; before any other call to the Ansel SDK. The function will use the default 
-search rules to locate the SDK DLL or use the provided path (using wide or narrow string, depending on your configuration). 
-All other aspects of the Ansel SDK integration should remain the same and no special workflow is required to work 
-with delay loaded SDK.</p>
-
-<p>The redist folder in the Ansel SDK contains the DLLs for 32-bit and 64-bit architecture. These DLLs must be 
-redistributed with the game - if the game is only offered for 64-bit architecture then only 64-bit DLLs should be 
-redistributed (and similarly for 32-bit).</p>
-
+<p>Note that we do not offer Ansel SDK for static linking: this is intentional. The lib folder in the Ansel SDK contains the import libraries for 32-bit and 64-bit architecture DLLs. Based on the targeted platform architecture you must link in the corresponding import library.</p>
+<p>If you wish to delay load the Ansel SDK, a sample project and source files are provided in the samples folder. You can either link in the resulting static lib that this sample produces or simply include the source files directly in your game. Regardless of which route you choose for delay loading you need to define <code>ANSEL_SDK_DELAYLOAD</code> for the game and call the <code>loadAnselSDKLibrary</code> function that is implemented by the sample. The Ansel SDK needs to be loaded via this function before any call is made to Ansel SDK functions (except the <code>ansel::isAnselAvailable</code> function which can always be called - this function is covered in detail later in this document).  All other aspects of the Ansel SDK integration should remain the same and no special workflow is required once the Ansel SDK has been loaded.</p>
+<p>The redist folder in the Ansel SDK contains the DLLs for 32-bit and 64-bit architecture. These DLLs must be redistributed with the game - if the game is only offered for 64-bit architecture then only 64-bit DLLs should be redistributed (and similarly for 32-bit).</p>
 <h3>
 <a id="user-content-12-machine-configuration" class="anchor" href="#12-machine-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.2 MACHINE CONFIGURATION</h3>
-
-<p>In order to use Ansel you need </p>
-
+<p>In order to use Ansel you need:</p>
 <ul>
 <li>Windows PC with Windows 7 (32-bit or 64-bit) or newer</li>
 <li>GeForce GTX 600 series or newer</li>
-<li>Ansel-ready display driver. Any NVIDIA display driver of version 368.81 or higher will meet this requirement</li>
-<li>A game using Dx11 that has integrated the Ansel SDK</li>
+<li>Ansel-ready display driver. In order to take advantage of all features of a particular version of the SDK a minimum driver version is required. Please consult the <a href="../README.md">README.md</a> included with the SDK for details on this.</li>
+<li>A game using DX11 that has integrated the Ansel SDK</li>
 </ul>
-
 <blockquote>
 <p><strong>NOTE:</strong></p>
-
 <ul>
-<li>Support for Dx12 is coming soon and options for OpenGL are being investigated.</li>
-<li>We currently do not support Ansel for the following NVIDIA GPU / Display configurations 
-
+<li>Support for DX12 is coming soon and options for OpenGL are being investigated.</li>
+<li>Support for Optimus laptops is coming soon.</li>
+<li>We currently do not support Ansel for the following NVIDIA GPU / Display configurations
 <ul>
-<li>SLI</li>
-<li>Optimus / Hybrid</li>
-<li>Surround
-Support for the above is coming soon, though. </li>
+<li>Surround</li>
 </ul>
 </li>
 </ul>
+<p>In previous versions of the SDK a whitelisted GeForce game profile was required to activate Ansel for a particular game. This is no longer required - the integration of SDK 1.3 (or later) with a game is enough to enable Ansel with that game (a corresponding minimum driver version is of course also needed as outlined above).</p>
 </blockquote>
-
-<p><g-emoji alias="warning" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/26a0.png">⚠️</g-emoji> Your game executable needs to be whitelisted by the driver for Ansel activation to succeed. If you do not 
-have a driver with the proper whitelisting you can force whitelisting to succeed for all executables with this command:</p>
-
-<pre lang="ms-dos"><code>NvCameraEnable.exe whitelisting-everything
-</code></pre>
-
-<p>This utility is provided with the SDK. The setting will be persisted - until you perform a clean driver install or call 
-the command again with <code>whitelisting-default</code> option.</p>
-
+<h3>
+<a id="user-content-13-game-engine-configuration" class="anchor" href="#13-game-engine-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>1.3 GAME ENGINE CONFIGURATION</h3>
+<p>Ansel currently supports the following backbuffer formats:</p>
+<div class="highlight highlight-source-c++"><pre>DXGI_FORMAT_R8G8B8A8_UNORM
+DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+DXGI_FORMAT_B8G8R8A8_UNORM
+DXGI_FORMAT_B8G8R8A8_UNORM_SRGB
+DXGI_FORMAT_R10G10B10A2_UNORM</pre></div>
+<p>Additionally, multisampling is supported for all the above formats. If your game is using a format that is not on the list Ansel will produce images with zero for every pixel - i.e. black.</p>
 <h2>
 <a id="user-content-2-integrating-sdk-with-your-game" class="anchor" href="#2-integrating-sdk-with-your-game" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2. INTEGRATING SDK WITH YOUR GAME</h2>
-
-<p>This Ansel SDK uses four major concepts: Configuration, Session, Camera, and optionally Hints. We will go through each of 
-them in turn and build up an example of game integration in the process.</p>
-
+<p>This Ansel SDK uses three major concepts: Configuration, Session and Camera. The Ansel SDK also provides optional Hints and User controls APIs. We will go through each of them in turn and build up an example of game integration in the process.</p>
 <blockquote>
 <p><strong>NOTE:</strong> Please consult the header files in the Ansel SDK for reference style documentation.</p>
 </blockquote>
-
 <h3>
 <a id="user-content-21-configuration" class="anchor" href="#21-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.1 CONFIGURATION</h3>
-
-<p>During the initialization phase of the game the Ansel configuration should be specified. This is done via the 
-<code>ansel::Configuration</code> object.  Please consult the header file, ansel/Configuration.h, for detailed documentation on
-each field and default values for each.  This is how configuration is typically performed:</p>
-
+<p>As the first step in detecting whether a host computer can support Ansel (correct driver, Ansel enabled, etc) the following function should be called:</p>
+<div class="highlight highlight-source-c++"><pre>ANSEL_SDK_API <span class="pl-k">bool</span> <span class="pl-en">isAnselAvailable</span>();</pre></div>
+<p>This function can be called at any time (prior to calling any other function of Ansel) but it should be called after the game has created its graphics device. If called prior to device creation it will always return false. The function above is useful as the first step in determining if Ansel should be initialized for this game session. If delay loading of the Ansel SDK is being used then a game could for instance choose to only load the Ansel SDK library if the above function returned true. Please note that initialization of Ansel for this particular game can still fail during the <code>ansel::setConfiguration</code> call (see below). This means that a game should only advertise Ansel functionality if both <code>ansel::isAnselAvailable</code> returns true and <code>ansel::setConfiguration</code> succeeds.</p>
+<p>During the initialization phase of the game the Ansel configuration should be specified. This is done via the <code>ansel::Configuration</code> object.  Please consult the header file, <code>ansel/Configuration.h</code>, for detailed documentation on each field and default values for each.  This is how configuration is typically performed:</p>
 <div class="highlight highlight-source-c++"><pre>#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>AnselSDK.h<span class="pl-pds">&gt;</span></span>
 ...
-<span class="pl-c">// during initialization phase of game:</span>
+<span class="pl-c"><span class="pl-c">//</span> during initialization phase of game:</span>
 ansel::Configuration config;
-<span class="pl-c">// Configure values that we want different from defaults:</span>
+<span class="pl-c"><span class="pl-c">//</span> Configure values that we want different from defaults:</span>
 config.translationalSpeedInWorldUnitsPerSecond = <span class="pl-c1">5</span>.<span class="pl-c1">0f</span>;
 config.right =   { -axis_left.<span class="pl-smi">x</span>,   -axis_left.<span class="pl-smi">y</span>,   -axis_left.<span class="pl-smi">z</span> };
 config.up =      {  axis_up.<span class="pl-smi">x</span>,      axis_up.<span class="pl-smi">y</span>,      axis_up.<span class="pl-smi">z</span> };
@@ -147,201 +116,159 @@ config.forward = {  axis_forward.<span class="pl-smi">x</span>, axis_forward.<sp
 config.fovType = ansel::<span class="pl-c1">kVerticalFov</span>;
 config.isCameraOffcenteredProjectionSupported = <span class="pl-c1">true</span>;
 config.isCameraRotationSupported = <span class="pl-c1">true</span>;
-config.isCameraTranslationSupported = <span class="pl-c1">true</span>; 
+config.isCameraTranslationSupported = <span class="pl-c1">true</span>;
 config.isCameraFovSupported = <span class="pl-c1">true</span>;
-config.isFilterOutsideSessionAllowed = <span class="pl-c1">false</span>; 
+
+config.gameWindowHandle = hWnd;
+config.titleNameUtf8 = <span class="pl-s"><span class="pl-pds">u8"</span>Best Game Ever<span class="pl-pds">"</span></span>;
 
 config.startSessionCallback = startAnselSessionCallback;
 config.stopSessionCallback = stopAnselSessionCallback;
 config.startCaptureCallback = startAnselCaptureCallback;
 config.stopCaptureCallback = stopAnselCaptureCallback;
 
-<span class="pl-en">ansel::setConfiguration</span>(config);</pre></div>
-
+<span class="pl-k">auto</span> status = ansel::setConfiguration(config);
+<span class="pl-k">if</span> (status != ansel::<span class="pl-c1">kSetConfigurationSuccess</span>)
+  <span class="pl-c"><span class="pl-c">//</span> Report error, keep calm, and carry on</span></pre></div>
 <blockquote>
-<p><strong>NOTE:</strong> Ansel cannot be used until the configuration has been set. It is therefore advisable to perform the configuration 
-soon after the AnselSDK DLL has been loaded.</p>
+<p><strong>NOTE:</strong> Ansel cannot be activated by the player until the configuration has been successfully set. It is therefore advisable to perform the configuration soon after the AnselSDK DLL has been loaded. Also note that a failed <code>setConfiguration</code> call is not catastrophic. It means that Ansel cannot by activated by the player so none of the callbacks or any other parts of the SDK will come into use. The programmer is therefore not burdened with having to wrap Ansel SDK calls for the failure case. It is enough to report it for debugging purposes. The <code>setConfiguration</code> call will never fail if the integration has been performed correctly.</p>
 </blockquote>
-
-<p>Let's go through this particular configuration in order. </p>
-
-<p>Games used different units to represent size - it is therefore not possible in Ansel to have a uniform translational 
-speed that works for all games. This is why you will have to set the translationalSpeedInWorldUnitsPerSecond to a value
-that feels right for your game. Move the camera around once Ansel mode has been activated to test your settings; test it
-also with the accelerator key pressed (see Chapter 3 for Ansel controls)</p>
-
-<p>Note that even though a game must specify how many meters (or fraction of a meter) are in a world unit 
-(see Configuration::metersInWorldUnit) this by itself is not enough to derive a default speed that works well for all 
-games. Some games have large worlds where travel is often performed in vehicles (or on mounts) while other games use 
-much smaller worlds and thus much lower travel speeds.    </p>
-
-<p>Games use different orientations and chirality (handed-ness) for their coordinate systems. The conversion between game 
-coordinate system and Ansel's internal coordinate system is handled internally by Ansel. This greatly simplifies 
-integration for game developers. You must specify the unit vectors for right, up, and forward directions that your game 
-uses as part of the configuration step. Once that is done all orientations exchanged between Ansel SDK and the game will 
-be in the game's coordinate system (see section 2.3 for more details).</p>
-
-<p>Games will either use vertical or horizontal angle to specify the field of view. The default value in the Ansel 
-configuration is horizontal angle but if your game uses vertical angle you must specify ansel::kVerticalFov as the 
-fovType. This will free you from having to convert between the game's field of view and Ansel's internal field of view 
-(see section 2.3 for details).</p>
-
-<p>Not all features of Ansel will necessarily be supported by a game integration. There are also cases where some features 
-of Ansel will be disabled under a particular game scenario. Here we will only discuss the general settings that reflect 
-the Ansel integration with the particular game engine; we will cover specific game scenarios in section 2.2.</p>
-
-<p>In order to support high resolution capture, where screenshots are taken at resolutions higher than display resolution, 
-the game engine needs to support off center projection. In the Configuration object you specify if this feature is 
-supported by this particular game integration via the isCameraOffcenteredProjectionSupported field.  Similarly, 
-support for allowing players to move, orient and zoom the camera is specified via the other Supported fields. We will 
-discuss in detail how support for these features is implemented in section 2.3.</p>
-
-<p>Finally we have the session and capture callbacks. The capture callbacks are optional. Those should only be configured 
-if the game uses non-uniform screen based effects that cause issues in multipart shots. An example of an effect that 
-causes issues is vignette. Applying this effect to all the individual tiles of a highres capture or 360 capture will 
-produce poor results. The startCaptureCallback will be called when the multipart capture sequence starts and can 
-therefore be used to disable vignette. The vignette can then be restored when stopCaptureCallback is called. A game 
-integration could of course chose to disable vignette when Ansel session is started but we recommend against this since 
-it would remove the vignette from regular screen shots (non-multipart shot). Note that all these callbacks receive the 
-value of the userPointer that is specified in the Configuration object.</p>
-
-<p>The session callbacks are mandatory, they are called when a player wants to begin an Ansel session or end a session. 
-Without these callbacks Ansel cannot be activated. We will discuss them in detail in the next section.</p>
-
+<p>Let's go through this particular configuration in order.</p>
+<p>Games used different units to represent size - it is therefore not possible in Ansel to have a uniform translational speed that works for all games. This is why you will have to set the <code>translationalSpeedInWorldUnitsPerSecond</code> to a value that feels right for your game. Move the camera around once Ansel mode has been activated to test your settings; test it also with the accelerator key pressed (see Chapter 3 for Ansel controls)</p>
+<p>Note that even though a game must specify how many meters (or fraction of a meter) are in a world unit (see <code>Configuration::metersInWorldUnit</code>) this by itself is not enough to derive a default speed that works well for all games. Some games have large worlds where travel is often performed in vehicles (or on mounts) while other games use much smaller worlds and thus much lower travel speeds.</p>
+<p>Games use different orientations and chirality (handed-ness) for their coordinate system and camera. The conversion between game and Ansel's internal coordinate system and camera is handled by Ansel. This greatly simplifies integration for game developers. You must specify the unit vectors for right, up, and forward directions that your default oriented game camera uses as part of the configuration step. Once that is done all orientations exchanged between Ansel SDK and the game will be in the game's coordinate system (see section 2.3 for more details). The right, up, and forward directions that you provide must coincide with the default orientation of the game's camera. That is, if no rotation was applied to the camera these are the values of its right, up, and forward axes.</p>
+<p>Games will either use vertical or horizontal angle to specify the field of view. The default value in the Ansel configuration is horizontal angle but if your game uses vertical angle you must specify <code>ansel::kVerticalFov</code> as the fovType. This will free you from having to convert between the game's field of view and Ansel's internal field of view (see section 2.3 for details).</p>
+<p>Not all features of Ansel will necessarily be supported by a game integration. There are also cases where some features of Ansel will be disabled under a particular game scenario. Here we will only discuss the general settings that reflect the Ansel integration with the particular game engine; we will cover specific game scenarios in section 2.2.</p>
+<p>In order to support high resolution capture, where screenshots are taken at resolutions higher than display resolution, the game engine needs to support off center projection. In the <code>Configuration</code> object you specify if this feature is supported by this particular game integration via the <code>isCameraOffcenteredProjectionSupported</code> field.  Similarly, support for allowing players to move, orient and zoom the camera is specified via the other supported fields. We will discuss in detail how support for these features is implemented in section 2.3.</p>
+<p>The game must provide the window handle to its main window (the window that receives focus when the game is active - this is the same window that receives mouse events). Ansel will automatically hide the Windows mouse cursor when Ansel UI is enabled. Restoring the visibility of the Windows cursor cannot be done reliably by Ansel for all games. It is therefore necessary to call Windows API <code>ShowCursor</code> if the game wants the mouse cursor to be visible after the Ansel UI is closed. For completeness a game can call <code>ShowCursor(false)</code> to hide the mouse cursor in the start session callback (this is not necessary) and <code>ShowCursor(true)</code> to restore it in the stop session callback (this may be necessary for your game - of course depending on whether the cursor should be visible for the current game state).</p>
+<p>Finally we have the session and capture callbacks. The capture callbacks are optional. Those should only be configured if the game uses non-uniform screen based effects that cause issues in multipart shots. An example of an effect that causes issues is vignette. Applying this effect to all the individual tiles of a highres capture or 360 capture will produce poor results. The <code>startCaptureCallback</code> will be called when the multipart capture sequence starts and can therefore be used to disable vignette. The <code>startCaptureCallback</code> passes a const reference to a <code>CaptureConfiguration</code> object containing information about the capture about to be taken. The vignette can then be restored when <code>stopCaptureCallback</code> is called. A game integration could of course chose to disable vignette when Ansel session is started but we recommend against this since it would remove the vignette from regular screen shots (non-multipart shot). Note that all these callbacks receive the value of the <code>userPointer</code> that is specified in the <code>Configuration</code> object.</p>
+<p>Usually the version field in the <code>ansel::Configuration</code> structure is default initialized (if an object was created using the default constructor and not aggregate initialization or copy from other object for instance) and doesn't need to be set explicitly. In case an object is not created using the default constructor, the version field needs to be set to <code>ANSEL_SDK_VERSION</code> defined in <code>ansel/Version.h</code>.</p>
+<p>The session callbacks are mandatory, they are called when a player wants to begin an Ansel session or end a session. Without these callbacks Ansel cannot be activated. We will discuss them in detail in the next section.</p>
 <blockquote>
-<p><strong>NOTE:</strong> All callbacks in Ansel will be triggered from calling D3D Present. They will therefore also happen on the same 
-thread that calls D3D Present.</p>
+<p><strong>NOTE:</strong> All callbacks in Ansel will be triggered from calling D3D Present. They will therefore also happen on the same thread that calls D3D Present.</p>
 </blockquote>
-
+<p>The <code>ansel::setConfiguration</code> function returns its status. The possible return values are:</p>
+<div class="highlight highlight-source-c++"><pre>    <span class="pl-k">enum</span> SetConfigurationStatus
+    {
+    	<span class="pl-c"><span class="pl-c">//</span> successfully initialized the Ansel SDK.</span>
+        <span class="pl-c1">kSetConfigurationSuccess</span>,
+	    <span class="pl-c"><span class="pl-c">//</span> the version provided in the Configuration structure is</span>
+        <span class="pl-c"><span class="pl-c">//</span> not the same as the one stored inside the SDK</span>
+        <span class="pl-c"><span class="pl-c">//</span> binary (header/binary mismatch).</span>
+        <span class="pl-c1">kSetConfigurationIncompatibleVersion</span>,
+        <span class="pl-c"><span class="pl-c">//</span> the Configuration structure supplied for the setConfiguration call is</span>
+        <span class="pl-c"><span class="pl-c">//</span> not consistent</span>
+        <span class="pl-c1">kSetConfigurationIncorrectConfiguration</span>,
+		<span class="pl-c"><span class="pl-c">//</span> the Ansel SDK is delay loaded and setConfiguration is called before</span>
+        <span class="pl-c"><span class="pl-c">//</span> the SDK is actually loaded</span>
+        <span class="pl-c1">kSetConfigurationSdkNotLoaded</span>
+    };</pre></div>
+<p>The integration should only continue as normal (with regard to the Ansel functionality at least) when <code>kSetConfigurationSuccess</code> is returned. In case <code>kSetConfigurationIncompatibleVersion</code> is returned, most likely the Ansel SDK binary was obtained without updating the headers, which also contain a version. Every update of the Ansel SDK requires a new build of a game. In case <code>kSetConfigurationIncorrectConfiguration</code> is returned, on of the following fields could be set incorrectly:</p>
+<ul>
+<li>
+<code>right</code>, <code>up</code>, <code>forward</code> vectors do not form an orthogonal basis</li>
+<li>
+<code>startSessionCallback</code> or <code>stopSessionCallback</code> is nullptr</li>
+<li>rotational or translational speed multipliers are zero</li>
+<li>
+<code>fovType</code> is neither horizontal, nor vertical</li>
+<li>
+<code>gameWindowHandle</code> field is not set
+In case <code>kSetConfigurationSdkNotLoaded</code> is returned, the reason is that the Ansel SDK is delay loaded and <code>setConfiguration</code> is called before loading the library via <code>loadAnselSDKLibrary</code> (see code under samples folder).</li>
+</ul>
 <h3>
 <a id="user-content-22-session" class="anchor" href="#22-session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.2 SESSION</h3>
-
-<p>The time period from when a player successfully starts Ansel and until Ansel is stopped is called a session. A session 
-is collaboratively started and operated between the game and Ansel. When a player requests a session start (for example 
-by pressing ALT+F2) Ansel will call the registered session start callback. It is however expected that Ansel cannot 
-always be activated. The game may for instance be on a loading screen or playing a movie sequence. The callback should 
-then immediately return with Ansel::kDisallowed return value. </p>
-
+<p>The time period from when a player successfully starts Ansel and until Ansel is stopped is called a session. A session is collaboratively started and operated between the game and Ansel. When a player requests a session start (for example by pressing ALT+F2) Ansel will call the registered session start callback. It is however expected that Ansel cannot always be activated. The game may for instance be on a loading screen or playing a movie sequence. The callback should then immediately return with <code>Ansel::kDisallowed</code> return value.</p>
 <p>During an Ansel session the game:</p>
-
 <ul>
 <li>Must stop drawing UI and HUD elements on the screen, including mouse cursor</li>
-<li>Must call ansel::updateCamera on every frame (see section 2.3 for details)</li>
+<li>Must call <code>ansel::updateCamera</code> on every frame (see section 2.3 for details)</li>
 <li>Should pause rendering time (i.e. no movement should be visible in the world)</li>
 <li>Should not act on any input from mouse and keyboard and must not act on any input from gamepads</li>
 </ul>
-
 <p>The function signatures of the session related callbacks are listed below.</p>
-
 <div class="highlight highlight-source-c++"><pre><span class="pl-k">enum</span> StartSessionStatus
 {
-    <span class="pl-c1">kDisallowed</span> = <span class="pl-c1">0</span>,
-    <span class="pl-c1">kAllowed</span>
+	<span class="pl-c1">kDisallowed</span> = <span class="pl-c1">0</span>,
+	<span class="pl-c1">kAllowed</span>
 };
 
-<span class="pl-k">typedef</span> <span class="pl-en">StartSessionStatus</span>(*StartSessionCallback)(SessionConfiguration&amp; settings, <span class="pl-k">void</span>* userPointer);
+<span class="pl-k">typedef</span> <span class="pl-en">StartSessionStatus</span>(*StartSessionCallback)(SessionConfiguration&amp; settings,
+                                                  <span class="pl-k">void</span>* userPointer);
 
 <span class="pl-k">typedef</span> <span class="pl-en">void</span>(*StopSessionCallback)(<span class="pl-k">void</span>* userPointer);</pre></div>
-
-<p>As you will notice the start callback receives an additional SessionConfiguration object. This object must reflect the configuration of the currently activated session if Ansel::kAllowed is returned from the callback. Let's take a look at this configuration object:</p>
-
+<p>As you will notice the start callback receives an additional <code>SessionConfiguration</code> object. This object must reflect the configuration of the currently activated session if <code>Ansel::kAllowed</code> is returned from the callback. Let's take a look at this configuration object:</p>
 <div class="highlight highlight-source-c++"><pre><span class="pl-k">struct</span> <span class="pl-en">SessionConfiguration</span>
 {
-    <span class="pl-c">// User can move the camera during session</span>
-      <span class="pl-k">bool</span> isTranslationAllowed;
-    <span class="pl-c">// Camera can be rotated during session</span>
-    <span class="pl-k">bool</span> isRotationAllowed;
-    <span class="pl-c">// FoV can be modified during session</span>
-    <span class="pl-k">bool</span> isFovChangeAllowed;
-    <span class="pl-c">// Game is paused during session</span>
-    <span class="pl-k">bool</span> isPauseAllowed;
-    <span class="pl-c">// Game allows highres capture during session</span>
-    <span class="pl-k">bool</span> isHighresAllowed;
-    <span class="pl-c">// Game allows 360 capture during session</span>
-    <span class="pl-k">bool</span> is360MonoAllowed;
-    <span class="pl-c">// Game allows 360 stereo capture during session</span>
-    <span class="pl-k">bool</span> is360StereoAllowed;
-      <span class="pl-c">// Default constructor not included here</span>
+	<span class="pl-c"><span class="pl-c">//</span> User can move the camera during session</span>
+	<span class="pl-k">bool</span> isTranslationAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> Camera can be rotated during session</span>
+	<span class="pl-k">bool</span> isRotationAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> FoV can be modified during session</span>
+	<span class="pl-k">bool</span> isFovChangeAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> Game is paused during session</span>
+	<span class="pl-k">bool</span> isPauseAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> Game allows highres capture during session</span>
+	<span class="pl-k">bool</span> isHighresAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> Game allows 360 capture during session</span>
+	<span class="pl-k">bool</span> is360MonoAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> Game allows 360 stereo capture during session</span>
+	<span class="pl-k">bool</span> is360StereoAllowed;
+	<span class="pl-c"><span class="pl-c">//</span> The maximum FoV value in degrees displayed in the Ansel UI.</span>
+	<span class="pl-c"><span class="pl-c">//</span> Any value in the range [140, 179] can be specified</span>
+	<span class="pl-c"><span class="pl-c">//</span> and values outside will be clamped to this range.</span>
+	<span class="pl-k">float</span> maximumFovInDegrees;
+	<span class="pl-c"><span class="pl-c">//</span> Default constructor not included here</span>
 };</pre></div>
-
-<p>As you can see each session has fine grained control over what features of Ansel are offered to the player. This is to 
-support different contexts that the game may be in - where some features of Ansel may not be desired. For instance, 
-let's say that a game uses in-engine movie sequences. Ansel could certainly be used to take regular and highres 
-screenshots during those sequences.  However, the game developers may wish to prohibit any player controlled camera 
-movement or 360 captures during those sequences since they could expose geometry that was never built because the 
-sequences have been carefully orchestrated. This is what such a callback could look like:</p>
-
-<div class="highlight highlight-source-c++"><pre>ansel::StartSessionStatus <span class="pl-en">startAnselSessionCallback</span>(ansel::SessionConfiguration&amp; conf, 
-                           <span class="pl-k">void</span>* userPointer)
+<p>As you can see each session has fine grained control over what features of Ansel are offered to the player. This is to support different contexts that the game may be in - where some features of Ansel may not be desired. For instance, let's say that a game uses in-engine movie sequences. Ansel could certainly be used to take regular and highres screenshots during those sequences.  However, the game developers may wish to prohibit any player controlled camera movement or 360 captures during those sequences since they could expose geometry that was never built because the sequences have been carefully orchestrated. This is what such a callback could look like:</p>
+<div class="highlight highlight-source-c++"><pre>ansel::StartSessionStatus <span class="pl-en">startAnselSessionCallback</span>(ansel::SessionConfiguration&amp; conf,
+                                                    <span class="pl-k">void</span>* userPointer)
 {
-    <span class="pl-k">if</span> (isGameLoading || isGameInMenuScreens)
-        <span class="pl-k">return</span> ansel::<span class="pl-c1">kDisallowed</span>;
+	<span class="pl-k">if</span> (isGameLoading || isGameInMenuScreens)
+		<span class="pl-k">return</span> ansel::<span class="pl-c1">kDisallowed</span>;
 
-    <span class="pl-k">if</span> (isGameCutScenePlaying)
-    {
-        conf.<span class="pl-smi">isTranslationAllowed</span> = <span class="pl-c1">false</span>:
-        conf.<span class="pl-smi">isRotationAllowed</span> = <span class="pl-c1">false</span>:
-        conf.<span class="pl-smi">isFovChangeAllowed</span> = <span class="pl-c1">false</span>;
-        conf.<span class="pl-smi">is360MonoAllowed</span> = <span class="pl-c1">false</span>:
-        conf.<span class="pl-smi">is360StereoAllowed</span> = <span class="pl-c1">false</span>;
-    }
+	<span class="pl-k">if</span> (isGameCutScenePlaying)
+	{
+		conf.<span class="pl-smi">isTranslationAllowed</span> = <span class="pl-c1">false</span>;
+		conf.<span class="pl-smi">isRotationAllowed</span> = <span class="pl-c1">false</span>;
+		conf.<span class="pl-smi">isFovChangeAllowed</span> = <span class="pl-c1">false</span>;
+		conf.<span class="pl-smi">is360MonoAllowed</span> = <span class="pl-c1">false</span>;
+		conf.<span class="pl-smi">is360StereoAllowed</span> = <span class="pl-c1">false</span>;
+	}
 
-     g_isAnselSessionActive = <span class="pl-c1">true</span>;
+	 g_isAnselSessionActive = <span class="pl-c1">true</span>;
 
       <span class="pl-k">return</span> ansel::<span class="pl-c1">kAllowed</span>;
 }</pre></div>
-
 <blockquote>
-<p><strong>NOTE:</strong> The final feature set presented in the Ansel UI is always a combination of the global configuration 
-specified via the <code>ansel::Configuration</code> object and the particular session configuration specified via the 
-<code>ansel::SessionConfiguration</code> object. For instance, if off-center projection is not supported by the 
-integration and this is marked as such in the global configuration then the <code>isHighresAllowed</code> setting will 
-have no effect for an Ansel session because the feature is simply not supported by the integration. </p>
-
-<p>Similarly, if <code>isRotationAllowed</code> is set to false for the session then no form of 360 capture will be 
-possible and hence the <code>is360MonoAllowed</code> and <code>is360StereoAllowed</code> will have no effect. In the sample code above we 
-still set them but this is done for clarity and completeness.</p>
+<p><strong>NOTE:</strong> The final feature set presented in the Ansel UI is always a combination of the global configuration specified via the <code>ansel::Configuration</code> object and the particular session configuration specified via the <code>ansel::SessionConfiguration</code> object. For instance, if off-center projection is not supported by the integration and this is marked as such in the global configuration then the <code>isHighresAllowed</code> setting will have no effect for an Ansel session because the feature is simply not supported by the integration.</p>
 </blockquote>
-
-<p>In a session where rendering time cannot be paused this can be communicated with the isPauseAllowed setting. This could 
-for instance be the case in a game that offers multiplayer game modes. That being said, some multiplayer game engines 
-still allow rendering time to be frozen - this just means that the state of the world will have advanced when the Ansel 
-session ends. The stitcher developed for Ansel does not currently support feature detection or other methods used to 
-handle temporal inconsistencies. This means that multipart shots (highres and 360) are not supported during sessions 
-when pause is disallowed.</p>
-
-<p>The stop session callback is called when the player requests to end the session (for instance by pressing ALT+F2). This 
-function is only called if the previous call to start session returned <code>ansel::kAllowed</code>. The matching function to what 
-we implemented above would look like this:</p>
-
+<blockquote>
+<p>Similarly, if <code>isRotationAllowed</code> is set to false for the session then no form of 360 capture will be possible and hence the <code>is360MonoAllowed</code> and <code>is360StereoAllowed</code> will have no effect. In the sample code above we still set them but this is done for clarity and completeness.</p>
+</blockquote>
+<p>In a session where rendering time cannot be paused this can be communicated with the isPauseAllowed setting. This could for instance be the case in a game that offers multiplayer game modes. That being said, some multiplayer game engines still allow rendering time to be frozen - this just means that the state of the world will have advanced when the Ansel session ends. The stitcher developed for Ansel does not currently support feature detection or other methods used to handle temporal inconsistencies. This means that multipart shots (highres and 360) are not supported during sessions when pause is disallowed.</p>
+<p>The stop session callback is called when the player requests to end the session (for instance by pressing ALT+F2). This function is only called if the previous call to start session returned <code>ansel::kAllowed</code>. The matching function to what we implemented above would look like this:</p>
 <div class="highlight highlight-source-c++"><pre><span class="pl-k">void</span> <span class="pl-en">stopAnselSessionCallback</span>(<span class="pl-k">void</span>* userPointer)
 {
-    g_isAnselSessionActive = <span class="pl-c1">false</span>;
+	g_isAnselSessionActive = <span class="pl-c1">false</span>;
 }</pre></div>
-
+<p>A game can trigger a session start or stop (which leads to the above mentioned callbacks being eventually called). This is done using the following interface from <code>Session.h</code>:</p>
+<div class="highlight highlight-source-c++"><pre>ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">startSession</span>();
+ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">stopSession</span>();</pre></div>
+<p>This can be used to enable activation of Ansel UI via gamepad for instance. A game can use its existing gamepad handling to call <code>ansel::startSession()</code> if for instance left-stick is pressed (and a session is not already active). Similarly, <code>ansel::stopSession()</code> should be called when the same action is performed and session is active. The game is expected to track whether a session is active via the start/stop session callbacks that were outlined earlier in this section. Other means of Ansel activation could of course be employed (different keyboard shortcut, etc) and the game could call <code>startSession</code>/<code>stopSession</code> accordingly.</p>
 <h3>
 <a id="user-content-23-camera" class="anchor" href="#23-camera" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.3 CAMERA</h3>
-
-<p>The camera object acts as the communication channel between Ansel and the game. The concepts described earlier are 
-either used for one-off configuration or rare events. Once an Ansel session has been started the game needs to call 
-Ansel on every frame to update the camera. It's helpful to first look at the Camera interface:</p>
-
+<p>The camera object acts as the communication channel between Ansel and the game. The concepts described earlier are either used for one-off configuration or rare events. Once an Ansel session has been started the game needs to call Ansel on every frame to update the camera. It's helpful to first look at the <code>Camera</code> interface:</p>
 <div class="highlight highlight-source-c++"><pre><span class="pl-k">struct</span> <span class="pl-en">Camera</span>
 {
-    nv::Vec3 position;
-    nv::Quat rotation;
-    <span class="pl-k">float</span> fov;
-    <span class="pl-k">float</span> projectionOffsetX, projectionOffsetY;
+	nv::Vec3 position;
+	nv::Quat rotation;
+	<span class="pl-k">float</span> fov;
+	<span class="pl-k">float</span> projectionOffsetX, projectionOffsetY;
 };
 
 ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">updateCamera</span>(Camera&amp; camera);</pre></div>
-
-<p>As noted before the header file contains documentation for each field.  Here it suffices to say that the values are all 
-in the game's coordinate system, since this has been established via the <code>ansel::setConfiguration</code> call 
-(see section 2.1). The field of view, fov, is in degrees and in the format specified during the previously mentioned 
-call. The final two values are used to specify the off-center projection amount. Let's illustrate how this all works 
-with sample code following the earlier session callbacks we had created:</p>
-
+<p>As noted before the header file contains documentation for each field.  Here it suffices to say that the values are all in the game's coordinate system, since this has been established via the <code>ansel::setConfiguration</code> call (see section 2.1). The field of view, fov, is in degrees and in the format specified during the previously mentioned call. The final two values are used to specify the off-center projection amount. Let's illustrate how this all works with sample code following the earlier session callbacks we had created:</p>
 <div class="highlight highlight-source-c++"><pre><span class="pl-k">if</span> (g_isAnselSessionActive)
 {
   <span class="pl-k">if</span> (!was_ansel_in_control)
@@ -359,15 +286,8 @@ with sample code following the earlier session callbacks we had created:</p>
                    game_cam_orientation.<span class="pl-smi">w</span> };
 
   <span class="pl-c1">ansel::updateCamera</span>(cam);
-  <span class="pl-c">// This is where a game would typically perform collision detection</span>
-  <span class="pl-c">// and adjust the values requested by player in cam.position </span>
-
-  <span class="pl-k">if</span> (cam.<span class="pl-smi">projectionOffsetX</span> != <span class="pl-c1">0</span>.<span class="pl-c1">0f</span> ||
-      cam.<span class="pl-smi">projectionOffsetY</span> != <span class="pl-c1">0</span>.<span class="pl-c1">0f</span>))
-  {
-    <span class="pl-c">// modify projection matrices by the offset amounts -</span>
-    <span class="pl-c">// we will explore this in detail separately  </span>
-  }
+  <span class="pl-c"><span class="pl-c">//</span> This is where a game would typically perform collision detection</span>
+  <span class="pl-c"><span class="pl-c">//</span> and adjust the values requested by player in cam.position</span>
 
   game_cam_position.<span class="pl-smi">x</span> = cam.<span class="pl-smi">position</span>.<span class="pl-smi">x</span>;
   game_cam_position.<span class="pl-smi">y</span> = cam.<span class="pl-smi">position</span>.<span class="pl-smi">y</span>;
@@ -380,6 +300,10 @@ with sample code following the earlier session callbacks we had created:</p>
 
   <span class="pl-c1">set_game_fov_vertical_degrees</span>(cam.<span class="pl-smi">fov</span>);
 
+  <span class="pl-c"><span class="pl-c">//</span> modify projection matrices by the offset amounts -</span>
+  <span class="pl-c"><span class="pl-c">//</span> we will explore this in detail separately</span>
+  <span class="pl-c1">offset_game_projection_matrices</span>(cam.<span class="pl-smi">projectionOffsetX</span>, cam.<span class="pl-smi">projectionOffsetY</span>);
+
   <span class="pl-k">return</span>;
 }
 <span class="pl-k">else</span>
@@ -390,77 +314,156 @@ with sample code following the earlier session callbacks we had created:</p>
     was_ansel_in_control = <span class="pl-c1">false</span>;
   }
 }</pre></div>
+<p>The sample above is a full implementation of Ansel support, in the sense that it supports camera translation, camera rotation, changing of field of view, and offset projection. Most rendering engines employ a view matrix; the camera is most often just a game side concept. Fortunately the view matrix is just the inverse of the camera matrix so it's easy to obtain. Remember that the camera matrix is established by transforming the default camera by the camera rotation. Since some code bases use matrices rather than quaternions for rotations we provide a couple of utility functions in the Camera interface:</p>
+<div class="highlight highlight-source-c++"><pre>ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">quaternionToRotationMatrixVectors</span>(<span class="pl-k">const</span> nv::Quat&amp; q,
+                                                     nv::Vec3&amp; right,
+                                                     nv::Vec3&amp; up,
+                                                     nv::Vec3&amp; forward);
 
-<p>The sample above is a full implementation of Ansel support, in the sense that it supports camera translation, camera 
-rotation, changing of field of view, and offset projection.  The sample does however not employ any collision detection 
-or limitation on the camera movement. This is unrealistic since most games will at least want to limit the range the 
-camera can travel. These limitations will always be specific to the game in question and collision handling is best 
-handled by the game using the systems that are already in place. We do therefore not elaborate on this piece here. It 
-should still be noted that Ansel is stateless when it comes to position so the game can adjust the position (based on 
-collision response or constraints) any way it sees fit. The new position will always be communicated to Ansel on the 
-next frame, via <code>ansel::updateCamera</code>.</p>
+ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">rotationMatrixVectorsToQuaternion</span>(<span class="pl-k">const</span> nv::Vec3&amp; right,
+                                                     <span class="pl-k">const</span> nv::Vec3&amp; up,
+                                                     <span class="pl-k">const</span> nv::Vec3&amp; forward,
+                                                     nv::Quat&amp; q);</pre></div>
+<p>The former one can be used to convert the <code>ansel::Camera::rotation</code> to a matrix that can then be used to transform the basis vectors of the game's default oriented camera to establish the camera matrix. The latter can be used to convert the game's camera rotation matrix to a quaternion that can be passed into <code>ansel::Camera::rotation</code> prior to calling <code>ansel::updateCamera</code>.</p>
+<p>Even though the sample above is a full implementation of Ansel support it does however not employ any collision detection or other constraints on the camera movement. This is unrealistic since most games will at least want to limit the range the camera can travel. These limitations will always be specific to the game in question and collision is best handled by the game using the systems that are already in place. We do therefore not elaborate on this piece here. It should still be noted that Ansel is stateless when it comes to position so the game can adjust the position (based on collision response or constraints) any way it sees fit. The new position will always be communicated to Ansel on the next frame, via <code>ansel::updateCamera</code>.</p>
+<p>Another aspect that is not covered in the sample code above is the handling of projection offset. We will explore that aspect in more detail here.</p>
+<p>The <code>projectionOffsetX</code> and <code>projectionOffsetY</code> members of the <code>ansel::Camera</code> specify the amount that the projection matrix needs to be offset by. These values are normalized coordinates applied directly to the projection matrix, they should not need any scaling.   These values are only used by Super Resolution captures - for all other capture types they will be zero.  Expanding on the sample code above:</p>
+<div class="highlight highlight-source-c++"><pre><span class="pl-k">void</span> <span class="pl-en">offset_game_projection_matrices</span>(<span class="pl-k">float</span> offsetX, <span class="pl-k">float</span> offsetY)
+{
+  <span class="pl-c"><span class="pl-c">//</span> In this simple example we only need to modify the projection</span>
+  <span class="pl-c"><span class="pl-c">//</span> matrix associated with the game camera. If the game is doing</span>
+  <span class="pl-c"><span class="pl-c">//</span> clever things like optimizing reflections or shadows based on</span>
+  <span class="pl-c"><span class="pl-c">//</span> projection matrix then those code paths need to take a non-zero</span>
+  <span class="pl-c"><span class="pl-c">//</span> projection offset into account.</span>
 
-<p>Another aspect that is not covered in the sample code above is the handling of projection offset. We will explore that 
-aspect in more detail here.</p>
+  <span class="pl-c"><span class="pl-c">//</span> For nostalgia effect this game is using an old classic:</span>
+  D3DXMATRIX projection;
+  <span class="pl-c1">D3DXMatrixPerspectiveFovRH</span>(&amp;projection, g_fov_radians, g_aspect, g_z_near, g_z_far)
 
-<blockquote>
-<p>NOTE: Need to flesh out projection offset code!</p>
-</blockquote>
+  <span class="pl-c"><span class="pl-c">//</span> Apply the offsets directly to the finished product (values are already normalized):</span>
+  projection.<span class="pl-smi">_31</span> += offsetX;
+  projection.<span class="pl-smi">_32</span> += offsetY;
 
+  <span class="pl-c"><span class="pl-c">//</span> Update the games projection matrix:</span>
+  g_projection_matrix = projection;
+}</pre></div>
 <h3>
 <a id="user-content-24-hints" class="anchor" href="#24-hints" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.4 HINTS</h3>
+<p>To perform Raw capture (to EXR format) Ansel tries to use certain heuristics to detect which of the game buffers contains HDR pixel data. These heuristics won't work for all games. For instance, they won't work for games that use deferred contexts with multithreaded rendering. For those scenarios the hinting API can be used (see <code>ansel/Hints.h</code>). Besides HDR color buffer, Ansel also can also use depth or HUDless buffers to apply effects which needs these types of buffers (e.g. depth of field).</p>
+<p>Below we will outline how the hinting API is used to make capture work under these circumstances. If game developers do not want to use the hinting API to make raw capture work the <code>isRawAllowed</code> setting in the
+<code>ansel::SessionConfiguration</code> should be set to false during the startSession callback. This will disable the 'Raw' option in the Ansel UI.</p>
+<div class="highlight highlight-source-c++"><pre>  <span class="pl-c"><span class="pl-c">//</span> Call this right before setting HDR render target active</span>
+  <span class="pl-c"><span class="pl-c">//</span> bufferType is an optional argument specifying what type of buffer is this -</span>
+  <span class="pl-c"><span class="pl-c">//</span> an HDR color buffer, a depth buffer or HUDless buffer. The default option is HDR color buffer.</span>
+  <span class="pl-c"><span class="pl-c">//</span> hintType is an optional argument specifying what type of hint is this -</span>
+  <span class="pl-c"><span class="pl-c">//</span> it could be called after or before the bind of a buffer that this hint marks.</span>
+  <span class="pl-c"><span class="pl-c">//</span> The default option is kHintTypePreBind, which means the hint should be called before</span>
+  <span class="pl-c"><span class="pl-c">//</span> the render target is bound.</span>
+  <span class="pl-c"><span class="pl-c">//</span> threadId is an optional argument allowing Ansel to match the thread which calls</span>
+  <span class="pl-c"><span class="pl-c">//</span> SetRenderTarget (or analogous function, since this is graphics API dependent)</span>
+  <span class="pl-c"><span class="pl-c">//</span> to the thread which called the hint. The default value of kNoMatching</span>
+  <span class="pl-c"><span class="pl-c">//</span> means that no such matching is going to happen. The special value of 0 means that</span>
+  <span class="pl-c"><span class="pl-c">//</span> Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id</span>
+  <span class="pl-c"><span class="pl-c">//</span> known at integration side.</span>
+  ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">markBufferBind</span>(BufferType bufferType = <span class="pl-c1">kBufferTypeHDR</span>,
+                                    HintType hintType = <span class="pl-c1">kHintTypePreBind</span>,
+                                    <span class="pl-c1">uint64_t</span> threadId = <span class="pl-c1">kThreadingBehaviourNoMatching</span>);
+  <span class="pl-c"><span class="pl-c">//</span> Call this right after the last draw call into the HDR render target</span>
+  <span class="pl-c"><span class="pl-c">//</span> bufferType is an optional argument specifying what type of buffer is this -</span>
+  <span class="pl-c"><span class="pl-c">//</span> an HDR color buffer, a depth buffer or HUDless buffer. The default option is HDR color buffer.</span>
+  <span class="pl-c"><span class="pl-c">//</span> threadId is an optional argument allowing Ansel to match the thread which calls</span>
+  <span class="pl-c"><span class="pl-c">//</span> SetRenderTarget (or analogous function, since this is graphics API dependent)</span>
+  <span class="pl-c"><span class="pl-c">//</span> to the thread which called the hint. The default value of kNoMatching</span>
+  <span class="pl-c"><span class="pl-c">//</span> means that no such matching is going to happen. The special value of 0 means that</span>
+  <span class="pl-c"><span class="pl-c">//</span> Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id</span>
+  <span class="pl-c"><span class="pl-c">//</span> known at integration side.</span>
+  ANSEL_SDK_API <span class="pl-k">void</span> <span class="pl-en">markBufferFinished</span>(BufferType bufferType = <span class="pl-c1">kBufferTypeHDR</span>,
+                                        <span class="pl-c1">uint64_t</span> threadId = <span class="pl-c1">kThreadingBehaviourNoMatching</span>);
+</pre></div>
+<p>To identify the HDR buffer for Ansel call <code>markBufferBind</code> before binding the buffer to the graphics pipeline. In case the buffer contents is not overwritten before calling <code>Present</code> (or <code>glSwapBuffers()</code>) it is fine to not call <code>markBufferFinished</code>. In case the same buffer is reused for other purposes and at the time the <code>Present</code> (or <code>glSwapBuffers</code>) gets called its content does not represent the framebuffer calling <code>markBufferFinished</code> at the moment where the buffer is not used anymore but before it is unbound from the graphics pipeline is necessary. Both functions have threadId argument, which is an optional argument allowing Ansel to match the thread calling a hint and a particular graphics API call that some other game thread might perform. The default value of 0xFFFFFFFFFFFFFFFFull means that no such matching should happen. The special value of 0 means that Ansel SDK is going to match thread ids automatically. Any other value means a specific thread id known at integration side. <code>markBufferBind</code> can be called before or after binding a buffer to the graphics pipeline if appropriate <code>hintType</code> is selected. Use <code>bufferType</code> other than kBufferTypeHDR to mark other types of buffers. It is advisable to mark all types of buffers supported by Ansel SDK, otherwise some of Ansel functions wont work.</p>
+<h3>
+<a id="user-content-25-user-controls" class="anchor" href="#25-user-controls" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>2.5 USER CONTROLS</h3>
+<p>Sometimes a game developer is willing to expose some of the game properties in the Ansel UI. One example of this could be a checkbox allowing to hide and unhide the main character. Another example would be a slider allowing changing the amount of in-game depth of field effect or any other effect. To achieve that the Ansel SDK provides an optional User controls API.</p>
+<p><a href="ImageUserControls.jpg" target="_blank"><img src="ImageUserControls.jpg" alt="User controls example" style="max-width:100%;"></a>{width=25% height=25%}</p>
+<p>The basics of the API look like this:</p>
+<div class="highlight highlight-source-c++"><pre>  <span class="pl-c"><span class="pl-c">//</span> This function adds a user control defined with the UserControlDesc object</span>
+  ANSEL_SDK_API UserControlStatus <span class="pl-en">addUserControl</span>(<span class="pl-k">const</span> UserControlDesc&amp; desc);
+  <span class="pl-c"><span class="pl-c">//</span> Specifies a translation for a control label.</span>
+  <span class="pl-c"><span class="pl-c">//</span> This function requires a valid lang (a-la "en-US", "es-ES", etc) and a label</span>
+  <span class="pl-c"><span class="pl-c">//</span> (non nullptr and non empty string without '\n', '\r' and '\t') encoded in utf8.</span>
+  <span class="pl-c"><span class="pl-c">//</span> The length of the label should not exceed 20 characters not counting the</span>
+  <span class="pl-c"><span class="pl-c">//</span> trailing zero</span>
+  ANSEL_SDK_API UserControlStatus <span class="pl-en">setUserControlLabelLocalization</span>(<span class="pl-c1">uint32_t</span> userControlId,
+                                                                  <span class="pl-k">const</span> <span class="pl-k">char</span>* lang,
+                                                                  <span class="pl-k">const</span> <span class="pl-k">char</span>* labelUtf8);
+  <span class="pl-c"><span class="pl-c">//</span> This function removes a control that was added previously</span>
+  ANSEL_SDK_API UserControlStatus <span class="pl-en">removeUserControl</span>(<span class="pl-c1">uint32_t</span> userControlId);
+  <span class="pl-c"><span class="pl-c">//</span> This function returns the current control value</span>
+  ANSEL_SDK_API UserControlStatus <span class="pl-en">getUserControlValue</span>(<span class="pl-c1">uint32_t</span> userControlId, <span class="pl-k">void</span>* value);
+  <span class="pl-c"><span class="pl-c">//</span> This function sets the current control value</span>
+  ANSEL_SDK_API UserControlStatus <span class="pl-en">setUserControlValue</span>(<span class="pl-c1">uint32_t</span> userControlId, <span class="pl-k">void</span>* value);</pre></div>
+<p>Notice, it is allowed to call any of these functions at any time, even before <code>ansel::setConfiguration</code>. Currently the supported types of controls are a slider and a checkbox. In order to create a control it is required to create an object of <code>ansel::UserControlDesc</code>, set it up appropriately and call the <code>ansel::addUserControl</code> function. The function also requires a callback of type <code>UserControlCallback</code> to be passed. This callback will be called every time user changes the control value in the UI. Please consult the documentation in the headers to learn how to setup the <code>ansel::UserControlDesc</code> structure. It is important to notice that <code>UserControlInfo::value</code> is used both for adding a control and receiving its value. In either case this pointer should never be nullptr. Its lifetime is either limited to the <code>UserControlCallback</code> execution or should be longer than <code>ansel::addUserControl</code> execution.</p>
+<p>Finally, here is an example of how this API could be used to add a checkbox with additional label localizations:</p>
+<div class="highlight highlight-source-c++"><pre>    ansel::UserControlDesc characterCheckbox;
+    characterCheckbox.labelUtf8 = <span class="pl-s"><span class="pl-pds">"</span>Show character<span class="pl-pds">"</span></span>;
+    characterCheckbox.info.userControlId = <span class="pl-c1">0</span>;
+    characterCheckbox.info.userControlType = ansel::<span class="pl-c1">kUserControlBoolean</span>;
+    <span class="pl-k">const</span> <span class="pl-k">bool</span> defaultValue = <span class="pl-c1">true</span>;
+    characterCheckbox.info.value = &amp;defaultValue;
+    characterCheckbox.callback = [](<span class="pl-k">const</span> ansel::UserControlInfo&amp; info) {
+      g_renderCustomUI = *<span class="pl-k">reinterpret_cast</span>&lt;<span class="pl-k">const</span> <span class="pl-k">bool</span>*&gt;(info.<span class="pl-smi">value</span>);
+    };
+    <span class="pl-en">ansel::addUserControl</span>(characterCheckbox);
+    <span class="pl-en">ansel::setUserControlLabelLocalization</span>(characterCheckbox.info.userControlId,
+                                           <span class="pl-s"><span class="pl-pds">"</span>ru-RU<span class="pl-pds">"</span></span>, russianTranslationUtf8);
+    <span class="pl-en">ansel::setUserControlLabelLocalization</span>(characterCheckbox.info.userControlId,
+                                           <span class="pl-s"><span class="pl-pds">"</span>es-ES<span class="pl-pds">"</span></span>, spanishTranslationUtf8);
+    ...</pre></div>
+<p>In order to setup a control with the current value (e.g. time of day) it is recommended to use <code>getUserControlValue</code>/<code>setUserControlValue</code> functions inside startAnselSessionCallback. Here is an example:</p>
+<div class="highlight highlight-source-c++"><pre>    <span class="pl-c"><span class="pl-c">//</span> Ansel SDK initialization</span>
 
-<p>To capture EXR images Ansel tries to use certain heuristics to detect which of the game buffers contains HDR pixel data.
-In order for this to be more robust the game integration is welcome to use optional hints (see ansel/Hints.h)</p>
-
-<pre><code>namespace ansel
-{
-    // Call this right before setting HDR render target active
-    ANSEL_SDK_API void markHdrBufferBind();
-    // Call this right after the last draw call into the HDR render target
-    ANSEL_SDK_API void markHdrBufferFinished();
+    <span class="pl-c"><span class="pl-c">//</span> choose any value for the user control id</span>
+    <span class="pl-k">const</span> <span class="pl-c1">uint32_t</span> timeOfDayUCID = <span class="pl-c1">42u</span>;
+    ansel::UserControlDesc timeOfDaySlider;
+    characterCheckbox.labelUtf8 = <span class="pl-s"><span class="pl-pds">"</span>Time of day<span class="pl-pds">"</span></span>;
+    characterCheckbox.info.userControlId = timeOfDayUCID;
+    characterCheckbox.info.userControlType = ansel::<span class="pl-c1">kUserControlSlider</span>;
+    <span class="pl-k">const</span> <span class="pl-k">float</span> defaultValue = <span class="pl-c1">0</span>.<span class="pl-c1">5f</span>;
+    characterCheckbox.info.value = &amp;defaultValue;
+    characterCheckbox.callback = [](<span class="pl-k">const</span> ansel::UserControlInfo&amp; info) {
+      g_timeOfDay = *<span class="pl-k">reinterpret_cast</span>&lt;<span class="pl-k">const</span> <span class="pl-k">float</span>*&gt;(info.<span class="pl-smi">value</span>);
+    };
+    <span class="pl-en">ansel::addUserControl</span>(timeOfDaySlider);
+    ...
 }
-</code></pre>
 
-<p>In order for Ansel to know exactly which buffer to capture to produce a HDR image the integration needs to call <code>markHdrBufferBind</code>
-before binding the buffer to the graphics pipeline. In case the buffer contents is not overwritten before calling <code>Present</code> 
-(or <code>glSwapBuffers()</code>) it is fine to not call <code>markHdrBufferFinished</code>. In case the same buffer is reused for other 
-purposes and at the time the <code>Present</code> (or <code>glSwapBuffers</code>) gets called its content does not represent the framebuffer 
-calling <code>markHdrBufferFinished</code> at the moment where the buffer is not used anymore but before it is unbound from the graphics
-pipeline is neccessary.</p>
-
+ansel::StartSessionStatus <span class="pl-en">startAnselSessionCallback</span>(
+       ansel::SessionConfiguration&amp; conf, <span class="pl-k">void</span>* userPointer)
+{
+    ...
+    <span class="pl-c"><span class="pl-c">//</span> initialize Ansel UI with the latest true time of day value</span>
+    <span class="pl-c1">ansel::setUserControlValue</span>(timeOfDayUCID, &amp;g_timeOfDay);
+    ....
+}
+</pre></div>
 <h2>
 <a id="user-content-3-taking-pictures-with-ansel" class="anchor" href="#3-taking-pictures-with-ansel" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3. TAKING PICTURES WITH ANSEL</h2>
-
 <h3>
 <a id="user-content-31-activating-and-deactivating-ansel" class="anchor" href="#31-activating-and-deactivating-ansel" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.1 ACTIVATING AND DEACTIVATING ANSEL</h3>
-
-<p>Players can start/stop Ansel session by pressing ALT+F2.</p>
-
+<p>Players can start/stop Ansel session by pressing ALT+F2. Other ways of activation are possible if the game has used the <code>ansel::startSession</code> and <code>ansel::stopSession</code> functions in the Ansel SDK to implement other triggers
+(see section 2.2)</p>
 <h3>
 <a id="user-content-32-moving-the-camera" class="anchor" href="#32-moving-the-camera" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.2 MOVING THE CAMERA</h3>
-
-<p>The camera can be moved via keys WASD and XZ for up/down. The camera can also be moved with the left stick on a gamepad 
-and trigger buttons for up/down. Movement can be accelerated by holding SHIFT on keyboard or depressing right stick on 
-gamepad.</p>
-
+<p>The camera can be moved via keys WASD and XZ for up/down. The camera can also be moved with the left stick on a gamepad and trigger buttons for up/down. Movement can be accelerated by holding SHIFT on keyboard or depressing right stick on gamepad.</p>
 <h3>
 <a id="user-content-33-rotating-the-camera" class="anchor" href="#33-rotating-the-camera" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.3 ROTATING THE CAMERA</h3>
-
-<p>The yaw and pitch of the camera is directly controlled by mouse or right stick on gamepad. The roll of the camera is 
-controlled via the user interface Roll slider.</p>
-
+<p>The yaw and pitch of the camera is directly controlled by mouse or right stick on gamepad. The roll of the camera is adjusted via the user interface Roll slider but can also be controlled directly via shoulder buttons on gamepad.</p>
 <h3>
 <a id="user-content-34-applying-a-filter" class="anchor" href="#34-applying-a-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.4 APPLYING A FILTER</h3>
-
-<p>A number of filters can be selected via the Filter slider. Some filters, like Custom', have additional settings that 
-can be used to adjust the filter even further.</p>
-
+<p>A number of filters can be selected via the Filter slider. Some filters, like 'Custom' have additional settings that can be used to adjust the filter even further.</p>
 <h3>
 <a id="user-content-35-taking-a-picture" class="anchor" href="#35-taking-a-picture" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>3.5 TAKING A PICTURE</h3>
-
 <p>Ansel offers the following capture types (selected via the Capture type slider):</p>
-
 <ul>
 <li>Screenshot</li>
 <li>Highres</li>
@@ -468,185 +471,109 @@ can be used to adjust the filter even further.</p>
 <li>Stereo</li>
 <li>360 Stereo</li>
 </ul>
-
-<p>Not all of these capture types may be available since it depends on the game integration and the current session (see 
-sections 2.1 and 2.2). Once a type has been chosen the picture is taken by pressing Snap button. Some pictures may take 
-significant time to produce, especially highres shots of large dimensions. If the game uses streaming the streaming 
-performance may be affected when shots involving many parts are being stitched together.</p>
-
+<p>Not all of these capture types may be available since it depends on the game integration and the current session (see sections 2.1 and 2.2). Once a type has been chosen the picture is taken by pressing Snap button. Some pictures may take significant time to produce, especially highres shots of large dimensions. If the game uses streaming the streaming performance may be affected when shots involving many parts are being stitched together.</p>
 <blockquote>
-<p><strong>NOTE:</strong>* Not all filters are valid with multipart Capture types (360 and Highres). You may therefore see filters (or 
-aspects of a filter) removed in the final picture.</p>
+<p><strong>NOTE:</strong> Not all filters are valid with multipart Capture types (360 and Highres). You may therefore see filters (or aspects of a filter) removed in the final picture.</p>
 </blockquote>
-
 <h2>
 <a id="user-content-4-troubleshooting-and-debugging-common-problems" class="anchor" href="#4-troubleshooting-and-debugging-common-problems" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4. TROUBLESHOOTING AND DEBUGGING COMMON PROBLEMS</h2>
-
-<p>In this section we collected commonly occurring problems we've seen while integrating Ansel with games. This section can 
-hopefully help you resolve a problem or two.
-It is generally useful to be able to inspect the individual shot tiles that are captured when generating pictures that 
-require multiple shots. Locate the <code>NvCameraConfiguration.exe</code> utility. It can be found inside 
-Program Files\NVIDIA Corporation\Ansel\Tools.</p>
-
+<p>In this section we collected commonly occurring problems we've seen while integrating Ansel with games. This section can hopefully help you resolve a problem or two. It is generally useful to be able to inspect the individual shot tiles that are captured when generating pictures that require multiple shots. Locate the <code>NvCameraConfiguration.exe</code> utility. It can be found inside</p>
 <p>Run the utility. A screen similar to this one should appear:</p>
-
-<p><a href="NvCameraConfiguration.exe_screen.png" target="_blank"><img src="NvCameraConfiguration.exe_screen.png" alt="NvCameraConfiguration utility" style="max-width:100%;"></a></p>
-
-<p>Check the 'Keep Intermediate Shots' option so that you can inspect the individual tiles. You can also pick a different 
-location to store the tiles by changing the 'Temp Directory for Intermediate Shots'.</p>
-
+<p><a href="NvCameraConfiguration.exe_screen.png" target="_blank"><img src="NvCameraConfiguration.exe_screen.png" alt="NvCameraConfiguration utility" style="max-width:100%;"></a>{width=60% height=60%}</p>
+<p>Check the 'Keep Intermediate Shots' option so that you can inspect the individual tiles. You can also pick a different location to store the tiles by changing the 'Temp Directory for Intermediate Shots'.</p>
+<p>Notice the 'Log level' setting. By default this is set to 'Disabled', which means that no logs are produced. If you set this to for instance 'Info' then all log messages with severity Info and higher will be emitted to a log file. Log files are stored in the current users profile directory, inside an 'ansel' folder. The path is <code>%USERPROFILE%\ansel</code>.  Each log file is named after the associated executable and includes a timestamp. Please note that multiple log files can be produced by the same game during one session since each device starts a separate Ansel logging session. That being said only one device (and therefore log file) will be associated with the presentable surface and will thus contain the most helpful information.</p>
 <h3>
-<a id="user-content-41-artefacts-in-multipart-shots" class="anchor" href="#41-artefacts-in-multipart-shots" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1 ARTEFACTS IN MULTIPART SHOTS</h3>
-
+<a id="user-content-41-ansel-cannot-be-activated" class="anchor" href="#41-ansel-cannot-be-activated" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1 ANSEL CANNOT BE ACTIVATED</h3>
+<p>There are a number of configuration issues that can result in Ansel not activating for your game when you press the activation keys (ALT+F2). The following list is helpful in debugging the issue:</p>
+<ol>
+<li>Verify that Ansel is enabled for the machine. You can do this by running the <code>NvCameraEnable.exe</code> utility with no arguments (this tool was introduced in section 1.2). It will return <code>1</code> if Ansel is enabled, <code>0</code> otherwise. You can change this setting by issuing <code>NvCameraEnable.exe on</code> or using the GUI tool <code>NvCameraConfiguration.exe</code> that was introduced in the beginning of this chapter.</li>
+<li>If the game executable is not whitelisted for Ansel (by the installed driver) you can disable whitelisting checks as outlined in section 1.2.</li>
+<li>Verify that the hardware and software requirements from sections 1.2 and 1.3 are met by the machine and game.</li>
+<li>If you are running on a Hybrid/Optimus computer that has both a integrated GPU and a discreet NVIDIA GPU, make sure the game is running on the NVIDIA GPU. Use the NVIDIA Control Panel to verify/configure this setting for the game.</li>
+<li>Verify that Ansel is trying to start by setting a breakpoint on the <code>startSessionCallback</code>.</li>
+<li>Depending on which phase is blocking Ansel activation, logging can be helpful. See the beginning of this chapter on how to utilize logging.</li>
+</ol>
+<h3>
+<a id="user-content-42-artefacts-in-multipart-shots" class="anchor" href="#42-artefacts-in-multipart-shots" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2 ARTEFACTS IN MULTIPART SHOTS</h3>
 <p>This is where we cover the most common errors we've seen while capturing multipart shots in games.</p>
-
 <h4>
-<a id="user-content-411-image-tiles-suffer-from-acne" class="anchor" href="#411-image-tiles-suffer-from-acne" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1.1 Image tiles suffer from "acne"</h4>
-
+<a id="user-content-421-image-tiles-suffer-from-acne" class="anchor" href="#421-image-tiles-suffer-from-acne" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2.1 Image tiles suffer from "acne"</h4>
 <p>This is probably best described with images. Here is a tile exhibiting the problem:</p>
-
 <p><a href="ImageAcne.jpg" target="_blank"><img src="ImageAcne.jpg" alt="Image acne" style="max-width:100%;"></a></p>
-
-<p>Note the "acne" to the left of the tree, caused by temporal anti-aliasing. This can be fixed in two different ways. One 
-method is to use the captureSettleLatency field in the configuration object. This field specifies how many frames Ansel 
-should wait when taking multipart shots for the frame to settle - i.e. for any temporal effects to have settled. In this 
-specific case (where the image is taken from) it takes one frame so the value should be 1. This is what the image looks 
-like with that setting:</p>
-
+<p>Note the "acne" to the left of the tree, caused by temporal anti-aliasing. This can be fixed in two different ways. One method is to use the <code>captureSettleLatency</code> field in the configuration object. This field specifies how many frames Ansel should wait when taking multipart shots for the frame to settle - i.e. for any temporal effects to have settled. In this specific case (where the image is taken from) it takes one frame so the value should be 1. This is what the image looks like with that setting:</p>
 <p><a href="ImageWithoutAcne.jpg" target="_blank"><img src="ImageWithoutAcne.jpg" alt="Image without acne" style="max-width:100%;"></a></p>
-
-<p>Another way to solve this problem is to harness the startCapture/stopCapture callbacks to disable temporal AA. This 
-effectively disables the temporal AA feature during the multipart capture sequence.
-Which solution should you use?  Well, it depends. You need to subjectively evaluate how much the temporal AA enhances 
-image quality vs the cost of waiting for the frame to settle. At a settleLatency of 1 the cost is rather small and thus 
-weighs in favor of using that solution.</p>
-
+<p>Another way to solve this problem is to harness the <code>startCapture</code>/<code>stopCapture</code> callbacks to disable temporal AA. This effectively disables the temporal AA feature during the multipart capture sequence.
+Which solution should you use?  Well, it depends. You need to subjectively evaluate how much the temporal AA enhances image quality vs the cost of waiting for the frame to settle. At a <code>captureSettleLatency</code> of 1 the cost is rather small and thus weighs in favor of using that solution.</p>
 <h4>
-<a id="user-content-412-ghosting-everywhere-in-final-picture" class="anchor" href="#412-ghosting-everywhere-in-final-picture" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1.2 Ghosting everywhere in final picture</h4>
-
+<a id="user-content-422-ghosting-everywhere-in-final-picture" class="anchor" href="#422-ghosting-everywhere-in-final-picture" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2.2 Ghosting everywhere in final picture</h4>
 <p>Usually it looks something like this:</p>
-
 <p><a href="GhostingEverywhere.jpg" target="_blank"><img src="GhostingEverywhere.jpg" alt="Ghosting everywhere" style="max-width:100%;"></a></p>
-
-<p>Most often this is the result of incorrect field of view being submitted to Ansel - or error made on conversion or usage 
-of value coming back from Ansel. It is recommended that you match the field of view type between game and Ansel to avoid 
-any conversion mistakes. See section 2.1 on how you can configure Ansel to use the game's field of view.</p>
-
+<p>Most often this is the result of incorrect field of view being submitted to Ansel - or error made on conversion or usage of value coming back from Ansel. It is recommended that you match the field of view type between game and Ansel to avoid any conversion mistakes. See section 2.1 on how you can configure Ansel to use the game's field of view.</p>
 <h4>
-<a id="user-content-413-screen-space-reflections-fade-out-with-increased-highres-capture-resolution" class="anchor" href="#413-screen-space-reflections-fade-out-with-increased-highres-capture-resolution" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1.3 Screen space reflections fade out with increased Highres capture resolution</h4>
-
+<a id="user-content-423-screen-space-reflections-fade-out-with-increased-highres-capture-resolution" class="anchor" href="#423-screen-space-reflections-fade-out-with-increased-highres-capture-resolution" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2.3 Screen space reflections fade out with increased Highres capture resolution</h4>
 <p>Below is a regular screenshot taken with Ansel:</p>
-
 <p><a href="ScreenSpaceReflections.jpg" target="_blank"><img src="ScreenSpaceReflections.jpg" alt="Screen space reflections" style="max-width:100%;"></a></p>
-
-<p>If we now select capture type Highres with a large enough multiplier we get this picture (scaled down in resolution to 
-fit this document):</p>
-
+<p>If we now select capture type Highres with a large enough multiplier we get this picture (scaled down in resolution to fit this document):</p>
 <p><a href="ScreenSpaceReflectionsReduced.jpg" target="_blank"><img src="ScreenSpaceReflectionsReduced.jpg" alt="Screen space reflections reduced" style="max-width:100%;"></a></p>
-
 <p>There is unfortunately no workaround for this problem, it is a limitation of the capture method used.</p>
-
 <h4>
-<a id="user-content-414-its-all-a-blur" class="anchor" href="#414-its-all-a-blur" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1.4 It's all a blur</h4>
-
-<p>Motion blur needs to be disabled during multipart capture. Otherwise results like this can be produced when taking 360 
-picture:</p>
-
+<a id="user-content-424-its-all-a-blur" class="anchor" href="#424-its-all-a-blur" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2.4 It's all a blur</h4>
+<p>Motion blur needs to be disabled during multipart capture. Otherwise results like this can be produced when taking 360 picture:</p>
 <p><a href="Blur.jpg" target="_blank"><img src="Blur.jpg" alt="Blurry capture" style="max-width:100%;"></a></p>
-
 <h4>
-<a id="user-content-415-streaky-reflections" class="anchor" href="#415-streaky-reflections" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.1.5 Streaky reflections</h4>
-
+<a id="user-content-425-streaky-reflections" class="anchor" href="#425-streaky-reflections" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2.5 Streaky reflections</h4>
 <p>When enabling highres capture for your game you may witness results similar to this:</p>
-
 <p><a href="StreakyReflections.jpg" target="_blank"><img src="StreakyReflections.jpg" alt="Streaky reflections in capture" style="max-width:100%;"></a></p>
-
-<p>The reason may be that the projection offset and reduced field of view employed by the highres capture method is not 
-being accounted for in the game's reflection code path.</p>
-
+<p>The reason may be that the projection offset and reduced field of view employed by the highres capture method is not being accounted for in the game's reflection code path.</p>
 <h3>
-<a id="user-content-42-the-view-of-the-world-pops-when-entering-and-exiting-ansel-mode" class="anchor" href="#42-the-view-of-the-world-pops-when-entering-and-exiting-ansel-mode" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.2 THE VIEW OF THE WORLD "POPS" WHEN ENTERING AND EXITING ANSEL MODE</h3>
-
-<p>This is typically due to incorrect field of view being passed on the first frame or due to a screen space effect being 
-disabled when Ansel mode is activated. For the latter it is preferred to deactivate troublesome effects only during 
-multipart captures (via the capture callback).</p>
-
+<a id="user-content-43-the-view-of-the-world-pops-when-entering-and-exiting-ansel-mode" class="anchor" href="#43-the-view-of-the-world-pops-when-entering-and-exiting-ansel-mode" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.3 THE VIEW OF THE WORLD "POPS" WHEN ENTERING AND EXITING ANSEL MODE</h3>
+<p>This is typically due to incorrect field of view being passed on the first frame or due to a screen space effect being disabled when Ansel mode is activated. For the latter it is preferred to deactivate troublesome effects only during multipart captures (via the capture callback).</p>
 <h3>
-<a id="user-content-43-ansel-mouse-cursor-is-not-bound-by-game-window" class="anchor" href="#43-ansel-mouse-cursor-is-not-bound-by-game-window" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.3 ANSEL MOUSE CURSOR IS NOT BOUND BY GAME WINDOW</h3>
-
-<p>This commonly happens for a game that doesn't use a mousetrap or similar system to constrain the system mouse cursor 
-from leaving the game window (when the game has focus). The solution is to pass the window handle during configuration, 
-i.e. set the Configuration::gameWindowHandle to the window handle where the game is processing input messages.</p>
-
+<a id="user-content-44-game-mouse-cursor-is-not-visible-after-returning-to-game-from-ansel" class="anchor" href="#44-game-mouse-cursor-is-not-visible-after-returning-to-game-from-ansel" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.4 GAME MOUSE CURSOR IS NOT VISIBLE AFTER RETURNING TO GAME FROM ANSEL</h3>
+<p>The visible state of the mouse cursor needs to be restored by calling Windows API <code>SetCursor(true)</code> when the Ansel session has ended (after <code>ansel::Configuration::stopSessionCallback</code> is triggered).</p>
 <h3>
-<a id="user-content-44-double-mouse-cursors" class="anchor" href="#44-double-mouse-cursors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.4 DOUBLE MOUSE CURSORS</h3>
-
-<p>Strictly speaking UI and HUD elements must not be rendered when game is in Ansel mode and this includes any cursors. We 
-have however experienced the situation where the game renders a mouse cursor on top of its window when it regains focus. 
-If the game is in Ansel mode this will result in two moving mouse cursors - a very confusing experience indeed.  As 
-mentioned the game shouldn't be rendering a mouse cursor when Ansel is active. That being said we have a mechanism to 
-prevent this from happening - this mechanism is enabled if the game passes its window handle during configuration, in 
-the Configuration::gameWindowHandle field.</p>
-
-<h3>
-<a id="user-content-45-ansel-cannot-be-activated" class="anchor" href="#45-ansel-cannot-be-activated" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.5 ANSEL CANNOT BE ACTIVATED</h3>
-
-<p>Please consult the configuration requirements for Ansel listed in section 1.2. You can verify that Ansel is enabled by 
-using the NvCameraConfiguration.exe utility that was introduced at the beginning of this chapter.  You can also disable 
-whitelisting as outlined in section 1.2. Finally, setting a breakpoint on the startSessionCallback can be used to verify 
-that Ansel is trying to start a session.</p>
-
+<a id="user-content-45-double-mouse-cursors" class="anchor" href="#45-double-mouse-cursors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.5 DOUBLE MOUSE CURSORS</h3>
+<p>Strictly speaking UI and HUD elements must not be rendered when game is in Ansel mode and this includes any cursors. We have however experienced the situation where the game renders a mouse cursor on top of its window when it regains focus. If the game is in Ansel mode this will result in two moving mouse cursors - a very confusing experience indeed.  As mentioned the game shouldn't be rendering a mouse cursor when Ansel is active. That being said we have a mechanism to prevent this from happening - this mechanism is enabled if the game passes its window handle during configuration, in the <code>Configuration::gameWindowHandle</code> field.</p>
 <h3>
 <a id="user-content-46-camera-rotation-or-movement-is-incorrect" class="anchor" href="#46-camera-rotation-or-movement-is-incorrect" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.6 CAMERA ROTATION OR MOVEMENT IS INCORRECT</h3>
-
-<p>Incorrect rotation is best observed with a gamepad - i.e. pushing the joystick left doesn't rotate the view towards the 
-left or pushing the joystick up doesn't rotate the view up.  Incorrect movement can be verified with either keyboard or 
-gamepad. </p>
-
-<p>This problem is usually rooted in incorrect axes provided for right, up, and down directions in the 
-<code>ansel::Configuration</code> struct.  See section 2.1.</p>
-
+<p>Incorrect rotation is best observed with a gamepad - i.e. pushing the joystick left doesn't rotate the view towards the left or pushing the joystick up doesn't rotate the view up.  Incorrect movement can be verified with either keyboard or gamepad.</p>
+<p>This problem is usually rooted in incorrect axes provided for right, up, and down directions in the <code>ansel::Configuration</code> struct.  See section 2.1.</p>
 <h3>
 <a id="user-content-47-camera-rotation-or-movement-is-too-slow--too-fast" class="anchor" href="#47-camera-rotation-or-movement-is-too-slow--too-fast" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.7 CAMERA ROTATION OR MOVEMENT IS TOO SLOW / TOO FAST</h3>
-
-<p>The speed for rotation is set via the <code>rotationalSpeedInDegreesPerSecond</code> field during configuration.  The default value 
-is 45 degrees/second. The speed for movement is set via the <code>translationalSpeedInWorldUnitsPerSecond</code> field during 
-configuration.  The default value is 1 world unit/second.</p>
-
+<p>The speed for rotation is set via the <code>rotationalSpeedInDegreesPerSecond</code> field during configuration.  The default value is 45 degrees/second. The speed for movement is set via the <code>translationalSpeedInWorldUnitsPerSecond</code> field during configuration.  The default value is 1 world unit/second.</p>
+<h3>
+<a id="user-content-48-all-ansel-captures-produce-black-images" class="anchor" href="#48-all-ansel-captures-produce-black-images" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.8 ALL ANSEL CAPTURES PRODUCE BLACK IMAGES</h3>
+<p>This is usually caused by an unsupported backbuffer format. Please consult section 1.3 for a list of supported formats.</p>
+<h3>
+<a id="user-content-49-all-ansel-captures-are-named-after-the-game-executable" class="anchor" href="#49-all-ansel-captures-are-named-after-the-game-executable" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.9 ALL ANSEL CAPTURES ARE NAMED AFTER THE GAME EXECUTABLE</h3>
+<p>This happens because the game does not have a GeForce profile (yet) and a setting for <code>titleNameUtf8</code> was not specified when <code>ansel::setConfiguration</code> was called. It is best to provide a name for the title via <code>titleNameUtf8</code> since this will work regardless of whether the driver being used has a GeForce profile for the game.</p>
+<h3>
+<a id="user-content-49-raw-capture-fails" class="anchor" href="#49-raw-capture-fails" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>4.9 RAW CAPTURE FAILS</h3>
+<p>By default Ansel uses heuristics to try to identify the raw HDR buffer. For some games these heuristics won't work. Section 2.4 contains the information on how to address this.</p>
 <h2>
-<a id="user-content-appendix-a-" class="anchor" href="#appendix-a-" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>APPENDIX A </h2>
-
+<a id="user-content-appendix-a" class="anchor" href="#appendix-a" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>APPENDIX A</h2>
 <h3>
 <a id="user-content-notice" class="anchor" href="#notice" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Notice</h3>
-
-<p>The information provided in this specification is believed to be accurate and reliable as of the date provided. However, 
-NVIDIA Corporation ("NVIDIA") does not give any representations or warranties, expressed or implied, as to the accuracy or completeness of such information. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This publication supersedes and replaces all other specifications for the product that may have been previously supplied.
-NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and other changes to this specification, at any time and/or to discontinue any product or service without notice. Customer should obtain the latest relevant specification before placing orders and should verify that such information is current and complete. 
+<p>The information provided in this specification is believed to be accurate and reliable as of the date provided. However, NVIDIA Corporation ("NVIDIA") does not give any representations or warranties, expressed or implied, as to the accuracy or completeness of such information. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This publication supersedes and replaces all other specifications for the product that may have been previously supplied.
+NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and other changes to this specification, at any time and/or to discontinue any product or service without notice. Customer should obtain the latest relevant specification before placing orders and should verify that such information is current and complete.
 NVIDIA products are sold subject to the NVIDIA standard terms and conditions of sale supplied at the time of order acknowledgement, unless otherwise agreed in an individual sales agreement signed by authorized representatives of NVIDIA and customer. NVIDIA hereby expressly objects to applying any customer general terms and conditions with regard to the purchase of the NVIDIA product referenced in this specification.
-NVIDIA products are not designed, authorized or warranted to be suitable for use in medical, military, aircraft, space or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer's own risk. 
-NVIDIA makes no representation or warranty that products based on these specifications will be suitable for any specified use without further testing or modification. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer's sole responsibility to ensure the product is suitable and fit for the application planned by customer and to do the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer's product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this specification. NVIDIA does not accept any liability related to any default, damage, costs or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this specification, or (ii) customer product designs. 
-No license, either expressed or implied, is granted under any NVIDIA patent right, copyright, or other NVIDIA intellectual property right under this specification. Information published by NVIDIA regarding third-party products or services does not constitute a license from NVIDIA to use such products or services or a warranty or endorsement thereof. Use of such information may require a license from a third party under the patents or other intellectual property rights of the third party, or a license from NVIDIA under the patents or other intellectual property rights of NVIDIA. Reproduction of information in this specification is permissible only if reproduction is approved by NVIDIA in writing, is reproduced without alteration, and is accompanied by all associated conditions, limitations, and notices. 
+NVIDIA products are not designed, authorized or warranted to be suitable for use in medical, military, aircraft, space or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer's own risk.
+NVIDIA makes no representation or warranty that products based on these specifications will be suitable for any specified use without further testing or modification. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer's sole responsibility to ensure the product is suitable and fit for the application planned by customer and to do the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer's product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this specification. NVIDIA does not accept any liability related to any default, damage, costs or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this specification, or (ii) customer product designs.
+No license, either expressed or implied, is granted under any NVIDIA patent right, copyright, or other NVIDIA intellectual property right under this specification. Information published by NVIDIA regarding third-party products or services does not constitute a license from NVIDIA to use such products or services or a warranty or endorsement thereof. Use of such information may require a license from a third party under the patents or other intellectual property rights of the third party, or a license from NVIDIA under the patents or other intellectual property rights of NVIDIA. Reproduction of information in this specification is permissible only if reproduction is approved by NVIDIA in writing, is reproduced without alteration, and is accompanied by all associated conditions, limitations, and notices.
 ALL NVIDIA DESIGN SPECIFICATIONS, REFERENCE BOARDS, FILES, DRAWINGS, DIAGNOSTICS, LISTS, AND OTHER DOCUMENTS (TOGETHER AND SEPARATELY, "MATERIALS") ARE BEING PROVIDED "AS IS." NVIDIA MAKES NO WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO THE MATERIALS, AND EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES OF NONINFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE. Notwithstanding any damages that customer might incur for any reason whatsoever, NVIDIA's aggregate and cumulative liability towards customer for the products described herein shall be limited in accordance with the NVIDIA terms and conditions of sale for the product.</p>
-
 <p>VESA DisplayPort
 DisplayPort and DisplayPort Compliance Logo, DisplayPort Compliance Logo for Dual-mode Sources, and DisplayPort Compliance Logo for Active Cables are trademarks owned by the Video Electronics Standards Association in the United States and other countries.</p>
-
 <p>HDMI
 HDMI, the HDMI logo, and High-Definition Multimedia Interface are trademarks or registered trademarks of HDMI Licensing LLC.</p>
-
 <p>ROVI Compliance Statement
 NVIDIA Products that support Rovi Corporation's Revision 7.1.L1 Anti-Copy Process (ACP) encoding technology can only be sold or distributed to buyers with a valid and existing authorization from ROVI to purchase and incorporate the device into buyer's products.
 This device is protected by U.S. patent numbers 6,516,132; 5,583,936; 6,836,549; 7,050,698; and 7,492,896 and other intellectual property rights.  The use of ROVI Corporation's copy protection technology in the device must be authorized by ROVI Corporation and is intended for home and other limited pay-per-view uses only, unless otherwise authorized in writing by ROVI Corporation.  Reverse engineering or disassembly is prohibited.</p>
-
 <p>OpenCL
 OpenCL is a trademark of Apple Inc. used under license to the Khronos Group Inc.</p>
-
 <p>Trademarks
 NVIDIA and the NVIDIA logo are trademarks and/or registered trademarks of NVIDIA Corporation in the U.S. and other countries. Other company and product names may be trademarks of the respective companies with which they are associated.</p>
-
-<p>Copyright 
-(c) 2016 NVIDIA Corporation. All rights reserved.  </p>
-
+<p>Copyright
+(c) 2016 NVIDIA Corporation. All rights reserved.</p>
 <p><a href="http://www.nvidia.com">www.nvidia.com</a></p>
 
               </article>

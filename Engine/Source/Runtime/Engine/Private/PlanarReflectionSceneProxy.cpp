@@ -36,8 +36,8 @@ FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionCompon
 	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV[0], 0);
 	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV[1], 1);
 
-	ScreenScaleBias[0] = Component->GetScreenScaleBias(0);
-	ScreenScaleBias[1] = Component->GetScreenScaleBias(1);
+	ViewRect[0] = FIntRect(-1, -1, -1, -1);
+	ViewRect[1] = FIntRect(-1, -1, -1, -1);
 
 	OwnerName = Component->GetOwner() ? Component->GetOwner()->GetFName() : NAME_None;
 

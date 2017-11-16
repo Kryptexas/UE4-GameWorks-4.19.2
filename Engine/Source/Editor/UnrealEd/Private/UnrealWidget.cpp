@@ -1985,7 +1985,7 @@ void FWidget::CacheRotationHUDText(const FSceneView* View, FPrimitiveDrawInterfa
 		FVector PotentialTextPosition = InLocation + (TextDistance)*AxisVectors[i];
 		if(View->ScreenToPixel(View->WorldToScreen(PotentialTextPosition), HUDInfoPos))
 		{
-			if (FMath::IsWithin<float>(HUDInfoPos.X, 0, View->ViewRect.Width()) && FMath::IsWithin<float>(HUDInfoPos.Y, 0, View->ViewRect.Height()))
+			if (FMath::IsWithin<float>(HUDInfoPos.X, 0, View->UnscaledViewRect.Width()) && FMath::IsWithin<float>(HUDInfoPos.Y, 0, View->UnscaledViewRect.Height()))
 			{
 				//only valid screen locations get a valid string
 				HUDString = FString::Printf(TEXT("%3.2f"), AngleOfChange);

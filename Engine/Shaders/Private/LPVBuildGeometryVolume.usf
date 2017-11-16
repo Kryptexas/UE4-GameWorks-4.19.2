@@ -36,7 +36,8 @@ void CSBuildGeometryVolume(uint3 DTid : SV_DispatchThreadID)
 	int index = GetGridAddress( DTid );
 	if ( index == -1 ) return;
 
-	uint listIndex = gGvListHeadBuffer.Load( index*4 ) - 1; // 0-terminated lists to prevent infinite recursion
+	const uint StoreIndexOffset = LPV_STORE_INDEX_IN_HEAD_BUFFER ? LPV_HEAD_BUFFER_START_OFFSET : 0;
+	int listIndex = int(gGvListHeadBuffer.Load( (StoreIndexOffset+index)*4 ))-1;
 
 	GeometryVolumeEntry cell;
 
@@ -72,7 +73,7 @@ void CSBuildGeometryVolume(uint3 DTid : SV_DispatchThreadID)
 	}
 
 #if LPV_MULTIPLE_BOUNCES_ENABLED
-	count = max(count,1);
+	count = max(count,1u);
 	cell.color /= (float)(count);
 #endif
 

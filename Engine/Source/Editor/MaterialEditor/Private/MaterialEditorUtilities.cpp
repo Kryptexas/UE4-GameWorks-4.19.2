@@ -242,7 +242,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 	}
 }
 
-bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
+bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& bOutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
 {
 	// Trace any re-route nodes between the input pin and the actual expression
 	UMaterialExpression* TracedExpression = SwitchValueExpression;
@@ -263,37 +263,53 @@ bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance*
 		const FFunctionExpressionInput* MatchingInput = FindInputById(FunctionInputExpression, *FunctionInputs);
 		if (MatchingInput && (MatchingInput->Input.Expression || !FunctionInputExpression->bUsePreviewValueAsDefault))
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, OutValue, OutExpressionID, FunctionStack);
+			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, bOutValue, OutExpressionID, FunctionStack);
 		}
 		else
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, OutValue, OutExpressionID, FunctionStack);
+			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, bOutValue, OutExpressionID, FunctionStack);
 		}
 
 		FunctionStack.Push(TopmostFunctionState);
 	}
 
-	if(TracedExpression)
+	if (TracedExpression)
 	{
 		UMaterialExpressionStaticBoolParameter* SwitchParamValue = Cast<UMaterialExpressionStaticBoolParameter>(TracedExpression);
+		UMaterialExpressionStaticBool* StaticBoolValue = Cast<UMaterialExpressionStaticBool>(TracedExpression);
+		UMaterialExpressionStaticSwitch* StaticSwitchValue = Cast<UMaterialExpressionStaticSwitch>(TracedExpression);
 
-		if(SwitchParamValue)
+		if (SwitchParamValue)
 		{
 			// Use the current stack state's parameter association
 			FMaterialParameterInfo ParamInfo = FunctionStack.Top()->StackParameterInfo;
 			ParamInfo.Name = SwitchParamValue->ParameterName;
-			MaterialInstance->GetStaticSwitchParameterValue(ParamInfo, OutValue, OutExpressionID);
+			MaterialInstance->GetStaticSwitchParameterValue(ParamInfo, bOutValue, OutExpressionID);
+			return true;
+		}
+		else if (StaticBoolValue)
+		{
+			bOutValue = StaticBoolValue->Value;
+			return true;
+		}
+		else if (StaticSwitchValue)
+		{
+			bool bSwitchValue = StaticSwitchValue->DefaultValue;
+			GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->Value.Expression, bSwitchValue, OutExpressionID, FunctionStack);
+
+			if (bSwitchValue)
+			{
+				GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->A.Expression, bOutValue, OutExpressionID, FunctionStack);
+			}
+			else
+			{
+				GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->B.Expression, bOutValue, OutExpressionID, FunctionStack);
+			}
+
 			return true;
 		}
 	}
-
-	UMaterialExpressionStaticBool* StaticSwitchValue = Cast<UMaterialExpressionStaticBool>(TracedExpression);
-	if(StaticSwitchValue)
-	{
-		OutValue = StaticSwitchValue->Value;
-		return true;
-	}
-
+	
 	return false;
 }
 

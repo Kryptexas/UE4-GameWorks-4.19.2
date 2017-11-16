@@ -154,7 +154,7 @@ public:
 	virtual FLinearColor GetDirectIntensity(const FVector4& Point, bool bCalculateForIndirectLighting) const;
 
 	/** Returns an intensity scale based on the receiving point. */
-	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const { return 1.0f; }
+	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const { return 1.0f; }
 
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, class FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const = 0;
@@ -361,7 +361,7 @@ public:
 	virtual FLinearColor GetDirectIntensity(const FVector4& Point, bool bCalculateForIndirectLighting) const;
 
 	/** Returns an intensity scale based on the receiving point. */
-	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const;
+	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const;
 
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const;
@@ -441,6 +441,14 @@ public:
 
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const;
+
+	/** Generates a direction sample from the light based on the given rays */
+	virtual void SampleDirection(
+		const TArray<FIndirectPathRay>& IndirectPathRays, 
+		FLMRandomStream& RandomStream, 
+		FLightRay& SampleRay, 
+		float& RayPDF,
+		FLinearColor& Power) const;
 
 protected:
 	float SinOuterConeAngle;
@@ -604,7 +612,7 @@ public:
 	virtual FLinearColor GetDirectIntensity(const FVector4& Point, bool bCalculateForIndirectLighting) const;
 
 	/** Returns an intensity scale based on the receiving point. */
-	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const;
+	virtual float CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const;
 
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const;

@@ -7,8 +7,6 @@
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
 #include "AnalyticsEventAttribute.h"
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "SceneViewport.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "PostProcess/SceneRenderTargets.h"
@@ -28,6 +26,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Misc/EngineVersion.h"
+#include "ClearQuad.h"
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
@@ -47,6 +46,87 @@
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 
 #include "OculusHMDModule.h" // for IsOVRPluginAvailable()
+
+namespace
+{
+
+/**
+ * Screen percentage driver to drive dynamic resolution for TAA upsample and MSAA.
+ */
+class FOculusScreenPercentageDriver : public ISceneViewFamilyScreenPercentage
+{
+public:
+	FOculusScreenPercentageDriver(OculusHMD::FSettingsPtr InSettings, const FSceneViewFamily& InViewFamily)
+		: ViewFamily(InViewFamily)
+	{
+		// Clone settings to avoid thread racing between game thread and rendering thread.
+		Settings = InSettings->Clone();
+
+		check(Settings->bPixelDensityAdaptive);
+		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
+	}
+
+private:
+	// View family to take care of.
+	const FSceneViewFamily& ViewFamily;
+
+	// Copy of the settings to avoid thread racing between game and rendering thread.
+	OculusHMD::FSettingsPtr Settings;
+
+	// Implements ISceneViewFamilyScreenPercentage.
+
+	virtual float GetPrimaryResolutionFractionUpperBound() const override
+	{
+		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
+
+		// Returns 1.0 because return EyeMaxRenderViewport in FHMDOculus::AdjustViewRect().
+		return 1.0f;
+	}
+
+	virtual ISceneViewFamilyScreenPercentage* Fork_GameThread(const class FSceneViewFamily& ForkedViewFamily) const override
+	{
+		return new FOculusScreenPercentageDriver(Settings, ForkedViewFamily);
+	}
+
+	virtual void ComputePrimaryResolutionFractions_RenderThread(TArray<FSceneViewScreenPercentageConfig>& OutViewScreenPercentageConfigs) const override
+	{
+		check(IsInRenderingThread());
+		check(ViewFamily.EngineShowFlags.ScreenPercentage == true);
+
+		for (int32 i = 0; i < OutViewScreenPercentageConfigs.Num(); i++)
+		{
+			const FSceneView* View = ViewFamily.Views[i];
+			check(View->UnconstrainedViewRect == View->UnscaledViewRect);
+
+			const int32 ViewIndex = OculusHMD::ViewIndexFromStereoPass(View->StereoPass);
+
+			// Compute desired resolution fraction.
+			float ResolutionFraction = FMath::Max(
+				float(Settings->EyeRenderViewport[ViewIndex].Width()) / float(Settings->EyeMaxRenderViewport[ViewIndex].Width()),
+				float(Settings->EyeRenderViewport[ViewIndex].Height()) / float(Settings->EyeMaxRenderViewport[ViewIndex].Height()));
+				
+			// Clamp resolution fraction to what the renderer can do.
+			ResolutionFraction = FMath::Clamp(
+				ResolutionFraction,
+				FSceneViewScreenPercentageConfig::kMinResolutionFraction,
+				FSceneViewScreenPercentageConfig::kMaxResolutionFraction);
+
+			// Temporal upsample has a smaller resolution fraction range.
+			if (View->AntiAliasingMethod == AAM_TemporalAA)
+			{
+				ResolutionFraction = FMath::Clamp(
+					ResolutionFraction, 
+					FSceneViewScreenPercentageConfig::kMinTAAUpsampleResolutionFraction,
+					FSceneViewScreenPercentageConfig::kMaxTAAUpsampleResolutionFraction);
+			}
+
+			OutViewScreenPercentageConfigs[i].PrimaryResolutionFraction = ResolutionFraction;
+		}
+	}
+};
+
+} // namespace
+
 
 namespace OculusHMD
 {
@@ -963,6 +1043,24 @@ namespace OculusHMD
 		DrawOcclusionMesh_RenderThread(RHICmdList, StereoPass, VisibleAreaMeshes);
 	}
 
+	float FOculusHMD::GetPixelDenity() const
+	{
+		CheckInGameThread();
+		return Settings->PixelDensity;
+	}
+
+	void FOculusHMD::SetPixelDensity(const float NewDensity)
+	{
+		CheckInGameThread();
+		check(NewDensity > 0.0f);
+		Settings->UpdatePixelDensity(NewDensity);
+	}
+
+	FIntPoint FOculusHMD::GetIdealRenderTargetSize() const
+	{
+		CheckInGameThread();
+		return Settings->RenderTargetSize;
+	}
 
 	bool FOculusHMD::IsStereoEnabled() const
 	{
@@ -998,10 +1096,23 @@ namespace OculusHMD
 		if (Settings.IsValid())
 		{
 			const int32 ViewIndex = ViewIndexFromStereoPass(StereoPass);
-			X = Settings->EyeRenderViewport[ViewIndex].Min.X;
-			Y = Settings->EyeRenderViewport[ViewIndex].Min.Y;
-			SizeX = Settings->EyeRenderViewport[ViewIndex].Size().X;
-			SizeY = Settings->EyeRenderViewport[ViewIndex].Size().Y;
+			if (Settings->bPixelDensityAdaptive)
+			{
+				// When doing Oculus' dynamic resolution, we returns Settings->EyeMaxRenderViewport so that there
+				// is room for the views to not overlap in the view family's render target in case of highest screen
+				// percentage with EPrimaryScreenPercentageMethod::RawOutput in the view family's render target.
+				X = Settings->EyeMaxRenderViewport[ViewIndex].Min.X;
+				Y = Settings->EyeMaxRenderViewport[ViewIndex].Min.Y;
+				SizeX = Settings->EyeMaxRenderViewport[ViewIndex].Size().X;
+				SizeY = Settings->EyeMaxRenderViewport[ViewIndex].Size().Y;
+			}
+			else
+			{
+				X = Settings->EyeRenderViewport[ViewIndex].Min.X;
+				Y = Settings->EyeRenderViewport[ViewIndex].Min.Y;
+				SizeX = Settings->EyeRenderViewport[ViewIndex].Size().X;
+				SizeY = Settings->EyeRenderViewport[ViewIndex].Size().Y;
+			}
 		}
 		else
 		{
@@ -1621,6 +1732,19 @@ namespace OculusHMD
 	{
 		CheckInGameThread();
 
+		InViewFamily.EngineShowFlags.ScreenPercentage = !Settings->bPixelDensityAdaptive;
+
+		// TODO: This is still a work in progress
+		// When doing Oculus' dynamic resolution, we provide a screen percentage handler to plumb down
+		// Settings->EyeMaxRenderViewport through GetPrimaryResolutionFractionUpperBound(), and AdjustViewRect()
+		// returns Settings->EyeMaxRenderViewport so that there is room for views with EPrimaryScreenPercentageMethod::RawOutput.
+		/*
+		if (Settings->bPixelDensityAdaptive)
+		{
+			InViewFamily.SetScreenPercentageInterface(new FOculusScreenPercentageDriver(Settings, InViewFamily));
+		}
+		*/
+
 		if (Settings->Flags.bPauseRendering)
 		{
 			InViewFamily.EngineShowFlags.Rendering = 0;
@@ -1631,17 +1755,6 @@ namespace OculusHMD
 	void FOculusHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 	{
 		CheckInGameThread();
-
-		if (Settings.IsValid() && Settings->IsStereoEnabled())
-		{
-			const int32 ViewIndex = ViewIndexFromStereoPass(InView.StereoPass);
-			InView.ViewRect = Settings->EyeRenderViewport[ViewIndex];
-
-			if (Settings->bPixelDensityAdaptive)
-			{
-				InView.ResolutionOverrideRect = Settings->EyeMaxRenderViewport[ViewIndex];
-			}
-		}
 	}
 
 
@@ -1663,7 +1776,6 @@ namespace OculusHMD
 		}
 
 		StartRenderFrame_GameThread();
-
 	}
 
 
@@ -1695,15 +1807,15 @@ namespace OculusHMD
 		// Update mirror texture
 		CustomPresent->UpdateMirrorTexture_RenderThread();
 
-#if !PLATFORM_ANDROID
+#if !PLATFORM_ANDROID && 0 // The entire target should be cleared by the tonemapper and pp material
 		// Clear the padding between two eyes
-		const int32 GapMinX = ViewFamily.Views[0]->ViewRect.Max.X;
-		const int32 GapMaxX = ViewFamily.Views[1]->ViewRect.Min.X;
+		const int32 GapMinX = ViewFamily.Views[0]->UnscaledViewRect.Max.X;
+		const int32 GapMaxX = ViewFamily.Views[1]->UnscaledViewRect.Min.X;
 
 		if (GapMinX < GapMaxX)
 		{
-			const int32 GapMinY = ViewFamily.Views[0]->ViewRect.Min.Y;
-			const int32 GapMaxY = ViewFamily.Views[1]->ViewRect.Max.Y;
+			const int32 GapMinY = ViewFamily.Views[0]->UnscaledViewRect.Min.Y;
+			const int32 GapMaxY = ViewFamily.Views[1]->UnscaledViewRect.Max.Y;
 
 			RHICmdList.SetViewport(GapMinX, GapMinY, 0, GapMaxX, GapMaxY, 1.0f);
 			DrawClearQuad(RHICmdList, FLinearColor::Black);
@@ -1827,10 +1939,10 @@ namespace OculusHMD
 
 					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), LayerTex);
 
-					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
+					RHICmdList.SetViewport(LeftView->UnscaledViewRect.Min.X, LeftView->UnscaledViewRect.Min.Y, 0, LeftView->UnscaledViewRect.Max.X, LeftView->UnscaledViewRect.Max.Y, 1);
 					Layer->DrawPokeAHoleMesh(RHICmdList, LeftMatrix, 0.999, invertCoords);
 
-					RHICmdList.SetViewport(RightView->ViewRect.Min.X, RightView->ViewRect.Min.Y, 0, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 1);
+					RHICmdList.SetViewport(RightView->UnscaledViewRect.Min.X, RightView->UnscaledViewRect.Min.Y, 0, RightView->UnscaledViewRect.Max.X, RightView->UnscaledViewRect.Max.Y, 1);
 
 					Layer->DrawPokeAHoleMesh(RHICmdList, RightMatrix, 0.999, invertCoords);
 				}
@@ -1840,11 +1952,11 @@ namespace OculusHMD
 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				int farViewport = bIsCubemap ? 0 : 1;
 
-				RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, farViewport);
+				RHICmdList.SetViewport(LeftView->UnscaledViewRect.Min.X, LeftView->UnscaledViewRect.Min.Y, 0, LeftView->UnscaledViewRect.Max.X, LeftView->UnscaledViewRect.Max.Y, farViewport);
 
 				Layer->DrawPokeAHoleMesh(RHICmdList, LeftMatrix, 1.1, invertCoords);
 
-				RHICmdList.SetViewport(RightView->ViewRect.Min.X, RightView->ViewRect.Min.Y, 0, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, farViewport);
+				RHICmdList.SetViewport(RightView->UnscaledViewRect.Min.X, RightView->UnscaledViewRect.Min.Y, 0, RightView->UnscaledViewRect.Max.X, RightView->UnscaledViewRect.Max.Y, farViewport);
 
 				Layer->DrawPokeAHoleMesh(RHICmdList, RightMatrix, 1.1, invertCoords);
 			}
@@ -1874,6 +1986,13 @@ namespace OculusHMD
 		NextLayerId = 0;
 
 		Settings = CreateNewSettings();
+
+		static const auto PixelDensityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.PixelDensity"));
+		if (PixelDensityCVar)
+		{
+			Settings->UpdatePixelDensity(FMath::Clamp(PixelDensityCVar->GetFloat(), PixelDensityMin, PixelDensityMax));
+		}
+
 		RendererModule = nullptr;
 	}
 
@@ -2392,8 +2511,6 @@ namespace OculusHMD
 	void FOculusHMD::UpdateHmdRenderInfo()
 	{
 		CheckInGameThread();
-
-		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 		ovrp_GetSystemDisplayFrequency2(&Settings->VsyncToNextVsync);
 	}
 
@@ -2840,17 +2957,6 @@ namespace OculusHMD
 		return PerformanceStats;
 	}
 
-
-	void FOculusHMD::SetPixelDensity(float NewPD)
-	{
-		CheckInGameThread();
-
-		Settings->PixelDensity = FMath::Clamp(NewPD, ClampPixelDensityMin, ClampPixelDensityMax);
-		Settings->PixelDensityMin = FMath::Min(Settings->PixelDensity, Settings->PixelDensityMin);
-		Settings->PixelDensityMax = FMath::Max(Settings->PixelDensity, Settings->PixelDensityMax);
-	}
-
-
 	bool FOculusHMD::DoEnableStereo(bool bStereo)
 	{
 		CheckInGameThread();
@@ -3215,18 +3321,6 @@ namespace OculusHMD
 	}
 
 
-	void FOculusHMD::PixelDensityCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
-	{
-		CheckInGameThread();
-
-		if (Args.Num())
-		{
-			SetPixelDensity(FCString::Atof(*Args[0]));
-		}
-		Ar.Logf(TEXT("vr.oculus.PixelDensity = \"%1.2f\""), Settings->PixelDensity);
-	}
-
-
 	void FOculusHMD::PixelDensityMinCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 	{
 		CheckInGameThread();
@@ -3378,30 +3472,6 @@ namespace OculusHMD
 	}
 #endif // !UE_BUILD_SHIPPING
 
-
-	/**
-	Clutch to support setting the r.ScreenPercentage and make the equivalent change to PixelDensity
-
-	As we don't want to default to 100%, we ignore the value if the flags indicate the value is set by the constructor or scalability settings.
-	*/
-	void FOculusHMD::CVarSinkHandler()
-	{
-		CheckInGameThread();
-
-		if (GEngine && GEngine->XRSystem.IsValid())
-		{
-			IHeadMountedDisplay* HMDDevice = GEngine->XRSystem->GetHMDDevice();
-			if (HMDDevice && HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
-			{
-				FOculusHMD* OculusHMD = static_cast<FOculusHMD*>(HMDDevice);
-				OculusHMD->Settings->UpdatePixelDensityFromScreenPercentage();
-			}
-		}
-	}
-
-	FAutoConsoleVariableSink FOculusHMD::CVarSink(FConsoleCommandDelegate::CreateStatic(&FOculusHMD::CVarSinkHandler));
-
-
 	void FOculusHMD::LoadFromIni()
 	{
 		const TCHAR* OculusSettings = TEXT("Oculus.Settings");
@@ -3487,11 +3557,6 @@ namespace OculusHMD
 			check(!FMath::IsNaN(f));
 			Settings->PixelDensityMin = FMath::Clamp(f, ClampPixelDensityMin, ClampPixelDensityMax);
 		}
-		if (GConfig->GetFloat(OculusSettings, TEXT("PixelDensity"), f, GEngineIni))
-		{
-			check(!FMath::IsNaN(f));
-			Settings->PixelDensity = FMath::Clamp(f, Settings->PixelDensityMin, Settings->PixelDensityMax);
-		}
 		if (GConfig->GetBool(OculusSettings, TEXT("bPixelDensityAdaptive"), v, GEngineIni))
 		{
 			Settings->bPixelDensityAdaptive = v;
@@ -3534,11 +3599,6 @@ namespace OculusHMD
 		const TCHAR* OculusSettings = TEXT("Oculus.Settings");
 		GConfig->SetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), Settings->Flags.bChromaAbCorrectionEnabled, GEngineIni);
 
-		// Don't save current (dynamically determined) pixel density if adaptive pixel density is currently enabled
-		if (!Settings->bPixelDensityAdaptive)
-		{
-			GConfig->SetFloat(OculusSettings, TEXT("PixelDensity"), Settings->PixelDensity, GEngineIni);
-		}
 		GConfig->SetFloat(OculusSettings, TEXT("PixelDensityMin"), Settings->PixelDensityMin, GEngineIni);
 		GConfig->SetFloat(OculusSettings, TEXT("PixelDensityMax"), Settings->PixelDensityMax, GEngineIni);
 		GConfig->SetBool(OculusSettings, TEXT("bPixelDensityAdaptive"), Settings->bPixelDensityAdaptive, GEngineIni);

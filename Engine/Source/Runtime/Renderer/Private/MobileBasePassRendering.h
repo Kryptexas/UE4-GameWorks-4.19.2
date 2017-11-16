@@ -22,7 +22,6 @@
 #include "MeshMaterialShader.h"
 #include "DebugViewModeRendering.h"
 #include "FogRendering.h"
-#include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 #include "BasePassRendering.h"
 
@@ -234,7 +233,6 @@ public:
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
 		InvReflectionCubemapAverageBrightness.Bind(Initializer.ParameterMap, TEXT("InvReflectionCubemapAverageBrightness"));
-		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightPositionAndInvRadiusParameter.Bind(Initializer.ParameterMap, TEXT("LightPositionAndInvRadius"));
 		LightColorAndFalloffExponentParameter.Bind(Initializer.ParameterMap, TEXT("LightColorAndFalloffExponent"));
 		if (NumDynamicPointLights == INT32_MAX)
@@ -252,10 +250,9 @@ public:
 	}
 	TMobileBasePassPSPolicyParamType() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, ESceneRenderTargetsMode::Type TextureMode, bool bEnableEditorPrimitveDepthTest)
+	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FViewInfo* View, ESceneRenderTargetsMode::Type TextureMode)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,View->ViewUniformBuffer,TextureMode);
-		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FDrawingPolicyRenderState& DrawRenderState)
@@ -354,7 +351,6 @@ public:
 		Ar << ReflectionCubemap;
 		Ar << ReflectionSampler;
 		Ar << InvReflectionCubemapAverageBrightness;
-		Ar << EditorCompositeParams;
 		Ar << LightPositionAndInvRadiusParameter;
 		Ar << LightColorAndFalloffExponentParameter;
 		if (NumDynamicPointLights == INT32_MAX)
@@ -379,7 +375,6 @@ private:
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionSampler;
 	FShaderParameter InvReflectionCubemapAverageBrightness;
-	FEditorCompositingParameters EditorCompositeParams;
 	FShaderParameter LightPositionAndInvRadiusParameter;
 	FShaderParameter LightColorAndFalloffExponentParameter;
 	FShaderParameter NumDynamicPointLightsParameter;
@@ -636,14 +631,12 @@ public:
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
 		ERHIFeatureLevel::Type FeatureLevel,
-		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource, InOverrideSettings, InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
 		SceneTextureMode(InSceneTextureMode),
-		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{
 		GetMobileBasePassShaders<LightMapPolicyType, NumDynamicPointLights>(
@@ -655,13 +648,6 @@ public:
 					PixelShader
 					);
 
-#if DO_GUARD_SLOW
-		// Somewhat hacky
-		if (SceneTextureMode == ESceneRenderTargetsMode::DontSet && !bEnableEditorPrimitiveDepthTest && InMaterialResource.IsUsedWithEditorCompositing())
-		{
-			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
-		}
-#endif
 		BaseVertexShader = VertexShader;
 	}
 
@@ -780,7 +766,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode);
 		}
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
@@ -880,8 +866,6 @@ protected:
 	LightMapPolicyType LightMapPolicy;
 	EBlendMode BlendMode;
 	ESceneRenderTargetsMode::Type SceneTextureMode;
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	uint32 bEnableReceiveDecalOutput : 1;
 };
 
@@ -895,11 +879,7 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
-		/** Whether or not to perform depth test in the pixel shader */
-		bool bEditorCompositeDepthTest;
-
-		ContextType(bool bInEditorCompositeDepthTest, ESceneRenderTargetsMode::Type InTextureMode) :
-			bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
+		ContextType(ESceneRenderTargetsMode::Type InTextureMode) :
 			TextureMode(InTextureMode)
 		{}
 

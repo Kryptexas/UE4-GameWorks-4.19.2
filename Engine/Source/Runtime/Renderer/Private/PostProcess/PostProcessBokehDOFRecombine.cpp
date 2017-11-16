@@ -368,7 +368,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		Method += 2;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine%s#%d %dx%d"),
 		bIsComputePass?TEXT("Compute"):TEXT(""), Method, View.ViewRect.Width(), View.ViewRect.Height());

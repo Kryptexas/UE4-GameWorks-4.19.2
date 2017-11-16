@@ -383,7 +383,7 @@ int32 FUniformMeshConverter::Convert(
 						: *Mesh.Elements[BatchElementIndex].PrimitiveUniformBufferResource;
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderState, FConvertToUniformMeshDrawingPolicy::ElementDataType(), FConvertToUniformMeshDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex);
 				}
 			}
 		}

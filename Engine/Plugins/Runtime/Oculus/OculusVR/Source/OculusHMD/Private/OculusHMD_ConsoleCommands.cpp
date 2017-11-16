@@ -19,10 +19,6 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		*NSLOCTEXT("OculusRift", "CCommandText_UpdateRT",
 			"Oculus Rift specific extension.\nEnables or disables updating on the render thread.").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::UpdateOnRenderThreadCommandHandler))
-	, PixelDensityCommand(TEXT("vr.oculus.PixelDensity"),
-		*NSLOCTEXT("OculusRift", "CCommandText_PixelDensity",
-			"Oculus Rift specific extension.\nPixel density sets the render target texture size as a factor of recommended texture size.\nSince this may be slighly larger than the native resolution, setting PixelDensity to 1.0 is\nusually not the same as setting r.ScreenPercentage to 100").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::PixelDensityCommandHandler))
 	, PixelDensityMinCommand(TEXT("vr.oculus.PixelDensity.min"),
 		*NSLOCTEXT("OculusRift", "CCommandText_PixelDensityMin",
 			"Oculus Rift specific extension.\nMinimum pixel density when adaptive pixel density is enabled").ToString(),

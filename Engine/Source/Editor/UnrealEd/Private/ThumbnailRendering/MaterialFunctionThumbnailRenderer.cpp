@@ -11,10 +11,6 @@
 #include "ThumbnailHelpers.h"
 
 
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
-
 UMaterialFunctionThumbnailRenderer::UMaterialFunctionThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -79,7 +75,7 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 
 			if (ViewFamily.Views.Num() > 0)
 			{
-				GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
+				RenderViewFamily(Canvas,&ViewFamily);
 			}
 
 			ThumbnailScene->SetMaterialInterface(nullptr);

@@ -19,6 +19,8 @@
 // .r:Intensity in 0..1 range .g:RoughnessMaskMul, b:EnableDiscard for FPostProcessScreenSpaceReflectionsStencilPS, a:(bTemporalAAIsOn?TemporalAAIndex:StateFrameIndexMod8)*1551
 float4 SSRParams;
 
+float PrevSceneColorPreExposureCorrection;
+
 uint MortonCode( uint x )
 {
 	//x = (x ^ (x <<  8)) & 0x00ff00ff;
@@ -282,6 +284,6 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 	OutColor *= SSRParams.r;
 
 #if USE_PREEXPOSURE
-	OutColor.rgb *= View.PreExposure * View.LastOneOverPreExposure;
+	OutColor.rgb *= PrevSceneColorPreExposureCorrection;
 #endif
 }

@@ -22,7 +22,6 @@ public:
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 private:
 	FAutoConsoleCommand UpdateOnRenderThreadCommand;
-	FAutoConsoleCommand PixelDensityCommand;
 	FAutoConsoleCommand PixelDensityMinCommand;
 	FAutoConsoleCommand PixelDensityMaxCommand;
 	FAutoConsoleCommand PixelDensityAdaptiveCommand;

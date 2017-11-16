@@ -226,15 +226,17 @@ void FVulkanLayout::Compile()
 }
 
 
-FVulkanDescriptorSetRingBuffer::FVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSetRingBuffer::FOLDVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, CurrDescriptorSets(nullptr)
 {
 }
 
-FVulkanDescriptorSetRingBuffer::~FVulkanDescriptorSetRingBuffer()
+FOLDVulkanDescriptorSetRingBuffer::~FOLDVulkanDescriptorSetRingBuffer()
 {
 }
+#endif
 
 void FVulkanDescriptorSetWriter::SetupDescriptorWrites(const FNEWVulkanShaderDescriptorInfo& Info, VkWriteDescriptorSet* InWriteDescriptors, VkDescriptorImageInfo* InImageInfo, VkDescriptorBufferInfo* InBufferInfo)
 {
@@ -344,12 +346,13 @@ void FVulkanComputeShaderState::ResetState()
 
 */
 
-FVulkanDescriptorSetRingBuffer::FDescriptorSetsPair::~FDescriptorSetsPair()
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSetRingBuffer::FDescriptorSetsPair::~FDescriptorSetsPair()
 {
 	delete DescriptorSets;
 }
 
-FVulkanDescriptorSets* FVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout)
+FOLDVulkanDescriptorSets* FOLDVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout)
 {
 	FDescriptorSetsEntry* FoundEntry = nullptr;
 	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
@@ -383,10 +386,11 @@ FVulkanDescriptorSets* FVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVu
 	}
 
 	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, Layout.GetDescriptorSetsLayout(), Context);
+	NewEntry->DescriptorSets = new FOLDVulkanDescriptorSets(Device, Layout.GetDescriptorSetsLayout(), Context);
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
+#endif
 
 FVulkanBoundShaderState::FVulkanBoundShaderState(FVertexDeclarationRHIParamRef InVertexDeclarationRHI, FVertexShaderRHIParamRef InVertexShaderRHI,
 	FPixelShaderRHIParamRef InPixelShaderRHI, FHullShaderRHIParamRef InHullShaderRHI,
@@ -428,9 +432,10 @@ FBoundShaderStateRHIRef FVulkanDynamicRHI::RHICreateBoundShaderState(
 	return new FVulkanBoundShaderState(VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI);
 }
 
-FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets)
 {
-	FVulkanDescriptorPool* Pool = DescriptorPools.Last();
+	FOLDVulkanDescriptorPool* Pool = DescriptorPools.Last();
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
 	VkResult Result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
@@ -449,7 +454,7 @@ FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const V
 		else
 		{
 			// Spec says any negative value could be due to fragmentation, so create a new Pool. If it fails here then we really are out of memory!
-			Pool = new FVulkanDescriptorPool(Device);
+			Pool = new FOLDVulkanDescriptorPool(Device);
 			DescriptorPools.Add(Pool);
 			DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets));
@@ -458,3 +463,253 @@ FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const V
 
 	return Pool;
 }
+#endif
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FVulkanPipelineDescriptorSetAllocator::~FVulkanPipelineDescriptorSetAllocator()
+{
+	ensure(UsedPools.Num() == 0);
+	ensure(FreePools.Num() == 0);
+	ensure(CurrentPool == nullptr);
+}
+
+void FVulkanPipelineDescriptorSetAllocator::Destroy(FVulkanDevice* Device)
+{
+	Reset();
+	static bool bFirst = true;
+	if (UsedPools.Num() > 0)
+	{
+		if (bFirst)
+		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Descriptor Pools still in use!"));
+			bFirst = false;
+		}
+
+		FScopeLock ScopeLock(&CS);
+		for (int32 Index = 0; Index < UsedPools.Num(); ++Index)
+		{
+			UsedPools[Index]->Destroy(Device);
+			delete UsedPools[Index];
+		}
+		UsedPools.Reset(0);
+	}
+
+	{
+		FScopeLock ScopeLock(&CS);
+		for (int32 Index = 0; Index < FreePools.Num(); ++Index)
+		{
+			FreePools[Index]->Destroy(Device);
+			delete FreePools[Index];
+		}
+		FreePools.Reset(0);
+	}
+
+	CurrentPool = nullptr;
+}
+
+void FVulkanPipelineDescriptorSetAllocator::InitLayout(const FVulkanLayout& InLayout, uint32 InNumAllocationsPerPool)
+{
+	check(InNumAllocationsPerPool > 0);
+	NumAllocationsPerPool = InNumAllocationsPerPool;
+	const FVulkanDescriptorSetsLayout& DSLayout = InLayout.GetDescriptorSetsLayout();
+	const uint32* LayoutTypes = DSLayout.GetLayoutTypes();
+	for (int32 Index = 0; Index < VK_DESCRIPTOR_TYPE_RANGE_SIZE; ++Index)
+	{
+		if (LayoutTypes[Index] > 0)
+		{
+			VkDescriptorPoolSize* Type = new(CreateInfoTypes) VkDescriptorPoolSize;
+			FMemory::Memzero(*Type);
+			Type->type = (VkDescriptorType)Index;
+			Type->descriptorCount = LayoutTypes[Index] * InNumAllocationsPerPool;
+		}
+	}
+
+	uint32 MaxDescriptorSets = DSLayout.GetHandles().Num() * InNumAllocationsPerPool;
+
+	FMemory::Memzero(CreateInfo);
+	CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	CreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	CreateInfo.poolSizeCount = CreateInfoTypes.Num();
+	CreateInfo.pPoolSizes = CreateInfoTypes.GetData();
+	CreateInfo.maxSets = MaxDescriptorSets;
+}
+
+void FVulkanPipelineDescriptorSetAllocator::Reset()
+{
+	FScopeLock ScopeLock(&CS);
+	for (int32 Index = UsedPools.Num() - 1; Index >= 0; --Index)
+	{
+		FPool* Pool = UsedPools[Index];
+		if (Pool != CurrentPool)
+		{
+			if (Pool->ProcessFences())
+			{
+				UsedPools.RemoveAtSwap(Index, 1, false);
+				FreePools.Add(Pool);
+			}
+		}
+	}
+}
+
+
+FVulkanDescriptorSetArray* FVulkanPipelineDescriptorSetAllocator::Allocate(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout* InLayout)
+{
+	FVulkanDescriptorSetArray* OutSets = nullptr;
+
+	if (CreateInfo.poolSizeCount == 0)
+	{
+		return nullptr;
+	}
+
+	FScopeLock ScopeLock(&CS);
+
+	// Try the currently used pool
+	if (CurrentPool)
+	{
+		bool bFull = false;
+		if (CurrentPool->TryAllocate(CmdListContext, CmdBuffer, bFull, OutSets))
+		{
+			if (bFull)
+			{
+				UsedPools.Push(CurrentPool);
+			}
+
+			return OutSets;
+		}
+	}
+
+	// Try one of the freed pools
+	if (FreePools.Num() > 0)
+	{
+		CurrentPool = FreePools.Pop(false);
+		bool bFull = false;
+		if (CurrentPool->TryAllocate(CmdListContext, CmdBuffer, bFull, OutSets))
+		{
+			if (bFull)
+			{
+				UsedPools.Push(CurrentPool);
+			}
+
+			return OutSets;
+		}
+		else
+		{
+			checkf(0, TEXT("Internal error: Can't use free pool just acquired!"));
+		}
+	}
+
+	// No pools, so make a new one
+	CurrentPool = new FPool(CmdListContext->GetDevice(), InLayout, &CreateInfo, NumAllocationsPerPool);
+	bool bFull = false;
+	if (CurrentPool->TryAllocate(CmdListContext, CmdBuffer, bFull, OutSets))
+	{
+		if (bFull)
+		{
+			UsedPools.Push(CurrentPool);
+		}
+
+		return OutSets;
+	}
+	else
+	{
+		checkf(0, TEXT("Internal error: Can't use new pool!"));
+	}
+
+	return OutSets;
+}
+
+
+FVulkanPipelineDescriptorSetAllocator::FPool::FPool(FVulkanDevice* Device, const FVulkanLayout* InLayout, const VkDescriptorPoolCreateInfo* CreateInfo, uint32 InMaxAllocations)
+	: Handle(VK_NULL_HANDLE)
+{
+	if (CreateInfo->poolSizeCount > 0)
+	{
+		{
+			SCOPE_CYCLE_COUNTER(STAT_VulkanVkCreateDescriptorPool);
+			INC_DWORD_STAT(STAT_VulkanDescriptorPools);
+			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), CreateInfo, GInstrumentedMemoryAllocator, &Handle));
+		}
+
+		const TArray<VkDescriptorSetLayout>& LayoutHandles = InLayout->GetDescriptorSetsLayout().GetHandles();
+
+		Entries.AddDefaulted(InMaxAllocations);
+
+		VkDescriptorSetAllocateInfo AllocateInfo;
+		FMemory::Memzero(AllocateInfo);
+		AllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		AllocateInfo.descriptorPool = Handle;
+		AllocateInfo.descriptorSetCount =  LayoutHandles.Num();
+		AllocateInfo.pSetLayouts = LayoutHandles.GetData();
+		for (uint32 Index = 0; Index < InMaxAllocations; ++Index)
+		{
+			Entries[Index].Allocation.AddUninitialized(LayoutHandles.Num());
+			VERIFYVULKANRESULT(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &AllocateInfo, Entries[Index].Allocation.GetData()));
+		}
+	}
+}
+
+
+FVulkanPipelineDescriptorSetAllocator::FPool::~FPool()
+{
+	ensure(Handle == VK_NULL_HANDLE);
+}
+
+void FVulkanPipelineDescriptorSetAllocator::FPool::Destroy(FVulkanDevice* Device)
+{
+	if (Handle != VK_NULL_HANDLE)
+	{
+		DEC_DWORD_STAT(STAT_VulkanDescriptorPools);
+		VulkanRHI::vkDestroyDescriptorPool(Device->GetInstanceHandle(), Handle, nullptr);
+		Handle = VK_NULL_HANDLE;
+	}
+}
+
+bool FVulkanPipelineDescriptorSetAllocator::FPool::TryAllocate(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, bool& bOutIsFullAfterAllocation, FVulkanDescriptorSetArray*& OutSets)
+{
+	bOutIsFullAfterAllocation = false;
+
+	for (int32 Index = 0; Index < Entries.Num(); ++Index)
+	{
+		if (!Entries[Index].CmdBuffer)
+		{
+			Entries[Index].CmdBuffer = CmdBuffer;
+			Entries[Index].FenceCounter = CmdBuffer->GetFenceSignaledCounter();
+			++UsedEntries;
+			bOutIsFullAfterAllocation = UsedEntries == (uint32)Entries.Num();
+			OutSets = &Entries[Index].Allocation;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool FVulkanPipelineDescriptorSetAllocator::FPool::ProcessFences()
+{
+	if (UsedEntries == 0)
+	{
+		for (int32 Index = 0; Index < Entries.Num(); ++Index)
+		{
+			check(!Entries[Index].CmdBuffer);
+		}
+		return true;
+	}
+
+	for (int32 Index = 0; Index < Entries.Num(); ++Index)
+	{
+		if (Entries[Index].CmdBuffer)
+		{
+			if (Entries[Index].FenceCounter < Entries[Index].CmdBuffer->GetFenceSignaledCounter())
+			{
+				Entries[Index].CmdBuffer = nullptr;
+				Entries[Index].FenceCounter = 0;
+				--UsedEntries;
+			}
+		}
+	}
+
+	check(UsedEntries >= 0 && UsedEntries <= Entries.Num());
+	return (UsedEntries == 0);
+}
+#endif

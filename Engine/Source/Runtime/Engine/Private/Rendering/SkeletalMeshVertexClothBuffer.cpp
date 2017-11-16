@@ -76,7 +76,7 @@ void FSkeletalMeshVertexClothBuffer::InitRHI()
 	{
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
 		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector4), PF_R32G32B32A32_UINT);
+		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F);
 	}
 }
 

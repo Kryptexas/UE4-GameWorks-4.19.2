@@ -133,6 +133,7 @@ private:
 	/** The media track collection. */
 	FAvfMediaTracks* Tracks;
 	
+	/** Playback primed and ready when set */
 	bool bPrerolled;
 
 	/** Mutex to ensure thread-safe access */

@@ -462,6 +462,35 @@ struct FHLODSceneNodeVisibilityState
 	uint16 bIsFading	: 1;
 };
 
+// Structure in charge of storing all information about TAA's history.
+struct FTemporalAAHistory
+{
+	// Render targets holding's pixel history.
+	//  scene color's RGBA are in RT[0].
+	TRefCountPtr<IPooledRenderTarget> RT[2];
+
+	// Reference size of RT. Might be different than RT's actual size to handle down res.
+	FIntPoint ReferenceBufferSize;
+
+	// Viewport coordinate of the history in RT according to ReferenceBufferSize.
+	FIntRect ViewportRect;
+
+	// Scene color's PreExposure.
+	float SceneColorPreExposure;
+
+
+	void SafeRelease()
+	{ 
+		RT[0].SafeRelease();
+		RT[1].SafeRelease();
+	}
+
+	bool IsValid() const
+	{
+		return RT[0].IsValid();
+	}
+};
+
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -575,14 +604,13 @@ public:
 	FHLODVisibilityState HLODVisibilityState;
 	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState> HLODSceneNodeVisibilityStates;
 
+private:
+
 	/** The current frame PreExposure */
 	float PreExposure;
-	/** The last frame PreExposure */
-	float LastPreExposure;
+
 	/** Whether to get the last exposure from GPU */
 	bool bUpdateLastExposure;
-
-private:
 
 	// to implement eye adaptation / auto exposure changes over time
 	class FEyeAdaptationRTManager
@@ -628,7 +656,7 @@ private:
 		TRefCountPtr<IPooledRenderTarget> StagingBuffers[NUM_STAGING_BUFFERS];
 	} EyeAdaptationRTManager;
 
-	void UpdatePreExposure(FSceneView& View, FSceneViewFamily& ViewFamily);
+	void UpdatePreExposure(FViewInfo& View);
 
 	// eye adaptation is only valid after it has been computed, not on allocation of the RT
 	bool bValidEyeAdaptation;
@@ -666,17 +694,19 @@ public:
 	FHeightfieldLightingAtlas* HeightfieldLightingAtlas;
 
 	// Temporal AA result of last frame
-	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
-	TRefCountPtr<IPooledRenderTarget> PendingTemporalAAHistoryRT;
+	FTemporalAAHistory TemporalAAHistory;
+	FTemporalAAHistory PendingTemporalAAHistory;
 	// Temporal AA result for DOF of last frame
-	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT;
-	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT2;
+	FTemporalAAHistory DOFHistory;
+	FTemporalAAHistory DOFHistory2;
 	// Temporal AA result for SSR
-	TRefCountPtr<IPooledRenderTarget> SSRHistoryRT;
+	FTemporalAAHistory SSRHistory;
 	// Temporal AA result for light shafts of last frame
-	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusionHistoryRT;
+	FTemporalAAHistory LightShaftOcclusionHistory;
 	// Temporal AA result for light shafts of last frame
-	TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> > LightShaftBloomHistoryRTs;
+	TMap<const ULightComponent*, FTemporalAAHistory > LightShaftBloomHistoryRTs;
+
+	FIntRect DistanceFieldAOHistoryViewRect;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidenceHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradianceHistoryRT;
@@ -712,6 +742,11 @@ public:
 		// Mip level of the physical space source texture used when caching the spectral space texture.
 		uint32 PhysicalMipLevel;
 	} BloomFFTKernel;
+
+	// Cached material texture samplers
+	float MaterialTextureCachedMipBias;
+	FSamplerStateRHIRef MaterialTextureBilinearWrapedSamplerCache;
+	FSamplerStateRHIRef MaterialTextureBilinearClampedSamplerCache;
 
 	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
@@ -787,7 +822,6 @@ public:
 		FrameIndexMod8 = 0;
 		DistanceFieldTemporalSampleIndex = 0;
 		PreExposure = 1.f;
-		LastPreExposure = 1.f;
 
 		ReleaseDynamicRHI();
 	}
@@ -1014,12 +1048,12 @@ public:
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRTManager.SafeRelease();
 		CombinedLUTRenderTarget.SafeRelease();
-		TemporalAAHistoryRT.SafeRelease();
-		PendingTemporalAAHistoryRT.SafeRelease();
-		DOFHistoryRT.SafeRelease();
-		DOFHistoryRT2.SafeRelease();
-		SSRHistoryRT.SafeRelease();
-		LightShaftOcclusionHistoryRT.SafeRelease();
+		TemporalAAHistory.SafeRelease();
+		PendingTemporalAAHistory.SafeRelease();
+		DOFHistory.SafeRelease();
+		DOFHistory2.SafeRelease();
+		SSRHistory.SafeRelease();
+		LightShaftOcclusionHistory.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
 		DistanceFieldAOHistoryRT.SafeRelease();
 		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
@@ -1030,6 +1064,8 @@ public:
 		MobileAaColor0.SafeRelease();
 		MobileAaColor1.SafeRelease();
 		BloomFFTKernel.SafeRelease();
+		MaterialTextureBilinearWrapedSamplerCache.SafeRelease();
+		MaterialTextureBilinearClampedSamplerCache.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
 
@@ -1075,7 +1111,7 @@ public:
 	}
 
 	/** called in InitViews() */
-	virtual void OnStartFrame(FSceneView& View, FSceneViewFamily& ViewFamily) override
+	void OnStartFrame(FViewInfo& View, FSceneViewFamily& ViewFamily)
 	{
 		check(IsInRenderingThread());
 
@@ -1084,7 +1120,7 @@ public:
 			SetupLightPropagationVolume(View, ViewFamily);
 		}
 
-		UpdatePreExposure(View, ViewFamily);
+		UpdatePreExposure(View);
 	}
 
 	// needed for GetReusableMID()
@@ -1881,7 +1917,7 @@ public:
 		bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest);
 
 		//Hold the buffer array
-		TMap<FIntPoint, FPixelInspectorRequest *> Requests;
+		TMap<FVector2D, FPixelInspectorRequest *> Requests;
 
 		FRenderTarget* RenderTargetBufferDepth[2];
 		FRenderTarget* RenderTargetBufferFinalColor[2];

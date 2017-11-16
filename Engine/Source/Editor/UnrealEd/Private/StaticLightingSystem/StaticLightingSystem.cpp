@@ -492,22 +492,27 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 
 			if (ShouldOperateOnLevel(Level))
 			{
-			Level->LightmapTotalSize = 0.0f;
-			Level->ShadowmapTotalSize = 0.0f;
-			ULevelStreaming* LevelStreaming = NULL;
-			if ( World->PersistentLevel != Level )
-			{
-				LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-			}
-			if (!Options.ShouldBuildLightingForLevel(Level))
-			{
-				if (SkippedLevels.Len() > 0)
+				Level->LightmapTotalSize = 0.0f;
+				Level->ShadowmapTotalSize = 0.0f;
+				ULevelStreaming* LevelStreaming = NULL;
+				if ( World->PersistentLevel != Level )
 				{
-					SkippedLevels += FString(TEXT(", "));
+					LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 				}
-				SkippedLevels += Level->GetName();
+				if (!Options.ShouldBuildLightingForLevel(Level))
+				{
+					if (SkippedLevels.Len() > 0)
+					{
+						SkippedLevels += FString(TEXT(", "));
+					}
+					SkippedLevels += Level->GetName();
+					GatherBuildDataResourcesToKeep(Level);
+				}
 			}
-		}
+			else if (Level && !Level->bIsLightingScenario && !Level->bIsVisible)
+			{
+				GatherBuildDataResourcesToKeep(Level);
+			}
 		}
 
 		for( int32 LevelIndex = 0 ; LevelIndex < World->StreamingLevels.Num() ; ++LevelIndex )
@@ -745,7 +750,7 @@ void FStaticLightingSystem::InvalidateStaticLighting()
 
 				if (Level->MapBuildData)
 				{
-					Level->MapBuildData->InvalidateStaticLighting(World);
+					Level->MapBuildData->InvalidateStaticLighting(World, &BuildDataResourcesToKeep);
 				}
 			}
 			if (Level == World->PersistentLevel)
@@ -2228,6 +2233,62 @@ void FStaticLightingSystem::UpdateAutomaticImportanceVolumeBounds( const FBox& M
 	// Note: skyboxes will be excluded if they are properly setup to not cast shadows
 	AutomaticImportanceVolumeBounds += MeshBounds;
 }
+
+void FStaticLightingSystem::GatherBuildDataResourcesToKeep(const ULevel* InLevel)
+{
+	// This is only required is using a lighting scenario, otherwise the build data is saved within the level itself and follows it's inclusion in the lighting build.
+	if (InLevel && LightingScenario)
+	{
+		BuildDataResourcesToKeep.Add(InLevel->LevelBuildDataId);
+
+		for (const UModelComponent * ModelComponent : InLevel->ModelComponents)
+		{
+			if (!ModelComponent) // Skip null models
+			{
+				continue;
+			}
+			ModelComponent->AddMapBuildDataGUIDs(BuildDataResourcesToKeep);
+		}
+
+		for (const AActor* Actor : InLevel->Actors)
+		{
+			if (!Actor) // Skip null actors
+			{
+				continue;
+			}
+
+			for (const UActorComponent* Component : Actor->GetComponents())
+			{
+				if (!Component) // Skip null components
+				{
+					continue;
+				}
+
+				const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
+				if (PrimitiveComponent)
+				{
+					PrimitiveComponent->AddMapBuildDataGUIDs(BuildDataResourcesToKeep);
+					continue;
+				}
+
+				const ULightComponent* LightComponent = Cast<ULightComponent>(Component);
+				if (LightComponent)
+				{
+					BuildDataResourcesToKeep.Add(LightComponent->LightGuid);
+					continue;
+				}
+
+				const UReflectionCaptureComponent* ReflectionCaptureComponent = Cast<UReflectionCaptureComponent>(Component);
+				if (ReflectionCaptureComponent)
+				{
+					BuildDataResourcesToKeep.Add(ReflectionCaptureComponent->MapBuildDataId);
+					continue;
+				}
+			}
+		}
+	}
+}
+
 
 bool FStaticLightingSystem::CanAutoApplyLighting() const
 {

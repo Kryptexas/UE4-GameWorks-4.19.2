@@ -1896,6 +1896,10 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.BoundsChecking"));
 			KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_BoundsChecking") : TEXT("");
 		}
+		{
+			static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Metal.ManualVertexFetch"));
+			KeyString += (CVar && CVar->GetInt() != 0 && IsPCPlatform(Platform)) ? TEXT("_MVF") : TEXT("");
+		}
 		
 		uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);
 		KeyString += FString::Printf(TEXT("_MTLSTD%u_"), ShaderVersion);

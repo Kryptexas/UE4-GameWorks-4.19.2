@@ -13,6 +13,7 @@
 #include "GlobalDistanceFieldShared.ush"
 #include "VolumeLightingCommon.ush"
 #include "VolumetricLightmapShared.ush"
+#include "ForwardShadowingCommon.ush"
 
 RWTexture3D<float4> RWVBufferA;
 RWTexture3D<float4> RWVBufferB;
@@ -417,47 +418,6 @@ float GetLightFunction(float3 WorldPosition)
 	return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
 }
 
-float ComputeStaticShadowing(float3 WorldPosition)
-{
-	float ShadowFactor = 1;
-
-	BRANCH
-	if (ForwardGlobalLightData.DirectionalLightUseStaticShadowing > 0)
-	{
-		// This path is used for directional lights and spot lights, which only require a single projection
-		// Transform the world position into shadowmap space
-		float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardGlobalLightData.DirectionalLightWorldToStaticShadow);
-		float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
-
-		// Treat as unshadowed if the voxel is outside of the shadow map
-		if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
-		{
-			#define FILTER_STATIC_SHADOWING 1
-			#if FILTER_STATIC_SHADOWING
-				FPCFSamplerSettings Settings;
-				Settings.ShadowDepthTexture = ForwardGlobalLightData.DirectionalLightStaticShadowmap;
-				Settings.ShadowDepthTextureSampler = ForwardGlobalLightData.StaticShadowmapSampler;
-				Settings.ShadowBufferSize = ForwardGlobalLightData.DirectionalLightStaticShadowBufferSize;
-				Settings.SceneDepth = HomogeneousShadowPosition.z;
-				Settings.TransitionScale = 40;
-				Settings.bSubsurface = false;
-				// We can sample outside of the static shadowmap, which is centered around the lightmass importance volume.  These 'infinite' depth values should not cause occlusion.
-				Settings.bTreatMaxDepthUnshadowed = true;
-				Settings.DensityMulConstant = 0;
-				Settings.ProjectionDepthBiasParameters = float2(0, 0);
-
-				ShadowFactor = Manual1x1PCF(ShadowUVs, Settings);
-			#else
-				// Sample the shadowmap depth and determine if this voxel is shadowed
-				float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightStaticShadowmap, ForwardGlobalLightData.StaticShadowmapSampler, ShadowUVs, 0).x;
-				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth || ShadowDepth > .99f;
-			#endif
-		}
-	}
-
-	return ShadowFactor;
-}
-
 float SkyLightVolumetricScatteringIntensity;
 float4 SkySH[3];
 float UseHeightFogColors;
@@ -503,36 +463,12 @@ void LightScatteringCS(
 		BRANCH
 		if (ForwardGlobalLightData.HasDirectionalLight)
 		{
-			float ShadowFactor = ComputeStaticShadowing(WorldPosition);
-
-			if (ForwardGlobalLightData.NumDirectionalLightCascades > 0 && UseDirectionalLightShadowing > 0)
+			float ShadowFactor = 1;
+			
+			if (UseDirectionalLightShadowing > 0)
 			{
-				uint CascadeIndex = ForwardGlobalLightData.NumDirectionalLightCascades;
-
-				for (uint TestCascadeIndex = 0; TestCascadeIndex < ForwardGlobalLightData.NumDirectionalLightCascades; TestCascadeIndex++)
-				{
-					if (SceneDepth < ForwardGlobalLightData.CascadeEndDepths[TestCascadeIndex])
-					{
-						CascadeIndex = TestCascadeIndex;
-						break;
-					}
-				}
-
-				if (CascadeIndex < ForwardGlobalLightData.NumDirectionalLightCascades)
-				{
-					// Transform the world position into shadowmap space
-					float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardGlobalLightData.DirectionalLightWorldToShadowMatrix[CascadeIndex]);
-					float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
-					float4 ShadowmapMinMax = ForwardGlobalLightData.DirectionalLightShadowmapMinMax[CascadeIndex];
-
-					// Treat as unshadowed if the voxel is outside of the shadow map
-					if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
-					{
-						// Sample the shadowmap depth and determine if this voxel is shadowed
-						float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightShadowmapAtlas, ForwardGlobalLightData.ShadowmapSampler, ShadowUVs, 0).x;
-						ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - ForwardGlobalLightData.DirectionalLightDepthBias.x;
-					}
-				}
+				ShadowFactor *= ComputeDirectionalLightStaticShadowing(WorldPosition);
+				ShadowFactor *= ComputeDirectionalLightDynamicShadowing(WorldPosition, SceneDepth);
 			}
 
 			ShadowFactor *= GetLightFunction(WorldPosition);
@@ -617,16 +553,16 @@ void LightScatteringCS(
 		{
 			const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, 0);
 
-			float VolumetricScatteringIntensity = f16tof32(LocalLight.SourceRadiusPacked >> 16);
+			float VolumetricScatteringIntensity = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w) >> 16);
 
 			if (VolumetricScatteringIntensity > 0)
 			{
 				FDeferredLightData LightData = (FDeferredLightData)0;
 				LightData.LightPositionAndInvRadius = LocalLight.LightPositionAndInvRadius;
 				LightData.LightColorAndFalloffExponent = LocalLight.LightColorAndFalloffExponent;
-				LightData.LightDirection = LocalLight.LightDirection;
-				float SourceLength = f16tof32(LocalLight.SourceRadiusPacked);
-				LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAngles, SourceLength);
+				LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
+				float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
+				LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
                 LightData.LightTangent = LocalLight.LightTangentAndSoftSourceRadius.xyz;
                 LightData.SoftSourceRadius = LocalLight.LightTangentAndSoftSourceRadius.w;
 				LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;

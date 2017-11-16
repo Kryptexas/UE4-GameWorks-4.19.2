@@ -187,7 +187,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 						PolicyContext
 					);
 
-					DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, true);
+					DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, View, *Element.Mesh, BatchElementIndex, true);
 				}
 			}
 			else
@@ -208,7 +208,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					PolicyContext
 				);
 
-				DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, false);
+				DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, View, *Element.Mesh, BatchElementIndex, false);
 			}
 		}
 

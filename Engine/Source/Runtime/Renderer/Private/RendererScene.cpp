@@ -156,7 +156,6 @@ FSceneViewState::FSceneViewState()
 	bShouldAutoDownsampleTranslucency = false;
 
 	PreExposure = 1.f;
-	LastPreExposure = 1.f;
 	bUpdateLastExposure = false;
 }
 
@@ -258,14 +257,14 @@ bool FPixelInspectorData::AddPixelInspectorRequest(FPixelInspectorRequest *Pixel
 {
 	if (PixelInspectorRequest == nullptr)
 		return false;
-	FIntPoint PixelPosition = PixelInspectorRequest->SourcePixelPosition;
-	if (Requests.Contains(PixelPosition))
+	FVector2D ViewportUV = PixelInspectorRequest->SourceViewportUV;
+	if (Requests.Contains(ViewportUV))
 		return false;
 	
 	//Remove the oldest request since the new request use the buffer
 	if (Requests.Num() > 1)
 	{
-		FIntPoint FirstKey(-1, -1);
+		FVector2D FirstKey(-1, -1);
 		for (auto kvp : Requests)
 		{
 			FirstKey = kvp.Key;
@@ -276,7 +275,7 @@ bool FPixelInspectorData::AddPixelInspectorRequest(FPixelInspectorRequest *Pixel
 			Requests.Remove(FirstKey);
 		}
 	}
-	Requests.Add(PixelPosition, PixelInspectorRequest);
+	Requests.Add(ViewportUV, PixelInspectorRequest);
 	return true;
 }
 
@@ -385,6 +384,7 @@ void FDistanceFieldSceneData::Release()
 
 void FDistanceFieldSceneData::VerifyIntegrity()
 {
+#if DO_CHECK
 	check(NumObjectsInBuffer == PrimitiveInstanceMapping.Num());
 
 	for (int32 PrimitiveInstanceIndex = 0; PrimitiveInstanceIndex < PrimitiveInstanceMapping.Num(); PrimitiveInstanceIndex++)
@@ -397,6 +397,7 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 		const int32 InstanceIndex = PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstance.InstanceIndex];
 		check(InstanceIndex == PrimitiveInstanceIndex || InstanceIndex == -1);
 	}
+#endif
 }
 
 void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)

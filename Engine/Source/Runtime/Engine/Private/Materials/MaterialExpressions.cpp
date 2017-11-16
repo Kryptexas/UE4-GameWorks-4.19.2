@@ -406,7 +406,8 @@ int32 CompileTextureSample(
 	int32 MipValue0Index=INDEX_NONE,
 	int32 MipValue1Index=INDEX_NONE,
 	ETextureMipValueMode MipValueMode=TMVM_None,
-	ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
+	ESamplerSourceMode SamplerSource=SSM_FromTextureAsset,
+	bool AutomaticViewMipBias=false
 	)
 {
 	int32 TextureReferenceIndex = INDEX_NONE;
@@ -432,7 +433,8 @@ int32 CompileTextureSample(
 					MipValue1Index,
 					MipValueMode,
 					SamplerSource,
-					TextureReferenceIndex);
+					TextureReferenceIndex,
+					AutomaticViewMipBias);
 }
 #endif
 
@@ -1367,6 +1369,7 @@ UMaterialExpressionTextureSample::UMaterialExpressionTextureSample(const FObject
 
 	ConstCoordinate = 0;
 	ConstMipValue = INDEX_NONE;
+	AutomaticViewMipBias = true;
 }
 
 #if WITH_EDITOR
@@ -1670,7 +1673,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				CompileMipValue1(Compiler),
 				MipValueMode,
 				SamplerSource,
-				TextureReferenceIndex);
+				TextureReferenceIndex,
+				AutomaticViewMipBias);
 		}
 		else
 		{
@@ -1846,7 +1850,8 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		CompileMipValue0(Compiler),
 		CompileMipValue1(Compiler),
 		MipValueMode,
-		SamplerSource);
+		SamplerSource,
+		AutomaticViewMipBias);
 }
 
 void UMaterialExpressionTextureSampleParameter::GetCaption(TArray<FString>& OutCaptions) const
@@ -7086,24 +7091,25 @@ UMaterialExpressionScreenPosition::UMaterialExpressionScreenPosition(const FObje
 #endif
 
 	bShaderInputData = true;
+	bShowOutputNameOnPin = true;
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("ViewportUV")));
+	Outputs.Add(FExpressionOutput(TEXT("PixelPosition")));
 }
 
 #if WITH_EDITOR
 int32 UMaterialExpressionScreenPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	return Compiler->ScreenPosition(Mapping);
+	if (OutputIndex == 1)
+	{
+		return Compiler->GetPixelPosition();
+	}
+	return Compiler->GetViewportUV();
 }
 
 void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
-
-#if WITH_EDITOR
-	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
-	check(ScreenPositionMappingEnum);
-
-	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameTextByValue(Mapping).ToString();
-	OutCaptions.Add(MappingDisplayName);
-#endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
 }
 #endif // WITH_EDITOR
@@ -7139,21 +7145,29 @@ UMaterialExpressionViewProperty::UMaterialExpressionViewProperty(const FObjectIn
 #if WITH_EDITOR
 int32 UMaterialExpressionViewProperty::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
+	// To make sure any material that were correctly handling BufferUV != ViewportUV, we just lie to material
+	// to make it believe ViewSize == BufferSize, so they are still compatible with SceneTextureLookup().
+	// TODO: Remove MEVP_BufferSize, MEVP_ViewportOffset and do this at material load time. 
+	if (Property == MEVP_BufferSize)
+	{
+		return Compiler->ViewProperty(MEVP_ViewSize, OutputIndex == 1);
+	}
+	else if (Property == MEVP_ViewportOffset)
+	{
+		// We don't care about OutputIndex == 1 because doesn't have any meaning and 
+		// was already returning NaN on unconstrained unique view rendering.
+		return Compiler->Constant2(0.0f, 0.0f);
+	}
+
 	return Compiler->ViewProperty(Property, OutputIndex == 1);
 }
 
 void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) const
 {
-#if WITH_EDITOR
 	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
 	check(ViewPropertyEnum);
 
-	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameTextByValue(Property).ToString();
-#else
-	const FString PropertyDisplayName = TEXT("");
-#endif
-
-	OutCaptions.Add(PropertyDisplayName);
+	OutCaptions.Add(ViewPropertyEnum->GetDisplayNameTextByValue(Property).ToString());
 }
 #endif // WITH_EDITOR
 
@@ -7214,7 +7228,9 @@ UMaterialExpressionSceneTexelSize::UMaterialExpressionSceneTexelSize(const FObje
 #if WITH_EDITOR
 int32 UMaterialExpressionSceneTexelSize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	return Compiler->ViewProperty(MEVP_BufferSize, /* InvProperty = */ true);
+	// To make sure any material that were correctly handling BufferUV != ViewportUV, we just lie to material
+	// to make it believe ViewSize == BufferSize, so they are still compatible with SceneTextureLookup().
+	return Compiler->ViewProperty(MEVP_ViewSize, /* InvProperty = */ true);
 }
 
 void UMaterialExpressionSceneTexelSize::GetCaption(TArray<FString>& OutCaptions) const
@@ -7410,11 +7426,8 @@ UMaterialExpressionSceneTexture::UMaterialExpressionSceneTexture(const FObjectIn
 #endif
 
 	bShaderInputData = true;
-	
 	bShowOutputNameOnPin = true;
 
-	//by default slower but reliable results, if the shader never accesses the texels outside it can be disabled.
-	bClampUVs = true;
 	// by default faster, most lookup are read/write the same pixel so this is ralrely needed
 	bFiltered = false;
 
@@ -7427,32 +7440,21 @@ UMaterialExpressionSceneTexture::UMaterialExpressionSceneTexture(const FObjectIn
 #if WITH_EDITOR
 int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {    
-	int32 UV = INDEX_NONE;
+	int32 ViewportUV = INDEX_NONE;
 
 	if (Coordinates.GetTracedInput().Expression)
 	{
-		UV = Coordinates.Compile(Compiler);
+		ViewportUV = Coordinates.Compile(Compiler);
 	}
 
 	if(OutputIndex == 0)
 	{
-		if( INDEX_NONE != UV )
-		{
-			int32 Max = Compiler->SceneTextureMax(SceneTextureId);
-			int32 Min = Compiler->SceneTextureMin(SceneTextureId);
-			if( bClampUVs )
-			{
-				UV = Compiler->Clamp(UV, Min, Max);
-			}
-		}
-
 		// Color
-		return Compiler->SceneTextureLookup(UV, SceneTextureId, bFiltered);
+		return Compiler->SceneTextureLookup(ViewportUV, SceneTextureId, bFiltered);
 	}
 	else if(OutputIndex == 1 || OutputIndex == 2)
 	{
-		// Size or InvSize
-		return Compiler->SceneTextureSize(SceneTextureId, OutputIndex == 2);
+		return Compiler->GetSceneTextureViewSize(SceneTextureId, /* InvProperty = */ OutputIndex == 2);
 	}
 
 	return Compiler->Errorf(TEXT("Invalid input parameter"));
@@ -7751,6 +7753,16 @@ int32 UMaterialExpressionIf::Compile(class FMaterialCompiler* Compiler, int32 Ou
 	int32 Arg5 = ALessThanB.Compile(Compiler);
 	int32 ThresholdArg = Compiler->Constant(EqualsThreshold);
 
+	if (Arg3 == INDEX_NONE)
+	{
+		return Compiler->Errorf(TEXT("Failed to compile AGreaterThanB input."));
+	}
+
+	if (Arg5 == INDEX_NONE)
+	{
+		return Compiler->Errorf(TEXT("Failed to compile ALessThanB input."));
+	}
+
 	return Compiler->If(CompiledA,CompiledB,Arg3,Arg4,Arg5,ThresholdArg);
 }
 
@@ -7764,11 +7776,30 @@ uint32 UMaterialExpressionIf::GetInputType(int32 InputIndex)
 	// First two inputs are always float
 	if (InputIndex == 0 || InputIndex == 1)
 	{
-		return MCT_Float;
+		if ((A.GetTracedInput().Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+			(B.GetTracedInput().Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+		{
+			return MCT_MaterialAttributes;
+		}
+		else
+		{
+			return MCT_Float;
+		}	
+	}
+
+	return MCT_Unknown;
+}
+
+bool UMaterialExpressionIf::IsResultMaterialAttributes(int32 OutputIndex)
+{
+	if ((A.GetTracedInput().Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.GetTracedInput().Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	{
+		return true;
 	}
 	else
 	{
-		return MCT_Unknown;
+		return false;
 	}
 }
 #endif // WITH_EDITOR
@@ -9504,13 +9535,10 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 					bHasValidOutput = false;
 				}
 			}
-			else if (UMaterialFunctionInterface* RecursiveLayer = Cast<UMaterialFunctionInterface>(Expression))
+			else if (UMaterialExpressionMaterialAttributeLayers* RecursiveLayer = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
 			{
-				if (RecursiveLayer->GetMaterialFunctionUsage() != EMaterialFunctionUsage::Default)
-				{
-					Compiler->Errorf(TEXT("Layer graphs do not support layers within layers."));
+				Compiler->Errorf(TEXT("Layer graphs do not support layers within layers."));
 					bHasValidOutput = false;
-				}
 			}
 		}
 
@@ -9530,7 +9558,7 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 				++NumInputs;
 				if (NumInputs > 2 || !InputExpression->IsResultMaterialAttributes(0))
 				{
-					Compiler->Errorf(TEXT("Layer blend graphs only support a two material attributes input."));
+					Compiler->Errorf(TEXT("Layer blend graphs only support two material attributes inputs."));
 					bHasValidOutput = false;
 				}
 			}
@@ -9543,19 +9571,16 @@ bool UMaterialFunction::ValidateFunctionUsage(FMaterialCompiler* Compiler, const
 					bHasValidOutput = false;
 				}
 			}
-			else if (UMaterialFunctionInterface* RecursiveLayer = Cast<UMaterialFunctionInterface>(Expression))
+			else if (UMaterialExpressionMaterialAttributeLayers* RecursiveLayer = Cast<UMaterialExpressionMaterialAttributeLayers>(Expression))
 			{
-				if (RecursiveLayer->GetMaterialFunctionUsage() != EMaterialFunctionUsage::Default)
-				{
-					Compiler->Errorf(TEXT("Layer blend graphs do not support layers within layers."));
+				Compiler->Errorf(TEXT("Layer blend graphs do not support layers within layers."));
 					bHasValidOutput = false;
-				}
 			}
 		}
 
 		if (NumInputs < 2 || NumOutputs < 1)
 		{
-			Compiler->Errorf(TEXT("Layer blend graphs require a two material attributes inputs and a single output."));
+			Compiler->Errorf(TEXT("Layer blend graphs require two material attributes inputs and a single output."));
 			bHasValidOutput = false;
 		}
 	}

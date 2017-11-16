@@ -489,7 +489,7 @@ public:
 						FTranslucencyShadowDepthDrawingPolicy::ElementDataType(),
 						FTranslucencyShadowDepthDrawingPolicy::ContextDataType(DrawingContext.ShadowInfo)
 						);
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 				}
 				bDirty = true;
 			}

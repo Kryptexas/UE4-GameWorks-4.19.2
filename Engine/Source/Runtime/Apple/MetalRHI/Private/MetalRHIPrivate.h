@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/CommandLine.h"
+#include "PixelFormat.h"
 
 // Requirement for vertex buffer offset field
 const uint32 BufferOffsetAlignment = 256;
@@ -57,6 +58,16 @@ extern bool GMetalSupportsTileShaders;
 extern bool GMetalSupportsStoreActionOptions;
 extern bool GMetalSupportsDepthClipMode;
 extern bool GMetalCommandBufferHasStartEndTimeAPI;
+
+struct FMetalBufferFormat
+{
+	// Valid linear texture pixel formats - potentially different than the actual texture formats
+	MTLPixelFormat LinearTextureFormat;
+	// Metal buffer data types for manual ALU format conversions
+	uint8 DataFormat;
+};
+
+extern FMetalBufferFormat GMetalBufferFormats[PF_MAX];
 
 #define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS

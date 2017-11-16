@@ -8,7 +8,7 @@
 
 #include "VulkanMemory.h"
 
-class FVulkanDescriptorPool;
+class FOLDVulkanDescriptorPool;
 class FVulkanCommandListContext;
 
 class FVulkanDevice

@@ -197,13 +197,13 @@ static bool PlatformOpenGL3()
 #if (WINVER < 0x0600)
 	return true;
 #else
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+	return FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
 #endif
 }
 
 static bool PlatformOpenGL4()
 {
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
+	return FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
 }
 
 static void PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutMinorVersion)

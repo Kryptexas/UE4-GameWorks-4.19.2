@@ -14,6 +14,7 @@
 #include "RendererInterface.h"
 #include "RHIStaticStates.h"
 #include "SceneView.h"
+#include "LegacyScreenPercentageDriver.h"
 #include "Shader.h"
 #include "TextureResource.h"
 #include "StaticBoundShaderState.h"
@@ -1287,6 +1288,8 @@ void CaptureSceneIntoScratchCubemap(
 		ViewFamily.EngineShowFlags.SkyLighting = !bCapturingForSkyLight;
 		// Skip lighting for emissive only
 		ViewFamily.EngineShowFlags.Lighting = !bCaptureEmissiveOnly;
+		// Never do screen percentage in reflection environment capture.
+		ViewFamily.EngineShowFlags.ScreenPercentage = false;
 
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.ViewFamily = &ViewFamily;
@@ -1337,6 +1340,9 @@ void CaptureSceneIntoScratchCubemap(
 		View->EndFinalPostprocessSettings(ViewInitOptions);
 
 		ViewFamily.Views.Add(View);
+
+		ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+			ViewFamily, /* GlobalResolutionFraction = */ 1.0f, /* AllowPostProcessSettingsScreenPercentage = */ false));
 
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(&ViewFamily, NULL);
 
@@ -1418,7 +1424,12 @@ void FScene::CaptureOrUploadReflectionCapture(UReflectionCaptureComponent* Captu
 				}
 				else
 				{
-					//@todo - detect when current scene data for a component came from a different BuildData than the new one and warn
+					const FCaptureComponentSceneState* CaptureSceneStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CaptureComponent);
+					
+					if (!CaptureSceneStatePtr)
+					{
+						ensureMsgf(CaptureSceneStatePtr, TEXT("Reflection capture %s uploaded twice without reloading its lighting scenario level.  The Lighting scenario level must be loaded once for each time the reflection capture is uploaded."), *CaptureComponent->GetPathName());
+					}
 				}
 			});
 		}

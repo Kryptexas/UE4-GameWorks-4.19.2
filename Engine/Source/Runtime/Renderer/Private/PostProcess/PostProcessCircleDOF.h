@@ -91,4 +91,4 @@ private:
 // @return in mm, assuming the sensor in the DepthOfField settings
 float ComputeFocalLengthFromFov(const FSceneView& View);
 
-FVector4 CircleDofHalfCoc(const FSceneView& View);
+FVector4 CircleDofHalfCoc(const FViewInfo& View);

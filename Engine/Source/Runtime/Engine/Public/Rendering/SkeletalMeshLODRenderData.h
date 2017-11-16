@@ -12,6 +12,7 @@
 #include "SkeletalMeshTypes.h"
 #include "BoneIndices.h"
 #include "StaticMeshResources.h"
+#include "GPUSkinVertexFactory.h"
 
 #if WITH_EDITOR
 class FSkeletalMeshLODModel;
@@ -55,6 +56,10 @@ struct FSkelMeshRenderSection
 
 	/** Clothing data for this section, clothing is only present if ClothingData.IsValid() returns true */
 	FClothingSectionData ClothingData;
+
+    /** Index Buffer containting all duplicated vertices in the section and a buffer containing which indices into the index buffer are relevant per vertex **/
+    FVertexBufferAndSRV DuplicatedVerticesIndexBuffer;
+    FVertexBufferAndSRV LengthAndIndexDuplicatedVerticesIndexBuffer;
 
 	FSkelMeshRenderSection()
 		: MaterialIndex(0)

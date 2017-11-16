@@ -24,7 +24,6 @@
 #include "ShaderBaseClasses.h"
 #include "DebugViewModeRendering.h"
 #include "FogRendering.h"
-#include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 #include "UnrealEngine.h"
 
@@ -685,6 +684,8 @@ public:
 		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
 		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
 		HZBUvFactorAndInvFactor.Bind(ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
+		PrevScreenPositionScaleBias.Bind(ParameterMap, TEXT("PrevScreenPositionScaleBias"));
+		PrevSceneColorPreExposureInv.Bind(ParameterMap, TEXT("PrevSceneColorPreExposureInv"));
 		PrevSceneColor.Bind(ParameterMap, TEXT("PrevSceneColor"));
 		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
@@ -698,6 +699,8 @@ public:
 		Ar << P.HZBTexture;
 		Ar << P.HZBSampler;
 		Ar << P.HZBUvFactorAndInvFactor;
+		Ar << P.PrevScreenPositionScaleBias;
+		Ar << P.PrevSceneColorPreExposureInv;
 		Ar << P.PrevSceneColor;
 		Ar << P.PrevSceneColorSampler;
 		return Ar;
@@ -709,6 +712,8 @@ private:
 	FShaderResourceParameter HZBTexture;
 	FShaderResourceParameter HZBSampler;
 	FShaderParameter HZBUvFactorAndInvFactor;
+	FShaderParameter PrevScreenPositionScaleBias;
+	FShaderParameter PrevSceneColorPreExposureInv;
 	FShaderResourceParameter PrevSceneColor;
 	FShaderResourceParameter PrevSceneColorSampler;
 };
@@ -746,7 +751,6 @@ public:
 		ReflectionParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
-		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 	}
 	TBasePassPixelShaderPolicyParamType() {}
@@ -756,8 +760,7 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& MaterialResource, 
 		const FViewInfo* View, 
-		EBlendMode BlendMode, 
-		bool bEnableEditorPrimitveDepthTest,
+		EBlendMode BlendMode,
 		ESceneRenderTargetsMode::Type TextureMode,
 		bool bIsInstancedStereo,
 		bool bUseDownsampledTranslucencyViewUniformBuffer)
@@ -770,13 +773,17 @@ public:
 
 		ReflectionParameters.Set(RHICmdList, ShaderRHI, View);
 
-		if (IsTranslucentBlendMode(BlendMode))
+		const bool bTranslucent = IsTranslucentBlendMode(BlendMode);
+
+		if (bTranslucent)
 		{
 			TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
+		}
+
+		if (bTranslucent || IsForwardShadingEnabled(View->FeatureLevel))
+		{
 			HeightFogParameters.Set(RHICmdList, ShaderRHI, View);
 		}
-		
-		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
@@ -790,7 +797,6 @@ public:
 		Ar << ReflectionParameters;
 		Ar << TranslucentLightingParameters;
 		Ar << HeightFogParameters;
-		Ar << EditorCompositeParams;
 		Ar << ForwardLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
@@ -799,7 +805,6 @@ private:
 	FBasePassReflectionParameters ReflectionParameters;
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FHeightFogShaderParameters HeightFogParameters;
-	FEditorCompositingParameters EditorCompositeParams;
 	FForwardLightingParameters ForwardLightingParameters;
 };
 
@@ -951,8 +956,7 @@ public:
 		const FMaterial& InMaterialResource, 
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
-		bool bInEnableReceiveDecalOutput,
-		bool bInEnableEditorPrimitiveDepthTest) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput), bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
+		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{}
 
 	void ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
@@ -961,8 +965,6 @@ protected:
 
 	/** Whether or not outputing the receive decal boolean */
 	uint32 bEnableReceiveDecalOutput : 1;
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 };
 
 /**
@@ -1004,10 +1006,9 @@ public:
 		bool bInEnableAtmosphericFog,
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
-		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput, bInEnableEditorPrimitiveDepthTest),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
@@ -1036,13 +1037,6 @@ public:
 			PixelShader
 			);
 
-#if DO_GUARD_SLOW
-		// Somewhat hacky
-		if (SceneTextureMode == ESceneRenderTargetsMode::DontSet && !bEnableEditorPrimitiveDepthTest && InMaterialResource.IsUsedWithEditorCompositing())
-		{
-			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
-		}
-#endif
 		BaseVertexShader = VertexShader;
 	}
 
@@ -1154,7 +1148,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
 		}
 	}
 
@@ -1286,14 +1280,10 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
-		/** Whether or not to perform depth test in the pixel shader */
-		bool bEditorCompositeDepthTest;
-
 		ESceneRenderTargetsMode::Type TextureMode;
 
-		ContextType(bool bInEditorCompositeDepthTest, ESceneRenderTargetsMode::Type InTextureMode)
-			: bEditorCompositeDepthTest( bInEditorCompositeDepthTest )
-			, TextureMode( InTextureMode )
+		ContextType(ESceneRenderTargetsMode::Type InTextureMode)
+			: TextureMode( InTextureMode )
 		{}
 	};
 
@@ -1323,8 +1313,6 @@ public:
 	EBlendMode BlendMode;
 	EMaterialShadingModel ShadingModel;
 	const bool bAllowFog;
-	/** Whether or not to perform depth test in the pixel shader */
-	const bool bEditorCompositeDepthTest;
 	ESceneRenderTargetsMode::Type TextureMode;
 	ERHIFeatureLevel::Type FeatureLevel;
 	const bool bIsInstancedStereo;
@@ -1336,7 +1324,6 @@ public:
 		const FMaterial* InMaterial,
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
-		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
 		ERHIFeatureLevel::Type InFeatureLevel,
 		const bool InbIsInstancedStereo = false,
@@ -1349,7 +1336,6 @@ public:
 		BlendMode(InMaterial->GetBlendMode()),
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
-		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel), 
 		bIsInstancedStereo(InbIsInstancedStereo), 
@@ -1364,7 +1350,6 @@ public:
 		const FMaterial* InMaterial,
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
-		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
 		ERHIFeatureLevel::Type InFeatureLevel, 
 		bool InbIsInstancedStereo = false, 
@@ -1377,7 +1362,6 @@ public:
 		BlendMode(InMaterial->GetBlendMode()),
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
-		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel),
 		bIsInstancedStereo(InbIsInstancedStereo), 

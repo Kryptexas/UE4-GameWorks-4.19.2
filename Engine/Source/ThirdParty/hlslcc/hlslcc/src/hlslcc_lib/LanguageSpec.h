@@ -48,6 +48,9 @@ struct ILanguageSpec
 	
 	// GLSL doesn't allow non-comparison sampling operations on shadow/depth textures, but that's not universally true
 	virtual bool AllowsAllTextureOperationsOnDepthTextures() const { return false; }
+    
+    // Whether the language allows "invariant *Buffer<T> N" to specify that the buffer N is strongly typed as T to optimise access performance.
+    virtual bool AllowsInvariantBufferTypes() const { return false; }
 };
 
 enum

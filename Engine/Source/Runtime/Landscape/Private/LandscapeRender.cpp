@@ -1348,7 +1348,7 @@ float FLandscapeComponentSceneProxy::CalcDesiredLOD(const FSceneView& View, cons
 		}
 		else
 		{
-			float Scale = 1.0f / (View.ViewRect.Width() * View.ViewMatrices.GetProjectionMatrix().M[0][0]);
+			float Scale = 1.0f / (View.UnscaledViewRect.Width() * View.ViewMatrices.GetProjectionMatrix().M[0][0]);
 
 			// The "/ 5.0f" is totally arbitrary
 			switch (LODFalloff)

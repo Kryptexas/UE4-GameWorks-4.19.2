@@ -1464,6 +1464,9 @@ public:
 	 * @param InOptions - The options for the static lighting build.
 	 */
 	virtual void GetStaticLightingInfo(struct FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<class ULightComponent*>& InRelevantLights,const class FLightingBuildOptions& Options) {}
+
+	/** Add the used GUIDs from UMapBuildDataRegistry::MeshBuildData. Used to preserve hidden level data in lighting scenario. */
+	virtual void AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const {}
 #endif
 	/**
 	 *	Requests whether the component will use texture, vertex or no lightmaps.

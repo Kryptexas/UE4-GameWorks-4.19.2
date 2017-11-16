@@ -103,7 +103,7 @@ public:
 
 	bool IsStereoEnabled() const { return Flags.bStereoEnabled && Flags.bHMDEnabled; }
 
-	bool UpdatePixelDensityFromScreenPercentage();
+	bool UpdatePixelDensity(const float NewPixelDensity);
 
 	TSharedPtr<FSettings, ESPMode::ThreadSafe> Clone() const;
 };

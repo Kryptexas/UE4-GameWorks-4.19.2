@@ -16,11 +16,6 @@ FAutoConsoleVariable GCVarDelayAcquireBackBuffer(
 	ECVF_ReadOnly
 );
 
-inline static bool DelayAcquireBackBuffer()
-{
-	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
-}
-
 struct FRHICommandAcquireBackBuffer final : public FRHICommand<FRHICommandAcquireBackBuffer>
 {
 	FVulkanViewport* Viewport;

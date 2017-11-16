@@ -218,7 +218,7 @@ public:
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
 	 * If the allocated render targets are too small, they are reallocated.
 	 */
-	void Allocate(FRHICommandListImmediate& RHICmdList, const FSceneViewFamily& ViewFamily);
+	void Allocate(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer);
 
 	/**
 	 *
@@ -525,7 +525,7 @@ public:
 
 	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
-	void AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FSceneView& MonoView);
+	void AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FViewInfo& MonoView);
 
 	void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
 

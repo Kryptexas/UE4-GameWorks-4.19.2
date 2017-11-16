@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright 2015 NVIDIA Corporation. All rights reserved.
+// Copyright 2016 NVIDIA Corporation. All rights reserved.
 
 #pragma once
 #include <ansel/Defines.h>
@@ -69,7 +69,7 @@ namespace ansel
         uint32_t captureSettleLatency;
         // Game scale, the size of a world unit measured in meters
         float metersInWorldUnit;
-        // Integration will support Camera::screenOriginXOffset/screenOriginYOffset
+        // Integration will support Camera::projectionOffsetX/projectionOffsetY
         bool isCameraOffcenteredProjectionSupported;
         // Integration will support Camera::position
         bool isCameraTranslationSupported;
@@ -77,8 +77,13 @@ namespace ansel
         bool isCameraRotationSupported;
         // Integration will support Camera::horizontalFov
         bool isCameraFovSupported;
-        // Obsolete, we extract titleName from GeForce game profiles
-        const char* unused1;
+        // Game name, in utf8 encoding, used to name the resulting image files from capturing. 
+        // It is not mandatory to set this field. The name chosen is based on the following 
+        // selection order:
+        // 1. If GeForce profile exists for the game that name will be used
+        // 2. If 'titleNameUtf8' is set that will be used
+        // 3. The executable name is used as a last resort
+        const char* titleNameUtf8;
         // Camera structure will contain vertical FOV if this is set to kVerticalFov
         // but horizontal FOV if this is set to kHorizontalFov. To simplify integration set
         // this to the same orientation as the game is using.
@@ -93,20 +98,22 @@ namespace ansel
         // The window handle for the game/application where input messages are processed
         void* gameWindowHandle;
 
-        // Called when user activates Ansel. Return false if the game cannot comply with the
-        // request. If the function returns true the following must be done:
+        // Called when user activates Ansel. Return kDisallowed if the game cannot comply with the
+        // request. If the function returns kAllowed the following must be done:
         // 1. Change the SessionConfigruation settings, but only where you need to (the object
         //    is already populated with default settings).
-        // 2. On the next update loop the game will be in an Ansel session. This requires the game
-        //    to 
-        //    a) stop drawing any UI or HUD related elements
-        //    b) pause the simulation (if possible)
-        //    c) call ansel::updateCamera and perform associated processing
+        // 2. On the next update loop the game will be in an Ansel session. During an Ansel session 
+        //    the game :
+        //    a) Must stop drawing UI and HUD elements on the screen, including mouse cursor
+        //    b) Must call ansel::updateCamera on every frame
+        //    c) Should pause rendering time (i.e. no movement should be visible in the world)
+        //    d) Should not act on any input from mouse and keyboard and must not act on any input 
+        //       from gamepads
         // 3. Step 2 is repeated on every iteration of update loop until Session is stopped.
         StartSessionCallback startSessionCallback;
 
         // Called when Ansel is deactivated. This call will only be made if the previous call
-        // to the startSessionCallback returned true.
+        // to the startSessionCallback returned kAllowed.
         // Normally games will use this callback to restore their camera to the settings it had 
         // when the Ansel session was started.
         StopSessionCallback stopSessionCallback;
@@ -119,10 +126,13 @@ namespace ansel
         // Handy to enable those fullscreen effects that were disabled by startCaptureCallback.
         // This callback is optional (leave nullptr if not needed)
         StopCaptureCallback stopCaptureCallback;
-        // Integration allows a filter/effect to remain active when the Ansel session is not active
-        bool isFilterOutsideSessionAllowed;
-        // Integration allows the game to disable EXR explicitly
-        bool isExrSupported;
+        // The 'isFilterOutsideSessionAllowed' setting has been phased out in version 1.3 of the
+        // SDK. This feature was only temporarily supported and no games took advantage of it.
+        bool unused2;
+        // The 'isExrSupported' setting has been phased out in version 1.1 of the SDK. Use
+        // 'isRawAllowed' setting in SessionConfiguration to enable/disable captures into EXR
+        // format.
+        bool unused1;
         // Holds the sdk version, doesn't require modifications
         uint64_t sdkVersion;
 
@@ -146,7 +156,7 @@ namespace ansel
             isCameraTranslationSupported = true;
             isCameraRotationSupported = true;
             isCameraFovSupported = true;
-            unused1 = nullptr;
+            titleNameUtf8 = nullptr;
             fovType = kHorizontalFov;
             userPointer = nullptr;
             gameWindowHandle = 0;
@@ -154,8 +164,8 @@ namespace ansel
             stopSessionCallback = nullptr;
             startCaptureCallback = nullptr;
             stopCaptureCallback = nullptr;
-            isFilterOutsideSessionAllowed = true;
-            isExrSupported = false;
+            unused2 = true;
+            unused1 = false;
             sdkVersion = ANSEL_SDK_VERSION;
         }
     };

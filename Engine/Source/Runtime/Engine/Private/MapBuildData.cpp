@@ -583,13 +583,41 @@ FReflectionCaptureMapBuildData* UMapBuildDataRegistry::GetReflectionCaptureBuild
 	return ReflectionCaptureBuildData.Find(CaptureId);
 }
 
-void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
+void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World, const TSet<FGuid>* ResourcesToKeep)
 {
 	if (MeshBuildData.Num() > 0 || LightBuildData.Num() > 0)
 	{
 		FGlobalComponentRecreateRenderStateContext Context;
-		MeshBuildData.Empty();
-		LightBuildData.Empty();
+
+		if (!ResourcesToKeep || !ResourcesToKeep->Num())
+		{
+			MeshBuildData.Empty();
+			LightBuildData.Empty();
+		}
+		else // Otherwise keep any resource if it's guid is in ResourcesToKeep.
+		{
+			TMap<FGuid, FMeshMapBuildData> PrevMeshData;
+			TMap<FGuid, FLightComponentMapBuildData> PrevLightData;
+			FMemory::Memswap(&MeshBuildData , &PrevMeshData, sizeof(MeshBuildData));
+			FMemory::Memswap(&LightBuildData , &PrevLightData, sizeof(LightBuildData));
+
+			for (const FGuid& Guid : *ResourcesToKeep)
+			{
+				const FMeshMapBuildData* MeshData = PrevMeshData.Find(Guid);
+				if (MeshData)
+				{
+					MeshBuildData.Add(Guid, *MeshData);
+					continue;
+				}
+
+				const FLightComponentMapBuildData* LightData = PrevLightData.Find(Guid);
+				if (LightData)
+				{
+					LightBuildData.Add(Guid, *LightData);
+					continue;
+				}
+			}
+		}
 
 		MarkPackageDirty();
 	}
@@ -601,23 +629,35 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 			World->GetLevel(LevelIndex)->ReleaseRenderingResources();
 		}
 
-		ReleaseResources();
+		ReleaseResources(ResourcesToKeep);
 
 		// Make sure the RT has processed the release command before we delete any FPrecomputedLightVolume's
 		FlushRenderingCommands();
 
-		EmptyLevelData();
+		EmptyLevelData(ResourcesToKeep);
 
 		MarkPackageDirty();
 	}
 }
 
-void UMapBuildDataRegistry::InvalidateReflectionCaptures()
+void UMapBuildDataRegistry::InvalidateReflectionCaptures(const TSet<FGuid>* ResourcesToKeep)
 {
 	if (ReflectionCaptureBuildData.Num() > 0)
 	{
 		FGlobalComponentRecreateRenderStateContext Context;
-		ReflectionCaptureBuildData.Empty();
+
+		TMap<FGuid, FReflectionCaptureMapBuildData> PrevReflectionCapturedData;
+		FMemory::Memswap(&ReflectionCaptureBuildData , &PrevReflectionCapturedData, sizeof(ReflectionCaptureBuildData));
+
+		for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(PrevReflectionCapturedData); It; ++It)
+		{
+ 			// Keep any resource if it's guid is in ResourcesToKeep.
+			if (ResourcesToKeep && ResourcesToKeep->Contains(It.Key()))
+			{
+				ReflectionCaptureBuildData.Add(It.Key(), It.Value());
+			}
+		}
+
 		MarkPackageDirty();
 	}
 }
@@ -627,29 +667,49 @@ bool UMapBuildDataRegistry::IsLegacyBuildData() const
 	return GetOutermost()->ContainsMap();
 }
 
-void UMapBuildDataRegistry::ReleaseResources()
+void UMapBuildDataRegistry::ReleaseResources(const TSet<FGuid>* ResourcesToKeep)
 {
 	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
 	{
-		BeginReleaseResource(It.Value());
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			BeginReleaseResource(It.Value());
+		}
 	}
 }
 
-void UMapBuildDataRegistry::EmptyLevelData()
+void UMapBuildDataRegistry::EmptyLevelData(const TSet<FGuid>* ResourcesToKeep)
 {
-	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(LevelPrecomputedLightVolumeBuildData); It; ++It)
+	TMap<FGuid, FPrecomputedLightVolumeData*> PrevPrecomputedLightVolumeData;
+	TMap<FGuid, FPrecomputedVolumetricLightmapData*> PrevPrecomputedVolumetricLightmapData;
+	FMemory::Memswap(&LevelPrecomputedLightVolumeBuildData , &PrevPrecomputedLightVolumeData, sizeof(LevelPrecomputedLightVolumeBuildData));
+	FMemory::Memswap(&LevelPrecomputedVolumetricLightmapBuildData , &PrevPrecomputedVolumetricLightmapData, sizeof(LevelPrecomputedVolumetricLightmapBuildData));
+
+	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(PrevPrecomputedLightVolumeData); It; ++It)
 	{
-		delete It.Value();
+ 		// Keep any resource if it's guid is in ResourcesToKeep.
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			delete It.Value();
+		}
+		else
+		{
+			LevelPrecomputedLightVolumeBuildData.Add(It.Key(), It.Value());
+		}
 	}
 
-	LevelPrecomputedLightVolumeBuildData.Empty();
-
-	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
+	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(PrevPrecomputedVolumetricLightmapData); It; ++It)
 	{
-		delete It.Value();
+		// Keep any resource if it's guid is in ResourcesToKeep.
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			delete It.Value();
+		}
+		else
+		{
+			LevelPrecomputedVolumetricLightmapBuildData.Add(It.Key(), It.Value());
+		}
 	}
-
-	LevelPrecomputedVolumetricLightmapBuildData.Empty();
 }
 
 FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;

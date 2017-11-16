@@ -2476,7 +2476,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, Color),
 			0,
 			VET_Float4,
-			EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::Instancing
 			);
 
 		// Particle transform matrix
@@ -2487,7 +2487,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 				STRUCT_OFFSET(FMeshParticleInstanceVertex, Transform) + sizeof(FVector4) * MatrixRow, 
 				0,
 				VET_Float4,
-				EVertexStreamUsage::Instanceing
+				EVertexStreamUsage::Instancing
 				);
 		}
 
@@ -2496,7 +2496,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex,Velocity),
 			0,
 			VET_Float4,
-			EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::Instancing
 			);
 
 		// SubUVs.
@@ -2505,7 +2505,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, SubUVParams), 
 			0,
 			VET_Short4,
-			EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::Instancing
 			);
 
 		// Pack SubUV Lerp and the particle's relative time
@@ -2514,7 +2514,7 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 			STRUCT_OFFSET(FMeshParticleInstanceVertex, SubUVLerp), 
 			0,
 			VET_Float2,
-			EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::Instancing
 			);
 
 		Data.bInitialized = true;

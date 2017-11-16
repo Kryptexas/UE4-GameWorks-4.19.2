@@ -153,7 +153,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 
 	uint32 NumRenderTargets = (bNearBlur && bFarBlur) ? 2 : 1;
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	const auto FeatureLevel = Context.GetFeatureLevel();
@@ -422,7 +422,7 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 
 	check(InputDesc);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	const auto FeatureLevel = Context.GetFeatureLevel();
 	auto ShaderMap = Context.GetShaderMap();

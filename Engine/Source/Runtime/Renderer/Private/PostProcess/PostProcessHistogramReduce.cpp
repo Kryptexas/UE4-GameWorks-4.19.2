@@ -98,7 +98,7 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FIntPoint SrcSize = InputDesc->Extent;
@@ -126,7 +126,7 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
-	FIntPoint GatherExtent = (View.ViewRect.Size() - FIntPoint(1, 1)) / 2;
+	FIntPoint GatherExtent = (Context.SceneColorViewRect.Size() - FIntPoint(1, 1)) / 2;
 
 	uint32 LoopSizeValue = ComputeLoopSize(GatherExtent);
 

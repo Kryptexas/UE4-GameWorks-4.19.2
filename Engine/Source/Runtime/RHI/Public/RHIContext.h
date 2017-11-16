@@ -305,8 +305,6 @@ public:
 		/* empty default implementation */
 	}
 
-	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) = 0;
-	
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset) = 0;
 
 	// @param MinX including like Win32 RECT

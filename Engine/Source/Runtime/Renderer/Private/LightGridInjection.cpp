@@ -74,6 +74,7 @@ FForwardGlobalLightData::FForwardGlobalLightData()
 	DirectionalLightUseStaticShadowing = 0;
 	DirectionalLightStaticShadowmap = GBlackTexture->TextureRHI;
 	StaticShadowmapSampler = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+	DirectionalLightShadowmapAtlasBufferSize = FVector4(0, 0, 0, 0);
 }
 
 int32 NumCulledLightsGridStride = 2;
@@ -475,6 +476,8 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 										{
 											GlobalLightData.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
 											GlobalLightData.DirectionalLightDepthBias = ShadowInfo->GetShaderDepthBias();
+											FVector2D AtlasSize = ShadowInfo->RenderTargets.DepthTarget->GetDesc().Extent;
+											GlobalLightData.DirectionalLightShadowmapAtlasBufferSize = FVector4(AtlasSize.X, AtlasSize.Y, 1.0f / AtlasSize.X, 1.0f / AtlasSize.Y);
 										}
 									}
 								}
@@ -537,7 +540,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				if (View.ForwardLightingResources->ForwardLocalLightBuffer.NumBytes < NumBytesRequired)
 				{
 					View.ForwardLightingResources->ForwardLocalLightBuffer.Release();
-					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_R32G32B32A32_UINT, BUF_Volatile);
+					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_A32B32G32R32F, BUF_Volatile);
 				}
 
 				View.ForwardLightingResources->ForwardLocalLightBuffer.Lock();
@@ -558,9 +561,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			FVector ZParams = GetLightGridZParams(View.NearClippingDistance, FarPlane + 10.f);
 			GlobalLightData.LightGridZParams = ZParams;
 
-			// @todo Metal lacks SRV/UAV format conversions in v1.1 and earlier.
+            // @todo Metal lacks efficient SRV/UAV format conversions.
 #if PLATFORM_MAC || PLATFORM_IOS
-			static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform) && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) < 2);
+			static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform));
 			const uint64 NumIndexableLights = bNoFormatConversion ? (1llu << (sizeof(FLightIndexType32) * 8llu)) : (1llu << (sizeof(FLightIndexType) * 8llu));
 #else
 			const uint64 NumIndexableLights = 1llu << (sizeof(FLightIndexType) * 8llu);
@@ -580,9 +583,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			View.ForwardLightingResources->ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(GlobalLightData, UniformBuffer_SingleFrame);
 		}
 
-		// @todo Metal lacks SRV/UAV format conversions in v1.1 and earlier.
+		// @todo Metal lacks efficient SRV/UAV format conversions.
 #if PLATFORM_MAC || PLATFORM_IOS
-		static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform) && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) < 2);
+		static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform));
 		const SIZE_T LightIndexTypeSize = bNoFormatConversion ? sizeof(FLightIndexType32) : sizeof(FLightIndexType);
 #else
 		const SIZE_T LightIndexTypeSize = sizeof(FLightIndexType);

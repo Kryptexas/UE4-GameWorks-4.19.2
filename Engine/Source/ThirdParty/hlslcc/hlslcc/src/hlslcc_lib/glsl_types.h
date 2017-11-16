@@ -282,6 +282,7 @@ struct glsl_type
 	static const glsl_type *get_templated_instance(const glsl_type *base,
 		const char *name, int num_samples, int patch_size);
 
+	static const glsl_type* GetByteAddressBufferInstance(const char* TypeName);
 	static const glsl_type* GetStructuredBufferInstance(const char* TypeName, const glsl_type* InnerType);
 
 	/**

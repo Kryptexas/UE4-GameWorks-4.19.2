@@ -22,6 +22,7 @@ extern void UpdateHistory(
 	IPooledRenderTarget* VelocityTexture,
 	FSceneRenderTargetItem& DistanceFieldNormal,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
+	FIntRect* DistanceFieldAOHistoryViewRect,
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* ConfidenceHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState,

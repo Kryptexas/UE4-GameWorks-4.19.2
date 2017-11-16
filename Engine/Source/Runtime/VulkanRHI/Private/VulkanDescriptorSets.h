@@ -73,6 +73,11 @@ public:
 		SetLayouts = Info.SetLayouts;
 	}
 
+	inline const uint32* GetLayoutTypes() const
+	{
+		return LayoutTypes;
+	}
+
 protected:
 	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	TArray<FSetLayout> SetLayouts;
@@ -103,11 +108,14 @@ private:
 	TArray<VkDescriptorSetLayout> LayoutHandles;
 };
 
-class FVulkanDescriptorPool
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+typedef TArray<VkDescriptorSet, TInlineAllocator<SF_Compute>> FVulkanDescriptorSetArray;
+#else
+class FOLDVulkanDescriptorPool
 {
 public:
-	FVulkanDescriptorPool(FVulkanDevice* InDevice);
-	~FVulkanDescriptorPool();
+	FOLDVulkanDescriptorPool(FVulkanDevice* InDevice);
+	~FOLDVulkanDescriptorPool();
 
 	inline VkDescriptorPool GetHandle() const
 	{
@@ -148,13 +156,15 @@ private:
 	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 
 	VkDescriptorPool DescriptorPool;
+
+	friend class FVulkanCommandListContext;
 };
 
 // The actual descriptor sets for a given pipeline
-class FVulkanDescriptorSets
+class FOLDVulkanDescriptorSets
 {
 public:
-	~FVulkanDescriptorSets();
+	~FOLDVulkanDescriptorSets();
 
 	typedef TArray<VkDescriptorSet, TInlineAllocator<SF_Compute>> FDescriptorSetArray;
 
@@ -173,17 +183,18 @@ public:
 	}
 
 private:
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
+	FOLDVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
 
 	FVulkanDevice* Device;
-	FVulkanDescriptorPool* Pool;
+	FOLDVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	FDescriptorSetArray Sets;
 
-	friend class FVulkanDescriptorPool;
-	friend class FVulkanDescriptorSetRingBuffer;
+	friend class FOLDVulkanDescriptorPool;
+	friend class FOLDVulkanDescriptorSetRingBuffer;
 	friend class FVulkanCommandListContext;
 };
+#endif
 
 // This container holds the actual VkWriteDescriptorSet structures; a Compute pipeline uses the arrays 'as-is', whereas a 
 // Gfx PSO will have one big array and chunk it depending on the stage (eg Vertex, Pixel).
@@ -239,12 +250,13 @@ protected:
 	friend class FVulkanPipelineStateCache;
 };
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 // This class handles allocating/reusing descriptor sets per command list for a specific pipeline layout (each context holds one of this)
-class FVulkanDescriptorSetRingBuffer : public VulkanRHI::FDeviceChild
+class FOLDVulkanDescriptorSetRingBuffer : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice);
-	virtual ~FVulkanDescriptorSetRingBuffer();
+	FOLDVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice);
+	virtual ~FOLDVulkanDescriptorSetRingBuffer();
 
 	void Reset()
 	{
@@ -258,12 +270,12 @@ public:
 	}
 
 protected:
-	FVulkanDescriptorSets* CurrDescriptorSets;
+	FOLDVulkanDescriptorSets* CurrDescriptorSets;
 
 	struct FDescriptorSetsPair
 	{
 		uint64 FenceCounter;
-		FVulkanDescriptorSets* DescriptorSets;
+		FOLDVulkanDescriptorSets* DescriptorSets;
 
 		FDescriptorSetsPair()
 			: FenceCounter(0)
@@ -286,11 +298,12 @@ protected:
 	};
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
-	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
+	FOLDVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
 
 	friend class FVulkanComputePipelineState;
 	friend class FVulkanGfxPipelineState;
 };
+#endif
 
 // This class encapsulates updating VkWriteDescriptorSet structures (but doesn't own them), and their flags for dirty ranges; it is intended
 // to be used to access a sub-region of a long array of VkWriteDescriptorSet (ie FVulkanDescriptorSetWriteContainer)
@@ -416,3 +429,62 @@ protected:
 	friend class FVulkanComputePipelineState;
 	friend class FVulkanGfxPipelineState;
 };
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+class FVulkanPipelineDescriptorSetAllocator
+{
+public:
+	FVulkanPipelineDescriptorSetAllocator()
+	{
+	}
+
+	~FVulkanPipelineDescriptorSetAllocator();
+
+	void Destroy(FVulkanDevice* Device);
+
+	void InitLayout(const FVulkanLayout& Layout, uint32 InNumAllocationsPerPool);
+
+	void Reset();
+
+	FVulkanDescriptorSetArray* Allocate(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout* InLayout);
+
+protected:
+
+	struct FPool
+	{
+		FPool(FVulkanDevice* Device, const FVulkanLayout* InLayout, const VkDescriptorPoolCreateInfo* CreateInfo, uint32 InNumAllocations);
+		~FPool();
+
+		void Destroy(FVulkanDevice* Device);
+
+		bool TryAllocate(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, bool& bOutIsFullAfterAllocation, FVulkanDescriptorSetArray*& OutSets);
+
+		bool ProcessFences();
+
+		VkDescriptorPool Handle;
+
+		struct FEntry
+		{
+			FVulkanDescriptorSetArray Allocation;
+
+			// Nullptr means the set is free
+			FVulkanCmdBuffer* CmdBuffer = nullptr;
+
+			uint64 FenceCounter = 0;
+		};
+		int32 UsedEntries = 0;
+		TArray<FEntry> Entries;
+	};
+
+	FCriticalSection CS;
+
+	FPool* CurrentPool = nullptr;
+
+	TArray<FPool*> UsedPools;
+	TArray<FPool*> FreePools;
+
+	VkDescriptorPoolCreateInfo CreateInfo;
+	TArray<VkDescriptorPoolSize> CreateInfoTypes;
+	uint32 NumAllocationsPerPool = 0;
+};
+#endif

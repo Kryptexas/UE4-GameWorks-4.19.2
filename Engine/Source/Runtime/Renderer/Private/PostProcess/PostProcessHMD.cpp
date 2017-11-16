@@ -162,7 +162,7 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	const FIntRect SrcRect = View.ViewRect;

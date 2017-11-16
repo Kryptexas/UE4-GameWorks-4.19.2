@@ -567,6 +567,10 @@ struct FPluginRedirect
 };
 
 
+/** Game thread events for dynamic resolution state. */
+enum class EDynamicResolutionStateEvent : uint8;
+
+
 class IAnalyticsProvider;
 
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
@@ -1562,6 +1566,36 @@ public:
 	 * Restores the selected material color back to the user setting
 	 */
 	void RestoreSelectedMaterialColor();
+
+	/** Emit an event for dynamic resolution if not already done. */
+	void EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event);
+
+	/** Get's global dynamic resolution state */
+	FORCEINLINE class IDynamicResolutionState* GetDynamicResolutionState()
+	{
+		#if UE_SERVER
+			return nullptr;
+		#else
+			// Returns next's frame dynamic resolution state to keep game thread consistency after a ChangeDynamicResolutionStateAtNextFrame().
+			check(NextDynamicResolutionState.IsValid() || IsRunningCommandlet() || IsRunningDedicatedServer());
+			return NextDynamicResolutionState.Get();
+		#endif
+	}
+
+	/** Override dynamic resolution state for next frame. */
+	void ChangeDynamicResolutionStateAtNextFrame(TSharedPtr< class IDynamicResolutionState > NewState);
+
+private:
+	#if !UE_SERVER
+		/** Last dynamic resolution event. */
+		EDynamicResolutionStateEvent LastDynamicResolutionEvent;
+
+		/** Global state for dynamic resolution's heuristic. */
+		TSharedPtr< class IDynamicResolutionState > DynamicResolutionState;
+
+		/** Next frame's Global state for dynamic resolution's heuristic. */
+		TSharedPtr< class IDynamicResolutionState > NextDynamicResolutionState;
+	#endif
 
 protected:
 

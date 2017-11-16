@@ -16,7 +16,7 @@ enum EMetalPipelineHashBits
 
 	NumBits_BlendState = 5, //(x8=40),
 	NumBits_PrimitiveTopology = 2, //(x1=2)
-	NumBits_IndexType = 2,
+	NumBits_IndexType = 2, //(x1=2)
 };
 
 enum EMetalPipelineHashOffsets

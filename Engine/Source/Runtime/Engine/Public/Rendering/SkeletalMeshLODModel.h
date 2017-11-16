@@ -114,6 +114,9 @@ struct FSkelMeshSection
 	/** Clothing data for this section, clothing is only present if ClothingData.IsValid() returns true */
 	FClothingSectionData ClothingData;
 
+    /** Map between a vertex index and all vertices that share the same position **/
+    TMap<int32, TArray<int32>> OverlappingVertices;
+
 	FSkelMeshSection()
 		: MaterialIndex(0)
 		, BaseIndex(0)

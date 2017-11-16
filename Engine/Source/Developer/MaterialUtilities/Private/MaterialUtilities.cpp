@@ -11,6 +11,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/PackageName.h"
+#include "LegacyScreenPercentageDriver.h"
 
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
@@ -774,6 +775,7 @@ static void RenderSceneToTexture(
 	ViewFamily.EngineShowFlags.SetPostProcessing(true);
 	ViewFamily.EngineShowFlags.SetVisualizeBuffer(true);
 	ViewFamily.EngineShowFlags.SetTonemapper(false);
+	ViewFamily.EngineShowFlags.SetScreenPercentage(false);
 
 	FSceneViewInitOptions ViewInitOptions;
 	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, TargetSize.X, TargetSize.Y));
@@ -786,7 +788,10 @@ static void RenderSceneToTexture(
 	FSceneView* NewView = new FSceneView(ViewInitOptions);
 	NewView->CurrentBufferVisualizationMode = VisualizationMode;
 	ViewFamily.Views.Add(NewView);
-					
+
+	ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+		ViewFamily, /* GlobalResolutionFraction = */ 1.0f, /* AllowPostProcessSettingsScreenPercentage = */ false));
+
 	FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 	Canvas.Clear(FLinearColor::Transparent);
 	GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);

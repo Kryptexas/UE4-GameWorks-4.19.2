@@ -456,7 +456,6 @@ public:
 			bRenderAtmosphericFog,
 			ComputeMeshOverrideSettings(Parameters.Mesh),
 			View.Family->GetDebugViewShaderMode(),
-			false,
 			false);
 
 		DrawingPolicy.SetupPipelineState(DrawRenderState, View);
@@ -482,7 +481,7 @@ public:
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 					);
-				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh,BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList,View,Parameters.Mesh,BatchElementIndex);
 			}
 
 			BatchElementMask >>= 1;
@@ -522,8 +521,6 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 
 			const bool bDisableDepthTest = Material->ShouldDisableDepthTest();
 			const bool bEnableResponsiveAA = Material->ShouldEnableResponsiveAA();
-			// editor compositing not supported on translucent materials currently
-			const bool bEditorCompositeDepthTest = false;
 
 			// if this draw is coming postAA then there is probably no depth buffer (it's canvas) and bEnableResponsiveAA wont' do anything anyway.
 			if (bEnableResponsiveAA && !DrawingContext.bPostAA)
@@ -566,7 +563,6 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 					Material,
 					PrimitiveSceneProxy, 
 					!bPreFog,
-					bEditorCompositeDepthTest,
 					DrawingContext.TextureMode,
 					FeatureLevel
 				),
@@ -785,7 +781,7 @@ void FTranslucentPrimSet::DrawPrimitives(
 		RenderPrimitive(RHICmdList, View, DrawRenderState, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, TranslucencyPass);
 	}
 
-	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 }
 
 void FTranslucentPrimSet::RenderPrimitive(
@@ -1007,8 +1003,8 @@ class FTranslucencyPassParallelCommandListSet : public FParallelCommandListSet
 	bool bRenderInSeparateTranslucency;
 
 public:
-	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPass::Type InTranslucencyPass, bool InRenderInSeparateTranslucency)
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, const FSceneRenderer* InSceneRenderer, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPass::Type InTranslucencyPass, bool InRenderInSeparateTranslucency)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucencyPass(InTranslucencyPass)
 		, bRenderInSeparateTranslucency(InRenderInSeparateTranslucency)
 	{
@@ -1066,7 +1062,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucency(FRHICommandListImmedi
 
 	if (IsMainTranslucencyPass(TranslucencyPass))
 		{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 
 		// editor and debug rendering
 		if (View.bHasTranslucentViewMeshElements)
@@ -1092,6 +1088,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 {
 	FTranslucencyPassParallelCommandListSet ParallelCommandListSet(
 		View, 
+		this,
 		RHICmdList, 
 				CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 
 				CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0, 
@@ -1132,7 +1129,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 
 	if (IsMainTranslucencyPass(TranslucencyPass))
 	{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 
 		// editor and debug rendering
 		if (View.bHasTranslucentViewMeshElements)

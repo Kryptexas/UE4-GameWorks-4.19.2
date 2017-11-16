@@ -26,6 +26,7 @@
 #include "HAL/ExceptionHandling.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
 
 #include "Misc/UProjectInfo.h"
 #include "Culture.h"
@@ -354,6 +355,39 @@ void FGenericPlatformMisc::RaiseException(uint32 ExceptionCode)
 #else	
 	*((uint32*)3) = ExceptionCode;
 #endif
+}
+
+void FGenericPlatformMisc::BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text)
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->StartScopedEvent(ANSI_TO_TCHAR(Text));
+	}
+}
+
+void FGenericPlatformMisc::BeginNamedEvent(const struct FColor& Color, const TCHAR* Text)
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->StartScopedEvent(Text);
+	}
+}
+
+void FGenericPlatformMisc::EndNamedEvent()
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->EndScopedEvent();
+	}
 }
 
 bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)

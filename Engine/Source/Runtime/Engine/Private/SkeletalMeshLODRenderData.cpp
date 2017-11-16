@@ -14,6 +14,25 @@
 #include "MeshUtilities.h"
 #endif // WITH_EDITOR
 
+struct FIndexLengthPair
+{
+    uint32 Length;
+    uint32 Index;
+
+    /**
+    * Serializer
+    *
+    * @param Ar - archive to serialize with
+    * @param V - vertex to serialize
+    * @return archive that was used
+    */
+    friend FArchive& operator<<(FArchive& Ar, FIndexLengthPair& V)
+    {
+        Ar << V.Length
+            << V.Index;
+        return Ar;
+    }
+};
 
 // Serialization.
 FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
@@ -39,7 +58,85 @@ FArchive& operator<<(FArchive& Ar, FSkelMeshRenderSection& S)
 	return Ar;
 }
 
+template<typename LinkType> //Calculate the median split between the leftmost and rightmost active permutation 
+static void DivideAndConquerPermuations(const TBitArray<>& BitIndicies, TMap<TBitArray<>, LinkType>& ExistingNodes, TArray<bool>& InstantiatedNodes, TArray<FMorphTargetVertexInfoBuffers::FPermuationNode>& AccumStrategyRules, uint32& TempStoreSize)
+{
+	check(ExistingNodes.Contains(BitIndicies));
+	LinkType NodeIndex = ExistingNodes.FindRef(BitIndicies);
 
+	if (!InstantiatedNodes[NodeIndex])
+	{
+		LinkType BitIndex1 = 0;
+		LinkType BitIndex2 = 0;
+		{
+			int Index1 = BitIndicies.Find(false);
+			int Index2 = BitIndicies.FindLast(false);
+			check(Index1 != INDEX_NONE);
+			check(Index2 != INDEX_NONE);
+			check(Index1 < Index2);
+
+			//split in the middle between leftmost set and rightmost set bits
+			int SplitIndex = ((Index1 + Index2 + 1) >> 1);		
+			TBitArray<> BitIndicies1 = BitIndicies;
+			BitIndicies1.SetRange(0, SplitIndex, true);
+			TBitArray<> BitIndicies2 = BitIndicies;
+			BitIndicies2.SetRange(SplitIndex, BitIndicies2.Num() - SplitIndex, true);
+
+			LinkType* Index1Ptr = ExistingNodes.Find(BitIndicies1);
+			if (Index1Ptr != nullptr)
+			{
+				BitIndex1 = *Index1Ptr;
+
+				//do early instantiation of this node
+				if (!InstantiatedNodes[BitIndex1])
+				{
+					DivideAndConquerPermuations<LinkType>(BitIndicies1, ExistingNodes, InstantiatedNodes, AccumStrategyRules, TempStoreSize);
+				}
+			}
+			else
+			{
+				//allocate a slot in the temp store
+				ExistingNodes.Add(BitIndicies1, TempStoreSize);
+				InstantiatedNodes.Add(false);
+
+				BitIndex1 = TempStoreSize;
+				TempStoreSize++;
+				//solve the dependencies immediately (as we depend on them)
+				DivideAndConquerPermuations<LinkType>(BitIndicies1, ExistingNodes, InstantiatedNodes, AccumStrategyRules, TempStoreSize);
+			}
+
+			LinkType* Index2Ptr = ExistingNodes.Find(BitIndicies2);
+			if (Index2Ptr != nullptr)
+			{
+				BitIndex2 = *Index2Ptr;
+
+				//do early instantiation of this node
+				if (!InstantiatedNodes[BitIndex2])
+				{
+					DivideAndConquerPermuations<LinkType>(BitIndicies2, ExistingNodes, InstantiatedNodes, AccumStrategyRules, TempStoreSize);
+				}
+			}
+			else
+			{
+				//allocate a slot in the temp store
+				ExistingNodes.Add(BitIndicies2, TempStoreSize);
+				InstantiatedNodes.Add(false);
+
+				BitIndex2 = TempStoreSize;
+				TempStoreSize++;
+				//solve the dependencies immediately (as we depend on them)
+				DivideAndConquerPermuations<LinkType>(BitIndicies2, ExistingNodes, InstantiatedNodes, AccumStrategyRules, TempStoreSize);
+			}
+		}
+
+		//check that we not accidentally have been recursively instantiated 
+		check(!InstantiatedNodes[NodeIndex]);
+
+		//adding a new rule: [NodeIndex] = [BitIndex1] + [BitIndex2]
+		AccumStrategyRules.Emplace(NodeIndex, BitIndex1, BitIndex2);
+		InstantiatedNodes[NodeIndex] = true;
+	}
+}
 void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LODIndex, TArray<UMorphTarget*>& InMorphTargets)
 {
 	INC_DWORD_STAT_BY(STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0);
@@ -78,12 +175,14 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 	{
 		MorphTargetVertexInfoBuffers.VertexIndices.Empty();
 		MorphTargetVertexInfoBuffers.MorphDeltas.Empty();
-		MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Empty();
-		MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Empty();
-		MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Empty();
-		MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Empty();
 		MorphTargetVertexInfoBuffers.NumTotalWorkItems = 0;
 
+		MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Empty(InMorphTargets.Num());
+		MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Empty(InMorphTargets.Num());
+		MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Empty(InMorphTargets.Num());
+		MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Empty(InMorphTargets.Num());
+
+		uint32 MaxVertexIndex = 0;
 		// Populate the arrays to be filled in later in the render thread
 		for (int32 AnimIdx = 0; AnimIdx < InMorphTargets.Num(); ++AnimIdx)
 		{
@@ -110,6 +209,7 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 				MinimumValues[2] = FMath::Min(MinimumValues[2], MorphDelta.PositionDelta.Z);
 				MinimumValues[3] = FMath::Min(MinimumValues[3], FMath::Min(MorphDelta.TangentZDelta.X, FMath::Min(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
 
+				MaxVertexIndex = FMath::Max(MorphDelta.SourceIdx, MaxVertexIndex);
 				MorphTargetVertexInfoBuffers.VertexIndices.Add(MorphDelta.SourceIdx);
 				MorphTargetVertexInfoBuffers.MorphDeltas.Emplace(MorphDelta.PositionDelta, MorphDelta.TangentZDelta);
 				MorphTargetVertexInfoBuffers.NumTotalWorkItems++;
@@ -127,6 +227,129 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 			MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Add(FVector4(MinimumValues[0], MinimumValues[1], MinimumValues[2], MinimumValues[3]));
 		}
 
+		//this block recomputes morph target permutations. And build a rule set to efficiently compute their accumulated weights using as few additions as possible.
+		//A permutation is the unique set morph target combinations that affect a given list of vertices. 
+		const uint32 VertexArraySize = MaxVertexIndex + 1;
+		int32 NumMorphs = MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Num();
+		TArray<TArray<uint32>> MorphAnimIndicies;
+		{
+			//find and merge the common permutations and generate new index lists (in sort of sorted order) from them
+			TArray<TBitArray<>> MorphIndexToBit;
+			{
+				TArray<TBitArray<>> UsedIndicies;
+				UsedIndicies.AddDefaulted(VertexArraySize);
+
+				//zero initialize array of bits
+				for (int32 VertexIndex = 0; VertexIndex < UsedIndicies.Num(); ++VertexIndex)
+				{
+					TBitArray<>& BitIndicies = UsedIndicies[VertexIndex];
+					BitIndicies.Init(true, NumMorphs);
+				}
+
+				//mark all animations used over all vertices
+				for (int32 AnimIdx = 0; AnimIdx < NumMorphs; ++AnimIdx)
+				{
+					uint32 Start = MorphTargetVertexInfoBuffers.StartOffsetPerMorph[AnimIdx];
+					for (uint32 Offset = 0; Offset < MorphTargetVertexInfoBuffers.WorkItemsPerMorph[AnimIdx]; ++Offset)
+					{
+						uint32 VertexIndex = MorphTargetVertexInfoBuffers.VertexIndices[Start + Offset];
+						UsedIndicies[VertexIndex][AnimIdx] = false;
+					}
+				}
+
+				//de-duplicate permutations and store the type of the permutation with the affected vertices
+				{
+					TMap<TBitArray<>, uint32> MorphBitToIndex;
+					uint32 CurrentIndex = 0;
+					for (int32 VertexIndex = 0; VertexIndex < UsedIndicies.Num(); VertexIndex++)
+					{
+						//disregard empty permutations
+						if (UsedIndicies[VertexIndex].Find(false) != INDEX_NONE)
+						{
+							uint32 Index;
+							uint32* IndexPtr = MorphBitToIndex.Find(UsedIndicies[VertexIndex]);
+							if (IndexPtr == nullptr)
+							{
+								MorphBitToIndex.Add(UsedIndicies[VertexIndex], CurrentIndex);
+								Index = CurrentIndex;
+								CurrentIndex++;
+								MorphAnimIndicies.AddDefaulted();
+								MorphIndexToBit.Add(UsedIndicies[VertexIndex]);
+							}
+							else
+							{
+								Index = *IndexPtr;
+							}
+							MorphAnimIndicies[Index].Add(VertexIndex);
+						}
+					}
+					//MorphBitToIndex.KeySort(TGreater<TBitArray<>>());
+				}
+			}
+
+			//build a strategy to solve the accumulation of the weights on the CPU 
+			//the problem solving is loosely related to run length encoding and based on ideas taken from DWAGs
+			//it can also be viewed as an inverted radix/prefix trie where we start at the leaves.
+			{
+				typedef FMorphTargetVertexInfoBuffers::FPermuationNode FPermuationNode;
+				TMap<TBitArray<>, FPermuationNode::LinkType> ExistingNodes;
+				TArray<bool> InstantiatedNodes;
+				
+				//Make space for a zero at the very beginning
+				MorphTargetVertexInfoBuffers.TempStoreSize = 1;
+				InstantiatedNodes.Add(true);
+
+				//start filling in the initial weights
+				for (int32 AnimIdx = 0; AnimIdx < NumMorphs; ++AnimIdx)
+				{
+					TBitArray<> BitIndicies;
+					BitIndicies.Init(true, NumMorphs);
+					BitIndicies[AnimIdx] = false;
+					ExistingNodes.Add(BitIndicies, AnimIdx + 1); //+1 (zero at the beginning)
+					InstantiatedNodes.Add(true);
+				}
+				MorphTargetVertexInfoBuffers.TempStoreSize += NumMorphs;
+
+				//have the results stored right after and in order
+				for (int32 PermIndx = 0; PermIndx < MorphIndexToBit.Num(); ++PermIndx)
+				{
+					const TBitArray<>& Element = MorphIndexToBit[PermIndx];
+					FPermuationNode::LinkType* NextPtr = ExistingNodes.Find(Element);
+					if (NextPtr == nullptr)
+					{
+						ExistingNodes.Add(MorphIndexToBit[PermIndx], NumMorphs + PermIndx + 1); //+1 (zero at the beginning)
+						InstantiatedNodes.Add(false);
+					}
+					else
+					{
+						//special copy only rule by just summing with the zero at the beginning
+						MorphTargetVertexInfoBuffers.AccumStrategyRules.Emplace(NumMorphs + PermIndx + 1, 0, *NextPtr);
+						InstantiatedNodes.Add(true);
+					}
+				}
+				MorphTargetVertexInfoBuffers.TempStoreSize += MorphIndexToBit.Num();
+
+				//slightly better rule and cache locality when sorting by smallest number of active morphs (remember that the bits are inversed -> greater)
+				MorphIndexToBit.Sort(TGreater<TBitArray<>>());
+				for (const auto& BitIndicies : MorphIndexToBit)
+				{
+					//continue splitting all requested outputs permutations until they are derived by the weights. 
+					DivideAndConquerPermuations<FPermuationNode::LinkType>(BitIndicies, ExistingNodes, InstantiatedNodes, MorphTargetVertexInfoBuffers.AccumStrategyRules, MorphTargetVertexInfoBuffers.TempStoreSize);
+				}
+			}
+		}
+
+		//fill data in a cpu/gpu data structure
+		uint32 PermuationOffset = 0;
+		for (int32 i = 0; i < MorphAnimIndicies.Num(); i++)
+		{
+			MorphTargetVertexInfoBuffers.PermuationStart.Add(PermuationOffset);
+			MorphTargetVertexInfoBuffers.PermuationSize.Add(MorphAnimIndicies[i].Num());
+			PermuationOffset += MorphAnimIndicies[i].Num();
+			MorphTargetVertexInfoBuffers.MorphPermutations.Append(MorphAnimIndicies[i]);
+		}
+		check(MorphTargetVertexInfoBuffers.MorphPermutations.Num() <= (int32)VertexArraySize);
+
 		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Num());
 		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Num());
 		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Num());
@@ -137,6 +360,46 @@ void FSkeletalMeshLODRenderData::InitResources(bool bNeedsVertexColors, int32 LO
 	}
 }
 
+void FMorphTargetVertexInfoBuffers::CalculateInverseAccumulatedWeights(const TArray<float>& MorphTargetWeights, TArray<float>& InverseAccumulatedWeights) const
+{
+	// TempArray Layout:
+	// |------|--------------------------|-----------------------------|--------------------------------------------------|
+	// | zero |       InputWeights       |      AccumulatedWeights     |					TempStore					  |
+	// |------|--------------------------|-----------------------------|--------------------------------------------------|
+	// The Input are the weights of the morph targets for this frame. The Output are the accumulated, normalized and inversed weights for each permutation.
+	// Where a permutation is the precomputed unique set of morph target combinations that can affect each other, given what vertices they affect separately.
+
+	TArray<float> TempArray;
+	TempArray.AddUninitialized(TempStoreSize);
+	TempArray[0] = 0.0f;
+
+	//+1 (zero at the beginning)
+	checkf(MorphTargetWeights.Num() + 1 < TempArray.Num(), TEXT("NumWeights: %d NumTemp: %d"), MorphTargetWeights.Num(), TempArray.Num());
+	for (int32 i = 0; i < MorphTargetWeights.Num(); i++)
+	{
+		//+1 (zero at the beginning)
+		TempArray[i + 1] = FMath::Abs(MorphTargetWeights[i]);
+	}
+
+	//the rules incrementally fill in the intermediate (cached results) into the temp store 
+	//and periodically scatter into the AccumulatedWeights until all of them are computed
+	for (const FPermuationNode& Rule : AccumStrategyRules)
+	{
+		TempArray[Rule.Dst] = TempArray[Rule.Op0] + TempArray[Rule.Op1];
+	}
+
+	checkf(MorphTargetWeights.Num() == GetNumMorphs(), TEXT("NumWeights: %d NumTotalWorkItems: %d"), MorphTargetWeights.Num(), GetNumMorphs());
+	InverseAccumulatedWeights.Empty(PermuationStart.Num());
+	for (int32 i = 0; i < PermuationStart.Num(); i++)
+	{
+		// if accumulated weight is >1.f
+		// previous code was applying the weight again in GPU if less than 1, but it doesn't make sense to do so
+		// so instead, we just divide by AccumulatedWeight if it's more than 1.
+		// now DeltaTangentZ isn't FPackedNormal, so you can apply any value to it. 
+		float AccumulatedWeight = TempArray[i + 1 + GetNumMorphs()]; //+1 (zero at the beginning)
+		InverseAccumulatedWeights.Add(AccumulatedWeight > 1.0f ? 1.0f / AccumulatedWeight : 1.0f);
+	}
+}
 
 void FSkeletalMeshLODRenderData::ReleaseResources()
 {
@@ -187,6 +450,80 @@ void FSkeletalMeshLODRenderData::BuildFromLODModel(const FSkeletalMeshLODModel* 
 		NewRenderSection.MaxBoneInfluences = ModelSection.MaxBoneInfluences;
 		NewRenderSection.CorrespondClothAssetIndex = ModelSection.CorrespondClothAssetIndex;
 		NewRenderSection.ClothingData = ModelSection.ClothingData;
+		
+        {
+
+//temporary disable until resource lifetimes are safe for all cases
+#if 0
+            // Create SRVs for Overlapping Vertices
+            const TMap<int32, TArray<int32>>& OverlappingVertices = ModelSection.OverlappingVertices;
+
+            int32 NumDups = 0;
+            for (auto Iter = OverlappingVertices.CreateConstIterator(); Iter; ++Iter)
+            {
+                const TArray<int32>& Array = Iter.Value();
+                NumDups += Array.Num();
+            }
+
+            TSkeletalMeshVertexData<uint32> DupVertData(true);
+            TSkeletalMeshVertexData<FIndexLengthPair> DupVertIndexData(true);
+            DupVertData.ResizeBuffer(NumDups ? NumDups : 1);
+            DupVertIndexData.ResizeBuffer(ModelSection.NumVertices);
+
+            uint8* VertData = DupVertData.GetDataPointer();
+            uint32 VertStride = DupVertData.GetStride();
+            check(VertStride == sizeof(uint32));
+
+            uint8* IndexData = DupVertIndexData.GetDataPointer();
+            uint32 IndexStride = DupVertIndexData.GetStride();
+            check(IndexStride == sizeof(FIndexLengthPair));
+
+            if (NumDups)
+            {
+                int32 SubIndex = 0;
+                for (int32 Index = 0; Index < ModelSection.NumVertices; ++Index)
+                {
+                    const TArray<int32>* Array = OverlappingVertices.Find(Index);
+                    FIndexLengthPair NewEntry;
+                    NewEntry.Length = (Array) ? Array->Num() : 0;
+                    NewEntry.Index = SubIndex;
+                    *((FIndexLengthPair*)(IndexData + Index * IndexStride)) = NewEntry;
+                    if (Array)
+                    {
+                        for (const int32 OverlappingVert : *Array)
+                        {
+                            *((uint32*)(VertData + SubIndex * VertStride)) = OverlappingVert;
+                            SubIndex++;
+                        }
+                    }
+                }
+                check(SubIndex == NumDups);
+            }
+            else
+            {
+                FMemory::Memzero(IndexData, ModelSection.NumVertices * sizeof(FIndexLengthPair));
+                FMemory::Memzero(VertData, sizeof(uint32));
+            }
+			
+            {
+                FResourceArrayInterface* ResourceArray = DupVertData.GetResourceArray();
+                check(ResourceArray->GetResourceDataSize() > 0);
+
+                FRHIResourceCreateInfo CreateInfo(ResourceArray);
+                NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+                NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferSRV = RHICreateShaderResourceView(NewRenderSection.DuplicatedVerticesIndexBuffer.VertexBufferRHI, sizeof(uint32), PF_R32_UINT);
+            }
+
+            {
+                FResourceArrayInterface* ResourceArray = DupVertIndexData.GetResourceArray();
+                check(ResourceArray->GetResourceDataSize() > 0);
+
+                FRHIResourceCreateInfo CreateInfo(ResourceArray);
+                NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+                NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferSRV = RHICreateShaderResourceView(NewRenderSection.LengthAndIndexDuplicatedVerticesIndexBuffer.VertexBufferRHI, sizeof(uint32), PF_R32_UINT);
+            }
+#endif
+        }
 
 		RenderSections.Add(NewRenderSection);
 	}

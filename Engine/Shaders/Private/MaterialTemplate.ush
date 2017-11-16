@@ -32,6 +32,11 @@
 
 #include "/Engine/Private/PaniniProjection.ush"
 
+#if POST_PROCESS_MATERIAL
+	// only Postprocess material bind PostprocessInput0, PostprocessInput0Size, PostprocessInput0MinMax ...
+	#include "/Engine/Private/PostProcessCommon.ush"			// PostprocessInput0
+#endif
+
 #ifndef USE_DITHERED_LOD_TRANSITION
     #if USE_INSTANCING
 	    #ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
@@ -367,11 +372,158 @@ float2 GetViewportUV(FMaterialVertexParameters Parameters)
 	return BufferUVToViewportUV(GetSceneTextureUV(Parameters));
 }
 
+float2 GetPixelPosition(FMaterialVertexParameters Parameters)
+{
+	return GetViewportUV(Parameters) * View.ViewSizeAndInvSize.xy;
+}
+
+
+#if defined(POST_PROCESS_MATERIAL) && POST_PROCESS_MATERIAL && POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+
+float2 GetPixelPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.SvPosition.xy - float2(ViewportRect.xy);
+}
+
+float2 GetViewportUV(FMaterialPixelParameters Parameters)
+{
+	return GetPixelPosition(Parameters) * ViewportSize.zw;
+}
+
+#else
+
+float2 GetPixelPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.SvPosition.xy - float2(View.ViewRectMin.xy);
+}
+
 float2 GetViewportUV(FMaterialPixelParameters Parameters)
 {
 	return SvPositionToViewportUV(Parameters.SvPosition);
 }
 
+#endif
+
+
+// Returns whether a scene texture id is a for a post process input or not.
+bool IsPostProcessInputSceneTexture(const uint SceneTextureId)
+{
+	return (SceneTextureId >= 14 && SceneTextureId <= 20);
+}
+
+
+// Returns the view size and texel size in a given scene texture.
+float4 GetSceneTextureViewSize(const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL && POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+	if (IsPostProcessInputSceneTexture(SceneTextureId))
+	{
+		return ViewportSize;
+	}
+	#endif
+	return View.ViewSizeAndInvSize;
+}
+
+
+// Return the buffer UV min and max for a given scene texture id.
+float4 GetSceneTextureUVMinMax(const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		const uint PostProcessInputIndex = SceneTextureId - 14;
+
+			 if (PostProcessInputIndex == 0)	return PostprocessInput0MinMax;
+		else if (PostProcessInputIndex == 1)	return PostprocessInput1MinMax;
+		else if (PostProcessInputIndex == 2)	return PostprocessInput2MinMax;
+		else if (PostProcessInputIndex == 3)	return PostprocessInput3MinMax;
+		else if (PostProcessInputIndex == 4)	return PostprocessInput4MinMax;
+		else if (PostProcessInputIndex == 5)	return PostprocessInput5MinMax;
+		else if (PostProcessInputIndex == 6)	return PostprocessInput6MinMax;
+	}
+	#endif
+
+	return View.BufferBilinearUVMinMax;
+}
+
+
+// Transforms viewport UV to scene texture's UV.
+MaterialFloat2 ViewportUVToSceneTextureUV(MaterialFloat2 ViewportUV, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return ViewportUV;
+		}
+		#endif
+
+		#if POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+		if (IsPostProcessInputSceneTexture(SceneTextureId))
+		{
+			return ViewportUVToPostProcessingSceneColorBufferUV(ViewportUV);
+		}
+		#endif
+	}
+	#endif
+
+	return ViewportUVToBufferUV(ViewportUV);
+}
+
+
+// Manually clamp scene texture UV as if using a clamp sampler.
+MaterialFloat2 ClampSceneTextureUV(MaterialFloat2 BufferUV, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize, then there is no need to clamp.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return BufferUV;
+		}
+		#endif
+	}
+	#endif
+
+	float4 MinMax = GetSceneTextureUVMinMax(SceneTextureId);
+
+	return clamp(BufferUV, MinMax.xy, MinMax.zw);
+}
+
+
+// Get default scene texture's UV.
+MaterialFloat2 GetDefaultSceneTextureUV(FMaterialVertexParameters Parameters, const uint SceneTextureId)
+{
+	return GetSceneTextureUV(Parameters);
+}
+
+
+// Get default scene texture's UV.
+MaterialFloat2 GetDefaultSceneTextureUV(FMaterialPixelParameters Parameters, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize, then return scene texture UV.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return GetSceneTextureUV(Parameters);
+		}
+		#endif
+
+		#if POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+		{
+			if (IsPostProcessInputSceneTexture(SceneTextureId))
+			{
+				return GetSceneTextureUV(Parameters);
+			}
+			return ViewportUVToSceneTextureUV(GetViewportUV(Parameters), SceneTextureId);
+		}
+		#endif
+	}
+	#endif
+
+	return GetSceneTextureUV(Parameters);
+}
 
 
 #if DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
@@ -1091,27 +1243,8 @@ MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 #include "/Engine/Private/EyeAdaptationCommon.ush"
 #endif
 
-#if POST_PROCESS_MATERIAL
-// only Postprocess material bind PostprocessInput0, PostprocessInput0Size, PostprocessInput0MinMax ...
-#include "/Engine/Private/PostProcessCommon.ush"			// PostprocessInput0
-#endif
-
 #if NEEDS_SCENE_TEXTURES
 #include "/Engine/Private/DeferredShadingCommon.ush"		// GetGBufferData()
-
-float4 GetPostProcessInputSize(uint Index)
-{
-#if POST_PROCESS_MATERIAL
-		 if (Index == 0)	return PostprocessInput0Size;
-	else if (Index == 1)	return PostprocessInput1Size;
-	else if (Index == 2)	return PostprocessInput2Size;
-	else if (Index == 3)	return PostprocessInput3Size;
-	else if (Index == 4)	return PostprocessInput4Size;
-	else if (Index == 5)	return PostprocessInput5Size;
-	else if (Index == 6)	return PostprocessInput6Size;
-#endif
-	return 1.0f;
-}
 
 float4 GetPostProcessInputMinMax(uint Index)
 {

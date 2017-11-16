@@ -93,7 +93,7 @@ void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Con
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FIntRect SrcRect = View.ViewRect;

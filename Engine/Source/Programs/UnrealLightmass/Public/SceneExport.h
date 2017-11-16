@@ -537,6 +537,12 @@ public:
 	 * Memory use is proportional to the lightmap texels in the scene and number of final gather rays.
 	 */
 	bool bCacheFinalGatherHitPointsForRadiosity;
+
+	/**
+	 * Whether to use radiosity iterations for point / spot / directional lights, instead of photons. 
+	 * Has lower quality than photons in difficult indoor scenarios but useful as a reference.
+	 */
+	bool bUseRadiositySolverForLightMultibounce;
 };
 
 /** Settings controlling photon mapping behavior. */
@@ -959,7 +965,9 @@ struct FPointLightData
 //----------------------------------------------------------------------------
 struct FSpotLightData
 {
+	/** Unclamped, in degrees */
 	float		InnerConeAngle;
+	/** Unclamped, in degrees */
 	float		OuterConeAngle;
 	// Spot lights need an additional axis to specify the direction of tube lights
 	FVector		LightTangent;

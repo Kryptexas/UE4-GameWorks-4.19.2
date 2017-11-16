@@ -393,7 +393,7 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 			    for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 			    {
 				    DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, HitProxyId, FHitProxyDrawingPolicy::ContextDataType());
-				    DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+				    DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 			    }
 			    return true;
 			}
@@ -414,7 +414,7 @@ void InitHitProxyRender(FRHICommandListImmediate& RHICmdList, const FSceneRender
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	// Allocate the maximum scene render target space for the current view family.
-	SceneContext.Allocate(RHICmdList, ViewFamily);
+	SceneContext.Allocate(RHICmdList, SceneRenderer);
 
 	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 	{
@@ -507,7 +507,7 @@ static void DoRenderHitProxies(FRHICommandListImmediate& RHICmdList, const FScen
 			}
 		}
 
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::All);
 
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
 		{
@@ -521,7 +521,7 @@ static void DoRenderHitProxies(FRHICommandListImmediate& RHICmdList, const FScen
 			}
 		}
 
-		View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+		View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::All);
 		
 		// Draw the view's elements.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_World, bPreFog);
@@ -628,6 +628,8 @@ static void DoRenderHitProxies(FRHICommandListImmediate& RHICmdList, const FScen
 
 void FMobileSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
 {
+	PrepareViewRectsForRendering();
+
 #if WITH_EDITOR
 	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
 	TRefCountPtr<IPooledRenderTarget> HitProxyDepthRT;
@@ -644,6 +646,8 @@ void FMobileSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList
 
 void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
 {
+	PrepareViewRectsForRendering();
+
 #if WITH_EDITOR
 	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
 	TRefCountPtr<IPooledRenderTarget> HitProxyDepthRT;

@@ -88,7 +88,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Color),
 		0,
 		VET_Float4,
-		EVertexStreamUsage::Instanceing
+		EVertexStreamUsage::Instancing
 		);
 
 	// Particle transform matrix
@@ -99,7 +99,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 			STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Transform) + sizeof(FVector4)* MatrixRow,
 			0,
 			VET_Float4,
-			EVertexStreamUsage::Instanceing
+			EVertexStreamUsage::Instancing
 			);
 	}
 
@@ -108,7 +108,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, Velocity),
 		0,
 		VET_Float4,
-		EVertexStreamUsage::Instanceing
+		EVertexStreamUsage::Instancing
 		);
 	// SubUVs.
 	Data.SubUVs = FVertexStreamComponent(
@@ -116,7 +116,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, SubUVParams),
 		0,
 		VET_Short4,
-		EVertexStreamUsage::Instanceing
+		EVertexStreamUsage::Instancing
 		);
 
 	// Pack SubUV Lerp and the particle's relative time
@@ -125,7 +125,7 @@ void NiagaraRendererMeshes::SetupVertexFactory(FNiagaraMeshVertexFactory *InVert
 		STRUCT_OFFSET(FNiagaraMeshInstanceVertex, SubUVLerp),
 		0,
 		VET_Float2,
-		EVertexStreamUsage::Instanceing
+		EVertexStreamUsage::Instancing
 		);
 
 	Data.bInitialized = true;

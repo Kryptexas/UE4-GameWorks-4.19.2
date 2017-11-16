@@ -108,7 +108,7 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -324,7 +324,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 				{
 					if( !bLightAttenuationCleared )
 					{
-						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
+						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View, View.ViewRect);
 						FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList, true);
 					}
 				}
@@ -372,7 +372,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					}
 
 					// Set the light's scissor rectangle.
-					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
+					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View, View.ViewRect);
 
 					// Render a bounding light sphere.
 					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);

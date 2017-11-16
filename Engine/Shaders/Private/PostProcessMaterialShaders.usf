@@ -9,6 +9,8 @@
 
 #if (FEATURE_LEVEL > FEATURE_LEVEL_ES3_1)
 
+#if VERTEXSHADER
+
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
 	out float4 OutPosition : SV_POSITION
@@ -16,6 +18,8 @@ void MainVS(
 {
 	DrawRectangle(InPosition,  OutPosition);
 }
+
+#elif PIXELSHADER
 
 void MainPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
@@ -27,18 +31,18 @@ void MainPS(
 	FPixelMaterialInputs PixelMaterialInputs;
 
 	// can be optimized
-	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
+	float2 ViewportUV = (SvPosition - ViewportRect.xy) * ViewportSize.zw;
 
 #if NUM_MATERIAL_TEXCOORDS
 	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
 	{
-		Parameters.TexCoords[CoordinateIndex] = ScreenUV;
+		Parameters.TexCoords[CoordinateIndex] = ViewportUV;
 	}
 #endif
 
 	Parameters.VertexColor = 1;
 	
-	SvPosition.z = LookupDeviceZ(ScreenUV);
+	SvPosition.z = LookupDeviceZ(ViewportUVToBufferUV(ViewportUV));
 	SvPosition.z = max(SvPosition.z, 1e-18);
 
 	// fill out other related material parameters
@@ -52,6 +56,11 @@ void MainPS(
 #endif
 	OutColor = float4(GetMaterialEmissive(PixelMaterialInputs), Alpha );
 } 
+
+#else // !VERTEXSHADER && !PIXELSHADER
+#error Wrong shader domain.
+
+#endif
 
 #else // FEATURE_LEVEL_ES3_1
 //

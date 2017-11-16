@@ -261,7 +261,7 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessEyeAdaptation, TEXT("PostProcessEyeAdaptation%s"), bIsComputePass?TEXT("Compute"):TEXT(""));
 	AsyncEndFence = FComputeFenceRHIRef();
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	// Get the custom 1x1 target used to store exposure value and Toggle the two render targets used to store new and old.
@@ -392,42 +392,42 @@ float FRCPassPostProcessEyeAdaptation::GetFixedExposure(const FViewInfo& View)
 	return ExposureScale * ExposureOffsetMultipler;
 }
 
-void FSceneViewState::UpdatePreExposure(FSceneView& View, FSceneViewFamily& ViewFamily)
+void FSceneViewState::UpdatePreExposure(FViewInfo& View)
 {
-	LastPreExposure = PreExposure;
 	PreExposure = 1.f;
 	bUpdateLastExposure = false;
 
-	if (View.bIsViewInfo)
+	if (IsMobilePlatform(View.GetShaderPlatform()))
 	{
-		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		if (IsMobilePlatform(View.GetShaderPlatform()))
+		if (!IsMobileHDR())
 		{
-			if (!IsMobileHDR())
-			{
-				// In gamma space, the exposure is fully applied in the pre-exposure (no post-exposure compensation)
-				PreExposure = FRCPassPostProcessEyeAdaptation::GetFixedExposure(ViewInfo);
-			}
-		}
-		else if (UsePreExposure(ViewInfo.GetShaderPlatform()))
-		{
-			if (!IsRichView(ViewFamily) && !ViewFamily.EngineShowFlags.VisualizeHDR && !ViewFamily.EngineShowFlags.VisualizeBloom && ViewFamily.EngineShowFlags.PostProcessing && ViewFamily.bResolveScene)
-			{
-				const float PreExposureOverride = CVarEyeAdaptationPreExposureOverride.GetValueOnRenderThread();
-				const float LastExposure = ViewInfo.GetLastEyeAdaptationExposure();
-				if (PreExposureOverride > 0)
-				{
-					PreExposure = PreExposureOverride;
-				}
-				else if (LastExposure > 0)
-				{
-					PreExposure = LastExposure;
-				}
-
-				bUpdateLastExposure = true;
-			}
+			// In gamma space, the exposure is fully applied in the pre-exposure (no post-exposure compensation)
+			PreExposure = FRCPassPostProcessEyeAdaptation::GetFixedExposure(View);
 		}
 	}
+	else if (UsePreExposure(View.GetShaderPlatform()))
+	{
+		const FSceneViewFamily& ViewFamily = *View.Family;
+
+		if (!IsRichView(ViewFamily) && !ViewFamily.EngineShowFlags.VisualizeHDR && !ViewFamily.EngineShowFlags.VisualizeBloom && ViewFamily.EngineShowFlags.PostProcessing && ViewFamily.bResolveScene)
+		{
+			const float PreExposureOverride = CVarEyeAdaptationPreExposureOverride.GetValueOnRenderThread();
+			const float LastExposure = View.GetLastEyeAdaptationExposure();
+			if (PreExposureOverride > 0)
+			{
+				PreExposure = PreExposureOverride;
+			}
+			else if (LastExposure > 0)
+			{
+				PreExposure = LastExposure;
+			}
+
+			bUpdateLastExposure = true;
+		}
+	}
+
+	// Set up view's preexposure.
+	View.PreExposure = PreExposure > 0 ? PreExposure : 1.0f;
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessEyeAdaptation::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -508,28 +508,27 @@ void FRCPassPostProcessBasicEyeAdaptationSetUp::Process(FRenderingCompositePassC
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
+	uint32 ScaleFactor = Context.ReferenceBufferSize.X / SrcSize.X;
 
-	FIntRect SrcRect = View.ViewRect / ScaleFactor;
+	FIntRect SrcRect = Context.SceneColorViewRect / ScaleFactor;
 	FIntRect DestRect = SrcRect;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBasicEyeAdaptationSetup, TEXT("PostProcessBasicEyeAdaptationSetup %dx%d"), DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	ERenderTargetLoadAction LoadAction = Context.GetLoadActionForRenderTarget(DestRenderTarget);
 
-	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
-
+	FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, LoadAction);
+	FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -673,7 +672,7 @@ IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("/Engine/
 
 void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	// Get the custom 1x1 target used to store exposure value and Toggle the two render targets used to store new and old.

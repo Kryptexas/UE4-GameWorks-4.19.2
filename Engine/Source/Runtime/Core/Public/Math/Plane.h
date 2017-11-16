@@ -94,6 +94,14 @@ public:
 	FORCEINLINE float PlaneDot(const FVector &P) const;
 
 	/**
+	 * Normalize this plane in-place if it is larger than a given tolerance. Leaves it unchanged if not.
+	 *
+	 * @param Tolerance Minimum squared length of vector for normalization.
+	 * @return true if the plane was normalized correctly, false otherwise.
+	 */
+	bool Normalize(float Tolerance=SMALL_NUMBER);
+
+	/**
 	 * Get a flipped version of the plane.
 	 *
 	 * @return A flipped version of the plane.
@@ -413,6 +421,17 @@ FORCEINLINE float FPlane::PlaneDot(const FVector &P) const
 	return X * P.X + Y * P.Y + Z * P.Z - W;
 }
 
+FORCEINLINE bool FPlane::Normalize(float Tolerance)
+{
+	const float SquareSum = X*X + Y*Y + Z*Z;
+	if(SquareSum > Tolerance)
+	{
+		const float Scale = FMath::InvSqrt(SquareSum);
+		X *= Scale; Y *= Scale; Z *= Scale; W *= Scale;
+		return true;
+	}
+	return false;
+}
 
 FORCEINLINE FPlane FPlane::Flip() const
 {

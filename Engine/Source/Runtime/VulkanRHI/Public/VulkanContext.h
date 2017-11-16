@@ -25,7 +25,6 @@ public:
 		return bIsImmediate;
 	}
 
-	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
@@ -137,8 +136,10 @@ public:
 		return PendingComputeState;
 	}
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 	// OutSets must have been previously pre-allocated
-	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets);
+	FOLDVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets);
+#endif
 
 	inline void NotifyDeletedRenderTarget(VkImage Image)
 	{
@@ -231,7 +232,9 @@ protected:
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 
-	TArray<FVulkanDescriptorPool*> DescriptorPools;
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	TArray<FOLDVulkanDescriptorPool*> DescriptorPools;
+#endif
 
 	struct FTransitionState
 	{

@@ -32,6 +32,9 @@ THIRD_PARTY_INCLUDES_END
 #include "MetalDerivedData.h"
 #include "DerivedDataCacheInterface.h"
 
+// The Metal standard library extensions we need for UE4.
+#include "ue4_stdlib.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogMetalShaderCompiler, Log, All); 
 
 static FString	GRemoteBuildServerHost;
@@ -534,6 +537,19 @@ bool ChecksumRemoteFile(FString const& RemotePath, uint32* CRC, uint32* Len)
 	return bOK;
 }
 
+bool ModificationTimeRemoteFile(FString const& RemotePath, uint64& Time)
+{
+	int32 ReturnCode = -1;
+	FString Output;
+	FString Args = TEXT(" -f \"%Sm\" -t \"%s\" ") + RemotePath;
+	bool bOK = ExecRemoteProcess(TEXT("/usr/bin/stat"), *Args, &ReturnCode, &Output, nullptr);
+	if (bOK)
+	{
+		Lex::FromString(Time, *Output);
+	}
+	return bOK;
+}
+
 bool RemoveRemoteFile(FString const& RemotePath)
 {
 	int32 ReturnCode = -1;
@@ -846,9 +862,13 @@ void BuildMetalShaderOutput(
 	uint8 Version,
 	TCHAR const* Standard,
 	TCHAR const* MinOSVersion,
+	EMetalTypeBufferMode TypeMode,
 	TArray<FShaderCompilerError>& OutErrors,
 	FMetalTessellationOutputs const& TessOutputAttribs,
-	uint8 const AtomicUAVs,
+	uint32 TypedBuffers,
+	uint32 InvariantBuffers,
+	uint32 TypedUAVs,
+	TArray<uint8> const& TypedBufferFormats,
 	bool bAllowFastIntriniscs
 	)
 {
@@ -879,6 +899,49 @@ void BuildMetalShaderOutput(
 	Header.SideTable = -1;
 	Header.SourceLen = SourceCRCLen;
 	Header.SourceCRC = SourceCRC;
+	if (Version >= 2)
+	{
+		Header.Bindings.TypedBufferFormats.SetNumZeroed(METAL_MAX_BUFFERS);
+		Header.Bindings.TypedBuffers = TypedBuffers;
+		Header.Bindings.InvariantBuffers = InvariantBuffers;
+		for (uint32 i = 0; i < (uint32)TypedBufferFormats.Num(); i++)
+		{
+			if ((TypedBuffers & (1 << i)) != 0)
+			{
+				check(TypedBufferFormats[i] > Unknown);
+                check(TypedBufferFormats[i] < Max);
+                if ((TypeMode > EMetalTypeBufferModeRaw)
+                && (TypeMode < EMetalTypeBufferModeFun)
+                && (TypedBufferFormats[i] < RGB8Sint || TypedBufferFormats[i] > RGB32Float)
+                && (TypeMode == EMetalTypeBufferModeUAV || !(TypedUAVs & (1 << i))))
+                {
+                	Header.Bindings.LinearBuffer |= (1 << i);
+	                Header.Bindings.TypedBuffers &= ~(1 << i);
+                }
+                else
+                {
+					Header.Bindings.TypedBufferFormats[i] = TypedBufferFormats[i];
+                }
+			}
+			else if ((InvariantBuffers & (1 << i)) != 0)
+			{
+				Header.Bindings.TypedBufferFormats[i] = TypedBufferFormats[i];
+			}
+		}
+		
+		// Raw mode means all buffers are invariant
+		if (TypeMode == EMetalTypeBufferModeRaw)
+		{
+			Header.Bindings.TypedBuffers = 0;
+			Header.Bindings.InvariantBuffers = InvariantBuffers|TypedBuffers;
+		}
+	}
+	else // No typed buffers on Metal 1.0-1.1 - all are invariant
+	{
+		Header.Bindings.TypedBuffers = 0;
+		Header.Bindings.InvariantBuffers = InvariantBuffers|TypedBuffers;
+		Header.Bindings.TypedBufferFormats = TypedBufferFormats;
+	}
 	
 	if (SideTableString)
 	{
@@ -1140,7 +1203,8 @@ void BuildMetalShaderOutput(
 	Header.TessellationControlPointOutBuffer    = CCHeader.TessellationControlPointOutBuffer;
 	Header.TessellationControlPointIndexBuffer  = CCHeader.TessellationControlPointIndexBuffer;
 	Header.TessellationOutputAttribs            = TessOutputAttribs;
-	Header.bFunctionConstants					= (FCStringAnsi::Strstr(USFSource, "[[ function_constant(") != nullptr);
+	Header.bTessFunctionConstants				= (FCStringAnsi::Strstr(USFSource, "indexBufferType [[ function_constant(32) ]]") != nullptr);
+	Header.bDeviceFunctionConstants				= (FCStringAnsi::Strstr(USFSource, "#define __METAL_DEVICE_CONSTANT_INDEX__ 1") != nullptr);
 	
 	// Build the SRT for this shader.
 	{
@@ -1160,8 +1224,6 @@ void BuildMetalShaderOutput(
 		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
 
 		Header.Bindings.NumUniformBuffers = FMath::Max((uint8)GetNumUniformBuffersUsed(GenericSRT), Header.Bindings.NumUniformBuffers);
-		
-		Header.Bindings.AtomicUAVs = AtomicUAVs;
 	}
 
 	FString MetalCode = FString(USFSource);
@@ -1206,7 +1268,8 @@ void BuildMetalShaderOutput(
 	else
 	{
         // metal commandlines
-        FString DebugInfo = (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) || ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive)) ? TEXT("-gline-tables-only") : TEXT("");
+        const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
+        FString DebugInfo = (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) || !bIsMobile || ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive)) ? TEXT("-gline-tables-only") : TEXT("");
         FString MathMode = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath) ? TEXT("-fno-fast-math") : TEXT("-ffast-math");
         
 		// at this point, the shader source is ready to be compiled
@@ -1299,17 +1362,25 @@ void BuildMetalShaderOutput(
 			bool bFoundStdLib = false;
             FString StdLibPath = GetMetalLibraryPath(ShaderInput.Target.Platform);
             bFoundStdLib = RemoteFileExists(*StdLibPath);
+
+			// PCHs need the same checksum to ensure that the result can be used with the current version of the file
 			uint32 PchCRC = 0;
 			uint32 PchLen = 0;
-			if(bFoundStdLib && ChecksumRemoteFile(StdLibPath, &PchCRC, &PchLen))
-			{
-				FString VersionedName = FString::Printf(TEXT("metal_stdlib_%u%u%s%s%s%s%s%s.pch"), PchCRC, PchLen, *GUIDHash.ToString(), *CompilerVersion, MinOSVersion, *DebugInfo, *MathMode, Standard);
+			bool const bChkSum = ChecksumRemoteFile(StdLibPath, &PchCRC, &PchLen);
 
-				// get rid of some not so filename-friendly characters ('=',' ' -> '_')
-    		    VersionedName = VersionedName.Replace(TEXT("="), TEXT("_")).Replace(TEXT(" "), TEXT("_"));
-				MetalPCHFile = TempDir / VersionedName;
-				
-				FString RemoteMetalPCHFile = LocalPathToRemote(MetalPCHFile, TempDir);
+			// PCHs need the modifiction time (in secs. since UTC Epoch) to ensure that the result can be used with the current version of the file
+			uint64 ModTime = 0;
+			bool const bModTime = ModificationTimeRemoteFile(StdLibPath, ModTime);
+			
+			FString VersionedName = FString::Printf(TEXT("metal_stdlib_%u%u%llu%s%s%s%s%s%s.pch"), PchCRC, PchLen, ModTime, *GUIDHash.ToString(), *CompilerVersion, MinOSVersion, *DebugInfo, *MathMode, Standard);
+			
+			// get rid of some not so filename-friendly characters ('=',' ' -> '_')
+			VersionedName = VersionedName.Replace(TEXT("="), TEXT("_")).Replace(TEXT(" "), TEXT("_"));
+			MetalPCHFile = TempDir / VersionedName;
+			
+			FString RemoteMetalPCHFile = LocalPathToRemote(MetalPCHFile, TempDir);
+			if(bFoundStdLib && bChkSum)
+			{
 				if(RemoteFileExists(*RemoteMetalPCHFile))
 				{
 					bUseSharedPCH = true;
@@ -1348,37 +1419,42 @@ void BuildMetalShaderOutput(
 							{
 								IFileManager::Get().Move(*MetalPCHFile, *TempPath, false, false, true, false);
 								IFileManager::Get().Delete(*TempPath);
-								int64 FileSize = IFileManager::Get().FileSize(*MetalPCHFile);
-								if(FileSize == Bytecode.OutputFile.Num())
-								{
-									bUseSharedPCH = true;
-								}
-								else
-								{
-									bUseSharedPCH = false;
-									UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH failed to save %s - compilation will proceed without a shared PCH: %s."), CompileType, *MetalPCHFile);
-								}
+							}
+							
+							int64 FileSize = IFileManager::Get().FileSize(*MetalPCHFile);
+							if(FileSize == Bytecode.OutputFile.Num())
+							{
+								bUseSharedPCH = true;
 							}
 							else
 							{
 								bUseSharedPCH = false;
-								UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH failed to save %s to %s- compilation will proceed without a shared PCH: %s."), CompileType, *TempPath, *MetalPCHFile);
+								
+								FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+								Error->ErrorVirtualFilePath = InputFilename;
+								Error->ErrorLineString = TEXT("0");
+								Error->StrippedErrorMessage = FString::Printf(TEXT("Metal Shared PCH failed to save %s to %s - compilation will continue without a PCH: %s."), CompileType, *TempPath, *MetalPCHFile);
 							}
 						}
 					}
 					else
 					{
-						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH generation failed %s - compilation will proceed without a shared PCH: %s."), CompileType, *Job.Message);
+						FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+						Error->ErrorVirtualFilePath = InputFilename;
+						Error->ErrorLineString = TEXT("0");
+						Error->StrippedErrorMessage = FString::Printf(TEXT("Metal Shared PCH generation failed %s - compilation will continue without a PCH: %s."), CompileType, *Job.Message);
 					}
 				}
 			}
 			else
 			{
-				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH generation failed - cannot find metal_stdlib header relative to %s %s."), *MetalToolsPath, CompileType);
+				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+				Error->ErrorVirtualFilePath = InputFilename;
+				Error->ErrorLineString = TEXT("0");
+				Error->StrippedErrorMessage = FString::Printf(TEXT("Metal Shared PCH generation failed - cannot find metal_stdlib header relative to %s %s."), *MetalToolsPath, CompileType);
 			}
 		
 			uint32 DebugInfoHandle = 0;
-			const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
 			if (!bIsMobile && !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive))
 			{
 				FMetalShaderDebugInfoJob Job;
@@ -1399,8 +1475,104 @@ void BuildMetalShaderOutput(
 				DebugInfoHandle = GetDerivedDataCacheRef().GetAsynchronous(DebugInfoCooker);
 			}
 			
-			FMetalShaderBytecodeJob Job;
+            
+			// Attempt to precompile the ue4_stdlib.metal file as a PCH, using the metal_stdlib PCH if it exists
+			// Will fallback to just using the raw ue4_stdlib.metal file if PCH compilation fails
+			// The ue4_stdlib.metal PCH is not cached in the DDC as modifications to the file invalidate the PCH, so it is only valid for this SCW's existence.
+			{
+				static uint32 UE4StdLibCRCLen = ue4_stdlib_metal_len;
+				static uint32 UE4StdLibCRC = 0;
+				if (UE4StdLibCRC == 0)
+				{
+					TArrayView<const uint8> UE4PCHData((const uint8*)ue4_stdlib_metal, ue4_stdlib_metal_len);
+					FString UE4StdLibFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
+					if (FFileHelper::SaveArrayToFile(UE4PCHData, *UE4StdLibFilename))
+					{
+						FString RemoteTempPath = LocalPathToRemote(UE4StdLibFilename, TempDir);
+						CopyLocalFileToRemote(UE4StdLibFilename, RemoteTempPath);
+						ChecksumRemoteFile(*RemoteTempPath, &UE4StdLibCRC, &UE4StdLibCRCLen);
+						IFileManager::Get().Delete(*UE4StdLibFilename);
+					}
+				}
+
+				FString UE4StdLibFilePath = FString(TempDir) / TEXT("ue4_stdlib.metal");
+				FString RemoteUE4StdLibFilePath = LocalPathToRemote(UE4StdLibFilePath, TempDir);
+				uint32 RemotePchCRC = 0;
+				uint32 RemotePchLen = 0;
+				if (!RemoteFileExists(RemoteUE4StdLibFilePath) || !ChecksumRemoteFile(*RemoteUE4StdLibFilePath, &RemotePchCRC, &RemotePchLen) || RemotePchCRC != UE4StdLibCRC)
+				{
+					TArrayView<const uint8> UE4PCHData((const uint8*)ue4_stdlib_metal, ue4_stdlib_metal_len);
+					FString UE4StdLibFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
+					if (FFileHelper::SaveArrayToFile(UE4PCHData, *UE4StdLibFilename))
+					{
+						IFileManager::Get().Move(*UE4StdLibFilePath, *UE4StdLibFilename, false, false, true, true);
+						IFileManager::Get().Delete(*UE4StdLibFilename);
+					}
+					CopyLocalFileToRemote(UE4StdLibFilePath, RemoteUE4StdLibFilePath);
+				}
+				
+				FString Defines = Header.bDeviceFunctionConstants ? TEXT("-D__METAL_DEVICE_CONSTANT_INDEX__=1") : TEXT("");
+				switch(TypeMode)
+				{
+					case EMetalTypeBufferModeRaw:
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_READ_IMPL__=0");
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_RW_IMPL__=0");
+						break;
+					case EMetalTypeBufferModeSRV:
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_READ_IMPL__=1");
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_RW_IMPL__=2");
+						break;
+					case EMetalTypeBufferModeUAV:
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_READ_IMPL__=1");
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_RW_IMPL__=1");
+						break;
+					case EMetalTypeBufferModeFun:
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_READ_IMPL__=2");
+						Defines += TEXT(" -D__METAL_TYPED_BUFFER_RW_IMPL__=2");
+						break;
+					default:
+						break;
+				}
+				
+				int64 UnixTime = IFileManager::Get().GetTimeStamp(*UE4StdLibFilePath).ToUnixTimestamp();
+				FString UE4StdLibFilePCH = FString::Printf(TEXT("%s.%u%u%u%u%s%s%s%s%s%s%d%lld.pch"), *UE4StdLibFilePath, UE4StdLibCRC, UE4StdLibCRCLen, PchCRC, PchLen, *GUIDHash.ToString(), *CompilerVersion, MinOSVersion, *DebugInfo, *MathMode, Standard, GetTypeHash(Defines), UnixTime);
+				FString RemoteUE4StdLibFilePCH = LocalPathToRemote(UE4StdLibFilePCH, TempDir);
+				if (RemoteFileExists(RemoteUE4StdLibFilePath) && !IFileManager::Get().FileExists(*UE4StdLibFilePCH) && !RemoteFileExists(RemoteUE4StdLibFilePCH))
+				{
+					FMetalShaderBytecodeJob Job;
+					Job.ShaderFormat = ShaderInput.ShaderFormat;
+					Job.Hash = GUIDHash;
+					Job.TmpFolder = TempDir;
+					Job.InputFile = RemoteUE4StdLibFilePath;
+					Job.OutputFile = RemoteUE4StdLibFilePCH;
+					Job.CompilerVersion = CompilerVersion;
+					Job.MinOSVersion = MinOSVersion;
+					Job.DebugInfo = DebugInfo;
+					Job.MathMode = MathMode;
+					Job.Standard = Standard;
+					Job.SourceCRCLen = ue4_stdlib_metal_len;
+					Job.SourceCRC = FCrc::MemCrc32(ue4_stdlib_metal, Job.SourceCRCLen);
+					Job.bRetainObjectFile = false;
+					Job.bCompileAsPCH = true;
+                    Job.Defines = Defines;
+					
+					FMetalShaderBytecodeCooker Cooker(Job);
+					TArray<uint8> Data;
+					Cooker.Build(Data);
+				}
+				
+				if (IFileManager::Get().FileExists(*UE4StdLibFilePCH) && RemoteFileExists(RemoteUE4StdLibFilePath))
+				{
+					if (bUseSharedPCH)
+					{
+						CopyLocalFileToRemote(MetalPCHFile, RemoteMetalPCHFile);
+					}
+					MetalPCHFile = UE4StdLibFilePCH;
+					bUseSharedPCH = true;
+				}
+			}
 			
+			FMetalShaderBytecodeJob Job;
 			Job.ShaderFormat = ShaderInput.ShaderFormat;
 			Job.Hash = GUIDHash;
 			Job.TmpFolder = TempDir;
@@ -1669,7 +1841,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
-	static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+	static FName NAME_SF_METAL_SM5_NOTESS(TEXT("SF_METAL_SM5_NOTESS"));
 	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 	static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
@@ -1716,13 +1888,13 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 		Semantics = EMetalGPUSemanticsImmediateDesktop;
 	}
-	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
+	else if (Input.ShaderFormat == NAME_SF_METAL_SM5_NOTESS)
 	{
         UE_CLOG(VersionEnum == 0, LogShaders, Warning, TEXT("Metal shader version should be Metal v1.2 or higher for format %s!"), VersionEnum, *Input.ShaderFormat.ToString());
-		AdditionalDefines.SetDefine(TEXT("METAL_SM4_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("METAL_SM5_NOTESS_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
         VersionEnum = VersionEnum > 0 ? VersionEnum : 2;
-		MetalCompilerTarget = HCT_FeatureLevelSM4;
+		MetalCompilerTarget = HCT_FeatureLevelSM5;
 		Semantics = EMetalGPUSemanticsImmediateDesktop;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM5)
@@ -1749,7 +1921,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		return;
 	}
 	
-    EMetalTypeBufferMode TypeMode = EMetalTypeBufferModeNone;
+    EMetalTypeBufferMode TypeMode = EMetalTypeBufferModeRaw;
 	FString MinOSVersion;
 	FString StandardVersion;
 	switch(VersionEnum)
@@ -1759,12 +1931,14 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
             HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("2.0");
 			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.13");
+			TypeMode = EMetalTypeBufferModeSRV;
 			break;
 		case 2:
 			// Enable full SM5 feature support so tessellation & fragment UAVs compile
             HlslCompilerTarget = HCT_FeatureLevelSM5;
 			StandardVersion = TEXT("1.2");
 			MinOSVersion = bIsMobile ? TEXT("") : TEXT("-mmacosx-version-min=10.12");
+			TypeMode = EMetalTypeBufferModeSRV;
 			break;
 		case 1:
 			HlslCompilerTarget = bIsMobile ? HlslCompilerTarget : HCT_FeatureLevelSM5;
@@ -2132,7 +2306,7 @@ EShaderPlatform MetalShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 {
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
-	static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+	static FName NAME_SF_METAL_SM5_NOTESS(TEXT("SF_METAL_SM5_NOTESS"));
 	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 	static FName NAME_SF_METAL_MRT_MAC(TEXT("SF_METAL_MRT_MAC"));
 	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
@@ -2142,7 +2316,7 @@ EShaderPlatform MetalShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MRT)			return SP_METAL_MRT;
 	if (ShaderFormat == NAME_SF_METAL_MRT_MAC)		return SP_METAL_MRT_MAC;
 	if (ShaderFormat == NAME_SF_METAL_SM5)			return SP_METAL_SM5;
-	if (ShaderFormat == NAME_SF_METAL_SM4)			return SP_METAL_SM4;
+	if (ShaderFormat == NAME_SF_METAL_SM5_NOTESS)	return SP_METAL_SM5_NOTESS;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	

@@ -1002,6 +1002,7 @@ public:
 							&& NodeContext.Node->Element.Uniforms.X < ChildMin.X + NodeContext.Size.X / 2
 							&& NodeContext.Node->Element.Uniforms.Y < ChildMin.Y + NodeContext.Size.Y / 2)
 						{
+							//@todo - re-evaluate skylight which uses texture filtering dependent on SolidAngle, which has been refined
 							FreeNode->Element = NodeContext.Node->Element;
 							NodeContext.Node->Element.HitPointIndex = -1;
 						}
@@ -1521,6 +1522,12 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					}
 
 					Irradiance = Mapping->GetSurfaceCacheLighting(CurrentVertex);
+
+					const bool bTranslucent = Mapping->Mesh->IsTranslucent(ElementIndex);
+					const FLinearColor Reflectance = (bTranslucent ? FLinearColor::Black : Mapping->Mesh->EvaluateTotalReflectance(CurrentVertex, ElementIndex)) * (float)INV_PI;
+
+					// Undo reflectance scale applied to surface cache lighting
+					Irradiance /= Reflectance;
 				}
 				else
 				{
@@ -1724,7 +1731,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					const float DistanceToDebugTexelSq = FVector(Scene.DebugInput.Position - Vertex.WorldPosition).SizeSquared();
 					FDebugLightingCacheRecord TempRecord;
 					TempRecord.bNearSelectedTexel = DistanceToDebugTexelSq < NewRecord.BoundingRadius * NewRecord.BoundingRadius;
-					TempRecord.Radius = GatherInfo.MinDistance;
+					TempRecord.Radius = NewRecord.Radius;
 					TempRecord.Vertex.VertexPosition = Vertex.WorldPosition;
 					TempRecord.Vertex.VertexNormal = Vertex.WorldTangentZ;
 					TempRecord.RecordId = NewRecord.Id;

@@ -250,12 +250,6 @@ void FRHICommandSetBlendFactor::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(RHISetBlendFactor)(BlendFactor);
 }
 
-void FRHICommandSetStreamSourceDEPRECATED::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(SetStreamSource);
-	INTERNAL_DECORATOR(RHISetStreamSource)(StreamIndex, VertexBuffer, Stride, Offset);
-}
-
 void FRHICommandSetStreamSource::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetStreamSource);

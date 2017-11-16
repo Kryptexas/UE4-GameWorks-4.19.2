@@ -537,6 +537,7 @@ class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
+	const FSceneRenderer* SceneRenderer;
 	FDrawingPolicyRenderState DrawRenderState;
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
@@ -562,7 +563,7 @@ protected:
 	bool bParallelExecute;
 	bool bCreateSceneContext;
 public:
-	FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
+	FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, const FSceneRenderer* InSceneRenderer, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
 	virtual ~FParallelCommandListSet();
 	int32 NumParallelCommandLists() const
 	{
@@ -659,6 +660,7 @@ const int32 GMaxForwardShadowCascades = 4;
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CascadeEndDepths) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightWorldToShadowMatrix, [GMaxForwardShadowCascades]) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, DirectionalLightShadowmapMinMax, [GMaxForwardShadowCascades]) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, DirectionalLightShadowmapAtlasBufferSize) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DirectionalLightDepthBias) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DirectionalLightUseStaticShadowing) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, DirectionalLightStaticShadowBufferSize) \
@@ -796,6 +798,9 @@ class FViewInfo : public FSceneView
 {
 public:
 
+	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
+	FIntRect ViewRect;
+
 	/** 
 	 * The view's state, or NULL if no state exists.
 	 * This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
@@ -929,6 +934,9 @@ public:
 	float TranslucencyVolumeVoxelSize[TVC_MAX];
 	FVector TranslucencyLightingVolumeSize[TVC_MAX];
 
+	/** Temporal jitter at the pixel scale. */
+	FVector2D TemporalJitterPixels;
+
 	/** true if all PrimitiveVisibilityMap's bits are set to false. */
 	uint32 bHasNoVisiblePrimitive : 1;
 
@@ -960,6 +968,12 @@ public:
 
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	int32 NumVisibleStaticMeshElements;
+
+	/** Frame's exposure. Always > 0. */
+	float PreExposure;
+
+	/** Mip bias to apply in material's samplers. */
+	float MaterialTextureMipBias;
 
 	/** Precomputed visibility data, the bits are indexed by VisibilityId of a primitive component. */
 	const uint8* PrecomputedVisibilityData;
@@ -1022,6 +1036,20 @@ public:
 	* Destructor. 
 	*/
 	~FViewInfo();
+
+#if DO_CHECK
+	/** Verifies all the assertions made on members. */
+	bool VerifyMembersChecks() const;
+#endif
+
+	/** Returns the size of view rect after primary upscale ( == only with secondary screen percentage). */
+	FIntPoint GetSecondaryViewRectSize() const;
+
+	/** Returns whether the view requires a secondary upscale. */
+	bool RequiresSecondaryUpscale() const
+	{
+		return UnscaledViewRect.Size() != GetSecondaryViewRectSize();
+	}
 
 	/** Creates ViewUniformShaderParameters given a set of view transforms. */
 	void SetupUniformBufferParameters(
@@ -1138,6 +1166,10 @@ public:
 	}
 
 private:
+	// Cache of TEXTUREGROUP_World to create view's samplers on render thread.
+	// may not have a valid value if FViewInfo is created on the render thread.
+	ESamplerFilter WorldTextureGroupSamplerFilter;
+	bool bIsValidWorldTextureGroupSamplerFilter;
 
 	FSceneViewState* GetEffectiveViewState() const;
 
@@ -1334,6 +1366,13 @@ public:
 
 	/** Feature level being rendered */
 	ERHIFeatureLevel::Type FeatureLevel;
+	
+	/** 
+	 * The width in pixels of the stereo view family being rendered. This may be different than FamilySizeX if
+	 * we're using adaptive resolution stereo rendering. In that case, FamilySizeX represents the maximum size of 
+	 * the family to ensure the backing render targets don't change between frames as the view size varies.
+	 */
+	uint32 InstancedStereoWidth;
 
 public:
 
@@ -1348,6 +1387,9 @@ public:
 	/** Creates a scene renderer based on the current feature level. */
 	static FSceneRenderer* CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer);
 
+	/** Setups FViewInfo::ViewRect according to ViewFamilly's ScreenPercentageInterface. */
+	void PrepareViewRectsForRendering();
+
 	bool DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/**
@@ -1361,9 +1403,31 @@ public:
 
 	/** the last thing we do with a scene renderer, lots of cleanup related to the threading **/
 	static void WaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
+	
+	/** Apply the ResolutionFraction on ViewSize, taking into account renderer's requirements. */
+	static FIntPoint ApplyResolutionFraction(
+		const FSceneViewFamily& ViewFamily, const FIntPoint& UnscaledViewSize, float ResolutionFraction);
+
+	/** Quantize the ViewRect.Min according to various renderer's downscale requirements. */
+	static FIntPoint QuantizeViewRectMin(const FIntPoint& ViewRectMin);
+
+	/** Get the desired buffer size from the view family's ResolutionFraction upperbound.
+	 * Can be called on game thread or render thread. 
+	 */
+	static FIntPoint GetDesiredInternalBufferSize(const FSceneViewFamily& ViewFamily);
+
+	/** Exposes renderer's privilege to fork view family's screen percentage interface. */
+	static ISceneViewFamilyScreenPercentage* ForkScreenPercentageInterface(
+		const ISceneViewFamilyScreenPercentage* ScreenPercentageInterface, FSceneViewFamily& ForkedViewFamily)
+	{
+		return ScreenPercentageInterface->Fork_GameThread(ForkedViewFamily);
+	}
 
 protected:
 
+	/** Size of the family. */
+	FIntPoint FamilySize;
+	
 	// Shared functionality between all scene renderers
 
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
@@ -1510,6 +1574,9 @@ protected:
 	void RenderPlanarReflection(class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
 
 	void ResolveSceneColor(FRHICommandList& RHICmdList);
+
+private:
+	void ComputeFamilySize();
 };
 
 /**

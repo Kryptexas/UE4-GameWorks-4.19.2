@@ -27,16 +27,6 @@ bool CompileAndLink(ns::String const& sourcePath, ns::String const& tmpOutput, n
 	return bOK;
 }
 
-bool ParseComputePipelineDesc()
-{
-	return false;
-}
-
-bool ParseTileRenderPipelineDesc()
-{
-	return false;
-}
-
 enum ParseEntries
 {
 	Descriptor,
@@ -77,6 +67,10 @@ enum ParseEntries
 	RGB,
 	Alpha,
 	WriteMask,
+	ComputeFunction,
+	StageInputDescriptor,
+	IndexType,
+	IndexBufferIndex,
 	MAX
 };
 
@@ -481,7 +475,28 @@ bool Parse(char const* str, mtlpp::VertexStepFunction& val)
 		"MTLVertexStepFunctionPerPatch",
 		"MTLVertexStepFunctionPerPatchControlPoint",
 	};
-	return Parse(str, ParseTags, 2, val);
+	return Parse(str, ParseTags, 5, val);
+}
+
+bool Parse(char const* str, mtlpp::StepFunction& val)
+{
+	static char const* ParseTags[] =
+	{
+		"MTLStepFunctionConstant",
+		
+		// vertex functions only
+		"MTLStepFunctionPerVertex",
+		"MTLStepFunctionPerInstance",
+		"MTLStepFunctionPerPatch",
+		"MTLStepFunctionPerPatchControlPoint",
+		
+		// compute functions only
+		"MTLStepFunctionThreadPositionInGridX",
+		"MTLStepFunctionThreadPositionInGridY",
+		"MTLStepFunctionThreadPositionInGridXIndexed",
+		"MTLStepFunctionThreadPositionInGridYIndexed",
+	};
+	return Parse(str, ParseTags, 9, val);
 }
 
 bool Parse(char const* str, mtlpp::VertexFormat& val)
@@ -564,6 +579,86 @@ bool Parse(char const* str, mtlpp::VertexFormat& val)
 	return Parse(str, ParseTags, 54, val);
 }
 
+bool Parse(char const* str, mtlpp::AttributeFormat& val)
+{
+	static char const* ParseTags[] =
+	{
+		"MTLAttributeFormatInvalid",
+		
+		"MTLAttributeFormatUChar2",
+		"MTLAttributeFormatUChar3",
+		"MTLAttributeFormatUChar4",
+		
+		"MTLAttributeFormatChar2",
+		"MTLAttributeFormatChar3",
+		"MTLAttributeFormatChar4",
+		
+		"MTLAttributeFormatUChar2Normalized",
+		"MTLAttributeFormatUChar3Normalized",
+		"MTLAttributeFormatUChar4Normalized",
+		
+		"MTLAttributeFormatChar2Normalized",
+		"MTLAttributeFormatChar3Normalized",
+		"MTLAttributeFormatChar4Normalized",
+		
+		"MTLAttributeFormatUShort2",
+		"MTLAttributeFormatUShort3",
+		"MTLAttributeFormatUShort4",
+		
+		"MTLAttributeFormatShort2",
+		"MTLAttributeFormatShort3",
+		"MTLAttributeFormatShort4",
+		
+		"MTLAttributeFormatUShort2Normalized",
+		"MTLAttributeFormatUShort3Normalized",
+		"MTLAttributeFormatUShort4Normalized",
+		
+		"MTLAttributeFormatShort2Normalized",
+		"MTLAttributeFormatShort3Normalized",
+		"MTLAttributeFormatShort4Normalized",
+		
+		"MTLAttributeFormatHalf2",
+		"MTLAttributeFormatHalf3",
+		"MTLAttributeFormatHalf4",
+		
+		"MTLAttributeFormatFloat",
+		"MTLAttributeFormatFloat2",
+		"MTLAttributeFormatFloat3",
+		"MTLAttributeFormatFloat4",
+		
+		"MTLAttributeFormatInt",
+		"MTLAttributeFormatInt2",
+		"MTLAttributeFormatInt3",
+		"MTLAttributeFormatInt4",
+		
+		"MTLAttributeFormatUInt",
+		"MTLAttributeFormatUInt2",
+		"MTLAttributeFormatUInt3",
+		"MTLAttributeFormatUInt4",
+		
+		"MTLAttributeFormatInt1010102Normalized",
+		"MTLAttributeFormatUInt1010102Normalized",
+		
+		"MTLAttributeFormatUChar4Normalized_BGRA",
+		
+		"<UNDEFINED>",
+		"<UNDEFINED>",
+		
+		"MTLAttributeFormatUChar",
+		"MTLAttributeFormatChar",
+		"MTLAttributeFormatUCharNormalized",
+		"MTLAttributeFormatCharNormalized",
+		
+		"MTLAttributeFormatUShort",
+		"MTLAttributeFormatShort",
+		"MTLAttributeFormatUShortNormalized",
+		"MTLAttributeFormatShortNormalized",
+		
+		"MTLAttributeFormatHalf",
+	};
+	return Parse(str, ParseTags, 54, val);
+}
+
 bool Parse(char const* str, mtlpp::BlendFactor& val)
 {
 	static char const* ParseTags[] =
@@ -604,6 +699,16 @@ bool Parse(char const* str, mtlpp::BlendOperation& val)
 	return Parse(str, ParseTags, 5, val);
 }
 
+bool Parse(char const* str, mtlpp::IndexType& val)
+{
+	static char const* ParseTags[] =
+	{
+		"MTLIndexTypeUInt16",
+		"MTLIndexTypeUInt32",
+	};
+	return Parse(str, ParseTags, 2, val);
+}
+
 bool Parse(char const* str, mtlpp::ColorWriteMask& val)
 {
 	static char const* ParseTags[] =
@@ -641,92 +746,100 @@ bool Parse(char const* str, mtlpp::ColorWriteMask& val)
 	return Parse(str, ParseTags, ParseVals, 13, val);
 }
 
+static char const* ParseTags[ParseEntries::MAX] = {
+	"Descriptor:",
+	"label =",
+	"Alpha to Coverage =",
+	"Alpha to One =",
+	"Rasterization Enabled =",
+	"Sample Coverage =",
+	"Sample Mask =",
+	"Raster Sample Count =",
+	"Input Primitive Topology =",
+	"Depth Attachment Format =",
+	"Stencil Attachment Format =",
+	"tessellationPartitionMode =",
+	"maxTessellationFactor =",
+	"tessellationFactorScaleEnabled =",
+	"tessellationFactorFormat =",
+	"tessellationControlPointIndexType =",
+	"tessellationFactorStepFunction =",
+	"tessellationOutputWindingOrder =",
+	"Vertex Function =",
+	"Fragment Function =",
+	"name =",
+	"Vertex Array:",
+	"Buffer ",
+	"stepFunction",
+	"stride",
+	"Attribute ",
+	"offset =",
+	"format =",
+	"Color Attachments:",
+	"Color Attachment ",
+	"pixelFormat =",
+	"blending =",
+	"Source blend factors:",
+	"Destination blend factors:",
+	"Blend operations:",
+	"RGB =",
+	"Alpha =",
+	"writeMask =",
+	"computeFunction =",
+	"stageInputDescriptor = ",
+	"IndexType: ",
+	"IndexBufferIndex: ",
+};
+
+static char const* ParseFormats[ParseEntries::MAX] = {
+	"Descriptor: %s",
+	"label = %s",
+	"Alpha to Coverage = %d",
+	"Alpha to One = %d",
+	"Rasterization Enabled = %d",
+	"Sample Coverage = %d",
+	"Sample Mask = %llu",
+	"Raster Sample Count = %d",
+	"Input Primitive Topology = %s",
+	"Depth Attachment Format = %s",
+	"Stencil Attachment Format = %s",
+	"tessellationPartitionMode = %s",
+	"maxTessellationFactor = %d",
+	"tessellationFactorScaleEnabled = %d",
+	"tessellationFactorFormat = %s",
+	"tessellationControlPointIndexType = %s",
+	"tessellationFactorStepFunction = %s",
+	"tessellationOutputWindingOrder = %s",
+	"Vertex Function = %s",
+	"Fragment Function = %s",
+	"name = %s",
+	"Vertex Array:",
+	"Buffer %d:",
+	"stepFunction = %s",
+	"stride = %d",
+	"Attribute %d:",
+	"offset = %d",
+	"format = %s",
+	"Color Attachments:",
+	"Color Attachment %d:",
+	"pixelFormat = %s",
+	"blending = %d",
+	"Source blend factors:",
+	"Destination blend factors:",
+	"Blend operations:",
+	"RGB = %s",
+	"Alpha = %s",
+	"writeMask = %s",
+	"computeFunction = %s",
+	"stageInputDescriptor = ",
+	"IndexType: %s",
+	"IndexBufferIndex: %d",
+};
+
+#define SEARCH_AND_SCAN(search_string, tag, value) (search_string = strstr(search_string, ParseTags[tag])) && (sscanf(search_string, ParseFormats[tag], value) == 1)
+
 bool ParseRenderPipelineDesc(char const* descriptor_path, mtlpp::Library const& VertexLib, mtlpp::Library const& FragmentLib, mtlpp::RenderPipelineDescriptor& descriptor)
 {
-	static char const* ParseTags[ParseEntries::MAX] = {
-		"Descriptor:",
-		"label =",
-		"Alpha to Coverage =",
-		"Alpha to One =",
-		"Rasterization Enabled =",
-		"Sample Coverage =",
-		"Sample Mask =",
-		"Raster Sample Count =",
-		"Input Primitive Topology =",
-		"Depth Attachment Format =",
-		"Stencil Attachment Format =",
-		"tessellationPartitionMode =",
-		"maxTessellationFactor =",
-		"tessellationFactorScaleEnabled =",
-		"tessellationFactorFormat =",
-		"tessellationControlPointIndexType =",
-		"tessellationFactorStepFunction =",
-		"tessellationOutputWindingOrder =",
-		"Vertex Function =",
-		"Fragment Function =",
-		"name =",
-		"Vertex Array:",
-		"Buffer ",
-		"stepFunction",
-		"stride",
-		"Attribute ",
-		"offset =",
-		"format =",
-		"Color Attachments:",
-		"Color Attachment ",
-		"pixelFormat =",
-		"blending =",
-		"Source blend factors:",
-		"Destination blend factors:",
-		"Blend operations:",
-		"RGB =",
-		"Alpha =",
-		"writeMask =",
-	};
-	
-	static char const* ParseFormats[ParseEntries::MAX] = {
-		"Descriptor: %s",
-		"label = %s",
-		"Alpha to Coverage = %d",
-		"Alpha to One = %d",
-		"Rasterization Enabled = %d",
-		"Sample Coverage = %d",
-		"Sample Mask = %llu",
-		"Raster Sample Count = %d",
-		"Input Primitive Topology = %s",
-		"Depth Attachment Format = %s",
-		"Stencil Attachment Format = %s",
-		"tessellationPartitionMode = %s",
-		"maxTessellationFactor = %d",
-		"tessellationFactorScaleEnabled = %d",
-		"tessellationFactorFormat = %s",
-		"tessellationControlPointIndexType = %s",
-		"tessellationFactorStepFunction = %s",
-		"tessellationOutputWindingOrder = %s",
-		"Vertex Function = %s",
-		"Fragment Function = %s",
-		"name = %s",
-		"Vertex Array:",
-		"Buffer %d:",
-		"stepFunction = %s",
-		"stride = %d",
-		"Attribute %d:",
-		"offset = %d",
-		"format = %s",
-		"Color Attachments:",
-		"Color Attachment %d:",
-		"pixelFormat = %s",
-		"blending = %d",
-		"Source blend factors:",
-		"Destination blend factors:",
-		"Blend operations:",
-		"RGB = %s",
-		"Alpha = %s",
-		"writeMask = %s",
-	};
-	
-#define SEARCH_AND_SCAN(search_string, tag, value) (search_string = strstr(search_string, ParseTags[tag])) && (sscanf(search_string, ParseFormats[tag], value) == 1)
-	
 	NSString* DescString = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:descriptor_path] encoding:NSUTF8StringEncoding error:nil];
 	if (DescString)
 	{
@@ -961,14 +1074,15 @@ bool ParseRenderPipelineDesc(char const* descriptor_path, mtlpp::Library const& 
 			{
 				mtlpp::VertexDescriptor VertexDesc;
 				
-				char const* ColorAttachMarker = strstr(search, ParseTags[ParseEntries::ColorAttachments]);
+				char const* ColorAttachMarker = strstr(search, ParseTags[ParseEntries::ColorAttachTemplate]);
+				char const* ColorAttachMarkerStr = ColorAttachMarker ? ParseTags[ParseEntries::ColorAttachTemplate] : ParseTags[ParseEntries::ColorAttachments];
 				for(uint32_t i = 0; i < 31; i++)
 				{
 					// Buffers
 					sprintf(Buffer, ParseFormats[ParseEntries::BufferTemplate], i);
 					search_old = search;
 					search = strstr(search, Buffer);
-					if (!search || !strstr(search, ParseTags[ParseEntries::ColorAttachments]))
+					if (!search || !strstr(search, ColorAttachMarkerStr))
 					{
 						search = search_old;
 						continue;
@@ -1229,6 +1343,220 @@ bool ParseRenderPipelineDesc(char const* descriptor_path, mtlpp::Library const& 
 	return true;
 }
 
+bool ParseComputePipelineDesc(const char* descriptor_path, mtlpp::Library const& ComputeLib, mtlpp::ComputePipelineDescriptor& descriptor)
+{
+	NSString* DescString = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:descriptor_path] encoding:NSUTF8StringEncoding error:nil];
+	if (DescString)
+	{
+		char const* Desc = [DescString UTF8String];
+		
+		char Buffer[256];
+		int IValue = 0;
+		
+		char const* search = Desc;
+		char const* search_old = Desc;
+		
+		if (SEARCH_AND_SCAN(search, ParseEntries::Descriptor, Buffer))
+		{
+			if (SEARCH_AND_SCAN(search, ParseEntries::Label, Buffer))
+			{
+				descriptor.SetLabel([NSString stringWithUTF8String:Buffer]);
+			}
+			
+			search_old = search;
+			if ((search = strstr(search, ParseTags[ParseEntries::ComputeFunction])))
+			{
+				search_old = search;
+				if (SEARCH_AND_SCAN(search, ParseEntries::ShaderName, Buffer))
+				{
+					ns::String name = [NSString stringWithUTF8String:Buffer];
+					mtlpp::Function func = ComputeLib.NewFunction(name);
+					descriptor.SetComputeFunction(func);
+				}
+				else
+				{
+					search = search_old;
+					
+					if (SEARCH_AND_SCAN(search, ParseEntries::IndexType, Buffer))
+					{
+						mtlpp::IndexType val;
+						if (Parse(Buffer, val))
+						{
+							mtlpp::FunctionConstantValues Values;
+							uint32 IndexType = (uint32)val;
+							Values.SetConstantValue(&IndexType, mtlpp::DataType::UInt, ns::String(@"indexBufferType"));
+							
+							ns::Error error;
+							mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0], Values, &error);
+							if (error.GetPtr())
+							{
+								NSLog(@"ComputeLib.NewFunction Output: %@", error.GetPtr());
+							}
+							descriptor.SetComputeFunction(func);
+						}
+						else
+						{
+							mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0]);
+							descriptor.SetComputeFunction(func);
+						}
+					}
+					else
+					{
+						mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0]);
+						descriptor.SetComputeFunction(func);
+					}
+					search = search_old;
+				}
+			}
+			else
+			{
+				search = search_old;
+			}
+			
+			search_old = search;
+			if ((search = strstr(search, ParseTags[ParseEntries::StageInputDescriptor])))
+			{
+				mtlpp::StageInputOutputDescriptor ComputeDesc;
+				
+				char const* ColorAttachMarker = strstr(search, "buffers =");
+				for(uint32_t i = 0; i < 31; i++)
+				{
+					// Buffers
+					sprintf(Buffer, ParseFormats[ParseEntries::BufferTemplate], i);
+					search_old = search;
+					search = strstr(search, Buffer);
+					if (!search || !strstr(search, "buffers ="))
+					{
+						search = search_old;
+						continue;
+					}
+					
+					mtlpp::BufferLayoutDescriptor VBL = ComputeDesc.GetLayouts()[i];
+					
+					search_old = search;
+					if (SEARCH_AND_SCAN(search, ParseEntries::StepFunc, Buffer))
+					{
+						mtlpp::StepFunction val;
+						if (Parse(Buffer, val))
+						{
+							VBL.SetStepFunction(val);
+							switch (val)
+							{
+								case mtlpp::StepFunction::Constant:
+									VBL.SetStepRate(0);
+									break;
+								default:
+									VBL.SetStepRate(1);
+									break;
+							}
+						}
+					}
+					else
+					{
+						search = search_old;
+					}
+					
+					search_old = search;
+					if (SEARCH_AND_SCAN(search, ParseEntries::Stride, &IValue))
+					{
+						VBL.SetStride((uint32_t)IValue);
+					}
+					else
+					{
+						search = search_old;
+					}
+					
+					char const* NextBuffer = strstr(search, ParseTags[ParseEntries::BufferTemplate]);
+					char const* Guard = NextBuffer;
+					if (!Guard || (ColorAttachMarker < NextBuffer))
+					{
+						Guard = ColorAttachMarker;
+					}
+					
+					// Attributes
+					for (uint32_t a = 0; a < 31; a++)
+					{
+						sprintf(Buffer, ParseFormats[ParseEntries::AttributeTemplate], a);
+						search_old = search;
+						search = strstr(search, Buffer);
+						if (!search || search >= Guard)
+						{
+							search = search_old;
+							continue;
+						}
+						
+						mtlpp::AttributeDescriptor VADesc = ComputeDesc.GetAttributes()[a];
+						
+						VADesc.SetBufferIndex(i);
+						
+						search_old = search;
+						if (SEARCH_AND_SCAN(search, ParseEntries::Offset, &IValue))
+						{
+							VADesc.SetOffset(IValue);
+						}
+						else
+						{
+							search = search_old;
+						}
+						
+						search_old = search;
+						if (SEARCH_AND_SCAN(search, ParseEntries::Format, Buffer))
+						{
+							mtlpp::AttributeFormat val;
+							if (Parse(Buffer, val))
+							{
+								VADesc.SetFormat(val);
+							}
+						}
+						else
+						{
+							search = search_old;
+						}
+					}
+				}
+				
+				search_old = search;
+				if (SEARCH_AND_SCAN(search, ParseEntries::IndexType, Buffer))
+				{
+					mtlpp::IndexType val;
+					if (Parse(Buffer, val))
+					{
+						ComputeDesc.SetIndexType(val);
+					}
+				}
+				else
+				{
+					search = search_old;
+				}
+				
+				search_old = search;
+				if (SEARCH_AND_SCAN(search, ParseEntries::IndexBufferIndex, &IValue))
+				{
+					ComputeDesc.SetIndexBufferIndex((uint32)IValue);
+				}
+				else
+				{
+					search = search_old;
+				}
+				
+				descriptor.SetStageInputDescriptor(ComputeDesc);
+			}
+			else
+			{
+				search = search_old;
+			}
+		}
+		
+		return true;
+	}
+	return false;
+}
+
+bool ParseTileRenderPipelineDesc()
+{
+	return false;
+}
+
 int main(int argc, const char * argv[])
 {
 	bool bOK = true;
@@ -1337,20 +1665,64 @@ int main(int argc, const char * argv[])
 		{
 			device = mtlpp::Device::CopyAllDevices()[deviceId];
 		}
+		
+		NSLog(@"Device: %@", device->GetName().GetPtr());
+		
 		if (compute_path)
 		{
 			bPrintUsage = false;
 			
+			mtlpp::Library ComputeLib;
 			bOK = CompileAndLink([NSString stringWithUTF8String:compute_path], @"/tmp/Compute.tmp", @"/tmp/Compute.metallib", Options);
-			
-			if (bOK && descriptor_path)
-			{
-				bOK = ParseComputePipelineDesc();
-			}
-			
-			// Compile pipeline
 			if (bOK)
 			{
+				ns::Error error;
+				ComputeLib = device->NewLibrary(ns::String(@"/tmp/Compute.metallib"), &error);
+				if (error.GetPtr())
+				{
+					NSLog(@"ComputeLib Output: %@", error.GetPtr());
+				}
+				bOK = (ComputeLib.GetPtr());
+			}
+			
+			if (bOK)
+			{
+				if (descriptor_path)
+				{
+					mtlpp::ComputePipelineDescriptor descriptor;
+					bOK = ParseComputePipelineDesc(descriptor_path, ComputeLib, descriptor);
+					
+					// Compile pipeline
+					if (bOK)
+					{
+						ns::Error error;
+						mtlpp::ComputePipelineState state = device->NewComputePipelineState(descriptor, mtlpp::PipelineOption::None, nullptr, &error);
+						if (error.GetPtr())
+						{
+							NSLog(@"ComputePipelineState Output: %@", error.GetPtr());
+						}
+						bOK = (state.GetPtr());
+					}
+				}
+				else
+				{
+					ns::Error error;
+					mtlpp::Function func = ComputeLib.NewFunction(ComputeLib.GetFunctionNames()[0]);
+					if (error.GetPtr())
+					{
+						NSLog(@"ComputeLib.NewFunction Output: %@", error.GetPtr());
+					}
+					if(func)
+					{
+						ns::Error error;
+						mtlpp::ComputePipelineState state = device->NewComputePipelineState(func, &error);
+						if (error.GetPtr())
+						{
+							NSLog(@"ComputePipelineState Output: %@", error.GetPtr());
+						}
+						bOK = (state.GetPtr());
+					}
+				}
 			}
 		}
 		else if (tile_path && descriptor_path)

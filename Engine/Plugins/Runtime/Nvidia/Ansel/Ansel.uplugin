@@ -19,7 +19,7 @@
 		{
 			"Name" : "Ansel",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default",
+			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
 			[
 				"Win32",

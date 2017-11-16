@@ -52,6 +52,8 @@
 
 #include "Tickable.h"
 #include "AssetRegistryModule.h"
+#include "DynamicResolutionProxy.h"
+#include "DynamicResolutionState.h"
 
 
 ENGINE_API bool GDisallowNetworkTravel = false;
@@ -608,6 +610,16 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	GameScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
 
 	LastGCFrame = TNumericLimits<uint64>::Max();
+
+	#if !UE_SERVER
+	{
+		LastDynamicResolutionEvent = EDynamicResolutionStateEvent::EndFrame;
+		if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
+		{
+			NextDynamicResolutionState = FDynamicResolutionHeuristicProxy::CreateDefaultState();
+		}
+	}
+	#endif
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

@@ -1679,6 +1679,29 @@ int32 FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads()
 	return CoreCount;
 }
 
+int32 FWindowsPlatformMisc::NumberOfWorkerThreadsToSpawn()
+{
+	static int32 MaxServerWorkerThreads = 4;
+	static int32 MaxWorkerThreads = 26;
+
+	int32 NumberOfCores = FWindowsPlatformMisc::NumberOfCores();
+	int32 NumberOfCoresIncludingHyperthreads = FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads();
+	int32 NumberOfThreads = 0;
+
+	if (NumberOfCoresIncludingHyperthreads > NumberOfCores)
+	{
+		NumberOfThreads = NumberOfCoresIncludingHyperthreads - 2;
+	}
+	else
+	{
+		NumberOfThreads = NumberOfCores - 1;
+	}
+
+	int32 MaxWorkerThreadsWanted = IsRunningDedicatedServer() ? MaxServerWorkerThreads : MaxWorkerThreads;
+	// need to spawn at least one worker thread (see FTaskGraphImplementation)
+	return FMath::Max(FMath::Min(NumberOfThreads, MaxWorkerThreadsWanted), 1);
+}
+
 bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine)
 {
 	HINSTANCE hApp = ShellExecute(NULL,

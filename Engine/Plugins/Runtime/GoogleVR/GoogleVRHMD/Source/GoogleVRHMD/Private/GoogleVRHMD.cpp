@@ -334,6 +334,7 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 	, bIsMobileMultiViewDirect(false)
 	, NeckModelScale(1.0f)
 	, BaseOrientation(FQuat::Identity)
+	, PixelDensity(1.0f)
 	, RendererModule(nullptr)
 	, DistortionMeshIndices(nullptr)
 	, DistortionMeshVerticesLeftEye(nullptr)
@@ -403,7 +404,6 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 			"Gogle VR specific extension.\n"
 			"Enable or Disable Sustained Performance Mode").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::EnableSustainedPerformanceModeHandler))
-	, CVarSink(FConsoleCommandDelegate::CreateRaw(this, &FGoogleVRHMD::CVarSinkHandler))
 #endif
 	, TrackingOrigin(EHMDTrackingOrigin::Eye)
 	, bIs6DoFSupported(false)
@@ -525,6 +525,12 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 
 		// Set the default rendertarget size to the default size in UE4
 		SetRenderTargetSizeToDefault();
+
+		static const auto PixelDensityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.PixelDensity"));
+		if (PixelDensityCVar)
+		{
+			SetPixelDensity(FMath::Clamp(PixelDensityCVar->GetFloat(), PixelDensityMin, PixelDensityMax));
+		}
 
 		// Enabled by default
 		EnableHMD(true);
@@ -744,11 +750,10 @@ FIntPoint FGoogleVRHMD::GetGVRHMDRenderTargetSize()
 	return GVRRenderTargetSize;
 }
 
-FIntPoint FGoogleVRHMD::GetGVRMaxRenderTargetSize()
+FIntPoint FGoogleVRHMD::GetGVRMaxRenderTargetSize() const
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr_sizei MaxSize = gvr_get_maximum_effective_render_target_size(GVRAPI);
-	UE_LOG(LogHMD, Log, TEXT("GVR Recommended RenderTargetSize: %d x %d"), MaxSize.width, MaxSize.height);
 	return FIntPoint{ static_cast<int>(MaxSize.width), static_cast<int>(MaxSize.height) };
 #else
 	return FIntPoint{ 0, 0 };
@@ -781,9 +786,9 @@ FIntPoint FGoogleVRHMD::SetRenderTargetSizeToDefault()
 bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(float ScaleFactor, FIntPoint& OutRenderTargetSize)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	if (ScaleFactor < 0.1 || ScaleFactor > 1)
+	if (ScaleFactor < 0.1f || ScaleFactor > 2.0f)
 	{
-        	ScaleFactor = FMath::Clamp(ScaleFactor, 0.1f, 1.0f);
+    	ScaleFactor = FMath::Clamp(ScaleFactor, 0.1f, 2.0f);
 		UE_LOG(LogHMD, Warning, TEXT("Invalid RenderTexture Scale Factor. The valid value should be within [0.1, 1.0]. Clamping the value to %f"), ScaleFactor);
 	}
 
@@ -795,8 +800,8 @@ bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(float ScaleFactor, FIntPoint& OutRe
 	}
 	UE_LOG(LogHMD, Log, TEXT("Setting render target size using scale factor: %f"), ScaleFactor);
 	FIntPoint DesiredRenderTargetSize = GetGVRMaxRenderTargetSize();
-	DesiredRenderTargetSize.X *= ScaleFactor;
-	DesiredRenderTargetSize.Y *= ScaleFactor;
+	DesiredRenderTargetSize.X = FMath::CeilToInt(static_cast<float>(DesiredRenderTargetSize.X) * ScaleFactor);
+	DesiredRenderTargetSize.Y = FMath::CeilToInt(static_cast<float>(DesiredRenderTargetSize.Y) * ScaleFactor);
 	return SetGVRHMDRenderTargetSize(DesiredRenderTargetSize.X, DesiredRenderTargetSize.Y, OutRenderTargetSize);
 #else
 	return false;
@@ -2004,21 +2009,15 @@ void FGoogleVRHMD::EnableSustainedPerformanceModeHandler(const TArray<FString>& 
 		SetSPMEnable(Enabled);
 	}
 }
-
-void FGoogleVRHMD::CVarSinkHandler()
-{
-	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-	static float PreviousValue = ScreenPercentageCVar->GetValueOnAnyThread();
-
-	float CurrentValue = ScreenPercentageCVar->GetValueOnAnyThread();
-	if (CurrentValue != PreviousValue)
-	{
-		FIntPoint ActualSize;
-		SetGVRHMDRenderTargetSize(CurrentValue / 100.f, ActualSize);
-		PreviousValue = CurrentValue;
-	}
-}
 #endif
+
+void FGoogleVRHMD::SetPixelDensity(const float NewDensity)
+{
+	check(NewDensity > 0.0f);
+	PixelDensity = NewDensity;
+	FIntPoint RenderTargetSize;
+	SetGVRHMDRenderTargetSize(PixelDensity, RenderTargetSize);
+}
 
 void FGoogleVRHMD::ResetOrientationAndPosition(float Yaw)
 {

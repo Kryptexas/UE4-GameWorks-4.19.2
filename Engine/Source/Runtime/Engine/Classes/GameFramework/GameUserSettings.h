@@ -91,6 +91,14 @@ public:
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsVSyncEnabled() const;
 
+	/** Sets the user setting for dynamic resolution. See UGameUserSettings::bUseDynamicResolution. */
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void SetDynamicResolutionEnabled(bool bEnable);
+
+	/** Returns the user setting for dynamic resolution. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	bool IsDynamicResolutionEnabled() const;
+
 	/** Checks if the Screen Resolution user setting is different from current */
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsScreenResolutionDirty() const;
@@ -102,6 +110,10 @@ public:
 	/** Checks if the vsync user setting is different from current system setting */
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsVSyncDirty() const;
+
+	/** Checks if the dynamic resolution user setting is different from current system setting */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	bool IsDynamicResolutionDirty() const;
 
 	/** Mark current video mode settings (fullscreenmode/resolution) as being confirmed by the user */
 	UFUNCTION(BlueprintCallable, Category=Settings)
@@ -304,6 +316,10 @@ public:
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)
 	bool bUseVSync;
+
+	/** Whether to use dynamic resolution or not. (public to allow UI to connect to it) */
+	UPROPERTY(config)
+	bool bUseDynamicResolution;
 
 	// cached for the UI, current state if stored in console variables
 	Scalability::FQualityLevels ScalabilityQuality;

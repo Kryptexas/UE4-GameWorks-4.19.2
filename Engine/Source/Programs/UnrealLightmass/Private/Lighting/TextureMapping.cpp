@@ -429,7 +429,9 @@ void FStaticLightingSystem::FinalizeSurfaceCacheTextureMapping(FStaticLightingTe
 				// SurfaceCacheLighting at this point contains 1st and up bounce lighting for the skylight and emissive sources, computed by the radiosity iterations
 				FinalIncidentLighting += TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex];
 
-				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber >= 2)
+				if ((GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber >= 2)
+					&& !ImportanceTracingSettings.bUseRadiositySolverForLightMultibounce
+					&& PhotonMappingSettings.bUseIrradiancePhotons)
 				{
 					const FIrradiancePhoton* NearestPhoton = TextureMapping->CachedIrradiancePhotons[SurfaceCacheIndex];
 

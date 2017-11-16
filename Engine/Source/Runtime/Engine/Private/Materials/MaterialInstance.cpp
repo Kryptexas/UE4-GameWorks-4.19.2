@@ -3652,27 +3652,27 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 
 float UMaterialInstance::GetOpacityMaskClipValue() const
 {
-	return (!Parent || BasePropertyOverrides.bOverride_OpacityMaskClipValue) ? OpacityMaskClipValue : Parent->GetOpacityMaskClipValue();
+	return OpacityMaskClipValue;
 }
 
 EBlendMode UMaterialInstance::GetBlendMode() const
 {
-	return (!Parent || BasePropertyOverrides.bOverride_BlendMode) ? (EBlendMode)BlendMode : (EBlendMode)Parent->GetBlendMode();
+	return BlendMode;
 }
 
 EMaterialShadingModel UMaterialInstance::GetShadingModel() const
 {
-	return (!Parent || BasePropertyOverrides.bOverride_ShadingModel) ? (EMaterialShadingModel)ShadingModel : (EMaterialShadingModel)Parent->GetShadingModel();
+	return ShadingModel;
 }
 
 bool UMaterialInstance::IsTwoSided() const
 {
-	return (!Parent || BasePropertyOverrides.bOverride_TwoSided) ? TwoSided : Parent->IsTwoSided();
+	return TwoSided;
 }
 
 bool UMaterialInstance::IsDitheredLODTransition() const
 {
-	return (!Parent || BasePropertyOverrides.bOverride_DitheredLODTransition) ? DitheredLODTransition : Parent->IsDitheredLODTransition();
+	return DitheredLODTransition;
 }
 
 bool UMaterialInstance::IsMasked() const

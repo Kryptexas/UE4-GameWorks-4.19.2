@@ -207,7 +207,7 @@ void FVertexFactory::OffsetInstanceStreams(FRHICommandList& RHICmdList, uint32 F
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
-		if (EnumHasAnyFlags(EVertexStreamUsage::Instanceing, Stream.VertexStreamUsage))
+		if (EnumHasAnyFlags(EVertexStreamUsage::Instancing, Stream.VertexStreamUsage))
 		{
 			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset + Stream.Stride * FirstVertex);
 		}
@@ -231,7 +231,7 @@ void FVertexFactory::OffsetPositionInstanceStreams(FRHICommandList& RHICmdList, 
 	for(int32 StreamIndex = 0;StreamIndex < PositionStream.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = PositionStream[StreamIndex];
-		if (EnumHasAnyFlags(EVertexStreamUsage::Instanceing, Stream.VertexStreamUsage))
+		if (EnumHasAnyFlags(EVertexStreamUsage::Instancing, Stream.VertexStreamUsage))
 		{
 			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset + Stream.Stride * FirstVertex);
 		}
@@ -294,7 +294,7 @@ FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponen
 	VertexStream.Offset = Component.StreamOffset;
 	VertexStream.VertexStreamUsage = Component.VertexStreamUsage;
 
-	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instanceing, VertexStream.VertexStreamUsage));
+	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instancing, VertexStream.VertexStreamUsage));
 }
 
 FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStreamComponent& Component,uint8 AttributeIndex)
@@ -305,7 +305,7 @@ FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStream
 	VertexStream.Offset = Component.StreamOffset;
 	VertexStream.VertexStreamUsage = Component.VertexStreamUsage;
 
-	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instanceing, VertexStream.VertexStreamUsage));
+	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instancing, VertexStream.VertexStreamUsage));
 }
 
 void FVertexFactory::InitDeclaration(FVertexDeclarationElementList& Elements)

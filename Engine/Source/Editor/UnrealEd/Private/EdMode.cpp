@@ -755,8 +755,8 @@ void FEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,
 					if(View->ScreenToPixel(View->WorldToScreen(Vertex),PixelLocation))
 					{
 						const bool bOutside =
-							PixelLocation.X < 0.0f || PixelLocation.X > View->ViewRect.Width() ||
-							PixelLocation.Y < 0.0f || PixelLocation.Y > View->ViewRect.Height();
+							PixelLocation.X < 0.0f || PixelLocation.X > View->UnscaledViewRect.Width() ||
+							PixelLocation.Y < 0.0f || PixelLocation.Y > View->UnscaledViewRect.Height();
 						if( !bOutside )
 						{
 							const float X = PixelLocation.X - (TextureSizeX/2);

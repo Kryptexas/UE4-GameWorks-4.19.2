@@ -291,6 +291,14 @@ void UModelComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPri
 {
 	check(0);
 }
+
+void UModelComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
+{
+	for (const FModelElement& Element : Elements)
+	{
+		InGUIDs.Add(Element.MapBuildDataId);
+	}
+}
 #endif
 
 #if WITH_EDITOR

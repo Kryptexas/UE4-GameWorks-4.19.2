@@ -715,6 +715,7 @@ protected:
 	/** Deprecated? This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
 	TSubclassOf<class UGameplayEffect> CooldownGameplayEffectClass;
+
 	// ----------------------------------------------------------------------------------------------------------------
 	//
 	//	Ability exclusion / canceling

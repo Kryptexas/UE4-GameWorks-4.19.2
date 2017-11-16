@@ -132,6 +132,9 @@ public:
 	//virtual void RecordAnalytics() override;
 	//virtual bool DoesAppUseVRFocus() const override;
 	//virtual bool DoesAppHaveVRFocus() const override;
+	virtual float GetPixelDenity() const override;
+	virtual void SetPixelDensity(const float NewDensity) override;
+	virtual FIntPoint GetIdealRenderTargetSize() const override;
 
 	// IStereoRendering interface
 	virtual bool IsStereoEnabled() const override;
@@ -272,7 +275,6 @@ public:
 	bool GetUserProfile(UserProfile& OutProfile);
 	float GetVsyncToNextVsync() const;
 	FPerformanceStats GetPerformanceStats() const;
-	void SetPixelDensity(float NewPD);
 	bool DoEnableStereo(bool bStereo);
 	void ResetStereoRenderingParams();
 	void ResetControlRotation() const;
@@ -311,7 +313,6 @@ public:
 protected:
 	FConsoleCommands ConsoleCommands;
 	void UpdateOnRenderThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
-	void PixelDensityCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void PixelDensityMinCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void PixelDensityMaxCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void PixelDensityAdaptiveCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
@@ -327,8 +328,6 @@ protected:
 	void FCPCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void NCPCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 #endif
-	static void CVarSinkHandler();
-	static FAutoConsoleVariableSink CVarSink;
 
 	void LoadFromIni();
 	void SaveToIni();

@@ -100,6 +100,35 @@ enum EMonoscopicFarFieldMode
 	MonoOnly = 4,
 };
 
+/** Method used for primary screen percentage method. */
+enum class EPrimaryScreenPercentageMethod
+{
+	// Add spatial upscale pass at the end of post processing chain, before the secondary upscale.
+	SpatialUpscale,
+
+	// Let temporal AA's do the upscale.
+	TemporalUpscale,
+
+	// No upscaling or up sampling, just output the view rect smaller.
+	// This is useful for VR's render thread dynamic resolution with MSAA.
+	RawOutput,
+};
+
+/**
+ * Method used for second screen percentage method, that is a second spatial upscale pass at the
+ * very end, independent of screen percentage show flag.
+ */
+enum class ESecondaryScreenPercentageMethod
+{
+	// Helpful to work on aliasing issue on HighDPI monitors.
+	NearestSpatialUpscale,
+
+	// Upscale to simulate smaller pixel density on HighDPI monitors.
+	LowerPixelDensitySimulation,
+
+	// TODO: Same config as primary upscale?
+};
+
 // Parameters defining monoscopic far field VR rendering
 struct FMonoscopicFarFieldParameters
 {
@@ -185,12 +214,6 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	/** In case of ortho, generate a fake view position that has a non-zero W component. The view position will be derived based on the view matrix. */
 	bool bUseFauxOrthoViewPos;
-
-	/** Any override for screen percentage per editor view.  Set by DPI scale factor or user overrides */
-	TOptional<float> EditorViewScreenPercentage;
-
-	/** Whether game screen percentage should be disabled. */
-	bool bDisableGameScreenPercentage;
 #endif
 
 	FSceneViewInitOptions()
@@ -214,8 +237,6 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, EditorViewBitflag(1)
 		, OverrideLODViewOrigin(ForceInitToZero)
 		, bUseFauxOrthoViewPos(false)
-		, EditorViewScreenPercentage()
-		, bDisableGameScreenPercentage(false)
 		//@TODO: , const TBitArray<>& InSpriteCategoryVisibility=TBitArray<>()
 #endif
 	{
@@ -620,10 +641,10 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ViewRectMin, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, ViewSizeAndInvSize) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, BufferSizeAndInvSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, BufferBilinearUVMinMax) \
 	VIEW_UNIFORM_BUFFER_MEMBER(int32, NumSceneColorMSAASamples) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, PreExposure, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, OneOverPreExposure, EShaderPrecisionModifier::Half) \
-	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, LastOneOverPreExposure, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DiffuseOverrideParameter, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, SpecularOverrideParameter, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, NormalOverrideParameter, EShaderPrecisionModifier::Half) \
@@ -637,6 +658,8 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, AdaptiveTessellationFactor) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GameTime) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, RealTime) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MaterialTextureMipBias) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MaterialTextureDerivativeMultiply) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, Random) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, FrameNumber) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StateFrameIndexMod8) \
@@ -681,7 +704,6 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AmbientCubemapTint) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, AmbientCubemapIntensity) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, SkyLightParameters) \
-	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, SceneTextureMinMax) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, SkyLightColor) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, SkyIrradianceEnvironmentMap, [7]) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, MobilePreviewMode) \
@@ -721,6 +743,10 @@ enum ETranslucencyVolumeCascade
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGINE_API)
 
 	VIEW_UNIFORM_BUFFER_MEMBER_TABLE
+
+	// Same as Wrap_WorldGroupSettings and Clamp_WorldGroupSettings, but with mipbias=MaterialTextureMipBias.
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, MaterialTextureBilinearWrapedSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, MaterialTextureBilinearClampedSampler)
 
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D<uint4>, VolumetricLightmapIndirectionTexture) // FPrecomputedVolumetricLightmapLightingPolicy
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, VolumetricLightmapBrickAmbientVector) // FPrecomputedVolumetricLightmapLightingPolicy
@@ -844,17 +870,11 @@ public:
 	/** An interaction which draws the view's interaction elements. */
 	FViewElementDrawer* Drawer;
 
-	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
-	FIntRect ViewRect;
-
 	/* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */
 	const FIntRect UnscaledViewRect;
 
 	/* Raw view size (in pixels), used for screen space calculations */
 	FIntRect UnconstrainedViewRect;
-
-	/* If set, derive the family view size explicitly using this. */
-	FIntRect ResolutionOverrideRect;
 
 	/** Maximum number of shadow cascades to render with. */
 	int32 MaxShadowCascades;
@@ -916,9 +936,6 @@ public:
 	// Derived members.
 
 	bool bAllowTemporalJitter;
-
-	float TemporalJitterPixelsX;
-	float TemporalJitterPixelsY;
 
 	FConvexVolume ViewFrustum;
 
@@ -989,10 +1006,7 @@ public:
 
 	/** True if we need to bind the instanced view uniform buffer parameters. */
 	bool bShouldBindInstancedViewUB;
-
-	/** True if PreExposure is to be disabled, used for editor primitives. */
-	bool bDisablePreExposure;
-
+	
 	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
 	FPlane GlobalClippingPlane;
 
@@ -1033,7 +1047,12 @@ public:
 	 * Setup by the main thread, passed to the render thread and never touched again by the main thread.
 	 */
 	FFinalPostProcessSettings FinalPostProcessSettings;
+
+	// The antialiasing method.
 	EAntiAliasingMethod AntiAliasingMethod;
+
+	// Primary screen percentage method to use.
+	EPrimaryScreenPercentageMethod PrimaryScreenPercentageMethod;
 
 	/** Parameters for atmospheric fog. */
 	FTextureRHIRef AtmosphereTransmittanceTexture;
@@ -1044,7 +1063,7 @@ public:
 	FForwardLightingViewResources* ForwardLightingResources;
 
 	/** Feature level for this scene */
-	ERHIFeatureLevel::Type FeatureLevel;
+	const ERHIFeatureLevel::Type FeatureLevel;
 
 	static const int32 NumBufferedSubIsOccludedArrays = 2;
 	TArray<bool> FrameSubIsOccluded[NumBufferedSubIsOccludedArrays];
@@ -1052,8 +1071,10 @@ public:
 	/** Initialization constructor. */
 	FSceneView(const FSceneViewInitOptions& InitOptions);
 
-	/** used by ScreenPercentage */
-	void SetScaledViewRect(FIntRect InScaledViewRect);
+#if DO_CHECK
+	/** Verifies all the assertions made on members. */
+	bool VerifyMembersChecks() const;
+#endif
 
 	/** Transforms a point from world-space to the view's screen-space. */
 	FVector4 WorldToScreen(const FVector& WorldPoint) const;
@@ -1242,6 +1263,74 @@ struct FDisplayInternalsData
 
 //////////////////////////////////////////////////////////////////////////
 
+/** Exposed screen percentage settings to ISceneViewFamilyScreenPercentage. */
+struct FSceneViewScreenPercentageConfig
+{
+	// Screen percentage / 100 to apply to a given view of the view family.
+	float PrimaryResolutionFraction;
+
+
+	FSceneViewScreenPercentageConfig()
+		: PrimaryResolutionFraction(1.f)
+	{ }
+
+
+	// Sets the minimal and max screen percentage.
+	static constexpr float kMinResolutionFraction = 0.01f;
+	static constexpr float kMaxResolutionFraction = 4.0f;
+
+	// Sets the minimal and maximal screen percentage for TAA upsample.
+	static constexpr float kMinTAAUpsampleResolutionFraction = 0.5f;
+	static constexpr float kMaxTAAUpsampleResolutionFraction = 2.0f;
+
+
+	#if DO_CHECK
+		static bool IsValidResolutionFraction(float ResolutionFraction)
+		{
+			return ResolutionFraction >= kMinResolutionFraction && ResolutionFraction <= kMaxResolutionFraction;
+		}
+	#endif
+};
+
+
+/*
+ * Game thread and render thread interface that takes care of a FSceneViewFamily's screen percentage.
+ *
+ * The renderer reserves the right to delete and replace the view family's screen percentage interface
+ * for testing purposes with the r.Test.OverrideScreenPercentageInterface CVar.
+ */
+class ENGINE_API ISceneViewFamilyScreenPercentage
+{
+protected:
+	/** 
+	 * Called by the destructor of the view family.
+	 * Can be called on game or rendering thread.
+	 */
+	virtual ~ISceneViewFamilyScreenPercentage() {};
+
+	/** 
+	 * Method to know the maximum value that can be set in FSceneViewScreenPercentageConfig::ResolutionFraction.
+	 * Can be called on game or rendering thread. This should return >= 1 if screen percentage show flag is disabled.
+	 */
+	virtual float GetPrimaryResolutionFractionUpperBound() const = 0;
+
+	/** Create a new screen percentage interface for a new view family. */
+	virtual ISceneViewFamilyScreenPercentage* Fork_GameThread(const class FSceneViewFamily& ViewFamily) const = 0;
+
+	/**
+	 * Setup view family's view's screen percentage on rendering thread.
+	 * This should leave ResolutionFraction == 1 if screen percentage show flag is disabled.
+	 * @param OutViewScreenPercentageConfigs Screen percentage config to set on the view of the view family.
+	 */
+	virtual void ComputePrimaryResolutionFractions_RenderThread(TArray<FSceneViewScreenPercentageConfig>& OutViewScreenPercentageConfigs) const = 0;
+
+	friend class FSceneViewFamily;
+	friend class FSceneRenderer;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+
 /**
  * A set of views into a scene which only have different view transforms and owner actors.
  */
@@ -1358,24 +1447,8 @@ public:
 	/** View mode of the family. */
 	EViewModeIndex ViewMode;
 
-	/** The width in screen pixels of the view family being rendered (maximum x of all viewports). */
-	uint32 FamilySizeX;
-
-	/** The height in screen pixels of the view family being rendered (maximum y of all viewports). */
-	uint32 FamilySizeY;
-
-	/** 
-		The width in pixels of the stereo view family being rendered. This may be different than FamilySizeX if
-		we're using adaptive resolution stereo rendering. In that case, FamilySizeX represents the maximum size of 
-		the family to ensure the backing render targets don't change between frames as the view size varies.
-	*/
-	uint32 InstancedStereoWidth;
-
 	/** The render target which the views are being rendered to. */
 	const FRenderTarget* RenderTarget;
-
-	/** Indicates that a separate render target is in use (not a backbuffer RT) */
-	bool bUseSeparateRenderTarget;
 
 	/** The scene being viewed. */
 	FSceneInterface* Scene;
@@ -1435,6 +1508,13 @@ public:
 	// for r.DisplayInternals (allows for easy passing down data from main to render thread)
 	FDisplayInternalsData DisplayInternalsData;
 
+	/**
+	 * Secondary view fraction to support High DPI monitor still with same primary screen percentage range for temporal
+	 * upscale to test content consistently in editor no mater of the HighDPI scale. 
+	 */
+	float SecondaryViewFraction;
+	ESecondaryScreenPercentageMethod SecondaryScreenPercentageMethod;
+
 #if WITH_EDITOR
 	// Override the LOD of landscape in this viewport
 	int8 LandscapeLODOverride;
@@ -1453,9 +1533,7 @@ public:
 
 	/** Initialization constructor. */
 	FSceneViewFamily( const ConstructionValues& CVS );
-
-	/** Computes FamilySizeX and FamilySizeY from the Views array. */
-	void ComputeFamilySize();
+	~FSceneViewFamily();
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const;
 
@@ -1466,12 +1544,12 @@ public:
 	int32 ViewModeParam;
 	FName ViewModeParamName;
 
-	bool bUsedDebugViewPSVSHS;
+	bool bUsedDebugViewVSDSHS;
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
 	FORCEINLINE int32 GetViewModeParam() const { return ViewModeParam; }
 	FORCEINLINE const FName& GetViewModeParamName() const { return ViewModeParamName; }
 	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
-	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
+	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewVSDSHS; }
 	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
@@ -1484,12 +1562,76 @@ public:
 	/** Returns the appropriate view for a given eye in a stereo pair. */
 	const FSceneView& GetStereoEyeView(const EStereoscopicPass Eye) const;
 
+	/** Returns whether the screen percentage show flag is supported or not for this view family. */
+	bool SupportsScreenPercentage() const;
+
 	const bool IsMonoscopicFarFieldEnabled() const
 	{
 		return MonoParameters.bEnabled && MonoParameters.Mode != EMonoscopicFarFieldMode::Off;
 	}
 
 	bool AllowTranslucencyAfterDOF() const;
+
+	/* Returns the maximum FSceneViewScreenPercentageConfig::PrimaryResolutionFraction. */
+	FORCEINLINE float GetPrimaryResolutionFractionUpperBound() const
+	{
+		check(ScreenPercentageInterface != nullptr);
+		float PrimaryUpperBoundFraction = ScreenPercentageInterface->GetPrimaryResolutionFractionUpperBound();
+
+		checkf(FSceneViewScreenPercentageConfig::IsValidResolutionFraction(PrimaryUpperBoundFraction),
+			TEXT("ISceneViewFamilyScreenPercentage::GetPrimaryResolutionFractionUpperBound()")
+			TEXT(" should return a valide value."));
+
+		if (!EngineShowFlags.ScreenPercentage)
+		{
+			checkf(PrimaryUpperBoundFraction >= 1.0f,
+				TEXT("ISceneViewFamilyScreenPercentage::GetPrimaryResolutionFractionUpperBound()")
+				TEXT(" should return >= 1 if screen percentage show flag is off."));
+		}
+
+		return PrimaryUpperBoundFraction;
+	}
+
+	FORCEINLINE const ISceneViewFamilyScreenPercentage* GetScreenPercentageInterface() const
+	{
+		return ScreenPercentageInterface;
+	}
+
+	/**
+	 * Safely sets the view family's screen percentage interface.
+	 * This is meant to be set by one of the ISceneViewExtension::BeginRenderViewFamily(). And collision will
+	 * automatically be detected. If no extension sets it, that is fine since the renderer is going to use an
+	 * internal default one.
+	 *
+	 * The renderer reserves the right to delete and replace the view family's screen percentage interface
+	 * for testing purposes with the r.Test.OverrideScreenPercentageInterface CVar.
+	 */
+	FORCEINLINE void SetScreenPercentageInterface(ISceneViewFamilyScreenPercentage* InScreenPercentageInterface)
+	{
+		check(InScreenPercentageInterface);
+		checkf(ScreenPercentageInterface == nullptr, TEXT("View family already had a screen percentage interface assigned."));
+		ScreenPercentageInterface = InScreenPercentageInterface;
+	}
+
+	// View family assignment operator is not allowed because of ScreenPercentageInterface lifetime.
+	void operator = (const FSceneViewFamily&) = delete;
+
+	// Allow moving view family as long as no screen percentage interface are set.
+	FSceneViewFamily(const FSceneViewFamily&& InViewFamily)
+		: FSceneViewFamily(static_cast<const FSceneViewFamily&>(InViewFamily))
+	{
+		check(ScreenPercentageInterface == nullptr);
+	}
+
+
+private:
+	/** Interface to handle screen percentage of the views of the family. */
+	ISceneViewFamilyScreenPercentage* ScreenPercentageInterface;
+
+	// Only FSceneRenderer can copy a view family.
+	FSceneViewFamily(const FSceneViewFamily&) = default;
+
+	friend class FSceneRenderer;
 };
 
 /**

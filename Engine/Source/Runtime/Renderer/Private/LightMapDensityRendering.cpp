@@ -137,7 +137,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 						Mesh.LCI,
 						TLightMapDensityDrawingPolicy<FUniformLightMapPolicy>::ContextDataType()
 						);
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 				}
 				bDirty = true;
 			}
@@ -153,7 +153,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 						Mesh.LCI,
 						TLightMapDensityDrawingPolicy<FUniformLightMapPolicy>::ContextDataType()
 						);
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 				}
 				bDirty = true;
 			}
@@ -170,7 +170,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 					Mesh.LCI,
 					TLightMapDensityDrawingPolicy<FUniformLightMapPolicy>::ContextDataType()
 					);
-				DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 			}
 			bDirty = true;
 		}
@@ -187,7 +187,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 				Mesh.LCI,
 				TLightMapDensityDrawingPolicy<FUniformLightMapPolicy>::ContextDataType()
 				);
-			DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 		}
 		bDirty = true;
 	}

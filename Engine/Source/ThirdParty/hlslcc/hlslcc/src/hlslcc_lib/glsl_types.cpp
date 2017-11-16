@@ -733,6 +733,26 @@ const glsl_type * glsl_type::get_templated_instance(const glsl_type *base, const
 	return actual_type;
 }
 
+const glsl_type* glsl_type::GetByteAddressBufferInstance(const char* TypeName)
+{
+	if (!StructuredBufferTypes)
+	{
+		StructuredBufferTypes = hash_table_ctor(64, hash_table_string_hash, hash_table_string_compare);
+	}
+	
+	const glsl_type* FoundType = (glsl_type *)hash_table_find(StructuredBufferTypes, TypeName);
+	if (!FoundType)
+	{
+		FoundType = new glsl_type(glsl_base_type::GLSL_TYPE_IMAGE, 1, 1, ralloc_strdup(mem_ctx, TypeName), ralloc_strdup(mem_ctx, TypeName));
+		((glsl_type*)FoundType)->inner_type = glsl_type::uint_type;
+		((glsl_type*)FoundType)->sampler_buffer = 1;
+		
+		hash_table_insert(StructuredBufferTypes, (void*)FoundType, ralloc_strdup(mem_ctx, TypeName));
+	}
+	
+	return FoundType;
+}
+
 const glsl_type* glsl_type::GetStructuredBufferInstance(const char* TypeName, const glsl_type* InnerType)
 {
 	/** Generate a key that is the combination of outputstream type and inner type. */

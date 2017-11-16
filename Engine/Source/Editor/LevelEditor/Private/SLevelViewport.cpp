@@ -252,6 +252,35 @@ void SLevelViewport::ConstructViewportOverlayContent()
 		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		[
 			SNew(SHorizontalBox)
+			.Visibility(this, &SLevelViewport::GetCurrentScreenPercentageVisibility)
+			// Current screen percentage label
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+			[
+				SNew(STextBlock)
+				.Text(this, &SLevelViewport::GetCurrentScreenPercentageText, true)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.ShadowOffset(FVector2D(1, 1))
+			]
+
+			// Current screen percentage
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4.0f, 1.0f, 2.0f, 1.0f)
+				[
+					SNew(STextBlock)
+					.Text(this, &SLevelViewport::GetCurrentScreenPercentageText, false)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ColorAndOpacity(FLinearColor(0.4f, 1.0f, 1.0f))
+					.ShadowOffset(FVector2D(1, 1))
+				]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+		[
+			SNew(SHorizontalBox)
 			.Visibility(this, &SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility)
 			// Current level label
 			+ SHorizontalBox::Slot()
@@ -3238,6 +3267,16 @@ FString SLevelViewport::GetDeviceProfileString( ) const
 	return DeviceProfile;
 }
 
+FText SLevelViewport::GetCurrentScreenPercentageText(bool bDrawOnlyLabel) const
+{
+	if (bDrawOnlyLabel)
+	{
+		return LOCTEXT("ScreenPercentageLabel", "Screen Percentage:");
+	}
+
+	return FText::FromString(FString::Printf(TEXT("%3d%%"), int32(GetLevelViewportClient().GetPreviewScreenPercentage())));
+}
+
 FText SLevelViewport::GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const
 {
 	FText LabelName;
@@ -3332,6 +3371,15 @@ EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
 	{
 		return EVisibility::Collapsed;
 	}
+}
+
+EVisibility SLevelViewport::GetCurrentScreenPercentageVisibility() const
+{
+	bool Visible = !IsPlayInEditorViewportActive() &&
+		GetLevelViewportClient().SupportsPreviewResolutionFraction() &&
+		GetLevelViewportClient().GetPreviewScreenPercentage() > 100;
+
+	return Visible ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SLevelViewport::GetViewportControlsVisibility() const

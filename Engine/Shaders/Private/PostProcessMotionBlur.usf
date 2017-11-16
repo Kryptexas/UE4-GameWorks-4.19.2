@@ -10,11 +10,39 @@
 #include "FastMath.ush"
 #include "Random.ush"
 
+
+#if MOTION_BLUR_INNER_LOOP_CONFIG == 0
+	// Stay opt-out of everything.
+
+#elif MOTION_BLUR_INNER_LOOP_CONFIG == 1
+	#define CLAMP_UV 1
+
+#elif MOTION_BLUR_INNER_LOOP_CONFIG == 2
+	#define CLAMP_UV 1
+	#define SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT 1
+
+#else
+	#error Sorry
+
+#endif
+
+
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
 #define SOFT_Z_EXTENT 1
 
 // 0:off / 1:on, useful to debug the motionblur algorithm
 #define MOTIONBLUR_TESTCHART 0
+
+// 0:off / 1:on, manually clamp BufferUV to the viewport to not sample outside of teh viewport.
+#ifndef CLAMP_UV
+	#define CLAMP_UV 0
+#endif
+
+// 0:off / 1:on, required for TAA upsample that change the res of the scene color before motion blur.
+#ifndef SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT
+	#define SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT 0
+#endif
+
 
 // --------------------------------------------------------------------------
 
@@ -26,6 +54,13 @@ float4 VelocityScale;
 
 // xy:IndividualVelocityScale.xy zw:unused, from postprocess settings
 float4 MotionBlurParameters;
+
+float2 TileUVMax;
+
+#if SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT
+	float4 SceneColorBufferUVToViewBufferUV;
+#endif
+
 
 // ------------------------------------------
 
@@ -177,12 +212,14 @@ float GetVelocityLengthPixels( float2 EncodedVelocity )
 #endif
 }
 
-#define CLAMP_UV 1
-
 float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 {
 	float4 OutColor = 0;
 	const uint StepCount = GetStepCountFromQuality() / 2;
+
+	#if !SUPPORT_DIFFERENT_SCENE_COLOR_VIEWPORT
+		float4 SceneColorBufferUVToViewBufferUV = float4(1, 1, 0, 0);
+	#endif
 
 #if 0
 	float2 PosMod = float2( PixelPos & 1 );
@@ -195,10 +232,15 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 #endif
 
 	float2 TileJitter = ( float2( Random, Random2 ) - 0.5 ) * 0.5;
-	float2 TileUV = min( ( PixelPos - ViewportRect.xy + 0.5 ) / 16.0 + TileJitter, ViewportRect.zw ) * PostprocessInput3Size.zw;
+
+	float2 BufferUV = UV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw;
+	float2 NearestBufferSvPosition = floor(BufferUV * View.BufferSizeAndInvSize.xy) + 0.5;
+	float2 TileUV = ((NearestBufferSvPosition - View.ViewRectMin.xy) * (1.0 / 16.0) + TileJitter) * PostprocessInput3Size.zw;
+
+	// Don't need to max TileUV because tiles are top left cornered in the PostprocessInput3.
+	TileUV = min(TileUV, TileUVMax.xy);
 
 	float4 MinMaxVelocity = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, TileUV, 0);
-	//float4 MinMaxVelocity = PostprocessInput3[ ( PixelPos - ViewportRect.xy ) / 16 ];
 
 	float2 MinVelocityPixels = MinMaxVelocity.xy * MotionBlurParameters.y;
 	float2 MaxVelocityPixels = MinMaxVelocity.zw * MotionBlurParameters.y;
@@ -219,8 +261,8 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 		return OutColor;
 	}
 
-	float2 MinViewportUV = (View.ViewRectMin + 0.5) * View.BufferSizeAndInvSize.zw;
-	float2 MaxViewportUV = (View.ViewRectMin + View.ViewSizeAndInvSize.xy - 0.5) * View.BufferSizeAndInvSize.zw;
+	float2 MinViewportUV = (float2(ViewportRect.xy) + 0.5) * PostprocessInput0Size.zw;
+	float2 MaxViewportUV = (float2(ViewportRect.zw) - 0.5) * PostprocessInput0Size.zw;
 
 #if 1
 	float4 SearchVectorPixels = float4( MaxVelocityPixels, -MaxVelocityPixels );
@@ -240,6 +282,10 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 	// converts pixel length to sample steps
 	float PixelToSampleScale = StepCount * rsqrt( dot( MaxVelocityPixels, MaxVelocityPixels ) );
 
+	#if COMPILER_SUPPORTS_WAVE_VOTE
+		bFastPath = WaveAllTrue(bFastPath);
+	#endif
+
 	BRANCH
 	if( bFastPath )
 	{
@@ -255,10 +301,10 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
 			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
 
-#if CLAMP_UV
-			SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
-			SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
-#endif
+			#if CLAMP_UV
+				SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
+				SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
+			#endif
 
 			ColorAccum += PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[0], 0 );
 			ColorAccum += PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[1], 0 );
@@ -270,7 +316,7 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 	}
 	else
 	{
-		float3 CenterVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, UV, 0 ).xyz;
+		float3 CenterVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, UV * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw, 0 ).xyz;
 		float  CenterDepth = CenterVelocityDepth.z;
 		float  CenterVelocityLength = GetVelocityLengthPixels( CenterVelocityDepth.xy );
 		
@@ -292,15 +338,16 @@ float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
 			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
 
-#if CLAMP_UV
-			SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
-			SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
-#endif
+			#if CLAMP_UV
+				SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
+				SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
+			#endif
 
 			UNROLL
 			for( uint j = 0; j < 2; j++ )
 			{
-				float3 SampleVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, SampleUV[j], 0 ).xyz;
+				float3 SampleVelocityDepth = PostprocessInput2.SampleLevel(
+					PostprocessInput2Sampler, SampleUV[j] * SceneColorBufferUVToViewBufferUV.xy + SceneColorBufferUVToViewBufferUV.zw, 0 ).xyz;
 				SampleColor[j] = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[j], 0 );
 				SampleDepth[j] = SampleVelocityDepth.z;
 
@@ -365,7 +412,7 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 
 	float4 OutColor = MainMotionBlurCommon(UV, SvPosition.xy, (uint2)PxPosition);
 
-	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+	uint2 PixelPos = DispatchThreadId + (uint2)ViewportRect.xy;
 	RWOutComputeTex[PixelPos] = OutColor;
 }
 #endif

@@ -672,7 +672,7 @@ void VoxelizeVolumePrimitive(
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, VoxelizationPassIndex, DrawRenderState, FVoxelizeVolumeDrawingPolicy::ElementDataType(), FVoxelizeVolumeDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex);
 				}
 			}
 		}

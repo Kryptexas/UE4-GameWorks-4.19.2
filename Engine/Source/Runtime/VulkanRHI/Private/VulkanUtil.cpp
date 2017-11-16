@@ -24,7 +24,7 @@ void FVulkanGPUTiming::PlatformStaticInitialize(void* UserData)
 	FVulkanGPUTiming* Caller = (FVulkanGPUTiming*)UserData;
 	if (Caller && Caller->Device)
 	{
- 		bool bSupportsTimestamps = (Caller->Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
+		bool bSupportsTimestamps = (Caller->Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
 		if (!bSupportsTimestamps)
 		{
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
@@ -365,8 +365,6 @@ DEFINE_STAT(STAT_VulkanDrawCallPrepareTime);
 DEFINE_STAT(STAT_VulkanDispatchCallPrepareTime);
 DEFINE_STAT(STAT_VulkanGetOrCreatePipeline);
 DEFINE_STAT(STAT_VulkanGetDescriptorSet);
-DEFINE_STAT(STAT_VulkanCreateUniformBufferTime);
-//DEFINE_STAT(STAT_VulkanCreatePipeline);
 DEFINE_STAT(STAT_VulkanPipelineBind);
 DEFINE_STAT(STAT_VulkanNumBoundShaderState);
 DEFINE_STAT(STAT_VulkanNumRenderPasses);
@@ -387,18 +385,18 @@ DEFINE_STAT(STAT_VulkanDeletionQueue);
 DEFINE_STAT(STAT_VulkanQueueSubmit);
 DEFINE_STAT(STAT_VulkanQueuePresent);
 DEFINE_STAT(STAT_VulkanWaitQuery);
+DEFINE_STAT(STAT_VulkanWaitFence);
 DEFINE_STAT(STAT_VulkanResetQuery);
 DEFINE_STAT(STAT_VulkanWaitSwapchain);
 DEFINE_STAT(STAT_VulkanAcquireBackBuffer);
 DEFINE_STAT(STAT_VulkanStagingBuffer);
+DEFINE_STAT(STAT_VulkanVkCreateDescriptorPool);
+DEFINE_STAT(STAT_VulkanDescriptorPools);
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
-DEFINE_STAT(STAT_VulkanApplyDSResources);
 DEFINE_STAT(STAT_VulkanUpdateDescriptorSets);
 DEFINE_STAT(STAT_VulkanNumUpdateDescriptors);
 DEFINE_STAT(STAT_VulkanNumDescSets);
-DEFINE_STAT(STAT_VulkanSetShaderParamTime);
 DEFINE_STAT(STAT_VulkanSetUniformBufferTime);
 DEFINE_STAT(STAT_VulkanVkUpdateDS);
-DEFINE_STAT(STAT_VulkanClearDirtyDSState);
 DEFINE_STAT(STAT_VulkanBindVertexStreamsTime);
 #endif

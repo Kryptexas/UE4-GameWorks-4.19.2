@@ -106,15 +106,3 @@ public:
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 };
-
-
-
-
-
-
-/** The uniform shader parameters needed for screen space TemporalAA and SSAO passes. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, Value, [5])
-END_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters)
-
-TUniformBufferRef<FCameraMotionParameters> CreateCameraMotionParametersUniformBuffer(const FSceneView& View);

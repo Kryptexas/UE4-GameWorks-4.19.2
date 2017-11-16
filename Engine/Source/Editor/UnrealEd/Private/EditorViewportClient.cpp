@@ -43,6 +43,7 @@
 #include "IXRTrackingSystem.h"
 #include "IXRCamera.h"
 #include "SceneViewExtension.h"
+#include "LegacyScreenPercentageDriver.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
 #include "AudioDevice.h"
@@ -62,6 +63,12 @@ static TAutoConsoleVariable<int32> CVarAlignedOrthoZoom(
 	TEXT(" 0: Each ortho viewport zoom in defined by the viewport width\n")
 	TEXT(" 1: All ortho viewport zoom are locked to each other to allow axis lines to be aligned with each other."),
 	ECVF_RenderThreadSafe);
+
+static bool GetDefaultLowDPIPreviewValue()
+{
+	static auto CVarEnableEditorScreenPercentageOverride = IConsoleManager::Get().FindConsoleVariable(TEXT("Editor.OverrideDPIBasedEditorViewportScaling"));
+	return CVarEnableEditorScreenPercentageOverride->GetInt() == 0;
+}
 
 float ComputeOrthoZoomFactor(const float ViewportWidth)
 {
@@ -253,6 +260,7 @@ void FEditorViewportClient::SetCameraSpeedScalar(float SpeedScalar)
 	CameraSpeedScalar = FMath::Clamp<float>(SpeedScalar, 1.0f, TNumericLimits <float>::Max());
 }
 
+
 float const FEditorViewportClient::SafePadding = 0.075f;
 
 static int32 ViewOptionIndex = 0;
@@ -348,6 +356,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, MovingPreviewLightSavedScreenPos(ForceInitToZero)
 	, MovingPreviewLightTimer(0.0f)
 	, bLockFlightCamera(false)
+	, PreviewResolutionFraction(1.0f)
+	, SceneDPIMode(ESceneDPIMode::EditorDefault)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
 	, ViewModeParam(-1)
@@ -711,16 +721,6 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 
 	FSceneViewInitOptions ViewInitOptions;
 
-	// Takes care of HighDPI based screen percentage in editor viewport when not in VR editor.
-	if (!bStereoRendering)
-	{
-		// Disables any screen percentage derived for game such as r.ScreenPercentage or FPostProcessSettings::ScreenPercentage.
-		ViewInitOptions.bDisableGameScreenPercentage = true;
-
-		// Forces screen percentage showflag on so that we always upscale on HighDPI configuration.
-		ViewFamily->EngineShowFlags.ScreenPercentage = true;
-	}
-
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const ELevelViewportType EffectiveViewportType = GetViewportType();
 
@@ -1036,10 +1036,6 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 	{
 		OverridePostProcessSettings(*View);
 	}
-
-
-	// Override screen percentage here.
-	ViewInitOptions.EditorViewScreenPercentage = GetEditorScreenPercentage();
 
 	View->EndFinalPostprocessSettings(ViewInitOptions);
 
@@ -2373,6 +2369,77 @@ bool FEditorViewportClient::IsBufferVisualizationModeSelected( FName InName ) co
 	return IsViewModeEnabled( VMI_VisualizeBuffer ) && CurrentBufferVisualizationMode == InName;	
 }
 
+bool FEditorViewportClient::SupportsPreviewResolutionFraction() const
+{
+	// Don't do preview screen percentage for some view mode.
+	switch (GetViewMode())
+	{
+	case VMI_BrushWireframe:
+	case VMI_Wireframe:
+	case VMI_LightComplexity:
+	case VMI_LightmapDensity:
+	case VMI_LitLightmapDensity:
+	case VMI_ReflectionOverride:
+	case VMI_StationaryLightOverlap:
+	case VMI_CollisionPawn:
+	case VMI_CollisionVisibility:
+	case VMI_LODColoration:
+	case VMI_PrimitiveDistanceAccuracy:
+	case VMI_MeshUVDensityAccuracy:
+	case VMI_HLODColoration:
+	case VMI_GroupLODColoration:
+		return false;
+	}
+
+	// Don't do preview screen percentage for buffer visualization.
+	if (EngineShowFlags.VisualizeBuffer)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+int32 FEditorViewportClient::GetPreviewScreenPercentage() const
+{
+	// We expose the resolution fraction derived from DPI, to not lie to the artist when screen percentage = 100%.
+	return FMath::RoundToInt(FMath::Clamp(
+		PreviewResolutionFraction,
+		FSceneViewScreenPercentageConfig::kMinTAAUpsampleResolutionFraction,
+		FSceneViewScreenPercentageConfig::kMaxTAAUpsampleResolutionFraction) * 100.0f);
+}
+
+void FEditorViewportClient::SetPreviewScreenPercentage(int32 PreviewScreenPercentage)
+{
+	PreviewResolutionFraction = PreviewScreenPercentage / 100.0f;
+}
+
+bool FEditorViewportClient::SupportsLowDPIPreview() const
+{
+	return GetDPIDerivedResolutionFraction() < 1.0f;
+}
+
+bool FEditorViewportClient::IsLowDPIPreview()
+{
+	if (SceneDPIMode == ESceneDPIMode::EditorDefault)
+	{
+		return GetDefaultLowDPIPreviewValue();
+	}
+	return SceneDPIMode == ESceneDPIMode::EmulateLowDPI;
+}
+
+void FEditorViewportClient::SetLowDPIPreview(bool LowDPIPreview)
+{
+	if (LowDPIPreview == GetDefaultLowDPIPreviewValue())
+	{
+		SceneDPIMode = ESceneDPIMode::EditorDefault;
+	}
+	else
+	{
+		SceneDPIMode = LowDPIPreview ? ESceneDPIMode::EmulateLowDPI : ESceneDPIMode::HighDPI;
+	}
+}
+
 bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float/*AmountDepressed*/, bool/*Gamepad*/)
 {
 	if (bDisableInput)
@@ -3334,15 +3401,10 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
 	if (IsInspectorActive)
 	{
-		float ViewRectScale = (float)View.ViewRect.Size().X / View.UnscaledViewRect.Size().X;
-
 		if (CurrentMousePos == FIntPoint(-1, -1))
 		{
 			uint32 CoordinateViewportId = 0;
 			PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
-
-			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
-			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
 
 			bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
 			IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
@@ -3353,9 +3415,7 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 		}
 		else
 		{
-			InspectViewportPos.X = FMath::TruncToInt(CurrentMousePos.X * ViewRectScale);
-			InspectViewportPos.Y = FMath::TruncToInt(CurrentMousePos.Y * ViewRectScale);
-
+			InspectViewportPos = CurrentMousePos;
 			PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
 			PixelInspectorModule.SetCoordinatePosition(InspectViewportPos, false);
 		}
@@ -3365,7 +3425,12 @@ void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, 
 	{
 		// Ready to send a request
 		FSceneInterface *SceneInterface = GetScene();
-		PixelInspectorModule.CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface, bInGameViewMode);
+
+		FVector2D InspectViewportUV(
+			(InspectViewportPos.X + 0.5f) / float(View.UnscaledViewRect.Width()),
+			(InspectViewportPos.Y + 0.5f) / float(View.UnscaledViewRect.Height()));
+
+		PixelInspectorModule.CreatePixelInspectorRequest(InspectViewportUV, View.State->GetViewKey(), SceneInterface, bInGameViewMode);
 	}
 	else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
 	{
@@ -3436,11 +3501,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 			ViewFamily.EngineShowFlags.CameraInterpolation = 0;
 		}
 
-		static auto* ScreenPercentageEditorCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ScreenPercentage.VREditor"));
-
-		if( bStereoRendering && ScreenPercentageEditorCVar && ScreenPercentageEditorCVar->GetValueOnAnyThread() == 0)
+		if (!bStereoRendering)
 		{
-			// Keep the image sharp - ScreenPercentage is an optimization and should not affect the editor (except when
 			// stereo is enabled, as many HMDs require this for proper visuals
 			ViewFamily.EngineShowFlags.SetScreenPercentage(false);
 		}
@@ -3488,7 +3550,32 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		// Clear the background to black if the aspect ratio is constrained, as the scene view won't write to all pixels.
 		Canvas->Clear(FLinearColor::Black);
 	}
-	
+
+	// If not doing VR rendering, apply DPI derived resolution fraction even if show flag is disabled
+	if (!bStereoRendering && SupportsLowDPIPreview() && IsLowDPIPreview())
+	{
+		ViewFamily.SecondaryViewFraction = GetDPIDerivedResolutionFraction();
+	}
+
+	// If a screen percentage interface was not set by one of the view extension, then set the legacy one.
+	if (ViewFamily.GetScreenPercentageInterface() == nullptr)
+	{
+		float GlobalResolutionFraction = 1.0f;
+
+		// If not doing VR rendering, apply preview resolution fraction.
+		if (!bStereoRendering && SupportsPreviewResolutionFraction())
+		{
+			GlobalResolutionFraction = PreviewResolutionFraction;
+
+			// Force screen percentage's engine show flag to be turned on for preview screen percentage.
+			ViewFamily.EngineShowFlags.ScreenPercentage = (GlobalResolutionFraction != 1.0);
+		}
+
+		// In editor viewport, we ignore r.ScreenPercentage and FPostProcessSettings::ScreenPercentage by design.
+		ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+			ViewFamily, GlobalResolutionFraction, /* AllowPostProcessSettingsScreenPercentage = */ false));
+	}
+
 	// Draw the 3D scene
 	GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
 
@@ -3573,9 +3660,10 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	// NOTE: DebugCanvasObject will be created by UDebugDrawService::Draw() if it doesn't already exist.
 	UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
 	UCanvas* DebugCanvasObject = FindObjectChecked<UCanvas>(GetTransientPackage(),TEXT("DebugCanvasObject"));
-	
+	DebugCanvasObject->Canvas = DebugCanvas;
 	DebugCanvasObject->Init( Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, View , DebugCanvas);
-
+    
+    
 	// Stats display
 	if( IsRealtime() && ShouldShowStats() && DebugCanvas)
 	{
@@ -5105,9 +5193,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 		if (GIsHighResScreenshot && !bCaptureAreaValid)
 		{
 			// Screen Percentage is an optimization and should not affect the editor by default, unless we're rendering in stereo
-			static TConsoleVariableData<int32>* ScreenPercentageEditorCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ScreenPercentage.VREditor"));
-			bool bUseScreenPercentage = (GEngine && GEngine->IsStereoscopic3D(InViewport)) 
-										|| (ScreenPercentageEditorCVar && ScreenPercentageEditorCVar->GetValueOnAnyThread() != 0);
+			bool bUseScreenPercentage = GEngine && GEngine->IsStereoscopic3D(InViewport);
 
 			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 				InViewport,
@@ -5122,7 +5208,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);
 			Viewport = ViewportBak;
-			CaptureRect = View->ViewRect;
+			CaptureRect = View->UnscaledViewRect;
 		}
 
 		FString ScreenShotName = FScreenshotRequest::GetFilename();

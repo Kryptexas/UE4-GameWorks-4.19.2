@@ -159,6 +159,7 @@ void CompositionGraph_OnStartFrame()
 
 FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, const FViewInfo& InView)
 	: View(InView)
+	, SceneColorViewRect(InView.ViewRect)
 	, ViewState((FSceneViewState*)InView.State)
 	, Pass(0)
 	, RHICmdList(InRHICmdList)
@@ -169,12 +170,22 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 	, bHasHmdMesh(false)
 {
 	check(!IsViewportValid());
+
+	ReferenceBufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 }
 
 FRenderingCompositePassContext::~FRenderingCompositePassContext()
 {
 	Graph.Free();
 }
+
+
+bool FRenderingCompositePassContext::IsViewFamilyRenderTarget(const FSceneRenderTargetItem& DestRenderTarget) const
+{
+	check(DestRenderTarget.ShaderResourceTexture);
+	return DestRenderTarget.ShaderResourceTexture == View.Family->RenderTarget->GetRenderTargetTexture();
+}
+
 
 void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 {
@@ -800,7 +811,8 @@ void FPostProcessPassParameters::Bind(const FShaderParameterMap& ParameterMap)
 	BilinearTextureSampler1.Bind(ParameterMap,TEXT("BilinearTextureSampler1"));
 	ViewportSize.Bind(ParameterMap,TEXT("ViewportSize"));
 	ViewportRect.Bind(ParameterMap,TEXT("ViewportRect"));
-	ScreenPosToPixel.Bind(ParameterMap,TEXT("ScreenPosToPixel"));
+	ScreenPosToPixel.Bind(ParameterMap, TEXT("ScreenPosToPixel"));
+	SceneColorBufferUVViewport.Bind(ParameterMap, TEXT("SceneColorBufferUVViewport"));
 	
 	for(uint32 i = 0; i < ePId_Input_MAX; ++i)
 	{
@@ -914,12 +926,20 @@ void FPostProcessPassParameters::Set(
 	}
 
 	//Calculate a base scene texture min max which will be pulled in by a pixel for each PP input.
-	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.GetViewport() : FIntRect(0,0,0,0);
-	const FIntPoint SceneRTSize = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY();
+	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.SceneColorViewRect : FIntRect(0,0,0,0);
+	const FIntPoint SceneRTSize = Context.ReferenceBufferSize;
 	FVector4 BaseSceneTexMinMax(	((float)ContextViewportRect.Min.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Min.Y/SceneRTSize.Y), 
 									((float)ContextViewportRect.Max.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Max.Y/SceneRTSize.Y) );
+
+	if (SceneColorBufferUVViewport.IsBound())
+	{
+		FVector4 SceneColorBufferUVViewportValue(
+			ContextViewportRect.Width() / float(SceneRTSize.X), ContextViewportRect.Height() / float(SceneRTSize.Y),
+			BaseSceneTexMinMax.X, BaseSceneTexMinMax.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, SceneColorBufferUVViewport, SceneColorBufferUVViewportValue);
+	}
 
 	IPooledRenderTarget* FallbackTexture = 0;
 	
@@ -976,8 +996,10 @@ void FPostProcessPassParameters::Set(
 
 				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
 				FVector4 PPInputMinMax = BaseSceneTexMinMax;
-				PPInputMinMax.Z -= OnePPInputPixelUVSize.X;
-				PPInputMinMax.W -= OnePPInputPixelUVSize.Y;
+				PPInputMinMax.X += 0.5f * OnePPInputPixelUVSize.X;
+				PPInputMinMax.Y += 0.5f * OnePPInputPixelUVSize.Y;
+				PPInputMinMax.Z -= 0.5f * OnePPInputPixelUVSize.X;
+				PPInputMinMax.W -= 0.5f * OnePPInputPixelUVSize.Y;
 				SetShaderValue(RHICmdList, ShaderRHI, PostProcessInputMinMaxParameter[Id], PPInputMinMax);
 			}
 		}
@@ -1016,7 +1038,7 @@ IMPLEMENT_POST_PROCESS_PARAM_SET( FComputeShaderRHIParamRef, FRHIAsyncComputeCom
 
 FArchive& operator<<(FArchive& Ar, FPostProcessPassParameters& P)
 {
-	Ar << P.BilinearTextureSampler0 << P.BilinearTextureSampler1 << P.ViewportSize << P.ScreenPosToPixel << P.ViewportRect;
+	Ar << P.BilinearTextureSampler0 << P.BilinearTextureSampler1 << P.ViewportSize << P.ScreenPosToPixel << P.SceneColorBufferUVViewport << P.ViewportRect;
 
 	for(uint32 i = 0; i < ePId_Input_MAX; ++i)
 	{

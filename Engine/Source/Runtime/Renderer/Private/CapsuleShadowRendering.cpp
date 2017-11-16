@@ -37,6 +37,22 @@ FAutoConsoleVariableRef CVarCapsuleShadows(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GCapsuleDirectShadows = 1;
+FAutoConsoleVariableRef CVarCapsuleDirectShadows(
+	TEXT("r.CapsuleDirectShadows"),
+	GCapsuleDirectShadows,
+	TEXT("Whether to allow capsule direct shadowing on skinned components with bCastCapsuleDirectShadow enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+int32 GCapsuleIndirectShadows = 1;
+FAutoConsoleVariableRef CVarCapsuleIndirectShadows(
+	TEXT("r.CapsuleIndirectShadows"),
+	GCapsuleIndirectShadows,
+	TEXT("Whether to allow capsule indirect shadowing on skinned components with bCastCapsuleIndirectShadow enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 int32 GCapsuleShadowsFullResolution = 0;
 FAutoConsoleVariableRef CVarCapsuleShadowsFullResolution(
 	TEXT("r.CapsuleShadowsFullResolution"),
@@ -789,8 +805,9 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 		}
 	}
 
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+	if (SupportsCapsuleDirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
 		&& CapsuleShadows.Num() > 0
+		&& ViewFamily.EngineShowFlags.CapsuleShadows
 		&& bAllViewsHaveViewState)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadows);
@@ -862,7 +879,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				const bool bDirectionalLight = LightSceneInfo.Proxy->GetLightType() == LightType_Directional;
 				FIntRect ScissorRect;
 
-				if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View))
+				if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 				{
 					ScissorRect = View.ViewRect;
 				}
@@ -1269,8 +1286,9 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 	FTextureRHIParamRef IndirectLightingTexture, 
 	FTextureRHIParamRef ExistingIndirectOcclusionTexture) const
 {
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+	if (SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
 		&& ViewFamily.EngineShowFlags.DynamicShadows
+		&& ViewFamily.EngineShowFlags.CapsuleShadows
 		&& FSceneRenderTargets::Get(RHICmdList).IsStaticLightingAllowed())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderIndirectCapsuleShadows);
@@ -1514,12 +1532,13 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDFInsetIndirectShadow() cons
 		}
 	}
 
-	return bSceneHasInsetDFPrimitives && SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]);
+	return bSceneHasInsetDFPrimitives && SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]) && ViewFamily.EngineShowFlags.CapsuleShadows;
 }
 
 void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const
 {
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]))
+	if (SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+		&& ViewFamily.EngineShowFlags.CapsuleShadows)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadowsSkylight);
 

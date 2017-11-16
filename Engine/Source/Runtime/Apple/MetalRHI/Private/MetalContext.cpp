@@ -43,6 +43,13 @@ static FAutoConsoleVariableRef CVarMetalNonBlockingPresent(
 	TEXT("When enabled (> 0) this will force MetalRHI to query if a back-buffer is available to present and if not will skip the frame. Only functions on macOS, it is ignored on iOS/tvOS.\n")
 	TEXT("(Off by default (0))"));
 
+int32 GMetalManualVertexFetch = 0;
+static FAutoConsoleVariableRef CVarMetalManualVertexFetch(
+	TEXT("r.Metal.ManualVertexFetch"),
+	GMetalManualVertexFetch,
+	TEXT("When enabled (> 0) this will allow MetalRHI to use the manual-vertex-fetch shader permutations that reduce the number of pipeline states.\n")
+	TEXT("(Off by default (0))"), ECVF_ReadOnly);
+
 #if PLATFORM_MAC
 static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
 // The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.
@@ -207,7 +214,12 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 		FString(GPU.GPUName).TrimStart().ParseIntoArray(NameComponents, TEXT(" "));	
 		for (id<MTLDevice> Device in DeviceList)
 		{
-			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			if([Device respondsToSelector:@selector(registryID)] && (uint64)[Device performSelector:@selector(registryID)] == GPU.RegistryID)
+			{
+				DeviceIndex = ExplicitRendererId;
+				SelectedDevice = Device;
+			}
+			else if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
 			   || ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
@@ -237,7 +249,13 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 		for (uint32 i = 0; i < GPUs.Num(); i++)
 		{
 			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
-			if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			if([SelectedDevice respondsToSelector:@selector(registryID)] && (uint64)[SelectedDevice performSelector:@selector(registryID)] == GPU.RegistryID)
+			{
+				DeviceIndex = i;
+				bFoundDefault = true;
+				break;
+			}
+			else if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
 			   || ([SelectedDevice.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
@@ -1276,7 +1294,6 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 	
 	// make sure the BSS has a valid pipeline state object
 	StateCache.SetIndexType(IndexType);
-	check(CurrentPSO->GetPipeline(IndexType));
 	
 	return true;
 }

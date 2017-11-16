@@ -246,6 +246,8 @@ TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateOptionsMenu() cons
 				OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View (H)") );
 				OptionsMenuBuilder.AddWidget( GenerateFarViewPlaneMenu(), LOCTEXT("FarViewPlane", "Far View Plane") );
 			}
+
+			OptionsMenuBuilder.AddWidget(GenerateScreenPercentageMenu(), LOCTEXT("ScreenPercentage", "Screen Percentage"));
 		}
 		OptionsMenuBuilder.EndSection();
 		ExtendOptionsMenu(OptionsMenuBuilder);
@@ -403,6 +405,48 @@ void SCommonEditorViewportToolbarBase::OnFOVValueChanged(float NewValue) const
 	ViewportClient.ViewFOV = NewValue;
 	ViewportClient.Invalidate();
 }
+
+TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateScreenPercentageMenu() const
+{
+	const int32 PreviewScreenPercentageMin = FSceneViewScreenPercentageConfig::kMinTAAUpsampleResolutionFraction * 100.0f;
+	const int32 PreviewScreenPercentageMax = FSceneViewScreenPercentageConfig::kMaxTAAUpsampleResolutionFraction * 100.0f;
+
+	return
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		.IsEnabled(this, &SCommonEditorViewportToolbarBase::OnScreenPercentageIsEnabled)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+		.WidthOverride(100.0f)
+		[
+			SNew(SSpinBox<int32>)
+			.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+		.MinValue(PreviewScreenPercentageMin)
+		.MaxValue(PreviewScreenPercentageMax)
+		.Value(this, &SCommonEditorViewportToolbarBase::OnGetScreenPercentageValue)
+		.OnValueChanged(this, &SCommonEditorViewportToolbarBase::OnScreenPercentageValueChanged)
+		]
+		];
+}
+
+int32 SCommonEditorViewportToolbarBase::OnGetScreenPercentageValue() const
+{
+	return GetViewportClient().GetPreviewScreenPercentage();
+}
+
+bool SCommonEditorViewportToolbarBase::OnScreenPercentageIsEnabled() const
+{
+	return GetViewportClient().SupportsPreviewResolutionFraction();
+}
+
+void SCommonEditorViewportToolbarBase::OnScreenPercentageValueChanged(int32 NewValue)
+{
+	FEditorViewportClient& ViewportClient = GetViewportClient();
+	ViewportClient.SetPreviewScreenPercentage(NewValue);
+	ViewportClient.Invalidate();
+}
+
 
 TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateFarViewPlaneMenu() const
 {

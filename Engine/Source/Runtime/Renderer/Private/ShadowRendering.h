@@ -873,7 +873,7 @@ public:
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
-	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, bool bProjectingForForwardShading, bool bMobile) const;
+	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, const class FSceneRenderer* SceneRender, bool bProjectingForForwardShading, bool bMobile) const;
 
 	void BeginRenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
@@ -1059,6 +1059,7 @@ private:
 	void SetupProjectionStencilMask(
 		FRHICommandListImmediate& RHICmdList,
 		const FViewInfo* View,
+		const class FSceneRenderer* SceneRender,
 		const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
 		bool bMobileModulatedProjections,
 		bool bCameraInsideShadowFrustum) const;
@@ -1928,7 +1929,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return TShadowProjectionPS<Quality, bUseFadePlane>::ShouldCache(Platform) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5);
+		return TShadowProjectionPS<Quality, bUseFadePlane>::ShouldCache(Platform) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS);
 	}
 
 	virtual void SetParameters(
@@ -1987,7 +1988,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_SM5_NOTESS);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

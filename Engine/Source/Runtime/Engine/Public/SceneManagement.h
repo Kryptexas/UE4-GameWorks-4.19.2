@@ -150,9 +150,6 @@ public:
 
 	virtual SIZE_T GetSizeBytes() const { return 0; }
 
-	/** called in InitViews() */
-	virtual void OnStartFrame(FSceneView& View, FSceneViewFamily& ViewFamily) = 0;
-
 	/** Resets pool for GetReusableMID() */
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
 
@@ -995,13 +992,13 @@ public:
 	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
-	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const
+	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View, const FIntRect& ViewRect) const
 	{
-		ScissorRect = View.ViewRect;
+		ScissorRect = ViewRect;
 		return false;
 	}
 
-	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const
+	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View, const FIntRect& ViewRect) const
 	{
 	}
 
@@ -1583,7 +1580,7 @@ public:
 		return 0;
 	}
 
-	void DrawBatchedElements(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
+	void DrawBatchedElements(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView& InView, EBlendModeFilter::Type Filter) const;
 
 	/** The batched simple elements. */
 	FBatchedElements BatchedElements;

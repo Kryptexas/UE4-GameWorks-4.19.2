@@ -454,20 +454,13 @@ public:
 	/**
 	 * Platform specific function for adding a named event that can be viewed in PIX
 	 */
-	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
-	{
-	}
-
-	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
-	{
-	}
+	static void BeginNamedEvent(const struct FColor& Color, const TCHAR* Text);
+	static void BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text);
 
 	/**
 	 * Platform specific function for closing a named event that can be viewed in PIX
 	 */
-	FORCEINLINE static void EndNamedEvent()
-	{
-	}
+	static void EndNamedEvent();
 
     /**
 	* Platform specific function for initializing storage of tagged memory buffers

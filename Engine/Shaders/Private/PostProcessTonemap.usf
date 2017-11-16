@@ -31,6 +31,11 @@ float2 TonemapperParams;
 float3 GrainRandomFull;
 float3 GrainScaleBiasJitter;
 
+float4 SceneUVMinMax;
+float4 SceneBloomUVMinMax;
+
+float4 ScreenPosToScenePixel;
+
 #if EYEADAPTATION_EXPOSURE_FIX != 1
 // Default value used when eye adaptation is disabled (e.g fixed exposure) or not available.
 float DefaultEyeExposure;
@@ -101,7 +106,7 @@ float SwitchVerticalAxis;
 // can be optimized
 float2 ScreenPosToUV(float2 ScreenPos)
 {
-	float2 UV = (ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw) * PostprocessInput0Size.zw;
+	float2 UV = (ScreenPos * ScreenPosToScenePixel.xy + ScreenPosToScenePixel.zw) * PostprocessInput0Size.zw;
 
 #if NEEDTOSWITCHVERTICLEAXIS
 	UV.y = 1.0 - UV.y;
@@ -116,7 +121,7 @@ float2 UVToScreenPos(float2 UV)
 	UV.y = 1.0 - UV.y;
 #endif
 
-	return (UV * PostprocessInput0Size.xy - ScreenPosToPixel.zw) / ScreenPosToPixel.xy;
+	return (UV * PostprocessInput0Size.xy - ScreenPosToScenePixel.zw) / ScreenPosToScenePixel.xy;
 }
 
 float4 ChromaticAberrationParams;
@@ -284,6 +289,15 @@ half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 #endif
 }
 
+float3 SampleSceneColor(float2 SceneUV)
+{
+	#if USE_GRAIN_JITTER
+		SceneUV = clamp(SceneUV, SceneUVMinMax.xy, SceneUVMinMax.zw);
+	#endif
+
+	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
+}
+
 float4 TonemapCommonPS(
 	float2 UV,
 	float3 ExposureScaleVignette,
@@ -339,21 +353,21 @@ float4 TonemapCommonPS(
 			SceneUVJitter = SceneUV.xy - UV.xy;
 		#endif
 		
-        float2 CAScale = ChromaticAberrationParams.xy;
-        float StartOffset = ChromaticAberrationParams.z;
+	        float2 CAScale = ChromaticAberrationParams.rg;
+	        float StartOffset = ChromaticAberrationParams.z;
 
-        float4 CAUV;
-        CAUV = ScreenPos.xyxy - sign(ScreenPos).xyxy * saturate(abs(ScreenPos) - StartOffset).xyxy * CAScale.xxyy;
-        CAUV.xy = ScreenPosToUV(CAUV.xy);
-        CAUV.zw = ScreenPosToUV(CAUV.zw);
+	        float4 CAUV;
+	        CAUV = ScreenPos.xyxy - sign(ScreenPos).xyxy * saturate(abs(ScreenPos) - StartOffset).xyxy * CAScale.rrgg;
+	        CAUV.xy = ScreenPosToUV(CAUV.xy);
+	        CAUV.zw = ScreenPosToUV(CAUV.zw);
 
-		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, CAUV.xy + SceneUVJitter.xy).rgb;
-		half SceneColorG = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, CAUV.zw + SceneUVJitter.xy).g;
-		half SceneColorB = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).b;
+		half3 SceneColor = SampleSceneColor(CAUV.xy + SceneUVJitter.xy).rgb;
+		half SceneColorG = SampleSceneColor(CAUV.zw + SceneUVJitter.xy).g;
+		half SceneColorB = SampleSceneColor(SceneUV).b;
 		SceneColor.g = SceneColorG;
 		SceneColor.b = SceneColorB;
 	#else
-		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
+		half3 SceneColor = SampleSceneColor(SceneUV).rgb;
 	#endif
 
 	SceneColor *= OneOverPreExposure;
@@ -442,12 +456,13 @@ float4 TonemapCommonPS(
 		half3 LinearColor = SceneColor * ColorScale0.rgb;
 
 		#if USE_BLOOM
-			float2 BloomUV = UV;
+			float2 BloomUV = clamp(UV, SceneBloomUVMinMax.xy, SceneBloomUVMinMax.zw);
 			#if ES2_PROFILE || ES3_1_PROFILE
 				BloomUV = FullViewUV.xy;
 			#endif
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, BloomUV);
-			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, SvPositionToViewportUV(SvPosition)).rgb * BloomDirtMask.Tint.rgb;
+			float2 DirtViewportUV = (SvPosition.xy - float2(ViewportRect.xy)) * ViewportSize.zw;
+			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, DirtViewportUV).rgb * BloomDirtMask.Tint.rgb;
 
 #if DEBUG_TONEMAPPER
 			if (all(DebugTile == int2(-1, -1)))

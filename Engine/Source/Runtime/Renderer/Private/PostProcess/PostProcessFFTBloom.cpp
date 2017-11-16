@@ -635,7 +635,7 @@ void FRCPassFFTBloom::InitializeDomainParameters(FRenderingCompositePassContext&
 	}
 
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	InputBufferSize = InputDesc->Extent;
 
@@ -657,8 +657,8 @@ void FRCPassFFTBloom::InitializeDomainParameters(FRenderingCompositePassContext&
 	const uint32 InputScaleFactor  = FMath::DivideAndRoundUp(FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().Y, InputBufferSize.Y);
 	const uint32 OutputScaleFactor = FMath::DivideAndRoundUp(FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().Y, OutputBufferSize.Y);
 
-	const FIntRect InputRect = View.ViewRect / InputScaleFactor;
-	const FIntRect OutputRect = View.ViewRect / OutputScaleFactor;
+	const FIntRect InputRect = Context.SceneColorViewRect / InputScaleFactor;
+	const FIntRect OutputRect = Context.SceneColorViewRect / OutputScaleFactor;
 
 	// Capture the region of interest
 	ImageRect = InputRect;
@@ -771,7 +771,7 @@ bool FRCPassFFTBloom::ConvolveWithKernel(FRenderingCompositePassContext& Context
 FSceneRenderTargetItem* FRCPassFFTBloom::InitDomainAndGetKernel(FRenderingCompositePassContext& Context)
 {
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 	
@@ -941,7 +941,7 @@ bool FRCPassFFTBloom::ConvolveImageWithKernel(FRenderingCompositePassContext& Co
 	const bool bIsHalfResolutionFFT = bHalfResolutionFFT();
 	
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const auto& FinalPPSettings = View.FinalPostProcessSettings;
 	// The pre-filter boost parameters for bright pixels
 	const FVector PreFilter(FinalPPSettings.BloomConvolutionPreFilterMin, FinalPPSettings.BloomConvolutionPreFilterMax, FinalPPSettings.BloomConvolutionPreFilterMult);
@@ -985,7 +985,7 @@ bool FRCPassFFTBloom::ConvolveImageWithKernel(FRenderingCompositePassContext& Co
 
 		// Blend with  alpha * SrcBuffer + betta * BloomedBuffer  where alpha = Weights[0], beta = Weights[1]
 		const FIntPoint& HalfResBufferSize = InputBufferSize;
-		BlendLowRes(Context, FullResResourceTexture, View.ViewRect, HalfResConvolutionRTItem.ShaderResourceTexture, ImageRect, HalfResBufferSize, CenterWeightTexture, PassOutput.UAV);
+		BlendLowRes(Context, FullResResourceTexture, Context.SceneColorViewRect, HalfResConvolutionRTItem.ShaderResourceTexture, ImageRect, HalfResBufferSize, CenterWeightTexture, PassOutput.UAV);
 
 	
 

@@ -137,8 +137,11 @@ void FAvfMediaPlayer::OnEndReached()
 	{
 		PlayerTasks.Enqueue([=]() {
 			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
+			
+			float PreSeekRate = CurrentRate;
+			SetRate(0.f);
 			Seek(FTimespan::FromSeconds(0.0f));
-			SetRate(CurrentRate);
+			SetRate(PreSeekRate);
 		});
 	}
 	else
@@ -178,9 +181,9 @@ void FAvfMediaPlayer::OnStatusNotification(AVPlayerItemStatus Status)
 						// Preroll for playback.
 						[MediaPlayer prerollAtRate:1.0f completionHandler:^(BOOL bFinished)
 						{
-							bPrerolled = true;
 							if (bFinished)
 							{
+								bPrerolled = true;
 								CurrentState = EMediaState::Stopped;
 								PlayerTasks.Enqueue([=]() {
 									EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpened);
@@ -487,16 +490,7 @@ bool FAvfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& /*Ar
 
 void FAvfMediaPlayer::TickAudio()
 {
-	if ((CurrentState > EMediaState::Error) && (Duration > 0.0f))
-	{
-		Tracks->ProcessAudio();
-		if(MediaPlayer != nil)
-		{
-			CMTime Current = [MediaPlayer currentTime];
-			FTimespan DiplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(Current));
-			CurrentTime = FMath::Min(DiplayTime, Duration);
-		}
-	}
+	// NOP
 }
 
 
@@ -511,6 +505,17 @@ void FAvfMediaPlayer::TickFetch(FTimespan DeltaTime, FTimespan /*Timecode*/)
 
 void FAvfMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
+	// Prevent deadlock - can't do this in TickAudio
+	if ((CurrentState > EMediaState::Error) && (Duration > 0.0f))
+	{
+		if(MediaPlayer != nil)
+		{
+			CMTime Current = [MediaPlayer currentTime];
+			FTimespan DiplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(Current));
+			CurrentTime = FMath::Min(DiplayTime, Duration);
+		}
+	}
+	
 	// process deferred tasks
 	TFunction<void()> Task;
 
@@ -603,16 +608,21 @@ bool FAvfMediaPlayer::Seek(const FTimespan& Time)
 	
 	if (bPrerolled)
 	{
-		Tracks->Seek(Time);
-		
 		double TotalSeconds = Time.GetTotalSeconds();
 		CMTime CurrentTimeInSeconds = CMTimeMakeWithSeconds(TotalSeconds, 1000);
 		
 		static CMTime Tolerance = CMTimeMakeWithSeconds(0.01, 1000);
-		[MediaPlayer seekToTime:CurrentTimeInSeconds toleranceBefore:Tolerance toleranceAfter:Tolerance];
+		[MediaPlayer seekToTime:CurrentTimeInSeconds toleranceBefore:Tolerance toleranceAfter:Tolerance completionHandler:^(BOOL bFinished)
+		{
+			if(bFinished)
+			{
+				PlayerTasks.Enqueue([=]()
+				{
+					EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
+				});
+			}
+		}];
 	}
-
-	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
 
 	return true;
 }

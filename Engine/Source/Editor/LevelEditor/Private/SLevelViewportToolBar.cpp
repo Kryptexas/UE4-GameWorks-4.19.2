@@ -544,6 +544,8 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 				OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View (H)") );
 				OptionsMenuBuilder.AddWidget( GenerateFarViewPlaneMenu(), LOCTEXT("FarViewPlane", "Far View Plane") );
 			}
+
+			OptionsMenuBuilder.AddWidget(GenerateScreenPercentageMenu(), LOCTEXT("ScreenPercentage", "Screen Percentage"));
 		}
 		OptionsMenuBuilder.EndSection();
 
@@ -1068,6 +1070,47 @@ void SLevelViewportToolBar::OnFOVValueChanged( float NewValue )
 	}
 
 	ViewportClient.ViewFOV = NewValue;
+	ViewportClient.Invalidate();
+}
+
+TSharedRef<SWidget> SLevelViewportToolBar::GenerateScreenPercentageMenu() const
+{
+	const int32 PreviewScreenPercentageMin = FSceneViewScreenPercentageConfig::kMinTAAUpsampleResolutionFraction * 100.0f;
+	const int32 PreviewScreenPercentageMax = FSceneViewScreenPercentageConfig::kMaxTAAUpsampleResolutionFraction * 100.0f;
+
+	return
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		.IsEnabled(this, &SLevelViewportToolBar::OnScreenPercentageIsEnabled)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+		.WidthOverride(100.0f)
+		[
+			SNew(SSpinBox<int32>)
+			.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+		.MinValue(PreviewScreenPercentageMin)
+		.MaxValue(PreviewScreenPercentageMax)
+		.Value(this, &SLevelViewportToolBar::OnGetScreenPercentageValue)
+		.OnValueChanged(this, &SLevelViewportToolBar::OnScreenPercentageValueChanged)
+		]
+		];
+}
+
+int32 SLevelViewportToolBar::OnGetScreenPercentageValue() const
+{
+	return Viewport.Pin()->GetLevelViewportClient().GetPreviewScreenPercentage();
+}
+
+bool SLevelViewportToolBar::OnScreenPercentageIsEnabled() const
+{
+	return Viewport.Pin()->GetLevelViewportClient().SupportsPreviewResolutionFraction();
+}
+
+void SLevelViewportToolBar::OnScreenPercentageValueChanged(int32 NewValue)
+{
+	FLevelEditorViewportClient& ViewportClient = Viewport.Pin()->GetLevelViewportClient();
+	ViewportClient.SetPreviewScreenPercentage(NewValue);
 	ViewportClient.Invalidate();
 }
 

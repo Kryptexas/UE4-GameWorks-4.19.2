@@ -95,8 +95,8 @@
 #define METAL_MRT_PROFILE 0
 #endif
 
-#ifndef METAL_SM4_PROFILE
-#define METAL_SM4_PROFILE 0
+#ifndef METAL_SM5_NOTESS_PROFILE
+#define METAL_SM5_NOTESS_PROFILE 0
 #endif
 
 #ifndef METAL_SM5_PROFILE
@@ -124,7 +124,7 @@
 #endif
 
 // 'static' asserts
-#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_NOTESS_PROFILE || METAL_SM5_PROFILE
 #if !COMPILER_HLSLCC
 #error "Missing COMPILER_HLSLCC define!"
 #endif
@@ -246,8 +246,8 @@
 	#define FMANUALFETCH_COLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
 
-#elif METAL_SM4_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+#elif METAL_SM5_NOTESS_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define FMANUALFETCH_COLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
@@ -320,11 +320,11 @@
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
 // @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
-#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE || VULKAN_SM5_PROFILE || VULKAN_SM4_PROFILE || VULKAN_PROFILE)
+#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM5_NOTESS_PROFILE || METAL_SM5_PROFILE || VULKAN_SM5_PROFILE || VULKAN_SM4_PROFILE || VULKAN_PROFILE)
 
 // Whether the platform supports a global clip plane through SV_ClipDistance
 // Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
-#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE || GL4_PROFILE || GL3_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5)
+#define PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_NOTESS_PROFILE || METAL_SM5_PROFILE || GL4_PROFILE || GL3_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5)
 
 // Whether the platform support pixel coverage on MSAA targets (SV_Coverage).
 #define SUPPORTS_PIXEL_COVERAGE (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL && !MOBILE_EMULATION)
@@ -340,6 +340,11 @@
 // Hlslcc platforms ignore the uniform keyword as it can't properly optimize flow
 #if COMPILER_HLSLCC
 #define uniform
+#endif
+
+// If compiler does not exposes HLSL's SM6 wave vote instructions.
+#ifndef COMPILER_SUPPORTS_WAVE_VOTE
+#define COMPILER_SUPPORTS_WAVE_VOTE 0
 #endif
 
 
@@ -364,7 +369,7 @@
 
 #endif // SM5_PROFILE || COMPILER_SUPPORTS_ATTRIBUTES
 
-#if SM5_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if SM5_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE || METAL_SM5_NOTESS_PROFILE
 #define EARLYDEPTHSTENCIL [earlydepthstencil]
 #endif
 
@@ -403,6 +408,9 @@
 #define EARLYDEPTHSTENCIL
 #endif
 
+#ifndef STRONG_TYPE
+#define STRONG_TYPE
+#endif
 
 // ---------------------------------------------------- Interpolator attribute fallbacks
 
@@ -457,6 +465,42 @@
 	}
 
 #endif
+
+
+#if !COMPILER_SUPPORTS_MINMAX3
+
+float min3( float a, float b, float c )
+{
+	return min( a, min( b, c ) );
+}
+
+float max3( float a, float b, float c )
+{
+	return max( a, max( b, c ) );
+}
+
+float4 min3( float4 a, float4 b, float4 c )
+{
+	return float4(
+		min3( a.x, b.x, c.x ),
+		min3( a.y, b.y, c.y ),
+		min3( a.z, b.z, c.z ),
+		min3( a.w, b.w, c.w )
+	);
+}
+
+float4 max3( float4 a, float4 b, float4 c )
+{
+	return float4(
+		max3( a.x, b.x, c.x ),
+		max3( a.y, b.y, c.y ),
+		max3( a.z, b.z, c.z ),
+		max3( a.w, b.w, c.w )
+	);
+}
+
+#endif
+
 
 #if COMPILER_HLSLCC
 #define ddx_fine(x) ddx(x)

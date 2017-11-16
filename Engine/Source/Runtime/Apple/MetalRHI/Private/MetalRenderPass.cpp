@@ -1150,6 +1150,8 @@ void FMetalRenderPass::PrepareToRender(uint32 PrimitiveType)
 	
 	// Bind shader resources
 	CommitRenderResourceTables();
+    
+    State.SetRenderPipelineState(CurrentEncoder, nullptr);
 }
 
 void FMetalRenderPass::PrepareToTessellate(uint32 PrimitiveType)
@@ -1164,6 +1166,8 @@ void FMetalRenderPass::PrepareToTessellate(uint32 PrimitiveType)
 	
 	// Bind shader resources
 	CommitTessellationResourceTables();
+    
+    State.SetRenderPipelineState(CurrentEncoder, &PrologueEncoder);
 }
 
 void FMetalRenderPass::PrepareToDispatch(void)
@@ -1171,13 +1175,10 @@ void FMetalRenderPass::PrepareToDispatch(void)
 	check(CurrentEncoder.GetCommandBuffer());
 	check(CurrentEncoder.IsComputeCommandEncoderActive());
 	
-	TRefCountPtr<FMetalComputeShader> ComputeShader = State.GetComputeShader();
-	check(ComputeShader);
-
-	CurrentEncoder.SetComputePipelineState(ComputeShader->Pipeline);
-	
 	// Bind shader resources
 	CommitDispatchResourceTables();
+    
+    State.SetComputePipelineState(CurrentEncoder);
 }
 
 void FMetalRenderPass::ConditionalSubmit()

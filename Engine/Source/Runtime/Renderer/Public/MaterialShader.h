@@ -164,9 +164,10 @@ public:
 
 	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 	{
-		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, InVertexOffset);
+		bool IsMetal = IsMetalPlatform(GMaxRHIShaderPlatform);
+		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, IsMetal ? 0 : InVertexOffset);
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, IsMetal ? 0 : InInstanceOffset);
 		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
-		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, InInstanceOffset);
 	}
 
 private:

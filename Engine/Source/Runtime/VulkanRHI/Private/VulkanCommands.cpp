@@ -26,15 +26,6 @@ static inline bool UseRealUBs()
 	return (CVar && CVar->GetValueOnAnyThread() != 0);
 }
 
-void FVulkanCommandListContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint32 Offset)
-{
-	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	if (VertexBuffer != NULL)
-	{
-		PendingGfxState->SetStreamSource(StreamIndex, VertexBuffer, Offset + VertexBuffer->GetOffset());
-	}
-}
-
 void FVulkanCommandListContext::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
 {
 	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);

@@ -183,8 +183,8 @@ void FSimpleHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassC
 	float ClipSpaceQuadZ = 0.0f;
 	FMatrix QuadTexTransform = FMatrix::Identity;
 	FMatrix QuadPosTransform = FMatrix::Identity;
-	const FSceneView& View = Context.View;
-	const FIntRect SrcRect = View.ViewRect;
+	const FViewInfo& View = Context.View;
+	const FIntRect SrcRect = View.UnscaledViewRect;
 
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -275,15 +275,16 @@ void FSimpleHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = true;
-	InViewFamily.EngineShowFlags.SetScreenPercentage(true);
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
+
+	// Disable screen percentage because screen percentage needs to be applied UnscaledViewRect in AdjustViewRect().
+	InViewFamily.EngineShowFlags.ScreenPercentage = false;
 }
 
 void FSimpleHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 {
 	InView.BaseHmdOrientation = FQuat(FRotator(0.0f,0.0f,0.0f));
 	InView.BaseHmdLocation = FVector(0.f);
-	InViewFamily.bUseSeparateRenderTarget = false;
 }
 
 void FSimpleHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)

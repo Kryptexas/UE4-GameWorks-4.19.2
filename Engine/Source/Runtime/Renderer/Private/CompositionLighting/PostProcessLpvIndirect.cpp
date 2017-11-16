@@ -224,7 +224,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	}
 
 	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
@@ -434,7 +434,7 @@ void FRCPassPostProcessVisualizeLPV::Process(FRenderingCompositePassContext& Con
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, VisualizeLPV);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 //	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

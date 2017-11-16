@@ -904,7 +904,8 @@ public:
 		ColorGradingLUTSampler.Bind(ParameterMap, TEXT("ColorGradingLUTSampler"));
 		InverseGamma.Bind(ParameterMap,TEXT("InverseGamma"));
 		ChromaticAberrationParams.Bind(ParameterMap, TEXT("ChromaticAberrationParams"));
-
+		ScreenPosToScenePixel.Bind(ParameterMap, TEXT("ScreenPosToScenePixel"));
+		
 		ColorMatrixR_ColorCurveCd1.Bind(ParameterMap, TEXT("ColorMatrixR_ColorCurveCd1"));
 		ColorMatrixG_ColorCurveCd3Cm3.Bind(ParameterMap, TEXT("ColorMatrixG_ColorCurveCd3Cm3"));
 		ColorMatrixB_ColorCurveCm2.Bind(ParameterMap, TEXT("ColorMatrixB_ColorCurveCm2"));
@@ -919,6 +920,9 @@ public:
 		OutputDevice.Bind(ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(ParameterMap, TEXT("OutputGamut"));
 		EncodeHDROutput.Bind(ParameterMap, TEXT("EncodeHDROutput"));
+
+		SceneUVMinMax.Bind(ParameterMap, TEXT("SceneUVMinMax"));
+		SceneBloomUVMinMax.Bind(ParameterMap, TEXT("SceneBloomUVMinMax"));
 	}
 	
 	template <typename TRHICmdList, typename TRHIShader>
@@ -951,7 +955,9 @@ public:
 			const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
 			// we assume the this pass runs in 1:1 pixel
-			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
+			FIntRect ViewRect = Context.SceneColorViewRect;
+
+			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(ViewRect.Size());
 
 			SetShaderValue(RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
@@ -1010,7 +1016,7 @@ public:
 			{
 				BloomDirtMaskParams.Mask = Settings.BloomDirtMask->Resource->TextureRHI;
 			}
-			BloomDirtMaskParams.MaskSampler = TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
+			BloomDirtMaskParams.MaskSampler = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 			FUniformBufferRHIRef BloomDirtMaskUB = TUniformBufferRef<FBloomDirtMaskParameters>::CreateUniformBufferImmediate(BloomDirtMaskParams, UniformBuffer_SingleDraw);
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
@@ -1111,6 +1117,39 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
+
+		{
+			float InvBufferSizeX = 1.f / float(Context.ReferenceBufferSize.X);
+			float InvBufferSizeY = 1.f / float(Context.ReferenceBufferSize.Y);
+			FVector4 SceneUVMinMaxValue(
+				(Context.SceneColorViewRect.Min.X + 0.5f) * InvBufferSizeX,
+				(Context.SceneColorViewRect.Min.Y + 0.5f) * InvBufferSizeY,
+				(Context.SceneColorViewRect.Max.X - 0.5f) * InvBufferSizeX,
+				(Context.SceneColorViewRect.Max.Y - 0.5f) * InvBufferSizeY);
+			SetShaderValue(RHICmdList, ShaderRHI, SceneUVMinMax, SceneUVMinMaxValue);
+		}
+
+		{
+			float InvBufferSizeX = 1.f / float(Context.ReferenceBufferSize.X);
+			float InvBufferSizeY = 1.f / float(Context.ReferenceBufferSize.Y);
+			FVector4 SceneBloomUVMinMaxValue(
+				(Context.SceneColorViewRect.Min.X + 1.5) * InvBufferSizeX,
+				(Context.SceneColorViewRect.Min.Y + 1.5f) * InvBufferSizeY,
+				(Context.SceneColorViewRect.Max.X - 1.5f) * InvBufferSizeX,
+				(Context.SceneColorViewRect.Max.Y - 1.5f) * InvBufferSizeY);
+			SetShaderValue(RHICmdList, ShaderRHI, SceneBloomUVMinMax, SceneBloomUVMinMaxValue);
+		}
+
+		{
+			FIntPoint ViewportOffset = Context.SceneColorViewRect.Min;
+			FIntPoint ViewportExtent = Context.SceneColorViewRect.Size();
+			FVector4 ScreenPosToScenePixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f,
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenPosToScenePixel, ScreenPosToScenePixelValue);
+		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FPostProcessTonemapShaderParameters& P)
@@ -1120,8 +1159,8 @@ public:
 		Ar << P.ColorGradingLUT << P.ColorGradingLUTSampler;
 		Ar << P.ColorMatrixR_ColorCurveCd1 << P.ColorMatrixG_ColorCurveCd3Cm3 << P.ColorMatrixB_ColorCurveCm2 << P.ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << P.ColorCurve_Ch1_Ch2 << P.ColorShadow_Luma << P.ColorShadow_Tint1 << P.ColorShadow_Tint2;
 		Ar << P.OverlayColor;
-		Ar << P.OutputDevice << P.OutputGamut << P.EncodeHDROutput;
-		Ar << P.ChromaticAberrationParams;
+		Ar << P.OutputDevice << P.OutputGamut << P.EncodeHDROutput << P.SceneUVMinMax << P.SceneBloomUVMinMax;
+		Ar << P.ChromaticAberrationParams << P.ScreenPosToScenePixel;
 
 		return Ar;
 	}
@@ -1137,6 +1176,7 @@ public:
 	FShaderResourceParameter ColorGradingLUTSampler;
 	FShaderParameter InverseGamma;
 	FShaderParameter ChromaticAberrationParams;
+	FShaderParameter ScreenPosToScenePixel;
 
 	FShaderParameter ColorMatrixR_ColorCurveCd1;
 	FShaderParameter ColorMatrixG_ColorCurveCd3Cm3;
@@ -1146,6 +1186,7 @@ public:
 	FShaderParameter ColorShadow_Luma;
 	FShaderParameter ColorShadow_Tint1;
 	FShaderParameter ColorShadow_Tint2;
+	
 
 	//@HACK
 	FShaderParameter OverlayColor;
@@ -1153,6 +1194,9 @@ public:
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
 	FShaderParameter EncodeHDROutput;
+
+	FShaderParameter SceneUVMinMax;
+	FShaderParameter SceneBloomUVMinMax;
 };
 
 /**
@@ -1518,26 +1562,34 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		return;
 	}
 
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+
 	const FSceneViewFamily& ViewFamily = *(View.Family);
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.GetSceneColorDestRect(DestRenderTarget);
+
+	if (bDoScreenPercentageInTonemapper)
+	{
+		checkf(Context.IsViewFamilyRenderTarget(DestRenderTarget), TEXT("Doing screen percentage in tonemapper should only be when tonemapper is actually the last pass."));
+		checkf(Context.View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::SpatialUpscale, TEXT("Tonemapper should only do screen percentage upscale if UpscalePass method should be used."));
+	}
+
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
-	
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d%s GammaOnly=%d HandleScreenPercentage=%d  %dx%d"),
-		ConfigIndexPC, bIsComputePass?TEXT("Compute"):TEXT(""), bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
 
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d%s GammaOnly=%d HandleScreenPercentage=%d  %dx%d"),
+		ConfigIndexPC, bIsComputePass ? TEXT("Compute") : TEXT(""), bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
+
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	if (bIsComputePass)
 	{
-		DestRect = {DestRect.Min, DestRect.Min + DestSize};
-		
+		DestRect = { DestRect.Min, DestRect.Min + DestSize };
+
 		// Common setup
 		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
 		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
-		
+
 		static FName AsyncEndFenceName(TEXT("AsyncTonemapEndFence"));
 		AsyncEndFence = Context.RHICmdList.CreateComputeFence(AsyncEndFenceName);
 
@@ -1554,7 +1606,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 			{
 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncTonemap);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
-					
+
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
 				DispatchCS(RHICmdListComputeImmediate, Context, DestRect, DestRenderTarget.UAV, EyeAdaptationTex);
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
@@ -1581,7 +1633,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		{
 			// clear target when processing first view in case of splitscreen
 			const bool bFirstView = (&View == View.Family->Views[0]);
-		
+
 			// Full clear to avoid restore
 			if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 			{
@@ -1594,19 +1646,17 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		}
 		else
 		{
-			// Set the view family's render target/viewport.
-			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
+			ERenderTargetLoadAction LoadAction = Context.GetLoadActionForRenderTarget(DestRenderTarget);
+			if (Context.View.AntiAliasingMethod == AAM_FXAA)
+			{
+				check(LoadAction != ERenderTargetLoadAction::ELoad);
+				// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders).
+				LoadAction = ERenderTargetLoadAction::EClear;
+			}
 
-			if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
-			{
-				// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-				DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
-			}
-			else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
-			{
-				// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-				DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
-			}
+			FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, LoadAction);
+			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+			Context.RHICmdList.SetRenderTargetsAndClear(Info);
 		}
 
 		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
@@ -1647,10 +1697,10 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 			Context.RHICmdList,
 			0, 0,
 			DestRect.Width(), DestRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y,
-			View.ViewRect.Width(), View.ViewRect.Height(),
+			SrcRect.Min.X, SrcRect.Min.Y,
+			SrcRect.Width(), SrcRect.Height(),
 			DestRect.Size(),
-			SceneContext.GetBufferSizeXY(),
+			SrcSize,
 			VertexShader,
 			View.StereoPass,
 			Context.HasHmdMesh(),
@@ -1963,6 +2013,7 @@ public:
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
 	FShaderParameter FringeIntensity;
+	FShaderParameter ScreenPosToScenePixel;
 	bool bUsedFramebufferFetch;
 
 	FPostProcessTonemapVS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1971,6 +2022,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
 		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
+		ScreenPosToScenePixel.Bind(Initializer.ParameterMap, TEXT("ScreenPosToScenePixel"));
 	}
 
 	void SetVS(const FRenderingCompositePassContext& Context)
@@ -1996,12 +2048,24 @@ public:
 
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
+
+
+		{
+			FIntPoint ViewportOffset = Context.SceneColorViewRect.Min;
+			FIntPoint ViewportExtent = Context.SceneColorViewRect.Size();
+			FVector4 ScreenPosToScenePixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f,
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ScreenPosToScenePixel, ScreenPosToScenePixelValue);
+		}
 	}
 	
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull << FringeIntensity;
+		Ar << PostprocessParameter << GrainRandomFull << FringeIntensity << ScreenPosToScenePixel;
 		return bShaderHasOutdatedParameters;
 	}
 };

@@ -79,6 +79,14 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 				return VK_FALSE;
 			}
 		}
+		else if (!FCStringAnsi::Strcmp(LayerPrefix, "DS"))
+		{
+			if (MsgCode == 15)
+			{
+				// DescriptorSet previously bound is incompatible with set newly bound as set #0 so set #1 and any subsequent sets were disturbed by newly bound pipelineLayout
+				return VK_FALSE;
+			}
+		}
 	}
 	else if (MsgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
 	{

@@ -46,16 +46,7 @@ void MainCS(
 		uint VertexIndex = DispatchThreadId;
 		uint Offset = VertexIndex + SkinCacheStart;
 
-#if COMPILER_METAL
-		uint TangentXCompressed = PackS8x3N(TangentX);
-		uint TangentZCompressed = PackS8x3N(TangentZ);
-		uint HandynessValue = (Orientation < 0) ? 0xff000000 : 0;
-
-		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = TangentXCompressed;
-		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = TangentZCompressed | HandynessValue;
-#else
 		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = float4((TangentX * 0.5) + 0.5, 0.0f);
 		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = float4((TangentZ * 0.5) + 0.5, Orientation);
-#endif
 	}
 }

@@ -123,6 +123,7 @@
 #include "IHardwareSurveyModule.h"
 #include "HAL/LowLevelMemTracker.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "DynamicResolutionState.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -3101,7 +3102,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
 			ILocalizationModule::Get().HandleRegenLocCommand(ConfigFilePath, /*bSkipSourceCheck*/false);
-			return true;
 		}
 	}
 #endif
@@ -7564,8 +7564,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 			NewMessage->ScreenMessage = DebugMessage;
 			NewMessage->DisplayColor = DisplayColor;
 			NewMessage->TimeToDisplay = TimeToDisplay;
-			NewMessage->CurrentTimeDisplayed = 0.0f;
-				NewMessage->TextScale = TextScale;
+			NewMessage->CurrentTimeDisplayed = 0.0f;				
 			}
 			else
 			{
@@ -7574,8 +7573,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 				NewMessage.Key = Key;
 				NewMessage.DisplayColor = DisplayColor;
 				NewMessage.TimeToDisplay = TimeToDisplay;
-				NewMessage.ScreenMessage = DebugMessage;
-				NewMessage.TextScale = TextScale;
+				NewMessage.ScreenMessage = DebugMessage;				
 				PriorityScreenMessages.Insert(NewMessage, 0);
 			}
 		}
@@ -7589,8 +7587,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 				NewMessage.Key = Key;
 				NewMessage.DisplayColor = DisplayColor;
 				NewMessage.TimeToDisplay = TimeToDisplay;
-				NewMessage.ScreenMessage = DebugMessage;
-				NewMessage.TextScale = TextScale;
+				NewMessage.ScreenMessage = DebugMessage;				
 				ScreenMessages.Add((int32)Key, NewMessage);
 			}
 			else
@@ -7599,8 +7596,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 				Message->ScreenMessage = DebugMessage;
 				Message->DisplayColor = DisplayColor;
 				Message->TimeToDisplay = TimeToDisplay;
-				Message->CurrentTimeDisplayed = 0.0f;
-				Message->TextScale = TextScale;
+				Message->CurrentTimeDisplayed = 0.0f;				
 			}
 		}
 	}
@@ -8521,8 +8517,7 @@ float DrawOnscreenDebugMessages(UWorld* World, FViewport* Viewport, FCanvas* Can
 			if (YPos < MaxYPos)
 			{
 				MessageTextItem.Text = FText::FromString(Message.ScreenMessage);
-				MessageTextItem.SetColor(Message.DisplayColor);
-				MessageTextItem.Scale = Message.TextScale;
+				MessageTextItem.SetColor(Message.DisplayColor);				
 				Canvas->DrawItem(MessageTextItem, FVector2D(MessageX, YPos));
 				YPos += MessageTextItem.DrawnSize.Y * 1.15f;
 			}
@@ -8622,7 +8617,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			FString String = FString::Printf(TEXT("VisLog recording active"));
 			StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
 
-			SmallTextItem.Position = FVector2D((int32)ScaledViewportSize.X - XSize - 16, 36);
+			SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
 			SmallTextItem.Text = FText::FromString(String);
 			SmallTextItem.SetColor(FLinearColor::Red);
 			SmallTextItem.EnableShadow(FLinearColor::Black);
@@ -8694,8 +8689,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #endif // UE_BUILD_SHIPPING 
 
 	{
-		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : ScaledViewportSize.X - FPSXOffset; //??
-		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(ScaledViewportSize.Y * 0.40f) : FMath::TruncToInt(ScaledViewportSize.Y * 0.20f);
+		int32 X = ((CanvasObject) ? CanvasObject->SizeX : Viewport->GetSizeXY().X) / Canvas->GetDPIScale() - FPSXOffset;
+		int32 Y = ((GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f)) / Canvas->GetDPIScale();
 
 		// give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
@@ -8704,8 +8699,11 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
 
 #if STATS
-		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX);
-		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : ScaledViewportSize.X);
+ 		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX);
+
+		int32 PixelSizeX = CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : Viewport->GetSizeXY().X;
+
+ 		RenderStats( Viewport, Canvas, StatsXOffset, Y, FMath::FloorToInt(PixelSizeX / Canvas->GetDPIScale()));
 #endif
 	}
 
@@ -8995,6 +8993,86 @@ void UEngine::OverrideSelectedMaterialColor( const FLinearColor& OverrideColor )
 void UEngine::RestoreSelectedMaterialColor()
 {
 	bIsOverridingSelectedColor = false;
+}
+
+void UEngine::EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event)
+{
+	#if !UE_SERVER
+	// Early return if dedicated server of commandlet.
+	if (IsRunningDedicatedServer() || IsRunningCommandlet())
+	{
+		check(!DynamicResolutionState.IsValid());
+		return;
+	}
+
+	checkf(NextDynamicResolutionState.IsValid(), TEXT("Dynamic resolution state is required."));
+
+	// Early return if have already fired this event.
+	if (Event == LastDynamicResolutionEvent)
+	{
+		checkf(Event != EDynamicResolutionStateEvent::BeginFrame,
+			TEXT("Begin dynamic resolution event should be fired exactly once"));
+		return;
+	}
+
+	if (Event == EDynamicResolutionStateEvent::BeginFrame)
+	{
+		checkf(LastDynamicResolutionEvent == EDynamicResolutionStateEvent::EndFrame,
+			TEXT("EDynamicResolutionStateEvent::BeginFrame should only happen after EDynamicResolutionStateEvent::EndFrame."));
+
+		// Roll out dynamic resolution state for this frame.
+		DynamicResolutionState = NextDynamicResolutionState;
+		DynamicResolutionState->ProcessEvent(EDynamicResolutionStateEvent::BeginFrame);
+	}
+	else if (LastDynamicResolutionEvent == EDynamicResolutionStateEvent::EndFrame)
+	{
+		// If we did not get begin frame, then it means it must be a redrawn for some reasons such as viewport resize.
+		// In this case we just don't pass down a single event to the dynamic resolution event.
+		return;
+	}
+	else
+	{
+		EDynamicResolutionStateEvent ExpectedPreviousEvent = EDynamicResolutionStateEvent(int32(Event) - 1);
+
+		// When doing a window resize, the game viewport client end up being drawn twice between BeginFrame and EndFrame.
+		// In this case we ignore duplicated Begin and End rendering events.
+		if (Event == EDynamicResolutionStateEvent::BeginDynamicResolutionRendering &&
+			LastDynamicResolutionEvent == EDynamicResolutionStateEvent::EndDynamicResolutionRendering)
+		{
+			return;
+		}
+
+		// If the previous event is going missing, automatically fire it.
+		if (LastDynamicResolutionEvent != ExpectedPreviousEvent)
+		{
+			checkf(ExpectedPreviousEvent != EDynamicResolutionStateEvent::EndFrame,
+				TEXT("EDynamicResolutionStateEvent::BeginFrame should not be automatically fired."));
+			EmitDynamicResolutionEvent(ExpectedPreviousEvent);
+			check(LastDynamicResolutionEvent == ExpectedPreviousEvent);
+		}
+
+		DynamicResolutionState->ProcessEvent(Event);
+	}
+
+	LastDynamicResolutionEvent = Event;
+	#endif // !UE_SERVER
+}
+
+void UEngine::ChangeDynamicResolutionStateAtNextFrame(TSharedPtr< class IDynamicResolutionState > NewState)
+{
+	#if !UE_SERVER
+	if (IsRunningDedicatedServer() || IsRunningCommandlet())
+	{
+		check(!DynamicResolutionState.IsValid());
+		check(!NextDynamicResolutionState.IsValid());
+		return;
+	}
+
+	// Since SetDynamicResolutionState() can happen between a dynamic resolution BeginFrame and EndFrame,
+	// we only defer the dynamic resolution state to the next frame for simplicity in dynamic resolution
+	// state implementations.
+	NextDynamicResolutionState = NewState;
+	#endif
 }
 
 void UEngine::WorldAdded( UWorld* InWorld )

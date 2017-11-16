@@ -615,7 +615,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 							const FViewInfo& View = Views[ViewIndex];
 							FIntRect ScissorRect;
 
-							if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View))
+							if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 							{
 								ScissorRect = View.ViewRect;
 							}
@@ -667,6 +667,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					// Accumulate this light's unshadowed contribution to the translucency lighting volume
 					InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 				}
+
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ScreenShadowMaskTexture);
 
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 

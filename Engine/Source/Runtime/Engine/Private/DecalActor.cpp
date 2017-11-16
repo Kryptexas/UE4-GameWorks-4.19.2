@@ -126,9 +126,10 @@ bool ADecalActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);
 
-	if (Decal->DecalMaterial != nullptr)
+	UMaterialInterface* DecalMaterial = Decal->GetDecalMaterial();
+	if (DecalMaterial)
 	{
-		Objects.Add(Decal->DecalMaterial);
+		Objects.Add(DecalMaterial);
 	}
 
 	return true;

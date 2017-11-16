@@ -175,14 +175,14 @@ void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / TexSize.X;
+	uint32 ScaleToFullRes = Context.ReferenceBufferSize.X / TexSize.X;
 
-	FIntRect ViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
+	FIntRect ViewRect = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, ScaleToFullRes);
 	FIntPoint ViewSize = ViewRect.Size();
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

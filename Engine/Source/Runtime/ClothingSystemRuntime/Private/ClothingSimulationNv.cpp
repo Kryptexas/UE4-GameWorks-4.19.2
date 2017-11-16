@@ -727,14 +727,16 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 			const uint32 NumParticles = Actor.LodData[CurrentClothingLod].Cloth->getNumParticles();
 			
 			ClothData.Reset();
+			
+			ClothData.Transform = RootBoneTransform;
 
 			nv::cloth::MappedRange<physx::PxVec4> Particles = Actor.LodData[CurrentClothingLod].Cloth->getCurrentParticles();
 			for(uint32 ParticleIdx = 0; ParticleIdx < NumParticles; ++ParticleIdx)
 			{
 				physx::PxVec4& Particle = Particles[ParticleIdx];
 
-				ClothData.Positions.Add(RootBoneTransform.TransformPosition(P2UVector(Particle)));
-				ClothData.Normals.Add(RootBoneTransform.TransformVector(Actor.CurrentNormals[ParticleIdx]));
+				ClothData.Positions.Add(P2UVector(Particle));
+				ClothData.Normals.Add(Actor.CurrentNormals[ParticleIdx]);
 			}
 		}
 		
