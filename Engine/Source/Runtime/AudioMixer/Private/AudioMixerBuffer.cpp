@@ -12,6 +12,7 @@ namespace Audio
 		, RealtimeAsyncHeaderParseTask(nullptr)
 		, DecompressionState(nullptr)
 		, SoundWaveProcedural(nullptr)
+		, SoundWaveReference(nullptr)
 		, BufferType(InBufferType)
 		, SampleRate(InWave->SampleRate)
 		, BitsPerSample(16) // TODO: support more bits, currently hard-coded to 16
@@ -81,6 +82,13 @@ namespace Audio
 			// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
 			// should be added which sets this to true.
 			SoundWaveProcedural->bIsReadyForDestroy = false;
+		}
+
+		// If we have sound wave reference, remove from root, allow GC
+		if (SoundWaveReference)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Removing SoundWaveReference from root"));
+			SoundWaveReference->RemoveFromRoot();
 		}
 	}
 
@@ -310,12 +318,23 @@ namespace Audio
 		InWave->ResourceID = 0;
 
 		// Don't allow the procedural sound wave to be destroyed until we're done with it
-		Buffer->SoundWaveProcedural = CastChecked<USoundWaveProcedural>(InWave);
+		Buffer->SoundWaveProcedural = Cast<USoundWaveProcedural>(InWave);
 
 		// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
 		// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
 		// should be added which sets this to true.
-		Buffer->SoundWaveProcedural->bIsReadyForDestroy = true;
+		if (Buffer->SoundWaveProcedural)
+		{
+			Buffer->SoundWaveProcedural->bIsReadyForDestroy = true;
+		}
+		else
+		{
+			// Source Buses can't be GC'd until this buffer has finished using it
+			// Need to add to root until this buffer is done with it.
+			Buffer->SoundWaveReference = InWave;
+			Buffer->SoundWaveReference->AddToRoot();
+		}
+
 
 		return Buffer;
 	}
