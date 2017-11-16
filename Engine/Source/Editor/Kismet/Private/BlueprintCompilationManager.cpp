@@ -654,6 +654,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					}
 					
 					Data.BP->bBeingCompiled = false;
+					Data.BP->CurrentMessageLog = nullptr;
 					if(UPackage* Package = Data.BP->GetOutermost())
 					{
 						Package->SetDirtyFlag(Data.bPackageWasDirty);
