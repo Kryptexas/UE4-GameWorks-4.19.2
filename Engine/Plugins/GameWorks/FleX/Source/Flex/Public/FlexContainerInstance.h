@@ -155,6 +155,9 @@ struct FLEX_API FFlexContainerInstance : public PxDeletionListener
 	TWeakObjectPtr<UFlexContainer> TemplateRef;
 	UFlexContainer* Template;
 
+	// surface rendering
+	class UFlexFluidSurfaceComponent* FluidSurfaceComponent;
+
 	// incrementing group counter used to auto-assign unique groups to rigids
 	int GroupCounter;
 

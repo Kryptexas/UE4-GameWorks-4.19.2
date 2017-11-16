@@ -66,7 +66,6 @@
 
 // NvFlex begin
 #if WITH_FLEX
-#include "GameWorks/IFlexPluginBridge.h"
 #include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
 // NvFlex end
@@ -2559,7 +2558,7 @@ void FCascade::BindCommands()
 
 	// NvFlex begin
 #if WITH_FLEX
-	if (GFlexPluginBridge)
+	if (GFlexEditorPluginBridge)
 	{
 		ToolkitCommands->MapAction(
 			Commands.ConvertToFlexEmitter,
@@ -5366,16 +5365,6 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 {
 	// Tick the particle system component when ticked from within Cascade.
 	Super::TickComponent( DeltaTime, TickType, NULL );
-
-	// NvFlex begin
-#if WITH_FLEX
-	// Tick flex fluid surface components
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->TickFlexFluidSurfaceComponents(GetWorld(), EmitterInstances, DeltaTime, TickType);
-	}
-#endif
-	// NvFlex end
 }
 
 const static FName CascadeParticleSystemComponentParticleLineCheckName(TEXT("ParticleLineCheck"));

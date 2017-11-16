@@ -1212,23 +1212,6 @@ public:
 	/** Returns the index into the EmitterMaterials array for this named. If there are no named material slots or this material is not found, INDEX_NONE is returned. */
 	virtual int32 GetNamedMaterialIndex(FName InName) const;
 
-	// NvFlex begin
-	/**
-	* Creates a Dynamic Material Instance for the specified flex material from the supplied material.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
-	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial);
-
-	/**
-	* Get all of the FleX container templates from all of the emitter instances
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Flex")
-	virtual class UObject* GetFirstFlexContainerTemplate(); //returns UFlexContainer*
-
-	UPROPERTY()
-	class UObject* FlexFluidSurfaceOverride; //holds UFlexFluidSurface*
-	// NvFlex end
-
 protected:
 
 	// @todo document
@@ -1264,8 +1247,15 @@ protected:
 
 	// @todo document
 	virtual void UpdateDynamicData();
-
 public:
+	// NvFlex begin
+	/**
+	* Get all of the FleX container templates from all of the emitter instances
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Flex")
+	class UObject* GetFirstFlexContainerTemplate(); //returns UFlexContainer*
+	// NvFlex end
+
 	FORCEINLINE int32 GetCurrentLODIndex() const
 	{
 		return LODLevel;
