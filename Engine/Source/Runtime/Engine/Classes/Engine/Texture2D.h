@@ -263,7 +263,7 @@ public:
 	 *						Mips.Num() - FirstMipToLoad + 1 entries. Upon
 	 *						return those pointers will contain mip data.
 	 */
-	void GetMipData(int32 FirstMipToLoad, void** OutMipData);
+	ENGINE_API void GetMipData(int32 FirstMipToLoad, void** OutMipData);
 
 	/**
 	 * Returns the number of mips in this texture that are not able to be streamed.

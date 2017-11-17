@@ -41,6 +41,7 @@ struct FOpenGLShaderDeviceCapabilities
 	bool bRequiresGLFragCoordVaryingLimitHack;
 	GLint MaxVaryingVectors;
 	bool bRequiresTexture2DPrecisionHack;
+	bool bRequiresRoundFunctionHack;
 };
 
 /**

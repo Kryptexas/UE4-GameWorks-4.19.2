@@ -50,7 +50,6 @@ enum EMTLTextureType
 #define METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
 #define METAL_SUPPORTS_CAPTURE_MANAGER (PLATFORM_MAC && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300) || (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
 #define METAL_SUPPORTS_TILE_SHADERS (!PLATFORM_MAC && !PLATFORM_TVOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
-
 // In addition to compile-time SDK checks we also need a way to check if these are available on runtime
 extern bool GMetalSupportsIndirectArgumentBuffers;
 extern bool GMetalSupportsCaptureManager;
@@ -75,6 +74,8 @@ extern FMetalBufferFormat GMetalBufferFormats[PF_MAX];
 #else
 #define METAL_DEBUG_OPTION(Code)
 #endif
+
+extern bool GMetalSupportsTileShaders;
 
 #define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
 

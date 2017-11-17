@@ -326,6 +326,11 @@ void SEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContext
 	bAllowContextMenu = InAllowContextMenu;
 }
 
+void SEditableText::SetVirtualKeyboardDismissAction(TAttribute< EVirtualKeyboardDismissAction > InVirtualKeyboardDismissAction)
+{
+	VirtualKeyboardDismissAction = InVirtualKeyboardDismissAction;
+}
+
 void SEditableText::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
 {
 	EditableTextLayout->SetTextShapingMethod(InTextShapingMethod);

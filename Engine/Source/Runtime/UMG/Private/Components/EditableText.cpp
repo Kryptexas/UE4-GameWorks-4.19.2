@@ -36,6 +36,7 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 	Clipping = Defaults._Clipping;
 }
 
@@ -59,6 +60,7 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 		.OnTextChanged( BIND_UOBJECT_DELEGATE( FOnTextChanged, HandleOnTextChanged ) )
 		.OnTextCommitted( BIND_UOBJECT_DELEGATE( FOnTextCommitted, HandleOnTextCommitted ) )
 		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) )
+		.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
 		.Justification( Justification );
 	
 	return MyEditableText.ToSharedRef();
@@ -76,6 +78,7 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
 	MyEditableText->SetAllowContextMenu(AllowContextMenu);
+	MyEditableText->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
 	MyEditableText->SetJustification(Justification);
 	// TODO UMG Complete making all properties settable on SEditableText
 

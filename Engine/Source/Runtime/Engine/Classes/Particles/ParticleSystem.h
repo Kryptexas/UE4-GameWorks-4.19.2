@@ -418,6 +418,11 @@ public:
 	 */
 	ENGINE_API void SetupLODValidity();
 
+	/**
+	 * Set the time to delay spawning the particle system
+	 */
+	ENGINE_API void SetDelay(float InDelay);
+
 #if WITH_EDITOR
 	/**
 	 *	Remove all duplicate modules.

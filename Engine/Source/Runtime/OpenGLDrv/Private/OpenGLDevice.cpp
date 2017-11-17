@@ -1424,6 +1424,53 @@ static void CheckTextureCubeLodSupport()
 #endif
 }
 
+static void CheckRoundFunction()
+{
+#if PLATFORM_ANDROID
+	FOpenGL::bRequiresRoundFunctionHack = false;
+	if (IsES2Platform(GMaxRHIShaderPlatform))
+	{
+		UE_LOG(LogRHI, Display, TEXT("Testing for round() function availability"));
+		FOpenGL::bIsCheckingShaderCompilerHacks = true;
+
+		static const ANSICHAR TestVertexProgram[] = "\n"
+			"#version 100\n"
+			"attribute vec4 in_ATTRIBUTE0;\n"
+			"void main()\n"
+			"{\n"
+			"   float value = round(0.5);\n"
+			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
+			"}\n";
+
+		FShaderCode VertexShaderCode;
+		{
+			FOpenGLCodeHeader Header;
+			Header.FrequencyMarker = 0x5653;
+			Header.GlslMarker = 0x474c534c;
+
+			FMemoryWriter Writer(VertexShaderCode.GetWriteAccess(), true);
+			Writer << Header;
+			Writer.Serialize((void*)TestVertexProgram, sizeof(TestVertexProgram));
+			Writer.Close();
+		}
+
+		// Try to compile test shaders
+		TRefCountPtr<FOpenGLVertexShader> VertexShader = (FOpenGLVertexShader*)(RHICreateVertexShader(VertexShaderCode.GetReadAccess()).GetReference());
+		if (!VerifyCompiledShader(VertexShader->Resource, TestVertexProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Using the round() function hack, because the vertex shader for round function test failed to compile."));
+			FOpenGL::bRequiresRoundFunctionHack = true;
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
+			return;
+		}
+
+		FOpenGL::bIsCheckingShaderCompilerHacks = false;
+
+		UE_LOG(LogRHI, Warning, TEXT("Disabling the need for the round() function hack"));
+	}
+#endif
+}
+
 void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
@@ -1491,6 +1538,7 @@ void FOpenGLDynamicRHI::Init()
 
 	CheckTextureCubeLodSupport();
 	CheckVaryingLimit();
+	CheckRoundFunction();
 }
 
 void FOpenGLDynamicRHI::Shutdown()

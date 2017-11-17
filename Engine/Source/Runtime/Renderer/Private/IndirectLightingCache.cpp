@@ -907,6 +907,9 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	BlockInfo.Block.bHasEverBeenUpdated = true;
 }
 
+template class TSHVector<2>;
+template class TSHVector<3>;
+
 template <int32 SHOrder>
 static void ReduceSHRinging(TSHVectorRGB<SHOrder>& IncidentRadiance)
 {

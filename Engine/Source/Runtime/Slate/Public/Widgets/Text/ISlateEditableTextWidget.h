@@ -58,7 +58,8 @@ enum class EVirtualKeyboardTrigger
 	OnAllFocusEvents,
 };
 
-enum class EVirtualKeyboardDismissAction
+UENUM(BlueprintType)
+enum class EVirtualKeyboardDismissAction : uint8
 {
 	/** Sends a text changed message when the virtual keyboard is dismissed by the user. */
 	TextChangeOnDismiss,

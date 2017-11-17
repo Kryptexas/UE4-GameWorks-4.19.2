@@ -9,8 +9,6 @@
 float NormalizationConstants[9];
 int32 BasisL[9];
 int32 BasisM[9];
-template<> CORE_API const float TSHVector<2>::ConstantBasisIntegral = 2.0f * FMath::Sqrt(PI);
-template<> CORE_API const float TSHVector<3>::ConstantBasisIntegral = 2.0f * FMath::Sqrt(PI);
 
 /** Computes a factorial. */
 static int32 Factorial(int32 A)

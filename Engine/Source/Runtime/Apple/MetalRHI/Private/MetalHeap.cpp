@@ -1573,7 +1573,7 @@ void FMetalHeap::Drain(FMetalDeviceContext& Context, bool const bForce)
 						
 						// There may be heaps with no resources currently in-use but the memory has yet to be released, we can dispose of these heaps
 						TSet<NSObject<MTLTexture>*>& Textures = TextureResources.FindChecked(DynamicTextureHeaps[i][j][k][l].Key);
-						if (((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames || j == EMetalHeapBufferExactSize) && Textures.Num() == 0) || (DynamicTextureHeaps[i][j][k][l].Key.usedSize == 0))
+						if (((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames || j == EMetalHeapBufferExactSize) && Textures.Num() == 0) && (DynamicTextureHeaps[i][j][k][l].Key.usedSize == 0) && (((FMTLHeap*)DynamicTextureHeaps[i][j][k][l].Key).poolSize == 0))
 						{
 							TotalTextureMemory -= DynamicTextureHeaps[i][j][k][l].Key.size;
 							DEC_DWORD_STAT_FName(NumTextureHeapStats[k]);

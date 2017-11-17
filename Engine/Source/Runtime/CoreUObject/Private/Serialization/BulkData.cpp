@@ -1406,7 +1406,7 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 
 #else
 	bool bWasLoadedSuccessfully = false;
-	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))
+	if (IsInAsyncLoadingThread() && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))
 	{
 		FLinkerLoad* LinkerLoad = Package->LinkerLoad;
 		if (LinkerLoad && LinkerLoad->Loader)

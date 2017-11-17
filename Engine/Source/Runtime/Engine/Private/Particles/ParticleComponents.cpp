@@ -2783,6 +2783,11 @@ void UParticleSystem::SetupLODValidity()
 	}
 }
 
+void UParticleSystem::SetDelay(float InDelay)
+{
+	Delay = InDelay;
+}
+
 #if WITH_EDITOR
 
 bool UParticleSystem::RemoveAllDuplicateModules(bool bInMarkForCooker, TMap<UObject*,bool>* OutRemovedModules)

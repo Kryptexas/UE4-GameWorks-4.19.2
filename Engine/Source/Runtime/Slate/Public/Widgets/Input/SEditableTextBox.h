@@ -187,6 +187,9 @@ public:
 	/** See the AllowContextMenu attribute */
 	void SetAllowContextMenu(TAttribute< bool > InAllowContextMenu);
 
+	/** Set the VirtualKeyboardDismissAction attribute */
+	void SetVirtualKeyboardDismissAction(TAttribute< EVirtualKeyboardDismissAction > InVirtualKeyboardDismissAction);
+	
 	/**
 	 * Sets the font used to draw the text
 	 *

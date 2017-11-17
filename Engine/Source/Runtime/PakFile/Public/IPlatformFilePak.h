@@ -22,6 +22,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
 
 #define PAKHASH_USE_CRC	1
+#define PAK_TRACKER 0
 #define PAK_SIGNATURE_CHECK_FAILS_ARE_FATAL 0
 
 #if PAKHASH_USE_CRC
@@ -1749,6 +1750,12 @@ public:
 	void HandlePakCorruptCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 	// END Console commands
+	
+#if PAK_TRACKER
+	static TMap<FString, int32> GPakSizeMap;
+	static void TrackPak(const TCHAR* Filename, const FPakEntry* PakEntry);
+	static TMap<FString, int32>& GetPakMap() { return GPakSizeMap; }
+#endif
 };
 
 

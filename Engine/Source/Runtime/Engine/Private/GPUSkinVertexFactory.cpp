@@ -46,7 +46,9 @@ static FBoneMatricesUniformShaderParameters GBoneUniformStruct;
 	FactoryClass<bExtraBoneInfluencesT>::ShouldCache, \
 	FactoryClass<bExtraBoneInfluencesT>::ModifyCompilationEnvironment, \
 	FactoryClass<bExtraBoneInfluencesT>::SupportsTessellationShaders \
-	);
+	); \
+	template <bool bExtraBoneInfluencesT> inline FVertexFactoryType* FactoryClass<bExtraBoneInfluencesT>::GetType() const { return &StaticType; }
+
 
 #define IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(FactoryClass, ShaderFilename,bUsedWithMaterials,bSupportsStaticLighting,bSupportsDynamicLighting,bPrecisePrevWorldPos,bSupportsPositionOnly) \
 	template <bool bExtraBoneInfluencesT> FVertexFactoryShaderParameters* Construct##FactoryClass##ShaderParameters(EShaderFrequency ShaderFrequency) { return FactoryClass<bExtraBoneInfluencesT>::ConstructShaderParameters(ShaderFrequency); } \

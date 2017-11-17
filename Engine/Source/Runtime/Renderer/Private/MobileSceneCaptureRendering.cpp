@@ -372,7 +372,7 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 			auto& RenderTargetRHI = Target->GetRenderTargetTexture();
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Target->GetSizeXY(),
 				RenderTargetRHI.GetReference()->GetFormat(),
-				FClearValueBinding::None,
+				RenderTargetRHI.GetReference()->GetClearBinding(),
 				TexCreate_None,
 				TexCreate_RenderTargetable,
 				false));

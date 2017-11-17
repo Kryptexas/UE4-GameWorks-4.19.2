@@ -383,3 +383,8 @@ void SEditableTextBox::SetAllowContextMenu(TAttribute<bool> InAllowContextMenu)
 {
 	EditableText->SetAllowContextMenu(InAllowContextMenu);
 }
+
+void SEditableTextBox::SetVirtualKeyboardDismissAction(TAttribute<EVirtualKeyboardDismissAction> InVirtualKeyboardDismissAction)
+{
+	EditableText->SetVirtualKeyboardDismissAction(InVirtualKeyboardDismissAction);
+}

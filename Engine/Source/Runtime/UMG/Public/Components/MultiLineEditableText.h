@@ -8,6 +8,7 @@
 #include "Styling/SlateTypes.h"
 #include "Widgets/SWidget.h"
 #include "Components/TextWidgetTypes.h"
+#include "Widgets/Text/ISlateEditableTextWidget.h"
 #include "MultiLineEditableText.generated.h"
 
 class SMultiLineEditableText;
@@ -70,6 +71,10 @@ public:
 	/** Whether the context menu can be opened */
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool AllowContextMenu;
+	
+	/** What action should be taken when the virtual keyboard is dismissed? */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	EVirtualKeyboardDismissAction VirtualKeyboardDismissAction;
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Editable Text)"))

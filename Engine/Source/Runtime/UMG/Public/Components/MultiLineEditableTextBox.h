@@ -8,6 +8,7 @@
 #include "Styling/SlateTypes.h"
 #include "Widgets/SWidget.h"
 #include "Components/TextWidgetTypes.h"
+#include "Widgets/Text/ISlateEditableTextWidget.h"
 #include "MultiLineEditableTextBox.generated.h"
 
 class SMultiLineEditableTextBox;
@@ -56,6 +57,10 @@ public:
 	/** Whether the context menu can be opened */
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool AllowContextMenu;
+	
+	/** What action should be taken when the virtual keyboard is dismissed? */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	EVirtualKeyboardDismissAction VirtualKeyboardDismissAction;
 
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;

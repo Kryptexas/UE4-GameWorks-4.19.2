@@ -186,6 +186,11 @@ void SMultiLineEditableText::SetAllowContextMenu(const TAttribute< bool >& InAll
 	bAllowContextMenu = InAllowContextMenu;
 }
 
+void SMultiLineEditableText::SetVirtualKeyboardDismissAction(TAttribute< EVirtualKeyboardDismissAction > InVirtualKeyboardDismissAction)
+{
+	VirtualKeyboardDismissAction = InVirtualKeyboardDismissAction;
+}
+
 void SMultiLineEditableText::SetIsReadOnly(const TAttribute<bool>& InIsReadOnly)
 {
 	bIsReadOnly = InIsReadOnly;

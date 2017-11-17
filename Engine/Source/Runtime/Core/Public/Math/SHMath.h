@@ -37,7 +37,7 @@ public:
 	float V[NumTotalFloats];
 
 	/** The integral of the constant SH basis. */
-	CORE_API static const float ConstantBasisIntegral;
+	static constexpr float ConstantBasisIntegral = 3.5449077018110320545963349666823; // 2 * Sqrt(PI)
 
 	/** Default constructor. */
 	TSHVector()

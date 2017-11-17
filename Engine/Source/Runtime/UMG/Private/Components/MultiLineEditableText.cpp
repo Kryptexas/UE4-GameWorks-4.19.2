@@ -23,6 +23,7 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
 	Clipping = Defaults._Clipping;
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 	AutoWrapText = true;
 	
 	if (!IsRunningDedicatedServer())
@@ -58,6 +59,7 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 //	.BackgroundImageSelectionTarget(BackgroundImageSelectionTarget ? TAttribute<const FSlateBrush*>(&BackgroundImageSelectionTarget->Brush) : TAttribute<const FSlateBrush*>())
 //	.BackgroundImageComposing(BackgroundImageComposing ? TAttribute<const FSlateBrush*>(&BackgroundImageComposing->Brush) : TAttribute<const FSlateBrush*>())
 //	.CaretImage(CaretImage ? TAttribute<const FSlateBrush*>(&CaretImage->Brush) : TAttribute<const FSlateBrush*>())
+	.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
 	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	;
@@ -76,6 +78,7 @@ void UMultiLineEditableText::SynchronizeProperties()
 	MyMultiLineEditableText->SetHintText(HintTextBinding);
 	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
 	MyMultiLineEditableText->SetIsReadOnly(bIsReadOnly);
+	MyMultiLineEditableText->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
 	MyMultiLineEditableText->SetSelectAllTextWhenFocused(SelectAllTextWhenFocused);
 	MyMultiLineEditableText->SetClearTextSelectionOnFocusLoss(ClearTextSelectionOnFocusLoss);
 	MyMultiLineEditableText->SetRevertTextOnEscape(RevertTextOnEscape);

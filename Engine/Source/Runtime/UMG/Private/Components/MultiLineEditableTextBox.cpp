@@ -23,6 +23,7 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 	AutoWrapText = true;
 
 	if (!IsRunningDedicatedServer())
@@ -58,6 +59,7 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 //		.RevertTextOnEscape(RevertTextOnEscape)
 //		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 //		.SelectAllTextOnCommit(SelectAllTextOnCommit)
+		.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
@@ -76,6 +78,7 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetHintText(HintTextBinding);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
 	MyEditableTextBlock->SetIsReadOnly(bIsReadOnly);
+	MyEditableTextBlock->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
 
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);

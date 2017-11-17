@@ -402,6 +402,12 @@ void FSlateRHIRenderer::UpdateFullscreenState( const TSharedRef<SWindow> Window,
 	}
 }
 
+void FSlateRHIRenderer::SetSystemResolution(uint32 Width, uint32 Height)
+{
+	FSystemResolution::RequestResolutionChange(Width, Height, EWindowMode::Fullscreen);
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
+}
+
 void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWindow)
 {
 	if (!GIsEditor && InWindow->GetWindowMode() == EWindowMode::Fullscreen)

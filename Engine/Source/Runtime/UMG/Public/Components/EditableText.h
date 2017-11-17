@@ -10,6 +10,7 @@
 #include "Widgets/SWidget.h"
 #include "Components/Widget.h"
 #include "Components/TextWidgetTypes.h"
+#include "Widgets/Text/ISlateEditableTextWidget.h"
 #include "EditableText.generated.h"
 
 class SEditableText;
@@ -116,6 +117,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EVirtualKeyboardType::Type> KeyboardType;
 
+	/** What action should be taken when the virtual keyboard is dismissed? */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	EVirtualKeyboardDismissAction VirtualKeyboardDismissAction;
+	
 	/** How the text should be aligned with the margin. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	TEnumAsByte<ETextJustify::Type> Justification;
