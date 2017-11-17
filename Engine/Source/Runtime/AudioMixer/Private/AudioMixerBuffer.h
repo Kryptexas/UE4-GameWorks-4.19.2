@@ -72,7 +72,6 @@ namespace Audio
 
 		/** The ptr to this buffers sound wave procedural if it was created from a procedural sound wave. */
 		USoundWaveProcedural* SoundWaveProcedural;
-		USoundWave* SoundWaveReference;
 
 		/** Format of the sound referenced by this buffer */
 		EBufferType::Type BufferType;
