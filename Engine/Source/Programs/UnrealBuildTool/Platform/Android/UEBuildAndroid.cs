@@ -485,7 +485,7 @@ namespace UnrealBuildTool
 				if (Directory.Exists(RenderDocLibPath))
 				{
 					LinkEnvironment.LibraryPaths.Add(RenderDocLibPath);
-					LinkEnvironment.AdditionalLibraries.Add("VkLayer_RenderDoc");
+					LinkEnvironment.AdditionalLibraries.Add("VkLayer_GLES_RenderDoc");
 					return true;
 				}
 			}
