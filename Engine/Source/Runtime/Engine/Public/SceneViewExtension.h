@@ -121,16 +121,6 @@ public:
     virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) = 0;
 
 	/**
-	 * Called on render thread from FSceneRenderer::Render implementation after init views has completed, but before rendering proper has started
-	 */
-	virtual void PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {};
-
-	/**
-	 * Called on render thread, for each view, after the PostInitViewFamily_RenderThread call
-	 */
-	virtual void PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
-
-	/**
 	 * Called right after MobileBasePass rendering finished
 	 */
 	virtual void PostRenderMobileBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
@@ -149,12 +139,6 @@ public:
      * Called to determine view extensions priority in relation to other view extensions, higher comes first
      */
 	virtual int32 GetPriority() const { return 0; }
-
-	/**
-	 * If true, use PostInitViewFamily_RenderThread and PostInitView_RenderThread instead of PreRenderViewFamily_RenderThread and PreRenderView_RenderThread.
-	 * Note: Frustum culling will have already happened in init views. This may require a small FOV buffer when culling to account for view changes/updates.
-	 */
-	virtual bool UsePostInitView() const { return false; }
 
 	/**
 	 * Returning false disables the extension for the current frame. This will be queried each frame to determine if the extension wants to run.

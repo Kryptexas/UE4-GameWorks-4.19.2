@@ -38,11 +38,12 @@ public:
 	bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
 	FString GetVersionString() const override;
 	bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type) override;
-	void RefreshPoses() override;
 	void ResetOrientationAndPosition(float Yaw) override;
 	bool IsHeadTrackingAllowed() const override;
 	TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> GetXRCamera(int32 DeviceId) override;
 	float GetWorldToMetersScale() const override;
+	void OnBeginRendering_GameThread() override;
+
 	//~ IXRTrackingSystem
 	
 	//~ IARHitTestingSupport
@@ -62,6 +63,7 @@ private:
 	bool IsRunning() const;
 	bool Pause();
 	void OrientationChanged(const int32 NewOrientation);
+	void UpdatePoses();
 	
 public:
 	// Session delegate callbacks

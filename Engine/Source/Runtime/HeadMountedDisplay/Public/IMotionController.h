@@ -13,7 +13,7 @@ enum class ETrackingStatus : uint8
 {
 	NotTracked,
 	InertialOnly,
-	Tracked
+	Tracked,
 };
 
 /**

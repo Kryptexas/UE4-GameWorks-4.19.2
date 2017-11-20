@@ -684,9 +684,9 @@ void UVREditorMode::CycleTransformGizmoHandleType()
 	WorldInteraction->SetGizmoHandleType( NewGizmoType );
 }
 
-EHMDDeviceType::Type UVREditorMode::GetHMDDeviceType() const
+FName UVREditorMode::GetHMDDeviceType() const
 {
-	return GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR;
+	return GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetSystemName() : FName();
 }
 
 FLinearColor UVREditorMode::GetColor( const EColors Color ) const
@@ -1145,11 +1145,11 @@ void UVREditorMode::RestoreWorldToMeters()
 UStaticMeshComponent* UVREditorMode::CreateMotionControllerMesh( AActor* OwningActor, USceneComponent* AttachmentToComponent )
 {
 	UStaticMesh* ControllerMesh = nullptr;
-	if(GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR)
+	if(GetHMDDeviceType() == FName(TEXT("SteamVR")))
 	{
 		ControllerMesh = AssetContainer->VivePreControllerMesh;
 	}
-	else if(GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
+	else if(GetHMDDeviceType() == FName(TEXT("OculusHMD")))
 	{
 		ControllerMesh = AssetContainer->OculusControllerMesh;
 	}

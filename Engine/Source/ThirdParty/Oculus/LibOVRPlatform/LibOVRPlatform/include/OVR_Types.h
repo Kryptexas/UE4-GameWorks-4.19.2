@@ -4,6 +4,7 @@
 #include "OVR_KeyValuePairType.h"
 #include "OVR_MatchmakingCriterionImportance.h"
 #include "OVR_VoipSampleRate.h"
+#include "OVR_MediaContentType.h"
 
 #include <stddef.h>
 #include <stdint.h>

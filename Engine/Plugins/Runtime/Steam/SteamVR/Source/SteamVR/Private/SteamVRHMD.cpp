@@ -451,11 +451,6 @@ void FSteamVRHMD::EnableHMD(bool enable)
 	}
 }
 
-EHMDDeviceType::Type FSteamVRHMD::GetHMDDeviceType() const
-{
-	return EHMDDeviceType::DT_SteamVR;
-}
-
 bool FSteamVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc) 
 {
 	if (IsInitialized())
@@ -496,7 +491,7 @@ bool FSteamVRHMD::DoesSupportPositionalTracking() const
 
 bool FSteamVRHMD::HasValidTrackingPosition()
 {
-	return bHaveVisionTracking;
+	return GetTrackingFrame().bHaveVisionTracking;
 }
 
 bool FSteamVRHMD::GetTrackingSensorProperties(int32 SensorId, FQuat& OutOrientation, FVector& OutOrigin, FXRSensorProperties& OutSensorProperties)
@@ -571,7 +566,7 @@ bool FSteamVRHMD::GetCurrentPose(int32 DeviceId, FQuat& CurrentOrientation, FVec
 	return bHasValidPose;
 }
 
-void FSteamVRHMD::RefreshPoses()
+void FSteamVRHMD::UpdatePoses()
 {
 	if (VRSystem == nullptr)
 	{
@@ -579,32 +574,31 @@ void FSteamVRHMD::RefreshPoses()
 	}
 
 	FTrackingFrame& TrackingFrame = const_cast<FTrackingFrame&>(GetTrackingFrame());
-		TrackingFrame.FrameNumber = GFrameNumberRenderThread;
+	TrackingFrame.FrameNumber = GFrameNumberRenderThread;
 
-		vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
+	vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
 	if (IsInRenderingThread())
-		{
-			vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
-		}
-		else
-		{
+	{
+		vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
+	}
+	else
+	{
 		check(IsInGameThread());
-			VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
-		}
+		VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
+	}
 
-		bHaveVisionTracking = false;
+	TrackingFrame.bHaveVisionTracking = false;
 	TrackingFrame.WorldToMetersScale = GameWorldToMetersScale;
-		for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
-		{
-		bHaveVisionTracking |= Poses[i].eTrackingResult == vr::ETrackingResult::TrackingResult_Running_OK;
+	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+	{
+		TrackingFrame.bHaveVisionTracking |= Poses[i].eTrackingResult == vr::ETrackingResult::TrackingResult_Running_OK;
 
-			TrackingFrame.bDeviceIsConnected[i] = Poses[i].bDeviceIsConnected;
-			TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
+		TrackingFrame.bDeviceIsConnected[i] = Poses[i].bDeviceIsConnected;
+		TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
 		TrackingFrame.RawPoses[i] = Poses[i].mDeviceToAbsoluteTracking;
 
 	}
 	ConvertRawPoses(TrackingFrame);
-	
 }
 
 void FSteamVRHMD::GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height)
@@ -974,6 +968,8 @@ void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 	}
 }
 
+const FName FSteamVRHMD::SteamSystemName(TEXT("SteamVR"));
+
 FString FSteamVRHMD::GetVersionString() const
 {
 	if (VRSystem == nullptr)
@@ -1007,7 +1003,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	FQuat Orientation;
 	FVector Position;
 	GameWorldToMetersScale = WorldContext.World()->GetWorldSettings()->WorldToMeters;
-	RefreshPoses();
+	UpdatePoses();
 	GetCurrentPose(IXRTrackingSystem::HMDDeviceId, Orientation, Position);
 
 	bool bShouldShutdown = false;
@@ -1370,21 +1366,22 @@ void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassC
 	}
 }
 
-bool FSteamVRHMD::GetHMDDistortionEnabled() const
+bool FSteamVRHMD::GetHMDDistortionEnabled(EShadingPath /* ShadingPath */) const
 {
 	return false;
 }
 
-void FSteamVRHMD::BeginRendering_GameThread()
+void FSteamVRHMD::OnBeginRendering_GameThread()
 {
 	check(IsInGameThread());
 	SpectatorScreenController->BeginRenderViewFamily();
 }
 
-void FSteamVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+void FSteamVRHMD::OnBeginRendering_RenderThread(FRHICommandListImmediate& /* unused */, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
-	FHeadMountedDisplayBase::BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
+	UpdatePoses();
+
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
 	check(SpectatorScreenController);
@@ -1448,7 +1445,6 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* InSteamVRPlugin) :
 	HmdWornState(EHMDWornState::Unknown),
 	bStereoDesired(false),
 	bStereoEnabled(false),
-	bHaveVisionTracking(false),
 	WindowMirrorBoundsWidth(2160),
 	WindowMirrorBoundsHeight(1200),
 	PixelDensity(1.0f),

@@ -5,6 +5,7 @@
 #include "GameFramework/SaveGame.h"
 #include "Math/Color.h" // for FLinearColor
 #include "MixedRealityCaptureComponent.h" // for FChromaKeyParams
+#include "MixedRealityCaptureDevice.h" // for FMRCaptureDeviceIndex
 #include "MixedRealityConfigurationSaveGame.generated.h"
 
 
@@ -41,7 +42,7 @@ struct FCompositingSaveData
 	FChromaKeyParams ChromaKeySettings;
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
-	FString CaptureDeviceURL;
+	FMRCaptureDeviceIndex CaptureDeviceURL;
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
 	float DepthOffset = 0.0f;

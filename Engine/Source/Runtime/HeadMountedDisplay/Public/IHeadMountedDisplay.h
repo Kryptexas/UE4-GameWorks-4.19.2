@@ -7,6 +7,7 @@
 #include "HeadMountedDisplayTypes.h"
 #include "StereoRendering.h"
 #include "LateUpdateManager.h"
+#include "SceneInterface.h"
 
 class FSceneInterface;
 class UCanvas;
@@ -45,11 +46,6 @@ public:
 	 * Enables or disables switching to stereo.
 	 */
 	virtual void EnableHMD(bool bEnable = true) = 0;
-
-	/**
-	 * Returns the family of HMD device implemented
-	 */
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const = 0;
 
 	struct MonitorInfo
 	{
@@ -103,17 +99,20 @@ public:
 	/**
 	 * Whether HMDDistortion post processing is enabled or not
 	 */
-	virtual bool GetHMDDistortionEnabled() const = 0;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const = 0;
+
+	/** 
+	 * Called just before rendering the current frame on the render thread. Invoked before applying late update, so plugins that want to refresh poses on the
+	 * render thread prior to late update. Use this to perform any initializations prior to rendering.
+	 */
+	DEPRECATED(4.19, "Use IXRTrackingSystem::OnBeginRendering_Renderthread instead")
+	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) {}
 
 	/**
-	* Called just after the late update on the render thread. Use this to perform any initializations prior to rendering.
-	*/
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) = 0;
-	
-	/**
-	* Called just before rendering the current frame on the game frame.
-	*/
-	virtual void BeginRendering_GameThread() = 0;
+	 * Called just before rendering the current frame on the game frame.
+	 */
+	DEPRECATED(4.19, "Use IXRTrackingSystem::OnBeginRendering_GameThread instead")
+	virtual void BeginRendering_GameThread() {}
 
 
 	/**

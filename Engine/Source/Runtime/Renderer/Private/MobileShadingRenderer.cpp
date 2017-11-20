@@ -146,15 +146,6 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 
-	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
-	{
-		ViewFamily.ViewExtensions[ViewExt]->PostInitViewFamily_RenderThread(RHICmdList, ViewFamily);
-		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
-		{
-			ViewFamily.ViewExtensions[ViewExt]->PostInitView_RenderThread(RHICmdList, Views[ViewIndex]);
-		}
-	}
-
 	if (IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
@@ -390,14 +381,9 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 	if (bStereoRenderingAndHMD)
 	{
-		FRenderingCompositePass* Node = NULL;
-		const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
-		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
-			DeviceType == EHMDDeviceType::DT_OculusRift ||
-			DeviceType == EHMDDeviceType::DT_GoogleVR) // PC Preview
-		{
-			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-		}
+		const IHeadMountedDisplay* HMD =  GEngine->XRSystem->GetHMDDevice();
+		checkf(HMD, TEXT("EngineShowFlags.HMDDistortion can not be true when IXRTrackingSystem::GetHMDDevice returns null"));
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 
 		if (Node)
 		{

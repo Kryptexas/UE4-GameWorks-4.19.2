@@ -17,13 +17,14 @@
 #include "MediaCaptureSupport.h"
 #include "MixedRealityGarbageMatteCaptureComponent.h"
 #include "Engine/StaticMesh.h"
+#include "MRLatencyViewExtension.h"
 
 #if WITH_EDITORONLY_DATA
 #include "Components/StaticMeshComponent.h"
 #include "Engine/CollisionProfile.h"
 #endif
 
-DEFINE_LOG_CATEGORY_STATIC(LogMixedReality, Log, All);
+DEFINE_LOG_CATEGORY(LogMixedReality);
 
 /* FChromaKeyParams
  *****************************************************************************/
@@ -45,6 +46,27 @@ void FChromaKeyParams::ApplyToMaterial(UMaterialInstanceDynamic* Material) const
 		static FName EdgeSoftnessName("EdgeSoftness");
 		Material->SetScalarParameterValue(EdgeSoftnessName, EdgeSoftness);
 	}
+}
+
+/* MixedRealityCaptureComponent_Impl
+*****************************************************************************/
+
+namespace MixedRealityCaptureComponent_Impl
+{
+	static bool IsGameInstance(UMixedRealityCaptureComponent* Inst);
+}
+
+static bool MixedRealityCaptureComponent_Impl::IsGameInstance(UMixedRealityCaptureComponent* Inst)
+{
+#if WITH_EDITORONLY_DATA
+	AActor* InstOwner = Inst->GetOwner();
+	UWorld* InstWorld = (InstOwner) ? InstOwner->GetWorld() : nullptr;
+	const bool bIsGameInst = InstWorld && InstWorld->WorldType != EWorldType::Editor && InstWorld->WorldType != EWorldType::EditorPreview;
+
+	return bIsGameInst;
+#else 
+	return !Inst->HasAnyFlags(RF_ClassDefaultObject);
+#endif
 }
 
 /* UMixedRealityCaptureComponent
@@ -158,19 +180,12 @@ void UMixedRealityCaptureComponent::OnRegister()
 		GarbageMatteCaptureComponent->SetupAttachment(this);
 		GarbageMatteCaptureComponent->RegisterComponent();
 	}
-
-	AttachMediaListeners();
 }
 
 //------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
-
-	if (MediaSource)
-	{
-		AttachMediaListeners();
-	}
 
 	if (!VideoProcessingMaterial->IsA<UMaterialInstanceDynamic>())
 	{
@@ -179,17 +194,19 @@ void UMixedRealityCaptureComponent::InitializeComponent()
 
 	LoadDefaultConfiguration();
 
-	if (CaptureDeviceURL.IsEmpty())
+	if (MediaSource && MediaSource->GetUrl().IsEmpty() && MixedRealityCaptureComponent_Impl::IsGameInstance(this))
 	{
 		TArray<FMediaCaptureDeviceInfo> CaptureDevices;
 		MediaCaptureSupport::EnumerateVideoCaptureDevices(CaptureDevices);
 
 		if (CaptureDevices.Num() > 0)
 		{
-			CaptureDeviceURL = CaptureDevices[0].Url;
+			FMRCaptureFeedDelegate::FDelegate OnOpenCallback;
+			OnOpenCallback.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UMixedRealityCaptureComponent, OnVideoFeedOpened));
+
+			UAsyncTask_OpenMRCaptureDevice::OpenMRCaptureDevice(CaptureDevices[0], MediaSource, OnOpenCallback);
 		}
 	}
-	RefreshCameraFeed();
 }
 
 //------------------------------------------------------------------------------
@@ -209,8 +226,6 @@ void UMixedRealityCaptureComponent::OnUpdateTransform(EUpdateTransformFlags Upda
 //------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	DetachMediaListeners();
-
 #if WITH_EDITORONLY_DATA
 	if (ProxyMeshComponent)
 	{
@@ -236,40 +251,6 @@ void UMixedRealityCaptureComponent::OnComponentDestroyed(bool bDestroyingHierarc
 
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
-
-//------------------------------------------------------------------------------
-#if WITH_EDITOR
-void UMixedRealityCaptureComponent::PreEditChange(UProperty* PropertyThatWillChange)
-{
-	Super::PreEditChange(PropertyThatWillChange);
-
-	const FName PropertyName = (PropertyThatWillChange != nullptr)
-		? PropertyThatWillChange->GetFName()
-		: NAME_None;
-
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UMixedRealityCaptureComponent, MediaSource))
-	{
-		DetachMediaListeners();
-	}
-}
-#endif	// WITH_EDITOR
-
-//------------------------------------------------------------------------------
-#if WITH_EDITOR
-void UMixedRealityCaptureComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	const FName PropertyName = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
-		: NAME_None;
-
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UMixedRealityCaptureComponent, MediaSource))
-	{
-		AttachMediaListeners();
-	}
-}
-#endif	// WITH_EDITOR
 
 //------------------------------------------------------------------------------
 #if WITH_EDITOR
@@ -310,23 +291,34 @@ const AActor* UMixedRealityCaptureComponent::GetViewOwner() const
 }
 
 //------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::UpdateSceneCaptureContents(FSceneInterface* Scene)
+{ 
+	if (!ViewExtension.IsValid())
+	{
+		ViewExtension = FSceneViewExtensions::NewExtension<FMRLatencyViewExtension>(this);
+		FMotionDelayService::RegisterDelayClient(ViewExtension.ToSharedRef());
+	}
+	const bool bPreCommandQueued = ViewExtension->SetupPreCapture(Scene);
+
+	Super::UpdateSceneCaptureContents(Scene);
+
+	if (bPreCommandQueued)
+	{
+		ViewExtension->SetupPostCapture(Scene);
+	}
+}
+
+//------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::RefreshCameraFeed()
 {
-	SetCaptureDevice(CaptureDeviceURL);
+	SetCaptureDevice(CaptureFeedRef);
 }
 
 //------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::RefreshDevicePairing()
 {
 	AActor* MyOwner = GetOwner();
-#if WITH_EDITORONLY_DATA
-	UWorld* MyWorld = (MyOwner) ? MyOwner->GetWorld() : nullptr;
-	const bool bIsGameInst = MyWorld && MyWorld->WorldType != EWorldType::Editor && MyWorld->WorldType != EWorldType::EditorPreview;
-
-	if (bIsGameInst)
-#else 
-	if (MyOwner)
-#endif
+	if (MyOwner && MixedRealityCaptureComponent_Impl::IsGameInstance(this))
 	{
 		if (bAutoTracking)
 		{
@@ -434,33 +426,26 @@ void UMixedRealityCaptureComponent::DetatchFromDevice()
 }
 
 //------------------------------------------------------------------------------
-void UMixedRealityCaptureComponent::SetCaptureDevice(const FString& DeviceURL)
+void UMixedRealityCaptureComponent::SetCaptureDevice(const FMRCaptureDeviceIndex& FeedRef)
 {
 	const bool bIsInitialized = HasBeenInitialized();
-	if (bIsInitialized && MediaSource && MediaSource->GetUrl() != DeviceURL)
+	if (bIsInitialized && MediaSource && !FeedRef.IsSet(MediaSource) && MixedRealityCaptureComponent_Impl::IsGameInstance(this))
 	{
-		MediaSource->Close();
-		if (!DeviceURL.IsEmpty())
-		{
-			
-#if WITH_EDITORONLY_DATA
-			AActor* MyOwner = GetOwner();
-			UWorld* MyWorld = (MyOwner) ? MyOwner->GetWorld() : nullptr;
-			const bool bIsGameInst = MyWorld && MyWorld->WorldType != EWorldType::Editor && MyWorld->WorldType != EWorldType::EditorPreview;
+		FMRCaptureFeedDelegate::FDelegate OnOpenCallback;
+		OnOpenCallback.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UMixedRealityCaptureComponent, OnVideoFeedOpened));
 
-			if (bIsGameInst)
-#endif
-			{
-				if (!MediaSource->OpenUrl(DeviceURL))
-				{
-					UE_LOG(LogMixedReality, Warning, TEXT("Failed to open the specified capture device ('%s'). Falling back to the default."), *DeviceURL);
-					MediaSource->OpenUrl(CaptureDeviceURL);
-					return;
-				}
-			}
-		}
+		UAsyncTask_OpenMRCaptureFeed::OpenMRCaptureFeed(FeedRef, MediaSource, OnOpenCallback);
 	}
-	CaptureDeviceURL = DeviceURL;
+	else
+	{
+		CaptureFeedRef = FeedRef;
+	}
+}
+
+//------------------------------------------------------------------------------
+void UMixedRealityCaptureComponent::SetTrackingDelay(int32 DelayMS)
+{
+	TrackingLatency = DelayMS;
 }
 
 //------------------------------------------------------------------------------
@@ -490,27 +475,12 @@ float UMixedRealityCaptureComponent::GetDesiredAspectRatio() const
 }
 
 //------------------------------------------------------------------------------
-void UMixedRealityCaptureComponent::AttachMediaListeners() const
+void UMixedRealityCaptureComponent::OnVideoFeedOpened(const FMRCaptureDeviceIndex& FeedRef)
 {
-	if (MediaSource)
-	{
-		MediaSource->OnMediaOpened.AddUniqueDynamic(this, &UMixedRealityCaptureComponent::OnVideoFeedOpened);
-	}
-}
-
-//------------------------------------------------------------------------------
-void UMixedRealityCaptureComponent::DetachMediaListeners() const
-{
-	if (MediaSource)
-	{
-		MediaSource->OnMediaOpened.RemoveDynamic(this, &UMixedRealityCaptureComponent::OnVideoFeedOpened);
-	}
-}
-
-//------------------------------------------------------------------------------
-void UMixedRealityCaptureComponent::OnVideoFeedOpened(FString MediaUrl)
-{
+	CaptureFeedRef = FeedRef;
 	RefreshProjectionDimensions();
+
+	OnCaptureSourceOpened.Broadcast(FeedRef);
 }
 
 //------------------------------------------------------------------------------
@@ -574,7 +544,7 @@ bool UMixedRealityCaptureComponent::SaveConfiguration(const FString& SlotName, i
 	// compositing data
 	{
 		SaveGameInstance->CompositingData.ChromaKeySettings = ChromaKeySettings;
-		SaveGameInstance->CompositingData.CaptureDeviceURL  = CaptureDeviceURL; 
+		SaveGameInstance->CompositingData.CaptureDeviceURL  = CaptureFeedRef;
 	}	
 	// garbage matte data is only read by this component.
 
@@ -634,12 +604,14 @@ bool UMixedRealityCaptureComponent::LoadConfiguration(const FString& SlotName, i
 	return true;
 }
 
+//------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::SetExternalGarbageMatteActor(AActor* Actor)
 {
 	check(GarbageMatteCaptureComponent);
 	GarbageMatteCaptureComponent->SetExternalGarbageMatteActor(Actor);
 }
 
+//------------------------------------------------------------------------------
 void UMixedRealityCaptureComponent::ClearExternalGarbageMatteActor()
 {
 	check(GarbageMatteCaptureComponent);

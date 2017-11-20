@@ -114,41 +114,75 @@ void FDefaultXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHIC
 
 void FDefaultXRCamera::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 {
-	auto HMD = TrackingSystem->GetHMDDevice();
-	if (HMD)
+	check(IsInGameThread());
 	{
-		HMD->BeginRendering_GameThread();
+		// Backwards compatibility during deprecation phase. Remove once IHeadMountedDisplay::BeginRendering_GameThread has been removed.
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		auto HMD = TrackingSystem->GetHMDDevice();
+		if (HMD)
+		{
+			HMD->BeginRendering_GameThread();
+		}
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+	TrackingSystem->OnBeginRendering_GameThread();
 }
 
 void FDefaultXRCamera::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
-	const FSceneView* MainView = ViewFamily.Views[0];
 
-	FQuat NewOrientation;
-	FVector NewPosition;
-	TrackingSystem->RefreshPoses();
-	TrackingSystem->GetCurrentPose(DeviceId, NewOrientation, NewPosition);
-
-	const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
-	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
-
-	LateUpdate.Apply_RenderThread(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
-	auto HMD = TrackingSystem->GetHMDDevice();
-	if (HMD)
 	{
-		HMD->BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
+		// Backwards compatibility during deprecation phase. Remove once IXRTrackingSystem::RefreshPoses has been removed.
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		TrackingSystem->RefreshPoses();
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+	TrackingSystem->OnBeginRendering_RenderThread(RHICmdList, ViewFamily);
+
+	{
+		FQuat CurrentOrientation;
+		FVector CurrentPosition;
+		if (TrackingSystem->DoesSupportLateUpdate() && TrackingSystem->GetCurrentPose(DeviceId, CurrentOrientation, CurrentPosition))
+		{
+			const FSceneView* MainView = ViewFamily.Views[0];
+			check(MainView);
+
+			// TODO: Should we (and do we have enough information to) double-check that the plugin actually has updated the pose here?
+			// ensure((CurrentPosition != MainView->BaseHmdLocation && CurrentOrientation != MainView->BaseHmdOrientation) || CurrentPosition.IsZero() || CurrentOrientation.IsIdentity() );
+
+			const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
+			const FTransform CurrentRelativeTransform(CurrentOrientation, CurrentPosition);
+
+			LateUpdate.Apply_RenderThread(ViewFamily.Scene, OldRelativeTransform, CurrentRelativeTransform);
+			TrackingSystem->OnLateUpdateApplied_RenderThread(CurrentRelativeTransform);
+
+			{
+				// Backwards compatibility during deprecation phase. Remove once IHeadMountedDisplay::BeginRendering_RenderThread has been removed.
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
+					auto HMD = TrackingSystem->GetHMDDevice();
+				if (HMD)
+				{
+					HMD->BeginRendering_RenderThread(CurrentRelativeTransform, RHICmdList, ViewFamily);
+				}
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
+			}
+		}
+	}
+}
+
+void FDefaultXRCamera::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
+{
+	LateUpdate.PostRender_RenderThread();
 }
 
 void FDefaultXRCamera::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	static const auto CVarAllowMotionBlurInVR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.AllowMotionBlurInVR"));
 	const bool allowMotionBlur = (CVarAllowMotionBlurInVR && CVarAllowMotionBlurInVR->GetValueOnAnyThread() != 0);
-	auto HMD = TrackingSystem->GetHMDDevice();
+	const IHeadMountedDisplay* HMD = TrackingSystem->GetHMDDevice();
 	InViewFamily.EngineShowFlags.MotionBlur = allowMotionBlur;
-	InViewFamily.EngineShowFlags.HMDDistortion = HMD?HMD->GetHMDDistortionEnabled():false;
+	InViewFamily.EngineShowFlags.HMDDistortion = HMD?HMD->GetHMDDistortionEnabled(InViewFamily.Scene->GetShadingPath()):false;
 	InViewFamily.EngineShowFlags.StereoRendering = bCurrentFrameIsStereoRendering;
 }
 
@@ -165,5 +199,5 @@ void FDefaultXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InV
 bool FDefaultXRCamera::IsActiveThisFrame(class FViewport* InViewport) const
 {
 	bCurrentFrameIsStereoRendering = GEngine && GEngine->IsStereoscopic3D(InViewport); // The current viewport might disallow stereo rendering. Save it so we'll use the correct value in SetupViewFamily.
-	return TrackingSystem->IsHeadTrackingAllowed();
+	return bCurrentFrameIsStereoRendering && TrackingSystem->IsHeadTrackingAllowed();
 }

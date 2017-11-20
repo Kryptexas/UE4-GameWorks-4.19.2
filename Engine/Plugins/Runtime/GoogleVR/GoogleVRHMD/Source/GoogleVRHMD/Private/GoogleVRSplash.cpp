@@ -153,7 +153,7 @@ void FGoogleVRSplash::Tick(float DeltaTime)
 {
 	check(IsInRenderingThread());
 
-	GVRHMD->RefreshPoses();
+	GVRHMD->UpdatePoses();
 	FRotator CurrentHeadOrientation = FRotator(GVRHMD->CachedFinalHeadRotation);
 	// Use the user defined angle to hide the splash screen.
 	// Note that if we do not hide the splash screen at all, users will see a flipped splash screen

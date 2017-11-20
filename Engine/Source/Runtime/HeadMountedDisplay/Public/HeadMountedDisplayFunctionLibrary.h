@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
+#include "IIdentifiableXRDevice.h" // for FXRDeviceId
 #include "HeadMountedDisplayFunctionLibrary.generated.h"
 
 UCLASS()
@@ -188,6 +189,13 @@ class HEADMOUNTEDDISPLAY_API UHeadMountedDisplayFunctionLibrary : public UBluepr
 	static TEnumAsByte<EHMDTrackingOrigin::Type> GetTrackingOrigin();
 
 	/**
+	 * Returns a transform that can be used to convert points from tracking space to world space.
+	 * Does NOT include the set WorldToMeters scale, as that is added in by the backing XR system to their tracking space poses.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|HeadMountedDisplay",  meta=(WorldContext="WorldContext"))
+	static FTransform GetTrackingToWorldTransform(UObject* WorldContext);
+
+	/**
 	 * Returns current state of VR focus.
 	 *
 	 * @param bUseFocus		(out) if set to true, then this App does use VR focus.
@@ -227,4 +235,56 @@ class HEADMOUNTEDDISPLAY_API UHeadMountedDisplayFunctionLibrary : public UBluepr
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Input|HeadMountedDisplay|SpectatorScreen")
 	static void SetSpectatorScreenModeTexturePlusEyeLayout(FVector2D EyeRectMin, FVector2D EyeRectMax, FVector2D TextureRectMin, FVector2D TextureRectMax, bool bDrawEyeFirst = true, bool bClearBlack = false);
+
+	/**
+	 * Cross XR-System query that will list all XR devices currently being tracked.
+	 *
+	 * @param  SystemId		(Optional) Specifies an explicit system to poll devices from (use if you want only devices belonging to one explicit XR ecosystem, e.g. 'OculusHMD', or 'SteamVR')
+	 * @param  DeviceType	Specifies the type of device to query for - defaults to 'Any' (meaning 'All').
+	 *
+	 * @return A list of device identifiers matching the query. Use these to query and operate on the device (e.g. through GetDevicePose, AddDeviceVisualizationComponent, etc.)
+	 */
+	UFUNCTION(BlueprintCallable, Category="Input|XRTracking")
+	static TArray<FXRDeviceId> EnumerateTrackedDevices(const FName SystemId = NAME_None, EXRTrackedDeviceType DeviceType = EXRTrackedDeviceType::Any);
+
+	/**
+	 * Cross XR-System query that returns a specific device's tracked position and orientation (in tracking space).
+	 *
+	 * @param  XRDeviceId				Specifies the device you're querying for.
+	 * @param  bIsTracked				[out] Details if the specified device is tracked (i.e. should the rest of the outputs be used)
+	 * @param  Orientation				[out] Represents the device's current rotation - NOTE: this value is not late updated and will be behind the render thread
+	 * @param  bHasPositionalTracking	[out] Details if the specified device has positional tracking (i.e. if the position output should be used)
+	 * @param  Position					[out] Represents the device's current position - NOTE: this value is not late updated and will be behind the render thread
+	 */
+	UFUNCTION(BlueprintCallable, Category="Input|XRTracking")
+	static void GetDevicePose(const FXRDeviceId& XRDeviceId, bool& bIsTracked, FRotator& Orientation, bool& bHasPositionalTracking, FVector& Position);
+
+	/**
+	 * Cross XR-System query that returns a specific device's position and orientation in world space.
+	 *
+	 * @param  XRDeviceId				Specifies the device you're querying for.
+	 * @param  bIsTracked				[out] Details if the specified device is tracked (i.e. should the rest of the outputs be used)
+	 * @param  Orientation				[out] Represents the device's current rotation - NOTE: this value is not late updated and will be behind the render thread
+	 * @param  bHasPositionalTracking	[out] Details if the specified device has positional tracking (i.e. if the position output should be used)
+	 * @param  Position					[out] Represents the device's current position - NOTE: this value is not late updated and will be behind the render thread
+	 */
+	UFUNCTION(BlueprintCallable, Category="Input|XRTracking",  meta=(WorldContext="WorldContext"))
+	static void GetDeviceWorldPose(UObject* WorldContext, const FXRDeviceId& XRDeviceId, bool& bIsTracked, FRotator& Orientation, bool& bHasPositionalTracking, FVector& Position);
+
+	/**
+	 * Spawns a render component for the specified XR device.
+	 *
+	 * NOTE: The associated XR system backend has to provide a model for this to
+	 *       work - if one is not available for the specific device, then this
+	 *       will fail and return an invalid (null) object.
+	 *
+	 * @param  Target				The intended owner for the component to attach to.
+	 * @param  XRDeviceId			Specifies the device you're wanting a model for.
+	 * @param  bManualAttachment	If set, will leave the component unattached (mirror's the same option on the generic AddComponent node). When unset the component will attach to the actor's root.
+	 * @param  RelativeTransform	Specifies the component initial transform (relative to its attach parent).
+	 *
+	 * @return A new component representing the specified device (invalid/null if a model for the device doesn't exist).
+	 */
+	UFUNCTION(BlueprintCallable, Category="XR|Devices", meta=(DefaultToSelf = "Target"))
+	static UPrimitiveComponent* AddDeviceVisualizationComponent(AActor* Target, const FXRDeviceId& XRDeviceId, bool bManualAttachment, const FTransform& RelativeTransform);
 };

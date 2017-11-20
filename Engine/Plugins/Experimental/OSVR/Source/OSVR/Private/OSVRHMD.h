@@ -52,13 +52,13 @@ public:
     virtual void OnBeginPlay(FWorldContext& InWorldContext) override;
     virtual void OnEndPlay(FWorldContext& InWorldContext) override;
     virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
-    
+	virtual void OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+
 	virtual bool DoesSupportPositionalTracking() const override;
     virtual bool HasValidTrackingPosition() override;
 
 	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;
 	virtual bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
-	virtual void RefreshPoses() override;
 
 	virtual void SetBaseRotation(const FRotator& BaseRot) override;
     virtual FRotator GetBaseRotation() const override;
@@ -88,13 +88,10 @@ public:
 		return WorldToMetersScale;
 	}
 
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
-
 	/** IHeadMountedDisplay interface */
 	virtual bool IsHMDConnected() override;
     virtual bool IsHMDEnabled() const override;
     virtual void EnableHMD(bool bEnable = true) override;
-    virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
     virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
@@ -103,7 +100,7 @@ public:
     virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
     virtual float GetInterpupillaryDistance() const override;
 
-	virtual bool GetHMDDistortionEnabled() const override;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const override;
     virtual bool IsChromaAbCorrectionEnabled() const override;
 
     virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
@@ -143,6 +140,7 @@ public:
     bool IsInitialized() const;
 
 private:
+	void UpdatePoses();
 	void StartCustomPresent();
     void StopCustomPresent();
     void GetRenderTargetSize_GameThread(float windowWidth, float windowHeight, float &width, float &height);

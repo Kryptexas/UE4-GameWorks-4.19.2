@@ -12,8 +12,7 @@ USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& Objec
 #if STEAMVR_SUPPORTED_PLATFORMS
 FSteamVRHMD* GetSteamVRHMD()
 {
-	static FName SystemName(TEXT("SteamVR"));
-	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == SystemName))
+	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == FSteamVRHMD::SteamSystemName))
 	{
 		return static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
 	}

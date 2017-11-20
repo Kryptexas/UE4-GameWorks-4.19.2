@@ -222,9 +222,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetCurrent();
 /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetCurrentForUser(ovrID userID);
 
-/// Loads a list of users you can invite to your current room. These are pulled
-/// from your friends list and filtered for relevance and interest. If your
-/// current room cannot be joined, this list will be empty.
+/// DEPRECATED. Use GetInvitableUsers2.
 ///
 /// A message with type ::ovrMessage_Room_GetInvitableUsers will be generated in response.
 ///
@@ -234,9 +232,42 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetCurrentForUser(ovrID userID);
 /// Extract the payload from the message handle with ::ovr_Message_GetUserArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetInvitableUsers();
 
-/// Loads a list of users you can invite to your current room. These are pulled
-/// from your friends list and filtered for relevance and interest. If your
-/// current room cannot be joined, this list will be empty.
+/// Loads a list of users you can invite to a room. These are pulled from your
+/// friends list and recently met lists and filtered for relevance and
+/// interest. If the room cannot be joined, this list will be empty. By
+/// default, the invitable users returned will be for the user's current room.
+///
+/// If your application grouping was created after September 9 2017, recently
+/// met users will be included by default. If your application grouping was
+/// created before then, you can go to edit the setting in the "Rooms and
+/// Matchmaking" section of Platform Services at dashboard.oculus.com
+///
+/// Customization can be done via RoomOptions. Create this object with
+/// ovr_RoomOptions_Create. The params that could be used are:
+///
+/// 1. ovr_RoomOptions_SetRoomId- will return the invitable users for this room
+/// (instead of the current room).
+///
+/// 2. ovr_RoomOptions_SetOrdering - returns the list of users in the provided
+/// ordering (see UserOrdering enum).
+///
+/// 3. ovr_RoomOptions_SetRecentlyMetTimeWindow - how long long ago should we
+/// include users you've recently met in the results?
+///
+/// 4. ovr_RoomOptions_SetMaxUserResults - we will limit the number of results
+/// returned. By default, the number is unlimited, but the server may choose to
+/// limit results for performance reasons.
+///
+/// 5. ovr_RoomOptions_SetExcludeRecentlyMet - Don't include users recently in
+/// rooms with this user in the result. Also, see the above comment.
+///
+/// Example custom C++ usage:
+///
+///   auto roomOptions = ovr_RoomOptions_Create();
+///   ovr_RoomOptions_SetOrdering(roomOptions, ovrUserOrdering_PresenceAlphabetical);
+///   ovr_RoomOptions_SetRoomId(roomOptions, roomID);
+///   ovr_Room_GetInvitableUsers2(roomOptions);
+///   ovr_RoomOptions_Destroy(roomOptions);
 /// \param roomOptions Additional configuration for this request. Optional.
 ///
 /// A message with type ::ovrMessage_Room_GetInvitableUsers2 will be generated in response.
@@ -267,7 +298,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetModeratedRooms();
 /// Extract the payload from the message handle with ::ovr_Message_GetRoomArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetNextRoomArrayPage(ovrRoomArrayHandle handle);
 
-/// Invites a user to the specified room.
+/// Invites a user to the specified room. They will receive a notification via
+/// ovrNotification_Room_InviteReceived if they are in your game, and/or they
+/// can poll for room invites using ovr_Notification_GetRoomInvites().
 /// \param roomID The ID of your current room.
 /// \param inviteToken A user's invite token, returned by ovr_Room_GetInvitableUsers().
 ///

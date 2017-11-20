@@ -28,7 +28,7 @@ limitations under the License.
 #endif
 
 #define OVRP_MAJOR_VERSION 1
-#define OVRP_MINOR_VERSION 17
+#define OVRP_MINOR_VERSION 20
 #define OVRP_PATCH_VERSION 0
 
 #define OVRP_VERSION OVRP_MAJOR_VERSION, OVRP_MINOR_VERSION, OVRP_PATCH_VERSION
@@ -101,6 +101,8 @@ typedef enum {
   ovrpInitializeFlag_StartGearVRReceivers = (1 << 0),
   /// Supports 2D/3D switching
   ovrpInitializeFlag_SupportsVRToggle = (1 << 1),
+  /// Supports Life Cycle Focus (Dash)
+  ovrpInitializeFlag_FocusAware = (1 << 2),
 } ovrpInitializeFlags;
 
 /// Identifies an eye in a stereo pair.
@@ -201,6 +203,7 @@ typedef enum {
   ovrpSystemHeadset_GearVR_R322, // GearVR Commercial 1
   ovrpSystemHeadset_GearVR_R323, // GearVR Commercial 2 (USB Type C)
   ovrpSystemHeadset_GearVR_R324, // GearVR Commercial 3 (USB Type C)
+  ovrpSystemHeadset_GearVR_R325, // GearVR Commercial 4 (USB Type C)
 
   ovrpSystemHeadset_Rift_DK1 = 0x1000,
   ovrpSystemHeadset_Rift_DK2,
@@ -318,6 +321,15 @@ typedef enum {
   ovrpLogLevel_EnumSize = 0x7fffffff
 } ovrpLogLevel;
 
+/// Foveation levels
+typedef enum {
+  ovrpTiledMultiResLevel_Off = 0,
+  ovrpTiledMultiResLevel_LMSLow = 1,
+  ovrpTiledMultiResLevel_LMSMedium = 2,
+  ovrpTiledMultiResLevel_LMSHigh = 3,
+  ovrpTiledMultiResLevel_EnumSize = 0x7fffffff
+} ovrpTiledMultiResLevel;
+
 typedef void(__cdecl* ovrpLogCallback)(ovrpLogLevel, const char*);
 
 typedef struct {
@@ -430,6 +442,17 @@ typedef struct {
   ovrpSizef Size;
 } ovrpRectf;
 
+typedef struct {
+	float WarpLeft;
+	float WarpRight;
+	float WarpUp;
+	float WarpDown;
+	float SizeLeft;
+	float SizeRight;
+	float SizeUp;
+	float SizeDown;
+} ovrpOctilinearLayout;
+
 typedef struct { float r, g, b, a; } ovrpColorf;
 
 /// Describes Input State for use with Gamepads and Oculus Controllers.
@@ -503,6 +526,17 @@ typedef struct {
   int PointsCount;
 } ovrpBoundaryGeometry;
 
+typedef struct {
+  /// Distance between eyes.
+  float InterpupillaryDistance;
+  /// Eye height relative to the ground.
+  float EyeHeight;
+  /// Eye offset forward from the head center at EyeHeight.
+  float HeadModelDepth;
+  /// Neck joint offset down from the head center at EyeHeight.
+  float HeadModelHeight;
+} ovrpHeadModelParms;
+
 typedef enum { ovrpFunctionEndFrame = 0, ovrpFunctionCreateTexture } ovrpFunctionType;
 
 /// Camera status
@@ -544,6 +578,7 @@ typedef enum {
   ovrpCameraDevice_WebCamera0 = ovrpCameraDevice_WebCamera_First + 0,
   ovrpCameraDevice_WebCamera1 = ovrpCameraDevice_WebCamera_First + 1,
   ovrpCameraDevice_WebCamera_Last = ovrpCameraDevice_WebCamera1,
+  ovrpCameraDevice_ZEDStereoCamera = 300,
   ovrpCameraDevice_EnumSize = 0x7fffffff
 } ovrpCameraDevice;
 #endif
@@ -692,8 +727,8 @@ typedef struct {
   ovrpFovf Fov[ovrpEye_Count];
   ovrpRectf VisibleRect[ovrpEye_Count];
   ovrpSizei MaxViewportSize;
+  //added for 1.17
   ovrpTextureFormat DepthFormat;
-  ovrpFrustum2f DepthFrustum;
 } ovrpLayerDesc_EyeFov;
 
 typedef OVRP_LAYER_DESC_TYPE ovrpLayerDesc_OffcenterCubemap;
@@ -714,6 +749,10 @@ typedef union {
 typedef enum {
   /// Pose relative to head
   ovrpLayerSubmitFlag_HeadLocked = (1 << 0),
+  /// Layer is octilinear (LMS)
+  ovrpLayerSubmitFlag_Octilinear = (1 << 1),
+  /// Use reverse Z
+  ovrpLayerSubmitFlag_ReverseZ = (1 << 2),
 } ovrpLayerSubmitFlags;
 
 /// Layer state to submit to ovrp_EndFrame
@@ -747,7 +786,15 @@ typedef struct {
 } ovrpLayerSubmit_Cylinder;
 
 typedef OVRP_LAYER_SUBMIT_TYPE ovrpLayerSubmit_Cubemap;
-typedef OVRP_LAYER_SUBMIT_TYPE ovrpLayerSubmit_EyeFov;
+
+typedef struct {
+	OVRP_LAYER_SUBMIT_TYPE;
+	// added in 1.18
+	ovrpOctilinearLayout OctilinearLayout[ovrpEye_Count];
+	float DepthNear;
+	float DepthFar;
+} ovrpLayerSubmit_EyeFov;
+
 typedef OVRP_LAYER_SUBMIT_TYPE ovrpLayerSubmit_OffcenterCubemap;
 
 typedef union {

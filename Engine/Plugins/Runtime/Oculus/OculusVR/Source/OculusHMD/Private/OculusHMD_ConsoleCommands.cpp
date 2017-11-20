@@ -65,22 +65,10 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		*NSLOCTEXT("OculusRift", "CCommandText_Show",
 			"Oculus Rift specific extension.\nShows the current value of various stereo rendering params.").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::ShowSettingsCommandHandler))
-	, ResetSettingsCommand(TEXT("vr.oculus.Debug.Reset"),
-		*NSLOCTEXT("OculusRift", "CCommandText_Reset",
-			"Oculus Rift specific extension.\nResets various stereo rendering params back to the original setting.").ToString(),
-		FConsoleCommandDelegate::CreateRaw(InHMDPtr, &FOculusHMD::ResetStereoRenderingParams))
 	, IPDCommand(TEXT("vr.oculus.Debug.IPD"),
 		*NSLOCTEXT("OculusRift", "CCommandText_IPD",
 			"Oculus Rift specific extension.\nShows or changes the current interpupillary distance in meters.").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::IPDCommandHandler))
-	, FCPCommand(TEXT("vr.oculus.Debug.FCP"),
-		*NSLOCTEXT("OculusRift", "CCommandText_FCP",
-			"Oculus Rift specific extension.\nShows or overrides the current far clipping plane.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::FCPCommandHandler))
-	, NCPCommand(TEXT("vr.oculus.Debug.NCP"),
-		*NSLOCTEXT("OculusRift", "CCommandText_NCP",
-			"Oculus Rift specific extension.\nShows or overrides the current near clipping plane.").ToString(),
-		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::NCPCommandHandler))
 #endif // !UE_BUILD_SHIPPING
 {
 }

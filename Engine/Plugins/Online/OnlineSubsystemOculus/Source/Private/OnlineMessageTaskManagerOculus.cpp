@@ -28,7 +28,7 @@ void FOnlineMessageTaskManagerOculus::OnReceiveMessage(ovrMessageHandle Message)
 		}
 		else
 		{
-			UE_LOG_ONLINE(Verbose, TEXT("Unhandled request id: %llu"), RequestId);
+			UE_LOG_ONLINE(Verbose, TEXT("Unhandled request id: %llu type: %#010x"), RequestId, static_cast<int32>(MessageType));
 		}
 	}
 	ovr_FreeMessage(Message);

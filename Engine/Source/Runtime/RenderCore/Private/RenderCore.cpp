@@ -13,7 +13,7 @@ IMPLEMENT_MODULE(FDefaultModuleImpl, RenderCore);
 
 DEFINE_LOG_CATEGORY(LogRendererCore);
 
-/*-----------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
 	Stat declarations.
 -----------------------------------------------------------------------------*/
 // Cycle stats are rendered in reverse order from what they are declared in.

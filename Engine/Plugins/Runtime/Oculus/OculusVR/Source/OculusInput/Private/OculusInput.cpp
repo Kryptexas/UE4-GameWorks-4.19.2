@@ -655,7 +655,7 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 									OutOrientation = OutPose.Orientation.Rotator();
 								}
 
-								OutPosition = OutPose.Position;
+									OutPosition = OutPose.Position;
 
 								return true;
 							}

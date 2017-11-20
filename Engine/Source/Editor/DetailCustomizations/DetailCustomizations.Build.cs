@@ -53,6 +53,7 @@ public class DetailCustomizations : ModuleRules
                 "LevelSequence",
                 "AdvancedPreviewScene",
                 "AudioSettingsEditor",
+				"HeadMountedDisplay",
             }
 		);
 

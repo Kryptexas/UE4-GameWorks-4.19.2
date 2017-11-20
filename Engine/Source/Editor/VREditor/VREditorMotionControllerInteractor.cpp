@@ -76,6 +76,9 @@ namespace VREd
 
 }
 
+static const FName OculusDeviceType(TEXT("OculusHMD"));
+static const FName SteamVRDeviceType(TEXT("SteamVR"));
+
 const FName UVREditorMotionControllerInteractor::TrackpadPositionX = FName( "TrackpadPositionX" );
 const FName UVREditorMotionControllerInteractor::TrackpadPositionY = FName( "TrackpadPositionY" );
 const FName UVREditorMotionControllerInteractor::TriggerAxis = FName( "TriggerAxis" );
@@ -137,7 +140,7 @@ void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 	Super::Init( InVRMode );
 	bHaveMotionController = true;
 
-	const EHMDDeviceType::Type HMDDeviceType = GetVRMode().GetHMDDeviceType();
+	const FName HMDDeviceType = GetVRMode().GetHMDDeviceType();
 	// Setup keys
 	if ( ControllerHandSide == EControllerHand::Left )
 	{
@@ -150,11 +153,11 @@ void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 		AddKeyAction( EKeys::MotionController_Left_Thumbstick_Y, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TrackpadPositionY ) );
 		AddKeyAction( EKeys::MotionController_Left_Thumbstick, FViewportActionKeyInput( VRActionTypes::ConfirmRadialSelection ) );
 
-		if ( HMDDeviceType == EHMDDeviceType::DT_SteamVR )
+		if ( HMDDeviceType == SteamVRDeviceType )
 		{
 			AddKeyAction( EKeys::MotionController_Left_Shoulder, FViewportActionKeyInput( VRActionTypes::Modifier ) );
 		}
-		else if( HMDDeviceType == EHMDDeviceType::DT_OculusRift )
+		else if( HMDDeviceType == OculusDeviceType )
 		{
 			AddKeyAction( EKeys::MotionController_Left_FaceButton1, FViewportActionKeyInput( VRActionTypes::Modifier ) );
 			AddKeyAction( EKeys::MotionController_Left_FaceButton2, FViewportActionKeyInput( VRActionTypes::Modifier2 ) );
@@ -171,11 +174,11 @@ void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 		AddKeyAction( EKeys::MotionController_Right_Thumbstick_Y, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TrackpadPositionY ) );
 		AddKeyAction( EKeys::MotionController_Right_Thumbstick, FViewportActionKeyInput( VRActionTypes::ConfirmRadialSelection ) );
 
-		if ( HMDDeviceType == EHMDDeviceType::DT_SteamVR )
+		if ( HMDDeviceType == SteamVRDeviceType )
 		{
 			AddKeyAction( EKeys::MotionController_Right_Shoulder, FViewportActionKeyInput( VRActionTypes::Modifier ) );
 		}
-		else if ( HMDDeviceType == EHMDDeviceType::DT_OculusRift )
+		else if ( HMDDeviceType == OculusDeviceType )
 		{
 			AddKeyAction( EKeys::MotionController_Right_FaceButton1, FViewportActionKeyInput( VRActionTypes::Modifier ) );
 			AddKeyAction( EKeys::MotionController_Right_FaceButton2, FViewportActionKeyInput( VRActionTypes::Modifier2 ) );
@@ -219,7 +222,7 @@ void UVREditorMotionControllerInteractor::SetupComponent( AActor* OwningActor )
 		HandMeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 		HandMeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
 
-		UMaterialInterface* HandMeshMaterial = GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR ? AssetContainer.VivePreControllerMaterial : AssetContainer.OculusControllerMaterial;
+		UMaterialInterface* HandMeshMaterial = GetVRMode().GetHMDDeviceType() == SteamVRDeviceType ? AssetContainer.VivePreControllerMaterial : AssetContainer.OculusControllerMaterial;
 		check( HandMeshMaterial != nullptr );
 		HandMeshMID = UMaterialInstanceDynamic::Create( HandMeshMaterial, GetTransientPackage() );
 		check( HandMeshMID != nullptr );
@@ -356,7 +359,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		// The hands need to stay the same size relative to our tracking space, so we inverse compensate for world to meters scale here
 		// NOTE: We don't need to set the hand mesh location and rotation, as the MotionControllerComponent does that itself
 		if ( ControllerHandSide == EControllerHand::Right &&
-			GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift )	// Oculus has asymmetrical controllers, so we mirror the mesh horizontally
+			GetHMDDeviceType() == OculusDeviceType )	// Oculus has asymmetrical controllers, so we mirror the mesh horizontally
 		{
 			HandMeshComponent->SetRelativeScale3D( FVector( WorldScaleFactor, -WorldScaleFactor, WorldScaleFactor ) );
 		}
@@ -456,7 +459,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		{
 			// Offset the beginning of the laser pointer a bit, so that it doesn't overlap the hand mesh
 			const float LaserPointerStartOffset = WorldScaleFactor *
-				(GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerStartOffset->GetFloat() : VREd::ViveLaserPointerStartOffset->GetFloat());
+				(GetVRMode().GetHMDDeviceType() == OculusDeviceType ? VREd::OculusLaserPointerStartOffset->GetFloat() : VREd::ViveLaserPointerStartOffset->GetFloat());
 
 			// Get the hand transform and forward vector.
 			FTransform InteractorTransform;
@@ -559,7 +562,7 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 	// Make sure they are touching the trackpad, otherwise we get bad data
 	if ( bIsTrackpadPositionValid[ 1 ] )
 	{
-		const bool bIsAbsolute = ( GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
+		const bool bIsAbsolute = (GetVRMode().GetHMDDeviceType() == SteamVRDeviceType);
 		float SlideDelta = GetTrackpadSlideDelta() * WorldScaleFactor;
 
 		if ( !FMath::IsNearlyZero( SlideDelta ) )
@@ -622,9 +625,9 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 }
 
 
-EHMDDeviceType::Type UVREditorMotionControllerInteractor::GetHMDDeviceType() const
+FName UVREditorMotionControllerInteractor::GetHMDDeviceType() const
 {
-	return (GEngine && GEngine->XRSystem.IsValid()) && GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR; //@todo: ViewportInteraction, assumption that it's steamvr ??
+	return (GEngine && GEngine->XRSystem.IsValid()) ? GEngine->XRSystem->GetSystemName() : FName();
 }
 
 
@@ -697,7 +700,7 @@ void UVREditorMotionControllerInteractor::PreviewInputKey( FEditorViewportClient
 		const bool bIsHoldingUpOnTrackpad =
 			bIsTrackpadPositionValid[0] && bIsTrackpadPositionValid[1] &&
 			TrackpadPosition.Y >= VREd::MinTrackpadOffsetBeforeRadialMenu->GetFloat() &&
-			( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift || bIsPressingTrackpad );
+			( GetHMDDeviceType() == OculusDeviceType || bIsPressingTrackpad );
 
 		if( bIsHoldingUpOnTrackpad && Action.ActionType == ViewportWorldActionTypes::SelectAndMove && Event == IE_Pressed )
 		{
@@ -767,8 +770,8 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FEditorViewportClient
 {
 	if ( Action.ActionType == TriggerAxis )
 	{
-		const float TriggerPressedThreshold = ( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ) ? GetDefault<UVRModeSettings>()->TriggerPressedThreshold_Rift : GetDefault<UVRModeSettings>()->TriggerPressedThreshold_Vive;
-		const float TriggerDeadZone = ( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ) ? VREd::TriggerDeadZone_Rift->GetFloat() : VREd::TriggerDeadZone_Vive->GetFloat();
+		const float TriggerPressedThreshold = ( GetHMDDeviceType() == OculusDeviceType ) ? GetDefault<UVRModeSettings>()->TriggerPressedThreshold_Rift : GetDefault<UVRModeSettings>()->TriggerPressedThreshold_Vive;
+		const float TriggerDeadZone = ( GetHMDDeviceType() == OculusDeviceType ) ? VREd::TriggerDeadZone_Rift->GetFloat() : VREd::TriggerDeadZone_Vive->GetFloat();
 
 		// Synthesize "lightly pressed" events for the trigger
 		{
@@ -803,7 +806,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FEditorViewportClient
 
 		// Synthesize "fully pressed" events for the trigger
 		{
-			const float TriggerFullyPressedThreshold = (GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift) ? VREd::TriggerFullyPressedThreshold_Rift->GetFloat() : VREd::TriggerFullyPressedThreshold_Vive->GetFloat();
+			const float TriggerFullyPressedThreshold = (GetHMDDeviceType() == OculusDeviceType) ? VREd::TriggerFullyPressedThreshold_Rift->GetFloat() : VREd::TriggerFullyPressedThreshold_Vive->GetFloat();
 
 			if ( !bIsTriggerFullyPressed &&	// Don't fire if we are already pressed
 				 Delta >= TriggerFullyPressedThreshold )
@@ -899,7 +902,7 @@ bool UVREditorMotionControllerInteractor::GetTransformAndForwardVector( FTransfo
 	{
 		OutHandTransform = InteractorData.Transform;
 
-		const float LaserPointerRotationOffset = GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerRotationOffset->GetFloat() : VREd::ViveLaserPointerRotationOffset->GetFloat();
+		const float LaserPointerRotationOffset = GetHMDDeviceType() == OculusDeviceType ? VREd::OculusLaserPointerRotationOffset->GetFloat() : VREd::ViveLaserPointerRotationOffset->GetFloat();
 		OutForwardVector = OutHandTransform.GetRotation().RotateVector( FRotator( LaserPointerRotationOffset, 0.0f, 0.0f ).RotateVector( FVector( 1.0f, 0.0f, 0.0f ) ) );
 
 		return true;
@@ -910,7 +913,7 @@ bool UVREditorMotionControllerInteractor::GetTransformAndForwardVector( FTransfo
 
 float UVREditorMotionControllerInteractor::GetTrackpadSlideDelta( const bool Axis )
 {
-	const bool bIsAbsolute = ( GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
+	const bool bIsAbsolute = ( GetVRMode().GetHMDDeviceType() == SteamVRDeviceType );
 	float SlideDelta = 0.0f;
 	if ( bIsTouchingTrackpad || !bIsAbsolute )
 	{
@@ -1020,7 +1023,7 @@ void UVREditorMotionControllerInteractor::ApplyButtonPressColors( const FViewpor
 		SetMotionControllerButtonPressedVisuals( Event, StaticModifierParameter, PressStrength );
 	}
 
-	if( GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift && ActionType == VRActionTypes::Modifier2 )
+	if( GetVRMode().GetHMDDeviceType() == OculusDeviceType && ActionType == VRActionTypes::Modifier2 )
 	{
 		static FName StaticModifierParameter( "B5" );
 		SetMotionControllerButtonPressedVisuals( Event, StaticModifierParameter, PressStrength );
@@ -1186,8 +1189,7 @@ void UVREditorMotionControllerInteractor::UpdateHelpLabels()
 			FTransform SocketRelativeTransform( Socket->RelativeRotation, Socket->RelativeLocation, Socket->RelativeScale );
 
 			// Oculus has asymmetrical controllers, so we the sock transform horizontally
-			if ( ControllerHandSide == EControllerHand::Right &&
-				GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift )
+			if ( ControllerHandSide == EControllerHand::Right && GetVRMode().GetHMDDeviceType() == OculusDeviceType)
 			{
 				const FVector Scale3D = SocketRelativeTransform.GetLocation();
 				SocketRelativeTransform.SetLocation( FVector( Scale3D.X, -Scale3D.Y, Scale3D.Z ) );
@@ -1385,7 +1387,7 @@ void UVREditorMotionControllerInteractor::SetLaserVisuals( const FLinearColor& N
 void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float DeltaTime )
 {
 	UVREditorUISystem& UISystem = GetVRMode().GetUISystem();
-	const EHMDDeviceType::Type HMDDeviceType = GetVRMode().GetHMDDeviceType();
+	const FName HMDDeviceType = GetVRMode().GetHMDDeviceType();
 	//Update the radial menu
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
 	if (ControllerType == EControllerType::UI)
@@ -1426,7 +1428,7 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 			}
 		}
 		// If we are not currently touching the Vive touchpad, reset the highlighted button
-		else if (HMDDeviceType == EHMDDeviceType::DT_SteamVR && !bIsTouchingTrackpad)
+		else if (HMDDeviceType == SteamVRDeviceType && !bIsTouchingTrackpad)
 		{
 			if (UISystem.IsShowingRadialMenu(this))
 			{
@@ -1438,7 +1440,7 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 
 	else if (ControllerType == EControllerType::Laser)
 	{
-		if (VRMode->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR &&
+		if (HMDDeviceType != SteamVRDeviceType &&
 			(bIsTrackpadPositionValid[0] && bIsTrackpadPositionValid[1]) &&
 			DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 			DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
@@ -1477,7 +1479,7 @@ void UVREditorMotionControllerInteractor::UndoRedoFromSwipe(const ETouchSwipeDir
 {
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
 	if (ControllerType == EControllerType::Laser &&
-		VRMode->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR && 
+		VRMode->GetHMDDeviceType() == SteamVRDeviceType &&
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&

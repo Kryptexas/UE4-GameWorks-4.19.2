@@ -68,8 +68,8 @@ bool FOculusHMDModule::PreInit()
 		}
 #endif
 
-		// Only init module when running Game or Editor, and Oculus service is running
-		if (!IsRunningDedicatedServer() && OculusHMD::IsOculusServiceRunning())
+		// Init module if app can render and Oculus service is running
+		if (FApp::CanEverRender() && OculusHMD::IsOculusServiceRunning())
 		{
 #if PLATFORM_WINDOWS
 			// Load OVRPlugin
@@ -122,7 +122,7 @@ bool FOculusHMDModule::PreInit()
 bool FOculusHMDModule::IsHMDConnected()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	if (!IsRunningDedicatedServer() && OculusHMD::IsOculusHMDConnected())
+	if (FApp::CanEverRender() && OculusHMD::IsOculusHMDConnected())
 	{
 		return true;
 	}

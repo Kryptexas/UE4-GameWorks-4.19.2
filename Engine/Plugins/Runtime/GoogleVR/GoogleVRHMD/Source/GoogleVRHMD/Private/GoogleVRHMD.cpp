@@ -470,11 +470,12 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 		//bUseGVRApiDistortionCorrection = true;  //Uncomment this line is you want to use GVR distortion when async reprojection is not enabled.
 
 		// Query for direct multi-view
+		GSupportsMobileMultiView = gvr_is_feature_supported(GVRAPI, GVR_FEATURE_MULTIVIEW);
 		const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
 		const auto CVarMobileMultiViewDirect = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
 		const bool bIsMobileMultiViewEnabled = (CVarMobileMultiView && CVarMobileMultiView->GetValueOnAnyThread() != 0);
 		const bool bIsMobileMultiViewDirectEnabled = (CVarMobileMultiViewDirect && CVarMobileMultiViewDirect->GetValueOnAnyThread() != 0);
-		bIsMobileMultiViewDirect = GSupportsMobileMultiView && gvr_is_feature_supported(GVRAPI, GVR_FEATURE_MULTIVIEW) && bIsMobileMultiViewEnabled && bIsMobileMultiViewDirectEnabled;
+		bIsMobileMultiViewDirect = GSupportsMobileMultiView && bIsMobileMultiViewEnabled && bIsMobileMultiViewDirectEnabled;
 
 		if(bUseOffscreenFramebuffers)
 		{
@@ -1177,13 +1178,13 @@ const FDistortionVertex* FGoogleVRHMD::GetPreviewViewerVertices(enum EStereoscop
 }
 
 // ------  Called on Game Thread ------
-bool FGoogleVRHMD::GetHMDDistortionEnabled() const
+bool FGoogleVRHMD::GetHMDDistortionEnabled(EShadingPath ShadingPath) const
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	// Enable Unreal PostProcessing Distortion when not using GVR Distortion.
-	return bDistortionCorrectionEnabled && !IsUsingGVRApiDistortionCorrection();
+	return bDistortionCorrectionEnabled && !IsUsingGVRApiDistortionCorrection() && ShadingPath == EShadingPath::Mobile;
 #else
-	return bDistortionCorrectionEnabled && (GetPreviewViewerType() != EVP_None);
+	return bDistortionCorrectionEnabled && (GetPreviewViewerType() != EVP_None) && ShadingPath == EShadingPath::Deferred;
 #endif
 }
 
@@ -1227,7 +1228,7 @@ void FGoogleVRHMD::AdjustViewRect(enum EStereoscopicPass StereoPass, int32& X, i
 #endif
 }
 
-void FGoogleVRHMD::BeginRendering_GameThread()
+void FGoogleVRHMD::OnBeginRendering_GameThread()
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	// Note that we force not enqueue the CachedHeadPose when start loading a map until a new game frame started.
@@ -1258,9 +1259,8 @@ void FGoogleVRHMD::BeginRendering_GameThread()
 }
 
 // ------  Called on Render Thread ------
-void FGoogleVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+void FGoogleVRHMD::OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
-	FHeadMountedDisplayBase::BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	if(CustomPresent)
 	{
@@ -1660,15 +1660,6 @@ void FGoogleVRHMD::EnableHMD(bool bEnable)
 	{
 		EnableStereo(false);
 	}
-}
-
-EHMDDeviceType::Type FGoogleVRHMD::GetHMDDeviceType() const
-{
-#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	return EHMDDeviceType::DT_ES2GenericStereoMesh;
-#else
-	return EHMDDeviceType::DT_GoogleVR; // Workaround needed for non-es2 post processing to call PostProcessHMD
-#endif
 }
 
 bool FGoogleVRHMD::GetHMDMonitorInfo(MonitorInfo& OutMonitorInfo)
@@ -2102,7 +2093,7 @@ bool FGoogleVRHMD::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTracked
 	return false;
 }
 
-void FGoogleVRHMD::RefreshPoses()
+void FGoogleVRHMD::UpdatePoses()
 {
 	if (IsInRenderingThread())
 	{
@@ -2188,7 +2179,7 @@ bool FGoogleVRHMD::OnStartGameFrame( FWorldContext& WorldContext )
 	}
 
 	//Update the head pose at the begnning of a frame. This headpose will be used for both simulation and rendering.
-	RefreshPoses();
+	UpdatePoses();
 
 	// Update ViewportList from GVR API
 	UpdateGVRViewportList();

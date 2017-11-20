@@ -43,6 +43,10 @@ void FLateUpdateManager::Apply_RenderThread(FSceneInterface* Scene, const FTrans
 			CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
 		}
 	}
+}
+
+void FLateUpdateManager::PostRender_RenderThread()
+{
 	LateUpdatePrimitives[LateUpdateRenderReadIndex].Reset();
 	LateUpdateRenderReadIndex = (LateUpdateRenderReadIndex + 1) % 2;
 }

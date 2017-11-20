@@ -5,16 +5,18 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Features/IModularFeature.h"
+#include "IIdentifiableXRDevice.h" // for IXRSystemIdentifier
 
 class UPrimitiveComponent;
 class AActor;
+enum class EControllerHand : uint8;
 
-class HEADMOUNTEDDISPLAY_API IXRDeviceAssets : public IModularFeature
+class HEADMOUNTEDDISPLAY_API IXRSystemAssets : public IModularFeature, public IXRSystemIdentifier
 {
 public:
 	static FName GetModularFeatureName()
 	{
-		static FName FeatureName = FName(TEXT("XRDeviceAssets"));
+		static FName FeatureName = FName(TEXT("XRSystemAssets"));
 		return FeatureName;
 	}
 
@@ -27,11 +29,31 @@ public:
 	 * NOTE: that these IDs are NOT interoperable across XR systems (vive vs. oculus, 
 	 * etc.). Using an ID from one system with another will have undefined results. 
 	 *
-	 * @param  DeviceListOut	
+	 * @param  DeviceListOut	A list of 
 	 *
 	 * @return True if the DeviceList was successfully updated, otherwise false. 
 	 */
 	virtual bool EnumerateRenderableDevices(TArray<int32>& DeviceListOut) = 0;
+
+	/**
+	 * Provides a mapping for MotionControllers, so we can identify the device ID
+	 * used for a specific hand (which in turn can be used in other functions, 
+	 * like CreateRenderComponent, etc.).
+	 *
+	 * NOTE: Some systems will not have an explicit mapping until the device is 
+	 *       on and registered. In that case, this function will return an 
+	 *       invalid device ID.
+	 * 
+	 * NOTE: Not all XR systems support every EControllerHand value. If that's
+	 *       the case, then this will return an invalid device ID, though that
+	 *       specific value is undetermined and up to each XRSystem for 
+	 *       interpretation.
+	 * 
+	 * @param  ControllerHand	The UE specific hand identifier you want a system specific device ID for.
+	 *
+	 * @return A device ID that is specific to this XRSystem (can only be interpreted by other members belonging to the same IXRSystemIdentifier) 
+	 */
+	virtual int32 GetDeviceId(EControllerHand ControllerHand) = 0;
 
 	/**
 	 * Attempts to spawn a renderable component for the specified device. Returns

@@ -24,12 +24,9 @@ private:
 	virtual bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
 	virtual FString GetVersionString() const override;
 	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;
-	virtual void RefreshPoses() override;
 	virtual TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> GetXRCamera(int32 DeviceId = HMDDeviceId) override;
 
 public:
-	/** IHeadMountedDisplay interface */
-
 	// @todo : revisit this function; do we need them?
 	virtual bool HasValidTrackingPosition() override;
 	// @todo : can I get rid of this? At least rename to IsCameraTracking / IsTrackingAllowed()
@@ -79,6 +76,7 @@ public:
 	bool GetTangoHMDLateUpdateEnabled();
 
 private:
+
 	FGoogleARCoreDevice* TangoDeviceInstance;
 
 	bool bHMDEnabled;

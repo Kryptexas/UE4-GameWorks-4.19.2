@@ -23,7 +23,7 @@ class UOculusCreateSessionCallbackProxy : public UOnlineBlueprintCallProxyBase
 	UPROPERTY(BlueprintAssignable)
 	FEmptyOnlineDelegate OnFailure;
 
-	// Kick off CreateSession check. Asynchronous-- see OnUserPrivilegeCompleteDelegate for results.
+	// Kick off CreateSession check. Asynchronous-- see OnCreateSessionCompleteDelegate for results.
 	UFUNCTION(BlueprintCallable, Category = "Oculus|Session", meta = (BlueprintInternalUseOnly = "true"))
 	static UOculusCreateSessionCallbackProxy* CreateSession(int32 PublicConnections, FString OculusMatchmakingPool);
 

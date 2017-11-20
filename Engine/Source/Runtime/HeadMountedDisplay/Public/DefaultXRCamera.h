@@ -44,6 +44,8 @@ public:
 		bUseImplicitHMDPosition = bInImplicitHMDPosition;
 	}
 
+	virtual bool GetUseImplicitHMDPosition() override { return bUseImplicitHMDPosition; }
+
 	/**
 	 * Optionally called by APlayerController to apply the orientation of the
 	 * headset to the PC's rotation. If this is not done then the PC will face
@@ -70,6 +72,7 @@ public:
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override;
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
+	virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override;
 	
 

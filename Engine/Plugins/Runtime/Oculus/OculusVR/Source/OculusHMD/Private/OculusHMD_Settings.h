@@ -45,9 +45,6 @@ public:
 			/** Allocate an high quality OVR_FORMAT_R11G11B10_FLOAT buffer for Rift */
 			uint64 bHQBuffer : 1;
 
-			/** True, if Far/Mear clipping planes got overriden */
-			uint64	bClippingPlanesOverride : 1;
-
 			/** Rendering should be (could be) paused */
 			uint64	bPauseRendering : 1;
 
@@ -62,6 +59,9 @@ public:
 
 			/** Send the depth buffer to the compositor */
 			uint64				bCompositeDepth : 1;
+
+			/** Supports Dash in-game compositing */
+			uint64				bSupportsDash : 1;
 #if !UE_BUILD_SHIPPING
 			/** Show status / statistics on screen. See 'hmd stats' cmd */
 			uint64				bShowStats : 1;
@@ -69,11 +69,6 @@ public:
 		};
 		uint64 Raw;
 	} Flags;
-
-	/** Optional far clipping plane for projection matrix */
-	float NearClippingPlane;
-	/** Optional far clipping plane for projection matrix */
-	float FarClippingPlane;
 
 	/** HMD base values, specify forward orientation and zero pos offset */
 	FVector BaseOffset; // base position, in meters, relatively to the sensor //@todo hmd: clients need to stop using oculus space

@@ -115,12 +115,6 @@ bool FGoogleARCoreHMD::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTra
 	return false;
 }
 
-void FGoogleARCoreHMD::RefreshPoses()
-{
-	// @todo viewext we should move stuff from OnStartGameFrame into here?
-}
-
-
 bool FGoogleARCoreHMD::OnStartGameFrame(FWorldContext& WorldContext)
 {
 	FGoogleARCorePose CurrentPose;

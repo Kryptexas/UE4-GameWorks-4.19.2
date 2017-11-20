@@ -109,23 +109,28 @@ TSharedPtr<FLayer, ESPMode::ThreadSafe> FLayer::Clone() const
 }
 
 
-bool FLayer::IsCompatibleLayerDesc(const ovrpLayerDescUnion& OvrpLayerDescA, const ovrpLayerDescUnion& OvrpLayerDescB) const
+bool FLayer::CanReuseResources(const FLayer* InLayer) const
 {
-	if (OvrpLayerDescA.Shape != OvrpLayerDescB.Shape ||
-		OvrpLayerDescA.Layout != OvrpLayerDescB.Layout ||
-		OvrpLayerDescA.TextureSize.w != OvrpLayerDescB.TextureSize.w ||
-		OvrpLayerDescA.TextureSize.h != OvrpLayerDescB.TextureSize.h ||
-		OvrpLayerDescA.MipLevels != OvrpLayerDescB.MipLevels ||
-		OvrpLayerDescA.SampleCount != OvrpLayerDescB.SampleCount ||
-		OvrpLayerDescA.Format != OvrpLayerDescB.Format ||
-		((OvrpLayerDescA.LayerFlags ^ OvrpLayerDescB.LayerFlags) & ovrpLayerFlag_Static))
+	if (!InLayer || !InLayer->OvrpLayer.IsValid())
 	{
 		return false;
 	}
 
-	if (OvrpLayerDescA.Shape == ovrpShape_EyeFov)
+	if (OvrpLayerDesc.Shape != InLayer->OvrpLayerDesc.Shape ||
+		OvrpLayerDesc.Layout != InLayer->OvrpLayerDesc.Layout ||
+		OvrpLayerDesc.TextureSize.w != InLayer->OvrpLayerDesc.TextureSize.w ||
+		OvrpLayerDesc.TextureSize.h != InLayer->OvrpLayerDesc.TextureSize.h ||
+		OvrpLayerDesc.MipLevels != InLayer->OvrpLayerDesc.MipLevels ||
+		OvrpLayerDesc.SampleCount != InLayer->OvrpLayerDesc.SampleCount ||
+		OvrpLayerDesc.Format != InLayer->OvrpLayerDesc.Format ||
+		((OvrpLayerDesc.LayerFlags ^ InLayer->OvrpLayerDesc.LayerFlags) & ovrpLayerFlag_Static))
 	{
-		if (OvrpLayerDescA.EyeFov.DepthFormat != OvrpLayerDescB.EyeFov.DepthFormat)
+		return false;
+	}
+
+	if (OvrpLayerDesc.Shape == ovrpShape_EyeFov)
+	{
+		if (OvrpLayerDesc.EyeFov.DepthFormat != InLayer->OvrpLayerDesc.EyeFov.DepthFormat)
 		{
 			return false;
 		}
@@ -229,7 +234,7 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 	}
 	
 	// Reuse/Create texture set
-	if (InLayer && InLayer->OvrpLayer.IsValid() && IsCompatibleLayerDesc(OvrpLayerDesc, InLayer->OvrpLayerDesc))
+	if (CanReuseResources(InLayer))
 	{
 		OvrpLayerId = InLayer->OvrpLayerId;
 		OvrpLayer = InLayer->OvrpLayer;
@@ -249,9 +254,14 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 
 		ExecuteOnRHIThread([&]()
 		{
+			void* OvrpDevice = CustomPresent->GetOvrpDevice();
+			OVRP_CONSTREF(ovrpLayerDesc) LayerBase = OvrpLayerDesc.Base;
+
+			ovrpResult SetUpResult = ovrp_SetupLayer(OvrpDevice, LayerBase, (int*)&OvrpLayerId);
+
 			// UNDONE Do this in RenderThread once OVRPlugin allows ovrp_SetupLayer to be called asynchronously
 			int32 TextureCount;
-			if (OVRP_SUCCESS(ovrp_SetupLayer(CustomPresent->GetOvrpDevice(), OvrpLayerDesc.Base, (int*) &OvrpLayerId)) &&
+			if (OVRP_SUCCESS(SetUpResult) &&
 				OVRP_SUCCESS(ovrp_GetLayerTextureStageCount(OvrpLayerId, &TextureCount)))
 			{
 				// Left
@@ -404,7 +414,6 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 	OvrpLayerSubmit.LayerId = OvrpLayerId;
 	OvrpLayerSubmit.TextureStage = TextureSetProxy.IsValid() ? TextureSetProxy->GetSwapChainIndex_RHIThread() : 0;
 
-
 	if (Id != 0)
 	{
 		int SizeX = OvrpLayerDesc.TextureSize.w;
@@ -467,6 +476,12 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 		{
 			OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_HeadLocked;
 		}
+	}
+	else
+	{
+		OvrpLayerSubmit.EyeFov.DepthFar = 0;
+		OvrpLayerSubmit.EyeFov.DepthNear = Frame->NearClippingPlane / 100.f; //physical scale is 100UU/meter
+		OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_ReverseZ;
 	}
 
 	return &OvrpLayerSubmit.Base;

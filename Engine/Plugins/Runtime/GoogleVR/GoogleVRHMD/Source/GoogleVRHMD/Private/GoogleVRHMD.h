@@ -355,6 +355,10 @@ public:
 	/** Get preview viewer vertices */
 	static const FDistortionVertex* GetPreviewViewerVertices(enum EStereoscopicPass StereoPass);
 
+	/** Update current HMD pose */
+	void UpdatePoses();
+
+
 public:
 	// Public Components
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
@@ -521,13 +525,13 @@ public:
 	////////////////////////////////////////////
 
 	/**
-	* Updates viewport for direct rendering of distortion. Should be called on a game thread.
+	 * Updates viewport for direct rendering of distortion. Should be called on a game thread.
 	 */
 	virtual void UpdateViewportRHIBridge(bool bUseSeparateRenderTarget, const class FViewport& Viewport, FRHIViewport* const ViewportRHI) override;
 
 	/**
-	* Calculates dimensions of the render target texture for direct rendering of distortion.
-	*/
+	 * Calculates dimensions of the render target texture for direct rendering of distortion.
+	 */
 	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 
 	// Whether separate render target should be used or not.
@@ -557,12 +561,6 @@ public:
 	 * @param Type Optionally limit the list of devices to a certain type.
 	 */
 	virtual bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type = EXRTrackedDeviceType::Any) override;
-
-	/**
-	 * Refresh poses. Tells the system to update the poses for its tracked devices.
-	 * May be called both from the game and the render thread.
-	 */
-	virtual void RefreshPoses() override;
 	
     /**
 	 * Get the current pose for a device.
@@ -597,14 +595,22 @@ public:
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) override;
 
 	/**
-	* Whether or not the system supports positional tracking (either via sensor or other means).
-	* The default implementation always returns false, indicating that only rotational tracking is supported.
-	*/
+	 * Whether or not the system supports positional tracking (either via sensor or other means).
+	 * The default implementation always returns false, indicating that only rotational tracking is supported.
+	 */
 	virtual bool DoesSupportPositionalTracking() const override;
 
 	///////////////////////////////////////////////
 	// Begin IXRTrackingSystem Virtual Interface //
 	///////////////////////////////////////////////
+
+	/** 
+	 * GoogleVR currently does not support late update
+	 */
+	virtual bool DoesSupportLateUpdate() const override
+	{
+		return false;
+	}
 
 	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction. Position is not changed.
@@ -641,8 +647,19 @@ public:
 
 	/**
 	 * This method is called when new game frame begins (called on a game thread).
-	*/
+	 */
 	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
+
+	/**
+	 * Called on the game thread when view family is about to be rendered.
+	 */
+	virtual void OnBeginRendering_GameThread() override;
+
+	/**
+	 * Called on the render thread at the start of rendering.
+	 */
+	virtual void OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+
 
 	/**
 	 * Access optional HMD input override interface.
@@ -679,21 +696,9 @@ public:
 	//////////////////////////////////////////////////////
 
 	/**
-	 * Called on the game thread when view family is about to be rendered.
-	 */
-
-	virtual void BeginRendering_GameThread() override;
-	
-	/**
-	 * Called on the render thread at the start of rendering.
-	 */
-	
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
-
-	/**
 	 * Returns whether HMDDistortion post processing should be enabled or not.
 	 */
-	virtual bool GetHMDDistortionEnabled() const override;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const override;
 
 	/**
 	 * Returns true if HMD is currently connected.
@@ -709,11 +714,6 @@ public:
 	 * Enables or disables switching to stereo.
 	 */
 	virtual void EnableHMD(bool bEnable = true) override;
-
-	/**
-	 * Returns the family of HMD device implemented
-	 */
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 
     /**
      * Get the name or id of the display to output for this HMD.

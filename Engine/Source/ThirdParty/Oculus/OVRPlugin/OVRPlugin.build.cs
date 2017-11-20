@@ -12,8 +12,6 @@ public class OVRPlugin : ModuleRules
 
 		PublicIncludePaths.Add(SourceDirectory + "Include");
 
-        PublicIncludePaths.Add(SourceDirectory + "ExtIncludes");
-
         if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			PublicLibraryPaths.Add(SourceDirectory + "Lib/armeabi-v7a/");

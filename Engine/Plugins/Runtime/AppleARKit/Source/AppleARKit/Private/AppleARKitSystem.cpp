@@ -81,7 +81,7 @@ private:
 			ARKitSystem.RenderThreadFrame = ARKitSystem.LastReceivedFrame;
 		}
 		
-		// @todo arkit: Camera late update?
+		// @todo arkit: Camera late update? 
 		
 		if (ARKitSystem.RenderThreadFrame.IsValid())
 		{
@@ -100,6 +100,10 @@ private:
 	
 	virtual bool IsActiveThisFrame(class FViewport* InViewport) const override
 	{
+		// Base implementation needs this call as it updates bCurrentFrameIsStereoRendering as a side effect.
+		// We'll ignore the result however.
+		FDefaultXRCamera::IsActiveThisFrame(InViewport);
+
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 		if ([IOSAppDelegate GetDelegate].OSVersion >= 11.0f)
 		{
@@ -227,7 +231,7 @@ FRotator DeriveTrackingToWorldRotation( EScreenOrientation::Type DeviceOrientati
 	return DeviceRot;
 }
 
-void FAppleARKitSystem::RefreshPoses()
+void FAppleARKitSystem::UpdatePoses()
 {
 	if (DeviceOrientation == EScreenOrientation::Unknown)
 	{
@@ -277,6 +281,11 @@ float FAppleARKitSystem::GetWorldToMetersScale() const
 {
 	// @todo arkit FAppleARKitSystem::GetWorldToMetersScale needs a real scale somehow
 	return 100.0f;
+}
+
+void FAppleARKitSystem::OnBeginRendering_GameThread()
+{
+	UpdatePoses();
 }
 
 //bool FAppleARKitSystem::ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)

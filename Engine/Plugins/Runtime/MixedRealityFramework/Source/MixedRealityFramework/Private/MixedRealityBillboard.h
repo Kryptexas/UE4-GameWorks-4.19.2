@@ -50,9 +50,9 @@ public:
 	void SetProjectionMaterial(UMaterialInterface* VidProcessingMat);
 	void SetProjectionAspectRatio(const float NewAspectRatio);
 	FVector GetTargetPosition() const;
+	void SetDepthTarget(const APawn* PlayerPawn);
 
 protected:
-	void SetDepthTarget(const APawn* PlayerPawn);
 	void RefreshTickState();
 
 private:

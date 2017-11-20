@@ -21,15 +21,17 @@ extern "C" {
 
 typedef enum
 {
-	VRAPI_SYS_UI_GLOBAL_MENU,					// Display the Universal Menu.
-	VRAPI_SYS_UI_CONFIRM_QUIT_MENU,				// Display the 'Confirm Quit' Menu.
+	// enum  0 used to be VRAPI_SYS_UI_GLOBAL_MENU.
 
-	VRAPI_SYS_UI_KEYBOARD_MENU,					// Display a Keyboard Menu for editing a single string.
-	VRAPI_SYS_UI_FILE_DIALOG_MENU,				// Display a Folder Browser Menu for selecting the path to a file or folder.
+	VRAPI_SYS_UI_CONFIRM_QUIT_MENU		= 1,	// Display the 'Confirm Quit' Menu.
+
+	VRAPI_SYS_UI_KEYBOARD_MENU			= 2,	// Display a Keyboard Menu for editing a single string.
+	VRAPI_SYS_UI_FILE_DIALOG_MENU		= 3,	// Display a Folder Browser Menu for selecting the path to a file or folder.
 
 ///--BEGIN_SDK_REMOVE
 	VRAPI_SYS_UI_GLOBAL_MENU_TUTORIAL = 128,	// Display the Universal Menu Tutorial within Home.
-	VRAPI_SYS_UI_GLOBAL_MENU_PARTY,				// Display the Parties Menu.
+
+	// enum  129 used to be VRAPI_SYS_UI_GLOBAL_MENU_PARTY.
 ///--END_SDK_REMOVE
 } ovrSystemUIType;
 

@@ -306,9 +306,6 @@ void FDefaultStereoLayers::UpdateSplashScreen()
 
 void FDefaultStereoLayers::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
-	// Disable screen percentage because screen percentage needs to be applied to UnscaledViewRect in AdjustViewRect().
-	InViewFamily.EngineShowFlags.ScreenPercentage = false;
-
 	// Initialize HMD position.
 	FQuat HmdOrientation = FQuat::Identity;
 	FVector HmdPosition = FVector::ZeroVector;

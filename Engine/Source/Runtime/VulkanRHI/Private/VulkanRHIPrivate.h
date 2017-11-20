@@ -213,7 +213,7 @@ struct FVulkanSemaphore
 		check(SemaphoreHandle != VK_NULL_HANDLE);
 		return SemaphoreHandle;
 	}
-	
+
 private:
 	FVulkanDevice& Device;
 	VkSemaphore SemaphoreHandle;
@@ -303,6 +303,10 @@ private:
 	// it's up to VulkanRHI to handle this correctly.
 	const FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
+
+	// Save image off for comparison, in case it gets aliased.
+	VkImage ColorRenderTargetImages[MaxSimultaneousRenderTargets];
+	VkImage DepthStencilRenderTargetImage;
 
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;
@@ -724,7 +728,7 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 		return VK_FORMAT_R16G16_SFLOAT;
 	case VET_Half4:
 		return VK_FORMAT_R16G16B16A16_SFLOAT;
-	case VET_Short4N:		// 4 X 16 bit word: normalized 
+	case VET_Short4N:		// 4 X 16 bit word: normalized
 		return VK_FORMAT_R16G16B16A16_SNORM;
 	case VET_UShort2:
 		return VK_FORMAT_R16G16_UINT;
@@ -732,7 +736,7 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 		return VK_FORMAT_R16G16B16A16_UINT;
 	case VET_UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
 		return VK_FORMAT_R16G16_UNORM;
-	case VET_UShort4N:		// 4 X 16 bit word unsigned: normalized 
+	case VET_UShort4N:		// 4 X 16 bit word unsigned: normalized
 		return VK_FORMAT_R16G16B16A16_UNORM;
 	case VET_Float4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;

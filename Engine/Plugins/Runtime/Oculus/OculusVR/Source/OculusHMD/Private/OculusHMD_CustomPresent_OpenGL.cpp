@@ -31,7 +31,7 @@ public:
 
 
 FOpenGLCustomPresent::FOpenGLCustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD, ovrpRenderAPI_OpenGL, PF_R8G8B8A8, true)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_OpenGL, PF_R8G8B8A8, true, false)
 {
 }
 

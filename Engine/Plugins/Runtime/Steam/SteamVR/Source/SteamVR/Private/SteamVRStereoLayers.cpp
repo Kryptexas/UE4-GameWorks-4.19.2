@@ -232,6 +232,8 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 	const float WorldToMeterScale = GetWorldToMetersScale();
 	check(WorldToMeterScale > 0.f);
 	FQuat AdjustedPlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
+	AdjustedPlayerOrientation.Normalize();
+
 	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, PlayerLocation).Inverse();
 
 	// We have loop through all layers every frame, in case we have world locked layers or continuously updated textures.

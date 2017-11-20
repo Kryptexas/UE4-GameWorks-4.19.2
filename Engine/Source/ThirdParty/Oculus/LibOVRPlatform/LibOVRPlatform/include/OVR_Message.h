@@ -8,6 +8,10 @@
 #include "OVR_AchievementProgressArray.h"
 #include "OVR_AchievementUpdate.h"
 #include "OVR_ApplicationVersion.h"
+#include "OVR_AssetFileDeleteResult.h"
+#include "OVR_AssetFileDownloadCancelResult.h"
+#include "OVR_AssetFileDownloadResult.h"
+#include "OVR_AssetFileDownloadUpdate.h"
 #include "OVR_CloudStorageConflictMetadata.h"
 #include "OVR_CloudStorageData.h"
 #include "OVR_CloudStorageMetadata.h"
@@ -41,7 +45,10 @@
 #include "OVR_PurchaseArray.h"
 #include "OVR_Room.h"
 #include "OVR_RoomArray.h"
+#include "OVR_RoomInviteNotification.h"
 #include "OVR_RoomInviteNotificationArray.h"
+#include "OVR_SdkAccountArray.h"
+#include "OVR_ShareMediaResult.h"
 #include "OVR_SystemPermission.h"
 #include "OVR_SystemVoipState.h"
 #include "OVR_Types.h"
@@ -49,6 +56,7 @@
 #include "OVR_UserAndRoomArray.h"
 #include "OVR_UserArray.h"
 #include "OVR_UserProof.h"
+#include "OVR_UserReportID.h"
 #include <stdbool.h>
 
 typedef struct ovrMessage *ovrMessageHandle;
@@ -57,6 +65,10 @@ OVRP_PUBLIC_FUNCTION(ovrAchievementDefinitionArrayHandle)      ovr_Message_GetAc
 OVRP_PUBLIC_FUNCTION(ovrAchievementProgressArrayHandle)        ovr_Message_GetAchievementProgressArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrAchievementUpdateHandle)               ovr_Message_GetAchievementUpdate(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrApplicationVersionHandle)              ovr_Message_GetApplicationVersion(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrAssetFileDeleteResultHandle)           ovr_Message_GetAssetFileDeleteResult(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrAssetFileDownloadCancelResultHandle)   ovr_Message_GetAssetFileDownloadCancelResult(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrAssetFileDownloadResultHandle)         ovr_Message_GetAssetFileDownloadResult(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrAssetFileDownloadUpdateHandle)         ovr_Message_GetAssetFileDownloadUpdate(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrCloudStorageConflictMetadataHandle)    ovr_Message_GetCloudStorageConflictMetadata(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrCloudStorageDataHandle)                ovr_Message_GetCloudStorageData(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrCloudStorageMetadataHandle)            ovr_Message_GetCloudStorageMetadata(const ovrMessageHandle obj);
@@ -91,7 +103,10 @@ OVRP_PUBLIC_FUNCTION(ovrPurchaseArrayHandle)                   ovr_Message_GetPu
 OVRP_PUBLIC_FUNCTION(ovrRequest)                               ovr_Message_GetRequestID(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrRoomHandle)                            ovr_Message_GetRoom(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrRoomArrayHandle)                       ovr_Message_GetRoomArray(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrRoomInviteNotificationHandle)          ovr_Message_GetRoomInviteNotification(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrRoomInviteNotificationArrayHandle)     ovr_Message_GetRoomInviteNotificationArray(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrSdkAccountArrayHandle)                 ovr_Message_GetSdkAccountArray(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrShareMediaResultHandle)                ovr_Message_GetShareMediaResult(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(const char *)                             ovr_Message_GetString(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrSystemPermissionHandle)                ovr_Message_GetSystemPermission(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrSystemVoipStateHandle)                 ovr_Message_GetSystemVoipState(const ovrMessageHandle obj);
@@ -100,6 +115,7 @@ OVRP_PUBLIC_FUNCTION(ovrUserHandle)                            ovr_Message_GetUs
 OVRP_PUBLIC_FUNCTION(ovrUserAndRoomArrayHandle)                ovr_Message_GetUserAndRoomArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrUserArrayHandle)                       ovr_Message_GetUserArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrUserProofHandle)                       ovr_Message_GetUserProof(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrUserReportIDHandle)                    ovr_Message_GetUserReportID(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(bool)                                     ovr_Message_IsError(const ovrMessageHandle obj);
 
 #endif

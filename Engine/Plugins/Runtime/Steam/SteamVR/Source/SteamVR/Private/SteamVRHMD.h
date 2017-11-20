@@ -114,15 +114,15 @@ private:
 class FSteamVRHMD : public FHeadMountedDisplayBase, public FXRRenderTargetManager, public FSteamVRAssetManager, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public TStereoLayerManager<FSteamVRLayer>, public IHeadMountedDisplayVulkanExtensions
 {
 public:
+	static const FName SteamSystemName;
+
 	/** IXRTrackingSystem interface */
 	virtual FName GetSystemName() const override
 	{
-		static FName DefaultName(TEXT("SteamVR"));
-		return DefaultName;
+		return SteamSystemName;
 	}
 	virtual FString GetVersionString() const override;
 
-	virtual void RefreshPoses() override;
 
 	virtual class IHeadMountedDisplay* GetHMDDevice() override
 	{
@@ -162,7 +162,6 @@ public:
 	virtual bool IsHMDEnabled() const override;
 	virtual EHMDWornState::Type GetHMDWornState() override;
 	virtual void EnableHMD(bool allow = true) override;
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
 
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
@@ -187,10 +186,10 @@ public:
 	
 	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InTexFlags, uint32 InTargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
 
-	virtual bool GetHMDDistortionEnabled() const override;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const override;
 
-	virtual void BeginRendering_GameThread() override;
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+	virtual void OnBeginRendering_GameThread() override;
+	virtual void OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
 
 	virtual float GetPixelDenity() const override { return PixelDensity; }
 	virtual void SetPixelDensity(const float NewDensity) override { PixelDensity = NewDensity; }
@@ -461,7 +460,6 @@ private:
 	EHMDWornState::Type HmdWornState;
 	bool bStereoDesired;
 	bool bStereoEnabled;
-	mutable bool bHaveVisionTracking;
 
 	// Current world to meters scale. Should only be used when refreshing poses.
 	// Everywhere else, use the current tracking frame's WorldToMetersScale.
@@ -475,6 +473,7 @@ private:
  		bool bPoseIsValid[vr::k_unMaxTrackedDeviceCount];
  		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
  		FQuat DeviceOrientation[vr::k_unMaxTrackedDeviceCount];
+		bool bHaveVisionTracking;
 
 		/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 		float WorldToMetersScale;
@@ -482,16 +481,16 @@ private:
 		vr::HmdMatrix34_t RawPoses[vr::k_unMaxTrackedDeviceCount];
 
 		FTrackingFrame()
+			: FrameNumber(0)
+			, bHaveVisionTracking(false)
+			, WorldToMetersScale(100.0f)
 		{
-			FrameNumber = 0;
-
 			const uint32 MaxDevices = vr::k_unMaxTrackedDeviceCount;
 
 			FMemory::Memzero(bDeviceIsConnected, MaxDevices * sizeof(bool));
 			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
 			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
 
-			WorldToMetersScale = 100.0f;
 
 			for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 			{
@@ -501,6 +500,9 @@ private:
 			FMemory::Memzero(RawPoses, MaxDevices * sizeof(vr::HmdMatrix34_t));
 		}
  	};
+
+	void UpdatePoses();
+
 	void ConvertRawPoses(FSteamVRHMD::FTrackingFrame& TrackingFrame) const;
 
 	FTrackingFrame GameTrackingFrame;

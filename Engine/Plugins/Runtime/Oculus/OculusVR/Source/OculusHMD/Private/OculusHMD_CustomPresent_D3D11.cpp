@@ -31,7 +31,7 @@ public:
 
 
 FD3D11CustomPresent::FD3D11CustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD, ovrpRenderAPI_D3D11, PF_B8G8R8A8, true)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_D3D11, PF_B8G8R8A8, true, true)
 {
 }
 

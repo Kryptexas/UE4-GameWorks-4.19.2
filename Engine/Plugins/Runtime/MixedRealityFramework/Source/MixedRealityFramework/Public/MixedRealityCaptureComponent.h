@@ -5,6 +5,8 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "InputCoreTypes.h" // for EControllerHand
 #include "Math/Color.h" // for FLinearColor
+#include "MixedRealityCaptureDevice.h"
+#include "Delegates/Delegate.h"
 #include "MixedRealityCaptureComponent.generated.h"
 
 class UMediaPlayer;
@@ -17,6 +19,9 @@ class AStaticMeshActor;
 class USceneCaptureComponent2D;
 class UMixedRealityGarbageMatteCaptureComponent;
 class UTextureRenderTarget2D;
+class FMRLatencyViewExtension;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogMixedReality, Log, All);
 
 /**
  *	
@@ -67,13 +72,13 @@ public:
 /**
  *	
  */
-UCLASS(ClassGroup = Rendering, editinlinenew, config = Engine, meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = Rendering, editinlinenew, Blueprintable, BlueprintType, config = Engine, meta = (BlueprintSpawnableComponent))
 class MIXEDREALITYFRAMEWORK_API UMixedRealityCaptureComponent : public USceneCaptureComponent2D
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VideoCapture)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=VideoCapture)
 	UMediaPlayer* MediaSource;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter=SetVidProjectionMat, Category=VideoCapture)
@@ -82,11 +87,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter=SetChromaSettings, Category=VideoCapture)
 	FChromaKeyParams ChromaKeySettings;
 
+	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetCaptureDevice, Category=VideoCapture)
+	FMRCaptureDeviceIndex CaptureFeedRef;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tracking)
 	bool bAutoTracking;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tracking, meta=(editcondition="bAutoTracking"))
 	EControllerHand TrackingDevice;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
+	UTextureRenderTarget2D* GarbageMatteCaptureTextureTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
+	UStaticMesh* GarbageMatteMesh;
+
+	/** Millisecond delay to apply to motion controller components when rendering to the capture view (to better align with latent camera feeds) */
+	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetTrackingDelay, Category=Tracking, meta=(ClampMin="0", UIMin="0"))
+	int32 TrackingLatency;
 
 public:
 	//~ UObject interface
@@ -100,10 +118,6 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
-#if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif 
 
 public:
 	//~ USceneComponent interface
@@ -116,6 +130,7 @@ public:
 	//~ USceneCaptureComponent interface
 
 	virtual const AActor* GetViewOwner() const override;
+	virtual void UpdateSceneCaptureContents(FSceneInterface* Scene) override;
 
 public:
 	//~ Blueprint API	
@@ -174,18 +189,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "MixedReality|Tracking")
 	void DetatchFromDevice();
 
-	UFUNCTION(BlueprintCallable, Category = "MixedReality|VideoCapture")
-	void SetCaptureDevice(const FString& DeviceURL);
+	UFUNCTION(BlueprintSetter)
+	void SetCaptureDevice(const FMRCaptureDeviceIndex& FeedRef);
+
+	UFUNCTION(BlueprintSetter)
+	void SetTrackingDelay(int32 DelayMS);
 
 	UFUNCTION(BlueprintPure, Category = "MixedReality|Projection", meta=(DisplayName="GetProjectionActor"))
 	AActor* GetProjectionActor_K2() const;
 	AMixedRealityProjectionActor* GetProjectionActor() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
-	UTextureRenderTarget2D* GarbageMatteCaptureTextureTarget;
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMRCaptureFeedOpenedDelegate, const FMRCaptureDeviceIndex&, FeedRef);
+	UPROPERTY(BlueprintAssignable, Category = VideoCapture)
+	FMRCaptureFeedOpenedDelegate OnCaptureSourceOpened;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
-	UStaticMesh* GarbageMatteMesh;
 public:
 
 	/**
@@ -199,11 +216,8 @@ public:
 	void RefreshDevicePairing();
 
 private:
-	void AttachMediaListeners() const;
-	void DetachMediaListeners() const;
-
 	UFUNCTION() // needs to be a UFunction for binding purposes
-	void OnVideoFeedOpened(FString MediaUrl);
+	void OnVideoFeedOpened(const FMRCaptureDeviceIndex& FeedRef);
 
 	void  RefreshProjectionDimensions();
 	float GetDesiredAspectRatio() const;
@@ -227,5 +241,5 @@ private:
 	UPROPERTY(Transient)
 	UMixedRealityGarbageMatteCaptureComponent* GarbageMatteCaptureComponent;
 
-	FString CaptureDeviceURL;
+	TSharedPtr<FMRLatencyViewExtension, ESPMode::ThreadSafe> ViewExtension;
 };

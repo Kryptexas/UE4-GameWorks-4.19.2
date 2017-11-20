@@ -453,8 +453,10 @@ float AVREditorTeleporter::CalculateAnimatedScaleFactor() const
 
 float AVREditorTeleporter::GetSlideDelta(UVREditorMotionControllerInteractor* Interactor, const bool Axis)
 {
+	static const FName SteamVR(TEXT("SteamVR"));
+
 	FVector2D SlideDelta = FVector2D::ZeroVector; 
-	const bool bIsAbsolute = (VRMode->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR);
+	const bool bIsAbsolute = (VRMode->GetHMDDeviceType() == SteamVR);
 	if (bIsAbsolute)
 	{
 		SlideDelta = FVector2D(Interactor->GetTrackpadSlideDelta(0), Interactor->GetTrackpadSlideDelta(1));

@@ -20,7 +20,7 @@
 		{
 			"Name": "MixedRealityFramework",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
+			"LoadingPhase": "PostEngineInit",
 			"WhitelistPlatforms" :
 			[
 				"Win64",

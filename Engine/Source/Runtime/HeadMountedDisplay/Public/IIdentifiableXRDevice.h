@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h" // for FName
+#include "UObject/ObjectMacros.h"
 #include "Templates/TypeHash.h" // for HashCombine()
-
+#include "IIdentifiableXRDevice.generated.h"
 
 class HEADMOUNTEDDISPLAY_API IXRSystemIdentifier
 {
@@ -25,7 +26,7 @@ public:
  * XR devices across various XR systems in a platform-agnostic way. 
  *
  * Additionally, it can be used to tie various IModularFeature device interfaces 
- * together. For example, if you have separate IMotionController and IXRDeviceAssets
+ * together. For example, if you have separate IXRTrackingSystem and IXRSystemAssets
  * interfaces which both reference the same devices, then this base class gives 
  * you a way to communicate between the two.
  */
@@ -48,3 +49,33 @@ public:
 		return HashCombine(DomainHash, DeviceHash);
 	}
 };
+
+USTRUCT(BlueprintType)
+struct FXRDeviceId
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	FXRDeviceId();
+	FXRDeviceId(IIdentifiableXRDevice* DeviceId);
+	FXRDeviceId(IXRSystemIdentifier* OwningSystem, const int32 DeviceId);
+
+	bool IsOwnedBy(IXRSystemIdentifier* XRSystem) const;
+	void Clear();
+	
+	bool IsSet() const 
+	{ 
+		// Since DeviceId's value is determined internally by the system, there's no way to identify an 'invalid'
+		return !SystemName.IsNone(); 
+	}
+
+	bool operator==(const FXRDeviceId& Rhs) const;
+	bool operator==(const IIdentifiableXRDevice* Rhs) const;
+
+public:
+	UPROPERTY(BlueprintReadOnly, Category="XRDevice")
+	FName SystemName;
+	UPROPERTY(BlueprintReadOnly, Category="XRDevice")
+	int32 DeviceId;
+};
+

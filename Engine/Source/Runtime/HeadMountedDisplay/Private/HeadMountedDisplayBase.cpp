@@ -18,7 +18,7 @@
 
 // including interface headers without their own implementation file, so that 
 // functions (default ctors, etc.) get compiled into this module
-#include "IXRDeviceAssets.h"
+#include "IXRSystemAssets.h"
 
 void FHeadMountedDisplayBase::RecordAnalytics()
 {
@@ -75,7 +75,7 @@ IStereoLayers* FHeadMountedDisplayBase::GetStereoLayers()
 	return DefaultStereoLayers.Get();
 }
 
-bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
+bool FHeadMountedDisplayBase::GetHMDDistortionEnabled(EShadingPath /* ShadingPath */) const
 {
 	return true;
 }
@@ -97,17 +97,12 @@ FVector2D FHeadMountedDisplayBase::GetEyeCenterPoint_RenderThread(EStereoscopicP
 	return CenterPoint;
 }
 
-
-void FHeadMountedDisplayBase::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& /* RHICmdList */, FSceneViewFamily& /* ViewFamily */)
+void FHeadMountedDisplayBase::OnLateUpdateApplied_RenderThread(const FTransform& NewRelativeTransform)
 {
 	if (DefaultStereoLayers.IsValid())
 	{
 		DefaultStereoLayers->UpdateHmdTransform(NewRelativeTransform);
 	}
-}
-
-void FHeadMountedDisplayBase::BeginRendering_GameThread()
-{
 }
 
 void FHeadMountedDisplayBase::CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)

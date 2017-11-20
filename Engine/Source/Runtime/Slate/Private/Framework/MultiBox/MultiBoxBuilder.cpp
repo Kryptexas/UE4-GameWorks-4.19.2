@@ -536,3 +536,4 @@ void FButtonRowBuilder::AddButton( const FText& InLabel, const FText& InToolTip,
 
 	MultiBox->AddMultiBlock( NewButtonRowBlock );
 }
+

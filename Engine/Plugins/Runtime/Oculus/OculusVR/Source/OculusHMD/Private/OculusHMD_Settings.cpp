@@ -12,9 +12,7 @@ namespace OculusHMD
 //-------------------------------------------------------------------------------------------------
 
 FSettings::FSettings() :
-	  NearClippingPlane(0)
-	, FarClippingPlane(0)
-	, BaseOffset(0, 0, 0)
+	BaseOffset(0, 0, 0)
 	, BaseOrientation(FQuat::Identity)
 	, PixelDensity(1.0f)
 	, PixelDensityMin(0.5f)
@@ -35,6 +33,7 @@ FSettings::FSettings() :
 	// TODO: This is temporary. It should be fixed in 4.18. Revisit after this goes to main.
 	Flags.bCompositeDepth = false;
 #endif
+	Flags.bSupportsDash = false;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 
 	RenderTargetSize = FIntPoint(0, 0);

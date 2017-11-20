@@ -8,6 +8,7 @@
 #include "SceneViewExtension.h"
 #include "IMotionController.h"
 #include "LateUpdateManager.h"
+#include "IIdentifiableXRDevice.h" // for FXRDeviceId
 #include "MotionControllerComponent.generated.h"
 
 class FPrimitiveSceneInfo;
@@ -20,14 +21,14 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 {
 	GENERATED_UCLASS_BODY()
 
-	~UMotionControllerComponent();
+	void BeginDestroy() override;
 
 	/** Which player index this motion controller should automatically follow */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetAssociatedPlayerIndex, Category = "MotionController")
 	int32 PlayerIndex;
 
 	/** Which hand this component should automatically follow */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetTrackingSource, Category = "MotionController")
 	EControllerHand Hand;
 
 	/** If false, render transforms within the motion controller hierarchy will be updated a second time immediately before rendering. */
@@ -47,10 +48,57 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 		return bTracked;
 	}
 
+	/** Used to automatically render a model associated with the set hand. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter=SetShowDeviceModel, Category="Visualization")
+	bool bDisplayDeviceModel;
+
+	UFUNCTION(BlueprintSetter)
+	void SetShowDeviceModel(const bool bShowControllerModel);
+
+	/** Determines the source of the desired model. By default, the active XR system(s) will be queried and (if available) will provide a model for the associated device. NOTE: this may fail if there's no default model; use 'Custom' to specify your own. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter=SetDisplayModelSource, Category="Visualization", meta=(editcondition="bDisplayDeviceModel"))
+	FName DisplayModelSource;
+
+	static FName CustomModelSourceId;
+	UFUNCTION(BlueprintSetter)
+	void SetDisplayModelSource(const FName NewDisplayModelSource);
+
+	/** A mesh override that'll be displayed attached to this MotionController. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter=SetCustomDisplayMesh, Category="Visualization", meta=(editcondition="bDisplayDeviceModel"))
+	UStaticMesh* CustomDisplayMesh;
+
+	UFUNCTION(BlueprintSetter)
+	void SetCustomDisplayMesh(UStaticMesh* NewDisplayMesh);
+
+	/** Material overrides for the specified display mesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Visualization", meta=(editcondition="bDisplayDeviceModel"))
+	TArray<UMaterialInterface*> DisplayMeshMaterialOverrides;
+
+	UFUNCTION(BlueprintSetter)
+	void SetTrackingSource(const EControllerHand NewSource);
+
+	UFUNCTION(BlueprintSetter)
+	void SetAssociatedPlayerIndex(const int32 NewPlayer);
+
+public:
+	//~ UObject interface
+#if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif 
+
+public:
+	//~ UActorComponent interface
+	virtual void OnRegister() override;
+	virtual void InitializeComponent() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+
 protected:
 	//~ Begin UActorComponent Interface.
 	virtual void SendRenderTransform_Concurrent() override;
 	//~ End UActorComponent Interface.
+
+	void RefreshDisplayComponent(const bool bForceDestroy = false);
 
 private:
 	/** Whether or not this component had a valid tracked controller associated with it this frame*/
@@ -69,10 +117,7 @@ private:
 	class FViewExtension : public FSceneViewExtensionBase
 	{
 	public:
-		FViewExtension(const FAutoRegister& AutoRegister, UMotionControllerComponent* InMotionControllerComponent)
-			: FSceneViewExtensionBase(AutoRegister)
-			, MotionControllerComponent(InMotionControllerComponent)
-		{}
+		FViewExtension(const FAutoRegister& AutoRegister, UMotionControllerComponent* InMotionControllerComponent);
 		virtual ~FViewExtension() {}
 
 		/** ISceneViewExtension interface */
@@ -81,6 +126,7 @@ private:
 		virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override;
 		virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {}
 		virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
+		virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 		virtual int32 GetPriority() const override { return -10; }
 		virtual bool IsActiveThisFrame(class FViewport* InViewport) const;
 
@@ -92,4 +138,9 @@ private:
 		FLateUpdateManager LateUpdate;
 	};
 	TSharedPtr< FViewExtension, ESPMode::ThreadSafe > ViewExtension;
+ 
+	UPROPERTY(Transient)
+	UPrimitiveComponent* DisplayComponent;
+
+	FXRDeviceId DisplayDeviceId;
 };

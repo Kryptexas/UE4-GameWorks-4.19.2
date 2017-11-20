@@ -1262,6 +1262,39 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 		&& !View.Family->EngineShowFlags.ShaderComplexity;
 }
 
+void FPostProcessing::RegisterHMDPostprocessPass(FPostprocessContext& Context, const FEngineShowFlags& EngineShowFlags) const
+{
+	if (EngineShowFlags.StereoRendering && EngineShowFlags.HMDDistortion)
+	{
+		check(GEngine && GEngine->XRSystem.IsValid());
+		FRenderingCompositePass* Node = nullptr;
+
+		const IHeadMountedDisplay* HMD = GEngine->XRSystem->GetHMDDevice();
+		checkf(HMD, TEXT("EngineShowFlags.HMDDistortion can not be true when IXRTrackingSystem::GetHMDDevice returns null"));
+
+		static const FName MorpheusName(TEXT("PSVR"));
+#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
+		if (GEngine->XRSystem->GetSystemName() == MorpheusName)
+		{
+
+			FRCPassPostProcessMorpheus* MorpheusPass = new FRCPassPostProcessMorpheus();
+			MorpheusPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Node = Context.Graph.RegisterPass(MorpheusPass);
+		}
+		else
+#endif
+		{
+			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+		}
+
+		if (Node)
+		{
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
+	}
+}
+
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_PostProcessing_Process );
@@ -1956,30 +1989,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 		AddGBufferVisualizationOverview(Context, SeparateTranslucency, PreTonemapHDRColor, PostTonemapHDRColor);
 
-		if (View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion)
-		{
-			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
-			if((DeviceType == EHMDDeviceType::DT_OculusRift) || (DeviceType == EHMDDeviceType::DT_GoogleVR))
-			{
-				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-			}
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->StereoRenderingDevice->IsStereoEnabled())
-			{
-#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
-				Node = Context.Graph.RegisterPass(new FRCPassPostProcessMorpheus());
-#endif
-			}
-
-			if(Node)
-			{
-				ensureMsgf(!bUnscaledFinalOutput, TEXT("HMDDistortion is incompatible with unscaled output."));
-				bUnscaledFinalOutput = true;
-
-				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			}
-		}
+		RegisterHMDPostprocessPass(Context, View.Family->EngineShowFlags);
 
 		if(bVisualizeHDR)
 		{
@@ -2613,22 +2623,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
-		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
-		if (bStereoRenderingAndHMD)
-		{
-			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
-			if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh)
-			{
-				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-			}
-
-			if (Node)
-			{
-				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			}
-		}
+		RegisterHMDPostprocessPass(Context, View.Family->EngineShowFlags);
 
 		// The graph setup should be finished before this line ----------------------------------------
 

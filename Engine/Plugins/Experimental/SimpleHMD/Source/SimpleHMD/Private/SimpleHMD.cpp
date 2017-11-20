@@ -57,11 +57,6 @@ void FSimpleHMD::EnableHMD(bool enable)
 {
 }
 
-EHMDDeviceType::Type FSimpleHMD::GetHMDDeviceType() const
-{
-	return EHMDDeviceType::DT_ES2GenericStereoMesh;
-}
-
 bool FSimpleHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 {
 	MonitorDesc.MonitorName = "";
@@ -74,10 +69,6 @@ void FSimpleHMD::GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees
 {
 	OutHFOVInDegrees = 0.0f;
 	OutVFOVInDegrees = 0.0f;
-}
-
-void FSimpleHMD::RefreshPoses()
-{
 }
 
 bool FSimpleHMD::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type)
@@ -276,9 +267,6 @@ void FSimpleHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = true;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
-
-	// Disable screen percentage because screen percentage needs to be applied UnscaledViewRect in AdjustViewRect().
-	InViewFamily.EngineShowFlags.ScreenPercentage = false;
 }
 
 void FSimpleHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)

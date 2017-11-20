@@ -43,7 +43,7 @@ public:
 	virtual void CalculateDragRay( float& InOutDragRayLength, float& InOutDragRayVelocity ) override;
 
 	/** @return Returns the type of HMD we're dealing with */
-	EHMDDeviceType::Type GetHMDDeviceType() const;
+	FName GetHMDDeviceType() const;
 
 	// UViewportInteractor
 	virtual void PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;

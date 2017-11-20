@@ -79,7 +79,7 @@ ENUM_CLASS_FLAGS(EMediaWebcamCaptureDeviceFilter)
  * Information about a capture device.
  */
 USTRUCT(BlueprintType)
-struct FMediaCaptureDevice
+struct MEDIAASSETS_API FMediaCaptureDevice
 {
 	GENERATED_USTRUCT_BODY()
 

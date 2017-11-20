@@ -299,8 +299,9 @@ void FVREditorActionCallbacks::OnPlayButtonClicked(UVREditorMode* InVRMode)
 
 bool FVREditorActionCallbacks::CanPlay(UVREditorMode* InVRMode)
 {
+	static const FName OculusSystemName(TEXT("OculusHMD"));
 	return FLevelEditorActionCallbacks::DefaultCanExecuteAction() && VREd::AllowPlay->GetInt() == 1 &&
-		(InVRMode->GetHMDDeviceType() != EHMDDeviceType::DT_OculusRift || (InVRMode->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift && GEditor != nullptr && !GEditor->bIsSimulatingInEditor));
+		(InVRMode->GetHMDDeviceType() != OculusSystemName || (InVRMode->GetHMDDeviceType() == OculusSystemName && GEditor != nullptr && !GEditor->bIsSimulatingInEditor));
 }
 
 void FVREditorActionCallbacks::OnSimulateButtonClicked(UVREditorMode* InVRMode)

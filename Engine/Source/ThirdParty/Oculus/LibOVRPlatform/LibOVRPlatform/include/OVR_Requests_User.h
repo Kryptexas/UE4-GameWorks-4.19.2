@@ -8,6 +8,7 @@
 
 #include "OVR_UserAndRoomArray.h"
 #include "OVR_UserArray.h"
+#include "OVR_UserOptions.h"
 
 /// \file
 /// Overview:
@@ -85,6 +86,31 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserFriends();
 /// Extract the payload from the message handle with ::ovr_Message_GetUserAndRoomArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserFriendsAndRooms();
 
+/// Returns a list of users that the logged in user was in a room with
+/// recently, sorted by relevance, along with any rooms they might be in. All
+/// you need to do to use this method is to use our Rooms API, and we will
+/// track the number of times users are together, their most recent encounter,
+/// and the amount of time they spend together.
+///
+/// Customization can be done via UserOptions. Create this object with
+/// ovr_UserOptions_Create. The params that could be used are:
+///
+/// 1. ovr_UserOptions_SetTimeWindow - how recently should the users have
+/// played? The default is ovrTimeWindow_ThirtyDays.
+///
+/// 2. ovr_UserOptions_SetMaxUsers - we will limit the number of results
+/// returned. By default, the number is unlimited, but the server may choose to
+/// limit results for performance reasons.
+/// \param userOptions Additional configuration for this request. Optional.
+///
+/// A message with type ::ovrMessage_User_GetLoggedInUserRecentlyMetUsersAndRooms will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrUserAndRoomArrayHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetUserAndRoomArray().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserRecentlyMetUsersAndRooms(ovrUserOptionsHandle userOptions);
+
 /// Get the next page of entries
 ///
 /// A message with type ::ovrMessage_User_GetNextUserAndRoomArrayPage will be generated in response.
@@ -117,6 +143,17 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetNextUserArrayPage(ovrUserArrayHandl
 /// Extract the payload from the message handle with ::ovr_Message_GetOrgScopedID().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetOrgScopedID(ovrID userID);
 
+/// Returns all accounts belonging to this user. Accounts are the Oculus user
+/// and x-users that are linked to this user.
+///
+/// A message with type ::ovrMessage_User_GetSdkAccounts will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrSdkAccountArrayHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetSdkAccountArray().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetSdkAccounts();
+
 /// Part of the scheme to confirm the identity of a particular user in your
 /// backend. You can pass the result of ovr_User_GetUserProof() and a user ID
 /// from ovr_User_Get() to your your backend. Your server can then use our api
@@ -132,5 +169,17 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetOrgScopedID(ovrID userID);
 /// If no error occurred, the message will contain a payload of type ::ovrUserProofHandle.
 /// Extract the payload from the message handle with ::ovr_Message_GetUserProof().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetUserProof();
+
+/// Launch the profile of the given user on Gear VR. The profile surfaces
+/// information about the user and supports relevant actions that the viewer
+/// may take on that user, e.g. sending a friend request.
+/// \param userID User ID for profile being viewed
+///
+/// A message with type ::ovrMessage_User_LaunchProfile will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// This response has no payload. If no error occured, the request was successful. Yay!
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_LaunchProfile(ovrID userID);
 
 #endif

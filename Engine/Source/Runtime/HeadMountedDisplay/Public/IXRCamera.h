@@ -29,6 +29,11 @@ public:
 	virtual void UseImplicitHMDPosition(bool bInImplicitHMDPosition) = 0;
 
 	/**
+	* Get the view offset mode
+	*/
+	virtual bool GetUseImplicitHMDPosition() = 0;
+
+	/**
 	 * Optionally called by APlayerController to apply the orientation of the
 	 * headset to the PC's rotation. If this is not done then the PC will face
 	 * differently than the camera, which might be good (depending on the game).

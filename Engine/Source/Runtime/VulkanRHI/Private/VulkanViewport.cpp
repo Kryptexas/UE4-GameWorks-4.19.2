@@ -113,7 +113,7 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 	FVulkanCommandBufferManager* CmdBufferManager = Context.GetCommandBufferManager();
 	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
 	check(CmdBuffer->IsOutsideRenderPass());
-	
+
 	VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::ColorAttachment, VulkanRHI::SetupImageSubresourceRange());
 
 	// Submit here so we can add a dependency with the acquired semaphore
@@ -186,7 +186,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		}
 
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RHITexture);
-
+		ColorRenderTargetImages[Index] = Texture->Surface.Image;
 		MipIndex = InRTInfo.ColorRenderTarget[Index].MipIndex;
 
 		VkImageView RTView = VK_NULL_HANDLE;
@@ -223,7 +223,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	if (RTLayout.GetHasDepthStencil())
 	{
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
-
+		DepthStencilRenderTargetImage = Texture->Surface.Image;
 		bool bHasStencil = (Texture->Surface.PixelFormat == PF_DepthStencil || Texture->Surface.PixelFormat == PF_X24_G8);
 
 		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D || Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE);
@@ -307,6 +307,16 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 		{
 			return false;
 		}
+
+		if (A.Texture)
+		{
+			VkImage AImage = DepthStencilRenderTargetImage;
+			VkImage BImage = ((FVulkanTextureBase*)B.Texture->GetTextureBaseRHI())->Surface.Image;
+			if (AImage != BImage)
+			{
+				return false;
+			}
+		}
 	}
 
 	// We dont need to compare all render-tagets, since we
@@ -318,6 +328,16 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 		if (!(A == B))
 		{
 			return false;
+		}
+
+		if (A.Texture)
+		{
+			VkImage AImage = ColorRenderTargetImages[Index];
+			VkImage BImage = ((FVulkanTextureBase*)B.Texture->GetTextureBaseRHI())->Surface.Image;
+			if (AImage != BImage)
+			{
+				return false;
+			}
 		}
 	}
 
@@ -495,7 +515,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		//#todo-rco: Might need to NOT be undefined...
 		VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::Present, VulkanRHI::SetupImageSubresourceRange());
 	}
-	
+
 
 #if 0
 	{

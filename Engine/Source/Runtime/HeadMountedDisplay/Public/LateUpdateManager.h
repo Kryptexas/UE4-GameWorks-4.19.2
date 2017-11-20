@@ -12,12 +12,16 @@ class HEADMOUNTEDDISPLAY_API FLateUpdateManager
 {
 public:
 	FLateUpdateManager();
+	virtual ~FLateUpdateManager() {}
 
 	/** Setup state for applying the render thread late update */
 	void Setup(const FTransform& ParentToWorld, USceneComponent* Component);
 
 	/** Apply the late update delta to the cached components */
 	void Apply_RenderThread(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform);
+
+	/** Increments the double buffered read index, etc. - in prep for the next render frame (read: MUST be called for each frame Setup() was called on). */
+	void PostRender_RenderThread();
 
 private:
 

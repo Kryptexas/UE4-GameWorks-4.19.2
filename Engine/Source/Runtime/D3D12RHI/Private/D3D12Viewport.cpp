@@ -666,7 +666,7 @@ void FD3D12Viewport::AdvanceBackBufferFrame_RenderThread()
 }
 
 
-/*=============================================================================
+/*==============================================================================
  *	The following RHI functions must be called from the main thread.
  *=============================================================================*/
 FViewportRHIRef FD3D12DynamicRHI::RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
