@@ -37,13 +37,13 @@ public class MediaPlayer14
 	private OESTextureRenderer mOESTextureRenderer = null;
 
 	public class FrameUpdateInfo {
-		int CurrentPosition;
-		boolean FrameReady;
-		boolean RegionChanged;
-		float UScale;
-		float UOffset;
-		float VScale;
-		float VOffset;
+		public int CurrentPosition;
+		public boolean FrameReady;
+		public boolean RegionChanged;
+		public float UScale;
+		public float UOffset;
+		public float VScale;
+		public float VOffset;
 	}
 
 	public class AudioTrackInfo {

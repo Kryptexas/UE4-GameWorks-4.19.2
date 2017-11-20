@@ -66,16 +66,16 @@ public class CameraPlayer14
 	private OESTextureRenderer mOESTextureRenderer = null;
 
 	public class FrameUpdateInfo {
-		java.nio.Buffer Buffer;
-		int CurrentPosition;
-		boolean FrameReady;
-		boolean RegionChanged;
-		float ScaleRotation00;
-		float ScaleRotation01;
-		float ScaleRotation10;
-		float ScaleRotation11;
-		float UOffset;
-		float VOffset;
+		public java.nio.Buffer Buffer;
+		public int CurrentPosition;
+		public boolean FrameReady;
+		public boolean RegionChanged;
+		public float ScaleRotation00;
+		public float ScaleRotation01;
+		public float ScaleRotation10;
+		public float ScaleRotation11;
+		public float UOffset;
+		public float VOffset;
 	}
 
 	public class AudioTrackInfo {
