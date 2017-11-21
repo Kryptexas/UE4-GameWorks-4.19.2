@@ -12,11 +12,10 @@ class FFlexSimulationResourceBuffer
 public:
 	static const int32 MinCapacity = 32;
 
-	FFlexSimulationResourceBuffer(int32 InElementSize, int32 InElementFormat, int32 InBufferUsage = (BUF_Static | BUF_KeepCPUAccessible))
+	FFlexSimulationResourceBuffer(int32 InElementSize, int32 InBufferUsage = (BUF_Static | BUF_KeepCPUAccessible))
 	{
 		Capacity = 0;
 		ElementSize = InElementSize;
-		ElementFormat = InElementFormat;
 		BufferUsage = InBufferUsage;
 	}
 
@@ -40,8 +39,8 @@ public:
 
 			const int32 BufferSize = Capacity * ElementSize;
 			check(BufferSize > 0);
-			Buffer = RHICreateVertexBuffer(BufferSize, BufferUsage, CreateInfo);
-			BufferSRV = RHICreateShaderResourceView(Buffer, /*Stride=*/ ElementSize, ElementFormat);
+			Buffer = RHICreateStructuredBuffer(ElementSize, BufferSize, BufferUsage | BUF_ShaderResource, CreateInfo);
+			BufferSRV = RHICreateShaderResourceView(Buffer);
 		}
 	}
 
@@ -54,22 +53,25 @@ public:
 	void* Lock(int32 InNumElements)
 	{
 		check(InNumElements <= Capacity);
-		return RHILockVertexBuffer(Buffer, 0, InNumElements * ElementSize, RLM_WriteOnly);
+		return RHILockStructuredBuffer(Buffer, 0, InNumElements * ElementSize, RLM_WriteOnly);
 	}
 
 	void Unlock()
 	{
-		RHIUnlockVertexBuffer(Buffer);
+		RHIUnlockStructuredBuffer(Buffer);
 	}
 
 	void Set(const void* Src, int32 Count)
 	{
-		void* Dest = Lock(Count);
-		if (Dest)
+		if (Count > 0)
 		{
-			FMemory::Memcpy(Dest, Src, ElementSize * Count);
+			void* Dest = Lock(Count);
+			if (Dest)
+			{
+				FMemory::Memcpy(Dest, Src, ElementSize * Count);
+			}
+			Unlock();
 		}
-		Unlock();
 	}
 
 	const FShaderResourceViewRHIRef& GetSRV() const
@@ -78,25 +80,19 @@ public:
 	}
 
 private:
-	FVertexBufferRHIRef Buffer;
+	FStructuredBufferRHIRef Buffer;
 	FShaderResourceViewRHIRef BufferSRV;
 
 	int32 Capacity;
 	int32 ElementSize;
-	int32 ElementFormat;
 	int32 BufferUsage;
 };
 
 class FFlexSimulationResource : public FRenderResource
 {
 public:
-	static const int32 ParticleIndexFormat = PF_R32_SINT;
 	static const int32 ParticleIndexSize = sizeof(int);
-
-	static const int32 PositionFormat = PF_A32B32G32R32F;
 	static const int32 PositionSize = sizeof(float) * 4;
-
-	static const int32 VelocityFormat = PF_A32B32G32R32F;
 	static const int32 VelocitySize = sizeof(float) * 4;
 
 	FFlexSimulationResourceBuffer ParticleIndexBuffer;
@@ -105,9 +101,9 @@ public:
 
 	/** Default constructor. */
 	FFlexSimulationResource(int32 InBufferUsage = (BUF_Static | BUF_KeepCPUAccessible))
-		: ParticleIndexBuffer(ParticleIndexSize, ParticleIndexFormat, InBufferUsage)
-		, PositionBuffer(PositionSize, PositionFormat, InBufferUsage)
-		, VelocityBuffer(VelocitySize, VelocityFormat, InBufferUsage)
+		: ParticleIndexBuffer(ParticleIndexSize, InBufferUsage)
+		, PositionBuffer(PositionSize, InBufferUsage)
+		, VelocityBuffer(VelocitySize, InBufferUsage)
 	{
 	}
 
