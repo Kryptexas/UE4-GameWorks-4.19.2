@@ -17,6 +17,12 @@ class ListThirdPartySoftware : BuildCommand
 	{
 		CommandUtils.Log("************************* List Third Party Software");
 
+		string ProjectPath = ParseParamValue("Project", String.Empty);
+
+		//Add quotes to avoid issues with spaces in project path
+		if (ProjectPath != String.Empty)
+			ProjectPath = "\"" + ProjectPath + "\"";
+
 		// Parse the list of targets to list TPS for. Each target is specified by -Target="Name|Configuration|Platform" on the command line.
 		HashSet<FileReference> TpsFiles = new HashSet<FileReference>();
 		foreach(string Target in ParseParamValues(Params, "Target"))
@@ -24,8 +30,11 @@ class ListThirdPartySoftware : BuildCommand
 			// Get the path to store the exported JSON target data
 			FileReference OutputFile = FileReference.Combine(CommandUtils.EngineDirectory, "Intermediate", "Build", "ThirdParty.json");
 
-			IProcessResult Result = Run(UE4Build.GetUBTExecutable(), String.Format("{0} -jsonexport=\"{1}\" -skipbuild", Target.Replace('|', ' '), OutputFile.FullName), Options: ERunOptions.Default);
-			if(Result.ExitCode != 0)
+			IProcessResult Result;
+
+			Result = Run(UE4Build.GetUBTExecutable(), String.Format("{0} {1} -jsonexport=\"{2}\" -skipbuild", Target.Replace('|', ' '),  ProjectPath, OutputFile.FullName), Options: ERunOptions.Default);
+
+			if (Result.ExitCode != 0)
 			{
 				throw new AutomationException("Failed to run UBT");
 			}

@@ -20,6 +20,7 @@ DEFINE_LOG_CATEGORY(LogGameProjectGeneration);
 
 FName FTemplateCategory::BlueprintCategoryName = "Blueprint";
 FName FTemplateCategory::CodeCategoryName = "C++";
+FName FTemplateCategory::EnterpriseCategoryName = "Enterprise";
 
 void FGameProjectGenerationModule::StartupModule()
 {
@@ -39,6 +40,13 @@ void FGameProjectGenerationModule::StartupModule()
 		),
 		FEditorStyle::GetBrush("GameProjectDialog.CodeIcon"),
 		FEditorStyle::GetBrush("GameProjectDialog.CodeImage"));
+
+	RegisterTemplateCategory(
+		FTemplateCategory::EnterpriseCategoryName,
+		LOCTEXT("EnterpriseCategory_Name", "Enterprise"),
+		LOCTEXT("EnterpriseCategory_Description", "Enterprise blueprint templates require no programming knowledge.\nEach template include a basic set of blueprints to use as a starting point for your enterprise project."),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintIcon"),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintImage"));
 }
 
 

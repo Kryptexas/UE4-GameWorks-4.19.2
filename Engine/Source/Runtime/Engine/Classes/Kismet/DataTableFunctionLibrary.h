@@ -38,6 +38,10 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "DataTable")
 	static void GetDataTableRowNames(UDataTable* Table, TArray<FName>& OutRowNames);
 
+	/** Export from the DataTable all the row for one column. Export it as string. The row name is not included. */
+	UFUNCTION(BlueprintCallable, Category = "DataTable")
+	static TArray<FString> GetDataTableColumnAsString(const UDataTable* DataTable, FName PropertyName);
+
     /** Get a Row from a DataTable given a RowName */
     UFUNCTION(BlueprintCallable, CustomThunk, Category = "DataTable", meta=(CustomStructureParam = "OutRow", BlueprintInternalUseOnly="true"))
     static bool GetDataTableRowFromName(UDataTable* Table, FName RowName, FTableRowBase& OutRow);

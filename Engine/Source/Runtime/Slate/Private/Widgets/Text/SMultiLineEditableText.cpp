@@ -29,9 +29,11 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 {
 	bIsReadOnly = InArgs._IsReadOnly;
 
+	OnIsTypedCharValid = InArgs._OnIsTypedCharValid;
 	OnTextChangedCallback = InArgs._OnTextChanged;
 	OnTextCommittedCallback = InArgs._OnTextCommitted;
 	OnCursorMovedCallback = InArgs._OnCursorMoved;
+	bAllowMultiLine = InArgs._AllowMultiLine;
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	bClearTextSelectionOnFocusLoss = InArgs._ClearTextSelectionOnFocusLoss;
 	bClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
@@ -42,6 +44,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
 	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
+	OnKeyCharHandler = InArgs._OnKeyCharHandler;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 	ModiferKeyForNewLine = InArgs._ModiferKeyForNewLine;
 
@@ -240,7 +243,7 @@ bool SMultiLineEditableText::IsTextPassword() const
 
 bool SMultiLineEditableText::IsMultiLineTextEdit() const
 {
-	return true;
+	return bAllowMultiLine.Get(true);
 }
 
 bool SMultiLineEditableText::ShouldJumpCursorToEndWhenFocused() const
@@ -280,7 +283,12 @@ bool SMultiLineEditableText::CanInsertCarriageReturn() const
 
 bool SMultiLineEditableText::CanTypeCharacter(const TCHAR InChar) const
 {
-	return true;
+	if (OnIsTypedCharValid.IsBound())
+	{
+		return OnIsTypedCharValid.Execute(InChar);
+	}
+
+	return InChar != TEXT('\t');
 }
 
 void SMultiLineEditableText::EnsureActiveTick()
@@ -562,7 +570,20 @@ bool SMultiLineEditableText::SupportsKeyboardFocus() const
 
 FReply SMultiLineEditableText::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent )
 {
-	return EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	FReply Reply = FReply::Unhandled();
+
+	// First call the user defined key handler, there might be overrides to normal functionality
+	if (OnKeyCharHandler.IsBound())
+	{
+		Reply = OnKeyCharHandler.Execute(MyGeometry, InCharacterEvent);
+	}
+
+	if (!Reply.IsEventHandled())
+	{
+		Reply = EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	}
+
+	return Reply;
 }
 
 FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )

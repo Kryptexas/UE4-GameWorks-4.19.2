@@ -97,6 +97,13 @@ public:
 	static FString EnterprisePluginsDir();
 
 	/**
+	* Returns the enterprise FeaturePack directory
+	*
+	* @return FeaturePack directory.
+	*/
+	static FString EnterpriseFeaturePackDir();
+
+	/**
 	 * Returns the root directory of the engine directory tree
 	 *
 	 * @return Root directory.

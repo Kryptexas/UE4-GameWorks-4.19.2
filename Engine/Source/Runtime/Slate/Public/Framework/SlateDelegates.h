@@ -227,4 +227,7 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*Fi
 DECLARE_DELEGATE_RetVal_OneParam(bool, FAccessAsset, UObject* /*InAsset*/);
 
 /** A delegate for a callback during OnKeyDown from an SWidget */
-DECLARE_DELEGATE_RetVal_TwoParams( FReply, FOnKeyDown, const FGeometry&, const FKeyEvent&);
+DECLARE_DELEGATE_RetVal_TwoParams(FReply, FOnKeyDown, const FGeometry&, const FKeyEvent&);
+
+/** A delegate for a callback during OnKeyChar from an SWidget */
+DECLARE_DELEGATE_RetVal_TwoParams(FReply, FOnKeyChar, const FGeometry&, const FCharacterEvent&);

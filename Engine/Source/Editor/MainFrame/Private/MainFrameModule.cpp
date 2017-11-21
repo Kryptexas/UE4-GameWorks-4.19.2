@@ -22,6 +22,7 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"

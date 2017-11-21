@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Misc/EnumClassFlags.h"
 
+class UDataTable;
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDataTable, Log, All);
 
 enum class EDataTableExportFlags : uint8
@@ -90,4 +92,9 @@ namespace DataTableUtils
 	 * Util to get the friendly display name of a given property.
 	 */
 	ENGINE_API FString GetPropertyDisplayName(const UProperty* Prop, const FString& DefaultName);
+
+	/**
+	 * Output each row for a specific column/property in the table (doesn't include the title)
+	 */
+	ENGINE_API TArray<FString> GetColumnDataAsString(const UDataTable* InTable, const FName& PropertyName, const EDataTableExportFlags InDTExportFlags);
 }

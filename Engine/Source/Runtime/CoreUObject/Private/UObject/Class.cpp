@@ -4753,6 +4753,12 @@ UScriptStruct* TBaseStructure<FRotator>::Get()
 	return ScriptStruct;
 }
 
+UScriptStruct* TBaseStructure<FQuat>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Quat"));
+	return ScriptStruct;
+}
+
 UScriptStruct* TBaseStructure<FTransform>::Get()
 {
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Transform"));
@@ -4771,6 +4777,12 @@ UScriptStruct* TBaseStructure<FColor>::Get()
 	return ScriptStruct;
 }
 
+UScriptStruct* TBaseStructure<FPlane>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Plane"));
+	return ScriptStruct;
+}
+
 UScriptStruct* TBaseStructure<FVector>::Get()
 {
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Vector"));
@@ -4780,6 +4792,12 @@ UScriptStruct* TBaseStructure<FVector>::Get()
 UScriptStruct* TBaseStructure<FVector2D>::Get()
 {
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Vector2D"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FVector4>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Vector4"));
 	return ScriptStruct;
 }
 

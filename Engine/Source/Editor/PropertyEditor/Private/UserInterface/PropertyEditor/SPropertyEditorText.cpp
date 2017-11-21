@@ -36,7 +36,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 				.AutoWrapText(true)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
-				.IsPassword( bIsPassword )
+				//.IsPassword( bIsPassword )
 			]
 		];
 

@@ -3633,7 +3633,7 @@ namespace UnrealBuildTool
 			{
 				foreach(PluginInfo Plugin in NameToInfo.Values)
 				{
-					if(!NameToInstance.ContainsKey(Plugin.Name))
+					if(!NameToInstance.ContainsKey(Plugin.Name) && !Plugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
 					{
 						PluginReferenceDescriptor Reference = new PluginReferenceDescriptor(Plugin.Name, null, true);
 						AddPlugin(Reference, TargetRulesFile.GetFileName(), ExcludeFolders, NameToInstance, NameToInfo);

@@ -26,6 +26,16 @@ void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, F
 	}
 }
 
+TArray<FString> UDataTableFunctionLibrary::GetDataTableColumnAsString(const UDataTable* DataTable, FName PropertyName)
+{
+	if (DataTable && PropertyName != NAME_None)
+	{
+		EDataTableExportFlags ExportFlags = EDataTableExportFlags::None;
+		return DataTableUtils::GetColumnDataAsString(DataTable, PropertyName, ExportFlags);
+	}
+	return TArray<FString>();
+}
+
 bool UDataTableFunctionLibrary::Generic_GetDataTableRowFromName(UDataTable* Table, FName RowName, void* OutRowPtr)
 {
 	bool bFoundRow = false;

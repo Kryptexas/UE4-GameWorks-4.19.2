@@ -3013,9 +3013,18 @@ struct FStructUtils
 
 template< class T > struct TBaseStructure
 {
+	static UScriptStruct* Get()
+	{
+		return T::StaticStruct();
+	}
 };
 
 template<> struct TBaseStructure<FRotator>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FQuat>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
@@ -3035,12 +3044,22 @@ template<> struct TBaseStructure<FColor>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
+template<> struct  TBaseStructure<FPlane>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
 template<> struct  TBaseStructure<FVector>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
 template<> struct TBaseStructure<FVector2D>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FVector4>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

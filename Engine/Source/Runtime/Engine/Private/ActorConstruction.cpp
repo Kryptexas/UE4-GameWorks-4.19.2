@@ -1082,10 +1082,16 @@ void AActor::CheckComponentInstanceName(const FName InName)
 			// Try and pick a good name
 			FString ConflictingObjectName = ConflictingObject->GetName();
 			int32 CharIndex = ConflictingObjectName.Len() - 1;
-			while (FChar::IsDigit(ConflictingObjectName[CharIndex]))
+			while (CharIndex >= 0 && FChar::IsDigit(ConflictingObjectName[CharIndex]))
 			{
 				--CharIndex;
 			}
+			// Name is only composed of digits not a name conflict resolution
+			if (CharIndex < 0)
+			{
+				return;
+			}
+
 			int32 Counter = 0;
 			if (CharIndex < ConflictingObjectName.Len() - 1)
 			{

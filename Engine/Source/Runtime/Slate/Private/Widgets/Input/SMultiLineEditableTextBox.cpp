@@ -99,7 +99,9 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.Marshaller( InArgs._Marshaller )
 					.Font( this, &SMultiLineEditableTextBox::DetermineFont )
 					.IsReadOnly( InArgs._IsReadOnly )
+					.AllowMultiLine( InArgs._AllowMultiLine )
 					.OnContextMenuOpening( InArgs._OnContextMenuOpening )
+					.OnIsTypedCharValid( InArgs._OnIsTypedCharValid )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.OnCursorMoved( InArgs._OnCursorMoved )
@@ -119,7 +121,8 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.VScrollBar(VScrollBar)
 					.OnHScrollBarUserScrolled(InArgs._OnHScrollBarUserScrolled)
 					.OnVScrollBarUserScrolled(InArgs._OnVScrollBarUserScrolled)
-					.OnKeyDownHandler( InArgs._OnKeyDownHandler)
+					.OnKeyCharHandler(InArgs._OnKeyCharHandler)
+					.OnKeyDownHandler(InArgs._OnKeyDownHandler)
 					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
 					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
 					.VirtualKeyboardDismissAction( InArgs._VirtualKeyboardDismissAction )
@@ -463,6 +466,11 @@ TSharedPtr<const SScrollBar> SMultiLineEditableTextBox::GetVScrollBar() const
 void SMultiLineEditableTextBox::Refresh()
 {
 	return EditableText->Refresh();
+}
+
+void SMultiLineEditableTextBox::SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler)
+{
+	EditableText->SetOnKeyCharHandler(InOnKeyCharHandler);
 }
 
 void SMultiLineEditableTextBox::SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler)

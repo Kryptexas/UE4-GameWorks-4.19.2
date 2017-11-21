@@ -33,6 +33,7 @@
 #include "LevelViewportLayoutEntity.h"
 #include "PixelInspectorModule.h"
 #include "CommonMenuExtensionsModule.h"
+#include "ProjectDescriptor.h"
 
 // @todo Editor: remove this circular dependency
 #include "Interfaces/IMainFrameModule.h"
@@ -98,7 +99,12 @@ public:
 
 		// Create the tooltip showing more detailed information
 		FFormatNamedArguments TooltipArgs;
-		TooltipArgs.Add(TEXT("Version"), FText::FromString(EngineVersionString));
+		FString TooltipVersionStr = EngineVersionString;
+		if (IProjectManager::Get().GetCurrentProject() && IProjectManager::Get().GetCurrentProject()->bIsEnterpriseProject)
+		{
+			TooltipVersionStr += TEXT(" Enterprise");
+		}
+		TooltipArgs.Add(TEXT("Version"), FText::FromString(TooltipVersionStr));
 		TooltipArgs.Add(TEXT("Branch"), FText::FromString(FApp::GetBranchName()));
 		TooltipArgs.Add(TEXT("BuildConfiguration"), EBuildConfigurations::ToText(BuildConfig));
 		TooltipArgs.Add(TEXT("BuildDate"), FText::FromString(FApp::GetBuildDate()));

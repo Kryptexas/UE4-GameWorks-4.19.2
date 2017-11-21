@@ -3,6 +3,7 @@
 #include "DataTableUtils.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
+#include "Engine/DataTable.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Policies/PrettyJsonPrintPolicy.h"
@@ -477,4 +478,29 @@ FString DataTableUtils::GetPropertyDisplayName(const UProperty* Prop, const FStr
 #else  // WITH_EDITOR
 	return DefaultName;
 #endif // WITH_EDITOR
+}
+
+TArray<FString> DataTableUtils::GetColumnDataAsString(const UDataTable* InTable, const FName& PropertyName, const EDataTableExportFlags InDTExportFlags)
+{
+	TArray<FString> Result;
+	if (!ensure(InTable))
+	{
+		return Result;
+	}
+	if (!ensure(PropertyName != NAME_None))
+	{
+		return Result;
+	}
+
+	UProperty* ColumnProperty = InTable->FindTableProperty(PropertyName);
+	if (ColumnProperty)
+	{
+		for (auto RowIt = InTable->RowMap.CreateConstIterator(); RowIt; ++RowIt)
+		{
+			uint8* RowData = RowIt.Value();
+			Result.Add(GetPropertyValueAsString(ColumnProperty, RowData, InDTExportFlags));
+		}
+	}
+
+	return Result;
 }

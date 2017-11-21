@@ -34,6 +34,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	VirtualKeyboardType = InArgs._VirtualKeyboardType;
 	VirtualKeyboardTrigger = InArgs._VirtualKeyboardTrigger;
 	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
+	OnKeyCharHandler = InArgs._OnKeyCharHandler;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 
 	Font = InArgs._Font;
@@ -171,7 +172,20 @@ void SEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 
 FReply SEditableText::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
-	return EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	FReply Reply = FReply::Unhandled();
+
+	// First call the user defined key handler, there might be overrides to normal functionality
+	if (OnKeyCharHandler.IsBound())
+	{
+		Reply = OnKeyCharHandler.Execute(MyGeometry, InCharacterEvent);
+	}
+
+	if (!Reply.IsEventHandled())
+	{
+		Reply = EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	}
+
+	return Reply;
 }
 
 FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
@@ -484,7 +498,12 @@ bool SEditableText::CanInsertCarriageReturn() const
 
 bool SEditableText::CanTypeCharacter(const TCHAR InChar) const
 {
-	return !OnIsTypedCharValid.IsBound() || OnIsTypedCharValid.Execute(InChar);
+	if (OnIsTypedCharValid.IsBound())
+	{
+		return OnIsTypedCharValid.Execute(InChar);
+	}
+
+	return InChar != TEXT('\t');
 }
 
 void SEditableText::EnsureActiveTick()

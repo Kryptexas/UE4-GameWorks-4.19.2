@@ -113,6 +113,9 @@ public:
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 
+		/** Callback delegate to have first chance handling of the OnKeyChar event */
+		SLATE_EVENT(FOnKeyChar, OnKeyCharHandler)
+
 		/** Callback delegate to have first chance handling of the OnKeyDown event */
 		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
 
@@ -269,6 +272,13 @@ public:
 	 */
 	void SetError( const FText& InError );
 	void SetError( const FString& InError );
+
+	/**
+	 * Sets the OnKeyCharHandler to provide first chance handling of the SEditableText's OnKeyChar event
+	 *
+	 * @param InOnKeyCharHandler			Delegate to call during OnKeyChar event
+	 */
+	void SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler);
 
 	/**
 	 * Sets the OnKeyDownHandler to provide first chance handling of the SEditableText's OnKeyDown event

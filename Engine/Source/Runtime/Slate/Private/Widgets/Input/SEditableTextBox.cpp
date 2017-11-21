@@ -56,6 +56,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.MinDesiredWidth( InArgs._MinDesiredWidth )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
+					.OnKeyCharHandler( InArgs._OnKeyCharHandler )			
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
 					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
@@ -129,6 +130,12 @@ void SEditableTextBox::SetError( const FString& InError )
 	}
 
 	ErrorReporting->SetError( InError );
+}
+
+
+void SEditableTextBox::SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler)
+{
+	EditableText->SetOnKeyCharHandler(InOnKeyCharHandler);
 }
 
 

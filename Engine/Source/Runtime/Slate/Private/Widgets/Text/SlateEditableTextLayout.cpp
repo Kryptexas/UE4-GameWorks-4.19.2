@@ -809,9 +809,6 @@ FReply FSlateEditableTextLayout::HandleKeyChar(const FCharacterEvent& InCharacte
 		}
 		break;
 
-	case TCHAR('\t'):	// Tab
-		return FReply::Handled();
-
 	case TCHAR('\n'):	// Newline (Ctrl+Enter), we handle adding new lines via HandleCarriageReturn rather than processing newline characters
 		return FReply::Handled();
 
@@ -942,6 +939,10 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 
 		FScopedEditableTextTransaction TextTransaction(*this);
 		Reply = BoolToReply(HandleDelete());
+	}
+	else if (Key == EKeys::Tab && OwnerWidget->CanTypeCharacter(TEXT('\t')))
+	{
+		Reply = FReply::Handled();
 	}
 	else if (Key == EKeys::Escape)
 	{
@@ -3196,7 +3197,8 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 
 	// If we're auto-wrapping, we need to hide the scrollbars until the first valid auto-wrap has been performed
 	// If we don't do this, then we can get some nasty layout shuffling as the scrollbars appear for one frame and then vanish again
-	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize.IsZero()) ? EVisibility::Collapsed : EVisibility::Visible;
+	// We also hide the scrollbars for non-multi-line text widgets
+	const EVisibility ScrollBarVisiblityOverride = ((AutoWrapText.Get() && CachedSize.IsZero()) || !OwnerWidget->IsMultiLineTextEdit()) ? EVisibility::Collapsed : EVisibility::Visible;
 
 	// Try and make sure that the line containing the cursor is in view
 	if (PositionToScrollIntoView.IsSet())

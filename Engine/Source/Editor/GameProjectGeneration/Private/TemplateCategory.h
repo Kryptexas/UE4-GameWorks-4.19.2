@@ -8,7 +8,7 @@ struct FSlateBrush;
 
 struct FTemplateCategory
 {
-	static FName BlueprintCategoryName, CodeCategoryName;
+	static FName BlueprintCategoryName, CodeCategoryName, EnterpriseCategoryName;
 
 	/** Localised name of this category */
 	FText Name;

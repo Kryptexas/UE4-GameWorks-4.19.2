@@ -160,6 +160,11 @@ FString FPaths::EnterprisePluginsDir()
 	return EnterpriseDir() + TEXT("Plugins/");
 }
 
+FString FPaths::EnterpriseFeaturePackDir()
+{
+	return FPaths::EnterpriseDir() + TEXT("FeaturePacks/");
+}
+
 FString FPaths::RootDir()
 {
 	return FString(FPlatformMisc::RootDir());

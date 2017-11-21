@@ -358,7 +358,12 @@ bool FParse::QuotedString( const TCHAR* Buffer, FString& Value, int32* OutNumCha
 		return false;
 	}
 
-	while (*Buffer && *Buffer != TCHAR('"') && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'))
+	auto ShouldParse = [](const TCHAR Ch)
+	{
+		return Ch != 0 && Ch != TCHAR('"') && Ch != TCHAR('\n') && Ch != TCHAR('\r');
+	};
+
+	while (ShouldParse(*Buffer))
 	{
 		if (*Buffer != TCHAR('\\')) // unescaped character
 		{
@@ -369,7 +374,7 @@ bool FParse::QuotedString( const TCHAR* Buffer, FString& Value, int32* OutNumCha
 			Value += TEXT("\\");
 			++Buffer;
 		}
-		else if (*Buffer == TCHAR('\"')) // escaped double quote "\""
+		else if (*Buffer == TCHAR('"')) // escaped double quote "\""
 		{
 			Value += TCHAR('"');
 			++Buffer;
@@ -394,10 +399,68 @@ bool FParse::QuotedString( const TCHAR* Buffer, FString& Value, int32* OutNumCha
 			Value += TCHAR('\t');
 			++Buffer;
 		}
-		else // some other escape sequence, assume it's a hex character value
+		else if (FChar::IsOctDigit(*Buffer)) // octal sequence (\012)
 		{
-			Value += FString::Printf(TEXT("%c"), (HexDigit(Buffer[0]) * 16) + HexDigit(Buffer[1]));
-			Buffer += 2;
+			FString OctSequence;
+			while (ShouldParse(*Buffer) && FChar::IsOctDigit(*Buffer) && OctSequence.Len() < 3) // Octal sequences can only be up-to 3 digits long
+			{
+				OctSequence += *Buffer++;
+			}
+
+			Value += (TCHAR)FCString::Strtoi(*OctSequence, nullptr, 8);
+		}
+		else if (*Buffer == TCHAR('x')) // hex sequence (\xBEEF)
+		{
+			++Buffer;
+
+			FString HexSequence;
+			while (ShouldParse(*Buffer) && FChar::IsHexDigit(*Buffer))
+			{
+				HexSequence += *Buffer++;
+			}
+
+			Value += (TCHAR)FCString::Strtoi(*HexSequence, nullptr, 16);
+		}
+		else if (*Buffer == TCHAR('u')) // UTF-16 sequence (\u1234)
+		{
+			++Buffer;
+
+			FString UnicodeSequence;
+			while (ShouldParse(*Buffer) && FChar::IsHexDigit(*Buffer) && UnicodeSequence.Len() < 4) // UTF-16 sequences can only be up-to 4 digits long
+			{
+				UnicodeSequence += *Buffer++;
+			}
+
+			const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*UnicodeSequence, nullptr, 16);
+
+			FString UnicodeString;
+			if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+			{
+				Value += MoveTemp(UnicodeString);
+			}
+		}
+		else if (*Buffer == TCHAR('U')) // UTF-32 sequence (\U12345678)
+		{
+			++Buffer;
+
+			FString UnicodeSequence;
+			while (ShouldParse(*Buffer) && FChar::IsHexDigit(*Buffer) && UnicodeSequence.Len() < 8) // UTF-32 sequences can only be up-to 8 digits long
+			{
+				UnicodeSequence += *Buffer++;
+			}
+
+			const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*UnicodeSequence, nullptr, 16);
+
+			FString UnicodeString;
+			if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+			{
+				Value += MoveTemp(UnicodeString);
+			}
+		}
+		else // unhandled escape sequence
+		{
+			Value += TEXT("\\");
+			Value += *Buffer++;
 		}
 	}
 

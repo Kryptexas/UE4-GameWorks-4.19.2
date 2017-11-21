@@ -672,47 +672,8 @@ void FConfigFile::ProcessInputFileContents(const FString& Contents)
 				// If this line is delimited by quotes
 				if( *Value=='\"' )
 				{
-					FString PreprocessedValue = FString(Value).TrimQuotes().ReplaceQuotesWithEscapedQuotes();
-					const TCHAR* NewValue = *PreprocessedValue;
-
 					FString ProcessedValue;
-					//epic moelfke: fixed handling of escaped characters in quoted string
-					while (*NewValue && *NewValue != '\"')
-					{
-						if (*NewValue != '\\') // unescaped character
-						{
-							ProcessedValue += *NewValue++;
-						}
-						else if( *++NewValue == '\0')// escape character encountered at end
-						{
-							break;
-						}
-						else if (*NewValue == '\\') // escaped backslash "\\"
-						{
-							ProcessedValue += '\\';
-							NewValue++;
-						}
-						else if (*NewValue == '\"') // escaped double quote "\""
-						{
-							ProcessedValue += '\"';
-							NewValue++;
-						}
-						else if ( *NewValue == TEXT('n') )
-						{
-							ProcessedValue += TEXT('\n');
-							NewValue++;
-						}
-						else if( *NewValue == TEXT('u') && NewValue[1] && NewValue[2] && NewValue[3] && NewValue[4] )	// \uXXXX - UNICODE code point
-						{
-							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[1])*(1<<12) + FParse::HexDigit(NewValue[2])*(1<<8) + FParse::HexDigit(NewValue[3])*(1<<4) + FParse::HexDigit(NewValue[4]));
-							NewValue += 5;
-						}
-						else if( NewValue[1] ) // some other escape sequence, assume it's a hex character value
-						{
-							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[0])*16 + FParse::HexDigit(NewValue[1]));
-							NewValue += 2;
-						}
-					}
+					FParse::QuotedString(Value, ProcessedValue);
 
 					// Add this pair to the current FConfigSection
 					CurrentSection->Add(Start, *ProcessedValue);
@@ -797,6 +758,12 @@ bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue)
 		
 		// ... it contains unquoted '//' (interpreted as a comment when importing)
 		if ((ThisChar == TEXT('/') && NextChar == TEXT('/')) && !bIsWithinQuotes)
+		{
+			return true;
+		}
+
+		// ... it contains an unescaped new-line
+		if (!bEscapeNextChar && (NextChar == TEXT('\r') || NextChar == TEXT('\n')))
 		{
 			return true;
 		}

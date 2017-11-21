@@ -5153,6 +5153,19 @@ static bool NonOpaqueMaterialPredicate(UStaticMeshComponent* InMesh)
 
 void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, FRawMesh &OutRawMesh) const
 {
+	// Compute any missing tangents.
+	if (bRecomputeNormals || bRecomputeTangents)
+	{
+		float ComparisonThreshold = InBuildSettings.bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
+		TMultiMap<int32, int32> OverlappingCorners;
+		FindOverlappingCorners(OverlappingCorners, OutRawMesh, ComparisonThreshold);
+
+		RecomputeTangentsAndNormalsForRawMesh( bRecomputeTangents, bRecomputeNormals, InBuildSettings, OverlappingCorners, OutRawMesh );
+	}
+}
+
+void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, const TMultiMap<int32, int32>& InOverlappingCorners, FRawMesh &OutRawMesh) const
+{
 	const int32 NumWedges = OutRawMesh.WedgeIndices.Num();
 
 	// Dump normals and tangents if we are recomputing them.
@@ -5173,10 +5186,6 @@ void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangen
 	// Compute any missing tangents.
 	if (bRecomputeNormals || bRecomputeTangents)
 	{
-		float ComparisonThreshold = InBuildSettings.bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
-		TMultiMap<int32, int32> OverlappingCorners;
-		FindOverlappingCorners(OverlappingCorners, OutRawMesh, ComparisonThreshold);
-
 		// Static meshes always blend normals of overlapping corners.
 		uint32 TangentOptions = ETangentOptions::BlendOverlappingNormals;
 		if (InBuildSettings.bRemoveDegenerates)
@@ -5184,13 +5193,14 @@ void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangen
 			// If removing degenerate triangles, ignore them when computing tangents.
 			TangentOptions |= ETangentOptions::IgnoreDegenerateTriangles;
 		}
+
 		if (InBuildSettings.bUseMikkTSpace)
 		{
-			ComputeTangents_MikkTSpace(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents_MikkTSpace(OutRawMesh, InOverlappingCorners, TangentOptions);
 		}
 		else
 		{
-			ComputeTangents(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents(OutRawMesh, InOverlappingCorners, TangentOptions);
 		}
 	}
 

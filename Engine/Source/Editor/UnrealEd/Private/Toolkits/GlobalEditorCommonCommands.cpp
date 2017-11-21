@@ -135,6 +135,7 @@ void FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox()
 
 		FDebugConsoleDelegates Delegates;
 		Delegates.OnConsoleCommandExecuted = FSimpleDelegate::CreateStatic( &CloseDebugConsole );
+		Delegates.OnCloseConsole = FSimpleDelegate::CreateStatic( &CloseDebugConsole );
 
 		OutputLogModule.ToggleDebugConsoleForWindow(WindowRef, EDebugConsoleStyle::Compact, Delegates);
 	}

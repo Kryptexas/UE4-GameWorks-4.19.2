@@ -48,7 +48,7 @@ class MESHUTILITIES_API FLayoutUV
 public:
 				FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel, uint32 InTextureResolution );
 
-	void		FindCharts( const TMultiMap<int32,int32>& OverlappingCorners );
+	int32		FindCharts( const TMultiMap<int32,int32>& OverlappingCorners );
 	bool		FindBestPacking();
 	void		CommitPackedUVs();
 

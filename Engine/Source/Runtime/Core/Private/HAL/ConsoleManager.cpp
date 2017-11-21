@@ -994,33 +994,44 @@ void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState
 
 void FConsoleManager::LoadHistoryIfNeeded()
 {
-	if(bHistoryWasLoaded)
+	if (bHistoryWasLoaded)
 	{
 		return;
 	}
 
 	bHistoryWasLoaded = true;
-
-	HistoryEntries.Empty();
+	HistoryEntriesMap.Reset();
 
 	FConfigFile Ini;
 
-	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+	const FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
 	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false);
 
-	const FString History = TEXT("History");
+	const FString SectionName = TEXT("ConsoleHistory");
+	const FName KeyName = TEXT("History");
 
-	FConfigSection* Section = Ini.Find(TEXT("ConsoleHistory"));
-
-	if(Section)
+	for (const auto& ConfigPair : Ini)
 	{
-		for (auto It : *Section)
+		FString HistoryKey;
+		if (ConfigPair.Key == SectionName)
 		{
-			const FString& Key = It.Key.ToString();
+			// uses empty HistoryKey
+		}
+		else if (ConfigPair.Key.StartsWith(SectionName))
+		{
+			HistoryKey = ConfigPair.Key.Mid(SectionName.Len());
+		}
+		else
+		{
+			continue;
+		}
 
-			if(Key == History)
+		TArray<FString>& HistoryEntries = HistoryEntriesMap.FindOrAdd(HistoryKey);
+		for (const auto& ConfigSectionPair : ConfigPair.Value)
+		{
+			if (ConfigSectionPair.Key == KeyName)
 			{
-				HistoryEntries.Add(It.Value.GetValue());
+				HistoryEntries.Add(ConfigSectionPair.Value.GetValue());
 			}
 		}
 	}
@@ -1028,23 +1039,25 @@ void FConsoleManager::LoadHistoryIfNeeded()
 
 void FConsoleManager::SaveHistory()
 {
-	const FName History = TEXT("History");
-
 	FConfigFile Ini;
+	
+	const FString SectionName = TEXT("ConsoleHistory");
+	const FName KeyName = TEXT("History");
 
-	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
-
-	FConfigSection& Section = Ini.Add(TEXT("ConsoleHistory"));
-
-	for(auto It : HistoryEntries)
+	for (const auto& HistoryPair : HistoryEntriesMap)
 	{
-		Section.Add(History, It);
+		FConfigSection& Section = Ini.Add(FString::Printf(TEXT("%s%s"), *SectionName, *HistoryPair.Key));
+		for (const auto& HistoryEntry : HistoryPair.Value)
+		{
+			Section.Add(KeyName, HistoryEntry);
+		}
 	}
+
+	const FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
 
 	Ini.Dirty = true;
 	Ini.Write(ConfigPath);
 }
-
 
 void FConsoleManager::ForEachConsoleObjectThatStartsWith(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
@@ -1454,9 +1467,11 @@ void IConsoleManager::SetupSingleton()
 	check(Singleton);
 }
 
-void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
+void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Key, const TCHAR* Input)
 {
 	LoadHistoryIfNeeded();
+
+	TArray<FString>& HistoryEntries = HistoryEntriesMap.FindOrAdd(Key);
 
 	// limit size to avoid a ever growing file
 	while(HistoryEntries.Num() > 64)
@@ -1471,11 +1486,11 @@ void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
 	SaveHistory();
 }
 
-void FConsoleManager::GetConsoleHistory(TArray<FString>& Out)
+void FConsoleManager::GetConsoleHistory(const TCHAR* Key, TArray<FString>& Out)
 {
 	LoadHistoryIfNeeded();
 
-	Out = HistoryEntries;
+	Out = HistoryEntriesMap.FindOrAdd(Key);
 }
 
 bool FConsoleManager::IsNameRegistered(const TCHAR* Name) const

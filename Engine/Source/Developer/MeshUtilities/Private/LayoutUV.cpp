@@ -22,7 +22,7 @@ FLayoutUV::FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel
 	, LayoutVersion( ELightmapUVVersion::Latest )
 {}
 
-void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
+int32 FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 {
 	double Begin = FPlatformTime::Seconds();
 
@@ -550,6 +550,8 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	double End = FPlatformTime::Seconds();
 
 	UE_LOG(LogLayoutUV, Display, TEXT("FindCharts: %s"), *FPlatformTime::PrettyTime(End - Begin) );
+
+	return Charts.Num();
 }
 
 bool FLayoutUV::FindBestPacking()

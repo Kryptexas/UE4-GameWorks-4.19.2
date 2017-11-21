@@ -451,7 +451,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					.AutoWrapText(InArgs._AutoWrapText)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.ModiferKeyForNewLine(EModifierKey::Shift)
-					.IsPassword(bIsPassword)
+					//.IsPassword(bIsPassword)
 				]
 			]
 		];
