@@ -8,6 +8,8 @@
 #include "PhysXPublic.h"
 #include "Physics/PhysicsFiltering.h"
 #include "DrawDebugHelpers.h"
+#include "FlexFluidSurfaceActor.h"
+#include "FlexFluidSurfaceComponent.h"
 
 bool FFlexContainerInstance::sGlobalDebugDraw = false;
 
@@ -818,6 +820,13 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	Map();
 
 	GPhysXSDK->registerDeletionListener(*this, PxDeletionEventFlag::eMEMORY_RELEASE);
+
+	// fluid surface actor
+	FluidSurfaceComponent = NULL;
+	if (Template->FluidSurface)
+	{
+		FluidSurfaceComponent = AFlexFluidSurfaceActor::SpawnActor(Template->FluidSurface, GetMaxParticleCount(), Owner->GetOwningWorld());
+	}
 }
 
 FFlexContainerInstance::~FFlexContainerInstance()
@@ -827,6 +836,9 @@ FFlexContainerInstance::~FFlexContainerInstance()
 
 	UE_LOG(LogFlex, Display, TEXT("Destroying a FLEX system for.."));
 	
+	if (FluidSurfaceComponent)
+		FluidSurfaceComponent->GetOwner()->Destroy();
+
 	GPhysXSDK->unregisterDeletionListener(*this);
 
 	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
@@ -1205,6 +1217,11 @@ void FFlexContainerInstance::Synchronize()
 		// process components
 		for (int32 i=0; i < Components.Num(); ++i)
 			Components[i]->Synchronize();
+	}
+
+	if (FluidSurfaceComponent)
+	{
+		FluidSurfaceComponent->ClearParticles();
 	}
 }
 

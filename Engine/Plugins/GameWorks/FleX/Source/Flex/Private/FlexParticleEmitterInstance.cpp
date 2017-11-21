@@ -7,8 +7,6 @@
 FFlexParticleEmitterInstance::FFlexParticleEmitterInstance(FParticleEmitterInstance* Instance)
 	: Emitter(Instance)
 	, FlexDataOffset(0)
-	, bFlexAnisotropyData(0)
-	, FlexFluidSurfaceComponent(nullptr)
 {
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 	if (FlexEmitter && FlexEmitter->FlexContainerTemplate)
@@ -41,8 +39,6 @@ FFlexParticleEmitterInstance::FFlexParticleEmitterInstance(FParticleEmitterInsta
 			NvFlexExtMovingFrameInit(&MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
 		}
 
-		RegisterNewFlexFluidSurfaceComponent(FlexEmitter->FlexFluidSurfaceTemplate);
-
 		FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 	}
 }
@@ -63,28 +59,8 @@ FFlexParticleEmitterInstance::~FFlexParticleEmitterInstance()
 		}
 	}
 
-	if (FlexFluidSurfaceComponent)
-	{
-		FlexFluidSurfaceComponent->UnregisterEmitterInstance(Emitter);
-	}
-
 	if (Container)
 		Container->Unregister(this);
-}
-
-void FFlexParticleEmitterInstance::RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface)
-{
-	if (FlexFluidSurfaceComponent)
-	{
-		FlexFluidSurfaceComponent->UnregisterEmitterInstance(Emitter);
-		FlexFluidSurfaceComponent = nullptr;
-	}
-
-	if (NewFlexFluidSurface)
-	{
-		FlexFluidSurfaceComponent = FFlexManager::get().AddFlexFluidSurface(Emitter->GetWorld(), NewFlexFluidSurface);
-		FlexFluidSurfaceComponent->RegisterEmitterInstance(Emitter);
-	}
 }
 
 void FFlexParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
@@ -101,9 +77,6 @@ void FFlexParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 		// all Flex components should be ticked during the synchronization 
 		// phase of the Flex update, which corresponds to the EndPhysics tick group
 		verify(Container->IsMapped());
-
-		bFlexAnisotropyData = (Container->Template->AnisotropyScale > 0.0f);
-		verify(!bFlexAnisotropyData || Container->Anisotropy1.size() > 0);
 
 		// process report shapes
 		if (Container->CollisionReportComponents.Num() > 0)
@@ -205,19 +178,42 @@ void FFlexParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 			}
 
 			Particle.Velocity = Container->Velocities[FlexParticleIndex];
+		}
 
-			if (Emitter->FlexEmitterInstance->bFlexAnisotropyData)
+		// flex container with UE4 particle data for surface rendering
+		if (FlexEmitter->Phase.Fluid && Container->FluidSurfaceComponent)
+		{
+			UFlexFluidSurfaceComponent* SurfaceComponent = Container->FluidSurfaceComponent;
+			bool bHasAnisotropy = Container->Anisotropy1.size() > 0;
+			bool bHasSmoothedPositions = Container->SmoothPositions.size() > 0;
+
+			for (int32 i = 0; i < Emitter->ActiveParticles; i++)
 			{
-				PARTICLE_ELEMENT(FVector, Alignment16);
+				DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
 
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy1);
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy2);
-				PARTICLE_ELEMENT(FVector4, FlexAnisotropy3);
+				verify(FlexDataOffset > 0);
 
-				FlexAnisotropy1 = Container->Anisotropy1[FlexParticleIndex];
-				FlexAnisotropy2 = Container->Anisotropy2[FlexParticleIndex];
-				FlexAnisotropy3 = Container->Anisotropy3[FlexParticleIndex];
+				int32 CurrentOffset = FlexDataOffset;
+				const uint8* ParticleBase = (const uint8*)&Particle;
+				PARTICLE_ELEMENT(int32, FlexParticleIndex);
+
+				UFlexFluidSurfaceComponent::Particle SurfaceParticle;
+				SurfaceParticle.Position = bHasSmoothedPositions ? Container->SmoothPositions[FlexParticleIndex] : Container->Particles[FlexParticleIndex];
+				SurfaceParticle.Size = Particle.Size.X;
+				SurfaceParticle.Color = Particle.Color;
+				SurfaceComponent->Particles.Add(SurfaceParticle);
+
+				if (bHasAnisotropy)
+				{
+					UFlexFluidSurfaceComponent::ParticleAnisotropy SurfaceParticleAnisotropy;
+					SurfaceParticleAnisotropy.Anisotropy1 = Container->Anisotropy1[FlexParticleIndex];
+					SurfaceParticleAnisotropy.Anisotropy2 = Container->Anisotropy2[FlexParticleIndex];
+					SurfaceParticleAnisotropy.Anisotropy3 = Container->Anisotropy3[FlexParticleIndex];
+					SurfaceComponent->ParticleAnisotropies.Add(SurfaceParticleAnisotropy);
+				}
 			}
+
+			SurfaceComponent->NotifyParticleBatch(Emitter->GetBoundingBox());
 		}
 	}
 }
@@ -232,15 +228,6 @@ uint32 FFlexParticleEmitterInstance::GetRequiredBytes(uint32 uiBytes)
 
 		// flex particle index
 		uiBytes += sizeof(int32);
-
-		if (FlexEmitter->FlexContainerTemplate->AnisotropyScale > 0.0f)
-		{
-			// 16 byte align for inheriting emitter instance types
-			uiBytes += sizeof(FVector);
-
-			// flex anisotropy 
-			uiBytes += 3 * sizeof(FVector4);
-		}
 	}
 	return uiBytes;
 }
@@ -292,13 +279,22 @@ void FFlexParticleEmitterInstance::KillParticle(int32 KillIndex)
 	}
 }
 
-void FFlexParticleEmitterInstance::FillReplayData(struct FDynamicSpriteEmitterReplayDataBase* ReplayData)
+bool FFlexParticleEmitterInstance::IsDynamicDataRequired()
 {
-	ReplayData->FlexDataOffset = FlexDataOffset;
-	ReplayData->bFlexAnisotropyData = bFlexAnisotropyData;
-	ReplayData->bFlexSurface = (FlexFluidSurfaceComponent != nullptr);
+	if (Container)
+	{
+		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
+		if (FlexEmitter && FlexEmitter->Phase.Fluid)
+		{
+			UFlexFluidSurfaceComponent* SurfaceComponent = Container->FluidSurfaceComponent;
+			if (SurfaceComponent && SurfaceComponent->ShouldDisableEmitterRendering())
+			{
+				return false;
+			}
+		}
+	}
+	return true;
 }
-
 
 void FFlexParticleEmitterInstance::AddPendingComponentToAttach(USceneComponent* Component, float Radius)
 {

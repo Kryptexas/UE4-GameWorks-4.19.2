@@ -64,6 +64,8 @@
 #if FLEX_FLUID_SURFACE_FACTORY
 Texture2D FlexFluidSurfaceThicknessTexture;
 SamplerState FlexFluidSurfaceThicknessTextureSampler;
+Texture2D FlexFluidSurfaceColorTexture;
+SamplerState FlexFluidSurfaceColorTextureSampler;
 #endif
 
 // Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
@@ -1033,6 +1035,15 @@ float CalcFlexFluidSurfaceThicknessForMaterialNode(float2 ScreenUV)
 #endif
 }
 
+// Returns color provided for flex fluid surface rendering
+float4 CalcFlexFluidSurfaceColorForMaterialNode(float2 ScreenUV)
+{
+#if FLEX_FLUID_SURFACE_FACTORY
+	return Texture2DSampleLevel(FlexFluidSurfaceColorTexture, FlexFluidSurfaceColorTextureSampler, ScreenUV, 0);
+#else
+	return float4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+}
 
 // also see ConvertToDeviceZ()
 // @param DeviceZ value that is stored in the depth buffer (Z/W)

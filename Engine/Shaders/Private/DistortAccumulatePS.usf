@@ -21,6 +21,9 @@ void Main(
 	in float4 SvPosition	: SV_Position
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
+#if FLEX_FLUID_SURFACE_FACTORY
+	, out float OutDepth : SV_Depth
+#endif
 	)
 {
 	ResolvedView = ResolveView();
@@ -30,6 +33,10 @@ void Main(
 	FPixelMaterialInputs PixelMaterialInputs;
 	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
 	
+#if FLEX_FLUID_SURFACE_FACTORY
+	OutDepth = GetMaterialPixelDepthOffset(PixelMaterialInputs);
+#endif
+
 	// material distortion offset
 	half3 Normal = GetMaterialNormal(MaterialParameters, PixelMaterialInputs);
 

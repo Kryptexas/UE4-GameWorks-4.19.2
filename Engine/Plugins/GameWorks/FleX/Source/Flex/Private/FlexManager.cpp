@@ -105,85 +105,6 @@ void FFlexManager::ReImportFlexAsset(class UStaticMesh* StaticMesh)
 	}
 }
 
-class UFlexFluidSurfaceComponent* FFlexManager::GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
-{
-	check(World);
-	FFlexFuildSurfaceMap* FlexFluidSurfaceMap = WorldMap.Find(TWeakObjectPtr<UWorld>(World));
-	if (FlexFluidSurfaceMap)
-	{
-		check(FlexFluidSurface);
-		UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap->Find(FlexFluidSurface);
-		if (Component) return *Component;
-	}
-	return nullptr;
-}
-
-class UFlexFluidSurfaceComponent* FFlexManager::AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurface)
-{
-	check(World);
-	FFlexFuildSurfaceMap& FlexFluidSurfaceMap = WorldMap.FindOrAdd(TWeakObjectPtr<UWorld>(World));
-
-	check(FlexFluidSurface);
-	UFlexFluidSurfaceComponent** Component = FlexFluidSurfaceMap.Find(FlexFluidSurface);
-	if (Component)
-	{
-		return *Component;
-	}
-	else
-	{
-		FActorSpawnParameters ActorSpawnParameters;
-		//necessary for preview in blueprint editor
-		ActorSpawnParameters.bAllowDuringConstructionScript = true;
-		AFlexFluidSurfaceActor* NewActor = World->SpawnActor<AFlexFluidSurfaceActor>(AFlexFluidSurfaceActor::StaticClass(), ActorSpawnParameters);
-		check(NewActor);
-
-		UFlexFluidSurfaceComponent* NewComponent = NewActor->GetComponent();
-		NewComponent->FlexFluidSurface = FlexFluidSurface;	//can't pass arbitrary parameters into SpawnActor			
-
-		FlexFluidSurfaceMap.Add(FlexFluidSurface, NewComponent);
-		return NewComponent;
-	}
-}
-
-void FFlexManager::RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* Component)
-{
-	check(World);
-	FFlexFuildSurfaceMap* FlexFluidSurfaceMap = WorldMap.Find(TWeakObjectPtr<UWorld>(World));
-	if (FlexFluidSurfaceMap)
-	{
-		check(Component && Component->FlexFluidSurface);
-		FlexFluidSurfaceMap->Remove(Component->FlexFluidSurface);
-		AFlexFluidSurfaceActor* Actor = (AFlexFluidSurfaceActor*)Component->GetOwner();
-		Actor->Destroy();
-	}
-}
-
-void FFlexManager::TickFlexFluidSurfaceComponents(class UWorld* World, const TArray<struct FParticleEmitterInstance*>& EmitterInstances, float DeltaTime, enum ELevelTick TickType)
-{
-	int32 NumEmitters = EmitterInstances.Num();
-	TSet<class UFlexFluidSurfaceComponent*> FlexFluidSurfaces;
-	for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
-	{
-		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIndex];
-		if (EmitterInstance && EmitterInstance->SpriteTemplate)
-		{
-			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
-			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
-			if (FlexFluidSurfaceTemplate)
-			{
-				class UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(World, FlexFluidSurfaceTemplate);
-				check(SurfaceComponent);
-				if (!FlexFluidSurfaces.Contains(SurfaceComponent))
-				{
-					SurfaceComponent->TickComponent(DeltaTime, TickType, NULL);
-
-					FlexFluidSurfaces.Add(SurfaceComponent);
-				}
-			}
-		}
-	}
-}
-
 struct FFlexContainerInstance* FFlexManager::FindFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template)
 {
 	if (!bFlexInitialized)
@@ -626,14 +547,14 @@ void FFlexManager::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstan
 	}
 }
 
-void FFlexManager::FlexEmitterInstanceFillReplayData(struct FParticleEmitterInstance* EmitterInstance, struct FDynamicSpriteEmitterReplayDataBase* ReplayData)
+bool FFlexManager::IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance)
 {
 	if (EmitterInstance->FlexEmitterInstance)
 	{
-		EmitterInstance->FlexEmitterInstance->FillReplayData(ReplayData);
+		return EmitterInstance->FlexEmitterInstance->IsDynamicDataRequired();
 	}
+	return true;
 }
-
 FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance)
 {
 	verify(FlexEmitterInstance);
@@ -733,142 +654,6 @@ UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemCompon
 		}
 	}
 	return nullptr;
-}
-
-UMaterialInstanceDynamic* FFlexManager::CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial)
-{
-	if (!SourceMaterial)
-	{
-		return nullptr;
-	}
-
-	for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
-	{
-		FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
-		if (EmitterInstance && 	EmitterInstance->SpriteTemplate)
-		{
-			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
-			if (FlexEmitter && FlexEmitter->FlexFluidSurfaceTemplate && FlexEmitter->FlexFluidSurfaceTemplate->Material)
-			{
-				UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(SourceMaterial);
-
-				if (!MID)
-				{
-					// Create and set the dynamic material instance.
-					MID = UMaterialInstanceDynamic::Create(SourceMaterial, Component);
-				}
-
-				if (MID)
-				{
-					// Make a copy of the FlexFluidSurfaceTemplate
-					auto NewFlexFluidSurface = DuplicateObject<UFlexFluidSurface>(FlexEmitter->FlexFluidSurfaceTemplate, Component);
-					// Set the material in the new FlexFluidSurfaceTemplate
-					NewFlexFluidSurface->Material = MID;
-					// Set the FlexFluidSurfaceTemplate override in this class
-					Component->FlexFluidSurfaceOverride = NewFlexFluidSurface;
-
-					if (EmitterInstance->FlexEmitterInstance)
-					{
-						// Tell the ParticleEmiterInstance to update its FlexFluidSurfaceComponent
-						EmitterInstance->FlexEmitterInstance->RegisterNewFlexFluidSurfaceComponent(NewFlexFluidSurface);
-					}
-				}
-				else
-				{
-					UE_LOG(LogFlex, Warning, TEXT("CreateFlexDynamicMaterialInstance on %s: Material is invalid."), *Component->GetPathName());
-				}
-
-				return MID;
-			}
-		}
-	}
-	return NULL;
-}
-
-void FFlexManager::UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData)
-{
-	check(Component);
-	check(EmitterInstance);
-	check(EmitterDynamicData);
-
-	if (Component->SceneProxy)
-	{
-		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
-		auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
-
-		UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
-		UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
-		if (FlexFluidSurface)
-		{
-			UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
-			check(SurfaceComponent);
-
-			SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, EmitterDynamicData);
-		}
-	}
-}
-
-void FFlexManager::ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component)
-{
-	check(Component);
-	if (Component->SceneProxy)
-	{
-		for (int32 EmitterIndex = 0; EmitterIndex < Component->EmitterInstances.Num(); EmitterIndex++)
-		{
-			FParticleEmitterInstance* EmitterInstance = Component->EmitterInstances[EmitterIndex];
-			if (EmitterInstance)
-			{
-				auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
-				auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
-
-				UFlexFluidSurface* FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
-				UFlexFluidSurface* FlexFluidSurface = FlexFluidSurfaceOverride ? FlexFluidSurfaceOverride : FlexFluidSurfaceTemplate;
-				if (FlexFluidSurface)
-				{
-					UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurface);
-					if (SurfaceComponent)
-					{
-						SurfaceComponent->SendRenderEmitterDynamicData_Concurrent((FParticleSystemSceneProxy*)Component->SceneProxy, nullptr);
-					}
-				}
-			}
-		}
-	}
-}
-
-void FFlexManager::SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable)
-{
-	check(Component);
-	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
-	if (FlexFluidSurfaceOverride)
-	{
-		UFlexFluidSurfaceComponent* SurfaceComponent = FFlexManager::GetFlexFluidSurface(Component->GetWorld(), FlexFluidSurfaceOverride);
-
-		check(SurfaceComponent);
-		// This is necessary because we need to hold the reference to the fluid surface so it doesn't go away with a SetTemplate() call
-		SurfaceComponent->SetEnabledReferenceCounting(bEnable);
-	}
-}
-
-void FFlexManager::RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance)
-{
-	check(Component);
-	auto FlexFluidSurfaceOverride = Cast<UFlexFluidSurface>(Component->FlexFluidSurfaceOverride);
-	auto FlexEmitterInstance = EmitterInstance->FlexEmitterInstance;
-
-	if (FlexFluidSurfaceOverride && FlexEmitterInstance)
-	{
-		if (EmitterInstance && EmitterInstance->SpriteTemplate)
-		{
-			auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
-			auto FlexFluidSurfaceTemplate = FlexEmitter ? FlexEmitter->FlexFluidSurfaceTemplate : nullptr;
-
-			if (FlexFluidSurfaceTemplate && FlexFluidSurfaceTemplate->Material)
-			{
-				FlexEmitterInstance->RegisterNewFlexFluidSurfaceComponent(FlexFluidSurfaceOverride);
-			}
-		}
-	}
 }
 
 bool FFlexManager::IsValidFlexEmitter(class UParticleEmitter* Emitter)

@@ -3,6 +3,7 @@
 #include "NvFlex.h"
 #include "NvFlexExt.h"
 
+#include "ParticleEmitterInstances.h"
 #include "FlexContainer.h"
 
 /*-----------------------------------------------------------------------------
@@ -35,14 +36,11 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	FFlexParticleEmitterInstance(FParticleEmitterInstance* Instance);
 	virtual ~FFlexParticleEmitterInstance();
 
-	void RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface);
-
 	void Tick(float DeltaTime, bool bSuppressSpawning);
 	uint32 GetRequiredBytes(uint32 uiBytes);
 	bool SpawnParticle(struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	void KillParticle(int32 KillIndex);
-	void FillReplayData(struct FDynamicSpriteEmitterReplayDataBase* ReplayData);
-
+	bool IsDynamicDataRequired();
 
 	virtual bool IsEnabled() { return Container != NULL; }
 	virtual FBoxSphereBounds GetBounds() { return FBoxSphereBounds(Emitter->GetBoundingBox()); }
@@ -79,10 +77,6 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 
 	/** The offset to the index of the associated flex particle			*/
 	int32 FlexDataOffset;
-	/** Set if anisotropy data is available for rendering				*/
-	uint32 bFlexAnisotropyData : 1;
-	/** Registered fluid surface component								*/
-	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
 
 	float FlexInvMass;
 

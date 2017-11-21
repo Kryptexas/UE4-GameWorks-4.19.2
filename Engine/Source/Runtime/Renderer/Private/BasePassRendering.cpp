@@ -1062,7 +1062,7 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
 		if ((MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() || ViewFamily.EngineShowFlags.Wireframe)
-			&& MeshBatchAndRelevance.GetRenderInMainPass() && !MeshBatchAndRelevance.PrimitiveSceneProxy->IsFlexFluidSurface() && MeshBatchAndRelevance.Mesh->bRenderable)
+			&& MeshBatchAndRelevance.GetRenderInMainPass() && MeshBatchAndRelevance.Mesh->bRenderable)
 		{
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 			FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, View.IsInstancedStereoPass());

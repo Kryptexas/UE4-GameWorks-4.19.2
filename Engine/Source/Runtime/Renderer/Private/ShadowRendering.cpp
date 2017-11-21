@@ -610,33 +610,12 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 
 		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
-		// NvFlex begin
-#if WITH_FLEX
-		bool bFlexDepthMasking = GFlexFluidSurfaceRenderer->IsDepthMaskingRequired(ParentSceneInfo->Proxy);
-
-		if (!bFlexDepthMasking)
-		{
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
-			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
-			}
-		}
-		else
-		{
-			GFlexFluidSurfaceRenderer->RenderDepth(RHICmdList, ParentSceneInfo->Proxy, *View);
-		}
-#else
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-
 			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
 		}
-#endif
-		// NvFlex end
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
 		// Note that self-shadow pre-shadows still mask by receiver elements.
@@ -832,36 +811,26 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
 			{
 				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];
-				// NvFlex begin
-#if WITH_FLEX
-				if (!MeshBatchAndRelevance.PrimitiveSceneProxy->IsFlexFluidSurface())
-				{
-					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-					FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-				}
-
-				for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
-				{
-					const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
-					FDepthDrawingPolicyFactory::DrawStaticMesh(
-						RHICmdList,
-						*View,
-						FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
-						StaticMesh,
-						StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
-						true,
-						DrawRenderState,
-						StaticMesh.PrimitiveSceneInfo->Proxy,
-						StaticMesh.BatchHitProxyId,
-						false
-					);
-				}
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
-#else
-			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-#endif
-			// NvFlex end
+
+			for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
+			{
+				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
+				FDepthDrawingPolicyFactory::DrawStaticMesh(
+					RHICmdList,
+					*View,
+					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
+					StaticMesh,
+					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
+					true,
+					DrawRenderState,
+					StaticMesh.PrimitiveSceneInfo->Proxy,
+					StaticMesh.BatchHitProxyId,
+					false
+				);
+			}
 		}
 	}
 }

@@ -2555,6 +2555,15 @@ bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurren
 		return false;
 	}
 
+	// NvFlex begin
+#if WITH_FLEX
+	if (GFlexPluginBridge && GFlexPluginBridge->IsFlexEmitterInstanceDynamicDataRequired(this) == false)
+	{
+		return false;
+	}
+#endif
+	// NvFlex end
+
 	if ((InCurrentLODLevel == NULL) || (InCurrentLODLevel->bEnabled == false) ||
 		((InCurrentLODLevel->RequiredModule->bUseMaxDrawCount == true) && (InCurrentLODLevel->RequiredModule->MaxDrawCount == 0)))
 	{
@@ -2751,15 +2760,6 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->bRemoveHMDRoll = LODLevel->RequiredModule->bRemoveHMDRoll;
 		NewReplayData->MinFacingCameraBlendDistance = LODLevel->RequiredModule->MinFacingCameraBlendDistance;
 		NewReplayData->MaxFacingCameraBlendDistance = LODLevel->RequiredModule->MaxFacingCameraBlendDistance;
-
-		// NvFlex begin
-#if WITH_FLEX
-		if (GFlexPluginBridge && FlexEmitterInstance)
-		{
-			GFlexPluginBridge->FlexEmitterInstanceFillReplayData(this, NewReplayData);
-		}
-#endif
-		// NvFlex end
 	}
 
 
@@ -3929,9 +3929,5 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << bRemoveHMDRoll;
 	Ar << MinFacingCameraBlendDistance;
 	Ar << MaxFacingCameraBlendDistance;
-
-	Ar << FlexDataOffset;
-	Ar << bFlexAnisotropyData;
-	Ar << bFlexSurface;
 
 }
