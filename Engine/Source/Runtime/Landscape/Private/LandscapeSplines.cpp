@@ -156,6 +156,9 @@ public:
 				{
 					const FLinearColor SegmentColor = Segment.bSelected ? SelectedSplineColor : SplineColor;
 
+					if (Segment.Points.Num() == 0 || !Segment.Points.IsValidIndex(0)) // for some reason the segment do not have valid points, prevent possible crash, by simply not rendering this segment
+						continue;
+
 					FLandscapeSplineInterpPoint OldPoint = Segment.Points[0];
 					OldPoint.Center       = MyLocalToWorld.TransformPosition(OldPoint.Center);
 					OldPoint.Left         = MyLocalToWorld.TransformPosition(OldPoint.Left);
