@@ -1992,11 +1992,28 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		DefaultCollisionName = BodySetup->DefaultInstance.GetCollisionProfileName();
 	}
 
-	static const UEnum *ComplexityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionTraceFlag"), true);
 	FString ComplexityString;
-	if (BodySetup && ComplexityEnum)
+	if (BodySetup != nullptr)
 	{
-		ComplexityString = ComplexityEnum->GetNameStringByValue((int64)BodySetup->GetCollisionTraceFlag());
+		const ECollisionTraceFlag TraceFlag = (ECollisionTraceFlag)BodySetup->GetCollisionTraceFlag();
+		switch (TraceFlag)
+		{
+			case CTF_UseDefault:
+				ComplexityString = TEXT("CTF_UseDefault");
+				break;
+			case CTF_UseSimpleAndComplex:
+				ComplexityString = TEXT("CTF_UseSimpleAndComplex");
+				break;
+			case CTF_UseSimpleAsComplex:
+				ComplexityString = TEXT("CTF_UseSimpleAsComplex");
+				break;
+			case CTF_UseComplexAsSimple:
+				ComplexityString = TEXT("CTF_UseComplexAsSimple");
+				break;
+			default:
+				ComplexityString = TEXT("<Unknown>");
+				break;
+		};
 	}
 
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
