@@ -263,6 +263,14 @@ void FMediaTextureResource::InitDynamicRHI()
 	);
 
 	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+	
+	// Setup default texture otherwise we can get sampler bind errors on render
+	ClearTexture(CurrentClearColor, Owner.SRGB);
+	
+	// Make sure init has done it's job - we can't leave here without valid bindable resources for some RHI's
+	check(TextureRHI.IsValid());
+	check(RenderTargetTextureRHI.IsValid());
+	check(OutputTarget.IsValid());
 }
 
 
