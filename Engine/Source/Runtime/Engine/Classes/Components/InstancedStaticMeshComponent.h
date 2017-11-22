@@ -37,18 +37,13 @@ struct FInstancedStaticMeshInstanceData
 	UPROPERTY(EditAnywhere, Category=Instances)
 	FMatrix Transform;
 
-	/** Legacy, this is now stored in FMeshMapBuildData.  Still serialized for backwards compatibility. */
-	UPROPERTY()
-	FVector2D LightmapUVBias_DEPRECATED;
-
-	/** Legacy, this is now stored in FMeshMapBuildData.  Still serialized for backwards compatibility. */
-	UPROPERTY()
-	FVector2D ShadowmapUVBias_DEPRECATED;
-
 	FInstancedStaticMeshInstanceData()
 		: Transform(FMatrix::Identity)
-		, LightmapUVBias_DEPRECATED(ForceInit)
-		, ShadowmapUVBias_DEPRECATED(ForceInit)
+	{
+	}
+	
+	FInstancedStaticMeshInstanceData(const FMatrix& InTransform)
+		: Transform(InTransform)
 	{
 	}
 
@@ -56,7 +51,7 @@ struct FInstancedStaticMeshInstanceData
 	{
 		// @warning BulkSerialize: FInstancedStaticMeshInstanceData is serialized as memory dump
 		// See TArray::BulkSerialize for detailed description of implied limitations.
-		Ar << InstanceData.Transform << InstanceData.LightmapUVBias_DEPRECATED << InstanceData.ShadowmapUVBias_DEPRECATED;
+		Ar << InstanceData.Transform;
 		return Ar;
 	}
 };
@@ -281,6 +276,9 @@ public:
 
 	/** Transfers ownership of instance render data to a render thread. Instance render data will be released in scene proxy destructor or on render thread task. */
 	void ReleasePerInstanceRenderData();
+
+	// Number of instances in the render-side instance buffer
+	virtual int32 GetNumRenderInstances() const { return PerInstanceSMData.Num() + RemovedInstances.Num(); }
 
 	virtual void PropagateLightingScenarioChange() override;
 

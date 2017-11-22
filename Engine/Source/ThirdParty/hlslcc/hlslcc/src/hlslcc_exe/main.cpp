@@ -186,6 +186,8 @@ struct SCmdOptions
 	bool bCSE;
 	bool bSeparateShaderObjects;
 	bool bPackIntoUBs;
+	bool bUseFullPrecision;
+	bool bUsesExternalTexture;
 	const char* OutFile;
 
 	SCmdOptions() 
@@ -204,6 +206,8 @@ struct SCmdOptions
 		bCSE = false;
 		bSeparateShaderObjects = false;
 		bPackIntoUBs = false;
+		bUseFullPrecision = false;
+		bUsesExternalTexture = false;
 		OutFile = nullptr;
 	}
 };
@@ -305,6 +309,14 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strcmp(*argv, "-packintoubs"))
 			{
 				OutOptions.bPackIntoUBs = true;
+			}
+			else if (!strcmp(*argv, "-usefullprecision"))
+			{
+				OutOptions.bUseFullPrecision = true;
+			}
+			else if (!strcmp(*argv, "-usesexternaltexture"))
+			{
+				OutOptions.bUsesExternalTexture = true;
 			}
 			else
 			{
@@ -425,6 +437,8 @@ int main( int argc, char** argv)
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 	Flags |= Options.bSeparateShaderObjects ? HLSLCC_SeparateShaderObjects : 0;
 	Flags |= Options.bPackIntoUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
+	Flags |= Options.bUseFullPrecision ? HLSLCC_UseFullPrecisionInPS : 0;
+	Flags |= Options.bUsesExternalTexture ? HLSLCC_UsesExternalTexture : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags, Options.Target);
 	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);

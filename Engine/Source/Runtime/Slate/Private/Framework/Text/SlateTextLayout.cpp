@@ -126,8 +126,8 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		//#jira UE - 49124 Cursor in virtual keyboard and UMG don't match
 		if (FSlateApplication::Get().AllowMoveCursor())
 		{
-			const int32 HighestOverlayLayerId = OnPaintHighlights( Args, LineView, LineView.OverlayHighlights, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, HighestBlockLayerId, InWidgetStyle, bParentEnabled );
-			HighestLayerId = FMath::Max( HighestLayerId, HighestOverlayLayerId );
+			const int32 HighestOverlayLayerId = OnPaintHighlights(Args, LineView, LineView.OverlayHighlights, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, HighestBlockLayerId, InWidgetStyle, bParentEnabled);
+			HighestLayerId = FMath::Max(HighestLayerId, HighestOverlayLayerId);
 		}
 	}
 

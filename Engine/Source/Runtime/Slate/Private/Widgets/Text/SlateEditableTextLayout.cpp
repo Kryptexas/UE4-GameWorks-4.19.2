@@ -660,7 +660,7 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 
 	// We need to Tick() while we have focus to keep some things up-to-date
 	OwnerWidget->EnsureActiveTick();
-
+	
 	if (FPlatformApplicationMisc::RequiresVirtualKeyboard())
 	{
 		if (!OwnerWidget->IsTextReadOnly())
@@ -1063,7 +1063,6 @@ FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
 FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent)
 {
 	FReply Reply = FReply::Unhandled();
-
 	// If the mouse is already captured, then don't allow a new action to be taken
 	if (!OwnerWidget->GetSlateWidget()->HasMouseCapture())
 	{

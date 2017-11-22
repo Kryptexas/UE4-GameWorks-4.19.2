@@ -5,6 +5,20 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "TaskGraphInterfaces.h"
+#include "UObject/ConstructorHelpers.h"
+
+#if WITH_EDITOR
+#include "Materials/MaterialInterface.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "AssetRegistryModule.h"
+#include "WebBrowserTexture.h"
+#include "PackageHelperFunctions.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "WebBrowser"
 
@@ -15,6 +29,16 @@ UWebBrowser::UWebBrowser(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
+	struct FConstructorStatics
+	{
+		ConstructorHelpers::FObjectFinder<UObject>			DefaultTextureMaterial;
+		FConstructorStatics()
+			: DefaultTextureMaterial(TEXT("/WebBrowserWidget/WebTexture_M"))
+		{}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	DefaultMaterial = (UMaterial*)ConstructorStatics.DefaultTextureMaterial.Object;
 }
 
 void UWebBrowser::LoadURL(FString NewURL)
@@ -143,6 +167,11 @@ const FText UWebBrowser::GetPaletteCategory()
 }
 
 #endif
+
+UMaterial* UWebBrowser::GetDefaultMaterial() const
+{
+	return DefaultMaterial;
+}
 
 /////////////////////////////////////////////////////
 

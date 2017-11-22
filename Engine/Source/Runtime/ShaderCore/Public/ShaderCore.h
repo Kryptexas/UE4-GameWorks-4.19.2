@@ -134,7 +134,9 @@ enum ECompilerFlags
 	// Hint that its a vertex to geometry shader
 	CFLAG_VertexToGeometryShader,
 	// Prepare the shader for archiving in the native binary shader cache format
-	CFLAG_Archive
+	CFLAG_Archive,
+	// Shaders uses external texture so may need special runtime handling
+	CFLAG_UsesExternalTexture
 };
 
 /**

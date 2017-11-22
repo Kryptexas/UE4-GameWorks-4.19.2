@@ -488,7 +488,7 @@ const FString UDeviceProfileManager::GetActiveProfileName()
 	}
 
 #if WITH_EDITOR
-	if (FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+	if (FPIEPreviewDeviceModule::IsRequestingPreviewDevice())
 	{
 		IDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<IDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
 		if (PIEPreviewDeviceProfileSelectorModule)

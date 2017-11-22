@@ -1330,7 +1330,7 @@ FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
 
 	FString CygwinPath = TEXT("/cygdrive/") + FString(Path).Replace(TEXT(":"), TEXT("")).Replace(TEXT("\\"), TEXT("/"));
 	FString EnginePath = FPaths::EngineDir();
-	FString CommandLine = FString::Printf(TEXT("\"%s/ssh.exe\" %s \"%s\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
+	FString CommandLine = FString::Printf(TEXT("\"%s/ssh.exe\" %s \"%s\\rsync.exe\" \"%s\" %s \"%s\" \"%s\" \"%s\""),
 		*DeltaCopyPath,
 		*RemoteServerPort,
 		*DeltaCopyPath,

@@ -968,6 +968,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	int32 X = FMath::TruncToInt(Origin.X * Viewport->GetSizeXY().X);
 	int32 Y = FMath::TruncToInt(Origin.Y * Viewport->GetSizeXY().Y);
+
+	X += Viewport->GetInitialPositionXY().X;
+	Y += Viewport->GetInitialPositionXY().Y;
+
 	uint32 SizeX = FMath::TruncToInt(Size.X * Viewport->GetSizeXY().X);
 	uint32 SizeY = FMath::TruncToInt(Size.Y * Viewport->GetSizeXY().Y);
 

@@ -1863,12 +1863,12 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
 #if WITH_EDITOR
-		if(FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+		if(FPIEPreviewDeviceModule::IsRequestingPreviewDevice())
 		{
-			FPIEPreviewDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
-			if (PIEPreviewDeviceProfileSelectorModule)
+			auto PIEPreviewDeviceModule = FModuleManager::LoadModulePtr<IPIEPreviewDeviceModule>("PIEPreviewDeviceProfileSelector");
+			if (PIEPreviewDeviceModule)
 			{
-				PIEPreviewDeviceProfileSelectorModule->ApplyPreviewDeviceState();
+				PIEPreviewDeviceModule->ApplyPreviewDeviceState();
 			}
 		}
 #endif

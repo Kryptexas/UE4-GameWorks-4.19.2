@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "Engine/GameEngine.h"
+#include "TabManager.h"
 #include "GenericPlatform/GenericPlatformSurvey.h"
 #include "Misc/CommandLine.h"
 #include "Misc/TimeGuard.h"
@@ -55,6 +56,10 @@
 #include "DynamicResolutionProxy.h"
 #include "DynamicResolutionState.h"
 
+#if WITH_EDITOR
+#include "PIEPreviewDeviceProfileSelectorModule.h"
+#include "IPIEPreviewDeviceModule.h"
+#endif
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -371,17 +376,27 @@ void UGameEngine::DetermineGameWindowResolution( int32& ResolutionX, int32& Reso
 
 TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 {
+	FString DeviceLocalizedName;
 	int32 ResX = GSystemResolution.ResX;
 	int32 ResY = GSystemResolution.ResY;
 	EWindowMode::Type WindowMode = GSystemResolution.WindowMode;
-
-	ConditionallyOverrideSettings(ResX, ResY, WindowMode);
-
-	// If the current settings have been overridden, apply them back into the system
-	if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || WindowMode != GSystemResolution.WindowMode)
+	
+#if WITH_EDITOR
+	/**************************************************************/
+	/*****PIE Window Gets its Size from SETRES console variable****/
+	/**************************************************************/
+	if (!FPIEPreviewDeviceModule::IsRequestingPreviewDevice())
+#endif
+	
 	{
-		FSystemResolution::RequestResolutionChange(ResX, ResY, WindowMode);
-		IConsoleManager::Get().CallAllConsoleVariableSinks();
+		ConditionallyOverrideSettings(ResX, ResY, WindowMode);
+
+		// If the current settings have been overridden, apply them back into the system
+		if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || WindowMode != GSystemResolution.WindowMode)
+		{
+			FSystemResolution::RequestResolutionChange(ResX, ResY, WindowMode);
+			IConsoleManager::Get().CallAllConsoleVariableSinks();
+		}
 	}
 
 	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
@@ -405,8 +420,10 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetProjectName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
-
-	const FText WindowTitleVar = FText::Format(FText::FromString(TEXT("{0} {1}")), WindowTitleComponent, WindowDebugInfoComponent);
+	/************************************************************************/
+	/************************ Add device name to window title****************/
+	/************************************************************************/
+	const FText WindowTitleVar = FText::Format( FText::FromString(TEXT("{0} {1} {2}")), WindowTitleComponent, WindowDebugInfoComponent, FGlobalTabmanager::Get()->GetApplicationTitle() );
 	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
 	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
 	const bool bUseBorderlessWindow = GetDefault<UGeneralProjectSettings>()->bUseBorderlessWindow;
@@ -475,7 +492,14 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.HasCloseButton(bAllowClose)
 	.SupportsMinimize(bAllowMinimize)
 	.SupportsMaximize(bAllowMaximize);
-
+#if WITH_EDITOR
+	auto PIEPreviewDeviceModule = FModuleManager::LoadModulePtr<IPIEPreviewDeviceModule>("PIEPreviewDeviceProfileSelector");
+	if (PIEPreviewDeviceModule && FPIEPreviewDeviceModule::IsRequestingPreviewDevice())
+	{
+		Window = PIEPreviewDeviceModule->CreatePIEPreviewDeviceWindow(FVector2D(ResX, ResY), WindowTitle, AutoCenterType, FVector2D(WinX, WinY), MaxWindowWidth, MaxWindowHeight);
+	}
+#endif
+			
 	const bool bShowImmediately = false;
 
 	FSlateApplication::Get().AddWindow( Window, bShowImmediately );

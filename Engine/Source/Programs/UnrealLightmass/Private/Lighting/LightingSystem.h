@@ -1354,6 +1354,10 @@ struct FIrradianceBrickData
 	TArray<FColor> SkyBentNormal;
 	TArray<uint8> DirectionalLightShadowing;
 
+	/** direct lighting from stationary lights for low quality light maps. */
+	TArray<FFloat3Packed> LQLightColor;
+	TArray<FColor> LQLightDirection;
+
 	TArray<FIrradianceVoxelImportProcessingData> VoxelImportProcessingData;
 
 	void SetFromVolumeLightingSample(int32 Index, const FVolumeLightingSample& Sample, bool bInsideGeometry, float MinDistanceToSurface, bool bBorderVoxel);

@@ -81,10 +81,7 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 		return false;
 	}
 
-	FORCEINLINE static void LocalPrint( const TCHAR* Str )
-	{
-		wprintf(TEXT("%ls"), Str);
-	}
+	static void LocalPrint(const TCHAR* Str);
 };
 
 typedef FHTML5Misc FPlatformMisc;

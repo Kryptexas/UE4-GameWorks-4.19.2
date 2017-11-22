@@ -23,6 +23,8 @@
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "SceneManagement.h"
+#include "Containers/Algo/Transform.h"
+#include "UObject/MobileObjectVersion.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -142,8 +144,8 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 
 			if (DestInstanceIndex != INDEX_NONE && InstanceData->IsValidIndex(DestInstanceIndex))
 			{
-				FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
-				FVector2D ShadowmapUVBias = Instance.ShadowmapUVBias_DEPRECATED;
+				FVector2D LightmapUVBias = FVector2D( -1.0f, -1.0f );
+				FVector2D ShadowmapUVBias = FVector2D( -1.0f, -1.0f );
 
 				if (MeshMapBuildData != nullptr && MeshMapBuildData->PerInstanceLightmapData.IsValidIndex(InstanceIndex))
 				{
@@ -1456,12 +1458,42 @@ void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& Ligh
 	ShadowMapMemoryUsage *= NumInstances;
 }
 
+// Deprecated version of PerInstanceSMData
+struct FInstancedStaticMeshInstanceData_DEPRECATED
+{
+	FMatrix Transform;
+	FVector2D LightmapUVBias;
+	FVector2D ShadowmapUVBias;
+	
+	friend FArchive& operator<<(FArchive& Ar, FInstancedStaticMeshInstanceData_DEPRECATED& InstanceData)
+	{
+		// @warning BulkSerialize: FInstancedStaticMeshInstanceData is serialized as memory dump
+		Ar << InstanceData.Transform << InstanceData.LightmapUVBias << InstanceData.ShadowmapUVBias;
+		return Ar;
+	}
+};
 
 void UInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	PerInstanceSMData.BulkSerialize(Ar);
+	Ar.UsingCustomVersion(FMobileObjectVersion::GUID);
+
+#if WITH_EDITOR
+	if (Ar.IsLoading() && Ar.CustomVer(FMobileObjectVersion::GUID) < FMobileObjectVersion::InstancedStaticMeshLightmapSerialization)
+	{
+		TArray<FInstancedStaticMeshInstanceData_DEPRECATED> DeprecatedData;
+		DeprecatedData.BulkSerialize(Ar);
+		PerInstanceSMData.Reserve(DeprecatedData.Num());
+		Algo::Transform(DeprecatedData, PerInstanceSMData, [](const FInstancedStaticMeshInstanceData_DEPRECATED& OldData){ 
+			return FInstancedStaticMeshInstanceData(OldData.Transform);
+		});
+	}
+	else
+#endif //WITH_EDITOR
+	{
+		PerInstanceSMData.BulkSerialize(Ar);
+	}
 
 #if WITH_EDITOR
 	if( Ar.IsTransacting() )
@@ -1896,8 +1928,6 @@ void UInstancedStaticMeshComponent::SetCullDistances(int32 StartCullDistance, in
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {
 	InOutNewInstanceData.Transform = InInstanceTransform.ToMatrixWithScale();
-	InOutNewInstanceData.LightmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
-	InOutNewInstanceData.ShadowmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
 
 	if (bPhysicsStateCreated)
 	{

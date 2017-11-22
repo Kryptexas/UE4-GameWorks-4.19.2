@@ -344,11 +344,11 @@ void FPlayWorldCommands::RegisterCommands()
 
 void FPlayWorldCommands::AddPIEPreviewDeviceCommands()
 {
-	auto PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceProfileSelectorModule>(TEXT("PIEPreviewDeviceProfileSelector"));
-	if (PIEPreviewDeviceProfileSelectorModule)
+	auto PIEPreviewDeviceModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceModule>(TEXT("PIEPreviewDeviceProfileSelector"));
+	if (PIEPreviewDeviceModule)
 	{
 		TArray<TSharedPtr<FUICommandInfo>>& TargetedMobilePreviewDeviceCommands = PlayInTargetedMobilePreviewDevices;
-		const TArray<FString>& Devices = PIEPreviewDeviceProfileSelectorModule->GetPreviewDeviceContainer().GetDeviceSpecifications();
+		const TArray<FString>& Devices = PIEPreviewDeviceModule->GetPreviewDeviceContainer().GetDeviceSpecificationsLocalizedName();
 		PlayInTargetedMobilePreviewDevices.SetNum(Devices.Num());
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); DeviceIndex++)
 		{
@@ -574,11 +574,11 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 void FPlayWorldCommands::AddPIEPreviewDeviceActions(const FPlayWorldCommands &Commands, FUICommandList &ActionList)
 {
 	// PIE preview devices.
-	auto PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceProfileSelectorModule>(TEXT("PIEPreviewDeviceProfileSelector"));
-	if (PIEPreviewDeviceProfileSelectorModule)
+	auto PIEPreviewDeviceModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceModule>(TEXT("PIEPreviewDeviceProfileSelector"));
+	if (PIEPreviewDeviceModule)
 	{
 		const TArray<TSharedPtr<FUICommandInfo>>& TargetedMobilePreviewDeviceCommands = Commands.PlayInTargetedMobilePreviewDevices;
-		const TArray<FString>& Devices = PIEPreviewDeviceProfileSelectorModule->GetPreviewDeviceContainer().GetDeviceSpecifications();
+		const TArray<FString>& Devices = PIEPreviewDeviceModule->GetPreviewDeviceContainer().GetDeviceSpecifications();
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); DeviceIndex++)
 		{
 			ActionList.MapAction(TargetedMobilePreviewDeviceCommands[DeviceIndex],
@@ -685,8 +685,22 @@ static void MakePreviewDeviceMenu(FMenuBuilder& MenuBuilder )
 				MenuBuilderIn.AddMenuEntry(TargetedMobilePreviewDeviceCommands[Device]);
 			}
 
+			FText AndroidCategory = FText::FromString(TEXT("Android"));
+			FText IOSCategory = FText::FromString(TEXT("IOS"));
+
 			for (TSharedPtr<FPIEPreviewDeviceContainerCategory> SubCategory : PreviewDeviceCategory->GetSubCategories())
 			{
+				FText CategoryDisplayName = SubCategory->GetCategoryDisplayName();
+				
+				if (CategoryDisplayName.CompareToCaseIgnored(AndroidCategory) == 0) 
+				{
+					CategoryDisplayName = FText(LOCTEXT("Android", "Android"));
+				}
+				else if (CategoryDisplayName.CompareToCaseIgnored(IOSCategory) == 0)
+				{
+					CategoryDisplayName = FText(LOCTEXT("IOS", "iOS"));
+				}
+
 				MenuBuilderIn.AddSubMenu(
 					SubCategory->GetCategoryDisplayName(),
 					SubCategory->GetCategoryToolTip(),
@@ -697,10 +711,10 @@ static void MakePreviewDeviceMenu(FMenuBuilder& MenuBuilder )
 	};
 
 	const TArray<TSharedPtr<FUICommandInfo>>& TargetedMobilePreviewDeviceCommands = FPlayWorldCommands::Get().PlayInTargetedMobilePreviewDevices;
-	FPIEPreviewDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceProfileSelectorModule>(TEXT("PIEPreviewDeviceProfileSelector"));
-	if(PIEPreviewDeviceProfileSelectorModule)
+	auto PIEPreviewDeviceModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceModule>(TEXT("PIEPreviewDeviceProfileSelector"));
+	if(PIEPreviewDeviceModule)
 	{
-		const FPIEPreviewDeviceContainer& DeviceContainer = PIEPreviewDeviceProfileSelectorModule->GetPreviewDeviceContainer();
+		const FPIEPreviewDeviceContainer& DeviceContainer = PIEPreviewDeviceModule->GetPreviewDeviceContainer();
 		MenuBuilder.BeginSection("LevelEditorPlayModesPreviewDevice", LOCTEXT("PreviewDevicePlayButtonModesSection", "Preview Devices"));
 		FLocal::AddDevicePreviewSubCategories(MenuBuilder, DeviceContainer.GetRootCategory());
 		MenuBuilder.EndSection();

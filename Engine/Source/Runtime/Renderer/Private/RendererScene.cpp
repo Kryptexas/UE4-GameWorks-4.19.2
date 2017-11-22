@@ -1858,6 +1858,17 @@ void FScene::AddPrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightm
 {
 	FScene* Scene = this;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Volume && GetShadingPath() == EShadingPath::Mobile)
+	{
+		const FPrecomputedVolumetricLightmapData* VolumeData = Volume->Data;
+		if(VolumeData && VolumeData->BrickData.LQLightDirection.Data.Num() == 0)
+		{
+			FPlatformAtomics::InterlockedIncrement(&NumUncachedStaticLightingInteractions);
+		}
+	}
+#endif
+
 	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
 		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
 		{
@@ -1868,6 +1879,17 @@ void FScene::AddPrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightm
 void FScene::RemovePrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightmap* Volume)
 {
 	FScene* Scene = this; 
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Volume && GetShadingPath() == EShadingPath::Mobile)
+	{
+		const FPrecomputedVolumetricLightmapData* VolumeData = Volume->Data;
+		if (VolumeData && VolumeData->BrickData.LQLightDirection.Data.Num() == 0)
+		{
+			FPlatformAtomics::InterlockedDecrement(&NumUncachedStaticLightingInteractions);
+		}
+	}
+#endif
 
 	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
 		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 

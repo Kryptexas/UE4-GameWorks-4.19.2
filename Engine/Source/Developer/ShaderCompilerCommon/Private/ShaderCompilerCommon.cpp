@@ -544,6 +544,7 @@ namespace CrossCompiler
 		CCTCmdLine += ((CCFlags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers) ? TEXT(" -packintoubs") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_FixAtomicReferences) == HLSLCC_FixAtomicReferences) ? TEXT(" -fixatomics") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_UseFullPrecisionInPS) == HLSLCC_UseFullPrecisionInPS) ? TEXT(" -usefullprecision") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_UsesExternalTexture) == HLSLCC_UsesExternalTexture) ? TEXT(" -usesexternaltexture") : TEXT("");
 		FString BatchFile;
 		if (PLATFORM_MAC)
 		{

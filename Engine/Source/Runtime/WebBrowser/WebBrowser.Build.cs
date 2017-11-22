@@ -9,28 +9,48 @@ public class WebBrowser : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/WebBrowser/Public");
 		PrivateIncludePaths.Add("Runtime/WebBrowser/Private");
+        PublicIncludePaths.AddRange(
+            new string[] {
+                "Runtime/MediaUtils/Public",
+            });
 
-		PrivateDependencyModuleNames.AddRange(
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "Runtime/MediaUtils/Private",
+            });
+
+        PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
 				"CoreUObject",
 				"ApplicationCore",
-				"RHI",
+                "RHI",
 				"InputCore",
 				"Slate",
 				"SlateCore",
 				"Serialization",
-			}
-		);
+                "MediaUtils",
+                "RenderCore",
+                "Engine",
+            }
+        );
 
-		if (Target.Platform == UnrealTargetPlatform.Android)
+        PrivateDependencyModuleNames.AddRange(
+        new string[] {
+                    "RenderCore",
+                    "RHI",
+                    "ShaderCore",
+                    "UtilityShaders",
+        });
+
+        if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			// We need this one on Android for URL decoding
-			PrivateDependencyModuleNames.Add("HTTP");
-		}
+            // We need this one on Android for URL decoding
+            PrivateDependencyModuleNames.Add("HTTP");
+        }
 
-		if (Target.Platform == UnrealTargetPlatform.Win64
+        if (Target.Platform == UnrealTargetPlatform.Win64
 		||  Target.Platform == UnrealTargetPlatform.Win32
 		||  Target.Platform == UnrealTargetPlatform.Mac
 		||  Target.Platform == UnrealTargetPlatform.Linux)

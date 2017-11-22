@@ -53,6 +53,8 @@ enum EHlslCompileFlag
 	HLSCC_KeepGlobalVariableOrder = 0x4000,
 	// Do not replace names for samplers and textures (like ps0, ci2)
 	HLSLCC_KeepSamplerAndImageNames = 0x8000,
+	// Shaders uses external texture so may need special runtime handling
+	HLSLCC_UsesExternalTexture = 0x10000,
 };
 
 /**

@@ -6,6 +6,7 @@
 #include "OutputDeviceHelper.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "CoreGlobals.h"
 
 FAndroidErrorOutputDevice::FAndroidErrorOutputDevice()
 {
@@ -40,6 +41,11 @@ void FAndroidErrorOutputDevice::HandleError()
 	GIsRunning = 0;
 	GIsCriticalError = 1;
 	GLogConsole = NULL;
+	GErrorHist[ARRAY_COUNT(GErrorHist) - 1] = 0;
 
+	// Dump the error and flush the log.
+#if !NO_LOGGING
+	FDebug::LogFormattedMessageWithCallstack(LogAndroid.GetCategoryName(), __FILE__, __LINE__, TEXT("=== Critical error: ==="), GErrorHist, ELogVerbosity::Error);
+#endif
 	GLog->Flush();
 }

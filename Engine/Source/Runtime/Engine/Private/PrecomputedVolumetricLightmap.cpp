@@ -12,6 +12,7 @@
 #include "UnrealEngine.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Interfaces/ITargetPlatform.h"
+#include "MobileObjectVersion.h"
 
 DECLARE_MEMORY_STAT(TEXT("Volumetric Lightmap"),STAT_VolumetricLightmapBuildData,STATGROUP_MapBuildData);
 
@@ -58,6 +59,8 @@ FArchive& operator<<(FArchive& Ar,FVolumetricLightmapDataLayer& Layer)
 
 FArchive& operator<<(FArchive& Ar,FPrecomputedVolumetricLightmapData& Volume)
 {
+	Ar.UsingCustomVersion(FMobileObjectVersion::GUID);
+
 	Ar << Volume.Bounds;
 	Ar << Volume.IndirectionTextureDimensions;
 	Ar << Volume.IndirectionTexture;
@@ -74,9 +77,31 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedVolumetricLightmapData& Volume)
 
 	Ar << Volume.BrickData.SkyBentNormal;
 	Ar << Volume.BrickData.DirectionalLightShadowing;
+	
+	if (Ar.CustomVer(FMobileObjectVersion::GUID) >= FMobileObjectVersion::LQVolumetricLightmapLayers)
+	{
+		if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::LowQualityLightmaps))
+		{
+			// Don't serialize cooked LQ data if the cook target does not want it.
+			FVolumetricLightmapDataLayer Dummy;
+			Ar << Dummy;
+			Ar << Dummy;
+		}
+		else
+		{
+			Ar << Volume.BrickData.LQLightColor;
+			Ar << Volume.BrickData.LQLightDirection;
+		}
+	}
 
 	if (Ar.IsLoading())
 	{
+		if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			// drop LQ data for SM4+
+			Volume.BrickData.DiscardLowQualityLayers();
+		}
+
 		const SIZE_T VolumeBytes = Volume.GetAllocatedBytes();
 		INC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 	}

@@ -575,7 +575,9 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 
 				//ignore key down events when the native input was clicked or when the keyboard animation is playing
 				if (AndroidThunkCpp_VirtualInputIgnoreClick(x, y))
+				{
 					return 0;
+				}
 			}
 			if(isActionTargeted)
 			{

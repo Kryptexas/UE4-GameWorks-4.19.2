@@ -73,6 +73,7 @@ struct FMetalShaderBytecodeJob
 	FString DebugInfo;
 	FString MathMode;
 	FString Standard;
+	FString IncludeDir;
 	uint32 SourceCRCLen;
 	uint32 SourceCRC;
 	bool bRetainObjectFile;

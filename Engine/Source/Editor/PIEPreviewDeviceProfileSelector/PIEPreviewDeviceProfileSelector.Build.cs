@@ -24,6 +24,7 @@ namespace UnrealBuildTool.Rules
 					"JsonUtilities",
 					"MaterialShaderQualitySettings",
 					"Slate",
+					"SlateCore"
 				}
 				);
 		}

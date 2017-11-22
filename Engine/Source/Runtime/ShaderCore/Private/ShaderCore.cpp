@@ -129,7 +129,7 @@ bool AllowDebugViewmodes()
 {	
 	int32 ForceDebugViewValue = CVarForceDebugViewModes.GetValueOnAnyThread();
 
-	// To use debug viewmodes on consoles, r.ForceDebugViewModes must be set to 2 in ConsoleVariables.ini
+	// To use debug viewmodes on consoles, r.ForceDebugViewModes must be set to 1 in ConsoleVariables.ini
 	// And EngineDebugMaterials must be in the StartupPackages for the target platform.
 	bool bForceEnable = ForceDebugViewValue == 1;
 	bool bForceDisable = ForceDebugViewValue == 2;

@@ -1400,6 +1400,12 @@ void FMaterial::SetupMaterialEnvironment(
 	// Add the material uniform buffer definition.
 	FShaderUniformBufferParameter::ModifyCompilationEnvironment(TEXT("Material"),InUniformExpressionSet.GetUniformBufferStruct(),Platform,OutEnvironment);
 
+	// Mark as using external texture if uniformexpression contains external texture
+	if (InUniformExpressionSet.UniformExternalTextureExpressions.Num() > 0)
+	{
+		OutEnvironment.CompilerFlags.Add(CFLAG_UsesExternalTexture);
+	}
+
 	if ((RHISupportsTessellation(Platform) == false) || (GetTessellationMode() == MTM_NoTessellation))
 	{
 		OutEnvironment.SetDefine(TEXT("USING_TESSELLATION"),TEXT("0"));

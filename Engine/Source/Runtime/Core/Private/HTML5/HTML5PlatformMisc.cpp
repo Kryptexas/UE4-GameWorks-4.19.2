@@ -8,6 +8,7 @@
 #include "HTML5PlatformProcess.h"
 
 #include "HTML5JavaScriptFx.h"
+#include "Containers/StringConv.h"
 #include <emscripten/trace.h>
 
 THIRD_PARTY_INCLUDES_START
@@ -86,3 +87,7 @@ void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext
 	GHTML5CrashHandler = CrashHandler;
 }
 
+void FHTML5Misc::LocalPrint(const TCHAR* Str)
+{
+	emscripten_log(EM_LOG_CONSOLE, TCHAR_TO_ANSI(Str));
+}

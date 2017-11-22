@@ -2683,6 +2683,15 @@ void UGameViewportClient::ToggleShowCollision()
 bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 	FString LayerName = FParse::Token(Cmd, 0);
+	// optional 0/1 for setting vis, instead of toggling
+	FString SetModeParam = FParse::Token(Cmd, 0);
+
+	int32 SetMode = -1;
+	if (SetModeParam != TEXT(""))
+	{
+		SetMode = FCString::Atoi(*SetModeParam);
+	}
+
 	bool bPrintValidEntries = false;
 
 	if (LayerName.IsEmpty())
@@ -2701,11 +2710,15 @@ bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevic
 			
 			if (Actor->Layers.Contains(LayerFName))
 			{
-				NumActorsToggled++;
-				// Note: overriding existing hidden property, ideally this would be something orthogonal
-				Actor->bHidden = !Actor->bHidden;
+				// look for always toggle, or a set when it's unset, etc
+				if ((SetMode == -1) || (SetMode == 0 && !Actor->bHidden) || (SetMode != 0 && Actor->bHidden))
+				{
+					NumActorsToggled++;
+					// Note: overriding existing hidden property, ideally this would be something orthogonal
+					Actor->bHidden = !Actor->bHidden;
 
-				Actor->MarkComponentsRenderStateDirty();
+					Actor->MarkComponentsRenderStateDirty();
+				}
 			}
 		}
 

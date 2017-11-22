@@ -2142,6 +2142,23 @@ void FGoogleVRHMD::UpdatePoses()
 	// Convert Gvr right handed coordinate system rotation into UE left handed coordinate system.
 	CachedFinalHeadRotation = FQuat(FinalHeadPoseUnreal);
 	CachedFinalHeadRotation = FQuat(-CachedFinalHeadRotation.Z, CachedFinalHeadRotation.X, CachedFinalHeadRotation.Y, -CachedFinalHeadRotation.W);
+	
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+	// iOS UIInterfaceOrientationLandscapeLeft needs a 180 degree rotated transform
+	UIInterfaceOrientation Orientation = UIInterfaceOrientationPortrait;
+	Orientation = [[UIApplication sharedApplication] statusBarOrientation];
+	#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
+		Orientation = [[IOSAppDelegate GetDelegate].IOSController interfaceOrientation];
+	#endif
+	
+	if (Orientation == UIInterfaceOrientationLandscapeLeft)
+	{
+		FVector EulerRotate180(180.0f, 0.0f, 0.0f);
+		FQuat Rotate180Quat = FQuat::MakeFromEuler(EulerRotate180);
+		CachedFinalHeadRotation = Rotate180Quat * CachedFinalHeadRotation;
+	}
+#endif
+
 #elif GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 	instant_preview::Session* session = ip_static_server_acquire_active_session(IpServerHandle);
 	if (NULL != session && instant_preview::RESULT_SUCCESS == session->get_latest_pose(&CurrentReferencePose)) {

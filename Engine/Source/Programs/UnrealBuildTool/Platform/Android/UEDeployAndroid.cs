@@ -148,10 +148,9 @@ namespace UnrealBuildTool
 			return ConfigCache.ReadHierarchy(Type, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
 		}
 
-		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain)
+		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain, string PlatformsDir)
 		{
 			// get a list of SDK platforms
-			string PlatformsDir = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/platforms");
 			if (!Directory.Exists(PlatformsDir))
 			{
 				throw new BuildException("No platforms found in {0}", PlatformsDir);
@@ -165,6 +164,17 @@ namespace UnrealBuildTool
 			}
 
 			throw new BuildException("Can't make an APK without an API installed ({0} does not contain any SDKs)", PlatformsDir);
+		}
+
+		private bool ValidateSDK(string PlatformsDir, string ApiString)
+		{
+			if (!Directory.Exists(PlatformsDir))
+			{
+				return false;
+			}
+
+			string SDKPlatformDir = Path.Combine(PlatformsDir, ApiString);
+			return Directory.Exists(SDKPlatformDir);
 		}
 
 		private int GetApiLevelInt(string ApiString)
@@ -191,16 +201,27 @@ namespace UnrealBuildTool
 				string SDKLevel;
 				Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "SDKAPILevel", out SDKLevel);
 
+				// check for project override of SDK API level
+				string ProjectSDKLevel;
+				Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "SDKAPILevelOverride", out ProjectSDKLevel);
+				ProjectSDKLevel = ProjectSDKLevel.Trim();
+				if (ProjectSDKLevel != "")
+				{
+					SDKLevel = ProjectSDKLevel;
+				}
+
 				// if we want to use whatever version the ndk uses, then use that
 				if (SDKLevel == "matchndk")
 				{
 					SDKLevel = ToolChain.GetNdkApiLevel();
 				}
 
+				string PlatformsDir = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/platforms");
+
 				// run a command and capture output
 				if (SDKLevel == "latest")
 				{
-					SDKLevel = GetLatestSDKApiLevel(ToolChain);
+					SDKLevel = GetLatestSDKApiLevel(ToolChain, PlatformsDir);
 				}
 
 				// make sure it is at least android-23
@@ -208,13 +229,19 @@ namespace UnrealBuildTool
 				if (SDKLevelInt < MinimumSDKLevel)
 				{
 					Console.WriteLine("Requires at least SDK API level {0}, currently set to '{1}'", MinimumSDKLevel, SDKLevel);
-					SDKLevel = GetLatestSDKApiLevel(ToolChain);
+					SDKLevel = GetLatestSDKApiLevel(ToolChain, PlatformsDir);
 
 					SDKLevelInt = GetApiLevelInt(SDKLevel);
 					if (SDKLevelInt < MinimumSDKLevel)
 					{
-						throw new BuildException("Can't make an APK without API 'android-" + MinimumSDKLevel.ToString() + "' minimum installed (see \"android.bat list targets\")");
+						throw new BuildException("Can't make an APK without SDK API 'android-" + MinimumSDKLevel.ToString() + "' minimum installed");
 					}
+				}
+
+				// validate the platform SDK is installed
+				if (!ValidateSDK(PlatformsDir, SDKLevel))
+				{
+					throw new BuildException("The SDK API requested '{0}' not installed in {1}", SDKLevel, PlatformsDir);
 				}
 
 				Console.WriteLine("Building Java with SDK API level '{0}'", SDKLevel);
@@ -1271,6 +1298,7 @@ namespace UnrealBuildTool
 			CurrentSettings.AppendLine(string.Format("ANDROID_HOME={0}", Environment.GetEnvironmentVariable("ANDROID_HOME")));
 			CurrentSettings.AppendLine(string.Format("ANT_HOME={0}", Environment.GetEnvironmentVariable("ANT_HOME")));
 			CurrentSettings.AppendLine(string.Format("JAVA_HOME={0}", Environment.GetEnvironmentVariable("JAVA_HOME")));
+			CurrentSettings.AppendLine(string.Format("NDKVersion={0}", ToolChain.GetNdkApiLevel()));
 			CurrentSettings.AppendLine(string.Format("SDKVersion={0}", GetSdkApiLevel(ToolChain)));
 			CurrentSettings.AppendLine(string.Format("bForDistribution={0}", bForDistribution));
 			CurrentSettings.AppendLine(string.Format("bMakeSeparateApks={0}", bMakeSeparateApks));
@@ -1285,6 +1313,12 @@ namespace UnrealBuildTool
 			{
 				foreach (string Key in Section.KeyNames)
 				{
+					// filter out NDK and SDK override since actual resolved versions already written above
+					if (Key.Equals("SDKAPILevelOverride") || Key.Equals("NDKAPILevelOverride"))
+					{
+						continue;
+					}
+
 					IEnumerable<string> Values;
 					Section.TryGetValues(Key, out Values);
 
@@ -1300,6 +1334,12 @@ namespace UnrealBuildTool
 			{
 				foreach (string Key in Section.KeyNames)
 				{
+					// filter out NDK and SDK levels since actual resolved versions already written above
+					if (Key.Equals("SDKAPILevel") || Key.Equals("NDKAPILevel"))
+					{
+						continue;
+					}
+
 					IEnumerable<string> Values;
 					Section.TryGetValues(Key, out Values);
 					foreach (string Value in Values)
@@ -1856,6 +1896,8 @@ namespace UnrealBuildTool
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
 			bool bSupportAdMob = true;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportAdMob", out bSupportAdMob);
+			bool bValidateTextureFormats;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bValidateTextureFormats", out bValidateTextureFormats);
 
 			string InstallLocation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
@@ -1928,8 +1970,8 @@ namespace UnrealBuildTool
 			}
 
 			//figure out which texture compressions are supported
-			bool bETC1Enabled, bETC2Enabled, bDXTEnabled, bATCEnabled, bPVRTCEnabled, bASTCEnabled;
-			bETC1Enabled = bETC2Enabled = bDXTEnabled = bATCEnabled = bPVRTCEnabled = bASTCEnabled = false;
+			bool bETC1Enabled, bETC1aEnabled, bETC2Enabled, bDXTEnabled, bATCEnabled, bPVRTCEnabled, bASTCEnabled;
+			bETC1Enabled = bETC1aEnabled = bETC2Enabled = bDXTEnabled = bATCEnabled = bPVRTCEnabled = bASTCEnabled = false;
 			if (CookFlavor.Length < 1)
 			{
 				//All values supproted
@@ -1942,6 +1984,7 @@ namespace UnrealBuildTool
 					case "_Multi":
 						//need to check ini to determine which are supported
 						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ETC1", out bETC1Enabled);
+                        Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ETC1a", out bETC1aEnabled);
 						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ETC2", out bETC2Enabled);
 						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_DXT", out bDXTEnabled);
 						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ATC", out bATCEnabled);
@@ -1951,6 +1994,9 @@ namespace UnrealBuildTool
 					case "_ETC1":
 						bETC1Enabled = true;
 						break;
+                    case "_ETC1a":
+                        bETC1aEnabled = true;
+                        break;
 					case "_ETC2":
 						bETC2Enabled = true;
 						break;
@@ -1974,7 +2020,16 @@ namespace UnrealBuildTool
 			bool bSupportingAllTextureFormats = bETC1Enabled && bETC2Enabled && bDXTEnabled && bATCEnabled && bPVRTCEnabled && bASTCEnabled;
 
 			// If it is only ETC2 we need to skip adding the texture format filtering and instead use ES 3.0 as minimum version (it requires ETC2)
-			bool bOnlyETC2Enabled = (bETC2Enabled && !(bETC1Enabled || bDXTEnabled || bATCEnabled || bPVRTCEnabled || bASTCEnabled));
+			bool bOnlyETC2Enabled = (bETC2Enabled && !(bETC1aEnabled || bETC1Enabled || bDXTEnabled || bATCEnabled || bPVRTCEnabled || bASTCEnabled));
+
+			// Store cooked flavors in metadata (ETC1a treated as ETC1)
+			string CookedFlavors = ((bETC1Enabled || bETC1aEnabled) ? "ETC1," : "") +
+									(bETC2Enabled ? "ETC2," : "") +
+									(bDXTEnabled ? "DXT," : "") +
+									(bATCEnabled ? "ATC," : "") +
+									(bPVRTCEnabled ? "PVRTC," : "") +
+									(bASTCEnabled ? "ASTC," : "");
+			CookedFlavors = (CookedFlavors == "") ? "" : CookedFlavors.Substring(0, CookedFlavors.Length - 1);
 
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -2091,6 +2146,8 @@ namespace UnrealBuildTool
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.ProjectName\" android:value=\"{0}\"/>", ProjectName));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bHasOBBFiles\" android:value=\"{0}\"/>", bHasOBBFiles ? "true" : "false"));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.BuildConfiguration\" android:value=\"{0}\"/>", Configuration));
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.CookedFlavors\" android:value=\"{0}\"/>", CookedFlavors));
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bValidateTextureFormats\" android:value=\"{0}\"/>", bValidateTextureFormats ? "true" : "false"));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bUseExternalFilesDir\" android:value=\"{0}\"/>", bUseExternalFilesDir ? "true" : "false"));
 			if (bPackageForDaydream)
 			{
@@ -2213,7 +2270,7 @@ namespace UnrealBuildTool
 				if (!bSupportingAllTextureFormats)
 				{
 					Text.AppendLine("\t<!-- Supported texture compression formats (cooked) -->");
-					if (bETC1Enabled)
+					if (bETC1Enabled || bETC1aEnabled)
 					{
 						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_OES_compressed_ETC1_RGB8_texture\" />");
 					}

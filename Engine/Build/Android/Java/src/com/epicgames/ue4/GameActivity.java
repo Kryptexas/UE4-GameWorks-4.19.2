@@ -1698,6 +1698,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					else
 					{
 						newVirtualKeyboardInput.setSingleLine(true);
+						newVirtualKeyboardInput.setMaxLines(1);
 						imeOptions &= ~EditorInfo.IME_FLAG_NO_ENTER_ACTION;
 						imeOptions |= EditorInfo.IME_ACTION_DONE;
 					}
@@ -2781,7 +2782,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 						break;
 					}
 				}
-				if (add) {
+				if (add)
+				{
 					filters = Arrays.copyOf(filters, filters.length + 1);
 					filters[filters.length - 1] = emojiExcludeFilter;
 				}
@@ -3005,6 +3007,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					else
 					{
 						String message = newVirtualKeyboardInput.getText().toString();
+						//#jira UE-50645 Carriage returns can be pasted into single line UMG fields on Android
+						//oddly enough, we have to use events/filters to control the EditText's copy/paste behaviour
+						if(newVirtualKeyboardInput.getMaxLines() == 1 && message.contains("\n"))
+						{
+							message = message.replaceAll("\n" , " ");
+							newVirtualKeyboardInput.setText(message);
+						
+						}
 						nativeVirtualKeyboardChanged(message);
 					}
 				}

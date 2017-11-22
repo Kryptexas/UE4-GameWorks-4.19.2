@@ -587,7 +587,7 @@ void Main(
 	#endif
 
 	#if !MATERIALBLENDING_MODULATE && OUTPUT_GAMMA_SPACE
-		// MobileHDR applies ExposureScale in tonemapper
+		// MobileHDR applies PreExposure in tonemapper
 		OutColor.rgb *= ResolvedView.PreExposure;
 	#endif
 

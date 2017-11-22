@@ -3823,7 +3823,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
@@ -3833,7 +3833,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
@@ -3846,7 +3846,7 @@ protected:
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
-			return INDEX_NONE;
+			return NonPixelShaderExpressionError();
 		}
 
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);

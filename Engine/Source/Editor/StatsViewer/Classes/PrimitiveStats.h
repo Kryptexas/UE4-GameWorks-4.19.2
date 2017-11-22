@@ -45,6 +45,10 @@ class UPrimitiveStats : public UObject
 	UPROPERTY()
 	int32 Sections;
 
+	/** Hardware instances */
+	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category = "Stats", meta = (ColumnWidth = "102", ShowTotal = "true"))
+	int32 HWInstances;
+
 	/** Instanced section count of mesh */
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category="Stats", meta=( ColumnWidth = "102", ShowTotal = "true" ) )
 	int32 InstSections;

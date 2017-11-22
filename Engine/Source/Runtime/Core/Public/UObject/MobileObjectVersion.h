@@ -12,7 +12,12 @@ struct CORE_API FMobileObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// Removed LightmapUVBias, ShadowmapUVBias from per-instance data
+		InstancedStaticMeshLightmapSerialization,
 
+		// Added stationary point/spot light direct contribution to volumetric lightmaps. 
+		LQVolumetricLightmapLayers,
+		
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

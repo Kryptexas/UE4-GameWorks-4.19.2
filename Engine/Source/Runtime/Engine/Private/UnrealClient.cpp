@@ -993,6 +993,8 @@ FViewport::FOnViewportResized FViewport::ViewportResizedEvent;
 
 FViewport::FViewport(FViewportClient* InViewportClient):
 	ViewportClient(InViewportClient),
+	InitialPositionX(0),
+	InitialPositionY(0),
 	SizeX(0),
 	SizeY(0),
 	WindowMode(IsRunningGame() ? GEngine->GetGameUserSettings()->GetDefaultWindowMode() : EWindowMode::Windowed),

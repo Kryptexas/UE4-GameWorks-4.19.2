@@ -1479,6 +1479,9 @@ void BuildMetalShaderOutput(
 			// Attempt to precompile the ue4_stdlib.metal file as a PCH, using the metal_stdlib PCH if it exists
 			// Will fallback to just using the raw ue4_stdlib.metal file if PCH compilation fails
 			// The ue4_stdlib.metal PCH is not cached in the DDC as modifications to the file invalidate the PCH, so it is only valid for this SCW's existence.
+			FString UE4StdLibFilePath = FString(TempDir) / TEXT("ue4_stdlib.metal");
+			static FString RemoteUE4StdLibFolder = MakeRemoteTempFolder(TempDir);
+			FString RemoteUE4StdLibFilePath = LocalPathToRemote(UE4StdLibFilePath, RemoteUE4StdLibFolder);
 			{
 				static uint32 UE4StdLibCRCLen = ue4_stdlib_metal_len;
 				static uint32 UE4StdLibCRC = 0;
@@ -1488,15 +1491,13 @@ void BuildMetalShaderOutput(
 					FString UE4StdLibFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
 					if (FFileHelper::SaveArrayToFile(UE4PCHData, *UE4StdLibFilename))
 					{
-						FString RemoteTempPath = LocalPathToRemote(UE4StdLibFilename, TempDir);
+						FString RemoteTempPath = LocalPathToRemote(UE4StdLibFilename, MakeRemoteTempFolder(FString(TempDir)));
 						CopyLocalFileToRemote(UE4StdLibFilename, RemoteTempPath);
 						ChecksumRemoteFile(*RemoteTempPath, &UE4StdLibCRC, &UE4StdLibCRCLen);
 						IFileManager::Get().Delete(*UE4StdLibFilename);
 					}
 				}
 
-				FString UE4StdLibFilePath = FString(TempDir) / TEXT("ue4_stdlib.metal");
-				FString RemoteUE4StdLibFilePath = LocalPathToRemote(UE4StdLibFilePath, TempDir);
 				uint32 RemotePchCRC = 0;
 				uint32 RemotePchLen = 0;
 				if (!RemoteFileExists(RemoteUE4StdLibFilePath) || !ChecksumRemoteFile(*RemoteUE4StdLibFilePath, &RemotePchCRC, &RemotePchLen) || RemotePchCRC != UE4StdLibCRC)
@@ -1511,6 +1512,7 @@ void BuildMetalShaderOutput(
 					CopyLocalFileToRemote(UE4StdLibFilePath, RemoteUE4StdLibFilePath);
 				}
 				
+#if (PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING)				
 				FString Defines = Header.bDeviceFunctionConstants ? TEXT("-D__METAL_DEVICE_CONSTANT_INDEX__=1") : TEXT("");
 				switch(TypeMode)
 				{
@@ -1536,7 +1538,7 @@ void BuildMetalShaderOutput(
 				
 				int64 UnixTime = IFileManager::Get().GetTimeStamp(*UE4StdLibFilePath).ToUnixTimestamp();
 				FString UE4StdLibFilePCH = FString::Printf(TEXT("%s.%u%u%u%u%s%s%s%s%s%s%d%lld.pch"), *UE4StdLibFilePath, UE4StdLibCRC, UE4StdLibCRCLen, PchCRC, PchLen, *GUIDHash.ToString(), *CompilerVersion, MinOSVersion, *DebugInfo, *MathMode, Standard, GetTypeHash(Defines), UnixTime);
-				FString RemoteUE4StdLibFilePCH = LocalPathToRemote(UE4StdLibFilePCH, TempDir);
+				FString RemoteUE4StdLibFilePCH = LocalPathToRemote(UE4StdLibFilePCH, RemoteUE4StdLibFolder);
 				if (RemoteFileExists(RemoteUE4StdLibFilePath) && !IFileManager::Get().FileExists(*UE4StdLibFilePCH) && !RemoteFileExists(RemoteUE4StdLibFilePCH))
 				{
 					FMetalShaderBytecodeJob Job;
@@ -1570,6 +1572,7 @@ void BuildMetalShaderOutput(
 					MetalPCHFile = UE4StdLibFilePCH;
 					bUseSharedPCH = true;
 				}
+#endif
 			}
 			
 			FMetalShaderBytecodeJob Job;
@@ -1592,7 +1595,8 @@ void BuildMetalShaderOutput(
 			Job.SourceCRC = SourceCRC;
 			Job.bRetainObjectFile = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive);
 			Job.bCompileAsPCH = false;
-			
+			Job.IncludeDir = RemoteUE4StdLibFolder;
+
 			FMetalShaderBytecodeCooker* BytecodeCooker = new FMetalShaderBytecodeCooker(Job);
 			
 			bool bDataWasBuilt = false;

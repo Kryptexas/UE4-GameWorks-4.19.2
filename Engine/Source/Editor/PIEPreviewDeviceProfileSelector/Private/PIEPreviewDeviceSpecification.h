@@ -110,7 +110,21 @@ public:
 	FPIERHIOverrideState MetalRHIState;
 };
 
-
+USTRUCT()
+struct FPIEPreviewDeviceBezelViewportRect
+{
+public:
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY()
+	int32 X;
+	UPROPERTY()
+	int32 Y;
+	UPROPERTY()
+	int32 Width;
+	UPROPERTY()
+	int32 Height;
+}; 
 
 USTRUCT()
 struct FPIEPreviewDeviceSpecifications
@@ -119,10 +133,19 @@ struct FPIEPreviewDeviceSpecifications
 	
 	UPROPERTY()
 	EPIEPreviewDeviceType DevicePlatform;
-
+	UPROPERTY()
+	int32 ResolutionX;
+	UPROPERTY()
+	int32 ResolutionY;
+	UPROPERTY()
+	int32 ResolutionYImmersiveMode;
+	
 	UPROPERTY()
 	FPIEAndroidDeviceProperties AndroidProperties;
 
 	UPROPERTY()
 	FPIEIOSDeviceProperties IOSProperties;
+
+	UPROPERTY()
+	FPIEPreviewDeviceBezelViewportRect BezelViewportRect;
 };

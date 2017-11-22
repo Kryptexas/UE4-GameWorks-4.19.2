@@ -97,7 +97,14 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		if (Platform == EShaderPlatform::SP_METAL || Platform == EShaderPlatform::SP_METAL_MRT)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

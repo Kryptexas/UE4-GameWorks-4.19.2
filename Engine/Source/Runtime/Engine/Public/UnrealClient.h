@@ -454,7 +454,7 @@ public:
 
 	//~ Begin FRenderTarget Interface.
 	virtual FIntPoint GetSizeXY() const override { return FIntPoint(SizeX, SizeY); }
-
+	FIntPoint GetInitialPositionXY() const { return FIntPoint(InitialPositionX, InitialPositionY); }
 	// Accessors.
 	FViewportClient* GetClient() const { return ViewportClient; }
 
@@ -619,6 +619,12 @@ protected:
 
 	/** The RHI viewport. */
 	FViewportRHIRef ViewportRHI;
+
+	/** The initial position of the viewport. */
+	uint32 InitialPositionX;
+
+	/** The initial position of the viewport. */
+	uint32 InitialPositionY;
 
 	/** The width of the viewport. */
 	uint32 SizeX;

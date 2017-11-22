@@ -43,6 +43,7 @@ public:
 
 	const TArray<FString>& GetDeviceSpecifications() const { return DeviceSpecifications; }
 
+	const TArray<FString>& GetDeviceSpecificationsLocalizedName() const { return DeviceSpecificationsLocalizedName; }
 
 	// return the category that contains DeviceIndex.
 	const TSharedPtr<FPIEPreviewDeviceContainerCategory> FindDeviceContainingCategory(int32 DeviceIndex) const;
@@ -54,5 +55,7 @@ private:
 
 	// All device specifications found.
 	TArray<FString> DeviceSpecifications;
+	TArray<FString> DeviceSpecificationsLocalizedName;
 	void EnumerateDeviceSpecifications(TSharedPtr<FPIEPreviewDeviceContainerCategory> SubCategory);
+	void EnumerateDeviceLocalizedNames();
 };

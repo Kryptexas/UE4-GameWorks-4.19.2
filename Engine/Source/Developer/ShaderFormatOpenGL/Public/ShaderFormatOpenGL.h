@@ -59,7 +59,7 @@ protected:
 	// what is the max number of samplers the shader platform can use?
 	virtual uint32 GetMaxSamplers(GLSLVersion Version);
 
-	virtual uint32 CalculateCrossCompilerFlags(GLSLVersion Version, bool bCompileES2With310, bool bUseFullPrecisionInPS);
+	virtual uint32 CalculateCrossCompilerFlags(GLSLVersion Version, bool bCompileES2With310, bool bUseFullPrecisionInPS, bool bUsesExternalTexture);
 
 	// set up compilation information like defines and HlslCompileTarget
 	virtual void SetupPerVersionCompilationEnvironment(GLSLVersion Version, class FShaderCompilerDefinitions& AdditionalDefines, EHlslCompileTarget& HlslCompilerTarget);

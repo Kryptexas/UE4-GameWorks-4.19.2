@@ -7,14 +7,6 @@
 #include "Input/HittestGrid.h"
 #include "HAL/PlatformApplicationMisc.h"
 
-namespace SWindowDefs
-{
-	/** Height of a Slate window title bar, in pixels */
-	static const float DefaultTitleBarSize = 24.0f;
-
-	/** Size of the corner rounding radius.  Used for regular, non-maximized windows only (not tool-tips or decorators.) */
-	static const int32 CornerRadius = 6;
-}
 
 FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWindow>& InitHostWindow, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
 	: FPopupLayer(InitHostWindow, InitPopupContent)
@@ -470,6 +462,34 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize);
 }
 
+TSharedRef<SWidget> SWindow::MakeWindowTitleBar(const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment TitleContentAlignment)
+{
+	return FSlateApplicationBase::Get().MakeWindowTitleBar(Window, nullptr, TitleContentAlignment, TitleBar);
+}
+
+
+EHorizontalAlignment SWindow::GetTitleAlignment()
+{
+	EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
+	EHorizontalAlignment TitleContentAlignment;
+
+	if (TitleAlignment == EWindowTitleAlignment::Left)
+	{
+		TitleContentAlignment = HAlign_Left;
+	}
+	else if (TitleAlignment == EWindowTitleAlignment::Center)
+	{
+		TitleContentAlignment = HAlign_Center;
+	}
+	else
+	{
+		TitleContentAlignment = HAlign_Right;
+	}
+	return TitleContentAlignment;
+}
+
+
+
 void SWindow::ConstructWindowInternals()
 {
 	ForegroundColor = FCoreStyle::Get().GetSlateColor("DefaultForeground");
@@ -484,26 +504,10 @@ void SWindow::ConstructWindowInternals()
 		// @todo mainframe: Should be measured from actual title bar content widgets.  Don't use a hard-coded size!
 		TitleBarSize = SWindowDefs::DefaultTitleBarSize;
 
-		EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
-		EHorizontalAlignment TitleContentAlignment;
-
-		if (TitleAlignment == EWindowTitleAlignment::Left)
-		{
-			TitleContentAlignment = HAlign_Left;
-		}
-		else if (TitleAlignment == EWindowTitleAlignment::Center)
-		{
-			TitleContentAlignment = HAlign_Center;
-		}
-		else
-		{
-			TitleContentAlignment = HAlign_Right;
-		}
-
 		MainWindowArea->AddSlot()
 		.AutoHeight()
 		[
-			FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
+			MakeWindowTitleBar(SharedThis(this), nullptr, GetTitleAlignment())
 		];
 	}
 	else

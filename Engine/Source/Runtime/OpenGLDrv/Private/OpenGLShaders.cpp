@@ -685,7 +685,8 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, const FString& ShaderName, GLenum TypeEnum, const FOpenGLShaderDeviceCapabilities& Capabilities, FAnsiCharArray& GlslCode)
 {
 	// Whether shader was compiled for ES 3.1
-	const bool bES31 = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#version 310 es") != nullptr);
+	const ANSICHAR* ES310Version = "#version 310 es";
+	const bool bES31 = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), ES310Version) != nullptr);
 
 	// Whether we need to emit mobile multi-view code or not.
 	const bool bEmitMobileMultiView = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "gl_ViewID_OVR") != nullptr);
@@ -708,7 +709,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
 		bNeedsExtDrawInstancedDefine = !bES31;
-		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
+		if (bES31)
+		{
+			AppendCString(GlslCode, ES310Version);
+			AppendCString(GlslCode, "\n");
+			ReplaceCString(GlslCodeOriginal, ES310Version, "");
+		}
+		else if (IsES2Platform(Capabilities.MaxRHIShaderPlatform))
 		{
 			// #version NNN has to be the first line in the file, so it has to be added before anything else.
 			if (bUseES30ShadingLanguage)
@@ -736,6 +743,15 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		AppendCString(GlslCode, "#ifdef GL_EXT_draw_instanced\n");
 		AppendCString(GlslCode, "#define UE_EXT_draw_instanced 1\n");
 		AppendCString(GlslCode, "#endif\n");
+	}
+
+	// The incoming glsl may have preprocessor code that is dependent on defines introduced via the engine.
+	// This is the place to insert such engine preprocessor defines, immediately after the glsl version declaration.
+	if (Capabilities.bRequiresUEShaderFramebufferFetchDef && TypeEnum == GL_FRAGMENT_SHADER )
+	{
+		// Some devices (Zenfone5) support GL_EXT_shader_framebuffer_fetch but do not define GL_EXT_shader_framebuffer_fetch in GLSL compiler
+		// We can't define anything with GL_, so we use UE_EXT_shader_framebuffer_fetch to enable frame buffer fetch
+		AppendCString(GlslCode, "#define UE_EXT_shader_framebuffer_fetch 1\n");
 	}
 
 	if (bEmitMobileMultiView)
@@ -833,13 +849,6 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		AppendCString(GlslCode, "\n\n");
 		AppendCString(GlslCode, "layout(num_views = 2) in;\n");
 		AppendCString(GlslCode, "\n\n");
-	}
-
-	if (Capabilities.bRequiresUEShaderFramebufferFetchDef && TypeEnum == GL_FRAGMENT_SHADER)
-	{
-		// Some devices (Zenfone5) support GL_EXT_shader_framebuffer_fetch but do not define GL_EXT_shader_framebuffer_fetch in GLSL compiler
-		// We can't define anything with GL_, so we use UE_EXT_shader_framebuffer_fetch to enable frame buffer fetch
-		AppendCString(GlslCode, "#define UE_EXT_shader_framebuffer_fetch 1\n");
 	}
 
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android)
@@ -1132,6 +1141,7 @@ static void MarkShaderParameterCachesDirty(FOpenGLShaderParameterCache* ShaderPa
 void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, FUniformBufferRHIRef* BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate)
 {
 	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLUniformBindTime);
+	VERIFY_GL_SCOPE();
 	checkSlow(IsInRenderingThread());
 	for (int32 BufferIndex = 0; BufferIndex < NumUniformBuffers; ++BufferIndex)
 	{

@@ -484,6 +484,12 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 	BrickData.TreeDepth = BuildData.TreeDepth;
 	BrickData.AmbientVector.Empty(TotalBrickSize);
 	BrickData.AmbientVector.AddDefaulted(TotalBrickSize);
+
+	BrickData.LQLightColor.Empty(TotalBrickSize);
+	BrickData.LQLightColor.AddDefaulted(TotalBrickSize);
+	BrickData.LQLightDirection.Empty(TotalBrickSize);
+	BrickData.LQLightDirection.AddDefaulted(TotalBrickSize);
+
 	BrickData.VoxelImportProcessingData.Empty(TotalBrickSize);
 	BrickData.VoxelImportProcessingData.AddDefaulted(TotalBrickSize);
 
@@ -837,6 +843,36 @@ void FIrradianceBrickData::SetFromVolumeLightingSample(int32 Index, const FVolum
 	}
 
 	DirectionalLightShadowing[Index] = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(Sample.DirectionalLightShadowing * MAX_uint8), 0, MAX_uint8);
+
+	{
+		FSHVectorRGB3 HQ;
+		FSHVectorRGB3 LQ;
+		for (int32 CoefficientIndex = 0; CoefficientIndex < LM_NUM_SH_COEFFICIENTS; CoefficientIndex++)
+		{
+			HQ.R.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][0];
+			HQ.G.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][1];
+			HQ.B.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][2];
+
+			LQ.R.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][0];
+			LQ.G.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][1];
+			LQ.B.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][2];
+		}
+		FSHVectorRGB3 DirectLight = LQ - HQ;
+		FVector MaxLightDir( DirectLight.GetLuminance().GetMaximumDirection() );
+
+		// Set the max direction
+		FLinearColor MaxLightDirAsColor(MaxLightDir);
+		LQLightDirection[Index] = (MaxLightDirAsColor * FLinearColor(.5f, .5f, .5f, .5f) + FLinearColor(.5f, .5f, .5f, .5f)).QuantizeRound();
+		
+		// Set color along the max direction
+		FSHVector3 BrigthestDiffuseTransferSH = FSHVector3::CalcDiffuseTransfer(MaxLightDir);
+		FLinearColor BrightestLighting = Dot(DirectLight, BrigthestDiffuseTransferSH);
+		BrightestLighting.R = FMath::Max(BrightestLighting.R, 0.0f);
+		BrightestLighting.G = FMath::Max(BrightestLighting.G, 0.0f);
+		BrightestLighting.B = FMath::Max(BrightestLighting.B, 0.0f);
+
+		LQLightColor[Index] = FFloat3Packed(BrightestLighting);
+	}
 
 	FIrradianceVoxelImportProcessingData NewImportData;
 	NewImportData.bInsideGeometry = bInsideGeometry;
