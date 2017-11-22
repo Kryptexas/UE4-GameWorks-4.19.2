@@ -4359,7 +4359,8 @@ private:
 			if (FlexEmitterInstance)
 			{
 				verify(GFlexPluginBridge);
-				GFlexPluginBridge->GPUSpriteEmitterInstance_SetNewParticle(FlexEmitterInstance, NewParticle - NewParticles.GetData(), NewParticle->Position, NewParticle->Velocity);
+				GFlexPluginBridge->GPUSpriteEmitterInstance_SetNewParticle(FlexEmitterInstance, NewParticle - NewParticles.GetData(),
+					NewParticle->Position, NewParticle->Velocity, NewParticle->RelativeTime, NewParticle->TimeScale, FMath::Abs(BaseSize.X) * EmitterInfo.InvMaxSize.X);
 			}
 #endif
 			// NvFlex end

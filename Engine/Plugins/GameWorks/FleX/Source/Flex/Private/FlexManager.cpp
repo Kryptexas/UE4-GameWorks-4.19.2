@@ -622,11 +622,11 @@ void FFlexManager::GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticle
 	FlexEmitterInstance->GPUImpl->InitNewParticle(NewIndex, RegularIndex);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity)
+void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity);
+	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity, RelativeTime, TimeScale, InitialSize);
 }
 
 void FFlexManager::GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams)

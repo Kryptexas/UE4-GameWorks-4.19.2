@@ -1,8 +1,11 @@
 #include "FlexGPUParticleEmitterInstance.h"
 #include "FlexParticleSpriteEmitter.h"
+#include "FlexFluidSurfaceComponent.h"
 
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 
 #include "GameWorks/FlexPluginGPUParticles.h"
 
@@ -163,7 +166,8 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 		FQuat Rotation;
 		USceneComponent* Parent = nullptr;
 
-		if (FlexParticleIndices.Num() > 0)
+		const int32 NumActiveParticles = Container->GetActiveParticleCount();
+		if (NumActiveParticles > 0)
 		{
 			Parent = Owner->Emitter->Component->GetAttachParent();
 			if (Parent && FlexEmitter->bLocalSpace)
@@ -174,6 +178,142 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 				Rotation = ParentTransform.GetRotation();
 
 				NvFlexExtMovingFrameUpdate(&Owner->MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X), DeltaSeconds);
+
+				for (int32 i = 0; i < FlexParticleIndices.Num(); i++)
+				{
+					const int32 FlexParticleIndex = FlexParticleIndices[i];
+					if (FlexParticleIndex != -1)
+					{
+						// Localize the position and velocity using the localization API
+						// NOTE: Once we have a feature to detect particle inside the mesh container
+						//       we can then test for it and apply localization as needed.
+						FVector4* Position = (FVector4*)&Container->Particles[FlexParticleIndex];
+						FVector* Velocity = (FVector*)&Container->Velocities[FlexParticleIndex];
+
+						NvFlexExtMovingFrameApply(&Owner->MeshFrame, (float*)Position, (float*)Velocity,
+							1, Owner->LinearInertialScale, Owner->AngularInertialScale, DeltaSeconds);
+					}
+				}
+			}
+
+			for (int32 i = 0; i < ParticleDataArray.Num(); i++)
+			{
+				FParticleData& ParticleData = ParticleDataArray[i];
+				ParticleData.RelativeTime += ParticleData.TimeScale * DeltaSeconds;
+			}
+		}
+
+		class QuantizedSampler
+		{
+		public:
+			QuantizedSampler(const TArray<FColor>& InSamples, const FVector4& InScale, const FVector4& InBias)
+				: Samples(InSamples), Scale(InScale), Bias(InBias)
+			{
+			}
+
+			FVector4 operator() (float Time) const
+			{
+				FVector4 Result = Bias;
+				if (Samples.Num() > 1)
+				{
+					Time = FMath::Clamp(Time, 0.0f, 1.0f);
+					Time *= Samples.Num() - 1;
+
+					const float Alpha = FMath::Fractional(Time);
+					const int32 Index0 = FMath::TruncToInt(Time);
+					const int32 Index1 = FMath::Min(Index0 + 1, Samples.Num() - 1);
+
+					Result.X += Scale.X * FMath::Lerp(Samples[Index0].R / 255.f, Samples[Index1].R / 255.f, Alpha);
+					Result.Y += Scale.Y * FMath::Lerp(Samples[Index0].G / 255.f, Samples[Index1].G / 255.f, Alpha);
+					Result.Z += Scale.Z * FMath::Lerp(Samples[Index0].B / 255.f, Samples[Index1].B / 255.f, Alpha);
+					Result.W += Scale.W * FMath::Lerp(Samples[Index0].A / 255.f, Samples[Index1].A / 255.f, Alpha);
+				}
+				return Result;
+			}
+
+		private:
+			const TArray<FColor>& Samples;
+			FVector4 Scale;
+			FVector4 Bias;
+		};
+
+		struct FVector4ToFLinearColor
+		{
+			inline static FLinearColor Convert(const FVector4& In) { return FLinearColor(In.X, In.Y, In.Z, In.W); }
+		};
+
+		UParticleLODLevel* LODLevel = FlexEmitter->LODLevels[0];
+		if (LODLevel)
+		{
+			UParticleModuleTypeDataGpu* TypeDataModule = CastChecked<UParticleModuleTypeDataGpu>(LODLevel->TypeDataModule);
+			if (TypeDataModule)
+			{
+				QuantizedSampler ColorSampler(TypeDataModule->ResourceData.QuantizedColorSamples,
+					TypeDataModule->ResourceData.ColorScale, TypeDataModule->ResourceData.ColorBias);
+
+				QuantizedSampler MiscSampler(TypeDataModule->ResourceData.QuantizedMiscSamples,
+					TypeDataModule->ResourceData.MiscScale, TypeDataModule->ResourceData.MiscBias);
+
+				const float LocalToWorldScale = Owner->Emitter->Component->GetComponentTransform().GetScale3D().X;
+
+				// Setup dynamic color parameter. Only set when using particle parameter distributions.
+				FVector4 ColorOverLife(1.0f, 1.0f, 1.0f, 1.0f);
+				FVector4 ColorScaleOverLife(1.0f, 1.0f, 1.0f, 1.0f);
+				if (TypeDataModule->EmitterInfo.DynamicColorScale.IsCreated())
+				{
+					ColorScaleOverLife = TypeDataModule->EmitterInfo.DynamicColorScale.GetValue(0.0f, Owner->Emitter->Component);
+				}
+				if (TypeDataModule->EmitterInfo.DynamicAlphaScale.IsCreated())
+				{
+					ColorScaleOverLife.W = TypeDataModule->EmitterInfo.DynamicAlphaScale.GetValue(0.0f, Owner->Emitter->Component);
+				}
+
+				if (TypeDataModule->EmitterInfo.DynamicColor.IsCreated())
+				{
+					ColorOverLife = TypeDataModule->EmitterInfo.DynamicColor.GetValue(0.0f, Owner->Emitter->Component);
+				}
+				if (TypeDataModule->EmitterInfo.DynamicAlpha.IsCreated())
+				{
+					ColorOverLife.W = TypeDataModule->EmitterInfo.DynamicAlpha.GetValue(0.0f, Owner->Emitter->Component);
+				}
+				const FVector4 DynamicColor = ColorOverLife * ColorScaleOverLife;
+				const FVector4 InitialColor = FVector4(1, 1, 1, 1);
+
+				// flex container with UE4 particle data for surface rendering
+				if (FlexEmitter->Phase.Fluid && Container->FluidSurfaceComponent)
+				{
+					UFlexFluidSurfaceComponent* SurfaceComponent = Container->FluidSurfaceComponent;
+					bool bHasAnisotropy = Container->Anisotropy1.size() > 0;
+					bool bHasSmoothedPositions = Container->SmoothPositions.size() > 0;
+
+					for (int32 i = 0; i < FlexParticleIndices.Num(); i++)
+					{
+						const int32 FlexParticleIndex = FlexParticleIndices[i];
+						if (FlexParticleIndex != -1)
+						{
+							const float RelativeTime = ParticleDataArray[FlexParticleIndex].RelativeTime;
+							const float bIsAlive = (RelativeTime <= 1.0f);
+							const float InitialSize = ParticleDataArray[FlexParticleIndex].InitialSize;
+
+							UFlexFluidSurfaceComponent::Particle SurfaceParticle;
+							SurfaceParticle.Position = bHasSmoothedPositions ? Container->SmoothPositions[FlexParticleIndex] : Container->Particles[FlexParticleIndex];
+							SurfaceParticle.Size = MiscSampler(RelativeTime).X * InitialSize * LocalToWorldScale * bIsAlive;
+							SurfaceParticle.Color = FVector4ToFLinearColor::Convert(ColorSampler(RelativeTime) * InitialColor * DynamicColor);
+							SurfaceComponent->Particles.Add(SurfaceParticle);
+
+							if (bHasAnisotropy)
+							{
+								UFlexFluidSurfaceComponent::ParticleAnisotropy SurfaceParticleAnisotropy;
+								SurfaceParticleAnisotropy.Anisotropy1 = Container->Anisotropy1[FlexParticleIndex];
+								SurfaceParticleAnisotropy.Anisotropy2 = Container->Anisotropy2[FlexParticleIndex];
+								SurfaceParticleAnisotropy.Anisotropy3 = Container->Anisotropy3[FlexParticleIndex];
+								SurfaceComponent->ParticleAnisotropies.Add(SurfaceParticleAnisotropy);
+							}
+						}
+					}
+
+					SurfaceComponent->NotifyParticleBatch(Owner->Emitter->GetBoundingBox());
+				}
 			}
 		}
 
@@ -181,29 +321,15 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 		if (SimulationResource)
 		{
 			// sync UE4 particles with FLEX
-			const int32 NumFlexParticleIndices = FlexParticleIndices.Num();
-			const int32 NumActiveParticles = Container->GetActiveParticleCount();
-
 			FFlexParticleSimulationState* State = new FFlexParticleSimulationState;
 			State->ParticleIndexArray = FlexParticleIndices;
 
-			State->PositionArray.SetNumUninitialized(NumActiveParticles);
-			State->VelocityArray.SetNumUninitialized(NumActiveParticles);
+			const int NumParticlesToCopy = ParticleDataArray.Num();
+			State->PositionArray.SetNumUninitialized(NumParticlesToCopy);
+			State->VelocityArray.SetNumUninitialized(NumParticlesToCopy);
 
-			for (int32 i = 0; i < NumActiveParticles; i++)
+			for (int32 i = 0; i < NumParticlesToCopy; i++)
 			{
-				if (Parent && FlexEmitter->bLocalSpace)
-				{
-					// Localize the position and velocity using the localization API
-					// NOTE: Once we have a feature to detect particle inside the mesh container
-					//       we can then test for it and apply localization as needed.
-					FVector4* Position = (FVector4*)&Container->Particles[i];
-					FVector* Velocity = (FVector*)&Container->Velocities[i];
-
-					NvFlexExtMovingFrameApply(&Owner->MeshFrame, (float*)Position, (float*)Velocity,
-						1, Owner->LinearInertialScale, Owner->AngularInertialScale, DeltaSeconds);
-				}
-
 				// sync UE4 particle with FLEX
 				if (Container->SmoothPositions.size() > 0)
 				{
@@ -276,7 +402,7 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 }
 
 
-void FFlexGPUParticleEmitterInstance::DestroyParticles(int32 Start, int32 Count)
+void FFlexGPUParticleEmitterInstance::DestroyParticles(int32 Start, int32 Count, bool bShrink)
 {
 	// Get the start of the indices of FleX particles for this tile
 	int32* DestroyParticleIndices = &FlexParticleIndices[Start];
@@ -295,6 +421,16 @@ void FFlexGPUParticleEmitterInstance::DestroyParticles(int32 Start, int32 Count)
 		// Mark particles indices in tile as no longer used
 		FMemory::Memset(DestroyParticleIndices, uint8(-1), sizeof(int32) * (LastIndex + 1));
 	}
+
+	if (bShrink)
+	{
+		int32 MaxFlexParticleIndex = -1;
+		for (int32 i = 0; i < FlexParticleIndices.Num(); ++i)
+		{
+			MaxFlexParticleIndex = FMath::Max(MaxFlexParticleIndex, FlexParticleIndices[i]);
+		}
+		ParticleDataArray.SetNum(MaxFlexParticleIndex + 1);
+	}
 }
 
 void FFlexGPUParticleEmitterInstance::DestroyAllParticles(int32 ParticlesPerTile, bool bFreeParticleIndices)
@@ -303,8 +439,10 @@ void FFlexGPUParticleEmitterInstance::DestroyAllParticles(int32 ParticlesPerTile
 	const int32 NumFlexIndices = FlexParticleIndices.Num();
 	for (int32 StartIndex = 0; StartIndex < NumFlexIndices; StartIndex += ParticlesPerTile)
 	{
-		DestroyParticles(StartIndex, ParticlesPerTile);
+		DestroyParticles(StartIndex, ParticlesPerTile, false);
 	}
+
+	ParticleDataArray.Reset();
 
 	if (bFreeParticleIndices)
 	{
@@ -344,11 +482,15 @@ void FFlexGPUParticleEmitterInstance::InitNewParticle(int32 NewIndex, int32 Regu
 	FlexParticleIndices[RegularIndex] = NewFlexParticleIndices[NewIndex];
 }
 
-void FFlexGPUParticleEmitterInstance::SetNewParticle(int32 NewIndex, const FVector& Position, const FVector& Velocity)
+void FFlexGPUParticleEmitterInstance::SetNewParticle(int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize)
 {
 	const int32 FlexParticleIndex = NewFlexParticleIndices[NewIndex];
+	check(FlexParticleIndex >= 0);
 
 	Owner->Container->SetParticle(FlexParticleIndex, FVector4(Position, Owner->FlexInvMass), Velocity, Owner->Phase);
+
+	ParticleDataArray.SetNum(FMath::Max(ParticleDataArray.Num(), FlexParticleIndex + 1));
+	ParticleDataArray[FlexParticleIndex] = { RelativeTime, TimeScale, InitialSize };
 }
 
 FRenderResource* FFlexGPUParticleEmitterInstance::CreateSimulationResource()

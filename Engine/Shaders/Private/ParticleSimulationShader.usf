@@ -573,10 +573,15 @@ void PixelMain(
 
 	// Get Flex particle index
 	int FlexParticleIndex = FlexParticleIndexBuffer[TileBaseIndex + TileParticleIndex];
+	if (FlexParticleIndex >= 0)
+	{
+		Position = FlexPositionBuffer[FlexParticleIndex].xyz;
+		Velocity = FlexVelocityBuffer[FlexParticleIndex].xyz;
+	}
 
-	OutPosition.xyz = FlexPositionBuffer[FlexParticleIndex].xyz;
+	OutPosition.xyz = Position;
 	OutPosition.w = RelativeTime + DeltaSeconds * TimeScale * NumIterations;
-	OutVelocity.xyz = FlexVelocityBuffer[FlexParticleIndex].xyz;
+	OutVelocity.xyz = Velocity;
 	OutVelocity.w = TimeScale;
 	return;
 #endif	
