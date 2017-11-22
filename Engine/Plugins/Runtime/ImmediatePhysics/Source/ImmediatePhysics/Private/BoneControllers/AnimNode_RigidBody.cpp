@@ -250,9 +250,13 @@ void FAnimNode_RigidBody::InitPhysics(const UAnimInstance* InAnimInstance)
 			if(BI->IsValidBodyInstance())
 			{
 				// verify if the LOD 0 required bones contains the index
-				if (ensure(RequiredBones0.Contains(BI->InstanceBoneIndex)))
+				if (RequiredBones0.Contains(BI->InstanceBoneIndex))
 				{
 					BodiesSorted[BI->InstanceBoneIndex] = BI;
+				}
+				else
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("AnimNode_RigidBody : missing body to simulate for bone %s"), *BI->BodySetup->BoneName.ToString());
 				}
 			}
 		}
