@@ -3190,37 +3190,7 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	LastSignificantTime = 0.0f;
 	bIsManagingSignificance = 0;
 	bWasManagingSignificance = 0;
-
-	// NvFlex begin
-#if WITH_FLEX
-	FlexFluidSurfaceOverride = NULL;
-#endif
-	// NvFlex end
 }
-
-// NvFlex begin
-class UMaterialInstanceDynamic* UParticleSystemComponent::CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial)
-{
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		return GFlexPluginBridge->CreateFlexDynamicMaterialInstance(this, SourceMaterial);
-	}
-#endif
-	return nullptr;
-}
-
-class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
-{
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		return GFlexPluginBridge->GetFirstFlexContainerTemplate(this);
-	}
-#endif
-	return nullptr;
-}
-// NvFlex end
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
@@ -3676,15 +3646,6 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 	check(!bParallelRenderThreadUpdate);
 	bParallelRenderThreadUpdate = true;
 
-	// NvFlex begin
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->ClearFlexSurfaceDynamicData(this);
-	}
-#endif
-	// NvFlex end
-
 	FParticleSystemSceneProxy* PSysSceneProxy = (FParticleSystemSceneProxy*)SceneProxy;
 	if (PSysSceneProxy != NULL)
 	{
@@ -3942,15 +3903,6 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 						{
 							ParticleDynamicData->DynamicEmitterDataArray.Add(NewDynamicEmitterData);
 							NewDynamicEmitterData->EmitterIndex = CurEmitterIndex;
-
-							// NvFlex begin
-#if WITH_FLEX
-							if (GFlexPluginBridge)
-							{
-								GFlexPluginBridge->UpdateFlexSurfaceDynamicData(this, EmitterInstances[CurEmitter.OriginalEmitterIndex], NewDynamicEmitterData);
-							}
-#endif
-							// NvFlex end
 						}
 					}
 				}
@@ -4033,15 +3985,6 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 						NewDynamicEmitterData->bValid = true;
 						ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
 						NewDynamicEmitterData->EmitterIndex = EmitterIndex;
-
-						// NvFlex begin
-#if WITH_FLEX
-						if (GFlexPluginBridge)
-						{
-							GFlexPluginBridge->UpdateFlexSurfaceDynamicData(this, EmitterInst, NewDynamicEmitterData);
-						}
-#endif
-						// NvFlex end
 
 						// Are we current capturing particle state?
 						if( ReplayState == PRS_Capturing )
@@ -5193,15 +5136,6 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 
 	const bool bIsGameWorld = OwningWorld ? OwningWorld->IsGameWorld() : !GIsEditor;
 
-	// NvFlex begin
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->ClearFlexSurfaceDynamicData(this);
-	}
-#endif
-	// NvFlex end
-
 	// Remove instances from scene.
 	for( int32 InstanceIndex=0; InstanceIndex<EmitterInstances.Num(); InstanceIndex++ )
 	{
@@ -5290,16 +5224,6 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		}
 		if (bIsTemplate == false)
 		{
-			// NvFlex begin
-#if WITH_FLEX
-			// Maintain the FlexFluidSurface (and Material Instance) override
-			if (GFlexPluginBridge)
-			{
-				GFlexPluginBridge->SetEnabledReferenceCounting(this, false);
-			}
-#endif
-			// NvFlex end
-
 			ResetParticles(bResetInstances);
 		}
 
@@ -5348,27 +5272,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		{
 			Instance->CurrentLODLevelIndex = 0;
 		}
-
-		// NvFlex begin
-#if WITH_FLEX
-		// Maintain the FlexFluidSurface (and Material Instance) override
-		if (GFlexPluginBridge)
-		{
-			GFlexPluginBridge->RegisterNewFlexFluidSurfaceComponent(this, Instance);
-		}
-#endif
-		// NvFlex end
 	}
-
-	// NvFlex begin
-#if WITH_FLEX
-	// Maintain the FlexFluidSurface (and Material Instance) override
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->SetEnabledReferenceCounting(this, true);
-	}
-#endif
-	// NvFlex end
 
 	if (SceneProxy)
 	{
@@ -5615,15 +5519,6 @@ void UParticleSystemComponent::DeactivateSystem()
 		return;
 	}
 	ForceAsyncWorkCompletion(STALL);
-
-	// NvFlex begin
-#if WITH_FLEX
-	if (GFlexPluginBridge)
-	{
-		GFlexPluginBridge->ClearFlexSurfaceDynamicData(this);
-	}
-#endif
-	// NvFlex end
 
 	check(GetWorld());
 	UE_LOG(LogParticles,Verbose,
@@ -7238,6 +7133,19 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	}
 	return INDEX_NONE;
 }
+
+// NvFlex begin
+class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
+{
+#if WITH_FLEX
+	if (GFlexPluginBridge)
+	{
+		return GFlexPluginBridge->GetFirstFlexContainerTemplate(this);
+	}
+#endif
+	return nullptr;
+}
+// NvFlex end
 
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)

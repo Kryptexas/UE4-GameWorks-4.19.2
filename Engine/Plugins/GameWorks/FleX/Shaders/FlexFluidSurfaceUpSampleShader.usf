@@ -33,7 +33,9 @@ void UpSampleMainPS(
 	float DepthNearest = Texture2DSampleLevel(DownsampledDepthTex, DownsampledDepthTexSamplerNearest, PositionInViewUV, 0).x;
 
 	// background, do not interpolate with surface
-	if(DepthNearest > 65000)
+	float MaxDepth = ConvertFromDeviceZ(0.0);
+	float ThresholdDepth = MaxDepth * 0.95;
+	if(DepthNearest > ThresholdDepth)
 	{
 		OutDepth = returnDepth(Input, DepthNearest, DepthNearest);
 		return;
@@ -62,16 +64,16 @@ void UpSampleMainPS(
 	sampleDepth[2] = Texture2DSampleLevel(DownsampledDepthTex, DownsampledDepthTexSamplerNearest, P01*TexPos2UV, 0).x;
 	sampleDepth[3] = Texture2DSampleLevel(DownsampledDepthTex, DownsampledDepthTexSamplerNearest, P11*TexPos2UV, 0).x;
 
-	bool isFluid00 = sampleDepth[0] < 65000;
-	bool isFluid10 = sampleDepth[1] < 65000;
-	bool isFluid01 = sampleDepth[2] < 65000;
-	bool isFluid11 = sampleDepth[3] < 65000;
+	bool isFluid00 = sampleDepth[0] < ThresholdDepth;
+	bool isFluid10 = sampleDepth[1] < ThresholdDepth;
+	bool isFluid01 = sampleDepth[2] < ThresholdDepth;
+	bool isFluid11 = sampleDepth[3] < ThresholdDepth;
 	int isFluidBits = (isFluid00<<0) | (isFluid01<<1) | (isFluid10<<2) | (isFluid11<<3);
 
 	// less than 3 sampling points in surface -> return background
 	if(countbits(isFluidBits)<3)
 	{
-		OutDepth = returnDepth(Input, 65535, DepthNearest);
+		OutDepth = returnDepth(Input, MaxDepth, DepthNearest);
 		return;
 	}
 	

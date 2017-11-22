@@ -25,6 +25,12 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
+// NvFlex begin
+#if WITH_FLEX
+#include "GameWorks/IFlexFluidSurfaceRendering.h"
+#endif
+// NvFlex end
+
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
 	3,	
@@ -753,7 +759,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// NvFlex begin
 #if WITH_FLEX
-	GFlexFluidSurfaceRenderer->UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
+	GFlexFluidSurfaceRenderer->PreRenderOpaque(RHICmdList, Views);
 #endif
 	// NvFlex end
 
@@ -939,17 +945,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	}
 
-	// NvFlex begin
-#if WITH_FLEX
-	GFlexFluidSurfaceRenderer->RenderParticles(RHICmdList, Views);
-	
-	//FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction);
-	SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
-
-	GFlexFluidSurfaceRenderer->RenderBasePass(RHICmdList, Views);
-#endif
-	// NvFlex end
-
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
@@ -1016,6 +1011,12 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			);
 		ServiceLocalQueue();
 	}
+
+	// NvFlex begin
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer->PostRenderOpaque(RHICmdList, Views);
+#endif
+	// NvFlex end
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
@@ -1294,12 +1295,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
-
-	// NvFlex begin
-#if WITH_FLEX
-	GFlexFluidSurfaceRenderer->Cleanup();
-#endif
-	// NvFlex end
 
 	// Resolve the scene color for post processing.
 	ResolveSceneColor(RHICmdList);

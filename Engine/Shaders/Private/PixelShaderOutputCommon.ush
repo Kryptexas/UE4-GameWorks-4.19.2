@@ -104,11 +104,6 @@ void MainPS
 		, out uint OutCoverage : SV_Coverage
 #endif
 
-#if FLEX_FLUID_SURFACE_FACTORY
-   ,out float OutDepth : SV_DEPTH
-#endif
-
-
 	)
 {
 	// ---------------------------------------------------------------------------------
@@ -178,9 +173,4 @@ void MainPS
 	OutDepth = PixelShaderOut.Depth;
 #endif 
 
-#if FLEX_FLUID_SURFACE_FACTORY
-   OutDepth = PixelShaderOut.Depth;
-#endif
-
- 
 }

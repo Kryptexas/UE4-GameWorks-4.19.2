@@ -191,7 +191,7 @@ class UParticleEmitter : public UObject
 	UPROPERTY()
 	float Mass_DEPRECATED;
 
-	/** Optional Flex fluid surface for rendering */
+	/** LEGACY: Optional Flex fluid surface for rendering */
 	UPROPERTY()
 	class UObject* FlexFluidSurfaceTemplate_DEPRECATED; // UFlexFluidSurface*
 	// NvFlex end

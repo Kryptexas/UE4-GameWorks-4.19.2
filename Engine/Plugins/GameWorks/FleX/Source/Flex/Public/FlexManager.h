@@ -30,19 +30,6 @@ public:
 
 	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh);
 
-	/**
-	* Retrieve the UFlexFluidSurfaceComponent corresponding to the UFlexFluidSurface template.
-	*/
-	class UFlexFluidSurfaceComponent* GetFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
-
-	/** Create a new UFlexFluidSurfaceComponent, corresponding 1:1 with a UFlexFluidSurface template */
-	class UFlexFluidSurfaceComponent* AddFlexFluidSurface(class UWorld* World, class UFlexFluidSurface* FlexFluidSurfaceTemplate);
-
-	/** Remove a FlexFluidSurfaceComponent and it's corresponding UFlexFluidSurface */
-	void RemoveFlexFluidSurface(class UWorld* World, class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent);
-
-	virtual void TickFlexFluidSurfaceComponents(class UWorld* World, const TArray<struct FParticleEmitterInstance*>& EmitterInstances, float DeltaTime, enum ELevelTick TickType);
-
 	/** Retrive the container instance for a soft joint, will return a nullptr if it doesn't already exist */
 	struct FFlexContainerInstance* FindFlexContainerInstance(class FPhysScene* PhysScene, class UFlexContainer* Template);
 
@@ -69,15 +56,9 @@ public:
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes);
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex);
-	virtual void FlexEmitterInstanceFillReplayData(struct FParticleEmitterInstance* EmitterInstance, struct FDynamicSpriteEmitterReplayDataBase* ReplayData);
+	virtual bool IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance);
 
-	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial);
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component);
-	virtual void UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData);
-	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component);
-	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable);
-
-	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance);
 
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter);
 
@@ -91,10 +72,6 @@ private:
 private:
 	bool bFlexInitialized;
 	NvFlexLibrary* FlexLib;
-
-	/** Map from Flex fluid surface template to fluid surface components*/
-	typedef TMap<class UFlexFluidSurface*, class UFlexFluidSurfaceComponent*> FFlexFuildSurfaceMap;
-	TMap<TWeakObjectPtr<UWorld>, FFlexFuildSurfaceMap> WorldMap;
 
 	struct FPhysSceneContext
 	{

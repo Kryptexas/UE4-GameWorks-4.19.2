@@ -41,12 +41,6 @@
 #include "MobileBasePassRendering.h"
 #include "VolumeRendering.h"
 
-// NvFlex begin
-#if WITH_FLEX
-#include "GameWorks/IFlexFluidSurfaceRendering.h"
-#endif
-// NvFlex end
-
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
 

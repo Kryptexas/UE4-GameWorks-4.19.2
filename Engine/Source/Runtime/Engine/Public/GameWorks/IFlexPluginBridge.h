@@ -13,9 +13,6 @@ public:
 	virtual bool HasFlexAsset(class UStaticMesh* StaticMesh) = 0;
 	virtual void ReImportFlexAsset(class UStaticMesh* StaticMesh) = 0;
 
-	// CascadeParticleSystemComponent
-	virtual void TickFlexFluidSurfaceComponents(class UWorld* World, const TArray<struct FParticleEmitterInstance*>& EmitterInstances, float DeltaTime, enum ELevelTick TickType) = 0;
-
 	// PhysScene
 	virtual void WaitFlexScenes(class FPhysScene* PhysScene) = 0;
 	virtual void TickFlexScenes(class FPhysScene* PhysScene, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt) = 0;
@@ -37,17 +34,11 @@ public:
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes) = 0;
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex) = 0;
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex) = 0;
-
-	virtual void FlexEmitterInstanceFillReplayData(struct FParticleEmitterInstance* EmitterInstance, struct FDynamicSpriteEmitterReplayDataBase* ReplayData) = 0;
+	virtual bool IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance) = 0;
 
 	// ParticleSystemComponent
-	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UParticleSystemComponent* Component, class UMaterialInterface* SourceMaterial) = 0;
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component) = 0; // returns UFlexContainer*
-	virtual void UpdateFlexSurfaceDynamicData(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance, struct FDynamicEmitterDataBase* EmitterDynamicData) = 0;
-	virtual void ClearFlexSurfaceDynamicData(class UParticleSystemComponent* Component) = 0;
-	virtual void SetEnabledReferenceCounting(class UParticleSystemComponent* Component, bool bEnable) = 0;
 
-	virtual void RegisterNewFlexFluidSurfaceComponent(class UParticleSystemComponent* Component, struct FParticleEmitterInstance* EmitterInstance) = 0;
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter) = 0;
 };
 
