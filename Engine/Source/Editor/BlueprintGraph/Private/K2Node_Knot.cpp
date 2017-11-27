@@ -181,10 +181,24 @@ void UK2Node_Knot::PropagatePinTypeFromInput()
 
 void UK2Node_Knot::PropagatePinTypeFromOutput()
 {
+	if (bRecursionGuard)
+	{
+		return;
+	}
 	// Set the type of the pin based on the output connection, and then percolate
 	// that type information up until we no longer reach another Reroute node
 	UEdGraphPin* MyInputPin = GetInputPin();
 	UEdGraphPin* MyOutputPin = GetOutputPin();
+
+	TGuardValue<bool> RecursionGuard(bRecursionGuard, true);
+
+	for (UEdGraphPin* InPin : MyOutputPin->LinkedTo)
+	{
+		if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(InPin->GetOwningNode()))
+		{
+			KnotNode->PropagatePinTypeFromOutput();
+		}
+	}
 
 	UEdGraphPin* TypeSource = MyOutputPin->LinkedTo.Num() ? MyOutputPin->LinkedTo[0] : nullptr;
 	if (TypeSource)
