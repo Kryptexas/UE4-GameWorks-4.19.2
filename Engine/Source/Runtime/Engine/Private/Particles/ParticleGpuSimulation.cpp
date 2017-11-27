@@ -3580,10 +3580,10 @@ public:
 			// check if this is the first call to Init()
 			if (Simulation->SimulationPhase != EParticleSimulatePhase::Flex)
 			{
-				Simulation->FlexSimulationResource = GFlexPluginBridge->GPUSpriteEmitterInstance_Init(FlexEmitterInstance);
+				Simulation->FlexSimulationResource = GFlexPluginBridge->GPUSpriteEmitterInstance_Init(FlexEmitterInstance, GParticlesPerTile);
 				Simulation->SimulationPhase = EParticleSimulatePhase::Flex;
 			}
-			GFlexPluginBridge->GPUSpriteEmitterInstance_AllocParticleIndices(FlexEmitterInstance, NumAllocated * GParticlesPerTile);
+			GFlexPluginBridge->GPUSpriteEmitterInstance_AllocParticleIndices(FlexEmitterInstance, NumAllocated);
 		}
 #endif
 		// NvFlex end
@@ -3838,7 +3838,7 @@ public:
 		if (FlexEmitterInstance)
 		{
 			verify(GFlexPluginBridge);
-			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, GParticlesPerTile, false); // false - don't free all FlexParticleIndices
+			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, false); // false - don't free all FlexParticleIndices
 		}
 #endif
 		// NvFlex end
@@ -3932,7 +3932,7 @@ private:
 				if (FlexEmitterInstance)
 				{
 					verify(GFlexPluginBridge);
-					GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyParticles(FlexEmitterInstance, BitIndex * GParticlesPerTile, GParticlesPerTile);
+					GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyTileParticles(FlexEmitterInstance, BitIndex);
 				}
 #endif
 
@@ -4023,7 +4023,7 @@ private:
 			if (FlexEmitterInstance)
 			{
 				verify(GFlexPluginBridge);
-				GFlexPluginBridge->GPUSpriteEmitterInstance_FreeParticleIndices(FlexEmitterInstance, FirstTileIndex * GParticlesPerTile, TilesToFree * GParticlesPerTile);
+				GFlexPluginBridge->GPUSpriteEmitterInstance_FreeParticleIndices(FlexEmitterInstance, FirstTileIndex, TilesToFree);
 			}
 #endif
 			// NvFlex end
@@ -4070,7 +4070,7 @@ private:
 		if (FlexEmitterInstance)
 		{
 			verify(GFlexPluginBridge);
-			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, GParticlesPerTile, true); // true - free all FlexParticleIndices
+			GFlexPluginBridge->GPUSpriteEmitterInstance_DestroyAllParticles(FlexEmitterInstance, true); // true - free all FlexParticleIndices
 		}
 #endif
 		// NvFlex end
@@ -4169,7 +4169,7 @@ private:
 					if (FlexEmitterInstance)
 					{
 						verify(GFlexPluginBridge);
-						GFlexPluginBridge->GPUSpriteEmitterInstance_AllocParticleIndices(FlexEmitterInstance, GParticlesPerTile);
+						GFlexPluginBridge->GPUSpriteEmitterInstance_AllocParticleIndices(FlexEmitterInstance, 1);
 					}
 #endif
 					// NvFlex end
@@ -4195,8 +4195,8 @@ private:
 			if (FlexEmitterInstance)
 			{
 				verify(GFlexPluginBridge);
-				GFlexPluginBridge->GPUSpriteEmitterInstance_InitNewParticle(FlexEmitterInstance, FlexStartIndex + ParticleIndex,
-					TileToAllocateFrom * GParticlesPerTile + SubTileIndex);
+				GFlexPluginBridge->GPUSpriteEmitterInstance_AddNewParticle(FlexEmitterInstance,
+					FlexStartIndex + ParticleIndex, TileToAllocateFrom, SubTileIndex);
 			}
 #endif
 			// NvFlex end

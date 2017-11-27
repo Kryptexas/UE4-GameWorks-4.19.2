@@ -8,19 +8,19 @@ FFlexGPUParticleEmitterInstance
 
 struct FFlexGPUParticleEmitterInstance
 {
-	FFlexGPUParticleEmitterInstance(struct FFlexParticleEmitterInstance* InOwner);
+	FFlexGPUParticleEmitterInstance(struct FFlexParticleEmitterInstance* InOwner, int32 InParticlesPerTile);
 	virtual ~FFlexGPUParticleEmitterInstance();
 
 	void Tick(float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource);
-	void DestroyParticles(int32 Start, int32 Count, bool bShrink = true);
-	void DestroyAllParticles(int32 ParticlesPerTile, bool bFreeParticleIndices);
+	void DestroyTileParticles(int32 TileIndex);
+	void DestroyAllParticles(bool bFreeParticleIndices);
 
-	void AllocParticleIndices(int32 Count);
-	void FreeParticleIndices(int32 Start, int32 Count);
+	void AllocParticleIndices(int32 TileCount);
+	void FreeParticleIndices(int32 TileStart, int32 TileCount);
 
 	int32 CreateNewParticles(int32 NewStart, int32 NewCount);
 	void DestroyNewParticles(int32 NewStart, int32 NewCount);
-	void InitNewParticle(int32 NewIndex, int32 RegularIndex);
+	void AddNewParticle(int32 NewIndex, int32 TileIndex, int32 SubTileIndex);
 	void SetNewParticle(int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize);
 
 	FRenderResource* CreateSimulationResource();
@@ -29,11 +29,21 @@ struct FFlexGPUParticleEmitterInstance
 
 
 	FFlexParticleEmitterInstance* Owner;
+	const int32 ParticlesPerTile;
+
+	int32 NumActiveParticles;
 
 	/* For each allocated tile there are TILE_SIZE * TILE_SIZE indices. If -1 it means index is currently unused */
 	TArray<int32> FlexParticleIndices;
 
 	TArray<int32> NewFlexParticleIndices;
+
+	struct FParticleTileData
+	{
+		int32 NumAddedParticles = 0;
+		int32 NumActiveParticles = 0;
+	};
+	TArray<FParticleTileData> ParticleTiles;
 
 	struct FParticleData
 	{

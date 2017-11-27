@@ -555,11 +555,11 @@ bool FFlexManager::IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmit
 	}
 	return true;
 }
-FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance)
+FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl == nullptr);
-	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance);
+	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance, ParticlesPerTile);
 	verify(FlexEmitterInstance->GPUImpl);
 	return FlexEmitterInstance->GPUImpl->CreateSimulationResource();
 }
@@ -571,34 +571,34 @@ void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInst
 	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning, FlexSimulationResource);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_DestroyParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count)
+void FFlexManager::GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->DestroyParticles(Start, Count);
+	FlexEmitterInstance->GPUImpl->DestroyTileParticles(TileIndex);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile, bool bFreeParticleIndices)
+void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, bool bFreeParticleIndices)
 {
 	verify(FlexEmitterInstance);
 	if (FlexEmitterInstance->GPUImpl)
 	{
-		FlexEmitterInstance->GPUImpl->DestroyAllParticles(ParticlesPerTile, bFreeParticleIndices);
+		FlexEmitterInstance->GPUImpl->DestroyAllParticles(bFreeParticleIndices);
 	}
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Count)
+void FFlexManager::GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileCount)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->AllocParticleIndices(Count);
+	FlexEmitterInstance->GPUImpl->AllocParticleIndices(TileCount);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 Start, int32 Count)
+void FFlexManager::GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileStart, int32 TileCount)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->FreeParticleIndices(Start, Count);
+	FlexEmitterInstance->GPUImpl->FreeParticleIndices(TileStart, TileCount);
 }
 
 int32 FFlexManager::GPUSpriteEmitterInstance_CreateNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount)
@@ -615,11 +615,11 @@ void FFlexManager::GPUSpriteEmitterInstance_DestroyNewParticles(struct FFlexPart
 	FlexEmitterInstance->GPUImpl->DestroyNewParticles(NewStart, NewCount);
 }
 
-void FFlexManager::GPUSpriteEmitterInstance_InitNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 RegularIndex)
+void FFlexManager::GPUSpriteEmitterInstance_AddNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 TileIndex, int32 SubTileIndex)
 {
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
-	FlexEmitterInstance->GPUImpl->InitNewParticle(NewIndex, RegularIndex);
+	FlexEmitterInstance->GPUImpl->AddNewParticle(NewIndex, TileIndex, SubTileIndex);
 }
 
 void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize)
