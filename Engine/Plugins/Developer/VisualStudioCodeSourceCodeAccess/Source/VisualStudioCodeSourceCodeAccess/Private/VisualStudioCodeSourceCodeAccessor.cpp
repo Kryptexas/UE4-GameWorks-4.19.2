@@ -41,7 +41,7 @@ FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 }
 
 /** save all open documents in visual studio, when recompiling */
-void OnModuleCompileStarted(bool bIsAsyncCompile)
+static void OnModuleCompileStarted(bool bIsAsyncCompile)
 {
 	FVisualStudioCodeSourceCodeAccessModule& VisualStudioCodeSourceCodeAccessModule = FModuleManager::LoadModuleChecked<FVisualStudioCodeSourceCodeAccessModule>(TEXT("VisualStudioCodeSourceCodeAccess"));
 	VisualStudioCodeSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();

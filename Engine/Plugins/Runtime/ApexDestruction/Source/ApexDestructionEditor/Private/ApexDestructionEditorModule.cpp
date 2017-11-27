@@ -28,7 +28,7 @@
 #include "PropertyEditorModule.h"
 #include "DestructibleMeshDetails.h"
 
-IMPLEMENT_MODULE( FDestructibleMeshEditorModule, DestructibleMeshEditor );
+IMPLEMENT_MODULE( FDestructibleMeshEditorModule, ApexDestructionEditor );
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 

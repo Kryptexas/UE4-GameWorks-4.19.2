@@ -573,6 +573,6 @@ XGECONTROLLER_API IXGEController& IXGEController::Get()
 	return Ref;
 }
 
-IMPLEMENT_MODULE(FXGEControllerModule, XGEControllerModule);
+IMPLEMENT_MODULE(FXGEControllerModule, XGEController);
 
 #endif // WITH_XGE_CONTROLLER

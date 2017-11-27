@@ -183,10 +183,10 @@ public:
 /**
 * Canvas render item enqueued into renderer command list.
 */
-class FMeshMaterialRenderItem : public FCanvasBaseRenderItem
+class FMeshMaterialRenderItem2 : public FCanvasBaseRenderItem
 {
 public:
-	FMeshMaterialRenderItem(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FSkeletalMeshLODRenderData* InLODData, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer) : Data(new FRenderData(
+	FMeshMaterialRenderItem2(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FSkeletalMeshLODRenderData* InLODData, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer) : Data(new FRenderData(
 		InViewFamily,
 		InMesh,
 		InLODData,
@@ -201,7 +201,7 @@ public:
 	{
 	}
 
-	~FMeshMaterialRenderItem()
+	~FMeshMaterialRenderItem2()
 	{
 	}
 
@@ -257,7 +257,7 @@ public:
 		// get the current transform entry from top of transform stack
 		const FCanvas::FTransformEntry& TopTransformEntry = InCanvas->GetTransformStack().Top();
 		// create a render batch
-		FMeshMaterialRenderItem* RenderBatch = new FMeshMaterialRenderItem(
+		FMeshMaterialRenderItem2* RenderBatch = new FMeshMaterialRenderItem2(
 			InViewFamily,
 			InMesh,
 			InLODRenderData,
@@ -780,7 +780,7 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 #endif
 
 		// add item for rendering
-		FMeshMaterialRenderItem::EnqueueMaterialRender(
+		FMeshMaterialRenderItem2::EnqueueMaterialRender(
 			&Canvas,
 			&ViewFamily,
 			InMaterialData.Mesh,
@@ -909,7 +909,7 @@ bool FMeshRenderer::RenderMaterialTexCoordScales(struct FMaterialMergeData& InMa
 	ViewFamily.bNullifyWorldSpacePosition = true;
 
 	// add item for rendering
-	FMeshMaterialRenderItem::EnqueueMaterialRender(
+	FMeshMaterialRenderItem2::EnqueueMaterialRender(
 		&Canvas,
 		&ViewFamily,
 		InMaterialData.Mesh,

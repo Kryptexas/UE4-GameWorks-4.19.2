@@ -28,7 +28,7 @@ FString GetWorldStateFilename(UPackage* Package)
 }
 
 /** Convert an old path to a new path, replacing an ancestor branch with something else */
-FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, const FString& PathToMove)
+static FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, const FString& PathToMove)
 {
 	return FName(*(InNewBranch + PathToMove.RightChop(InOldBranch.Len())));
 }

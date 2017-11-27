@@ -16,6 +16,8 @@
 #include "AudioDevice.h"
 #endif 
 
+IMPLEMENT_MODULE(FDefaultModuleImpl, AudioSettingsEditor)
+
 #define LOCTEXT_NAMESPACE "PlatformAudio"
 
 FAudioPluginWidgetManager::FAudioPluginWidgetManager()
