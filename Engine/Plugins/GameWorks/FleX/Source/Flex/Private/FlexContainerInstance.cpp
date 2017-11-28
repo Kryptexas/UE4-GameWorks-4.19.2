@@ -869,31 +869,49 @@ FFlexContainerInstance::~FFlexContainerInstance()
 		NvFlexDestroySolver(Solver);
 }
 
-int32 FFlexContainerInstance::CreateParticle(const FVector4& Pos, const FVector& Vel, int32 Phase)
+int32 FFlexContainerInstance::CreateParticle()
 {
 	verify(Container);
 	verify(IsMapped());
 
-	int32 index;
-	int32 n = NvFlexExtAllocParticles(Container, 1, &index);
-
-	if (n == 0)
-	{
-		// not enough space in container to allocate
-		return -1;
-	}
-	else
+	int32 Index = -1;
+	if (NvFlexExtAllocParticles(Container, 1, &Index) > 0)
 	{
 		INC_DWORD_STAT(STAT_Flex_ParticleCount);
-
-		Particles[index] = Pos;
-		Velocities[index] = Vel;
-		Normals[index] = FVector4(0.0f);
-		Phases[index] = Phase;
-		ContactIndices[index] = -1;
-
-		return index;
 	}
+	return Index;
+}
+
+int32 FFlexContainerInstance::CreateParticles(int32* Indices, int32 NumIndices)
+{
+	verify(Container);
+	verify(IsMapped());
+
+	return NvFlexExtAllocParticles(Container, NumIndices, Indices);
+}
+
+
+void FFlexContainerInstance::SetParticle(int32 Index, const FVector4& Pos, const FVector& Vel, int32 Phase)
+{
+	verify(Index >= 0);
+	verify(Container);
+	verify(IsMapped());
+
+	Particles[Index] = Pos;
+	Velocities[Index] = Vel;
+	Normals[Index] = FVector4(0.0f);
+	Phases[Index] = Phase;
+	ContactIndices[Index] = -1;
+}
+
+int32 FFlexContainerInstance::CreateParticle(const FVector4& Pos, const FVector& Vel, int32 Phase)
+{
+	int32 Index = CreateParticle();
+	if (Index != -1)
+	{
+		SetParticle(Index, Pos, Vel, Phase);
+	}
+	return Index;
 }
 
 void FFlexContainerInstance::DestroyParticle(int32 Index)
@@ -907,6 +925,25 @@ void FFlexContainerInstance::DestroyParticle(int32 Index)
 
 	DEC_DWORD_STAT(STAT_Flex_ParticleCount);
 }
+
+void FFlexContainerInstance::DestroyParticles(const int32* Indices, int32 NumIndices)
+{
+	verify(Container);
+	verify(Indices);
+
+#if DO_CHECK
+	for (int32 i = 0; i < NumIndices; i++)
+	{
+		verify(Indices[i] >= 0);
+	}
+#endif
+
+	// destruction is deferred so we do not need to be mapped here
+	NvFlexExtFreeParticles(Container, NumIndices, Indices);
+
+	DEC_DWORD_STAT_BY(STAT_Flex_ParticleCount, NumIndices);
+}
+
 
 void FFlexContainerInstance::CopyParticle(int32 Source, int32 Dest)
 {

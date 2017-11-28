@@ -2,6 +2,8 @@
 
 #include "Async/TaskGraphInterfaces.h"
 
+struct FFlexGPUParticleSimulationParameters;
+
 class IFlexPluginBridge
 {
 public:
@@ -40,6 +42,22 @@ public:
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component) = 0; // returns UFlexContainer*
 
 	virtual bool IsValidFlexEmitter(class UParticleEmitter* Emitter) = 0;
+
+	// GPUSpriteEmitterInstance
+	virtual FRenderResource* GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile) = 0;
+	virtual void GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, bool bFreeParticleIndices) = 0;
+
+	virtual void GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileCount) = 0;
+	virtual void GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileStart, int32 TileCount) = 0;
+
+	virtual int32 GPUSpriteEmitterInstance_CreateNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount) = 0;
+	virtual void GPUSpriteEmitterInstance_DestroyNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount) = 0;
+	virtual void GPUSpriteEmitterInstance_AddNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 TileIndex, int32 SubTileIndex) = 0;
+	virtual void GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize) = 0;
+
+	virtual void GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams) = 0;
 };
 
 extern ENGINE_API class IFlexPluginBridge* GFlexPluginBridge;

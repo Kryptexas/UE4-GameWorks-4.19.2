@@ -21,6 +21,7 @@
 #include "FlexParticleEmitterInstance.h"
 #include "FlexCollisionComponent.h"
 #include "FlexParticleSpriteEmitter.h"
+#include "FlexGPUParticleEmitterInstance.h"
 
 #include "Misc/ScopeRWLock.h"
 
@@ -554,6 +555,86 @@ bool FFlexManager::IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmit
 	}
 	return true;
 }
+FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl == nullptr);
+	FlexEmitterInstance->GPUImpl = new FFlexGPUParticleEmitterInstance(FlexEmitterInstance, ParticlesPerTile);
+	verify(FlexEmitterInstance->GPUImpl);
+	return FlexEmitterInstance->GPUImpl->CreateSimulationResource();
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning, FlexSimulationResource);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->DestroyTileParticles(TileIndex);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, bool bFreeParticleIndices)
+{
+	verify(FlexEmitterInstance);
+	if (FlexEmitterInstance->GPUImpl)
+	{
+		FlexEmitterInstance->GPUImpl->DestroyAllParticles(bFreeParticleIndices);
+	}
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_AllocParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->AllocParticleIndices(TileCount);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_FreeParticleIndices(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileStart, int32 TileCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->FreeParticleIndices(TileStart, TileCount);
+}
+
+int32 FFlexManager::GPUSpriteEmitterInstance_CreateNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	return FlexEmitterInstance->GPUImpl->CreateNewParticles(NewStart, NewCount);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_DestroyNewParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewStart, int32 NewCount)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->DestroyNewParticles(NewStart, NewCount);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_AddNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, int32 TileIndex, int32 SubTileIndex)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->AddNewParticle(NewIndex, TileIndex, SubTileIndex);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_SetNewParticle(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 NewIndex, const FVector& Position, const FVector& Velocity, float RelativeTime, float TimeScale, float InitialSize)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	FlexEmitterInstance->GPUImpl->SetNewParticle(NewIndex, Position, Velocity, RelativeTime, TimeScale, InitialSize);
+}
+
+void FFlexManager::GPUSpriteEmitterInstance_FillSimulationParams(FRenderResource* FlexSimulationResource, FFlexGPUParticleSimulationParameters& SimulationParams)
+{
+	verify(FlexSimulationResource);
+	return FFlexGPUParticleEmitterInstance::FillSimulationParams(FlexSimulationResource, SimulationParams);
+}
+
 
 UObject* FFlexManager::GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component)
 {

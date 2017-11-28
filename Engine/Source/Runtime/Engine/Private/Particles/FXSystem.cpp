@@ -356,6 +356,13 @@ void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDis
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Prepare));
 		PrepareGPUSimulation(RHICmdList);
 
+		// NvFlex begin
+#if WITH_FLEX
+		// Perform the Flex 'Simulate' - which in effect is just copying the flex state into the particles.
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Flex, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
+#endif
+		// NvFlex end
+
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Simulate));
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
 

@@ -3,8 +3,8 @@
 #include "NvFlex.h"
 #include "NvFlexExt.h"
 
+#include "ParticleEmitterInstances.h"
 #include "FlexContainer.h"
-#include "FlexParticleEmitterInstance.h"
 
 /*-----------------------------------------------------------------------------
 FFlexParticleEmitterInstance
@@ -77,4 +77,8 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 
 	/** The offset to the index of the associated flex particle			*/
 	int32 FlexDataOffset;
+
+	float FlexInvMass;
+
+	struct FFlexGPUParticleEmitterInstance* GPUImpl = nullptr;
 };

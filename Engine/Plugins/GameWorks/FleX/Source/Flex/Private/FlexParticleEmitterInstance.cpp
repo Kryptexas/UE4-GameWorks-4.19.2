@@ -38,24 +38,24 @@ FFlexParticleEmitterInstance::FFlexParticleEmitterInstance(FParticleEmitterInsta
 
 			NvFlexExtMovingFrameInit(&MeshFrame, (float*)(&Translation.X), (float*)(&Rotation.X));
 		}
+
+		FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 	}
 }
 
 FFlexParticleEmitterInstance::~FFlexParticleEmitterInstance()
 {
-	if (!GIsEditor || GIsPlayInEditorWorld)
+	// ParticleData has to be defined, which it may not be if using a GPU particles
+	if (Container && (!GIsEditor || GIsPlayInEditorWorld) && Emitter->ParticleData)
 	{
-		if (Container)
+		for (int32 i = 0; i < Emitter->ActiveParticles; i++)
 		{
-			for (int32 i = 0; i < Emitter->ActiveParticles; i++)
-			{
-				DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
-				verify(FlexDataOffset > 0);
-				int32 CurrentOffset = FlexDataOffset;
-				const uint8* ParticleBase = (const uint8*)&Particle;
-				PARTICLE_ELEMENT(int32, FlexParticleIndex);
-				Container->DestroyParticle(FlexParticleIndex);
-			}
+			DECLARE_PARTICLE(Particle, Emitter->ParticleData + Emitter->ParticleStride * Emitter->ParticleIndices[i]);
+			verify(FlexDataOffset > 0);
+			int32 CurrentOffset = FlexDataOffset;
+			const uint8* ParticleBase = (const uint8*)&Particle;
+			PARTICLE_ELEMENT(int32, FlexParticleIndex);
+			Container->DestroyParticle(FlexParticleIndex);
 		}
 	}
 
@@ -237,8 +237,6 @@ bool FFlexParticleEmitterInstance::SpawnParticle(struct FBaseParticle* Particle,
 	auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Emitter->SpriteTemplate);
 	if (FlexEmitter == nullptr)
 		return true;
-
-	const float FlexInvMass = (FlexEmitter->Mass > 0.0f) ? (1.0f / FlexEmitter->Mass) : 0.0f;
 
 	if (Container && (!GIsEditor || GIsPlayInEditorWorld))
 	{
