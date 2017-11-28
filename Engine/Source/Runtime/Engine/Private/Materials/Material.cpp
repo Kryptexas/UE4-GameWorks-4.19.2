@@ -3204,8 +3204,12 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	//If we can be sure this material would be the same opaque as it is masked then allow it to be assumed opaque.
 	bCanMaskedBeAssumedOpaque = !OpacityMask.Expression && !(OpacityMask.UseConstant && OpacityMask.Constant < 0.999f) && !bUseMaterialAttributes;
 
+	// NvFlex begin
+#if WITH_FLEX
 	//Flex fluid surfaces can never be considered fully opaque.
 	bCanMaskedBeAssumedOpaque &= !bUsedWithFlexFluidSurfaces;
+#endif
+	// NvFlex end
 
 	bool bRequiresCompilation = true;
 	if( PropertyThatChanged ) 
