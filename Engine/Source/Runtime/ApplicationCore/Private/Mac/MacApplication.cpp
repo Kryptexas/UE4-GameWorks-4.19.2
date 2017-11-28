@@ -28,6 +28,8 @@ FMacApplication* MacApplication = nullptr;
 static FCriticalSection GAllScreensMutex;
 TArray<TSharedRef<FMacScreen>> FMacApplication::AllScreens;
 
+static FCocoaWindow* GWindowToIgnoreBecomeMainNotification = nullptr;
+
 const uint32 RESET_EVENT_SUBTYPE = 0x0f00;
 
 #if WITH_EDITOR
@@ -475,6 +477,15 @@ void FMacApplication::DeferEvent(NSObject* Object)
 						OnWindowDidResize(Window.ToSharedRef()); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
 				}
 				return;
+			}
+			else if (DeferredEvent.NotificationName == NSWindowDidBecomeMainNotification)
+			{
+				// Special case for window activated as a result of other window closing. For such windows we let Slate know early (to emulate Windows behavior),
+				// but then we need to ignore the OS notification so that Slate doesn't get the event again.
+				if (GWindowToIgnoreBecomeMainNotification == DeferredEvent.Window)
+				{
+					return;
+				}
 			}
 		}
 		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
@@ -1135,7 +1146,9 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 	if (WindowToActivate.IsValid())
 	{
 		OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
+		GWindowToIgnoreBecomeMainNotification = WindowToActivate->GetWindowHandle();
 		WindowToActivate->SetWindowFocus();
+		GWindowToIgnoreBecomeMainNotification = nullptr;
 	}
 
 	return true;
