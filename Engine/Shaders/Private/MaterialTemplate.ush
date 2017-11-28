@@ -1616,13 +1616,14 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 	// Now the rest of the inputs
 %s
 
-	// needed for FLEX_FLUID_SURFACE_FACTORY
+#if FLEX_FLUID_SURFACE_FACTORY
 	// TODO: the raw material input values shouldn't be overwritten.
 	// instead the use of GetRawMaterialMask could be restricted in the engine, 
 	// and GetMaterialMask could take FMaterialPixelParameters to factor in ForceOpacityZero
 	PixelMaterialInputs.OpacityMask = PixelMaterialInputs.OpacityMask*(1.0 - Parameters.ForceOpacityZero) + (GetMaterialOpacityMaskClipValue() - 1.0f)*Parameters.ForceOpacityZero;
 	PixelMaterialInputs.Opacity *= (1.0 - Parameters.ForceOpacityZero);
 	PixelMaterialInputs.PixelDepthOffset += Parameters.DepthOffset;
+#endif
 }
 
 // Programmatically set the line number after all the material inputs which have a variable number of line endings
@@ -1804,7 +1805,7 @@ void CalcMaterialParametersEx(
 #endif
 
 	Parameters.SvPosition = SvPosition;
-#if !FLEX_FLUID_SURFACE_FACTORY //for FLEX_FLUID_SURFACE_FACTORY this is done in GetMaterialPixelParameters, not sure why not for all.
+#if !FLEX_FLUID_SURFACE_FACTORY //for flex surfaces this is done in GetMaterialPixelParameters, not sure why this isn't the case in general.
 	Parameters.ScreenPosition = ScreenPosition;
 #endif
 
