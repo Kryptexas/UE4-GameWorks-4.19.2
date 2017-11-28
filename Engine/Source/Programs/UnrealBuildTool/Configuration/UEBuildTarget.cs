@@ -2762,7 +2762,7 @@ namespace UnrealBuildTool
 			}
 			foreach(UEBuildPlugin BuildPlugin in BuildPlugins.Where(x => x.Descriptor.PostBuildSteps != null))
 			{
-				AddCustomBuildSteps(ProjectDescriptor.PostBuildSteps, BuildPlugin, PostBuildCommandBatches);
+				AddCustomBuildSteps(BuildPlugin.Descriptor.PostBuildSteps, BuildPlugin, PostBuildCommandBatches);
 			}
 			PostBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PostBuild", PostBuildCommandBatches);
 		}
