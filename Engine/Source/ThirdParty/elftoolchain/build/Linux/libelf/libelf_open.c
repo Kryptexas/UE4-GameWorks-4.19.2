@@ -227,7 +227,7 @@ _libelf_open_object(int fd, Elf_Cmd c, int reporterror)
 
 	/* ar(1) archives aren't supported in RDWR mode. */
 	if (c == ELF_C_RDWR && e->e_kind == ELF_K_AR) {
-		(void) elf_end(e);
+		(void) elf_end_workaround(e);
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (NULL);
 	}
