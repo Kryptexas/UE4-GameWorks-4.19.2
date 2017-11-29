@@ -493,6 +493,7 @@ public:
 	/** Pushes properties of the selected actor back to its EditorWorld counterpart */
 	TSharedPtr< FUICommandInfo > KeepSimulationChanges;
 
+
 	/**
 	 * Level commands
 	 */
@@ -1054,7 +1055,8 @@ public:
 
 	/** @return Returns true if 'Keep Simulation Changes' can be used right now */
 	static bool CanExecuteKeepSimulationChanges();
-
+		
+		
 	/**
 	 * Makes the currently selected actors level the current level
 	 * If multiple actors are selected they must all be in the same level

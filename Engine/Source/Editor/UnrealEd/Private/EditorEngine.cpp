@@ -80,10 +80,11 @@
 #include "UnrealEdGlobals.h"
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
-#include "Animation/SkeletalMeshActor.h"
 
 // NvFlex begin
 #if WITH_FLEX
+#include "Animation/SkeletalMeshActor.h"
+#include "Engine/CollisionProfile.h"
 #include "GameWorks/IFlexEditorPluginBridge.h"
 #endif
 // NvFlex end
@@ -96,7 +97,6 @@
 #include "Net/NetworkProfiler.h"
 #include "Interfaces/IPluginManager.h"
 #include "PackageReload.h"
-#include "Engine/CollisionProfile.h"
 
 // needed for the RemotePropagator
 #include "AudioDevice.h"

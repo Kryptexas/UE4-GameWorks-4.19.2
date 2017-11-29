@@ -81,6 +81,8 @@ static TAutoConsoleVariable<int32> CVarUseUnifiedHeightfield(
 	TEXT("Whether to use the PhysX unified heightfield. This feature of PhysX makes landscape collision consistent with triangle meshes but the thickness parameter is not supported for unified heightfields. 1 enables and 0 disables. Default: 1"),
 	ECVF_ReadOnly);
 
+
+
 //////////////////////////////////////////////////////////////////////////
 // UWORLD
 //////////////////////////////////////////////////////////////////////////
@@ -445,17 +447,17 @@ void InitGamePhys()
 #endif // WITH_PHYSX
 }
 
+// NvFlex begin
+#if WITH_FLEX
 void InitGamePhysPostRHI()
 {
-	// NvFlex begin
-#if WITH_FLEX
 	if (GFlexPluginBridge)
 	{
 		GFlexPluginBridge->InitGamePhysPostRHI();
 	}
-#endif
-	// NvFlex end
 }
+#endif
+// NvFlex end
 
 void TermGamePhys()
 {

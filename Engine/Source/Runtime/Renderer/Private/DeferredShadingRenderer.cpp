@@ -326,7 +326,6 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	}
 }
 
-
 /** Render the TexturePool texture */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void FDeferredShadingSceneRenderer::RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList)
@@ -1345,7 +1344,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	ServiceLocalQueue();
 }
-
 
 /** A simple pixel shader used on PC to read scene depth from scene color alpha and write it to a downsized depth buffer. */
 class FDownsampleSceneDepthPS : public FGlobalShader

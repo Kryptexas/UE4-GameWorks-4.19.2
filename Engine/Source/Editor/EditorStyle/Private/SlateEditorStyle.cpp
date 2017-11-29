@@ -5978,7 +5978,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		}
 	}
 #endif
-
 }
 
 void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
@@ -6562,8 +6561,10 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "StaticMeshEditor.SetShowBinormals.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_Binormals_40x", Icon20x20 ) );
 		Set( "StaticMeshEditor.SetDrawAdditionalData", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_AdditionalData_40x", Icon40x40 ) );
 		Set( "StaticMeshEditor.SetDrawAdditionalData.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_AdditionalData_40x", Icon20x20 ) );
+		// NvFlex begin		
 		Set( "StaticMeshEditor.SetDrawFlexPreview", new IMAGE_BRUSH("Icons/icon_StaticMeshEd_FlexPreview_40x", Icon40x40));
 		Set( "StaticMeshEditor.SetDrawFlexPreview.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_FlexPreview_40x", Icon20x20 ) );
+		// NvFlex end
 		Set( "StaticMeshEditor.GroupSection", new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin( 4.0f / 16.0f ) ) );
 		Set( "StaticMeshEditor.SetShowVertices", new IMAGE_BRUSH("Icons/icon_StaticMeshEd_Vertices_40x", Icon40x40 ) );
 		Set( "StaticMeshEditor.SetShowVertices.Small", new IMAGE_BRUSH("Icons/icon_StaticMeshEd_Vertices_40x", Icon20x20 ) );

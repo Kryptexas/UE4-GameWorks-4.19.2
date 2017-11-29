@@ -90,6 +90,7 @@ float3 SplineMeshX;
 float3 SplineMeshY;
 #endif	// USE_SPLINEDEFORM
 
+// NvFlex begin
 #if USE_FLEX_DEFORM
 Buffer<float4> ClusterTranslations;
 Buffer<float4> ClusterRotations;
@@ -149,6 +150,7 @@ half3 SkinNormal(float3 LocalNormal, float4 ClusterWeights, int4 ClusterIndices)
 }
 
 #endif // USE_FLEX_DEFORM
+// NvFlex end
 
 struct FVertexFactoryInput
 {
@@ -201,10 +203,12 @@ struct FVertexFactoryInput
 
 #endif //USE_INSTANCING && !USE_INSTANCING_EMULATED
 
+	// NvFlex begin
 #if USE_FLEX_DEFORM // exclusive with instancing
 	uint4	ClusterIndices	: ATTRIBUTE8;
 	float4	ClusterWeights : ATTRIBUTE9;	
 #endif // USE_FLEX_DEFORM
+	// NvFlex end
 
 #if NEEDS_LIGHTMAP_COORDINATE
 	float2	LightMapCoordinate : ATTRIBUTE15;
@@ -223,11 +227,13 @@ struct FVertexFactoryInput
 struct FPositionOnlyVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
-	
+
+	// NvFlex begin	
 #if USE_FLEX_DEFORM // exclusive with instancing	
 	uint4	ClusterIndices	: ATTRIBUTE8;
 	float4	ClusterWeights : ATTRIBUTE9;
 #endif // USE_FLEX_DEFORM
+	// NvFlex end
 
 #if USE_INSTANCING && !USE_INSTANCING_EMULATED
 	float4 InstanceOrigin : ATTRIBUTE8;  // per-instance random in w 
@@ -562,20 +568,23 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 
 #if USE_INSTANCING
 float4 CalcWorldPosition(float4 Position, float4x4 InstanceTransform)
+// NvFlex begin
 #elif USE_FLEX_DEFORM
 float4 CalcWorldPosition(float4 Position, float4 ClusterWeights, uint4 ClusterIndices)
+// NvFlex end
 #else
 float4 CalcWorldPosition(float4 Position)
 #endif	// USE_INSTANCING
 {
 #if USE_INSTANCING
 	return TransformLocalToTranslatedWorld(mul(Position, InstanceTransform).xyz);
+	// NvFlex end
 #elif USE_FLEX_DEFORM
 	
 	// deformed pos
 	float3 SkinnedPos = SkinPosition(Position.xyz, ClusterWeights, ClusterIndices);
 	return TransformLocalToTranslatedWorld(SkinnedPos.xyz);
-
+	// NvFlex end
 #elif USE_SPLINEDEFORM
 /*
 	// Make transform for this point along spline
@@ -605,11 +614,12 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 
 	TangentX = mul(TangentX, SliceRot);
 	TangentZ.xyz = mul(TangentZ.xyz, SliceRot);
+	// NvFlex begin
 #elif USE_FLEX_DEFORM
 
 	TangentZ.xyz = SkinNormal(TangentZ.xyz, Input.ClusterWeights, Input.ClusterIndices);
 	TangentX = SkinNormal(TangentX.xyz, Input.ClusterWeights, Input.ClusterIndices);
-
+	// NvFlex end
 #endif	// USE_SPLINEDEFORM
 
 	// derive the binormal by getting the cross product of the normal and tangent
@@ -692,8 +702,10 @@ float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIn
 {
 #if USE_INSTANCING
 	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input)) * Intermediates.PerInstanceParams.z;
+	// NvFlex begin
 #elif USE_FLEX_DEFORM
 	return CalcWorldPosition(Input.Position, Input.ClusterWeights, Input.ClusterIndices);
+	// NvFlex end
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING
@@ -770,8 +782,10 @@ float4 VertexFactoryGetWorldPosition(FPositionOnlyVertexFactoryInput Input)
 {
 #if USE_INSTANCING
 	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input));
+	// NvFlex begin
 #elif USE_FLEX_DEFORM
 	return CalcWorldPosition(Input.Position, Input.ClusterWeights, Input.ClusterIndices);
+	// NvFlex end
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING

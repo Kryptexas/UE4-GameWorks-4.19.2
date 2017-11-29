@@ -2023,7 +2023,6 @@ void UMaterialInstance::PostLoad()
 
 	// Resources can be processed / registered now that we're back on the main thread
 	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, StaticPermutationMaterialResources);
-
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 

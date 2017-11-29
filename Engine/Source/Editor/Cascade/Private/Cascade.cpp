@@ -5122,6 +5122,7 @@ void FCascade::OnDuplicateEmitter(bool bIsShared)
 	}
 }
 
+// NvFlex begin
 void FCascade::OnConvertToFlexEmitter()
 {
 	auto FlexEmitterClass = GFlexEditorPluginBridge->GetFlexParticleSpriteEmitterClass();
@@ -5153,6 +5154,7 @@ void FCascade::OnConvertToFlexEmitter()
 		EmitterCanvas->RefreshViewport();
 	}
 }
+// NvFlex end
 
 void FCascade::OnDeleteEmitter()
 {

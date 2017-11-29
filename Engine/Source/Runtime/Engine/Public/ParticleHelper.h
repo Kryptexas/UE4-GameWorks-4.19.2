@@ -1514,11 +1514,10 @@ struct FDynamicSpriteEmitterReplayDataBase
 	uint8						EmitterRenderMode;
 	uint8						EmitterNormalsMode;
 	FVector2D					PivotOffset;
-
 	bool						bRemoveHMDRoll;
 	float						MinFacingCameraBlendDistance;
 	float						MaxFacingCameraBlendDistance;
-
+	
 	/** Constructor */
 	FDynamicSpriteEmitterReplayDataBase();
 

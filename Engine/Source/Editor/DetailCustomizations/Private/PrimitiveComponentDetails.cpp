@@ -7,13 +7,6 @@
 #include "IDetailGroup.h"
 #include "DetailCategoryBuilder.h"
 #include "ObjectEditorUtils.h"
-
-#include "PhysicsEngine/BodySetup.h"
-#include "PhysicsEngine/BodyInstance.h"
-#include "Components/DestructibleComponent.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "IDocumentation.h"
-
 #include "EditorCategoryUtils.h"
 #include "ComponentMaterialCategory.h"
 

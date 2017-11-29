@@ -116,7 +116,6 @@ struct FShaderCodeChunk
 	{}
 };
 
-
 class FHLSLMaterialTranslator : public FMaterialCompiler
 {
 protected:
@@ -845,7 +844,8 @@ public:
 				// Using \n instead of LINE_TERMINATOR as not all of the lines are terminated consistently
 				// Subtract one from the last found line ending index to make sure we skip over it
 				StartPosition = MaterialTemplate.Find(TEXT("\n"), ESearchCase::CaseSensitive, ESearchDir::FromEnd, StartPosition - 1);
-			} while (StartPosition != INDEX_NONE);
+			} 
+			while (StartPosition != INDEX_NONE);
 			check(MaterialTemplateLineNumber != INDEX_NONE);
 			// At this point MaterialTemplateLineNumber is one less than the line number of the '#line' statement
 			// For some reason we have to add 2 more to the #line value to get correct error line numbers from D3DXCompileShader
@@ -2816,6 +2816,8 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float2,TEXT("Parameters.Particle.Size"));
 	}
 
+	// NvFlex begin
+#if WITH_FLEX
 	virtual int32 FlexFluidSurfaceThickness(int32 Offset, int32 UV, bool bUseOffset) override
 	{
 		if (Offset == INDEX_NONE && bUseOffset)
@@ -2868,6 +2870,8 @@ protected:
 			*GetParameterCode(ScreenUVCode)
 		);
 	}
+#endif
+	// NvFlex end
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
@@ -4194,7 +4198,6 @@ protected:
 		}
 
 		return AddCodeChunk(ResultType,TEXT("lerp(%s,%s,%s)"),*CoerceParameter(X,ResultType),*CoerceParameter(Y,ResultType),*CoerceParameter(A,AlphaType));
-
 	}
 
 	virtual int32 Min(int32 A,int32 B) override
@@ -5107,7 +5110,6 @@ protected:
 		FString ImplementationCode = FString::Printf(TEXT("%s CustomExpression%d(FMaterial%sParameters Parameters%s)\r\n{\r\n%s\r\n}\r\n"), *OutputTypeString, CustomExpressionIndex, *ParametersType, *InputParamDecl, *Code);
 		CustomExpressionImplementations.Add( ImplementationCode );
 
-
 		// Add call to implementation function
 		FString CodeChunk = FString::Printf(TEXT("CustomExpression%d(Parameters"), CustomExpressionIndex);
 		for( int32 i = 0; i < CompiledInputs.Num(); i++ )
@@ -5275,7 +5277,6 @@ protected:
 	*
 	* @return	Code index
 	*/
-
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) override 
 	{ 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)

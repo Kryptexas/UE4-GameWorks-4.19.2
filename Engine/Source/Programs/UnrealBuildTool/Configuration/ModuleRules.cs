@@ -546,7 +546,7 @@ namespace UnrealBuildTool
 			{
 				Definitions.Add("WITH_NVCLOTH=0");
 			}
-//*
+            // NvFlex begin
             if (Target.bCompileNvFlexD3D == true || Target.bCompileNvFlexCUDA == true)
             {
                 Definitions.Add("WITH_FLEX=1");
@@ -555,13 +555,13 @@ namespace UnrealBuildTool
             {
                 Definitions.Add("WITH_FLEX=0");
             }
-//*/
-		}
+            // NvFlex end
+        }
 
-		/// <summary>
-		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
-		/// </summary>
-		public void SetupModuleBox2DSupport(ReadOnlyTargetRules Target)
+        /// <summary>
+        /// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
+        /// </summary>
+        public void SetupModuleBox2DSupport(ReadOnlyTargetRules Target)
 		{
 			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
 			bool bSupported = false;

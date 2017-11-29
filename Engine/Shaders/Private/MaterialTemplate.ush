@@ -213,8 +213,12 @@ struct FMaterialPixelParameters
 	half BackupSceneColorAlpha;
 #endif
 
+	// NvFlex begin
+#if FLEX_FLUID_SURFACE_FACTORY
 	float ForceOpacityZero;
 	float DepthOffset;
+#endif
+	// NvFlex end
 
 #if COMPILER_HLSL
 	// Workaround for "error X3067: 'GetObjectWorldPosition': ambiguous function call"
@@ -1616,14 +1620,16 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 	// Now the rest of the inputs
 %s
 
+	// NvFlex begin
 #if FLEX_FLUID_SURFACE_FACTORY
 	// TODO: the raw material input values shouldn't be overwritten.
-	// instead the use of GetRawMaterialMask could be restricted in the engine, 
+	// instead the use of GetMaterialMaskInputRaw could be restricted in the engine, 
 	// and GetMaterialMask could take FMaterialPixelParameters to factor in ForceOpacityZero
 	PixelMaterialInputs.OpacityMask = PixelMaterialInputs.OpacityMask*(1.0 - Parameters.ForceOpacityZero) + (GetMaterialOpacityMaskClipValue() - 1.0f)*Parameters.ForceOpacityZero;
 	PixelMaterialInputs.Opacity *= (1.0 - Parameters.ForceOpacityZero);
 	PixelMaterialInputs.PixelDepthOffset += Parameters.DepthOffset;
 #endif
+	// NvFlex end
 }
 
 // Programmatically set the line number after all the material inputs which have a variable number of line endings
@@ -1805,9 +1811,11 @@ void CalcMaterialParametersEx(
 #endif
 
 	Parameters.SvPosition = SvPosition;
+	// NvFlex begin
 #if !FLEX_FLUID_SURFACE_FACTORY //for flex surfaces this is done in GetMaterialPixelParameters, not sure why this isn't the case in general.
 	Parameters.ScreenPosition = ScreenPosition;
 #endif
+	// NvFlex end
 
 #if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 	// ES2 normalize isn't done accurately. This seems to fix it.
@@ -1874,7 +1882,16 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 }
 
 // Whether the material shader should output pixel depth offset
-#define OUTPUT_PIXEL_DEPTH_OFFSET (((WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)) || FLEX_FLUID_SURFACE_FACTORY) && !ES2_PROFILE)
+// NvFlex begin
+#if FLEX_FLUID_SURFACE_FACTORY
+#define OUTPUT_PIXEL_DEPTH_OFFSET 1
+#else
+// NvFlex end
+#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !ES2_PROFILE)
+// NvFlex begin
+#endif
+// NvFlex end
+
 
 // Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
 //@todo - use for other SM5 platforms
@@ -1913,16 +1930,20 @@ float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters M
 	// Can only push into the scene for conservative depth writes
 	float PixelDepthOffset = max(GetMaterialPixelDepthOffset(PixelMaterialInputs), 0);
 
+	// NvFlex begin
 #if FLEX_FLUID_SURFACE_FACTORY
 	OutDepth = PixelDepthOffset;
 #else
+	// NvFlex end
 	// Update positions used for shading
 	MaterialParameters.ScreenPosition.w += PixelDepthOffset;
 	MaterialParameters.SvPosition.w = MaterialParameters.ScreenPosition.w;
 	MaterialParameters.AbsoluteWorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
 
 	OutDepth = MaterialParameters.ScreenPosition.z / MaterialParameters.ScreenPosition.w;
+	// NvFlex begin
 #endif
+	// NvFlex end
 
 	return PixelDepthOffset;
 }

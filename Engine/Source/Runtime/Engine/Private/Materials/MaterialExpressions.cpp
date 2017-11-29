@@ -149,8 +149,12 @@
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionSceneTexelSize.h"
 #include "Materials/MaterialExpressionSceneTexture.h"
+// NvFlex begin
+#if WITH_FLEX
 #include "Materials/MaterialExpressionFlexFluidSurfaceThickness.h"
 #include "Materials/MaterialExpressionFlexFluidSurfaceColor.h"
+#endif
+// NvFlex end
 #include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSine.h"
 #include "Materials/MaterialExpressionSobol.h"
@@ -2267,7 +2271,8 @@ const TCHAR* UMaterialExpressionTextureSampleParameterSubUV::GetRequirements()
 	return UMaterialExpressionTextureSampleParameter2D::GetRequirements();
 }
 
-
+// NvFlex begin
+#if WITH_FLEX
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionFlexFluidSurfaceThickness
 ///////////////////////////////////////////////////////////////////////////////
@@ -2425,6 +2430,8 @@ FString UMaterialExpressionFlexFluidSurfaceColor::GetInputName(int32 InputIndex)
 	}
 	return TEXT("");
 }
+#endif
+// NvFlex end
 
 #if WITH_EDITOR
 int32 UMaterialExpressionAdd::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)

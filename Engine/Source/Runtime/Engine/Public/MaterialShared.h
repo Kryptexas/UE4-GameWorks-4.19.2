@@ -961,6 +961,7 @@ public:
 
 	/** A map from material expression to the index into CodeChunks of the code for the material expression. */
 	TMap<FMaterialExpressionKey,int32> ExpressionCodeMap;
+
 	explicit FMaterialFunctionCompileState(UMaterialExpressionMaterialFunctionCall* InFunctionCall) :
 		FunctionCall(InFunctionCall)
 	{}
@@ -1073,10 +1074,14 @@ public:
 	virtual bool IsUsedWithNiagaraRibbons() const { return false; }
 	virtual bool IsUsedWithNiagaraMeshParticles() const { return false; }
 	virtual bool IsUsedWithStaticLighting() const { return false; }
+	// NvFlex begin
+#if WITH_FLEX
 	virtual bool IsUsedWithFlexFluidSurfaces() const { return false; }
+	virtual bool IsUsedWithFlexMeshes() const { return false; }
+#endif
+	// NvFlex end
 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
-	virtual bool IsUsedWithFlexMeshes() const { return false; }
 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
 	virtual bool IsUsedWithAPEXCloth() const { return false; }
 	virtual bool IsUsedWithUI() const { return false; }
@@ -1734,10 +1739,14 @@ public:
 	ENGINE_API virtual bool IsUsedWithNiagaraRibbons() const override;
 	ENGINE_API virtual bool IsUsedWithNiagaraMeshParticles() const override;
 	ENGINE_API virtual bool IsUsedWithStaticLighting() const override;
+	// NvFlex begin
+#if WITH_FLEX
 	ENGINE_API virtual bool IsUsedWithFlexFluidSurfaces() const override;
+	ENGINE_API virtual bool IsUsedWithFlexMeshes() const override;
+#endif
+	// NvFlex end
 	ENGINE_API virtual bool IsUsedWithMorphTargets() const override;
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
-	ENGINE_API virtual bool IsUsedWithFlexMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithAPEXCloth() const override;
 	DEPRECATED(4.9, "IsUsedWithUI is now replaced by IsUIMaterial")

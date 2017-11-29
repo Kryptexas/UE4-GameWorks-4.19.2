@@ -479,7 +479,6 @@ public:
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API nvidia::apex::Scene*				GetApexScene(uint32 SceneType) const;
 #endif
-
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();
 
@@ -864,7 +863,13 @@ ENGINE_API void LoadPhysXModules(bool bLoadCooking);
 void UnloadPhysXModules();
 
 ENGINE_API void	InitGamePhys();
+
+// NvFlex begin
+#if WITH_FLEX
 ENGINE_API void	InitGamePhysPostRHI();
+#endif
+// NvFlex end
+
 ENGINE_API void	TermGamePhys();
 
 

@@ -284,7 +284,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/Commandlets/UpdateGameProjectCommandlet.h"
 #include "Classes/UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Classes/Commandlets/WrangleContentCommandlet.h"
-
 //////////////////////	@todo Classes.h
 
 #include "Kismet2/ComponentEditorUtils.h"

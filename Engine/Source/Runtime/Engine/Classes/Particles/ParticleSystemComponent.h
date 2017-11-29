@@ -11,7 +11,6 @@
 #include "Materials/MaterialInterface.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/Emitter.h"
-
 #include "ParticleSystemComponent.generated.h"
 
 class FParticleDynamicData;
@@ -1247,6 +1246,7 @@ protected:
 
 	// @todo document
 	virtual void UpdateDynamicData();
+
 public:
 	// NvFlex begin
 	/**

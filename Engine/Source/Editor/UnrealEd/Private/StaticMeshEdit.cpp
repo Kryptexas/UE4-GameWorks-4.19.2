@@ -21,6 +21,7 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "FbxImporter.h"
 
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
@@ -920,7 +921,11 @@ struct ExistingStaticMeshData
 
 	UModel*						ExistingCollisionModel;
 	UBodySetup*					ExistingBodySetup;
+	// NvFlex begin
+#if WITH_FLEX
 	class UFlexAsset*			ExistingFlexAsset;
+#endif
+	// NvFlex end
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
@@ -1061,8 +1066,11 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, Un
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingMesh->ThumbnailInfo;
 
 		ExistingMeshDataPtr->ExistingBodySetup = ExistingMesh->BodySetup;
+		// NvFlex begin
+#if WITH_FLEX
 		ExistingMeshDataPtr->ExistingFlexAsset = GFlexEditorPluginBridge ? GFlexEditorPluginBridge->GetFlexAsset(ExistingMesh) : nullptr;
-
+#endif
+		// NvFlex end
 		ExistingMeshDataPtr->LpvBiasMultiplier = ExistingMesh->LpvBiasMultiplier;
 		ExistingMeshDataPtr->bHasNavigationData = ExistingMesh->bHasNavigationData;
 		ExistingMeshDataPtr->LODGroup = ExistingMesh->LODGroup;
@@ -1569,11 +1577,14 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 
 	NewMesh->ThumbnailInfo = ExistingMeshDataPtr->ExistingThumbnailInfo.Get();
 
-
+		// NvFlex begin
+#if WITH_FLEX
 		if (GFlexEditorPluginBridge && ExistingMeshDataPtr->ExistingFlexAsset)
 		{
 			GFlexEditorPluginBridge->SetFlexAsset(NewMesh, ExistingMeshDataPtr->ExistingFlexAsset);
 		}
+#endif
+		// NvFlex end
 
 	// If we already had some collision info...
 	if(ExistingMeshDataPtr->ExistingBodySetup)

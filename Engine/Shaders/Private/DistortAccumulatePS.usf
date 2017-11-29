@@ -21,9 +21,11 @@ void Main(
 	in float4 SvPosition	: SV_Position
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
+	// NvFlex begin
 #if FLEX_FLUID_SURFACE_FACTORY
 	, out float OutDepth : SV_Depth
 #endif
+	// NvFlex end
 	)
 {
 	ResolvedView = ResolveView();
@@ -32,10 +34,12 @@ void Main(
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
-	
+
+	// NvFlex begin	
 #if FLEX_FLUID_SURFACE_FACTORY
 	OutDepth = GetMaterialPixelDepthOffset(PixelMaterialInputs);
 #endif
+	// NvFlex end
 
 	// material distortion offset
 	half3 Normal = GetMaterialNormal(MaterialParameters, PixelMaterialInputs);

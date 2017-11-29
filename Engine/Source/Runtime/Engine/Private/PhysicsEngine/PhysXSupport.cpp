@@ -35,7 +35,6 @@ ENGINE_API apex::ModuleClothing*		GApexModuleClothing		= NULL;
 #endif //WITH_APEX_CLOTHING
 
 TMap<int16, apex::Scene*>				GPhysXSceneMap;
-
 FApexNullRenderResourceManager		GApexNullRenderResourceManager;
 FApexResourceCallback				GApexResourceCallback;
 FApexPhysX3Interface				GApexPhysX3Interface;

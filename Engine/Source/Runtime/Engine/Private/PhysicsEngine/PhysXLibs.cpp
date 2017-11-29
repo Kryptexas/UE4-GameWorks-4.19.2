@@ -34,13 +34,11 @@
 	#endif	//WITH_APEX
 #endif
 
-
 /**
  *	Load the required modules for PhysX
  */
 ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 {
-
 #if PLATFORM_WINDOWS
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString APEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
@@ -56,14 +54,12 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win64/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win64/") + VSDirectory);
-
 		FString ArchName(TEXT("_x64"));
 		FString ArchBits(TEXT("64"));
 	#else
 		FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootAPEXPath(APEXBinariesRoot + TEXT("Win32/") + VSDirectory);
 		FString RootSharedPath(SharedBinariesRoot + TEXT("Win32/") + VSDirectory);
-
 		FString ArchName(TEXT("_x86"));
 		FString ArchBits(TEXT("32"));
 	#endif
@@ -115,7 +111,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 			APEX_ClothingHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Clothing" + APEXSuffix);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
-
 #elif PLATFORM_MAC
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/Mac/");
 
@@ -173,7 +168,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 			APEX_ClothingHandle = LoadPhysicsLibrary(APEX_ClothingHandleLibName);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
-
 #endif	//PLATFORM_WINDOWS
 }
 
@@ -183,7 +177,6 @@ ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 void UnloadPhysXModules()
 {
 #if PLATFORM_WINDOWS || PLATFORM_MAC
-
 	FPlatformProcess::FreeDllHandle(PxPvdSDKHandle);
 	FPlatformProcess::FreeDllHandle(PhysX3Handle);
 	if(PhysX3CookingHandle)
@@ -202,7 +195,6 @@ void UnloadPhysXModules()
 	#endif	//WITH_APEX
 #endif
 }
-
 
 #endif // WITH_PHYSX
 

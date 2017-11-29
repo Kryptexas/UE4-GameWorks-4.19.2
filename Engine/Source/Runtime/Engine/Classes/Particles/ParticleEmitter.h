@@ -11,7 +11,7 @@
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Components/SceneComponent.h"
+
 // NvFlex begin
 #include "GameWorks/FlexPluginCommon.h"
 // NvFlex end

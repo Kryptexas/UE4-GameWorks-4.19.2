@@ -616,7 +616,9 @@ enum ECollisionChannel
 	ECC_Camera UMETA(DisplayName="Camera" , TraceQuery="1"),
 	ECC_PhysicsBody UMETA(DisplayName="PhysicsBody"),
 	ECC_Vehicle UMETA(DisplayName="Vehicle"),
+	// NvFlex begin
 	ECC_Flex UMETA(DisplayName = "Flex"),
+	// NvFlex end
 	ECC_Destructible UMETA(DisplayName="Destructible"),
 
 	/** Reserved for gizmo collision */
@@ -626,7 +628,9 @@ enum ECollisionChannel
 	ECC_EngineTraceChannel3 UMETA(Hidden),
 	ECC_EngineTraceChannel4 UMETA(Hidden), 
 	ECC_EngineTraceChannel5 UMETA(Hidden),
-
+	// NvFlex begin
+	// ECC_EngineTraceChannel6 UMETA(Hidden),
+	// NvFlex end
 	ECC_GameTraceChannel1 UMETA(Hidden),
 	ECC_GameTraceChannel2 UMETA(Hidden),
 	ECC_GameTraceChannel3 UMETA(Hidden),
@@ -907,8 +911,10 @@ struct ENGINE_API FCollisionResponseContainer
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer, meta=(DisplayName="Vehicle"))
 	TEnumAsByte<enum ECollisionResponse> Vehicle;    // 6
 
+	// NvFlex begin
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CollisionResponseContainer, meta = (DisplayName="Flex"))
 	TEnumAsByte<enum ECollisionResponse> Flex;    // 7
+	// NvFlex end
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer, meta=(DisplayName="Destructible"))
 	TEnumAsByte<enum ECollisionResponse> Destructible;    // 8
@@ -931,6 +937,11 @@ struct ENGINE_API FCollisionResponseContainer
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer)
 	TEnumAsByte<enum ECollisionResponse> EngineTraceChannel5;    // 13
+
+	// NvFlex begin
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer)
+	// TEnumAsByte<enum ECollisionResponse> EngineTraceChannel6;    // 13
+	// NvFlex end
 
 	///////////////////////////////////////
 	// in order to use this custom channels
@@ -1015,7 +1026,9 @@ struct ENGINE_API FCollisionResponseContainer
 			uint8 Camera;				// 4
 			uint8 PhysicsBody;			// 5
 			uint8 Vehicle;				// 6
+			// NvFlex begin
 			uint8 Flex;					// 7
+			// NvFlex end
 			uint8 Destructible;			// 8
 
 			// Unspecified Engine Trace Channels
@@ -1023,7 +1036,10 @@ struct ENGINE_API FCollisionResponseContainer
 			uint8 EngineTraceChannel2;   // 10
 			uint8 EngineTraceChannel3;   // 11
 			uint8 EngineTraceChannel4;   // 12
-			uint8 EngineTraceChannel5;   // 13			
+			uint8 EngineTraceChannel5;   // 13
+			// NvFlex begin
+			// uint8 EngineTraceChannel6;   // 13
+			// NvFlex end
 
 			// Unspecified Game Trace Channels
 			uint8 GameTraceChannel1;     // 14

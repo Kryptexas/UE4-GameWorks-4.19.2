@@ -316,7 +316,6 @@ int32 FMaterialAttributesInput::CompileWithDefault(class FMaterialCompiler* Comp
 	}
 
 	EMaterialProperty Property = FMaterialAttributeDefinitionMap::GetProperty(AttributeID);
-
 	SetConnectedProperty(Property, Ret != INDEX_NONE);
 
 	if( Ret == INDEX_NONE )
@@ -869,10 +868,20 @@ bool FMaterialResource::IsUsedWithStaticLighting() const
 	return Material->bUsedWithStaticLighting;
 }
 
+// NvFlex begin
+#if WITH_FLEX
 bool FMaterialResource::IsUsedWithFlexFluidSurfaces() const
 {
 	return Material->bUsedWithFlexFluidSurfaces;
 }
+
+bool FMaterialResource::IsUsedWithFlexMeshes() const
+{
+	return Material->bUsedWithFlexMeshes;
+}
+
+#endif
+// NvFlex end
 
 bool FMaterialResource::IsUsedWithMorphTargets() const
 {
@@ -882,11 +891,6 @@ bool FMaterialResource::IsUsedWithMorphTargets() const
 bool FMaterialResource::IsUsedWithSplineMeshes() const
 {
 	return Material->bUsedWithSplineMeshes;
-}
-
-bool FMaterialResource::IsUsedWithFlexMeshes() const
-{
-	return Material->bUsedWithFlexMeshes;
 }
 
 bool FMaterialResource::IsUsedWithInstancedStaticMeshes() const

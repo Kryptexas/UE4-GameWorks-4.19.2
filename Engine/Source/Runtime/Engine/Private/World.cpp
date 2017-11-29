@@ -5277,7 +5277,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 				for (AActor* const TheActor : ActuallyKeptActors)
 				{
 					KeepAnnotation.Clear(TheActor);
-
 					TheActor->Rename(nullptr, LoadedWorld->PersistentLevel);
 					// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
 					if (TheActor->IsA<AController>())

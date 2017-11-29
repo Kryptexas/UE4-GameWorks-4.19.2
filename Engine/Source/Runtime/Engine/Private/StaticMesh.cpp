@@ -1759,6 +1759,8 @@ void UStaticMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
+// NvFlex begin
+#if WITH_FLEX
 /**
  * Callback used to allow object register its direct object references that are not already covered by
  * the token stream.
@@ -1771,6 +1773,8 @@ void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Col
 
 	Super::AddReferencedObjects( This, Collector );
 }
+#endif
+// NvFlex end
 
 #if WITH_EDITOR
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
@@ -2353,7 +2357,9 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
 
-#if 0// WITH_FLEX
+	// NvFlex begin
+#if WITH_FLEX
+#if 0
 	// make old static meshs load until they can be resaved
 	if (Ar.UE4Ver() == VER_UE4_INTERPCURVE_SUPPORTS_LOOPING)
 	{
@@ -2361,6 +2367,8 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << Dummy;
 	}
 #endif
+#endif
+	// NvFlex end
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )

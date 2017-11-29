@@ -49,7 +49,6 @@
 #include "ContentBrowserModule.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "DlgDeltaTransform.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
 #include "MRUFavoritesList.h"
 #include "Private/SSocketChooser.h"
@@ -2054,10 +2053,12 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 	}
 }
 
+
 bool FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges()
 {
 	return AssetSelectionUtils::GetSelectedActorInfo().NumSimulationChanges > 0;
 }
+
 
 void FLevelEditorActionCallbacks::OnMakeSelectedActorLevelCurrent()
 {
@@ -3125,7 +3126,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actor's level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
-
 #if PLATFORM_MAC
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::M ) );
 #else

@@ -81,14 +81,14 @@
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "GameFramework/GameState.h"
-#include "FrameworkObjectVersion.h"
+
 // NvFlex begin
 #if WITH_FLEX
+#include "FrameworkObjectVersion.h"
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
 // NvFlex end
 #include "PhysicsPublic.h"
-
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -3646,6 +3646,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 	check(!bParallelRenderThreadUpdate);
 	bParallelRenderThreadUpdate = true;
 
+
 	FParticleSystemSceneProxy* PSysSceneProxy = (FParticleSystemSceneProxy*)SceneProxy;
 	if (PSysSceneProxy != NULL)
 	{
@@ -4695,13 +4696,16 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 #endif
 
+	// NvFlex begin
+#if WITH_FLEX
 	}
 
-	// NvFlex begin
 	// do not change the tick group if there is a Flex emitter
 	// present, as the component must be ticked in the EndPhysics phase
 	if (bHasFlexEmitter == false)
 	{
+#endif
+	// NvFlex end
 		if(CVarFXEarlySchedule.GetValueOnGameThread())
 		{
 			PrimaryComponentTick.TickGroup = TG_PrePhysics; 
@@ -4712,7 +4716,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 		}
 	}
-	// NvFlex end
+
 }
 
 int32 UParticleSystemComponent::GetCurrentDetailMode() const
@@ -5273,7 +5277,6 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			Instance->CurrentLODLevelIndex = 0;
 		}
 	}
-
 	if (SceneProxy)
 	{
 		static_cast<FParticleSystemSceneProxy*>(SceneProxy)->MarkVertexFactoriesDirty();

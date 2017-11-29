@@ -13,8 +13,6 @@
 #include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "FXSystem.h"
-#include "UObjectBaseUtility.h"
-#include "PhysicsPublic.h"
 
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
@@ -3929,5 +3927,4 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << bRemoveHMDRoll;
 	Ar << MinFacingCameraBlendDistance;
 	Ar << MaxFacingCameraBlendDistance;
-
 }

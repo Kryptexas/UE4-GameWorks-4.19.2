@@ -111,7 +111,6 @@
 #include "FeedbackContext.h"
 #include "BusyCursor.h"
 
-
 #define LOCTEXT_NAMESPACE "AssetTools"
 
  
@@ -146,7 +145,6 @@ UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
 	EAssetTypeCategories::Type BlendablesCategoryBit = RegisterAdvancedAssetCategory(FName(TEXT("Blendables")), LOCTEXT("BlendablesAssetCategory", "Blendables"));
 
 	// Register the built-in asset type actions
-
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimationAsset));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimBlueprint));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimComposite));

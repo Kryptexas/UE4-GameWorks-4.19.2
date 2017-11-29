@@ -115,6 +115,7 @@ ActorFactory.cpp:
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
+
 #include "Engine/DestructibleMesh.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -677,7 +678,6 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		Emitter->SetTemplate(ParticleSystem);
 	}
 }
-
 
 
 /*-----------------------------------------------------------------------------

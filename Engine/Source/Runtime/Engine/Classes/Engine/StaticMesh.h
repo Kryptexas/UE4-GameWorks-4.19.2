@@ -653,8 +653,12 @@ public:
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
-	
+
+	// NvFlex begin
+#if WITH_FLEX
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#endif
+	// NvFlex end
 
 	//~ End UObject Interface.
 

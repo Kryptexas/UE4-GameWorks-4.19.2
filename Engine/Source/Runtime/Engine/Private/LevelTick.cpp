@@ -53,7 +53,11 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
+// NvFlex begin
+#if WITH_FLEX
 #include "GameWorks/IFlexPluginBridge.h"
+#endif
+// NvFlex end
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -1389,7 +1393,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			bInTick = true;
 			{
 				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_StartPhysics"), 10);
-				RunTickGroup(TG_StartPhysics);
+				RunTickGroup(TG_StartPhysics); 
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
@@ -1469,7 +1473,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 					RunTickGroup(TG_EndPhysics);
 				}
 			}
-
 			{
 				SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
 				SCOPE_TIME_GUARD_MS(TEXT("UWorld::Tick - TG_PostPhysics"), 10);

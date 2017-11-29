@@ -16,13 +16,6 @@
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* *********************** MODELTOHULLS  ********************************* */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-
 /** Returns false if ModelToHulls operation should halt because of vertex count overflow. */
 static bool AddConvexPrim(FKAggregateGeom* OutGeom, TArray<FPlane> &Planes, UModel* InModel)
 {
@@ -514,44 +507,44 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 		// See which scene type(s) is(are) requested
 		bool bVisualizeSync = FParse::Command(&Cmd, TEXT("SYNC"));
 		bool bVisualizeAsync = FParse::Command(&Cmd, TEXT("ASYNC")) && InWorld->GetPhysicsScene()->HasAsyncScene();
-if (!bVisualizeSync && !bVisualizeAsync)
-{
-	// If none are requested, do both
-	bVisualizeSync = true;
-	bVisualizeAsync = InWorld->GetPhysicsScene()->HasAsyncScene();
-}
+		if(!bVisualizeSync && !bVisualizeAsync)
+		{
+			// If none are requested, do both
+			bVisualizeSync = true;
+			bVisualizeAsync = InWorld->GetPhysicsScene()->HasAsyncScene();
+		}
 
-bool bResult = false;
+		bool bResult = false;
 
-// Visualize sync scene if requested
-if (bVisualizeSync)
-{
-	if (ExecApexVis(InWorld, PST_Sync, Cmd, Ar) != 0)
-	{
-		bResult = 1;
+		// Visualize sync scene if requested
+		if(bVisualizeSync)
+		{
+			if( ExecApexVis(InWorld, PST_Sync, Cmd, Ar) != 0 )
+			{
+				bResult = 1;
+			}
+		}
+
+		// Visualize async scene if requested
+		if(bVisualizeAsync)
+		{
+			if( ExecApexVis(InWorld, PST_Async, Cmd, Ar) != 0 )
+			{
+				bResult = 1;
+			}
+		}
+
+		return bResult;
 	}
-}
-
-// Visualize async scene if requested
-if (bVisualizeAsync)
-{
-	if (ExecApexVis(InWorld, PST_Async, Cmd, Ar) != 0)
-	{
-		bResult = 1;
-	}
-}
-
-return bResult;
-	}
-	else if (!IsRunningCommandlet() && GPhysXSDK && FParse::Command(&Cmd, TEXT("PVD")))
+	else if(!IsRunningCommandlet() && GPhysXSDK && FParse::Command(&Cmd, TEXT("PVD")) )
 	{
 		// check if PvdConnection manager is available on this platform
-		if (GPhysXVisualDebugger != NULL)
+		if(GPhysXVisualDebugger != NULL)
 		{
-			if (FParse::Command(&Cmd, TEXT("CONNECT")))
+			if(FParse::Command(&Cmd, TEXT("CONNECT")))
 			{
-
-
+				
+				
 				const bool bVizualization = !FParse::Command(&Cmd, TEXT("NODEBUG"));
 
 				// setup connection parameters
@@ -561,12 +554,12 @@ return bResult;
 					Host = Cmd;
 				}
 
-
+				
 
 				PvdConnect(Host, bVizualization);
 
 			}
-			else if (FParse::Command(&Cmd, TEXT("DISCONNECT")))
+			else if(FParse::Command(&Cmd, TEXT("DISCONNECT")))
 			{
 				GPhysXVisualDebugger->disconnect();
 			}
@@ -575,18 +568,18 @@ return bResult;
 		return 1;
 	}
 #if PHYSX_MEMORY_STATS
-	else if (GPhysXAllocator && FParse::Command(&Cmd, TEXT("PHYSXALLOC")))
+	else if(GPhysXAllocator && FParse::Command(&Cmd, TEXT("PHYSXALLOC")) )
 	{
 		GPhysXAllocator->DumpAllocations(Ar);
 		return 1;
 	}
 #endif
-	else if (FParse::Command(&Cmd, TEXT("PHYSXSHARED")))
+	else if(FParse::Command(&Cmd, TEXT("PHYSXSHARED")) )
 	{
 		FPhysxSharedData::Get().DumpSharedMemoryUsage(Ar);
 		return 1;
 	}
-	else if (FParse::Command(&Cmd, TEXT("PHYSXINFO")))
+	else if(FParse::Command(&Cmd, TEXT("PHYSXINFO")))
 	{
 		Ar->Logf(TEXT("PhysX Info:"));
 		Ar->Logf(TEXT("  Version: %d.%d.%d"), PX_PHYSICS_VERSION_MAJOR, PX_PHYSICS_VERSION_MINOR, PX_PHYSICS_VERSION_BUGFIX);
@@ -597,7 +590,7 @@ return bResult;
 #else
 		Ar->Logf(TEXT("  Configuration: PROFILE"));
 #endif
-		if (GetPhysXCookingModule())
+		if(GetPhysXCookingModule())
 		{
 			Ar->Logf(TEXT("  Cooking Module: TRUE"));
 		}
@@ -608,6 +601,7 @@ return bResult;
 
 		return 1;
 	}
+
 #endif // WITH_PHYSX
 
 	return 0;

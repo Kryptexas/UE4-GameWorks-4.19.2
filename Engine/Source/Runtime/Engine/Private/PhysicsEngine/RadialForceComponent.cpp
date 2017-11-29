@@ -29,7 +29,11 @@ URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectIni
 	ImpulseStrength = 1000.0f;
 	ForceStrength = 10.0f;
 	bAutoActivate = true;
+	// NvFlex begin
+#if WITH_FLEX
 	FlexAttach = false;
+#endif
+	// NvFlex end
 
 	// by default we affect all 'dynamic' objects that can currently be affected by forces
 	AddCollisionChannelToAffect(ECC_Pawn);

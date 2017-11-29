@@ -154,8 +154,12 @@ struct FMeshBatch
 	// can be NULL
 	const FLightCacheInterface* LCI;
 
+	// NvFlex begin
+#if WITH_FLEX
 	/** Whether the mesh batch should be rendered. */
 	uint32 bRenderable : 1;
+#endif
+	// NvFlex end
 
 	/** 
 	 *	DynamicVertexData - pointer to user memory containing the vertex data.
@@ -274,7 +278,11 @@ struct FMeshBatch
 	,	DynamicVertexData(NULL)
 	,	VertexFactory(NULL)
 	,	MaterialRenderProxy(NULL)
+	// NvFlex begin
+#if WITH_FLEX
 	,	bRenderable(true)
+#endif
+	// NvFlex end
 	{
 		// By default always add the first element.
 		new(Elements) FMeshBatchElement;

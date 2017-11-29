@@ -151,6 +151,7 @@ extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
+
 #if WITH_PHYSX
 extern const physx::PxQuat U2PSphylBasis;
 #endif // WITH_PHYSX

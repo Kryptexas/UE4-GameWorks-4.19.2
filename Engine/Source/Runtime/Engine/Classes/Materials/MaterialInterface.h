@@ -40,8 +40,12 @@ enum EMaterialUsage
 	MATUSAGE_NiagaraSprites,
 	MATUSAGE_NiagaraRibbons,
 	MATUSAGE_NiagaraMeshParticles,
+	// NvFlex begin
+#if WITH_FLEX
 	MATUSAGE_FlexFluidSurfaces,
 	MATUSAGE_FlexMeshes,
+#endif
+	// NvFlex end
 	MATUSAGE_MAX,
 };
 
