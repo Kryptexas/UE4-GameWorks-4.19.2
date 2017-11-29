@@ -175,6 +175,25 @@ void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 Maximu
 	}
 }
 
+void PrintScriptCallStackImpl()
+{
+#if DO_BLUEPRINT_GUARD
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
+	{
+		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
+		for (int32 FrameIdx = BlueprintExceptionTracker.ScriptStack.Num() - 1; FrameIdx >= 0; --FrameIdx)
+		{
+			ScriptStack += BlueprintExceptionTracker.ScriptStack[FrameIdx]->GetStackDescription() + TEXT( "\n" );
+		}
+
+		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
+	}
+#endif
+}
+
+extern CORE_API void (*GPrintScriptCallStackFn)();
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorScriptExecutionGuard
 FEditorScriptExecutionGuard::FEditorScriptExecutionGuard()
@@ -185,6 +204,8 @@ FEditorScriptExecutionGuard::FEditorScriptExecutionGuard()
 	if( GIsEditor && !FApp::IsGame() )
 	{
 		GInitRunaway();
+		
+		GPrintScriptCallStackFn = &PrintScriptCallStackImpl;
 	}
 }
 
@@ -343,7 +364,7 @@ FString FFrame::GetScriptCallstack()
 	{
 		for (int32 i = BlueprintExceptionTracker.ScriptStack.Num() - 1; i >= 0; --i)
 		{
-			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i].GetStackDescription() + TEXT("\n");
+			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i]->GetStackDescription() + TEXT("\n");
 		}
 	}
 	else
@@ -355,6 +376,11 @@ FString FFrame::GetScriptCallstack()
 #endif
 
 	return ScriptStack;
+}
+
+FString FFrame::GetStackDescription() const
+{
+	return Node->GetOuter()->GetName() + TEXT(".") + Node->GetName();
 }
 
 //

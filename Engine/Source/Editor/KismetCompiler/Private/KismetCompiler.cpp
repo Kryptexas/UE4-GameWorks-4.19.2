@@ -24,20 +24,20 @@
 #include "Engine/UserDefinedStruct.h"
 #include "EdGraphUtilities.h"
 #include "K2Node_CallFunction.h"
-#include "K2Node_Knot.h"
-#include "K2Node_Tunnel.h"
 #include "K2Node_Composite.h"
 #include "K2Node_CreateDelegate.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
+#include "K2Node_Knot.h"
 #include "K2Node_MacroInstance.h"
 #include "K2Node_MakeArray.h"
 #include "K2Node_TemporaryVariable.h"
 #include "K2Node_Timeline.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_TunnelBoundary.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
-#include "K2Node_TunnelBoundary.h"
 #include "KismetCompilerBackend.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Engine/SCS_Node.h"
@@ -2086,10 +2086,21 @@ void FKismetCompilerContext::SetCalculatedMetaDataAndFlags(UFunction* Function, 
 		if(	!K2Schema->IsMetaPin(*EntryPin) && 
 			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Object) && 
 			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Class) && 
-			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface) && 
-			!EntryPin->DefaultValue.IsEmpty() )
+			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface))
 		{
-			Function->SetMetaData(EntryPin->PinName, *EntryPin->DefaultValue);
+			if (!EntryPin->DefaultValue.IsEmpty())
+			{
+				Function->SetMetaData(EntryPin->PinName, *EntryPin->DefaultValue);
+			}
+			else if (!EntryPin->DefaultTextValue.IsEmpty())
+			{
+				FString TextAsString;
+				if (FTextStringHelper::WriteToString(TextAsString, EntryPin->DefaultTextValue))
+				{
+					Function->SetMetaData(EntryPin->PinName, *TextAsString);
+				}
+			}
+			
 		}
 	}
 
@@ -2644,9 +2655,6 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	FKismetFunctionContext& StubContext = *new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 	StubContext.SourceGraph = ChildStubGraph;
-
-	// A stub graph has no visual representation and is thus not suited to be debugged via the debugger
-	StubContext.bCreateDebugData = false;
 
 	StubContext.SourceEventFromStubGraph = SrcEventNode;
 
@@ -3225,16 +3233,6 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
 			UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL, &MessageLog, true);
 
-			// Find active tunnel instances for this macro instance.
-			TArray<TWeakObjectPtr<UEdGraphNode>> TunnelInstances;
-			MessageLog.GetTunnelsActiveForNode(MacroInstanceNode, TunnelInstances);
-			if (!TunnelInstances.Num())
-			{
-				UEdGraphNode* SourceMacroInstance = Cast<UEdGraphNode>(MessageLog.FindSourceObject(MacroInstanceNode));
-				TunnelInstances.Add(SourceMacroInstance);
-				MessageLog.RegisterIntermediateTunnelInstance(MacroInstanceNode, TunnelInstances);
-			}
-
 			for (int32 I = 0; I < ClonedGraph->Nodes.Num(); ++I)
 			{
 				MacroGeneratedNodes.Add(ClonedGraph->Nodes[I], CurrentNode);
@@ -3348,13 +3346,6 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 						DuplicatedNode->ReconstructNode();
 					}
 
-					// Record the source node mapping for the intermediate node and register any active tunnel instances if it is a tunnel/macro instance node.
-					MessageLog.RegisterIntermediateTunnelNode(DuplicatedNode, MacroInstanceNode);
-					if (FBlueprintEditorUtils::IsTunnelInstanceNode(DuplicatedNode))
-					{
-						MessageLog.RegisterIntermediateTunnelInstance(DuplicatedNode, TunnelInstances);
-					}
-
 					DuplicatedNode->NodePosY += NodeOffsetY;
 					DuplicatedNode->NodePosX += NodeOffsetX;
 
@@ -3391,29 +3382,21 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 		}
 		else if (TunnelNode)
 		{
-			UEdGraphNode* InputSink = TunnelNode->GetInputSink();
-			for (UEdGraphPin const* TunnelPin : TunnelNode->Pins)
+			UK2Node_Tunnel* InputSink = TunnelNode->GetInputSink();
+			UK2Node_Tunnel* OutputSource = TunnelNode->GetOutputSource();
+
+			if (FBlueprintEditorUtils::IsTunnelInstanceNode(OutputSource))
 			{
-				if ((TunnelPin->Direction != EGPD_Input) || (TunnelPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec))
-				{
-					continue;
-				}
-				check(InputSink != NULL);
-
-				UEdGraphPin* SinkPin = InputSink->FindPin(TunnelPin->PinName);
-				if (SinkPin == NULL)
-				{
-					continue;
-				}
-				check(SinkPin->Direction == EGPD_Output);
-
-				for (UEdGraphPin* TunnelLinkedPin : TunnelPin->LinkedTo)
-				{
-					MessageLog.NotifyIntermediatePinCreation(TunnelLinkedPin, SinkPin);
-				}
+				// Process the input side of a tunnel instance expansion
+				ProcessIntermediateTunnelBoundary(OutputSource, TunnelNode);
+			}
+			else if (FBlueprintEditorUtils::IsTunnelInstanceNode(InputSink))
+			{
+				// Process the output side of a tunnel instance expansion
+				ProcessIntermediateTunnelBoundary(TunnelNode, InputSink);
 			}
 
-			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, TunnelNode->GetOutputSource(), this);
+			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, OutputSource, this);
 			if (!bSuccess)
 			{
 				MessageLog.Error(*LOCTEXT("CollapseTunnel_Error", "Failed to collapse tunnel @@").ToString(), TunnelNode);
@@ -4501,6 +4484,132 @@ TSharedPtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlu
 void FKismetCompilerContext::RegisterCompilerForBP(UClass* BPClass, TFunction<TSharedPtr<FKismetCompilerContext>(UBlueprint*, FCompilerResultsLog&, const FKismetCompilerOptions&)> FactoryFunction)
 {
 	CustomCompilerMap.Add(BPClass, FactoryFunction);
+}
+
+void FKismetCompilerContext::MapExpansionPathToTunnelInstance(UEdGraphNode* InnerExpansionNode, UEdGraphNode* OuterTunnelInstance)
+{
+	if (InnerExpansionNode && OuterTunnelInstance)
+	{
+		MessageLog.NotifyIntermediateTunnelNode(InnerExpansionNode, OuterTunnelInstance);
+
+		// Recursively map any nodes linked to this node along the execution path.
+		for (const UEdGraphPin* OutputPin : InnerExpansionNode->Pins)
+		{
+			if (OutputPin->Direction == EGPD_Output && UEdGraphSchema_K2::IsExecPin(*OutputPin) && OutputPin->LinkedTo.Num() > 0)
+			{
+				for (const UEdGraphPin* LinkedTo : OutputPin->LinkedTo)
+				{
+					// Make sure it hasn't already been mapped (e.g. re-entrant execution paths).
+					UEdGraphNode* ExpansionNode = LinkedTo->GetOwningNode();
+					UEdGraphNode* TunnelInstance = MessageLog.GetIntermediateTunnelInstance(ExpansionNode);
+					if (TunnelInstance != OuterTunnelInstance)
+					{
+						MapExpansionPathToTunnelInstance(ExpansionNode, OuterTunnelInstance);
+					}
+				}
+			}
+		}
+	}
+}
+
+void FKismetCompilerContext::ProcessIntermediateTunnelBoundary(UK2Node_Tunnel* TunnelInput, UK2Node_Tunnel* TunnelOutput)
+{
+	// @TODO move this check out of KismetFunctionContext so we can use it here?
+	auto IsDebuggingOrInstrumentationRequired = []() -> bool
+	{
+		return GIsEditor && !IsRunningCommandlet();
+	};
+
+	// Common initialization.
+	auto InitializeTunnelBoundaryNode = [this](UK2Node_TunnelBoundary* TunnelBoundary, UK2Node_Tunnel* TunnelSource)
+	{
+		// Set the base node name and boundary type.
+		TunnelBoundary->SetNodeAttributes(TunnelSource);
+
+		// Auto-position the node in the intermediate graph.
+		// @TODO - Maybe we need to find a better way to reposition these?
+		AutoAssignNodePosition(TunnelBoundary);
+	};
+
+	if (TunnelInput)
+	{
+		const bool bIsInputBoundary = FBlueprintEditorUtils::IsTunnelInstanceNode(TunnelInput);
+
+		for (UEdGraphPin* InputPin : TunnelInput->Pins)
+		{
+			// We create a boundary node for each exec pin input. This way every execution path has a debug site.
+			if (InputPin->Direction == EGPD_Input && UEdGraphSchema_K2::IsExecPin(*InputPin) && InputPin->LinkedTo.Num() > 0)
+			{
+				if (IsDebuggingOrInstrumentationRequired())
+				{
+					// Create one or more boundary nodes that precede the tunnel input node.
+					if (UK2Node_TunnelBoundary* InputBoundaryNode = SpawnIntermediateNode<UK2Node_TunnelBoundary>(TunnelInput))
+					{
+						InitializeTunnelBoundaryNode(InputBoundaryNode, TunnelInput);
+
+						if (UEdGraphPin* NewInputPin = InputBoundaryNode->CreatePin(EGPD_Input, InputPin->PinType, InputPin->PinName))
+						{
+							if (UEdGraphPin* NewOutputPin = InputBoundaryNode->CreatePin(EGPD_Output, InputPin->PinType, InputBoundaryNode->CreateUniquePinName(InputPin->PinName)))
+							{
+								// Move the exec pin links to the boundary node. This ensures that execution will flow through the boundary node.
+								if (MovePinLinksToIntermediate(*InputPin, *NewInputPin).CanSafeConnect())
+								{
+									NewOutputPin->MakeLinkTo(InputPin);
+								}
+							}
+						}
+					}
+				}
+
+				// Look for a matching pin on the tunnel output node.
+				if (UEdGraphPin* OutputPin = TunnelOutput ? TunnelOutput->FindPin(InputPin->PinName) : nullptr)
+				{
+					if (ensure(OutputPin->Direction == EGPD_Output && UEdGraphSchema_K2::IsExecPin(*OutputPin)) && OutputPin->LinkedTo.Num() > 0)
+					{
+						if (bIsInputBoundary)
+						{
+							// Map the execution path through the expansion back to the tunnel instance node. Note that the assumption here is
+							// that we haven't collapsed the tunnels yet, so the output side of the expansion shouldn't be linked to anything.
+							for (UEdGraphPin* LinkedTo : OutputPin->LinkedTo)
+							{
+								MapExpansionPathToTunnelInstance(LinkedTo->GetOwningNode(), TunnelInput);
+							}
+
+							if (IsDebuggingOrInstrumentationRequired())
+							{
+								// We also create a boundary node for each matching exec pin on the tunnel output node.
+								if (UK2Node_TunnelBoundary* OutputBoundaryNode = SpawnIntermediateNode<UK2Node_TunnelBoundary>(TunnelOutput))
+								{
+									InitializeTunnelBoundaryNode(OutputBoundaryNode, TunnelOutput);
+
+									if (UEdGraphPin* NewInputPin = OutputBoundaryNode->CreatePin(EGPD_Input, OutputPin->PinType, OutputPin->PinName))
+									{
+										if (UEdGraphPin* NewOutputPin = OutputBoundaryNode->CreatePin(EGPD_Output, OutputPin->PinType, OutputBoundaryNode->CreateUniquePinName(OutputPin->PinName)))
+										{
+											// Move the exec pin links to the boundary node. This ensures that execution will flow through the boundary node.
+											if (MovePinLinksToIntermediate(*OutputPin, *NewOutputPin).CanSafeConnect())
+											{
+												NewInputPin->MakeLinkTo(OutputPin);
+											}
+										}
+									}
+								}
+							}
+						}
+						else if(IsDebuggingOrInstrumentationRequired())
+						{
+							// This is the output side of the expansion, so a tunnel boundary node will not be required on the output side of the pair. However, for
+							// wire traces to function properly, we still need to map exec pins linked to the input side back to the matching pin on the output side.
+							for (UEdGraphPin* LinkedInputPin : InputPin->LinkedTo)
+							{
+								MessageLog.NotifyIntermediatePinCreation(LinkedInputPin, OutputPin);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

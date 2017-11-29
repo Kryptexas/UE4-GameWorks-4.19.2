@@ -544,7 +544,8 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 		if (OldData && OldData->AssetPtr.ToSoftObjectPath() != NewAssetPath)
 		{
 			UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetID %s, this must be resolved before saving. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToString(), *NewAssetPath.ToString());
-			if (!bAllowDuplicates)
+			// Don't ensure for editor only types, this will not cause an actual game problem
+			if (!bAllowDuplicates && !TypeData.Info.bIsEditorOnly)
 			{
 				ensureMsgf(!OldData, TEXT("Found Duplicate PrimaryAssetID %s! Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToString(), *NewAssetPath.ToString());
 			}

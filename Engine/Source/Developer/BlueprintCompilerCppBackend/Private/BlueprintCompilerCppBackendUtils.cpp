@@ -1410,19 +1410,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			return RType.IsArray() && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass);
 		};
 
+		// No need to check both types here because we already checked for a match above.
 		const bool bIsClassTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Class;
-		auto GetTypeString = [bIsClassTerm](UClass* TermType, const UObjectProperty* AssociatedProperty)->FString
+		const bool bIsObjectTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Object;
+		const bool bIsSoftObjTerm = LType.PinCategory == UEdGraphSchema_K2::PC_SoftClass || LType.PinCategory == UEdGraphSchema_K2::PC_SoftObject;
+		auto GetTypeString = [bIsClassTerm, bIsSoftObjTerm](UClass* TermType, const UObjectPropertyBase* AssociatedProperty)->FString
 		{
 			// favor the property's CPPType since it makes choices based off of things like CPF_UObjectWrapper (which 
 			// adds things like TSubclassof<> to the decl)... however, if the property type doesn't match the term 
 			// type, then ignore the property (this can happen for things like our array library, which uses wildcards 
 			// and custom thunks to allow differing types)
-			const bool bPropertyMatch = AssociatedProperty && ((AssociatedProperty->PropertyClass == TermType) ||
+			const bool bPropertyMatch = AssociatedProperty &&
+				(bIsSoftObjTerm ||
+				(AssociatedProperty->PropertyClass == TermType) ||
 				(bIsClassTerm && CastChecked<UClassProperty>(AssociatedProperty)->MetaClass == TermType));
 
 			if (bPropertyMatch)
 			{
 				// use GetCPPTypeCustom() so that it properly fills out nativized class names
+				// note: soft properties will use the term type that we pass in here in place of the internal MetaClass/PropertyClass, so we just always match them (above)
 				return AssociatedProperty->GetCPPTypeCustom(/*ExtendedTypeText=*/nullptr, CPPF_None, FEmitHelper::GetCppName(TermType));
 			}
 			else if (bIsClassTerm)
@@ -1434,15 +1440,16 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 
 		auto GetInnerTypeString = [GetTypeString](UClass* TermType, const UArrayProperty* ArrayProp)
 		{
-			const UObjectProperty* InnerProp = ArrayProp ? Cast<UObjectProperty>(ArrayProp->Inner) : nullptr;
+			const UObjectPropertyBase* InnerProp = ArrayProp ? Cast<UObjectPropertyBase>(ArrayProp->Inner) : nullptr;
 			return GetTypeString(TermType, InnerProp);
 		};
 
 		auto GenerateArrayCast = [&OutCastBegin, &OutCastEnd](const FString& LTypeStr, const FString& RTypeStr)
 		{
-			OutCastBegin = FString::Printf(TEXT("TArrayCaster< %s >("), *RTypeStr);
-			OutCastEnd   = FString::Printf(TEXT(").Get< %s >()"), *LTypeStr);
+			OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s>("), *RTypeStr);
+			OutCastEnd   = FString::Printf(TEXT(").Get<%s>()"), *LTypeStr);
 		};
+
 		// CLASS/TSubClassOf<> to CLASS/TSubClassOf<>
 		if (bIsClassTerm)
 		{
@@ -1468,7 +1475,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			}
 		}
 		// OBJECT to OBJECT
-		else if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		else if (bIsObjectTerm || bIsSoftObjTerm)
 		{
 			UClass* LClass = GetClassType(LType);
 			UClass* RClass = GetClassType(RType);
@@ -1476,14 +1483,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			if (!RType.IsContainer() && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
 			{
 				// when pointer is passed as reference, the type must be exactly the same
-				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectProperty>(LProp)));
+				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectPropertyBase>(LProp)));
 				OutCastEnd = TEXT("))");
 				return true;
 			}
 			if (!RType.IsContainer() && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 			{
-				OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
-				OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
+				if (bIsObjectTerm)
+				{
+					OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
+					OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
+				}
+				else
+				{
+					// TSoftClassPtr/TSoftObjectPtr cannot be implicitly downcast via assignment operator, but
+					// rather than emit an explicit cast here, we can just assign it to the wrapped object path.
+					OutCastBegin = TEXT("");
+					OutCastEnd = TEXT(".ToSoftObjectPath()");
+				}
+				
 				return true;
 			}
 			else if (RequiresArrayCast(LClass, RClass))

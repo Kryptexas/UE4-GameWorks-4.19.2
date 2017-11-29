@@ -92,7 +92,7 @@ void UK2Node_Knot::PropagatePinType()
 	{
 		if (Inputs->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
 		{
-			PropagatePinTypeFromInput();
+			PropagatePinTypeFromDirection(true);
 			return;
 		}
 	}
@@ -101,7 +101,7 @@ void UK2Node_Knot::PropagatePinType()
 	{
 		if (Outputs->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
 		{
-			PropagatePinTypeFromOutput();
+			PropagatePinTypeFromDirection(false);
 			return;
 		}
 	}
@@ -110,12 +110,12 @@ void UK2Node_Knot::PropagatePinType()
 	if (MyInputPin->LinkedTo.Num() > 0)
 	{
 		// If we can't mirror from output type, we should at least get the type information from the input connection chain
-		PropagatePinTypeFromInput();
+		PropagatePinTypeFromDirection(true);
 	}
 	else if (MyOutputPin->LinkedTo.Num() > 0)
 	{
 		// Try to mirror from output first to make sure we get appropriate member references
-		PropagatePinTypeFromOutput();
+		PropagatePinTypeFromDirection(false);
 	}
 	else
 	{
@@ -130,82 +130,50 @@ void UK2Node_Knot::PropagatePinType()
 	}
 }
 
-void UK2Node_Knot::PropagatePinTypeFromInput()
+void UK2Node_Knot::PropagatePinTypeFromDirection(bool bFromInput)
 {
 	if (bRecursionGuard)
 	{
 		return;
 	}
-	// Set the type of the pin based on input connections.
-	// We have to move up the chain of linked reroute nodes until we reach a node
-	// with type information before percolating that information down.
-	UEdGraphPin* MyInputPin = GetInputPin();
-	UEdGraphPin* MyOutputPin = GetOutputPin();
+	// Set the type of the pin based on the source connection, and then percolate
+	// that type information up until we no longer reach another Reroute node
+	UEdGraphPin* MySourcePin = bFromInput ? GetInputPin() : GetOutputPin();
+	UEdGraphPin* MyDestinationPin = bFromInput ? GetOutputPin() : GetInputPin();
 
 	TGuardValue<bool> RecursionGuard(bRecursionGuard, true);
 
-	for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
+	// Make sure any source knot pins compute their type, this will try to call back
+	// into this function but the recursion guard will stop it
+	for (UEdGraphPin* InPin : MySourcePin->LinkedTo)
 	{
 		if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(InPin->GetOwningNode()))
 		{
-			KnotNode->PropagatePinTypeFromInput();
+			KnotNode->PropagatePinTypeFromDirection(bFromInput);
 		}
 	}
 
-	UEdGraphPin* TypeSource = MyInputPin->LinkedTo.Num() ? MyInputPin->LinkedTo[0] : nullptr;
+	UEdGraphPin* TypeSource = MySourcePin->LinkedTo.Num() ? MySourcePin->LinkedTo[0] : nullptr;
 	if (TypeSource)
 	{
-		MyInputPin->PinType = TypeSource->PinType;
-		MyOutputPin->PinType = TypeSource->PinType;
+		MySourcePin->PinType = TypeSource->PinType;
+		MyDestinationPin->PinType = TypeSource->PinType;
 
-		for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
+		for (UEdGraphPin* LinkPin : MyDestinationPin->LinkedTo)
 		{
-			if (UK2Node* OwningNode = Cast<UK2Node>(InPin->GetOwningNode()))
+			if (UK2Node* OwningNode = Cast<UK2Node>(LinkPin->GetOwningNode()))
 			{
-				if (!OwningNode->IsA<UK2Node_Knot>())
-				{
-					OwningNode->PinConnectionListChanged(InPin);
-				}
-			}
-		}
-	}
-	else
-	{
-		// TODO?
-	}
-}
-
-void UK2Node_Knot::PropagatePinTypeFromOutput()
-{
-	// Set the type of the pin based on the output connection, and then percolate
-	// that type information up until we no longer reach another Reroute node
-	UEdGraphPin* MyInputPin = GetInputPin();
-	UEdGraphPin* MyOutputPin = GetOutputPin();
-
-	UEdGraphPin* TypeSource = MyOutputPin->LinkedTo.Num() ? MyOutputPin->LinkedTo[0] : nullptr;
-	if (TypeSource)
-	{
-		MyInputPin->PinType = TypeSource->PinType;
-		MyOutputPin->PinType = TypeSource->PinType;
-
-		for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
-		{
-			if (UK2Node* OwningNode = Cast<UK2Node>(InPin->GetOwningNode()))
-			{
+				// Notify any pins in the destination direction
 				if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(OwningNode))
 				{
-					KnotNode->PropagatePinTypeFromOutput();
+					KnotNode->PropagatePinTypeFromDirection(bFromInput);
 				}
 				else
 				{
-					OwningNode->PinConnectionListChanged(InPin);
+					OwningNode->PinConnectionListChanged(LinkPin);
 				}
 			}
 		}
-	}
-	else 
-	{
-		// TODO?
 	}
 }
 

@@ -2702,17 +2702,7 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 	{
 		if(UObject const* SourceObject = MessageLog.FindSourceObject(this))
 		{
-			UK2Node_MathExpression const* MathExpression = nullptr;
-
-			// If the source object is a MacroInstance, we need to look elsewhere for the original MathExpression
-			if(Cast<UK2Node_MacroInstance>(SourceObject))
-			{
-				MathExpression = CastChecked<UK2Node_MathExpression>(MessageLog.GetSourceTunnelNode(this));
-			}
-			else
-			{
-				MathExpression = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this);
-			}
+			UK2Node_MathExpression const* MathExpression = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this);
 
 			// Should always be able to find the source math expression
 			check(MathExpression);

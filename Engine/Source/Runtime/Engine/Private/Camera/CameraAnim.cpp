@@ -167,24 +167,3 @@ void UCameraAnim::CalcLocalAABB()
 		}
 	}
 }
-
-void UCameraAnim::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive && CameraInterpGroup)
-	{
-		// find move track
-		UInterpTrackMove *MoveTrack = NULL;
-		for (int32 TrackIdx = 0; TrackIdx < CameraInterpGroup->InterpTracks.Num(); ++TrackIdx)
-		{
-			// somehow movement track's not calculated when you just used serialize, so I'm adding it here. 
-			MoveTrack = Cast<UInterpTrackMove>(CameraInterpGroup->InterpTracks[TrackIdx]);
-			if (MoveTrack)
-			{
-				FArchiveCountMem CountBytesSize(MoveTrack);
-				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CountBytesSize.GetNum());
-			}
-		}
-	}
-}

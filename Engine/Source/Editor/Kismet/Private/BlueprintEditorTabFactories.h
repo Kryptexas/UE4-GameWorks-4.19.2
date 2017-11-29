@@ -105,7 +105,7 @@ public:
 
 	}
 
-	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo) override;
+	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo, bool bPrevTabMatches) override;
 
 	virtual void SaveHistory() override;
 

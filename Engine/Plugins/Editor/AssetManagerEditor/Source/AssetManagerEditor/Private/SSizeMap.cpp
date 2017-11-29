@@ -2,7 +2,6 @@
 
 #include "SSizeMap.h"
 #include "Modules/ModuleManager.h"
-#include "Engine/Texture2D.h"
 #include "Engine/AssetManager.h"
 #include "Editor.h"
 #include "AssetRegistryModule.h"
@@ -10,7 +9,6 @@
 #include "ClassIconFinder.h"
 #include "Math/UnitConversion.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/Commands/UICommandList.h"
@@ -22,6 +20,8 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "CollectionManagerModule.h"
 #include "ICollectionManager.h"
+#include "SlateApplication.h"
+#include "Misc/ScopedSlowTask.h"
 
 #define LOCTEXT_NAMESPACE "SizeMap"
 
@@ -64,6 +64,8 @@ TSharedRef<SWidget> SSizeMap::GenerateSizeTypeComboItem(TSharedPtr<FName> InItem
 
 void SSizeMap::HandleSizeTypeComboChanged(TSharedPtr<FName> Item, ESelectInfo::Type SelectInfo)
 {
+	FSlateApplication::Get().DismissAllMenus();
+
 	CurrentSizeType = *Item.Get();
 
 	RefreshMap();
@@ -85,6 +87,11 @@ FText SSizeMap::GetSizeTypeText(FName SizeType) const
 		return LOCTEXT("DiskSize", "Disk Size");
 	}
 	return FText::GetEmpty();
+}
+
+bool SSizeMap::IsSizeTypeEnabled() const
+{
+	return CurrentRegistrySource && CurrentRegistrySource->bIsEditor;
 }
 
 FText SSizeMap::GetOverviewText() const
@@ -143,6 +150,7 @@ void SSizeMap::Construct(const FArguments& InArgs)
 
 	CurrentSizeType = IAssetManagerEditorModule::DiskSizeName;
 	CurrentRegistrySource = EditorModule->GetCurrentRegistrySource(false);
+	bMemorySizeCached = false;
 
 	ChildSlot
 	[
@@ -194,10 +202,12 @@ void SSizeMap::Construct(const FArguments& InArgs)
 			.Padding(2.f)
 			.AutoWidth()
 			[
-				SNew(SComboBox<TSharedPtr<FName>>)
+				SAssignNew(ComboBoxWidget, SComboBox<TSharedPtr<FName>>)
 				.OptionsSource(&SizeTypeComboList)
 				.OnGenerateWidget(this, &SSizeMap::GenerateSizeTypeComboItem)
 				.OnSelectionChanged(this, &SSizeMap::HandleSizeTypeComboChanged)
+				.IsEnabled(this, &SSizeMap::IsSizeTypeEnabled)
+				.ToolTipText(LOCTEXT("SizeType_Tooltip", "Change to display disk size or memory size, memory size is only available for editor data"))
 				[
 					SNew(STextBlock)
 					.Text(this, &SSizeMap::GetSizeTypeComboText)
@@ -258,15 +268,29 @@ FReply SSizeMap::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragD
 
 void SSizeMap::SetRootAssetIdentifiers(const TArray<FAssetIdentifier>& NewRootAssetIdentifiers)
 {
-	RootAssetIdentifiers = NewRootAssetIdentifiers;
-
+	if (RootAssetIdentifiers != NewRootAssetIdentifiers)
+	{
+		bMemorySizeCached = false;
+		RootAssetIdentifiers = NewRootAssetIdentifiers;
+	}
+	
 	RefreshMap();
 }
 
 void SSizeMap::SetCurrentRegistrySource(const FAssetManagerEditorRegistrySource* RegistrySource)
 {
-	CurrentRegistrySource = RegistrySource;
-
+	if (CurrentRegistrySource != RegistrySource)
+	{
+		CurrentRegistrySource = RegistrySource;
+		bMemorySizeCached = false;
+		if (!IsSizeTypeEnabled())
+		{
+			// If size type is disabled reset to disk size
+			CurrentSizeType = IAssetManagerEditorModule::DiskSizeName;
+			ComboBoxWidget->ClearSelection();
+		}
+	}
+	
 	RefreshMap();
 }
 
@@ -576,19 +600,10 @@ void SSizeMap::GatherDependenciesRecursively(TSharedPtr<FAssetThumbnailPool>& In
 
 				if (AssetPackageName != NAME_None)
 				{
-					// If we're reading cooked data, this will fail for dependencies that are editor only. This is fine, they will have 0 size
 					if (EditorModule->GetIntegerValueForCustomColumn(NodeSizeMapData.AssetData, CurrentSizeType, FoundSize))
 					{
+						// If we're reading cooked data, this will fail for dependencies that are editor only. This is fine, they will have 0 size
 						NodeSizeMapData.AssetSize = FoundSize;
-						NodeSizeMapData.bHasKnownSize = true;
-					}
-
-					if (NodeSizeMapData.AssetSize == 0 && CurrentRegistrySource->bIsEditor && CurrentSizeType == IAssetManagerEditorModule::ResourceSizeName)
-					{
-						// Load asset and check
-						UObject* Asset = NodeSizeMapData.AssetData.GetAsset();
-
-						NodeSizeMapData.AssetSize = Asset->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 						NodeSizeMapData.bHasKnownSize = true;
 					}
 				}
@@ -781,6 +796,20 @@ void SSizeMap::RefreshMap()
 		return;
 	}
 
+	bool bShowSlowTask = false;
+	if (CurrentSizeType == IAssetManagerEditorModule::ResourceSizeName)
+	{
+		if (!bMemorySizeCached)
+		{
+			bMemorySizeCached = true;
+			bShowSlowTask = true;
+		}
+	}
+
+	// If we're refresing memory start a slow task as we need to laod assets
+	FScopedSlowTask SlowTask(0, LOCTEXT("ComputeMemorySizeSlowTask", "Finding Memory Size..."), bShowSlowTask);
+	SlowTask.MakeDialog();
+
 	// Wipe the current tree out
 	RootTreeMapNode->Children.Empty();
 	NodeSizeMapDataMap.Empty();
@@ -873,6 +902,7 @@ void SSizeMap::RefreshMap()
 
 void SSizeMap::OnInitialAssetRegistrySearchComplete()
 {
+	bMemorySizeCached = false;
 	RefreshMap();
 }
 

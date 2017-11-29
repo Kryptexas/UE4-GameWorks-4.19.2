@@ -52,31 +52,35 @@ void UK2Node_StructOperation::FStructOperationOptionalPinManager::CustomizePinDa
 	}
 }
 
-bool UK2Node_StructOperation::DoRenamedPinsMatch(const UEdGraphPin* NewPin, const UEdGraphPin* OldPin, bool bStructInVaraiablesOut)
+bool UK2Node_StructOperation::DoRenamedPinsMatch(const UEdGraphPin* NewPin, const UEdGraphPin* OldPin, bool bStructInVariablesOut) const
 {
-	bool bResult = false;
 	if (NewPin && OldPin && (OldPin->Direction == NewPin->Direction))
 	{
-		const EEdGraphPinDirection StructDirection = bStructInVaraiablesOut ? EGPD_Input : EGPD_Output;
-		const EEdGraphPinDirection VariablesDirection = bStructInVaraiablesOut ? EGPD_Output : EGPD_Input;
+		const EEdGraphPinDirection StructDirection = bStructInVariablesOut ? EGPD_Input : EGPD_Output;
+		const EEdGraphPinDirection VariablesDirection = bStructInVariablesOut ? EGPD_Output : EGPD_Input;
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>(); 
 		const bool bCompatible = K2Schema && K2Schema->ArePinTypesCompatible(NewPin->PinType, OldPin->PinType);
 
 		if (bCompatible && (StructDirection == OldPin->Direction))
 		{
-			// Struct name was changed
-			bResult = true;
+			// Struct name was changed, which is fine
+			return true;
 		}
 		else if (bCompatible && (VariablesDirection == OldPin->Direction))
 		{
-			// name of a member variable was changed
+			// Name of a member variable was changed, check guids and redirects
 			if ((NewPin->PersistentGuid == OldPin->PersistentGuid) && OldPin->PersistentGuid.IsValid())
 			{
-				bResult = true;
+				return true;
+			}
+
+			if (DoesRenamedVariableMatch(OldPin->PinName, NewPin->PinName, StructType))
+			{
+				return true;
 			}
 		}
 	}
-	return bResult;
+	return false;
 }
 
 FString UK2Node_StructOperation::GetPinMetaData(FName InPinName, FName InKey)

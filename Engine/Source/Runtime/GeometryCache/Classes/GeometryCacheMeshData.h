@@ -127,12 +127,6 @@ struct FGeometryCacheMeshData
 		return Ar;
 	}
 
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const
-	{
-		return GetResourceSizeBytes();
-	}
-
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 	{
 		// Calculate resource size according to what is actually serialized
@@ -143,12 +137,5 @@ struct FGeometryCacheMeshData
 		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(BoundingBox));
 		CumulativeResourceSize.AddUnknownMemoryBytes(Indices.Num() * sizeof(uint32));
 		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(Indices));
-	}
-
-	SIZE_T GetResourceSizeBytes() const
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 };

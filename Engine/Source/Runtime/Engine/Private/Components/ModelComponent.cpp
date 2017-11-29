@@ -320,18 +320,6 @@ void UModelComponent::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
-void UModelComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	// Count the bodysetup we own as well for 'inclusive' stats
-	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (ModelBodySetup != NULL))
-	{
-		ModelBodySetup->GetResourceSizeEx(CumulativeResourceSize);
-	}
-}
-
-
 bool UModelComponent::IsNameStableForNetworking() const
 {
 	// UModelComponent is always persistent for the duration of a game session, and so can be considered to have a stable name

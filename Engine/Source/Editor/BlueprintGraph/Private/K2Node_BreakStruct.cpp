@@ -315,32 +315,12 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 	return UK2Node::GetNodeTitleColor();
 }
 
-UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
+UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
 	{
 		Result = ERedirectType_Name;
-	}
-	else if ((ERedirectType_None == Result) && NewPin && OldPin)
-	{
-		if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
-		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
-			{
-				Result = ERedirectType_Name;
-			}
-		}
-		else if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
-		{
-			FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, OldPin->PinName);
-
-			if (RedirectedPinName != NAME_Name)
-			{
-				Result = (RedirectedPinName != NewPin->PinName ? ERedirectType_None : ERedirectType_Name);
-			}
-		}
 	}
 	return Result;
 }

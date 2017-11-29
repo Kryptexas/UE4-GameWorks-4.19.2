@@ -267,22 +267,3 @@ FArchive& FLinkerSave::operator<<(FLazyObjectPtr& LazyObjectPtr)
 	ID = LazyObjectPtr.GetUniqueID();
 	return *this << ID;
 }
-
-FArchive& FLinkerSave::operator<<(FSoftObjectPtr& SoftObjectPtr)
-{
-	FSoftObjectPath ID;
-	UObject *Object = SoftObjectPtr.Get();
-
-	if (Object)
-	{
-		// Use object in case name has changed. 
-		ID = FSoftObjectPath(Object);
-	}
-	else
-	{
-		ID = SoftObjectPtr.GetUniqueID();
-	}
-
-	ID.Serialize(*this);
-	return *this;
-}

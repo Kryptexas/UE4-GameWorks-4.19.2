@@ -40,6 +40,40 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "AnimPhysObjectVersion.h"
 
+/** Helper for enum output... */
+#ifndef CASE_ENUM_TO_TEXT
+#define CASE_ENUM_TO_TEXT(txt) case txt: return TEXT(#txt);
+#endif
+
+namespace Lex
+{
+	const TCHAR* ToString(ECollisionTraceFlag Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_ECOLLISIONTRACEFLAG(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown ECollisionTraceFlag>");
+	}
+
+	const TCHAR* ToString(EPhysicsType Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_EPHYSICSTYPE(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown EPhysicsType>");
+	}
+
+	const TCHAR* ToString(EBodyCollisionResponse::Type Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_EBODYCOLLISIONRESPONSE(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown EBodyCollisionResponse>");
+	}
+}
 
 
 FCookBodySetupInfo::FCookBodySetupInfo() :
@@ -120,11 +154,6 @@ static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	ECVF_Default);
 
 
-SIZE_T FBodySetupUVInfo::GetResourceSize() const
-{
-	return GetResourceSizeBytes();
-}
-
 void FBodySetupUVInfo::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 {
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(IndexBuffer.GetAllocatedSize());
@@ -137,14 +166,6 @@ void FBodySetupUVInfo::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize
 
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VertUVs.GetAllocatedSize());
 }
-
-SIZE_T FBodySetupUVInfo::GetResourceSizeBytes() const
-{
-	FResourceSizeEx ResSize;
-	GetResourceSizeEx(ResSize);
-	return ResSize.GetTotalMemoryBytes();
-}
-
 
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)

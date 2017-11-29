@@ -81,32 +81,14 @@ namespace
 	#define CALLSTACK_IGNOREDEPTH 2
 #endif // PLATFORM_LINUX
 
-void InternalPrintScriptCallstack(bool bEmptyWhenDone)
-{
-#if DO_BLUEPRINT_GUARD
-	// Walk the script stack, if any
-	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
-	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
-	{
-		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
-		for (int32 FrameIdx = BlueprintExceptionTracker.ScriptStack.Num() - 1; FrameIdx >= 0; --FrameIdx)
-		{
-			ScriptStack += BlueprintExceptionTracker.ScriptStack[FrameIdx].GetStackDescription() + TEXT( "\n" );
-		}
-
-		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
-
-		if (bEmptyWhenDone)
-		{
-			BlueprintExceptionTracker.ScriptStack.Empty();
-		}
-	}
-#endif
-}
+CORE_API void (*GPrintScriptCallStackFn)() = nullptr;
 
 void PrintScriptCallstack()
 {
-	InternalPrintScriptCallstack(false);
+	if(GPrintScriptCallStackFn)
+	{
+		GPrintScriptCallStackFn();
+	}
 }
 
 /**
@@ -235,7 +217,7 @@ VARARG_BODY(void, FDebug::LogAssertFailedMessage, const TCHAR*, VARARG_EXTRA(con
 	if( !GIsCriticalError )
 	{
 		// Print out the blueprint callstack
-		InternalPrintScriptCallstack(true);
+		PrintScriptCallstack();
 
 		TCHAR DescriptionString[4096];
 		GET_VARARGS( DescriptionString, ARRAY_COUNT( DescriptionString ), ARRAY_COUNT( DescriptionString ) - 1, Fmt, Fmt );
@@ -275,7 +257,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	FPlatformAtomics::InterlockedIncrement(&ActiveEnsureCount);
 
 	// Print out the blueprint callstack
-	InternalPrintScriptCallstack(false);
+	PrintScriptCallstack();
 
 	// Print initial debug message for this error
 	TCHAR ErrorString[MAX_SPRINTF];

@@ -1318,21 +1318,6 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 						TotalNoWinnerRounds++;
 					}
-
-					// Update the memory stats
-#if STATS
-					if( IsRunningGame() )
-					{
-						if (SizeDecrease > 0)
-						{
-							DEC_DWORD_STAT_BY( STAT_AnimationMemory, SizeDecrease );
-						}
-						else
-						{
-							INC_DWORD_STAT_BY( STAT_AnimationMemory, -SizeDecrease );
-						}
-					}
-#endif
 				}
 
 				// Make sure we got that right.

@@ -18,6 +18,7 @@ class UBlueprintGeneratedClass;
 class UK2Node_FunctionEntry;
 class UK2Node_TemporaryVariable;
 class UK2Node_Timeline;
+class UK2Node_Tunnel;
 class FKismetCompilerVMBackend;
 
 KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
@@ -434,6 +435,27 @@ protected:
 	 * Expands any macro instances and collapses any tunnels in the nodes of SourceGraph
 	 */
 	void ExpandTunnelsAndMacros(UEdGraph* SourceGraph);
+
+	/**
+	 * Maps the nodes in an intermediate tunnel expansion path back to the owning tunnel instance node.
+	 */
+	void MapExpansionPathToTunnelInstance(UEdGraphNode* InnerExpansionNode, UEdGraphNode* OuterTunnelInstance);
+
+	/**
+	* Processes an intermediate tunnel expansion boundary.
+	*
+	* We define a tunnel boundary as the input and output sides of an intermediate tunnel instance node expansion. Each boundary
+	* consists of a pair of tunnel nodes (input/output), with one side being the tunnel "instance" node that owns the expansion.
+	* After expansion, tunnel nodes are cropped and removed from the function graph, so they do not result in any actual bytecode.
+	*
+	* This function maps the nodes in the execution path through the expansion and back to the outer tunnel instance node. If
+	* Blueprint debugging is enabled, this function also spawns one or more intermediate "boundary" NOPs around the tunnel I/O
+	* pair. The boundary nodes are intended to serve as debug sites, allowing breakpoints to be hit on both sides of the tunnel.
+	*
+	* @param	TunnelInput		Tunnel input node. This will either be a tunnel instance node (OutputSource) or a tunnel exit node.
+	* @param	TunnelOutput	Tunnel output node. This will either be a tunnel entry node or a tunnel instance node (InputSink).
+	*/
+	void ProcessIntermediateTunnelBoundary(UK2Node_Tunnel* TunnelInput, UK2Node_Tunnel* TunnelOutput);
 
 	/**
 	 * Merges pages and creates function stubs, etc...

@@ -528,17 +528,6 @@ void UBrushComponent::PostLoad()
 #endif
 }
 
-void UBrushComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	// Count the bodysetup we own as well for 'inclusive' stats
-	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
-	{
-		BrushBodySetup->GetResourceSizeEx(CumulativeResourceSize);
-	}
-}
-
 uint8 UBrushComponent::GetStaticDepthPriorityGroup() const
 {
 	ABrush* BrushOwner = Cast<ABrush>(GetOwner());

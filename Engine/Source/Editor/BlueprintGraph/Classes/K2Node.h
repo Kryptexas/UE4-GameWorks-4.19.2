@@ -232,9 +232,6 @@ class UK2Node : public UEdGraphNode
 	/** */
 	BLUEPRINTGRAPH_API virtual FText GetToolTipHeading() const;
 
-	/** Return tooltip text that explains the result of an active breakpoint on this node */
-	BLUEPRINTGRAPH_API virtual FText GetActiveBreakpointToolTipText() const;
-
 	/**
 	 * Determine if the node of this type should be filtered in the actions menu
 	 */

@@ -484,6 +484,9 @@ struct FAsyncPackage : FGCObject
 	/** Removes all objects from the list and clears async loading flags */
 	void EmptyReferencedObjects();
 
+	/** Returns the UPackage wrapped by this, if it is valid */
+	UPackage* GetLoadedPackage();
+
 private:	
 
 	struct FCompletionCallback

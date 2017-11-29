@@ -1001,6 +1001,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 			if (!bHasBegunPlay)
 			{
 				BeginPlay();
+				ensureMsgf(bHasBegunPlay, TEXT("Failed to route BeginPlay (%s)"), *GetFullName());
 			}
 		}
 	}

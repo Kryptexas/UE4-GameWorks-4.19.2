@@ -743,7 +743,14 @@ public:
 	/** Collect blueprints that depend on this blueprint. */
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
 
+	/** Checks all nodes in all graphs to see if they should be replaced by other nodes */
 	virtual void ReplaceDeprecatedNodes();
+
+	/** Clears out any editor data regarding a blueprint class, this can be called when you want to unload a blueprint */
+	virtual void ClearEditorReferences();
+
+	/** Returns Valid if this object has data validation rules set up for it and the data for this object is valid. Returns Invalid if it does not pass the rules. Returns NotValidated if no rules are set for this object. */
+	virtual EDataValidationResult IsDataValid(TArray<FText>& ValidationErrors) override;
 
 #endif	//#if WITH_EDITOR
 

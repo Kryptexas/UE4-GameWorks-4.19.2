@@ -1124,10 +1124,6 @@ SIZE_T FLandscapeComponentGrassData::GetAllocatedSize() const
 	}
 	return sizeof(*this)
 		+ HeightData.GetAllocatedSize()
-#if WITH_EDITORONLY_DATA
-		+ HeightMipData.GetAllocatedSize()
-		+ Algo::TransformAccumulate(HeightMipData, [](const TPair<int32, TArray<uint16>>& HeightMipDataPair) { return HeightMipDataPair.Value.GetAllocatedSize(); }, 0)
-#endif
 		+ WeightData.GetAllocatedSize() + WeightSize;
 }
 

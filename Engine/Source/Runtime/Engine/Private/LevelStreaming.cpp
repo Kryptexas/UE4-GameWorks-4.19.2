@@ -1111,7 +1111,7 @@ ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstanceBySoftObjectPtr(U
 		return nullptr;
 	}
 
-	return LoadLevelInstance_Internal(World, Level.ToString(), Location, Rotation, bOutSuccess);
+	return LoadLevelInstance_Internal(World, Level.GetLongPackageName(), Location, Rotation, bOutSuccess);
 }
 
 ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance_Internal(UWorld* World, const FString& LongPackageName, const FVector Location, const FRotator Rotation, bool& bOutSuccess)

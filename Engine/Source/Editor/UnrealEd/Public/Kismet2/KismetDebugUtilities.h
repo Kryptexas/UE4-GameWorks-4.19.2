@@ -131,9 +131,6 @@ public:
 	// Find the node that resulted in code at the specified location in the Object, or NULL if there was a problem (e.g., no debugging information was generated)
 	static class UEdGraphNode* FindSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset, bool bAllowImpreciseHit = false);
 
-	// Find the macro node that resulted in code at the specified location in the Object, or NULL if there was a problem (e.g., no debugging information was generated)
-	static class UEdGraphNode* FindMacroSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset);
-
 	// Return proper class for breakpoint
 	static UClass* FindClassForNode(const UObject* Object, UFunction* Function);
 

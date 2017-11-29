@@ -71,15 +71,7 @@ public:
 	/** a weight factor to blend between simulated positions and skinned positions */
 	float ClothBlendWeight;
 
-	/**
-	* Returns the size of memory allocated by render data
-	*/
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize()
-	{
-		return GetResourceSizeBytes();
-	}
-
+	/** Returns the size of memory allocated by render data */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
  	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
@@ -87,13 +79,6 @@ public:
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ReferenceToLocal.GetAllocatedSize());
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ActiveMorphTargets.GetAllocatedSize());
  	}
-
-	SIZE_T GetResourceSizeBytes()
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
-	}
 
 	/** Update Simulated Positions & Normals from Clothing actor */
 	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
@@ -210,22 +195,9 @@ private:
 		/**
 	 	 * Get Resource Size : return the size of Resource this allocates
 	 	 */
-		DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-		SIZE_T GetResourceSize()
-		{
-			return GetResourceSizeBytes();
-		}
-
 		void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		{
 			CumulativeResourceSize.AddUnknownMemoryBytes(StaticMeshVertexBuffer.GetResourceSize() + PositionVertexBuffer.GetStride() * PositionVertexBuffer.GetNumVertices());
-		}
-
-		SIZE_T GetResourceSizeBytes()
-		{
-			FResourceSizeEx ResSize;
-			GetResourceSizeEx(ResSize);
-			return ResSize.GetTotalMemoryBytes();
 		}
 	};
 

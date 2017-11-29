@@ -3483,15 +3483,12 @@ void UMaterialInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSiz
 
 	if (bHasStaticPermutationResource)
 	{
-		if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
+		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 		{
-			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+			for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 			{
-				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
-				{
-					FMaterialResource* CurrentResource = StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
-					CurrentResource->GetResourceSizeEx(CumulativeResourceSize);
-				}
+				FMaterialResource* CurrentResource = StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
+				CurrentResource->GetResourceSizeEx(CumulativeResourceSize);
 			}
 		}
 	}

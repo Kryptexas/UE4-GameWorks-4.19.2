@@ -54,8 +54,7 @@ public:
 
 private:
 	void PropagatePinType();
-	void PropagatePinTypeFromInput();
-	void PropagatePinTypeFromOutput();
+	void PropagatePinTypeFromDirection(bool bFromInput);
 
 	/** Recursion guard boolean to prevent PropagatePinType from infinitely recursing if you manage to create a loop of knots */
 	bool bRecursionGuard;

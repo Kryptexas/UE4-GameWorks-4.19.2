@@ -46,7 +46,7 @@ enum class EAlphaBlendOption : uint8
 /**
  * Alpha Blend class that supports different blend options as well as custom curves
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FAlphaBlend
 {
 	GENERATED_BODY()

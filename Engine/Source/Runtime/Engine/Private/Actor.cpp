@@ -169,15 +169,6 @@ bool AActor::CheckActorComponents()
 			UE_LOG(LogCheckComponents, Error, TEXT("Component is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
 			bResult = false;
 		}
-		UObject* Archetype = Inner->GetArchetype();
-		if (Archetype != Inner->GetClass()->GetDefaultObject())
-		{
-			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
-			{
-				UE_LOG(LogCheckComponents, Error, TEXT("Component archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
-				bResult = false;
-			}
-		}
 	}
 	for (int32 Index = 0; Index < BlueprintCreatedComponents.Num(); Index++)
 	{
@@ -3142,6 +3133,7 @@ void AActor::BeginPlay()
 		{
 			Component->RegisterAllComponentTickFunctions(true);
 			Component->BeginPlay();
+			ensureMsgf(Component->HasBegunPlay(), TEXT("Failed to route BeginPlay (%s)"), *Component->GetFullName());
 		}
 		else
 		{

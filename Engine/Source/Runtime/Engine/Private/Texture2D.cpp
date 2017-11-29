@@ -919,14 +919,13 @@ void UTexture2D::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 
 	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
-		CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureMemorySize(GetNumResidentMips()));
+		// Use only loaded mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySize(GetNumResidentMips()));
 	}
 	else
 	{
-		if (PlatformData)
-		{
-			CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureSize(GetSizeX(), GetSizeY(), GetPixelFormat(), GetNumMips()));
-		}
+		// Use all possible mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySize(GetNumMipsAllowed(true)));
 	}
 }
 

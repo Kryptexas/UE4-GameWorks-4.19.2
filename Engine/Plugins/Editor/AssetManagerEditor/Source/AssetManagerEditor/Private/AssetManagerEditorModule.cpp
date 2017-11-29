@@ -959,8 +959,8 @@ bool FAssetManagerEditorModule::GetStringValueForCustomColumn(const FAssetData& 
 			}
 			else
 			{
-				// Sizes are converted to kb
-				OutValue = Lex::ToString((IntegerValue + 512) / 1024);
+				// Display size properly
+				OutValue = FText::AsMemory(IntegerValue).ToString();
 			}
 			return true;
 		}
@@ -1084,6 +1084,17 @@ bool FAssetManagerEditorModule::GetIntegerValueForCustomColumn(const FAssetData&
 			return true;
 		}
 	}
+	else if (ColumnName == ResourceSizeName)
+	{
+		// Resource size can currently only be calculated for loaded assets, so load and check
+		UObject* Asset = AssetData.GetAsset();
+
+		if (Asset)
+		{
+			OutValue = Asset->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
+			return true;
+		}
+	}
 	else if (ColumnName == TotalUsageName)
 	{
 		int64 TotalWeight = 0;
@@ -1110,11 +1121,6 @@ bool FAssetManagerEditorModule::GetIntegerValueForCustomColumn(const FAssetData&
 		// Get base value of asset tag
 		if (AssetData.GetTagValue(ColumnName, OutValue))
 		{
-			// ResourceSize is in kb, convert back to bytes
-			if (ColumnName == ResourceSizeName)
-			{
-				OutValue *= 1024;
-			}
 			return true;
 		}
 	}
@@ -1156,19 +1162,14 @@ FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* Ta
 	FParse::Value(FCommandLine::Get(), TEXT("AssetRegistryFile="), CommandLinePath);
 	CommandLinePath.ReplaceInline(TEXT("[Platform]"), *PlatformName);
 	
-	// First try DevelopmentAssetRegistry.bin, then try AssetRegistry.bin
-	FString CookedAssetRegistry = FPaths::ProjectDir() / TEXT("AssetRegistry.bin");
+	// We can only load DevelopmentAssetRegistry, the normal asset registry doesn't have enough data to be useful
+	FString CookedDevelopmentAssetRegistry = FPaths::ProjectDir() / TEXT("Metadata") / TEXT("DevelopmentAssetRegistry.bin");
 
-	FString CookedPath = CookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
-	FString DevCookedPath = CookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+	FString DevCookedPath = CookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedDevelopmentAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevEditorCookedPath = EditorCookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedDevelopmentAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevSharedCookedPath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), PlatformName, TEXT("Metadata"), TEXT("DevelopmentAssetRegistry.bin"));
 
-	FString EditorCookedPath = EditorCookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
-	FString DevEditorCookedPath = EditorCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
-
-	FString SharedCookedPath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), PlatformName, TEXT("Cooked"), TEXT("AssetRegistry.bin"));
-	FString DevSharedCookedPath = SharedCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
-
-	// Try command line, then cooked, then build
+	// Try command line, then cooked, then shared build
 	if (!CommandLinePath.IsEmpty() && IFileManager::Get().FileExists(*CommandLinePath))
 	{
 		return CommandLinePath;
@@ -1179,29 +1180,14 @@ FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* Ta
 		return DevCookedPath;
 	}
 
-	if (IFileManager::Get().FileExists(*CookedPath))
-	{
-		return CookedPath;
-	}
-
 	if (IFileManager::Get().FileExists(*DevEditorCookedPath))
 	{
 		return DevEditorCookedPath;
 	}
 
-	if (IFileManager::Get().FileExists(*EditorCookedPath))
-	{
-		return EditorCookedPath;
-	}
-
 	if (IFileManager::Get().FileExists(*DevSharedCookedPath))
 	{
 		return DevSharedCookedPath;
-	}
-
-	if (IFileManager::Get().FileExists(*SharedCookedPath))
-	{
-		return SharedCookedPath;
 	}
 
 	return FString();
@@ -1230,7 +1216,7 @@ void FAssetManagerEditorModule::SetCurrentRegistrySource(const FString& SourceNa
 
 	FAssetManagerEditorRegistrySource* NewSource = RegistrySourceMap.Find(SourceName);
 
-	if (ensure(NewSource))
+	if (NewSource)
 	{
 		CurrentRegistrySource = NewSource;
 
@@ -1369,6 +1355,13 @@ void FAssetManagerEditorModule::SetCurrentRegistrySource(const FString& SourceNa
 			CurrentRegistrySource->bManagementDataInitialized = true;
 		}
 	}
+	else
+	{
+		FNotificationInfo Info(FText::Format(LOCTEXT("LoadRegistryFailed", "Can't find registry source {0}! Reverting to Editor."), FText::FromString(SourceName)));
+		Info.ExpireDuration = 10.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		CurrentRegistrySource = RegistrySourceMap.Find(FAssetManagerEditorRegistrySource::EditorSourceName);
+	}
 
 	check(CurrentRegistrySource);
 	
@@ -1391,15 +1384,13 @@ void FAssetManagerEditorModule::RefreshRegistryData()
 {
 	UAssetManager::Get().UpdateManagementDatabase();
 
-	// Reset registry source, then set it again
-	if (!CurrentRegistrySource->bIsEditor && CurrentRegistrySource->RegistryState)
-	{
-		delete CurrentRegistrySource->RegistryState;
-		CurrentRegistrySource->RegistryState = nullptr;
-	}
+	// Rescan registry sources, try to restore the current one
+	FString OldSourceName = CurrentRegistrySource->SourceName;
 
-	CurrentRegistrySource->bManagementDataInitialized = false;
-	SetCurrentRegistrySource(CurrentRegistrySource->SourceName);
+	CurrentRegistrySource = nullptr;
+	InitializeRegistrySources(false);
+
+	SetCurrentRegistrySource(OldSourceName);
 }
 
 bool FAssetManagerEditorModule::IsPackageInCurrentRegistrySource(FName PackageName)

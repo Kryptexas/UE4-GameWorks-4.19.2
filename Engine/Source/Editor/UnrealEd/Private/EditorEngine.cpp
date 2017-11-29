@@ -687,7 +687,7 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 				// Notify about any BP assets that are about to be unloaded
 				if (UBlueprint* BP = Cast<UBlueprint>(InObject))
 				{
-					FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(BP);
+					BP->ClearEditorReferences();
 				}
 			}
 		}, false, RF_Transient, EInternalObjectFlags::PendingKill);

@@ -975,7 +975,7 @@ void SAssetViewItem::UpdateSourceControlState(float InDeltaTime)
 	if ( !bSourceControlStateRequested && SourceControlStateDelay > 1.0f && ISourceControlModule::Get().IsEnabled() && AssetItem.IsValid() )
 	{
 		// Only update the SCC state for non-temporary asset items that aren't a built in script
-		if ( !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) )
+		if ( !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) && !FPackageName::IsMemoryPackage(CachedPackageName) && !FPackageName::IsTempPackage(CachedPackageName))
 		{
 			// Request the most recent SCC state for this asset
 			ISourceControlModule::Get().QueueStatusUpdate(CachedPackageFileName);

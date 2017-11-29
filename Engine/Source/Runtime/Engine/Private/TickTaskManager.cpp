@@ -807,17 +807,12 @@ public:
 		bool bDeferredRemove;
 	};
 
-	void RemoveAndRescheduleForInterval(FTickFunction* TickFunction)
-	{
-		verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
-		TickFunctionsToReschedule.Add(FTickScheduleDetails(TickFunction, TickFunction->TickInterval));
-	}
 	void RescheduleForIntervalParallel(FTickFunction* TickFunction)
 	{
 		// note we do the remove later!
 		TickFunctionsToReschedule.AddThreadsafe(FTickScheduleDetails(TickFunction, TickFunction->TickInterval, true));
 	}
-	/* Puts a TickFunction in to the cooldown state*/
+	/* Helper to presize reschedule array */
 	void ReserveTickFunctionCooldowns(int32 NumToReserve)
 	{
 		TickFunctionsToReschedule.Reserve(NumToReserve);
@@ -972,7 +967,7 @@ public:
 	/**
 	 * If there is infinite recursive spawning, log that and discard them
 	 */
-	void LogAndDisardRunawayNewlySpawned(ETickingGroup CurrentTickGroup)
+	void LogAndDiscardRunawayNewlySpawned(ETickingGroup CurrentTickGroup)
 	{
 		Context.TickGroup = CurrentTickGroup;
 		FTickTaskSequencer& TTS = FTickTaskSequencer::Get();
@@ -1480,7 +1475,7 @@ public:
 				// this is runaway recursive spawning.
 				for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
 				{
-					LevelList[LevelIndex]->LogAndDisardRunawayNewlySpawned(Context.TickGroup);
+					LevelList[LevelIndex]->LogAndDiscardRunawayNewlySpawned(Context.TickGroup);
 				}
 			}
 		}

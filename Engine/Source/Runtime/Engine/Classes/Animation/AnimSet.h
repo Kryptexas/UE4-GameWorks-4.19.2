@@ -118,7 +118,6 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface
 	
 	//~ Begin UAnimSet Interface

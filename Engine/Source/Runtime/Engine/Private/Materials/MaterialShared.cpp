@@ -1287,60 +1287,55 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, 
 	}
 }
 
-SIZE_T FMaterialResource::GetResourceSizeInclusive()
-{
-	FResourceSizeEx ResSize = FResourceSizeEx(EResourceSizeMode::Inclusive);
-	GetResourceSizeEx(ResSize);
-	return ResSize.GetTotalMemoryBytes();
-}
-
 void FMaterialResource::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
+	TSet<const FMaterialShaderMap*> UniqueShaderMaps;
+	TMap<FShaderId, FShader*> UniqueShaders;
+	TArray<FShaderPipeline*> ShaderPipelines;
+	TSet<FShaderResourceId> UniqueShaderResourceIds;
+
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FMaterialResource));
+	UniqueShaderMaps.Add(GetGameThreadShaderMap());
+
+	for (TSet<const FMaterialShaderMap*>::TConstIterator It(UniqueShaderMaps); It; ++It)
 	{
-		TSet<const FMaterialShaderMap*> UniqueShaderMaps;
-		TMap<FShaderId, FShader*> UniqueShaders;
-		TArray<FShaderPipeline*> ShaderPipelines;
-		TSet<FShaderResourceId> UniqueShaderResourceIds;
-
-		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FMaterialResource));
-		UniqueShaderMaps.Add(GetGameThreadShaderMap());
-
-		for (TSet<const FMaterialShaderMap*>::TConstIterator It(UniqueShaderMaps); It; ++It)
+		const FMaterialShaderMap* MaterialShaderMap = *It;
+		if (MaterialShaderMap)
 		{
-			const FMaterialShaderMap* MaterialShaderMap = *It;
-			if (MaterialShaderMap)
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MaterialShaderMap->GetSizeBytes());
+
+			// Shaders are shared, so only count them in total mode
+			if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::EstimatedTotal)
 			{
-				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MaterialShaderMap->GetSizeBytes());
 				MaterialShaderMap->GetShaderList(UniqueShaders);
 				MaterialShaderMap->GetShaderPipelineList(ShaderPipelines);
 			}
 		}
+	}
 
-		for (auto& KeyValue : UniqueShaders)
+	for (auto& KeyValue : UniqueShaders)
+	{
+		FShader* Shader = KeyValue.Value;
+		if (Shader)
 		{
-			auto* Shader = KeyValue.Value;
-			if (Shader)
-			{
-				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(AddShaderSize(Shader, UniqueShaderResourceIds));
-			}
-		}
-
-		for (FShaderPipeline* Pipeline : ShaderPipelines)
-		{
-			if (Pipeline)
-			{
-				for (FShader* Shader : Pipeline->GetShaders())
-				{
-					if (Shader)
-					{
-						CumulativeResourceSize.AddDedicatedSystemMemoryBytes(AddShaderSize(Shader, UniqueShaderResourceIds));
-					}
-				}
-				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(Pipeline->GetSizeBytes());
-			}
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(AddShaderSize(Shader, UniqueShaderResourceIds));
 		}
 	}
+
+	for (FShaderPipeline* Pipeline : ShaderPipelines)
+	{
+		if (Pipeline)
+		{
+			for (FShader* Shader : Pipeline->GetShaders())
+			{
+				if (Shader)
+				{
+					CumulativeResourceSize.AddDedicatedSystemMemoryBytes(AddShaderSize(Shader, UniqueShaderResourceIds));
+				}
+			}
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(Pipeline->GetSizeBytes());
+		}
+	}	
 }
 
 /**

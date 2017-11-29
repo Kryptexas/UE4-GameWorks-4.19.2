@@ -2141,7 +2141,7 @@ struct FEventGraphUtils
 		}
 
 		// If the function call node is an intermediate node resulting from expansion of an async task node, then the return value term must also be persistent.
-		const UEdGraphNode* SourceNode = MessageLog.GetSourceNode(OwnerNode);
+		const UObject* SourceNode = MessageLog.FindSourceObject(OwnerNode);
 		if (SourceNode && SourceNode->IsA<UK2Node_BaseAsyncTask>())
 		{
 			return true;

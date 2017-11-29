@@ -1767,6 +1767,11 @@ void UBlueprint::ReplaceDeprecatedNodes()
 	}
 }
 
+void UBlueprint::ClearEditorReferences()
+{
+	FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(this);
+}
+
 UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
 {
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
@@ -1784,9 +1789,12 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 	return InheritableComponentHandler;
 }
 
-#endif
 
-#if WITH_EDITOR
+EDataValidationResult UBlueprint::IsDataValid(TArray<FText>& ValidationErrors)
+{
+	return GeneratedClass ? GeneratedClass->GetDefaultObject()->IsDataValid(ValidationErrors) : EDataValidationResult::Invalid;
+}
+
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
 	return FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(InClass, FunctionGuid);

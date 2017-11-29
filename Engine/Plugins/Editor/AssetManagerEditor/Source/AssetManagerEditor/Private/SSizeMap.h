@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SComboBox.h"
 #include "AssetData.h"
 #include "AssetManagerEditorModule.h"
 #include "ITreeMap.h"
@@ -105,10 +106,13 @@ protected:
 	FText GetSizeTypeComboText() const;
 	FText GetSizeTypeText(FName SizeType) const;
 	FText GetOverviewText() const;
+	bool IsSizeTypeEnabled() const;
 
 	TArray<TSharedPtr<FName>> SizeTypeComboList;
 	FName CurrentSizeType;
 	FText OverviewText;
+	bool bMemorySizeCached;
+	TSharedPtr<SComboBox<TSharedPtr<FName>>> ComboBoxWidget;
 
 	/** Our tree map widget */
 	TSharedPtr<class STreeMap> TreeMapWidget;

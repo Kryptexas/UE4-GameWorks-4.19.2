@@ -58,12 +58,6 @@ public:
 	// Reverse map from code offset to source node
 	TMap< int32, TWeakObjectPtr<UEdGraphNode> > LineNumberToSourceNodeMap;
 
-	// Reverse map from code offset to macro source node
-	TMap< int32, TWeakObjectPtr<UEdGraphNode> > LineNumberToMacroSourceNodeMap;
-
-	// Reverse map from code offset to macro instance node(s)
-	TMultiMap< int32, TWeakObjectPtr<UEdGraphNode> > LineNumberToMacroInstanceNodeMap;
-
 	// Reverse map from code offset to source pin
 	TMap< int32, FEdGraphPinReference > LineNumberToSourcePinMap;
 
@@ -260,36 +254,6 @@ public:
 		return nullptr;
 	}
 
-	// Finds the macro source node associated with the code location Function+CodeOffset, or nullptr if there isn't one
-	UEdGraphNode* FindMacroSourceNodeFromCodeLocation(UFunction* Function, int32 CodeOffset) const
-	{
-		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
-		{
-			return pFuncInfo->LineNumberToMacroSourceNodeMap.FindRef(CodeOffset).Get();
-		}
-
-		return nullptr;
-	}
-
-	// Finds the macro instance node(s) associated with the code location Function+CodeOffset. The returned set can be empty.
-	void FindMacroInstanceNodesFromCodeLocation(UFunction* Function, int32 CodeOffset, TArray<UEdGraphNode*>& MacroInstanceNodes) const
-	{
-		MacroInstanceNodes.Empty();
-		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
-		{
-			TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodePtrs;
-			pFuncInfo->LineNumberToMacroInstanceNodeMap.MultiFind(CodeOffset, MacroInstanceNodePtrs);
-			for(auto MacroInstanceNodePtrIt = MacroInstanceNodePtrs.CreateConstIterator(); MacroInstanceNodePtrIt; ++MacroInstanceNodePtrIt)
-			{
-				TWeakObjectPtr<UEdGraphNode> MacroInstanceNodePtr = *MacroInstanceNodePtrIt;
-				if(UEdGraphNode* MacroInstanceNode = MacroInstanceNodePtr.Get())
-				{
-					MacroInstanceNodes.AddUnique(MacroInstanceNode);
-				}
-			}
-		}
-	}
-
 	// Finds the source pin associated with the code location Function+CodeOffset, or nullptr if there isn't one
 	UEdGraphPin* FindSourcePinFromCodeLocation(UFunction* Function, int32 CodeOffset) const
 	{
@@ -337,13 +301,6 @@ public:
 		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(InFunction))
 		{
 			for (auto CodeLocation : pFuncInfo->LineNumberToSourceNodeMap)
-			{
-				if (CodeLocation.Value == SourceNode)
-				{
-					OutNodeToCodeAssociations.Add(CodeLocation.Key);
-				}
-			}
-			for (auto CodeLocation : pFuncInfo->LineNumberToMacroSourceNodeMap)
 			{
 				if (CodeLocation.Value == SourceNode)
 				{
@@ -416,33 +373,23 @@ public:
 	}
 
 	// Adds a debug record for a source node and destination in the bytecode of a specified function
-	void RegisterNodeToCodeAssociation(UEdGraphNode* TrueSourceNode, UEdGraphNode* MacroSourceNode, const TArray<TWeakObjectPtr<UEdGraphNode>>& MacroInstanceNodes, UFunction* InFunction, int32 CodeOffset, bool bBreakpointSite)
+	void RegisterNodeToCodeAssociation(UEdGraphNode* SourceNode, UFunction* InFunction, int32 CodeOffset, bool bBreakpointSite)
 	{
 		//@TODO: Nasty expansion behavior during compile time
 		if (bBreakpointSite)
 		{
-			new (DebugNodeLineNumbers) FNodeToCodeAssociation(TrueSourceNode, InFunction, CodeOffset);
-			DebugNodeIndexLookup.Add(TrueSourceNode, DebugNodeLineNumbers.Num() - 1);
+			new (DebugNodeLineNumbers) FNodeToCodeAssociation(SourceNode, InFunction, CodeOffset);
+			DebugNodeIndexLookup.Add(SourceNode, DebugNodeLineNumbers.Num() - 1);
 		}
 
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
-		PerFuncInfo.LineNumberToSourceNodeMap.Add(CodeOffset, TrueSourceNode);
-
-		if (MacroSourceNode)
-		{
-			PerFuncInfo.LineNumberToMacroSourceNodeMap.Add(CodeOffset, MacroSourceNode);
-		}
-
-		for(auto MacroInstanceNodePtrIt = MacroInstanceNodes.CreateConstIterator(); MacroInstanceNodePtrIt; ++MacroInstanceNodePtrIt)
-		{
-			PerFuncInfo.LineNumberToMacroInstanceNodeMap.Add(CodeOffset, *MacroInstanceNodePtrIt);
-		}
+		PerFuncInfo.LineNumberToSourceNodeMap.Add(CodeOffset, SourceNode);
 	}
 
-	void RegisterPureNodeScriptCodeRange(UEdGraphNode* TrueSourceNode, UFunction* InFunction, FInt32Range InPureNodeScriptCodeRange)
+	void RegisterPureNodeScriptCodeRange(UEdGraphNode* SourceNode, UFunction* InFunction, FInt32Range InPureNodeScriptCodeRange)
 	{
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
-		PerFuncInfo.PureNodeScriptCodeRangeMap.Add(TrueSourceNode, InPureNodeScriptCodeRange);
+		PerFuncInfo.PureNodeScriptCodeRangeMap.Add(SourceNode, InPureNodeScriptCodeRange);
 	}
 
 	void RegisterPinToCodeAssociation(UEdGraphPin const* SourcePin, UFunction* InFunction, int32 CodeOffset)

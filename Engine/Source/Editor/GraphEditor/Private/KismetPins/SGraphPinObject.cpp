@@ -152,6 +152,9 @@ FReply SGraphPinObject::OnClickUse()
 		UObject* SelectedObject = GEditor->GetSelectedObjects()->GetTop(ObjectClass);
 		if(SelectedObject != NULL)
 		{
+			const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeObjectPinValue", "Change Object Pin Value"));
+			GraphPinObj->Modify();
+
 			GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, SelectedObject);
 		}
 	}

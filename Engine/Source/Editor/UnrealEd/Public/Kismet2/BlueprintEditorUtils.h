@@ -22,6 +22,7 @@ class FCompilerResultsLog;
 class INameValidatorInterface;
 class UActorComponent;
 class UBlueprintGeneratedClass;
+class UK2Node_Event;
 class UK2Node_Variable;
 class ULevelScriptBlueprint;
 class USCS_Node;
@@ -380,6 +381,9 @@ public:
 	/** Adds an ubergraph page to this blueprint */
 	static void AddUbergraphPage(UBlueprint* Blueprint, class UEdGraph* Graph);
 
+	/** Returns the name of the Ubergraph Function that the provided blueprint uses */
+	static FName GetUbergraphFunctionName(const UBlueprint* ForBlueprint);
+
 	/** Adds a domain-specific graph to this blueprint */
 	static void AddDomainSpecificGraph(UBlueprint* Blueprint, class UEdGraph* Graph);
 
@@ -437,11 +441,10 @@ public:
 	static bool IsGraphReadOnly(UEdGraph* InGraph);
 
 	/** Look to see if an event already exists to override a particular function */
-	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
+	static UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
 
 	/** Find the Custom Event if it already exists in the Blueprint */
-	static class UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
-
+	static UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
 
 	/** Returns all nodes in all graphs of the specified class */
 	template< class T > 

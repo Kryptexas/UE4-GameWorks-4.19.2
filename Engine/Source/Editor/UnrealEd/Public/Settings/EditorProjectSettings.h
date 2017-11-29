@@ -172,6 +172,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	uint32 bSkipUnneededDependencyCompilation:1;
 
+	/** If enabled, the editor will load packages to look for soft references to actors when deleting/renaming them. This can be slow in large projects so disable this to improve performance but increase the chance of breaking blueprints/sequences that use soft actor references */
+	UPROPERTY(EditAnywhere, config, Category=Actors)
+	uint32 bValidateUnloadedSoftActorReferences : 1;
+
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface

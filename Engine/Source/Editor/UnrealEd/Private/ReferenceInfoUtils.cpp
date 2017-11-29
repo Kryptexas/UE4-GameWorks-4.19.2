@@ -476,7 +476,7 @@ namespace ReferenceInfoUtils
 		}
 
 		// Create a string for the resource size.
-		const SIZE_T ReferencedObjectResourceSize = ReferencedObject->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+		const SIZE_T ReferencedObjectResourceSize = ReferencedObject->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 		FString ResourceSizeString;
 		if ( ReferencedObjectResourceSize > 0 )
 		{

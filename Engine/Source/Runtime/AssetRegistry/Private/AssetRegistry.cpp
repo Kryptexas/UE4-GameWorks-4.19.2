@@ -86,23 +86,11 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 	// for platforms that require cooked data, we attempt to load a premade asset registry
 	else if (FPlatformProperties::RequiresCookedData())
 	{
-		bool bLoadedDevelopment = false;
 		// load the cooked data
 		FArrayReader SerializedAssetData;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// Allow loading development asset registry
-		FString DevAssetRegistryFilename = (FPaths::ProjectDir() / TEXT("DevelopmentAssetRegistry.bin"));
-		if (FParse::Param(FCommandLine::Get(), TEXT("LoadDevAssetRegistry")) && IFileManager::Get().FileExists(*DevAssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevAssetRegistryFilename))
-		{
-			SerializationOptions.ModifyForDevelopment();
-
-			Serialize(SerializedAssetData);
-			bLoadedDevelopment = true;
-		}
-#endif
 		FString AssetRegistryFilename = (FPaths::ProjectDir() / TEXT("AssetRegistry.bin"));
-		if (SerializationOptions.bSerializeAssetRegistry && !bLoadedDevelopment && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
+		if (SerializationOptions.bSerializeAssetRegistry && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
 		{
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)
 			Serialize(SerializedAssetData);

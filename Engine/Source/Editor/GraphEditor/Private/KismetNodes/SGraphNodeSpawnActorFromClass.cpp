@@ -12,6 +12,7 @@
 #include "NodeFactory.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SGraphPinActorBasedClass"
 
@@ -32,6 +33,9 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 		{
 			if(const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
 			{
+				const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeClassPinValue", "Change Class Pin Value"));
+				GraphPinObj->Modify();
+
 				Schema->TrySetDefaultObject(*GraphPinObj, InChosenClass);
 			}
 		}
@@ -75,6 +79,9 @@ protected:
 			const UClass* SelectedClass = GEditor->GetFirstSelectedClass(PinRequiredParentClass);
 			if(SelectedClass)
 			{
+				const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeClassPinValue", "Change Class Pin Value"));
+				GraphPinObj->Modify();
+
 				GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, const_cast<UClass*>(SelectedClass));
 			}
 		}

@@ -11,6 +11,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "KismetCompilerMisc.h"
 #include "Kismet2/CompilerResultsLog.h"
+#include "Kismet2/StructureEditorUtils.h"
 #include "Styling/SlateIconFinder.h"
 #include "Logging/MessageLog.h"
 #include "SourceCodeNavigation.h"
@@ -305,10 +306,10 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 				}
 
 				// Compare whether the names, ignoring the original variable's name in the case of renames, match
-				FString NewPinPropertyName = NewPin->PinName.ToString().RightChop(ParentmostNewPin->PinName.ToString().Len() + 1);
-				FString OldPinPropertyName = OldPin->PinName.ToString().RightChop(ParentmostOldPin->PinName.ToString().Len() + 1);
+				FName NewPinPropertyName = FName(*NewPin->PinName.ToString().RightChop(ParentmostNewPin->PinName.ToString().Len() + 1));
+				FName OldPinPropertyName = FName(*OldPin->PinName.ToString().RightChop(ParentmostOldPin->PinName.ToString().Len() + 1));
 
-				if (NewPinPropertyName != OldPinPropertyName)
+				if (!DoesRenamedVariableMatch(OldPinPropertyName, NewPinPropertyName, Cast<UStruct>(NewPin->ParentPin->PinType.PinSubCategoryObject.Get())))
 				{
 					return ERedirectType_None;
 				}
@@ -424,6 +425,36 @@ UProperty* UK2Node_Variable::GetPropertyForVariable() const
 	}
 
 	return GetPropertyForVariable_Internal(GetBlueprintClassFromNode());
+}
+
+bool UK2Node_Variable::DoesRenamedVariableMatch(FName OldVariableName, FName NewVariableName, UStruct* StructType)
+{
+	if (NewVariableName == OldVariableName)
+	{
+		return true;
+	}
+
+	FGuid OldPropertyGuid = FStructureEditorUtils::GetGuidFromPropertyName(OldVariableName);
+	FGuid NewPropertyGuid = FStructureEditorUtils::GetGuidFromPropertyName(NewVariableName);
+
+	// If guids match this was a user struct rename
+	if (OldPropertyGuid.IsValid() && (OldPropertyGuid == NewPropertyGuid))
+	{
+		return true;
+	}
+
+	// Also check native rename if we can find the struct
+	if (StructType)
+	{
+		FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, OldVariableName);
+
+		if (NewVariableName == RedirectedPinName)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 UProperty* UK2Node_Variable::GetPropertyForVariableFromSkeleton() const

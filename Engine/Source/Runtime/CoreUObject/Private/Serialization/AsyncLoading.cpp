@@ -4630,6 +4630,24 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 				const EAsyncLoadingResult::Type LoadingResult = Package->HasLoadFailed() ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
 				Package->CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
 
+#if WITH_EDITOR
+				// In the editor we need to find any assets and add them to list for later callback
+				UPackage* LoadedPackage = Package->GetLoadedPackage();
+
+				if (LoadedPackage)
+				{
+					TArray<UObject*> TopLevelObjects;
+					GetObjectsWithOuter(LoadedPackage, TopLevelObjects, false);
+
+					for (UObject* TopLevelObject : TopLevelObjects)
+					{
+						if (TopLevelObject->IsAsset())
+						{
+							LoadedAssets.Add(TopLevelObject);
+						}
+					}
+				}
+#endif
 				// We don't need the package anymore
 				PackagesToDelete.AddUnique(Package);
 				Package->MarkRequestIDsAsComplete();
@@ -4678,6 +4696,19 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 #if WITH_EDITORONLY_DATA
 		// This needs to happen after loading new blueprints in the editor, and this is handled in EndLoad for synchronous loads
 		FBlueprintSupport::FlushReinstancingQueue();
+#endif
+
+#if WITH_EDITOR
+		// In editor builds, call the asset load callback. This happens in both editor and standalone to match EndLoad
+		for (const FWeakObjectPtr& WeakAsset : LoadedAssets)
+		{
+			// It may have been unloaded/marked pending kill since being added, ignore those cases
+			if (UObject* LoadedAsset = WeakAsset.Get())
+			{
+				FCoreUObjectDelegates::OnAssetLoaded.Broadcast(LoadedAsset);
+			}
+		}
+		LoadedAssets.Reset();
 #endif
 
 		// We're not done until all packages have been deleted
@@ -6568,6 +6599,12 @@ void FAsyncPackage::CallCompletionCallbacks(bool bInternal, EAsyncLoadingResult:
 			CompletionCallback.Callback->ExecuteIfBound(Desc.Name, LoadedPackage, LoadingResult);
 		}
 	}
+}
+
+UPackage* FAsyncPackage::GetLoadedPackage()
+{
+	UPackage* LoadedPackage = (!bLoadHasFailed) ? LinkerRoot : nullptr;
+	return LoadedPackage;
 }
 
 void FAsyncPackage::Cancel()

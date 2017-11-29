@@ -80,7 +80,7 @@ void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedR
 		check(TextureObject == InResource->TextureObject);
 		TextureMap.Add(TextureObject, InResource);
 
-		TextureMemorySincePurge += TextureObject->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+		TextureMemorySincePurge += TextureObject->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	}
 }
 
@@ -100,7 +100,7 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture* TextureObject )
 	if(TextureObject)
 	{
 		TextureMap.Remove(TextureObject);
-		TextureMemorySincePurge -= TextureObject->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+		TextureMemorySincePurge -= TextureObject->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	}
 }
 

@@ -380,11 +380,18 @@ public:
 	static bool IsScriptPackage(const FString& InPackageName);
 
 	/**
-	 * Checks the root of hte package's path to see if it's a memory package
-	 *		This should be set for packages that reside in memory and not on disk, we treat them similar to a script package
+	 * Checks the root of the package's path to see if it's a memory package
+	 * This should be set for packages that reside in memory and not on disk, we treat them similar to a script package
 	 * @return true if the root of the patch matches the memory path
 	 */
 	static bool IsMemoryPackage(const FString& InPackageName);
+
+	/**
+	 * Checks the root of the package's path to see if it is a temp package
+	 * Temp packages are sometimes saved to disk, and sometimes only exist in memory. They are never in source control
+	 * @return true if the root of the patch matches the temp path
+	 */
+	static bool IsTempPackage(const FString& InPackageName);
 
 	/**
 	 * Checks the root of the package's path to see if it is a localized package

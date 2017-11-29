@@ -33,6 +33,9 @@ FReply SGraphPinClass::OnClickUse()
 		const UClass* SelectedClass = GEditor->GetFirstSelectedClass(PinRequiredParentClass);
 		if(SelectedClass)
 		{
+			const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeClassPinValue", "Change Class Pin Value"));
+			GraphPinObj->Modify();
+
 			GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, const_cast<UClass*>(SelectedClass));
 		}
 	}

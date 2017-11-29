@@ -384,7 +384,7 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 			UObject::FAssetRegistryTag::ETagType TagType = FindAndRefreshCustomColumn(AssetItems, Tag, CustomColumns);
 			
 			// Since this SortData.Tag is not one of preset columns, sort by asset registry tag	
-			if (TagType != UObject::FAssetRegistryTag::ETagType::TT_Hidden && MajorityAssetType != NAME_None)
+			if (TagType == UObject::FAssetRegistryTag::ETagType::TT_Hidden && MajorityAssetType != NAME_None)
 			{
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *MajorityAssetType.ToString());
 				if (Class)

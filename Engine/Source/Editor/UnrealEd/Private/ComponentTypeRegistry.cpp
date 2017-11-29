@@ -330,7 +330,7 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 			// GetAssetsByClass call is a kludge to get the full asset paths for the blueprints we care about, Bob T. thinks 
 			// that the Asset Registry could just keep asset paths:
 			TArray<FAssetData> BlueprintAssetData;
-			AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetData);
+			AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetData, true);
 			TMap<FString, FAssetData> BlueprintNames;
 			for (const FAssetData& Blueprint : BlueprintAssetData)
 			{

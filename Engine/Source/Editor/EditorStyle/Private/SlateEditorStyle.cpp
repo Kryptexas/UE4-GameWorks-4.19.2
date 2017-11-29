@@ -5601,9 +5601,12 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 		Set( "PlayWorld.ShowCurrentStatement", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon40x40 ) );
 		Set( "PlayWorld.ShowCurrentStatement.Small", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon20x20 ) );
-		Set( "PlayWorld.StepInto", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon40x40 ) );
-		Set( "PlayWorld.StepInto.Small", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon20x20 ) );
-		Set( "PlayWorld.StepOver", new IMAGE_BRUSH( "Old/Kismet2/Debugger_StepOver", Icon40x40 ) );
+		Set( "PlayWorld.StepOut", new IMAGE_BRUSH("Icons/icon_DebugStepOut_40x", Icon40x40));
+		Set( "PlayWorld.StepOut.Small", new IMAGE_BRUSH("Icons/icon_DebugStepOut_40x", Icon20x20));
+		Set( "PlayWorld.StepInto", new IMAGE_BRUSH( "Icons/icon_DebugStepIn_40x", Icon40x40 ) );
+		Set( "PlayWorld.StepInto.Small", new IMAGE_BRUSH( "Icons/icon_DebugStepIn_40x", Icon20x20 ) );
+		Set( "PlayWorld.StepOver", new IMAGE_BRUSH( "Icons/icon_DebugStepOver_40x", Icon40x40 ) );
+		Set( "PlayWorld.StepOver.Small", new IMAGE_BRUSH("Icons/icon_DebugStepOver_40x", Icon20x20));
 	}
 
 
@@ -5624,12 +5627,13 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "Kismet.DebuggerOverlay.Breakpoint.Disabled", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Disabled", Icon32x32 ) );
 		Set( "Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalid", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Invalid", Icon32x32 ) );
 		Set( "Kismet.DebuggerOverlay.Breakpoint.EnabledAndValid", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Valid", Icon32x32 ) );
-		Set( "Kismet.DebuggerOverlay.Breakpoint.DisabledCollapsed", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Disabled_Collapsed", Icon32x32 ) );
-		Set( "Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalidCollapsed", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Invalid_Collapsed", Icon32x32 ) );
-		Set( "Kismet.DebuggerOverlay.Breakpoint.EnabledAndValidCollapsed", new IMAGE_BRUSH( "Old/Kismet2/Breakpoint_Valid_Collapsed", Icon32x32 ) );
 
 		Set( "Kismet.DebuggerOverlay.InstructionPointer", new IMAGE_BRUSH( "Old/Kismet2/IP_Normal", FVector2D(128,96)) );
 		Set( "Kismet.DebuggerOverlay.InstructionPointerBreakpoint", new IMAGE_BRUSH( "Old/Kismet2/IP_Breakpoint", FVector2D(128,96)) );
+
+		Set ("Kismet.CallStackViewer.CurrentStackFrame", new IMAGE_BRUSH( "Old/Kismet2/DebuggerArrow", Icon12x12 ));
+		Set( "Kismet.CallStackViewer.CurrentStackFrameColor", FLinearColor(0.728f, 0.364f, 0.003f) );
+		Set( "Kismet.CallStackViewer.LastStackFrameNavigatedToColor", FLinearColor( 0.4f, 0.5f, 0.7f, 1.0f ) );
 	}
 
 	// Asset context menu

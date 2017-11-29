@@ -367,7 +367,7 @@ void ULandscapeComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceS
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	CumulativeResourceSize.AddUnknownMemoryBytes(GrassData->GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GrassData->GetAllocatedSize());
 }
 
 #if WITH_EDITOR

@@ -15,8 +15,6 @@
 #include "SGraphPin.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
-#include "K2Node_Composite.h"
-#include "K2Node_MacroInstance.h"
 #include "K2Node_Timeline.h"
 #include "Engine/Breakpoint.h"
 #include "Kismet2/KismetDebugUtilities.h"
@@ -361,28 +359,13 @@ void SGraphNodeK2Base::GetOverlayBrushes(bool bSelected, const FVector2D WidgetS
 	{
 		FOverlayBrushInfo BreakpointOverlayInfo;
 
-		if (Breakpoint->GetLocation()->IsA<UK2Node_Composite>()
-			|| Breakpoint->GetLocation()->IsA<UK2Node_MacroInstance>())
+		if (Breakpoint->IsEnabledByUser())
 		{
-			if (Breakpoint->IsEnabledByUser())
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValidCollapsed") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalidCollapsed"));
-			}
-			else
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.DisabledCollapsed"));
-			}
+			BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValid") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalid"));
 		}
 		else
 		{
-			if (Breakpoint->IsEnabledByUser())
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValid") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalid"));
-			}
-			else
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.Disabled"));
-			}
+			BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.Disabled"));
 		}
 
 		if(BreakpointOverlayInfo.Brush != NULL)

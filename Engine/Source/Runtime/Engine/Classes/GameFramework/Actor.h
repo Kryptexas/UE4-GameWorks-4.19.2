@@ -288,7 +288,8 @@ private:
 	UPROPERTY()
 	uint8 bActorEnableCollision:1;
 
-	/** Set when actor is about to be deleted. */
+	/** Set when actor is about to be deleted. Needs to be uproperty so included in transactions. */
+	UPROPERTY(Transient, DuplicateTransient)
 	uint8 bActorIsBeingDestroyed:1;
 
 	enum class EActorBeginPlayState : uint8
@@ -1932,6 +1933,11 @@ public:
 	 * the KillZ, outside world bounds, etc. and handle the situation.
 	 */
 	virtual bool CheckStillInWorld();
+
+#if WITH_EDITOR
+	/** Returns Valid if this object has data validation rules set up for it and the data for this object is valid. Returns Invalid if it does not pass the rules. Returns NotValidated if no rules are set for this object. */
+	virtual EDataValidationResult IsDataValid(TArray<FText>& ValidationErrors) override;
+#endif // WITH_EDITOR
 
 
 	//~=============================================================================

@@ -2858,7 +2858,7 @@ struct FSortedParticleSet
 		, ModuleSize(0)
 		, ComponentSize(0)
 		, ComponentCount(0)
-		, ComponentResourceSize(EResourceSizeMode::Inclusive)
+		, ComponentResourceSize(EResourceSizeMode::EstimatedTotal)
 		, ComponentTrueResourceSize(EResourceSizeMode::Exclusive)
 	{
 	}
@@ -4448,7 +4448,7 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 		FArchiveCountMem Count( Tree );
 		int32 RootSize = Count.GetMax();
 
-		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(EResourceSizeMode::Inclusive), FResourceSizeEx(EResourceSizeMode::Exclusive)));
+		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(EResourceSizeMode::EstimatedTotal), FResourceSizeEx(EResourceSizeMode::Exclusive)));
 		SortMap.Add(Tree,SortedSets.Num() - 1);
 	}
 
@@ -4478,7 +4478,7 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 			Set.ComponentSize += ComponentCount.GetMax();
 
 			// Save this for adding to the total
-			FResourceSizeEx CompResSize = FResourceSizeEx(EResourceSizeMode::Inclusive);
+			FResourceSizeEx CompResSize = FResourceSizeEx(EResourceSizeMode::EstimatedTotal);
 			Comp->GetResourceSizeEx(CompResSize);
 
 			Set.ComponentResourceSize += CompResSize;
@@ -4740,8 +4740,8 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 	{
 		FORCEINLINE bool operator()( UStaticMesh& A, UStaticMesh& B ) const
 		{
-			const SIZE_T ResourceSizeA = A.GetResourceSizeBytes(EResourceSizeMode::Inclusive);
-			const SIZE_T ResourceSizeB = B.GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+			const SIZE_T ResourceSizeA = A.GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
+			const SIZE_T ResourceSizeB = B.GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 			return ResourceSizeB < ResourceSizeA;
 		}
 	};
@@ -4754,7 +4754,7 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 	for( int32 StaticMeshIndex=0; StaticMeshIndex<UniqueReferencedMeshes.Num(); StaticMeshIndex++ )
 	{
 		UStaticMesh* StaticMesh	= UniqueReferencedMeshes[StaticMeshIndex];
-		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 		TotalSize += StaticMeshResourceSize;
 	}
 
@@ -4768,7 +4768,7 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 		TArray<UParticleSystem*> ParticleSystems;
 		StaticMeshToParticleSystemMap.MultiFind( StaticMesh, ParticleSystems );
 
-		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 
 		// Log meshes including resource size and referencing particle systems.
 		Ar.Logf(TEXT("%5i KByte  %s"), StaticMeshResourceSize / 1024, *StaticMesh->GetFullName());
@@ -10357,9 +10357,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			if (!bCalled)
 			{
-				PRAGMA_DISABLE_DEPRECATION_WARNINGS
-				FCoreUObjectDelegates::PostLoadMap.Broadcast();
-				PRAGMA_ENABLE_DEPRECATION_WARNINGS
 				FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(nullptr);
 			}
 		}
@@ -10813,9 +10810,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// send a callback message
 	PostLoadMapCaller.bCalled = true;
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	FCoreUObjectDelegates::PostLoadMap.Broadcast();
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(WorldContext.World());
 	
 	WorldContext.World()->bWorldWasLoadedThisTick = true;

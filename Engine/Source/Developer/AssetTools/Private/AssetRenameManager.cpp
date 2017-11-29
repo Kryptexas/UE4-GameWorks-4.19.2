@@ -43,6 +43,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/RedirectCollector.h"
 #include "AssetToolsLog.h"
+#include "Settings/EditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "AssetRenameManager"
 
@@ -482,6 +483,8 @@ bool FAssetRenameManager::UpdatePackageStatus(const TArray<FAssetRenameDataWithR
 
 void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bLoadAllPackages, bool bCheckStatus, TArray<UPackage*>& OutReferencingPackagesToSave, TArray<UObject*>& OutSoftReferencingObjects) const
 {
+	const UBlueprintEditorProjectSettings* EditorProjectSettings = GetDefault<UBlueprintEditorProjectSettings>();
+	bool bLoadPackagesForSoftReferences = EditorProjectSettings->bValidateUnloadedSoftActorReferences;
 	bool bStartedSlowTask = false;
 	const FText ReferenceUpdateSlowTask = LOCTEXT("ReferenceUpdateSlowTask", "Updating Asset References");
 
@@ -555,7 +558,8 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 			}
 			UPackage* Package = FindPackage(nullptr, *PackageName.ToString());
 
-			if (!Package)
+			// Don't load package if this is a soft reference fix and the project settings say not to
+			if (!Package && (!RenameData.bOnlyFixSoftReferences || bLoadPackagesForSoftReferences))
 			{
 				if(!bStartedSlowTask)
 				{

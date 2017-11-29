@@ -186,12 +186,7 @@ FText UK2Node::GetToolTipHeading() const
 	{
 		if (ExistingBreakpoint->IsEnabled())
 		{
-			Heading = LOCTEXT("EnabledBreakpoint", "Active Breakpoint");
-			FText ActiveBreakpointToolTipText = GetActiveBreakpointToolTipText();
-			if (!ActiveBreakpointToolTipText.IsEmpty())
-			{
-				Heading = FText::Format(FText::FromString("{0} - {1}"), Heading, ActiveBreakpointToolTipText);
-			}
+			Heading = LOCTEXT("EnabledBreakpoint", "Active Breakpoint - Execution will break at this location.");
 		}
 		else 
 		{
@@ -200,11 +195,6 @@ FText UK2Node::GetToolTipHeading() const
 	}
 
 	return Heading;
-}
-
-FText UK2Node::GetActiveBreakpointToolTipText() const
-{
-	return LOCTEXT("ActiveBreakpointToolTip", "Execution will break at this location.");
 }
 
 bool UK2Node::CreatePinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry)
@@ -842,7 +832,7 @@ void UK2Node::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) con
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	// Since this might be an expanded node, the validation will have been done on the source node (which will return this if not expanded)
-	if (const UK2Node* SourceNode = Cast<UK2Node>(MessageLog.GetSourceNode(this)))
+	if (const UK2Node* SourceNode = Cast<UK2Node>(MessageLog.FindSourceObject(this)))
 	{
 		// If we don't commit any messages for the source node, then see if this node has messages to commit.
 		// This is primarily needed for nodes generated from inside macros.

@@ -827,15 +827,9 @@ void UPhysicsAsset::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	for (const auto& SingleBody : SkeletalBodySetups)
-	{
-		SingleBody->GetResourceSizeEx(CumulativeResourceSize);
-	}
-
+	// Nested body setups are handled by default implementation
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(BodySetupIndexMap.GetAllocatedSize());
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CollisionDisableTable.GetAllocatedSize());
-
-	// @todo implement inclusive mode
 }
 
 #undef LOCTEXT_NAMESPACE

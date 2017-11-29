@@ -64,10 +64,7 @@ struct FMorphTargetLODModel
 	int32 NumBaseMeshVerts;
 	
 	/** Get Resource Size */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 
 	FMorphTargetLODModel()
 		: NumBaseMeshVerts(0)

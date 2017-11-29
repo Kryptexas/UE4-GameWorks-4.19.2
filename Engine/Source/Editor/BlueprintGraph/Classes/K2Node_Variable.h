@@ -141,6 +141,9 @@ public:
 	UProperty* GetPropertyForVariable() const;
 	UProperty* GetPropertyForVariableFromSkeleton() const;
 
+	/** Returns true if the variable names match, this looks for redirectors */
+	static bool DoesRenamedVariableMatch(FName OldVariableName, FName NewVariableName, UStruct* StructType);
+
 private:
 	UProperty* GetPropertyForVariable_Internal(UClass* OwningClass) const;
 

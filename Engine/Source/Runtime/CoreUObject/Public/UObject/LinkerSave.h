@@ -80,7 +80,6 @@ public:
 	FArchive& operator<<( FName& InName );
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
-	FArchive& operator<<( FSoftObjectPtr& SoftObjectPtr );
 
 #if WITH_EDITOR
 	// proxy for debugdata

@@ -1841,9 +1841,6 @@ public:
 
 	ENGINE_API void GetRepresentativeShaderTypesAndDescriptions(TMap<FName, FString>& OutShaderTypeNameAndDescriptions) const;
 
-	DEPRECATED(4.14, "GetResourceSizeInclusive is deprecated. Please use GetResourceSizeEx instead.")
-	ENGINE_API SIZE_T GetResourceSizeInclusive();
-
 	ENGINE_API void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize);
 
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar) override;

@@ -1355,11 +1355,20 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 					UObject* Iter = Archetype->GetOuter();
 					while(Iter)
 					{
+						UBlueprintGeneratedClass* IterAsBPGC = Cast<UBlueprintGeneratedClass>(Iter);
 						if(Iter->HasAnyFlags(RF_ClassDefaultObject)
-							|| Cast<UBlueprintGeneratedClass>(Iter)
+							|| IterAsBPGC
 							|| Cast<UBlueprint>(Iter) )
 						{
 							ArchetypeReferencers.Add(Iter);
+
+							// Component templates are referenced by the UBlueprint, but are outered to the UBPGC. Both
+							// will need to be updated. Realistically there is no reason to refernce these in the 
+							// UBlueprint, so there is no reason to generalize this behavior:
+							if(IterAsBPGC)
+							{
+								ArchetypeReferencers.Add(IterAsBPGC->ClassGeneratedBy);
+							}
 
 							// this handles nested subobjects:
 							TArray<UObject*> ContainedObjects;

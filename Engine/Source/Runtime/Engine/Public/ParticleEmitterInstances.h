@@ -616,27 +616,9 @@ public:
 		OutMax = 0;
 	}
 	
-	/**
-	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor.
-	 *
-	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
-	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
-	 */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
-	{
-		return GetResourceSizeBytes(Mode);
-	}
-
+	/** Returns resource size, similar to UObject function */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
-	}
-
-	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
-	{
-		FResourceSizeEx ResSize = FResourceSizeEx(Mode);
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/**

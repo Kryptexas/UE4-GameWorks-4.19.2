@@ -444,6 +444,11 @@ private:
 	}
 };
 
+FORCEINLINE uint32 GetTypeHash(const FAssetData& AssetData)
+{
+	return GetTypeHash(AssetData.ObjectPath);
+}
+
 
 template<>
 struct TStructOpsTypeTraits<FAssetData> : public TStructOpsTypeTraitsBase2<FAssetData>

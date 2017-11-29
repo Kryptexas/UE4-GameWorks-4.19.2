@@ -123,7 +123,6 @@ private:
 public:
 
 	//~ Begin UObject Interface.
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FString GetDesc() override;
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;

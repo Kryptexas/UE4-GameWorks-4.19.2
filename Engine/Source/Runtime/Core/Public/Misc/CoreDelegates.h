@@ -99,6 +99,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlushUpdate);
 	static FOnAsyncLoadingFlushUpdate OnAsyncLoadingFlushUpdate;
 
+	// Callback on the game thread when an async load is started. This goes off before the packages has finished loading
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
 	static FOnAsyncLoadPackage OnAsyncLoadPackage;
 

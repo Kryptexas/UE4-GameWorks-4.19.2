@@ -351,7 +351,17 @@ FTextureResource* UTextureCube::CreateResource()
 void UTextureCube::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
-	CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureMemorySizeEnum(TMC_ResidentMips));
+
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
+	{
+		// Use only loaded mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySizeEnum(TMC_ResidentMips));
+	}
+	else
+	{
+		// Use all possible mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySizeEnum(TMC_AllMipsBiased));
+	}
 }
 
 #if WITH_EDITOR

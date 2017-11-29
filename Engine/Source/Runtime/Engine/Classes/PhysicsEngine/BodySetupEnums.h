@@ -41,3 +41,12 @@ namespace EBodyCollisionResponse
 		//BodyCollision_Custom UMETA(DisplayName="Custom")
 	};
 }
+
+
+/** Helpers to convert enum to string */
+namespace Lex
+{
+	ENGINE_API const TCHAR* ToString(ECollisionTraceFlag Enum);
+	ENGINE_API const TCHAR* ToString(EPhysicsType Enum);
+	ENGINE_API const TCHAR* ToString(EBodyCollisionResponse::Type Enum);
+}

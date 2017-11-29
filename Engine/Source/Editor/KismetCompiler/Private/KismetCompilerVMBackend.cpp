@@ -1853,46 +1853,14 @@ public:
 		if (SourceNode != NULL)
 		{
 			// Record where this NOP is
-			UEdGraphNode* TrueSourceNode = FunctionContext.MessageLog.GetSourceNode(SourceNode);
+			UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
 			if (TrueSourceNode)
 			{
-				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
-				// We need to ensure that macro/composite instances also record the tunnels present at any script location ( including themselves )
-				if (MacroSourceNode == TrueSourceNode && !FBlueprintEditorUtils::IsTunnelInstanceNode(MacroSourceNode))
-				{
-					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
-					MacroSourceNode = NULL;
-				}
-
-				TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
 				const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
-				bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
+				const bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
 
-				if (MacroSourceNode)
-				{
-					// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
-					if (bBreakpointSite)
-					{
-						const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
-						if (MacroInstanceNode)
-						{
-							TArray<const UEdGraphNode*> ValidBreakpointLocations;
-							FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
-							bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
-						}
-					}
-
-					// Gather up all the macro instance nodes that lead to this macro source node
-					UEdGraphNode* IntermediateMacroInstance = CompilerContext.MessageLog.GetIntermediateTunnelInstance(SourceNode);
-					CompilerContext.MessageLog.GetTunnelsActiveForNode(IntermediateMacroInstance, MacroInstanceNodes);
-					if (MacroInstanceNodes.Num())
-					{
-						TrueSourceNode = MacroInstanceNodes[0].Get();
-					}
-				}
 				// Register the debug information for the node.
-				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, FunctionContext.Function, Offset, bBreakpointSite);
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)
@@ -1908,7 +1876,7 @@ public:
 				else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
 				{
 					// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
-					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(MacroSourceNode ? MacroSourceNode : TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
+					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
 
 					// Reset pure node code range tracking.
 					PureNodeEntryCount = 0;

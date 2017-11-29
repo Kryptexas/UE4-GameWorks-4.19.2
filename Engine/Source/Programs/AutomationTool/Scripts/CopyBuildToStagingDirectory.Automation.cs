@@ -309,11 +309,9 @@ public partial class Project : CommandUtils
 
 			// Put all of the cooked dir into the staged dir
 			DirectoryReference PlatformCookDir = String.IsNullOrEmpty(Params.CookOutputDir) ? DirectoryReference.Combine(DLCRoot, "Saved", "Cooked", SC.CookPlatform) : DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
-
-			// Stage any loose files in the root folder
-			// TODO: not sure if we should stage the loose files if we have pak files enabled... 
-			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, StageFilesSearch.TopDirectoryOnly, SC.RelativeProjectRootForStage);
-
+			DirectoryReference PlatformEngineDir = DirectoryReference.Combine(PlatformCookDir, "Engine");
+			DirectoryReference PlatformMetadataDir = DirectoryReference.Combine(PlatformCookDir, SC.ShortProjectName, "Metadata");
+			
 			SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(DLCRoot, "Config"), "*.ini", StageFilesSearch.AllDirectories);
 
 			if (Params.DLCActLikePatch)
@@ -325,19 +323,28 @@ public partial class Project : CommandUtils
 				SC.RemapDirectories.Add(Tuple.Create(new StagedDirectoryReference(RelativeDLCContentPath), new StagedDirectoryReference(RelativeRootContentPath)));
 			}
 
-			StagedDirectoryReference EngineDirectory = new StagedDirectoryReference("Engine");
-			// Stage each sub directory separately so that we can skip Engine if need be
-			foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(PlatformCookDir))
+			// Stage all the cooked data, this is the same rule as normal stage except we may skip Engine
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(PlatformCookDir, "*", SearchOption.AllDirectories).ToList();
+			foreach (FileReference CookedFile in CookedFiles)
 			{
-				StagedDirectoryReference MountPoint = new StagedDirectoryReference(SubDir.MakeRelativeTo(PlatformCookDir));
-				// Dedicated server cook doesn't save shaders so no Engine dir is created
-
-				if ((!SC.DedicatedServer) && (!Params.DLCIncludeEngineContent) && MountPoint == EngineDirectory)
+				// Skip metadata directory
+				if (CookedFile.Directory.IsUnderDirectory(PlatformMetadataDir))
 				{
 					continue;
 				}
 
-				SC.StageFiles(StagedFileType.UFS, SubDir, "*", StageFilesSearch.AllDirectories, MountPoint);
+				// Dedicated server cook doesn't save shaders so no Engine dir is created
+				if ((!SC.DedicatedServer) && (!Params.DLCIncludeEngineContent) && CookedFile.Directory.IsUnderDirectory(PlatformEngineDir))
+				{
+					continue;
+				}
+
+				// json files have never been staged
+				// metallib files cannot *currently* be staged as UFS as the Metal API needs to mmap them from files on disk in order to function efficiently
+				if (!CookedFile.HasExtension(".json") && !CookedFile.HasExtension(".metallib"))
+				{
+					SC.StageFile(StagedFileType.UFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(PlatformCookDir)));
+				}
 			}
 
 			FileReference PluginSettingsFile = FileReference.Combine(DLCRoot, "Config", "PluginSettings.ini");
@@ -547,11 +554,11 @@ public partial class Project : CommandUtils
 					}
 				}
 
-			// shader cache
+				// shader cache
 				{
-				DirectoryReference ShaderCacheRoot = DirectoryReference.Combine(SC.ProjectRoot, "Content");
-				List<FileReference> ShaderCacheFiles = SC.FindFilesToStage(ShaderCacheRoot, "DrawCache-*.ushadercache", StageFilesSearch.TopDirectoryOnly);
-				SC.StageFiles(StagedFileType.UFS, ShaderCacheFiles);
+					DirectoryReference ShaderCacheRoot = DirectoryReference.Combine(SC.ProjectRoot, "Content");
+					List<FileReference> ShaderCacheFiles = SC.FindFilesToStage(ShaderCacheRoot, "DrawCache-*.ushadercache", StageFilesSearch.TopDirectoryOnly);
+					SC.StageFiles(StagedFileType.UFS, ShaderCacheFiles);
 				}
 
 				// Get the final output directory for cooked data
@@ -569,13 +576,21 @@ public partial class Project : CommandUtils
 					CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
 				}
 
+				DirectoryReference MetadataOutputDir = DirectoryReference.Combine(CookOutputDir, SC.ShortProjectName, "Metadata");
+
 				// Stage all the cooked data. Currently not filtering this by restricted folders, since we shouldn't mask invalid references by filtering them out.
 				List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*", SearchOption.AllDirectories).ToList();
 				foreach (FileReference CookedFile in CookedFiles)
 				{
-				// json files have never been staged
-				// metallib files cannot *currently* be staged as UFS as the Metal API needs to mmap them from files on disk in order to function efficiently
-				if(!CookedFile.HasExtension(".json") && !CookedFile.HasExtension(".metallib"))
+					// Skip metadata directory
+					if (CookedFile.Directory.IsUnderDirectory(MetadataOutputDir))
+					{
+						continue;
+					}
+
+					// json files have never been staged
+					// metallib files cannot *currently* be staged as UFS as the Metal API needs to mmap them from files on disk in order to function efficiently
+					if(!CookedFile.HasExtension(".json") && !CookedFile.HasExtension(".metallib"))
 					{
 						SC.StageFile(StagedFileType.UFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
 					}

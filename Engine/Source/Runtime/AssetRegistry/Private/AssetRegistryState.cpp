@@ -210,7 +210,7 @@ void FAssetRegistryState::InitializeFromExisting(const TMap<FName, FAssetData*>&
 					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
 					*NewData = *Pair.Value;
 				}
-				else if (CachedAssetsByPackageName.Find(Pair.Key) || bIsScriptPackage)
+				else if (CachedAssetsByPackageName.Find(Pair.Key))
 				{
 					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
 					*NewData = *Pair.Value;

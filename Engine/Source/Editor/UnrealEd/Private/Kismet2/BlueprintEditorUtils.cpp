@@ -2471,6 +2471,12 @@ void FBlueprintEditorUtils::AddUbergraphPage(UBlueprint* Blueprint, class UEdGra
 #endif	//#if WITH_EDITORONLY_DATA
 }
 
+FName FBlueprintEditorUtils::GetUbergraphFunctionName(const UBlueprint* ForBlueprint)
+{
+	const FString UbergraphCallString = UEdGraphSchema_K2::FN_ExecuteUbergraphBase.ToString() + TEXT("_") + ForBlueprint->GetName();
+	return FName(*UbergraphCallString);
+}
+
 void FBlueprintEditorUtils::AddDomainSpecificGraph(UBlueprint* Blueprint, class UEdGraph* Graph)
 {
 	// Give the schema a chance to fill out any required nodes (like the entry node or results node)
@@ -2841,7 +2847,6 @@ UK2Node_Event* FBlueprintEditorUtils::FindCustomEventNode(const UBlueprint* Blue
 	}
 	return FoundNode;
 }
-
 
 void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies, TSet<TWeakObjectPtr<UStruct>>& OutUDSDependencies)
 {
@@ -4969,6 +4974,26 @@ UEdGraph* FBlueprintEditorUtils::FindScopeGraph(const UBlueprint* InBlueprint, c
 			break;
 		}
 	}
+
+	if(!ScopeGraph)
+	{
+		FName UbergraphName = FBlueprintEditorUtils::GetUbergraphFunctionName(InBlueprint);
+		
+		bool bIsBlueprintEvent = false;
+		if (const UFunction* AsFunction = Cast<UFunction>(InScope))
+		{
+			bIsBlueprintEvent = AsFunction->HasAnyFunctionFlags(FUNC_BlueprintEvent);
+		}
+
+		if(InScope->GetFName() == UbergraphName || bIsBlueprintEvent)
+		{
+			if(InBlueprint->UbergraphPages.Num() > 0)
+			{
+				ScopeGraph = InBlueprint->UbergraphPages[0];
+			}
+		}
+	}
+
 	return ScopeGraph;
 }
 

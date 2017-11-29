@@ -5,11 +5,61 @@
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "EdGraphSchema_K2.h"
+#include "K2Node_Composite.h"
 #include "K2Node_Knot.h"
 #include "K2Node_MacroInstance.h"
+#include "K2Node_TunnelBoundary.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintEditorSettings.h"
+
+namespace
+{
+	// Attempt to find a tunnel instance node in the given source graph that matches the given target graph.
+	// @TODO - This is a potential performance issue as it's a linear/recursive search. We used to map nested
+	// Macro Instances to code offsets through the debug data, and search only the mapped set, but the solution
+	// only worked for Macro Instance nodes. Consider reusing that solution and extending it to include Composites.
+	static UEdGraphNode* FindMatchingTunnelInstanceNode(const UEdGraph* InGraph, const UEdGraph* TargetGraph)
+	{
+		// Gather up all tunnel nodes in the given source graph.
+		TArray<UK2Node_Tunnel*> TunnelNodes;
+		InGraph->GetNodesOfClass(TunnelNodes);
+		for (UEdGraphNode* TunnelNode : TunnelNodes)
+		{
+			// Check all tunnel instance nodes for a match against the associated tunnel instance graph.
+			if (UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(TunnelNode))
+			{
+				const UEdGraph* MacroGraph = MacroInstanceNode->GetMacroGraph();
+				if (TargetGraph == MacroGraph)
+				{
+					// The current macro source graph matches up with the target graph context.
+					return MacroInstanceNode;
+				}
+				else if(UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(MacroGraph, TargetGraph))
+				{
+					// We recursively found a tunnel instance node nested inside the macro source graph that matches up with the target graph context.
+					return TunnelInstanceNode;
+				}
+			}
+			else if (UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(TunnelNode))
+			{
+				if (TargetGraph == CompositeNode->BoundGraph)
+				{
+					// The current composite source graph matches up with the target graph context.
+					return CompositeNode;
+				}
+				else if(UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(CompositeNode->BoundGraph, TargetGraph))
+				{
+					// We recursively found a tunnel instance node nested inside the composite source graph that matches up with the target graph context.
+					return TunnelInstanceNode;
+				}
+			}
+		}
+
+		// No matching tunnel instance node could be found within the given source graph.
+		return nullptr;
+	}
+};
 
 /////////////////////////////////////////////////////
 // FKismetConnectionDrawingPolicy
@@ -121,50 +171,11 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 							SequentialNodeTimes.Add(Sample.ObservationTime);
 							SequentialExecPinsInGraph.Add(AssociatedPin);
 						}
-						else
+						else if (UEdGraphNode* TunnelInstanceNode = FindMatchingTunnelInstanceNode(GraphObj, Node->GetGraph()))
 						{
-							// If the top-level source node is a macro instance node
-							UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(Node);
-							if (MacroInstanceNode)
-							{
-								// Attempt to locate the macro source node through the code mapping
-								UEdGraphNode* MacroSourceNode = DebugData.FindMacroSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset);
-								if (MacroSourceNode)
-								{
-									// If the macro source node is located in the current graph context
-									if (GraphObj == MacroSourceNode->GetGraph())
-									{
-										// Add it to the sequential node list
-										SequentialNodesInGraph.Add(MacroSourceNode);
-										SequentialNodeTimes.Add(Sample.ObservationTime);
-										SequentialExecPinsInGraph.Add(AssociatedPin);
-									}
-									else
-									{
-										// The macro source node isn't in the current graph context, but we might have a macro instance node that is
-										// in the current graph context, so obtain the set of macro instance nodes that are mapped to the code here.
-										TArray<UEdGraphNode*> MacroInstanceNodes;
-										DebugData.FindMacroInstanceNodesFromCodeLocation(Sample.Function.Get(), Sample.Offset, MacroInstanceNodes);
-
-										// For each macro instance node in the set
-										for (auto MacroInstanceNodeIt = MacroInstanceNodes.CreateConstIterator(); MacroInstanceNodeIt; ++MacroInstanceNodeIt)
-										{
-											// If the macro instance node is located in the current graph context
-											MacroInstanceNode = Cast<UK2Node_MacroInstance>(*MacroInstanceNodeIt);
-											if (MacroInstanceNode && GraphObj == MacroInstanceNode->GetGraph())
-											{
-												// Add it to the sequential node list
-												SequentialNodesInGraph.Add(MacroInstanceNode);
-												SequentialNodeTimes.Add(Sample.ObservationTime);
-												SequentialExecPinsInGraph.Add(AssociatedPin);
-
-												// Exit the loop; we're done
-												break;
-											}
-										}
-									}
-								}
-							}
+							SequentialNodesInGraph.Add(TunnelInstanceNode);
+							SequentialNodeTimes.Add(Sample.ObservationTime);
+							SequentialExecPinsInGraph.Add(AssociatedPin);
 						}
 					}
 				}

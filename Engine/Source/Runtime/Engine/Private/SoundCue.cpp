@@ -310,31 +310,6 @@ FString USoundCue::GetDesc()
 	return Description;
 }
 
-void USoundCue::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if( CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive )
-	{
-		// Nothing to add
-	}
-	else
-	{
-		// Sum up the size of referenced waves
-		TArray<USoundNodeWavePlayer*> WavePlayers;
-		RecursiveFindNode<USoundNodeWavePlayer>( FirstNode, WavePlayers );
-
-		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
-		{
-			USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
-			if (SoundWave)
-			{
-				SoundWave->GetResourceSizeEx(CumulativeResourceSize);
-			}
-		}
-	}
-}
-
 int32 USoundCue::GetResourceSizeForFormat(FName Format)
 {
 	TArray<USoundNodeWavePlayer*> WavePlayers;

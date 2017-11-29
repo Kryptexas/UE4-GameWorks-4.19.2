@@ -2095,9 +2095,7 @@ struct CompressAnimationsFunctor
 			SIZE_T OldSize;
 			SIZE_T NewSize;
 
-			{
-				OldSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
-			}
+			OldSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 
 			// Clear bDoNotOverrideCompression flag
 			if( bClearNoCompressionOverride && AnimSeq->bDoNotOverrideCompression )
@@ -2151,9 +2149,7 @@ struct CompressAnimationsFunctor
 				bDirtyPackage = true;
 			}
 
-			{
-				NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
-			}
+			NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 
 			// Only save package if size has changed.
 			const int64 DeltaSize = NewSize - OldSize;

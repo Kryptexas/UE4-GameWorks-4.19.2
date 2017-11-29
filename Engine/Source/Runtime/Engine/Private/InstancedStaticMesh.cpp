@@ -2121,10 +2121,6 @@ void UInstancedStaticMeshComponent::GetResourceSizeEx(FResourceSizeEx& Cumulativ
 	}
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(InstanceReorderTable.GetAllocatedSize());
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RemovedInstances.GetAllocatedSize());
-
-#if WITH_EDITOR
-	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SelectedInstances.GetAllocatedSize());
-#endif
 }
 
 void UInstancedStaticMeshComponent::BeginDestroy()

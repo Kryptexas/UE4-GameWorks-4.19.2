@@ -152,23 +152,8 @@ public:
 		delete this;
 	}
 	
-	/**
-	* Returns the size of memory allocated by render data
-	*/
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize()
-	{
-		return GetResourceSizeBytes();
-	}
-
+	/** Returns the size of memory allocated by render data */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) = 0;
-
-	SIZE_T GetResourceSizeBytes()
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
-	}
 
 	/**
 	 * List of sections to be rendered based on instance weight usage. Full swap of weights will render with its own sections.

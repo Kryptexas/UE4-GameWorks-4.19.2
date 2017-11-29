@@ -3438,9 +3438,13 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 	}
 	else if(const UFunction* Function = Cast<const UFunction>(ObjectReference))
 	{
-		if (UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), Function))
+		UBlueprint* BP = GetBlueprintObj();
+		if(BP)
 		{
-			OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
+			if (UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(BP, Function))
+			{
+				OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
+			}
 		}
 	}
 	else if(const UBlueprintGeneratedClass* Class = Cast<const UBlueprintGeneratedClass>(ObjectReference))

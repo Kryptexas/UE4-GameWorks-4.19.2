@@ -160,44 +160,6 @@ static bool SaveApexClothingAssetToBlob(const apex::ClothingAsset *InAsset, TArr
 
 #endif//#if WITH_APEX_CLOTHING
 
-////////////////////////////////////////////////
-SIZE_T FClothingAssetData_Legacy::GetResourceSize() const
-{
-	return GetResourceSizeBytes();
-}
-
-void FClothingAssetData_Legacy::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
-{
-#if WITH_APEX_CLOTHING
-	if (ApexClothingAsset)
-	{
-		physx::PxU32 LODLevel = ApexClothingAsset->getNumGraphicalLodLevels();
-		for(physx::PxU32 LODId=0; LODId < LODLevel; ++LODId)
-		{
-			if(const apex::RenderMeshAsset* RenderAsset = ApexClothingAsset->getRenderMeshAsset(LODId))
-			{
-				apex::RenderMeshAssetStats AssetStats;
-				RenderAsset->getStats(AssetStats);
-
-				CumulativeResourceSize.AddUnknownMemoryBytes(AssetStats.totalBytes);
-			}
-		}
-	}
-#endif // #if WITH_APEX_CLOTHING
-}
-
-SIZE_T FClothingAssetData_Legacy::GetResourceSizeBytes() const
-{
-	FResourceSizeEx ResSize;
-	GetResourceSizeEx(ResSize);
-	return ResSize.GetTotalMemoryBytes();
-}
-
-
-
-
-
-
 
 /*-----------------------------------------------------------------------------
 FGPUSkinVertexBase
@@ -723,65 +685,15 @@ const FMeshUVChannelInfo* USkeletalMesh::GetUVChannelData(int32 MaterialIndex) c
 void USkeletalMesh::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-#if WITH_EDITORONLY_DATA
-	if (ImportedModel.IsValid())
-	{
-		ImportedModel->GetResourceSizeEx(CumulativeResourceSize);
-	}
-#endif // WITH_EDITOR
+	// Default implementation handles subobjects
 
 	if (SkeletalMeshRenderData.IsValid())
 	{
 		SkeletalMeshRenderData->GetResourceSizeEx(CumulativeResourceSize);
 	}
 
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
-	{
-		for (const auto& MorphTarget : MorphTargets)
-		{
-			MorphTarget->GetResourceSizeEx(CumulativeResourceSize);
-		}
-
-		for(const FClothingAssetData_Legacy& LegacyAsset : ClothingAssets_DEPRECATED)
-		{
-			LegacyAsset.GetResourceSizeEx(CumulativeResourceSize);
-		}
-
-		for(UClothingAssetBase* ClothingAsset : MeshClothingAssets)
-		{
-			ClothingAsset->GetResourceSizeEx(CumulativeResourceSize);
-		}
-
-		TSet<UMaterialInterface*> UniqueMaterials;
-		for(int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
-		{
-			UMaterialInterface* Material = Materials[MaterialIndex].MaterialInterface;
-			bool bAlreadyCounted = false;
-			UniqueMaterials.Add(Material, &bAlreadyCounted);
-			if(!bAlreadyCounted && Material)
-			{
-				Material->GetResourceSizeEx(CumulativeResourceSize);
-			}
-		}
-
-#if WITH_EDITORONLY_DATA
-		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RetargetBasePose.GetAllocatedSize());
-#endif
-
-		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefBasesInvMatrix.GetAllocatedSize());
-		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefSkeleton.GetDataSize());
-
-		if (BodySetup)
-		{
-			BodySetup->GetResourceSizeEx(CumulativeResourceSize);
-		}
-
-		if (PhysicsAsset)
-		{
-			PhysicsAsset->GetResourceSizeEx(CumulativeResourceSize);
-		}
-	}
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefBasesInvMatrix.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefSkeleton.GetDataSize());
 }
 
 /**

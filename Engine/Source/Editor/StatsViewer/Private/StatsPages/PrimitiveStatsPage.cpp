@@ -279,7 +279,7 @@ struct PrimitiveStatsGenerator
 				NewStatsEntry->HWInstances		= NumHWInstances;
 				NewStatsEntry->Triangles		= 0;
 				NewStatsEntry->InstTriangles	= 0;
-				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSizeBytes(EResourceSizeMode::Exclusive)) / 1024.0f;
+				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal)) / 1024.0f;
 				NewStatsEntry->Sections			= 0;
 				NewStatsEntry->InstSections		= 0;
 				NewStatsEntry->RadiusMin		= InPrimitiveComponent->Bounds.SphereRadius;
@@ -356,7 +356,7 @@ struct PrimitiveStatsGenerator
 						UniqueTextures.Add(CurrentComponent->HeightmapTexture, &bNotUnique);
 						if (!bNotUnique)
 						{
-							const SIZE_T HeightmapResourceSize = CurrentComponent->HeightmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+							const SIZE_T HeightmapResourceSize = CurrentComponent->HeightmapTexture->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 							NewStatsEntry->ResourceSize += HeightmapResourceSize;
 						}
 						if (CurrentComponent->XYOffsetmapTexture)
@@ -364,7 +364,7 @@ struct PrimitiveStatsGenerator
 							UniqueTextures.Add(CurrentComponent->XYOffsetmapTexture, &bNotUnique);
 							if (!bNotUnique)
 							{
-								const SIZE_T OffsetmapResourceSize = CurrentComponent->XYOffsetmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								const SIZE_T OffsetmapResourceSize = CurrentComponent->XYOffsetmapTexture->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 								NewStatsEntry->ResourceSize += OffsetmapResourceSize;
 							}
 						}
@@ -374,7 +374,7 @@ struct PrimitiveStatsGenerator
 							UniqueTextures.Add((*ItWeightmaps), &bNotUnique);
 							if (!bNotUnique)
 							{
-								const SIZE_T WeightmapResourceSize = (*ItWeightmaps)->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								const SIZE_T WeightmapResourceSize = (*ItWeightmaps)->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 								NewStatsEntry->ResourceSize += WeightmapResourceSize;
 							}
 						}

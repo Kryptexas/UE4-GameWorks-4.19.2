@@ -100,24 +100,18 @@ namespace LoadPackageStats
 FCoreUObjectDelegates::FRegisterHotReloadAddedClassesDelegate FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate;
 FCoreUObjectDelegates::FRegisterClassForHotReloadReinstancingDelegate FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate;
 FCoreUObjectDelegates::FReinstanceHotReloadedClassesDelegate FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate;
-// Delegates used by SavePackage()
 FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPackageOKToSaveDelegate;
-FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
-
 FCoreUObjectDelegates::FOnPackageReloaded FCoreUObjectDelegates::OnPackageReloaded;
 FCoreUObjectDelegates::FNetworkFileRequestPackageReload FCoreUObjectDelegates::NetworkFileRequestPackageReload;
-
+#if WITH_EDITOR
+FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
 FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
-
-#if WITH_EDITOR
-// Set of objects modified this frame
 TSet<UObject*> FCoreUObjectDelegates::ObjectsModifiedThisFrame;
 FCoreUObjectDelegates::FOnObjectModified FCoreUObjectDelegates::OnObjectModified;
 FCoreUObjectDelegates::FOnAssetLoaded FCoreUObjectDelegates::OnAssetLoaded;
 FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
 #endif // WITH_EDITOR
-
 
 FSimpleMulticastDelegate& FCoreUObjectDelegates::GetPreGarbageCollectDelegate()
 {
@@ -140,7 +134,6 @@ FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollectConditionalBeg
 FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FCoreUObjectDelegates::FPostLoadMapDelegate FCoreUObjectDelegates::PostLoadMapWithWorld;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
 FCoreUObjectDelegates::FSoftObjectPathLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
 FCoreUObjectDelegates::FSoftObjectPathSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
@@ -1520,6 +1513,7 @@ void EndLoad()
 	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), ShouldReportProgress());
 
 	int32 NumObjectsLoaded = 0, NumObjectsFound = 0;
+	TSet<UObject*> AssetsLoaded;
 #endif
 
 	while (--ThreadContext.ObjBeginLoadCount == 0 && (ThreadContext.ObjLoaded.Num() || ThreadContext.ImportCount || ThreadContext.ForcedExportCount))
@@ -1638,17 +1632,14 @@ void EndLoad()
 			}
 
 #if WITH_EDITOR
-			// Send global notification for each object that was loaded.
-			// Useful for updating UI such as ContentBrowser's loaded status.
+			// Schedule asset loaded callbacks for later
+			for( int32 CurObjIndex=0; CurObjIndex<ObjLoaded.Num(); CurObjIndex++ )
 			{
-				for( int32 CurObjIndex=0; CurObjIndex<ObjLoaded.Num(); CurObjIndex++ )
+				UObject* Obj = ObjLoaded[CurObjIndex];
+				check(Obj);
+				if ( Obj->IsAsset() )
 				{
-					UObject* Obj = ObjLoaded[CurObjIndex];
-					check(Obj);
-					if ( Obj->IsAsset() )
-					{
-						FCoreUObjectDelegates::OnAssetLoaded.Broadcast(Obj);
-					}
+					AssetsLoaded.Add(Obj);
 				}
 			}
 #endif	// WITH_EDITOR
@@ -1709,6 +1700,16 @@ void EndLoad()
 
 	// Loaded new objects, so allow reaccessing asset ptrs
 	FSoftObjectPath::InvalidateTag();
+
+#if WITH_EDITOR
+	// Now call asset loaded callbacks for anything that was loaded. We do this at the very end so any nested objects will load properly
+	// Useful for updating UI such as ContentBrowser's loaded status.
+	for (UObject* LoadedAsset : AssetsLoaded)
+	{
+		check(LoadedAsset);
+		FCoreUObjectDelegates::OnAssetLoaded.Broadcast(LoadedAsset);
+	}
+#endif	// WITH_EDITOR
 }
 
 /*-----------------------------------------------------------------------------

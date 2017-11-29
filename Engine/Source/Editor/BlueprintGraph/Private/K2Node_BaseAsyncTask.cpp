@@ -475,6 +475,39 @@ UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
 	return FactoryFunction;
 }
 
+void UK2Node_BaseAsyncTask::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const
+{
+	TMap<FString, FStringFormatArg> Args;
+
+	if (ProxyClass)
+	{
+		Args.Add(TEXT("ProxyClass"), ProxyClass->GetName());
+		Args.Add(TEXT("ProxyClassSeparator"), TEXT("."));
+	}
+	else
+	{
+		Args.Add(TEXT("ProxyClass"), TEXT(""));
+		Args.Add(TEXT("ProxyClassSeparator"), TEXT(""));
+	}
+	if (ProxyFactoryFunctionName != NAME_None)
+	{
+		Args.Add(TEXT("ProxyFactoryFunction"), ProxyFactoryFunctionName.ToString());
+		Args.Add(TEXT("ProxyFactoryFunctionSeparator"), TEXT("."));
+	}
+	else
+	{
+		Args.Add(TEXT("ProxyFactoryFunction"), TEXT(""));
+		Args.Add(TEXT("ProxyFactoryFunctionSeparator"), TEXT(""));
+	}
+
+	Args.Add(TEXT("PinName"), Pin.PinName.ToString());
+
+	FString FullPinName;
+	FullPinName = FString::Format(TEXT("{ProxyClass}{ProxyClassSeparator}{ProxyFactoryFunction}{ProxyFactoryFunctionSeparator}{PinName}"), Args);
+
+	RedirectPinNames.Add(FullPinName);
+}
+
 void UK2Node_BaseAsyncTask::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);

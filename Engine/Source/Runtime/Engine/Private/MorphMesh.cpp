@@ -41,21 +41,7 @@ void UMorphTarget::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	}
 }
 
-
-//////////////////////////////////////////////////////////////////////
-SIZE_T FMorphTargetLODModel::GetResourceSize() const
-{
-	return GetResourceSizeBytes();
-}
-
 void FMorphTargetLODModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 {
 	CumulativeResourceSize.AddUnknownMemoryBytes(Vertices.GetAllocatedSize() + sizeof(int32));
-}
-
-SIZE_T FMorphTargetLODModel::GetResourceSizeBytes() const
-{
-	FResourceSizeEx ResSize;
-	GetResourceSizeEx(ResSize);
-	return ResSize.GetTotalMemoryBytes();
 }

@@ -57,6 +57,9 @@ protected:
 	// Returns the factory function (checked)
 	UFunction* GetFactoryFunction() const;
 
+	/** Determines what the possible redirect pin names are **/
+	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const;
+
 protected:
 	// The name of the function to call to create a proxy object
 	UPROPERTY()

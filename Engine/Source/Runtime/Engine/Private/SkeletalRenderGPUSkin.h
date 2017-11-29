@@ -96,28 +96,13 @@ public:
 	*/
 	bool ActiveMorphTargetsEqual(const TArray<FActiveMorphTarget>& CompareActiveMorphTargets, const TArray<float>& CompareMorphTargetWeights);
 	
-	/**
-	* Returns the size of memory allocated by render data
-	*/
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize()
-	{
-		return GetResourceSizeBytes();
-	}
-
+	/** Returns the size of memory allocated by render data */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
 		
 		CumulativeResourceSize.AddUnknownMemoryBytes(ReferenceToLocal.GetAllocatedSize());
 		CumulativeResourceSize.AddUnknownMemoryBytes(ActiveMorphTargets.GetAllocatedSize());
-	}
-
-	SIZE_T GetResourceSizeBytes()
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/** Update Simulated Positions & Normals from APEX Clothing actor */
@@ -458,23 +443,10 @@ private:
 		/**
 		 * @return memory in bytes of size of the resources for this LOD
 		 */
-		DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-		SIZE_T GetResourceSize()
-		{
-			return GetResourceSizeBytes();
-		}
-
 		void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		{
 			CumulativeResourceSize.AddUnknownMemoryBytes(MorphVertexBuffer.GetResourceSize());
 			CumulativeResourceSize.AddUnknownMemoryBytes(GPUSkinVertexFactories.GetResourceSize());
-		}
-
-		SIZE_T GetResourceSizeBytes()
-		{
-			FResourceSizeEx ResSize;
-			GetResourceSizeEx(ResSize);
-			return ResSize.GetTotalMemoryBytes();
 		}
 
 		FSkeletalMeshRenderData* SkelMeshRenderData;

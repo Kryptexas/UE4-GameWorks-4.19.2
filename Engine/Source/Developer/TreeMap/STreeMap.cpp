@@ -891,7 +891,7 @@ void STreeMap::TakeUndoSnapshot()
 
 FTreeMapNodeDataPtr STreeMap::FindNodeInCopiedTree( const FTreeMapNodeDataRef& NodeToFind, const FTreeMapNodeDataRef& OriginalNode, const FTreeMapNodeDataRef& CopiedNode ) const
 {
-	if( NodeToFind == OriginalNode )
+	if( NodeToFind.Get() == OriginalNode.Get() )
 	{
 		return CopiedNode;
 	}

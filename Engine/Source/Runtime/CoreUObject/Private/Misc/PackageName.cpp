@@ -1306,10 +1306,14 @@ bool FPackageName::IsScriptPackage(const FString& InPackageName)
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().ScriptRootPath);
 }
 
-// Are we a package that resides in memory and not on disk
 bool FPackageName::IsMemoryPackage(const FString& InPackageName)
 {
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().MemoryRootPath);
+}
+
+bool FPackageName::IsTempPackage(const FString& InPackageName)
+{
+	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().TempRootPath);
 }
 
 bool FPackageName::IsLocalizedPackage(const FString& InPackageName)

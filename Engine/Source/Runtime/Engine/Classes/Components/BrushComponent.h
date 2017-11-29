@@ -35,7 +35,6 @@ class UBrushComponent : public UPrimitiveComponent
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface
 
 	//~ Begin USceneComponent Interface

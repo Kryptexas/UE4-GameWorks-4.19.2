@@ -5624,9 +5624,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 				LoadedWorld->BeginPlay();
 
 				FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(LoadedWorld);
-				PRAGMA_DISABLE_DEPRECATION_WARNINGS
-				FCoreUObjectDelegates::PostLoadMap.Broadcast();
-				PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			}
 			else
 			{
@@ -6650,10 +6647,9 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	// Get the full file path with extension
 	const FString FullFilePath = FPackageName::LongPackageNameToFilename(GetOutermost()->GetName(), FPackageName::GetMapPackageExtension());
 
-	// Save/Display the file size and modify date
+	// Save/Display the modify date. File size is handled generically for all packages
 	FDateTime AssetDateModified = IFileManager::Get().GetTimeStamp(*FullFilePath);
 	OutTags.Add(FAssetRegistryTag("DateModified", AssetDateModified.ToString(), FAssetRegistryTag::TT_Chronological, FAssetRegistryTag::TD_Date));
-	OutTags.Add(FAssetRegistryTag("MapFileSize", Lex::ToString(IFileManager::Get().FileSize(*FullFilePath)), FAssetRegistryTag::TT_Numerical, FAssetRegistryTag::TD_Memory));
 
 	FWorldDelegates::GetAssetTags.Broadcast(this, OutTags);
 }

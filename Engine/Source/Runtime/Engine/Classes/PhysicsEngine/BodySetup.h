@@ -61,10 +61,7 @@ struct FBodySetupUVInfo
 	}
 
 	/** Get resource size of UV info */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 
 	void FillFromTriMesh(const FTriMeshCollisionData& TriMeshCollisionData);
 };

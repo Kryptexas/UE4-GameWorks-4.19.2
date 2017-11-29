@@ -425,11 +425,6 @@ struct FClothingAssetData_Legacy
 #endif// #if WITH_APEX_CLOTHING
 	// serialization
 	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData_Legacy& A);
-	// get resource size
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
-	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 };
 
 //~ Begin Material Interface for USkeletalMesh - contains a material and a shadow casting flag

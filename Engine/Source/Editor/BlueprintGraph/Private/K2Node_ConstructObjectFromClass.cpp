@@ -215,7 +215,7 @@ void UK2Node_ConstructObjectFromClass::OnClassPinChanged()
 	// Cache all the pin connections to the ResultPin, we will attempt to recreate them
 	TArray<UEdGraphPin*> ResultPinConnectionList = ResultPin->LinkedTo;
 	// Because the archetype has changed, we break the output link as the output pin type will change
-	ResultPin->BreakAllPinLinks();
+	ResultPin->BreakAllPinLinks(true);
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 

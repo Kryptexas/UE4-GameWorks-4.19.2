@@ -1251,7 +1251,7 @@ void FParticleBeam2EmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutMa
  */
 void FParticleBeam2EmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::EstimatedTotal || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = 0;
