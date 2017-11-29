@@ -574,7 +574,7 @@ TSharedRef<SWidget> SDesignerView::CreateOverlayUI()
 			.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
 			.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "Zoom To Fit"))
 			.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
-			.ContentPadding(1.0f)
+			.ContentPadding(FEditorStyle::Get().GetMargin("ViewportMenu.SToolBarButtonBlock.Button.Padding"))
 			[
 				SNew(SImage)
 				.Image(FEditorStyle::GetBrush("UMGEditor.ZoomToFit"))
@@ -590,7 +590,7 @@ TSharedRef<SWidget> SDesignerView::CreateOverlayUI()
 			.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
 			.ForegroundColor(FLinearColor::Black)
 			.OnGetMenuContent(this, &SDesignerView::GetResolutionsMenu)
-			.ContentPadding(1.0f)
+			.ContentPadding(FEditorStyle::Get().GetMargin("ViewportMenu.SToolBarButtonBlock.Button.Padding"))
 			.ButtonContent()
 			[
 				SNew(STextBlock)
@@ -608,7 +608,7 @@ TSharedRef<SWidget> SDesignerView::CreateOverlayUI()
 			.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
 			.ForegroundColor(FLinearColor::Black)
 			.OnGetMenuContent(this, &SDesignerView::GetScreenSizingFillMenu)
-			.ContentPadding(1.0f)
+			.ContentPadding(FEditorStyle::Get().GetMargin("ViewportMenu.SToolBarButtonBlock.Button.Padding"))
 			.ButtonContent()
 			[
 				SNew(STextBlock)
@@ -2029,9 +2029,15 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 			FDisplayMetrics Metrics;
 			FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
-			const FMargin DebugSafeMargin = ( DebugSafeZoneMode == 1 ) ?
+			const FMargin DebugSafeMargin = 
+#if PLATFORM_IOS
+				// Hack: This is a temp solution to support iPhoneX safeArea. TitleSafePaddingSize and ActionSafePaddingSize should be FVector4 and use them separately. 
+				FMargin(Metrics.TitleSafePaddingSize.X, Metrics.ActionSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Y);
+#else
+				( DebugSafeZoneMode == 1 ) ?
 				FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
 				FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+#endif
 
 			float PaddingRatio = DebugSafeMargin.Left / ( Metrics.PrimaryDisplayWidth * 0.5 );
 

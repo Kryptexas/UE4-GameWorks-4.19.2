@@ -263,9 +263,15 @@ void AHUD::DrawSafeZoneOverlay()
 		FDisplayMetrics Metrics;
 		FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
-		const FMargin SafeMargin = (DebugSafeZoneMode == 1) ?
+		const FMargin SafeMargin =
+#if PLATFORM_IOS
+			// Hack: This is a temp solution to support iPhoneX safeArea. TitleSafePaddingSize and ActionSafePaddingSize should be FVector4 and use them separately. 
+			FMargin(Metrics.TitleSafePaddingSize.X, Metrics.ActionSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Y);
+#else
+			(DebugSafeZoneMode == 1) ?
 			FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
 			FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+#endif
 
 		const float UnsafeZoneAlpha = GSafeZoneVisualizationAlphaCVar.GetValueOnGameThread();
 		const FLinearColor UnsafeZoneColor(1.0f, 0.5f, 0.5f, UnsafeZoneAlpha);

@@ -324,7 +324,12 @@ void SScaleBox::RefreshSafeZoneScale()
 				FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
 				// Safe zones are uniform, so the axis we check is irrelevant
+#if PLATFORM_IOS
+				// Hack: This is a temp solution to support iPhoneX safeArea.
+				ScaleDownBy = (Metrics.TitleSafePaddingSize.X + Metrics.TitleSafePaddingSize.Y) / (float)ViewportSize.X;
+#else
 				ScaleDownBy = (Metrics.TitleSafePaddingSize.X * 2.f) / (float)ViewportSize.X;
+#endif
 			}
 		}
 	}
