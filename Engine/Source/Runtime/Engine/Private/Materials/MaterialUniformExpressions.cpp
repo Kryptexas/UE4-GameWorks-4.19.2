@@ -651,7 +651,7 @@ bool FMaterialUniformExpressionExternalTexture::GetExternalTexture(const FMateri
 	check(IsInParallelRenderingThread());
 
 	FGuid GuidToLookup = ResolveExternalTextureGUID(Context);
-	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+	return FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
 }
 
 FMaterialUniformExpressionExternalTextureParameter::FMaterialUniformExpressionExternalTextureParameter()
@@ -673,7 +673,7 @@ bool FMaterialUniformExpressionExternalTextureParameter::GetExternalTexture(cons
 	check(IsInParallelRenderingThread());
 
 	FGuid GuidToLookup = ResolveExternalTextureGUID(Context, ParameterName);
-	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+	return FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
 }
 
 bool FMaterialUniformExpressionExternalTextureParameter::IsIdentical(const FMaterialUniformExpression* OtherExpression) const

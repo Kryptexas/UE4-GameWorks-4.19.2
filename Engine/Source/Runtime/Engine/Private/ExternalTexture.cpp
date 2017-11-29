@@ -34,36 +34,44 @@ void FExternalTextureRegistry::UnregisterExternalTexture(const FGuid& InGuid)
 	}
 }
 
+/* Removes the specified MaterialRenderProxy from the list of those using an external texture. */
 void FExternalTextureRegistry::RemoveMaterialRenderProxyReference(const FMaterialRenderProxy* MaterialRenderProxy)
 {
 	ReferencingMaterialRenderProxies.Remove(MaterialRenderProxy);
 }
 
-/* Looks up an external texture for given a given GUID
-	* @return false if the texture is not registered
-	*/
+/* Registers the MaterialRenderProxy as using an external texture and looks up an external texture for given the specified GUID provided it is valid.
+ * @return false if the texture is not registered or the GUID is invalid. 
+ */
 bool FExternalTextureRegistry::GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, const FGuid& InGuid, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI)
 {
 //	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GetExternalTexture: Guid = %s"), *InGuid.ToString());
+
 	// Only cache render proxies that have been initialized, since FMaterialRenderProxy::ReleaseDynamicRHI() is responsible for removing them
 	if (MaterialRenderProxy && MaterialRenderProxy->IsInitialized())
 	{
 		ReferencingMaterialRenderProxies.Add(MaterialRenderProxy);
 	}
 
-	FExternalTextureEntry* Entry = TextureEntries.Find(InGuid);
-	if (Entry)
+	// If the GUID was not valid, we still need to register the MaterialRenderProxy so the uniform expressions can be recached when the external texture gets assigned a valid GUID.
+
+	if (InGuid.IsValid())
 	{
-//		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GetExternalTexture: Found"));
-		OutTextureRHI = Entry->TextureRHI;
-		OutSamplerStateRHI = Entry->SamplerStateRHI;
-		return true;
+		FExternalTextureEntry* Entry = TextureEntries.Find(InGuid);
+		if (Entry)
+		{
+//			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GetExternalTexture: Found"));
+			OutTextureRHI = Entry->TextureRHI;
+			OutSamplerStateRHI = Entry->SamplerStateRHI;
+			return true;
+		}
+		else
+		{
+//			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GetExternalTexture: NOT FOUND!"));
+		}
 	}
-	else
-	{
-//		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GetExternalTexture: NOT FOUND!"));
-		return false;
-	}
+
+	return false;
 }
 
 /* Looks up an texture coordinate scale rotation for given a given GUID
