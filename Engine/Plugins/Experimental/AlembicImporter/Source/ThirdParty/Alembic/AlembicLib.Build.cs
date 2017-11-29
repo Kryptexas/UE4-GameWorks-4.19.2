@@ -36,17 +36,16 @@ public class AlembicLib : ModuleRules
             string LibExtension = (Target.Platform == UnrealTargetPlatform.Mac) ? ".a" : ".lib";
 
             if (Target.Platform == UnrealTargetPlatform.Win64)
-			{
+            {
                 List<string> ReqLibraryNames = new List<string>();
                 ReqLibraryNames.AddRange
                 (
-					new string[] {
-                    "Half",
-					"Iex",
-					"IlmThread",
-					"Imath",
-					(bDebug && bAllowDynamicLibs) ? "libhdf5_" : "libhdf5",
-					"Alembic"
+                    new string[] {
+                        "Half",
+                        "Iex",
+                        "IlmThread",
+                        "Imath",
+                        "Alembic"
                 });
 
                 foreach (string LibraryName in ReqLibraryNames)
@@ -54,30 +53,30 @@ public class AlembicLib : ModuleRules
                     PublicAdditionalLibraries.Add(LibraryName + LibPostFix + LibExtension);
                 }
 
-				if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
+                if (Target.bDebugBuildsActuallyUseDebugCRT && bDebug)
                 {
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll"));
-				}
-			}
+                    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll"));
+                }
+            }
             else if (Target.Platform == UnrealTargetPlatform.Mac)
-			{
+            {
                 List<string> ReqLibraryNames = new List<string>();
                 ReqLibraryNames.AddRange
                 (
-					new string[] {
+                    new string[] {
                     "libHalf",
                     "libIex",
                     "libIlmThread",
                     "libImath",
-                    (bDebug && bAllowDynamicLibs) ? "hdf5_" : "hdf5",                    
+                    (bDebug && bAllowDynamicLibs) ? "hdf5_" : "hdf5",
                     "libAlembic"
                   });
 
-                foreach ( string LibraryName in ReqLibraryNames)
+                foreach (string LibraryName in ReqLibraryNames)
                 {
                     PublicAdditionalLibraries.Add(LibDir + LibraryName + LibPostFix + LibExtension);
-				}
-			}
+                }
+            }
 
             PublicIncludePaths.Add(ModuleDirectory + "/Deploy/include/");
             PublicIncludePaths.Add(ModuleDirectory + "/Deploy/include/OpenEXR/");
