@@ -1,13 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysicsEngine/SoftJointComponent.h"
+#include "PhysicsEngine/FlexSoftJointComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "GameFramework/Actor.h"
 #include "WorldCollision.h"
 #include "Engine/World.h"
 #include "Components/BillboardComponent.h"
 #include "Engine/Texture2D.h"
-#include "PhysicsEngine/SoftJointActor.h"
+#include "PhysicsEngine/FlexSoftJointActor.h"
 
 #include "PhysicsPublic.h"
 
@@ -19,7 +19,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 // SOFTJOINTCOMPONENT
-USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitializer)
+UFlexSoftJointComponent::UFlexSoftJointComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -35,12 +35,12 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	SoftJoint = nullptr;
 }
 
-UFlexContainer* USoftJointComponent::GetContainerTemplate()
+UFlexContainer* UFlexSoftJointComponent::GetContainerTemplate()
 {
 	return ContainerInstance ? ContainerInstance->Template : nullptr;
 }
 
-void USoftJointComponent::OnUnregister()
+void UFlexSoftJointComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
@@ -60,7 +60,7 @@ void USoftJointComponent::OnUnregister()
 	}
 }
 
-void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UFlexSoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -146,10 +146,10 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 
 //////////////////////////////////////////////////////////////////////////
 // ARB_SOFTJOINTACTOR
-ASoftJointActor::ASoftJointActor(const FObjectInitializer& ObjectInitializer)
+AFlexSoftJointActor::AFlexSoftJointActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SoftJointComponent = CreateDefaultSubobject<USoftJointComponent>(TEXT("SoftJointComponent0"));
+	SoftJointComponent = CreateDefaultSubobject<UFlexSoftJointComponent>(TEXT("SoftJointComponent0"));
 
 #if WITH_EDITOR
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
@@ -196,7 +196,7 @@ ASoftJointActor::ASoftJointActor(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITOR
-void ASoftJointActor::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
+void AFlexSoftJointActor::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
 {
 	FVector ModifiedScale = DeltaScale * (AActor::bUsePercentageBasedScaling ? 500.0f : 5.0f);
 
@@ -211,8 +211,8 @@ void ASoftJointActor::EditorApplyScale(const FVector& DeltaScale, const FVector*
 
 
 /** Returns SoftJointComponent subobject **/
-USoftJointComponent* ASoftJointActor::GetSoftJointComponent() const { return SoftJointComponent; }
+UFlexSoftJointComponent* AFlexSoftJointActor::GetSoftJointComponent() const { return SoftJointComponent; }
 #if WITH_EDITORONLY_DATA
 /** Returns SpriteComponent subobject **/
-UBillboardComponent* ASoftJointActor::GetSpriteComponent() const { return SpriteComponent; }
+UBillboardComponent* AFlexSoftJointActor::GetSpriteComponent() const { return SpriteComponent; }
 #endif

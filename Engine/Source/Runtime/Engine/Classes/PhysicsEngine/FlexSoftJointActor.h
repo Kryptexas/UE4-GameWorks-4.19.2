@@ -6,12 +6,12 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "PhysicsEngine/RigidBodyBase.h"
-#include "SoftJointActor.generated.h"
+#include "FlexSoftJointActor.generated.h"
 
 class UBillboardComponent;
 
 UCLASS(MinimalAPI, hideCategories = (Collision, Input), showCategories = ("Input|MouseInput", "Input|TouchInput"), ComponentWrapperClass)
-class ASoftJointActor : public ARigidBodyBase
+class AFlexSoftJointActor : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -24,7 +24,7 @@ public:
 
 public:
 	/** Returns SoftJointComponent subobject **/
-	ENGINE_API class USoftJointComponent* GetSoftJointComponent() const;
+	ENGINE_API class UFlexSoftJointComponent* GetSoftJointComponent() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
 	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
@@ -32,8 +32,8 @@ public:
 
 private:
 	/** Soft joint component */
-	UPROPERTY(Category = SoftJointActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Activation,Components|Activation,Physics,Physics|Components|SoftJoint", AllowPrivateAccess = "true"))
-	class USoftJointComponent* SoftJointComponent;
+	UPROPERTY(Category = FlexSoftJointActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Activation,Components|Activation,Physics,Physics|Components|SoftJoint", AllowPrivateAccess = "true"))
+	class UFlexSoftJointComponent* SoftJointComponent;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

@@ -379,6 +379,8 @@ struct NvFlexExtSoftJoint
 	float shapeRotations[4];		//!< Joint shape matching group rotations (quaternions)
 
 	float stiffness;				//!< Joint stiffness
+
+	bool initialized;				//!< Joint status flag
 };
 
 /** 
