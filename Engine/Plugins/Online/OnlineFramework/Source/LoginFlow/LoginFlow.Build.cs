@@ -54,7 +54,5 @@ public class LoginFlow : ModuleRules
 				"AnalyticsET",
 			}
 		);
-
-		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }
