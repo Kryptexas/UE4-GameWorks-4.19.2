@@ -795,16 +795,8 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 				GEngine->StereoRenderingDevice->CalculateStereoViewOffset( StereoPass, ViewRotation, ViewInitOptions.WorldToMetersScale, ViewInitOptions.ViewOrigin );
 			}
 
-			if (bUsingOrbitCamera)
-			{
-				// @todo vreditor: Not stereo friendly yet
-				ViewInitOptions.ViewRotationMatrix = FTranslationMatrix( ViewInitOptions.ViewOrigin ) * ViewTransform.ComputeOrbitMatrix();
-			}
-			else
-			{
-			    // Create the view matrix
-			    ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix( ViewRotation );
-			}
+			// Calc view rotation matrix
+			ViewInitOptions.ViewRotationMatrix = CalcViewRotationMatrix(ViewRotation);
 
 		    // Rotate view 90 degrees
 			ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
@@ -5494,6 +5486,22 @@ float FEditorViewportClient::UpdateViewportClientWindowDPIScale() const
 	}
 
 	return DPIScale;
+}
+
+FMatrix FEditorViewportClient::CalcViewRotationMatrix(const FRotator& InViewRotation) const
+{
+	const FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+	if (bUsingOrbitCamera)
+	{
+		// @todo vreditor: Not stereo friendly yet
+		return FTranslationMatrix(ViewTransform.GetLocation()) * ViewTransform.ComputeOrbitMatrix();
+	}
+	else
+	{
+		// Create the view matrix
+		return FInverseRotationMatrix(InViewRotation);
+	}
 }
 
 ////////////////

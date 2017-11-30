@@ -166,6 +166,10 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=Sound)
 	uint32 bVirtualizeWhenSilent:1;
 
+	/** Whether or not this source is ambisonics file format. */
+	UPROPERTY(EditAnywhere, Category = Sound)
+	uint32 bIsAmbisonics : 1;
+
 	/** Whether this SoundWave was decompressed from OGG. */
 	uint32 bDecompressedFromOgg:1;
 

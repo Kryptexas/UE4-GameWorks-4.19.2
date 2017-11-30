@@ -27,6 +27,11 @@
 #include "TabSpawners.h"
 #include "ShowFlagMenuCommands.h"
 #include "BufferVisualizationMenuCommands.h"
+#include "UICommandList_Pinnable.h"
+#include "IPersonaEditorModeManager.h"
+#include "AssetViewerSettings.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -40,6 +45,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, const FAnimat
 	TabBodyPtr = InRequiredArgs.TabBody;
 	AssetEditorToolkitPtr = InRequiredArgs.AssetEditorToolkit;
 	Extenders = InArgs._Extenders;
+	ContextName = InArgs._ContextName;
 	bShowShowMenu = InArgs._ShowShowMenu;
 	bShowLODMenu = InArgs._ShowLODMenu;
 	bShowPlaySpeedMenu = InArgs._ShowPlaySpeedMenu;
@@ -48,6 +54,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, const FAnimat
 	bShowTurnTable = InArgs._ShowTurnTable;
 	bShowPhysicsMenu = InArgs._ShowPhysicsMenu;
 	InRequiredArgs.OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimationEditorViewport::OnUndoRedo));
+	ViewportIndex = InRequiredArgs.ViewportIndex;
 
 	SEditorViewport::Construct(
 		SEditorViewport::FArguments()
@@ -61,7 +68,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, const FAnimat
 TSharedRef<FEditorViewportClient> SAnimationEditorViewport::MakeEditorViewportClient()
 {
 	// Create an animation viewport client
-	LevelViewportClient = MakeShareable(new FAnimationViewportClient(SkeletonTreePtr.Pin().ToSharedRef(), PreviewScenePtr.Pin().ToSharedRef(), SharedThis(this), AssetEditorToolkitPtr.Pin().ToSharedRef(), bShowStats));
+	LevelViewportClient = MakeShareable(new FAnimationViewportClient(SkeletonTreePtr.Pin().ToSharedRef(), PreviewScenePtr.Pin().ToSharedRef(), SharedThis(this), AssetEditorToolkitPtr.Pin().ToSharedRef(), ViewportIndex, bShowStats));
 
 	LevelViewportClient->ViewportType = LVT_Perspective;
 	LevelViewportClient->bSetListenerPosition = false;
@@ -73,9 +80,10 @@ TSharedRef<FEditorViewportClient> SAnimationEditorViewport::MakeEditorViewportCl
 
 TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 {
-	return SNew(SAnimViewportToolBar, TabBodyPtr.Pin(), SharedThis(this))
+	return SAssignNew(ViewportToolbar, SAnimViewportToolBar, TabBodyPtr.Pin(), SharedThis(this))
 		.Cursor(EMouseCursor::Default)
 		.Extenders(Extenders)
+		.ContextName(ContextName)
 		.ShowShowMenu(bShowShowMenu)
 		.ShowLODMenu(bShowLODMenu)
 		.ShowPlaySpeedMenu(bShowPlaySpeedMenu)
@@ -92,6 +100,7 @@ void SAnimationEditorViewport::OnUndoRedo()
 void SAnimationEditorViewport::OnFocusViewportToSelection()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->SetCameraFollowMode(EAnimationViewportCameraFollowMode::None);
 	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
@@ -149,20 +158,32 @@ bool SAnimationEditorViewportTabBody::CanUseGizmos() const
 	return false;
 }
 
+static FText ConcatenateLine(const FText& InText, const FText& InNewLine)
+{
+	if(InText.IsEmpty())
+	{
+		return InNewLine;
+	}
+
+	return FText::Format(LOCTEXT("ViewportTextNewlineFormatter", "{0}\n{1}"), InText, InNewLine);
+}
+
 FText SAnimationEditorViewportTabBody::GetDisplayString() const
 {
 	class UDebugSkelMeshComponent* Component = GetPreviewScene()->GetPreviewMeshComponent();
 	FName TargetSkeletonName = GetSkeletonTree()->GetEditableSkeleton()->GetSkeleton().GetFName();
 
+	FText DefaultText;
+
 	if (Component != NULL)
 	{
 		if (Component->bForceRefpose)
 		{
-			return LOCTEXT("ReferencePose", "Reference pose");
+			DefaultText = LOCTEXT("ReferencePose", "Reference pose");
 		}
 		else if (Component->IsPreviewOn())
 		{
-			return FText::Format(LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()));
+			DefaultText = FText::Format(LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()));
 		}
 		else if (Component->AnimClass != NULL)
 		{
@@ -170,20 +191,54 @@ FText SAnimationEditorViewportTabBody::GetDisplayString() const
 			const bool bWarnAboutBoneManip = BPEditor.IsValid() && BPEditor->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
 			if (bWarnAboutBoneManip)
 			{
-				return FText::Format(LOCTEXT("PreviewingAnimBP_WarnDisabled", "Previewing {0}. \nBone manipulation is disabled in this mode. "), FText::FromString(Component->AnimClass->GetName()));
+				DefaultText = FText::Format(LOCTEXT("PreviewingAnimBP_WarnDisabled", "Previewing {0}. \nBone manipulation is disabled in this mode. "), FText::FromString(Component->AnimClass->GetName()));
 			}
 			else
 			{
-				return FText::Format(LOCTEXT("PreviewingAnimBP", "Previewing {0}"), FText::FromString(Component->AnimClass->GetName()));
+				DefaultText = FText::Format(LOCTEXT("PreviewingAnimBP", "Previewing {0}"), FText::FromString(Component->AnimClass->GetName()));
 			}
 		}
 		else if (Component->SkeletalMesh == NULL)
 		{
-			return FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromName(TargetSkeletonName));
+			DefaultText = FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromName(TargetSkeletonName));
 		}
 	}
 
-	return FText();
+	if(OnGetViewportText.IsBound())
+	{
+		DefaultText = ConcatenateLine(DefaultText, OnGetViewportText.Execute(EViewportCorner::TopLeft));
+	}
+
+	TSharedPtr<FAnimationViewportClient> AnimViewportClient = StaticCastSharedPtr<FAnimationViewportClient>(LevelViewportClient);
+
+	if(AnimViewportClient->IsShowingMeshStats())
+	{
+		DefaultText = ConcatenateLine(DefaultText, AnimViewportClient->GetDisplayInfo(AnimViewportClient->IsDetailedMeshStats()));
+	}
+	else if(AnimViewportClient->IsShowingSelectedNodeStats())
+	{
+		// Allow edit modes (inc. skeletal control modes) to draw with the canvas, and collect on screen strings to draw later
+		if (AnimViewportClient->GetPersonaModeManager())
+		{
+			TArray<FText> EditModeDebugText;
+			AnimViewportClient->GetPersonaModeManager()->GetOnScreenDebugInfo(EditModeDebugText);
+
+			for(FText& Text : EditModeDebugText)
+			{
+				DefaultText = ConcatenateLine(DefaultText, Text);
+			}
+		}
+	}
+
+	if(Component)
+	{
+		for(const FGetExtendedViewportText& TextDelegate : Component->GetExtendedViewportTextDelegates())
+		{
+			DefaultText = ConcatenateLine(DefaultText, TextDelegate.Execute());
+		}
+	}
+
+	return DefaultText;
 }
 
 TSharedRef<IPersonaViewportState> SAnimationEditorViewportTabBody::SaveState() const
@@ -202,6 +257,11 @@ void SAnimationEditorViewportTabBody::RestoreState(TSharedRef<IPersonaViewportSt
 FEditorViewportClient& SAnimationEditorViewportTabBody::GetViewportClient() const
 {
 	return *LevelViewportClient;
+}
+
+TSharedRef<IPinnedCommandList> SAnimationEditorViewportTabBody::GetPinnedCommandList() const
+{
+	return ViewportWidget->GetViewportToolbar()->GetPinnedCommandList().ToSharedRef();
 }
 
 void SAnimationEditorViewportTabBody::RefreshViewport()
@@ -224,9 +284,9 @@ FReply SAnimationEditorViewportTabBody::OnKeyDown(const FGeometry& MyGeometry, c
 }
 
 
-void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo)
+void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo, int32 InViewportIndex)
 {
-	UICommandList = MakeShareable(new FUICommandList);
+	UICommandList = MakeShareable(new FUICommandList_Pinnable);
 
 	SkeletonTreePtr = InSkeletonTree;
 	PreviewScenePtr = StaticCastSharedRef<FAnimationEditorPreviewScene>(InPreviewScene);
@@ -235,6 +295,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	bShowTimeline = InArgs._ShowTimeline;
 	bAlwaysShowTransformToolbar = InArgs._AlwaysShowTransformToolbar;
 	OnInvokeTab = InArgs._OnInvokeTab;
+	OnGetViewportText = InArgs._OnGetViewportText;
 
 	// register delegates for change notifications
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SAnimationEditorViewportTabBody::AnimChanged));
@@ -252,10 +313,11 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 		.OptionsSource(&UVChannels)
 		.OnSelectionChanged(this, &SAnimationEditorViewportTabBody::ComboBoxSelectionChanged);
 
-	FAnimationEditorViewportRequiredArgs ViewportArgs(InSkeletonTree, InPreviewScene, SharedThis(this), InAssetEditorToolkit, InOnUndoRedo);
+	FAnimationEditorViewportRequiredArgs ViewportArgs(InSkeletonTree, InPreviewScene, SharedThis(this), InAssetEditorToolkit, InOnUndoRedo, InViewportIndex);
 
 	ViewportWidget = SNew(SAnimationEditorViewport, ViewportArgs)
 		.Extenders(InArgs._Extenders)
+		.ContextName(InArgs._ContextName)
 		.ShowShowMenu(InArgs._ShowShowMenu)
 		.ShowLODMenu(InArgs._ShowLODMenu)
 		.ShowPlaySpeedMenu(InArgs._ShowPlaySpeedMenu)
@@ -326,7 +388,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 
 	// Load the view mode from config
-	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->ViewModeIndex);
+	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->ViewportConfigs[InViewportIndex].ViewModeIndex);
 	UpdateShowFlagForMeshEdges();
 
 
@@ -340,16 +402,22 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 
 void SAnimationEditorViewportTabBody::BindCommands()
 {
-	FUICommandList& CommandList = *UICommandList;
+	FUICommandList_Pinnable& CommandList = *UICommandList;
 
 	//Bind menu commands
 	const FAnimViewportMenuCommands& MenuActions = FAnimViewportMenuCommands::Get();
 
 	CommandList.MapAction(
-		MenuActions.CameraFollow,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ToggleCameraFollow),
+		MenuActions.CameraFollowNone,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SetCameraFollowMode, EAnimationViewportCameraFollowMode::None, FName()),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanChangeCameraMode),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsCameraFollowEnabled));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsCameraFollowEnabled, EAnimationViewportCameraFollowMode::None));
+
+	CommandList.MapAction(
+		MenuActions.CameraFollowBounds,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SetCameraFollowMode, EAnimationViewportCameraFollowMode::Bounds, FName()),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanChangeCameraMode),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsCameraFollowEnabled, EAnimationViewportCameraFollowMode::Bounds));
 
 	CommandList.MapAction(
 		MenuActions.JumpToDefaultCamera,
@@ -358,7 +426,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.SaveCameraAsDefault,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SaveCameraAsDefault));
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SaveCameraAsDefault),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanSaveCameraAsDefault));
 
 	CommandList.MapAction(
 		MenuActions.ClearDefaultCamera,
@@ -465,6 +534,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingBakedAnimation));
 
 	//Display info
+	CommandList.BeginGroup(TEXT("MeshDisplayInfo"));
+
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowDisplayInfoBasic,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::Basic),
@@ -489,7 +560,11 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::None));
 
+	CommandList.EndGroup();
+
 	//Material overlay option
+	CommandList.BeginGroup(TEXT("MaterialOverlay"));
+
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowOverlayNone,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowOverlayNone),
@@ -514,6 +589,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingVertexColors));
 
+	CommandList.EndGroup();
+
 	// Show sockets
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowSockets,
@@ -522,6 +599,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSockets));
 
 	// Set bone drawing mode
+	CommandList.BeginGroup(TEXT("BoneDrawingMode"));
+
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBoneDrawNone,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::None),
@@ -546,7 +625,11 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::All));
 
+	CommandList.EndGroup();
+
 	// Set bone local axes mode
+	CommandList.BeginGroup(TEXT("BoneLocalAxesMode"));
+
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowLocalAxesNone,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLocalAxesMode, (int32)ELocalAxesMode::None),
@@ -564,6 +647,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLocalAxesMode, (int32)ELocalAxesMode::All),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLocalAxesModeSet, (int32)ELocalAxesMode::All));
+
+	CommandList.EndGroup();
 
 #if WITH_APEX_CLOTHING
 
@@ -591,6 +676,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim));
 
+	CommandList.BeginGroup(TEXT("ClothSectionDisplayMode"));
+
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowAllSections,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, ESectionDisplayMode::ShowAll),
@@ -609,11 +696,15 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, ESectionDisplayMode::HideOnlyClothSections));
 
+	CommandList.EndGroup();
+
 #endif// #if WITH_APEX_CLOTHING		
 
 	GetPreviewScene()->RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &SAnimationEditorViewportTabBody::OnLODModelChanged));
 	//Bind LOD preview menu commands
 	const FAnimViewportLODCommands& ViewportLODMenuCommands = FAnimViewportLODCommands::Get();
+
+	CommandList.BeginGroup(TEXT("LOD"));
 
 	//LOD Auto
 	CommandList.MapAction( 
@@ -631,6 +722,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	// all other LODs will be added dynamically
 
+	CommandList.EndGroup();
+
 	CommandList.MapAction(
 		ViewportShowMenuCommands.AutoAlignFloorToMesh,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor),
@@ -639,6 +732,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 	
 	//Bind LOD preview menu commands
 	const FAnimViewportPlaybackCommands& ViewportPlaybackCommands = FAnimViewportPlaybackCommands::Get();
+
+	CommandList.BeginGroup(TEXT("PlaybackSpeeds"));
 
 	//Create a menu item for each playback speed in EAnimationPlaybackSpeeds
 	for(int32 i = 0; i < int(EAnimationPlaybackSpeeds::NumPlaybackSpeeds); ++i)
@@ -649,6 +744,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 			FCanExecuteAction(),
 			FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPlaybackSpeedSelected, i));
 	}
+
+	CommandList.EndGroup();
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.MuteAudio,
@@ -668,6 +765,14 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingRootMotion));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.DisablePostProcessBlueprint,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleDisablePostProcess),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanDisablePostProcess),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsDisablePostProcessChecked));
+
+	CommandList.BeginGroup(TEXT("TurnTableSpeeds"));
+
 	// Turn Table Controls
 	for (int32 i = 0; i < int(EAnimationPlaybackSpeeds::NumPlaybackSpeeds); ++i)
 	{
@@ -677,6 +782,10 @@ void SAnimationEditorViewportTabBody::BindCommands()
 			FCanExecuteAction(),
 			FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableSpeedSelected, i));
 	}
+
+	CommandList.EndGroup();
+
+	CommandList.BeginGroup(TEXT("TurnTableMode"));
 
 	CommandList.MapAction(
 		ViewportPlaybackCommands.PersonaTurnTablePlay,
@@ -695,6 +804,8 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Stopped)),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Stopped)));
+
+	CommandList.EndGroup();
 
 	CommandList.MapAction(
 		FEditorViewportCommands::Get().FocusViewportToSelection,
@@ -835,6 +946,26 @@ bool SAnimationEditorViewportTabBody::IsShowingRawAnimation() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
 	return PreviewComponent != NULL && PreviewComponent->bDisplayRawAnimation;
+}
+
+void SAnimationEditorViewportTabBody::OnToggleDisablePostProcess()
+{
+	if(UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
+	{
+		PreviewComponent->ToggleDisablePostProcessBlueprint();
+	}
+}
+
+bool SAnimationEditorViewportTabBody::CanDisablePostProcess()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	return PreviewComponent && PreviewComponent->PostProcessAnimInstance;
+}
+
+bool SAnimationEditorViewportTabBody::IsDisablePostProcessChecked()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	return PreviewComponent && PreviewComponent->GetDisablePostProcessBlueprint();
 }
 
 bool SAnimationEditorViewportTabBody::IsShowingNonRetargetedPose() const
@@ -1310,18 +1441,22 @@ void SAnimationEditorViewportTabBody::OpenPreviewSceneSettings()
 	OnInvokeTab.ExecuteIfBound(FPersonaTabs::AdvancedPreviewSceneSettingsID);
 }
 
-void SAnimationEditorViewportTabBody::ToggleCameraFollow()
+void SAnimationEditorViewportTabBody::SetCameraFollowMode(EAnimationViewportCameraFollowMode InCameraFollowMode, FName InBoneName)
 {
-	// Switch to rotation mode
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->SetCameraFollow();
+	AnimViewportClient->SetCameraFollowMode(InCameraFollowMode, InBoneName);
 }
 
-bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled() const
+bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled(EAnimationViewportCameraFollowMode InCameraFollowMode) const
 {
-	// need a single selected bone in the skeletal tree
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	return (AnimViewportClient->IsSetCameraFollowChecked());
+	return (AnimViewportClient->GetCameraFollowMode() == InCameraFollowMode);
+}
+
+FName SAnimationEditorViewportTabBody::GetCameraFollowBoneName() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->GetCameraFollowBoneName();
 }
 
 void SAnimationEditorViewportTabBody::SaveCameraAsDefault()
@@ -1340,6 +1475,12 @@ void SAnimationEditorViewportTabBody::JumpToDefaultCamera()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	AnimViewportClient->JumpToDefaultCamera();
+}
+
+bool SAnimationEditorViewportTabBody::CanSaveCameraAsDefault() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->CanSaveCameraAsDefault();
 }
 
 bool SAnimationEditorViewportTabBody::HasDefaultCameraSet() const
@@ -1698,6 +1839,7 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 void SAnimationEditorViewportTabBody::HandleFocusCamera()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->SetCameraFollowMode(EAnimationViewportCameraFollowMode::None);
 	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 

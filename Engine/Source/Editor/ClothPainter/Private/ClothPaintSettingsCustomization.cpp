@@ -72,6 +72,13 @@ void FClothPaintSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 		];
+
+	TSharedRef<IPropertyHandle> AutoRangeProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, bAutoViewRange), UClothPainterSettings::StaticClass());
+
+	if(AutoRangeProperty->IsValidHandle())
+	{
+		AutoRangeProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FClothPaintSettingsCustomization::OnAutoRangeFlagChanged));
+	}
 }
 
 TSharedRef<SWidget> FClothPaintSettingsCustomization::OnGenerateToolComboRow(TSharedPtr<FClothPaintToolBase> InItem)
@@ -104,6 +111,11 @@ FText FClothPaintSettingsCustomization::GetToolComboText() const
 	}
 
 	return LOCTEXT("ToolComboRow_Error", "Invalid");
+}
+
+void FClothPaintSettingsCustomization::OnAutoRangeFlagChanged()
+{
+	Painter->RecalculateAutoViewRange();
 }
 
 #undef LOCTEXT_NAMESPACE

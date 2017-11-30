@@ -207,16 +207,19 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 	{
 		for (int32 i = 0; i <PhysicsAsset->ConstraintSetup.Num(); ++i)
 		{
-			int32 BoneIndex1 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1);
-			int32 BoneIndex2 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2);
-			// if bone doesn't exist, do not draw it. It crashes in random points when we try to manipulate. 
-			if (BoneIndex1 != INDEX_NONE && BoneIndex2 != INDEX_NONE)
+			if(!SharedData->EditorOptions->bRenderOnlySelectedConstraints || (SharedData->EditorOptions->bRenderOnlySelectedConstraints && SharedData->IsConstraintSelected(i)))
 			{
-				PDI->SetHitProxy(new HPhysicsAssetEditorEdConstraintProxy(i));
+				int32 BoneIndex1 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1);
+				int32 BoneIndex2 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2);
+				// if bone doesn't exist, do not draw it. It crashes in random points when we try to manipulate. 
+				if (BoneIndex1 != INDEX_NONE && BoneIndex2 != INDEX_NONE)
+				{
+					PDI->SetHitProxy(new HPhysicsAssetEditorEdConstraintProxy(i));
 
-				DrawConstraint(i, View, PDI, SharedData->EditorOptions->bShowConstraintsAsPoints);
+					DrawConstraint(i, View, PDI, SharedData->EditorOptions->bShowConstraintsAsPoints);
 
-				PDI->SetHitProxy(NULL);
+					PDI->SetHitProxy(NULL);
+				}
 			}
 		}
 	}

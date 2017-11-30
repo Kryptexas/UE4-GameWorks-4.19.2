@@ -29,6 +29,8 @@ public:
 
 	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
+	SLATE_ARGUMENT(FName, ContextName)
+
 	SLATE_ARGUMENT(bool, ShowShowMenu)
 
 	SLATE_ARGUMENT(bool, ShowCharacterMenu)
@@ -46,6 +48,9 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class SAnimationEditorViewportTabBody> InViewport, TSharedPtr<class SEditorViewport> InRealViewport);
+
+	/** Get the pinned commands widget */
+	TSharedPtr<IPinnedCommandList> GetPinnedCommandList() { return PinnedCommands; }
 
 private:
 	/**
@@ -129,7 +134,7 @@ private:
 	const FSlateBrush* GetCameraMenuLabelIcon() const;
 
 	/** Called by the FOV slider in the perspective viewport to get the FOV value */
-	float OnGetFOVValue() const;
+	TOptional<float> OnGetFOVValue() const;
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	void OnFOVValueChanged( float NewValue );
 	/** Called when a value is entered into the FOV slider/box in the perspective viewport */
@@ -142,6 +147,12 @@ private:
 
 	// Called to determine if the gizmos can be used in the current preview
 	EVisibility GetTransformToolbarVisibility() const;
+
+	/** Build the floor offset widget */
+	TSharedRef<SWidget> MakeFloorOffsetWidget() const;
+
+	/** Build the FOV widget */
+	TSharedRef<SWidget> MakeFOVWidget() const;
 
 private:
 	/** Build the main toolbar */
@@ -159,6 +170,9 @@ private:
 
 	/** Extenders */
 	TArray<TSharedPtr<FExtender>> Extenders;
+
+	/** Pinned commands widget */
+	TSharedPtr<IPinnedCommandList> PinnedCommands;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;

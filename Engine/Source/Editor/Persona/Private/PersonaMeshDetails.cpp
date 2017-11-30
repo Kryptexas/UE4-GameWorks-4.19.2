@@ -74,6 +74,12 @@
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
+namespace PersonaMeshDetailsConstants
+{
+	/** Number to extend the num lods slider beyond the currently existing number of lods in the mesh */
+	const static int32 LodSliderExtension = 5;
+}
+
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
@@ -1149,12 +1155,13 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 
 
 		LodCategories.Empty(SkelMeshLODCount);
+		DetailDisplayLODs.Reset();
 		// Create information panel for each LOD level.
 		for (int32 LODIndex = 0; LODIndex < SkelMeshLODCount; ++LODIndex)
 		{
 			//Show the viewport LOD at start
 			bool IsViewportLOD = (CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex;
-			DetailDisplayLODs[LODIndex] = true; //Enable all LOD in custum mode
+			DetailDisplayLODs.Add(true); //Enable all LOD in custum mode
 			LODCustomModeCategory.AddCustomRow(( LOCTEXT("LODCustomModeRowName", "LODCheckBoxRowName")))
 			.NameContent()
 			[
@@ -1375,7 +1382,7 @@ void FPersonaMeshDetails::SetLODCustomModeCheck(ECheckBoxState NewState, int32 L
 		{
 			CustomLODEditMode = false;
 			SetCurrentLOD(CurrentLodIndex);
-			for (int32 DetailLODIndex = 0; DetailLODIndex < MAX_SKELETAL_MESH_LODS; ++DetailLODIndex)
+			for (int32 DetailLODIndex = 0; DetailLODIndex < LODCount; ++DetailLODIndex)
 			{
 				if (!LodCategories.IsValidIndex(DetailLODIndex))
 				{
@@ -1397,7 +1404,7 @@ void FPersonaMeshDetails::SetLODCustomModeCheck(ECheckBoxState NewState, int32 L
 
 	if (CustomLODEditMode)
 	{
-		for (int32 DetailLODIndex = 0; DetailLODIndex < MAX_SKELETAL_MESH_LODS; ++DetailLODIndex)
+		for (int32 DetailLODIndex = 0; DetailLODIndex < LODCount; ++DetailLODIndex)
 		{
 			if (!LodCategories.IsValidIndex(DetailLODIndex))
 			{
@@ -1416,6 +1423,18 @@ bool FPersonaMeshDetails::IsLODCustomModeEnable(int32 LODIndex) const
 		return true;
 	}
 	return CustomLODEditMode;
+}
+
+TOptional<int32> FPersonaMeshDetails::GetLodSliderMaxValue() const
+{
+	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
+
+	if(SkelMesh)
+	{
+		return SkelMesh->LODInfo.Num() + PersonaMeshDetailsConstants::LodSliderExtension;
+	}
+
+	return 0;
 }
 
 void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& DetailLayout)
@@ -1463,7 +1482,7 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 			.OnValueChanged(this, &FPersonaMeshDetails::OnLODCountChanged)
 			.OnValueCommitted(this, &FPersonaMeshDetails::OnLODCountCommitted)
 			.MinValue(MinAllowedLOD)
-			.MaxValue(MAX_SKELETAL_MESH_LODS)
+			.MaxValue(this, &FPersonaMeshDetails::GetLodSliderMaxValue)
 			.ToolTipText(this, &FPersonaMeshDetails::GetLODCountTooltip)
 			.IsEnabled(IsAutoMeshReductionAvailable())
 		];
@@ -1504,7 +1523,7 @@ int32 FPersonaMeshDetails::GetLODCount() const
 
 void FPersonaMeshDetails::OnLODCountChanged(int32 NewValue)
 {
-	LODCount = FMath::Clamp<int32>(NewValue, 1, MAX_SKELETAL_MESH_LODS);
+	LODCount = FMath::Max<int32>(NewValue, 1);
 
 	UpdateLODNames();
 }

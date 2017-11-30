@@ -39,6 +39,10 @@
 #include "ActorRecordingDetailsCustomization.h"
 #include "SequenceRecorderDetailsCustomization.h"
 #include "PropertiesToRecordForClassDetailsCustomization.h"
+#include "WorkflowTabFactory.h"
+#include "IStructureDetailsView.h"
+#include "WorkflowTabManager.h"
+#include "LayoutExtender.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -61,6 +65,33 @@ static TAutoConsoleVariable<int32> CVarAnimRecorderWorldSpace(
 	1,
 	TEXT("True to record anim keys in world space, false to record only in local space."),
 	ECVF_Default);
+
+class FSequenceRecorderSettingsTabFactory : public FWorkflowTabFactory
+{
+public:
+	FSequenceRecorderSettingsTabFactory(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+		: FWorkflowTabFactory(TEXT("PersonaSequenceRecorderSettings"), InHostingApp)
+	{
+		TabLabel = LOCTEXT("AnimationRecordingSettings", "Recording Settings");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "SequenceRecorder.TabIcon");
+		ViewMenuDescription = LOCTEXT("AnimationRecordingSettings", "Recording Settings");
+		ViewMenuTooltip = LOCTEXT("AnimationRecordingSettings_Tooltip", "Settings for animation recording");
+
+		StructOnScope = MakeShared<FStructOnScope>(FAnimationRecordingSettings::StaticStruct(), (uint8*)&GetMutableDefault<USequenceRecorderSettings>()->DefaultAnimationSettings);
+	}
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bShowPropertyMatrixButton = false;
+		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+		FStructureDetailsViewArgs StructureDetailsViewArgs;
+		return PropertyEditorModule.CreateStructureDetailView(DetailsViewArgs, StructureDetailsViewArgs, StructOnScope, LOCTEXT("AnimationRecordingSettings", "Recording Settings"))->GetWidget().ToSharedRef();
+	}
+	
+	TSharedPtr<FStructOnScope> StructOnScope;
+};
 
 class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteringExec
 {
@@ -106,6 +137,14 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			PersonaModule.OnStopRecording().BindStatic(&FSequenceRecorderModule::HandlePersonaStopRecording);
 			PersonaModule.OnGetCurrentRecording().BindStatic(&FSequenceRecorderModule::HandlePersonaCurrentRecording);
 			PersonaModule.OnGetCurrentRecordingTime().BindStatic(&FSequenceRecorderModule::HandlePersonaCurrentRecordingTime);
+			PersonaRegisterTabsHandle = PersonaModule.OnRegisterTabs().AddLambda([](FWorkflowAllowedTabSet& InWorkflowAllowedTabSet, TSharedPtr<FAssetEditorToolkit> InHostingApp)
+			{
+				InWorkflowAllowedTabSet.RegisterFactory(MakeShared<FSequenceRecorderSettingsTabFactory>(InHostingApp));
+			});
+			PersonaLayoutExtensionsHandle = PersonaModule.OnRegisterLayoutExtensions().AddLambda([](FLayoutExtender& InExtender)
+			{
+				InExtender.ExtendLayout(FTabId(TEXT("AdvancedPreviewTab")), ELayoutExtensionPosition::After, FTabManager::FTab(FTabId(TEXT("PersonaSequenceRecorderSettings")), ETabState::ClosedTab));
+			});
 
 			// register 'keep simulation changes' recorder
 			FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
@@ -164,6 +203,8 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 				PersonaModule.OnStopRecording().Unbind();
 				PersonaModule.OnGetCurrentRecording().Unbind();
 				PersonaModule.OnGetCurrentRecordingTime().Unbind();
+				PersonaModule.OnRegisterTabs().Remove(PersonaRegisterTabsHandle);
+				PersonaModule.OnRegisterLayoutExtensions().Remove(PersonaLayoutExtensionsHandle);
 			}
 
 			if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
@@ -624,7 +665,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 
 	static void HandlePersonaRecord(USkeletalMeshComponent* Component)
 	{
-		FAnimationRecorderManager::Get().RecordAnimation(Component);
+		FAnimationRecorderManager::Get().RecordAnimation(Component, FString(), FString(), GetDefault<USequenceRecorderSettings>()->DefaultAnimationSettings);
 	}
 
 	static void HandlePersonaStopRecording(USkeletalMeshComponent* Component)
@@ -669,6 +710,10 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	FDelegateHandle DrawDebugDelegateHandle;
 
 	FDelegateHandle LevelEditorTabManagerChangedHandle;
+
+	FDelegateHandle PersonaLayoutExtensionsHandle;
+
+	FDelegateHandle PersonaRegisterTabsHandle;
 
 	TFunction<TUniquePtr<ISequenceAudioRecorder>()> AudioFactory;
 

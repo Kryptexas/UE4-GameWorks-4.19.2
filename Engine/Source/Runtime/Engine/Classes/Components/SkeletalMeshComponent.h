@@ -294,6 +294,29 @@ public:
 	UPROPERTY(transient)
 	UAnimInstance* PostProcessAnimInstance;
 
+private:
+	/** Controls whether or not this component will evaluate its post process instance. The post-process
+	 *  Instance is dictated by the skeletal mesh so this is used for per-instance control.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintGetter=GetDisablePostProcessBlueprint, BlueprintSetter=SetDisablePostProcessBlueprint, Category = Animation)
+	bool bDisablePostProcessBlueprint;
+
+public:
+
+	/** Toggles whether the post process blueprint will run for this component */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	void ToggleDisablePostProcessBlueprint();
+
+	/** Gets whether the post process blueprint is currently disabled for this component */
+	UFUNCTION(BlueprintGetter)
+	bool GetDisablePostProcessBlueprint() const;
+
+	/** Sets whether the post process blueprint is currently running for this component.
+	 *  If it is not currently running, and is set to run, the instance will be reinitialized
+	 */
+	UFUNCTION(BlueprintSetter)
+	void SetDisablePostProcessBlueprint(bool bInDisablePostProcess);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(ShowOnlyInnerProperties))
 	struct FSingleAnimationPlayData AnimationData;
 
@@ -1070,6 +1093,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = Animation)
 	FOnAnimInitialized OnAnimInitialized;
 
+	/** @return whether we should tick animation (we may want to skip it due to URO) */
+	bool ShouldTickAnimation() const;
+
 	/**
 		If MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered
 		Should we tick Montages only?
@@ -1286,6 +1312,7 @@ public:
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) override;
 	virtual void SetAllMassScale(float InMassScale = 1.f) override;
 	virtual float GetMass() const override;
+	virtual void SetAllUseCCD(bool InUseCCD) override;
 
 	/**
 	*	Returns the mass (in kg) of the given bone
@@ -1341,6 +1368,9 @@ public:
 	//~ Begin USkinnedMeshComponent Interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
+protected:
+	virtual void DispatchParallelTickPose( FActorComponentTickFunction* TickFunction ) override;
+public:
 	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) override;
 	virtual void UpdateSlaveComponent() override;
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const override;
@@ -1368,23 +1398,31 @@ public:
 
 	void GetCurrentRefToLocalMatrices(TArray<FMatrix>& OutRefToLocals, int32 InLodIdx);
 
+	// Conditions used to gate when post process events happen
+	bool ShouldUpdatePostProcessInstance() const;
+	bool ShouldPostUpdatePostProcessInstance() const;
+	bool ShouldEvaluatePostProcessInstance() const;
+
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
 	 */
 	void UpdateRBJointMotors();
 
-
 	/**
 	* Runs the animation evaluation for the current pose into the supplied variables
+	* PerformAnimationProcessing runs evaluation based on bInDoEvaluation. PerformAnimationEvaluation 
+	* always runs evaluation (and exists for backward compatibility)
 	*
 	* @param	InSkeletalMesh			The skeletal mesh we are animating
 	* @param	InAnimInstance			The anim instance we are evaluating
+	* @param	bInDoEvaluation			Whether to perform evaluation (we may just want to update)
 	* @param	OutSpaceBases			Component space bone transforms
 	* @param	OutBoneSpaceTransforms	Local space bone transforms
 	* @param	OutRootBoneTranslation	Calculated root bone translation
 	* @param	OutCurves				Blended Curve
 	*/
 	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void PerformAnimationProcessing(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, bool bInDoEvaluation, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 
 	/**
 	 * Evaluates the post process instance from the skeletal mesh this component is using.
@@ -1663,6 +1701,9 @@ private:
 	/** Evaluate Anim System **/
 	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const;
 
+	/** Queues up tasks for parallel update/evaluation, as well as the chained game thread completion task */
+	void DispatchParallelEvaluationTasks(FActorComponentTickFunction* TickFunction);
+
 	/**
 	* Take the BoneSpaceTransforms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (ComponentSpaceTransforms).
 	* It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
@@ -1746,7 +1787,7 @@ private:
 
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
-	void PostBlendPhysics();
+	void FinalizeAnimationUpdate();
 
 	/** See UpdateClothTransform for documentation. */
 	void UpdateClothTransformImp();

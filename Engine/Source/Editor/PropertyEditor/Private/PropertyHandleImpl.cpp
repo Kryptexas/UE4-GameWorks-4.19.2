@@ -4203,6 +4203,7 @@ FPropertyAccess::Result FPropertyHandleArray::AddItem()
 	if( IsEditable() )
 	{
 		Implementation->AddChild();
+		Implementation->GetPropertyNode()->RebuildChildren();
 		Result = FPropertyAccess::Success;
 	}
 

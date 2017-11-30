@@ -412,14 +412,14 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 		else
 		{
 			PerformBlendPhysicsBones(RequiredBones, BoneSpaceTransforms);
-			PostBlendPhysics();
+			FinalizeAnimationUpdate();
 		}
 	}
 }
 
-void USkeletalMeshComponent::PostBlendPhysics()
+void USkeletalMeshComponent::FinalizeAnimationUpdate()
 {
-	SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+	SCOPE_CYCLE_COUNTER(STAT_FinalizeAnimationUpdate);
 	
 	// Flip bone buffer and send 'post anim' notification
 	FinalizeBoneTransform();
@@ -447,7 +447,7 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 {
 	Exchange(AnimEvaluationContext.BoneSpaceTransforms, AnimEvaluationContext.bDoInterpolation ? CachedBoneSpaceTransforms : BoneSpaceTransforms);
 		
-	PostBlendPhysics();
+	FinalizeAnimationUpdate();
 
 	ParallelAnimationEvaluationTask.SafeRelease();
 	ParallelBlendPhysicsCompletionTask.SafeRelease();

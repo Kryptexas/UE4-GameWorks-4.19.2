@@ -533,6 +533,16 @@ void FPaintModePainter::RegisterCommands(TSharedRef<FUICommandList> CommandList)
 	auto TexturePaintModeLambda = [this]() -> bool { return PaintSettings->PaintMode == EPaintMode::Textures;  };
 	CommandList->MapAction(Commands.NextTexture, FExecuteAction::CreateLambda(TextureCycleLambda, 1), FCanExecuteAction::CreateLambda(TexturePaintModeLambda));
 	CommandList->MapAction(Commands.PreviousTexture, FExecuteAction::CreateLambda(TextureCycleLambda, -1), FCanExecuteAction::CreateLambda(TexturePaintModeLambda));
+
+	CommandList->MapAction(Commands.SwitchForeAndBackgroundColor, FExecuteAction::CreateLambda([this]()
+	{
+		if (PaintSettings->PaintMode == EPaintMode::Vertices)
+		{
+			const FLinearColor Temp = PaintSettings->VertexPaintSettings.PaintColor;
+			PaintSettings->VertexPaintSettings.PaintColor = PaintSettings->VertexPaintSettings.EraseColor;
+			PaintSettings->VertexPaintSettings.EraseColor = Temp;
+		}
+	}));
 	
 	/** Map commit texture painting to commiting all the outstanding paint changes */
 	auto CanCommitLambda = [this]() -> bool { return GetNumberOfPendingPaintChanges() > 0; };

@@ -33,6 +33,9 @@ private:
 	void OnHandleToolSelection(TSharedPtr<FClothPaintToolBase> InItem, ESelectInfo::Type InSelectInfo, IDetailLayoutBuilder* DetailBuider);
 	FText GetToolComboText() const;
 
+	/** Callback to calculate auto view range values */
+	void OnAutoRangeFlagChanged();
+
 	/** The painter containing the paint settings we are customizing */
 	FClothPainter* Painter;
 };

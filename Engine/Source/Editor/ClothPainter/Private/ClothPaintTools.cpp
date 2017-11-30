@@ -50,6 +50,17 @@ UObject* FClothPaintTool_Brush::GetSettingsObject()
 	return Settings;
 }
 
+bool FClothPaintTool_Brush::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Brush::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = Settings->PaintValue;
+	OutRangeMax = OutRangeMin;
+}
+
 void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
 {
 	FClothMeshPaintAdapter* ClothAdapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
@@ -237,6 +248,17 @@ void FClothPaintTool_Gradient::OnMeshChanged()
 {
 	GradientStartIndices.Empty();
 	GradientEndIndices.Empty();
+}
+
+bool FClothPaintTool_Gradient::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Gradient::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = FMath::Min(Settings->GradientStartValue, Settings->GradientEndValue);
+	OutRangeMax = FMath::Max(Settings->GradientStartValue, Settings->GradientEndValue);
 }
 
 void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
@@ -653,6 +675,17 @@ void FClothPaintTool_Fill::Render(USkeletalMeshComponent* InComponent, IMeshPain
 			}
 		}
 	}
+}
+
+bool FClothPaintTool_Fill::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Fill::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = Settings->FillValue;
+	OutRangeMax = OutRangeMin;
 }
 
 void FClothPaintTool_Fill::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)

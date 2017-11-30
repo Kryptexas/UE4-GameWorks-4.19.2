@@ -68,11 +68,8 @@ FMeshMergeUtilities::FMeshMergeUtilities()
 {
 	Processor = new FProxyGenerationProcessor();
 
-	// If case the experimental material baking is turned on add callback for registering editor extensions with Skeletal/Static mesh editor
-	if (GetDefault<UEditorExperimentalSettings>()->bAssetMaterialBaking)
-	{
-		ModuleLoadedDelegateHandle = FModuleManager::Get().OnModulesChanged().AddStatic(&FMeshMergeEditorExtensions::OnModulesChanged);
-	}
+	// Add callback for registering editor extensions with Skeletal/Static mesh editor
+	ModuleLoadedDelegateHandle = FModuleManager::Get().OnModulesChanged().AddStatic(&FMeshMergeEditorExtensions::OnModulesChanged);
 }
 
 FMeshMergeUtilities::~FMeshMergeUtilities()

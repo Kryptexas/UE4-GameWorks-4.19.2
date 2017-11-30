@@ -24,6 +24,8 @@ namespace EPropertyEditorGuidActions
 	};
 }
 
+// Writes the supplied GUID to the supplied property handle as one undoable transaction
+DETAILCUSTOMIZATIONS_API void WriteGuidToProperty(TSharedPtr<IPropertyHandle> GuidPropertyHandle, const FGuid& Guid);
 
 /**
  * Implements a details panel customization for FGuid structures.

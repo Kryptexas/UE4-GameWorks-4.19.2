@@ -139,7 +139,10 @@ void FPhysicsAssetEditorSkeletonTreeBuilder::AddBodies(FSkeletonTreeBuilderOutpu
 						for (int32 ConstraintIndex = 0; ConstraintIndex < PhysicsAsset->ConstraintSetup.Num(); ++ConstraintIndex)
 						{
 							const FConstraintInstance& ConstraintInstance = PhysicsAsset->ConstraintSetup[ConstraintIndex]->DefaultInstance;
-							if (ConstraintInstance.ConstraintBone1 == BoneName || ConstraintInstance.ConstraintBone2 == BoneName)
+							const bool bJointMatches = ConstraintInstance.JointName == BoneName;
+							const bool bUserConstraintMatches = (ConstraintInstance.JointName.ToString().StartsWith(TEXT("UserConstraint")) && (ConstraintInstance.ConstraintBone1 == BoneName || ConstraintInstance.ConstraintBone2 == BoneName));
+
+							if (bJointMatches || bUserConstraintMatches)
 							{
 								Output.Add(MakeShared<FSkeletonTreePhysicsConstraintItem>(PhysicsAsset->ConstraintSetup[ConstraintIndex], ConstraintIndex, BoneName, SkeletonTreePtr.Pin().ToSharedRef()), BoneName, FSkeletonTreePhysicsBodyItem::GetTypeId());
 							}

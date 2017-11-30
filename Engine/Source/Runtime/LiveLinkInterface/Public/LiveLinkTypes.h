@@ -100,6 +100,9 @@ struct FLiveLinkSubjectFrame
 	// Ref Skeleton for transforms
 	FLiveLinkRefSkeleton RefSkeleton;
 
+	// Fuid for ref skeleton so we can track modifications
+	FGuid RefSkeletonGuid;
+
 	// Key for storing curve data (Names)
 	FLiveLinkCurveKey	 CurveKeyData;
 

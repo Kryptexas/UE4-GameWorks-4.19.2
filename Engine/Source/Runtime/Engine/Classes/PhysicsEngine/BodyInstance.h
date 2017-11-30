@@ -212,9 +212,11 @@ struct ENGINE_API FBodyInstance
 	/////////
 	// COLLISION SETTINGS
 
+#if WITH_EDITORONLY_DATA
 	/** Types of objects that this physics objects will collide with. */
 	UPROPERTY() 
 	struct FCollisionResponseContainer ResponseToChannels_DEPRECATED;
+#endif // WITH_EDITORONLY_DATA
 
 public:
 	// Current state of the physx body for tracking deferred addition and removal.
@@ -820,6 +822,9 @@ public:
 	/** Enables/disables whether this body is affected by gravity. */
 	void SetEnableGravity(bool bGravityEnabled);
 
+	/** Enable/disable Continuous Collidion Detection feature */
+	void SetUseCCD(bool bInUseCCD);
+
 	/** Custom projection for physics (callback to update component transform based on physics data) */
 	FCalculateCustomProjection OnCalculateCustomProjection;
 
@@ -851,7 +856,7 @@ public:
 	DEPRECATED(4.18, "Use GetUnrealWorldAngularVelocityInRadians instead - be sure to convert the return value to degrees if required.")
 	inline FVector GetUnrealWorldAngularVelocity() const
 	{
-		return FMath::DegreesToRadians(GetUnrealWorldAngularVelocityInRadians());
+		return FMath::RadiansToDegrees(GetUnrealWorldAngularVelocityInRadians());
 	}
 
 	/** Get current angular velocity in world space from physics body. */

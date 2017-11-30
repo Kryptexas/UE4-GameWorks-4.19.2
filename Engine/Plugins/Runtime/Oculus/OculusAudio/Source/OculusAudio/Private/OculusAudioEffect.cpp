@@ -1,5 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#ifdef PLATFORM_WINDOWS
+
 #include "OculusAudioEffect.h"
 #include "OculusAudio.h"
 #include "OVR_Audio.h"
@@ -157,3 +159,5 @@ XAPO_REGISTRATION_PROPERTIES FXAudio2HRTFEffect::Registration =
 	XAPO_FLAG_BUFFERCOUNT_MUST_MATCH,
 	1, 1, 1, 1															// all buffer counts are the same
 };
+
+#endif //PLATFORM_WINDOWS

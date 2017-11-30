@@ -194,5 +194,6 @@ namespace Audio
 		uint32 bUsingHRTFSpatialization : 1;
 		uint32 bIs3D : 1;
 		uint32 bDebugMode : 1;
+		uint32 bIsVorbis : 1;
 	};
 }

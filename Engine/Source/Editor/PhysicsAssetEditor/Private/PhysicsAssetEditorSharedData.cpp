@@ -67,7 +67,7 @@ FPhysicsAssetEditorSharedData::FPhysicsAssetEditorSharedData()
 	MouseHandle = NewObject<UPhysicsHandleComponent>();
 
 	// Construct sim options.
-	EditorOptions = NewObject<UPhysicsAssetEditorOptions>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UPhysicsAssetEditorOptions::StaticClass(), FName(TEXT("EditorOptions"))));
+	EditorOptions = NewObject<UPhysicsAssetEditorOptions>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UPhysicsAssetEditorOptions::StaticClass(), FName(TEXT("EditorOptions"))), RF_Transactional);
 	check(EditorOptions);
 
 	EditorOptions->LoadConfig();
@@ -493,6 +493,45 @@ void FPhysicsAssetEditorSharedData::SetSelectedBody(const FSelection& Body, bool
 bool FPhysicsAssetEditorSharedData::IsBodySelected(const FSelection& Body) const
 {
 	return SelectedBodies.Contains(Body);
+}
+
+void FPhysicsAssetEditorSharedData::ToggleSelectionType()
+{
+	TArray<FSelection> OldSelectedConstraints = SelectedConstraints;
+	TArray<FSelection> OldSelectedBodies = SelectedBodies;
+
+	ClearSelectedBody();
+	ClearSelectedConstraints();
+
+	for (const FSelection& Selection : OldSelectedConstraints)
+	{
+		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[Selection.Index];
+		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
+
+		for (int32 BodyIdx = 0; BodyIdx < PhysicsAsset->SkeletalBodySetups.Num(); ++BodyIdx)
+		{
+			UBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx];
+			if (DefaultInstance.JointName == BodySetup->BoneName && BodySetup->AggGeom.GetElementCount() > 0)
+			{
+				SetSelectedBodyAnyPrim(BodyIdx, true);
+			}
+		}
+	}
+
+	TSet<int32> TmpSelectedConstraints;	//We could have multiple shapes selected which would cause us to add and remove the same constraint.
+	for (const FSelection& Selection : OldSelectedBodies)
+	{
+		UBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[Selection.Index];
+		for(int32 ConstraintIdx = 0; ConstraintIdx < PhysicsAsset->ConstraintSetup.Num(); ++ConstraintIdx)
+		{
+			const UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[ConstraintIdx]; 
+			if(ConstraintTemplate->DefaultInstance.JointName == BodySetup->BoneName && !TmpSelectedConstraints.Contains(ConstraintIdx))
+			{
+				TmpSelectedConstraints.Add(ConstraintIdx);
+				SetSelectedConstraint(ConstraintIdx, true);
+			}
+		}
+	}
 }
 
 void FPhysicsAssetEditorSharedData::UpdateNoCollisionBodies()

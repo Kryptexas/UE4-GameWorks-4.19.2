@@ -7,9 +7,12 @@
 #include "UObject/ObjectMacros.h"
 #include "EngineDefines.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "DelegateCombinations.h"
 #include "DebugSkelMeshComponent.generated.h"
 
 class Error;
+
+DECLARE_DELEGATE_RetVal(FText, FGetExtendedViewportText);
 
 USTRUCT()
 struct FSelectedSocketInfo
@@ -365,6 +368,19 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	TArray<FAnimNotifyErrors> AnimNotifyErrors;
 	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify) override;
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
+
+	/** 
+	 * Extended viewport text delegate handling. Registering a delegate allows external
+	 * objects to place custom text in the anim tools viewports.
+	 */
+	FDelegateHandle RegisterExtendedViewportTextDelegate(const FGetExtendedViewportText& InDelegate);
+	void UnregisterExtendedViewportTextDelegate(const FDelegateHandle& InDelegateHandle);
+	const TArray<FGetExtendedViewportText>& GetExtendedViewportTextDelegates() const { return ExtendedViewportTextDelegates; }
+
+private:
+	TArray<FGetExtendedViewportText> ExtendedViewportTextDelegates;
+public:
+
 #endif
 
 	/** 

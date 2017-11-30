@@ -59,11 +59,15 @@ public:
 		FSkeletalMeshRenderData* InSkeletalMeshRenderData,
 		int32 InLODIndex,
 		const TArray<FActiveMorphTarget>& InActiveMorphTargets,
-		const TArray<float>& InMorphTargetWeights
+		const TArray<float>& InMorphTargetWeights, 
+		bool bUpdatePreviousBoneTransform
 		);
 
 	/** ref pose to local space transforms */
 	TArray<FMatrix> ReferenceToLocal;
+
+	/** Previous ref pose to local space transform */
+	TArray<FMatrix> PreviousReferenceToLocal;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 	/** component space bone transforms*/
@@ -258,8 +262,8 @@ public:
 	//~ Begin FSkeletalMeshObject Interface
 	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
-	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights) override;
-	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare);
+	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, bool bUpdatePreviousBoneTransform) override;
+	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare, uint32 RevisionNumber);
 	virtual void PreGDMECallback(FGPUSkinCache* GPUSkinCache, uint32 FrameNumber) override;
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
@@ -495,7 +499,7 @@ private:
 	*/
 	void ReleaseMorphResources();
 
-	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate);
+	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, uint32 RevisionNumber, bool bMorphNeedsUpdate);
 
 	void WaitForRHIThreadFenceForDynamicData();
 
@@ -516,6 +520,9 @@ private:
 
 	/** true if the morph resources have been initialized */
 	bool bMorphResourcesInitialized;
+
+	/** last updated bone transform revision number */
+	uint32 LastBoneTransformRevisionNumber;
 };
 
 

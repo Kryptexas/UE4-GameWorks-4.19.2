@@ -38,6 +38,7 @@ class ISkeletonTreeItem;
 class IPersonaToolkit;
 class FPhysicsAssetEditorSkeletonTreeBuilder;
 class USkeletalMesh;
+class FUICommandList_Pinnable;
 
 namespace PhysicsAssetEditorModes
 {
@@ -130,6 +131,15 @@ public:
 	/** Check whether we are out of simulation mode */
 	bool IsNotSimulation() const;
 
+	/** Get the command list used for viewport commands */
+	TSharedPtr<FUICommandList_Pinnable> GetViewportCommandList() const { return ViewportCommandList; }
+
+	/** Make the constraint scale widget */
+	TSharedRef<SWidget> MakeConstraintScaleWidget();
+
+	/** Make the collision opacity widget */
+	TSharedRef<SWidget> MakeCollisionOpacityWidget();
+
 public:
 	/** Delegate fired on undo/redo */
 	FSimpleMulticastDelegate OnPostUndo;
@@ -208,6 +218,8 @@ private:
 	bool IsConstraintRenderingMode(EPhysicsAssetEditorConstraintViewMode Mode, bool bSimulation) const;
 	void ToggleDrawConstraintsAsPoints();
 	bool IsDrawingConstraintsAsPoints() const;
+	void ToggleRenderOnlySelectedConstraints();
+	bool IsRenderingOnlySelectedConstraints() const;
 	void ToggleRenderOnlySelectedSolid();
 	bool IsRenderingOnlySelectedSolid() const;
 	void OnToggleMassProperties();
@@ -252,6 +264,7 @@ private:
 	//menu commands
 	void OnSelectAllBodies();
 	void OnSelectAllConstraints();
+	void OnToggleSelectionType();
 	void OnDeselectAll();
 
 	FText GetRepeatLastSimulationToolTip() const;
@@ -313,6 +326,12 @@ private:
 
 	/** The current physics asset graph, if any */
 	TWeakPtr<SPhysicsAssetGraph> PhysicsAssetGraph;
+
+	/** Command list for skeleton tree operations */
+	TSharedPtr<FUICommandList_Pinnable> SkeletonTreeCommandList;
+
+	/** Command list for viewport operations */
+	TSharedPtr<FUICommandList_Pinnable> ViewportCommandList;
 
 	void FixPhysicsState();
 	void ImpToggleSimulation();

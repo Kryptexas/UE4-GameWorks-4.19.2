@@ -477,17 +477,6 @@ void FPhysicsAssetEditorEditMode::DrawHUD(FEditorViewportClient* ViewportClient,
 
 	FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), PhysicsAssetEditorFont, FLinearColor::White);
 
-	// Write body/constraint count at top.
-	FString StatusString = FText::Format(
-		NSLOCTEXT("UnrealEd", "BodiesConstraints_F", "{0} Bodies  {1} Considered for bounds  {2} Ratio  {3} Constraints"),
-		FText::AsNumber(SharedData->PhysicsAsset->SkeletalBodySetups.Num()),
-		FText::AsNumber(SharedData->PhysicsAsset->BoundsBodies.Num()),
-		FText::AsNumber(static_cast<float>(SharedData->PhysicsAsset->BoundsBodies.Num()) / static_cast<float>(SharedData->PhysicsAsset->SkeletalBodySetups.Num())),
-		FText::AsNumber(SharedData->PhysicsAsset->ConstraintSetup.Num())).ToString();
-
-	TextItem.Text = FText::FromString(StatusString);
-	Canvas->DrawItem(TextItem, XOffset, YOffset);
-
 	TextItem.Text = FText::GetEmpty();
 	if (SharedData->bRunningSimulation)
 	{

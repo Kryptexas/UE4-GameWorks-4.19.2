@@ -366,36 +366,50 @@ void UClothingAsset::InvalidateCachedData()
 			InvMasses[Index2] += TriArea;
 		}
 
+		bool bHasMaxDistance = PhysMesh.MaxDistances.Num() > 0;
 		PhysMesh.NumFixedVerts = 0;
-		float MassSum = 0.0f;
-		for(int32 CurrVertIndex = 0; CurrVertIndex < NumVerts; ++CurrVertIndex)
+		
+		if(bHasMaxDistance)
 		{
-			float& InvMass = InvMasses[CurrVertIndex];
-			const float& MaxDistance = PhysMesh.MaxDistances[CurrVertIndex];
-
-			if(MaxDistance < SMALL_NUMBER)
+			float MassSum = 0.0f;
+			for(int32 CurrVertIndex = 0; CurrVertIndex < NumVerts; ++CurrVertIndex)
 			{
-				InvMass = 0.0f;
-				++PhysMesh.NumFixedVerts;
-			}
-			else
-			{
-				MassSum += InvMass;
-			}
-		}
+				float& InvMass = InvMasses[CurrVertIndex];
+				const float& MaxDistance = PhysMesh.MaxDistances[CurrVertIndex];
 
-		if(MassSum > 0.0f)
-		{
-			const float MassScale = (float)(NumVerts - PhysMesh.NumFixedVerts) / MassSum;	
-
-			for(float& InvMass : InvMasses)
-			{
-				if(InvMass != 0.0f)
+				if(MaxDistance < SMALL_NUMBER)
 				{
-					InvMass *= MassScale;
-					InvMass = 1.0f / InvMass;
+					InvMass = 0.0f;
+					++PhysMesh.NumFixedVerts;
+				}
+				else
+				{
+					MassSum += InvMass;
 				}
 			}
+
+			if(MassSum > 0.0f)
+			{
+				const float MassScale = (float)(NumVerts - PhysMesh.NumFixedVerts) / MassSum;
+
+				for(float& InvMass : InvMasses)
+				{
+					if(InvMass != 0.0f)
+					{
+						InvMass *= MassScale;
+						InvMass = 1.0f / InvMass;
+					}
+				}
+			}
+		}
+		else
+		{
+			for(int32 CurrVertIndex = 0; CurrVertIndex < NumVerts; ++CurrVertIndex)
+			{
+				InvMasses[CurrVertIndex] = 0.0f;
+			}
+
+			PhysMesh.NumFixedVerts = NumVerts;
 		}
 
 		// Calculate number of influences per vertex
@@ -947,19 +961,24 @@ void FClothPhysicalMeshData::Reset(const int32 InNumVerts)
 
 void FClothPhysicalMeshData::ClearParticleParameters()
 {
-	MaxDistances.Empty();
+	// Max distances must be present, so fill to zero on clear so we still have valid mesh data.
+	const int32 NumVerts = Vertices.Num();
+	MaxDistances.Reset(NumVerts);
+	MaxDistances.AddZeroed(NumVerts);
+
+	// Just clear optional properties
 	BackstopDistances.Empty();
 	BackstopRadiuses.Empty();
 	AnimDriveMultipliers.Empty();
 }
 
-bool FClothPhysicalMeshData::HasBackStops()
+bool FClothPhysicalMeshData::HasBackStops() const
 {
 	const int32 NumBackStopDistances = BackstopDistances.Num();
 	return NumBackStopDistances > 0 && NumBackStopDistances == BackstopRadiuses.Num();
 }
 
-bool FClothPhysicalMeshData::HasAnimDrive()
+bool FClothPhysicalMeshData::HasAnimDrive() const
 {
 	return AnimDriveMultipliers.Num() > 0;
 }

@@ -19,6 +19,14 @@ public:
 	virtual void ShutdownModule() override;
 	//~ End IModuleInterface
 
+    void RegisterAudioDevice(FAudioDevice* AudioDeviceHandle);
+    void UnregisterAudioDevice(FAudioDevice* AudioDeviceHandle);
+
+    FOculusSpatializationPluginFactory* GetSpatializationPluginFactory() { return &PluginFactory; }
+    FOculusReverbPluginFactory* GetReverbPluginFactory() { return &ReverbPluginFactory; }
+
 private:
-	FOculusSpatializationPluginFactory PluginFactory;
+    TArray<FAudioDevice*> RegisteredAudioDevices;
+    FOculusSpatializationPluginFactory PluginFactory;
+    FOculusReverbPluginFactory ReverbPluginFactory;
 };

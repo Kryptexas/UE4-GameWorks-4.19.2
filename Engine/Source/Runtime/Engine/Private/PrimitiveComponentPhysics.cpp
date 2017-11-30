@@ -580,6 +580,20 @@ float UPrimitiveComponent::CalculateMass(FName)
 	return 0.0f;
 }
 
+void UPrimitiveComponent::SetUseCCD(bool bInUseCCD, FName BoneName)
+{
+	FBodyInstance* BI = GetBodyInstance(BoneName);
+	if (BI)
+	{
+		BI->SetUseCCD(bInUseCCD);
+	}
+}
+
+void UPrimitiveComponent::SetAllUseCCD(bool bInUseCCD)
+{
+	SetUseCCD(bInUseCCD, NAME_None);
+}
+
 void UPrimitiveComponent::PutRigidBodyToSleep(FName BoneName)
 {
 	FBodyInstance* BI = GetBodyInstance(BoneName);

@@ -45,6 +45,7 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	, GravityScale(0.25f)
 	, SelectedBoneIndex(INDEX_NONE)
 	, bEnableMeshHitProxies(false)
+	, LastTickTime(0.0)
 {
 	if (GEditor)
 	{
@@ -947,15 +948,43 @@ void FAnimationEditorPreviewScene::SetAllowMeshHitProxies(bool bState)
 	bEnableMeshHitProxies = bState;
 }
 
+void FAnimationEditorPreviewScene::FlagTickable()
+{
+	// Set the last tick time so we tick kwhen we are visible in a viewport
+	LastTickTime = FPlatformTime::Seconds();
+}
+
 void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 {
+	OnPreTickDelegate.Broadcast();
+
 	IPersonaPreviewScene::Tick(InDeltaTime);
+
+	if (!GIntraFrameDebuggingGameThread)
+	{
+		GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+	}
+
+	// Handle updating the preview component to represent the effects of root motion	
+	const FBoxSphereBounds& Bounds = GetFloorBounds();
+	SkeletalMeshComponent->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
 
 	if (LastCachedLODForPreviewComponent != SkeletalMeshComponent->PredictedLODLevel)
 	{
 		OnLODChanged.Broadcast();
 		LastCachedLODForPreviewComponent = SkeletalMeshComponent->PredictedLODLevel;
 	}
+
+	OnPostTickDelegate.Broadcast();
+}
+
+bool FAnimationEditorPreviewScene::IsTickable() const
+{
+	const float VisibilityTimeThreshold = 0.25f;
+
+	// The preview scene is tickable if any viewport can see it
+	return  LastTickTime == 0.0	||	// Never been ticked
+			FPlatformTime::Seconds() - LastTickTime <= VisibilityTimeThreshold;	// Ticked recently
 }
 
 void FAnimationEditorPreviewScene::AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot /*= false*/)

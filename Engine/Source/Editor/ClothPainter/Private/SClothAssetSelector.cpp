@@ -24,6 +24,8 @@
 #include "ClothingAssetListCommands.h"
 #include "GenericCommands.h"
 #include "Rendering/SkeletalMeshModel.h"
+#include "ScopedTransaction.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "ClothAssetSelector"
 
@@ -39,6 +41,16 @@ FClothParameterMask_PhysMesh* FClothingMaskListItem::GetMask()
 				return &LodData.ParameterMasks[MaskIndex];
 			}
 		}
+	}
+
+	return nullptr;
+}
+
+USkeletalMesh* FClothingMaskListItem::GetOwningMesh()
+{
+	if(UClothingAsset* Asset = ClothingAsset.Get())
+	{
+		return Cast<USkeletalMesh>(Asset->GetOuter());
 	}
 
 	return nullptr;
@@ -486,30 +498,43 @@ private:
 
 	void OnDeleteMask()
 	{
-		if(FClothLODData* LodData = GetCurrentLod())
+		USkeletalMesh* CurrentMesh = Item->GetOwningMesh();
+
+		if(CurrentMesh)
 		{
-			if(LodData->ParameterMasks.IsValidIndex(Item->MaskIndex))
+			FScopedTransaction CurrTransaction(LOCTEXT("DeleteMask_Transaction", "Delete clothing parameter mask."));
+			Item->ClothingAsset->Modify();
+
+			if(FClothLODData* LodData = GetCurrentLod())
 			{
-				LodData->ParameterMasks.RemoveAt(Item->MaskIndex);
-
-				// We've removed a mask, so it will need to be applied to the clothing data
-				if(Item.IsValid())
+				if(LodData->ParameterMasks.IsValidIndex(Item->MaskIndex))
 				{
-					if(UClothingAsset* Asset = Item->ClothingAsset.Get())
-					{
-						Asset->ApplyParameterMasks();
-					}
-				}
+					LodData->ParameterMasks.RemoveAt(Item->MaskIndex);
 
-				OnInvalidateList.ExecuteIfBound();
+					// We've removed a mask, so it will need to be applied to the clothing data
+					if(Item.IsValid())
+					{
+						if(UClothingAsset* Asset = Item->ClothingAsset.Get())
+						{
+							Asset->ApplyParameterMasks();
+						}
+					}
+
+					OnInvalidateList.ExecuteIfBound();
+				}
 			}
 		}
 	}
 
 	void OnSetTarget(int32 InTargetEntryIndex)
 	{
-		if(Item.IsValid())
+		USkeletalMesh* CurrentMesh = Item->GetOwningMesh();
+
+		if(Item.IsValid() && CurrentMesh)
 		{
+			FScopedTransaction CurrTransaction(LOCTEXT("SetMaskTarget_Transaction", "Set clothing parameter mask target."));
+			Item->ClothingAsset->Modify();
+
 			if(FClothParameterMask_PhysMesh* Mask = Item->GetMask())
 			{
 				Mask->CurrentTarget = (MaskTarget_PhysMesh)InTargetEntryIndex;
@@ -631,6 +656,11 @@ SClothAssetSelector::~SClothAssetSelector()
 	{
 		Mesh->UnregisterOnClothingChange(MeshClothingChangedHandle);
 	}
+
+	if(GEditor)
+	{
+		GEditor->UnregisterForUndo(this);
+	}
 }
 
 void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InMesh)
@@ -644,6 +674,11 @@ void SClothAssetSelector::Construct(const FArguments& InArgs, USkeletalMesh* InM
 	if(Mesh)
 	{
 		MeshClothingChangedHandle = Mesh->RegisterOnClothingChange(FSimpleMulticastDelegate::FDelegate::CreateSP(this, &SClothAssetSelector::OnRefresh));
+	}
+
+	if(GEditor)
+	{
+		GEditor->RegisterForUndo(this);
 	}
 
 	ChildSlot
@@ -858,6 +893,11 @@ int32 SClothAssetSelector::GetSelectedLod() const
 int32 SClothAssetSelector::GetSelectedMask() const
 {
 	return SelectedMask;
+}
+
+void SClothAssetSelector::PostUndo(bool bSuccess)
+{
+	OnRefresh();
 }
 
 FReply SClothAssetSelector::OnImportApexFileClicked()

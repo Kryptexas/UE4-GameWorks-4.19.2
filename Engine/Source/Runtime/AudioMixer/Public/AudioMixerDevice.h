@@ -37,6 +37,7 @@ namespace Audio
 			Reverb,
 			ReverbPlugin,
 			EQ,
+			Ambisonics,
 			Count,
 		};
 	}
@@ -106,7 +107,7 @@ namespace Audio
 		int32 GetNumOutputFrames() const { return PlatformSettings.CallbackBufferFrameSize; }
 
 		void Get3DChannelMap(const ESubmixChannelFormat InSubmixChannelType, const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
-		void Get2DChannelMap(const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
+		void Get2DChannelMap(bool bIsVorbis, const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, const bool bIsCenterChannelOnly, TArray<float>& OutChannelMap) const;
 
 		int32 GetDeviceSampleRate() const;
 		int32 GetDeviceOutputChannels() const;
@@ -117,6 +118,7 @@ namespace Audio
 		FMixerSubmixPtr GetMasterReverbSubmix();
 		FMixerSubmixPtr GetMasterReverbPluginSubmix();
 		FMixerSubmixPtr GetMasterEQSubmix();
+		FMixerSubmixPtr GetMasterAmbisonicsSubmix();
 
 		// Add submix effect to master submix
 		void AddMasterSubmixEffect(uint32 SubmixEffectId, FSoundEffectSubmix* SoundEffect);
@@ -130,6 +132,10 @@ namespace Audio
 		// Returns the number of channels for a given submix channel type
 		int32 GetNumChannelsForSubmixFormat(const ESubmixChannelFormat InSubmixChannelType) const;
 		ESubmixChannelFormat GetSubmixChannelFormatForNumChannels(const int32 InNumChannels) const;
+
+		// Get ambisonics mixer, if one is available
+		TAmbisonicsMixerPtr GetAmbisonicsMixer() { return AmbisonicsMixer; };
+		uint32 GetNewUniqueAmbisonicsStreamID();
 
 		// Returns the channel array for the given submix channel type
 		const TArray<EAudioMixerChannel::Type>& GetChannelArrayForSubmixChannelType(const ESubmixChannelFormat InSubmixChannelType) const;
@@ -156,7 +162,7 @@ namespace Audio
 
 		bool IsMasterSubmixType(USoundSubmix* InSubmix) const;
 
-		// Pushes the command to a audio render thread command queue to be executed on render thead
+		// Pushes the command to a audio render thread command queue to be executed on render thread
 		void AudioRenderThreadCommand(TFunction<void()> Command);
 		
 		// Pumps the audio render thread command queue
@@ -178,6 +184,9 @@ namespace Audio
 
 		/** Channel type arrays for submix channel types. */
 		TMap<ESubmixChannelFormat, TArray<EAudioMixerChannel::Type>> ChannelArrays;
+
+		/* This devices ambisonics pointer, if one exists */
+		TAmbisonicsMixerPtr AmbisonicsMixer;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;

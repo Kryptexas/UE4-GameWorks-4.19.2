@@ -598,6 +598,21 @@ void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
 		}
 	}
 }
+
+FDelegateHandle UDebugSkelMeshComponent::RegisterExtendedViewportTextDelegate(const FGetExtendedViewportText& InDelegate)
+{
+	ExtendedViewportTextDelegates.Add(InDelegate);
+	return ExtendedViewportTextDelegates.Last().GetHandle();
+}
+
+void UDebugSkelMeshComponent::UnregisterExtendedViewportTextDelegate(const FDelegateHandle& InDelegateHandle)
+{
+	ExtendedViewportTextDelegates.RemoveAll([&InDelegateHandle](const FGetExtendedViewportText& InDelegate)
+	{
+		return InDelegate.GetHandle() == InDelegateHandle;
+	});
+}
+
 #endif
 
 void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothSections)

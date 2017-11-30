@@ -24,6 +24,9 @@ class FDebugDisplayInfo;
 class FNetworkPredictionData_Server_Character;
 class FSavedMove_Character;
 class UPrimitiveComponent;
+class UCharacterMovementComponent;
+
+DECLARE_DELEGATE_RetVal_TwoParams(FTransform, FOnProcessRootMotion, const FTransform&, UCharacterMovementComponent*)
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)
@@ -2288,6 +2291,15 @@ public:
 	{
 		return RootMotionParams.bHasRootMotion;
 	}
+
+	// Takes component space root motion and converts it to world space
+	FTransform ConvertLocalRootMotionToWorld(const FTransform& InLocalRootMotion);
+
+	// Delegate for modifying root motion pre conversion from component space to world space.
+	FOnProcessRootMotion ProcessRootMotionPreConvertToWorld;
+	
+	// Delegate for modifying root motion post conversion from component space to world space.
+	FOnProcessRootMotion ProcessRootMotionPostConvertToWorld;
 
 	/** Simulate Root Motion physics on Simulated Proxies */
 	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);

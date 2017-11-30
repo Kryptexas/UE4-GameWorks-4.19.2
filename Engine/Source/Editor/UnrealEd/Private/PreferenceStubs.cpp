@@ -69,7 +69,13 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	, DefaultBoneDrawSelection(1)
 	, bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons(true)
 {
-	ViewModeIndex = VMI_Lit;
+	for(FViewportConfigOptions& ViewportConfig : ViewportConfigs)
+	{
+		ViewportConfig.ViewModeIndex = VMI_Lit;
+		ViewportConfig.ViewFOV = 53.43f;
+		ViewportConfig.CameraFollowMode = EAnimationViewportCameraFollowMode::None;
+		ViewportConfig.CameraFollowBoneName = NAME_None;
+	}
 
 	SectionTimingNodeColor = FLinearColor(0.0f, 1.0f, 0.0f);
 	NotifyTimingNodeColor = FLinearColor(1.0f, 0.0f, 0.0f);
@@ -100,9 +106,11 @@ void UPersonaOptions::SetGridSize( int32 InGridSize )
 	SaveConfig();
 }
 
-void UPersonaOptions::SetViewModeIndex( EViewModeIndex InViewModeIndex )
+void UPersonaOptions::SetViewModeIndex( EViewModeIndex InViewModeIndex, int32 InViewportIndex )
 {
-	ViewModeIndex = InViewModeIndex;
+	check(InViewportIndex >= 0 && InViewportIndex < 4);
+
+	ViewportConfigs[InViewportIndex].ViewModeIndex = InViewModeIndex;
 	SaveConfig();
 }
 
@@ -136,9 +144,20 @@ void UPersonaOptions::SetUseAudioAttenuation( bool bInUseAudioAttenuation )
 	SaveConfig();
 }
 
-void UPersonaOptions::SetViewFOV( float InViewFOV )
+void UPersonaOptions::SetViewFOV( float InViewFOV, int32 InViewportIndex )
 {
-	ViewFOV = InViewFOV;
+	check(InViewportIndex >= 0 && InViewportIndex < 4);
+
+	ViewportConfigs[InViewportIndex].ViewFOV = InViewFOV;
+	SaveConfig();
+}
+
+void UPersonaOptions::SetViewCameraFollow( EAnimationViewportCameraFollowMode InCameraFollowMode, FName InCameraFollowBoneName, int32 InViewportIndex )
+{
+	check(InViewportIndex >= 0 && InViewportIndex < 4);
+
+	ViewportConfigs[InViewportIndex].CameraFollowMode = InCameraFollowMode;
+	ViewportConfigs[InViewportIndex].CameraFollowBoneName = InCameraFollowBoneName;
 	SaveConfig();
 }
 

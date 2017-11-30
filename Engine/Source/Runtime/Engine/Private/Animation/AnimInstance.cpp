@@ -34,7 +34,7 @@ DEFINE_STAT(STAT_SkelCompUpdateTransform);
 //                         -->  Physics Engine here <--
 DEFINE_STAT(STAT_UpdateRBBones);
 DEFINE_STAT(STAT_UpdateRBJoints);
-DEFINE_STAT(STAT_UpdateLocalToWorldAndOverlaps);
+DEFINE_STAT(STAT_FinalizeAnimationUpdate);
 DEFINE_STAT(STAT_GetAnimationPose);
 DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
 DEFINE_STAT(STAT_RefreshBoneTransforms);
@@ -565,15 +565,10 @@ void UAnimInstance::ParallelUpdateAnimation()
 
 bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 {
-	// If Evaluation Phase is skipped, PostUpdateAnimation() will not get called, so we can't use ParallelUpdateAnimation then.
-	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
-	const bool bEvaluationPhaseSkipped = SkelMeshComp && !SkelMeshComp->bRecentlyRendered && (SkelMeshComp->MeshComponentUpdateFlag > EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones);
-
 	const bool bUseParallelUpdateAnimation = (GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && bUseMultiThreadedAnimationUpdate) || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
 		GIntraFrameDebuggingGameThread ||
-		bEvaluationPhaseSkipped || 
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
 		!bUseParallelUpdateAnimation ||
@@ -653,6 +648,11 @@ void UAnimInstance::NativePostEvaluateAnimation()
 
 void UAnimInstance::NativeUninitializeAnimation()
 {
+}
+
+void UAnimInstance::NativeBeginPlay()
+{
+
 }
 
 void UAnimInstance::AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate, const FName& TransitionName)
@@ -1190,15 +1190,33 @@ void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /
 	}
 }
 
-void UAnimInstance::GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& OutCurveList) const
+void UAnimInstance::AppendAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& InOutCurveList) const
 {
-	uint8 ArrayIndex = (uint8)Type;
+	const uint8 ArrayIndex = (uint8)Type;
 
 	if (ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType)
 	{
-		// add unique only
-		OutCurveList.Append(AnimationCurves[ArrayIndex]);
+		InOutCurveList.Append(AnimationCurves[ArrayIndex]);
 	}
+}
+
+void UAnimInstance::GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& InOutCurveList) const
+{
+	AppendAnimationCurveList(Type, InOutCurveList);
+}
+
+const TMap<FName, float>& UAnimInstance::GetAnimationCurveList(EAnimCurveType Type) const
+{
+	const uint8 ArrayIndex = (uint8)Type;
+	if (ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType)
+	{
+		return AnimationCurves[ArrayIndex];
+	}
+
+	ensureMsgf(ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType, TEXT("Unrecognized  EAnimCurveType value: %i"), ArrayIndex);
+
+	static TMap<FName, float> DummyMap;
+	return DummyMap;
 }
 
 void UAnimInstance::RefreshCurves(USkeletalMeshComponent* Component)

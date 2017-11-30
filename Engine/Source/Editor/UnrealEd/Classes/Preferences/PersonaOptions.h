@@ -15,6 +15,39 @@
 #include "Engine/EngineBaseTypes.h"
 #include "PersonaOptions.generated.h"
 
+/** Persisted camera follow mode */
+UENUM()
+enum class EAnimationViewportCameraFollowMode : uint8
+{
+	/** Standard camera controls */
+	None,
+
+	/** Follow the bounds of the mesh */
+	Bounds,
+
+	/** Follow a bone or socket */
+	Bone,
+};
+
+USTRUCT()
+struct FViewportConfigOptions
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	TEnumAsByte<EViewModeIndex> ViewModeIndex;
+
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	float ViewFOV;
+
+	/** Persisted camera follow mode for a viewport */
+	UPROPERTY(config)
+	EAnimationViewportCameraFollowMode CameraFollowMode;
+
+	UPROPERTY(config)
+	FName CameraFollowBoneName;
+};
+
 UCLASS(hidecategories=Object, config=EditorPerProjectUserSettings)
 class UNREALED_API UPersonaOptions : public UObject
 {
@@ -47,12 +80,6 @@ class UNREALED_API UPersonaOptions : public UObject
 
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	int32 GridSize;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	TEnumAsByte<EViewModeIndex> ViewModeIndex;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	float ViewFOV;
 
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 DefaultLocalAxesSelection;
@@ -91,6 +118,10 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Asset Browser", meta=(ClampMin ="1", ClampMax = "10", UIMin = "1", UIMax = "10"))
 	uint32 NumFolderFiltersInAssetBrowser;
 
+	/** Per-viewport configuration */
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	FViewportConfigOptions ViewportConfigs[4];
+
 public:
 	void SetShowGrid( bool bInShowGrid );
 	void SetHighlightOrigin( bool bInHighlightOrigin );
@@ -100,8 +131,9 @@ public:
 	void SetMuteAudio( bool bInMuteAudio );
 	void SetUseAudioAttenuation( bool bInUseAudioAttenuation );
 	void SetGridSize( int32 InGridSize );
-	void SetViewModeIndex( EViewModeIndex InViewModeIndex );
-	void SetViewFOV( float InViewFOV );
+	void SetViewModeIndex( EViewModeIndex InViewModeIndex, int32 InViewportIndex );
+	void SetViewFOV( float InViewFOV, int32 InViewportIndex );
+	void SetViewCameraFollow( EAnimationViewportCameraFollowMode InCameraFollowMode, FName InCameraFollowBoneName, int32 InViewportIndex );
 	void SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSelection );
 	void SetDefaultBoneDrawSelection(uint32 InDefaultBoneAxesSelection);
 	void SetShowMeshStats( int32 InShowMeshStats );

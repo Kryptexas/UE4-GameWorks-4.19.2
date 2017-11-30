@@ -345,6 +345,8 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bCanEverAffectNavigation = false;
 	MasterBoneMapCacheCount = 0;
 	bSyncAttachParentLOD = true;
+
+	CurrentBoneTransformRevisionNumber = 0;
 }
 
 
@@ -504,7 +506,7 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 					ActiveMorphTargets.Empty();
 				}
 
-				MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
+				MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights, true);  // send to rendering thread
 			}
 		}
 
@@ -572,7 +574,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 			ActiveMorphTargets.Empty();
 		}
 
-		MeshObject->Update(UseLOD,this,ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
+		MeshObject->Update(UseLOD,this,ActiveMorphTargets, MorphTargetWeights, false);  // send to rendering thread
 		MeshObject->bHasBeenUpdatedAtLeastOnce = true;
 		
 		// scene proxy update of material usage based on active morphs
@@ -705,6 +707,11 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		{
 			RefreshBoneTransforms(ThisTickFunction);
 		}
+	}
+	else if(MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPose)
+	{
+		// We are not refreshing bone transforms, but we do want to tick pose. We may need to kick off a parallel task
+		DispatchParallelTickPose(ThisTickFunction);
 	}
 #if WITH_EDITOR
 	else 
@@ -1243,6 +1250,12 @@ bool USkinnedMeshComponent::AllocateTransformData()
 					BoneVisibilityStates[ BoneIndex ] = BVS_Visible;
 				}
 			}
+
+			// when initialize bone transform first time
+			// it is invalid
+			bHasValidBoneTransform = false;
+			PreviousComponentSpaceTransformsArray = ComponentSpaceTransformsArray[0];
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
 		}
 
 		// if it's same, do not touch, and return
@@ -1252,7 +1265,7 @@ bool USkinnedMeshComponent::AllocateTransformData()
 	// Reset the animation stuff when changing mesh.
 	ComponentSpaceTransformsArray[0].Empty();
 	ComponentSpaceTransformsArray[1].Empty();
-
+	PreviousComponentSpaceTransformsArray.Empty();
 	return false;
 }
 
@@ -1260,7 +1273,9 @@ void USkinnedMeshComponent::DeallocateTransformData()
 {
 	ComponentSpaceTransformsArray[0].Empty();
 	ComponentSpaceTransformsArray[1].Empty();
+	PreviousComponentSpaceTransformsArray.Empty();
 	BoneVisibilityStates.Empty();
+	PreviousBoneVisibilityStates.Empty();
 }
 
 void USkinnedMeshComponent::SetPhysicsAsset(class UPhysicsAsset* InPhysicsAsset, bool bForceReInit)
@@ -2427,12 +2442,21 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 void USkinnedMeshComponent::FinalizeBoneTransform()
 {
 	FlipEditableSpaceBases();
+	// we finalized bone transform, now we have valid bone buffer
+	bHasValidBoneTransform = true;
 }
 
 void USkinnedMeshComponent::FlipEditableSpaceBases()
 {
 	if (bNeedToFlipSpaceBaseBuffers)
 	{
+		// save previous transform if it's valid
+		if (bHasValidBoneTransform)
+		{
+			PreviousComponentSpaceTransformsArray = GetComponentSpaceTransforms();
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
+		}
+
 		bNeedToFlipSpaceBaseBuffers = false;
 		if (bDoubleBufferedComponentSpaceTransforms)
 		{
@@ -2443,6 +2467,15 @@ void USkinnedMeshComponent::FlipEditableSpaceBases()
 		{
 			CurrentReadComponentTransforms = CurrentEditableComponentTransforms = 0;
 		}
+
+		// if we don't have a valid transform, we copy after we write, so that it doesn't cause motion blur
+		if (!bHasValidBoneTransform)
+		{
+			PreviousComponentSpaceTransformsArray = GetComponentSpaceTransforms();
+			PreviousBoneVisibilityStates = BoneVisibilityStates;
+		}
+
+		++CurrentBoneTransformRevisionNumber;
 	}
 }
 

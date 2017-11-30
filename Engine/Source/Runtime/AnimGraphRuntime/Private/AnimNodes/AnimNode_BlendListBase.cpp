@@ -14,11 +14,16 @@ void FAnimNode_BlendListBase::Initialize_AnyThread(const FAnimationInitializeCon
 	const int NumPoses = BlendPose.Num();
 	checkSlow(BlendTime.Num() == NumPoses);
 
-	BlendWeights.Empty(NumPoses);
+	BlendWeights.Reset(NumPoses);
+	PosesToEvaluate.Reset(NumPoses);
 	if (NumPoses > 0)
 	{
+		// If we have at least 1 pose we initialize to full weight on
+		// the first pose
 		BlendWeights.AddZeroed(NumPoses);
 		BlendWeights[0] = 1.0f;
+
+		PosesToEvaluate.Add(0);
 
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{

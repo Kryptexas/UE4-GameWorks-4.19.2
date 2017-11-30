@@ -41,6 +41,9 @@
 #include "Textures/SlateIcon.h"
 #include "ShowFlagMenuCommands.h"
 #include "BufferVisualizationMenuCommands.h"
+#include "IPinnedCommandList.h"
+#include "UICommandList_Pinnable.h"
+#include "BoneSelectionWidget.h"
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -199,6 +202,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("ViewMenuTooltip", "View Options.\nShift-clicking items will 'pin' them to the toolbar."))
 			.ParentToolBar(SharedThis(this))
 			.Cursor(EMouseCursor::Default)
 			.Image("EditorViewportToolBar.MenuDropdown")
@@ -210,6 +214,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("ViewportMenuTooltip", "Viewport Options. Use this to switch between different orthographic or perspective views."))
 			.ParentToolBar(SharedThis(this))
 			.Cursor(EMouseCursor::Default)
 			.Label(this, &SAnimViewportToolBar::GetCameraMenuLabel)
@@ -223,6 +228,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportViewMenu, InRealViewport.ToSharedRef(), SharedThis(this))
+			.ToolTipText(LOCTEXT("ViewModeMenuTooltip", "View Mode Options. Use this to change how the view is rendered, e.g. Lit/Unlit."))
 			.MenuExtenders(FExtender::Combine(Extenders))
 		]
 		+ SHorizontalBox::Slot()
@@ -230,6 +236,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("ShowMenuTooltip", "Show Options. Use this enable/disable the rendering of types of scene elements."))
 			.ParentToolBar(SharedThis(this))
 			.Cursor(EMouseCursor::Default)
 			.Label(LOCTEXT("ShowMenu", "Show"))
@@ -241,6 +248,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("PhysicsMenuTooltip", "Physics Options. Use this to control the physics of the scene."))
 			.ParentToolBar(SharedThis(this))
 			.Label(LOCTEXT("Physics", "Physics"))
 			.OnGetMenuContent(this, &SAnimViewportToolBar::GeneratePhysicsMenu)
@@ -251,6 +259,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("CharacterMenuTooltip", "Character Options. Control character-related rendering options.\nShift-clicking items will 'pin' them to the toolbar."))
 			.ParentToolBar(SharedThis(this))
 			.Label(LOCTEXT("Character", "Character"))
 			.OnGetMenuContent(this, &SAnimViewportToolBar::GenerateCharacterMenu)
@@ -262,6 +271,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		[
 			//LOD
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("LODMenuTooltip", "LOD Options. Control how LODs are displayed.\nShift-clicking items will 'pin' them to the toolbar."))
 			.ParentToolBar(SharedThis(this))
 			.Label(this, &SAnimViewportToolBar::GetLODMenuLabel)
 			.OnGetMenuContent(this, &SAnimViewportToolBar::GenerateLODMenu)
@@ -271,6 +281,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.Padding(ToolbarSlotPadding)
 		[
 			SNew(SEditorViewportToolbarMenu)
+			.ToolTipText(LOCTEXT("PlaybackSpeedMenuTooltip", "Playback Speed Options. Control the time dilation of the scene's update.\nShift-clicking items will 'pin' them to the toolbar."))
 			.ParentToolBar(SharedThis(this))
 			.Label(this, &SAnimViewportToolBar::GetPlaybackMenuLabel)
 			.LabelIcon(FEditorStyle::GetBrush("AnimViewportMenu.PlayBackSpeed"))
@@ -289,6 +300,11 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 	
 	//@TODO: Need clipping horizontal box: LeftToolbar->AddWrapButton();
 
+	// Create our pinned commands before we bind commands
+	IPinnedCommandListModule& PinnedCommandListModule = FModuleManager::LoadModuleChecked<IPinnedCommandListModule>(TEXT("PinnedCommandList"));
+	PinnedCommands = PinnedCommandListModule.CreatePinnedCommandList(InArgs._ContextName != NAME_None ? InArgs._ContextName : TEXT("PersonaViewport"));
+	PinnedCommands->SetStyle(&FEditorStyle::Get(), TEXT("ViewportPinnedCommandList"));
+
 	ChildSlot
 	[
 		SNew( SBorder )
@@ -302,6 +318,11 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 			.AutoHeight()
 			[
 				LeftToolbar
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				PinnedCommands.ToSharedRef()
 			]
 			+SVerticalBox::Slot()
 			.Padding(FMargin(4.0f, 3.0f, 0.0f, 0.0f))
@@ -319,6 +340,11 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 	
 	SViewportToolBar::Construct(SViewportToolBar::FArguments());
 
+	// Register all the custom widgets we can use here
+	PinnedCommands->RegisterCustomWidget(IPinnedCommandList::FOnGenerateCustomWidget::CreateSP(this, &SAnimViewportToolBar::MakeFloorOffsetWidget), TEXT("FloorOffsetWidget"), LOCTEXT("FloorHeightOffset", "Floor Height Offset"));
+	PinnedCommands->RegisterCustomWidget(IPinnedCommandList::FOnGenerateCustomWidget::CreateSP(this, &SAnimViewportToolBar::MakeFOVWidget), TEXT("FOVWidget"), LOCTEXT("Viewport_FOVLabel", "Field Of View"));
+	PinnedCommands->BindCommandList(InViewport->GetCommandList().ToSharedRef());
+
 	// We assign the viewport pointer her rather that initially, as SViewportToolbar::Construct 
 	// ends up calling through and attempting to perform operations on the not-yet-full-constructed viewport
 	Viewport = InViewport;
@@ -327,6 +353,55 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 EVisibility SAnimViewportToolBar::GetTransformToolbarVisibility() const
 {
 	return Viewport.Pin()->CanUseGizmos() ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+TSharedRef<SWidget> SAnimViewportToolBar::MakeFloorOffsetWidget() const
+{
+	return
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+			.WidthOverride(100.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.AllowSpin(true)
+				.MinSliderValue(-100.0f)
+				.MaxSliderValue(100.0f)
+				.Value(this, &SAnimViewportToolBar::OnGetFloorOffset)
+				.OnValueChanged(this, &SAnimViewportToolBar::OnFloorOffsetChanged)
+				.ToolTipText(LOCTEXT("FloorOffsetToolTip", "Height offset for the floor mesh (stored per-mesh)"))
+			]
+		];
+}
+
+TSharedRef<SWidget> SAnimViewportToolBar::MakeFOVWidget() const
+{
+	const float FOVMin = 5.f;
+	const float FOVMax = 170.f;
+
+	return
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+			.WidthOverride(100.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.AllowSpin(true)
+				.MinValue(FOVMin)
+				.MaxValue(FOVMax)
+				.MinSliderValue(FOVMin)
+				.MaxSliderValue(FOVMax)
+				.Value(this, &SAnimViewportToolBar::OnGetFOVValue)
+				.OnValueChanged(this, &SAnimViewportToolBar::OnFOVValueChanged)
+				.OnValueCommitted(this, &SAnimViewportToolBar::OnFOVValueCommitted)
+			]
+		];
 }
 
 TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
@@ -349,26 +424,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 
 		if(bShowFloorOptions)
 		{
-			TSharedPtr<SWidget> FloorOffsetWidget = 
-				SNew(SBox)
-				.HAlign(HAlign_Right)
-				[
-					SNew(SBox)
-					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-					.WidthOverride(100.0f)
-					[
-						SNew(SNumericEntryBox<float>)
-						.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
-						.AllowSpin(true)
-						.MinSliderValue(-100.0f)
-						.MaxSliderValue(100.0f)
-						.Value(this, &SAnimViewportToolBar::OnGetFloorOffset)
-						.OnValueChanged(this, &SAnimViewportToolBar::OnFloorOffsetChanged)
-						.ToolTipText(LOCTEXT("FloorOffsetToolTip", "Height offset for the floor mesh (stored per-mesh)"))
-					]
-				];
-
-			InMenuBuilder.AddWidget(FloorOffsetWidget.ToSharedRef(), LOCTEXT("FloorHeightOffset", "Floor Height Offset"));
+			InMenuBuilder.AddWidget(MakeFloorOffsetWidget(), LOCTEXT("FloorHeightOffset", "Floor Height Offset"));
 
 			InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 			InMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().AutoAlignFloorToMesh);
@@ -390,33 +446,55 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 
 	InMenuBuilder.BeginSection("AnimViewportCamera", LOCTEXT("ViewMenu_CameraLabel", "Camera"));
 	{
-		InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
-		InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollow);
-		InMenuBuilder.PopCommandList();
 		InMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
 
-		const float FOVMin = 5.f;
-		const float FOVMax = 170.f;
+		InMenuBuilder.AddSubMenu(
+			LOCTEXT("CameraFollowModeLabel", "Camera Follow Mode"),
+			LOCTEXT("CameraFollowModeTooltip", "Set various camera follow modes"),
+			FNewMenuDelegate::CreateLambda([this](FMenuBuilder& InMenuBuilder)
+			{
+				InMenuBuilder.BeginSection("AnimViewportCameraFollowMode", LOCTEXT("ViewMenu_CameraFollowModeLabel", "Camera Follow Mode"));
+				{
+					InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
 
-		TSharedPtr<SWidget> FOVWidget = 
-			SNew(SBox)
-			.HAlign(HAlign_Right)
-			[
-				SNew(SBox)
-				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-				.WidthOverride(100.0f)
-				[
-					SNew(SSpinBox<float>)
-					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
-					.MinValue(FOVMin)
-					.MaxValue(FOVMax)
-					.Value(this, &SAnimViewportToolBar::OnGetFOVValue)
-					.OnValueChanged(this, &SAnimViewportToolBar::OnFOVValueChanged)
-					.OnValueCommitted(this, &SAnimViewportToolBar::OnFOVValueCommitted)
-				]
-			];
+					InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowNone);
+					InMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollowBounds);
 
-		InMenuBuilder.AddWidget(FOVWidget.ToSharedRef(), LOCTEXT("Viewport_FOVLabel", "Field Of View"));
+					InMenuBuilder.PopCommandList();
+				}
+				InMenuBuilder.EndSection();
+		
+				InMenuBuilder.BeginSection("AnimViewportCameraFollowBone", FText());
+				{
+					InMenuBuilder.AddWidget(
+						SNew(SBox)
+						.MaxDesiredHeight(400.0f)
+						[
+							SNew(SBoneTreeMenu)
+							.Title(FAnimViewportMenuCommands::Get().CameraFollowBone->GetLabel())
+							.bShowVirtualBones(true)
+							.OnBoneSelectionChanged_Lambda([this](FName InBoneName)
+							{
+								Viewport.Pin()->SetCameraFollowMode(EAnimationViewportCameraFollowMode::Bone, InBoneName);
+								FSlateApplication::Get().DismissAllMenus();
+							})
+							.SelectedBone(Viewport.Pin()->GetCameraFollowBoneName())
+							.OnGetReferenceSkeleton_Lambda([this]() -> const FReferenceSkeleton&
+							{
+								return Viewport.Pin()->GetPreviewScene()->GetPersonaToolkit()->GetEditableSkeleton()->GetSkeleton().GetReferenceSkeleton();
+							})
+						],
+						FText(), 
+						true);
+				}
+				InMenuBuilder.EndSection();
+				
+			}),
+			false,
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.CameraFollow")
+			);
+
+		InMenuBuilder.AddWidget(MakeFOVWidget(), LOCTEXT("Viewport_FOVLabel", "Field Of View"));
 	}
 	InMenuBuilder.EndSection();
 
@@ -524,6 +602,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateCharacterMenu() const
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowAdditiveBaseBones);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowSourceRawAnimation);
 						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().ShowBakedAnimation);
+						SubMenuBuilder.AddMenuEntry(FAnimViewportShowCommands::Get().DisablePostProcessBlueprint);
 					}
 					SubMenuBuilder.EndSection();
 				})
@@ -789,9 +868,9 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewportTypeMenu() const
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder InMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtender);
+	FMenuBuilder InMenuBuilder(bInShouldCloseWindowAfterMenuSelection, CommandList, MenuExtender);
 	InMenuBuilder.SetStyle(&FEditorStyle::Get(), "Menu");
-	InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
+	InMenuBuilder.PushCommandList(CommandList.ToSharedRef());
 	InMenuBuilder.PushExtender(MenuExtender.ToSharedRef());
 
 	// Camera types
@@ -1013,39 +1092,28 @@ const FSlateBrush* SAnimViewportToolBar::GetCameraMenuLabelIcon() const
 	return FEditorStyle::GetBrush(Icon);
 }
 
-float SAnimViewportToolBar::OnGetFOVValue( ) const
+TOptional<float> SAnimViewportToolBar::OnGetFOVValue() const
 {
-	return Viewport.Pin()->GetLevelViewportClient().ViewFOV;
+	if(Viewport.IsValid())
+	{
+		return Viewport.Pin()->GetLevelViewportClient().ViewFOV;
+	}
+	return 0.0f;
 }
 
 void SAnimViewportToolBar::OnFOVValueChanged( float NewValue )
 {
-	bool bUpdateStoredFOV = true;
 	FEditorViewportClient& ViewportClient = Viewport.Pin()->GetLevelViewportClient();
 
-	// @todo Viewport Cleanup
-/*
-	if (ViewportClient.ActorLockedToCamera.IsValid())
-	{
-		ACameraActor* CameraActor = Cast< ACameraActor >( ViewportClient.ActorLockedToCamera.Get() );
-		if( CameraActor != NULL )
-		{
-			CameraActor->CameraComponent->FieldOfView = NewValue;
-			bUpdateStoredFOV = false;
-		}
-	}*/
+	ViewportClient.FOVAngle = NewValue;
 
-	if ( bUpdateStoredFOV )
-	{
-		ViewportClient.FOVAngle = NewValue;
-		// @TODO cleanup - this interface should be in FNewAnimationViewrpotClient in the future
-		// update config
-		FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)(ViewportClient);
-		AnimViewportClient.ConfigOption->SetViewFOV(NewValue);
-	}
+	FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)(ViewportClient);
+	AnimViewportClient.ConfigOption->SetViewFOV(NewValue, AnimViewportClient.GetViewportIndex());
 
 	ViewportClient.ViewFOV = NewValue;
 	ViewportClient.Invalidate();
+
+	PinnedCommands->AddCustomWidget(TEXT("FOVWidget"));
 }
 
 void SAnimViewportToolBar::OnFOVValueCommitted( float NewValue, ETextCommit::Type CommitInfo )
@@ -1055,9 +1123,13 @@ void SAnimViewportToolBar::OnFOVValueCommitted( float NewValue, ETextCommit::Typ
 
 TOptional<float> SAnimViewportToolBar::OnGetFloorOffset() const
 {
-	FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)Viewport.Pin()->GetLevelViewportClient();
+	if(Viewport.IsValid())
+	{
+		FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)Viewport.Pin()->GetLevelViewportClient();
+		return AnimViewportClient.GetFloorOffset();
+	}
 
-	return AnimViewportClient.GetFloorOffset();
+	return 0.0f;
 }
 
 void SAnimViewportToolBar::OnFloorOffsetChanged( float NewValue )
@@ -1065,6 +1137,8 @@ void SAnimViewportToolBar::OnFloorOffsetChanged( float NewValue )
 	FAnimationViewportClient& AnimViewportClient = (FAnimationViewportClient&)Viewport.Pin()->GetLevelViewportClient();
 
 	AnimViewportClient.SetFloorOffset( NewValue );
+
+	PinnedCommands->AddCustomWidget(TEXT("FloorOffsetWidget"));
 }
 
 TSharedRef<FExtender> SAnimViewportToolBar::GetViewMenuExtender(TSharedPtr<class SEditorViewport> InRealViewport)

@@ -223,4 +223,19 @@ public:
 
 	/** Get the current camera override */
 	virtual TSharedPtr<FEditorCameraController> GetCurrentCameraOverride() const = 0;
+
+	/** Register a callback for just before the preview scene is ticked */
+	virtual void RegisterOnPreTick(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister a callback for just before the preview scene is ticked */
+	virtual void UnregisterOnPreTick(void* Thing) = 0;
+
+	/** Register a callback for just after the preview scene is ticked */
+	virtual void RegisterOnPostTick(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister a callback for just after the preview scene is ticked */
+	virtual void UnregisterOnPostTick(void* Thing) = 0;
+
+	/** Let the preview scene know that it should tick (because it is visible) */
+	virtual void FlagTickable() = 0;
 };

@@ -50,6 +50,7 @@ public:
 	TSharedPtr<FUICommandInfo> ConstraintRenderingMode_Simulation_AllPositions;
 	TSharedPtr<FUICommandInfo> ConstraintRenderingMode_Simulation_AllLimits;
 	TSharedPtr<FUICommandInfo> RenderOnlySelectedSolid;
+	TSharedPtr<FUICommandInfo> RenderOnlySelectedConstraints;
 	TSharedPtr<FUICommandInfo> DrawConstraintsAsPoints;
 	TSharedPtr<FUICommandInfo> ToggleMassProperties;
 	TSharedPtr<FUICommandInfo> DisableCollision;
@@ -80,6 +81,7 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteAllBodiesBelow;
 	TSharedPtr<FUICommandInfo> SelectAllBodies;
 	TSharedPtr<FUICommandInfo> SelectAllConstraints;
+	TSharedPtr<FUICommandInfo> ToggleSelectionType;
 	TSharedPtr<FUICommandInfo> DeselectAll;
 	TSharedPtr<FUICommandInfo> Mirror;
 	TSharedPtr<FUICommandInfo> NewPhysicalAnimationProfile;

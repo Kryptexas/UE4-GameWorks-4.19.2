@@ -95,7 +95,7 @@ namespace Audio
 	{
 		ISourceBufferQueueListener* BufferQueueListener;
 		TArray<FMixerSourceSubmixSend> SubmixSends;
-		TArray<FMixerBusSend> BusSends;
+		TArray<FMixerBusSend> BusSends[(int32)EBusSendType::Count];
 		uint32 BusId;
 		float BusDuration;
 		uint32 SourceEffectChainId;
@@ -114,6 +114,8 @@ namespace Audio
 		bool bUseHRTFSpatialization;
 		bool bIsDebugMode;
 		bool bOutputToBusOnly;
+		bool bIsVorbis;
+		bool bIsAmbisonics;
 
 		FMixerSourceVoiceInitParams()
 			: BufferQueueListener(nullptr)
@@ -132,6 +134,8 @@ namespace Audio
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
 			, bOutputToBusOnly(false)
+			, bIsVorbis(false)
+			, bIsAmbisonics(false)
 		{}
 	};
 
@@ -258,6 +262,7 @@ namespace Audio
 		void UpdateSourceEffectChain(const uint32 SourceEffectChainId, const TArray<FSourceEffectChainEntry>& SourceEffectChain, const bool bPlayEffectChainTails);
 
 		const float* GetPreDistanceAttenuationBuffer(const int32 SourceId) const;
+		const float* GetPreEffectBuffer(const int32 SourceId) const;
 		const float* GetPreviousBusBuffer(const int32 SourceId) const;
 		int32 GetNumChannels(const int32 SourceId) const;
 		int32 GetNumOutputFrames() const { return NumOutputFrames; }
@@ -370,6 +375,7 @@ namespace Audio
 
 			// The post-attenuation source buffer, used to send audio to submixes
 			TArray<float> SourceBuffer;
+			TArray<float> PreEffectBuffer;
 			TArray<float> PreDistanceAttenuationBuffer;
 
 			TArray<float> CurrentFrameValues;
@@ -387,7 +393,7 @@ namespace Audio
 			int64 BusDurationFrames;
 
 			// What buses this source is sending its audio to. Used to remove this source from the bus send list.
-			TArray<uint32> BusSends;
+			TArray<uint32> BusSends[(int32)EBusSendType::Count];
 
 			// Interpolated source params
 			FParam PitchSourceParam;
@@ -438,6 +444,7 @@ namespace Audio
 			bool bIsDone;
 			bool bIsLastBuffer;
 			bool bOutputToBusOnly;
+			bool bIsVorbis;
 
 			bool bIsDebugMode;
 			FString DebugName;

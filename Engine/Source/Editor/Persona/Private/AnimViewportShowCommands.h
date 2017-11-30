@@ -36,6 +36,9 @@ public:
 	/** Option to show root motion in viewport */
 	TSharedPtr< FUICommandInfo > ProcessRootMotion;
 
+	/** Option to enable/disable post process anim blueprint evaluation */
+	TSharedPtr< FUICommandInfo > DisablePostProcessBlueprint;
+
 	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowRetargetBasePose;
 	

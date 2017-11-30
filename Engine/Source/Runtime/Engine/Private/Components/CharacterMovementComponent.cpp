@@ -1084,21 +1084,6 @@ void UCharacterMovementComponent::PerformAirControlForPathFollowing(FVector Dire
 	}
 }
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static void DrawCircle( const UWorld* InWorld, const FVector& Base, const FVector& X, const FVector& Y, const FColor& Color, float Radius, int32 NumSides, bool bPersistentLines, float LifeTime, uint8 DepthPriority=0, float Thickness=0.0f )
-{
-	const float	AngleDelta = 2.0f * PI / NumSides;
-	FVector	LastVertex = Base + X * Radius;
-
-	for ( int32 SideIndex = 0; SideIndex < NumSides; SideIndex++ )
-	{
-		const FVector Vertex = Base + ( X * FMath::Cos( AngleDelta * ( SideIndex + 1 ) ) + Y * FMath::Sin( AngleDelta * ( SideIndex + 1 ) ) ) * Radius;
-		DrawDebugLine( InWorld, LastVertex, Vertex, Color, bPersistentLines, LifeTime, DepthPriority, Thickness );
-		LastVertex = Vertex;
-	}
-}
-#endif
-
 void UCharacterMovementComponent::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);
@@ -1460,6 +1445,14 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	}
 }
 
+FTransform UCharacterMovementComponent::ConvertLocalRootMotionToWorld(const FTransform& LocalRootMotionTransform)
+{
+	const FTransform PreProcessedRootMotion = ProcessRootMotionPreConvertToWorld.IsBound() ? ProcessRootMotionPreConvertToWorld.Execute(LocalRootMotionTransform, this) : LocalRootMotionTransform;
+	const FTransform WorldSpaceRootMotion = CharacterOwner->GetMesh()->ConvertLocalRootMotionToWorld(PreProcessedRootMotion);
+	return ProcessRootMotionPostConvertToWorld.IsBound() ? ProcessRootMotionPostConvertToWorld.Execute(WorldSpaceRootMotion, this) : WorldSpaceRootMotion;
+}
+
+
 void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform)
 {
 	if( CharacterOwner && CharacterOwner->GetMesh() && (DeltaSeconds > 0.f) )
@@ -1467,7 +1460,7 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
 		// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
-		const FTransform WorldSpaceRootMotionTransform = CharacterOwner->GetMesh()->ConvertLocalRootMotionToWorld(LocalRootMotionTransform);
+		const FTransform WorldSpaceRootMotionTransform = ConvertLocalRootMotionToWorld(LocalRootMotionTransform);
 		RootMotionParams.Set( WorldSpaceRootMotionTransform );
 
 		// Compute root motion velocity to be used by physics
@@ -2102,7 +2095,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 				if( SkelMeshComp )
 				{
 					// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
-					RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.GetRootMotionTransform()) );
+					RootMotionParams.Set( ConvertLocalRootMotionToWorld(RootMotionParams.GetRootMotionTransform()) );
 				}
 
 				// Then turn root motion to velocity to be used by various physics modes.
@@ -6842,7 +6835,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 
 			// Draw server (corrected location)
 			DrawCircle( GetWorld(), ServerLocation, FVector( 1, 0, 0 ), FVector( 0, 1, 0 ), FColor( 0, 255, 0, 255 ), Radius, Sides, bPersist, Lifetime );
-
+			
 			// Draw smooth simulated location
 			FRotationMatrix SmoothMatrix( CharacterOwner->GetMesh()->GetComponentRotation() );
 			DrawDebugDirectionalArrow( GetWorld(), SmoothLocation, SmoothLocation + SmoothMatrix.GetScaledAxis( EAxis::Y ) * 5, ArrowSize, FColor( 255, 255, 0, 255 ), bPersist, Lifetime );

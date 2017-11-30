@@ -2011,6 +2011,14 @@ public:
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
 	virtual float CalculateMass(FName BoneName = NAME_None);
 
+	/** Set whether this component should use Continuous Collision Detection */
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetUseCCD(bool InUseCCD, FName BoneName = NAME_None);
+
+	/** Set whether all bodies in this component should use Continuous Collision Detection */
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetAllUseCCD(bool InUseCCD);
+
 	/**
 	 *	Force all bodies in this component to sleep.
 	 */

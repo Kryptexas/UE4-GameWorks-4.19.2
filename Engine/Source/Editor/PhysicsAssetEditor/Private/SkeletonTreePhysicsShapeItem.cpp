@@ -92,16 +92,16 @@ FString FSkeletonTreePhysicsShapeItem::GetNameAsString() const
 	switch (ShapeType)
 	{
 	case EAggCollisionShape::Sphere:
-		StringName = BodySetup->AggGeom.SphereElems[ShapeIndex].GetName();
+		StringName = BodySetup->AggGeom.SphereElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.SphereElems[ShapeIndex].GetName() : FString();
 		break;
 	case EAggCollisionShape::Box:
-		StringName = BodySetup->AggGeom.BoxElems[ShapeIndex].GetName();
+		StringName = BodySetup->AggGeom.BoxElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.BoxElems[ShapeIndex].GetName() : FString();
 		break;
 	case EAggCollisionShape::Sphyl:
-		StringName = BodySetup->AggGeom.SphylElems[ShapeIndex].GetName();
+		StringName = BodySetup->AggGeom.SphylElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.SphylElems[ShapeIndex].GetName() : FString();
 		break;
 	case EAggCollisionShape::Convex:
-		StringName = BodySetup->AggGeom.ConvexElems[ShapeIndex].GetName();
+		StringName = BodySetup->AggGeom.ConvexElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.ConvexElems[ShapeIndex].GetName() : FString();
 		break;
 	}
 
@@ -129,16 +129,28 @@ void FSkeletonTreePhysicsShapeItem::HandleTextCommitted(const FText& InText, ETe
 		switch (ShapeType)
 		{
 		case EAggCollisionShape::Sphere:
-			BodySetup->AggGeom.SphereElems[ShapeIndex].SetName(InText.ToString());
+			if(BodySetup->AggGeom.SphereElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.SphereElems[ShapeIndex].SetName(InText.ToString());
+			}
 			break;
 		case EAggCollisionShape::Box:
-			BodySetup->AggGeom.BoxElems[ShapeIndex].SetName(InText.ToString());
+			if(BodySetup->AggGeom.BoxElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.BoxElems[ShapeIndex].SetName(InText.ToString());
+			}
 			break;
 		case EAggCollisionShape::Sphyl:
-			BodySetup->AggGeom.SphylElems[ShapeIndex].SetName(InText.ToString());
+			if(BodySetup->AggGeom.SphylElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.SphylElems[ShapeIndex].SetName(InText.ToString());
+			}
 			break;
 		case EAggCollisionShape::Convex:
-			BodySetup->AggGeom.ConvexElems[ShapeIndex].SetName(InText.ToString());
+			if(BodySetup->AggGeom.ConvexElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.ConvexElems[ShapeIndex].SetName(InText.ToString());
+			}
 			break;
 		default:
 			check(false);

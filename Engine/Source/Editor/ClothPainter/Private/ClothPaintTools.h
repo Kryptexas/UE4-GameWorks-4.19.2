@@ -43,6 +43,8 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FPerVertexPaintAction GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings) override;
 	virtual UObject* GetSettingsObject() override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/** End FClothPaintToolBase interface */
 
 protected:
@@ -115,6 +117,8 @@ public:
 	virtual void Activate(TWeakPtr<FUICommandList> InCommands) override;
 	virtual void Deactivate(TWeakPtr<FUICommandList> InCommands) override;
 	virtual void OnMeshChanged() override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/* End FClothPaintToolBase interface */
 	
 protected:
@@ -238,6 +242,8 @@ public:
 	virtual bool IsPerVertex() const override;
 	virtual bool ShouldRenderInteractors() const override;
 	virtual void Render(USkeletalMeshComponent* InComponent, IMeshPaintGeometryAdapter* InAdapter, const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/* End FClothPaintToolBase interface */
 
 protected:

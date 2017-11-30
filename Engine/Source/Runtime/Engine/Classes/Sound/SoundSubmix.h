@@ -5,6 +5,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "SoundEffectSubmix.h"
+#include "IAmbisonicsMixer.h"
 #include "SoundSubmix.generated.h"
 
 class UEdGraph;
@@ -35,8 +36,8 @@ enum class ESubmixChannelFormat : uint8
 	// Sets the submix to mix audio to 7.1 (FL, FR, FC, LF, BL, BR, SL, SR)
 	SevenDotOne UMETA(DisplayName = "7.1"),
 
-	// Sets the submix to render audio as an ambisonic bed.
-	FirstOrderAmbisonics UMETA(DisplayName = "First Order Ambisonics"),
+	// Sets the submix to render audio as an ambisonics bed.
+	Ambisonics UMETA(DisplayName = "Ambisonics"),
 
 	Count UMETA(Hidden)
 };
@@ -92,6 +93,10 @@ class ENGINE_API USoundSubmix : public UObject
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
 	TArray<USoundEffectSubmixPreset*> SubmixEffectChain;
+
+	// TODO: Hide this unless Channel Format is ambisonics. Also, worry about thread safety.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoundSubmix)
+	UAmbisonicsSubmixSettingsBase* AmbisonicsPluginSettings;
 
 protected:
 

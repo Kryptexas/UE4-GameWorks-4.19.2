@@ -11,6 +11,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Animation/DebugSkelMeshComponent.h"
 #include "IPersonaPreviewScene.h"
+#include "Preferences/PersonaOptions.h"
 
 class FCanvas;
 class ISkeletonTree;
@@ -118,14 +119,11 @@ protected:
 	/** Function to display bone names*/
 	void ShowBoneNames( FCanvas* Canvas, FSceneView* View );
 
-	/** Function to display warning and info text on the viewport when outside of animBP mode */
-	void DisplayInfo( FCanvas* Canvas, FSceneView* View, bool bDisplayAllInfo );
-
 	/** Function to display debug lines generated from skeletal controls in animBP mode */
 	void DrawNodeDebugLines(TArray<FText>& Lines, FCanvas* Canvas, FSceneView* View);
 
 public:
-	FAnimationViewportClient(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class SAnimationEditorViewport>& InAnimationEditorViewport, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, bool bInShowStats);
+	FAnimationViewportClient(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class SAnimationEditorViewport>& InAnimationEditorViewport, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, int32 InViewportIndex, bool bInShowStats);
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
@@ -151,22 +149,29 @@ public:
 	virtual bool CanCycleWidgetMode() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	virtual void HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex) override;
+	virtual FMatrix CalcViewRotationMatrix(const FRotator& InViewRotation) const override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */
 	void DrawUVsForMesh(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos);
 
-	/** Callback for toggling the camera lock flag. */
-	virtual void SetCameraFollow();
+	/** Set the camera follow mode */
+	void SetCameraFollowMode(EAnimationViewportCameraFollowMode Mode, FName InBoneName = NAME_None);
 
-	/** Callback for checking the camera lock flag. */
-	bool IsSetCameraFollowChecked() const;
+	/** Get the camera follow mode */
+	EAnimationViewportCameraFollowMode GetCameraFollowMode() const;
+
+	/** Get the bone name to use when CameraFollowMode is EAnimationViewportCameraFollowMode::Bone */
+	FName GetCameraFollowBoneName() const;
 
 	/** Jump to the meshes default camera */
 	void JumpToDefaultCamera();
 
 	/** Save current camera as default for mesh */
 	void SaveCameraAsDefault();
+
+	/** Check whether we can save this camera as default */
+	bool CanSaveCameraAsDefault() const;
 
 	/** Clear any default camera for mesh */
 	void ClearDefaultCamera();
@@ -307,13 +312,22 @@ public:
 	TSharedRef<class FAssetEditorToolkit> GetAssetEditorToolkit() const { return AssetEditorToolkitPtr.Pin().ToSharedRef(); }
 
 	/* Handle error checking for additive base pose */
-	bool ShouldDisplayAdditiveScaleErrorMessage();
+	bool ShouldDisplayAdditiveScaleErrorMessage() const;
 
 	/** Draws Mesh Sockets in foreground - bUseSkeletonSocketColor = true for grey (skeleton), false for red (mesh) **/
 	static void DrawSockets(const UDebugSkelMeshComponent* InPreviewMeshComponent, TArray<USkeletalMeshSocket*>& InSockets, FSelectedSocketInfo InSelectedSocket, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor);
 
 	/** Draws Gizmo for the Transform in foreground **/
 	static void RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI);
+
+	/** Function to display warning and info text on the viewport when outside of animBP mode */
+	FText GetDisplayInfo( bool bDisplayAllInfo ) const;
+
+	/** Get the viewport index (0-3) for this client */
+	int32 GetViewportIndex() const { return ViewportIndex; }
+
+	/** Get the persona mode manager */
+	class IPersonaEditorModeManager* GetPersonaModeManager() const;
 
 private:
 	/**
@@ -341,8 +355,11 @@ private:
 	// Current widget mode
 	FWidget::EWidgetMode WidgetMode;
 
-	/** add follow option @todo change to enum later - we share editorviewportclient, which is only problem*/
-	bool bCameraFollow;
+	/** The current camera follow mode */
+	EAnimationViewportCameraFollowMode CameraFollowMode;
+
+	/** The bone we will follow when in EAnimationViewportCameraFollowMode::Bone */
+	FName CameraFollowBoneName;
 
 	/** Should we auto align floor to mesh bounds */
 	bool bAutoAlignFloor;
@@ -371,8 +388,11 @@ private:
 	bool bFocusUsingCustomCamera;
 
 	/** Handle additive anim scale validation */
-	bool bDoesAdditiveRefPoseHaveZeroScale;
-	FGuid RefPoseGuid;
+	mutable bool bDoesAdditiveRefPoseHaveZeroScale;
+	mutable FGuid RefPoseGuid;
+
+	/** Screen size cached when we draw */
+	float CachedScreenSize;
 
 private:
 
@@ -405,9 +425,6 @@ private:
 	/** Get the typed anim preview scene */
 	TSharedRef<class FAnimationEditorPreviewScene> GetAnimPreviewScene() const;
 
-	/** Get the persona mode manager */
-	class IPersonaEditorModeManager* GetPersonaModeManager() const;
-
 	/** Invalidate this view in response to a preview scene change */
 	void HandleInvalidateViews();
 
@@ -435,6 +452,12 @@ private:
 	/** Override for preview component selection to inform the editor we consider it selected */
 	bool PreviewComponentSelectionOverride(const UPrimitiveComponent* InComponent) const;
 
+	/** Used for camera tracking - store data about the scene pre-tick */
+	void HandlePreviewScenePreTick();
+
+	/** Used for camera tracking - use stored data about the scene post-tick */
+	void HandlePreviewScenePostTick();
+
 private:
 	/** Allow mesh stats to be disabled for specific viewport instances */
 	bool bShowMeshStats;
@@ -442,8 +465,17 @@ private:
 	/** Whether we have initially focused on the preview mesh */
 	bool bInitiallyFocused;
 
+	/** When orbiting, the base rotation of the camera, allowing orbiting around different axes to Z */
+	FQuat OrbitRotation;
+
 	// We allow for replacing this in the underlying client so we cache it here
 	FEditorCameraController* CachedDefaultCameraController;
+
+	/** Index (0-3) of this viewport */
+	int32 ViewportIndex;
+
+	/** Relative view location stored to match it pre/post tick */
+	FVector RelativeViewLocation;
 
 	// Delegate Handler to allow changing of camera controller
 	void OnCameraControllerChanged();

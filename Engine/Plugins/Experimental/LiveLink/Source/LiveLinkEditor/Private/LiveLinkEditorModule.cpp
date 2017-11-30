@@ -50,6 +50,9 @@ public:
 
 	virtual void StartupModule() override
 	{
+		static FName LiveLinkStyle(TEXT("LiveLinkStyle"));
+		StyleSet = MakeShareable(new FSlateStyleSet(LiveLinkStyle));
+
 		if (FModuleManager::Get().IsModuleLoaded(LevelEditorModuleName))
 		{
 			RegisterTab();
@@ -58,9 +61,6 @@ public:
 		{
 			ModulesChangedHandle = FModuleManager::Get().OnModulesChanged().AddRaw(this, &FLiveLinkEditorModule::ModulesChangesCallback);
 		}
-
-		static FName LiveLinkStyle(TEXT("LiveLinkStyle"));
-		StyleSet = MakeShareable(new FSlateStyleSet(LiveLinkStyle));
 
 		FLiveLinkClientCommands::Register();
 

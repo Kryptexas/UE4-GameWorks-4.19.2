@@ -16,6 +16,12 @@ void FAnimNode_ModifyCurve::Initialize_AnyThread(const FAnimationInitializeConte
 	SourcePose.Initialize(Context);
 }
 
+void FAnimNode_ModifyCurve::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
+{
+	Super::CacheBones_AnyThread(Context);
+	SourcePose.CacheBones(Context);
+}
+
 void FAnimNode_ModifyCurve::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FPoseContext SourceData(Output);

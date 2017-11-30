@@ -14,6 +14,7 @@ namespace UnrealBuildTool.Rules
                     "UnrealEd",
                     "Engine",
                     "Projects",
+                    "DetailCustomizations",
 
                     "WorkspaceMenuStructure",
                     "EditorStyle",

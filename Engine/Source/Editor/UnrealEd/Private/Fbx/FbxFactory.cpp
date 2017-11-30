@@ -467,7 +467,6 @@ UObject* UFbxFactory::FactoryCreateBinary
 								}
 							}
 						}
-						MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
 					
 						int32 LODIndex;
 						int32 SuccessfulLodIndex = 0;

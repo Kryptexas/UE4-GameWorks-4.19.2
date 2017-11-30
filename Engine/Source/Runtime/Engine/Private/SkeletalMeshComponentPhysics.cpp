@@ -2246,11 +2246,6 @@ void USkeletalMeshComponent::RecreateClothingActors()
 		return;
 	}
 
-	if (bDisableClothSimulation)
-	{
-		return;
-	}
-
 	if(ClothingSimulation)
 	{
 		TArray<UClothingAssetBase*> AssetsInUse;
@@ -3020,6 +3015,17 @@ FVector USkeletalMeshComponent::GetSkeletalCenterOfMass() const
 	return Location / TotalMass;
 }
 
+void USkeletalMeshComponent::SetAllUseCCD(bool InUseCCD)
+{
+	// Apply CCD setting to each child body
+	for (FBodyInstance* BI : Bodies)
+	{
+		if (BI->IsValidBodyInstance())
+		{
+			BI->SetUseCCD(InUseCCD);
+		}
+	}
+}
 
 // blueprint callable methods 
 float USkeletalMeshComponent::GetClothMaxDistanceScale()

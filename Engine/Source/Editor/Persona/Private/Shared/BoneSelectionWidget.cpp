@@ -102,7 +102,7 @@ void SBoneTreeMenu::OnFilterTextChanged(const FText& InFilterText)
 void SBoneTreeMenu::OnSelectionChanged(TSharedPtr<SBoneTreeMenu::FBoneNameInfo> BoneInfo, ESelectInfo::Type SelectInfo)
 {
 	//Because we recreate all our items on tree refresh we will get a spurious null selection event initially.
-	if (BoneInfo.IsValid())
+	if (BoneInfo.IsValid() && SelectInfo != ESelectInfo::Direct)
 	{
 		OnSelectionChangedDelegate.ExecuteIfBound(BoneInfo->BoneName);
 	}

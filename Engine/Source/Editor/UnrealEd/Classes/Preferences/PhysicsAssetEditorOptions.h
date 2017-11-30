@@ -86,6 +86,10 @@ class UNREALED_API UPhysicsAssetEditorOptions : public UObject
 	UPROPERTY(config)
 	uint32 bShowConstraintsAsPoints:1;
 
+	/** Whether to only render selected constraints */
+	UPROPERTY(config)
+	uint32 bRenderOnlySelectedConstraints:1;
+
 	/** Controls how large constraints are drawn in Physics Asset Editor */
 	UPROPERTY(config)
 	float ConstraintDrawSize;

@@ -42,7 +42,7 @@ struct FPhysAssetCreateParams
 		GeomType = EFG_Sphyl;
 		VertWeight = EVW_DominantWeight;
 		bAutoOrientToBone = true;
-		bCreateJoints = true;
+		bCreateConstraints = true;
 		bWalkPastSmall = true;
 		bBodyForAll = false;
 		AngularConstraintMode = ACM_Limited;
@@ -62,7 +62,7 @@ struct FPhysAssetCreateParams
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Primitive Type"))
 	TEnumAsByte<EPhysAssetFitGeomType> GeomType;
 
-	/** How vertices are mapped bones when approximating them with bodies */
+	/** How vertices are mapped to bones when approximating them with bodies */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Vertex Weighting Type"))
 	TEnumAsByte<EPhysAssetFitVertWeight> VertWeight;
 
@@ -72,7 +72,7 @@ struct FPhysAssetCreateParams
 
 	/** Whether to create constraints between adjacent created bodies */
 	UPROPERTY(EditAnywhere, Category = "Constraint Creation")
-	bool								bCreateJoints;
+	bool								bCreateConstraints;
 
 	/** Whether to skip small bones entirely (rather than merge them with adjacent bones) */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Walk Past Small Bones"))
@@ -83,7 +83,7 @@ struct FPhysAssetCreateParams
 	bool								bBodyForAll;
 
 	/** The type of angular constraint to create between bodies */
-	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateJoints"))
+	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateConstraints"))
 	TEnumAsByte<EAngularConstraintMotion> AngularConstraintMode;
 
 	/** When creating multiple convex hulls, the maximum number that will be created. */

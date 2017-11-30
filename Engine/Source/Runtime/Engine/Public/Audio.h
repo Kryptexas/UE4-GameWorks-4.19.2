@@ -237,6 +237,14 @@ private:
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin PluginType);
 ENGINE_API UClass* GetAudioPluginCustomSettingsClass(EAudioPlugin PluginType);
 
+/** Bus send types */
+enum class EBusSendType : uint8
+{
+	PreEffect,
+	PostEffect,
+	Count
+};
+
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
  * as a single USoundWave object can be used in multiple active cues or multiple times in the same cue.
@@ -258,8 +266,8 @@ struct ENGINE_API FWaveInstance
 	/** Sound submix sends */
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
-	/** The sound sourcebus sends. */
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
+	/** The sound source bus sends. */
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends[(int32)EBusSendType::Count];
 
 	/** Sound effect chain */
 	USoundEffectSourcePresetChain* SourceEffectChain;
@@ -362,6 +370,9 @@ public:
 
 	/** Prevent spamming of spatialization of surround sounds by tracking if the warning has already been emitted */
 	uint32 bReportedSpatializationWarning:1;
+
+	/** Whether or not this wave instance is ambisonics. */
+	uint32 bIsAmbisonics:1;
 
 	/** Which spatialization method to use to spatialize 3d sounds. */
 	ESoundSpatializationAlgorithm SpatializationMethod;
@@ -868,6 +879,9 @@ public:
 
 	ENGINE_API void ReportImportFailure() const;
 };
+
+/** Utility to serialize raw PCM data into a wave file. */
+ENGINE_API void SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes, const int32 NumChannels, const int32 SampleRate);
 
 /**
  * Brings loaded sounds up to date for the given platforms (or all platforms), and also sets persistent variables to cover any newly loaded ones.

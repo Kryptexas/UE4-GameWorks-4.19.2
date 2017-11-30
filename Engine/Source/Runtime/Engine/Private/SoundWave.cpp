@@ -804,7 +804,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->bOutputToBusOnly = ParseParams.bOutputToBusOnly;
 		}
 
-		WaveInstance->SoundSourceBusSends = ParseParams.SoundSourceBusSends;
+		for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
+		{
+			WaveInstance->SoundSourceBusSends[BusSendType] = ParseParams.SoundSourceBusSends[BusSendType];
+		}
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		{
@@ -819,6 +822,8 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->SpatializationPluginSettings = ParseParams.SpatializationPluginSettings;
 		WaveInstance->OcclusionPluginSettings = ParseParams.OcclusionPluginSettings;
 		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
+
+		WaveInstance->bIsAmbisonics = bIsAmbisonics;
 
 		bool bAddedWaveInstance = false;
 

@@ -24,6 +24,15 @@
 			[
 				"Win64"
 			]
+		},
+		{
+			"Name" : "OculusAudioEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "PostEngineInit",
+			"WhitelistPlatforms" :
+			[
+				"Win64"
+			]
 		}
 	]
 }

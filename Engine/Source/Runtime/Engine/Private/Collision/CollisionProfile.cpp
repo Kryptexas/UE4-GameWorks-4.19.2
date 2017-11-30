@@ -195,8 +195,6 @@ bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance& BodyInstanc
 		BodyInstance.CollisionEnabled = Template.CollisionEnabled;
 		BodyInstance.ObjectType = Template.ObjectType;
 		BodyInstance.CollisionResponses.SetCollisionResponseContainer(Template.ResponseToChannels);
-		BodyInstance.ResponseToChannels_DEPRECATED = Template.ResponseToChannels;
-
 		BodyInstance.UpdatePhysicsFilterData();
 		return true;
 	}

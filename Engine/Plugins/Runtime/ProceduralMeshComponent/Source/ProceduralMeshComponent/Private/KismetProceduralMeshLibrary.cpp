@@ -470,6 +470,40 @@ void UKismetProceduralMeshLibrary::CopyProceduralMeshFromStaticMeshComponent(USt
 	}
 }
 
+void UKismetProceduralMeshLibrary::GetSectionFromProceduralMesh(UProceduralMeshComponent* InProcMesh, int32 SectionIndex, TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents)
+{
+	if (InProcMesh && SectionIndex >= 0 && SectionIndex < InProcMesh->GetNumSections())
+	{
+		const FProcMeshSection* Section = InProcMesh->GetProcMeshSection(SectionIndex);
+
+		const int32 NumOutputVerts = Section->ProcVertexBuffer.Num();
+
+		// Allocate output buffers for vert data
+		Vertices.SetNumUninitialized(NumOutputVerts);
+		Normals.SetNumUninitialized(NumOutputVerts);
+		UVs.SetNumUninitialized(NumOutputVerts);
+		Tangents.SetNumUninitialized(NumOutputVerts);
+		// copy data
+		for (int32 VertIdx = 0; VertIdx < NumOutputVerts; VertIdx++)
+		{
+			const FProcMeshVertex& Vert = Section->ProcVertexBuffer[VertIdx];
+			Vertices[VertIdx] = Vert.Position;
+			Normals[VertIdx] = Vert.Normal;
+			UVs[VertIdx] = Vert.UV0;
+			Tangents[VertIdx] = Vert.Tangent;
+		}
+
+		// Copy index buffer
+		const int32 NumIndices = Section->ProcIndexBuffer.Num();
+		Triangles.SetNumUninitialized(NumIndices);
+		for (int32 IndexIdx = 0; IndexIdx < NumIndices; IndexIdx++)
+		{
+			Triangles[IndexIdx] = Section->ProcIndexBuffer[IndexIdx];
+		}
+	}
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 
 /** Util that returns 1 ir on positive side of plane, -1 if negative, or 0 if split by plane */

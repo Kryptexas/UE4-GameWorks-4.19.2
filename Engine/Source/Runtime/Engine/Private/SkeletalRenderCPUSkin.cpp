@@ -113,7 +113,7 @@ void FSkeletalMeshObjectCPUSkin::EnableOverlayRendering(bool bEnabled, const TAr
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights)
+void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, bool bUpdatePreviousBoneTransform)
 {
 	if (InMeshComponent)
 	{
@@ -123,28 +123,31 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 
 		// We prepare the next frame but still have the value from the last one
 		uint32 FrameNumberToPrepare = GFrameNumber + 1;
+		uint32 RevisionNumber = 0;
 
 		if (InMeshComponent->SceneProxy)
 		{
 			// We allow caching of per-frame, per-scene data
 			FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+			RevisionNumber = InMeshComponent->GetBoneTransformRevisionNumber();
 		}
 
 		// queue a call to update this data
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			SkelMeshObjectUpdateDataCommand,
 			FSkeletalMeshObjectCPUSkin*, MeshObject, this,
 			uint32, FrameNumberToPrepare, FrameNumberToPrepare,
+			uint32, RevisionNumber, RevisionNumber, 
 			FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
 		{
 			FScopeCycleCounter Context(MeshObject->GetStatId());
-			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
+			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare, RevisionNumber);
 		}
 		);
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare, uint32 RevisionNumber)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;

@@ -11,6 +11,8 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "SEditableTextBox.h"
+#include "Features/IModularFeatures.h"
+
 
 #if WITH_ENGINE
 #include "AudioDevice.h"

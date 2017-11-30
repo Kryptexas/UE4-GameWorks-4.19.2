@@ -1204,6 +1204,11 @@ void FClothingSimulationNv::DebugDraw_Backstops(USkeletalMeshComponent* OwnerCom
 		const FClothPhysicalMeshData& MeshData = Asset->LodData[Actor.CurrentLodIndex].PhysicalMeshData;
 		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
 
+		if(!MeshData.HasBackStops())
+		{
+			continue;
+		}
+
 		const TArray<FVector>& SkinnedPositions = Actor.GetCurrentSkinnedPositions();
 		const int32 NumVerts = SkinnedPositions.Num();
 		check(NumVerts == Actor.SkinnedPhysicsMeshNormals.Num());

@@ -218,8 +218,8 @@ public:
 	{
 		FShaderDataType()
 			: CurrentBuffer(0)
-			, PreviousFrameNumber(0)
-			, CurrentFrameNumber(0)
+			, PreviousRevisionNumber(0)
+			, CurrentRevisionNumber(0)
 		{
 			// BoneDataOffset and BoneTextureSize are not set as they are only valid if IsValidRef(BoneTexture)
 			MaxGPUSkinBones = GetMaxGPUSkinBones();
@@ -228,7 +228,7 @@ public:
 
 		// @param FrameTime from GFrameTime
 		bool UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
-			const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache);
+			const TArray<FBoneIndexType>& BoneMap, uint32 RevisionNumber, bool bPrevious, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache);
 
 		void ReleaseBoneData()
 		{
@@ -253,10 +253,9 @@ public:
 		}
 		
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
-		const FVertexBufferAndSRV& GetBoneBufferForReading(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferForReading(bool bPrevious) const
 		{
-			const FVertexBufferAndSRV* RetPtr = &GetBoneBufferInternal(bPrevious, FrameNumber);
+			const FVertexBufferAndSRV* RetPtr = &GetBoneBufferInternal(bPrevious);
 
 			if(!RetPtr->VertexBufferRHI.IsValid())
 			{
@@ -264,7 +263,7 @@ public:
 				check(bPrevious);
 
 				// if we don't have any old data we use the current one
-				RetPtr = &GetBoneBufferInternal(false, FrameNumber);
+				RetPtr = &GetBoneBufferInternal(false);
 
 				// at least the current one needs to be valid when reading
 				check(RetPtr->VertexBufferRHI.IsValid());
@@ -274,14 +273,19 @@ public:
 		}
 
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FVertexBufferAndSRV& GetBoneBufferForWriting(uint32 FrameNumber)
+		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious)
 		{
 			const FShaderDataType* This = (const FShaderDataType*)this;
-
 			// non const version maps to const version
-			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(false, FrameNumber);
+			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious);
+		}
+
+		// @param bPrevious true:previous, false:current
+		// @return returns revision number 
+		uint32 GetRevisionNumber(bool bPrevious)
+		{
+			return (bPrevious) ? PreviousRevisionNumber : CurrentRevisionNumber;
 		}
 
 	private:
@@ -289,31 +293,34 @@ public:
 		FVertexBufferAndSRV BoneBuffer[2];
 		// 0 / 1 to index into BoneBuffer
 		uint32 CurrentBuffer;
-		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
-		uint32 PreviousFrameNumber;
-		uint32 CurrentFrameNumber;
+		// RevisionNumber Tracker
+		uint32 PreviousRevisionNumber;
+		uint32 CurrentRevisionNumber;
 		// if FeatureLevel < ERHIFeatureLevel::ES3_1
 		FUniformBufferRHIRef UniformBuffer;
 		
 		static TConsoleVariableData<int32>* MaxBonesVar;
 		static uint32 MaxGPUSkinBones;
-
-		void GoToNextFrame(uint32 FrameNumber);
-
+		
+		// @param RevisionNumber - updated last revision number
+		// This flips revision number to previous if this is new
+		// otherwise, it keeps current version
+		void SetCurrentRevisionNumber(uint32 RevisionNumber)
+		{
+			if (CurrentRevisionNumber != RevisionNumber)
+			{
+				PreviousRevisionNumber = CurrentRevisionNumber;
+				CurrentRevisionNumber = RevisionNumber;
+				CurrentBuffer = 1 - CurrentBuffer;
+			}
+		}
 		// to support GetBoneBufferForWriting() and GetBoneBufferForReading()
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return might not pass the IsValid() 
-		const FVertexBufferAndSRV& GetBoneBufferInternal(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferInternal(bool bPrevious) const
 		{
 			check(IsInParallelRenderingThread());
 
-			// This test prevents skeletal meshes keeping velocity when we pause (e.g. simulate pause)
-			// CurrentFrameNumber <= FrameNumber which means non-sequential frames are also skipped 
-			if ((FrameNumber - PreviousFrameNumber) > 1)
-			{				
-				bPrevious = false;
-			}			
 
 			uint32 BufferIndex = CurrentBuffer ^ (uint32)bPrevious;
 

@@ -247,10 +247,10 @@ void FActiveSound::SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo)
 	SoundSubmixSendsOverride.Add(SubmixSendInfo);
 }
 
-void FActiveSound::SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo)
+void FActiveSound::SetSourceBusSend(EBusSendType BusSendType, const FSoundSourceBusSendInfo& SourceBusSendInfo)
 {
 	// Override send level if the source bus send is already included in active sound
-	for (FSoundSourceBusSendInfo& Info : SoundSourceBusSendsOverride)
+	for (FSoundSourceBusSendInfo& Info : SoundSourceBusSendsOverride[(int32)BusSendType])
 	{
 		if (Info.SoundSourceBus == SourceBusSendInfo.SoundSourceBus)
 		{
@@ -260,7 +260,7 @@ void FActiveSound::SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSend
 	}
 
 	// Otherwise, add it to the source bus send overrides
-	SoundSourceBusSendsOverride.Add(SourceBusSendInfo);
+	SoundSourceBusSendsOverride[(int32)BusSendType].Add(SourceBusSendInfo);
 }
 
 void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
@@ -292,15 +292,15 @@ void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) c
 	}
 }
 
-void FActiveSound::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+void FActiveSound::GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const
 {
 	if (Sound)
 	{
 		// Get the base sends
-		Sound->GetSoundSourceBusSends(OutSends);
+		Sound->GetSoundSourceBusSends(BusSendType, OutSends);
 
 		// Loop through the overrides, which may append or override the existing send
-		for (const FSoundSourceBusSendInfo& SendInfo : SoundSourceBusSendsOverride)
+		for (const FSoundSourceBusSendInfo& SendInfo : SoundSourceBusSendsOverride[(int32)BusSendType])
 		{
 			bool bOverridden = false;
 			for (FSoundSourceBusSendInfo& OutSendInfo : OutSends)
@@ -438,7 +438,11 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	GetSoundSubmixSends(ParseParams.SoundSubmixSends);
 
 	ParseParams.bOutputToBusOnly = Sound->bOutputToBusOnly;
-	GetSoundSourceBusSends(ParseParams.SoundSourceBusSends);
+
+	for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
+	{
+		GetSoundSourceBusSends((EBusSendType)BusSendType, ParseParams.SoundSourceBusSends[BusSendType]);
+	}
 
 	// Set up the base source effect chain. 
 	ParseParams.SourceEffectChain = Sound->SourceEffectChain;
@@ -1189,11 +1193,11 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		{
 			// Update attenuation data in-case it hasn't been updated
 			AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
-			ParseParams.DistanceAttenuation = Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
+			ParseParams.DistanceAttenuation *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
 		}
 		else
 		{
-			ParseParams.DistanceAttenuation = Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
+			ParseParams.DistanceAttenuation *= Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
 		}
 	}
 
@@ -1222,7 +1226,7 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 			CheckOcclusion(ClosestListenerPtr->Transform.GetTranslation(), ParseParams.Transform.GetTranslation(), Settings);
 
 			// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
-			ParseParams.VolumeMultiplier *= CurrentOcclusionVolumeAttenuation.GetValue();
+			ParseParams.DistanceAttenuation *= CurrentOcclusionVolumeAttenuation.GetValue();
 
 			ParseParams.bIsOccluded = bIsOccluded;
 			ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();

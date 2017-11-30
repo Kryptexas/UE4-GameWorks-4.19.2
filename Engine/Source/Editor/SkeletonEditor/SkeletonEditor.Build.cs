@@ -24,6 +24,7 @@ public class SkeletonEditor : ModuleRules
                 "AssetRegistry",
                 "BlueprintGraph",
                 "Kismet",
+                "PinnedCommandList",
             }
 		);
 

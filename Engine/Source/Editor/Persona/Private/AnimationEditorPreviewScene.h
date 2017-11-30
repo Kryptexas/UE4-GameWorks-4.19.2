@@ -149,6 +149,28 @@ public:
 		OnCameraOverrideChanged.RemoveAll(Thing);
 	}
 
+	virtual void RegisterOnPreTick(const FSimpleDelegate& Delegate) override
+	{
+		OnPreTickDelegate.Add(Delegate);
+	}
+
+	virtual void UnregisterOnPreTick(void* Thing) override
+	{
+		OnPreTickDelegate.RemoveAll(Thing);
+	}
+
+	virtual void RegisterOnPostTick(const FSimpleDelegate& Delegate) override
+	{
+		OnPostTickDelegate.Add(Delegate);
+	}
+
+	virtual void UnregisterOnPostTick(void* Thing) override
+	{
+		OnPostTickDelegate.RemoveAll(Thing);
+	}
+
+	virtual void FlagTickable() override;
+
 	void SetCameraOverride(TSharedPtr<class FEditorCameraController> NewCamera)
 	{
 		CameraOverride = NewCamera;
@@ -162,6 +184,8 @@ public:
 
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
+	virtual bool IsTickable() const override;
+	virtual ETickableTickType GetTickableTickType() const { return ETickableTickType::Conditional; }
 	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot = false) override;
 	virtual void RemoveComponent(class UActorComponent* Component) override;
 
@@ -331,4 +355,11 @@ private:
 
 	/** Currently specified camera override */
 	TSharedPtr<FEditorCameraController> CameraOverride;
+
+	/** Delegates fired on pre/post tick of this preview scene */
+	FSimpleMulticastDelegate OnPreTickDelegate;
+	FSimpleMulticastDelegate OnPostTickDelegate;
+
+	/** The last time we were flagged for ticking */
+	double LastTickTime;
 };

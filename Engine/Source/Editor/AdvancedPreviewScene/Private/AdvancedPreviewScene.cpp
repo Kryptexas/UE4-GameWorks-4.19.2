@@ -436,6 +436,9 @@ void FAdvancedPreviewScene::BindCommands()
 
 	UICommandList->MapAction(Commands.ToggleSky,
 		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleSky));
+
+	UICommandList->MapAction(Commands.TogglePostProcessing,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleTogglePostProcessing));
 }
 
 void FAdvancedPreviewScene::HandleToggleSky()
@@ -446,6 +449,14 @@ void FAdvancedPreviewScene::HandleToggleSky()
 void FAdvancedPreviewScene::HandleToggleFloor()
 {
 	SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
+}
+
+void FAdvancedPreviewScene::HandleTogglePostProcessing()
+{
+	FPreviewSceneProfile& Profile = DefaultSettings->Profiles[CurrentProfileIndex];
+	Profile.bPostProcessingEnabled = !Profile.bPostProcessingEnabled;
+	PostProcessComponent->bEnabled = Profile.bPostProcessingEnabled;
+	bPostProcessing = Profile.bPostProcessingEnabled;
 }
 
 void FAdvancedPreviewScene::OnAssetViewerSettingsRefresh(const FName& InPropertyName)

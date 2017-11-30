@@ -308,8 +308,11 @@ namespace Audio
 		InWave->ResourceID = 0;
 
 		// Don't allow the procedural sound wave to be destroyed until we're done with it
-		Buffer->SoundWaveProcedural = CastChecked<USoundWaveProcedural>(InWave);
-		Buffer->SoundWaveProcedural->bIsReadyForDestroy = false;
+		Buffer->SoundWaveProcedural = Cast<USoundWaveProcedural>(InWave);
+		if (Buffer->SoundWaveProcedural)
+		{
+			Buffer->SoundWaveProcedural->bIsReadyForDestroy = false;
+		}
 
 		return Buffer;
 	}

@@ -26,5 +26,8 @@ void FSoundBaseDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 
 		Property = DetailBuilder.GetProperty("BusSends", USoundBase::StaticClass());
 		Property->MarkHiddenByCustomization();
+
+		Property = DetailBuilder.GetProperty("PreEffectBusSends", USoundBase::StaticClass());
+		Property->MarkHiddenByCustomization();
 	}
 }

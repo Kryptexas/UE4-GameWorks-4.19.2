@@ -16,6 +16,9 @@ public:
 	virtual void ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid) = 0;
 	virtual void InitializeSettings(ULiveLinkSourceSettings* Settings) {};
 
+	// Can this source be displayed in the Source UI list
+	virtual bool CanBeDisplayedInUI() const { return true; }
+
 	virtual bool IsSourceStillValid() = 0;
 
 	virtual bool RequestSourceShutdown() = 0;

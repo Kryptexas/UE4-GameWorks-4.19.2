@@ -32,12 +32,13 @@ class FSkeletonTreeBoneItem;
 class FSkeletonTreeSocketItem;
 class FSkeletonTreeVirtualBoneItem;
 class FTextFilterExpressionEvaluator;
-class FUICommandList;
+class FUICommandList_Pinnable;
 class IPersonaPreviewScene;
 class SBlendProfilePicker;
 class SComboButton;
 class UBlendProfile;
 struct FNotificationInfo;
+class IPinnedCommandList;
 
 //////////////////////////////////////////////////////////////////////////
 // SSkeletonTree
@@ -102,6 +103,7 @@ public:
 	virtual UBlendProfile* GetSelectedBlendProfile() override;
 	virtual void AttachAssets(const TSharedRef<ISkeletonTreeItem>& TargetItem, const TArray<FAssetData>& AssetData) override;
 	virtual TSharedPtr<SWidget> GetSearchWidget() const override { return NameFilterBox; }
+	virtual TSharedPtr<IPinnedCommandList> GetPinnedCommandList() const override { return PinnedCommands; }
 
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
@@ -249,8 +251,8 @@ private:
 	/** Queries the bone filter */
 	bool IsSocketFilter(ESocketFilter InSocketFilter ) const;
 
-	/** Returns the current text for the filter button - "All", "Mesh" or "Weighted" etc. */
-	FText GetFilterMenuTitle() const;
+	/** Returns the current text for the filter button tooltip - "All", "Mesh" or "Weighted" etc. */
+	FText GetFilterMenuTooltip() const;
 
 	/** We can only add sockets in Active, Skeleton or All mode (otherwise they just disappear) */
 	bool IsAddingSocketsAllowed() const;
@@ -290,9 +292,6 @@ private:
 
 	/** Submenu creator handler for the given skeleton */
 	static void CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree* SkeletonTree, int32 LODIndex, bool bIncludeSelected);
-
-	/** Vary the foreground color of the filter button based on hover state */
-	FSlateColor GetFilterComboButtonForegroundColor() const;
 
 	/** Handle focusing the camera on the current selection */
 	void HandleFocusCamera();
@@ -340,7 +339,7 @@ private:
 	FText FilterText;
 
 	/** Commands that are bound to delegates*/
-	TSharedPtr<FUICommandList> UICommandList;
+	TSharedPtr<FUICommandList_Pinnable> UICommandList;
 
 	/** Current type of bones to show */
 	EBoneFilter BoneFilter;
@@ -396,6 +395,12 @@ private:
 
 	/** The mode that this skeleton tree is in */
 	ESkeletonTreeMode Mode;
+
+	/** Pinned commands panel */
+	TSharedPtr<IPinnedCommandList> PinnedCommands;
+
+	/** Context name used to persist settings */
+	FName ContextName;
 
 	friend struct FScopedSavedSelection;
 }; 

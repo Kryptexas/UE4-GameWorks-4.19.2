@@ -65,6 +65,9 @@ protected:
 	/** Toggle the floor mesh on and off */
 	void HandleToggleFloor();
 
+	/** Toggle post processing on and off */
+	void HandleTogglePostProcessing();
+
 	/** Handle refreshing the scene when settings change */
 	void OnAssetViewerSettingsRefresh(const FName& InPropertyName);
 

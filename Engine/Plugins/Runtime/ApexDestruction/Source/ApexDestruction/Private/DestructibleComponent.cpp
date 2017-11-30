@@ -425,6 +425,54 @@ void UDestructibleComponent::OnCreatePhysicsState()
 #endif	// #if WITH_APEX
 }
 
+#if WITH_APEX
+struct APEXDESTRUCTION_API FDestructibleActorDeferredReleaseCallback : IDeferredReleaseCallback
+{
+	FDestructibleActorDeferredReleaseCallback(apex::DestructibleActor* Actor, FPhysScene* InOwningScene)
+		: Destructible(Actor)
+		, OwningScene(InOwningScene)
+	{
+	}
+
+	virtual void ExecCommand()
+	{
+		PxRigidDynamic** PActorBuffer = NULL;
+		PxU32 PActorCount = 0;
+		int32 SceneType = INDEX_NONE;
+
+		if (Destructible->acquirePhysXActorBuffer(PActorBuffer, PActorCount, apex::DestructiblePhysXActorQueryFlags::Dynamic))
+		{
+			while(PActorCount--)
+			{
+				if (PxRigidDynamic* PActor = *PActorBuffer++)
+				{
+					if (SceneType == INDEX_NONE)
+					{
+						if (PxScene* PScene = PActor->getScene())
+						{
+							SceneType = PScene == OwningScene->GetPhysXScene(PST_Sync) ? PST_Sync : PST_Async;
+						}
+					}
+
+					if (SceneType != INDEX_NONE)
+					{
+						OwningScene->RemoveActiveRigidActor(SceneType, PActor);
+					}
+				}
+			}
+			Destructible->releasePhysXActorBuffer();
+		}
+		Destructible->release();
+
+	}
+
+private:
+
+	apex::DestructibleActor* Destructible;
+	FPhysScene* OwningScene;
+};
+#endif
+
 void UDestructibleComponent::OnDestroyPhysicsState()
 {
 #if WITH_APEX
@@ -434,7 +482,7 @@ void UDestructibleComponent::OnDestroyPhysicsState()
 		{
 			if (FPhysScene * PhysScene = World->GetPhysicsScene())
 			{
-				GPhysCommandHandler->DeferredRelease(ApexDestructibleActor);
+				GPhysCommandHandler->DeferredRelease(new FDestructibleActorDeferredReleaseCallback(ApexDestructibleActor, PhysScene));
 			}
 		}
 		

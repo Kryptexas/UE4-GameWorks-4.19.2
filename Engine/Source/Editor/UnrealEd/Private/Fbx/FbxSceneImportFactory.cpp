@@ -1868,7 +1868,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			}
 		}
 	}
-	MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
+
 	int32 LODIndex;
 	for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 	{

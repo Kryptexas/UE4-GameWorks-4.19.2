@@ -11,6 +11,7 @@
 #include "Engine/Engine.h"
 #include "Components/AudioComponent.h"
 #include "DSP/Dsp.h"
+#include "Audio.h"
 
 DEFINE_LOG_CATEGORY(LogMicManager);
 
@@ -167,113 +168,6 @@ void FAudioRecordingManager::StartRecording(const FRecordingSettings& InSettings
 	}
 
 	ADC.startStream();
-}
-
-static void WriteUInt32ToByteArrayLE(TArray<uint8>& InByteArray, int32& Index, const uint32 Value)
-{
-	InByteArray[Index++] = (uint8)(Value >> 0);
-	InByteArray[Index++] = (uint8)(Value >> 8);
-	InByteArray[Index++] = (uint8)(Value >> 16);
-	InByteArray[Index++] = (uint8)(Value >> 24);
-}
-
-static void WriteUInt16ToByteArrayLE(TArray<uint8>& InByteArray, int32& Index, const uint16 Value)
-{
-	InByteArray[Index++] = (uint8)(Value >> 0);
-	InByteArray[Index++] = (uint8)(Value >> 8);
-}
-
-static void SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes, const int32 NumChannels, const int32 SampleRate)
-{
-	// Reserve space for the raw wave data
-	OutWaveFileData.Empty(NumBytes + 44);
-	OutWaveFileData.AddZeroed(NumBytes + 44);
-
-	int32 WaveDataByteIndex = 0;
-
-	// Wave Format Serialization ----------
-
-	// FieldName: ChunkID
-	// FieldSize: 4 bytes
-	// FieldValue: RIFF (FourCC value, big-endian)
-	OutWaveFileData[WaveDataByteIndex++] = 'R';
-	OutWaveFileData[WaveDataByteIndex++] = 'I';
-	OutWaveFileData[WaveDataByteIndex++] = 'F';
-	OutWaveFileData[WaveDataByteIndex++] = 'F';
-
-	// ChunkName: ChunkSize: 4 bytes 
-	// Value: NumBytes + 36. Size of the rest of the chunk following this number. Size of entire file minus 8 bytes.
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, NumBytes + 36);
-
-	// FieldName: Format 
-	// FieldSize: 4 bytes
-	// FieldValue: "WAVE"  (big-endian)
-	OutWaveFileData[WaveDataByteIndex++] = 'W';
-	OutWaveFileData[WaveDataByteIndex++] = 'A';
-	OutWaveFileData[WaveDataByteIndex++] = 'V';
-	OutWaveFileData[WaveDataByteIndex++] = 'E';
-
-	// FieldName: Subchunk1ID
-	// FieldSize: 4 bytes
-	// FieldValue: "fmt "
-	OutWaveFileData[WaveDataByteIndex++] = 'f';
-	OutWaveFileData[WaveDataByteIndex++] = 'm';
-	OutWaveFileData[WaveDataByteIndex++] = 't';
-	OutWaveFileData[WaveDataByteIndex++] = ' ';
-
-	// FieldName: Subchunk1Size
-	// FieldSize: 4 bytes
-	// FieldValue: 16 for PCM
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, 16);
-
-	// FieldName: AudioFormat
-	// FieldSize: 2 bytes
-	// FieldValue: 1 for PCM
-	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, 1);
-
-	// FieldName: NumChannels
-	// FieldSize: 2 bytes
-	// FieldValue: 1 for for mono
-	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, NumChannels);
-
-	// FieldName: SampleRate
-	// FieldSize: 4 bytes
-	// FieldValue: Passed in sample rate
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, SampleRate);
-
-	// FieldName: ByteRate
-	// FieldSize: 4 bytes
-	// FieldValue: SampleRate * NumChannels * BitsPerSample/8
-	int32 ByteRate = SampleRate * NumChannels * 2;
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, ByteRate);
-
-	// FieldName: BlockAlign
-	// FieldSize: 2 bytes
-	// FieldValue: NumChannels * BitsPerSample/8
-	int32 BlockAlign = 2;
-	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, BlockAlign);
-
-	// FieldName: BitsPerSample
-	// FieldSize: 2 bytes
-	// FieldValue: 16 (16 bits per sample)
-	WriteUInt16ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, 16);
-
-	// FieldName: Subchunk2ID
-	// FieldSize: 4 bytes
-	// FieldValue: "data" (big endian)
-
-	OutWaveFileData[WaveDataByteIndex++] = 'd';
-	OutWaveFileData[WaveDataByteIndex++] = 'a';
-	OutWaveFileData[WaveDataByteIndex++] = 't';
-	OutWaveFileData[WaveDataByteIndex++] = 'a';
-
-	// FieldName: Subchunk2Size
-	// FieldSize: 4 bytes
-	// FieldValue: number of bytes of the data
-	WriteUInt32ToByteArrayLE(OutWaveFileData, WaveDataByteIndex, NumBytes);
-
-	// Copy the raw PCM data to the audio file
-	FMemory::Memcpy(&OutWaveFileData[WaveDataByteIndex], InPCMData, NumBytes);
 }
 
 static void SampleRateConvert(float CurrentSR, float TargetSR, int32 NumChannels, const TArray<int16>& CurrentRecordedPCMData, int32 NumSamplesToConvert, TArray<int16>& OutConverted)

@@ -47,6 +47,9 @@ struct FConstraint
 	/** Per axis filter options - applied in their local space not in world space */
 	UPROPERTY(EditAnywhere, Category = FConstraint)
 	FFilterOptionPerAxis PerAxis;
+	
+	/** transient constraint data index */
+	int32 ConstraintDataIndex;
 
 	void Initialize(const FBoneContainer& RequiredBones)
 	{
@@ -61,6 +64,7 @@ struct FConstraint
 	FConstraint()
 		: OffsetOption(EConstraintOffsetOption::Offset_RefPose)
 		, TransformType(ETransformConstraintType::Translation)
+		, ConstraintDataIndex(INDEX_NONE)
 	{}
 };
 /**

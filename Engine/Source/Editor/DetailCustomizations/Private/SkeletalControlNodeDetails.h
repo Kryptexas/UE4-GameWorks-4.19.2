@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
+#include "Input/Reply.h"
 
 class IDetailCategoryBuilder;
 class IDetailChildrenBuilder;
@@ -31,6 +32,11 @@ protected:
 	/** Helper function for changing the value of the bShowPin checkbox to update the property */
 	void OnShowPinChanged(ECheckBoxState InNewState, TSharedRef<IPropertyHandle> InElementProperty);
 
+	/** Handler to hide all unconnected pins on a BreakStruct node */
+	FReply HideAllUnconnectedPins();
+
 private:
 	IDetailCategoryBuilder* DetailCategory;
+	TWeakObjectPtr<class UK2Node_BreakStruct> BreakStructNode;
+	TSharedPtr<class IPropertyHandleArray> ArrayProperty;
 };

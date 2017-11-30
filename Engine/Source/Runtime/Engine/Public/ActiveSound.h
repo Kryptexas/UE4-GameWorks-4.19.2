@@ -89,7 +89,7 @@ struct FSoundParseParameters
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
 	// The source bus sends to use
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends[(int32)EBusSendType::Count];
 
 	// Reverb wet-level parameters
 	EReverbSendMethod ReverbSendMethod;
@@ -268,7 +268,7 @@ private:
 	TArray<FSoundSubmixSendInfo> SoundSubmixSendsOverride;
 
 	/** Optional override for the source bus sends for the sound. */
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSendsOverride;
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSendsOverride[(int32)EBusSendType::Count];
 
 public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
@@ -529,7 +529,7 @@ public:
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
 	/** Gets the sound source bus sends to use for this sound instance. */
-	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
+	void GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const;
 
 	/* Determines which listener is the closest to the sound */
 	int32 FindClosestListener( const TArray<struct FListener>& InListeners ) const;
@@ -556,7 +556,7 @@ public:
 	void SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo);
 
 	/** Sets the amount of audio from this active sound to send to the source bus. */
-	void SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo);
+	void SetSourceBusSend(EBusSendType BusSendTyoe, const FSoundSourceBusSendInfo& SourceBusSendInfo);
 
 private:
 	

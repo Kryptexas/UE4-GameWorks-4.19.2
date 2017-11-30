@@ -25,6 +25,9 @@ public:
 	/** Toggles floor visibility */
 	TSharedPtr< FUICommandInfo > ToggleFloor;
 
+	/** Toggles post processing */
+	TSharedPtr< FUICommandInfo > TogglePostProcessing;
+
 	/**
 	 * Initialize commands
 	 */

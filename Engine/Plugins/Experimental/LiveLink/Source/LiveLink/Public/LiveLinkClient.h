@@ -12,12 +12,10 @@
 #include "LiveLinkRefSkeleton.h"
 #include "LiveLinkTypes.h"
 #include "LiveLinkSourceSettings.h"
+#include "LiveLinkVirtualSubject.h"
 
 // Live Link Log Category
 DECLARE_LOG_CATEGORY_EXTERN(LogLiveLink, Log, All);
-
-/** Delegate called when the state the client sources has changed. */
-DECLARE_MULTICAST_DELEGATE(FLiveLinkSourcesChanged);
 
 struct FLiveLinkFrame
 {
@@ -35,9 +33,6 @@ public:
 
 struct FLiveLinkSubject
 {
-	// Ref Skeleton for transforms
-	FLiveLinkRefSkeleton RefSkeleton;
-
 	// Key for storing curve data (Names)
 	FLiveLinkCurveKey	 CurveKeyData;
 
@@ -62,6 +57,7 @@ struct FLiveLinkSubject
 
 	FLiveLinkSubject(const FLiveLinkRefSkeleton& InRefSkeleton)
 		: RefSkeleton(InRefSkeleton)
+		, RefSkeletonGuid(FGuid::NewGuid())
 	{}
 
 	FLiveLinkSubject()
@@ -72,12 +68,53 @@ struct FLiveLinkSubject
 
 	// Populate OutFrame with a frame based off of the supplied time and our own offsets
 	void BuildInterpolatedFrame(const double InSeconds, FLiveLinkSubjectFrame& OutFrame);
+
+	// Get this subjects ref skeleton
+	const FLiveLinkRefSkeleton& GetRefSkeleton() const { return RefSkeleton; }
+
+	// Handling setting a new ref skeleton
+	void SetRefSkeleton(const FLiveLinkRefSkeleton& InRefSkeleton) { RefSkeleton = InRefSkeleton; RefSkeletonGuid = FGuid::NewGuid(); }
+
+private:
+
+	// Ref Skeleton for transforms
+	FLiveLinkRefSkeleton RefSkeleton;
+
+	// Allow us to track changes to the ref skeleton
+	FGuid RefSkeletonGuid;
+};
+
+// Structure that identifies an individual subject
+struct FLiveLinkSubjectKey
+{
+	// The Name of this subject
+	FName SubjectName;
+
+	// The guid for this subjects source
+	FGuid Source;
+
+	FLiveLinkSubjectKey() {}
+	FLiveLinkSubjectKey(FName InSubjectName) : SubjectName(InSubjectName) {}
+	FLiveLinkSubjectKey(const FLiveLinkSubjectKey& Rhs) : SubjectName(Rhs.SubjectName), Source(Rhs.Source) {}
+};
+
+// Completely empty "source" that virtual subjects can hang off
+struct FLiveLinkVirtualSubjectSource : public ILiveLinkSource
+{
+	virtual bool CanBeDisplayedInUI() const override { return false; }
+	virtual void ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid) override {}
+	virtual bool IsSourceStillValid() override { return true; }
+	virtual bool RequestSourceShutdown() override { return true; }
+
+	virtual FText GetSourceType() const override;
+	virtual FText GetSourceMachineName() const override { return FText(); }
+	virtual FText GetSourceStatus() const override { return FText(); }
 };
 
 class LIVELINK_API FLiveLinkClient : public ILiveLinkClient, public FTickableGameObject, public FGCObject
 {
 public:
-	FLiveLinkClient() : LastValidationCheck(0.0) {}
+	FLiveLinkClient() : LastValidationCheck(0.0), VirtualSubjectGuid(FGuid::NewGuid()) { AddVirtualSubjectSource(); }
 	~FLiveLinkClient();
 
 	// Begin FTickableGameObject implementation
@@ -109,13 +146,31 @@ public:
 	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) override;
 	// End ILiveLinkClient Interface
 
+	// Add a new virtual subject to the client
+	void AddVirtualSubject(FName NewVirtualSubjectName);
+
 	virtual const FLiveLinkSubjectFrame* GetSubjectData(FName SubjectName) override;
 
 	const TArray<FGuid>& GetSourceEntries() const { return SourceGuids; }
 
+	// Get a list of currently active subjects
+	TArray<FLiveLinkSubjectKey> GetSubjects();
+
 	FText GetSourceTypeForEntry(FGuid InEntryGuid) const;
 	FText GetMachineNameForEntry(FGuid InEntryGuid) const;
 	FText GetEntryStatusForEntry(FGuid InEntryGuid) const;
+	
+	// Should the supplied source be shown in the source UI list 
+	bool ShowSourceInUI(FGuid InEntryGuid) const;
+
+	// Is the supplied source virtual
+	bool IsVirtualSubject(const FLiveLinkSubjectKey& Subject) const;
+
+	// Update an existing virtual subject with new settings
+	void UpdateVirtualSubjectProperties(const FLiveLinkSubjectKey& Subject, const FLiveLinkVirtualSubject& VirtualSubject);
+
+	// Get the settings of an exisitng virtual subject
+	FLiveLinkVirtualSubject GetVirtualSubjectProperties(const FLiveLinkSubjectKey& SubjectKey) const;
 
 	// Get interpolation settings for a source
 	FLiveLinkInterpolationSettings* GetInterpolationSettingsForEntry(FGuid InEntryGuid);
@@ -126,10 +181,17 @@ public:
 	void OnPropertyChanged(FGuid InEntryGuid, const FPropertyChangedEvent& PropertyChangedEvent);
 
 	// Functions for managing sources changed delegate
-	FDelegateHandle RegisterSourcesChangedHandle(const FLiveLinkSourcesChanged::FDelegate& SourcesChanged);
+	FDelegateHandle RegisterSourcesChangedHandle(const FSimpleMulticastDelegate::FDelegate& SourcesChanged);
 	void UnregisterSourcesChangedHandle(FDelegateHandle Handle);
 
+	// Functions for managing sources changed delegate
+	FDelegateHandle RegisterSubjectsChangedHandle(const FSimpleMulticastDelegate::FDelegate& SubjectsChanged);
+	void UnregisterSubjectsChangedHandle(FDelegateHandle Handle);
+
 private:
+
+	// Setup the source for virtual subjects
+	void AddVirtualSubjectSource();
 
 	// Remove the specified source (must be a valid index, function does no checking)
 	void RemoveSourceInternal(int32 SourceIdx);
@@ -147,11 +209,23 @@ private:
 	// thread locking or mem copying
 	void BuildThisTicksSubjectSnapshot();
 
+	// Builds a FLiveLinkSubjectFrame for the supplied virtual subject out of data from the ActiveSubjectSnapshots
+	void BuildVirtualSubjectFrame(FLiveLinkVirtualSubject& VirtualSubject, FLiveLinkSubjectFrame& SnapshotSubject);
+
+	// Builds a new ref skeleton for a virtual subject
+	FLiveLinkRefSkeleton BuildRefSkeletonForVirtualSubject(const FLiveLinkVirtualSubject& VirtualSubject);
+
+	// Virtual Live Link Subjects (subjects that are build from multiple real subjects)
+	TMap<FName, FLiveLinkVirtualSubject> VirtualSubjects;
+
 	// Current streamed data for subjects
 	TMap<FName, FLiveLinkSubject> LiveSubjectData;
 
 	// Built snapshot of streamed subject data (updated once a tick)
 	TMap<FName, FLiveLinkSubjectFrame> ActiveSubjectSnapshots;
+
+	// Maintained array of names so that we dont have to repeatedly called GenerateKeyArray on ActiveSubjectSnapshots
+	TArray<FName> ActiveSubjectNames;
 
 	// Current Sources
 	TArray<TSharedPtr<ILiveLinkSource>> Sources;
@@ -168,5 +242,11 @@ private:
 	FCriticalSection SubjectDataAccessCriticalSection;
 
 	// Delegate to notify interested parties when the client sources have changed
-	FLiveLinkSourcesChanged OnLiveLinkSourcesChanged;
+	FSimpleMulticastDelegate OnLiveLinkSourcesChanged;
+
+	// Delegate to notify interested parties when the client sources have changed
+	FSimpleMulticastDelegate OnLiveLinkSubjectsChanged;
+
+	// "source guid" for virtual subjects
+	FGuid VirtualSubjectGuid;
 };

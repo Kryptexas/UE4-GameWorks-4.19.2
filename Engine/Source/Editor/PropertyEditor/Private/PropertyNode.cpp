@@ -64,6 +64,7 @@ FPropertyNode::FPropertyNode(void)
 	, MaxChildDepthAllowed(FPropertyNodeConstants::NoDepthRestrictions)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
+	, bChildrenRebuilt(false)
 	, PropertyPath(TEXT(""))
 	, bIsEditConst(false)
 	, bUpdateEditConstState(true)
@@ -243,6 +244,7 @@ void FPropertyNode::RebuildChildren()
 
 	// Children have been rebuilt, clear any pending rebuild requests
 	bRebuildChildrenRequested = false;
+	bChildrenRebuilt = true;
 
 	// Notify any listener that children have been rebuilt
 	OnRebuildChildren.ExecuteIfBound();
@@ -394,6 +396,13 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 {
 	bool bValidateChildren = !HasNodeFlags(EPropertyNodeFlags::SkipChildValidation);
 	bool bValidateChildrenKeyNodes = false;		// by default, we don't check this, since it's just for Map properties
+
+	// If we have rebuilt children since last EnsureDataIsValid call let the caller know
+	if (bChildrenRebuilt)
+	{
+		bChildrenRebuilt = false;
+		return EPropertyDataValidationResult::ArraySizeChanged;
+	}
 
 	// The root must always be validated
 	if( GetParentNode() == NULL || HasNodeFlags(EPropertyNodeFlags::RequiresValidation) != 0 )

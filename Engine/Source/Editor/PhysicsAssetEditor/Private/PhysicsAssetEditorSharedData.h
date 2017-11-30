@@ -143,6 +143,7 @@ public:
 	void ClearSelectedBody();
 	void SetSelectedBody(const FSelection& Body, bool bSelected);
 	bool IsBodySelected(const FSelection& Body) const;
+	void ToggleSelectionType();
 	void SetSelectedBodyAnyPrim(int32 BodyIndex, bool bSelected);
 	void DeleteCurrentPrim();
 	void DeleteBody(int32 DelBodyIndex, bool bRefreshComponent=true);

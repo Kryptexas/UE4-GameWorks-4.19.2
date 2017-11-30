@@ -24,9 +24,6 @@
 
 #include "SkeletalMesh.generated.h"
 
-/** The maximum number of skeletal mesh LODs allowed. */
-#define MAX_SKELETAL_MESH_LODS 5
-
 class UAnimInstance;
 class UAssetUserData;
 class UBodySetup;

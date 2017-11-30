@@ -20,11 +20,13 @@ UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
 {
 	static const FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	BodyInstance.SetCollisionProfileName(CollisionProfileName);
+#if WITH_EDITORONLY_DATA
 	// when we deprecated this variable, we switched on for the shapecomponent collision profile
 	// the problem with adding collision profile later, the instanced data will be wiped
 	// since shape component is so popular for BP and so on, I'm adding manual support for compatibility
 	// this only works since this variable is getting deprecated. 
 	BodyInstance.ResponseToChannels_DEPRECATED.SetAllChannels(ECR_Block);
+#endif // WITH_EDITORONLY_DATA
 	BodyInstance.bAutoWeld = true;	//UShapeComponent by default has auto welding
 
 	bHiddenInGame = true;

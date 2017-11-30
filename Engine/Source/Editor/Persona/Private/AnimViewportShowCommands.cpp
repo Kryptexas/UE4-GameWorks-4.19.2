@@ -11,6 +11,7 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND( UseAudioAttenuation, "Use Audio Attenuation", "Use audio attenuation when playing back audio in the preview", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	
 	UI_COMMAND(ProcessRootMotion, "Process Root Motion", "Move preview based on animation root motion", EUserInterfaceActionType::ToggleButton, FInputChord());
+	UI_COMMAND(DisablePostProcessBlueprint, "Disable Post Process", "Disable the evaluation of post process animation blueprints on the preview instance.", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	UI_COMMAND( ShowRetargetBasePose, "Retarget Base Pose", "Show retarget Base pose on preview mesh", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowBound, "Bound", "Show bound on preview mesh", EUserInterfaceActionType::ToggleButton, FInputChord() );

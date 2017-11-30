@@ -218,15 +218,8 @@ struct FRHICommandUpdateBoneBuffer final : public FRHICommand<FRHICommandUpdateB
 	}
 };
 
-void FGPUBaseSkinVertexFactory::FShaderDataType::GoToNextFrame(uint32 FrameNumber)
-{
-	PreviousFrameNumber = CurrentFrameNumber;
-	CurrentFrameNumber = FrameNumber;
-	CurrentBuffer = 1 - CurrentBuffer;
-}
-
 bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
-	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type InFeatureLevel, bool bUseSkinCache)
+	const TArray<FBoneIndexType>& BoneMap, uint32 RevisionNumber, bool bPrevious, ERHIFeatureLevel::Type InFeatureLevel, bool bUseSkinCache)
 {
 	const uint32 NumBones = BoneMap.Num();
 	check(NumBones <= MaxGPUSkinBones);
@@ -237,9 +230,11 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 	if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 	{
 		check(IsInRenderingThread());
-		GoToNextFrame(FrameNumber);
+		
+		// make sure current revision is up-to-date
+		SetCurrentRevisionNumber(RevisionNumber);
 
-		CurrentBoneBuffer = &GetBoneBufferForWriting(FrameNumber);
+		CurrentBoneBuffer = &GetBoneBufferForWriting(bPrevious);
 
 		static FSharedPoolPolicyData PoolPolicy;
 		uint32 NumVectors = NumBones*3;
@@ -524,7 +519,7 @@ public:
 			{
 				if(BoneMatrices.IsBound())
 				{
-					FShaderResourceViewRHIParamRef CurrentData = ShaderData.GetBoneBufferForReading(false, View.Family->FrameNumber).VertexBufferSRV;
+					FShaderResourceViewRHIParamRef CurrentData = ShaderData.GetBoneBufferForReading(false).VertexBufferSRV;
 
 					RHICmdList.SetShaderResourceViewParameter(ShaderRHI, BoneMatrices.GetBaseIndex(), CurrentData);
 				}
@@ -533,7 +528,7 @@ public:
 					// todo: Maybe a check for PreviousData!=CurrentData would save some performance (when objects don't have velocty yet) but removing the bool also might save performance
 					bLocalPerBoneMotionBlur = true;
 
-					FShaderResourceViewRHIParamRef PreviousData = ShaderData.GetBoneBufferForReading(true, View.Family->FrameNumber).VertexBufferSRV;
+					FShaderResourceViewRHIParamRef PreviousData = ShaderData.GetBoneBufferForReading(true).VertexBufferSRV;
 
 					RHICmdList.SetShaderResourceViewParameter(ShaderRHI, PreviousBoneMatrices.GetBaseIndex(), PreviousData);
 				}
@@ -597,7 +592,7 @@ public:
 		check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
 		FGPUSkinBatchElementUserData* BatchUserData = (FGPUSkinBatchElementUserData*)BatchElement.VertexFactoryUserData;
 		check(BatchUserData);
-		FGPUSkinCache::SetVertexStreams(BatchUserData->Entry, BatchUserData->Section, RHICmdList, View.Family->FrameNumber, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousPositionBuffer);
+		FGPUSkinCache::SetVertexStreams(BatchUserData->Entry, BatchUserData->Section, RHICmdList, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousPositionBuffer);
 	}
 
 	virtual uint32 GetSize() const override { return sizeof(*this); }

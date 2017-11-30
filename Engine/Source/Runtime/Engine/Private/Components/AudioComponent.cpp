@@ -23,6 +23,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	bUseAttachParentBound = true; // Avoid CalcBounds() when transform changes.
 	bAutoDestroy = false;
 	bAutoActivate = true;
+	bAllowAnyoneToDestroyMe = true;
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
 	bNeverNeedsRenderUpdate = true;

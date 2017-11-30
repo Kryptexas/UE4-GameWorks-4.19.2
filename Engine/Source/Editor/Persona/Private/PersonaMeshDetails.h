@@ -466,6 +466,9 @@ private:
 	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
 	bool IsLODCustomModeEnable(int32 LODIndex) const;
 
+	/** Gets the max LOD that can be set from the lod count slider (current num plus an interval) */
+	TOptional<int32> GetLodSliderMaxValue() const;
+
 public:
 
 	bool IsApplyNeeded() const;
@@ -497,7 +500,7 @@ private:
 	TArray<class IDetailCategoryBuilder*> LodCategories;
 
 	bool CustomLODEditMode;
-	bool DetailDisplayLODs[MAX_SKELETAL_MESH_LODS];
+	TArray<bool> DetailDisplayLODs;
 
 private:
 

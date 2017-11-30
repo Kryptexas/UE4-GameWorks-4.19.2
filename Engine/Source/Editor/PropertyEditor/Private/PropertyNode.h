@@ -949,6 +949,9 @@ protected:
 	/** If true, children of this node will be rebuilt next tick. */
 	bool bRebuildChildrenRequested;
 
+	/** Set to true when RebuildChildren is called on the node */
+	bool bChildrenRebuilt;
+
 	/** An array of restrictions limiting this property's potential values in property editors.*/
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
 

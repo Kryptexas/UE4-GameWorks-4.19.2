@@ -444,7 +444,7 @@ void PvdConnect(FString Host, bool bVisualization)
 	int32	Port = 5425;         // TCP port to connect to, where PVD is listening
 	uint32	Timeout = 100;          // timeout in milliseconds to wait for PVD to respond, consoles and remote PCs need a higher timeout.
 
-	PxPvdInstrumentationFlags ConnectionFlags = PxPvdInstrumentationFlag::eALL;
+	PxPvdInstrumentationFlags ConnectionFlags = bVisualization ? PxPvdInstrumentationFlag::eALL : PxPvdInstrumentationFlag::ePROFILE;
 
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate(TCHAR_TO_ANSI(*Host), Port, Timeout);
 	GPhysXVisualDebugger->connect(*transport, ConnectionFlags);

@@ -98,9 +98,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	USoundEffectSourcePresetChain* SourceEffectChain;
 
-	/** This sound will send it's audio output to this list of buses if there are bus instances playing.  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	/** This sound will send its audio output to this list of buses if there are bus instances playing after source effects are processed.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects, meta = (DisplayName = "Post-Effect Bus Sends"))
 	TArray<FSoundSourceBusSendInfo> BusSends;
+
+	/** This sound will send its audio output to this list of buses if there are bus instances playing before source effects are processed.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects, meta = (DisplayName = "Pre-Effect Bus Sends"))
+	TArray<FSoundSourceBusSendInfo> PreEffectBusSends;
 
 public:	
 	/** Number of times this cue is currently being played. */
@@ -163,7 +167,7 @@ public:
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
 	/** Returns the sound source sends for this sound. */
-	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
+	void GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const;
 
 	/** Returns the FSoundConcurrencySettings struct to use. */
 	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply();

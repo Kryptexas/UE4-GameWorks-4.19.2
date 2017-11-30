@@ -110,9 +110,16 @@ void USoundBase::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) con
 	OutSends = SoundSubmixSends;
 }
 
-void USoundBase::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+void USoundBase::GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const
 {
-	OutSends = BusSends;
+	if (BusSendType == EBusSendType::PreEffect)
+	{
+		OutSends = PreEffectBusSends;
+	}
+	else
+	{
+		OutSends = BusSends;
+	}
 }
 
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()

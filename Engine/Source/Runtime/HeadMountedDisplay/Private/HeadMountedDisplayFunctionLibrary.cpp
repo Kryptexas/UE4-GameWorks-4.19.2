@@ -11,6 +11,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
+#include "Features/IModularFeatures.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUHeadMountedDisplay, Log, All);
 

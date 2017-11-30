@@ -60,6 +60,7 @@ public class Persona : ModuleRules
                 "AnimGraphRuntime",
                 "UnrealEd",
                 "CommonMenuExtensions",
+                "PinnedCommandList",
             }
         );
 

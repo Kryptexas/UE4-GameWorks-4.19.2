@@ -237,7 +237,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			if(bSuccess)
 			{
 				// create joint to parent body
-				if (Params.bCreateJoints)
+				if (Params.bCreateConstraints)
 				{
 					// Transform of child from parent is just child ref-pose entry.
 					FTransform RelTM = FTransform::Identity;

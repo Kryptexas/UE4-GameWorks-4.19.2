@@ -202,9 +202,24 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	UPROPERTY(BlueprintReadOnly, Category="Mesh")
 	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
 
+	/** const getters for previous transform idea */
+	const TArray<uint8>& GetPreviousBoneVisibilityStates() const { return PreviousBoneVisibilityStates;  }
+	const TArray<FTransform>& GetPreviousComponentTransformsArray() const { return  PreviousComponentSpaceTransformsArray;  }
+	uint32 GetBoneTransformRevisionNumber() const 
+	{ 
+		return (MasterPoseComponent.IsValid()? MasterPoseComponent->CurrentBoneTransformRevisionNumber : CurrentBoneTransformRevisionNumber);  
+	}
+	
 private:
 	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
 	TArray<FTransform> ComponentSpaceTransformsArray[2];
+
+protected:
+	/** Array of bone visibilities (containing one of the values in EBoneVisibilityStatus for each bone).  A bone is only visible if it is *exactly* 1 (BVS_Visible) */
+	TArray<uint8> PreviousBoneVisibilityStates;
+	TArray<FTransform> PreviousComponentSpaceTransformsArray;
+	/** used to cache previous bone transform or not */
+	bool bHasValidBoneTransform;
 
 protected:
 	/** The index for the ComponentSpaceTransforms buffer we can currently write to */
@@ -212,6 +227,9 @@ protected:
 
 	/** The index for the ComponentSpaceTransforms buffer we can currently read from */
 	int32 CurrentReadComponentTransforms;
+
+	/** current bone transform revision number */
+	uint32 CurrentBoneTransformRevisionNumber;
 
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
@@ -742,6 +760,18 @@ public:
 	 */
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms, );
 
+protected:
+	/** 
+	 * Parallel Tick Pose
+	 * In the case where we do not want to refresh bone transforms (and would therefore not normally kick off a parallel eval task)
+	 * we perform this 'mini tick' that kicks off the task.
+	 * 
+	 * @param TickFunction Allows us to create graph tasks for parallelism
+	 * 
+	 */
+	virtual void DispatchParallelTickPose(FActorComponentTickFunction* TickFunction) {}
+
+public:
 	/**
 	 * Tick Pose, this function ticks and do whatever it needs to do in this frame, should be called before RefreshBoneTransforms
 	 *

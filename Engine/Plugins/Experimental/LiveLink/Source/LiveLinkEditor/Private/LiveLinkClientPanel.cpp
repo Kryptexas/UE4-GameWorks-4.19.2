@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveLinkClientPanel.h"
+#include "Editor.h"
 #include "SBoxPanel.h"
 #include "SSplitter.h"
 #include "SOverlay.h"
@@ -18,15 +19,29 @@
 #include "ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "IStructureDetailsView.h"
+#include "LiveLinkVirtualSubjectDetails.h"
 
 #include "LiveLinkSourceFactory.h"
 
+#include "Widgets/Input/STextEntryPopup.h"
+
 #define LOCTEXT_NAMESPACE "LiveLinkClientPanel"
 
-static const FName TypeColumnName(TEXT("Type"));
-static const FName MachineColumnName(TEXT("Machine"));
-static const FName StatusColumnName(TEXT("Status"));
+// Static Source UI FNames
+namespace SourceListUI
+{
+	static const FName TypeColumnName(TEXT("Type"));
+	static const FName MachineColumnName(TEXT("Machine"));
+	static const FName StatusColumnName(TEXT("Status"));
+};
 
+// Static Subject UI FNames
+namespace SubjectTreeUI
+{
+	static const FName NameColumnName(TEXT("Name"));
+};
+
+// Structure that defines a single entry in the source UI
 struct FLiveLinkSourceUIEntry
 {
 public:
@@ -45,6 +60,19 @@ public:
 private:
 	FGuid EntryGuid;
 	FLiveLinkClient* Client;
+};
+
+// Structure that defines a single entry in the subject UI
+struct FLiveLinkSubjectUIEntry
+{
+	// Id of the subject
+	FLiveLinkSubjectKey SubjectKey;
+
+	// If SubjectKey.SubjectName is None then we are a source, this should be set instead
+	FText SourceName;
+
+	// Children (if this entry represents a source instead of a specific subject
+	TArray<FLiveLinkSubjectUIEntryPtr> Children;
 };
 
 class SLiveLinkClientPanelSourcesRow : public SMultiColumnTableRow<FLiveLinkSourceUIEntryPtr>
@@ -74,17 +102,17 @@ public:
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the list view. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
-		if (ColumnName == TypeColumnName)
+		if (ColumnName == SourceListUI::TypeColumnName)
 		{
 			return	SNew(STextBlock)
 					.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SLiveLinkClientPanelSourcesRow::GetSourceTypeName)));
 		}
-		else if (ColumnName == MachineColumnName)
+		else if (ColumnName == SourceListUI::MachineColumnName)
 		{
 			return	SNew(STextBlock)
 					.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SLiveLinkClientPanelSourcesRow::GetSourceMachineName)));
 		}
-		else if (ColumnName == StatusColumnName)
+		else if (ColumnName == SourceListUI::StatusColumnName)
 		{
 			return	SNew(STextBlock)
 					.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SLiveLinkClientPanelSourcesRow::GetSourceStatus)));
@@ -123,15 +151,22 @@ SLiveLinkClientPanel::~SLiveLinkClientPanel()
 	{
 		Client->UnregisterSourcesChangedHandle(OnSourcesChangedHandle);
 		OnSourcesChangedHandle.Reset();
+
+		Client->UnregisterSubjectsChangedHandle(OnSubjectsChangedHandle);
+		OnSubjectsChangedHandle.Reset();
 	}
+	GEditor->UnregisterForUndo(this);
 }
 
 void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* InClient)
 {
+	GEditor->RegisterForUndo(this);
+
 	check(InClient);
 	Client = InClient;
 
-	OnSourcesChangedHandle = Client->RegisterSourcesChangedHandle(FLiveLinkSourcesChanged::FDelegate::CreateSP(this, &SLiveLinkClientPanel::OnSourcesChangedHandler));
+	OnSourcesChangedHandle = Client->RegisterSourcesChangedHandle(FSimpleMulticastDelegate::FDelegate::CreateSP(this, &SLiveLinkClientPanel::OnSourcesChangedHandler));
+	OnSubjectsChangedHandle = Client->RegisterSubjectsChangedHandle(FSimpleMulticastDelegate::FDelegate::CreateSP(this, &SLiveLinkClientPanel::OnSubjectsChangedHandler));
 
 	RefreshSourceData(false);
 
@@ -173,71 +208,96 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 	SettingsDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 	SettingsDetailsView->OnFinishedChangingProperties().AddSP(this, &SLiveLinkClientPanel::OnPropertyChanged);
 
+	SettingsDetailsView->RegisterInstancedCustomPropertyLayout(ULiveLinkVirtualSubjectDetails::StaticClass(),
+			FOnGetDetailCustomizationInstance::CreateStatic(&FLiveLinkVirtualSubjectDetailCustomization::MakeInstance, Client));
+
+	SAssignNew(SubjectsTreeView, STreeView<FLiveLinkSubjectUIEntryPtr>)
+		.TreeItemsSource(&SubjectData)
+		.OnGenerateRow(this, &SLiveLinkClientPanel::MakeTreeRowWidget)
+		.OnGetChildren(this, &SLiveLinkClientPanel::GetChildrenForInfo)
+		.OnSelectionChanged(this, &SLiveLinkClientPanel::OnSelectionChanged)
+		.SelectionMode(ESelectionMode::Single)
+		.HeaderRow
+		(
+			SNew(SHeaderRow)
+			+ SHeaderRow::Column(SubjectTreeUI::NameColumnName)
+			.DefaultLabel(LOCTEXT("SubjectItemName", "Subject Name"))
+			.FillWidth(1.f)
+		);
+
 	ChildSlot
 	[
-		SNew(SSplitter)
-		.Orientation(Orient_Vertical)
-		+ SSplitter::Slot()
-		.Value(0.33f)
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
+			ToolBarBuilder.MakeWidget()
+		]
+		+ SVerticalBox::Slot()
+		.FillHeight(1.f)
+		.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
+		[
+			SNew(SSplitter)
+			.Orientation(EOrientation::Orient_Horizontal)
+			+SSplitter::Slot()
+			.Value(0.5f)
 			[
-				ToolBarBuilder.MakeWidget()
-			]
-			+ SVerticalBox::Slot()
-			.FillHeight(0.5f)
-			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
-			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.Padding(FMargin(4.0f, 4.0f))
+				SNew(SSplitter)
+				.Orientation(EOrientation::Orient_Vertical)
+				+SSplitter::Slot()
+				.Value(0.5f)
 				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Padding(FMargin(4.0f, 4.0f))
 					[
-						SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						.FillHeight(1.0f)
-						[
-							SAssignNew(ListView, SListView<FLiveLinkSourceUIEntryPtr>)
-							.ListItemsSource(&SourceData)
-							.SelectionMode(ESelectionMode::SingleToggle)
-							.OnGenerateRow(this, &SLiveLinkClientPanel::MakeSourceListViewWidget)
-							.OnSelectionChanged(this, &SLiveLinkClientPanel::OnSourceListSelectionChanged)
-							.HeaderRow
-							(
-								SNew(SHeaderRow)
-								+ SHeaderRow::Column(TypeColumnName)
-								.FillWidth(43.0f)
-								.DefaultLabel(LOCTEXT("TypeColumnHeaderName", "Source Type"))
-								+ SHeaderRow::Column(MachineColumnName)
-								.FillWidth(43.0f)
-								.DefaultLabel(LOCTEXT("MachineColumnHeaderName", "Source Machine"))
-								+ SHeaderRow::Column(StatusColumnName)
-								.FillWidth(14.0f)
-								.DefaultLabel(LOCTEXT("StatusColumnHeaderName", "Status"))
-							)
-						]
+						SAssignNew(ListView, SListView<FLiveLinkSourceUIEntryPtr>)
+						.ListItemsSource(&SourceData)
+						.SelectionMode(ESelectionMode::SingleToggle)
+						.OnGenerateRow(this, &SLiveLinkClientPanel::MakeSourceListViewWidget)
+						.OnSelectionChanged(this, &SLiveLinkClientPanel::OnSourceListSelectionChanged)
+						.HeaderRow
+						(
+							SNew(SHeaderRow)
+							+ SHeaderRow::Column(SourceListUI::TypeColumnName)
+							.FillWidth(43.0f)
+							.DefaultLabel(LOCTEXT("TypeColumnHeaderName", "Source Type"))
+							+ SHeaderRow::Column(SourceListUI::MachineColumnName)
+							.FillWidth(43.0f)
+							.DefaultLabel(LOCTEXT("MachineColumnHeaderName", "Source Machine"))
+							+ SHeaderRow::Column(SourceListUI::StatusColumnName)
+							.FillWidth(14.0f)
+							.DefaultLabel(LOCTEXT("StatusColumnHeaderName", "Status"))
+						)
+					]
+				]
+				+SSplitter::Slot()
+				.Value(0.5f)
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Padding(FMargin(4.0f, 4.0f))
+					[
+						SubjectsTreeView->AsShared()
 					]
 				]
 			]
-			+ SVerticalBox::Slot()
-			.FillHeight(0.5f)
-			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
+			+SSplitter::Slot()
+			.Value(0.5f)
 			[
 				SettingsDetailsView.ToSharedRef()
 			]
 		]
 	];
 
-	// Register refresh timer
-	/*if (!ActiveTimerHandle.IsValid())
-	{
-		ActiveTimerHandle = RegisterActiveTimer(0.1f, FWidgetActiveTimerDelegate::CreateSP(this, &SSequenceRecorder::HandleRefreshItems));
-	}*/
+
+	RebuildSubjectList();
+}
+
+void SLiveLinkClientPanel::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(DetailsPanelEditorObjects);
 }
 
 void SLiveLinkClientPanel::BindCommands()
@@ -259,7 +319,10 @@ void SLiveLinkClientPanel::RefreshSourceData(bool bRefreshUI)
 
 	for (FGuid Source : Client->GetSourceEntries())
 	{
-		SourceData.Add(MakeShareable(new FLiveLinkSourceUIEntry(Source, Client)));
+		if (Client->ShowSourceInUI(Source))
+		{
+			SourceData.Add(MakeShareable(new FLiveLinkSourceUIEntry(Source, Client)));
+		}
 	}
 
 	if (bRefreshUI)
@@ -289,6 +352,107 @@ void SLiveLinkClientPanel::OnSourceListSelectionChanged(FLiveLinkSourceUIEntryPt
 	{
 		SettingsDetailsView->SetObject(nullptr);
 	}
+}
+
+TSharedRef<ITableRow> SLiveLinkClientPanel::MakeTreeRowWidget(FLiveLinkSubjectUIEntryPtr InInfo, const TSharedRef<STableViewBase>& OwnerTable)
+{
+	FText ItemText = InInfo->SubjectKey.SubjectName.IsNone() ? InInfo->SourceName : FText::FromName(InInfo->SubjectKey.SubjectName);
+	return SNew(STableRow<FLiveLinkSubjectUIEntryPtr>, OwnerTable)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(ItemText)
+		];
+}
+
+void SLiveLinkClientPanel::GetChildrenForInfo(FLiveLinkSubjectUIEntryPtr InInfo, TArray< FLiveLinkSubjectUIEntryPtr >& OutChildren)
+{
+	OutChildren = InInfo->Children;
+}
+
+void SLiveLinkClientPanel::OnSelectionChanged(FLiveLinkSubjectUIEntryPtr SubjectEntry, ESelectInfo::Type SelectInfo)
+{
+	SettingsDetailsView->SetObject(nullptr);
+	if (SubjectEntry.IsValid() && SubjectEntry->SubjectKey.SubjectName != NAME_None)
+	{
+		if (Client->IsVirtualSubject(SubjectEntry->SubjectKey))
+		{
+			UObject* Obj = DetailsPanelEditorObjects.Contains(ULiveLinkVirtualSubjectDetails::StaticClass()) ? *DetailsPanelEditorObjects.Find(ULiveLinkVirtualSubjectDetails::StaticClass()) : nullptr;
+
+			if (Obj == NULL)
+			{
+				FString ObjName = MakeUniqueObjectName(GetTransientPackage(), ULiveLinkVirtualSubjectDetails::StaticClass()).ToString();
+				ObjName += "_EdObj";
+				Obj = NewObject<ULiveLinkVirtualSubjectDetails>(GetTransientPackage(), ULiveLinkVirtualSubjectDetails::StaticClass(), FName(*ObjName), RF_Public | RF_Standalone | RF_Transient);
+				Obj->SetFlags(RF_Transactional);
+				DetailsPanelEditorObjects.Add(ULiveLinkVirtualSubjectDetails::StaticClass(), Obj);
+			}
+
+			ULiveLinkVirtualSubjectDetails* Details = CastChecked<ULiveLinkVirtualSubjectDetails>(Obj);
+
+			Details->Client = Client;
+			Details->SubjectKey = SubjectEntry->SubjectKey;
+			Details->VirtualSubjectProxy = Client->GetVirtualSubjectProperties(SubjectEntry->SubjectKey);
+			SettingsDetailsView->SetObject(Details);
+		}
+	}
+}
+
+void SLiveLinkClientPanel::RebuildSubjectList()
+{
+	TArray<FLiveLinkSubjectKey> SavedSelection;
+	TArray<FLiveLinkSubjectUIEntryPtr> SelectedItems = SubjectsTreeView->GetSelectedItems();
+	for (const FLiveLinkSubjectUIEntryPtr& SelectedItem : SelectedItems)
+	{
+		SavedSelection.Add(SelectedItem->SubjectKey);
+	}
+
+	TArray<FLiveLinkSubjectKey> SubjectKeys = Client->GetSubjects();
+	SubjectData.Reset();
+
+	TMap<FGuid, FLiveLinkSubjectUIEntryPtr> SourceHeaderItems;
+	TArray<FLiveLinkSubjectUIEntryPtr> AllItems;
+	AllItems.Reserve(SubjectKeys.Num());
+
+	for (const FLiveLinkSubjectKey& SubjectKey : SubjectKeys)
+	{
+		FLiveLinkSubjectUIEntryPtr Source;
+		if(FLiveLinkSubjectUIEntryPtr* SourcePtr = SourceHeaderItems.Find(SubjectKey.Source))
+		{
+			Source = *SourcePtr;
+		}
+		else
+		{
+			Source = MakeShared<FLiveLinkSubjectUIEntry>();
+			SubjectData.Add(Source);
+			SourceHeaderItems.Add(SubjectKey.Source) = Source;
+
+			Source->SourceName = Client->GetSourceTypeForEntry(SubjectKey.Source);
+
+			SubjectsTreeView->SetItemExpansion(Source, true);
+			AllItems.Add(Source);
+		}
+
+		FLiveLinkSubjectUIEntryPtr SubjectEntry = MakeShared<FLiveLinkSubjectUIEntry>();
+		SubjectEntry->SubjectKey = SubjectKey;
+
+		Source->Children.Add(SubjectEntry);
+		AllItems.Add(SubjectEntry);
+	}
+
+	for (const FLiveLinkSubjectUIEntryPtr& Item : AllItems)
+	{
+		for (FLiveLinkSubjectKey& Selection : SavedSelection)
+		{
+			if (Item->SubjectKey.Source == Selection.Source && Item->SubjectKey.SubjectName == Selection.SubjectName)
+			{
+				SubjectsTreeView->SetItemSelection(Item, true);
+				break;
+			}
+		}
+	}
+
+	SubjectsTreeView->RequestTreeRefresh();
 }
 
 void SLiveLinkClientPanel::OnPropertyChanged(const FPropertyChangedEvent& InEvent)
@@ -327,6 +491,19 @@ TSharedRef< SWidget > SLiveLinkClientPanel::GenerateSourceMenu()
 		);
 	}
 
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("SourceSection", LOCTEXT("Sources", "Live Link Sources"));
+	FUIAction Action_AddVirtualSubject(
+		FExecuteAction::CreateSP(this, &SLiveLinkClientPanel::AddVirtualSubject));
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddVirtualSubject", "Add Virtual Subject"),
+		LOCTEXT("AddVirtualSubject_Tooltip", "Adds a new virtual subject to live link. Instead of coming from a source a virtual subject is a combination of 2 or more real subjects"),
+		FSlateIcon(),
+		Action_AddVirtualSubject,
+		NAME_None,
+		EUserInterfaceActionType::Button);
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
 }
@@ -386,6 +563,34 @@ FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory*
 	return FReply::Handled();
 }
 
+void SLiveLinkClientPanel::AddVirtualSubject()
+{
+	// Show dialog to enter weight
+	TSharedRef<STextEntryPopup> TextEntry =
+		SNew(STextEntryPopup)
+		.Label(LOCTEXT("AddVirtualSubject", "New Virtual Subject Name"))
+		.OnTextCommitted(this, &SLiveLinkClientPanel::HandleAddVirtualSubject);
+
+	FSlateApplication::Get().PushMenu(
+		AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+		FWidgetPath(),
+		TextEntry,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+	);
+}
+
+void SLiveLinkClientPanel::HandleAddVirtualSubject(const FText& NewSubjectName, ETextCommit::Type CommitInfo)
+{
+	if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
+	{
+		Client->AddVirtualSubject(*NewSubjectName.ToString());
+		RebuildSubjectList();
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+}
+
 void SLiveLinkClientPanel::HandleRemoveSource()
 {
 	TArray<FLiveLinkSourceUIEntryPtr> Selected;
@@ -398,7 +603,7 @@ void SLiveLinkClientPanel::HandleRemoveSource()
 
 bool SLiveLinkClientPanel::CanRemoveSource()
 {
-	return ListView->GetNumItemsSelected() > 0;
+	return ListView->HasKeyboardFocus() && ListView->GetNumItemsSelected() > 0;
 }
 
 void SLiveLinkClientPanel::HandleRemoveAllSources()
@@ -409,6 +614,21 @@ void SLiveLinkClientPanel::HandleRemoveAllSources()
 void SLiveLinkClientPanel::OnSourcesChangedHandler()
 {
 	RefreshSourceData(true);
+}
+
+void SLiveLinkClientPanel::OnSubjectsChangedHandler()
+{
+	RebuildSubjectList();
+}
+
+void SLiveLinkClientPanel::PostUndo(bool bSuccess)
+{
+	SettingsDetailsView->ForceRefresh();
+}
+
+void SLiveLinkClientPanel::PostRedo(bool bSuccess)
+{
+	SettingsDetailsView->ForceRefresh();
 }
 
 #undef LOCTEXT_NAMESPACE

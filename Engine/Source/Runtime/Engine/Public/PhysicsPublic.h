@@ -182,6 +182,7 @@ namespace PhysCommand
 	enum Type
 	{
 		Release,
+		ReleaseIDeferred,
 		ReleasePScene,
 		DeleteCPUDispatcher,
 		DeleteSimEventCallback,
@@ -189,6 +190,12 @@ namespace PhysCommand
 	};
 }
 
+struct IDeferredReleaseCallback
+{
+	virtual ~IDeferredReleaseCallback() {}
+
+	virtual void ExecCommand() = 0;
+};
 
 /** Container used for physics tasks that need to be deferred from GameThread. This is not safe for general purpose multi-therading*/
 class FPhysCommandHandler
@@ -212,6 +219,9 @@ public:
 	void ENGINE_API DeferredDeleteCPUDispathcer(physx::PxCpuDispatcher * CPUDispatcher);
 #endif
 
+	/** Arbitrary command to execute when releasing. The command handler deletes it after calling ExecCommand */
+	void ENGINE_API DeferredRelease(IDeferredReleaseCallback* DeferredReleaseCallback);
+
 private:
 
 	/** Command to execute when physics simulation is done */
@@ -228,6 +238,9 @@ private:
 			physx::PxCpuDispatcher * CPUDispatcher;
 			physx::PxSimulationEventCallback * SimEventCallback;
 #endif
+
+			IDeferredReleaseCallback* DeferredReleaseCallback;
+
 		} Pointer;
 
 		PhysCommand::Type CommandType;
@@ -577,10 +590,7 @@ public:
 
 #if WITH_PHYSX
 	/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
-	void RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
-	{
-		IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
-	}
+	ENGINE_API void RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor);
 #endif // WITH_PHYSX
 
 	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
@@ -621,7 +631,7 @@ private:
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
 
-	TArray<physx::PxRigidActor*> IgnoreActiveActors[PST_MAX];	//Active actors that have been deleted after fetchResults but before EndFrame and must be ignored
+	TArray<physx::PxActor*> IgnoreActiveActors[PST_MAX];	//Active actors that have been deleted after fetchResults but before EndFrame and must be ignored
 	void RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType);
 #endif
 

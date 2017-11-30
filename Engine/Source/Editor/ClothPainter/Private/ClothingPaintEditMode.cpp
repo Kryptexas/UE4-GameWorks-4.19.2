@@ -75,7 +75,7 @@ void FClothingPaintEditMode::Enter()
 		ClothPainter->SetSkeletalMeshComponent(Scene->GetPreviewMeshComponent());
 	}
 	
-	ClothPainter->Reset();
+	ClothPainter->EnterPaintMode();
 }
 
 void FClothingPaintEditMode::Exit()
@@ -140,6 +140,8 @@ void FClothingPaintEditMode::Exit()
 			ViewportClient->EngineShowFlags.DisableAdvancedFeatures();
 		}
 	}
+
+	ClothPainter->ExitPaintMode();
 
 	IMeshPaintEdMode::Exit();
 }

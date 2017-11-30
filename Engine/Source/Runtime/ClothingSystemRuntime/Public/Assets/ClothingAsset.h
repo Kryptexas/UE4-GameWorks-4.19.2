@@ -166,10 +166,10 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 	void ClearParticleParameters();
 
 	// Whether the mesh uses backstops
-	bool HasBackStops();
+	bool HasBackStops() const;
 
 	// Whether the mesh uses anim drives
-	bool HasAnimDrive();
+	bool HasAnimDrive() const;
 
 	// Positions of each simulation vertex
 	UPROPERTY(EditAnywhere, Category = SimMesh)

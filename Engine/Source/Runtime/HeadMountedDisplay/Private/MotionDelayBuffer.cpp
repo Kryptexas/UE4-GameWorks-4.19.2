@@ -9,6 +9,7 @@
 
 #include "IMotionController.h"
 #include "Templates/TypeHash.h"
+#include "Features/IModularFeatures.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMotionDelayBuffer, Log, All);
 

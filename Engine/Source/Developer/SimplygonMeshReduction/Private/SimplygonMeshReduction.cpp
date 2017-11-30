@@ -694,7 +694,7 @@ public:
 
 			if (InitResult != SimplygonSDK::SG_ERROR_NOERROR && InitResult != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
 			{
-				UE_LOG(LogSimplygon, Warning, TEXT("Failed to initialize Simplygon. Error: %d."), InitResult);
+				UE_LOG(LogSimplygon, Warning, TEXT("Failed to initialize Simplygon. Return code: %d."), InitResult);
 				FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
 				GSimplygonSDKDLLHandle = nullptr;
 			}

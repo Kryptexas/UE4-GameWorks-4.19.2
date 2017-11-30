@@ -924,6 +924,12 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << RefSkeleton;
 
+	if(Ar.IsLoading())
+	{
+		const bool bRebuildNameMap = false;
+		RefSkeleton.RebuildRefSkeleton(Skeleton, bRebuildNameMap);
+	}
+
 #if WITH_EDITORONLY_DATA
 	// Serialize the source model (if we want editor data)
 	if (!StripFlags.IsEditorDataStripped())
@@ -1500,10 +1506,6 @@ void USkeletalMesh::PostLoad()
 
 	// Bounds have been loaded - apply extensions.
 	CalculateExtendedBounds();
-
-	const bool bRebuildNameMap = false;
-	RefSkeleton.RebuildRefSkeleton(Skeleton, bRebuildNameMap);
-
 
 #if WITH_EDITORONLY_DATA
 	if (bRequiresLODScreenSizeConversion || bRequiresLODHysteresisConversion)

@@ -5,6 +5,7 @@
 #include "SteamAudioModule.h"
 #include "PhononCommon.h"
 #include "Misc/Paths.h"
+#include "Features/IModularFeatures.h"
 
 IMPLEMENT_MODULE(SteamAudio::FSteamAudioModule, SteamAudio)
 

@@ -775,6 +775,7 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 
 }
 
+
 /** Adds to queue of skelmesh we want to add to collision disable table */
 void FPhysScene::DeferredAddCollisionDisableTable(uint32 SkelMeshCompID, TMap<struct FRigidBodyIndexPair, bool> * CollisionDisableTable)
 {
@@ -820,6 +821,13 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 }
 
 #if WITH_PHYSX
+
+/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
+void FPhysScene::RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
+{
+	IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
+}
+
 void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 {
 	/** Gather PhysX stats */
@@ -1272,6 +1280,12 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
 	{
 		PxActor* PActiveActor = PActiveActors[TransformIdx];
+
+		if (IgnoreActiveActors[SceneType].Find(PActiveActor) != INDEX_NONE)
+		{
+			continue;
+		}
+
 #ifdef __EMSCRIPTEN__
 		// emscripten doesn't seem to know how to look at <PxRigidActor> from the PxActor class...
 		PxRigidActor* XRigidActor = static_cast<PxRigidActor*>(PActiveActor); // is()
@@ -1279,11 +1293,6 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 #else
 		PxRigidActor* RigidActor = PActiveActor->is<PxRigidActor>();
 #endif
-
-		if (IgnoreActiveActors[SceneType].Find(RigidActor) != INDEX_NONE)
-		{
-			continue;
-		}
 
 		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
 
