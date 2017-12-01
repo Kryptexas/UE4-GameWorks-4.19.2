@@ -16,7 +16,6 @@
 #include "Materials/Material.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "AssetRegistryModule.h"
-#include "WebBrowserTexture.h"
 #include "PackageHelperFunctions.h"
 #endif
 
