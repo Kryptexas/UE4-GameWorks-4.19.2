@@ -196,6 +196,10 @@ void ATP_FirstPersonCharacter::BeginTouch(const ETouchIndex::Type FingerIndex, c
 	{
 		return;
 	}
+	if ((FingerIndex == TouchItem.FingerIndex) && (TouchItem.bMoved == false))
+	{
+		OnFire();
+	}
 	TouchItem.bIsPressed = true;
 	TouchItem.FingerIndex = FingerIndex;
 	TouchItem.Location = Location;
@@ -207,10 +211,6 @@ void ATP_FirstPersonCharacter::EndTouch(const ETouchIndex::Type FingerIndex, con
 	if (TouchItem.bIsPressed == false)
 	{
 		return;
-	}
-	if ((FingerIndex == TouchItem.FingerIndex) && (TouchItem.bMoved == false))
-	{
-		OnFire();
 	}
 	TouchItem.bIsPressed = false;
 }
