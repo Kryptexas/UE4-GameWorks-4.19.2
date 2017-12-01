@@ -260,9 +260,13 @@ void FVulkanCommandBufferManager::WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, 
 void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(bool bWaitForFence)
 {
 	check(UploadCmdBuffer);
-	check(UploadCmdBuffer->IsOutsideRenderPass());
-	UploadCmdBuffer->End();
-	Queue->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
+	if (!UploadCmdBuffer->IsSubmitted() && UploadCmdBuffer->HasBegun())
+	{
+		check(UploadCmdBuffer->IsOutsideRenderPass());
+		UploadCmdBuffer->End();
+		Queue->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
+	}
+
 	if (bWaitForFence)
 	{
 		if (UploadCmdBuffer->IsSubmitted())
@@ -278,13 +282,17 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
 {
 	check(!UploadCmdBuffer);
 	check(ActiveCmdBuffer);
-	if (!ActiveCmdBuffer->IsOutsideRenderPass())
+	if (!ActiveCmdBuffer->IsSubmitted() && ActiveCmdBuffer->HasBegun())
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Forcing EndRenderPass() for submission"));
-		ActiveCmdBuffer->EndRenderPass();
+		if (!ActiveCmdBuffer->IsOutsideRenderPass())
+		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Forcing EndRenderPass() for submission"));
+			ActiveCmdBuffer->EndRenderPass();
+		}
+		ActiveCmdBuffer->End();
+		Queue->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
 	}
-	ActiveCmdBuffer->End();
-	Queue->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
+
 	if (bWaitForFence)
 	{
 		if (ActiveCmdBuffer->IsSubmitted())

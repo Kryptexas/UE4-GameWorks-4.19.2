@@ -23,7 +23,14 @@ public:
 
 	void Destroy();
 
-	bool Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
+	// Has to be negative as we use this also on other callbacks as the acquired image index
+	enum class EStatus
+	{
+		Healthy = 0,
+		OutOfDate = -1,
+		SurfaceLost = -2,
+	};
+	EStatus Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
 
 protected:
 	VkSwapchainKHR SwapChain;
