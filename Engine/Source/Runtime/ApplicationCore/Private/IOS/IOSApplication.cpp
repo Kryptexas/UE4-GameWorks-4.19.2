@@ -113,6 +113,7 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	OutDisplayMetrics.PrimaryDisplayWidth = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 	OutDisplayMetrics.PrimaryDisplayHeight = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
 
+#if !PLATFORM_TVOS
 	if (@available(iOS 11, *))
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
@@ -124,6 +125,7 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		OutDisplayMetrics.ActionSafePaddingSize = FVector2D(insets.top * RequestedContentScaleFactor, insets.bottom * RequestedContentScaleFactor);
 	}
 	else
+#endif
 	{
 		OutDisplayMetrics.ApplyDefaultSafeZones();
 	}
