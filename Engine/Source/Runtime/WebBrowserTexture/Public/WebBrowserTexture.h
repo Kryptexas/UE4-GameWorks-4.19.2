@@ -19,7 +19,7 @@
 * Implements a texture asset for rendering webbrowser output for Android.
 */
 UCLASS(hidecategories = (Adjustments, Compositing, LevelOfDetail, Object))
-class WEBBROWSER_API UWebBrowserTexture
+class WEBBROWSERTEXTURE_API UWebBrowserTexture
 	: public UTexture
 {
 	GENERATED_UCLASS_BODY()
