@@ -11,6 +11,7 @@
 #include "FlexSoftJointComponent.generated.h"
 
 struct NvFlexExtSoftJoint;
+struct FFlexContainerInstance;
 
 /**
 *	Used to emit a soft joint that can affect flex objects in the same container.

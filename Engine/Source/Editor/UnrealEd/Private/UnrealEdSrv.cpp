@@ -53,6 +53,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Components/BrushComponent.h"
 #include "PhysicsEngine/RadialForceComponent.h"
+#include "PhysicsEngine/FlexSoftJointComponent.h"
 #include "Engine/Polys.h"
 #include "Engine/Selection.h"
 #include "Editor.h"
@@ -932,6 +933,10 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 									else if (URadialForceComponent* RadialForceComponent = Cast< URadialForceComponent >( RootComponent ))
 									{
 										RadialForceComponent->Radius *= Scale;
+									}
+									else if (UFlexSoftJointComponent* FlexSoftJointComponent = Cast< UFlexSoftJointComponent >(RootComponent))
+									{
+										FlexSoftJointComponent->Radius *= Scale;
 									}
 									/* Other components that have radii
 									UPathFollowingComponent

@@ -10,6 +10,7 @@
 #include "Components/SpotLightComponent.h"
 #include "Components/DecalComponent.h"
 #include "PhysicsEngine/RadialForceComponent.h"
+#include "PhysicsEngine/FlexSoftJointComponent.h"
 #include "UnrealEdGlobals.h"
 
 #include "Perception/PawnSensingComponent.h"
@@ -19,6 +20,7 @@
 #include "SpotLightComponentVisualizer.h"
 #include "AudioComponentVisualizer.h"
 #include "RadialForceComponentVisualizer.h"
+#include "FlexSoftJointComponentVisualizer.h"
 #include "ConstraintComponentVisualizer.h"
 #include "PhysicalAnimationComponentVisualizer.h"
 #include "SpringArmComponentVisualizer.h"
@@ -44,6 +46,7 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(UAudioComponent::StaticClass()->GetFName(), MakeShareable(new FAudioComponentVisualizer));
 	RegisterComponentVisualizer(UForceFeedbackComponent::StaticClass()->GetFName(), MakeShareable(new FForceFeedbackComponentVisualizer));
 	RegisterComponentVisualizer(URadialForceComponent::StaticClass()->GetFName(), MakeShareable(new FRadialForceComponentVisualizer));
+	RegisterComponentVisualizer(UFlexSoftJointComponent::StaticClass()->GetFName(), MakeShareable(new FFlexSoftJointComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass()->GetFName(), MakeShareable(new FConstraintComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicalAnimationComponent::StaticClass()->GetFName(), MakeShareable(new FPhysicsAnimationComponentVisualizer));
 	RegisterComponentVisualizer(USpringArmComponent::StaticClass()->GetFName(), MakeShareable(new FSpringArmComponentVisualizer));
