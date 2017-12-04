@@ -19,6 +19,10 @@
 #include "PackageHelperFunctions.h"
 #endif
 
+#if WITH_EDITOR || PLATFORM_ANDROID
+#include "WebBrowserTexture.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "WebBrowser"
 
 /////////////////////////////////////////////////////
@@ -28,6 +32,8 @@ UWebBrowser::UWebBrowser(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
+
+#if WITH_EDITOR || PLATFORM_ANDROID
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UObject>			DefaultTextureMaterial;
@@ -37,7 +43,11 @@ UWebBrowser::UWebBrowser(const FObjectInitializer& ObjectInitializer)
 	};
 	static FConstructorStatics ConstructorStatics;
 
+	// Add a hard reference to UWebBrowserTexture, without this the WebBrowserTexture DLL never gets loaded on Windows.
+	UWebBrowserTexture::StaticClass();
+
 	DefaultMaterial = (UMaterial*)ConstructorStatics.DefaultTextureMaterial.Object;
+#endif
 }
 
 void UWebBrowser::LoadURL(FString NewURL)
