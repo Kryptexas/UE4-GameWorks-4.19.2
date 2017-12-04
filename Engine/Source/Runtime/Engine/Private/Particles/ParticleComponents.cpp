@@ -88,7 +88,6 @@
 #include "GameWorks/IFlexPluginBridge.h"
 #endif
 // NvFlex end
-#include "PhysicsPublic.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -4716,7 +4715,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 		}
 	}
-
 }
 
 int32 UParticleSystemComponent::GetCurrentDetailMode() const
@@ -7149,7 +7147,6 @@ class UObject* UParticleSystemComponent::GetFirstFlexContainerTemplate()
 	return nullptr;
 }
 // NvFlex end
-
 
 UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

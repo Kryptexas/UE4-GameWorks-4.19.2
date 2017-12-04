@@ -547,11 +547,11 @@ void FFlexManager::FlexEmitterInstanceKillParticle(struct FParticleEmitterInstan
 	}
 }
 
-bool FFlexManager::IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance)
+bool FFlexManager::FlexEmitterInstanceShouldRenderParticles(struct FParticleEmitterInstance* EmitterInstance)
 {
 	if (EmitterInstance->FlexEmitterInstance)
 	{
-		return EmitterInstance->FlexEmitterInstance->IsDynamicDataRequired();
+		return EmitterInstance->FlexEmitterInstance->ShouldRenderParticles();
 	}
 	return true;
 }
@@ -569,6 +569,13 @@ void FFlexManager::GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInst
 	verify(FlexEmitterInstance);
 	verify(FlexEmitterInstance->GPUImpl);
 	FlexEmitterInstance->GPUImpl->Tick(DeltaSeconds, bSuppressSpawning, FlexSimulationResource);
+}
+
+bool FFlexManager::GPUSpriteEmitterInstance_ShouldRenderParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance)
+{
+	verify(FlexEmitterInstance);
+	verify(FlexEmitterInstance->GPUImpl);
+	return FlexEmitterInstance->GPUImpl->ShouldRenderParticles();
 }
 
 void FFlexManager::GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex)

@@ -56,7 +56,7 @@ public:
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes);
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex);
-	virtual bool IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance);
+	virtual bool FlexEmitterInstanceShouldRenderParticles(struct FParticleEmitterInstance* EmitterInstance);
 
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component);
 
@@ -65,6 +65,7 @@ public:
 	// GPUSpriteEmitterInstance
 	virtual FRenderResource* GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile) override;
 	virtual void GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource) override;
+	virtual bool GPUSpriteEmitterInstance_ShouldRenderParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance) override;
 	virtual void GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex) override;
 	virtual void GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, bool bFreeParticleIndices) override;
 

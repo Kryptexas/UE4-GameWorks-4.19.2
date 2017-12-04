@@ -40,7 +40,7 @@ struct FFlexParticleEmitterInstance : public IFlexContainerClient
 	uint32 GetRequiredBytes(uint32 uiBytes);
 	bool SpawnParticle(struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	void KillParticle(int32 KillIndex);
-	bool IsDynamicDataRequired();
+	bool ShouldRenderParticles();
 
 	virtual bool IsEnabled() { return Container != NULL; }
 	virtual FBoxSphereBounds GetBounds() { return FBoxSphereBounds(Emitter->GetBoundingBox()); }

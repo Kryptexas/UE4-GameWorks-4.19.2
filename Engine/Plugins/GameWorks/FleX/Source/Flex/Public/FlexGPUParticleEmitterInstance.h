@@ -12,6 +12,7 @@ struct FFlexGPUParticleEmitterInstance
 	virtual ~FFlexGPUParticleEmitterInstance();
 
 	void Tick(float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource);
+	bool ShouldRenderParticles();
 	void DestroyTileParticles(int32 TileIndex);
 	void DestroyAllParticles(bool bFreeParticleIndices);
 

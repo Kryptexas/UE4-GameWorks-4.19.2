@@ -3283,6 +3283,15 @@ public:
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel) override
 	{
 		bool bShouldRender = (ActiveParticles >= 0 || TilesToClear.Num() || NewParticles.Num());
+		// NvFlex begin
+#if WITH_FLEX
+		if (FlexEmitterInstance)
+		{
+			verify(GFlexPluginBridge);
+			bShouldRender &= GFlexPluginBridge->GPUSpriteEmitterInstance_ShouldRenderParticles(FlexEmitterInstance);
+		}
+#endif
+		// NvFlex end
 		bool bCanRender = (FXSystem != NULL) && (Component != NULL) && (Component->FXSystem == FXSystem);
 		return bShouldRender && bCanRender;
 	}
@@ -3304,6 +3313,15 @@ public:
 		{
 			return NULL;
 		}
+
+		// NvFlex begin
+#if WITH_FLEX
+		if (!IsDynamicDataRequired(LODLevel))
+		{
+			return NULL;
+		}
+#endif
+		// NvFlex end
 
 		UParticleSystem *Template = Component->Template;
 

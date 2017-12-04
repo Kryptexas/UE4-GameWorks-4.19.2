@@ -36,7 +36,7 @@ public:
 	virtual uint32 GetFlexEmitterInstanceRequiredBytes(struct FParticleEmitterInstance* EmitterInstance, uint32 uiBytes) = 0;
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex) = 0;
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex) = 0;
-	virtual bool IsFlexEmitterInstanceDynamicDataRequired(struct FParticleEmitterInstance* EmitterInstance) = 0;
+	virtual bool FlexEmitterInstanceShouldRenderParticles(struct FParticleEmitterInstance* EmitterInstance) = 0;
 
 	// ParticleSystemComponent
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component) = 0; // returns UFlexContainer*
@@ -46,6 +46,7 @@ public:
 	// GPUSpriteEmitterInstance
 	virtual FRenderResource* GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile) = 0;
 	virtual void GPUSpriteEmitterInstance_Tick(struct FFlexParticleEmitterInstance* FlexEmitterInstance, float DeltaSeconds, bool bSuppressSpawning, FRenderResource* FlexSimulationResource) = 0;
+	virtual bool GPUSpriteEmitterInstance_ShouldRenderParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance) = 0;
 	virtual void GPUSpriteEmitterInstance_DestroyTileParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 TileIndex) = 0;
 	virtual void GPUSpriteEmitterInstance_DestroyAllParticles(struct FFlexParticleEmitterInstance* FlexEmitterInstance, bool bFreeParticleIndices) = 0;
 

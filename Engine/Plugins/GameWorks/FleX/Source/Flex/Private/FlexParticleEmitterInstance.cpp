@@ -279,7 +279,7 @@ void FFlexParticleEmitterInstance::KillParticle(int32 KillIndex)
 	}
 }
 
-bool FFlexParticleEmitterInstance::IsDynamicDataRequired()
+bool FFlexParticleEmitterInstance::ShouldRenderParticles()
 {
 	if (Container)
 	{

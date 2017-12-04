@@ -459,6 +459,22 @@ void FFlexGPUParticleEmitterInstance::Tick(float DeltaSeconds, bool bSuppressSpa
 	}
 }
 
+bool FFlexGPUParticleEmitterInstance::ShouldRenderParticles()
+{
+	if (Owner->Container)
+	{
+		auto FlexEmitter = Cast<UFlexParticleSpriteEmitter>(Owner->Emitter->SpriteTemplate);
+		if (FlexEmitter && FlexEmitter->Phase.Fluid)
+		{
+			UFlexFluidSurfaceComponent* SurfaceComponent = Owner->Container->FluidSurfaceComponent;
+			if (SurfaceComponent && SurfaceComponent->ShouldDisableEmitterRendering())
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
 
 void FFlexGPUParticleEmitterInstance::DestroyTileParticles(int32 TileIndex)
 {
