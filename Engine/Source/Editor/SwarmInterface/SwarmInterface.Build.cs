@@ -23,7 +23,7 @@ public class SwarmInterface : ModuleRules
 		{
 			PrivateIncludePathModuleNames.Add("MessagingCommon");
 			// the modules below are only needed for the UMB usability check
-			PrivateIncludePathModuleNames.Add("Sockets");
+			PublicDependencyModuleNames.Add("Sockets");
 			PublicDependencyModuleNames.Add("Networking");
 		}
 	}

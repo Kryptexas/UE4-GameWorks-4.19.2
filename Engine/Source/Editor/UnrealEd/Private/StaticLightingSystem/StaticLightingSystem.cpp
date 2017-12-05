@@ -1877,13 +1877,13 @@ bool FStaticLightingSystem::CreateLightmassProcessor()
 	if (LightmassProcessor->IsSwarmConnectionIsValid() == false)
 	{
 		UE_LOG(LogStaticLightingSystem, Warning, TEXT("Failed to connect to Swarm."));
-		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToConnectToSwarmDialogMessage", 
+		FMessageDialog::Open( EAppMsgType::Ok, 
 #if USE_LOCAL_SWARM_INTERFACE
-			"Failed to connect to Swarm. Check that your network interface supports multicast."
+			LOCTEXT("FailedToConnectToSwarmDialogMessage", "Failed to connect to Swarm. Check that your network interface supports multicast.")
 #else
-			"Failed to connect to Swarm."
+			LOCTEXT("FailedToConnectToSwarmDialogMessage", "Failed to connect to Swarm.")
 #endif	
-		));
+		);
 		delete LightmassProcessor;
 		LightmassProcessor = NULL;
 		return false;
