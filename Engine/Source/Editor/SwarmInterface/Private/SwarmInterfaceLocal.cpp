@@ -16,6 +16,10 @@
 	#include "IMessageContext.h"
 	#include "MessageEndpoint.h"
 	#include "MessageEndpointBuilder.h"
+	#include "Sockets.h"
+	#include "SocketSubsystem.h"
+	#include "Interfaces/IPv4/IPv4Address.h"
+	#include "Interfaces/IPv4/IPv4Endpoint.h"
 #endif
 
 
@@ -100,7 +104,7 @@ void FSwarmInterface::Initialize(const TCHAR* SwarmInterfacePath)
 
 FSwarmInterface& FSwarmInterface::Get( void )
 {
-	return( *GInstance ); 
+	return( *GInstance );
 }
 #endif
 
@@ -119,6 +123,41 @@ FSwarmInterfaceLocalImpl::~FSwarmInterfaceLocalImpl( void )
 {
 }
 
+#if USE_LOCAL_SWARM_INTERFACE
+namespace SwarmInterfaceLocalImpl
+{
+	bool CanUseUMB()
+	{
+		bool bCanUse = false;
+
+		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+		if (SocketSubsystem)
+		{
+			// create socket
+			FSocket* Socket = SocketSubsystem->CreateSocket(NAME_DGram, TEXT("TestSocket"), true);
+			if (Socket)
+			{
+				if (Socket->Bind(*FIPv4Endpoint::Any.ToInternetAddr()))
+				{
+					if (Socket->SetBroadcast(true) && Socket->SetMulticastLoopback(true))
+					{
+						// should mirror UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT
+						if (Socket->JoinMulticastGroup(*FIPv4Endpoint(FIPv4Address(230, 0, 0, 1), 6666).ToInternetAddr()))
+						{
+							bCanUse = true;
+						}
+					}
+				}
+
+				SocketSubsystem->DestroySocket(Socket);
+			}
+		}
+
+		return bCanUse;
+	}
+}
+#endif
+
 int32 FSwarmInterfaceLocalImpl::OpenConnection( FConnectionCallback InCallbackFunc, void* InCallbackData, TLogFlags LoggingFlags, const TCHAR* OptionsFolder )
 {
 	// InCallbackFunc can be NULL
@@ -128,7 +167,7 @@ int32 FSwarmInterfaceLocalImpl::OpenConnection( FConnectionCallback InCallbackFu
 
 #if USE_LOCAL_SWARM_INTERFACE
 	bIsEditor = !FString(FPlatformProcess::ExecutableName()).StartsWith(TEXT("UnrealLightmass"));
-	
+
 	if (!MessageEndpoint.IsValid())
 	{
 		MessageEndpoint = FMessageEndpoint::Builder("FSwarmInterfaceLocal")
@@ -147,7 +186,9 @@ int32 FSwarmInterfaceLocalImpl::OpenConnection( FConnectionCallback InCallbackFu
 		{
 			MessageEndpoint->Subscribe<FSwarmPingMessage>();
 			MessageEndpoint->Publish(new FSwarmPingMessage(), EMessageScope::Network);
-			bIsConnected = true;
+
+			// UMB does not allow us to identify early its initialization errors - check that manually.
+			bIsConnected = SwarmInterfaceLocalImpl::CanUseUMB();
 		}
 		else
 		{
@@ -282,7 +323,7 @@ void FSwarmInterfaceLocalImpl::HandlePongMessage( const FSwarmPongMessage& Messa
 		Recepient = Context->GetSender();
 	}
 }
-	
+
 void FSwarmInterfaceLocalImpl::HandleInfoMessage( const FSwarmInfoMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
