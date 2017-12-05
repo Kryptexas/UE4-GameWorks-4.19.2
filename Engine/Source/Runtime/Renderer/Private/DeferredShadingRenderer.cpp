@@ -25,6 +25,10 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
+#if WITH_FLEX
+#include "FlexFluidSurfaceRendering.h"
+#endif
+
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
 	3,	
@@ -752,7 +756,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	};
 
 #if WITH_FLEX
-	GFlexFluidSurfaceRenderer.UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
+	GFlexFluidSurfaceRenderer.PreRenderOpaque(RHICmdList, Views);
 #endif
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
@@ -937,15 +941,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	}
 
-#if WITH_FLEX
-	GFlexFluidSurfaceRenderer.RenderParticles(RHICmdList, Views);
-	
-	//FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction);
-	SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
-
-	GFlexFluidSurfaceRenderer.RenderBasePass(RHICmdList, Views);
-#endif
-
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
@@ -1012,6 +1007,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			);
 		ServiceLocalQueue();
 	}
+
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer.PostRenderOpaque(RHICmdList, Views);
+#endif
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
@@ -1290,10 +1289,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
-
-#if WITH_FLEX
-	GFlexFluidSurfaceRenderer.Cleanup();
-#endif
 
 	// Resolve the scene color for post processing.
 	ResolveSceneColor(RHICmdList);

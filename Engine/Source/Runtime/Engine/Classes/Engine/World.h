@@ -958,11 +958,6 @@ private:
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
 
-#if WITH_FLEX
-	/** Map from Flex fluid surface template to fluid surface components*/
-	TMap<class UFlexFluidSurface*, class UFlexFluidSurfaceComponent*> FlexFluidSurfaceMap;
-#endif
-
 	/** Set of components that need updates at the end of the frame */
 	TSet<TWeakObjectPtr<UActorComponent> > ComponentsThatNeedEndOfFrameUpdate;
 
@@ -2220,23 +2215,6 @@ public:
 	 * Updates sub-levels (load/unload/show/hide) using streaming levels current state
 	 */
 	void UpdateLevelStreaming();
-
-#if WITH_FLEX
-	/**
-	 * Retrieve the UFlexFluidSurfaceComponent corresponding to the UFlexFluidSurface template.
-	 */
-	class UFlexFluidSurfaceComponent* GetFlexFluidSurface(class UFlexFluidSurface* FlexFluidSurfaceTemplate);
-
-	/**
-	 * Create a new UFlexFluidSurfaceComponent, corresponding 1:1 with a UFlexFluidSurface template.
-	 */
-	class UFlexFluidSurfaceComponent* AddFlexFluidSurface(class UFlexFluidSurface* FlexFluidSurfaceTemplate);
-
-	/**
-	 * Remove a FlexFluidSurfaceComponent and it's corresponding UFlexFluidSurface.
-	 */
-	void RemoveFlexFluidSurface(class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent);
-#endif
 
 private:
 	void UpdateLevelStreamingInner( ULevelStreaming* StreamingLevel );

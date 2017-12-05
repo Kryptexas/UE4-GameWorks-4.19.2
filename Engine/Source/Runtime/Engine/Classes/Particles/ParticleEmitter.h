@@ -188,7 +188,7 @@ class UParticleEmitter : public UObject
 	UPROPERTY(EditAnywhere, Category = Flex)
 	float Mass;
 
-	/** Optional Flex fluid surface for rendering */
+	/** LEGACY: Optional Flex fluid surface for rendering */
 	UPROPERTY(EditAnywhere, Category = Flex)
 	class UFlexFluidSurface* FlexFluidSurfaceTemplate;
 

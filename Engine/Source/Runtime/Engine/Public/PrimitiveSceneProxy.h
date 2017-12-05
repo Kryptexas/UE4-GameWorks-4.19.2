@@ -482,7 +482,6 @@ public:
 	inline bool UseEditorDepthTest() const { return bUseEditorDepthTest; }
 	inline bool SupportsDistanceFieldRepresentation() const { return bSupportsDistanceFieldRepresentation; }
 	inline bool SupportsHeightfieldRepresentation() const { return bSupportsHeightfieldRepresentation; }
-	inline bool IsFlexFluidSurface() const { return bFlexFluidSurface; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
@@ -807,9 +806,6 @@ protected:
 	uint32 bWantsSelectionOutline : 1;
 
 	uint32 bVerifyUsedMaterials : 1;
-
-	/** Whether the primitive has Flex fluid surface functionality */
-	uint32 bFlexFluidSurface : 1;
 
 private:
 

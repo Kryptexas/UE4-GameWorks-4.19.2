@@ -41,10 +41,6 @@
 #include "MobileBasePassRendering.h"
 #include "VolumeRendering.h"
 
-#if WITH_FLEX
-#include "FlexFluidSurfaceRendering.h"
-#endif
-
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
 

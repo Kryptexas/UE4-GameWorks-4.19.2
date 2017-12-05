@@ -1518,11 +1518,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	bool						bRemoveHMDRoll;
 	float						MinFacingCameraBlendDistance;
 	float						MaxFacingCameraBlendDistance;
-	
-	int32						FlexDataOffset;
-	bool						bFlexAnisotropyData;
-	bool						bFlexSurface;
-	
+
 	/** Constructor */
 	FDynamicSpriteEmitterReplayDataBase();
 

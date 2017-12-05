@@ -13,6 +13,8 @@
 class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
+class UFlexSoftJointComponent;
+class UFlexCollisionComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
 
@@ -64,6 +66,10 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexExtInstance* CreateInstance(const NvFlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase);
 	void DestroyInstance(NvFlexExtInstance* Asset);
 
+	// spawns a new instance of a soft joint into the container
+	NvFlexExtSoftJoint* CreateSoftJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroySoftJointInstance(NvFlexExtSoftJoint* joint);
+
 	// convert a phase to the solver format, will allocate a new group if requested
 	int32 GetPhase(const FFlexPhase& Phase);
 
@@ -83,6 +89,9 @@ struct FFlexContainerInstance : public PxDeletionListener
 	void Unmap();	
 	// returns true if data is mapped, if so then reads/writes may occur, otherwise they are illegal
 	bool IsMapped();
+
+	// helper to setup report shapes and indices during UpdateCollisionData
+	void SetupCollisionReport(void* Shape, UFlexCollisionComponent* ReportComponent);
 
 	// gather and send collision data to the solver
 	void UpdateCollisionData();
@@ -137,15 +146,19 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<int32> ContactIndices;
 	NvFlexVector<FVector4> ContactVelocities;
 	NvFlexVector<uint32> ContactCounts;
-	TArray<bool> ContactCounted;
 
 	FPhysScene* Owner;
 	FBoxSphereBounds Bounds;
 
 	TArray<IFlexContainerClient*> Components;
 
+	TArray<UFlexSoftJointComponent*> SoftJointComponents;
+
 	TWeakObjectPtr<UFlexContainer> TemplateRef;
 	UFlexContainer* Template;
+
+	// surface rendering
+	class UFlexFluidSurfaceComponent* FluidSurfaceComponent;
 
 	// incrementing group counter used to auto-assign unique groups to rigids
 	int GroupCounter;
@@ -157,9 +170,9 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<FVector4> ShapePositionsPrev;
 	NvFlexVector<FQuat> ShapeRotationsPrev;
 
-
-	TArray<int32> ShapeReportIndices;
-	TArray<TWeakObjectPtr<UPrimitiveComponent>> ShapeReportComponents;
+	TArray<int32> CollisionReportIndices;
+	TArray<UFlexCollisionComponent*> CollisionReportComponents;
+	TMap<void*, int32> ShapeToCollisionReportIndex;
 
 	// temporary buffers used during collision shape building
 	NvFlexVector<FVector4> TriMeshVerts;

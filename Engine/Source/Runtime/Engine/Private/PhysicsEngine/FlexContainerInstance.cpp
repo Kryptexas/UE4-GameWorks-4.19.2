@@ -4,7 +4,9 @@
 
 #include "DrawDebugHelpers.h"
 #include "PhysXSupport.h"
-
+#include "PhysicsEngine/FlexCollisionComponent.h"
+#include "PhysicsEngine/FlexFluidSurfaceActor.h"
+#include "PhysicsEngine/FlexFluidSurfaceComponent.h"
 
 #if WITH_FLEX
 
@@ -121,6 +123,13 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 		ConvexMeshes.Remove(observed);
 
 		DEC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
+	}
+
+	int32* ReportIndex = ShapeToCollisionReportIndex.Find(observed);
+	if (ReportIndex)
+	{
+		//avoid invalidating CollisionReportIndices)
+		CollisionReportComponents[*ReportIndex] = nullptr;
 	}
 }
 
@@ -318,6 +327,18 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 	}
 }
 
+void FFlexContainerInstance::SetupCollisionReport(void* Shape, UFlexCollisionComponent* CollisionComponent)
+{
+	int32 CollisionReportIndex = -1;
+	if (CollisionComponent)
+	{
+		CollisionReportIndex = CollisionReportComponents.Num();
+		CollisionReportComponents.Push(CollisionComponent);
+		ShapeToCollisionReportIndex.Add(Shape, CollisionReportIndex);
+	}
+	CollisionReportIndices.Push(CollisionReportIndex);
+}
+
 // send bodies from synchronous PhysX scene to Flex scene
 void FFlexContainerInstance::UpdateCollisionData()
 {	
@@ -344,8 +365,9 @@ void FFlexContainerInstance::UpdateCollisionData()
 	ShapeRotationsPrev.resize(0);
 	ShapeFlags.resize(0);
 
-	ShapeReportIndices.Reset();
-	ShapeReportComponents.Reset();
+	CollisionReportIndices.Reset();
+	CollisionReportComponents.Reset();
+	ShapeToCollisionReportIndex.Reset();
 
 	FBox MergedActorBounds(ForceInit);
 	FBox TriMeshBounds(ForceInit);
@@ -423,10 +445,23 @@ void FFlexContainerInstance::UpdateCollisionData()
 				continue;
 
 			bool bIsOverlap = (Response == ECollisionResponse::ECR_Overlap);
-			bool bReportShape = PrimComp->bFlexEnableParticleCounter || PrimComp->bFlexParticleDrain;
+			UFlexCollisionComponent* CollisionComponent = nullptr;
+			if (PrimComp->GetOwner())
+			{
+				const TSet<UActorComponent*>& ActorComps = PrimComp->GetOwner()->GetComponents();
+				for (TSet<UActorComponent*>::TConstIterator SetIt(ActorComps); SetIt; ++SetIt)
+				{
+					UActorComponent* Component = *SetIt;
+					if (Component && Component->IsA<UFlexCollisionComponent>())
+					{
+						CollisionComponent = Cast<UFlexCollisionComponent>(Component);
+						break;
+					}
+				}
+			}
 
 			//Currently we are just interested in overlaps that correspond to triggers. Overlap response is also used for auto attachments.
-			if (bIsOverlap && !bReportShape)
+			if (bIsOverlap && CollisionComponent == nullptr)
 				continue;
 
 			FBodyInstance* Body = NULL;
@@ -493,7 +528,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 				// for components that act as a localization parent we ignore the velocity as it 
 				// makes friction and CCD behave incorrectly, we should actually
 				// just factor out the parent's velocity to allow sub-bodies (like a ragdoll) to have some relative motion
-				if (!PrimComp->bIsFlexParent)
+				if (CollisionComponent == nullptr || !CollisionComponent->bIsLocalSimParent)
 				{
 					// generate previous frame's transform from rigid body velocities and time-step
 					const PxVec3 LinearVelocity = U2PVector(Body->GetUnrealWorldVelocity_AssumesLocked());
@@ -522,13 +557,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						ShapePositionsPrev.push_back(FVector4(WorldTransformPrev.p.x, WorldTransformPrev.p.y, WorldTransformPrev.p.z, 1.0f));
 						ShapeRotationsPrev.push_back(FQuat(WorldTransformPrev.q.x, WorldTransformPrev.q.y, WorldTransformPrev.q.z, WorldTransformPrev.q.w));
 						
-						int32 ShapeReportIndex = -1;
-						if (bReportShape)
-						{
-							ShapeReportIndex = ShapeReportComponents.Num();
-							ShapeReportComponents.Push(TWeakObjectPtr<UPrimitiveComponent>(PrimComp));
-						}
-						ShapeReportIndices.Push(ShapeReportIndex);
+						SetupCollisionReport(Shape, CollisionComponent);
 
 						if (Shape->getGeometryType() == PxGeometryType::eCAPSULE)
 						{
@@ -594,13 +623,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 							ShapePositionsPrev.push_back(FVector4(WorldTransformPrev.p.x, WorldTransformPrev.p.y, WorldTransformPrev.p.z, 1.0f));
 							ShapeRotationsPrev.push_back(FQuat(WorldTransformPrev.q.x, WorldTransformPrev.q.y, WorldTransformPrev.q.z, WorldTransformPrev.q.w));
 
-							int32 ShapeReportIndex = -1;
-							if (bReportShape)
-							{
-								ShapeReportIndex = ShapeReportComponents.Num();
-								ShapeReportComponents.Push(TWeakObjectPtr<UPrimitiveComponent>(PrimComp));
-							}
-							ShapeReportIndices.Push(ShapeReportIndex);
+							SetupCollisionReport(Shape, CollisionComponent);
 
 							// look up mesh in cache (or create)
 							NvFlexConvexMeshId Mesh = GetConvexMesh(ConvexMesh.convexMesh);
@@ -649,13 +672,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
-						int32 ShapeReportIndex = -1;
-						if (bReportShape)
-						{
-							ShapeReportIndex = ShapeReportComponents.Num();
-							ShapeReportComponents.Push(TWeakObjectPtr<UPrimitiveComponent>(PrimComp));
-						}
-						ShapeReportIndices.Push(ShapeReportIndex);					
+						SetupCollisionReport(Shape, CollisionComponent);
 						break;
 					}
 					case PxGeometryType::eHEIGHTFIELD:
@@ -692,14 +709,7 @@ void FFlexContainerInstance::UpdateCollisionData()
 						int32 Flags = NvFlexMakeShapeFlags(NvFlexCollisionShapeType::eNvFlexShapeTriangleMesh, Actor->is<PxRigidStatic>() == NULL) | (bIsOverlap ? eNvFlexShapeFlagTrigger : 0);							
 						ShapeFlags.push_back(Flags);
 
-						int32 ShapeReportIndex = -1;
-						if (bReportShape)
-						{
-							ShapeReportIndex = ShapeReportComponents.Num();
-							ShapeReportComponents.Push(TWeakObjectPtr<UPrimitiveComponent>(PrimComp));
-						}
-						ShapeReportIndices.Push(ShapeReportIndex);
-
+						SetupCollisionReport(Shape, CollisionComponent);
 						break;
 					}
 				}
@@ -789,7 +799,6 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	ContactIndices.init(Template->MaxParticles);
 	ContactVelocities.init(Template->MaxParticles*MaxContactsPerParticle);
 	ContactCounts.init(Template->MaxParticles);
-	ContactCounted.SetNum(Template->MaxParticles);
 
 	GroupCounter = 0;
 	LeftOverTime = 0.0f;
@@ -810,6 +819,13 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	Map();
 
 	GPhysXSDK->registerDeletionListener(*this, PxDeletionEventFlag::eMEMORY_RELEASE);
+
+	// fluid surface actor
+	FluidSurfaceComponent = NULL;
+	if (Template->FluidSurface)
+	{
+		FluidSurfaceComponent = AFlexFluidSurfaceActor::SpawnActor(Template->FluidSurface, GetMaxParticleCount(), Owner->GetOwningWorld());
+	}
 }
 
 FFlexContainerInstance::~FFlexContainerInstance()
@@ -819,6 +835,9 @@ FFlexContainerInstance::~FFlexContainerInstance()
 
 	UE_LOG(LogFlex, Display, TEXT("Destroying a FLEX system for.."));
 	
+	if (FluidSurfaceComponent)
+		FluidSurfaceComponent->GetOwner()->Destroy();
+
 	GPhysXSDK->unregisterDeletionListener(*this);
 
 	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
@@ -871,7 +890,6 @@ int32 FFlexContainerInstance::CreateParticle(const FVector4& Pos, const FVector&
 		Normals[index] = FVector4(0.0f);
 		Phases[index] = Phase;
 		ContactIndices[index] = -1;
-		ContactCounted[index] = false;
 
 		return index;
 	}
@@ -936,6 +954,21 @@ void FFlexContainerInstance::DestroyInstance(NvFlexExtInstance* Inst)
 	DEC_DWORD_STAT_BY(STAT_Flex_ShapeCount, Inst->asset->numShapes);
 
 	NvFlexExtDestroyInstance(Container, Inst);
+}
+
+NvFlexExtSoftJoint* FFlexContainerInstance::CreateSoftJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+{
+	if (NumParticles == 0)
+		return nullptr;
+
+	NvFlexExtSoftJoint* joint = NvFlexExtCreateSoftJoint(Container, (int*)&ParticleIndices[0], (float*)&ParticleLocalPositions[0], NumParticles, Stiffness);
+
+	return joint;
+}
+
+void FFlexContainerInstance::DestroySoftJointInstance(NvFlexExtSoftJoint* joint)
+{
+	NvFlexExtDestroySoftJoint(Container, joint);
 }
 
 int32 FFlexContainerInstance::GetPhase(const FFlexPhase& Phase)
@@ -1052,7 +1085,7 @@ void FFlexContainerInstance::UpdateSimData()
 
 	// force fields
 	NvFlexExtSetForceFields(ForceFieldCallback, ForceFields.GetData(), ForceFields.Num());
-		
+
 	// move particle data to GPU, async
 	NvFlexExtPushToDevice(Container);
 }
@@ -1107,7 +1140,7 @@ void FFlexContainerInstance::Simulate(float DeltaTime)
 		NvFlexGetSmoothParticles(Solver, SmoothPositions.buffer, NULL);
 	}
 
-	if (ShapeReportComponents.Num() > 0)
+	if (CollisionReportComponents.Num() > 0)
 	{
 		NvFlexGetContacts(Solver, nullptr, ContactVelocities.buffer, ContactIndices.buffer, ContactCounts.buffer);
 	}
@@ -1146,6 +1179,11 @@ void FFlexContainerInstance::Synchronize()
 		// process components
 		for (int32 i=0; i < Components.Num(); ++i)
 			Components[i]->Synchronize();
+	}
+
+	if (FluidSurfaceComponent)
+	{
+		FluidSurfaceComponent->ClearParticles();
 	}
 }
 
@@ -1403,7 +1441,6 @@ int FFlexContainerInstance::GetMaxParticleCount()
 {
 	return Template->MaxParticles;
 }
-
 
 #endif //WITH_FLEX
 

@@ -6,7 +6,6 @@
 =============================================================================*/
 
 #include "VertexFactoryCommon.ush"
-#include "ParticleVertexFactoryCommon.ush"
 
 Texture2D FlexFluidSurfaceDepthTexture;
 SamplerState FlexFluidSurfaceDepthTextureSampler;
@@ -42,11 +41,6 @@ float3 GetViewPos(float2 TexCoordUV, float ViewZ)
 	float2 XY = ClipXY*ClipXYAndViewDepthToViewXY;
 	return float3(-XY*ViewZ, ViewZ);
 }
-
-//TODO: merge texture accesses
-//also maybe do this:
-// Derive ScreenPosition from WorldPosition to avoid using another interpolator
-// Parameters.ScreenPosition = mul(PixelPosition, ResolvedView.TranslatedWorldToClip);
 
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
 FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 PixelPosition)
@@ -101,51 +95,20 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.TangentToWorld[1] = WorldBinormal;
 	Result.TangentToWorld[2] = WorldNormal;
 
+	Result.DepthOffset =  ConvertToDeviceZ(ViewPosZ);
+	float MaxDepth = ConvertFromDeviceZ(0.0);
+
+	if (MaxDepth*0.95 - ViewPosZ <= 0.0)
+	{
+		Result.ForceOpacityZero = 1.0;
+	}
+
+	//Normally ScreenPosition is set in CalcMaterialParametersEx, not sure why. For screen space surface we need to set it here based on per pixel depth.
+	Result.ScreenPosition = SvPositionToResolvedScreenPosition(PixelPosition);
+	Result.ScreenPosition.z = Result.DepthOffset;
+	Result.ScreenPosition.w = ViewPosZ;
+	
 	return Result;
-}
-
-
-void GetFlexFluidSurfaceCoverageAndClipping(FVertexFactoryInterpolantsVSToPS Interpolants)
-{
-	float2 TexCoord = float2(Interpolants.ClipPosition.xy * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz);
-	float SmoothDepth = Texture2DSampleLevel(FlexFluidSurfaceDepthTexture, FlexFluidSurfaceDepthTextureSampler, TexCoord, 0).x;
-	//TODO use far distance plane value
-	clip(65000.0f - SmoothDepth);
-}
-
-float GetFlexFluidSurfaceDepth(FVertexFactoryInterpolantsVSToPS Interpolants)
-{
-	float2 TexCoord = float2(Interpolants.ClipPosition.xy * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz);
-	float SmoothDepth = Texture2DSampleLevel(FlexFluidSurfaceDepthTexture, FlexFluidSurfaceDepthTextureSampler, TexCoord, 0).x;
-	return ConvertToDeviceZ(SmoothDepth);
-}
-
-float3 GetDebugNormalColor(float3 Normal)
-{
-	if (dot(normalize(Normal), float3(1, 0, 0)) > 0.85)
-		return float3(1, 0, 0);
-
-	if (dot(normalize(Normal), float3(-1, 0, 0)) > 0.85)
-		return float3(0, 1, 1);
-
-	if (dot(normalize(Normal), float3(0, 1, 0)) > 0.85)
-		return float3(0, 1, 0);
-
-	if (dot(normalize(Normal), float3(0,-1, 0)) > 0.85)
-		return float3(1, 0, 1);
-
-	if (dot(normalize(Normal), float3(0, 0, 1)) > 0.85)
-		return float3(0, 0, 1);
-
-	if (dot(normalize(Normal), float3(0, 0,-1)) > 0.85)
-		return float3(1, 1, 0);
-
-	return float3(1,1,1);
-}
-
-float3 GetFlexFluidSurfaceDebugColor(FVertexFactoryInterpolantsVSToPS Interpolants)
-{
-	return float3(0.0f, 0.0f, 0.0f);
 }
 
 /** Converts from vertex factory specific input to a FMaterialVertexParameters, which is used by vertex shader material inputs. */

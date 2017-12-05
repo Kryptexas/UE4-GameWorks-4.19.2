@@ -29,15 +29,10 @@ void DepthSmoothMainPS(
 {
 
 	float Depth = Texture2DSampleLevel(FlexFluidSurfaceDepthTexture, FlexFluidSurfaceDepthTextureSampler, TexCoord, 0).r;
-
-	//debug visualization of depth values
-	//float debugvis = clamp((Depth - 100.0)/900.0f, 0.0, 1.0); 
-	//OutValue = debugvis;
-	//return;
-
-	if (Depth > 65000.0f)
+	float MaxDepth = ConvertFromDeviceZ(0.0);
+	if (Depth > MaxDepth*0.95)
 	{
-		OutValue = 65536.0f;
+		OutValue = MaxDepth;
 		return;
 	}
 	
@@ -58,7 +53,7 @@ void DepthSmoothMainPS(
 
             float Sample = Texture2DSampleLevel(FlexFluidSurfaceDepthTexture, FlexFluidSurfaceDepthTextureSampler, TexCoord + Offset, 0).x;
 
-			if (Sample > 65000.0f)
+			if (Sample > MaxDepth*0.95)
 				continue;
 
             // spatial domain

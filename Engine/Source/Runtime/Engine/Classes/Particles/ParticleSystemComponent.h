@@ -12,10 +12,6 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/Emitter.h"
 
-#if WITH_FLEX
-#include "PhysicsEngine/FlexFluidSurface.h"
-#endif // WITH_FLEX
-
 #include "ParticleSystemComponent.generated.h"
 
 class FParticleDynamicData;
@@ -1216,16 +1212,6 @@ public:
 	/** Returns the index into the EmitterMaterials array for this named. If there are no named material slots or this material is not found, INDEX_NONE is returned. */
 	virtual int32 GetNamedMaterialIndex(FName InName) const;
 
-	/**
-	* Creates a Dynamic Material Instance for the specified flex material from the supplied material.
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
-	virtual class UMaterialInstanceDynamic* CreateFlexDynamicMaterialInstance(class UMaterialInterface* SourceMaterial);
-
-	/** To support the creation of a dynamic material instance for Flex emitters, we need to make a new FlexFluidSurface instance */
-	UPROPERTY()
-	UFlexFluidSurface* FlexFluidSurfaceOverride;
-
 protected:
 
 	// @todo document
@@ -1261,11 +1247,6 @@ protected:
 
 	// @todo document
 	virtual void UpdateDynamicData();
-
-#if WITH_FLEX
-	virtual void UpdateFlexSurfaceDynamicData(FParticleEmitterInstance* EmitterInstance, FDynamicEmitterDataBase* EmitterDynamicData);
-	virtual void ClearFlexSurfaceDynamicData();
-#endif
 
 public:
 
