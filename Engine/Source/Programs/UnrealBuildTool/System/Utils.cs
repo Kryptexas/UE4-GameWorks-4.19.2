@@ -310,6 +310,7 @@ namespace UnrealBuildTool
 				StreamReader OutputReader = LocalProcess.StandardOutput;
 				// trim off any extraneous new lines, helpful for those one-line outputs
 				FullOutput = OutputReader.ReadToEnd().Trim();
+				LocalProcess.WaitForExit();
 				ExitCode = LocalProcess.ExitCode;
 			}
 
