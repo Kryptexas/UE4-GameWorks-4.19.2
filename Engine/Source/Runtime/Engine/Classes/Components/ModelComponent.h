@@ -87,6 +87,8 @@ public:
 	ENGINE_API void CopyElementsFrom(UModelComponent* OtherModelComponent);
 
 	//~ Begin UPrimitiveComponent Interface.
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
 	virtual int32 GetStaticLightMapResolution() const override;
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;

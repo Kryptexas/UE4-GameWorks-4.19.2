@@ -410,8 +410,8 @@ void FStaticMeshVertexBuffers::InitModelVF(FLocalVertexFactory* VertexFactory)
 	ENQUEUE_RENDER_COMMAND(StaticMeshVertexBuffersLegacyBspInit)(
 		[VertexFactory, Self](FRHICommandListImmediate& RHICmdList)
 	{
-		InitOrUpdateResource(&Self->PositionVertexBuffer);
-		InitOrUpdateResource(&Self->StaticMeshVertexBuffer);
+		check(Self->PositionVertexBuffer.IsInitialized());
+		check(Self->StaticMeshVertexBuffer.IsInitialized());
 
 		FLocalVertexFactory::FDataType Data;
 		Self->PositionVertexBuffer.BindPositionVertexBuffer(VertexFactory, Data);

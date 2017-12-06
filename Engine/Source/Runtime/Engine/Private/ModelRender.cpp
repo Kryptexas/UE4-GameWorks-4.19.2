@@ -196,8 +196,29 @@ public:
 			FColor(157,149,223,255))
 #endif
 	{
-		FModelVertexBuffer& VertexBuffer = InComponent->GetModel()->VertexBuffer;
-		VertexBuffer.Buffers.InitModelVF(&VertexFactory);
+		ENQUEUE_RENDER_COMMAND(InitOrUpdateVertexBufferCmd)([VertexBuffer = &InComponent->GetModel()->VertexBuffer](FRHICommandList&)
+		{
+			if (!VertexBuffer->Buffers.PositionVertexBuffer.IsInitialized())
+			{
+				VertexBuffer->Buffers.PositionVertexBuffer.InitResource();
+			}
+			else if (VertexBuffer->RefCount == 0)
+			{
+				// Only allow update when no other FModelSceneProxy's is using the vertex buffer
+				// otherwise their resources will become invalid
+				VertexBuffer->Buffers.PositionVertexBuffer.UpdateRHI();
+			}
+
+			if (!VertexBuffer->Buffers.StaticMeshVertexBuffer.IsInitialized())
+			{
+				VertexBuffer->Buffers.StaticMeshVertexBuffer.InitResource();
+			}
+			else if (VertexBuffer->RefCount == 0)
+			{
+				VertexBuffer->Buffers.StaticMeshVertexBuffer.UpdateRHI();
+			}
+		});
+		InComponent->GetModel()->VertexBuffer.Buffers.InitModelVF(&VertexFactory);
 
 		OverrideOwnerName(NAME_BSP);
 		const TIndirectArray<FModelElement>& SourceElements = Component->GetElements();
@@ -748,6 +769,26 @@ public:
 	}
 	friend class UModelComponent;
 };
+
+void UModelComponent::CreateRenderState_Concurrent()
+{
+	if (GetModel())
+	{
+		++GetModel()->VertexBuffer.RefCount;
+	}
+
+	Super::CreateRenderState_Concurrent();
+}
+
+void UModelComponent::DestroyRenderState_Concurrent()
+{
+	if (GetModel())
+	{
+		--GetModel()->VertexBuffer.RefCount;
+	}
+
+	Super::DestroyRenderState_Concurrent();
+}
 
 FPrimitiveSceneProxy* UModelComponent::CreateSceneProxy()
 {

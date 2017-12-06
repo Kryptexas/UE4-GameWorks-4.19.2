@@ -301,6 +301,10 @@ struct FModelVertex
 class FModelVertexBuffer
 {
 public:
+	// Number of FModelSceneProxy's using this
+	// Only access in CreateRenderState_Concurrent and DestroyRenderState_Concurrent
+	uint32 RefCount = 0;
+
 	/** model vertex data */
 	TArray<FModelVertex> Vertices;
 
