@@ -440,6 +440,7 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 				case EUINavigationRule::Explicit:
 					return NavigationReply.GetFocusRecipient();
 				case EUINavigationRule::Custom:
+				case EUINavigationRule::CustomBoundary:
 				{
 					const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
 					if (FocusDelegate.IsBound())
@@ -466,14 +467,25 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 		// break if we have looped back to where we started.
 		if (bWrapped && StartingIndex == CurrentCellProcessed) { break; }
 
-		// If were going to fail our bounds check and our rule is to wrap then wrap our position
-		if (!(CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex]) && NavigationReply.GetBoundaryRule() == EUINavigationRule::Wrap)
+		// If were going to fail our bounds check and our rule is to a boundary condition (Wrap or CustomBoundary) handle appropriately
+		if (!(CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex]))
 		{
-			CurrentSourceSide = DestSideFunc(SweptRect);
-			FVector2D SampleSpot = WidgetRect.GetCenter();
-			SampleSpot[AxisIndex] = CurrentSourceSide;
-			CurrentCellPoint = GetCellCoordinate(SampleSpot);
-			bWrapped = true;
+			if (NavigationReply.GetBoundaryRule() == EUINavigationRule::Wrap)
+			{
+				CurrentSourceSide = DestSideFunc(SweptRect);
+				FVector2D SampleSpot = WidgetRect.GetCenter();
+				SampleSpot[AxisIndex] = CurrentSourceSide;
+				CurrentCellPoint = GetCellCoordinate(SampleSpot);
+				bWrapped = true;
+			}
+			else if (NavigationReply.GetBoundaryRule() == EUINavigationRule::CustomBoundary)
+			{
+				const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
+				if (FocusDelegate.IsBound())
+				{
+					return FocusDelegate.Execute(Direction);
+				}
+			}
 		}
 	}
 

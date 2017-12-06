@@ -45,10 +45,10 @@ public:
 	void Refresh(float Percentage) final override;
 
 	/** Add a component streaming data, the LevelContext gives support for precompiled data. */
-	 bool Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) final override;
+	EAddComponentResult Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity = 0) final override;
 
 	/** Remove a component, the RemoveTextures is the list of textures not referred anymore. */
-	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures) final override;
+	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures) final override;
 
 	/** Notify the manager that an async view will be requested on the next frame. */
 	void PrepareAsyncView() final override;

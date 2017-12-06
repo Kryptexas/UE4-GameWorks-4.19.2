@@ -228,6 +228,11 @@ namespace AutomationTool
 				WindowWidth = 240;
 			}
 
+			if(WindowWidth <= 0)
+			{
+				WindowWidth = 240;
+			}
+
 			// Build the formatted params
 			foreach (var ParamName in ParamDict.Keys)
 			{

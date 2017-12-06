@@ -534,7 +534,7 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		const bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
 
-		if ( ViewportClient->HideCursorDuringCapture() )
+		if ( ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor )
 		{
 			bCursorHiddenDueToCapture = true;
 			MousePosBeforeHiddenDueToCapture = MousePosition;

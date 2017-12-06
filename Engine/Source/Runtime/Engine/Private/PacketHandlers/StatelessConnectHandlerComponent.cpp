@@ -146,7 +146,7 @@ DEFINE_LOG_CATEGORY(LogHandshake);
  */
 
 StatelessConnectHandlerComponent::StatelessConnectHandlerComponent()
-	: HandlerComponent()
+	: HandlerComponent(FName(TEXT("StatelessConnectHandlerComponent")))
 	, Driver(nullptr)
 	, HandshakeSecret()
 	, ActiveSecret(255)

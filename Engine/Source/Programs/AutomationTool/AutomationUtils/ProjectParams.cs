@@ -226,6 +226,7 @@ namespace AutomationTool
 			this.StageBaseReleasePaks = InParams.StageBaseReleasePaks;
 			this.DLCFile = InParams.DLCFile;
 			this.GenerateRemaster = InParams.GenerateRemaster;
+			this.DiscVersion = InParams.DiscVersion;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
 			this.DLCActLikePatch = InParams.DLCActLikePatch;
 			this.DLCPakPluginFile = InParams.DLCPakPluginFile;
@@ -404,6 +405,7 @@ namespace AutomationTool
 			bool? AddPatchLevel = null,
 			bool? StageBaseReleasePaks = null,
 			bool? GenerateRemaster = null,
+            string DiscVersion = null,
             string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
@@ -541,7 +543,8 @@ namespace AutomationTool
             this.AddPatchLevel = GetParamValueIfNotSpecified(Command, AddPatchLevel, this.AddPatchLevel, "AddPatchLevel");
 			this.StageBaseReleasePaks = GetParamValueIfNotSpecified(Command, StageBaseReleasePaks, this.StageBaseReleasePaks, "StageBaseReleasePaks");
 			this.GenerateRemaster = GetParamValueIfNotSpecified(Command, GenerateRemaster, this.GenerateRemaster, "GenerateRemaster");
-            this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
+			this.DiscVersion = ParseParamValueIfNotSpecified(Command, DiscVersion, "DiscVersion", String.Empty);
+			this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
 
 			DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
 			if(!String.IsNullOrEmpty(DLCName))
@@ -1381,6 +1384,11 @@ namespace AutomationTool
 		/// see also CreateReleaseVersion, BasedOnReleaseVersion
 		/// </summary>
 		public bool GenerateRemaster;
+
+		/// <summary>
+		/// Required when building remaster package
+		/// </summary>
+		public string DiscVersion;
 
 		/// <summary>
         /// </summary>
@@ -2456,6 +2464,11 @@ namespace AutomationTool
 			{
 				throw new AutomationException("-createchunkinstall must specify the chunk install data version string with -chunkinstallversion=");
 			}
+
+			if(IsGeneratingRemaster && string.IsNullOrEmpty(DiscVersion))
+			{
+				throw new AutomationException("DiscVersion is required for generating remaster package.");
+			}
 		}
 
 		protected bool bLogged = false;
@@ -2496,7 +2509,8 @@ namespace AutomationTool
 				CommandUtils.LogLog("AddPatchLevel={0}", AddPatchLevel);
 				CommandUtils.LogLog("StageBaseReleasePaks={0}", StageBaseReleasePaks);
 				CommandUtils.LogLog("GenerateRemaster={0}", GenerateRemaster);
-                CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
+				CommandUtils.LogLog("DiscVersion={0}", DiscVersion);
+				CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.LogLog("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.LogLog("DLCFile={0}", DLCFile);
                 CommandUtils.LogLog("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);

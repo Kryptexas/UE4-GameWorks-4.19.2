@@ -595,8 +595,12 @@ void FGameplayTagContainer::FillParentTags()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("FGameplayTagContainer::GetGameplayTagParents"), STAT_FGameplayTagContainer_GetGameplayTagParents, STATGROUP_GameplayTags);
+
 FGameplayTagContainer FGameplayTagContainer::GetGameplayTagParents() const
 {
+	SCOPE_CYCLE_COUNTER(STAT_FGameplayTagContainer_GetGameplayTagParents);
+
 	FGameplayTagContainer ResultContainer;
 	ResultContainer.GameplayTags = GameplayTags;
 

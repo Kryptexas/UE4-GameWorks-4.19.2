@@ -100,6 +100,7 @@ struct FLoadedAudioChunk
 	class IAsyncReadRequest* IORequest;
 	int32	MemorySize; 
 	int32	DataSize;
+	int32	AudioDataSize;
 	uint32	Index;
 
 	FLoadedAudioChunk()
@@ -107,6 +108,7 @@ struct FLoadedAudioChunk
 		, IORequest(nullptr)
 		, MemorySize(0)
 		, DataSize(0)
+		, AudioDataSize(0)
 		, Index(0)
 	{
 	}
@@ -185,7 +187,7 @@ private:
 	FStreamingWaveData& operator=(FStreamingWaveData const&);
 
 	// Creates a new chunk, returns the chunk index
-	int32 AddNewLoadedChunk(int32 ChunkSize);
+	int32 AddNewLoadedChunk(int32 ChunkSize, int32 AudioSize);
 	void FreeLoadedChunk(FLoadedAudioChunk& LoadedChunk);
 
 public:
@@ -294,7 +296,8 @@ protected:
 	TMap<USoundWave*, FWaveRequest> WaveRequests;
 
 	/** Results of async loading audio chunks. */
-	TQueue<FASyncAudioChunkLoadResult*, EQueueMode::Mpsc> AsyncAudioStreamChunkResults;
+	TArray<FASyncAudioChunkLoadResult*> AsyncAudioStreamChunkResults;
+	mutable FCriticalSection ChunkResultCriticalSection;
 
 	/** Critical section to protect usage of shared gamethread/audiothread members */
 	mutable FCriticalSection CriticalSection;

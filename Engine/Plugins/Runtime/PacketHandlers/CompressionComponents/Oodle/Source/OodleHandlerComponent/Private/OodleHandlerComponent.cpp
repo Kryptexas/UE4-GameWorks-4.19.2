@@ -266,7 +266,8 @@ FOodleDictionary::~FOodleDictionary()
  */
 
 OodleHandlerComponent::OodleHandlerComponent()
-	: bEnableOodle(false)
+	: HandlerComponent(FName(TEXT("OodleHandlerComponent")))
+	, bEnableOodle(false)
 #if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	, InPacketLog(nullptr)
 	, OutPacketLog(nullptr)
@@ -832,7 +833,7 @@ void OodleHandlerComponent::Incoming(FBitReader& Packet)
 					if (bSuccess)
 					{
 						{
-#if STATS && !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING
 							SCOPE_CYCLE_COUNTER(STAT_Oodle_InDecompressTime);
 #endif
 
@@ -1411,7 +1412,7 @@ void FOodleComponentModuleInterface::StartupModule()
 	{
 		// Load the Oodle library (NOTE: Path and fallback path mirrored in Oodle.Build.cs)
 		FString OodleBinaryPath = FPaths::ProjectDir() / TEXT( "Binaries/ThirdParty/Oodle/" );
-		FString OodleBinaryFile = TEXT( "oo2core_1" );
+		FString OodleBinaryFile = TEXT( "oo2core_5" );
 
 	#if PLATFORM_64BITS
 		OodleBinaryPath += TEXT("Win64/");

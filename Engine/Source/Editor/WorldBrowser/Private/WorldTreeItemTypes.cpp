@@ -349,16 +349,13 @@ namespace WorldHierarchy
 			LevelModels.Add(LevelModel.Pin());
 		}
 
-		if (!LevelModel.Pin()->IsFileReadOnly())
+		if (bLocked)
 		{
-			if (bLocked)
-			{
-				WorldModel.Pin()->LockLevels(LevelModels);
-			}
-			else
-			{
-				WorldModel.Pin()->UnlockLevels(LevelModels);
-			}
+			WorldModel.Pin()->LockLevels(LevelModels);
+		}
+		else
+		{
+			WorldModel.Pin()->UnlockLevels(LevelModels);
 		}
 	}
 

@@ -372,7 +372,7 @@ public:
 	template<class BufferType>
 	void UnlockBuffer(FRHICommandListImmediate* RHICmdList, BufferType* Buffer);
 
-	inline bool ShouldDeferBufferLockOperation(FRHICommandList* RHICmdList)
+	static inline bool ShouldDeferBufferLockOperation(FRHICommandList* RHICmdList)
 	{
 		if (RHICmdList == nullptr)
 		{

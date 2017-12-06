@@ -159,6 +159,10 @@ namespace UnrealBuildTool
 			Result += " -fexceptions";
 			Result += " -fasm-blocks";
 
+			if(CompileEnvironment.bHideSymbolsByDefault)
+			{
+				Result += " -fvisibility=hidden";
+			}
 			if (Options.HasFlag(MacToolChainOptions.EnableAddressSanitizer))
 			{
 				Result += " -fsanitize=address";
@@ -897,47 +901,16 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Add the input files to a response file, and pass the response file on the command-line.
 			List<string> InputFileNames = new List<string>();
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
-				if (bIsBuildingLibrary)
-				{
-					InputFileNames.Add(string.Format("\"{0}\"", InputFile.AbsolutePath));
-				}
-				else
-				{
-					string EnginePath = ConvertPath(Path.GetDirectoryName(Directory.GetCurrentDirectory()));
-					string InputFileRelativePath = InputFile.AbsolutePath.Replace(EnginePath + "/", "../");
-					InputFileNames.Add(string.Format("\"{0}\"", InputFileRelativePath));
-				}
+				InputFileNames.Add(string.Format("\"{0}\"", InputFile.AbsolutePath));
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
 
-			if (bIsBuildingLibrary)
+			foreach (string Filename in InputFileNames)
 			{
-				foreach (string Filename in InputFileNames)
-				{
-					LinkCommand += " " + Filename;
-				}
-			}
-			else
-			{
-				// Write the list of input files to a response file, with a tempfilename, on remote machine
-				FileReference ResponsePath = FileReference.Combine(LinkEnvironment.IntermediateDirectory, Path.GetFileName(OutputFile.AbsolutePath) + ".response");
-
-				// Never create response files when we are only generating IntelliSense data
-				if (!ProjectFileGenerator.bGenerateProjectFiles)
-				{
-					ResponseFile.Create(ResponsePath, InputFileNames);
-
-					if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-					{
-						RPCUtilHelper.CopyFile(ResponsePath.FullName, ConvertPath(ResponsePath.FullName), true);
-					}
-				}
-
-				LinkCommand += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
+				LinkCommand += " " + Filename;
 			}
 
 			if (LinkEnvironment.bIsBuildingDLL)
@@ -989,6 +962,23 @@ namespace UnrealBuildTool
 					// Tell linker to ignore unresolved symbols, so we don't have a problem with cross dependent dylibs that do not exist yet.
 					// This is fixed in later step, FixDylibDependencies.
 					LinkCommand += string.Format(" -undefined dynamic_lookup");
+				}
+
+				// Write the MAP file to the output directory.
+				if (LinkEnvironment.bCreateMapFile)
+				{
+					string MapFileBaseName = OutputFile.AbsolutePath;
+
+					int AppIdx = MapFileBaseName.IndexOf(".app/Contents/MacOS");
+					if(AppIdx != -1)
+					{
+						MapFileBaseName = MapFileBaseName.Substring(0, AppIdx);
+					}
+
+					FileReference MapFilePath = new FileReference(MapFileBaseName + ".map");
+					FileItem MapFile = FileItem.GetItemByFileReference(MapFilePath);
+					LinkCommand += string.Format(" -Wl,-map,\"{0}\"", MapFilePath);
+					LinkAction.ProducedItems.Add(MapFile);
 				}
 			}
 
@@ -1533,6 +1523,10 @@ namespace UnrealBuildTool
 					else if(BuildProductPair.Value == BuildProductType.SymbolFile && BuildProductPair.Key.FullName.Contains(".app"))
 					{
 						BuildProducts.Remove(BuildProductPair.Key);
+					}
+					if(BuildProductPair.Value == BuildProductType.DynamicLibrary && Target.bCreateMapFile)
+					{
+						BuildProducts.Add(new FileReference(BuildProductPair.Key.FullName + ".map"), BuildProductType.MapFile);
 					}
 				}
 			}

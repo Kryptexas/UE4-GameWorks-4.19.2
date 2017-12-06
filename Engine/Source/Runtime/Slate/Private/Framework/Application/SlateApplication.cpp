@@ -60,9 +60,18 @@ public:
 	{
 	public:
 		FDirectPolicy( const FWidgetAndPointer& InTarget, const FWidgetPath& InRoutingPath )
-		: bEventSent(false)
-		, RoutingPath(InRoutingPath)
-		, Target(InTarget)
+			: bEventSent(false)
+			, RoutingPath(InRoutingPath)
+			, WidgetsUnderCursor(&RoutingPath)
+			, Target(InTarget)
+		{
+		}
+
+		FDirectPolicy(const FWidgetAndPointer& InTarget, const FWidgetPath& InRoutingPath, const FWidgetPath* InWidgetsUnderCursor)
+			: bEventSent(false)
+			, RoutingPath(InRoutingPath)
+			, WidgetsUnderCursor(InWidgetsUnderCursor)
+			, Target(InTarget)
 		{
 		}
 
@@ -86,9 +95,15 @@ public:
 			return RoutingPath;
 		}
 
+		const FWidgetPath* GetWidgetsUnderCursor() const
+		{
+			return WidgetsUnderCursor;
+		}
+
 	private:
 		bool bEventSent;
 		const FWidgetPath& RoutingPath;
+		const FWidgetPath* WidgetsUnderCursor;
 		const FWidgetAndPointer& Target;
 	};
 
@@ -120,6 +135,11 @@ public:
 		const FWidgetPath& GetRoutingPath() const
 		{
 			return RoutingPath;
+		}
+
+		const FWidgetPath* GetWidgetsUnderCursor() const
+		{
+			return &RoutingPath;
 		}
 
 	private:
@@ -156,6 +176,11 @@ public:
 			return RoutingPath;
 		}
 
+		const FWidgetPath* GetWidgetsUnderCursor() const
+		{
+			return &RoutingPath;
+		}
+
 	private:
 		int32 WidgetIndex;
 		const FWidgetPath& RoutingPath;
@@ -188,6 +213,11 @@ public:
 		const FWidgetPath& GetRoutingPath() const
 		{
 			return RoutingPath;
+		}
+
+		const FWidgetPath* GetWidgetsUnderCursor() const
+		{
+			return &RoutingPath;
 		}
 	
 	private:
@@ -225,6 +255,7 @@ public:
 	{
 		ReplyType Reply = ReplyType::Unhandled();
 		const FWidgetPath& RoutingPath = RoutingPolicy.GetRoutingPath();
+		const FWidgetPath* WidgetsUnderCursor = RoutingPolicy.GetWidgetsUnderCursor();
 		
 		EventCopy.SetEventPath( RoutingPath );
 
@@ -233,7 +264,7 @@ public:
 			const FWidgetAndPointer& ArrangedWidget = RoutingPolicy.GetWidget();
 			const EventType TranslatedEvent = Translate<EventType>::PointerEvent( ArrangedWidget.PointerPosition, EventCopy );
 			Reply = Lambda( ArrangedWidget, TranslatedEvent ).SetHandler( ArrangedWidget.Widget );
-			ProcessReply(ThisApplication, RoutingPath, Reply, &RoutingPath, &TranslatedEvent);
+			ProcessReply(ThisApplication, RoutingPath, Reply, WidgetsUnderCursor, &TranslatedEvent);
 		}
 
 		LogEvent(ThisApplication, EventCopy, Reply);
@@ -1277,10 +1308,12 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 					TSharedPtr<SWidget> DecoratorWidget = DragDropContent->GetDefaultDecorator();
 					if ( DecoratorWidget.IsValid() && DecoratorWidget->GetVisibility().IsVisible() )
 					{
-						DecoratorWidget->SetVisibility(EVisibility::HitTestInvisible);
-						DecoratorWidget->SlatePrepass(GetApplicationScale()*DragDropWindow->GetNativeWindow()->GetDPIScaleFactor());
+						const float WindowRootScale = GetApplicationScale() * DragDropWindow->GetNativeWindow()->GetDPIScaleFactor();
 
-						FVector2D DragDropContentInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(DragDropContent->GetDecoratorPosition());
+						DecoratorWidget->SetVisibility(EVisibility::HitTestInvisible);
+						DecoratorWidget->SlatePrepass(WindowRootScale);
+
+						FVector2D DragDropContentInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(DragDropContent->GetDecoratorPosition()) * WindowRootScale;
 						const FGeometry DragDropContentGeometry = FGeometry::MakeRoot(DecoratorWidget->GetDesiredSize(), FSlateLayoutTransform(DragDropContentInWindowSpace));
 
 						DecoratorWidget->Paint(
@@ -3093,6 +3126,8 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		check( InMouseEvent != nullptr );
 		DragDropContent = ReplyDragDropContent;
 
+		const FWeakWidgetPath& LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent.FindRef(FUserAndPointer(UserIndex, PointerIndex));
+
 		// We have entered drag and drop mode.
 		// Pretend that the mouse left all the previously hovered widgets, and a drag entered them.
 		FEventRouter::Route<FNoReply>(this, FEventRouter::FBubblePolicy(*WidgetsUnderMouse), *InMouseEvent, [](const FArrangedWidget& SomeWidget, const FPointerEvent& PointerEvent)
@@ -3218,7 +3253,8 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		{
 			if (TheReply.GetNavigationDestination().IsValid())
 			{
-				ExecuteNavigation(NavigationSource, TheReply.GetNavigationDestination(), UserIndex);
+				const bool bAlwaysHandleNavigationAttempt = false;
+				ExecuteNavigation(NavigationSource, TheReply.GetNavigationDestination(), UserIndex, bAlwaysHandleNavigationAttempt);
 			}
 			else
 			{
@@ -5473,7 +5509,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 				FScopedSwitchWorldHack SwitchWorld(DragDetectPath);
 
 				// Send an OnDragDetected to the widget that requested drag-detection.
-				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe, DragDetectPath), PointerEvent, [] (const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent)
+				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe, DragDetectPath, &WidgetsUnderPointer), PointerEvent, [] (const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent)
 				{
 					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent);
 				});
@@ -6061,7 +6097,8 @@ void FSlateApplication::NavigateToWidget(const uint32 UserIndex, const TSharedPt
 
 		if (NavigationSourceWP.IsValid())
 		{
-			ExecuteNavigation(NavigationSourceWP, NavigationDestination, UserIndex);
+			bool bAlwaysHandleNavigationAttempt = false;
+			ExecuteNavigation(NavigationSourceWP, NavigationDestination, UserIndex, bAlwaysHandleNavigationAttempt);
 		}
 	}
 }
@@ -6074,11 +6111,13 @@ bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, c
 	}
 
 	TSharedPtr<SWidget> DestinationWidget = TSharedPtr<SWidget>();
+	bool bAlwaysHandleNavigationAttempt = false;
 
 	EUINavigation NavigationType = NavigationEvent.GetNavigationType();
 	if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Explicit )
 	{
 		DestinationWidget = NavigationReply.GetFocusRecipient();
+		bAlwaysHandleNavigationAttempt = true;
 	}
 	else if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Custom )
 	{
@@ -6086,6 +6125,7 @@ bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, c
 		if ( FocusDelegate.IsBound() )
 		{
 			DestinationWidget = FocusDelegate.Execute(NavigationType);
+			bAlwaysHandleNavigationAttempt = true;
 		}
 	}
 	else
@@ -6113,10 +6153,10 @@ bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, c
 		}
 	}
 
-	return ExecuteNavigation(NavigationSource, DestinationWidget, NavigationEvent.GetUserIndex());
+	return ExecuteNavigation(NavigationSource, DestinationWidget, NavigationEvent.GetUserIndex(), bAlwaysHandleNavigationAttempt);
 }
 
-bool FSlateApplication::ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex)
+bool FSlateApplication::ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex, bool bAlwaysHandleNavigationAttempt)
 {
 	bool bHandled = false;
 
@@ -6135,10 +6175,17 @@ bool FSlateApplication::ExecuteNavigation(const FWidgetPath& NavigationSource, T
 	}
 
 	// Set controller focus if the navigation hasn't been handled have a valid widget
-	if (!bHandled && DestinationWidget.IsValid())
+	if (!bHandled)
 	{
-		SetUserFocus(UserIndex, DestinationWidget, EFocusCause::Navigation);
-		bHandled = true;
+		if (DestinationWidget.IsValid())
+		{
+			SetUserFocus(UserIndex, DestinationWidget, EFocusCause::Navigation);
+			bHandled = true;
+		}
+		else if (bAlwaysHandleNavigationAttempt)
+		{
+			bHandled = true;
+		}
 	}
 
 	return bHandled;

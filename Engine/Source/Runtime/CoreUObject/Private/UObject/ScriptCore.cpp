@@ -696,12 +696,12 @@ IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
 void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 {
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
 #endif
 
@@ -925,12 +925,12 @@ DEFINE_FUNCTION(UObject::ProcessInternal)
 	UFunction* Function = (UFunction*)Stack.Node;
 
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? P_THIS : nullptr);
 #endif
 
@@ -1227,12 +1227,12 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #endif // TOTAL_OVERHEAD_SCRIPT_STATS
 
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
 #endif
 

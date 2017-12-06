@@ -147,6 +147,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category=GameMode)
 	float InactivePlayerStateLifeSpan;
 
+	/** The maximum number of inactive players before we kick the oldest ones out */
+	UPROPERTY(EditAnywhere, Category = GameMode)
+	int32 MaxInactivePlayers;
+
 	/** If true, dedicated servers will record replays when HandleMatchHasStarted/HandleMatchHasStopped is called */
 	UPROPERTY(config)
 	bool bHandleDedicatedServerReplays;

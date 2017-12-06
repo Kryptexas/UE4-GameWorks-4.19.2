@@ -916,7 +916,12 @@ void FAnimationEditor::FillCopyToSoundWaveMenu(FMenuBuilder& MenuBuilder) const
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	MenuBuilder.AddWidget(
-		ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig),
+		SNew(SBox)
+		.WidthOverride(300.0f)
+		.HeightOverride(300.0f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		],
 		LOCTEXT("Select_Label", "")
 	);
 

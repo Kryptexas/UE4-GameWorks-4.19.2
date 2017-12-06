@@ -17,9 +17,12 @@ void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, fl
 	DynamicInstancesView = DynamicComponentManager.GetAsyncView(true);
 
 	StaticInstancesViews.Reset();
+	StaticInstancesViewIndices.Reset();
+	CulledStaticInstancesViewIndices.Reset();
+
 	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 	{
-		if (LevelManager.IsInitialized() && LevelManager.GetLevel()->bIsVisible)
+		if (LevelManager.IsInitialized() && LevelManager.GetLevel()->bIsVisible && LevelManager.HasTextureReferences())
 		{
 			StaticInstancesViews.Push(LevelManager.GetAsyncView());
 		}
@@ -28,10 +31,28 @@ void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, fl
 
 void FAsyncTextureStreamingData::UpdateBoundSizes_Async(const FTextureStreamingSettings& Settings)
 {
-	for (FTextureInstanceAsyncView& StaticInstancesView : StaticInstancesViews)
+	for (int32 StaticViewIndex = 0; StaticViewIndex < StaticInstancesViews.Num(); ++StaticViewIndex)
 	{
+		FTextureInstanceAsyncView& StaticInstancesView = StaticInstancesViews[StaticViewIndex];
 		StaticInstancesView.UpdateBoundSizes_Async(ViewInfos, LastUpdateTime, Settings);
+
+		// Skip levels that can not contribute to resolution.
+		if (StaticInstancesView.GetMaxLevelTextureScreenSize() > Settings.MinLevelTextureScreenSize)
+		{
+			StaticInstancesViewIndices.Add(StaticViewIndex);
+		}
+		else
+		{
+			CulledStaticInstancesViewIndices.Add(StaticViewIndex);
+		}
 	}
+	
+	// Sort by max possible size, this allows early exit when iteration on many levels.
+	if (Settings.MinLevelTextureScreenSize > 0)
+	{
+		StaticInstancesViewIndices.Sort([&](int32 LHS, int32 RHS) { return StaticInstancesViews[LHS].GetMaxLevelTextureScreenSize() > StaticInstancesViews[RHS].GetMaxLevelTextureScreenSize(); });
+	}
+
 	DynamicInstancesView.UpdateBoundSizes_Async(ViewInfos, LastUpdateTime, Settings);
 }
 
@@ -66,10 +87,12 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 	{
 		DynamicInstancesView.GetTexelSize(Texture, MaxSize, MaxSize_VisibleOnly, bOutputToLog ? TEXT("Dynamic") : nullptr);
 
-		for (const FTextureInstanceAsyncView& StaticInstancesView : StaticInstancesViews)
+		for (int32 StaticViewIndex : StaticInstancesViewIndices)
 		{
+			const FTextureInstanceAsyncView& StaticInstancesView = StaticInstancesViews[StaticViewIndex];
+			
 			// No need to iterate more if texture is already at maximum resolution.
-			if (MaxSize_VisibleOnly >= MAX_TEXTURE_SIZE && !bOutputToLog)
+			if ((MaxSize_VisibleOnly >= MAX_TEXTURE_SIZE || (MaxSize_VisibleOnly > StaticInstancesView.GetMaxLevelTextureScreenSize() && Settings.MinLevelTextureScreenSize > 0)) && !bOutputToLog)
 			{
 				break;
 			}
@@ -94,11 +117,25 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 		StreamingTexture.bUseUnkownRefHeuristic = MaxSize == 0 && MaxSize_VisibleOnly == 0 && StreamingTexture.LastRenderTime < TimeSinceRemoved - 5.f;
 		if (StreamingTexture.bUseUnkownRefHeuristic)
 		{
-			if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  UnkownRef"));
-			MaxSize = FMath::Max<int32>(MaxSize, MaxAllowedSize); // affected by HiddenPrimitiveScale
-			if (StreamingTexture.LastRenderTime < 5.0f)
+			// Check that it's not simply culled
+			for (int32 StaticViewIndex : CulledStaticInstancesViewIndices)
 			{
-				MaxSize_VisibleOnly = FMath::Max<int32>(MaxSize_VisibleOnly, MaxAllowedSize);
+				const FTextureInstanceAsyncView& StaticInstancesView = StaticInstancesViews[StaticViewIndex];
+				if (StaticInstancesView.HasTextureReferences(Texture))
+				{
+					StreamingTexture.bUseUnkownRefHeuristic = false;
+					break;
+				}
+			}
+
+			if (StreamingTexture.bUseUnkownRefHeuristic)
+			{
+				if (bOutputToLog) UE_LOG(LogContentStreaming, Log,  TEXT("  UnkownRef"));
+				MaxSize = FMath::Max<int32>(MaxSize, MaxAllowedSize); // affected by HiddenPrimitiveScale
+				if (StreamingTexture.LastRenderTime < 5.0f)
+				{
+					MaxSize_VisibleOnly = FMath::Max<int32>(MaxSize_VisibleOnly, MaxAllowedSize);
+				}
 			}
 		}
 

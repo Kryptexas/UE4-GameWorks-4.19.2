@@ -105,6 +105,8 @@ public:
 
 	void SetSidesToPad( bool InPadLeft, bool InPadRight, bool InPadTop, bool InPadBottom );
 
+	FMargin GetSafeMargin(float InLayoutScale) const;
+
 #if WITH_EDITOR
 	void SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, TOptional<float> InOverrideDpiScale);
 #endif

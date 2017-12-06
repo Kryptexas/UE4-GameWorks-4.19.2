@@ -322,6 +322,10 @@ public:
 	UPROPERTY(EditAnywhere, Category="Behavior")
 	ESlateVisibility Visibility;
 
+	/** The opacity of the widget */
+	UPROPERTY(EditAnywhere, Category="Behavior")
+	float RenderOpacity;
+
 	/**
 	 * The navigation object for this widget is optionally created if the user has configured custom
 	 * navigation rules for this widget in the widget designer.  Those rules determine how navigation transitions
@@ -419,6 +423,14 @@ public:
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	virtual void SetVisibility(ESlateVisibility InVisibility);
+
+	/** Gets the current visibility of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	float GetRenderOpacity() const;
+
+	/** Sets the visibility of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetRenderOpacity(float InOpacity);
 
 	/** Gets the clipping state of this widget. */
 	UFUNCTION(BlueprintCallable, Category = "Widget")

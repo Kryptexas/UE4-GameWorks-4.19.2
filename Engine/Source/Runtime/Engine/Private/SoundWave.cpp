@@ -42,9 +42,18 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
-	BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+	// ChunkIndex 0 is always inline payload, all other chunks are streamed.
+	if (ChunkIndex == 0)
+	{
+		BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload);
+	}
+	else
+	{
+		BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+	}
 	BulkData.Serialize(Ar, Owner, ChunkIndex);
 	Ar << DataSize;
+	Ar << AudioDataSize;
 
 #if WITH_EDITORONLY_DATA
 	if (!bCooked)
@@ -640,7 +649,10 @@ void USoundWave::FinishDestroy()
 
 	CleanupCachedRunningPlatformData();
 #if WITH_EDITOR
-	ClearAllCachedCookedPlatformData();
+	if (!GExitPurge)
+	{
+		ClearAllCachedCookedPlatformData();
+	}
 #endif
 
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);

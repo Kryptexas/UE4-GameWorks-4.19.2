@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "ScopeRWLock.h"
+
 class FD3D12RootSignature; // forward-declare
 class FD3D12BoundShaderState; // forward-declare
 
@@ -161,10 +163,10 @@ private:
 	FDiskCacheInterface DiskBinaryCache;
 	TRefCountPtr<ID3D12PipelineLibrary> PipelineLibrary;
 
-	FD3D12PipelineState* Add(const GraphicsPipelineCreationArgs& Args);
-	FD3D12PipelineState* Add(const ComputePipelineCreationArgs& Args);
+	FD3D12PipelineState* Add_NoLock(const GraphicsPipelineCreationArgs& Args);
+	FD3D12PipelineState* Add_NoLock(const ComputePipelineCreationArgs& Args);
 
-	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc, FRWScopeLock& ScopeLock);
 
 	void WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso);
 

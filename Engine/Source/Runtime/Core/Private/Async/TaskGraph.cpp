@@ -885,6 +885,7 @@ private:
 		}
 #endif
 		verify(++Queue.RecursionGuard == 1);
+		bool bDidStall = false;
 		while (1)
 		{
 			FBaseGraphTask* Task = FindWork();
@@ -903,6 +904,7 @@ private:
 				{
 					FScopeCycleCounter Scope(StallStatId);
 					Queue.StallRestartEvent->Wait(MAX_uint32, bCountAsStall);
+					bDidStall = true;
 				}
 				if (Queue.QuitForShutdown || !FPlatformProcess::SupportsMultithreading())
 				{
@@ -920,6 +922,14 @@ private:
 				continue;
 			}
 			TestRandomizedThreads();
+#if PLATFORM_XBOXONE || PLATFORM_WINDOWS
+			// the Win scheduler is ill behaved and will sometimes let BG tasks run even when other tasks are ready....kick the scheduler between tasks
+			if (!bDidStall && PriorityIndex == (ENamedThreads::BackgroundThreadPriority >> ENamedThreads::ThreadPriorityShift))
+			{
+				FPlatformProcess::Sleep(0);
+			}
+#endif
+			bDidStall = false;
 			Task->Execute(NewTasks, ENamedThreads::Type(ThreadId));
 			TestRandomizedThreads();
 			if (Queue.bStallForTuning)
@@ -1117,9 +1127,9 @@ public:
 			{
 				Name = FString::Printf(TEXT("TaskGraphThreadBP %d"), ThreadIndex - (LastExternalThread + 1));
 				ThreadPri = TPri_Lowest;
-				if (PLATFORM_PS4)
+				// If the platform defines FPlatformAffinity::GetTaskGraphBackgroundTaskMask then use it
+				if ( FPlatformAffinity::GetTaskGraphBackgroundTaskMask() != 0xFFFFFFFFFFFFFFFF )
 				{
-					// hack, use the audio affinity mask, since this might include the 7th core
 					Affinity = FPlatformAffinity::GetTaskGraphBackgroundTaskMask();
 				}
 			}
@@ -1128,8 +1138,9 @@ public:
 				Name = FString::Printf(TEXT("TaskGraphThreadNP %d"), ThreadIndex - (LastExternalThread + 1));
 				ThreadPri = TPri_BelowNormal; // we want normal tasks below normal threads like the game thread
 			}
-
-#if ( UE_BUILD_SHIPPING || UE_BUILD_TEST )
+#if WITH_EDITOR
+			uint32 StackSize = 1024 * 1024;
+#elif ( UE_BUILD_SHIPPING || UE_BUILD_TEST )
 			uint32 StackSize = 384 * 1024;
 #else
 			uint32 StackSize = 512 * 1024;
@@ -1759,6 +1770,10 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 	if (ENamedThreads::RenderThread != ENamedThreads::GameThread)
 	{
 		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RenderThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
+	}
+	if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::AudioThread))
+	{
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::AudioThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
 	Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::GameThread_Local, nullptr, nullptr, nullptr));
 	if (bDoTaskThreads)

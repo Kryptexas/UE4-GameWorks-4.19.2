@@ -39,6 +39,9 @@
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
+DECLARE_CYCLE_STAT(TEXT("AbilitySystemComp ServerTryActivate"), STAT_AbilitySystemComp_ServerTryActivate, STATGROUP_AbilitySystem);
+DECLARE_CYCLE_STAT(TEXT("AbilitySystemComp ServerEndAbility"), STAT_AbilitySystemComp_ServerEndAbility, STATGROUP_AbilitySystem);
+
 static TAutoConsoleVariable<float> CVarReplayMontageErrorThreshold(TEXT("replay.MontageErrorThreshold"), 0.5f, TEXT("Tolerance level for when montage playback position correction occurs in replays"));
 
 void UAbilitySystemComponent::InitializeComponent()
@@ -57,6 +60,7 @@ void UAbilitySystemComponent::InitializeComponent()
 		if (Set)  
 		{
 			SpawnedAttributes.AddUnique(Set);
+			bIsNetDirty = true;
 		}
 	}
 }
@@ -310,6 +314,7 @@ void UAbilitySystemComponent::ClearAllAbilities()
 
 	ActivatableAbilities.Items.Empty(ActivatableAbilities.Items.Num());
 	ActivatableAbilities.MarkArrayDirty();
+	bIsNetDirty = true;
 
 	CheckForClearedAbilities();
 }
@@ -318,6 +323,7 @@ void UAbilitySystemComponent::ClearAbility(const FGameplayAbilitySpecHandle& Han
 {
 	check(IsOwnerActorAuthoritative()); // Should be called on authority
 
+	bIsNetDirty = true;
 	for (int Idx = 0; Idx < ActivatableAbilities.Items.Num(); ++Idx)
 	{
 		check(ActivatableAbilities.Items[Idx].Handle.IsValid());
@@ -580,6 +586,7 @@ void UAbilitySystemComponent::MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec)
 {
 	if (IsOwnerActorAuthoritative())
 	{
+		bIsNetDirty = true;
 		ActivatableAbilities.MarkItemDirty(Spec);
 		AbilitySpecDirtiedCallbacks.Broadcast(Spec);
 	}
@@ -653,11 +660,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	check(Spec);
 	check(Ability);
 
-	check(Ability);
 	ENetRole OwnerRole = GetOwnerRole();
-
-	// Broadcast that the ability ended
-	AbilityEndedCallbacks.Broadcast(Ability);
 
 	// If AnimatingAbility ended, clear the pointer
 	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
@@ -674,6 +677,9 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	{
 		ABILITY_LOG(Warning, TEXT("NotifyAbilityEnded called when the Spec->ActiveCount <= 0"));
 	}
+
+	// Broadcast that the ability ended
+	AbilityEndedCallbacks.Broadcast(Ability);
 	
 	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -824,6 +830,12 @@ void UAbilitySystemComponent::DestroyActiveState()
 			Spec.ReplicatedInstances.Empty();
 			Spec.NonReplicatedInstances.Empty();
 		}
+
+		if (IsOwnerActorAuthoritative())
+		{
+			// Ability specs are no longer valid, clear them all.
+			ClearAllAbilities();
+		}
 	}
 }
 
@@ -862,6 +874,7 @@ void UAbilitySystemComponent::UnBlockAbilitiesWithTags(const FGameplayTagContain
 
 void UAbilitySystemComponent::BlockAbilityByInputID(int32 InputID)
 {
+	bIsNetDirty = true;
 	if (InputID >= 0 && InputID < BlockedAbilityBindings.Num())
 	{
 		++BlockedAbilityBindings[InputID];
@@ -870,6 +883,7 @@ void UAbilitySystemComponent::BlockAbilityByInputID(int32 InputID)
 
 void UAbilitySystemComponent::UnBlockAbilityByInputID(int32 InputID)
 {
+	bIsNetDirty = true;
 	if (InputID >= 0 && InputID < BlockedAbilityBindings.Num() && BlockedAbilityBindings[InputID] > 0)
 	{
 		--BlockedAbilityBindings[InputID];
@@ -1429,6 +1443,9 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
+	SCOPE_CYCLE_COUNTER(STAT_AbilitySystemComp_ServerTryActivate);
+	SCOPE_CYCLE_UOBJECT(Ability, AbilityToActivate);
+
 	UGameplayAbility* InstancedAbility = nullptr;
 	Spec->InputPressed = true;
 
@@ -1543,6 +1560,8 @@ void UAbilitySystemComponent::ForceCancelAbilityDueToReplication(UGameplayAbilit
 
 void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AbilitySystemComp_ServerEndAbility);
+
 	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
 	
 	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
@@ -2036,6 +2055,7 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 void UAbilitySystemComponent::SetBlockAbilityBindingsArray(FGameplayAbiliyInputBinds BindInfo)
 {
 	UEnum* EnumBinds = BindInfo.GetBindEnum();
+	bIsNetDirty = true;
 	BlockedAbilityBindings.SetNumZeroed(EnumBinds->NumEnums());
 }
 

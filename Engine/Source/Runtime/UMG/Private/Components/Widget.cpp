@@ -155,6 +155,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	DesignerFlags = EWidgetDesignFlags::None;
 #endif
 	Visibility = ESlateVisibility::Visible;
+	RenderOpacity = 1.0f;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 	Cursor = EMouseCursor::Default;
 
@@ -291,6 +292,28 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	{
 		EVisibility SlateVisibility = UWidget::ConvertSerializedVisibilityToRuntime(InVisibility);
 		SafeWidget->SetVisibility(SlateVisibility);
+	}
+}
+
+float UWidget::GetRenderOpacity() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		return SafeWidget->GetRenderOpacity();
+	}
+
+	return RenderOpacity;
+}
+
+void UWidget::SetRenderOpacity(float InRenderOpacity)
+{
+	RenderOpacity = InRenderOpacity;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		SafeWidget->SetRenderOpacity(InRenderOpacity);
 	}
 }
 
@@ -532,7 +555,7 @@ void UWidget::ForceLayoutPrepass()
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		SafeWidget->SlatePrepass();
+		SafeWidget->SlatePrepass(SafeWidget->GetCachedGeometry().Scale);
 	}
 }
 
@@ -1020,6 +1043,8 @@ void UWidget::SynchronizeProperties()
 #endif
 
 	SafeWidget->ForceVolatile(bIsVolatile);
+
+	SafeWidget->SetRenderOpacity(RenderOpacity);
 
 	UpdateRenderTransform();
 	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);

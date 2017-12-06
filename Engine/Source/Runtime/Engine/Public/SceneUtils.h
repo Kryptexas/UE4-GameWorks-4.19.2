@@ -13,6 +13,7 @@
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "RHI.h"
+#include "CsvProfiler.h"
 
 // Note:  WITH_PROFILEGPU should be 0 for final builds
 #define WANTS_DRAW_MESH_EVENTS (RHI_COMMAND_LIST_DEBUG_TRACES || (WITH_PROFILEGPU && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS))
@@ -158,20 +159,28 @@ class FScopedGPUStatEvent;
 #endif
 
 // GPU stats
-#if STATS && ! PLATFORM_HTML5
+#if (STATS || CSV_PROFILER) && ! PLATFORM_HTML5
 #define HAS_GPU_STATS 1
 #else
 #define HAS_GPU_STATS 0
 #endif
 
 #if HAS_GPU_STATS
-#define SCOPED_GPU_STAT(RHICmdList, Stat) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__).Begin(RHICmdList, GET_STATID( Stat ) );
-#define GPU_STATS_BEGINFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->BeginFrame(RHICmdList);
-#define GPU_STATS_ENDFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->EndFrame(RHICmdList);
+ #define DECLARE_GPU_STAT(StatName) DECLARE_FLOAT_COUNTER_STAT(TEXT(#StatName), Stat_GPU_##StatName, STATGROUP_GPU); CSV_DECLARE_STAT(GPU_##StatName);
+ #define DECLARE_GPU_STAT_NAMED(StatName, NameString) DECLARE_FLOAT_COUNTER_STAT(NameString, Stat_GPU_##StatName, STATGROUP_GPU); CSV_DECLARE_STAT(GPU_##StatName);
+ #if STATS
+  #define SCOPED_GPU_STAT(RHICmdList, StatName) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##StatName,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##StatName,__LINE__).Begin(RHICmdList, CSV_DECLARED_STAT_NAME(GPU_##StatName), GET_STATID( Stat_GPU_##StatName ).GetName() );
+ #else
+  #define SCOPED_GPU_STAT(RHICmdList, StatName) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##StatName,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##StatName,__LINE__).Begin(RHICmdList, CSV_DECLARED_STAT_NAME(GPU_##StatName), FName() );
+ #endif
+ #define GPU_STATS_BEGINFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->BeginFrame(RHICmdList);
+ #define GPU_STATS_ENDFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->EndFrame(RHICmdList);
 #else
-#define SCOPED_GPU_STAT(RHICmdList, Stat) 
-#define GPU_STATS_BEGINFRAME(RHICmdList) 
-#define GPU_STATS_ENDFRAME(RHICmdList) 
+ #define DECLARE_GPU_STAT(StatName)
+ #define DECLARE_GPU_STAT_NAMED(StatName, NameString)
+ #define SCOPED_GPU_STAT(RHICmdList, StatName) 
+ #define GPU_STATS_BEGINFRAME(RHICmdList) 
+ #define GPU_STATS_ENDFRAME(RHICmdList) 
 #endif
 
 #if HAS_GPU_STATS
@@ -198,7 +207,7 @@ public:
 	ENGINE_API void Release();
 
 	/** Push/pop events */
-	void PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId);
+	void PushEvent(FRHICommandListImmediate& RHICmdList, const FName& Name, const FName& StatName);
 	void PopEvent(FRHICommandListImmediate& RHICmdList);
 
 private:
@@ -247,7 +256,7 @@ public:
 	/**
 	* Start/Stop functions for timer stats
 	*/
-	ENGINE_API void Begin(FRHICommandList& InRHICmdList, TStatId StatID);
+	ENGINE_API void Begin(FRHICommandList& InRHICmdList, const FName& Name, const FName& StatName );
 	ENGINE_API void End();
 };
 #endif // HAS_GPU_STATS

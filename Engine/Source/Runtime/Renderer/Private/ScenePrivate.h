@@ -1782,6 +1782,8 @@ struct FPrimitiveBounds
 	float MinDrawDistanceSq;
 	/** Maximum draw distance for the primitive. */
 	float MaxDrawDistance;
+	/** Maximum cull distance for the primitive. This is only different from the MaxDrawDistance for HLOD.*/
+	float MaxCullDistance;
 };
 
 /**
@@ -2186,6 +2188,7 @@ public:
 	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive) override;
 	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) override;
 	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) override;
+	virtual void UpdatePrimitiveDistanceFieldSceneData_GameThread(UPrimitiveComponent* Primitive) override;
 	virtual FPrimitiveSceneInfo* GetPrimitiveSceneInfo(int32 PrimitiveIndex) override;
 	virtual void AddLight(ULightComponent* Light) override;
 	virtual void RemoveLight(ULightComponent* Light) override;
@@ -2398,6 +2401,9 @@ public:
 	{
 		CurrentFrameUpdatedMotionBlurCache = false;
 	}
+
+	/** Debug function to abtest lazy static mesh drawlists. */
+	void UpdateDoLazyStaticMeshUpdate(FRHICommandListImmediate& CmdList);
 
 private:
 

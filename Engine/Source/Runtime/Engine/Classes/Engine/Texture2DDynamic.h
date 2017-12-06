@@ -25,11 +25,12 @@ class UTexture2DDynamic : public UTexture
 	UPROPERTY(transient)
 	TEnumAsByte<enum EPixelFormat> Format;
 
+	/** Whether the texture can be used as a resolve target. */
+	uint8 bIsResolveTarget : 1;
+
 	/** The number of mip-maps in the texture. */
 	int32 NumMips;
 
-	/** Whether the texture can be used as a resolve target. */
-	uint32 bIsResolveTarget:1;
 
 
 public:

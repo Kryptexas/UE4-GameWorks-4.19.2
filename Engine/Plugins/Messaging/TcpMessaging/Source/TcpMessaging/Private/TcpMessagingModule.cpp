@@ -268,6 +268,9 @@ protected:
 	 */
 	bool SupportsNetworkedTransport() const
 	{
+#if UE_BUILD_SHIPPING
+		return false;
+#else
 		// disallow unsupported platforms
 		if (!FPlatformMisc::SupportsMessaging())
 		{
@@ -288,6 +291,7 @@ protected:
 
 		// otherwise only allow if explicitly desired
 		return FParse::Param(FCommandLine::Get(), TEXT("Messaging"));
+#endif
 	}
 
 	/** Shuts down the message bridge. */

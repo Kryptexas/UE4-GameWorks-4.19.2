@@ -9,6 +9,7 @@
 #include "IMediaEventSink.h"
 #include "IMediaPlayerFactory.h"
 #include "MediaPlayer.h"
+#include "MediaPlaylist.h"
 
 #include "EditorStyleSet.h"
 #include "Framework/Application/SlateApplication.h"
@@ -554,21 +555,7 @@ void SMediaPlayerEditorViewer::OnDragEnter(const FGeometry& MyGeometry, const FD
 	DragOver = true;
 
 	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
-	
-	if (DragDropOp.IsValid() && DragDropOp->HasFiles())
-	{
-		const TArray<FString>& Files = DragDropOp->GetFiles();
-		
-		if (Files.Num() == 1)
-		{
-			const FString FilePath = FPaths::ConvertRelativePathToFull(Files[0]);
-			DragValid = MediaPlayer->CanPlayUrl(FString(TEXT("file://")) + FilePath);
-
-			return;
-		}
-	}
-
-	DragValid = false;
+	DragValid = DragDropOp.IsValid() && DragDropOp->HasFiles();
 }
 
 
@@ -585,27 +572,31 @@ FReply SMediaPlayerEditorViewer::OnDragOver(const FGeometry& MyGeometry, const F
 		return FReply::Handled();
 	}
 
-	return SCompoundWidget::OnDragOver(MyGeometry,DragDropEvent);
+	return SCompoundWidget::OnDragOver(MyGeometry, DragDropEvent);
 }
 
 
 FReply SMediaPlayerEditorViewer::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	if (DragValid)
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+
+	if (DragDropOp.IsValid() && DragDropOp->HasFiles())
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		const TArray<FString>& Files = DragDropOp->GetFiles();
 
-		if (DragDropOp.IsValid() && DragDropOp->HasFiles())
+		if (Files.Num() > 0)
 		{
-			const TArray<FString>& Files = DragDropOp->GetFiles();
+			MediaPlayer->Close();
 
-			if (Files.Num() == 1)
+			for (int32 FileIndex = 0; FileIndex < Files.Num(); ++FileIndex)
 			{
-				const FString FilePath = FPaths::ConvertRelativePathToFull(Files[0]);
-				MediaPlayer->OpenUrl(FString(TEXT("file://")) + FilePath);
-
-				return FReply::Handled();
+				const FString FilePath = FPaths::ConvertRelativePathToFull(Files[FileIndex]);
+				MediaPlayer->GetPlaylist()->AddFile(FilePath);
 			}
+
+			MediaPlayer->Next();
+
+			return FReply::Handled();
 		}
 	}
 

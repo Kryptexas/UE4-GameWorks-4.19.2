@@ -114,6 +114,10 @@ void FRHIResource::FlushPendingDeletes()
 	check(IsInRenderingThread());
 	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+	if (GDynamicRHI)
+	{
+		GDynamicRHI->RHIPerFrameRHIFlushComplete();
+	}
 
 	auto Delete = [](TArray<FRHIResource*>& ToDelete)
 	{

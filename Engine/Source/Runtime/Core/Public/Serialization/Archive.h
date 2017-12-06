@@ -31,6 +31,8 @@ typedef TFunction<bool (double RemainingTime)> FExternalReadCallback;
 
 #define DEVIRTUALIZE_FLinkerLoad_Serialize (!WITH_EDITORONLY_DATA)
 
+// Helper macro to make serializing a bitpacked boolean in an archive easier
+#define FArchive_Serialize_BitfieldBool(ARCHIVE, BITFIELD_BOOL) { bool TEMP_BITFIELD_BOOL = BITFIELD_BOOL; ARCHIVE << TEMP_BITFIELD_BOOL; BITFIELD_BOOL = TEMP_BITFIELD_BOOL; }
 
 /**
  * TCheckedObjPtr

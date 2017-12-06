@@ -786,6 +786,11 @@ namespace UnrealBuildTool
 				RulesObject.bOmitPCDebugInfoInDevelopment = false;
 			}
 
+			if (!RulesObject.bAllowGeneratedIniWhenCooked)
+			{
+				RulesObject.GlobalDefinitions.Add("DISABLE_GENERATED_INI_WHEN_COOKED=1");
+			}
+
 			// Allow the platform to finalize the settings
 			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(RulesObject.Platform);
 			Platform.ValidateTarget(RulesObject);
@@ -796,7 +801,7 @@ namespace UnrealBuildTool
 			{
 				RulesObject.bDeployAfterCompile = false;
             }
-
+			
             // Include generated code plugin if not building an editor target and project is configured for nativization
             if (RulesObject.ProjectFile != null && RulesObject.Type != TargetType.Editor && ShouldIncludeNativizedAssets(RulesObject.ProjectFile.Directory))
             {
@@ -810,7 +815,19 @@ namespace UnrealBuildTool
                     PlatformName = RulesObject.Platform.ToString();
                 }
 
-                FileReference PluginFile = FileReference.Combine(RulesObject.ProjectFile.Directory, "Intermediate", "Plugins", "NativizedAssets", PlatformName, RulesObject.Type.ToString(), "NativizedAssets.uplugin");
+                // Temp fix to force platforms that only support "Game" configurations at cook time to the correct path.
+                string ProjectTargetType;
+                if (RulesObject.Platform == UnrealTargetPlatform.Win32 || RulesObject.Platform == UnrealTargetPlatform.Win64
+                    || RulesObject.Platform == UnrealTargetPlatform.Linux || RulesObject.Platform == UnrealTargetPlatform.Mac)
+                {
+                    ProjectTargetType = RulesObject.Type.ToString();
+                }
+                else
+                {
+                    ProjectTargetType = "Game";
+                }
+
+                FileReference PluginFile = FileReference.Combine(RulesObject.ProjectFile.Directory, "Intermediate", "Plugins", "NativizedAssets", PlatformName, ProjectTargetType, "NativizedAssets.uplugin");
                 if (FileReference.Exists(PluginFile))
                 {
                     Desc.ForeignPlugins.Add(PluginFile);
@@ -818,12 +835,12 @@ namespace UnrealBuildTool
                 }
                 else
                 {
-                    throw new BuildException("{0} is configured for nativization, but is missing the generated code plugin at \"{1}\". Make sure to cook {2} data before attempting to build the {3} target.", RulesObject.Name, PluginFile.FullName, RulesObject.Type.ToString(), RulesObject.Platform.ToString());
+                    Log.TraceWarning("{0} is configured for nativization, but is missing the generated code plugin at \"{1}\". Make sure to cook {2} data before attempting to build the {3} target. If data was cooked with nativization enabled, this can also mean there were no Blueprint assets that required conversion, in which case this warning can be safely ignored.", RulesObject.Name, PluginFile.FullName, RulesObject.Type.ToString(), RulesObject.Platform.ToString());
                 }
             }
 
-            // Generate a build target from this rules module
-            UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
+			// Generate a build target from this rules module
+			UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
 
 			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
@@ -1784,11 +1801,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Also add the version file if it's been specified
-			if (VersionFile != null)
-			{
-				Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
-			}
+				// Also add the version file if it's been specified
+				if (VersionFile != null)
+				{
+					Receipt.BuildProducts.Add(new BuildProduct(VersionFile, BuildProductType.BuildResource));
+				}
 
 			// Prepare all the version manifests
 			Dictionary<FileReference, ModuleManifest> FileNameToModuleManifest = new Dictionary<FileReference, ModuleManifest>();
@@ -3912,10 +3929,13 @@ namespace UnrealBuildTool
 			GlobalCompileEnvironment.bSupportEditAndContinue = Rules.bSupportEditAndContinue;
 			GlobalCompileEnvironment.bUseIncrementalLinking = Rules.bUseIncrementalLinking;
 			GlobalCompileEnvironment.bAllowLTCG = Rules.bAllowLTCG;
+			GlobalCompileEnvironment.bPGOOptimize = Rules.bPGOOptimize;
+			GlobalCompileEnvironment.bPGOProfile = Rules.bPGOProfile;
 			GlobalCompileEnvironment.bAllowRemotelyCompiledPCHs = Rules.bAllowRemotelyCompiledPCHs;
 			GlobalCompileEnvironment.IncludePaths.bCheckSystemHeadersForModification = Rules.bCheckSystemHeadersForModification;
 			GlobalCompileEnvironment.bPrintTimingInfo = Rules.bPrintToolChainTimingInfo;
 			GlobalCompileEnvironment.bUseRTTI = Rules.bForceEnableRTTI;
+			GlobalCompileEnvironment.bHideSymbolsByDefault = Rules.bHideSymbolsByDefault;
 
 			GlobalLinkEnvironment.bIsBuildingConsoleApplication = Rules.bIsBuildingConsoleApplication;
 			GlobalLinkEnvironment.bOptimizeForSize = Rules.bCompileForSize;
@@ -3928,10 +3948,26 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.BundleDirectory = BuildPlatform.GetBundleDirectory(Rules, OutputPaths);
 			GlobalLinkEnvironment.BundleVersion = Rules.BundleVersion;
 			GlobalLinkEnvironment.bAllowLTCG = Rules.bAllowLTCG;
+            GlobalLinkEnvironment.bPGOOptimize = Rules.bPGOOptimize;
+            GlobalLinkEnvironment.bPGOProfile = Rules.bPGOProfile;
 			GlobalLinkEnvironment.bUseIncrementalLinking = Rules.bUseIncrementalLinking;
 			GlobalLinkEnvironment.bUseFastPDBLinking = Rules.bUseFastPDBLinking;
 			GlobalLinkEnvironment.bPrintTimingInfo = Rules.bPrintToolChainTimingInfo;
 		
+            if (Rules.bPGOOptimize && Rules.bPGOProfile)
+            {
+                throw new BuildException("bPGOProfile and bPGOOptimize are mutually exclusive.");
+            }
+
+            if (Rules.bPGOProfile)
+            {
+                GlobalCompileEnvironment.Definitions.Add("ENABLE_PGO_PROFILE=1");
+            }
+            else
+            {
+                GlobalCompileEnvironment.Definitions.Add("ENABLE_PGO_PROFILE=0");
+            }
+
 			// Add the 'Engine/Source' path as a global include path for all modules
 			string EngineSourceDirectory = Path.GetFullPath(Path.Combine("..", "..", "Engine", "Source"));
 			if (!Directory.Exists(EngineSourceDirectory))
@@ -3968,6 +4004,11 @@ namespace UnrealBuildTool
 			if(Rules.PCHOutputDirectory != null)
 			{
 				GlobalCompileEnvironment.PCHOutputDirectory = DirectoryReference.Combine(new DirectoryReference(Rules.PCHOutputDirectory), PlatformIntermediateFolder, OutputAppName, Configuration.ToString());
+			}
+
+			if(!String.IsNullOrEmpty(Rules.ExeBinariesSubFolder))
+			{
+				GlobalCompileEnvironment.Definitions.Add(String.Format("ENGINE_BASE_DIR_ADJUST={0}", Rules.ExeBinariesSubFolder.Replace('\\', '/').Trim('/').Count(x => x == '/') + 1));
 			}
 
 			if (Rules.bForceCompileDevelopmentAutomationTests)

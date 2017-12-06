@@ -155,18 +155,15 @@ void FRedirectCollector::ProcessSoftObjectPathPackageList(FName FilterPackage, b
 		// Package name may be null, if so return the set of things not associated with a package
 		if (FilterPackage == RefFilenameAndProperty.GetCachedPackageName())
 		{
-			FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
-
 			if (!RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() || bGetEditorOnly)
 			{
+				FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
 				OutReferencedPackages.Add(FName(*PackageNameString));
 			}
 
 			It.RemoveCurrent();
 		}
 	}
-
-	SoftObjectPathMap.Compact();
 }
 
 void FRedirectCollector::AddAssetPathRedirection(FName OriginalPath, FName RedirectedPath)

@@ -57,6 +57,7 @@
 #include "Net/DataChannel.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/PerfCountersHelpers.h"
+#include "Stats/StatsMisc.h"
 
 
 #if USE_SERVER_PERF_COUNTERS
@@ -131,6 +132,10 @@ DEFINE_STAT(STAT_PacketReservedHandshake);
 #endif
 
 DECLARE_CYCLE_STAT(TEXT("NetDriver AddClientConnection"), Stat_NetDriverAddClientConnection, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("Process Prioritized Actors Time"), STAT_NetProcessPrioritizedActorsTime, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("NetDriver TickFlush"), STAT_NetTickFlush, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("NetDriver TickFlush GatherStats"), STAT_NetTickFlushGatherStats, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("NetDriver TickFlush GatherStatsPerfCounters"), STAT_NetTickFlushGatherStatsPerfCounters, STATGROUP_Game);
 
 #if UE_BUILD_SHIPPING
 #define DEBUG_REMOTEFUNCTION(Format, ...)
@@ -348,26 +353,24 @@ void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
 
 static TAutoConsoleVariable<int32> CVarOptimizedRemapping( TEXT( "net.OptimizedRemapping" ), 1, TEXT( "Uses optimized path to remap unmapped network guids" ) );
 
+/** Accounts for the network time we spent in the game driver. */
+double GTickFlushGameDriverTimeSeconds = 0.0;
+
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
-#if USE_SERVER_PERF_COUNTERS
-	double ServerReplicateActorsTimeMs = 0.0f;
-#endif // USE_SERVER_PERF_COUNTERS
+	SCOPE_CYCLE_COUNTER(STAT_NetTickFlush);
+	bool bEnableTimer = (NetDriverName == NAME_GameNetDriver);
+	if (bEnableTimer)
+	{
+		GTickFlushGameDriverTimeSeconds = 0.0;
+	}
+	FSimpleScopeSecondsCounter ScopedTimer(GTickFlushGameDriverTimeSeconds, bEnableTimer);
 
 	if ( IsServer() && ClientConnections.Num() > 0 && ClientConnections[0]->InternalAck == false )
 	{
 		// Update all clients.
 #if WITH_SERVER_CODE
-
-#if USE_SERVER_PERF_COUNTERS
-		double ServerReplicateActorsTimeStart = FPlatformTime::Seconds();
-#endif // USE_SERVER_PERF_COUNTERS
-
 		int32 Updated = ServerReplicateActors( DeltaSeconds );
-
-#if USE_SERVER_PERF_COUNTERS
-		ServerReplicateActorsTimeMs = (FPlatformTime::Seconds() - ServerReplicateActorsTimeStart) * 1000.0;
-#endif // USE_SERVER_PERF_COUNTERS
 
 		static int32 LastUpdateCount = 0;
 		// Only log the zero replicated actors once after replicating an actor
@@ -391,6 +394,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 	if (bCollectNetStats || bCollectServerStats)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NetTickFlushGatherStats);
 		// Update network stats (only main game net driver for now) if stats or perf counters are used
 		if (NetDriverName == NAME_GameNetDriver &&
 			CurrentRealtimeSeconds - StatUpdateTime > StatPeriod)
@@ -654,6 +658,8 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
 			if (PerfCounters)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_NetTickFlushGatherStatsPerfCounters);
+
 				// Update total connections
 				PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
 
@@ -753,7 +759,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				PerfCounters->Set(TEXT("InBunches"), InBunches);
 				PerfCounters->Set(TEXT("OutBunches"), OutBunches);
 
-				PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
 				PerfCounters->Set(TEXT("OutSaturationMax"), RemoteSaturationMax);
 			}
 #endif // USE_SERVER_PERF_COUNTERS
@@ -1271,7 +1276,7 @@ bool UNetDriver::IsServer() const
 
 void UNetDriver::TickDispatch( float DeltaTime )
 {
-	SendCycles=RecvCycles=0;
+	SendCycles=0;
 
 	const double CurrentRealtime = FPlatformTime::Seconds();
 
@@ -1309,12 +1314,14 @@ void UNetDriver::TickDispatch( float DeltaTime )
 
 bool UNetDriver::IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	check(InActor);
 	check(InConnection);
 	check(World == InActor->GetWorld());
+#endif
 
 	// we can't create channels while the client is in the wrong world
-	const bool bCorrectWorld = (InConnection->ClientWorldPackageName == World->GetOutermost()->GetFName() && InConnection->ClientHasInitializedLevelFor(InActor));
+	const bool bCorrectWorld = (InConnection->GetClientWorldPackageName() == GetWorldPackage()->GetFName() && InConnection->ClientHasInitializedLevelFor(InActor));
 	// exception: Special case for PlayerControllers as they are required for the client to travel to the new world correctly			
 	const bool bIsConnectionPC = (InActor == InConnection->PlayerController);
 	return bCorrectWorld || bIsConnectionPC;
@@ -1666,18 +1673,19 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 					APlayerController* PlayerController = NetConn->PlayerController;
 					if(PlayerController)
 					{
-						if( PlayerController->GetWorld() && 
-							PlayerController->GetWorld()->GetTimeSeconds() - PlayerController->CreationTime > JoinInProgressStandbyWaitTime &&
+						UWorld* PlayerControllerWorld = PlayerController->GetWorld();
+						if( PlayerControllerWorld && 
+						   PlayerControllerWorld->GetTimeSeconds() - PlayerController->CreationTime > JoinInProgressStandbyWaitTime &&
 							// Ignore players with pending delete (kicked/timed out, but connection not closed)
 							PlayerController->IsPendingKillPending() == false)
 						{
 							if (!FoundWorld)
 							{
-								FoundWorld = PlayerController->GetWorld();
+								FoundWorld = PlayerControllerWorld;
 							}
 							else
 							{
-								check(FoundWorld == PlayerController->GetWorld());
+								check(FoundWorld == PlayerControllerWorld);
 							}
 							if (Time - NetConn->LastReceiveTime > StandbyRxCheatTime)
 							{
@@ -2370,6 +2378,11 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 			It.RemoveCurrent();
 		}
 	}
+	
+	for (FObjectReplicator* Replicator : This->AllOwnedReplicators)
+	{
+		Collector.AddReferencedObject(Replicator->ObjectPtr, This);
+	}
 }
 
 #if DO_ENABLE_NET_TEST
@@ -2582,45 +2595,6 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 		FRotator ViewRotation = ViewingController->GetControlRotation();
 		ViewingController->GetPlayerViewPoint(ViewLocation, ViewRotation);
 		ViewDir = ViewRotation.Vector();
-	}
-
-	// Compute ahead-vectors for prediction.
-	FVector Ahead = FVector::ZeroVector;
-	if (InConnection->TickCount & 1)
-	{
-		float PredictSeconds = (InConnection->TickCount & 2) ? 0.4f : 0.9f;
-		Ahead = PredictSeconds * ViewTarget->GetVelocity();
-		APawn* ViewerPawn = Cast<APawn>(ViewTarget);
-		if( ViewerPawn && ViewerPawn->GetMovementBase() && ViewerPawn->GetMovementBase()->GetOwner() )
-		{
-			Ahead += PredictSeconds * ViewerPawn->GetMovementBase()->GetOwner()->GetVelocity();
-		}
-		if (!Ahead.IsZero())
-		{
-			FHitResult Hit(1.0f);
-			FVector PredictedLocation = ViewLocation + Ahead;
-
-			UWorld* World = NULL;
-			if( InConnection->PlayerController )
-			{
-				World = InConnection->PlayerController->GetWorld();
-			}
-			else if (ViewerPawn)
-			{
-				World = ViewerPawn->GetWorld();
-			}
-			check( World );
-			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(SCENE_QUERY_STAT(ServerForwardView), true, ViewTarget)))
-			{
-				// hit something, view location is hit location
-				ViewLocation = Hit.Location;
-			}
-			else
-			{
-				// No hit, so view location is predicted location
-				ViewLocation = PredictedLocation;
-			}
-		}
 	}
 }
 
@@ -2935,7 +2909,7 @@ static FORCEINLINE_DEBUGGABLE UNetConnection* IsActorOwnedByAndRelevantToConnect
 }
 
 // Returns true if this actor is considered dormant (and all properties caught up) to the current connection
-static FORCEINLINE_DEBUGGABLE bool IsActorDormant( FNetworkObjectInfo* ActorInfo, const UNetConnection* Connection )
+static FORCEINLINE_DEBUGGABLE bool IsActorDormant( FNetworkObjectInfo* ActorInfo, const TWeakObjectPtr<UNetConnection>& Connection )
 {
 	// If actor is already dormant on this channel, then skip replication entirely
 	return ActorInfo->DormantConnections.Contains( Connection );
@@ -2985,6 +2959,9 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 	int32 FinalSortedCount = 0;
 	int32 DeletedCount = 0;
 
+	// Make weak ptr once for IsActorDormant call
+	TWeakObjectPtr<UNetConnection> WeakConnection(Connection);
+
 	const int32 MaxSortedActors = ConsiderList.Num() + DestroyedStartupOrDormantActors.Num();
 	if ( MaxSortedActors > 0 )
 	{
@@ -3000,7 +2977,26 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 		{
 			AActor* Actor = ActorInfo->Actor;
 
-			UActorChannel* Channel = Connection->ActorChannels.FindRef( Actor );
+			UActorChannel* Channel = Connection->ActorChannels.FindRef( ActorInfo->WeakActor );
+
+			// Skip actor if not relevant and theres no channel already.
+			// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
+			// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
+			// prioritized actors low.
+			if (!Channel)
+			{
+				if (!IsLevelInitializedForActor(Actor, Connection))
+				{
+					// If the level this actor belongs to isn't loaded on client, don't bother sending
+					continue;
+				}
+
+				if (!IsActorRelevantToConnection(Actor, ConnectionViewers))
+				{
+					// If not relevant (and we don't have a channel), skip
+					continue;
+				}
+			}
 
 			UNetConnection* PriorityConnection = Connection;
 
@@ -3028,7 +3024,7 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 			else if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() != 0 )
 			{
 				// Skip Actor if dormant
-				if ( IsActorDormant( ActorInfo, Connection ) )
+				if ( IsActorDormant( ActorInfo, WeakConnection ) )
 				{
 					continue;
 				}
@@ -3038,25 +3034,6 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 				{
 					// Channel is marked to go dormant now once all properties have been replicated (but is not dormant yet)
 					Channel->StartBecomingDormant();
-				}
-			}
-
-			// Skip actor if not relevant and theres no channel already.
-			// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
-			// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
-			// prioritized actors low.
-			if ( !Channel )
-			{
-				if ( !IsLevelInitializedForActor( Actor, Connection ) )
-				{
-					// If the level this actor belongs to isn't loaded on client, don't bother sending
-					continue;
-				}
-
-				if ( !IsActorRelevantToConnection( Actor, ConnectionViewers ) )
-				{
-					// If not relevant (and we don't have a channel), skip
-					continue;
 				}
 			}
 
@@ -3105,6 +3082,8 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 
 int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, FActorPriority** PriorityActors, const int32 FinalSortedCount, int32& OutUpdated )
 {
+	SCOPE_CYCLE_COUNTER(STAT_NetProcessPrioritizedActorsTime);
+
 	int32 ActorUpdatesThisConnection		= 0;
 	int32 ActorUpdatesThisConnectionSent	= 0;
 	int32 FinalRelevantCount				= 0;
@@ -3386,7 +3365,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if (Actor != NULL && !ConsiderList[ConsiderIdx]->bPendingNetUpdate)
 				{
 					// find the channel
-					UActorChannel *Channel = Connection->ActorChannels.FindRef(Actor);
+					UActorChannel *Channel = Connection->ActorChannels.FindRef(ConsiderList[ConsiderIdx]->WeakActor);
 					// and if the channel last update time doesn't match the last net update time for the actor
 					if (Channel != NULL && Channel->LastUpdateTime < ConsiderList[ConsiderIdx]->LastNetUpdateTime)
 					{
@@ -3735,6 +3714,7 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 		// Remove old world association
 		UnregisterTickEvents(World);
 		World = NULL;
+		WorldPackage = NULL;
 		Notify = NULL;
 
 		GetNetworkObjectList().Reset();
@@ -3744,6 +3724,7 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 	{
 		// Setup new world association
 		World = InWorld;
+		WorldPackage = InWorld->GetOutermost();
 		Notify = InWorld;
 		RegisterTickEvents(InWorld);
 
@@ -3807,9 +3788,10 @@ TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropert
 
 	if ( !GlobalPropertyTrackerPtr ) 
 	{
-		const bool bIsReplay = GetWorld() != nullptr && static_cast< void* >( GetWorld()->DemoNetDriver ) == static_cast< void* >( this );
-		const bool bIsClientReplayRecording = GetWorld() != nullptr ? GetWorld()->IsRecordingClientReplay() : false;
-		FRepChangedPropertyTracker * Tracker = new FRepChangedPropertyTracker( bIsReplay, bIsClientReplayRecording );
+		const UWorld* const LocalWorld = GetWorld();
+		const bool bIsReplay = LocalWorld != nullptr && static_cast<void*>(LocalWorld->DemoNetDriver) == static_cast<void*>(this);
+		const bool bIsClientReplayRecording = LocalWorld != nullptr ? LocalWorld->IsRecordingClientReplay() : false;
+		FRepChangedPropertyTracker * Tracker = new FRepChangedPropertyTracker(bIsReplay, bIsClientReplayRecording);
 
 		GetObjectClassRepLayout( Obj->GetClass() )->InitChangedTracker( Tracker );
 

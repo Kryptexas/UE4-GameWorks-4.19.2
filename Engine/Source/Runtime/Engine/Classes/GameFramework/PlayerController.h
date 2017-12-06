@@ -608,6 +608,12 @@ public:
 	 */
 	bool ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative = false) const;
 	
+	/**
+	 * After successful world to screen projection, allows custom post-processing of the resulting ScreenLocation.
+	 * @return Whether projected location remains valid.
+	 */
+	virtual bool PostProcessWorldToScreen(FVector WorldLocation, FVector2D& ScreenLocation, bool bPlayerViewportRelative) const;
+
 	/** Positions the mouse cursor in screen space, in pixels. */
 	UFUNCTION( BlueprintCallable, Category="Game|Player", meta = (DisplayName = "SetMousePosition", Keywords = "mouse" ))
 	void SetMouseLocation( const int X, const int Y );
@@ -743,6 +749,13 @@ public:
 	 * @param PlayerNetId the remote player to unmute
 	 */
 	void GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId);
+
+	/**
+	* Get a remote player controller on the server for muting
+	*
+	* @param PlayerNetId the remote player to find
+	*/
+	virtual class APlayerController* GetPlayerControllerForMuting(const FUniqueNetIdRepl& PlayerNetId);
 
 	/**
 	 * Is the specified player muted by this controlling player

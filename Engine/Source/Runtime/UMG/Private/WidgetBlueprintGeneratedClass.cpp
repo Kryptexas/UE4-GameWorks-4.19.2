@@ -220,7 +220,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 			// Initialize Navigation Data
 			if (Widget->Navigation)
 			{
-				Widget->Navigation->ResolveExplictRules(ClonedTree);
+				Widget->Navigation->ResolveRules(UserWidget, ClonedTree);
 			}
 
 #if WITH_EDITOR

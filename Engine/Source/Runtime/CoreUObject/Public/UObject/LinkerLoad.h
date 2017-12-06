@@ -617,6 +617,7 @@ private:
 	 */
 	UClass* GetExportLoadClass(int32 ExportIndex);
 
+#if WITH_EDITORONLY_DATA
 	/** 
 	 * Looks for and loads meta data object from export map.
 	 *
@@ -627,6 +628,7 @@ private:
 	 *         INDEX_NONE otherwise.
 	 */
 	int32 LoadMetaDataFromExportMap(bool bForcePreload);
+#endif
 
 	UObject* CreateImport( int32 Index );
 

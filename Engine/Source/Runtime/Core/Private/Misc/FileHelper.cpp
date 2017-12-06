@@ -652,6 +652,7 @@ bool FFileHelper::IsFilenameValidForSaving(const FString& Filename, FText& OutEr
 -----------------------------------------------------------------------------*/
 void FMaintenance::DeleteOldLogs()
 {
+	double StartTime = FPlatformTime::Seconds();
 	int32 PurgeLogsDays = -1; // -1 means don't delete old files
 	int32 MaxLogFilesOnDisk = -1; // -1 means keep all files
 
@@ -736,6 +737,7 @@ void FMaintenance::DeleteOldLogs()
 		const FString CrashConfigDirectory = FPaths::ProjectLogDir() / Dir;
 		IFileManager::Get().DeleteDirectory(*CrashConfigDirectory, false, true);
 	}
+	UE_CLOG(!IS_PROGRAM, LogStreaming, Display, TEXT("Took %6.3fs to delete old logs."), FPlatformTime::Seconds() - StartTime);
 }
 
 #undef LOCTEXT_NAMESPACE

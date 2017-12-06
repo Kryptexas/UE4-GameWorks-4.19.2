@@ -15,7 +15,8 @@ TSharedPtr<HandlerComponent> FAESHandlerComponentModule::CreateComponentInstance
 
 
 FAESHandlerComponent::FAESHandlerComponent()
-	: bEncryptionEnabled(false)
+	: FEncryptionComponent(FName(TEXT("AESHandlerComponent")))
+	, bEncryptionEnabled(false)
 {
 	EncryptionContext = IPlatformCrypto::Get().CreateContext();
 }

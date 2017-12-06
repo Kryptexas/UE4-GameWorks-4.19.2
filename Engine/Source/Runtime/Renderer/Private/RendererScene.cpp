@@ -445,25 +445,19 @@ void FScene::SetClearMotionBlurInfoGameThread()
 
 void FScene::UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections)
 {
-	// Empy the scene's map so any unused uniform buffers will be released
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		ClearParameterCollectionsCommand,
-		FScene*,Scene,this,
+	ENQUEUE_RENDER_COMMAND(UpdateParameterCollectionsCommand)(
+		[this, InParameterCollections](FRHICommandList&)
 	{
-		Scene->ParameterCollections.Empty();
-	});
+		// Empy the scene's map so any unused uniform buffers will be released
+		ParameterCollections.Empty();
 
-	// Add each existing parameter collection id and its uniform buffer
-	for (int32 CollectionIndex = 0; CollectionIndex < InParameterCollections.Num(); CollectionIndex++)
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			AddParameterCollectionCommand,
-			FScene*,Scene,this,
-			FMaterialParameterCollectionInstanceResource*,InstanceResource,InParameterCollections[CollectionIndex],
+		// Add each existing parameter collection id and its uniform buffer
+		for (int32 CollectionIndex = 0; CollectionIndex < InParameterCollections.Num(); CollectionIndex++)
 		{
-			Scene->ParameterCollections.Add(InstanceResource->GetId(), InstanceResource->GetUniformBuffer());
-		});
-	}
+			FMaterialParameterCollectionInstanceResource* InstanceReousrce = InParameterCollections[CollectionIndex];
+			ParameterCollections.Add(InstanceReousrce->GetId(), InstanceReousrce->GetUniformBuffer());
+		}
+	});
 }
 
 SIZE_T FScene::GetSizeBytes() const
@@ -491,6 +485,47 @@ void FScene::CheckPrimitiveArrays()
 	check(Primitives.Num() == PrimitiveOcclusionBounds.Num());
 }
 
+
+static TAutoConsoleVariable<int32> CVarDoLazyStaticMeshUpdate(
+	TEXT("r.DoLazyStaticMeshUpdate"),
+	0,
+	TEXT("If true, then do not add meshes to the static mesh draw lists until they are visible. Experiemental option."));
+
+static void DoLazyStaticMeshUpdateCVarSinkFunction()
+{
+	static bool CachedDoLazyStaticMeshUpdate = CVarDoLazyStaticMeshUpdate.GetValueOnGameThread() && !WITH_EDITOR;
+	bool DoLazyStaticMeshUpdate = CVarDoLazyStaticMeshUpdate.GetValueOnGameThread() && !WITH_EDITOR;
+
+	if (DoLazyStaticMeshUpdate != CachedDoLazyStaticMeshUpdate)
+	{
+		CachedDoLazyStaticMeshUpdate = DoLazyStaticMeshUpdate;
+		for (TObjectIterator<UWorld> It; It; ++It)
+		{
+			UWorld* World = *It;
+			if (World && World->Scene)
+			{
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+					UpdateDoLazyStaticMeshUpdate,
+					FScene*, Scene, (FScene*)(World->Scene),
+					{
+						Scene->UpdateDoLazyStaticMeshUpdate(RHICmdList);
+					});
+			}
+		}
+	}
+}
+
+static FAutoConsoleVariableSink CVarDoLazyStaticMeshUpdateSink(FConsoleCommandDelegate::CreateStatic(&DoLazyStaticMeshUpdateCVarSinkFunction));
+
+void FScene::UpdateDoLazyStaticMeshUpdate(FRHICommandListImmediate& CmdList)
+{
+	bool DoLazyStaticMeshUpdate = CVarDoLazyStaticMeshUpdate.GetValueOnRenderThread() && !WITH_EDITOR;
+
+	for (int32 PrimitiveIndex = 0; PrimitiveIndex < Primitives.Num(); PrimitiveIndex++)
+	{
+		Primitives[PrimitiveIndex]->UpdateStaticMeshes(CmdList, !DoLazyStaticMeshUpdate);
+	}
+}
 
 template<typename T>
 static void SwapTArray(TArray<T>& Array, int i1, int i2)
@@ -594,7 +629,16 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 	PrimitiveSceneInfo->LinkLODParentComponent();
 
 	// Add the primitive to the scene.
-	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
+	const bool bAddToDrawLists = !(CVarDoLazyStaticMeshUpdate.GetValueOnRenderThread() && !WITH_EDITOR);
+	if (bAddToDrawLists)
+	{
+		PrimitiveSceneInfo->AddToScene(RHICmdList, true);
+	}
+	else
+	{
+		PrimitiveSceneInfo->AddToScene(RHICmdList, true, false);
+		PrimitiveSceneInfo->BeginDeferredUpdateStaticMeshes();
+	}
 
 	DistanceFieldSceneData.AddPrimitive(PrimitiveSceneInfo);
 
@@ -873,6 +917,15 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 }
 
+static int32 GWarningOnRedundantTransformUpdate = 0;
+static FAutoConsoleVariableRef CVarWarningOnRedundantTransformUpdate(
+	TEXT("r.WarningOnRedundantTransformUpdate"),
+	GWarningOnRedundantTransformUpdate,
+	TEXT("Produce a warning when UpdatePrimitiveTransform_RenderThread is called redundantly."),
+	ECVF_Default
+);
+
+
 void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& AttachmentRootPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
@@ -889,6 +942,10 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	
+	if (GWarningOnRedundantTransformUpdate && PrimitiveSceneProxy->WouldSetTransformBeRedundant(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition))
+	{
+		UE_LOG(LogRenderer, Warning, TEXT("Redundant UpdatePrimitiveTransform_RenderThread Owner: %s, Resource: %s, Level: %s"), *PrimitiveSceneProxy->GetOwnerName().ToString(), *PrimitiveSceneProxy->GetResourceName().ToString(), *PrimitiveSceneProxy->GetLevelName().ToString());
+	}
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
@@ -1030,6 +1087,26 @@ void FScene::UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive)
 
 			ProcessStack.Append(Current->GetAttachChildren());
 		}
+	}
+}
+
+void FScene::UpdatePrimitiveDistanceFieldSceneData_GameThread(UPrimitiveComponent* Primitive)
+{
+	check(IsInGameThread());
+
+	if (Primitive->SceneProxy)
+	{
+		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+
+		ENQUEUE_RENDER_COMMAND(UpdatePrimDFSceneDataCmd)(
+			[this, PrimitiveSceneProxy = Primitive->SceneProxy](FRHICommandList&)
+		{
+			if (PrimitiveSceneProxy && PrimitiveSceneProxy->GetPrimitiveSceneInfo())
+			{
+				FPrimitiveSceneInfo* Info = PrimitiveSceneProxy->GetPrimitiveSceneInfo();
+				DistanceFieldSceneData.UpdatePrimitive(Info);
+			}
+		});
 	}
 }
 
@@ -1652,8 +1729,8 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 
 	if (bRemoved)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			RemoveCaptureCommand,
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		RemoveCaptureCommand,
 			UReflectionCaptureComponent*, Component, CaptureComponent,
 			FScene*, Scene, this,
 		{
@@ -1663,9 +1740,9 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 				// We track removed captures so we can remap them when reallocating the cubemap array
 				check(ComponentStatePtr->CaptureIndex != -1);
 				Scene->ReflectionSceneData.CubemapArraySlotsUsed[ComponentStatePtr->CaptureIndex] = false;
-			}
-			Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
-		});
+		}
+		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
+	});
 	}
 }
 
@@ -2041,12 +2118,12 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 			}
 #endif
 
-			// check MobileDirectionalLights
+		    // check MobileDirectionalLights
 		    for (int32 LightChannelIdx = 0; LightChannelIdx < ARRAY_COUNT(MobileDirectionalLights); LightChannelIdx++)
 		    {
 			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
 			    {
-					MobileDirectionalLights[LightChannelIdx] = nullptr;
+				    MobileDirectionalLights[LightChannelIdx] = nullptr;
 
 					// find another light that could be the new MobileDirectionalLight for this channel
 					for (const FLightSceneInfoCompact& OtherLight : Lights)
@@ -2061,7 +2138,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 						}
 					}
 
-					// if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+				    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
 					if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 					{
 						bScenesPrimitivesNeedStaticMeshElementUpdate = true;

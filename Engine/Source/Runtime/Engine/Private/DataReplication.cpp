@@ -18,6 +18,8 @@
 
 
 DECLARE_CYCLE_STAT(TEXT("Custom Delta Property Rep Time"), STAT_NetReplicateCustomDeltaPropTime, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("ReceiveRPC"), STAT_NetReceiveRPC, STATGROUP_Game);
+
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
 static TAutoConsoleVariable<int32> CVarDelayUnmappedRPCs( TEXT("net.DelayUnmappedRPCs" ), 0, TEXT( "If >0 delay received RPCs with unmapped properties" ) );
@@ -235,6 +237,8 @@ void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InCo
 	InitRecentProperties( Source );
 
 	RepLayout->GetLifetimeCustomDeltaProperties( LifetimeCustomDeltaProperties, LifetimeCustomDeltaPropertyConditions );
+
+	Connection->Driver->AllOwnedReplicators.Add(this);
 }
 
 void FObjectReplicator::CleanUp()
@@ -261,6 +265,8 @@ void FObjectReplicator::CleanUp()
 		Connection->Driver->UnmappedReplicators.Remove( this );
 
 		Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
+
+		Connection->Driver->AllOwnedReplicators.Remove( this );
 	}
 	else
 	{
@@ -770,6 +776,9 @@ bool FObjectReplicator::ReceivedRPC(FNetBitReader& Reader, const FReplicationFla
 	UObject* Object = GetObject();
 	FName FunctionName = FieldCache->Field->GetFName();
 	UFunction * Function = Object->FindFunction(FunctionName);
+
+	SCOPE_CYCLE_COUNTER(STAT_NetReceiveRPC);
+	SCOPE_CYCLE_UOBJECT(Function, Function);
 
 	if (Function == nullptr)
 	{

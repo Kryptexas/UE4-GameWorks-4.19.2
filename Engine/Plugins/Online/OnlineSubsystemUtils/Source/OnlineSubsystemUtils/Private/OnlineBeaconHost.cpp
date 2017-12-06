@@ -142,13 +142,13 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 				FNetControlMessage<NMT_BeaconJoin>::Receive(Bunch, BeaconType, UniqueId);
 				UE_LOG(LogBeacon, Log, TEXT("Beacon Join %s %s"), *BeaconType, *UniqueId.ToDebugString());
 
-				if (Connection->ClientWorldPackageName == NAME_None)
+				if (Connection->GetClientWorldPackageName() == NAME_None)
 				{
 					AOnlineBeaconClient* ClientActor = GetClientActor(Connection);
 					if (ClientActor == nullptr)
 					{
 						UWorld* World = GetWorld();
-						Connection->ClientWorldPackageName = World->GetOutermost()->GetFName();
+						Connection->SetClientWorldPackageName(World->GetOutermost()->GetFName());
 
 						AOnlineBeaconClient* NewClientActor = nullptr;
 						FOnBeaconSpawned* OnBeaconSpawnedDelegate = OnBeaconSpawnedMapping.Find(BeaconType);

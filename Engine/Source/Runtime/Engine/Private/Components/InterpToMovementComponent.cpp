@@ -439,6 +439,8 @@ float UInterpToMovementComponent::GetSimulationTimeStep(float RemainingTime, int
 
 void UInterpToMovementComponent::BeginPlay()
 {
+	Super::BeginPlay();
+
 	FinaliseControlPoints();
 }
 

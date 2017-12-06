@@ -928,22 +928,22 @@ void FRenderCommandFence::BeginFence(bool bSyncToRHIAndGPU)
 			return;
 		}
 
-		// Various places in the engine use FRenderCommandFence to flush render commands,
-		// and shouldn't be held up on the GPU if it is not necessary...
-		// Force a GT->RT only sync if bSyncToRHIAndGPU is false (GT sync type 0).
-		int32 GTSyncType = bSyncToRHIAndGPU ? CVarGTSyncType.GetValueOnAnyThread() : 0;
-
-		if (GTSyncType == 0)
+		int32 GTSyncType = CVarGTSyncType.GetValueOnAnyThread();
+		if (bSyncToRHIAndGPU)
 		{
-			// Sync Game Thread with Render Thread only
-			DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.FenceRenderCommand"),
-			STAT_FNullGraphTask_FenceRenderCommand,
-				STATGROUP_TaskGraphTasks);
+			// Don't sync to the RHI and GPU if GtSyncType is disabled, or we're not vsyncing
+			//@TODO: do this logic in the caller?
+			static auto CVarVsync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+			check(CVarVsync != nullptr);
 
-			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::RenderThread);
+			if ( GTSyncType == 0 || CVarVsync->GetInt() == 0 )
+			{
+				bSyncToRHIAndGPU = false;
+			}
 		}
-		else
+
+
+		if (bSyncToRHIAndGPU)
 		{
 			// Create a task graph event which we can pass to the render or RHI threads.
 			CompletionEvent = FGraphEvent::CreateGraphEvent();
@@ -952,18 +952,28 @@ void FRenderCommandFence::BeginFence(bool bSyncToRHIAndGPU)
 				FSyncFrameCommand,
 				FGraphEventRef, CompletionEvent, CompletionEvent,
 				int32, GTSyncType, GTSyncType,
-			{
-				if (GRHIThread_InternalUseOnly)
 				{
-					new (RHICmdList.AllocCommand<FRHISyncFrameCommand>()) FRHISyncFrameCommand(CompletionEvent, GTSyncType);
-					RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
-				}
-				else
-				{
-					FRHISyncFrameCommand Command(CompletionEvent, GTSyncType);
-					Command.Execute(RHICmdList);
-				}
-			});
+					if (GRHIThread_InternalUseOnly)
+					{
+						new (RHICmdList.AllocCommand<FRHISyncFrameCommand>()) FRHISyncFrameCommand(CompletionEvent, GTSyncType);
+						RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+					}
+					else
+					{
+						FRHISyncFrameCommand Command(CompletionEvent, GTSyncType);
+						Command.Execute(RHICmdList);
+					}
+				});
+		}
+		else
+		{
+			// Sync Game Thread with Render Thread only
+			DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.FenceRenderCommand"),
+			STAT_FNullGraphTask_FenceRenderCommand,
+				STATGROUP_TaskGraphTasks);
+
+			CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				GET_STATID(STAT_FNullGraphTask_FenceRenderCommand), ENamedThreads::RenderThread);
 		}
 	}
 }
@@ -1066,6 +1076,21 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 				bDone = Event->Wait(WaitTime);
 
+				bool IsGpuAlive = true;
+				const bool bOverdue = FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating();
+				if (bOverdue)
+				{
+					if (GDynamicRHI)
+					{
+						IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
+					}
+				}
+
+				if (!IsGpuAlive)
+				{
+					UE_LOG(LogRendererCore, Fatal, TEXT("GPU has hung or crashed!"));
+				}
+
 				// track whether the thread ensured, if so don't do timeout checks
 				bRenderThreadEnsured = FDebug::IsEnsuring() || bRenderThreadEnsured;
 
@@ -1076,13 +1101,8 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 					if (bGPUDebugging && FPlatformTime::Seconds() > 2.0f)
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
-					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
+					if (bOverdue && !bDisabled)
 					{
-						bool IsGpuAlive = true;
-						if (GDynamicRHI)
-						{
-							IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
-						}
 
 						UE_CLOG(!IsGpuAlive, LogRendererCore, Fatal, TEXT("CheckGpuHeartbeat returned false after %.02f secs of waiting for the GPU"), FPlatformTime::Seconds() - StartTime);
 					}
@@ -1090,7 +1110,7 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 #if !PLATFORM_IOS // @todo MetalMRT: Timeout isn't long enough...
 					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
 					{
-						bool IsGpuAlive = true;
+						IsGpuAlive = true;
 						if (GDynamicRHI)
 						{
 							IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();

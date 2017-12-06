@@ -209,12 +209,12 @@ struct TCString
 	/**
 	 * Find string in string, case sensitive, requires non-alphanumeric lead-in.
 	 */
-	static const CharType* Strfind( const CharType* Str, const CharType* Find );
+	static const CharType* Strfind( const CharType* Str, const CharType* Find, bool bSkipQuotedChars = false );
 
 	/**
 	 * Find string in string, case insensitive, requires non-alphanumeric lead-in.
 	 */
-	static const CharType* Strifind( const CharType* Str, const CharType* Find );
+	static const CharType* Strifind( const CharType* Str, const CharType* Find, bool bSkipQuotedChars = false );
 
 	/**
 	 * Finds string in string, case insensitive, requires the string be surrounded by one the specified
@@ -389,7 +389,7 @@ const typename TCString<T>::CharType* TCString<T>::Tab( int32 NumTabs )
 // Find string in string, case sensitive, requires non-alphanumeric lead-in.
 //
 template <typename T>
-const typename TCString<T>::CharType* TCString<T>::Strfind(const CharType* Str, const CharType* Find)
+const typename TCString<T>::CharType* TCString<T>::Strfind(const CharType* Str, const CharType* Find, bool bSkipQuotedChars)
 {
 	if (Find == NULL || Str == NULL)
 	{
@@ -400,16 +400,38 @@ const typename TCString<T>::CharType* TCString<T>::Strfind(const CharType* Str, 
 	CharType f = *Find;
 	int32 Length = Strlen(Find++) - 1;
 	CharType c = *Str++;
-	while (c)
+	if (bSkipQuotedChars)
 	{
-		if (!Alnum && c == f && !Strncmp(Str, Find, Length))
+		bool bInQuotedStr = false;
+		while (c)
 		{
-			return Str - 1;
+			if (!bInQuotedStr && !Alnum && c == f && !Strncmp(Str, Find, Length))
+			{
+				return Str - 1;
+			}
+			Alnum = (c >= LITERAL(CharType, 'A') && c <= LITERAL(CharType, 'Z')) ||
+				(c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z')) ||
+				(c >= LITERAL(CharType, '0') && c <= LITERAL(CharType, '9'));
+			if (c == LITERAL(CharType, '"'))
+			{
+				bInQuotedStr = !bInQuotedStr;
+			}
+			c = *Str++;
 		}
-		Alnum = (c >= LITERAL(CharType, 'A') && c <= LITERAL(CharType, 'Z')) ||
-			(c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z')) ||
-			(c >= LITERAL(CharType, '0') && c <= LITERAL(CharType, '9'));
-		c = *Str++;
+	}
+	else
+	{
+		while (c)
+		{
+			if (!Alnum && c == f && !Strncmp(Str, Find, Length))
+			{
+				return Str - 1;
+			}
+			Alnum = (c >= LITERAL(CharType, 'A') && c <= LITERAL(CharType, 'Z')) ||
+				(c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z')) ||
+				(c >= LITERAL(CharType, '0') && c <= LITERAL(CharType, '9'));
+			c = *Str++;
+		}
 	}
 	return NULL;
 }
@@ -418,7 +440,7 @@ const typename TCString<T>::CharType* TCString<T>::Strfind(const CharType* Str, 
 // Find string in string, case insensitive, requires non-alphanumeric lead-in.
 //
 template <typename T>
-const typename TCString<T>::CharType* TCString<T>::Strifind( const CharType* Str, const CharType* Find )
+const typename TCString<T>::CharType* TCString<T>::Strifind( const CharType* Str, const CharType* Find, bool bSkipQuotedChars )
 {
 	if( Find == NULL || Str == NULL )
 	{
@@ -429,19 +451,45 @@ const typename TCString<T>::CharType* TCString<T>::Strifind( const CharType* Str
 	CharType f = ( *Find < LITERAL(CharType, 'a') || *Find > LITERAL(CharType, 'z') ) ? (*Find) : (*Find + LITERAL(CharType,'A') - LITERAL(CharType,'a'));
 	int32 Length = Strlen(Find++)-1;
 	CharType c = *Str++;
-	while( c )
+	
+	if (bSkipQuotedChars)
 	{
-		if( c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z') )
+		bool bInQuotedStr = false;
+		while( c )
 		{
-			c += LITERAL(CharType, 'A') - LITERAL(CharType, 'a');
+			if( c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z') )
+			{
+				c += LITERAL(CharType, 'A') - LITERAL(CharType, 'a');
+			}
+			if( !bInQuotedStr && !Alnum && c==f && !Strnicmp(Str,Find,Length) )
+			{
+				return Str-1;
+			}
+			Alnum = (c>=LITERAL(CharType,'A') && c<=LITERAL(CharType,'Z')) || 
+					(c>=LITERAL(CharType,'0') && c<=LITERAL(CharType,'9'));
+			if (c == LITERAL(CharType, '"'))
+			{
+				bInQuotedStr = !bInQuotedStr;
+			}
+			c = *Str++;
 		}
-		if( !Alnum && c==f && !Strnicmp(Str,Find,Length) )
+	}
+	else
+	{
+		while( c )
 		{
-			return Str-1;
+			if( c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z') )
+			{
+				c += LITERAL(CharType, 'A') - LITERAL(CharType, 'a');
+			}
+			if( !Alnum && c==f && !Strnicmp(Str,Find,Length) )
+			{
+				return Str-1;
+			}
+			Alnum = (c>=LITERAL(CharType,'A') && c<=LITERAL(CharType,'Z')) || 
+					(c>=LITERAL(CharType,'0') && c<=LITERAL(CharType,'9'));
+			c = *Str++;
 		}
-		Alnum = (c>=LITERAL(CharType,'A') && c<=LITERAL(CharType,'Z')) || 
-				(c>=LITERAL(CharType,'0') && c<=LITERAL(CharType,'9'));
-		c = *Str++;
 	}
 	return NULL;
 }

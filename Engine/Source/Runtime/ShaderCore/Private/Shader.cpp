@@ -987,6 +987,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 		// Save the shader resource if we are inlining shaders
 		if (Ar.IsSaving())
 		{
+			check(Resource->Target == Target);
 			Resource->Serialize(Ar);
 		}
 

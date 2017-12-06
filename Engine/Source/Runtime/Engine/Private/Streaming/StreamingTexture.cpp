@@ -80,6 +80,8 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident();
 
+		bIgnoreStreamingMipBias = Texture->bIgnoreStreamingMipBias;
+
 		const int32 NumCinematicMipLevels = (bForceFullyLoad && Texture->bUseCinematicMipLevels) ? Texture->NumCinematicMipLevels : 0;
 
 		int32 LODBias = 0;
@@ -113,6 +115,7 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 		bReadyForStreaming = false;
 		bInFlight = false;
 		bForceFullyLoad = false;
+		bIgnoreStreamingMipBias = false;
 		ResidentMips = 0;
 		RequestedMips = 0;
 		MinAllowedMips = 0;

@@ -6,11 +6,6 @@ public class Sockets : ModuleRules
 {
 	public Sockets(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateIncludePathModuleNames.AddRange(
-			new string[] {
-				"DerivedDataCache"
-			});
-			
 		PrivateIncludePaths.Add("Runtime/Sockets/Private");
 
 		PrivateDependencyModuleNames.AddRange(

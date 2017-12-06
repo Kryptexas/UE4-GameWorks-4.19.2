@@ -39,6 +39,8 @@ struct CORE_API FWindowsPlatformStackWalk
 	 * Get downstream storage with downloaded from remote symbol storage files.
 	 */
 	static FString GetDownstreamStorage();
+
+	static void* MakeThreadContextWrapper(void* Context, void* ThreadHandle);
 };
 
 

@@ -20,7 +20,7 @@
 #include "ScenePrivate.h"
 #include "LightPropagationVolumeSettings.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("LPV"), Stat_GPU_LPV, STATGROUP_GPU);
+DECLARE_GPU_STAT(LPV);
 
 static TAutoConsoleVariable<int32> CVarLightPropagationVolume(
 	TEXT("r.LightPropagationVolume"),
@@ -1604,7 +1604,7 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 
 				if(LightPropagationVolume)
 				{
-					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_LPV);
+					SCOPED_GPU_STAT(RHICmdList, LPV);
 					LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
 					LightPropagationVolume->Clear(RHICmdList, View);
 				}
@@ -1633,7 +1633,7 @@ void FDeferredShadingSceneRenderer::UpdateLPVs(FRHICommandListImmediate& RHICmdL
 			{
 //				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
 //				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
-				SCOPED_GPU_STAT(RHICmdList, Stat_GPU_LPV);
+				SCOPED_GPU_STAT(RHICmdList, LPV);
 
 				LightPropagationVolume->Update(RHICmdList, View);
 			}

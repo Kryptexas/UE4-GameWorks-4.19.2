@@ -185,10 +185,7 @@ public class Core : ModuleRules
 			}
 		}
 
-		if(Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
-		{
-			WhitelistRestrictedFolders.Add("Private/Windows/NoRedist");
-		}
+		WhitelistRestrictedFolders.Add("Private/NoRedist");
 
         if (Target.Platform == UnrealTargetPlatform.XboxOne)
         {

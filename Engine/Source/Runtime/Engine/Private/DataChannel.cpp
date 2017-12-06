@@ -29,11 +29,9 @@ DEFINE_LOG_CATEGORY(LogNetFastTArray);
 DEFINE_LOG_CATEGORY(LogSecurity);
 DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 
-DECLARE_CYCLE_STAT(TEXT("ActorChan_ReceivedBunch"), Stat_ActorChanReceivedBunch, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("ActorChan_CleanUp"), Stat_ActorChanCleanUp, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("ActorChan_PostNetInit"), Stat_PostNetInit, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("Channel ReceivedRawBunch"), Stat_ChannelReceivedRawBunch, STATGROUP_Net);
-DECLARE_CYCLE_STAT(TEXT("Channel ReceivedNextBunch"), Stat_ChannelReceivedNextBunch, STATGROUP_Net);
 
 extern FAutoConsoleVariable CVarDoReplicationContextString;
 
@@ -442,8 +440,6 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 
 bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
-	SCOPE_CYCLE_COUNTER(Stat_ChannelReceivedNextBunch);
-
 	// We received the next bunch. Basically at this point:
 	//	-We know this is in order if reliable
 	//	-We dont know if this is partial or not
@@ -791,7 +787,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	// Max bits will put in a partial bunch (byte aligned, we dont want to deal with partial bytes in the partial bunches)
 	const int64 MAX_PARTIAL_BUNCH_SIZE_BITS = MAX_SINGLE_BUNCH_SIZE_BYTES * 8;
 
-	TArray<FOutBunch *> OutgoingBunches;
+	static TArray<FOutBunch *> OutgoingBunches;
+	OutgoingBunches.Reset();
 
 	// Add any export bunches
 	AppendExportBunches( OutgoingBunches );
@@ -1650,9 +1647,8 @@ void UActorChannel::DestroyActorAndComponents()
 	// Destroy any sub-objects we created
 	for ( int32 i = 0; i < CreateSubObjects.Num(); i++ )
 	{
-		if ( CreateSubObjects[i].IsValid() )
+		if ( UObject *SubObject = CreateSubObjects[i] )
 		{
-			UObject *SubObject = CreateSubObjects[i].Get();
 
 			// Unmap this object so we can remap it if it becomes relevant again in the future
 			MoveMappedObjectToUnmapped( SubObject );
@@ -2038,8 +2034,6 @@ bool UActorChannel::ProcessQueuedBunches()
 
 void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 {
-	SCOPE_CYCLE_COUNTER(Stat_ActorChanReceivedBunch);
-
 	check( !Closing );
 
 	if ( Broken || bTornOff )
@@ -2303,10 +2297,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 	{
-		if ( RepComp.Key().IsValid() )
-		{
-			RepComp.Value()->PostReceivedBunch();
-		}
+		RepComp.Value()->PostReceivedBunch();
 	}
 
 	// After all properties have been initialized, call PostNetInit. This should call BeginPlay() so initialization can be done with proper starting values.
@@ -2354,7 +2345,7 @@ private:
 
 bool UActorChannel::ReplicateActor()
 {
-	SCOPE_CYCLE_COUNTER(STAT_NetReplicateActorsTime);
+	SCOPE_CYCLE_COUNTER(STAT_NetReplicateActorTime);
 
 	check(Actor);
 	check(!Closing);
@@ -2410,7 +2401,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 	// Time how long it takes to replicate this particular actor
-	STAT( FScopeCycleCounterUObject FunctionScope(Actor) );
+	SCOPE_CYCLE_UOBJECT(Actor, Actor);
 
 	bool WroteSomethingImportant = bIsNewlyReplicationUnpaused || bIsNewlyReplicationPaused;
 
@@ -2665,13 +2656,8 @@ void UActorChannel::BecomeDormant()
 
 bool UActorChannel::ReadyForDormancy(bool suppressLogs)
 {
-	for ( auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt )
+	for (auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt)
 	{
-		if ( !MapIt.Key().IsValid() )
-		{
-			continue;
-		}
-
 		if (!MapIt.Value()->ReadyForDormancy(suppressLogs))
 		{
 			return false;
@@ -2997,7 +2983,7 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
 
 		// Track which sub-object guids we are creating
-		CreateSubObjects.AddUnique( SubObj );
+		CreateSubObjects.Add( SubObj );
 
 		// Add this sub-object to the ImportedNetGuids list so we can possibly map this object if needed
 		Connection->Driver->GuidCache->ImportedNetGuids.Add( NetGUID );
@@ -3262,13 +3248,14 @@ FNetFieldExportGroup* UActorChannel::GetNetFieldExportGroupForClassNetCache( con
 
 FObjectReplicator & UActorChannel::GetActorReplicationData()
 {
-	return ReplicationMap.FindChecked(Actor).Get();
+	check(ActorReplicator != nullptr);
+	return *ActorReplicator;
 }
 
-TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject* Obj )
+TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( const TWeakObjectPtr<UObject>& Obj )
 {
 	// First, try to find it on the channel replication map
-	TSharedRef<FObjectReplicator> * ReplicatorRefPtr = ReplicationMap.Find( Obj );
+	TSharedRef<FObjectReplicator>* ReplicatorRefPtr = ReplicationMap.Find( Obj );
 
 	if ( ReplicatorRefPtr == NULL )
 	{
@@ -3282,7 +3269,7 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 			// Still didn't find one, need to create
 			UE_LOG( LogNetTraffic, Log, TEXT( "Creating Replicator for %s" ), *Obj->GetName() );
 
-			NewReplicator = Connection->CreateReplicatorForNewActorChannel(Obj);
+			NewReplicator = Connection->CreateReplicatorForNewActorChannel(Obj.Get());
 		}
 		else
 		{
@@ -3305,7 +3292,7 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 	return *ReplicatorRefPtr;
 }
 
-bool UActorChannel::ObjectHasReplicator(UObject *Obj)
+bool UActorChannel::ObjectHasReplicator(const TWeakObjectPtr<UObject>& Obj)
 {
 	return ReplicationMap.Contains(Obj);
 }
@@ -3333,7 +3320,10 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 	}
 
 	bool NewSubobject = false;
-	if (!ObjectHasReplicator(Obj))
+
+	TWeakObjectPtr<UObject> WeakObj(Obj);
+
+	if (!ObjectHasReplicator(WeakObj))
 	{
 		// This is the first time replicating this subobject
 		// This bunch should be reliable and we should always return true
@@ -3343,7 +3333,7 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 		Bunch.bReliable = true;
 		NewSubobject = true;
 	}
-	bool WroteSomething = FindOrCreateReplicator(Obj).Get().ReplicateProperties(Bunch, RepFlags);
+	bool WroteSomething = FindOrCreateReplicator(WeakObj).Get().ReplicateProperties(Bunch, RepFlags);
 	if (NewSubobject && !WroteSomething)
 	{
 		// Write empty payload to force object creation

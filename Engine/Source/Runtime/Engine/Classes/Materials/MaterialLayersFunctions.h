@@ -32,6 +32,12 @@ struct ENGINE_API FMaterialParameterInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ParameterInfo)
 	int32 Index;
 
+	FMaterialParameterInfo(const TCHAR* InName, EMaterialParameterAssociation InAssociation = EMaterialParameterAssociation::GlobalParameter, int32 InIndex = INDEX_NONE)
+		: Name(InName)
+		, Association(InAssociation)
+		, Index(InIndex)
+	{
+	}
 	FMaterialParameterInfo(FName InName = FName(), EMaterialParameterAssociation InAssociation = EMaterialParameterAssociation::GlobalParameter, int32 InIndex = INDEX_NONE)
 	: Name(InName)
 	, Association(InAssociation)

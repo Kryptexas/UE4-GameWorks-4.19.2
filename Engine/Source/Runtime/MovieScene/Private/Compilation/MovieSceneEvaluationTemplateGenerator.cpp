@@ -221,6 +221,7 @@ void FMovieSceneEvaluationTemplateGenerator::ProcessTrack(const UMovieSceneTrack
 	}
 
 	TransientArgs.ObjectBindingId = ObjectId;
+	TransientArgs.DefaultCompletionMode = SourceSequence.DefaultCompletionMode;
 
 	// Potentially expensive generation is required
 	InTrack.GenerateTemplate(TransientArgs);
@@ -248,7 +249,7 @@ void FMovieSceneEvaluationTemplateGenerator::RemoveOldTrackReferences()
 
 void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<FMovieSceneSegment>& Segments, const TArray<FMovieSceneEvaluationFieldSegmentPtr>& Ptrs, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates)
 {
-	IMovieSceneModule& MovieSceneModule = IMovieSceneModule::Get();
+	IMovieSceneModule& MovieSceneModule = IMovieSceneModule::Get_Concurrent();
 
 	FMovieSceneEvaluationField& Field = Template.EvaluationField;
 

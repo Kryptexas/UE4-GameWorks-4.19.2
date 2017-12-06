@@ -105,17 +105,23 @@ private:
 			// and whether or not the linear color needs to be converted back to sRGB.  All other other set function cases should
 			// follow the sequencer convention of having a single parameter of the correct type, which in this case is an FColor
 			// already in sRGB format.
-			LightComponent->SetLightColor( ColorValue, bConvertBackToSRgb );
+			if (Bindings.GetPropertyName() == GET_MEMBER_NAME_CHECKED(ULightComponent, LightColor))
+			{
+				LightComponent->SetLightColor( ColorValue, bConvertBackToSRgb );
+				return;
+			}
 		}
 		else if (USkyLightComponent* SkyLightComponent = Cast<USkyLightComponent>(&Object))
 		{
-			SkyLightComponent->SetLightColor( ColorValue );
+			if (Bindings.GetPropertyName() == GET_MEMBER_NAME_CHECKED(USkyLightComponent, LightColor))
+			{
+				SkyLightComponent->SetLightColor( ColorValue );
+				return;
+			}
 		}
-		else
-		{
-			FColor SRgbColorValue = ColorValue.ToFColor( bConvertBackToSRgb );
-			Bindings.CallFunction<FColor>( Object, SRgbColorValue );
-		}
+
+		FColor SRgbColorValue = ColorValue.ToFColor( bConvertBackToSRgb );
+		Bindings.CallFunction<FColor>( Object, SRgbColorValue );
 	}
 
 	void ApplySlateColor(UObject& Object, FTrackInstancePropertyBindings& Bindings)

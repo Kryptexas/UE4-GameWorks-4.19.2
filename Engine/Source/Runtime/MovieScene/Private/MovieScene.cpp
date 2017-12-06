@@ -630,6 +630,7 @@ void UMovieScene::RemoveCameraCutTrack()
 void UMovieScene::SetCameraCutTrack(UMovieSceneTrack* InTrack)
 {
 	Modify();
+	InTrack->Rename(nullptr, this);
 	CameraCutTrack = InTrack;
 }
 

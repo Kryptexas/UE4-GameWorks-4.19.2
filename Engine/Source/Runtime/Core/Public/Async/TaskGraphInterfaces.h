@@ -997,7 +997,7 @@ public:
 	 */
 	FCustomStatIDGraphTaskBase(const TStatId& StatId)
 	{
-#if STATS
+#if STATS || ENABLE_STATNAMEDEVENTS
 		StatID = StatId;
 #endif
 	}
@@ -1009,15 +1009,18 @@ public:
 	 */
 	FORCEINLINE TStatId GetStatId() const
 	{
-#if STATS
+#if STATS|| ENABLE_STATNAMEDEVENTS
 		return StatID;
 #endif
 		return TStatId();
 	}
 
 private:
+#if STATS|| ENABLE_STATNAMEDEVENTS
 	/** Stat id of this object. */
-	STAT(TStatId StatID;)
+	TStatId StatID;
+#endif
+
 };
 
 /** 

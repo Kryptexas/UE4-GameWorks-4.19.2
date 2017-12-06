@@ -95,10 +95,10 @@ namespace UnrealBuildTool
 				IncludePath = Path.GetFullPath(IncludePath);
 			}
 
-			// If the value has a space in it and isn't wrapped in quotes, do that now
+			// If the value has a space in it and isn't wrapped in quotes, do that now. Make sure it doesn't include a trailing slash, because that will escape the closing quote.
 			if (!IncludePath.StartsWith("\"") && (IncludePath.Contains(" ") || IncludePath.Contains("$")))
 			{
-				IncludePath = "\"" + IncludePath + "\"";
+				IncludePath = "\"" + IncludePath.TrimEnd('\\') + "\"";
 			}
 
 			if (WindowsPlatform.bUseVCCompilerArgs)

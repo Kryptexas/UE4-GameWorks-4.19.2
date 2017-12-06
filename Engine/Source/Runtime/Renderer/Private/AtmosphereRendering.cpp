@@ -23,8 +23,7 @@
 #include "AtmosphereTextures.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PipelineStateCache.h"
-
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Atmosphere"), Stat_GPU_Atmosphere, STATGROUP_GPU);
+DECLARE_GPU_STAT(Atmosphere);
 
 class FAtmosphereShaderPrecomputeTextureParameters
 {
@@ -434,7 +433,7 @@ void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& R
 			const FViewInfo& View = Views[ViewIndex];
 
 			SCOPED_DRAW_EVENTF(RHICmdList, Atmosphere, TEXT("Atmosphere %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Atmosphere);
+			SCOPED_GPU_STAT(RHICmdList, Atmosphere);
 
 			// Set the device viewport for the view.
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);

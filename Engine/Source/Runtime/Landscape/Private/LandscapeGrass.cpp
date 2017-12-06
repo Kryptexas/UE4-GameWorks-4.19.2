@@ -73,6 +73,11 @@ static TAutoConsoleVariable<int32> CVarMinFramesToKeepGrass(
 	30,
 	TEXT("Minimum number of frames before cached grass can be discarded; used to prevent thrashing."));
 
+static TAutoConsoleVariable<int32> CVarGrassTickInterval(
+	TEXT("grass.TickInterval"),
+	1,
+	TEXT("Number of frames between grass ticks."));
+
 static TAutoConsoleVariable<float> CVarMinTimeToKeepGrass(
 	TEXT("grass.MinTimeToKeepGrass"),
 	5.0f,
@@ -136,10 +141,17 @@ DECLARE_CYCLE_STAT(TEXT("Grass End Comp"), STAT_FoliageGrassEndComp, STATGROUP_F
 DECLARE_CYCLE_STAT(TEXT("Grass Destroy Comps"), STAT_FoliageGrassDestoryComp, STATGROUP_Foliage);
 DECLARE_CYCLE_STAT(TEXT("Grass Update"), STAT_GrassUpdate, STATGROUP_Foliage);
 
+static int32 GGrassUpdateInterval = 1;
+
 static void GrassCVarSinkFunction()
 {
 	static float CachedGrassDensityScale = 1.0f;
 	float GrassDensityScale = CVarGrassDensityScale.GetValueOnGameThread();
+
+	if (FApp::IsGame())
+	{
+		GGrassUpdateInterval = FMath::Clamp<int32>(CVarGrassTickInterval.GetValueOnGameThread(), 1, 60);
+	}
 
 	if (GrassDensityScale != CachedGrassDensityScale)
 	{
@@ -1214,8 +1226,16 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 // ALandscapeProxy grass-related functions
 //
 
+
 void ALandscapeProxy::TickGrass()
 {
+	if (GGrassUpdateInterval > 1)
+	{
+		if ((GFrameNumber + FrameOffsetForTickInterval) % uint32(GGrassUpdateInterval))
+		{
+			return;
+		}
+	}
 	// Update foliage
 	static TArray<FVector> OldCameras;
 	if (CVarUseStreamingManagerForCameras.GetValueOnGameThread() == 0)
@@ -1647,7 +1667,13 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 					for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++)
 					{
 						FVector Location(Origin.X + float(xStart) * Div * Extent.X, Origin.Y + float(yStart) * Div * Extent.Y, 0.0f);
-						Location += FVector(RandomStream.GetFraction() * 2.0f - 1.0f, RandomStream.GetFraction() * 2.0f - 1.0f, 0.0f) * MaxJitter;
+
+						// NOTE: We evaluate the random numbers on the stack and store them in locals rather than inline within the FVector() constructor below, because 
+						// the order of evaluation of function arguments in C++ is unspecified.  We really want this to behave consistently on all sorts of
+						// different platforms!
+						const float FirstRandom = RandomStream.GetFraction();
+						const float SecondRandom = RandomStream.GetFraction();
+						Location += FVector(FirstRandom * 2.0f - 1.0f, SecondRandom * 2.0f - 1.0f, 0.0f) * MaxJitter;
 
 						FInstanceLocal& Instance = Instances[InstanceIndex];
 						float Weight = GetLayerWeightAtLocationLocal(Location, &Instance.Pos);
@@ -1971,7 +1997,9 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 			int32 NumCompsCreated = 0;
 			for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
 			{
+
 				ULandscapeComponent* Component = LandscapeComponents[ComponentIndex];
+				FScopeCycleCounter Context(Component->GetStatID());
 
 				// skip if we have no data and no way to generate it
 				if (World->IsGameWorld() && !Component->GrassData->HasData())
@@ -2124,7 +2152,9 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										NumCompsCreated++;
 
 										SCOPE_CYCLE_COUNTER(STAT_FoliageGrassStartComp);
-										int32 FolSeed = FCrc::StrCrc32((GrassType->GetName() + Component->GetName() + FString::Printf(TEXT("%d %d %d"), SubX, SubY, GrassVarietyIndex)).GetCharArray().GetData());
+
+										// To guarantee consistency across platforms, we force the string to be lowercase and always treat it as an ANSI string.
+										int32 FolSeed = FCrc::StrCrc32( StringCast<ANSICHAR>( *FString::Printf( TEXT("%s%s%d %d %d"), *GrassType->GetName().ToLower(), *Component->GetName().ToLower(), SubX, SubY, GrassVarietyIndex)).Get() );
 										if (FolSeed == 0)
 										{
 											FolSeed++;
@@ -2315,12 +2345,13 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 		}
 	}
 
-	static TSet<UHierarchicalInstancedStaticMeshComponent *> StillUsed;
-	StillUsed.Empty(256);
+	TSet<UHierarchicalInstancedStaticMeshComponent *> StillUsed;
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_Grass_StillUsed);
+
 		// trim cached items based on time, pending and emptiness
 		double OldestToKeepTime = FPlatformTime::Seconds() - CVarMinTimeToKeepGrass.GetValueOnGameThread();
-		uint32 OldestToKeepFrame = GFrameNumber - CVarMinFramesToKeepGrass.GetValueOnGameThread();
+		uint32 OldestToKeepFrame = GFrameNumber - CVarMinFramesToKeepGrass.GetValueOnGameThread() * GGrassUpdateInterval;
 		for (FCachedLandscapeFoliage::TGrassSet::TIterator Iter(FoliageCache.CachedGrassComps); Iter; ++Iter)
 		{
 			const FCachedLandscapeFoliage::FGrassComp& GrassItem = *Iter;
@@ -2339,23 +2370,33 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 			}
 			else if (Used)
 			{
+				if (!StillUsed.Num())
+				{
+					StillUsed.Reserve(FoliageCache.CachedGrassComps.Num());
+				}
 				StillUsed.Add(Used);
 			}
 		}
 	}
+	if (StillUsed.Num() < FoliageComponents.Num())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_Grass_DelComps);
+
 		// delete components that are no longer used
-		for (UActorComponent* ActorComponent : GetComponents())
+		for (int32 Index = 0; Index < FoliageComponents.Num(); Index++)
 		{
-			UHierarchicalInstancedStaticMeshComponent* HComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(ActorComponent);
-			if (HComponent && !StillUsed.Contains(HComponent))
+			UHierarchicalInstancedStaticMeshComponent* HComponent = FoliageComponents[Index];
+			if (!StillUsed.Contains(HComponent))
 			{
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
-					HComponent->ClearInstances();
-					HComponent->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
-					HComponent->DestroyComponent();
-					FoliageComponents.Remove(HComponent);
+					if (HComponent)
+					{
+						HComponent->ClearInstances();
+						HComponent->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
+						HComponent->DestroyComponent();
+					}
+					FoliageComponents.RemoveAtSwap(Index--);
 				}
 				if (!bForceSync)
 				{
@@ -2365,6 +2406,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 		}
 	}
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_Grass_FinishAsync);
 		// finish async tasks
 		for (int32 Index = 0; Index < AsyncFoliageTasks.Num(); Index++)
 		{

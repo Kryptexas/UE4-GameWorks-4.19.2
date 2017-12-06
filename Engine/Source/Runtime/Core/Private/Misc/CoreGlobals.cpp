@@ -269,6 +269,12 @@ FName					GCurrentTraceName				= NAME_None;
 ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
 /** How to print the category in log output. */
 bool					GPrintLogCategory = true;
+
+
+#if USE_HITCH_DETECTION
+bool				GHitchDetected = false;
+#endif
+
 /** Whether stats should emit named events for e.g. PIX.													*/
 int32					GCycleStatsShouldEmitNamedEvents = 0;
 /** Disables some warnings and minor features that would interrupt a demo presentation						*/

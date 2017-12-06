@@ -331,6 +331,9 @@ public:
 	/** Returns a pointer to the component set as the encryption handler, if any. */
 	TSharedPtr<FEncryptionComponent> GetEncryptionComponent();
 
+	/** Returns a pointer to the first component in the HandlerComponents array with the specified name. */
+	TSharedPtr<HandlerComponent> GetComponentByName(FName ComponentName) const;
+
 protected:
 	/**
 	 * Internal handling for Incoming/IncomingConnectionless
@@ -567,6 +570,11 @@ public:
 	HandlerComponent();
 
 	/**
+	 * Constructor that accepts a name
+	 */
+	explicit HandlerComponent(FName InName);
+
+	/**
 	 * Base destructor
 	 */
 	virtual ~HandlerComponent()
@@ -673,6 +681,9 @@ public:
 	 */
 	virtual int32 GetReservedPacketBits() PURE_VIRTUAL(Handler::Component::GetReservedPacketBits, return -1;);
 
+	/** Returns the name of this component. */
+	FName GetName() const { return Name; }
+
 	/**
 	* Sets the analytics provider that can be used to send analytics events as needed.
 	*
@@ -717,6 +728,9 @@ private:
 
 	/** Whether this handler is fully initialized on both remote and local */
 	bool bInitialized;
+
+	/* The name of this component */
+	FName Name;
 };
 
 /**

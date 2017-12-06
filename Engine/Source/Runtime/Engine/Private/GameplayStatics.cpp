@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/GameplayStatics.h"
 #include "Serialization/MemoryWriter.h"
@@ -39,7 +39,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "EngineStats.h"
+#include "Misc/EngineVersion.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -283,7 +283,7 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 	TArray<FOverlapResult> Overlaps;
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams);
+	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams);
 	}
 
 	// collate into per-actor list of hit components
@@ -311,25 +311,25 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 
 	if (OverlapComponentMap.Num() > 0)
 	{
-		// make sure we have a good damage type
-		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
+	// make sure we have a good damage type
+	TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
 
 		FRadialDamageEvent DmgEvent;
 		DmgEvent.DamageTypeClass = ValidDamageTypeClass;
 		DmgEvent.Origin = Origin;
 		DmgEvent.Params = FRadialDamageParams(BaseDamage, MinimumDamage, DamageInnerRadius, DamageOuterRadius, DamageFalloff);
 
-		// call damage function on each affected actors
-		for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
-		{
-			AActor* const Victim = It.Key();
-			TArray<FHitResult> const& ComponentHits = It.Value();
-			DmgEvent.ComponentHits = ComponentHits;
+	// call damage function on each affected actors
+	for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
+	{
+		AActor* const Victim = It.Key();
+		TArray<FHitResult> const& ComponentHits = It.Value();
+		DmgEvent.ComponentHits = ComponentHits;
 
-			Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
+		Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
 
-			bAppliedDamage = true;
-		}
+		bAppliedDamage = true;
+	}
 	}
 
 	return bAppliedDamage;
@@ -703,33 +703,33 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject
 }
 
 UParticleSystemComponent* UGameplayStatics::InternalSpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
-{
+		{
 	check(World && EmitterTemplate);
 
-	UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+			UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
 
-	PSC->bAbsoluteLocation = true;
-	PSC->bAbsoluteRotation = true;
-	PSC->bAbsoluteScale = true;
-	PSC->RelativeLocation = SpawnLocation;
-	PSC->RelativeRotation = SpawnRotation;
+			PSC->bAbsoluteLocation = true;
+			PSC->bAbsoluteRotation = true;
+			PSC->bAbsoluteScale = true;
+			PSC->RelativeLocation = SpawnLocation;
+			PSC->RelativeRotation = SpawnRotation;
 	PSC->RelativeScale3D = SpawnScale;
 
-	PSC->RegisterComponentWithWorld(World);
+			PSC->RegisterComponentWithWorld(World);
 
-	PSC->ActivateSystem(true);
+			PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (PSC->Template && PSC->Template->IsImmortal())
-	{
-		UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
-			*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-		);
-	}
+			if (PSC->Template && PSC->Template->IsImmortal())
+			{
+				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+					);
+			}
 #endif
 
-	return PSC;
-}
+			return PSC;
+		}
 
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject* WorldContextObject, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector SpawnScale, bool bAutoDestroy)
 {
@@ -739,7 +739,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(const UObject
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
 			PSC = InternalSpawnEmitterAtLocation(World, EmitterTemplate, SpawnLocation, SpawnRotation, SpawnScale, bAutoDestroy);
-		}
+	}
 	}
 	return PSC;
 }
@@ -2348,13 +2348,14 @@ bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, con
 		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 		{
 			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
-			const bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+			bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
 
 			if (bPlayerViewportRelative)
 			{
 				ScreenPosition -= FVector2D(ProjectionData.GetConstrainedViewRect().Min);
 			}
 
+			bResult = Player->PostProcessWorldToScreen(WorldPosition, ScreenPosition, bPlayerViewportRelative);
 			return bResult;
 		}
 	}

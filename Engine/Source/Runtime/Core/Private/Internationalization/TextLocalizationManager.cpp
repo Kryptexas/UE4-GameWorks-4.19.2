@@ -68,6 +68,8 @@ void BeginInitTextLocalization()
 
 void EndInitTextLocalization()
 {
+	double StartTime = FPlatformTime::Seconds();
+
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("EndInitTextLocalization"), STAT_EndInitTextLocalization, STATGROUP_LoadTime);
 
 	FStringTableRedirects::InitStringTableRedirects();
@@ -315,6 +317,7 @@ void EndInitTextLocalization()
 
 	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame, ShouldLoadNative);
 	FTextLocalizationManager::Get().bIsInitialized = true;
+	UE_CLOG(!IS_PROGRAM, LogStreaming, Display, TEXT("Took %6.3fs to EndInitTextLocalization."), FPlatformTime::Seconds() - StartTime);
 }
 
 void FTextLocalizationManager::FDisplayStringLookupTable::Find(const FString& InNamespace, FKeysTable*& OutKeysTableForNamespace, const FString& InKey, FDisplayStringEntry*& OutDisplayStringEntry)

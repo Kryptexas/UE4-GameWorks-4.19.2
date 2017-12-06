@@ -151,7 +151,11 @@ TSharedRef<SWidget> FDataTableCustomizationLayout::GetListContent()
 		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
 		[
-			RowNameComboListView.ToSharedRef()
+			SNew(SBox)
+			.MaxDesiredHeight(600)
+			[
+				RowNameComboListView.ToSharedRef()
+			]
 		];
 }
 

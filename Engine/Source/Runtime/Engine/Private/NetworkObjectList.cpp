@@ -23,7 +23,7 @@ void FNetworkObjectList::AddInitialObjects(UWorld* const World, const FName NetD
 
 TSharedPtr<FNetworkObjectInfo> FNetworkObjectList::Find(AActor* const Actor)
 {
-	if (Actor == nullptr || Actor->IsPendingKillPending())
+	if (Actor == nullptr)
 	{
 		return nullptr;
 	}

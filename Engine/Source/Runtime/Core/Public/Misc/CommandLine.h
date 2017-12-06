@@ -83,6 +83,14 @@ struct CORE_API FCommandLine
 	 * @param	Switches	[out] filled with all switches found in the string
 	 */
 	static void Parse(const TCHAR* CmdLine, TArray<FString>& Tokens, TArray<FString>& Switches);
+
+	/**
+	 * Checks if command line logging filtering is enabled
+	 *
+	 * Returns true if logging filter is enabled
+	 */
+	static bool IsCommandLineLoggingFiltered();
+
 private:
 #if WANTS_COMMANDLINE_WHITELIST
 	/** Filters both the original and current command line list for approved only args */

@@ -26,7 +26,7 @@ public class CopyUAT : BuildCommand
 		// Construct a dummy UE4Build object to get a list of the UAT and UBT build products
 		UE4Build Build = new UE4Build(this);
 		Build.AddUATFilesToBuildProducts();
-		if(ParseParam("WithLauncher"))
+		if(ParseParam("WithLauncher") && !Utils.IsRunningOnMono)
 		{
 			Build.AddUATLauncherFilesToBuildProducts();
 		}

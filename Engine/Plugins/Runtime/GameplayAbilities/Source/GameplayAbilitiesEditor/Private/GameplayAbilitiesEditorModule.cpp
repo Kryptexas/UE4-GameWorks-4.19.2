@@ -186,7 +186,7 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	}));
 	
 	// Invalidate all internal cacheing of FRichCurve* in FScalableFlaots when a UCurveTable is reimported
-	FReimportManager::Instance()->OnPostReimport().AddLambda([](UObject* InObject, bool b){ FScalableFloat::InvalidateAllCachedCurves(); });
+	FReimportManager::Instance()->OnPostReimport().AddLambda([](UObject* InObject, bool b){ UCurveTable::InvalidateAllCachedCurves(); });
 }
 
 void FGameplayAbilitiesEditorModule::HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType)

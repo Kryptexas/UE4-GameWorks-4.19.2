@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ public:
 	 *
 	 * @return the stringified form of the binary data
 	 */
-	static FString Encode(uint8* Source, uint32 Length);
+	static FString Encode(const uint8* Source, uint32 Length);
 
 	/**
 	 * Decodes a Base64 string into an array of bytes

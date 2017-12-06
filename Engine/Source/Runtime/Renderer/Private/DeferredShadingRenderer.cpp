@@ -106,6 +106,14 @@ static FAutoConsoleVariableRef CVarEnableAsyncComputeTranslucencyLightingVolumeC
 	ECVF_RenderThreadSafe | ECVF_Scalability
 );
 
+int32 GDoPrepareDistanceFieldSceneAfterRHIFlush = 1;
+static FAutoConsoleVariableRef CVarDoPrepareDistanceFieldSceneAfterRHIFlush(
+	TEXT("r.DoPrepareDistanceFieldSceneAfterRHIFlush"),
+	GDoPrepareDistanceFieldSceneAfterRHIFlush,
+	TEXT("If true, then do the distance field scene after the RHI sync and flush. Improves pipelining."),
+	ECVF_RenderThreadSafe
+);
+
 static TAutoConsoleVariable<int32> CVarBasePassWriteDepthEvenWithFullPrepass(
 	TEXT("r.BasePassWriteDepthEvenWithFullPrepass"),
 	0,
@@ -141,9 +149,10 @@ DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer RenderFinish"), STAT_FDefe
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Dispatch"), STAT_OcclusionSubmittedFence_Dispatch, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Wait"), STAT_OcclusionSubmittedFence_Wait, STATGROUP_SceneRendering);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Postprocessing"), Stat_GPU_Postprocessing, STATGROUP_GPU);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("HZB"), Stat_GPU_HZB, STATGROUP_GPU);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("[unaccounted]"), Stat_GPU_Unaccounted, STATGROUP_GPU);
+DECLARE_GPU_STAT(Postprocessing);
+DECLARE_GPU_STAT(HZB);
+DECLARE_GPU_STAT_NAMED(Unaccounted, TEXT("[unaccounted]"));
+
 
 FForwardLightingViewResources* GetMinimalDummyForwardLightingResources();
 
@@ -434,7 +443,7 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 bool FDeferredShadingSceneRenderer::RenderHzb(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+	SCOPED_GPU_STAT(RHICmdList, HZB);
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
 
@@ -475,7 +484,7 @@ bool FDeferredShadingSceneRenderer::RenderHzb(FRHICommandListImmediate& RHICmdLi
 void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList)
 {		
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+	SCOPED_GPU_STAT(RHICmdList, HZB);
 
 	{
 		// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
@@ -491,7 +500,7 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 
 void FDeferredShadingSceneRenderer::FinishOcclusion(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+	SCOPED_GPU_STAT(RHICmdList, HZB);
 
 	// Hint to the RHI to submit commands up to this point to the GPU if possible.  Can help avoid CPU stalls next frame waiting
 	// for these query results on some platforms.
@@ -562,7 +571,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Anything rendered inside Render() which isn't accounted for will fall into this stat
 	// This works because child stat events do not contribute to their parents' times (see GPU_STATS_CHILD_TIMES_INCLUDED)
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Unaccounted);
+	SCOPED_GPU_STAT(RHICmdList, Unaccounted);
 	
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Render_Init);
@@ -579,6 +588,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FILCUpdatePrimTaskData ILCTaskData;
 
 	// Find the visible primitives.
+	RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 	bool bDoInitViewAftersPrepass = InitViews(RHICmdList, ILCTaskData, SortEvents);
 
 	TGuardValue<bool> LockDrawLists(GDrawListsLocked, true);
@@ -599,11 +609,23 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}	
 	}
 
+	if (GDoPrepareDistanceFieldSceneAfterRHIFlush && IsRunningRHIInSeparateThread())
+	{
+		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
+		SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
+		RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	}
+
 	if (ShouldPrepareDistanceFieldScene())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_DistanceFieldAO_Init);
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
 		UpdateGlobalDistanceFieldObjectBuffers(RHICmdList);
+		if (!GDoPrepareDistanceFieldSceneAfterRHIFlush)
+		{
+			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+		}
+
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -622,9 +644,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 				UpdateGlobalDistanceFieldVolume(RHICmdList, Views[ViewIndex], Scene, OcclusionMaxDistance, Views[ViewIndex].GlobalDistanceFieldInfo);
 			}
 		}	
+		if (GDoPrepareDistanceFieldSceneAfterRHIFlush)
+		{
+			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+		}
 	}
 
-	if (IsRunningRHIInSeparateThread())
+	if (!GDoPrepareDistanceFieldSceneAfterRHIFlush && IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
@@ -1322,7 +1348,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (ViewFamily.bResolveScene)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Postprocessing);
+   		SCOPED_GPU_STAT(RHICmdList, Postprocessing);
 
 		SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 

@@ -47,7 +47,7 @@
 #include "PipelineStateCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init GT"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation RT"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ParticleSimulation, TEXT("Particle Simulation RT"));
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.
@@ -1435,7 +1435,7 @@ void ExecuteSimulationCommands(
 
 	SCOPE_CYCLE_COUNTER(STAT_GPUParticlesSimulationCommands);
 	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
+	SCOPED_GPU_STAT(RHICmdList, ParticleSimulation);
 
 
 	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
@@ -1545,7 +1545,7 @@ void ClearTiles(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& 
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
+	SCOPED_GPU_STAT(RHICmdList, ParticleSimulation);
 
 	const int32 MaxTilesPerDrawCallUnaligned = GParticleScratchVertexBufferSize / sizeof(FVector2D);
 	const int32 MaxTilesPerDrawCall = MaxTilesPerDrawCallUnaligned & (~(TILES_PER_INSTANCE-1));
@@ -4791,7 +4791,7 @@ void FFXSystem::SimulateGPUParticles(
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GPUParticlesInjectionTime);
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);		
+		SCOPED_GPU_STAT(RHICmdList, ParticleSimulation);
 
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
@@ -4898,7 +4898,7 @@ void FFXSystem::UpdateMultiGPUResources(FRHICommandListImmediate& RHICmdList)
 	{		
 		//Inject particles spawned in the last frame, but only update the attribute textures
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
+		SCOPED_GPU_STAT(RHICmdList, ParticleSimulation);
 
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[2] =

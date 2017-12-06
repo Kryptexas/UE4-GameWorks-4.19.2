@@ -30,7 +30,7 @@
 #include "Animation/AnimNode_SubInput.h"
 
 #include "PhysXIncludes.h"
-
+#include "ScopeExit.h"
 #include "ClothingSimulationFactoryInterface.h"
 #include "ClothingSimulationInterface.h"
 #include "ClothingSimulationInteractor.h"
@@ -1714,19 +1714,19 @@ void USkeletalMeshComponent::PerformAnimationProcessing(const USkeletalMesh* InS
 
 	if(bInDoEvaluation)
 	{
-		FMemMark Mark(FMemStack::Get());
-		FCompactPose EvaluatedPose;
+	FMemMark Mark(FMemStack::Get());
+	FCompactPose EvaluatedPose;
 
-		// evaluate pure animations, and fill up BoneSpaceTransforms
-		EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, EvaluatedPose);
-		EvaluatePostProcessMeshInstance(OutBoneSpaceTransforms, EvaluatedPose, OutCurve, InSkeletalMesh, OutRootBoneTranslation);
+	// evaluate pure animations, and fill up BoneSpaceTransforms
+	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, EvaluatedPose);
+	EvaluatePostProcessMeshInstance(OutBoneSpaceTransforms, EvaluatedPose, OutCurve, InSkeletalMesh, OutRootBoneTranslation);
 
-		// Finalize the transforms from the evaluation
-		FinalizePoseEvaluationResult(InSkeletalMesh, OutBoneSpaceTransforms, OutRootBoneTranslation, EvaluatedPose);
+	// Finalize the transforms from the evaluation
+	FinalizePoseEvaluationResult(InSkeletalMesh, OutBoneSpaceTransforms, OutRootBoneTranslation, EvaluatedPose);
 
-		// Fill SpaceBases from LocalAtoms
-		FillComponentSpaceTransforms(InSkeletalMesh, OutBoneSpaceTransforms, OutSpaceBases);
-	}
+	// Fill SpaceBases from LocalAtoms
+	FillComponentSpaceTransforms(InSkeletalMesh, OutBoneSpaceTransforms, OutSpaceBases);
+}
 }
 
 
@@ -1889,7 +1889,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance();
 
-	const bool bDoParallelEvaluation = bDoPAE && bShouldDoEvaluation && TickFunction && (TickFunction->GetActualTickGroup() == TickFunction->TickGroup) && TickFunction->IsCompletionHandleValid();
+	const bool bDoParallelEvaluation = (AnimScriptInstance != nullptr) && bDoPAE && bShouldDoEvaluation && TickFunction && (TickFunction->GetActualTickGroup() == TickFunction->TickGroup) && TickFunction->IsCompletionHandleValid();
 
 	const bool bBlockOnTask = !bDoParallelEvaluation;  // If we aren't trying to do parallel evaluation then we
 															// will need to wait on an existing task.
@@ -1935,9 +1935,10 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedCurve.Empty();
 	}
 
+	if (bShouldDoEvaluation)
+	{
 	// If we need to eval the graph, and we're not going to update it.
 	// make sure it's been ticked at least once!
-	if (bShouldDoEvaluation)
 	{
 		bool bShouldTickAnimation = false;		
 		if (AnimScriptInstance && !AnimScriptInstance->NeedsUpdate())
@@ -1958,6 +1959,8 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		}
 	}
 
+		// If we're going to evaluate animation, call PreEvaluateAnimation()
+		{
 	if(AnimScriptInstance)
 	{
 		AnimScriptInstance->PreEvaluateAnimation();
@@ -1971,6 +1974,8 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	if(ShouldEvaluatePostProcessInstance())
 	{
 		PostProcessAnimInstance->PreEvaluateAnimation();
+	}
+		}
 	}
 
 	if (bDoParallelEvaluation)
@@ -2191,6 +2196,11 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		AnimCurves.LerpTo(CachedCurve, Alpha);
 	}
 
+	// Work below only matters if bone transforms have been updated.
+	// i.e. if we're using URO and skipping a frame with no interpolation, 
+	// we don't need to do that work.
+	if (EvaluationContext.bDoEvaluation || EvaluationContext.bDoInterpolation)
+	{
 	// clear morphtarget curve sets since we're going to apply new changes
 	ResetMorphTargetCurves();
 
@@ -2216,6 +2226,25 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		PostProcessAnimInstance->UpdateCurves(AnimCurves);
 	}
 
+		// If we have actually evaluated animations, we need to call PostEvaluateAnimation now.
+		if (EvaluationContext.bDoEvaluation)
+		{
+			if (AnimScriptInstance)
+			{
+				AnimScriptInstance->PostEvaluateAnimation();
+
+				for (UAnimInstance* SubInstance : SubInstances)
+				{
+					SubInstance->PostEvaluateAnimation();
+				}
+			}
+
+			if (PostProcessAnimInstance)
+			{
+				PostProcessAnimInstance->PostEvaluateAnimation();
+			}
+		}
+
 	bNeedToFlipSpaceBaseBuffers = true;
 
 	if (Bodies.Num() > 0)
@@ -2230,6 +2259,20 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		// Flip buffers, update bounds, attachments etc.
 		FinalizeAnimationUpdate();
+	}
+	}
+	else 
+	{
+		// Since we're not calling FinalizeBoneTransforms via PostBlendPhysics,
+		// make sure we call ConditionallyDispatchQueuedAnimEvents() in case we ticked, but didn't evalutate.
+
+		/////////////////////////////////////////////////////////////////////////////
+		// Notify / Event Handling!
+		// This can do anything to our component (including destroy it) 
+		// Any code added after this point needs to take that into account
+		/////////////////////////////////////////////////////////////////////////////
+
+		ConditionallyDispatchQueuedAnimEvents();
 	}
 
 	AnimEvaluationContext.Clear();
@@ -3252,16 +3295,6 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 	/////////////////////////////////////////////////////////////////////////////
 
 	ConditionallyDispatchQueuedAnimEvents();
-
-	for(UAnimInstance* SubInstance : SubInstances)
-	{
-		SubInstance->PostEvaluateAnimation();
-	}
-
-	if (AnimScriptInstance)
-	{
-		AnimScriptInstance->PostEvaluateAnimation();
-	}
 }
 
 void USkeletalMeshComponent::GetCurrentRefToLocalMatrices(TArray<FMatrix>& OutRefToLocals, int32 InLodIdx)

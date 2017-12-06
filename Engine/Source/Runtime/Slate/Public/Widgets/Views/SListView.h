@@ -1203,6 +1203,15 @@ public:
 	}
 
 	/**
+	 * Cancels a previous request to scroll and item into view.
+	 */
+	void CancelScrollIntoView()
+	{
+		UserRequestingScrollIntoView = 0;
+		TListTypeTraits<ItemType>::ResetPtr(ItemToScrollIntoView);
+	}
+
+	/**
 	 * Set the currently selected Item.
 	 *
 	 * @param SoleSelectedItem   Sole item that should be selected.

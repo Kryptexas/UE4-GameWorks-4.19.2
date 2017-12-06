@@ -76,7 +76,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Consider Actors Time"),STAT_NetConsiderActorsTim
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Unmapped Objects Time"),STAT_NetUpdateUnmappedObjectsTime,STATGROUP_Game, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Inital Dormant Time"),STAT_NetInitialDormantCheckTime,STATGROUP_Game, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Prioritize Actors Time"),STAT_NetPrioritizeActorsTime,STATGROUP_Game, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Replicate Actors Time"),STAT_NetReplicateActorsTime,STATGROUP_Game, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Replicate Actor Time"),STAT_NetReplicateActorTime,STATGROUP_Game, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dynamic Property Rep Time"),STAT_NetReplicateDynamicPropTime,STATGROUP_Game, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dynamic Property Compare Time"),STAT_NetReplicateDynamicPropCompareTime,STATGROUP_Game, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dynamic Property Send Time"),STAT_NetReplicateDynamicPropSendTime,STATGROUP_Game, );

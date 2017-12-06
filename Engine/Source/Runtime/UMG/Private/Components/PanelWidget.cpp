@@ -36,12 +36,17 @@ int32 UPanelWidget::GetChildrenCount() const
 
 UWidget* UPanelWidget::GetChildAt(int32 Index) const
 {
-	if ( Index < 0 || Index >= Slots.Num() )
+	if (Slots.IsValidIndex(Index))
 	{
-		return nullptr;
+		// This occasionally is null during garbage collection passes during begin destroy, when we're
+		// removing objects.  Consider not removing from parents during GC.
+		if (UPanelSlot* ChildSlot = Slots[Index])
+		{
+			return ChildSlot->Content;
+		}
 	}
 
-	return Slots[Index]->Content;
+	return nullptr;
 }
 
 int32 UPanelWidget::GetChildIndex(UWidget* Content) const

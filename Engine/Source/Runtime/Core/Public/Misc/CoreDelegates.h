@@ -103,6 +103,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
 	static FOnAsyncLoadPackage OnAsyncLoadPackage;
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSyncLoadPackage, const FString&);
+	static FOnSyncLoadPackage OnSyncLoadPackage;
+
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 
@@ -356,12 +359,6 @@ public:
 	// Should return True of resolution occured.
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FResolvePackageNameDelegate, const FString&, FString&);
 	static TArray<FResolvePackageNameDelegate> PackageNameResolvers;
-
-	// Called when module integrity has been compromised. Code should do as little as
-	// possible since the app may be in an unknown state. Return 'true' to handle the
-	// event and prevent the default check/ensure process occuring
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
-	static FImageIntegrityChanged OnImageIntegrityChanged;
 
 	// Called to request that systems free whatever memory they are able to. Called early in LoadMap.
 	// Caller is responsible for flushing rendering etc. See UEngine::TrimMemory

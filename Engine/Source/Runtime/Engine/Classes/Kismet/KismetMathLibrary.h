@@ -788,6 +788,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "VectorLength", Keywords="magnitude"), Category="Math|Vector")
 	static float VSize(FVector A);
 
+	/** Returns the length of the FVector's in XY components. */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "VectorLengthXY", Keywords="magnitude"), Category="Math|Vector")
+	static float VSizeXY(FVector A);
+
 	/** Returns the length of a 2d FVector. */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Vector2dLength", Keywords="magnitude"), Category="Math|Vector2D")
 	static float VSize2D(FVector2D A);

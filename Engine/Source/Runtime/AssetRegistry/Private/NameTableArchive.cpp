@@ -290,7 +290,7 @@ void FNameTableArchiveWriter::SerializeNameMap()
 		for (auto& Pair : NameMap)
 		{
 			check(NameMapIdx == Pair.Value);
-			*this << *const_cast<FNameEntry*>(Pair.Key.GetDisplayNameEntry());
+			Pair.Key.GetDisplayNameEntry()->Write(*this);
 			NameMapIdx++;
 		}
 	}

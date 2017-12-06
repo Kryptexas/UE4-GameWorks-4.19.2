@@ -116,6 +116,8 @@ DEFINE_LOG_CATEGORY(LogDistanceField);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAOSampleData2,TEXT("AOSamples2"));
 
+DECLARE_GPU_STAT(SkyLightDiffuse);
+
 FDistanceFieldAOParameters::FDistanceFieldAOParameters(float InOcclusionMaxDistance, float InContrast)
 {
 	Contrast = FMath::Clamp(InContrast, .01f, 2.0f);
@@ -1042,6 +1044,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 	if (ShouldRenderDeferredDynamicSkyLight(Scene, ViewFamily))
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, SkyLightDiffuse);
+		SCOPED_GPU_STAT(RHICmdList, SkyLightDiffuse);
 
 		bool bApplyShadowing = false;
 

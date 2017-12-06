@@ -461,7 +461,7 @@ protected:
 
 	/** Kismet event, will be called if an ability ends normally or abnormally */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnEndAbility")
-	void K2_OnEndAbility();
+	void K2_OnEndAbility(bool bWasCancelled);
 
 	/** Check if the ability can be ended */
 	bool IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
@@ -715,6 +715,7 @@ protected:
 	/** Deprecated? This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
 	TSubclassOf<class UGameplayEffect> CooldownGameplayEffectClass;
+
 	// ----------------------------------------------------------------------------------------------------------------
 	//
 	//	Ability exclusion / canceling

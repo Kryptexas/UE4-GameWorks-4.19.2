@@ -10,7 +10,7 @@
 #include "ClearQuad.h"
 
 DECLARE_CYCLE_STAT(TEXT("Batching"), STAT_NiagaraBatching, STATGROUP_Niagara);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Niagara GPU Sim"), Stat_GPU_NiagaraSim, STATGROUP_GPU);
+DECLARE_GPU_STAT(NiagaraSim);
 
 
 NiagaraEmitterInstanceBatcher* NiagaraEmitterInstanceBatcher::BatcherSingleton = nullptr;
@@ -231,7 +231,7 @@ void NiagaraEmitterInstanceBatcher::Run(FNiagaraDataSet *DataSet, uint32 Phase0S
 	if (TotalNumInstances)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, NiagaraGPUSimulationCS);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_NiagaraSim);
+		SCOPED_GPU_STAT(RHICmdList, NiagaraSim);
 		DispatchComputeShader(RHICmdList, Shader, NumThreadGroups, 1, 1);
 	}
 

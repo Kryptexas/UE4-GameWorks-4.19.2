@@ -24,6 +24,10 @@
 #include "Switch/SwitchPlatformMisc.h"
 #endif
 
+#ifndef PLATFORM_PREFERS_WIDE_NAMED_EVENTS
+ #define PLATFORM_PREFERS_WIDE_NAMED_EVENTS 0
+#endif
+
 class CORE_API FScopedNamedEvent
 {
 public:
@@ -47,7 +51,11 @@ public:
 //lightweight scoped named event separate from stats system.  Will be available in test builds.  
 //Events cost profiling overhead so use them judiciously in final code.
 #if !UE_BUILD_SHIPPING
-#define SCOPED_NAMED_EVENT(Name, Color) FScopedNamedEvent PREPROCESSOR_JOIN(Event_##Name,__LINE__)(Color, #Name);
+ #if PLATFORM_PREFERS_WIDE_NAMED_EVENTS
+  #define SCOPED_NAMED_EVENT(Name, Color) FScopedNamedEvent PREPROCESSOR_JOIN(Event_##Name,__LINE__)(Color, TEXT(#Name));
+ #else
+  #define SCOPED_NAMED_EVENT(Name, Color) FScopedNamedEvent PREPROCESSOR_JOIN(Event_##Name,__LINE__)(Color, #Name);
+ #endif
 #else
-#define SCOPED_NAMED_EVENT(Name, Color)
+ #define SCOPED_NAMED_EVENT(Name, Color)
 #endif

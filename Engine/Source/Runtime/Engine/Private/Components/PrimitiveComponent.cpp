@@ -75,6 +75,10 @@ FAutoConsoleVariableRef CVarRefShowInitialOverlaps(
 static int32 bEnableFastOverlapCheck = 1;
 static FAutoConsoleVariableRef CVarEnableFastOverlapCheck(TEXT("p.EnableFastOverlapCheck"), bEnableFastOverlapCheck, TEXT("Enable fast overlap check against sweep hits, avoiding UpdateOverlaps (for the swept component)."));
 DECLARE_CYCLE_STAT(TEXT("MoveComponent FastOverlap"), STAT_MoveComponent_FastOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("BeginComponentOverlap"), STAT_BeginComponentOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("EndComponentOverlap"), STAT_EndComponentOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("PrimComp DispatchBlockingHit"), STAT_DispatchBlockingHit, STATGROUP_Game);
+
 
 // Predicate to determine if an overlap is with a certain AActor.
 struct FPredicateOverlapHasSameActor
@@ -289,7 +293,8 @@ void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 
 void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if (!IsRegistered() || SceneProxy) // If registered but without a scene proxy, then this is not visible.
+	// Ignore components that are fully initialized but have no scene proxy (hidden primitive or non game primitive)
+	if (!IsRegistered() || !IsRenderStateCreated() || SceneProxy)
 	{
 		GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 		for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
@@ -751,7 +756,7 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
-	if (IsTemplate())
+	if (Ar.IsLoading() && IsTemplate())
 	{
 		BodyInstance.FixupData(this);
 	}
@@ -2052,6 +2057,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit)
 {
+	SCOPE_CYCLE_COUNTER(STAT_DispatchBlockingHit);
+
 	UPrimitiveComponent* const BlockingHitComponent = BlockingHit.Component.Get();
 	if (BlockingHitComponent)
 	{
@@ -2290,6 +2297,8 @@ bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
 // @todo, don't need to pass in Other actor?
 void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BeginComponentOverlap);
+
 	// If pending kill, we should not generate any new overlaps
 	if (IsPendingKill())
 	{
@@ -2361,6 +2370,8 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 
 void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies, bool bSkipNotifySelf)
 {
+	SCOPE_CYCLE_COUNTER(STAT_EndComponentOverlap);
+
 	UPrimitiveComponent* OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 	if (OtherComp == nullptr)
 	{
@@ -2688,6 +2699,7 @@ TArray<UPrimitiveComponent*> UPrimitiveComponent::CopyArrayOfMoveIgnoreComponent
 void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_UOBJECT(ComponentScope, this);
 
 	if (IsDeferringMovementUpdates())
 	{

@@ -170,6 +170,17 @@ void UField::PostLoad()
 	Bind();
 }
 
+bool UField::NeedsLoadForClient() const
+{
+	// Overridden to avoid calling the expensive generic version, which only ensures that our class is not excluded, which it never can be
+	return true;
+}
+
+bool UField::NeedsLoadForServer() const
+{
+	return true;
+}
+
 void UField::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );

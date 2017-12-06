@@ -333,6 +333,7 @@ void FOutputDeviceFile::TearDown()
 	WriterArchive = nullptr;
 
 	Filename[0] = 0;
+	Opened = false;
 }
 
 /**

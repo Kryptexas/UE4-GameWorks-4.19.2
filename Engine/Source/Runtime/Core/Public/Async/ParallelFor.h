@@ -39,7 +39,7 @@ struct FParallelForData
 		check(InTotalNum >= InNumThreads);
 		BlockSize = 0;
 		Num = 0;
-		for (int32 Div = 3; Div; Div--)
+		for (int32 Div = 6; Div; Div--)
 		{
 			BlockSize = InTotalNum / (InNumThreads * Div);
 			if (BlockSize)

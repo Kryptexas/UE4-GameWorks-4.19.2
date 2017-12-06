@@ -66,6 +66,8 @@ class COREUOBJECT_API UField : public UObject
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
 
 	// UField interface.
 	virtual void AddCppProperty( UProperty* Property );

@@ -31,6 +31,12 @@
 	# Some doxygen output can confuse the post-processor, because it lists a symbol containing "Warning::"
 	"doxygen>.*(Warning|Error)::.*",
 	
+	# Arxan	
+	"Warning:.*Source [cC]ode [mM]arkers will be unavailable",
+	"Warning: PDB file .* not found",
+	"Warning: guard '.*__page_permission_service' cannot be installed at specified location",
+	"Warning: The object file name .* in the do_not_analyze section was not found",
+
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
@@ -111,23 +117,15 @@ unshift @::gMatchers, (
         pattern =>          q{([^(]+)\([\d,]+\) ?: warning[ :]},
         action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", backIf("[^ ]+\.cpp\$"), forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
     },
-	# Two forms for Clang diagnostics - MSVC formatted (eg. Android) and normal (eg. Mac):
-	#   filename:123:4: error:
-	#   filename(123,4) : error: 
     {
         id =>               "clangError",
-        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*error\s*:},
+        pattern =>          q{([^:]+):[\d:]+ error:},
         action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
     },
     {
         id =>               "clangWarning",
-        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*warning\s*:},
-        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
-    },
-    {
-        id =>               "genericDoctoolError",
-        pattern =>          q{Error:},
-        action =>           q{incValue("errors"); diagnostic("", "error")}
+        pattern =>          q{([^:]+):[\d:]+ warning:},
+        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In function"), 0)},
     },
     {
         id =>               "ubtFailedToProduceItem",
@@ -139,11 +137,6 @@ unshift @::gMatchers, (
         pattern =>          q{\*\*\*\* Changes since last succeeded},
 		action =>           q{$::gCurrentLine += forwardTo('^\\\*', 1);}
     },
-	{
-		id =>				"clangThreadSanitizerWarning",
-		pattern =>			q{^(\s*)WARNING: ThreadSanitizer:},
-        action =>           q{incValue("warnings"); my $prefix = $1; diagnostic("TSan", "warning", 0, forwardWhile("^([ ]*|$prefix  .*|${prefix}SUMMARY:.*)\$"))}
-	},
 	{
 		id =>               "editorLogChannelError",
 		pattern =>          q{^([a-zA-Z_][a-zA-Z0-9_]*):Error: },
@@ -162,38 +155,33 @@ unshift @::gMatchers, (
 	{
 		id =>               "automationException",
 		pattern =>          q{AutomationTool\\.AutomationException: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
 	},
 	{
-		id =>               "generalException",
-		pattern =>          q{^ERROR: [a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+Exception: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+		id =>				"arxanMissingSymbol",
+		pattern =>			q{guardit: (empty)},
+		action =>			q{incValue("errors"); diagnostic("GuardIT", "error")}
 	},
 	{
 		id =>				"ubtFatal",
 		pattern =>			q{^FATAL:},
 		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error")}
 	},
-	{
-		id =>				"ubtError",
-		pattern =>			q{^ERROR:},
-		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error", 0, forwardWhile("^  "))}
-	},
-	{
-		id =>				"ubtWarning",
-		pattern =>			q{^WARNING:},
-		action =>			q{incValue("warnings"); diagnostic("AutomationTool", "warning", 0, forwardWhile("^  "))}
-	},
     {
         id =>               "genericError",
-        pattern =>          q{^(.*[ :])?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
-        action =>           q{incValue("errors"); diagnostic("", "error", 0, forwardWhile("^   "))}
+        pattern =>          q{(?<!\w)(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("errors"); diagnostic("", "error", 0, forwardWhile("^($indent | *\$)"))},
     },
     {
         id =>               "genericWarning",
-        pattern =>          q{WARNING:|[Ww]arning:},
-        action =>           q{incValue("warnings"); diagnostic("", "warning", 0)},
+        pattern =>          q{(?<!\w)WARNING|[Ww]arning}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("warnings"); diagnostic("", "warning", 0, forwardWhile("^($indent | *\$)"))},
     },
+	{
+		id =>				"genericMsError",
+        pattern =>          q{[Ee]rror [A-Z]\d+\s:},
+		action =>           q{incValue("errors"); diagnostic("", "error", 0)},
+	}
 );
 
 push @::gMatchers, (

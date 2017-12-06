@@ -3601,6 +3601,7 @@ public:
 	void SetCurrentStat(TStatId Stat);
 
 	static FGraphEventRef RenderThreadTaskFence();
+	static FGraphEventArray& GetRenderThreadTaskArray();
 	static void WaitOnRenderThreadTaskFence(FGraphEventRef& Fence);
 	static bool AnyRenderThreadTasksOutstanding();
 	FGraphEventRef RHIThreadFence(bool bSetLockFence = false);
@@ -4342,14 +4343,12 @@ public:
 	
 	FORCEINLINE void VirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip)
 	{
-		FScopedRHIThreadStaller StallRHIThread(*this);
-		GDynamicRHI->RHIVirtualTextureSetFirstMipInMemory(Texture, FirstMip);
+		GDynamicRHI->VirtualTextureSetFirstMipInMemory_RenderThread(*this, Texture, FirstMip);
 	}
 	
 	FORCEINLINE void VirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef Texture, uint32 FirstMip)
 	{
-		FScopedRHIThreadStaller StallRHIThread(*this);
-		GDynamicRHI->RHIVirtualTextureSetFirstMipVisible(Texture, FirstMip);
+		GDynamicRHI->VirtualTextureSetFirstMipVisible_RenderThread(*this, Texture, FirstMip);
 	}
 
 	FORCEINLINE void CopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox)

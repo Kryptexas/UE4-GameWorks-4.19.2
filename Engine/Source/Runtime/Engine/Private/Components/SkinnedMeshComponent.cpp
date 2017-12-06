@@ -1359,6 +1359,19 @@ void USkinnedMeshComponent::InvalidateCachedBounds()
 			}
 		}
 	}
+
+	// We need to invalidate all attached skinned mesh components as well
+	const TArray<USceneComponent*>& AttachedComps = GetAttachChildren();
+	for (USceneComponent* ChildComp : AttachedComps)
+	{
+		if (USkinnedMeshComponent* SkinnedChild = Cast<USkinnedMeshComponent>(ChildComp))
+		{
+			if (SkinnedChild->bCachedLocalBoundsUpToDate)
+			{
+				SkinnedChild->InvalidateCachedBounds();
+			}
+		}
+	}
 }
 
 void USkinnedMeshComponent::RefreshSlaveComponents()

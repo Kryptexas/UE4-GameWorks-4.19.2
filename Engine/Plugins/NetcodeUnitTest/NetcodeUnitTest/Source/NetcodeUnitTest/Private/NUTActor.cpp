@@ -440,7 +440,7 @@ void ANUTActor::UpdateOwner()
 			if (PC != NULL && PC != GetOwner() && Cast<UNetConnection>(PC->Player) != NULL)
 			{
 				UE_LOG(LogUnitTest, Log, TEXT("Setting NUTActor owner to: %s (%s)"), *PC->GetName(),
-					*GameState->PlayerArray[i]->PlayerName);
+					*GameState->PlayerArray[i]->GetPlayerName());
 
 				// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
 				LastAliveTime = CurWorld->RealTimeSeconds;
@@ -639,7 +639,7 @@ void ANUTActor::ServerClientPing_Implementation()
 		for (UNetConnection* CurConn : CurNetDriver->ClientConnections)
 		{
 			// Based on UNetDriver::IsLevelInitializeForActor
-			bNotLoaded = !(CurConn->ClientWorldPackageName == CurWorld->GetOutermost()->GetFName() &&
+			bNotLoaded = !(CurConn->GetClientWorldPackageName() == CurWorld->GetOutermost()->GetFName() &&
 										CurConn->ClientHasInitializedLevelFor(this));
 
 			// Also trigger if there is no PlayerController yet set for the connection

@@ -19,6 +19,12 @@
 
 DEFINE_LOG_CATEGORY(LogAnimMontage);
 
+DECLARE_CYCLE_STAT(TEXT("AnimMontageInstance_Advance"), STAT_AnimMontageInstance_Advance, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("AnimMontageInstance_TickBranchPoints"), STAT_AnimMontageInstance_TickBranchPoints, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("AnimMontageInstance_Advance_Iteration"), STAT_AnimMontageInstance_Advance_Iteration, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("AnimMontageInstance_Terminate"), STAT_AnimMontageInstance_Terminate, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("AnimMontageInstance_HandleEvents"), STAT_AnimMontageInstance_HandleEvents, STATGROUP_Anim);
+
 // Pre-built FNames so we don't take the hit of constructing FNames at spawn time
 namespace MontageFNames
 {
@@ -1452,6 +1458,8 @@ void FAnimMontageInstance::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FAnimMontageInstance::Terminate()
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Terminate);
+
 	if (Montage == NULL)
 	{
 		return;
@@ -1890,6 +1898,8 @@ EMontageSubStepResult FMontageSubStepper::Advance(float& InOut_P_Original, const
 
 	// Finally clamp DeltaMove by section markers.
 	{
+		const float OldDeltaMove = DeltaMove;
+
 		// Clamp DeltaMove based on move allowed within current section
 		// We stop at each section marker to evaluate whether we should jump to another section marker or not.
 		// Test is inclusive, so we know if we've reached marker or not.
@@ -1910,6 +1920,12 @@ EMontageSubStepResult FMontageSubStepper::Advance(float& InOut_P_Original, const
 				DeltaMove = MinSectionMove;
 				bReachedEndOfSection = true;
 			}
+		}
+
+		if (OutBranchingPointMarkerPtr && *OutBranchingPointMarkerPtr && (OldDeltaMove != DeltaMove))
+		{
+			// Clean up the marker since we hit end of a section and overrode the delta move.
+			*OutBranchingPointMarkerPtr = nullptr;
 		}
 	}
 
@@ -2324,6 +2340,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_HandleEvents);
+
 	// Skip notifies and branching points if montage has been interrupted.
 	if (bInterrupted)
 	{

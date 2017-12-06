@@ -30,9 +30,14 @@ public:
 	bool bTabNavigation;
 	bool bKeyNavigation;
 	bool bAnalogNavigation;
-	float AnalogNavigationThreshold;
 
-	/**  */
+	float AnalogNavigationHorizontalThreshold;
+	float AnalogNavigationVerticalThreshold;
+
+	FKey AnalogHorizontalKey;
+	FKey AnalogVerticalKey;
+
+	/** Digital key navigation rules. */
 	TMap<FKey, EUINavigation> KeyEventRules;
 
 protected:

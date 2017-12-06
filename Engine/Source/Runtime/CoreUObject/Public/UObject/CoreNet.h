@@ -470,7 +470,7 @@ COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
 /**
 * Values used for initializing UNetConnection and LanBeacon
 */
-enum { MAX_PACKET_SIZE = 512 }; // MTU for the connection
+enum { MAX_PACKET_SIZE = 1024 }; // MTU for the connection
 enum { LAN_BEACON_MAX_PACKET_SIZE = 1024 }; // MTU for the connection
 
 /**

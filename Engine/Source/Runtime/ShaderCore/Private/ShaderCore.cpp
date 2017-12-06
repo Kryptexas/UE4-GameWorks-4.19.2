@@ -623,13 +623,27 @@ static void UpdateSingleShaderFilehash(FSHA1& InOutHashState, const TCHAR* Virtu
 	// Get the list of includes this file contains
 	TArray<FString> IncludeVirtualFilePaths;
 	GetShaderIncludes(VirtualFilePath, VirtualFilePath, IncludeVirtualFilePaths);
-
+#if WITH_EDITOR &&  !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if ( UE_LOG_ACTIVE(LogTemp, Verbose) )
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("Generating hash of file %s, "), VirtualFilePath);
+	}
+#endif
 	for (int32 IncludeIndex = 0; IncludeIndex < IncludeVirtualFilePaths.Num(); IncludeIndex++)
 	{
 		// Load the include file and hash it
 		FString IncludeFileContents;
 		LoadShaderSourceFileChecked(*IncludeVirtualFilePaths[IncludeIndex], IncludeFileContents);
 		InOutHashState.UpdateWithString(*IncludeFileContents, IncludeFileContents.Len());
+#if WITH_EDITOR &&  !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (UE_LOG_ACTIVE(LogTemp, Verbose))
+		{
+			uint8 HashBytes[20];
+			FSHA1::HashBuffer(&InOutHashState, sizeof(FSHA1), HashBytes);
+			
+			UE_LOG(LogTemp, Verbose, TEXT("Processing include file for %s, %s, %s"), VirtualFilePath, *IncludeVirtualFilePaths[IncludeIndex], *BytesToHex(HashBytes, 20));
+		}
+#endif
 	}
 
 	// Load the source file and hash it
@@ -665,6 +679,10 @@ const FSHAHash& GetShaderFileHash(const TCHAR* VirtualFilePath)
 		// Update the hash cache
 		FSHAHash& NewHash = GShaderHashCache.Add(VirtualFilePath, FSHAHash());
 		HashState.GetHash(&NewHash.Hash[0]);
+
+#if WITH_EDITOR &&  !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		UE_LOG(LogTemp, Verbose, TEXT("Final hash for file %s, %s"), VirtualFilePath,*BytesToHex(&NewHash.Hash[0], 20));
+#endif
 		INC_FLOAT_STAT_BY(STAT_ShaderCompiling_HashingShaderFiles, (float)HashTime);
 		return NewHash;
 	}

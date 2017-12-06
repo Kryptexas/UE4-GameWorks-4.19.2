@@ -782,6 +782,12 @@ KISMET_MATH_FORCEINLINE
 float UKismetMathLibrary::VSize(FVector A)
 {
 	return A.Size();
+}
+
+KISMET_MATH_FORCEINLINE
+float UKismetMathLibrary::VSizeXY(FVector A)
+{
+	return A.Size2D();
 }	
 
 KISMET_MATH_FORCEINLINE

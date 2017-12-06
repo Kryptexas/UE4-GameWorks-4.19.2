@@ -1365,8 +1365,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Level.NotVisibleHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_invisible_hi_16px", Icon16x16 ) );
 		Set( "Level.LightingScenarioIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LightingScenario_16px", Icon16x16 ) );
 		Set( "Level.LightingScenarioNotIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LightingScenarioNot_16px", Icon16x16 ) );
-		Set( "Level.LockedIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_Locked_16px", Icon16x16 ) );
-		Set( "Level.LockedHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_Locked_hi_16px", Icon16x16 ) );
+		Set( "Level.LockedIcon16x", new IMAGE_BRUSH("Icons/icon_locked_16px", Icon16x16) );
+		Set( "Level.LockedHighlightIcon16x", new IMAGE_BRUSH("Icons/icon_locked_highlight_16px", Icon16x16) );
 		Set( "Level.UnlockedIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_unlocked_16px", Icon16x16 ) );
 		Set( "Level.UnlockedHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_unlocked_hi_16px", Icon16x16 ) );
 		Set( "Level.ReadOnlyLockedIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_LockedReadOnly_16px", Icon16x16 ) );

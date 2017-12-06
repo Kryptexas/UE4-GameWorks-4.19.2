@@ -2253,6 +2253,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		UE_LOG(LogPakFile, Error, TEXT("    -enginedir (specify engine dir for when using ini encryption configs)"));
 		UE_LOG(LogPakFile, Error, TEXT("    -projectdir (specify project dir for when using ini encryption configs)"));
 		UE_LOG(LogPakFile, Error, TEXT("    -encryptionini (specify ini base name to gather encryption settings from)"));
+		UE_LOG(LogPakFile, Error, TEXT("    -extracttomountpoint (Extract to mount point path of pak file)"));
 		UE_LOG(LogPakFile, Error, TEXT("    -encryptindex (encrypt the pak file index, making it unusable in unrealpak without supplying the key)"));
 		return 1;
 	}
@@ -2323,8 +2324,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			else
 			{
 				FString DestPath = (ArgV[2][0] == '-') ? ArgV[3] : ArgV[2];
+				bool bExtractToMountPoint = FParse::Param(FCommandLine::Get(), TEXT("ExtractToMountPoint"));
 				TMap<FString, FFileInfo> EmptyMap;
-				Result = ExtractFilesFromPak(*PakFilename, EmptyMap, *DestPath) ? 0 : 1;
+				Result = ExtractFilesFromPak(*PakFilename, EmptyMap, *DestPath, bExtractToMountPoint) ? 0 : 1;
 			}
 		}
 		else

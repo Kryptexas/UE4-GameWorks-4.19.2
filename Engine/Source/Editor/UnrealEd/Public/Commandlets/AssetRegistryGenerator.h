@@ -52,7 +52,7 @@ public:
 	 * @param IdenticalCookedPackages list of cooked packages that have not changed
 	 * @param IdenticalUncookedPackages list of uncooked packages that have not changed. These were filtered out by platform or editor only
 	 * @param bRecurseModifications if true, modified packages are recursed to X in X->Y->Z chains. Otherwise, only Y and Z are seen as modified
-	 * @param bRecurseModifications if true, modified script/c++ packages are recursed, if false only asset references are recursed
+	* @param bRecurseModifications if true, modified script/c++ packages are recursed, if false only asset references are recursed
 	 */
 	void ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications, bool bRecurseScriptModifications);
 
@@ -124,21 +124,14 @@ public:
 	/**
 	 * Follows an assets dependency chain to build up a list of package names in the same order as the runtime would attempt to load them
 	 * 
-	 * @param InAsset - The asset to (potentially) add to the file order
-	 * @param OutFileOrder - Output array which collects the package names
+	 * @param InPackageName - The name of the package containing the asset to (potentially) add to the file order
+	 * @param OutFileOrder - Output array which collects the package names, maintaining order
 	 * @param OutEncounteredArray - Temporary collection of package names we've seen. Similar to OutFileOrder but updated BEFORE following dependencies so as to avoid circular references
-	 * @param InAssets - The source asset list. Used to distinguish between dependencies on other packages and internal objects
-	 * @param InTopLevelAssets - Names of top level assets such as maps
+	 * @param InPackageNameSet - The source package name list. Used to distinguish between dependencies on other packages and internal objects
+	 * @param InTopLevelAssets - Names of packages containing top level assets such as maps
 	 */
-	void AddAssetToFileOrderRecursive(FAssetData* InAsset, TArray<FName>& OutFileOrder, TArray<FName>& OutEncounteredNames, const TMap<FName, FAssetData*>& InAssets, const TArray<FName>& InTopLevelAssets);
+	void AddAssetToFileOrderRecursive(const FName& InPackageName, TArray<FName>& OutFileOrder, TSet<FName>& OutEncounteredNames, const TSet<FName>& InPackageNameSet, const TSet<FName>& InTopLevelAssets);
 
-	/**
-	 * Build a file order string which represents the order in which files would be loaded at runtime. 
-	 * 
-	 * @param InAssetData - Assets data for those assets which were cooked on this run. 
-	 * @param InTopLevelAssets - Names of top level assets such as maps
-	 */
-	FString CreateCookerFileOrderString(const TMap<FName, FAssetData*>& InAssetData, const TArray<FName>& InTopLevelAssets);
 
 private:
 
@@ -258,7 +251,7 @@ private:
 			}
 		}
 
-		if (StartupPackages.Contains(PackageFName))
+		if ( StartupPackages.Contains(PackageFName ))
 		{
 			ExistingChunkIDs.AddUnique(0);
 		}

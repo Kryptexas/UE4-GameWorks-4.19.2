@@ -16,6 +16,9 @@ struct FNetworkObjectInfo
 	/** Pointer to the replicated actor. */
 	AActor* Actor;
 
+	/** WeakPtr to actor. This is cached here to prevent constantly constructing one when needed for (things like) keys in TMaps/TSets */
+	TWeakObjectPtr<AActor> WeakActor;
+
 	/** Next time to consider replicating the actor. Based on FPlatformTime::Seconds(). */
 	double NextUpdateTime;
 
@@ -55,6 +58,7 @@ struct FNetworkObjectInfo
 
 	FNetworkObjectInfo(AActor* InActor)
 		: Actor(InActor)
+		, WeakActor(InActor)
 		, NextUpdateTime(0.0)
 		, LastNetReplicateTime(0.0)
 		, OptimalNetUpdateDelta(0.0f) 

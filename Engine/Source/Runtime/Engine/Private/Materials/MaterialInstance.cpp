@@ -2975,7 +2975,10 @@ void UMaterialInstance::FinishDestroy()
 		}
 	}
 #if WITH_EDITOR
-	ClearAllCachedCookedPlatformData();
+	if (!GExitPurge)
+	{
+		ClearAllCachedCookedPlatformData();
+	}
 #endif
 	Super::FinishDestroy();
 }

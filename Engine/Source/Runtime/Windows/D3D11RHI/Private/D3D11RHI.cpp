@@ -286,6 +286,12 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 	check(!bTrackingEvents);
 	check(!CurrentEventNodeFrame); // this should have already been cleaned up and the end of the previous frame
 
+	static auto* CrashCollectionEnableCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.gpucrash.collectionenable"));
+	static auto* CrashCollectionDataDepth = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.gpucrash.datadepth"));
+
+	bTrackingGPUCrashData = CrashCollectionEnableCvar ? CrashCollectionEnableCvar->GetValueOnRenderThread() != 0 : false;
+	GPUCrashDataDepth = CrashCollectionDataDepth ? CrashCollectionDataDepth->GetValueOnRenderThread() : -1;
+	
 	// latch the bools from the game thread into our private copy
 	bLatchedGProfilingGPU = GTriggerGPUProfile;
 	bLatchedGProfilingGPUHitches = GTriggerGPUHitchProfile;
@@ -452,6 +458,7 @@ void FD3DGPUProfiler::EndFrame()
 		LastTime = Now;
 	}
 	bTrackingEvents = false;
+	bTrackingGPUCrashData = false;
 	delete CurrentEventNodeFrame;
 	CurrentEventNodeFrame = NULL;
 }
@@ -494,26 +501,49 @@ void FD3D11DynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
+static FString EventDeepString(TEXT("EventTooDeep"));
+static const uint32 EventDeepCRC = FCrc::StrCrc32<TCHAR>(*EventDeepString);
+
+FD3DGPUProfiler::FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI) :
+	FGPUProfiler(),
+	FrameTiming(InD3DRHI, 4),
+	D3D11RHI(InD3DRHI)
+{
+	// Initialize Buffered timestamp queries 
+	FrameTiming.InitResource();
+	CachedStrings.Emplace(EventDeepCRC, EventDeepString);
+}
+
 void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 #if NV_AFTERMATH
-	if(GDX11NVAfterMathEnabled)
+	if(GDX11NVAfterMathEnabled && bTrackingGPUCrashData)
 	{
-		uint32 CRC = FCrc::StrCrc32<TCHAR>(Name);	
-		
-		if (CachedStrings.Num() > 10000)
+		uint32 CRC = 0;
+		if (GPUCrashDataDepth < 0 || PushPopStack.Num() < GPUCrashDataDepth)
 		{
-			CachedStrings.Empty(10000);
-		}
+			CRC = FCrc::StrCrc32<TCHAR>(Name);
 
-		if (CachedStrings.Find(CRC) == nullptr)
+			if (CachedStrings.Num() > 10000)
+			{
+				CachedStrings.Empty(10000);
+				CachedStrings.Emplace(EventDeepCRC, EventDeepString);
+			}
+
+			if (CachedStrings.Find(CRC) == nullptr)
+			{
+				CachedStrings.Emplace(CRC, FString(Name));
+			}
+				
+		}
+		else
 		{
-			CachedStrings.Emplace(CRC, FString(Name));
+			CRC = EventDeepCRC;				
 		}
 		PushPopStack.Push(CRC);
 
-		auto* DeviceContext = D3D11RHI->GetDeviceContext();
-		GFSDK_Aftermath_DX11_SetEventMarker(DeviceContext, &PushPopStack[0], PushPopStack.Num() * sizeof(uint32));
+		auto AftermathContext = D3D11RHI->GetNVAftermathContext();
+		GFSDK_Aftermath_SetEventMarker(AftermathContext, &PushPopStack[0], PushPopStack.Num() * sizeof(uint32));
 	}
 #endif
 
@@ -527,7 +557,7 @@ void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 void FD3DGPUProfiler::PopEvent()
 {
 #if NV_AFTERMATH
-	if (GDX11NVAfterMathEnabled)
+	if (GDX11NVAfterMathEnabled && bTrackingGPUCrashData)
 	{
 		PushPopStack.Pop(false);
 	}
@@ -546,30 +576,35 @@ bool FD3DGPUProfiler::CheckGpuHeartbeat() const
 #if NV_AFTERMATH
 	if (GDX11NVAfterMathEnabled)
 	{
-		auto* DeviceContext = D3D11RHI->GetDeviceContext();
-		GFSDK_Aftermath_Status Status;
-		GFSDK_Aftermath_ContextData ContextDataOut;
-		auto Result = GFSDK_Aftermath_DX11_GetData(1, &DeviceContext, &ContextDataOut, &Status);
+		auto AftermathContext = D3D11RHI->GetNVAftermathContext();
+		GFSDK_Aftermath_Device_Status Status;
+		auto Result = GFSDK_Aftermath_GetDeviceStatus(&Status);
 		if (Result == GFSDK_Aftermath_Result_Success)
 		{
-			if (Status != GFSDK_Aftermath_Status_Active)
+			if (Status != GFSDK_Aftermath_Device_Status_Active)
 			{
 				GIsGPUCrashed = true;
 				const TCHAR* AftermathReason[] = { TEXT("Active"), TEXT("Timeout"), TEXT("OutOfMemory"), TEXT("PageFault"), TEXT("Unknown") };
 				check(Status < 5);
 				UE_LOG(LogRHI, Error, TEXT("[Aftermath] Status: %s"), AftermathReason[Status]);
-				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
-				uint32 NumCRCs = ContextDataOut.markerSize / sizeof(uint32);
-				uint32* Data = (uint32*)ContextDataOut.markerData;
-				for (uint32 i = 0; i < NumCRCs; i++)
+
+				GFSDK_Aftermath_ContextData ContextDataOut;
+				Result = GFSDK_Aftermath_GetData(1, &AftermathContext, &ContextDataOut);
+				if (Result == GFSDK_Aftermath_Result_Success)
 				{
-					const FString* Frame = CachedStrings.Find(Data[i]);
-					if (Frame != nullptr)
+					UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
+					uint32 NumCRCs = ContextDataOut.markerSize / sizeof(uint32);
+					uint32* Data = (uint32*)ContextDataOut.markerData;
+					for (uint32 i = 0; i < NumCRCs; i++)
 					{
-						UE_LOG(LogRHI, Error, TEXT("[Aftermath] %i: %s"), i, *(*Frame));
+						const FString* Frame = CachedStrings.Find(Data[i]);
+						if (Frame != nullptr)
+						{
+							UE_LOG(LogRHI, Error, TEXT("[Aftermath] %i: %s"), i, *(*Frame));
+						}
 					}
+					UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
 				}
-				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
 				return false;
 			}
 		}

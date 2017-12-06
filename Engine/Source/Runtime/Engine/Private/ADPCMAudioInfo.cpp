@@ -280,7 +280,7 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 	
 	void*	FormatHeader;
 	
-	if (!WaveInfo.ReadWaveInfo((uint8*)firstChunk, Wave->RunningPlatformData->Chunks[0].DataSize, NULL, true, &FormatHeader))
+	if (!WaveInfo.ReadWaveInfo((uint8*)firstChunk, Wave->RunningPlatformData->Chunks[0].AudioDataSize, NULL, true, &FormatHeader))
 	{
 		UE_LOG(LogAudio, Warning, TEXT("WaveInfo.ReadWaveInfo Failed"));
 		return false;

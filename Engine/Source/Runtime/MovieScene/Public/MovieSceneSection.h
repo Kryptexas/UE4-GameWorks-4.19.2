@@ -24,6 +24,8 @@ enum class EMovieSceneCompletionMode : uint8
 	KeepState,
 
 	RestoreState,
+
+	ProjectDefault,
 };
 
 

@@ -38,8 +38,8 @@ public:
 	/** Gets the current sort column id */
 	FName GetSortColumnId(const EColumnSortPriority::Type InSortPriority) const { check(InSortPriority < EColumnSortPriority::Max); return SortColumnId[InSortPriority]; }
 
-	/** Refresh a custom column if needed, returns type if found, hidden if not */
-	UObject::FAssetRegistryTag::ETagType FindAndRefreshCustomColumn(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, FName ColumnName, const TArray<FAssetViewCustomColumn>& CustomColumns) const;
+	/** Refresh a custom column if needed.  If found, returns true with TagType parameter set */
+	bool FindAndRefreshCustomColumn(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, FName ColumnName, const TArray<FAssetViewCustomColumn>& CustomColumns, UObject::FAssetRegistryTag::ETagType& TagType) const;
 
 public:
 	/** The names of non-type specific columns in the columns view. */

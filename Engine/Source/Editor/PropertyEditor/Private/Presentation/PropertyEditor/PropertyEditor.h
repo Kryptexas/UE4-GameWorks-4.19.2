@@ -113,6 +113,8 @@ private:
 	struct FPropertyConditionInfo
 	{
 	public:
+		TWeakObjectPtr<UObject> Object;
+
 		uint8* BaseAddress;
 		/** Whether the condition should be negated. */
 		bool bNegateValue;

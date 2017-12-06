@@ -1778,6 +1778,7 @@ struct FStat_##StatName\
 #define GET_STATID(Stat) (StatPtr_##Stat.GetStatId())
 #define GET_STATFNAME(Stat) (StatPtr_##Stat.GetStatFName())
 #define GET_STATDESCRIPTION(Stat) (FStat_##Stat::GetDescription())
+#define GET_STATISEVERYFRAME(Stat) (FStat_##Stat::IsClearEveryFrame())
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 
@@ -1896,68 +1897,80 @@ struct FStat_##StatName\
 
 #define SET_CYCLE_COUNTER(Stat,Cycles) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Cycles), true);\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Cycles), true);\
 }
 
 #define INC_DWORD_STAT(Stat) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(1));\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(1));\
 }
 #define INC_FLOAT_STAT_BY(Stat, Amount) \
 {\
 	if (Amount != 0.0f) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+				FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
 }
 #define INC_DWORD_STAT_BY(Stat, Amount) \
 {\
 	if (Amount != 0) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+			FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define INC_DWORD_STAT_FNAME_BY(StatFName, Amount) \
 {\
 	if (Amount != 0) \
-		FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
+			FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
 }
 #define INC_MEMORY_STAT_BY(Stat, Amount) \
 {\
 	if (Amount != 0) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+			FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define DEC_DWORD_STAT(Stat) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(1));\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(1));\
 }
 #define DEC_FLOAT_STAT_BY(Stat,Amount) \
 {\
 	if (Amount != 0.0f) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+			FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
 }
 #define DEC_DWORD_STAT_BY(Stat,Amount) \
 {\
 	if (Amount != 0) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+			FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_DWORD_STAT_FNAME_BY(StatFName,Amount) \
 {\
 	if (Amount != 0) \
- 		FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
+ 			FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_MEMORY_STAT_BY(Stat,Amount) \
 {\
 	if (Amount != 0) \
-		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+		if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+			FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define SET_MEMORY_STAT(Stat,Value) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Value));\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Value));\
 }
 #define SET_DWORD_STAT(Stat,Value) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Value));\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, int64(Value));\
 }
 #define SET_FLOAT_STAT(Stat,Value) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, double(Value));\
+	if (FThreadStats::IsCollectingData() || !GET_STATISEVERYFRAME(Stat)) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, double(Value));\
 }
 #define STAT_ADD_CUSTOMMESSAGE_NAME(Stat,Value) \
 {\
@@ -2112,4 +2125,18 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, COR
 DECLARE_FNAME_STAT_EXTERN(TEXT("NamedMarker"),STAT_NamedMarker,STATGROUP_StatSystem, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Seconds Per Cycle"),STAT_SecondsPerCycle,STATGROUP_Engine, CORE_API);
 
+#endif
+
+#if STATS || ENABLE_STATNAMEDEVENTS
+namespace Stats
+{
+	FORCEINLINE bool IsThreadCollectingData()
+	{
+#if STATS
+		return FThreadStats::IsCollectingData();
+#else
+		return GCycleStatsShouldEmitNamedEvents > 0;
+#endif
+	}
+}
 #endif

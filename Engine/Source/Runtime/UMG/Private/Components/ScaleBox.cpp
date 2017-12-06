@@ -19,9 +19,6 @@ UScaleBox::UScaleBox(const FObjectInitializer& ObjectInitializer)
 	Stretch = EStretch::ScaleToFit;
 	UserSpecifiedScale = 1.0f;
 	IgnoreInheritedScale = false;
-	// @todo: - DO NOT copy this change to UE4/Main
-	bSingleLayoutPass = true;
-	// @todo: - DO NOT copy this change to UE4/Main
 }
 
 void UScaleBox::ReleaseSlateResources(bool bReleaseChildren)

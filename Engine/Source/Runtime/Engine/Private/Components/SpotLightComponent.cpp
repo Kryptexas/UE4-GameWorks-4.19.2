@@ -170,10 +170,14 @@ public:
 		// Heuristic: use the radius of the inscribed sphere at the cone's end as the light's effective screen radius
 		// We do so because we do not want to use the light's radius directly, which will make us overestimate the shadow map resolution greatly for a spot light
 
-		const FVector InscribedSpherePosition = GetOrigin() + GetDirection() * GetRadius();
-		const float InscribedSphereRadius = GetRadius() / InvTanOuterCone;
+		// In the correct form,
+		//   InscribedSpherePosition = GetOrigin() + GetDirection().Normalize() * GetRadius() / CosOuterCone
+		//   InscribedSphereRadius = GetRadius() / SinOuterCone
+		// Do it incorrectly to avoid division which is more expensive and risks division by zero
+		const FVector InscribedSpherePosition = GetOrigin() + GetDirection().Normalize() * GetRadius() * CosOuterCone;
+		const float InscribedSphereRadius = GetRadius() * SinOuterCone;
 
- 		const float SphereDistanceFromViewOrigin = (InscribedSpherePosition - ShadowViewMatrices.GetViewOrigin()).Size();
+		const float SphereDistanceFromViewOrigin = (InscribedSpherePosition - ShadowViewMatrices.GetViewOrigin()).Size();
 
 		return ShadowViewMatrices.GetScreenScale() * InscribedSphereRadius / FMath::Max(SphereDistanceFromViewOrigin, 1.0f);
 	}

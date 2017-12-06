@@ -39,17 +39,6 @@ static inline uint32 GetTypeHash(const FGraphicsPipelineStateInitializer& Initia
 	//#todo-rco: Hash!
 	return (GetTypeHash(Initializer.BoundShaderState) | (Initializer.NumSamples << 28)) ^ ((uint32)Initializer.PrimitiveType << 24) ^ GetTypeHash(Initializer.BlendState)
 		^ Initializer.RenderTargetsEnabled ^ GetTypeHash(Initializer.RasterizerState) ^ GetTypeHash(Initializer.DepthStencilState);
-	/*
-	uint32							RenderTargetsEnabled;
-	TRenderTargetFormats			RenderTargetFormats;
-	TRenderTargetFlags				RenderTargetFlags;
-	TRenderTargetLoadActions		RenderTargetLoadActions;
-	TRenderTargetStoreActions		RenderTargetStoreActions;
-	EPixelFormat					DepthStencilTargetFormat;
-	uint32							DepthStencilTargetFlag;
-	ERenderTargetLoadAction			DepthStencilTargetLoadAction;
-	ERenderTargetStoreAction		DepthStencilTargetStoreAction;
-	*/
 }
 
 static TAutoConsoleVariable<int32> GCVarAsyncPipelineCompile(
@@ -151,7 +140,6 @@ public:
 		return true;
 	}
 
-	//protected:
 	FRHIComputeShader* ComputeShader;
 	TRefCountPtr<FRHIComputePipelineState> RHIPipeline;
 };
@@ -169,7 +157,6 @@ public:
 		return false;
 	}
 
-	//protected:
 	TRefCountPtr<FRHIGraphicsPipelineState> RHIPipeline;
 #if PIPELINESTATECACHE_VERIFYTHREADSAFE
 	FThreadSafeCounter InUseCount;
@@ -420,10 +407,6 @@ private:
 
 	FPipelineStateCacheType Map1;
 	FPipelineStateCacheType Map2;
-
-	/*TArray<TMyValue> *CurrentDeleteArray;
-	TArray<TMyValue> DeleteArray1;
-	TArray<TMyValue> DeleteArray2;*/
 
 	TArray<TMyValue> DeleteArray;
 
@@ -721,8 +704,6 @@ FGraphicsPipelineState* PipelineStateCache::GetAndOrCreateGraphicsPipelineState(
 		AnyFailed |= (NewInitializer.StencilTargetLoadAction != OriginalInitializer.StencilTargetLoadAction) << 9;
 		AnyFailed |= (NewInitializer.StencilTargetStoreAction != OriginalInitializer.StencilTargetStoreAction) << 10;
 
-		// Paragon - remove this ensure which is wrecking havoc
-		//ensureMsgf(AnyFailed == 0, TEXT("GetAndOrCreateGraphicsPipelineState RenderTarget check failed with: %i !"), AnyFailed);
 		static double LastTime = 0;
 		if (AnyFailed != 0 && (FPlatformTime::Seconds() - LastTime) >= 10.0f)
 		{
@@ -774,24 +755,19 @@ FGraphicsPipelineState* PipelineStateCache::GetAndOrCreateGraphicsPipelineState(
 #endif
 	}
 
-	// GGraphicsPipelineCache.Unlock(LockFlags);
-
 	// return the state pointer
 	return OutCachedState;
 }
 
 FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState)
 {
-/*	ensure(GraphicsPipelineState->RHIPipeline);
-	FRWScopeLock ScopeLock(GGraphicsPipelineCache.RWLock(), SLT_Write);*/
-
 	FRHIGraphicsPipelineState* RHIPipeline = GraphicsPipelineState->RHIPipeline;
 
 #if PIPELINESTATECACHE_VERIFYTHREADSAFE
 	int32 Result = GraphicsPipelineState->InUseCount.Decrement();
 	check(Result >= 0);
 #endif
-	// GraphicsPipelineState->CompletionEvent = nullptr;
+	
 	return RHIPipeline;
 }
 

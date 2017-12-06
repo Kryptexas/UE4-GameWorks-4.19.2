@@ -14,15 +14,11 @@
 #define GFSDK_Aftermath_PFN typedef GFSDK_Aftermath_Result
 
 #ifdef EXPORTS
-#define GFSDK_Aftermath_API __declspec(dllexport) GFSDK_Aftermath_Result
+#define GFSDK_Aftermath_DLLSPEC __declspec(dllexport) 
 #else
-#define GFSDK_Aftermath_API GFSDK_Aftermath_Result
+#define GFSDK_Aftermath_DLLSPEC
 #endif
 
-#ifndef GFSDK_Aftermath_WITH_DX11
-#define GFSDK_Aftermath_WITH_DX11 0
-#endif
+#define GFSDK_Aftermath_API extern "C" GFSDK_Aftermath_DLLSPEC GFSDK_Aftermath_Result
 
-#ifndef GFSDK_Aftermath_WITH_DX12
-#define GFSDK_Aftermath_WITH_DX12 0
-#endif
+#define AFTERMATH_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name

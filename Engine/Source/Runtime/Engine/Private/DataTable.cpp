@@ -454,6 +454,11 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 {
 	return FDataTableExporterJSON(InDTExportFlags, JsonWriter).WriteTable(*this);
 }
+
+bool UDataTable::WriteTableAsJSONObject(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags) const
+{
+	return FDataTableExporterJSON(InDTExportFlags, JsonWriter).WriteTableAsObject(*this);
+}
 #endif
 
 /** Get array of UProperties that corresponds to columns in the table */
@@ -561,6 +566,33 @@ TArray<FString> UDataTable::CreateTableFromJSONString(const FString& InString)
 	FDataTableImporterJSON(*this, InString, OutProblems).ReadTable();
 	OnPostDataImported(OutProblems);
 
+	return OutProblems;
+}
+
+TArray<FString> UDataTable::CreateTableFromOtherTable(const UDataTable* InTable)
+{
+	// Array used to store problems about table creation
+	TArray<FString> OutProblems;
+
+	if (InTable == nullptr)
+	{
+		OutProblems.Add(TEXT("No input table provided"));
+		return OutProblems;
+	}
+
+	RowStruct = InTable->RowStruct;
+
+	EmptyTable();
+
+	UScriptStruct& EmptyUsingStruct = GetEmptyUsingStruct();
+	for (TMap<FName, uint8*>::TConstIterator RowMapIter(InTable->RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+	{
+		uint8* NewRawRowData = (uint8*)FMemory::Malloc(EmptyUsingStruct.GetStructureSize());
+		EmptyUsingStruct.InitializeStruct(NewRawRowData);
+		EmptyUsingStruct.CopyScriptStruct(NewRawRowData, RowMapIter.Value());
+		RowMap.Add(RowMapIter.Key(), NewRawRowData);
+	}
+		
 	return OutProblems;
 }
 

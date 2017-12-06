@@ -216,6 +216,34 @@ namespace UnrealBuildTool
 				Log.TraceInformation("\t\tProject    : " + TargetEntry.Value);
 			}
 		}
+		
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="PluginName">Name of the plugin to check</param>
+		/// <param name="Platform">The target platform</param>
+		/// <param name="Target"></param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginEnabledForProject(string PluginName, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
+		{
+			bool bEnabled = false;
+			if (Project != null && Project.Plugins != null)
+			{
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if (String.Compare(PluginReference.Name, PluginName, true) == 0)
+					{
+						// start with whether it's enabled by default
+						bEnabled = PluginReference.bEnabled;
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
+						break;
+					}
+				}
+			}
+			return bEnabled;
+		}
+
 
 		/// <summary>
 		/// Returns a list of all the projects

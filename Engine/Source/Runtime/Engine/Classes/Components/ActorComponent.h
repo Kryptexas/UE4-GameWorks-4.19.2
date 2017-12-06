@@ -44,9 +44,9 @@ enum class EComponentCreationMethod : uint8
 enum class EUpdateTransformFlags : int32
 {
 	None = 0x0,
-	SkipPhysicsUpdate = 0x1,	//Don't update the underlying physics
-	PropagateFromParent = 0x2	//The update is coming as a result of the parent updating (i.e. not called directly)
-
+	SkipPhysicsUpdate = 0x1,		// Don't update the underlying physics
+	PropagateFromParent = 0x2,		// The update is coming as a result of the parent updating (i.e. not called directly)
+	OnlyUpdateIfUsingSocket = 0x4	// Only update child transform if attached to parent via a socket
 };
 
 CONSTEXPR inline EUpdateTransformFlags operator|(EUpdateTransformFlags Left, EUpdateTransformFlags Right)

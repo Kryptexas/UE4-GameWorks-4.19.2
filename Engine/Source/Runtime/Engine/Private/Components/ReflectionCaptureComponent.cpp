@@ -42,6 +42,9 @@
 // ES3.0+ devices support seamless cubemap filtering, averaging edges will produce artifacts on those devices
 #define MOBILE_AVERAGE_CUBEMAP_EDGES 0 
 
+// ES3.0+ devices support seamless cubemap filtering, averaging edges will produce artifacts on those devices
+#define MOBILE_AVERAGE_CUBEMAP_EDGES 0 
+
 /** 
  * Size of all reflection captures.
  * Reflection capture derived data versions must be changed if modifying this

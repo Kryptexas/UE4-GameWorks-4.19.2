@@ -424,6 +424,8 @@ public:
 	FCachedLandscapeFoliage FoliageCache;
 	/** A transient data structure for tracking the grass tasks*/
 	TArray<FAsyncTask<FAsyncGrassTask>* > AsyncFoliageTasks;
+	/** Frame offset for tick interval*/
+	uint32 FrameOffsetForTickInterval;
 
 	// Only used outside of the editor (e.g. in cooked builds)
 	// Disables landscape grass processing entirely if no landscape components have landscape grass configured

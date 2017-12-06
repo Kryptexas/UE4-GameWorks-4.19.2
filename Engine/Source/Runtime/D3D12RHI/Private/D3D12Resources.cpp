@@ -457,6 +457,10 @@ void FD3D12ResourceLocation::InternalClear()
 
 void FD3D12ResourceLocation::TransferOwnership(FD3D12ResourceLocation& Destination, FD3D12ResourceLocation& Source)
 {
+	// Skip if source and dest are the same
+	if (&Source == &Destination)
+		return;
+
 	// Clear out the destination
 	Destination.Clear();
 

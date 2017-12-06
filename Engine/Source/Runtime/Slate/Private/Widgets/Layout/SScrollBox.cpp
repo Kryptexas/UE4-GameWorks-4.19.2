@@ -583,7 +583,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	}
 
 	// If this scroll box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
-	const float ViewFraction = GetScrollComponentFromVector(AllottedGeometry.GetLocalSize()) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.GetLocalSize()) / ContentSize : 1;
+	const float ViewFraction = FMath::Clamp<float>(GetScrollComponentFromVector(AllottedGeometry.GetLocalSize()) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.Size) / ContentSize : 1, 0.0f, 1.0f);
 	const float ViewOffset = FMath::Clamp<float>( DesiredScrollOffset/ContentSize, 0.0, 1.0 - ViewFraction );
 	
 	// Update the scrollbar with the clamped version of the offset

@@ -179,7 +179,9 @@ UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
+#if WITH_EDITORONLY_DATA
 	BuildScale_DEPRECATED = 1.0f;
+#endif
 	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
 	SetFlags(RF_Transactional);
 	bSharedCookedData = false;
@@ -1185,7 +1187,7 @@ void UBodySetup::Serialize(FArchive& Ar)
 			TArray<FName> ActualFormatsToSave;
 			ActualFormatsToSave.Add(Format);
 
-			Ar << bHasCookedCollisionData;
+			FArchive_Serialize_BitfieldBool(Ar, bHasCookedCollisionData);
 
 			FFormatContainer* UseCookedFormatData = bUseRuntimeOnlyCookedData ? &CookedFormatDataRuntimeOnlyOptimization : &CookedFormatData;
 			UseCookedFormatData->Serialize(Ar, this, &ActualFormatsToSave, !bSharedCookedData);
@@ -1195,7 +1197,9 @@ void UBodySetup::Serialize(FArchive& Ar)
 		{
 			if (Ar.UE4Ver() >= VER_UE4_STORE_HASCOOKEDDATA_FOR_BODYSETUP)
 			{
-				Ar << bHasCookedCollisionData;
+				bool bTemp = bHasCookedCollisionData;
+				Ar << bTemp;
+				bHasCookedCollisionData = bTemp;
 			}
 			CookedFormatData.Serialize(Ar, this);
 		}
@@ -1218,10 +1222,12 @@ void UBodySetup::PostLoad()
 		Outer->ConditionalPostLoad();
 	}
 
+#if WITH_EDITORONLY_DATA
 	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
 	{
 		BuildScale3D = FVector( BuildScale_DEPRECATED );
 	}
+#endif
 
 	DefaultInstance.FixupData(this);
 

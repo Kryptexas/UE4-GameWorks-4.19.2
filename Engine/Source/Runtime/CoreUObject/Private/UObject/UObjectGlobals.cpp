@@ -51,6 +51,7 @@
 #include "UObject/TextProperty.h"
 #include "UObject/MetaData.h"
 #include "HAL/LowLevelMemTracker.h"
+#include "CoreDelegates.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -1140,6 +1141,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 		FName PackageFName(*InPackageName);
 
 		{
+			if (FCoreDelegates::OnSyncLoadPackage.IsBound())
+			{
+				FCoreDelegates::OnSyncLoadPackage.Broadcast(InName);
+			}
+
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
@@ -1196,6 +1202,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 	SlowTask.Visibility = ESlowTaskVisibility::Invisible;
 	
 	SlowTask.EnterProgressFrame(10);
+
+	if (FCoreDelegates::OnSyncLoadPackage.IsBound())
+	{
+		FCoreDelegates::OnSyncLoadPackage.Broadcast(FileToLoad);
+	}
 
 	// Try to load.
 	BeginLoad(InLongPackageNameOrFilename);
@@ -1786,7 +1797,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName InBaseName/*=N
 					if (Parent && (Parent != ANY_PACKAGE) )
 					{
 						UPackage* ParentPackage = Parent->GetOutermost();
-						int32& ClassUnique = ParentPackage->ClassUniqueNameIndexMap.FindOrAdd(Class->GetFName());
+						int32& ClassUnique = ParentPackage->GetClassUniqueNameIndexMap().FindOrAdd(Class->GetFName());
 						NameNumber = ++ClassUnique;
 					}
 					else

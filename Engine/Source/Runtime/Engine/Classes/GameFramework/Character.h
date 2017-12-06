@@ -587,10 +587,11 @@ protected:
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
 
+public:
+
 	/** Marks character as not trying to jump */
 	void ResetJumpState();
 
-public:
 	/**
 	 * True if jump is actively providing a force, such as when the jump key is held and the time it has been held is less than JumpMaxHoldTime.
 	 * @see CharacterMovement->IsFalling

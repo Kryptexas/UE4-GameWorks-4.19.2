@@ -7,7 +7,7 @@
 #include "SlateRHIRenderer.h"
 #include "Rendering/ElementBatcher.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate 3D"), Slate3D, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(Slate3D, TEXT("Slate 3D"));
 
 FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection )
 	: SlateFontServices( InSlateFontServices )

@@ -195,7 +195,7 @@ void UpdatePublishedSettings(UWorld* World, FNamedOnlineSession* Session)
 				if (PlayerState && PlayerState->UniqueId.IsValid())
 				{
 					CSteamID SteamId(*(uint64*)PlayerState->UniqueId->GetBytes());
-					SteamGameServerPtr->BUpdateUserData(SteamId, TCHAR_TO_UTF8(*PlayerState->PlayerName), PlayerState->Score);
+					SteamGameServerPtr->BUpdateUserData(SteamId, TCHAR_TO_UTF8(*PlayerState->GetPlayerName()), PlayerState->Score);
 				}
 			}
 		}

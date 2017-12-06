@@ -43,5 +43,6 @@ public:
 	bool GetFrameTimeHistogram(FHistogram& OutHistogram);
 
 	FZeroLoad(double InTickRate);
+	FZeroLoad(double InTickRate, const TArray<double>& FrameTimeHistogramBucketsMs);
 	virtual ~FZeroLoad() { }
 };

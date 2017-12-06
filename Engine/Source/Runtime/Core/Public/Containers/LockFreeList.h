@@ -685,6 +685,11 @@ public:
 			LocalMasterState.AtomicRead(MasterState);
 			NewMasterState.AdvanceCounterAndState(LocalMasterState, 1);
 			ThreadToWake = FindThreadToWake(LocalMasterState.GetPtr());
+#if 0
+			// This block of code is supposed to avoid starting the task thread if the queues are empty.
+			// It does not work. In rare cases no task thread is woken up.
+			// Without this block, it is possible that we do a redundant wake-up, but for task threads, that can happen anyway. 
+			// For named threads, the rare redudnant wakeup seems acceptable.
 			if (ThreadToWake >= 0)
 			{
 				bool bAny = false;
@@ -697,6 +702,7 @@ public:
 					ThreadToWake = -1;
 				}
 			}
+#endif
 			if (ThreadToWake >= 0)
 			{
 				NewMasterState.SetPtr(TurnOffBit(LocalMasterState.GetPtr(), ThreadToWake));

@@ -18,6 +18,27 @@ void UMaterialInstanceConstant::PostLoad()
 	Super::PostLoad();
 }
 
+FLinearColor UMaterialInstanceConstant::K2_GetVectorParameterValue(FName ParameterName)
+{
+	FLinearColor Result(0,0,0);
+	Super::GetVectorParameterValue(ParameterName, Result);
+	return Result;
+}
+
+float UMaterialInstanceConstant::K2_GetScalarParameterValue(FName ParameterName)
+{
+	float Result = 0.f;
+	Super::GetScalarParameterValue(ParameterName, Result);
+	return Result;
+}
+
+UTexture* UMaterialInstanceConstant::K2_GetTextureParameterValue(FName ParameterName)
+{
+	UTexture* Result = NULL;
+	Super::GetTextureParameterValue(ParameterName, Result);
+	return Result;
+}
+
 #if WITH_EDITOR
 void UMaterialInstanceConstant::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

@@ -625,7 +625,7 @@ public:
 	int64 CurrentBlockBytes;
 	TSet<int32> ExportsInThisBlock;
 
-	TMultiMap<FName, FPackageIndex> ObjectNameToImportOrExport;
+	TMap<TPair<FName, FPackageIndex>, FPackageIndex> ObjectNameWithOuterToExport;
 
 	TSet<FWeakAsyncPackagePtr> PackagesIMayBeWaitingForBeforePostload; // these need to be reexamined and perhaps deleted or collapsed
 

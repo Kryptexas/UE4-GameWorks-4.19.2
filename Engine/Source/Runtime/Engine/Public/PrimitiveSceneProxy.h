@@ -391,6 +391,8 @@ public:
 	*/
 	void SetCustomDepthStencilValue_RenderThread(const int32 InCustomDepthStencilValue);
 
+	void SetDistanceFieldSelfShadowBias_RenderThread(float NewBias);
+
 	// Accessors.
 	inline FSceneInterface& GetScene() const { return *Scene; }
 	inline FPrimitiveComponentId GetPrimitiveComponentId() const { return PrimitiveComponentId; }
@@ -937,6 +939,8 @@ private:
 	 * @param InLocalBounds - The local space bounds of the primitive.
 	 */
 	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
+
+	ENGINE_API bool WouldSetTransformBeRedundant(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
 
 	/**
 	 * Either updates the uniform buffer or defers it until it becomes visible depending on a cvar

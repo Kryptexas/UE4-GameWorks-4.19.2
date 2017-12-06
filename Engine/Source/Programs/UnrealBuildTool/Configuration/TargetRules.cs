@@ -742,11 +742,25 @@ namespace UnrealBuildTool
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bAllowLTCG = false;
 
-		/// <summary>
-		/// Whether to allow the use of ASLR (address space layout randomization) if supported. Only
-		/// applies to shipping builds.
-		/// </summary>
-		[XmlConfigFile(Category = "BuildConfiguration")]
+        /// <summary>
+        /// Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+        /// </summary>
+        [CommandLine("-PGOProfile", Value = "true")]
+        [XmlConfigFile(Category = "BuildConfiguration")]
+        public bool bPGOProfile = false;
+
+        /// <summary>
+        /// Whether to optimize this build with Profile Guided Optimization (PGO).
+        /// </summary>
+        [CommandLine("-PGOOptimize", Value = "true")]
+        [XmlConfigFile(Category = "BuildConfiguration")]
+        public bool bPGOOptimize = false;
+
+        /// <summary>
+        /// Whether to allow the use of ASLR (address space layout randomization) if supported. Only
+        /// applies to shipping builds.
+        /// </summary>
+        [XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bAllowASLRInShipping = true;
 
 		/// <summary>
@@ -881,6 +895,17 @@ namespace UnrealBuildTool
 		[CommandLine("-Timing")]
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bPrintToolChainTimingInfo = false;
+
+		/// <summary>
+		/// Whether to hide symbols by default on POSIX platforms
+		/// </summary>
+		[CommandLine("-HideSymbolsByDefault")]
+		public bool bHideSymbolsByDefault;
+
+        /// <summary>
+        /// Whether to load generated ini files in cooked build
+        /// </summary>
+        public bool bAllowGeneratedIniWhenCooked = true;
 
 		/// <summary>
 		/// The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
@@ -1839,8 +1864,17 @@ namespace UnrealBuildTool
 		{
 			get { return Inner.bAllowLTCG; }
 		}
+        public bool bPGOProfile
+        {
+            get { return Inner.bPGOProfile; }
+        }
 
-		public bool bAllowASLRInShipping
+        public bool bPGOOptimize
+        {
+            get { return Inner.bPGOOptimize; }
+        }
+
+        public bool bAllowASLRInShipping
 		{
 			get { return Inner.bAllowASLRInShipping; }
 		}
@@ -1953,6 +1987,11 @@ namespace UnrealBuildTool
 		public bool bPrintToolChainTimingInfo
 		{
 			get { return Inner.bPrintToolChainTimingInfo; }
+		}
+
+		public bool bHideSymbolsByDefault
+		{
+			get { return Inner.bHideSymbolsByDefault; }
 		}
 
 		public string PCHOutputDirectory

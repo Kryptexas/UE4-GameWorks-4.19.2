@@ -92,7 +92,8 @@ static TAutoConsoleVariable<int32> CVarMaxSoftKernelSize(
 	TEXT("Mazimum size of the softening kernels in pixels."),
 	ECVF_RenderThreadSafe);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("ShadowProjection"), Stat_GPU_ShadowProjection, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ShadowProjection, TEXT("Shadow Projection"));
+
 
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
 uint32 GetShadowQuality()
@@ -1447,7 +1448,7 @@ bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmed
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderShadowProjections, FColor::Emerald);
 	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowProjection);
+	SCOPED_GPU_STAT(RHICmdList, ShadowProjection);
 
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 

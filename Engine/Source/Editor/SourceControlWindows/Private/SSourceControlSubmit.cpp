@@ -132,7 +132,7 @@ void SSourceControlSubmitWidget::Construct(const FArguments& InArgs)
 				.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDesc", "Changelist Description") )
 			]
 			+SVerticalBox::Slot()
-			.AutoHeight()
+			.FillHeight(.5f)
 			.Padding(FMargin(5, 0, 5, 5))
 			[
 				SNew(SBox)

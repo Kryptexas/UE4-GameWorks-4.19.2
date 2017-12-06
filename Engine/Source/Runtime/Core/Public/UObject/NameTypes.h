@@ -139,21 +139,17 @@ protected:
 	};
 	// DO NOT ADD VARIABLES BELOW!
 
-	/** 
-	 * Constructor called from the linker name table serialization function. Initializes the index
-	 * to a value that indicates widechar as that's what the linker is going to serialize.
-	 *
-	 * Only callable from the serialization version of this class
-	 */
-	FNameEntry( enum ELinkerNameTableConstructor )
-	{
-		Index = NAME_WIDE_MASK;
-	}
-
-public:
+private:
 	/** Default constructor doesn't do anything. AllocateNameEntry is responsible for work. */
 	FNameEntry()
 	{}
+
+	FNameEntry(const FNameEntry&) = delete;
+	FNameEntry(FNameEntry&&) = delete;
+	FNameEntry& operator=(const FNameEntry&) = delete;
+	FNameEntry& operator=(FNameEntry&&) = delete;
+
+public:
 
 	/** 
 	 * Sets whether or not the NameEntry will have a wide string, or an ansi string
@@ -254,11 +250,7 @@ public:
 	static int32 GetSize( int32 Length, bool bIsPureAnsi );
 
 	// Functions.
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FNameEntry& E );
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FNameEntry* E )
-	{
-		return Ar << *E;
-	}
+	CORE_API void Write(FArchive& Ar) const;
 
 	// Friend for access to Flags.
 	template<typename TCharType>
@@ -268,21 +260,68 @@ public:
 /**
  *  This struct is only used during loading/saving and is not part of the runtime costs
  */
-struct FNameEntrySerialized :
-	public FNameEntry
+struct FNameEntrySerialized
 {
+	NAME_INDEX Index;
+
+	union
+	{
+		ANSICHAR	AnsiName[NAME_SIZE];
+		WIDECHAR	WideName[NAME_SIZE];
+	};
+
 	uint16 NonCasePreservingHash;
 	uint16 CasePreservingHash;
 	bool bWereHashesLoaded;
 
 	FNameEntrySerialized(const FNameEntry& NameEntry);
 	FNameEntrySerialized(enum ELinkerNameTableConstructor) :
-		FNameEntry(ENAME_LinkerConstructor),
 		NonCasePreservingHash(0),
 		CasePreservingHash(0),
 		bWereHashesLoaded(false)
 	{
 	}
+
+	/** 
+	 * Sets whether or not the NameEntry will have a wide string, or an ansi string
+	 *
+	 * @param bIsWide true if we are going to serialize a wide string
+	 */
+	FORCEINLINE void PreSetIsWideForSerialization(bool bIsWide)
+	{
+		Index = bIsWide ? NAME_WIDE_MASK : 0;
+	}
+
+	/**
+	 * Returns whether this name entry is represented via TCHAR or ANSICHAR
+	 */
+	FORCEINLINE bool IsWide() const
+	{
+		return (Index & NAME_WIDE_MASK);
+	}
+
+	/**
+	 * @return direct access to ANSI name if stored in ANSI
+	 */
+	inline ANSICHAR const* GetAnsiName() const
+	{
+		check(!IsWide());
+		return AnsiName;
+	}
+
+	/**
+	 * @return direct access to wide name if stored in widechars
+	 */
+	inline WIDECHAR const* GetWideName() const
+	{
+		check(IsWide());
+		return WideName;
+	}
+
+	/**
+	 * @return FString of name portion minus number.
+	 */
+	CORE_API FString GetPlainNameString() const;	
 
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized& E);
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized* E)

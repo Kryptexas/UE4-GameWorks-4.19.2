@@ -745,7 +745,7 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyTriMesh(UBodySetup& BodySetup, TNavSt
 }
 
 void ExportRigidBodyBoxElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
-								TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
+								TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld, int32 NumExistingVerts)
 {
 	for (int32 i = 0; i < AggGeom.BoxElems.Num(); i++)
 	{
@@ -753,7 +753,7 @@ void ExportRigidBodyBoxElements(const FKAggregateGeom& AggGeom, TNavStatArray<fl
 		const FMatrix ElemTM = BoxInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 		const FVector Extent(BoxInfo.X * 0.5f, BoxInfo.Y * 0.5f, BoxInfo.Z * 0.5f);
 
-		const int32 VertBase = VertexBuffer.Num() / 3;
+		const int32 VertBase = (NumExistingVerts + VertexBuffer.Num()) / 3;
 		
 		// Store index of first vertex in shape buffer
 		ShapeBuffer.Add(VertBase);
@@ -795,7 +795,7 @@ void ExportRigidBodyBoxElements(const FKAggregateGeom& AggGeom, TNavStatArray<fl
 }
 
 void ExportRigidBodySphylElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
-								  TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
+								  TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld, int32 NumExistingVerts)
 {
 	TArray<FVector> ArcVerts;
 
@@ -804,7 +804,7 @@ void ExportRigidBodySphylElements(const FKAggregateGeom& AggGeom, TNavStatArray<
 		const FKSphylElem& SphylInfo = AggGeom.SphylElems[i];
 		const FMatrix ElemTM = SphylInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 
-		const int32 VertBase = VertexBuffer.Num() / 3;
+		const int32 VertBase = (NumExistingVerts + VertexBuffer.Num()) / 3;
 
 		// Store index of first vertex in shape buffer
 		ShapeBuffer.Add(VertBase);
@@ -875,7 +875,7 @@ void ExportRigidBodySphylElements(const FKAggregateGeom& AggGeom, TNavStatArray<
 }
 
 void ExportRigidBodySphereElements(const FKAggregateGeom& AggGeom, TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
-								   TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld)
+								   TNavStatArray<int32>& ShapeBuffer, FBox& UnrealBounds, const FTransform& LocalToWorld, int32 NumExistingVerts)
 {
 	TArray<FVector> ArcVerts;
 
@@ -884,7 +884,7 @@ void ExportRigidBodySphereElements(const FKAggregateGeom& AggGeom, TNavStatArray
 		const FKSphereElem& SphereInfo = AggGeom.SphereElems[i];
 		const FMatrix ElemTM = SphereInfo.GetTransform().ToMatrixWithScale() * LocalToWorld.ToMatrixWithScale();
 
-		const int32 VertBase = VertexBuffer.Num() / 3;
+		const int32 VertBase = (NumExistingVerts + VertexBuffer.Num()) / 3;
 
 		// Store index of first vertex in shape buffer
 		ShapeBuffer.Add(VertBase);
@@ -948,12 +948,13 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodySetup(UBodySetup& BodySetup, TNavStat
 	BodySetup.CreatePhysicsMeshes();
 
 	static TNavStatArray<int32> TemporaryShapeBuffer;
+	const int32 NumExistingsVerts = VertexBuffer.Num();
 
 	ExportRigidBodyTriMesh(BodySetup, VertexBuffer, IndexBuffer, UnrealBounds, LocalToWorld);
 	ExportRigidBodyConvexElements(BodySetup, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodyBoxElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodySphylElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
-	ExportRigidBodySphereElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld);
+	ExportRigidBodyBoxElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld, NumExistingsVerts);
+	ExportRigidBodySphylElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld, NumExistingsVerts);
+	ExportRigidBodySphereElements(BodySetup.AggGeom, VertexBuffer, IndexBuffer, TemporaryShapeBuffer, UnrealBounds, LocalToWorld, NumExistingsVerts);
 
 	TemporaryShapeBuffer.Reset();
 }
@@ -4285,11 +4286,12 @@ void FRecastNavMeshGenerator::ExportRigidBodyGeometry(UBodySetup& BodySetup, TNa
 		OutTriMeshVertexBuffer.Add(FVector(VertCoords[i + 0], VertCoords[i + 1], VertCoords[i + 2]));
 	}
 
+	const int32 NumExistingVerts = OutConvexVertexBuffer.Num();
 	VertCoords.Reset();
 	RecastGeometryExport::ExportRigidBodyConvexElements(BodySetup, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodyBoxElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphylElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphereElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodyBoxElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
+	RecastGeometryExport::ExportRigidBodySphylElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
+	RecastGeometryExport::ExportRigidBodySphereElements(BodySetup.AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
 	
 	OutConvexVertexBuffer.Reserve(OutConvexVertexBuffer.Num() + (VertCoords.Num() / 3));
 	for (int32 i = 0; i < VertCoords.Num(); i += 3)
@@ -4303,12 +4305,14 @@ void FRecastNavMeshGenerator::ExportAggregatedGeometry(const FKAggregateGeom& Ag
 	TNavStatArray<float> VertCoords;
 	FBox TempBounds;
 
+	const int32 NumExistingVerts = OutConvexVertexBuffer.Num();
+
 	// convex and tri mesh are NOT supported, since they require BodySetup.CreatePhysicsMeshes() call
 	// only simple shapes
 
-	RecastGeometryExport::ExportRigidBodyBoxElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphylElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
-	RecastGeometryExport::ExportRigidBodySphereElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld);
+	RecastGeometryExport::ExportRigidBodyBoxElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
+	RecastGeometryExport::ExportRigidBodySphylElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
+	RecastGeometryExport::ExportRigidBodySphereElements(AggGeom, VertCoords, OutConvexIndexBuffer, OutShapeBuffer, TempBounds, LocalToWorld, NumExistingVerts);
 
 	OutConvexVertexBuffer.Reserve(OutConvexVertexBuffer.Num() + (VertCoords.Num() / 3));
 	for (int32 i = 0; i < VertCoords.Num(); i += 3)

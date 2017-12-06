@@ -32,10 +32,22 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	/** For editing MICs. */
 	friend class UMaterialEditorInstanceConstant;
 
-#if WITH_EDITOR
 	virtual ENGINE_API void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	/** Get the scalar (float) parameter value from an MIC */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetScalarParameterValue", Keywords = "GetFloatParameterValue"), Category="Rendering|Material")
+	float K2_GetScalarParameterValue(FName ParameterName);
+
+	/** Get the MIC texture parameter value */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetTextureParameterValue"), Category="Rendering|Material")
+	class UTexture* K2_GetTextureParameterValue(FName ParameterName);
+
+	/** Get the MIC vector parameter value */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetVectorParameterValue", Keywords = "GetColorParameterValue"), Category="Rendering|Material")
+	FLinearColor K2_GetVectorParameterValue(FName ParameterName);
+
+#if WITH_EDITOR
 	/**
 	 * Set the parent of this material instance. This function may only be called in the Editor!
 	 *   WARNING: You MUST call PostEditChange afterwards to propagate changes to other materials in the chain!

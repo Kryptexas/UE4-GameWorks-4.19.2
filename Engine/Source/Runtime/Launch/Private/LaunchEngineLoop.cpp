@@ -896,8 +896,18 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 		}
 		else
 		{
-			UE_LOG(LogInit, Error, TEXT("Failed to determine if OSS is server in PIE, OSS requests will fail"));
-			return false;
+#if WITH_EDITOR
+			if (GIsPlayInEditorWorld)
+			{
+				World = GWorld;
+			}
+#endif
+
+			if (World == nullptr)
+			{
+				UE_LOG(LogInit, Error, TEXT("Failed to determine if OSS is server in PIE, OSS requests will fail"));
+				return false;
+			}
 		}
 	}
 
@@ -1440,7 +1450,17 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 			{
 				NumThreadsInThreadPool = 1;
 			}
-			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024));
+			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024, TPri_SlightlyBelowNormal));
+		}
+		{
+			GBackgroundPriorityThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = 2;
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 1;
+			}
+
+			verify(GBackgroundPriorityThreadPool->Create(NumThreadsInThreadPool, 128 * 1024, TPri_Lowest));
 		}
 
 #if WITH_EDITOR
@@ -2307,6 +2327,11 @@ int32 FEngineLoop::PreInit(const TCHAR* CmdLine)
 		GAreScreenMessagesEnabled = false;
 	}
 
+	if (GEngine && FParse::Param(FCommandLine::Get(), TEXT("statunit")))
+	{
+		GEngine->Exec(nullptr, TEXT("stat unit"));
+	}
+
 	// Don't update INI files if benchmarking or -noini
 	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("NOINI")))
 	{
@@ -2597,7 +2622,7 @@ void FEngineLoop::InitTime()
 	LastFrameCycles				= FPlatformTime::Cycles();
 
 	float FloatMaxTickTime		= 0;
-#if !UE_BUILD_SHIPPING
+#if (!UE_BUILD_SHIPPING || ENABLE_PGO_PROFILE)
 	FParse::Value(FCommandLine::Get(),TEXT("SECONDS="),FloatMaxTickTime);
 	MaxTickTime					= FloatMaxTickTime;
 
@@ -3097,7 +3122,8 @@ void FEngineLoop::Tick()
 	LLM_SCOPE(ELLMTag::EngineMisc);
 
 	// Send a heartbeat for the diagnostics thread
-	FThreadHeartBeat::Get().HeartBeat();
+	FThreadHeartBeat::Get().HeartBeat(true);
+	FGameThreadHitchHeartBeat::Get().FrameStart();
 
 	// Make sure something is ticking the rendering tickables in -onethread mode to avoid leaks/bugs.
 	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended)
@@ -3385,6 +3411,13 @@ void FEngineLoop::Tick()
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ConcurrentWithSlateTickTasks_Wait);
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(ConcurrentTask);
 			ConcurrentTask = nullptr;
+		}
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND(WaitForOutstandingTasksOnly_for_DelaySceneRenderCompletion,
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_DelaySceneRenderCompletion_TaskWait);
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+			});
 		}
 #endif
 
@@ -3924,8 +3957,9 @@ bool FEngineLoop::AppInit( )
 
 	UE_LOG(LogInit, Log, TEXT("Build Configuration: %s"), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()));
 	UE_LOG(LogInit, Log, TEXT("Branch Name: %s"), *FApp::GetBranchName() );
-	UE_LOG(LogInit, Log, TEXT("Command line: %s"), FCommandLine::GetForLogging() );
-	UE_LOG(LogInit, Log, TEXT("Base directory: %s"), FPlatformProcess::BaseDir() );
+	FString FilteredString = FCommandLine::IsCommandLineLoggingFiltered() ? TEXT("Filtered ") : TEXT("");
+	UE_LOG(LogInit, Log, TEXT("%sCommand Line: %s"), *FilteredString, FCommandLine::GetForLogging() );
+	UE_LOG(LogInit, Log, TEXT("Base Directory: %s"), FPlatformProcess::BaseDir() );
 	//UE_LOG(LogInit, Log, TEXT("Character set: %s"), sizeof(TCHAR)==1 ? TEXT("ANSI") : TEXT("Unicode") );
 	UE_LOG(LogInit, Log, TEXT("Installed Engine Build: %d"), FApp::IsEngineInstalled() ? 1 : 0);
 
@@ -4007,6 +4041,11 @@ void FEngineLoop::AppPreExit( )
 	if (GThreadPool != nullptr)
 	{
 		GThreadPool->Destroy();
+	}
+
+	if (GBackgroundPriorityThreadPool != nullptr)
+	{
+		GBackgroundPriorityThreadPool->Destroy();
 	}
 
 	if (GIOThreadPool != nullptr)

@@ -2,6 +2,7 @@
 
 #include "Sections/MovieSceneCameraAnimSection.h"
 #include "Evaluation/MovieSceneCameraAnimTemplate.h"
+#include "SequencerObjectVersion.h"
 
 
 UMovieSceneCameraAnimSection::UMovieSceneCameraAnimSection(const FObjectInitializer& ObjectInitializer)
@@ -14,7 +15,10 @@ UMovieSceneCameraAnimSection::UMovieSceneCameraAnimSection(const FObjectInitiali
 	BlendOutTime_DEPRECATED = 0.f;
 	bLooping_DEPRECATED = false;
 
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 }
 
 void UMovieSceneCameraAnimSection::PostLoad()

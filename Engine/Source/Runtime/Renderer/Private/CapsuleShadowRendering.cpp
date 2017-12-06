@@ -27,7 +27,7 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(CapsuleShadows, TEXT("Capsule Shadows"));
 
 int32 GCapsuleShadows = 1;
 FAutoConsoleVariableRef CVarCapsuleShadows(
@@ -824,7 +824,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 		{
 			const FViewInfo& View = Views[ViewIndex];
 			SCOPED_DRAW_EVENT(RHICmdList, CapsuleShadows);
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+			SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 
 			static TArray<FCapsuleShape> CapsuleShapeData;
 			CapsuleShapeData.Reset();
@@ -1353,7 +1353,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
-					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					int32 NumMeshesWithCapsules = 0;
@@ -1566,7 +1566,7 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, IndirectCapsuleShadows);
-					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					int32 NumMeshesWithCapsules = 0;

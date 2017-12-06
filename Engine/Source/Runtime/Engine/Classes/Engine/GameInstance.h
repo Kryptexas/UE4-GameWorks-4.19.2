@@ -294,8 +294,10 @@ public:
 	/** Stop recording a replay if one is currently in progress */
 	virtual void StopRecordingReplay();
 
-	/** Start playing back a previously recorded replay. */
-	virtual void PlayReplay(const FString& InName, UWorld* WorldOverride = nullptr, const TArray<FString>& AdditionalOptions = TArray<FString>());
+	/** Start playing back a previously recorded replay.
+	 *	Return false if it fails to play.
+	*/
+	virtual bool PlayReplay(const FString& InName, UWorld* WorldOverride = nullptr, const TArray<FString>& AdditionalOptions = TArray<FString>());
 
 	/**
 	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)

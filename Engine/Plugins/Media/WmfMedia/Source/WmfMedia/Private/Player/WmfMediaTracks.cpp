@@ -1389,7 +1389,7 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 				}
 				else
 				{
-					long SampleStride = ::MFGetAttributeUINT32(OutputType, MF_MT_DEFAULT_STRIDE, 0);
+					long SampleStride = ::MFGetAttributeUINT32(MediaType, MF_MT_DEFAULT_STRIDE, 0);
 
 					if (OutputSubType == MFVideoFormat_RGB32)
 					{
@@ -1397,7 +1397,7 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 
 						if (SampleStride == 0)
 						{
-							::MFGetStrideForBitmapInfoHeader(OutputSubType.Data1, OutputDim.X, &SampleStride);
+							::MFGetStrideForBitmapInfoHeader(SubType.Data1, OutputDim.X, &SampleStride);
 						}
 
 						if (SampleStride == 0)
@@ -1747,7 +1747,6 @@ void FWmfMediaTracks::HandleMediaSamplerVideoSample(const uint8* Buffer, uint32 
 		return; // invalid track index
 	}
 
-	// create & add sample to queue
 	const FTrack& Track = VideoTracks[SelectedVideoTrack];
 	const FFormat* Format = GetVideoFormat(SelectedVideoTrack, Track.SelectedFormat);
 
@@ -1761,6 +1760,20 @@ void FWmfMediaTracks::HandleMediaSamplerVideoSample(const uint8* Buffer, uint32 
 		return; // invalid buffer size (can happen during format switch)
 	}
 
+	// WMF doesn't report durations for some formats
+	if (Duration.IsZero())
+	{
+		float FrameRate = Format->Video.FrameRate;
+
+		if (FrameRate <= 0.0f)
+		{
+			FrameRate = 30.0f;
+		}
+
+		Duration = FTimespan((int64)((float)ETimespan::TicksPerSecond / FrameRate));
+	}
+
+	// create & add sample to queue
 	const TSharedRef<FWmfMediaTextureSample, ESPMode::ThreadSafe> TextureSample = VideoSamplePool->AcquireShared();
 
 	if (TextureSample->Initialize(

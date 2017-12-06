@@ -124,6 +124,17 @@ public:
 	}
 
 	/**
+	 * Returns all of the object marks on a specific object
+	 *
+	 * @param	Object	Object to get marks for
+	 * @return	all Marks for an object
+	 */
+	FORCEINLINE EObjectMark GetAllMarks() const
+	{
+		return ObjectGetAllMarks(this);
+	}
+
+	/**
 	 * Checks the PendingKill flag to see if it is dead but memory still valid
 	 */
 	FORCEINLINE bool IsPendingKill() const
@@ -731,6 +742,28 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 	COREUOBJECT_API void UntrackObjectForMallocProfiling();
 #endif
 };
+
+#define SCOPE_CYCLE_UOBJECT(Name, Object) \
+	FScopeCycleCounterUObject ObjCycleCount_##Name(Object);
+
+#elif ENABLE_STATNAMEDEVENTS
+
+struct FScopeCycleCounterUObject
+{
+	FScopeCycleCounter ScopeCycleCounter;
+	FORCEINLINE_STATS FScopeCycleCounterUObject(const UObjectBaseUtility *Object)
+	: ScopeCycleCounter(Object ? Object->GetStatID().StatString : nullptr)
+	{
+	}
+	FORCEINLINE_STATS FScopeCycleCounterUObject(const UObjectBaseUtility *Object, TStatId OtherStat)
+	: ScopeCycleCounter(Object ? Object->GetStatID().StatString : nullptr)
+	{
+	}
+};
+
+#define SCOPE_CYCLE_UOBJECT(Name, Object) \
+	FScopeCycleCounterUObject ObjCycleCount_##Name(Object);
+
 #else
 struct FScopeCycleCounterUObject
 {
@@ -741,6 +774,9 @@ struct FScopeCycleCounterUObject
 	{
 	}
 };
+
+#define SCOPE_CYCLE_UOBJECT(Name, Object)
+
 #endif
 
 #if defined(_MSC_VER) && _MSC_VER == 1900

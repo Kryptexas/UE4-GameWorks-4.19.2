@@ -1146,12 +1146,12 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		return false;
 	}
 
-#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if DISABLE_CHEAT_CVARS
 	if(CObj->TestFlags(ECVF_Cheat))
 	{
 		return false;
 	}
-#endif // (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // DISABLE_CHEAT_CVARS
 
 	if(CObj->TestFlags(ECVF_Unregistered))
 	{

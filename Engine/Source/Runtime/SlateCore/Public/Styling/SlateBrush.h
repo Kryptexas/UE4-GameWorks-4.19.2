@@ -120,7 +120,7 @@ struct SLATECORE_API FSlateBrush
 
 #if WITH_EDITORONLY_DATA
 	/** Tinting applied to the image. */
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	FLinearColor Tint_DEPRECATED;
 #endif
 

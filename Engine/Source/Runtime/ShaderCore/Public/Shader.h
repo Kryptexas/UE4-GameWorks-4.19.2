@@ -1657,17 +1657,17 @@ public:
 
 			// Sort the shaders by type name before saving, to make sure the saved result is binary equivalent to what is generated on other machines, 
 			// Which is a requirement of the Derived Data Cache.
-			auto SortedShaders = Shaders;
-			SortedShaders.KeySort(FCompareShaderTypes());
+			TArray<FShaderType*> SortedShaders;
+			Shaders.GenerateKeyArray(SortedShaders);
+			SortedShaders.Sort(FCompareShaderTypes());
 
-			for (TMap<FShaderType*, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
+			for (FShaderType* Type : SortedShaders)
 			{
-				FShaderType* Type = ShaderIt.Key();
 				check(Type);
 				checkSlow(FName(Type->GetName()) != NAME_None);
 
 				Ar << Type;
-				FShader* CurrentShader = ShaderIt.Value();
+				FShader* CurrentShader = Shaders.FindChecked(Type);
 				SerializeShaderForSaving(CurrentShader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 			}
 

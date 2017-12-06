@@ -1203,13 +1203,21 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			AssetType = UDynamicClass::StaticClass();
 		}
 
+		// Specify the outer if it is not the package
+		FString OuterName;
+		if(AssetObj->GetOuter() && (AssetObj->GetOuter() != AssetObj->GetOutermost()))
+		{
+			OuterName = AssetObj->GetOuter()->GetName();
+		}
+
 		const FString LongPackagePath = FPackageName::GetLongPackagePath(AssetObj->GetOutermost()->GetPathName());
-		return FString::Printf(TEXT("FBlueprintDependencyObjectRef(TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
+		return FString::Printf(TEXT("FBlueprintDependencyObjectRef(TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
 			, *LongPackagePath
 			, *FPackageName::GetShortName(AssetObj->GetOutermost()->GetPathName())
 			, *AssetObj->GetName()
 			, *AssetType->GetOutermost()->GetPathName()
-			, *AssetType->GetName());
+			, *AssetType->GetName()
+			, *OuterName);
 	};
 
 	auto CreateDependencyRecord = [&](const UObject* InAsset, FString& OptionalComment) -> FCompactBlueprintDependencyData
@@ -1332,6 +1340,8 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 	// 3. LIST OF UsedAssets
 	if (SourceStruct->IsA<UClass>())
 	{
+		FDisableOptimizationOnScope DisableOptimizationOnScope(*Context.DefaultTarget);
+
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppTypeName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
@@ -1350,6 +1360,8 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 	// 4. REMAINING DEPENDENCIES
 	{
+		FDisableOptimizationOnScope DisableOptimizationOnScope(*Context.DefaultTarget);
+
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppTypeName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
@@ -1468,147 +1480,151 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass());
 	const FString CppClassName = FEmitHelper::GetCppName(BPGC);
 
-	Context.AddLine(FString::Printf(TEXT("void %s::__CustomDynamicClassInitialization(UDynamicClass* InDynamicClass)"), *CppClassName));
-	Context.AddLine(TEXT("{"));
-	Context.IncreaseIndent();
-	Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields)));
-	Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, MiscConvertedSubobjects)));
-	Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, DynamicBindingObjects)));
-	Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ComponentTemplates)));
-	Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, Timelines)));
-	Context.AddLine(FString::Printf(TEXT("ensure(nullptr == InDynamicClass->%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, AnimClassImplementation)));
-	Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s();"), GET_FUNCTION_NAME_STRING_CHECKED(UDynamicClass, AssembleReferenceTokenStream)));
+	{
+		FDisableOptimizationOnScope DisableOptimizationOnScope(*Context.DefaultTarget);
 
-	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass;
-	Context.ResetPropertiesForInaccessibleStructs();
+		Context.AddLine(FString::Printf(TEXT("void %s::__CustomDynamicClassInitialization(UDynamicClass* InDynamicClass)"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields)));
+		Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, MiscConvertedSubobjects)));
+		Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, DynamicBindingObjects)));
+		Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ComponentTemplates)));
+		Context.AddLine(FString::Printf(TEXT("ensure(0 == InDynamicClass->%s.Num());"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, Timelines)));
+		Context.AddLine(FString::Printf(TEXT("ensure(nullptr == InDynamicClass->%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, AnimClassImplementation)));
+		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s();"), GET_FUNCTION_NAME_STRING_CHECKED(UDynamicClass, AssembleReferenceTokenStream)));
 
-	if (Context.Dependencies.ConvertedEnum.Num())
-	{
-		Context.AddLine(TEXT("// List of all referenced converted enums"));
-	}
-	for (auto LocEnum : Context.Dependencies.ConvertedEnum)
-	{
-		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(LoadObject<UEnum>(nullptr, TEXT(\"%s\")));"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *(LocEnum->GetPathName().ReplaceCharWithEscapedChar())));
-		Context.EnumsInCurrentClass.Add(LocEnum);
-	}
+		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass;
+		Context.ResetPropertiesForInaccessibleStructs();
 
-	if (Context.Dependencies.ConvertedClasses.Num())
-	{
-		Context.AddLine(TEXT("// List of all referenced converted classes"));
-	}
-	for (auto LocStruct : Context.Dependencies.ConvertedClasses)
-	{
-		UClass* ClassToLoad = Context.Dependencies.FindOriginalClass(LocStruct);
-		if (ensure(ClassToLoad))
+		if (Context.Dependencies.ConvertedEnum.Num())
 		{
-			if (ParentDependencies.IsValid() && ParentDependencies->ConvertedClasses.Contains(LocStruct))
+			Context.AddLine(TEXT("// List of all referenced converted enums"));
+		}
+		for (auto LocEnum : Context.Dependencies.ConvertedEnum)
+		{
+			Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(LoadObject<UEnum>(nullptr, TEXT(\"%s\")));"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *(LocEnum->GetPathName().ReplaceCharWithEscapedChar())));
+			Context.EnumsInCurrentClass.Add(LocEnum);
+		}
+
+		if (Context.Dependencies.ConvertedClasses.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced converted classes"));
+		}
+		for (auto LocStruct : Context.Dependencies.ConvertedClasses)
+		{
+			UClass* ClassToLoad = Context.Dependencies.FindOriginalClass(LocStruct);
+			if (ensure(ClassToLoad))
+			{
+				if (ParentDependencies.IsValid() && ParentDependencies->ConvertedClasses.Contains(LocStruct))
+				{
+					continue;
+				}
+
+				FString ClassConstructor;
+				if (ClassToLoad->HasAnyClassFlags(CLASS_Interface))
+				{
+					const FString ClassZConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
+					Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassZConstructor));
+					ClassConstructor = ClassZConstructor;
+				}
+				else
+				{
+					ClassConstructor = FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ClassToLoad));
+				}
+				Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *ClassConstructor));
+
+				//Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(LoadObject<UClass>(nullptr, TEXT(\"%s\")));")
+				//	, *(ClassToLoad->GetPathName().ReplaceCharWithEscapedChar())));
+			}
+		}
+
+		if (Context.Dependencies.ConvertedStructs.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced converted structures"));
+		}
+		for (auto LocStruct : Context.Dependencies.ConvertedStructs)
+		{
+			if (ParentDependencies.IsValid() && ParentDependencies->ConvertedStructs.Contains(LocStruct))
 			{
 				continue;
 			}
+			const FString StructConstructor = FDependenciesHelper::GenerateZConstructor(LocStruct);
+			Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
+			Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *StructConstructor));
+		}
 
-			FString ClassConstructor;
-			if (ClassToLoad->HasAnyClassFlags(CLASS_Interface))
+		TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
+		// Gather all CT from SCS and IH, the remaining ones are generated for class..
+		if (auto SCS = BPGC->SimpleConstructionScript)
+		{
+			// >>> This code should be removed, once UE-39168 is fixed
+			//TODO: it's an ugly workaround - template from DefaultSceneRootNode is unnecessarily cooked :(
+			UActorComponent* DefaultSceneRootComponentTemplate = SCS->GetDefaultSceneRootNode() ? SCS->GetDefaultSceneRootNode()->ComponentTemplate : nullptr;
+			if (DefaultSceneRootComponentTemplate)
 			{
-				const FString ClassZConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
-				Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassZConstructor));
-				ClassConstructor = ClassZConstructor;
+				ActorComponentTempatesOwnedByClass.Add(DefaultSceneRootComponentTemplate);
 			}
-			else
+			// <<< This code should be removed, once UE-39168 is fixed
+
+			for (auto Node : SCS->GetAllNodes())
 			{
-				ClassConstructor = FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ClassToLoad));
-			}
-			Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *ClassConstructor));
-
-			//Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(LoadObject<UClass>(nullptr, TEXT(\"%s\")));")
-			//	, *(ClassToLoad->GetPathName().ReplaceCharWithEscapedChar())));
-		}
-	}
-
-	if (Context.Dependencies.ConvertedStructs.Num())
-	{
-		Context.AddLine(TEXT("// List of all referenced converted structures"));
-	}
-	for (auto LocStruct : Context.Dependencies.ConvertedStructs)
-	{
-		if (ParentDependencies.IsValid() && ParentDependencies->ConvertedStructs.Contains(LocStruct))
-		{
-			continue;
-		}
-		const FString StructConstructor = FDependenciesHelper::GenerateZConstructor(LocStruct);
-		Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
-		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *StructConstructor));
-	}
-
-	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
-	// Gather all CT from SCS and IH, the remaining ones are generated for class..
-	if (auto SCS = BPGC->SimpleConstructionScript)
-	{
-		// >>> This code should be removed, once UE-39168 is fixed
-		//TODO: it's an ugly workaround - template from DefaultSceneRootNode is unnecessarily cooked :(
-		UActorComponent* DefaultSceneRootComponentTemplate = SCS->GetDefaultSceneRootNode() ? SCS->GetDefaultSceneRootNode()->ComponentTemplate : nullptr;
-		if (DefaultSceneRootComponentTemplate)
-		{
-			ActorComponentTempatesOwnedByClass.Add(DefaultSceneRootComponentTemplate);
-		}
-		// <<< This code should be removed, once UE-39168 is fixed
-
-		for (auto Node : SCS->GetAllNodes())
-		{
-			ActorComponentTempatesOwnedByClass.RemoveSwap(Node->ComponentTemplate);
-		}
-	}
-	if (auto IH = BPGC->GetInheritableComponentHandler())
-	{
-		TArray<UActorComponent*> AllTemplates;
-		IH->GetAllTemplates(AllTemplates);
-		ActorComponentTempatesOwnedByClass.RemoveAllSwap([&](UActorComponent* Component) -> bool
-		{
-			return AllTemplates.Contains(Component);
-		});
-	}
-
-	Context.AddLine(TEXT("FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(InDynamicClass, &__StaticDependencies_DirectlyUsedAssets);"));
-
-	ensure(0 == Context.MiscConvertedSubobjects.Num());
-	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
-	{
-		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
-	}
-
-	auto CreateAndInitializeClassSubobjects = [&](bool bCreate, bool bInitialize)
-	{
-		for (auto ComponentTemplate : ActorComponentTempatesOwnedByClass)
-		{
-			if (ComponentTemplate)
-			{
-				HandleClassSubobject(Context, ComponentTemplate, FEmitterLocalContext::EClassSubobjectList::ComponentTemplates, bCreate, bInitialize);
+				ActorComponentTempatesOwnedByClass.RemoveSwap(Node->ComponentTemplate);
 			}
 		}
-
-		for (auto TimelineTemplate : BPGC->Timelines)
+		if (auto IH = BPGC->GetInheritableComponentHandler())
 		{
-			if (TimelineTemplate)
+			TArray<UActorComponent*> AllTemplates;
+			IH->GetAllTemplates(AllTemplates);
+			ActorComponentTempatesOwnedByClass.RemoveAllSwap([&](UActorComponent* Component) -> bool
 			{
-				HandleClassSubobject(Context, TimelineTemplate, FEmitterLocalContext::EClassSubobjectList::Timelines, bCreate, bInitialize);
-			}
+				return AllTemplates.Contains(Component);
+			});
 		}
 
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		Context.AddLine(TEXT("FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(InDynamicClass, &__StaticDependencies_DirectlyUsedAssets);"));
+
+		ensure(0 == Context.MiscConvertedSubobjects.Num());
+		for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
 		{
-			if (DynamicBindingObject)
-			{
-				HandleClassSubobject(Context, DynamicBindingObject, FEmitterLocalContext::EClassSubobjectList::DynamicBindingObjects, bCreate, bInitialize);
-			}
+			HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
 		}
-		FBackendHelperUMG::CreateClassSubobjects(Context, bCreate, bInitialize);
-	};
-	CreateAndInitializeClassSubobjects(true, false);
-	CreateAndInitializeClassSubobjects(false, true);
 
-	FBackendHelperAnim::CreateAnimClassData(Context);
+		auto CreateAndInitializeClassSubobjects = [&](bool bCreate, bool bInitialize)
+		{
+			for (auto ComponentTemplate : ActorComponentTempatesOwnedByClass)
+			{
+				if (ComponentTemplate)
+				{
+					HandleClassSubobject(Context, ComponentTemplate, FEmitterLocalContext::EClassSubobjectList::ComponentTemplates, bCreate, bInitialize);
+				}
+			}
 
-	Context.DecreaseIndent();
-	Context.AddLine(TEXT("}"));
+			for (auto TimelineTemplate : BPGC->Timelines)
+			{
+				if (TimelineTemplate)
+				{
+					HandleClassSubobject(Context, TimelineTemplate, FEmitterLocalContext::EClassSubobjectList::Timelines, bCreate, bInitialize);
+				}
+			}
+
+			for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+			{
+				if (DynamicBindingObject)
+				{
+					HandleClassSubobject(Context, DynamicBindingObject, FEmitterLocalContext::EClassSubobjectList::DynamicBindingObjects, bCreate, bInitialize);
+				}
+			}
+			FBackendHelperUMG::CreateClassSubobjects(Context, bCreate, bInitialize);
+		};
+		CreateAndInitializeClassSubobjects(true, false);
+		CreateAndInitializeClassSubobjects(false, true);
+
+		FBackendHelperAnim::CreateAnimClassData(Context);
+
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+	}
 
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
 	Context.ResetPropertiesForInaccessibleStructs();
@@ -1624,173 +1640,216 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	UClass* SuperClass = BPGC->GetSuperClass();
 	const bool bSuperHasObjectInitializerConstructor = SuperClass && SuperClass->HasMetaData(TEXT("ObjectInitializerConstructorDeclared"));
 
-	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::CommonConstructor;
-	Context.ResetPropertiesForInaccessibleStructs();
-	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(%s)")
-		, *CppClassName
-		, *CppClassName
-		, bSuperHasObjectInitializerConstructor ? TEXT("ObjectInitializer") : TEXT("")));
-	Context.AddLine(TEXT("{"));
-	Context.IncreaseIndent();
+	UObject* CDO = BPGC->GetDefaultObject(false);
 
-	// Call CustomDynamicClassInitialization
-	Context.AddLine(FString::Printf(TEXT("if(HasAnyFlags(RF_ClassDefaultObject) && (%s::StaticClass() == GetClass()))"), *CppClassName));
-	Context.AddLine(TEXT("{"));
-	Context.IncreaseIndent();
-	Context.AddLine(FString::Printf(TEXT("%s::__CustomDynamicClassInitialization(CastChecked<UDynamicClass>(GetClass()));"), *CppClassName));
-	Context.DecreaseIndent();
-	Context.AddLine(TEXT("}"));
+	UObject* ParentCDO = BPGC->GetSuperClass()->GetDefaultObject(false);
+	check(CDO && ParentCDO);
 
-	// Components that must be fixed after serialization
+	TArray<const UProperty*> AnimNodeProperties;
 	TArray<FString> NativeCreatedComponentProperties;
-	TArray<FNonativeComponentData> ComponentsToInit;
+
 	{
-		UObject* CDO = BPGC->GetDefaultObject(false);
+		FDisableOptimizationOnScope DisableOptimizationOnScope(*Context.DefaultTarget);
+		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::CommonConstructor;
+		Context.ResetPropertiesForInaccessibleStructs();
+		Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(%s)")
+			, *CppClassName
+			, *CppClassName
+			, bSuperHasObjectInitializerConstructor ? TEXT("ObjectInitializer") : TEXT("")));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
 
-		UObject* ParentCDO = BPGC->GetSuperClass()->GetDefaultObject(false);
-		check(CDO && ParentCDO);
-		Context.AddLine(TEXT(""));
+		// Call CustomDynamicClassInitialization
+		Context.AddLine(FString::Printf(TEXT("if(HasAnyFlags(RF_ClassDefaultObject) && (%s::StaticClass() == GetClass()))"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(FString::Printf(TEXT("%s::__CustomDynamicClassInitialization(CastChecked<UDynamicClass>(GetClass()));"), *CppClassName));
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
 
-		FString NativeRootComponentFallback;
-		TSet<const UProperty*> HandledProperties;
+		// Components that must be fixed after serialization
+		TArray<FNonativeComponentData> ComponentsToInit;
 
-		// Generate ctor init code for native class default subobjects that are always instanced (e.g. components).
-		// @TODO (pkavan) - We can probably make this faster by generating code to index through the DSO array instead (i.e. in place of HandleInstancedSubobject which will generate a lookup call per DSO).
-		TArray<UObject*> NativeDefaultObjectSubobjects;
-		BPGC->GetDefaultObjectSubobjects(NativeDefaultObjectSubobjects);
-		for (auto DSO : NativeDefaultObjectSubobjects)
 		{
-			if (DSO && DSO->GetClass()->HasAnyClassFlags(CLASS_DefaultToInstanced))
+			Context.AddLine(TEXT(""));
+
+			FString NativeRootComponentFallback;
+			TSet<const UProperty*> HandledProperties;
+
+			// Generate ctor init code for native class default subobjects that are always instanced (e.g. components).
+			// @TODO (pkavan) - We can probably make this faster by generating code to index through the DSO array instead (i.e. in place of HandleInstancedSubobject which will generate a lookup call per DSO).
+			TArray<UObject*> NativeDefaultObjectSubobjects;
+			BPGC->GetDefaultObjectSubobjects(NativeDefaultObjectSubobjects);
+			for (auto DSO : NativeDefaultObjectSubobjects)
 			{
-				// Determine if this is an editor-only subobject.
-				bool bIsEditorOnlySubobject = false;
-				if (const UActorComponent* ActorComponent = Cast<UActorComponent>(DSO))
+				if (DSO && DSO->GetClass()->HasAnyClassFlags(CLASS_DefaultToInstanced))
 				{
-					bIsEditorOnlySubobject = ActorComponent->IsEditorOnly();
-				}
-
-				// Skip ctor code gen for editor-only subobjects, since they won't be used by the runtime. Any dependencies on editor-only subobjects will be handled later (see HandleInstancedSubobject).
-				if (!bIsEditorOnlySubobject)
-				{
-					const FString VariableName = HandleInstancedSubobject(Context, DSO, false, true);
-
-					// Keep track of which component can be used as a root, in case it's not explicitly set.
-					if (NativeRootComponentFallback.IsEmpty())
+					// Determine if this is an editor-only subobject.
+					bool bIsEditorOnlySubobject = false;
+					if (const UActorComponent* ActorComponent = Cast<UActorComponent>(DSO))
 					{
-						USceneComponent* SceneComponent = Cast<USceneComponent>(DSO);
-						if (SceneComponent && !SceneComponent->GetAttachParent() && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
+						bIsEditorOnlySubobject = ActorComponent->IsEditorOnly();
+					}
+
+					// Skip ctor code gen for editor-only subobjects, since they won't be used by the runtime. Any dependencies on editor-only subobjects will be handled later (see HandleInstancedSubobject).
+					if (!bIsEditorOnlySubobject)
+					{
+						const FString VariableName = HandleInstancedSubobject(Context, DSO, false, true);
+
+						// Keep track of which component can be used as a root, in case it's not explicitly set.
+						if (NativeRootComponentFallback.IsEmpty())
 						{
-							NativeRootComponentFallback = VariableName;
+							USceneComponent* SceneComponent = Cast<USceneComponent>(DSO);
+							if (SceneComponent && !SceneComponent->GetAttachParent() && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
+							{
+								NativeRootComponentFallback = VariableName;
+							}
 						}
 					}
 				}
 			}
-		}
 
-		// Check for a valid RootComponent property value; mark it as handled if already set in the defaults.
-		bool bNeedsRootComponentAssignment = false;
-		static const FName RootComponentPropertyName(TEXT("RootComponent"));
-		const UObjectProperty* RootComponentProperty = FindField<UObjectProperty>(BPGC, RootComponentPropertyName);
-		if (RootComponentProperty)
-		{
-			if (RootComponentProperty->GetObjectPropertyValue_InContainer(CDO))
+			// Check for a valid RootComponent property value; mark it as handled if already set in the defaults.
+			bool bNeedsRootComponentAssignment = false;
+			static const FName RootComponentPropertyName(TEXT("RootComponent"));
+			const UObjectProperty* RootComponentProperty = FindField<UObjectProperty>(BPGC, RootComponentPropertyName);
+			if (RootComponentProperty)
 			{
-				HandledProperties.Add(RootComponentProperty);
-			}
-			else if (!NativeRootComponentFallback.IsEmpty())
-			{
-				Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeRootComponentFallback));
-				HandledProperties.Add(RootComponentProperty);
-			}
-			else
-			{
-				bNeedsRootComponentAssignment = true;
-			}
-		}
-
-		// Generate ctor init code for the SCS node hierarchy (i.e. non-native components). SCS nodes may have dependencies on native DSOs, but not vice-versa.
-		TArray<const UBlueprintGeneratedClass*> BPGCStack;
-		const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(BPGC, BPGCStack);
-		if (bErrorFree)
-		{
-			// Start at the base of the hierarchy so that dependencies are handled first.
-			for (int32 i = BPGCStack.Num() - 1; i >= 0; --i)
-			{
-				if (BPGCStack[i]->SimpleConstructionScript)
+				if (RootComponentProperty->GetObjectPropertyValue_InContainer(CDO))
 				{
-					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
-					{
-						if (Node)
-						{
-							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, false);
+					HandledProperties.Add(RootComponentProperty);
+				}
+				else if (!NativeRootComponentFallback.IsEmpty())
+				{
+					Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeRootComponentFallback));
+					HandledProperties.Add(RootComponentProperty);
+				}
+				else
+				{
+					bNeedsRootComponentAssignment = true;
+				}
+			}
 
-							if (bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
+			// Generate ctor init code for the SCS node hierarchy (i.e. non-native components). SCS nodes may have dependencies on native DSOs, but not vice-versa.
+			TArray<const UBlueprintGeneratedClass*> BPGCStack;
+			const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(BPGC, BPGCStack);
+			if (bErrorFree)
+			{
+				// Start at the base of the hierarchy so that dependencies are handled first.
+				for (int32 i = BPGCStack.Num() - 1; i >= 0; --i)
+				{
+					if (BPGCStack[i]->SimpleConstructionScript)
+					{
+						for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
+						{
+							if (Node)
 							{
-								// Only emit the explicit root component assignment statement if we're looking at the child BPGC that we're generating ctor code
-								// for. In all other cases, the root component will already be set up by a chained parent ctor call, so we avoid stomping it here.
-								if (i == 0)
+								const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, false);
+
+								if (bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
 								{
-									Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeVariablePropertyName));
-									HandledProperties.Add(RootComponentProperty);
+									// Only emit the explicit root component assignment statement if we're looking at the child BPGC that we're generating ctor code
+									// for. In all other cases, the root component will already be set up by a chained parent ctor call, so we avoid stomping it here.
+									if (i == 0)
+									{
+										Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeVariablePropertyName));
+										HandledProperties.Add(RootComponentProperty);
+									}
+
+									bNeedsRootComponentAssignment = false;
 								}
-
-								bNeedsRootComponentAssignment = false;
 							}
 						}
-					}
 
-					//TODO: UGLY HACK for "zombie" nodes - UE-40026
-					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetAllNodes())
-					{
-						if (Node)
+						//TODO: UGLY HACK for "zombie" nodes - UE-40026
+						for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetAllNodes())
 						{
-							const bool bNodeWasProcessed = nullptr != ComponentsToInit.FindByPredicate([=](const FNonativeComponentData& InData) { return Node == InData.SCSNode; });
-							if (!bNodeWasProcessed)
+							if (Node)
 							{
-								HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, true);
+								const bool bNodeWasProcessed = nullptr != ComponentsToInit.FindByPredicate([=](const FNonativeComponentData& InData) { return Node == InData.SCSNode; });
+								if (!bNodeWasProcessed)
+								{
+									HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, true);
+								}
 							}
 						}
+
 					}
-
 				}
-			}
 
-			for (auto& ComponentToInit : ComponentsToInit)
-			{
-				ComponentToInit.EmitProperties(Context);
-
-				if (Cast<UPrimitiveComponent>(ComponentToInit.ComponentTemplate))
+				for (auto& ComponentToInit : ComponentsToInit)
 				{
-					Context.AddLine(FString::Printf(TEXT("if(!%s->%s())"), *ComponentToInit.NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UPrimitiveComponent, IsTemplate)));
-					Context.AddLine(TEXT("{"));
-					Context.IncreaseIndent();
-					Context.AddLine(FString::Printf(TEXT("%s->%s.%s(%s);")
-						, *ComponentToInit.NativeVariablePropertyName
-						, GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, BodyInstance)
-						, GET_FUNCTION_NAME_STRING_CHECKED(FBodyInstance, FixupData)
-						, *ComponentToInit.NativeVariablePropertyName));
-					Context.DecreaseIndent();
-					Context.AddLine(TEXT("}"));
+					ComponentToInit.EmitProperties(Context);
+
+					if (Cast<UPrimitiveComponent>(ComponentToInit.ComponentTemplate))
+					{
+						Context.AddLine(FString::Printf(TEXT("if(!%s->%s())"), *ComponentToInit.NativeVariablePropertyName, GET_FUNCTION_NAME_STRING_CHECKED(UPrimitiveComponent, IsTemplate)));
+						Context.AddLine(TEXT("{"));
+						Context.IncreaseIndent();
+						Context.AddLine(FString::Printf(TEXT("%s->%s.%s(%s);")
+							, *ComponentToInit.NativeVariablePropertyName
+							, GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, BodyInstance)
+							, GET_FUNCTION_NAME_STRING_CHECKED(FBodyInstance, FixupData)
+							, *ComponentToInit.NativeVariablePropertyName));
+						Context.DecreaseIndent();
+						Context.AddLine(TEXT("}"));
+					}
+				}
+			}
+
+			// Collect all anim node properties
+			for (auto Property : TFieldRange<const UProperty>(BPGC))
+			{
+				if (!HandledProperties.Contains(Property))
+				{
+					if(FBackendHelperAnim::ShouldAddAnimNodeInitializationFunctionCall(Context, Property))
+					{
+						AnimNodeProperties.Add(Property);
+					}
+				}
+			}
+	
+			// Emit call to anim node init if necessary
+			if(AnimNodeProperties.Num())
+			{
+				FBackendHelperAnim::AddAllAnimNodesInitializationFunctionCall(Context);
+			}
+
+			// Generate ctor init code for generated Blueprint class property values that may differ from parent class defaults (or that otherwise belong to the generated Blueprint class).
+			for (auto Property : TFieldRange<const UProperty>(BPGC))
+			{
+				if (!HandledProperties.Contains(Property))
+				{
+					if(!FBackendHelperAnim::ShouldAddAnimNodeInitializationFunctionCall(Context, Property))
+					{
+						const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
+						OuterGenerate(Context, Property, TEXT(""), reinterpret_cast<const uint8*>(CDO), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), EPropertyAccessOperator::None, true);
+					}
 				}
 			}
 		}
-
-		// Generate ctor init code for generated Blueprint class property values that may differ from parent class defaults (or that otherwise belong to the generated Blueprint class).
-		for (auto Property : TFieldRange<const UProperty>(BPGC))
-		{
-			if (!HandledProperties.Contains(Property))
-			{
-				const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
-				OuterGenerate(Context, Property, TEXT(""), reinterpret_cast<const uint8*>(CDO), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), EPropertyAccessOperator::None, true);
-			}
-		}
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
 	}
-	Context.DecreaseIndent();
-	Context.AddLine(TEXT("}"));
 
 	// TODO: this mechanism could be required by other instanced subobjects.
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
 	Context.ResetPropertiesForInaccessibleStructs();
+
+	// Now output any anim node init functions
+	if(AnimNodeProperties.Num())
+	{
+		FBackendHelperAnim::AddAllAnimNodesInitializationFunction(Context, CppClassName, AnimNodeProperties);
+
+		// Add any anim node properties as their own functions now
+		for(const UProperty* AnimNodeProperty : AnimNodeProperties)
+		{
+			const bool bNewProperty = AnimNodeProperty->GetOwnerStruct() == BPGC;
+			FBackendHelperAnim::AddAnimNodeInitializationFunction(Context, CppClassName, AnimNodeProperty, bNewProperty, CDO, ParentCDO);
+
+			Context.ResetPropertiesForInaccessibleStructs();
+		}
+	}
 
 	Context.ResetPropertiesForInaccessibleStructs();
 	Context.AddLine(FString::Printf(TEXT("void %s::%s(FObjectInstancingGraph* OuterInstanceGraph)"), *CppClassName, GET_FUNCTION_NAME_STRING_CHECKED(UObject, PostLoadSubobjects)));

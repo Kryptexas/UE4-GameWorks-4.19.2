@@ -71,6 +71,7 @@ inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EPartic
 	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);
 }
 
+
 inline EParticleSimulatePhase::Type GetLastParticleSimulationPhase(EShaderPlatform InPlatform)
 {
 	return (IsParticleCollisionModeSupported(InPlatform, PCM_DepthBuffer) ? EParticleSimulatePhase::Last : EParticleSimulatePhase::Main);

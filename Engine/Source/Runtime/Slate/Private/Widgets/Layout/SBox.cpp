@@ -39,6 +39,8 @@ void SBox::SetContent(const TSharedRef< SWidget >& InContent)
 	[
 		InContent
 	];
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SBox::SetHAlign(EHorizontalAlignment HAlign)

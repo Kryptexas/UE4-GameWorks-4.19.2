@@ -1093,7 +1093,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 		}
 
 		// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
-		CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
+		CharacterMovement->bJustTeleported |= (bBaseChanged || NewLocation != OldLocation);
 		CharacterMovement->bNetworkSmoothingComplete = false;
 		CharacterMovement->SmoothCorrection(OldLocation, OldRotation, NewLocation, NewRotation.Quaternion());
 		OnUpdateSimulatedPosition(OldLocation, OldRotation);
@@ -1308,12 +1308,13 @@ void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQu
 	SCOPE_CYCLE_COUNTER(STAT_CharacterOnNetUpdateSimulatedPosition);
 
 	bSimGravityDisabled = false;
+	const bool bLocationChanged = (OldLocation != GetActorLocation());
 	if (bClientCheckEncroachmentOnNetUpdate)
 	{	
 		// Only need to check for encroachment when teleported without any velocity.
 		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
 		// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-		if (CharacterMovement->Velocity.IsZero() && (OldLocation != GetActorLocation() || CreationTime == GetWorld()->TimeSeconds))
+		if (CharacterMovement->Velocity.IsZero() && (bLocationChanged || CreationTime == GetWorld()->TimeSeconds))
 		{
 			if (GetWorld()->EncroachingBlockingGeometry(this, GetActorLocation(), GetActorRotation()))
 			{
@@ -1321,7 +1322,7 @@ void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQu
 			}
 		}
 	}
-	CharacterMovement->bJustTeleported = true;
+	CharacterMovement->bJustTeleported |= bLocationChanged;
 }
 
 void ACharacter::PostNetReceiveLocationAndRotation()

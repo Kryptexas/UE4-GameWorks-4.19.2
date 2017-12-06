@@ -41,8 +41,11 @@ enum EDecompressionType
  */
 struct FStreamedAudioChunk
 {
-	/** Size of the chunk of data in bytes */
+	/** Size of the chunk of data in bytes including zero padding */
 	int32 DataSize;
+
+	/** Size of the audio data. */
+	int32 AudioDataSize;
 
 	/** Bulk data if stored in the package. */
 	FByteBulkData BulkData;

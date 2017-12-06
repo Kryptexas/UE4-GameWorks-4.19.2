@@ -28,7 +28,7 @@
 #include "PipelineStateCache.h"
 #include "ScenePrivate.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Distortion"), Stat_GPU_Distortion, STATGROUP_GPU);
+DECLARE_GPU_STAT(Distortion);
 
 const uint8 kStencilMaskBit = STENCIL_SANDBOX_MASK;
 
@@ -1015,7 +1015,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FSceneRenderer_RenderDistortion);
 	SCOPED_DRAW_EVENT(RHICmdList, Distortion);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Distortion);
+	SCOPED_GPU_STAT(RHICmdList, Distortion);
 
 	// do we need to render the distortion pass?
 	bool bRender=false;

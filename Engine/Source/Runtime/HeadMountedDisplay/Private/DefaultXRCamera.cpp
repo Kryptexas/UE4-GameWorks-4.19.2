@@ -92,24 +92,32 @@ void FDefaultXRCamera::CalculateStereoCameraOffset(const enum EStereoscopicPass 
 	}
 }
 
+static const FName DayDreamHMD(TEXT("FGoogleVRHMD"));
+
 void FDefaultXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	check(IsInRenderingThread());
 
-	FQuat DeviceOrientation;
-	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
-	const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
-	View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
+	// Disable late update for day dream, their compositor doesn't support it.
+	const bool bDoLateUpdate = (TrackingSystem->GetSystemName() != DayDreamHMD);
 
-	if (bUseImplicitHMDPosition)
+	if (bDoLateUpdate)
 	{
-		const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
-		const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
-		View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
-	}
+		FQuat DeviceOrientation;
+		FVector DevicePosition;
+		TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
+		const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
+		View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
 
-	View.UpdateViewMatrix();
+		if (bUseImplicitHMDPosition)
+		{
+			const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
+			const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
+			View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
+		}
+
+		View.UpdateViewMatrix();
+	}
 }
 
 void FDefaultXRCamera::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)

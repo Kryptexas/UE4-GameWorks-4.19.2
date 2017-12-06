@@ -104,6 +104,14 @@ COREUOBJECT_API bool ObjectHasAnyMarks(const class UObjectBase* Object, EObjectM
 COREUOBJECT_API bool ObjectHasAllMarks(const class UObjectBase* Object, EObjectMark Marks);
 
 /**
+ * Returns all of the object marks on a specific object
+ *
+ * @param	Object	Object to get marks for
+ * @return	all Marks for an object
+ */
+COREUOBJECT_API EObjectMark ObjectGetAllMarks(const class UObjectBase* Object);
+
+/**
  * Build an array of objects having ALL of a set of marks
  *
  * @param	Results		array of objects which have any flag. This array is emptied before we add to it.

@@ -18,6 +18,9 @@
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
+DECLARE_CYCLE_STAT(TEXT("AbilitySystemComp ApplyGameplayEffectSpecToTarget"), STAT_AbilitySystemComp_ApplyGameplayEffectSpecToTarget, STATGROUP_AbilitySystem);
+
+
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
@@ -43,6 +46,7 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	bSuppressGrantAbility = false;
 	bSuppressGameplayCues = false;
 	bPendingMontagerep = false;
+	bIsNetDirty = true;
 
 	AbilityLastActivatedTime = 0.f;
 
@@ -85,6 +89,7 @@ const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSub
 			UAttributeSet* Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
 			SpawnedAttributes.AddUnique(Attributes);
 			MyAttributes = Attributes;
+			bIsNetDirty = true;
 		}
 	}
 
@@ -152,14 +157,17 @@ void UAbilitySystemComponent::OnRegister()
 
 	ActiveGameplayEffects.RegisterWithOwner(this);
 	ActivatableAbilities.RegisterWithOwner(this);
-	ActiveGameplayCues.Owner = this;
 	ActiveGameplayCues.bMinimalReplication = false;
-	MinimalReplicationGameplayCues.Owner = this;
+	ActiveGameplayCues.SetOwner(this);	
 	MinimalReplicationGameplayCues.bMinimalReplication = true;
+	MinimalReplicationGameplayCues.SetOwner(this);
 	MinimalReplicationTags.Owner = this;
 
 	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
-	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
+	if(!AbilityActorInfo.IsValid())
+	{
+		AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
+	}
 }
 
 void UAbilitySystemComponent::OnUnregister()
@@ -199,6 +207,7 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 {
 	// Go through our active gameplay effects container so that aggregation/mods are handled properly.
 	ActiveGameplayEffects.SetAttributeBaseValue(Attribute, NewFloatValue);
+	bIsNetDirty = true;
 }
 
 float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute) const
@@ -216,6 +225,7 @@ void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttrib
 	// Set the attribute directly: update the UProperty on the attribute set.
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
 	Attribute.SetNumericValueChecked(NewFloatValue, const_cast<UAttributeSet*>(AttributeSet));
+	bIsNetDirty = true;
 }
 
 float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute) const
@@ -252,12 +262,14 @@ void UAbilitySystemComponent::ApplyModToAttribute(const FGameplayAttribute &Attr
 	if (IsOwnerActorAuthoritative())
 	{
 		ActiveGameplayEffects.ApplyModToAttribute(Attribute, ModifierOp, ModifierMagnitude);
+		bIsNetDirty = true;
 	}
 }
 
 void UAbilitySystemComponent::ApplyModToAttributeUnsafe(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude)
 {
 	ActiveGameplayEffects.ApplyModToAttribute(Attribute, ModifierOp, ModifierMagnitude);
+	bIsNetDirty = true;
 }
 
 FGameplayEffectSpecHandle UAbilitySystemComponent::MakeOutgoingSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level, FGameplayEffectContextHandle Context) const
@@ -457,6 +469,7 @@ FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGenericGamepl
 
 FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
+	bIsNetDirty = true;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
@@ -464,6 +477,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FOnGameplayAttributeValueChange& UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)
 {
+	bIsNetDirty = true;
 	return ActiveGameplayEffects.GetGameplayAttributeValueChangeDelegate(Attribute);
 }
 
@@ -513,6 +527,8 @@ void UAbilitySystemComponent::NotifyTagMap_StackCountChange(const FGameplayTagCo
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FPredictionKey PredictionKey)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AbilitySystemComp_ApplyGameplayEffectSpecToTarget);
+
 	if (!UAbilitySystemGlobals::Get().ShouldPredictTargetGameplayEffects())
 	{
 		// If we don't want to predict target effects, clear prediction key
@@ -619,6 +635,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			return FActiveGameplayEffectHandle();
 		}
 	}
+	bIsNetDirty = true;
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
 	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant;
@@ -825,6 +842,7 @@ void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, F
 			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 		}
 	}
+	bIsNetDirty = true;
 
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, PredictionKey);
 }
@@ -847,6 +865,7 @@ const UGameplayEffect* UAbilitySystemComponent::GetGameplayEffectDefForHandle(FA
 
 bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle, int32 StacksToRemove)
 {
+	bIsNetDirty = true;
 	return ActiveGameplayEffects.RemoveActiveGameplayEffect(Handle, StacksToRemove);
 }
 
@@ -875,7 +894,7 @@ void UAbilitySystemComponent::RemoveActiveGameplayEffectBySourceEffect(TSubclass
 
 			return bMatches;
 		});
-
+		bIsNetDirty = true;
 		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
 	}
 }
@@ -887,6 +906,11 @@ float UAbilitySystemComponent::GetGameplayEffectDuration(FActiveGameplayEffectHa
 	ActiveGameplayEffects.GetGameplayEffectStartTimeAndDuration(Handle, StartEffectTime, Duration);
 
 	return Duration;
+}
+
+void UAbilitySystemComponent::RecomputeGameplayEffectStartTimes(const float WorldTime, const float ServerWorldTime)
+{
+	ActiveGameplayEffects.RecomputeStartWorldTimes(WorldTime, ServerWorldTime);
 }
 
 void UAbilitySystemComponent::GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& StartEffectTime, float& Duration) const
@@ -1074,6 +1098,7 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 	{
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
+		bIsNetDirty = true;
 		ForceReplication();
 		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
 		
@@ -1133,6 +1158,7 @@ void UAbilitySystemComponent::RemoveGameplayCue_Internal(const FGameplayTag Game
 
 void UAbilitySystemComponent::RemoveAllGameplayCues()
 {
+	bIsNetDirty = true;
 	for (int32 i = (ActiveGameplayCues.GameplayCues.Num() - 1); i >= 0; --i)
 	{
 		RemoveGameplayCue(ActiveGameplayCues.GameplayCues[i].GameplayCueTag);
@@ -1307,6 +1333,7 @@ int32 UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Q
 {
 	if (IsOwnerActorAuthoritative())
 	{
+		bIsNetDirty = true;
 		return ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
 	}
 
@@ -1341,6 +1368,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 
 void UAbilitySystemComponent::ForceReplication()
 {
+	bIsNetDirty = true;
 	AActor *OwningActor = GetOwner();
 	if (OwningActor && OwningActor->Role == ROLE_Authority)
 	{

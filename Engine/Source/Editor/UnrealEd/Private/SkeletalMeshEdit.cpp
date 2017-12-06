@@ -1164,6 +1164,29 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	return false;
 }
 
+bool ShouldImportCurve(FbxAnimCurve* Curve, bool bDoNotImportWithZeroValues)
+{
+	if (Curve && Curve->KeyGetCount() > 0)
+	{
+		if (bDoNotImportWithZeroValues)
+		{
+			for (int32 KeyIndex = 0; KeyIndex < Curve->KeyGetCount(); ++KeyIndex)
+			{
+				if (!FMath::IsNearlyZero(Curve->KeyGetValue(KeyIndex)))
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * DestSeq, const FString& FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	//This destroy all previously imported animation raw data

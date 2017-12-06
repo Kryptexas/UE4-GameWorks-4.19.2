@@ -1051,17 +1051,23 @@ void FAssetRegistryState::UpdateAssetData(FAssetData* AssetData, const FAssetDat
 		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
-			TArray<FAssetData*>* OldTagAssets = CachedAssetsByTag.Find(FNameKey);
 
-			OldTagAssets->Remove(AssetData);
+			if (!NewAssetData.TagsAndValues.Contains(FNameKey))
+			{
+				TArray<FAssetData*>* OldTagAssets = CachedAssetsByTag.Find(FNameKey);
+				OldTagAssets->RemoveSingleSwap(AssetData);
+			}
 		}
 
 		for (auto TagIt = NewAssetData.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
-			TArray<FAssetData*>& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
 
-			NewTagAssets.Add(AssetData);
+			if (!AssetData->TagsAndValues.Contains(FNameKey))
+			{
+				TArray<FAssetData*>& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
+				NewTagAssets.Add(AssetData);
+			}
 		}
 	}
 

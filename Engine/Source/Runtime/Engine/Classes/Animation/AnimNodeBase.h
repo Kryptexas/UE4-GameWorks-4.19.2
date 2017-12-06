@@ -459,6 +459,7 @@ struct FExposedValueCopyRecord
 		, PostCopyOperation(EPostCopyOperation::None)
 		, CopyType(ECopyType::MemCopy)
 		, CachedSourceProperty(nullptr)
+		, CachedSourceStructSubProperty(nullptr)
 		, CachedSourceContainer(nullptr)
 		, CachedDestContainer(nullptr)
 		, Source(nullptr)
@@ -499,8 +500,11 @@ struct FExposedValueCopyRecord
 	ECopyType CopyType;
 
 	// cached source property
-	UPROPERTY(Transient)
+	UPROPERTY()
 	UProperty* CachedSourceProperty;
+
+	UPROPERTY()
+	UProperty* CachedSourceStructSubProperty;
 
 	// cached source container for use with boolean operations
 	void* CachedSourceContainer;
@@ -546,6 +550,7 @@ struct ENGINE_API FExposedValueHandler
 	TArray<FExposedValueCopyRecord> CopyRecords;
 
 	// function pointer if BoundFunction != NAME_None
+	UPROPERTY()
 	UFunction* Function;
 
 	// Prevent multiple initialization

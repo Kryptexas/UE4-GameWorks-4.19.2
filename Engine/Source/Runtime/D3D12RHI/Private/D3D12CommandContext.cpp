@@ -21,6 +21,48 @@ static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 	ECVF_RenderThreadSafe
 	);
 
+// These can be overridden with the cvars below
+namespace ConstantAllocatorSizesKB
+{
+	int32 DefaultGraphics = 3072; // x1
+	int32 Graphics = 3072; //x4
+ 	int32 AsyncCompute = 3072; // x1
+}
+
+static FAutoConsoleVariableRef CVarDefaultGfxCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.DefaultGfxCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::DefaultGraphics,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static FAutoConsoleVariableRef CVarGfxCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.GfxCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::Graphics,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static FAutoConsoleVariableRef CVarComputeCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.ComputeCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::AsyncCompute,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static uint32 GetConstantAllocatorSize(bool bIsAsyncComputeContext, bool bIsDefaultContext)
+{
+	if (bIsAsyncComputeContext)
+	{
+		return ConstantAllocatorSizesKB::AsyncCompute * 1024;
+	}
+	if (bIsDefaultContext)
+	{
+		return ConstantAllocatorSizesKB::DefaultGraphics * 1024;
+	}
+	return ConstantAllocatorSizesKB::Graphics * 1024;
+}
+
 FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool InIsDefaultContext, bool InIsAsyncComputeContext) :
 	OwningRHI(*InParent->GetOwningRHI()),
 	bUsingTessellation(false),
@@ -44,7 +86,7 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
-	ConstantsAllocator(InParent, GetVisibilityMask(), (1024*1024) * 3),
+	ConstantsAllocator(InParent, GetVisibilityMask(), GetConstantAllocatorSize(InIsAsyncComputeContext, InIsDefaultContext) ),
 	DynamicVB(InParent),
 	DynamicIB(InParent),
 	StateCache(InParent->GetNodeMask()),

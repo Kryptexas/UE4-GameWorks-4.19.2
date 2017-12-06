@@ -296,6 +296,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 	// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
 	// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
 	FThreadHeartBeat::Get().KillHeartBeat();
+	FGameThreadHitchHeartBeat::Get().FrameStart(true);
 
 	bReentranceGuard = true;
 
@@ -391,6 +392,7 @@ class FCrashReportingThread
 	HANDLE CrashEvent;
 	/** Exception information */
 	LPEXCEPTION_POINTERS ExceptionInfo;
+	HANDLE CrashingThreadHandle;
 	/** Event that signals the crash reporting thread has finished processing the crash */
 	HANDLE CrashHandledEvent;
 
@@ -467,6 +469,7 @@ public:
 	FORCEINLINE void OnCrashed(LPEXCEPTION_POINTERS InExceptionInfo)
 	{
 		ExceptionInfo = InExceptionInfo;
+		CrashingThreadHandle = GetCurrentThread();
 		SetEvent(CrashEvent);
 	}
 
@@ -525,8 +528,9 @@ private:
 			ANSICHAR* StackTrace = (ANSICHAR*)GMalloc->Malloc(StackTraceSize);
 			StackTrace[0] = 0;
 			// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
-			FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord);
-
+			void* ContextWapper = FWindowsPlatformStackWalk::MakeThreadContextWrapper(ExceptionInfo->ContextRecord, CrashingThreadHandle);
+			FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, ContextWapper);
+			delete ContextWapper;
 			if (ExceptionInfo->ExceptionRecord->ExceptionCode != 1)
 			{
 				CreateExceptionInfoString(ExceptionInfo->ExceptionRecord);

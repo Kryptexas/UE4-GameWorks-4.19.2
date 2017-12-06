@@ -1010,6 +1010,7 @@ public:
 	 *
 	 * @return Local space reference position 
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
 	FVector GetRefPosePosition(int32 BoneIndex);
 
 	/** finds a vector pointing along the given axis of the given bone

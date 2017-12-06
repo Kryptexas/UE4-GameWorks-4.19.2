@@ -626,8 +626,18 @@ bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, cons
 		bool bAllConditionsMet = true;
 		for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
 		{
+			if (!ConditionValues[ValueIdx].Object.IsValid())
+			{
+				bAllConditionsMet = false;
+				break;
+			}
+
 			uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
-			check(BaseOffset != NULL);
+			if (!BaseOffset)
+			{
+				bAllConditionsMet = false;
+				break;
+			}
 
 			uint8* ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
 
@@ -683,6 +693,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 
 					FPropertyConditionInfo NewCondition;
 					// now calculate the address of the property value being used as the condition and add it to the array.
+					NewCondition.Object = ComplexParentNode->AsStructureNode() ? TWeakObjectPtr<UObject>(ComplexParentNode->GetBaseStructure()) : ComplexParentNode->GetInstanceAsUObject(Index);
 					NewCondition.BaseAddress = BaseAddress;
 					NewCondition.bNegateValue = bNegate;
 					ConditionPropertyAddresses.Add(NewCondition);

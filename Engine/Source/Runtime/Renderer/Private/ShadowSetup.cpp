@@ -55,6 +55,24 @@ FAutoConsoleVariableRef CVarCacheWholeSceneShadows(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GMaxNumPointShadowCacheUpdatesPerFrame = -1;
+FAutoConsoleVariableRef CVarMaxNumPointShadowCacheUpdatePerFrame(
+	TEXT("r.Shadow.MaxNumPointShadowCacheUpdatesPerFrame"),
+	GMaxNumPointShadowCacheUpdatesPerFrame,
+	TEXT("Maximum number of point light shadow cache updates allowed per frame."
+		"Only affect updates caused by resolution change. -1 means no limit."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+);
+
+int32 GMaxNumSpotShadowCacheUpdatesPerFrame = -1;
+FAutoConsoleVariableRef CVarMaxNumSpotShadowCacheUpdatePerFrame(
+	TEXT("r.Shadow.MaxNumSpotShadowCacheUpdatesPerFrame"),
+	GMaxNumSpotShadowCacheUpdatesPerFrame,
+	TEXT("Maximum number of spot light shadow cache updates allowed per frame."
+		"Only affect updates caused by resolution change. -1 means no limit."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+);
+
 int32 GWholeSceneShadowCacheMb = 150;
 FAutoConsoleVariableRef CVarWholeSceneShadowCacheMb(
 	TEXT("r.Shadow.WholeSceneShadowCacheMb"),
@@ -1833,15 +1851,40 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 }
 
 void ComputeWholeSceneShadowCacheModes(
-	const FWholeSceneProjectedShadowInitializer& ProjectedShadowInitializer, 
-	FIntPoint ShadowMapSize,
-	const FLightSceneInfo* LightSceneInfo, 
+	const FLightSceneInfo* LightSceneInfo,
 	bool bCubeShadowMap,
 	float RealTime,
+	float ActualDesiredResolution,
 	FScene* Scene,
+	FWholeSceneProjectedShadowInitializer& InOutProjectedShadowInitializer,
+	FIntPoint& InOutShadowMapSize,
+	uint32& InOutNumPointShadowCachesUpdatedThisFrame,
+	uint32& InOutNumSpotShadowCachesUpdatedThisFrame,
 	int32& OutNumShadowMaps, 
 	EShadowDepthCacheMode* OutCacheModes)
 {
+	// Strategy:
+	// - Try to fallback if over budget. Budget is defined as number of updates currently
+	// - Only allow fallback for updates caused by resolution changes
+	// - Always render if cache doesn't exist or has been released
+	uint32* NumCachesUpdatedThisFrame = nullptr;
+	uint32 MaxCacheUpdatesAllowed = 0;
+
+	switch (LightSceneInfo->Proxy->GetLightType())
+	{
+	case LightType_Point:
+		NumCachesUpdatedThisFrame = &InOutNumPointShadowCachesUpdatedThisFrame;
+		MaxCacheUpdatesAllowed = static_cast<uint32>(GMaxNumPointShadowCacheUpdatesPerFrame);
+		break;
+	case LightType_Spot:
+		NumCachesUpdatedThisFrame = &InOutNumSpotShadowCachesUpdatedThisFrame;
+		MaxCacheUpdatesAllowed = static_cast<uint32>(GMaxNumSpotShadowCacheUpdatesPerFrame);
+		break;
+	default:
+		checkf(false, TEXT("Directional light isn't handled here"));
+		break;
+	}
+
 	if (GCacheWholeSceneShadows 
 		&& (!bCubeShadowMap || RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()]) || RHISupportsVertexShaderLayer(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()])))
 	{
@@ -1849,9 +1892,9 @@ void ComputeWholeSceneShadowCacheModes(
 
 		if (CachedShadowMapData)
 		{
-			if (ProjectedShadowInitializer.IsCachedShadowValid(CachedShadowMapData->Initializer))
+			if (InOutProjectedShadowInitializer.IsCachedShadowValid(CachedShadowMapData->Initializer))
 			{
-				if (CachedShadowMapData->ShadowMap.IsValid() && CachedShadowMapData->ShadowMap.GetSize() == ShadowMapSize)
+				if (CachedShadowMapData->ShadowMap.IsValid() && CachedShadowMapData->ShadowMap.GetSize() == InOutShadowMapSize)
 				{
 					OutNumShadowMaps = 1;
 					OutCacheModes[0] = SDCM_MovablePrimitivesOnly;
@@ -1866,6 +1909,49 @@ void ComputeWholeSceneShadowCacheModes(
 						// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
 						OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
 						OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
+						++*NumCachesUpdatedThisFrame;
+						
+						// Check if update is caused by resolution change
+						if (CachedShadowMapData->ShadowMap.IsValid())
+						{
+							FIntPoint ExistingShadowMapSize = CachedShadowMapData->ShadowMap.GetSize();
+							bool bOverBudget = *NumCachesUpdatedThisFrame > MaxCacheUpdatesAllowed;
+							bool bRejectedByGuardBand = false;
+
+							// Only allow shrinking if actual desired resolution has dropped enough.
+							// This creates a guard band and hence avoid thrashing
+							if (!bOverBudget
+								&& (InOutShadowMapSize.X < ExistingShadowMapSize.X
+								|| InOutShadowMapSize.Y < ExistingShadowMapSize.Y))
+							{
+								FVector2D VecNewSize = static_cast<FVector2D>(InOutShadowMapSize);
+								FVector2D VecExistingSize = static_cast<FVector2D>(ExistingShadowMapSize);
+								FVector2D VecDesiredSize(ActualDesiredResolution, ActualDesiredResolution);
+#if DO_CHECK
+								checkf(ExistingShadowMapSize.X > 0 && ExistingShadowMapSize.Y > 0,
+									TEXT("%d, %d"), ExistingShadowMapSize.X, ExistingShadowMapSize.Y);
+								checkf(ActualDesiredResolution < VecExistingSize.X || ActualDesiredResolution < VecExistingSize.Y,
+									TEXT("%f, %s, %s"), ActualDesiredResolution, *VecExistingSize.ToString(),
+									LightSceneInfo->Proxy->GetLightType() == LightType_Point ? TEXT("Point") : TEXT("Spot"));
+#endif
+								FVector2D DropRatio = (VecExistingSize - VecDesiredSize) / (VecExistingSize - VecNewSize);
+								float MaxDropRatio = FMath::Max(
+									InOutShadowMapSize.X < ExistingShadowMapSize.X ? DropRatio.X : 0.f,
+									InOutShadowMapSize.Y < ExistingShadowMapSize.Y ? DropRatio.Y : 0.f);
+
+								bRejectedByGuardBand = MaxDropRatio < 0.5f;
+							}
+
+							if (bOverBudget || bRejectedByGuardBand)
+							{
+								// Fallback to existing shadow cache
+								InOutShadowMapSize = CachedShadowMapData->ShadowMap.GetSize();
+								InOutProjectedShadowInitializer = CachedShadowMapData->Initializer;
+								OutNumShadowMaps = 1;
+								OutCacheModes[0] = SDCM_MovablePrimitivesOnly;
+								--*NumCachesUpdatedThisFrame;
+							}
+						}
 					}
 					else
 					{
@@ -1882,7 +1968,7 @@ void ComputeWholeSceneShadowCacheModes(
 				CachedShadowMapData->ShadowMap.DepthTarget = NULL;
 			}
 
-			CachedShadowMapData->Initializer = ProjectedShadowInitializer;
+			CachedShadowMapData->Initializer = InOutProjectedShadowInitializer;
 			CachedShadowMapData->LastUsedTime = RealTime;
 		}
 		else
@@ -1895,8 +1981,8 @@ void ComputeWholeSceneShadowCacheModes(
 				// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
 				OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
 				OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
-
-				Scene->CachedShadowMaps.Add(LightSceneInfo->Id, FCachedShadowMapData(ProjectedShadowInitializer, RealTime));
+				++*NumCachesUpdatedThisFrame;
+				Scene->CachedShadowMaps.Add(LightSceneInfo->Id, FCachedShadowMapData(InOutProjectedShadowInitializer, RealTime));
 			}
 			else
 			{
@@ -1930,7 +2016,10 @@ void ComputeWholeSceneShadowCacheModes(
  * @param LightSceneInfo - The light to create a shadow for.
  * @return true if a whole scene shadow was created
  */
-void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo)
+void FSceneRenderer::CreateWholeSceneProjectedShadow(
+	FLightSceneInfo* LightSceneInfo,
+	uint32& InOutNumPointShadowCachesUpdatedThisFrame,
+	uint32& InOutNumSpotShadowCachesUpdatedThisFrame)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateWholeSceneProjectedShadow);
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
@@ -2024,11 +2113,14 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 		{
 			for (int32 ShadowIndex = 0, ShadowCount = ProjectedShadowInitializers.Num(); ShadowIndex < ShadowCount; ShadowIndex++)
 			{
-				const FWholeSceneProjectedShadowInitializer& ProjectedShadowInitializer = ProjectedShadowInitializers[ShadowIndex];
+				FWholeSceneProjectedShadowInitializer& ProjectedShadowInitializer = ProjectedShadowInitializers[ShadowIndex];
 
 				// Round down to the nearest power of two so that resolution changes are always doubling or halving the resolution, which increases filtering stability
 				// Use the max resolution if the desired resolution is larger than that
-				int32 RoundedDesiredResolution = FMath::Max<int32>((1 << (FMath::CeilLogTwo(MaxDesiredResolution) - 1)) - ShadowBorder * 2, 1);
+				// FMath::CeilLogTwo(MaxDesiredResolution + 1.0f) instead of FMath::CeilLogTwo(MaxDesiredResolution) because FMath::CeilLogTwo takes
+				// an uint32 as argument and this causes MaxDesiredResolution get truncated. For example, if MaxDesiredResolution is 256.1f,
+				// FMath::CeilLogTwo returns 8 but the next line of code expects a 9 to work correctly
+				int32 RoundedDesiredResolution = FMath::Max<int32>((1 << (FMath::CeilLogTwo(MaxDesiredResolution + 1.0f) - 1)) - ShadowBorder * 2, 1);
 				int32 SizeX = MaxDesiredResolution >= MaxShadowResolution ? MaxShadowResolution : RoundedDesiredResolution;
 				int32 SizeY = MaxDesiredResolution >= MaxShadowResolutionY ? MaxShadowResolutionY : RoundedDesiredResolution;
 
@@ -2043,15 +2135,24 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 				if (!bAnyViewIsSceneCapture && !ProjectedShadowInitializer.bRayTracedDistanceField)
 				{
+					FIntPoint ShadowMapSize(SizeX + ShadowBorder * 2, SizeY + ShadowBorder * 2);
+
 					ComputeWholeSceneShadowCacheModes(
-						ProjectedShadowInitializer,
-						FIntPoint(SizeX + ShadowBorder * 2, SizeY + ShadowBorder * 2),
 						LightSceneInfo,
 						ProjectedShadowInitializer.bOnePassPointLightShadow,
 						ViewFamily.CurrentRealTime,
+						MaxDesiredResolution,
 						Scene,
+						// Below are in-out or out parameters. They can change
+						ProjectedShadowInitializer,
+						ShadowMapSize,
+						InOutNumPointShadowCachesUpdatedThisFrame,
+						InOutNumSpotShadowCachesUpdatedThisFrame,
 						NumShadowMaps,
 						CacheMode);
+
+					SizeX = ShadowMapSize.X - ShadowBorder * 2;
+					SizeY = ShadowMapSize.Y - ShadowBorder * 2;
 				}
 
 				for (int32 CacheModeIndex = 0; CacheModeIndex < NumShadowMaps; CacheModeIndex++)
@@ -3556,6 +3657,8 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 	}
 
 	const bool bProjectEnablePointLightShadows = Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
+	uint32 NumPointShadowCachesUpdatedThisFrame = 0;
+	uint32 NumSpotShadowCachesUpdatedThisFrame = 0;
 
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> PreShadows;
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> ViewDependentWholeSceneShadows;
@@ -3636,7 +3739,7 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 					if (bCreateShadowForMovableLight || bCreateShadowToPreviewStaticLight || bCreateShadowForOverflowStaticShadowing)
 					{
 						// Try to create a whole scene projected shadow.
-						CreateWholeSceneProjectedShadow(LightSceneInfo);
+						CreateWholeSceneProjectedShadow(LightSceneInfo, NumPointShadowCachesUpdatedThisFrame, NumSpotShadowCachesUpdatedThisFrame);
 					}
 
 					// Allow movable and stationary lights to create CSM, or static lights that are unbuilt

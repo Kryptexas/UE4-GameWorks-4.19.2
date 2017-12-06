@@ -1131,15 +1131,15 @@ FArchive& operator<<(FArchive& Ar, FMeshReductionSettings& ReductionSettings)
 FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 {
 	// Note: this serializer is currently only used to build the mesh DDC key, no versioning is required
-	Ar << BuildSettings.bRecomputeNormals;
-	Ar << BuildSettings.bRecomputeTangents;
-	Ar << BuildSettings.bUseMikkTSpace;
-	Ar << BuildSettings.bRemoveDegenerates;
-	Ar << BuildSettings.bBuildAdjacencyBuffer;
-	Ar << BuildSettings.bBuildReversedIndexBuffer;
-	Ar << BuildSettings.bUseHighPrecisionTangentBasis;
-	Ar << BuildSettings.bUseFullPrecisionUVs;
-	Ar << BuildSettings.bGenerateLightmapUVs;
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bRecomputeNormals);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bRecomputeTangents);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bUseMikkTSpace);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bRemoveDegenerates);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bBuildAdjacencyBuffer);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bBuildReversedIndexBuffer);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bUseHighPrecisionTangentBasis);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bUseFullPrecisionUVs);
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bGenerateLightmapUVs);
 
 	Ar << BuildSettings.MinLightmapResolution;
 	Ar << BuildSettings.SrcLightmapIndex;
@@ -1157,7 +1157,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	}
 	
 	Ar << BuildSettings.DistanceFieldResolutionScale;
-	Ar << BuildSettings.bGenerateDistanceFieldAsIfTwoSided;
+	FArchive_Serialize_BitfieldBool(Ar, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 
 	FString ReplacementMeshName = BuildSettings.DistanceFieldReplacementMesh->GetPathName();
 	Ar << ReplacementMeshName;

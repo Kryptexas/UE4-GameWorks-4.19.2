@@ -75,6 +75,8 @@ struct FMovieSceneTrackCompilerArgs
 	/** The object binding ID that this track belongs to. */
 	FGuid ObjectBindingId;
 
+	EMovieSceneCompletionMode DefaultCompletionMode;
+
 	/** The generator responsible for generating the template */
 	IMovieSceneTemplateGenerator& Generator;
 

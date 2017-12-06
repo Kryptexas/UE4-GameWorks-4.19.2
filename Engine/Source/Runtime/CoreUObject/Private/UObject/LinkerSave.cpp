@@ -9,6 +9,8 @@
 #include "UObject/LazyObjectPtr.h"
 #include "UObject/SoftObjectPtr.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "UObject/UObjectThreadContext.h"
+#include "UObject/UnrealType.h"
 
 /*----------------------------------------------------------------------------
 	FLinkerSave.
@@ -41,7 +43,9 @@ FLinkerSave::FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForc
 
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -85,7 +89,9 @@ FLinkerSave::FLinkerSave(UPackage* InParent, FArchive *InSaver, bool bForceByteS
 
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -110,7 +116,7 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
 		// Create file saver.
-		Saver = new FLargeMemoryWriter( 0, false, InParent->FileName );
+		Saver = new FLargeMemoryWriter( 0, false, *InParent->FileName.ToString() );
 		check(Saver);
 
 		UPackage* Package = dynamic_cast<UPackage*>(LinkerRoot);
@@ -124,7 +130,9 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -232,6 +240,7 @@ void FLinkerSave::Serialize( void* V, int64 Length )
 {
 #if WITH_EDITOR
 	Saver->ArDebugSerializationFlags = ArDebugSerializationFlags;
+	Saver->SetSerializedProperty(GetSerializedProperty());
 #endif
 	Saver->Serialize( V, Length );
 }
@@ -245,7 +254,13 @@ FString FLinkerSave::GetArchiveName() const
 FArchive& FLinkerSave::operator<<( FName& InName )
 {
 	int32 Save = MapName(InName);
-	ensure(Save != INDEX_NONE);
+
+	ensureMsgf(Save != INDEX_NONE, TEXT("Name \"%s\" is not mapped when saving %s (object: %s, property: %s)"), 
+		*InName.ToString(),
+		*GetArchiveName(),
+		*FUObjectThreadContext::Get().SerializedObject->GetFullName(),
+		*GetSerializedProperty()->GetFullName());
+
 	int32 Number = InName.GetNumber();
 	FArchive& Ar = *this;
 	return Ar << Save << Number;

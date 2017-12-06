@@ -78,7 +78,7 @@ namespace AutomationTool
 
             // Take the lock before accessing the symbol server
             Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
-            LockFile.TakeLock(StoreDir, TimeSpan.FromMinutes(15), () =>
+            LockFile.TakeLock(StoreDir, TimeSpan.FromMinutes(30), () =>
             {
 				if (!TargetPlatform.PublishSymbols(StoreDir, Files, Parameters.Product))
 				{

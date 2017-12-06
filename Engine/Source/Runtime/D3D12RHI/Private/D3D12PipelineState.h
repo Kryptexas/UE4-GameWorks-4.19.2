@@ -280,7 +280,7 @@ protected:
 	TPipelineCache<FD3D12LowLevelGraphicsPipelineStateDesc> LowLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
 
-	FCriticalSection CS;
+	FRWLock CS;
 	FDiskCacheInterface DiskCaches[NUM_PSO_CACHE_TYPES];
 
 #if UE_BUILD_DEBUG

@@ -297,6 +297,7 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 	FName ObjectName;
 	FName ClassPackageName;
 	FName ClassName;
+	FName OuterName;
 
 	FBlueprintDependencyObjectRef() {}
 
@@ -304,7 +305,8 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
-		, const TCHAR* InClassName);
+		, const TCHAR* InClassName
+		, const TCHAR* InOuterName );
 };
 
 struct COREUOBJECT_API FBlueprintDependencyData

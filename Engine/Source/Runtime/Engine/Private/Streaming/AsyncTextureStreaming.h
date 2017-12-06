@@ -67,6 +67,12 @@ private:
 
 	/** Time since last full update. Used to know if something is immediately visible. */
 	float LastUpdateTime;
+
+	/** Sorted list of all static instances. The sorting is based on MaxLevelTextureScreenSize. */
+	TArray<int32> StaticInstancesViewIndices;
+
+	/** List of all static instances that were rejected. */
+	TArray<int32> CulledStaticInstancesViewIndices;
 };
 
 struct FCompareTextureByRetentionPriority // Bigger retention priority first.

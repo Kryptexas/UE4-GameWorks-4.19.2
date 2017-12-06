@@ -71,7 +71,7 @@ void FD3D12Viewport::Init()
 
 	Fence.CreateFence();
 
-	CalculateSwapChainDepth();
+	CalculateSwapChainDepth(DefaultNumBackBuffers);
 
 	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
@@ -127,7 +127,7 @@ void FD3D12Viewport::ResizeInternal()
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
 
-	CalculateSwapChainDepth();
+	CalculateSwapChainDepth(DefaultNumBackBuffers);
 
 	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	if (bAllowTearing)

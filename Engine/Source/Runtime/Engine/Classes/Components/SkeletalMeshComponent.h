@@ -1093,14 +1093,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = Animation)
 	FOnAnimInitialized OnAnimInitialized;
 
-	/** @return whether we should tick animation (we may want to skip it due to URO) */
-	bool ShouldTickAnimation() const;
-
 	/**
 		If MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered
 		Should we tick Montages only?
 	*/
 	bool ShouldOnlyTickMontages(const float DeltaTime) const;
+
+	/** @return whether we should tick animation (we may want to skip it due to URO) */
+	bool ShouldTickAnimation() const;
 
 	/** Tick Animation system */
 	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);

@@ -111,6 +111,12 @@ void SSafeZone::SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, 
 
 #endif
 
+FMargin SSafeZone::GetSafeMargin(float InLayoutScale) const
+{
+	const FMargin SlotPadding = Padding.Get() + (ComputeScaledSafeMargin(InLayoutScale) * SafeAreaScale);
+	return SlotPadding;
+}
+
 void SSafeZone::SetSafeAreaScale(FMargin InSafeAreaScale)
 {
 	SafeAreaScale = InSafeAreaScale;
@@ -137,7 +143,7 @@ void SSafeZone::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	const EVisibility& MyCurrentVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyCurrentVisibility ) )
 	{
-		const FMargin SlotPadding               = Padding.Get() + (ComputeScaledSafeMargin(AllottedGeometry.Scale) * SafeAreaScale);
+		const FMargin SlotPadding               = GetSafeMargin(AllottedGeometry.Scale);
 		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding );
 		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding );
 
@@ -157,7 +163,7 @@ FVector2D SSafeZone::ComputeDesiredSize(float LayoutScale) const
 
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
-		const FMargin SlotPadding = Padding.Get() + (ComputeScaledSafeMargin(LayoutScale) * SafeAreaScale);
+		const FMargin SlotPadding = GetSafeMargin(LayoutScale);
 		FVector2D BaseDesiredSize = SBox::ComputeDesiredSize(LayoutScale);
 
 		return BaseDesiredSize + SlotPadding.GetDesiredSize();

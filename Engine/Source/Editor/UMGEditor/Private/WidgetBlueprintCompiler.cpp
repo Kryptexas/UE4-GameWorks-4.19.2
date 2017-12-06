@@ -489,31 +489,30 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 		if ( bIsBindWidget && !bIsOptional )
 		{
+			const FText RequiredWidgetNotBoundError = LOCTEXT("RequiredWidgetNotBound", "A required widget binding @@ of type @@ was not found.");
+			const FText IncorrectWidgetTypeError = LOCTEXT("IncorrectWidgetTypes", "The widget @@ is of type @@, but the bind widget property is of type @@.");
+
 			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
 			if (!Widget)
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{
-					MessageLog.Warning(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
-						WidgetProperty);
+					MessageLog.Warning(*RequiredWidgetNotBoundError.ToString(), WidgetProperty, WidgetProperty->PropertyClass);
 				}
 				else
 				{
-					MessageLog.Error(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
-						WidgetProperty);
+					MessageLog.Error(*RequiredWidgetNotBoundError.ToString(), WidgetProperty, WidgetProperty->PropertyClass);
 				}
 			}
 			else if (!(*Widget)->IsA(WidgetProperty->PropertyClass))
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{
-					MessageLog.Warning(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
-						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+					MessageLog.Warning(*IncorrectWidgetTypeError.ToString(), *Widget, (*Widget)->GetClass(), WidgetProperty->PropertyClass);
 				}
 				else
 				{
-					MessageLog.Error(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
-						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+					MessageLog.Error(*IncorrectWidgetTypeError.ToString(), *Widget, (*Widget)->GetClass(), WidgetProperty->PropertyClass);
 				}
 			}
 		}

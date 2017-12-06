@@ -204,6 +204,7 @@
 #include "ProfilingDebugging/LoadTimeTracker.h"
 #include "ObjectKey.h"
 #include "AssetRegistryModule.h"
+#include "CsvProfiler.h"
 
 #if !UE_BUILD_SHIPPING
 	#include "IPluginManager.h"
@@ -1283,7 +1284,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	FNetworkVersion::bHasCachedNetworkChecksum = false;
 	FNetworkVersion::ProjectVersion = ProjectSettings.ProjectVersion;
 
-#if !(UE_BUILD_SHIPPING)
+#if !(UE_BUILD_SHIPPING) || ENABLE_PGO_PROFILE
 	// Optionally Exec an exec file
 	FString Temp;
 	if( FParse::Value(FCommandLine::Get(), TEXT("EXEC="), Temp) )
@@ -1326,7 +1327,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		new(GEngine->DeferredCommands) FString(TEXT("r.vsync 0"));
 	}
-#endif // !(UE_BUILD_SHIPPING)
+#endif // !(UE_BUILD_SHIPPING) || ENABLE_PGO_PROFILE
 
 	if (GetDerivedDataCache())
 	{
@@ -1418,12 +1419,18 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitTime"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitTime));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Raw"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatRaw));
 #endif
-
+	
 	// Let any listeners know about the new stats
 	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
 		NewStatDelegate.Broadcast(EngineStat.CommandName, EngineStat.CategoryName, EngineStat.DescriptionString);
+	}
+
+	// Command line option for enabling named events
+	if (FParse::Param(FCommandLine::Get(), TEXT("statnamedevents")))
+	{
+		GCycleStatsShouldEmitNamedEvents = 1;
 	}
 
 	// Record the analytics for any attached HMD devices
@@ -1744,12 +1751,14 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		}
 
 		SET_FLOAT_STAT(STAT_GameTickWantedWaitTime,WaitTime * 1000.f);
-		double AdditionalWaitTimeInMs = (ActualWaitTime - static_cast<double>(WaitTime)) * 1000.0;
+		double AdditionalWaitTime = ActualWaitTime - static_cast<double>(WaitTime);
+		double AdditionalWaitTimeInMs = AdditionalWaitTime * 1000.0;
 		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>(static_cast<float>(AdditionalWaitTimeInMs),0.f));
 
 		// Update logical delta time based on logical current time
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastRealTime);
 		FApp::SetIdleTime(ActualWaitTime);
+		FApp::SetIdleTimeOvershoot(FMath::Max(0.0, AdditionalWaitTime)); // don't report a negative value.
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
@@ -2563,9 +2572,9 @@ bool UEngine::InitializeHMDDevice()
 					}
 
 					if (!bMatchesExplicitDevice)
-					{
-						continue;
-					}
+				{
+					continue;
+				}
 				}
 
 				if(HMDModule->IsHMDConnected())
@@ -4278,11 +4287,11 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, (SortedTexture.MaxAllowedSize + 512) / 1024, 
 			*AuthoredBiasString,
 			SortedTexture.CurSizeX, SortedTexture.CurSizeY, (SortedTexture.CurrentSize + 512) / 1024,
-			GetPixelFormatString(SortedTexture.Format),
-			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-			*SortedTexture.Name,
-			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-			SortedTexture.UsageCount);
+				GetPixelFormatString(SortedTexture.Format),
+				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+				*SortedTexture.Name,
+				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+				SortedTexture.UsageCount);
 
 		if (bValidTextureGroup)
 		{
@@ -7305,7 +7314,11 @@ static TAutoConsoleVariable<float> CVarMaxFPS(
 // CauseHitches cvar
 static TAutoConsoleVariable<int32> CVarCauseHitches(
 	TEXT("CauseHitches"),0,
-	TEXT("Causes a 200ms hitch every second."));
+	TEXT("Causes a 200ms hitch every second. Size of the hitch is controlled by CauseHitchesHitchMS"));
+
+static TAutoConsoleVariable<int32> CVarCauseHitchesMS(
+	TEXT("CauseHitchesHitchMS"), 200,
+	TEXT("Controls the size of the hitch caused by CauseHitches in ms."));
 
 static TAutoConsoleVariable<int32> CVarUnsteadyFPS(
 	TEXT("t.UnsteadyFPS"),0,
@@ -7376,11 +7389,12 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 	{
 		static float RunningHitchTimer = 0.f;
 		RunningHitchTimer += DeltaTime;
-		if (RunningHitchTimer > 1.f)
+		float SleepTime = float(CVarCauseHitchesMS.GetValueOnGameThread()) / 1000.0f;
+		if (RunningHitchTimer > 1.f + SleepTime)
 		{
 			// hitch!
 			UE_LOG(LogEngine, Display, TEXT("Hitching by request!"));
-			FPlatformProcess::Sleep(0.2f);
+			FPlatformProcess::Sleep(SleepTime);
 			RunningHitchTimer = 0.f;
 		}
 	}
@@ -8663,6 +8677,19 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		}
 #endif // STATS
 
+#if CSV_PROFILER
+		if ( FCsvProfiler::Get()->IsCapturing() )
+		{
+			SmallTextItem.SetColor(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
+			FString ProfilerScreenText = FString::Printf(TEXT("CsvProfiler frame: %d"), FCsvProfiler::Get()->GetCaptureFrameNumber() );
+			SmallTextItem.Text = FText::FromString(ProfilerScreenText);
+
+			MessageY += 250.0f;
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+#endif
+
 		// Only output disable message if there actually were any
 		if (MessageY != MessageStartY)
 		{
@@ -9788,7 +9815,7 @@ bool UEngine::HandleStreamMapCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 			for (const ULevel* const Level : InWorld->GetLevels())
 			{
 				if (Level->URL.Map == TestURL.Map)
-				{
+		{
 					Ar.Logf(TEXT("ERROR: The map '%s' is already loaded."), *TestURL.Map);
 					return true;
 				}
@@ -10551,32 +10578,32 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			{
 				if (!WorldContextFromList.PIEPrefix.IsEmpty() && URL.Map.Contains(WorldContextFromList.PIEPrefix))
 				{
-					FString SourceWorldPackage = UWorld::RemovePIEPrefix(URL.Map);
+			FString SourceWorldPackage = UWorld::RemovePIEPrefix(URL.Map);
 
-					// We are loading a new world for this context, so clear out PIE fixups that might be lingering.
-					// (note we dont want to do this in DuplicateWorldForPIE, since that is also called on streaming worlds.
-					GPlayInEditorID = WorldContext.PIEInstance;
-					FLazyObjectPtr::ResetPIEFixups();
+			// We are loading a new world for this context, so clear out PIE fixups that might be lingering.
+			// (note we dont want to do this in DuplicateWorldForPIE, since that is also called on streaming worlds.
+			GPlayInEditorID = WorldContext.PIEInstance;
+			FLazyObjectPtr::ResetPIEFixups();
 
 					NewWorld = UWorld::DuplicateWorldForPIE(SourceWorldPackage, nullptr);
 					if (NewWorld == nullptr)
-					{
-						NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, SourceWorldPackage, WorldPackage);
-						if (NewWorld == nullptr)
-						{
-							Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
-							return false;
-						}
-					}
-					else
-					{
-						WorldPackage = CastChecked<UPackage>(NewWorld->GetOuter());
-					}
-
-					NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
-					GIsPlayInEditorWorld = true;
+			{
+				NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, SourceWorldPackage, WorldPackage);
+				if (NewWorld == nullptr)
+				{
+					Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
+					return false;
 				}
 			}
+			else
+			{
+				WorldPackage = CastChecked<UPackage>(NewWorld->GetOuter());
+			}
+
+			NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
+			GIsPlayInEditorWorld = true;
+		}
+	}
 		}
 	}
 
@@ -12139,7 +12166,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Serialize out the modified properties on the old default object
 	TIndirectArray<FInstancedObjectRecord> SavedInstances;
 	TMap<FString, int32> OldInstanceMap;
- 	// Save the modified properties of the old CDO
+	// Save the modified properties of the old CDO
 	FCPFUOWriter Writer(OldObject, NewObject, Params);
 
 	{
@@ -12258,15 +12285,15 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	if(Params.bClearReferences)
 	{
 		UPackage* NewPackage = NewObject->GetOutermost();
-		// Replace references to old classes and instances on this object with the corresponding new ones
-		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
+	// Replace references to old classes and instances on this object with the corresponding new ones
+	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
 
-		// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
-		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
-		{
-			UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
-			FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
-		}
+	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
+	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
+	{
+		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
+		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
+	}
 	}
 
 	// Restore the root component reference

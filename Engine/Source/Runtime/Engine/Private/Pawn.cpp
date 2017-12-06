@@ -712,7 +712,7 @@ void APawn::Reset()
 
 FString APawn::GetHumanReadableName() const
 {
-	return PlayerState ? PlayerState->PlayerName : Super::GetHumanReadableName();
+	return PlayerState ? PlayerState->GetPlayerName() : Super::GetHumanReadableName();
 }
 
 

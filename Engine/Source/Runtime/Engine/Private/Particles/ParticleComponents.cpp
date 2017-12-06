@@ -4336,6 +4336,24 @@ public:
 	}
 };
 
+
+TAutoConsoleVariable<int32> CVarFXEarlySchedule(TEXT("FX.EarlyScheduleAsync"), 0, TEXT("If 1, particle system components that can run async will be scheduled earlier in the frame"));
+
+static int32 GBatchParticleAsync = 0;
+static FAutoConsoleVariableRef CVarBatchParticleAsync(
+	TEXT("FX.BatchAsync"),
+	GBatchParticleAsync,
+	TEXT("If 1, particle async tasks are batched because they often take less time than it takes to wake up a task thread. No effect on editor.")
+);
+
+static int32 GBatchParticleAsyncBatchSize = 32;
+static FAutoConsoleVariableRef CVarBatchParticleAsyncBatchSize(
+	TEXT("FX.BatchAsyncBatchSize"),
+	GBatchParticleAsyncBatchSize,
+	TEXT("When FX.BatchAsync = 1, controls the number of particle systems grouped together for threading.")
+);
+
+
 FAutoConsoleTaskPriority CPrio_ParticleAsyncTask(
 	TEXT("TaskGraph.TaskPriorities.ParticleAsyncTask"),
 	TEXT("Task and thread priority for FParticleAsyncTask."),
@@ -4348,9 +4366,14 @@ FAutoConsoleTaskPriority CPrio_ParticleAsyncTask(
 class FParticleAsyncTask
 {
 	UParticleSystemComponent* Target;
+	FGraphEventRef FinalizePrereq;
+	FThreadSafeCounter* FinalizeDispatchCounter;
+
 public:
-	FParticleAsyncTask(UParticleSystemComponent* InTarget)
+	FParticleAsyncTask(UParticleSystemComponent* InTarget, FGraphEventRef& InFinalizePrereq, FThreadSafeCounter* InFinalizeDispatchCounter)
 		: Target(InTarget)
+		, FinalizePrereq(InFinalizePrereq)
+		, FinalizeDispatchCounter(InFinalizeDispatchCounter)
 	{
 
 	}
@@ -4373,15 +4396,156 @@ public:
 #if !WITH_EDITOR  // otherwise this is queued by the calling code because we need to be able to block and wait on it
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
-			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(Target);
+			FGraphEventArray Prereqs;
+			if (FinalizePrereq.GetReference())
+			{
+				Prereqs.Add(FinalizePrereq);
+			}
+			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(&Prereqs, CurrentThread).ConstructAndDispatchWhenReady(Target);
 			MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			MyCompletionGraphEvent->DontCompleteUntil(Finalize);
+			if (FinalizeDispatchCounter)
+			{
+				if (FinalizeDispatchCounter->Decrement() == 0)
+				{
+					check(FinalizePrereq.GetReference() && !FinalizePrereq->IsComplete());
+					{
+						TArray<FBaseGraphTask*> NewTasks;
+						FinalizePrereq->DispatchSubsequents(NewTasks);
+					}
+					delete FinalizeDispatchCounter;
+				}
+			}
 		}
 #endif
 	}
 };
 
-TAutoConsoleVariable<int32> CVarFXEarlySchedule(TEXT("FX.EarlyScheduleAsync"), 0, TEXT("If 1, particle system components that can run async will be scheduled earlier in the frame"));
+
+
+class FDispatchBatchedAsyncTasks
+{
+	FGraphEventRef Target;
+public:
+
+	FDispatchBatchedAsyncTasks(FGraphEventRef& InTarget)
+		: Target(InTarget)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FDispatchBatchedAsyncTasks, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return CPrio_ParticleAsyncTask.Get();
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		check(Target.GetReference() && !Target->IsComplete());
+		{
+			TArray<FBaseGraphTask*> NewTasks;
+			Target->DispatchSubsequents(NewTasks);
+		}
+	}
+};
+
+class FGameThreadDispatchBatchedAsyncTasks
+{
+	FGraphEventRef Target;
+public:
+	FGameThreadDispatchBatchedAsyncTasks(FGraphEventRef& InTarget)
+		: Target(InTarget)
+	{
+
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FGameThreadDispatchBatchedAsyncTasks, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::GameThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
+};
+
+
+struct FFXAsyncBatcher
+{
+	FGraphEventArray DispatchEvent;
+	FGraphEventRef FinalizeOnGTDispatchEvent;
+	FThreadSafeCounter* FinalizeDispatchCounter;
+	int32 NumBatched = 0;
+
+
+	FGraphEventArray* GetAsyncPrereq(FGraphEventRef& OutFinalizeBatchEvent, FThreadSafeCounter*& OutFinalizeDispatchCounter)
+	{
+		check(IsInGameThread());
+#if !WITH_EDITOR
+		if (GBatchParticleAsync)
+		{
+			if (NumBatched >= GBatchParticleAsyncBatchSize || !DispatchEvent.Num() || !DispatchEvent[0].GetReference() || DispatchEvent[0]->IsComplete())
+			{
+				Flush();
+			}
+			if (DispatchEvent.Num() == 0)
+			{
+				check(NumBatched == 0 && !FinalizeDispatchCounter && !FinalizeOnGTDispatchEvent.GetReference());
+				DispatchEvent.Add(FGraphEvent::CreateGraphEvent());
+				FinalizeOnGTDispatchEvent = FGraphEvent::CreateGraphEvent();
+				TGraphTask<FGameThreadDispatchBatchedAsyncTasks>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(DispatchEvent[0]);
+				check(!FinalizeDispatchCounter);
+				FinalizeDispatchCounter = new FThreadSafeCounter();
+			}
+			OutFinalizeBatchEvent = FinalizeOnGTDispatchEvent;
+			FinalizeDispatchCounter->Increment();
+			OutFinalizeDispatchCounter = FinalizeDispatchCounter;
+			NumBatched++;
+			return &DispatchEvent;
+		}
+#endif
+		check(!OutFinalizeBatchEvent.GetReference() && !OutFinalizeDispatchCounter);
+		return nullptr;
+	}
+
+	void Flush()
+	{
+		if (NumBatched)
+		{
+			check(FinalizeDispatchCounter && FinalizeDispatchCounter->GetValue() == NumBatched);
+			check(DispatchEvent.Num() && DispatchEvent[0].GetReference() && !DispatchEvent[0]->IsComplete());
+			{
+				TGraphTask<FDispatchBatchedAsyncTasks>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(DispatchEvent[0]);
+			}
+
+			FinalizeOnGTDispatchEvent = nullptr;
+			DispatchEvent.Empty();
+			NumBatched = 0;
+			FinalizeDispatchCounter = nullptr; // deleted by the last task
+		}
+	}
+
+};
+
+static FFXAsyncBatcher FXAsyncBatcher;
+
+void FGameThreadDispatchBatchedAsyncTasks::DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	check(IsInGameThread());
+	FXAsyncBatcher.Flush();
+}
+
 
 DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time GT"),STAT_UParticleSystemComponent_Marshall,STATGROUP_Particles);
 
@@ -4656,7 +4820,10 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
-			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
+			FGraphEventRef OutFinalizeBatchEvent;
+			FThreadSafeCounter* FinalizeDispatchCounter = nullptr;
+			FGraphEventArray* Prereqs = FXAsyncBatcher.GetAsyncPrereq(OutFinalizeBatchEvent, FinalizeDispatchCounter);
+			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this, OutFinalizeBatchEvent, FinalizeDispatchCounter);
 #if !WITH_EDITOR  // we need to not complete until this is done because the game thread finalize task has not beed queued yet
 			ThisTickFunction->GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(AsyncWork);
@@ -4807,7 +4974,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			{
 				if (EmitterIndex + 1 < EmitterInstances.Num())
 				{
-				FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex+1];
+					FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex+1];
 					FPlatformMisc::Prefetch(NextInstance);
 				}
 

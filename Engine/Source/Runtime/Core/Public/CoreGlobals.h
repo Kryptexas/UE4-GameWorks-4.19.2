@@ -356,6 +356,11 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 /** How to print the category in log output. */
 extern CORE_API bool GPrintLogCategory;
 
+#if USE_HITCH_DETECTION
+/** Used by the lightweight stats and FGameThreadHitchHeartBeat to print a stat stack for hitches in shipping builds. */
+extern CORE_API bool GHitchDetected;
+#endif
+
 /** Whether stats should emit named events for e.g. PIX. */
 extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
 

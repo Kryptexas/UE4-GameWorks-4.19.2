@@ -1886,7 +1886,7 @@ const FMaterial* FColoredMaterialRenderProxy::GetMaterial(ERHIFeatureLevel::Type
 /**
  * Finds the shader matching the template type and the passed in vertex factory, asserts if not found.
  */
-FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactoryType* VertexFactoryType) const
+FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactoryType* VertexFactoryType, bool bFatalIfMissing) const
 {
 #if WITH_EDITOR && DO_CHECK
 	// Attempt to get some more info for a rare crash (UE-35937)

@@ -33,6 +33,9 @@ public:
 
 	bool WriteTable(const UDataTable& InDataTable);
 
+	/** Writes the data table out as a named object with each row being a sub value on that object */
+	bool WriteTableAsObject(const UDataTable& InDataTable);
+
 	bool WriteRow(const UScriptStruct* InRowStruct, const void* InRowData);
 
 	bool WriteStruct(const UScriptStruct* InStruct, const void* InStructData);

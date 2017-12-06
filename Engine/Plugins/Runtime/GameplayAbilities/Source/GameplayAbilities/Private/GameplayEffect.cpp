@@ -1740,7 +1740,10 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		}
 	}
 
+	bPendingRepOnActiveGC = false;
+
 	// Adjust start time for local clock
+	if (InArray.IsServerWorldTimeAvailable())
 	{
 		static const float MAX_DELTA_TIME = 3.f;
 
@@ -1751,7 +1754,7 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		float DeltaServerWorldTime = ServerWorldTime - StartServerWorldTime;	// How long we think the effect has been playing
 
 		// Set our local start time accordingly
-		StartWorldTime = WorldTimeSeconds - DeltaServerWorldTime;
+		RecomputeStartWorldTime(WorldTimeSeconds, ServerWorldTime);
 		CachedStartServerWorldTime = StartServerWorldTime;
 
 		// Determine if we should invoke the OnActive GameplayCue event
@@ -1759,8 +1762,12 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		{
 			// These events will get invoked if, after the parent array has been completely updated, this GE is still not inhibited
 			bPendingRepOnActiveGC = (ServerWorldTime > 0 && FMath::Abs(DeltaServerWorldTime) < MAX_DELTA_TIME);
-			bPendingRepWhileActiveGC = true;
 		}
+	}
+
+	if (ShouldInvokeGameplayCueEvents)
+	{
+		bPendingRepWhileActiveGC = true;
 	}
 
 	// Cache off StackCount
@@ -1792,7 +1799,7 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 	// Handle potential duration refresh
 	if (CachedStartServerWorldTime != StartServerWorldTime)
 	{
-		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetServerWorldTime() - StartServerWorldTime);
+		RecomputeStartWorldTime(InArray);
 		CachedStartServerWorldTime = StartServerWorldTime;
 
 		const_cast<FActiveGameplayEffectsContainer&>(InArray).OnDurationChange(*this);
@@ -1820,7 +1827,12 @@ FString FActiveGameplayEffect::GetDebugString()
 
 void FActiveGameplayEffect::RecomputeStartWorldTime(const FActiveGameplayEffectsContainer& InArray)
 {
-	StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetServerWorldTime() - StartServerWorldTime);
+	RecomputeStartWorldTime(InArray.GetWorldTime(), InArray.GetServerWorldTime());
+}
+
+void FActiveGameplayEffect::RecomputeStartWorldTime(const float WorldTime, const float ServerWorldTime)
+{
+	StartWorldTime = WorldTime - (ServerWorldTime - StartServerWorldTime);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2400,6 +2412,14 @@ void FActiveGameplayEffectsContainer::GetGameplayEffectStartTimeAndDuration(FAct
 	ABILITY_LOG(Warning, TEXT("GetGameplayEffectStartTimeAndDuration called with invalid Handle: %s"), *Handle.ToString());
 }
 
+void FActiveGameplayEffectsContainer::RecomputeStartWorldTimes(const float WorldTime, const float ServerWorldTime)
+{
+	for (FActiveGameplayEffect& ActiveEffect : this)
+	{
+		ActiveEffect.RecomputeStartWorldTime(WorldTime, ServerWorldTime);
+	}
+}
+
 float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
 {
 	for (const FActiveGameplayEffect& Effect : this)
@@ -2967,6 +2987,8 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 		return;
 	}
 
+	SCOPE_CYCLE_UOBJECT(EffectDef, EffectDef);
+
 	GAMEPLAYEFFECT_SCOPE_LOCK();
 	UE_VLOG(Owner->OwnerActor ? Owner->OwnerActor : Owner->GetOuter(), LogGameplayEffects, Log, TEXT("Added: %s"), *GetNameSafe(EffectDef->GetClass()));
 
@@ -3245,6 +3267,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents, const FGameplayEffectRemovalInfo& GameplayEffectRemovalInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OnActiveGameplayEffectRemoved);
+	SCOPE_CYCLE_UOBJECT(EffectDef, Effect.Spec.Def);
 
 	// Mark the effect as pending removal
 	Effect.IsPendingRemove = true;
@@ -3671,6 +3694,15 @@ void FActiveGameplayEffectsContainer::Uninitialize()
 		RemoveCustomMagnitudeExternalDependencies(CurEffect);
 	}
 	ensure(CustomMagnitudeClassDependencies.Num() == 0);
+}
+
+bool FActiveGameplayEffectsContainer::IsServerWorldTimeAvailable() const
+{
+	UWorld* World = Owner->GetWorld();
+	check(World);
+
+	AGameStateBase* GameState = World->GetGameState();
+	return (GameState != nullptr);
 }
 
 float FActiveGameplayEffectsContainer::GetServerWorldTime() const

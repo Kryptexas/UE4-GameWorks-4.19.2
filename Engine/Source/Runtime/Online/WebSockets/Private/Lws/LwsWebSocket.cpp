@@ -10,7 +10,7 @@
 #include "Ssl.h"
 #include "Misc/ScopeLock.h"
 
-// FLwsSendBuffer
+// FLwsSendBuffer 
 FLwsSendBuffer::FLwsSendBuffer(const uint8* Data, SIZE_T Size, bool bInIsBinary)
 	: bIsBinary(bInIsBinary)
 	, BytesWritten(0)

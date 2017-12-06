@@ -992,7 +992,7 @@ int32 FString::ParseIntoArray(TArray<FString>& OutArray, const TCHAR** DelimArra
 {
 	// Make sure the delimit string is not null or empty
 	check(DelimArray);
-	OutArray.Empty();
+	OutArray.Reset();
 	const TCHAR *Start = Data.GetData();
 	const int32 Length = Len();
 	if (Start)

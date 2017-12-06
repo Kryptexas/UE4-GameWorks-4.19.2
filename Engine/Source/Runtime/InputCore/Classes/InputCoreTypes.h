@@ -84,6 +84,8 @@ struct INPUTCORE_API FKey
 
 	friend struct EKeys;
 
+	static const TCHAR* SyntheticCharPrefix;
+
 private:
 
 	UPROPERTY()
@@ -92,7 +94,7 @@ private:
 	mutable class TSharedPtr<struct FKeyDetails> KeyDetails;
 
 	void ConditionalLookupKeyDetails() const;
-
+	void ResetKey();
 };
 
 template<>

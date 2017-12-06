@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	MapBuildData.cpp
+MapBuildData.cpp
 =============================================================================*/
 
 #include "CoreMinimal.h"
@@ -357,7 +357,7 @@ void UMapBuildDataRegistry::Serialize(FArchive& Ar)
 		}
 
 		Ar << LightBuildData;
-		
+
 		if (Ar.IsSaving())
 		{
 			for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(ReflectionCaptureBuildData); It; ++It)
@@ -397,7 +397,7 @@ void UMapBuildDataRegistry::PostLoad()
 			{
 				CaptureBuildData.FullHDRCapturedData.Empty();
 			}
-		
+
 			if (!bEncodedDataRequired)
 			{
 				CaptureBuildData.EncodedHDRCapturedData.Empty();
@@ -451,7 +451,7 @@ FMeshMapBuildData& UMapBuildDataRegistry::AllocateMeshBuildData(const FGuid& Mes
 	{
 		MarkPackageDirty();
 	}
-	
+
 	return MeshBuildData.Add(MeshId, FMeshMapBuildData());
 }
 
@@ -481,7 +481,7 @@ void UMapBuildDataRegistry::AddLevelPrecomputedLightVolumeBuildData(const FGuid&
 const FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId) const
 {
 	const FPrecomputedLightVolumeData* const * DataPtr = LevelPrecomputedLightVolumeBuildData.Find(LevelId);
-	
+
 	if (DataPtr)
 	{
 		return *DataPtr;
@@ -518,7 +518,7 @@ void UMapBuildDataRegistry::AddLevelPrecomputedVolumetricLightmapBuildData(const
 const FPrecomputedVolumetricLightmapData* UMapBuildDataRegistry::GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId) const
 {
 	const FPrecomputedVolumetricLightmapData* const * DataPtr = LevelPrecomputedVolumetricLightmapBuildData.Find(LevelId);
-	
+
 	if (DataPtr)
 	{
 		return *DataPtr;
@@ -547,7 +547,7 @@ FLightComponentMapBuildData& UMapBuildDataRegistry::FindOrAllocateLightBuildData
 	{
 		MarkPackageDirty();
 	}
-	
+
 	return LightBuildData.FindOrAdd(LightId);
 }
 
@@ -569,7 +569,7 @@ FReflectionCaptureMapBuildData& UMapBuildDataRegistry::AllocateReflectionCapture
 	{
 		MarkPackageDirty();
 	}
-	
+
 	return ReflectionCaptureBuildData.Add(CaptureId, FReflectionCaptureMapBuildData());
 }
 
@@ -621,7 +621,7 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World, const TSet<F
 
 		MarkPackageDirty();
 	}
-	
+
 	if (LevelPrecomputedLightVolumeBuildData.Num() > 0 || LevelPrecomputedVolumetricLightmapBuildData.Num() > 0)
 	{
 		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
@@ -651,7 +651,7 @@ void UMapBuildDataRegistry::InvalidateReflectionCaptures(const TSet<FGuid>* Reso
 
 		for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(PrevReflectionCapturedData); It; ++It)
 		{
- 			// Keep any resource if it's guid is in ResourcesToKeep.
+			// Keep any resource if it's guid is in ResourcesToKeep.
 			if (ResourcesToKeep && ResourcesToKeep->Contains(It.Key()))
 			{
 				ReflectionCaptureBuildData.Add(It.Key(), It.Value());
@@ -687,7 +687,7 @@ void UMapBuildDataRegistry::EmptyLevelData(const TSet<FGuid>* ResourcesToKeep)
 
 	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(PrevPrecomputedLightVolumeData); It; ++It)
 	{
- 		// Keep any resource if it's guid is in ResourcesToKeep.
+		// Keep any resource if it's guid is in ResourcesToKeep.
 		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
 		{
 			delete It.Value();

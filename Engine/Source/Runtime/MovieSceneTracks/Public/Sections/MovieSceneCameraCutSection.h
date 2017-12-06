@@ -7,6 +7,7 @@
 #include "Misc/Guid.h"
 #include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
+#include "SequencerObjectVersion.h"
 #include "MovieSceneCameraCutSection.generated.h"
 
 
@@ -23,7 +24,10 @@ public:
 	UMovieSceneCameraCutSection(const FObjectInitializer& Init)
 		: Super(Init)
 	{
-		EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+		EvalOptions.EnableAndSetCompletionMode
+			(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+				EMovieSceneCompletionMode::RestoreState : 
+				EMovieSceneCompletionMode::ProjectDefault);
 	}
 
 	/** Gets the camera guid for this CameraCut section */

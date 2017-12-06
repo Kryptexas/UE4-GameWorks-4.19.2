@@ -42,6 +42,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/RedirectCollector.h"
+#include "Settings/EditorProjectSettings.h"
 #include "AssetToolsLog.h"
 #include "Settings/EditorProjectSettings.h"
 

@@ -321,6 +321,12 @@ uint8* UAnimBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, U
 	return Super::GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
+void UAnimBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
+{
+	Super::PostLoadDefaultObject(Object);
+	CastChecked<UAnimInstance>(Object)->PreInitializeRootNode();
+}
+
 #if WITH_EDITORONLY_DATA
 
 const int32* UAnimBlueprintGeneratedClass::GetNodePropertyIndexFromGuid(FGuid Guid, EPropertySearchMode::Type SearchMode /*= EPropertySearchMode::OnlyThis*/)

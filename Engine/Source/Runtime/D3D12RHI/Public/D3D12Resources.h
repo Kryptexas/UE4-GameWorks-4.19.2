@@ -379,6 +379,10 @@ public:
 		eHeapAliased, 
 	};
 
+	// Resource locations shouldn't be copied or moved. Use TransferOwnership to move resource locations.
+	FD3D12ResourceLocation(FD3D12ResourceLocation&&) = delete;
+	FD3D12ResourceLocation(FD3D12ResourceLocation const&) = delete;
+
 	FD3D12ResourceLocation(FD3D12Device* Parent);
 	~FD3D12ResourceLocation();
 
@@ -706,12 +710,18 @@ class FD3D12VertexBuffer : public FRHIVertexBuffer, public FD3D12BaseShaderResou
 public:
 	// Current SRV
 	FD3D12ShaderResourceView* DynamicSRV;
+	
+	// Used to track if a vertex buffer has had an SRV created, on the render thread (RT).
+	// We need to stall the RHI thread if we create a second SRV on a buffer,
+	// otherwise there is a potential race condition between the RT and RHIT.
+	bool bHasSRV_RT;
 
 	FD3D12VertexBuffer(FD3D12Device* InParent, uint32 InStride, uint32 InSize, uint32 InUsage)
 		: FRHIVertexBuffer(InSize, InUsage)
 		, LockedData(InParent)
 		, FD3D12BaseShaderResource(InParent)
 		, DynamicSRV(nullptr)
+		, bHasSRV_RT(false)
 	{
 		UNREFERENCED_PARAMETER(InStride);
 	}
@@ -723,11 +733,6 @@ public:
 	void SetDynamicSRV(FD3D12ShaderResourceView* InSRV)
 	{
 		DynamicSRV = InSRV;
-	}
-
-	FD3D12ShaderResourceView* GetDynamicSRV() const
-	{
-		return DynamicSRV;
 	}
 
 	// IRefCountedObject interface.

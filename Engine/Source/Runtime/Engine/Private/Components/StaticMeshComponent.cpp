@@ -1789,10 +1789,33 @@ void UStaticMeshComponent::SetForcedLodModel(int32 NewForcedLodModel)
 
 void UStaticMeshComponent::SetDistanceFieldSelfShadowBias(float NewValue)
 {
-	if (DistanceFieldSelfShadowBias != NewValue)
+	if (DistanceFieldSelfShadowBias != NewValue && GetScene() != nullptr)
 	{
+		// Update game thread data
 		DistanceFieldSelfShadowBias = NewValue;
-		MarkRenderStateDirty();
+
+		// Skip when this doesn't have a valid static mesh 
+		if (!GetStaticMesh())
+		{
+			return;
+		}
+
+		float NewBias = FMath::Max(
+			bOverrideDistanceFieldSelfShadowBias ? DistanceFieldSelfShadowBias : GetStaticMesh()->DistanceFieldSelfShadowBias,
+			0.f);
+
+		// Update render thread data
+		ENQUEUE_RENDER_COMMAND(UpdateDFSelfShadowBiasCmd)(
+			[NewBias, PrimitiveSceneProxy = SceneProxy](FRHICommandList&)
+		{
+			if (PrimitiveSceneProxy)
+			{
+				PrimitiveSceneProxy->SetDistanceFieldSelfShadowBias_RenderThread(NewBias);
+			}
+		});
+
+		// Queue an update to GPU data
+		GetScene()->UpdatePrimitiveDistanceFieldSceneData_GameThread(this);
 	}
 }
 

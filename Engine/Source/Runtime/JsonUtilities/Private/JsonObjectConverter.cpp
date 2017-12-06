@@ -622,12 +622,12 @@ bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue
 		return false;
 	}
 
-	bool bArrayLikeProperty = Property->IsA<UArrayProperty>() || Property->IsA<USetProperty>();
+	bool bArrayOrSetProperty = Property->IsA<UArrayProperty>() || Property->IsA<USetProperty>();
 	bool bJsonArray = JsonValue->Type == EJson::Array;
 
 	if (!bJsonArray)
 	{
-		if (bArrayLikeProperty)
+		if (bArrayOrSetProperty)
 		{
 			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key"));
 			return false;			
@@ -642,7 +642,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue
 	}
 
 	// In practice, the ArrayDim == 1 check ought to be redundant, since nested arrays of UPropertys are not supported
-	if (bArrayLikeProperty && Property->ArrayDim == 1)
+	if (bArrayOrSetProperty && Property->ArrayDim == 1)
 	{
 		// Read into TArray
 		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);

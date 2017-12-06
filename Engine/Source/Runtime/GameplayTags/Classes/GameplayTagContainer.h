@@ -13,7 +13,7 @@ class UEditableGameplayTagQuery;
 struct FGameplayTagContainer;
 struct FPropertyTag;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
+GAMEPLAYTAGS_API DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
 
 DECLARE_STATS_GROUP(TEXT("Gameplay Tags"), STATGROUP_GameplayTags, STATCAT_Advanced);
 

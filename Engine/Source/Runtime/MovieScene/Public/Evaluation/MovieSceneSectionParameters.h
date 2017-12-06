@@ -32,7 +32,6 @@ struct FMovieSceneSectionParameters
 	/** Hierachical bias. Higher bias will take precedence. */
 	UPROPERTY(EditAnywhere, Category="Sequence")
 	int32 HierarchicalBias;
-
 	UPROPERTY()
 	float PrerollTime_DEPRECATED;
 	UPROPERTY()

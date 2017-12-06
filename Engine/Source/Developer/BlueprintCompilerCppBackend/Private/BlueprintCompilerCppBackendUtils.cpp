@@ -197,7 +197,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		}
 	}
 
-	// TODO: handle subobjects
 	ensure(!bLoadIfNotFound || Object);
 	if (Object && (bLoadIfNotFound || bTryUsedAssetsList))
 	{
@@ -207,6 +206,39 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 			if (INDEX_NONE == AssetIndex && Dependencies.Assets.Contains(Object))
 			{
 				AssetIndex = UsedObjectInCurrentClass.Add(Object);
+			}
+
+			if (INDEX_NONE == AssetIndex)
+			{
+				// Handle subobjects of assets
+				UPackage* Outermost = Object->GetOutermost();
+				if(Object->GetOuter() != Outermost)
+				{
+					// Try to see if an already referenced object exists in our outer chain
+					UObject* ObjectOuter = Object->GetOuter();
+					while(ObjectOuter != Outermost)
+					{
+						if (Dependencies.Assets.Contains(ObjectOuter))
+						{
+							// Add the outer if it hasnt been added already
+							int32 OuterAssetIndex = UsedObjectInCurrentClass.IndexOfByKey(ObjectOuter);
+							if(INDEX_NONE == OuterAssetIndex)
+							{
+								UsedObjectInCurrentClass.Add(ObjectOuter);
+							}
+
+							// Then add the inner object (again, if it hasnt already been added)
+							AssetIndex = UsedObjectInCurrentClass.IndexOfByKey(Object);
+							if(INDEX_NONE == AssetIndex)
+							{
+								AssetIndex = UsedObjectInCurrentClass.Add(Object);
+							}
+							break;
+						}
+
+						ObjectOuter = ObjectOuter->GetOuter();
+					}
+				}
 			}
 
 			if (INDEX_NONE != AssetIndex)
@@ -1889,7 +1921,8 @@ FString FDependenciesGlobalMapHelper::EmitBodyCode(const FString& PCHFilename)
 	CodeText.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *PCHFilename));
 	{
 		FDisableUnwantedWarningOnScope DisableUnwantedWarningOnScope(CodeText);
-
+		FDisableOptimizationOnScope DisableOptimizationOnScope(CodeText);
+		
 		CodeText.AddLine("namespace");
 		CodeText.AddLine("{");
 		CodeText.IncreaseIndent();
@@ -1974,6 +2007,17 @@ FDisableUnwantedWarningOnScope::~FDisableUnwantedWarningOnScope()
 	CodeText.AddLine(TEXT("#ifdef _MSC_VER"));
 	CodeText.AddLine(TEXT("#pragma warning (pop)"));
 	CodeText.AddLine(TEXT("#endif"));
+}
+
+FDisableOptimizationOnScope::FDisableOptimizationOnScope(FCodeText& InCodeText)
+	: CodeText(InCodeText)
+{
+	CodeText.AddLine(TEXT("PRAGMA_DISABLE_OPTIMIZATION"));
+}
+
+FDisableOptimizationOnScope::~FDisableOptimizationOnScope()
+{
+	CodeText.AddLine(TEXT("PRAGMA_ENABLE_OPTIMIZATION"));
 }
 
 FScopeBlock::FScopeBlock(FEmitterLocalContext& InContext)

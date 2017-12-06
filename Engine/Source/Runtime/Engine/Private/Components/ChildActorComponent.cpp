@@ -624,7 +624,7 @@ void UChildActorComponent::DestroyChildActor()
 
 				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
 				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+				int32& ClassUnique = ChildActor->GetOutermost()->GetClassUniqueNameIndexMap().FindOrAdd(ChildClass->GetFName());
 				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
 
 				// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one

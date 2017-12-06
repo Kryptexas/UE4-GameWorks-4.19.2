@@ -118,9 +118,22 @@ class UCurveTable
 	 *	@return	Set of problems encountered while processing input
 	 */
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString, ERichCurveInterpMode InterpMode = RCIM_Linear);
+	
+	/** 
+	 *	Create table from another Curve Table
+	 *	@return	Set of problems encountered while processing input
+	 */
+	ENGINE_API TArray<FString> CreateTableFromOtherTable(const UCurveTable* InTable);
 
 	/** Empty the table info (will not clear RowCurve) */
 	ENGINE_API void EmptyTable();
+
+	ENGINE_API static void InvalidateAllCachedCurves();
+
+	ENGINE_API static int32 GetGlobalCachedCurveID()
+	{
+		return GlobalCachedCurveID;
+	}
 
 protected:
 	/** Util that removes invalid chars and then make an FName
@@ -129,6 +142,7 @@ protected:
 	 */
 	static FName MakeValidName(const FString& InString);
 
+	static int32 GlobalCachedCurveID;
 };
 
 

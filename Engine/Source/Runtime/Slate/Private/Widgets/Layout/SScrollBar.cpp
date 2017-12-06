@@ -238,8 +238,8 @@ FLinearColor SScrollBar::GetThumbOpacity() const
 		{
 			const double LastInteractionDelta = bIsScrolling ? 0 : ( FSlateApplication::Get().GetCurrentTime() - LastInteractionTime );
 
-			float Opacity = FMath::Lerp(1.0f, 0.0f, FMath::Clamp((float)( ( LastInteractionDelta - 0.2 ) / 0.2 ), 0.0f, 1.0f));
-			return FLinearColor(1, 1, 1, Opacity);
+			float ThumbOpacity = FMath::Lerp(1.0f, 0.0f, FMath::Clamp((float)( ( LastInteractionDelta - 0.2 ) / 0.2 ), 0.0f, 1.0f));
+			return FLinearColor(1, 1, 1, ThumbOpacity);
 		}
 		else
 		{

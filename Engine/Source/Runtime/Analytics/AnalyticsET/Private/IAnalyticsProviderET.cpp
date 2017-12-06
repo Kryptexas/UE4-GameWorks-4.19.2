@@ -390,20 +390,20 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 			// On servers where there may be dozens of provider instances, this will spread out the cost a bit.
 			// If caching is disabled, we still want events to be flushed immediately, so we are only guarding the flush calls from tick,
 			// any other calls to flush are allowed to happen in the same frame.
-			static uint32 LastFrameNumberFlushed = 0;
-			if (GFrameNumber == LastFrameNumberFlushed)
+			static uint32 LastFrameCounterFlushed = 0;
+			if (GFrameCounter == LastFrameCounterFlushed)
 			{
 				UE_LOG(LogAnalytics, Verbose, TEXT("Tried to flush more than one analytics provider in a single frame. Deferring until next frame."));
 			}
 			else
 			{
-				LastFrameNumberFlushed = GFrameNumber;
+				LastFrameCounterFlushed = GFrameCounter;
 				FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;	
 				if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
 				{
-					FlushEvents();
-				}
-			}
+			FlushEvents();
+		}
+	}
 		}
 	}
 	return true;
@@ -862,29 +862,29 @@ void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHt
 
 		// if FlushedEvents is passed, re-queue the events for next time
 		if (FlushedEvents.IsValid())
+	{
+		// add a dropped submission event so we can see how often this is happening
+		if (bShouldCacheEvents && CachedEvents.Num() < 1024)
 		{
-			// add a dropped submission event so we can see how often this is happening
-			if (bShouldCacheEvents && CachedEvents.Num() < 1024)
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
-				CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
+			CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
+		}
 
-			// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
-			if (bShouldCacheEvents && CachedEvents.Num() < 256)
-			{
-				UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
+		// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
+		if (bShouldCacheEvents && CachedEvents.Num() < 256)
+		{
+			UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
 
-				// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
-				CachedEvents.Insert(*FlushedEvents, 0);
-			}
-			else
-			{
-				UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
-			}
+			// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
+			CachedEvents.Insert(*FlushedEvents, 0);
+		}
+		else
+		{
+			UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
 		}
 	}
+}
 }

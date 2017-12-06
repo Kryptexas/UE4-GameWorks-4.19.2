@@ -292,6 +292,27 @@ void FPrimitiveSceneProxy::SetTransform(const FMatrix& InLocalToWorld, const FBo
 	OnTransformChanged();
 }
 
+bool FPrimitiveSceneProxy::WouldSetTransformBeRedundant(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition)
+{
+	if (LocalToWorld != InLocalToWorld)
+	{
+		return false;
+	}
+	if (Bounds != InBounds)
+	{
+		return false;
+	}
+	if (LocalBounds != InLocalBounds)
+	{
+		return false;
+	}
+	if (ActorPosition != InActorPosition)
+	{
+		return false;
+	}
+	return true;
+}
+
 void FPrimitiveSceneProxy::ApplyWorldOffset(FVector InOffset)
 {
 	FBoxSphereBounds NewBounds = FBoxSphereBounds(Bounds.Origin + InOffset, Bounds.BoxExtent, Bounds.SphereRadius);
@@ -403,6 +424,11 @@ void FPrimitiveSceneProxy::SetCustomDepthStencilValue_RenderThread(const int32 I
 {
 	check(IsInRenderingThread());
 	CustomDepthStencilValue = InCustomDepthStencilValue;
+}
+
+void FPrimitiveSceneProxy::SetDistanceFieldSelfShadowBias_RenderThread(float NewBias)
+{
+	DistanceFieldSelfShadowBias = NewBias;
 }
 
 /**

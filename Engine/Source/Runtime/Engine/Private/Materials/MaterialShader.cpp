@@ -1041,12 +1041,10 @@ TArray<uint8>* FMaterialShaderMap::BackupShadersToMemory()
 		// Serialize data needed to handle shader key changes in between the save and the load of the FShaders
 		const bool bHandleShaderKeyChanges = true;
 		MeshShaderMaps[Index].SerializeInline(Ar, true, bHandleShaderKeyChanges);
-		MeshShaderMaps[Index].RegisterSerializedShaders();
 		MeshShaderMaps[Index].Empty();
 	}
 
 	SerializeInline(Ar, true, true);
-	RegisterSerializedShaders();
 	Empty();
 
 	return SavedShaderData;
@@ -2179,7 +2177,6 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 	{
 		// Material shaders
 		TShaderMap<FMaterialShaderType>::SerializeInline(Ar, bInlineShaderResources, false);
-		RegisterSerializedShaders();
 
 		// Mesh material shaders
 		int32 NumMeshShaderMaps = 0;
@@ -2220,7 +2217,6 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 				Ar << VFType;
 
 				MeshShaderMap->SerializeInline(Ar, bInlineShaderResources, false);
-				MeshShaderMap->RegisterSerializedShaders();
 			}
 		}
 	}

@@ -131,7 +131,7 @@ bool FBase64::Decode(const FString& Source, FString& Dest)
  *
  * @return the stringified form of the binary data
  */
-FString FBase64::Encode(uint8* Source, uint32 Length)
+FString FBase64::Encode(const uint8* Source, uint32 Length)
 {
 	// Each 3 uint8 set of data expands to 4 bytes and must be padded to 4 bytes
 	uint32 ExpectedLength = (Length + 2) / 3 * 4;

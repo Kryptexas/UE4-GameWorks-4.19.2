@@ -105,6 +105,12 @@ bool FD3D11DynamicRHI::GetQueryData(ID3D11Query* Query,void* Data,SIZE_T DataSiz
 		double StartTime = FPlatformTime::Seconds();
 		do 
 		{
+			bool bGPUAlive = GDynamicRHI->CheckGpuHeartbeat();
+			if (!bGPUAlive)
+			{
+				UE_LOG(LogD3D11RHI, Fatal, TEXT("GPU has crashed"));
+				return false;
+			}
 			Result = Direct3DDeviceIMContext->GetData(Query,Data,DataSize,0);
 
 			// timer queries are used for Benchmarks which can stall a bit more

@@ -96,7 +96,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	FVector GetWorldPosition() const;
 
 	/** @return The bounds of area encompassed by the simulation */
-	FBox GetBounds() const;
+	virtual FBox GetBounds() const;
 
 	/** @return The body instanced used for bounds checking */
 	FBodyInstance* GetBoundsBodyInstance() const;

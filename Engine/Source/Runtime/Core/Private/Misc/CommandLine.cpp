@@ -85,6 +85,15 @@ void FCommandLine::Append(const TCHAR* AppendString)
 	WhitelistCommandLines();
 }
 
+bool FCommandLine::IsCommandLineLoggingFiltered()
+{
+#ifdef FILTER_COMMANDLINE_LOGGING
+	return true;
+#else
+	return false;
+#endif
+}
+
 #if WANTS_COMMANDLINE_WHITELIST
 TArray<FString> FCommandLine::ApprovedArgs;
 TArray<FString> FCommandLine::FilterArgsForLogging;

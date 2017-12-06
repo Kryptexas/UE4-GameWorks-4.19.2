@@ -227,7 +227,7 @@ bool FParse::Value(
 	bool bSuccess = false;
 	int32 MatchLen = FCString::Strlen(Match);
 
-	for (const TCHAR* Found = FCString::Strifind(Stream, Match); Found != nullptr; Found = FCString::Strifind(Found + MatchLen, Match))
+	for (const TCHAR* Found = FCString::Strifind(Stream, Match, true); Found != nullptr; Found = FCString::Strifind(Found + MatchLen, Match, true))
 	{
 		const TCHAR* Start = Found + MatchLen;
 
@@ -236,36 +236,10 @@ bool FParse::Value(
 		//         ^~~~Start
 		bool bArgumentsQuoted = *Start == '"';
 
-		// Number of characters we can look back from found looking for first parenthesis.
-		uint32 AllowedBacktraceCharactersCount = Found - Stream;
-
-		// Check for fully quoted string with spaces
-		bool bFullyQuoted = 
-			// "-Option=Value1 Value2"
-			//   ^~~~Found
-			AllowedBacktraceCharactersCount > 1 && *(Found - 1) == '-' && *(Found - 2) == '"';
-
-		// If we are parsing within a parameter value, this is an invalid match - skip past and try again
-		bool bWithinParamValue = bFullyQuoted &&
-			// -Param="-Option=Value1 Value2"
-			//   ^~~~Found
-			AllowedBacktraceCharactersCount > 2 && *(Found - 3) == '=';
-
-		if (bWithinParamValue)
-		{
-			continue;
-		}
-
-
-		bFullyQuoted = bFullyQuoted ||
-			// "Option=Value1 Value2"
-			//  ^~~~Found
-			(AllowedBacktraceCharactersCount > 0 && *(Found - 1) == '"');
-
-		if (bArgumentsQuoted || bFullyQuoted)
+		if (bArgumentsQuoted)
 		{
 			// Skip quote character if only params were quoted.
-			int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
+			int32 QuoteCharactersToSkip = 1;
 			FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
 
 			Value[MaxLen-1]=0;
@@ -310,7 +284,7 @@ bool FParse::Param( const TCHAR* Stream, const TCHAR* Param )
 	const TCHAR* Start = Stream;
 	if( *Stream )
 	{
-		while( (Start=FCString::Strifind(Start+1,Param)) != NULL )
+		while( (Start=FCString::Strifind(Start,Param,true)) != NULL )
 		{
 			if( Start>Stream && (Start[-1]=='-' || Start[-1]=='/') && 
 				(Stream > (Start - 2) || FChar::IsWhitespace(Start[-2]))) // Reject if the character before '-' or '/' is not a whitespace
@@ -321,6 +295,8 @@ bool FParse::Param( const TCHAR* Stream, const TCHAR* Param )
 					return true;
 				}
 			}
+
+			Start++;
 		}
 	}
 	return false;

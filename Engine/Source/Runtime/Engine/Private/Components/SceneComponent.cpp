@@ -2187,16 +2187,38 @@ void USceneComponent::UpdateChildTransforms(EUpdateTransformFlags UpdateTransfor
 	}
 #endif
 
-	EUpdateTransformFlags UpdateTransformFlagsFromParent = UpdateTransformFlags | EUpdateTransformFlags::PropagateFromParent;
-
-	for (USceneComponent* ChildComp : GetAttachChildren())
+	if (AttachChildren.Num() > 0)
 	{
-		if (ChildComp != nullptr)
+		const bool bOnlyUpdateIfUsingSocket = !!(UpdateTransformFlags & EUpdateTransformFlags::OnlyUpdateIfUsingSocket);
+
+		const EUpdateTransformFlags UpdateTransformNoSocketSkip = ~EUpdateTransformFlags::OnlyUpdateIfUsingSocket & UpdateTransformFlags;
+		const EUpdateTransformFlags UpdateTransformFlagsFromParent = UpdateTransformNoSocketSkip | EUpdateTransformFlags::PropagateFromParent;
+
+		for (USceneComponent* ChildComp : GetAttachChildren())
 		{
-			// Don't update the child if it uses a completely absolute (world-relative) scheme, unless it has never been updated.
-			if (!(ChildComp->bAbsoluteLocation && ChildComp->bAbsoluteRotation && ChildComp->bAbsoluteScale) || !ChildComp->bComponentToWorldUpdated)
+			if (ChildComp != nullptr)
 			{
-				ChildComp->UpdateComponentToWorld(UpdateTransformFlagsFromParent, Teleport);
+				// Update Child if it's never been updated.
+				if (!ChildComp->bComponentToWorldUpdated)
+				{
+					ChildComp->UpdateComponentToWorld(UpdateTransformFlagsFromParent, Teleport);
+				}
+				else
+				{
+					// If we're updating child only if he's using a socket. Skip if that's not the case.
+					if (bOnlyUpdateIfUsingSocket && (ChildComp->AttachSocketName == NAME_None))
+					{
+						continue;
+					}
+
+					// Don't update the child if it uses a completely absolute (world-relative) scheme.
+					if (ChildComp->bAbsoluteLocation && ChildComp->bAbsoluteRotation && ChildComp->bAbsoluteScale)
+					{
+						continue;
+					}
+
+					ChildComp->UpdateComponentToWorld(UpdateTransformFlagsFromParent, Teleport);
+				}
 			}
 		}
 	}

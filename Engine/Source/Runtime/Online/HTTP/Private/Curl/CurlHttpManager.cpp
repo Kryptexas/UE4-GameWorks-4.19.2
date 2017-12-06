@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/LocalTimestampDirectoryVisitor.h"
+#include "Misc/OutputDeviceRedirector.h"
 #include "Curl/CurlHttpThread.h"
 #include "Curl/CurlHttp.h"
 #include "Http.h"
@@ -524,16 +525,20 @@ void FCurlHttpManager::InitCurl()
 	}
 
 	TCHAR Home[256] = TEXT("");
-	if (FParse::Value(FCommandLine::Get(), TEXT("MULTIHOME="), Home, ARRAY_COUNT(Home)))
+	if (FParse::Value(FCommandLine::Get(), TEXT("MULTIHOMEHTTP="), Home, ARRAY_COUNT(Home)))
 	{
 		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-
 		if (SocketSubsystem)
 		{
-			// Check for the local addr to route requests through (respects MULTIHOME cmd line option)
-			bool bCanBindAll;
-			TSharedRef<FInternetAddr> HostAddr = SocketSubsystem->GetLocalHostAddr(*GLog, bCanBindAll);
-			CurlRequestOptions.LocalHostAddr = HostAddr->ToString(false);
+			TSharedRef<FInternetAddr> HostAddr = SocketSubsystem->CreateInternetAddr();
+			HostAddr->SetAnyAddress();
+
+			bool bIsValid = false;
+			HostAddr->SetIp(Home, bIsValid);
+			if (bIsValid)
+			{
+				CurlRequestOptions.LocalHostAddr = FString(Home);
+			}
 		}
 	}
 

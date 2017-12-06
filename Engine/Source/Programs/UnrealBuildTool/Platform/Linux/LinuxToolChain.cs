@@ -936,7 +936,16 @@ namespace UnrealBuildTool
 				{
 					CompileAction.CommandPath = ClangPath;
 				}
-				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
+
+				string AllArguments = (Arguments + FileArguments + CompileEnvironment.AdditionalArguments).Replace('\\', '/');
+				// all response lines should have / instead of \
+
+				Debug.Assert(CompileAction.ProducedItems.Count > 0);
+
+				// file name needs to include the hash, otherwise changes in compiler flags won't be noticed by UBT
+				FileReference CompilerResponseFileName = CompileAction.ProducedItems[0].Reference + AllArguments.GetHashCode().ToString("X") + ".rsp";
+
+				CompileAction.CommandArguments = string.Format(" @\"{0}\"", ResponseFile.Create(CompilerResponseFileName, new string[] { AllArguments }));
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.bIsGCCCompiler = true;

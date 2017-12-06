@@ -175,6 +175,14 @@ FGraphEventRef FRHICommandListImmediate::RenderThreadTaskFence()
 	}
 	return Result;
 }
+
+FGraphEventArray& FRHICommandListImmediate::GetRenderThreadTaskArray()
+{
+	check(IsInRenderingThread());
+	return WaitOutstandingTasks;
+}
+
+
 void FRHICommandListImmediate::WaitOnRenderThreadTaskFence(FGraphEventRef& Fence)
 {
 	if (Fence.GetReference() && !Fence->IsComplete())
@@ -247,6 +255,23 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 			TStatIdData const* Stat = GCurrentExecuteStat.GetRawPointer();
 			FScopeCycleCounter Scope(GCurrentExecuteStat);
 			while (Iter.HasCommandsLeft() && Stat == GCurrentExecuteStat.GetRawPointer())
+			{
+				FRHICommandBase* Cmd = Iter.NextCommand();
+				//FPlatformMisc::Prefetch(Cmd->Next);
+				Cmd->ExecuteAndDestruct(CmdList, DebugContext);
+			}
+		}
+	}
+	else
+#elif ENABLE_STATNAMEDEVENTS
+	bool bDoStats = CVarRHICmdCollectRHIThreadStatsFromHighLevel.GetValueOnRenderThread() > 0 && GCycleStatsShouldEmitNamedEvents && (IsInRenderingThread() || IsInRHIThread());
+	if (bDoStats)
+	{
+		while (Iter.HasCommandsLeft())
+		{
+			PROFILER_CHAR const* Stat = GCurrentExecuteStat.StatString;
+			FScopeCycleCounter Scope(GCurrentExecuteStat);
+			while (Iter.HasCommandsLeft() && Stat == GCurrentExecuteStat.StatString)
 			{
 				FRHICommandBase* Cmd = Iter.NextCommand();
 				//FPlatformMisc::Prefetch(Cmd->Next);
@@ -1668,6 +1693,10 @@ void FRHICommandList::EndFrame()
 		QUICK_SCOPE_CYCLE_COUNTER(EndFrame_Flush);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 	}
+	else
+	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+	}
 }
 
 DECLARE_CYCLE_STAT(TEXT("Explicit wait for tasks"), STAT_ExplicitWait, STATGROUP_RHICMDLIST);
@@ -1748,11 +1777,30 @@ void FRHICommandListBase::WaitForDispatch()
 	}
 }
 
+void FDynamicRHI::VirtualTextureSetFirstMipInMemory_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip)
+{
+	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	GDynamicRHI->RHIVirtualTextureSetFirstMipInMemory(Texture, FirstMip);
+}
+
+void FDynamicRHI::VirtualTextureSetFirstMipVisible_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip)
+{
+	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	GDynamicRHI->RHIVirtualTextureSetFirstMipVisible(Texture, FirstMip);
+}
+
 DECLARE_CYCLE_STAT(TEXT("Explicit wait for RHI thread"), STAT_ExplicitWaitRHIThread, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Explicit wait for RHI thread async dispatch"), STAT_ExplicitWaitRHIThread_Dispatch, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Deep spin for stray resource init"), STAT_SpinWaitRHIThread, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Spin RHIThread wait for stall"), STAT_SpinWaitRHIThreadStall, STATGROUP_RHICMDLIST);
 
+#define TIME_RHIT_STALLS (0)
+
+#if TIME_RHIT_STALLS
+uint32 TestLastFrame = 0; 
+double TotalTime = 0.0;
+int32 TotalStalls = 0;
+#endif
 
 int32 StallCount = 0;
 bool FRHICommandListImmediate::IsStalled()
@@ -1783,8 +1831,26 @@ bool FRHICommandListImmediate::StallRHIThread()
 		}
 		FPlatformAtomics::InterlockedIncrement(&StallCount);
 		{
-		SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadStall);
+			SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadStall);
+#if TIME_RHIT_STALLS
+			double StartTime = FPlatformTime::Seconds();
+#endif
 			GRHIThreadOnTasksCritical.Lock();
+#if TIME_RHIT_STALLS
+			TotalTime += FPlatformTime::Seconds() - StartTime;
+			TotalStalls++;
+			if (TestLastFrame != GFrameNumberRenderThread)
+			{
+				if (TestLastFrame)
+				{
+					int32 Frames = (int32)(GFrameNumberRenderThread - TestLastFrame);
+					UE_LOG(LogRHI, Error, TEXT("%d frames %d stalls     %6.2fms / frame"), Frames, TotalStalls, float(1000.0 * TotalTime) / float(Frames) );
+				}
+				TestLastFrame = GFrameNumberRenderThread;
+				TotalStalls = 0;
+				TotalTime = 0.0;
+			}
+#endif
 		}
 		return true;
 	}

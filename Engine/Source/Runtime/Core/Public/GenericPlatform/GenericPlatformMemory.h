@@ -83,7 +83,7 @@ typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
  * Struct used to hold common memory stats for all platforms.
  * These values may change over the entire life of the executable.
  */
-struct FGenericPlatformMemoryStats : public FPlatformMemoryConstants
+struct CORE_API FGenericPlatformMemoryStats : public FPlatformMemoryConstants
 {
 	/** The amount of physical memory currently available, in bytes. */
 	uint64 AvailablePhysical;

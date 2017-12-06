@@ -58,15 +58,18 @@ struct FRHIFlipDetails
 {
 	uint64 PresentIndex;
 	double FlipTimeInSeconds;
+	double VBlankTimeInSeconds;
 
 	FRHIFlipDetails()
 		: PresentIndex(0)
 		, FlipTimeInSeconds(0)
+		, VBlankTimeInSeconds(0)
 	{}
 
-	FRHIFlipDetails(uint64 InPresentIndex, double InFlipTimeInSeconds)
+	FRHIFlipDetails(uint64 InPresentIndex, double InFlipTimeInSeconds, double InVBlankTimeInSeconds)
 		: PresentIndex(InPresentIndex)
 		, FlipTimeInSeconds(InFlipTimeInSeconds)
+		, VBlankTimeInSeconds(InVBlankTimeInSeconds)
 	{}
 };
 
@@ -807,6 +810,15 @@ public:
 	// FlushType: Wait RHI Thread
 	virtual void RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef Texture, uint32 FirstMip) = 0;
 
+	/**
+	* Called once per frame just before deferred deletion in FRHIResource::FlushPendingDeletes
+	*/
+	// FlushType: called from render thread when RHI thread is flushed 
+	virtual void RHIPerFrameRHIFlushComplete()
+	{
+
+	}
+
 	// FlushType: Wait RHI Thread
 	virtual void RHIExecuteCommandList(FRHICommandList* CmdList) = 0;
 
@@ -904,6 +916,9 @@ public:
 
 	//checks if the GPU is still alive.
 	virtual bool CheckGpuHeartbeat() const { return true; }
+
+	virtual void VirtualTextureSetFirstMipInMemory_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip);
+	virtual void VirtualTextureSetFirstMipVisible_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip);
 
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual void RHICopySubTextureRegion_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox);

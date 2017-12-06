@@ -9,10 +9,11 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 
-#include "Interfaces/IAutomationWorkerModule.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationWorkerModule.h"
+#include "IAutomationControllerModule.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectGlobals.h"
+#include "Containers/Ticker.h"
 
 using namespace BuildPatchTool;
 

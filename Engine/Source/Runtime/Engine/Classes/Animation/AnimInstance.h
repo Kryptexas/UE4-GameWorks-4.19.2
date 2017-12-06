@@ -941,6 +941,9 @@ public:
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
 
+	/** Called on the CDO to pre-init cached UFunctions */
+	void PreInitializeRootNode();
+
 	// the below functions are the native overrides for each phase
 	// Native initialization override point
 	virtual void NativeInitializeAnimation();

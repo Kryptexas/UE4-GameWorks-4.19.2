@@ -35,6 +35,8 @@ Notes:
 -----------------------------------------------------------------------------*/
 
 DECLARE_CYCLE_STAT(TEXT("IpNetDriver Add new connection"), Stat_IpNetDriverAddNewConnection, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("IpNetDriver ProcessRemoteFunction"), STAT_NetProcessRemoteFunc, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("IpNetDriver Socket RecvFrom"), STAT_IpNetDriver_RecvFromSocket, STATGROUP_Net);
 
 UIpNetDriver::FOnNetworkProcessingCausingSlowFrame UIpNetDriver::OnNetworkProcessingCausingSlowFrame;
 
@@ -247,9 +249,11 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 		int32 BytesRead = 0;
 
 		// Get data, if any.
-		CLOCK_CYCLES(RecvCycles);
-		bool bOk = Socket->RecvFrom(Data, sizeof(Data), BytesRead, *FromAddr);
-		UNCLOCK_CYCLES(RecvCycles);
+		bool bOk = false;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_IpNetDriver_RecvFromSocket);
+			bOk = Socket->RecvFrom(Data, sizeof(Data), BytesRead, *FromAddr);
+		}
 
 		if (bOk)
 		{
@@ -531,6 +535,9 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject* SubObject )
 {
 #if !UE_BUILD_SHIPPING
+	SCOPE_CYCLE_COUNTER(STAT_NetProcessRemoteFunc);
+	SCOPE_CYCLE_UOBJECT(Function, Function);
+
 	bool bBlockSendRPC = false;
 
 	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);

@@ -304,6 +304,26 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 			}
 		}
 	}
+
+#if VULKAN_ENABLE_API_DUMP
+	{
+		bool bApiDumpFound = false;
+		const char* ApiDumpName = "VK_LAYER_LUNARG_api_dump";
+		for (int32 Index = 0; Index < GlobalLayers.Num(); ++Index)
+		{
+			if (!FCStringAnsi::Strcmp(GlobalLayers[Index].LayerProps.layerName, ApiDumpName))
+			{
+				bApiDumpFound = true;
+				OutInstanceLayers.Add(ApiDumpName);
+				break;
+			}
+		}
+		if (!bApiDumpFound)
+		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan instance layer %s"), ANSI_TO_TCHAR(ApiDumpName));
+		}
+	}
+#endif	// VULKAN_ENABLE_API_DUMP
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
 #if PLATFORM_LINUX

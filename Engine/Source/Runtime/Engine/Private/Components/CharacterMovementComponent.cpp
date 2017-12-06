@@ -66,6 +66,8 @@ DECLARE_CYCLE_STAT(TEXT("Char PhysFalling"), STAT_CharPhysFalling, STATGROUP_Cha
 DECLARE_CYCLE_STAT(TEXT("Char PhysNavWalking"), STAT_CharPhysNavWalking, STATGROUP_Character);
 DECLARE_CYCLE_STAT(TEXT("Char NavProjectPoint"), STAT_CharNavProjectPoint, STATGROUP_Character);
 DECLARE_CYCLE_STAT(TEXT("Char NavProjectLocation"), STAT_CharNavProjectLocation, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char ProcessLanded"), STAT_CharProcessLanded, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char HandleImpact"), STAT_CharHandleImpact, STATGROUP_Character);
 
 // MAGIC NUMBERS
 const float MAX_STEP_SIDE_Z = 0.08f;	// maximum z value for the normal on the vertical side of steps
@@ -78,6 +80,9 @@ const float UCharacterMovementComponent::MAX_FLOOR_DIST = 2.4f;
 const float UCharacterMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
 const float UCharacterMovementComponent::SWEEP_EDGE_REJECT_DISTANCE = 0.15f;
 
+static const FString PerfCounter_NumServerMoves = TEXT("NumServerMoves");
+static const FString PerfCounter_NumServerMoveCorrections = TEXT("NumServerMoveCorrections");
+
 // CVars
 namespace CharacterMovementCVars
 {
@@ -87,6 +92,15 @@ namespace CharacterMovementCVars
 		TEXT("p.NetEnableListenServerSmoothing"),
 		NetEnableListenServerSmoothing,
 		TEXT("Whether to enable mesh smoothing on listen servers for the local view of remote clients.\n")
+		TEXT("0: Disable, 1: Enable"),
+		ECVF_Default);
+
+	// Latent proxy prediction
+	static int32 NetEnableSkipProxyPredictionOnNetUpdate = 1;
+	FAutoConsoleVariableRef CVarNetEnableSkipProxyPredictionOnNetUpdate(
+		TEXT("p.NetEnableSkipProxyPredictionOnNetUpdate"),
+		NetEnableSkipProxyPredictionOnNetUpdate,
+		TEXT("Whether to allow proxies to skip prediction on frames with a network position update, if bNetworkSkipProxyPredictionOnNetUpdate is also true on the movement component.\n")
 		TEXT("0: Disable, 1: Enable"),
 		ECVF_Default);
 
@@ -156,6 +170,15 @@ namespace CharacterMovementCVars
 		TEXT("Percent of ServerCheckClientError checks to return true regardless of actual error.\n")
 		TEXT("Useful for testing client correction code.\n")
 		TEXT("<=0: Disable, 0.05: 5% of checks will return failed, 1.0: Always send client adjustments"),
+		ECVF_Cheat);
+
+	static float NetForceClientServerMoveLossPercent = 0.f;
+	FAutoConsoleVariableRef CVarNetForceClientServerMoveLossPercent(
+		TEXT("p.NetForceClientServerMoveLossPercent"),
+		NetForceClientServerMoveLossPercent,
+		TEXT("Percent of ServerMove calls for client to not send.\n")
+		TEXT("Useful for testing server force correction code.\n")
+		TEXT("<=0: Disable, 0.05: 5% of checks will return failed, 1.0: never send server moves"),
 		ECVF_Cheat);
 
 	static int32 VisualizeMovement = 0;
@@ -1558,12 +1581,15 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	{
 		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
+		bool bHandledNetUpdate = false;
 		if (bIsSimulatedProxy)
 		{
 			// Handle network changes
 			if (bNetworkUpdateReceived)
 			{
 				bNetworkUpdateReceived = false;
+				bHandledNetUpdate = true;
+				UE_LOG(LogCharacterMovement, Verbose, TEXT("Proxy %s received net update"), *GetNameSafe(CharacterOwner));
 				if (bNetworkMovementModeChanged)
 				{
 					bNetworkMovementModeChanged = false;
@@ -1596,65 +1622,75 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 		// simulated pawns predict location
 		OldVelocity = Velocity;
 		OldLocation = UpdatedComponent->GetComponentLocation();
-		FStepDownResult StepDownResult;
-		MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
 
-		// consume path following requested velocity
-		bHasRequestedVelocity = false;
-
-		// find floor and check if falling
-		if (IsMovingOnGround() || MovementMode == MOVE_Falling)
+		// May only need to simulate forward on frames where we haven't just received a new position update.
+		if (!bHandledNetUpdate || !bNetworkSkipProxyPredictionOnNetUpdate || !CharacterMovementCVars::NetEnableSkipProxyPredictionOnNetUpdate)
 		{
-			const bool bSimGravityDisabled = (CharacterOwner->bSimGravityDisabled && bIsSimulatedProxy);
-			if (StepDownResult.bComputedFloor)
-			{
-				CurrentFloor = StepDownResult.FloorResult;
-			}
-			else if (Velocity.Z <= 0.f)
-			{
-				FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, Velocity.IsZero(), NULL);
-			}
-			else
-			{
-				CurrentFloor.Clear();
-			}
+			UE_LOG(LogCharacterMovement, Verbose, TEXT("Proxy %s simulating movement"), *GetNameSafe(CharacterOwner));
+			FStepDownResult StepDownResult;
+			MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
 
-			if (!CurrentFloor.IsWalkableFloor())
+			// find floor and check if falling
+			if (IsMovingOnGround() || MovementMode == MOVE_Falling)
 			{
-				if (!bSimGravityDisabled)
+				const bool bSimGravityDisabled = (CharacterOwner->bSimGravityDisabled && bIsSimulatedProxy);
+				if (StepDownResult.bComputedFloor)
 				{
-					// No floor, must fall.
-					Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
+					CurrentFloor = StepDownResult.FloorResult;
 				}
-				SetMovementMode(MOVE_Falling);
-			}
-			else
-			{
-				// Walkable floor
-				if (IsMovingOnGround())
+				else if (Velocity.Z <= 0.f)
 				{
-					AdjustFloorHeight();
-					SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
+					FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, Velocity.IsZero(), NULL);
 				}
-				else if (MovementMode == MOVE_Falling)
+				else
 				{
-					if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST || (bSimGravityDisabled && CurrentFloor.FloorDist <= MAX_FLOOR_DIST))
+					CurrentFloor.Clear();
+				}
+
+				if (!CurrentFloor.IsWalkableFloor())
+				{
+					if (!bSimGravityDisabled)
 					{
-						// Landed
-						SetPostLandedPhysics(CurrentFloor.HitResult);
+						// No floor, must fall.
+						Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
 					}
-					else
+					SetMovementMode(MOVE_Falling);
+				}
+				else
+				{
+					// Walkable floor
+					if (IsMovingOnGround())
 					{
-						if (!bSimGravityDisabled)
+						AdjustFloorHeight();
+						SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
+					}
+					else if (MovementMode == MOVE_Falling)
+					{
+						if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST || (bSimGravityDisabled && CurrentFloor.FloorDist <= MAX_FLOOR_DIST))
 						{
-							// Continue falling.
-							Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
+							// Landed
+							SetPostLandedPhysics(CurrentFloor.HitResult);
 						}
-						CurrentFloor.Clear();
+						else
+						{
+							if (!bSimGravityDisabled)
+							{
+								// Continue falling.
+								Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
+							}
+							CurrentFloor.Clear();
+						}
 					}
 				}
 			}
 		}
+		else
+		{
+			UE_LOG(LogCharacterMovement, Verbose, TEXT("Proxy %s SKIPPING simulate movement"), *GetNameSafe(CharacterOwner));
+		}
+
+		// consume path following requested velocity
+		bHasRequestedVelocity = false;
 
 		OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 	} // End scoped movement update
@@ -2348,7 +2384,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 		return;
 	}
 
-	if (!CanCrouchInCurrentState())
+	if (!bClientSimulation && !CanCrouchInCurrentState())
 	{
 		return;
 	}
@@ -5105,6 +5141,8 @@ void UCharacterMovementComponent::StopActiveMovement()
 
 void UCharacterMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharProcessLanded);
+
 	if( CharacterOwner && CharacterOwner->ShouldNotifyLanded(Hit) )
 	{
 		CharacterOwner->Landed(Hit);
@@ -5667,6 +5705,7 @@ bool UCharacterMovementComponent::IsWithinEdgeTolerance(const FVector& CapsuleLo
 
 void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocation, float LineDistance, float SweepDistance, FFindFloorResult& OutFloorResult, float SweepRadius, const FHitResult* DownwardSweepResult) const
 {
+	UE_LOG(LogCharacterMovement, VeryVerbose, TEXT("[Role:%d] ComputeFloorDist: %s at location %s"), (int32)CharacterOwner->Role, *GetNameSafe(CharacterOwner), *CapsuleLocation.ToString());
 	OutFloorResult.Clear();
 
 	float PawnRadius, PawnHalfHeight;
@@ -5819,6 +5858,7 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 		return;
 	}
 
+	UE_LOG(LogCharacterMovement, VeryVerbose, TEXT("[Role:%d] FindFloor: %s at location %s"), (int32)CharacterOwner->Role, *GetNameSafe(CharacterOwner), *CapsuleLocation.ToString());
 	check(CharacterOwner->GetCapsuleComponent());
 
 	// Increase height check slightly if walking, to prevent floor height adjustment from later invalidating the floor result.
@@ -6367,6 +6407,8 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 
 void UCharacterMovementComponent::HandleImpact(const FHitResult& Impact, float TimeSlice, const FVector& MoveDelta)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharHandleImpact);
+
 	if (CharacterOwner)
 	{
 		CharacterOwner->MoveBlockedBy(Impact);
@@ -6664,7 +6706,7 @@ float UCharacterMovementComponent::GetAnalogInputModifier() const
 	return AnalogInputModifier;
 }
 
-
+static uint32 s_WarningCount = 0;
 float UCharacterMovementComponent::GetSimulationTimeStep(float RemainingTime, int32 Iterations) const
 {
 	if (RemainingTime > MaxSimulationTimeStep)
@@ -6679,7 +6721,6 @@ float UCharacterMovementComponent::GetSimulationTimeStep(float RemainingTime, in
 			// If this is the last iteration, just use all the remaining time. This is usually better than cutting things short, as the simulation won't move far enough otherwise.
 			// Print a throttled warning.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			static uint32 s_WarningCount = 0;
 			if ((s_WarningCount++ < 100) || (GFrameCounter & 15) == 0)
 			{
 				UE_LOG(LogCharacterMovement, Warning, TEXT("GetSimulationTimeStep() - Max iterations %d hit while remaining time %.6f > MaxSimulationTimeStep (%.3f) for '%s', movement '%s'"), MaxSimulationIterations, RemainingTime, MaxSimulationTimeStep, *GetNameSafe(CharacterOwner), *GetMovementName());
@@ -6753,6 +6794,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 			ClientData->MeshTranslationOffset = ClientData->MeshTranslationOffset + NewToOldVector;	
 		}
 
+		UE_LOG(LogCharacterNetSmoothing, Verbose, TEXT("Proxy %s SmoothCorrection(%.2f)"), *GetNameSafe(CharacterOwner), FMath::Sqrt(DistSq));
 		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
 		{
 			ClientData->OriginalMeshTranslationOffset	= ClientData->MeshTranslationOffset;
@@ -7128,43 +7170,51 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 				}
 			}
 
-			if ( !bFoundSample )
+			if ( !bFoundSample && ClientData->ReplaySamples.Num() > 0)
 			{
-				int32 BestSample = -1;
-				float BestTime = 0.0f;
+				int32 BestSample = 0;
+				float BestDelta = FMath::Abs(ClientData->ReplaySamples[BestSample].Time - CurrentTime);
 
-				for ( int i = 0; i < ClientData->ReplaySamples.Num(); i++ )
+				for ( int i = 1; i < ClientData->ReplaySamples.Num(); i++ )
 				{
-					const FCharacterReplaySample& ReplaySample = ClientData->ReplaySamples[i];
-
-					if ( BestSample == -1 || FMath::Abs( BestTime - ReplaySample.Time ) < BestTime )
+					const float Delta = FMath::Abs( ClientData->ReplaySamples[i].Time - CurrentTime );
+					if ( Delta < BestDelta )
 					{
-						BestTime = ReplaySample.Time;
+						BestDelta = Delta;
 						BestSample = i;
 					}
 				}
 
-				if ( BestSample != -1 )
+				const FCharacterReplaySample& ReplaySample = ClientData->ReplaySamples[BestSample];
+
+				Velocity						= ReplaySample.Velocity;
+				Acceleration					= ReplaySample.Acceleration;
+				CharacterOwner->RemoteViewPitch = ReplaySample.RemoteViewPitch;
+
+				UpdateComponentVelocity();
+
+				USkeletalMeshComponent* const Mesh = CharacterOwner->GetMesh();
+
+				if ( Mesh )
 				{
-					const FCharacterReplaySample& ReplaySample = ClientData->ReplaySamples[BestSample];
-
-					Velocity						= ReplaySample.Velocity;
-					Acceleration					= ReplaySample.Acceleration;
-					CharacterOwner->RemoteViewPitch = ReplaySample.RemoteViewPitch;
-
-					UpdateComponentVelocity();
-
-					USkeletalMeshComponent* Mesh = CharacterOwner->GetMesh();
-
-					if ( Mesh )
-					{
-						Mesh->RelativeLocation = CharacterOwner->GetBaseTranslationOffset();
-						Mesh->RelativeRotation = CharacterOwner->GetBaseRotationOffset().Rotator();
-					}
-
-					ClientData->MeshTranslationOffset	= ReplaySample.Location;
-					ClientData->MeshRotationOffset		= ReplaySample.Rotation.Quaternion();
+					Mesh->RelativeLocation = CharacterOwner->GetBaseTranslationOffset();
+					Mesh->RelativeRotation = CharacterOwner->GetBaseRotationOffset().Rotator();
 				}
+
+				ClientData->MeshTranslationOffset	= ReplaySample.Location;
+				ClientData->MeshRotationOffset		= ReplaySample.Rotation.Quaternion();
+					
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if ( Mesh && CharacterMovementCVars::NetVisualizeSimulatedCorrections >= 1 )
+				{
+					const float ArrowSize	= 4.0f;
+
+					const FVector DebugLocation = Mesh->GetComponentLocation() + FVector( 0.f, 0.f, 300.0f ) - CharacterOwner->GetBaseTranslationOffset();
+
+					DrawDebugBox( GetWorld(), DebugLocation, FVector( 45, 45, 45 ), Mesh->GetComponentQuat(), FColor( 255, 0, 0 ) );
+					DrawDebugDirectionalArrow( GetWorld(), DebugLocation, DebugLocation + Velocity, 20.0f, FColor( 255, 0, 0, 255 ) );
+				}
+#endif
 			}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -7426,8 +7476,20 @@ void UCharacterMovementComponent::ForcePositionUpdate(float DeltaTime)
 	check(CharacterOwner->Role == ROLE_Authority);
 	check(CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy);
 
-	// TODO: smooth correction on listen server?
+	// TODO: this is basically copied from MoveAutonmous, should consolidate. Or consider moving CheckJumpInput inside PerformMovement().
+	{
+		CharacterOwner->CheckJumpInput(DeltaTime);
+
+		// Acceleration constraints could change after jump input.
+		Acceleration = ConstrainInputAcceleration(Acceleration);
+		Acceleration = Acceleration.GetClampedToMaxSize(GetMaxAcceleration());
+		AnalogInputModifier = ComputeAnalogInputModifier();
+	}
+
+	// Force movement update.
 	PerformMovement(DeltaTime);
+
+	// TODO: smooth correction on listen server?
 }
 
 
@@ -7713,6 +7775,11 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 			NewMove->TimeStamp, *NewMove->Acceleration.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), DeltaTime);
 
 		// Send move to server if this character is replicating movement
+		bool bSendServerMove = true;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		bSendServerMove = (CharacterMovementCVars::NetForceClientServerMoveLossPercent == 0.f) || (FMath::SRand() >= CharacterMovementCVars::NetForceClientServerMoveLossPercent);
+#endif
+		if (bSendServerMove)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_CharacterMovementCallServerMove);
 			CallServerMove(NewMove.Get(), OldMove.Get());
@@ -8320,7 +8387,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		ServerData->PendingAdjustment.bAckGoodMove = false;
 		ServerData->PendingAdjustment.MovementMode = PackNetworkMovementMode();
 
-		PerfCountersIncrement(TEXT("NumServerMoveCorrections"));
+		PerfCountersIncrement(PerfCounter_NumServerMoveCorrections);
 	}
 	else
 	{
@@ -8353,7 +8420,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		ServerData->PendingAdjustment.bAckGoodMove = true;
 	}
 
-	PerfCountersIncrement(TEXT("NumServerMoves"));
+	PerfCountersIncrement(PerfCounter_NumServerMoves);
 
 	ServerData->bForceClientUpdate = false;
 }
@@ -8525,8 +8592,6 @@ void UCharacterMovementComponent::UpdateFloorFromAdjustment()
 	{
 		CurrentFloor.Clear();
 	}
-
-	bForceNextFloorCheck = true;
 }
 
 
@@ -10310,16 +10375,13 @@ void UCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 		return;
 	}
 
-	const bool bWasJumping = CharacterOwner->bPressedJump;
-
-	CharacterOwner->bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);	
+	CharacterOwner->bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);
 	bWantsToCrouch = ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0);
 
-	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
-	if (!bWasJumping && CharacterOwner->bPressedJump)
+	// Reset JumpKeyHoldTime when player releases Jump key on server as well, similar to StopJumping().
+	if (!CharacterOwner->bPressedJump && CharacterOwner->Role == ROLE_Authority)
 	{
-		CharacterOwner->bWasJumping = false;
-		CharacterOwner->JumpKeyHoldTime = 0.0f;
+		CharacterOwner->ResetJumpState();
 	}
 }
 
@@ -10342,9 +10404,8 @@ void UCharacterMovementComponent::FlushServerMoves()
 
 			FSavedMovePtr NewMove = ClientData->PendingMove;
 
-			ClientData->PendingMove = NULL;
+			ClientData->PendingMove = nullptr;
 			CallServerMove(NewMove.Get(), nullptr);
 		}
 	}
 }
-

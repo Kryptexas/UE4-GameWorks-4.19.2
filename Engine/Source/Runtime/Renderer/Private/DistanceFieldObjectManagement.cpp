@@ -1231,6 +1231,7 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 
 		if (bVerifySceneIntegrity)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateObjectData_VerifyIntegrity);
 			DistanceFieldSceneData.VerifyIntegrity();
 		}
 	}

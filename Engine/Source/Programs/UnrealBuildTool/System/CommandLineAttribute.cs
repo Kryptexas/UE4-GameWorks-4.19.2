@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// Attribute to indicate the name of a command line argument
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
-	class CommandLineAttribute : Attribute
+	public class CommandLineAttribute : Attribute
 	{
 		/// <summary>
 		/// Prefix for the option, with a leading '-' and trailing '=' character if a value is expected.

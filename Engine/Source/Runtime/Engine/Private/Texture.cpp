@@ -375,7 +375,10 @@ void UTexture::FinishDestroy()
 
 	CleanupCachedRunningPlatformData();
 #if WITH_EDITOR
-	ClearAllCachedCookedPlatformData();
+	if (!GExitPurge)
+	{
+		ClearAllCachedCookedPlatformData();
+	}
 #endif
 }
 

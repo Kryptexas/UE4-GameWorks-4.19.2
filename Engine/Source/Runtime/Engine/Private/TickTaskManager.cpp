@@ -82,7 +82,7 @@ FAutoConsoleTaskPriority CPrio_CleanupTaskPriority(
 	TEXT("TaskGraph.TaskPriorities.TickCleanupTaskPriority"),
 	TEXT("Task and thread priority for tick cleanup."),
 	ENamedThreads::BackgroundThreadPriority, // if we have background priority task threads, then use them...
-	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority, // .. at high task priority
 	ENamedThreads::NormalTaskPriority // if we don't have background threads, then use normal priority threads at normal task priority instead
 	);
 

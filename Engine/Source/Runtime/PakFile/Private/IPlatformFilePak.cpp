@@ -2320,6 +2320,7 @@ public:
 			if (NumToTrim)
 			{
 				CachedPakData.RemoveAt(CachedPakData.Num() - NumToTrim, NumToTrim);
+				LastReadRequest = 0;
 			}
 		}
 		else

@@ -17,6 +17,8 @@ FQueuedThreadPool* GThreadPool = nullptr;
 
 FQueuedThreadPool* GIOThreadPool = nullptr;
 
+FQueuedThreadPool* GBackgroundPriorityThreadPool = nullptr;
+
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
 #endif

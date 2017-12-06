@@ -377,10 +377,18 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 		break;
 
 	case EHostType::ServerOnly:
+#if IS_PROGRAM
+		return false;
+#else
 		return !FPlatformProperties::IsClientOnly();
+#endif
 
 	case EHostType::ClientOnly:
+#if IS_PROGRAM
+		return false;
+#else
 		return !FPlatformProperties::IsServerOnly();
+#endif
 
 	}
 

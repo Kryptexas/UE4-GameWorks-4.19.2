@@ -475,6 +475,11 @@ bool FImgMediaPlayer::FetchVideo(TRange<FTimespan> TimeRange, TSharedPtr<IMediaT
 		return false; // nothing to play
 	}
 
+	if (SelectedVideoTrack != 0)
+	{
+		return false; // no video track selected
+	}
+
 	TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe> Sample = Loader->GetFrameSample(CurrentTime);
 
 	if (!Sample.IsValid())

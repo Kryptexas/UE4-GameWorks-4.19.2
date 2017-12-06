@@ -479,6 +479,13 @@ public:
 	/** Flag indicating the client correction was larger than NetworkLargeClientCorrectionThreshold. */
 	uint32 bNetworkLargeClientCorrection:1;
 
+	/**
+	 * Whether we skip prediction on frames where a proxy receives a network update. This can avoid expensive prediction on those frames,
+	 * with the side-effect of predicting with a frame of additional latency.
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly)
+	uint32 bNetworkSkipProxyPredictionOnNetUpdate:1;
+
 public:
 
 	/** true to update CharacterOwner and UpdatedComponent after movement ends */
@@ -752,7 +759,7 @@ public:
 	ENetworkSmoothingMode NetworkSmoothingMode;
 
 	/**
-	 * Minimum time on the server between acknowledinging good client moves. This can save on bandwidth. Set to 0 to disable throttling.
+	 * Minimum time on the server between acknowledging good client moves. This can save on bandwidth. Set to 0 to disable throttling.
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
 	float NetworkMinTimeBetweenClientAckGoodMoves;

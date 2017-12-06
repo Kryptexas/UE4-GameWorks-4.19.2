@@ -97,6 +97,9 @@ enum ESaveFlags
 	SAVE_Unversioned	= 0x00000020,	// Save all versions as zero. Upon load this is changed to the current version. This is only reasonable to use with full cooked builds for distribution.
 	SAVE_CutdownPackage	= 0x00000040,	// Saving cutdown packages in a temp location WITHOUT renaming the package.
 	SAVE_KeepEditorOnlyCookedPackages = 0x00000080,  // keep packages which are marked as editor only even though we are cooking
+	SAVE_Concurrent		= 0x00000100,	// We are save packages in multiple threads at once and should not call non-threadsafe functions or rely on globals. GIsSavingPackage should be set and PreSave/Postsave functions should be called before/after the entire concurrent save.
+	SAVE_DiffOnly       = 0x00000200, // Serializes the package to a special memory archive that performs a diff with an existing file on disk
+	SAVE_DiffCallstack  = 0x00000400, // Serializes the package to a special memory archive that compares all differences against a file on disk and dumps relevant callstacks
 };
 
 //

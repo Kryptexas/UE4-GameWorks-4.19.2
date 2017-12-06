@@ -308,7 +308,7 @@ struct FScopedSQHitchRepeater
 		delete OriginalBuffer;
 	}
 #else
-	FScopedSQHitchRepeater(BufferType& OutBuffer, FPxQueryFilterCallback& PQueryCallback, const FHitchDetectionInfo&)
+	FScopedSQHitchRepeater(BufferType& OutBuffer, FPxQueryFilterCallback& PQueryCallback, const FHitchDetectionInfo& InHitchDetectionInfo) 
 		: UserBuffer(OutBuffer)
 	{
 	}

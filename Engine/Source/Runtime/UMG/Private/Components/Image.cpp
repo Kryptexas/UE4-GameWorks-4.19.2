@@ -94,6 +94,7 @@ void UImage::SetBrush(const FSlateBrush& InBrush)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -104,6 +105,7 @@ void UImage::SetBrushFromAsset(USlateBrushAsset* Asset)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -132,6 +134,7 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -148,6 +151,7 @@ void UImage::SetBrushFromTextureDynamic(UTexture2DDynamic* Texture, bool bMatchS
 	if (MyImage.IsValid())
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -160,6 +164,7 @@ void UImage::SetBrushFromMaterial(UMaterialInterface* Material)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 

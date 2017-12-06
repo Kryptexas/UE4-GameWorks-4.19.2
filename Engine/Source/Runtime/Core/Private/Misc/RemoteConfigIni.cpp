@@ -396,9 +396,9 @@ static const TCHAR* SpecialCharMap[NUM_SPECIAL_CHARS][2] =
 	{ TEXT("{"), TEXT("~OpenBracket~") },
 	{ TEXT("}"), TEXT("~CloseBracket~") },
 	{ TEXT("\""), TEXT("~Quote~") },
-	{ TEXT("\\"), TEXT("~Backslash~")  },
-	{ TEXT("/"), TEXT("~Forwardslash~")  },
-	{ TEXT("|"), TEXT("~Bar~")  }
+	{ TEXT("\\"), TEXT("~Backslash~") },
+	{ TEXT("/"), TEXT("~Forwardslash~") },
+	{ TEXT("|"), TEXT("~Bar~") }
 };
 
 

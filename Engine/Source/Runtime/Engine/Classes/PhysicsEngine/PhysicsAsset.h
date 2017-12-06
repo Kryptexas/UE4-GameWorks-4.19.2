@@ -265,6 +265,10 @@ public:
 	FPhysicalAnimationProfile CurrentPhysicalAnimationProfile;
 #endif
 
+	/** If true we ignore scale changes from animation. This is useful for subtle scale animations like breathing where the physics collision should remain unchanged*/
+	UPROPERTY(EditAnywhere, Category = BodySetup)
+	bool bSkipScaleFromAnimation;
+
 private:
 	UPROPERTY()
 	TArray<FPhysicalAnimationProfile> PhysicalAnimationData;

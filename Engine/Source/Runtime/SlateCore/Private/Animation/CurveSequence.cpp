@@ -17,7 +17,7 @@ FCurveSequence::FCurveSequence( )
 	, bIsPaused(false)
 { }
 
-FCurveSequence::FCurveSequence( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction )
+FCurveSequence::FCurveSequence( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction InEaseFunction )
 	: StartTime(0)
 	, TotalDuration(0)
 	, bInReverse(true)
@@ -39,7 +39,7 @@ FCurveSequence::~FCurveSequence()
 	}
 }
 
-FCurveHandle FCurveSequence::AddCurve( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction )
+FCurveHandle FCurveSequence::AddCurve( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction InEaseFunction )
 {
 	// Keep track of how long this sequence is
 	TotalDuration = FMath::Max(TotalDuration, InStartTimeSeconds + InDurationSeconds);
@@ -52,7 +52,7 @@ FCurveHandle FCurveSequence::AddCurve( const float InStartTimeSeconds, const flo
 }
 
 
-FCurveHandle FCurveSequence::AddCurveRelative( const float InOffset, const float InDurationSecond, const ECurveEaseFunction::Type InEaseFunction )
+FCurveHandle FCurveSequence::AddCurveRelative( const float InOffset, const float InDurationSecond, const ECurveEaseFunction InEaseFunction )
 {
 	const float CurveStartTime = TotalDuration + InOffset;
 	return AddCurve(CurveStartTime, InDurationSecond, InEaseFunction);

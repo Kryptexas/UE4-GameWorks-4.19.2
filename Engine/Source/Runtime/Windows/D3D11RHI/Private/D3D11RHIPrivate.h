@@ -272,14 +272,7 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	/** GPU hitch profile histories */
 	TIndirectArray<FD3D11EventNodeFrame> GPUHitchEventNodeFrames;
 
-	FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI) :
-		FGPUProfiler(),
-		FrameTiming(InD3DRHI, 4),
-		D3D11RHI(InD3DRHI)
-	{
-		// Initialize Buffered timestamp queries 
-		FrameTiming.InitResource();
-	}
+	FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI);
 
 	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
@@ -556,6 +549,13 @@ public:
 		return Direct3DDeviceIMContext;
 	}
 
+#if NV_AFTERMATH
+	GFSDK_Aftermath_ContextHandle GetNVAftermathContext()
+	{
+		return NVAftermathIMContextHandle;
+	}
+#endif
+
 	IDXGIFactory1* GetFactory() const
 	{
 		return DXGIFactory1;
@@ -638,6 +638,10 @@ protected:
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11DeviceContext> Direct3DDeviceIMContext;
+
+#if NV_AFTERMATH
+	GFSDK_Aftermath_ContextHandle NVAftermathIMContextHandle;
+#endif
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11Device> Direct3DDevice;

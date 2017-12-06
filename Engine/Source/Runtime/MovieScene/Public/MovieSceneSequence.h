@@ -17,7 +17,7 @@ struct FMovieScenePossessable;
 /**
  * Abstract base class for movie scene animations (C++ version).
  */
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, Config = Engine)
 class UMovieSceneSequence
 	: public UMovieSceneSignedObject
 {
@@ -169,6 +169,10 @@ public:
 
 	UPROPERTY()
 	TMap<UObject*, FCachedMovieSceneEvaluationTemplate> InstancedSubSequenceEvaluationTemplates;
+
+	/* The default completion mode for this movie scene when a section's completion mode is set to project default */
+	UPROPERTY(config)
+	EMovieSceneCompletionMode DefaultCompletionMode;
 
 public:
 

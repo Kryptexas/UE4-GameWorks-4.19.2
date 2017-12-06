@@ -157,6 +157,28 @@ class UDataTable
 		return reinterpret_cast<T*>(RowData);
 	}
 
+	/** Perform some operation for every row. */
+	template <class T>
+	void ForeachRow(const FString& ContextString, TFunctionRef<void (const FName& Key, const T& Value)> Predicate) const
+	{
+		if (RowStruct == nullptr)
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : DataTable '%s' has no RowStruct specified (%s)."), *GetPathName(), *ContextString);
+		}
+		else if (!RowStruct->IsChildOf(T::StaticStruct()))
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+		}
+		else
+		{
+			for (TMap<FName, uint8*>::TConstIterator RowMapIter(RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+			{
+				T* Entry = reinterpret_cast<T*>(RowMapIter.Value());
+				Predicate(RowMapIter.Key(), *Entry);
+			}
+		}
+	}
+
 	/** Returns the column property where PropertyName matches the name of the column property. Returns nullptr if no match is found or the match is not a supported table property */
 	ENGINE_API UProperty* FindTableProperty(const FName& PropertyName) const;
 
@@ -223,6 +245,9 @@ public:
 	/** Output entire contents of table as JSON */
 	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
+	/** Output entire contents of table as a JSON Object*/
+	ENGINE_API bool WriteTableAsJSONObject(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
+
 	/** Output the fields from a particular row (use RowMap to get RowData) to an existing JsonWriter */
 	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 #endif
@@ -241,6 +266,12 @@ public:
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString);
 
 	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
+	
+	/** 
+	 *	Create table from another Data Table
+	 *	@return	Set of problems encountered while processing input
+	 */
+	ENGINE_API TArray<FString> CreateTableFromOtherTable(const UDataTable* InTable);
 
 #if WITH_EDITOR
 	/** Get an array of all the column titles, using the friendly display name from the property */

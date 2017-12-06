@@ -2203,6 +2203,9 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 
 			if (RedirectorPackage == GetTransientPackage())
 			{
+				RedirIt->ClearFlags(FlagsToClear);
+				RedirIt->RemoveFromRoot();
+
 				continue;
 			}
 
@@ -4297,9 +4300,68 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
+bool UEditorEngine::InitializePhysicsSceneForSaveIfNecessary(UWorld* World)
+{
+	// We need a physics scene at save time in case code does traces during onsave events.
+	bool bHasPhysicsScene = false;
+
+	// First check if our owning world has a physics scene
+	if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+	{
+		bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+	}
+
+	// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
+	if (!bHasPhysicsScene)
+	{
+		bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
+	}
+
+
+	// If we didn't find any physics scene we will synthesize one and remove it after save
+	if (!bHasPhysicsScene)
+	{
+		// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
+		World->ClearWorldComponents();
+
+		if (World->bIsWorldInitialized)
+		{
+			// If we don't have a physics scene and the world was initialized without one (i.e. an inactive world) then we should create one here. We will remove it down below after the save
+			World->CreatePhysicsScene();
+		}
+		else
+		{
+			// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
+			World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
+		}
+
+		// Update components now that a physics scene exists.
+		World->UpdateWorldComponents(true, true);
+
+		// Set this to true so we can clean up what we just did down below
+		return true;
+	}
+
+	return false;
+}
+
+void UEditorEngine::CleanupPhysicsSceneThatWasInitializedForSave(UWorld* World)
+{
+	// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
+	World->ClearWorldComponents();
+	World->SetPhysicsScene(nullptr);
+	if (GPhysCommandHandler)
+	{
+		GPhysCommandHandler->Flush();
+	}
+
+	// Update components again in case it was a world without a physics scene but did have rendered components.
+	World->UpdateWorldComponents(true, true);
+}
+
 FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
-				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
+				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask, FArchiveDiffMap* InOutDiffMap)
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
 
@@ -4316,51 +4378,17 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 
 	UWorld* World = Cast<UWorld>(Base);
 	bool bInitializedPhysicsSceneForSave = false;
+	const bool bSavingConcurrent = !!(SaveFlags & ESaveFlags::SAVE_Concurrent);
 	
 	UWorld *OriginalOwningWorld = nullptr;
 	if ( World )
 	{
-		// We need a physics scene at save time in case code does traces during onsave events.
-		bool bHasPhysicsScene = false;
-
-		// First check if our owning world has a physics scene
-		if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+		if (!bSavingConcurrent)
 		{
-			bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+			bInitializedPhysicsSceneForSave = InitializePhysicsSceneForSaveIfNecessary(World);
+
+			OnPreSaveWorld(SaveFlags, World);
 		}
-		
-		// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
-		if (!bHasPhysicsScene)
-		{
-			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
-		}
-
-		
-		// If we didn't find any physics scene we will synthesize one and remove it after save
-		if (!bHasPhysicsScene)
-		{
-			// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
-			World->ClearWorldComponents();
-
-			if (World->bIsWorldInitialized)
-			{
-				// If we don't have a physics scene and the world was initialized without one (i.e. an inactive world) then we should create one here. We will remove it down below after the save
-				World->CreatePhysicsScene();
-			}
-			else
-			{
-				// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
-				World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
-			}
-
-			// Update components now that a physics scene exists.
-			World->UpdateWorldComponents(true, true);
-
-			// Set this to true so we can clean up what we just did down below
-			bInitializedPhysicsSceneForSave = true;
-		}
-
-		OnPreSaveWorld(SaveFlags, World);
 
 		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
 		World->PersistentLevel->OwningWorld = World;
@@ -4377,7 +4405,7 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 	SlowTask.EnterProgressFrame(70);
 
 	UPackage::PreSavePackageEvent.Broadcast(InOuter);
-	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask, InOutDiffMap);
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -4410,23 +4438,14 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
 		}
 
-		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
-
-		if (bInitializedPhysicsSceneForSave)
+		if (!bSavingConcurrent)
 		{
-			// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
-			World->ClearWorldComponents();
-			World->SetPhysicsScene(nullptr);
+			OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
 
-#if WITH_PHYSX
-			if (GPhysCommandHandler)
+			if (bInitializedPhysicsSceneForSave)
 			{
-				GPhysCommandHandler->Flush();
+				CleanupPhysicsSceneThatWasInitializedForSave(World);
 			}
-#endif	// WITH_PHYSX
-			
-			// Update components again in case it was a world without a physics scene but did have rendered components.
-			World->UpdateWorldComponents(true, true);
 
 			// Rerunning construction scripts may have made it dirty again
 			InOuter->SetDirtyFlag(false);

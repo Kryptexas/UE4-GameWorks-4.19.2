@@ -28,7 +28,7 @@
 #include "LightPropagationVolumeSettings.h"
 #include "PipelineStateCache.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ReflectionEnvironment, TEXT("Reflection Environment"));
 
 extern TAutoConsoleVariable<int32> CVarLPVMixing;
 
@@ -268,7 +268,7 @@ void FReflectionEnvironmentCubemapArray::ResizeCubemapArrayGPU(uint32 InMaxCubem
 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironment_ResizeCubemapArray);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
+		SCOPED_GPU_STAT(RHICmdList, ReflectionEnvironment)
 
 		// Copy the cubemaps, remapping the elements as necessary
 		FResolveParams ResolveParams;
@@ -795,7 +795,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		if(bRequiresApply)
 		{
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment);
+			SCOPED_GPU_STAT(RHICmdList, ReflectionEnvironment);
 			SCOPED_DRAW_EVENTF(RHICmdList, ReflectionEnvironment, TEXT("ReflectionEnvironment PixelShader"));
 
 			// Render the reflection environment with tiled deferred culling

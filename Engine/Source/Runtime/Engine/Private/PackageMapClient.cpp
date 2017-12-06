@@ -511,7 +511,7 @@ struct FExportFlags
 	}
 };
 
-static bool CanClientLoadObject( const UObject* Object, const FNetworkGUID& NetGUID )
+bool FNetGUIDCache::CanClientLoadObject( const UObject* Object, const FNetworkGUID& NetGUID ) const
 {
 	if ( !NetGUID.IsValid() || NetGUID.IsDynamic() )
 	{
@@ -520,7 +520,17 @@ static bool CanClientLoadObject( const UObject* Object, const FNetworkGUID& NetG
 
 	// PackageMapClient can't load maps, we must wait for the client to load the map when ready
 	// These guids are special guids, where the guid and all child guids resolve once the map has been loaded
-	if ( Object != NULL && Object->GetOutermost()->ContainsMap() )
+	if ( Object != nullptr && Object->GetOutermost()->ContainsMap() )
+	{
+		return false;
+	}
+
+	// If the object is null, we can't check whether the outermost contains a map anymore, so
+	// see if there is already a cache entry for the GUID and if so, use its existing NoLoad value.
+	// Fixes an edge case where if a GUID is being exported for a map object after the object is
+	// destroyed due to latency/timing issues, this function could return true and ultimately
+	// cause the server to try to re-load map objects.
+	if ( Object == nullptr && IsGUIDNoLoad(NetGUID) )
 	{
 		return false;
 	}
@@ -534,7 +544,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 {
 	check( Ar.IsSaving() );
 
-	const bool bNoLoad = !CanClientLoadObject( Object, NetGUID );
+	const bool bNoLoad = !GuidCache->CanClientLoadObject( Object, NetGUID );
 
 	if ( GuidCache->ShouldAsyncLoad() && IsNetGUIDAuthority() && !GuidCache->IsExportingNetGUIDBunch && !bNoLoad )
 	{
@@ -802,6 +812,15 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 			// If we get here, we want to go ahead and assign a network guid, 
 			// then export that to the client at the next available opportunity
 			check(IsNetGUIDAuthority());
+
+			// If the object is not a package and we couldn't find the outer, we have to bail out, since the
+			// relative path name is meaningless. This may happen if the outer has been garbage collected.
+			if (!bIsPackage && OuterGUID.IsValid() && ObjOuter == nullptr)
+			{
+				UE_LOG( LogNetPackageMap, Log, TEXT( "InternalLoadObject: couldn't find outer for non-package object. GUID: %s, PathName: %s" ), *NetGUID.ToString(), *PathName );
+				Object = nullptr;
+				return NetGUID;
+			}
 
 			Object = StaticFindObject(UObject::StaticClass(), ObjOuter, *PathName, false);
 
@@ -1639,15 +1658,15 @@ bool UPackageMapClient::ShouldSendFullPath( const UObject* Object, const FNetwor
 
 	if ( !Object->IsNameStableForNetworking() )
 	{
-		check( !NetGUID.IsDefault() );
-		check( NetGUID.IsDynamic() );
+		checkf( !NetGUID.IsDefault(), TEXT("Non-stably named object %s has a default NetGUID. %s"), *GetFullNameSafe(Object), *Connection->Describe() );
+		checkf( NetGUID.IsDynamic(), TEXT("Non-stably named object %s has static NetGUID [%s]. %s"), *GetFullNameSafe(Object), *NetGUID.ToString(), *Connection->Describe() );
 		return false;		// We only export objects that have stable names
 	}
 
 	if ( NetGUID.IsDefault() )
 	{
-		check( !IsNetGUIDAuthority() );
-		check( Object->IsNameStableForNetworking() );
+		checkf( !IsNetGUIDAuthority(), TEXT("A default NetGUID for object %s is being exported on the server. %s"), *GetFullNameSafe(Object), *Connection->Describe() );
+		checkf( Object->IsNameStableForNetworking(), TEXT("A default NetGUID is being exported for non-stably named object %s. %s"), *GetFullNameSafe(Object), *Connection->Describe() );
 		return true;
 	}
 
@@ -1928,7 +1947,7 @@ void FNetGUIDCache::CleanReferences()
 	UE_LOG( LogNetPackageMap, Log, TEXT( "FNetGUIDCache::CleanReferences: ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), ObjectLookup.Num(), NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
 }
 
-bool FNetGUIDCache::SupportsObject( const UObject* Object ) const
+bool FNetGUIDCache::SupportsObject( const UObject* Object, const TWeakObjectPtr<UObject>* WeakObjectPtr ) const
 {
 	// NULL is always supported
 	if ( !Object )
@@ -1936,9 +1955,12 @@ bool FNetGUIDCache::SupportsObject( const UObject* Object ) const
 		return true;
 	}
 
+	// Construct WeakPtr once: either use the passed in one or create a new one.
+	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : TWeakObjectPtr<UObject>(Object);
+
 	// If we already gave it a NetGUID, its supported.
 	// This should happen for dynamic subobjects.
-	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
+	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( WeakObject );
 
 	if ( NetGUID.IsValid() )
 	{
@@ -1982,9 +2004,12 @@ bool FNetGUIDCache::IsNetGUIDAuthority() const
 }
 
 /** Gets or assigns a new NetGUID to this object. Returns whether the object is fully mapped or not */
-FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
+FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object, const TWeakObjectPtr<UObject>* WeakObjectPtr)
 {
-	if ( !Object || !SupportsObject( Object ) )
+	// Construct WeakPtr once: either use the passed in one or create a new one.
+	const TWeakObjectPtr<UObject>& WeakObject = WeakObjectPtr ? *WeakObjectPtr : TWeakObjectPtr<UObject>(Object);
+
+	if ( !Object || !SupportsObject( Object, &WeakObject ) )
 	{
 		// Null of unsupported object, leave as default NetGUID and just return mapped=true
 		return FNetworkGUID();
@@ -1992,8 +2017,8 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
 
 	// ----------------
 	// Assign NetGUID if necessary
-	// ----------------
-	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
+	// ----------------	
+	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( WeakObject );
 
 	if ( NetGUID.IsValid() )
 	{
@@ -2006,7 +2031,7 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
 		if ( bReadOnly )
 		{
 			// Reset this object's guid, we will re-assign below (or send default as a client)
-			NetGUIDLookup.Remove( Object );
+			NetGUIDLookup.Remove( WeakObject );
 		}
 		else
 		{
@@ -2027,13 +2052,15 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
 
 FNetworkGUID FNetGUIDCache::GetNetGUID(const UObject* Object) const
 {
-	if ( !Object || !SupportsObject( Object ) )
+	TWeakObjectPtr<UObject> WeakObj(Object);
+
+	if ( !Object || !SupportsObject( Object, &WeakObj ) )
 	{
 		// Null of unsupported object, leave as default NetGUID and just return mapped=true
 		return FNetworkGUID();
 	}
 
-	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
+	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( WeakObj );
 	return NetGUID;
 }
 
@@ -2099,8 +2126,13 @@ void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const U
 
 	FNetGuidCacheObject CacheObject;
 
-	CacheObject.Object			= Object;
-	
+	CacheObject.Object				= Object;
+	CacheObject.OuterGUID			= GetOrAssignNetGUID( Object->GetOuter() );
+	CacheObject.PathName			= Object->GetFName();
+	CacheObject.NetworkChecksum		= GetNetworkChecksum( Object );
+	CacheObject.bNoLoad				= !CanClientLoadObject( Object, NetGUID );
+	CacheObject.bIgnoreWhenMissing	= CacheObject.bNoLoad;
+
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }
 
@@ -2362,12 +2394,6 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		return NULL;
 	}
 
-	if (IsNetGUIDAuthority())
-	{
-		// Warn when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
-		UE_LOG(LogNetPackageMap, Warning, TEXT("GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s"), *FullNetGUIDPath(NetGUID));
-	}
-
 	// First, resolve the outer
 	UObject* ObjOuter = NULL;
 
@@ -2426,7 +2452,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		if (IsNetGUIDAuthority())
 		{
 			// Log when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
-			UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s"), *FullNetGUIDPath(NetGUID));
+			UE_LOG(LogNetPackageMap, Warning, TEXT("GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s"), *FullNetGUIDPath(NetGUID));
 		}
 
 		if ( bIsPackage )
@@ -2672,6 +2698,28 @@ bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustB
 	}
 
 	return CacheObjectPtr->bIsBroken;
+}
+
+bool FNetGUIDCache::IsGUIDNoLoad( const FNetworkGUID& NetGUID ) const
+{
+	if ( !NetGUID.IsValid() )
+	{
+		return false;
+	}
+
+	if ( NetGUID.IsDefault() )
+	{
+		return false;
+	}
+
+	const FNetGuidCacheObject* const CacheObjectPtr = ObjectLookup.Find( NetGUID );
+
+	if ( CacheObjectPtr == nullptr )
+	{
+		return false;
+	}
+
+	return CacheObjectPtr->bNoLoad;
 }
 
 FString FNetGUIDCache::FullNetGUIDPath( const FNetworkGUID& NetGUID ) const

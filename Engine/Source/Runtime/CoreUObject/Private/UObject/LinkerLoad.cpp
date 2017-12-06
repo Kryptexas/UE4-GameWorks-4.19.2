@@ -1165,7 +1165,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		else
 		{
 			bool bAllSavedVersionsMatch = true;
-			const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
+			const FCustomVersionArray&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
 			for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
 			{
 				const FCustomVersion& SerializedCustomVersion = *It;
@@ -1222,8 +1222,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			// Propagate package flags
 			LinkerRootPackage->SetPackageFlagsTo(NewPackageFlags);
 
+#if WITH_EDITORONLY_DATA
 			// Propagate package folder name
 			LinkerRootPackage->SetFolderName(*Summary.FolderName);
+#endif
 
 			// Propagate streaming install ChunkID
 			LinkerRootPackage->SetChunkIDs(Summary.ChunkIDs);
@@ -1839,15 +1841,11 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 
 		if (GEventDrivenLoaderEnabled && AsyncRoot)
 		{
-			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
-			{
-				FPackageIndex Index = FPackageIndex::FromImport(ImportIndex);
-				AsyncRoot->ObjectNameToImportOrExport.Add(Imp(Index).ObjectName, Index);
-			}
 			for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 			{
 				FPackageIndex Index = FPackageIndex::FromExport(ExportIndex);
-				AsyncRoot->ObjectNameToImportOrExport.Add(Exp(Index).ObjectName, Index);
+				const FObjectExport& Export = Exp(Index);
+				AsyncRoot->ObjectNameWithOuterToExport.Add(TPair<FName, FPackageIndex>(Export.ObjectName, Export.OuterIndex), Index);
 			}
 		}
 
@@ -2778,6 +2776,7 @@ UClass* FLinkerLoad::GetExportLoadClass(int32 Index)
 	return ExportClass;
 }
 
+#if WITH_EDITORONLY_DATA
 int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 {
 	UMetaData* MetaData = nullptr;
@@ -2819,6 +2818,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 
 	return MetaDataIndex;
 }
+#endif
 
 /**
  * Loads all objects in package.
@@ -2852,10 +2852,12 @@ void FLinkerLoad::LoadAllObjects(bool bForcePreload)
 	// MetaData object index in this package.
 	int32 MetaDataIndex = INDEX_NONE;
 
+#if WITH_EDITORONLY_DATA
 	if(!FPlatformProperties::RequiresCookedData())
 	{
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
+#endif
 	
 #if USE_STABLE_LOCALIZATION_KEYS
 	if (GIsEditor && (LoadFlags & LOAD_ForDiff))

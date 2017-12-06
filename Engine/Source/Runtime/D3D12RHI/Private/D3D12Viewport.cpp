@@ -264,10 +264,10 @@ DXGI_MODE_DESC FD3D12Viewport::SetupDXGI_MODE_DESC() const
 	return Ret;
 }
 
-void FD3D12Viewport::CalculateSwapChainDepth()
+void FD3D12Viewport::CalculateSwapChainDepth(int32 DefaultSwapChainDepth)
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
-	NumBackBuffers = (Adapter->AlternateFrameRenderingEnabled()) ? (AFRNumBackBuffersPerNode * Adapter->GetNumGPUNodes()) : DefaultNumBackBuffers;
+	NumBackBuffers = (Adapter->AlternateFrameRenderingEnabled()) ? (AFRNumBackBuffersPerNode * Adapter->GetNumGPUNodes()) : DefaultSwapChainDepth;
 
 	BackBuffers.Empty();
 	BackBuffers.AddZeroed(NumBackBuffers);

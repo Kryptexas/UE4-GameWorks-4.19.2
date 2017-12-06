@@ -13,7 +13,7 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
+DECLARE_GPU_STAT(Lights);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 
@@ -317,7 +317,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 {
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderLights, FColor::Emerald);
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Lights);
+	SCOPED_GPU_STAT(RHICmdList, Lights);
 
 
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already

@@ -435,7 +435,7 @@ void UCheatManager::ViewPlayer( const FString& S )
 	for( FConstControllerIterator Iterator = GetWorld()->GetControllerIterator(); Iterator; ++Iterator )
 	{
 		Controller = Iterator->Get();
-		if ( Controller->PlayerState && (FCString::Stricmp(*Controller->PlayerState->PlayerName, *S) == 0 ) )
+		if ( Controller->PlayerState && (FCString::Stricmp(*Controller->PlayerState->GetPlayerName(), *S) == 0 ) )
 		{
 			break;
 		}
@@ -443,7 +443,7 @@ void UCheatManager::ViewPlayer( const FString& S )
 
 	if ( Controller && Controller->GetPawn() != NULL )
 	{
-		GetOuterAPlayerController()->ClientMessage(FText::Format(LOCTEXT("ViewPlayer", "Viewing from {0}"), FText::FromString(Controller->PlayerState->PlayerName)).ToString(), TEXT("Event"));
+		GetOuterAPlayerController()->ClientMessage(FText::Format(LOCTEXT("ViewPlayer", "Viewing from {0}"), FText::FromString(Controller->PlayerState->GetPlayerName())).ToString(), TEXT("Event"));
 		GetOuterAPlayerController()->SetViewTarget(Controller->GetPawn());
 	}
 }

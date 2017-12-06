@@ -1434,7 +1434,7 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 		// load from the specied filename when the linker has been cleared
 		checkf( Filename != TEXT(""), TEXT( "Attempted to load bulk data without a proper filename." ) );
 	
-		UE_CLOG(GEventDrivenLoaderEnabled && !(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+		UE_CLOG(GEventDrivenLoaderEnabled && (IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
 
 		if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 		{
@@ -1584,23 +1584,25 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 		check(Ar.IsCooking() && FormatsToSave); // this thing is for cooking only, and you need to provide a list of formats
 
 		int32 NumFormats = 0;
-		for (TMap<FName, FByteBulkData*>:: TIterator It(Formats); It; ++It)
+		for (const TPair<FName, FByteBulkData*>& Format : Formats)
 		{
-			if (FormatsToSave->Contains(It.Key()) && It.Value()->GetBulkDataSize() > 0)
+			const FName Name = Format.Key;
+			FByteBulkData* Bulk = Format.Value;
+			check(Bulk);
+			if (FormatsToSave->Contains(Name) && Bulk->GetBulkDataSize() > 0)
 			{
 				NumFormats++;
 			}
 		}
 		Ar << NumFormats;
-		for (TMap<FName, FByteBulkData*>:: TIterator It(Formats); It; ++It)
+		for (const TPair<FName, FByteBulkData*>& Format : Formats)
 		{
-			if (FormatsToSave->Contains(It.Key()) && It.Value()->GetBulkDataSize() > 0)
+			FName Name = Format.Key;
+			FByteBulkData* Bulk = Format.Value;
+			if (FormatsToSave->Contains(Name) && Bulk->GetBulkDataSize() > 0)
 			{
 				NumFormats--;
-				FName Name = It.Key();
 				Ar << Name;
-				FByteBulkData* Bulk = It.Value();
-				check(Bulk);
 				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
 				const uint32 OldBulkDataFlags = Bulk->GetBulkDataFlags();
 				Bulk->SetBulkDataFlags(bSingleUse ? (BULKDATA_ForceInlinePayload | BULKDATA_SingleUse) : BULKDATA_ForceInlinePayload);				

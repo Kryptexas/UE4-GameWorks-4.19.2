@@ -24,6 +24,7 @@
 #include "Animation/AnimNode_StateMachine.h"
 #include "SkeletalRenderPublic.h"
 #include "Rendering/SkeletalMeshRenderData.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 /** Anim stats */
 
@@ -50,9 +51,6 @@ DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
 DEFINE_STAT(STAT_NativeUpdateAnimation);
 DEFINE_STAT(STAT_Montage_Advance);
 DEFINE_STAT(STAT_Montage_UpdateWeight);
-DEFINE_STAT(STAT_AnimMontageInstance_Advance);
-DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
-DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
 DEFINE_STAT(STAT_UpdateCurves);
 DEFINE_STAT(STAT_LocalBlendCSBoneTransforms);
 
@@ -2381,14 +2379,10 @@ void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBl
 {
 	for (int32 InstanceIndex = MontageInstances.Num() - 1; InstanceIndex >= 0; InstanceIndex--)
 	{
-		// If we have emptied the entire list as a result of calling Stop previously, we can end up with an empty list
-		if (MontageInstances.IsValidIndex(InstanceIndex))
+		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+		if (MontageInstance && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
 		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
-			if (MontageInstance && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
-			{
-				MontageInstances[InstanceIndex]->Stop(BlendOut, true);
-			}
+			MontageInstances[InstanceIndex]->Stop(BlendOut, true);
 		}
 	}
 }
@@ -2767,6 +2761,28 @@ const FBoneContainer& UAnimInstance::GetRequiredBones() const
 void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight)
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
+}
+
+void UAnimInstance::PreInitializeRootNode()
+{
+	// This function should only be called on the CDO
+	check(HasAnyFlags(RF_ClassDefaultObject));
+
+	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(GetClass());
+	if(AnimClassInterface)
+	{
+		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+		{
+			if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
+			{
+				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(this);
+				if (AnimNode)
+				{
+					AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, this);
+				}
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE 

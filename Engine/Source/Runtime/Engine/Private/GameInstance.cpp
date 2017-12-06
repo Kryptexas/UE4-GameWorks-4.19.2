@@ -404,18 +404,20 @@ void UGameInstance::StartGameInstance()
 	
 	const TCHAR* Tmp = FCommandLine::Get();
 
-#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING
-	// In shipping don't allow a map override unless on server
+#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING && !ENABLE_PGO_PROFILE
+	// In shipping don't allow a map override unless on server, or running PGO profiling
 	Tmp = TEXT("");
-#endif // UE_BUILD_SHIPPING && !UE_SERVER
+#endif // UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING && !ENABLE_PGO_PROFILE
 
 #if !UE_SERVER
 	// Parse replay name if specified on cmdline
 	FString ReplayCommand;
 	if ( FParse::Value( Tmp, TEXT( "-REPLAY=" ), ReplayCommand ) )
 	{
-		PlayReplay( ReplayCommand );
-		return;
+		if(PlayReplay( ReplayCommand ))
+		{
+			return;
+		}
 	}
 #endif // !UE_SERVER
 
@@ -935,20 +937,20 @@ void UGameInstance::StopRecordingReplay()
 	}
 }
 
-void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)
+bool UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)
 {
 	UWorld* CurrentWorld = WorldOverride != nullptr ? WorldOverride : GetWorld();
 
 	if ( CurrentWorld == nullptr )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: GetWorld() is null" ) );
-		return;
+		return false;
 	}
 
 	if ( CurrentWorld->WorldType == EWorldType::PIE )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
-		return;
+		return false;
 	}
 
 	CurrentWorld->DestroyDemoNetDriver();
@@ -968,7 +970,7 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 	if ( !GEngine->CreateNamedNetDriver( CurrentWorld, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
 	{
 		UE_LOG(LogDemo, Warning, TEXT( "PlayReplay: failed to create demo net driver!" ) );
-		return;
+		return false;
 	}
 
 	CurrentWorld->DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( CurrentWorld, NAME_DemoNetDriver ) );
@@ -988,6 +990,8 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 	{
 		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
 	}
+
+	return true;
 }
 
 void UGameInstance::AddUserToReplay(const FString& UserString)

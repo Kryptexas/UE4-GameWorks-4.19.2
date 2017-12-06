@@ -619,7 +619,10 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 			}
 
 			// return unhandled in case our parent wants to use our right mouse button to open a context menu
-			return FReply::Unhandled().ReleaseMouseCapture();
+			if (DistanceDragged == 0.f)
+			{
+				return FReply::Unhandled().ReleaseMouseCapture();
+			}
 		}
 		
 		bPanning = false;

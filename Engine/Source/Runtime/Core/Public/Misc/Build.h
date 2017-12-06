@@ -96,6 +96,13 @@
 	#define WITH_PERFCOUNTERS		0
 #endif
 
+/** 
+ * Whether we are compiling a PGO instrumented build.
+ */
+#ifndef ENABLE_PGO_PROFILE
+	#define ENABLE_PGO_PROFILE 0
+#endif
+
 /**
  * Unreal Header Tool requires extra data stored in the structure of a few core files. This enables some ifdef hacks to make this work. 
  * Set via UBT, do not modify directly
@@ -170,9 +177,21 @@
 	#define USE_CHECKS_IN_SHIPPING 0
 #endif
 
+#ifndef ALLOW_CONSOLE_IN_SHIPPING
+	#define ALLOW_CONSOLE_IN_SHIPPING 0
+#endif
+
 /** Compile flag to force stats to be compiled */
 #ifndef FORCE_USE_STATS
 	#define FORCE_USE_STATS 0
+#endif
+
+/**
+ *	Optionally enable support for named events from the stat macros without the stat system overhead
+ *	This will attempt to disable regular stats system and use named events instead
+ */
+#ifndef ENABLE_STATNAMEDEVENTS
+	#define ENABLE_STATNAMEDEVENTS	0
 #endif
 
 /*--------------------------------------------------------------------------------
@@ -189,21 +208,21 @@
 #if UE_BUILD_DEBUG
 	#define DO_GUARD_SLOW									1
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS)
+	#define STATS											((!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS) && !ENABLE_STATNAMEDEVENTS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_DEVELOPMENT
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS)
+	#define STATS											((!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER || FORCE_USE_STATS) && !ENABLE_STATNAMEDEVENTS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_TEST
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										USE_CHECKS_IN_SHIPPING
-	#define STATS											(USE_MALLOC_PROFILER || FORCE_USE_STATS)
+	#define STATS											((USE_MALLOC_PROFILER || FORCE_USE_STATS) && !ENABLE_STATNAMEDEVENTS)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										!USE_LOGGING_IN_SHIPPING
@@ -218,9 +237,9 @@
 	#else
 		#define DO_GUARD_SLOW								0
 		#define DO_CHECK									USE_CHECKS_IN_SHIPPING
-		#define STATS										FORCE_USE_STATS
+		#define STATS										(FORCE_USE_STATS && !ENABLE_STATNAMEDEVENTS)
 		#define ALLOW_DEBUG_FILES							0
-		#define ALLOW_CONSOLE								0
+		#define ALLOW_CONSOLE								ALLOW_CONSOLE_IN_SHIPPING
 		#define NO_LOGGING									!USE_LOGGING_IN_SHIPPING
 	#endif
 #else
@@ -265,3 +284,22 @@
 #define ALLOW_PROFILEGPU_IN_TEST 0
 // draw events with "TOGGLEDRAWEVENTS" "r.ShowMaterialDrawEvents" (for ProfileGPU, Pix, Razor, RenderDoc, ...) and the "ProfileGPU" command are normally compiled out for TEST and SHIPPING
 #define WITH_PROFILEGPU (!(UE_BUILD_SHIPPING || UE_BUILD_TEST) || (UE_BUILD_TEST && ALLOW_PROFILEGPU_IN_TEST))
+
+#ifndef ALLOW_CHEAT_CVARS_IN_TEST
+	#define ALLOW_CHEAT_CVARS_IN_TEST 1
+#endif
+
+#define DISABLE_CHEAT_CVARS (UE_BUILD_SHIPPING || (UE_BUILD_TEST && !ALLOW_CHEAT_CVARS_IN_TEST))
+
+// Controls the creation of a thread for detecting hangs (FThreadHeartBeat). This is subject to other criteria, USE_HANG_DETECTION
+#ifndef ALLOW_HANG_DETECTION
+	#define ALLOW_HANG_DETECTION 1
+#endif
+#define USE_HANG_DETECTION (ALLOW_HANG_DETECTION && !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG)
+
+// Controls the creation of a thread for detecting hitches (FGameThreadHitchHeartBeat). This is subject to other criteria, USE_HITCH_DETECTION
+#ifndef ALLOW_HITCH_DETECTION
+	#define ALLOW_HITCH_DETECTION 0
+#endif
+
+#define USE_HITCH_DETECTION (ALLOW_HITCH_DETECTION && !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG)

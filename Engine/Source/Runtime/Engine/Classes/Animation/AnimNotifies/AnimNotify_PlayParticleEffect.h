@@ -11,6 +11,7 @@
 class UAnimSequenceBase;
 class UParticleSystem;
 class USkeletalMeshComponent;
+class UParticleSystemComponent;
 
 UCLASS(const, hidecategories=Object, collapsecategories, meta=(DisplayName="Play Particle Effect"))
 class ENGINE_API UAnimNotify_PlayParticleEffect : public UAnimNotify
@@ -55,6 +56,10 @@ public:
 private:
 	// Cached version of the Rotation Offset already in Quat form
 	FQuat RotationOffsetQuat;
+
+protected:
+	// Spawns the ParticleSystemComponent. Called from Notify.
+	virtual UParticleSystemComponent* SpawnParticleSystem(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);
 
 public:
 

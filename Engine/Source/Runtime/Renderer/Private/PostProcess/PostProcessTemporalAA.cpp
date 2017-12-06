@@ -769,7 +769,7 @@ FRCPassPostProcessTemporalAA::FRCPassPostProcessTemporalAA(
 	}
 }
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("TAA"), Stat_GPU_TAA, STATGROUP_GPU);
+DECLARE_GPU_STAT(TAA)
 
 void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Context)
 {
@@ -792,7 +792,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	FIntRect SrcRect = Context.View.ViewRect;
 	FIntRect DestRect = SrcRect;
 
-	SCOPED_GPU_STAT(Context.RHICmdList, Stat_GPU_TAA);
+	SCOPED_GPU_STAT(Context.RHICmdList, TAA);
 	if (bIsComputePass)
 	{
 		const TCHAR* PassName = TEXT("AA");

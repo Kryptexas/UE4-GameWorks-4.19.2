@@ -315,15 +315,11 @@ public:
 	/* Used to upgrade a float or int8/int16/int32 property into an FScalableFloat */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
-	static void InvalidateAllCachedCurves();
-
 private:
 
 	// Cached direct pointer to RichCurve we should evaluate
 	mutable FRichCurve* FinalCurve;
 	mutable int32 LocalCachedCurveID;
-
-	static int32 GlobalCachedCurveID;
 };
 
 template<>

@@ -56,6 +56,7 @@
     <Compile Include="BuildCommand.cs" />
     <Compile Include="BuildUtils.cs" />
     <Compile Include="CommandEnvironment.cs" />
+    <Compile Include="DeviceReservation.cs" />
     <Compile Include="FilePattern.cs" />
     <Compile Include="ManagedProcess.cs" />
     <Compile Include="CommandletUtils.cs" />

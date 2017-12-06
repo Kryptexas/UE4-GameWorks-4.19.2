@@ -6,6 +6,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SInvalidationPanel.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -76,6 +77,7 @@ void UTextBlock::SetFont(FSlateFontInfo InFontInfo)
 	if (MyTextBlock.IsValid())
 	{
 		MyTextBlock->SetFont(Font);
+		MyTextBlock->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -95,6 +97,50 @@ void UTextBlock::SetMinDesiredWidth(float InMinDesiredWidth)
 	{
 		MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
 	}
+}
+
+UMaterialInstanceDynamic* UTextBlock::GetDynamicFontMaterial()
+{
+	if (ensure(Font.FontMaterial))
+	{
+		UMaterialInterface* Material = CastChecked<UMaterialInterface>(Font.FontMaterial);
+
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if (!DynamicMaterial)
+		{
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			Font.FontMaterial = DynamicMaterial;
+
+			SetFont(Font);
+		}
+
+		return DynamicMaterial;
+	}
+
+	return nullptr;
+}
+
+UMaterialInstanceDynamic* UTextBlock::GetDynamicOutlineMaterial()
+{
+	if (ensure(Font.OutlineSettings.OutlineMaterial))
+	{
+		UMaterialInterface* Material = CastChecked<UMaterialInterface>(Font.OutlineSettings.OutlineMaterial);
+
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if (!DynamicMaterial)
+		{
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			Font.OutlineSettings.OutlineMaterial = DynamicMaterial;
+
+			SetFont(Font);
+		}
+
+		return DynamicMaterial;
+	}
+
+	return nullptr;
 }
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()

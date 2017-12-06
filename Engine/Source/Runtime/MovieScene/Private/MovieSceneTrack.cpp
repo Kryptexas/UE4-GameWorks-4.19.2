@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTrack.h"
+#include "MovieScene.h"
 #include "Evaluation/MovieSceneSegment.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 #include "Compilation/MovieSceneCompilerRules.h"
@@ -305,7 +306,7 @@ EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& O
 				FMovieSceneEvalTemplatePtr NewTemplate = CreateTemplateForSection(*AllSections[SectionIndex]);
 				if (NewTemplate.IsValid())
 				{
-					NewTemplate->SetCompletionMode(AllSections[SectionIndex]->EvalOptions.CompletionMode);
+					NewTemplate->SetCompletionMode(AllSections[SectionIndex]->EvalOptions.CompletionMode == EMovieSceneCompletionMode::ProjectDefault ? Args.DefaultCompletionMode : AllSections[SectionIndex]->EvalOptions.CompletionMode);
 					NewTemplate->SetSourceSection(AllSections[SectionIndex]);
 				}
 				return NewTemplate;

@@ -25,7 +25,7 @@ DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Apply Delta"),STAT_MorphVertexBuffe
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Alloc"), STAT_MorphVertexBuffer_Alloc, STATGROUP_MorphTarget);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer RHI Lock and copy"), STAT_MorphVertexBuffer_RhiLockAndCopy, STATGROUP_MorphTarget);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer RHI Unlock"), STAT_MorphVertexBuffer_RhiUnlock, STATGROUP_MorphTarget);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Morph Target Compute"), Stat_GPU_MorphTargets, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(MorphTargets, TEXT("Morph Target Compute"));
 
 static TAutoConsoleVariable<int32> CVarMotionBlurDebug(
 	TEXT("r.MotionBlurDebug"),
@@ -639,7 +639,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 		MorphVertexBuffer.RecreateResourcesIfRequired(GUseGPUMorphTargets != 0);
 
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_MorphTargets);
+		SCOPED_GPU_STAT(RHICmdList, MorphTargets);
 
 		SCOPED_DRAW_EVENTF(RHICmdList, MorphUpdate,
 			TEXT("MorphUpdate LodVertices=%d Threads=%d"),

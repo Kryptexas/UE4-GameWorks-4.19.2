@@ -243,6 +243,21 @@ FNameEntrySerialized::FNameEntrySerialized(const FNameEntry& NameEntry)
 	}
 }
 
+/**
+ * @return FString of name portion minus number.
+ */
+FString FNameEntrySerialized::GetPlainNameString() const
+{
+	if( IsWide() )
+	{
+		return FString(WideName);
+	}
+	else
+	{
+		return FString(AnsiName);
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	FName statics.
 -----------------------------------------------------------------------------*/
@@ -1165,51 +1180,14 @@ void FName::AutoTest()
 	FNameEntry implementation.
 -----------------------------------------------------------------------------*/
 
-FArchive& operator<<( FArchive& Ar, FNameEntry& E )
+void FNameEntry::Write( FArchive& Ar ) const
 {
-	if( Ar.IsLoading() )
-	{
-		// for optimization reasons, we want to keep pure Ansi strings as Ansi for initializing the name entry
-		// (and later the FName) to stop copying in and out of TCHARs
-		int32 StringLen;
-		Ar << StringLen;
+	// This path should be unused - since FNameEntry structs are allocated with a dynamic size, we can only save them. Use FNameEntrySerialized to read them back into an intermediate buffer.
+	checkf(!Ar.IsLoading(), TEXT("FNameEntry does not support reading from an archive. Serialize into a FNameEntrySerialized and construct a FNameEntry from that."));
 
-		// negative stringlen means it's a wide string
-		if (StringLen < 0)
-		{
-			StringLen = -StringLen;
-
-			// mark the name will be wide
-			E.PreSetIsWideForSerialization(true);
-
-			// get the pointer to the wide array 
-			WIDECHAR* WideName = const_cast<WIDECHAR*>(E.GetWideName());
-
-			// read in the UCS2CHAR string and byteswap it, etc
-			auto Sink = StringMemoryPassthru<UCS2CHAR>(WideName, StringLen, StringLen);
-			Ar.Serialize(Sink.Get(), StringLen * sizeof(UCS2CHAR));
-			Sink.Apply();
-
-			INTEL_ORDER_TCHARARRAY(WideName)
-		}
-		else
-		{
-			// mark the name will be ansi
-			E.PreSetIsWideForSerialization(false);
-
-			// ansi strings can go right into the AnsiBuffer
-			ANSICHAR* AnsiName = const_cast<ANSICHAR*>(E.GetAnsiName());
-			Ar.Serialize(AnsiName, StringLen);
-		}
-	}
-	else
-	{
-		// Convert to our serialized type
-		FNameEntrySerialized EntrySerialized(E);
-		Ar << EntrySerialized;
-	}
-
-	return Ar;
+	// Convert to our serialized type
+	FNameEntrySerialized EntrySerialized(*this);
+	Ar << EntrySerialized;
 }
 
 FArchive& operator<<(FArchive& Ar, FNameEntrySerialized& E)

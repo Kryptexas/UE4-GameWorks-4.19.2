@@ -152,6 +152,11 @@ public:
 		return true;
 	}
 
+	virtual FString IniPlatformName() const override
+	{
+		return "Android";
+	}
+
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override;
 

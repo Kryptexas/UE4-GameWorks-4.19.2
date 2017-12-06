@@ -552,6 +552,7 @@ struct FClassExclusionData
 	{
 		FName OriginalClassName = InClass->GetFName();
 
+		FScopeLock ScopeLock(&ExclusionListCrit);
 		if (CachedExcludeList.Contains(OriginalClassName))
 		{
 			return true;
@@ -591,6 +592,8 @@ struct FClassExclusionData
 
 	void UpdateExclusionList(const TArray<FString>& InClassNames, const TArray<FString>& InPackageShortNames)
 	{
+		FScopeLock ScopeLock(&ExclusionListCrit);
+
 		ExcludedClassNames.Empty(InClassNames.Num());
 		ExcludedPackageShortNames.Empty(InPackageShortNames.Num());
 		CachedIncludeList.Empty();
@@ -606,6 +609,9 @@ struct FClassExclusionData
 			ExcludedPackageShortNames.Add(FName(*PkgName));
 		}
 	}
+
+private:
+	FCriticalSection ExclusionListCrit;
 };
 
 FClassExclusionData GDedicatedServerExclusionList;

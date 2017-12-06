@@ -2464,10 +2464,12 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 			UWorld* LevelWorld = CastChecked<UWorld>(Level->GetOuter());
 			LevelWorld->MarkObjectsPendingKill();
 			LevelWorld->MarkPendingKill();
+#if WITH_EDITORONLY_DATA
 			if (LevelPackage->MetaData)
 			{
 				LevelPackage->MetaData->MarkPendingKill();
 			}
+#endif
 		}
 	}
 
@@ -2797,14 +2799,18 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	// NOTE: AllowLevelLoadRequests not an invariant as streaming might affect the result, do NOT pulled out of the loop.
 	bool bAllowLevelLoadRequests =	bShouldBlockOnLoad || AllowLevelLoadRequests();
 
-	// Figure out whether there are any levels we haven't collected garbage yet.
-	bool bAreLevelsPendingPurge	=	FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
-	// Request a 'soft' GC if there are levels pending purge and there are levels to be loaded. In the case of a blocking
-	// load this is going to guarantee GC firing first thing afterwards and otherwise it is going to sneak in right before
-	// kicking off the async load.
-	if (bAreLevelsPendingPurge)
+	if (GLevelStreamingContinuouslyIncrementalGCWhileLevelsPendingPurge)
 	{
-		GEngine->ForceGarbageCollection( false );
+		// Figure out whether there are any levels we haven't collected garbage yet.
+		bool bAreLevelsPendingPurge = FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
+
+		// Request a 'soft' GC if there are levels pending purge and there are levels to be loaded. In the case of a blocking
+		// load this is going to guarantee GC firing first thing afterwards and otherwise it is going to sneak in right before
+		// kicking off the async load.
+		if (bAreLevelsPendingPurge)
+		{
+			GEngine->ForceGarbageCollection( false );
+		}
 	}
 
 	// See whether level is already loaded
@@ -2909,9 +2915,12 @@ void UWorld::UpdateLevelStreaming()
 	}
 			
 	// In case more levels has been requested to unload, force GC on next tick 
-	if (NumLevelsPendingPurge < FLevelStreamingGCHelper::GetNumLevelsPendingPurge())
+	if (GLevelStreamingForceGCAfterLevelStreamedOut != 0)
 	{
-		GEngine->ForceGarbageCollection(true); 
+		if (NumLevelsPendingPurge < FLevelStreamingGCHelper::GetNumLevelsPendingPurge())
+		{
+			GEngine->ForceGarbageCollection(true); 
+		}
 	}
 }
 
@@ -3066,7 +3075,9 @@ bool UWorld::AllowLevelLoadRequests()
 	// Always allow level load request in the editor or when we do full streaming flush
 	if (IsGameWorld() && FlushLevelStreamingType != EFlushLevelStreamingType::Full)
 	{
-		const bool bAreLevelsPendingPurge = FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
+		const bool bAreLevelsPendingPurge = 
+			GLevelStreamingForceGCAfterLevelStreamedOut != 0 &&
+			FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
 		
 		// Let code choose. Hold off queueing in case: 
 		// We are only flushing levels visibility
@@ -3074,7 +3085,7 @@ bool UWorld::AllowLevelLoadRequests()
 		// There pending load requests and gameplay has already started.
 		const bool bWorldIsRendering = GetGameViewport() != nullptr && !GetGameViewport()->bDisableWorldRendering;
 		const bool bIsPlayingWhileLoading = ( IsAsyncLoading() && bWorldIsRendering && GetTimeSeconds() > 1.f );
-		if (bAreLevelsPendingPurge || FlushLevelStreamingType == EFlushLevelStreamingType::Visibility || bIsPlayingWhileLoading)
+		if (bAreLevelsPendingPurge || FlushLevelStreamingType == EFlushLevelStreamingType::Visibility || (bIsPlayingWhileLoading && !GLevelStreamingAllowLevelRequestsWhileAsyncLoadingInMatch))
 		{
 			return false;
 		}
@@ -4104,7 +4115,7 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	Connection->SendPackageMap();
 	
 	FString LevelName = CurrentLevel->GetOutermost()->GetName();
-	Connection->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
+	Connection->SetClientWorldPackageName(CurrentLevel->GetOutermost()->GetFName());
 
 	FString GameName;
 	FString RedirectURL;
@@ -4367,8 +4378,8 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					else
 					{
 						// Successfully in game.
-						UE_LOG(LogNet, Log, TEXT("Join succeeded: %s"), *Connection->PlayerController->PlayerState->PlayerName);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName, Connection));
+						UE_LOG(LogNet, Log, TEXT("Join succeeded: %s"), *Connection->PlayerController->PlayerState->GetPlayerName());
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->GetPlayerName(), Connection));
 
 						Connection->SetClientLoginState(EClientLoginState::ReceivedJoin);
 
@@ -4463,7 +4474,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					ChildConn->PlayerId = SplitRequestUniqueIdRepl;
 					ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
 					ChildConn->RequestURL = SplitRequestURL;
-					ChildConn->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
+					ChildConn->SetClientWorldPackageName(CurrentLevel->GetOutermost()->GetFName());
 
 					// create URL from string
 					FURL JoinSplitURL(NULL, *SplitRequestURL, TRAVEL_Absolute);
@@ -4488,7 +4499,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Successfully spawned in game.
 						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Succeeded: %s PlayerId: %s"), 
-							*ChildConn->PlayerController->PlayerState->PlayerName,
+							*ChildConn->PlayerController->PlayerState->GetPlayerName(),
 							*ChildConn->PlayerController->PlayerState->UniqueId.ToDebugString());
 					}
 				}
@@ -5015,7 +5026,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 							{
 								// Empty the current map name in case we are going A -> transition -> A and the server loads fast enough
 								// that the clients are not on the transition map yet causing the server to think its loaded
-								Connection->ClientWorldPackageName = NAME_None;
+								Connection->SetClientWorldPackageName(NAME_None);
 							}
 						}
 					}
@@ -5071,7 +5082,7 @@ void FSeamlessTravelHandler::CancelTravel()
 						}
 
 						// Mark all clients as being where they are since this was set to None in StartTravel
-						Connection->ClientWorldPackageName = CurrentPackageName;
+						Connection->SetClientWorldPackageName(CurrentPackageName);
 					}
 				}
 			}

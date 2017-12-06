@@ -306,6 +306,23 @@ public:
 	class APawn* GetOwningPlayerPawn() const;
 
 	/**
+	 * Get the owning player's PlayerState.
+	 *
+	 * @return const APlayerState*
+	 */
+	template <class TPlayerState = APlayerState>
+	TPlayerState* GetOwningPlayerState(bool bChecked = false) const
+	{
+		if (auto Controller = GetOwningPlayer())
+		{
+			return !bChecked ? Cast<TPlayerState>(Controller->PlayerState) :
+			                   CastChecked<TPlayerState>(Controller->PlayerState, ECastCheckedType::NullAllowed);
+		}
+
+		return nullptr;
+	}
+
+	/**
 	 * Called by both the game and the editor.  Allows users to run initial setup for their widgets to better preview
 	 * the setup in the designer and since generally that same setup code is required at runtime, it's called there
 	 * as well.
@@ -648,6 +665,18 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	void OnMouseCaptureLost();
 
+	/**
+	 * Cancels any pending Delays or timer callbacks for this widget.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Delay")
+	void CancelLatentActions();
+
+	/**
+	* Cancels any pending Delays or timer callbacks for this widget, and stops all active animations on the widget.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Delay")
+	void StopAnimationsAndLatentActions();
+
 public:
 
 	/**
@@ -722,8 +751,16 @@ public:
 	 * 
 	 * @param The name of the animation to stop
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
 	void StopAnimation(const UWidgetAnimation* InAnimation);
+
+	/**
+	 * Stop All actively running animations.
+	 * 
+	 * @param The name of the animation to stop
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
+	void StopAllAnimations();
 
 	/**
 	 * Pauses an already running animation in this widget
@@ -912,10 +949,10 @@ public:
 
 	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
-	uint8 bIsFocusable:1;
+	uint8 bIsFocusable : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	uint8 bStopAction:1;
+	uint8 bStopAction : 1;
 
 	/** If a widget doesn't ever need to tick the blueprint, setting this to false is an optimization. */
 	UPROPERTY()
@@ -929,6 +966,9 @@ protected:
 
 	/** Has this widget been initialized by its class yet? */
 	uint8 bInitialized : 1;
+
+	/** If we're stopping all animations, don't allow new animations to be created as side-effects. */
+	uint8 bStoppingAllAnimations : 1;
 
 public:
 	/**

@@ -322,6 +322,8 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				bParentEnabled);
 
 			{
+				CachedResources.Reset();
+
 				const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
 				const int32 CachedElementCount = CachedElements.Num();
 				for ( int32 Index = 0; Index < CachedElementCount; Index++ )

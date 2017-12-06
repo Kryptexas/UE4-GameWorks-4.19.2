@@ -114,6 +114,9 @@ public:
 	/** Starts tracking overall machine load. */
 	virtual bool StartMachineLoadTracking() = 0;
 
+	/** Starts tracking overall machine load (empty array will use default hitch buckets). */
+	virtual bool StartMachineLoadTracking(double TickRate, const TArray<double>& FrameTimeHistogramBucketsMs) = 0;
+
 	/** Stops tracking overall machine load. */
 	virtual bool StopMachineLoadTracking() = 0;
 

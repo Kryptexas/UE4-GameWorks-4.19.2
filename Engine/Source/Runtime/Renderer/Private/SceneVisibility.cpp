@@ -310,6 +310,7 @@ static FAutoConsoleVariableRef CVarFrustumCullNumWordsPerTask(
 	ECVF_Default
 	);
 
+
 template<bool UseCustomCulling, bool bAlsoUseSphereTest>
 static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 {
@@ -353,7 +354,6 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 					int32 Index = WordIndex * NumBitsPerDWORD + BitSubIndex;
 					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[Index];
 					float DistanceSquared = (Bounds.BoxSphereBounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
-					float MaxDrawDistance = Bounds.MaxDrawDistance * MaxDrawDistanceScale;
 					int32 VisibilityId = INDEX_NONE;
 
 					if (UseCustomCulling &&
@@ -362,20 +362,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						VisibilityId = Scene->PrimitiveVisibilityIds[Index].ByteIndex;
 					}
 
-					// If the primitive's visibility is driven by the HLOD system, we never want to use distance-based culling.
-					// Or if cull distance is disabled, always show the primitive (except foliage)
-					if (Scene->Primitives[Index]->LODParentComponentId.IsValid())
-					{
-						const bool bUseMaxDrawDistanceMultiplier = MaxDrawDistanceScaleForHLODChildren != 0.0f;
-						if( bUseMaxDrawDistanceMultiplier )
-						{
-							MaxDrawDistance *= MaxDrawDistanceScaleForHLODChildren;
-						}
-						else
-						{
-							MaxDrawDistance = FLT_MAX;
-						}
-					}
+					float MaxDrawDistance = Bounds.MaxCullDistance * MaxDrawDistanceScale;
 
 					// If cull distance is disabled, always show the primitive (except foliage)
 					if (View.Family->EngineShowFlags.DistanceCulledPrimitives
@@ -2086,6 +2073,28 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	// Notify the RHI we are beginning to render a scene.
 	RHICmdList.BeginScene();
 
+	{
+		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DoLazyStaticMeshUpdate"));
+		const bool DoLazyStaticMeshUpdate = (CVar->GetInt() && !WITH_EDITOR);
+
+		if (DoLazyStaticMeshUpdate)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_PreVisibilityFrameSetup_EvictionForLazyStaticMeshUpdate);
+			static int32 RollingRemoveIndex = 0;
+			if (RollingRemoveIndex >= Scene->Primitives.Num())
+			{
+				RollingRemoveIndex = 0;
+			}
+			const int32 NumRemovedPerFrame = 10;
+			for (int32 NumRemoved = 0; NumRemoved < NumRemovedPerFrame && RollingRemoveIndex < Scene->Primitives.Num(); NumRemoved++, RollingRemoveIndex++)
+			{
+				Scene->Primitives[RollingRemoveIndex]->UpdateStaticMeshes(RHICmdList, false);
+			}
+		}
+
+	}
+
+
 	// Notify the FX system that the scene is about to perform visibility checks.
 	if (Scene->FXSystem && !Views[0].bIsPlanarReflection)
 	{
@@ -2907,12 +2916,17 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
 	PreVisibilityFrameSetup(RHICmdList);
+	RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+
 	ComputeViewVisibility(RHICmdList);
+	RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 
 	// This has to happen before Scene->IndirectLightingCache.UpdateCache, since primitives in View.IndirectShadowPrimitives need ILC updates
 	CreateIndirectCapsuleShadows();
+	RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 
 	PostVisibilityFrameSetup(ILCTaskData);
+	RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 
 	FVector AverageViewPosition(0);
 
@@ -2981,6 +2995,7 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);
+		RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 	}
 
 	// if we kicked off ILC update via task, wait and finalize.

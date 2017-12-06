@@ -3573,22 +3573,33 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	return true;
 }
 
-static void ConvertSkeletonImportDataToMeshData( const FSkeletalMeshImportData& ImportData, TArray< FVector >& OutVertices, TArray< uint32 >& OutIndices, TArray< FVector2D >& OutUVs, TArray< uint32 >& OutSmoothingGroups )
+struct FMeshDataBundle
+{
+	TArray< FVector > Vertices;
+	TArray< uint32 > Indices;
+	TArray< FVector2D > UVs;
+	TArray< uint32 > SmoothingGroups;
+	TArray<VTriangle> Faces;
+};
+
+static void ConvertImportDataToMeshData(const FSkeletalMeshImportData& ImportData, FMeshDataBundle& MeshDataBundle)
 {
 	for ( const VTriangle& Face : ImportData.Faces )
 	{
+		VTriangle FaceTriangle;
+		FaceTriangle = Face;
 		for ( int32 i = 0; i < 3; ++i )
 		{
 			const VVertex& Wedge = ImportData.Wedges[ Face.WedgeIndex[i] ];
-
-			OutIndices.Add( Wedge.VertexIndex );
-			OutUVs.Add( Wedge.UVs[0] );
+			int32 FaceWedgeIndex = MeshDataBundle.Indices.Add(Wedge.VertexIndex);
+			MeshDataBundle.UVs.Add(Wedge.UVs[0]);
+			FaceTriangle.WedgeIndex[i] = FaceWedgeIndex;
 		}
-
-		OutSmoothingGroups.Add( Face.SmoothingGroups );
+		MeshDataBundle.Faces.Add(FaceTriangle);
+		MeshDataBundle.SmoothingGroups.Add(Face.SmoothingGroups);
 	}
 
-	OutVertices = ImportData.Points;
+	MeshDataBundle.Vertices = ImportData.Points;
 }
 
 /**
@@ -3600,7 +3611,7 @@ public:
 	FAsyncImportMorphTargetWork(FSkeletalMeshLODModel* InLODModel, const FReferenceSkeleton& InRefSkeleton, const FSkeletalMeshImportData& InBaseImportData, TArray<FVector>&& InMorphLODPoints,
 		FBXImportOptions* InImportOptions, TArray< FMorphTargetDelta >& InMorphDeltas, TArray<uint32>& InBaseIndexData, TArray< uint32 >& InBaseWedgePointIndices,
 		TMap<uint32,uint32>& InWedgePointToVertexIndexMap, const TMultiMap<int32, int32>& InOverlappingCorners,
-		const TSet<uint32> InModifiedPoints, const TMultiMap< int32, int32 >& InWedgeToFaces, const TArray<FVector>& InTangentZ)
+		const TSet<uint32> InModifiedPoints, const TMultiMap< int32, int32 >& InWedgeToFaces, const FMeshDataBundle& InMeshDataBundle, const TArray<FVector>& InTangentZ)
 		: LODModel(InLODModel)
 		, RefSkeleton(InRefSkeleton)
 		, BaseImportData(InBaseImportData)
@@ -3613,6 +3624,7 @@ public:
 		, OverlappingCorners(InOverlappingCorners)
 		, ModifiedPoints(InModifiedPoints)
 		, WedgeToFaces(InWedgeToFaces)
+		, MeshDataBundle(InMeshDataBundle)
 		, BaseTangentZ(InTangentZ)
 		, TangentZ(InTangentZ)
 	{
@@ -3622,16 +3634,16 @@ public:
 	void PrepareTangents()
 	{
 		TArray<bool> WasProcessed;
-		WasProcessed.Empty( BaseImportData.Wedges.Num() );
-		WasProcessed.AddZeroed( BaseImportData.Wedges.Num() );
+		WasProcessed.Empty(MeshDataBundle.Indices.Num());
+		WasProcessed.AddZeroed(MeshDataBundle.Indices.Num());
 
 		TArray< int32 > OverlappingWedges;
 		TArray< int32 > WedgeFaces;
 
 		// For each ModifiedPoints, reset the tangents for the affected wedges
-		for ( int32 WedgeIdx = 0; WedgeIdx < BaseImportData.Wedges.Num(); ++WedgeIdx )
+		for (int32 WedgeIdx = 0; WedgeIdx < MeshDataBundle.Indices.Num(); ++WedgeIdx)
 		{
-			int32 PointIdx = BaseImportData.Wedges[ WedgeIdx ].VertexIndex;
+			int32 PointIdx = MeshDataBundle.Indices[WedgeIdx];
 
 			if ( ModifiedPoints.Find( PointIdx ) != nullptr )
 			{
@@ -3657,7 +3669,7 @@ public:
 					{
 						for ( int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex )
 						{
-							int32 WedgeIndex = BaseImportData.Faces[ FaceIndex ].WedgeIndex[ CornerIndex ];
+							int32 WedgeIndex = MeshDataBundle.Faces[FaceIndex].WedgeIndex[CornerIndex];
 
 							TangentZ[ WedgeIndex ] = FVector::ZeroVector;
 
@@ -3674,7 +3686,7 @@ public:
 								{
 									for ( int32 OtherCornerIndex = 0; OtherCornerIndex < 3; ++OtherCornerIndex )
 									{
-										int32 OtherWedgeIndex = BaseImportData.Faces[ OtherFaceIndex ].WedgeIndex[ OtherCornerIndex ];
+										int32 OtherWedgeIndex = MeshDataBundle.Faces[OtherFaceIndex].WedgeIndex[OtherCornerIndex];
 
 										TangentZ[ OtherWedgeIndex ] = FVector::ZeroVector;
 									}
@@ -3693,13 +3705,7 @@ public:
 		bool bComputeTangents = !ImportOptions->ShouldImportTangents() || !BaseImportData.bHasTangents;
 		bool bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace) && (!ImportOptions->ShouldImportNormals() || !ImportOptions->ShouldImportTangents());
 
-		TArray<FVector> DummyPoints; // Use MorphLODPoints instead
-		TArray<uint32> Indices;
-		TArray<FVector2D> UVs;
-		TArray<uint32> SmoothingGroups;
-
-		ConvertSkeletonImportDataToMeshData( BaseImportData, DummyPoints, Indices, UVs, SmoothingGroups );
-		check(MorphLODPoints.Num() == DummyPoints.Num());
+		check(MorphLODPoints.Num() == MeshDataBundle.Vertices.Num());
 
 		ETangentOptions::Type TangentOptions = ETangentOptions::BlendOverlappingNormals;
 
@@ -3709,7 +3715,7 @@ public:
 			TangentOptions = (ETangentOptions::Type)(TangentOptions | ETangentOptions::UseMikkTSpace);
 		}
 
-		MeshUtilities->CalculateNormals( MorphLODPoints, Indices, UVs, SmoothingGroups, TangentOptions, TangentZ );
+		MeshUtilities->CalculateNormals( MorphLODPoints, MeshDataBundle.Indices, MeshDataBundle.UVs, MeshDataBundle.SmoothingGroups, TangentOptions, TangentZ );
 	}
 
 	void ComputeMorphDeltas()
@@ -3732,9 +3738,9 @@ public:
 				{
 					// get the base mesh's original wedge point index
 					uint32 BasePointIdx = BaseWedgePointIndices[ BaseVertIdx ];
-					if (BaseImportData.Points.IsValidIndex(BasePointIdx) && MorphLODPoints.IsValidIndex(BasePointIdx))
+					if (MeshDataBundle.Vertices.IsValidIndex(BasePointIdx) && MorphLODPoints.IsValidIndex(BasePointIdx))
 					{
-						FVector BasePosition = BaseImportData.Points[BasePointIdx];
+						FVector BasePosition = MeshDataBundle.Vertices[BasePointIdx];
 						FVector TargetPosition = MorphLODPoints[BasePointIdx];
 
 					FVector PositionDelta = TargetPosition - BasePosition;
@@ -3806,6 +3812,7 @@ private:
 	const TMultiMap<int32, int32>& OverlappingCorners;
 	const TSet<uint32> ModifiedPoints;
 	const TMultiMap< int32, int32 >& WedgeToFaces;
+	const FMeshDataBundle& MeshDataBundle;
 
 	const TArray<FVector>& BaseTangentZ;
 	TArray<FVector> TangentZ;
@@ -3906,12 +3913,8 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 	bool bComputeTangents = !ImportOptions->ShouldImportTangents() || !BaseImportData.bHasTangents;
 	bool bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace) && (!ImportOptions->ShouldImportNormals() || !ImportOptions->ShouldImportTangents());
 
-	TArray<FVector> Points;
-	TArray<uint32> Indices;
-	TArray<FVector2D> UVs;
-	TArray<uint32> SmoothingGroups;
-
-	ConvertSkeletonImportDataToMeshData( BaseImportData, Points, Indices, UVs, SmoothingGroups );
+	FMeshDataBundle MeshDataBundle;
+	ConvertImportDataToMeshData( BaseImportData, MeshDataBundle);
 
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
@@ -3924,10 +3927,10 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 	}
 
 	TMultiMap<int32, int32> OverlappingVertices;
-	MeshUtilities.CalculateOverlappingCorners( Points, Indices, false, OverlappingVertices );
+	MeshUtilities.CalculateOverlappingCorners(MeshDataBundle.Vertices, MeshDataBundle.Indices, false, OverlappingVertices );
 
 	TArray<FVector> TangentZ;
-	MeshUtilities.CalculateNormals( Points, Indices, UVs, SmoothingGroups, TangentOptions, TangentZ );
+	MeshUtilities.CalculateNormals(MeshDataBundle.Vertices, MeshDataBundle.Indices, MeshDataBundle.UVs, MeshDataBundle.SmoothingGroups, TangentOptions, TangentZ );
 
 	TArray< uint32 > BaseWedgePointIndices;
 	if (BaseLODModel.RawPointIndices.GetBulkDataSize())
@@ -3942,16 +3945,16 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 	TMap<uint32,uint32> WedgePointToVertexIndexMap;
 	// Build a mapping of wedge point indices to vertex indices for fast lookup later.
-	for( int32 Idx = 0; Idx < BaseImportData.Wedges.Num(); ++Idx )
+	for( int32 Idx = 0; Idx < MeshDataBundle.Indices.Num(); ++Idx )
 	{
-		WedgePointToVertexIndexMap.Add( BaseImportData.Wedges[Idx].VertexIndex, Idx);
+		WedgePointToVertexIndexMap.Add(MeshDataBundle.Indices[Idx], Idx);
 	}
 
 	// Create a map from wedge indices to faces
 	TMultiMap< int32, int32 > WedgeToFaces;
-	for (int32 FaceIndex = 0; FaceIndex < BaseImportData.Faces.Num(); FaceIndex++)
+	for (int32 FaceIndex = 0; FaceIndex < MeshDataBundle.Faces.Num(); FaceIndex++)
 	{
-		const VTriangle& Face = BaseImportData.Faces[FaceIndex];
+		const VTriangle& Face = MeshDataBundle.Faces[FaceIndex];
 		for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
 		{
 			WedgeToFaces.AddUnique(Face.WedgeIndex[CornerIndex], FaceIndex);
@@ -4018,8 +4021,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 			TArray< FMorphTargetDelta >* Deltas = Results[ NewMorphDeltasIdx ];
 
 			FAsyncTask<FAsyncImportMorphTargetWork>* NewWork = new (PendingWork)FAsyncTask<FAsyncImportMorphTargetWork>( &BaseLODModel, BaseSkelMesh->RefSkeleton, BaseImportData,
-				MoveTemp( ShapeImportData.Points ), ImportOptions, *Deltas, BaseIndexData, BaseWedgePointIndices, WedgePointToVertexIndexMap, OverlappingVertices, MoveTemp( ModifiedPoints ), WedgeToFaces,
-				TangentZ);
+				MoveTemp( ShapeImportData.Points ), ImportOptions, *Deltas, BaseIndexData, BaseWedgePointIndices, WedgePointToVertexIndexMap, OverlappingVertices, MoveTemp( ModifiedPoints ), WedgeToFaces, MeshDataBundle, TangentZ);
 
 			NewWork->StartBackgroundTask(GLargeThreadPool);
 			CurrentNumTasks++;

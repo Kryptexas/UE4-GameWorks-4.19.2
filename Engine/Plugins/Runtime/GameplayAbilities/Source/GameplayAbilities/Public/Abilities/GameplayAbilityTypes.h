@@ -358,7 +358,7 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameplayEventMulticastDelegate, const FGameplayEventData*);
 
 /** Ability Ended Data */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAbilityEndedData
 {
 	GENERATED_USTRUCT_BODY()

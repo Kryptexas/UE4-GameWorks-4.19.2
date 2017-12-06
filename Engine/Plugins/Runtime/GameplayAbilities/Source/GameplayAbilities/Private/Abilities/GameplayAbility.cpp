@@ -563,7 +563,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		}
 
 		// Give blueprint a chance to react
-		K2_OnEndAbility();
+		K2_OnEndAbility(bWasCancelled);
 
 		// Protect against blueprint causing us to EndAbility already
 		if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
@@ -1573,6 +1573,8 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::BP_ApplyGameplayEffectToTa
 TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayAbilityTargetDataHandle& Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_ApplyGameplayEffectToTarget);
+	SCOPE_CYCLE_UOBJECT(This, this);
+	SCOPE_CYCLE_UOBJECT(Effect, GameplayEffectClass);
 
 	TArray<FActiveGameplayEffectHandle> EffectHandles;
 
@@ -1593,6 +1595,8 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarge
 	{
 		FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, GameplayEffectClass, GameplayEffectLevel);
 		SpecHandle.Data->StackCount = Stacks;
+
+		SCOPE_CYCLE_UOBJECT(Source, SpecHandle.Data->GetContext().GetSourceObject());
 		EffectHandles.Append(ApplyGameplayEffectSpecToTarget(Handle, ActorInfo, ActivationInfo, SpecHandle, Target));
 	}
 

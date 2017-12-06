@@ -316,6 +316,8 @@ public:
 	bool			TimeSensitive;			// Whether contents are time-sensitive.
 	FOutBunch*		LastOutBunch;			// Most recent outgoing bunch.
 	FOutBunch		LastOut;
+	/** The singleton buffer for sending bunch header information */
+	FBitWriter		SendBunchHeader;
 
 	// Stat display.
 	/** Time of last stat update */
@@ -390,18 +392,19 @@ public:
 	 */
 	TSet<FNetworkGUID>	DestroyedStartupOrDormantActors;
 
-	/**
-	 * on the server, the world the client has told us it has loaded
-	 * used to make sure the client has traveled correctly, prevent replicating actors before level transitions are done, etc
-	 */
-	FName ClientWorldPackageName;
+	ENGINE_API FName GetClientWorldPackageName() const { return ClientWorldPackageName; }
+
+	ENGINE_API void SetClientWorldPackageName(FName NewClientWorldPackageName);
 
 	/** 
 	 * on the server, the package names of streaming levels that the client has told us it has made visible
 	 * the server will only replicate references to Actors in visible levels so that it's impossible to send references to
 	 * Actors the client has not initialized
 	 */
-	TArray<FName> ClientVisibleLevelNames;
+	TSet<FName> ClientVisibleLevelNames;
+
+	/** Called by PlayerController to tell connection about client level visiblity change */
+	void UpdateLevelVisibility(const FName& PackageName, bool bIsVisible);
 
 #if DO_ENABLE_NET_TEST
 	// For development.
@@ -691,7 +694,7 @@ public:
 	 * returns whether the client has initialized the level required for the given object
 	 * @return true if the client has initialized the level the object is in or the object is not in a level, false otherwise
 	 */
-	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject) const;
+	ENGINE_API virtual bool ClientHasInitializedLevelFor(const AActor* TestActor) const;
 
 	/**
 	 * Allows the connection to process the raw data that was received
@@ -820,6 +823,21 @@ private:
 
 	/** Online platform ID of remote player on this connection. Only valid on client connections (server side).*/
 	FName PlayerOnlinePlatformName;
+
+	/** This is an acceleration set that is derived from ClientWorldPackageName and ClientVisibleLevelNames. We use this to quickly test an AActor*'s visibility while replicating. */
+	mutable TMap<UObject*, bool> ClientVisibileActorOuters;
+
+	/** Called internally to update cached acceleration map */
+	bool UpdateCachedLevelVisibility(ULevel* Level) const;
+
+	/** Updates entire cached LevelVisibility map */
+	void UpdateAllCachedLevelVisibility() const;
+
+	/**
+	 * on the server, the world the client has told us it has loaded
+	 * used to make sure the client has traveled correctly, prevent replicating actors before level transitions are done, etc
+	 */
+	FName ClientWorldPackageName;
 };
 
 

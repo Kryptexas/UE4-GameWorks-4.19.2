@@ -42,7 +42,7 @@ float FCurveHandle::GetLerp( ) const
 /* FCurveHandle static functions
  *****************************************************************************/
 
-float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction::Type EaseFunction )
+float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction EaseFunction )
 {
 	// Currently we always use normalized distances
 	const float Distance = 1.0f;

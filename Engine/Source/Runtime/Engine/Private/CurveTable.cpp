@@ -12,6 +12,9 @@ DEFINE_LOG_CATEGORY(LogCurveTable);
 DECLARE_CYCLE_STAT(TEXT("CurveTableRowHandle Eval"),STAT_CurveTableRowHandleEval,STATGROUP_Engine);
 
 
+int32 UCurveTable::GlobalCachedCurveID = 1;
+
+
 //////////////////////////////////////////////////////////////////////////
 UCurveTable::UCurveTable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -322,6 +325,10 @@ void UCurveTable::EmptyTable()
 
 	// Finally empty the map
 	RowMap.Empty();
+
+	// AttributeSets can cache pointers to curves in this table, so we'll need to make sure they've
+	// all been invalidated properly, since we just blew them away.
+	UCurveTable::InvalidateAllCachedCurves();
 }
 
 
@@ -410,6 +417,29 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 	}
 
 	Modify(true);
+	return OutProblems;
+}
+
+TArray<FString> UCurveTable::CreateTableFromOtherTable(const UCurveTable* InTable)
+{
+	// Array used to store problems about table creation
+	TArray<FString> OutProblems;
+
+	if (InTable == nullptr)
+	{
+		OutProblems.Add(TEXT("No input table provided"));
+		return OutProblems;
+	}
+
+	for (TMap<FName, FRichCurve*>::TConstIterator RowMapIter(InTable->RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+	{
+		FRichCurve* NewCurve = new FRichCurve();
+		FRichCurve* InCurve = RowMapIter.Value();
+		TArray<FRichCurveKey> CurveKeys = InCurve->GetCopyOfKeys();
+		NewCurve->SetKeys(CurveKeys);
+		RowMap.Add(RowMapIter.Key(), NewCurve);
+	}
+	
 	return OutProblems;
 }
 
@@ -555,6 +585,10 @@ bool UCurveTable::IsValidCurve(FRichCurveEditInfo CurveInfo)
 	return false;
 }
 
+void UCurveTable::InvalidateAllCachedCurves()
+{
+	GlobalCachedCurveID++;
+}
 
 
 TArray<const UObject*> UCurveTable::GetOwners() const

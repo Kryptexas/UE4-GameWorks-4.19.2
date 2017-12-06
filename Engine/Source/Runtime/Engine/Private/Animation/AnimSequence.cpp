@@ -2318,12 +2318,15 @@ void UAnimSequence::SerializeCompressedData(FArchive& Ar, bool bDDCData)
 		// Swap the byte stream into a buffer.
 		TArray<uint8> SerializedData;
 
-		// we must know the proper codecs to use
-		AnimationFormat_SetInterfaceLinks(*this);
+		if (!HasAnyFlags(RF_ClassDefaultObject))
+		{
+			// we must know the proper codecs to use
+			AnimationFormat_SetInterfaceLinks(*this);
 
-		// and then use the codecs to byte swap
-		check(RotationCodec != NULL);
-		((AnimEncoding*)RotationCodec)->ByteSwapOut(*this, SerializedData, Ar.ForceByteSwapping());
+			// and then use the codecs to byte swap
+			check(RotationCodec != NULL);
+			((AnimEncoding*)RotationCodec)->ByteSwapOut(*this, SerializedData, Ar.ForceByteSwapping());
+		}
 
 		// Make sure the entire byte stream was serialized.
 		//check( CompressedByteStream.Num() == SerializedData.Num() );

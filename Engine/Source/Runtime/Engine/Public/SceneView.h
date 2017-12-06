@@ -214,6 +214,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	/** In case of ortho, generate a fake view position that has a non-zero W component. The view position will be derived based on the view matrix. */
 	bool bUseFauxOrthoViewPos;
+
+	/** Whether game screen percentage should be disabled. */
+	bool bDisableGameScreenPercentage;
 #endif
 
 	FSceneViewInitOptions()
@@ -237,6 +240,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, EditorViewBitflag(1)
 		, OverrideLODViewOrigin(ForceInitToZero)
 		, bUseFauxOrthoViewPos(false)
+		, bDisableGameScreenPercentage(false)
 		//@TODO: , const TBitArray<>& InSpriteCategoryVisibility=TBitArray<>()
 #endif
 	{

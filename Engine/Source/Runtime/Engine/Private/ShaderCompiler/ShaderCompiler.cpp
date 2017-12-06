@@ -147,6 +147,14 @@ static FAutoConsoleVariableRef CVarShowShaderWarnings(
 	TEXT("When set to 1, will display all warnings.")
 	);
 
+static int32 GForceAllCoresForShaderCompiling = 0;
+static FAutoConsoleVariableRef CVarForceAllCoresForShaderCompiling(
+	TEXT("r.ForceAllCoresForShaderCompiling"),
+	GForceAllCoresForShaderCompiling,
+	TEXT("When set to 1, it will ignore INI settings and launch as many ShaderCompileWorker instances as cores are available.\n")
+	TEXT("Improves shader throughput but for big projects it can make the machine run OOM")
+);
+
 static TAutoConsoleVariable<int32> CVarKeepShaderDebugData(
 	TEXT("r.Shaders.KeepDebugInfo"),
 	0,
@@ -1357,8 +1365,8 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	int32 NumUnusedShaderCompilingThreadsDuringGame;
 	verify(GConfig->GetInt( TEXT("DevOptions.Shaders"), TEXT("NumUnusedShaderCompilingThreadsDuringGame"), NumUnusedShaderCompilingThreadsDuringGame, GEngineIni ));
 
-	// Use all the cores on the build machines
-	if (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("USEALLAVAILABLECORES")))
+	// Use all the cores on the build machines.
+	if (GForceAllCoresForShaderCompiling != 0)
 	{
 		NumUnusedShaderCompilingThreads = 0;
 	}

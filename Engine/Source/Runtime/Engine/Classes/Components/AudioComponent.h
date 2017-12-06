@@ -413,9 +413,7 @@ public:
 	//~ End USceneComponent Interface
 
 	//~ Begin ActorComponent Interface.
-#if WITH_EDITORONLY_DATA
 	virtual void OnRegister() override;
-#endif
 	virtual void OnUnregister() override;
 	virtual const UObject* AdditionalStatObject() const override;
 	virtual bool IsReadyForOwnerToAutoDestroy() const override;
@@ -440,6 +438,68 @@ public:
 	static UAudioComponent* GetAudioComponentFromID(uint64 AudioComponentID);
 
 	void UpdateInteriorSettings(bool bFullUpdate);
+
+public:
+
+	/**
+	 * True if we should automatically attach to AutoAttachParent when Played, and detach from our parent when playback is completed.
+	 * This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
+	 * If enabled, this AudioComponent's WorldLocation will no longer be reliable when not currently playing audio, and any attach children will also be detached/attached along with it.
+	 * When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
+	 * This also disables attachment on dedicated servers, where we don't actually activate even if bAutoActivate is true.
+	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Attachment)
+	uint8 bAutoManageAttachment:1;
+
+	/**
+	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
+	 * If null during registration, we assign the existing AttachParent and defer attachment until we activate.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	TWeakObjectPtr<USceneComponent> AutoAttachParent;
+
+	/**
+	 * Socket we automatically attach to on the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	FName AutoAttachSocketName;
+
+	/**
+	 * Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachLocationRule;
+
+	/**
+	 * Options for how we handle our rotation when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachRotationRule;
+
+	/**
+	 * Options for how we handle our scale when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachScaleRule;
+
+private:
+
+	/** Saved relative transform before auto attachement. Used during detachment to restore the transform if we had automatically attached. */
+	FVector SavedAutoAttachRelativeLocation;
+	FRotator SavedAutoAttachRelativeRotation;
+	FVector SavedAutoAttachRelativeScale3D;
+
+	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
+	uint8 bDidAutoAttach : 1;
+
+	/** Restore relative transform from auto attachment and optionally detach from parent (regardless of whether it was an auto attachment). */
+	void CancelAutoAttachment(bool bDetachFromParent);
 
 protected:
 	/** Utility function called by Play and FadeIn to start a sound playing. */

@@ -89,7 +89,7 @@ TAutoConsoleVariable<float> CVarRandomLODRange(
 
 static TAutoConsoleVariable<int32> CVarMinVertsToSplitNode(
 	TEXT("foliage.MinVertsToSplitNode"),
-	16384,
+	8192,
 	TEXT("Controls the accuracy between culling and LOD accuracy and culling and CPU performance."));
 
 static TAutoConsoleVariable<int32> CVarMaxOcclusionQueriesPerComponent(
@@ -347,6 +347,12 @@ public:
 		}
 		InternalNodeBranchingFactor = CVarFoliageSplitFactor.GetValueOnAnyThread();
 		MaxInstancesPerLeaf = InMaxInstancesPerLeaf;
+
+		if (Num / MaxInstancesPerLeaf < InternalNodeBranchingFactor) // if there are less than InternalNodeBranchingFactor leaf nodes
+		{
+			MaxInstancesPerLeaf = FMath::Clamp<int32>(Num / InternalNodeBranchingFactor, 1, 1024); // then make sure we have at least InternalNodeBranchingFactor leaves
+		}
+
 	}
 
 	void BuildAsync(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -1815,18 +1821,21 @@ void UHierarchicalInstancedStaticMeshComponent::PostEditChangeChainProperty(FPro
 }
 #endif
 
+void UHierarchicalInstancedStaticMeshComponent::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	Super::PreSave(TargetPlatform);
+
+	// On save, if we have a pending async build we should wait for it to complete rather than saving an incomplete tree
+	const bool bIsCooking = (TargetPlatform != nullptr);
+	if (bIsCooking || !IsTreeFullyBuilt())
+	{
+		BuildTreeIfOutdated(false, true);
+	}
+}
+
 void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	LLM_SCOPE(ELLMTag::StaticMesh);	
-
-	// On save, if we have a pending async build we should wait for it to complete rather than saving an incomplete tree
-	if (Ar.IsSaving())
-	{
-		if (!IsTreeFullyBuilt())
-		{
-			BuildTreeIfOutdated(false, true);
-		}
-	}
 
 	Super::Serialize(Ar);
 
@@ -2147,11 +2156,12 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 {
 #if 0
 	const TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
+	FString MeshName = GetStaticMesh() ? GetStaticMesh()->GetPathName() : FString(TEXT("null"));
 	check(PerInstanceRenderData.IsValid());
 	bool bIsGrass = !PerInstanceSMData.Num();
 	NumInst = bIsGrass ? PerInstanceRenderData->InstanceBuffer.GetNumInstances() : PerInstanceSMData.Num();
 
-	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d "), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), bIsGrass);
+	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d    %s"), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), bIsGrass), *MeshName);
 #endif
 }
 
@@ -2236,7 +2246,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		UnbuiltInstanceBoundsList.Empty();
 		UnbuiltInstanceIndexList.Empty();
 		BuiltInstanceBounds.Init();
-		CacheMeshExtendedBounds = FBoxSphereBounds();
+		CacheMeshExtendedBounds = FBoxSphereBounds(EForceInit::ForceInitToZero);
 	}
 
 	if (bIsAsyncBuilding)
@@ -2497,7 +2507,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 		InstanceReorderTable.Empty();
 		SortedInstances.Empty();
 		RemovedInstances.Empty();
-		CacheMeshExtendedBounds = FBoxSphereBounds();
+		CacheMeshExtendedBounds = FBoxSphereBounds(EForceInit::ForceInitToZero);
 
 		UnbuiltInstanceBoundsList.Empty();
 		UnbuiltInstanceIndexList.Empty();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -579,8 +579,12 @@ namespace UnrealBuildTool
 			// Compile MM files directly.
 			LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(CompileEnvironment, SourceFilesToBuild.MMFiles, Name, ActionGraph).ObjectFiles);
 
-			// Compile RC files.
-			LinkInputFiles.AddRange(ToolChain.CompileRCFiles(ModuleCompileEnvironment, SourceFilesToBuild.RCFiles, ActionGraph).ObjectFiles);
+			// Compile RC files. The resource compiler does not work with response files, and using the regular compile environment can easily result in the 
+			// command line length exceeding the OS limit. Use the binary compile environment to keep the size down, and require that all include paths
+			// must be specified relative to the resource file itself or Engine/Source.
+			CppCompileEnvironment ResourceCompileEnvironment = new CppCompileEnvironment(BinaryCompileEnvironment);
+			ResourceCompileEnvironment.OutputDirectory = ModuleCompileEnvironment.OutputDirectory;
+			LinkInputFiles.AddRange(ToolChain.CompileRCFiles(ResourceCompileEnvironment, SourceFilesToBuild.RCFiles, ActionGraph).ObjectFiles);
 
 			return LinkInputFiles;
 		}

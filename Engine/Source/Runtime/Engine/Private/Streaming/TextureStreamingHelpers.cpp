@@ -42,7 +42,7 @@ DECLARE_MEMORY_STAT_POOL(TEXT("     NeverStream"),		STAT_StreamingOverview06_Nev
 DECLARE_MEMORY_STAT_POOL(TEXT("     UI Group"),			STAT_StreamingOverview07_UIGroup, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Average Required PoolSize"),	STAT_StreamingOverview08_AverageRequiredPool, STATGROUP_StreamingOverview, FPlatformMemory::MCR_StreamingPool);
 
-DEFINE_STAT(STAT_GameThreadUpdateTime);
+DEFINE_STAT(STAT_TextureStreaming_GameThreadUpdateTime);
 
 DEFINE_LOG_CATEGORY(LogContentStreaming);
 
@@ -199,6 +199,20 @@ TAutoConsoleVariable<int32> CVarStreamingMinMipForSplitRequest(
 	TEXT("If non-zero, the minimum hidden mip for which load requests will first load the visible mip"),
 	ECVF_Default);
 
+TAutoConsoleVariable<float> CVarStreamingMinLevelTextureScreenSize(
+	TEXT("r.Streaming.MinLevelTextureScreenSize"),
+	100,
+	TEXT("If non-zero, levels only get handled if any of their referenced texture could be required of this size. Using conservative metrics on the level data."),
+	ECVF_Default);
+
+TAutoConsoleVariable<float> CVarStreamingMaxTextureUVDensity(
+	TEXT("r.Streaming.MaxTextureUVDensity"),
+	0,
+	TEXT("If non-zero, the max UV density a static entry can have.\n")
+	TEXT("Used to improve level culling from MinLevelTextureScreenSize.\n")
+	TEXT("Component with bigger entries become handled as dynamic component.\n"),
+	ECVF_Default);
+
 
 void FTextureStreamingSettings::Update()
 {
@@ -215,6 +229,8 @@ void FTextureStreamingSettings::Update()
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
 	MinMipForSplitRequest = CVarStreamingMinMipForSplitRequest.GetValueOnAnyThread();
 	PerTextureBiasViewBoostThreshold = CVarStreamingPerTextureBiasViewBoostThreshold.GetValueOnAnyThread();
+	MinLevelTextureScreenSize = CVarStreamingMinLevelTextureScreenSize.GetValueOnAnyThread();
+	MaxTextureUVDensity = CVarStreamingMaxTextureUVDensity.GetValueOnAnyThread();
 
 	bUseMaterialData = bUseNewMetrics && CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
 	HiddenPrimitiveScale = bUseNewMetrics ? CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread() : 1.f;

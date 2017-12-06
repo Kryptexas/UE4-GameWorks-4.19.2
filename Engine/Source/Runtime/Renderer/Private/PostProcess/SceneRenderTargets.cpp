@@ -137,8 +137,7 @@ FSceneRenderTargets& FSceneRenderTargets::Get(FRHIAsyncComputeCommandListImmedia
 
 FSceneRenderTargets& FSceneRenderTargets::GetGlobalUnsafe()
 {
-	check(IsInRenderingThread()
-		&& !FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local)); // if we are processing tasks on the local queue, it is assumed this are in support of async tasks, which cannot use the current state of the render targets. This can be relaxed if needed.
+	check(IsInRenderingThread());
 	return SceneRenderTargetsSingleton;
 }
 

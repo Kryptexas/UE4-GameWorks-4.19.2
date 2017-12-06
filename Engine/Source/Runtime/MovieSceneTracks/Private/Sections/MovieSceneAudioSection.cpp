@@ -3,6 +3,7 @@
 #include "Sections/MovieSceneAudioSection.h"
 #include "Sound/SoundBase.h"
 #include "Evaluation/MovieSceneAudioTemplate.h"
+#include "SequencerObjectVersion.h"
 
 UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -17,7 +18,10 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 	bSuppressSubtitles = false;
 	bOverrideAttenuation = false;
 
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 }
 
 FMovieSceneEvalTemplatePtr UMovieSceneAudioSection::GenerateTemplate() const

@@ -63,6 +63,11 @@ class GAMEPLAYTASKS_API UGameplayTasksComponent : public UActorComponent, public
 {
 	GENERATED_BODY()
 
+public:
+	/** Set to indicate that GameplayTasksComponent needs immediate replication. @TODO could just use ForceReplication(), but this allows initial implementation to be game specific. */
+	UPROPERTY()
+	bool bIsNetDirty;
+
 protected:
 	/** Tasks that run on simulated proxies */
 	UPROPERTY(ReplicatedUsing = OnRep_SimulatedTasks)

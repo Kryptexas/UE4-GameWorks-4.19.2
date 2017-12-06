@@ -83,8 +83,6 @@ bool FMallocLeakDetection::IsDisabledForThisThread() const
 
 void FMallocLeakDetection::PushContext(const FString& Context)
 {
-	FMallocLeakDetectionProxy::Get().Lock();
-
 	FScopeLock Lock(&AllocatedPointersCritical);
 
 	TArray<ContextString>* TLContexts = (TArray<ContextString>*)FPlatformTLS::GetTlsValue(FMallocLeakDetectionStatics::Get().ContextsTLSID);
@@ -100,8 +98,6 @@ void FMallocLeakDetection::PushContext(const FString& Context)
 	FCString::Strncpy(Str.Buffer, *Context, 128);
 	TLContexts->Push(Str);
 	bRecursive = false;
-
-	FMallocLeakDetectionProxy::Get().Unlock();
 }
 
 void FMallocLeakDetection::PopContext()

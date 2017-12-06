@@ -78,6 +78,7 @@ void UGameplayTasksComponent::OnGameplayTaskActivated(UGameplayTask& Task)
 	{
 		check(SimulatedTasks.Contains(&Task) == false);
 		SimulatedTasks.Add(&Task);
+		bIsNetDirty = true;
 	}
 
 	IGameplayTaskOwnerInterface* TaskOwner = Task.GetTaskOwner();
@@ -122,6 +123,7 @@ void UGameplayTasksComponent::OnGameplayTaskDeactivated(UGameplayTask& Task)
 	if (Task.IsSimulatedTask())
 	{
 		SimulatedTasks.RemoveSingleSwap(&Task);
+		bIsNetDirty = true;
 	}
 
 	// Resource-using task

@@ -361,6 +361,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
+	/** Called whenever the server time replicates via the game state to keep our cooldown timers in sync with the server */
+	void RecomputeGameplayEffectStartTimes(const float WorldTime, const float ServerWorldTime);
+
 	void GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& StartEffectTime, float& Duration) const;
 
 	/** Updates the level of an already applied gameplay effect. The intention is that this is 'seemless' and doesnt behave like removing/reapplying */
@@ -535,21 +538,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	FORCEINLINE void AddMinimalReplicationGameplayTag(const FGameplayTag& GameplayTag)
 	{
 		MinimalReplicationTags.AddTag(GameplayTag);
+		bIsNetDirty = true;
 	}
 
 	FORCEINLINE void AddMinimalReplicationGameplayTags(const FGameplayTagContainer& GameplayTags)
 	{
 		MinimalReplicationTags.AddTags(GameplayTags);
+		bIsNetDirty = true;
 	}
 
 	FORCEINLINE void RemoveMinimalReplicationGameplayTag(const FGameplayTag& GameplayTag)
 	{
 		MinimalReplicationTags.RemoveTag(GameplayTag);
+		bIsNetDirty = true;
 	}
 
 	FORCEINLINE void RemoveMinimalReplicationGameplayTags(const FGameplayTagContainer& GameplayTags)
 	{
 		MinimalReplicationTags.RemoveTags(GameplayTags);
+		bIsNetDirty = true;
 	}
 	
 	/** Allow events to be registered for specific gameplay tags being added or removed */

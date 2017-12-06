@@ -73,32 +73,7 @@ void UAnimNotify_PlayParticleEffect::ValidateAssociatedAssets()
 void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation)
 {
 	// Don't call super to avoid unnecessary call in to blueprints
-	if (PSTemplate)
-	{
-		if (PSTemplate->IsLooping())
-		{
-			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim '%s' tried to spawn infinitely looping particle system '%s'. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
-			return;
-		}
-
-		if (Attached)
-		{
-			UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset, Scale);
-		}
-		else
-		{
-			const FTransform MeshTransform = MeshComp->GetSocketTransform(SocketName);
-			FTransform SpawnTransform;
-			SpawnTransform.SetLocation(MeshTransform.TransformPosition(LocationOffset));
-			SpawnTransform.SetRotation(MeshTransform.GetRotation() * RotationOffsetQuat);
-			SpawnTransform.SetScale3D(Scale);
-			UGameplayStatics::SpawnEmitterAtLocation(MeshComp->GetWorld(), PSTemplate, SpawnTransform);
-		}
-	}
-	else
-	{
-		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Particle system is null for particle notify '%s' in anim: '%s'"), *GetNotifyName(), *GetPathNameSafe(Animation));
-	}
+	SpawnParticleSystem(MeshComp, Animation);
 }
 
 FString UAnimNotify_PlayParticleEffect::GetNotifyName_Implementation() const
@@ -111,4 +86,38 @@ FString UAnimNotify_PlayParticleEffect::GetNotifyName_Implementation() const
 	{
 		return Super::GetNotifyName_Implementation();
 	}
+}
+
+UParticleSystemComponent* UAnimNotify_PlayParticleEffect::SpawnParticleSystem(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation)
+{
+	UParticleSystemComponent* ReturnComp = nullptr;
+
+	if (PSTemplate)
+	{
+		if (PSTemplate->IsLooping())
+		{
+			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim '%s' tried to spawn infinitely looping particle system '%s'. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
+			return ReturnComp;
+		}
+
+		if (Attached)
+		{
+			ReturnComp = UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset, Scale);
+		}
+		else
+		{
+			const FTransform MeshTransform = MeshComp->GetSocketTransform(SocketName);
+			FTransform SpawnTransform;
+			SpawnTransform.SetLocation(MeshTransform.TransformPosition(LocationOffset));
+			SpawnTransform.SetRotation(MeshTransform.GetRotation() * RotationOffsetQuat);
+			SpawnTransform.SetScale3D(Scale);
+			ReturnComp = UGameplayStatics::SpawnEmitterAtLocation(MeshComp->GetWorld(), PSTemplate, SpawnTransform);
+		}
+	}
+	else
+	{
+		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Particle system is null for particle notify '%s' in anim: '%s'"), *GetNotifyName(), *GetPathNameSafe(Animation));
+	}
+
+	return ReturnComp;
 }

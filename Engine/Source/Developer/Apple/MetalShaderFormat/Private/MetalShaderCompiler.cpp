@@ -217,6 +217,11 @@ bool ExecRemoteProcess(const TCHAR* Command, const TCHAR* Params, int32* OutRetu
 #if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
 	return FPlatformProcess::ExecProcess(Command, Params, OutReturnCode, OutStdOut, OutStdErr);
 #else
+	if (GRemoteBuildServerHost.IsEmpty())
+	{
+		return false;
+	}
+
 	FString CmdLine = FString(TEXT("-i \"")) + GRemoteBuildServerSSHKey + TEXT("\" ") + GRemoteBuildServerUser + '@' + GRemoteBuildServerHost + TEXT(" ") + Command + TEXT(" ") + (Params != nullptr ? Params : TEXT(""));
 	return FPlatformProcess::ExecProcess(*GSSHPath, *CmdLine, OutReturnCode, OutStdOut, OutStdErr);
 #endif

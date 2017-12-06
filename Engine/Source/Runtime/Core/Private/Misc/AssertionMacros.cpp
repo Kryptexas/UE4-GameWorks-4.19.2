@@ -288,6 +288,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 			// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
 			// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
 			FThreadHeartBeat::Get().KillHeartBeat();
+			FGameThreadHitchHeartBeat::Get().FrameStart(true);
 
 			{
 #if STATS

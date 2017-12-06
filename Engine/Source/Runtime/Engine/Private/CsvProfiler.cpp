@@ -24,6 +24,10 @@
 
 #if CSV_PROFILER
 
+const FString GCsvNamePrefix = CSV_STAT_NAME_PREFIX;
+
+CSV_DECLARE_STAT(FrameTime);
+
 #define RECORD_TIMESTAMPS 1 
 
 DEFINE_LOG_CATEGORY_STATIC(LogCsvProfiler, Log, All);
@@ -224,10 +228,28 @@ enum class ECsvMarkerType : uint8
 
 struct FCsvTimingMarker
 {
-	const char*			 StatName;
-	uint64				 Timestamp;
-	float				 CustomValue;
-	ECsvMarkerType		 MarkerType;
+	FString GetStatNameString() const
+	{
+		FString StatName;
+		if (bStatIsFName)
+		{
+			const FNameEntry* NameEntry = FName::GetEntry(StatID);
+			StatName = NameEntry->GetPlainNameString().RightChop(GCsvNamePrefix.Len());
+		}
+		else
+		{
+			const char* StatNameAnsi = (const char*)StatID;
+			StatName = (TCHAR*)StringCast<TCHAR>((StatNameAnsi)).Get();
+		}
+		return StatName;
+	}
+
+	uint64				StatID;
+	uint64				Timestamp;
+	float				CustomValue;
+	ECsvMarkerType		MarkerType;
+	bool				bStatIsFName;
+
 };
 
 //-----------------------------------------------------------------------------
@@ -251,33 +273,62 @@ public:
 
 	void AddTimestamp(const char* StatName, const bool bBegin)
 	{
-		// TODO: fast pool allocator for timing markers
-		FCsvTimingMarker* Marker = TimingMarkers.ReserveElement();
-
-		Marker->MarkerType = bBegin ? ECsvMarkerType::TimestampStart : ECsvMarkerType::TimestampEnd;
-		Marker->StatName = StatName;
-		Marker->CustomValue = 0.0f;
-		Marker->Timestamp = FPlatformTime::Cycles64();
-
-		TimingMarkers.CommitElement();
+		AddTimestampInternal(GetStatID(StatName), bBegin, false);
 	}
-
-	void AddCustomStat(const char* StatName, const float Value, ECsvCustomStatType CustomStatType )
+	void AddTimestamp(const FName& StatName, const bool bBegin)
 	{
-		FCsvTimingMarker* Marker = TimingMarkers.ReserveElement();
-
-		Marker->MarkerType = (ECsvMarkerType)( int32(ECsvMarkerType::CustomStat_Set) + int32(CustomStatType) );
-		check(Marker->MarkerType < ECsvMarkerType::Count);
-		Marker->StatName = StatName;
-		Marker->CustomValue = Value;
-		Marker->Timestamp = FPlatformTime::Cycles64();
-
-		TimingMarkers.CommitElement();
+		AddTimestampInternal(GetStatID(StatName), bBegin, true);
+	}
+	void AddCustomStat(const char* StatName, const float Value, const ECsvCustomStatType CustomStatType)
+	{
+		AddCustomStatInternal(GetStatID(StatName), Value, CustomStatType, false);
+	}
+	void AddCustomStat(const FName& StatName, const float Value, const ECsvCustomStatType CustomStatType)
+	{
+		AddCustomStatInternal(GetStatID(StatName), Value, CustomStatType, true);
 	}
 
 	uint32 ThreadId;
 	uint64 CurrentCaptureStartCycles;
 	TSingleProducerSingleConsumerList<FCsvTimingMarker, 128> TimingMarkers;
+
+private:
+	uint64 GetStatID(const char* StatName)
+	{
+		return uint64(StatName);
+	}
+
+	uint64 GetStatID(const FName& StatId)
+	{
+		return uint64(StatId.GetComparisonIndex());
+	}
+
+	void AddCustomStatInternal(uint64 StatID, const float Value, const ECsvCustomStatType CustomStatType, const bool bFNameStat )
+	{
+		FCsvTimingMarker* Marker = TimingMarkers.ReserveElement();
+
+		Marker->MarkerType = (ECsvMarkerType)( int32(ECsvMarkerType::CustomStat_Set) + int32(CustomStatType) );
+		check(Marker->MarkerType < ECsvMarkerType::Count);
+		Marker->StatID = StatID;
+		Marker->CustomValue = Value;
+		Marker->Timestamp = FPlatformTime::Cycles64();
+		Marker->bStatIsFName = bFNameStat;
+
+		TimingMarkers.CommitElement();
+	}
+
+	void AddTimestampInternal(uint64 StatID, const bool bBegin, const bool bFNameStat)
+	{
+		FCsvTimingMarker* Marker = TimingMarkers.ReserveElement();
+
+		Marker->MarkerType = bBegin ? ECsvMarkerType::TimestampStart : ECsvMarkerType::TimestampEnd;
+		Marker->StatID = StatID;
+		Marker->CustomValue = 0.0f;
+		Marker->Timestamp = FPlatformTime::Cycles64();
+		Marker->bStatIsFName = bFNameStat;
+
+		TimingMarkers.CommitElement();
+	}
 };
 
 
@@ -296,6 +347,7 @@ FCsvProfiler::FCsvProfiler()
 	, bRequestStartCapture(false)
 	, bRequestStopCapture(false)
 	, bCapturing(false)
+	, bCapturingRT(false)
 {
 	check(IsInGameThread());
 	GetProfilerThread();
@@ -363,7 +415,7 @@ void FCsvProfiler::EndFrame()
 		uint64 CurrentTimeStamp = FPlatformTime::Cycles64();
 		uint64 ElapsedCycles = CurrentTimeStamp - LastEndFrameTimestamp;
 		float ElapsedMs = FPlatformTime::ToMilliseconds64(ElapsedCycles);
-		CSV_CUSTOM_STAT_SET(FrameTime, ElapsedMs);
+		CSV_DECLARED_CUSTOM_STAT_SET(FrameTime, ElapsedMs);
 		LastEndFrameTimestamp = CurrentTimeStamp;
 	}
 
@@ -421,6 +473,7 @@ void FCsvProfiler::BeginFrameRT()
 		FScopeLock Lock(&GetResultsLock);
 		FrameBeginTimestampsRT.Add(FPlatformTime::Cycles64());
 	}
+	bCapturingRT = bCapturing;
 }
 
 void FCsvProfiler::EndFrameRT()
@@ -655,7 +708,7 @@ void FCsvProfiler::WriteCaptureToFile()
 		for (int i = 0; i < ThreadMarkers.Num(); i++)
 		{
 			FCsvTimingMarker& Marker = ThreadMarkers[i];
-			FString StatName = (TCHAR*)StringCast<TCHAR>((Marker.StatName)).Get();
+			FString StatName = Marker.GetStatNameString(); 
 			uint32 ColumnIndex = 0;
 			uint32* IndexPtr = StatNameToColumnIndex.Find(StatName);
 
@@ -847,7 +900,7 @@ void FCsvProfiler::EndStat(const char * StatName)
 #endif
 }
 
-void FCsvProfiler::RecordCustomStat(const char * StatName, float Value, ECsvCustomStatType CustomStatType)
+void FCsvProfiler::RecordCustomStat(const char * StatName, float Value, const ECsvCustomStatType CustomStatType)
 {
 	if (!bCapturing)
 	{
@@ -855,6 +908,16 @@ void FCsvProfiler::RecordCustomStat(const char * StatName, float Value, ECsvCust
 	}
 	GetProfilerThread()->AddCustomStat(StatName, Value, CustomStatType);
 }
+
+void FCsvProfiler::RecordCustomStat(const FName& StatName, float Value, const ECsvCustomStatType CustomStatType)
+{
+	if (!bCapturing)
+	{
+		return;
+	}
+	GetProfilerThread()->AddCustomStat(StatName, Value, CustomStatType);
+}
+
 
 
 void FCsvProfiler::Init()
@@ -866,7 +929,35 @@ void FCsvProfiler::Init()
 		BeginCapture(NumCsvFrames);
 		BeginFrame();
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("csvGpuStats")))
+	{
+		IConsoleVariable* CVarGPUCsvStatsEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUCsvStatsEnabled"));
+		if ( CVarGPUCsvStatsEnabled )
+		{
+			CVarGPUCsvStatsEnabled->Set(1);
+		}	
+	}
+}
+
+bool FCsvProfiler::IsCapturing()
+{ 
+	check(IsInGameThread());
+	return bRequestStartCapture || bCapturing; 
+}
+
+int32 FCsvProfiler::GetCaptureFrameNumber()
+{
+	check(IsInGameThread());
+	return CaptureFrameNumber;
+}
+
+bool FCsvProfiler::IsCapturing_Renderthread()
+{
+	check(IsInRenderingThread());
+	return bCapturingRT;
 }
 
 
 #endif // CSV_PROFILER
+PRAGMA_ENABLE_OPTIMIZATION

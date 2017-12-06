@@ -4532,7 +4532,7 @@ protected:
 			{
 				if ((SourceCoordBasis == MCB_Local || DestCoordBasis == MCB_Local))
 				{
-					return Errorf(TEXT("Local space in only supported for vertex, compute or pixel shader"));
+					return Errorf(TEXT("Local space is only supported for vertex, compute or pixel shader"));
 				}
 			}
 

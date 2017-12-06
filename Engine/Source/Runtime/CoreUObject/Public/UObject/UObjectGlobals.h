@@ -1652,6 +1652,8 @@ public:
 		return *PersistentFrameReferenceCollectorArchive;
 	}
 
+	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) {}
+
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
@@ -1972,10 +1974,12 @@ struct FAssetMsg
  * - it's a package marked as PKG_EditorOnly or inside one
  * or
  * - IsEditorOnly returns true
+ * or
+ * - if bCheckMarks is true, if it has the EditorOnly object mark
  * or 
  * - if bCheckRecursive is true, if it's class, outer, or archetypes are editor only
  */
-COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive = true);
+COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive = true, bool bCheckMarks = true);
 #endif //WITH_EDITOR
 
 struct FClassFunctionLinkInfo;

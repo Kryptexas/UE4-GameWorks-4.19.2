@@ -1153,43 +1153,40 @@ static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, con
 	return true;
 }
 
-static void StorePathfindingDebugLength(FRecastDebugPathfindingNode& Node, FRecastDebugPathfindingData& Data)
+static void StorePathfindingDebugData(const dtNavMeshQuery& NavQuery, const dtNavMesh* NavMesh, FRecastDebugPathfindingData& Data)
 {
-	if (Node.Length >= 0.0f)
+	const dtNodePool* NodePool = NavQuery.getNodePool();
+	check(NodePool);
+
+	const int32 NodeCount = NodePool->getNodeCount();
+	if (NodeCount <= 0)
 	{
 		return;
 	}
-
-	FRecastDebugPathfindingNode* ParentNode = Data.Nodes.Find(FRecastDebugPathfindingNode(Node.ParentRef));
-	if (ParentNode)
+	
+	// cache path lengths for all nodes in pool, indexed by poolIdx (idx + 1)
+	TArray<float> NodePathLength;
+	if (Data.Flags & ERecastDebugPathfindingFlags::PathLength)
 	{
-		StorePathfindingDebugLength(*ParentNode, Data);
-		Node.Length = ParentNode->Length + FVector::Dist(Node.NodePos, ParentNode->NodePos);
+		NodePathLength.AddZeroed(NodeCount + 1);
 	}
-	else
-	{
-		Node.Length = 0.0f;
-	}
-}
 
-static void StorePathfindingDebugData(const dtNavMeshQuery& NavQuery, const dtNavMesh* NavMesh, FRecastDebugPathfindingData& Data)
-{
-	dtNode* BestNode = 0;
-	float BestNodeCost = 0.0f;
-	NavQuery.getCurrentBestResult(BestNode, BestNodeCost);
-
-	const dtNodePool* NodePool = NavQuery.getNodePool();
-	for (int32 i = 0; i < NodePool->getNodeCount(); i++)
+	Data.Nodes.Reserve(NodeCount);
+	for (int32 Idx = 0; Idx < NodeCount; Idx++)
 	{
-		const dtNode* Node = NodePool->getNodeAtIdx(i + 1);
+		const int32 NodePoolIdx = Idx + 1;
+		const dtNode* Node = NodePool->getNodeAtIdx(NodePoolIdx);
+		check(Node);
+
+		const dtNode* ParentNode = Node->pidx ? NodePool->getNodeAtIdx(Node->pidx) : nullptr;
 
 		FRecastDebugPathfindingNode NodeInfo;
 		NodeInfo.PolyRef = Node->id;
-		NodeInfo.ParentRef = Node->pidx ? NodePool->getNodeAtIdx(Node->pidx)->id : 0;
+		NodeInfo.ParentRef = ParentNode ? ParentNode->id : 0;
 		NodeInfo.Cost = Node->cost;
 		NodeInfo.TotalCost = Node->total;
-		NodeInfo.Length = -1.0f;
-		NodeInfo.bOpenSet = !NavQuery.isInClosedList(Node->id);
+		NodeInfo.Length = 0.0f;
+		NodeInfo.bOpenSet = (Node->flags & DT_NODE_OPEN) != 0;
 		NodeInfo.bModified = true;
 		NodeInfo.NodePos = Recast2UnrealPoint(&Node->pos[0]);
 
@@ -1201,25 +1198,38 @@ static void StorePathfindingDebugData(const dtNavMeshQuery& NavQuery, const dtNa
 		if (Data.Flags & ERecastDebugPathfindingFlags::Vertices)
 		{
 			check(NavPoly);
-			for (int32 iv = 0; iv < NavPoly->vertCount; iv++)
+
+			NodeInfo.NumVerts = NavPoly->vertCount;
+			for (int32 VertIdx = 0; VertIdx < NavPoly->vertCount; VertIdx++)
 			{
-				NodeInfo.Verts.Add(Recast2UnrealPoint(&NavTile->verts[NavPoly->verts[iv] * 3]));
+				NodeInfo.Verts.Add(Recast2UnrealPoint(&NavTile->verts[NavPoly->verts[VertIdx] * 3]));
 			}
 		}
 
-		FSetElementId SetId = Data.Nodes.Add(NodeInfo);
-		if (Node == BestNode && (Data.Flags & ERecastDebugPathfindingFlags::BestNode))
+		if ((Data.Flags & ERecastDebugPathfindingFlags::PathLength) && ParentNode)
 		{
-			Data.BestNode = SetId;
+			const FVector ParentPos = Recast2UnrealPoint(&ParentNode->pos[0]);
+			const float NodeLinkLen = FVector::Dist(NodeInfo.NodePos, ParentPos);
+
+			// no point in validating, it would already crash on reading ParentNode (no validation in NodePool.getNodeAtIdx)
+			const float ParentPathLength = NodePathLength[Node->pidx];
+
+			NodePathLength[NodePoolIdx] = NodeInfo.Length = NodeLinkLen + ParentPathLength;
 		}
+
+		Data.Nodes.Add(NodeInfo);
 	}
 
-	if (Data.Flags & ERecastDebugPathfindingFlags::PathLength)
+	if (Data.Flags & ERecastDebugPathfindingFlags::BestNode)
 	{
-		for (TSet<FRecastDebugPathfindingNode>::TIterator It(Data.Nodes); It; ++It)
+		dtNode* BestNode = nullptr;
+		float BestNodeCost = 0.0f;
+		NavQuery.getCurrentBestResult(BestNode, BestNodeCost);
+
+		if (BestNode)
 		{
-			FRecastDebugPathfindingNode& Node = *It;
-			StorePathfindingDebugLength(Node, Data);
+			const FRecastDebugPathfindingNode BestNodeKey(BestNode->id);
+			Data.BestNode = Data.Nodes.FindId(BestNodeKey);
 		}
 	}
 }

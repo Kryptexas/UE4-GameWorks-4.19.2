@@ -42,132 +42,67 @@ bool FMediaPlaylistTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("GetRandom() on a new play list must yield INDEX_NONE"), Index, INDEX_NONE);
 	}
 
-	// one entry (no looping)
+	// one entry
 	{
-		Playlist->Loop = false;
-
 		Playlist->Add((UMediaSource*)1);
-		TestEqual(TEXT("A play list with one entry and no looping must have length 1"), Playlist->Num(), 1);
+		TestEqual(TEXT("A play list with one entry and must have length 1"), Playlist->Num(), 1);
 
 		Index = INDEX_NONE;
-		TestNotNull(TEXT("GetNext(INDEX_NONE) on a play list with one entry and no looping must return the first item"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with one entry and no looping must yield 0"), Index, 0);
+		TestNotNull(TEXT("GetNext(INDEX_NONE) on a play list with one entry must return the first item"), Playlist->GetNext(Index));
+		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with one entry must yield 0"), Index, 0);
 
 		Index = INDEX_NONE;
-		TestNull(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry and no looping must return nullptr"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestNotNull(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry must return the first item"), Playlist->GetPrevious(Index));
+		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry must yield 0"), Index, 0);
 
 		Index = 0;
-		TestNull(TEXT("GetNext(0) on a play list with one entry and no looping must return nullptr"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(0) on a play list with one entry and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestNotNull(TEXT("GetNext(0) on a play list with one entry must return the first item"), Playlist->GetNext(Index));
+		TestEqual(TEXT("GetNext(0) on a play list with one entry must yield 0"), Index, 0);
 
 		Index = 0;
-		TestNull(TEXT("GetPrevious(0) on a play list with one entry and no looping must return nullptr"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(0) on a play list with one entry and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestNotNull(TEXT("GetPrevious(0) on a play list with one entry must return the first item"), Playlist->GetPrevious(Index));
+		TestEqual(TEXT("GetPrevious(0) on a play list with one entry must yield 0"), Index, 0);
 
 		Index = 1;
-		TestNull(TEXT("GetNext(1) on a play list with one entry and no looping must return nullptr"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(1) on a play list with one entry and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestNotNull(TEXT("GetNext(1) on a play list with one entry must return the first item"), Playlist->GetNext(Index));
+		TestEqual(TEXT("GetNext(1) on a play list with one entry must yield 0"), Index, 0);
 
 		Index = 1;
-		TestNotNull(TEXT("GetPrevious(1) on a play list with one entry and no looping must return the first item"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(1) on a play list with one entry and no looping must yield 0"), Index, 0);
-
-		TestNotNull(TEXT("GetRandom() on a play list with one entry and no looping must return the first item"), Playlist->GetRandom(Index));
-		TestEqual(TEXT("GetRandom() on a play list with one entry and no looping must yield 0"), Index, 0);
+		TestNotNull(TEXT("GetPrevious(1) on a play list with one entry must return the first item"), Playlist->GetPrevious(Index));
+		TestEqual(TEXT("GetPrevious(1) on a play list with one entry must yield 0"), Index, 0);
 	}
 
-	// one entry (looping)
+	// two entries
 	{
-		Playlist->Loop = true;
-
-		Index = INDEX_NONE;
-		TestNotNull(TEXT("GetNext(INDEX_NONE) on a play list with one entry and looping must return the first item"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with one entry and looping must yield 0"), Index, 0);
-
-		Index = INDEX_NONE;
-		TestNotNull(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry and looping must return the first item"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with one entry and looping must yield 0"), Index, 0);
-
-		Index = 0;
-		TestNotNull(TEXT("GetNext(0) on a play list with one entry and looping must return the first item"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(0) on a play list with one entry and looping must yield 0"), Index, 0);
-
-		Index = 0;
-		TestNotNull(TEXT("GetPrevious(0) on a play list with one entry and looping must return the first item"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(0) on a play list with one entry and looping must yield 0"), Index, 0);
-
-		Index = 1;
-		TestNotNull(TEXT("GetNext(1) on a play list with one entry and looping must return the first item"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(1) on a play list with one entry and looping must yield 0"), Index, 0);
-
-		Index = 1;
-		TestNotNull(TEXT("GetPrevious(1) on a play list with one entry and looping must return the first item"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(1) on a play list with one entry and looping must yield 0"), Index, 0);
-	}
-
-	// two entries (no looping)
-	{
-		Playlist->Loop = false;
-
 		Playlist->Add((UMediaSource*)2);
-		TestEqual(TEXT("A play list with two entries and no looping must have length 2"), Playlist->Num(), 2);
+		TestEqual(TEXT("A play list with two entries and must have length 2"), Playlist->Num(), 2);
 
 		Index = INDEX_NONE;
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries and no looping must return the first item"), Playlist->GetNext(Index), (UMediaSource*)1);
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries and no looping must yield 0"), Index, 0);
+		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries must return the first item"), Playlist->GetNext(Index), (UMediaSource*)1);
+		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries must yield 0"), Index, 0);
 
 		Index = INDEX_NONE;
-		TestNull(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries and no looping must return the first item"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries must return the second item"), Playlist->GetPrevious(Index), (UMediaSource*)2);
+		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries must yield 1"), Index, 1);
 
 		Index = 0;
-		TestEqual(TEXT("GetNext(0) on a play list with two entries and no looping must return the second item"), Playlist->GetNext(Index), (UMediaSource*)2);
-		TestEqual(TEXT("GetNext(0) on a play list with two entries and no looping must yield 1"), Index, 1);
+		TestEqual(TEXT("GetNext(0) on a play list with two entries must return the second item"), Playlist->GetNext(Index), (UMediaSource*)2);
+		TestEqual(TEXT("GetNext(0) on a play list with two entries must yield 1"), Index, 1);
 
 		Index = 0;
-		TestNull(TEXT("GetPrevious(0) on a play list with two entries and no looping must return nullptr"), Playlist->GetPrevious(Index));
-		TestEqual(TEXT("GetPrevious(0) on a play list with two entries and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestEqual(TEXT("GetPrevious(0) on a play list with two entries must return the first item"), Playlist->GetPrevious(Index), (UMediaSource*)2);
+		TestEqual(TEXT("GetPrevious(0) on a play list with two entries must yield 1"), Index, 1);
 
 		Index = 1;
-		TestNull(TEXT("GetNext(1) on a play list with two entries and no looping must return nullptr"), Playlist->GetNext(Index));
-		TestEqual(TEXT("GetNext(1) on a play list with two entries and no looping must yield INDEX_NONE"), Index, INDEX_NONE);
+		TestEqual(TEXT("GetNext(1) on a play list with two entries must return the first item"), Playlist->GetNext(Index), (UMediaSource*)1);
+		TestEqual(TEXT("GetNext(1) on a play list with two entries must yield 0"), Index, 0);
 
 		Index = 1;
-		TestEqual(TEXT("GetPrevious(1) on a play list with two entries and no looping must return nullptr"), Playlist->GetPrevious(Index), (UMediaSource*)1);
-		TestEqual(TEXT("GetPrevious(1) on a play list with two entries and no looping must yield 0"), Index, 0);
-	}
+		TestEqual(TEXT("GetPrevious(1) on a play list with two entries must return the first item"), Playlist->GetPrevious(Index), (UMediaSource*)1);
+		TestEqual(TEXT("GetPrevious(1) on a play list with two entries must yield 0"), Index, 0);
 
-	// two entries (looping)
-	{
-		Playlist->Loop = true;
-
-		Index = INDEX_NONE;
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries and looping must return the first item"), Playlist->GetNext(Index), (UMediaSource*)1);
-		TestEqual(TEXT("GetNext(INDEX_NONE) on a play list with two entries and looping must yield 0"), Index, 0);
-
-		Index = INDEX_NONE;
-		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries and looping must return the second item"), Playlist->GetPrevious(Index), (UMediaSource*)2);
-		TestEqual(TEXT("GetPrevious(INDEX_NONE) on a play list with two entries and looping must yield 1"), Index, 1);
-
-		Index = 0;
-		TestEqual(TEXT("GetNext(0) on a play list with two entries and looping must return the second item"), Playlist->GetNext(Index), (UMediaSource*)2);
-		TestEqual(TEXT("GetNext(0) on a play list with two entries and looping must yield 1"), Index, 1);
-
-		Index = 0;
-		TestEqual(TEXT("GetPrevious(0) on a play list with two entries and looping must return the first item"), Playlist->GetPrevious(Index), (UMediaSource*)2);
-		TestEqual(TEXT("GetPrevious(0) on a play list with two entries and looping must yield 1"), Index, 1);
-
-		Index = 1;
-		TestEqual(TEXT("GetNext(1) on a play list with two entries and looping must return the first item"), Playlist->GetNext(Index), (UMediaSource*)1);
-		TestEqual(TEXT("GetNext(1) on a play list with two entries and looping must yield 0"), Index, 0);
-
-		Index = 1;
-		TestEqual(TEXT("GetPrevious(1) on a play list with two entries and looping must return the first item"), Playlist->GetPrevious(Index), (UMediaSource*)1);
-		TestEqual(TEXT("GetPrevious(1) on a play list with two entries and looping must yield 0"), Index, 0);
-
-		TestNotNull(TEXT("GetRandom() on a play list with two entries and no looping must not return nullptr"), Playlist->GetRandom(Index));
-		TestNotEqual(TEXT("GetRandom() on a play list with two entries and no looping must not yield INDEX_NONE"), Index, (int32)INDEX_NONE);
+		TestNotNull(TEXT("GetRandom() on a play list with two entries and must not return nullptr"), Playlist->GetRandom(Index));
+		TestNotEqual(TEXT("GetRandom() on a play list with two entries and must not yield INDEX_NONE"), Index, (int32)INDEX_NONE);
 	}
 
 	return true;

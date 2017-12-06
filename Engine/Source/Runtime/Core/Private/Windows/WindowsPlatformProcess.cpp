@@ -680,10 +680,12 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	}
 	else
 	{
+		DWORD ErrorCode = GetLastError();
+
 		// if CreateProcess failed, we should return a useful error code, which GetLastError will have
 		if (OutReturnCode)
 		{
-			*OutReturnCode = GetLastError();
+			*OutReturnCode = ErrorCode;
 		}
 		if (bRedirectOutput)
 		{
@@ -692,6 +694,18 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 				verify(::CloseHandle(WritablePipes[PipeIndex]));
 			}
 		}
+
+		TCHAR ErrorMessage[512];
+		FWindowsPlatformMisc::GetSystemErrorMessage(ErrorMessage, 512, ErrorCode);
+
+		UE_LOG(LogWindows, Warning, TEXT("CreateProc failed: %s (0x%08x)"), ErrorMessage, ErrorCode);
+		if (ErrorCode == ERROR_NOT_ENOUGH_MEMORY || ErrorCode == ERROR_OUTOFMEMORY)
+		{
+			// These errors are common enough that we want some available memory information
+			FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+			UE_LOG(LogWindows, Warning, TEXT("Mem used: %.2f MB, OS Free %.2f MB"), Stats.UsedPhysical / 1048576.0f, Stats.AvailablePhysical / 1048576.0f);
+		}
+		UE_LOG(LogWindows, Warning, TEXT("URL: %s %s"), URL, Params);
 	}
 
 	if (bRedirectOutput)
@@ -801,6 +815,10 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 			TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
 			FCString::Strcpy(Result, *TempResult);
 			int32 StringLength = FCString::Strlen(Result);
+			int32 NumSubDirectories = 0;
+#ifdef ENGINE_BASE_DIR_ADJUST
+			NumSubDirectories = ENGINE_BASE_DIR_ADJUST;
+#endif
 			if (StringLength > 0)
 			{
 				--StringLength;
@@ -808,7 +826,10 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 				{
 					if (Result[StringLength - 1] == TEXT('/') || Result[StringLength - 1] == TEXT('\\'))
 					{
-						break;
+						if(--NumSubDirectories < 0)
+						{
+							break;
+						}
 					}
 				}
 			}

@@ -53,7 +53,7 @@ static TAutoConsoleVariable<int32> CVarSSRCone(
 	TEXT(" 0 is off (default), 1 is on"),
 	ECVF_RenderThreadSafe);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("ScreenSpace Reflections"), Stat_GPU_ScreenSpaceReflections, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ScreenSpaceReflections, TEXT("ScreenSpace Reflections"));
 
 bool ShouldRenderScreenSpaceReflections(const FViewInfo& View)
 {
@@ -403,7 +403,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ScreenSpaceReflections);
+	SCOPED_GPU_STAT(RHICmdList, ScreenSpaceReflections);
 	
 	if (SSRStencilPrePass)
 	{ // ScreenSpaceReflectionsStencil draw event

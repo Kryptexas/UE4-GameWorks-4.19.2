@@ -1830,7 +1830,7 @@ struct ENGINE_API FHitResult
 
 	/** Indicates if this hit was a result of blocking collision. If false, there was no hit or it was an overlap/touch instead. */
 	UPROPERTY()
-	uint32 bBlockingHit:1;
+	uint8 bBlockingHit:1;
 
 	/**
 	 * Whether the trace started in penetration, i.e. with an initial blocking overlap.
@@ -1839,7 +1839,11 @@ struct ENGINE_API FHitResult
 	 * (ie, Normal may not equal ImpactNormal). ImpactPoint will be the same as Location, since there is no single impact point to report.
 	 */
 	UPROPERTY()
-	uint32 bStartPenetrating:1;
+	uint8 bStartPenetrating:1;
+
+	/** Face index we hit (for complex hits with triangle meshes). */
+	UPROPERTY()
+	int32 FaceIndex;
 
 	/**
 	 * 'Time' of impact along trace direction (ranging from 0.0 to 1.0) if there is a hit, indicating time between TraceStart and TraceEnd.
@@ -1928,10 +1932,6 @@ struct ENGINE_API FHitResult
 	/** Name of bone we hit (for skeletal meshes). */
 	UPROPERTY()
 	FName BoneName;
-
-	/** Face index we hit (for complex hits with triangle meshes). */
-	UPROPERTY()
-	int32 FaceIndex;
 
 	/** Name of the _my_ bone which took part in hit event (in case of two skeletal meshes colliding). */
 	UPROPERTY()
@@ -2210,7 +2210,7 @@ struct FAnimUpdateRateParameters
 	GENERATED_USTRUCT_BODY()
 
 public:
-	enum EOptimizeMode
+	enum EOptimizeMode : uint8
 	{
 		TrailMode,
 		LookAheadMode,
@@ -2218,6 +2218,30 @@ public:
 
 	/** Cache which Update Rate Optimization mode we are using */
 	EOptimizeMode OptimizeMode;
+
+	/** The bucket to use when deciding which counter to use to calculate shift values */
+	UPROPERTY()
+	EUpdateRateShiftBucket ShiftBucket;
+
+	/** When skipping a frame, should it be interpolated or frozen? */
+	UPROPERTY()
+	uint8 bInterpolateSkippedFrames : 1;
+
+	/** Whether or not to use the defined LOD/Frameskip map instead of separate distance factor thresholds */
+	UPROPERTY()
+	uint8 bShouldUseLodMap : 1;
+
+	/** If set, LOD/Frameskip map will be queried with mesh's MinLodModel instead of current LOD (PredictedLODLevel) */
+	UPROPERTY()
+	uint8 bShouldUseMinLod : 1;
+
+	/** (This frame) animation update should be skipped. */
+	UPROPERTY()
+	uint8 bSkipUpdate : 1;
+
+	/** (This frame) animation evaluation should be skipped. */
+	UPROPERTY()
+	uint8 bSkipEvaluation : 1;
 
 	/** How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc. */
 	UPROPERTY()
@@ -2227,26 +2251,6 @@ public:
 	 *  has to be a multiple of UpdateRate. */
 	UPROPERTY()
 	int32 EvaluationRate;
-
-	/** When skipping a frame, should it be interpolated or frozen? */
-	UPROPERTY()
-	uint32 bInterpolateSkippedFrames : 1;
-
-	/** Whether or not to use the defined LOD/Frameskip map instead of separate distance factor thresholds */
-	UPROPERTY()
-	uint32 bShouldUseLodMap : 1;
-
-	/** If set, LOD/Frameskip map will be queried with mesh's MinLodModel instead of current LOD (PredictedLODLevel) */
-	UPROPERTY()
-	uint32 bShouldUseMinLod : 1;
-
-	/** (This frame) animation update should be skipped. */
-	UPROPERTY()
-	uint32 bSkipUpdate : 1;
-
-	/** (This frame) animation evaluation should be skipped. */
-	UPROPERTY()
-	uint32 bSkipEvaluation : 1;
 
 	UPROPERTY(Transient)
 	/** Track time we have lost via skipping */
@@ -2263,6 +2267,10 @@ public:
 	 * a value of 4 means evaluated 1 frame, then 3 frames skipped */
 	UPROPERTY()
 	int32 BaseNonRenderedUpdateRate;
+
+	/** Max Evaluation Rate allowed for interpolation to be enabled. Beyond, interpolation will be turned off. */
+	UPROPERTY()
+	int32 MaxEvalRateForInterpolation;
 
 	/** Array of MaxDistanceFactor to use for AnimUpdateRate when mesh is visible (rendered).
 	 * MaxDistanceFactor is size on screen, as used by LODs
@@ -2286,14 +2294,6 @@ public:
 	UPROPERTY()
 	TMap<int32, int32> LODToFrameSkipMap;
 
-	/** Max Evaluation Rate allowed for interpolation to be enabled. Beyond, interpolation will be turned off. */
-	UPROPERTY()
-	int32 MaxEvalRateForInterpolation;
-
-	/** The bucket to use when deciding which counter to use to calculate shift values */
-	UPROPERTY()
-	EUpdateRateShiftBucket ShiftBucket;
-
 	UPROPERTY()
 	int32 SkippedUpdateFrames;
 
@@ -2305,19 +2305,19 @@ public:
 	/** Default constructor. */
 	FAnimUpdateRateParameters()
 		: OptimizeMode(TrailMode)
-		, UpdateRate(1)
-		, EvaluationRate(1)
+		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 		, bInterpolateSkippedFrames(false)
 		, bShouldUseLodMap(false)
 		, bShouldUseMinLod(false)
 		, bSkipUpdate(false)
 		, bSkipEvaluation(false)
+		, UpdateRate(1)
+		, EvaluationRate(1)
 		, TickedPoseOffestTime(0.f)
 		, AdditionalTime(0.f)
 		, ThisTickDelta(0.f)
 		, BaseNonRenderedUpdateRate(4)
 		, MaxEvalRateForInterpolation(4)
-		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 		, SkippedUpdateFrames(0)
 		, SkippedEvalFrames(0)
 	{ 
@@ -2439,38 +2439,45 @@ struct FMeshBuildSettings
 
 	/** If true, degenerate triangles will be removed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bUseMikkTSpace;
+	uint8 bUseMikkTSpace:1;
 
 	/** If true, normals in the raw mesh are ignored and recomputed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bRecomputeNormals;
+	uint8 bRecomputeNormals:1;
 
 	/** If true, tangents in the raw mesh are ignored and recomputed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bRecomputeTangents;
+	uint8 bRecomputeTangents:1;
 
 	/** If true, degenerate triangles will be removed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bRemoveDegenerates;
+	uint8 bRemoveDegenerates:1;
 	
 	/** Required for PNT tessellation but can be slow. Recommend disabling for larger meshes. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bBuildAdjacencyBuffer;
+	uint8 bBuildAdjacencyBuffer:1;
 
 	/** Required to optimize mesh in mirrored transform. Double index buffer size. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bBuildReversedIndexBuffer;
+	uint8 bBuildReversedIndexBuffer:1;
 
 	/** If true, Tangents will be stored at 16 bit vs 8 bit precision. */
 	UPROPERTY(EditAnywhere, Category = BuildSettings)
-	bool bUseHighPrecisionTangentBasis;
+	uint8 bUseHighPrecisionTangentBasis:1;
 
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bUseFullPrecisionUVs;
+	uint8 bUseFullPrecisionUVs:1;
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	bool bGenerateLightmapUVs;
+	uint8 bGenerateLightmapUVs:1;
+
+	/** 
+	 * Whether to generate the distance field treating every triangle hit as a front face.  
+	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
+	 */
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
+	uint8 bGenerateDistanceFieldAsIfTwoSided:1;
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	int32 MinLightmapResolution;
@@ -2495,15 +2502,10 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	float DistanceFieldResolutionScale;
 
-	/** 
-	 * Whether to generate the distance field treating every triangle hit as a front face.  
-	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
-	 */
-	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
-	bool bGenerateDistanceFieldAsIfTwoSided;
-
-	UPROPERTY()
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(NotReplicated)
 	float DistanceFieldBias_DEPRECATED;
+#endif
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	class UStaticMesh* DistanceFieldReplacementMesh;
@@ -2519,15 +2521,17 @@ struct FMeshBuildSettings
 		, bUseHighPrecisionTangentBasis(false)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
+		, bGenerateDistanceFieldAsIfTwoSided(false)
 		, MinLightmapResolution(64)
 		, SrcLightmapIndex(0)
 		, DstLightmapIndex(1)
 		, BuildScale_DEPRECATED(1.0f)
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
-		, bGenerateDistanceFieldAsIfTwoSided(false)
+#if WITH_EDITORONLY_DATA
 		, DistanceFieldBias_DEPRECATED(0.0f)
-		, DistanceFieldReplacementMesh(NULL)
+#endif
+		, DistanceFieldReplacementMesh(nullptr)
 	{ }
 
 	/** Equality operator. */

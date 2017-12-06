@@ -1969,13 +1969,35 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 	ensure(!ImportMap.Num());
 
 	// Create Imports
-	for (FBlueprintDependencyData& Import : DependencyData)
+	for (int32 DependencyIndex = 0; DependencyIndex < DependencyData.Num(); ++DependencyIndex)
 	{
+		FBlueprintDependencyData& Import = DependencyData[DependencyIndex];
+
 		FObjectImport* ObjectImport = new(ImportMap)FObjectImport(nullptr);
 		ObjectImport->ClassName = Import.ObjectRef.ClassName;
 		ObjectImport->ClassPackage = Import.ObjectRef.ClassPackageName;
 		ObjectImport->ObjectName = Import.ObjectRef.ObjectName;
-		ObjectImport->OuterIndex = FPackageIndex::FromImport(ImportMap.Num());
+
+		if(Import.ObjectRef.OuterName == NAME_None)
+		{
+			ObjectImport->OuterIndex = FPackageIndex::FromImport(ImportMap.Num());
+		}
+		else
+		{
+			// A subobject - look for our outer in the previously setup imports. Iterate backwards here as it will usually be found in a few iterations
+			for(int32 OuterSearchIndex = ImportMap.Num() - 2; OuterSearchIndex >= 0; --OuterSearchIndex)
+			{
+				FObjectImport& SearchImport = ImportMap[OuterSearchIndex];
+				if(SearchImport.ObjectName == Import.ObjectRef.OuterName)
+				{
+					ObjectImport->OuterIndex = FPackageIndex::FromImport(OuterSearchIndex);
+					break;
+				}
+			}
+
+			// We must find out outer in the above search or the import table will be invalid
+			check(!ObjectImport->OuterIndex.IsNull());
+		}
 
 		FObjectImport* OuterImport = new(ImportMap)FObjectImport(nullptr);
 		OuterImport->ClassName = NAME_Package;
@@ -2472,11 +2494,13 @@ FBlueprintDependencyObjectRef::FBlueprintDependencyObjectRef(const TCHAR* InPack
 	, const TCHAR* InShortPackageName
 	, const TCHAR* InObjectName
 	, const TCHAR* InClassPackageName
-	, const TCHAR* InClassName) 
+	, const TCHAR* InClassName
+	, const TCHAR* InOuterName)
 	: PackageName(*(FString(InPackageFolder) + TEXT("/") + InShortPackageName))
 	, ObjectName(InObjectName)
 	, ClassPackageName(InClassPackageName)
 	, ClassName(InClassName)
+	, OuterName(InOuterName)
 {}
 
 FConvertedBlueprintsDependencies& FConvertedBlueprintsDependencies::Get()

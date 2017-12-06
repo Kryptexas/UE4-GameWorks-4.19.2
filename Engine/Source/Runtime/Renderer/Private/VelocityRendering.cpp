@@ -45,7 +45,7 @@ RENDERER_API TAutoConsoleVariable<int32> CVarAllowMotionBlurInVR(
 	0,
 	TEXT("For projects with motion blur enabled, this allows motion blur to be enabled even while in VR."));
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Render Velocities"), Stat_GPU_RenderVelocities, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(RenderVelocities, TEXT("Render Velocities"));
 
 bool IsParallelVelocity()
 {
@@ -900,7 +900,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_RenderVelocities);
+	SCOPED_GPU_STAT(RHICmdList, RenderVelocities);
 
 	FPooledRenderTargetDesc Desc = FVelocityRendering::GetRenderTargetDesc();
 	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VelocityRT, TEXT("Velocity"));

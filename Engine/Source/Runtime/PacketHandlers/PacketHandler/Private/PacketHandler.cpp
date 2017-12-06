@@ -191,6 +191,18 @@ void PacketHandler::AddHandler(TSharedPtr<HandlerComponent> NewHandler, bool bDe
 		return;
 	}
 
+	// Warn if a component already exists with the same name.
+	const bool bNameAlreadyExists = HandlerComponents.ContainsByPredicate([NewHandler](const TSharedPtr<HandlerComponent>& Component)
+	{
+		return Component->GetName() == NewHandler->GetName();
+	});
+
+	if (bNameAlreadyExists)
+	{
+		UE_LOG(PacketHandlerLog, Warning, TEXT("Packet handler already contains a component with name %s."), *NewHandler->GetName().ToString());
+		return;
+	}
+
 	HandlerComponents.Add(NewHandler);
 	NewHandler->Handler = this;
 
@@ -319,6 +331,19 @@ void PacketHandler::OutgoingHigh(FBitWriter& Writer)
 TSharedPtr<FEncryptionComponent> PacketHandler::GetEncryptionComponent()
 {
 	return EncryptionComponent;
+}
+
+TSharedPtr<HandlerComponent> PacketHandler::GetComponentByName(FName ComponentName) const
+{
+	for (const TSharedPtr<HandlerComponent>& Component : HandlerComponents)
+	{
+		if (Component.IsValid() && Component->GetName() == ComponentName)
+		{
+			return Component;
+		}
+	}
+
+	return nullptr;
 }
 
 const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 CountBytes, bool bConnectionless, FString Address)
@@ -819,6 +844,18 @@ HandlerComponent::HandlerComponent()
 	, bRequiresReliability(false)
 	, bActive(false)
 	, bInitialized(false)
+{
+}
+
+HandlerComponent::HandlerComponent(FName InName)
+	: Handler(nullptr)
+	, State(Handler::Component::State::UnInitialized)
+	, MaxOutgoingBits(0)
+	, bRequiresHandshake(false)
+	, bRequiresReliability(false)
+	, bActive(false)
+	, bInitialized(false)
+	, Name(InName)
 {
 }
 

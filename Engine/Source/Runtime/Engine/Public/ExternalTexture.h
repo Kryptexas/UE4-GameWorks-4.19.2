@@ -44,10 +44,11 @@ public:
 	/* Removes an external texture given a GUID */
 	void UnregisterExternalTexture(const FGuid& InGuid);
 
+	/* Removes the specified MaterialRenderProxy from the list of those using an external texture. */
 	void RemoveMaterialRenderProxyReference(const FMaterialRenderProxy* MaterialRenderProxy);
 
-	/* Looks up an external texture for given a given GUID
-	 * @return false if the texture is not registered
+	/* Registers the MaterialRenderProxy as using an external texture and looks up an external texture for given the specified GUID provided it is valid.
+	 * @return false if the texture is not registered or the GUID is invalid.
 	 */
 	bool GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, const FGuid& InGuid, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI);
 

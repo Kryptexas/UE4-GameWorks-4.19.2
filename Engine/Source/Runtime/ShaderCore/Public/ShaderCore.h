@@ -102,8 +102,11 @@ struct FShaderTarget
 		uint32 TargetFrequency = Target.Frequency;
 		uint32 TargetPlatform = Target.Platform;
 		Ar << TargetFrequency << TargetPlatform;
-		Target.Frequency = TargetFrequency;
-		Target.Platform = TargetPlatform;
+		if (Ar.IsLoading())
+		{
+			Target.Frequency = TargetFrequency;
+			Target.Platform = TargetPlatform;
+		}
 		return Ar;
 	}
 };

@@ -17,7 +17,7 @@ class UTexture2D;
  * Streaming stats
  */
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Game Thread Update Time"),STAT_GameThreadUpdateTime,STATGROUP_Streaming, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Texture Streaming Game Thread Update Time"), STAT_TextureStreaming_GameThreadUpdateTime,STATGROUP_Streaming, );
 
 
 // Streaming Details
@@ -56,6 +56,7 @@ extern TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus;
 extern TAutoConsoleVariable<int32> CVarStreamingUseMaterialData;
 extern TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame;
 extern TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds;
+extern TAutoConsoleVariable<float> CVarStreamingMaxTextureUVDensity;
 
 struct FTextureStreamingSettings
 {
@@ -80,6 +81,8 @@ struct FTextureStreamingSettings
 	bool bUsePerTextureBias;
 	bool bUseMaterialData;
 	int32 MinMipForSplitRequest;
+	float MinLevelTextureScreenSize;
+	float MaxTextureUVDensity;
 
 protected:
 

@@ -570,9 +570,9 @@ void FD3D11DynamicRHIModule::StartupModule()
 	// Note - can't check device type here, we'll check for that before actually initializing Aftermath
 
 		FString AftermathBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/");
-		if (LoadLibraryW(*(AftermathBinariesRoot + "GFSDK_Aftermath_Lib.dll")) == nullptr)
+		if (LoadLibraryW(*(AftermathBinariesRoot + "GFSDK_Aftermath_Lib.x64.dll")) == nullptr)
 		{
-			UE_LOG(LogD3D11RHI, Warning, TEXT("Failed to load GFSDK_Aftermath_Lib.dll"));
+			UE_LOG(LogD3D11RHI, Warning, TEXT("Failed to load GFSDK_Aftermath_Lib.x64.dll"));
 			GDX11NVAfterMathEnabled = 0;
 			return;
 		}
@@ -1122,11 +1122,15 @@ void FD3D11DynamicRHI::InitD3DDevice()
 #if NV_AFTERMATH
 			if (GDX11NVAfterMathEnabled)
 			{
-				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
+				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, GFSDK_Aftermath_FeatureFlags_Maximum, Direct3DDevice);
 				if (Result == GFSDK_Aftermath_Result_Success)
 				{
-					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
-					SetEmitDrawEvents(true);
+					Result = GFSDK_Aftermath_DX11_CreateContextHandle(Direct3DDeviceIMContext, &NVAftermathIMContextHandle);
+					if (Result == GFSDK_Aftermath_Result_Success)
+					{
+						UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
+						SetEmitDrawEvents(true);
+					}
 				}
 				else
 				{
@@ -1171,7 +1175,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		{
 			if (IsRHIDeviceNVIDIA())
 			{
-				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
+				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, GFSDK_Aftermath_FeatureFlags_Maximum, Direct3DDevice);
 				if (Result == GFSDK_Aftermath_Result_Success)
 				{
 					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
@@ -1257,6 +1261,9 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					//		a color but we don't bind a color render target. That is safe as writes to unbound render targets are discarded.
 					//		Also, batched elements triggers it when rendering outside of scene rendering as it outputs to the GBuffer containing normals which is not bound.
 					(D3D11_MESSAGE_ID)3146081, // D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET,
+
+					// Spams constantly as we change the debug name on rendertargets that get reused.
+					D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS, 
 				};
 
 				NewFilter.DenyList.NumIDs = sizeof(DenyIds)/sizeof(D3D11_MESSAGE_ID);

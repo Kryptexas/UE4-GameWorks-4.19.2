@@ -21,6 +21,10 @@
 	#define INI_CACHE 0
 #endif
 
+#ifndef DISABLE_GENERATED_INI_WHEN_COOKED
+#define DISABLE_GENERATED_INI_WHEN_COOKED 0
+#endif
+
 DEFINE_LOG_CATEGORY(LogConfig);
 namespace 
 {
@@ -2795,7 +2799,10 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 	{
 		return false;
 	}
-	LoadAnIniFile(DestIniFilename, DestConfigFile);
+	if (!FPlatformProperties::RequiresCookedData() || bAllowGeneratedINIs)
+	{
+		LoadAnIniFile(DestIniFilename, DestConfigFile);
+	}
 
 #if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 	// process any commandline overrides
@@ -3207,6 +3214,17 @@ bool FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* 
 	}
 	else
 	{
+#if DISABLE_GENERATED_INI_WHEN_COOKED
+		if (FCString::Strcmp(IniName, TEXT("GameUserSettings")) != 0)
+		{
+			// If we asked to disable ini when cooked, disable all ini files except GameUserSettings, which stores user preferences
+			bAllowGeneratedIniWhenCooked = false;
+			if (FPlatformProperties::RequiresCookedData())
+			{
+				ConfigFile.NoSave = true;
+			}
+		}
+#endif
 		FString DestIniFilename = GetDestIniFilename(IniName, Platform, GeneratedConfigDir);
 
 		GetSourceIniHierarchyFilenames( IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false );
@@ -3250,16 +3268,16 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 {
 	FString ConsoleVariablesPath = FPaths::EngineDir() + TEXT("Config/ConsoleVariables.ini");
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !DISABLE_CHEAT_CVARS
 	// First we read from "../../../Engine/Config/ConsoleVariables.ini" [Startup] section if it exists
 	// This is the only ini file where we allow cheat commands (this is why it's not there for UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ApplyCVarSettingsFromIni(TEXT("Startup"), *ConsoleVariablesPath, ECVF_SetByConsoleVariablesIni, true);
-#endif
+#endif // !DISABLE_CHEAT_CVARS
 
 	// We also apply from Engine.ini [ConsoleVariables] section
 	ApplyCVarSettingsFromIni(TEXT("ConsoleVariables"), *GEngineIni, ECVF_SetBySystemSettingsIni);
 
-		IConsoleManager::Get().CallAllConsoleVariableSinks();
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
 
 void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName/*=nullptr*/, const TCHAR* OverridePlatform/*=nullptr*/)
@@ -3599,7 +3617,7 @@ CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, cons
 		}
 		else
 		{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !DISABLE_CHEAT_CVARS
 			if(bCheatFlag)
 			{
 				// We have one special cvar to test cheating and here we don't want to both the user of the engine
@@ -3609,7 +3627,7 @@ CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, cons
 						IniFile, Key);
 				}
 			}
-#endif
+#endif // !DISABLE_CHEAT_CVARS
 		}
 	}
 	else

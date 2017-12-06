@@ -471,6 +471,12 @@ protected:
 	/** Sets the frame rate limit CVar to the passed in value, 0.0 indicates no limit */
 	static void SetFrameRateLimitCVar(float InLimit);
 
+	/** Sets the sync interval limit CVar forc consoles 0-3 */
+	static void SetSyncIntervalCVar(int32 InInterval);
+
+	/** Sets the input latency mode 0 and 2 */
+	static void SetSyncTypeCVar(int32 InInterval);
+
 	/** Returns the effective frame rate limit (by default it returns the FrameRateLimit member) */
 	virtual float GetEffectiveFrameRateLimit();
 

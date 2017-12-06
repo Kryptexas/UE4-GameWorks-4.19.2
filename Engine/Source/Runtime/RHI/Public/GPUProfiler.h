@@ -183,6 +183,9 @@ struct RHI_API FGPUProfiler
 	/** Whether we are currently tracking perf events or not. */
 	bool bTrackingEvents;
 
+	/** Whether we are currently tracking data for gpucrash debugging or not */
+	bool bTrackingGPUCrashData;
+
 	/** A latched version of GTriggerGPUProfile. This is a form of pseudo-thread safety. We read the value once a frame only. */
 	bool bLatchedGProfilingGPU;
 
@@ -198,6 +201,9 @@ struct RHI_API FGPUProfiler
 	/** GPU hitch profile history debounce...after a hitch, we just ignore frames for a while */
 	int32 GPUHitchDebounce;
 
+	/** scope depth to record crash data depth. to limit perf/mem requirements */
+	int32 GPUCrashDataDepth;
+
 	/** Current perf event node frame. */
 	FGPUProfilerEventNodeFrame* CurrentEventNodeFrame;
 
@@ -208,11 +214,13 @@ struct RHI_API FGPUProfiler
 
 	FGPUProfiler() :
 		bTrackingEvents(false),
+		bTrackingGPUCrashData(false),
 		bLatchedGProfilingGPU(false),
 		bLatchedGProfilingGPUHitches(false),
 		bPreviousLatchedGProfilingGPUHitches(false),
 		bOriginalGEmitDrawEvents(false),
 		GPUHitchDebounce(0),
+		GPUCrashDataDepth(-1),
 		CurrentEventNodeFrame(NULL),
 		CurrentEventNode(NULL),
 		StackDepth(0)

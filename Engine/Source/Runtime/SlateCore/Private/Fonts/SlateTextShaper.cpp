@@ -375,6 +375,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 
 				if (!InsertSubstituteGlyphs(InText, CurrentCharIndex, InFontInfo, InFontScale, ShapedGlyphFaceData, OutGlyphsToRender))
 				{
+					const bool bIsZeroWidthSpace = CurrentChar == TEXT('\u200B');
 					const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
 
 					uint32 GlyphIndex = FT_Get_Char_Index(KerningOnlyTextSequenceEntry.FaceAndMemory->GetFace(), CurrentChar);
@@ -386,6 +387,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 					}
 
 					int16 XAdvance = 0;
+					if (!bIsZeroWidthSpace)
 					{
 						FT_Fixed CachedAdvanceData = 0;
 						if (FTAdvanceCache->FindOrCache(KerningOnlyTextSequenceEntry.FaceAndMemory->GetFace(), GlyphIndex, GlyphFlags, InFontInfo.Size, FinalFontScale, CachedAdvanceData))
@@ -630,14 +632,15 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 					const TCHAR CurrentChar = InText[CurrentCharIndex];
 					if (!InsertSubstituteGlyphs(InText, CurrentCharIndex, InFontInfo, InFontScale, ShapedGlyphFaceData, OutGlyphsToRender))
 					{
-						const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
+						const bool bIsZeroWidthSpace = CurrentChar == TEXT('\u200B');
+						const bool bIsWhitespace = bIsZeroWidthSpace || FText::IsWhitespace(CurrentChar);
 
 						const int32 CurrentGlyphEntryIndex = OutGlyphsToRender.AddDefaulted();
 						FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[CurrentGlyphEntryIndex];
 						ShapedGlyphEntry.FontFaceData = ShapedGlyphFaceData;
 						ShapedGlyphEntry.GlyphIndex = HarfBuzzGlyphInfo.codepoint;
 						ShapedGlyphEntry.SourceIndex = CurrentCharIndex;
-						ShapedGlyphEntry.XAdvance = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_advance);
+						ShapedGlyphEntry.XAdvance = bIsZeroWidthSpace ? 0 : FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_advance);
 						ShapedGlyphEntry.YAdvance = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_advance);
 						ShapedGlyphEntry.XOffset = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset);
 						ShapedGlyphEntry.YOffset = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset);

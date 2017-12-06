@@ -74,6 +74,9 @@ UObjectBase::UObjectBase( EObjectFlags InFlags )
 ,	InternalIndex		(INDEX_NONE)
 ,	ClassPrivate		(nullptr)
 ,	OuterPrivate		(nullptr)
+#if ENABLE_STATNAMEDEVENTS
+, StatIDStringStorage(nullptr)
+#endif
 {}
 
 /**
@@ -89,6 +92,9 @@ UObjectBase::UObjectBase(UClass* InClass, EObjectFlags InFlags, EInternalObjectF
 ,	InternalIndex		(INDEX_NONE)
 ,	ClassPrivate		(InClass)
 ,	OuterPrivate		(InOuter)
+#if ENABLE_STATNAMEDEVENTS
+, StatIDStringStorage(nullptr)
+#endif
 {
 	check(ClassPrivate);
 	// Add to global table.
@@ -109,9 +115,14 @@ UObjectBase::~UObjectBase()
 		LowLevelRename(NAME_None);
 		GUObjectArray.FreeUObjectIndex(this);
 	}
+
+#if ENABLE_STATNAMEDEVENTS
+	delete[] StatIDStringStorage;
+	StatIDStringStorage = nullptr;
+#endif
 }
 
-#if STATS
+#if STATS || ENABLE_STATNAMEDEVENTS
 
 void UObjectBase::CreateStatID() const
 {
@@ -156,7 +167,22 @@ void UObjectBase::CreateStatID() const
 		bFirstEntry = false;
 	}
 
+#if STATS
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_UObjects>( LongName );
+#else // ENABLE_STATNAMEDEVENTS
+	const auto& ConversionData = StringCast<PROFILER_CHAR>(*LongName);
+	const int32 NumStorageChars = (ConversionData.Length() + 1);	//length doesn't include null terminator
+
+	PROFILER_CHAR* StoragePtr = new PROFILER_CHAR[NumStorageChars];
+	FMemory::Memcpy(StoragePtr, ConversionData.Get(), NumStorageChars * sizeof(PROFILER_CHAR));
+	
+	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&StatIDStringStorage, StoragePtr, nullptr) != nullptr)
+	{
+		delete[] StoragePtr;
+	}
+	
+	StatID = TStatId(StatIDStringStorage);
+#endif
 }
 #endif
 

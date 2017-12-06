@@ -1150,8 +1150,12 @@ public:
 
 public:
 
-	TSharedRef<FNavigationConfig> GetNavigationConfig() const { return NavigationConfigFactory(); }
-	
+	TFunction<TSharedRef<FNavigationConfig>()> GetNavigationConfigFactory() const { return NavigationConfigFactory; }
+
+	/**
+	 * Sets the navigation config factory.  If you need to control navigation config dynamically, you
+	 * should subclass FNavigationConfig to be dynamically adjustable to your needs.
+	 */
 	void SetNavigationConfigFactory( TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory );
 
 	/** Called when the slate application is being shut down. */
@@ -1574,7 +1578,7 @@ private:
 	 *
 	 * @return if the widget was navigated too
 	 */
-	bool ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex);
+	bool ExecuteNavigation(const FWidgetPath& NavigationSource, TSharedPtr<SWidget> DestinationWidget, const uint32 UserIndex, bool bAlwaysHandleNavigationAttempt);
 
 private:
 

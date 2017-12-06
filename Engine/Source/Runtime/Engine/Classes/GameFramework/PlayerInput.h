@@ -448,7 +448,7 @@ public:
 	 * @param: Index is 0 for X axis, 1 for Y axis
 	 * @return the smoothed mouse axis movement
 	 */
-	float SmoothMouse(float aMouse, uint8& SampleCount, int32 Index);
+	virtual float SmoothMouse(float aMouse, uint8& SampleCount, int32 Index);
 
 	/**
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
@@ -589,8 +589,12 @@ private:
 	/** @return true if InKey is being consumed */
 	bool IsKeyConsumed(FKey Key) const;
 
+protected:
+
 	/** Initialized axis properties (i.e deadzone values) if needed */
 	void ConditionalInitAxisProperties();
+
+private:
 
 	/** @return True if a key is handled by an action binding */
 	bool IsKeyHandledByAction( FKey Key ) const;

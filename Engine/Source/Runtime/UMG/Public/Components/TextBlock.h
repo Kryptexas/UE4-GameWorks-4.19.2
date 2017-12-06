@@ -81,6 +81,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetMinDesiredWidth(float InMinDesiredWidth);
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UMaterialInstanceDynamic* GetDynamicFontMaterial();
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UMaterialInstanceDynamic* GetDynamicOutlineMaterial();
+
 public:
 	/** The text to display */
 	UPROPERTY(EditAnywhere, Category=Content, meta=( MultiLine="true" ))

@@ -1280,6 +1280,40 @@ public:
 	{
 		return Super::Num();
 	}
+
+	/**
+	 * Move all items from another map into our map (if any keys are in both,
+	 * the value from the other map wins) and empty the other map.
+	 *
+	 * @param OtherMultiMap The other map of items to move the elements from.
+	 */
+	template<typename OtherSetAllocator>
+	void Append(TMultiMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>&& OtherMultiMap)
+	{
+		this->Reserve(this->Num() + OtherMultiMap.Num());
+		for (auto& Pair : OtherMultiMap)
+		{
+			this->Add(MoveTempIfPossible(Pair.Key), MoveTempIfPossible(Pair.Value));
+		}
+
+		OtherMultiMap.Reset();
+	}
+
+	/**
+	 * Add all items from another map to our map (if any keys are in both,
+	 * the value from the other map wins).
+	 *
+	 * @param OtherMultiMap The other map of items to add.
+	 */
+	template<typename OtherSetAllocator>
+	void Append(const TMultiMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>& OtherMultiMap)
+	{
+		this->Reserve(this->Num() + OtherMultiMap.Num());
+		for (auto& Pair : OtherMultiMap)
+		{
+			this->Add(Pair.Key, Pair.Value);
+		}
+	}
 };
 
 

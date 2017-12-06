@@ -98,7 +98,38 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove(const bool b
 	{
 		LocalDrawList->TotalBytesUsed -= LocalDrawingPolicyLink->GetSizeBytes();
 
+#if 0
 		LocalDrawList->OrderedDrawingPolicies.RemoveSingle(LocalDrawingPolicyLink->SetId);
+#else
+		{
+			// Insert the drawing policy into the ordered drawing policy list.
+			int32 MinIndex = 0;
+			int32 MaxIndex = LocalDrawList->OrderedDrawingPolicies.Num() - 1;
+			while (MinIndex < MaxIndex)
+			{
+				int32 PivotIndex = (MaxIndex + MinIndex) / 2;
+				int32 CompareResult = CompareDrawingPolicy(LocalDrawList->DrawingPolicySet[LocalDrawList->OrderedDrawingPolicies[PivotIndex]].DrawingPolicy, LocalDrawingPolicyLink->DrawingPolicy);
+				if (CompareResult < 0)
+				{
+					MinIndex = PivotIndex + 1;
+				}
+				else
+				{
+					MaxIndex = PivotIndex;
+				}
+			};
+			check(MinIndex >= MaxIndex);
+			while (MinIndex < LocalDrawList->OrderedDrawingPolicies.Num() && !(LocalDrawList->OrderedDrawingPolicies[MinIndex] == SetId))
+			{
+				MinIndex++;
+			}
+			check(MinIndex < LocalDrawList->OrderedDrawingPolicies.Num());
+			if (MinIndex < LocalDrawList->OrderedDrawingPolicies.Num())
+			{
+				LocalDrawList->OrderedDrawingPolicies.RemoveAt(MinIndex);
+			}
+		}
+#endif
 		LocalDrawList->DrawingPolicySet.Remove(LocalDrawingPolicyLink->SetId);
 	}
 }

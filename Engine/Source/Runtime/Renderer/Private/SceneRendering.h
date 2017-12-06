@@ -444,7 +444,7 @@ class FOcclusionQueryBatcher
 public:
 
 	/** The maximum number of consecutive previously occluded primitives which will be combined into a single occlusion query. */
-	enum { OccludedPrimitiveQueryBatchSize = 8 };
+	enum { OccludedPrimitiveQueryBatchSize = 16 };
 
 	/** Initialization constructor. */
 	FOcclusionQueryBatcher(class FSceneViewState* ViewState,uint32 InMaxBatchedPrimitives);
@@ -1374,6 +1374,9 @@ public:
 	 */
 	uint32 InstancedStereoWidth;
 
+	/** Only used if we are going to delay the deletion of the scene renderer until later. */
+	FMemMark* RootMark;
+
 public:
 
 	FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
@@ -1402,7 +1405,8 @@ public:
 	static bool ShouldCompositeEditorPrimitives(const FViewInfo& View);
 
 	/** the last thing we do with a scene renderer, lots of cleanup related to the threading **/
-	static void WaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
+	static void WaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, bool bWaitForTasks = true);
+	static void DelayWaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
 	
 	/** Apply the ResolutionFraction on ViewSize, taking into account renderer's requirements. */
 	static FIntPoint ApplyResolutionFraction(
@@ -1502,7 +1506,7 @@ protected:
 	* Creates a projected shadow for all primitives affected by a light.
 	* @param LightSceneInfo - The light to create a shadow for.
 	*/
-	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo);
+	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo, uint32& NumPointShadowCachesUpdatedThisFrame, uint32& NumSpotShadowCachesUpdatedThisFrame);
 
 	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
 	void UpdatePreshadowCache(FSceneRenderTargets& SceneContext);

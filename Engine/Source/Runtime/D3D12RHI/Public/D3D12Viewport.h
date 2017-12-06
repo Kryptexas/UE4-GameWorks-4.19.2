@@ -200,7 +200,7 @@ private:
 	ID3D12CommandQueue* pCommandQueue;
 
 	// Determine how deep the swapchain should be (based on AFR or not)
-	void CalculateSwapChainDepth();
+	void CalculateSwapChainDepth(int32 DefaultSwapChainDepth);
 
 	FCustomPresentRHIRef CustomPresent;
 

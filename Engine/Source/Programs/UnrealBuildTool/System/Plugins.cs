@@ -372,7 +372,7 @@ namespace UnrealBuildTool
 			{
 				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
 				{
-					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0 && !PluginReference.bOptional)
 					{
 						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
 					}

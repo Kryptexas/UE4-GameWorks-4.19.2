@@ -1229,6 +1229,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	/** Refreshes the cached StartWorldTime for this effect. To be used when the server/client world time delta changes significantly to keep the start time in sync. */
 	void RecomputeStartWorldTime(const FActiveGameplayEffectsContainer& InArray);
 
+	/** Refreshes the cached StartWorldTime for this effect. To be used when the server/client world time delta changes significantly to keep the start time in sync. */
+	void RecomputeStartWorldTime(const float WorldTime, const float ServerWorldTime);
+
 	bool operator==(const FActiveGameplayEffect& Other)
 	{
 		return Handle == Other.Handle;
@@ -1617,6 +1620,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 */
 	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck = true) const;
 
+	bool IsServerWorldTimeAvailable() const;
+
 	float GetServerWorldTime() const;
 
 	float GetWorldTime() const;
@@ -1650,6 +1655,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	
 	FORCEINLINE ConstIterator CreateConstIterator() const { return ConstIterator(*this);	}
 	FORCEINLINE Iterator CreateIterator() { return Iterator(*this);	}
+
+	/** Recomputes the start time for all active abilities */
+	void RecomputeStartWorldTimes(const float WorldTime, const float ServerWorldTime);
 
 private:
 

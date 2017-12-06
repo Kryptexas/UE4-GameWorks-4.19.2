@@ -43,6 +43,8 @@
 
 #define LOCTEXT_NAMESPACE "LevelActor"
 
+DECLARE_CYCLE_STAT(TEXT("Destroy Actor"), STAT_DestroyActor, STATGROUP_Game);
+
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(
 	TEXT("p.EncroachEpsilon"),
@@ -523,9 +525,13 @@ bool UWorld::EditorDestroyActor( AActor* ThisActor, bool bShouldModifyLevel )
  */
 bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModifyLevel )
 {
+	SCOPE_CYCLE_COUNTER(STAT_DestroyActor);
+
 	check(ThisActor);
 	check(ThisActor->IsValidLowLevel());
 	//UE_LOG(LogSpawn, Log,  "Destroy %s", *ThisActor->GetClass()->GetName() );
+
+	SCOPE_CYCLE_UOBJECT(ThisActor, ThisActor);
 
 	if (ThisActor->GetWorld() == NULL)
 	{

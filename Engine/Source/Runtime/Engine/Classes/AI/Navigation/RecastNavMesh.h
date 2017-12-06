@@ -241,15 +241,17 @@ struct FRecastDebugPathfindingNode
 	float Cost;
 	float TotalCost;
 	float Length;
-	uint32 bOpenSet : 1;
-	uint32 bOffMeshLink : 1;
-	uint32 bModified : 1;
 
 	FVector NodePos;
-	TArray<FVector> Verts;
+	TArray<FVector, TInlineAllocator<6> > Verts;
+	uint8 NumVerts;
 
-	FRecastDebugPathfindingNode() : PolyRef(0), ParentRef(0) {}
-	FRecastDebugPathfindingNode(NavNodeRef InPolyRef) : PolyRef(InPolyRef), ParentRef(0) {}
+	uint8 bOpenSet : 1;
+	uint8 bOffMeshLink : 1;
+	uint8 bModified : 1;
+
+	FRecastDebugPathfindingNode() : PolyRef(0), ParentRef(0), NumVerts(0) {}
+	FRecastDebugPathfindingNode(NavNodeRef InPolyRef) : PolyRef(InPolyRef), ParentRef(0), NumVerts(0) {}
 
 	FORCEINLINE bool operator==(const NavNodeRef& OtherPolyRef) const { return PolyRef == OtherPolyRef; }
 	FORCEINLINE bool operator==(const FRecastDebugPathfindingNode& Other) const { return PolyRef == Other.PolyRef; }

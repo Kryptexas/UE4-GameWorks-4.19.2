@@ -44,6 +44,11 @@ public:
 		return FModuleManager::LoadModuleChecked< IMovieSceneModule >( "MovieScene" );
 	}
 
+	static inline IMovieSceneModule& Get_Concurrent()
+	{
+		return FModuleManager::GetModuleChecked< IMovieSceneModule >("MovieScene");
+	}
+
 	/**
 	 * Checks to see if this module is loaded and ready.  It is only valid to call Get() if IsAvailable() returns true.
 	 *

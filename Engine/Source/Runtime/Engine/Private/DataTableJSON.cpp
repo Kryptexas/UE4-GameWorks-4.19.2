@@ -120,6 +120,33 @@ bool FDataTableExporterJSON::WriteTable(const UDataTable& InDataTable)
 	return true;
 }
 
+bool FDataTableExporterJSON::WriteTableAsObject(const UDataTable& InDataTable)
+{
+	if (!InDataTable.RowStruct)
+	{
+		return false;
+	}
+
+	JsonWriter->WriteObjectStart(InDataTable.GetName());
+
+	// Iterate over rows
+	for (auto RowIt = InDataTable.RowMap.CreateConstIterator(); RowIt; ++RowIt)
+	{
+		// RowName
+		const FName RowName = RowIt.Key();
+		JsonWriter->WriteObjectStart(RowName.ToString());
+		{
+			// Now the values
+			uint8* RowData = RowIt.Value();
+			WriteRow(InDataTable.RowStruct, RowData);
+		}
+		JsonWriter->WriteObjectEnd();
+	}
+	JsonWriter->WriteObjectEnd();
+
+	return true;
+}
+
 bool FDataTableExporterJSON::WriteRow(const UScriptStruct* InRowStruct, const void* InRowData)
 {
 	if (!InRowStruct)

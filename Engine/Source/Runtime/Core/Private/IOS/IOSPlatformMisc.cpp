@@ -94,7 +94,7 @@ void FIOSPlatformMisc::PlatformInit()
 
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
-//    GShowSplashScreen = ShowSplashScreen;
+    GShowSplashScreen = ShowSplashScreen;
 }
 
 const TCHAR* FIOSPlatformMisc::GamePersistentDownloadDir()

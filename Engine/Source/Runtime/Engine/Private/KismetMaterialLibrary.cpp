@@ -127,12 +127,17 @@ FLinearColor UKismetMaterialLibrary::GetVectorParameterValue(UObject* WorldConte
 
 class UMaterialInstanceDynamic* UKismetMaterialLibrary::CreateDynamicMaterialInstance(UObject* WorldContextObject, class UMaterialInterface* Parent)
 {
-	UMaterialInstanceDynamic* NewMID = NULL;
+	UMaterialInstanceDynamic* NewMID = nullptr;
 
-	if(Parent != NULL)
+	if (Parent)
 	{
-		NewMID = UMaterialInstanceDynamic::Create(Parent, WorldContextObject);
-		if (WorldContextObject == NULL)
+
+		// MIDs need to be created within a persistent object if in the construction script (or blutility) or else they will not be saved.
+		// If this MID is created at runtime then put it in the transient package
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
+		UObject* MIDOuter = (World && (World->bIsRunningConstructionScript  || !World->IsGameWorld()) ? WorldContextObject : nullptr);
+		NewMID = UMaterialInstanceDynamic::Create(Parent, MIDOuter);
+		if (MIDOuter == nullptr)
 		{
 			NewMID->SetFlags(RF_Transient);
 		}

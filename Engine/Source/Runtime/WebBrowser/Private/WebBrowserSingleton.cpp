@@ -332,6 +332,8 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 			BrowserWindow->InternalCefBrowser->GetHost()->CloseBrowser(true);
 		}
 	}
+	// Clear this before CefShutdown() below
+	WindowInterfaces.Reset();
 
 	// Remove references to the scheme handler factories
 	CefClearSchemeHandlerFactories();
@@ -339,14 +341,14 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 	{
 		RequestContextPair.Value->ClearSchemeHandlerFactories();
 	}
-
+	// Clear this before CefShutdown() below
+	RequestContexts.Reset();
 	// Just in case, although we deallocate CEFBrowserApp right after this.
 	CEFBrowserApp->OnRenderProcessThreadCreated().Unbind();
 	// CefRefPtr takes care of delete
 	CEFBrowserApp = nullptr;
 	// Shut down CEF.
 	CefShutdown();
-
 #endif
 }
 

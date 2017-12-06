@@ -40,7 +40,7 @@ private:
 	UPROPERTY()
 	TMap<FName, UShaderPlatformQualitySettings*> ForwardSettingMap;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	UShaderPlatformQualitySettings* PreviewPlatformSettings;
 	FName PreviewPlatformName;
 #endif

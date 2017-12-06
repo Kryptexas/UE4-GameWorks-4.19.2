@@ -11,7 +11,7 @@
 #include "Engine/TextureCube.h"
 #include "PipelineStateCache.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Fog"), Stat_GPU_Fog, STATGROUP_GPU);
+DECLARE_GPU_STAT(Fog);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarFogStartDistance(
@@ -431,7 +431,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 			const FViewInfo& View = Views[ViewIndex];
 
 			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("ExponentialHeightFog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Fog);
+			SCOPED_GPU_STAT(RHICmdList, Fog);
 
 			if (View.IsPerspectiveProjection() == false)
 			{

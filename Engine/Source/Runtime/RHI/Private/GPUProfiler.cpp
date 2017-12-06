@@ -64,6 +64,18 @@ static TAutoConsoleVariable<FString> GProfileAssetSummaryCallOuts(
 	TEXT("r.ProfileGPU.PrintAssetSummary must be true to enable this feature"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarGPUCrashDataCollectionEnable(
+	TEXT("r.gpucrash.collectionenable"),
+	1,
+	TEXT("Stores GPU crash data from scoped events when a applicable crash debugging system is available."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarGPUCrashDataDepth(
+	TEXT("r.gpucrash.datadepth"),
+	-1,
+	TEXT("Limits the amount of marker scope depth we record for GPU crash debugging to the given scope depth."),
+	ECVF_RenderThreadSafe);
+
 enum class EGPUProfileSortMode
 {
 	EChronological,

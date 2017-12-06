@@ -295,6 +295,7 @@ FScopedPredictionWindow::~FScopedPredictionWindow()
 			if (Owner->ScopedPredictionKey.IsValidKey())
 			{
 				Owner->ReplicatedPredictionKeyMap.ReplicatePredictionKey(Owner->ScopedPredictionKey);
+				Owner->bIsNetDirty = true;
 			}
 		}
 		if (ClearScopedPredictionKey)

@@ -24,6 +24,9 @@ struct CORE_API FSequencerObjectVersion
 		// When finished now defaults to restore state
 		WhenFinishedDefaultsToRestoreState,
 
+		// When finished now defaults to project default
+		WhenFinishedDefaultsToProjectDefault,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
