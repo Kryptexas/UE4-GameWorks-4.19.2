@@ -195,6 +195,33 @@ TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& C
 		{
 			return BuildAddedView();
 		}
+		else if (IsComparingAgainstPlatformFallback())
+		{
+			return
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					BuildComparisonPreview()
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Center)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.IsEnabled(this, &SScreenComparisonRow::CanAddPlatformSpecificNew)
+						.Text(LOCTEXT("AddPlatformSpecificNew", "Add Platform-Specific New"))
+						.OnClicked(this, &SScreenComparisonRow::AddPlatformSpecificNew)
+					]
+				];
+		}
 		else
 		{
 			return
@@ -240,6 +267,15 @@ TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& C
 bool SScreenComparisonRow::CanUseSourceControl() const
 {
 	return ISourceControlModule::Get().IsEnabled();
+}
+
+bool SScreenComparisonRow::IsComparingAgainstPlatformFallback() const
+{
+	// If the approved and incoming files are in different paths, that suggests a platform fallback
+	bool bHasApprovedFile = !Model->Report.Comparison.ApprovedFile.IsEmpty();
+	FString ApprovedPath = FPaths::GetPath(Model->Report.Comparison.ApprovedFile);
+	FString IncomingPath = FPaths::GetPath(Model->Report.Comparison.IncomingFile);
+	return bHasApprovedFile && ApprovedPath != IncomingPath;
 }
 
 TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
@@ -383,9 +419,21 @@ FReply SScreenComparisonRow::AddNew()
 	return FReply::Handled();
 }
 
-bool SScreenComparisonRow::CanReplace() const
+bool SScreenComparisonRow::CanAddPlatformSpecificNew() const
 {
 	return CanUseSourceControl();
+}
+
+FReply SScreenComparisonRow::AddPlatformSpecificNew()
+{
+	Model->AddNew(ScreenshotManager);
+
+	return FReply::Handled();
+}
+
+bool SScreenComparisonRow::CanReplace() const
+{
+	return CanUseSourceControl() && !IsComparingAgainstPlatformFallback();
 }
 
 FReply SScreenComparisonRow::Replace()
@@ -397,7 +445,7 @@ FReply SScreenComparisonRow::Replace()
 
 bool SScreenComparisonRow::CanAddAsAlternative() const
 {
-	return CanUseSourceControl() && (Model->Report.Comparison.IncomingFile != Model->Report.Comparison.ApprovedFile);
+	return CanUseSourceControl() && (Model->Report.Comparison.IncomingFile != Model->Report.Comparison.ApprovedFile) && !IsComparingAgainstPlatformFallback();
 }
 
 FReply SScreenComparisonRow::AddAlternative()

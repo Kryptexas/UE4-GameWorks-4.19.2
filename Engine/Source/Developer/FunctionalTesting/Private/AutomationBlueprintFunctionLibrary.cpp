@@ -47,12 +47,6 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 	TEXT("The height of automation screenshots."),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarAutomationTestUseRelaxedPhysicsStabilityThresholds(
-	TEXT("AutomationTestUseRelaxedPhysicsStabilityThresholds"),
-	0,
-	TEXT("Relaxes the thresold of automated physics stability tests. Default: Off"),
-	ECVF_Default);
-
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
 template<typename T>
@@ -118,6 +112,8 @@ FAutomationTestScreenshotEnvSetup::FAutomationTestScreenshotEnvSetup()
 	, ScreenSpaceReflectionQuality(TEXT("r.SSR.Quality"))
 	, EyeAdaptationQuality(TEXT("r.EyeAdaptationQuality"))
 	, ContactShadows(TEXT("r.ContactShadows"))
+	, TonemapperGamma(TEXT("r.TonemapperGamma"))
+	, SecondaryScreenPercentage(TEXT("r.SecondaryScreenPercentage.GameViewport"))
 {
 }
 
@@ -135,7 +131,16 @@ void FAutomationTestScreenshotEnvSetup::Setup(FAutomationScreenshotOptions& InOu
 		ScreenSpaceReflectionQuality.Set(0);
 		EyeAdaptationQuality.Set(0);
 		ContactShadows.Set(0);
+		TonemapperGamma.Set(2.2f);
 	}
+	else if (InOutOptions.bDisableTonemapping)
+	{
+		EyeAdaptationQuality.Set(0);
+		TonemapperGamma.Set(2.2f);
+	}
+
+	// Ignore High-DPI settings
+	SecondaryScreenPercentage.Set(100.f); 
 
 	InOutOptions.SetToleranceAmounts(InOutOptions.Tolerance);
 
@@ -166,6 +171,8 @@ void FAutomationTestScreenshotEnvSetup::Restore()
 	ScreenSpaceReflectionQuality.Restore();
 	EyeAdaptationQuality.Restore();
 	ContactShadows.Restore();
+	TonemapperGamma.Restore();
+	SecondaryScreenPercentage.Restore();
 
 	if (UGameViewportClient* ViewportClient = GEngine->GameViewport)
 	{
@@ -193,10 +200,25 @@ public:
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
 		EnvSetup.Setup(Options);
+		FlushRenderingCommands();
+
+		if (!FPlatformProperties::HasFixedResolution())
+		{
+			FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
+			ViewportRestoreSize = GameViewport->GetSize();
+			FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(InOptions);
+			GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
+		}
 	}
 
 	virtual ~FAutomationScreenshotTaker()
 	{
+		if (!FPlatformProperties::HasFixedResolution())
+		{
+			FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
+			GameViewport->SetViewportSize(ViewportRestoreSize.X, ViewportRestoreSize.Y);
+		}
+
 		EnvSetup.Restore();
 
 		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
@@ -275,6 +297,7 @@ private:
 	FAutomationScreenshotOptions Options;
 
 	FAutomationTestScreenshotEnvSetup EnvSetup;
+	FIntPoint ViewportRestoreSize;
 };
 
 #endif
@@ -350,35 +373,8 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObje
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(WorldContextObject ? WorldContextObject->GetWorld() : nullptr, Name, Options);
 #endif
 
-	//static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
-	//check(HighResScreenshotDelay);
-	//HighResScreenshotDelay->Set(10);
-
-    if ( FPlatformProperties::HasFixedResolution() )
-    {
-	    FScreenshotRequest::RequestScreenshot(false);
-	    return true;
-    }
-	else
-	{
-	    FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
-
-	    if ( Config.SetResolution(ScreenshotRes.X, ScreenshotRes.Y, 1.0f) )
-	    {
-			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
-			{
-				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
-#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-				delete TempObject;
-#endif 
-				return false;
-			}
-
-			return true; //-V773
-		}
-	}
-
-	return false;
+	FScreenshotRequest::RequestScreenshot(false);
+	return true;
 }
 
 void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)

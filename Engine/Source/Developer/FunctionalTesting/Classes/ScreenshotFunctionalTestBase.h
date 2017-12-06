@@ -27,6 +27,8 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	virtual void Serialize(FArchive& Ar) override;
+
 protected:
 	// Set player view target to screenshot camera and call PrepareForScreenshot
 	virtual void PrepareTest() override;

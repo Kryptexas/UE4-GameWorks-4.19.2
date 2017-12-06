@@ -13,11 +13,24 @@
 #include "HighResScreenshot.h"
 #include "UnrealClient.h"
 #include "Slate/SceneViewport.h"
+#include "UObject/AutomationObjectVersion.h"
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AScreenshotFunctionalTestBase(ObjectInitializer)
-	, bCameraCutOnScreenshotPrep(false)
+	, bCameraCutOnScreenshotPrep(true)
 {
+}
+
+void AScreenshotFunctionalTest::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAutomationObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAutomationObjectVersion::GUID) < FAutomationObjectVersion::DefaultToScreenshotCameraCutAndFixedTonemapping)
+	{
+		bCameraCutOnScreenshotPrep = true;
+	}
 }
 
 void AScreenshotFunctionalTest::PrepareTest()
@@ -72,5 +85,4 @@ void AScreenshotFunctionalTest::RequestScreenshot()
 		bool bShowUI = false;
 		FScreenshotRequest::RequestScreenshot(bShowUI);
 	}
-
 }

@@ -14,6 +14,7 @@
 #include "RenderingThread.h"
 #include "Tests/AutomationCommon.h"
 #include "Logging/LogMacros.h"
+#include "UObject/AutomationObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScreenshotFunctionalTest, Log, Log)
 
@@ -75,8 +76,6 @@ void AScreenshotFunctionalTestBase::PrepareForScreenshot()
 	check(GEngine->GameViewport && GEngine->GameViewport->GetGameViewport());
 	check(IsInGameThread());
 
-	FlushRenderingCommands();
-
 	// PS4 requires fixed with/height for video output back buffers so
 	// we cannot adjust the size of viewports
 	if (!FPlatformProperties::HasFixedResolution())
@@ -90,6 +89,8 @@ void AScreenshotFunctionalTestBase::PrepareForScreenshot()
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	ScreenshotEnvSetup->Setup(ScreenshotOptions);
 #endif
+
+	FlushRenderingCommands();
 }
 
 void AScreenshotFunctionalTestBase::OnScreenShotCaptured(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData)
@@ -221,3 +222,16 @@ void AScreenshotFunctionalTestBase::PostEditChangeProperty(FPropertyChangedEvent
 }
 
 #endif
+
+void AScreenshotFunctionalTestBase::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAutomationObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAutomationObjectVersion::GUID) < FAutomationObjectVersion::DefaultToScreenshotCameraCutAndFixedTonemapping)
+	{
+		ScreenshotOptions.bDisableTonemapping = true;
+	}
+}
+

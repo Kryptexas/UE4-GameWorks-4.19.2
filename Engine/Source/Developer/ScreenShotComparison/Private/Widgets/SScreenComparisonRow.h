@@ -44,12 +44,16 @@ public:
 
 private:
 	bool CanUseSourceControl() const;
+	bool IsComparingAgainstPlatformFallback() const;
 
 	TSharedRef<SWidget> BuildAddedView();
 	TSharedRef<SWidget> BuildComparisonPreview();
 
 	bool CanAddNew() const;
 	FReply AddNew();
+
+	bool CanAddPlatformSpecificNew() const;
+	FReply AddPlatformSpecificNew();
 
 	bool CanReplace() const;
 	FReply Replace();

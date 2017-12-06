@@ -903,7 +903,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	TSharedRef<FComparisonEntry> Comparison = MakeShareable(new FComparisonEntry());
 	Comparison->Sender = Context->GetSender();
 	Comparison->Name = Message.Metadata.Name;
-	Comparison->PendingComparison = ScreenshotManager->CompareScreensotAsync(Message.ScreenShotName);
+	Comparison->PendingComparison = ScreenshotManager->CompareScreenshotAsync(Message.ScreenShotName);
 
 	ComparisonQueue.Enqueue(Comparison);
 }

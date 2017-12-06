@@ -22,12 +22,13 @@ class FUNCTIONALTESTING_API AScreenshotFunctionalTest : public AScreenshotFuncti
 public:
 	AScreenshotFunctionalTest(const FObjectInitializer& ObjectInitializer);
 
-	// Tests relying on temporal effects can force a camera cut to flush stale data
+	virtual void Serialize(FArchive& Ar) override;
+
+	// Tests not relying on temporal effects can force a camera cut to flush stale data
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", SimpleDisplay)
 	bool bCameraCutOnScreenshotPrep;
 
 protected:
 	virtual void PrepareTest() override;
-
 	virtual void RequestScreenshot() override;
 };

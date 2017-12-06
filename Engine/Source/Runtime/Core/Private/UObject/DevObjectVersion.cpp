@@ -18,6 +18,7 @@
 #include "UObject/AnimPhysObjectVersion.h"
 #include "UObject/ReflectionCaptureObjectVersion.h"
 #include "UObject/LoadTimesObjectVersion.h"
+#include "UObject/AutomationObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDevObjectVersion, Log, All);
 
@@ -127,3 +128,8 @@ FDevVersionRegistration GRegisterAnimPhysObjectVersion(FAnimPhysObjectVersion::G
 const FGuid FReflectionCaptureObjectVersion::GUID(0x6B266CEC, 0x1EC74B8F, 0xA30BE4D9, 0x0942FC07);
 // Register Rendering custom version with Core
 FDevVersionRegistration GRegisterReflectionCaptureObjectVersion(FReflectionCaptureObjectVersion::GUID, FReflectionCaptureObjectVersion::LatestVersion, TEXT("Dev-ReflectionCapture"));
+
+// Unique Automation Object version id
+const FGuid FAutomationObjectVersion::GUID(0x0DF73D61, 0xA23F47EA, 0xB72789E9, 0x0C41499A);
+// Register Automation custom version with Core
+FDevVersionRegistration GRegisterAutomationObjectVersion(FAutomationObjectVersion::GUID, FAutomationObjectVersion::LatestVersion, TEXT("Dev-Automation"));
