@@ -635,6 +635,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+		
+		extern RHI_API void FlushPipelineStateCache();
+		FlushPipelineStateCache();
 	}
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
