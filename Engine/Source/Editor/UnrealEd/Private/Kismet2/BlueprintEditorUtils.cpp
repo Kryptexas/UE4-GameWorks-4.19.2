@@ -1406,6 +1406,9 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			if (Blueprint->GeneratedClass)
 			{
 				FBlueprintEditorUtils::RecreateClassMetaData(Blueprint, Blueprint->GeneratedClass, true);
+				
+				extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
+				SetUpRuntimeReplicationData(Blueprint->GeneratedClass);
 			}
 
 			// Flag data only blueprints as being up-to-date

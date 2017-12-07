@@ -433,6 +433,9 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 				if (QueuedBP->GeneratedClass)
 				{
+					extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
+					SetUpRuntimeReplicationData(QueuedBP->GeneratedClass);
+
 					FBlueprintEditorUtils::RecreateClassMetaData(QueuedBP, QueuedBP->GeneratedClass, true);
 				}
 
@@ -871,7 +874,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 						EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo
 						|EInternalCompilerFlags::PostponeDefaultObjectAssignmentUntilReinstancing
 						|EInternalCompilerFlags::SkipRefreshExternalBlueprintDependencyNodes
-					); 
+					);
 				}
 
 				if (CompilerData.ActiveResultsLog->NumErrors == 0)
