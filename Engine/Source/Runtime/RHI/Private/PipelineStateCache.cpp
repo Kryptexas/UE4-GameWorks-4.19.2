@@ -480,6 +480,8 @@ public:
 		int32 Count = Map1.Num() + Map2.Num();
 
 		Unlock(LockFlags);
+
+		return Count;
 	}
 
 	/**
