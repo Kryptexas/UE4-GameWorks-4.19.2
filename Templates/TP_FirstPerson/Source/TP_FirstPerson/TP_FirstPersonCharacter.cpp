@@ -10,6 +10,7 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
+#include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -60,7 +61,7 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 
 	// Create VR Controllers.
 	R_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("R_MotionController"));
-	R_MotionController->Hand = EControllerHand::Right;
+	R_MotionController->MotionSource = FXRMotionControllerBase::RightHandSourceId;
 	R_MotionController->SetupAttachment(RootComponent);
 	L_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("L_MotionController"));
 	L_MotionController->SetupAttachment(RootComponent);

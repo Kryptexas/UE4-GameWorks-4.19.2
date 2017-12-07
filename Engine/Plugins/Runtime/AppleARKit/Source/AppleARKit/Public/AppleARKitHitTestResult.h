@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 
-// ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #endif // ARKIT_SUPPORT
 
-// AppleARKit
+
+#include "ARSystem.h"
 #include "AppleARKitHitTestResult.generated.h"
 
 /**
@@ -38,9 +38,6 @@ ENUM_CLASS_FLAGS(EAppleARKitHitTestResultType);
 
 /** Conversion function from ARKit native ARHitTestResultType */
 EAppleARKitHitTestResultType ToEAppleARKitHitTestResultType(ARHitTestResultType InTypes);
-
-/** Conversion function to ARKit native ARHitTestResultType */
-ARHitTestResultType ToARHitTestResultType(EAppleARKitHitTestResultType InTypes);
 
 #endif
 

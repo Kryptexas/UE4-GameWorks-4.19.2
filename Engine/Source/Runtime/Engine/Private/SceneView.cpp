@@ -956,13 +956,15 @@ void FViewMatrices::UpdateViewMatrix(const FVector& ViewLocation, const FRotator
 void FSceneView::UpdateViewMatrix()
 {
 	FVector StereoViewLocation = ViewLocation;
+	FRotator StereoViewRotation = ViewRotation;
 	if (GEngine->StereoRenderingDevice.IsValid() && StereoPass != eSSP_FULL)
 	{
-		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewRotation, WorldToMetersScale, StereoViewLocation);
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, StereoViewRotation, WorldToMetersScale, StereoViewLocation);
 		ViewLocation = StereoViewLocation;
+		ViewRotation = StereoViewRotation;
 	}
 
-	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
+	ViewMatrices.UpdateViewMatrix(StereoViewLocation, StereoViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
 	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->IsMonoscopicFarFieldEnabled())
@@ -2379,16 +2381,17 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 	const int32 EyeIndex = static_cast<int32>(Eye);
 	check(Views.Num() > 0 && Views.Num() >= EyeIndex);
 
-	// Mono or left eye
-	if (EyeIndex <= 1)
+	if (EyeIndex <= 1) // Mono or left eye
 	{
 		return *Views[0];
 	}
-
-	// Right eye
-	else
+	else if (EyeIndex == 2) // Right eye
 	{
 		return *Views[1];
+	}
+	else // For extra views
+	{
+		return *Views[EyeIndex - eSSP_MONOSCOPIC_EYE + 1];
 	}
 }
 

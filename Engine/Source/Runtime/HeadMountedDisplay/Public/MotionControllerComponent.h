@@ -27,9 +27,12 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetAssociatedPlayerIndex, Category = "MotionController")
 	int32 PlayerIndex;
 
-	/** Which hand this component should automatically follow */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetTrackingSource, Category = "MotionController")
-	EControllerHand Hand;
+	/** DEPRECATED (use MotionSource instead) Which hand this component should automatically follow */
+	UPROPERTY(BlueprintSetter = SetTrackingSource, BlueprintGetter = GetTrackingSource, Category = "MotionController")
+	EControllerHand Hand_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetTrackingMotionSource, Category = "MotionController")
+	FName MotionSource;
 
 	/** If false, render transforms within the motion controller hierarchy will be updated a second time immediately before rendering. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
@@ -74,14 +77,22 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Visualization", meta=(editcondition="bDisplayDeviceModel"))
 	TArray<UMaterialInterface*> DisplayMeshMaterialOverrides;
 
-	UFUNCTION(BlueprintSetter)
+	UFUNCTION(BlueprintSetter, meta = (DeprecatedFunction, DeprecationMessage = "Please use the Motion Source property instead of Hand"))
 	void SetTrackingSource(const EControllerHand NewSource);
+
+	UFUNCTION(BlueprintGetter, meta = (DeprecatedFunction, DeprecationMessage = "Please use the Motion Source property instead of Hand"))
+	EControllerHand GetTrackingSource() const;
+
+	UFUNCTION(BlueprintSetter)
+	void SetTrackingMotionSource(const FName NewSource);
 
 	UFUNCTION(BlueprintSetter)
 	void SetAssociatedPlayerIndex(const int32 NewPlayer);
 
 public:
 	//~ UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -100,7 +111,19 @@ protected:
 
 	void RefreshDisplayComponent(const bool bForceDestroy = false);
 
+	// Cached Motion Controller that can be read by GetParameterValue. Only valid for the duration of OnMotionControllerUpdated
+	IMotionController* InUseMotionController;
+
+	/** Blueprint Implementable function for reponding to updated data from a motion controller (so we can use custom paramater values from it) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Motion Controller Update")
+	void OnMotionControllerUpdated();
+
+	// Returns the value of a custom parameter on the current in use Motion Controller (see member InUseMotionController). Only valid for the duration of OnMotionControllerUpdated 
+	UFUNCTION(BlueprintCallable, Category = "Motion Controller Update")
+	float GetParameterValue(FName InName, bool& bValueFound);
+
 private:
+
 	/** Whether or not this component had a valid tracked controller associated with it this frame*/
 	bool bTracked;
 
@@ -139,8 +162,11 @@ private:
 	};
 	TSharedPtr< FViewExtension, ESPMode::ThreadSafe > ViewExtension;
  
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, Category=Visualization, meta=(AllowPrivateAccess="true"))
 	UPrimitiveComponent* DisplayComponent;
 
 	FXRDeviceId DisplayDeviceId;
+#if WITH_EDITOR
+	int32 PreEditMaterialCount = 0;
+#endif
 };

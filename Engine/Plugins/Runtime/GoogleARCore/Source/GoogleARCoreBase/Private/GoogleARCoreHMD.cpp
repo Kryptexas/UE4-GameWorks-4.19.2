@@ -45,18 +45,11 @@ FGoogleARCoreHMD::FGoogleARCoreHMD()
 	UE_LOG(LogGoogleARCoreHMD, Log, TEXT("Creating Tango HMD"));
 	TangoDeviceInstance = FGoogleARCoreDevice::GetInstance();
 	check(TangoDeviceInstance);
-
-	// Register our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().RegisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), static_cast<IARHitTestingSupport*>(this));
-	IModularFeatures::Get().RegisterModularFeature(IARTrackingQuality::GetModularFeatureName(), static_cast<IARTrackingQuality*>(this));
 }
 
 
 FGoogleARCoreHMD::~FGoogleARCoreHMD()
 {
-	// Unregister our ability to hit-test in AR with Unreal
-	IModularFeatures::Get().UnregisterModularFeature(IARHitTestingSupport::GetModularFeatureName(), static_cast<IARHitTestingSupport*>(this));
-	IModularFeatures::Get().UnregisterModularFeature(IARTrackingQuality::GetModularFeatureName(), static_cast<IARTrackingQuality*>(this));
 }
 
 ///////////////////////////////////////////////////////////////
@@ -145,6 +138,7 @@ bool FGoogleARCoreHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			CachedPosition = CurrentPose.Pose.GetTranslation();
 		}
 	}
+	RefreshTrackingToWorldTransform(WorldContext);
 
 	return true;
 }
@@ -193,14 +187,8 @@ float FGoogleARCoreHMD::GetWorldToMetersScale() const
 	return 100.0f;
 }
 
-//bool FGoogleARCoreHMD::ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults)
-//{
-//	return false;
-//}
-
-EARTrackingQuality FGoogleARCoreHMD::ARGetTrackingQuality() const
+EARTrackingQuality FGoogleARCoreHMD::OnGetTrackingQuality() const
 {
-	
 	if (!FGoogleARCoreDevice::GetInstance()->GetIsTangoRunning())
 	{
 		return EARTrackingQuality::NotAvailable;
@@ -213,6 +201,29 @@ EARTrackingQuality FGoogleARCoreHMD::ARGetTrackingQuality() const
 	}
 
 	return EARTrackingQuality::Normal;
+}
+
+bool FGoogleARCoreHMD::OnStartAR()
+{
+	ensureMsgf(false, TEXT("The method or operation is not implemented."));
+	return false;
+}
+
+void FGoogleARCoreHMD::OnStopAR()
+{
+	ensureMsgf(false, TEXT("The method or operation is not implemented."));
+}
+
+TArray<FARTraceResult> FGoogleARCoreHMD::OnLineTraceTrackedObjects(const FVector2D ScreenCoord)
+{
+	ensureMsgf(false, TEXT("The method or operation is not implemented."));
+	return TArray<FARTraceResult>();
+}
+
+TArray<UARTrackedGeometry *> FGoogleARCoreHMD::OnGetAllTrackedGeometries() const
+{
+	ensureMsgf(false, TEXT("The method or operation is not implemented."));
+	return TArray<UARTrackedGeometry *>();
 }
 
 TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> FGoogleARCoreHMD::GetXRCamera(int32 DeviceId /*= HMDDeviceId*/)

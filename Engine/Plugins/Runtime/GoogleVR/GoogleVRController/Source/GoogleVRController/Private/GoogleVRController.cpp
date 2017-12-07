@@ -6,7 +6,6 @@
 #include "IXRTrackingSystem.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 #include "Classes/GoogleVRControllerEventManager.h"
-//#include "Engine/Engine.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "GameFramework/WorldSettings.h"
@@ -200,7 +199,6 @@ FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMe
 	Buttons[(int32)EControllerHand::Left][EGoogleVRControllerButton::TouchPadPress] = FGamepadKeyNames::MotionController_Left_Thumbstick;
 	Buttons[(int32)EControllerHand::Right][EGoogleVRControllerButton::TouchPadPress] = FGamepadKeyNames::MotionController_Right_Thumbstick;
 
-	Buttons[(int32)EControllerHand::Left][EGoogleVRControllerButton::TouchPadTouch] = GoogleVRControllerKeyNames::Touch0;
 	Buttons[(int32)EControllerHand::Right][EGoogleVRControllerButton::TouchPadTouch] = GoogleVRControllerKeyNames::Touch0;
 
 	// Register callbacks for pause and resume
@@ -493,13 +491,19 @@ void FGoogleVRController::ProcessControllerButtons()
 			// OnDown
 			if(CurrentButtonStates[ButtonIndex])
 			{
-				MessageHandler->OnControllerButtonPressed( Buttons[(int32)EControllerHand::Left][ButtonIndex], 0, false);
+				if (ButtonIndex != EGoogleVRControllerButton::TouchPadTouch)
+				{
+					MessageHandler->OnControllerButtonPressed(Buttons[(int32)EControllerHand::Left][ButtonIndex], 0, false);
+				}
 				MessageHandler->OnControllerButtonPressed( Buttons[(int32)EControllerHand::Right][ButtonIndex], 0, false);
 			}
 			// On Up
 			else
 			{
-				MessageHandler->OnControllerButtonReleased( Buttons[(int32)EControllerHand::Left][ButtonIndex], 0, false);
+				if (ButtonIndex != EGoogleVRControllerButton::TouchPadTouch)
+				{
+					MessageHandler->OnControllerButtonReleased(Buttons[(int32)EControllerHand::Left][ButtonIndex], 0, false);
+				}
 				MessageHandler->OnControllerButtonReleased( Buttons[(int32)EControllerHand::Right][ButtonIndex], 0, false);
 			}
 		}
@@ -718,6 +722,14 @@ void FGoogleVRController::SetChannelValues(int32 ControllerId, const FForceFeedb
 
 bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
+	// Opt-out the render thread late update for GoogleVR Controller for now.
+	// We can't do late update cleanly because updating controller state will also affect the controller
+	// button status.
+	if (IsInRenderingThread())
+	{
+		return false;
+	}
+
 	if(IsAvailable())
 	{
 		OutPosition = FVector::ZeroVector;

@@ -198,7 +198,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "APK Packaging", Meta = (DisplayName = "Minimum SDK Version (9=Gingerbread, 14=Ice Cream Sandwich, 21=Lollipop)"))
 	int32 MinSDKVersion;
 	
-	// What OS version the app is expected to run on (do not set this lower than 9, set to 19 for GearVR)
+	// What OS version the app is expected to run on (do not set this lower than 9, set to 19 for Gear VR)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "APK Packaging", Meta = (DisplayName = "Target SDK Version (9=Gingerbread, 14=Ice Cream Sandwich, 21=Lollipop)"))
 	int32 TargetSDKVersion;
 
@@ -287,7 +287,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Advanced APK Packaging", Meta = (DisplayName = "Configure the AndroidManifest for deployment to GearVR"))
 	bool bPackageForGearVR;
 
-	// Removes Oculus Signature Files (osig) from APK if GearVR APK signed for distribution and enables entitlement checker
+	// Removes Oculus Signature Files (osig) from APK if Gear VR APK signed for distribution and enables entitlement checker
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Advanced APK Packaging", Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 

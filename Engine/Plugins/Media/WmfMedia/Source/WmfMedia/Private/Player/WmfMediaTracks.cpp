@@ -215,7 +215,7 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), this, *WmfMedia::ResultToString(Result));
 			return;
 		}
 	}
@@ -236,6 +236,8 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 
 	// initialization successful
 	MediaSource = InMediaSource;
+	SourceUrl = Url;
+
 	PresentationDescriptor = NewPresentationDescriptor;
 
 	// add streams (Media Foundation reports them in reverse order)
@@ -254,6 +256,18 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 	}
 }
 
+void FWmfMediaTracks::ReInitialize()
+{
+	if (MediaSource != NULL)
+	{
+		TComPtr<IMFMediaSource> lMediaSource = WmfMedia::ResolveMediaSource(nullptr, SourceUrl, false);
+		int32 lTrack = GetSelectedTrack(EMediaTrackType::Video);
+		int32 lFormat = GetTrackFormat(EMediaTrackType::Video, lTrack);
+		Initialize(lMediaSource, SourceUrl);
+		SetTrackFormat(EMediaTrackType::Video, lTrack, lFormat);
+		SelectTrack(EMediaTrackType::Video, lTrack);
+	}
+}
 
 void FWmfMediaTracks::Shutdown()
 {

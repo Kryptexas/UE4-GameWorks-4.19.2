@@ -699,6 +699,11 @@ public:
 	{
 		return FUnorderedAccessViewRHIRef();
 	}
+	
+	virtual FTexture2DRHIRef RHIGetFMaskTexture(FTextureRHIParamRef SourceTextureRHI)
+	{
+		return nullptr;
+	}
 
 	// Only relevant with an RHI thread, this advances the backbuffer for the purpose of GetViewportBackBuffer
 	// FlushType: Thread safe
@@ -1022,6 +1027,11 @@ FORCEINLINE bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, ui
 FORCEINLINE FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 {
 	return GDynamicRHI->RHIGetViewportBackBuffer(Viewport);
+}
+
+FORCEINLINE FTexture2DRHIRef RHIGetFMaskTexture(FTextureRHIParamRef SourceTextureRHI)
+{
+	return GDynamicRHI->RHIGetFMaskTexture(SourceTextureRHI);
 }
 
 FORCEINLINE void RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)

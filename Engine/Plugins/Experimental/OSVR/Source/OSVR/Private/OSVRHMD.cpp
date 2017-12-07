@@ -228,6 +228,7 @@ bool FOSVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 		WorldToMetersScale = GWorld->GetWorldSettings()->WorldToMeters;
 	}
 	UpdatePoses();
+	RefreshTrackingToWorldTransform(WorldContext);
     return true;
 }
 

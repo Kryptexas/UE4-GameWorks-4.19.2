@@ -54,17 +54,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering")
 	int TranslucentSortPriority;
 
+	/** Distance from the pointer that the reticle will be drawn at when hitting nothing. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reticle")
+	float DefaultReticleDistance;
+
+	/** Distance from the pointer that raycast hits will be detected. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reticle")
+	float MaxPointerDistance;
+
 	/** Maximum distance of the pointer (in meters). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Laser")
 	float LaserDistanceMax;
-
-	/** Minimum distance of the reticle (in meters). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reticle")
-	float ReticleDistanceMin;
-
-	/** Maximum distance of the reticle (in meters). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reticle")
-	float ReticleDistanceMax;
 
 	/** Size of the reticle (in meters) as seen from 1 meter */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reticle")
@@ -77,9 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRMotionController", meta = (Keywords = "Cardboard AVR GVR"))
 	UMaterialBillboardComponent* GetReticle() const;
 
-	/** Get the StaticMeshComponent used to represent the laser.
+	/** Get the Laser Plane Component.
 	*  Can be used if you desire to modify the laser at runtime
-	*  @return laser static mesh component.
+	*  @return Laser Plane Component.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRMotionController", meta = (Keywords = "Cardboard AVR GVR"))
 	UGoogleVRLaserPlaneComponent* GetLaser() const;
@@ -103,13 +103,16 @@ public:
 	float GetMaxPointerDistance(float WorldToMetersScale) const;
 
 	void SetDefaultLaserDistance(float WorldToMetersScale);
-	void UpdateLaserDistance(float Distance);
+	void UpdateLaserDistance(float Distance, float WorldToMetersScale);
 	void UpdateLaserCorrection(FVector Correction);
 
 	FMaterialSpriteElement* GetReticleSprite() const;
 	float GetReticleSize();
+	FVector GetReticleLocation();
 	void SetDefaultReticleDistance(float WorldToMetersScale, FVector CameraLocation);
+	float GetDefaultReticleDistance(float WorldToMetersScale);
 	void UpdateReticleLocation(FVector Location, FVector OriginLocation, float WorldToMetersScale, FVector CameraLocation);
+	void UpdateReticleDistance(float Distance, float WorldToMetersScale, FVector CameraLocation);
 
 	void SetSubComponentsEnabled(bool bNewEnabled);
 
@@ -117,7 +120,7 @@ private:
 
 	UGoogleVRLaserPlaneComponent* LaserPlaneComponent;
 	UMaterialBillboardComponent* ReticleBillboardComponent;
+	const float ReticleClippingOffsetFactor = 0.88f;
 
-	void UpdateReticleDistance(float Distance, float WorldToMetersScale, FVector CameraLocation);
 	void UpdateReticleSize(FVector CameraLocation);
 };

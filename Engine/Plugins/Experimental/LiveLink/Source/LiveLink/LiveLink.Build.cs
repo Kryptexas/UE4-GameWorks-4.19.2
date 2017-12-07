@@ -17,6 +17,7 @@ namespace UnrealBuildTool.Rules
                 "Messaging",
                 "LiveLinkInterface",
                 "LiveLinkMessageBusFramework",
+				"HeadMountedDisplay"
             }
             );
 

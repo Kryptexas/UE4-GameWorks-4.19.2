@@ -88,7 +88,7 @@ void UMixedRealityGarbageMatteCaptureComponent::ApplyConfiguration(const UMixedR
 	// GarbageMatteCaptureComponent
 	if (ExternalGarbageMatteActor == nullptr)
 	{
-		FOVAngle = SaveGameInstance.AlignmentData.FOV;
+		FOVAngle = SaveGameInstance.LensData.FOV;
 		ShowOnlyActors.Empty();
 		ShowOnlyActors.Push(GarbageMatteActor);
 	}

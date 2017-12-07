@@ -5,6 +5,7 @@
 #include "Components/ActorComponent.h"
 #include "GoogleVRPointer.h"
 #include "GoogleVRLaserVisual.h"
+#include "Classes/GoogleVRPointerInputComponent.h"
 #include "Components/SceneComponent.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 #include "Engine/Texture2D.h"
@@ -130,6 +131,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray")
 	FName LaserVisualComponentTag;
 
+	/** Determines the method used to detect what the pointer hits. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	EGoogleVRPointerInputMode PointerInputMode;
+
 	/** If true, then a GoogleVRInputComponent will automatically be created if one doesn't already exist. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool RequireInputComponent;
@@ -187,7 +192,9 @@ public:
 	virtual FVector GetDirection() const override;
 	virtual void GetRadius(float& OutEnterRadius, float& OutExitRadius) const override;
 	virtual float GetMaxPointerDistance() const override;
+	virtual float GetDefaultReticleDistance() const override;
 	virtual bool IsPointerActive() const override;
+	virtual EGoogleVRPointerInputMode GetPointerInputMode() const override;
 
 	/** ActorComponent Overrides */
 	virtual void OnRegister() override;
@@ -210,8 +217,11 @@ private:
 	void SetSubComponentsEnabled(bool bNewEnabled);
 	bool IsControllerConnected() const;
 	float GetWorldToMetersScale() const;
+	float GetRaycastModeBasedDistance(float Distance);
+	float EaseOutCubic(float min, float max, float value);
 
 	APlayerController* PlayerController;
+	UGoogleVRPointerInputComponent* InputComponent;
 
 	UMotionControllerComponent* MotionControllerComponent;
 	UStaticMeshComponent* ControllerMeshComponent;
@@ -225,6 +235,7 @@ private:
 	bool bAreSubComponentsEnabled;
 	EGoogleVRControllerBatteryLevel LastKnownBatteryState;
 	bool bBatteryWasCharging;
+	float Counter = 0.0f;
 
 	static constexpr float CONTROLLER_OFFSET_RATIO = 0.8f;
 	static constexpr float TOUCHPAD_RADIUS = 0.015f;

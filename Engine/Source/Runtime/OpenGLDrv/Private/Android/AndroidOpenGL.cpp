@@ -116,7 +116,7 @@ FPlatformOpenGLDevice::FPlatformOpenGLDevice()
 {
 }
 
-// call out to JNI to see if the application was packaged for GearVR
+// call out to JNI to see if the application was packaged for Gear VR
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
 void FPlatformOpenGLDevice::Init()

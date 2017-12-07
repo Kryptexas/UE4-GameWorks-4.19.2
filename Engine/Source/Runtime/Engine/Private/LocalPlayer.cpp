@@ -194,8 +194,16 @@ void ULocalPlayer::PostInitProperties()
 
 		if( GEngine->StereoRenderingDevice.IsValid() )
 		{
-			StereoViewState.Allocate();
 			MonoViewState.Allocate();
+
+			const int32 NumViews = GEngine->StereoRenderingDevice->GetDesiredNumberOfViews(true);
+			check(NumViews > 0);
+			// ViewState is used for eSSP_LEFT_EYE, so we don't create one for that here.
+			StereoViewStates.SetNum(NumViews - 1);
+			for (auto& State : StereoViewStates)
+			{
+				State.Allocate();
+			}
 		}
 	}
 }
@@ -333,8 +341,12 @@ void ULocalPlayer::FinishDestroy()
 	if ( !IsTemplate() )
 	{
 		ViewState.Destroy();
-		StereoViewState.Destroy();
 		MonoViewState.Destroy();
+
+		for (FSceneViewStateReference& StereoViewState : StereoViewStates)
+		{
+			StereoViewState.Destroy();
+		}
 	}
 	Super::FinishDestroy();
 }
@@ -709,11 +721,16 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 		break;
 
 	case eSSP_RIGHT_EYE:
-		ViewInitOptions.SceneViewStateInterface = StereoViewState.GetReference();
+		ViewInitOptions.SceneViewStateInterface = StereoViewStates[0].GetReference();
 		break;
 
 	case eSSP_MONOSCOPIC_EYE:
 		ViewInitOptions.SceneViewStateInterface = MonoViewState.GetReference();
+		break;
+		
+	default:
+		check(StereoPass > eSSP_MONOSCOPIC_EYE);
+		ViewInitOptions.SceneViewStateInterface = StereoViewStates[StereoPass - eSSP_MONOSCOPIC_EYE].GetReference();
 		break;
 	}
 
@@ -1596,10 +1613,13 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 		Ref->AddReferencedObjects(Collector);
 	}
 
-	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
-	if (StereoRef)
+	for (FSceneViewStateReference& StereoViewState : This->StereoViewStates)
 	{
-		StereoRef->AddReferencedObjects(Collector);
+		FSceneViewStateInterface* StereoRef = StereoViewState.GetReference();
+		if (StereoRef)
+		{
+			StereoRef->AddReferencedObjects(Collector);
+		}
 	}
 
 	FSceneViewStateInterface* MonoRef = This->MonoViewState.GetReference();

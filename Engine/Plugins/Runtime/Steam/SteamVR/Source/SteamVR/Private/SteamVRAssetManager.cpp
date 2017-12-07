@@ -51,28 +51,31 @@ static int32 SteamVRDevice_Impl::GetDeviceStringProperty(int32 DeviceIndex, int3
 	if (FSteamVRHMD* SteamHMD = GetSteamHMD())
 	{
 		vr::IVRSystem* SteamVRSystem = SteamHMD->GetVRSystem();
-		vr::ETrackedDeviceProperty SteamPropId = (vr::ETrackedDeviceProperty)PropertyId;
-
-		vr::TrackedPropertyError APIError;
-		TArray<char> Buffer;
-		Buffer.AddUninitialized(vr::k_unMaxPropertyStringSize);
-
-		int Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
-		if (APIError == vr::TrackedProp_BufferTooSmall)
+		if (SteamVRSystem)
 		{
-			Buffer.AddUninitialized(Size - Buffer.Num());
-			Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
-		}
+			vr::ETrackedDeviceProperty SteamPropId = (vr::ETrackedDeviceProperty)PropertyId;
 
-		if (APIError == vr::TrackedProp_Success)
-		{
-			StringPropertyOut = UTF8_TO_TCHAR(Buffer.GetData());
-		}
-		else
-		{
-			StringPropertyOut = UTF8_TO_TCHAR(SteamVRSystem->GetPropErrorNameFromEnum(APIError));
-		}
-		ErrorResult = (int32)APIError;
+			vr::TrackedPropertyError APIError;
+			TArray<char> Buffer;
+			Buffer.AddUninitialized(vr::k_unMaxPropertyStringSize);
+
+			int Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
+			if (APIError == vr::TrackedProp_BufferTooSmall)
+			{
+				Buffer.AddUninitialized(Size - Buffer.Num());
+				Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
+			}
+
+			if (APIError == vr::TrackedProp_Success)
+			{
+				StringPropertyOut = UTF8_TO_TCHAR(Buffer.GetData());
+			}
+			else
+			{
+				StringPropertyOut = UTF8_TO_TCHAR(SteamVRSystem->GetPropErrorNameFromEnum(APIError));
+			}
+			ErrorResult = (int32)APIError;
+		}	
 	}
 #endif 
 	return ErrorResult;
@@ -338,7 +341,7 @@ public:
 #if STEAMVR_SUPPORTED_PLATFORMS
 		if (RawResource != nullptr)
 		{
-#if WITH_EDITORONLY_DATA // @TODO: UTexture::Source is only available in editor builds, we need to find some other way to construct textures
+#if WITH_EDITORONLY_DATA // @TODO: UTexture::Source is only available in editor builds, we need to find some other way to construct textures - try using CreateTransient() (see: TexturePaintHelpers::CreateTempUncompressedTexture)
 			NewTexture = NewObject<UTexture2D>(ObjOuter, ObjName, ObjFlags);
 			NewTexture->Source.Init(RawResource->unWidth, RawResource->unHeight, /*NewNumSlices =*/1, /*NewNumMips =*/1, TSF_BGRA8, RawResource->rubTextureMapData);
 
@@ -654,6 +657,8 @@ int32 FSteamVRAssetManager::GetDeviceId(EControllerHand ControllerHand)
 
 		if (DesiredDeviceClass != vr::TrackedDeviceClass_Invalid)
 		{
+			int32 FallbackIndex = INDEX_NONE;
+
 			for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
 			{
 				const vr::ETrackedDeviceClass DeviceClass = SteamVRSystem->GetTrackedDeviceClass(DeviceIndex);
@@ -661,8 +666,13 @@ int32 FSteamVRAssetManager::GetDeviceId(EControllerHand ControllerHand)
 				{
 					if (DesiredControllerRole != vr::TrackedControllerRole_Invalid)
 					{
+						// NOTE: GetControllerRoleForTrackedDeviceIndex() only seems to return a valid role if the device is on and being tracked
 						const vr::ETrackedControllerRole ControllerRole = SteamVRSystem->GetControllerRoleForTrackedDeviceIndex(DeviceIndex);
-						if (ControllerRole != DesiredControllerRole)
+						if (ControllerRole == vr::TrackedControllerRole_Invalid && FallbackIndex == INDEX_NONE)
+						{
+							FallbackIndex = DeviceIndex;
+						}
+						else if (ControllerRole != DesiredControllerRole)
 						{
 							continue;
 						}
@@ -671,6 +681,11 @@ int32 FSteamVRAssetManager::GetDeviceId(EControllerHand ControllerHand)
 					DeviceIndexOut = DeviceIndex;
 					break;
 				}
+			}
+
+			if (DeviceIndexOut == INDEX_NONE)
+			{
+				DeviceIndexOut = FallbackIndex;
 			}
 		}
 	}

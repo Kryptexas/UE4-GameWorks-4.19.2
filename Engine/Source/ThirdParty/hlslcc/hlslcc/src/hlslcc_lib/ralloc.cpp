@@ -75,7 +75,8 @@ _CRTIMP int _vscprintf(const char *format, va_list argptr);
  * is much faster than asking the OS to manage tens of thousands of small
  * allocations.
  */
-#define USE_MEM_BLOCKS 1
+// Tests on Mac show that perf is much better using the OS because the realloc avoids the numerous memmoves that the block system generates
+#define USE_MEM_BLOCKS !__APPLE__
 
 /**
  * The minimum size to allocate for blocks from the OS. There is a balance here
@@ -323,7 +324,7 @@ resize(void *ptr, size_t size)
 #if USE_MEM_BLOCKS
    info = (ralloc_header*)ralloc_block_resize(old, size + sizeof(ralloc_header));
 #else
-   info = realloc(old, size + sizeof(ralloc_header));
+   info = (ralloc_header*)realloc(old, size + sizeof(ralloc_header));
 #endif
 
    if (info == NULL)

@@ -1,0 +1,4 @@
+../../../Templates/TP_MobileARBP/manifest.json
+../../../Templates/TP_MobileARBP/Config/config.ini
+../../../Templates/TP_MobileARBP/Media/TP_MobileARBP.png
+../../../Templates/TP_MobileARBP/Media/TP_MobileARBP_Preview.png

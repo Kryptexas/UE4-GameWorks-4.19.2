@@ -3,7 +3,6 @@
 #include "Classes/GoogleVRMotionControllerComponent.h"
 #include "GoogleVRController.h"
 #include "GoogleVRLaserPlaneComponent.h"
-#include "Classes/GoogleVRPointerInputComponent.h"
 #include "Classes/GoogleVRLaserVisualComponent.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 #include "MotionControllerComponent.h"
@@ -47,10 +46,12 @@ UGoogleVRMotionControllerComponent::UGoogleVRMotionControllerComponent()
 , BatteryChargingTexture(nullptr)
 , EnterRadiusCoeff(0.1f)
 , ExitRadiusCoeff(0.2f)
+, PointerInputMode(EGoogleVRPointerInputMode::Camera)
 , RequireInputComponent(true)
 , IsLockedToHead(false)
 , TranslucentSortPriority(1)
 , PlayerController(nullptr)
+, InputComponent(nullptr)
 , MotionControllerComponent(nullptr)
 , ControllerMeshComponent(nullptr)
 , ControllerTouchPointMeshComponent(nullptr)
@@ -216,11 +217,10 @@ void UGoogleVRMotionControllerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<UGoogleVRPointerInputComponent*> Components;
-	UGoogleVRPointerInputComponent* InputComponent = nullptr;
+	TArray<UGoogleVRPointerInputComponent*> PointerInputComponents;
+	GetOwner()->GetComponents(PointerInputComponents);
 
-	GetOwner()->GetComponents(Components);
-	if(Components.Num() == 0)
+	if (PointerInputComponents.Num() == 0)
 	{
 		if (RequireInputComponent)
 		{
@@ -232,7 +232,7 @@ void UGoogleVRMotionControllerComponent::BeginPlay()
 	}
 	else
 	{
-		InputComponent = Components[0];
+		InputComponent = PointerInputComponents[0];
 	}
 
 	TArray<UActorComponent*> LaserVisualComponents = GetOwner()->GetComponentsByTag(UGoogleVRLaserVisual::StaticClass(), LaserVisualComponentTag);
@@ -266,7 +266,16 @@ void UGoogleVRMotionControllerComponent::BeginPlay()
 		// Get the world to meters scale.
 		const float WorldToMetersScale = GetWorldToMetersScale();
 
-		LaserVisualComponent->SetDefaultLaserDistance(WorldToMetersScale);
+		if (PointerInputMode == EGoogleVRPointerInputMode::HybridExperimental
+			|| PointerInputMode == EGoogleVRPointerInputMode::Camera)
+		{
+			LaserVisualComponent->UpdateLaserDistance(0, WorldToMetersScale);
+		}
+		else
+		{
+			LaserVisualComponent->SetDefaultLaserDistance(WorldToMetersScale);
+		}
+
 		LaserVisualComponent->SetDefaultReticleDistance(WorldToMetersScale, PlayerController->PlayerCameraManager->GetCameraLocation());
 	}
 
@@ -516,15 +525,12 @@ void UGoogleVRMotionControllerComponent::OnPointerHover(const FHitResult& HitRes
 	{
 		FVector Location = HitResult.Location;
 		FVector OriginLocation = HitResult.TraceStart;
-		LaserVisualComponent->UpdateReticleLocation(Location, OriginLocation, GetWorldToMetersScale(), PlayerController->PlayerCameraManager->GetCameraLocation());
-
 		FTransform PointerContainerTransform = LaserVisualComponent->GetComponentTransform();
 		FVector Difference = Location - PointerContainerTransform.GetLocation();
 		float Distance = Difference.Size();
-		LaserVisualComponent->UpdateLaserDistance(Distance);
-
-		FVector UncorrectedLaserEndpoint = PointerContainerTransform.GetLocation() + PointerContainerTransform.GetUnitAxis(EAxis::X) * Distance;
-		LaserVisualComponent->UpdateLaserCorrection(Location - UncorrectedLaserEndpoint);
+		float ModifiedDistance = GetRaycastModeBasedDistance(Distance);
+		LaserVisualComponent->UpdateLaserDistance(ModifiedDistance, GetWorldToMetersScale());
+		LaserVisualComponent->UpdateReticleLocation(Location, OriginLocation, GetWorldToMetersScale(), PlayerController->PlayerCameraManager->GetCameraLocation());
 	}
 }
 
@@ -533,7 +539,15 @@ void UGoogleVRMotionControllerComponent::OnPointerExit(const FHitResult& HitResu
 	if (LaserVisualComponent != nullptr)
 	{
 		const float WorldToMetersScale = GetWorldToMetersScale();
-		LaserVisualComponent->SetDefaultLaserDistance(WorldToMetersScale);
+		if (PointerInputMode == EGoogleVRPointerInputMode::HybridExperimental
+			|| PointerInputMode == EGoogleVRPointerInputMode::Camera)
+		{
+			LaserVisualComponent->UpdateLaserDistance(0, WorldToMetersScale);
+		}
+		else
+		{
+			LaserVisualComponent->SetDefaultLaserDistance(WorldToMetersScale);
+		}
 		LaserVisualComponent->SetDefaultReticleDistance(WorldToMetersScale, PlayerController->PlayerCameraManager->GetCameraLocation());
 		LaserVisualComponent->UpdateLaserCorrection(FVector(0, 0, 0));
 	}
@@ -595,7 +609,88 @@ float UGoogleVRMotionControllerComponent::GetMaxPointerDistance() const
 	return 2.5f * WorldToMetersScale;
 }
 
+float UGoogleVRMotionControllerComponent::GetDefaultReticleDistance() const
+{
+	float WorldToMetersScale = GetWorldToMetersScale();
+	if (LaserVisualComponent != nullptr)
+	{
+		return LaserVisualComponent->GetDefaultReticleDistance(WorldToMetersScale);
+	}
+	return 2.5f * WorldToMetersScale;
+}
+
 bool UGoogleVRMotionControllerComponent::IsPointerActive() const
 {
 	return IsActive() && IsControllerConnected();
+}
+
+EGoogleVRPointerInputMode UGoogleVRMotionControllerComponent::GetPointerInputMode() const
+{
+	return PointerInputMode;
+}
+
+float UGoogleVRMotionControllerComponent::GetRaycastModeBasedDistance(float Distance)
+{
+	float retValue = Distance;
+	if (PointerInputMode == EGoogleVRPointerInputMode::Camera)
+	{
+		retValue = 0.0f;
+	}
+	else if (PointerInputMode == EGoogleVRPointerInputMode::HybridExperimental)
+	{
+		// Amount to shrink the laser when it is fully shrunk.
+		// Eventually, the laser will become fully invisible even without fully shrinking it because
+		// of foreshortening.
+		float shrunkScale = 0.2f;
+
+		// Begin shrinking the laser when the angle between transform.forward and the reticle
+		// is greater than this value.
+		float beginShrinkAngleDegrees = 0.0f;
+
+		// Finish shrinking the laser when the angle between transform.forward and the reticle
+		// is greater than this value.
+		float endShrinkAngleDegrees = 2.0f;
+
+		// Calculate the angle of rotation in degrees.
+		FVector currentLocalPosition = LaserVisualComponent->GetComponentTransform().GetLocation();
+		currentLocalPosition.Normalize();
+		FVector forwardDir = GetDirection();
+		forwardDir.Normalize();
+		float angle = FMath::Acos(FVector::DotProduct(forwardDir, currentLocalPosition));
+
+		// Calculate the shrink ratio based on the angle.
+		float shrinkAngleDelta = endShrinkAngleDegrees - beginShrinkAngleDegrees;
+		float clampedAngle = FMath::Clamp(angle - beginShrinkAngleDegrees, 0.0f, shrinkAngleDelta);
+		float shrinkRatio = clampedAngle / shrinkAngleDelta;
+
+		// Calculate the shrink coeff.
+		float shrinkCoeff = EaseOutCubic(shrunkScale, 1.0f, 1.0f - shrinkRatio);
+
+		// Calculate the final distance of the laser.
+		FVector diff = LaserVisualComponent->GetComponentTransform().GetLocation() - LaserVisualComponent->GetReticleLocation();
+		retValue = FMath::Min(diff.Size(), GetMaxPointerDistance()) * shrinkCoeff;
+
+		if (Distance > GetMaxPointerDistance())
+			retValue = 0.0f;
+	}
+	else
+	{
+		retValue = Distance;
+	}
+	return retValue;
+}
+
+float UGoogleVRMotionControllerComponent::EaseOutCubic(float min, float max, float value)
+{
+	if (min > max)
+	{
+		UE_LOG(LogGoogleVRMotionController, Error, TEXT("Invalid values passed to EaseOutCubic, max must be greater than min. min: %f, max: %f"), min, max);
+		return value;
+	}
+
+	value = FMath::Clamp(value, 0.0f, 1.0f);
+	value -= 1.0f;
+	float delta = max - min;
+	float result = delta * (value * value * value + 1.0f) + min;
+	return result;
 }

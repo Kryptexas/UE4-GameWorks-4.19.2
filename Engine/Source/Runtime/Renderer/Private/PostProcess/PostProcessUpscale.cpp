@@ -252,9 +252,10 @@ VARIATION1(6, true)
 
 #undef VARIATION1
 
-FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig, bool bInIsSecondaryUpscale)
+FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig, bool bInIsSecondaryUpscale, bool bInIsMobileRenderer)
 	: UpscaleQuality(InUpscaleQuality)
 	, bIsSecondaryUpscale(bInIsSecondaryUpscale)
+	, bIsMobileRenderer(bInIsMobileRenderer)
 {
 	PaniniConfig.D = FMath::Max(InPaniniConfig.D, 0.0f);
 	PaniniConfig.S = InPaniniConfig.S;
@@ -379,8 +380,15 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 		// If there is a secondary upscale, upscale to view size taken as input for secondary upscale
 		if (!Context.IsViewFamilyRenderTarget(DestRenderTarget))
 		{
-			DestRect.Min = FIntPoint::ZeroValue;
-			DestRect.Max = Context.View.GetSecondaryViewRectSize();
+			if (bIsMobileRenderer)
+			{
+				DestRect = Context.View.UnscaledViewRect;
+			}
+			else
+			{
+				DestRect.Min = FIntPoint::ZeroValue;
+				DestRect.Max = Context.View.GetSecondaryViewRectSize();
+			}
 		}
 	}
 
@@ -472,8 +480,16 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 }
 
 FRCPassPostProcessUpscaleES2::FRCPassPostProcessUpscaleES2(const FViewInfo& InView)
-:	FRCPassPostProcessUpscale(InView, 1 /* bilinear */)
+:	FRCPassPostProcessUpscale(InView, 1 /* bilinear */, PaniniParams::Default, false /* bIsSecondaryUpscale */, true /* bIsMobileRenderer */)
 {
 	OutputExtent = InView.UnscaledViewRect.Max;
 }
 
+FRCPassPostProcessUpscaleES2::FRCPassPostProcessUpscaleES2(const FViewInfo& InView, uint32 InUpscaleQuality, bool bOverrideOutputExtent)
+	: FRCPassPostProcessUpscale(InView, InUpscaleQuality, PaniniParams::Default, false /* bIsSecondaryUpscale */, true /* bIsMobileRenderer */)
+{
+	if (bOverrideOutputExtent)
+	{
+		OutputExtent = InView.UnscaledViewRect.Max;
+	}
+}

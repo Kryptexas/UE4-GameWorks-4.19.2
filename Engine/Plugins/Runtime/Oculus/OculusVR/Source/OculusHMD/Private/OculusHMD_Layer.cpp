@@ -254,14 +254,9 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 
 		ExecuteOnRHIThread([&]()
 		{
-			void* OvrpDevice = CustomPresent->GetOvrpDevice();
-			OVRP_CONSTREF(ovrpLayerDesc) LayerBase = OvrpLayerDesc.Base;
-
-			ovrpResult SetUpResult = ovrp_SetupLayer(OvrpDevice, LayerBase, (int*)&OvrpLayerId);
-
 			// UNDONE Do this in RenderThread once OVRPlugin allows ovrp_SetupLayer to be called asynchronously
 			int32 TextureCount;
-			if (OVRP_SUCCESS(SetUpResult) &&
+			if (OVRP_SUCCESS(ovrp_SetupLayer(CustomPresent->GetOvrpDevice(), OvrpLayerDesc.Base, (int*) &OvrpLayerId)) &&
 				OVRP_SUCCESS(ovrp_GetLayerTextureStageCount(OvrpLayerId, &TextureCount)))
 			{
 				// Left

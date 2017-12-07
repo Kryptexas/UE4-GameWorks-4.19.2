@@ -9,8 +9,6 @@
 #include "ISpectatorScreenController.h"
 #include "IXRSystemAssets.h"
 #include "Components/PrimitiveComponent.h"
-#include "Engine/LocalPlayer.h"
-#include "Camera/CameraComponent.h"
 #include "Features/IModularFeatures.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUHeadMountedDisplay, Log, All);
@@ -265,103 +263,12 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 
 FTransform UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(UObject* WorldContext)
 {
-	FTransform TrackingToWorld = FTransform::Identity;
-
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::LogAndReturnNull);
-	if (World)
+	IXRTrackingSystem* TrackingSys = GEngine->XRSystem.Get();
+	if (TrackingSys)
 	{
-		const ULocalPlayer* XRPlayer = nullptr;
-
-		const TArray<ULocalPlayer*>& LocalPlayers = GEngine->GetGamePlayers(World);
-		for (const ULocalPlayer* Player : LocalPlayers)
-		{
-			if (Player->IsPrimaryPlayer())
-			{
-				XRPlayer = Player;
-				break;
-			}
-		}
-
-		if (XRPlayer)
-		{
-			const APlayerController* PlayerController = XRPlayer->GetPlayerController(World);
-			if (PlayerController)
-			{
-				const AActor* PlayerViewTarget = PlayerController->GetViewTarget();
-				// follows ULocalPlayer::GetProjectionData()'s logic - where there's two different  
-				// modes we use for determining the HMD's view: implicit vs. explicit...
-				// IMPLICIT: the player has a camera component which represents the HMD, meaning 
-				//           that component's parent is the tracking origin
-				// EXPLICIT: there is no object representing the HMD, so we assume the ViewTaget
-				//           is the tracking origin and offset the HMD from that
-				const bool bUsesImplicitHMDPositioning = PlayerViewTarget && PlayerViewTarget->HasActiveCameraComponent();
-
-				if (bUsesImplicitHMDPositioning)
-				{
-					TArray<UCameraComponent*> CameraComponents;
-					PlayerViewTarget->GetComponents<UCameraComponent>(CameraComponents);
-
-					UCameraComponent* PlayerCamera = nullptr;
-					for (UCameraComponent* Cam : CameraComponents)
-					{
-						// emulates AActor::CalcCamera(); the PlayerCameraManager uses ViewTarget->CalcCamera() for 
-						// the HMD view's basis (regardless of whether bLockToHmd is set), CalcCamera() just finds 
-						// the first active cam component and chooses that
-						if (Cam->bIsActive)
-						{
-							PlayerCamera = Cam;
-							break;
-						}
-					}
-					if (ensure(PlayerCamera))
-					{
-						USceneComponent* ViewParent = PlayerCamera->GetAttachParent();
-						if (ViewParent)
-						{
-							TrackingToWorld = ViewParent->GetComponentTransform();
-						}
-						// else, if the camera is the root component (not attached to an origin point)
-						// then it is directly relative to the world - the tracking origin is the world's origin (i.e. the identity)
-					}
-				}
-				// if we don't have a camera component, then the HMD is relative to the player's  
-				// ViewPoint (see FDefaultXRCamera::CalculateStereoCameraOffset), which means that the
-				// ViewPoint is treated as the tracking origin
-				else 
-				{
-					FVector  ViewPos;
-					// NOTE: the player's view point will have the HMD's rotation folded into it (see 
-					//       APlayerController::UpdateRotation => FDefaultXRCamera::ApplyHMDRotation)
-					//       so the ViewPoint's rotation doesn't wholly represent the tracking origin's orientation
-					FRotator ViewRot;
-					PlayerController->GetPlayerViewPoint(ViewPos, ViewRot);
-
-					// in FDefaultXRCamera::ApplyHMDRotation(), we clear the player's ViewRotation, and 
-					// replace it with: the frame's yaw delta + hmd orientation; this has two implications...
-					//     1) The HMD is initially relative to the world (not the player's rotation)
-					//     2) The tracking origin can be directly rotated with player input, and isn't static
-					if (GEngine->XRSystem.IsValid())
-					{
-						FVector HMDPos;
-						FQuat   HMDRot;
-						GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, HMDRot, HMDPos);
-
-						// @TODO: This is assuming users are using the PlayerController's default implementation for
-						//        UpdateRotation(). If they're not calling ApplyHMDRotation() then this is wrong, 
-						//        and ViewRot should be left unmodified.
-						ViewRot = FRotator(ViewRot.Quaternion() * HMDRot.Inverse());
-					}
-
-					TrackingToWorld = FTransform(ViewRot, ViewPos);
-				}
-			}			
-		}
-
-		// don't need to incorporate the world scale here, as its expected that the XR system
-		// backend reports tracking space poses with that already incorporated
-		//TrackingToWorld.SetScale3D(TrackingToWorld->GetScale3D() * GetWorldToMetersScale(WorldContext));
+		return TrackingSys->GetTrackingToWorldTransform();
 	}
-	return TrackingToWorld;
+	return FTransform::Identity;
 }
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)

@@ -20,6 +20,7 @@ public class MixedRealityFramework : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
+				"MediaAssets",
 			}
 		);
 
@@ -29,11 +30,11 @@ public class MixedRealityFramework : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Media",
-				"MediaAssets",
 				"HeadMountedDisplay",
 				"InputCore",
                 "MediaUtils",
-				"RenderCore"
+				"RenderCore",
+				"LensDistortion"
 			}
 		);
 	}

@@ -399,12 +399,8 @@ UProperty* UK2Node_Variable::GetPropertyForVariable_Internal(UClass* OwningClass
 	// if the variable has been deprecated, don't use it
 	if (VariableProperty != nullptr)
 	{
-		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
-		{
-			VariableProperty = nullptr;
-		}
 		// If the variable has been remapped update the pin
-		else if (VariablePin && VarName != GetVarName())
+		if (VariablePin && VarName != GetVarName())
 		{
 			VariablePin->PinName = GetVarName();
 		}

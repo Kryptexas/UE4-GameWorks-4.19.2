@@ -1006,6 +1006,8 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	UpdatePoses();
 	GetCurrentPose(IXRTrackingSystem::HMDDeviceId, Orientation, Position);
 
+	RefreshTrackingToWorldTransform(WorldContext);
+
 	bool bShouldShutdown = false;
 	if (bIsQuitting)
 	{
@@ -1331,17 +1333,14 @@ FMatrix FSteamVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass Ster
 
 void FSteamVRHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
 {
-	int32 RenderTargetWidth = RTWidth;
-	int32 RenderTargetHeight = RTHeight;
-
-	RenderTargetWidth = FMath::CeilToInt(IdealRenderTargetSize.X * PixelDensity);
-	RenderTargetHeight = FMath::CeilToInt(IdealRenderTargetSize.Y * PixelDensity);
+	const int32 RenderTargetWidth = FMath::CeilToInt(static_cast<float>(IdealRenderTargetSize.X) * PixelDensity);
+	const int32 RenderTargetHeight = FMath::CeilToInt(static_cast<float>(IdealRenderTargetSize.Y) * PixelDensity);
 
 	const float HudOffset = 50.0f;
-	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.f, 0.f));
-	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RenderTargetWidth * .5, 0.f, 0.f));
+	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.0f, 0.0f));
+	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RenderTargetWidth * 0.5, 0.0f, 0.0f));
 
-	const FScaleMatrix RTScale(FVector((float)RTWidth / (float)RenderTargetWidth, (float)RTHeight / (float)RenderTargetHeight, 1.0f));
+	const FScaleMatrix RTScale(FVector(static_cast<float>(RTWidth) / static_cast<float>(RenderTargetWidth), static_cast<float>(RTHeight) / static_cast<float>(RenderTargetHeight), 1.0f));
 	OrthoProjection[0] *= RTScale;
 	OrthoProjection[1] *= RTScale;
 }

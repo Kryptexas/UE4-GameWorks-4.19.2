@@ -49,4 +49,12 @@ private:
 	TSharedPtr<IPropertyHandle> DisplayMaterialsProperty;
 
 	static TMap< FName, TSharedPtr<FName> > CustomSourceNames;
+
+	TSharedPtr<IPropertyHandle> MotionSourceProperty;
+
+	// Delegate handler for when UI changes motion source
+	void OnMotionSourceChanged(FName NewMotionSource);
+
+	// Return text for motion source combo box
+	FText GetMotionSourceValueText() const;
 };

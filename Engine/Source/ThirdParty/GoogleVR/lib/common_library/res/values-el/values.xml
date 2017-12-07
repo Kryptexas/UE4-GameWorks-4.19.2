@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding='utf-8' standalone='no'?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-<!-- blaze-out/arm-linux-androideabi-4.8-bionic-libcxx-armv7a-opt/genfiles/vr/gvr/platform/common/android/res/values-el/strings.xml -->
+<!-- blaze-out/intel-linux-android-4.9-libcxx-x86-opt/genfiles/vr/gvr/platform/common/android/res/values-el/strings.xml -->
 <eat-comment/>
 <string name="back_button_content_description" msgid="233061162317617848">"πίσω"</string>
 <string name="cancel_button" msgid="2401572676578172896">"Ακύρωση"</string>

@@ -55,7 +55,7 @@ public:
 	//				2: 4 tap Bilinear (with radius adjustment)
 	//				3: Directional blur with unsharp mask upsample.
 	// @param InPaniniConfig - the panini configuration parameter
-	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default, bool bInIsSecondaryUpscale = false);
+	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default, bool bInIsSecondaryUpscale = false, bool bInIsMobileRenderer = false);
 
 	// interface FRenderingCompositePass ---------
 
@@ -74,6 +74,7 @@ private:
 	PaniniParams PaniniConfig;
 
 	const bool bIsSecondaryUpscale;
+	const bool bIsMobileRenderer;
 
 protected:
 	// Extent of upscaled output
@@ -85,4 +86,5 @@ class FRCPassPostProcessUpscaleES2 : public FRCPassPostProcessUpscale
 {
 public:
 	FRCPassPostProcessUpscaleES2(const FViewInfo& InView);
+	FRCPassPostProcessUpscaleES2(const FViewInfo& InView, uint32 InUpscaleQuality, bool bOverrideOutputExtent);
 };

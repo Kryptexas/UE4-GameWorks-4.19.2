@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "Features/IModularFeatures.h"
 
 
 class FGoogleARCoreDevice;
 
-class FGoogleARCoreMotionController : public IMotionController
+class FGoogleARCoreMotionController : public FXRMotionControllerBase
 {
 public:
 	FGoogleARCoreMotionController();

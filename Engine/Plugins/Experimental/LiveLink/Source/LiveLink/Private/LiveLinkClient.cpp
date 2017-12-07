@@ -607,6 +607,32 @@ void FLiveLinkClient::OnPropertyChanged(FGuid InEntryGuid, const FPropertyChange
 	}
 }
 
+TArray<FLiveLinkSubjectKeyXR> FLiveLinkClient::GetSubjectsXR()
+{
+	TArray<FLiveLinkSubjectKeyXR> SubjectEntries;
+	{
+		FScopeLock Lock(&SubjectDataAccessCriticalSection);
+
+		SubjectEntries.Reserve(LiveSubjectData.Num());
+
+		for (const TPair<FName, FLiveLinkSubject>& LiveSubject : LiveSubjectData)
+		{
+			SubjectEntries.Emplace(LiveSubject.Key, LiveSubject.Value.LastModifier);
+		}
+	}
+	return SubjectEntries;
+}
+
+FDelegateHandle FLiveLinkClient::RegisterSubjectsChangedHandleXR(const FSimpleMulticastDelegate::FDelegate& SourcesChanged)
+{
+	return OnLiveLinkSubjectsChanged.Add(SourcesChanged);
+}
+
+void FLiveLinkClient::UnregisterSubjectsChangedHandleXR(FDelegateHandle Handle)
+{
+	OnLiveLinkSubjectsChanged.Remove(Handle);
+}
+
 FDelegateHandle FLiveLinkClient::RegisterSourcesChangedHandle(const FSimpleMulticastDelegate::FDelegate& SourcesChanged)
 {
 	return OnLiveLinkSourcesChanged.Add(SourcesChanged);

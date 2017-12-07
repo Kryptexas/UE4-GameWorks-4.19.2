@@ -27,6 +27,8 @@ public:
 	FVector PlayerLocation;			// (CalculateStereoViewOffset)
 	float NearClippingPlane;		// (GetStereoProjectionMatrix)
 
+	ETiledMultiResLevel MultiResLevel; //OnStartGameFrame
+
 	union
 	{
 		struct

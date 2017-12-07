@@ -1351,7 +1351,7 @@ public:
 	FSceneViewStateReference ViewState;
 
 	/** Viewport view state when stereo rendering is enabled */
-	FSceneViewStateReference StereoViewState;
+	TArray<FSceneViewStateReference> StereoViewStates;
 
 	/** A set of flags that determines visibility for various scene elements. */
 	FEngineShowFlags		EngineShowFlags;

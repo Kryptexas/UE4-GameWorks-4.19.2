@@ -35,7 +35,7 @@ public:
 	void SetupComponent( AActor* OwningActor );
 
 	/** Sets the EControllerHand for this motioncontroller */
-	void SetControllerHandSide( const EControllerHand InControllerHandSide );
+	void SetControllerHandSide( const FName InControllerHandSide );
 
 	// IViewportInteractorInterface overrides
 	virtual void Shutdown() override;
@@ -199,7 +199,7 @@ protected:
 	class UMaterialInstanceDynamic* HandMeshMID;
 
 	/** Right or left hand */
-	EControllerHand ControllerHandSide;
+	FName ControllerMotionSource;
 
 	/** True if this hand has a motion controller (or both!) */
 	bool bHaveMotionController;

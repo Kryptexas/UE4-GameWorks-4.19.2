@@ -94,9 +94,9 @@ namespace UnrealBuildTool
 				{
 					GoogleVRPluginEnabled = true;
 					continue;
-				}
+			}
 
-				// check if Crashlytics plugin was enabled
+			// check if Crashlytics plugin was enabled
 				// NOTE: There is a thirdparty plugin using Crashlytics_UPL_Android.xml which shouldn't use this code so check full name
 				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
@@ -438,22 +438,22 @@ namespace UnrealBuildTool
 				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
-            List<string> GoogleVRCaps = new List<string>();
-            if (Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRCaps", out GoogleVRCaps))
-            {
-                return GoogleVRCaps.Contains("Daydream33") || GoogleVRCaps.Contains("Daydream63");
-            }
-            else
-            {
-                // the default values for the VRCaps are Cardboard and Daydream33, so unless the
-                // developer changes the mode, there will be no setting string to look up here
-                return true;
-            }
-        }
+			List<string> GoogleVRCaps = new List<string>();
+			if(Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRCaps", out GoogleVRCaps))
+			{
+				return GoogleVRCaps.Contains("Daydream33") || GoogleVRCaps.Contains("Daydream63");
+			}
+			else
+			{
+				// the default values for the VRCaps are Cardboard and Daydream33, so unless the
+				// developer changes the mode, there will be no setting string to look up here
+				return true;
+			}
+		}
 
 		public bool IsPackagingForGearVR(ConfigHierarchy Ini = null)
 		{
-			// always false if the GearVR plugin wasn't enabled
+			// always false if the Gear VR plugin wasn't enabled
 			if (!GearVRPluginEnabled)
 			{
 				return false;
@@ -786,9 +786,9 @@ namespace UnrealBuildTool
 			ShimFileContent.AppendFormat("import {0}.DownloaderActivity;\n", replacements["$$PackageName$$"]);
 
 			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
-			ShimFileContent.Append("import android.app.Activity;\n");
-			ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
-			ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
+				ShimFileContent.Append("import android.app.Activity;\n");
+				ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
+				ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
 
 			ShimFileContent.Append("\n\npublic class DownloadShim\n{\n");
 			ShimFileContent.Append("\tpublic static OBBDownloaderService DownloaderService;\n");
@@ -796,23 +796,23 @@ namespace UnrealBuildTool
 			ShimFileContent.Append("\tpublic static Class<DownloaderActivity> GetDownloaderType() { return DownloaderActivity.class; }\n");
 
 			// Do OBB file checking without using DownloadActivity to avoid transit to another activity
-			ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
-			ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
-			ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
-			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
-			ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
-			ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
-			ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
+				ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
+				ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
+				ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
 			ShimFileContent.Append("\t\t\tif (Helpers.doesFileExist(activity, fileName, xf.mFileSize, false)) {\n");
 			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForNewFile);\n");
 			ShimFileContent.Append("\t\t\t}\n");
 			ShimFileContent.Append("\t\t\telse if (Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false)) {\n");
 			ShimFileContent.Append("\t\t\t\tGameActivity.Log.debug(\"Found OBB here: \" + fileForDevFile);\n");
-			ShimFileContent.Append("\t\t\t}\n");
+				ShimFileContent.Append("\t\t\t}\n");
 			ShimFileContent.Append("\t\t\telse return false;\n");
 			ShimFileContent.Append("\t\t}\n");
-			ShimFileContent.Append("\t\treturn true;\n");
-			ShimFileContent.Append("\t}\n");
+				ShimFileContent.Append("\t\treturn true;\n");
+				ShimFileContent.Append("\t}\n");
 
 			ShimFileContent.Append("}\n");
 			Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);
@@ -1619,7 +1619,7 @@ namespace UnrealBuildTool
 			bool bPackageForGearVR = IsPackagingForGearVR(Ini); ;
 			bool bPackageForDaydream = IsPackagingForDaydream(Ini);
 			
-			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
+			//override the parameters if we are not showing a launch image or are packaging for Gear VR and Daydream
 			if (bPackageForGearVR || bPackageForDaydream || !bShowLaunchImage)
 			{
 				bNeedPortrait = bNeedLandscape = false;
@@ -1938,22 +1938,22 @@ namespace UnrealBuildTool
 			// only apply density to configChanges if using android-24 or higher and minimum sdk is 17
 			bool bAddDensity = (SDKLevelInt >= 24) && (MinSDKVersion >= 17);
 
-			// disable GearVR if not supported platform (in this case only armv7 for now)
+			// disable Gear VR if not supported platform (in this case only armv7 for now)
 			if (UE4Arch != "-armv7")
 			{
 				if (bPackageForGearVR)
 				{
-					Log.TraceInformation("Disabling Package For GearVR for unsupported architecture {0}", UE4Arch);
+					Log.TraceInformation("Disabling Package For Gear VR for unsupported architecture {0}", UE4Arch);
 					bPackageForGearVR = false;
 				}
 			}
 
-			// disable splash screen for GearVR (for now)
+			// disable splash screen for Gear VR (for now)
 			if (bPackageForGearVR)
 			{
 				if (bShowLaunchImage)
 				{
-					Log.TraceInformation("Disabling Show Launch Image for GearVR enabled application");
+					Log.TraceInformation("Disabling Show Launch Image for Gear VR enabled application");
 					bShowLaunchImage = false;
 				}
 			}
@@ -2079,7 +2079,7 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\"");
 				Text.AppendLine(bAddDensity ? "\t\t          android:configChanges=\"density|screenSize|orientation|keyboardHidden|keyboard\""
 											: "\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
-				}
+			}
 			else
 			{
 				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
@@ -2159,8 +2159,8 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t           android:value=\"@integer/google_play_services_version\" />");
 			if (bSupportAdMob)
 			{
-				Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
-				Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
+			Text.AppendLine("\t\t<activity android:name=\"com.google.android.gms.ads.AdActivity\"");
+			Text.AppendLine("\t\t          android:configChanges=\"keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize\"/>");
 			}
 			if (!string.IsNullOrEmpty(ExtraApplicationSettings))
 			{
@@ -3410,7 +3410,7 @@ namespace UnrealBuildTool
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
 					}
-					GradleBuildAdditionsContent.AppendLine("}");
+						GradleBuildAdditionsContent.AppendLine("}");
 
 					// Add any UPL app buildGradleAdditions
 					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));

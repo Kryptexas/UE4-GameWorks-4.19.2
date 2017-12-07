@@ -8,13 +8,12 @@
 #include "SceneViewport.h"
 #include "SceneView.h"
 #include "GoogleARCoreDevice.h"
-#include "ARHitTestingSupport.h"
-#include "ARTrackingQuality.h"
+#include "ARSystem.h"
 
 /**
 * Tango Head Mounted Display used for Argument Reality
 */
-class FGoogleARCoreHMD : public FXRTrackingSystemBase, public IARHitTestingSupport, public IARTrackingQuality, public TSharedFromThis<FGoogleARCoreHMD, ESPMode::ThreadSafe>
+class FGoogleARCoreHMD : public FARSystemBase
 {
 	friend class FGoogleARCoreXRCamera;
 
@@ -47,13 +46,13 @@ public:
 	virtual float GetWorldToMetersScale() const override;
 
 
-	//~ IARHitTestingSupport
-	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
-	//~ IARHitTestingSupport
-
-	//~ IARTrackingQuality
-	virtual EARTrackingQuality ARGetTrackingQuality() const override;
-	//~ IARTrackingQuality
+	//~IARSystemSupport
+	virtual EARTrackingQuality OnGetTrackingQuality() const override;
+	virtual bool OnStartAR() override;
+	virtual void OnStopAR() override;
+	virtual TArray<FARTraceResult> OnLineTraceTrackedObjects(const FVector2D ScreenCoord) override;
+	virtual TArray<UARTrackedGeometry *> OnGetAllTrackedGeometries() const override;
+	//~IARSystemSupport
 
 public:
 	FGoogleARCoreHMD();

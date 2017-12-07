@@ -5,6 +5,7 @@
 #include "StereoLayerManager.h"
 #include "SteamVRHMD.h"
 #include "Misc/ScopeLock.h"
+#include "DefaultXRCamera.h"
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
@@ -234,7 +235,18 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 	FQuat AdjustedPlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
 	AdjustedPlayerOrientation.Normalize();
 
-	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, PlayerLocation).Inverse();
+	check(XRCamera.IsValid());
+	FVector AdjustedPlayerLocation = PlayerLocation;
+	if (XRCamera->GetUseImplicitHMDPosition())
+	{
+		FQuat DeviceOrientation; // Unused
+		FVector DevicePosition;
+		GetCurrentPose(IXRTrackingSystem::HMDDeviceId, DeviceOrientation, DevicePosition);
+		AdjustedPlayerLocation -= BaseOrientation.Inverse().RotateVector(DevicePosition);
+	}
+
+	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, AdjustedPlayerLocation).Inverse();
+
 
 	// We have loop through all layers every frame, in case we have world locked layers or continuously updated textures.
 	ForEachLayer([&](uint32 /* unused */, FSteamVRLayer& Layer)

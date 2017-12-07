@@ -1617,7 +1617,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 					bHistogramNeeded = true;
 				}
 
-				if (!GIsHighResScreenshot && bHistogramNeeded && FeatureLevel >= ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
+				if (!GIsHighResScreenshot && bHistogramNeeded && FeatureLevel >= ERHIFeatureLevel::SM5 && IStereoRendering::IsAPrimaryView(StereoPass))
 				{
 					FRenderingCompositePass* NodeHistogram = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessHistogram());
 
@@ -1641,7 +1641,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				if (Context.View.FinalPostProcessSettings.BloomThreshold <= -1 && Context.View.Family->Views.Num() == 1)
 				{
 					if (!GIsHighResScreenshot && View.State &&
-						(StereoPass != eSSP_RIGHT_EYE) &&
+						IStereoRendering::IsAPrimaryView(StereoPass) &&
 						AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic)
 					{
 						BloomAndEyeDownSamplesPtr = CreateDownSampleArray(Context, SceneColorHalfRes, true /*bGenerateLog2Alpha*/);
@@ -1650,7 +1650,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			}
 
 			// some views don't have a state (thumbnail rendering)
-			if(!GIsHighResScreenshot && View.State && (StereoPass != eSSP_RIGHT_EYE))
+			if(!GIsHighResScreenshot && View.State && IStereoRendering::IsAPrimaryView(StereoPass))
 			{
 				
 				const bool bUseBasicEyeAdaptation = (AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic);

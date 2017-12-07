@@ -114,6 +114,41 @@ public:
 };
 
 
+class FResolveDepth8XPS : public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FResolveDepth8XPS, Global, UTILITYSHADERS_API);
+public:
+
+	typedef FDummyResolveParameter FParameter;
+
+	static bool ShouldCache(EShaderPlatform Platform) { return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM5; }
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("DEPTH_RESOLVE_NUM_SAMPLES"), 8);
+	}
+
+	FResolveDepth8XPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		UnresolvedSurface.Bind(Initializer.ParameterMap, TEXT("UnresolvedSurface"), SPF_Mandatory);
+	}
+	FResolveDepth8XPS() {}
+
+	void SetParameters(FRHICommandList& RHICmdList, FParameter)
+	{
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << UnresolvedSurface;
+		return bShaderHasOutdatedParameters;
+	}
+
+	FShaderResourceParameter UnresolvedSurface;
+};
 
 
 class FResolveDepthNonMSPS : public FGlobalShader

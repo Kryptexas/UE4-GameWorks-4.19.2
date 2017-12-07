@@ -100,6 +100,12 @@
 # These are part of the Java native interfaces for GVR.
 -keep class com.google.vr.** { native &lt;methods&gt;; }
 
+-keep class com.google.vr.cardboard.UsedByNative
+-keep @com.google.vr.cardboard.UsedByNative class *
+-keepclassmembers class * {
+    @com.google.vr.cardboard.UsedByNative *;
+}
+
 -keep class com.google.vr.cardboard.annotations.UsedByNative
 -keep @com.google.vr.cardboard.annotations.UsedByNative class *
 -keepclassmembers class * {
@@ -111,6 +117,9 @@
 -keepclassmembers class * {
 		@com.google.vr.cardboard.UsedByNative *;
 }
+
+-dontwarn com.google.protobuf.nano.NanoEnumValue
+-dontwarn sun.misc.Unsafe
 		</insert>
 	</proguardAdditions>
 
@@ -274,7 +283,7 @@
 				finish();
 				return;
 			}
-			
+
 			public void AndroidThunkJava_EnableSPM()
 			{
 				_activity.runOnUiThread(new Runnable()
@@ -287,7 +296,7 @@
 					}
 				});
 			}
-			
+
 			public void AndroidThunkJava_DisableSPM()
 			{
 				_activity.runOnUiThread(new Runnable()
@@ -480,7 +489,7 @@
 				});
 			}
 			IsInVRMode = bAsyncReprojectionEnabled;
-			
+
 			AndroidCompat.setVrModeEnabled(this, true);
 
 			// Attempt to enable VR Mode. Only supported on some platforms. Check done internally.
@@ -506,7 +515,7 @@
 			{
 				bIsVrLaunch = false;
 			}
-			
+
 			if(bAsyncReprojectionEnabled)
 			{
 				daydreamApi = DaydreamApi.create(this);
@@ -526,7 +535,7 @@
 					}
 				};
 			}
-      
+
 		</insert>
 		<if condition="bSupportDaydream">
 			<true>

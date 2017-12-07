@@ -22,7 +22,7 @@ public:
 	struct FMotionSource
 	{
 		int32 PlayerIndex;
-		EControllerHand SourceId;
+		FName SourceId;
 
 		bool operator==(const FMotionSource& Rhs) const;
 		bool operator!=(const FMotionSource& Rhs) const;
@@ -245,7 +245,6 @@ static void MotionDelayService_Impl::SyncDelayBuffers(uint32 FrameId)
 //------------------------------------------------------------------------------
 static void MotionDelayService_Impl::SampleDevicePose(const FMotionDelayTarget::FMotionSource& TargetSource, FPoseSample& PoseOut)
 {
-	const bool bIsAnyHand = (TargetSource.SourceId == EControllerHand::AnyHand);
 	PoseOut.TimeStamp = FPlatformTime::Seconds();
 
 	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
@@ -253,12 +252,7 @@ static void MotionDelayService_Impl::SampleDevicePose(const FMotionDelayTarget::
 	{
 		if (MotionController != nullptr)
 		{
-			EControllerHand QuerySource = bIsAnyHand ? EControllerHand::Left : TargetSource.SourceId;
-			if (MotionController->GetControllerOrientationAndPosition(TargetSource.PlayerIndex, QuerySource, PoseOut.Orientation, PoseOut.Position, DefaultWorldToMetersScale))
-			{
-				break;
-			}
-			else if (bIsAnyHand && MotionController->GetControllerOrientationAndPosition(TargetSource.PlayerIndex, EControllerHand::Right, PoseOut.Orientation, PoseOut.Position, DefaultWorldToMetersScale))
+			if (MotionController->GetControllerOrientationAndPosition(TargetSource.PlayerIndex, TargetSource.SourceId, PoseOut.Orientation, PoseOut.Position, DefaultWorldToMetersScale))
 			{
 				break;
 			}
@@ -276,7 +270,7 @@ void FMotionDelayService::SetEnabled(bool bEnable)
 }
 
 //------------------------------------------------------------------------------
-bool FMotionDelayService::RegisterDelayTarget(USceneComponent* MotionControlledComponent, const int32 PlayerIndex, const EControllerHand SourceId)
+bool FMotionDelayService::RegisterDelayTarget(USceneComponent* MotionControlledComponent, const int32 PlayerIndex, const FName SourceId)
 {
 	using namespace MotionDelayService_Impl;
 

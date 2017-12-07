@@ -59,7 +59,7 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::StatsCommandHandler))
 	, CubemapCommand(TEXT("vr.oculus.Debug.CaptureCubemap"),
 		*NSLOCTEXT("OculusRift", "CCommandText_Cubemap",
-			"Oculus Rift specific extension.\nCaptures a cubemap for Oculus Home.\nOptional arguments (default is zero for all numeric arguments):\n  xoff=<float> -- X axis offset from the origin\n  yoff=<float> -- Y axis offset\n  zoff=<float> -- Z axis offset\n  yaw=<float>  -- the direction to look into (roll and pitch is fixed to zero)\n  gearvr       -- Generate a GearVR format cubemap\n    (height of the captured cubemap will be 1024 instead of 2048 pixels)\n").ToString(),
+			"Oculus Rift specific extension.\nCaptures a cubemap for Oculus Home.\nOptional arguments (default is zero for all numeric arguments):\n  xoff=<float> -- X axis offset from the origin\n  yoff=<float> -- Y axis offset\n  zoff=<float> -- Z axis offset\n  yaw=<float>  -- the direction to look into (roll and pitch is fixed to zero)\n  gearvr       -- Generate a Gear VR format cubemap\n    (height of the captured cubemap will be 1024 instead of 2048 pixels)\n").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(&UOculusSceneCaptureCubemap::CaptureCubemapCommandHandler))
 	, ShowSettingsCommand(TEXT("vr.oculus.Debug.Show"),
 		*NSLOCTEXT("OculusRift", "CCommandText_Show",

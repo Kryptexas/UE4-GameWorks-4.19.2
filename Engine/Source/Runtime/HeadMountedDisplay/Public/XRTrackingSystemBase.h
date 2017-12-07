@@ -94,6 +94,16 @@ public:
 		return EHMDTrackingOrigin::Eye;
 	}
 
+	/**
+	 * Returns the system's latest known tracking-to-world transform.
+	 */
+	virtual FTransform GetTrackingToWorldTransform() const override;
+
+	/**
+	 * Refreshes the system's known tracking-to-world transform.
+	 */
+	virtual void UpdateTrackingToWorldTransform(const FTransform& TrackingToWorldOverride) override;
+
 protected:
 
 	/**
@@ -103,7 +113,18 @@ protected:
 	 */
 	virtual float GetWorldToMetersScale() const =0;
 
+	/**
+	 * Computes the project's tracking-to-world transform based off how the user 
+	 * has set up their camera system (assumes the camera is parented to the XR 
+	 * origin, and in turn uses that transform).
+	 *
+	 * Intended to be called from OnStartGameFrame()
+	 */
+	FTransform RefreshTrackingToWorldTransform(FWorldContext& WorldContext);
+	FTransform ComputeTrackingToWorldTransform(FWorldContext& WorldContext) const;
 	
 	TSharedPtr< class FDefaultXRCamera, ESPMode::ThreadSafe > XRCamera;
+
+	FTransform CachedTrackingToWorld;
 };
 

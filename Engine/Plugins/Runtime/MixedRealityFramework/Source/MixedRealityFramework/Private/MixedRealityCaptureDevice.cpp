@@ -303,12 +303,21 @@ TMap< UMediaPlayer*, TSharedPtr<FLatentPlayMRCaptureFeedAction> > FLatentPlayMRC
 TSharedRef<FLatentPlayMRCaptureFeedAction> FLatentPlayMRCaptureFeedAction::Create(UAsyncTask_OpenMRCaptureFeedBase* InOwner)
 {
 	UMediaPlayer* MediaPlayer = InOwner->MediaPlayer;
-	FreeAction(MediaPlayer);
 
-	TSharedRef<FLatentPlayMRCaptureFeedAction> NewAction = MakeShareable(new FLatentPlayMRCaptureFeedAction(InOwner));
-	ActiveAsyncActions.Add(MediaPlayer, NewAction);
+	TSharedPtr<FLatentPlayMRCaptureFeedAction> ExistingAction = FLatentPlayMRCaptureFeedAction::FindActiveAction(MediaPlayer);
+	if (ExistingAction.IsValid() && ExistingAction->GetOwner() == InOwner)
+	{
+		return ExistingAction.ToSharedRef();
+	}
+	else
+	{
+		FreeAction(MediaPlayer);
 
-	return NewAction;
+		TSharedRef<FLatentPlayMRCaptureFeedAction> NewAction = MakeShareable(new FLatentPlayMRCaptureFeedAction(InOwner));
+		ActiveAsyncActions.Add(MediaPlayer, NewAction);
+
+		return NewAction;
+	}
 }
 
 TSharedPtr<FLatentPlayMRCaptureFeedAction> FLatentPlayMRCaptureFeedAction::FindActiveAction(UMediaPlayer* MediaPlayer)
@@ -326,6 +335,8 @@ void FLatentPlayMRCaptureFeedAction::FreeAction(UMediaPlayer* MediaPlayer)
 	TSharedPtr<FLatentPlayMRCaptureFeedAction> ExistingAction = FLatentPlayMRCaptureFeedAction::FindActiveAction(MediaPlayer);
 	if (ExistingAction.IsValid())
 	{
+		MediaPlayer->OnMediaEvent().Remove(ExistingAction->OnMediaEventBinding);
+
 		ActiveAsyncActions.Remove(MediaPlayer);
 		ExistingAction->GetOwner()->CleanUp();
 	}
@@ -336,8 +347,11 @@ FLatentPlayMRCaptureFeedAction::FLatentPlayMRCaptureFeedAction(UAsyncTask_OpenMR
 {
 	UMediaPlayer* MediaPlayer = InOwner->MediaPlayer;
 
-	OnMediaEventBinding = MediaPlayer->OnMediaEvent().AddRaw(this, &FLatentPlayMRCaptureFeedAction::HandleMediaPlayerMediaEvent);
-	MediaPlayer->Play();
+	if (MediaPlayer)
+	{
+		OnMediaEventBinding = MediaPlayer->OnMediaEvent().AddRaw(this, &FLatentPlayMRCaptureFeedAction::HandleMediaPlayerMediaEvent);
+		MediaPlayer->Play();
+	}
 }
 
 FLatentPlayMRCaptureFeedAction::~FLatentPlayMRCaptureFeedAction()
@@ -369,7 +383,7 @@ void FLatentPlayMRCaptureFeedAction::Tick(float DeltaTime)
 
 			bFinished = true;
 		}
-		else if (!bFinished)
+		else if (!bFinished && MediaPlayer->IsPlaying())
 		{
 			bFinished = true;
 			for (UObject* BoundObj : Owner->OnFail.GetAllObjects())
@@ -398,6 +412,17 @@ void FLatentPlayMRCaptureFeedAction::HandleMediaPlayerMediaEvent(EMediaEvent Eve
 {
 	switch (Event)
 	{
+	case EMediaEvent::MediaOpened:
+		{
+			if (Owner && Owner->MediaPlayer)
+			{
+				// on Win7, the WMF backend has to tear down and reopen when selecting the desired track/format
+				// so here we ensure we kick the MediaPlayer back to playing (in case it is set to not play-on-open)
+				Owner->MediaPlayer->Play();
+			}
+		}
+		break;
+
 	case EMediaEvent::MediaOpenFailed:
 	case EMediaEvent::PlaybackEndReached:
 		{
@@ -472,10 +497,19 @@ void UAsyncTask_OpenMRCaptureFeedBase::Open(UMediaPlayer* Target, const FString&
 
 void UAsyncTask_OpenMRCaptureFeedBase::OnVideoFeedOpened(FString DeviceUrl)
 {
-	LatentPlayer = FLatentPlayMRCaptureFeedAction::Create(this);
-
 	FMRCaptureDeviceIndex OpenedFeedRef(MediaPlayer);
-	OnSuccess.Broadcast(OpenedFeedRef);
+	if (MediaPlayer)
+	{
+		LatentPlayer = FLatentPlayMRCaptureFeedAction::Create(this);
+		OnSuccess.Broadcast(OpenedFeedRef);
+
+		// cannot remove, as we're likely iterating over this list
+		//MediaPlayer->OnMediaOpened.RemoveDynamic(this, &UAsyncTask_OpenMRCaptureFeedBase::OnVideoFeedOpened);
+	}
+	else
+	{
+		OnFail.Broadcast(OpenedFeedRef);
+	}
 }
 
 void UAsyncTask_OpenMRCaptureFeedBase::OnVideoFeedOpenFailure(FString DeviceUrl)
@@ -528,6 +562,7 @@ void UAsyncTask_OpenMRCaptureFeedBase::CleanUp()
 		MediaPlayer = nullptr;
 	}
 	RemoveFromRoot();
+	SetReadyToDestroy();
 }
 
 /* UAsyncTask_OpenMRCaptureFeedBase

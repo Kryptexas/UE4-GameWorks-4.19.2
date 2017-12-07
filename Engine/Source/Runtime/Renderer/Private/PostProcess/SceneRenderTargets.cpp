@@ -13,6 +13,8 @@
 #include "RendererModule.h"
 #include "LightPropagationVolume.h"
 #include "ScenePrivate.h"
+#include "HdrCustomResolveShaders.h"
+#include "WideCustomResolveShaders.h"
 #include "ClearQuad.h"
 #include "RenderUtils.h"
 #include "PipelineStateCache.h"
@@ -71,7 +73,8 @@ static TAutoConsoleVariable<int32> CVarMSAACount(
 	TEXT("0: MSAA disabled (Temporal AA enabled)\n")
 	TEXT("1: MSAA disabled\n")
 	TEXT("2: Use 2x MSAA\n")
-	TEXT("4: Use 4x MSAA"),
+	TEXT("4: Use 4x MSAA")
+	TEXT("8: Use 8x MSAA"),
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
@@ -374,7 +377,7 @@ uint16 FSceneRenderTargets::GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type I
 		{
 			NumSamples = FMath::Max(1, CVarMSAACount.GetValueOnRenderThread());
 
-			if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+			if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4 && NumSamples != 8)
 			{
 				UE_LOG(LogRenderer, Warning, TEXT("Requested %d samples for MSAA, but this is not supported; falling back to 1 sample"), NumSamples);
 				NumSamples = 1;
@@ -1442,6 +1445,8 @@ void FSceneRenderTargets::ResolveDepthTexture(FRHICommandList& RHICmdList, const
 {
 	FResolveRect ResolveRect = ResolveParams.Rect;
 
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SourceTexture);
+
 	SetRenderTargets(RHICmdList, 0, nullptr, DestTexture, ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
 
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -1450,7 +1455,7 @@ void FSceneRenderTargets::ResolveDepthTexture(FRHICommandList& RHICmdList, const
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
 	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-		
+
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_Always>::GetRHI();
 
 	const uint32 SourceWidth = SourceTexture->GetSizeX();
@@ -1459,7 +1464,7 @@ void FSceneRenderTargets::ResolveDepthTexture(FRHICommandList& RHICmdList, const
 	const uint32 TargetWidth = DestTexture->GetSizeX();
 	const uint32 TargetHeight = DestTexture->GetSizeY();
 
-	RHICmdList.SetViewport(0.0f, 0.0f, 0.0f, TargetWidth, TargetHeight, 1.0f);	
+	RHICmdList.SetViewport(0.0f, 0.0f, 0.0f, TargetWidth, TargetHeight, 1.0f);
 
 	FResolveRect SourceRect = GetDefaultRect(ResolveParams.Rect, SourceWidth, SourceHeight);
 	FResolveRect DestRect = GetDefaultRect(ResolveParams.Rect, TargetWidth, TargetHeight);
@@ -1477,28 +1482,33 @@ void FSceneRenderTargets::ResolveDepthTexture(FRHICommandList& RHICmdList, const
 	// Set the vertex and pixel shader
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
-	
+
 	TShaderMapRef<FResolveDepthPS> ResolvePixelShaderAny(ShaderMap);
 	TShaderMapRef<FResolveDepth2XPS> ResolvePixelShader2X(ShaderMap);
 	TShaderMapRef<FResolveDepth4XPS> ResolvePixelShader4X(ShaderMap);
-		
+	TShaderMapRef<FResolveDepth8XPS> ResolvePixelShader8X(ShaderMap);
+
 	int32 TextureIndex = -1;
 	FPixelShaderRHIParamRef ResolvePixelShader;
 	switch (SourceTexture->GetNumSamples())
 	{
-		case 2:
-			TextureIndex = ResolvePixelShader2X->UnresolvedSurface.GetBaseIndex();
-			ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShader2X);			
-			break;
-		case 4:
-			TextureIndex = ResolvePixelShader4X->UnresolvedSurface.GetBaseIndex();
-			ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShader4X);			
-			break;
-		default:
-			ensureMsgf(false, TEXT("Unsupported depth resolve for samples: %i.  Dynamic loop method isn't supported on all platforms.  Please add specific case."), SourceTexture->GetNumSamples());
-			TextureIndex = ResolvePixelShaderAny->UnresolvedSurface.GetBaseIndex();
-			ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShaderAny);			
-			break;
+	case 2:
+		TextureIndex = ResolvePixelShader2X->UnresolvedSurface.GetBaseIndex();
+		ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShader2X);
+		break;
+	case 4:
+		TextureIndex = ResolvePixelShader4X->UnresolvedSurface.GetBaseIndex();
+		ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShader4X);
+		break;
+	case 8:
+		TextureIndex = ResolvePixelShader8X->UnresolvedSurface.GetBaseIndex();
+		ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShader8X);
+		break;
+	default:
+		ensureMsgf(false, TEXT("Unsupported depth resolve for samples: %i.  Dynamic loop method isn't supported on all platforms.  Please add specific case."), SourceTexture->GetNumSamples());
+		TextureIndex = ResolvePixelShaderAny->UnresolvedSurface.GetBaseIndex();
+		ResolvePixelShader = GETSAFERHISHADER_PIXEL(*ResolvePixelShaderAny);
+		break;
 	}
 
 	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
@@ -1507,8 +1517,8 @@ void FSceneRenderTargets::ResolveDepthTexture(FRHICommandList& RHICmdList, const
 	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
 	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-	RHICmdList.SetBlendFactor(FLinearColor::White);		
-		
+	RHICmdList.SetBlendFactor(FLinearColor::White);
+
 	// Set the source texture.	
 	if (SourceTexture)
 	{
@@ -1555,7 +1565,7 @@ void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList, 
 	const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[SceneContext.GetCurrentFeatureLevel()];
 	if ((CurrentNumSamples <= 1 || !RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform)) || !GAllowCustomMSAAResolves)
 	{
-	RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetSceneDepthTexture(), true, FResolveParams());
+		RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetSceneDepthTexture(), true, FResolveParams());
 	}
 	else
 	{

@@ -5,6 +5,8 @@
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/SoftObjectPath.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
 
 /* OculusAssetManager_Impl
  *****************************************************************************/
@@ -22,24 +24,24 @@ namespace OculusAssetManager_Impl
 	{
 		{ ovrpNode_Head,      FString(TEXT("/Engine/VREditor/Devices/Generic/GenericHMD.GenericHMD")) },
 #if PLATFORM_ANDROID
-		{ ovrpNode_HandLeft,  FString(TEXT("/OculusVR/GearVRController.GearVRController")) },
-		{ ovrpNode_HandRight, FString(TEXT("/OculusVR/GearVRController.GearVRController")) },
+		{ ovrpNode_HandLeft,  FString(TEXT("/OculusVR/Meshes/GearVRController.GearVRController")) },
+		{ ovrpNode_HandRight, FString(TEXT("/OculusVR/Meshes/GearVRController.GearVRController")) },
 #else 
-		{ ovrpNode_HandLeft,  FString(TEXT("/Engine/VREditor/Devices/Oculus/OculusControllerMesh.OculusControllerMesh")) },
-		{ ovrpNode_HandRight, FString(TEXT("/Engine/VREditor/Devices/Oculus/OculusControllerMesh.OculusControllerMesh")) },
+		{ ovrpNode_HandLeft,  FString(TEXT("/OculusVR/Meshes/LeftTouchController.LeftTouchController")) },
+		{ ovrpNode_HandRight, FString(TEXT("/OculusVR/Meshes/RightTouchController.RightTouchController")) },
 #endif
 	};
 
 	static uint32 RenderableDeviceCount = sizeof(RenderableDevices) / sizeof(RenderableDevices[0]);
 #endif // #if OCULUS_HMD_SUPPORTED_PLATFORMS
 
-	static UStaticMesh* FindDeviceMesh(const int32 DeviceID);
+	static UObject* FindDeviceMesh(const int32 DeviceID);
 };
 
 
-static UStaticMesh* OculusAssetManager_Impl::FindDeviceMesh(const int32 DeviceID)
+static UObject* OculusAssetManager_Impl::FindDeviceMesh(const int32 DeviceID)
 {
-	UStaticMesh* DeviceMesh = nullptr;
+	UObject* DeviceMesh = nullptr;
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 	const ovrpNode DeviceOVRNode = OculusHMD::ToOvrpNode(DeviceID);
 
@@ -50,7 +52,7 @@ static UStaticMesh* OculusAssetManager_Impl::FindDeviceMesh(const int32 DeviceID
 			const FRenderableDevice& RenderableDevice = RenderableDevices[DeviceIndex];
 			if (RenderableDevice.OVRNode == DeviceOVRNode)
 			{
-				DeviceMesh = Cast<UStaticMesh>(RenderableDevice.MeshAssetRef.TryLoad());
+				DeviceMesh = Cast<UObject>(RenderableDevice.MeshAssetRef.TryLoad());
 				break;
 			}
 		}
@@ -138,15 +140,25 @@ int32 FOculusAssetManager::GetDeviceId(EControllerHand ControllerHand)
 UPrimitiveComponent* FOculusAssetManager::CreateRenderComponent(const int32 DeviceId, AActor* Owner, EObjectFlags Flags)
 {
 	UPrimitiveComponent* NewRenderComponent = nullptr;
-	if (UStaticMesh* DeviceMesh = OculusAssetManager_Impl::FindDeviceMesh(DeviceId))
+	if (UObject* DeviceMesh = OculusAssetManager_Impl::FindDeviceMesh(DeviceId))
 	{
-		const FName ComponentName = MakeUniqueObjectName(Owner, UStaticMeshComponent::StaticClass(), *FString::Printf(TEXT("%s_Device%d"), TEXT("Oculus"), DeviceId));
-		UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(Owner, ComponentName, Flags);
+		if (UStaticMesh* AsStaticMesh = Cast<UStaticMesh>(DeviceMesh))
+		{
+			const FName ComponentName = MakeUniqueObjectName(Owner, UStaticMeshComponent::StaticClass(), *FString::Printf(TEXT("%s_Device%d"), TEXT("Oculus"), DeviceId));
+			UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(Owner, ComponentName, Flags);
 
-		MeshComponent->SetStaticMesh(DeviceMesh);
-		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			MeshComponent->SetStaticMesh(AsStaticMesh);
+			NewRenderComponent = MeshComponent;
+		}
+		else if (USkeletalMesh* AsSkeletalMesh = Cast<USkeletalMesh>(DeviceMesh))
+		{
+			const FName ComponentName = MakeUniqueObjectName(Owner, USkeletalMeshComponent::StaticClass(), *FString::Printf(TEXT("%s_Device%d"), TEXT("Oculus"), DeviceId));
+			USkeletalMeshComponent* SkelMeshComponent = NewObject<USkeletalMeshComponent>(Owner, ComponentName, Flags);
 
-		NewRenderComponent = MeshComponent;
+			SkelMeshComponent->SetSkeletalMesh(AsSkeletalMesh);
+			NewRenderComponent = SkelMeshComponent;
+		}
+		NewRenderComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	return NewRenderComponent;

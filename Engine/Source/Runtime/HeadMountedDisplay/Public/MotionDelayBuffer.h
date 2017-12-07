@@ -24,7 +24,7 @@ class HEADMOUNTEDDISPLAY_API FMotionDelayService
 {
 public:
 	static void SetEnabled(bool bEnable);
-	static bool RegisterDelayTarget(USceneComponent* MotionControlledComponent, const int32 PlayerIndex, const EControllerHand SourceId);
+	static bool RegisterDelayTarget(USceneComponent* MotionControlledComponent, const int32 PlayerIndex, const FName SourceId);
 	static void RegisterDelayClient(TSharedRef<FMotionDelayClient, ESPMode::ThreadSafe> DelayClient);
 };
 

@@ -12,7 +12,6 @@
 
 #include "GoogleARCoreDevice.h"
 #include "GoogleARCoreMotionManager.h"
-#include "ARHitTestingSupport.h"
 
 
 #define LOCTEXT_NAMESPACE "Tango"
@@ -56,7 +55,7 @@ IMPLEMENT_MODULE(FGoogleARCoreBaseModule, GoogleARCoreBase)
 
 TSharedPtr< class IXRTrackingSystem, ESPMode::ThreadSafe > FGoogleARCoreBaseModule::CreateTrackingSystem()
 {
-	TSharedPtr<FGoogleARCoreHMD, ESPMode::ThreadSafe> HMD(new FGoogleARCoreHMD());
+	auto HMD = NewARSystem<FGoogleARCoreHMD>();
 	return HMD;
 }
 

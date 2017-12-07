@@ -404,6 +404,7 @@ FGoogleVRHMD::FGoogleVRHMD(const FAutoRegister& AutoRegister)
 			"Gogle VR specific extension.\n"
 			"Enable or Disable Sustained Performance Mode").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::EnableSustainedPerformanceModeHandler))
+	, CVarSink(FConsoleCommandDelegate::CreateRaw(this, &FGoogleVRHMD::CVarSinkHandler))
 #endif
 	, TrackingOrigin(EHMDTrackingOrigin::Eye)
 	, bIs6DoFSupported(false)
@@ -755,6 +756,7 @@ FIntPoint FGoogleVRHMD::GetGVRMaxRenderTargetSize() const
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr_sizei MaxSize = gvr_get_maximum_effective_render_target_size(GVRAPI);
+	UE_LOG(LogHMD, Log, TEXT("GVR Recommended RenderTargetSize: %d x %d"), MaxSize.width, MaxSize.height);
 	return FIntPoint{ static_cast<int>(MaxSize.width), static_cast<int>(MaxSize.height) };
 #else
 	return FIntPoint{ 0, 0 };
@@ -787,9 +789,9 @@ FIntPoint FGoogleVRHMD::SetRenderTargetSizeToDefault()
 bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(float ScaleFactor, FIntPoint& OutRenderTargetSize)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	if (ScaleFactor < 0.1f || ScaleFactor > 2.0f)
+	if (ScaleFactor < 0.1f || ScaleFactor > 1.0f)
 	{
-    	ScaleFactor = FMath::Clamp(ScaleFactor, 0.1f, 2.0f);
+		ScaleFactor = FMath::Clamp(ScaleFactor, 0.1f, 1.0f);
 		UE_LOG(LogHMD, Warning, TEXT("Invalid RenderTexture Scale Factor. The valid value should be within [0.1, 1.0]. Clamping the value to %f"), ScaleFactor);
 	}
 
@@ -820,7 +822,7 @@ bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(int DesiredWidth, int DesiredHeight
 	}
 
 	const uint32 AdjustedDesiredWidth = (IsMobileMultiViewDirect()) ? DesiredWidth / 2 : DesiredWidth;
-	
+
 	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
 	const uint32 DividableBy = 4;
 
@@ -1304,13 +1306,13 @@ void FGoogleVRHMD::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& R
 			ReadbackTextureSizes[textureIndex] = renderSize;
 		}
 		ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount] = RHICmdList.CreateRenderQuery(ERenderQueryType::RQT_AbsoluteTime);
-		
+
 		// Absolute time query creation can fail on AMD hardware due to driver support
 		if (!ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount])
 		{
 			return;
 		}
-		
+
 		// copy and map the texture.
 		FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(ReadbackTextureSizes[textureIndex], PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
@@ -1327,16 +1329,16 @@ void FGoogleVRHMD::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& R
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
-		
+
 		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-		
+
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-		
+
 		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 
@@ -1364,7 +1366,7 @@ void FGoogleVRHMD::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& R
 
 		ReadbackTextureCount++;
 	}
-	
+
 	uint64 result = 0;
 	bool isTextureReadyForReadback = false;
 	while (SentTextureCount < ReadbackTextureCount && RHICmdList.GetRenderQueryResult(ReadbackCopyQueries[SentTextureCount % kReadbackTextureCount], result, false)) {
@@ -2000,6 +2002,20 @@ void FGoogleVRHMD::EnableSustainedPerformanceModeHandler(const TArray<FString>& 
 		SetSPMEnable(Enabled);
 	}
 }
+
+void FGoogleVRHMD::CVarSinkHandler()
+{
+	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+	static float PreviousValue = ScreenPercentageCVar->GetValueOnAnyThread();
+
+	float CurrentValue = ScreenPercentageCVar->GetValueOnAnyThread();
+	if (CurrentValue != PreviousValue)
+	{
+		FIntPoint ActualSize;
+		SetGVRHMDRenderTargetSize(CurrentValue / 100.f, ActualSize);
+		PreviousValue = CurrentValue;
+	}
+}
 #endif
 
 void FGoogleVRHMD::SetPixelDensity(const float NewDensity)
@@ -2201,6 +2217,8 @@ bool FGoogleVRHMD::OnStartGameFrame( FWorldContext& WorldContext )
 	// Update ViewportList from GVR API
 	UpdateGVRViewportList();
 
+	RefreshTrackingToWorldTransform(WorldContext);
+
 	// Enable scene present after OnStartGameFrame get called.
 	bForceStopPresentScene = false;
 	return false;
@@ -2230,7 +2248,7 @@ bool FGoogleVRHMD::GetSafetyCylinderInnerRadius(float* InnerRadius)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr::Value value_out = gvr::Value();
-	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS, &value_out))
+	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_ENTER_RADIUS, &value_out))
 	{
 		*InnerRadius = value_out.f;
 		return true;
@@ -2243,7 +2261,7 @@ bool FGoogleVRHMD::GetSafetyCylinderOuterRadius(float* OuterRadius)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr::Value value_out = gvr::Value();
-	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS, &value_out))
+	if (TryReadProperty(GVR_PROPERTY_SAFETY_CYLINDER_EXIT_RADIUS, &value_out))
 	{
 		*OuterRadius = value_out.f;
 		return true;

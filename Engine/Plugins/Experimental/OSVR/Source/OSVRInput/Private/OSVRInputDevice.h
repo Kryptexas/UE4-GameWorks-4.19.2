@@ -21,7 +21,7 @@
 #include "OSVRInputPrivate.h"
 #include "IForceFeedbackSystem.h"
 #include "IInputDevice.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "IOSVR.h"
 #include "OSVRTypes.h"
 
@@ -44,7 +44,7 @@ class OSVRButton;
 /**
 *
 */
-class FOSVRInputDevice : public IInputDevice, public IMotionController
+class FOSVRInputDevice : public IInputDevice, public FXRMotionControllerBase
 {
 public:
 	FOSVRInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler,

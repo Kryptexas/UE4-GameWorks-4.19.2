@@ -31,6 +31,7 @@ public class DetailCustomizations : ModuleRules
 				"SharedSettingsWidgets",
                 "ContentBrowser",
 				"BlueprintGraph",
+                "GraphEditor",
 				"AnimGraph",
                 "PropertyEditor",
                 "LevelEditor",

@@ -151,6 +151,13 @@ public:
 	void Initialize(IMFMediaSource* InMediaSource, const FString& Url);
 
 	/**
+	 * Reinitialize the track collection
+	 *
+	 * @see IsInitialized, Shutdown
+	 */
+	void ReInitialize();
+
+	/**
 	 * Whether this object has been initialized.
 	 *
 	 * @return true if initialized, false otherwise.
@@ -288,6 +295,9 @@ private:
 
 	/** Media information string. */
 	FString Info;
+
+	/** The initial media url. */
+	FString SourceUrl;
 
 	/** The currently opened media. */
 	TComPtr<IMFMediaSource> MediaSource;

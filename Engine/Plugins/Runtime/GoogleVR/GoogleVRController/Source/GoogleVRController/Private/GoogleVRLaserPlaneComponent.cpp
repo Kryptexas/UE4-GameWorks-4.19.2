@@ -8,17 +8,13 @@
 
 
 UGoogleVRLaserPlaneComponent::UGoogleVRLaserPlaneComponent()
-
 : LaserPlaneLengthParameterName("LaserLength")
 , LaserCorrectionParameterName("LaserCorrection")
 , CurrentLaserDistance(100.f)
 , LaserPlaneMaterial(nullptr)
 {
-
 	bAutoActivate = true;
-
 }
-
 
 void UGoogleVRLaserPlaneComponent::OnRegister()
 {

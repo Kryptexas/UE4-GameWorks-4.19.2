@@ -12,7 +12,7 @@ class HEADMOUNTEDDISPLAY_API IXRSystemIdentifier
 public:
 	/**
 	 * Returns a unique identifier that's supposed to represent the third party 
-	 * system that this object is part of (Vive, Oculus, PSVR, GearVR, etc.).
+	 * system that this object is part of (Vive, Oculus, PSVR, Gear VR, etc.).
 	 *
 	 * @return  A name unique to the system which this object belongs to.
 	 */
@@ -51,7 +51,7 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FXRDeviceId
+struct HEADMOUNTEDDISPLAY_API FXRDeviceId
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -65,7 +65,8 @@ public:
 	
 	bool IsSet() const 
 	{ 
-		// Since DeviceId's value is determined internally by the system, there's no way to identify an 'invalid'
+		// Since DeviceId's value is determined internally by the system, there's 
+		// no agreed upon 'invalid' DeviceId, so this is the best way to detect a potentially bad identifier
 		return !SystemName.IsNone(); 
 	}
 

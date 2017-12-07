@@ -600,6 +600,8 @@ namespace OculusHMD
 			return false;
 		}
 
+		RefreshTrackingToWorldTransform(InWorldContext);
+
 		// check if HMD is marked as invalid and needs to be killed.
 		ovrpBool appShouldRecreateDistortionWindow;
 
@@ -1268,8 +1270,8 @@ namespace OculusHMD
 			const float WidthDivider = Settings->Flags.bIsUsingDirectMultiview ? 1.0f : 2.0f;
 
 			OrthoProjection[eyeIndex] = FScaleMatrix(FVector(
-				WidthDivider / (float)RTWidth,
-				1.0f / (float)RTHeight,
+				WidthDivider / (float)Settings->RenderTargetSize.X,
+				1.0f / (float)Settings->RenderTargetSize.Y,
 				1.0f));
 
 			OrthoProjection[eyeIndex] *= FTranslationMatrix(FVector(
@@ -2935,6 +2937,13 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		return PerformanceStats;
 	}
 
+
+	void FOculusHMD::SetTiledMultiResLevel(ETiledMultiResLevel multiresLevel)
+	{
+		CheckInGameThread();
+		Settings->MultiResLevel = multiresLevel;
+	}
+
 	bool FOculusHMD::DoEnableStereo(bool bStereo)
 	{
 		CheckInGameThread();
@@ -3056,6 +3065,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		Result->WorldToMetersScale = CachedWorldToMetersScale;
 		Result->MonoCullingDistance = CachedMonoCullingDistance;
 		Result->NearClippingPlane = GNearClippingPlane;
+		Result->MultiResLevel = Settings->MultiResLevel;
 		return Result;
 	}
 
@@ -3217,6 +3227,9 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 					{
 //						UE_LOG(LogHMD, Log, TEXT("ovrp_BeginFrame4 %u"), Frame_RHIThread->FrameNumber);
 						ovrp_BeginFrame4(Frame_RHIThread->FrameNumber, CustomPresent->GetOvrpCommandQueue());
+#if PLATFORM_ANDROID
+						ovrp_SetTiledMultiResLevel((ovrpTiledMultiResLevel)Frame_RHIThread->MultiResLevel);
+#endif
 					}
 				}
 			});
@@ -3416,7 +3429,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 		float f;
 		FVector vec;
 
-		// Handling of old (deprecated) GearVR settings
+		// Handling of old (deprecated) Gear VR settings
 		// @TODO: Remove GearVR deprecation handling in 4.18+
 		{
 			const TCHAR* OldGearVRSettings = TEXT("GearVR.Settings");
@@ -3431,7 +3444,7 @@ void FOculusHMD::RenderPokeAHole(FRHICommandListImmediate& RHICmdList, FSceneVie
 			{
 				UE_LOG(LogHMD, Warning, TEXT("Removed config setting: 'bOverrideIPD' config variable has been removed completely. Now, only in non-shipping builds, if you set the 'IPD' config variable then the IPD will automatically be overridden."));
 			}
-			// other GearVR settings that have been removed entirely:
+			// other Gear VR settings that have been removed entirely:
 			//    "CpuLevel"
 			//    "GpuLevel"
 			//    "MinimumVsyncs"

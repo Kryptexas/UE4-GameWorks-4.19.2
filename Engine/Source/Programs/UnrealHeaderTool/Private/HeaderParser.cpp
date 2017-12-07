@@ -4536,8 +4536,25 @@ UProperty* FHeaderParser::GetVarNameAndDim
 				FError::Throwf(TEXT("Deprecated variables must end with _DEPRECATED"));
 			}
 
+			// We allow deprecated properties in blueprints that have getters and setters assigned as they may be part of a backwards compatibility path
+			const bool bBlueprintVisible = (VarProperty.PropertyFlags & CPF_BlueprintVisible) > 0;
+			const bool bWarnOnGetter = bBlueprintVisible && !VarProperty.MetaData.Contains(TEXT("BlueprintGetter"));
+			const bool bWarnOnSetter = bBlueprintVisible && !(VarProperty.PropertyFlags & CPF_BlueprintReadOnly) && !VarProperty.MetaData.Contains(TEXT("BlueprintSetter"));
+
+			if (bWarnOnGetter)
+			{
+				UE_LOG_WARNING_UHT(TEXT("%s: Deprecated property '%s' should not be marked as blueprint visible without having a BlueprintGetter"), HintText, *VarName);
+			}
+
+			if (bWarnOnSetter)
+			{
+				UE_LOG_WARNING_UHT(TEXT("%s: Deprecated property '%s' should not be marked as blueprint writeable without having a BlueprintSetter"), HintText, *VarName);
+			}
+
+
 			// Warn if a deprecated property is visible
-			if (VarProperty.PropertyFlags & (CPF_Edit | CPF_EditConst | CPF_BlueprintVisible | CPF_BlueprintReadOnly) && !(VarProperty.ImpliedPropertyFlags & CPF_BlueprintReadOnly))
+			if (VarProperty.PropertyFlags & (CPF_Edit | CPF_EditConst) || // Property is marked as editable
+				(!bBlueprintVisible && (VarProperty.PropertyFlags & CPF_BlueprintReadOnly) && !(VarProperty.ImpliedPropertyFlags & CPF_BlueprintReadOnly)) ) // Is BPRO, but not via Implied Flags and not caught by Getter/Setter path above
 			{
 				UE_LOG_WARNING_UHT(TEXT("%s: Deprecated property '%s' should not be marked as visible or editable"), HintText, *VarName);
 			}

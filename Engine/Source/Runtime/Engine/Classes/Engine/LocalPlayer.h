@@ -192,7 +192,7 @@ class ENGINE_API ULocalPlayer : public UPlayer
 
 private:
 	FSceneViewStateReference ViewState;
-	FSceneViewStateReference StereoViewState;
+	TArray<FSceneViewStateReference> StereoViewStates;
 	FSceneViewStateReference MonoViewState;
 
 	/** The controller ID which this player accepts input from. */

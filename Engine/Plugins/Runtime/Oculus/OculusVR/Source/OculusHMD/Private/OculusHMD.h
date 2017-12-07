@@ -152,6 +152,7 @@ public:
 	//virtual bool IsSpectatorScreenActive() const override;
 	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture, FVector2D WindowSize) const override;
 	virtual void GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const override;
+	//virtual void SetClippingPlanes(float NCP, float FCP) override;
 	virtual FRHICustomPresent* GetCustomPresent() override { return CustomPresent; }
 	virtual IStereoRenderTargetManager* GetRenderTargetManager() override { return this; }
 	virtual IStereoLayers* GetStereoLayers() override { return this; }
@@ -306,6 +307,7 @@ public:
 	void StartRHIFrame_RenderThread(); // Called from PreRenderViewFamily_RenderThread
 	void FinishRHIFrame_RHIThread(); // Called from FinishRendering_RHIThread
 
+	void SetTiledMultiResLevel(ETiledMultiResLevel multiresLevel);
 
 protected:
 	FConsoleCommands ConsoleCommands;

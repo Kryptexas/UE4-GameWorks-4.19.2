@@ -36,6 +36,9 @@ public:
 
 	bool IsSet(UMediaPlayer* MediaPlayer) const;
 	bool IsDeviceUrlValid() const;
+
+	bool operator==(const FMRCaptureDeviceIndex& Rhs) const;
+	bool operator!=(const FMRCaptureDeviceIndex& Rhs) const;
 };
 
 /**

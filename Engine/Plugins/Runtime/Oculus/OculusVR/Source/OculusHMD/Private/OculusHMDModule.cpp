@@ -63,7 +63,7 @@ bool FOculusHMDModule::PreInit()
 #if PLATFORM_ANDROID
 		if (!AndroidThunkCpp_IsGearVRApplication())
 		{
-			UE_LOG(LogHMD, Log, TEXT("App is not packaged for GearVR"));
+			UE_LOG(LogHMD, Log, TEXT("App is not packaged for Gear VR"));
 			return false;
 		}
 #endif

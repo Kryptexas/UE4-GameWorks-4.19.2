@@ -325,6 +325,9 @@ private:
 	void SplashScreenDistanceCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void SplashScreenRenderScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void EnableSustainedPerformanceModeHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+
+	/**	Clutch to ensure that changes in r.ScreenPercentage are reflected in render target size. */
+	void CVarSinkHandler();
 #endif
 public:
 
@@ -447,6 +450,7 @@ private:
 	FAutoConsoleCommand SplashScreenDistanceCommand;
 	FAutoConsoleCommand SplashScreenRenderScaleCommand;
 	FAutoConsoleCommand EnableSustainedPerformanceModeCommand;
+	FAutoConsoleVariableSink CVarSink;
 #endif
 
 	EHMDTrackingOrigin::Type TrackingOrigin;

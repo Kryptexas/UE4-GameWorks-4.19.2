@@ -52,6 +52,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "XRMotionControllerBase.h" // for FXRMotionControllerBase::Left/RightHandSourceId
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
@@ -272,12 +273,12 @@ void UVREditorMode::Enter()
 		// Motion controllers
 		{
 			LeftHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
-			LeftHandInteractor->SetControllerHandSide( EControllerHand::Left );
+			LeftHandInteractor->SetControllerHandSide( FXRMotionControllerBase::LeftHandSourceId );
 			LeftHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( LeftHandInteractor );
 
 			RightHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
-			RightHandInteractor->SetControllerHandSide( EControllerHand::Right );
+			RightHandInteractor->SetControllerHandSide( FXRMotionControllerBase::RightHandSourceId );
 			RightHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( RightHandInteractor );
 

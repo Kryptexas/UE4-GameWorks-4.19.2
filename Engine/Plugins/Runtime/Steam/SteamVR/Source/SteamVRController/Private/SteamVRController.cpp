@@ -4,7 +4,7 @@
 #include "ISteamVRPlugin.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "GenericPlatform/IInputInterface.h"
@@ -91,7 +91,7 @@ namespace SteamVRControllerKeys
 	const FKey SteamVR_Knuckles_Right_PinkyGrip("SteamVR_Knuckles_Right_PinkyGrip");
 }
 
-class FSteamVRController : public IInputDevice, public IMotionController, public IHapticDevice
+class FSteamVRController : public IInputDevice, public FXRMotionControllerBase, public IHapticDevice
 {
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	FSteamVRHMD* GetSteamVRHMD() const

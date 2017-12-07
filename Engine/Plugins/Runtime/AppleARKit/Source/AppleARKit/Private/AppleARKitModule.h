@@ -7,7 +7,6 @@
 #include "Features/IModularFeature.h"
 #include "AppleARKitSystem.h"
 #include "AppleARKitModule.h"
-#include "ARHitTestingSupport.h"
 
 class APPLEARKIT_API FAppleARKitModule : public IHeadMountedDisplayModule
 {

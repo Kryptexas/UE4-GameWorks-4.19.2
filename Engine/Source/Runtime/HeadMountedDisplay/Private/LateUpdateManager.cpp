@@ -76,7 +76,9 @@ void FLateUpdateManager::GatherLateUpdatePrimitives(USceneComponent* ParentCompo
 	ParentComponent->GetChildrenComponents(true, Components);
 	for(USceneComponent* Component : Components)
 	{
-		check(Component != nullptr);
-		CacheSceneInfo(Component);
+		if (Component != nullptr)
+		{
+			CacheSceneInfo(Component);
+		}
 	}
 }

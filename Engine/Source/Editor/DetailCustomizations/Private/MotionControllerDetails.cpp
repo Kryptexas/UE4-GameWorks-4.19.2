@@ -12,6 +12,7 @@
 #include "Widgets/Views/SListView.h"
 #include "IXRSystemAssets.h"
 #include "Features/IModularFeatures.h" // for GetModularFeatureImplementations()
+#include "MotionControllerSourceCustomization.h"
 
 #define LOCTEXT_NAMESPACE "MotionControllerDetails"
 
@@ -49,11 +50,27 @@ void FMotionControllerDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayo
 		{
 			CustomizeModelSourceRow(ModelSrcProperty, PropertyRow);
 		}
-		else if (RawProperty == CustomMeshProperty->GetProperty() || RawProperty == CustomMaterialsProperty->GetProperty())
+		else if (RawProperty == CustomMeshProperty->GetProperty())
 		{
 			CustomizeCustomMeshRow(PropertyRow);
 		}
 	}
+
+	MotionSourceProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, MotionSource));
+	MotionSourceProperty->MarkHiddenByCustomization();
+
+	IDetailCategoryBuilder& MotionSourcePropertyGroup = DetailLayout.EditCategory(*MotionSourceProperty->GetMetaData(TEXT("Category")));
+	MotionSourcePropertyGroup.AddCustomRow(LOCTEXT("MotionSourceLabel", "Motion Source"))
+	.NameContent()
+	[
+		MotionSourceProperty->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	[
+		SNew(SMotionSourceWidget)
+		.OnGetMotionSourceText(this, &FMotionControllerDetails::GetMotionSourceValueText)
+		.OnMotionSourceChanged(this, &FMotionControllerDetails::OnMotionSourceChanged)
+	];
 }
 
 void FMotionControllerDetails::RefreshXRSourceList()
@@ -317,6 +334,18 @@ bool FMotionControllerDetails::IsCustomMeshPropertyEnabled() const
 	}
 
 	return bDisplayModelChecked && (SourceSetting == UMotionControllerComponent::CustomModelSourceId);
+}
+
+void FMotionControllerDetails::OnMotionSourceChanged(FName NewMotionSource)
+{
+	MotionSourceProperty->SetValue(NewMotionSource);
+}
+
+FText FMotionControllerDetails::GetMotionSourceValueText() const
+{
+	FName MotionSource;
+	MotionSourceProperty->GetValue(MotionSource);
+	return FText::FromName(MotionSource);
 }
 
 #undef LOCTEXT_NAMESPACE

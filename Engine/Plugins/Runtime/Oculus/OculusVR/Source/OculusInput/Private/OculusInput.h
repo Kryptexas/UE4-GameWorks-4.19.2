@@ -5,7 +5,7 @@
 
 #if OCULUS_INPUT_SUPPORTED_PLATFORMS
 #include "IInputInterface.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "IHapticDevice.h"
 #include "OculusInputState.h"
 
@@ -29,7 +29,7 @@ namespace OculusInput
 // FOculusInput
 //-------------------------------------------------------------------------------------------------
 
-class FOculusInput : public IInputDevice, public IMotionController, public IHapticDevice
+class FOculusInput : public IInputDevice, public FXRMotionControllerBase, public IHapticDevice
 {
 
 public:

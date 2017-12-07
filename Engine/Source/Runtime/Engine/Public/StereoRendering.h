@@ -43,6 +43,59 @@ public:
 	virtual bool EnableStereo(bool stereo = true) = 0;
 
 	/**
+	* Returns the desired number of views, so that devices that require additional views can allocate them.
+	* Default is two viewports if using stereo rendering.
+	*/
+	virtual int32 GetDesiredNumberOfViews(bool bStereoRequested) const { return (bStereoRequested) ? 2 : 1; }
+
+	/**
+	* For the specified view index in the view family, assign a stereoscopic pass type based on the extension's usage
+	*/
+	virtual EStereoscopicPass GetViewPassForIndex(bool bStereoRequested, uint32 ViewIndex) const
+	{
+		if (!bStereoRequested)
+			return EStereoscopicPass::eSSP_FULL;
+		else if (ViewIndex == 0)
+			return EStereoscopicPass::eSSP_LEFT_EYE;
+		else if (ViewIndex == 1)
+			return EStereoscopicPass::eSSP_RIGHT_EYE;
+		else
+			return EStereoscopicPass::eSSP_MONOSCOPIC_EYE;
+	}
+	
+	/**
+	* Return true if this pass is for a stereo eye view
+	*/
+	virtual bool IsStereoEyePass(EStereoscopicPass Pass)
+	{
+		return !((Pass == EStereoscopicPass::eSSP_FULL) || (Pass == EStereoscopicPass::eSSP_MONOSCOPIC_EYE));
+	}
+	
+	/**
+	* Return true if this pass is for a view we do all the work for (ie this view can't borrow from another)
+	*/
+	static bool IsAPrimaryView(EStereoscopicPass Pass)
+	{
+		return Pass == eSSP_FULL || Pass == eSSP_LEFT_EYE || Pass == eSSP_MONOSCOPIC_EYE;
+	}
+	
+	/**
+	* Return true if this pass is for a view for which we share some work done for eSSP_LEFT_EYE (ie borrow some intermediate state from that eye)
+	*/
+	static bool IsASecondaryView(EStereoscopicPass Pass)
+	{
+		return !IsAPrimaryView(Pass);
+	}
+	
+	/**
+	* Return true for additional eyes past the first two (a plugin could implement additional 'eyes').
+	*/
+	static bool IsAnAdditionalView(EStereoscopicPass Pass)
+	{
+		return Pass > eSSP_MONOSCOPIC_EYE;
+	}
+
+	/**
 	 * Adjusts the viewport rectangle for stereo, based on which eye pass is being rendered.
 	 */
 	virtual void AdjustViewRect(enum EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const = 0;

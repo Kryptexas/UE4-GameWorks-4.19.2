@@ -46,16 +46,16 @@ public:
 			uint64 bHQBuffer : 1;
 
 			/** Rendering should be (could be) paused */
-			uint64	bPauseRendering : 1;
+			uint64				bPauseRendering : 1;
 
 			/** HQ Distortion */
-			uint64	bHQDistortion : 1;
+			uint64				bHQDistortion : 1;
 
 			/* plugin-allocated multiview buffer (GL_TEXTURE_2D_ARRAY) for mobile is required */
-			uint64	bDirectMultiview : 1; 
+			uint64				bDirectMultiview : 1;
 
 			/* eye buffer is currently a multiview buffer */
-			uint64	bIsUsingDirectMultiview : 1;
+			uint64				bIsUsingDirectMultiview : 1;
 
 			/** Send the depth buffer to the compositor */
 			uint64				bCompositeDepth : 1;
@@ -91,6 +91,8 @@ public:
 	ovrpSystemHeadset SystemHeadset;
 
 	float VsyncToNextVsync;
+
+	ETiledMultiResLevel MultiResLevel;
 
 public:
 	FSettings();

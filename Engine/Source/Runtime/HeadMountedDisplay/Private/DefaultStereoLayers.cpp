@@ -202,7 +202,7 @@ void FDefaultStereoLayers::PreRenderViewFamily_RenderThread(FRHICommandListImmed
 
 void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
-	if (InView.StereoPass != EStereoscopicPass::eSSP_LEFT_EYE && InView.StereoPass != EStereoscopicPass::eSSP_RIGHT_EYE)
+	if (!HMDDevice->IsStereoEyePass(InView.StereoPass))
 	{
 		return;
 	}

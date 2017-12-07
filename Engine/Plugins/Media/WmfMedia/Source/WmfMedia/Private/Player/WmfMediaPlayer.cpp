@@ -170,6 +170,16 @@ void FWmfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 	{
 		UE_LOG(LogWmfMedia, Verbose, TEXT("Player %p: Creating and setting new playback topology"), this);
 
+		// less than windows 10, seem to be a problem switching stream
+		if (!FWindowsPlatformMisc::VerifyWindowsVersion(10, 0) /* Anything < Windows 10.0 */)
+		{
+			const auto Settings = GetDefault<UWmfMediaSettings>();
+			check(Settings != nullptr);
+
+			Session->Initialize(Settings->LowLatency);
+			Tracks->ReInitialize();
+		}
+	
 		if (!Tracks->IsInitialized() || !Session->SetTopology(Tracks->CreateTopology(), Tracks->GetDuration()))
 		{
 			Session->Shutdown();

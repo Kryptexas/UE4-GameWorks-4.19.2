@@ -2,6 +2,10 @@
 
 #include "MixedRealityConfigurationSaveGame.h"
 
+UMixedRealityCalibrationData::UMixedRealityCalibrationData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{}
+
 UMixedRealityConfigurationSaveGame::UMixedRealityConfigurationSaveGame(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

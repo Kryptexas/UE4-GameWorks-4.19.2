@@ -24,18 +24,19 @@ void FDefaultXRCamera::ApplyHMDRotation(APlayerController* PC, FRotator& ViewRot
 	ViewRotation.Normalize();
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
+	if ( TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition) )
+	{
+		const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
+		DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
 
-	const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
-	DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
+		// Pitch from other sources is never good, because there is an absolute up and down that must be respected to avoid motion sickness.
+		// Same with roll.
+		DeltaControlRotation.Pitch = 0;
+		DeltaControlRotation.Roll = 0;
+		DeltaControlOrientation = DeltaControlRotation.Quaternion();
 
-	// Pitch from other sources is never good, because there is an absolute up and down that must be respected to avoid motion sickness.
-	// Same with roll.
-	DeltaControlRotation.Pitch = 0;
-	DeltaControlRotation.Roll = 0;
-	DeltaControlOrientation = DeltaControlRotation.Quaternion();
-
-	ViewRotation = FRotator(DeltaControlOrientation * DeviceOrientation);
+		ViewRotation = FRotator(DeltaControlOrientation * DeviceOrientation);
+	}
 }
 
 bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition)
@@ -100,23 +101,25 @@ void FDefaultXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHIC
 
 	// Disable late update for day dream, their compositor doesn't support it.
 	const bool bDoLateUpdate = (TrackingSystem->GetSystemName() != DayDreamHMD);
-
 	if (bDoLateUpdate)
 	{
 		FQuat DeviceOrientation;
 		FVector DevicePosition;
-		TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
-		const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
-		View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
 
-		if (bUseImplicitHMDPosition)
+		if (TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition))
 		{
-			const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
-			const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
-			View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
-		}
+			const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
+			View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
 
-		View.UpdateViewMatrix();
+			if (bUseImplicitHMDPosition)
+			{
+				const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
+				const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
+				View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
+			}
+		
+			View.UpdateViewMatrix();
+		}
 	}
 }
 
@@ -198,10 +201,12 @@ void FDefaultXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InV
 {
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
 
-	InView.BaseHmdOrientation = DeviceOrientation;
-	InView.BaseHmdLocation = DevicePosition;
+	if ( TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition) )
+	{
+		InView.BaseHmdOrientation = DeviceOrientation;
+		InView.BaseHmdLocation = DevicePosition;
+	}
 }
 
 bool FDefaultXRCamera::IsActiveThisFrame(class FViewport* InViewport) const

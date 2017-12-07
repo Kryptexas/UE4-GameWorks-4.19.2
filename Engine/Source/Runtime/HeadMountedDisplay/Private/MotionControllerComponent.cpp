@@ -14,6 +14,9 @@
 #include "IXRSystemAssets.h"
 #include "Components/StaticMeshComponent.h"
 #include "MotionDelayBuffer.h"
+#include "VRObjectVersion.h"
+#include "UObject/UObjectGlobals.h" // for FindObject<>
+#include "XRMotionControllerBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMotionControllerComponent, Log, All);
 
@@ -34,6 +37,23 @@ namespace {
 
 FName UMotionControllerComponent::CustomModelSourceId(TEXT("Custom"));
 
+namespace LegacyMotionSources
+{
+	static bool GetSourceNameForHand(EControllerHand InHand, FName& OutSourceName)
+	{
+		UEnum* HandEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EControllerHand"));
+		if (HandEnum)
+		{
+			FString ValueName = HandEnum->GetNameStringByValue((int64)InHand);
+			if (!ValueName.IsEmpty())
+			{
+				OutSourceName = *ValueName;
+				return true;
+			}			
+		}
+		return false;
+	}
+}
 //=============================================================================
 UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,7 +65,7 @@ UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer&
 	PrimaryComponentTick.bTickEvenWhenPaused = true;
 
 	PlayerIndex = 0;
-	Hand = EControllerHand::Left;
+	MotionSource = FXRMotionControllerBase::LeftHandSourceId;
 	bDisableLowLatencyUpdate = false;
 	bHasAuthority = false;
 	bAutoActivate = true;
@@ -169,7 +189,24 @@ void UMotionControllerComponent::SetCustomDisplayMesh(UStaticMesh* NewDisplayMes
 //=============================================================================
 void UMotionControllerComponent::SetTrackingSource(const EControllerHand NewSource)
 {
-	Hand = NewSource;
+	if (LegacyMotionSources::GetSourceNameForHand(NewSource, MotionSource))
+	{
+		FMotionDelayService::RegisterDelayTarget(this, PlayerIndex, MotionSource);
+	}
+}
+
+//=============================================================================
+EControllerHand UMotionControllerComponent::GetTrackingSource() const
+{
+	EControllerHand Hand = EControllerHand::Left;
+	FXRMotionControllerBase::GetHandEnumForSourceName(MotionSource, Hand);
+	return Hand;
+}
+
+//=============================================================================
+void UMotionControllerComponent::SetTrackingMotionSource(const FName NewSource)
+{
+	MotionSource = NewSource;
 	FMotionDelayService::RegisterDelayTarget(this, PlayerIndex, NewSource);
 }
 
@@ -177,24 +214,26 @@ void UMotionControllerComponent::SetTrackingSource(const EControllerHand NewSour
 void UMotionControllerComponent::SetAssociatedPlayerIndex(const int32 NewPlayer)
 {
 	PlayerIndex = NewPlayer;
-	FMotionDelayService::RegisterDelayTarget(this, NewPlayer, Hand);
+	FMotionDelayService::RegisterDelayTarget(this, NewPlayer, MotionSource);
+}
+
+void UMotionControllerComponent::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FVRObjectVersion::GUID);
+
+	Super::Serialize(Ar);
+
+	if (Ar.CustomVer(FVRObjectVersion::GUID) < FVRObjectVersion::UseFNameInsteadOfEControllerHandForMotionSource)
+	{
+		LegacyMotionSources::GetSourceNameForHand(Hand_DEPRECATED, MotionSource);
+	}
 }
 
 #if WITH_EDITOR
 //=============================================================================
 void UMotionControllerComponent::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if (PropertyAboutToChange != nullptr && 
-		PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, DisplayMeshMaterialOverrides) &&
-		DisplayComponent && 
-		DisplayModelSource == UMotionControllerComponent::CustomModelSourceId)
-	{
-		for (int32 MatIndex = 0; MatIndex < DisplayComponent->GetNumMaterials(); ++MatIndex)
-		{
-			DisplayComponent->SetMaterial(MatIndex, nullptr);
-		}
-	}
-
+	PreEditMaterialCount = DisplayMeshMaterialOverrides.Num();
 	Super::PreEditChange(PropertyAboutToChange);
 }
 
@@ -210,10 +249,13 @@ void UMotionControllerComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 	{
 		RefreshDisplayComponent(/*bForceDestroy =*/true);
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, CustomDisplayMesh) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, DisplayMeshMaterialOverrides))
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, DisplayMeshMaterialOverrides))
 	{
-		RefreshDisplayComponent();
+		RefreshDisplayComponent(/*bForceDestroy =*/DisplayMeshMaterialOverrides.Num() < PreEditMaterialCount);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UMotionControllerComponent, CustomDisplayMesh))
+	{
+		RefreshDisplayComponent(/*bForceDestroy =*/false);
 	}
 }
 #endif
@@ -240,7 +282,7 @@ void UMotionControllerComponent::InitializeComponent()
 	if (bIsGameInst)
 #endif
 	{
-		FMotionDelayService::RegisterDelayTarget(this, PlayerIndex, Hand);
+		FMotionDelayService::RegisterDelayTarget(this, PlayerIndex, MotionSource);
 	}
 }
 
@@ -304,15 +346,7 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 				{
 					if (CustomDisplayMesh)
 					{
-						MeshComponent->SetStaticMesh(CustomDisplayMesh);
-
-						int32 MatIndex = 0;
-						// @TODO: consider using these for the non-'Custom' path as well (override the XR backend's model materials)
-						for (UMaterialInterface* Material : DisplayMeshMaterialOverrides)
-						{
-							MeshComponent->SetMaterial(MatIndex, Material);
-							++MatIndex;
-						}						
+						MeshComponent->SetStaticMesh(CustomDisplayMesh);					
 					}
 					else
 					{
@@ -330,7 +364,12 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 						continue;
 					}
 
-					const int32 DeviceId = AssetSys->GetDeviceId(Hand);
+					EControllerHand ControllerHandIndex;
+					if (!FXRMotionControllerBase::GetHandEnumForSourceName(MotionSource, ControllerHandIndex))
+					{
+						break;
+					}
+					const int32 DeviceId = AssetSys->GetDeviceId(ControllerHandIndex);
 					if (DisplayComponent && DisplayDeviceId.IsOwnedBy(AssetSys) && DisplayDeviceId.DeviceId == DeviceId)
 					{
 						// assume that the current DisplayComponent is the same one we'd get back, so don't recreate it
@@ -350,7 +389,7 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 
 			if (NewDisplayComponent == nullptr)
 			{
-				UE_LOG(LogMotionControllerComponent, Warning, TEXT("Failed to create a display component for the MotionController - no render model found for this device type."));
+				UE_CLOG(!DisplayComponent, LogMotionControllerComponent, Warning, TEXT("Failed to create a display component for the MotionController - no render model found for this device type."));
 			}
 			else if (NewDisplayComponent != DisplayComponent)
 			{
@@ -366,6 +405,17 @@ void UMotionControllerComponent::RefreshDisplayComponent(const bool bForceDestro
 
 				DisplayComponent = NewDisplayComponent;
 			}
+
+			if (DisplayComponent)
+			{
+				for (int32 MatIndex = 0; MatIndex < DisplayMeshMaterialOverrides.Num(); ++MatIndex)
+				{
+					DisplayComponent->SetMaterial(MatIndex, DisplayMeshMaterialOverrides[MatIndex]);
+				}
+			}
+
+			DisplayComponent->SetHiddenInGame(bHiddenInGame);
+			DisplayComponent->SetVisibility(bVisible);
 		}
 		else if (DisplayComponent)
 		{
@@ -385,31 +435,23 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 		bHasAuthority = MyPawn ? MyPawn->IsLocallyControlled() : (MyOwner->Role == ENetRole::ROLE_Authority);
 	}
 
-	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)
+	if(bHasAuthority)
 	{
-		TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
-		for( auto MotionController : MotionControllers )
+		TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
+		for (auto MotionController : MotionControllers)
 		{
 			if (MotionController == nullptr)
 			{
 				continue;
 			}
 
-			EControllerHand QueryHand = (Hand == EControllerHand::AnyHand) ? EControllerHand::Left : Hand;
-			CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, QueryHand);
-			if (MotionController->GetControllerOrientationAndPosition(PlayerIndex, QueryHand, Orientation, Position, WorldToMetersScale))
+			CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, MotionSource);
+			if (MotionController->GetControllerOrientationAndPosition(PlayerIndex, MotionSource, Orientation, Position, WorldToMetersScale))
 			{
+				InUseMotionController = MotionController;
+				OnMotionControllerUpdated();
+				InUseMotionController = nullptr;
 				return true;
-			}
-			
-			// If we've made it here, we need to see if there's a right hand controller that reports back the position
-			if (Hand == EControllerHand::AnyHand)
-			{
-				CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, EControllerHand::Right);
-				if (MotionController->GetControllerOrientationAndPosition(PlayerIndex, EControllerHand::Right, Orientation, Position, WorldToMetersScale))
-				{
-					return true;
-				}
 			}
 		}
 	}
@@ -497,4 +539,14 @@ bool UMotionControllerComponent::FViewExtension::IsActiveThisFrame(class FViewpo
 {
 	check(IsInGameThread());
 	return MotionControllerComponent && !MotionControllerComponent->bDisableLowLatencyUpdate && CVarEnableMotionControllerLateUpdate.GetValueOnGameThread();
+}
+
+float UMotionControllerComponent::GetParameterValue(FName InName, bool& bValueFound)
+{
+	if (InUseMotionController)
+	{
+		return InUseMotionController->GetCustomParameterValue(MotionSource, InName, bValueFound);
+	}
+	bValueFound = false;
+	return 0.f;
 }

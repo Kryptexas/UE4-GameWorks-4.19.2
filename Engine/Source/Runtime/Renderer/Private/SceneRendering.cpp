@@ -1129,14 +1129,13 @@ void FViewInfo::SetupUniformBufferParameters(
 	ViewUniformShaderParameters.StateFrameIndexMod8 = StateFrameIndexMod8;
 
 	{
-		// If rendering in stereo, the right eye uses the left eye's translucency lighting volume.
+		// If rendering in stereo, the other stereo passes uses the left eye's translucency lighting volume.
 		const FViewInfo* PrimaryView = this;
-		if (StereoPass == eSSP_RIGHT_EYE)
+		if (IStereoRendering::IsASecondaryView(StereoPass))
 		{
-			int32 ViewIndex = Family->Views.Find(this);
-			if (Family->Views.IsValidIndex(ViewIndex) && Family->Views.IsValidIndex(ViewIndex - 1))
+			if (Family->Views.IsValidIndex(0))
 			{
-				const FSceneView* LeftEyeView = Family->Views[ViewIndex - 1];
+				const FSceneView* LeftEyeView = Family->Views[0];
 				if (LeftEyeView->bIsViewInfo && LeftEyeView->StereoPass == eSSP_LEFT_EYE)
 				{
 					PrimaryView = static_cast<const FViewInfo*>(LeftEyeView);
@@ -1292,7 +1291,7 @@ void FViewInfo::SetupUniformBufferParameters(
 	extern FVector GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight();
 	ViewUniformShaderParameters.ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight = GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight();
 
-	ViewUniformShaderParameters.StereoPassIndex = (StereoPass != eSSP_RIGHT_EYE) ? 0 : 1;
+	ViewUniformShaderParameters.StereoPassIndex = (StereoPass <= eSSP_LEFT_EYE) ? 0 : (StereoPass == eSSP_RIGHT_EYE) ? 1 : StereoPass - eSSP_MONOSCOPIC_EYE + 1;
 }
 
 void FViewInfo::InitRHIResources()
@@ -1400,13 +1399,13 @@ FSceneViewState* FViewInfo::GetEffectiveViewState() const
 	FSceneViewState* EffectiveViewState = ViewState;
 
 	// When rendering in stereo we want to use the same exposure for both eyes.
-	if (StereoPass == eSSP_RIGHT_EYE)
+	if (IStereoRendering::IsASecondaryView(StereoPass))
 	{
 		int32 ViewIndex = Family->Views.Find(this);
 		if (Family->Views.IsValidIndex(ViewIndex))
 		{
-			// The left eye is always added before the right eye.
-			ViewIndex = ViewIndex - 1;
+			// The left eye is always added before other eye views.
+			ViewIndex = 0;
 			if (Family->Views.IsValidIndex(ViewIndex))
 			{
 				const FSceneView* PrimaryView = Family->Views[ViewIndex];
@@ -1985,7 +1984,10 @@ void FSceneRenderer::ComputeFamilySize()
 		MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
 		MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
 
-		InstancedStereoWidth = FPlatformMath::Max(InstancedStereoWidth, static_cast<uint32>(View.ViewRect.Max.X));
+		if (!IStereoRendering::IsAnAdditionalView(View.StereoPass))
+		{
+			InstancedStereoWidth = FPlatformMath::Max(InstancedStereoWidth, static_cast<uint32>(View.ViewRect.Max.X));
+		}
 	}
 
 	// We render to the actual position of the viewports so with black borders we need the max.
@@ -3257,8 +3259,12 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 	{
 		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 	}
-	else 
+	else
 	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneColorSurface());
+
+		FTexture2DRHIRef FMaskTexture = GDynamicRHI->RHIGetFMaskTexture(SceneContext.GetSceneColorSurface());
+
 		// Custom shader based color resolve for HDR color to emulate mobile.
 		SetRenderTarget(RHICmdList, SceneContext.GetSceneColorTexture(), FTextureRHIParamRef());
 		
@@ -3287,60 +3293,91 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 
 			if (ResolveWidth != 0)
 			{
-				ResolveFilterWide(RHICmdList, GraphicsPSOInit, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
+				ResolveFilterWide(RHICmdList, GraphicsPSOInit, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FMaskTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
 			}
 			else
 			{
 				auto ShaderMap = GetGlobalShaderMap(SceneContext.GetCurrentFeatureLevel());
 				TShaderMapRef<FHdrCustomResolveVS> VertexShader(ShaderMap);
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-				if (CurrentNumSamples == 2)
+				if (FMaskTexture.IsValid())
 				{
-					TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+					if (CurrentNumSamples == 2)
+					{
+						TShaderMapRef<FHdrCustomResolveFMask2xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 
-					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
-					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
-				}
-				else if (CurrentNumSamples == 4)
-				{
-					TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FMaskTexture);
+					}
+					else if (CurrentNumSamples == 4)
+					{
+						TShaderMapRef<FHdrCustomResolveFMask4xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 
-					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
-					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
-				}
-				else if (CurrentNumSamples == 8)
-				{
-					TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FMaskTexture);
+					}
+					else if (CurrentNumSamples == 8)
+					{
+						TShaderMapRef<FHdrCustomResolveFMask8xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 
-					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
-					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FMaskTexture);
+					}
+					else
+					{
+						// Everything other than 2,4,8 samples is not implemented.
+						check(0);
+						break;
+					}
 				}
 				else
 				{
-					// Everything other than 2,4,8 samples is not implemented.
-					check(0);
+					if (CurrentNumSamples == 2)
+					{
+						TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					}
+					else if (CurrentNumSamples == 4)
+					{
+						TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					}
+					else if (CurrentNumSamples == 8)
+					{
+						TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					}
+					else
+					{
+						// Everything other than 2,4,8 samples is not implemented.
+						check(0);
+						break;
+					}
 				}
+
+				RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
 			}
 		}
 
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	}
 }
+
 FTextureRHIParamRef FSceneRenderer::GetMultiViewSceneColor(const FSceneRenderTargets& SceneContext) const
 {
 	const FViewInfo& View = Views[0];

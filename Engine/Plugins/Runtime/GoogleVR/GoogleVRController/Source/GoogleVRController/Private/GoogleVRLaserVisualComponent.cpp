@@ -25,9 +25,9 @@ UGoogleVRLaserVisualComponent::UGoogleVRLaserVisualComponent()
 : LaserPlaneMesh(nullptr)
 , ControllerReticleMaterial(nullptr)
 , TranslucentSortPriority(1)
+, DefaultReticleDistance(2.5f)
+, MaxPointerDistance(20.0f)
 , LaserDistanceMax(0.75f)
-, ReticleDistanceMin(0.45f)
-, ReticleDistanceMax(2.5f)
 , ReticleSize(0.05f)
 , LaserPlaneComponent(nullptr)
 , ReticleBillboardComponent(nullptr)
@@ -97,21 +97,22 @@ UMaterialInstanceDynamic* UGoogleVRLaserVisualComponent::GetLaserMaterial() cons
 
 void UGoogleVRLaserVisualComponent::SetPointerDistance(float Distance, float WorldToMetersScale, FVector CameraLocation)
 {
-	UpdateLaserDistance(Distance);
+	UpdateLaserDistance(Distance, WorldToMetersScale);
 	UpdateReticleDistance(Distance, WorldToMetersScale, CameraLocation);
 }
 
-void UGoogleVRLaserVisualComponent::UpdateLaserDistance(float Distance)
+void UGoogleVRLaserVisualComponent::UpdateLaserDistance(float Distance, float WorldToMetersScale)
 {
 	if (GetLaser() != nullptr)
 	{
-		GetLaser()->UpdateLaserDistance(Distance);
+		float LaserClampedDistance = FMath::Clamp(Distance, 0.0f, LaserDistanceMax * WorldToMetersScale);
+		GetLaser()->UpdateLaserDistance(LaserClampedDistance);
 	}
 }
 
 void UGoogleVRLaserVisualComponent::SetDefaultLaserDistance(float WorldToMetersScale)
 {
-	UpdateLaserDistance(LaserDistanceMax * WorldToMetersScale);
+	UpdateLaserDistance(LaserDistanceMax * WorldToMetersScale, WorldToMetersScale);
 }
 
 void UGoogleVRLaserVisualComponent::UpdateLaserCorrection(FVector Correction)
@@ -124,20 +125,20 @@ void UGoogleVRLaserVisualComponent::UpdateLaserCorrection(FVector Correction)
 
 void UGoogleVRLaserVisualComponent::SetDefaultReticleDistance(float WorldToMetersScale, FVector CameraLocation)
 {
-	UpdateReticleDistance(ReticleDistanceMax * WorldToMetersScale, WorldToMetersScale, CameraLocation);
+	UpdateReticleDistance(DefaultReticleDistance * WorldToMetersScale, WorldToMetersScale, CameraLocation);
+}
+
+float UGoogleVRLaserVisualComponent::GetDefaultReticleDistance(float WorldToMetersScale)
+{
+	return DefaultReticleDistance * WorldToMetersScale;
 }
 
 void UGoogleVRLaserVisualComponent::UpdateReticleDistance(float Distance, float WorldToMetersScale, FVector CameraLocation)
 {
 	if (GetReticle() != nullptr)
 	{
-		float ClampedDistance = FMath::Clamp(Distance,
-			ReticleDistanceMin * WorldToMetersScale,
-			ReticleDistanceMax * WorldToMetersScale);
-
-		GetReticle()->SetRelativeLocation(FVector(ClampedDistance, 0.0f, 0.0f));
+		GetReticle()->SetRelativeLocation(FVector(Distance, 0.0f, 0.0f));
 	}
-
 	UpdateReticleSize(CameraLocation);
 }
 
@@ -146,13 +147,9 @@ void UGoogleVRLaserVisualComponent::UpdateReticleLocation(FVector Location, FVec
 	if (GetReticle() != nullptr)
 	{
 		FVector Difference = Location - OriginLocation;
-		FVector ClampedDifference = Difference.GetClampedToSize(ReticleDistanceMin * WorldToMetersScale,
-			ReticleDistanceMax * WorldToMetersScale);
-		Location = OriginLocation + ClampedDifference;
-
+		Location = OriginLocation + Difference * ReticleClippingOffsetFactor;
 		GetReticle()->SetWorldLocation(Location);
 	}
-
 	UpdateReticleSize(CameraLocation);
 }
 
@@ -175,7 +172,7 @@ void UGoogleVRLaserVisualComponent::UpdateReticleSize(FVector CameraLocation)
 
 float UGoogleVRLaserVisualComponent::GetMaxPointerDistance(float WorldToMetersScale) const
 {
-	return ReticleDistanceMax * WorldToMetersScale;
+	return MaxPointerDistance * WorldToMetersScale;
 }
 
 float UGoogleVRLaserVisualComponent::GetReticleSize()
@@ -190,6 +187,15 @@ FMaterialSpriteElement* UGoogleVRLaserVisualComponent::GetReticleSprite() const
 		return &(GetReticle()->Elements[0]);
 	}
 	return nullptr;
+}
+
+FVector UGoogleVRLaserVisualComponent::GetReticleLocation()
+{
+	if (GetReticle() != nullptr)
+	{
+		return GetReticle()->GetComponentLocation();
+	}
+	return FVector::ZeroVector;
 }
 
 void UGoogleVRLaserVisualComponent::SetSubComponentsEnabled(bool bNewEnabled)

@@ -153,6 +153,13 @@ void FGoogleVRSplash::Tick(float DeltaTime)
 {
 	check(IsInRenderingThread());
 
+	if (!bSplashScreenRendered)
+	{
+		RenderStereoSplashScreen(FRHICommandListExecutor::GetImmediateCommandList(), GVRCustomPresent->TextureSet->GetTexture2D());
+		bSplashScreenRendered = true;
+	}
+
+	/*
 	GVRHMD->UpdatePoses();
 	FRotator CurrentHeadOrientation = FRotator(GVRHMD->CachedFinalHeadRotation);
 	// Use the user defined angle to hide the splash screen.
@@ -171,6 +178,7 @@ void FGoogleVRSplash::Tick(float DeltaTime)
 		SubmitBlackFrame();
 		bSplashScreenRendered = false;
 	}
+	*/
 }
 
 bool FGoogleVRSplash::IsTickable() const

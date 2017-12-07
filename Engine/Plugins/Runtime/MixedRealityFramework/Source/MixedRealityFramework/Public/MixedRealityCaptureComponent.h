@@ -7,6 +7,7 @@
 #include "Math/Color.h" // for FLinearColor
 #include "MixedRealityCaptureDevice.h"
 #include "Delegates/Delegate.h"
+#include "Templates/SubclassOf.h"
 #include "MixedRealityCaptureComponent.generated.h"
 
 class UMediaPlayer;
@@ -20,6 +21,7 @@ class USceneCaptureComponent2D;
 class UMixedRealityGarbageMatteCaptureComponent;
 class UTextureRenderTarget2D;
 class FMRLatencyViewExtension;
+class UMixedRealityCalibrationData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMixedReality, Log, All);
 
@@ -91,10 +93,7 @@ public:
 	FMRCaptureDeviceIndex CaptureFeedRef;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tracking)
-	bool bAutoTracking;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tracking, meta=(editcondition="bAutoTracking"))
-	EControllerHand TrackingDevice;
+	FName TrackingSourceName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
 	UTextureRenderTarget2D* GarbageMatteCaptureTextureTarget;
@@ -115,6 +114,8 @@ public:
 	//~ UActorComponent interface
 
 	virtual void OnRegister() override;
+	virtual void Activate(bool bReset = false) override;
+	virtual void Deactivate() override;
 	virtual void InitializeComponent() override;
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
@@ -149,6 +150,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "MixedReality|Calibration")
 	bool LoadConfiguration(const FString& SlotName, int32 UserIndex);
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "MixedReality|Calibration")
+	UMixedRealityCalibrationData* ConstructCalibrationData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "MixedReality|Calibration")
+	void FillOutCalibrationData(UMixedRealityCalibrationData* Dst) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "MixedReality|Calibration")
+	void ApplyCalibrationData(UMixedRealityCalibrationData* ConfigData);
+
 	/**
 	* Set an external garbage matte actor to be used instead of the mixed reality component's
 	* normal configuration save game based actor.  This is used during garbage matte setup to
@@ -174,9 +184,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "MixedReality|Calibration")
 	void SetUnmaskedPixelHighlightColor(const FLinearColor& NewColor);
 
-	UFUNCTION(BlueprintCallable, Category = "MixedReality|Calibration")
-	bool IsCalibrated() const { return bCalibrated; }
-
 	UFUNCTION(BlueprintSetter)
 	void SetVidProjectionMat(UMaterialInterface* NewMaterial);
 
@@ -184,7 +191,7 @@ public:
 	void SetChromaSettings(const FChromaKeyParams& NewChromaSettings);
 
 	UFUNCTION(BlueprintCallable, Category = "MixedReality|Tracking")
-	void SetDeviceAttachment(EControllerHand DeviceId);
+	void SetDeviceAttachment(FName SourceName);
 
 	UFUNCTION(BlueprintCallable, Category = "MixedReality|Tracking")
 	void DetatchFromDevice();
@@ -230,7 +237,6 @@ private:
 	UPROPERTY(Transient)
 	UStaticMeshComponent* ProxyMeshComponent;
 #endif
-	bool bCalibrated = false;
 
 	UPROPERTY(Transient)
 	UChildActorComponent* ProjectionActor;

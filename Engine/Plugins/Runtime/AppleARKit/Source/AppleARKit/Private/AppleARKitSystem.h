@@ -4,8 +4,7 @@
 
 #include "XRTrackingSystemBase.h"
 #include "AppleARKitConfiguration.h"
-#include "ARHitTestingSupport.h"
-#include "ARTrackingQuality.h"
+#include "ARSystem.h"
 #include "AppleARKitHitTestResult.h"
 #include "Kismet/BlueprintPlatformLibrary.h"
 
@@ -15,23 +14,24 @@
 #include "AppleARKitSessionDelegate.h"
 #endif // ARKIT_SUPPORT
 
+
+DECLARE_STATS_GROUP(TEXT("AppleARKit"), STATGROUP_APPLEARKIT, STATCAT_Advanced);
+
 //
 //  FAppleARKitSystem
 //
 
 struct FAppleARKitFrame;
+struct FAppleARKitAnchorData;
 
-class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupport, public IARTrackingQuality, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
+class FAppleARKitSystem : public FARSystemBase, public FGCObject
 {
 	friend class FAppleARKitXRCamera;
 	
+	
 public:
 	FAppleARKitSystem();
-	void Initialize();
 	~FAppleARKitSystem();
-	
-	/** Thread safe anchor map getter */
-	TMap< FGuid, UAppleARKitAnchor* > GetAnchors() const;
 	
 	//~ IXRTrackingSystem
 	FName GetSystemName() const override;
@@ -43,19 +43,24 @@ public:
 	TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> GetXRCamera(int32 DeviceId) override;
 	float GetWorldToMetersScale() const override;
 	void OnBeginRendering_GameThread() override;
-
+	bool OnStartGameFrame(FWorldContext& WorldContext) override;
 	//~ IXRTrackingSystem
-	
-	//~ IARHitTestingSupport
-	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
-	//~ IARHitTestingSupport
-	
-	//~ IARTrackingQuality
-	virtual EARTrackingQuality ARGetTrackingQuality() const;
-	//~ IARTrackingQuality
 	
 	// @todo arkit : this is for the blueprint library only; try to get rid of this method
 	bool GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const;
+private:
+	//~ FGCObject
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
+	//~ FGCObject
+protected:
+	//~IARSystemSupport
+	virtual void OnARSystemInitialized() override;
+	virtual EARTrackingQuality OnGetTrackingQuality() const override;
+	virtual bool OnStartAR() override;
+	virtual void OnStopAR() override;
+	virtual TArray<FARTraceResult> OnLineTraceTrackedObjects( const FVector2D ScreenCoord ) override;
+	virtual TArray<UARTrackedGeometry*> OnGetAllTrackedGeometries() const override;
+	//~IARSystemSupport
 
 private:
 	void Run();
@@ -73,6 +78,10 @@ public:
 	void SessionDidAddAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidUpdateAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
+private:
+	void SessionDidAddAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData );
+	void SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData );
+	void SessionDidRemoveAnchors_Internal( FGuid AnchorGuid );
 #endif // ARKIT_SUPPORT
 
 	
@@ -116,11 +125,8 @@ private:
 	CVMetalTextureCacheRef MetalTextureCache = nullptr;
 	
 #endif // ARKIT_SUPPORT
-	
-	// Internal list of current known anchors
-	mutable FCriticalSection AnchorsLock;
-	UPROPERTY( Transient )
-	TMap< FGuid, UAppleARKitAnchor* > Anchors;
+
+	TMap< FGuid, UARTrackedGeometry* > TrackedGeometries;
 	
 	
 	// The frame number when LastReceivedFrame was last updated

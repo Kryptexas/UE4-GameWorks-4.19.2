@@ -157,6 +157,19 @@ public:
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() = 0;
 
 	/**
+	 * Returns the system's latest known tracking-to-world transform.
+	 * Useful for translating poses from GetCurrentPose() into unreal world space.
+	 */
+	virtual FTransform GetTrackingToWorldTransform() const = 0;
+
+	/**
+	 * Refreshes the system's known tracking-to-world transform.
+	 * Helpful for clients if they change the world's representation of the XR origin, or if they want to override the system calculated 
+	 * transform - calling this will update the known transform returned by GetTrackingToWorldTransform().
+	 */
+	virtual void UpdateTrackingToWorldTransform(const FTransform& TrackingToWorldOverride) = 0;
+
+	/**
 	 * Get the offset, in device space, of the reported device (screen / eye) position to the center of the head.
 	 *
 	 * @return a vector containing the offset coordinates, ZeroVector if not supported.
@@ -289,5 +302,4 @@ public:
 	 * Called just after the late update on the render thread passing back the current relative transform.
 	 */
 	virtual void OnLateUpdateApplied_RenderThread(const FTransform& NewRelativeTransform) {}
-
 };

@@ -101,7 +101,7 @@ FRotator UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerOrientation()
 	{
 		FRotator orientation;
 		FVector position;
-		GVRController->GetControllerOrientationAndPosition(0, EControllerHand::Right, orientation, position, GVRController->GetWorldToMetersScale());
+		GVRController->GetControllerOrientationAndPosition(0, EControllerHand::AnyHand, orientation, position, GVRController->GetWorldToMetersScale());
 		return orientation;
 	}
 	return FRotator::ZeroRotator;

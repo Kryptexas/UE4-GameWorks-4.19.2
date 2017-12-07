@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizations.h"
+#include "SharedPointer.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "StaticMeshComponentDetails.h"
@@ -125,6 +126,7 @@
 #include "MaterialAttributePropertyDetails.h"
 #include "CollectionReferenceStructCustomization.h"
 #include "MotionControllerDetails.h"
+#include "MotionControllerPinFactory.h"
 
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
 
@@ -135,6 +137,9 @@ void FDetailCustomizationsModule::StartupModule()
 	
 	RegisterPropertyTypeCustomizations();
 	RegisterObjectCustomizations();
+
+	TSharedPtr<FMotionControllerPinFactory> MotionControllerPinFactory = MakeShareable(new FMotionControllerPinFactory());
+	FEdGraphUtilities::RegisterVisualPinFactory(MotionControllerPinFactory);
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }

@@ -3,6 +3,7 @@
 #include "Classes/SteamVRFunctionLibrary.h"
 #include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
+#include "XRMotionControllerBase.h"
 
 USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -94,7 +95,7 @@ bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerInde
 	if (SteamMotionController)
 	{
 		// Note: the steam motion controller ignores the WorldToMeters scale argument.
-		RetVal = SteamMotionController->GetControllerOrientationAndPosition(ControllerIndex, Hand, OutOrientation, OutPosition, -1.0f);
+		RetVal = static_cast<FXRMotionControllerBase*>(SteamMotionController)->GetControllerOrientationAndPosition(ControllerIndex, Hand, OutOrientation, OutPosition, -1.0f);
 	}
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 

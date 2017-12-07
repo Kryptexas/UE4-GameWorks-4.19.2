@@ -1,6 +1,5 @@
 // Copyright 2017 Google Inc.
 
-
 #include "GoogleVRPointerInputComponent.h"
 #include "GoogleVRController.h"
 #include "GoogleVRActorPointerResponder.h"
@@ -14,8 +13,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRPointerInput, Log, All);
 
 UGoogleVRPointerInputComponent::UGoogleVRPointerInputComponent(const FObjectInitializer& ObjectInitializer)
-: PointerInputMode(EGoogleVRPointerInputMode::Camera)
-, FarClippingDistance(1000.0f)
+: FarClippingDistance(1000.0f)
 , NearClippingDistance(30.0f)
 , UseControllerClick(true)
 , UseTouchClick(false)
@@ -124,12 +122,8 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 
 	if (Pointer->IsPointerActive())
 	{
-		// Determine the pointer start and end locations.
-		FVector PointerStart, PointerEnd;
-		GetPointerStartAndEnd(PointerStart, PointerEnd);
-
 		// Determine what the pointer is currently hitting
-		LatestHitResult = PerformHitDetection(PointerStart, PointerEnd);
+		LatestHitResult = PerformHitDetection();
 	}
 	else
 	{
@@ -235,19 +229,14 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	PostHitDetection();
 }
 
-FHitResult UGoogleVRPointerInputComponent::PerformHitDetection(FVector PointerStart, FVector PointerEnd)
+// If we were already pointing at an object we must check that object against the exit radius
+// to make sure we are no longer pointing at it to prevent flicker.
+void UGoogleVRPointerInputComponent::CheckHitObjectOnRadius(FHitResult& HitResult, FVector PointerStart, FVector PointerEnd)
 {
-	FHitResult HitResult = FHitResult(ForceInit);
-	FCollisionObjectQueryParams ObjectParams(FCollisionObjectQueryParams::AllObjects);
-	FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
-	Params.AddIgnoredActor(GetOwner());
-
 	float EnterRadius, ExitRadius;
 	Pointer->GetRadius(EnterRadius, ExitRadius);
-	GetWorld()->SweepSingleByObjectType(HitResult, PointerStart, PointerEnd, FQuat(), ObjectParams, FCollisionShape::MakeSphere(EnterRadius), Params);
-
-	// If we were already pointing at an object we must check that object against the exit radius
-	// to make sure we are no longer pointing at it to prevent flicker.
+	FCollisionObjectQueryParams ObjectParams(FCollisionObjectQueryParams::AllObjects);
+	FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
 	if (LatestHitResult.GetComponent() != nullptr && HitResult.GetComponent() != LatestHitResult.GetComponent())
 	{
 		FHitResult ExitHitResult = FHitResult(ForceInit);
@@ -258,7 +247,40 @@ FHitResult UGoogleVRPointerInputComponent::PerformHitDetection(FVector PointerSt
 			HitResult = ExitHitResult;
 		}
 	}
+}
 
+FHitResult UGoogleVRPointerInputComponent::PerformHitDetection()
+{
+	FVector PointerStart, PointerEnd;
+	FHitResult HitResult = FHitResult(ForceInit);
+	FCollisionObjectQueryParams ObjectParams(FCollisionObjectQueryParams::AllObjects);
+	FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
+	Params.AddIgnoredActor(GetOwner());
+
+	float EnterRadius, ExitRadius;
+	if (Pointer->GetPointerInputMode() == EGoogleVRPointerInputMode::HybridExperimental)
+	{
+		PointerStart = Pointer->GetOrigin();
+		PointerEnd = PointerStart + (Pointer->GetDirection() * Pointer->GetMaxPointerDistance());
+		Pointer->GetRadius(EnterRadius, ExitRadius);
+		GetWorld()->SweepSingleByObjectType(HitResult, PointerStart, PointerEnd, FQuat(), ObjectParams, FCollisionShape::MakeSphere(EnterRadius), Params);
+		CheckHitObjectOnRadius(HitResult, PointerStart, PointerEnd);
+
+		if (HitResult.GetComponent() == nullptr)
+		{
+			GetPointerStartAndEnd(PointerStart, PointerEnd, EGoogleVRPointerInputMode::Camera);
+			Pointer->GetRadius(EnterRadius, ExitRadius);
+			GetWorld()->SweepSingleByObjectType(HitResult, PointerStart, PointerEnd, FQuat(), ObjectParams, FCollisionShape::MakeSphere(EnterRadius), Params);
+			CheckHitObjectOnRadius(HitResult, PointerStart, PointerEnd);
+		}
+	}
+	else
+	{
+		GetPointerStartAndEnd(PointerStart, PointerEnd, Pointer->GetPointerInputMode());
+		Pointer->GetRadius(EnterRadius, ExitRadius);
+		GetWorld()->SweepSingleByObjectType(HitResult, PointerStart, PointerEnd, FQuat(), ObjectParams, FCollisionShape::MakeSphere(EnterRadius), Params);
+		CheckHitObjectOnRadius(HitResult, PointerStart, PointerEnd);
+	}
 	return HitResult;
 }
 
@@ -267,14 +289,14 @@ void UGoogleVRPointerInputComponent::PostHitDetection()
 	// Override me.
 }
 
-void UGoogleVRPointerInputComponent::GetPointerStartAndEnd(FVector& OutPointerStart, FVector& OutPointerEnd) const
+void UGoogleVRPointerInputComponent::GetPointerStartAndEnd(FVector& OutPointerStart, FVector& OutPointerEnd, EGoogleVRPointerInputMode InputMode) const
 {
-	switch (PointerInputMode)
+	switch (InputMode)
 	{
 		case EGoogleVRPointerInputMode::Camera:
 		{
 			FVector RealPointerStart = Pointer->GetOrigin();
-			FVector RealPointerEnd = RealPointerStart + (Pointer->GetDirection() * Pointer->GetMaxPointerDistance());
+			FVector RealPointerEnd = RealPointerStart + (Pointer->GetDirection() * Pointer->GetDefaultReticleDistance());
 
 			FVector CameraLocation = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
 			FVector Direction = RealPointerEnd - CameraLocation;
