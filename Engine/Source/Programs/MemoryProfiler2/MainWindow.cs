@@ -2472,6 +2472,10 @@ namespace MemoryProfiler2
 		{
 		}
 
+        public virtual void SetModuleOffset(ulong offset)
+        {
+        }
+
 		public virtual bool ResolveAddressToSymboInfo(ESymbolResolutionMode SymbolResolutionMode, ulong Address, out string OutFileName, out string OutFunction, out int OutLineNumber)
 		{
 			OutFileName = null;

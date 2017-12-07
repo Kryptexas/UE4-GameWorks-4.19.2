@@ -73,7 +73,7 @@ DEFINE_STAT(STAT_LightInteractionMemory);
 // The InitViews stats group contains information on how long visibility culling took and how effective it was
 
 DEFINE_STAT(STAT_GatherShadowPrimitivesTime);
-DEFINE_STAT(STAT_BuildCombinedStaticAndCSMVisibilityState);
+DEFINE_STAT(STAT_BuildCSMVisibilityState);
 DEFINE_STAT(STAT_UpdateIndirectLightingCache);
 DEFINE_STAT(STAT_UpdateIndirectLightingCachePrims);
 DEFINE_STAT(STAT_UpdateIndirectLightingCacheBlocks);

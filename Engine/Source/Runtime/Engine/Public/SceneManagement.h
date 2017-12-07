@@ -2506,7 +2506,6 @@ struct FReadOnlyCVARCache
 
 	// Mobile specific
 	bool bMobileAllowMovableDirectionalLights;
-	bool bAllReceiveDynamicCSM;
 	bool bMobileAllowDistanceFieldShadows;
 	bool bMobileEnableStaticAndCSMShadowReceivers;
 	int32 NumMobileMovablePointLights;

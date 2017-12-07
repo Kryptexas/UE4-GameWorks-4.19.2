@@ -480,6 +480,22 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 
 	check(Context && Context->DeviceContext);
 
+	if (FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
+	{
+		glDisable(GL_FRAMEBUFFER_SRGB);
+
+		int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
+		if (wglSwapIntervalEXT_ProcAddress && Context->SyncInterval != RealSyncInterval)
+		{
+			wglSwapIntervalEXT_ProcAddress(RealSyncInterval);
+			Context->SyncInterval = RealSyncInterval;
+		}
+
+		::SwapBuffers(Context->DeviceContext);
+		REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
+		return true;
+	}
+
 	FScopeLock ScopeLock(Device->ContextUsageGuard);
 	{
 		FPlatformOpenGLContext TempContext = *Context;
@@ -640,6 +656,7 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 	//SetWindowLong(Context->WindowHandle, GWL_STYLE, WindowStyle);
 	//SetWindowLong(Context->WindowHandle, GWL_EXSTYLE, WindowStyleEx);
 
+		if (!FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
 		{
 			FScopeContext ScopeContext(Context);
 
@@ -990,6 +1007,14 @@ bool PlatformContextIsCurrent( uint64 QueryContext )
 
 FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint32 SizeX, uint32 SizeY)
 {
+	if (FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
+	{
+		uint32 Flags = TexCreate_RenderTargetable;
+		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+		OpenGLTextureAllocated(Texture2D, Flags);
+		return Texture2D;
+	}
+
 	return NULL;
 }
 

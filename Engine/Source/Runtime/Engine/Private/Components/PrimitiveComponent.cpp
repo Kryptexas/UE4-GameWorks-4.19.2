@@ -207,6 +207,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	
 	bApplyImpulseOnDamage = true;
 
+	bReceiveMobileCSMShadows = true;
 #if WITH_EDITORONLY_DATA
 	bEnableAutoLODGeneration = true;
 #endif // WITH_EDITORONLY_DATA

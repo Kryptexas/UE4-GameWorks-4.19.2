@@ -315,7 +315,7 @@ public:
 	 * Gets the amount of padding that needs to be added when accounting for the safe zone on TVs.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget|Safe Zone", meta=( WorldContext="WorldContextObject" ))
-	static void GetSafeZonePadding(UObject* WorldContextObject, FVector2D& SafePadding, FVector2D& SafePaddingScale, FVector2D& SpillOverPadding);
+	static void GetSafeZonePadding(UObject* WorldContextObject, FVector4& SafePadding, FVector2D& SafePaddingScale, FVector4& SpillOverPadding);
 
 	/**
 	 * Loads or sets a hardware cursor from the content directory in the game.

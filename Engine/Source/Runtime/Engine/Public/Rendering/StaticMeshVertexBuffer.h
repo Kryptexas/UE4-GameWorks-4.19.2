@@ -367,7 +367,7 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetUseFullPrecisionUVs(bool UseFull)
 	{
-		bUseFullPrecisionUVs = UseFull || !GVertexElementTypeSupport.IsSupported(VET_Half2);
+		bUseFullPrecisionUVs = UseFull;
 	}
 
 	FORCEINLINE_DEBUGGABLE bool GetUseHighPrecisionTangentBasis() const
@@ -466,4 +466,9 @@ private:
 
 	/** Allocates the vertex data storage type. */
 	void AllocateData(bool bNeedsCPUAccess = true);
+
+	/** Convert half float data to full float if the HW requires it.
+	* @param InData - optional half float source data to convert into full float texture coordinate buffer. if null, convert existing half float texture coordinates to a new float buffer.
+	*/
+	void ConvertHalfTexcoordsToFloat(const uint8* InData);
 };

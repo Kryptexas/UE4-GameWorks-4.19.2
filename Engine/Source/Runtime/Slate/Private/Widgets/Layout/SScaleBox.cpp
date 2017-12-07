@@ -332,7 +332,7 @@ void SScaleBox::RefreshSafeZoneScale()
 				FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
 				// Safe zones are uniform, so the axis we check is irrelevant
-				ScaleDownBy = (Metrics.TitleSafePaddingSize.X * 2.f) / (float)ViewportSize.X;
+				ScaleDownBy = (Metrics.TitleSafePaddingSize.X + Metrics.TitleSafePaddingSize.Z) / (float)ViewportSize.X;
 			}
 		}
 	}

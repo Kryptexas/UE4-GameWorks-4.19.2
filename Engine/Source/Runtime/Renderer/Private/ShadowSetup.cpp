@@ -210,12 +210,6 @@ static TAutoConsoleVariable<int32> CVarUseConservativeShadowBounds(
 	TEXT("Whether to use safe and conservative shadow frustum creation that wastes some shadowmap space"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarEnableCsmShaderCulling(
-	TEXT("r.Mobile.Shadow.CSMShaderCulling"),
-	1,
-	TEXT(""),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarParallelGatherShadowPrimitives(
 	TEXT("r.ParallelGatherShadowPrimitives"),
 	1,  
@@ -2719,10 +2713,15 @@ struct FGatherShadowPrimitivesPacket
 							
 			if (FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Mobile)
 			{
+				// record shadow casters if CSM culling is enabled for the light's mobility type and the culling mode requires the list of casters.
 				static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
-				bRecordShadowSubjectsForMobile = CVarEnableCsmShaderCulling.GetValueOnRenderThread() 
-					&& CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread()
-					&& ProjectedShadowInfo->GetLightSceneInfo().Proxy->UseCSMForDynamicObjects();
+				static auto* CVarMobileEnableMovableLightCSMShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"));
+				static auto* CVarMobileCSMShaderCullingMethod = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.Shadow.CSMShaderCullingMethod"));
+				uint32 MobileCSMCullingMode = CVarMobileCSMShaderCullingMethod->GetValueOnRenderThread()  & 0xF;
+				bRecordShadowSubjectsForMobile =
+					(MobileCSMCullingMode == 2 || MobileCSMCullingMode == 3)
+					&& ((CVarMobileEnableMovableLightCSMShaderCulling->GetValueOnRenderThread() && ProjectedShadowInfo->GetLightSceneInfo().Proxy->IsMovable() && ProjectedShadowInfo->GetLightSceneInfo().ShouldRenderViewIndependentWholeSceneShadows())
+						|| (CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() && ProjectedShadowInfo->GetLightSceneInfo().Proxy->UseCSMForDynamicObjects()));
 			}
 
 			for (int32 PrimitiveIndex = 0; PrimitiveIndex < ViewDependentWholeSceneShadowSubjectPrimitives[ShadowIndex].Num(); PrimitiveIndex++)

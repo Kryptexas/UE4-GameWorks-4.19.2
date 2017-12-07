@@ -64,8 +64,8 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 	FSlateApplication::Get().GetDisplayMetrics( Metrics );
 
 	const FMargin DeviceSafeMargin = bIsTitleSafe ?
-		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
-		FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W) :
+		FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
 
 #if WITH_EDITOR
 	if ( OverrideScreenSize.IsSet() )

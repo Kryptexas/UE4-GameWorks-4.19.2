@@ -425,13 +425,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint8 bLightAttachmentsAsGroup:1;
 
-	/** 
-	 * Mobile only:
-	 * If enabled this component can receive combined static and CSM shadows from a stationary light. (Enabling will increase shading cost.) 
-	 * If disabled this component will only receive static shadows from stationary lights.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta=(DisplayName ="Receive Combined Static and CSM Shadows from Stationary Lights"))
-	uint8 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
+	/**
+	* Mobile only:
+	* If disabled this component will not receive CSM shadows. (Components that do not receive CSM may have reduced shading cost)
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "Receive CSM Shadows"))
+	uint8 bReceiveMobileCSMShadows : 1;
 
 	/** 
 	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.

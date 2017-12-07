@@ -10,6 +10,7 @@
 #include "ScenePrivate.h"
 #include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
+#include "PrimitiveSceneInfo.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarMobileDisableVertexFog(
@@ -131,17 +132,46 @@ public:
 		return false;
 	}
 
-	bool CanUseDrawlistToToggleCombinedStaticAndCSM(const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	bool CanUseDrawlistToToggleCombinedStaticAndCSM(const FPrimitiveSceneProxy* PrimitiveSceneProxy, ELightMapPolicyType LightMapPolicyType) const
 	{
-		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
-		// Ideally we would also check for 'r.AllReceiveDynamicCSM' || PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights().
-		// It's being omitted here to avoid requiring a drawlist rebuild whenever the cvar is toggled.
-		return CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() != 0;
+		switch (LightMapPolicyType)
+		{
+			case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+			case LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
+			case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+			{
+				static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+				return CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() != 0;
+			}
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM:
+			case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT:
+			{
+				static auto* CVarMobileEnableMovableLightCSMShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"));
+				return CVarMobileEnableMovableLightCSMShaderCulling->GetValueOnRenderThread() != 0;
+			}
+			default:
+			{
+				return false;
+			}
+		}
 	}
 
-	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	bool CanReceiveCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
 	{
-		// CSM use for static meshes is determined during InitDynamicShadows.
+		// For movable directional lights, when CSM culling is disabled the default behavior is to receive CSM.
+		static auto* CVarMobileEnableMovableLightCSMShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"));
+		if (LightSceneInfo && LightSceneInfo->Proxy->IsMovable() && CVarMobileEnableMovableLightCSMShaderCulling->GetValueOnRenderThread() == 0)
+		{		
+			return true;
+		}
+
+		// If culling is enabled then CSM receiving is determined during InitDynamicShadows.
+		// If culling is disabled then stationary directional lights default to no CSM. 
 		return false; 
 	}
 
@@ -169,7 +199,7 @@ public:
 		if ( Scene )
 		{
 			// Determine if this primitive has the possibility of using combined static and CSM.
-			if (CanUseDrawlistToToggleCombinedStaticAndCSM(Parameters.PrimitiveSceneProxy))
+			if (CanUseDrawlistToToggleCombinedStaticAndCSM(Parameters.PrimitiveSceneProxy, LightMapPolicy.GetIndirectPolicy()))
 			{
 				// if applicable, returns the corresponding CSM or non-CSM lightmap policy of LightMapPolicyType
 				auto GetAlternativeLightMapPolicy = [](ELightMapPolicyType LightMapPolicyType)
@@ -184,6 +214,23 @@ public:
 							return LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM;
 						case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 							return LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT;
+
+						// movable light CSMs
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP;
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP;
+
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT;
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT;
+
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT;
+						case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT:
+							return LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM;
+
 					}
 					return LightMapPolicyType;
 				};
@@ -194,7 +241,11 @@ public:
 				{
 					// Is the passed in lightmap policy CSM capable or not
 					const bool bIsCSMCapableLightPolicy = LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM
-					|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT;
+						|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT
+						|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP
+						|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT
+						|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM
+						;
 
 					if (bIsCSMCapableLightPolicy)
 					{
@@ -286,7 +337,7 @@ public:
 		return false;
 	}
 
-	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	bool CanReceiveCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
 	{
 		if (PrimitiveSceneProxy == nullptr || LightSceneInfo == nullptr)
 		{
@@ -295,9 +346,24 @@ public:
 
 		// Check that this primitive is eligible for CSM.
  		const FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightSceneInfo->Id];
-		static auto* ConsoleVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
-		const bool bShouldReceiveCombinedCSMAndStaticShadows = PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() || ConsoleVarAllReceiveDynamicCSM->GetValueOnRenderThread();
-		return View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse && bShouldReceiveCombinedCSMAndStaticShadows;
+
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		static auto* CVarMobileEnableMovableLightCSMShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"));
+		const bool bMobileEnableMovableLightCSMShaderCulling = CVarMobileEnableMovableLightCSMShaderCulling->GetValueOnRenderThread() == 1;
+		const bool bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1;
+
+		const bool bMovableLight = LightSceneInfo->Proxy->IsMovable();
+		const bool bMovableLightCastsCSM = bMovableLight && LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows();
+
+		return PrimitiveSceneProxy->ShouldReceiveMobileCSMShadows()
+			&&	(	// movable CSM culling is disabled and movable light is in use
+					(!bMobileEnableMovableLightCSMShaderCulling && bMovableLightCastsCSM)
+					||
+					// CSM culling is active
+					(View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse
+						&& (bMobileEnableStaticAndCSMShadowReceivers || bMobileEnableMovableLightCSMShaderCulling)
+						&& View.MobileCSMVisibilityInfo.MobilePrimitiveCSMReceiverVisibilityMap[PrimitiveSceneProxy->GetPrimitiveSceneInfo()->GetIndex()])
+				);
 	}
 
 	const FScene* GetScene() const
@@ -543,8 +609,8 @@ static void DrawVisibleFrontToBack(
 	{
 		if (bIsCSM)
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState, MaxDraws);
 			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewCSM, DrawRenderState, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState, MaxDraws);
 		}
 		else
 		{
@@ -555,8 +621,8 @@ static void DrawVisibleFrontToBack(
 	{
 		if (bIsCSM)
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
 			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
 		}
 		else
 		{
@@ -583,8 +649,8 @@ static void DrawVisible(
 	{
 		if (bIsCSM)
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState);
 			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewCSM, DrawRenderState);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState);
 		}
 		else
 		{
@@ -595,8 +661,8 @@ static void DrawVisible(
 	{
 		if (bIsCSM)
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
 			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
 		}
 		else
 		{
@@ -607,7 +673,7 @@ static void DrawVisible(
 
 void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, BasePass);
+	SCOPED_DRAW_EVENT(RHICmdList, MobileBasePass);
 	SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
 
 	EBasePassSort::Type SortMode = GetSortMode();

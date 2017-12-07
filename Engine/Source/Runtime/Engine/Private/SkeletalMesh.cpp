@@ -957,6 +957,29 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 			}
 			else if (Ar.IsSaving())
 			{
+				if (bCooked)
+				{
+					int32 MaxBonesPerChunk = SkeletalMeshRenderData->GetMaxBonesPerSection();
+
+					TArray<FName> DesiredShaderFormats;
+					Ar.CookingTarget()->GetAllTargetedShaderFormats(DesiredShaderFormats);
+
+					for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); ++FormatIndex)
+					{
+						const EShaderPlatform LegacyShaderPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+						const ERHIFeatureLevel::Type FeatureLevelType = GetMaxSupportedFeatureLevel(LegacyShaderPlatform);
+
+						int32 MaxNrBones = GetFeatureLevelMaxNumberOfBones(FeatureLevelType);
+						if (MaxBonesPerChunk > MaxNrBones)
+						{
+							FString FeatureLevelName;
+							GetFeatureLevelName(FeatureLevelType, FeatureLevelName);
+							UE_LOG(LogSkeletalMesh, Error, TEXT("Skeletal mesh %s has a LOD section with %d bones and the maximum supported number for feature level %s is %d.\n!This mesh will not be instantiated on the specified platform!"),
+								*GetFullName(), MaxBonesPerChunk, *FeatureLevelName, MaxNrBones);
+						}
+					}
+				}
+
 				SkeletalMeshRenderData->Serialize(Ar, this);
 			}
 		}

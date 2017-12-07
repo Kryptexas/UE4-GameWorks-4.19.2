@@ -1605,7 +1605,7 @@ protected:
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
 	/** Build visibility lists on CSM receivers and non-csm receivers. */
-	void BuildCombinedStaticAndCSMVisibilityState(FLightSceneInfo* LightSceneInfo);
+	void BuildCSMVisibilityState(FLightSceneInfo* LightSceneInfo);
 
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 

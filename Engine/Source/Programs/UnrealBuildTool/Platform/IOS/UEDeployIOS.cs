@@ -20,6 +20,7 @@ namespace UnrealBuildTool
         }
 
         protected UnrealPluginLanguage UPL = null;
+		protected delegate bool FilenameFilter(string InFilename);
 
 		protected class VersionUtilities
 		{
@@ -535,6 +536,8 @@ namespace UnrealBuildTool
                         "Default-IPhone6Plus-Portrait.png", "Portrait", "{414, 736}",  "8.0",
                         "Default.png", "Portrait", "{320, 480}", "7.0",
                         "Default-568h.png", "Portrait", "{320, 568}", "7.0",
+                        "Default-IPhoneX-Landscape.png", "Landscape", "{375, 812}",  "11.0",
+                        "Default-IPhoneX-Portrait.png", "Portrait", "{375, 812}",  "11.0",
 					};
 
 				Text.AppendLine("\t<key>UILaunchImages~iphone</key>");
@@ -758,6 +761,7 @@ namespace UnrealBuildTool
                     CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait@2x.png", true);
 //                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336.png", true);
                     CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhoneX-Portrait.png", true);
                 }
                 if (bSupportsLandscape)
                 {
@@ -767,6 +771,7 @@ namespace UnrealBuildTool
                     CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape@2x.png", true);
 //                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336.png", true);
                     CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhoneX-Landscape.png", true);
                 }
 //                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default.png", true);
                 CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default@2x.png", true);
@@ -788,6 +793,7 @@ namespace UnrealBuildTool
                     CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait@2x.png", true);
 //                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336.png", true);
                     CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.png", true);
+                    CopyFiles(BuildDirectory + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhoneX-Portrait.png", true);
                 }
                 if (bSupportsLandscape)
                 {
@@ -797,14 +803,28 @@ namespace UnrealBuildTool
                     CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape@2x.png", true);
 //                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336.png", true);
                     CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.png", true);
+                    CopyFiles(BuildDirectory + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhoneX-Landscape.png", true);
                 }
 //                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default.png", true);
                 CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default@2x.png", true);
                 CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-568h@2x.png", true);
             }
         }
+		protected virtual void CopyLocalizationsResources(string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)
+		{
+			string LocalizationsPath = BuildDirectory + "/Resources/Localizations";
+			if (Directory.Exists(LocalizationsPath))
+			{
+				Log.TraceInformation("Copy localizations from Resources {0}, {1}", LocalizationsPath, AppDirectory);
+				CopyFolder(BuildDirectory + "/Resources/Localizations", AppDirectory, true, delegate (string InFilename)
+				{
+					if (Path.GetFileName(InFilename).Equals(".DS_Store")) return false;
+					return true;
+				});
+			}
+		}
 
-        public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
+		public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -982,10 +1002,11 @@ namespace UnrealBuildTool
 			if (!bCreateStubIPA)
 			{
                 CopyGraphicsResources(bSkipDefaultPNGs, bSkipIcons, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory, bSupportsPortrait, bSupportsLandscape);
+				CopyLocalizationsResources(InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory);
 
-                // copy additional engine framework assets in
-                // @todo tvos: TVOS probably needs its own assets?
-                string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
+				// copy additional engine framework assets in
+				// @todo tvos: TVOS probably needs its own assets?
+				string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
 
                 // Let project override assets if they exist
                 if (Directory.Exists(InProjectDirectory + "/Intermediate/IOS/FrameworkAssets"))
@@ -1153,17 +1174,21 @@ namespace UnrealBuildTool
 			}
 		}
 
-		protected void CopyFolder(string SourceDirectory, string DestinationDirectory, bool bOverwrite = false)
+		protected void CopyFolder(string SourceDirectory, string DestinationDirectory, bool bOverwrite = false, FilenameFilter Filter = null)
 		{
 			Directory.CreateDirectory(DestinationDirectory);
-			RecursiveFolderCopy(new DirectoryInfo(SourceDirectory), new DirectoryInfo(DestinationDirectory), bOverwrite);
+			RecursiveFolderCopy(new DirectoryInfo(SourceDirectory), new DirectoryInfo(DestinationDirectory), bOverwrite, Filter);
 		}
 
-		static private void RecursiveFolderCopy(DirectoryInfo SourceFolderInfo, DirectoryInfo DestFolderInfo, bool bOverwrite = false)
+		static private void RecursiveFolderCopy(DirectoryInfo SourceFolderInfo, DirectoryInfo DestFolderInfo, bool bOverwrite = false, FilenameFilter Filter = null)
 		{
 			foreach (FileInfo SourceFileInfo in SourceFolderInfo.GetFiles())
 			{
 				string DestinationPath = Path.Combine(DestFolderInfo.FullName, SourceFileInfo.Name);
+				if (Filter != null && !Filter(DestinationPath))
+				{
+					continue;
+				}
 				SafeFileCopy(SourceFileInfo, DestinationPath, bOverwrite);
 			}
 

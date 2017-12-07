@@ -1858,10 +1858,12 @@ static TAutoConsoleVariable<int32> CVarMobileEnableStaticAndCSMShadowReceivers(
 	TEXT("1: Primitives can receive both CSM and static shadowing from stationary lights. (default)"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
-static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
-	TEXT("r.AllReceiveDynamicCSM"),
+static TAutoConsoleVariable<int32> CVarMobileEnableMovableLightCSMShaderCulling(
+	TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"),
 	1,
-	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects. 1: All primitives (default)"));
+	TEXT("0: All primitives lit by movable directional light render with CSM.\n")
+	TEXT("1: Primitives lit by movable directional light render with the CSM shader when determined to be within CSM range. (default)"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMobileAllowDistanceFieldShadows(
 	TEXT("r.Mobile.AllowDistanceFieldShadows"),

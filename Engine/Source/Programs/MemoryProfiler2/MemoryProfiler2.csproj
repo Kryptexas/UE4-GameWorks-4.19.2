@@ -113,6 +113,7 @@
       <DependentUpon>FindDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="HistogramParser.cs" />
+    <Compile Include="IOSSymbolParser.cs" />
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -121,6 +122,7 @@
     </Compile>
     <Compile Include="MemoryBitmapParser.cs" />
     <Compile Include="MemoryPoolInfo.cs" />
+    <Compile Include="ModuleInfo.cs" />
     <Compile Include="Properties\MetaData.cs" />
     <Compile Include="OptionsDialog.cs">
       <SubType>Form</SubType>

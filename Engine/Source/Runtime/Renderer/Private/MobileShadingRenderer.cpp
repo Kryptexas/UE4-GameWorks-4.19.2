@@ -516,6 +516,9 @@ void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& Scen
 			Params.DirectionalLightColor = Light->Proxy->GetColor() / PI;
 			Params.DirectionalLightDirection = -Light->Proxy->GetDirection();
 
+			const FVector2D FadeParams = Light->Proxy->GetDirectionalLightDistanceFadeParameters(FeatureLevel, Light->IsPrecomputedLightingValid(), SceneView.MaxShadowCascades);
+			Params.DirectionalLightDistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
+
 			if (bDynamicShadows && VisibleLightInfos.IsValidIndex(Light->Id) && VisibleLightInfos[Light->Id].AllProjectedShadows.Num() > 0)
 			{
 				const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& DirectionalLightShadowInfos = VisibleLightInfos[Light->Id].AllProjectedShadows;

@@ -122,6 +122,8 @@ namespace UnrealBuildTool
 
 		public static List<FileReference> BuiltBinaries = new List<FileReference>();
 
+		private bool bUseMallocProfiler;
+
 		/// <summary>
 		/// Additional frameworks stored locally so we have access without LinkEnvironment
 		/// </summary>
@@ -181,7 +183,7 @@ namespace UnrealBuildTool
 					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
 				}
 			}
-            if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && ProjectSettings.bGenerateCrashReportSymbols && Binary.Config.Type == UEBuildBinaryType.Executable)
+            if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && (ProjectSettings.bGenerateCrashReportSymbols || bUseMallocProfiler) && Binary.Config.Type == UEBuildBinaryType.Executable)
             {
                 FileReference DebugFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".udebugsymbols");
                 BuildProducts.Add(DebugFile, BuildProductType.SymbolFile);
@@ -196,6 +198,12 @@ namespace UnrealBuildTool
 		public override bool ShouldAddDebugFileToReceipt(FileReference OutputFile, BuildProductType OutputType)
 		{
 			return OutputType == BuildProductType.Executable;
+		}
+
+		public override void SetUpGlobalEnvironment(ReadOnlyTargetRules Target)
+		{
+			base.SetUpGlobalEnvironment(Target);
+			bUseMallocProfiler = Target.bUseMallocProfiler;
 		}
 
 		string GetCompileArguments_Global(CppCompileEnvironment CompileEnvironment)
@@ -1455,7 +1463,7 @@ namespace UnrealBuildTool
 			if (ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true || BinaryLinkEnvironment.bUsePDBFiles == true)
             {
                 OutputFiles.Add(GenerateDebugInfo(Executable, ActionGraph));
-                if (ProjectSettings.bGenerateCrashReportSymbols)
+                if (ProjectSettings.bGenerateCrashReportSymbols || bUseMallocProfiler)
                 {
                     OutputFiles.Add(GeneratePseudoPDB(Executable, ActionGraph));
                 }
@@ -1718,7 +1726,7 @@ namespace UnrealBuildTool
 								DSYMExt = ".dSYM";
 							}
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
-                            if (ProjectSettings.bGenerateCrashReportSymbols)
+                            if (ProjectSettings.bGenerateCrashReportSymbols || Target.Rules.bUseMallocProfiler)
                             {
                                 RPCUtilHelper.CopyFile(RemoteExecutablePath + ".udebugsymbols", FilePath.FullName + ".udebugsymbols", false);
                             }

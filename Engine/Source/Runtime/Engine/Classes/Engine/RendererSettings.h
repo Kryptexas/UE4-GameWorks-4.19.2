@@ -128,7 +128,8 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
 		ConsoleVariable = "r.Shadow.CSM.MaxMobileCascades", DisplayName = "Maximum number of CSM cascades to render", ClampMin = 1, ClampMax = 4,
-		ToolTip = "The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer."))
+		ToolTip = "The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer.",
+		ConfigRestartRequired = true))
 		int32 MaxMobileCascades;
 
 	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
@@ -509,6 +510,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Allow primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler and reduce shader permutations. Changing this setting requires restarting the editor.",
 		ConfigRestartRequired = true))
 		uint32 bMobileEnableStaticAndCSMShadowReceivers : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.Mobile.EnableMovableLightCSMShaderCulling", DisplayName = "Support movable light CSM shader culling",
+		ToolTip = "Primitives lit by a movable directional light will render with the CSM shader only when determined to be within CSM range. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bMobileEnableMovableLightCSMShaderCulling : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = MobileShaderPermutationReduction, meta = (
 		ConsoleVariable = "r.Mobile.AllowDistanceFieldShadows",

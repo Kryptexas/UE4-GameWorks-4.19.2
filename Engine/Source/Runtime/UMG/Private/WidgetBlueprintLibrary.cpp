@@ -601,7 +601,7 @@ FInputEvent UWidgetBlueprintLibrary::GetInputEventFromNavigationEvent(const FNav
 	return Event;
 }
 
-void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FVector2D& SafePadding, FVector2D& SafePaddingScale, FVector2D& SpillOverPadding)
+void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FVector4& SafePadding, FVector2D& SafePaddingScale, FVector4& SpillOverPadding)
 {
 	FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(WorldContextObject);
 
@@ -609,7 +609,8 @@ void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FV
 	FSlateApplication::Get().GetDisplayMetrics(Metrics);
 
 	SafePadding = Metrics.TitleSafePaddingSize;
-	SafePaddingScale = SafePadding / ViewportSize;
+	FVector2D padding(FMath::Max(SafePadding.Z, SafePadding.X), FMath::Max(SafePadding.W, SafePadding.Y));
+	SafePaddingScale = padding / ViewportSize;
 	SpillOverPadding = Metrics.ActionSafePaddingSize;
 }
 

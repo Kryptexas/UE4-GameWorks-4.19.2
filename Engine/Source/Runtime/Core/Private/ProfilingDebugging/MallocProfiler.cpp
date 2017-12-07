@@ -755,9 +755,9 @@ void FMallocProfiler::EndProfiling()
 		Header.ModuleEntries				= FPlatformStackWalk::GetProcessModuleCount();
 
 		TArray<FStackWalkModuleInfo> ProcModules;
-		ProcModules.Reserve(Header.ModuleEntries);
+		ProcModules.AddUninitialized(Header.ModuleEntries);
 
-		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetData(), ProcModules.Num());
+		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetData(), ProcModules.Max());
 
 		for(uint32 ModuleIndex = 0; ModuleIndex < Header.ModuleEntries; ++ModuleIndex)
 		{

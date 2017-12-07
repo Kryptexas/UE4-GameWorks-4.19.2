@@ -378,6 +378,21 @@ void FCurlHttpManager::InitCurl()
 			}
 		}
 	}
+#elif PLATFORM_ANDROID
+	// Look for the default machine wide proxy setting
+	if (ProxyAddress.Len() == 0)
+	{
+		extern int32 AndroidThunkCpp_GetMetaDataInt(const FString& Key);
+		extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
+
+		FString ProxyHost = AndroidThunkCpp_GetMetaDataString(TEXT("ue4.http.proxy.proxyHost"));
+		int32 ProxyPort = AndroidThunkCpp_GetMetaDataInt(TEXT("ue4.http.proxy.proxyPort"));
+
+		if (ProxyPort != -1 && !ProxyHost.IsEmpty())
+		{
+			ProxyAddress = FString::Printf(TEXT("%s:%d"), *ProxyHost, ProxyPort);
+		}
+	}
 #endif
 
 	if (ProxyAddress.Len() > 0)

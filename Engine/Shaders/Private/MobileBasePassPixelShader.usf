@@ -17,6 +17,9 @@
 #include "DynamicLightingCommon.ush"
 #include "PlanarReflectionShared.ush"
 
+// Add fading CSM plane:
+#define FADE_CSM 1
+
 #if MAX_DYNAMIC_POINT_LIGHTS > 0
 #if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
 int NumDynamicPointLights;
@@ -454,6 +457,13 @@ void Main(
 				#else
 					#error Unsupported MOBILE_CSM_QUALITY value.
 				#endif
+
+				#if FADE_CSM
+					float Fade = saturate(MaterialParameters.ScreenPosition.w * MobileDirectionalLight.DirectionalLightDistanceFadeMAD.x + MobileDirectionalLight.DirectionalLightDistanceFadeMAD.y);
+					// lerp out shadow based on fade params.
+					ShadowMap = lerp(ShadowMap, 1.0, Fade * Fade);
+				#endif
+
 				#if MOVABLE_DIRECTIONAL_LIGHT
 					Shadow = ShadowMap;
 				#else

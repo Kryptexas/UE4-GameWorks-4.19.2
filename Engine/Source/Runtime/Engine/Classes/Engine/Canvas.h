@@ -208,6 +208,8 @@ class ENGINE_API UCanvas
 	//to grab display metrics
 	int32 SafeZonePadX;
 	int32 SafeZonePadY;
+	int32 SafeZonePadEX;
+	int32 SafeZonePadEY;
 	int32 CachedDisplayWidth;
 	int32 CachedDisplayHeight;
 

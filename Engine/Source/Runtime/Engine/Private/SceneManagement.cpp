@@ -528,6 +528,7 @@ FMobileDirectionalLightShaderParameters::FMobileDirectionalLightShaderParameters
 		DirectionalLightScreenToShadow[i].SetIdentity();
 		DirectionalLightShadowDistances[i] = 0.0f;
 	}
+	DirectionalLightDistanceFadeMAD = FVector2D(0,0);
 }
 
 FViewUniformShaderParameters::FViewUniformShaderParameters()

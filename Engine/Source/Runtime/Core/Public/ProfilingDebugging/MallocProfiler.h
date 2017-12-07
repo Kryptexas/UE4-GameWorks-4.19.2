@@ -93,7 +93,7 @@ enum EProfilingPayloadSubType
 };
 
 /** Whether we are performing symbol lookup at runtime or not.					*/
-#define SERIALIZE_SYMBOL_INFO PLATFORM_SUPPORTS_STACK_SYMBOLS
+#define SERIALIZE_SYMBOL_INFO PLATFORM_RUNTIME_MALLOCPROFILER_SYMBOLICATION
 
 /*=============================================================================
 	CallStack address information.

@@ -939,13 +939,14 @@ void ProcessMobileBasePassMesh(
 	
 		const FReadOnlyCVARCache& ReadOnlyCVARCache = FReadOnlyCVARCache::Get();
 
-		const bool bPrimReceivesStaticAndCSM = Action.CanReceiveStaticAndCSM(MobileDirectionalLight, Parameters.PrimitiveSceneProxy);
+		const bool bPrimReceivesCSM = Action.CanReceiveCSM(MobileDirectionalLight, Parameters.PrimitiveSceneProxy);
 		const bool bUseMovableLight = MobileDirectionalLight && !MobileDirectionalLight->Proxy->HasStaticShadowing() && ReadOnlyCVARCache.bMobileAllowMovableDirectionalLights;
 
 		const bool bUseStaticAndCSM = MobileDirectionalLight && MobileDirectionalLight->Proxy->UseCSMForDynamicObjects()
-			&& bPrimReceivesStaticAndCSM
-			&& ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers
-			&& (ReadOnlyCVARCache.bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
+			&& bPrimReceivesCSM
+			&& ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers;
+
+		const bool bMovableWithCSM = bUseMovableLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && bPrimReceivesCSM;
 
 		if (LightMapInteraction.GetType() == LMIT_Texture && ReadOnlyCVARCache.bAllowStaticLighting && ReadOnlyCVARCache.bEnableLowQualityLightmaps)
 		{
@@ -968,7 +969,7 @@ void ProcessMobileBasePassMesh(
 			}
 			else if (bUseStaticAndCSM)
 			{
-				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM), Parameters.Mesh.LCI);
 				}
@@ -999,7 +1000,7 @@ void ProcessMobileBasePassMesh(
 		{
 			if (bUseMovableLight)
 			{
-				if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && bMovableWithCSM)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT), Parameters.Mesh.LCI);
 				}
@@ -1026,7 +1027,7 @@ void ProcessMobileBasePassMesh(
 		else if (bUseMovableLight)
 		{
 			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
-			if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+			if (MobileDirectionalLight && bMovableWithCSM)
 			{
 				Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM), Parameters.Mesh.LCI);
 			}

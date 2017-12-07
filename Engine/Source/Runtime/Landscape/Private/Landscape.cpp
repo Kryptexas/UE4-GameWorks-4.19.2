@@ -309,8 +309,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_PLATFORMDATA_COOKING && !HasAnyFlags(RF_ClassDefaultObject))
 	{
-		bCooked = Ar.IsCooking();
-		// Save a bool indicating whether this is cooked data
+		bCooked = Ar.IsCooking() || (FPlatformProperties::RequiresCookedData() && Ar.IsSaving());
 		// This is needed when loading cooked data, to know to serialize differently
 		Ar << bCooked;
 	}

@@ -34,7 +34,7 @@ void SAndroidLicenseDialog::Construct(const FArguments& InArgs)
 {
 	bLicenseValid = false;
 
-	// from Android SDK Tools 25.2.3
+	// from Android SDK Tools 26.1.1
 	FString LicenseFilename = FPaths::EngineDir() + TEXT("Source/ThirdParty/Android/package.xml");
 	FString LicenseText = "Unable to read " + LicenseFilename;
 

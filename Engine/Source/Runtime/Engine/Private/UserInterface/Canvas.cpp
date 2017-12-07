@@ -1228,7 +1228,7 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView, FCanva
 	UnsafeSizeY = SizeY;
 	SceneView = InSceneView;
 	Canvas = InCanvas;
-
+	
 	Update();
 }
 
@@ -1245,7 +1245,7 @@ void UCanvas::ApplySafeZoneTransform()
 	// if there is no required safezone padding, then we can bail on the whole operation.
 	// this is also basically punting on a bug we have on PC where GetDisplayMetrics isn't the right thing
 	// to do, as it gives the monitor size, not the window size which we actually want.
-	if (SafeZonePadX == 0 && SafeZonePadY == 0)
+	if (SafeZonePadX == 0 && SafeZonePadY == 0 && SafeZonePadEX == 0 && SafeZonePadEY == 0)
 	{
 		return;
 	}
@@ -1290,8 +1290,8 @@ void UCanvas::ApplySafeZoneTransform()
 	int32 DistToYBorder = CachedDisplayHeight - AbsMaxY;
 
 	//compute how much more we must move the canvas away from the border to meet safe zone requirements.
-	int32 SizeXPad = AbsMaxX <= CachedDisplayWidth - SafeZonePadX ? 0 : SafeZonePadX - DistToXBorder;
-	int32 SizeYPad = AbsMaxY <= CachedDisplayHeight - SafeZonePadY ? 0 : SafeZonePadY - DistToYBorder;
+	int32 SizeXPad = AbsMaxX <= CachedDisplayWidth - SafeZonePadEX ? 0 : SafeZonePadEX - DistToXBorder;
+	int32 SizeYPad = AbsMaxY <= CachedDisplayHeight - SafeZonePadEY ? 0 : SafeZonePadEY - DistToYBorder;
 
 	int32 OrigClipOffsetX = SizeX - ClipX;
 	int32 OrigClipOffsetY = SizeY - ClipY;

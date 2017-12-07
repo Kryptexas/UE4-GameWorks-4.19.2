@@ -2650,6 +2650,19 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public int AndroidThunkJava_GetMetaDataInt(String key)
 	{
+		if (key.equals("ue4.http.proxy.proxyPort"))
+		{
+			if (ANDROID_BUILD_VERSION >= 14)
+			{
+				String ProxyPort = System.getProperty("http.proxyPort");
+				return ProxyPort == null ? -1 : Integer.parseInt(ProxyPort);
+			}
+			else
+			{
+				return android.net.Proxy.getPort(getApplicationContext());
+			}
+		}
+		else
 		if (key.equals("android.hardware.vulkan.version"))
 		{
 			return VulkanVersion;
@@ -2688,6 +2701,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public String AndroidThunkJava_GetMetaDataString(String key)
 	{
+		if (key.equals("ue4.http.proxy.proxyHost"))
+		{
+			if (ANDROID_BUILD_VERSION >= 14)
+			{
+				return System.getProperty("http.proxyHost");
+			}
+			else
+			{
+				return android.net.Proxy.getHost(getApplicationContext());
+			}
+		}
+		else
 		if (key.equals("ue4.displaymetrics.dpi"))
 		{
 			DisplayMetrics metrics = new DisplayMetrics();

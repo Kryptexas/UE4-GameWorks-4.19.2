@@ -97,12 +97,45 @@ void FStaticMeshVertexBuffer::Init(const FStaticMeshVertexBuffer& InVertexBuffer
 		{
 			check(TexcoordData->GetStride() == InVertexBuffer.TexcoordData->GetStride());
 			check(GetNumTexCoords() == InVertexBuffer.GetNumTexCoords());
-			TexcoordData->ResizeBuffer(NumVertices * GetNumTexCoords());
-			TexcoordDataPtr = TexcoordData->GetDataPointer();
 			const uint8* InData = InVertexBuffer.TexcoordDataPtr;
-			FMemory::Memcpy(TexcoordDataPtr, InData, TexcoordData->GetStride() * NumVertices * GetNumTexCoords());
+
+			// convert half float data to full float if the HW requires it.
+			if (!GetUseFullPrecisionUVs() && !GVertexElementTypeSupport.IsSupported(VET_Half2))
+			{
+				ConvertHalfTexcoordsToFloat(InData);
+			}
+			else
+			{
+				TexcoordData->ResizeBuffer(NumVertices * GetNumTexCoords());
+				TexcoordDataPtr = TexcoordData->GetDataPointer();
+				FMemory::Memcpy(TexcoordDataPtr, InData, TexcoordData->GetStride() * NumVertices * GetNumTexCoords());
+			}
 		}
 	}
+}
+
+void FStaticMeshVertexBuffer::ConvertHalfTexcoordsToFloat(const uint8* InData)
+{
+	check(TexcoordData);
+	SetUseFullPrecisionUVs(true);
+
+	FStaticMeshVertexDataInterface* OriginalTexcoordData = TexcoordData;
+
+	typedef TStaticMeshVertexUVsDatum<typename TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT> UVType;
+	TexcoordData = new TStaticMeshVertexData<UVType>(OriginalTexcoordData->GetAllowCPUAccess());
+	TexcoordData->ResizeBuffer(NumVertices * GetNumTexCoords());
+	TexcoordDataPtr = TexcoordData->GetDataPointer();
+	TexcoordStride = sizeof(UVType);
+
+	FVector2D* DestTexcoordDataPtr = (FVector2D*)TexcoordDataPtr;
+	FVector2DHalf* SourceTexcoordDataPtr = (FVector2DHalf*)(InData ? InData : OriginalTexcoordData->GetDataPointer());
+	for (uint32 i = 0; i < NumVertices * GetNumTexCoords(); i++)
+	{
+		*DestTexcoordDataPtr++ = *SourceTexcoordDataPtr++;
+	}
+
+	delete OriginalTexcoordData;
+	OriginalTexcoordData = nullptr;
 }
 
 /**
@@ -162,6 +195,12 @@ void FStaticMeshVertexBuffer::Serialize(FArchive& Ar, bool bNeedsCPUAccess)
 
 			// Make a copy of the vertex data pointer.
 			TexcoordDataPtr = TexcoordData->GetDataPointer();
+			
+			// convert half float data to full float if the HW requires it.
+			if (!GetUseFullPrecisionUVs() && !GVertexElementTypeSupport.IsSupported(VET_Half2))
+			{
+				ConvertHalfTexcoordsToFloat(nullptr);
+			}
 		}
 	}
 }

@@ -649,6 +649,23 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 
 #if PLATFORM_DESKTOP
 	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Desktop;
+	if (FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
+	{
+		Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Android;
+		Capabilities.bUseES30ShadingLanguage = false;
+		Capabilities.bSupportsStandardDerivativesExtension = true;
+		Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA = GSupportsRenderTargetFormat_PF_FloatRGBA;
+		Capabilities.bSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
+		Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;
+		Capabilities.bRequiresDontEmitPrecisionForTextureSamplers = false;
+		Capabilities.bSupportsShaderTextureLod = true;
+		Capabilities.bSupportsShaderTextureCubeLod = true;
+		Capabilities.bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+		Capabilities.bRequiresGLFragCoordVaryingLimitHack = false;
+		Capabilities.MaxVaryingVectors = FOpenGL::GetMaxVaryingVectors();
+		Capabilities.bRequiresTexture2DPrecisionHack = false;
+	}
+
 #elif PLATFORM_ANDROID
 	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Android;
 	Capabilities.bUseES30ShadingLanguage = FOpenGL::UseES30ShadingLanguage();
@@ -854,7 +871,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android)
 	{
 		// Temporary patch to remove #extension GL_OES_standard_derivaties if not supported
-		if (Capabilities.bSupportsStandardDerivativesExtension)
+		if (!Capabilities.bSupportsStandardDerivativesExtension)
 		{
 			const ANSICHAR * FoundPointer = FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#extension GL_OES_standard_derivatives");
 			if (FoundPointer != nullptr)

@@ -83,6 +83,9 @@ UITextFieldDelegate>
 /** The time delay (in seconds) between idle timer enable requests and actually enabling the idle timer */
 @property (readonly) float IdleTimerEnablePeriod;
 
+// parameters passed from openURL
+@property (nonatomic, retain) NSMutableArray* savedOpenUrlParameters;
+
 #if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	/** Properties for managing the console */
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0

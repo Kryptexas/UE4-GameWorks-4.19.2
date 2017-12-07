@@ -1441,7 +1441,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 	}
 	else
 	{
-		bool bCooked = Ar.IsCooking();
+		bool bCooked = Ar.IsCooking() || (FPlatformProperties::RequiresCookedData() && Ar.IsSaving());
 		Ar << bCooked;
 
 		if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())

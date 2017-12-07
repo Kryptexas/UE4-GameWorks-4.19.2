@@ -593,7 +593,7 @@ void InitDefaultGLContextState(void)
 	}
 
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
-	if (OpenGLConsoleVariables::bUseGlClipControlIfAvailable && ExtensionsString.Contains(TEXT("GL_ARB_clip_control")))
+	if (OpenGLConsoleVariables::bUseGlClipControlIfAvailable && ExtensionsString.Contains(TEXT("GL_ARB_clip_control")) && !FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
 	{
 		FOpenGL::EnableSupportsClipControl();
 		glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE);
