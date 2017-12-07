@@ -66,12 +66,16 @@ bool UMediaPlayer::CanPlaySource(UMediaSource* MediaSource)
 		return false;
 	}
 
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.CanPlaySource"), *GetFName().ToString(), *MediaSource->GetFName().ToString());
+
 	return PlayerFacade->CanPlayUrl(MediaSource->GetUrl(), MediaSource);
 }
 
 
 bool UMediaPlayer::CanPlayUrl(const FString& Url)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.CanPlayUrl"), *GetFName().ToString(), *Url);
+
 	if (Url.IsEmpty())
 	{
 		return false;
@@ -83,6 +87,8 @@ bool UMediaPlayer::CanPlayUrl(const FString& Url)
 
 void UMediaPlayer::Close()
 {
+	UE_LOG(LogMediaAssets, VeryVerbose, TEXT("%s.Close"), *GetFName().ToString());
+
 	PlayerFacade->Close();
 
 	Playlist = NewObject<UMediaPlaylist>(GetTransientPackage(), NAME_None, RF_Transactional | RF_Transient);
@@ -315,13 +321,24 @@ bool UMediaPlayer::IsPreparing() const
 
 bool UMediaPlayer::IsReady() const
 {
+	UE_LOG(LogMediaAssets, VeryVerbose, TEXT("%s.IsReady"), *GetFName().ToString());
 	return PlayerFacade->IsReady();
 }
 
 
 bool UMediaPlayer::Next()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Next"), *GetFName().ToString());
+
+	check(Playlist != nullptr);
 	int32 RemainingAttempts = Playlist->Num();
+
+	if (RemainingAttempts == 0)
+	{
+		return false;
+	}
+
+	PlayOnNext |= PlayerFacade->IsPlaying();
 
 	while (RemainingAttempts-- > 0)
 	{
@@ -343,6 +360,10 @@ bool UMediaPlayer::OpenFile(const FString& FilePath)
 {
 	Close();
 
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.OpenFile %s"), *GetFName().ToString(), *FilePath);
+
+	check(Playlist != nullptr);
+
 	if (!Playlist->AddFile(FilePath))
 	{
 		return false;
@@ -358,9 +379,11 @@ bool UMediaPlayer::OpenPlaylistIndex(UMediaPlaylist* InPlaylist, int32 Index)
 
 	if (InPlaylist == nullptr)
 	{
-		UE_LOG(LogMediaAssets, Warning, TEXT("UMediaPlayer::OpenPlaylistIndex called with null MediaPlaylist"));
+		UE_LOG(LogMediaAssets, Warning, TEXT("%s.OpenPlaylistIndex called with null MediaPlaylist"), *GetFName().ToString());
 		return false;
 	}
+
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.OpenSource %s %i"), *GetFName().ToString(), *InPlaylist->GetFName().ToString(), Index);
 
 	Playlist = InPlaylist;
 
@@ -373,7 +396,7 @@ bool UMediaPlayer::OpenPlaylistIndex(UMediaPlaylist* InPlaylist, int32 Index)
 
 	if (MediaSource == nullptr)
 	{
-		UE_LOG(LogMediaAssets, Warning, TEXT("UMediaPlayer::OpenPlaylistIndex called with invalid PlaylistIndex %i"), Index);
+		UE_LOG(LogMediaAssets, Warning, TEXT("%s.OpenPlaylistIndex called with invalid PlaylistIndex %i"), *GetFName().ToString(), Index);
 		return false;
 	}
 
@@ -395,9 +418,11 @@ bool UMediaPlayer::OpenSource(UMediaSource* MediaSource)
 
 	if (MediaSource == nullptr)
 	{
-		UE_LOG(LogMediaAssets, Warning, TEXT("UMediaPlayer::OpenSource called with null MediaSource"));
+		UE_LOG(LogMediaAssets, Warning, TEXT("%s.OpenSource called with null MediaSource"), *GetFName().ToString());
 		return false;
 	}
+
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.OpenSource %s"), *GetFName().ToString(), *MediaSource->GetFName().ToString());
 
 	if (!MediaSource->Validate())
 	{
@@ -405,6 +430,7 @@ bool UMediaPlayer::OpenSource(UMediaSource* MediaSource)
 		return false;
 	}
 
+	check(Playlist != nullptr);
 	Playlist->Add(MediaSource);
 
 	return Next();
@@ -414,6 +440,10 @@ bool UMediaPlayer::OpenSource(UMediaSource* MediaSource)
 bool UMediaPlayer::OpenUrl(const FString& Url)
 {
 	Close();
+
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.OpenUrl %s"), *GetFName().ToString(), *Url);
+
+	check(Playlist != nullptr);
 
 	if (!Playlist->AddUrl(Url))
 	{
@@ -426,19 +456,31 @@ bool UMediaPlayer::OpenUrl(const FString& Url)
 
 bool UMediaPlayer::Pause()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Pause"), *GetFName().ToString());
 	return PlayerFacade->SetRate(0.0f);
 }
 
 
 bool UMediaPlayer::Play()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Play"), *GetFName().ToString());
 	return PlayerFacade->SetRate(1.0f);
 }
 
 
 bool UMediaPlayer::Previous()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Previous"), *GetFName().ToString());
+
+	check(Playlist != nullptr);
 	int32 RemainingAttempts = Playlist->Num();
+
+	if (RemainingAttempts == 0)
+	{
+		return false;
+	}
+
+	PlayOnNext |= PlayerFacade->IsPlaying();
 
 	while (--RemainingAttempts >= 0)
 	{
@@ -458,41 +500,43 @@ bool UMediaPlayer::Previous()
 
 bool UMediaPlayer::Reopen()
 {
-	if (Playlist == nullptr)
-	{
-		return false;
-	}
-
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Reopen"), *GetFName().ToString());
 	return OpenPlaylistIndex(Playlist, PlaylistIndex);
 }
 
 
 bool UMediaPlayer::Rewind()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.Rewind"), *GetFName().ToString());
 	return Seek(FTimespan::Zero());
 }
 
 
 bool UMediaPlayer::Seek(const FTimespan& Time)
 {
+	UE_LOG(LogMediaAssets, VeryVerbose, TEXT("%s.Seek %s"), *GetFName().ToString(), *Time.ToString());
 	return PlayerFacade->Seek(Time);
 }
 
 
 bool UMediaPlayer::SelectTrack(EMediaPlayerTrack TrackType, int32 TrackIndex)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SelectTrack %s %i"), *GetFName().ToString(), *UEnum::GetValueAsString(TEXT("MediaAssets.EMediaPlayerTrack"), TrackType), TrackIndex);
 	return PlayerFacade->SelectTrack((EMediaTrackType)TrackType, TrackIndex);
 }
 
 
 void UMediaPlayer::SetDesiredPlayerName(FName PlayerName)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetDesiredPlayerName %s"), *GetFName().ToString(), *PlayerName.ToString());
 	PlayerFacade->DesiredPlayerName = PlayerName;
 }
 
 
 bool UMediaPlayer::SetLooping(bool Looping)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetLooping %s"), *GetFName().ToString(), *(Looping ? GTrue : GFalse).ToString());
+
 	Loop = Looping;
 
 	return PlayerFacade->SetLooping(Looping);
@@ -501,29 +545,34 @@ bool UMediaPlayer::SetLooping(bool Looping)
 
 bool UMediaPlayer::SetRate(float Rate)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetRate %f"), *GetFName().ToString(), Rate);
 	return PlayerFacade->SetRate(Rate);
 }
 
 
 bool UMediaPlayer::SetTrackFormat(EMediaPlayerTrack TrackType, int32 TrackIndex, int32 FormatIndex)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetTrackFormat %s %i %i"), *GetFName().ToString(), *UEnum::GetValueAsString(TEXT("MediaAssets.EMediaPlayerTrack"), TrackType), TrackIndex, FormatIndex);
 	return PlayerFacade->SetTrackFormat((EMediaTrackType)TrackType, TrackIndex, FormatIndex);
 }
 
 
 bool UMediaPlayer::SetVideoTrackFrameRate(int32 TrackIndex, int32 FormatIndex, float FrameRate)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetVideoTrackFrameRate %i %i %f"), *GetFName().ToString(), TrackIndex, FormatIndex, FrameRate);
 	return PlayerFacade->SetVideoTrackFrameRate(TrackIndex, FormatIndex, FrameRate);
 }
 
 bool UMediaPlayer::SetViewField(float Horizontal, float Vertical, bool Absolute)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetViewField %f %f %s"), *GetFName().ToString(), Horizontal, Vertical, *(Absolute ? GTrue : GFalse).ToString());
 	return PlayerFacade->SetViewField(Horizontal, Vertical, Absolute);
 }
 
 
 bool UMediaPlayer::SetViewRotation(const FRotator& Rotation, bool Absolute)
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.SetViewRotation %s %s"), *GetFName().ToString(), *Rotation.ToString(), *(Absolute ? GTrue : GFalse).ToString());
 	return PlayerFacade->SetViewOrientation(FQuat(Rotation), Absolute);
 }
 
@@ -550,6 +599,8 @@ bool UMediaPlayer::SupportsSeeking() const
 
 void UMediaPlayer::PausePIE()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.PausePIE"), *GetFName().ToString());
+
 	WasPlayingInPIE = IsPlaying();
 
 	if (WasPlayingInPIE)
@@ -561,6 +612,8 @@ void UMediaPlayer::PausePIE()
 
 void UMediaPlayer::ResumePIE()
 {
+	UE_LOG(LogMediaAssets, Verbose, TEXT("%s.ResumePIE"), *GetFName().ToString());
+
 	if (WasPlayingInPIE)
 	{
 		Play();
@@ -634,6 +687,7 @@ void UMediaPlayer::PostLoad()
 	PlayerFacade->SetGuid(PlayerGuid);
 }
 
+
 #if WITH_EDITOR
 
 void UMediaPlayer::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -692,6 +746,8 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 
 	case EMediaEvent::PlaybackEndReached:
 		OnEndReached.Broadcast();
+
+		check(Playlist != nullptr);
 
 		if ((Loop && (Playlist->Num() != 1)) || (PlaylistIndex + 1 < Playlist->Num()))
 		{
