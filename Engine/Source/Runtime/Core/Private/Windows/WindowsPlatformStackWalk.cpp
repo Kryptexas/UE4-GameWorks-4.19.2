@@ -759,6 +759,11 @@ void* FWindowsPlatformStackWalk::MakeThreadContextWrapper(void* Context, void* T
 	return ContextWrapper;
 }
 
+void FWindowsPlatformStackWalk::ReleaseThreadContextWrapper(void* ThreadContext)
+{
+	delete (FWindowsThreadContextWrapper*)ThreadContext;
+}
+
 /**
  * Create path symbol path.
  * Reference: https://msdn.microsoft.com/en-us/library/ms681416%28v=vs.85%29.aspx?f=255&MSPPError=-2147217396

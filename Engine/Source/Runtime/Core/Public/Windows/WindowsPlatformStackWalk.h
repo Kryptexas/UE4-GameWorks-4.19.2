@@ -41,6 +41,7 @@ struct CORE_API FWindowsPlatformStackWalk
 	static FString GetDownstreamStorage();
 
 	static void* MakeThreadContextWrapper(void* Context, void* ThreadHandle);
+	static void ReleaseThreadContextWrapper(void* ThreadContext);
 };
 
 

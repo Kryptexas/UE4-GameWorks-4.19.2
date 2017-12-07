@@ -530,7 +530,7 @@ private:
 			// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
 			void* ContextWapper = FWindowsPlatformStackWalk::MakeThreadContextWrapper(ExceptionInfo->ContextRecord, CrashingThreadHandle);
 			FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, ContextWapper);
-			delete ContextWapper;
+			FWindowsPlatformStackWalk::ReleaseThreadContextWrapper(ContextWapper);
 			if (ExceptionInfo->ExceptionRecord->ExceptionCode != 1)
 			{
 				CreateExceptionInfoString(ExceptionInfo->ExceptionRecord);
