@@ -433,9 +433,6 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 				if (QueuedBP->GeneratedClass)
 				{
-					extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
-					SetUpRuntimeReplicationData(QueuedBP->GeneratedClass);
-
 					FBlueprintEditorUtils::RecreateClassMetaData(QueuedBP, QueuedBP->GeneratedClass, true);
 				}
 
@@ -905,6 +902,12 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				}
 			}
 
+			if(BP->GeneratedClass)
+			{
+				extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
+				SetUpRuntimeReplicationData(BP->GeneratedClass);
+			}
+			
 			ensure(BP->GeneratedClass == nullptr || BP->GeneratedClass->ClassDefaultObject->GetClass() == *(BP->GeneratedClass));
 		}
 	} // end GTimeCompiling scope
