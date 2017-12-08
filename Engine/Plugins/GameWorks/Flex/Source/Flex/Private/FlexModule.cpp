@@ -54,7 +54,7 @@ void FFlexModule::ShutdownModule()
 
 void FFlexModule::LoadDLLs()
 {
-	auto FlexPlugin = IPluginManager::Get().FindPlugin(TEXT("FleX"));
+	auto FlexPlugin = IPluginManager::Get().FindPlugin(TEXT("Flex"));
 	check(FlexPlugin.IsValid());
 
 	//load FlexLibrary DLLs

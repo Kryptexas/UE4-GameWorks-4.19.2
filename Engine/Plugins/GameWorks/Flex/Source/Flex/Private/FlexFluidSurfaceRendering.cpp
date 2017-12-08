@@ -30,7 +30,7 @@ struct FFlexFluidSurfaceParticleSphereVS : public FMeshMaterialShader
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType) { return true; }
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleSphereVS, TEXT("/Plugin/FleX/FlexFluidSurfaceParticleVertexShader.usf"), TEXT("SphereMainVS"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleSphereVS, TEXT("/Plugin/Flex/FlexFluidSurfaceParticleVertexShader.usf"), TEXT("SphereMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceParticleEllipsoidVS
@@ -44,7 +44,7 @@ struct FFlexFluidSurfaceParticleEllipsoidVS : public FMeshMaterialShader
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType) { return true; }
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleEllipsoidVS, TEXT("/Plugin/FleX/FlexFluidSurfaceParticleVertexShader.usf"), TEXT("EllipsoidMainVS"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleEllipsoidVS, TEXT("/Plugin/Flex/FlexFluidSurfaceParticleVertexShader.usf"), TEXT("EllipsoidMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceParticleEllipsoidDepthPS
@@ -58,7 +58,7 @@ struct FFlexFluidSurfaceParticleEllipsoidDepthPS : public FMeshMaterialShader
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType) { return true; }
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleEllipsoidDepthPS, TEXT("/Plugin/FleX/FlexFluidSurfaceParticlePixelShader.usf"), TEXT("EllipsoidDepthMainPS"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleEllipsoidDepthPS, TEXT("/Plugin/Flex/FlexFluidSurfaceParticlePixelShader.usf"), TEXT("EllipsoidDepthMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceParticleSphereThicknessPS
@@ -72,7 +72,7 @@ struct FFlexFluidSurfaceParticleSphereThicknessPS : public FMeshMaterialShader
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType) { return true; }
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleSphereThicknessPS, TEXT("/Plugin/FleX/FlexFluidSurfaceParticlePixelShader.usf"), TEXT("SphereThicknessMainPS"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FFlexFluidSurfaceParticleSphereThicknessPS, TEXT("/Plugin/Flex/FlexFluidSurfaceParticlePixelShader.usf"), TEXT("SphereThicknessMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexFluidSurfaceScreenVS
@@ -86,7 +86,7 @@ struct FFlexFluidSurfaceScreenVS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform) { return true; }
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceScreenVS, TEXT("/Plugin/FleX/FlexFluidSurfaceScreenShader.usf"), TEXT("ScreenMainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceScreenVS, TEXT("/Plugin/Flex/FlexFluidSurfaceScreenShader.usf"), TEXT("ScreenMainVS"), SF_Vertex);
 
 /*=============================================================================
 FFlexFluidSurfaceDepthSmoothPS
@@ -191,7 +191,7 @@ struct FFlexFluidSurfaceDepthSmoothPS : public FGlobalShader
 	FShaderParameter TexelSize;
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceDepthSmoothPS, TEXT("/Plugin/FleX/FlexFluidSurfaceScreenShader.usf"), TEXT("DepthSmoothMainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FFlexFluidSurfaceDepthSmoothPS, TEXT("/Plugin/Flex/FlexFluidSurfaceScreenShader.usf"), TEXT("DepthSmoothMainPS"), SF_Pixel);
 
 /*=============================================================================
 FFlexDownsampleSceneDepthPS
@@ -315,7 +315,7 @@ struct FFlexUpsampleSurfaceDepthPS : public FGlobalShader
 	FShaderResourceParameter DepthTextureSamplerBilinear;
 };
 
-IMPLEMENT_SHADER_TYPE(, FFlexUpsampleSurfaceDepthPS, TEXT("/Plugin/FleX/FlexFluidSurfaceUpSampleShader.usf"), TEXT("UpSampleMainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FFlexUpsampleSurfaceDepthPS, TEXT("/Plugin/Flex/FlexFluidSurfaceUpSampleShader.usf"), TEXT("UpSampleMainPS"), SF_Pixel);
 
 static float ConvertFromDeviceZ(float DeviceZ, const FViewInfo& ViewInfo)
 {

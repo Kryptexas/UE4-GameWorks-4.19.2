@@ -1250,7 +1250,7 @@ protected:
 public:
 	// NvFlex begin
 	/**
-	* Get all of the FleX container templates from all of the emitter instances
+	* Get all of the Flex container templates from all of the emitter instances
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Flex")
 	class UObject* GetFirstFlexContainerTemplate(); //returns UFlexContainer*

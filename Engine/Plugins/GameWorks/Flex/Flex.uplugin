@@ -1,12 +1,12 @@
 {
 	"FileVersion" : 3,
 
-	"FriendlyName" : "FleX",
+	"FriendlyName" : "Flex",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "nVidia",
 	"CreatedByURL" : "https://developer.nvidia.com/flex",
-	"Description" : "FleX",
+	"Description" : "Flex",
 	"Category" : "Visual FX",
 	"EnabledByDefault" : true,
 

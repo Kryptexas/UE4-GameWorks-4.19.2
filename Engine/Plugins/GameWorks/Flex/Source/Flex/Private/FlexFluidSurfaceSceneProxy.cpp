@@ -368,7 +368,7 @@ FVertexFactoryShaderParameters* FFlexFluidSurfaceParticleVertexFactory::Construc
 	return NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceParticleVertexFactory, "/Plugin/FleX/FlexFluidSurfaceParticleVertexFactory.ush", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceParticleVertexFactory, "/Plugin/Flex/FlexFluidSurfaceParticleVertexFactory.ush", true, false, true, false, false);
 
 /*=============================================================================
 FFlexFluidSurfaceVertexFactory
@@ -449,7 +449,7 @@ protected:
 
 };
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceVertexFactory, "/Plugin/FleX/FlexFluidSurfaceVertexFactory.ush", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FFlexFluidSurfaceVertexFactory, "/Plugin/Flex/FlexFluidSurfaceVertexFactory.ush", true, false, true, false, false);
 
 /*=============================================================================
 FVertexFactoryShaderParameters
