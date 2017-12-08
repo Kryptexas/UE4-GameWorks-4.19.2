@@ -45,6 +45,14 @@ public:
 
 	void Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginItemId, const FString& InPluginOfferId, TFunction<void()> InAuthorizedCallback);
 
+	/**
+	 * Override the default message and behavior in the case where the plugin is unauthorized.
+	 *
+	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
+	 * @param bShowStoreOnUnauthorized Show the Store page if plugin is not authorized.
+	 */
+	void SetUnauthorizedOverride(const FText& InUnauthorizedMessageOverride, bool bInShowStoreOnUnauthorized);
+
 private:
 
 	FText GetWaitingText() const;
@@ -71,6 +79,12 @@ private:
 
 	/** The unique id of the offer for the plug-in on the marketplace. */
 	FString PluginOfferId;
+
+	/** The optional error message to display in case plugin is unauthorized. If empty, will default to standard message. */
+	FText UnauthorizedMessageOverride;
+
+	/** Flag to enable showing the store page when plugin is not authorized */
+	bool bShowStoreOnUnauthorized;
 
 	/** Flag for tracking user interruption of the process, either with the cancel button or the close button. */
 	bool bUserInterrupted;

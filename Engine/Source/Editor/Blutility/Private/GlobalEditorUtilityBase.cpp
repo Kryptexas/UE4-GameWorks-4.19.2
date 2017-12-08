@@ -160,7 +160,7 @@ void UGlobalEditorUtilityBase::RenameAsset(UObject* Asset, const FString& NewNam
 	const FString PackagePath = FPackageName::GetLongPackagePath(Asset->GetOutermost()->GetName());
 	new (AssetsAndNames) FAssetRenameData(Asset, PackagePath, NewName);
 
-	AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+	AssetToolsModule.Get().RenameAssetsWithDialog(AssetsAndNames);
 }
 
 AActor* UGlobalEditorUtilityBase::GetActorReference(FString PathToActor)

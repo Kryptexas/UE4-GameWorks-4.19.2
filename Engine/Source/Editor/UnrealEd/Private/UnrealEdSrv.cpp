@@ -1183,7 +1183,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 			if( AssetsToRename.Num() > 0 )
 			{
-				AssetTools.RenameAssets( AssetsToRename, bAutoCheckOut );
+				AssetTools.RenameAssetsWithDialog( AssetsToRename, bAutoCheckOut );
 			}
 
 			GWarn->EndSlowTask();

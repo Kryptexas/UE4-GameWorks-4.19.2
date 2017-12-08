@@ -997,7 +997,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	InitialPositionY(0),
 	SizeX(0),
 	SizeY(0),
-	WindowMode(IsRunningGame() ? GEngine->GetGameUserSettings()->GetDefaultWindowMode() : EWindowMode::Windowed),
+	WindowMode(IsRunningGame() ? GSystemResolution.WindowMode : EWindowMode::Windowed),
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),

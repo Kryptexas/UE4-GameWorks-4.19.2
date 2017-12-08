@@ -416,7 +416,7 @@ void IESLightProfileMain(
 
 	float3 LightPos = float3(0, -0.25f, 0.85f);
 
-	float LightProfileMultiplier = ComputeLightProfileMultiplier(Position, LightPos, float3(0, -1, 0));
+	float LightProfileMultiplier = ComputeLightProfileMultiplier(Position, LightPos, float3(0, 1, 0), float3(0, 0, 1));
 
 	// Inverse square falloff
 	float Attenuation = 0.01f / max( 0.01f, length(Position - LightPos));

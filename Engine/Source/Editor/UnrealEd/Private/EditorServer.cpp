@@ -2029,6 +2029,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		}
 	}
 
+	FEditorSupportDelegates::PrepareToCleanseEditorObject.Broadcast(ContextWorld);
+
 	ContextWorld->DestroyWorld( true, NewWorld );
 	Context.SetCurrentWorld(NULL);
 
@@ -2064,7 +2066,7 @@ bool UEditorEngine::ShouldAbortBecauseOfPIEWorld() const
 	// If a PIE world exists, warn the user that the PIE session will be terminated.
 	if ( GEditor->PlayWorld )
 	{
-		if( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillTerminatePIEContinue", "This action will terminate your Play In Editor session.  Continue?") ) )
+		if( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, EAppReturnType::Yes, NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillTerminatePIEContinue", "This action will terminate your Play In Editor session.  Continue?") ) )
 		{
 			// End the play world.
 			GEditor->EndPlayMap();
@@ -2095,7 +2097,7 @@ bool UEditorEngine::ShouldAbortBecauseOfUnsavedWorld() const
 			if ( !FPackageName::DoesPackageExist(PackageName) )
 			{
 				// This world will be completely lost if a map transition happens. Warn the user that this is happening and ask him/her how to proceed.
-				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(LevelEditorWorld->GetName()))))
+				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::Yes, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(LevelEditorWorld->GetName()))))
 				{
 					// User doesn't want to lose the world -- abort the load.
 					return true;

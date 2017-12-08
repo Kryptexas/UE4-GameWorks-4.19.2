@@ -8,7 +8,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetStringTableLibrary.generated.h"
 
-UCLASS(meta=(BlueprintThreadSafe))
+UCLASS(meta=(BlueprintThreadSafe, ScriptName="StringTableLibrary"))
 class ENGINE_API UKismetStringTableLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

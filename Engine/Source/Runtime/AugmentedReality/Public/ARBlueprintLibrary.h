@@ -8,7 +8,7 @@
 #include "ARBlueprintLibrary.generated.h"
 
 
-UCLASS()
+UCLASS(meta=(ScriptName="ARLibrary"))
 class AUGMENTEDREALITY_API UARBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

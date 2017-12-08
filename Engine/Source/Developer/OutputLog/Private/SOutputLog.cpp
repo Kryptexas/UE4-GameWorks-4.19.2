@@ -323,7 +323,7 @@ TSharedRef<ITableRow> SConsoleInputBox::MakeSuggestionListItemWidget(TSharedPtr<
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		[
 			SNew(SBox)
-			.WidthOverride(300)			// to enforce some minimum width, ideally we define the minimum, not a fixed width
+			.MinDesiredWidth(300)
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(SanitizedText))
@@ -373,6 +373,7 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 			// Clear the console input area
 			bIgnoreUIUpdate = true;
 			InputText->SetText(FText::GetEmpty());
+			ClearSuggestions();
 			bIgnoreUIUpdate = false;
 			
 			// Exec!
@@ -386,8 +387,10 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 				ActiveCommandExecutor->Exec(*ExecString);
 			}
 		}
-
-		ClearSuggestions();
+		else
+		{
+			ClearSuggestions();
+		}
 
 		OnConsoleCommandExecuted.ExecuteIfBound();
 	}
@@ -901,6 +904,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 	}
 
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(InArgs._Messages, &Filter);
+
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
 		.Style(FEditorStyle::Get(), "Log.TextBox")

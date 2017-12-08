@@ -7145,7 +7145,7 @@ void FActorLabelUtilities::RenameExistingActor(AActor* Actor, const FString& New
 	{
 		TArray<FAssetRenameData> RenameData;
 		RenameData.Add(FAssetRenameData(OldPath, NewPath, true));
-		AssetToolsModule.Get().RenameAssets(RenameData);
+		AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 	}
 }
 

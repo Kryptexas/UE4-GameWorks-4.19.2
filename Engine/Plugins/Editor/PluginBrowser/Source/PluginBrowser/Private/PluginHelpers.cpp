@@ -238,7 +238,7 @@ bool FPluginHelpers::FixupPluginTemplateAssets(const FString& PluginName)
 				if (AssetRenameData.Num() > 0)
 				{
 					FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-					AssetToolsModule.Get().RenameAssets(AssetRenameData);
+					AssetToolsModule.Get().RenameAssetsWithDialog(AssetRenameData);
 				}
 			}
 		}

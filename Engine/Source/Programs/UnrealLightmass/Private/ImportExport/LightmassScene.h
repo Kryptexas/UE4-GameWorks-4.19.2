@@ -201,6 +201,8 @@ public:
 		return (LightFlags & GI_LIGHT_HASSTATICLIGHTING) != 0;
 	}
 
+	virtual FVector GetLightTangent() const { return Direction; }
+
 protected:
 	/** Cached samples of the light's surface, indexed first by bounce number, then by whether the shadow ray is a penumbra ray, then by sample index. */
 	TArray<TArray<TArray<FLightSurfaceSample> > > CachedLightSurfaceSamples;
@@ -210,6 +212,8 @@ protected:
 
 	/** Generates a sample on the light's surface. */
 	virtual void SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const = 0;
+
+	TArray< uint8 > LightTextureProfileData;
 };
 
 
@@ -388,11 +392,11 @@ public:
 	/** Gets a single direction to use for direct lighting that is representative of the whole area light. */
 	virtual FVector4 GetDirectLightingDirection(const FVector4& Point, const FVector4& PointNormal) const;
 
+	virtual FVector GetLightTangent() const override;
+
 protected:
 
 	float CosIndirectPhotonEmitConeAngle;
-
-	virtual FVector GetLightTangent() const;
 
 	/** Generates a sample on the light's surface. */
 	virtual void SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const;
@@ -436,8 +440,6 @@ public:
 
 	/** Returns the number of direct photons to gather required by this light. */
 	virtual int32 GetNumDirectPhotons(float DirectPhotonDensity) const;
-
-	virtual FVector GetLightTangent() const override;
 
 	/** Generates a direction sample from the light's domain */
 	virtual void SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const;

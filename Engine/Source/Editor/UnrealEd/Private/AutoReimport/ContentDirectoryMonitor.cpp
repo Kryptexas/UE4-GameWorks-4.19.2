@@ -455,7 +455,7 @@ void FContentDirectoryMonitor::ProcessModifications(const DirectoryWatcher::FTim
 
 						Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_MovedAsset", "Moving asset {0} to {1}."),	SrcPathText, DstPathText));
 
-						FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get().RenameAssets(RenameData);
+						FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get().RenameAssetsWithDialog(RenameData);
 
 						TArray<FString> Filenames;
 						Filenames.Add(FullFilename);

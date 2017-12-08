@@ -12,7 +12,7 @@ class APlayerController;
 /**
  * A beacon host used for taking reservations for an existing game session
  */
-UCLASS()
+UCLASS(meta=(ScriptName="LeaderboardLibrary"))
 class ONLINESUBSYSTEMUTILS_API ULeaderboardBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

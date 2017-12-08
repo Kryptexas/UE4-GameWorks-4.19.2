@@ -10,7 +10,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "AppleARKitBlueprintLibrary.generated.h"
 
-UCLASS()
+UCLASS(meta=(ScriptName="AppleARKitLibrary"))
 class APPLEARKIT_API UAppleARKitBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

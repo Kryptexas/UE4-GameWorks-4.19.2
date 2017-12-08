@@ -1352,7 +1352,7 @@ public:
 	virtual void SetCollisionObjectType(ECollisionChannel Channel);
 
 	/** Perform a line trace against a single component */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", ScriptName = "LineTraceComponent", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
 	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit);
 
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
@@ -1806,15 +1806,15 @@ public:
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 
 	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Collision Enabled", ScriptName="IsCollisionEnabled"), Category="Collision")
 	bool K2_IsCollisionEnabled() const;
 
 	/** Utility to see if there is any query collision enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Query Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Query Collision Enabled", ScriptName="IsQueryCollisionEnabled"), Category="Collision")
 	bool K2_IsQueryCollisionEnabled() const;
 
 	/** Utility to see if there is any physics collision enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Physics Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Physics Collision Enabled", ScriptName="IsPhysicsCollisionEnabled"), Category="Collision")
 	bool K2_IsPhysicsCollisionEnabled() const;
 
 	/** Gets the response type given a specific channel */

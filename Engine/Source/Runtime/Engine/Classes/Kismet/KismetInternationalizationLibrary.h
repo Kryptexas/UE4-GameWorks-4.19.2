@@ -8,7 +8,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetInternationalizationLibrary.generated.h"
 
-UCLASS(meta=(BlueprintThreadSafe))
+UCLASS(meta=(BlueprintThreadSafe, ScriptName="InternationalizationLibrary"))
 class ENGINE_API UKismetInternationalizationLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

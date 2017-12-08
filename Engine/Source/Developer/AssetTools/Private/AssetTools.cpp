@@ -552,13 +552,18 @@ UObject* UAssetToolsImpl::DuplicateAssetWithDialog(const FString& AssetName, con
 		const FString SaveAssetName = FPaths::GetBaseFilename(SavePackageName);
 		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
 
-		return DuplicateAsset(SaveAssetName, SavePackagePath, OriginalObject);
+		return PerformDuplicateAsset(SaveAssetName, SavePackagePath, OriginalObject, true);
 	}
 
 	return nullptr;
 }
 
 UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
+{
+	return PerformDuplicateAsset(AssetName, PackagePath, OriginalObject, false);
+}
+
+UObject* UAssetToolsImpl::PerformDuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject, bool bWithDialog)
 {
 	// Verify the source object
 	if ( !OriginalObject )
@@ -581,7 +586,8 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 	PGN.ObjectName = AssetName;
 
 	TSet<UPackage*> ObjectsUserRefusedToFullyLoad;
-	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad);
+	bool bPromtToOverwrite = bWithDialog;
+	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad, bPromtToOverwrite);
 	if(NewObject != nullptr)
 	{
 		if ( ISourceControlModule::Get().IsEnabled() )
@@ -605,9 +611,14 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 	return NewObject;
 }
 
-void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
+bool UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
-	AssetRenameManager->RenameAssets(AssetsAndNames, bAutoCheckout);
+	return AssetRenameManager->RenameAssets(AssetsAndNames);
+}
+
+void UAssetToolsImpl::RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
+{
+	AssetRenameManager->RenameAssetsWithDialog(AssetsAndNames, bAutoCheckout);
 }
 
 void UAssetToolsImpl::FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const
@@ -2036,10 +2047,11 @@ bool UAssetToolsImpl::CanCreateAsset(const FString& AssetName, const FString& Pa
 		// to replace the object.
 		bool bWantReplace =
 			EAppReturnType::Yes == FMessageDialog::Open(
-			EAppMsgType::YesNo,
-			FText::Format(
-				NSLOCTEXT("UnrealEd", "ReplaceExistingObjectInPackage_F", "An object [{0}] of class [{1}] already exists in file [{2}].  Do you want to replace the existing object?  If you click 'Yes', the existing object will be deleted.  Otherwise, click 'No' and choose a unique name for your new object." ),
-				FText::FromString(AssetName), FText::FromString(ExistingObject->GetClass()->GetName()), FText::FromString(PackageName) ) );
+				EAppMsgType::YesNo,
+				EAppReturnType::No,
+				FText::Format(
+					NSLOCTEXT("UnrealEd", "ReplaceExistingObjectInPackage_F", "An object [{0}] of class [{1}] already exists in file [{2}].  Do you want to replace the existing object?  If you click 'Yes', the existing object will be deleted.  Otherwise, click 'No' and choose a unique name for your new object." ),
+					FText::FromString(AssetName), FText::FromString(ExistingObject->GetClass()->GetName()), FText::FromString(PackageName) ) );
 
 		if( bWantReplace )
 		{
@@ -2210,36 +2222,48 @@ void UAssetToolsImpl::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedP
 			}
 			else
 			{
-				const FString DestFilename = SrcFilename.Replace(*FPaths::ProjectContentDir(), *DestinationFolder);
-
 				bool bFileOKToCopy = true;
-				if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
-				{
-					// The destination file already exists! Ask the user what to do.
-					EAppReturnType::Type Response;
-					if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
-					{
-						Response = LastResponse;
-					}
-					else
-					{
-						const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
-						Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
-						if ( Response == EAppReturnType::Cancel )
-						{
-							// The user chose to cancel mid-operation. Break out.
-							bUserCanceled = true;
-							break;
-						}
-						LastResponse = Response;
-					}
 
-					const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
-					if( !bWantOverwrite )
+				FString DestFilename = DestinationFolder;
+
+				FString SubFolder;
+				if ( SrcFilename.Split( TEXT("/Content/"), nullptr, &SubFolder ) )
+				{
+					DestFilename += *SubFolder;
+
+					if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
 					{
-						// User chose not to replace the package
-						bFileOKToCopy = false;
+						// The destination file already exists! Ask the user what to do.
+						EAppReturnType::Type Response;
+						if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
+						{
+							Response = LastResponse;
+						}
+						else
+						{
+							const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
+							Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
+							if ( Response == EAppReturnType::Cancel )
+							{
+								// The user chose to cancel mid-operation. Break out.
+								bUserCanceled = true;
+								break;
+							}
+							LastResponse = Response;
+						}
+
+						const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
+						if( !bWantOverwrite )
+						{
+							// User chose not to replace the package
+							bFileOKToCopy = false;
+						}
 					}
+				}
+				else
+				{
+					// Couldn't find Content folder in source path
+					bFileOKToCopy = false;
 				}
 
 				if ( bFileOKToCopy )

@@ -2979,9 +2979,15 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 			{
 				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 				
-				FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalData<FLightPropagationVolumeSettings>();
+				float LPVIntensity = 0.f;
 
-				if (LightPropagationVolume && LightPropagationVolume->bInitialized && LPVSettings.LPVIntensity > 0)
+				if (LightPropagationVolume && LightPropagationVolume->bEnabled)
+				{
+					const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+					LPVIntensity = LPVSettings.LPVIntensity;
+				}
+
+				if (LPVIntensity > 0)
 				{
 					// Generate the RSM shadow info
 					FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;

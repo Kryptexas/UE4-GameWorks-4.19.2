@@ -9,7 +9,7 @@
 
 class UMaterialParameterCollection;
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="MaterialLibrary"))
 class UKismetMaterialLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

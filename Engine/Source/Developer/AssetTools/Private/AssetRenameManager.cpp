@@ -198,21 +198,38 @@ private:
 // FAssetRenameManager
 ///////////////////////////
 
-void FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
+/** Renames assets using the specified names. */
+bool FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
+	// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	if (AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		UE_LOG(LogAssetTools, Warning, TEXT("Unable To Rename While Discovering Assets"));
+		return false;
+	}
+	const bool bAutoCheckout = true;
+	const bool bWithDialog = false;
+	return FixReferencesAndRename(AssetsAndNames, bAutoCheckout, bWithDialog);
+}
+
+void FAssetRenameManager::RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
+{
+	bool bWithDialog = true;
+
 	// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	if (AssetRegistryModule.Get().IsLoadingAssets())
 	{
 		// Open a dialog asking the user to wait while assets are being discovered
 		SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRename, AssetsAndNames, bAutoCheckout)
+			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRenameCallback, AssetsAndNames, bAutoCheckout, bWithDialog)
 		);
 	}
 	else
 	{
 		// No need to wait, attempt to fix references and rename now.
-		FixReferencesAndRename(AssetsAndNames, bAutoCheckout);
+		FixReferencesAndRename(AssetsAndNames, bAutoCheckout, bWithDialog);
 	}
 }
 
@@ -229,7 +246,12 @@ void FAssetRenameManager::FindSoftReferencesToObject(FSoftObjectPath TargetObjec
 	LoadReferencingPackages(AssetsToRename, true, false, ReferencingPackagesToSave, ReferencingObjects);
 }
 
-void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout) const
+void FAssetRenameManager::FixReferencesAndRenameCallback(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const
+{
+	FixReferencesAndRename(AssetsAndNames, bAutoCheckout, bWithDialog);
+}
+
+bool FAssetRenameManager::FixReferencesAndRename(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const
 {
 	bool bSoftReferencesOnly = true;
 	// Prep a list of assets to rename with an extra boolean to determine if they should leave a redirector or not
@@ -261,9 +283,9 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 		}
 
 		const FText MessageText = FText::Format(LOCTEXT("RenameCDOReferences", "The following assets are referenced by one or more Class Default Objects: \n{0}\n\nContinuing with the rename may require code changes to fix these references. Do you wish to continue?"), FText::FromString(AssetNames));
-		if (FMessageDialog::Open(EAppMsgType::YesNo, MessageText) == EAppReturnType::No)
+		if (FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::No, MessageText) == EAppReturnType::No)
 		{
-			return;
+			return false;
 		}
 	}
 
@@ -317,7 +339,7 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 					if (!bAgreedToSaveReferencingPackages)
 					{
 						const FText MessageText = FText::Format(LOCTEXT("SoftReferenceFixedUp", "The following packages were fixed up because they have soft references to a renamed object: \n{0}\n\nDo you want to save them now?\nIf you quit without saving references will be broken!"), FText::FromString(AssetNames));
-						bAgreedToSaveReferencingPackages = FMessageDialog::Open(EAppMsgType::YesNo, MessageText) == EAppReturnType::Yes;
+						bAgreedToSaveReferencingPackages = FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::Yes, MessageText) == EAppReturnType::Yes;
 					}
 
 					if (bAgreedToSaveReferencingPackages)
@@ -341,7 +363,7 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 	}
 
 	// Finally, report any failures that happened during the rename
-	ReportFailures(AssetsToRename);
+	return ReportFailures(AssetsToRename, bWithDialog) == 0;
 }
 
 TArray<TWeakObjectPtr<UObject>> FAssetRenameManager::FindCDOReferencedAssets(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
@@ -669,40 +691,47 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 
 bool FAssetRenameManager::AutoCheckOut(TArray<UPackage*>& PackagesToCheckOut) const
 {
-	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-
-	TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> SourceControlStates;
-	ECommandResult::Type GetStateResult = SourceControlProvider.GetState(PackagesToCheckOut, SourceControlStates, EStateCacheUsage::ForceUpdate);
-	if (GetStateResult != ECommandResult::Succeeded || SourceControlStates.Num() != PackagesToCheckOut.Num())
-	{
-		UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: could not get source control state for packages"));
-		return false;
-	}
-
 	bool bSomethingFailed = false;
-	for (const TSharedRef<ISourceControlState, ESPMode::ThreadSafe>& PackageState : SourceControlStates)
+	if (PackagesToCheckOut.Num() > 0)
 	{
-		if (PackageState->IsCheckedOutOther())
-		{
-			UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is already checked out by someone, will not check out"), *PackageState->GetFilename());
-			bSomethingFailed = true;
-		}
-		else if (!PackageState->IsCurrent())
-		{
-			UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is not at head, will not check out"), *PackageState->GetFilename());
-			bSomethingFailed = true;
-		}
-	}
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		ECommandResult::Type StatusResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackagesToCheckOut);
 
-	if (!bSomethingFailed)
-	{
-		if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), PackagesToCheckOut) == ECommandResult::Succeeded)
+		if (StatusResult == ECommandResult::Cancelled)
 		{
-			PackagesToCheckOut.Empty();
+			bSomethingFailed = true;
 		}
 		else
 		{
-			bSomethingFailed = true;
+			for (int32 Index = PackagesToCheckOut.Num() - 1; Index >= 0; --Index)
+			{
+				UPackage* Package = PackagesToCheckOut[Index];
+				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::Use);
+				if (SourceControlState->IsCheckedOutOther())
+				{
+					UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is already checked out by someone, will not check out"), *SourceControlState->GetFilename());
+					bSomethingFailed = true;
+				}
+				else if (!SourceControlState->IsCurrent())
+				{
+					UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: package %s is not at head, will not check out"), *SourceControlState->GetFilename());
+					bSomethingFailed = true;
+				}
+				else if (!SourceControlState->IsSourceControlled() || SourceControlState->CanEdit())
+				{
+					PackagesToCheckOut.RemoveAtSwap(Index);
+				}
+			}
+
+			if (!bSomethingFailed && PackagesToCheckOut.Num() > 0)
+			{
+				bSomethingFailed = (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), PackagesToCheckOut) != ECommandResult::Succeeded);
+				if (!bSomethingFailed)
+				{
+					UE_LOG(LogAssetTools, Warning, TEXT("FAssetRenameManager::AutoCheckOut: was not not able to auto checkout."));
+					PackagesToCheckOut.Empty();
+				}
+			}
 		}
 	}
 
@@ -1105,7 +1134,7 @@ void FAssetRenameManager::SaveReferencingPackages(const TArray<UPackage*>& Refer
 	}
 }
 
-void FAssetRenameManager::ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
+int32 FAssetRenameManager::ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bWithDialog) const
 {
 	TArray<FText> FailedRenames;
 	for (const FAssetRenameDataWithReferencers& RenameData : AssetsToRename)
@@ -1130,8 +1159,20 @@ void FAssetRenameManager::ReportFailures(const TArray<FAssetRenameDataWithRefere
 
 	if (FailedRenames.Num() > 0)
 	{
-		SRenameFailures::OpenRenameFailuresDialog(FailedRenames);
+		if (bWithDialog)
+		{
+			SRenameFailures::OpenRenameFailuresDialog(FailedRenames);
+		}
+		else
+		{
+			for (const FText FailedRename : FailedRenames)
+			{
+				UE_LOG(LogAssetTools, Error, TEXT("%s"), *FailedRename.ToString());
+			}
+		}
 	}
+
+	return FailedRenames.Num();
 }
 
 #undef LOCTEXT_NAMESPACE

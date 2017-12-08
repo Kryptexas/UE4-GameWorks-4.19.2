@@ -10,7 +10,7 @@
 class UStaticMeshComponent;
 enum class EVertexPaintAxis : uint8;
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="MeshVertexPainterLibrary"))
 class UMeshVertexPainterKismetLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

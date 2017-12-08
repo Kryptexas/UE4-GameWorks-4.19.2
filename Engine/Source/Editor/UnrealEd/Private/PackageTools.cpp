@@ -157,7 +157,7 @@ namespace PackageTools
 			if( !TopLevelPackage->IsFullyLoaded() )
 			{	
 				// Ask user to fully load or suppress the message and just fully load
-				if(bSuppress || EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
+				if(bSuppress || EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, EAppReturnType::Yes, FText::Format(
 					NSLOCTEXT("UnrealEd", "NeedsToFullyLoadPackageF", "Package {0} is not fully loaded. Do you want to fully load it? Not doing so will abort the '{1}' operation."),
 					FText::FromString(TopLevelPackage->GetName()), OperationText ) ) )
 				{
@@ -712,7 +712,7 @@ namespace PackageTools
 			TArray<UObject*>& ObjectsToExport = FilteredClasses ? FilteredObjects : ObjectsInPackages;
 
 			// Prompt the user about how many objects will be exported before proceeding.
-			const bool bProceed = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
+			const bool bProceed = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, EAppReturnType::Yes, FText::Format(
 				NSLOCTEXT("UnrealEd", "Prompt_AboutToBulkExportNItems_F", "About to bulk export {0} items.  Proceed?"), FText::AsNumber(ObjectsToExport.Num()) ) );
 			if ( bProceed )
 			{

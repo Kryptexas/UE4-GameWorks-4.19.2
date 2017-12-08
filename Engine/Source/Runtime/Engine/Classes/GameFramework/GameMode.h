@@ -79,7 +79,7 @@ protected:
 	virtual void OnMatchStateSet();
 
 	/** Implementable event to respond to match state changes */
-	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(DisplayName="OnSetMatchState"))
+	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(DisplayName="OnSetMatchState", ScriptName="OnSetMatchState"))
 	void K2_OnSetMatchState(FName NewState);
 
 	// Games should override these functions to deal with their game specific logic

@@ -209,7 +209,7 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 					
 				if (RenameData.Num() > 0)
 				{
-					AssetToolsModule.Get().RenameAssets(RenameData);
+					AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 				}
 
 				// Restore new level visibility to previous state
@@ -618,6 +618,7 @@ bool UEditorLevelUtils::RemoveLevelFromWorld(ULevel* InLevel)
 			MakeLevelCurrent(OwningWorld->PersistentLevel);
 		}
 
+		FEditorSupportDelegates::PrepareToCleanseEditorObject.Broadcast(InLevel);
 
 		EditorDestroyLevel(InLevel);
 

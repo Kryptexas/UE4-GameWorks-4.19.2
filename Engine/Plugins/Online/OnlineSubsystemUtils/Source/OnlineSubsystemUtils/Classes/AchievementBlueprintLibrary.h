@@ -11,7 +11,7 @@
 class APlayerController;
 
 // Library of synchronous achievement calls
-UCLASS()
+UCLASS(meta=(ScriptName="AchievementLibrary"))
 class ONLINESUBSYSTEMUTILS_API UAchievementBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

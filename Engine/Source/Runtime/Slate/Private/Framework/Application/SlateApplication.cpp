@@ -2074,6 +2074,21 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		// Bail out.  The incoming window will never be added, and no native window will be created.
 		return;
 	}
+
+	if( GIsRunningUnattendedScript && !bSlowTaskWindow )
+	{
+		UE_LOG(LogSlate, Warning, TEXT("A modal window tried to take control while running in unattended script mode. The window was canceled."));
+		if (FPlatformMisc::IsDebuggerPresent())
+		{
+			FPlatformMisc::DebugBreak();
+		}
+		else
+		{
+			FDebug::DumpStackTraceToLog();
+		}
+		return;
+	}
+
 #if WITH_EDITOR
     FCoreDelegates::PreSlateModal.Broadcast();
 #endif

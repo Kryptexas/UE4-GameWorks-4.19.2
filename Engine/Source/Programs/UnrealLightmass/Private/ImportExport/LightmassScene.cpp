@@ -490,6 +490,7 @@ void FScene::ApplyStaticLightingScale()
 void FLight::Import( FLightmassImporter& Importer )
 {
 	Importer.ImportData( (FLightData*)this );
+	Importer.ImportArray( LightTextureProfileData, FLightData::LightProfileTextureDataSize );
 
 	// The read above stomps on CachedLightSurfaceSamples since that memory is padding in FLightData
 	FMemory::Memzero(&CachedLightSurfaceSamples, sizeof(CachedLightSurfaceSamples));
@@ -522,9 +523,7 @@ FLinearColor FLight::GetDirectIntensity(const FVector4& Point, bool bCalculateFo
 	// light profile (IES)
 	float LightProfileAttenuation;
 	{
-		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
-
-		LightProfileAttenuation = ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
+		LightProfileAttenuation = ComputeLightProfileMultiplier(LightTextureProfileData, Point, Position, Direction, GetLightTangent());
 	}
 
 	if (bCalculateForIndirectLighting)
@@ -1023,9 +1022,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 
 	// light profile (IES)
 	{
-		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
-
-		UnrealAttenuation *= ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
+		UnrealAttenuation *= ComputeLightProfileMultiplier(LightTextureProfileData, Point, Position, Direction, GetLightTangent());
 	}
 
 	// Thin out photons near the light source.
@@ -1259,8 +1256,7 @@ FVector4 FPointLight::GetDirectLightingDirection(const FVector4& Point, const FV
 
 FVector FPointLight::GetLightTangent() const
 {
-	// For point lights, light tangent is not provided, however it doesn't matter much since point lights are omni-directional
-	return Direction;
+	return LightTangent;
 }
 
 /** Generates a sample on the light's surface. */
@@ -1486,11 +1482,6 @@ void FSpotLight::SampleDirection(
 	FVector4 Unused;
 	FVector2D Unused2;
 	FSpotLight::SampleDirection(RandomStream, SampleRay, Unused, Unused2, RayPDF, Power);
-}
-
-FVector FSpotLight::GetLightTangent() const
-{
-	return LightTangent;
 }
 
 //----------------------------------------------------------------------------

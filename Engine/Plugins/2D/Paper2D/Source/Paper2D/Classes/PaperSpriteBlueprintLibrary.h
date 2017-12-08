@@ -13,7 +13,7 @@ class UPaperSprite;
 /**
  *
  */
-UCLASS()
+UCLASS(meta=(ScriptName="PaperSpriteLibrary"))
 class UPaperSpriteBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

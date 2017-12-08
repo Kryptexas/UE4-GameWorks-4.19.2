@@ -149,7 +149,7 @@ private:
 
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="PlatformLibrary"))
 class ENGINE_API UBlueprintPlatformLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

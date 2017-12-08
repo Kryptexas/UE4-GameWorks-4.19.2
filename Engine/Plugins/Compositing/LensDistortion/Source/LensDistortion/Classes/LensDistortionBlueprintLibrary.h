@@ -9,7 +9,7 @@
 #include "LensDistortionBlueprintLibrary.generated.h"
 
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="LensDistortionLibrary"))
 class ULensDistortionBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

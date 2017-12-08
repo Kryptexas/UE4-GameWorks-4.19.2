@@ -3912,6 +3912,11 @@ bool FEngineLoop::AppInit( )
 		GIsSilent = true;
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("RUNNINGUNATTENDEDSCRIPT")))
+	{
+		GIsRunningUnattendedScript = true;
+	}
+
 #endif // !UE_BUILD_SHIPPING
 
 	// Show log if wanted.

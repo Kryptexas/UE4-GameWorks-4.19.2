@@ -5,7 +5,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "VisualLoggerKismetLibrary.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="VisualLoggerLibrary"))
 class UVisualLoggerKismetLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

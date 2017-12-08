@@ -126,7 +126,7 @@ struct ENGINE_API FVectorSpringState
 	}
 };
 
-UCLASS(meta=(BlueprintThreadSafe))
+UCLASS(meta=(BlueprintThreadSafe, ScriptName="MathLibrary"))
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

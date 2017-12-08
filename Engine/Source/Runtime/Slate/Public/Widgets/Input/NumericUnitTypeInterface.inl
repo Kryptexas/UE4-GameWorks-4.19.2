@@ -24,6 +24,14 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		return TDefaultNumericTypeInterface<NumericType>::ToString(Value);
 	}
 
+	auto ToUnitString = [this](const FNumericUnit<NumericType>& InNumericUnit) -> FString
+	{
+		FString String = TDefaultNumericTypeInterface<NumericType>::ToString(InNumericUnit.Value);
+		String += TEXT(" ");
+		String += FUnitConversion::GetUnitDisplayString(InNumericUnit.Units);
+		return String;
+	};
+
 	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
 
 	if (FixedDisplayUnits.IsSet())
@@ -31,14 +39,11 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		auto Converted = FinalValue.ConvertTo(FixedDisplayUnits.GetValue());
 		if (Converted.IsSet())
 		{
-			FinalValue = Converted.GetValue();
+			return ToUnitString(Converted.GetValue());
 		}
 	}
 	
-	FString String = TDefaultNumericTypeInterface<NumericType>::ToString(FinalValue.Value);
-	String += TEXT(" ");
-	String += FUnitConversion::GetUnitDisplayString(FinalValue.Units);
-	return String;
+	return ToUnitString(FinalValue);
 }
 
 template<typename NumericType>

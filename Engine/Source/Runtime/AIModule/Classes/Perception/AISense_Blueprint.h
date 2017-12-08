@@ -64,7 +64,7 @@ public:
 	void GetAllListenerComponents(TArray<UAIPerceptionComponent*>& ListenerComponents) const;
 
 	/** called when sense's instance gets notified about new pawn that has just been spawned */
-	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnNewPawn")
+	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnNewPawn", meta=(ScriptName="OnNewPawn"))
 	void K2_OnNewPawn(APawn* NewPawn);
 
 	virtual FAISenseID UpdateSenseID() override;

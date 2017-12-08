@@ -1104,7 +1104,7 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 		Templates.FindOrAdd(FTemplateCategory::EnterpriseCategoryName).Add(MakeShareable(new FTemplateItem(
 			LOCTEXT("BlankEnterpriseProjectName", "Blank Enterprise"),
 			LOCTEXT("BlankEnterpriseProjectDescription", "A clean empty enterprise project with no code."),
-			false, FTemplateCategory::BlueprintCategoryName,
+			false, FTemplateCategory::EnterpriseCategoryName,
 			TEXT("_1"),			// SortKey
 			TEXT(""),			// No filename, this is a generation template
 			MakeShareable(new FSlateBrush(*FEditorStyle::GetBrush("GameProjectDialog.BlankProjectThumbnail"))),
@@ -1405,6 +1405,7 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
 	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
 	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
+	ProjectInfo.bIsEnterpriseProject = (SelectedTemplate->Type == FTemplateCategory::EnterpriseCategoryName);
 
 	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog))
 	{
@@ -1581,8 +1582,9 @@ void SNewProjectWizard::HandleCategoryChanged(ECheckBoxState CheckState, FName C
 	if (ActiveCategory == FTemplateCategory::EnterpriseCategoryName)
 	{
 		bProjectSettingsHidden = true;
+		bCopyStarterContent = false;
 		SetGraphicsPreset(EGraphicsPreset::Maximum);
-		SetHardwareClassTarget(EHardwareClass::Desktop);
+		SetHardwareClassTarget(EHardwareClass::Desktop);		
 		ProjectSettingsDescriptionBox->SetVisibility(EVisibility::Collapsed);
 		ProjectSettingsOptionsBox->SetVisibility(EVisibility::Collapsed);
 	}

@@ -21,7 +21,10 @@ class FAssetRenameManager : public TSharedFromThis<FAssetRenameManager>
 {
 public:
 	/** Renames assets using the specified names. */
-	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const;
+	bool RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
+
+	/** Renames assets using the specified names. */
+	void RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const;
 
 	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
 	void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const;
@@ -41,8 +44,11 @@ public:
 	bool CheckPackageForSoftObjectReferences(UPackage* Package, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap, TArray<UObject*>& OutReferencingObjects) const;
 
 private:
+	/** Callback used by DiscoverintAssetsDialog to call FixrefrencesAndRename */
+	void FixReferencesAndRenameCallback(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const;
+
 	/** Attempts to load and fix redirector references for the supplied assets */
-	void FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout = false) const;
+	bool FixReferencesAndRename(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const;
 
 	/** Get a list of assets referenced from CDOs */
 	TArray<TWeakObjectPtr<UObject>> FindCDOReferencedAssets(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
@@ -83,8 +89,8 @@ private:
 	/** Saves all the referencing packages and updates SCC state */
 	void SaveReferencingPackages(const TArray<UPackage*>& ReferencingPackagesToSave) const;
 
-	/** Report any failures that may have happened during the rename */
-	void ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
+	/** Report any failures that may have happened during the rename. Return the number of failures */
+	int32 ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bWithDialog) const;
 
 	/** Called when a package is dirtied, clears the cache */
 	void OnMarkPackageDirty(UPackage* Pkg, bool bWasDirty);

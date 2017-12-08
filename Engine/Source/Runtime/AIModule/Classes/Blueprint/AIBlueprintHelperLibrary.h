@@ -20,7 +20,7 @@ class UAnimInstance;
 class UBehaviorTree;
 class UBlackboardComponent;
 
-UCLASS()
+UCLASS(meta=(ScriptName="AIHelperLibrary"))
 class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

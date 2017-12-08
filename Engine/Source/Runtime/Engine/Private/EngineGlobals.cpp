@@ -41,6 +41,8 @@ int32 EngineLinkerHelper;
  -----------------------------------------------------------------------------*/
 /** Called when all viewports need to be redrawn */
 FSimpleMulticastDelegate FEditorSupportDelegates::RedrawAllViewports;
+/** Called when the editor is about to cleanse an object that *must* be purged (such as when changing the active map or level) */
+FEditorSupportDelegates::FPrepareToCleanseEditorObject FEditorSupportDelegates::PrepareToCleanseEditorObject;
 /** Called when the editor is cleansing of transient references before a map change event */
 FSimpleMulticastDelegate FEditorSupportDelegates::CleanseEditor;
 /** Called when the world is modified */

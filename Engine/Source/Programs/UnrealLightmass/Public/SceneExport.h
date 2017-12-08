@@ -878,6 +878,8 @@ enum EDawnLightFlags
 
 struct FLightData
 {
+	static const int32 LightProfileTextureDataSize = 256 * 256;
+
 	FGuid			Guid;
 	/** Bit-wise combination of flags from EDawnLightFlags */
 	uint32			LightFlags;
@@ -898,21 +900,35 @@ struct FLightData
 	float			ShadowExponent;
 	/** Scales resolution of the static shadowmap for this light. */
 	float			ShadowResolutionScale;
-	//	only used if an LightProfile, 1d texture data 0:occluded, 255:not occluded
-	uint8			LightProfileTextureData[256];
 
-	// @param DotProd dot product of light direction and (normalized vector to surface) -1..1
-	inline float ComputeLightProfileMultiplier(const float DotProd) const
+	// @param WorldPosition		position of the point to light in the world
+	// @param LightPosition		position of the light in the world
+	// @param LightDirection	direction at which the light is emitting (x axis)
+	// @param LightTangent		tangent to the direction at which the light is emitting (z axis)
+	inline float ComputeLightProfileMultiplier(const TArray< uint8 >& LightProfileTextureData, FVector WorldPosition, FVector LightPosition, FVector LightDirection, FVector LightTangent) const
 	{
 		// optimization - only evaluate this function if needed
 		if(LightFlags & Lightmass::GI_LIGHT_USE_LIGHTPROFILE)
 		{
+			FVector LightBitangent = FVector::CrossProduct( LightTangent, LightDirection ).GetSafeNormal();
+
+			FMatrix LightTransform = FMatrix( LightDirection, LightBitangent, LightTangent, FVector4(0.f, 0.f, 0.f, 1.f) );
+			FMatrix InvLightTransform = LightTransform.GetTransposed();
+
+			FVector ToLight = (LightPosition - WorldPosition).GetSafeNormal();
+			FVector LocalToLight = InvLightTransform.TransformVector( ToLight );
+
+			// -1..1
+			float DotProd = FVector::DotProduct(ToLight, LightDirection);
 			// -PI..PI (this distortion could be put into the texture but not without quality loss or more memory)
 			float Angle = FMath::Asin(DotProd);
 			// 0..1
 			float NormAngle = Angle / PI + 0.5f;
 
-			return FilterLightProfile(NormAngle);
+			float TangentAngle = FMath::Atan2( -LocalToLight.Z, -LocalToLight.Y ); // -Y represents 0/360 horizontal angle and we're rotating counter-clockwise
+			float NormTangentAngle = TangentAngle / (PI * 2.f) + 0.5f;
+
+			return FilterLightProfile( LightProfileTextureData, NormAngle, NormTangentAngle );
 		}
 
 		return 1.0f;
@@ -921,24 +937,35 @@ struct FLightData
 private:
 	// @param X clamped in range 0..1
 	// @return 0..1
-	inline float FilterLightProfile(const float X) const
+	inline float FilterLightProfile(const TArray< uint8 >& LightProfileTextureData, const float X, const float Y) const
 	{
-		uint32 SizeX = sizeof(LightProfileTextureData);
+		const uint32 SizeX = FMath::Sqrt( LightProfileTextureDataSize );
+		const uint32 SizeY = LightProfileTextureDataSize / SizeX;
 
 		// can be optimized
 
 		// not 100% like GPU hardware but simple and almost the same
 		float UnNormalizedX = FMath::Clamp(X * SizeX, 0.0f, (float)(SizeX - 1));
-			
+		float UnNormalizedY = FMath::Clamp(Y * SizeY, 0.0f, (float)(SizeY - 1));
+
 		uint32 X0 = (uint32)UnNormalizedX;
 		uint32 X1 = FMath::Min(X0 + 1, SizeX - 1);
 
-		float Fraction = UnNormalizedX - X0;
+		uint32 Y0 = (uint32)UnNormalizedY;
+		uint32 Y1 = FMath::Min(Y0 + 1, SizeY - 1);
 
-		float V0 = LightProfileTextureData[X0] / 255.0f;
-		float V1 = LightProfileTextureData[X1] / 255.0f;
+		float XFraction = UnNormalizedX - X0;
+		float YFraction = UnNormalizedY - Y0;
 
-		return FMath::Lerp(V0, V1, Fraction);
+		float V00 = LightProfileTextureData[Y0 * SizeX + X0] / 255.0f;
+		float V10 = LightProfileTextureData[Y1 * SizeX + X0] / 255.0f;
+		float V01 = LightProfileTextureData[Y0 * SizeX + X1] / 255.0f;
+		float V11 = LightProfileTextureData[Y1 * SizeX + X1] / 255.0f;
+
+		float V0 = FMath::Lerp(V00, V10, YFraction);
+		float V1 = FMath::Lerp(V01, V11, YFraction);
+
+		return FMath::Lerp(V0, V1, XFraction);
 	}
 };
 
@@ -958,6 +985,8 @@ struct FPointLightData
 {
 	float		Radius;
 	float		FalloffExponent;
+	// Point lights need an additional axis to specify the direction of IES profiles, also used by spot lights for the direction of tube lights
+	FVector		LightTangent;
 };
 
 //----------------------------------------------------------------------------
@@ -969,8 +998,6 @@ struct FSpotLightData
 	float		InnerConeAngle;
 	/** Unclamped, in degrees */
 	float		OuterConeAngle;
-	// Spot lights need an additional axis to specify the direction of tube lights
-	FVector		LightTangent;
 };
 
 //----------------------------------------------------------------------------

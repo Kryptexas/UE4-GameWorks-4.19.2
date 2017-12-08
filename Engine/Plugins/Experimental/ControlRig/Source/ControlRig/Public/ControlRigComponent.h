@@ -54,7 +54,7 @@ public:
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
 
 	/** Get the ControlRig hosted by this component */
-	UFUNCTION(BlueprintPure, Category = "ControlRig", meta = (DisplayName = "Get ControlRig"))
+	UFUNCTION(BlueprintPure, Category = "ControlRig", meta = (DisplayName = "Get ControlRig", ScriptName = "GetControlRig"))
 	UControlRig* BP_GetControlRig() const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "ControlRig", meta = (CallInEditor = "true"))

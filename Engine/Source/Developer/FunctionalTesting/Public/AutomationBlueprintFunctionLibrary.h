@@ -14,7 +14,7 @@ class ACameraActor;
 /**
  * 
  */
-UCLASS()
+UCLASS(meta=(ScriptName="AutomationLibrary"))
 class FUNCTIONALTESTING_API UAutomationBlueprintFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

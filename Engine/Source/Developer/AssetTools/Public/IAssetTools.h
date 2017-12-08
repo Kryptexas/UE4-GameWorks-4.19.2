@@ -183,7 +183,11 @@ public:
 
 	/** Renames assets using the specified names. */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
-	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const = 0;
+	virtual bool RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const = 0;
+
+	/** Renames assets using the specified names. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
+	virtual void RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const = 0;
 
 	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")

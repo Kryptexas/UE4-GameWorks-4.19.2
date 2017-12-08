@@ -9,7 +9,7 @@
 
 class AActor;
 
-UCLASS()
+UCLASS(meta=(ScriptName="SequenceRecorderLibrary"))
 class SEQUENCERECORDER_API USequenceRecorderBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

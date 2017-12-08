@@ -23,7 +23,7 @@ enum class EProcMeshSliceCapOption : uint8
 	UseLastSectionForCap
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="ProceduralMeshLibrary"))
 class PROCEDURALMESHCOMPONENT_API UKismetProceduralMeshLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

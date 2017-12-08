@@ -55,11 +55,10 @@ public:
 			GetColor().B,
 			FalloffExponent);
 
-		const FVector XAxis(WorldToLight.M[0][0], WorldToLight.M[1][0], WorldToLight.M[2][0]);
 		const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
 
 		LightParameters.NormalizedLightDirection = -GetDirection();
-		LightParameters.NormalizedLightTangent = XAxis;
+		LightParameters.NormalizedLightTangent = ZAxis;
 		LightParameters.SpotAngles = FVector2D( -2.0f, 1.0f );
 		LightParameters.LightSourceRadius = SourceRadius;
 		LightParameters.LightSoftSourceRadius = SoftSourceRadius;
@@ -291,6 +290,11 @@ void UPointLightComponent::Serialize(FArchive& Ar)
 	{
 		bUseInverseSquaredFalloff = InverseSquaredFalloff_DEPRECATED;
 		AttenuationRadius = Radius_DEPRECATED;
+	}
+	// Reorient old light tubes that didn't use an IES profile
+	else if(Ar.UE4Ver() < VER_UE4_POINTLIGHT_SOURCE_ORIENTATION && SourceLength > KINDA_SMALL_NUMBER && IESTexture == nullptr)
+	{
+		AddLocalRotation( FRotator(-90.f, 0.f, 0.f) );
 	}
 }
 

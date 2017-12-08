@@ -464,7 +464,7 @@ void ContentBrowserUtils::RenameAsset(UObject* Asset, const FString& NewName, FT
 	TArray<FAssetRenameData> AssetsAndNames;
 	const FString PackagePath = FPackageName::GetLongPackagePath(Asset->GetOutermost()->GetName());
 	new(AssetsAndNames) FAssetRenameData(Asset, PackagePath, NewName);
-	AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+	AssetToolsModule.Get().RenameAssetsWithDialog(AssetsAndNames);
 }
 
 void ContentBrowserUtils::CopyAssets(const TArray<UObject*>& Assets, const FString& DestPath)
@@ -540,7 +540,7 @@ void ContentBrowserUtils::MoveAssets(const TArray<UObject*>& Assets, const FStri
 
 	if ( AssetsAndNames.Num() > 0 )
 	{
-		AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+		AssetToolsModule.Get().RenameAssetsWithDialog(AssetsAndNames);
 	}
 }
 

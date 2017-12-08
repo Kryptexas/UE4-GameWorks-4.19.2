@@ -8,7 +8,7 @@
 #include "Sound/SoundEffectSource.h"
 #include "AudioMixerBlueprintLibrary.generated.h"
 
-UCLASS()
+UCLASS(meta=(ScriptName="AudioMixerLibrary"))
 class AUDIOMIXER_API UAudioMixerBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

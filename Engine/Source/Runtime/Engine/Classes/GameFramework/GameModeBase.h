@@ -307,14 +307,14 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer);
 
 	/** Notification that a player has successfully logged in, and has been given a player controller */
-	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnPostLogin"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnPostLogin", ScriptName = "OnPostLogin"))
 	void K2_PostLogin(APlayerController* NewPlayer);
 
 	/** Called when a Controller with a PlayerState leaves the game or is destroyed */
 	virtual void Logout(AController* Exiting);
 
 	/** Implementable event when a Controller with a PlayerState leaves the game. */
-	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnLogout"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnLogout", ScriptName = "OnLogout"))
 	void K2_OnLogout(AController* ExitingController);
 
 	/**
@@ -360,7 +360,7 @@ public:
 	 * @param NewName		The name to set the player to
 	 * @param bNameChange	Whether the name is changing or if this is the first time it has been set
 	 */
-	UFUNCTION(BlueprintImplementableEvent,Category=Game,meta=(DisplayName="OnChangeName"))
+	UFUNCTION(BlueprintImplementableEvent,Category=Game,meta=(DisplayName="OnChangeName", ScriptName="OnChangeName"))
 	void K2_OnChangeName(AController* Other, const FString& NewName, bool bNameChange);
 
 
@@ -438,7 +438,7 @@ public:
 	void InitStartSpot(AActor* StartSpot, AController* NewPlayer);
 
 	/** Implementable event called at the end of RestartPlayer */
-	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnRestartPlayer"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta = (DisplayName = "OnRestartPlayer", ScriptName = "OnRestartPlayer"))
 	void K2_OnRestartPlayer(AController* NewPlayer);
 
 	/** Initializes player pawn back to starting values, called from RestartPlayer */
@@ -531,7 +531,7 @@ protected:
 	virtual void InitSeamlessTravelPlayer(AController* NewController);
 
 	/** Called when a PlayerController is swapped to a new one during seamless travel */
-	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta=(DisplayName="OnSwapPlayerControllers"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta=(DisplayName="OnSwapPlayerControllers", ScriptName="OnSwapPlayerControllers"))
 	void K2_OnSwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
 
 	virtual APlayerController* SpawnPlayerControllerCommon(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation, TSubclassOf<APlayerController> InPlayerControllerClass);

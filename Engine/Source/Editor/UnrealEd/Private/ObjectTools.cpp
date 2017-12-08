@@ -448,13 +448,14 @@ namespace ObjectTools
 			bool bOverwriteExistingObjects =
 				EAppReturnType::Yes == FMessageDialog::Open(
 				EAppMsgType::YesNo,
+				EAppReturnType::No,
 				FText::Format(
 				NSLOCTEXT("UnrealEd", "ReplaceExistingObjectInPackage_F", "An object [{0}] of class [{1}] already exists in file [{2}].  Do you want to replace the existing object?  If you click 'Yes', the existing object will be deleted.  Otherwise, click 'No' and choose a unique name for your new object." ),
 				FText::FromString(ObjectsToOverwriteName),
 				FText::FromString(ObjectsToOverwriteClass),
 				FText::FromString(ObjectsToOverwritePackage) ) );					
 
-			// The user didn't want to overwrite the existing opitons, so bail out of the duplicate operation.
+			// The user didn't want to overwrite the existing options, so bail out of the duplicate operation.
 			if( !bOverwriteExistingObjects )
 			{
 				return NULL;
@@ -1885,7 +1886,7 @@ namespace ObjectTools
 						Args.Add(TEXT("Filename"), FText::FromString(PackageFilename));
 						const FText Message = FText::Format(NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File '{Filename}' is read-only on disk, are you sure you want to delete it?"), Args);
 
-						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, Message);
+						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, EAppReturnType::No, Message);
 						bMakeWritable = ReturnType == EAppReturnType::YesAll;
 						bSilent = ReturnType == EAppReturnType::NoAll;
 					}

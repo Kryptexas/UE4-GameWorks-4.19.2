@@ -20,7 +20,7 @@ enum class ESmartNameContainerType : uint8
 };
 
 /** Blueprint library for altering and analyzing animation / skeletal data */
-UCLASS()
+UCLASS(meta=(ScriptName="AnimationLibrary"))
 class ANIMATIONMODIFIERS_API UAnimationBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

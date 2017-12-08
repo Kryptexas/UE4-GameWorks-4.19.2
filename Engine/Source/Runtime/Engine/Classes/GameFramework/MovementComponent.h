@@ -191,7 +191,7 @@ public:
 	virtual float GetMaxSpeedModifier() const;
 	
 	/** @return a scalar applied to the maximum velocity that the component can currently move. */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DeprecatedFunction, DisplayName="GetMaxSpeedModifier", DeprecationMessage="GetMaxSpeedModifier() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DeprecatedFunction, DisplayName="GetMaxSpeedModifier", ScriptName="GetMaxSpeedModifier", DeprecationMessage="GetMaxSpeedModifier() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
 	virtual float K2_GetMaxSpeedModifier() const;
 
 	/** @return the result of GetMaxSpeed() * GetMaxSpeedModifier(). */
@@ -199,7 +199,7 @@ public:
 	virtual float GetModifiedMaxSpeed() const;
 
 	/** @return the result of GetMaxSpeed() * GetMaxSpeedModifier(). */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName="GetModifiedMaxSpeed", DeprecationMessage="GetModifiedMaxSpeed() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName="GetModifiedMaxSpeed", ScriptName="GetModifiedMaxSpeed", DeprecationMessage="GetModifiedMaxSpeed() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
 	virtual float K2_GetModifiedMaxSpeed() const;
 
 	/**
@@ -279,7 +279,7 @@ public:
 	 * Respects the plane constraint, if enabled.
 	 * @return True if some movement occurred, false if no movement occurred. Result of any impact will be stored in OutHit.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName = "MoveUpdatedComponent", AdvancedDisplay="bTeleport"))
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName = "MoveUpdatedComponent", ScriptName = "MoveUpdatedComponent", AdvancedDisplay="bTeleport"))
 	bool K2_MoveUpdatedComponent(FVector Delta, FRotator NewRotation, FHitResult& OutHit, bool bSweep = true, bool bTeleport = false);
 
 	/**

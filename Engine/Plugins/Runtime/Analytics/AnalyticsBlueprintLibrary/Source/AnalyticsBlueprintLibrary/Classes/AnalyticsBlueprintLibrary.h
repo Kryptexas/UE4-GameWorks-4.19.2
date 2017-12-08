@@ -22,7 +22,7 @@ struct FAnalyticsEventAttr
 	FString Value;
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="AnalyticsLibrary"))
 class UAnalyticsBlueprintLibrary :
 	public UBlueprintFunctionLibrary
 {

@@ -9,7 +9,7 @@
 #include "KismetGuidLibrary.generated.h"
 
 
-UCLASS()
+UCLASS(meta=(ScriptName="GuidLibrary"))
 class ENGINE_API UKismetGuidLibrary
 	: public UBlueprintFunctionLibrary
 {

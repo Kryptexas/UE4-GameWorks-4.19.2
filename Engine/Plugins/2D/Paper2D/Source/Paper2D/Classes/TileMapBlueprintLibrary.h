@@ -15,7 +15,7 @@ class UPaperTileSet;
  *
  * @see UPaperTileMap, UPaperTileMapComponent
  */
-UCLASS()
+UCLASS(meta=(ScriptName="TileMapLibrary"))
 class UTileMapBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

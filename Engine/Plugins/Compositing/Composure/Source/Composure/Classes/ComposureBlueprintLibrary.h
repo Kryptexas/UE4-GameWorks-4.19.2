@@ -10,7 +10,7 @@
 #include "ComposureBlueprintLibrary.generated.h"
 
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="ComposureLibrary"))
 class UComposureBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

@@ -31,7 +31,7 @@ struct FDrawToRenderTargetContext
 	TDrawEvent<FRHICommandList>* DrawEvent;
 };
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="RenderingLibrary"))
 class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

@@ -243,6 +243,11 @@ public:
 
 	UPROPERTY()
 	TMap<FString, bool> LayerParameterExpansion;
+
+	/** Importing data and options used for this material */
+	UPROPERTY(EditAnywhere, Instanced, Category = ImportSettings, AssetRegistrySearchable)
+	class UAssetImportData* AssetImportData;
+
 private:
 	/** Unique ID for this material, used for caching during distributed lighting */
 	UPROPERTY()

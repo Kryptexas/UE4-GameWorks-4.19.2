@@ -481,7 +481,7 @@ private:
 				new(AssetsAndNames) FAssetRenameData(Object, PackagePath, NewText.ToString());
 
 				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-				AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+				AssetToolsModule.Get().RenameAssetsWithDialog(AssetsAndNames);
 			}
 
 			TSharedPtr<SMyBlueprint> MyBlueprint = BlueprintEditor->GetMyBlueprintWidget();
@@ -537,7 +537,7 @@ public:
 
 			BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName("ConstructionScript"));
 
-			AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+			AssetToolsModule.Get().RenameAssetsWithDialog(AssetsAndNames);
 		}
 
 		BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName(*EnumAction->Enum->GetPathName()));

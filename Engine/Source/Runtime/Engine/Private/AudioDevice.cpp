@@ -1104,7 +1104,7 @@ bool FAudioDevice::HandleSoundClassFixup(const TCHAR* Cmd, FOutputDevice& Ar)
 				// unless the assets are renamed immediately
 				RenameData.Reset();
 				RenameData.Add(FAssetRenameData(AssetData.GetAsset(), LongPackagePath, OutAssetName));
-				AssetToolsModule.Get().RenameAssets(RenameData);
+				AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 			}		
 		}
 	}

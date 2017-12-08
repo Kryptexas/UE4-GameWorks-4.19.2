@@ -253,7 +253,7 @@ void FAssetRegistryState::PruneAssetData(const TSet<FName>& RequiredPackages, co
 		{
 			RemoveAssetData(AssetData);
 		}
-		else if (bFilterAssetDataWithNoTags && AssetData->TagsAndValues.Num() == 0)
+		else if (bFilterAssetDataWithNoTags && AssetData->TagsAndValues.Num() == 0 && !FPackageName::IsLocalizedPackage(AssetData->PackageName.ToString()))
 		{
 			RemoveAssetData(AssetData);
 		}

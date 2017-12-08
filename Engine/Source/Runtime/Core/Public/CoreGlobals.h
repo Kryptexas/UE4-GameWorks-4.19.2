@@ -95,6 +95,8 @@ extern CORE_API bool GIsReinstancing;
 /** Helper function to flush resource streaming. */
 extern CORE_API void(*GFlushStreamingFunc)(void);
 
+extern CORE_API bool GIsRunningUnattendedScript;
+
 #if WITH_ENGINE
 extern CORE_API bool PRIVATE_GIsRunningCommandlet;
 

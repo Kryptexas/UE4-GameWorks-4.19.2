@@ -105,7 +105,7 @@ struct MEDIAASSETS_API FMediaCaptureDevice
 /**
  * Blueprint library for Media related functions.
  */
-UCLASS()
+UCLASS(meta=(ScriptName="MediaLibrary"))
 class UMediaBlueprintFunctionLibrary
 	: public UBlueprintFunctionLibrary
 {

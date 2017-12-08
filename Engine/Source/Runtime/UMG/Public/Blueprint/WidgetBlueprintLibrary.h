@@ -22,7 +22,7 @@ class UMaterialInterface;
 class USlateBrushAsset;
 class UTexture2D;
 
-UCLASS()
+UCLASS(meta=(ScriptName="WidgetLibrary"))
 class UMG_API UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

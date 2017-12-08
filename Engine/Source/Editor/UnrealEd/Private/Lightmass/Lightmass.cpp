@@ -211,8 +211,19 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 	{
 		Out.Color *= FLinearColor::MakeFromColorTemperature(In->Temperature);
 	}
+}
 
-	FMemory::Memset(Out.LightProfileTextureData, 0xff, sizeof(Out.LightProfileTextureData));
+void CopyLightProfile( const ULightComponentBase* In, Lightmass::FLightData& Out, TArray< uint8 >& OutLightProfileTextureData )
+{
+	OutLightProfileTextureData.Empty( Lightmass::FLightData::LightProfileTextureDataSize );
+	OutLightProfileTextureData.AddUninitialized( Lightmass::FLightData::LightProfileTextureDataSize );
+
+	FMemory::Memset(OutLightProfileTextureData.GetData(), 0xff, OutLightProfileTextureData.Num() * OutLightProfileTextureData.GetTypeSize());
+}
+
+void CopyLightProfile( const ULightComponent* In, Lightmass::FLightData& Out, TArray< uint8 >& OutLightProfileTextureData )
+{
+	CopyLightProfile( (const ULightComponentBase*)In, Out, OutLightProfileTextureData );
 
 	if(In->IESTexture)
 	{
@@ -221,24 +232,34 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 		// The current IES importer only uses this input format
 		// even if we change the actual texture format this shouldn't change
 		if( Source.GetFormat() == TSF_RGBA16F &&
-			Source.GetSizeX() == sizeof(Out.LightProfileTextureData) &&
-			Source.GetSizeY() == 1)
+			Source.GetSizeX() * Source.GetSizeY() <= Lightmass::FLightData::LightProfileTextureDataSize )
 		{
 			Out.LightFlags |= Lightmass::GI_LIGHT_USE_LIGHTPROFILE;
 
 			TArray<uint8> MipData;
 
 			Source.GetMipData(MipData, 0);
-			
-			for(uint32 x = 0; x < sizeof(Out.LightProfileTextureData); ++x)
+
+			const uint32 Width = FMath::Sqrt( Lightmass::FLightData::LightProfileTextureDataSize );
+			const uint32 Height = Lightmass::FLightData::LightProfileTextureDataSize / Width;
+
+			for(uint32 y = 0; y < Height; ++y)
 			{
-				FFloat16 HalfValue = *(FFloat16*)&MipData[x * 8];
-				float Value = HalfValue;
-				Out.LightProfileTextureData[x] = (uint8)(Value * 255.9999f);
+				uint32 SourceY = FMath::Min( y, (uint32)Source.GetSizeY() - 1 ); // We'll repeat the data if the source is smaller than the destination (we used to have 1D textures for IES files)
+
+				for(uint32 x = 0; x < Width; ++x)
+				{
+					uint32 SourceX = FMath::Min( x, (uint32)Source.GetSizeX() - 1 );
+
+					FFloat16 HalfValue = *(FFloat16*)&MipData[ (SourceY * (uint32)Source.GetSizeX() * 8) + (SourceX * 8) ];
+					float Value = HalfValue;
+					OutLightProfileTextureData[y * Width + x] = (uint8)(Value * 255.9999f);
+				}
 			}
 		}
 	}
 }
+
 FORCEINLINE void Copy( const FSplineMeshParams& In, Lightmass::FSplineMeshParams& Out )
 {
 	Out.StartPos = In.StartPos;
@@ -988,8 +1009,13 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = 0;
 		LightData.LightSourceLength = 0;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		DirectionalData.LightSourceAngle = Light->LightmassSettings.LightSourceAngle * (float)PI / 180.0f;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &DirectionalData, sizeof(DirectionalData) );
 		UpdateExportProgress();
 	}
@@ -1006,9 +1032,15 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
+		PointData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &PointData, sizeof(PointData) );
 		UpdateExportProgress();
 	}
@@ -1026,12 +1058,17 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
+		PointData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		SpotData.InnerConeAngle = Light->InnerConeAngle; 
 		SpotData.OuterConeAngle = Light->OuterConeAngle;
-		SpotData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &PointData, sizeof(PointData) );
 		Swarm.WriteChannel( Channel, &SpotData, sizeof(SpotData) );
 		UpdateExportProgress();
@@ -1046,6 +1083,9 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FSkyLightData SkyData;
 		Copy( Light, LightData ); 
 
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		TArray<FFloat16Color> RadianceMap;
 
 		// Capture the scene's emissive and send it to lightmass
@@ -1055,6 +1095,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseFilteredCubemapForSkylight"), SkyData.bUseFilteredCubemap, GLightmassIni));
 		SkyData.RadianceEnvironmentMapDataSize = RadianceMap.Num();
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &SkyData, sizeof(SkyData) );
 		Swarm.WriteChannel( Channel, RadianceMap.GetData(), RadianceMap.Num() * RadianceMap.GetTypeSize() );
 		UpdateExportProgress();

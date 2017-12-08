@@ -31,6 +31,7 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PluginItemId = InPluginItemId;
 	PluginOfferId = InPluginOfferId;
 	AuthorizedCallback = InAuthorizedCallback;
+	bShowStoreOnUnauthorized = true;
 
 	InParentWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SAuthorizingPlugin::OnWindowClosed));
 	bUserInterrupted = true;
@@ -88,6 +89,12 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PortalWindowService = ServiceLocator->GetServiceRef<IPortalApplicationWindow>();
 	PortalUserService = ServiceLocator->GetServiceRef<IPortalUser>();
 	PortalUserLoginService = ServiceLocator->GetServiceRef<IPortalUserLogin>();
+}
+
+void SAuthorizingPlugin::SetUnauthorizedOverride(const FText & InUnauthorizedMessageOverride, bool bInShowStoreOnUnauthorized)
+{
+	UnauthorizedMessageOverride = InUnauthorizedMessageOverride;
+	bShowStoreOnUnauthorized = bInShowStoreOnUnauthorized;
 }
 
 FText SAuthorizingPlugin::GetWaitingText() const
@@ -377,11 +384,22 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 			}
 			case EPluginAuthorizationState::Unauthorized:
 			{
-				FText FailureMessage = FText::Format(LOCTEXT("UnathorizedFailure", "It doesn't look like you've purchased {0}.\n\nWould you like to see the store page?"), PluginFriendlyName);
-				EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, FailureMessage);
-				if ( Response == EAppReturnType::Yes )
+				FText FailureMessage = UnauthorizedMessageOverride;
+				if (FailureMessage.IsEmpty())
 				{
-					ShowStorePageForPlugin();
+					FailureMessage = FText::Format(LOCTEXT("UnathorizedFailure", "It doesn't look like you've purchased {0}.\n\nWould you like to see the store page?"), PluginFriendlyName);
+				}
+				if (bShowStoreOnUnauthorized)
+				{
+					EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, FailureMessage);
+					if ( Response == EAppReturnType::Yes )
+					{
+						ShowStorePageForPlugin();
+					}
+				}
+				else
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
 				}
 				break;
 			}

@@ -10,7 +10,7 @@
 class APlayerController;
 
 // Library of synchronous achievement calls
-UCLASS()
+UCLASS(meta=(ScriptName="TurnBasedLibrary"))
 class ONLINESUBSYSTEMUTILS_API UTurnBasedBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

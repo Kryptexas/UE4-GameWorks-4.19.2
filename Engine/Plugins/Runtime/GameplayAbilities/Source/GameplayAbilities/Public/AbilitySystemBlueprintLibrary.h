@@ -20,7 +20,7 @@ class UAbilitySystemComponent;
 class UGameplayEffect;
 
 // meta =(RestrictedToClasses="GameplayAbility")
-UCLASS()
+UCLASS(meta=(ScriptName="AbilitySystemLibrary"))
 class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

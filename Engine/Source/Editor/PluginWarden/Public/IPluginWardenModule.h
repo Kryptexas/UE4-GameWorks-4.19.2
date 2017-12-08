@@ -56,7 +56,9 @@ public:
 	 * @param PluginFriendlyName The localized friendly name of the plug-in.
 	 * @param PluginItemId The unique identifier of the item plug-in on the marketplace.
 	 * @param PluginOfferId The unique identifier of the offer for the plug-in on the marketplace.
+	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
+	 * @param bShowStoreOnUnauthorized Show the Store page if plugin is not authorized.
 	 * @param AuthorizedCallback This function will be called after the user has been given entitlement.
 	 */
-	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, TFunction<void()> AuthorizedCallback) = 0;
+	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, const FText& UnauthorizedMessageOverride, bool bShowStoreOnUnauthorized, TFunction<void()> AuthorizedCallback) = 0;
 };

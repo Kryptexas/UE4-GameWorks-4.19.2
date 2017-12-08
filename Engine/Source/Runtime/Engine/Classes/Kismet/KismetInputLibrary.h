@@ -21,7 +21,7 @@ enum class ESlateGesture : uint8
 	LongPress
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="InputLibrary"))
 class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
