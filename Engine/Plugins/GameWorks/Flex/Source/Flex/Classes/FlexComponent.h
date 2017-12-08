@@ -167,7 +167,7 @@ public:
 	bool IsInEditorWorld() const;
 
 	/**
-	* Get the FleX container template
+	* Get the Flex container template
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
 	virtual UFlexContainer* GetContainerTemplate();
