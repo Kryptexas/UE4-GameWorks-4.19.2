@@ -2406,7 +2406,7 @@ bool FSceneViewFamily::SupportsScreenPercentage() const
 	}
 
 	// Mobile renderer does not support screen percentage with LDR.
-	if (GetFeatureLevel() <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR())
+	if ((GetFeatureLevel() <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR()) || PLATFORM_HTML5)
 	{
 		return false;
 	}
