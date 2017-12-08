@@ -569,7 +569,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 		LODLevel->RequiredModule->EmitterOrigin
 		);
 
-	if (LODLevel->RequiredModule->bUseLocalSpace)
+	if (UseLocalSpace())
 	{
 		EmitterToSimulation = EmitterToComponent;
 		SimulationToWorld = ComponentToWorld;
@@ -1172,8 +1172,6 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		// Take component scale into account
 		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
 		FVector	NewLocation;
 		float	NewRotation;
 		if (bUpdateBox)
@@ -1206,7 +1204,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		FVector MinVal(HALF_WORLD_MAX);
 		FVector MaxVal(-HALF_WORLD_MAX);
 		
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -1307,7 +1305,6 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		// Take component scale into account
 		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 		check(HighestLODLevel);
 
@@ -1316,7 +1313,7 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		// Store off the orbit offset, if there is one
 		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 
@@ -2095,8 +2092,6 @@ UParticleLODLevel* FParticleEmitterInstance::GetCurrentLODLevelChecked()
 void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, int32 InBurstCount, 
 	FVector& InLocation, FVector& InVelocity)
 {
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
 	// For beams, we probably want to ignore the SpawnRate distribution,
 	// and focus strictly on the BurstList...
 	int32 SpawnCount = InSpawnCount;
@@ -2136,7 +2131,7 @@ void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, i
 			// This logic matches the existing behavior. However, I think the
 			// interface for ForceSpawn should treat these values as being in
 			// world space and transform them to emitter local space if necessary.
-			const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+			const bool bUseLocalSpace = UseLocalSpace();
 			FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
 			FVector SpawnVelocity = bUseLocalSpace ? FVector::ZeroVector : InVelocity;
 
@@ -2215,8 +2210,8 @@ bool FParticleEmitterInstance::HasCompleted()
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
 {
 	// Interpolate position if using world space.
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-	if (LODLevel->RequiredModule->bUseLocalSpace == false)
+
+	if (UseLocalSpace() == false)
 	{
 		if (FVector::DistSquared(OldLocation, Location) > 1.f)
 		{
@@ -2662,7 +2657,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->MaxDrawCount =
 			(LODLevel->RequiredModule->bUseMaxDrawCount == true) ? LODLevel->RequiredModule->MaxDrawCount : -1;
 		NewReplayData->ScreenAlignment	= LODLevel->RequiredModule->ScreenAlignment;
-		NewReplayData->bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		NewReplayData->bUseLocalSpace = UseLocalSpace();
 		NewReplayData->EmitterRenderMode = SpriteTemplate->EmitterRenderMode;
 		NewReplayData->DynamicParameterDataOffset = DynamicParameterDataOffset;
 		NewReplayData->LightDataOffset = LightDataOffset;
@@ -2747,8 +2742,7 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	Location+= InOffset;
 	OldLocation+= InOffset;
 
-	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-	if (!LODLevel->RequiredModule->bUseLocalSpace)
+	if (!UseLocalSpace())
 	{
 		PositionOffsetThisTick = InOffset;
 	}
@@ -2791,7 +2785,13 @@ bool FParticleEmitterInstance::Tick_MaterialOverrides()
 bool FParticleEmitterInstance::UseLocalSpace()
 {
 	const UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+	// NvFlex begin
+#if WITH_FLEX
+	return LODLevel->RequiredModule->bUseLocalSpace || (GIsEditor && !GIsPlayInEditorWorld && GFlexPluginBridge && GFlexPluginBridge->FlexEmitterInstanceShouldForceLocalSpace(this));
+#else
 	return LODLevel->RequiredModule->bUseLocalSpace;
+#endif
+	// NvFlex end
 }
 
 void FParticleEmitterInstance::GetScreenAlignmentAndScale(int32& OutScreenAlign, FVector& OutScale)
@@ -3256,9 +3256,7 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			FMemory::Memzero(&MeshBound, sizeof(FBoxSphereBounds));
 		}
 
-		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-
-		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
+		const bool bUseLocalSpace = UseLocalSpace();
 
 		const FMatrix ComponentToWorld = bUseLocalSpace 
 			? Component->GetComponentToWorld().ToMatrixWithScale() 

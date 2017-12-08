@@ -8,6 +8,7 @@
 #include "FlexComponent.h"
 #include "FlexContainer.h"
 #include "FlexContainerInstance.h"
+#include "ParticleModuleFlexShapeSpawn.h"
 #include "DrawDebugHelpers.h" // FlushPersistentDebugLines
 
 #include "Engine/StaticMesh.h"
@@ -555,6 +556,28 @@ bool FFlexManager::FlexEmitterInstanceShouldRenderParticles(struct FParticleEmit
 	}
 	return true;
 }
+
+bool FFlexManager::FlexEmitterInstanceShouldForceLocalSpace(struct FParticleEmitterInstance* EmitterInstance)
+{
+	UFlexParticleSpriteEmitter* FlexEmitter = Cast<UFlexParticleSpriteEmitter>(EmitterInstance->SpriteTemplate);
+	if (!FlexEmitter)
+	{
+		return false;
+	}
+
+	// force preview of shape spawn module to be displayed in local space
+	const UParticleLODLevel* LODLevel = FlexEmitter->GetCurrentLODLevel(EmitterInstance);
+	for (int32 i = 0; i < LODLevel->SpawnModules.Num(); i++)
+	{
+		const UParticleModule* Module = LODLevel->SpawnModules[i];
+		if (Module->IsA<UParticleModuleFlexShapeSpawn>())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 FRenderResource* FFlexManager::GPUSpriteEmitterInstance_Init(struct FFlexParticleEmitterInstance* FlexEmitterInstance, int32 ParticlesPerTile)
 {
 	verify(FlexEmitterInstance);

@@ -57,6 +57,7 @@ public:
 	virtual bool FlexEmitterInstanceSpawnParticle(struct FParticleEmitterInstance* EmitterInstance, struct FBaseParticle* Particle, uint32 CurrentParticleIndex);
 	virtual void FlexEmitterInstanceKillParticle(struct FParticleEmitterInstance* EmitterInstance, int32 KillIndex);
 	virtual bool FlexEmitterInstanceShouldRenderParticles(struct FParticleEmitterInstance* EmitterInstance);
+	virtual bool FlexEmitterInstanceShouldForceLocalSpace(struct FParticleEmitterInstance* EmitterInstance);
 
 	virtual class UObject* GetFirstFlexContainerTemplate(class UParticleSystemComponent* Component);
 

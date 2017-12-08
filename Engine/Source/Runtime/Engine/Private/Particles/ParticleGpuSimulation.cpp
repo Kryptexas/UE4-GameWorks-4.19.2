@@ -3657,6 +3657,7 @@ public:
 				GFlexPluginBridge->GPUSpriteEmitterInstance_Tick(FlexEmitterInstance, DeltaSeconds, bSuppressSpawning, Simulation->FlexSimulationResource);
 			}
 #endif
+			// NvFlex end
 
 			// If the emitter is warming up but any particle spawned now will die
 			// anyway, suppress spawning.
