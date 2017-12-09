@@ -188,6 +188,10 @@ $ bUseIncrementalLinking (Boolean): Whether to use incremental linking or not. I
 
 $ bAllowLTCG (Boolean): Whether to allow the use of link time code generation (LTCG).
 
+$ bPGOProfile (Boolean): Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+
+$ bPGOOptimize (Boolean): Whether to optimize this build with Profile Guided Optimization (PGO).
+
 $ bAllowASLRInShipping (Boolean): Whether to allow the use of ASLR (address space layout randomization) if supported. Only applies to shipping builds.
 
 $ bSupportEditAndContinue (Boolean): Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
@@ -231,6 +235,10 @@ $ bFormalBuild (Boolean): Indicates that this is a formal build, intended for di
 $ bFlushBuildDirOnRemoteMac (Boolean): Whether to clean Builds directory on a remote Mac before building.
 
 $ bPrintToolChainTimingInfo (Boolean): Whether to write detailed timing info from the compiler and linker.
+
+$ bHideSymbolsByDefault (Boolean): Whether to hide symbols by default on POSIX platforms
+
+$ bAllowGeneratedIniWhenCooked (Boolean): Whether to load generated ini files in cooked build
 
 $ PCHOutputDirectory (String): The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
 

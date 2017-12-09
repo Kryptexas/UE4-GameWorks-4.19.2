@@ -70,6 +70,10 @@ $ bUseIncrementalLinking : Whether to use incremental linking or not. Incrementa
 
 $ bAllowLTCG : Whether to allow the use of link time code generation (LTCG).
 
+$ bPGOProfile : Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+
+$ bPGOOptimize : Whether to optimize this build with Profile Guided Optimization (PGO).
+
 $ bAllowASLRInShipping : Whether to allow the use of ASLR (address space layout randomization) if supported. Only applies to shipping builds.
 
 $ bSupportEditAndContinue : Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
