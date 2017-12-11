@@ -536,7 +536,7 @@ public:
 	 * @param	Index						Index of the modified item
 	 */
 	void PropagateContainerPropertyChange(UObject* ModifiedObject, const FString& OriginalContainerContent,
-		EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult = nullptr);
+		EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult = nullptr, int32 SwapIndex = INDEX_NONE);
 
 	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
 

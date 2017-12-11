@@ -2580,6 +2580,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ViewportMenu.SubMenuIndicator", new IMAGE_BRUSH( "Common/SubmenuArrow", Icon8x8) );
 		Set( "ViewportMenu.SToolBarComboButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarButtonBlock.Padding", FMargin(0));
+		Set("ViewportMenu.SToolBarButtonBlock.Button.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarCheckComboButtonBlock.Padding", FMargin(0));
 		Set( "ViewportMenu.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
 		Set( "ViewportMenu.SToolBarComboButtonBlock.ComboButton.Color", FLinearColor(0.f,0.f,0.f,0.75f) );

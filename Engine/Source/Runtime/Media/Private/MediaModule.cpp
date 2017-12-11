@@ -123,9 +123,12 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		TickerThread->Kill(true);
-		delete TickerThread;
-		TickerThread = nullptr;
+		if (TickerThread != nullptr)
+		{
+			TickerThread->Kill(true);
+			delete TickerThread;
+			TickerThread = nullptr;
+		}
 
 		CaptureSupports.Reset();
 		PlayerFactories.Reset();

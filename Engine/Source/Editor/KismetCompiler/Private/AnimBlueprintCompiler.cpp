@@ -581,12 +581,18 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 
 		if (Record.IsValid())
 		{
-			// build fast path copy records here
-			// we need to do this at this point as they rely on traversing the original wire path
-			// to determine source data. After we call CreateEvaluationHandlerStruct (etc) the original 
-			// graph is modified to hook up to the evaluation handler custom functions & pins are no longer
-			// available
-			Record.BuildFastPathCopyRecords();
+
+			// Disable fast-path generation for nativized anim BPs, we dont run the VM anyways and 
+			// the property names are 'decorated' by the backend, so records dont match.
+			if(Blueprint->NativizationFlag == EBlueprintNativizationFlag::Disabled)
+			{
+				// build fast path copy records here
+				// we need to do this at this point as they rely on traversing the original wire path
+				// to determine source data. After we call CreateEvaluationHandlerStruct (etc) the original 
+				// graph is modified to hook up to the evaluation handler custom functions & pins are no longer
+				// available
+				Record.BuildFastPathCopyRecords();
+			}
 
 			if(Record.bServicesInstanceProperties)
 			{

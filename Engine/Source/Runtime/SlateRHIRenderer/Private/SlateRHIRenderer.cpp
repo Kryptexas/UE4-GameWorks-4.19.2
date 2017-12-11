@@ -598,7 +598,7 @@ int32 SlateWireFrame = 0;
 static FAutoConsoleVariableRef CVarSlateWireframe(TEXT("Slate.ShowWireFrame"), SlateWireFrame, TEXT(""), ECVF_Default);
 
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear, FVector2D InWindowSize)
 {
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
@@ -633,8 +633,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		bool bRenderedStereo = false;
 		if (CVarDrawToVRRenderTarget->GetInt() == 0 && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 		{
-			const FVector2D WindowSize = WindowElementList.GetWindow()->GetSizeInScreen();
-			GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture(), WindowSize);
+			GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture(), InWindowSize);
 			bRenderedStereo = true;
 		}
 
@@ -871,8 +870,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 			if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 			{
-				const FVector2D WindowSize = WindowElementList.GetWindow()->GetSizeInScreen();
-				GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture(), WindowSize);
+				GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture(), InWindowSize);
 			}
 			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, BackBuffer);
 		}
@@ -1018,6 +1016,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						SWindow* SlateWindow;
 						bool bLockToVsync;
 						bool bClear;
+						FVector2D WindowSize;
 					} Params;
 
 					Params.Renderer = this;
@@ -1033,14 +1032,14 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 					// NOTE: We pass a raw pointer to the SWindow so that we don't have to use a thread-safe weak pointer in
 					// the FSlateWindowElementList structure
 					Params.SlateWindow = Window;
-
+					Params.WindowSize = Window->GetSizeInScreen();
 					// Skip the actual draw if we're in a headless execution environment
 					if (GIsClient && !IsRunningCommandlet() && !GUsingNullRHI)
 					{
 						ENQUEUE_RENDER_COMMAND(SlateDrawWindowsCommand)(
 							[Params](FRHICommandListImmediate& RHICmdList)
 							{
-								Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync, Params.bClear);
+								Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync, Params.bClear, Params.WindowSize);
 							}
 						);
 					}

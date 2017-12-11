@@ -282,7 +282,7 @@ namespace AutomationTool
 				const string KeyName = "P4PORT=";
 				if (Result.Output.StartsWith(KeyName))
 				{
-					int LastIdx = Result.Output.IndexOfAny(new char[] { ' ', '\n' });
+					int LastIdx = Result.Output.IndexOfAny(new char[] { ' ', '\n', '\r' });
 					if (LastIdx == -1)
 					{
 						LastIdx = Result.Output.Length;

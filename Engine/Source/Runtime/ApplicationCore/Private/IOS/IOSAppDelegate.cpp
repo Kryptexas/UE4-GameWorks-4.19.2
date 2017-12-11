@@ -615,6 +615,18 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 			[ImageString appendString : @"-Portrait"];
 		}
 	}
+	else if (Device == FPlatformMisc::IOS_IPhoneX)
+	{
+		[ImageString appendString : @"-IPhoneX"];
+		if (!self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString : @"-Landscape"];
+		}
+		else
+		{
+			[ImageString appendString : @"-Portrait"];
+		}
+	}
 	else if (Device == FPlatformMisc::IOS_AppleTV)
 	{
 		// @todo tvos: Make an AppleTV one?

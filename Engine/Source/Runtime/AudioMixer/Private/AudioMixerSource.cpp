@@ -306,6 +306,9 @@ namespace Audio
 			LastLPFFrequency = FLT_MAX;
 			bIsFinished = false;
 
+			EBufferType::Type BufferType = MixerBuffer->GetType();
+			bResourcesNeedFreeing = (BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming);
+
 			// Not all wave data types have PCM data size at this point (e.g. procedural sound waves)
 			if (InWaveInstance->WaveData->RawPCMDataSize > 0)
 			{
@@ -574,7 +577,8 @@ namespace Audio
 			ProcessRealTimeSource(true, false);
 		}
 
-		bResourcesNeedFreeing = true;
+		// We should have set this
+		check(bResourcesNeedFreeing);
 	}
 
 	bool FMixerSource::ReadMorePCMRTData(const int32 BufferIndex, EBufferReadMode BufferReadMode, bool* OutLooped)

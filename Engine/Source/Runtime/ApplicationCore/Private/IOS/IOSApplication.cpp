@@ -3,12 +3,13 @@
 #include "IOSApplication.h"
 #include "IOSInputInterface.h"
 #include "IOSWindow.h"
+#include "Misc/CoreDelegates.h"
 #include "IOSAppDelegate.h"
 #include "IInputDeviceModule.h"
 #include "IInputInterface.h"
 #include "IInputDevice.h"
 #include "Misc/ScopeLock.h"
-
+#include "HAL/IConsoleManager.h"
 
 FCriticalSection FIOSApplication::CriticalSection;
 bool FIOSApplication::bOrientationChanged = false;
@@ -92,6 +93,7 @@ void FIOSApplication::PollGameDeviceState( const float TimeDelta )
 		FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 		BroadcastDisplayMetricsChanged(DisplayMetrics);
+		FCoreDelegates::OnSafeFrameChangedEvent.Broadcast();
 		bOrientationChanged = false;
 	}
 }
@@ -111,8 +113,22 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	OutDisplayMetrics.PrimaryDisplayWidth = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 	OutDisplayMetrics.PrimaryDisplayHeight = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
 
-	// Apply the debug safe zones
-	OutDisplayMetrics.ApplyDefaultSafeZones();
+#if !PLATFORM_TVOS
+	if (@available(iOS 11, *))
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
+		float RequestedContentScaleFactor = CVar->GetFloat();
+
+		UIEdgeInsets insets = [[[[UIApplication sharedApplication] delegate] window] safeAreaInsets];
+		// Hack: Temporary solution: we store the safe area offsets in TitleSafePaddingSize and ActionSafePaddingSize, because we cannot change them to FVector4 for hotfix.
+		OutDisplayMetrics.TitleSafePaddingSize = FVector2D(insets.left * RequestedContentScaleFactor, insets.right * RequestedContentScaleFactor);
+		OutDisplayMetrics.ActionSafePaddingSize = FVector2D(insets.top * RequestedContentScaleFactor, insets.bottom * RequestedContentScaleFactor);
+	}
+	else
+#endif
+	{
+		OutDisplayMetrics.ApplyDefaultSafeZones();
+	}
 }
 
 TSharedRef< FGenericWindow > FIOSApplication::MakeWindow()

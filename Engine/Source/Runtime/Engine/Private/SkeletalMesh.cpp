@@ -3045,6 +3045,12 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << RefSkeleton;
 
+	if (Ar.IsLoading())
+	{
+		const bool bRebuildNameMap = false;
+		RefSkeleton.RebuildRefSkeleton(Skeleton, bRebuildNameMap);
+	}
+
 	// Serialize the default resource.
 	ImportedResource->Serialize( Ar, this );
 
@@ -3489,9 +3495,6 @@ void USkeletalMesh::PostLoad()
 
 	// Bounds have been loaded - apply extensions.
 	CalculateExtendedBounds();
-
-	const bool bRebuildNameMap = false;
-	RefSkeleton.RebuildRefSkeleton(Skeleton, bRebuildNameMap);
 
 	if(GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::RegenerateClothingShadowFlags)
 	{

@@ -496,10 +496,10 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			}
 			else
 			{
-				check(GWhiteTexture->TextureRHI);
-				*ResourceTable++ = GWhiteTexture->TextureRHI;
-				check(GWhiteTexture->SamplerStateRHI);
-				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
+				check(GBlackTexture->TextureRHI);
+				*ResourceTable++ = GBlackTexture->TextureRHI;
+				check(GBlackTexture->SamplerStateRHI);
+				*ResourceTable++ = GBlackTexture->SamplerStateRHI;
 			}
 		}
 
@@ -651,7 +651,7 @@ bool FMaterialUniformExpressionExternalTexture::GetExternalTexture(const FMateri
 	check(IsInParallelRenderingThread());
 
 	FGuid GuidToLookup = ResolveExternalTextureGUID(Context);
-	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+	return FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
 }
 
 FMaterialUniformExpressionExternalTextureParameter::FMaterialUniformExpressionExternalTextureParameter()
@@ -673,7 +673,7 @@ bool FMaterialUniformExpressionExternalTextureParameter::GetExternalTexture(cons
 	check(IsInParallelRenderingThread());
 
 	FGuid GuidToLookup = ResolveExternalTextureGUID(Context, ParameterName);
-	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+	return FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
 }
 
 bool FMaterialUniformExpressionExternalTextureParameter::IsIdentical(const FMaterialUniformExpression* OtherExpression) const

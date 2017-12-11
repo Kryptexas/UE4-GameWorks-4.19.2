@@ -1880,6 +1880,18 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 		// Update audio device.
 		AudioDeviceManager->UpdateActiveAudioDevices((!PlayWorld && bAudioIsRealtime) || (PlayWorld && !PlayWorld->IsPaused()));
+		if (bRequestEndPlayMapQueued)
+		{
+			// Shutdown all audio devices if we've requested end playmap now to avoid issues with GC running
+			TArray<FAudioDevice*>& AudioDevices = AudioDeviceManager->GetAudioDevices();
+			for (FAudioDevice* AudioDevice : AudioDevices)
+			{
+				if (AudioDevice)
+				{
+					AudioDevice->Flush(nullptr);
+				}
+			}
+		}
 
 		if (PlayWorld)
 		{

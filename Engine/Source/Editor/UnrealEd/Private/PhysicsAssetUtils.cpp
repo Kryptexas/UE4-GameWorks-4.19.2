@@ -317,18 +317,22 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	for(int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
 	{
 		FBodyInstance* BodyInstance = Bodies[BodyIdx];
-
-		SlowTask.EnterProgressFrame(1.0f, FText::Format(NSLOCTEXT("PhysicsAssetEditor", "ResetCollsionStepInfoOverlaps", "Fixing overlaps for {0}"), FText::FromName(BodyInstance->BodySetup->BoneName)));
-
-		FTransform BodyTM = BodyInstance->GetUnrealWorldTransform();
-
-		for(int32 OtherBodyIdx = BodyIdx + 1; OtherBodyIdx < NumBodies; ++OtherBodyIdx)
+		if(BodyInstance && BodyInstance->BodySetup.IsValid())
 		{
-			FBodyInstance* OtherBodyInstance = Bodies[OtherBodyIdx];
+			SlowTask.EnterProgressFrame(1.0f, FText::Format(NSLOCTEXT("PhysicsAssetEditor", "ResetCollsionStepInfoOverlaps", "Fixing overlaps for {0}"), FText::FromName(BodyInstance->BodySetup->BoneName)));
 
-			if(BodyInstance->OverlapTestForBody(BodyTM.GetLocation(), BodyTM.GetRotation(), OtherBodyInstance))
+			FTransform BodyTM = BodyInstance->GetUnrealWorldTransform();
+
+			for(int32 OtherBodyIdx = BodyIdx + 1; OtherBodyIdx < NumBodies; ++OtherBodyIdx)
 			{
-				PhysicsAsset->DisableCollision(BodyIdx, OtherBodyIdx);
+				FBodyInstance* OtherBodyInstance = Bodies[OtherBodyIdx];
+				if(OtherBodyInstance && OtherBodyInstance->BodySetup.IsValid())
+				{
+					if(BodyInstance->OverlapTestForBody(BodyTM.GetLocation(), BodyTM.GetRotation(), OtherBodyInstance))
+					{
+						PhysicsAsset->DisableCollision(BodyIdx, OtherBodyIdx);
+					}
+				}
 			}
 		}
 	}

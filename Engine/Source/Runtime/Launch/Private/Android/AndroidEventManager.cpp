@@ -14,7 +14,8 @@
 DEFINE_LOG_CATEGORY(LogAndroidEvents);
 
 FAppEventManager* FAppEventManager::sInstance = NULL;
-
+// whether EventManager started doing ticks
+static volatile bool bStartedTicking = false;
 
 FAppEventManager* FAppEventManager::GetInstance()
 {
@@ -29,6 +30,8 @@ FAppEventManager* FAppEventManager::GetInstance()
 
 void FAppEventManager::Tick()
 {
+	bStartedTicking = true;
+	
 	static const bool bIsDaydreamApp = FAndroidMisc::IsDaydreamApplication();
 	bool bWindowCreatedThisTick = false;
 	
@@ -280,25 +283,14 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 		return;
 	}
 
-	int rc = pthread_mutex_lock(&MainMutex);
-	check(rc == 0);
-	bool AlreadyInited = FirstInitialized;
-	rc = pthread_mutex_unlock(&MainMutex);
-	check(rc == 0);
-
 	// Make sure window will not be deleted until event is processed
 	// Window could be deleted by OS while event queue stuck at game start-up phase
 	FAndroidWindow::AcquireWindowRef((ANativeWindow*)InWindow);
 
-	if (AlreadyInited)
-	{
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
-	}
-	else
+	if (!bStartedTicking)
 	{
 		//This cannot wait until first tick. 
-
-		rc = pthread_mutex_lock(&MainMutex);
+		int rc = pthread_mutex_lock(&MainMutex);
 		check(rc == 0);
 
 		check(FAndroidWindow::GetHardwareWindow() == NULL);
@@ -307,9 +299,9 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
-
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
 	}
+	
+	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
 }
 
 void FAppEventManager::HandleWindowClosed()
@@ -330,9 +322,37 @@ void FAppEventManager::HandleWindowClosed()
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
-	}
 
-	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
+		return;
+	}
+	
+	if (!bStartedTicking)
+	{
+		// If engine is not ticking yet, and window is being destroyed
+		// 1. Immediately release current window
+		// 2. Unwind to queue to APP_EVENT_STATE_WINDOW_CREATED event
+		int rc = pthread_mutex_lock(&MainMutex);
+		check(rc == 0);
+		FAndroidWindow::SetHardwareWindow(nullptr);
+		while (!Queue.IsEmpty())
+		{
+			FAppEventData Event = DequeueAppEvent();
+			if (Event.State == APP_EVENT_STATE_WINDOW_CREATED)
+			{
+				ANativeWindow* DestroyedWindow = (ANativeWindow*)Event.Data;
+				FAndroidWindow::ReleaseWindowRef(DestroyedWindow);
+				break;
+			}
+		}
+				
+		rc = pthread_mutex_unlock(&MainMutex);
+		check(rc == 0);
+	}
+	else
+	{
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
+	}
 }
 
 

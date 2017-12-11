@@ -157,7 +157,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 			const FTimespan StartTime = Sample->GetTime();
 			const FTimespan EndTime = StartTime + Sample->GetDuration();
 
-			if (((Params.Rate > 0.0f) && (StartTime > Params.Time)) ||
+			if (((Params.Rate > 0.0f) && (StartTime >= Params.Time)) ||
 				((Params.Rate < 0.0f) && (EndTime <= Params.Time)))
 			{
 				break; // future sample
@@ -263,6 +263,15 @@ void FMediaTextureResource::InitDynamicRHI()
 	);
 
 	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+
+	// Note: set up default texture, or we can get sampler bind errors on render
+	// we can't leave here without having a valid bindable resource for some RHIs.
+
+	ClearTexture(CurrentClearColor, Owner.SRGB);
+
+	check(TextureRHI.IsValid());
+	check(RenderTargetTextureRHI.IsValid());
+	check(OutputTarget.IsValid());
 }
 
 

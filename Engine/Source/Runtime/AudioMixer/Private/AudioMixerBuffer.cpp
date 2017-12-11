@@ -310,12 +310,15 @@ namespace Audio
 		InWave->ResourceID = 0;
 
 		// Don't allow the procedural sound wave to be destroyed until we're done with it
-		Buffer->SoundWaveProcedural = CastChecked<USoundWaveProcedural>(InWave);
+		Buffer->SoundWaveProcedural = Cast<USoundWaveProcedural>(InWave);
 
 		// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
 		// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
 		// should be added which sets this to true.
-		Buffer->SoundWaveProcedural->bIsReadyForDestroy = true;
+		if (Buffer->SoundWaveProcedural)
+		{
+			Buffer->SoundWaveProcedural->bIsReadyForDestroy = true;
+		}
 
 		return Buffer;
 	}

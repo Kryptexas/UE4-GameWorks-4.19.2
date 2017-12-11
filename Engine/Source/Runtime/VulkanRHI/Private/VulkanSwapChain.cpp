@@ -253,6 +253,9 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 		}
 	}
 
+	VkBool32 bSupportsPresent;
+	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetPresentQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
+	ensure(bSupportsPresent);
 
 	//ensure(SwapChainInfo.imageExtent.width >= SurfProperties.minImageExtent.width && SwapChainInfo.imageExtent.width <= SurfProperties.maxImageExtent.width);
 	//ensure(SwapChainInfo.imageExtent.height >= SurfProperties.minImageExtent.height && SwapChainInfo.imageExtent.height <= SurfProperties.maxImageExtent.height);
@@ -309,6 +312,7 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	// We'll wait with an "infinite" timeout, the function will block until an image is ready.
 	// The ImageAcquiredSemaphore[ImageAcquiredSemaphoreIndex] will get signaled when the image is ready (upon function return).
 	uint32 ImageIndex = 0;
+	const int32 PrevSemaphoreIndex = SemaphoreIndex;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 
 	// If we have not called present for any of the swapchain images, it will cause a crash/hang
@@ -328,6 +332,18 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 		VK_NULL_HANDLE,
 #endif
 		&ImageIndex);
+	if (Result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		SemaphoreIndex = PrevSemaphoreIndex;
+		return (int32)EStatus::OutOfDate;
+	}
+
+	if (Result == VK_ERROR_SURFACE_LOST_KHR)
+	{
+		SemaphoreIndex = PrevSemaphoreIndex;
+		return (int32)EStatus::SurfaceLost;
+	}
+
 	++NumAcquireCalls;
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
 
@@ -355,9 +371,13 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	return CurrentImageIndex;
 }
 
-bool FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
+FVulkanSwapChain::EStatus FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
 {
-	check(CurrentImageIndex != -1);
+	if (CurrentImageIndex == -1)
+	{
+		// Skip present silently if image has not been acquired
+		return EStatus::Healthy;
+	}
 
 	//ensure(GfxQueue == PresentQueue);
 
@@ -377,12 +397,26 @@ bool FVulkanSwapChain::Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueu
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanQueuePresent);
-		VERIFYVULKANRESULT(VulkanRHI::vkQueuePresentKHR(PresentQueue->GetHandle(), &Info));
+		VkResult PresentResult = VulkanRHI::vkQueuePresentKHR(PresentQueue->GetHandle(), &Info);
+		if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			return EStatus::OutOfDate;
+		}
+
+		if (PresentResult == VK_ERROR_SURFACE_LOST_KHR)
+		{
+			return EStatus::SurfaceLost;
+		}
+
+		if (PresentResult != VK_SUCCESS && PresentResult != VK_SUBOPTIMAL_KHR)
+		{
+			VERIFYVULKANRESULT(PresentResult);
+		}
 	}
 
 	++NumPresentCalls;
 
-	return true;
+	return EStatus::Healthy;
 }
 
 

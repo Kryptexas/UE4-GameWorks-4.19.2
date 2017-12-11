@@ -158,6 +158,9 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		// Also when doing RHI thread this is the only spot that will process pending deletes
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	
+		extern RHI_API void FlushPipelineStateCache();
+		FlushPipelineStateCache();
 	}
 
 	// Notify the FX system that the scene is about to be rendered.

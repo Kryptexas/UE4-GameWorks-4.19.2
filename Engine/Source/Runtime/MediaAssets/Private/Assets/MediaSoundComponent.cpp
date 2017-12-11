@@ -37,7 +37,9 @@ void UMediaSoundComponent::UpdatePlayer()
 {
 	if (MediaPlayer == nullptr)
 	{
+		CurrentPlayerFacade.Reset();
 		SampleQueue.Reset();
+
 		return;
 	}
 

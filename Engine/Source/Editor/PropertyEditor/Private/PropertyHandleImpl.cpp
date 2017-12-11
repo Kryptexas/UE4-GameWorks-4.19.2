@@ -1752,16 +1752,12 @@ void FPropertyValueImpl::SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode,
 				UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : nullptr;
 				if (Obj)
 				{
-					if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
-						(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
-						!FApp::IsGame())
+					if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) || (Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) 
+						&& !FApp::IsGame())
 					{
 						FString OrgContent;
 						Cast<UProperty>(FirstNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
-						FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex);
-
-						Cast<UProperty>(SecondNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
-						SecondChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, SecondIndex);
+						FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex, nullptr, SecondIndex);
 					}
 
 					TopLevelObjects.Add(Obj);
@@ -1845,8 +1841,7 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 			if (Obj)
 			{
 				if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
-					(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
-					!FApp::IsGame())
+					(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))))
 				{
 					FString OrgArrayContent;
 					ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, nullptr, 0);
@@ -1918,8 +1913,7 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 						if (Obj)
 						{
 							if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
-								(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
-								!FApp::IsGame())
+								(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))))
 							{
 								FString OrgContent;
 								NodeProperty->ExportText_Direct(OrgContent, Addr, Addr, nullptr, 0);
@@ -1996,15 +1990,11 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 					if (Obj)
 					{
 						if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
-							(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
-							!FApp::IsGame())
+							(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))))
 						{
 							FString OrgContent;
 							Cast<UProperty>(FirstNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
-							FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex);
-
-							Cast<UProperty>(SecondNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
-							SecondChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, SecondIndex);
+							FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex, nullptr, SecondIndex);
 						}
 
 						TopLevelObjects.Add(Obj);

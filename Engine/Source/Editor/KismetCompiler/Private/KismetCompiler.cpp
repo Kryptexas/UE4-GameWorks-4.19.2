@@ -2276,6 +2276,9 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 	}
 
 	Class->StaticLink(true);
+	
+	extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
+	SetUpRuntimeReplicationData(Class);
 
 	// Create the default object for this class
 	FKismetCompilerUtilities::CompileDefaultProperties(Class);

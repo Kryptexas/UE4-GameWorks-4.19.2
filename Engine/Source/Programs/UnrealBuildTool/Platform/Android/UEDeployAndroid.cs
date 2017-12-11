@@ -1017,8 +1017,8 @@ namespace UnrealBuildTool
 						if (Directory.Exists(RenderDocPath))
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
-							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\lib", NDKArch, "libVkLayer_RenderDoc.so");
-							string RenderDocLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libVkLayer_RenderDoc.so");
+							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\lib", NDKArch, "libVkLayer_GLES_RenderDoc.so");
+							string RenderDocLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libVkLayer_GLES_RenderDoc.so");
 
 							Console.WriteLine("Copying {0} to {1}", RenderDocLibSrcPath, RenderDocLibDstPath);
 							File.Copy(RenderDocLibSrcPath, RenderDocLibDstPath, true);
@@ -3584,11 +3584,11 @@ namespace UnrealBuildTool
 				case "renderdoc":
 					LoadLibraryDefaults += "\t\ttry\n" +
 											"\t\t{\n" +
-											"\t\t\tSystem.loadLibrary(\"VkLayer_RenderDoc\");\n" +
+											"\t\t\tSystem.loadLibrary(\"VkLayer_GLES_RenderDoc\");\n" +
 											"\t\t}\n" +
 											"\t\tcatch (java.lang.UnsatisfiedLinkError e)\n" +
 											"\t\t{\n" +
-											"\t\t\tLog.debug(\"libVkLayer_RenderDoc.so not loaded.\");\n" +
+											"\t\t\tLog.debug(\"libVkLayer_GLES_RenderDoc.so not loaded.\");\n" +
 											"\t\t}\n";
 					break;
 			}

@@ -926,10 +926,13 @@ public class IOSPlatform : Platform
 			{
 				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
 			}
-			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
-			foreach(FileReference CookedFile in CookedFiles)
+			if (DirectoryReference.Exists(CookOutputDir))
 			{
-				SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+				List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
+				foreach (FileReference CookedFile in CookedFiles)
+				{
+					SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+				}
 			}
 		}
     }
@@ -945,14 +948,16 @@ public class IOSPlatform : Platform
 				ImageFileNames.Add("Default-IPhone6Plus-Portrait.png");
 				ImageFileNames.Add("Default-Portrait@2x.png");
 				ImageFileNames.Add("Default-Portrait-1336@2x.png");
-			}
+                ImageFileNames.Add("Default-IPhoneX-Portrait.png");
+            }
 			if (bSupportsLandscape)
 			{
 				ImageFileNames.Add("Default-IPhone6-Landscape.png");
 				ImageFileNames.Add("Default-IPhone6Plus-Landscape.png");
 				ImageFileNames.Add("Default-Landscape@2x.png");
 				ImageFileNames.Add("Default-Landscape-1336@2x.png");
-			}
+                ImageFileNames.Add("Default-IPhoneX-Landscape.png");
+            }
 			ImageFileNames.Add("Default@2x.png");
 			ImageFileNames.Add("Default-568h@2x.png");
 

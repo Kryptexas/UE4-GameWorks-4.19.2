@@ -192,3 +192,4 @@
 
 -dontwarn com.google.vr.cardboard.AndroidNCompat
 -dontwarn com.google.vr.cardboard.StoragePermissionUtils
+-dontwarn sun.misc.Unsafe

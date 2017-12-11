@@ -177,11 +177,9 @@ void ComputeBodyInsertionOrder(TArray<FBoneIndexType>& InsertionOrder, const USk
 
 		TArray<bool> InSortedOrder;
 
-		TArray<FBoneIndexType> RequiredBones0;
-		TArray<FBoneIndexType> ComponentSpaceTMs0;
-		SKC.ComputeRequiredBones(RequiredBones0, ComponentSpaceTMs0, 0, /*bIgnorePhysicsAsset=*/ true);
-
-		InSortedOrder.AddZeroed(RequiredBones0.Num());
+		// total number of mesh bones
+		const int32 TotalNumBones = SKC.SkeletalMesh->RefSkeleton.GetNum();
+		InSortedOrder.AddZeroed(TotalNumBones);
 
 		auto MergeIndices = [&InsertionOrder, &InSortedOrder](const TArray<FBoneIndexType>& RequiredBones) -> void
 		{
@@ -197,15 +195,13 @@ void ComputeBodyInsertionOrder(TArray<FBoneIndexType>& InsertionOrder, const USk
 		};
 
 
-		for(int32 LodIdx = NumLODs - 1; LodIdx > 0; --LodIdx)
+		for(int32 LodIdx = NumLODs - 1; LodIdx >= 0; --LodIdx)
 		{
 			TArray<FBoneIndexType> RequiredBones;
 			TArray<FBoneIndexType> ComponentSpaceTMs;
 			SKC.ComputeRequiredBones(RequiredBones, ComponentSpaceTMs, LodIdx, /*bIgnorePhysicsAsset=*/ true);
 			MergeIndices(RequiredBones);
 		}
-
-		MergeIndices(RequiredBones0);
 	}
 }
 
@@ -235,20 +231,33 @@ void FAnimNode_RigidBody::InitPhysics(const UAnimInstance* InAnimInstance)
 
 		TArray<FBoneIndexType> InsertionOrder;
 		ComputeBodyInsertionOrder(InsertionOrder, *SkeletalMeshComp);
-
-		const int32 NumBonesLOD0 = InsertionOrder.Num();
-
+		
+		const int32 NumMeshBones = RefSkel.GetNum();
+		// body index is based on mesh bones, 
+		// so we use mesh bones as buffer size when bone index is referenced
 		TArray<FActorHandle*> BodyIndexToActorHandle;
-		BodyIndexToActorHandle.AddZeroed(NumBonesLOD0);
+		BodyIndexToActorHandle.AddZeroed(NumMeshBones);
 
 		TArray<FBodyInstance*> BodiesSorted;
-		BodiesSorted.AddZeroed(NumBonesLOD0);
+		BodiesSorted.AddZeroed(NumMeshBones);
+
+		TArray<FBoneIndexType> RequiredBones0;
+		TArray<FBoneIndexType> ComponentSpaceTMs0;
+		SkeletalMeshComp->ComputeRequiredBones(RequiredBones0, ComponentSpaceTMs0, 0, /*bIgnorePhysicsAsset=*/ true);
 
 		for (FBodyInstance* BI : HighLevelBodyInstances)
 		{
 			if(BI->IsValidBodyInstance())
 			{
-				BodiesSorted[BI->InstanceBoneIndex] = BI;
+				// verify if the LOD 0 required bones contains the index
+				if (RequiredBones0.Contains(BI->InstanceBoneIndex))
+				{
+					BodiesSorted[BI->InstanceBoneIndex] = BI;
+				}
+				else
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("AnimNode_RigidBody : missing body to simulate for bone %s"), *BI->BodySetup->BoneName.ToString());
+				}
 			}
 		}
 
@@ -309,9 +318,9 @@ void FAnimNode_RigidBody::InitPhysics(const UAnimInstance* InAnimInstance)
 		//Insert joints so that they coincide body order. That is, if we stop simulating all bodies past some index, we can simply ignore joints past a corresponding index without any re-order
 		//For this to work we consider the most last inserted bone in each joint
 		TArray<int32> InsertionOrderPerBone;
-		InsertionOrderPerBone.AddUninitialized(NumBonesLOD0);
+		InsertionOrderPerBone.AddUninitialized(NumMeshBones);
 
-		for(int32 Position = 0; Position < NumBonesLOD0; ++Position)
+		for(int32 Position = 0; Position < InsertionOrder.Num(); ++Position)
 		{
 			InsertionOrderPerBone[InsertionOrder[Position]] = Position;
 		}

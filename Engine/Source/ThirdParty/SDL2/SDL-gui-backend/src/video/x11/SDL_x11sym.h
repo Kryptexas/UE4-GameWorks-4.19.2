@@ -162,6 +162,11 @@ SDL_X11_SYM(SDL_X11_XESetWireToEventRetType,XESetWireToEvent,(Display* a,int b,S
 SDL_X11_SYM(SDL_X11_XESetEventToWireRetType,XESetEventToWire,(Display* a,int b,SDL_X11_XESetEventToWireRetType c),(a,b,c),return)
 SDL_X11_SYM(void,XRefreshKeyboardMapping,(XMappingEvent *a),(a),)
 SDL_X11_SYM(int,XQueryTree,(Display* a,Window b,Window* c,Window* d,Window** e,unsigned int* f),(a,b,c,d,e,f),return)
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+SDL_X11_SYM(char*,XResourceManagerString,(Display *a),(a),return)
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 #if SDL_VIDEO_DRIVER_X11_SUPPORTS_GENERIC_EVENTS
 SDL_X11_SYM(Bool,XGetEventData,(Display* a,XGenericEventCookie* b),(a,b),return)

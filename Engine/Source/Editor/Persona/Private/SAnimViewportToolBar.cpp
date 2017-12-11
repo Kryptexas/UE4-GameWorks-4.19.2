@@ -717,9 +717,9 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewportTypeMenu() const
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder InMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtender);
+	FMenuBuilder InMenuBuilder(bInShouldCloseWindowAfterMenuSelection, CommandList.ToSharedRef(), MenuExtender);
 	InMenuBuilder.SetStyle(&FEditorStyle::Get(), "Menu");
-	InMenuBuilder.PushCommandList(Viewport.Pin()->GetCommandList().ToSharedRef());
+	InMenuBuilder.PushCommandList(CommandList.ToSharedRef());
 	InMenuBuilder.PushExtender(MenuExtender.ToSharedRef());
 
 	// Camera types
