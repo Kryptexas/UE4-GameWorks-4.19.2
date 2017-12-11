@@ -837,12 +837,6 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 		return;
 	}
 
-	if ( CurrentWorld->WorldType == EWorldType::PIE )
-	{
-		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: Function called while running a PIE instance, this is disabled."));
-		return;
-	}
-
 	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
 	{
 		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: A replay is already playing, cannot begin recording another one."));
@@ -944,12 +938,6 @@ bool UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 	if ( CurrentWorld == nullptr )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: GetWorld() is null" ) );
-		return false;
-	}
-
-	if ( CurrentWorld->WorldType == EWorldType::PIE )
-	{
-		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
 		return false;
 	}
 

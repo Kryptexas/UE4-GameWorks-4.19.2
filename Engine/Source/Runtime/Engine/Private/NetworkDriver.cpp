@@ -174,7 +174,7 @@ static TAutoConsoleVariable<float> CVarNetDebugDrawCullDistance(
 
 static TAutoConsoleVariable<int32> CVarUseAdaptiveNetUpdateFrequency(
 	TEXT( "net.UseAdaptiveNetUpdateFrequency" ), 
-	1, 
+	0, 
 	TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually send something when replicating" ) );
 
 TAutoConsoleVariable<int32> CVarNetAllowEncryption(
@@ -2143,6 +2143,13 @@ FActorDestructionInfo *	CreateDestructionInfo( UNetDriver * NetDriver, AActor* T
 	NewInfo.ObjOuter = ThisActor->GetOuter();
 	NewInfo.PathName = ThisActor->GetName();
 
+	// Look for renamed actor now so we can clear it after the destroy is queued
+	FName RenamedPath = NetDriver->RenamedStartupActors.FindRef(ThisActor->GetFName());
+	if (RenamedPath != NAME_None)
+	{
+		NewInfo.PathName = RenamedPath.ToString();
+	}
+
 	if (NewInfo.Level.IsValid() && !NewInfo.Level->IsPersistentLevel() )
 	{
 		NewInfo.StreamingLevelName = NewInfo.Level->GetOutermost()->GetFName();
@@ -2208,6 +2215,36 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 
 	// Remove this actor from the network object list
 	GetNetworkObjectList().Remove( ThisActor );
+
+	// Remove from renamed list if destroyed
+	RenamedStartupActors.Remove(ThisActor->GetFName());
+}
+
+void UNetDriver::NotifyActorRenamed(AActor* ThisActor, FName PreviousName)
+{
+	const bool bIsServer = ServerConnection == nullptr;
+	const bool bIsActorStatic = !GuidCache->IsDynamicObject(ThisActor);
+	const bool bActorHasRole = ThisActor->GetRemoteRole() != ROLE_None;
+
+	if (bIsActorStatic && bActorHasRole)
+	{
+		if (bIsServer)
+		{
+			FName OriginalName = RenamedStartupActors.FindRef(PreviousName);
+			if (OriginalName != NAME_None)
+			{
+				PreviousName = OriginalName;
+			}
+
+			RenamedStartupActors.Add(ThisActor->GetFName(), PreviousName);
+
+			UE_LOG(LogNet, Log, TEXT("NotifyActorRenamed StartupActor: %s PreviousName: %s"), *ThisActor->GetName(), *PreviousName.ToString());
+		}
+		else 
+		{
+			UE_LOG(LogNet, Warning, TEXT("NotifyActorRenamed on client, StartupActor: %s"), *ThisActor->GetName());
+		}
+	}
 }
 
 void UNetDriver::NotifyStreamingLevelUnload( ULevel* Level)
@@ -2766,9 +2803,11 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 		// This actor may belong to a different net driver, make sure this is the correct one
 		// (this can happen when using beacon net drivers for example)
-		if ( Actor->GetNetDriverName() != NetDriverName )
+		if (Actor->GetNetDriverName() != NetDriverName)
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "Actor %s in wrong network actors list!" ), *Actor->GetName() );
+			UE_LOG(LogNetTraffic, Error, TEXT("Actor %s in wrong network actors list! (Has net driver '%s', expected '%s')"),
+					*Actor->GetName(), *Actor->GetNetDriverName().ToString(), *NetDriverName.ToString());
+
 			continue;
 		}
 
@@ -3735,6 +3774,7 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 void UNetDriver::ResetGameWorldState()
 {
 	DestroyedStartupOrDormantActors.Empty();
+	RenamedStartupActors.Empty();
 
 	if ( NetCache.IsValid() )
 	{

@@ -40,6 +40,10 @@ static TAutoConsoleVariable<int32> CVarTickAllOpenChannels( TEXT( "net.TickAllOp
 
 static TAutoConsoleVariable<int32> CVarRandomizeSequence(TEXT("net.RandomizeSequence"), 1, TEXT("Randomize initial packet sequence"));
 
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarForceNetFlush(TEXT("net.ForceNetFlush"), 0, TEXT("Immediately flush send buffer when written to (helps trace packet writes - WARNING: May be unstable)."));
+#endif
+
 DECLARE_CYCLE_STAT(TEXT("NetConnection SendAcks"), Stat_NetConnectionSendAck, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("NetConnection Tick"), Stat_NetConnectionTick, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("NetConnection ReceivedNak"), Stat_NetConnectionReceivedNak, STATGROUP_Net);
@@ -485,7 +489,12 @@ void UNetConnection::CleanUp()
 			check(Driver->ServerConnection == NULL);
 			verify(Driver->ClientConnections.Remove(this) == 1);
 
-			PerfCountersIncrement(TEXT("RemovedConnections"));
+#if USE_SERVER_PERF_COUNTERS
+			if (IPerfCountersModule::IsAvailable())
+			{
+				PerfCountersIncrement(TEXT("RemovedConnections"));
+			}
+#endif
 		}
 	}
 
@@ -1164,6 +1173,10 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 	bool bSkipAck = false;
 
+	// Track channels that were rejected while processing this packet - used to avoid sending multiple close-channel bunches,
+	// which would cause a disconnect serverside
+	TArray<int32> RejectedChans;
+
 	// Disassemble and dispatch all bunches in the packet.
 	while( !Reader.AtEnd() && State!=USOCK_Closed )
 	{
@@ -1476,8 +1489,15 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			}
 
 			// Create channel if necessary.
-			if( !Channel )
+			if (Channel == nullptr)
 			{
+				if (RejectedChans.Contains(Bunch.ChIndex))
+				{
+					UE_LOG(LogNetTraffic, Log, TEXT("      Ignoring Bunch for ChIndex %i, as the channel was already rejected while processing this packet."), Bunch.ChIndex);
+
+					continue;
+				}
+
 				// Validate channel type.
 				if ( !Driver->IsKnownChannelType( Bunch.ChType ) )
 				{
@@ -1495,6 +1515,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				{
 					// Channel refused, so close it, flush it, and delete it.
 					UE_LOG(LogNet, Verbose, TEXT("      NotifyAcceptingChannel Failed! Channel: %s"), *Channel->Describe() );
+
+					RejectedChans.AddUnique(Bunch.ChIndex);
 
 					FOutBunch CloseBunch( Channel, 1 );
 					check(!CloseBunch.IsError());
@@ -1610,7 +1632,11 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	}
 
 	// Flush now if we are full
-	if ( GetFreeSendBufferBits() == 0 )
+	if (GetFreeSendBufferBits() == 0
+#if !UE_BUILD_SHIPPING
+		|| CVarForceNetFlush.GetValueOnAnyThread() != 0
+#endif
+		)
 	{
 		FlushNet();
 	}

@@ -792,6 +792,8 @@ public:
 	/** Whether or not a client packet has been received - used serverside, to delay any packet sends */
 	FORCEINLINE bool HasReceivedClientPacket()
 	{
+		// The InternalAck and ServerConnection conditions, are only there to exclude demo's and clients from this check,
+		// so that the check is only performed on servers.
 		return !!InternalAck || Driver->ServerConnection != nullptr || InReliable[0] != InitInReliable;
 	}
 

@@ -96,7 +96,7 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				SelectedActors.Add( Actor );
 
 				// Record the level that contains this actor and increment it's actor count
-				ULevel* Level = Actor->GetTypedOuter<ULevel>();
+				ULevel* Level = Actor->GetLevel();
 				if (Level != NULL)
 				{
 					int32& ActorCountForThisLevel = ActorsPerLevelCount.FindOrAdd(Level);

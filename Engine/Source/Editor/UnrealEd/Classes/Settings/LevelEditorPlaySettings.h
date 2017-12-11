@@ -304,7 +304,7 @@ private:
 	int32 PlayNumberOfClients;
 
 	/** What port used by the server for simple networking */
-	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions)
+	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions, meta=(ClampMin="1", UIMin="1", ClampMax="65535"))
 	uint16 ServerPort;
 
 	/** Width to use when spawning additional windows. */

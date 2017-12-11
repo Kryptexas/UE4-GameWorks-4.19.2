@@ -1843,6 +1843,15 @@ void UEngine::ParseCommandline()
 	{
 		bDisableAILogging = false;
 	}
+
+#if !UE_BUILD_SHIPPING
+	uint64 MaxAllocVal = 0;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("MaxAlloc="), MaxAllocVal))
+	{
+		FMalloc::MaxSingleAlloc = MaxAllocVal;
+	}
+#endif
 }
 
 
@@ -9419,41 +9428,152 @@ UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame* InPendingNetGame,
 	return FindNamedNetDriver_Local(GetWorldContextFromPendingNetGameChecked(InPendingNetGame).ActiveNetDrivers, NetDriverName);
 }
 
-UNetDriver* CreateNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName NetDriverDefinition)
+UNetDriver* CreateNetDriver_Local(UEngine* Engine, FWorldContext& Context, FName NetDriverDefinition)
 {
-	UNetDriver* NetDriver = nullptr;
-	for (int32 Index = 0; Index < Engine->NetDriverDefinitions.Num(); Index++)
-	{
-		FNetDriverDefinition& NetDriverDef = Engine->NetDriverDefinitions[Index];
-		if (NetDriverDef.DefName == NetDriverDefinition)
+	UNetDriver* ReturnVal = nullptr;
+	FNetDriverDefinition* Definition = nullptr;
+	auto FindNetDriverDefPred =
+		[NetDriverDefinition](const FNetDriverDefinition& CurDef)
 		{
-			// find the class to load
-			UClass* NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassName.ToString(), NULL, LOAD_Quiet, NULL);
+			return CurDef.DefName == NetDriverDefinition;
+		};
 
-			// if it fails, then fall back to standard fallback
-			if (NetDriverClass == nullptr || !NetDriverClass->GetDefaultObject<UNetDriver>()->IsAvailable())
+#if !UE_BUILD_SHIPPING
+	/**
+	 * Commandline override for the net driver.
+	 *
+	 * Format: (NOTE: Use quotes whenever the ',' character is used)
+	 *	Override the main/game net driver (most common usage):
+	 *		-NetDriverOverrides=DriverClassName
+	 *
+	 *	Override a specific/named net driver:
+	 *		-NetDriverOverrides="DefName,DriverClassName"
+	 *
+	 *	Override a specific driver, including fallback driver:
+	 *		-NetDriverOverrides="DefName,DriverClassName,DriverClassNameFallback"
+	 *
+	 *	Override multiple net drivers:
+	 *		-NetDriverOverrides="DriverClassName;DefName2,DriverClassName2"
+	 *
+	 *
+	 * Example:
+	 *	Use HTML5 for the main game net driver:
+	 *		-NetDriverOverrides=/Script/HTML5Networking.WebSocketNetDriver
+	 *
+	 *	Use HTML5 for the main game net driver, and the party beacon net driver
+	 *		-NetDriverOverrides="/Script/HTML5Networking.WebSocketNetDriver;BeaconNetDriver,/Script/HTML5Networking.WebSocketNetDriver"
+	 */
+
+	static TArray<FNetDriverDefinition> NetDriverOverrides = TArray<FNetDriverDefinition>();
+	FString OverrideCmdLine;
+
+	if (NetDriverOverrides.Num() == 0 && FParse::Value(FCommandLine::Get(), TEXT("NetDriverOverrides="), OverrideCmdLine))
+	{
+		TArray<FString> OverrideEntries;
+		OverrideCmdLine.ParseIntoArray(OverrideEntries, TEXT(";"), false);
+
+		UE_LOG(LogNet, Log, TEXT("NetDriverOverrides:"));
+
+		for (FString& CurOverrideEntry : OverrideEntries)
+		{
+			TArray<FString> CurEntryParms;
+			CurOverrideEntry.ParseIntoArray(CurEntryParms, TEXT(","), false);
+
+			if (CurEntryParms.Num() == 0)
 			{
-				NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), NULL, *NetDriverDef.DriverClassNameFallback.ToString(), NULL, LOAD_None, NULL);
+				continue;
 			}
 
-			// Bail out if the net driver isn't available. The name may be incorrect or the class might not be built as part of the game configuration.
-			if (NetDriverClass == nullptr)
+
+			FString TargetDefName = (CurEntryParms.Num() > 1 ? CurEntryParms[0] : FName(NAME_GameNetDriver).ToString());
+			FString OverrideClass = (CurEntryParms.Num() > 1 ? CurEntryParms[1] : CurEntryParms[0]);
+			FString OverrideFallback;
+			auto FindTargetDefPred =
+				[TargetDefName](const FNetDriverDefinition& CurDef)
+				{
+					return CurDef.DefName == *TargetDefName;
+				};
+
+			if (CurEntryParms.Num() > 2)
 			{
-				break;
+				OverrideFallback = CurEntryParms[2];
+			}
+			else if (FNetDriverDefinition* FallbackDef = Engine->NetDriverDefinitions.FindByPredicate(FindTargetDefPred))
+			{
+				OverrideFallback = FallbackDef->DriverClassNameFallback.ToString();
+			}
+			else
+			{
+				OverrideFallback = TEXT("/Script/OnlineSubsystemUtils.IpNetDriver");
 			}
 
-			// Try to create network driver.
-			NetDriver = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
-			check(NetDriver);
-			NetDriver->SetNetDriverName(NetDriver->GetFName());
+			if (TargetDefName.Len() == 0 || OverrideClass.Len() == 0 || OverrideFallback.Len() == 0)
+			{
+				continue;
+			}
 
-			new (Context.ActiveNetDrivers) FNamedNetDriver(NetDriver, &NetDriverDef);
-			return NetDriver;
+
+			if (!NetDriverOverrides.ContainsByPredicate(FindTargetDefPred))
+			{
+				FNetDriverDefinition NewDef;
+
+				NewDef.DefName = *TargetDefName;
+				NewDef.DriverClassName = FName(*OverrideClass);
+				NewDef.DriverClassNameFallback = FName(*OverrideFallback);
+
+				NetDriverOverrides.Add(NewDef);
+
+				UE_LOG(LogNet, Log, TEXT("- DefName: %s, DriverClassName: %s, DriverClassNameFallback: %s"), *TargetDefName,
+						*OverrideClass, *OverrideFallback);
+			}
 		}
 	}
+
+
+	Definition = NetDriverOverrides.FindByPredicate(FindNetDriverDefPred);
+
+	if (Definition != nullptr)
+	{
+		UE_LOG(LogNet, Log, TEXT("Overriding NetDriver '%s' with class: %s"), *NetDriverDefinition.ToString(),
+				*Definition->DriverClassName.ToString());
+	}
+	else
+#endif
+	{
+		Definition = Engine->NetDriverDefinitions.FindByPredicate(FindNetDriverDefPred);
+	}
+
+	if (Definition != nullptr)
+	{
+		UClass* NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), nullptr, *Definition->DriverClassName.ToString(), nullptr,
+													LOAD_Quiet);
+
+		// if it fails, then fall back to standard fallback
+		if (NetDriverClass == nullptr || !NetDriverClass->GetDefaultObject<UNetDriver>()->IsAvailable())
+		{
+			NetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), nullptr, *Definition->DriverClassNameFallback.ToString(),
+												nullptr, LOAD_None);
+		}
+
+		if (NetDriverClass != nullptr)
+		{
+			ReturnVal = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
+
+			check(ReturnVal != nullptr);
+
+			ReturnVal->SetNetDriverName(ReturnVal->GetFName());
+
+			new(Context.ActiveNetDrivers) FNamedNetDriver(ReturnVal, Definition);
+		}
+	}
+
 	
-	UE_LOG(LogNet, Log, TEXT("CreateNamedNetDriver failed to create driver from definition %s"), *NetDriverDefinition.ToString());
-	return nullptr;
+	if (ReturnVal == nullptr)
+	{
+		UE_LOG(LogNet, Log, TEXT("CreateNamedNetDriver failed to create driver from definition %s"), *NetDriverDefinition.ToString());
+	}
+
+	return ReturnVal;
 }
 
 UNetDriver* UEngine::CreateNetDriver(UWorld *InWorld, FName NetDriverDefinition)
@@ -10651,7 +10771,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				WorldPackage = NewWorld->GetOutermost();
 			}
 		}
-		check(NewWorld);
+		
+		// This can still be null if the package name is ambiguous, for example if there exists a umap and uasset with the same
+		// name.
+		if (NewWorld == nullptr)
+		{
+			// it is now the responsibility of the caller to deal with a NULL return value and alert the user if necessary
+			Error = FString::Printf(TEXT("Failed to load package '%s'"), *URL.Map);
+			return false;
+		}
+
 
 		NewWorld->PersistentLevel->HandleLegacyMapBuildData();
 

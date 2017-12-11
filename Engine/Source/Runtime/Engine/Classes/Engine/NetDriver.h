@@ -432,6 +432,11 @@ public:
 	 */
 	TMap<FNetworkGUID, FActorDestructionInfo>	DestroyedStartupOrDormantActors;
 
+	/** The server adds an entry into this map for every startup actor that has been renamed, and will
+	 *  always map from current name to original name
+	 */
+	TMap<FName, FName>	RenamedStartupActors;
+
 	/** Maps FRepChangedPropertyTracker to active objects that are replicating properties */
 	TMap< TWeakObjectPtr< UObject >, TSharedPtr< FRepChangedPropertyTracker > >	RepChangedPropertyTrackerMap;
 	/** Used to invalidate properties marked "unchanged" in FRepChangedPropertyTracker's */
@@ -685,6 +690,9 @@ public:
 
 	/** Called when a spawned actor is destroyed. */
 	ENGINE_API virtual void NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel=false );
+
+	/** Called when an actor is renamed. */
+	ENGINE_API virtual void NotifyActorRenamed(AActor* Actor, FName PreviousName);
 
 	ENGINE_API virtual void NotifyStreamingLevelUnload( ULevel* );
 

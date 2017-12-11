@@ -214,6 +214,12 @@ protected:
 	static uint32 TotalFreeCalls;
 	/** Total number of calls Malloc, if implemented by derived class. */
 	static uint32 TotalReallocCalls;
+
+#if !UE_BUILD_SHIPPING
+public:
+	/** Limits the maximum single allocation, to this many bytes, for debugging */
+	static uint64 MaxSingleAlloc;
+#endif
 };
 
 

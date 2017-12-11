@@ -807,6 +807,11 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 
 	UWorld* const World = Driver->GetWorld();
 
+	if (World == nullptr)
+	{
+		return false;
+	}
+
 	// If the driver is using a duplicate level ID, find the level collection using the driver
 	// and see if any of its levels match the prefixed name. If so, remap Str to that level's
 	// prefixed name.
@@ -834,6 +839,12 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 	if (!bReading)
 	{
 		return false;
+	}
+
+	// Try to find the level script objects and remap them for when demos are being replayed.
+	if (World->DemoNetDriver == Driver && World->RemapCompiledScriptActor(Str))
+	{
+		return true;
 	}
 
 	// If the game has created multiple worlds, some of them may have prefixed package names,

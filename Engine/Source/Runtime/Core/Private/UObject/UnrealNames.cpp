@@ -526,8 +526,13 @@ int32 FName::Compare( const FName& Other ) const
 		const FNameEntry* const ThisEntry = GetComparisonNameEntry();
 		const FNameEntry* const OtherEntry = Other.GetComparisonNameEntry();
 
+		// If one or both entries return an invalid name entry, the comparison fails - fallback to comparing the index
+		if (ThisEntry == nullptr || OtherEntry == nullptr)
+		{
+			return GetComparisonIndexFast() - Other.GetComparisonIndexFast();
+		}
 		// Ansi/Wide mismatch, convert to wide
-		if( ThisEntry->IsWide() != OtherEntry->IsWide() )
+		else if( ThisEntry->IsWide() != OtherEntry->IsWide() )
 		{
 			return FCStringWide::Stricmp(	ThisEntry->IsWide() ? ThisEntry->GetWideName() : StringCast<WIDECHAR>(ThisEntry->GetAnsiName()).Get(),
 								OtherEntry->IsWide() ? OtherEntry->GetWideName() : StringCast<WIDECHAR>(OtherEntry->GetAnsiName()).Get() );
@@ -916,8 +921,11 @@ FString FName::ToString() const
 {
 	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
 	{
-		// Avoids some extra allocations in non-number case
-		return GetDisplayNameEntry()->GetPlainNameString();
+		if (const FNameEntry* const DisplayEntry = GetDisplayNameEntry())
+		{
+			// Avoids some extra allocations in non-number case
+			return DisplayEntry->GetPlainNameString();
+		}
 	}
 	
 	FString Out;	
@@ -929,7 +937,12 @@ void FName::ToString(FString& Out) const
 {
 	// A version of ToString that saves at least one string copy
 	const FNameEntry* const NameEntry = GetDisplayNameEntry();
-	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
+
+	if (NameEntry == nullptr)
+	{
+		Out = TEXT("*INVALID*");
+	}
+	else if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
 	{
 		Out.Empty(NameEntry->GetNameLength());
 		NameEntry->AppendNameToString(Out);
@@ -947,11 +960,19 @@ void FName::ToString(FString& Out) const
 void FName::AppendString(FString& Out) const
 {
 	const FNameEntry* const NameEntry = GetDisplayNameEntry();
-	NameEntry->AppendNameToString( Out );
-	if (GetNumber() != NAME_NO_NUMBER_INTERNAL)
+
+	if (NameEntry == nullptr)
 	{
-		Out += TEXT("_");
-		Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(GetNumber()));
+		Out += TEXT("*INVALID*");
+	}
+	else
+	{
+		NameEntry->AppendNameToString( Out );
+		if (GetNumber() != NAME_NO_NUMBER_INTERNAL)
+		{
+			Out += TEXT("_");
+			Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(GetNumber()));
+		}
 	}
 }
 

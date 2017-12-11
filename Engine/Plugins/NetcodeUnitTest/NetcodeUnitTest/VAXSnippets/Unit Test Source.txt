@@ -39,6 +39,8 @@ void U$FILE_BASE$::InitializeEnvironmentSettings()
 {
 	BaseServerURL = UnitEnv->GetDefaultMap(UnitTestFlags);
 	BaseServerParameters = UnitEnv->GetDefaultServerParameters();
+
+	UnitEnv->InitializeUnitTasks();
 }
 
 void U$FILE_BASE$::ExecuteClientUnitTest()

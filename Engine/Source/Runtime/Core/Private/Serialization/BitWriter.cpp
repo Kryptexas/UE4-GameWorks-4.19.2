@@ -30,6 +30,9 @@ FBitWriter::FBitWriter( int64 InMaxBits, bool InAllowResize /*=false*/ )
 	AllowResize = InAllowResize;
 	FMemory::Memzero(Buffer.GetData(), Buffer.Num());
 	ArIsPersistent = ArIsSaving = 1;
+
+	// This class is exclusively used by the netcode
+	ArIsNetArchive = true;
 }
 
 /**
@@ -41,6 +44,8 @@ FBitWriter::FBitWriter(void)
 	, AllowResize(false)
 	, bAllowOverflow(false)
 {
+	// This class is exclusively used by the netcode
+	ArIsNetArchive = true;
 }
 
 /**

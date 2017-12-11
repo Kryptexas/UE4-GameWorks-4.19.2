@@ -14,7 +14,6 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-					"ApplicationCore",
 					"Engine",
 					"Sockets"
 				}
@@ -24,6 +23,7 @@ namespace UnrealBuildTool.Rules
 			(
 				new string[]
 				{
+					"ApplicationCore",
 					"EngineSettings",
 					"InputCore",
 					"PacketHandler",

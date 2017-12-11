@@ -286,7 +286,8 @@ bool ALobbyBeaconClient::ServerKickPlayer_Validate(const FUniqueNetIdRepl& Playe
 
 void ALobbyBeaconClient::ServerKickPlayer_Implementation(const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)
 {
-	UE_LOG(LogBeacon, Log, TEXT("ServerKickPlayer %s -> %s"), *PlayerState->UniqueId.ToString(), *PlayerToKick.ToString());
+	UE_LOG(LogBeacon, Log, TEXT("ServerKickPlayer %s -> %s"), (PlayerState != nullptr ? *PlayerState->UniqueId.ToString() : TEXT("")),
+			*PlayerToKick.ToString());
 
 	ALobbyBeaconHost* BeaconHost = Cast<ALobbyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)

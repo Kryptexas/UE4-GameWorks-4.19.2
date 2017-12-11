@@ -20,11 +20,6 @@
 #include "NetcodeUnitTest.h"
 
 
-
-
-
-
-
 #define LOCTEXT_NAMESPACE "Dialogs"
 
 // Largely a carbon copy, of UnrealEd Dialogs.cpp
@@ -169,7 +164,7 @@ public:
 		return Response;
 	}
 
-	virtual	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+	virtual	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
 		// see if we pressed the Enter or Spacebar keys
 		if (InKeyEvent.GetKey() == EKeys::Escape)
@@ -190,7 +185,7 @@ public:
 	}
 
 	/** Override the base method to allow for keyboard focus */
-	virtual bool SupportsKeyboardFocus() const
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -259,7 +254,7 @@ private:
 
 static void CreateLogDialogWindow(TSharedPtr<SWindow>& OutWindow, TSharedPtr<SLogChoiceDialog>& OutDialog,
 									EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle,
-									FOnLogDialogResult ResultCallback=NULL)
+									FOnLogDialogResult ResultCallback=nullptr)
 {
 	OutWindow = SNew(SWindow)
 		.Title(InTitle)
@@ -280,10 +275,10 @@ static void CreateLogDialogWindow(TSharedPtr<SWindow>& OutWindow, TSharedPtr<SLo
 }
 
 TSharedRef<SWindow> OpenLogDialog_NonModal(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle,
-											FOnLogDialogResult ResultCallback/*=NULL*/)
+											FOnLogDialogResult ResultCallback/*=nullptr*/)
 {
-	TSharedPtr<SWindow> MsgWindow = NULL;
-	TSharedPtr<SLogChoiceDialog> MsgDialog = NULL;
+	TSharedPtr<SWindow> MsgWindow = nullptr;
+	TSharedPtr<SLogChoiceDialog> MsgDialog = nullptr;
 
 	CreateLogDialogWindow(MsgWindow, MsgDialog, InMessageType, InMessage, InTitle, ResultCallback);
 

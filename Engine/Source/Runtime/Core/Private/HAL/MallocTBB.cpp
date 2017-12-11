@@ -37,6 +37,14 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 {
 	IncrementTotalMallocCalls();
 
+#if !UE_BUILD_SHIPPING
+	if (MaxSingleAlloc != 0 && Size > MaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(Size, Alignment);
+		return nullptr;
+	}
+#endif
+
 	MEM_TIME(MemTime -= FPlatformTime::Seconds());
 
 	void* NewPtr = NULL;
@@ -76,6 +84,14 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 {
 	IncrementTotalReallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	if (MaxSingleAlloc != 0 && NewSize > MaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
+		return nullptr;
+	}
+#endif
 
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT

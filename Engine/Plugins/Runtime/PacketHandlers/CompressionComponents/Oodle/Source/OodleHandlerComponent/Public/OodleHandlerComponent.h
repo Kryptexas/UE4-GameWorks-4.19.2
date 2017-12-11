@@ -23,7 +23,7 @@ DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 #if HAS_OODLE_SDK
 
 #if UE4_OODLE_VER >= 200
-#include <oodle2.h>
+#include "oodle2.h"
 #else
 #include "oodle.h"
 #endif

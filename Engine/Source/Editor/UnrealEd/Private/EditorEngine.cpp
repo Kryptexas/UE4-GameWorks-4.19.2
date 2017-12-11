@@ -6810,10 +6810,15 @@ void UEditorEngine::UpdateAutoLoadProject()
 	IFileManager::Get().Delete(*AutoLoadInProgressFilename, bRequireExists, bEvenIfReadOnly, bQuiet);
 }
 
-FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bool bReading)
+FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bool bReading, bool bIsReplay)
 {
 	if (bReading)
 	{
+		if (bIsReplay && Context.World() && Context.World()->RemapCompiledScriptActor(Str))
+		{
+			return true;
+		}
+		
 		if (FPackageName::IsShortPackageName(Str))
 		{
 			return false;
@@ -6821,7 +6826,7 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bo
 
 		// First strip any source prefix, then add the appropriate prefix for this context
 		FSoftObjectPath Path = UWorld::RemovePIEPrefix(Str);
-			
+		
 		Path.FixupForPIE();
 		FString Remapped = Path.ToString();
 		if (!Remapped.Equals(Str, ESearchCase::CaseSensitive))
@@ -6850,14 +6855,16 @@ bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bRea
 		return false;
 	}
 
+	// Pretty sure there's no case where you can't have a world by this point.
+	bool bIsAReplay = (Driver->GetWorld()) ? (Driver->GetWorld()->DemoNetDriver != NULL) : false;
 	FWorldContext& Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
-	return NetworkRemapPath_local(Context, Str, bReading);
+	return NetworkRemapPath_local(Context, Str, bReading, bIsAReplay);
 }
 
 bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString& Str, bool bReading)
 {
 	FWorldContext& Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
-	return NetworkRemapPath_local(Context, Str, bReading);
+	return NetworkRemapPath_local(Context, Str, bReading, PendingNetGame->DemoNetDriver != NULL);
 }
 
 void UEditorEngine::VerifyLoadMapWorldCleanup()

@@ -235,6 +235,11 @@ public:
 	 * Delegate triggered when an audio component Stop() function is called
 	 */
 	void OnAudioFinished(UAudioComponent* AC);
+
+	/**
+	 * Delegate that fixes up remote audio components when the level changes
+	 */
+	void OnPostLoadMap(UWorld*);
 };
 
 typedef TSharedPtr<FVoiceEngineSteam, ESPMode::ThreadSafe> FVoiceEngineSteamPtr;

@@ -14,6 +14,10 @@ uint32 FMalloc::TotalMallocCalls = 0;
 uint32 FMalloc::TotalFreeCalls = 0;
 uint32 FMalloc::TotalReallocCalls = 0;
 
+#if !UE_BUILD_SHIPPING
+uint64 FMalloc::MaxSingleAlloc = 0;
+#endif
+
 struct FCurrentFrameCalls
 {
 	uint32 LastMallocCalls;

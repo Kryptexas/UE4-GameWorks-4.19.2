@@ -580,7 +580,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	if (GetDuplicateLevelID() == -1)
 	{
-		if ( bAsyncLoadWorld )
+		if ( bAsyncLoadWorld && GetWorld()->WorldType != EWorldType::PIE ) // Editor doesn't support async map travel
 		{
 			LevelNamesAndTimes = PlaybackDemoHeader.LevelNamesAndTimes;
 
@@ -1163,7 +1163,7 @@ float UDemoNetDriver::GetCheckpointSaveMaxMSPerFrame() const
 
 void UDemoNetDriver::AddNewLevel(const FString& NewLevelName)
 {
-	LevelNamesAndTimes.Add(FLevelNameAndTime(NewLevelName, ReplayStreamer->GetTotalDemoTime()));
+	LevelNamesAndTimes.Add(FLevelNameAndTime(UWorld::RemovePIEPrefix(NewLevelName), ReplayStreamer->GetTotalDemoTime()));
 }
 
 void UDemoNetDriver::SaveCheckpoint()

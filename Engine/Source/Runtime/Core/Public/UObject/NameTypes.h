@@ -593,7 +593,12 @@ public:
 	/** Returns the pure name string without any trailing numbers */
 	FString GetPlainNameString() const
 	{
-		return GetDisplayNameEntry()->GetPlainNameString();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetPlainNameString();
+		}
+
+		return TEXT("*INVALID*");
 	}
 
 	/**
@@ -601,7 +606,12 @@ public:
 	 */
 	FORCEINLINE ANSICHAR const* GetPlainANSIString() const
 	{
-		return GetDisplayNameEntry()->GetAnsiName();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetAnsiName();
+		}
+
+		return "*INVALID*";
 	}
 
 	/**
@@ -609,7 +619,12 @@ public:
 	 */
 	FORCEINLINE WIDECHAR const* GetPlainWIDEString() const
 	{
-		return GetDisplayNameEntry()->GetWideName();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetWideName();
+		}
+
+		return L"*INVALID*";
 	}
 
 	const FNameEntry* GetComparisonNameEntry() const;
@@ -935,33 +950,36 @@ public:
 		}
 
 		// Find name entry associated with this FName.
+		bool bAreNamesMatching = false;
 		const FNameEntry* const Entry = GetComparisonNameEntry();
 
-		// Temporary buffer to hold split name in case passed in name is of Name_Number format.
-		WIDECHAR TempBuffer[NAME_SIZE];
-		int32 InNumber = NAME_NO_NUMBER_INTERNAL;
-		int32 TempNumber = NAME_NO_NUMBER_INTERNAL;
-
-		// Check whether we need to split the passed in string into name and number portion.
-		auto WideOther = StringCast<WIDECHAR>(Other);
-		const WIDECHAR* WideOtherPtr = WideOther.Get();
-		if (SplitNameWithCheck(WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber))
+		if (Entry != nullptr)
 		{
-			WideOtherPtr = TempBuffer;
-			InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
-		}
+			// Temporary buffer to hold split name in case passed in name is of Name_Number format.
+			WIDECHAR TempBuffer[NAME_SIZE];
+			int32 InNumber = NAME_NO_NUMBER_INTERNAL;
+			int32 TempNumber = NAME_NO_NUMBER_INTERNAL;
 
-		// Report a match if both the number and string portion match.
-		bool bAreNamesMatching = false;
-		if (InNumber == GetNumber())
-		{
-			if (Entry->IsWide())
+			// Check whether we need to split the passed in string into name and number portion.
+			auto WideOther = StringCast<WIDECHAR>(Other);
+			const WIDECHAR* WideOtherPtr = WideOther.Get();
+			if (SplitNameWithCheck(WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber))
 			{
-				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetWideName());
+				WideOtherPtr = TempBuffer;
+				InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
 			}
-			else
+
+			// Report a match if both the number and string portion match.
+			if (InNumber == GetNumber())
 			{
-				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetAnsiName());
+				if (Entry->IsWide())
+				{
+					bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetWideName());
+				}
+				else
+				{
+					bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetAnsiName());
+				}
 			}
 		}
 

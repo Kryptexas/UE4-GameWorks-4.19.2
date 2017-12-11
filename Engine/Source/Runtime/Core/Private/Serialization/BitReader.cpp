@@ -123,6 +123,9 @@ FBitReader::FBitReader(uint8* Src, int64 CountBits)
 
 	ArIsPersistent = ArIsLoading = 1;
 
+	// This class is exclusively used by the netcode
+	ArIsNetArchive = true;
+
 	if (Src != nullptr)
 	{
 		FMemory::Memcpy(Buffer.GetData(), Src, (CountBits + 7) >> 3);

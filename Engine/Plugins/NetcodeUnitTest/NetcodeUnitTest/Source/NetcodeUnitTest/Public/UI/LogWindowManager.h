@@ -3,8 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NetcodeUnitTest.h"
 
+#include "NetcodeUnitTest.h"
+#include "UnitLogging.h"
+
+
+// Forward declarations
 class SLogWindow;
 class SWindow;
 

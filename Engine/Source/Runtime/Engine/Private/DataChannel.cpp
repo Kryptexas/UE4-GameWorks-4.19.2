@@ -1225,50 +1225,52 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 		{
 			if (Connection->Driver->ServerConnection == NULL)
 			{
-				UE_LOG(LogNet, Log, TEXT("Server connection received: %s"), FNetControlMessageInfo::GetName(MessageType));
 				int32 ChannelIndex;
-				FNetControlMessage<NMT_ActorChannelFailure>::Receive(Bunch, ChannelIndex);
 
-				// Check if Channel index provided by client is valid and within range of channel on server
-				if (ChannelIndex >= 0 && ChannelIndex < ARRAY_COUNT(Connection->Channels))
+				if (FNetControlMessage<NMT_ActorChannelFailure>::Receive(Bunch, ChannelIndex))
 				{
-					// Get the actor channel that the client provided as having failed
-					UActorChannel* ActorChan = Cast<UActorChannel>(Connection->Channels[ChannelIndex]);
+					UE_LOG(LogNet, Log, TEXT("Server connection received: %s"), FNetControlMessageInfo::GetName(MessageType));
 
-					// The channel and the actor attached to the channel exists on the server
-					if (ActorChan != nullptr && ActorChan->Actor != nullptr)
+					// Check if Channel index provided by client is valid and within range of channel on server
+					if (ChannelIndex >= 0 && ChannelIndex < ARRAY_COUNT(Connection->Channels))
 					{
-						// The channel that failed is the player controller thus the connection is broken
-						if (ActorChan->Actor == Connection->PlayerController)
-						{
-							UE_LOG(LogNet, Warning, TEXT("UControlChannel::ReceivedBunch: NetConnection::Close() [%s] [%s] [%s] from failed to initialize the PlayerController channel. Closing connection."), 
-								Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
-								Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
-								Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
+						// Get the actor channel that the client provided as having failed
+						UActorChannel* ActorChan = Cast<UActorChannel>(Connection->Channels[ChannelIndex]);
 
-							Connection->Close();
-						}
-						// The client has a PlayerController connection, report the actor failure to PlayerController
-						else if (Connection->PlayerController != nullptr)
+						// The channel and the actor attached to the channel exists on the server
+						if (ActorChan != nullptr && ActorChan->Actor != nullptr)
 						{
-							Connection->PlayerController->NotifyActorChannelFailure(ActorChan);
-						}
-						// The PlayerController connection doesn't exist for the client
-						// but the client is reporting an actor channel failure that isn't the PlayerController
-						else
-						{
-							//UE_LOG(LogNet, Warning, TEXT("UControlChannel::RecievedBunch: PlayerController doesn't exist for the client, but the client is reporting an actor channel failure that isn't the PlayerController."));
+							// The channel that failed is the player controller thus the connection is broken
+							if (ActorChan->Actor == Connection->PlayerController)
+							{
+								UE_LOG(LogNet, Warning, TEXT("UControlChannel::ReceivedBunch: NetConnection::Close() [%s] [%s] [%s] from failed to initialize the PlayerController channel. Closing connection."),
+									Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+									Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+									Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
+
+								Connection->Close();
+							}
+							// The client has a PlayerController connection, report the actor failure to PlayerController
+							else if (Connection->PlayerController != nullptr)
+							{
+								Connection->PlayerController->NotifyActorChannelFailure(ActorChan);
+							}
+							// The PlayerController connection doesn't exist for the client
+							// but the client is reporting an actor channel failure that isn't the PlayerController
+							else
+							{
+								//UE_LOG(LogNet, Warning, TEXT("UControlChannel::RecievedBunch: PlayerController doesn't exist for the client, but the client is reporting an actor channel failure that isn't the PlayerController."));
+							}
 						}
 					}
+					// The client is sending an actor channel failure message with an invalid
+					// actor channel index
+					// @PotentialDOSAttackDetection
+					else
+					{
+						UE_LOG(LogNet, Warning, TEXT("UControlChannel::RecievedBunch: The client is sending an actor channel failure message with an invalid actor channel index."));
+					}
 				}
-				// The client is sending an actor channel failure message with an invalid
-				// actor channel index
-				// @PotentialDOSAttackDetection
-				else
-				{
-					UE_LOG(LogNet, Warning, TEXT("UControlChannel::RecievedBunch: The client is sending an actor channel failure message with an invalid actor channel index."));
-				}
-
 			}
 		}
 		else if (MessageType == NMT_GameSpecific)
@@ -1276,26 +1278,32 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 			// the most common Notify handlers do not support subclasses by default and so we redirect the game specific messaging to the GameInstance instead
 			uint8 MessageByte;
 			FString MessageStr;
-			FNetControlMessage<NMT_GameSpecific>::Receive(Bunch, MessageByte, MessageStr);
-			if (Connection->Driver->World != NULL && Connection->Driver->World->GetGameInstance() != NULL)
+
+			if (FNetControlMessage<NMT_GameSpecific>::Receive(Bunch, MessageByte, MessageStr))
 			{
-				Connection->Driver->World->GetGameInstance()->HandleGameNetControlMessage(Connection, MessageByte, MessageStr);
-			}
-			else
-			{
-				FWorldContext* Context = GEngine->GetWorldContextFromPendingNetGameNetDriver(Connection->Driver);
-				if (Context != NULL && Context->OwningGameInstance != NULL)
+				if (Connection->Driver->World != NULL && Connection->Driver->World->GetGameInstance() != NULL)
 				{
-					Context->OwningGameInstance->HandleGameNetControlMessage(Connection, MessageByte, MessageStr);
+					Connection->Driver->World->GetGameInstance()->HandleGameNetControlMessage(Connection, MessageByte, MessageStr);
+				}
+				else
+				{
+					FWorldContext* Context = GEngine->GetWorldContextFromPendingNetGameNetDriver(Connection->Driver);
+					if (Context != NULL && Context->OwningGameInstance != NULL)
+					{
+						Context->OwningGameInstance->HandleGameNetControlMessage(Connection, MessageByte, MessageStr);
+					}
 				}
 			}
 		}
 		else if(MessageType == NMT_SecurityViolation)
 		{
 			FString DebugMessage;
-			FNetControlMessage<NMT_SecurityViolation>::Receive(Bunch, DebugMessage);
-			UE_SECURITY_LOG(Connection, ESecurityEvent::Closed, TEXT("%s"), *DebugMessage);
-			break;
+
+			if (FNetControlMessage<NMT_SecurityViolation>::Receive(Bunch, DebugMessage))
+			{
+				UE_SECURITY_LOG(Connection, ESecurityEvent::Closed, TEXT("%s"), *DebugMessage);
+				break;
+			}
 		}
 		else
 		{
@@ -2169,7 +2177,14 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		if (NewChannelActor == NULL || NewChannelActor->IsPendingKill())
 		{
 			check( !bSpawnedNewActor );
-			UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: SerializeNewActor failed to find/spawn actor. Actor: %s, Channel: %i"), NewChannelActor ? *NewChannelActor->GetFullName() : TEXT( "NULL" ), ChIndex);
+
+#if !UE_BUILD_SHIPPING
+			if (!bBlockChannelFailure)
+#endif
+			{
+				UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: SerializeNewActor failed to find/spawn actor. Actor: %s, Channel: %i"), NewChannelActor ? *NewChannelActor->GetFullName() : TEXT( "NULL" ), ChIndex);
+			}
+
 			Broken = 1;
 
 			if (!Connection->InternalAck

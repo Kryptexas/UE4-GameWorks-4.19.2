@@ -323,49 +323,63 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 		case NMT_BeaconAssignGUID:
 			{
 				FNetworkGUID NetGUID;
-				FNetControlMessage<NMT_BeaconAssignGUID>::Receive(Bunch, NetGUID);
-				if (NetGUID.IsValid())
-				{
-					Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, this );
 
-					FString BeaconType = GetBeaconType();
-					FNetControlMessage<NMT_BeaconNetGUIDAck>::Send(Connection, BeaconType);
-					// Server will send ClientOnConnected() when it gets this control message
-
-					// Fail safe for connection to server but no client connection RPC
-					FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &AOnlineBeaconClient::OnFailure);
-					GetWorldTimerManager().SetTimer(TimerHandle_OnFailure, TimerDelegate, BEACON_RPC_TIMEOUT, false);
-				}
-				else
+				if (FNetControlMessage<NMT_BeaconAssignGUID>::Receive(Bunch, NetGUID))
 				{
-					// Force close the session
-					UE_LOG(LogBeacon, Log, TEXT("Beacon close from invalid NetGUID"));
-					OnFailure();
+					if (NetGUID.IsValid())
+					{
+						Connection->Driver->GuidCache->RegisterNetGUID_Client(NetGUID, this);
+
+						FString BeaconType = GetBeaconType();
+						FNetControlMessage<NMT_BeaconNetGUIDAck>::Send(Connection, BeaconType);
+						// Server will send ClientOnConnected() when it gets this control message
+
+						// Fail safe for connection to server but no client connection RPC
+						FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &AOnlineBeaconClient::OnFailure);
+						GetWorldTimerManager().SetTimer(TimerHandle_OnFailure, TimerDelegate, BEACON_RPC_TIMEOUT, false);
+					}
+					else
+					{
+						// Force close the session
+						UE_LOG(LogBeacon, Log, TEXT("Beacon close from invalid NetGUID"));
+						OnFailure();
+					}
 				}
+
 				break;
 			}
 		case NMT_Upgrade:
 			{
 				// Report mismatch.
 				uint32 RemoteNetworkVersion;
-				FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion);
-				// Upgrade
-				const FString ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
-				GEngine->BroadcastNetworkFailure(GetWorld(), NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
+
+				if (FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion))
+				{
+					// Upgrade
+					const FString ConnectionError = NSLOCTEXT("Engine", "ClientOutdated",
+						"The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
+
+					GEngine->BroadcastNetworkFailure(GetWorld(), NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
+				}
+
 				break;
 			}
 		case NMT_Failure:
 			{
 				FString ErrorMsg;
-				FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg);
-				if (ErrorMsg.IsEmpty())
+
+				if (FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg))
 				{
-					ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericBeaconConnectionFailed", "Beacon Connection Failed.").ToString();
+					if (ErrorMsg.IsEmpty())
+					{
+						ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericBeaconConnectionFailed", "Beacon Connection Failed.").ToString();
+					}
+
+					// Force close the session
+					UE_LOG(LogBeacon, Log, TEXT("Beacon close from NMT_Failure %s"), *ErrorMsg);
+					OnFailure();
 				}
 
-				// Force close the session
-				UE_LOG(LogBeacon, Log, TEXT("Beacon close from NMT_Failure %s"), *ErrorMsg);
-				OnFailure();
 				break;
 			}
 		case NMT_BeaconJoin:

@@ -1705,15 +1705,7 @@ bool AActor::IsInLevel(const ULevel *TestLevel) const
 
 ULevel* AActor::GetLevel() const
 {
-	for (UObject* Outer = GetOuter(); Outer != nullptr; Outer = Outer->GetOuter())
-	{
-		if (ULevel* Level = Cast<ULevel>(Outer))
-		{
-			return Level;
-		}
-	}
-
-	return nullptr;
+	return GetTypedOuter<ULevel>();
 }
 
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
@@ -4587,6 +4579,24 @@ FNetworkObjectInfo* AActor::FindNetworkObjectInfo()
 	}
 
 	return nullptr;
+}
+
+void AActor::PostRename(UObject* OldOuter, const FName OldName)
+{
+	Super::PostRename(OldOuter, OldName);
+
+	if (UWorld* World = GetWorld())
+	{
+		if (UNetDriver* NetDriver = World->GetNetDriver())
+		{
+			NetDriver->NotifyActorRenamed(this, OldName);
+		}
+
+		if (World->DemoNetDriver)
+		{
+			World->DemoNetDriver->NotifyActorRenamed(this, OldName);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

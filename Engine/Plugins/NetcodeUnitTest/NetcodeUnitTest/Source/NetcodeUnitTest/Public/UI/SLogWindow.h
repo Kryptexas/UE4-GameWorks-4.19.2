@@ -3,10 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NetcodeUnitTest.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Input/Reply.h"
 #include "Widgets/SWindow.h"
+
+#include "NetcodeUnitTest.h"
+#include "UnitLogging.h"
+
 
 class SLogWidget;
 

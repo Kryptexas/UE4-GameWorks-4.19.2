@@ -897,7 +897,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bHasLoadRequestPending);
 
 					FUpdateLevelStreamingLevelStatus& LevelStatus = *new( LevelStatuses ) FUpdateLevelStreamingLevelStatus();
-					LevelStatus.PackageName = PC->NetworkRemapPath(*TheLevel->GetWorldAssetPackageName(), false);
+					LevelStatus.PackageName = PC->NetworkRemapPath(TheLevel->GetWorldAssetPackageFName(), false);
 					LevelStatus.bNewShouldBeLoaded = TheLevel->bShouldBeLoaded;
 					LevelStatus.bNewShouldBeVisible = TheLevel->bShouldBeVisible;
 					LevelStatus.bNewShouldBlockOnLoad = TheLevel->bShouldBlockOnLoad;

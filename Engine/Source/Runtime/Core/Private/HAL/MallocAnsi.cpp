@@ -34,6 +34,15 @@ FMallocAnsi::FMallocAnsi()
 void* FMallocAnsi::Malloc( SIZE_T Size, uint32 Alignment )
 {
 	IncrementTotalMallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	if (MaxSingleAlloc != 0 && Size > MaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(Size, Alignment);
+		return nullptr;
+	}
+#endif
+
 	Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
 
 #if USE_ALIGNED_MALLOC
@@ -62,6 +71,15 @@ void* FMallocAnsi::Malloc( SIZE_T Size, uint32 Alignment )
 void* FMallocAnsi::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 {
 	IncrementTotalReallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	if (MaxSingleAlloc != 0 && NewSize > MaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
+		return nullptr;
+	}
+#endif
+
 	void* Result;
 	Alignment = FMath::Max(NewSize >= 16 ? (uint32)16 : (uint32)8, Alignment);
 

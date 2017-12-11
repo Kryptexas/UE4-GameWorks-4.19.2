@@ -41,7 +41,6 @@ FString GetUnitTestFlagName(EUnitTestFlags Flag)
 		EUTF_CASE(RequirePing);
 		EUTF_CASE(RequireNUTActor);
 		EUTF_CASE(RequireBeacon);
-		EUTF_CASE(RequireMCP);
 		EUTF_CASE(RequireCustom);
 		EUTF_CASE(ExpectServerCrash);
 		EUTF_CASE(ExpectDisconnect);

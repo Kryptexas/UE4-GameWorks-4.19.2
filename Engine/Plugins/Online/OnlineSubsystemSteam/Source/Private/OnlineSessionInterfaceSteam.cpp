@@ -626,6 +626,12 @@ uint32 FOnlineSessionSteam::DestroyInternetSession(FNamedOnlineSession* Session,
 		check(SessionInfo->SessionType == ESteamSession::AdvertisedSessionHost || SessionInfo->SessionType == ESteamSession::AdvertisedSessionClient);
 	}
 
+	// Clear any session advertisements this account had with this session.
+	if (SteamUser() != NULL && SteamUser()->BLoggedOn())
+	{
+		SteamUser()->AdvertiseGame(k_steamIDNil, 0, 0);
+	}
+
 	if (bSteamworksGameServerConnected && GameServerSteamId->IsValid())
 	{
 		// Logoff the master server
@@ -926,10 +932,22 @@ uint32 FOnlineSessionSteam::JoinInternetSession(int32 PlayerNum, FNamedOnlineSes
 			SteamSessionInfo->HostAddr = SearchSessionInfo->HostAddr;
 			SteamSessionInfo->SteamP2PAddr = SearchSessionInfo->SteamP2PAddr;
 
-			FString ConnectionString = GetSteamConnectionString(Session->SessionName);
-			if (!SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionString)))
+			if (SearchSession->SessionSettings.bAllowJoinViaPresence)
 			{
-				UE_LOG_ONLINE(Verbose, TEXT("Failed to set rich presence for session %s"), *Session->SessionName.ToString());
+				FString ConnectionString = GetSteamConnectionString(Session->SessionName);
+				if (!SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionString)))
+				{
+					UE_LOG_ONLINE(Verbose, TEXT("Failed to set rich presence for session %s"), *Session->SessionName.ToString());
+				}
+
+				// Advertise any servers we join
+				if (SteamUser() != NULL && SteamUser()->BLoggedOn())
+				{
+					uint32 IpAddr;
+					uint32 Port = SteamSessionInfo->HostAddr->GetPort();
+					SteamSessionInfo->HostAddr->GetIp(IpAddr);
+					SteamUser()->AdvertiseGame(SteamSessionInfo->SessionId, IpAddr, Port);
+				}
 			}
 			Result = ERROR_SUCCESS;
 		}

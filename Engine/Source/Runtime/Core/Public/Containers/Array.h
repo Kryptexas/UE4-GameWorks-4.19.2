@@ -1068,37 +1068,54 @@ public:
 	friend FArchive& operator<<(FArchive& Ar, TArray& A)
 	{
 		A.CountBytes(Ar);
-		if (sizeof(ElementType) == 1)
+
+		// For net archives, limit serialization to 16MB, to protect against excessive allocation
+		const int32 MaxNetArraySerialize = (16 * 1024 * 1024) / sizeof(ElementType);
+		int32 SerializeNum = (Ar.IsLoading() ? 0 : A.ArrayNum);
+
+		Ar << SerializeNum;
+
+		check(SerializeNum >= 0);
+
+		if (!Ar.IsError() && SerializeNum >= 0 && ensure(!Ar.IsNetArchive() || SerializeNum <= MaxNetArraySerialize))
 		{
-			// Serialize simple bytes which require no construction or destruction.
-			Ar << A.ArrayNum;
-			check(A.ArrayNum >= 0);
-			if ((A.ArrayNum || A.ArrayMax) && Ar.IsLoading())
+			if (sizeof(ElementType) == 1)
 			{
-				A.ResizeForCopy(A.ArrayNum, A.ArrayMax);
+				A.ArrayNum = SerializeNum;
+
+				// Serialize simple bytes which require no construction or destruction.
+				if ((A.ArrayNum || A.ArrayMax) && Ar.IsLoading())
+				{
+					A.ResizeForCopy(A.ArrayNum, A.ArrayMax);
+				}
+
+				Ar.Serialize(A.GetData(), A.Num());
 			}
-			Ar.Serialize(A.GetData(), A.Num());
-		}
-		else if (Ar.IsLoading())
-		{
-			// Load array.
-			int32 NewNum = 0;
-			Ar << NewNum;
-			A.Empty(NewNum);
-			for (int32 i = 0; i < NewNum; i++)
+			else if (Ar.IsLoading())
 			{
-				Ar << *::new(A)ElementType;
+				// Required for resetting ArrayNum
+				A.Empty(SerializeNum);
+
+				for (int32 i=0; i<SerializeNum; i++)
+				{
+					Ar << *::new(A) ElementType;
+				}
+			}
+			else
+			{
+				A.ArrayNum = SerializeNum;
+
+				for (int32 i=0; i<A.ArrayNum; i++)
+				{
+					Ar << A[i];
+				}
 			}
 		}
 		else
 		{
-			// Save array.
-			Ar << A.ArrayNum;
-			for (int32 i = 0; i < A.ArrayNum; i++)
-			{
-				Ar << A[i];
-			}
+			Ar.SetError();
 		}
+
 		return Ar;
 	}
 

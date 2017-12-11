@@ -3195,6 +3195,9 @@ public:
 	/** Rename this world such that it has the prefix on names for the given PIE Instance ID */
 	void RenameToPIEWorld(int32 PIEInstanceID);
 
+	/** Given a level script actor, modify the string such that it points to the correct instance of the object. For replays. */
+	bool RemapCompiledScriptActor(FString& Str) const;
+
 	/** Given a PackageName and a PIE Instance ID return the name of that Package when being run as a PIE world */
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
 

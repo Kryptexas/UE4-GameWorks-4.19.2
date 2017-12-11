@@ -184,8 +184,8 @@ uint32 FTcpMessageTransportConnection::Run()
 				    FPlatformProcess::Sleep(ConnectionRetryDelay);
     
 				    Socket = FTcpSocketBuilder(TEXT("FTcpMessageTransport.RemoteConnection"))
-					.WithSendBufferSize(TCP_MESSAGING_SEND_BUFFER_SIZE)
-					.WithReceiveBufferSize(TCP_MESSAGING_RECEIVE_BUFFER_SIZE);
+						.WithSendBufferSize(TCP_MESSAGING_SEND_BUFFER_SIZE)
+						.WithReceiveBufferSize(TCP_MESSAGING_RECEIVE_BUFFER_SIZE);
 
 				    if (Socket && Socket->Connect(RemoteEndpoint.ToInternetAddr().Get()))
 				    {

@@ -15,6 +15,7 @@ class FOnlineSessionSteam;
 class FOnlineSharedCloudSteam;
 class FOnlineUserCloudSteam;
 class FOnlineVoiceSteam;
+class FOnlinePresenceSteam;
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionSteam, ESPMode::ThreadSafe> FOnlineSessionSteamPtr;
@@ -26,6 +27,7 @@ typedef TSharedPtr<class FOnlineLeaderboardsSteam, ESPMode::ThreadSafe> FOnlineL
 typedef TSharedPtr<class FOnlineVoiceSteam, ESPMode::ThreadSafe> FOnlineVoiceSteamPtr;
 typedef TSharedPtr<class FOnlineExternalUISteam, ESPMode::ThreadSafe> FOnlineExternalUISteamPtr;
 typedef TSharedPtr<class FOnlineAchievementsSteam, ESPMode::ThreadSafe> FOnlineAchievementsSteamPtr;
+typedef TSharedPtr<class FOnlinePresenceSteam, ESPMode::ThreadSafe> FOnlinePresenceSteamPtr;
 
 /**
  *	OnlineSubsystemSteam - Implementation of the online subsystem for STEAM services
@@ -83,6 +85,9 @@ protected:
 	/** Interface for achievements */
 	FOnlineAchievementsSteamPtr AchievementsInterface;
 
+	/** Interface for presence */
+	FOnlinePresenceSteamPtr PresenceInterface;
+
 	/** Online async task runnable */
 	class FOnlineAsyncTaskManagerSteam* OnlineAsyncTaskThreadRunnable;
 
@@ -108,6 +113,7 @@ PACKAGE_SCOPE:
 		LeaderboardsInterface(nullptr),
 		VoiceInterface(nullptr),
 		ExternalUIInterface(nullptr),
+		PresenceInterface(nullptr),
 		OnlineAsyncTaskThreadRunnable(nullptr),
 		OnlineAsyncTaskThread(nullptr)
 	{}
@@ -127,6 +133,7 @@ PACKAGE_SCOPE:
 		LeaderboardsInterface(nullptr),
 		VoiceInterface(nullptr),
 		ExternalUIInterface(nullptr),
+		PresenceInterface(nullptr),
 		OnlineAsyncTaskThreadRunnable(nullptr),
 		OnlineAsyncTaskThread(nullptr)
 	{}

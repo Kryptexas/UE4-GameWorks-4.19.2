@@ -26,13 +26,6 @@ UUnitTestActorChannel::UUnitTestActorChannel(const FObjectInitializer& ObjectIni
 #endif
 }
 
-void UUnitTestActorChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally)
-{
-	MinClient = UMinimalClient::GetMinClientFromConn(InConnection);
-
-	Super::Init(InConnection, InChIndex, InOpenedLocally);
-}
-
 void UUnitTestActorChannel::ReceivedBunch(FInBunch& Bunch)
 {
 	// If Actor is nullptr, and we are processing a bunch, then we are most likely initializing the actor channel
@@ -91,10 +84,9 @@ void UUnitTestActorChannel::NotifyActorChannelOpen(AActor* InActor, FInBunch& In
 				PC->Player = NewObject<ULocalPlayer>(GEngine, GEngine->LocalPlayerClass);
 			}
 
-			if (MinClient != nullptr)
-			{
-				MinClient->HandleClientPlayerDel.ExecuteIfBound(PC, Connection);
-			}
+			check(MinClient != nullptr);
+
+			MinClient->HandleClientPlayerDel.ExecuteIfBound(PC, Connection);
 		}
 	}
 	else

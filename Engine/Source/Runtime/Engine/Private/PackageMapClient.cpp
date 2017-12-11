@@ -622,6 +622,17 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 
 		InternalWriteObject( Ar, OuterNetGUID, ObjectOuter, TEXT( "" ), NULL );
 
+		// Look for renamed startup actors
+		if (Connection->Driver)
+		{
+			FName SearchPath = FName(*ObjectPathName);
+			FName RenamedPath = Connection->Driver->RenamedStartupActors.FindRef(SearchPath);
+			if (RenamedPath != NAME_None)
+			{
+				ObjectPathName = RenamedPath.ToString();
+			}
+		}
+
 		GEngine->NetworkRemapPath(Connection->Driver, ObjectPathName, false);
 
 		// Serialize Name of object
@@ -1715,15 +1726,7 @@ bool UPackageMapClient::ObjectLevelHasFinishedLoading(UObject* Object)
 	if (Object != NULL && Connection!= NULL && Connection->Driver != NULL && Connection->Driver->GetWorld() != NULL)
 	{
 		// get the level for the object
-		ULevel* Level = NULL;
-		for (UObject* Obj = Object; Obj != NULL; Obj = Obj->GetOuter())
-		{
-			Level = Cast<ULevel>(Obj);
-			if (Level != NULL)
-			{
-				break;
-			}
-		}
+		ULevel* Level = Object->GetTypedOuter<ULevel>();
 		
 		if (Level != NULL && Level != Connection->Driver->GetWorld()->PersistentLevel)
 		{
@@ -2324,15 +2327,7 @@ static bool ObjectLevelHasFinishedLoading( UObject* Object, UNetDriver* Driver )
 	if ( Object != NULL && Driver != NULL && Driver->GetWorld() != NULL )
 	{
 		// get the level for the object
-		ULevel* Level = NULL;
-		for ( UObject* Obj = Object; Obj != NULL; Obj = Obj->GetOuter() )
-		{
-			Level = Cast<ULevel>( Obj );
-			if ( Level != NULL )
-			{
-				break;
-			}
-		}
+		ULevel* Level = Object->GetTypedOuter<ULevel>();
 
 		if ( Level != NULL && Level != Driver->GetWorld()->PersistentLevel )
 		{
@@ -2437,9 +2432,11 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		}
 	}
 
+	const uint32 TreatAsLoadedFlags = EPackageFlags::PKG_CompiledIn | EPackageFlags::PKG_PlayInEditor;
+
 	// At this point, we either have an outer, or we are a package
 	check( !CacheObjectPtr->bIsPending );
-	check(ObjOuter == NULL || ObjOuter->GetOutermost()->IsFullyLoaded() || ObjOuter->GetOutermost()->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn));
+	check(ObjOuter == NULL || ObjOuter->GetOutermost()->IsFullyLoaded() || ObjOuter->GetOutermost()->HasAnyPackageFlags( TreatAsLoadedFlags ));
 
 	// See if this object is in memory
 	Object = StaticFindObject( UObject::StaticClass(), ObjOuter, *CacheObjectPtr->PathName.ToString(), false );
@@ -2527,7 +2524,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		}
 
 		if (!Package->IsFullyLoaded() 
-			&& !Package->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn)) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
+			&& !Package->HasAnyPackageFlags( TreatAsLoadedFlags )) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
 		{
 			if (ShouldAsyncLoad() && Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
 			{

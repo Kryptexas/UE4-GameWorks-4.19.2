@@ -1634,7 +1634,8 @@ void FTickFunction::RegisterTickFunction(ULevel* Level)
 	if (!bRegistered)
 	{
 		// Only allow registration of tick if we are are allowed on dedicated server, or we are not a dedicated server
-		if(bAllowTickOnDedicatedServer || !IsRunningDedicatedServer())
+		const UWorld* World = Level ? Level->GetWorld() : nullptr;
+		if(bAllowTickOnDedicatedServer || !(World && World->IsNetMode(NM_DedicatedServer)))
 		{
 			FTickTaskManager::Get().AddTickFunction(Level, this);
 			bRegistered = true;

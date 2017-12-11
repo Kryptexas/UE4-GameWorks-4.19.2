@@ -2583,6 +2583,30 @@ FString UWorld::BuildPIEPackagePrefix(int PIEInstanceID)
 	return FString::Printf(TEXT("%s_%d_"), PLAYWORLD_PACKAGE_PREFIX, PIEInstanceID);
 }
 
+bool UWorld::RemapCompiledScriptActor(FString& Str) const 
+{
+	// We're really only interested in compiled script actors, skip everything else.
+	if (!Str.Contains(TEXT("_C_")))
+	{
+		return false;
+	}
+
+	// Wrap our search string as an FName. This will allow us to do a quick search to see if the object exists regardless of index.
+	const FName ActorName(*Str);
+	for (TArray<ULevel*>::TConstIterator it = GetLevels().CreateConstIterator(); it; ++it)
+	{
+		const ALevelScriptActor* const LSA = GetLevelScriptActor(*it);
+		// As there should only be one instance of the persistent level script actor, if the indexes match, then this is the object name we want.
+		if(LSA && LSA->GetFName().IsEqual(ActorName, ENameCase::IgnoreCase, false))
+		{
+			Str = LSA->GetFName().ToString();
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /**
  * Simple archive for updating lazy pointer GUIDs when a sub-level gets duplicated for PIE
  */
@@ -3262,11 +3286,27 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	{
 		ErrorString = TEXT( "InWorld is null" );
 	}
+	else if (InWorld->WorldType == EWorldType::Editor)
+	{
+		ErrorString = TEXT("Cannot play a demo without a PIE instance running");
+	}
 	else if ( InWorld->GetGameInstance() == nullptr )
 	{
 		ErrorString = TEXT( "InWorld->GetGameInstance() is null" );
 	}
-	
+	else if (InWorld->WorldType == EWorldType::PIE)
+	{
+		// Prevent multiple playback in the editor.
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.World()->DemoNetDriver != nullptr && Context.World()->DemoNetDriver->IsPlaying())
+			{
+				ErrorString = TEXT("A demo is already in progress, cannot play more than one demo at a time");
+				break;
+			}
+		}
+	}
+
 	if (ErrorString != nullptr)
 	{
 		Ar.Log(ErrorString);
@@ -3278,7 +3318,18 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	}
 	else
 	{
-		InWorld->GetGameInstance()->PlayReplay(Temp);
+		// Allow additional url arguments after the demo name
+		TArray<FString> Options;
+		if (Temp.ParseIntoArray(Options, TEXT("?")) > 1)
+		{
+			Temp = Options[0];
+			Options.RemoveAtSwap(0);
+			InWorld->GetGameInstance()->PlayReplay(Temp, nullptr, Options);
+		}
+		else
+		{
+			InWorld->GetGameInstance()->PlayReplay(Temp);
+		}
 	}
 
 	return true;
@@ -4165,29 +4216,35 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				// our connection attempt failed for some reason, for example a synchronization mismatch (bad GUID, etc) or because the server rejected our join attempt (too many players, etc)
 				// here we can further parse the string to determine the reason that the server closed our connection and present it to the user
 				FString EntryURL = TEXT("?failed");
-
 				FString ErrorMsg;
-				FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg);
-				if (ErrorMsg.IsEmpty())
+
+				if (FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg))
 				{
-					ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericConnectionFailed", "Connection Failed.").ToString();
+					if (ErrorMsg.IsEmpty())
+					{
+						ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericConnectionFailed", "Connection Failed.").ToString();
+					}
+
+					GEngine->BroadcastNetworkFailure(this, NetDriver, ENetworkFailure::FailureReceived, ErrorMsg);
+					if (Connection)
+					{
+						Connection->Close();
+					}
 				}
 
-				GEngine->BroadcastNetworkFailure(this, NetDriver, ENetworkFailure::FailureReceived, ErrorMsg);
-				if (Connection)
-				{
-					Connection->Close();
-				}
 				break;
 			}
 			case NMT_DebugText:
 			{
 				// debug text message
 				FString Text;
-				FNetControlMessage<NMT_DebugText>::Receive(Bunch,Text);
 
-				UE_LOG(LogNet, Log, TEXT("%s received NMT_DebugText Text=[%s] Desc=%s DescRemote=%s"),
-					*Connection->Driver->GetDescription(),*Text,*Connection->LowLevelDescribe(),*Connection->LowLevelGetRemoteAddress());
+				if (FNetControlMessage<NMT_DebugText>::Receive(Bunch, Text))
+				{
+					UE_LOG(LogNet, Log, TEXT("%s received NMT_DebugText Text=[%s] Desc=%s DescRemote=%s"),
+							*Connection->Driver->GetDescription(), *Text, *Connection->LowLevelDescribe(),
+							*Connection->LowLevelGetRemoteAddress());
+				}
 
 				break;
 			}
@@ -4195,10 +4252,13 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 			{
 				FNetworkGUID NetGUID;
 				FString Path;
-				FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path);
 
-				UE_LOG(LogNet, Verbose, TEXT("NMT_NetGUIDAssign  NetGUID %s. Path: %s. "), *NetGUID.ToString(), *Path );
-				Connection->PackageMap->ResolvePathAndAssignNetGUID( NetGUID, Path );
+				if (FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path))
+				{
+					UE_LOG(LogNet, Verbose, TEXT("NMT_NetGUIDAssign  NetGUID %s. Path: %s. "), *NetGUID.ToString(), *Path);
+					Connection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path);
+				}
+
 				break;
 			}
 		}
@@ -4226,48 +4286,53 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 				FString EncryptionToken;
 
-				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion, EncryptionToken);
-
-				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
+				if (FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion, EncryptionToken))
 				{
-					UE_LOG(LogNet, Log, TEXT("NotifyControlMessage: Client connecting with invalid version. LocalNetworkVersion: %i, RemoteNetworkVersion: %i"), LocalNetworkVersion, RemoteNetworkVersion);
-					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
-					Connection->FlushNet(true);
-					Connection->Close();
-
-					PerfCountersIncrement(TEXT("ClosedConnectionsDueToIncompatibleVersion"));
-				}
-				else
-				{
-					if (EncryptionToken.IsEmpty())
+					if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 					{
-						SendChallengeControlMessage(Connection);
+						UE_LOG(LogNet, Log, TEXT("NotifyControlMessage: Client connecting with invalid version. LocalNetworkVersion: %i, RemoteNetworkVersion: %i"), LocalNetworkVersion, RemoteNetworkVersion);
+						FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
+						Connection->FlushNet(true);
+						Connection->Close();
+
+						PerfCountersIncrement(TEXT("ClosedConnectionsDueToIncompatibleVersion"));
 					}
 					else
 					{
-						if (FNetDelegates::OnReceivedNetworkEncryptionToken.IsBound())
+						if (EncryptionToken.IsEmpty())
 						{
-							TWeakObjectPtr<UNetConnection> WeakConnection = Connection;
-							FNetDelegates::OnReceivedNetworkEncryptionToken.Execute(EncryptionToken, FOnEncryptionKeyResponse::CreateUObject(this, &UWorld::SendChallengeControlMessage, WeakConnection));
+							SendChallengeControlMessage(Connection);
 						}
 						else
 						{
-							FString FailureMsg(TEXT("Encryption failure"));
-							UE_LOG(LogNet, Warning, TEXT("%s: No delegate available to handle encryption token, disconnecting."), *Connection->GetName());
-							FNetControlMessage<NMT_Failure>::Send(Connection, FailureMsg);
-							Connection->FlushNet(true);
+							if (FNetDelegates::OnReceivedNetworkEncryptionToken.IsBound())
+							{
+								TWeakObjectPtr<UNetConnection> WeakConnection = Connection;
+								FNetDelegates::OnReceivedNetworkEncryptionToken.Execute(EncryptionToken, FOnEncryptionKeyResponse::CreateUObject(this, &UWorld::SendChallengeControlMessage, WeakConnection));
+							}
+							else
+							{
+								FString FailureMsg(TEXT("Encryption failure"));
+								UE_LOG(LogNet, Warning, TEXT("%s: No delegate available to handle encryption token, disconnecting."), *Connection->GetName());
+								FNetControlMessage<NMT_Failure>::Send(Connection, FailureMsg);
+								Connection->FlushNet(true);
+							}
 						}
 					}
 				}
+
 				break;
 			}
 
 			case NMT_Netspeed:
 			{
 				int32 Rate;
-				FNetControlMessage<NMT_Netspeed>::Receive(Bunch, Rate);
-				Connection->CurrentNetSpeed = FMath::Clamp(Rate, 1800, NetDriver->MaxClientRate);
-				UE_LOG(LogNet, Log, TEXT("Client netspeed is %i"), Connection->CurrentNetSpeed);
+
+				if (FNetControlMessage<NMT_Netspeed>::Receive(Bunch, Rate))
+				{
+					Connection->CurrentNetSpeed = FMath::Clamp(Rate, 1800, NetDriver->MaxClientRate);
+					UE_LOG(LogNet, Log, TEXT("Client netspeed is %i"), Connection->CurrentNetSpeed);
+				}
 
 				break;
 			}
@@ -4281,69 +4346,84 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 			}
 			case NMT_Login:
 			{
+				// Admit or deny the player here.
 				FUniqueNetIdRepl UniqueIdRepl;
 				FString OnlinePlatformName;
 
-				// Admit or deny the player here.
-				TArray<uint8> RequestUrlBytes;
-				FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformName);
-				Connection->RequestURL = UTF8_TO_TCHAR(RequestUrlBytes.GetData());
-				UE_LOG(LogNet, Log, TEXT("Login request: %s userId: %s"), *Connection->RequestURL, UniqueIdRepl.IsValid() ? *UniqueIdRepl->ToString() : TEXT("Invalid"));
+				// Expand the maximum string serialization size, to accommodate extremely large Fortnite join URL's.
+				Bunch.ArMaxSerializeSize += (16 * 1024 * 1024);
 
+				bool bReceived = FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, Connection->RequestURL,
+																		UniqueIdRepl, OnlinePlatformName);
 
-				// Compromise for passing splitscreen playercount through to gameplay login code,
-				// without adding a lot of extra unnecessary complexity throughout the login code.
-				// NOTE: This code differs from NMT_JoinSplit, by counting + 1 for SplitscreenCount
-				//			(since this is the primary connection, not counted in Children)
-				FURL InURL( NULL, *Connection->RequestURL, TRAVEL_Absolute );
+				Bunch.ArMaxSerializeSize -= (16 * 1024 * 1024);
 
-				if ( !InURL.Valid )
+				if (bReceived)
 				{
-					UE_LOG( LogNet, Error, TEXT( "NMT_Login: Invalid URL %s" ), *Connection->RequestURL );
-					Bunch.SetError();
-					break;
-				}
+					UE_LOG(LogNet, Log, TEXT("Login request: %s userId: %s"), *Connection->RequestURL,
+							(UniqueIdRepl.IsValid() ? *UniqueIdRepl->ToString() : TEXT("Invalid")));
 
-				uint8 SplitscreenCount = FMath::Min(Connection->Children.Num() + 1, 255);
 
-				// Don't allow clients to specify this value
-				InURL.RemoveOption(TEXT("SplitscreenCount"));
-				InURL.AddOption(*FString::Printf(TEXT("SplitscreenCount=%i"), SplitscreenCount));
+					// Compromise for passing splitscreen playercount through to gameplay login code,
+					// without adding a lot of extra unnecessary complexity throughout the login code.
+					// NOTE: This code differs from NMT_JoinSplit, by counting + 1 for SplitscreenCount
+					//			(since this is the primary connection, not counted in Children)
+					FURL InURL( NULL, *Connection->RequestURL, TRAVEL_Absolute );
 
-				Connection->RequestURL = InURL.ToString();
+					if ( !InURL.Valid )
+					{
+						UE_LOG( LogNet, Error, TEXT( "NMT_Login: Invalid URL %s" ), *Connection->RequestURL );
+						Bunch.SetError();
+						break;
+					}
 
-				// skip to the first option in the URL
-				const TCHAR* Tmp = *Connection->RequestURL;
-				for (; *Tmp && *Tmp != '?'; Tmp++);
+					uint8 SplitscreenCount = FMath::Min(Connection->Children.Num() + 1, 255);
 
-				// keep track of net id for player associated with remote connection
-				Connection->PlayerId = UniqueIdRepl;
+					// Don't allow clients to specify this value
+					InURL.RemoveOption(TEXT("SplitscreenCount"));
+					InURL.AddOption(*FString::Printf(TEXT("SplitscreenCount=%i"), SplitscreenCount));
 
-				// keep track of the online platform the player associated with this connection is using.
-				Connection->SetPlayerOnlinePlatformName(FName(*OnlinePlatformName));
+					Connection->RequestURL = InURL.ToString();
 
-				// ask the game code if this player can join
-				FString ErrorMsg;
-				AGameModeBase* GameMode = GetAuthGameMode();
+					// skip to the first option in the URL
+					const TCHAR* Tmp = *Connection->RequestURL;
+					for (; *Tmp && *Tmp != '?'; Tmp++);
 
-				if (GameMode)
-				{
-					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
-				}
-				if (!ErrorMsg.IsEmpty())
-				{
-					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
-					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-					Connection->FlushNet(true);
-					//@todo sz - can't close the connection here since it will leave the failure message 
-					// in the send buffer and just close the socket. 
-					//Connection->Close();
+					// keep track of net id for player associated with remote connection
+					Connection->PlayerId = UniqueIdRepl;
+
+					// keep track of the online platform the player associated with this connection is using.
+					Connection->SetPlayerOnlinePlatformName(FName(*OnlinePlatformName));
+
+					// ask the game code if this player can join
+					FString ErrorMsg;
+					AGameModeBase* GameMode = GetAuthGameMode();
+
+					if (GameMode)
+					{
+						GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+					}
+					if (!ErrorMsg.IsEmpty())
+					{
+						UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
+						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
+						Connection->FlushNet(true);
+						//@todo sz - can't close the connection here since it will leave the failure message 
+						// in the send buffer and just close the socket. 
+						//Connection->Close();
+					}
+					else
+					{
+						WelcomePlayer(Connection);
+					}
 				}
 				else
 				{
-					WelcomePlayer(Connection);
+					Connection->ClientResponse.Empty();
+					Connection->RequestURL.Empty();
 				}
+
 				break;
 			}
 			case NMT_Join:
@@ -4415,80 +4495,51 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				// Handle server-side request for spawning a new controller using a child connection.
 				FString SplitRequestURL;
 				FUniqueNetIdRepl SplitRequestUniqueIdRepl;
-				FNetControlMessage<NMT_JoinSplit>::Receive(Bunch, SplitRequestURL, SplitRequestUniqueIdRepl);
-				UE_LOG(LogNet, Log, TEXT("Join splitscreen request: %s userId: %s parentUserId: %s"),
-					*SplitRequestURL,
-					SplitRequestUniqueIdRepl.IsValid() ? *SplitRequestUniqueIdRepl->ToString() : TEXT("Invalid"),
-					Connection->PlayerId.IsValid() ? *Connection->PlayerId->ToString() : TEXT("Invalid"));
 
-				// Compromise for passing splitscreen playercount through to gameplay login code,
-				// without adding a lot of extra unnecessary complexity throughout the login code.
-				// NOTE: This code differs from NMT_Login, by counting + 2 for SplitscreenCount
-				//			(once for pending child connection, once for primary non-child connection)
-				FURL InURL( NULL, *SplitRequestURL, TRAVEL_Absolute );
-
-				if ( !InURL.Valid )
+				if (FNetControlMessage<NMT_JoinSplit>::Receive(Bunch, SplitRequestURL, SplitRequestUniqueIdRepl))
 				{
-					UE_LOG( LogNet, Error, TEXT( "NMT_JoinSplit: Invalid URL %s" ), *SplitRequestURL );
-					Bunch.SetError();
-					break;
-				}
+					UE_LOG(LogNet, Log, TEXT("Join splitscreen request: %s userId: %s parentUserId: %s"),
+						*SplitRequestURL,
+						SplitRequestUniqueIdRepl.IsValid() ? *SplitRequestUniqueIdRepl->ToString() : TEXT("Invalid"),
+						Connection->PlayerId.IsValid() ? *Connection->PlayerId->ToString() : TEXT("Invalid"));
 
-				uint8 SplitscreenCount = FMath::Min(Connection->Children.Num() + 2, 255);
+					// Compromise for passing splitscreen playercount through to gameplay login code,
+					// without adding a lot of extra unnecessary complexity throughout the login code.
+					// NOTE: This code differs from NMT_Login, by counting + 2 for SplitscreenCount
+					//			(once for pending child connection, once for primary non-child connection)
+					FURL InURL(NULL, *SplitRequestURL, TRAVEL_Absolute);
 
-				// Don't allow clients to specify this value
-				InURL.RemoveOption(TEXT("SplitscreenCount"));
-				InURL.AddOption(*FString::Printf(TEXT("SplitscreenCount=%i"), SplitscreenCount));
-
-				SplitRequestURL = InURL.ToString();
-
-				// skip to the first option in the URL
-				const TCHAR* Tmp = *SplitRequestURL;
-				for (; *Tmp && *Tmp != '?'; Tmp++);
-
-				// go through the same full login process for the split player even though it's all in the same frame
-				FString ErrorMsg;
-				AGameModeBase* GameMode = GetAuthGameMode();
-				if (GameMode)
-				{
-					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), SplitRequestUniqueIdRepl, ErrorMsg);
-				}
-				if (!ErrorMsg.IsEmpty())
-				{
-					// if any splitscreen viewport fails to join, all viewports on that client also fail
-					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
-					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-					Connection->FlushNet(true);
-					//@todo sz - can't close the connection here since it will leave the failure message 
-					// in the send buffer and just close the socket. 
-					//Connection->Close();
-				}
-				else
-				{
-					// create a child network connection using the existing connection for its parent
-					check(Connection->GetUChildConnection() == NULL);
-					check(CurrentLevel);
-
-					UChildConnection* ChildConn = NetDriver->CreateChild(Connection);
-					ChildConn->PlayerId = SplitRequestUniqueIdRepl;
-					ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
-					ChildConn->RequestURL = SplitRequestURL;
-					ChildConn->SetClientWorldPackageName(CurrentLevel->GetOutermost()->GetFName());
-
-					// create URL from string
-					FURL JoinSplitURL(NULL, *SplitRequestURL, TRAVEL_Absolute);
-
-					UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join request: URL=%s"), *JoinSplitURL.ToString());
-					APlayerController* PC = SpawnPlayActor(ChildConn, ROLE_AutonomousProxy, JoinSplitURL, ChildConn->PlayerId, ErrorMsg, uint8(Connection->Children.Num()));
-					if (PC == NULL)
+					if (!InURL.Valid)
 					{
-						// Failed to connect.
-						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join failure: %s"), *ErrorMsg);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg, Connection));
-						// remove the child connection
-						Connection->Children.Remove(ChildConn);
+						UE_LOG(LogNet, Error, TEXT("NMT_JoinSplit: Invalid URL %s"), *SplitRequestURL);
+						Bunch.SetError();
+						break;
+					}
+
+					uint8 SplitscreenCount = FMath::Min(Connection->Children.Num() + 2, 255);
+
+					// Don't allow clients to specify this value
+					InURL.RemoveOption(TEXT("SplitscreenCount"));
+					InURL.AddOption(*FString::Printf(TEXT("SplitscreenCount=%i"), SplitscreenCount));
+
+					SplitRequestURL = InURL.ToString();
+
+					// skip to the first option in the URL
+					const TCHAR* Tmp = *SplitRequestURL;
+					for (; *Tmp && *Tmp != '?'; Tmp++);
+
+					// go through the same full login process for the split player even though it's all in the same frame
+					FString ErrorMsg;
+					AGameModeBase* GameMode = GetAuthGameMode();
+					if (GameMode)
+					{
+						GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), SplitRequestUniqueIdRepl, ErrorMsg);
+					}
+					if (!ErrorMsg.IsEmpty())
+					{
 						// if any splitscreen viewport fails to join, all viewports on that client also fail
+						UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
 						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 						Connection->FlushNet(true);
 						//@todo sz - can't close the connection here since it will leave the failure message 
@@ -4497,43 +4548,84 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					}
 					else
 					{
-						// Successfully spawned in game.
-						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Succeeded: %s PlayerId: %s"), 
-							*ChildConn->PlayerController->PlayerState->GetPlayerName(),
-							*ChildConn->PlayerController->PlayerState->UniqueId.ToDebugString());
+						// create a child network connection using the existing connection for its parent
+						check(Connection->GetUChildConnection() == NULL);
+						check(CurrentLevel);
+
+						UChildConnection* ChildConn = NetDriver->CreateChild(Connection);
+						ChildConn->PlayerId = SplitRequestUniqueIdRepl;
+						ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
+						ChildConn->RequestURL = SplitRequestURL;
+						ChildConn->SetClientWorldPackageName(CurrentLevel->GetOutermost()->GetFName());
+
+						// create URL from string
+						FURL JoinSplitURL(NULL, *SplitRequestURL, TRAVEL_Absolute);
+
+						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join request: URL=%s"), *JoinSplitURL.ToString());
+						APlayerController* PC = SpawnPlayActor(ChildConn, ROLE_AutonomousProxy, JoinSplitURL, ChildConn->PlayerId, ErrorMsg, uint8(Connection->Children.Num()));
+						if (PC == NULL)
+						{
+							// Failed to connect.
+							UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join failure: %s"), *ErrorMsg);
+							NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg, Connection));
+							// remove the child connection
+							Connection->Children.Remove(ChildConn);
+							// if any splitscreen viewport fails to join, all viewports on that client also fail
+							FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
+							Connection->FlushNet(true);
+							//@todo sz - can't close the connection here since it will leave the failure message 
+							// in the send buffer and just close the socket. 
+							//Connection->Close();
+						}
+						else
+						{
+							// Successfully spawned in game.
+							UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Succeeded: %s PlayerId: %s"),
+								*ChildConn->PlayerController->PlayerState->GetPlayerName(),
+								*ChildConn->PlayerController->PlayerState->UniqueId.ToDebugString());
+						}
 					}
 				}
+
 				break;
 			}
 			case NMT_PCSwap:
 			{
 				UNetConnection* SwapConnection = Connection;
 				int32 ChildIndex;
-				FNetControlMessage<NMT_PCSwap>::Receive(Bunch, ChildIndex);
-				if (ChildIndex >= 0)
+
+				if (FNetControlMessage<NMT_PCSwap>::Receive(Bunch, ChildIndex))
 				{
-					SwapConnection = Connection->Children.IsValidIndex(ChildIndex) ? Connection->Children[ChildIndex] : NULL;
+					if (ChildIndex >= 0)
+					{
+						SwapConnection = Connection->Children.IsValidIndex(ChildIndex) ? Connection->Children[ChildIndex] : NULL;
+					}
+					bool bSuccess = false;
+					if (SwapConnection != NULL)
+					{
+						bSuccess = DestroySwappedPC(SwapConnection);
+					}
+
+					if (!bSuccess)
+					{
+						UE_LOG(LogNet, Log, TEXT("Received invalid swap message with child index %i"), ChildIndex);
+					}
 				}
-				bool bSuccess = false;
-				if (SwapConnection != NULL)
-				{
-					bSuccess = DestroySwappedPC(SwapConnection);
-				}
-				
-				if (!bSuccess)
-				{
-					UE_LOG(LogNet, Log, TEXT("Received invalid swap message with child index %i"), ChildIndex);
-				}
+
 				break;
 			}
 			case NMT_DebugText:
 			{
 				// debug text message
 				FString Text;
-				FNetControlMessage<NMT_DebugText>::Receive(Bunch,Text);
 
-				UE_LOG(LogNet, Log, TEXT("%s received NMT_DebugText Text=[%s] Desc=%s DescRemote=%s"),
-					*Connection->Driver->GetDescription(),*Text,*Connection->LowLevelDescribe(),*Connection->LowLevelGetRemoteAddress());
+				if (FNetControlMessage<NMT_DebugText>::Receive(Bunch, Text))
+				{
+					UE_LOG(LogNet, Log, TEXT("%s received NMT_DebugText Text=[%s] Desc=%s DescRemote=%s"),
+							*Connection->Driver->GetDescription(), *Text, *Connection->LowLevelDescribe(),
+							*Connection->LowLevelGetRemoteAddress());
+				}
+
 				break;
 			}
 		}
@@ -4953,8 +5045,6 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 		}
 		else
 		{
-			CurrentWorld = InCurrentWorld;
-
 			bool bCancelledExisting = false;
 			if (IsInTransition())
 			{
@@ -4968,6 +5058,9 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				CancelTravel();
 				bCancelledExisting = true;
 			}
+
+			// CancelTravel will null out CurrentWorld, so we need to assign it after that.
+			CurrentWorld = InCurrentWorld;
 
 			if (CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsRecording())
 			{

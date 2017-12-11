@@ -4471,20 +4471,7 @@ AActor* UEditorEngine::SelectNamedActor(const TCHAR* TargetActorName)
  */
 static bool IsInALevel(UObject* Obj)
 {
-	UObject* Outer = Obj->GetOuter();
-
-	// Keep looping while we walk up Outer chain.
-	while(Outer)
-	{
-		if(Outer->IsA(ULevel::StaticClass()))
-		{
-			return true;
-		}
-
-		Outer = Outer->GetOuter();
-	}
-
-	return false;
+	return Obj->GetTypedOuter<ULevel>() != nullptr;
 }
 
 
