@@ -10,5 +10,5 @@ float FMovieSceneEvalTemplate::EvaluateEasing(float CurrentTime) const
 
 bool FMovieSceneEvalTemplatePtr::Serialize(FArchive& Ar)
 {
-	return SerializeEvaluationTemplate(*this, Ar);
+	return SerializeInlineValue(*this, Ar);
 }

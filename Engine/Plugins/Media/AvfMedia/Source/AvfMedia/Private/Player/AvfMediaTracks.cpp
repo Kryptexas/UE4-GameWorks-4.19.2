@@ -66,10 +66,12 @@ struct AudioTrackTapContextData
 	AudioStreamBasicDescription DestinationFormat;
 	FMediaSamples&				SampleQueue;
 	FAvfMediaAudioSamplePool*	AudioSamplePool;
+	bool						bActive;
 	
 	AudioTrackTapContextData(FMediaSamples& InSampleQueue, FAvfMediaAudioSamplePool* InAudioSamplePool, AudioStreamBasicDescription const & InDestinationFormat)
 	: SampleQueue(InSampleQueue)
 	, AudioSamplePool(InAudioSamplePool)
+	, bActive(false)
 	{
 		FMemory::Memcpy(&DestinationFormat, &InDestinationFormat, sizeof(AudioStreamBasicDescription));
 	}
@@ -87,6 +89,7 @@ static void AudioTrackTapPrepare(MTAudioProcessingTapRef __nonnull TapRef, CMIte
 	if(ContextData)
 	{
 		FMemory::Memcpy(&ContextData->ProcessingFormat,ProcessingFormat,sizeof(AudioStreamBasicDescription));
+		ContextData->bActive = true;
 	}
 }
 
@@ -112,76 +115,79 @@ static void AudioTrackTapProcess(	MTAudioProcessingTapRef __nonnull TapRef,
 		// in the public interface to AvfMediaTracks which seems wrong - plus we save the extra function call in time critical code!
 		check(Ctx);
 		
-		// Compute required buffer size
-		uint32 BufferSize = (NumberFrames * ((Ctx->DestinationFormat.mBitsPerChannel / 8))) * Ctx->DestinationFormat.mChannelsPerFrame;
-		
-		//setup reasonable defaults as time range can be invalid - especially at the start of the audio track
-		FTimespan StartTime(0);
-		FTimespan Duration(((int64)NumberFrames * ETimespan::TicksPerSecond) / (int64)Ctx->DestinationFormat.mSampleRate);
-		
-		// If valid set time stamps give by the system
-		if((TimeRange.start.flags & kCMTimeFlags_Valid) != 0)
+			if(Ctx->bActive)
 		{
-			StartTime = (TimeRange.start.value * ETimespan::TicksPerSecond) / TimeRange.start.timescale;
-		}
-		
-		// Probably don't need to recompute duration as it's always been exactly the same as pre-computed above
-		if((TimeRange.duration.flags & kCMTimeFlags_Valid) != 0)
-		{
-			Duration = (TimeRange.duration.value * ETimespan::TicksPerSecond) / TimeRange.duration.timescale;
-		}
-		
-		// Get a media audio sample buffer from the pool
-		const TSharedRef<FAvfMediaAudioSample, ESPMode::ThreadSafe> AudioSample = Ctx->AudioSamplePool->AcquireShared();
-		if (AudioSample->Initialize(BufferSize,
-									NumberFrames,
-									Ctx->DestinationFormat.mChannelsPerFrame,
-									Ctx->DestinationFormat.mSampleRate,
-									StartTime,
-									Duration))
-		{
-			if((Ctx->ProcessingFormat.mFormatFlags & kAudioFormatFlagIsFloat) != 0)
+			// Compute required buffer size
+			uint32 BufferSize = (NumberFrames * ((Ctx->DestinationFormat.mBitsPerChannel / 8))) * Ctx->DestinationFormat.mChannelsPerFrame;
+			
+			//setup reasonable defaults as time range can be invalid - especially at the start of the audio track
+			FTimespan StartTime(0);
+			FTimespan Duration(((int64)NumberFrames * ETimespan::TicksPerSecond) / (int64)Ctx->DestinationFormat.mSampleRate);
+			
+			// If valid set time stamps give by the system
+			if((TimeRange.start.flags & kCMTimeFlags_Valid) != 0)
 			{
-				float* DestBuffer = (float*)AudioSample->GetMutableBuffer();
-				const uint32 BufferCount = BufferListInOut->mNumberBuffers;
-				
-				// We need to have the same amount of buffers as the channel count
-				check(BufferCount == Ctx->DestinationFormat.mChannelsPerFrame);
-				
-				// Interleave the seperate channel buffers into one buffer
-				for(uint32 b = 0; b < BufferCount;++b)
-				{
-					AudioBuffer& Buffer = BufferListInOut->mBuffers[b];
-					
-					// We don't handle source processing interleaved formats - if this number equals mChannelPerFrame then we could just blit the data across in one go
-					check(Buffer.mNumberChannels == 1);
-					
-					// Make sure each channel buffer has the right about of data for the number of frames and processing format
-					check(Buffer.mDataByteSize == NumberFrames * (Ctx->DestinationFormat.mBitsPerChannel / 8));
-					
-					float* SrcBuffer = (float*)Buffer.mData;
-					
-					// Perform interleave copy
-					for(uint32 f = 0;f < NumberFrames;++f)
-					{
-						uint32 idx = b + (f * BufferCount);
-						DestBuffer[idx] = SrcBuffer[f];
-					}
-					
-					// Done with this source buffer clear it - otherwise AVPlayer will also play this audio -  we could seet a volume of 0 on the AudioMixInputParameters
-					// But that could be dangerous as OS may optimise out somethings at runtime for 0 volume tracks in the future
-					FMemory::Memset(Buffer.mData, 0, Buffer.mDataByteSize);
-				}
-			}
-			else
-			{
-				// Processing format should always be float however...
-				// If we encounter this case (kAudioFormatFlagIsSignedInteger) we need to use sint16 audio sample type on FAvfMediaAudioSample
-				// i.e. make FAvfMediaAudioSample sample type settable, the engine should convert to float internally as that is it's preferred format now
-				check(false);
+				StartTime = (TimeRange.start.value * ETimespan::TicksPerSecond) / TimeRange.start.timescale;
 			}
 			
-			Ctx->SampleQueue.AddAudio(AudioSample);
+			// Probably don't need to recompute duration as it's always been exactly the same as pre-computed above
+			if((TimeRange.duration.flags & kCMTimeFlags_Valid) != 0)
+			{
+				Duration = (TimeRange.duration.value * ETimespan::TicksPerSecond) / TimeRange.duration.timescale;
+			}
+			
+			// Get a media audio sample buffer from the pool
+			const TSharedRef<FAvfMediaAudioSample, ESPMode::ThreadSafe> AudioSample = Ctx->AudioSamplePool->AcquireShared();
+			if (AudioSample->Initialize(BufferSize,
+										NumberFrames,
+										Ctx->DestinationFormat.mChannelsPerFrame,
+										Ctx->DestinationFormat.mSampleRate,
+										StartTime,
+										Duration))
+			{
+				if((Ctx->ProcessingFormat.mFormatFlags & kAudioFormatFlagIsFloat) != 0)
+				{
+					float* DestBuffer = (float*)AudioSample->GetMutableBuffer();
+					const uint32 BufferCount = BufferListInOut->mNumberBuffers;
+					
+					// We need to have the same amount of buffers as the channel count
+					check(BufferCount == Ctx->DestinationFormat.mChannelsPerFrame);
+					
+					// Interleave the seperate channel buffers into one buffer
+					for(uint32 b = 0; b < BufferCount;++b)
+					{
+						AudioBuffer& Buffer = BufferListInOut->mBuffers[b];
+						
+						// We don't handle source processing interleaved formats - if this number equals mChannelPerFrame then we could just blit the data across in one go
+						check(Buffer.mNumberChannels == 1);
+						
+						// Make sure each channel buffer has the right about of data for the number of frames and processing format
+						check(Buffer.mDataByteSize == NumberFrames * (Ctx->DestinationFormat.mBitsPerChannel / 8));
+						
+						float* SrcBuffer = (float*)Buffer.mData;
+						
+						// Perform interleave copy
+						for(uint32 f = 0;f < NumberFrames;++f)
+						{
+							uint32 idx = b + (f * BufferCount);
+							DestBuffer[idx] = SrcBuffer[f];
+						}
+						
+						// Done with this source buffer clear it - otherwise AVPlayer will also play this audio -  we could seet a volume of 0 on the AudioMixInputParameters
+						// But that could be dangerous as OS may optimise out somethings at runtime for 0 volume tracks in the future
+						FMemory::Memset(Buffer.mData, 0, Buffer.mDataByteSize);
+					}
+				}
+				else
+				{
+					// Processing format should always be float however...
+					// If we encounter this case (kAudioFormatFlagIsSignedInteger) we need to use sint16 audio sample type on FAvfMediaAudioSample
+					// i.e. make FAvfMediaAudioSample sample type settable, the engine should convert to float internally as that is it's preferred format now
+					check(false);
+				}
+				
+				Ctx->SampleQueue.AddAudio(AudioSample);
+			}
 		}
 	}
 }
@@ -203,22 +209,30 @@ static void AudioTrackTapFinalize(MTAudioProcessingTapRef __nonnull TapRef)
 
 static void AudioTrackTapShutdownCurrentAudioTrackProcessing(AVPlayerItem* PlayerItem)
 {
+	SCOPED_AUTORELEASE_POOL;
+
 	check(PlayerItem);
 	
 	if(PlayerItem.audioMix != nil)
 	{
 		MTAudioProcessingTapRef TapNodeRef = ((AVMutableAudioMixInputParameters*)PlayerItem.audioMix.inputParameters[0]).audioTapProcessor;
+		
 		PlayerItem.audioMix = nil;
 		
 		if(TapNodeRef)
 		{
-			CFRelease(TapNodeRef);
+			AudioTrackTapContextData* Ctx = (AudioTrackTapContextData*) MTAudioProcessingTapGetStorage(TapNodeRef);
+			check(Ctx);
+			
+			Ctx->bActive = false;
 		}
 	}
 }
 
 static void AudioTrackTapInitializeForAudioTrack(FMediaSamples& InSampleQueue, FAvfMediaAudioSamplePool* InAudioSamplePool, AudioStreamBasicDescription const & InDestinationFormat, AVPlayerItem* PlayerItem, AVAssetTrack* AssetTrack)
 {
+	SCOPED_AUTORELEASE_POOL;
+
 	check(InAudioSamplePool);
 	check(PlayerItem);
 	
@@ -251,6 +265,8 @@ static void AudioTrackTapInitializeForAudioTrack(FMediaSamples& InSampleQueue, F
 			AudioMix.inputParameters = @[InputParams];
 			
 			PlayerItem.audioMix = AudioMix;
+
+			CFRelease(TapNodeRef);
 		}
 	}
 }

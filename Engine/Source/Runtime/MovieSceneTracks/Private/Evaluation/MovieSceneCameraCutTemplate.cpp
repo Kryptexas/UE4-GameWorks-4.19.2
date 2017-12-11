@@ -12,12 +12,12 @@ DECLARE_CYCLE_STAT(TEXT("Camera Cut Track Token Execute"), MovieSceneEval_Camera
 /** A movie scene execution token that sets up the streaming system with the camera cut location */
 struct FCameraCutPreRollExecutionToken : IMovieSceneExecutionToken
 {
-	FGuid CameraGuid;
+	FMovieSceneObjectBindingID CameraBindingID;
 	FTransform CutTransform;
 	bool bHasCutTransform;
 
-	FCameraCutPreRollExecutionToken(const FGuid& InCameraGuid, const FTransform& InCutTransform, bool bInHasCutTransform)
-		: CameraGuid(InCameraGuid)
+	FCameraCutPreRollExecutionToken(const FMovieSceneObjectBindingID& InCameraBindingID, const FTransform& InCutTransform, bool bInHasCutTransform)
+		: CameraBindingID(InCameraBindingID)
 		, CutTransform(InCutTransform)
 		, bHasCutTransform(bInHasCutTransform)
 	{}
@@ -38,8 +38,16 @@ struct FCameraCutPreRollExecutionToken : IMovieSceneExecutionToken
 		}
 		else
 		{
+			FMovieSceneSequenceID SequenceID = Operand.SequenceID;
+			if (CameraBindingID.GetSequenceID().IsValid())
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+				SequenceID = RootBindingID.GetSequenceID();
+			}
+
 			// If the transform is set, otherwise use the bound actor's transform
-			FMovieSceneEvaluationOperand CameraOperand(Operand.SequenceID, CameraGuid);
+			FMovieSceneEvaluationOperand CameraOperand(SequenceID, CameraBindingID.GetGuid());
 		
 			TArrayView<TWeakObjectPtr<>> Objects = Player.FindBoundObjects(CameraOperand);
 			if (!Objects.Num())
@@ -78,10 +86,10 @@ struct FCameraCutPreAnimatedToken : IMovieScenePreAnimatedGlobalToken
 /** A movie scene execution token that applies camera cuts */
 struct FCameraCutExecutionToken : IMovieSceneExecutionToken
 {
-	FGuid CameraGuid;
+	FMovieSceneObjectBindingID CameraBindingID;
 
-	FCameraCutExecutionToken(const FGuid& InCameraGuid)
-		: CameraGuid(InCameraGuid)
+	FCameraCutExecutionToken(const FMovieSceneObjectBindingID& InCameraBindingID)
+		: CameraBindingID(InCameraBindingID)
 	{}
 
 	static FMovieSceneAnimTypeID GetAnimTypeID()
@@ -92,9 +100,23 @@ struct FCameraCutExecutionToken : IMovieSceneExecutionToken
 	/** Execute this token, operating on all objects referenced by 'Operand' */
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
+		if (!Player.CanUpdateCameraCut())
+		{
+			Player.UpdateCameraCut(nullptr, nullptr);
+			return;
+		}
+
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_CameraCutTrack_TokenExecute)
 
-		FMovieSceneEvaluationOperand CameraOperand(Operand.SequenceID, CameraGuid);
+		FMovieSceneSequenceID SequenceID = Operand.SequenceID;
+		if (CameraBindingID.GetSequenceID().IsValid())
+		{
+			// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+			FMovieSceneObjectBindingID RootBindingID = CameraBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+			SequenceID = RootBindingID.GetSequenceID();
+		}
+
+		FMovieSceneEvaluationOperand CameraOperand(SequenceID, CameraBindingID.GetGuid());
 		
 		TArrayView<TWeakObjectPtr<>> Objects = Player.FindBoundObjects(CameraOperand);
 		if (!Objects.Num())
@@ -130,7 +152,7 @@ struct FCameraCutExecutionToken : IMovieSceneExecutionToken
 
 
 FMovieSceneCameraCutSectionTemplate::FMovieSceneCameraCutSectionTemplate(const UMovieSceneCameraCutSection& Section, TOptional<FTransform> InCutTransform)
-	: CameraGuid(Section.GetCameraGuid())
+	: CameraBindingID(Section.GetCameraBindingID())
 	, CutTransform(InCutTransform.Get(FTransform()))
 	, bHasCutTransform(InCutTransform.IsSet())
 {
@@ -140,10 +162,10 @@ void FMovieSceneCameraCutSectionTemplate::Evaluate(const FMovieSceneEvaluationOp
 {
 	if (Context.IsPreRoll())
 	{
-		ExecutionTokens.Add(FCameraCutPreRollExecutionToken(CameraGuid, CutTransform, bHasCutTransform));
+		ExecutionTokens.Add(FCameraCutPreRollExecutionToken(CameraBindingID, CutTransform, bHasCutTransform));
 	}
 	else
 	{
-		ExecutionTokens.Add(FCameraCutExecutionToken(CameraGuid));
+		ExecutionTokens.Add(FCameraCutExecutionToken(CameraBindingID));
 	}
 }

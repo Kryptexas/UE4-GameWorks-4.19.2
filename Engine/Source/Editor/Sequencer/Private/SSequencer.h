@@ -314,6 +314,9 @@ private:
 	/** Makes the allow edits menu for the toolbar. */
 	TSharedRef<SWidget> MakeAllowEditsMenu();
 
+	/** Makes the playback speed menu for the toolbar. */
+	void FillPlaybackSpeedMenu(FMenuBuilder& InMenuBuilder);
+
 public:	
 
 	/** Makes a time range widget with the specified inner content */
@@ -430,6 +433,9 @@ private:
 
 	EVisibility GetDebugVisualizerVisibility() const;
 	
+	void SetPlaybackSpeed(float InPlaybackSpeed);
+	float GetPlaybackSpeed() const;
+
 public:
 	/** On Paste Command */
 	void OnPaste();

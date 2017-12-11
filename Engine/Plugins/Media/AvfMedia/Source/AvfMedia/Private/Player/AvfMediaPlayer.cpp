@@ -265,9 +265,9 @@ void FAvfMediaPlayer::Close()
 		if (MediaHelper != nil)
 		{
 			[[NSNotificationCenter defaultCenter] removeObserver:MediaHelper name:AVPlayerItemDidPlayToEndTimeNotification object:PlayerItem];
+			[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
 		}
 
-		[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
 		[PlayerItem release];
 		PlayerItem = nil;
 	}
@@ -296,7 +296,7 @@ void FAvfMediaPlayer::Close()
 	EventSink.ReceiveMediaEvent(EMediaEvent::MediaClosed);
 		
 	bPrerolled = false;
-	
+
 	CurrentRate = 0.f;
 }
 
@@ -434,16 +434,11 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions* /*Options*/)
 
 		if ([[PlayerItem asset] statusOfValueForKey:@"tracks" error : &Error] == AVKeyValueStatusLoaded)
 		{
-			[[NSNotificationCenter defaultCenter] addObserver:MediaHelper selector:@selector(playerItemPlaybackEndReached:) name:AVPlayerItemDidPlayToEndTimeNotification object:PlayerItem];
-			
 			// File movies will be ready now
 			if (PlayerItem.status == AVPlayerItemStatusReadyToPlay)
 			{
 				OnStatusNotification(PlayerItem.status);
 			}
-			
-			// Streamed movies might not be and we want to know if it ever fails.
-			[PlayerItem addObserver:MediaHelper forKeyPath:@"status" options:0 context:PlayerItem];
 		}
 		else if (Error != nullptr)
 		{
@@ -459,6 +454,9 @@ bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions* /*Options*/)
 			});
 		}
 	}];
+
+	[[NSNotificationCenter defaultCenter] addObserver:MediaHelper selector:@selector(playerItemPlaybackEndReached:) name:AVPlayerItemDidPlayToEndTimeNotification object:PlayerItem];
+	[PlayerItem addObserver:MediaHelper forKeyPath:@"status" options:0 context:PlayerItem];
 
 	[MediaPlayer replaceCurrentItemWithPlayerItem : PlayerItem];
 	[[MediaPlayer currentItem] seekToTime:kCMTimeZero];

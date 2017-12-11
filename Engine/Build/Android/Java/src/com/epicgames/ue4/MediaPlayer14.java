@@ -485,6 +485,21 @@ public class MediaPlayer14
 		return position;
 	}
 
+	public int getDuration()
+	{
+		int duration = 0;
+		
+		synchronized(this)
+		{
+			if (Prepared)
+			{
+				duration = super.getDuration();
+			}
+		}
+
+		return duration;
+	}
+	
 	public void seekTo(int position)
 	{
 		synchronized (this)

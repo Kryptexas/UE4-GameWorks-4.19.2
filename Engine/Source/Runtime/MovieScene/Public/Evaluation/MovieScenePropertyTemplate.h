@@ -245,10 +245,13 @@ struct TPropertyActuator : TMovieSceneBlendingActuator<PropertyType>
 
 	virtual void Actuate(UObject* InObject, typename TCallTraits<PropertyType>::ParamType InFinalValue, const TBlendableTokenStack<PropertyType>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
-		check(InObject);
+		ensureMsgf(InObject, TEXT("Attempting to evaluate a Property track with a null object."));
 
-		OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, PropertyTemplate::FTokenProducer<PropertyType>(*PropertyData.PropertyBindings));
-		PropertyData.PropertyBindings->CallFunction<PropertyType>(*InObject, InFinalValue);
+		if (InObject)
+		{
+			OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, PropertyTemplate::FTokenProducer<PropertyType>(*PropertyData.PropertyBindings));
+			PropertyData.PropertyBindings->CallFunction<PropertyType>(*InObject, InFinalValue);
+		}
 	}
 };
 

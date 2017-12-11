@@ -128,9 +128,10 @@ namespace MediaTextureResource
 /* FMediaTextureResource structors
  *****************************************************************************/
 
-FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize)
+FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize, FLinearColor InClearColor, FGuid InTextureGuid)
 	: Cleared(false)
-	, CurrentClearColor(FLinearColor::Transparent)
+	, CurrentClearColor(InClearColor)
+	, InitialTextureGuid(InTextureGuid)
 	, Owner(InOwner)
 	, OwnerDim(InOwnerDim)
 	, OwnerSize(InOwnerSize)
@@ -143,6 +144,9 @@ FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& 
 void FMediaTextureResource::Render(const FRenderParams& Params)
 {
 	check(IsInRenderingThread());
+
+	FLinearColor Rotation(1, 0, 0, 1);
+	FLinearColor Offset(0, 0, 0, 0);
 
 	TSharedPtr<FMediaTextureSampleSource, ESPMode::ThreadSafe> SampleSource = Params.SampleSource.Pin();
 
@@ -157,7 +161,7 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 			const FTimespan StartTime = Sample->GetTime();
 			const FTimespan EndTime = StartTime + Sample->GetDuration();
 
-			if (((Params.Rate > 0.0f) && (StartTime > Params.Time)) ||
+			if (((Params.Rate > 0.0f) && (StartTime >= Params.Time)) ||
 				((Params.Rate < 0.0f) && (EndTime <= Params.Time)))
 			{
 				break; // future sample
@@ -166,57 +170,58 @@ void FMediaTextureResource::Render(const FRenderParams& Params)
 			SampleValid = SampleSource->Dequeue(Sample);
 		}
 
-		if (!SampleValid)
+		if (SampleValid)
 		{
-			return; // no sample to render
-		}
+			// render the sample
+			if (Sample->GetOutputDim().GetMin() <= 0)
+			{
+				#if MEDIATEXTURERESOURCE_TRACE_RENDER
+					UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Corrupt sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				#endif
 
-		check(Sample.IsValid());
+				ClearTexture(FLinearColor::Red, Params.SrgbOutput); // mark corrupt sample
+			}
+			else if (MediaTextureResource::RequiresConversion(Sample, Params.SrgbOutput))
+			{
+				#if MEDIATEXTURERESOURCE_TRACE_RENDER
+					UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Converting sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				#endif
 
-		// render the sample
-		if (Sample->GetOutputDim().GetMin() <= 0)
-		{
-			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Corrupt sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
-			#endif
+				ConvertSample(Sample, Params.ClearColor, Params.SrgbOutput);
+			}
+			else
+			{
+				#if MEDIATEXTURERESOURCE_TRACE_RENDER
+					UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Copying sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+				#endif
 
-			ClearTexture(FLinearColor::Red, Params.SrgbOutput); // mark corrupt sample
-		}
-		else if (MediaTextureResource::RequiresConversion(Sample, Params.SrgbOutput))
-		{
-			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Converting sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
-			#endif
+				CopySample(Sample, Params.ClearColor, Params.SrgbOutput);
+			}
 
-			ConvertSample(Sample, Params.ClearColor, Params.SrgbOutput);
-		}
-		else
-		{
-			#if MEDIATEXTURERESOURCE_TRACE_RENDER
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Copying sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
-			#endif
-
-			CopySample(Sample, Params.ClearColor, Params.SrgbOutput);
-		}
-
-		if (!GSupportsImageExternal && Params.PlayerGuid.IsValid())
-		{
-			FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
-			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.PlayerGuid, VideoTexture, SamplerStateRHI, Sample->GetScaleRotation(), Sample->GetOffset());
+			Rotation = Sample->GetScaleRotation();
+			Offset = Sample->GetOffset();
 		}
 	}
-	else if (!Cleared)
+	else if (!Cleared || (Params.ClearColor != CurrentClearColor))
 	{
 		#if MEDIATEXTURERESOURCE_TRACE_RENDER
 			UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %p: Clearing texture at time %s"), this, *Params.Time.ToString());
 		#endif
 
 		ClearTexture(Params.ClearColor, Params.SrgbOutput);
+	}
 
-		if (!GSupportsImageExternal && Params.PlayerGuid.IsValid())
+	if (!GSupportsImageExternal)
+	{
+		if (Params.TextureGuid.IsValid())
 		{
 			FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
-			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.PlayerGuid, VideoTexture, SamplerStateRHI, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.TextureGuid, VideoTexture, SamplerStateRHI, Rotation, Offset);
+		}
+
+		if (Params.LastGuid.IsValid() && (Params.LastGuid != Params.TextureGuid))
+		{
+			FExternalTextureRegistry::Get().UnregisterExternalTexture(Params.LastGuid);
 		}
 	}
 }
@@ -263,6 +268,21 @@ void FMediaTextureResource::InitDynamicRHI()
 	);
 
 	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+
+	// Note: set up default texture, or we can get sampler bind errors on render
+	// we can't leave here without having a valid bindable resource for some RHIs.
+
+	ClearTexture(CurrentClearColor, Owner.SRGB);
+
+	check(TextureRHI.IsValid());
+	check(RenderTargetTextureRHI.IsValid());
+	check(OutputTarget.IsValid());
+
+	if (!GSupportsImageExternal)
+	{
+		FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
+		FExternalTextureRegistry::Get().RegisterExternalTexture(InitialTextureGuid, VideoTexture, SamplerStateRHI);
+	}
 }
 
 

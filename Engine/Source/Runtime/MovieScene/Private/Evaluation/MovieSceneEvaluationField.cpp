@@ -1,7 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationField.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "MovieSceneCommonHelpers.h"
 #include "Algo/Sort.h"
+
+#include "MovieSceneSequence.h"
 
 int32 FMovieSceneEvaluationField::GetSegmentFromTime(float Time) const
 {
@@ -40,20 +44,72 @@ TRange<int32> FMovieSceneEvaluationField::OverlapRange(TRange<float> Range) cons
 	return Num != 0 ? TRange<int32>(StartIndex, StartIndex + Num) : TRange<int32>::Empty();
 }
 
-void FMovieSceneEvaluationMetaData::RemapSequenceIDsForRoot(FMovieSceneSequenceID OverrideRootID)
+void FMovieSceneEvaluationField::Invalidate(TRange<float> Range)
 {
-	if (OverrideRootID == MovieSceneSequenceID::Root)
+	TRange<int32> OverlappingRange = OverlapRange(Range);
+	if (!OverlappingRange.IsEmpty())
 	{
-		return;
+		Ranges.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+		Groups.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+		MetaData.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+
+		Signature = FGuid::NewGuid();
+	}
+}
+
+int32 FMovieSceneEvaluationField::Insert(TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
+{
+	const int32 InsertIndex = Algo::UpperBoundBy(Ranges, InRange.GetLowerBound(), &TRange<float>::GetLowerBound, MovieSceneHelpers::SortLowerBounds);
+
+	// While we have floating point representations of ranges, there are a number of situations that can lead to the check firing:
+	// 		1. Consider ranges of (0,9.16666603f) and (9.16666698f,20) offset in an inner sequence by 98.8333511f:
+	//			Such transformation would result in the upper and lower bounds rounding to the same inclusive value (108.000015f) making them overlap in the parent space.
+	//		2. When compiling a segment at a particular time, that time transformed into an inner sequence could result in a compiled range that doesn't actually
+	//			include the global time when transformed back into the master space. In this scenario we always inflate the compiled range to include the global time, but this shouldn't be necessary
+	//			Such logic can lead to us attempting to add overlapping ranges into the field
+
+	// @todo: Remove this code and enforce the check below outright when we have proper time representation
+	if (Ranges.IsValidIndex(InsertIndex  ) && Ranges[InsertIndex  ].Overlaps(InRange))
+	{
+		InRange = TRange<float>(InRange.GetLowerBound(), TRangeBound<float>::FlipInclusion(Ranges[InsertIndex].GetLowerBound()));
+	}
+	if (Ranges.IsValidIndex(InsertIndex-1) && Ranges[InsertIndex-1].Overlaps(InRange))
+	{
+		InRange = TRange<float>(TRangeBound<float>::FlipInclusion(Ranges[InsertIndex-1].GetUpperBound()), InRange.GetUpperBound());
 	}
 
-	for (FMovieSceneSequenceID& SequenceID : ActiveSequences)
+	if (!ensure(!InRange.IsEmpty()))
 	{
-		SequenceID = SequenceID.AccumulateParentID(OverrideRootID);
+		return INDEX_NONE;
 	}
-	for (FMovieSceneOrderedEvaluationKey& OrderedKey : ActiveEntities)
+
+	const bool bOverlapping = 
+		(Ranges.IsValidIndex(InsertIndex  ) && Ranges[InsertIndex  ].Overlaps(InRange)) ||
+		(Ranges.IsValidIndex(InsertIndex-1) && Ranges[InsertIndex-1].Overlaps(InRange));
+
+	if (!ensureAlwaysMsgf(!bOverlapping, TEXT("Attempting to insert an overlapping range into the evaluation field.")))
 	{
-		OrderedKey.Key.SequenceID = OrderedKey.Key.SequenceID.AccumulateParentID(OverrideRootID);
+		return INDEX_NONE;
+	}
+
+	Ranges.Insert(InRange, InsertIndex);
+	MetaData.Insert(MoveTemp(InMetaData), InsertIndex);
+	Groups.Insert(MoveTemp(InGroup), InsertIndex);
+
+	Signature = FGuid::NewGuid();
+
+	return InsertIndex;
+}
+
+void FMovieSceneEvaluationField::Add(TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
+{
+	if (ensureAlwaysMsgf(!Ranges.Num() || !Ranges.Last().Overlaps(InRange), TEXT("Attempting to add overlapping ranges to sequence evaluation field.")))
+	{
+		Ranges.Add(InRange);
+		MetaData.Add(MoveTemp(InMetaData));
+		Groups.Add(MoveTemp(InGroup));
+
+		Signature = FGuid::NewGuid();
 	}
 }
 
@@ -184,4 +240,29 @@ void FMovieSceneEvaluationMetaData::DiffEntities(const FMovieSceneEvaluationMeta
 
 		Algo::SortBy(*NewKeys, &FMovieSceneOrderedEvaluationKey::EvaluationIndex);
 	}
+}
+
+bool FMovieSceneEvaluationMetaData::IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, TRange<float>* OutSubRangeToInvalidate) const
+{
+	bool bDirty = false;
+
+	for (const TTuple<FMovieSceneSequenceID, FGuid>& Pair : SubSequenceSignatures)
+	{
+		// Sequence IDs at this point are relative to the root override template
+		const FMovieSceneSubSequenceData* SubData = RootHierarchy.FindSubData(Pair.Key);
+		UMovieSceneSequence* SubSequence = SubData ? SubData->GetSequence() : nullptr;
+
+		if (!SubSequence || SubSequence->GetSignature() != Pair.Value)
+		{
+			bDirty = true;
+
+			if (OutSubRangeToInvalidate)
+			{
+				TRange<float> DirtyRange = SubData ? TRange<float>::Hull(TRange<float>::Hull(SubData->PreRollRange, SubData->PlayRange), SubData->PostRollRange) * SubData->RootToSequenceTransform.Inverse() : TRange<float>::All();
+				*OutSubRangeToInvalidate = TRange<float>::Hull(*OutSubRangeToInvalidate, DirtyRange);
+			}
+		}
+	}
+
+	return bDirty;
 }

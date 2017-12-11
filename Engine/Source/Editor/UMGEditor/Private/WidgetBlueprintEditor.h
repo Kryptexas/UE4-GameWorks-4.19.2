@@ -263,6 +263,9 @@ private:
 	/** Handler which is called whenever sequencer movie scene data changes. */
 	void OnMovieSceneDataChanged(EMovieSceneDataChangeType DataChangeType);
 
+	/** Handler which is called whenever sequencer binding is pasted. */
+	void OnMovieSceneBindingsPasted(const TArray<FMovieSceneBinding>& BindingsPasted);
+
 	/** Fire off when sequencer selection changed */
 	void SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids);
 

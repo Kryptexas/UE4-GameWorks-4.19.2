@@ -200,43 +200,7 @@ void UMovieSceneSubSection::TrimSection( float TrimTime, bool bTrimLeft )
 	}
 }
 
-FMovieSceneEvaluationTemplate& UMovieSceneSubSection::GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const
+FMovieSceneSubSequenceData UMovieSceneSubSection::GenerateSubSequenceData(const FSubSequenceInstanceDataParams& Params) const
 {
-	return InArgs.SubSequenceStore.GetCompiledTemplate(*SubSequence);
-}
-
-FMovieSceneSubSequenceData UMovieSceneSubSection::GenerateSubSequenceData() const
-{
-	FMovieSceneSequenceTransform RootToSequenceTransform =
-	FMovieSceneSequenceTransform(SubSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() + Parameters.StartOffset) *		// Inner play offset
-	FMovieSceneSequenceTransform(0.f, Parameters.TimeScale) *		// Inner play rate
-	FMovieSceneSequenceTransform(-GetStartTime());					// Outer section start time
-
-#if WITH_EDITORONLY_DATA
-	TRange<float> InnerSectionRange(
-		GetStartTime() * RootToSequenceTransform,
-		GetEndTime() * RootToSequenceTransform
-	);
-	FMovieSceneSubSequenceData SubData(*SubSequence, GetSequenceID(), *GetPathNameInMovieScene(), InnerSectionRange);
-#else
-	FMovieSceneSubSequenceData SubData(*SubSequence, GetSequenceID());
-#endif
-
-	// Make sure pre/postroll ranges are in the inner sequence's time space
-	if (GetPreRollTime() > 0)
-	{
-		SubData.PreRollRange = TRange<float>(GetStartTime() - GetPreRollTime(), TRangeBound<float>::Exclusive(GetStartTime())) * RootToSequenceTransform;
-	}
-	if (GetPostRollTime() > 0)
-	{
-		SubData.PostRollRange = TRange<float>(TRangeBound<float>::Exclusive(GetEndTime()), GetEndTime() + GetPostRollTime()) * RootToSequenceTransform;
-	}
-
-	// Construct the sub sequence data for this sub section
-	SubData.RootToSequenceTransform = RootToSequenceTransform;
-	SubData.SequenceKeyObject = SubSequence;
-
-	SubData.HierarchicalBias = Parameters.HierarchicalBias;
-
-	return SubData;
+	return FMovieSceneSubSequenceData(*this);
 }

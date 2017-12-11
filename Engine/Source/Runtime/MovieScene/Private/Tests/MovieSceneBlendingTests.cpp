@@ -56,7 +56,7 @@ bool FMovieSceneBlendingTest::RunTest(const FString& Parameters)
 	const FMovieSceneContext Context(FMovieSceneEvaluationRange(0.f));
 	
 	FNullPlayer Player;
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	FMovieSceneBlendingAccumulator Accumulator;
 	Accumulator.DefineActuator(ID, MakeShared<FInt32Actuator>());
@@ -146,7 +146,7 @@ bool FMovieSceneBlendingStressTest::RunTest(const FString& Parameters)
 	const FMovieSceneContext Context(FMovieSceneEvaluationRange(0.f));
 	
 	FNullPlayer Player;
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	FMovieSceneBlendingAccumulator Accumulator;
 

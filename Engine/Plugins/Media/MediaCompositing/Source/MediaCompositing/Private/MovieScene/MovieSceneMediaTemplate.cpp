@@ -2,9 +2,14 @@
 
 #include "MovieSceneMediaTemplate.h"
 
+#include "MediaPlaneComponent.h"
 #include "MediaSource.h"
 #include "MediaPlayer.h"
 #include "MediaTexture.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialExpression.h"
+#include "Materials/MaterialExpressionTextureBase.h"
 #include "Package.h"
 #include "UObject/GCObject.h"
 
@@ -82,25 +87,25 @@ private:
 
 
 // This pre-animated token is only created if we create a new mediaplayer and assign it to the property
-struct FMediaPlayerPropertyPreAnimatedToken
+struct FMediaTexturePropertyPreAnimatedToken
 	: IMovieScenePreAnimatedToken
 {
-	FMediaPlayerPropertyPreAnimatedToken(UMediaPlayer* InPreviousPropertyValue, const TSharedPtr<FTrackInstancePropertyBindings>& InBindings)
+	FMediaTexturePropertyPreAnimatedToken(UMediaTexture* InPreviousPropertyValue, const TSharedPtr<FTrackInstancePropertyBindings>& InBindings)
 		: PreviousPropertyValue(InPreviousPropertyValue), PropertyBindings(InBindings)
 	{ }
 
 	/** Manual defaulted functions while we need to support compilers that can't generate/default them for us */
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FMediaPlayerPropertyPreAnimatedToken(FMediaPlayerPropertyPreAnimatedToken&& In) = default;
-	FMediaPlayerPropertyPreAnimatedToken& operator=(FMediaPlayerPropertyPreAnimatedToken&& In) = default;
+	FMediaTexturePropertyPreAnimatedToken(FMediaTexturePropertyPreAnimatedToken&& In) = default;
+	FMediaTexturePropertyPreAnimatedToken& operator=(FMediaTexturePropertyPreAnimatedToken&& In) = default;
 
 #else
-	FMediaPlayerPropertyPreAnimatedToken(FMediaPlayerPropertyPreAnimatedToken&& In)
+	FMediaTexturePropertyPreAnimatedToken(FMediaTexturePropertyPreAnimatedToken&& In)
 		: PreviousPropertyValue(MoveTemp(In.PreviousPropertyValue))
 		, PropertyBindings(MoveTemp(In.PropertyBindings))
 	{ }
 
-	FMediaPlayerPropertyPreAnimatedToken& operator=(FMediaPlayerPropertyPreAnimatedToken&& In)
+	FMediaTexturePropertyPreAnimatedToken& operator=(FMediaTexturePropertyPreAnimatedToken&& In)
 	{
 		PreviousPropertyValue = MoveTemp(In.PreviousPropertyValue);
 		PropertyBindings = MoveTemp(In.PropertyBindings);
@@ -110,20 +115,20 @@ struct FMediaPlayerPropertyPreAnimatedToken
 #endif
 
 	/** Virtual destructor. */
-	virtual ~FMediaPlayerPropertyPreAnimatedToken() { }
+	virtual ~FMediaTexturePropertyPreAnimatedToken() { }
 
 public:
 
 	virtual void RestoreState(UObject& RestoreObject, IMovieScenePlayer& Player)
 	{
-		UMediaPlayer* PreviousPlayer = PreviousPropertyValue.GetObject();
-		PropertyBindings->CallFunction<UMediaPlayer*>(RestoreObject, PreviousPlayer);
+		UMediaTexture* PreviousTexture = PreviousPropertyValue.GetObject();
+		PropertyBindings->CallFunction<UMediaTexture*>(RestoreObject, PreviousTexture);
 	}
 
 private:
 
 	/** Keep the previous player alive so we can definitely restore it later on */
-	TScopedRootObject<UMediaPlayer> PreviousPropertyValue;
+	TScopedRootObject<UMediaTexture> PreviousPropertyValue;
 
 	/** Property bindings that allow us to set the property when we've finished evaluating */
 	TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
@@ -142,7 +147,7 @@ public:
 
 		virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const override
 		{
-			return FMediaPlayerPropertyPreAnimatedToken(Bindings->GetCurrentValue<UMediaPlayer*>(Object), Bindings);
+			return FMediaTexturePropertyPreAnimatedToken(Bindings->GetCurrentValue<UMediaTexture*>(Object), Bindings);
 		}
 
 		TSharedPtr<FTrackInstancePropertyBindings> Bindings;
@@ -154,28 +159,28 @@ public:
  * This pre-animated token is only created if we create a new
  * media texture and assign it to an existing media player.
  */
-struct FMediaPlayerTexturePreAnimatedToken
+struct FMediaTexturePreAnimatedToken
 	: IMovieScenePreAnimatedToken
 {
 	/** Virtual destructor. */
-	virtual ~FMediaPlayerTexturePreAnimatedToken() { }
+	virtual ~FMediaTexturePreAnimatedToken() { }
 
 	virtual void RestoreState(UObject& RestoreObject, IMovieScenePlayer& Player)
 	{
-		UMediaPlayer* MediaPlayer = CastChecked<UMediaPlayer>(&RestoreObject);
+		UMediaTexture* MediaTexture = CastChecked<UMediaTexture>(&RestoreObject);
 		// @todo gmp: fix me media framework 3.0
 		/*
 		MediaPlayer->SetVideoTexture(nullptr);
 		*/
 	}
 
-	static FMovieSceneAnimTypeID GetAnimTypeID() { return TMovieSceneAnimTypeID<FMediaPlayerTexturePreAnimatedToken>(); }
+	static FMovieSceneAnimTypeID GetAnimTypeID() { return TMovieSceneAnimTypeID<FMediaTexturePreAnimatedToken>(); }
 
 	struct FProducer : IMovieScenePreAnimatedTokenProducer
 	{
 		virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const override
 		{
-			return FMediaPlayerTexturePreAnimatedToken();
+			return FMediaTexturePreAnimatedToken();
 		}
 	};
 };
@@ -188,74 +193,64 @@ struct FMediaSectionData
 	: PropertyTemplate::FSectionData, FGCObject
 {
 	FMediaSectionData()
-		: TemporaryMediaPlayer(nullptr)
+		: TemporaryMediaTexture(nullptr)
 	{ }
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		Collector.AddReferencedObject(TemporaryMediaPlayer);
+		Collector.AddReferencedObject(TemporaryMediaTexture);
 	}
 
-	UMediaPlayer* GetTemporaryMediaPlayer()
+	UMediaTexture* GetTemporaryMediaTexture()
 	{
-		if (TemporaryMediaPlayer == nullptr)
+		if (TemporaryMediaTexture == nullptr)
 		{
-			TemporaryMediaPlayer = NewObject<UMediaPlayer>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaPlayer::StaticClass()));
+			TemporaryMediaTexture = NewObject<UMediaTexture>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaTexture::StaticClass()));
+			TemporaryMediaTexture->UpdateResource();
+
+			UMediaPlayer* MediaPlayer = NewObject<UMediaPlayer>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaPlayer::StaticClass()));
+			TemporaryMediaTexture->SetMediaPlayer(MediaPlayer);
 		}
 
-		return TemporaryMediaPlayer;
+		return TemporaryMediaTexture;
 	}
 
-	UMediaPlayer* GetOrUpdateMediaPlayerFromProperty(UObject& InObject, IMovieScenePlayer& Player)
+	UMediaTexture* GetOrUpdateMediaTextureFromProperty(UObject& InObject, IMovieScenePlayer& Player)
 	{
-		UMediaPlayer* MediaPlayer = PropertyBindings->GetCurrentValue<UMediaPlayer*>(InObject);
+		UMediaTexture* MediaTexture = PropertyBindings->GetCurrentValue<UMediaTexture*>(InObject);
 
 		// assign the temporary player to the property if it's null or not the temporary player
-		const bool bNeedToAssignTemporaryPlayer = !MediaPlayer || (TemporaryMediaPlayer && MediaPlayer != TemporaryMediaPlayer);
+		const bool bNeedToAssignTemporaryTexture = !MediaTexture || (TemporaryMediaTexture && MediaTexture != TemporaryMediaTexture);
 
-		if (bNeedToAssignTemporaryPlayer)
+		if (bNeedToAssignTemporaryTexture)
 		{
-			GetTemporaryMediaPlayer();
-			MediaPlayer = TemporaryMediaPlayer;
+			GetTemporaryMediaTexture();
+
+			UMediaPlaneComponent* MediaPlaneComponent = CastChecked<UMediaPlaneComponent>(&InObject);
+
+			MediaPlaneComponent->SetMediaTexture(MediaTexture);
+
+			MediaTexture = TemporaryMediaTexture;
 		}
-
-		check(MediaPlayer);
-
-		// Ensure we have a video texture on the media player (transient ones will always
-		// have a texture already, but media players specified on external properties may not)
-
-		// @todo gmp: fix me Media Framework 3.0
-		/*
-		if (!MediaPlayer->GetVideoTexture())
-		{
-			UMediaTexture* NewTexture = NewObject<UMediaTexture>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaTexture::StaticClass()));
-			NewTexture->UpdateResource();
-
-			// Save the previous video texture so we don't end up trying to save one that's in a transient package
-			Player.SavePreAnimatedState(*MediaPlayer, FMediaPlayerTexturePreAnimatedToken::GetAnimTypeID(), FMediaPlayerTexturePreAnimatedToken::FProducer());
-
-			MediaPlayer->SetVideoTexture(NewTexture);
-		}
-		*/
 
 		// always assign the property last, so that anything responding to the update
 		// can have access to the media player and its video texture if needs be
 
-		if (bNeedToAssignTemporaryPlayer)
+		if (bNeedToAssignTemporaryTexture)
 		{
 			// save the previous property value using a unique anim type ID to ensure we don't leave it set after evaluation
-			Player.SavePreAnimatedState(InObject, PropertyID, FMediaPlayerPropertyPreAnimatedToken::FProducer(PropertyBindings));
+			Player.SavePreAnimatedState(InObject, PropertyID, FMediaTexturePropertyPreAnimatedToken::FProducer(PropertyBindings));
 
 			// assign the property
-			PropertyBindings->CallFunction<UMediaPlayer*>(InObject, MediaPlayer);
+			PropertyBindings->CallFunction<UMediaTexture*>(InObject, MediaTexture);
 		}
 
-		return MediaPlayer;
+		return MediaTexture;
 	}
 
 private:
 
-	UMediaPlayer* TemporaryMediaPlayer;
+	UMediaTexture* TemporaryMediaTexture;
 };
 
 
@@ -322,29 +317,34 @@ struct FMediaSectionPreRollExecutionToken
 				continue;
 			}
 
-			UMediaPlayer* MediaPlayer = bForceTemporaryPlayer ? SectionData.GetTemporaryMediaPlayer() : SectionData.GetOrUpdateMediaPlayerFromProperty(*Object, Player);
-			if (!ensure(MediaPlayer))
+			UMediaTexture* MediaTexture = bForceTemporaryPlayer ? SectionData.GetTemporaryMediaTexture() : SectionData.GetOrUpdateMediaTextureFromProperty(*Object, Player);
+			if (!ensure(MediaTexture))
 			{
 				continue;
 			}
 
 			// Save the previous media player state
-			Player.SavePreAnimatedState(*MediaPlayer, TMovieSceneAnimTypeID<FMediaSectionPreRollExecutionToken>(), FMediaPlayerPreAnimatedTokenProducer());
+			//Player.SavePreAnimatedState(*MediaTexture, TMovieSceneAnimTypeID<FMediaSectionPreRollExecutionToken>(), FMediaPlayerPreAnimatedTokenProducer());
 
 			// Open the media source if necessary
-			if (MediaPlayer->GetUrl() != Source->GetUrl())
-			{
-				if (MediaPlayer->CanPlaySource(Source))
-				{
-					MediaPlayer->OpenSource(Source);
-				}
-				else
-				{
-					// @todo: log warning/error
-				}
-			}
+			UMediaPlayer* MediaPlayer = MediaTexture->GetMediaPlayer();
 
-			OnUpdateFrame(MediaPlayer, Context);
+			if (MediaPlayer)
+			{
+				if (MediaPlayer->GetUrl() != Source->GetUrl())
+				{
+					if (MediaPlayer->CanPlaySource(Source))
+					{
+						MediaPlayer->OpenSource(Source);
+					}
+					else
+					{
+						// @todo: log warning/error
+					}
+				}
+
+				OnUpdateFrame(MediaPlayer, Context);
+			}
 		}
 	}
 
@@ -414,7 +414,7 @@ struct FMediaSectionExecutionToken
  *****************************************************************************/
 
 FMovieSceneMediaSectionTemplate::FMovieSceneMediaSectionTemplate(const UMovieSceneMediaSection& InSection, const UMovieSceneMediaTrack& InTrack)
-	: PropertyData(InTrack.GetPropertyName(), InTrack.GetPropertyPath(), NAME_None, "OnMediaPlayerChanged")
+	: PropertyData(InTrack.GetPropertyName(), InTrack.GetPropertyPath(), NAME_None, "OnMediaTextureChanged")
 {
 	Params.Source = InSection.GetMediaSource();
 	Params.SectionStartTime = InSection.GetStartTime();
@@ -464,13 +464,13 @@ void FMovieSceneMediaSectionTemplate::Initialize(const FMovieSceneEvaluationOper
 	}
 
 	FMediaSectionData& SectionData = PersistentData.GetSectionData<FMediaSectionData>();
-	UMediaPlayer* TemporaryMediaPlayer = SectionData.GetTemporaryMediaPlayer();
+	UMediaTexture* TemporaryMediaTexture = SectionData.GetTemporaryMediaTexture();
 
 	for (TWeakObjectPtr<> WeakObject : Player.FindBoundObjects(Operand))
 	{
 		if (UObject* Object = WeakObject.Get())
 		{
-			UMediaPlayer* MediaPlayerFromProperty = SectionData.PropertyBindings->GetCurrentValue<UMediaPlayer*>(*Object);
+			UMediaTexture* MediaTextureFromProperty = SectionData.PropertyBindings->GetCurrentValue<UMediaTexture*>(*Object);
 
 			// Ensure the temporary (prerolling) player has no video texture. It will get
 			// created when the video is actually evaluated for real. This will only be
@@ -481,7 +481,7 @@ void FMovieSceneMediaSectionTemplate::Initialize(const FMovieSceneEvaluationOper
 			TemporaryMediaPlayer->SetVideoTexture(nullptr);
 			*/
 
-			if (MediaPlayerFromProperty == TemporaryMediaPlayer)
+			if (MediaTextureFromProperty == TemporaryMediaTexture)
 			{
 				// Ensure the property is not set if we're prerolling (so we don't display preroll frames)
 				FMovieSceneAnimTypeID PropertyID = SectionData.PropertyID;

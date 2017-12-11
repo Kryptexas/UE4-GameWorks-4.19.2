@@ -11,6 +11,7 @@
 #include "MovieSceneSection.h"
 #include "Evaluation/MovieSceneSectionParameters.h"
 #include "Evaluation/MovieSceneSequenceHierarchy.h"
+#include "Evaluation/MovieSceneEvaluationOperand.h"
 #include "MovieSceneSubSection.generated.h"
 
 class UMovieSceneSequence;
@@ -19,12 +20,20 @@ struct FMovieSceneTrackCompilerArgs;
 
 DECLARE_DELEGATE_OneParam(FOnSequenceChanged, UMovieSceneSequence* /*Sequence*/);
 
+struct FSubSequenceInstanceDataParams
+{
+	/** The ID of the sequence instance that is being generated */
+	FMovieSceneSequenceID InstanceSequenceID;
+
+	/** The object binding ID in which the section to be generated resides */
+	FMovieSceneEvaluationOperand Operand;
+};
 
 /**
  * Implements a section in sub-sequence tracks.
  */
 UCLASS()
-class MOVIESCENETRACKS_API UMovieSceneSubSection
+class MOVIESCENE_API UMovieSceneSubSection
 	: public UMovieSceneSection
 {
 	GENERATED_BODY()
@@ -52,11 +61,8 @@ public:
 	 */
 	FMovieSceneSequenceID GetSequenceID() const;
 
-	/** Generate a template for our subsequence. */
-	virtual FMovieSceneEvaluationTemplate& GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const;
-
 	/** Generate subsequence data */
-	virtual FMovieSceneSubSequenceData GenerateSubSequenceData() const;
+	virtual FMovieSceneSubSequenceData GenerateSubSequenceData(const FSubSequenceInstanceDataParams& Params) const;
 
 public:
 

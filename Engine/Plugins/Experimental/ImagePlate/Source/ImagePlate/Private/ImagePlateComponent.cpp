@@ -195,6 +195,7 @@ namespace
 				Mesh.DepthPriorityGroup      = SDPG_World;
 				Mesh.Type                    = PT_TriangleList;
 				Mesh.bDisableBackfaceCulling = true;
+				Mesh.LODIndex                = 0;
 
 				FMeshBatchElement& BatchElement = Mesh.Elements[0];
 				BatchElement.IndexBuffer = &IndexBuffer;
@@ -501,13 +502,7 @@ void UImagePlateComponent::GetProjectionMatricesFromViewTarget(AActor* InViewTar
 
 FBoxSphereBounds UImagePlateComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBox MaxBox({
-		FVector(0,  1,  1),
-		FVector(0, -1,  1),
-		FVector(0,  1, -1),
-		FVector(0, -1, -1) });
-	MaxBox = MaxBox.TransformBy(LocalToWorld);
-	return FBoxSphereBounds(MaxBox);
+	return FBoxSphereBounds(FVector(0,0,0), FVector(1,  1,  1), 1.73205f).TransformBy(LocalToWorld);
 }
 
 AActor* UImagePlateComponent::FindViewTarget() const

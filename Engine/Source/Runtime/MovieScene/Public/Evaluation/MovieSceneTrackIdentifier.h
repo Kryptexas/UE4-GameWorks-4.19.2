@@ -18,6 +18,11 @@ struct FMovieSceneTrackIdentifier
 
 	static FMovieSceneTrackIdentifier Invalid() { return FMovieSceneTrackIdentifier(); }
 
+	explicit operator bool() const
+	{
+		return Value != -1;
+	}
+
 	FMovieSceneTrackIdentifier& operator++()
 	{
 		++Value;
@@ -52,6 +57,7 @@ struct FMovieSceneTrackIdentifier
 	/** Custom serialized to reduce memory footprint */
 	bool Serialize(FArchive& Ar)
 	{
+		Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::MovieSceneMetaDataSerialization)
 		{
 			return false;

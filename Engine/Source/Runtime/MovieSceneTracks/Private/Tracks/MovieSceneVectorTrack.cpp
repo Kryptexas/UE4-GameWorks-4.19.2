@@ -9,6 +9,7 @@ UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& Object
 	: Super( ObjectInitializer )
 {
 	NumChannelsUsed = 0;
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
 }
 
 

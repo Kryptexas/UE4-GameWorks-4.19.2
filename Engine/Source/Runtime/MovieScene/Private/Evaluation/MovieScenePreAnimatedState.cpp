@@ -195,8 +195,8 @@ void TMovieSceneSavedTokens<TokenType>::Restore(IMovieScenePlayer& Player, TFunc
 		{
 			MovieSceneImpl::RestorePreAnimatedToken(PreAnimatedTokens[TokenIndex], Player, ResolvedPayload);
 
-			AllAnimatedTypeIDs.RemoveAtSwap(TokenIndex, 1, false);
-			PreAnimatedTokens.RemoveAtSwap(TokenIndex, 1, false);
+			AllAnimatedTypeIDs.RemoveAt(TokenIndex, 1, false);
+			PreAnimatedTokens.RemoveAt(TokenIndex, 1, false);
 
 			AnimatedEntities.RemoveAll(
 				[=](const FMovieSceneEntityAndAnimTypeID& InEntityAndAnimType)
@@ -225,7 +225,7 @@ bool TMovieSceneSavedTokens<TokenType>::RestoreEntity(IMovieScenePlayer& Player,
 				AnimTypesToRestore.Add(EntityAndAnimType.AnimTypeID);
 
 				// This entity is no longer animating this anim type ID
-				AnimatedEntities.RemoveAtSwap(LUTIndex);
+				AnimatedEntities.RemoveAt(LUTIndex);
 			}
 			else
 			{
@@ -251,8 +251,8 @@ bool TMovieSceneSavedTokens<TokenType>::RestoreEntity(IMovieScenePlayer& Player,
 			}
 			else
 			{
-				AllAnimatedTypeIDs.RemoveAtSwap(TokenIndex, 1, false);
-				PreAnimatedTokens.RemoveAtSwap(TokenIndex, 1, false);
+				AllAnimatedTypeIDs.RemoveAt(TokenIndex, 1, false);
+				PreAnimatedTokens.RemoveAt(TokenIndex, 1, false);
 			}
 		}
 	}

@@ -21,12 +21,6 @@ class MEDIAASSETS_API UMediaPlaylist
 
 public:
 
-	/** Whether the play list should loop (default = true). */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
-	uint32 Loop:1;
-
-public:
-
 	/**
 	 * Add a media source to the play list.
 	 *

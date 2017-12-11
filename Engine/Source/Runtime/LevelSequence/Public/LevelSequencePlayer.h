@@ -58,13 +58,13 @@ struct FLevelSequencePlayerSnapshot
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
-	FText MasterName;
+	FString MasterName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	float MasterTime;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
-	FText CurrentShotName;
+	FString CurrentShotName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	float CurrentShotLocalTime;

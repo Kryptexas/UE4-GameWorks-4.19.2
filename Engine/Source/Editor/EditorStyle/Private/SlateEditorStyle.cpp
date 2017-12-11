@@ -1977,6 +1977,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "SequenceRecorder.Common.RemoveRecording", new IMAGE_BRUSH( "SequenceRecorder/icon_RemoveRecording_40x", Icon40x40 ) );
 		Set( "SequenceRecorder.Common.RemoveAllRecordings.Small", new IMAGE_BRUSH( "SequenceRecorder/icon_RemoveRecording_40x", Icon20x20 ) );
 		Set( "SequenceRecorder.Common.RemoveAllRecordings", new IMAGE_BRUSH( "SequenceRecorder/icon_RemoveRecording_40x", Icon40x40 ) );
+		Set( "SequenceRecorder.Common.RecordingActive", new IMAGE_BRUSH( "Common/SmallCheckBox_Checked", Icon14x14 ) );
+		Set( "SequenceRecorder.Common.RecordingInactive", new IMAGE_BRUSH( "Common/SmallCheckBox", Icon14x14 ) );
 	}
 
 	// Foliage Edit Mode

@@ -83,6 +83,7 @@ public:
 	// ISequencerTrackEditor interface
 
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual bool GetDefaultExpansionState(UMovieSceneTrack* InTrack) const override;
 
 protected:
 

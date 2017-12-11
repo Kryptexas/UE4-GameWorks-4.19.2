@@ -54,6 +54,9 @@ private:
 	/** Callback for getting the text of the media source name overlay. */
 	FText HandleMediaSourceNameText() const;
 
+	/** Callback for getting the text of the notification overlay. */
+	FText HandleNotificationText() const;
+
 	/** Callback for getting the text of the view settings overlay. */
 	FText HandleViewSettingsText() const;
 

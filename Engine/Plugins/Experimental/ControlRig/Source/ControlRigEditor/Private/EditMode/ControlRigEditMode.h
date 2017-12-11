@@ -77,6 +77,9 @@ public:
 	/** Attempt to select by property path */
 	void SetNodeSelectionByPropertyPath(const TArray<FString>& InPropertyPaths);
 
+	/** Get the node name from the property path */
+	FName GetNodeFromPropertyPath(const FString& PropertyPath) const;
+
 	/** 
 	 * Lets the edit mode know that an object has just been spawned. 
 	 * Allows us to redisplay different underlying objects in the details panel.

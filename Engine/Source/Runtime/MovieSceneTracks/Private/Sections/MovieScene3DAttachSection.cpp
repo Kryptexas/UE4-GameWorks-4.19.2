@@ -23,11 +23,11 @@ UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer
 }
 
 
-void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FGuid& InAttachId )
+void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FMovieSceneObjectBindingID& InAttachBindingID )
 {
 	if (TryModify())
 	{
-		ConstraintId = InAttachId;
+		ConstraintBindingID = InAttachBindingID;
 	}
 }
 

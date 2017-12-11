@@ -64,4 +64,12 @@ public:
 	/** Whether to create cameras if they don't already exist in the level. */
 	UPROPERTY(EditAnywhere, config, Category=Import)
 	bool bCreateCameras;
+
+	/** Whether to remove keyframes within a tolerance from the imported tracks */
+	UPROPERTY(EditAnywhere, config, Category=Import)
+	bool bReduceKeys;
+
+	/** The tolerance for reduce keys */
+	UPROPERTY(EditAnywhere, config, Category=Import, meta=(EditCondition=bReduceKeys))
+	float ReduceKeysTolerance;
 };

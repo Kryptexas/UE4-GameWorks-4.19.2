@@ -692,9 +692,8 @@ void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 	}
 
 	TSharedRef<IDetailsView> DetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
-	{
-		DetailsView->SetObjects(Sections);
-	}
+	Sequencer->OnInitializeDetailsPanel().Broadcast(DetailsView, Sequencer);
+	DetailsView->SetObjects(Sections);
 
 	DetailsNotifyWrapper->SetDetailsAndSequencer(DetailsView, Sequencer);
 	MenuBuilder.AddWidget(DetailsNotifyWrapper, FText::GetEmpty(), true);
@@ -1777,15 +1776,22 @@ void FEasingContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 
 		auto OnBeginSliderMovement = [=]
 		{
-			if (ensure(!Shared->ScopedTransaction.IsValid()))
-			{
-				Shared->ScopedTransaction.Reset(new FScopedTransaction(LOCTEXT("SetEasingTimeText", "Set Easing Length")));
-			}
+			GEditor->BeginTransaction(LOCTEXT("SetEasingTimeText", "Set Easing Length"));
 		};
 		auto OnEndSliderMovement = [=](float NewLength)
 		{
-			Shared->OnUpdateLength(NewLength);
-			Shared->ScopedTransaction.Reset();
+			if (GEditor->IsTransactionActive())
+			{
+				GEditor->EndTransaction();
+			}
+		};
+		auto OnValueCommitted = [=](float NewLength, ETextCommit::Type CommitInfo)
+		{
+			if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
+			{
+				FScopedTransaction Transaction(LOCTEXT("SetEasingTimeText", "Set Easing Length"));
+				Shared->OnUpdateLength(NewLength);
+			}
 		};
 
 		TSharedRef<SWidget> SpinBox = SNew(SHorizontalBox)
@@ -1809,7 +1815,7 @@ void FEasingContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 					.Delta(0.001f)
 					.Value_Lambda([=]{ return Shared->GetCurrentLength(); })
 					.OnValueChanged_Lambda([=](float NewLength){ Shared->OnUpdateLength(NewLength); })
-					.OnValueCommitted_Lambda([=](float NewLength, ETextCommit::Type){ Shared->OnUpdateLength(NewLength); })
+					.OnValueCommitted_Lambda(OnValueCommitted)
 					.OnBeginSliderMovement_Lambda(OnBeginSliderMovement)
 					.OnEndSliderMovement_Lambda(OnEndSliderMovement)
 					.BorderForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
@@ -2065,11 +2071,15 @@ void FEasingContextMenu::EasingOptionsMenu(FMenuBuilder& MenuBuilder)
 		{
 			if (Handle.EasingType == ESequencerEasingType::In)
 			{
-				Objects.AddUnique(Section->Easing.EaseIn.GetObject());
+				UObject* EaseInObject = Section->Easing.EaseIn.GetObject();
+				EaseInObject->SetFlags(RF_Transactional);
+				Objects.AddUnique(EaseInObject);
 			}
 			else
 			{
-				Objects.AddUnique(Section->Easing.EaseOut.GetObject());
+				UObject* EaseOutObject = Section->Easing.EaseOut.GetObject();
+				EaseOutObject->SetFlags(RF_Transactional);
+				Objects.AddUnique(EaseOutObject);
 			}
 		}
 	}

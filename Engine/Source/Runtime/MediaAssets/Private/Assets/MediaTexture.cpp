@@ -57,9 +57,9 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AddressX(TA_Clamp)
 	, AddressY(TA_Clamp)
-	, AutoClear(true)
+	, AutoClear(false)
 	, ClearColor(FLinearColor::Black)
-	, MediaPlayer(nullptr)
+	, DefaultGuid(FGuid::NewGuid())
 	, Dimensions(FIntPoint::ZeroValue)
 	, Size(0)
 {
@@ -87,9 +87,21 @@ int32 UMediaTexture::GetHeight() const
 }
 
 
+UMediaPlayer* UMediaTexture::GetMediaPlayer() const
+{
+	return CurrentPlayer.Get();
+}
+
+
 int32 UMediaTexture::GetWidth() const
 {
 	return Dimensions.X;
+}
+
+
+void UMediaTexture::SetMediaPlayer(UMediaPlayer* NewMediaPlayer)
+{
+	CurrentPlayer = NewMediaPlayer;
 }
 
 
@@ -109,7 +121,7 @@ FTextureResource* UMediaTexture::CreateResource()
 		}
 	}
 
-	return new FMediaTextureResource(*this, Dimensions, Size);
+	return new FMediaTextureResource(*this, Dimensions, Size, ClearColor, CurrentGuid);
 }
 
 
@@ -133,7 +145,7 @@ float UMediaTexture::GetSurfaceHeight() const
 
 FGuid UMediaTexture::GetExternalTextureGuid() const
 {
-	return MediaPlayer ? MediaPlayer->GetGuid() : FGuid();
+	return CurrentGuid;
 }
 
 
@@ -154,7 +166,14 @@ void UMediaTexture::BeginDestroy()
 		ClockSink.Reset();
 	}
 
-	UnregisterPlayerGuid();
+	if (CurrentGuid.IsValid())
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(MediaTextureUnregisterGuid,
+			FGuid, Guid, CurrentGuid,
+			{
+				FExternalTextureRegistry::Get().UnregisterExternalTexture(Guid);
+			});
+	}
 
 	Super::BeginDestroy();
 }
@@ -171,6 +190,14 @@ void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	CumulativeResourceSize.AddUnknownMemoryBytes(Size);
+}
+
+
+void UMediaTexture::PostLoad()
+{
+	Super::PostLoad();
+
+	CurrentPlayer = MediaPlayer;
 }
 
 
@@ -194,6 +221,11 @@ void UMediaTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	}
 
 	const FName PropertyName = PropertyThatChanged->GetFName();
+
+	if (PropertyName == MediaPlayerName)
+	{
+		CurrentPlayer = MediaPlayer;
+	}
 
 	// don't update resource for these properties
 	if ((PropertyName == AutoClearName) ||
@@ -223,77 +255,72 @@ void UMediaTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 void UMediaTexture::TickResource(FTimespan Timecode)
 {
-	if ((MediaPlayer == nullptr) || (Resource == nullptr))
+	if (Resource == nullptr)
 	{
-		CurrentPlayerFacade.Reset();
+		return;
+	}
+
+	const FGuid LastGuid = CurrentGuid;
+
+	// media player bookkeeping
+	if (CurrentPlayer.IsValid())
+	{
+		const FGuid PlayerGuid = CurrentPlayer->GetGuid();
+
+		if (CurrentGuid != PlayerGuid)
+		{
+			SampleQueue = MakeShared<FMediaTextureSampleQueue, ESPMode::ThreadSafe>();
+			CurrentPlayer->GetPlayerFacade()->AddVideoSampleSink(SampleQueue.ToSharedRef());
+			CurrentGuid = PlayerGuid;
+		}
+	}
+	else if (CurrentGuid != DefaultGuid)
+	{
 		SampleQueue.Reset();
-
-		return;
+		CurrentGuid = DefaultGuid;
 	}
-
-	// create a new sample queue if the player changed
-	TSharedRef<FMediaPlayerFacade, ESPMode::ThreadSafe> PlayerFacade = MediaPlayer->GetPlayerFacade();
-
-	if (PlayerFacade != CurrentPlayerFacade)
+	else if ((LastClearColor == ClearColor) && (LastSrgb == SRGB))
 	{
-		SampleQueue = MakeShared<FMediaTextureSampleQueue, ESPMode::ThreadSafe>();
-		PlayerFacade->AddVideoSampleSink(SampleQueue.ToSharedRef());
-		CurrentPlayerFacade = PlayerFacade;
+		return; // nothing to render
 	}
 
-	check(SampleQueue.IsValid());
+	LastClearColor = ClearColor;
+	LastSrgb = SRGB;
 
-	// unregister previous external texture GUID if needed
-	const FGuid PlayerGuid = MediaPlayer->GetGuid();
-
-	if (PlayerGuid != LastPlayerGuid)
-	{
-		UnregisterPlayerGuid();
-		LastPlayerGuid = PlayerGuid;
-	}
-
-	// retain the last rendered frame if player is inactive
-	const bool PlayerActive = MediaPlayer->IsPaused() || MediaPlayer->IsPlaying() || MediaPlayer->IsPreparing();
-
-	if (!PlayerActive && !AutoClear)
-	{
-		return;
-	}
-
-	// issue a render command to render the current sample
+	// set up render parameters
 	FMediaTextureResource::FRenderParams RenderParams;
+
+	if (CurrentPlayer.IsValid())
 	{
-		RenderParams.ClearColor = ClearColor;
-		RenderParams.PlayerGuid = PlayerGuid;
-		RenderParams.Rate = MediaPlayer->GetRate();
-		RenderParams.SrgbOutput = SRGB;
-		RenderParams.Time = MediaPlayer->GetTime();
+		const bool PlayerActive = CurrentPlayer->IsPaused() || CurrentPlayer->IsPlaying() || CurrentPlayer->IsPreparing();
 
 		if (PlayerActive)
 		{
 			RenderParams.SampleSource = SampleQueue;
 		}
+		else if (!AutoClear)
+		{
+			return; // retain last frame
+		}
+
+		RenderParams.Rate = CurrentPlayer->GetRate();
+		RenderParams.Time = CurrentPlayer->GetTime();
+	}
+	else if (!AutoClear && LastGuid.IsValid())
+	{
+		return; // retain last frame
 	}
 
+	RenderParams.ClearColor = ClearColor;
+	RenderParams.LastGuid = LastGuid;
+	RenderParams.TextureGuid = CurrentGuid;
+	RenderParams.SrgbOutput = SRGB;
+
+	// redraw texture resource on render thread
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(MediaTextureResourceRender,
 		FMediaTextureResource*, ResourceParam, (FMediaTextureResource*)Resource,
 		FMediaTextureResource::FRenderParams, RenderParamsParam, RenderParams,
 		{
 			ResourceParam->Render(RenderParamsParam);
-		});
-}
-
-
-void UMediaTexture::UnregisterPlayerGuid()
-{
-	if (!LastPlayerGuid.IsValid())
-	{
-		return;
-	}
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(MediaTextureUnregisterPlayerGuid,
-		FGuid, PlayerGuid, LastPlayerGuid,
-		{
-			FExternalTextureRegistry::Get().UnregisterExternalTexture(PlayerGuid);
 		});
 }

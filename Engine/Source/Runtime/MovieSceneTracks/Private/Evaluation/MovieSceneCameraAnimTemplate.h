@@ -77,23 +77,3 @@ private:
 	UPROPERTY()
 	float SectionStartTime;
 };
-
-
-USTRUCT()
-struct FMovieSceneAdditiveCameraAnimationTrackTemplate : public FMovieSceneEvalTemplate
-{
-	GENERATED_BODY()
-
-	FMovieSceneAdditiveCameraAnimationTrackTemplate();
-
-	static const FMovieSceneSharedDataId SharedDataId;
-
-	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresInitializeFlag);
-	}
-	
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
-	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-};

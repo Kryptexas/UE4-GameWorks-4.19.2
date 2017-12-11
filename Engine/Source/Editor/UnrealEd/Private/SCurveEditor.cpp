@@ -2322,7 +2322,7 @@ void SCurveEditor::MoveSelectedKeys(FVector2D Delta)
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
 
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
-	CurveOwner->ModifyOwner();
+	CurveOwner->ModifyOwnerChange();
 
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
@@ -3518,6 +3518,7 @@ bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapol
 void SCurveEditor::MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta)
 {
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+	CurveOwner->ModifyOwnerChange();
 
 	for (auto SelectedTangent : SelectedTangents)
 	{

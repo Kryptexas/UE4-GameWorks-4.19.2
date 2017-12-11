@@ -49,7 +49,5 @@ public:
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 
 	//~ UMovieSceneSubSection interface
-
-	virtual FMovieSceneEvaluationTemplate& GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const override;
-	virtual FMovieSceneSubSequenceData GenerateSubSequenceData() const override;
+	virtual FMovieSceneSubSequenceData GenerateSubSequenceData(const FSubSequenceInstanceDataParams& Params) const override;
 };

@@ -40,6 +40,14 @@ struct FMovieSceneObjectBindingID
 	{
 	}
 
+	FMovieSceneObjectBindingID& operator=(const FMovieSceneObjectBindingID& InObjectBindingID)
+	{
+		Guid = InObjectBindingID.GetGuid();
+		SequenceID = int32(InObjectBindingID.GetSequenceID().GetInternalValue());
+		Space = InObjectBindingID.GetBindingSpace();
+		return *this;
+	}
+
 	/**
 	 * Check whether this object binding ID has been set to something valied
 	 * @note: does not imply that the ID resolves to a valid object
@@ -63,6 +71,14 @@ struct FMovieSceneObjectBindingID
 	const FGuid& GetGuid() const
 	{
 		return Guid;
+	}
+	
+	/**
+	 * Set the guid that identifies the object binding within the sequence
+	 */
+	void SetGuid(const FGuid& InGuid)
+	{
+		Guid = InGuid;
 	}
 	
 	/**

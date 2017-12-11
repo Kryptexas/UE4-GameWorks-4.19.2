@@ -5,12 +5,12 @@
 =============================================================================*/
 
 #include "Materials/MaterialUniformExpressions.h"
+#include "CoreGlobals.h"
 #include "SceneManagement.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "ExternalTexture.h"
-#include "MessageLog.h"
 #include "UObjectToken.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
@@ -409,9 +409,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 						ExpressionIndex,
 						FText::FromString(*MaterialRenderContext.Material.GetFriendlyName()));
 
-					FMessageLog("PIE").Warning()
-						->AddToken(FUObjectToken::Create(Value))
-						->AddToken(FTextToken::Create(MessageText));
+					GLog->Logf(ELogVerbosity::Warning, *MessageText.ToString());
 				}
 			}
 

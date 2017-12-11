@@ -192,7 +192,7 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew(UClass* InClass, UObject* InPa
 
 		if (VideoTexture != nullptr)
 		{
-			VideoTexture->MediaPlayer = NewMediaPlayer;
+			VideoTexture->SetMediaPlayer(NewMediaPlayer);
 		}
 	}
 

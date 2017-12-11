@@ -356,7 +356,16 @@ FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPo
 	{
 		// Always ensure the edit tool is set up
 		InputStack.SetHandlerAt(0, EditTool.Get());
-		return InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
+		FReply EditToolHandle = InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
+		if (EditToolHandle.IsEventHandled())
+		{
+			return EditToolHandle;
+		}
+
+		const float ScrollAmount = -MouseEvent.GetWheelDelta() * GetGlobalScrollAmount();
+		Sequencer.Pin()->VerticalScroll(ScrollAmount);
+
+		return FReply::Handled();
 	}
 	return FReply::Unhandled();
 }
@@ -464,6 +473,7 @@ void SSequencerTrackArea::OnDragEnter(const FGeometry& MyGeometry, const FDragDr
 	
 void SSequencerTrackArea::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
+	DroppedNode.Reset();
 	SPanel::OnDragLeave(DragDropEvent);
 }
 	 

@@ -23,6 +23,7 @@
 #include "ISequenceRecorder.h"
 #include "SequenceRecorderSettings.h"
 #include "DragAndDrop/AssetDragDropOp.h"
+#include "MovieSceneToolHelpers.h"
 
 namespace SubTrackEditorConstants
 {
@@ -377,6 +378,11 @@ bool FSubTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObject
 		return false;
 	}
 
+	if (!SupportsSequence(Sequence))
+	{
+		return false;
+	}
+
 	//@todo If there's already a cinematic shot track, allow that track to handle this asset
 	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
 
@@ -626,7 +632,8 @@ FKeyPropertyResult FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSeq
 	{
 		UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(InTrack);
 		float Duration = InMovieSceneSequence->GetMovieScene()->GetPlaybackRange().Size<float>();
-		SubTrack->AddSequence(InMovieSceneSequence, KeyTime, Duration);
+		UMovieSceneSubSection* NewSection = SubTrack->AddSequence(InMovieSceneSequence, KeyTime, Duration);
+		NewSection->SetRowIndex(MovieSceneToolHelpers::FindAvailableRowIndex(SubTrack, NewSection));
 		KeyPropertyResult.bTrackModified = true;
 
 		return KeyPropertyResult;
@@ -645,7 +652,8 @@ FKeyPropertyResult FSubTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSce
 
 	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
 	float Duration = Sequence->GetMovieScene()->GetPlaybackRange().Size<float>();
-	SubTrack->AddSequence(Sequence, KeyTime, Duration);
+	UMovieSceneSubSection* NewSection = SubTrack->AddSequence(Sequence, KeyTime, Duration);
+	NewSection->SetRowIndex(MovieSceneToolHelpers::FindAvailableRowIndex(SubTrack, NewSection));
 	KeyPropertyResult.bTrackModified = true;
 
 	return KeyPropertyResult;

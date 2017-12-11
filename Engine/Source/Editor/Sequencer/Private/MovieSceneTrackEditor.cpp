@@ -74,6 +74,10 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged( FOnKeyProperty OnKeyProp
 			{
 				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 			}
+			else if (KeyPropertyResult.bKeyCreated)
+			{
+				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
+			}
 
 			UpdatePlaybackRange();
 

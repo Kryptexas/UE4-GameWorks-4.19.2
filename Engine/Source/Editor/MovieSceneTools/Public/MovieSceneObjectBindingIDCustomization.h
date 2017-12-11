@@ -27,6 +27,8 @@ public:
 		: FMovieSceneObjectBindingIDPicker(InLocalSequenceID, InSequencer)
 	{}
 
+	MOVIESCENETOOLS_API static void BindTo(TSharedRef<ISequencer> InSequencer);
+
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}
 

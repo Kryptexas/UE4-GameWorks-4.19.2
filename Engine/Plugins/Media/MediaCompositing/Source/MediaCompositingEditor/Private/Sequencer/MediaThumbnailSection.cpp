@@ -219,7 +219,7 @@ void FMediaThumbnailSection::Setup()
 	if (MediaTexture == nullptr)
 	{
 		MediaTexture = NewObject<UMediaTexture>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaTexture::StaticClass()));
-		MediaTexture->MediaPlayer = MediaPlayer;
+		MediaTexture->SetMediaPlayer(MediaPlayer);
 		MediaTexture->UpdateResource();
 	}
 

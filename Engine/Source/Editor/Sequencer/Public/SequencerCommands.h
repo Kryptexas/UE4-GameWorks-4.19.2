@@ -205,6 +205,9 @@ public:
 	/** Toggle the visibility of the transform box. */
 	TSharedPtr< FUICommandInfo > ToggleShowTransformBox;
 
+	/** Bake transform. */
+	TSharedPtr< FUICommandInfo > BakeTransform;
+
 	/** Turns the range slider on and off. */
 	TSharedPtr< FUICommandInfo > ToggleShowRangeSlider;
 
@@ -252,6 +255,9 @@ public:
 
 	/** Turns auto scroll on and off. */
 	TSharedPtr< FUICommandInfo > ToggleAutoScroll;
+
+	/** Toggles whether or not to show selected nodes only. */
+	TSharedPtr< FUICommandInfo > ToggleShowSelectedNodesOnly;
 
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
@@ -309,6 +315,9 @@ public:
 
 	/** Exports animation to fbx. */
 	TSharedPtr< FUICommandInfo > ExportFBX;
+
+	/** Exports animation to camera anim. */
+	TSharedPtr< FUICommandInfo > ExportToCameraAnim;
 
 	/** Toggle whether we should evaluate sub sequences in isolation */
 	TSharedPtr< FUICommandInfo > ToggleEvaluateSubSequencesInIsolation;

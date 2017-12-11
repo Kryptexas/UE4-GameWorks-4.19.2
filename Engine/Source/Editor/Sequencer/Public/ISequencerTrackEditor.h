@@ -185,6 +185,14 @@ public:
 		
 	}
 
+	/**
+	 * @return The default expansion state of this track
+	 */
+	virtual bool GetDefaultExpansionState(UMovieSceneTrack* InTrack) const
+	{
+		return false;
+	}
+
 public:
 
 	/** Virtual destructor. */

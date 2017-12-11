@@ -2521,22 +2521,31 @@ void FFbxExporter::ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieScene
 		Property = FbxActor.FindProperty( "UE_MotionBlur_Amount", false );
 	}
 
-	if ( Property != 0 )
+	FRichCurve& FloatCurve = FloatSection->GetFloatCurve();
+
+	if (Property == 0)
 	{
-		FRichCurve& FloatCurve = FloatSection->GetFloatCurve();
+		CreateAnimatableUserProperty(&FbxActor, FloatCurve.GetDefaultValue(), TCHAR_TO_UTF8(*PropertyName), TCHAR_TO_UTF8(*PropertyName));
 
-		FbxAnimCurve* AnimCurve = FbxAnimCurve::Create( Scene, "" );
-		FbxAnimCurveNode* CurveNode = Property.GetCurveNode( true );
-		if ( !CurveNode )
-		{
-			return;
-		}
-
-		CurveNode->SetChannelValue<double>( 0U, FloatCurve.GetDefaultValue() );
-		CurveNode->ConnectToChannel( AnimCurve, 0U );
-
-		ExportRichCurveToFbxCurve(*AnimCurve, FloatCurve, IsFoV ? ERichCurveValueMode::Fov : ERichCurveValueMode::Default);
+		Property = FbxActor.FindProperty(TCHAR_TO_UTF8(*PropertyName), false);
 	}
+
+	if (Property == 0)
+	{
+		return;
+	}
+
+	FbxAnimCurve* AnimCurve = FbxAnimCurve::Create( Scene, "" );
+	FbxAnimCurveNode* CurveNode = Property.GetCurveNode( true );
+	if ( !CurveNode )
+	{
+		return;
+	}
+
+	CurveNode->SetChannelValue<double>( 0U, FloatCurve.GetDefaultValue() );
+	CurveNode->ConnectToChannel( AnimCurve, 0U );
+
+	ExportRichCurveToFbxCurve(*AnimCurve, FloatCurve, IsFoV ? ERichCurveValueMode::Fov : ERichCurveValueMode::Default);
 }
 		
 /**

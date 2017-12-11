@@ -6,5 +6,5 @@
 
 bool FMovieSceneTrackImplementationPtr::Serialize(FArchive& Ar)
 {
-	return SerializeEvaluationTemplate(*this, Ar);
+	return SerializeInlineValue(*this, Ar);
 }

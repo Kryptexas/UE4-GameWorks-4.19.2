@@ -38,6 +38,7 @@ public:
 protected:
 
 	virtual TOptional<FTransform> GetCurrentValue() const;
+	virtual TOptional<FRotator> GetCurrentRotator() const;
 
 protected:
 

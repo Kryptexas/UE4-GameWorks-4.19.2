@@ -34,7 +34,7 @@ class AUDIOMIXER_API USynthSound : public USoundWaveProcedural
 {
 	GENERATED_UCLASS_BODY()
 
-	void Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 SampleRate);
+	void Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 SampleRate, const int32 InCallbackSize);
 	void StartOnAudioDevice(FAudioDevice* InAudioDevice);
 
 	/** Begin USoundWave */
@@ -198,6 +198,9 @@ protected:
 
 	// Can be set by the derived class, defaults to 2
 	int32 NumChannels;
+
+	// Can be set by the derived class- sets the preferred callback size for the synth component.
+	int32 PreferredBufferLength;
 
 private:
 

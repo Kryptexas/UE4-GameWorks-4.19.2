@@ -48,14 +48,6 @@ public:
 	 */
 	virtual bool CanPossessObject(UObject& Object, UObject* InPlaybackContext) const PURE_VIRTUAL(UMovieSceneSequence::CanPossessObject, return false;);
 
-	DEPRECATED(4.15, "Please implement LocateBoundObjects instead")
-	virtual UObject* FindPossessableObject(const FGuid& ObjectId, UObject* Context) const
-	{
-		TArray<UObject*, TInlineAllocator<1>> OutObjects;
-		LocateBoundObjects(ObjectId, Context, OutObjects);
-		return OutObjects.Num() ? OutObjects[0] : nullptr;
-	}
-
 	/**
 	 * Locate all the objects that correspond to the specified object ID, using the specified context
 	 *
@@ -78,9 +70,6 @@ public:
 		LocateBoundObjects(ObjectId, Context, OutObjects);
 		return OutObjects;
 	}
-
-	DEPRECATED(4.15, "Please use IMovieScenePlayer::FindObjectId or FindPossessableObjectId(UObject&, UObject*) instead.")
-	virtual FGuid FindPossessableObjectId(UObject& Object) const PURE_VIRTUAL(UMovieSceneSequence::FindPossessableObjectId, return FGuid(); );
 
 	/**
 	 * Attempt to find the guid relating to the specified object
@@ -159,16 +148,9 @@ public:
 	MOVIESCENE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif
 
-	MOVIESCENE_API virtual void GenerateEvaluationTemplate(FMovieSceneEvaluationTemplate& Template, const FMovieSceneTrackCompilationParams& Params, FMovieSceneSequenceTemplateStore& Store);
-
 	UPROPERTY()
-	FCachedMovieSceneEvaluationTemplate EvaluationTemplate;
+	FMovieSceneEvaluationTemplate PrecompiledEvaluationTemplate;
 
-	UPROPERTY()
-	FMovieSceneTrackCompilationParams TemplateParameters;
-
-	UPROPERTY()
-	TMap<UObject*, FCachedMovieSceneEvaluationTemplate> InstancedSubSequenceEvaluationTemplates;
 
 	/* The default completion mode for this movie scene when a section's completion mode is set to project default */
 	UPROPERTY(config)

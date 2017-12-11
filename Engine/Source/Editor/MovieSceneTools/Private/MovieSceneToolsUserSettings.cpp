@@ -33,4 +33,6 @@ UMovieSceneUserImportFBXSettings::UMovieSceneUserImportFBXSettings(const FObject
 {
 	bForceFrontXAxis = false;
 	bCreateCameras = true;
+	bReduceKeys = true;
+	ReduceKeysTolerance = 0.001f;
 }

@@ -24,6 +24,11 @@ UMovieSceneCameraCutTrack::UMovieSceneCameraCutTrack( const FObjectInitializer& 
 
 void UMovieSceneCameraCutTrack::AddNewCameraCut(FGuid CameraHandle, float StartTime)
 {
+	AddNewCameraCut(FMovieSceneObjectBindingID(CameraHandle, MovieSceneSequenceID::Root), StartTime);
+}
+
+UMovieSceneCameraCutSection* UMovieSceneCameraCutTrack::AddNewCameraCut(const FMovieSceneObjectBindingID& CameraBindingID, float StartTime)
+{
 	Modify();
 
 
@@ -43,7 +48,7 @@ void UMovieSceneCameraCutTrack::AddNewCameraCut(FGuid CameraHandle, float StartT
 	UMovieSceneCameraCutSection* NewSection = ExistingSection;
 	if (ExistingSection != nullptr)
 	{
-		ExistingSection->SetCameraGuid(CameraHandle);
+		ExistingSection->SetCameraBindingID(CameraBindingID);
 	}
 	else
 	{
@@ -51,7 +56,7 @@ void UMovieSceneCameraCutTrack::AddNewCameraCut(FGuid CameraHandle, float StartT
 		{
 			NewSection->SetStartTime(StartTime);
 			NewSection->SetEndTime(FindEndTimeForCameraCut(StartTime));
-			NewSection->SetCameraGuid(CameraHandle);
+			NewSection->SetCameraBindingID(CameraBindingID);
 		}
 
 		Sections.Add(NewSection);
@@ -62,6 +67,8 @@ void UMovieSceneCameraCutTrack::AddNewCameraCut(FGuid CameraHandle, float StartT
 
 	// Once CameraCuts are sorted fixup the surrounding CameraCuts to fix any gaps
 	MovieSceneHelpers::FixupConsecutiveSections(Sections, *NewSection, false);
+
+	return NewSection;
 }
 
 

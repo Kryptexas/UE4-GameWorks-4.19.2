@@ -146,7 +146,7 @@ public:
 	 *
 	 * @param SourceSection 		The source section
 	 */
-	void SetSourceSection(UMovieSceneSection* InSourceSection)
+	void SetSourceSection(const UMovieSceneSection* InSourceSection)
 	{
 		SourceSection = InSourceSection;
 	}
@@ -156,7 +156,7 @@ public:
 	 *
 	 * @return The source section from which this template originated
 	 */
-	UMovieSceneSection* GetSourceSection() const
+	const UMovieSceneSection* GetSourceSection() const
 	{
 		return SourceSection;
 	}
@@ -182,7 +182,7 @@ protected:
 
 	/** The section from which this template originates */
 	UPROPERTY()
-	UMovieSceneSection* SourceSection;
+	const UMovieSceneSection* SourceSection;
 };
 
 /**

@@ -32,22 +32,22 @@ void ResetAnimSequencerInstance(UObject& ObjectToRestore, IMovieScenePlayer& Pla
 
 struct FStopPlayingMontageTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
-	TWeakObjectPtr<UAnimMontage> TempMontage;
+	TWeakObjectPtr<UAnimInstance> TempInstance;
 
-	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimMontage> InTempMontage) : TempMontage(InTempMontage) {}
+	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimInstance> InTempInstance) : TempInstance(InTempInstance) {}
 
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
 		struct FToken : IMovieScenePreAnimatedToken
 		{
-			TWeakObjectPtr<UAnimMontage> WeakMontage;
+			TWeakObjectPtr<UAnimInstance> WeakInstance;
 
-			FToken(TWeakObjectPtr<UAnimMontage> InMontage) : WeakMontage(InMontage) {}
+			FToken(TWeakObjectPtr<UAnimInstance> InWeakInstance) : WeakInstance(InWeakInstance) {}
 
 			virtual void RestoreState(UObject& ObjectToRestore, IMovieScenePlayer& Player) override
 			{
-				UAnimInstance* AnimInstance = CastChecked<UAnimInstance>(&ObjectToRestore);
-				UAnimMontage* Montage = WeakMontage.Get();
+				UAnimMontage* Montage = CastChecked<UAnimMontage>(&ObjectToRestore);
+				UAnimInstance* AnimInstance = WeakInstance.Get();
 				if (AnimInstance && Montage)
 				{
 					AnimInstance->Montage_Stop(0.f, Montage);
@@ -55,7 +55,7 @@ struct FStopPlayingMontageTokenProducer : IMovieScenePreAnimatedTokenProducer
 			}
 		};
 
-		return FToken(TempMontage);
+		return FToken(TempInstance);
 	}
 };
 
@@ -145,8 +145,20 @@ namespace MovieScene
 
 		static FMovieSceneBlendingActuatorID GetActuatorTypeID()
 		{
-			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator>();
+			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator, 0>();
 			return FMovieSceneBlendingActuatorID(TypeID);
+		}
+
+		static FMovieSceneAnimTypeID GetMontageAnimationTypeID()
+		{
+			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator, 1>();
+			return TypeID;
+		}
+
+		static FMovieSceneAnimTypeID GetAnimControlTypeID()
+		{
+			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator, 2>();
+			return TypeID;
 		}
 
 		virtual FBlendedAnimation RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
@@ -165,8 +177,7 @@ namespace MovieScene
 				return;
 			}
 
-			static FMovieSceneAnimTypeID AnimTypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator>();
-			OriginalStack.SavePreAnimatedState(Player, *SkeletalMeshComponent, AnimTypeID, FPreAnimatedAnimationTokenProducer());
+			OriginalStack.SavePreAnimatedState(Player, *SkeletalMeshComponent, GetAnimControlTypeID(), FPreAnimatedAnimationTokenProducer());
 
 			UAnimCustomInstance::BindToSkeletalMeshComponent<UAnimSequencerInstance>(SkeletalMeshComponent);
 
@@ -249,8 +260,8 @@ namespace MovieScene
 				UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
 				if (AnimInst && Montage.IsValid())
 				{
-					FMovieSceneAnimTypeID SlotTypeID = MontageSlotAnimationIDs.GetAnimTypeID(SlotName);
-					Player.SavePreAnimatedState(*AnimInst, SlotTypeID, FStopPlayingMontageTokenProducer(Montage));
+					FMovieSceneAnimTypeID MontageAnimID = GetMontageAnimationTypeID();
+					Player.SavePreAnimatedState(*Montage.Get(), MontageAnimID, FStopPlayingMontageTokenProducer(AnimInst));
 
 					AnimInst->Montage_Resume(Montage.Get());
 				}
@@ -286,8 +297,8 @@ namespace MovieScene
 					if (Montage.IsValid())
 					{
 						// Unique anim type ID per slot
-						FMovieSceneAnimTypeID SlotTypeID = MontageSlotAnimationIDs.GetAnimTypeID(SlotName);
-						Player.SavePreAnimatedState(*AnimInst, SlotTypeID, FStopPlayingMontageTokenProducer(Montage));
+						FMovieSceneAnimTypeID MontageAnimID = GetMontageAnimationTypeID();
+						Player.SavePreAnimatedState(*Montage.Get(), MontageAnimID, FStopPlayingMontageTokenProducer(AnimInst));
 
 						if (bPlaying)
 						{
@@ -308,8 +319,6 @@ namespace MovieScene
 			}
 		}
 
-
-		TMovieSceneAnimTypeIDContainer<FName> MontageSlotAnimationIDs;
 		TMovieSceneAnimTypeIDContainer<FObjectKey> SectionToAnimationIDs;
 	};
 

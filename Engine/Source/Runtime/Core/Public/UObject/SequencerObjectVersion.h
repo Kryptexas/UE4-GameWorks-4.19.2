@@ -24,6 +24,9 @@ struct CORE_API FSequencerObjectVersion
 		// When finished now defaults to restore state
 		WhenFinishedDefaultsToRestoreState,
 
+		// EvaluationTree added
+		EvaluationTree,
+
 		// When finished now defaults to project default
 		WhenFinishedDefaultsToProjectDefault,
 

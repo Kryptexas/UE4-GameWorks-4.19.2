@@ -48,7 +48,7 @@ FReply SSequencerCurveEditor::OnMouseButtonDown( const FGeometry& MyGeometry, co
 	FReply Reply = SCurveEditor::OnMouseButtonDown( MyGeometry, MouseEvent );
 	if ( Reply.IsEventHandled() )
 	{
-		return Reply;
+		return Reply.PreventThrottling();
 	}
 
 	return TimeSliderController->OnMouseButtonDown( *this, MyGeometry, MouseEvent );

@@ -162,6 +162,16 @@ void FSequencerCurveOwner::ModifyOwner()
 	}
 }
 
+void FSequencerCurveOwner::ModifyOwnerChange()
+{
+	TArray<UMovieSceneSection*> Owners;
+	EditInfoToSectionMap.GenerateValueArray( Owners );
+	for ( auto Owner : Owners )
+	{
+		Owner->MarkAsChanged();
+	}
+}
+
 TArray<const UObject*> FSequencerCurveOwner::GetOwners() const
 {
 	TArray<UMovieSceneSection*> Owners;

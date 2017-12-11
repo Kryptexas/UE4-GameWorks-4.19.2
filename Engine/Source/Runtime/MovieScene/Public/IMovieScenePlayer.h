@@ -60,6 +60,11 @@ public:
 	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() = 0;
 
 	/**
+	 * Whether this player can update the camera cut
+	 */
+	virtual bool CanUpdateCameraCut() const { return true; }
+
+	/**
 	 * Updates the perspective viewports with the actor to view through
 	 *
 	 * @param CameraObject The object, probably a camera, that the viewports should lock to
@@ -134,6 +139,11 @@ public:
 	 * Access the playback context for this movie scene player
 	 */
 	virtual UObject* GetPlaybackContext() const { return nullptr; }
+
+	/**
+	 * Access the global instance data object for this movie scene player
+	 */
+	virtual const UObject* GetInstanceData() const { return nullptr; }
 
 	/**
 	 * Access the event contexts for this movie scene player
@@ -293,14 +303,6 @@ public:
 
 	/** Container that stores any per-animated state tokens  */
 	FMovieScenePreAnimatedState PreAnimatedState;
-
-public:
-
-	DEPRECATED(4.15, "Sequence Instances have been deprecated in favor of a template approach (see GetEvaluationTemplate).")
-	MOVIESCENE_API TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance();
-
-	DEPRECATED(4.15, "Please use FindBoundObjects directly.")
-	MOVIESCENE_API void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& Guid, TArray<TWeakObjectPtr<>>& OutRuntimeObjects);
 	
 private:
 

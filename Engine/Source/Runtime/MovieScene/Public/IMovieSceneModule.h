@@ -68,4 +68,10 @@ public:
 	 * Find group parameters for a specific evaluation group
 	 */
 	virtual FMovieSceneEvaluationGroupParameters GetEvaluationGroupParameters(FName GroupName) const = 0;
+
+	/**
+	 * Get this module ptr as a weak ptr.
+	 * @note: resulting weak ptr should not be used to hold persistent strong references
+	 */
+	virtual TWeakPtr<IMovieSceneModule> GetWeakPtr() = 0;
 };

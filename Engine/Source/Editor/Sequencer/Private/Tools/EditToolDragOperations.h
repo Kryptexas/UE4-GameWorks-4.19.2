@@ -139,6 +139,9 @@ private:
 
 	/** A handle for the sequencer node tree updated delegate. */
 	FDelegateHandle SequencerNodeTreeUpdatedHandle;
+
+	struct FInitialRowIndex { UMovieSceneSection* Section; int32 RowIndex; };
+	TArray<FInitialRowIndex> InitialRowIndices;
 };
 
 

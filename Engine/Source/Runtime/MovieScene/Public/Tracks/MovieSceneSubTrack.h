@@ -16,7 +16,7 @@ struct FMovieSceneSegmentCompilerRules;
  * A track that holds sub-sequences within a larger sequence.
  */
 UCLASS()
-class MOVIESCENETRACKS_API UMovieSceneSubTrack
+class MOVIESCENE_API UMovieSceneSubTrack
 	: public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
@@ -63,14 +63,10 @@ public:
 	virtual void RemoveAllAnimationData() override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool SupportsMultipleRows() const override;
-	virtual void GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const override;
 
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;
 #endif
-
-protected:
-	virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetTrackCompilerRules() const override;
 
 protected:
 

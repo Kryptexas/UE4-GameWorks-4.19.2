@@ -71,6 +71,10 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 			if (DragOperation.IsValid())
 			{
 				DragPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+				
+				float CurrentTime = VirtualTrackArea.PixelToTime(DragPosition.X);
+				Sequencer.UpdateAutoScroll(CurrentTime);
+				
 				DragOperation->OnDrag(MouseEvent, DragPosition, VirtualTrackArea);
 			}
 		}
@@ -264,7 +268,10 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 				Menu->GetOnMenuDismissed().AddLambda(
 					[=](TSharedRef<IMenu>)
 					{
-						ExistingHotspot->bIsLocked = false;
+						if (ExistingHotspot.IsValid())
+						{
+							ExistingHotspot->bIsLocked = false;
+						}
 						if (SequencerPtr->GetHotspot() == ExistingHotspot)
 						{
 							SequencerPtr->SetHotspot(nullptr);

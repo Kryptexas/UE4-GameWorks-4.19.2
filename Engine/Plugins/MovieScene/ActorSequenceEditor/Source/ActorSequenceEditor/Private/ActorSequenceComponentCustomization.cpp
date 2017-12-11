@@ -133,7 +133,7 @@ void FActorSequenceComponentCustomization::CustomizeDetails(IDetailLayoutBuilder
 	}
 
 	// Only display an inline editor for non-blueprint sequences
-	if (!GetActorSequence()->GetParentBlueprint() && !bIsExternalTabAlreadyOpened)
+	if (GetActorSequence() && !GetActorSequence()->GetParentBlueprint() && !bIsExternalTabAlreadyOpened)
 	{
 		Category.AddCustomRow(FText())
 		.WholeRowContent()

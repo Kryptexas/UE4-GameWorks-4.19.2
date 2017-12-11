@@ -15,6 +15,8 @@
 #include "Sound/SoundWave.h"
 #include "SoundWaveProcedural.generated.h"
 
+#define DEFAULT_PROCEDURAL_SOUNDWAVE_BUFFER_SIZE 1024
+
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWaveProcedural*, int32 );
 
 UCLASS()

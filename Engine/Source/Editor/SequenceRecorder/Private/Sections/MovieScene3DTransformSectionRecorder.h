@@ -66,7 +66,7 @@ public:
 	}
 
 private:
-	FTransform GetTransformToRecord();
+	bool GetTransformToRecord(FTransform& TransformToRecord);
 
 private:
 	/** Object to record from */
@@ -95,4 +95,7 @@ private:
 
 	/** Flag indicating that some time while this recorder was active an attachment was also in place */
 	bool bWasAttached;
+
+	/** The guid being recorded to */
+	FGuid Guid;
 };

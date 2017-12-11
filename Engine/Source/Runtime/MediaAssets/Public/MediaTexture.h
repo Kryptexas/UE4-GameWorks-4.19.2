@@ -46,10 +46,6 @@ class MEDIAASSETS_API UMediaTexture
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MediaTexture")
 	FLinearColor ClearColor;
 
-	/** The media player asset associated with this texture. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Media")
-	UMediaPlayer* MediaPlayer;
-
 public:
 
 	/**
@@ -71,6 +67,15 @@ public:
 	int32 GetHeight() const;
 
 	/**
+	 * Get the media player that provides the video samples.
+	 *
+	 * @return The texture's media player, or nullptr if not set.
+	 * @see SetMediaPlayer
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	UMediaPlayer* GetMediaPlayer() const;
+
+	/**
 	 * Gets the current width of the texture.
 	 *
 	 * @return Texture width (in pixels).
@@ -78,6 +83,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
 	int32 GetWidth() const;
+
+	/**
+	 * Set the media player that provides the video samples.
+	 *
+	 * @param NewMediaPlayer The player to set.
+	 * @see GetMediaPlayer
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
+	void SetMediaPlayer(UMediaPlayer* NewMediaPlayer);
 
 public:
 
@@ -96,6 +110,7 @@ public:
 
 	virtual FString GetDesc() override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -110,8 +125,18 @@ protected:
 	 */
 	void TickResource(FTimespan Timecode);
 
-	/** Unregister the player's external texture GUID. */
-	void UnregisterPlayerGuid();
+protected:
+
+	/**
+	 * The media player asset associated with this texture.
+	 *
+	 * This property is meant for design-time convenience. To change the
+	 * associated media player at run-time, use the SetMediaPlayer method.
+	 *
+	 * @see SetMediaPlayer
+	 */
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaPlayer* MediaPlayer;
 
 private:
 
@@ -120,14 +145,23 @@ private:
 	/** The texture's media clock sink. */
 	TSharedPtr<FMediaTextureClockSink, ESPMode::ThreadSafe> ClockSink;
 
-	/** The player facade that's currently providing texture samples. */
-	TWeakPtr<FMediaPlayerFacade, ESPMode::ThreadSafe> CurrentPlayerFacade;
+	/** The default external texture GUID if no media player is assigned. */
+	/*TAtomic<*/FGuid/*>*/ CurrentGuid;
+
+	/** The player that is currently associated with this texture. */
+	TWeakObjectPtr<UMediaPlayer> CurrentPlayer;
+
+	/** The default external texture GUID if no media player is assigned. */
+	const FGuid DefaultGuid;
 
 	/** Current width and height of the resource (in pixels). */
 	FIntPoint Dimensions;
 
-	/** The previously used player GUID. */
-	FGuid LastPlayerGuid;
+	/** The previously clear color. */
+	FLinearColor LastClearColor;
+
+	/** The previously used sRGB flag. */
+	bool LastSrgb;
 
 	/** Texture sample queue. */
 	TSharedPtr<FMediaTextureSampleQueue, ESPMode::ThreadSafe> SampleQueue;

@@ -123,7 +123,7 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		if (TickerThread)
+		if (TickerThread != nullptr)
 		{
 			TickerThread->Kill(true);
 			delete TickerThread;

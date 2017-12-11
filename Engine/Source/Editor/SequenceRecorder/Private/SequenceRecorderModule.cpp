@@ -558,7 +558,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return CurrentSequence.IsValid() ? CurrentSequence->GetMovieScene()->GetPlaybackRange().Size<float>() : 0.0f;
 	}
 
-	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo, const FString& SequenceName) override
+	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FString& PathToRecordTo, const FString& SequenceName) override
 	{
 		if(ActorsToRecord.Num() != 0)
 		{
@@ -581,12 +581,12 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			UE_LOG(LogAnimation, Display, TEXT("Couldn't find actor to record"));
 		}
 
-		return FSequenceRecorder::Get().StartRecording(OnRecordingStarted, OnRecordingFinished, PathToRecordTo, SequenceName);
+		return FSequenceRecorder::Get().StartRecording(PathToRecordTo, SequenceName);
 	}
 
 	virtual void NotifyActorStartRecording(AActor* Actor)
 	{
-		FSequenceRecorder::HandleActorSpawned(Actor);
+		FSequenceRecorder::Get().HandleActorSpawned(Actor);
 	}
 
 	virtual void NotifyActorStopRecording(AActor* Actor)
@@ -632,6 +632,10 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	{
 		return AudioFactory ? AudioFactory() : TUniquePtr<ISequenceAudioRecorder>();
 	}
+
+	virtual FOnRecordingStarted& OnRecordingStarted() override { return FSequenceRecorder::Get().OnRecordingStartedDelegate; }
+
+	virtual FOnRecordingFinished& OnRecordingFinished() override { return FSequenceRecorder::Get().OnRecordingFinishedDelegate; }
 
 	static void TickSequenceRecorder(float DeltaSeconds)
 	{

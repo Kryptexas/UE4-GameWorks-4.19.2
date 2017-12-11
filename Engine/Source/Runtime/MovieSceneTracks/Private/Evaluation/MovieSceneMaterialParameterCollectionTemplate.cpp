@@ -118,6 +118,12 @@ struct FMaterialParameterCollectionExecutionToken : IMovieSceneExecutionToken
 		static TMovieSceneAnimTypeIDContainer<FName> AnimTypeIDsByName;
 		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
 
+		if (!Instance)
+		{
+			UE_LOG(LogMovieScene, Warning, TEXT("Failed to get material parameter collection to animate."));
+			return;
+		}
+
 		TArray<FString> InvalidParameterNames;
 
 		for ( const FScalarParameterNameAndValue& ScalarNameAndValue : Values.ScalarValues )

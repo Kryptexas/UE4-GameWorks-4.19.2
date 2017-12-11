@@ -7,6 +7,7 @@
 #include "Misc/Guid.h"
 #include "Evaluation/MovieSceneTrackImplementation.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieSceneCameraCutTemplate.generated.h"
 
 class UMovieSceneCameraCutSection;
@@ -22,7 +23,7 @@ struct FMovieSceneCameraCutSectionTemplate : public FMovieSceneEvalTemplate
 
 	/** GUID of the camera we should cut to in this sequence */
 	UPROPERTY()
-	FGuid CameraGuid;
+	FMovieSceneObjectBindingID CameraBindingID;
 
 	UPROPERTY()
 	FTransform CutTransform;

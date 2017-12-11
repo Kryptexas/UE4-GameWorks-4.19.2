@@ -68,10 +68,8 @@ class FMfMediaTracks
 
 	struct FTrack
 	{
-		TComPtr<IMFStreamDescriptor> Descriptor;
 		FText DisplayName;
 		TArray<FFormat> Formats;
-		TComPtr<IMFMediaTypeHandler> Handler;
 		FString Language;
 		FString Name;
 		bool Protected;
@@ -337,9 +335,6 @@ private:
 
 	/** Whether the media source has changed. */
 	bool MediaSourceChanged;
-
-	/** The presentation descriptor of the currently opened media. */
-	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
 
 	/** Media sample collection that receives the output. */
 	TSharedPtr<FMediaSamples, ESPMode::ThreadSafe> Samples;

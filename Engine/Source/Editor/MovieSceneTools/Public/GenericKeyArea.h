@@ -296,6 +296,10 @@ private:
 					.Value_Lambda([=]{ return this->CurveInterface.GetKeyTime(KeyHandle).Get(TimeType()); })
 					.OnValueChanged_Lambda(OnValueChanged)
 					.OnValueCommitted_Lambda([=](TimeType InTime, ETextCommit::Type){ OnValueChanged(InTime); })
+					.MinValue(TOptional<float>())
+					.MaxValue(TOptional<float>())
+					.MaxSliderValue(TOptional<float>())
+					.MinSliderValue(TOptional<float>())
 					.ToolTipText(TimeTooltipText)
 				];
 

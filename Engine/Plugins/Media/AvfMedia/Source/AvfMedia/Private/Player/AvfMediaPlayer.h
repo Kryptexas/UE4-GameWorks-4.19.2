@@ -111,7 +111,7 @@ private:
 
 	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
 	FAVPlayerDelegate* MediaHelper;
-    
+	
 	/** The AVFoundation media player */
 	AVPlayer* MediaPlayer;
 

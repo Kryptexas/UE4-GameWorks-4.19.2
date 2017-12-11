@@ -91,6 +91,12 @@ namespace MovieScene
 			return Channels[Index];
 		}
 
+		/** Access a value with a default */
+		T Get(uint8 Index, T Default) const
+		{
+			return IsSet(Index) ? Channels[Index] : Default;
+		}
+
 		/** Check if this value is empty */
 		bool IsEmpty() const
 		{

@@ -8,6 +8,7 @@
 #include "Curves/RichCurve.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
 #include "Sections/MovieScene3DPathSection.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieScene3DPathTemplate.generated.h"
 
 USTRUCT()
@@ -18,9 +19,9 @@ struct FMovieScene3DPathSectionTemplate : public FMovieSceneEvalTemplate
 	FMovieScene3DPathSectionTemplate() {}
 	FMovieScene3DPathSectionTemplate(const UMovieScene3DPathSection& Section);
 
-	/** GUID of the path we should attach to */
+	/** The object binding ID of the path we should attach to */
 	UPROPERTY()
-	FGuid PathGuid;
+	FMovieSceneObjectBindingID PathBindingID;
 
 	/** The timing curve */
 	UPROPERTY()

@@ -30,6 +30,8 @@
 #include "MediaPlaneFrustumComponent.h"
 #include "MediaPlaneComponent.h"
 #include "StaticMeshResources.h"
+#include "MediaTexture.h"
+#include "MediaPlayer.h"
 
 namespace
 {
@@ -300,6 +302,7 @@ FMediaPlaneParameters::FMediaPlaneParameters()
 	, FixedSize(100,100)
 	, RenderTexture(nullptr)
 	, DynamicMaterial(nullptr)
+	, MediaTexture(nullptr)
 {
 }
 
@@ -359,7 +362,7 @@ void UMediaPlaneComponent::SetMediaPlane(FMediaPlaneParameters NewPlane)
 	UpdateMaterialParametersForMedia();
 }
 
-void UMediaPlaneComponent::OnRenderTextureChanged()
+void UMediaPlaneComponent::OnMediaTextureChanged()
 {
 	UpdateMaterialParametersForMedia();
 }
@@ -397,9 +400,16 @@ void UMediaPlaneComponent::UpdateTransformScale()
 	}
 }
 
+void UMediaPlaneComponent::SetMediaTexture(UTexture* Texture)
+{
+	Plane.MediaTexture = Texture;
+
+	UpdateMaterialParametersForMedia();
+}
+
 void UMediaPlaneComponent::UpdateMaterialParametersForMedia()
 {
-	if (!Plane.TextureParameterName.IsNone() && Plane.Material && Plane.RenderTexture)
+	if (!Plane.TextureParameterName.IsNone() && Plane.Material && Plane.MediaTexture)
 	{
 		if (!Plane.DynamicMaterial)
 		{
@@ -407,7 +417,7 @@ void UMediaPlaneComponent::UpdateMaterialParametersForMedia()
 			Plane.DynamicMaterial->SetFlags(RF_Transient);
 		}
 
-		Plane.DynamicMaterial->SetTextureParameterValue(Plane.TextureParameterName, Plane.RenderTexture);
+		Plane.DynamicMaterial->SetTextureParameterValue(Plane.TextureParameterName, Plane.MediaTexture);
 	}
 	else
 	{

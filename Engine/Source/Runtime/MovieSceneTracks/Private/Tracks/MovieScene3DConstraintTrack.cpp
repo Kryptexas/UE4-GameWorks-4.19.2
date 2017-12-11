@@ -22,6 +22,11 @@ const TArray<UMovieSceneSection*>& UMovieScene3DConstraintTrack::GetAllSections(
 	return ConstraintSections;
 }
 
+void UMovieScene3DConstraintTrack::AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId)
+{
+	AddConstraint(Time, ConstraintEndTime, SocketName, ComponentName, FMovieSceneObjectBindingID(ConstraintId, MovieSceneSequenceID::Root));
+}
+
 
 void UMovieScene3DConstraintTrack::RemoveAllAnimationData()
 {

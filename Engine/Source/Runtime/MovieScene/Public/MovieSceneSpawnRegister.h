@@ -110,9 +110,10 @@ public:
 	 *
 	 * @param SourceObject		The source object to create the spawnable from
 	 * @param OwnerMovieScene	The owner movie scene that this spawnable type should reside in
+	 * @param ActorFactory      Optional actor factory to use to create spawnable type
 	 * @return the new spawnable type, or error
 	 */
-	virtual TValueOrError<FNewSpawnable, FText> CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene) { return MakeError(NSLOCTEXT("SpawnRegister", "NotSupported", "Not supported")); }
+	virtual TValueOrError<FNewSpawnable, FText> CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene, UActorFactory* ActorFactory = nullptr) { return MakeError(NSLOCTEXT("SpawnRegister", "NotSupported", "Not supported")); }
 
 	/**
 	 * Called to save the default state of the specified spawnable

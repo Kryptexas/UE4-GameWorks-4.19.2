@@ -464,6 +464,8 @@ void FControlRigEditorModule::HandleSequencerCreated(TSharedRef<ISequencer> InSe
 			}
 		}
 	});
+
+	InSequencer->OnGetIsTrackVisible().BindRaw(this, &FControlRigEditorModule::IsTrackVisible);
 }
 
 void FControlRigEditorModule::HandleAssetEditorOpened(UObject* InAsset)
@@ -607,6 +609,21 @@ void FControlRigEditorModule::ReImportFromRigSequence(TArray<FAssetData> InAsset
 
 		ControlRigSequenceConverter::Convert(ControlRigSequence, AnimSequence, SkeletalMesh, bShowDialog);
 	}
+}
+
+bool FControlRigEditorModule::IsTrackVisible(const UMovieSceneTrack* InTrack)
+{
+	if (FControlRigEditMode* ControlRigEditMode = static_cast<FControlRigEditMode*>(GLevelEditorModeTools().GetActiveMode(FControlRigEditMode::ModeName)))
+	{		
+		// If nothing selected, show all nodes
+		if (ControlRigEditMode->GetSelectedNodes().Num() == 0)
+		{
+			return true;
+		}
+
+		return ControlRigEditMode->IsNodeSelected(ControlRigEditMode->GetNodeFromPropertyPath(InTrack->GetTrackName().ToString()));
+	}
+	return true;
 }
 
 IMPLEMENT_MODULE(FControlRigEditorModule, ControlRigEditor)

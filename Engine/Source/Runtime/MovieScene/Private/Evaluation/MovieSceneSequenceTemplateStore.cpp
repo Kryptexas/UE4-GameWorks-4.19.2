@@ -4,45 +4,12 @@
 #include "MovieSceneSequence.h"
 #include "UObject/ObjectKey.h"
 
-FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemplate(UMovieSceneSequence& Sequence)
+FMovieSceneEvaluationTemplate& FMovieSceneSequencePrecompiledTemplateStore::AccessTemplate(UMovieSceneSequence& Sequence)
 {
-	return GetCompiledTemplate(Sequence, FObjectKey(&Sequence));
+	return Sequence.PrecompiledEvaluationTemplate;
 }
 
-FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemplate(UMovieSceneSequence& Sequence, FObjectKey InSequenceKey)
+FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemporaryTemplateStore::AccessTemplate(UMovieSceneSequence& Sequence)
 {
-	UObject* ObjectKey = InSequenceKey.ResolveObjectPtr();
-#if WITH_EDITORONLY_DATA
-	if (AreTemplatesVolatile())
-	{
-		// Lookup into map here if we have a key that is not the sequence
-		if (ObjectKey == &Sequence)
-		{
-			Sequence.EvaluationTemplate.Regenerate(Sequence.TemplateParameters);
-		}
-		else
-		{
-			// assume this is an instanced subsequence
-			FCachedMovieSceneEvaluationTemplate* EvaluationTemplatePtr = Sequence.InstancedSubSequenceEvaluationTemplates.Find(ObjectKey);
-			if (EvaluationTemplatePtr == nullptr)
-			{
-				EvaluationTemplatePtr = &Sequence.InstancedSubSequenceEvaluationTemplates.Add(ObjectKey);
-				EvaluationTemplatePtr->Initialize(Sequence, this);
-			}
-
-			EvaluationTemplatePtr->Regenerate(Sequence.TemplateParameters);
-		}
-	}
-#endif
-
-	// Lookup into map here if we have a key that is not the sequence
-	if (ObjectKey == &Sequence)
-	{
-		return Sequence.EvaluationTemplate;
-	}
-	else
-	{
-		// assume this is an instanced subsequence
-		return Sequence.InstancedSubSequenceEvaluationTemplates.FindChecked(ObjectKey);
-	}
+	return Templates.FindOrAdd(&Sequence);
 }

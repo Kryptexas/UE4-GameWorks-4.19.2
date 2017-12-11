@@ -6,6 +6,7 @@
 #include "ReleaseObjectVersion.h"
 #include "LinkerLoad.h"
 #include "Serialization/MemoryArchive.h"
+#include "Engine/UserDefinedStruct.h"
 
 #include "Curves/KeyFrameAlgorithms.h"
 
@@ -72,6 +73,7 @@ public:
 	FEventParameterWriter(TArray<uint8>& InBytes)
 		: Bytes(InBytes)
 	{
+		ArNoDelta = true;
 		ArIsSaving = true;
 		ArIsPersistent = true;
 		UsingCustomVersion(EventParameterVersionGUID);
@@ -237,6 +239,14 @@ void FMovieSceneEventParameters::GetInstance(FStructOnScope& OutStruct) const
 {
 	UStruct* StructPtr = GetStructType();
 	OutStruct.Initialize(StructPtr);
+
+#if WITH_EDITOR
+	if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(StructPtr))
+	{
+		UDS->InitializeDefaultValue(OutStruct.GetStructMemory());
+	}
+#endif
+
 	uint8* Memory = OutStruct.GetStructMemory();
 	if (StructPtr && StructPtr->GetStructureSize() > 0 && StructBytes.Num())
 	{

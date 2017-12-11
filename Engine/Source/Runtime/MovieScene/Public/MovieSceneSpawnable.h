@@ -184,6 +184,10 @@ public:
 		Ownership = InOwnership;
 	}
 
+	/** Optional spawn transform */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Actor)
+	FTransform SpawnTransform;
+
 private:
 
 	/** Unique identifier of the spawnable object. */

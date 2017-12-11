@@ -3,6 +3,7 @@
 #include "Transport/UdpSerializeMessageTask.h"
 
 #include "Backends/JsonStructSerializerBackend.h"
+#include "HAL/Event.h"
 #include "IMessageContext.h"
 #include "StructSerializer.h"
 
@@ -60,6 +61,14 @@ void FUdpSerializeMessageTask::DoTask(ENamedThreads::Type CurrentThread, const F
 	else
 	{
 		SerializedMessage->UpdateState(EUdpSerializedMessageState::Invalid);
+	}
+
+	// signal task completion
+	TSharedPtr<FEvent, ESPMode::ThreadSafe> CompletionEvent = CompletionEventPtr.Pin();
+
+	if (CompletionEvent.IsValid())
+	{
+		CompletionEvent->Trigger();
 	}
 }
 

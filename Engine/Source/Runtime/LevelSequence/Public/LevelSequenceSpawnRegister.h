@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "MovieSceneSpawnRegister.h"
-#include "MovieSceneSequenceInstance.h"
 
 class IMovieScenePlayer;
 class IMovieSceneObjectSpawner;

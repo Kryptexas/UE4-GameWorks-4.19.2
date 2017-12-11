@@ -395,6 +395,11 @@ bool FImgMediaPlayer::Seek(const FTimespan& Time)
 	CurrentTime = Time;
 	LastFetchTime = FTimespan::MinValue();
 
+	if (CurrentState == EMediaState::Paused)
+	{
+		Loader->RequestFrame(CurrentTime, CurrentRate);
+	}
+
 	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
 
 	return true;

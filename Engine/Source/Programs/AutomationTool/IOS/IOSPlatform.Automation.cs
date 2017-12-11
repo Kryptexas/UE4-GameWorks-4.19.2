@@ -974,7 +974,7 @@ public class IOSPlatform : Platform
 		}
 	}
 
-	private void StageMovieFiles(DirectoryReference InputDir, DeploymentContext SC)
+	protected void StageMovieFiles(DirectoryReference InputDir, DeploymentContext SC)
 	{
 		if(DirectoryReference.Exists(InputDir))
 		{

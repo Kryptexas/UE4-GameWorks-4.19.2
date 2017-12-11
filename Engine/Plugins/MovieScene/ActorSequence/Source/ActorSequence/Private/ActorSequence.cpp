@@ -84,6 +84,11 @@ void UActorSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Posse
 
 bool UActorSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
 {
+	if (InPlaybackContext == nullptr)
+	{
+		return false;
+	}
+
 	AActor* ActorContext = CastChecked<AActor>(InPlaybackContext);
 
 	if (AActor* Actor = Cast<AActor>(&Object))

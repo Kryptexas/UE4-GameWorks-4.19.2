@@ -432,7 +432,8 @@ void FVREditorActionCallbacks::PlaySequenceAtRate(UVREditorMode* InVRMode, float
 	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
 	if (CurrentSequencer != nullptr)
 	{
-		CurrentSequencer->OnPlay(false, Rate);
+		CurrentSequencer->SetPlaybackSpeed(Rate);
+		CurrentSequencer->OnPlay(false);
 	}
 }
 
@@ -451,8 +452,8 @@ void FVREditorActionCallbacks::PlayFromBeginning(UVREditorMode* InVRMode)
 	if (CurrentSequencer != nullptr)
 	{
 		CurrentSequencer->SetLocalTime(0.0f);
-		const float Rate = 1.0f;
-		CurrentSequencer->OnPlay(false, Rate);
+		CurrentSequencer->SetPlaybackSpeed(1.f);
+		CurrentSequencer->OnPlay(false);
 	}
 }
 

@@ -56,8 +56,8 @@ void FControlRigSequencerAnimInstanceProxy::ResetNodes()
 {
 	FAnimSequencerInstanceProxy::ResetNodes();
 
-	FMemory::Memzero(LayeredBoneBlendNode.BlendWeights.GetData(), AdditiveLayeredBoneBlendNode.BlendWeights.GetAllocatedSize());
-	FMemory::Memzero(LayeredBoneBlendNode.BlendWeights.GetData(), AdditiveLayeredBoneBlendNode.BlendWeights.GetAllocatedSize());
+	FMemory::Memzero(LayeredBoneBlendNode.BlendWeights.GetData(), LayeredBoneBlendNode.BlendWeights.GetAllocatedSize());
+	FMemory::Memzero(AdditiveLayeredBoneBlendNode.BlendWeights.GetData(), AdditiveLayeredBoneBlendNode.BlendWeights.GetAllocatedSize());
 }
 
 void FControlRigSequencerAnimInstanceProxy::InitControlRigTrack(UControlRig* InControlRig, bool bAdditive, bool bApplyBoneFilter, const FInputBlendPose& BoneFilter, uint32 SequenceId)

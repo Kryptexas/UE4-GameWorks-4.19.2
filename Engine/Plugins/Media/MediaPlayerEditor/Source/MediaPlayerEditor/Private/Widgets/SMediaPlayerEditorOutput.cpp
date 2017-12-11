@@ -69,8 +69,8 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 
 		if (SoundComponent != nullptr)
 		{
-			SoundComponent->MediaPlayer = &InMediaPlayer;
 			SoundComponent->bIsUISound = true;
+			SoundComponent->SetMediaPlayer(&InMediaPlayer);
 			SoundComponent->Initialize();
 			SoundComponent->AddToRoot();
 		}
@@ -81,7 +81,8 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 
 	if (MediaTexture != nullptr)
 	{
-		MediaTexture->MediaPlayer = &InMediaPlayer;
+		MediaTexture->AutoClear = true;
+		MediaTexture->SetMediaPlayer(&InMediaPlayer);
 		MediaTexture->UpdateResource();
 		MediaTexture->AddToRoot();
 	}

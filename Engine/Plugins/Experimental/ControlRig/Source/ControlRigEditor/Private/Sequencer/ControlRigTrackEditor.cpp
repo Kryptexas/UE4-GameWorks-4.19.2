@@ -209,6 +209,11 @@ TSharedRef<ISequencerTrackEditor> FControlRigTrackEditor::CreateTrackEditor( TSh
 	return MakeShareable( new FControlRigTrackEditor( InSequencer ) );
 }
 
+bool FControlRigTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("ControlRigSequence"));
+}
+
 bool FControlRigTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneControlRigTrack::StaticClass();

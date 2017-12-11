@@ -3,7 +3,6 @@
 #include "SynthComponent.h"
 #include "AudioDevice.h"
 #include "AudioMixerLog.h"
-#include "Components/BillboardComponent.h"
 
 USynthSound::USynthSound(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -11,12 +10,12 @@ USynthSound::USynthSound(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 InSampleRate)
+void USynthSound::Init(USynthComponent* InSynthComponent, const int32 InNumChannels, const int32 InSampleRate, const int32 InCallbackSize)
 {
 	OwningSynthComponent = InSynthComponent;
 	bVirtualizeWhenSilent = true;
 	NumChannels = InNumChannels;
-
+	NumSamplesToGeneratePerCallback = InCallbackSize;
 	// Turn off async generation in old audio engine on mac.
 #if PLATFORM_MAC
 	if (!InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled())
@@ -106,6 +105,8 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	// Set the default sound class
 	SoundClass = USoundBase::DefaultSoundClassObject;
 
+	PreferredBufferLength = DEFAULT_PROCEDURAL_SOUNDWAVE_BUFFER_SIZE;
+
 #if WITH_EDITORONLY_DATA
 	bVisualizeComponent = false;
 #endif
@@ -193,7 +194,7 @@ void USynthComponent::Initialize(int32 SampleRateOverride)
 			Synth->SoundSubmixObject = SoundSubmix;
 			Synth->SoundSubmixSends = SoundSubmixSends;
 
-			Synth->Init(this, NumChannels, SampleRate);
+			Synth->Init(this, NumChannels, SampleRate, PreferredBufferLength);
 		}
 	}
 }

@@ -163,6 +163,8 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 		return NULL;
 	}
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Created playback topology %p (media source %p)"), this, Topology.Get(), MediaSource.Get());
+
 	return Topology;
 }
 
@@ -196,7 +198,7 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 {
 	Shutdown();
 
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Initializing tracks"), this);
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Initializing (media source %p)"), this, InMediaSource);
 
 	FScopeLock Lock(&CriticalSection);
 
@@ -271,7 +273,7 @@ void FWmfMediaTracks::ReInitialize()
 
 void FWmfMediaTracks::Shutdown()
 {
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Shutting down tracks"), this);
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Shutting down (media source %p)"), this, MediaSource.Get());
 
 	FScopeLock Lock(&CriticalSection);
 
@@ -293,7 +295,7 @@ void FWmfMediaTracks::Shutdown()
 	if (MediaSource != NULL)
 	{
 		MediaSource->Shutdown();
-		MediaSource = NULL;
+		MediaSource.Reset();
 	}
 
 	PresentationDescriptor.Reset();
@@ -1395,7 +1397,15 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 					else
 					{
 						BufferDim.X = Align(OutputDim.X, 16);
-						BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+
+						if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
+						{
+							BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+						}
+						else
+						{
+							BufferDim.Y = OutputDim.Y * 3 / 2;
+						}
 					}
 
 					BufferStride = BufferDim.X;

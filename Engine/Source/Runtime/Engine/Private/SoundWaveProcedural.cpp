@@ -2,13 +2,36 @@
 
 #include "Sound/SoundWaveProcedural.h"
 
+#include "AudioDevice.h"
+#include "Engine/Engine.h"
+
+
 USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bProcedural = true;
 	bReset = false;
 	NumBufferUnderrunSamples = 512;
-	NumSamplesToGeneratePerCallback = 1024;
+	NumSamplesToGeneratePerCallback = DEFAULT_PROCEDURAL_SOUNDWAVE_BUFFER_SIZE;
+
+	// If the main audio device has been set up, we can use this to define our callback size.
+	// We need to do this for procedural sound waves that we do not process asynchronously,
+	// to ensure that we do not underrun.
+	
+	if (GEngine)
+	{
+		FAudioDevice* MainAudioDevice = GEngine->GetMainAudioDevice();
+		if (MainAudioDevice && !MainAudioDevice->IsAudioMixerEnabled())
+		{
+#if PLATFORM_MAC
+			// We special case the mac callback on the old audio engine, Since Buffer Length is smaller than the device callback size.
+			NumSamplesToGeneratePerCallback = 2048;
+#else
+			NumSamplesToGeneratePerCallback = MainAudioDevice->GetBufferLength();
+#endif
+			NumBufferUnderrunSamples = NumSamplesToGeneratePerCallback / 2;
+		}
+	}
 
 	SampleByteSize = 2;
 

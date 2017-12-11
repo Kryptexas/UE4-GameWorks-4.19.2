@@ -651,7 +651,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(SubSection);
 		if (CinematicShotSection)
 		{
-			UIData.ShotName = CinematicShotSection->GetShotDisplayName();
+			UIData.ShotName = FText::FromString(CinematicShotSection->GetShotDisplayName());
 		}
 		else if (SubSection->GetSequence() != nullptr)
 		{

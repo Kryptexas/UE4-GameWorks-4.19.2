@@ -236,7 +236,7 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd && GEngine->XRSystem.IsValid() && GetWorld()->WorldType != EWorldType::Editor )
+	if (bLockToHmd && GEngine && GEngine->XRSystem.IsValid() && GetWorld() && GetWorld()->WorldType != EWorldType::Editor )
 	{
 		IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();
 
@@ -367,6 +367,11 @@ void UCameraComponent::ClearAdditiveOffset()
 #endif
 }
 
+void UCameraComponent::GetAdditiveOffset(FTransform& OutAdditiveOffset, float& OutAdditiveFOVOffset) const
+{
+	OutAdditiveOffset = AdditiveOffset;
+	OutAdditiveFOVOffset = AdditiveFOVOffset;
+}
 
 void UCameraComponent::AddExtraPostProcessBlend(FPostProcessSettings const& PPSettings, float PPBlendWeight)
 {

@@ -114,8 +114,7 @@ public:
 			return false; // pending flush
 		}
 
-		check(Samples.Pop());
-		check(Sample.IsValid());
+		Samples.Pop();
 
 		FPlatformAtomics::InterlockedDecrement(&NumSamples);
 		check(NumSamples >= 0);

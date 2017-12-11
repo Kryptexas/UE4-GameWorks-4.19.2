@@ -22,7 +22,4 @@ public:
 
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
-
-	DEPRECATED(4.15, "Direct evaluation of boolean tracks is no longer supported. Please create an evaluation template (see FMovieSceneBoolPropertySectionTemplate).")
-	virtual bool Eval( float Position, float LastPostion, bool& InOutBool ) const;
 };

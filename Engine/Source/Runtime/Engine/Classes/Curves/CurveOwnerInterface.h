@@ -24,6 +24,9 @@ public:
 	/** Called to modify the owner of the curve */
 	virtual void ModifyOwner() = 0;
 
+	/** Called to modify the owner of the curve during interaction/while being edited. */
+	virtual void ModifyOwnerChange() { ModifyOwner(); }
+
 	/** Returns the owner(s) of the curve */
 	virtual TArray<const UObject*> GetOwners() const = 0;
 

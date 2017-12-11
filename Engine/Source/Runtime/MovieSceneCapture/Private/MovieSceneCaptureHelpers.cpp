@@ -465,7 +465,7 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 					continue;
 				}
 
-				FString ShotName = CinematicShotSection->GetShotDisplayName().ToString();
+				FString ShotName = CinematicShotSection->GetShotDisplayName();
 				FString ShotPath = CinematicShotSection->GetSequence()->GetMovieScene()->GetOuter()->GetPathName();
 
 				float HandleFrameTime = (float)InHandleFrames / (float)InFrameRate;

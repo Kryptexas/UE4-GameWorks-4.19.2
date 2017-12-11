@@ -6,6 +6,7 @@
 #include "K2Node.h"
 #include "UObject/ObjectMacros.h"
 #include "MovieScene.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
 
 #include "K2Node_GetSequenceBinding.generated.h"
 
@@ -52,4 +53,8 @@ public:
 	FText GetSequenceName() const;
 	FText GetBindingName() const;
 	UMovieScene* GetObjectMovieScene() const;
+
+private:
+	mutable FMovieSceneSequenceHierarchy SequenceHierarchyCache;
+	mutable TMap<FMovieSceneSequenceID, FGuid> SequenceSignatureCache;
 };

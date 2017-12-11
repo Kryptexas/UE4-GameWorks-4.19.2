@@ -10,6 +10,7 @@
 #include "ISequencerObjectChangeListener.h"
 #include "MediaPlayer.h"
 #include "MediaSource.h"
+#include "MediaTexture.h"
 #include "MovieSceneBinding.h"
 #include "MovieSceneMediaSection.h"
 #include "MovieSceneMediaTrack.h"
@@ -32,7 +33,7 @@
 
 TArray<FAnimatedPropertyKey, TInlineAllocator<1>> FMediaTrackEditor::GetAnimatedPropertyTypes()
 {
-	return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(UMediaPlayer::StaticClass()) });
+	return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(UMediaTexture::StaticClass()) });
 }
 
 
@@ -41,7 +42,7 @@ TArray<FAnimatedPropertyKey, TInlineAllocator<1>> FMediaTrackEditor::GetAnimated
 
 FMediaTrackEditor::FMediaTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FMovieSceneTrackEditor(InSequencer)
-	, PropertyKey(FAnimatedPropertyKey::FromObjectType(UMediaPlayer::StaticClass()))
+	, PropertyKey(FAnimatedPropertyKey::FromObjectType(UMediaTexture::StaticClass()))
 {
 	ThumbnailPool = MakeShared<FTrackEditorThumbnailPool>(InSequencer);
 	OnPropertyChangedHandle = InSequencer->GetObjectChangeListener().GetOnAnimatablePropertyChanged(PropertyKey).AddRaw(this, &FMediaTrackEditor::OnAnimatedPropertyChanged);
@@ -142,11 +143,14 @@ void FMediaTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 		check(MediaPlaneComponent);
 
 		UStructProperty* MediaPlanesProperty = MediaPlaneComponent->GetMediaPlaneProperty();
+		UProperty* MediaTextureProperty = FindField<UProperty>(FMediaPlaneParameters::StaticStruct(), GET_MEMBER_NAME_CHECKED(FMediaPlaneParameters, MediaTexture));
 
 		check(MediaPlanesProperty);
+		check(MediaTextureProperty);
 
 		TSharedRef<FPropertyPath> Path = FPropertyPath::CreateEmpty();
 		Path->AddProperty(FPropertyInfo(MediaPlanesProperty));
+		Path->AddProperty(FPropertyInfo(MediaTextureProperty));
 
 		return Path;
 	};

@@ -269,20 +269,18 @@ namespace UnFbx {
 		{
 		case FbxAnimCurveDef::eInterpolationCubic:
 		{
-			switch (FbxKey.GetTangentMode())
+			FbxAnimCurveDef::ETangentMode TangentMode = FbxKey.GetTangentMode(true);
+			if (TangentMode & (FbxAnimCurveDef::eTangentUser | FbxAnimCurveDef::eTangentTCB | FbxAnimCurveDef::eTangentGenericClamp | FbxAnimCurveDef::eTangentGenericClampProgressive))
 			{
-			case FbxAnimCurveDef::eTangentBreak:
-				Mode = CIM_CurveBreak;
-				break;
-			case FbxAnimCurveDef::eTangentAuto:
-				Mode = CIM_CurveAuto;
-				break;
-			case FbxAnimCurveDef::eTangentUser:
-			case FbxAnimCurveDef::eTangentTCB:
 				Mode = CIM_CurveUser;
-				break;
-			default:
-				break;
+			}
+			else if (TangentMode & FbxAnimCurveDef::eTangentGenericBreak)
+			{
+				Mode = CIM_CurveBreak;
+			}
+			else if (TangentMode & FbxAnimCurveDef::eTangentAuto)
+			{
+				Mode = CIM_CurveAuto;
 			}
 			break;
 		}
