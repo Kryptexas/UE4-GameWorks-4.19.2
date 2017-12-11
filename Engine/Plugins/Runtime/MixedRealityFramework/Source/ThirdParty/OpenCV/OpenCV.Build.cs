@@ -19,7 +19,7 @@ public class OpenCV : ModuleRules
 			string LibPath = Path.Combine(ModuleDirectory, "lib", PlatformDir);
 			PublicLibraryPaths.Add(LibPath);
 
-            string BinaryPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../Binaries/ThirdParty", PlatformDir));
+            string BinaryPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/ThirdParty", PlatformDir));
 
             string LibName = "opencv_world331";
 
